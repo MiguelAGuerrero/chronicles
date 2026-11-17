@@ -8,13 +8,17 @@ import { fits, roomOfCount } from '../../lib/notePage/room';
 import type { BodyFormat } from '../../lib/notePage/schema';
 import { refLabel } from '../../lib/threads/lines';
 import { useKeyboardHeight } from '../../lib/threads/useKeyboardHeight';
+import type { CapturePatch } from '../../lib/captureBus';
+import type { Faced } from '../../lib/moment';
 import { signLabel, type ReactionId, type ReactionSet } from '../../lib/reactions/core';
 import { Icon, type IconName } from '../icons';
 import { ReactionPanel } from '../reactions/ReactionPanel';
 import { MomentPicker } from '../threads/MomentPicker';
 import { useMomentPool } from '../threads/useMomentPool';
 import { theme } from '../ui';
-import { useMentionCards } from './useMentionCards';
+import { useBaker } from '../Baker';
+import { MediaEditor, type MediaEditorHandle } from '../edit/MediaEditor';
+import { mentionKey, useMentionCards } from './useMentionCards';
 import JournalEditor, { type FormatKind, type Formats, type JournalHandle, type Palette } from './JournalEditor';
 
 /** How a page keeps what is written (NP9): a new note becomes a moment once it has words; then it is saved; left empty, it goes. */
@@ -163,6 +167,13 @@ export const NotePage = forwardRef<NotePageHandle, {
    * the Type tool was. A response's page has none (RX13).
    */
   reaction?: { set: ReactionSet; onPick: (id: ReactionId) => void; moment?: string | null };
+  /** The page's own time, and its walk when that is known: a picture from another day or walk says so (note pictures NI16). */
+  pageAt?: { t: number; walkId?: string | null };
+  /**
+   * Keeps an edit made from the page on the moment (NI14): with it a tap on a picture offers Edit, in the editor the
+   * viewer uses. The page is one more place to reach it, never a copy of the photo.
+   */
+  onEditMedia?: (c: Faced, patch: CapturePatch) => Promise<void>;
 }>(function NotePage(props, ref) {
   const insets = useSafeAreaInsets();
   const keyboard = useKeyboardHeight();
@@ -177,6 +188,19 @@ export const NotePage = forwardRef<NotePageHandle, {
   const [count, setCount] = useState(0);
   const [busy, setBusy] = useState(false);
   const pool = useMomentPool(picking);
+  // Its mentions as pictures (NI1): read again when the mentions change or a picture is edited, never on a keystroke.
+  const [stored, setStored] = useState(props.body);
+  const [again, setAgain] = useState(0);
+  const [baker, bakers] = useBaker();
+  const cardPool = useMomentPool(mentionKey(stored), again);
+  const cards = useMentionCards(stored, cardPool, { pictures: { page: props.pageAt ?? null, baker: bakers } });
+  // A tap on a picture offers its menu (NI13); Edit raises the media editor over the page (NI14).
+  const [menuFor, setMenuFor] = useState<string | null>(null);
+  const [editing, setEditing] = useState<Faced | null>(null);
+  const mediaEditor = useRef<MediaEditorHandle>(null);
+  // A picture just taken out (NI19): said with Undo until it is used, another picture is tapped or something is typed.
+  const [removed, setRemoved] = useState(false);
+  const removing = useRef(false);
   const [now] = useState(() => Date.now());
   // The room line counts what the editor counts, so it says full when the editor takes no more (note-pages audit 8).
   const room = roomOfCount(count);
@@ -184,7 +208,9 @@ export const NotePage = forwardRef<NotePageHandle, {
   const leave = () => save.leave(onClose);
   useImperativeHandle(ref, () => ({
     requestClose: () => {
-      if (picking) setPicking(false);
+      if (editing) mediaEditor.current?.requestClose();
+      else if (menuFor) setMenuFor(null);
+      else if (picking) setPicking(false);
       else if (typePanel) setTypePanel(false);
       else if (panel) setPanel(false);
       else leave();
@@ -193,6 +219,24 @@ export const NotePage = forwardRef<NotePageHandle, {
   const mention = (id: string, label: string) => {
     if (!fits(shown, label)) return;
     editor.current?.insertMention(id, label);
+  };
+  const menuCard = menuFor ? cards?.[menuFor] : undefined;
+  const menuVideo = !!menuCard && !menuCard.gone && !!menuCard.picture?.video;
+  const startEdit = () => {
+    const v = menuFor ? cardPool.byId.get(menuFor) : null;
+    setMenuFor(null);
+    if (!v) return;
+    // The caret lets go, so the keyboard is down under the editor; it comes back when the editor closes.
+    editor.current?.blur();
+    setEditing(v.capture);
+  };
+  const removePicture = () => {
+    const id = menuFor;
+    setMenuFor(null);
+    if (!id) return;
+    removing.current = true;
+    editor.current?.removeMention(id);
+    setRemoved(true);
   };
   const camera = props.onCamera;
   const bottom = Platform.OS === 'web' ? keyboard : 0;
@@ -219,7 +263,17 @@ export const NotePage = forwardRef<NotePageHandle, {
           maxChars={NOTE_MAX}
           head={{ day: props.head.day, line: props.head.line }}
           palette={PALETTE}
+          mentions={cards}
+          selectedId={menuFor}
+          onPictureTap={(id) => {
+            if (id) setRemoved(false);
+            setMenuFor((m) => (props.onEditMedia && id && id !== m ? id : null));
+          }}
           onChange={(body, text, n) => {
+            // The removal's own change keeps its line; whatever is typed after it takes the line away.
+            if (removing.current) removing.current = false;
+            else setRemoved(false);
+            setStored(body);
             setShown(text);
             setCount(n);
             save.edit(body);
@@ -244,6 +298,26 @@ export const NotePage = forwardRef<NotePageHandle, {
           ))}
         </View>
       )}
+      {menuFor && props.onEditMedia ? (
+        <View style={styles.panel} testID="picture-menu" accessibilityRole="menu" accessibilityLabel="Picture">
+          <Pressable testID="picture-edit" accessibilityRole="menuitem" accessibilityLabel={menuVideo ? 'Edit video' : 'Edit photo'} onPress={startEdit} style={({ pressed }) => [styles.menuRow, pressed && styles.dim]}>
+            <Icon name="create" size={22} color={theme.ink} />
+            <Text style={styles.glyph}>{menuVideo ? 'Edit video' : 'Edit photo'}</Text>
+          </Pressable>
+          <Pressable testID="picture-remove" accessibilityRole="menuitem" accessibilityLabel="Remove from page" onPress={removePicture} style={({ pressed }) => [styles.menuRow, pressed && styles.dim]}>
+            <Icon name="trash-outline" size={22} color={theme.danger} />
+            <Text style={[styles.glyph, styles.danger]}>Remove from page</Text>
+          </Pressable>
+        </View>
+      ) : null}
+      {removed && !menuFor ? (
+        <View style={[styles.panel, styles.removedRow]} testID="picture-removed" accessibilityLiveRegion="polite">
+          <Text style={styles.removedText}>Taken out of the page</Text>
+          <Pressable testID="picture-undo" accessibilityRole="button" accessibilityLabel="Undo" onPress={() => { setRemoved(false); editor.current?.undo(); }} style={({ pressed }) => [styles.menuRow, pressed && styles.dim]}>
+            <Text style={[styles.glyph, styles.done]}>Undo</Text>
+          </Pressable>
+        </View>
+      ) : null}
       {typePanel && props.reaction ? (
         // A choice keeps the panel open, so a second family is one more tap (RX5); the tool closes it.
         <ReactionPanel set={props.reaction.set} onPick={props.reaction.onPick} moment={props.reaction.moment} />
@@ -278,6 +352,24 @@ export const NotePage = forwardRef<NotePageHandle, {
         ) : null}
         <Text style={styles.room} testID="note-room" accessibilityLiveRegion="polite">{room.line ?? ''}</Text>
       </View>
+      {baker}
+      {editing && (
+        // Inside the page's own Modal, never a second one (iOS): the viewer's editor, with every tool it has.
+        <MediaEditor
+          ref={mediaEditor}
+          overlay
+          key={editing.piece_id}
+          capture={editing}
+          onClose={() => {
+            setEditing(null);
+            editor.current?.focus();
+          }}
+          onSave={async (patch) => {
+            await props.onEditMedia?.(editing, patch);
+            setAgain((n) => n + 1);
+          }}
+        />
+      )}
       {picking && (
         <MomentPicker
           pool={pool}
@@ -301,8 +393,10 @@ export const NotePage = forwardRef<NotePageHandle, {
  * A note's page read in the viewer (NP5): the same head and drawing, nothing editable; a tap on the words asks to
  * edit, a mention opens its moment, a checkbox changes nothing (the steward's S1, decision 0114).
  */
-export function NoteReader(props: { body: string; bodyFormat: BodyFormat; head: NoteHead; onEdit?: () => void; onOpenMention: (id: string) => void }) {
-  const mentions = useMentionCards(props.body);
+export function NoteReader(props: { body: string; bodyFormat: BodyFormat; head: NoteHead; pageAt?: { t: number; walkId?: string | null }; onEdit?: () => void; onOpenMention: (id: string) => void }) {
+  const [baker, bakers] = useBaker();
+  const pool = useMomentPool(mentionKey(props.body));
+  const mentions = useMentionCards(props.body, pool, { pictures: { page: props.pageAt ?? null, baker: bakers } });
   return (
     <View style={styles.reader} testID="note-reader">
       <JournalEditor
@@ -323,6 +417,7 @@ export function NoteReader(props: { body: string; bodyFormat: BodyFormat; head: 
         onTapToEdit={() => props.onEdit?.()}
         onScrolled={() => {}}
       />
+      {baker}
     </View>
   );
 }
@@ -339,6 +434,10 @@ const styles = StyleSheet.create({
   short: { flex: 1, textAlign: 'center', fontSize: 15, color: theme.muted },
   failed: { color: theme.ink, fontWeight: '600' },
   body: { flex: 1, position: 'relative' },
+  removedRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingLeft: 18 },
+  removedText: { fontSize: 15, color: theme.muted },
+  danger: { color: theme.danger },
+  menuRow: { minHeight: 48, paddingHorizontal: 18, flexDirection: 'row', alignItems: 'center', gap: 10 },
   panel: { borderTopWidth: StyleSheet.hairlineWidth, borderColor: theme.line, backgroundColor: theme.bg, paddingVertical: 6, gap: 4 },
   panelRow: { paddingHorizontal: 8, gap: 6, alignItems: 'center' },
   bar: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 8, paddingTop: 6, borderTopWidth: StyleSheet.hairlineWidth, borderColor: theme.line, backgroundColor: theme.surface },

@@ -2,10 +2,12 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { boundsOf, distanceM, splitAtGaps, stepToward, traceDistanceM, smoothDwells, type Bounds } from '../../geo';
-import { fillsOf, GAP_RULES, gapsOf, inferGap, movingPace, readBounds, stretchAt, stretchesFor, stretchLines } from '../../gaps/infer';
+import { fillsOf, GAP_RULES, gapsOf, inferGap, keepAllWords, offersOf, movingPace, readBounds, stretchAt, stretchesFor, stretchLines } from '../../gaps/infer';
 import { liveRuns, readTrace, traceDistances, withFilled } from '../../rides';
 import { tilesNear } from '../../tileMath';
 import { snap } from '../../snapper';
+import { keepAll, markAsked, wasAsked } from '../../gaps/keep';
+import { memoryDb } from '../fakes';
 import { deriveSegments, type RoadFeature } from '../../streets';
 import type { GapDecision, LngLat, StreetSegment, TracePoint } from '../../types';
 
@@ -445,4 +447,49 @@ test('G1 (Nov 3): a break within 10 m is joined straight and filled by itself, w
   assert.equal(inf.path.length, 2);
   const filled = readTrace(withGap([at(0, 0), at(1, 0)], [at(1.06, 0), at(2, 0)], 300), 0, [], [], fillsOf(stretchesFor(gaps, [inf], [])));
   assert.equal(liveRuns(filled).length, 1, 'one line');
+});
+
+// G15: settled at walk's end (the owner's call, Nov 16).
+test('G15 offers are the stretches only offered, and the prompt is words', () => {
+  const mk = (t0: number, how: 'offer' | 'kept' | 'certain') => ({ t0, t1: t0 + 1, path: [at(0, 0), at(1, 0)], lengthM: 100, street: null, how }) as never;
+  const list = [mk(1, 'offer'), mk(3, 'kept'), mk(5, 'offer'), mk(7, 'certain')];
+  assert.deepEqual(offersOf(list).map((s) => s.t0), [1, 5]);
+  assert.deepEqual(offersOf([mk(3, 'kept')]), []);
+  assert.deepEqual(keepAllWords(0), null);
+  for (const n of [1, 2, 3, 12]) {
+    const w = keepAllWords(n)!;
+    assert.equal(w.title, 'Keep the likely way?');
+    assert.ok(!/\d/.test(w.sub), `no number in "${w.sub}"`);
+  }
+});
+
+// Audit of G15 (Nov 16), named "filling-gaps audit N".
+const offer = (t0: number) => ({ t0, t1: t0 + 1000, path: [at(0, 0), at(1, 0)], lengthM: 100, street: 'Elm', how: 'offer' }) as never;
+
+test('filling-gaps audit 1: the question is stored as asked, per walk, so it is asked once', async () => {
+  const db = memoryDb();
+  assert.equal(await wasAsked(db, 'w1'), false);
+  await markAsked(db, 'w1');
+  assert.equal(await wasAsked(db, 'w1'), true);
+  assert.equal(await wasAsked(db, 'w2'), false);
+});
+
+test('filling-gaps audit 2: keepAll goes on past a failed write and says how many failed', async () => {
+  const written: number[] = [];
+  const put = async (d: GapDecision) => {
+    if (d.t0 === 2) throw new Error('disk');
+    written.push(d.t0);
+  };
+  const failed = await keepAll(put, 'w', [offer(1), offer(2), offer(3)], 5);
+  assert.deepEqual(written, [1, 3]);
+  assert.equal(failed, 1);
+  assert.equal(await keepAll(put, 'w', [offer(4)], 5), 0);
+});
+
+test('filling-gaps audit 6: the words agree with the gaps and say what each answer does', () => {
+  const one = keepAllWords(1)!;
+  assert.deepEqual([one.keep, one.leave], ['Keep it', 'Leave it']);
+  const many = keepAllWords(3)!;
+  assert.deepEqual([many.keep, many.leave], ['Keep them', 'Leave them']);
+  for (const w of [one, many]) assert.match(w.sub, /walk/i);
 });

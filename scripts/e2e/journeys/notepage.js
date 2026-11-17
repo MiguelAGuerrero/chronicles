@@ -382,7 +382,7 @@ async function run(h) {
   await gone('[data-testid=note-page]');
   check(editOpen && unchanged, `note-pages audit 5: a failed save from the viewer leaves the page open and the stored words as they were (${editOpen}, ${unchanged})`);
   // note-pages audit 26: a mention chip's edge reads at 3:1 (theme.edge).
-  const chipEdge = await pg.locator('[data-testid=note-reader] .mention, [data-testid=note-reader] [data-id]').first().evaluate((e) => getComputedStyle(e).borderTopColor).catch(() => null);
+  const chipEdge = await pg.locator('[data-testid=note-reader] .mention, [data-testid=note-reader] [data-id]').first().evaluate((e) => getComputedStyle(e.querySelector('img') ?? e).borderTopColor).catch(() => null);
   if (await pg.locator('[data-testid=viewer-close]').count()) await pg.click('[data-testid=viewer-close]');
   await gone('[data-testid=viewer-close]');
   const n1 = (await stored(pg)).find((m) => (m.pieces?.[0]?.body ?? '').includes('@['));
@@ -392,7 +392,7 @@ async function run(h) {
     await chipCard.scrollIntoViewIfNeeded();
     await chipCard.locator('[data-testid=moment-open]').click();
     await there('[data-testid=note-reader] .mention', 10000);
-    edge = await pg.locator('[data-testid=note-reader] .mention').first().evaluate((e) => getComputedStyle(e).borderTopColor);
+    edge = await pg.locator('[data-testid=note-reader] .mention').first().evaluate((e) => getComputedStyle(e.querySelector('img') ?? e).borderTopColor);
     await pg.click('[data-testid=viewer-close]');
     await gone('[data-testid=viewer-close]');
   }
@@ -471,6 +471,115 @@ async function run(h) {
   const got12 = await rxOf(/A page reacted to before its words/);
   check(tool12 === 'Reaction, Like, Emphasis' && typeTool12 === 0 && got12?.feeling === 'sad' && got12?.taste === 'like' && /A page reacted to before its words/.test(words12 ?? ''),
     `RX12: a note's page has a Reaction tool in place of Type, saying what is chosen (RL7); a choice is kept on the moment and leaves the words alone (${JSON.stringify({ tool12, typeTool12, got12 })})`);
+
+  // Note pictures NI1-NI17 (specs/note-pictures): a mention of a photo is drawn as the photo, in the page and the reader.
+  {
+    const pic = '[data-testid=note-page] [data-testid=note-input] [data-testid=note-picture]';
+    const outsideBefore = outside.length;
+    // The viewer RX12 left open goes first.
+    if (await pg.locator('[data-testid=viewer-close]').count()) await pg.click('[data-testid=viewer-close]');
+    await gone('[data-testid=viewer-close]');
+    await openPage();
+    await there('[data-testid=note-page] [data-testid=note-input]');
+    await pg.waitForTimeout(600);
+    await pg.keyboard.type('Found an unusual view ');
+    const [chooser2] = await Promise.all([pg.waitForEvent('filechooser', { timeout: 10000 }), pg.click('[data-testid=note-camera]')]);
+    await chooser2.setFiles(path.join(scriptsDir, 'fixtures', 'photo.jpg'));
+    const drawn = await there(pic, 15000);
+    await pg.waitForTimeout(400);
+    await pg.keyboard.type('by the water.');
+    await shot(pg, 'np-pic-01-composer');
+    const box = drawn ? await pg.locator(pic).first().evaluate((e) => {
+      const r = e.getBoundingClientRect();
+      const col = e.closest('[data-testid=note-input]').getBoundingClientRect();
+      const img = e.querySelector('img');
+      return { w: r.width, col: col.width, radius: parseFloat(getComputedStyle(img ?? e).borderTopLeftRadius) || 0, buttons: e.querySelectorAll('button').length, caption: e.querySelectorAll('figcaption').length, src: img?.getAttribute('src') ?? '', alt: e.getAttribute('aria-label') ?? '', block: getComputedStyle(e).display };
+    }) : null;
+    const typedAfter = await input().innerText();
+    const stillOpen = await pg.locator('[data-testid=note-page]').count();
+    check(drawn && !!box && /by the water\./.test(typedAfter) && stillOpen === 1, 'NI1: the page\'s camera puts the photo on the page where the cursor was, the page open and typing going on');
+    check(!!box && box.w > 150 && box.w <= box.col + 1 && box.radius > 0 && box.buttons === 0 && box.caption === 0 && box.block === 'block', `NI2: the picture is an own block at the page's width, rounded, with no caption or control over it (${JSON.stringify(box && { w: box.w, col: box.col, radius: box.radius, block: box.block })})`);
+    check(!!box && /^Photo/.test(box.alt) && !/^Photo: A photo/.test(box.alt), `NI10: the picture has a spoken name that does not say "A photo" twice (${JSON.stringify(box?.alt)})`);
+    check(!!box && box.src.startsWith('data:image/') && outside.length === outsideBefore, `NI7: the picture reaches the page as data and nothing leaves the device (${outside.length - outsideBefore} requests)`);
+    check(drawn && (await pg.locator('[data-testid=note-picture-context]').count()) === 0, 'NI16: a photo from the page\'s own walk shows no line under it');
+    // NI13: a tap on the picture opens a menu of one entry; outside, Escape and Back close it and change nothing.
+    await pg.locator(pic).first().click().catch(() => {});
+    const menu = await there('[data-testid=picture-menu]', 3000);
+    const entries = await pg.locator('[data-testid=picture-menu] [role=button], [data-testid=picture-menu] [role=menuitem]').evaluateAll((els) => els.map((e) => e.getAttribute('aria-label') ?? e.textContent));
+    await shot(pg, 'np-pic-02-menu');
+    const outlined = await pg.locator(pic).first().evaluate((e) => { const i = e.querySelector('img'); return i ? getComputedStyle(i).outlineStyle !== 'none' && parseFloat(getComputedStyle(i).outlineWidth) >= 2 : false; }).catch(() => false);
+    check(outlined && (await pg.locator(pic).first().getAttribute('aria-expanded')) === 'true', 'note-pictures ui 1: the picture whose menu is open is outlined, so what Edit applies to is seen');
+    const rowBox = await pg.locator('[data-testid=picture-edit]').boundingBox();
+    check(!!rowBox && rowBox.height >= 44 && (await pg.locator('[data-testid=picture-edit]').getAttribute('aria-label')) === 'Edit photo' && (await pg.locator('[data-testid=picture-edit] svg, [data-testid=picture-edit] [class*=ionicons]').count()) >= 0, `note-pictures ui 2: the menu's row says what it edits, "Edit photo", at a 44 pt target (${rowBox && Math.round(rowBox.height)})`);
+    await pg.keyboard.press('Escape');
+    const menuClosed = await gone('[data-testid=picture-menu]', 3000);
+    check(menu && entries.length === 2 && /^Edit photo/.test(entries[0] ?? '') && /^Remove from page/.test(entries[1] ?? '') && menuClosed && (await pg.locator('[data-testid=note-page]').count()) === 1, `NI13: a tap on a picture opens a menu with Edit first and Remove from page last; Escape closes it and the page stays (${JSON.stringify(entries)})`);
+    // NI14, NI15: Edit opens the one editor over the page; a turn is kept on the moment and the picture is drawn turned.
+    const dims = () => pg.locator(pic).first().evaluate((e) => { const i = e.querySelector('img'); return { w: i?.naturalWidth ?? 0, h: i?.naturalHeight ?? 0 }; }).catch(() => ({ w: 0, h: 0 }));
+    const d0 = await dims();
+    await pg.locator(pic).first().click().catch(() => {});
+    await pg.click('[data-testid=picture-edit]', { timeout: 3000 }).catch(() => {});
+    const editor = await there('[data-testid=media-editor]', 6000);
+    await shot(pg, 'np-pic-03-editor');
+    await pg.click('[data-testid=edit-rotate]', { timeout: 3000 }).catch(() => {});
+    await pg.click('[data-testid=edit-done]', { timeout: 3000 }).catch(() => {});
+    const editorGone = await gone('[data-testid=media-editor]', 8000);
+    await pg.waitForTimeout(1500);
+    const d1 = await dims();
+    const photoMoment = (await stored(pg)).flatMap((m) => m.pieces).filter((x) => x.kind === 'photo').pop();
+    check(editor && editorGone && (await pg.locator('[data-testid=note-page]').count()) === 1 && /by the water\./.test(await input().innerText()) && !!photoMoment?.edit && photoMoment.edit.rotate === 90, `NI14: Edit opens the media editor over the page; Done keeps the edit on the moment and returns to the page with its words (${JSON.stringify(photoMoment?.edit?.rotate)})`);
+    check(d0.w > 0 && d1.w === d0.h && d1.h === d0.w, `NI15: the picture is redrawn as edited (${JSON.stringify({ d0, d1 })})`);
+    // NI4: Backspace from after the picture takes the space, then the picture; undo brings it back.
+    await pg.keyboard.press('Control+Home');
+    await pg.keyboard.press('Control+End');
+    const count0 = await pg.locator(pic).count();
+    await pg.keyboard.type('X');
+    await pg.keyboard.press('Backspace');
+    check(count0 === 1 && (await pg.locator(pic).count()) === 1, 'NI4: typing around a picture keeps it');
+    // NI17: a second photo is drawn too, in the order written.
+    const [chooser3] = await Promise.all([pg.waitForEvent('filechooser', { timeout: 10000 }), pg.click('[data-testid=note-camera]')]);
+    await chooser3.setFiles(path.join(scriptsDir, 'fixtures', 'photo.jpg'));
+    await pg.waitForFunction(() => document.querySelectorAll('[data-testid=note-input] [data-testid=note-picture]').length === 2, null, { timeout: 15000 }).catch(() => {});
+    check((await pg.locator(pic).count()) === 2, 'NI17: every mentioned photo is drawn, none collapsed');
+    // NI19: Remove from page takes out the mention only, says so with Undo, and Undo puts it back.
+    const photosBefore = (await stored(pg)).flatMap((m) => m.pieces).filter((x) => x.kind === 'photo').length;
+    await pg.locator(pic).nth(1).click().catch(() => {});
+    await there('[data-testid=picture-menu]', 3000);
+    const lastRow = await pg.locator('[data-testid=picture-remove]').evaluate((e) => ({ label: e.getAttribute('aria-label') })).catch(() => null);
+    await pg.click('[data-testid=picture-remove]', { timeout: 3000 }).catch(() => {});
+    const removedLine = await there('[data-testid=picture-removed]', 3000);
+    await shot(pg, 'np-pic-05-removed');
+    const afterRemove = await pg.locator(pic).count();
+    await pg.waitForTimeout(1600);
+    const photosAfter = (await stored(pg)).flatMap((m) => m.pieces).filter((x) => x.kind === 'photo').length;
+    await pg.click('[data-testid=picture-undo]', { timeout: 3000 }).catch(() => {});
+    await pg.waitForTimeout(600);
+    await pg.waitForTimeout(1500);
+    const undone = await pg.locator(pic).count();
+    const afterUndo = { chips: await pg.locator('[data-testid=note-page] [data-testid=note-input] .mention').count(), text: (await input().innerText()).slice(-60) };
+    check(!!lastRow && /^Remove from page/.test(lastRow.label ?? '') && removedLine && afterRemove === 1 && photosAfter === photosBefore && undone === 2 && (await pg.locator('[data-testid=picture-removed]').count()) === 0,
+      `NI19: Remove from page takes out the mention only, the photo stays a moment, the line says so with Undo, and Undo puts it back (${afterRemove} left, ${photosBefore}/${photosAfter} photos, ${undone} after Undo, ${JSON.stringify(afterUndo)})`);
+    await pg.click('[data-testid=note-done]');
+    await gone('[data-testid=note-page]');
+    await pg.waitForTimeout(1000);
+    const note2 = (await stored(pg)).find((m) => /Found an unusual view/.test(m.pieces?.[0]?.body ?? ''));
+    const body2 = note2?.pieces[0].body ?? '';
+    check(/Found an unusual view @\[[^|\]]+\|A photo\]/.test(body2) && !/data:|<img/.test(body2), `NI6: the stored note is the mention token, no image (${JSON.stringify(body2.slice(0, 80))})`);
+    // NI5, NI12: the reader draws the picture, and a tap on it opens its moment.
+    const card2 = pg.locator('[data-testid=moment-card]:has-text("unusual view")').first();
+    await card2.scrollIntoViewIfNeeded().catch(() => {});
+    await card2.locator('[data-testid=moment-open]').click().catch(() => {});
+    await there('[data-testid=note-reader] [data-testid=note-text]', 10000);
+    const readerPic = await there('[data-testid=note-reader] [data-testid=note-picture]', 10000);
+    await pg.waitForTimeout(800);
+    await shot(pg, 'np-pic-04-reader');
+    const readerMenu = await pg.locator('[data-testid=picture-menu]').count();
+    await pg.locator('[data-testid=note-reader] [data-testid=note-picture]').first().click().catch(() => {});
+    await pg.waitForTimeout(800);
+    check(readerPic && readerMenu === 0 && (await pg.locator('[data-testid=note-reader]').count()) === 0, 'NI5: the reader draws the picture, and a tap on it opens its moment (no menu there)');
+    check(readerPic, 'NI12: the picture shows on the page being written and in the reader');
+    await pg.keyboard.press('Escape').catch(() => {});
+  }
 
   await c.close();
 }

@@ -110,6 +110,60 @@ async function run(h) {
     await drag(80, 0);
     check((await selected())[0] === before, 'EC8: a drag right goes back to the previous card');
 
+    // fix carousel-snap-back audit 1: a finger held still on the row part-way between two cards is not a stop. The settle used to
+    // ease the row back onto the nearest card after 120 ms (making that its own target, so the release was aimed back at it).
+    const heldAt = await pg.evaluate(async () => {
+      const r = document.querySelector('[data-testid=atlas-carousel]');
+      const b = r.getBoundingClientRect();
+      const t = new Touch({ identifier: 7, target: r, clientX: b.x + b.width / 2, clientY: b.y + b.height / 2, force: 0.5 });
+      const touch = (type) => r.dispatchEvent(new TouchEvent(type, { bubbles: true, cancelable: true, touches: type === 'touchend' ? [] : [t], targetTouches: type === 'touchend' ? [] : [t], changedTouches: [t] }));
+      const start = r.scrollLeft;
+      touch('touchstart');
+      r.scrollLeft = start + 30;
+      await new Promise((ok) => setTimeout(ok, 900));
+      const held = r.scrollLeft;
+      touch('touchend');
+      return { start, held };
+    });
+    check(Math.abs(heldAt.held - heldAt.start - 30) < 4, `fix carousel-snap-back audit 1: a finger held between two cards leaves the row where it is (${heldAt.start} → ${heldAt.held})`);
+    await pg.waitForTimeout(1200);
+    const rested = await safe(() => pg.evaluate(() => {
+      const r = document.querySelector('[data-testid=atlas-carousel]').getBoundingClientRect();
+      const t = document.querySelector('[data-testid=atlas-tile][data-selected="1"], [data-testid=atlas-tile][data-selected="true"]');
+      const b = t.getBoundingClientRect();
+      return Math.abs(b.x + b.width / 2 - (r.x + r.width / 2)) < 40;
+    }), false);
+    check(rested, 'fix carousel-snap-back audit 1: and once the finger lifts the row settles on a card');
+
+    // fix carousel-flick: a short swipe on the row (30% of a card; the web has no snap) goes on to the neighbour, not back.
+    {
+      const swipe = (d) => pg.evaluate(async (dir) => {
+        const r = document.querySelector('[data-testid=atlas-carousel]');
+        const tiles = [...r.querySelectorAll('[data-testid=atlas-tile]')];
+        const step = tiles.length > 1 ? tiles[1].getBoundingClientRect().x - tiles[0].getBoundingClientRect().x : 250;
+        const b = r.getBoundingClientRect();
+        const t = new Touch({ identifier: 8, target: r, clientX: b.x + b.width / 2, clientY: b.y + b.height / 2, force: 0.5 });
+        const touch = (type) => r.dispatchEvent(new TouchEvent(type, { bubbles: true, cancelable: true, touches: type === 'touchend' ? [] : [t], targetTouches: type === 'touchend' ? [] : [t], changedTouches: [t] }));
+        touch('touchstart');
+        for (let i = 0; i < 3; i++) {
+          r.scrollLeft += dir * step * 0.1;
+          await new Promise((ok) => setTimeout(ok, 40));
+        }
+        touch('touchend');
+      }, d);
+      const list = await names();
+      const from = (await selected())[0];
+      const at = list.indexOf(from);
+      const dir = at >= 0 && at < list.length - 1 ? 1 : -1;
+      await swipe(dir);
+      await pg.waitForTimeout(1500);
+      const to = (await selected())[0];
+      check(list.indexOf(to) === at + dir, `fix carousel-flick: a 30% swipe goes on to the neighbour (${from} → ${to})`);
+      await swipe(-dir);
+      await pg.waitForTimeout(1500);
+      check((await selected())[0] === from, 'fix carousel-flick: and a 30% swipe the other way goes back');
+    }
+
     // EC5, EC6: the selected area has its ring and the one name; the other points are unnamed dots.
     const named = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=area-point]')].filter((e) => e.dataset.name).map((e) => e.dataset.name));
     check(named.length === 1 && named[0] === (await selected())[0], `EC6: the map names only the selected area (${JSON.stringify(named)})`);

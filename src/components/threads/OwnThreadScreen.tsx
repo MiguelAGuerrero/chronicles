@@ -98,7 +98,7 @@ const styles = StyleSheet.create({
   wrap: { gap: 18 },
   top: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   back: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: theme.line, backgroundColor: theme.surface, alignItems: 'center', justifyContent: 'center' },
-  eyebrow: { color: theme.accent, fontSize: 12, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase' },
+  eyebrow: { color: theme.ink, fontSize: 12, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase' },
   head: { gap: 8 },
   title: { color: theme.ink, fontSize: 28, fontWeight: '700' },
   subline: { color: theme.ink, fontSize: 16, lineHeight: 22 },

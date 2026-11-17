@@ -1,0 +1,22 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore atlas"
+      ],
+      "body": "- [ ] **fix carousel-flick (low, deferred):** a desktop mouse wheel or trackpad swipe on the row that stops under half a card away still eases back to the card it began on (the flick bias reads touch events only). Wants its own failing test before a fix.\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Explore carousel"
+      ],
+      "body": "- [ ] **Do:** on a phone, drag the Explore row slowly about a third of a card toward the next one and let go. **Expect:** the platform's own snap decides (`snapToInterval`, `decelerationRate=\"fast\"`) and the row ends on one card with that card selected and the map on it, never jumping on to a card the snap did not choose (fix carousel-flick: the flick bias in `snapTarget` is web only, `Platform.OS === 'web'`).\n"
+    }
+  ]
+}

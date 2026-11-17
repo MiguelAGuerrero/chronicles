@@ -1,0 +1,114 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "Explore's accent",
+        "--reason",
+        "the owner's rule (decision 0172, \"The accent at rest\": \"The accent is kept for a card's single primary action, app-wide; everything at rest is ink\"), built in tend explore 19: \"How the marks work\" and its icon are ink at rest, not the accent, and tend explore 20: the selected area's name and dot on Explore's map are ink at rest, not the accent"
+      ],
+      "target": "sha256:bd080d45a6e8cd418b8d0b91aa98f13a10934cb18c3cfb8ce837e769ae5d5dd6"
+    },
+    {
+      "argv": [
+        "open",
+        "set",
+        "The vision review of Nov 10",
+        "--reason",
+        "item 4, \"The accent at launch\", is answered by decision 0172 (\"The accent at rest\": \"a label is ink; only a card's single primary action may keep the accent\") and built: the Thread labels in tend chronicle 11, MomentCard's play button in tend chronicle 12 and tend chronicle audit 6 (the owner's \"A mic glyph\", decision 0186); \"A year ago today\" is muted and \"Relive it\" an ink menu item on main already; none is a card's single primary action"
+      ],
+      "body": "- **The vision review of Nov 10** (`0a254ba` to `b7b28c2`, 260 commits; no breach, every change serves a verb):\n  1. **The page trails its decisions (drift):** the Shapes rows \"Suggested routes\" and \"Several routes … Apple Maps\n     style | out\" against the scenic rows (0095) and the planner's three routes (0102, 0106); line 88's [proposed] and\n     open question 1, which 0104 answered; Precedents rows missing for 0098, 0102, 0104, 0105, 0106 and 0122. Amend?\n  2. **Public data read by tile** (the map, Overture, the places archive, now live): should the page say that a read\n     carrying no identifier is not data leaving the device, with `ALLOWED_HOSTS` as the list? Only 0103 says it now.\n  3. **\"Viewpoints and attractions\":** \"attraction\" is a draw on visitors, the nearest word to the Never on popularity;\n     keep it, or \"Viewpoints & oddities\" at both levels?\n  5. ~~**\"Placing your walks (N of M)\"**~~: answered Nov 11 (decision 0137): no cover, no count; walks are placed in\n     the background and the walk at hand says \"Placing…\" on its row.\n  6. **Open question 5**, \"nothing is ever calculated for you\", against resurfacing and suggested threads (0098):\n     where is the line?\n  - Note: the commits `2a00092` and `29dac68` cite decisions 0112 and 0121 for the plain labels; the record is 0122.\n",
+      "target": "sha256:5323a5f12feeb11c4f20ac0da27cbdd3288a6aec060129cb13350ea1bd212a44"
+    },
+    {
+      "argv": [
+        "inbox",
+        "note",
+        "T22"
+      ],
+      "body": "  Nov 17: swatches shown (olive, plum, umber; SCRATCH t22-swatches); umber picked, then 'Let's re-imagine the palette': no hue yet, a palette rethink comes first (decision 0186)\n",
+      "target": "sha256:e5557631b4ef36d737fd376b5b0472cf90cfd6ea3e89683039b74978e777eff8"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 17, `/tend explore --deploy=main`, the accent at rest across Explore and Chronicle** (opened from `28daf0a1`, rebased on `3cf80652`; no sweep, lenses 1-7 not run; the faster lane of decision 0181).\n- The items, as main held them: Explore and discovery's `[loop]` \"Explore's accent at rest beyond the selected card\", and \"Open before the loop\", the vision review of Nov 10, item 4 \"The accent at launch\". Both leave the record; decision 0172's rule: \"The accent is kept for a card's single primary action, app-wide; everything at rest is ink\".\n- `tend explore 19`: the area card's \"How the marks work\" and its icon in ink. `tend explore 20`: the selected area's name and its dot's ring on Explore's map in ink.\n- `tend chronicle 11`: the \"Thread\" label on both thread screens, and a found thread's quote rule, in ink. `tend chronicle 12`, then `tend chronicle audit 6` (the owner's \"A mic glyph\"): a memo's card draws a 16 px ink mic, no disc. \"A year ago today\" (muted) and \"Relive it\" (an ink menu item) were already not the accent; none of the four is a card's single primary action.\n- Decision 0186, \"The owner's answers of Nov 16 and 17\": twelve answers verbatim, the accent at rest's two named exceptions (the selected tab's tint, \"Keep the accent tint\"; the area card's map-key status lines, \"Leave them coloured\"), and QL22's, GZ9's and GZ10's wording for the owner.\n- T22's swatches (no build): olive, plum and umber rendered on the replay's beat one and the walk's card from throwaway exports; the owner picked umber, then \"Let's re-imagine the palette\": no hue yet, T22 stays open, noted.\n- The review (one round, the `ux-reviewer`): accepted U2 (`tend chronicle audit 6`) and U7 (`tend explore audit 22`: \"Cancel\" while Explore looks and the search's close word in ink); filed `[loop]` medium U3 (a found thread's loose buttons) and U4 (the journal toolbar's hint at 320 px, not a one-line fix); filed `[loop]` low U1, U5, U8. U6 answered by the owner (\"Keep the accent tint\").\n- Journeys on the final export: atlas, reactions, launch; resurface and threads on the earlier export. Not run: the sweep's lenses and the balance's evolve; the rest is left to CI and the weekly full pass (decision 0181). Nothing here has run on a phone.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Threads the owner makes",
+        "--reason",
+        "the review of /tend explore (Nov 17), ux-reviewer U3, medium, older than the run, deferred by the coordinator for /tend chronicle (it moves controls)"
+      ],
+      "body": "- [loop] A found thread's three loose buttons wrap at 320 px: Rename, Not a thread and Keep as my thread sit as outlined buttons on the content, \"Keep as my thread\" alone on a second row, and nothing shows which is the preferred choice (picture `tend-chronicle-11-thread-320`, /tmp/claude-0/-workspace-chronicles/18c0adbd-a1f3-5a6a-af58-014872f7a509/scratchpad/explore-shots/tend-chronicle-11-thread-320.png; `src/components/chronicle/ThreadScreen.tsx` l.53-57). Make \"Keep as my thread\" the screen's one button (under decision 0172 the one action that may carry the accent) and move Rename and Not a thread into a More (⋯) beside the \"Thread\" header (ui-patterns \"Nothing wraps on a 320 px phone\", T7 \"never as loose buttons on content\", matrix 3 \"Rare actions on an item go in More\"; Apple HIG, Buttons, B2; the review of `/tend explore`, Nov 17, ux-reviewer U3, medium, older than the run; for `/tend chronicle`)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Chronicle journal, cut 1",
+        "--reason",
+        "the review of /tend explore (Nov 17), ux-reviewer U4, medium, older than the run; not a one- or two-line sizing change, so filed"
+      ],
+      "body": "- [loop] The journal toolbar's hint wraps and is cut at 320 px wherever the field sits in the bar (a thread, a lens): the placeholder \"What's on your mind?\" is the field's 19 px serif in a multiline input about 150 px wide between the camera, the mic and Done's kept room (`src/components/journal/OpenLine.tsx` l.568-600, 851, 703), so it reads \"What's on your / mind?\" with the second line under the bar's edge (pictures `tend-chronicle-11-thread-320`, `tend-chronicle-11-own-thread-320`, `tend-chronicle-audit-6-memo-card-320`, in /tmp/claude-0/-workspace-chronicles/18c0adbd-a1f3-5a6a-af58-014872f7a509/scratchpad/explore-shots/ and /tmp/claude-0/-workspace-chronicles/18c0adbd-a1f3-5a6a-af58-014872f7a509/scratchpad/explore-shots2/). Not a one-line fix: the field's font is also the typed words' (the owner's serif), and a placeholder alone cannot be styled apart on the web; size the hint so it holds one line at the web's 16 px minimum, and add a 320 px picture of the toolbar to the journal journey (ui-patterns \"Nothing wraps on a 320 px phone\"; WCAG 2.2, 1.4.4 Resize Text; the review of `/tend explore`, Nov 17, ux-reviewer U4, medium, older than the run)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore and discovery",
+        "--after",
+        "Move map floats alone",
+        "--reason",
+        "the review of /tend explore (Nov 17), ux-reviewer U1, low, deferred"
+      ],
+      "body": "- [loop] On Explore's map the selected area's ink ring can read as the foot of a \"?\" pin whose ink stalk ends just above it, beside the walker's dark dot (picture `tend-explore-20-map-name-390`, /tmp/claude-0/-workspace-chronicles/18c0adbd-a1f3-5a6a-af58-014872f7a509/scratchpad/explore-shots/tend-explore-20-map-name-390.png; `src/components/AreaPoint.tsx` l.27). Picture a town page with two or more neighbourhood points and no pin on the selected one; if a pin standing on it still merges, give the selected point a 2 px white outer halo as its label's text shadow, no new colour (WCAG 1.4.1 holds by shape; opinion; the review of `/tend explore`, Nov 17, ux-reviewer U1, low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore and discovery",
+        "--after",
+        "On Explore's map the selected area",
+        "--reason",
+        "the review of /tend explore (Nov 17), ux-reviewer U5, low, older than the run, deferred"
+      ],
+      "body": "- [loop] The area card's meta line wraps at 320 px with its separator leading the second line: \"Walked once · last Nov 17\" then \"· You're here\" (picture `tend-explore-19-how-320`, /tmp/claude-0/-workspace-chronicles/18c0adbd-a1f3-5a6a-af58-014872f7a509/scratchpad/explore-shots/tend-explore-19-how-320.png). When the two facts do not fit one line, break at the separator and drop it (ui-patterns \"Nothing wraps on a 320 px phone\"; the review of `/tend explore`, Nov 17, ux-reviewer U5, low, older than the run)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore and discovery",
+        "--after",
+        "The area card's meta line wraps",
+        "--reason",
+        "seen in the after picture of tend explore audit 22 (Nov 17), low, older than the run, deferred"
+      ],
+      "body": "- [loop] At 320 px Explore's \"Looking around…\" pill wraps its words onto two lines beside Cancel (\"Looking / around…\"; picture `tend-explore-audit-22-look-cancel-320`, /tmp/claude-0/-workspace-chronicles/18c0adbd-a1f3-5a6a-af58-014872f7a509/scratchpad/explore-shots2/tend-explore-audit-22-look-cancel-320.png; `src/app/(tabs)/explore.tsx`, `scanning`, `scanningText`); one line at 320 px, the pill as wide as it needs (ui-patterns \"Nothing wraps on a 320 px phone\"; seen in /tend explore's after picture for audit 22, Nov 17, low, older than the run)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "UI conformance",
+        "--reason",
+        "the review of /tend explore (Nov 17), ux-reviewer U8, low, older than the run, deferred"
+      ],
+      "body": "- [loop] The hidden-moment pill on a thread (\"Hidden. It stays in your journal and in its walk.\") shows Undo but no Close (picture `tend-chronicle-11-thread-320`, /tmp/claude-0/-workspace-chronicles/18c0adbd-a1f3-5a6a-af58-014872f7a509/scratchpad/explore-shots/tend-chronicle-11-thread-320.png): if it dismisses itself it breaks \"Undo stays until it is used or dismissed\", and if it stays it lacks its Close; use the shared Undo pill with Close (ui-patterns F3; Material 3, Snackbars with actions shouldn't auto-dismiss; the review of `/tend explore`, Nov 17, ux-reviewer U8, low, older than the run)\n"
+    }
+  ]
+}

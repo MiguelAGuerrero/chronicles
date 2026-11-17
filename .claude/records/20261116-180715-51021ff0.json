@@ -1,0 +1,52 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "A picture's menu has one entry, Edit",
+        "--reason",
+        "the owner asked for Remove from page on Nov 16 (NI19); the menu has two rows"
+      ],
+      "target": "sha256:5af7dc12fba8dc80a12b9a67d209c620eff332993db58e3886ba22cb7086f571"
+    },
+    {
+      "argv": [
+        "section",
+        "item",
+        "remove",
+        "From /slice",
+        "A visible way to take a picture out of a page"
+      ],
+      "target": "sha256:145fe079772766c2efde37955906707e758ffa8fafe3d37f0c946dfb8f803e40"
+    },
+    {
+      "argv": [
+        "section",
+        "remove",
+        "From /slice"
+      ],
+      "target": "sha256:6fd9fe76645f652611d2156cdc8c136a4bd356e1635bb6f1aa748e9c1d9ba6a5"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Note pages (NP1-NP14, decision 0151)"
+      ],
+      "body": "- [ ] **Do:** on a phone, tap a picture, then Remove from page, then Undo. **Expect:** the picture goes with the space after it, the photo stays in the Chronicle, \"Taken out of the page\" and Undo show above the keyboard bar, and Undo puts the picture back where it was (NI19).\n"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "set",
+        "Note pictures (a photo or video mentioned"
+      ],
+      "body": "| Note pictures (a photo or video mentioned on a note's page is drawn as the photo itself, in the page and the reader: an own block at the page's width, a video's still under the play mark, a line only when it is from another day or walk; a tap while writing outlines it and offers Edit photo or Edit video, which opens the media editor over the page, and Remove from page, which takes out the mention only, with Undo; the note still stores only the mention; NI1-NI19, decision 0182) | Built 2026-11-16 on `claude/peaceful-goodall-wtqgm5`, test-first by history (19 of 19): unit tests, typecheck, lint, docs and vision checks; `notepage` and nine more journeys pass on the web build; the cold find and the UI review run (2 fixed, U1 built at the owner's request, 3 rejected); native unverified (five items in `docs/NATIVE_UNVERIFIED.md`) | `claude/peaceful-goodall-wtqgm5` | `specs/note-pictures/spec.md` | no (UI review only) |\n",
+      "target": "sha256:87784e09c0809d92c0d4a2a233b283831e7b141ffc17a0155641adb2722c7295"
+    }
+  ]
+}

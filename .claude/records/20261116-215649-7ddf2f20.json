@@ -1,0 +1,49 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "The `atlas` journey's AT9 fails",
+        "--reason",
+        "fixed by tend explore 17 (a fit flying while the card folds the tabs away is asked again at the new size) and tend explore audit 19 (the review's F1, F2, F4), this run; bisected to b347dcdb. The item: AT9 failing on acb18b06 since 25a508ac (Nov 16, medium)"
+      ],
+      "target": "sha256:db7f17c98e701bc428e78129e069729f72244157761984344fb595933e8069ec"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Explore atlas"
+      ],
+      "body": "- [ ] **Do:** on a phone, on your town's page in Explore, tap a neighborhood's card to select it, tap it again to open its card, then close the card. **Expect:** the area is framed with its ring or its own ground under the title card (Explore's 84 px top and 24 px bottom padding), not at the map's middle, though the tab bar folds away and the map view grows while the camera's fit animates; the web map asks a fit again when its box is resized mid-flight (`fitStep`, `atlas/fitFlight.ts`), and `WalkMap.native.tsx` has no such step, so whether MapLibre RN keeps the padding through the resize is unknown (AT9; tend explore 17, audit 19; the review's native list, Nov 16).\n"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 16, `/tend explore --deploy=main`, aimed at one `[loop]` item: the `atlas` journey's AT9** (opened from `19979b34`; a ledger run, lens 7 alone, in the faster lane of decision 0181).\n- Bisected 25a508ac (good) to 19979b34 (bad), the export and `E2E_ONLY=atlas` per step: `d0ca30a3` good, `a4440ca7` bad, `b347dcdb` skipped (its own SF check failed first; `a4440ca7` changes no `src/`, so the first bad app is `b347dcdb`, \"Storefronts: busy becomes storefronts everywhere\"). AT9's empty ring was not the failure (its own ground was drawn, HB9); the area sat at the map's middle. The card folds the tabs away as it opens, so the map grew (539 to 601 px) while the card's fit flew, and maplibre 6.16 landed that flight at the bounds' middle a zoom out; latent since the card went full screen, steady since the heavier storefronts card.\n- `tend explore 17`: a fit still flying when the map's box changes size is asked again at the new size (`refitOnResize`, `atlas/fitFlight.ts`, wired in `WalkMap.web.tsx`). AT9 green twice, Fox Point 31.5 px below the middle.\n- The review (one round, the auditor): five low. Fixed together as `tend explore audit 19` (F1, F2, F4): the record, its clear and the refit are one core step, `fitStep`; a refit restarts the fit's settle; the moveend its own stop fires is skipped by the settle listeners (DC9); the wiring test fails with the wiring undone. Filed `[loop]` in \"Explore atlas\": F3 (a fit that started no move recorded as flying) and F5 (move `fitFlight` to the map feature with `features.js`). A phone check in `docs/NATIVE_UNVERIFIED.md`.\n- Left: `scripts/e2e/flaky.json` keeps AT9 in its older wording (a label, it never passes a failure; the loop may not edit `scripts/`); the scenic journey's \"fix preview-clutter audit 1\" red is another cause (red before `25a508ac`).\n- Not run: lenses 1-6 and the balance; journeys on the final export: atlas twice and launch; the other journeys `check:affected` names are left to CI and the weekly full pass (decision 0181). Nothing here has run on a phone.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore atlas"
+      ],
+      "body": "- [loop] A fit that started no move can still be recorded as the one flying: when `cameraForBounds` finds no room (map.md's no-room trap), `fitBounds` does nothing, yet `map.isMoving()` reads another move under way (a `showPoint` ease, a gesture), so `fitStep` records the refused bounds and a resize during that move refits them, cutting the ease or the reader's gesture (`WalkMap.web.tsx`, the fit effect). Record only when the fit itself started a move: `cameraForBounds` defined, or a `movestart` fired inside the call (the review of tend explore 17, auditor F3, Nov 16, low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore atlas"
+      ],
+      "body": "- [loop] `atlas/fitFlight.ts` (`fitStep`, `refitOnResize`) is owned by explore, though its one consumer is the shared web map: a change to it alone names explore's journeys, never `qol`, and its test runs under `test:feature explore`. It sits there because the loop may not edit `scripts/features.js`; move it to the map feature (with its test) when the owner next edits that file (the review of tend explore 17, auditor F5, Nov 16, low)\n"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "slice",
+        "row",
+        "set",
+        "Place search (Explore: a magnifier beside the title"
+      ],
+      "body": "| Place search (Explore: a magnifier beside the title opens a labelled field; typing lists towns and cities from a GeoNames `cities5000` pack bundled in the app, 70,042 places, 5.6 MB, searched on the phone, nearest first with region and country; the pack holds no population; a pick is a look at the place, \"Around <name>\", Locate returns; nothing stored, nothing sent; GZ1-GZ19, decision 0184) | built 2026-11-16, deployed to main 2026-11-16 (`b647b84`, Pages run 290; the owner's task done on the live build in an iPhone-size browser with no fix: \"carlisle pa\" lists Carlisle, Pennsylvania and a pick looks there, \"Around Carlisle\"; the `atlas` journey's AT9 is red on main already, baselined 3 of 3), test-first by history (19 of 19; an earlier attempt read 5 of 19 because the journey's todos went through an alias the checker cannot read, so the work was rebuilt with literal `check.todo(`): unit tests (2620), typecheck, lint, docs and vision checks; e2e `placesearch` (with `place-search ui 1-3`), `freelook`, `carousel`, `snap`, `atlas` and the journeys `check:affected` names; steward triaged into the plan (7 findings), cold find placed the magnifier on the first tap (icon-only noted as the owner's call), UI review triaged (3 accepted, 1 deferred, 3 rejected); native unverified; not audited | `claude/exciting-mccarthy-0ktfgm` | `specs/place-search/spec.md` | no |\n",
+      "target": "sha256:796694f787d8ca02a883eb487480c81c047f054735015b61d5127881724a34fb"
+    }
+  ]
+}

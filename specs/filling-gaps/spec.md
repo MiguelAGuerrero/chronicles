@@ -22,6 +22,11 @@ How it decides: the likely way is the shortest walk over the streets between the
 12. **G12 · Where.** On the walk screen once a new fix closes a gap (back in the app, or GPS back), and on the replay. Deciding on the replay snaps the walk again, so its card and streets follow.
 13. **G13 · Every walk.** The rule change marks every walk to snap again when its replay next opens, so old walks with gaps get their stretches then.
 14. **G14 · Deleting.** Deleting a walk deletes its kept and dismissed stretches.
+15. **G15 · Settled at walk's end.** On the first replay after a walk (never a re-watch), when gaps are offered, the card beat asks once, in words: "Keep the likely way?" with Keep them and Leave them. Keep them stores every offer as a kept decision (G10), then the walk is snapped once, so distance, streets and the replay stop changing on later opens. Leave them stores nothing: each gap stays offered and is still decided from its card. It never asks with nothing offered, never while a gap's card, a drawing or a viewer is open, and never counts in numbers (the owner's call, Nov 16).
+
+## Vision
+
+Gate (`/vision`, decision 0094), after the fact: **aligned if reshaped**. It serves Return (a walk that reads the same every time it is opened). It stays opt-in (0060): the question is asked, never answered for the walker; it says "a likely way", in words with no count; Leave them keeps the gap as it was. Decision 0185 is the record.
 
 ## Tests
 
@@ -39,7 +44,7 @@ How it decides: the likely way is the shortest walk over the streets between the
 
 One report-only pass found 17 issues. 12 were fixed, each with a regression test (`gaps audit N`), and the criteria above were updated to match.
 
-- **Fixed:**
+- **Fixed (Nov 3):**
   - A stretch with both ends on one block filled by itself even after 30 minutes. The end pieces were counted as certain without checking the way round.
   - The time allowed used an average pace, which ruled out a brisk walker's detour.
   - One old decision could be drawn on two gaps.
@@ -58,3 +63,25 @@ One report-only pass found 17 issues. 12 were fixed, each with a regression test
   - Undo for Not this way.
 - **Kept as decided:** filled stretches look exactly like the recorded trace.
 - Native (migration 14, the faint layer, the card, reads on a phone) has not run on a device.
+
+## Audited G15 (Nov 16)
+
+15 findings from the auditor, the steward and the UX reviewer: 8 fixed, 2 deferred, 5 rejected. Tests are `filling-gaps audit N` in `gaps.test.ts` (1, 2, 6) and the gaps journey (1, 5, 6); 3, 4, 7 and 8 are covered by the e2e flow, typecheck and the records check only.
+
+1. Asked once was only component state, so a reload, Back or a stale link asked again (auditor F1, F4; steward S3): accept. Stored per walk when shown (`gaps_asked:<walk>`).
+2. A failed write in `keepAll` left some kept and the walk not snapped (auditor F2; F9's coverage): accept. Each write is tried, failures counted, the walk always re-snapped.
+3. The prompt could appear after the card beat's first paint, before the gaps were read (auditor F3): accept. Shown only once the second load is done.
+4. `gapError` was shared with the gap's card (auditor F5): accept. The prompt has its own error.
+5. Two same-weight primaries, Keep them and Name it (steward S4, ux-reviewer U1): accept, the owner's call: both answers secondary.
+6. "One gap" with "Keep them", and no outcome said (ux-reviewer U3): accept. The words agree, and the line says what each answer does.
+7. The prompt wasn't announced (auditor F8, ux-reviewer U6): accept. A polite live region; not run with a screen reader.
+8. No Vision section or decision record (steward S1): accept. Both added (0185).
+9. `setData` after Keep can drop an edit made meanwhile (auditor F6): defer, same pattern as Keep on a card.
+10. A bulk keep keeps low-certainty offers (auditor F7, steward S2): reject. The owner chose a prompt with Keep for all; each stays reversible from its card.
+11. "Not now" is grey and ambiguous (ux-reviewer U4, U5): defer, an existing control outside this slice.
+12. The card floats over the map above the sheet (ux-reviewer U2): reject, the owner chose the quiet pair over folding it into the sheet.
+13. "Likely" and "Leave" nudge toward Keep (steward S5): reject. "Likely way" is the product's word since 0060; the buttons are the same weight.
+14. Contrast of the muted line and the faint stretch (ux-reviewer U7): reject. Theme tokens, unchanged here; not measured.
+15. Only the pure helpers were unit-tested (auditor F9): accept, folded into 2.
+
+Journeys run: `gaps` (three runs while building). Native (the card over the native map, `BackHandler`, TalkBack and VoiceOver on the card) has not run on a device.

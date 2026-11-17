@@ -26,7 +26,7 @@ export interface Waypoint {
   suggested?: boolean;
   /** A loop (the walk planner, WP8): `at` is where it began, so it arrives only once the stops are passed (WP9). */
   loop?: boolean;
-  /** The destination is a planned outing (decision 0182): the walk screen names a stop once as it is reached; positions only, no name is held. */
+  /** The destination is a planned outing (decision 0187): the walk screen names a stop once as it is reached; positions only, no name is held. */
   outing?: boolean;
   /** The way the planner planned, from where the walker stood: followed as it is, not made again by the shortest streets (WP20, KW17). */
   path?: LngLat[];

@@ -141,7 +141,7 @@ export const META = {
   kindwalk_mode: { owner: 'kindwalk', codec: oneOf<'loop' | 'oneway'>('loop', 'oneway') },
   kindwalk_density: { owner: 'kindwalk', codec: oneOf<'anywhere' | 'some' | 'plenty'>('anywhere', 'some', 'plenty') },
   kindwalk_pref: { owner: 'kindwalk', codec: oneOf<'warn' | 'skip'>('warn', 'skip') },
-  // Plan an outing (lib/outing): whether a chain may be a stop, off by default (QC41, decision 0182)
+  // Plan an outing (lib/outing): whether a chain may be a stop, off by default (QC41, decision 0187)
   outing_chains: { owner: 'outing', codec: onOff },
   // Chronicle's Memories (lib/resurface): what the user chose to see less of, renamed or removed (RM21)
   resurface_prefs: { owner: 'resurface', codec: json<Prefs>((v) => parsePrefs(v) !== null) },
@@ -168,6 +168,8 @@ export const META_FAMILIES = {
   explored: { owner: 'explore', codec: number },
   // A day's replay was watched (ms), so it advances by itself next time.
   day_watched: { owner: 'days', codec: number },
+  // The first replay asked about a walk's offered gaps (G15): asked once, per walk.
+  gaps_asked: { owner: 'gaps', codec: flag },
   // The last read of areas near you, per level (lib/atlas/read).
   atlas_near: { owner: 'atlas', codec: json<NearRead>(isNearRead) },
 } as const;

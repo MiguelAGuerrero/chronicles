@@ -203,6 +203,18 @@ async function run(h) {
   await row.first().click();
   await pg.waitForSelector('[data-testid=own-thread]');
   check((await pg.locator('[data-testid=own-thread] [data-testid=thread-mark-made]').count()) === 1, 'OT25: the thread\'s own screen carries the made mark');
+  // tend chronicle 11 (decision 0172, the accent at rest): the thread's "Thread" label is ink (#1d2430), never the accent.
+  const ownLabel = await pg.locator('[data-testid=own-thread]').evaluate((el) =>
+    [...el.querySelectorAll('div')].filter((e) => e.childElementCount === 0 && e.textContent === 'Thread').map((e) => getComputedStyle(e).color));
+  check(ownLabel.length === 1 && ownLabel[0] === 'rgb(29, 36, 48)', `tend chronicle 11: a made thread's "Thread" label is ink at rest (${JSON.stringify(ownLabel)})`);
+  {
+    const vp = pg.viewportSize();
+    await pg.setViewportSize({ width: 320, height: vp.height });
+    await pg.waitForTimeout(400);
+    await shot(pg, 'tend-chronicle-11-own-thread-320');
+    await pg.setViewportSize(vp);
+    await pg.waitForTimeout(400);
+  }
   const order = await pg.locator('[data-testid=own-thread] [data-testid=note-bubble]').allInnerTexts();
   check(order.length === 3 && /pier/.test(order[0]) && /Same again/.test(order[1]) && /bakery/.test(order[2])
     && (await pg.locator('[data-testid=own-thread-reply]').count()) === 1 && /^answering /.test(await pg.locator('[data-testid=own-thread-answering]').innerText()),

@@ -95,9 +95,11 @@ source.
 4. **The promises.** Each shipped criterion in the area's specs against what
    the build does now, beyond what its test pins; each line of the rule files.
 5. **The code.** The `auditor` subagent on the area's modules against the
-   AGENTS.md invariants: truth vs cache, `readTrace` inputs, layers, anything
-   over features not indexed, re-renders on the walk screen
-   (`scripts/perf-walk.js`), dead code, a layer baseline entry that is fixed.
+   AGENTS.md invariants: truth vs cache, `readTrace` inputs, layers, dead code,
+   a layer baseline entry that is fixed, and cost (`.claude/rules/performance.md`):
+   anything over features not indexed, whole-table reads, per-frame state above
+   a map, re-renders on the area's screens (`scripts/perf-walk.js`,
+   `scripts/perf-explore.js`, `perfCount`), each against `docs/DEFERRED.md` first.
 6. **The identity.** `npm run check:vision -- --list`; score words, numerals
    and accent colour in the area's copy and pictures.
 7. **The ledger.** `[loop]` items of the area in `docs/DEFERRED.md`, in the worktree:
@@ -398,7 +400,10 @@ The owner picks; the loop never starts a `G` entry unasked.
    `yes`, `no` or `reshape`; `review` is the review's findings
    (`accepted`, `rejected`, `deferred`, a filed low counted deferred); `e2e`
    is the journeys run, or `"full"` for the full pass. The line is written once: when the
-   review of step 2 leads to a second record commit, write it there.
+   review of step 2 leads to a second record commit, write it there. A full pass
+   made on its own logs mode `e2e` with the line `npm run e2e:all` prints
+   (`"e2e":"full"`, the base it ran on, `journeys`, `ok`, `red` and `flaky` as
+   `{ journey, check }`, `minutes`; `docs/TESTING.md`, "Choosing the journeys", 6).
    Write facts, never a judgment of the run: no lesson, no rating, no advice.
 2. **Checks:** `npm run check:docs` and `npm run check:records -- origin/main..HEAD`
    (CI replays the trailers of every `tend …` commit and every agent commit; a later record commit of the run may
@@ -415,9 +420,11 @@ The owner picks; the loop never starts a `G` entry unasked.
    build runs the slice's step 9 and the same review in place of `check:tend`.
    **Journeys** before publishing: those holding a new or changed check, and
    `launch`. **The weekly full pass:** when no run-log line of the last seven
-   days says `"e2e":"full"`, a run that changed code runs the full flow
-   (`npm run e2e:web`, no `E2E_ONLY`) before publishing, and a failing check
-   is triaged as a finding of the run.
+   days says `"e2e":"full"` (`node scripts/tend.js e2e-due` in the worktree), a
+   run that changed code runs every journey once with `npm run e2e:all` before
+   publishing (the full flow and each journey it does not hold, a failing one
+   rerun alone; it prints red and flaky checks and the log line), and a red
+   check is triaged as a finding of the run.
 3. **Publish**, by `--deploy`:
    - `main`: `.claude/skills/ship.md`, "Publish to main", once (a decision
      record the run wrote: `npm run book:next-decision -- --check <NNNN> <file>`

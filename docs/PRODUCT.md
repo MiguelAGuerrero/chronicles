@@ -97,7 +97,7 @@ recording, and a recording bar brings a minimized walk back.
   replaces the three and keeps no history. Start plans again from where you are and either routes the walk you have open (capture is
   on the page meanwhile) or starts one ready; it says distance only, never a time left. Scenic routes (0095) are a separate feature on
   Go here.
-- **Plan an outing** (decision 0182, quick circuit QC1-QC42): one control under Explore's title, "Plan an outing", opens a page of its own over
+- **Plan an outing** (decision 0187, quick circuit QC1-QC42): one control under Explore's title, "Plan an outing", opens a page of its own over
   Explore. You say what you want to see by picking from a short vocabulary (a search box over chips: Antiques, Books, Thrifting) and the page
   proposes one circuit from where you stand, a loop (the default, not remembered) or one way, within the planner's distance ceiling. Its stops are
   slots said by kind and how far ("An antiques shop, a short walk on"), named only on a tap or, on the walk, once when you are within 60 m; no
@@ -165,7 +165,14 @@ recording, and a recording bar brings a minimized walk back.
   place in both the map and the archive, of the same name and kind within
   200 m, is one place. The rule that takes a National Register listing when the
   place is public (its type, a sign it is open, or a Landmark) is built and
-  moves to chronicles-data's pipeline. `npm run places:coverage` measures what
+  moves to chronicles-data's pipeline. **Small places** (decision 0183): OpenStreetMap adds places of its own for a
+  fixed table of small things, the kind Pikmin Bloom's postcards reach: time capsules and little libraries (on by
+  default), plaques and markers, small memorials (benches, ghost bikes, Stolpersteine), milestones and boundary stones,
+  and wayside shrines and crosses (off by default), each a switch under its kind in "What I'm into"; typed murals,
+  sculptures and statues, and community gardens, join their kinds. An unnamed one is named by its type ("A time
+  capsule"). An area's bars count them by the size of the stop (a plaque a quarter, a little library a half) only for a
+  reader who has them on; they never keep a park a park, never lean a route, and a museum passed is never lost among
+  plaques. `npm run places:coverage` measures what
   the app keeps of a town's destinations, for the owner.
 - **Complexes** (CX1-CX16, decision 0147). A named place made of other places (Strawberry Square,
   the Lehigh Valley Mall; a market, a campus, a station, a civic centre) is a subdivision of the area
@@ -238,6 +245,12 @@ recording, and a recording bar brings a minimized walk back.
   "Not saved yet" in its top bar. In the viewer a note reads as its page, its mentions as cards of their moments;
   a tap on its words or a box opens it for writing. A note holds up to 20,000 characters; near the end the page says "Room for a few more lines". Checklists are
   never counted. Everywhere else a page reads as its words; a note written before pages reads as it was typed.
+  A photo or video mentioned on a page (the camera's, or one picked with Mention) is drawn as the photo itself, on its
+  own line at the page's width, in the page and in the viewer's reader (decision 0182): a video as its still under the
+  play mark; a line under it says where it is from only when it is from another day or walk. While writing, a tap on
+  a picture outlines it and offers **Edit photo**, which opens the media editor over the page with every tool it has
+  (rotate, crop, filter, draw, text, and trim for a video; the edit is the photo's own, everywhere), and **Remove from
+  page**, which takes out the mention only, says so with Undo, and leaves the photo in the Chronicle. The note still stores only the mention.
 - When room for new photos and videos runs low, one line says so in words beside the capture buttons, once
   for each level (low under 500 MB, very low under 100 MB), with OK to dismiss; it never blocks a capture and
   never shows a number. A photo or video whose save fails is held with Retry ("Photo not saved"), and says why
@@ -491,7 +504,10 @@ recording, and a recording bar brings a minimized walk back.
   with the screen off; memos record with the phone locked. Needs a development
   build (MapLibre and background location are native modules; Expo Go won't
   do). **Native has never run on a device**: every native path is unverified,
-  and reports touching it must say so.
+  and reports touching it must say so. The phone's map redraws a layer or a
+  pin only when it changes, never on each step of the gliding dot or a
+  replay's clock, and simplifies its lines as the web does (native map frames,
+  NF1-NF8; unverified on a device).
 - **Web**: the same loop with a browser's limits, deployed to GitHub Pages on
   every push to `main`. It traces the real browser location while the page is
   open and visible, holds a wake lock, and shows the gap when the page was
@@ -516,6 +532,7 @@ recording, and a recording bar brings a minimized walk back.
 | Explore atlas (the tab as a grid of area tiles, presence bars, familiarity) | Shipped, audited (web verified by the e2e; native unverified) |
 | Discrete navigation (Explore's map never pans by one finger, DN1, DN10-DN13; the directional step retired by the carousel) | Shipped, audited, an experiment (web verified by the e2e; native unverified) |
 | Free look (Explore: a Move map toggle frees one-finger panning; Show areas here lists the areas around the map's middle as its own page; Locate returns; FL1-FL21, decision 0150) | Built, web verified by the e2e (`freelook`); native unverified; not audited |
+| Place search (Explore: a magnifier beside the title opens a labelled field; typing lists towns and cities from a GeoNames pack (bundled on a phone; on the web fetched from the app's own site on first search, so a page offline before its first search says "Search is unavailable."), nearest first, with region and country; a pick looks at the place, "Around <name>", Locate returns; nothing stored, nothing sent; GZ1-GZ19, decision 0184) | Built, web verified by the e2e (`placesearch`); native unverified; not audited |
 | Explore carousel (a full-height map and one row of area cards; the selected area highlighted and the only one named; a map swipe steps the row; EC1-EC20, decision 0124) | Built, web verified by the e2e (`carousel`, `snap`); native unverified; not audited |
 | Explore one level per row (near you the towns, yours leading and selected; a town's page its own card, then its neighborhoods; the title names the level, the back pill reads "Towns"; decision 0126, fix explore-town-scope) | Shipped 2026-11-10 (web verified by the e2e; native unverified) |
 | Town presence (a town graded across its whole outline, with its busy areas listed) | Built (web verified by the e2e; native unverified) |
@@ -550,7 +567,7 @@ recording, and a recording bar brings a minimized walk back.
 
 Trails and nature navigation, offline maps and routing, automatic 3D or video
 replays, completion and leaderboards, fitness tracking, accounts and sync,
-address search (needs a geocoding server).
+address search (needs a geocoding server); place search is only by name, for towns and cities, from data on the phone (decision 0184).
 
 ## Open questions (the owner's, in the spec)
 

@@ -3,6 +3,9 @@ paths:
   - "src/components/map/WalkMap*.tsx"
   - "src/components/map/types.ts"
   - "src/lib/perfCount.ts"
+  - "src/lib/{useGlidingWalker,useLiveTrace,liveDot,markNames}.ts"
+  - "src/components/ceremony/useCeremonyClock.ts"
+  - "src/app/replay/*.tsx"
   - "scripts/{perf-walk,perf-explore}.js"
   - "src/lib/__tests__/map/{storefrontNames,storefrontNamesAudit,storefrontNamesUi,perfCount}.test.ts"
 ---
@@ -23,8 +26,18 @@ paths:
     It skips follow moves under 2 px.
   - The trace is a history source re-sent once per 100 fixes, plus a live
     tail (`splitTrace`). On native, `TraceSource` is memoized, because MapLibre
-    RN serializes a source's data on every render.
-  - Line sources use `tolerance: 1, buffer: 64`.
+    RN serializes a source's data on every render (`JSON.stringify` in its
+    `GeoJSONSource`, checked in v11.5; its own `memo` never holds with inline
+    `<Layer>` children). **The budget is the web's.** Native (native map frames,
+    NF1-NF7): every source is a memo component handed its data and primitives,
+    never an inline object; the glide runs into a frame store (`useGlideFrames`)
+    read only by `ConeSource`, `PointsSource` and `GlideFollow`, three leaves
+    because layer order is mount order; pins are memo lists that read presses
+    from a handlers ref. `mapFrames.test.ts` reads the source for this shape.
+    The React Compiler is **not** on (DEFERRED): nothing memoizes what the code
+    doesn't.
+  - Line sources use `LINE_SOURCE` (`tolerance: 1, buffer: 64`) on both maps, the ids in `LINE_SOURCE_IDS`
+    (`map/types.ts`, NF5).
   - Profiling shows the app's own JavaScript under 2% of a desktop core; the
     rest is the map drawing. Fewer updates is what helps.
   - **A setState with the value already held still renders** when React can't

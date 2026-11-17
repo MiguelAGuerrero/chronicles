@@ -1,0 +1,14 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "slice",
+        "row",
+        "set",
+        "Note pictures (a photo or video mentioned"
+      ],
+      "body": "| Note pictures (a photo or video mentioned on a note's page is drawn as the photo itself, in the page and the reader: an own block at the page's width, a video's still under the play mark, a line only when it is from another day or walk; a tap while writing outlines it and offers Edit photo or Edit video, which opens the media editor over the page, and Remove from page, which takes out the mention only, with Undo; the note still stores only the mention; NI1-NI19, decision 0182) | Built 2026-11-16 on `claude/peaceful-goodall-wtqgm5`, test-first by history (18 of 19: NI19's todo was committed first but its id sits on the line after `check.todo(`, which `check:test-first` does not read): unit tests, typecheck, lint, docs and vision checks; `notepage` and nine more journeys pass on the web build, `notepage` again on the sub-path build; the cold find and the UI review run (2 fixed, U1 built at the owner's request, 3 rejected); deployed 2026-11-16 (`14c08e5`, Pages run 286; the live page did the task end to end in an iPhone-size browser); native unverified (five items in `docs/NATIVE_UNVERIFIED.md`) | `claude/peaceful-goodall-wtqgm5` | `specs/note-pictures/spec.md` | no (UI review only) |\n",
+      "target": "sha256:fded7711fe804805b5a7fac67bb4507dbf40ff6b44f68559859a98b8a921502b"
+    }
+  ]
+}

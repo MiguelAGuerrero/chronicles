@@ -1,0 +1,117 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "set",
+        "Selection across a whole page",
+        "--reason",
+        "decision 0182 narrows the Nov 12 call: a mention is drawn as its picture"
+      ],
+      "body": "- **Selection across a whole page, dragging blocks, a \"/\" menu, links, tables, a picture stored in the document**: out by the owner's calls (Nov 12). \"Photos inline\" was narrowed on Nov 16 (decision 0182): a mention of a photo you took is drawn as its picture, with no image ever stored in, pasted into or typed into the page.\n",
+      "target": "sha256:b63bdaacaf0694c64949293a76a126d0b1c1056dc0b38f25ebec57de5b99c291"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "A mention's card has no picture",
+        "--reason",
+        "answered by note pictures (decision 0182): a photo's or video's mention is drawn as its picture in the page and the reader"
+      ],
+      "target": "sha256:a44dd53d2bfb5970a9d70465876a1c76003e27b0b738fc840e48c197b10b3c98"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Note pages (NP1-NP14, decision 0151)"
+      ],
+      "body": "- **Mention cards elsewhere keep their card** (note pictures NI12, decision 0182): a thread's bubbles (`NoteText`), the memory preview, the replay and the Chronicle's index draw a photo's or video's mention as text or a card, not a picture; each is its own screen and its own gate.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Note pages (NP1-NP14, decision 0151)"
+      ],
+      "body": "- **A new page does not know its walk** (note pictures NI16): a page begun on a capture surface compares a mentioned photo's day alone, so a photo from another walk the same day shows no line; the viewer's page and the reader know the walk and compare both.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Note pages (NP1-NP14, decision 0151)"
+      ],
+      "body": "- **A picture's menu has one entry, Edit** (decision 0182): Remove from page and Open the moment were offered and not chosen, so a picture leaves a page with Backspace and a moment opens from the reader; each is one more row.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Note pages (NP1-NP14, decision 0151)"
+      ],
+      "body": "- **A picture sits after the camera's space** (note pictures NI4): the page's camera writes a space after the mention (NP14), which reads as a small indent on the line under a picture.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Note pages (NP1-NP14, decision 0151)"
+      ],
+      "body": "- **A page of many pictures** (note pictures NI11): each is about 60-120 KB of data through the web view, once. If a device shows it slow, every picture beyond a count would be drawn smaller, never hidden or collapsed (NI17); not built.\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Note pages (NP1-NP14, decision 0151)"
+      ],
+      "body": "- [ ] **Do:** on a phone, open a new page from the pencil, tap Camera and take a photo. **Expect:** the photo appears as a picture where the caret was, at the page's width with a rounded corner, in the page's web view with no broken image; the keyboard comes back and typing goes on below it (NI1, NI2, NI7).\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Note pages (NP1-NP14, decision 0151)"
+      ],
+      "body": "- [ ] **Do:** with the caret just after a picture, press Backspace twice, then undo. **Expect:** the first takes the space, the second takes the picture, and undo brings it back; the caret never lands inside it (NI4).\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Note pages (NP1-NP14, decision 0151)"
+      ],
+      "body": "- [ ] **Do:** tap a picture on a phone, then Edit, then turn it and tap Done; then tap Back with the keyboard up. **Expect:** a one-row menu, the media editor over the page with no second Modal and the keyboard down, the picture redrawn turned on Done, and Back closing the editor, then the menu, then the page (NI13, NI14).\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Note pages (NP1-NP14, decision 0151)"
+      ],
+      "body": "- [ ] **Do:** edit a photo with a filter and a pen line, then open a page that mentions it, in the page and the reader. **Expect:** the picture carries the crop, rotation, filter and lines (no caption), or the unedited picture if the baker cannot run, never a broken one; a video shows its still under the play mark (NI3, NI15).\n"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "add",
+        "--top"
+      ],
+      "body": "| Note pictures (a photo or video mentioned on a note's page is drawn as the photo itself, in the page and the reader: an own block at the page's width, a video's still under the play mark, a line only when it is from another day or walk; a tap while writing offers Edit, which opens the media editor over the page; the note still stores only the mention; NI1-NI18, decision 0182) | Built 2026-11-16 on `claude/peaceful-goodall-wtqgm5`, test-first by history (18 of 18): unit tests, typecheck, lint, docs and vision checks; the `notepage` journey passes on the web build; the UI review and an audit not yet run; native unverified (four items in `docs/NATIVE_UNVERIFIED.md`) | `claude/peaceful-goodall-wtqgm5` | `specs/note-pictures/spec.md` | no |\n"
+    }
+  ]
+}

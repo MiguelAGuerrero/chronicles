@@ -1,0 +1,41 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Trace, rides and gaps"
+      ],
+      "body": "- Keeping every offer at the walk's end re-reads the replay after the snap, which can drop a capture edit made while it ran (G15 audit 9; the same as Keep on a card)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Trace, rides and gaps"
+      ],
+      "body": "- The first replay's \"Not now\" is a small grey text, and a person who is done can't tell it also leaves the gap question (G15 audit 11; ui-patterns \"Found before quiet\")\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Map layers and markers (MapLibre RN v11)"
+      ],
+      "body": "- [ ] **Do:** end a walk that had a gap offered (force-quit the app for a few minutes while walking), watch the replay to its card. **Expect:** \"Keep the likely way?\" sits above the card with two outlined buttons; with VoiceOver or TalkBack on, it is announced; Back on Android leaves the replay and the question does not return. Keep it draws the stretch solid and the distance grows. (G15)\n"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "set",
+        "Filling gaps"
+      ],
+      "body": "| Filling gaps (streets walked across a gap in the trace, G1-G14; G15 asks about offered gaps at the walk's end, branch `claude/determined-dijkstra-2luqjd`) | shipped (G1-G14); G15 built, not merged | `2a0501e`, `3a08a53`, merged as `28c7417` 2026-11-03 | `specs/filling-gaps/spec.md` | yes (17 findings, 12 fixed, `3a08a53`; G15: 15 findings, 8 fixed, 2 deferred, 5 rejected) |\n",
+      "target": "sha256:fd7cc227ee323693097359793f8adab861f656149f2f63cf728f534f211db5c8"
+    }
+  ]
+}

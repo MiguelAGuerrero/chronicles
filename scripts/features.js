@@ -65,7 +65,7 @@ const FEATURES = [
     name: 'gaps',
     about: 'streets walked across a gap in the trace, and drawing a gap\'s way',
     rule: 'gaps',
-    source: ['src/lib/gaps/**', 'src/lib/tileCollector/**', 'src/components/{GapCard,GapDraw}.tsx'],
+    source: ['src/lib/gaps/**', 'src/lib/tileCollector/**', 'src/components/{GapCard,GapDraw,KeepGapsCard}.tsx'],
     journeys: ['gaps'],
     specs: ['filling-gaps', 'gap-drawing'],
   },
@@ -153,10 +153,11 @@ const FEATURES = [
       'src/lib/db/{exploreRow,placeRow,stores}.ts', 'src/lib/markNames.ts',
       'src/app/(tabs)/explore.tsx',
       'src/components/atlas/**',
+      'src/lib/gazetteer/**',
       'src/components/{MarkPinView,ExploreSettings,ReminderCard,RemindEditor}.tsx',
     ],
-    journeys: ['marks', 'atlas', 'grading', 'snap', 'carousel', 'curiosities', 'freelook'],
-    specs: ['v1-discovery', 'explore-atlas', 'pocket-alert-nudge', 'reminder-bell', 'atlas-grading', 'town-presence', 'discrete-navigation', 'explore-carousel', 'places-worth-the-stop', 'places-pipeline', 'remarkable-and-public', 'places-out-of-town', 'presence-and-kinds', 'whole-towns', 'community-parks', 'free-look'],
+    journeys: ['marks', 'atlas', 'grading', 'snap', 'carousel', 'curiosities', 'freelook', 'small-places', 'placesearch'],
+    specs: ['v1-discovery', 'explore-atlas', 'pocket-alert-nudge', 'reminder-bell', 'atlas-grading', 'town-presence', 'discrete-navigation', 'explore-carousel', 'places-worth-the-stop', 'places-pipeline', 'remarkable-and-public', 'places-out-of-town', 'presence-and-kinds', 'whole-towns', 'community-parks', 'free-look', 'small-places', 'place-search'],
   },
   {
     name: 'kind-walk',
@@ -225,7 +226,7 @@ const FEATURES = [
       'src/lib/unitsStore/**',
     ],
     journeys: ['qol'],
-    specs: ['quality-of-life', 'compass'],
+    specs: ['quality-of-life', 'compass', 'native-map-frames'],
   },
   {
     name: 'captures',
@@ -317,7 +318,7 @@ const FEATURES = [
     rule: 'note-pages',
     source: ['src/lib/notePage/**', 'src/components/notePage/**', 'src/lib/noteEdit.ts'],
     journeys: ['notepage'],
-    specs: ['note-pages'],
+    specs: ['note-pages', 'note-pictures'],
   },
   {
     name: 'motion',
@@ -369,6 +370,8 @@ const FEATURES = [
 const V1_SCAN_AND_AMBIENT = ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S9', 'S10', 'S11', 'S12', 'S14', 'S15', 'S22', 'S23', ...Array.from({ length: 11 }, (_, i) => `A${i + 1}`)];
 
 const RETIRED = {
+  // A no-regression promise that could never fail first (the owner, Nov 17, at the deploy): NF8 took its place.
+  'native-map-frames': ['NF6'],
   // The row under the line (decision 0175) was replaced by a toolbar at the foot the same day (decision 0178, the owner).
   // The composer (decision 0179) retired writing on the page: JN28-JN30, JN32, JN33, and the toolbar's pen (JN42).
   'chronicle-journal': ['JN28', 'JN29', 'JN30', 'JN32', 'JN33', 'JN34', 'JN35', 'JN36', 'JN37', 'JN38', 'JN39', 'JN40', 'JN42'],
@@ -427,13 +430,15 @@ const RETIRED = {
  * make (the web build can't reach it), `deferred: <why>` for the owner's call to wait. Keyed by spec.
  */
 const UNTESTED = {
-  // Plan an outing (decision 0182): criteria with no test of their own, each with where it is held instead.
+  // Plan an outing (decision 0187): criteria with no test of their own, each with where it is held instead.
   'quick-circuit': {
     QC32: 'deferred: a review criterion, the ux-reviewer\'s cold find (Nov 17, in the spec\'s Record), not a unit test',
     QC34: 'deferred: by construction: `HOURS_LINE` is one constant the page renders once under the slots, and no pack field holds hours; the journey `outing` checks the line (QC20)',
     QC35: 'deferred: by construction: the page computes from the picks alone, and QC7\'s test plans with a second entry that wins no stop and says nothing of it',
     QC36: 'deferred: Start is disabled with nothing to start; the reason is the line QC2 and QC30 test (nothing picked, no position); no test of its own for the disabled state',
   },
+  // Native map frames: the source scans hold the shape; the frame rate is a profiler's on a phone.
+  'native-map-frames': { NF7: 'device: React DevTools on a development build during a walk; npm test cannot render MapLibre RN' },
   // Free look: the out-of-town stars (decision 0115) are queued, not built; FL19 is the call their slice carries.
   'free-look': { FL17: 'deferred: a launch fix that arrives late cannot be staged in the harness; the guard is the screen\'s `lookedRef` and `freeRef` in the fix handler, read by code review', FL19: 'deferred: the out-of-town stars of decision 0115 are not built yet; 0150 records that they follow the look, and that slice carries it' },
   // react-native-web always reports a screen reader, so the check that keeps the viewer's bars is a phone's (UC8).

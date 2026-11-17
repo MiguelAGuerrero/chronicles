@@ -20,7 +20,10 @@ SQLite (native) and IndexedDB (web) behind the shared `Db` interface, migrations
   the adapter covers, or add them there.
 - expo-sqlite: all writes go through the single queue in `db/sqliteStore.ts`, using
   `withExclusiveTransactionAsync`. Plain `withTransactionAsync` collides with
-  concurrent writes from the background task. Schema changes go in `MIGRATIONS`,
+  concurrent writes from the background task. Each exclusive transaction opens, inits and closes a
+  connection of its own (`Transaction.createAsync`, `useNewConnection`, expo-sqlite 58), so it is a cost
+  per write, and PRAGMAs set on the main connection (`busy_timeout`) don't reach it: fewer, larger writes.
+  Schema changes go in `MIGRATIONS`,
   tracked with `PRAGMA user_version`. Never edit an existing migration.
 - IndexedDB: bump `VERSION` and add an `oldVersion < N` step in `migrate()`. An
   unconditional `createObjectStore` aborts the upgrade.
@@ -35,3 +38,8 @@ SQLite (native) and IndexedDB (web) behind the shared `Db` interface, migrations
   - The e2e (`space`) patches `StorageManager.prototype`'s three methods only; replacing
     `navigator.storage` whole hides what other code needs.
   - The meta key scan (FC8) reads only `getMeta` / `setMeta` calls, so the shell calls those, not `metaStore`.
+- **Query shape** (`.claude/rules/performance.md`): a read names the rows it needs. Not a whole table
+  for one row, a count or an emptiness test (`listSummaries().find`, `listWalks().find` on the web's
+  `getOpenWalk`); not `momentsBetween(0, Number.MAX_SAFE_INTEGER)` in new code (the existing callers
+  are recorded in `docs/DEFERRED.md`). Indexes match each new WHERE and ORDER BY; a bbox read on four
+  ranges prunes on its first column only. Loops of writes use one prepared statement.

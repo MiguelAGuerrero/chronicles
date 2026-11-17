@@ -111,6 +111,10 @@ Write `specs/<slug>/plan.md`:
   folder and a row in `scripts/features.js`) or a new journey, if the slice needs one;
 - what is deferred, and why;
 - native paths that will not run on a device;
+- **cost** (`.claude/rules/performance.md`): what the slice reads and writes and its n at scale (a
+  4-hour walk, a library of years), what runs per frame, per fix or on a tab's focus, and the harness that
+  measures it (`scripts/perf-walk.js`, `scripts/perf-explore.js`, a `perfCount` key), or "device only";
+  a cost already in `docs/DEFERRED.md` is named there;
 - for every screen it adds or changes, one line per action: the user's goal, how
   often and in what situation, the control, and its row in the goal-to-control
   matrix (`docs/research/ui-references.md`, section 2), with a precedent from
@@ -226,6 +230,9 @@ npm run test:feature <feature>                          # the slice's feature, w
 npm run check:test-first <slug>                         # each criterion's todo came before its real test
 npm run export:web && E2E_ONLY=<journey> npm run e2e:web   # the slice's own and those chosen as in docs/TESTING.md, "Choosing the journeys"
 ```
+
+A slice whose plan named a harness under **cost** runs it before its first code commit and again here,
+and the report gives both numbers; a native cost is an item in `docs/NATIVE_UNVERIFIED.md`.
 
 **The e2e's economy (docs/TESTING.md, `scripts/e2e/economy.js`).** Each journey is minutes
 of browser, so the named ones run once, at the end, and the rest is mechanical:

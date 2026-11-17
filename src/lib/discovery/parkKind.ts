@@ -4,10 +4,11 @@ import { inRings } from './green';
 import { onTileEdge } from '../tileMath';
 import type { LngLat } from '../types';
 import community from './communityWords.json';
-import { normalizeWords, notableName } from '../presence/notable';
+import { normalizeWords, notableName, readPastNeighbourhood } from '../presence/notable';
 import parkNotable from './parkNotable.json';
 import type { Refinement } from './refine';
 import type { Place } from './types';
+import { isSmallPlace } from './smallPlaces';
 
 /*
  * Community parks (specs/community-parks, PC1-PC5, PC11): the first refinement of the kind pipeline (`refine.ts`). The parks
@@ -41,20 +42,14 @@ const hasWord = (name: string, list: readonly string[]): boolean => {
 /** PC1: the name says it is a ground for play. */
 const communityName = (name: string): boolean => hasWord(name, COMMUNITY);
 /**
- * The phrases presence reads past for a museum (presence-and-kinds audit 5, `notableBeyondNeighbourhood`), as written there,
- * before `normalizeWords`.
- */
-const NEIGHBOURHOOD = /\bold\s+(?:town|city|quarter|village|(?:and|&)\s+new)\b/gi;
-/**
  * T9, tend explore audit 1: a neighbourhood's "Old Town" says nothing of a park only where a community word follows it at
  * once ("Old Town Playground", "Old City Tot Lot"); before anything else it names a building or a site ("Old Town Hall
- * Playground", "Site of the Old City Spring Ball Fields") and its "Old" is read. The refinement's own curation (0146).
+ * Playground", "Site of the Old City Spring Ball Fields") and its "Old" is read. The phrases are presence's
+ * (`readPastNeighbourhood`, after `normalizeWords`, decision 0172: a change to them bumps `PRESENCE_CODE`); only the
+ * condition, a community word at once, is the refinement's own curation (0146: a change to it bumps `ATLAS_OWN`).
  */
 const pastNeighbourhood = (name: string): string =>
-  name.replace(NEIGHBOURHOOD, (phrase: string, at: number) => {
-    const next = ` ${normalizeWords(name.slice(at + phrase.length))} `;
-    return COMMUNITY.some((w) => next.startsWith(` ${w} `)) ? ' ' : phrase;
-  });
+  readPastNeighbourhood(name, (rest) => COMMUNITY.some((w) => ` ${rest} `.startsWith(` ${w} `)));
 /**
  * PC2: the name says it is more: a park word of the refinement's own curation (`parkNotable.json`: a state park, a memorial,
  * an arboretum), or a name presence calls notable (`notableName`, the one rule; specs/presence-readers PS3, T8), read past a
@@ -63,7 +58,8 @@ const pastNeighbourhood = (name: string): string =>
 const notablePark = (name: string): boolean => hasWord(name, NOTABLE) || notableName(pastNeighbourhood(name));
 
 /** A place a park is not plain for (PC2): something to find that is not a park itself. */
-const isSignal = (p: Place): boolean => p.markable === true && !!p.kind && p.kind !== 'parks' && p.kind !== 'community_parks' && p.kind !== 'community';
+// SP19 (decision 0183): a small place (a bench, a plaque, an old stone) is no reason either, switched on or off.
+const isSignal = (p: Place): boolean => p.markable === true && !!p.kind && p.kind !== 'parks' && p.kind !== 'community_parks' && p.kind !== 'community' && !isSmallPlace(p);
 
 /** The area of a polygon's rings in square metres: the outside less its holes. */
 function areaM2(rings: LngLat[][]): number {
@@ -100,7 +96,7 @@ export const communityParks: Refinement = {
       if (!communityName(p.name) && !small) return false;
       if (held.length && (area! >= PARK_RULES.largeM2 || held.some((o) => signals.some((s) => inRings(s.at, [o.rings[0]]))))) return false;
       if (signals.some((s) => distanceM(s.at, p.at) <= PARK_RULES.signalNearM)) return false;
-      return !ctx.archive.some((a) => distanceM(a.at, p.at) <= PARK_RULES.archiveNearM);
+      return !ctx.archive.some((a) => !isSmallPlace(a) && distanceM(a.at, p.at) <= PARK_RULES.archiveNearM);
     };
   },
 };

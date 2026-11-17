@@ -2,7 +2,7 @@
 import { type Faced, facedOf } from '../../moment';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { RECALL_RULES, afterFire, dueRecalls, editedRecall, isExpired, newRecall, reminderHeld, reminderText } from '../../discovery/recall';
+import { RECALL_RULES, afterFire, dueRecalls, editedRecall, isExpired, newRecall, remindChoices, remindMenuLabel, reminderHeld, reminderText } from '../../discovery/recall';
 import { pinKindsWords } from '../../pins';
 import { moreHere, previewSpoken } from '../../memories';
 import type { Recall } from '../../discovery/types';
@@ -181,4 +181,20 @@ test('tend explore audit 18: the memory preview keeps number words to fifty-nine
   assert.equal(moreHere(59), 'and fifty-nine more here');
   assert.equal(moreHere(60), 'and many more here');
   assert.equal(previewSpoken({ date: 'Nov 2, 2026', line: 'Bought two plums', stack: null, more: 12 }), 'Memory from Nov 2, 2026: Bought two plums, and twelve more here. Open');
+});
+
+test('tend explore 18: the reminder editor\'s two menus offer the chips\' choices in their order, and say the chosen one', () => {
+  const fresh = remindChoices(null);
+  assert.deepEqual(fresh.often.map((x) => [x.id, x.label]), [['once', 'Once'], ['visit', 'Every visit'], ['weekly', 'Weekly at most'], ['monthly', 'Monthly at most']]);
+  assert.deepEqual(fresh.until.map((x) => [x.id, x.label, x.days]), [['none', 'No end', null], ['month', '1 month', 30], ['season', '3 months', 91], ['year', '1 year', 365]]);
+  // An end already set leads Until as its own choice, kept to the day (the month and date are the view's, read locally).
+  const kept = remindChoices({ month: 10, date: 2 });
+  assert.deepEqual(kept.until.map((x) => x.label), ['Ends Nov 2', 'No end', '1 month', '3 months', '1 year']);
+  assert.deepEqual(kept.often, fresh.often);
+  // The menu's button says its name and its choice: "How often: Once", "Until: No end".
+  assert.equal(remindMenuLabel('often', fresh.often, 'once'), 'How often: Once');
+  assert.equal(remindMenuLabel('often', fresh.often, 'monthly'), 'How often: Monthly at most');
+  assert.equal(remindMenuLabel('until', fresh.until, 'none'), 'Until: No end');
+  assert.equal(remindMenuLabel('until', kept.until, 'kept'), 'Until: Ends Nov 2');
+  assert.equal(remindMenuLabel('until', kept.until, 'year'), 'Until: 1 year');
 });

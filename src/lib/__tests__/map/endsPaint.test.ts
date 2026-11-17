@@ -166,14 +166,15 @@ test('tend map T25: both maps draw the outer ring first, on the ends source, the
   assert.match(web, /for \(const id of \['ends-ring', 'ends'\]\) \{\s*mapRef\.current\?\.setPaintProperty\(id, 'circle-opacity', props\.traceOpacity \?\? 1\);\s*mapRef\.current\?\.setPaintProperty\(id, 'circle-stroke-opacity', props\.traceOpacity \?\? 1\);/,
     'both layers of the ends go with the trace');
   // Native: in the one ends source, ends-ring before ends, spreading its paint and adding only the trace's opacity.
-  const source = /<GeoJSONSource id="ends" data=\{ends\}>([\s\S]*?)<\/GeoJSONSource>/.exec(native)?.[1] ?? '';
+  const source = /<GeoJSONSource id="ends" data=\{(?:ends|data)\}>([\s\S]*?)<\/GeoJSONSource>/.exec(native)?.[1] ?? '';
   const ringLayer = /<Layer id="ends-ring" type="circle" paint=\{\{([\s\S]*?)\}\} \/>/.exec(source);
   assert.ok(ringLayer, 'native draws ends-ring on the ends source, for both kinds');
   assert.match(source, new RegExp(String.raw`<Layer id="ends" type="circle" filter=\{${endOnly}\} paint=\{\{\s*\.\.\.ENDS_PAINT,`), 'and ends for the end alone');
   assert.ok(source.indexOf('id="ends-ring"') < source.indexOf('id="ends"'), 'the outer ring is drawn first');
   assert.ok(ringLayer[1].includes('...ENDS_RING_PAINT'));
   assert.deepEqual([...ringLayer[1].matchAll(/'([a-z-]+)':/g)].map((m) => m[1]), ['circle-opacity', 'circle-stroke-opacity']);
-  assert.match(ringLayer[1], /'circle-opacity': props\.traceOpacity \?\? 1,\s*'circle-stroke-opacity': props\.traceOpacity \?\? 1,/);
+  // Since native map frames (NF3) the ends are their own memo source, handed the trace's opacity as `opacity`.
+  assert.match(ringLayer[1], /'circle-opacity': opacity,\s*'circle-stroke-opacity': opacity\s*\}?$/);
 });
 
 // tend map audit 25 (the T25 review, auditor 25): a walk that ends on or near its start lost the end's outer ring under
@@ -206,7 +207,7 @@ function drawnLayers(): Layer[] {
   const PAINTS: Record<string, Record<string, unknown>> = { ENDS_PAINT, ENDS_RING_PAINT };
   const webLayers = [...web.matchAll(/map\.addLayer\(\{ id: '(ends[a-z-]*)', type: 'circle', source: 'ends',(?: filter: \['==', \['get', 'kind'\], '(\w+)'\],)?\s*paint: (ENDS_[A-Z_]+) \}\);/g)]
     .map((m) => ({ id: m[1], only: m[2], paint: m[3] }));
-  const source = /<GeoJSONSource id="ends" data=\{ends\}>([\s\S]*?)<\/GeoJSONSource>/.exec(native)?.[1] ?? '';
+  const source = /<GeoJSONSource id="ends" data=\{(?:ends|data)\}>([\s\S]*?)<\/GeoJSONSource>/.exec(native)?.[1] ?? '';
   const nativeLayers = [...source.matchAll(/<Layer id="(ends[a-z-]*)" type="circle"(?: filter=\{\['==', \['get', 'kind'\], '(\w+)'\]\})? paint=\{\{\s*\.\.\.(ENDS_[A-Z_]+),/g)]
     .map((m) => ({ id: m[1], only: m[2], paint: m[3] }));
   assert.equal(webLayers.length, 2, 'the web draws two circle layers on the ends source');

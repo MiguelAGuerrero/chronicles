@@ -72,6 +72,32 @@ export function settledIndex(offsetX: number, step: number, count: number): numb
   return Math.max(0, Math.min(count - 1, Math.round(offsetX / step)));
 }
 
+/** How far, as a share of a card step, a scroll must travel from where the touch began to count as a flick toward the next card. */
+export const FLICK_SHARE = 0.12;
+/** A touch began "on a card" when its offset was within this share of a step of one. */
+const ON_CARD_SHARE = 0.05;
+
+/**
+ * The card a settled scroll lands on (fix carousel-flick). The platform's snap does this on a phone (`snapToInterval`); the web
+ * has none, so the nearest card alone sent a short swipe, one that stopped under half a card away, back to the card it began on
+ * ("it snaps back; the second, firmer try works"). A touch that began on a card (`start`, the offset when it landed; null: not a
+ * reader's gesture) and moved over `FLICK_SHARE` of a step, yet still rounds to that card, goes on to the neighbour that way. Any
+ * other lands on the nearest: a touch that landed between cards (a catch mid-ease) has no direction of its own, and a long glide
+ * is never pulled back (audits 1, 2).
+ */
+export function snapTarget(p: { offset: number; step: number; count: number; start: number | null }): number {
+  const near = settledIndex(p.offset, p.step, p.count);
+  if (p.start == null || p.step <= 0) return near;
+  const from = settledIndex(p.start, p.step, p.count);
+  if (near !== from || Math.abs(p.start - from * p.step) > p.step * ON_CARD_SHARE) return near;
+  const moved = p.offset - p.start;
+  if (Math.abs(moved) < p.step * FLICK_SHARE) return near;
+  return Math.max(0, Math.min(p.count - 1, from + (moved > 0 ? 1 : -1)));
+}
+
+/** A gesture's start offset: the first touch event's, kept when a second of the same gesture comes (a phone sends two; audit 3). */
+export const keepStart = (kept: number | null, now: number): number => kept ?? now;
+
 /** Where to scroll to centre a card (EC4). */
 export const offsetOf = (index: number, step: number): number => index * step;
 
@@ -90,10 +116,42 @@ export function storefrontNamesNear(view: LandingView | null, at: LngLat | null,
  * What a settled scroll means (explore-carousel audit 2). While the row is scrolling itself to a card (`intended`), a settle
  * that stopped short of it (a stalled page) is never the reader's: it aims on. Otherwise the card it stopped on is reported
  * when it is not already the selected one.
+ *
+ * While the reader's finger is down or the row is gliding from a release (`held`), a settle waits (fix carousel-snap-back): a
+ * pause between cards (a still finger, or a page that stalled mid-glide) is not a stop, and easing onto the nearest card then
+ * made it the row's own target, so the release, bound for the next card, was aimed back at the old one.
  */
-export function settleStep(p: { index: number; intended: number | null; selected: number }): { report: number | null; scrollTo: number | null } {
-  if (p.intended != null) return { report: null, scrollTo: p.index === p.intended ? null : p.intended };
-  return { report: p.index === p.selected ? null : p.index, scrollTo: null };
+export function settleStep(p: { index: number; intended: number | null; selected: number; held?: boolean }): { report: number | null; scrollTo: number | null; wait: boolean } {
+  if (p.held) return { report: null, scrollTo: null, wait: true };
+  if (p.intended != null) return { report: null, scrollTo: p.index === p.intended ? null : p.intended, wait: false };
+  return { report: p.index === p.selected ? null : p.index, scrollTo: null, wait: false };
+}
+
+/**
+ * Whether the reader holds the row (fix carousel-snap-back audits 1-4): a finger on it (`finger`, from the touch events, the only
+ * ones the web build fires; the native drag events say the same), or a release still gliding (`glide`, native's momentum events).
+ * `waits` counts the settles that waited since the row last scrolled, so an event that never comes (a glide with no end, a
+ * touch the system cancelled) lets go after `HOLD_MAX_WAITS` (a glide) or `FINGER_MAX_WAITS` (a finger) instead of freezing the row.
+ */
+export type Hold = { finger: boolean; glide: boolean; waits: number };
+export const HOLD_NONE: Hold = { finger: false, glide: false, waits: 0 };
+/** Settles that may wait on a glide whose end never came (about 3.6 s), and on a finger whose end never came (about 30 s: a real finger can rest). */
+export const HOLD_MAX_WAITS = 12;
+export const FINGER_MAX_WAITS = 100;
+export const isHeld = (h: Hold): boolean => h.finger || h.glide;
+export function holdStep(h: Hold, e: 'down' | 'up' | 'glide' | 'rest' | 'scroll' | 'waited'): Hold {
+  switch (e) {
+    // A new touch ends the glide it stopped.
+    case 'down': return { finger: true, glide: false, waits: 0 };
+    case 'up': return { ...h, finger: false, waits: 0 };
+    case 'glide': return { ...h, glide: true };
+    case 'rest': return { ...h, glide: false };
+    case 'scroll': return { ...h, waits: 0 };
+    case 'waited': {
+      const waits = h.waits + 1;
+      return { finger: h.finger && waits < FINGER_MAX_WAITS, glide: h.glide && waits < HOLD_MAX_WAITS, waits };
+    }
+  }
 }
 
 /**

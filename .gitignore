@@ -40,8 +40,9 @@ yarn-error.*
 /ios
 /android
 
-# copied from node_modules on install
+# copied on install by scripts/copy-maplibre-worker.js
 /public/maplibre-gl-worker.mjs
+/public/gazetteer/
 .claude/worktrees/
 
 # the e2e runner's record of journeys that passed (scripts/e2e/economy.js)

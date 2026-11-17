@@ -10,7 +10,7 @@ import type { Find, Kind } from '../explore/explore';
 import { exploreBuild } from '../explore/exploreRun';
 import { loadSettings, onSettings } from '../explore/settings';
 import type { LngLat } from '../types';
-import { ATLAS_RULES, atlasStep, nearList, rowCurrent, townNeighborhoods, townReachM, type AtlasArea, type Listed, type NearTarget } from './atlas';
+import { ATLAS_RULES, atlasStep, nearList, rowCurrent, townNeighborhoods, townReachM, withShownSteps, type AtlasArea, type Listed, type NearTarget } from './atlas';
 import { nearReads, readNear, readRing } from './read';
 import { townsListedAfter } from './carousel';
 import { borderReach } from './hoods';
@@ -227,7 +227,8 @@ export function useAtlas(focused: boolean, from: LngLat | null, town: AtlasArea 
   }, [focused, from, town, build, tick, looking]);
 
   return useMemo(
-    () => ({ build, rows, neighborhoods, towns, home, status, townsListed: townsKnown.build === build && townsKnown.listed, hidden, outlines: borders, ...extra }),
+    // SP13: the bars follow the reader's switches from the stored profile, with no read.
+    () => ({ build, rows, neighborhoods: withShownSteps(neighborhoods, hidden), towns: withShownSteps(towns, hidden), home, status, townsListed: townsKnown.build === build && townsKnown.listed, hidden, outlines: borders, ...extra }),
     [build, rows, neighborhoods, towns, home, status, townsKnown, hidden, borders, extra],
   );
 }

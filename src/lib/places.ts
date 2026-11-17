@@ -40,6 +40,15 @@ export interface Star {
   points: LngLat[];
 }
 
+/**
+ * How many star glyphs a star's disc draws (decision 0172, O14): two, fanned, for places merged at this zoom, as a pin
+ * of several shows two discs (tend map T14), so a tap that zooms in does not look like one that opens a place; one for a
+ * lone place. Never a numeral, and every star one size (decision 0154).
+ */
+export function starGlyphs(star: Pick<Star, 'count'>): 1 | 2 {
+  return star.count > 1 ? 2 : 1;
+}
+
 const ELSEWHERE = 'elsewhere:';
 const stopped = (w: Walk) => !w.open && w.ended_at != null;
 

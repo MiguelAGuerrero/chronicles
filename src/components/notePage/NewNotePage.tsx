@@ -8,7 +8,7 @@ import type { CaptureKind } from '../../lib/types';
 import type { useCaptures } from '../../lib/useCaptures';
 import { NotePage, newNoteStore, type NotePageHandle } from './NotePage';
 
-type Cap = Pick<ReturnType<typeof useCaptures>, 'beginNote' | 'keepNote' | 'setNote' | 'takePhoto'>;
+type Cap = Pick<ReturnType<typeof useCaptures>, 'beginNote' | 'keepNote' | 'setNote' | 'takePhoto' | 'setEdit'>;
 
 const timeOf = (t: number) => new Date(t).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 const KIND_WORDS: Partial<Record<CaptureKind, string>> = { photo: 'A photo', video: 'A video' };
@@ -85,6 +85,8 @@ export const NewNotePage = forwardRef<NotePageHandle, {
       head={head}
       store={store}
       self={stamp.into ?? null}
+      pageAt={{ t: stamp.t }}
+      onEditMedia={(c, patch) => cap.setEdit(c, patch)}
       reaction={props.reactable ? {
         set: stamp.into ? intoSet : keptId ? keptSet : held,
         moment: stamp.into ?? keptId,

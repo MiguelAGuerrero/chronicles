@@ -7,7 +7,11 @@ import { AtlasCard, type CardLayout } from '../../components/atlas/AtlasCard';
 import { AtlasCarousel } from '../../components/atlas/AtlasCarousel';
 import { AtlasTile } from '../../components/atlas/AtlasTile';
 import { CentreMark, MoveMapToggle, ShowAreasPill } from '../../components/atlas/FreeLookControls';
-import { centreOf, emptyLook, listedAround, lookPage, lookRowLabel, lookWords, lookedList, youFresh } from '../../lib/atlas/freeLook';
+import { focusOn } from '../../lib/focus';
+import { SearchButton, SearchSheet } from '../../components/atlas/PlaceSearch';
+import { centreOf, emptyLook, listedAround, lookPage, lookRowLabel, lookWords, lookedList, youFresh, type NamedLook } from '../../lib/atlas/freeLook';
+import type { Place } from '../../lib/gazetteer/pack';
+import { searchAvailable } from '../../lib/gazetteer/words';
 import { BLOCKED_LINE, exploreBanner, findYou, refusalLifted, type PermissionSeen } from '../../lib/atlas/findYou';
 import { cancelLook, endLook, IDLE, isLive, LOOK_LABEL, runLook, startLook, type Look } from '../../lib/atlas/look';
 import { exploreSlots, SCALE_LEFT } from '../../lib/atlas/overlaySlots';
@@ -81,7 +85,7 @@ const PRESS_HINT_KEY = 'atlas_press_seen';
 /** The Storefronts layer's street names show on the map only from this zoom, and only near the selected area (EC7, decision 0124). */
 const STOREFRONT_NAMES_ZOOM = 13;
 /** audit 11: Explore's controls over the map, whose room no storefront name takes. */
-const NAMES_CLEAR_OF = ['atlas-title-card', 'outing-entry', 'layers', 'atlas-move-map', 'atlas-show-here', 'compass', 'locate', 'atlas-back-pill'] as const;
+const NAMES_CLEAR_OF = ['atlas-title-card', 'atlas-search', 'outing-entry', 'layers', 'atlas-move-map', 'atlas-show-here', 'compass', 'locate', 'atlas-back-pill'] as const;
 /** How long the long press's hint stays up before it is marked seen (explore-carousel audit 10). */
 const HINT_MS = 5000;
 /** The long press's choices over the map's bottom (`spot`): the overlay sits above them, never over (EC19). */
@@ -111,7 +115,10 @@ export default function Explore() {
   const [you, setYou] = useState<LngLat | null>(() => getLastFix()?.at ?? null);
   // Free look (FL3): Move map frees one finger; Show areas here takes the map's middle as the page's centre.
   const [free, setFree] = useState(false);
-  const [looked, setLooked] = useState<{ at: LngLat; you: LngLat | null } | null>(null);
+  const [looked, setLooked] = useState<{ at: LngLat; you: LngLat | null; named?: NamedLook } | null>(null);
+  // Place search (GZ2): the sheet is open, with where the order runs from, taken when it opened (a fresh fix, else the map's middle: GZ4).
+  const [searching, setSearching] = useState<{ origin: LngLat | null } | null>(null);
+  const searchRef = useRef<ComponentRef<typeof Pressable>>(null);
   const from = looked?.at ?? you;
   const lookedRef = useRef(looked);
   const freeRef = useRef(free);
@@ -215,6 +222,8 @@ export default function Explore() {
         setSpot(null);
         // FL14: Move map is off on the next visit; the look stands, like the page and the selection.
         setFree(false);
+        // GZ2: the search sheet never outlives the tab's turn in front.
+        setSearching(null);
       };
     }, []),
   );
@@ -332,7 +341,7 @@ export default function Explore() {
     return m;
   }, [shown, fresh.finds, fresh.hidden, found]);
 
-  // The map's areas: the page's neighborhoods (and the town), dots, the selected one named in the accent (round 3).
+  // The map's areas: the page's neighborhoods (and the town), dots, the selected one named, in ink at rest (round 3; tend explore 20, decision 0172).
   const pointsOf = useMemo(() => (town ? [{ area: town, distanceM: 0, here: false }, ...neighborhoods] : neighborhoods), [town, neighborhoods]);
   const points = useMemo(() => pointsOf.map((l) => l.area.at), [pointsOf]);
   // Only the selected area's level is drawn, so a town's name and its neighborhoods' never overlay (fix map-levels).
@@ -472,6 +481,15 @@ export default function Explore() {
       if (Platform.OS === 'web' && typeof window !== 'undefined') window.removeEventListener('keydown', onKey);
     };
   }, [townSeen, open, focused, leave, layersOpen, closeLayers, spot]);
+  // GZ2: Back closes the search sheet first (Escape is the field's own).
+  useEffect(() => {
+    if (!searching || !focused) return;
+    const back = BackHandler.addEventListener('hardwareBackPress', () => {
+      setSearching(null);
+      return true;
+    });
+    return () => back.remove();
+  }, [searching, focused]);
   // Each visit to a page is framed (AT9, TB11): its areas until its town's border is known, then the whole
   // town, and nothing undoes that within the visit (`nextFrame`, fix explore-fit-area).
   useEffect(() => {
@@ -555,18 +573,38 @@ export default function Explore() {
     }
     say(l.area.name);
   }, [mapPad, say]);
-  // Show areas here (FL5, FL6): the page lists around the map's settled middle; it is its own page, framed afresh.
-  const showHere = useCallback(() => {
-    const at = centreOf(cam);
-    if (!at) return;
+  // A look at a point (FL5, FL6; GZ6): the page lists around it, as its own page, framed afresh. A picked place names it.
+  const lookAt = useCallback((at: LngLat, named?: NamedLook) => {
+    // GZ6: a pick during an in-flight Look here read stops that read first, as its Cancel does.
+    look.current = cancelLook(look.current);
+    setLooking(false);
     setSpot(null);
     setOpen(null);
     setSelected(null);
     setTownSeen(null);
     framed.current = null;
-    setLooked({ at, you: youFresh(getLastFix(), Date.now()) });
-    say(lookWords().announcement);
-  }, [cam, say]);
+    setLooked({ at, you: youFresh(getLastFix(), Date.now()), named });
+    // A pick goes to a place the map may not have areas for: the map moves there itself.
+    if (named) frame([at], 3000);
+    say(lookWords(named).announcement);
+  }, [say, frame]);
+  const showHere = useCallback(() => {
+    const at = centreOf(cam);
+    if (at) lookAt(at);
+  }, [cam, lookAt]);
+  // Place search (GZ1, GZ2, GZ6): the magnifier opens the sheet; a pick closes it and looks at the place.
+  const openSearch = useCallback(() => {
+    setSearching({ origin: youFresh(getLastFix(), Date.now()) ?? centreOf(cam) });
+  }, [cam]);
+  const closeSearch = useCallback(() => {
+    setSearching(null);
+    focusOn(searchRef);
+  }, []);
+  const pickPlace = useCallback((place: Place) => {
+    setSearching(null);
+    lookAt(place.at, { name: place.name, region: place.region });
+    focusOn(searchRef);
+  }, [lookAt]);
   // A swipe on the map steps the row, by what is on screen (EC8, EC9, EC10): left is the next card, right the previous.
   const onSwipe = useCallback(({ dx, dy }: { dx: number; dy: number }) => {
     const key = stepKey(order, selected, rowStep(dx, dy, SNAP.minSwipePx));
@@ -594,13 +632,13 @@ export default function Explore() {
   const wide = screen.w >= TWO_PANES;
   // The title names the level shown (fix explore-town-scope): the towns near you, or the town whose page is open.
   const lookOn = looked != null;
-  const title = town?.name ?? (lookOn ? lookWords().title : 'Near you');
+  const title = town?.name ?? (lookOn ? lookWords(looked?.named).title : 'Near you');
   const subtitle = lookOn
-    ? lookWords().subtitle
+    ? lookWords(looked?.named).subtitle
     : town
       ? (ownTown?.here || (home && home.area.key === town.key) ? 'You’re here' : distanceWords(ownTown?.distanceM ?? 0, false, fmt))
       : words.subtitle;
-  const lookEmpty = lookOn && !town ? emptyLook(shown.length, fresh.status) : null;
+  const lookEmpty = lookOn && !town ? emptyLook(shown.length, fresh.status, looked?.named) : null;
   const cardLayout: CardLayout = wide
     ? { kind: 'side', width: 400, height: screen.h }
     : { kind: 'sheet', screenH: screen.h };
@@ -724,6 +762,7 @@ export default function Explore() {
           scaleInset={{ bottom: slots.scaleBottom, left: SCALE_LEFT }}
           // No scale bar over a blank world while no fix places the map (T17).
           hideScaleOnBlank
+          placeNamesCredit
         />
       )}
       {/* WT11: the selected area's "?" and dots, said once: the area and the kinds, never how many. */}
@@ -736,6 +775,7 @@ export default function Explore() {
       {/* The page's title floats over the map, lifted by a shadow; near you, it is the way into your own town.
           On a town's page it has no back arrow: the pill low on the screen is the one way back (decision 0077). */}
       <View style={[styles.titleWrap, { top: topInset + 8, left: 12 }]} pointerEvents="box-none">
+        <View style={styles.titleRowWrap} pointerEvents="box-none">
         <View style={styles.titleCard} testID="atlas-title-card">
           <View accessibilityRole="header" style={styles.titleText} testID="atlas-title">
             <View style={styles.titleRow}>
@@ -744,6 +784,9 @@ export default function Explore() {
             <Text testID="explore-subtitle" style={styles.subtitle} numberOfLines={1}>{subtitle}</Text>
           </View>
         </View>
+        {/* Place search (GZ1): the magnifier beside the title, on every page of Explore but the walk planner's (GZ17). */}
+        {focused && searchAvailable({ plan: !!plan || outingOpen }) ? <SearchButton ref={searchRef} onPress={openSearch} /> : null}
+        </View>
         {!town && !lookOn ? (
           <Pressable testID="outing-entry" accessibilityRole="button" accessibilityLabel={ENTRY_LABEL} onPress={() => setOutingOpen(true)} style={({ pressed }) => [styles.entry, pressed && { opacity: 0.7 }]}>
             <Icon name="compass-outline" size={18} color={theme.ink} />
@@ -751,6 +794,7 @@ export default function Explore() {
           </Pressable>
         ) : null}
       </View>
+      {focused && searching && searchAvailable({ plan: !!plan || outingOpen }) ? <SearchSheet top={topInset + 8} origin={searching.origin} onPick={pickPlace} onClose={closeSearch} /> : null}
       {/* The long press's choices sit over the map where it was pressed, never inside the scrolled list (round 3). */}
       {spot ? (
         <View style={styles.spot} testID="atlas-spot">
@@ -862,7 +906,7 @@ export default function Explore() {
             selected={selected}
             width={screen.w}
             reduced={reduced}
-            label={town ? `Areas in ${town.name}` : lookOn ? lookRowLabel(shown[0]?.area.level === 'town') : words.label}
+            label={town ? `Areas in ${town.name}` : lookOn ? lookRowLabel(shown[0]?.area.level === 'town', looked?.named) : words.label}
             onSettle={selectKey}
             renderCard={(l, isSel) => (
               <AtlasTile
@@ -997,9 +1041,10 @@ const styles = StyleSheet.create({
   titleWrap: { position: 'absolute', right: 64, alignItems: 'flex-start', gap: 8 },
   entry: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 44, paddingHorizontal: 14, borderRadius: 22, backgroundColor: theme.surface, shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 10, shadowOffset: { width: 0, height: 3 }, elevation: 5 },
   entryText: { fontSize: 14, fontWeight: '700', color: theme.ink },
+  titleRowWrap: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, maxWidth: '100%' },
   titleCard: {
     flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: theme.surface, borderRadius: 14, paddingVertical: 8, paddingLeft: 14, paddingRight: 14,
-    maxWidth: 616, shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 10, shadowOffset: { width: 0, height: 3 }, elevation: 5,
+    maxWidth: 616, flexShrink: 1, minWidth: 0, shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 10, shadowOffset: { width: 0, height: 3 }, elevation: 5,
   },
   titleText: { flexShrink: 1, minWidth: 0, minHeight: 44, justifyContent: 'center' },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 2 },
@@ -1020,7 +1065,7 @@ const styles = StyleSheet.create({
   scanning: { flexDirection: 'row', alignItems: 'center', gap: 10, alignSelf: 'center', backgroundColor: theme.surface, borderRadius: 999, paddingVertical: 6, paddingLeft: 14, paddingRight: 6 },
   scanningText: { fontSize: 15, fontWeight: '600', color: theme.ink },
   scanCancel: { minHeight: 44, paddingHorizontal: 12, justifyContent: 'center' },
-  scanCancelText: { fontSize: 15, fontWeight: '600', color: theme.accent },
+  scanCancelText: { fontSize: 15, fontWeight: '600', color: theme.ink },
   backPill: {
     position: 'absolute', left: 12, bottom: 12, flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 44, maxWidth: 240,
     paddingLeft: 10, paddingRight: 16, borderRadius: 999, backgroundColor: theme.surface,

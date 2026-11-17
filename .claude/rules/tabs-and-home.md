@@ -25,6 +25,9 @@ The three tabs (Chronicle, Explore, Navigate), the home sheet, the recording bar
 - **`/chronicle` still works**: `src/app/chronicle.tsx` calls `router.dismissTo('/')`
   on focus. Not `<Redirect href="/">`: a replace from a screen over the tabs
   stacks a second set of tabs (two tab bars; the e2e counts one).
+- **The selected tab keeps the accent tint** (`tabBarActiveTintColor: theme.accent`, `(tabs)/_layout.tsx`): a named
+  exception to "the accent at rest" (decision 0172), the owner's "Keep the accent tint", Nov 17 (decision 0186): a tinted
+  selected tab is the platforms' convention. A run never moves it to ink by citing 0172.
 - **Memories keeps a moment in one tap** (HC6-HC15): see `.claude/rules/moments-and-days.md`
   for the open line (the journal, decision 0155; `.claude/rules/journal.md`). With a walk minimized, the recording bar
   shows no camera on Memories (`barCamera`, `lib/captureBand`), since the open line files into the walk.
@@ -228,6 +231,11 @@ The three tabs (Chronicle, Explore, Navigate), the home sheet, the recording bar
   pure) writes only the title and the line. Chronicle and the replay patch the walk in
   place through `onRenamed`, so the row and the card show it at once. `suggestTitle`
   lives in the pure `lib/walkTitle.ts` (`summary.ts` re-exports it).
+- **Rename asks before it drops changed words** (decision 0172, O17; `tend chronicle 9`): a tap outside, Escape or
+  Back with words Save would store differently (`renameChanged`, `lib/rename.ts`, read through `renamePatch`) shows
+  the media editor's Close confirm in its words, "Discard these edits?" with Keep editing and Discard, in place of Save
+  and Cancel. Escape, a tap outside the ask, and Enter or Done in the line (`tend chronicle audit 5`) keep editing;
+  Discard steps out to the menu. Cancel leaves at once: a choice already made. Words left as they opened step out at once.
 - **A title is stored only when its words differ from the suggestion at save** (the owner's yes to inbox T1,
   Nov 11): `renamePatch` returns `title: null` for an empty title, the suggestion, or the suggestion the field was
   filled with (a gap kept on the first replay's card can move the walk's area meanwhile, tend chronicle audit 1),

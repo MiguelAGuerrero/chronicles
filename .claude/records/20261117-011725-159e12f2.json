@@ -1,0 +1,63 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inbox",
+        "remove",
+        "T21",
+        "--reason",
+        "the owner's yes (decision 0165, \"A quiet Back\": a quiet \"Back\" in the name sheet's top row, in the card's \"Not now\" style, returning to the card with the words kept), built in tend replay T21; with the owner's answer of Nov 17, \"Add the chevron\": a muted back chevron before \"Back\" (no new colour, no new words) and the spoken hint \"Returns to the card, your words kept\" (tend replay audit 16)"
+      ],
+      "target": "sha256:c2203dac1b28b988fd9c4f15e609daba985657a7ac94e2e3632e2f9a356a9d1f"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "Leaving the first replay with words typed in Name it",
+        "--reason",
+        "the owner's answer, Nov 16, in person, \"Ask there too\", built in tend replay 15 (39b34ee5): leaving the first replay with words typed in Name it asks \"Discard these edits?\", with Keep editing and Discard, as Rename asks; with the owner's answers of Nov 17 in tend replay audit 15 (722a9e4c, Not now asks too) and 16 (dce289fe, the card shows the typed name)"
+      ],
+      "target": "sha256:d49aab9005c5c1996b65985f7b5035fefda901485b1b21f64f38aba6d24a44c1"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "The browser's own Back on the name step"
+      ],
+      "body": "  The owner's answer, Nov 17, in person, to the review of `tend replay 15` (its S4, low): \"File it as architecture\":\n  the browser's own back on web. Since `tend replay 15` and `tend replay audit 15` Back, Escape and Not now ask\n  \"Discard these edits?\" before words typed in Name it go; the browser's back, or Safari's edge swipe, from the name\n  step, the card or a re-watch's fog still leaves at once and drops them. A guard needs a routing decision (a guard on\n  leaving the route, or a pushed history entry); native is unaffected (`fullScreenModal`).\n",
+      "target": "sha256:aefbf2ff4d8809959f118c2f820c66d2621a951fab28e353f0730a7ad32abf79"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "note",
+        "Name it, type a name, press Back; press Back again"
+      ],
+      "body": "  Since `tend replay 15` (the owner's \"Ask there too\", Nov 16): with the name typed, the second Back asks \"Discard these\n  edits?\" instead of leaving; with nothing typed it still leaves at once. The item below checks the ask.\n",
+      "target": "sha256:e9d329b7a7229d87d4d311be1ae68da4e8686425c41a79b6859dc90a407ed275"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "The replay sweep",
+        "--after",
+        "Name it, type a name, press Back; press Back again"
+      ],
+      "body": "- [ ] **Do:** on Android, finish a walk, Name it, type a name and a line, press Back (the card shows the name typed), then Back again; at the ask press Back, then the keyboard's Done in the line; then Back twice and Discard. On a second walk, Name it, type a name, Back, then Not now, and Keep editing. On an iPhone, Name it, type a name, tap the sheet's Back. **Expect:** the first Back returns to the card with the words kept, its title the name typed (unsaved); the second asks \"Discard these edits?\" with Keep editing and Discard over the fields and their words, the sheet's Back gone; Back and Done at the ask are Keep editing, nothing stored; Discard leaves for Chronicle, the walk unnamed; Not now with words typed asks the same, with nothing typed it leaves at once. The iPhone's Back, a muted chevron and \"Back\", returns to the card with the words kept, and VoiceOver reads it \"Back, button, Returns to the card, your words kept\" (`tend replay T21`, `tend replay 15`, `tend replay audit 15`, `16`; `BackHandler`).\n"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 17, `/tend inbox T21 --deploy=main`, with the replay's `[loop]` item \"Leaving the first replay with words typed in Name it drops them without asking\"** (opened from `29d76a6f`, rebased on `9cd0647a`; no sweep, lenses 1-7 not run; the faster lane of decision 0181).\n- The entries, as main held them: T21 \"Replay: the name step's only way on is Keep it\" (the owner's yes, Nov 12, decision 0165, \"A quiet Back\"), and the `[loop]` item with the owner's answer of Nov 16, \"Ask there too\". Both leave the record.\n- `tend replay T21`: the name sheet's top row holds a quiet \"Back\" in Not now's style, at the leading edge above the first field; it goes where Android's Back and Escape go from the name step (one `stepBack` asking `backFrom`): the card, the words kept.\n- `tend replay 15`: Back or Escape that would leave the first replay with words typed in Name it (`wordsTyped`, read through Rename's `renameChanged` with the suggestion offered) asks \"Discard these edits?\", Rename's ask in Keep it's place under the fields and their words; Back, Escape and Done while it asks are Keep editing; Discard leaves for Chronicle. Unchanged or emptied words leave at once.\n- The review (one round, the `steward`): one medium, four low, four silent questions. The owner answered in person, Nov 17: Q1 \"Ask there too\": with words typed, Not now asks \"Discard these edits?\"; with nothing typed it leaves at once. Q2 \"Show the typed name\": after Back, the card's title shows the typed name (unsaved) until Keep it or leaving. S3 \"Add the chevron\": a muted back chevron before \"Back\" (no new colour, no new words) and the spoken hint \"Returns to the card, your words kept\". Q4 \"File it as architecture\": the browser's own back on web.\n- Accepted four: S1 and S2 as `tend replay audit 15` (Not now through `backFrom('card', …)`; a Rename from the card replaces only the Name it field it changed, `fieldsAfterRename`), Q2 and S3 as `tend replay audit 16` (`cardTitle`; the chevron and the hint). Deferred one: S4, the browser's back and Safari's edge swipe, a note with the owner's answer on the existing `[arch]` item \"The browser's own Back on the name step\" in Replay rhythm. S5 and Q3 (the ask from a re-watch's fog takes the walker to the name sheet) kept as built, nothing filed. One device check filed, a note on the old one.\n- Journeys on the final export: replay (80 ok), launch, tabs (Not now with nothing typed leaving at once). Not run: the sweep's lenses and the balance; the rest is left to CI and the weekly full pass (decision 0181). Nothing here has run on a phone.\n"
+    }
+  ]
+}

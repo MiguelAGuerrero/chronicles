@@ -50,7 +50,7 @@ const PLAIN_IN: Readonly<Record<string, readonly string[]>> = {
   // taxonomy): neither is a source tag read for what a place is
   shopping: ['complexes/'],
   parking: ['complexes/rule.ts'],
-  // the outing (decision 0182): `antiques` and `books` are values of a stores pack's `what` dimension, the contract's own vocabulary, never a poi tag
+  // the outing (decision 0187): `antiques` and `books` are values of a stores pack's `what` dimension, the contract's own vocabulary, never a poi tag
   // read for what a place is
   antiques: ['outing/'],
   books: ['outing/'],

@@ -23,6 +23,7 @@ import type { LngLat } from '../../lib/types';
 import { COLORS, HOTSPOT } from '../map/types';
 import { Icon } from '../icons';
 import { Button, theme } from '../ui';
+import { foundRows } from '../../lib/discovery/smallPlaces';
 import { KIND_COLOR, KIND_ICON_OF } from './kinds';
 import { KindRow } from './KindStrip';
 import { MiniMap } from './MiniMap';
@@ -68,7 +69,7 @@ export function AtlasCard(props: {
   fam: Familiarity;
   walked: Set<string>;
   waiting: { category: CategoryId; at: LngLat }[];
-  finds: { name: string; category: CategoryId; at: LngLat }[];
+  finds: { name: string; category: CategoryId; at: LngLat; generic?: boolean }[];
   you: LngLat | null;
   nextDoor: { area: AtlasArea; distanceM: number }[];
   walkTo: { at: LngLat; label: string; via: string | null } | null;
@@ -232,7 +233,7 @@ export function AtlasCard(props: {
                   {kindsHeading(area.level, p)}
                 </Text>
                 <Pressable testID="atlas-how" accessibilityRole="button" accessibilityState={{ expanded: how }} onPress={() => setHow((v) => !v)} style={styles.howBtn}>
-                  <Icon name="information-circle-outline" size={16} color={theme.accent} />
+                  <Icon name="information-circle-outline" size={16} color={theme.ink} />
                   <Text style={styles.howText}>How the marks work</Text>
                 </Pressable>
               </View>
@@ -330,7 +331,8 @@ export function AtlasCard(props: {
             <View style={styles.sec}>
               <Text style={styles.secTitle} accessibilityRole="header">Found</Text>
               <View testID="atlas-found">
-                {props.finds.map((f, i) => (
+                {/* SP21: unnamed finds of one type are one row in the plural, never a column of the same word. */}
+                {foundRows(props.finds).map((f, i) => (
                   <View key={`${f.name}-${i}`} style={styles.found}>
                     <Icon name={KIND_ICON_OF[f.category]} size={18} color={KIND_COLOR[f.category]} />
                     <Text style={styles.foundName}>{f.name}</Text>
@@ -502,7 +504,7 @@ const styles = StyleSheet.create({
   secHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
   secTitle: { fontSize: 12, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase', color: theme.muted },
   howBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 44 },
-  howText: { fontSize: 13, fontWeight: '600', color: theme.accent },
+  howText: { fontSize: 13, fontWeight: '600', color: theme.ink },
   explain: { backgroundColor: theme.bg, borderRadius: 12, padding: 12, gap: 6, marginBottom: 4 },
   explainText: { fontSize: 14, color: theme.ink, lineHeight: 19 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },

@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View } from 'react-native';
-import type { Star } from '../lib/places';
+import { starGlyphs, type Star } from '../lib/places';
 import { starSpoken } from '../lib/quietLines';
 import { starEnter } from '../lib/enter';
 import { Enter, useOwnEnter } from './Enter';
@@ -13,6 +13,8 @@ export const NAMED_STARS = 8;
 const NAME_WIDTH = 140;
 /** The selected star's ring, outside its white edge (tend places audit 1). */
 const RING = 3;
+/** Each of a merged star's two stars (decision 0172, O14). */
+const GLYPH = 14;
 
 /** The ids of the stars that show their name: the fullest NAMED_STARS single places. */
 export function namedStars(stars: Star[]): Set<string> {
@@ -27,8 +29,9 @@ export function namedStars(stars: Star[]): Set<string> {
 
 /**
  * A place walked, on the home map: a white star on an ink disc (tend places
- * T15, decision 0154: ink, never the accent), the same for places merged at
- * this zoom, which draw no numeral (their spoken name says how many, in words).
+ * T15, decision 0154: ink, never the accent); places merged at this zoom draw
+ * two stars fanned in the same disc and no numeral (decision 0172, O14; their
+ * spoken name says how many, in words).
  * The selected one keeps its disc and gains an ink ring outside its white edge
  * (ink, white, ink: filled stays chosen, tend places audit 1); the fullest carry
  * their name.
@@ -43,7 +46,20 @@ export function StarView({ star, selected, named, enter }: { star: Star; selecte
     <View style={styles.head}>
       {selected && <View testID="star-ring" style={styles.ring} />}
       <View testID="star-disc" style={styles.star}>
-        <Icon name="star" size={18} color="#ffffff" />
+        {starGlyphs(star) === 2 ? (
+          // Places merged at this zoom: two stars fanned in the one disc, top left to bottom right, as a pin of several
+          // fans its kinds (decision 0172, O14).
+          <>
+            <View testID="star-glyph" style={[styles.glyph, styles.glyphBack]}>
+              <Icon name="star" size={GLYPH} color="#ffffff" />
+            </View>
+            <View testID="star-glyph" style={[styles.glyph, styles.glyphFront]}>
+              <Icon name="star" size={GLYPH} color="#ffffff" />
+            </View>
+          </>
+        ) : (
+          <Icon name="star" size={18} color="#ffffff" />
+        )}
       </View>
     </View>
   );
@@ -87,6 +103,11 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     elevation: 3,
   },
+  // A merged star's two stars, inside the disc's 2 pt white edge: back at the top left, front at the bottom right, each
+  // turned a little, as a pin of several's kinds are (tend map T14).
+  glyph: { position: 'absolute', width: GLYPH, height: GLYPH, alignItems: 'center', justifyContent: 'center' },
+  glyphBack: { left: 3, top: 3, transform: [{ rotate: '-12deg' }] },
+  glyphFront: { right: 3, bottom: 3, transform: [{ rotate: '12deg' }] },
   // Selected: an ink ring behind the disc, showing RING past its white edge (tend places audit 1).
   ring: {
     position: 'absolute', left: -RING, top: -RING, width: STAR_SIZE + 2 * RING, height: STAR_SIZE + 2 * RING,
