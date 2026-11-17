@@ -57,7 +57,7 @@ but what the code says. The web build is not affected (it glides outside React, 
    scan stays as a guard, `native-map-frames guard: every tap…`, and the taps are device checks).
 7. **NF7** (device) On a phone, during a walk with fog and at least 30 pins, React's profiler shows the map's static
    part rendering no more than once per fix, and the glide part at its frame rate.
-8. **NF8** On an exploring walk, a fix that changes no "?" mark (the same marks, at the same places, in the same
+8. **NF8** On an exploring walk on the phone, a fix that changes no "?" mark (the same marks, at the same places, in the same
    states, with the same names) re-renders no mark and works out no declutter again; a mark revealed, found, moved
    or renamed does (audit 3, taken up when NF6 was retired, Nov 17).
 
@@ -76,7 +76,9 @@ Built 2026-11-16 on `claude/bold-hawking-dx3pc8`, the plan approved by the owner
 - **NF7** is device-only (`UNTESTED`); four checks in `docs/NATIVE_UNVERIFIED.md`. Native has never run on a device.
 - **Deferred** (`docs/DEFERRED.md`, "Native map frames"): the React Compiler (the owner's own slice), the replay
   screen's own 30 fps render, the hidden `omt-query` source on every map, a native follow camera.
-- Not audited; no screen changed, so no UI review.
+- Audited Nov 17 (below); no screen changed, so no UI review.
+- **Nov 17, at the deploy:** main merged in (63 commits; main's stalk lift moved into the memo pin lists); NF6 retired
+  and NF8 built test-first (todo `d06467d`, then real).
 
 ## Audit (2026-11-17, at the owner's request)
 
@@ -90,11 +92,13 @@ find; the gate said no surface, so no steward. 4 findings from the auditor plus 
    audit 2`; failed a mutation that handed `EndsSource` `opacity={1}`.
 3. On an exploring walk the "?" marks declutter and re-render on every fix (`useExplore`'s `shown` is new per fix,
    ~28 marks once a second, within NF7; the zoom is already in 0.25 steps): defer, the cause is in `useExplore`
-   (DEFERRED, "Native map frames").
+   (DEFERRED, "Native map frames"). **Taken up as NF8 on Nov 17** (NF6 retired at the deploy): `markListKey`, and
+   `WalkMap` hands `MarkMarkers` the marks memoized on it, so the fix is in the map after all, not in `useExplore`.
 4. The press handlers were filled in a passive effect, so a pin made pressable in the same render (the replay's card
    beat, any first mount) could take a tap that did nothing: accept. `native-map-frames audit 4` failed, then the
    handlers are filled in a layout effect.
 5. The auditor's UI note, NF5 is visible on the phone against the gate's "nothing a person sees changes": reject as a
    defect (NF5 is the web's look, on the device list); the Decisions now say so.
 
-5 findings, 3 fixed, 1 deferred, 1 rejected. Tests: `native-map-frames audit 1, 2, 4` in `mapFrames.test.ts`.
+5 findings, 3 fixed, 1 deferred (then built as NF8), 1 rejected. Tests: `native-map-frames audit 1, 2, 4` in
+`mapFrames.test.ts`; NF8's two tests there.

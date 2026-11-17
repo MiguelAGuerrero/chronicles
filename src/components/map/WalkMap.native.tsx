@@ -14,7 +14,7 @@ import { namedStars, StarView, starLabel } from '../StarView';
 import type { RoadFeature } from '../../lib/streets';
 import type { LngLat } from '../../lib/types';
 import { TILEJSON_URL } from '../../lib/tiles';
-import { declutterMarks } from '../../lib/markNames';
+import { declutterMarks, markListKey } from '../../lib/markNames';
 import { metersPerPixel, pinKey, pinReactions, pinReminded, pinThumb, stalkLift } from '../../lib/pins';
 import { useReactionSets } from '../../lib/reactions/useReactions';
 import { useReminded } from '../../lib/useReminded';
@@ -258,6 +258,11 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     () => traceGeoJSON(traceEnd && dotLead && distanceM(traceEnd, dotLead) <= LINK_MAX_M ? [[traceEnd, dotLead]] : []),
     [traceEnd, dotLead],
   );
+  // NF8: the screen's marks array is new on every fix; the list is handed one that changes only with what they show.
+  const marksIn = props.discoveries ?? NO_MARKS;
+  const marksKey = markListKey(marksIn);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const shownMarks = useMemo(() => marksIn, [marksKey]);
   const jump = useCallback((to: { center: LngLat; zoom?: number }) => cameraRef.current?.jumpTo(to), []);
   // The pins' presses, read when pressed: a screen's new closure each render never re-renders a pin list (NF4).
   // Filled in a layout effect, before the commit can take a tap: a pin made pressable in the same render as its
@@ -511,7 +516,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
           seen={seenCaptures} pressable={!!props.onPinPress} handlers={handlers} standOn={standOn} zoom={view?.zoom ?? props.initialZoom ?? 16} bearing={namesBearing}
         />
         <MarkMarkers
-          marks={props.discoveries ?? NO_MARKS} zoom={view?.zoom ?? props.initialZoom ?? 16} seen={seenMarks}
+          marks={shownMarks} zoom={view?.zoom ?? props.initialZoom ?? 16} seen={seenMarks}
           pressable={!!props.onDiscoveryPress} handlers={handlers}
         />
         <ComplexLabelMarkers labels={props.complexes?.labels ?? NO_LABELS} />

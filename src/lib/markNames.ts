@@ -65,3 +65,29 @@ export function declutterMarks<T extends { id: string; at: LngLat; name: string;
   );
   return hidden.size ? marks.map((m) => (hidden.has(m.id) ? { ...m, nameHidden: true } : m)) : [...marks];
 }
+
+/** What a "?" mark shows, as `markListKey` reads it (MarkPin's fields; the type lives with its view). */
+export interface ShownMark {
+  id: string;
+  at: LngLat;
+  revealed: boolean;
+  found?: boolean;
+  foundKind?: string;
+  faint?: boolean;
+  nameHidden?: boolean;
+  quiet?: boolean;
+  name: string;
+  category: string;
+  icon: string;
+}
+
+/**
+ * A key for a list of marks that changes only when what they show does (native map frames NF8): a screen hands
+ * the map a new array on every fix, mostly the same marks. Every field a mark draws or says is in it, in drawn
+ * order; a new array of the same marks is the same key. JSON, so no name can collide with a separator.
+ */
+export function markListKey(marks: readonly ShownMark[]): string {
+  return JSON.stringify(
+    marks.map((m) => [m.id, m.at[0], m.at[1], m.revealed, !!m.found, m.foundKind ?? '', !!m.faint, !!m.nameHidden, !!m.quiet, m.name, m.category, m.icon]),
+  );
+}

@@ -247,7 +247,7 @@ test('native-map-frames audit 4: the press handlers are filled before the pins t
 type MarkLike = { id: string; at: [number, number]; revealed: boolean; found?: boolean; foundKind?: string; faint?: boolean; nameHidden?: boolean; quiet?: boolean; name: string; category: string; icon: string };
 const mark = (over: Partial<MarkLike> = {}): MarkLike => ({ id: 'm1', at: [-71.4, 41.81], revealed: false, name: 'Cafe', category: 'Food & drink', icon: 'cafe', ...over });
 
-test('NF8: the same marks in a new array read as no change; any change a mark shows reads as one', { todo: 'test first' }, () => {
+test('NF8: the same marks in a new array read as no change; any change a mark shows reads as one', () => {
   const key = (markNames as unknown as { markListKey?: (m: MarkLike[]) => string }).markListKey;
   assert.equal(typeof key, 'function', 'markNames gives a list of marks its key');
   const k = key!;
@@ -262,7 +262,7 @@ test('NF8: the same marks in a new array read as no change; any change a mark sh
   assert.notEqual(k([base[1], base[0]]), k(base), 'the order is drawn order, so a new order is a change');
 });
 
-test('NF8: the marks reach their memo list keyed on what they show, not on the array the screen made', { todo: 'test first' }, () => {
+test('NF8: the marks reach their memo list keyed on what they show, not on the array the screen made', () => {
   const sf = read(NATIVE);
   const body = walkMapBody(sf);
   const el = jsx(body, 'MarkMarkers')[0];

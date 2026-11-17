@@ -482,9 +482,7 @@ const RENAMED = {
   'video-thumbnails': { VS: 'VT' },
 };
 
-const IN_PROGRESS = {
-  'native-map-frames': { branch: 'claude/bold-hawking-dx3pc8', since: '2026-11-17' },
-};
+const IN_PROGRESS = {};
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));
 
