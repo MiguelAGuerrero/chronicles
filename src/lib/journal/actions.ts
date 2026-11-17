@@ -23,6 +23,6 @@ export function quickActions(entry: { pieces: number }, ctx: { joinable: boolean
     { id: 'thread', available: true, label: 'Add to a thread', caption: 'Thread' },
     // A stack's Edit would have to say which piece: a tile opens the viewer, which edits the piece shown (SW4).
     { id: 'edit', available: entry.pieces <= 1, label: 'Edit', caption: 'Edit' },
-    { id: 'stack', available: ctx.joinable, label: 'Stack with previous', caption: 'Stack' },
+    { id: 'stack', available: ctx.joinable, label: 'Stack with previous', caption: 'Join' },
   ];
 }

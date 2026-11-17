@@ -42,7 +42,7 @@ test('SW1: five slots, Reaction first, each with a one-word caption and none mov
   const { quickActions } = await capMod();
   const row = quickActions({ pieces: 1 }, { joinable: true });
   assert.deepEqual(row.map((s) => s.id), ['react', 'respond', 'thread', 'edit', 'stack']);
-  assert.deepEqual(row.map((s) => s.caption), ['Reaction', 'Respond', 'Thread', 'Edit', 'Stack']);
+  assert.deepEqual(row.map((s) => s.caption), ['Reaction', 'Respond', 'Thread', 'Edit', 'Join']);
   assert.ok(row.every((s) => !/\s/.test(s.caption) && !/\d/.test(s.caption)), 'one word, no number');
   assert.deepEqual(quickActions({ pieces: 3 }, { joinable: false }).map((s) => s.id), ['react', 'respond', 'thread', 'edit', 'stack']);
 });

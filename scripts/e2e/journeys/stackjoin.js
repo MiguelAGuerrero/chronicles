@@ -134,6 +134,8 @@ async function run(h) {
   await pg.waitForTimeout(800);
   const marksUnder = await pg.locator(`${entries} [data-testid=reaction-marks] [data-testid=reaction-name]`).allInnerTexts().catch(() => []);
   check(panel && marksUnder.join().includes('Idea'), `SW20: the Reaction slot opens the reactions and the chosen one shows under the dateline (${marksUnder.join()})`);
+  check.todo(false, 'SW21: a tile of the expanded stack opens the viewer on a piece whose More offers Split out and Delete this piece, and a stack\'s row has no Edit');
+  check.todo(false, 'SW22: a placed entry\'s dateline is underlined in ink and an unplaced one is plain');
   await c.close();
 }
 
