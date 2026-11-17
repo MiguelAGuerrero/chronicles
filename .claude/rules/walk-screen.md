@@ -65,6 +65,11 @@ The walk screen (`src/app/walk.tsx`), which is also Navigate, ready: its layout,
   "Too short, not kept" toast. A memo that fails to save offers Retry. Leaving the screen mid-memo
   saves it: the walk's Minimize is disabled mid-memo, the ready screen's chevron closes and the memo is
   finished as `useCaptures` unmounts.
+- **Stop asks the one holder** (unsaved captures UN5, UN13): `stop()` reads `unsaved.heldFor(walk.id)` when held,
+  never `cap.held` from a render, warns while it holds an id not warned of (`stopWarns`, `stopWarning`), and the
+  second hold calls `unsaved.letGo` (files removed, UN8) before `endWalk`. A memo lost at Stop (`lost`) is said
+  first (`lostAtStop`). The memo pill is `held-memo` / `held-memo-retry` on both states; a held capture of the
+  ready screen shows on the walk after Start and is kept as its own moment (UN4).
 - **The notice follows the walk's arrival** (capture-from-chronicle audit 1): Walk here and Start can
   show the screen before the keeper reads the new walk, so `WalkScreen` sets `arrivalNotice(params)`
   (`lib/readyNav`) when the walk first appears, not only as it mounts.

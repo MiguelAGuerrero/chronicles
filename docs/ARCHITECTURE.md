@@ -385,6 +385,7 @@ Session, screens and small helpers
   useStartWalk.ts, startPlan.ts         Start and Walk here: the plan's meta, then the walk screen
   useTabMap.ts               a tab's map taken down while the tab isn't in front
   memoGate.ts                a memo recording anywhere blocks a start
+  unsaved/                   the one holder of every capture that failed to save (core words, in-memory shell; UN1-UN15, 0194)
   settleWithin.ts            await a promise, but never longer than ms
   recordingBar.ts, quietLines.ts, format.ts, scaleBar.ts         the bar's line and its waiting Edit offer, counts as words, distances and times, the scale bar's length
   audioMode(.native|.web).ts setAudioMode: expo-audio on native, navigator.audioSession on web

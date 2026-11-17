@@ -146,6 +146,14 @@ expo-image-manipulator; `lib/thumbPlan.ts` pure, `media/thumb.ts`).
   (`heldLabel`), Retry saves each with its stamp, and Stop warns once before ending without them. Every
   save failure is worded by `saveFailLine` (lack of room told apart by `isOutOfSpace`), never the raw error.
 
+- **Unsaved captures have one owner** (UN1-UN15, decision 0194): every photo, video and memo whose save fails goes to
+  the app-wide holder `lib/unsaved` (in memory, while the app is open), never to a path's own state. `useCaptures`
+  keeps every capture through `keepCapture` (the file once, then the row; `path` kept for every later Retry, UN12;
+  an `into` moment gone makes it its own, UN11) and files it by `Stamp.walk`, never the hook's `walkId`, so any
+  screen's Retry keeps a held capture in its own walk (UN4). The pills read the holder (`heldKey` in a selector, a
+  string); a path with no pill passes `retryShown: false` and its words say where the Retry is (`heldWhere`, UN10);
+  a path in front passes `sayHeld` and says, once, what failed on a screen gone (UN9) and a memo lost as it went
+  (UN13). The e2e refuses the moment store too (`__failMoment`, `scripts/e2e/failStorage.js`).
 - All voice actions (start, save, discard, undo, retry) run on one promise queue in
   `useCaptures`, so taps never interleave. Stop waits for that queue.
 - Never call `stop()` on a recorder that already stopped by itself: on web it waits

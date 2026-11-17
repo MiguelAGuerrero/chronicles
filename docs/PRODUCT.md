@@ -269,7 +269,11 @@ recording, and a recording bar brings a minimized walk back.
 - When room for new photos and videos runs low, one line says so in words beside the capture buttons, once
   for each level (low under 500 MB, very low under 100 MB), with OK to dismiss; it never blocks a capture and
   never shows a number. A photo or video whose save fails is held with Retry ("Photo not saved"), and says why
-  in words. On the web the app asks the browser once to keep its data, never mid-walk, and says once on
+  in words. Every photo, video and voice memo that fails to save is held by one holder for the app, not by the
+  screen it was taken on: leaving a screen never drops one, every screen with capture pills (the walk screen,
+  Navigate, ready, Memories' open line) shows it with Retry, which keeps it in its own walk, and both Stops (the walk
+  screen's, the recording bar's) say what is held before the walk ends without it; the second hold lets it go. Held
+  while the app is open (unsaved captures UN1-UN15, decision 0194). On the web the app asks the browser once to keep its data, never mid-walk, and says once on
   Navigate, ready if it was refused. There is no Storage screen (0041). Storage awareness, decision 0107.
 - The bottom strip has time, distance, Pause, walk options and hold-to-stop.
   A status chip shows only when something is wrong (waiting for GPS, weak GPS,
@@ -576,6 +580,7 @@ recording, and a recording bar brings a minimized walk back.
 | Explore's route preview, "Walk this way" | Deferred |
 | Media editing: crop, rotate, filters, drawing, text, video and voice-memo trim, all saved out (a memo is never saved out) | Shipped on web (native unverified; the video module never compiled) |
 | Storage awareness: the room left said in words beside the captures; a failed save held for Retry; the web asks to be kept | Shipped on web (web verified by the space e2e; native unverified) |
+| Unsaved captures have one owner: every failed photo, video and memo held app-wide, shown on every capture screen, asked by both Stops (UN1-UN15) | Built (web verified by the unsaved e2e; native unverified) |
 | Backup and export of a walk | Code exists, no UI, deferred |
 | Quick capture outside the app (widget, lock screen, share sheet) | Deferred |
 | Remind me here outside a walk | Deferred (needs background location) |
