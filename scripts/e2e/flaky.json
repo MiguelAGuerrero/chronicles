@@ -22,5 +22,13 @@
       "base": "df1aefb0",
       "seen": "2026-11-13"
     }
+  ],
+  "switches": [
+    {
+      "check": "SS9: at 4x CPU a switch renders Explore at most once mid-move and costs what the camera alone does on the same move, give or take that render (median over the camera: long tasks -25 ms of 100, worst frame 33 ms of 17; renders mid-move Church Hill:1 Depot:1 Mill End:1 Westfield:1 Far Hollow:1 Westfield:1 Mill End:1 Depot:1 Church Hill:1 Riverside:1 Church Hill:1 Depot:1 Mill End:1 Westfield:1 Far Hollow:1 Westfield:1 Mill End:1 Depot:1 Church Hill:1 Riverside:1; switch/camera long tasks Church Hill:150/279 Depot:315/54 Mill End:137/396 Westfield:271/447 Far Hollow:387/168 Westfield:125/120 Mill End:276/436 Depot:307/277 Church Hill:155/164 Riverside:271/217 Church Hill:106/272 Depot:233/481 Mill End:254/279 Westfield:329/520 Far Hollow:405/54 Westfield:102/213 Mill End:219/473 Depot:171/160 Church Hill:111/342 Riverside:296/0; worst frames Church Hill:83/67 Depot:83/50 Mill End:100/67 Westfield:117/67 Far Hollow:83/50 Westfield:100/67 Mill End:83/67 Depot:83/50 Church Hill:67/67 Riverside:67/50 Church Hill:83/67 Depot:67/67 Mill End:117/67 Westfield:167/83 Far Hollow:83/50 Westfield:83/50 Mill End:67/67 Depot:84/50 Church Hill:100/67 Riverside:83/50)",
+      "fails": "1/3",
+      "base": "af600f8",
+      "seen": "2026-11-17"
+    }
   ]
 }
