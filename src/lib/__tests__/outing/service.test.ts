@@ -69,3 +69,24 @@ test('QC29: the pack request holds the tile path and nothing else', async () => 
   // The source gets a position and a radius only: no identifier, no picks, no setting; READ_M is the tile area read.
   assert.deepEqual(seen[0], [FROM, READ_M]);
 });
+
+// The journey's reads (OJ17, OJ35, OJ38): the attractions come with the same read as the shops, and nothing is read before a place is given.
+test('OJ35, OJ38: no read without a place; one read gives journeys over the pack\'s shops and the attractions together', async () => {
+  const { CHIPS } = await import('../../outing/chips');
+  const log = { reads: 0, pack: 0 };
+  const spot = (id: string, e: number, n: number) => ({ id, at: at(e, n), facets: { kind: ['history'] }, name: `Spot ${id}`, unfound: true });
+  const service = createOutingService({
+    read: async () => (log.reads++, { shops: [], segments: segs, spots: [spot('h1', 240, 120), spot('h2', 480, 120), spot('h3', 360, 360)] }),
+    stores: { read: async (p, r) => (log.pack++, memoryStores(STORES).read(p, r)) },
+  });
+  const picked = CHIPS.filter((c) => c.id === 'books' || c.id === 'history');
+  assert.equal(await service.open(null, picked), null);
+  assert.equal(log.reads + log.pack, 0, 'no place: nothing read, whatever chips are on');
+  const session = await service.open(FROM, picked);
+  assert.deepEqual([log.reads, log.pack], [1, 1]);
+  const r = service.journeys({ session: session!, picked, ceilingM: 3500, chains: true });
+  assert.deepEqual(r.journeys.map((j) => j.leaning), ['shops', 'old']);
+  service.journeys({ session: session!, picked, ceilingM: 3500, chains: false });
+  assert.deepEqual([log.reads, log.pack], [1, 1], 'planning again reads nothing');
+  assert.equal(await service.nameNear(at(240, 120), false), 'Spot h1', 'an attraction is named on arrival from the data, as a shop is');
+});

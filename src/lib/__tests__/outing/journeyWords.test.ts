@@ -3,10 +3,9 @@ import { test } from 'node:test';
 
 // What the journey page says (OJ9, OJ21, OJ22, OJ25, OJ27).
 
-const TODO = { todo: 'test first' };
 const BANNED = /\b(minutes?|mins?|hours?|hrs?|ETA|pace|brisk|quick(er|est)?|fast(er|est)?|shorter|longer|more|most|best|top|popular|rated|few|many|several|lots|remaining|left|done|first|second|third|last)\b/i;
 
-test('OJ9: a destination\'s distance is said as "away", in the units setting, with no time', TODO, async () => {
+test('OJ9: a destination\'s distance is said as "away", in the units setting, with no time', async () => {
   const { awayLine } = await import('../../outing/journeyWords');
   assert.equal(awayLine(27_000, 'km'), '27 km away');
   assert.equal(awayLine(27_000, 'mi'), '17 mi away');
@@ -14,7 +13,7 @@ test('OJ9: a destination\'s distance is said as "away", in the units setting, wi
   assert.doesNotMatch(awayLine(27_000, 'km'), BANNED);
 });
 
-test('OJ21: a card says where, what it includes by the chips\' own words, and the distance on foot; no quantity word', TODO, async () => {
+test('OJ21: a card says where, what it includes by the chips\' own words, and the distance on foot; no quantity word', async () => {
   const { cardSummary } = await import('../../outing/journeyWords');
   const s = cardSummary({ place: 'Kutztown', labels: ['Antiques', 'Books'], footM: 2100, loop: true }, 'km');
   assert.match(s, /Kutztown/);
@@ -25,18 +24,18 @@ test('OJ21: a card says where, what it includes by the chips\' own words, and th
   assert.match(cardSummary({ place: null, labels: ['Green'], footM: 900, loop: false }, 'km'), /^Around here\./);
 });
 
-test('OJ22: nothing to propose is said in one plain line that names the place', TODO, async () => {
+test('OJ22: nothing to propose is said in one plain line that names the place', async () => {
   const { nothingLine } = await import('../../outing/journeyWords');
   assert.equal(nothingLine('Kutztown'), 'Little of that in Kutztown.');
   assert.equal(nothingLine(null), 'Little of that close by.');
 });
 
-test('OJ25: an attraction not yet found is not named on its card', TODO, async () => {
+test('OJ25: an attraction not yet found is not named on its card', async () => {
   const { UNFOUND_LINE } = await import('../../outing/journeyWords');
   assert.match(UNFOUND_LINE, /when you reach it/);
 });
 
-test('OJ1, OJ2, OJ7, OJ27: the page\'s fixed words', TODO, async () => {
+test('OJ1, OJ2, OJ7, OJ27: the page\'s fixed words', async () => {
   const w = await import('../../outing/journeyWords');
   assert.equal(w.WHERE_LABEL, 'Where to?');
   assert.equal(w.CHIPS_LINE, "What you'd like on the way");

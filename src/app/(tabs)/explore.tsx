@@ -29,7 +29,7 @@ import { useStorefrontsLayer } from '../../lib/layers/useStorefrontsLayer';
 import { useLayers } from '../../lib/layers/useLayers';
 import { useWalkability } from '../../lib/walk/useWalkability';
 import { WalkMap } from '../../components/map/WalkMap';
-import { OutingDrawer } from '../../components/outing/OutingDrawer';
+import { OutingPage } from '../../components/outing/OutingPage';
 import { PlannerDrawer } from '../../components/planner/PlannerDrawer';
 import { ENTRY_LABEL } from '../../lib/outing/words';
 import type { CategoryId } from '../../lib/discovery/types';
@@ -1046,7 +1046,7 @@ export default function Explore() {
         />
       )}
       {outingOpen && (
-        <OutingDrawer
+        <OutingPage
           you={getLastFix()?.at ?? you}
           lastFixAt={getLastFix()?.t ?? null}
           fixNow={() => getLastFix()?.at ?? you}
@@ -1056,6 +1056,11 @@ export default function Explore() {
             setOutingOpen(false);
             setOpen(null);
             startWalk(dest);
+          }}
+          onLater={(dest) => {
+            setOutingOpen(false);
+            setOpen(null);
+            void walkStart.later(dest);
           }}
         />
       )}

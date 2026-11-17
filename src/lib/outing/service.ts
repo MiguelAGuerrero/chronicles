@@ -1,7 +1,9 @@
 // @layer shell
 import { distanceM } from '../geo';
 import type { StreetSegment, LngLat } from '../types';
-import { mergeFacets, type Candidate, type Want } from './candidates';
+import { matchesAny, type Candidate, type Want } from './candidates';
+import { planJourneys, type Journey } from './journeys';
+import { LEANINGS } from './leanings';
 import { outingCandidates, type TileShop } from './storesMerge';
 import { readStores, type StoresSource } from './storesRead';
 import { planOuting, planStops, type Outing, type OutingReason } from './plan';
@@ -19,7 +21,7 @@ export const READ_M = 2600;
 
 export interface OutingDeps {
   /** The shops (the tiles' places with their presence classes) and the streets around a point; null when there is no map. */
-  read(at: LngLat, radiusM: number): Promise<{ shops: TileShop[]; segments: StreetSegment[] } | null>;
+  read(at: LngLat, radiusM: number): Promise<{ shops: TileShop[]; segments: StreetSegment[]; spots?: Candidate[] } | null>;
   /** The stores pack by tile; null until a pack is published (QC14). */
   stores: StoresSource | null;
 }
@@ -29,6 +31,8 @@ export interface Session {
   shops: TileShop[];
   stores: Awaited<ReturnType<typeof readStores>>;
   segments: StreetSegment[];
+  /** OJ38: the attractions around the same point, as candidates beside the shops. */
+  spots: Candidate[];
 }
 
 export interface PlanRequest {
@@ -45,6 +49,8 @@ export interface PlanAnswer {
   cands: Candidate[];
 }
 
+const candsOf = (s: Session, chains: boolean): Candidate[] => [...outingCandidates(s.stores, s.shops, { chains }), ...s.spots];
+
 export function createOutingService(deps: OutingDeps) {
   return {
     /** QC29: reads only when something is picked; with nothing, nothing is read and no session exists. */
@@ -53,14 +59,21 @@ export function createOutingService(deps: OutingDeps) {
       const read = await deps.read(from, READ_M).catch(() => null);
       if (!read) return null;
       const stores = await readStores(deps.stores, from, READ_M);
-      return { from, shops: read.shops, stores, segments: read.segments };
+      return { from, shops: read.shops, stores, segments: read.segments, spots: read.spots ?? [] };
     },
 
     plan(req: PlanRequest): PlanAnswer {
-      const cands = outingCandidates(req.session.stores, req.session.shops, { chains: req.chains });
+      const cands = candsOf(req.session, req.chains);
       if (!req.session.segments.length) return { outing: null, reasons: ['noRoute'], cands };
-      const r = planOuting({ cands, match: mergeFacets(req.picked), from: req.session.from, mode: req.mode, ceilingM: req.ceilingM }, legOver(req.session.segments));
+      const r = planOuting({ cands, match: (c) => matchesAny(req.picked, c), from: req.session.from, mode: req.mode, ceilingM: req.ceilingM }, legOver(req.session.segments));
       return { ...r, cands };
+    },
+
+    /** OJ17, OJ38: the journeys for the picked chips, one per leaning, over the shops and the attractions together. */
+    journeys(req: Omit<PlanRequest, 'mode'>): { journeys: Journey[]; reasons: OutingReason[]; cands: Candidate[] } {
+      const cands = candsOf(req.session, req.chains);
+      if (!req.session.segments.length) return { journeys: [], reasons: req.picked.length ? ['noRoute'] : [], cands };
+      return { ...planJourneys({ cands, picked: req.picked, leanings: LEANINGS, from: req.session.from, ceilingM: req.ceilingM }, legOver(req.session.segments)), cands };
     },
 
     /**
@@ -72,7 +85,7 @@ export function createOutingService(deps: OutingDeps) {
       const offered = new Set(req.offered);
       const gone: string[] = [];
       for (;;) {
-        const next = swapCandidate(req.outing.stops[req.index], req.outing.stops, req.cands, mergeFacets(req.picked), req.session.from, req.ceilingM, offered);
+        const next = swapCandidate(req.outing.stops[req.index], req.outing.stops, req.cands, (c) => matchesAny(req.picked, c), req.session.from, req.ceilingM, offered);
         if (!next) return { outing: null, offered: gone };
         offered.add(next.id);
         gone.push(next.id);
@@ -91,7 +104,7 @@ export function createOutingService(deps: OutingDeps) {
     async nameNear(at: LngLat, chains: boolean): Promise<string | null> {
       const read = await deps.read(at, 150).catch(() => null);
       const stores = await readStores(deps.stores, at, 150);
-      const cands = outingCandidates(stores, read?.shops ?? [], { chains });
+      const cands = [...outingCandidates(stores, read?.shops ?? [], { chains }), ...(read?.spots ?? [])];
       let best: Candidate | null = null;
       for (const c of cands) if (distanceM(c.at, at) <= 60 && (!best || distanceM(c.at, at) < distanceM(best.at, at))) best = c;
       return best?.name ?? null;

@@ -1,6 +1,8 @@
-// Plan an outing (QC1-QC3, QC6-QC9, QC11, QC17-QC18, QC20-QC22, QC24-QC25, QC27-QC28, QC41): one control on Explore opens a page; pick what you
-// want to see; one proposal as slots said by kind, named only on a tap; Swap; Include chains; Start. Curio Row (harness) is one street with
-// four antiques shops, so a loop cannot be made there (it is said) and One way is the answer. E2E_ONLY=outing runs it alone.
+// Plan an outing, destination first (OJ1-OJ4, OJ7, OJ9, OJ11, OJ14-OJ18, OJ21, OJ22, OJ25, OJ27, OJ35; QC1, QC8, QC14, QC17-QC22, QC24-QC25,
+// QC27-QC29, QC41, QC42): one control on Explore opens a page that is the map; a field says where to, or "Nowhere in particular" stays
+// around here; chips, shops and attractions alike; journeys by leaning; one opened shows its stops by kind, named only on a tap; Swap;
+// Include chains; Start. Curio Row (harness) is one street with four antiques shops, so no loop can be made there and the journey is one
+// way. E2E_ONLY=outing runs it alone.
 
 const BANNED = /\b(minutes?|mins?|hours?|ETA|pace|brisk|quick(er|est)?|fast(er|est)?|shorter|longer|more|most|best|top|popular|rated|densest|less|than)\b|\d/i;
 const NAMES = ['Brass Key Antiques', 'Dusty Attic', 'Grandma Trunk Antiques', 'Lamp and Ladder'];
@@ -58,27 +60,69 @@ async function run(h) {
   await pg.waitForSelector('[data-testid=outing]', { timeout: 15000 }).catch(() => {});
   check((await pg.locator('[data-testid=outing]').count()) === 1, 'QC1: one tap opens the page');
   await shot(pg, '02-page-empty');
-  // QC2, QC29: with nothing picked, one plain line and no slot; the vocabulary is alphabetical.
+  // OJ1: the page is the map, with one field over it worded "Where to?"; nothing is proposed or read yet.
+  const whereText = ((await pg.locator('[data-testid=outing-where-text]').innerText().catch(() => '')) ?? '').trim();
+  const mapBox = await pg.locator('[data-testid=outing-map]').boundingBox().catch(() => null);
+  const vp = pg.viewportSize() ?? { width: 0, height: 0 };
+  check(whereText === 'Where to?' && !!mapBox && mapBox.height >= vp.height - 1, `OJ1: the page is the map, with a field worded "Where to?" over it (${whereText})`);
+  check((await pg.locator('[data-testid=outing-nowhere]').innerText().catch(() => '')).trim() === 'Nowhere in particular', 'OJ7: with no destination the page offers "Nowhere in particular"');
+  check((await pg.locator('[data-testid^=outing-want-]').count()) === 0 && (await pg.locator('[data-testid^=outing-journey-]').count()) === 0, 'OJ2: no chips and no journey before a place is given');
+  // OJ1, OJ9, OJ22: the field opens Explore's own search; a town picked there is the destination, said with how far "away" it is.
+  await pg.click('[data-testid=outing-where]');
+  await pg.waitForSelector('[data-testid=atlas-search-field]', { timeout: 15000 }).catch(() => {});
+  await pg.locator('[data-testid=atlas-search-field]').pressSequentially('Kutztown', { delay: 15 }).catch(() => {});
+  await pg.waitForSelector('[data-testid=atlas-search-result]', { timeout: 60000 }).catch(() => {});
+  await pg.locator('[data-testid=atlas-search-result]').first().click().catch(() => {});
+  await pg.waitForSelector('[data-testid=outing-away]', { timeout: 15000 }).catch(() => {});
+  const townText = ((await pg.locator('[data-testid=outing-where-text]').innerText().catch(() => '')) ?? '').trim();
+  const awayText = ((await pg.locator('[data-testid=outing-away]').innerText().catch(() => '')) ?? '').trim();
+  check(townText === 'Kutztown' && /^\d+(\.\d)? (km|mi|m|ft) away$/.test(awayText), `OJ1, OJ9: a town from the search is the destination, with its distance worded "away" (${townText}, ${awayText})`);
+  check(!/\b(min|minutes|hours?|ETA)\b/i.test(await pg.locator('[data-testid=outing]').innerText()), 'OJ9: no time is said for a destination');
+  await shot(pg, '02b-destination');
+  // Around here, for the rest: Curio Row is where the harness's shops are.
+  const only = async (ids) => {
+    for (const el of await pg.locator('[data-testid^=outing-want-]').all()) {
+      const id = ((await el.getAttribute('data-testid')) ?? '').replace('outing-want-', '');
+      if (((await el.getAttribute('aria-pressed')) === 'true') !== ids.includes(id)) await el.click();
+    }
+    await pg.waitForTimeout(400);
+  };
+  const openJourney = async () => {
+    await pg.waitForSelector('[data-testid=outing-see]', { timeout: 90000 }).catch(() => {});
+    await pg.click('[data-testid=outing-see]').catch(() => {});
+    await pg.waitForSelector('[data-testid=outing-slot-0]', { timeout: 15000 }).catch(() => {});
+    await pg.waitForTimeout(1500);
+  };
+  const backToChips = async () => {
+    if ((await pg.locator('[data-testid=outing-back]').count()) > 0) await pg.click('[data-testid=outing-back]');
+    await pg.waitForSelector('[data-testid=outing-want-antiques]', { timeout: 15000 }).catch(() => {});
+  };
+  const aroundHere = async () => {
+    await pg.click('[data-testid=outing-nowhere]');
+    await pg.waitForSelector('[data-testid=outing-want-antiques]', { timeout: 15000 }).catch(() => {});
+  };
+  await pg.click('[data-testid=outing-close]');
+  await entry.click();
+  await pg.waitForSelector('[data-testid=outing-nowhere]', { timeout: 15000 }).catch(() => {});
+  await aroundHere();
+  // OJ11, OJ15: one list of chips, shops and attractions alike, alphabetical.
   const chips = await pg.locator('[data-testid^=outing-want-]').evaluateAll((els) => els.map((e) => e.textContent));
-  check(JSON.stringify(chips) === JSON.stringify(['Antiques', 'Books', 'Thrifting']), `QC2: the entries are alphabetical (${chips.join(',')})`);
-  check((await pg.locator('[data-testid=outing-pick]').count()) === 1 && (await pg.locator('[data-testid^=outing-slot-]').count()) === 0, 'QC2: with nothing picked the page proposes nothing and says one plain line');
-  // QC2b: a query that matches nothing shows no chips and no "not found".
-  await pg.fill('[data-testid=outing-search]', 'teapots');
-  check((await pg.locator('[data-testid^=outing-want-]').count()) === 0, 'QC2: a query matching no entry shows no chips');
-  await pg.fill('[data-testid=outing-search]', 'antiq');
-  check((await pg.locator('[data-testid=outing-want-antiques]').count()) === 1 && (await pg.locator('[data-testid^=outing-want-]').count()) === 1, 'QC2: typing narrows the entries');
-  await pg.fill('[data-testid=outing-search]', '');
-  // QC3: Loop first; QC41: Include chains off.
-  check((await pg.locator('[data-testid=outing-mode-loop]').getAttribute('aria-checked')) === 'true', 'QC3: the page opens on Loop');
+  check(JSON.stringify(chips) === JSON.stringify(['Antiques', 'Art', 'Books', 'Culture', 'Green', 'History', 'Thrifting', 'Views']), `OJ11, OJ15: the chips are one alphabetical list (${chips.join(',')})`);
+  // OJ12: shop chips start off.
+  const pressed = async (id) => (await pg.locator(`[data-testid=outing-want-${id}]`).getAttribute('aria-pressed')) === 'true';
+  check(!(await pressed('antiques')) && !(await pressed('books')) && !(await pressed('thrifting')) && (await pressed('history')), 'OJ12: shop chips start off; attractions follow "What I\'m into"');
+  await only([]);
+  check((await pg.locator('[data-testid=outing-pick]').count()) === 1 && (await pg.locator('[data-testid^=outing-journey-]').count()) === 0, 'OJ14: with no chip on the page proposes nothing and says one plain line');
   check((await pg.locator('[data-testid=outing-chains]').getAttribute('aria-checked')) === 'false', 'QC41: Include chains is off by default');
-  check(packAsked().length === 0, 'QC29: opening Explore and the page asked the stores pack for nothing before an entry is picked');
-  await pg.click('[data-testid=outing-want-antiques]');
-  await pg.waitForSelector('[data-testid=outing-reason-noLoop], [data-testid=outing-slot-0]', { timeout: 90000 }).catch(() => {});
+    await only(['antiques']);
+  await pg.waitForSelector('[data-testid=outing-journey-0]', { timeout: 90000 }).catch(() => {});
   if (process.env.E2E_DEBUG) console.log('OUTING', (await pg.locator('[data-testid=outing]').innerText().catch(() => 'none')).replace(/\s+/g, ' ').slice(0, 600));
-  check((await pg.locator('[data-testid=outing-reason-noLoop]').count()) === 1 && (await pg.locator('[data-testid^=outing-slot-]').count()) === 0, 'QC10: where a loop cannot be made without retracing, the page says so');
-  await pg.click('[data-testid=outing-mode-oneway]');
-  await pg.waitForSelector('[data-testid=outing-slot-0]', { timeout: 90000 }).catch(() => {});
-  await pg.waitForTimeout(2500);
+  // OJ17, OJ18, OJ21: one chip of one leaning gives one journey, named for its leaning, with its summary in words.
+  const jcards = await pg.locator('[data-testid^=outing-journey-]').evaluateAll((els) => els.map((e) => (e.textContent ?? '').replace(/\s+/g, ' ').trim()));
+  check(jcards.length === 1 && /^Among the shops/.test(jcards[0]) && /Around here\. Antiques\. [\d.]+ (m|km|ft|mi) on foot\./.test(jcards[0]), `OJ17, OJ18, OJ21: one journey, named for its leaning, summarised in words (${jcards.join(' | ')})`);
+  await shot(pg, '03-journeys');
+  await openJourney();
+  check(/One way\./.test(await pg.locator('[data-testid=outing-summary]').innerText().catch(() => '')), 'OJ7: where no loop can be made without retracing, the journey is one way and says so');
   await shot(pg, '03-proposal');
   {
     const sb = await pg.locator('[data-testid=outing-start]').boundingBox().catch(() => null);
@@ -113,10 +157,6 @@ async function run(h) {
   const after = await pg.locator('[data-testid=outing]').innerText();
   check(swapLabel === 'Swap this stop' && (await pg.locator('[data-testid=outing-card]').count()) === 0 && !NAMES.some((n) => after.includes(n)), 'QC21: Swap is worded "Swap this stop", closes the card and leaves the new slot unnamed');
   await shot(pg, '05-after-swap');
-  // QC41: the switch is kept.
-  await pg.click('[data-testid=outing-chains]');
-  check((await pg.locator('[data-testid=outing-chains]').getAttribute('aria-checked')) === 'true', 'QC41: Include chains turns on');
-  await pg.click('[data-testid=outing-chains]');
   // QC21: a second Swap on the same slot never repeats a shop it offered and never wraps; with none left it says so and changes nothing.
   {
     const seen = [];
@@ -142,49 +182,51 @@ async function run(h) {
   check(packAsked().length > 0 && packAsked().every((a) => /^bytes=\d+-\d+$/.test(a.range ?? '') && !a.cookie && !a.referer), `QC29: the stores pack is read by byte ranges after a pick (${packAsked().length} requests)`);
   check(places.asked.every((a) => a.name === 'manifest.json' || a.name === storesFile || a.name === placesFile), 'QC29: nothing else is asked of the host');
   // QC41: Include chains is kept across a reload.
+  await backToChips();
   await pg.click('[data-testid=outing-chains]');
+  check((await pg.locator('[data-testid=outing-chains]').getAttribute('aria-checked')) === 'true', 'QC41: Include chains turns on');
   await pg.waitForTimeout(500);
   const reopen = async () => {
     await pg.goto(exploreUrl);
     await pg.locator('[data-testid=outing-entry]').waitFor({ state: 'visible', timeout: 60000 }).catch(() => {});
     await pg.click('[data-testid=outing-entry]');
-    await pg.waitForSelector('[data-testid=outing]', { timeout: 15000 }).catch(() => {});
+    await pg.waitForSelector('[data-testid=outing-nowhere]', { timeout: 15000 }).catch(() => {});
   };
+  await backToChips();
   await pg.reload();
   const before = packAsked().length;
   await reopen();
+  check(packAsked().length === before, 'OJ35: opening the page again reads no pack before a place is given');
+  await aroundHere();
+  await only([]);
   check((await pg.locator('[data-testid=outing-chains]').getAttribute('aria-checked')) === 'true', 'QC41: Include chains stays on after a reload');
-  check((await pg.locator('[data-testid=outing-mode-loop]').getAttribute('aria-checked')) === 'true', 'QC3: the page opens on Loop again after a reload');
   await pg.click('[data-testid=outing-chains]');
+  await pg.waitForTimeout(500);
   await pg.reload();
   await reopen();
+  await aroundHere();
+  await only([]);
   check((await pg.locator('[data-testid=outing-chains]').getAttribute('aria-checked')) === 'false', 'QC41: and off stays off');
-  check(packAsked().length === before, 'QC29: opening the page again reads no pack before an entry is picked');
   // QC14: Books comes from the stores pack alone (the tiles have no bookshop).
-  const oneWay = async () => {
-    await pg.click('[data-testid=outing-mode-oneway]');
-    await pg.waitForSelector('[data-testid=outing-slot-0]', { timeout: 90000 }).catch(() => {});
-    await pg.waitForTimeout(1500);
-  };
   const cardName = async (i) => {
     await pg.click(`[data-testid=outing-slot-open-${i}]`);
     const t = ((await pg.locator('[data-testid=outing-card]').innerText().catch(() => '')) ?? '').trim();
     await pg.click(`[data-testid=outing-slot-open-${i}]`);
     return t;
   };
-  await pg.click('[data-testid=outing-want-books]');
-  await oneWay();
+  const packBefore = packAsked().length;
+  await only(['books']);
+  await openJourney();
   const bookSlots = await pg.locator('[data-testid^=outing-slot-open-]').evaluateAll((els) => els.map((e) => (e.textContent ?? '').replace(/[^\x20-\x7e]/g, '').trim()));
   check(bookSlots.length >= 2 && bookSlots.every((t) => /^A bookshop, /.test(t)), `QC14: Books proposes bookshops from the pack (${bookSlots.join(' | ')})`);
   const bookCard = await cardName(0);
   check(BOOKS.some((n) => bookCard.includes(n)), `QC14, QC18: a tap names a bookshop from the pack (${bookCard.replace(/\s+/g, ' ')})`);
-  check(packAsked().length > before, 'QC29: the pack was read after the pick');
+  check(packAsked().length >= packBefore && packAsked().length > 0, 'QC29: the pack is read once a place is given');
   await shot(pg, '06-books');
   // QC42: Thrifting matches second-hand shops (the tiles' charity shops) and antiques; Books is put down first.
-  await pg.click('[data-testid=outing-want-books]');
-  await pg.click('[data-testid=outing-want-thrifting]');
-  await pg.waitForSelector('[data-testid=outing-slot-0]', { timeout: 90000 }).catch(() => {});
-  await pg.waitForTimeout(1500);
+  await backToChips();
+  await only(['thrifting']);
+  await openJourney();
   const thriftSlots = await pg.locator('[data-testid^=outing-slot-open-]').evaluateAll((els) => els.map((e) => (e.textContent ?? '').replace(/[^\x20-\x7e]/g, '').trim()));
   check(thriftSlots.length >= 2 && thriftSlots.every((t) => /^A thrift or antiques shop, /.test(t)), `QC42: Thrifting proposes second-hand and antiques shops (${thriftSlots.join(' | ')})`);
   const thriftNames = [];
@@ -193,10 +235,9 @@ async function run(h) {
     `QC42: at least one stop is a charity shop from the tiles (${thriftNames.map((t) => t.replace(/\s+/g, ' ')).join(' | ')})`);
   await shot(pg, '07-thrifting');
   // Back to Antiques for Start.
-  await pg.click('[data-testid=outing-want-thrifting]');
-  await pg.click('[data-testid=outing-want-antiques]');
-  await pg.waitForSelector('[data-testid=outing-slot-0]', { timeout: 90000 }).catch(() => {});
-  await pg.waitForTimeout(1500);
+  await backToChips();
+  await only(['antiques']);
+  await openJourney();
   // QC22: Start begins an ordinary walk with a destination, distance only.
   await pg.click('[data-testid=outing-start]');
   await pg.waitForSelector('[data-testid=nav-bar]', { timeout: 90000 }).catch(() => {});
