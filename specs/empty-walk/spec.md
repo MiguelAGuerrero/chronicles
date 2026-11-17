@@ -69,3 +69,10 @@ Open: none (the owner's calls are in Decisions)
 
 Hosts of a stop: `src/app/walk.tsx` (hold-to-stop) and `src/components/RecordingBar.tsx`. Any other route to `stopWalk`: none
 (`grep stopWalk src`). The notice's host is the screen the walker lands on.
+
+## Record (2026-11-17)
+
+- EW1-EW12 pass: `src/lib/__tests__/deletion/emptyWalk.test.ts` (core, shell over `fakePorts()`, the Undo window) and the `capturehome` journey (EW1, EW7, EW8, EW9 on both stop paths).
+- Steward (Nov 16): S1-S6 accepted. Decision 0187 records the calls and the amendment to 0113.
+- Deferred: a sweep of walks already saved (the owner chose stop paths only); the UI review with screenshots did not run (the pill and its Undo are the existing component; only its words and the screen change are new).
+- Native has never run on a device: see `docs/NATIVE_UNVERIFIED.md`, "Deletion".

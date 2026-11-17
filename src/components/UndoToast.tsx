@@ -37,7 +37,7 @@ export function UndoToast(props: { style?: StyleProp<ViewStyle> }) {
   const st = usePendingState();
   const mine = top === id;
   // A failure is told even while a newer delete waits (deletion audit 10).
-  const text = st.error ?? (st.pending ? toastText(st.pending.kind, st.pending.what) : null);
+  const text = st.error ?? (st.pending ? toastText(st.pending.kind, st.pending.what, st.pending.dropped) : null);
   // iOS reads no live regions: the pill is announced, with its Undo (UI review).
   useEffect(() => {
     if (!mine || !text || Platform.OS !== 'ios') return;

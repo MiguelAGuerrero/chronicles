@@ -30,7 +30,7 @@ const read = (points: TracePoint[]) => readTrace(points, T0);
 const base = { moments: 0, pauses: 0, stills: 0, fills: 0 };
 const empty = (points: TracePoint[], over: Partial<typeof base> = {}) => isEmptyWalk({ ...base, ...over, trace: read(points) });
 
-test('EW2: isEmptyWalk is true only for no moment, pause, still or gap, and read fixes all within the threshold', { todo: 'test first' }, () => {
+test('EW2: isEmptyWalk is true only for no moment, pause, still or gap, and read fixes all within the threshold', () => {
   assert.equal(EMPTY_WALK_M, 15);
   assert.equal(empty(standing(120)), true);
   assert.equal(empty(standing(120), { pauses: 1 }), false);
@@ -43,35 +43,35 @@ test('EW2: isEmptyWalk is true only for no moment, pause, still or gap, and read
   assert.ok(distanceM(O, [O[0] + 10 * mLon, O[1]]) < EMPTY_WALK_M);
 });
 
-test('EW3: any moment, a photo, video, memo or note, keeps the walk however short', { todo: 'test first' }, () => {
+test('EW3: any moment, a photo, video, memo or note, keeps the walk however short', () => {
   for (const kind of ['photo', 'video', 'voice', 'text'] as CaptureKind[]) {
     assert.ok(kind);
     assert.equal(empty(standing(10), { moments: 1 }), false, kind);
   }
 });
 
-test('EW4: movement past the threshold keeps the walk, and a 40 m courtyard stroll is kept', { todo: 'test first' }, () => {
+test('EW4: movement past the threshold keeps the walk, and a 40 m courtyard stroll is kept', () => {
   assert.equal(empty(strolling(40)), false);
   assert.equal(empty(strolling(100)), false);
 });
 
-test('EW5: a pause, a still or a gap decision keeps the walk, even with no movement', { todo: 'test first' }, () => {
+test('EW5: a pause, a still or a gap decision keeps the walk, even with no movement', () => {
   for (const over of [{ pauses: 1 }, { stills: 1 }, { fills: 1 }]) assert.equal(empty(standing(60), over), false);
 });
 
-test('EW6: a walk with no read fixes, none stored or all gated out for accuracy, is kept', { todo: 'test first' }, () => {
+test('EW6: a walk with no read fixes, none stored or all gated out for accuracy, is kept', () => {
   assert.equal(empty([]), false);
   assert.equal(empty(standing(60, 200)), false);
   assert.equal(empty([fix(-10 * 60, 0, 0), fix(-10 * 60 + 5, 0, 0)]), false);
 });
 
-test('EW11: a cold-start jump in the first fix does not by itself decide empty versus kept', { todo: 'test first' }, () => {
+test('EW11: a cold-start jump in the first fix does not by itself decide empty versus kept', () => {
   const jumpy = [fix(0, 60, 40), ...standing(120).map((p) => ({ ...p, t: p.t + 5000 }))];
   assert.equal(empty(jumpy), true);
   assert.equal(empty(standing(120)), true);
 });
 
-test('EW12: time does not decide: a long stand is dropped, a short walk with movement is kept', { todo: 'test first' }, () => {
+test('EW12: time does not decide: a long stand is dropped, a short walk with movement is kept', () => {
   assert.equal(empty(standing(3 * 3600)), true);
   assert.equal(empty(strolling(60).slice(0, 12)), false);
 });
@@ -91,7 +91,7 @@ async function setup(trace: TracePoint[], over: { moments?: number; pauses?: boo
   return { p, scheduled, drop: createDropEmpty(p, deps) };
 }
 
-test('EW1: stopping a walk with no moments, no street and no movement drops it, and reports it dropped', { todo: 'test first' }, async () => {
+test('EW1: stopping a walk with no moments, no street and no movement drops it, and reports it dropped', async () => {
   const { drop, scheduled } = await setup(standing(60));
   assert.equal(await drop('w'), true);
   assert.equal(scheduled.length, 1);
@@ -99,19 +99,19 @@ test('EW1: stopping a walk with no moments, no street and no movement drops it, 
   assert.equal(scheduled[0].kind, 'walk');
 });
 
-test('EW1: a walk with a moment is not dropped and nothing is scheduled', { todo: 'test first' }, async () => {
+test('EW1: a walk with a moment is not dropped and nothing is scheduled', async () => {
   const { drop, scheduled } = await setup(standing(60), { moments: 1 });
   assert.equal(await drop('w'), false);
   assert.equal(scheduled.length, 0);
 });
 
-test('EW10: a failure to read the walk keeps it and plays the replay', { todo: 'test first' }, async () => {
+test('EW10: a failure to read the walk keeps it and plays the replay', async () => {
   const { drop, scheduled } = await setup(standing(60), { failRead: true });
   assert.equal(await drop('w'), false);
   assert.equal(scheduled.length, 0);
 });
 
-test('EW9: a dropped walk is volatile: a kill leaves it in place, nothing is saved for the next launch', { todo: 'test first' }, () => {
+test('EW9: a dropped walk is volatile: a kill leaves it in place, nothing is saved for the next launch', () => {
   const saved: PendingJob[][] = [];
   const pending = createPending({ setTimer: () => 0, clearTimer: () => {}, run: async () => {}, save: (jobs) => void saved.push(jobs) });
   pending.schedule({ kind: 'walk', ids: ['w'], spec: { type: 'walk', walkId: 'w' }, volatile: true });
@@ -121,7 +121,7 @@ test('EW9: a dropped walk is volatile: a kill leaves it in place, nothing is sav
   assert.deepEqual([...pending.hidden()], []);
 });
 
-test('EW9: Undo brings the walk back whole: nothing was stored', { todo: 'test first' }, async () => {
+test('EW9: Undo brings the walk back whole: nothing was stored', async () => {
   const ran: unknown[] = [];
   const pending = createPending({ setTimer: () => 0, clearTimer: () => {}, run: async (s) => void ran.push(s) });
   pending.schedule({ kind: 'walk', ids: ['w'], spec: { type: 'walk', walkId: 'w' }, volatile: true });
@@ -130,7 +130,7 @@ test('EW9: Undo brings the walk back whole: nothing was stored', { todo: 'test f
   assert.equal(ran.length, 0);
 });
 
-test('EW8: the route change Stop causes does not store the drop; a later one does', { todo: 'test first' }, async () => {
+test('EW8: the route change Stop causes does not store the drop; a later one does', async () => {
   const ran: unknown[] = [];
   const pending = createPending({ setTimer: () => 0, clearTimer: () => {}, run: async (s) => void ran.push(s) });
   pending.schedule({ kind: 'walk', ids: ['w'], spec: { type: 'walk', walkId: 'w' }, volatile: true });
@@ -142,14 +142,14 @@ test('EW8: the route change Stop causes does not store the drop; a later one doe
   assert.equal(ran.length, 1, 'the next route change stores it');
 });
 
-test('EW8: the notice says "Walk not kept." and no judgement, count or digit', { todo: 'test first' }, () => {
+test('EW8: the notice says "Walk not kept." and no judgement, count or digit', () => {
   const text = toastText('walk', undefined, true);
   assert.equal(text, 'Walk not kept.');
   assert.doesNotMatch(text, /\d|nothing|empty|wasted/i);
   assert.equal(toastText('walk'), 'Walk deleted');
 });
 
-test('EW7: both stop paths reach one decision through endWalk; neither view holds the rule', { todo: 'test first' }, () => {
+test('EW7: both stop paths reach one decision through endWalk; neither view holds the rule', () => {
   const read = (f: string) => readFileSync(join(__dirname, '..', '..', '..', '..', f), 'utf8');
   for (const f of ['src/app/walk.tsx', 'src/components/RecordingBar.tsx']) {
     const src = read(f);

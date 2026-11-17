@@ -482,9 +482,7 @@ const RENAMED = {
   'video-thumbnails': { VS: 'VT' },
 };
 
-const IN_PROGRESS = {
-  'empty-walk': { branch: 'claude/cool-mendel-4m8gkk', since: '2026-11-16' },
-};
+const IN_PROGRESS = {};
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));
 

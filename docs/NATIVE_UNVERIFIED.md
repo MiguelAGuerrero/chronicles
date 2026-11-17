@@ -143,6 +143,7 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] **Do:** delete a moment from the viewer's More menu, then tap Undo within 5 s. **Expect:** the Undo pill, `UndoToast`, "Moment deleted", shows over the viewer's Modal, not behind it, and Undo brings the moment back (Clearing walks and moments). (D5)
 - [ ] **Do:** delete a walk and press Home within 5 s; wait a minute, force-quit and reopen. **Expect:** the background commit of the waiting delete (`deletion/index.ts`) ran on going to the background: the walk stays deleted (Clearing walks and moments). (D5)
 - [ ] **Do:** from a replay card's More menu, Delete walk and confirm, ten times over different walks. **Expect:** each lands on Chronicle: `router.dismissTo` right after the actions Modal closes is never dropped, though iOS can drop a navigation during a Modal's dismissal (`WalkActions`; Clearing walks and moments).
+- [ ] **Do:** start a walk on a phone, stand still for about 20 s, capture nothing, and hold Stop (from the walk screen, then again from the recording bar). **Expect:** no replay plays; you are back where you were with the pill "Walk not kept." and Undo; Undo brings the walk back as an ordinary walk with its replay; force-quitting before tapping Undo or Close leaves the walk in Chronicle (EW1, EW7, EW9).
 
 ## Navigation and tabs
 

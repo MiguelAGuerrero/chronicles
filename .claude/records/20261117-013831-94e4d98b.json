@@ -1,0 +1,30 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Deletion"
+      ],
+      "body": "- [ ] **Do:** start a walk on a phone, stand still for about 20 s, capture nothing, and hold Stop (from the walk screen, then again from the recording bar). **Expect:** no replay plays; you are back where you were with the pill \"Walk not kept.\" and Undo; Undo brings the walk back as an ordinary walk with its replay; force-quitting before tapping Undo or Close leaves the walk in Chronicle (EW1, EW7, EW9).\n"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "add",
+        "--top"
+      ],
+      "body": "| Empty walk (a walk with no moment, pause, still or gap and no movement past 15 m is dropped at Stop: no replay, \"Walk not kept.\" with Undo that waits, a kill restores it; decision 0185, amends 0113) | shipped on the branch | `claude/cool-mendel-4m8gkk` 2026-11-17 | `specs/empty-walk/spec.md` | no |\n"
+    },
+    {
+      "argv": [
+        "inflight",
+        "remove",
+        "Empty walk"
+      ],
+      "target": "sha256:2d84d9772ff5956ab96f5728ce30b90848df63fb0e56afff1872c8c55189e1b1"
+    }
+  ]
+}

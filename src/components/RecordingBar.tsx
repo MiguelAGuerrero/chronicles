@@ -8,7 +8,7 @@ import { useStore } from '../lib/useStore';
 import { useUnits } from '../lib/useUnits';
 import { db } from '../lib/db';
 import { memoGate } from '../lib/memoGate';
-import { stopWalk } from '../lib/session';
+import { endWalk } from '../lib/session';
 import { reminderHeld, reminderText } from '../lib/discovery/recall';
 import { onRecallFired, RECALL_OPEN_KEY } from '../lib/discovery/recallCheck';
 import { feedback } from '../lib/motion';
@@ -162,9 +162,10 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
       }
       // The bar's photo, and one still being kept from Memories' band (capture-from-chronicle audit 6).
       await settleWithin(Promise.all([keeping.current, memoGate.kept()]), RETURN_WAIT_MS);
-      await stopWalk(walk.id);
+      const { dropped } = await endWalk(walk.id, { leaves: false });
       feedback('success');
-      router.push(`/replay/${walk.id}`);
+      // A walk with nothing in it has no replay: the bar goes, and the pill offers Undo on this screen (EW1).
+      if (!dropped) router.push(`/replay/${walk.id}`);
     } catch (e) {
       setSaid({ text: `The walk could not be stopped: ${e instanceof Error ? e.message : e}`, error: true });
     } finally {
