@@ -7,14 +7,14 @@ type Slot = { id: 'respond' | 'thread' | 'edit' | 'stack'; available: boolean; l
 type Actions = { quickActions(entry: { pieces: number }, ctx: { joinable: boolean }): Slot[] };
 const mod = () => import('../../journal/actions' + '') as Promise<Actions>;
 
-test('SW1: four slots, always in the order Respond, Thread, Edit, Stack, each named and none moved when another is empty', async () => {
+test('SW1: slots in the order Reaction, Respond, Thread, Edit, Stack, each named and none moved when another is empty', async () => {
   const { quickActions } = await mod();
   const full = quickActions({ pieces: 1 }, { joinable: true });
-  assert.deepEqual(full.map((s) => s.id), ['respond', 'thread', 'edit', 'stack']);
-  assert.deepEqual(full.map((s) => s.label), ['Respond', 'Add to a thread', 'Edit', 'Stack with previous']);
-  assert.deepEqual(full.map((s) => s.available), [true, true, true, true]);
+  assert.deepEqual(full.map((s) => s.id), ['react', 'respond', 'thread', 'edit', 'stack']);
+  assert.deepEqual(full.map((s) => s.label), ['Reaction', 'Respond', 'Add to a thread', 'Edit', 'Stack with previous']);
+  assert.deepEqual(full.map((s) => s.available), [true, true, true, true, true]);
   const stack = quickActions({ pieces: 3 }, { joinable: false });
-  assert.deepEqual(stack.map((s) => s.id), ['respond', 'thread', 'edit', 'stack'], 'the slots do not move');
+  assert.deepEqual(stack.map((s) => s.id), ['react', 'respond', 'thread', 'edit', 'stack'], 'the slots do not move');
 });
 
 test('SW4: Edit is available on a one-piece entry and empty on a stack', async () => {
@@ -38,7 +38,7 @@ test('SW1: no label carries a digit or a count', async () => {
 type Cap = { quickActions(entry: { pieces: number }, ctx: { joinable: boolean }): { id: string; available: boolean; label: string; caption: string }[] };
 const capMod = () => import('../../journal/actions' + '') as Promise<Cap>;
 
-test('SW1: five slots, Reaction first, each with a one-word caption and none moved when another is empty', { todo: 'test first' }, async () => {
+test('SW1: five slots, Reaction first, each with a one-word caption and none moved when another is empty', async () => {
   const { quickActions } = await capMod();
   const row = quickActions({ pieces: 1 }, { joinable: true });
   assert.deepEqual(row.map((s) => s.id), ['react', 'respond', 'thread', 'edit', 'stack']);
@@ -47,7 +47,7 @@ test('SW1: five slots, Reaction first, each with a one-word caption and none mov
   assert.deepEqual(quickActions({ pieces: 3 }, { joinable: false }).map((s) => s.id), ['react', 'respond', 'thread', 'edit', 'stack']);
 });
 
-test('SW20: Reaction is available on every entry, a stack included', { todo: 'test first' }, async () => {
+test('SW20: Reaction is available on every entry, a stack included', async () => {
   const { quickActions } = await capMod();
   for (const n of [1, 4]) assert.equal(quickActions({ pieces: n }, { joinable: false }).find((s) => s.id === 'react')?.available, true);
 });

@@ -44,8 +44,8 @@ async function run(h) {
   const nEntries = await pg.locator(entries).count();
   const names = await pg.locator(`${entries} [data-testid=quick-actions] [role=button]`).evaluateAll((els) => els.map((e) => e.getAttribute('aria-label')));
   const rowText = (await pg.locator('[data-testid=quick-actions]').first().innerText().catch(() => 'x')).replace(/[\s\uE000-\uF8FF]/g, '');
-  check(nEntries === 2 && rows === 2 && rowText === '', `SW1: each entry has a quick-action row and it has no caption (${nEntries} entries, ${rows} rows, ${JSON.stringify(rowText)})`);
-  check(['Respond', 'Add to a thread', 'Edit'].every((n) => names.includes(n)), `SW1: the icons carry spoken names (${names.join(' | ')})`);
+  check(nEntries === 2 && rows === 2 && rowText === 'ReactionRespondThreadEdit', `SW1: each entry has a quick-action row with a one-word caption under each icon (${nEntries} entries, ${rows} rows, ${JSON.stringify(rowText)})`);
+  check(['Reaction', 'Respond', 'Add to a thread', 'Edit'].every((n) => names.includes(n)), `SW1: the icons carry spoken names (${names.join(' | ')})`);
   const stackSlots = await count('[data-testid=quick-stack]');
   check(stackSlots === 1, `SW5: Stack with previous shows only on the entry just kept (${stackSlots})`);
   await shot(pg, 'stackjoin-01-row');
@@ -124,8 +124,16 @@ async function run(h) {
   const moments = await stored();
   check(moments.some((m) => m.pieces.length === 2) && moments.length === before.length, `SW17: the stack survives a reload (${moments.map((m) => m.pieces.length).join(',')})`);
   // Nov 17, after the cold find (decision 0196): captions under all of the row, Reaction in the row, nothing else on the top line.
-  check.todo(false, 'SW19: an entry\'s top line has no reaction sign and no More button, and no Show less or Not this one anywhere on an entry');
-  check.todo(false, 'SW20: the Reaction slot opens the reactions panel for an entry of any day and the chosen reaction shows under the dateline');
+  const top = await pg.locator(entries).first().evaluate((e) => ({ more: e.querySelectorAll('[data-testid=moment-more]').length, sign: e.querySelectorAll('[data-testid=reaction-sign]').length }));
+  check(top.more === 0 && top.sign === 0, `SW19: an entry's top line has no reaction sign and no More button (${JSON.stringify(top)})`);
+  await pg.locator('[data-testid=quick-react]').first().click().catch(() => {});
+  const panel = await there('[data-testid=reaction-panel]', 8000);
+  await pg.click('[data-testid=reaction-pick-idea]', { timeout: 3000 }).catch(() => {});
+  await pg.waitForTimeout(600);
+  await pg.click('[data-testid=reaction-done]', { timeout: 3000 }).catch(() => {});
+  await pg.waitForTimeout(800);
+  const marksUnder = await pg.locator(`${entries} [data-testid=reaction-marks] [data-testid=reaction-name]`).allInnerTexts().catch(() => []);
+  check(panel && marksUnder.join().includes('Idea'), `SW20: the Reaction slot opens the reactions and the chosen one shows under the dateline (${marksUnder.join()})`);
   await c.close();
 }
 

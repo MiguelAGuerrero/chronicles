@@ -1,3 +1,5 @@
+import { momentPill } from '../../lib/momentPill';
+import { useStore } from '../../lib/useStore';
 import { useReactions } from '../../lib/reactions/useReactions';
 import type { ReactionId } from '../../lib/reactions/core';
 import { ReactionMarks } from '../reactions/ReactionMarks';
@@ -43,11 +45,8 @@ export function Entry(props: {
   /** Shows the moment on Chronicle's Map (JN6); given only for a placed one. */
   onMap?: () => void;
   onWalk: (walkId: string) => void;
-  onMore: () => void;
   /** The sign of the entry being written was tapped (RX6): the reactions open above the bar. */
   onSign?: () => void;
-  /** An entry kept today offers the sign on its row too (RX9): a tap opens the reactions. Given only for today's entries. */
-  onReact?: () => void;
   /** The reactions are open for the entry being written: the sign shows it. */
   signOpen?: boolean;
   onOpenRef: (v: MomentView) => void;
@@ -63,6 +62,8 @@ export function Entry(props: {
   const c = m.capture;
   // A stack is shown as its face with a line naming its kinds, and opens into a grid of every piece (SW11, SW12).
   const [spread, setSpread] = useState(false);
+  // The entry still being added to (the pill's open moment) shows every piece, so a note or a memo being made is never hidden.
+  const openId = useStore(momentPill.store, (st) => st.id);
   const placed = c.lat != null && c.lon != null;
   const line = dateline({
     t: m.t,
@@ -74,8 +75,8 @@ export function Entry(props: {
     onOpenWalk: !!m.walkId && !walk,
   });
   const from = fromLine(walk);
-  const stackedHere = hasMore(c) && !c.pieces.some((p) => p.id === props.writing);
-  const pieces = c.pieces.filter((p) => p.id !== props.writing && (!stackedHere || spread || p.id === faceOf(c).id));
+  const stackedHere = hasMore(c) && openId !== c.id && !c.pieces.some((p) => p.id === props.writing);
+  const pieces = c.pieces.filter((p) => p.id !== props.writing && (!stackedHere || spread || p.id === faceOf(c).id || p.kind === 'text' || p.kind === 'voice'));
   // The entry being written has the sign at its dateline's end (RX6); one kept today, the same sign (RX9). Its
   // reactions are spelled out under the dateline (RX14), so choosing one moves nothing.
   const reacted = useReactions(c.id);
@@ -98,14 +99,8 @@ export function Entry(props: {
         ) : (
           <View style={styles.dateline}>{lineText}</View>
         )}
-        {writingHere ? (
-          <ReactionSign testID="reaction-slot" set={reacted} open={!!props.signOpen} onPress={() => props.onSign?.()} />
-        ) : props.onReact ? (
-          <ReactionSign set={reacted} onPress={props.onReact} />
-        ) : null}
-        <Pressable testID="moment-more" accessibilityRole="button" accessibilityLabel="More about this moment" onPress={props.onMore} style={styles.more}>
-          <Icon name="ellipsis-horizontal" size={18} color={theme.muted} />
-        </Pressable>
+        {/* Only the entry being written keeps its sign (RX6); every other entry reacts from the row (SW19, SW20). */}
+        {writingHere ? <ReactionSign testID="reaction-slot" set={reacted} open={!!props.signOpen} onPress={() => props.onSign?.()} /> : null}
       </View>
       <ReactionMarks set={reacted} style={styles.reactions} onOpen={props.onLens} />
       {stackedHere && spread ? (
@@ -127,7 +122,7 @@ export function Entry(props: {
           </Pressable>
         </View>
       ) : null}
-      {props.actions && props.onAction ? <QuickActions slots={props.actions} onPress={props.onAction} /> : null}
+      {props.actions && props.onAction && !writingHere ? <QuickActions slots={props.actions} onPress={props.onAction} /> : null}
       {props.answering ? <Text style={[styles.app, styles.answering]} testID="moment-answering">{props.answering}</Text> : null}
       {from && walk ? (
         <Pressable testID="moment-walk" accessibilityRole="button" accessibilityLabel={`${from}. Replay the walk`} onPress={() => props.onWalk(walk.id)} style={styles.from}>

@@ -392,7 +392,8 @@ export function MemoriesScreen() {
     return quickActions({ pieces: m.capture.pieces.length }, { joinable: ok });
   };
   const act = (m: MomentView, id: SlotId) => {
-    if (id === 'respond') open(m, false, 'respond');
+    if (id === 'react') { setMenuFromSlip(false); setTypeOnly(true); setMenuFor(m.id); }
+    else if (id === 'respond') open(m, false, 'respond');
     else if (id === 'edit') open(m, false, 'edit');
     else if (id === 'thread') setThreading(m.capture);
     else {
@@ -414,10 +415,8 @@ export function MemoriesScreen() {
         onOpen={() => open(m)}
         onMap={c.lat != null && c.lon != null ? () => chronicleSection.showMoment([c.lon as number, c.lat as number]) : undefined}
         onWalk={(id) => router.push(`/replay/${id}?ceremony=0`)}
-        onMore={() => { setMenuFromSlip(false); setTypeOnly(false); setMenuFor(m.id); }}
         onSign={() => lineRef.current?.react({ moment: c.id })}
         signOpen={typeOpen}
-        onReact={dayKey(m.t) === dayKey(now) ? () => { setMenuFromSlip(false); setTypeOnly(true); setMenuFor(m.id); } : undefined}
         onOpenRef={open}
         onLens={(id) => openLens(id)}
         actions={actionsFor(m)}
