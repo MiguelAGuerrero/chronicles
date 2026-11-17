@@ -20,6 +20,7 @@ import { spareFresh } from './journal/target';
 import type { LocateResult } from './locate/types';
 import { dropTemp, keepFile, removeMedia } from './media';
 import { makeThumb } from './media/thumb';
+import { failedMemo, memoFile } from './media/memoSave';
 import { isOutOfSpace, saveFailLine } from './space/core';
 import { space } from './space';
 import { captureThumbStillWanted, THUMB } from './thumbPlan';
@@ -47,7 +48,8 @@ export const UNDO_MS = 5000;
 
 type Busy = CaptureKind | null;
 
-export type VoiceResult = 'saved' | 'dropped' | 'discarded' | 'failed' | 'none';
+/** `lost`: the memo had no file to keep, so it is said and let go, with no Retry (tend captures 1). */
+export type VoiceResult = 'saved' | 'dropped' | 'discarded' | 'failed' | 'lost' | 'none';
 
 /** When a capture was begun and where; a moment outside a walk also has its fix on the way. */
 export interface Stamp {
@@ -144,6 +146,8 @@ export function useCaptures(
   const lock = useRef(false); // taps arrive faster than state updates
   const alive = useRef(true); // the screen is still mounted
   const voiceStamp = useRef<Stamp | null>(null);
+  /** The recorder's uri before this memo's prepare: one still the same at its stop is not this memo's (tend captures 1). */
+  const memoUriBefore = useRef<string | null>(null);
   const voice = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const pos = useRef({ here, lastFixAt });
   useEffect(() => {
@@ -471,6 +475,7 @@ export function useCaptures(
           nowPlaying.claim(RECORDING);
           // Keeps recording with the phone locked and in a pocket.
           await setAudioMode({ allowsRecording: true, playsInSilentMode: true, allowsBackgroundRecording: true });
+          memoUriBefore.current = voice.uri;
           await voice.prepareToRecordAsync();
           if (!alive.current) {
             // The screen went away while preparing: never leave the mic on.
@@ -518,7 +523,16 @@ export function useCaptures(
     await resetAudioMode();
     // The recorder's own duration is 0 once it has stopped; the wall clock is not.
     const ms = status.durationMillis > 0 ? status.durationMillis : wallMs;
-    return { uri: voice.uri, stamp, ms, short: wasRecording && wallMs < MIN_VOICE_MS };
+    // A stop given up on leaves the web's uri unset, or still the last memo's: no file of this memo's (tend captures 1).
+    return { uri: memoFile(memoUriBefore.current, voice.uri), stamp, ms, short: wasRecording && wallMs < MIN_VOICE_MS };
+  }
+
+  /** A memo whose save failed: held for Retry when there is a file to retry with, and said either way (SA8, tend captures 1). */
+  function memoFailed(m: StoppedMemo, e: unknown): VoiceResult {
+    const plan = failedMemo({ file: m.uri, outOfSpace: isOutOfSpace(e) });
+    if (plan.hold === 'here' && alive.current) setUnsaved(m);
+    setError({ message: plan.line });
+    return plan.result;
   }
 
   async function saveMemo(m: StoppedMemo): Promise<void> {
@@ -535,7 +549,7 @@ export function useCaptures(
   /**
    * Stops and saves the memo in progress, waiting for any voice action in
    * flight first. A memo under MIN_VOICE_MS was an accidental tap and is
-   * dropped. A memo that fails to save is kept for retrySave.
+   * dropped. A memo that fails to save is kept for retrySave, when it has a file to retry with.
    */
   const finishVoice = (): Promise<VoiceResult> =>
     trackMemo(enqueue(() =>
@@ -550,9 +564,7 @@ export function useCaptures(
           await saveMemo(m);
           return 'saved';
         } catch (e) {
-          if (alive.current) setUnsaved(m);
-          setError({ message: saveFailLine('voice', isOutOfSpace(e)) });
-          return 'failed';
+          return memoFailed(m, e);
         }
       }),
     ));
@@ -612,9 +624,7 @@ export function useCaptures(
           await saveMemo(m);
           return 'saved';
         } catch (e) {
-          setUnsaved(m);
-          setError({ message: saveFailLine('voice', isOutOfSpace(e)) });
-          return 'failed';
+          return memoFailed(m, e);
         }
       }),
     );
