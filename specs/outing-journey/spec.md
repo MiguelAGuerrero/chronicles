@@ -284,6 +284,21 @@ answered; C5 (which row a swap changed) is open. No second cold find and no UI r
 **Visited from the trace built 2026-11-17** (OJ47, decision 0200): `visited.ts`, `walkedNear`; unit tests committed failing first
 (`e232412`); the journey `outing` green again at 54 checks (its world holds no recorded outing, so visited is unit-tested only).
 
+**Second cold find and the UI review** (the `ux-reviewer`, Nov 17, pictures of the page as built): all ten tasks in the owner's words
+were found, two late (an antiques run within a drive: nothing showed the reach had done anything; another suggestion: the next card's
+edge was thin). Eight findings, triaged:
+- accepted and fixed, each with a regression check in the journey `outing`: U1 a wider reach says what it looked at, by town name
+  (`outing-journey ui 1`); U3 the next card shows by a finger's width and dots say how many journeys there are (`ui 2`); U4 a swap or
+  "Another like this" can be taken back with Undo (`ui 3`); U2 the opened stop's name sits whole above the Start bar, the card now
+  under its row and the opened sheet taller (`ui 4`); "See this journey" pinned under the list, found off screen while fixing U3
+  (`ui 5`);
+- accepted and fixed without a check of their own: U5 "Nowhere in particular" is a chip with a clear mark, not a full-width button;
+  U6 a chip that is on carries a check mark, so on is not said by fill alone; U7 a thrift stop reads "A thrift shop" and no longer
+  wraps; U8 a line under the sheet's handle, and the summary is not said twice for a journey of one chapter;
+- rejected: U8's "Start the outing" for Start (Start is the app's word on every screen that begins a session; OJ28's wording follows it);
+- left open: the first cold find's C5 is answered by Undo; a segmented control for the reach (U6's second half) and the pictures the
+  review could not see (the folded sheet, the search results, 320 px, large text, the map itself, whose tiles are blank in the test build).
+
 **Not built.** The session carrying a journey from town to town (step 3: Start begins the first town's chapter, and the page says so);
 "Leave this town out" (OJ26); the atlas's own words and street names in a town's line (OJ23); the setting for how many towns are looked
 at (0198; eight today); marks per kind and town outlines on the page's map; the stores pack published (merged on a branch of chronicles-data, decision 0200); a journey toward a far place has only been run against the test world, where the towns between hold nothing.

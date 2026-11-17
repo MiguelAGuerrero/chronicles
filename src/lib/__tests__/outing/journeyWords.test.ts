@@ -51,3 +51,11 @@ test('OJ1, OJ2, OJ7, OJ27: the page\'s fixed words', async () => {
   assert.equal(w.NOWHERE_LABEL, 'Nowhere in particular');
   for (const s of [w.WHERE_LABEL, w.CHIPS_LINE, w.NOWHERE_LABEL, w.SEE_LABEL, w.BACK_LABEL, w.READS_LINE, w.LATER_LABEL, w.UNFOUND_LINE]) assert.doesNotMatch(s, BANNED, s);
 });
+
+test('outing-journey ui 1, ui 3: what a wider reach looked at is said by name, and a change can be taken back in a word', async () => {
+  const w = await import('../../outing/journeyWords');
+  assert.equal(w.lookedLine(['Cranston', 'Warwick']), 'Looked in Cranston and Warwick.');
+  assert.equal(w.lookedLine([]), 'No town within that reach.');
+  assert.equal(w.UNDO_LABEL, 'Undo');
+  for (const s of [w.lookedLine(['Cranston']), w.lookedLine([]), w.ANOTHER_LINE]) assert.doesNotMatch(s, BANNED, s);
+});

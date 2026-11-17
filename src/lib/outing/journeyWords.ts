@@ -65,3 +65,8 @@ export const TOWNS_LINE = 'Reading the towns…';
 export const FIRST_LINE = 'Start begins here; the other towns wait on this page.';
 export const PEEK_LABEL = 'Show the map';
 export const UNPEEK_LABEL = 'Show the journeys';
+export const UNDO_LABEL = 'Undo';
+export const ANOTHER_LINE = 'Planned again from other places.';
+
+/** OJ41 (ui 1): what a wider reach looked at, said under it once the towns are read: their names, or that there was none. */
+export const lookedLine = (names: readonly string[]): string => (names.length ? `Looked in ${list(names)}.` : 'No town within that reach.');

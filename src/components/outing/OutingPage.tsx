@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { matches } from '../../lib/outing/candidates';
 import { distanceM } from '../../lib/geo';
 import type { Waypoint } from '../../lib/nav/types';
-import { ANOTHER_LABEL, BACK_LABEL, CHANGE_LABEL, CHIPS_LINE, FIRST_LINE, FURTHER_LABEL, HERE_LABEL, LATER_LABEL, NEXT_MOVE_LINE, NOWHERE_LABEL, PEEK_LABEL, READ_FAILED_LINE, REACH_LINE, SEE_LABEL, TOO_FAR_LINE, TOWNS_LINE, UNFOUND_LINE, UNPEEK_LABEL, WHERE_LABEL, awayLine, cardSummary, chapterLine, nothingLine, reachLabel, townLine } from '../../lib/outing/journeyWords';
+import { ANOTHER_LABEL, BACK_LABEL, CHANGE_LABEL, CHIPS_LINE, FIRST_LINE, FURTHER_LABEL, HERE_LABEL, LATER_LABEL, NEXT_MOVE_LINE, NOWHERE_LABEL, PEEK_LABEL, READ_FAILED_LINE, REACH_LINE, SEE_LABEL, TOO_FAR_LINE, TOWNS_LINE, UNDO_LABEL, UNFOUND_LINE, UNPEEK_LABEL, WHERE_LABEL, awayLine, cardSummary, chapterLine, lookedLine, nothingLine, reachLabel, townLine } from '../../lib/outing/journeyWords';
 import { useJourney } from '../../lib/outing/useJourney';
 import { CHAINS_LABEL, CLOSE_LABEL, HOURS_LINE, NO_PICK_LINE, READING_LINE, SLOT_HINT, START_LABEL, SWAP_LABEL, TITLE, cardLine, reasonLine, slotLine } from '../../lib/outing/words';
 import { hideTabs } from '../../lib/tabsHidden';
@@ -89,7 +89,8 @@ export function OutingPage(props: {
       return { ci, area: c.area, labels, slots, stops: o.stops.length, lengthM: o.lengthM, loop: o.loop };
     });
   }, [j.journey]);
-  const cardW = Math.min(width - 56, 340);
+  // ui 2: the next card shows by about 50 px, and dots under the row say how many there are.
+  const cardW = Math.min(width - 82, 340);
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const i = Math.max(0, Math.min(j.journeys.length - 1, Math.round(e.nativeEvent.contentOffset.x / (cardW + GAP))));
     if (i !== j.cur) j.setCur(i);
@@ -134,7 +135,7 @@ export function OutingPage(props: {
           <Icon name="close" size={22} color={theme.ink} />
         </Pressable>
       </View>
-      <View style={[styles.sheet, { maxHeight: Math.round(height * 0.62), paddingBottom: capturing ? 120 : insets.bottom + 12 }]} testID="outing-sheet">
+      <View style={[styles.sheet, { maxHeight: Math.round(height * (j.opened ? 0.76 : 0.62)), paddingBottom: capturing ? 120 : insets.bottom + 12 }]} testID="outing-sheet">
         <Pressable testID="outing-peek" accessibilityRole="button" accessibilityLabel={peek ? UNPEEK_LABEL : PEEK_LABEL} accessibilityState={{ expanded: !peek }} onPress={() => setPeek(!peek)} style={styles.peek}>
           <Icon name={peek ? 'chevron-up' : 'chevron-down'} size={20} color={theme.ink} />
           <Text style={styles.swapText}>{peek ? UNPEEK_LABEL : PEEK_LABEL}</Text>
@@ -146,6 +147,7 @@ export function OutingPage(props: {
             <Button testID="outing-search" label={WHERE_LABEL} onPress={() => setSearching(true)} />
           </View>
         ) : !j.opened ? (
+          <>
           <ScrollView contentContainerStyle={styles.pad} keyboardShouldPersistTaps="handled">
             <Text style={styles.title} accessibilityRole="header" testID="outing-title">{place ?? HERE_LABEL}</Text>
             <Text style={styles.label}>{CHIPS_LINE}</Text>
@@ -154,13 +156,19 @@ export function OutingPage(props: {
                 const on = j.pickedIds.includes(w.id);
                 return (
                   <Pressable key={w.id} testID={`outing-want-${w.id}`} accessibilityRole="button" accessibilityLabel={w.label} accessibilityState={{ selected: on }} {...({ 'aria-pressed': on } as object)} onPress={() => j.toggle(w.id)} style={[styles.chip, on && styles.chipOn]}>
+                    {on ? <Icon name="checkmark" size={16} color={theme.surface} /> : null}
                     <Text style={[styles.chipText, on && styles.chipTextOn]}>{w.label}</Text>
                   </Pressable>
                 );
               })}
             </View>
             {j.dest ? (
-              j.hasOrigin ? <Button testID="outing-nowhere" label={NOWHERE_LABEL} variant="secondary" onPress={() => j.setDest(null)} /> : null
+              j.hasOrigin ? (
+                <Pressable testID="outing-nowhere" accessibilityRole="button" accessibilityLabel={NOWHERE_LABEL} onPress={() => j.setDest(null)} style={[styles.chip, styles.self]}>
+                  <Icon name="close" size={16} color={theme.ink} />
+                  <Text style={styles.chipText}>{NOWHERE_LABEL}</Text>
+                </Pressable>
+              ) : null
             ) : (
               <>
                 <Text style={styles.label}>{REACH_LINE}</Text>
@@ -174,6 +182,7 @@ export function OutingPage(props: {
                     );
                   })}
                 </View>
+                {j.looked ? <Text style={styles.line} testID="outing-looked" accessibilityLiveRegion="polite">{lookedLine(j.looked)}</Text> : null}
               </>
             )}
             <Pressable testID="outing-chains" accessibilityRole="switch" accessibilityLabel={CHAINS_LABEL} accessibilityState={{ checked: j.chains }} {...({ 'aria-checked': j.chains } as object)} onPress={() => j.setChains(!j.chains)} style={styles.switchRow}>
@@ -199,8 +208,19 @@ export function OutingPage(props: {
                 ))}
               </ScrollView>
             ) : null}
-            {j.journey ? <Button testID="outing-see" label={SEE_LABEL} onPress={() => j.setOpened(true)} /> : null}
+            {j.journeys.length > 1 ? (
+              <View style={styles.dots} testID="outing-dots" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+                {j.journeys.map((x, i) => <View key={x.leaning} style={[styles.dot, i === j.cur && styles.dotOn]} />)}
+              </View>
+            ) : null}
           </ScrollView>
+          {/* ui 5: the way on stays on screen under the list, as Start does. */}
+          {j.journey ? (
+            <View style={styles.footer}>
+              <Button testID="outing-see" label={SEE_LABEL} onPress={() => j.setOpened(true)} />
+            </View>
+          ) : null}
+          </>
         ) : (
           <>
             <ScrollView contentContainerStyle={styles.pad} keyboardShouldPersistTaps="handled">
@@ -211,9 +231,18 @@ export function OutingPage(props: {
                 </Pressable>
                 <Text style={styles.title} accessibilityRole="header" testID="outing-journey-name">{j.journey!.name}</Text>
               </View>
-              <Text style={styles.line} testID="outing-summary">{summary(j.journey!)}</Text>
+              {chapters.length > 1 ? <Text style={styles.line} testID="outing-summary">{summary(j.journey!)}</Text> : null}
               <Button testID="outing-another" label={ANOTHER_LABEL} variant="secondary" onPress={j.another} />
-              {j.said ? <Text style={styles.line} testID="outing-said" accessibilityLiveRegion="polite">{j.said}</Text> : null}
+              {j.said ? (
+                <View style={styles.saidRow}>
+                  <Text style={[styles.line, styles.grow]} testID="outing-said" accessibilityLiveRegion="polite">{j.said}</Text>
+                  {j.canUndo ? (
+                    <Pressable testID="outing-undo" accessibilityRole="button" accessibilityLabel={UNDO_LABEL} onPress={j.undo} style={styles.undo}>
+                      <Text style={styles.swapText}>{UNDO_LABEL}</Text>
+                    </Pressable>
+                  ) : null}
+                </View>
+              ) : null}
               {chapters.map((c) => (
                 <View key={c.ci} style={styles.chapter} testID={`outing-chapter-${c.ci}`}>
                   <Text style={styles.jname} accessibilityRole="header" testID={`outing-chapter-name-${c.ci}`}>{c.area.name ?? HERE_LABEL}</Text>
@@ -229,16 +258,16 @@ export function OutingPage(props: {
                             <Icon name={j.open === key ? 'chevron-up' : 'chevron-down'} size={20} color={theme.muted} />
                           </View>
                         </Pressable>
-                        <Pressable testID={`outing-swap-${s.n}`} accessibilityRole="button" accessibilityLabel={`${SWAP_LABEL}. ${s.line}`} onPress={() => j.swap(c.ci, s.i)} style={styles.swap}>
-                          <Icon name="swap-horizontal" size={18} color={theme.ink} />
-                          <Text style={styles.swapText}>{SWAP_LABEL}</Text>
-                        </Pressable>
                         {j.open === key ? (
                           <View style={styles.card} testID="outing-card" accessibilityLiveRegion="polite">
                             {s.name ? <Text style={styles.cardName}>{s.name}</Text> : <Text style={styles.line} testID="outing-card-unfound">{UNFOUND_LINE}</Text>}
                             <Text style={styles.line}>{cardLine(s.word, s.m)}</Text>
                           </View>
                         ) : null}
+                        <Pressable testID={`outing-swap-${s.n}`} accessibilityRole="button" accessibilityLabel={`${SWAP_LABEL}. ${s.line}`} onPress={() => j.swap(c.ci, s.i)} style={styles.swap}>
+                          <Icon name="swap-horizontal" size={18} color={theme.ink} />
+                          <Text style={styles.swapText}>{SWAP_LABEL}</Text>
+                        </Pressable>
                       </View>
                     );
                   })}
@@ -283,7 +312,14 @@ const styles = StyleSheet.create({
   close: { width: 48, height: 48, borderRadius: 24, backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.line, alignItems: 'center', justifyContent: 'center' },
   sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: theme.surface, borderTopLeftRadius: 18, borderTopRightRadius: 18, borderTopWidth: 1, borderColor: theme.line },
   pad: { padding: 16, paddingTop: 4, gap: 12 },
-  peek: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  peek: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderBottomWidth: 1, borderColor: theme.line, marginBottom: 8 },
+  self: { alignSelf: 'flex-start' },
+  dots: { flexDirection: 'row', justifyContent: 'center', gap: 8 },
+  dot: { width: 8, height: 8, borderRadius: 4, borderWidth: 1, borderColor: theme.edge },
+  dotOn: { backgroundColor: theme.ink, borderColor: theme.ink, width: 16 },
+  saidRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  grow: { flex: 1 },
+  undo: { minHeight: 44, paddingHorizontal: 12, justifyContent: 'center', borderRadius: 12, borderWidth: 1, borderColor: theme.edge },
   chapter: { gap: 8, paddingTop: 8, borderTopWidth: 1, borderColor: theme.line },
   head: { gap: 6 },
   title: { fontSize: 20, fontWeight: '800', color: theme.ink },
@@ -291,7 +327,7 @@ const styles = StyleSheet.create({
   back: { flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 44, alignSelf: 'flex-start' },
   footer: { paddingHorizontal: 16, paddingTop: 10, gap: 8, borderTopWidth: 1, borderColor: theme.line },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { minHeight: 44, paddingHorizontal: 14, borderRadius: 22, borderWidth: 1, borderColor: theme.edge, backgroundColor: theme.surface, alignItems: 'center', justifyContent: 'center' },
+  chip: { minHeight: 44, paddingHorizontal: 14, borderRadius: 22, borderWidth: 1, borderColor: theme.edge, backgroundColor: theme.surface, flexDirection: 'row', gap: 4, alignItems: 'center', justifyContent: 'center' },
   chipOn: { backgroundColor: theme.ink, borderColor: theme.ink },
   chipText: { fontSize: 15, fontWeight: '600', color: theme.ink },
   chipTextOn: { color: theme.surface },
@@ -307,6 +343,6 @@ const styles = StyleSheet.create({
   slotText: { flex: 1, fontSize: 16, fontWeight: '600', color: theme.ink },
   swap: { minHeight: 44, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 8, borderTopWidth: 1, borderColor: theme.line },
   swapText: { fontSize: 14, fontWeight: '600', color: theme.ink },
-  card: { padding: 14, gap: 4, borderTopWidth: 1, borderColor: theme.line },
+  card: { paddingHorizontal: 14, paddingBottom: 12, gap: 4 },
   cardName: { fontSize: 18, fontWeight: '800', color: theme.ink },
 });

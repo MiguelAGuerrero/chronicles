@@ -112,13 +112,13 @@ async function run(h) {
   const aroundHere = async () => {
     await pg.waitForSelector('[data-testid=outing-want-antiques]', { timeout: 15000 }).catch(() => {});
   };
-  check((await pg.locator('[data-testid=outing-nowhere]').innerText().catch(() => '')).trim() === 'Nowhere in particular', 'OJ7: with a destination the page offers "Nowhere in particular"');
+  check(((await pg.locator('[data-testid=outing-nowhere]').innerText().catch(() => '')) ?? '').replace(/[^\x20-\x7e]/g, '').trim() === 'Nowhere in particular', 'OJ7: with a destination the page offers "Nowhere in particular"');
   await pg.click('[data-testid=outing-nowhere]');
   await pg.waitForSelector('[data-testid=outing-reach-0]', { timeout: 15000 }).catch(() => {});
   check((await pg.locator('[data-testid=outing-away]').count()) === 0 && (await pg.locator('[data-testid=outing-title]').innerText().catch(() => '')).trim() === 'Around here', 'OJ7: it goes back to around here');
   await aroundHere();
   // OJ11, OJ15: one list of chips, shops and attractions alike, alphabetical.
-  const chips = await pg.locator('[data-testid^=outing-want-]').evaluateAll((els) => els.map((e) => e.textContent));
+  const chips = await pg.locator('[data-testid^=outing-want-]').evaluateAll((els) => els.map((e) => (e.textContent ?? '').replace(/[^\x20-\x7e]/g, '').trim()));
   check(JSON.stringify(chips) === JSON.stringify(['Antiques', 'Art', 'Books', 'Culture', 'Green', 'History', 'Thrifting', 'Views']), `OJ11, OJ15: the chips are one alphabetical list (${chips.join(',')})`);
   // OJ12: shop chips start off.
   const pressed = async (id) => (await pg.locator(`[data-testid=outing-want-${id}]`).getAttribute('aria-pressed')) === 'true';
@@ -161,6 +161,11 @@ async function run(h) {
   await pg.click('[data-testid=outing-slot-open-0]');
   const card = await pg.locator('[data-testid=outing-card]').innerText().catch(() => '');
   check(NAMES.some((n) => card.includes(n)) && !/hour|open|closed|unknown/i.test(card), `QC18: a tap names the shop on a card and says nothing of hours (${card.replace(/\s+/g, ' ')})`);
+  {
+    const cb = await pg.locator('[data-testid=outing-card]').boundingBox().catch(() => null);
+    const sb = await pg.locator('[data-testid=outing-start]').boundingBox().catch(() => null);
+    check(!!cb && !!sb && cb.y + cb.height <= sb.y + 1, 'outing-journey ui 4: the opened stop\'s name is whole above the Start bar');
+  }
   // QC21: Swap closes the card and the new slot is unnamed.
   await shot(pg, '04-card');
   const swapLabel = (await pg.locator('[data-testid=outing-swap-0]').innerText()).replace(/[^\x20-\x7e]/g, '').trim();
@@ -168,6 +173,7 @@ async function run(h) {
   await pg.waitForTimeout(300);
   check((await pg.locator('[data-testid=outing-said]').innerText().catch(() => '')) === 'Swapped for another one.', 'quick-circuit ui 4: a swap says it swapped, in a plain line');
   const after = await pg.locator('[data-testid=outing]').innerText();
+  check((await pg.locator('[data-testid=outing-undo]').count()) === 1, 'outing-journey ui 3: a swap can be taken back');
   check(swapLabel === 'Swap this stop' && (await pg.locator('[data-testid=outing-card]').count()) === 0 && !NAMES.some((n) => after.includes(n)), 'QC21: Swap is worded "Swap this stop", closes the card and leaves the new slot unnamed');
   await shot(pg, '05-after-swap');
   // QC21: a second Swap on the same slot never repeats a shop it offered and never wraps; with none left it says so and changes nothing.
@@ -203,6 +209,16 @@ async function run(h) {
     const vw = pg.viewportSize()?.width ?? 0;
     check(!!b1 && b1.x < vw - 8 && b1.x + b1.width > vw, `OJ3: the next card's edge shows beside the one in view (${b1 ? Math.round(b1.x) : 'none'} of ${vw})`);
   }
+  {
+    const b1 = await pg.locator('[data-testid=outing-journey-1]').boundingBox().catch(() => null);
+    const vw = pg.viewportSize()?.width ?? 0;
+    check(!!b1 && vw - b1.x >= 44 && (await pg.locator('[data-testid=outing-dots] > div').count()) === 3, `outing-journey ui 2: the next card shows by a finger's width and dots say how many journeys there are (${b1 ? Math.round(vw - b1.x) : 0} px)`);
+  }
+  {
+    const sb = await pg.locator('[data-testid=outing-see]').boundingBox().catch(() => null);
+    const vh = pg.viewportSize()?.height ?? 0;
+    check(!!sb && sb.y + sb.height <= vh, 'outing-journey ui 5: "See this journey" stays on screen under the list');
+  }
   await shot(pg, '05b-several');
   await pg.click('[data-testid=outing-journey-1]');
   await pg.waitForTimeout(600);
@@ -236,6 +252,7 @@ async function run(h) {
   await pg.click('[data-testid=outing-reach-1]');
   await pg.waitForFunction(() => !document.querySelector('[data-testid=outing-reading-towns]') && !document.querySelector('[data-testid=outing-reading]'), null, { timeout: 120000 }).catch(() => {});
   check((await pg.locator('[data-testid=outing-reach-1]').getAttribute('aria-checked')) === 'true' && (await pg.locator('[data-testid^=outing-journey-]').count()) >= 1, 'OJ41, OJ44: a wider reach still proposes, by the same machine');
+  check(/^(Looked in .+\.|No town within that reach\.)$/.test(((await pg.locator('[data-testid=outing-looked]').innerText().catch(() => '')) ?? '').trim()), 'outing-journey ui 1: a wider reach says what it looked at');
   await shot(pg, '05d-reach');
   await pg.click('[data-testid=outing-reach-0]');
   await only(['antiques']);
@@ -289,7 +306,7 @@ async function run(h) {
   await only(['thrifting']);
   await openJourney();
   const thriftSlots = await pg.locator('[data-testid^=outing-slot-open-]').evaluateAll((els) => els.map((e) => (e.textContent ?? '').replace(/[^\x20-\x7e]/g, '').trim()));
-  check(thriftSlots.length >= 2 && thriftSlots.every((t) => /^A thrift or antiques shop, /.test(t)), `QC42: Thrifting proposes second-hand and antiques shops (${thriftSlots.join(' | ')})`);
+  check(thriftSlots.length >= 2 && thriftSlots.every((t) => /^A thrift shop, /.test(t)), `QC42: Thrifting proposes second-hand and antiques shops (${thriftSlots.join(' | ')})`);
   const thriftNames = [];
   for (let i = 0; i < thriftSlots.length; i++) thriftNames.push(await cardName(i));
   check(thriftNames.every((t) => [...THRIFT, ...NAMES].some((n) => t.includes(n))) && thriftNames.some((t) => THRIFT.some((n) => t.includes(n))),

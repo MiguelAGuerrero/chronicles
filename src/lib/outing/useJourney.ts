@@ -21,7 +21,7 @@ import { outingDest } from './dest';
 import type { Chapter, Journey } from './journeys';
 import type { Outing } from './plan';
 import type { Session } from './service';
-import { NO_OTHER_LINE, reachSteps } from './journeyWords';
+import { ANOTHER_LINE, NO_OTHER_LINE, reachSteps } from './journeyWords';
 import { NO_SWAP_LINE, SWAPPED_LINE } from './words';
 
 /** A named place the outing heads toward; with none, the outing stays within a reach of where you stand. */
@@ -65,6 +65,8 @@ export function useJourney(you: LngLat | null) {
   const [ui, setUi] = useState<{ leaning: string | null; opened: boolean; open: string | null; said: string | null }>({ leaning: null, opened: false, open: null, said: null });
   const [salts, setSalts] = useState<Record<string, number>>({});
   const [swaps, setSwaps] = useState<Record<string, Swap>>({});
+  // The last swap or "Another like this", so it can be taken back (ui 3).
+  const [undo, setUndo] = useState<{ swaps: Record<string, Swap>; salts: Record<string, number> } | null>(null);
   useEffect(() => {
     if (!loaded) {
       loaded = true;
@@ -166,6 +168,8 @@ export function useJourney(you: LngLat | null) {
     further: steps.find((s) => s > reachM) ?? null,
     reading,
     readingTowns: needTowns && !rows,
+    /** OJ41 (ui 1): with a wider reach and its reads done, the towns that were looked at, by name; null otherwise. */
+    looked: !dest && reachM > 0 && rows && !reading ? areas.flatMap((a) => (a.name ? [a.name] : [])) : null,
     failed,
     reasons: reading ? [] : answer?.reasons ?? [],
     journeys: planned,
@@ -190,6 +194,7 @@ export function useJourney(you: LngLat | null) {
       const mode = c.outing.loop ? 'loop' : 'oneway';
       const r = outingService.swap({ session, picked: journey.wants, mode, ceilingM, chains, outing: c.outing, cands: outingService.candidates(session, chains), index: i, offered: new Set(offered[i] ?? []) });
       setUi({ ...ui, open: null, said: r.outing ? SWAPPED_LINE : NO_SWAP_LINE });
+      setUndo(r.outing ? { swaps, salts } : null);
       setSwaps({ ...swaps, [key]: { base: baseKey, outing: r.outing ?? c.outing, offered: { ...offered, [i]: [...(offered[i] ?? []), ...r.offered] } } });
     },
     /** OJ45: the journey in view planned again from other places; with none it says so and stays as it is. */
@@ -198,7 +203,17 @@ export function useJourney(you: LngLat | null) {
       const next = { ...salts, [journey.leaning]: (salts[journey.leaning] ?? 0) + 1 };
       const found = outingService.journeys({ ...request, salts: next }).journeys.some((j) => j.leaning === journey.leaning);
       if (found) setSalts(next);
-      setUi({ ...ui, leaning: journey.leaning, open: null, said: found ? null : NO_OTHER_LINE });
+      setUndo(found ? { swaps, salts } : null);
+      setUi({ ...ui, leaning: journey.leaning, open: null, said: found ? ANOTHER_LINE : NO_OTHER_LINE });
+    },
+    /** ui 3: takes back the last swap or "Another like this"; offered only right after one. */
+    canUndo: !!undo && !!ui.said,
+    undo() {
+      if (!undo) return;
+      setSwaps(undo.swaps);
+      setSalts(undo.salts);
+      setUndo(null);
+      setUi({ ...ui, open: null, said: null });
     },
     /** How Start is offered (0121): at once when near; with "When I get there" beside it when far; that alone past what can be walked. */
     startChoice: (farM > NAV.maxM ? 'later' : farM > GET_THERE_M ? 'ask' : 'start') as 'start' | 'ask' | 'later',
