@@ -52,13 +52,13 @@ export interface JourneysInput {
 /** How many places a chapter is fitted from, and so how far each "Another like this" moves on. */
 export const POOL = 4;
 
-/** The places a chapter may use, in the order they are offered: by chip in turn, in each the unfound first, then the nearest. */
+/** The places a chapter may use, in the order they are offered: by chip in turn, in each those new to you first, then the nearest. */
 function ranked(cands: readonly Candidate[], wants: readonly Want[], from: LngLat, ceilingM: number): Candidate[] {
   const lists = wants.map((w) =>
     cands
       .filter((c) => matches(w.match, c) && distanceM(from, c.at) <= ceilingM)
       .map((c) => ({ c, d: Math.round(distanceM(from, c.at)) }))
-      .sort((a, b) => Number(!!b.c.unfound) - Number(!!a.c.unfound) || a.d - b.d || a.c.at[1] - b.c.at[1] || a.c.at[0] - b.c.at[0] || (a.c.id < b.c.id ? -1 : 1))
+      .sort((a, b) => Number(!!a.c.seen) - Number(!!b.c.seen) || a.d - b.d || a.c.at[1] - b.c.at[1] || a.c.at[0] - b.c.at[0] || (a.c.id < b.c.id ? -1 : 1))
       .map((x) => x.c),
   );
   const out: Candidate[] = [];

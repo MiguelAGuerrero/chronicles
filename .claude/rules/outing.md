@@ -31,6 +31,7 @@ One page from Explore: pick what you want to see from a vocabulary, get one prop
 - **Offered order** is by chip in turn, unfound first, then nearest (`ranked`); `POOL` is how far "Another like this" (`salts`) moves on. A mixed journey leads only when its stops span leanings.
 - **Reads are bounded by `AREA_RULES.readMax`** (eight areas, new towns first), sequential, and stopped when the areas change; the gazetteer is loaded only when a reach beyond close by or a destination asks (`useJourney`'s `towns()`), never on opening the page (5.6 MB on the web).
 - **The page's position is the one it first had** (`origin`): the reads are not made again at every fix.
+- **Visited is read from the trace, never stored** (`visited.ts`, decision 0200): `walkedNear` gives the walked fixes of the newest thirty outings near an area (found through `listWalkAreas`, read with `readTrace` and their pauses and stills), and a candidate within Explore's range of one is `seen`, offered after the new ones. Do not add a visited table without a slice of its own: it would be a cache of the trace.
 - Start takes the first chapter only; carrying a journey through the session is step 3.
 
 ## Traps

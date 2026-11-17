@@ -18,7 +18,7 @@ export function placeCandidates(places: readonly Place[], hidden: ReadonlySet<Ki
     const id = `p:${p.key}`;
     if (seen.has(id)) continue;
     seen.add(id);
-    out.push({ id, at: p.at, facets: { kind: [p.category] }, name: p.name, ...(found.has(p.key) ? {} : { unfound: true }) });
+    out.push({ id, at: p.at, facets: { kind: [p.category] }, name: p.name, ...(found.has(p.key) ? { seen: true } : { unfound: true }) });
   }
   return out;
 }

@@ -5,10 +5,9 @@ import { FROM, SHOPS } from './fixtures';
 
 // Visited is read from the trace (OJ47, the owner, Nov 17): a place a recorded outing came within range of on foot has been visited.
 
-const TODO = { todo: 'test first' };
 const fix = (e: number, n: number) => ({ lon: at(e, n)[0], lat: at(e, n)[1] });
 
-test('OJ47: a place within the range of any fix is visited; one beyond it is not', TODO, async () => {
+test('OJ47: a place within the range of any fix is visited; one beyond it is not', async () => {
   const { visitedIds } = await import('../../outing/visited');
   const fixes = [fix(0, 0), fix(350, 120), fix(900, 900)];
   const got = visitedIds(SHOPS, fixes, 100);
@@ -18,7 +17,7 @@ test('OJ47: a place within the range of any fix is visited; one beyond it is not
   assert.deepEqual([...visitedIds([], fixes, 100)], []);
 });
 
-test('OJ47: the outings to read are those that were near the area, the newest first, no more than the rule allows', TODO, async () => {
+test('OJ47: the outings to read are those that were near the area, the newest first, no more than the rule allows', async () => {
   const { walksNear, VISITED_RULES } = await import('../../outing/visited');
   const row = (walk_id: string, e: number, n: number, last_t: number) => ({ walk_id, lon: at(e, n)[0], lat: at(e, n)[1], last_t });
   const rows = [row('old', 100, 100, 1), row('new', 200, 0, 9), row('new', 300, 0, 9), row('far', 90000, 0, 5)];
@@ -28,7 +27,7 @@ test('OJ47: the outings to read are those that were near the area, the newest fi
   assert.equal(walksNear(many, FROM, 5000)[0], 'w79');
 });
 
-test('OJ42, OJ47: a shop you have been to is offered after one you have not', TODO, async () => {
+test('OJ42, OJ47: a shop you have been to is offered after one you have not', async () => {
   const { planChapter } = await import('../../outing/journeys');
   const { CHIPS } = await import('../../outing/chips');
   const { legOver } = await import('../../walkPlanner/service');
@@ -39,7 +38,7 @@ test('OJ42, OJ47: a shop you have been to is offered after one you have not', TO
   assert.ok(got.includes('a2') && got.includes('a4'), got.join(','));
 });
 
-test('OJ47: the service marks what the trace has been near, and reads no trace when nothing is picked', TODO, async () => {
+test('OJ47: the service marks what the trace has been near, and reads no trace when nothing is picked', async () => {
   const { createOutingService } = await import('../../outing/service');
   const { CHIPS } = await import('../../outing/chips');
   const log = { walked: 0 };

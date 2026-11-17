@@ -17,6 +17,8 @@ export interface Candidate {
   name: string;
   /** OJ25, OJ40: a place the person has not found yet: its name waits for arrival and is not said on a tap. */
   unfound?: boolean;
+  /** OJ42, OJ47: a place you have found, or that a recorded outing came within range of: offered after the ones that are new. */
+  seen?: boolean;
 }
 
 /** What a planner is told to accept: one match over facets, or a rule of the caller's (several picks that each widen, OJ14). */

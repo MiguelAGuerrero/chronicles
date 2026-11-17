@@ -8,6 +8,7 @@ import { LEANINGS, MIXED } from './leanings';
 import { outingCandidates, type TileShop } from './storesMerge';
 import { readStores, type StoresSource } from './storesRead';
 import { planOuting, planStops, type Outing, type OutingReason } from './plan';
+import { visitedIds } from './visited';
 import { swapCandidate } from './swap';
 import { legOver } from '../walkPlanner/service';
 
@@ -25,6 +26,8 @@ export interface OutingDeps {
   read(at: LngLat, radiusM: number): Promise<{ shops: TileShop[]; segments: StreetSegment[]; spots?: Candidate[] } | null>;
   /** The stores pack by tile; null until a pack is published (QC14). */
   stores: StoresSource | null;
+  /** OJ47: the fixes, on foot, of the recorded outings that were near a point, and the range within which a place counts as visited. */
+  walkedNear?(at: LngLat): Promise<{ fixes: { lon: number; lat: number }[]; rangeM: number }>;
 }
 
 export interface Session {
@@ -34,6 +37,8 @@ export interface Session {
   segments: StreetSegment[];
   /** OJ38: the attractions around the same point, as candidates beside the shops. */
   spots: Candidate[];
+  /** OJ47: the ids of the shops and attractions here that a recorded outing came within range of. */
+  visited: ReadonlySet<string>;
 }
 
 export interface PlanRequest {
@@ -50,7 +55,8 @@ export interface PlanAnswer {
   cands: Candidate[];
 }
 
-const candsOf = (s: Session, chains: boolean): Candidate[] => [...outingCandidates(s.stores, s.shops, { chains }), ...s.spots];
+const candsOf = (s: Session, chains: boolean): Candidate[] =>
+  [...outingCandidates(s.stores, s.shops, { chains }), ...s.spots].map((c) => (s.visited.has(c.id) && !c.seen ? { ...c, seen: true } : c));
 
 export function createOutingService(deps: OutingDeps) {
   return {
@@ -60,7 +66,10 @@ export function createOutingService(deps: OutingDeps) {
       const read = await deps.read(from, READ_M).catch(() => null);
       if (!read) return null;
       const stores = await readStores(deps.stores, from, READ_M);
-      return { from, shops: read.shops, stores, segments: read.segments, spots: read.spots ?? [] };
+      const bare: Session = { from, shops: read.shops, stores, segments: read.segments, spots: read.spots ?? [], visited: new Set() };
+      // OJ47: visited is read from the trace now, over every candidate here whatever the chains switch says, and never kept.
+      const walked = await deps.walkedNear?.(from).catch(() => null);
+      return walked ? { ...bare, visited: visitedIds(candsOf(bare, true), walked.fixes, walked.rangeM) } : bare;
     },
 
     plan(req: PlanRequest): PlanAnswer {

@@ -44,7 +44,7 @@ Shape: up to three journeys that differ by leaning, in a fixed order, never by t
   is read about your position before you open the page and nothing is recorded before Start
 Precedent: Apple Maps (a destination, then routes and avoid options; verified); Google Maps (stops added along a route; unverified);
   Roadtrippers (places along a drive by category; unverified); Komoot (a planned tour between points you pick; unverified)
-Criteria: OJ1-OJ46 below
+Criteria: OJ1-OJ47 below
 Open: the road's distance (the app has no road routing: a straight-line distance, said as such, or a road graph of its own); capture
   while moving at driving speed; whether a time is ever said beside a distance
 ```
@@ -214,6 +214,9 @@ One machine, with or without a destination (the owner, Nov 17, decision 0199):
   the page says how they would look for thrift shops within a drive.
 - **OJ42.** New places first: a town you have not been in on a recorded outing is looked at before one you have, and an attraction you
   have not found is offered before one you have. Nothing says so on the page.
+- **OJ47.** (the owner, Nov 17, decision 0200) A shop or an attraction that a recorded outing came within range of, on foot, has been
+  visited: it is offered after the ones that have not. The range is Explore's own setting. It is read from the trace each time an area
+  is read and never stored; no trace is read before a chip is on, and nothing on the page says a place was visited.
 - **OJ43.** When the chips that are on span leanings, a journey that draws on them all is offered ahead of the others, named in words
   ("A bit of each"); it is not offered when its stops all came from one leaning.
 - **OJ44.** One machine: around here, within a reach and toward a place are all journeys of chapters over areas, planned by the same
@@ -278,10 +281,12 @@ like this and a wider reach; `npm test` (2,964), typecheck, lint, `check:docs`, 
 journeys pictured and checked), C2 ("Back"), C3 (the next move), C4 (the field keeps "Where to?"), C6 ("the way back is yours") are
 answered; C5 (which row a swap changed) is open. No second cold find and no UI review have run on this page.
 
+**Visited from the trace built 2026-11-17** (OJ47, decision 0200): `visited.ts`, `walkedNear`; unit tests committed failing first
+(`e232412`); the journey `outing` green again at 54 checks (its world holds no recorded outing, so visited is unit-tested only).
+
 **Not built.** The session carrying a journey from town to town (step 3: Start begins the first town's chapter, and the page says so);
 "Leave this town out" (OJ26); the atlas's own words and street names in a town's line (OJ23); the setting for how many towns are looked
-at (0198; eight today); marks per kind and town outlines on the page's map; a shop's "been there" (0199, the owner's); the stores pack
-published (chronicles-data); a journey toward a far place has only been run against the test world, where the towns between hold nothing.
+at (0198; eight today); marks per kind and town outlines on the page's map; the stores pack published (merged on a branch of chronicles-data, decision 0200); a journey toward a far place has only been run against the test world, where the towns between hold nothing.
 
 **Cold find** (the `ux-reviewer`, pictures only, Nov 17, nine tasks in the owner's words): eight found (where to, nowhere in mind,
 thrifting, the commitment, which shop, a different stop, Go, changing the place, the last one late). **Not found: "see another
