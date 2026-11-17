@@ -252,8 +252,10 @@ const FEATURES = [
       // Video thumbnails (VS1-VS9): every preview's small copies and stills, and the play mark.
       'src/lib/thumbs/**',
       'src/components/VideoMark.tsx',
+      // Unsaved captures (UN1-UN15, decision 0194): the one holder of every capture that failed to save.
+      'src/lib/unsaved/**',
     ],
-    journeys: ['edit', 'stacks', 'voicetrim', 'videothumbs'],
+    journeys: ['edit', 'stacks', 'voicetrim', 'videothumbs', 'unsaved'],
     specs: ['memories-on-revisit', 'media-editing', 'moment-stacks', 'voice-trim', 'note-types', 'video-thumbnails', 'unsaved-captures'],
   },
   {

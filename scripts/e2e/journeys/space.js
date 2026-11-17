@@ -3,6 +3,7 @@
 // The browser's storage API is replaced in this page only (`__free`, `__persistAsked`), and the media
 // store's write is refused as out of quota on cue (`__failMedia`). E2E_ONLY=space runs it alone.
 const path = require('path');
+const { failStorage } = require('../failStorage');
 
 const LOW = 'Room for new photos and videos is running low.';
 const VERY_LOW = 'There is almost no room left for new photos, videos and memos.';
@@ -16,7 +17,6 @@ async function run(h) {
   await c.addInitScript(() => {
     window.__free = 300 * 1024 * 1024;
     window.__persistAsked = 0;
-    window.__failMedia = 0;
     const quota = 1e12;
     // Only these three: the rest of the storage API (a worker's) stays the browser's own.
     const sm = StorageManager.prototype;
@@ -26,15 +26,9 @@ async function run(h) {
       window.__persistAsked++;
       return false;
     };
-    const put = IDBObjectStore.prototype.put;
-    IDBObjectStore.prototype.put = function (...args) {
-      if (this.name === 'media' && window.__failMedia > 0) {
-        window.__failMedia--;
-        throw new DOMException('The quota has been exceeded.', 'QuotaExceededError');
-      }
-      return put.apply(this, args);
-    };
   });
+  // The media store's write refused as out of quota on cue (`__failMedia`), shared with the unsaved journey.
+  await failStorage(c);
   const lineText = (timeout = 8000) =>
     pg.waitForSelector('[data-testid=space-line]', { timeout }).then((e) => e.innerText(), () => '');
   const enabled = async (id) => (await pg.locator(`[data-testid=${id}]`).getAttribute('aria-disabled')) !== 'true';
