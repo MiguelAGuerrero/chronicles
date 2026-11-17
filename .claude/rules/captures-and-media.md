@@ -154,6 +154,13 @@ expo-image-manipulator; `lib/thumbPlan.ts` pure, `media/thumb.ts`).
   string); a path with no pill passes `retryShown: false` and its words say where the Retry is (`heldWhere`, UN10);
   a path in front passes `sayHeld` and says, once, what failed on a screen gone (UN9) and a memo lost as it went
   (UN13). The e2e refuses the moment store too (`__failMoment`, `scripts/e2e/failStorage.js`).
+- **The review's rules for the holder** (unsaved-captures audit 1-9): a Retry opens Add to this moment only on its
+  own walk's path (`ours(stamp.walk)`); once a row is written the capture is kept whatever fails after
+  (`keepInOrder`, and `add`'s steps after the write never throw); a Retry is `unsaved.track`ed and both Stops wait
+  for `settled()`; the walk's held captures go by `unsaved.ended(walkId)`, only after `endWalk` resolves, and a
+  capture failing after that is held loose (`looseAfterEnd`, the owner: "Keep it as its own moment"); "said" and
+  "lost" follow `sayHeld` (in front), never `alive`; `takeUnsaid` marks them in one change. The bar passes
+  `shortWords` ("No room left. Retry on the walk screen.", the owner).
 - All voice actions (start, save, discard, undo, retry) run on one promise queue in
   `useCaptures`, so taps never interleave. Stop waits for that queue.
 - Never call `stop()` on a recorder that already stopped by itself: on web it waits

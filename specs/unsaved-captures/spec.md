@@ -160,17 +160,16 @@ next memo's prepare) on iOS and Android; a let-go capture's files removed. Never
 
 ## Record
 
-Nov 17, 2026, branch `slice/unsaved-captures-20261117-1519`, on `main` at `b8126140`:
+Nov 17, 2026, branch `slice/unsaved-captures-20261117-1519`, rebased on `main` at `3d58472f`:
 
-- UN1-UN15 tested first by history (`npm run check:test-first unsaved-captures`: 15 of 15). Unit:
-  `captures/unsaved.test.ts` (12) and `captures/unsavedShell.test.ts` (9). The `unsaved` journey: 23 checks, every UN
-  check failing on main's build before the code and passing after.
-- `npm test` (2862), typecheck, lint, check:docs, check:vision pass. Journeys on the final build: `unsaved` (one open
-  todo, below) and `space` pass. Earlier builds of the branch passed `launch`, `walk` and `ready`. `capturehome` fails
-  HC10 ("the stopped walk placed the note"), which also fails 3 of 3 runs on `main` (`e2e:baseline`), so it is not
-  this slice's. `tabs` fails NR2 ("7533924 m off"), a flake on `main` (1 of 3, recorded in `scripts/e2e/flaky.json`).
-- Open for the owner: UN6 amended to "two lines at most, nothing cut" (Decisions). UN10's words on the recording bar
-  need five lines at 320 px and the bar shows four (`unsaved open 1`, a todo check). Shorter words for the bar are the
-  owner's to choose.
+- UN1-UN15 tested first by history (`npm run check:test-first unsaved-captures`). Unit: `captures/unsaved.test.ts` and
+  `captures/unsavedShell.test.ts`. The `unsaved` journey: 28 checks, every UN check failing on main's build before the
+  code, and every audit check failing before its fix.
+- Reviewed (the fast lane, decision 0181): one auditor at the diff, with the pictures at 320 and 390 and the cold find
+  (every task found). 12 findings: 9 accepted and fixed behind `unsaved-captures audit 1-9`, 0 rejected, 4 deferred
+  as `[loop]` low in `docs/DEFERRED.md` (F9, F11, F12, and the UI notes with the cold find's). One round.
+- The owner's answers after the review (Decisions): UN6 "Two lines, nothing cut", the bar's own words for UN10, and
+  "Keep it as its own moment" for a capture failing after its walk ended.
+- `npm test`, typecheck, lint, check:docs and check:vision pass; the journeys run are in the publish's report.
+  `capturehome` HC10 fails on `main` too (3 of 3, `e2e:baseline`); `tabs` NR2 is a recorded flake on `main`.
 - Native: two device checks in `docs/NATIVE_UNVERIFIED.md`. Nothing here has run on a phone.
-- Review: the auditor's diff review (the fast lane) is next; not audited otherwise (decision 0074).

@@ -70,6 +70,9 @@ The walk screen (`src/app/walk.tsx`), which is also Navigate, ready: its layout,
   second hold calls `unsaved.letGo` (files removed, UN8) before `endWalk`. A memo lost at Stop (`lost`) is said
   first (`lostAtStop`). The memo pill is `held-memo` / `held-memo-retry` on both states; a held capture of the
   ready screen shows on the walk after Start and is kept as its own moment (UN4).
+- **Stop waits as the bar's does** (unsaved-captures audit 2-4): `memoGate.kept()` and `unsaved.settled()`, at most
+  `STOP_WAIT_MS`, before `heldFor`; `unsaved.ended` after `endWalk`. `memory` and `memoryView` are declared before
+  `useCaptures`, whose `sayHeld` is off behind a viewer or a memory's card (audit 9).
 - **The notice follows the walk's arrival** (capture-from-chronicle audit 1): Walk here and Start can
   show the screen before the keeper reads the new walk, so `WalkScreen` sets `arrivalNotice(params)`
   (`lib/readyNav`) when the walk first appears, not only as it mounts.

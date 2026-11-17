@@ -506,7 +506,6 @@ const RENAMED = {
 };
 
 const IN_PROGRESS = {
-  'unsaved-captures': { branch: 'slice/unsaved-captures-20261117-1519', since: '2026-11-17' },
 };
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));
