@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { ATLAS_CODE, ATLAS_RULES, type AtlasArea, type Listed, type NearRead } from '../../atlas/atlas';
-import { liveReport, holdStep, isHeld, HOLD_NONE, HOLD_MAX_WAITS, FINGER_MAX_WAITS, storefrontNamesNear, storefrontNamesOn, storefrontRadiusM, cardFooter, firstSelection, layerCentre, nearWords, townsListedAfter, offsetOf, rowOf, rowStep, settledIndex, settleStep, stepKey, townNote } from '../../atlas/carousel';
+import { liveReport, holdStep, isHeld, HOLD_NONE, HOLD_MAX_WAITS, FINGER_MAX_WAITS, snapTarget, FLICK_SHARE, storefrontNamesNear, storefrontNamesOn, storefrontRadiusM, cardFooter, firstSelection, layerCentre, nearWords, townsListedAfter, offsetOf, rowOf, rowStep, settledIndex, settleStep, stepKey, townNote } from '../../atlas/carousel';
 import { readFileSync } from 'node:fs';
 import type { LandingView } from '../../landing/view';
 import type { LngLat } from '../../types';
@@ -249,4 +249,21 @@ test('fix carousel-snap-back audit 5: a finger held still stays held past the gl
   both = holdStep(both, 'glide');
   for (let i = 0; i < HOLD_MAX_WAITS; i++) both = holdStep(both, 'waited');
   assert.deepEqual([both.finger, both.glide], [true, false]);
+});
+
+test('fix carousel-flick: a short swipe that stops under half a card away goes on to the next card, not back to the one it began on (web has no snap)', () => {
+  const step = 300;
+  const at = (offset: number, from: number | null, count = 5) => snapTarget({ offset, step, count, from });
+  // Began on card 1 (offset 300).
+  assert.equal(at(300 + step * 0.3, 1), 2, 'a 30% swipe left goes to the next card');
+  assert.equal(at(300 - step * 0.3, 1), 0, 'a 30% swipe right goes to the previous card');
+  assert.equal(at(300 + step * (FLICK_SHARE + 0.01), 1), 2, 'just past the flick share');
+  assert.equal(at(300 + step * (FLICK_SHARE - 0.02), 1), 1, 'a wobble under the flick share stays');
+  assert.equal(at(300, 1), 1, 'no move stays');
+  assert.equal(at(300 + step * 0.7, 1), 2, 'past the middle is the nearest card, as before');
+  assert.equal(at(300 + step * 1.6, 1), 3, 'a long glide lands on the nearest card, the bias never pulls it back');
+  assert.equal(at(300 + step * 0.3, null), 1, 'with no gesture (a wheel, the row\'s own scroll) the nearest card');
+  assert.equal(at(step * 4 + step * 0.3, 4), 4, 'clamped at the last card');
+  assert.equal(at(-step * 0.3, 0), 0, 'clamped at the first card');
+  assert.equal(at(50, 1, 0), 0, 'an empty row');
 });

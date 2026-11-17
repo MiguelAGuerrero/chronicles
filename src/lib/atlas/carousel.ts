@@ -72,6 +72,24 @@ export function settledIndex(offsetX: number, step: number, count: number): numb
   return Math.max(0, Math.min(count - 1, Math.round(offsetX / step)));
 }
 
+/** How far, as a share of a card step, a scroll must travel from the card it began on to count as a flick toward the next. */
+export const FLICK_SHARE = 0.12;
+
+/**
+ * The card a settled scroll lands on (fix carousel-flick). The platform's snap does this on a phone (`snapToInterval`); the web
+ * has none, so the nearest card alone sent a short swipe, one that stopped under half a card away, back to the card it began on
+ * ("it snaps back; the second, firmer try works"). A scroll the reader began on card `from` (null: not a reader's gesture) that
+ * has moved past `FLICK_SHARE` of a step and still rounds to `from` goes on to the next card that way; any other lands on the
+ * nearest, so a long glide is never pulled back.
+ */
+export function snapTarget(p: { offset: number; step: number; count: number; from: number | null }): number {
+  const near = settledIndex(p.offset, p.step, p.count);
+  if (p.from == null || near !== p.from || p.step <= 0) return near;
+  const moved = p.offset - p.from * p.step;
+  if (Math.abs(moved) < p.step * FLICK_SHARE) return near;
+  return Math.max(0, Math.min(p.count - 1, p.from + (moved > 0 ? 1 : -1)));
+}
+
 /** Where to scroll to centre a card (EC4). */
 export const offsetOf = (index: number, step: number): number => index * step;
 
