@@ -427,6 +427,13 @@ const RETIRED = {
  * make (the web build can't reach it), `deferred: <why>` for the owner's call to wait. Keyed by spec.
  */
 const UNTESTED = {
+  // Plan an outing (decision 0182): criteria with no test of their own, each with where it is held instead.
+  'quick-circuit': {
+    QC32: 'deferred: a review criterion, the ux-reviewer\'s cold find (Nov 17, in the spec\'s Record), not a unit test',
+    QC34: 'deferred: by construction: `HOURS_LINE` is one constant the page renders once under the slots, and no pack field holds hours; the journey `outing` checks the line (QC20)',
+    QC35: 'deferred: by construction: the page computes from the picks alone, and QC7\'s test plans with a second entry that wins no stop and says nothing of it',
+    QC36: 'deferred: Start is disabled with nothing to start; the reason is the line QC2 and QC30 test (nothing picked, no position); no test of its own for the disabled state',
+  },
   // Free look: the out-of-town stars (decision 0115) are queued, not built; FL19 is the call their slice carries.
   'free-look': { FL17: 'deferred: a launch fix that arrives late cannot be staged in the harness; the guard is the screen\'s `lookedRef` and `freeRef` in the fix handler, read by code review', FL19: 'deferred: the out-of-town stars of decision 0115 are not built yet; 0150 records that they follow the look, and that slice carries it' },
   // react-native-web always reports a screen reader, so the check that keeps the viewer's bars is a phone's (UC8).
@@ -485,9 +492,7 @@ const RENAMED = {
   'video-thumbnails': { VS: 'VT' },
 };
 
-const IN_PROGRESS = {
-  'quick-circuit': { branch: 'claude/lucid-gates-810ryf', since: '2026-11-16' },
-};
+const IN_PROGRESS = {};
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));
 
