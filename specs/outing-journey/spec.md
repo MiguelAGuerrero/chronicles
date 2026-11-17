@@ -64,9 +64,10 @@ The owner's, Nov 17:
 - **Points of interest and shops are one pool for an outing** ("unify these two ideas"): thrifting across towns is the motivating case.
 - **The session is an outing; a drive inside it is recorded** (decision 0197).
 
-Taken as defaults, the owner's to overrule (each asked in session and not yet answered):
+Taken as defaults on the owner's "for the rest, proceed with reasonable defaults" (Nov 17, decision 0198), each theirs to overrule:
 
-- **D1. The phone's maps app does the driving.** The app has no road routing; a town's distance is a straight line, said as "away".
+- **D1. The phone's maps app does the driving, for now.** The owner called for a road engine of the app's own as its own slice (0198);
+  until it lands a town's distance is a straight line, said as "away".
 - **D2. A town may be a single stop by the road** as well as a walk, because thrift shops often stand alone.
 - **D3. Distance in words, never a time** (WP19, 0102, 0095 hold).
 - **D4. Shops and attractions merge inside the outing only**; 0194 holds everywhere else (no shop becomes a mark or a find).
@@ -150,8 +151,9 @@ The journeys:
 - **OJ18.** A journey is named for its leaning in words ("Along the storefronts", "Past old places", "Through green"); no card carries a
   rank, a number, "best", "fastest", "shorter", "recommended" or a badge, and no two cards are compared.
 - **OJ19.** The same position, destination, chips and data always give the same journeys in the same order: no randomness.
-- **OJ20.** A journey holds the destination's town and a few towns between, each lying near the straight line from here to there; "a
-  few" is never a digit in a sentence. A destination within the walking ceiling gives journeys of one chapter.
+- **OJ20.** A journey holds the destination's town and the towns between, near the straight line from here to there, that each add a
+  kind of place the journey does not yet hold: chosen for variety of kinds, never to a fixed number (the owner, Nov 17, decision 0198).
+  How many towns a journey may take is a setting. No sentence says how many as a digit. A destination within the walking ceiling gives journeys of one chapter.
 - **OJ21.** A card's summary is words: the towns in order by name, what it includes by kind, as the chips' own words ("second-hand
   shops, storefronts, old places"), and the distance on foot in all (the owner's "overall travel commitment"; the steward's S7 would
   move the figure off the card: the owner's call). It holds no quantity word about places (few, many, several, a number word) and
@@ -199,7 +201,7 @@ What never leaks:
   journey in view; they carry nothing but the tile path (QC29). The page says once, in words, that looking ahead reads the map for those
   towns (the steward's S4).
 - **OJ36.** A shop met through a journey is never a mark, a find, a landing item or part of the atlas (QC31, D4).
-- **OJ37.** Reading is bounded: a set number of towns per journey and of tiles per town; while a town is being read its line says so,
+- **OJ37.** Reading is bounded per town (a set number of tiles) and can be stopped, never by a count of towns (0198); while a town is being read its line says so,
   and a read that fails leaves the town out and says one plain line, never an error code.
 - **OJ38.** The planner's core still holds no word of a kind of place (QC37): attractions enter as a second source of candidates through
   the same types, proved by a test that plans a journey from a fixture of both.

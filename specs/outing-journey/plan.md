@@ -86,8 +86,7 @@ Unit tests in `src/lib/__tests__/outing/`, named by id; shell tests over `fakePo
 - **Towns between:** the gazetteer index (about 50,000 rows, already built once per source, about 0.7 s) scanned once per destination:
   a point-to-segment distance per row. Once per pick, off the frame.
 - **Per town read:** the existing outing read, 2.6 km around a centre: about 16 to 25 z14 tiles, one z12 stores tile, one archive tile.
-  Bounded by rule (to be set with the owner; the draft is at most three towns between plus the destination's, so four towns): about 100
-  tiles for a first journey, read in order of the line, cancellable, each town filling its line as it lands. Towns shared by two
+  Bounded per town, not by a count of towns (0198): each town read is about 25 tiles, read in order of the line, cancellable, each town filling its line as it lands. Towns shared by two
   journeys are read once. Nothing is read per frame or per fix.
 - **Step 3:** `nextChapter` per fix is constant time (a handful of chapters).
 - **Harness:** `scripts/perf-explore.js` for the page's reads on the web; a long driven recording is device only
@@ -129,18 +128,12 @@ or shared journey (OJ34); streets and fog from a driven trace, driven gap infere
 The page over Explore's map; the card row's swipe; a session started far from its first stop; the bar's Open in Maps mid-recording; a
 recording that spans a drive of an hour. Each becomes a `Do / Expect` item.
 
-## Questions for the owner before code
+## The owner's answers (Nov 17, decision 0198)
 
-1. **D1, the road.** Straight-line distances said as "away", with Maps for the road (the draft), or a road graph of the app's own from
-   the map's low-zoom tiles so a journey can follow real roads and say a road distance? The second is a new routing engine: a slice of
-   its own.
-2. **D2, lone stops.** May a town be one stop by the road?
-3. **D3, times.** Distance only, as everywhere else, or a time too for a journey this long?
-4. **D4, shops outside the outing.** Keep 0194 everywhere else?
-5. **D6, capture at driving speed.** The stack as it is, or voice only?
-6. **GZ16.** The search was specified never to set a destination; this page amends that for itself. Agreed?
-7. **How many towns.** The draft is at most three between here and the destination. More reads more.
-8. **All three steps, or step 1 first** and look at it before the rest?
+- No cap on a journey's towns: they are chosen for the variety of kinds they add; how many is a setting (step 2; OJ20, OJ37).
+- A road engine of the app's own is its own slice, owed after the page: gate, spec and plan first.
+- The rest by default: lone stops allowed; distance only; the distance stays on the card; shops stay out of Explore; chips widen; the
+  stack unchanged at driving speed; the search may set this page's destination; **step 1 is built first** for the owner to look at.
 
 ## The steward's findings (Nov 17), triaged
 
