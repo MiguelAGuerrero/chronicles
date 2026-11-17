@@ -23,7 +23,7 @@ async function seeded() {
   return p;
 }
 
-test('SW9: the join shows at once, and is stored only after the window', { todo: 'test first' }, async () => {
+test('SW9: the join shows at once, and is stored only after the window', async () => {
   const p = await seeded();
   const jobs: PendingJob[] = [];
   const s = (await mod()).createJoin(p, { schedule: (j) => jobs.push(j) });
@@ -34,7 +34,7 @@ test('SW9: the join shows at once, and is stored only after the window', { todo:
   assert.deepEqual([jobs[0].kind, jobs[0].ids], ['join', ['new']]);
 });
 
-test('SW9: Undo (the job never run) leaves both entries as they were', { todo: 'test first' }, async () => {
+test('SW9: Undo (the job never run) leaves both entries as they were', async () => {
   const p = await seeded();
   const jobs: PendingJob[] = [];
   const s = (await mod()).createJoin(p, { schedule: (j) => jobs.push(j) });
@@ -42,7 +42,7 @@ test('SW9: Undo (the job never run) leaves both entries as they were', { todo: '
   assert.equal((await p.db.getMomentsByIds(['prev', 'new'])).length, 2);
 });
 
-test('SW7, SW9: after the window the runner joins them: each piece keeps its own time, the previous keeps its place and time, the emptied entry is gone; a killed app does the same from the saved spec', { todo: 'test first' }, async () => {
+test('SW7, SW9: after the window the runner joins them: each piece keeps its own time, the previous keeps its place and time, the emptied entry is gone; a killed app does the same from the saved spec', async () => {
   const p = await seeded();
   const jobs: PendingJob[] = [];
   const s = (await mod()).createJoin(p, { schedule: (j) => jobs.push(j) });

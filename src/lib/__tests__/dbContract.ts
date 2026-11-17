@@ -247,8 +247,8 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       }
     });
 
-    test('FC7 joinMoment: the entry\'s pieces move into the previous moment, each keeping its own time; the previous moment is never edited; the emptied moment is gone', { todo: 'test first' }, async () => {
-      const db = (await fresh()) as Awaited<ReturnType<typeof fresh>> & { joinMoment(from: string, into: string): Promise<void> };
+    test('FC7 joinMoment: the entry\'s pieces move into the previous moment, each keeping its own time; the previous moment is never edited; the emptied moment is gone', async () => {
+      const db = await fresh();
       await db.addMoment(momentOf(capture('prev', null, 100)));
       await db.addMoment(momentOf(capture('new', null, 900)));
       await db.joinMoment('new', 'prev');
@@ -260,8 +260,8 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.equal((await db.getMomentsByIds(['prev']))[0].pieces.length, 2);
     });
 
-    test('FC7 referencesTo: says whether a thread, a link, a reminder, a find or a reaction points at a moment', { todo: 'test first' }, async () => {
-      const db = (await fresh()) as Awaited<ReturnType<typeof fresh>> & { referencesTo(id: string): Promise<Record<'thread' | 'link' | 'reminder' | 'find' | 'reaction', boolean>> };
+    test('FC7 referencesTo: says whether a thread, a link, a reminder, a find or a reaction points at a moment', async () => {
+      const db = await fresh();
       await db.addMoment(momentOf(capture('a', null, 1)));
       await db.addMoment(momentOf(capture('b', null, 2)));
       assert.deepEqual(await db.referencesTo('a'), { thread: false, link: false, reminder: false, find: false, reaction: false });

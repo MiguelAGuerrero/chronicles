@@ -2,10 +2,12 @@ import { useReactions } from '../../lib/reactions/useReactions';
 import type { ReactionId } from '../../lib/reactions/core';
 import { ReactionMarks } from '../reactions/ReactionMarks';
 import { ReactionSign } from '../reactions/ReactionSign';
+import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View, type StyleProp, type TextStyle } from 'react-native';
 import { ENTRY_GOES_ON, noteBlocks, sheetBlocks, sheetWords } from '../../lib/journal/blocks';
 import { dateline, entrySpoken } from '../../lib/journal/lines';
-import { facedAt, hasMore } from '../../lib/moment';
+import type { Slot, SlotId } from '../../lib/journal/actions';
+import { face as faceOf, facedAt, hasMore, kindsLine } from '../../lib/moment';
 import { parseRefs, plainRefs } from '../../lib/refs';
 import type { ContextEntry } from '../../lib/resurface/shell';
 import type { MomentView } from '../../lib/resurface/types';
@@ -13,9 +15,12 @@ import { fromLine } from '../../lib/resurface/views';
 import type { Capture, Walk } from '../../lib/types';
 import { MomentPicture } from '../chronicle/MomentPicture';
 import { Icon } from '../icons';
+import { StackMark } from '../StackMark';
 import { NoteText } from '../threads/NoteText';
 import { theme } from '../ui';
 import { MemoLine } from './MemoLine';
+import { QuickActions } from './QuickActions';
+import { StackGrid } from './StackGrid';
 import { OWNER_FONT } from './type';
 
 export type NoFix = 'denied' | 'timeout' | 'unavailable';
@@ -48,9 +53,16 @@ export function Entry(props: {
   onOpenRef: (v: MomentView) => void;
   /** A reaction under the dateline opens its lens (RL2). */
   onLens?: (id: ReactionId) => void;
+  /** The quick-action row's slots and what a tap on one does (decision 0196, SW1); none draws no row. */
+  actions?: Slot[];
+  onAction?: (id: SlotId) => void;
+  /** A stack's tile opens the viewer on its piece (SW12). */
+  onOpenPiece?: (pieceId: string) => void;
 }) {
   const { moment: m, walk } = props;
   const c = m.capture;
+  // A stack is shown as its face with a line naming its kinds, and opens into a grid of every piece (SW11, SW12).
+  const [spread, setSpread] = useState(false);
   const placed = c.lat != null && c.lon != null;
   const line = dateline({
     t: m.t,
@@ -62,7 +74,8 @@ export function Entry(props: {
     onOpenWalk: !!m.walkId && !walk,
   });
   const from = fromLine(walk);
-  const pieces = c.pieces.filter((p) => p.id !== props.writing);
+  const stackedHere = hasMore(c) && !c.pieces.some((p) => p.id === props.writing);
+  const pieces = c.pieces.filter((p) => p.id !== props.writing && (!stackedHere || spread || p.id === faceOf(c).id));
   // The entry being written has the sign at its dateline's end (RX6); one kept today, the same sign (RX9). Its
   // reactions are spelled out under the dateline (RX14), so choosing one moves nothing.
   const reacted = useReactions(c.id);
@@ -95,13 +108,26 @@ export function Entry(props: {
         </Pressable>
       </View>
       <ReactionMarks set={reacted} style={styles.reactions} onOpen={props.onLens} />
-      {pieces.length > 0 && (
+      {stackedHere && spread ? (
+        <StackGrid moment={m} onOpenPiece={(id) => props.onOpenPiece?.(id)} />
+      ) : pieces.length > 0 && (
         <Pressable testID="moment-open" accessibilityRole="button" accessibilityLabel={`${entrySpoken(m.kind, m.words, line, hasMore(c))}. Open`} onPress={props.onOpen} style={styles.pieces}>
           {pieces.map((p) => (
             <Piece key={p.id} piece={p} moment={m} onOpenRef={props.onOpenRef} />
           ))}
         </Pressable>
       )}
+      {stackedHere ? (
+        <View style={styles.stackLine}>
+          <StackMark />
+          <Text style={styles.app} testID="stack-kinds">{kindsLine(c)}</Text>
+          <Pressable testID="stack-toggle" accessibilityRole="button" accessibilityState={{ expanded: spread }} onPress={() => setSpread((v) => !v)} style={styles.toggle}>
+            <Text style={styles.toggleText}>{spread ? 'Show less' : 'Show all'}</Text>
+            <Icon name={spread ? 'chevron-up' : 'chevron-down'} size={14} color={theme.ink} />
+          </Pressable>
+        </View>
+      ) : null}
+      {props.actions && props.onAction ? <QuickActions slots={props.actions} onPress={props.onAction} /> : null}
       {props.answering ? <Text style={[styles.app, styles.answering]} testID="moment-answering">{props.answering}</Text> : null}
       {from && walk ? (
         <Pressable testID="moment-walk" accessibilityRole="button" accessibilityLabel={`${from}. Replay the walk`} onPress={() => props.onWalk(walk.id)} style={styles.from}>
@@ -219,5 +245,8 @@ const styles = StyleSheet.create({
   picture: { height: 200, width: '100%' },
   from: { minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' },
   reactions: { paddingBottom: 8 },
+  stackLine: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 },
+  toggle: { flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 44, paddingHorizontal: 6, marginLeft: 'auto' },
+  toggleText: { color: theme.ink, fontSize: 14, fontWeight: '600' },
   more: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', marginRight: -12 },
 });

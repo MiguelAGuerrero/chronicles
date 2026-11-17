@@ -19,6 +19,8 @@ export type DeleteSpec =
   | { type: 'piece'; momentId: string; pieceId: string }
   /** A piece split out as a moment of its own (MS16), placed when it was split. */
   | { type: 'split'; pieceId: string; moment: Omit<Moment, 'pieces'> }
+  /** An entry's pieces stacked into the previous moment (decision 0196, SW9); the emptied entry goes. */
+  | { type: 'join'; fromId: string; intoId: string }
   | { type: 'thread'; threadId: string }
   | { type: 'remove'; threadId: string; momentId: string };
 

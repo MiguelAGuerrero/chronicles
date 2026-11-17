@@ -238,6 +238,9 @@ const FEATURES = [
       'src/lib/media/**',
       'src/lib/{useCaptures,thumbPlan,thumbJob,useMediaUri,captureBus,pieceStamp,openMoment,splitPlace}.ts',
       'src/lib/split/**',
+      // Stack with previous (SW1-SW18, decision 0196): the join, its Undo window and the quick-action row's rule.
+      'src/lib/join/**',
+      'src/components/journal/{QuickActions,StackGrid}.tsx',
       // Moment stacks (MS1-MS21): the open moment's store, the pill and the stacked mark.
       'src/lib/momentPill/**',
       'src/components/StackMark.tsx',

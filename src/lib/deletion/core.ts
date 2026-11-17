@@ -11,7 +11,7 @@ import { numberWord } from '../resurface/lines';
  * `db.deleteCaptures`; the Undo window is `pending.ts`.
  */
 
-export type DeleteKind = 'walk' | 'media' | 'moment' | 'piece' | 'split' | 'thread' | 'remove';
+export type DeleteKind = 'walk' | 'media' | 'moment' | 'piece' | 'split' | 'join' | 'thread' | 'remove';
 
 /** Photos, videos and memos: what "Remove photos, videos and memos" takes (D2). Notes stay. */
 export const isMedia = (c: { kind: CaptureKind }): boolean => c.kind !== 'text';
@@ -151,6 +151,7 @@ export function toastText(kind: DeleteKind, what?: CaptureKind, dropped?: boolea
   if (kind === 'media') return 'Photos, videos and memos removed';
   if (kind === 'thread') return 'Thread deleted';
   if (kind === 'remove') return 'Removed from the thread';
+  if (kind === 'join') return 'Stacked with the earlier moment';
   if (!what) return 'Moment deleted';
   if (kind === 'split') {
     const noun = KIND_NOUN[what];
@@ -169,5 +170,6 @@ export function dismissLabel(kind: DeleteKind): string {
   if (kind === 'remove') return 'Close, it stays removed';
   if (kind === 'media') return 'Close, they stay removed';
   if (kind === 'split') return 'Close, it stays split out';
+  if (kind === 'join') return 'Close, it stays stacked';
   return 'Close, it stays deleted';
 }

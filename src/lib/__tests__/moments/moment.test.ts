@@ -92,7 +92,7 @@ const later = () => import('../../moment' + '') as Promise<{
 }>;
 const clock = (h: number, m: number) => new Date(2026, 10, 17, h, m).getTime();
 
-test('SW10: a piece made later says when, in words, and names no place; within the same minute it says nothing', { todo: 'test first' }, async () => {
+test('SW10: a piece made later says when, in words, and names no place; within the same minute it says nothing', async () => {
   const { pieceWhen } = await later();
   const m = moment('m', [piece('m', 'm', clock(8, 15), 'photo'), piece('n', 'm', clock(16, 12), 'text'), piece('q', 'm', clock(8, 15) + 20_000, 'text')]);
   const words = pieceWhen(m, m.pieces[1]);
@@ -102,7 +102,7 @@ test('SW10: a piece made later says when, in words, and names no place; within t
   assert.equal(pieceWhen(m, m.pieces[2]), null, 'within the same minute');
 });
 
-test('SW11: the collapsed face names its kinds in words, never a number', { todo: 'test first' }, async () => {
+test('SW11: the collapsed face names its kinds in words, never a number', async () => {
   const { kindsLine } = await later();
   assert.equal(kindsLine(moment('m', [piece('a', 'm', 1, 'photo'), piece('b', 'm', 2, 'text')])), 'a photo and a note');
   assert.equal(kindsLine(moment('m', [piece('a', 'm', 1, 'photo'), piece('b', 'm', 2, 'text'), piece('c', 'm', 3, 'voice')])), 'a photo, a note and a voice note');

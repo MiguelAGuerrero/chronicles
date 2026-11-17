@@ -40,7 +40,7 @@ test('MS7: a three-piece moment is one entry for every reader of moments', () =>
   assert.equal(faced(stacked(null)).pieces.length, 3, 'and every piece is still there to open');
 });
 
-test('MS14: no store method merges moments, and a piece is only ever added to a moment that exists', () => {
+test('MS14: no store method merges moments but the one door of decision 0196, and a piece is only ever added to a moment that exists', () => {
   const file = join(__dirname, '../../db/types.ts');
   const src = ts.createSourceFile(file, readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true);
   const names: string[] = [];
@@ -48,11 +48,12 @@ test('MS14: no store method merges moments, and a piece is only ever added to a 
     if (ts.isInterfaceDeclaration(n) && n.name.text === 'Db') for (const m of n.members) if (m.name && ts.isIdentifier(m.name)) names.push(m.name.text);
   });
   assert.ok(names.length > 10);
-  assert.deepEqual(names.filter((n) => /merge|join|combine|move(Piece|Moment)/i.test(n)), []);
+  // Stack with previous (decision 0196) narrowed "never merged" to one door: `joinMoment`, offered only for an entry nothing points at.
+  assert.deepEqual(names.filter((n) => /merge|join|combine|move(Piece|Moment)/i.test(n)), ['joinMoment']);
 });
 
 // Stack with previous SW15, SW16 (decision 0196). Test first: reached by name.
-test('SW15: the only join is joinMoment, and no menu lists another merge', { todo: 'test first' }, () => {
+test('SW15: the only join is joinMoment, and no menu lists another merge', () => {
   const types = readFileSync(join(__dirname, '../../db/types.ts'), 'utf8');
   assert.ok(/joinMoment\(/.test(types), 'the one door');
   assert.ok(!/mergeMoments?\(/i.test(types), 'no other merge');
