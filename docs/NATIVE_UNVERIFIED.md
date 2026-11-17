@@ -689,3 +689,14 @@ Small places (decision 0183): the switches and dots on a phone.
 Place search (decision 0184): the pack on a phone.
 
 - [ ] **Do:** on a phone, with the network off from launch, open Explore's magnifier for the first time. **Expect:** "Getting ready…" draws first, then "zuric" lists Zürich: the phone reads the pack bundled in the app (`gazetteer/source.ts`'s `require`), never the web's fetch; the loader split (`loader.ts`, gazetteer-web-fetch) adds one microtask before the pack is validated and nothing else (the review of the web fetch, Nov 17).
+
+## Native map frames (NF1-NF7)
+
+The phone's map no longer renders every source and pin on each glide frame or replay tick (specs/native-map-frames). The source scans in `mapFrames.test.ts` hold the shape; these hold the frame rate and that nothing a person sees changed.
+
+- [ ] **Do:** on a development build with React DevTools open, walk 10 min where the fog and the walked streets show and at least 30 pins sit along the way, and profile a minute of steady walking. **Expect:** `WalkMap` and its memo sources and pin lists render at most once per fix; only `ConeSource`, `PointsSource` and `GlideFollow` render at the glide's rate (~15 a second); the dot and the camera glide as before. (NF1, NF3, NF7)
+- [ ] **Do:** watch a walk's replay and a day's replay with the profiler on. **Expect:** per tick only the walker, the cone and the follow render; the trace grows in its 66 ms steps; pins appear as the story reaches them; the fog beat lights the streets as before. (NF2)
+- [ ] **Do:** tap a pin, a memory pin, a "?" mark, a found mark and a star, on a walk, on Chronicle and on Explore; set a reminder on a pin and react to a moment. **Expect:** each opens what it opened before (a found mark nothing); the bell and the reaction show on the pin at once. (NF4, NF6)
+- [ ] **Do:** zoom from 12 to 17 along a walked trace, a route and the fog. **Expect:** the lines look as before, with no gap or break at tile edges (`LINE_SOURCE`: tolerance 1, buffer 64, new on the phone). (NF5)
+- [ ] **Do:** watch a walk's replay to the card and tap a pin the instant the card comes up; on Chronicle, tap a star as the tab opens. **Expect:** the viewer (or the star's card) opens on the first tap, never a tap that does nothing: the press handlers are filled in a layout effect (native-map-frames audit 4).
+- [ ] **Do:** on an exploring walk with "?" marks in range, profile a minute of walking with nothing revealed, then walk up to one. **Expect:** `MarkMarkers` does not render on a fix that changes no mark, and renders once when the mark is revealed; the marks look as before. (NF8)

@@ -832,3 +832,12 @@ Small places (decision 0183): what the slice left for later.
 - **The data side is on chronicles-data's branch, not its main:** contract v3 and OSM's small places (its SL1-SL11) reach a pack only once that branch merges and the weekly job's OSM fetch runs; the noise review per test area comes with that first build, before a pack is published (decision 0109). Until then the app takes the new classes and nothing new shows.
 - **Category headings in "What I'm into"** (the UI review's U4): eighteen rows with no group names, so a card's "History" cannot be matched to a block of rows; the five categories as headers would answer it, a change to the whole list rather than to this slice.
 - **The drawer's grabber over a row** (the UI review's U6, before this slice): in the walk's drawer the grabber is drawn over the half-clipped first row; it wants its own strip above the scrolling list.
+
+## Native map frames
+
+What the native map frames slice (NF1-NF7, specs/native-map-frames) left out, from the performance investigation of Nov 16.
+
+- **The React Compiler is not on** (the owner, Nov 16: its own slice, measured before and after, with a decision record). `app.json` has no `experiments.reactCompiler`, and babel-preset-expo 58 turns it on only from that flag, so only its lint rules run; `docs/research-reactivity.md` assumed it was on. It would still skip `WalkMap.native.tsx`'s main component (its `eslint-disable` lines) and all of `explore.tsx` (a `try` without `catch`).
+- **The replay screen still renders at the clock's 30 fps** (`useCeremonyClock` sets state on the screen): since native map frames it no longer reaches the map's sources or pins; the stage and its overlays are the ceremony's own, left for a measurement on a device.
+- **The hidden `omt-query` source is mounted on every native map** (the replay, a day, the planner drawer, Chronicle), five invisible layers on the base tiles again, though only the maps that read tiles or hide the scale over a blank world need it: mount it only there (performance investigation, Nov 16).
+- **A native follow camera** (`Camera` `trackUserLocation`): it would move without JS per fix, but follows the OS fix, not the filtered one (`docs/research-reactivity.md`); the follow stays `GlideFollow`'s `jumpTo`.

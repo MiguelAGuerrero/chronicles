@@ -1,0 +1,106 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Native map frames (NF1-NF7)",
+        "--new"
+      ],
+      "body": "- [ ] **Do:** on a development build with React DevTools open, walk 10 min where the fog and the walked streets show and at least 30 pins sit along the way, and profile a minute of steady walking. **Expect:** `WalkMap` and its memo sources and pin lists render at most once per fix; only `ConeSource`, `PointsSource` and `GlideFollow` render at the glide's rate (~15 a second); the dot and the camera glide as before. (NF1, NF3, NF7)\n",
+      "intro": "The phone's map no longer renders every source and pin on each glide frame or replay tick (specs/native-map-frames). The source scans in `mapFrames.test.ts` hold the shape; these hold the frame rate and that nothing a person sees changed.\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Native map frames (NF1-NF7)"
+      ],
+      "body": "- [ ] **Do:** watch a walk's replay and a day's replay with the profiler on. **Expect:** per tick only the walker, the cone and the follow render; the trace grows in its 66 ms steps; pins appear as the story reaches them; the fog beat lights the streets as before. (NF2)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Native map frames (NF1-NF7)"
+      ],
+      "body": "- [ ] **Do:** tap a pin, a memory pin, a \"?\" mark, a found mark and a star, on a walk, on Chronicle and on Explore; set a reminder on a pin and react to a moment. **Expect:** each opens what it opened before (a found mark nothing); the bell and the reaction show on the pin at once. (NF4, NF6)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Native map frames (NF1-NF7)"
+      ],
+      "body": "- [ ] **Do:** zoom from 12 to 17 along a walked trace, a route and the fog. **Expect:** the lines look as before, with no gap or break at tile edges (`LINE_SOURCE`: tolerance 1, buffer 64, new on the phone). (NF5)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Native map frames (NF1-NF7)"
+      ],
+      "body": "- [ ] **Do:** watch a walk's replay to the card and tap a pin the instant the card comes up; on Chronicle, tap a star as the tab opens. **Expect:** the viewer (or the star's card) opens on the first tap, never a tap that does nothing: the press handlers are filled in a layout effect (native-map-frames audit 4).\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Native map frames (NF1-NF7)"
+      ],
+      "body": "- [ ] **Do:** on an exploring walk with \"?\" marks in range, profile a minute of walking with nothing revealed, then walk up to one. **Expect:** `MarkMarkers` does not render on a fix that changes no mark, and renders once when the mark is revealed; the marks look as before. (NF8)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Native map frames",
+        "--new"
+      ],
+      "body": "- **The React Compiler is not on** (the owner, Nov 16: its own slice, measured before and after, with a decision record). `app.json` has no `experiments.reactCompiler`, and babel-preset-expo 58 turns it on only from that flag, so only its lint rules run; `docs/research-reactivity.md` assumed it was on. It would still skip `WalkMap.native.tsx`'s main component (its `eslint-disable` lines) and all of `explore.tsx` (a `try` without `catch`).\n",
+      "intro": "What the native map frames slice (NF1-NF7, specs/native-map-frames) left out, from the performance investigation of Nov 16.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Native map frames"
+      ],
+      "body": "- **The replay screen still renders at the clock's 30 fps** (`useCeremonyClock` sets state on the screen): since native map frames it no longer reaches the map's sources or pins; the stage and its overlays are the ceremony's own, left for a measurement on a device.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Native map frames"
+      ],
+      "body": "- **The hidden `omt-query` source is mounted on every native map** (the replay, a day, the planner drawer, Chronicle), five invisible layers on the base tiles again, though only the maps that read tiles or hide the scale over a blank world need it: mount it only there (performance investigation, Nov 16).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Native map frames"
+      ],
+      "body": "- **A native follow camera** (`Camera` `trackUserLocation`): it would move without JS per fix, but follows the OS fix, not the filtered one (`docs/research-reactivity.md`); the follow stays `GlideFollow`'s `jumpTo`.\n"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "add"
+      ],
+      "body": "| Native map frames (the phone's walk map and the replays no longer render every map source and pin per glide frame or clock tick: memo sources, the glide in a frame store read by three leaves, memo pin lists with presses from a ref, the web's line simplification on native; NF1-NF5, NF7, NF8, after the performance investigation of Nov 16; NF6 retired by the owner Nov 17 for NF8) | built 2026-11-16, plan approved by the owner, test-first by history 6 of 6 (NF6 retired by the owner, NF8 built test-first): unit tests (2605), typecheck, lint, docs, vision and records checks; the ten journeys `check:affected` names pass once each (526 checks); NF7 device-only; native never run on a device; `scripts/perf-walk.js` stale (waits for Start on `/`); audited 2026-11-17 at the owner's request (5 findings: 3 fixed, tests `native-map-frames audit 1, 2, 4`; 1 deferred, then built as NF8; 1 rejected); main merged in Nov 17; not merged | `claude/bold-hawking-dx3pc8` | `specs/native-map-frames/spec.md` | yes, 2026-11-17 |\n"
+    }
+  ]
+}
