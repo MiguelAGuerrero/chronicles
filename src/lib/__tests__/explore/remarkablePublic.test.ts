@@ -68,12 +68,13 @@ test('RP13: every named attraction in the tiles is a place to find, SteelStacks 
   const places = placesNow();
   for (const f of attractions) {
     const p = places.find((x) => x.name === f.properties!.name);
-    assert.ok(p && isMarkable(p) && p.kind === 'viewpoints', `${f.properties!.name} is a place to find of Viewpoints and attractions`);
+    // explore-subtypes XS4 (decision 0187): attractions are their own kind, Zoos, aquariums and attractions.
+    assert.ok(p && isMarkable(p) && p.kind === 'attractions', `${f.properties!.name} is a place to find of Zoos, aquariums and attractions`);
   }
   const steel = places.find((p) => p.name === 'SteelStacks');
   assert.ok(steel && isMarkable(steel));
-  // Pinned with the slice: the kind's label says "attractions".
-  assert.equal(KINDS.find((k) => k.id === 'viewpoints')?.label, 'Viewpoints and attractions');
+  // Pinned with the slice: the kind's label says "attractions" (its own kind since XS4; Viewpoints reads Viewpoints).
+  assert.equal(KINDS.find((k) => k.id === ('attractions' as never))?.label, 'Zoos, aquariums and attractions');
   assert.ok(KINDS.some((k) => k.id === ('structures' as never)), 'the slice adds Buildings and structures beside it');
 });
 
@@ -91,7 +92,7 @@ test('RP14: an attraction stays one place to find through the merge', () => {
 test('RP15: the National Aviary (zoo/aviary) is a place to find', () => {
   assert.equal(categoryOfPoi('zoo', 'aviary'), 'viewpoints');
   const aviary = placesNow().find((p) => p.name === 'National Aviary');
-  assert.ok(aviary && isMarkable(aviary) && aviary.kind === 'viewpoints');
+  assert.ok(aviary && isMarkable(aviary) && aviary.kind === ('attractions' as never), 'XS4: a zoo is of Zoos, aquariums and attractions');
 });
 
 test('RP16: a lodging place in the tiles is never a place to find', () => {

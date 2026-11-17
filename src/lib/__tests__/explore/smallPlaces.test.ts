@@ -25,14 +25,16 @@ const read = (places: (Place | null)[]) => refineRead(places.filter((p): p is Pl
 const kindOfName = (places: Place[], name: string) => places.find((p) => p.name === name)?.kind;
 const item = (p: Place): ChecklistItem => ({ key: p.key, area_key: 'a', name: p.name, category: p.category, kind: p.kind!, at: p.at, generic: p.generic });
 
-test('SP3: the archive\'s small classes map to one kind each, pinned; markers join plaques', async () => {
+// Superseded in part by Explore subtypes (decision 0187): markers are their own subtype (XS10), OSM's plaques `plaque`;
+// statues, murals and community gardens are subtypes of their kinds (XS3, XS11); the default-off set is XS6's.
+test('SP3: the archive\'s small classes map to one kind each, pinned (markers apart since XS10)', async () => {
   await small();
   const one = (cls: string, name = 'X') => read([archivePlace(name, cls, O, V)])[0];
   const pins: [string, string, Kind][] = [
-    ['marker', 'history', 'plaques' as Kind], ['small_memorial', 'history', 'small_memorials' as Kind], ['old_stone', 'history', 'old_stones' as Kind],
+    ['marker', 'history', 'markers' as Kind], ['plaque', 'history', 'plaques' as Kind], ['small_memorial', 'history', 'small_memorials' as Kind], ['old_stone', 'history', 'old_stones' as Kind],
     ['wayside_shrine', 'history', 'wayside_shrines' as Kind], ['time_capsule', 'viewpoints', 'time_capsules' as Kind],
-    ['public_bookcase', 'culture', 'little_libraries' as Kind], ['mural', 'art', 'public_art'], ['sculpture', 'art', 'public_art'],
-    ['statue', 'history', 'monuments'], ['community_garden', 'parks', 'parks'],
+    ['public_bookcase', 'culture', 'little_libraries' as Kind], ['mural', 'art', 'murals' as Kind], ['sculpture', 'art', 'public_art'],
+    ['statue', 'art', 'statues' as Kind], ['community_garden', 'parks', 'community_gardens' as Kind],
   ];
   for (const [cls, category, kind] of pins) {
     const p = one(cls);
@@ -51,7 +53,7 @@ test('SP4: an unknown class is left out, never guessed', async () => {
 test('SP5: an unnamed small place enters named by its type, said once when found; other classes still need a name', async () => {
   await small();
   const labels: [string, string][] = [
-    ['marker', 'A plaque'], ['public_bookcase', 'A little library'], ['time_capsule', 'A time capsule'], ['small_memorial', 'A memorial'],
+    ['plaque', 'A plaque'], ['public_bookcase', 'A little library'], ['time_capsule', 'A time capsule'], ['small_memorial', 'A memorial'],
     ['old_stone', 'An old stone'], ['wayside_shrine', 'A wayside shrine'], ['statue', 'A statue'], ['mural', 'Public art'], ['community_garden', 'A community garden'],
   ];
   for (const [cls, name] of labels) {
@@ -67,7 +69,7 @@ test('SP5: an unnamed small place enters named by its type, said once when found
 test('SP6: two unnamed small places of one type in one ~10 m cell are one place', async () => {
   await small();
   const f = (cls: string, p: LngLat, name = '') => ({ type: 'Feature', geometry: { type: 'Point', coordinates: p }, properties: { name, class: cls, src: 'osm', id: 'x' } });
-  const got = placesFromArchive([f('public_bookcase', at(0)), f('public_bookcase', at(1)), f('public_bookcase', at(40)), f('marker', at(1))] as never, V);
+  const got = placesFromArchive([f('public_bookcase', at(0)), f('public_bookcase', at(1)), f('public_bookcase', at(40)), f('plaque', at(1))] as never, V);
   assert.deepEqual(got.map((p) => p.name).sort(), ['A little library', 'A little library', 'A plaque']);
 });
 
@@ -76,7 +78,8 @@ test('SP7: on a fresh install the four History subsets are off; time capsules an
   const hidden = parseHidden(null, null);
   for (const k of ['plaques', 'small_memorials', 'old_stones', 'wayside_shrines']) assert.ok(hidden.has(k as Kind), k);
   for (const k of ['time_capsules', 'little_libraries']) assert.ok(!hidden.has(k as Kind), k);
-  assert.deepEqual([...DEFAULT_OFF].sort(), ['old_stones', 'plaques', 'small_memorials', 'wayside_shrines']);
+  // XS6 (decision 0187) adds fountains, ghost towns, old trees and survey marks to the four.
+  for (const k of ['old_stones', 'plaques', 'small_memorials', 'wayside_shrines']) assert.ok(DEFAULT_OFF.includes(k as Kind), k);
 });
 
 test('SP8: switches saved before the update get the same defaults; a parent off still hides its new subsets', async () => {
@@ -103,14 +106,14 @@ test('SP10: a subset\'s row shows under its parent only while the parent is on, 
   const i = rows.findIndex((r) => (r.kind.id as string) === 'plaques');
   assert.ok(i > 0 && rows[i].depth === 1);
   assert.equal(rows.slice(0, i).reverse().find((r) => r.depth === 0)?.kind.id, 'monuments', 'under Monuments and memorials');
-  assert.equal(KINDS.find((k) => (k.id as string) === 'plaques')?.label, 'Plaques and markers');
+  assert.equal(KINDS.find((k) => (k.id as string) === 'plaques')?.label, 'Plaques', 'XS10: markers are their own row');
   assert.ok(!kindRows(KINDS, new Set(['monuments' as Kind])).some((r) => (r.kind.id as string) === 'plaques'));
   assert.deepEqual(kindSwitch(new Set(['monuments' as Kind]), 'plaques' as Kind), { on: false, locked: true });
 });
 
 test('SP11: an off subset shows no "?" on a walk, on the map or in "Waiting"; switched on, it does', async () => {
   await small();
-  const plaque = read([archivePlace('Founders Plaque', 'marker', at(20), V)])[0];
+  const plaque = read([archivePlace('Founders Plaque', 'plaque', at(20), V)])[0];
   const it = item(plaque);
   const shown = (hidden: Set<Kind>) => visibleMarks({ items: [it], here: O, rangeM: 100, found: new Set(), hidden, revealed: new Set() }).length;
   const off = parseHidden(null, null);
@@ -193,11 +196,11 @@ test('SP22: an unnamed small place reads with its article; two of one type as th
   assert.equal(passedLine([{ name: 'A plaque', generic: true }, { name: 'A little library', generic: true }]), 'Passed a plaque and a little library without stopping');
 });
 
-test('SP17: the app pins chronicles-data\'s contract v3, its classes exactly the archive table', async () => {
+test('SP17: the app pins chronicles-data\'s contract v3 (v4 since XS3, 0187), its classes exactly the archive table', async () => {
   const { readFileSync } = await import('node:fs');
   const { join } = await import('node:path');
   const sources = JSON.parse(readFileSync(join(__dirname, 'contract', 'sources.json'), 'utf8'));
-  assert.equal(sources.contractVersion, 3);
+  assert.ok(sources.contractVersion >= 3);
   for (const c of ['small_memorial', 'old_stone', 'wayside_shrine', 'time_capsule', 'public_bookcase', 'community_garden']) assert.ok(sources.classes.includes(c), c);
 });
 

@@ -60,7 +60,7 @@ export interface KindInfo {
 const SUBTYPE_ICON: Partial<Record<Kind, string>> = {
   statues: 'body-outline', murals: 'brush-outline', fountains: 'water-outline', signs: 'megaphone-outline',
   markers: 'trail-sign-outline', plaques: 'document-text-outline', war_memorials: 'ribbon-outline', small_memorials: 'flower-outline',
-  battlefields: 'shield-outline', archaeological_sites: 'compass-outline',
+  battlefields: 'shield-outline', archaeological_sites: 'hammer-outline',
   bridges: 'git-commit-outline', mills: 'cog-outline', stations: 'train-outline', lighthouses: 'flashlight-outline', civic_buildings: 'library-outline',
   forts: 'shield-half-outline', towers: 'time-outline', old_machines: 'construct-outline', taverns: 'beer-outline', old_stones: 'pin-outline',
   wayside_shrines: 'flame-outline', mausoleums: 'cube-outline',
