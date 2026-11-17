@@ -683,8 +683,10 @@ What the reactions slice wrote and has not run on a phone (`specs/reactions`, de
 Small places (decision 0183): the switches and dots on a phone.
 
 - [ ] **Do:** on a phone with switches saved before this update, open "What I'm into", then walk (Explore on) past a time capsule and a plaque from the places archive. **Expect:** Plaques and markers, Small memorials, Milestones and old stones and Wayside shrines and crosses sit indented under their kinds and are off; Time capsules and Little libraries are on; the time capsule is a "?" named "A time capsule" within 60 m and the plaque is not drawn until its row is switched on; an area's dots change at once when the row is switched (SP2, SP7, SP8, SP11, SP13).
-  Since Explore subtypes (decision 0187): the row reads "Plaques" and holds OSM's plaques only; Wikidata's markers are "Markers", on.
+  Since Explore subtypes (decision 0191): the row reads "Plaques" and holds OSM's plaques only; Wikidata's markers are "Markers", on.
 - [ ] **Do:** on a phone, open "What I'm into" in the walk's drawer and scroll it end to end; then walk (Explore on) past a waterfall from the places archive. **Expect:** five headings (Art, History, Parks & green spaces, Culture, Viewpoints & oddities), each over its kinds, subtypes indented under them; the list scrolls smoothly at about 53 rows; Fountains, Old trees, Survey marks and Ghost towns are off; the waterfall is a "?" named within 60 m (XS1, XS2, XS6, XS24).
+- [ ] **Do:** on a phone with VoiceOver or TalkBack on, open "What I'm into" and move through it. **Expect:** each of the five category headings is announced as a heading; a subtype row says it is part of its kind; the list (about 58 rows) scrolls without the drawer moving, and a switch keeps its state after scrolling away and back; every icon draws (aperture, bulb, grid, moon, git-network among them) (XS23, XS24, explore-subtypes audit).
+- [ ] **Do:** on a phone that had "Viewpoints and attractions", "Monuments and memorials" or "Plaques and markers" switched off before this update (SQLite), open the app after it. **Expect:** zoos, statues and markers stay off; the atlas reads every area again once (p6) without a stall (XS7, explore-subtypes audit 5).
 
 ## Place search (GZ1-GZ19, decision 0184)
 

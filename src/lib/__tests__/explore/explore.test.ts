@@ -56,8 +56,8 @@ const item = (name: string, at: LngLat, kind: Kind = 'museums', area_key = 'A'):
 
 // ——— Kinds (E16) ———
 
-test('E16, PW4, RP8, PK11, PC6, SP10, XS2: the kinds in the settings order (Curiosities joined with Places worth the stop, Buildings and structures with Remarkable and public, Community spaces with Presence and kinds, Community parks with Community parks, the small places each after its parent with Small places; since explore-subtypes, decision 0187, every subtype after its kind, the kinds under their five categories)', () => {
-  // explore-subtypes XS2-XS4 (decision 0187): eighteen rows became the plan's fifty-three, grouped by category.
+test('E16, PW4, RP8, PK11, PC6, SP10, XS2: the kinds in the settings order (Curiosities joined with Places worth the stop, Buildings and structures with Remarkable and public, Community spaces with Presence and kinds, Community parks with Community parks, the small places each after its parent with Small places; since explore-subtypes, decision 0191, every subtype after its kind, the kinds under their five categories)', () => {
+  // explore-subtypes XS2-XS4 (decision 0191): eighteen rows became the plan's fifty-three, grouped by category.
   assert.deepEqual(
     KINDS.map((k) => k.id),
     [

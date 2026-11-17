@@ -50,7 +50,7 @@ const PLAIN_IN: Readonly<Record<string, readonly string[]>> = {
   // taxonomy): neither is a source tag read for what a place is
   shopping: ['complexes/'],
   parking: ['complexes/rule.ts'],
-  // explore-subtypes (decision 0187): the archive's `bridge` and `sign` classes are also a road's bridge flag (streets) and a
+  // explore-subtypes (decision 0191): the archive's `bridge` and `sign` classes are also a road's bridge flag (streets) and a
   // reaction's sign (a view): neither reads a source's tag for what a place is
   bridge: ['streets.ts'],
   sign: ['../components/reactions/'],

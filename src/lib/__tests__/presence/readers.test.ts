@@ -7,7 +7,7 @@ import type { LngLat } from '../../types';
 // Presence readers (specs/presence-readers, PS1-PS11, decision 0140): the archive, the bars, notable names, scenic greens and
 // the planner read presence's classes. readers.golden.json holds what the code answered before the slice: captured from
 // 0d03c4b4, then again from main (6b099ea6) when the slice was resumed there (T8), with each mark's kind and rings fed
-// landcover outlines (presence-readers audit 8). Re-captured Nov 17 for Explore subtypes (decision 0187): statues are Art
+// landcover outlines (presence-readers audit 8). Re-captured Nov 17 for Explore subtypes (decision 0191): statues are Art
 // (XS11), attractions and zoos their own kind (XS4), the map's ruins Curiosities (XS12), murals and markers subtypes (XS3),
 // every subtype left out of a ring's stored steps (XS15); one same-named statue and artwork 60 m apart became one place
 // (0111, "Science" in South End). The listed changes before it (T9, fix community-park) were already in what was captured.

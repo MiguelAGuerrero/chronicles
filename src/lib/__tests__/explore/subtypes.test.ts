@@ -15,7 +15,7 @@ import { sightsFrom } from '../../nav/scenicSignals';
 import { ARCHIVE_CLASS_NAMES, classesOfArchive, classesOfOsm, isStorefront } from '../../presence/presence';
 import type { LngLat } from '../../types';
 
-// Explore subtypes (specs/explore-subtypes, XS1-XS28; decision 0187), written from the spec before the code. The new
+// Explore subtypes (specs/explore-subtypes, XS1-XS28; decision 0191), written from the spec before the code. The new
 // module loads by a path TypeScript doesn't resolve, so a todo runs before it exists.
 
 type Subtypes = {

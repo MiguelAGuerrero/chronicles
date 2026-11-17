@@ -82,7 +82,7 @@ passed line only when nothing else was (SP16, SP19, SP20; XS17, XS18).
 | `src/lib/atlas/atlas.ts` | `ALL_SMALL_OFF` → every subtype left out of `steps`, re-added by `stepsShown` (XS15); `ATLAS_CODE` follows `PRESENCE_CODE` |
 | `src/lib/__tests__/explore/contract/` | chronicles-data's contract v4, copied (XS3) |
 | `src/lib/__tests__/presence/golden.json`, `readers.golden.json` | re-captured; the changed pairs (`castle/ruins`, `zoo/*`, `attraction`) in `CHANGED` and listed here (PR8) |
-| `docs/decisions/0187-…md`, `docs/VISION.md` Precedents | the owner's calls of Nov 17 |
+| `docs/decisions/0191-…md`, `docs/VISION.md` Precedents | the owner's calls of Nov 17 |
 | `.claude/rules/subtypes.md` (renamed from `small-places.md`) | the registry, the small flag, the traps |
 
 No storage change: `kind` is a string on checklist items and finds; kept items keep their old kind until their area is

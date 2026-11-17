@@ -1,6 +1,6 @@
 {
  "captured": "2026-11-17",
- "from": "explore-subtypes (decision 0187), re-captured for XS3, XS4, XS12, XS15",
+ "from": "explore-subtypes (decision 0191), re-captured for XS3, XS4, XS12, XS15",
  "names": {
   "plain": "Corner Spot",
   "notable": "Old Corner Spot",
@@ -5726,7 +5726,7 @@
     "[\"art\",\"\",\"-74.0146\",\"41.9323\"]|public_art",
     "[\"art\",\"\",\"-74.0147\",\"41.9324\"]|public_art",
     "[\"culture\",\"fair john gallery\",\"-74.0185\",\"41.9338\"]|museums",
-    "[\"culture\",\"friends of historic kingston\",\"-74.0191\",\"41.9317\"]|museums",
+    "[\"culture\",\"friends of historic kingston\",\"-74.0192\",\"41.9317\"]|museums",
     "[\"culture\",\"mattewis persen house\",\"-74.0209\",\"41.9336\"]|museums",
     "[\"culture\",\"senate house museum\",\"-74.0190\",\"41.9347\"]|museums",
     "[\"culture\",\"utopia\",\"-74.0203\",\"41.9353\"]|museums",
@@ -5737,7 +5737,7 @@
     "[\"parks\",\"esopus creek waterway access\",\"-74.0246\",\"41.9395\"]|parks",
     "[\"parks\",\"firemen's park\",\"-74.0256\",\"41.9361\"]|parks",
     "[\"parks\",\"peace park\",\"-74.0212\",\"41.9350\"]|parks",
-    "[\"parks\",\"senate house state historic site\",\"-74.0187\",\"41.9348\"]|parks",
+    "[\"parks\",\"senate house state historic site\",\"-74.0191\",\"41.9348\"]|parks",
     "[\"viewpoints\",\"forsyth nature center\",\"-74.0278\",\"41.9333\"]|attractions"
    ],
    "thin": false
@@ -9974,7 +9974,7 @@
     "[\"art\",\"\",\"-74.0146\",\"41.9323\"]|public_art",
     "[\"art\",\"\",\"-74.0147\",\"41.9324\"]|public_art",
     "[\"culture\",\"fair john gallery\",\"-74.0185\",\"41.9338\"]|museums",
-    "[\"culture\",\"friends of historic kingston\",\"-74.0191\",\"41.9317\"]|museums",
+    "[\"culture\",\"friends of historic kingston\",\"-74.0192\",\"41.9317\"]|museums",
     "[\"culture\",\"mattewis persen house\",\"-74.0209\",\"41.9336\"]|museums",
     "[\"culture\",\"senate house museum\",\"-74.0190\",\"41.9347\"]|museums",
     "[\"culture\",\"utopia\",\"-74.0203\",\"41.9353\"]|museums",
@@ -9985,7 +9985,7 @@
     "[\"parks\",\"esopus creek waterway access\",\"-74.0246\",\"41.9395\"]|community_parks",
     "[\"parks\",\"firemen's park\",\"-74.0256\",\"41.9361\"]|parks",
     "[\"parks\",\"peace park\",\"-74.0212\",\"41.9350\"]|community_parks",
-    "[\"parks\",\"senate house state historic site\",\"-74.0187\",\"41.9348\"]|parks",
+    "[\"parks\",\"senate house state historic site\",\"-74.0191\",\"41.9348\"]|parks",
     "[\"parks\",\"stockade district ball field\",\"-74.0253\",\"41.9340\"]|parks",
     "[\"parks\",\"stockade district playground\",\"-74.0200\",\"41.9340\"]|community_parks",
     "[\"viewpoints\",\"forsyth nature center\",\"-74.0278\",\"41.9333\"]|attractions"

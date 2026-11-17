@@ -1,4 +1,4 @@
-<!-- Repo first: from the owner's request of Nov 17 (compare What I'm into with the data set; decision 0187). Not a tab of the concept doc (https://claude.ai/artifact/6P9aUdZJAdReBi6yFVtwa7). The data side is chronicles-data's: its docs/subtypes/spec.md (ST1-ST10, contract v4). -->
+<!-- Repo first: from the owner's request of Nov 17 (compare What I'm into with the data set; decision 0191). Not a tab of the concept doc (https://claude.ai/artifact/6P9aUdZJAdReBi6yFVtwa7). The data side is chronicles-data's: its docs/subtypes/spec.md (ST1-ST10, contract v4). -->
 
 # Explore subtypes: every kind's subtypes, and the places the archive could not show
 
@@ -134,3 +134,38 @@ The owner's task, in their words: "a more rich exploring experience, no matter h
 - **Data:** chronicles-data's contract v4 (ST1-ST10) is built and tested on `claude/explore-subtypes`; published early
   on Nov 17 (`20261117.19`) and reverted (`20261117.21`, v3 classes) until this app ships.
 - **Native:** nothing native changed; never run on a device (`docs/NATIVE_UNVERIFIED.md`).
+
+## Audit (Nov 17, the owner's /audit)
+
+The auditor (10 findings), the steward (S8-S12) and the UX reviewer (U1-U6, after a cold find of four icons, already
+fixed as `explore-subtypes ui 1`); triaged in one numbering:
+
+1. A v3 pack's OSM plaques read as on "Markers" (auditor F1): accept, presence's `archiveClassOf`; `explore-subtypes audit 1`.
+2. Labels wrap at 320 px and the XS22 check could not see it (F2, U1): accept, every label the type's own name, lines
+   counted in the journey; `explore-subtypes audit 2` (e2e).
+3. The 20 m unnamed-twin rule merges unrelated things of one category (F3): accept, artworks only; `explore-subtypes audit 3`.
+4. A found unnamed artwork reappears unfound after the merge (F4): accept; `explore-subtypes audit 4`.
+5. Saved switches change meaning for statues and markers (F5): accept for those two; Survey marks off is the owner's
+   "small things off"; the map's ruins moving is XS12's; `explore-subtypes audit 5`.
+6. Scenic routes and the planner drop the map's unnamed viewpoints and art (F6): accept, only unnamed subtype places stay
+   out; `explore-subtypes audit 6`.
+7. A town page from a raw row shows bars far too low (F7): accept, `rowsShown` for every reader of `rows`;
+   `explore-subtypes audit 7`.
+8. Ghost towns still wore footsteps and `ui 1` checked a name the app never uses (F8): accept; `explore-subtypes audit 8`.
+9. A zoo's enclosures become places (F9): accept; `explore-subtypes audit 9`.
+10. The replay repeats unnamed finds (F10): accept, `replayFound`; `explore-subtypes audit 10`.
+11. Unnamed murals repeat as "Public art" rows (S8): accept; `explore-subtypes audit 11`.
+12. "attractions" names a draw (S9): accept in part, the new kind is "Zoos and aquariums" and the map's attractions and
+    theme parks stay with "Viewpoints and attractions" (the shipped word, the owner's open question in STATUS); XS4
+    amended; `explore-subtypes audit 12`.
+13. Markers weigh a half (S10): accept, a quarter as plaques; `explore-subtypes audit 13`.
+14. "Taverns" in a sentence (S11): accept, "Old taverns"; `explore-subtypes audit 14`.
+15. The pictures predate the icon fix (S12): accept, retaken after the fixes (no test: a process finding).
+16. Headings smaller than their rows (U2): accept, the rows' size and bold; `explore-subtypes audit 16` (e2e). The
+    section title "What I'm into" sharing the drawer's section style is deferred (a shared style).
+17. No heading in view mid-scroll (U3): defer, the owner's (DEFERRED, ui 2 and ui 3).
+18. Fifty-eight switches inline under "This walk" (U4): to the owner, who chose its own page (decision 0192, Nov 17): the next slice.
+19. Off switches may fail 3:1 (U5): defer, the shared `SwitchRow`, to be measured.
+20. An unlabelled map button over the drawer at 320 px (U6): defer, not this slice's.
+
+20 findings: 16 accepted (15 fixed behind tests, 1 process), 3 deferred, 1 to the owner (answered: decision 0192, its own slice), 0 rejected.

@@ -4,7 +4,7 @@ import type { Refinement } from './refine';
 import type { Kind, Place } from './types';
 
 /*
- * Subtypes (specs/explore-subtypes XS1-XS28, decision 0187; from Small places, specs/small-places SP3-SP22, decision 0183):
+ * Subtypes (specs/explore-subtypes XS1-XS28, decision 0191; from Small places, specs/small-places SP3-SP22, decision 0183):
  * each a switch of its own under its kind in "What I'm into". What a place is (its subtype, its weight) is presence's; this
  * module says how the subtypes read: their rows, their defaults, their words in a sentence, whether they are small, and
  * their refinements.

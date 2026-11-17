@@ -31,7 +31,7 @@ test('SP12: four plaques light History\'s first dot with plaques on, none with t
   assert.equal(stepsShown({ steps: { history: 0 }, tally: presenceTally(ringOf(arch('plaque', 1, 'Lone'), null, O).ring, O) } as never, new Set()).history, 0);
   // Little libraries weigh a half; two light Culture's first dot.
   assert.equal(presenceTally(ringOf(arch('public_bookcase', 2), null, O).ring, O).shares.little_libraries?.culture, 1);
-  // A community garden counts a half toward Parks, a mural a whole toward Art: since XS3 (decision 0187) each is a subtype
+  // A community garden counts a half toward Parks, a mural a whole toward Art: since XS3 (decision 0191) each is a subtype
   // with a switch of its own, so they are shares, lit while on (both on by default).
   const fixed = presenceTally(ringOf([...arch('community_garden', 2, 'Garden'), ...arch('mural', 1, 'Mural')], null, O).ring, O);
   assert.equal(fixed.shares.community_gardens?.parks, 1);

@@ -1,4 +1,4 @@
-# 0187. Explore subtypes: every kind's subtypes, an inclusive bar, and OSM locating more types
+# 0191. Explore subtypes: every kind's subtypes, an inclusive bar, and OSM locating more types
 
 Date: 2026-11-17 · Status: accepted · Area: explore, discovery, presence, vision · Supersedes in part: decision 0183 ("for every other type OSM still only corroborates"; "a marker is a marker whoever lists it", its Nov 16 call)
 

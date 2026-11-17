@@ -20,7 +20,7 @@ import { notableBeyondNeighbourhood, notableName } from './notable';
  * p5: a neighbourhood's "Old Town" and "old and new" are read past after `normalizeWords`, for a museum's History and a
  *     community park alike ("Old-Town", "Old&New", "Olde Towne"; decision 0172, tend presence 1 and audit 1); what an
  *     area derives may move, so nothing is carried and every area is derived again.
- * p6: subtypes (specs/explore-subtypes, decision 0187): contract v4's classes, each its kind's subtype with a bar weight;
+ * p6: subtypes (specs/explore-subtypes, decision 0191): contract v4's classes, each its kind's subtype with a bar weight;
  *     the map's ruins are Ruins, its zoos and attractions their own kind; weights and kinds changed, so nothing is carried.
  */
 export const PRESENCE_CODE = 'p6';
@@ -67,7 +67,7 @@ const DEFS = {
   // Small places (specs/small-places, decision 0183): each a subset of its kind (`subset`, a switch in "What I'm into"),
   // weighing in a bar by the size of the stop (`bar`); none is a storefront (SP14). A community garden has no switch.
   plaque: { weight: QUARTER, bar: QUARTER, category: 'history', kind: 'monuments', subset: 'plaques' },
-  // Subtypes (specs/explore-subtypes, decision 0187): contract v4's classes, each a subtype of its kind, weighed by the
+  // Subtypes (specs/explore-subtypes, decision 0191): contract v4's classes, each a subtype of its kind, weighed by the
   // size of the stop (`bar`); a place you walk into is a storefront (XS16).
   // explore-subtypes audit 13: a marker is a small stop, a quarter as a plaque.
   marker: { weight: QUARTER, bar: QUARTER, category: 'history', kind: 'monuments', subset: 'markers' },
@@ -187,7 +187,7 @@ const OSM: Record<string, Rule[]> = {
   library: [[['books'], 'boutique'], [['library'], 'community']],
   music: [[['music', 'musical_instrument'], 'boutique']],
   monument: [['*', 'monument']],
-  // XS12 (decision 0187): the map's ruins are Ruins, as the archive's; a castle stays a monument.
+  // XS12 (decision 0191): the map's ruins are Ruins, as the archive's; a castle stays a monument.
   castle: [[['castle'], 'monument'], [['ruins'], 'ruin']],
   // PK11, PK12: a community centre is a place of Culture.
   town_hall: [[['townhall', 'courthouse'], 'civic_hall'], [['community_centre'], 'community']],
@@ -305,7 +305,7 @@ const ARCHIVE: Record<string, PresenceClass> = {
   folly: 'roadside', novelty_building: 'roadside', roadside_giant: 'roadside', natural_oddity: 'natural_oddity', odd_engineering: 'curiosity',
   marks_a_fact: 'survey_mark', art_environment: 'roadside', ruin: 'ruin',
   monument: 'monument', memorial: 'memorial_site',
-  // XS10, XS11 (decision 0187): a statue is Public art; Wikidata's commemorative plaques are historical markers, OSM's plaques plaques.
+  // XS10, XS11 (decision 0191): a statue is Public art; Wikidata's commemorative plaques are historical markers, OSM's plaques plaques.
   statue: 'statue', marker: 'marker', plaque: 'plaque',
   // SP3 (decision 0183): the other small places of contract v3.
   small_memorial: 'small_memorial', old_stone: 'old_stone', wayside_shrine: 'wayside_shrine', time_capsule: 'time_capsule',
@@ -314,7 +314,7 @@ const ARCHIVE: Record<string, PresenceClass> = {
   overlook: 'viewpoint', tower: 'viewpoint',
   // RP8 (decisions 0109, 0111): listed places by type.
   church: 'worship', cemetery: 'burial_ground', theatre: 'theatre', museum: 'museum', historic_site: 'monument', building_structure: 'structure',
-  // Contract v4 (specs/explore-subtypes XS3, decision 0187): what a place is.
+  // Contract v4 (specs/explore-subtypes XS3, decision 0191): what a place is.
   fountain: 'fountain', sign: 'sign', war_memorial: 'war_memorial', battlefield: 'battlefield', archaeological_site: 'archaeological_site',
   bridge: 'bridge', mill: 'mill', station: 'station', lighthouse: 'lighthouse', civic_building: 'civic_building', fort: 'fort',
   water_tower: 'water_tower', clock_tower: 'clock_tower', tavern: 'tavern', historic_machine: 'old_machine', mausoleum: 'mausoleum',

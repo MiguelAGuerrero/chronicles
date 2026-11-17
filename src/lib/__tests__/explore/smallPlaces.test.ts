@@ -25,7 +25,7 @@ const read = (places: (Place | null)[]) => refineRead(places.filter((p): p is Pl
 const kindOfName = (places: Place[], name: string) => places.find((p) => p.name === name)?.kind;
 const item = (p: Place): ChecklistItem => ({ key: p.key, area_key: 'a', name: p.name, category: p.category, kind: p.kind!, at: p.at, generic: p.generic });
 
-// Superseded in part by Explore subtypes (decision 0187): markers are their own subtype (XS10), OSM's plaques `plaque`;
+// Superseded in part by Explore subtypes (decision 0191): markers are their own subtype (XS10), OSM's plaques `plaque`;
 // statues, murals and community gardens are subtypes of their kinds (XS3, XS11); the default-off set is XS6's.
 test('SP3: the archive\'s small classes map to one kind each, pinned (markers apart since XS10)', async () => {
   await small();
@@ -78,7 +78,7 @@ test('SP7: on a fresh install the four History subsets are off; time capsules an
   const hidden = parseHidden(null, null);
   for (const k of ['plaques', 'small_memorials', 'old_stones', 'wayside_shrines']) assert.ok(hidden.has(k as Kind), k);
   for (const k of ['time_capsules', 'little_libraries']) assert.ok(!hidden.has(k as Kind), k);
-  // XS6 (decision 0187) adds fountains, ghost towns, old trees and survey marks to the four.
+  // XS6 (decision 0191) adds fountains, ghost towns, old trees and survey marks to the four.
   for (const k of ['old_stones', 'plaques', 'small_memorials', 'wayside_shrines']) assert.ok(DEFAULT_OFF.includes(k as Kind), k);
 });
 
@@ -196,7 +196,7 @@ test('SP22: an unnamed small place reads with its article; two of one type as th
   assert.equal(passedLine([{ name: 'A plaque', generic: true }, { name: 'A little library', generic: true }]), 'Passed a plaque and a little library without stopping');
 });
 
-test('SP17: the app pins chronicles-data\'s contract v3 (v4 since XS3, 0187), its classes exactly the archive table', async () => {
+test('SP17: the app pins chronicles-data\'s contract v3 (v4 since XS3, 0191), its classes exactly the archive table', async () => {
   const { readFileSync } = await import('node:fs');
   const { join } = await import('node:path');
   const sources = JSON.parse(readFileSync(join(__dirname, 'contract', 'sources.json'), 'utf8'));

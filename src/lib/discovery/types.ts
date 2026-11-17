@@ -18,11 +18,11 @@ export type Kind =
   | 'community_parks'
   /** Small places of the places archive, each a subset of its kind with a switch of its own (specs/small-places, decision 0183). */
   | 'plaques' | 'small_memorials' | 'old_stones' | 'wayside_shrines' | 'time_capsules' | 'little_libraries'
-  /** Waterfalls, caves, hot springs and old trees, in Parks & green spaces (specs/explore-subtypes XS4, decision 0187). */
+  /** Waterfalls, caves, hot springs and old trees, in Parks & green spaces (specs/explore-subtypes XS4, decision 0191). */
   | 'nature'
   /** Zoos, aquariums and the map's attractions, in Viewpoints & oddities (XS4). */
   | 'attractions'
-  /** Subtypes of contract v4, each a switch under its kind (XS3, decision 0187). */
+  /** Subtypes of contract v4, each a switch under its kind (XS3, decision 0191). */
   | 'statues' | 'murals' | 'fountains' | 'signs'
   | 'markers' | 'war_memorials' | 'battlefields' | 'archaeological_sites'
   | 'bridges' | 'mills' | 'stations' | 'lighthouses' | 'civic_buildings' | 'forts' | 'towers' | 'old_machines' | 'taverns' | 'mausoleums'

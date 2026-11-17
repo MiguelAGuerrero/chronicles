@@ -1,4 +1,4 @@
-// Explore subtypes (specs/explore-subtypes XS1, XS2, XS6, XS22-XS24; decision 0187): the places archive brings a waterfall
+// Explore subtypes (specs/explore-subtypes XS1, XS2, XS6, XS22-XS24; decision 0191): the places archive brings a waterfall
 // beside the walk; an exploring walk names it. "What I'm into" shows five category headings, each over its kinds, with the
 // subtypes indented under them; Ghost towns sits under Curiosities, off; the ready bar's settings list the same rows as the
 // walk's drawer. E2E_ONLY=subtypes runs it alone.

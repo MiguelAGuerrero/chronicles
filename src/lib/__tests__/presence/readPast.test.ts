@@ -59,7 +59,7 @@ test('tend presence 1: a park named "Old-Town", "Old_Town", "Old.Town" or "Old&N
   assert.equal(kindOf("Old Town's Playground"), 'community_parks');
 });
 
-// Generalised Nov 17 (explore-subtypes, decision 0187, p6): what held at p5 holds at every later bump, nothing carried.
+// Generalised Nov 17 (explore-subtypes, decision 0191, p6): what held at p5 holds at every later bump, nothing carried.
 test('tend presence 1: the bump to p5 (and every bump since) is presence\'s, carried by the codes that hold it, and every cached area is derived again', () => {
   assert.ok(Number(PRESENCE_CODE.slice(1)) >= 5, PRESENCE_CODE);
   assert.deepEqual(PRESENCE_CARRIED, [], 'what a museum or a park reads as moved, so no p4 row stands (PS9)');

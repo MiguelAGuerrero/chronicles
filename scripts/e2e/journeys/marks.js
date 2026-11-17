@@ -85,7 +85,7 @@ async function run(h) {
       const label = await pg.locator('[data-testid=kind-structures]').innerText().catch(() => '');
       check(!!mon && !!box && box.y > mon.y && on === 'true' && /Buildings and structures/.test(label),
         `RP18: "What I'm into" lists Buildings and structures after Monuments and memorials, on by default (${JSON.stringify({ mon: mon?.y, at: box?.y, on, label })})`);
-      // PK11 (Presence and kinds): Community spaces sits after Theatres, on by default; since XS2 (decision 0187) Culture's
+      // PK11 (Presence and kinds): Community spaces sits after Theatres, on by default; since XS2 (decision 0191) Culture's
       // heading comes after History's, so Monuments and memorials is above it, under History.
       await pg.locator('[data-testid=kind-community]').scrollIntoViewIfNeeded().catch(() => {});
       const th = await pg.locator('[data-testid=kind-theatres]').boundingBox().catch(() => null);

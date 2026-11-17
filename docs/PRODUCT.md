@@ -160,7 +160,7 @@ recording, and a recording bar brings a minimized walk back.
   default), plaques and markers, small memorials (benches, ghost bikes, Stolpersteine), milestones and boundary stones,
   and wayside shrines and crosses (off by default), each a switch under its kind in "What I'm into"; typed murals,
   sculptures and statues, and community gardens, join their kinds. An unnamed one is named by its type ("A time
-  capsule"). **Subtypes** (decision 0187, contract v4): every kind may have subtypes, each a switch under it, and the
+  capsule"). **Subtypes** (decision 0191, contract v4): every kind may have subtypes, each a switch under it, and the
   archive adds what the app could not show before: waterfalls, caves, hot springs and old trees (a new kind, Nature),
   botanical gardens, zoos and aquariums (with the map's attractions, a kind of their own), fountains, concert halls,
   observatories and carousels; listed buildings split into bridges, mills, stations, lighthouses, courthouses, forts,

@@ -124,7 +124,7 @@ test('PK14: MARKABLE_CLASSES re-pinned with the community centre by name', () =>
     [
       // specs/presence PR5 (decision 0140): arts and community centres, memorials, nature reserves and viewpoints by their own class.
       'aquarium:viewpoints', 'art_gallery:art', 'art_gallery:culture', 'arts_centre:culture', 'attraction:viewpoints', 'castle:history',
-      // explore-subtypes XS12 (decision 0187): the map's ruins are Ruins, under Viewpoints & oddities.
+      // explore-subtypes XS12 (decision 0191): the map's ruins are Ruins, under Viewpoints & oddities.
       'castle:viewpoints',
       'cemetery:history (by name)', 'community_centre:culture (by name)', 'garden:parks', 'library:culture (by name)',
       'memorial:history (by name)', 'monument:history', 'museum:culture', 'nature_reserve:parks (by name)',

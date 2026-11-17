@@ -85,7 +85,7 @@ test('PW5: each archive class maps to one category and kind; the table is pinned
     folly: ['viewpoints', 'curiosities'], novelty_building: ['viewpoints', 'curiosities'], roadside_giant: ['viewpoints', 'curiosities'],
     natural_oddity: ['viewpoints', 'curiosities'], odd_engineering: ['viewpoints', 'curiosities'], marks_a_fact: ['viewpoints', 'curiosities'],
     art_environment: ['viewpoints', 'curiosities'], ruin: ['viewpoints', 'curiosities'],
-    // explore-subtypes XS11 (decision 0187): a statue is Public art.
+    // explore-subtypes XS11 (decision 0191): a statue is Public art.
     monument: ['history', 'monuments'], memorial: ['history', 'monuments'], statue: ['art', 'public_art'], marker: ['history', 'monuments'],
     mural: ['art', 'public_art'], sculpture: ['art', 'public_art'],
     overlook: ['viewpoints', 'viewpoints'], tower: ['viewpoints', 'viewpoints'],
@@ -94,7 +94,7 @@ test('PW5: each archive class maps to one category and kind; the table is pinned
     // Contract v3 (specs/small-places SP3, decision 0183): the parent kind; the subset is a refinement's (plaques and the rest).
     small_memorial: ['history', 'monuments'], old_stone: ['history', 'structures'], wayside_shrine: ['history', 'churches'],
     time_capsule: ['viewpoints', 'curiosities'], public_bookcase: ['culture', 'community'], community_garden: ['parks', 'parks'],
-    // Contract v4 (explore-subtypes XS3, decision 0187): the parent kind; the subtype is a refinement's. OSM's plaques are `plaque`.
+    // Contract v4 (explore-subtypes XS3, decision 0191): the parent kind; the subtype is a refinement's. OSM's plaques are `plaque`.
     plaque: ['history', 'monuments'], fountain: ['art', 'public_art'], sign: ['art', 'public_art'],
     war_memorial: ['history', 'monuments'], battlefield: ['history', 'monuments'], archaeological_site: ['history', 'monuments'],
     bridge: ['history', 'structures'], mill: ['history', 'structures'], station: ['history', 'structures'], lighthouse: ['history', 'structures'],
@@ -219,7 +219,7 @@ test('PW10: the atlas counts the archive\'s curiosities among Viewpoints & oddit
   const tiles = [tilePlace('Main Street Bakery', 'food', near(1)), tilePlace('Town Clock', 'history', near(2))];
   const archive = placesFromArchive([pt(...near(3), { name: 'Bushkill Folly', class: 'folly', src: 'wd', id: 'Q1' }), pt(...near(4), { name: 'Odd Rock', class: 'natural_oddity', src: 'wd', id: 'Q2' })], 'v1');
   const r = ringOf(tiles, archive, RING);
-  // explore-subtypes XS15 (decision 0187): a folly and a rock are Curiosities' subtypes, so they count through the reader's
+  // explore-subtypes XS15 (decision 0191): a folly and a rock are Curiosities' subtypes, so they count through the reader's
   // switches (`stepsShown`), all on here, as every subtype's share does (SP13).
   assert.equal(stepsShown(r, new Set()).viewpoints, 2, 'two curiosities: two findable places of Viewpoints & oddities');
   assert.equal(stepsShown(r, new Set(['curiosities'])).viewpoints, 0, 'Curiosities off: neither counts');
@@ -250,7 +250,7 @@ test('PW10: a read without the archive never replaces one measured with it; a ri
 });
 
 test('PW10: ATLAS_CODE is bumped past a7; since a8 rows from a6 are read again too (PK7: the bars changed at every level); a9 too (PC13)', () => {
-  assert.equal(ATLAS_CODE, 'a14.p6', 'a14.p6 (explore subtypes, XS15, decision 0187), a14.p5 (the neighbourhood read-past after normalizeWords, decision 0172, tend presence 1), a14.p4 (small places, SP12, SP13), a13.p3 (storefronts, SF3, SF11), a12 (fix community-park), a11 (neighborhood shapes, HB11), a10 (community parks reads a name as presence does, tend explore T9; a9: community parks), then presence\'s code (specs/presence PR6, specs/presence-readers PS9)');
+  assert.equal(ATLAS_CODE, 'a14.p6', 'a14.p6 (explore subtypes, XS15, decision 0191), a14.p5 (the neighbourhood read-past after normalizeWords, decision 0172, tend presence 1), a14.p4 (small places, SP12, SP13), a13.p3 (storefronts, SF3, SF11), a12 (fix community-park), a11 (neighborhood shapes, HB11), a10 (community parks reads a name as presence does, tend explore T9; a9: community parks), then presence\'s code (specs/presence PR6, specs/presence-readers PS9)');
   for (const level of ['neighborhood', 'town'] as const)
     assert.equal(rowCurrent({ build: 'b1', code: 'a6', level }, 'b1'), false, `${level} rows from a6 are read again`);
 });
@@ -263,7 +263,7 @@ test('PW11: no count, rank or "popular" mark: the kinds, their labels and the ma
   // specs/presence-readers: a place carries presence's classes (what it is, never stored); for an archive place they are its
   // type and `recorded`, the same for every archive place, so nothing measures it.
   assert.deepEqual(fields, ['at', 'build', 'category', 'classes', 'generic', 'key', 'kind', 'markable', 'name'], 'nothing that measures a place reaches the app');
-  // explore-subtypes XS3 (decision 0187): a folly is presence's `roadside` (Giants and follies) since contract v4.
+  // explore-subtypes XS3 (decision 0191): a folly is presence's `roadside` (Giants and follies) since contract v4.
   assert.deepEqual(place.classes, ['roadside', 'recorded']);
 });
 

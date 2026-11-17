@@ -81,7 +81,7 @@ export const KINDS: readonly KindInfo[] = [
   { id: 'public_art', label: 'Public art', icon: 'color-palette-outline', category: 'art' },
   ...small('public_art', 'art'),
   { id: 'monuments', label: 'Monuments and memorials', icon: 'flag-outline', category: 'history' },
-  // SP2, SP3, SP10 (decision 0183): small places, each a subset after its parent; XS3 (decision 0187): every subtype so.
+  // SP2, SP3, SP10 (decision 0183): small places, each a subset after its parent; XS3 (decision 0191): every subtype so.
   ...small('monuments', 'history'),
   // RP8, RP18: the archive's listed buildings and structures, named for what they are, never their listing (decision 0109).
   { id: 'structures', label: 'Buildings and structures', icon: 'home-outline', category: 'history' },
@@ -94,7 +94,7 @@ export const KINDS: readonly KindInfo[] = [
   // PC6: a subset of Parks the reader can switch off; the rest stay. Named only here and on a found place (PC16).
   { id: 'community_parks', label: 'Community parks', icon: 'people-outline', category: 'parks' },
   ...small('parks', 'parks'),
-  // XS4 (decision 0187): waterfalls, caves, hot springs and old trees; named for what they are, never "wonders" (XS25).
+  // XS4 (decision 0191): waterfalls, caves, hot springs and old trees; named for what they are, never "wonders" (XS25).
   { id: 'nature', label: 'Nature', icon: 'partly-sunny-outline', category: 'parks' },
   ...small('nature', 'parks'),
   { id: 'museums', label: 'Museums and galleries', icon: 'images-outline', category: 'culture' },

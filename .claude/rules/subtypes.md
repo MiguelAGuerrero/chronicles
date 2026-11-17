@@ -6,7 +6,7 @@ paths:
   - "scripts/e2e/journeys/small-places.js"
   - "scripts/e2e/journeys/subtypes.js"
 ---
-# Subtypes and small places (XS1-XS28, decision 0187; SP1-SP22, decision 0183)
+# Subtypes and small places (XS1-XS28, decision 0191; SP1-SP22, decision 0183)
 
 Every kind of "What I'm into" may have subtypes, each a switch of its own under it: bridges and mills under Buildings
 and structures, waterfalls under Nature, plaques and time capsules (the small places) and the rest. The archive's classes
