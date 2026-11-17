@@ -14,6 +14,12 @@ Shape: as asked: Wikidata types only, the same source and licence; every museum 
 Criteria: MA1-MA9.
 Open: none; outside sources (Smithsonian sculptures, state markers, city public art) wait until each licence is confirmed at its source (the owner, Nov 17).
 
+## How adjacent apps do it
+
+- **Pikmin Bloom**: its places come from a structured database (Wayspots, seeded from historical markers) plus OpenStreetMap and Foursquare types; type and nomination, never ratings. Source: docs/research/small-places-wayspots.md (verified, Nov 14).
+- **Google Maps**: "Things to do" lists attractions by category, ordered by star ratings and review counts; the counter-example: we take the categories, never the order. Source: from memory, unverified.
+- **Atlas Obscura**: a curated, editorial list of nearby oddities; the counter-example for editorial guidance, and its data is not ours to reuse. Source: from memory, unverified.
+
 ## Decisions
 
 - **Wikidata types this round** (the owner, Nov 17, "Wikidata types now").

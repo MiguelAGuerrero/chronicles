@@ -160,6 +160,19 @@ source.
 - **Komoot**: planned routes with surface and way types and a difficulty. Source: from memory, unverified.
   **Unverified**.
 
+### Places worth noticing nearby (Earn)
+
+- **Pikmin Bloom** (iOS, Android): postcards come from Niantic's Wayspot database (Ingress portals, PokéStops), seeded from
+  the Historical Marker Database and grown by players' nominations under "a great place to explore … unique story";
+  Decor Pikmin use OpenStreetMap and Foursquare place types. Source: docs/research/small-places-wayspots.md (Nov 14, with
+  its URLs). **Verified**.
+- **Google Maps** (iOS, Android): "Things to do" and the Explore sheet list attractions by category, ordered with star
+  ratings and review counts. A counter-example (VISION Never: ratings, popularity). Source: from memory, unverified.
+  **Unverified**.
+- **Atlas Obscura** (iOS): a curated editorial list of odd places near you, each with a written entry. A counter-example
+  (editorial guidance, and its terms forbid reuse of its data). Source: from memory, unverified; the terms from the
+  research pass of Nov 17 (research_notes, state_city_nonprofit). **Unverified**.
+
 ### Where you have been: visits and history (Return, Earn)
 
 - **Google Maps Timeline** (Android): kept on the device ("saving each of your devices' precise locations to that
