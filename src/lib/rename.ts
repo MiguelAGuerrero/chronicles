@@ -38,11 +38,12 @@ export function renameFields(walk: Walk): { title: string; epilogue: string } {
 /**
  * Whether stepping out of Rename by a tap outside, Escape or Back asks first (decision 0172, O17, as the media
  * editor's Close does): when Save would store other words than the editor opened with. Both are read through
- * `renamePatch`, so spaces at either end, or a suggestion kept or cleared, close at once.
+ * `renamePatch`, so spaces at either end, or a suggestion kept or cleared, close at once. `offered` is the suggestion
+ * the field was filled with, as `renamePatch` takes it (the first replay's Name it, tend replay 15).
  */
-export function renameChanged(walk: Walk, title: string, epilogue: string): boolean {
+export function renameChanged(walk: Walk, title: string, epilogue: string, offered: string | null = null): boolean {
   const opened = renameFields(walk);
-  const was = renamePatch(walk, opened.title, opened.epilogue);
-  const now = renamePatch(walk, title, epilogue);
+  const was = renamePatch(walk, opened.title, opened.epilogue, offered);
+  const now = renamePatch(walk, title, epilogue, offered);
   return was.title !== now.title || was.epilogue !== now.epilogue;
 }

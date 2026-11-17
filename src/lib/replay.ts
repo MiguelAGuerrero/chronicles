@@ -1,7 +1,8 @@
 // @layer core
 import type { Faced } from './moment';
 import { distanceM, isBreak, type PauseSpan } from './geo';
-import type { LngLat, TracePoint } from './types';
+import { renameChanged } from './rename';
+import type { LngLat, TracePoint, Walk } from './types';
 
 /**
  * The replay's shared pieces: the fog beat's length, captures grouped into
@@ -41,11 +42,25 @@ export function groupCaptures(captures: Faced[]): PauseGroup[] {
 }
 
 /**
- * Where Back (Android) or Escape (web) takes the walk's replay from a beat: the name step goes back to its card with
- * the words typed kept (tend replay 4); any other beat leaves the replay, as Not now or Done does.
+ * Where Back (Android), Escape (web) or the name sheet's Back takes the walk's replay from a beat: the name step goes
+ * back to its card with the words typed kept (tend replay 4, T21); any other beat leaves the replay, as Not now or Done
+ * does, unless words typed in Name it would go with it: then it asks first (`ask`, tend replay 15). While the ask
+ * shows, Back and Escape are Keep editing, as in Rename (tend chronicle 9).
  */
-export function backFrom(beat: string): 'card' | 'leave' {
-  return beat === 'name' ? 'card' : 'leave';
+export function backFrom(beat: string, words: { typed?: boolean; asking?: boolean } = {}): 'card' | 'leave' | 'ask' | 'keep-editing' {
+  if (words.asking) return 'keep-editing';
+  if (beat === 'name') return 'card';
+  return words.typed ? 'ask' : 'leave';
+}
+
+/**
+ * Whether leaving the first replay would drop words typed in Name it (the owner's "Ask there too", Nov 16; decision
+ * 0172, O17): words Keep it would store otherwise than the walk holds, read as Rename reads them (`renameChanged`, with
+ * `offered`, the suggestion the field was filled with). Words left as they were, or both fields emptied, leave at once.
+ */
+export function wordsTyped(walk: Walk, title: string, epilogue: string, offered: string | null): boolean {
+  if (!title.trim() && !epilogue.trim()) return false;
+  return renameChanged(walk, title, epilogue, offered);
 }
 
 /**

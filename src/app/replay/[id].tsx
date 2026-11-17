@@ -36,7 +36,7 @@ import { tileCollector } from '../../lib/tileCollector';
 import { GapCard } from '../../components/GapCard';
 import { ensureTileBuild } from '../../lib/tiles';
 import { setAudioMode } from '../../lib/audioMode';
-import { backFrom, beatWords, FOG_MS, pinHint } from '../../lib/replay';
+import { backFrom, beatWords, FOG_MS, pinHint, wordsTyped } from '../../lib/replay';
 import { formatCaptures, formatDistance, formatDuration, loadReplay, suggestTitle, type ReplayData } from '../../lib/summary';
 import { renamePatch } from '../../lib/rename';
 import type { LngLat } from '../../lib/types';
@@ -95,6 +95,9 @@ export default function Replay() {
   const [epilogue, setEpilogue] = useState('');
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  // Leaving the first replay with words typed in Name it asks first, in Rename's words (tend replay 15).
+  const [asking, setAsking] = useState(false);
+  const keepEditing = () => setAsking(false);
   const [reduceMotion, setReduceMotion] = useState(false);
   const { width, height } = useWindowDimensions();
   const [viewing, setViewing] = useState<Faced[] | null>(null);
@@ -201,11 +204,22 @@ export default function Replay() {
   useEffect(() => {
     beatNow.current = phase.beat;
   }, [phase.beat]);
+  // The words typed in Name it, as Keep it would store them, and whether the ask is up, as Back reads them (tend replay 15).
+  const wordsNow = useRef<{ typed: boolean; asking: boolean }>({ typed: false, asking: false });
+  useEffect(() => {
+    wordsNow.current = { typed: !rewatch && !!data && wordsTyped(data.walk, title, epilogue, offered), asking };
+  }, [rewatch, data, title, epilogue, offered, asking]);
   // One way back, read once (tend replay 4, 5, T21): Android's Back, Escape and the name sheet's Back. True when it was
-  // taken here; false when the beat is left as Not now or Done leaves it.
+  // taken here; false when the beat is left as Not now or Done leaves it. Words typed ask first, with the fields and
+  // their words above the ask (tend replay 15).
   const stepBack = useCallback((): boolean => {
-    if (backFrom(beatNow.current) !== 'card') return false;
-    go('card');
+    const way = backFrom(beatNow.current, wordsNow.current);
+    if (way === 'leave') return false;
+    if (way === 'keep-editing') setAsking(false);
+    else if (way === 'ask') {
+      setAsking(true);
+      go('name');
+    } else go('card');
     return true;
   }, [go]);
   useEffect(() => {
@@ -692,15 +706,17 @@ export default function Replay() {
             ) : (
               <>
                 {/* A quiet way back to the card, the words kept, where Back and Escape go (tend replay T21, decision 0165):
-                    an iPhone has neither. */}
-                <Pressable
-                  testID="name-back"
-                  accessibilityRole="button"
-                  onPress={stepBack}
-                  style={({ pressed }) => [styles.nameBack, pressed && { opacity: 0.6 }]}
-                >
-                  <Text style={styles.notNowText}>Back</Text>
-                </Pressable>
+                    an iPhone has neither. While the ask shows, its two answers are the ways on (tend replay 15). */}
+                {!asking && (
+                  <Pressable
+                    testID="name-back"
+                    accessibilityRole="button"
+                    onPress={stepBack}
+                    style={({ pressed }) => [styles.nameBack, pressed && { opacity: 0.6 }]}
+                  >
+                    <Text style={styles.notNowText}>Back</Text>
+                  </Pressable>
+                )}
                 <Text style={styles.label} nativeID="title-label">Name this walk</Text>
                 <TextInput
                   testID="title-input"
@@ -725,12 +741,24 @@ export default function Replay() {
                   placeholder="e.g. The bakery was closed, the river was not."
                   placeholderTextColor={theme.muted}
                   returnKeyType="done"
-                  onSubmitEditing={save}
+                  // While the ask shows, Done is Keep editing, never a hidden save (as tend chronicle audit 5).
+                  onSubmitEditing={asking ? keepEditing : save}
                   maxLength={200}
                   style={styles.input}
                 />
                 {saveError ? <Text style={styles.error} accessibilityRole="alert">Could not save: {saveError}</Text> : null}
-                <Button testID="save" label="Keep it" onPress={save} busy={saving} busyLabel="Saving…" />
+                {asking ? (
+                  // Rename's ask, in its words, in Keep it's place (tend chronicle 9; tend replay 15).
+                  <View testID="name-ask" style={styles.ask} accessibilityLiveRegion="polite">
+                    <Text style={styles.askText}>Discard these edits?</Text>
+                    <View style={styles.askRow}>
+                      <Button testID="name-keep" label="Keep editing" variant="secondary" onPress={keepEditing} style={styles.flex} />
+                      <Button testID="name-discard" label="Discard" variant="danger" onPress={toChronicle} style={styles.flex} />
+                    </View>
+                  </View>
+                ) : (
+                  <Button testID="save" label="Keep it" onPress={save} busy={saving} busyLabel="Saving…" />
+                )}
               </>
             )}
           </ScrollView>
@@ -806,5 +834,9 @@ const styles = StyleSheet.create({
   label: { fontSize: 14, fontWeight: '600', color: theme.muted },
   input: { borderWidth: 1.5, borderColor: theme.edge, borderRadius: 10, padding: 12, fontSize: 16, color: theme.ink },
   error: { color: theme.danger, fontSize: 14 },
+  // Rename's ask (components/WalkActions).
+  ask: { gap: 10, marginTop: 8 },
+  askText: { fontSize: 16, color: theme.ink, textAlign: 'center' },
+  askRow: { flexDirection: 'row', gap: 8 },
 });
 

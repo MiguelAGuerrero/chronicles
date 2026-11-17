@@ -361,6 +361,54 @@ async function run(h) {
       check(onCardAgain && stillHere && keptBack === 'Plums by the bridge', `tend replay T21: at ${w} px Back returns to the card, the words kept (${onCardAgain}, ${stillHere}, "${keptBack}")`);
       await pg.click('[data-testid=name-back]').catch(() => {});
       await pg.waitForSelector('[data-testid=to-name]', { timeout: 3000 }).catch(() => {});
+      // tend replay 15 (the owner's "Ask there too", Nov 16): Escape twice with words typed, the name step to the card and
+      // then out, asks "Discard these edits?" in Rename's words, the fields and their words above it; Enter (a phone's
+      // Done) while it asks is Keep editing, and so is Escape; Keep editing stays with the words.
+      const askState = () => pg.evaluate(() => {
+        const ask = document.querySelector('[data-testid=name-ask]');
+        const btn = (id) => document.querySelector(`[data-testid=${id}]`)?.textContent ?? null;
+        const r = ask?.getBoundingClientRect();
+        return {
+          ask: ask ? ask.textContent : null, keep: btn('name-keep'), discard: btn('name-discard'), back: !!document.querySelector('[data-testid=name-back]'),
+          save: !!document.querySelector('[data-testid=save]'), field: document.querySelector('[data-testid=title-input]')?.value ?? null,
+          inside: !!r && r.left >= 0 && r.right <= window.innerWidth, replay: /\/replay\//.test(location.pathname),
+        };
+      });
+      await pg.click('[data-testid=to-name]');
+      await pg.keyboard.press('Escape');
+      await pg.waitForSelector('[data-testid=to-name]', { timeout: 3000 }).catch(() => {});
+      await pg.keyboard.press('Escape');
+      await pg.waitForSelector('[data-testid=name-ask]', { timeout: 3000 }).catch(() => {});
+      const asked = await askState();
+      check(asked.replay && /^Discard these edits\?/.test(asked.ask ?? '') && asked.keep === 'Keep editing' && asked.discard === 'Discard' && !asked.back && !asked.save && asked.field === 'Plums by the bridge' && asked.inside,
+        `tend replay 15: at ${w} px Escape twice with words typed asks "Discard these edits?" over the words, Keep editing and Discard in Keep it's place (${JSON.stringify(asked)})`);
+      await shot(pg, `rr-name-ask-${w}`);
+      await pg.click('[data-testid=epilogue-input]');
+      await pg.keyboard.press('Enter');
+      await pg.waitForTimeout(400);
+      const entered = await askState();
+      check(entered.replay && !entered.ask && entered.save && entered.back && entered.field === 'Plums by the bridge',
+        `tend replay 15: at ${w} px Enter while it asks is Keep editing, nothing stored and nothing left (${JSON.stringify(entered)})`);
+      await pg.keyboard.press('Escape');
+      await pg.waitForSelector('[data-testid=to-name]', { timeout: 3000 }).catch(() => {});
+      await pg.keyboard.press('Escape');
+      await pg.waitForSelector('[data-testid=name-ask]', { timeout: 3000 }).catch(() => {});
+      await pg.keyboard.press('Escape');
+      await pg.waitForTimeout(400);
+      const escaped = await askState();
+      check(escaped.replay && !escaped.ask && escaped.save && escaped.field === 'Plums by the bridge',
+        `tend replay 15: at ${w} px Escape while it asks is Keep editing (${JSON.stringify(escaped)})`);
+      await pg.keyboard.press('Escape');
+      await pg.waitForSelector('[data-testid=to-name]', { timeout: 3000 }).catch(() => {});
+      await pg.keyboard.press('Escape');
+      await pg.waitForSelector('[data-testid=name-ask]', { timeout: 3000 }).catch(() => {});
+      await pg.click('[data-testid=name-keep]').catch(() => {});
+      await pg.waitForTimeout(400);
+      const kept15 = await askState();
+      check(kept15.replay && !kept15.ask && kept15.save && kept15.field === 'Plums by the bridge',
+        `tend replay 15: at ${w} px Keep editing stays on the name step with the words (${JSON.stringify(kept15)})`);
+      await pg.click('[data-testid=name-back]').catch(() => {});
+      await pg.waitForSelector('[data-testid=to-name]', { timeout: 3000 }).catch(() => {});
     }
     await pg.setViewportSize({ width: 390, height: 844 });
 
@@ -465,7 +513,14 @@ async function run(h) {
 
     // The day (RR16): its replay reaches the day's card with no taps, the note on the way.
     const wakesBefore = (await pg.evaluate(() => window.__wake.log.length));
-    await pg.click('[data-testid=not-now]');
+    // Discard leaves the first replay for Chronicle, the words typed gone with it (tend replay 15), at 390 here and at
+    // 320 on the second walk.
+    await pg.keyboard.press('Escape');
+    await pg.waitForSelector('[data-testid=name-ask]', { timeout: 3000 }).catch(() => {});
+    await pg.click('[data-testid=name-discard]').catch(() => {});
+    const discarded = await pg.waitForURL((u) => u.pathname === `${BASE}/`, { timeout: 15000 }).then(() => true, () => false);
+    check(discarded, `tend replay 15: at 390 px Discard leaves the first replay for Chronicle (${new URL(pg.url()).pathname})`);
+    if (!discarded) await pg.click('[data-testid=not-now]');
     await pg.waitForURL((u) => u.pathname === `${BASE}/`, { timeout: 15000 });
     await h.mapUp(pg);
     await pg.click('[data-testid=sheet-days]');
@@ -609,6 +664,17 @@ async function run(h) {
       await pg.click('[data-testid=skip]');
       await pg.waitForSelector('[data-testid=to-name]', { timeout: 15000 });
     }
+    // tend replay 15 at 320 px: words typed, Escape twice asks, and Discard leaves for Chronicle.
+    await pg.setViewportSize({ width: 320, height: 568 });
+    await pg.click('[data-testid=to-name]');
+    await pg.fill('[data-testid=title-input]', 'Wickenden at dusk');
+    await pg.keyboard.press('Escape');
+    await pg.waitForSelector('[data-testid=to-name]', { timeout: 3000 }).catch(() => {});
+    await pg.keyboard.press('Escape');
+    const asked320 = await pg.waitForSelector('[data-testid=name-ask]', { timeout: 3000 }).then(() => true, () => false);
+    await pg.click('[data-testid=name-discard]').catch(() => {});
+    const left320 = await pg.waitForURL((u) => u.pathname === `${BASE}/`, { timeout: 15000 }).then(() => true, () => false);
+    check(asked320 && left320, `tend replay 15: at 320 px Escape twice with words typed asks, and Discard leaves for Chronicle (${asked320}, ${new URL(pg.url()).pathname})`);
     await pg.setViewportSize({ width: 390, height: 844 });
     await c.close();
     // The scenario refuses a video's sound on purpose; expo-video lets that refusal go unhandled.

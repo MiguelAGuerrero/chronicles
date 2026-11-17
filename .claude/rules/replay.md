@@ -116,3 +116,9 @@ A walk's replay and the day replay: the five beats, the story and its ceremonies
 - **Words for a screen reader, once per beat** (`beatWords`, keyed on `phase.t0`, `tend replay 9`): the walk is read
   again while its streets snap and when a note is edited, and an effect keyed on the data said each beat again.
 
+- **Words typed in Name it are never dropped without asking** (`tend replay 15`, the owner's "Ask there too", Nov 16;
+  decision 0172, O17): `backFrom(beat, { typed, asking })` asks before Back or Escape leaves the first replay with
+  words `wordsTyped` reads as Keep it would store them (Rename's `renameChanged`, with the suggestion offered); the ask
+  is Rename's, in Keep it's place under the fields; while it shows, Back, Escape and Done are Keep editing. Not now
+  leaves at once (a choice already made, as Rename's Cancel). The name sheet's quiet Back (`tend replay T21`) goes
+  through the same `stepBack` as Back and Escape.
