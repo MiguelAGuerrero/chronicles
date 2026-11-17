@@ -11,7 +11,7 @@ import type { DeleteSpec } from './pending';
  * does nothing.
  */
 export function createDeleteRunner(p: {
-  db: Pick<Db, 'getMoments' | 'getMomentsByIds' | 'deleteWalk' | 'deleteMoments' | 'deletePieces' | 'splitPiece' | 'applyThreads'>;
+  db: Pick<Db, 'getMoments' | 'getMomentsByIds' | 'deleteWalk' | 'deleteMoments' | 'deletePieces' | 'splitPiece' | 'joinMoment' | 'applyThreads'>;
   removeMedia: (refs: string[], folders?: string[]) => Promise<unknown>;
   /** Drops the in-memory reminders of what went (the recall check's copy). */
   forgetRecalls: () => void;
@@ -55,6 +55,13 @@ export function createDeleteRunner(p: {
         // Already its own moment (a relaunch after it was stored): nothing to do.
         if (moment) return;
         await p.db.splitPiece(spec.pieceId, spec.moment);
+        return;
+      }
+      case 'join': {
+        const [entry] = await p.db.getMomentsByIds([spec.fromId]);
+        // Already stacked (a relaunch after it was stored): nothing to do.
+        if (!entry) return;
+        await p.db.joinMoment(spec.fromId, spec.intoId);
         return;
       }
       case 'thread':

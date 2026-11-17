@@ -224,6 +224,28 @@ export function makeSqliteDb(open: () => Promise<SQLiteDatabase>): Db {
         await t.runAsync('UPDATE capture SET moment_id = ? WHERE id = ?', nm.id, pieceId);
       });
     },
+    joinMoment(fromId, intoId) {
+      return write(async (t) => {
+        const rows = await t.getAllAsync<{ id: string; walk_id: string | null }>('SELECT id, walk_id FROM moment WHERE id IN (?, ?)', fromId, intoId);
+        const from = rows.find((r) => r.id === fromId);
+        const into = rows.find((r) => r.id === intoId);
+        if (!from || !into) throw new Error(`No moment ${from ? intoId : fromId}.`);
+        if ((from.walk_id ?? null) !== (into.walk_id ?? null)) throw new Error('Moments on different walks are never joined.');
+        await t.runAsync('UPDATE capture SET moment_id = ? WHERE moment_id = ?', intoId, fromId);
+        await t.runAsync('DELETE FROM moment WHERE id = ?', fromId);
+      });
+    },
+    async referencesTo(id) {
+      const c = await conn();
+      const has = async (sql: string, ...args: string[]) => ((await c.getFirstAsync<{ n: number }>(sql, ...args))?.n ?? 0) > 0;
+      return {
+        thread: await has('SELECT COUNT(*) AS n FROM thread_member WHERE moment_id = ?', id),
+        link: await has('SELECT COUNT(*) AS n FROM moment_link WHERE from_id = ? OR to_id = ?', id, id),
+        reminder: await has('SELECT COUNT(*) AS n FROM recall WHERE capture_id = ?', id),
+        find: await has('SELECT COUNT(*) AS n FROM find WHERE capture_id = ?', id),
+        reaction: await has('SELECT COUNT(*) AS n FROM reaction WHERE moment_id = ?', id),
+      };
+    },
     async getMoments(walkId) {
       return foldRows(await (await conn()).getAllAsync<JoinedRow>(`${MOMENT_SELECT} WHERE m.walk_id = ?${ORDER}`, walkId));
     },

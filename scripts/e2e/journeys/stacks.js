@@ -79,15 +79,15 @@ async function run(h) {
   await tabTo(pg, 'chronicle', 'memories');
   await pg.waitForTimeout(1500);
   const cards = await pg.locator('[data-testid=moment-card]').count();
-  // On the journal's page an entry shows every piece under one dateline (chronicle journal JN3, amending MS8's mark there).
-  const stacked = await pg.locator('[data-testid=moment-card]:has([data-testid^=entry-piece-] ~ [data-testid^=entry-piece-])').count();
+  // On the journal's page a closed stack shows its face, the mark and its kinds in words, and opens into a grid (decision 0197, SW11, amending JN3).
+  const stacked = await pg.locator('[data-testid=moment-card]:has([data-testid=stack-kinds])').count();
   const marks = await pg.locator('[data-testid=journal-page] [data-testid=stack-mark]').count();
-  check(cards === 2 && stacked === 1 && marks === 0, `MS7, MS8: two moments, two entries, one holding more than one piece, each shown (${cards} entries, ${stacked} stacked, ${marks} marks)`);
-  const markLabel = stacked ? await pg.locator('[data-testid=moment-card]:has([data-testid^=entry-piece-] ~ [data-testid^=entry-piece-]) [data-testid=moment-open]').first().getAttribute('aria-label') : null;
+  check(cards === 2 && stacked === 1 && marks === 1, `MS7, MS8: two moments, two entries, one holding more than one piece, each shown (${cards} entries, ${stacked} stacked, ${marks} marks)`);
+  const markLabel = stacked ? await pg.locator('[data-testid=moment-card]:has([data-testid=stack-kinds]) [data-testid=moment-open]').first().getAttribute('aria-label') : null;
   check(/with more in this moment/.test(markLabel ?? ''), `MS8: that it holds more is spoken in words (${markLabel})`);
 
   // The viewer, opened from a list of several: pieces in order by arrows and buttons, no position or total (MS9, MS10).
-  await pg.locator('[data-testid=moment-card]:has([data-testid^=entry-piece-] ~ [data-testid^=entry-piece-]) [data-testid=moment-open]').first().click();
+  await pg.locator('[data-testid=moment-card]:has([data-testid=stack-kinds]) [data-testid=moment-open]').first().click();
   await there('[data-testid=viewer-close]');
   const seen = [];
   const texts = [];
@@ -161,13 +161,14 @@ async function run(h) {
   // Split out (MS16): the stacked moment's note leaves it, shown at once as its own moment, stored after the window.
   await tabTo(pg, 'chronicle', 'memories');
   await pg.waitForTimeout(1500);
-  await pg.locator('[data-testid=moment-card]:has([data-testid^=entry-piece-] ~ [data-testid^=entry-piece-]) [data-testid=moment-open]').first().click().catch(() => {});
+  await pg.locator('[data-testid=moment-card]:has([data-testid=stack-kinds]) [data-testid=moment-open]').first().click().catch(() => {});
   await there('[data-testid=viewer-close]');
   await pg.keyboard.press('ArrowRight');
   await pg.waitForTimeout(400);
   await pg.click('[data-testid=capture-viewer] [aria-label="More"]').catch(() => {});
   const splitText = (await there('[data-testid=menu-split]', 3000)) ? await pg.locator('[data-testid=menu-split]').innerText() : '';
-  check(/Split this (note|photo) out/.test(splitText), `MS16: More offers Split out by kind on a piece that is not the first (${splitText})`);
+  const dbg = await pg.evaluate(() => ({ menus: [...document.querySelectorAll('[data-testid^=menu-],[data-testid^=viewer-]')].map((e) => e.dataset.testid), viewer: !!document.querySelector('[data-testid=capture-viewer]'), shown: document.querySelector('[data-testid=piece-shown]')?.dataset?.kind })).catch(() => null);
+  check(/Split this (note|photo) out/.test(splitText), `MS16: More offers Split out by kind on a piece that is not the first (${splitText}) ${JSON.stringify(dbg)}`);
   if (splitText) await pg.click('[data-testid=menu-split]');
   const shownAtOnce = await there('[data-testid=undo-toast]', 3000);
   const nextMoment = await pg.locator('[data-testid=capture-viewer] [aria-label="Next moment"]').count();
@@ -269,6 +270,7 @@ async function replayGrid(h, check) {
   const text = seen ? await pg.locator('[data-testid=replay-grid]').innerText() : '';
   check(seen && cells === 3, `MS17: the stacked moment comes up as one grid, a cell for each of its photos (${cells})`);
   check(seen && !/\d/.test(text) && (await pg.locator('[data-testid=replay-grid] [role=progressbar]').count()) === 0, 'MS17: the grid has no dots, numbers or progress bar');
+  // Stack with previous and the quick-action row (SW1-SW18, decision 0197): its checks are the `stackjoin` journey's.
   await c.close();
 }
 

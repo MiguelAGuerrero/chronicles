@@ -71,19 +71,19 @@ async function run(h) {
 
   // RX1, RX9: the photo's entry today offers the sign; one tap opens the reactions, and a choice is kept.
   await shot(pg, 'reactions-00-journal');
-  // reactions audit 3 (the cold find): nothing lies over the sign's plus (the held date's edge bands washed it out).
+  // reactions audit 3, carried to the row (SW20, decision 0197): nothing lies over the first Reaction slot.
   const ui3a = await pg.evaluate(() => {
-    // The plus nearest the top of the sheet, just under the held date: where the date's edge would lie over it.
     const foot = document.querySelector('[data-testid=open-line]')?.getBoundingClientRect().top ?? window.innerHeight;
-    const adds = [...document.querySelectorAll('[data-testid=reaction-sign-add]')].filter((e) => { const r = e.getBoundingClientRect(); return r.top > 0 && r.bottom < foot; });
-    const add = adds[0];
-    if (!add) return null;
-    const r = add.getBoundingClientRect();
+    const under = Math.max(0, ...[...document.querySelectorAll('[data-testid=day-edge]')].map((e) => e.getBoundingClientRect().bottom));
+    const slot = [...document.querySelectorAll('[data-testid=quick-react]')].find((e) => { const r = e.getBoundingClientRect(); return r.top >= under && r.bottom < foot; });
+    if (!slot) return null;
+    const r = slot.getBoundingClientRect();
     const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
-    const sign = add.closest('[data-testid=reaction-sign]');
-    return { top: !!hit && (add.contains(hit) || hit === sign), hit: hit?.closest('[data-testid]')?.getAttribute('data-testid') ?? hit?.tagName, y: Math.round(r.top) };
+    const all = [...document.querySelectorAll('[data-testid=quick-react]')].map((e) => { const q = e.getBoundingClientRect(); const h = document.elementFromPoint(q.left + q.width / 2, q.top + q.height / 2); return [Math.round(q.top), Math.round(q.height), h?.closest('[data-testid]')?.getAttribute('data-testid')]; });
+    const edges = [...document.querySelectorAll('[data-testid=day-edge]')].map((e) => { const q = e.getBoundingClientRect(); return [Math.round(q.top), Math.round(q.bottom)]; });
+    return { top: !!hit && slot.contains(hit), hit: hit?.closest('[data-testid]')?.getAttribute('data-testid') ?? hit?.tagName, all, edges, foot: Math.round(foot) };
   });
-  check(!!ui3a && ui3a.top, `reactions audit 3: nothing lies over the sign's plus (${JSON.stringify(ui3a)})`);
+  check(!!ui3a && ui3a.top, `reactions audit 3: nothing lies over the Reaction slot (${JSON.stringify(ui3a)})`);
   // RL8: at rest (the page at its end), nothing lies over the entry right under the held date: the date's edge (drawn
   // without pointer events, so measured, not hit-tested) ends above the sign's face and the dateline's words, at 390
   // and at 320.
@@ -94,7 +94,7 @@ async function run(h) {
     const card = [...document.querySelectorAll('[data-testid=journal-page] [data-testid=moment-card]')]
       .filter((c) => c.getBoundingClientRect().bottom > edge.bottom).sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top)[0];
     if (!card) return ['no entry'];
-    const marks = ['reaction-sign-face', 'entry-dateline'].map((id) => card.querySelector(`[data-testid=${id}]`)).filter(Boolean);
+    const marks = ['entry-dateline'].map((id) => card.querySelector(`[data-testid=${id}]`)).filter(Boolean);
     return marks.map((m) => { const t = Math.round(m.getBoundingClientRect().top); return t >= Math.round(edge.bottom) || `${m.getAttribute('data-testid') ?? m.textContent.trim()}@${t}<${Math.round(edge.bottom)}`; });
   });
   const rl8 = { at390: await clearOf() };
@@ -103,8 +103,8 @@ async function run(h) {
   rl8.at320 = await clearOf();
   await pg.setViewportSize({ width: 390, height: 844 });
   await pg.waitForTimeout(700);
-  check(rl8.at390.length === 2 && rl8.at390.every((x) => x === true) && rl8.at320.length === 2 && rl8.at320.every((x) => x === true), `RL8: nothing lies over the first entry's dateline or sign at rest, at 390 and 320 (${JSON.stringify(rl8)})`);
-  const sign = photoEntry().locator('[data-testid=reaction-sign]');
+  check(rl8.at390.length === 1 && rl8.at390.every((x) => x === true) && rl8.at320.length === 1 && rl8.at320.every((x) => x === true), `RL8: nothing lies over the first entry's dateline or sign at rest, at 390 and 320 (${JSON.stringify(rl8)})`);
+  const sign = photoEntry().locator('[data-testid=quick-react]');
   const sign9 = { count: await sign.count(), label: await sign.getAttribute('aria-label').catch(() => null) };
   await sign.click({ timeout: 3000 }).catch(() => {});
   await pg.waitForTimeout(600);
@@ -114,31 +114,21 @@ async function run(h) {
   await pg.waitForTimeout(1000);
   const kept1 = await reactionsOf(pg, 'rx-photo');
   check(seeded === true && sign9.count === 1 && kept1?.feeling === 'happy',
-    `RX1: a photo's entry today offers the face with a plus, and a tap on a reaction there keeps it (${JSON.stringify({ seeded, sign9, kept1 })})`);
+    `RX1: a photo's entry offers Reaction in its row, and a tap on a reaction there keeps it (${JSON.stringify({ seeded, sign9, kept1 })})`);
   check(families.length === 3 && /^Feeling/.test(families[0]) && /^Taste/.test(families[1]) && /^Thought/.test(families[2]),
     `RX9: the sign opens the three families by themselves (${JSON.stringify(families)})`);
   await pg.click('[data-testid=reaction-done]', { timeout: 1500 }).catch(() => {});
   await pg.waitForTimeout(700);
-  const marked9 = await photoEntry().locator('[data-testid=reaction-sign]').getAttribute('aria-label').catch(() => null);
   // RX14: the entry shows its reactions under its dateline, glyph and name, in the families' order.
   const marks14 = await photoEntry().locator('[data-testid=reaction-marks] [data-testid=reaction-name]').allInnerTexts().catch(() => []);
-  check(marked9 === 'Reaction, Happy' && marks14.join() === 'Happy',
-    `RX9, RX14: marked, the sign is the first reaction's glyph; the entry spells its reactions under the dateline (${JSON.stringify({ marked9, marks14 })})`);
-  // reactions ui 2 (the cold find): the sign's plus reads as ink, not a faint grey badge: an ink disc of 16 px or more.
-  const ui2 = await pg.evaluate(() => {
-    const add = document.querySelector('[data-testid=reaction-sign-add]');
-    if (!add) return null;
-    const r = add.getBoundingClientRect();
-    return { w: Math.round(r.width), bg: getComputedStyle(add).backgroundColor };
-  });
-  check(!!ui2 && ui2.w >= 16 && ui2.bg === INK, `reactions ui 2: the sign's plus is an ink disc of 16 px or more (${JSON.stringify(ui2)})`);
-  const old9 = await entry('Nothing much on the way home').locator('[data-testid=reaction-sign]').count();
-  check(old9 === 0, `RX9: an entry of an earlier day shows no sign on its row (${old9})`);
+  check(marks14.join() === 'Happy',
+    `RX14: the entry spells its reactions under the dateline (${JSON.stringify({ marks14 })})`);
+  // reactions ui 2 (the sign's plus as an ink disc) applies to the entry being written only; entries react from the row (SW19).
+  // RX9's "only today" went with the sign: every entry has Reaction in its row (SW20).
 
   // RX10: every entry's More offers Reaction, which shows the three families in the same sheet and stays for another.
-  await entry('Nothing much on the way home').locator('[data-testid=moment-more]').click().catch(() => {});
+  await entry('Nothing much on the way home').locator('[data-testid=quick-react]').click().catch(() => {});
   await pg.waitForTimeout(600);
-  await pg.click('[data-testid=menu-reaction]', { timeout: 3000 }).catch(() => {});
   await pg.waitForTimeout(500);
   const alone10 = await pg.locator('[data-testid=memory-menu] [data-testid=menu-less], [data-testid=memory-menu] [data-testid=menu-hide]').count();
   await pg.click('[data-testid=reaction-pick-sad]', { timeout: 3000 }).catch(() => {});
@@ -219,7 +209,7 @@ async function run(h) {
   // RX34, RX36: at 320 px every reaction shows its name, nothing cut, 44 px targets, ink only, spoken with its family.
   await pg.setViewportSize({ width: 320, height: 720 });
   await pg.waitForTimeout(500);
-  await photoEntry().locator('[data-testid=reaction-sign]').click({ timeout: 3000 }).catch(() => {});
+  await photoEntry().locator('[data-testid=quick-react]').click({ timeout: 3000 }).catch(() => {});
   await pg.waitForTimeout(600);
   const at320 = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=reaction-panel] [data-testid^=reaction-pick-]')].map((e) => { const r = e.getBoundingClientRect(); const g = e.querySelector('[data-testid^=reaction-glyph-]'); return { label: e.getAttribute('aria-label'), text: e.querySelector('[data-testid=reaction-name]')?.textContent ?? '', w: Math.round(r.width), h: Math.round(r.height), l: Math.round(r.left), r: Math.round(r.right), ink: g ? getComputedStyle(g).color : null, bg: getComputedStyle(e).backgroundColor, cut: e.scrollWidth > e.clientWidth + 1 }; }));
   await shot(pg, 'reactions-04-panel-320');
@@ -365,16 +355,7 @@ async function run(h) {
   await pg.click('[data-testid=section-memories]').catch(() => {});
   await there(entries, 15000);
   await pg.waitForTimeout(1500);
-  // RL6: once marked, the sign is still the face with a plus at the same size, and says all that is chosen.
-  const sign6 = await pg.evaluate(() => {
-    const cards = [...document.querySelectorAll('[data-testid=journal-page] [data-testid=moment-card]')];
-    const marked = cards.find((c) => c.querySelector('img') && c.querySelector('[data-testid=reaction-sign]'));
-    const plain = cards.find((c) => !c.querySelector('[data-testid=reaction-marks]') && c.querySelector('[data-testid=reaction-sign]'));
-    const box = (c) => { const g = c?.querySelector('[data-testid=reaction-sign-face]')?.getBoundingClientRect(); return g ? [Math.round(g.width), Math.round(g.height)] : null; };
-    return { label: marked?.querySelector('[data-testid=reaction-sign]')?.getAttribute('aria-label'), plus: !!marked?.querySelector('[data-testid=reaction-sign-add]'), size: box(marked), plainSize: box(plain) };
-  });
-  check(sign6.label === 'Reaction, Happy, Idea' && sign6.plus && !!sign6.size && JSON.stringify(sign6.size) === JSON.stringify(sign6.plainSize),
-    `RL6: a marked entry's sign is still the face with a plus at the same size, and says what is chosen (${JSON.stringify(sign6)})`);
+  // RL6 (a marked entry's sign) went with the sign on entries: they react from the row, and the reactions stay spelled under the dateline (SW19, SW20, decision 0197).
   // RL1, RL2, RL5: "Idea" under the photo's entry is a link to Ideas; Back returns to the journal.
   const link5 = await photoEntry().locator('[data-testid=reaction-link-idea]').evaluate((e) => { const r = e.getBoundingClientRect(); return { role: e.getAttribute('role'), label: e.getAttribute('aria-label'), h: Math.round(r.height) }; }).catch(() => null);
   check(!!link5 && link5.role === 'link' && link5.label === 'Ideas' && link5.h >= 44, `RL5: a reaction under an entry is a link named for its lens, 44 px tall (${JSON.stringify(link5)})`);
@@ -415,8 +396,7 @@ async function run(h) {
     window.__unbreak = () => { IDBObjectStore.prototype.put = put; };
     IDBObjectStore.prototype.put = function (...a) { if (this.name === 'reaction') throw new DOMException('broken for the test', 'UnknownError'); return put.apply(this, a); };
   });
-  await entry('Nothing much on the way home').locator('[data-testid=moment-more]').click().catch(() => {});
-  await pg.click('[data-testid=menu-reaction]', { timeout: 3000 }).catch(() => {});
+  await entry('Nothing much on the way home').locator('[data-testid=quick-react]').click().catch(() => {});
   await pg.click('[data-testid=reaction-pick-like]', { timeout: 3000 }).catch(() => {});
   await pg.waitForTimeout(900);
   const fail9 = { line: await pg.locator('[data-testid=reaction-not-kept]').innerText().catch(() => null), chosen: await pg.locator('[data-testid=reaction-pick-like]').getAttribute('aria-checked').catch(() => null) };

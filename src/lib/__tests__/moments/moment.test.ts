@@ -84,3 +84,29 @@ test('MS11: a moment shown at its face reads the face\'s patched fields, not its
   assert.equal(facedAt(patched, 'n').kind, 'text');
   assert.equal(facedAt(patched, 'n').edit, null, 'another piece shows its own media');
 });
+
+// Stack with previous SW10, SW11 (decision 0197): a piece made later says when, a stack names its kinds in words.
+const later = () => import('../../moment' + '') as Promise<{
+  pieceWhen(m: Moment, p: Capture, now?: number): string | null;
+  kindsLine(m: Pick<Moment, 'pieces'>): string;
+}>;
+const clock = (h: number, m: number) => new Date(2026, 10, 17, h, m).getTime();
+
+test('SW10: a piece made later says when, in words, and names no place; within the same minute it says nothing', async () => {
+  const { pieceWhen } = await later();
+  const m = moment('m', [piece('m', 'm', clock(8, 15), 'photo'), piece('n', 'm', clock(16, 12), 'text'), piece('q', 'm', clock(8, 15) + 20_000, 'text')]);
+  const words = pieceWhen(m, m.pieces[1]);
+  assert.match(words ?? '', /^Added later, \d{1,2}:\d{2} [ap]m$/);
+  assert.ok(!/street|corner|near|at /i.test(words ?? ''), 'no place');
+  assert.equal(pieceWhen(m, m.pieces[0]), null, 'the first piece is the moment');
+  assert.equal(pieceWhen(m, m.pieces[2]), null, 'within the same minute');
+});
+
+test('SW11: the collapsed face names its kinds in words, never a number', async () => {
+  const { kindsLine } = await later();
+  assert.equal(kindsLine(moment('m', [piece('a', 'm', 1, 'photo'), piece('b', 'm', 2, 'text')])), 'a photo and a note');
+  assert.equal(kindsLine(moment('m', [piece('a', 'm', 1, 'photo'), piece('b', 'm', 2, 'text'), piece('c', 'm', 3, 'voice')])), 'a photo, a note and a voice note');
+  const many = kindsLine(moment('m', [piece('a', 'm', 1, 'photo'), piece('b', 'm', 2, 'photo'), piece('c', 'm', 3, 'photo'), piece('d', 'm', 4, 'video')]));
+  assert.ok(!/\d|\b(two|three|four|five|six|seven|eight|nine|ten)\b/i.test(many), `no number in "${many}"`);
+  assert.match(many, /photos/);
+});

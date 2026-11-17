@@ -259,6 +259,23 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
       moments.put({ ...m, pieces: m.pieces.filter((x) => x.id !== pieceId) });
       moments.put(copy({ ...nm, pieces: [{ ...p, moment_id: nm.id }] }));
     },
+    async joinMoment(fromId, intoId) {
+      const from = moments.get(fromId);
+      const into = moments.get(intoId);
+      if (!from || !into) throw new Error(`no moment ${from ? intoId : fromId}`);
+      if ((from.walk_id ?? null) !== (into.walk_id ?? null)) throw new Error('moments on different walks are never joined');
+      moments.put({ ...into, pieces: [...into.pieces, ...from.pieces.map((p) => ({ ...p, moment_id: intoId }))].sort((x, y) => x.t - y.t) });
+      moments.delete(fromId);
+    },
+    async referencesTo(id) {
+      return {
+        thread: members.all().some((m) => m.moment_id === id),
+        link: links.all().some((l) => l.from_id === id || l.to_id === id),
+        reminder: !!recalls.get(id),
+        find: finds.all().some((f) => f.capture_id === id),
+        reaction: reactions.all().some((r) => r.moment_id === id),
+      };
+    },
     async getMoments(walkId) {
       return moments.where(walkOf, walkId).map(readMoment).sort(byT);
     },

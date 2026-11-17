@@ -396,6 +396,8 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
 export function CaptureViewer(props: {
   captures: Faced[] | null;
   onClose: () => void;
+  /** Opened from an entry's quick-action row (decision 0197): go straight to Respond's menu or to the piece's editor, once. */
+  intent?: 'respond' | 'edit';
   /** A reaction under the info line opens its lens (RL3): the viewer closes first. Memories' viewers alone pass it (RL4). */
   onLens?: (id: ReactionId) => void;
   /** Extra words per capture, e.g. which walk it came from. */
@@ -694,6 +696,19 @@ export function CaptureViewer(props: {
       : current && current.kind === 'text' && props.onSaveNote
         ? { label: 'Edit', testID: 'viewer-edit-note', onPress: () => setNoting(current) }
         : null;
+  // Once, when the viewer shows what an entry's row asked for (decision 0197, SW2, SW4): from a timer, not the effect body.
+  const intentDone = useRef(false);
+  const intentRef = useRef({ respond: () => setReplyStage('sheet'), edit: editAction?.onPress });
+  useEffect(() => {
+    intentRef.current = { respond: () => setReplyStage('sheet'), edit: editAction?.onPress };
+  });
+  const shown = !!current;
+  useEffect(() => {
+    if (!props.intent || intentDone.current || !shown) return;
+    intentDone.current = true;
+    const t = setTimeout(() => intentRef.current[props.intent as 'respond' | 'edit']?.(), 0);
+    return () => clearTimeout(t);
+  }, [props.intent, shown]);
   return (
     <Modal
       visible={list.length > 0}

@@ -238,6 +238,9 @@ const FEATURES = [
       'src/lib/media/**',
       'src/lib/{useCaptures,thumbPlan,thumbJob,useMediaUri,captureBus,pieceStamp,openMoment,splitPlace}.ts',
       'src/lib/split/**',
+      // Stack with previous (SW1-SW18, decision 0197): the join, its Undo window and the quick-action row's rule.
+      'src/lib/join/**',
+      'src/components/journal/{QuickActions,StackGrid}.tsx',
       // Moment stacks (MS1-MS21): the open moment's store, the pill and the stacked mark.
       'src/lib/momentPill/**',
       'src/components/StackMark.tsx',
@@ -255,8 +258,8 @@ const FEATURES = [
       // Unsaved captures (UN1-UN15, decision 0196): the one holder of every capture that failed to save.
       'src/lib/unsaved/**',
     ],
-    journeys: ['edit', 'stacks', 'voicetrim', 'videothumbs', 'unsaved'],
-    specs: ['memories-on-revisit', 'media-editing', 'moment-stacks', 'voice-trim', 'note-types', 'video-thumbnails', 'unsaved-captures'],
+    journeys: ['edit', 'stacks', 'stackjoin', 'voicetrim', 'videothumbs', 'unsaved'],
+    specs: ['memories-on-revisit', 'media-editing', 'moment-stacks', 'stack-with-previous', 'voice-trim', 'note-types', 'video-thumbnails', 'unsaved-captures'],
   },
   {
     name: 'chronicle',

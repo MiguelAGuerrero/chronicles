@@ -373,6 +373,16 @@ recording, and a recording bar brings a minimized walk back.
     in the app's voice ("8:15 this morning · Elm Street, Fox Point"; on a walk, "Forty minutes in, just after a photo"),
     then every piece in the order captured. Your words are in a serif, everything the app says in its sans. A tap on a
     placed entry's dateline shows it on Chronicle's Map; a tap on the entry opens it; "From …" opens its walk's replay.
+  - **Quick actions under every entry** (decision 0197, SW1-SW20): a row of five icons, each with a one-word caption:
+    **Reaction** (the reactions, any day), **Respond** (a new linked moment), **Thread** (Add to a thread), **Edit** and
+    **Stack** (Stack with previous). A slot that does not apply is empty and moves no other; the entry being written has no row.
+    An entry has no More and no reaction sign: Show less like this and Not this one are gone from entries (the slip keeps its own More).
+  - **Stack with previous**: on the entry just kept in this sitting, while nothing points at it, one tap moves its pieces into
+    the previous moment of the same day, same walk and within 100 m, with Undo ("Stacked with the earlier moment"). Each piece
+    keeps its own time; one that was made later says "Added later, 4:12 pm" and names no place.
+  - **A stack as a gallery**: a moment with several pieces shows its first photo or video, your words and voice notes as before,
+    a quiet mark and its kinds in words ("a photo, a note and a voice note"); **Show all** opens a grid of every piece, three to a
+    row, each tile with its own time, and **Show less** closes it. No count anywhere.
   - **When it opens** the page is aligned to the top: today's date, the last entry under it, and the empty page below,
     down to the toolbar. Pull down to read back; each day's date holds at the top while its entries pass.
   - **A toolbar at the foot** (decisions 0178, 0179): above the tab bar, wherever the page is scrolled, a soft grey

@@ -1,7 +1,7 @@
 // @layer core
 import { distanceM, positionAt, type PauseSpan } from './geo';
 import { parseEdit } from './mediaEdit';
-import type { Capture, LngLat, Moment, StreetSegment, TracePoint } from './types';
+import type { Capture, CaptureKind, LngLat, Moment, StreetSegment, TracePoint } from './types';
 
 /**
  * A moment holds its media (decision 0123, MT4, MT5, MT10): the pure helpers over it. The store keeps a moment's
@@ -152,3 +152,31 @@ export function facedAt(f: Faced, pieceId: string): Faced {
 
 /** A piece waiting in the Undo window is hidden by this key, never by its id: a moment's first piece shares its id. */
 export const pieceKey = (pieceId: string): string => `piece:${pieceId}`;
+
+/** A clock time in words ("8:15 am"): a tile's own time (decision 0197, SW12). */
+export function clockOf(t: number): string {
+  const d = new Date(t);
+  const h = d.getHours();
+  return `${h % 12 === 0 ? 12 : h % 12}:${String(d.getMinutes()).padStart(2, '0')} ${h < 12 ? 'am' : 'pm'}`;
+}
+
+/** A piece made later than its moment says when, in words, and names no place (decision 0197, SW10); null within the same minute. */
+export function pieceWhen(m: Pick<Moment, 't'>, p: Pick<Capture, 't'>): string | null {
+  if (Math.floor(p.t / 60_000) <= Math.floor(m.t / 60_000)) return null;
+  return `Added later, ${clockOf(p.t)}`;
+}
+
+const KIND_ONE: Record<CaptureKind, string> = { photo: 'a photo', video: 'a video', voice: 'a voice note', text: 'a note' };
+const KIND_MANY: Record<CaptureKind, string> = { photo: 'photos', video: 'videos', voice: 'voice notes', text: 'notes' };
+
+/** The kinds a stack holds, in words and never a number ("a photo, a note and a voice note"; several of a kind: its plural) (SW11). */
+export function kindsLine(m: Pick<Moment, 'pieces'>): string {
+  const order: CaptureKind[] = [];
+  const seen = new Map<CaptureKind, number>();
+  for (const p of m.pieces) {
+    if (!seen.has(p.kind)) order.push(p.kind);
+    seen.set(p.kind, (seen.get(p.kind) ?? 0) + 1);
+  }
+  const parts = order.map((k) => ((seen.get(k) ?? 0) > 1 ? KIND_MANY[k] : KIND_ONE[k]));
+  return parts.length < 2 ? (parts[0] ?? '') : `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}`;
+}
