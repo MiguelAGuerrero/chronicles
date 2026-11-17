@@ -39,6 +39,7 @@
   .play { position:absolute; inset:0; display:grid; place-items:center; }
   .play i { width:22px; height:22px; border-radius:50%; background:rgba(255,255,255,.9); display:block; position:relative; }
   .play i::after { content:""; position:absolute; left:8px; top:6px; border-left:8px solid #1d2430; border-top:5px solid transparent; border-bottom:5px solid transparent; }
+  .kinds { margin-top:6px; font-size:12px; color:var(--muted); }
   .legend { margin-top:26px; max-width:70ch; color:var(--muted); font-size:13px; }
   .legend li { margin-bottom:6px; } .legend b { color:var(--ink); }
 </style>
@@ -72,7 +73,7 @@
     </div>
     <div class="line">What’s on your mind?</div>
   </div>
-  <figcaption><b>1 · The button.</b> On the entry you just kept, under its words: a labelled ink button, one tap. It is shown only when a moment from the same day precedes it and nothing points at the new entry.</figcaption>
+  <figcaption><b>1 · The button.</b> On the entry you just kept, under its words: a labelled ink button, one tap. It is shown only when a moment from the same day, on the same walk and within 100 m, precedes it and nothing points at the new entry.</figcaption>
 </figure>
 
 <figure>
@@ -82,7 +83,8 @@
       <div class="head"><span>Maple Street · 8:15 this morning</span><span>•••</span></div>
       <div class="words">Turn left onto Maple Street.</div>
       <div class="pic"><span class="mark"><svg><use href="#i-stack"/></svg></span></div>
-      <div class="link">Show everything in this moment <svg><use href="#i-down"/></svg></div>
+      <div class="kinds">A photo and a note</div>
+      <div class="link">Show all <svg><use href="#i-down"/></svg></div>
     </div>
     <div class="pill"><span>Stacked with the earlier moment</span><b>Undo</b></div>
     <div class="line">What’s on your mind?</div>
@@ -96,18 +98,18 @@
     <div class="entry">
       <div class="head"><span>Maple Street · 8:15 this morning</span><span>•••</span></div>
       <div class="grid">
-        <div class="tile"></div>
+        <div class="tile"><span class="later">8:15</span></div>
         <div class="tile note">Turn left onto Maple Street.</div>
         <div class="tile note">Then at the stop sign, turn right onto East Union Boulevard.<span class="later">Added later, 8:21 am</span></div>
-        <div class="tile b"><span class="play"><i></i></span></div>
-        <div class="tile voice"><svg><use href="#i-mic"/></svg>A voice note</div>
-        <div class="tile"></div>
+        <div class="tile b"><span class="play"><i></i></span><span class="later">8:17</span></div>
+        <div class="tile voice"><svg><use href="#i-mic"/></svg>A voice note<span class="later" style="position:absolute;left:0;right:0;bottom:0">8:19</span></div>
+        <div class="tile b"><span class="later">8:20</span></div>
       </div>
       <div class="link">Show less <svg><use href="#i-up"/></svg></div>
     </div>
     <div class="line">What’s on your mind?</div>
   </div>
-  <figcaption><b>3 · Everything in it.</b> Every piece as a tile, in capture order, three to a row: pictures, a video still under a play mark, a note's first words, a voice note. A tap opens the viewer on that piece. A piece made later says when, never where. No count anywhere.</figcaption>
+  <figcaption><b>3 · Everything in it.</b> Every piece as a tile, in capture order, three to a row: pictures, a video still under a play mark, a note's first words, a voice note. Each tile says its own time. A tap opens the viewer on that piece. A piece made later says when, never where. No count anywhere.</figcaption>
 </figure>
 
 </div>
@@ -115,7 +117,7 @@
 <ul class="legend">
   <li><b>Collapsed by default</b> (a default for you to overrule): a list stays a list, and the grid is one tap away.</li>
   <li><b>Where it appears:</b> Chronicle's page now. Days, a walk's moments, Memories here and a thread keep their row and mark for now.</li>
-  <li><b>Place:</b> the stack keeps the earlier moment's one place. The note's own corner is not kept; Respond is how a new corner is kept.</li>
+  <li><b>Place:</b> the button is offered only within 100 m of the earlier moment (a default for you to overrule), so the stack's one place is true of every piece. Farther away, Respond is how a new corner is kept.</li>
 </ul>
 </body>
 </html>
