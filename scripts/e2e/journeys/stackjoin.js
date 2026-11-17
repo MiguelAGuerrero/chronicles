@@ -5,6 +5,7 @@
 async function run(h) {
   const { url, check, shot, freshPage } = h;
   const { c, pg } = await freshPage('stackjoin', { permissions: ['geolocation', 'microphone'] });
+  await c.setGeolocation({ latitude: 41.8236, longitude: -71.4222 });
   const there = (sel, timeout = 10000) => pg.waitForSelector(sel, { timeout, state: 'visible' }).then(() => true, () => false);
   const count = (sel) => pg.locator(sel).filter({ visible: true }).count();
   const entries = '[data-testid=journal-page] [data-testid=moment-card]';
@@ -46,6 +47,8 @@ async function run(h) {
   const rowText = (await pg.locator('[data-testid=quick-actions]').first().innerText().catch(() => 'x')).replace(/[\s\uE000-\uF8FF]/g, '');
   check(nEntries === 2 && rows === 2 && rowText === 'ReactionRespondThreadEdit', `SW1: each entry has a quick-action row with a one-word caption under each icon (${nEntries} entries, ${rows} rows, ${JSON.stringify(rowText)})`);
   check(['Reaction', 'Respond', 'Add to a thread', 'Edit'].every((n) => names.includes(n)), `SW1: the icons carry spoken names (${names.join(' | ')})`);
+  const underline = await pg.locator(`${entries} [data-testid=entry-map] [data-testid=entry-dateline]`).first().evaluate((e) => getComputedStyle(e).textDecorationLine).catch(() => 'none');
+  check(underline.includes('underline'), `SW22: a placed entry's dateline is underlined, the way to the map (${underline})`);
   const stackSlots = await count('[data-testid=quick-stack]');
   check(stackSlots === 1, `SW5: Stack with previous shows only on the entry just kept (${stackSlots})`);
   await shot(pg, 'stackjoin-01-row');
@@ -109,6 +112,19 @@ async function run(h) {
   await pg.waitForTimeout(600);
   await pg.locator('[data-testid=stack-toggle]').first().click().catch(() => {});
   check((await count('[data-testid=stack-grid]')) === 0, 'SW12: Show less collapses the grid');
+  // SW21: a stack is a moment; its row has no Edit, and a piece can be taken out from its viewer (Split out, Delete this piece).
+  const editSlots = await pg.locator(`${entries} [data-testid=quick-edit]`).count();
+  await pg.locator('[data-testid=stack-toggle]').first().click().catch(() => {});
+  await pg.waitForTimeout(400);
+  await pg.locator('[data-testid=grid-tile]').nth(1).click().catch(() => {});
+  await there('[data-testid=capture-viewer]', 8000);
+  await pg.click('[data-testid=capture-viewer] [aria-label="More"]').catch(() => {});
+  const split = await there('[data-testid=menu-split]', 4000);
+  check(editSlots === 0 && split, `SW21: a stack's row has no Edit, and from a tile's viewer a piece can be split out (${JSON.stringify({ editSlots, split })})`);
+  await pg.keyboard.press('Escape');
+  await pg.click('[data-testid=viewer-close]').catch(() => {});
+  await pg.waitForTimeout(500);
+  await pg.locator('[data-testid=stack-toggle]').first().click().catch(() => {});
 
   // SW14: with the row showing, a new capture is still one write.
   await write('Then left again.');
@@ -134,8 +150,6 @@ async function run(h) {
   await pg.waitForTimeout(800);
   const marksUnder = await pg.locator(`${entries} [data-testid=reaction-marks] [data-testid=reaction-name]`).allInnerTexts().catch(() => []);
   check(panel && marksUnder.join().includes('Idea'), `SW20: the Reaction slot opens the reactions and the chosen one shows under the dateline (${marksUnder.join()})`);
-  check.todo(false, 'SW21: a tile of the expanded stack opens the viewer on a piece whose More offers Split out and Delete this piece, and a stack\'s row has no Edit');
-  check.todo(false, 'SW22: a placed entry\'s dateline is underlined in ink and an unplaced one is plain');
   await c.close();
 }
 

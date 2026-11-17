@@ -85,7 +85,7 @@ export function Entry(props: {
   const lineText = (
     <View style={styles.lineRow}>
       {placed && props.onMap ? <Icon name="location-outline" size={13} color={theme.muted} /> : null}
-      <Text style={styles.app} testID="entry-dateline">{line}</Text>
+      <Text style={[styles.app, placed && props.onMap ? styles.linked : null]} testID="entry-dateline">{line}</Text>
     </View>
   );
   return (
@@ -233,6 +233,8 @@ const styles = StyleSheet.create({
   dateline: { flex: 1, minHeight: 44, justifyContent: 'flex-end', paddingBottom: 6 },
   lineRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   app: { color: theme.muted, fontSize: 13, lineHeight: 18, flexShrink: 1 },
+  // A placed dateline is the way to the map, so it reads as tappable (SW22).
+  linked: { color: theme.ink, textDecorationLine: 'underline' },
   answering: { paddingTop: 8 },
   pieces: { gap: 10 },
   words: { color: theme.ink, fontFamily: OWNER_FONT, fontSize: 19, lineHeight: 28 },
