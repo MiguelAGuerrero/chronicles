@@ -363,7 +363,8 @@ async function checks(h) {
         await page.mouse.down();
         await page.waitForTimeout(700);
         await page.mouse.up();
-        // The press sheet offers Go here, and what happened here when captures are near.
+        // The press sheet offers Route here (it was Go here), and what happened here when captures are near.
+        check.todo(((await page.locator('[data-testid=go-here]').first().innerText().catch(() => '')).trim()) === 'Route here', 'OM13: the walk screen\'s press sheet says "Route here", not "Go here"');
         await page.click('[data-testid=here-open]');
         await page.waitForSelector('text=What happened here');
         // The note may share the spot with the video nearby: step to it.
