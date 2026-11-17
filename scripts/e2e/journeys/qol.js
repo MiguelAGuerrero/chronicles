@@ -1271,7 +1271,7 @@ async function run(h) {
       await creditsCheck(p3, 'Navigate at 320', 'qol-08-ready-credits-open-320');
       await p3.click('[data-testid=start]');
       await p3.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
-      // Past the empty-walk threshold (15 m of spread, decision 0185), so Stop plays this walk's replay.
+      // Past the empty-walk threshold (15 m of spread, decision 0187), so Stop plays this walk's replay.
       for (let k = 1; k <= 8; k++) {
         await fix3(at(-0.5 + k * 0.05, -0.5));
         await p3.waitForTimeout(900);

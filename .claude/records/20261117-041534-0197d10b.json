@@ -1,0 +1,14 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "slice",
+        "row",
+        "set",
+        "Empty walk"
+      ],
+      "body": "| Empty walk (a walk with no moment, pause, still or gap and no movement past 15 m is dropped at Stop: no replay, \"Walk not kept.\" with Undo that waits, a kill restores it; decision 0187, amends 0113) | shipped on the branch | `claude/cool-mendel-4m8gkk` 2026-11-17 | `specs/empty-walk/spec.md` | no |\n",
+      "target": "sha256:49436e5361b178831a17adfa3a5e35c1abdd302fb3be9f0a96b2511896dfc784"
+    }
+  ]
+}
