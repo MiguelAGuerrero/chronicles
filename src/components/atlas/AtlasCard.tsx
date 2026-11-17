@@ -233,7 +233,7 @@ export function AtlasCard(props: {
                   {kindsHeading(area.level, p)}
                 </Text>
                 <Pressable testID="atlas-how" accessibilityRole="button" accessibilityState={{ expanded: how }} onPress={() => setHow((v) => !v)} style={styles.howBtn}>
-                  <Icon name="information-circle-outline" size={16} color={theme.accent} />
+                  <Icon name="information-circle-outline" size={16} color={theme.ink} />
                   <Text style={styles.howText}>How the marks work</Text>
                 </Pressable>
               </View>
@@ -504,7 +504,7 @@ const styles = StyleSheet.create({
   secHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
   secTitle: { fontSize: 12, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase', color: theme.muted },
   howBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 44 },
-  howText: { fontSize: 13, fontWeight: '600', color: theme.accent },
+  howText: { fontSize: 13, fontWeight: '600', color: theme.ink },
   explain: { backgroundColor: theme.bg, borderRadius: 12, padding: 12, gap: 6, marginBottom: 4 },
   explainText: { fontSize: 14, color: theme.ink, lineHeight: 19 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },

@@ -190,6 +190,19 @@ async function checks(h) {
       }
       await shot(page, '11c-atlas-card');
       {
+        // tend explore 19 (decision 0172, the accent at rest): "How the marks work" and its icon are ink (#1d2430), never
+        // the accent; it is a toggle, not the card's primary action.
+        const howInk = await page.locator('[data-testid=atlas-how]').evaluate((el) =>
+          [...el.querySelectorAll('*')].filter((e) => e.childElementCount === 0 && e.textContent).map((e) => getComputedStyle(e).color));
+        check(howInk.length === 2 && howInk.every((c) => c === 'rgb(29, 36, 48)'), `tend explore 19: "How the marks work" and its icon are ink at rest (${JSON.stringify(howInk)})`);
+        const vp = page.viewportSize();
+        await page.setViewportSize({ width: 320, height: vp.height });
+        await page.waitForTimeout(400);
+        await shot(page, 'tend-explore-19-how-320');
+        await page.setViewportSize(vp);
+        await page.waitForTimeout(400);
+      }
+      {
         // tend explore 4: with the planner open over the card, one Escape closes the planner only; the card is as it was.
         const plan = page.locator('[data-testid^=atlas-kind-walk-]').first();
         const has = (await plan.count()) === 1;
