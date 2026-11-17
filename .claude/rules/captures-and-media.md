@@ -146,7 +146,7 @@ expo-image-manipulator; `lib/thumbPlan.ts` pure, `media/thumb.ts`).
   (`heldLabel`), Retry saves each with its stamp, and Stop warns once before ending without them. Every
   save failure is worded by `saveFailLine` (lack of room told apart by `isOutOfSpace`), never the raw error.
 
-- **Unsaved captures have one owner** (UN1-UN15, decision 0194): every photo, video and memo whose save fails goes to
+- **Unsaved captures have one owner** (UN1-UN15, decision 0196): every photo, video and memo whose save fails goes to
   the app-wide holder `lib/unsaved` (in memory, while the app is open), never to a path's own state. `useCaptures`
   keeps every capture through `keepCapture` (the file once, then the row; `path` kept for every later Retry, UN12;
   an `into` moment gone makes it its own, UN11) and files it by `Stamp.walk`, never the hook's `walkId`, so any

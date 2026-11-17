@@ -35,7 +35,7 @@ Touches: Always, "Capture is one tap away" (nothing held disables or moves a cap
 Verdict: aligned
 Shape: as asked. One reshaping in the details: a screen with no Retry of its own (the recording bar, Respond, the planner) never says "held here"; it says where the Retry is (UN10).
 Criteria: UN5 (both Stops warn; a second hold ends without them), UN8 (what is let go is let go knowingly, and only by Stop), UN10 (no words promise a Retry that is not on the screen), UN14 (no count, no capture button moved or disabled).
-Open: the vision is silent on how long a held capture lives and on what happens to a walk's held captures once the walk is ended without them. Answered by the owner, Nov 17 (Q2, Q3; decision 0194).
+Open: the vision is silent on how long a held capture lives and on what happens to a walk's held captures once the walk is ended without them. Answered by the owner, Nov 17 (Q2, Q3; decision 0196).
 ```
 
 ## Decisions
@@ -43,7 +43,7 @@ Open: the vision is silent on how long a held capture lives and on what happens 
 - **Nov 17, the owner, in person:** "Ship fix 1, slice the rest." Fix 1 (`tend captures 1`, a memo whose stop timed out is
   said and let go) is on `main`. The rest is this slice; the review's F1-F8 are its starting criteria, and the recording
   bar's Stop item joins it.
-- **Nov 17, the owner, in person, on the plan's questions** (decision 0194):
+- **Nov 17, the owner, in person, on the plan's questions** (decision 0196):
   - Q1, where held captures live: "One app-wide holder": a new in-memory module `src/lib/unsaved/`.
   - Q2, how long: "While the app is open" (UN15 as written).
   - Q3, a walk ended without them, and the build: "Let them go; build as written". At the second hold of Stop, a walk's

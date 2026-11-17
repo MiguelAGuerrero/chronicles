@@ -226,7 +226,7 @@ Navigation (inside a walk)
   nav/scenicRead/            the corridor's tiles and Overture places for a scenic route (shell.ts, index.ts)
   routeLeanings/             the "Scenic routes" switches in meta `route_leanings` (`lib/routeLeanings`: shell.ts, index.ts)
   kindWalk/                  a suggested walk where a kind is dense (`lib/kindWalk`: density, plan, words, its settings and prefs)
-  outing/                    plan an outing (decision 0194, specs/quick-circuit): candidates.ts (Candidate, Want, matches over facets by dimension), wants.ts (the vocabulary), stores.ts and storesRead.ts (the stores pack's record and its only reader), storesMerge.ts (the pack and the tiles' shops as candidates, chains by setting), pick.ts, plan.ts (over the walk planner's fitOrder), swap.ts, words.ts, dest.ts, arrival.ts (core); service.ts, prefs.ts (meta `outing_chains`), storesPack.ts (the pack's tile read over the places archive's manifest and `net/tileReader`), app.ts (shell); useOuting.ts, useArrival.ts (view); components/outing/OutingDrawer.tsx
+  outing/                    plan an outing (decision 0196, specs/quick-circuit): candidates.ts (Candidate, Want, matches over facets by dimension), wants.ts (the vocabulary), stores.ts and storesRead.ts (the stores pack's record and its only reader), storesMerge.ts (the pack and the tiles' shops as candidates, chains by setting), pick.ts, plan.ts (over the walk planner's fitOrder), swap.ts, words.ts, dest.ts, arrival.ts (core); service.ts, prefs.ts (meta `outing_chains`), storesPack.ts (the pack's tile read over the places archive's manifest and `net/tileReader`), app.ts (shell); useOuting.ts, useArrival.ts (view); components/outing/OutingDrawer.tsx
   walkPlanner/               the walk planner's page (`lib/walkPlanner`: planner, presets, exposure, words; app.ts the instance)
 Filling gaps
   gaps/rules.ts              GAP_RULES: what counts as a gap, the paces, the budgets
@@ -385,7 +385,7 @@ Session, screens and small helpers
   useStartWalk.ts, startPlan.ts         Start and Walk here: the plan's meta, then the walk screen
   useTabMap.ts               a tab's map taken down while the tab isn't in front
   memoGate.ts                a memo recording anywhere blocks a start
-  unsaved/                   the one holder of every capture that failed to save (core words, in-memory shell; UN1-UN15, 0194)
+  unsaved/                   the one holder of every capture that failed to save (core words, in-memory shell; UN1-UN15, 0196)
   settleWithin.ts            await a promise, but never longer than ms
   recordingBar.ts, quietLines.ts, format.ts, scaleBar.ts         the bar's line and its waiting Edit offer, counts as words, distances and times, the scale bar's length
   audioMode(.native|.web).ts setAudioMode: expo-audio on native, navigator.audioSession on web

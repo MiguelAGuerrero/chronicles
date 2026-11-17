@@ -1,6 +1,6 @@
 // @layer shell
 /**
- * The one holder of every capture whose save failed (specs/unsaved-captures, decision 0194: "One app-wide holder"). It
+ * The one holder of every capture whose save failed (specs/unsaved-captures, decision 0196: "One app-wide holder"). It
  * outlives every screen, so leaving one drops nothing (UN1); every screen with capture pills shows what it holds (UN2);
  * both Stops ask it what one walk holds (UN5). In memory only, while the app is open (UN15): nothing is written to
  * storage. Its file effects are passed in, so a Node test loads it.

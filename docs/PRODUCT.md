@@ -97,7 +97,7 @@ recording, and a recording bar brings a minimized walk back.
   replaces the three and keeps no history. Start plans again from where you are and either routes the walk you have open (capture is
   on the page meanwhile) or starts one ready; it says distance only, never a time left. Scenic routes (0095) are a separate feature on
   Route here.
-- **Plan an outing** (decision 0194, quick circuit QC1-QC42): one control under Explore's title, "Plan an outing", opens a page of its own over
+- **Plan an outing** (decision 0196, quick circuit QC1-QC42): one control under Explore's title, "Plan an outing", opens a page of its own over
   Explore. You say what you want to see by picking from a short vocabulary (a search box over chips: Antiques, Books, Thrifting) and the page
   proposes one circuit from where you stand, a loop (the default, not remembered) or one way, within the planner's distance ceiling. Its stops are
   slots said by kind and how far ("An antiques shop, a short walk on"), named only on a tap or, on the walk, once when you are within 60 m; no
@@ -273,7 +273,7 @@ recording, and a recording bar brings a minimized walk back.
   screen it was taken on: leaving a screen never drops one, every screen with capture pills (the walk screen,
   Navigate, ready, Memories' open line) shows it with Retry, which keeps it in its own walk, and both Stops (the walk
   screen's, the recording bar's) say what is held before the walk ends without it; the second hold lets it go. Held
-  while the app is open (unsaved captures UN1-UN15, decision 0194). On the web the app asks the browser once to keep its data, never mid-walk, and says once on
+  while the app is open (unsaved captures UN1-UN15, decision 0196). On the web the app asks the browser once to keep its data, never mid-walk, and says once on
   Navigate, ready if it was refused. There is no Storage screen (0041). Storage awareness, decision 0107.
 - The bottom strip has time, distance, Pause, walk options and hold-to-stop.
   A status chip shows only when something is wrong (waiting for GPS, weak GPS,

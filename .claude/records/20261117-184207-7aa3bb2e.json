@@ -1,0 +1,25 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inflight",
+        "set",
+        "Unsaved captures have one owner"
+      ],
+      "body": "| Unsaved captures have one owner (an app-wide in-memory holder for every photo, video and memo that failed to save: shown on every screen with capture pills, asked by both Stops, kept into its own walk; UN1-UN15, decision 0196) | `slice/unsaved-captures-20261117-1519` | built 2026-11-17, test-first by history (15 of 15): unit tests (2862), typecheck, lint, docs and vision checks; the `unsaved` journey (one open todo: the bar's room words at 320 px) and `space` pass; `capturehome` HC10 fails on main too, `tabs` NR2 a main flake; UN6 amended for the owner to confirm; native unverified; the auditor's diff review next. Spec `specs/unsaved-captures/spec.md` |\n",
+      "target": "sha256:3fb6ae07255fef2e7c64208ba5f281109ade7354bb54b5e3a2a1e5e8d20d6f5b"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "set",
+        "Held captures live in memory",
+        "--reason",
+        "decision number renumbered 0194 to 0196 after a rebase onto main, which took 0194 for shops are presence and 0195 for Open in Maps"
+      ],
+      "body": "- **Held captures live in memory**: leaving the screen or a reload drops a held photo or video (Stop warns first). Keeping them across a reload needs the file kept somewhere that survives, which a full disk may refuse.\n  Unsaved captures (UN1-UN15, decision 0196): leaving a screen no longer drops a held capture; one app-wide holder keeps it while the app is open. A reload or a closed app still does.\n",
+      "target": "sha256:f024e70069e11e7bcbb7438219baa731174ce72847c81ecdde4c294ec0fb717c"
+    }
+  ]
+}

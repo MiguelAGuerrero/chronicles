@@ -1,6 +1,6 @@
 # Unsaved captures have one owner: the plan (UN1-UN15)
 
-Criteria are in `spec.md`. The owner answered the plan's questions in person on Nov 17 (the foot, and decision 0194):
+Criteria are in `spec.md`. The owner answered the plan's questions in person on Nov 17 (the foot, and decision 0196):
 the recommended answers, built as written.
 
 ## What exists (main at `d266ed4a`)
@@ -206,7 +206,7 @@ is the only copy, so a failure is said on the screen in front (UN9) and a walk's
 (UN5); and their state is read behind a profile button, ours in the pills beside the captures (UN2), since the walker
 is already there and capture is one tap away.
 
-## The owner's answers (Nov 17, in person; decision 0194)
+## The owner's answers (Nov 17, in person; decision 0196)
 
 1. Where held captures live: "One app-wide holder": a new in-memory module `src/lib/unsaved/`.
 2. How long: "While the app is open" (UN15 as written).

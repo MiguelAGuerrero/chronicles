@@ -1,4 +1,4 @@
-# 0194. Unsaved captures have one owner: an app-wide holder, while the app is open
+# 0196. Unsaved captures have one owner: an app-wide holder, while the app is open
 
 Date: 2026-11-17 · Status: accepted · Area: captures, storage, walk, tabs
 

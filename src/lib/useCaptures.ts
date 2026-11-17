@@ -77,7 +77,7 @@ export type MomentState = 'kept' | 'placed' | NonNullable<LocateResult['reason']
 const clockNow = () => Date.now();
 
 /**
- * A photo, video or memo to keep: new, or held by the one holder for Retry (SA8; unsaved captures, decision 0194).
+ * A photo, video or memo to keep: new, or held by the one holder for Retry (SA8; unsaved captures, decision 0196).
  * `path` is set once its file is kept, so a Retry after a failed row write never keeps the file twice (UN12).
  */
 type Keepable = Pick<Unsaved<Stamp>, 'kind' | 'stamp' | 'uri' | 'ext' | 'ms' | 'path'>;

@@ -252,7 +252,7 @@ const FEATURES = [
       // Video thumbnails (VS1-VS9): every preview's small copies and stills, and the play mark.
       'src/lib/thumbs/**',
       'src/components/VideoMark.tsx',
-      // Unsaved captures (UN1-UN15, decision 0194): the one holder of every capture that failed to save.
+      // Unsaved captures (UN1-UN15, decision 0196): the one holder of every capture that failed to save.
       'src/lib/unsaved/**',
     ],
     journeys: ['edit', 'stacks', 'voicetrim', 'videothumbs', 'unsaved'],
@@ -436,7 +436,7 @@ const RETIRED = {
  * make (the web build can't reach it), `deferred: <why>` for the owner's call to wait. Keyed by spec.
  */
 const UNTESTED = {
-  // Plan an outing (decision 0194): criteria with no test of their own, each with where it is held instead.
+  // Plan an outing (decision 0196): criteria with no test of their own, each with where it is held instead.
   'quick-circuit': {
     QC32: 'deferred: a review criterion, the ux-reviewer\'s cold find (Nov 17, in the spec\'s Record), not a unit test',
     QC34: 'deferred: by construction: `HOURS_LINE` is one constant the page renders once under the slots, and no pack field holds hours; the journey `outing` checks the line (QC20)',

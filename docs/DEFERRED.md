@@ -551,7 +551,7 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - **Apple's "available for important usage" capacity**: it counts what iOS can purge for a user's save, so it reads closer to Settings than `Paths.availableDiskSpace` (the plain free size, which reads low). Needs a native module; the owner chose Expo first (Nov 9).
 - **Caps on the caches that can be rebuilt** (`walk_tile`, old builds' rows, remembered ward ids, above): the only "limit" the vision allows; the owner asked for limitations too, so this is next if the room keeps running low.
 - **Held captures live in memory**: leaving the screen or a reload drops a held photo or video (Stop warns first). Keeping them across a reload needs the file kept somewhere that survives, which a full disk may refuse.
-  Unsaved captures (UN1-UN15, decision 0194): leaving a screen no longer drops a held capture; one app-wide holder keeps it while the app is open. A reload or a closed app still does.
+  Unsaved captures (UN1-UN15, decision 0196): leaving a screen no longer drops a held capture; one app-wide holder keeps it while the app is open. A reload or a closed app still does.
 - **Retry on the recording bar's camera** (other tabs, NV9): it shows the SA9 words; the held pill is on the walk screen and Navigate, ready.
   Unsaved captures (UN10): the bar's camera now says where its Retry is ("… held for Retry on the walk screen."), and the held photo shows on Memories' open line and the walk screen with Retry.
 - **A check before a video starts**: the system camera owns the recording; the line beside the captures says it beforehand.

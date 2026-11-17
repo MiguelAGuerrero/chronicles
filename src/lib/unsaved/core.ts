@@ -1,6 +1,6 @@
 // @layer core
 /**
- * Unsaved captures have one owner (specs/unsaved-captures, UN1-UN15, decision 0194): the words and the decisions of
+ * Unsaved captures have one owner (specs/unsaved-captures, UN1-UN15, decision 0196): the words and the decisions of
  * the one holder of every photo, video and voice memo whose save failed. Pure: no clock, no storage.
  */
 import { heldLabel, saveFailLine } from '../space/core';
