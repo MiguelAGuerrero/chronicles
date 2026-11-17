@@ -34,6 +34,8 @@ but what the code says. The web build is not affected (it glides outside React, 
 - **Explicit split and `memo`**, not the React Compiler: works whether or not the compiler is ever turned on.
 - **The React Compiler is its own slice**, measured before and after, with a decision record; not part of this one.
 - Native-only claims are device checks (`docs/NATIVE_UNVERIFIED.md`); no device has run the app.
+- **NF5 is the one change a person may see** (audit 5, Nov 17): the phone's lines are simplified as the web's have been
+  since Nov 1; "nothing a person sees changes" in the gate holds for everything else. On the device list.
 
 ## Criteria
 
@@ -69,3 +71,24 @@ Built 2026-11-16 on `claude/bold-hawking-dx3pc8`, the plan approved by the owner
 - **Deferred** (`docs/DEFERRED.md`, "Native map frames"): the React Compiler (the owner's own slice), the replay
   screen's own 30 fps render, the hidden `omt-query` source on every map, a native follow camera.
 - Not audited; no screen changed, so no UI review.
+
+## Audit (2026-11-17, at the owner's request)
+
+The auditor alone: no screen changed what it shows or how it is used, so no pictures, no `ux-reviewer` and no cold
+find; the gate said no surface, so no steward. 4 findings from the auditor plus its UI note, triaged:
+
+1. NF1's test no longer guarded what it named (the hook it banned is gone; frame state could come back unseen): accept.
+   `native-map-frames audit 1` scans for a frame read or a state setter in WalkMap; it passed the correct code and
+   failed a mutation that gave the glide a `useState` setter again.
+2. The ends' and gap links' link to the trace's opacity was no longer checked on native: accept. `native-map-frames
+   audit 2`; failed a mutation that handed `EndsSource` `opacity={1}`.
+3. On an exploring walk the "?" marks declutter and re-render on every fix (`useExplore`'s `shown` is new per fix,
+   ~28 marks once a second, within NF7; the zoom is already in 0.25 steps): defer, the cause is in `useExplore`
+   (DEFERRED, "Native map frames").
+4. The press handlers were filled in a passive effect, so a pin made pressable in the same render (the replay's card
+   beat, any first mount) could take a tap that did nothing: accept. `native-map-frames audit 4` failed, then the
+   handlers are filled in a layout effect.
+5. The auditor's UI note, NF5 is visible on the phone against the gate's "nothing a person sees changes": reject as a
+   defect (NF5 is the web's look, on the device list); the Decisions now say so.
+
+5 findings, 3 fixed, 1 deferred, 1 rejected. Tests: `native-map-frames audit 1, 2, 4` in `mapFrames.test.ts`.

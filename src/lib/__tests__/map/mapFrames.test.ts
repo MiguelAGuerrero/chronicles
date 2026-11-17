@@ -204,3 +204,40 @@ test('NF6: every tap the native map took still reaches its handler', () => {
   const pressed = jsx(sf, 'Marker').filter((m) => attrs(m).some((a) => a.name === 'onPress'));
   assert.ok(pressed.length >= 4, 'memory pins, pins, marks and stars keep their own onPress (iOS swallows a Pressable inside a Marker)');
 });
+
+// The audit (Nov 17). Audit 1 and 2 guard what the source can regress to without any test above failing; each was
+// checked against a mutation of WalkMap.native.tsx that it fails (the record in the spec).
+
+test('native-map-frames audit 1: WalkMap\'s body subscribes to no frame store and passes no state setter to useGlideFrames', () => {
+  const sf = read(NATIVE);
+  const body = walkMapBody(sf);
+  for (const hook of ['useGlideShown', 'useStore', 'useSyncExternalStore']) {
+    assert.equal(calls(body, hook).length, 0, `WalkMap must not call ${hook}: a frame read there renders the whole map per frame`);
+  }
+  const glide = calls(body, 'useGlideFrames');
+  assert.equal(glide.length, 1, 'WalkMap runs the glide once');
+  assert.equal(glide[0].arguments[3]?.getText(), 'frames.set', 'the frames go into the store, never into WalkMap\'s own state');
+  const made = calls(body, 'useState').find((c) => /createStore<GlideFrame>/.test(c.getText()));
+  assert.ok(made, 'the store is made once, with the map, and is no state of its own');
+});
+
+test('native-map-frames audit 2: the ends and the gap links are handed the trace\'s opacity', () => {
+  const body = walkMapBody(read(NATIVE));
+  for (const tag of ['EndsSource', 'GapLinksSource']) {
+    const el = jsx(body, tag)[0];
+    assert.ok(el, `WalkMap draws ${tag}`);
+    const opacity = attrs(el).find((a) => a.name === 'opacity')?.value?.getText();
+    assert.equal(opacity, 'props.traceOpacity ?? 1', `${tag} goes with the trace (the replay's fog beat fades both)`);
+  }
+});
+
+test('native-map-frames audit 4: the press handlers are filled before the pins they serve can be tapped', () => {
+  const body = walkMapBody(read(NATIVE));
+  const sets: ts.Node[] = [];
+  walk(body, (n) => {
+    if (ts.isBinaryExpression(n) && n.operatorToken.kind === ts.SyntaxKind.EqualsToken && n.left.getText() === 'handlers.current') sets.push(n);
+  });
+  assert.equal(sets.length, 1, 'one place fills the handlers');
+  assert.equal(enclosingCall(sets[0], ['useLayoutEffect', 'useEffect']), 'useLayoutEffect',
+    'filled in a layout effect, before the commit can take a tap; a passive effect leaves a pin pressable with no handler');
+});

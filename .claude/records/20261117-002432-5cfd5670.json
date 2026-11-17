@@ -1,0 +1,32 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Native map frames"
+      ],
+      "body": "- **On an exploring walk the \"?\" marks declutter and re-render on every fix** (native-map-frames audit 3): `useExplore`'s `shown` (deps include `here`) builds a new `pins` array per fix, so `MarkMarkers` runs `declutterMarks` and renders every `MarkPinView` though no mark changed; about 28 marks once a second, within NF7. Keep the array while the marks are the same (in `useExplore`), not in the map.\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Native map frames (NF1-NF7)"
+      ],
+      "body": "- [ ] **Do:** watch a walk's replay to the card and tap a pin the instant the card comes up; on Chronicle, tap a star as the tab opens. **Expect:** the viewer (or the star's card) opens on the first tap, never a tap that does nothing: the press handlers are filled in a layout effect (native-map-frames audit 4).\n"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "set",
+        "Native map frames (the phone"
+      ],
+      "body": "| Native map frames (the phone's walk map and the replays no longer render every map source and pin per glide frame or clock tick: memo sources, the glide in a frame store read by three leaves, memo pin lists with presses from a ref, the web's line simplification on native; NF1-NF7, after the performance investigation of Nov 16) | built 2026-11-16, plan approved by the owner, test-first by history 5 of 6 (NF6, a regression guard, was written passing): unit tests (2605), typecheck, lint, docs, vision and records checks; the ten journeys `check:affected` names pass once each (526 checks); NF7 device-only; native never run on a device; `scripts/perf-walk.js` stale (waits for Start on `/`); audited 2026-11-17 at the owner's request (5 findings: 3 fixed, tests `native-map-frames audit 1, 2, 4`; 1 deferred; 1 rejected); not merged | `claude/bold-hawking-dx3pc8` | `specs/native-map-frames/spec.md` | yes, 2026-11-17 |\n",
+      "target": "sha256:960b843c22433ef36b06fbc9f47739636c27dc2343d73bc0744427b161a1f731"
+    }
+  ]
+}

@@ -2,7 +2,7 @@ import type { Faced } from '../../lib/moment';
 import {
   Camera, GeoJSONSource, Layer, Map, Marker, VectorSource, type CameraRef, type MapRef, type VectorSourceRef,
 } from '@maplibre/maplibre-react-native';
-import { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState, type RefObject } from 'react';
+import { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { PanResponder, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import { CapturePinView, pinLabel } from '../CapturePinView';
 import { MarkPinView, markKey, markLabel } from '../MarkPinView';
@@ -254,8 +254,10 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   );
   const jump = useCallback((to: { center: LngLat; zoom?: number }) => cameraRef.current?.jumpTo(to), []);
   // The pins' presses, read when pressed: a screen's new closure each render never re-renders a pin list (NF4).
+  // Filled in a layout effect, before the commit can take a tap: a pin made pressable in the same render as its
+  // handler (the replay's card beat) never meets an empty ref (native-map-frames audit 4).
   const handlers = useRef<PinHandlers>({});
-  useEffect(() => {
+  useLayoutEffect(() => {
     handlers.current = { onMemoryPress: props.onMemoryPress, onPinPress: props.onPinPress, onDiscoveryPress: props.onDiscoveryPress, onStarPress: props.onStarPress };
   });
   // A fit is a request made while mounted: a map brought back (the home, after a walk) keeps its view.
