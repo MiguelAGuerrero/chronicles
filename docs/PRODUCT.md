@@ -494,7 +494,10 @@ recording, and a recording bar brings a minimized walk back.
   with the screen off; memos record with the phone locked. Needs a development
   build (MapLibre and background location are native modules; Expo Go won't
   do). **Native has never run on a device**: every native path is unverified,
-  and reports touching it must say so.
+  and reports touching it must say so. The phone's map redraws a layer or a
+  pin only when it changes, never on each step of the gliding dot or a
+  replay's clock, and simplifies its lines as the web does (native map frames,
+  NF1-NF8; unverified on a device).
 - **Web**: the same loop with a browser's limits, deployed to GitHub Pages on
   every push to `main`. It traces the real browser location while the page is
   open and visible, holds a wake lock, and shows the gap when the page was
