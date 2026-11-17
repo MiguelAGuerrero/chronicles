@@ -119,6 +119,11 @@ features.push({ type: 'Feature', properties: { class: 'minor', name: 'Curio Stre
 [[-247, 'Brass Key Antiques'], [-243, 'Dusty Attic'], [-239, 'Grandma Trunk Antiques'], [-235, 'Lamp and Ladder']].forEach(([x, n]) => {
   features.push({ type: 'Feature', properties: { class: 'shop', subclass: 'antiques', name: n }, geometry: { type: 'Point', coordinates: at(x, 0.3) } });
 });
+// Thrift and charity shops between them (the tiles' `second_hand` fallback, QC14, QC42); the bookshops are in the stores pack the
+// `outing` journey serves, not here.
+[[-245, 'Helping Hands'], [-241, 'Rag and Bone'], [-237, 'Second Wind']].forEach(([x, n]) => {
+  features.push({ type: 'Feature', properties: { class: 'shop', subclass: 'charity', name: n }, geometry: { type: 'Point', coordinates: at(x, 0.3) } });
+});
 // A busy strip 1.1 km east of Fox Point (v1.5 landing): Thayer Street lined with shops for 250 m,
 // inside the read around a press at Fox Point, and inside the walk's own explore read (E2).
 features.push({ type: 'Feature', properties: { class: 'tertiary', name: 'Thayer Street' }, geometry: { type: 'LineString', coordinates: [at(11, -3), at(11, 3)] } });
