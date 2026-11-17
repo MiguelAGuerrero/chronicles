@@ -4,7 +4,8 @@ import { join, relative } from 'node:path';
 import test from 'node:test';
 import { GAZETTEER_CREDIT } from '../../../components/map/types';
 import { PACK_FETCH_MS, PACK_FILE, packUrl, type GazetteerPack } from '../../gazetteer/pack';
-import { createGazetteerSource } from '../../gazetteer/source';
+import { createGazetteerSource, indexOf } from '../../gazetteer/loader';
+import { createRequire } from 'node:module';
 
 // The pack on the web (DEFERRED "Explore and discovery", the owner's answer of Nov 16, "Fetch on first search"): the web
 // build fetches the pack as a file of its own the first time search opens, never inlined in the entry bundle; native keeps
@@ -55,8 +56,18 @@ const walk = (dir: string): string[] =>
     return statSync(p).isDirectory() ? (f === '__tests__' ? [] : walk(p)) : /\.(t|j)sx?$/.test(f) ? [p] : [];
   });
 
+/** Whether a module's text could pull the pack into a bundle (gazetteer-web-fetch audit 3: any mention, not one import form). */
+const namesPack = (text: string) => /assets\/gazetteer\//.test(text);
+
+test('gazetteer-web-fetch audit 3: a side-effect import, a spaced require and a require over two lines all count as naming the pack', () => {
+  assert.ok(namesPack("import '../../../assets/gazetteer/places.json';"));
+  assert.ok(namesPack("const p = require( '../../../assets/gazetteer/places.json');"));
+  assert.ok(namesPack("const p = require(\n  '../../../assets/gazetteer/places.json',\n);"));
+  assert.ok(!namesPack('copied from `assets/gazetteer` into `public/`'), 'the folder named in a comment, with no file under it, is not the pack');
+});
+
 test('gazetteer web fetch 3: only the native source names the bundled pack; the web source fetches it by its address', () => {
-  const naming = walk(join(ROOT, 'src')).filter((f) => /(require\(|import\(|from\s*)['"][^'"]*assets\/gazetteer\//.test(readFileSync(f, 'utf8'))).map((f) => relative(ROOT, f));
+  const naming = walk(join(ROOT, 'src')).filter((f) => namesPack(readFileSync(f, 'utf8'))).map((f) => relative(ROOT, f));
   assert.deepEqual(naming, ['src/lib/gazetteer/source.ts'], 'a second module requiring the pack would inline it in the web bundle');
   const web = join(ROOT, 'src/lib/gazetteer/source.web.ts');
   assert.ok(existsSync(web), 'the web has a source of its own');
@@ -94,4 +105,36 @@ test('gazetteer-web-fetch audit 1: the web fetch carries a timeout, so a stall e
     globalThis.fetch = realFetch;
     AbortSignal.timeout = realTimeout;
   }
+});
+
+test('gazetteer-web-fetch audit 4: a change to the pack\'s address, the loader or the pack names the launch journey', () => {
+  const affected = createRequire(__filename)(join(ROOT, 'scripts', 'affected.js')) as { e2eFor(changed: string[]): { scenarios: { name: string }[] } };
+  for (const file of ['src/lib/gazetteer/pack.ts', 'src/lib/gazetteer/loader.ts', 'src/lib/gazetteer/source.web.ts', 'assets/gazetteer/places.json', 'scripts/copy-maplibre-worker.js']) {
+    assert.ok(affected.e2eFor([file]).scenarios.some((j) => j.name === 'launch'), file);
+  }
+});
+
+test('gazetteer-web-fetch audit 5: indexOf after a failed load reads again, and two calls share one build', async () => {
+  let reads = 0;
+  const source = createGazetteerSource(() => { if (reads++ === 0) throw new Error('offline'); return PACK; });
+  await assert.rejects(() => indexOf(source));
+  const [a, b] = [indexOf(source), indexOf(source)];
+  assert.equal(a, b, 'one build while it is out');
+  const ix = await a;
+  assert.equal(await indexOf(source), ix, 'and kept once built');
+  assert.equal(reads, 2);
+});
+
+/** The names a module exports, sorted. */
+const exportsOf = (text: string) => [
+  ...[...text.matchAll(/export\s+(?:const|function|class|interface|type|let)\s+(\w+)/g)].map((m) => m[1]),
+  ...[...text.matchAll(/export\s*\{([^}]*)\}/g)].flatMap((m) => m[1].split(',').map((n) => n.replace(/^\s*type\s+/, '').split(/\s+as\s+/).pop()!.trim()).filter(Boolean)),
+].sort();
+
+test('gazetteer-web-fetch audit 7: source.ts and source.web.ts export the same names, the bundled source alone', () => {
+  const native = exportsOf(readFileSync(join(ROOT, 'src/lib/gazetteer/source.ts'), 'utf8'));
+  const web = exportsOf(readFileSync(join(ROOT, 'src/lib/gazetteer/source.web.ts'), 'utf8'));
+  assert.deepEqual(web, native, 'tsc reads only source.ts, so a name only it exports is undefined on the web');
+  assert.deepEqual(native, ['bundledGazetteer'], 'the shared loading is imported from ./loader');
+  assert.match(readFileSync(join(ROOT, 'src/lib/gazetteer/usePlaceSearch.ts'), 'utf8'), /from '\.\/loader'/);
 });

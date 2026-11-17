@@ -1,7 +1,8 @@
 // @layer view
 import { useCallback, useEffect, useState } from 'react';
 import type { GazetteerIndex } from './search';
-import { bundledGazetteer, indexOf, type GazetteerSource } from './source';
+import { indexOf, type GazetteerSource } from './loader';
+import { bundledGazetteer } from './source';
 
 export type PlaceIndex = { status: 'loading' } | { status: 'failed' } | { status: 'ready'; index: GazetteerIndex };
 

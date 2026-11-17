@@ -625,7 +625,8 @@ module.exports = {
     'src/components/webStyles*.ts',
     'src/components/{icons,ui}.tsx',
     // The web's place-name pack: a file of its own, fetched on first search, never in the entry script.
-    'src/lib/gazetteer/source.web.ts',
+    'src/lib/gazetteer/{source.web,pack,loader}.ts',
+    'assets/gazetteer/places.json',
     'scripts/copy-maplibre-worker.js',
   ],
   run,

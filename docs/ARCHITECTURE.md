@@ -499,7 +499,8 @@ own code only where no Expo module covers the feature on web:
   app's own site the first time search opens and kept in memory (`gazetteer/source.web.ts`); phones bundle it with `require`
   (`source.ts`). The web build is one entry script, so a `require` inlined the 5.6 MB pack in it, downloaded and parsed at every
   launch (10.7 MB before, 5.0 MB after). `scripts/copy-maplibre-worker.js` copies the one committed pack into `public/` on
-  install and before `export:web`. No host is added and nothing is sent. Trap: the name is fixed, so a page left open across a
+  install, before `export:web` and after `scripts/build-gazetteer.js` writes it. A fetch with no answer in `PACK_FETCH_MS` (60 s) is
+  "Search is unavailable." with Try again (audit 1). No host is added and nothing is sent. Trap: the name is fixed, so a page left open across a
   deploy fetches the new pack, never a 404 (`public/sw.js` caches nothing); a change to the pack's format must stay readable by
   the page before it, or that page shows search's "unavailable" until a reload. The query (`?v=` the credit's date) only keeps
   a new page off an old pack in the browser's cache. A page loaded online that goes offline before its first search has no pack.

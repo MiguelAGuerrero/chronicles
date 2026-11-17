@@ -3,8 +3,6 @@ import { GAZETTEER_CREDIT } from '../../components/map/types';
 import { createGazetteerSource, type GazetteerSource } from './loader';
 import { PACK_FETCH_MS, packUrl } from './pack';
 
-export { createGazetteerSource, indexOf, type GazetteerSource } from './loader';
-
 /**
  * The pack on the web (a web exception, docs/ARCHITECTURE.md; the owner's answer of Nov 16, "Fetch on first search"):
  * a `require` would inline its megabytes in the one entry script, scanned at every launch. So the web fetches it from the
