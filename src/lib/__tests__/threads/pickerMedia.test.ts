@@ -21,7 +21,7 @@ const moments = () => [
 ];
 const walks = () => [walk('w1', at(2026, 11, 10, 8)), walk('w2', at(2026, 11, 8, 9), { open: true, ended_at: null })];
 
-test('MP4: one tile per photo, video and memo piece, newest first; a note has none; the moment in hand, one waiting in Undo and an open walk\'s are left out', { todo: 'test first' }, async () => {
+test('MP4: one tile per photo, video and memo piece, newest first; a note has none; the moment in hand, one waiting in Undo and an open walk\'s are left out', async () => {
   const { pickerTiles } = await core();
   const tiles = pickerTiles(moments(), walks(), { hidden: new Set(['wait']), self: 'self', show: 'all', order: 'newest' });
   assert.deepEqual(tiles.map((t) => t.key), ['memo', 'stack.2', 'stack.1', 'stack', 'late.1', 'late']);
@@ -30,7 +30,7 @@ test('MP4: one tile per photo, video and memo piece, newest first; a note has no
   assert.ok(piece.some((t) => t.key === 'stack'), 'its moment\'s other pieces stay');
 });
 
-test('MP6: a kind keeps only its tiles', { todo: 'test first' }, async () => {
+test('MP6: a kind keeps only its tiles', async () => {
   const { pickerTiles } = await core();
   const o = { hidden: none, self: 'self', order: 'newest' as const };
   assert.deepEqual(pickerTiles(moments(), walks(), { ...o, show: 'video' }).map((t) => t.key), ['stack.2']);
@@ -38,7 +38,7 @@ test('MP6: a kind keeps only its tiles', { todo: 'test first' }, async () => {
   assert.ok(pickerTiles(moments(), walks(), { ...o, show: 'photo' }).every((t) => t.kind === 'photo'));
 });
 
-test('MP8: no tiles gives the gallery\'s empty line, a kind its own; tiles give none', { todo: 'test first' }, async () => {
+test('MP8: no tiles gives the gallery\'s empty line, a kind its own; tiles give none', async () => {
   const { pickerEmpty, pickerTiles } = await core();
   const o = { hidden: none, self: 'self', order: 'newest' as const };
   assert.equal(pickerEmpty([], 'all'), 'Photos, videos and voice memos you keep show here.');
@@ -46,7 +46,7 @@ test('MP8: no tiles gives the gallery\'s empty line, a kind its own; tiles give 
   assert.equal(pickerEmpty(pickerTiles(moments(), walks(), { ...o, show: 'all' }), 'all'), null);
 });
 
-test('MP9: marking a tile marks every tile of its moment; the bar says place, date, time, walk and its words or its kind', { todo: 'test first' }, async () => {
+test('MP9: marking a tile marks every tile of its moment; the bar says place, date, time, walk and its words or its kind', async () => {
   const { markedKeys, pickBar, pickerTiles } = await core();
   const tiles = pickerTiles(moments(), walks(), { hidden: none, self: 'self', show: 'all', order: 'newest' });
   assert.deepEqual([...markedKeys(tiles, 'stack')].sort(), ['stack', 'stack.1', 'stack.2']);
@@ -59,13 +59,13 @@ test('MP9: marking a tile marks every tile of its moment; the bar says place, da
   assert.equal(pickBar({ kind: 'video', words: '', place: null, t: 1, walkLine: null, time: '10:00 AM', now: NOW }).words, 'Video');
 });
 
-test('MP1, MP9: the switch\'s words are List and Media, and the one action is Connect or Mention', { todo: 'test first' }, async () => {
+test('MP1, MP9: the switch\'s words are List and Media, and the one action is Connect or Mention', async () => {
   const { PICKER_ACTION, PICKER_TABS } = await core();
   assert.deepEqual(PICKER_TABS, { list: 'List', media: 'Media' });
   assert.deepEqual(PICKER_ACTION, { thread: 'Connect', mention: 'Mention' });
 });
 
-test('MP14, MP16: the rows come from Chronicle\'s own layout, each with its offset and height, for Days, Months and Years', { todo: 'test first' }, async () => {
+test('MP14, MP16: the rows come from Chronicle\'s own layout, each with its offset and height, for Days, Months and Years', async () => {
   const { pickerRows, pickerTiles } = await core();
   const tiles = pickerTiles(moments(), walks(), { hidden: none, self: 'self', show: 'all', order: 'newest' });
   for (const zoom of ['days', 'months', 'years'] as const) {
@@ -82,7 +82,7 @@ test('MP14, MP16: the rows come from Chronicle\'s own layout, each with its offs
   assert.ok(months.every((r) => r.kind === 'block'), 'a month is a block, never a tile to pick');
 });
 
-test('MP2, MP12: both pickers show the one PickerMedia; Notes that mention it has no switch', { todo: 'test first' }, () => {
+test('MP2, MP12: both pickers show the one PickerMedia; Notes that mention it has no switch', () => {
   const picker = readFileSync('src/components/threads/MomentPicker.tsx', 'utf8');
   const add = readFileSync('src/components/threads/AddToThread.tsx', 'utf8');
   assert.match(picker, /PickerMedia/);
@@ -90,7 +90,7 @@ test('MP2, MP12: both pickers show the one PickerMedia; Notes that mention it ha
   assert.match(picker, /!props\.only[\s\S]*PickerTabs|PickerTabs[\s\S]*!props\.only/, 'the switch only without `only`');
 });
 
-test('MP15: the picker never writes the gallery\'s view', { todo: 'test first' }, () => {
+test('MP15: the picker never writes the gallery\'s view', () => {
   const src = readFileSync('src/components/threads/PickerMedia.tsx', 'utf8');
   assert.doesNotMatch(src, /gallery\.setView|setMeta|gallery\.setShow|gallery\.setZoom/);
 });

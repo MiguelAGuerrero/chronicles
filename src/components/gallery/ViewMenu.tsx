@@ -22,11 +22,16 @@ export function ViewMenu(props: {
   onShow: (s: Show) => void;
   onZoom: (dir: 'in' | 'out') => void;
   onShape: (s: Shape) => void;
+  /** In a picker (specs/picker-media MP17): its own test ids, the sheet drawn inside the card instead of a Modal (iOS can't stack one on one), and no Show (the kind row is the picker's). */
+  idPrefix?: string;
+  inline?: boolean;
+  showKind?: boolean;
 }) {
-  const radio = (id: string, label: string, on: boolean, pick: () => void) => (
+  const id = props.idPrefix ?? 'gallery';
+  const radio = (rid: string, label: string, on: boolean, pick: () => void) => (
     <Pressable
-      key={id}
-      testID={`gallery-menu-${id}`}
+      key={rid}
+      testID={`${id}-menu-${rid}`}
       accessibilityRole="radio"
       accessibilityState={{ checked: on }}
       aria-checked={on}
@@ -42,7 +47,7 @@ export function ViewMenu(props: {
     return (
       <Pressable
         key={dir}
-        testID={`gallery-menu-zoom-${dir}`}
+        testID={`${id}-menu-zoom-${dir}`}
         accessibilityRole="button"
         accessibilityState={{ disabled: !can }}
         disabled={!can}
@@ -54,27 +59,35 @@ export function ViewMenu(props: {
       </Pressable>
     );
   };
-  return (
-    <Modal visible={props.open} transparent animationType="fade" onRequestClose={props.onClose}>
-      <View style={styles.back}>
+  const body = (
+      <View style={[styles.back, props.inline && StyleSheet.absoluteFill]}>
         <Pressable style={StyleSheet.absoluteFill} onPress={props.onClose} accessible={false} />
-        <View style={styles.sheet} testID="gallery-menu" accessibilityViewIsModal>
+        <View style={styles.sheet} testID={`${id}-menu`} accessibilityViewIsModal>
           <ScrollView contentContainerStyle={styles.body}>
             <Text style={styles.section} accessibilityRole="header">{MENU_SORT}</Text>
             <View accessibilityRole="radiogroup">{(['newest', 'oldest'] as const).map((o) => radio(`order-${o}`, ORDER_LABEL[o], props.view.order === o, () => props.onOrder(o)))}</View>
-            <Text style={styles.section} accessibilityRole="header">{MENU_SHOW}</Text>
-            <View accessibilityRole="radiogroup">{(['all', 'photo', 'video', 'voice'] as const).map((s) => radio(`show-${s}`, SHOW_LABEL[s], props.show === s, () => props.onShow(s)))}</View>
+            {props.showKind === false ? null : (
+              <>
+                <Text style={styles.section} accessibilityRole="header">{MENU_SHOW}</Text>
+                <View accessibilityRole="radiogroup">{(['all', 'photo', 'video', 'voice'] as const).map((s) => radio(`show-${s}`, SHOW_LABEL[s], props.show === s, () => props.onShow(s)))}</View>
+              </>
+            )}
             <Text style={styles.section} accessibilityRole="header">{MENU_SIZE}</Text>
             {step('in', ZOOM_IN)}
             {step('out', ZOOM_OUT)}
             <Text style={styles.section} accessibilityRole="header">{MENU_GRID}</Text>
             <View accessibilityRole="radiogroup">{(['square', 'aspect'] as const).map((s) => radio(`shape-${s}`, SHAPE_LABEL[s], props.view.shape === s, () => props.onShape(s)))}</View>
           </ScrollView>
-          <Pressable testID="gallery-menu-done" accessibilityRole="button" onPress={props.onClose} style={styles.done}>
+          <Pressable testID={`${id}-menu-done`} accessibilityRole="button" onPress={props.onClose} style={styles.done}>
             <Text style={styles.doneText}>Done</Text>
           </Pressable>
         </View>
       </View>
+  );
+  if (props.inline) return props.open ? body : null;
+  return (
+    <Modal visible={props.open} transparent animationType="fade" onRequestClose={props.onClose}>
+      {body}
     </Modal>
   );
 }

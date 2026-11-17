@@ -33,4 +33,5 @@ Every photo, video and memo piece in an edge-to-edge grid under day headers, wit
     seeds a place line that wraps and checks no title is cut.
   - The meta key scan (FC8) reads only `getMeta` / `setMeta`: the shell calls them, not `metaStore`.
   - An icon draws a private-use glyph: a tile's text in the e2e strips `[-]` before comparing.
+- **The pickers reuse the grid** (specs/picker-media): `GalleryTile` takes `marked`, `GalleryBar` takes `idPrefix`, `showLine` and `tall`, `ViewMenu` takes `idPrefix`, `inline` and `showKind`, and `DayHeader` is the one day header; a change to a tile or a header is the pickers' too (`.claude/rules/threads.md`).
 - **Native** (unverified on a device): the grid's fling, the pinch, TalkBack's list size (`docs/NATIVE_UNVERIFIED.md`).

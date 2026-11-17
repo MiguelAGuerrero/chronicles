@@ -478,9 +478,7 @@ const RENAMED = {
   'video-thumbnails': { VS: 'VT' },
 };
 
-const IN_PROGRESS = {
-  'picker-media': { branch: 'claude/moment-threading-media-gallery-jv3lz1', since: '2026-11-17' },
-};
+const IN_PROGRESS = {};
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));
 

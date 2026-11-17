@@ -1,14 +1,16 @@
 import type { Faced } from '../../lib/moment';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useHidden } from '../../lib/deletion/useDeletions';
 import { threads } from '../../lib/threads';
+import { PickerMedia, PickerTabs } from './PickerMedia';
+import { useMomentPool } from './useMomentPool';
 import { filterPicker } from '../../lib/threads/picker';
 import { contextLine, headingOf, threadLine } from '../../lib/threads/lines';
 import { useThreads } from '../../lib/threads/useThreads';
 import type { MomentView } from '../../lib/resurface/types';
-import { fromLine, toMomentViews } from '../../lib/resurface/views';
+import { fromLine } from '../../lib/resurface/views';
 import type { Walk } from '../../lib/types';
 import { Icon } from '../icons';
 import { theme } from '../ui';
@@ -33,24 +35,18 @@ function rowOf(m: MomentView, walks: Map<string, Walk>, now: number) {
 export function AddToThread(props: { moment: Faced; onClose: () => void; onDone: (message: string, ok: boolean) => void }) {
   const insets = useSafeAreaInsets();
   const { data } = useThreads();
-  const [pool, setPool] = useState<{ views: MomentView[]; walks: Map<string, Walk> } | null>(null);
+  const mp = useMomentPool();
+  const pool = mp.ready ? { views: mp.views, walks: mp.walks } : null;
+  // List first (MP3); the mark survives a trip to List and back (MP6).
+  const [tab, setTab] = useState<'list' | 'media'>('list');
+  const [marked, setMarked] = useState<string | null>(null);
   const [step, setStep] = useState<'threads' | 'moment'>('threads');
   const [query, setQuery] = useState('');
   const [now] = useState(() => Date.now());
   const [limit, setLimit] = useState(PAGE);
   // What waits in the Undo window is not offered (owner-threads audit 4).
   const hidden = useHidden();
-  useEffect(() => {
-    let live = true;
-    threads.moments().then(
-      (r) => live && setPool({ views: toMomentViews(r.captures, r.walks), walks: new Map(r.walks.map((w) => [w.id, w])) }),
-      () => live && setPool({ views: [], walks: new Map() }),
-    );
-    return () => {
-      live = false;
-    };
-  }, []);
-  const byId = useMemo(() => new Map((pool?.views ?? []).map((v) => [v.id, v])), [pool]);
+  const byId = mp.byId;
   const threadRows = useMemo(
     () =>
       data.threads
@@ -114,6 +110,11 @@ export function AddToThread(props: { moment: Faced; onClose: () => void; onDone:
           </ScrollView>
         ) : (
           <>
+            <PickerTabs tab={tab} onTab={setTab} />
+            {tab === 'media' ? (
+              <PickerMedia pool={mp} self={props.moment.id} action="thread" marked={marked} onMark={setMarked} onPick={(v) => void joinWith(v)} />
+            ) : null}
+            {tab === 'list' ? (
             <TextInput
               testID="add-search"
               value={query}
@@ -126,6 +127,8 @@ export function AddToThread(props: { moment: Faced; onClose: () => void; onDone:
               accessibilityLabel="Search words, places or dates"
               style={styles.input}
             />
+            ) : null}
+            {tab === 'list' ? (
             <ScrollView style={styles.list} contentContainerStyle={styles.pad}>
               {pool && candidates.length === 0 ? <Text style={styles.sub}>No other moment matches.</Text> : null}
               {candidates.map((v) => {
@@ -143,6 +146,7 @@ export function AddToThread(props: { moment: Faced; onClose: () => void; onDone:
                 </Pressable>
               ) : null}
             </ScrollView>
+            ) : null}
           </>
         )}
       </View>

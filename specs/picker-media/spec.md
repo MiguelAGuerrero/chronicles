@@ -32,7 +32,7 @@ Open: none (the owner chose the switch, both pickers, and every photo, video and
 ### The task, and where it is found
 
 1. **MP1 · Browse by picture to connect.** In "Join it with another moment" (the viewer's More, Add to a thread, A new thread) a person can scroll photos, videos and voice memos as tiles and connect the moment of one to the moment they came from. Someone not told where the grid is finds it from the picker's screen: a two-word switch, **List** and **Media**, in words (never a symbol alone), sits directly under the picker's title, the first thing under it.
-2. **MP2 · Every place a moment is mentioned from.** The same switch and grid are in Mention a moment wherever a note page or the journal offers it: the journal's open line, a new note page, a note opened from the viewer's Edit or Respond, a journal entry, and a note written from the walk's pencil, Navigate's bar or the planner's capture. Both pickers show the same words, the same order and the same marks (the journey covers one in-walk host). Without scrolling, at 320 px, at first paint and with the on-screen keyboard open, **List** and **Media** are visible and Media is one tap away.
+2. **MP2 · Every place a moment is mentioned from.** The same switch and grid are in Mention a moment wherever a note page or the journal offers it: the journal's open line, a new note page, a note opened from the viewer's Edit or Respond, a journal entry, and a note written from the walk's pencil, Navigate's bar or the planner's capture. Both pickers show the same words, the same order and the same marks (the journey covers the journal-entry and viewer hosts; the in-walk hosts share the one `MomentPicker`, which a source check holds). Without scrolling, at 320 px, at first paint and with the on-screen keyboard open, **List** and **Media** are visible and Media is one tap away.
 3. **MP3 · The list is first and keeps its search.** The picker opens on List as today, with its search field and "Show more"; the search belongs to List and is gone while Media is shown. Back on List, the query and its results are as they were left (its scroll position is not promised).
 
 ### The grid
@@ -68,4 +68,4 @@ Open: none (the owner chose the switch, both pickers, and every photo, video and
 
 ## Record
 
-Not built yet.
+Built Nov 17, 2026, test-first (19 of 19 by history). Unit tests `src/lib/__tests__/threads/pickerMedia.test.ts`; the `pickermedia` journey checks MP1-MP19 on the web build. Found while building: a moment dated later today is not in the pool before that hour (the journey seeds in the past); the zoom bar's segments were 40 pt, so the picker's bar takes `tall` (44). Native: `docs/NATIVE_UNVERIFIED.md`, "Media gallery". The in-walk note hosts (the walk's pencil, Navigate's bar, the planner) are held by the source check, not driven in a journey.

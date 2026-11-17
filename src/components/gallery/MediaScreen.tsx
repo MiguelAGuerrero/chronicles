@@ -5,7 +5,7 @@ import { captureEdits } from '../../lib/captureEdits';
 import { useHidden, useOnDeleted } from '../../lib/deletion/useDeletions';
 import { gallery } from '../../lib/gallery';
 import { capFirst, emptyLine } from '../../lib/gallery/copy';
-import { blockRows, blockTextHeight, coverHeight, dayRows, HEADER_TYPE, galleryBlocks, galleryDays, galleryTiles, tileLabel, tilePlace, type Block, type Row, type Tile } from '../../lib/gallery/layout';
+import { blockRows, blockTextHeight, coverHeight, dayRows, galleryBlocks, galleryDays, galleryTiles, tileLabel, tilePlace, type Block, type Row, type Tile } from '../../lib/gallery/layout';
 import type { Zoom } from '../../lib/gallery/types';
 import { anchorAfter, fitFor, rescaleScroll, zoomed } from '../../lib/gallery/view';
 import { pieceKey, type Faced } from '../../lib/moment';
@@ -15,6 +15,7 @@ import { useStore } from '../../lib/useStore';
 import { CaptureViewer } from '../CaptureView';
 import { UndoToast } from '../UndoToast';
 import { theme } from '../ui';
+import { DayHeader } from './DayHeader';
 import { GalleryBar } from './GalleryBar';
 import { GalleryTile } from './GalleryTile';
 import { PeriodBlock } from './PeriodBlock';
@@ -183,13 +184,7 @@ export function MediaScreen() {
 
   const renderRow = useCallback(
     ({ item }: { item: Row }) => {
-      if (item.kind === 'header')
-        return (
-          <View style={[styles.header, { height: item.height }]} testID="gallery-day" {...({ dataSet: { day: item.day.key } } as object)}>
-            <Text testID="gallery-day-title" style={styles.title} accessibilityRole="header" numberOfLines={1}>{item.day.title}</Text>
-            <Text testID="gallery-day-line" style={styles.line} numberOfLines={HEADER_TYPE.lines}>{item.day.line}</Text>
-          </View>
-        );
+      if (item.kind === 'header') return <DayHeader day={item.day} height={item.height} />;
       if (item.kind === 'tiles')
         return (
           <View style={[styles.row, { height: item.height }]}>
@@ -285,10 +280,6 @@ export function MediaScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.bg },
   body: { flex: 1 },
-  // The row's height is made from these numbers (HEADER_TYPE); neither text may shrink to fit, or the title is cut.
-  header: { backgroundColor: theme.bg, paddingHorizontal: 16, paddingTop: HEADER_TYPE.padTop, paddingBottom: HEADER_TYPE.padBottom, justifyContent: 'flex-end' },
-  title: { color: theme.ink, fontSize: HEADER_TYPE.titleSize, lineHeight: HEADER_TYPE.titleLine, fontWeight: '700', flexShrink: 0 },
-  line: { color: theme.muted, fontSize: HEADER_TYPE.lineSize, lineHeight: HEADER_TYPE.lineLine, flexShrink: 0 },
   row: { flexDirection: 'row', gap: 1 },
   quiet: { padding: 24 },
   quietText: { color: theme.ink, fontSize: 16, lineHeight: 23 },

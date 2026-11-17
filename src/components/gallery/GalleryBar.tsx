@@ -10,33 +10,34 @@ const ZOOMS: Zoom[] = ['years', 'months', 'days'];
  * The gallery's slim bar (MG9, MG19): Years, Months, Days as a segmented control, the View menu's button, and with a
  * kind chosen, which one in words with a way back to all.
  */
-export function GalleryBar(props: { zoom: Zoom; show: Show; onZoom: (z: Zoom) => void; onMenu: () => void; onShowAll: () => void }) {
+export function GalleryBar(props: { zoom: Zoom; show: Show; onZoom: (z: Zoom) => void; onMenu: () => void; onShowAll: () => void; idPrefix?: string; showLine?: boolean; tall?: boolean }) {
+  const id = props.idPrefix ?? 'gallery';
   return (
     <View style={styles.wrap}>
       <View style={styles.bar}>
-        <View style={styles.segments} accessibilityRole="tablist" testID="gallery-zoom">
+        <View style={styles.segments} accessibilityRole="tablist" testID={`${id}-zoom`}>
           {ZOOMS.map((z) => {
             const on = props.zoom === z;
             return (
               <Pressable
                 key={z}
-                testID={`gallery-zoom-${z}`}
+                testID={`${id}-zoom-${z}`}
                 accessibilityRole="tab"
                 accessibilityState={{ selected: on }}
                 aria-selected={on}
                 onPress={() => props.onZoom(z)}
-                style={[styles.segment, on && styles.segmentOn]}
+                style={[styles.segment, props.tall && styles.tall, on && styles.segmentOn]}
               >
                 <Text style={[styles.segmentText, on && styles.segmentTextOn]} numberOfLines={1}>{ZOOM_LABEL[z]}</Text>
               </Pressable>
             );
           })}
         </View>
-        <Pressable testID="gallery-view-menu" accessibilityRole="button" accessibilityLabel={VIEW_MENU} onPress={props.onMenu} style={styles.menu}>
+        <Pressable testID={`${id}-view-menu`} accessibilityRole="button" accessibilityLabel={VIEW_MENU} onPress={props.onMenu} style={styles.menu}>
           <Icon name="options-outline" size={22} color={theme.ink} />
         </Pressable>
       </View>
-      {props.show !== 'all' ? (
+      {props.showLine !== false && props.show !== 'all' ? (
         <View style={styles.only}>
           <Text testID="gallery-only" style={styles.onlyText}>{ONLY[props.show]}</Text>
           <Pressable testID="gallery-show-all" accessibilityRole="button" onPress={props.onShowAll} style={styles.showAll}>
@@ -53,6 +54,7 @@ const styles = StyleSheet.create({
   bar: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 8, paddingBottom: 6, width: '100%', maxWidth: 640, alignSelf: 'center' },
   segments: { flex: 1, flexDirection: 'row', backgroundColor: theme.line, borderRadius: 10, padding: 2 },
   segment: { flex: 1, minHeight: 40, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  tall: { minHeight: 44 },
   segmentOn: { backgroundColor: theme.surface },
   segmentText: { color: theme.muted, fontSize: 14, fontWeight: '600' },
   segmentTextOn: { color: theme.ink },

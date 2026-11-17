@@ -8,6 +8,7 @@ import { contextLine } from '../../lib/threads/lines';
 import { filterPicker } from '../../lib/threads/picker';
 import type { MomentPool } from './useMomentPool';
 import { Icon } from '../icons';
+import { PickerMedia, PickerTabs } from './PickerMedia';
 import { theme } from '../ui';
 
 const KIND_WORD = { photo: 'Photo', video: 'Video', voice: 'Voice memo', text: 'Note' } as const;
@@ -31,6 +32,10 @@ export function MomentPicker(props: { pool: MomentPool; self: string | null; tit
   const hidden = useHidden();
   const [query, setQuery] = useState('');
   const [limit, setLimit] = useState(PAGE);
+  // List first (MP3); the mark survives a trip to List and back (MP6).
+  const [tab, setTab] = useState<'list' | 'media'>('list');
+  const [marked, setMarked] = useState<string | null>(null);
+  const media = !props.only && tab === 'media';
   const [now] = useState(() => Date.now());
   const found = useMemo(() => {
     const only = props.only ? new Set(props.only) : null;
@@ -49,7 +54,9 @@ export function MomentPicker(props: { pool: MomentPool; self: string | null; tit
             <Icon name="close" size={22} color={theme.ink} />
           </Pressable>
         </View>
-        {!props.only && (
+        {!props.only && <PickerTabs tab={tab} onTab={setTab} />}
+        {media && <PickerMedia pool={props.pool} self={props.self} action="mention" marked={marked} onMark={setMarked} onPick={props.onPick} />}
+        {!props.only && !media && (
           <TextInput
             testID="moment-picker-search"
             value={query}
@@ -63,6 +70,7 @@ export function MomentPicker(props: { pool: MomentPool; self: string | null; tit
             style={styles.input}
           />
         )}
+        {!media && (
         <ScrollView style={styles.list} contentContainerStyle={styles.pad} keyboardShouldPersistTaps="handled">
           {props.pool.ready && shown.length === 0 ? <Text style={styles.sub}>No other moment matches.</Text> : null}
           {shown.map((v) => {
@@ -80,6 +88,7 @@ export function MomentPicker(props: { pool: MomentPool; self: string | null; tit
             </Pressable>
           ) : null}
         </ScrollView>
+        )}
       </View>
     </View>
   );

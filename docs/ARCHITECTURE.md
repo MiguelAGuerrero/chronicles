@@ -100,6 +100,7 @@ Media gallery (specs/media-gallery, MG1-MG22, decision 0139)
   gallery/copy.ts            every sentence: the empty lines, the View menu's words, the place line's phrases; numbers as words
   gallery/view.ts            DEFAULT_VIEW and readView (meta `gallery_view`), zoomed, pinchStep, anchorAfter (the day kept at the top after a size change), fitFor
   gallery/shell.ts           createGallery(ports, { makeThumb }): load (newest read wins), the saved view, opened (a new open resets the filter and zoom), streetsFor (loose moments), thumbFor (small copies), patch; index.ts is the app instance
+  threads/pickerMedia.ts     (picker media, specs/picker-media) pickerTiles (the moment in hand and Undo's left out), markedKeys, pickBar, pickerRows, PICKER_TABS, PICKER_ACTION; the view is components/threads/PickerMedia (the switch, the grid, the bar) inside AddToThread and MomentPicker
   gallery/                   (components/) MediaScreen (the FlatList with pinned day headers and getItemLayout; the viewer at a tile), GalleryBar (Years, Months, Days; View options; "Videos only"), GalleryTile, PeriodBlock, ViewMenu, usePinch (two fingers, the RN responder; `touch-action: pan-y` on the web)
 Owner threads (decision 0104)
   threads/types.ts           Thread, Member, Link (all truth), ThreadsData, ThreadsChange (one atomic change)

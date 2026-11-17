@@ -1,0 +1,31 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Media gallery (MG1-MG22, decision 0139)"
+      ],
+      "body": "- [ ] **Do:** on an iPhone, open a moment, More → Add to a thread → A new thread, tap Media, and fling the grid; then tap Years, Months, Days, open the options button and pick Oldest First and Zoom Out, and pinch with two fingers. **Expect:** the grid keeps up inside the card, the options sheet opens inside the card (no second modal), the pinch changes the tiles across by one step and never zooms the page (MP13, MP14, MP17, MP18).\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Media gallery (MG1-MG22, decision 0139)"
+      ],
+      "body": "- [ ] **Do:** with VoiceOver and TalkBack, move through List and Media, the kind row and the grid; mark a tile. **Expect:** List and Media and the chosen kind are read as selected tabs, a tile as its kind, time and walk or street, a marked tile as selected, Connect with the moment it would join; no count is spoken (MP7, MP9, MP11).\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Media gallery (MG1-MG22, decision 0139)"
+      ],
+      "body": "- [ ] **Do:** in a note, type @, tap Media, mark a photo and tap Mention, on iOS with the keyboard up and on Android. **Expect:** List and Media are visible at once with the keyboard open, the reference lands where @ was, and the note keeps its place (MP2, MP10).\n"
+    }
+  ]
+}

@@ -23,6 +23,8 @@ export const GalleryTile = memo(function GalleryTile(props: {
   fit: 'cover' | 'contain';
   label: string;
   onPress: (tile: Tile) => void;
+  /** In a picker (specs/picker-media MP9): the tile of the marked moment, ringed in ink with a check mark. */
+  marked?: boolean;
 }) {
   const { tile, size } = props;
   // Its copy or still, the row's or one made since; one it lacks is asked for (MG11, VS2).
@@ -38,6 +40,8 @@ export const GalleryTile = memo(function GalleryTile(props: {
       testID="gallery-tile"
       accessibilityRole="button"
       accessibilityLabel={props.label}
+      accessibilityState={props.marked == null ? undefined : { selected: props.marked }}
+      aria-selected={props.marked == null ? undefined : props.marked}
       onPress={() => props.onPress(tile)}
       style={({ pressed }) => [styles.tile, { width: size, height: size }, pressed && styles.pressed]}
       {...({ dataSet: { kind: tile.kind, piece: tile.key, moment: tile.momentId, ref: ref ?? '' } } as object)}
@@ -64,6 +68,13 @@ export const GalleryTile = memo(function GalleryTile(props: {
           </Text>
         </View>
       ) : null}
+      {props.marked ? (
+        <View style={styles.ring} pointerEvents="none" accessible={false}>
+          <View style={styles.check}>
+            <Icon name="checkmark" size={14} color={theme.bg} />
+          </View>
+        </View>
+      ) : null}
     </Pressable>
   );
 });
@@ -71,6 +82,9 @@ export const GalleryTile = memo(function GalleryTile(props: {
 const styles = StyleSheet.create({
   tile: { backgroundColor: TILE_GROUND, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   pressed: { opacity: 0.75 },
+  // Ink, with a check on its own ground: never colour alone (MP9).
+  ring: { ...StyleSheet.absoluteFill, borderWidth: 3, borderColor: theme.ink, alignItems: 'flex-end', justifyContent: 'flex-start' },
+  check: { width: 22, height: 22, margin: 3, borderRadius: 11, backgroundColor: theme.ink, alignItems: 'center', justifyContent: 'center' },
   mark: { position: 'absolute', right: 4, bottom: 4 },
   length: { position: 'absolute', right: 5, bottom: 4, flexDirection: 'row', alignItems: 'center', gap: 2 },
   lengthText: { color: theme.ink, fontSize: 12, fontWeight: '600', fontVariant: ['tabular-nums'] },

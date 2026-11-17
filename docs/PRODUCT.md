@@ -533,6 +533,7 @@ recording, and a recording bar brings a minimized walk back.
 | Moments and days, memories on revisit, thumbnails | Shipped, audited |
 | Video thumbnails (a video's still where its kept part starts, in every preview, under a play mark; VS1-VS9) | Built (web verified by the e2e `videothumbs`; native unverified) |
 | Media gallery (Chronicle's fifth section: every photo, video and memo in a grid under day headers; Years, Months, Days; Sort, Show, Zoom, Square or Aspect; MG1-MG22) | Built (web verified by the e2e `gallery`; native unverified) |
+| Picker media (a List \| Media switch in Join it with another moment and Mention a moment: Chronicle's grid, with Years, Months, Days, the View menu and pinch, to find a moment by its picture; a tap marks it and Connect or Mention picks; MP1-MP19) | Built (web verified by the e2e `pickermedia`; native unverified) |
 | Rides, clearing walks and moments, motion polish | Shipped, audited |
 | Navigation and tabs (three-tab layout, recording bar) | Shipped, two audit batches done |
 | Navigate, ready (Navigate is the walk screen, ready; the capture stack; the bar pulls up to the settings) | Shipped on web (native unverified) |
