@@ -84,6 +84,8 @@ async function run(h) {
   await pg.waitForSelector('[data-testid=atlas-search-field]', { timeout: 15000 }).catch(() => {});
   await pg.locator('[data-testid=atlas-search-field]').pressSequentially('Kutztown', { delay: 15 }).catch(() => {});
   await pg.waitForSelector('[data-testid=atlas-search-result]', { timeout: 60000 }).catch(() => {});
+  await pg.waitForTimeout(400);
+  await shot(pg, '02a-search');
   await pg.locator('[data-testid=atlas-search-result]').first().click().catch(() => {});
   await pg.waitForSelector('[data-testid=outing-away]', { timeout: 15000 }).catch(() => {});
   const townText = ((await pg.locator('[data-testid=outing-where-text]').innerText().catch(() => '')) ?? '').trim();
@@ -254,6 +256,11 @@ async function run(h) {
   check((await pg.locator('[data-testid=outing-reach-1]').getAttribute('aria-checked')) === 'true' && (await pg.locator('[data-testid^=outing-journey-]').count()) >= 1, 'OJ41, OJ44: a wider reach still proposes, by the same machine');
   check(/^(Looked in .+\.|No town within that reach\.)$/.test(((await pg.locator('[data-testid=outing-looked]').innerText().catch(() => '')) ?? '').trim()), 'outing-journey ui 1: a wider reach says what it looked at');
   await shot(pg, '05d-reach');
+  await pg.click('[data-testid=outing-peek]');
+  await pg.waitForTimeout(400);
+  await shot(pg, '05e-folded');
+  await pg.click('[data-testid=outing-peek]');
+  await pg.waitForTimeout(300);
   await pg.click('[data-testid=outing-reach-0]');
   await only(['antiques']);
   await openJourney();
