@@ -92,7 +92,7 @@ Routing inside a walk (`lib/nav`): walk me back, Route here, the route sources, 
   - **Android is not a priority** (the owner, Nov 3): its `geo:` chooser
     opens a pin, not walking directions, and stays as it is.
   - **Deferred:** the dead-zone nudge. Open in Maps sits beside Walk on Explore's tiles, card, rows and long press and on
-    Chronicle's star sheet and long press (decision 0193, `.claude/rules/open-in-maps-here.md`); the Explore mark is a pin with no
+    Chronicle's star sheet and long press (decision 0194, `.claude/rules/open-in-maps-here.md`); the Explore mark is a pin with no
     card. The walk's own routing is "Route here".
   - **Native** (unverified on a device): Apple Maps from the app, the Android
     chooser, and an iPhone Home Screen app's `window.open` reaching Apple Maps.

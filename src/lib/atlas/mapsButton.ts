@@ -2,7 +2,7 @@
 import type { Listed } from './atlas';
 
 /**
- * Open in Maps beside Walk (specs/open-in-maps-here, decision 0193): every place shown with a way to walk there also has
+ * Open in Maps beside Walk (specs/open-in-maps-here, decision 0194): every place shown with a way to walk there also has
  * "Open in Maps ↗", which hands the destination to the phone's maps app and does nothing else. Pure: who gets it, what
  * the words are, what a tile's walk button does at each distance, and what label rides in the link.
  */

@@ -15,7 +15,7 @@ export interface MapsTarget {
 }
 
 /**
- * Open in Maps (specs/open-in-maps-here, decision 0193): `open(target)` hands the destination to the phone's maps app,
+ * Open in Maps (specs/open-in-maps-here, decision 0194): `open(target)` hands the destination to the phone's maps app,
  * straight from the tap (a browser opens a window only from one), and does nothing else: no sheet, nothing saved, no walk.
  * A maps app that won't open is the host's `onFail`.
  */

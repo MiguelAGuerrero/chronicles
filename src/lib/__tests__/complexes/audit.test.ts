@@ -190,7 +190,7 @@ test('complexes audit 28: the card\'s controls are 48 points, as on Android', ()
   assert.ok(COMPLEX_TARGET_MIN >= 48);
   const src = read('components/atlas/AtlasCard.tsx');
   assert.ok(/complexMore:\s*\{\s*minHeight: COMPLEX_TARGET_MIN/.test(src));
-  // The row's Walk to moved under its name beside Open in Maps (decision 0193), as `rowWalk`: still 48 points.
+  // The row's Walk to moved under its name beside Open in Maps (decision 0194), as `rowWalk`: still 48 points.
   assert.ok(/rowWalk:\s*\{\s*minHeight: COMPLEX_TARGET_MIN/.test(src));
 });
 
