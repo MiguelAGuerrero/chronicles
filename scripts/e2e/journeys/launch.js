@@ -7,6 +7,9 @@ const path = require('path');
 
 async function checks(h) {
   const { url, BASE, browser, page, start, at, check, shownCount, tabBarShown, onTab, routed } = h;
+  // gazetteer web fetch 4-5: every request for the place-name pack this page makes, from its first load.
+  const packAsked = [];
+  page.on('request', (r) => { if (/\/gazetteer\/places\.json/.test(new URL(r.url()).pathname)) packAsked.push(r.url()); });
     // HC5: a launch on a replay or a day that is no longer kept, and the old /chronicle path, open Chronicle
     // at /, with one tab bar (NV2: the owner's Home Screen app reopened on "This walk could not be found", Nov 3).
     for (const stale of ['replay/no-such-walk', 'day/1999-01-01', 'chronicle']) {
@@ -211,6 +214,26 @@ async function checks(h) {
       return r ? { scope: r.scope, active: !!r.active } : null;
     });
     check(sw && sw.active && sw.scope.endsWith(`${BASE}/`), `the service worker is active at the base path (${JSON.stringify(sw)})`);
+
+    // gazetteer web fetch 4 (the owner's answer of Nov 16, "Fetch on first search"): the entry script holds no place-name
+    // pack, and nothing asked for it through the launch, three tabs and the service worker.
+    const entry = await page.evaluate(async () => {
+      const srcs = [...document.querySelectorAll('script[src]')].map((s) => s.src).filter((s) => /\/_expo\/static\/js\/web\/index-[^/]*\.js$/.test(s));
+      const texts = await Promise.all(srcs.map(async (s) => (await fetch(s)).text()));
+      return { srcs, bytes: texts.map((t) => t.length), pack: texts.some((t) => t.includes('geonames-cities5000')) };
+    });
+    check(entry.srcs.length === 1 && !entry.pack && packAsked.length === 0,
+      `gazetteer web fetch 4: the entry script holds no place-name pack, and nothing asked for it before search opened (${entry.bytes.join()} bytes, ${packAsked.length} asked)`);
+    // gazetteer web fetch 5: the first search asks for it once, from the app's own site under the base path, and finds a town.
+    await page.locator('[data-testid=atlas-search]').click({ timeout: 10000 }).catch(() => {});
+    await page.locator('[data-testid=atlas-search-field]').pressSequentially('zuric', { delay: 15, timeout: 10000 }).catch(() => {});
+    await page.waitForFunction(() => [...document.querySelectorAll('[data-testid=atlas-search-result]')].some((e) => /Zürich/.test(e.innerText)), null, { timeout: 20000 }).catch(() => {});
+    const found = await page.locator('[data-testid=atlas-search-result]').allInnerTexts().catch(() => []);
+    const asked = packAsked.map((u) => new URL(u));
+    check(asked.length === 1 && asked[0].origin === new URL(url).origin && asked[0].pathname === `${BASE}/gazetteer/places.json` && found.some((t) => /Zürich/.test(t)),
+      `gazetteer web fetch 5: the first search fetches the pack once from ${BASE}/gazetteer/places.json and finds Zürich (${packAsked.join()}; ${found.length} rows)`);
+    await page.keyboard.press('Escape').catch(() => {});
+    await page.waitForTimeout(300);
 }
 
 // The fresh-browser flows. The full flow runs them after the shared page's story, as before.
@@ -601,6 +624,9 @@ module.exports = {
     // The app's web styles and shared primitives: every screen wears them, and the launch shows the first.
     'src/components/webStyles*.ts',
     'src/components/{icons,ui}.tsx',
+    // The web's place-name pack: a file of its own, fetched on first search, never in the entry script.
+    'src/lib/gazetteer/source.web.ts',
+    'scripts/copy-maplibre-worker.js',
   ],
   run,
   checks,
