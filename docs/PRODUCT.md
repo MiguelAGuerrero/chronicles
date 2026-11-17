@@ -217,7 +217,8 @@ recording, and a recording bar brings a minimized walk back.
   train) dashed. The map stays north-up unless you turn it with two fingers (a compass then
   shows above the edge buttons and sets north again, decision 0082); a soft cone on the dot shows the way
   you are walking, read from the last 20 m of the trace (decision 0075). A green ring marks where the walk began; the replay adds a
-  solid orange disc with a white ring where it ended (shape, not colour alone, tells them apart; decision 0154). Every map has a scale bar in its bottom-left
+  blue-violet bullseye where it ended (shape, not colour alone, tells them apart; decisions 0154, 0162). The map's colours are
+  Earth and ink (decision 0188): walked streets in an ink apart from the accent, the trace green, each kind of moment an earth pigment. Every map has a scale bar in its bottom-left
   corner. Pins mark captures, grouped by screen distance when zoomed
   out. A pin of one photo shows the photo itself, small and round. Faint
   pins with a clock badge show earlier walks' captures nearby (memories on

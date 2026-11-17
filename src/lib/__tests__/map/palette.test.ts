@@ -8,7 +8,7 @@ import { BORDER, COLORS, ENDS_PAINT, ENDS_RING_PAINT, FOG_STYLE, HOTSPOT, HOTSPO
 import { KIND_COLOR } from '../../../components/atlas/kinds';
 import { contrast, deltaE, hueGap, lch, over, seen, type Sight } from './colourSight';
 
-// The map's palette, "Earth and ink" (the owner's answers to T22, Nov 17; decision 0187; specs/map-palette): the
+// The map's palette, "Earth and ink" (the owner's answers to T22, Nov 17; decision 0188; specs/map-palette): the
 // walked streets and the end in a blue-violet ink, the trace green as before, the kinds in earth pigments, a pin of
 // several on charcoal. The accent, ink and muted of the screens stay. VISION.md Never, "accent-coloured wins";
 // decision 0153, "The replay never lights anything in the accent".
@@ -46,7 +46,7 @@ const beatOne = (ground: string) => {
   return over(palette.trace, over(WHITE, over(palette.walked, ground, 1), edge * quiet), quiet);
 };
 
-test('MP1: only colours change: the end markers\' sizes and the fog and trace widths are as they were', { todo: 'test first' }, () => {
+test('MP1: only colours change: the end markers\' sizes and the fog and trace widths are as they were', () => {
   assert.deepEqual(
     [ENDS_RING_PAINT['circle-radius'], ENDS_RING_PAINT['circle-stroke-width'], ENDS_PAINT['circle-radius'], ENDS_PAINT['circle-stroke-width']],
     [['match', ['get', 'kind'], 'start', 7, 9.5], ['match', ['get', 'kind'], 'start', 4, 1.5], 3.5, 2.5],
@@ -58,7 +58,7 @@ test('MP1: only colours change: the end markers\' sizes and the fog and trace wi
   assert.equal(palette.several, '#31352f');
 });
 
-test('MP2: each map colour by its role', { todo: 'test first' }, () => {
+test('MP2: each map colour by its role', () => {
   assert.deepEqual(ROLES(), {
     walked: '#5b5d9f', trace: '#15803d', photo: '#286766', video: '#87244e', voice: '#544516', text: '#7b7469', several: '#31352f',
   });
@@ -67,10 +67,11 @@ test('MP2: each map colour by its role', { todo: 'test first' }, () => {
   // The pin of several's head is the named colour beside the kinds, not a hex of the pin's own.
   const pin = read('components/CapturePinView.tsx');
   assert.match(pin, /COLORS\.several/);
-  assert.doesNotMatch(pin, /['"]#[0-9a-fA-F]{6}['"]/, 'no hex in the pin\'s view');
+  // Its white glyphs and edges and the clock's ink are not the palette's.
+  assert.doesNotMatch(pin.replace(/['"]#(ffffff|1d2430)['"]/gi, ''), /['"]#[0-9a-fA-F]{6}['"]/, 'no hex in the pin\'s view but white and ink');
 });
 
-test('MP3: the accent, ink, muted, route, walker, fog, hotspot, its ink, the borders, the place kinds and the danger red are unchanged', { todo: 'test first' }, () => {
+test('MP3: the accent, ink, muted, route, walker, fog, hotspot, its ink, the borders, the place kinds and the danger red are unchanged', () => {
   assert.deepEqual([themeOf('accent'), themeOf('ink'), themeOf('muted'), themeOf('danger')], ['#c2410c', '#1d2430', '#596273', '#b42318']);
   assert.deepEqual([palette.route, palette.walker, palette.fog, palette.veil], ['#2563eb', '#1d3557', '#8b939e', '#d7dbe0']);
   assert.deepEqual([HOTSPOT, HOTSPOT_INK, BORDER.color, BORDER.lined], ['#d6268c', '#86145a', '#c2410c', '#6b7280']);
@@ -83,7 +84,7 @@ test('MP3: the accent, ink, muted, route, walker, fog, hotspot, its ink, the bor
   }
 });
 
-test('MP4: lines and markers are 3:1 on the land; beat one\'s lit street, blended with the drawn opacities, 3:1', { todo: 'test first' }, () => {
+test('MP4: lines and markers are 3:1 on the land; beat one\'s lit street, blended with the drawn opacities, 3:1', () => {
   for (const c of [palette.walked, palette.trace]) assert.ok(contrast(c, LAND) >= 3, `${c} ${contrast(c, LAND).toFixed(2)}`);
   const lit = beatOne(LAND);
   assert.equal(lit, '#658694');
@@ -97,7 +98,7 @@ test('MP4: lines and markers are 3:1 on the land; beat one\'s lit street, blende
   }
 });
 
-test('MP5: every pin\'s disc is 3:1 on the land and its white glyph 4.5:1 on the disc', { todo: 'test first' }, () => {
+test('MP5: every pin\'s disc is 3:1 on the land and its white glyph 4.5:1 on the disc', () => {
   for (const k of PINS) {
     const c = palette[k];
     assert.ok(contrast(c, LAND) >= 3, `${k} disc ${contrast(c, LAND).toFixed(2)}`);
@@ -105,7 +106,7 @@ test('MP5: every pin\'s disc is 3:1 on the land and its white glyph 4.5:1 on the
   }
 });
 
-test('MP6: the map\'s colours, beat one\'s lit street and the accent are 9.5 apart with deuteranopia and protanopia, 15 in normal vision', { todo: 'test first' }, () => {
+test('MP6: the map\'s colours, beat one\'s lit street and the accent are 9.5 apart with deuteranopia and protanopia, 15 in normal vision', () => {
   const set: Record<string, string> = { ...ROLES(), beatOne: beatOne(LAND), accent: ACCENT };
   const names = Object.keys(set);
   const floor: Record<Sight, number> = { normal: 15, deutan: 9.5, protan: 9.5 };
@@ -119,7 +120,7 @@ test('MP6: the map\'s colours, beat one\'s lit street and the accent are 9.5 apa
   }
 });
 
-test('MP7: every map colour is 20 from the accent and outside its family', { todo: 'test first' }, () => {
+test('MP7: every map colour is 20 from the accent and outside its family', () => {
   for (const [role, c] of Object.entries(ROLES())) {
     assert.notEqual(c.toLowerCase(), ACCENT, `${role} is not the accent`);
     assert.ok(deltaE(c, ACCENT) >= 20, `${role} is ${deltaE(c, ACCENT).toFixed(1)} from the accent`);
@@ -135,10 +136,10 @@ const files = (dir: string): string[] => readdirSync(dir).flatMap((f) => {
   return statSync(p).isDirectory() ? (f === '__tests__' ? [] : files(p)) : /\.(ts|tsx)$/.test(f) ? [p] : [];
 });
 
-test('MP9: no file keeps a kind\'s old map hex; the pins and the replay\'s stage read the kinds from COLORS', { todo: 'test first' }, () => {
+test('MP9: no file keeps a kind\'s old map hex; the pins and the replay\'s stage read the kinds from COLORS', () => {
   const old = /#(0f766e|7b2cbf|a16207|3f3f46|c2410c|b42318)\b/i;
   const allowed: Record<string, RegExp> = {
-    // The screens' accent and danger red, and the town borders' (the accent's hex, out of scope; decision 0187).
+    // The screens' accent and danger red, and the town borders' (the accent's hex, out of scope; decision 0188).
     'components/ui.tsx': /^\s*(accent|danger): '#(c2410c|b42318)',$/,
     'components/map/types.ts': /^\s*color: '#c2410c',$/,
   };
@@ -157,7 +158,7 @@ test('MP9: no file keeps a kind\'s old map hex; the pins and the replay\'s stage
   assert.match(read('components/ceremony/Pile.tsx'), /backgroundColor: COLORS\.video/, 'the pile\'s video tile');
 });
 
-test('MP10: only the replay and a day draw walked streets or an end; every other map passes none', { todo: 'test first' }, () => {
+test('MP10: only the replay and a day draw walked streets or an end; every other map passes none', () => {
   const hosts = files(join(SRC, 'app')).concat(files(join(SRC, 'components'))).filter((p) => /<WalkMap\b/.test(readFileSync(p, 'utf8')));
   const rel = hosts.map((p) => p.slice(SRC.length + 1)).sort();
   assert.ok(rel.includes('app/replay/[id].tsx') && rel.includes('app/day/[key].tsx') && rel.includes('app/walk.tsx'), rel.join(', '));
@@ -178,11 +179,11 @@ test('MP10: only the replay and a day draw walked streets or an end; every other
   }
 });
 
-test('MP12: T22 is answered: out of the inbox, and decision 0187 records Earth and ink', { todo: 'test first' }, () => {
+test('MP12: T22 is answered: out of the inbox, and decision 0188 records Earth and ink', { todo: 'test first' }, () => {
   const status = readFileSync(join(ROOT, 'docs', 'STATUS.md'), 'utf8');
   assert.doesNotMatch(status, /^- \*\*T22 /m, 'T22 has left the inbox');
-  const record = readdirSync(join(ROOT, 'docs', 'decisions')).find((f) => /^0187-/.test(f));
-  assert.ok(record, 'decision 0187');
+  const record = readdirSync(join(ROOT, 'docs', 'decisions')).find((f) => /^0188-/.test(f));
+  assert.ok(record, 'decision 0188');
   const text = readFileSync(join(ROOT, 'docs', 'decisions', record), 'utf8');
   assert.match(text, /Earth and ink/);
   assert.match(text, /Keep it, narrow the rule/);

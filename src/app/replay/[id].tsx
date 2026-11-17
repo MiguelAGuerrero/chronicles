@@ -21,7 +21,7 @@ import type { StageCtx } from '../../components/ceremony/layout';
 import { ceremonyFor } from '../../lib/ceremony/registry';
 import { chronicleSection } from '../../lib/resurface/sectionStore';
 import { pathDrawnAt, storySteps, walkStory } from '../../lib/ceremony/story';
-import { planViews, type WalkMapHandle } from '../../components/map/types';
+import { planViews, QUIET_TRACE_OPACITY, type WalkMapHandle } from '../../components/map/types';
 import { Button, theme } from '../../components/ui';
 import { db } from '../../lib/db';
 import { applyPatch, captureBus } from '../../lib/captureBus';
@@ -523,7 +523,7 @@ export default function Replay() {
         borders={borders}
         trace={drawn.trace}
         rides={drawn.rides}
-        traceOpacity={beat === 'fog' || beat === 'reading' ? 0.3 : 1}
+        traceOpacity={beat === 'fog' || beat === 'reading' ? QUIET_TRACE_OPACITY : 1}
         walked={shownWalked}
         fog={fog}
         captures={pinned}

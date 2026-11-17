@@ -31,21 +31,11 @@ test('colors: the trace is green, and stands out on the base map (3:1)', () => {
   assert.ok(contrast(COLORS.trace, BASE) >= 3, `${contrast(COLORS.trace, BASE)}`);
 });
 
-test('colors: hotspots are magenta, and no other layer shares their hue or the trace’s', () => {
-  const h = hue(HOTSPOT);
-  assert.ok(h > 280 && h < 330, `hotspot hue ${h}`);
-  const others = [COLORS.walked, COLORS.route, COLORS.photo, COLORS.video, COLORS.voice, COLORS.text];
-  for (const c of others) {
-    assert.ok(Math.abs(hue(c) - hue(COLORS.trace)) > 25, `${c} too close to the trace`);
-    assert.ok(Math.abs(hue(c) - h) > 20, `${c} too close to hotspots`);
-  }
-});
-
-// The magenta's rule, narrowed (the owner, Nov 17, "Keep it, narrow the rule"; decision 0187, amending 0028 and 0034):
+// The magenta's rule, narrowed (the owner, Nov 17, "Keep it, narrow the rule"; decision 0188, amending 0028 and 0034):
 // the magenta stays the one hue of any line, fill or label, and every map colour stays 15 or more from it (CIEDE2000,
 // as it is seen). The madder video pin shares the magenta's hue angle but is a dark disc with a white glyph; every hue
 // that clears the old 20° breaks the colour-blind floor (map-palette, MP6). The trace keeps its 25° of hue.
-test('MP8: every map colour is 15 from the hotspot magenta (CIEDE2000), hues round the circle; the trace keeps its 25°', { todo: 'test first' }, () => {
+test('MP8: every map colour is 15 from the hotspot magenta (CIEDE2000), hues round the circle; the trace keeps its 25°', () => {
   const h = lch(HOTSPOT).h;
   assert.ok(h > 330 && h < 360, `hotspot hue ${h}`);
   const pal = COLORS as unknown as Record<string, string>;

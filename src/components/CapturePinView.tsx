@@ -13,8 +13,8 @@ import { Enter } from './Enter';
 import { captureIcon, Icon, KIND_ICON, type IconName } from './icons';
 import { theme } from './ui';
 
-/** A neutral for pins holding several kinds, distinct from the trace's navy. */
-const MIXED = '#3f3f46';
+/** A neutral for pins holding several kinds, distinct from the walker's navy (map-palette MP2). */
+const MIXED = COLORS.several;
 
 const PIN_COLOR: Record<CapturePin['kind'], string> = {
   photo: COLORS.photo,

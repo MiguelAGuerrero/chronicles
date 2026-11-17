@@ -21,6 +21,8 @@ Deriving streets from tiles, the fog, snapping a walk to streets, tile builds an
   `FOG_STYLE`: 50% opacity, 1–2.5 px, narrower than the 4.5 px trace. It is bold
   only while "unwalked streets near me" is on. `colors.test.ts` checks the
   hues and contrasts.
+  Since decision 0188 it holds the hotspot magenta by distance (CIEDE2000, 15 or
+  more from every map colour, MP8), not by 20° of hue; the trace keeps its 25°.
 - **Street reads from the live view (`collectView`) only count at z14.** Below
   z14, tiles are simplified and pieces get other ids, so `collectView` returns
   `complete: false` and nothing is cached. On web it also keeps only features

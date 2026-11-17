@@ -1,4 +1,4 @@
-// The map's palette, Earth and ink (map-palette MP1-MP14, decision 0187; the owner's answers to T22, Nov 17): one walk
+// The map's palette, Earth and ink (map-palette MP1-MP14, decision 0188; the owner's answers to T22, Nov 17): one walk
 // with a pin of each kind kept apart (a photo, a stacked moment of two photos, a video, a voice memo, a note) and a
 // photo, a video and a note on the end (a pin of several); then the card's map, beat one's lit streets, the replay's
 // stage (a memo, a note, a video's tile) and Explore, at 390 and 320 px. Colours are read from their source, so the
@@ -143,9 +143,9 @@ async function run(h) {
     const many = all.filter((p) => p.several);
     const kinds = new Set(single.map((p) => kindOf(p.label)));
     const right = single.every((p) => kindOf(p.label) && p.head === css(paletteRgb(kindOf(p.label))));
-    check.todo(['photo', 'video', 'voice', 'text'].every((k) => kinds.has(k)) && right,
+    check(['photo', 'video', 'voice', 'text'].every((k) => kinds.has(k)) && right,
       `MP14: on ${where} each pin of one moment is its kind's colour (${JSON.stringify(single.map((p) => [p.label.split(',')[0], p.head]))})`);
-    check.todo(many.length >= 1 && many.every((p) => p.head === css(paletteRgb('several')) && p.discs.length === 2 && p.discs.every((d) => d !== p.head)),
+    check(many.length >= 1 && many.every((p) => p.head === css(paletteRgb('several')) && p.discs.length === 2 && p.discs.every((d) => d !== p.head)),
       `MP14: on ${where} a pin of several is the charcoal head with its kinds' discs (${JSON.stringify(many.map((p) => [p.head, p.discs]))})`);
   };
   await pinChecks('the walk screen');
@@ -175,7 +175,7 @@ async function run(h) {
     try { end = await pixelsAround(endAt, 14, [7, 8, 9]); } finally { await hideMarkers(false); }
   }
   const ringWalked = end ? [0, 1, 2, 3].filter((k) => end.radial.some((at) => near(at[k], walked, 60))).length : 0;
-  check.todo(!!end && near(end.centre, walked, 60) && ringWalked === 4 && !near(end.centre, ACCENT, 60),
+  check(!!end && near(end.centre, walked, 60) && ringWalked === 4 && !near(end.centre, ACCENT, 60),
     `MP14: the end's centre and ring are the walked ink, never the accent (centre ${JSON.stringify(end && end.centre)}, ring ${ringWalked}/4, walked ${JSON.stringify(walked)})`);
   await shot(pg, 'palette-02-card-390');
   await pg.setViewportSize({ width: 320, height: 640 });
@@ -233,10 +233,10 @@ async function run(h) {
   await pg.waitForTimeout(1500);
   const at390 = await watch('390');
   const litOk = (r) => r.seenLit.some((p) => near(p, lit, 30) && !near(p, ACCENT, 60));
-  check.todo(!!lit && (litOk(at390) || litOk(at320)),
+  check(!!lit && (litOk(at390) || litOk(at320)),
     `MP14: beat one's lit street is the walked ink under the faint trace, never the accent (want ${JSON.stringify(lit)}; 390 ${JSON.stringify(at390.seenLit)}, 320 ${JSON.stringify(at320.seenLit)})`);
   const stageOk = (r) => r.stage.memo === css(paletteRgb('voice')) && r.stage.note === css(paletteRgb('text')) && r.stage.video === true;
-  check.todo(stageOk(at390) && stageOk(at320),
+  check(stageOk(at390) && stageOk(at320),
     `MP9: the replay's stage takes the kinds' colours: the memo's play disc, a note's edge, the pile's video tile (390 ${JSON.stringify(at390.stage)}, 320 ${JSON.stringify(at320.stage)})`);
 
   // Explore draws none of these colours: its pictures, for the review, at both widths.
