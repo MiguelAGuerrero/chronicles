@@ -4,7 +4,7 @@ import { distanceM } from '../geo';
 import type { Moment } from '../types';
 
 /**
- * Stack with previous (decision 0196): which moment is "previous" for an entry, and whether the entry may be joined
+ * Stack with previous (decision 0197): which moment is "previous" for an entry, and whether the entry may be joined
  * into it. Pure: the caller reads what points at the entry (`refs`) and what was kept in this sitting.
  */
 

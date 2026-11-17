@@ -8,7 +8,7 @@ import { createStore, type Store } from '../store';
 import type { Capture, Moment } from '../types';
 
 /**
- * Stack with previous (decision 0196, SW7, SW9): an entry's pieces join the previous moment through the Undo window,
+ * Stack with previous (decision 0197, SW7, SW9): an entry's pieces join the previous moment through the Undo window,
  * as Split out leaves one (0123, MS16) the other way. At once the entry is gone and its pieces show in the previous
  * moment (`merged`, read by the journal page and the viewer); `db.joinMoment` stores the join once the window has
  * passed, so Undo never leaves a half-joined moment. A killed app finishes it from the saved spec (0113).

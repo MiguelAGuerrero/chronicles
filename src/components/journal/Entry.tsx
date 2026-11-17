@@ -52,7 +52,7 @@ export function Entry(props: {
   onOpenRef: (v: MomentView) => void;
   /** A reaction under the dateline opens its lens (RL2). */
   onLens?: (id: ReactionId) => void;
-  /** The quick-action row's slots and what a tap on one does (decision 0196, SW1); none draws no row. */
+  /** The quick-action row's slots and what a tap on one does (decision 0197, SW1); none draws no row. */
   actions?: Slot[];
   onAction?: (id: SlotId) => void;
   /** A stack's tile opens the viewer on its piece (SW12). */

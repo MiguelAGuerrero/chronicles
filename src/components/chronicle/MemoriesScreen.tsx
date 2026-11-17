@@ -89,7 +89,7 @@ export function MemoriesScreen() {
   // so they are drawn while the page is loading or could not be read (JN9).
   const [reasons, setReasons] = useState<Record<string, NoFix>>({});
   const [session, setSession] = useState<MomentView[]>([]);
-  // The quick-action row (decision 0196): what Respond and Edit ask the viewer for, the entry Add to a thread is for, and what points at the last kept entry.
+  // The quick-action row (decision 0197): what Respond and Edit ask the viewer for, the entry Add to a thread is for, and what points at the last kept entry.
   const [intent, setIntent] = useState<'respond' | 'edit' | undefined>(undefined);
   const [threading, setThreading] = useState<Faced | null>(null);
   const [pointed, setPointed] = useState<{ id: string; refs: Refs } | null>(null);
@@ -369,7 +369,7 @@ export function MemoriesScreen() {
     const parent = to ? inThreadById.get(to) : undefined;
     return parent ? answeringLine({ place: parent.place, t: parent.t, walkLine: fromLine(walkOf(parent)) }, now) : null;
   };
-  // What the row offers (decision 0196): Stack with previous only on the last entry kept in this sitting, while nothing
+  // What the row offers (decision 0197): Stack with previous only on the last entry kept in this sitting, while nothing
   // points at it and a moment from the same day, walk and place precedes it (SW5-SW8).
   const lastKept = useMemo(() => session.reduce<MomentView | null>((a, v) => (!a || v.t > a.t ? v : a), null), [session]);
   const lastKeptId = lastKept?.id ?? null;
@@ -714,7 +714,7 @@ export function MemoriesScreen() {
       <CaptureViewer
         key={`memory:${viewing?.[0]?.id ?? 'none'}`}
         intent={intent}
-        // A stack's tile opens the viewer on its own piece (decision 0196, SW12, SW21).
+        // A stack's tile opens the viewer on its own piece (decision 0197, SW12, SW21).
         startAt={viewing?.[0] ? { id: viewing[0].id, piece: viewing[0].piece_id } : null}
         captures={!memoOn && viewing ? viewing.map((v) => (v.piece_id ? v : inThreadById.get(v.id)?.capture ?? v)) : null}
         // From an entry, a thread or Hidden a reaction opens its lens (RL3); from the slip it is plain words (RL4).

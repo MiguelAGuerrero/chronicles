@@ -20,6 +20,7 @@ import { NOTE_MAX } from '../../lib/noteEdit';
 import { editRefs, type EditorRef, fromEditor, insertRef, typedAt } from '../../lib/refs';
 import { space } from '../../lib/space';
 import { heldLabel } from '../../lib/space/core';
+import { memoLabel } from '../../lib/unsaved/core';
 import { formatElapsed } from '../../lib/summary';
 import { refLabel } from '../../lib/threads/lines';
 import type { LngLat } from '../../lib/types';
@@ -145,6 +146,8 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
       changed.current();
     },
     onMoment,
+    // In front, its pills say why for a capture that failed on a screen gone (unsaved captures UN9).
+    sayHeld: !!focused && !props.disabled,
   });
   const capRef = useRef(cap);
   useEffect(() => {
@@ -647,7 +650,7 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
             </View>
           )}
           {cap.discarded && !recording && retryPill('band-voice-undo', 'Voice note discarded', () => cap.undoDiscard(), 'Undo')}
-          {cap.unsaved && retryPill('band-voice-retry', 'Voice note not saved', () => cap.retrySave())}
+          {cap.unsaved && retryPill('band-voice-retry', memoLabel(cap.memosHeld, 'Voice note') ?? '', () => cap.retrySave())}
           {cap.held.length > 0 && retryPill('held-captures', heldLabel(cap.held), () => cap.retryHeld())}
           {!recording && focused && <SpaceLine />}
         </View>

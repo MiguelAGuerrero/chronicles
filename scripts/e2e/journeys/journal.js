@@ -187,13 +187,16 @@ async function run(h) {
   // JN12, JN13: the first character begins an entry with one fix; it is kept as it is written; no walk starts.
   let lineAtRest = null; // the bar's box above the tab bar, read once the page is pulled back (JN37)
   await type('A heron');
-  const begun = await pg.waitForFunction(() => new Promise((resolve) => {
-    const req = indexedDB.open('chronicles');
-    req.onsuccess = () => { const g = req.result.transaction('moment').objectStore('moment').getAll(); g.onsuccess = () => resolve(g.result.some((m) => /A heron/.test(m.pieces?.[0]?.body ?? ''))); };
-  }), null, { timeout: 6000 }).then(() => true, () => false);
+  // tend captures audit 4: polled from here, since an async predicate in waitForFunction is read once and its wait
+  // resolves with that read's value: `begun` was true whatever the store held.
+  let begun = false;
+  for (let i = 0; i < 24 && !begun; i++) {
+    begun = (await stored(pg).catch(() => ({ moments: [] }))).moments.some((m) => /A heron/.test(m.pieces?.[0]?.body ?? ''));
+    if (!begun) await pg.waitForTimeout(250);
+  }
   const status = (await pg.locator('[data-testid=line-status]').filter({ visible: true }).first().innerText().catch(() => '')).trim();
   check(begun && status === 'Kept as you write' && (await shown('[data-testid=line-done]')),
-    `JN13 (with JN48): what is typed is stored with no Save, and the composer says "Kept as you write" beside Done (${JSON.stringify({ begun, status })})`);
+    `JN13 (with JN48; tend captures audit 4): what is typed is stored with no Save, polled from the test side, and the composer says "Kept as you write" beside Done (${JSON.stringify({ begun, status })})`);
   await pg.keyboard.type(' on the old pier.', { delay: 15 });
   await pg.waitForTimeout(1500);
   await pg.reload();
@@ -240,7 +243,7 @@ async function run(h) {
   const afterQuick = (await stored(pg)).moments;
   check(afterQuick.length === beforeQuick + 1 && afterQuick.some((m) => m.pieces.length === 1 && m.pieces[0].body === 'Quick again.') && quickStatus === 'Kept as you write',
     `chronicle-journal audit 3: words typed right after emptying the line are kept, in one new entry (${afterQuick.length - beforeQuick} new, "${quickStatus}")`);
-  // SW19 (decision 0196): an entry's top line has no More and no sign of its own; Reaction is in the row under it.
+  // SW19 (decision 0197): an entry's top line has no More and no sign of its own; Reaction is in the row under it.
   const topLine = await pg.locator(entries).last().evaluate((e) => ({ more: e.querySelectorAll('[data-testid=moment-more]').length, row: !!e.querySelector('[data-testid=quick-actions]'), react: !!e.querySelector('[data-testid=quick-react]') }));
   check(topLine.more === 0 && topLine.row && topLine.react, `SW19: an entry has no More; its row has Reaction (${JSON.stringify(topLine)})`);
 
@@ -295,7 +298,7 @@ async function run(h) {
 
   // Reactions on the journal (RX6-RX10, RX14) are the `reactions` journey's; what stays here is how the sheet and the
   // panel behave around the rest of the page (note-types audit 56, 63, carried to reactions).
-  // note-types audit 63 (More reopens on its list) went with More on entries (SW19, decision 0196).
+  // note-types audit 63 (More reopens on its list) went with More on entries (SW19, decision 0197).
   // note-types audit 56: the reactions go when Memories is no longer in front (a menu opens), and the bar is whole.
   await toLine();
   await pg.keyboard.type('Let go.', { delay: 10 });
@@ -386,7 +389,7 @@ async function run(h) {
     marks: e.querySelectorAll('[data-testid=stack-mark]').length,
     kinds: (e.querySelector('[data-testid=stack-kinds]')?.textContent ?? '').trim(),
   })).catch(() => null);
-  // Amended by decision 0196 (SW11): a closed stack shows its face, the mark and its kinds in words; Show all opens a grid of every piece.
+  // Amended by decision 0197 (SW11): a closed stack shows its face, the mark and its kinds in words; Show all opens a grid of every piece.
   await pg.locator(entries).last().locator('[data-testid=stack-toggle]').click().catch(() => {});
   await pg.waitForTimeout(500);
   const tiles15 = await pg.locator(entries).last().locator('[data-testid=grid-tile]').count();
@@ -1035,7 +1038,7 @@ async function run(h) {
     navigator.permissions.query = window.__pq;
   });
   await pg.waitForTimeout(6500);
-  // JN18's Undo for a hide went with Not this one on entries (SW19, decision 0196).
+  // JN18's Undo for a hide went with Not this one on entries (SW19, decision 0197).
 
   // JN22: no texture, no accent, and outside the owner's words only dates, times and a memo's length are digits.
   const restraint = await pg.evaluate(({ accent }) => {

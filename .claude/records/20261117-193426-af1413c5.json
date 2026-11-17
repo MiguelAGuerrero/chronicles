@@ -1,0 +1,55 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "On the live",
+        "--reason",
+        "built: tend map 15 (the follow waits while the compass eases north), in this run"
+      ],
+      "target": "sha256:c9b0e480e64f316dec6ba4fc408a0d0f44be7275f2abbff81ea7eefa9186152c"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "Every pin",
+        "--reason",
+        "built: tend map 16 (only the pins near the view are drawn) and tend map audit 35, in this run"
+      ],
+      "target": "sha256:851a2a581e1b6a35423b30aa79809038ce0f201eadf484f560089a14bd843087"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Map, walk screen and motion polish",
+        "--after",
+        "A dark line runs across"
+      ],
+      "body": "- [loop] On the live walk, turned and not following, standing still (no new fix, so the glide is idle): tap the compass, then Recenter within its 600 ms ease. The recenter effect returns at `followMoves` (`northEasing: true`), and the `moveend` that clears `northAsked` re-runs nothing, so Recenter goes but the dot stays off the middle until a fix that moves. Fix: in the `moveend` listener that clears `northAsked`, when it was true and following, jump once to `lastFrame.current.walker ?? followRef.current` (`WalkMap.web.tsx`; `/tend map`'s review of tend map 15, auditor F2, Nov 17, low)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Compass (CP1-CP8",
+        "--after",
+        "on Explore, turn the map, open an area"
+      ],
+      "body": "- [ ] **Do:** on a walk, turn the map with two fingers (following stops), tap Recenter, keep walking, and tap the compass while the dot moves. **Expect:** the map eases north and keeps following the dot. On the web each follow frame's `jumpTo` cut the ease (tend map 15, now held by `followMoves`); native's `GlideFollow` calls `cameraRef.jumpTo` on every glide frame with no such gate, and `resetNorth` is `setStop({ bearing: 0, duration })`, so if MapLibre RN's jump cancels a running camera animation the map stays turned (the review of tend map 16, Nov 17). (CP4)\n  - Also: native still draws every pin as a `Marker`, in view or not; the web's cull (tend map 16, audit 35-37) is web only. A device profile with many placed moments on Chronicle's map should confirm the per-frame cost.\n"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 17, `/tend map --deploy=main`, two `[loop]` medium items in \"Map, walk screen and motion polish\"** (opened from `b8126140`; no sweep, lenses 1-7 not run; the faster lane of decision 0181).\n- The items, as main held them: \"On the live walk, following, the compass cannot bring the map north: …\" and \"Every pin is a DOM marker with its own React root whether or not it is in view, …\".\n- `tend map 15`: on the live walk, following, the compass brings the map north. Each follow `jumpTo` cut the compass's ease (maplibre's `jumpTo` starts with `stop()`); `followMoves` (`lib/compass.ts`) holds both follow jumps while the ease runs, the smallest of the item's three shapes that keeps CP4's ease. Precedent: none in `docs/research/adjacent-apps.md`; Apple's iPhone guide, \"Change the map view\" (CarPlay Maps), keeps your position in the middle when north comes back. The `qol` step turns the walk's map with two real fingers, Recenters and taps the compass while walking (failed on the base export: bearing stayed -67.5).\n- `tend map 16`: the web map draws only the pins near the view (a box in a ref, redrawn when the view leaves it; never React state). Chronicle with 500 placed moments, six drags at 4x CPU, the same conditions: no cull 500 markers, frame p50 44 ms, 6.0 s of long tasks a drag; after the review 28 markers (8 in view), p50 17-22 ms, 2.9-6.7 s; one moment p50 22 ms, 2.2 s.\n- The review (one round, the `auditor`; one medium, six low; 4 accepted, 3 deferred): `tend map audit 35` (F1: a pin whose head is on screen but foot past the box was culled; the view now grows by a pin's reach), `audit 36` (F5: redrawn on `move` too), `audit 37` (F3: the focused or last pressed pin stays). F4, the owner in person: \"Accept, record it\" (a screen reader reaches the pins near the view; in `map.md`). F7: a margin of 0.25 lost no pin but its drag cost did not fall through the noise; 0.5 kept. F6: the journeys below.\n- Filed: one `[loop]` low in \"Map, walk screen and motion polish\" (F2, the compass then Recenter within the ease, standing still); a native item under Compass (CP4 on MapLibre RN while following, and native's every-pin Markers). Three lines added to `map.md`.\n- Journeys on the final export: `qol`, `launch`, `palette`, `reactions`, `edit`, `walk`, `days`, `videothumbs`, `carousel`, `dense` (all green), and `chronicle`, `memories` on tend map 16's export; typecheck, lint, `npm test`. Not run: the sweep's lenses and the balance's evolve. Nothing here has run on a phone.\n"
+    }
+  ]
+}

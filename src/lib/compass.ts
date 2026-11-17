@@ -20,3 +20,12 @@ export function compassRotation(bearing: number): number {
   const r = fold(-bearing);
   return r === 0 ? 0 : r;
 }
+
+/**
+ * Whether the follow moves the camera to the dot now (tend map 15): while following, with no hand on the map, and never
+ * while the compass eases the map north. A camera jump stops any move under way (maplibre's `jumpTo` starts with
+ * `stop()`), so a follow frame mid-ease left the map turned (CP4); the next frame after the ease catches the camera up.
+ */
+export function followMoves(s: { following: boolean; handOnMap: boolean; northEasing: boolean }): boolean {
+  return s.following && !s.handOnMap && !s.northEasing;
+}

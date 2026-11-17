@@ -8,6 +8,8 @@ import { useStore } from '../lib/useStore';
 import { useUnits } from '../lib/useUnits';
 import { db } from '../lib/db';
 import { memoGate } from '../lib/memoGate';
+import { unsaved } from '../lib/unsaved';
+import { barWarning, stopWarns } from '../lib/unsaved/core';
 import { endWalk } from '../lib/session';
 import { reminderHeld, reminderText } from '../lib/discovery/recall';
 import { onRecallFired, RECALL_OPEN_KEY } from '../lib/discovery/recallCheck';
@@ -66,7 +68,8 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
     setSaid({ text: e.message, error: true });
     setOffer((o) => barOfferAfter(o, null));
   }, []);
-  const cap = useCaptures(walk.id, live.here, live.lastFixAt, onError);
+  // No Retry on the bar: a failure says where it is held (unsaved captures UN10).
+  const cap = useCaptures(walk.id, live.here, live.lastFixAt, onError, { retryShown: false, shortWords: true });
   // On Memories the band's camera files into the walk: the bar shows none there (decision 0112).
   const path = usePathname();
   const section = useStore(chronicleSection.store, (x) => x);
@@ -79,6 +82,8 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
   useEffect(() => deletions.subscribe(() => setOffer((o) => barOfferAfterHidden(o, deletions.hidden()))), []);
   // Held to stop, the walk is going: the pill goes first (tend tabs audit 19).
   const [stopping, setStopping] = useState(false);
+  // The held captures of the walk this Stop has warned of; one held beyond them is warned of too (unsaved captures UN5).
+  const warnedHeld = useRef<string[]>([]);
   const offerUp = barOfferShown(offer, cap.captures.map((c) => c.id), hidden, stopping);
   const offerWords = offer ? barOfferWords(offer.kind) : null;
   // Announced politely, without moving focus, as Undo is: iOS reads no live regions (decision 0113).
@@ -161,8 +166,18 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
         return;
       }
       // The bar's photo, and one still being kept from Memories' band (capture-from-chronicle audit 6).
-      await settleWithin(Promise.all([keeping.current, memoGate.kept()]), RETURN_WAIT_MS);
+      await settleWithin(Promise.all([keeping.current, memoGate.kept(), unsaved.settled()]), RETURN_WAIT_MS);
+      // Whatever of the walk is held, from any screen, read now, is said first; the bar has no Retry, so its words
+      // promise none (UN5, UN6). The next hold lets it go, files and all (UN8).
+      const held = unsaved.heldFor(walk.id);
+      if (stopWarns(held.map((x) => x.id), warnedHeld.current)) {
+        warnedHeld.current = held.map((x) => x.id);
+        setSaid({ text: barWarning(held.length > 1), error: true });
+        return;
+      }
       const { dropped } = await endWalk(walk.id, { leaves: false });
+      // Only once the walk has ended (unsaved-captures audit 4).
+      await unsaved.ended(walk.id);
       feedback('success');
       // A walk with nothing in it has no replay: the bar goes, and the pill offers Undo on this screen (EW1).
       if (!dropped) router.push(`/replay/${walk.id}`);
@@ -226,7 +241,8 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
             <View style={styles.dot} />
           )}
           {said ? (
-            <Text testID="recording-said" style={[styles.text, said.error && styles.error]} numberOfLines={2} accessibilityLiveRegion="polite">
+            // A failure's words are whole at 320 px: the room line names where its Retry is (unsaved captures UN10).
+            <Text testID="recording-said" style={[styles.text, said.error && styles.error]} numberOfLines={said.error ? 4 : 2} accessibilityLiveRegion="polite">
               {said.text}
             </Text>
           ) : (

@@ -58,7 +58,7 @@ export interface Db {
    */
   splitPiece(pieceId: string, moment: Omit<Moment, 'pieces'>): Promise<void>;
   /**
-   * Stack with previous (decision 0196): the entry's pieces move into the previous moment, each keeping its own time
+   * Stack with previous (decision 0197): the entry's pieces move into the previous moment, each keeping its own time
    * and media, and the emptied entry's moment row goes, in one transaction. The previous moment's own row (place, time,
    * threads, links, reminder, find) is never edited. Rejects, changing nothing, for a missing moment or two on different
    * walks, so a walk's counts never move. The caller offers it only for an entry nothing points at (`referencesTo`).

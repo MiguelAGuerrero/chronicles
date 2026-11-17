@@ -14,7 +14,7 @@ import { COMPLEX_STYLE } from '../../lib/complexes/mapLayer';
 import { namedStars, StarView, starLabel } from '../StarView';
 import type { Star } from '../../lib/places';
 import { declutterMarks } from '../../lib/markNames';
-import { metersPerPixel, pinReactions, pinReminded, pinThumb, stalkLift, type CapturePin, type WalkClock } from '../../lib/pins';
+import { boxAround, boxHolds, drawsPin, metersPerPixel, PIN_REACH_PX, pinDrawBox, pinReactions, pinReminded, pinThumb, stalkLift, type CapturePin, type ViewBox, type WalkClock } from '../../lib/pins';
 import type { ReactionSet } from '../../lib/reactions/core';
 import { useReactionSets } from '../../lib/reactions/useReactions';
 import { blankLookLayers, creditsAt, scaleBar, scaleShown } from '../../lib/scaleBar';
@@ -32,6 +32,7 @@ import { useReducedMotion } from '../../lib/motion';
 import { useUnits } from '../../lib/useUnits';
 import { useReminded } from '../../lib/useReminded';
 import { MOTION } from '../../lib/motionTokens';
+import { followMoves } from '../../lib/compass';
 import { groundGeoJSON, groundStyle } from '../../lib/areas/groundDraw';
 import {
   alternatesGeoJSON, TRACE_EDGE_OPACITY, storefrontNameLayers, storefrontNameRotate, storefrontNamesGeoJSON, roomCells, routeGradesGeoJSON, pinsGeoJSON, BORDER, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, OVERTURE_CREDIT, GAZETTEER_CREDIT, DERIVE_ZOOM, endsGeoJSON, ENDS_PAINT, ENDS_RING_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON, BASE_VECTOR_SOURCE, poiLabelLayers,
@@ -356,8 +357,9 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     if ((window as { __perf?: unknown }).__perf) p.el.dataset.at = `${f.walker[0]},${f.walker[1]}`;
     p.cone.style.display = f.heading == null ? 'none' : '';
     if (f.heading != null) p.cone.style.transform = `rotate(${f.heading}deg)`;
-    // The camera follows the dot, so they move together; never while a hand is on the map.
-    if (followRef.current && !pointerDown.current) mapRef.current?.jumpTo({ center: f.walker });
+    // The camera follows the dot, so they move together; never while a hand is on the map, nor while the compass eases
+    // north (a jump would cut the ease: tend map 15).
+    if (followMoves({ following: !!followRef.current, handOnMap: pointerDown.current, northEasing: northAsked.current })) mapRef.current?.jumpTo({ center: f.walker });
   };
   useGlideFrames(props.walker, props.walkerHeading, glideOn, applyFrame, 0, props.walkerSource);
   useEffect(() => {
@@ -1322,7 +1324,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   }, [ready, props.fogEmphasis]);
   useEffect(() => {
     const map = mapRef.current;
-    if (!ready || !props.follow || !map || pointerDown.current) return;
+    if (!ready || !map || !props.follow || !followMoves({ following: !!props.follow, handOnMap: pointerDown.current, northEasing: northAsked.current })) return;
     // On the live walk the render loop moves the camera; this recenters at once
     // (Recenter, a read ending) on the dot as it is showing.
     const to = glideOn ? (lastFrame.current.walker ?? props.follow) : props.follow;
@@ -1510,6 +1512,20 @@ const NO_CAPTURES: Faced[] = [];
  * in a ref, so a pin whose members changed never opens stale captures; roots
  * unmount just after React's commit, which would otherwise warn.
  */
+/**
+ * What a pin can be seen from: the canvas grown by a pin's reach (`PIN_REACH_PX`, tend map audit 35), its corners as
+ * the map places them, west, south, east, north.
+ */
+const pinViewOf = (map: MapLibreMap): ViewBox => {
+  const c = map.getCanvas();
+  const [w, h] = [c.clientWidth, c.clientHeight];
+  const r = PIN_REACH_PX;
+  const corners: [number, number][] = [[-r.left, -r.top], [w + r.right, -r.top], [w + r.right, h + r.bottom], [-r.left, h + r.bottom]];
+  return boxAround(corners.map((p) => {
+    const at = map.unproject(p);
+    return [at.lng, at.lat] as LngLat;
+  }));
+};
 /** A pin's marker is anchored at its bottom, its target's 6 px of padding below the stem's foot. */
 const PIN_FOOT = 6;
 const NO_ENDS: readonly (LngLat | null)[] = [];
@@ -1535,6 +1551,11 @@ function usePinMarkers(
   // A capture taken since the screen opened drops in (M10); one already shown, or a reload, never.
   const [openedAt] = useState(() => Date.now());
   const seen = useRef(new Set<string>());
+  // Only the pins in view and a margin round it are drawn (tend map 16): maplibre moves every marker on every camera
+  // frame. The box is kept here, never as state, and redrawn only on a move's end that leaves it.
+  const drawn = useRef<ViewBox | null>(null);
+  // The last pin pressed: its viewer gives the focus back to it on closing, so it is never dropped (audit 37).
+  const pressed = useRef<string | null>(null);
   useEffect(() => {
     const map = mapRef.current;
     if (!ready || !map) return;
@@ -1542,71 +1563,89 @@ function usePinMarkers(
       m.marker.remove();
       queueMicrotask(() => m.root.unmount());
     };
-    const live = new Set<string>();
-    for (const pin of pins) {
-      live.add(pin.id);
-      const ids = pin.captures.map((c) => c.id).join(',');
-      const bell = pinReminded(pin, reminded);
-      const reactions = pinReactions(pin, sets);
-      const rx = reactions.map((r) => r.id).join(',');
-      // With the photo's small copy, so a copy made after the pin was drawn shows without a reload (QL27).
-      const key = `${pin.lngLat.join(',')}|${pin.kind}|${ids}|${interactive}|${pinThumb(pin) ?? ''}`;
-      const existing = markers.current.get(pin.id);
-      // Its walk's clock may come after the pin (tend map T14): the name follows in place. With none, the part of the
-      // day is told from the screen's `now`, renewed while it stays open, else from when the map opened (tend map T28,
-      // audit 29); a new one relabels in place.
-      const label = pinLabel(pin, interactive, memory, bell, clocks, now ?? openedAt, reactions);
-      if (existing?.key === key && existing.bell === bell && existing.rx === rx && existing.marker.getElement().getAttribute('aria-label') !== label) {
-        existing.marker.getElement().setAttribute('aria-label', label);
-      }
-      if (existing?.key === key) {
-        // A reminder set or stopped (RB5), or a reaction changed (RX21), redraws the same element in place: focus
-        // returns to it when the viewer closes (audit 3), and a photo keeps its painted picture (audit 4).
-        if (existing.bell !== bell || existing.rx !== rx) {
+    const sync = () => {
+      if (!boxHolds(drawn.current, pinViewOf(map))) drawn.current = pinDrawBox(pinViewOf(map));
+      const box = drawn.current!;
+      const live = new Set<string>();
+      for (const pin of pins) {
+        const focused = !!markers.current.get(pin.id)?.marker.getElement().contains(document.activeElement);
+        if (!drawsPin(pin.lngLat, box, { focused, pressed: pressed.current === pin.id })) continue;
+        live.add(pin.id);
+        const ids = pin.captures.map((c) => c.id).join(',');
+        const bell = pinReminded(pin, reminded);
+        const reactions = pinReactions(pin, sets);
+        const rx = reactions.map((r) => r.id).join(',');
+        // With the photo's small copy, so a copy made after the pin was drawn shows without a reload (QL27).
+        const key = `${pin.lngLat.join(',')}|${pin.kind}|${ids}|${interactive}|${pinThumb(pin) ?? ''}`;
+        const existing = markers.current.get(pin.id);
+        // Its walk's clock may come after the pin (tend map T14): the name follows in place. With none, the part of the
+        // day is told from the screen's `now`, renewed while it stays open, else from when the map opened (tend map T28,
+        // audit 29); a new one relabels in place.
+        const label = pinLabel(pin, interactive, memory, bell, clocks, now ?? openedAt, reactions);
+        if (existing?.key === key && existing.bell === bell && existing.rx === rx && existing.marker.getElement().getAttribute('aria-label') !== label) {
           existing.marker.getElement().setAttribute('aria-label', label);
-          existing.root.render(<CapturePinView pin={pin} faint={memory} drop={existing.drops} reminded={bell} reactions={reactions} />);
-          existing.bell = bell;
-          existing.rx = rx;
         }
-        continue;
+        if (existing?.key === key) {
+          // A reminder set or stopped (RB5), or a reaction changed (RX21), redraws the same element in place: focus
+          // returns to it when the viewer closes (audit 3), and a photo keeps its painted picture (audit 4).
+          if (existing.bell !== bell || existing.rx !== rx) {
+            existing.marker.getElement().setAttribute('aria-label', label);
+            existing.root.render(<CapturePinView pin={pin} faint={memory} drop={existing.drops} reminded={bell} reactions={reactions} />);
+            existing.bell = bell;
+            existing.rx = rx;
+          }
+          continue;
+        }
+        if (existing) drop(existing);
+        // A 48 px target around the 36 px pin: the touch minimum on phones.
+        const el = document.createElement(interactive ? 'button' : 'div');
+        el.setAttribute('aria-label', label);
+        el.dataset.ids = ids;
+        if (memory) el.dataset.testid = 'memory-pin';
+        if (interactive) {
+          (el as HTMLButtonElement).type = 'button';
+          el.style.cssText = 'background:none;border:0;padding:6px;cursor:pointer';
+          const id = pin.id;
+          el.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const p = latest.current.pins.get(id);
+            pressed.current = id;
+            if (p) latest.current.onPress?.(p);
+          });
+        } else {
+          el.setAttribute('role', 'img');
+          el.style.cssText = 'padding:6px;pointer-events:none';
+        }
+        const root = createRoot(el);
+        const drops = !memory && pinDrops(pin.captures, seen.current, openedAt);
+        for (const c of pin.captures) seen.current.add(c.id);
+        root.render(<CapturePinView pin={pin} faint={memory} drop={drops} reminded={bell} reactions={reactions} />);
+        // Anchored at the stem's foot, so the marked point stays visible; on a start or end, the foot at the marker's edge
+        // above it (decision 0172, O13), its target reaching on down over the marker, which never takes a tap (QL3).
+        const lift = stalkLift(pin.lngLat, standOn, map.getZoom(), map.getBearing());
+        el.style.paddingBottom = `${PIN_FOOT + lift}px`;
+        const marker = new Marker({ element: el, anchor: 'bottom', offset: [0, PIN_FOOT] }).setLngLat(pin.lngLat).addTo(map);
+        // Memories sit under this walk's pins, so a new capture over an old one opens the new one (audit 6).
+        marker.getElement().style.zIndex = memory ? '0' : '1';
+        markers.current.set(pin.id, { marker, root, key, bell, rx, drops, lift });
       }
-      if (existing) drop(existing);
-      // A 48 px target around the 36 px pin: the touch minimum on phones.
-      const el = document.createElement(interactive ? 'button' : 'div');
-      el.setAttribute('aria-label', label);
-      el.dataset.ids = ids;
-      if (memory) el.dataset.testid = 'memory-pin';
-      if (interactive) {
-        (el as HTMLButtonElement).type = 'button';
-        el.style.cssText = 'background:none;border:0;padding:6px;cursor:pointer';
-        const id = pin.id;
-        el.addEventListener('click', (e) => {
-          e.stopPropagation();
-          const p = latest.current.pins.get(id);
-          if (p) latest.current.onPress?.(p);
-        });
-      } else {
-        el.setAttribute('role', 'img');
-        el.style.cssText = 'padding:6px;pointer-events:none';
+      for (const [id, m] of markers.current) {
+        if (live.has(id)) continue;
+        drop(m);
+        markers.current.delete(id);
       }
-      const root = createRoot(el);
-      const drops = !memory && pinDrops(pin.captures, seen.current, openedAt);
-      for (const c of pin.captures) seen.current.add(c.id);
-      root.render(<CapturePinView pin={pin} faint={memory} drop={drops} reminded={bell} reactions={reactions} />);
-      // Anchored at the stem's foot, so the marked point stays visible; on a start or end, the foot at the marker's edge
-      // above it (decision 0172, O13), its target reaching on down over the marker, which never takes a tap (QL3).
-      const lift = stalkLift(pin.lngLat, standOn, map.getZoom(), map.getBearing());
-      el.style.paddingBottom = `${PIN_FOOT + lift}px`;
-      const marker = new Marker({ element: el, anchor: 'bottom', offset: [0, PIN_FOOT] }).setLngLat(pin.lngLat).addTo(map);
-      // Memories sit under this walk's pins, so a new capture over an old one opens the new one (audit 6).
-      marker.getElement().style.zIndex = memory ? '0' : '1';
-      markers.current.set(pin.id, { marker, root, key, bell, rx, drops, lift });
-    }
-    for (const [id, m] of markers.current) {
-      if (live.has(id)) continue;
-      drop(m);
-      markers.current.delete(id);
-    }
+    };
+    sync();
+    // During a move too, not only at its end (audit 36): one read and a compare an event, a redraw only past the box.
+    const moved = () => {
+      if (!boxHolds(drawn.current, pinViewOf(map))) sync();
+    };
+    map.on('move', moved);
+    map.on('moveend', moved);
+    return () => {
+      map.off('move', moved);
+      map.off('moveend', moved);
+    };
   }, [mapRef, ready, pins, interactive, memory, openedAt, reminded, sets, clocks, now, standOn]);
   // A pin standing on the walk's start or end stops its stalk at the marker's edge (decision 0172, O13): its lift is
   // measured on screen, so it follows the map as it zooms or turns, and is set only when it moves. The target's padding

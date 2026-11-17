@@ -48,6 +48,8 @@ export const ReplyDock = forwardRef<NotePageHandle, {
   const cap = useCaptures(walkId, null, null, (e) => sayRef.current(e.message, e.openSettings), {
     loose: !walkId,
     replyTo,
+    // No Retry here: a failure says where it is held (unsaved captures UN10).
+    retryShown: false,
     onMoment: (_c, state, answered) => {
       if (state === 'kept') keptRef.current(answered ?? props.answeredId, 'Reply kept');
     },

@@ -38,11 +38,13 @@ test('tend captures 1: useCaptures takes a stopped memo’s file and its failure
   // The uri the recorder held before this memo is read before its prepare, and the stop keeps only a new one.
   const start = body(src, 'const startVoice', 'async function stopRecorder');
   assert.ok(start.indexOf('memoUriBefore.current = voice.uri') >= 0 && start.indexOf('memoUriBefore.current = voice.uri') < start.indexOf('voice.prepareToRecordAsync()'), 'startVoice notes the uri before its prepare');
-  assert.match(body(src, 'async function stopRecorder', 'async function saveMemo'), /uri: memoFile\(memoUriBefore\.current, voice\.uri\)/);
-  // Every save that fails is worded and held (or not) by failedMemo: the save and its Undo.
+  assert.match(body(src, 'async function stopRecorder', 'const memoKeepable'), /uri: memoFile\(memoUriBefore\.current, voice\.uri\)/);
+  // Every save that fails is worded and held (or not) by failedMemo, through keepMemo: the save and its Undo. A memo is
+  // held only by the one holder (unsaved captures UN1), never by a screen's own state.
+  assert.match(body(src, 'async function keepMemo', 'const finishVoice'), /failedMemo\(/, 'keepMemo goes through failedMemo');
   for (const [from, to] of [['const finishVoice', 'const retrySave'], ['const undoDiscard', '// Leaving the screen']]) {
     const fn = body(src, from, to);
-    assert.match(fn, /memoFailed\(m, e\)|failedMemo\(/, `${from} goes through failedMemo`);
-    assert.doesNotMatch(fn, /setUnsaved\(m\)/, `${from} never holds a memo by itself`);
+    assert.match(fn, /keepMemo\(m\)/, `${from} keeps the memo through keepMemo`);
+    assert.doesNotMatch(fn, /setUnsaved\(/, `${from} never holds a memo by itself`);
   }
 });

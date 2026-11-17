@@ -79,7 +79,7 @@ async function run(h) {
   await tabTo(pg, 'chronicle', 'memories');
   await pg.waitForTimeout(1500);
   const cards = await pg.locator('[data-testid=moment-card]').count();
-  // On the journal's page a closed stack shows its face, the mark and its kinds in words, and opens into a grid (decision 0196, SW11, amending JN3).
+  // On the journal's page a closed stack shows its face, the mark and its kinds in words, and opens into a grid (decision 0197, SW11, amending JN3).
   const stacked = await pg.locator('[data-testid=moment-card]:has([data-testid=stack-kinds])').count();
   const marks = await pg.locator('[data-testid=journal-page] [data-testid=stack-mark]').count();
   check(cards === 2 && stacked === 1 && marks === 1, `MS7, MS8: two moments, two entries, one holding more than one piece, each shown (${cards} entries, ${stacked} stacked, ${marks} marks)`);
@@ -270,7 +270,7 @@ async function replayGrid(h, check) {
   const text = seen ? await pg.locator('[data-testid=replay-grid]').innerText() : '';
   check(seen && cells === 3, `MS17: the stacked moment comes up as one grid, a cell for each of its photos (${cells})`);
   check(seen && !/\d/.test(text) && (await pg.locator('[data-testid=replay-grid] [role=progressbar]').count()) === 0, 'MS17: the grid has no dots, numbers or progress bar');
-  // Stack with previous and the quick-action row (SW1-SW18, decision 0196): its checks are the `stackjoin` journey's.
+  // Stack with previous and the quick-action row (SW1-SW18, decision 0197): its checks are the `stackjoin` journey's.
   await c.close();
 }
 

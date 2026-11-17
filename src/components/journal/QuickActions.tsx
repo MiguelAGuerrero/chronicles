@@ -3,7 +3,7 @@ import type { Slot, SlotId } from '../../lib/journal/actions';
 import { Icon, type IconName } from '../icons';
 import { theme } from '../ui';
 
-/** Each slot's glyph: a symbol people already know, never the two-card stack mark (decision 0196, SW1). */
+/** Each slot's glyph: a symbol people already know, never the two-card stack mark (decision 0197, SW1). */
 const GLYPH: Record<SlotId, IconName> = {
   react: 'happy-outline',
   respond: 'arrow-undo-outline',
@@ -13,7 +13,7 @@ const GLYPH: Record<SlotId, IconName> = {
 };
 
 /**
- * The quick-action row under an entry (decision 0196, SW1): four fixed slots in ink, 44 pt each, an icon with a one-word caption and a spoken name. A slot that does not apply is empty and moves no other. It decides nothing: `slots` comes from core.
+ * The quick-action row under an entry (decision 0197, SW1): five fixed slots in ink, 44 pt each, an icon with a one-word caption and a spoken name. A slot that does not apply is empty and moves no other. It decides nothing: `slots` comes from core.
  */
 export function QuickActions(props: { slots: Slot[]; onPress: (id: SlotId) => void }) {
   return (

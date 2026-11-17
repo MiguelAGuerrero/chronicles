@@ -238,7 +238,7 @@ const FEATURES = [
       'src/lib/media/**',
       'src/lib/{useCaptures,thumbPlan,thumbJob,useMediaUri,captureBus,pieceStamp,openMoment,splitPlace}.ts',
       'src/lib/split/**',
-      // Stack with previous (SW1-SW18, decision 0196): the join, its Undo window and the quick-action row's rule.
+      // Stack with previous (SW1-SW18, decision 0197): the join, its Undo window and the quick-action row's rule.
       'src/lib/join/**',
       'src/components/journal/{QuickActions,StackGrid}.tsx',
       // Moment stacks (MS1-MS21): the open moment's store, the pill and the stacked mark.
@@ -255,9 +255,11 @@ const FEATURES = [
       // Video thumbnails (VS1-VS9): every preview's small copies and stills, and the play mark.
       'src/lib/thumbs/**',
       'src/components/VideoMark.tsx',
+      // Unsaved captures (UN1-UN15, decision 0196): the one holder of every capture that failed to save.
+      'src/lib/unsaved/**',
     ],
-    journeys: ['edit', 'stacks', 'stackjoin', 'voicetrim', 'videothumbs'],
-    specs: ['memories-on-revisit', 'media-editing', 'moment-stacks', 'stack-with-previous', 'voice-trim', 'note-types', 'video-thumbnails'],
+    journeys: ['edit', 'stacks', 'stackjoin', 'voicetrim', 'videothumbs', 'unsaved'],
+    specs: ['memories-on-revisit', 'media-editing', 'moment-stacks', 'stack-with-previous', 'voice-trim', 'note-types', 'video-thumbnails', 'unsaved-captures'],
   },
   {
     name: 'chronicle',
@@ -437,7 +439,7 @@ const RETIRED = {
  * make (the web build can't reach it), `deferred: <why>` for the owner's call to wait. Keyed by spec.
  */
 const UNTESTED = {
-  // Plan an outing (decision 0194): criteria with no test of their own, each with where it is held instead.
+  // Plan an outing (decision 0196): criteria with no test of their own, each with where it is held instead.
   'quick-circuit': {
     QC32: 'deferred: a review criterion, the ux-reviewer\'s cold find (Nov 17, in the spec\'s Record), not a unit test',
     QC34: 'deferred: by construction: `HOURS_LINE` is one constant the page renders once under the slots, and no pack field holds hours; the journey `outing` checks the line (QC20)',
@@ -507,7 +509,6 @@ const RENAMED = {
 };
 
 const IN_PROGRESS = {
-  'stack-with-previous': { branch: 'claude/jolly-faraday-8kcyum', since: '2026-11-17' },
 };
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));

@@ -71,7 +71,7 @@ async function run(h) {
 
   // RX1, RX9: the photo's entry today offers the sign; one tap opens the reactions, and a choice is kept.
   await shot(pg, 'reactions-00-journal');
-  // reactions audit 3, carried to the row (SW20, decision 0196): nothing lies over the first Reaction slot.
+  // reactions audit 3, carried to the row (SW20, decision 0197): nothing lies over the first Reaction slot.
   const ui3a = await pg.evaluate(() => {
     const foot = document.querySelector('[data-testid=open-line]')?.getBoundingClientRect().top ?? window.innerHeight;
     const under = Math.max(0, ...[...document.querySelectorAll('[data-testid=day-edge]')].map((e) => e.getBoundingClientRect().bottom));
@@ -355,7 +355,7 @@ async function run(h) {
   await pg.click('[data-testid=section-memories]').catch(() => {});
   await there(entries, 15000);
   await pg.waitForTimeout(1500);
-  // RL6 (a marked entry's sign) went with the sign on entries: they react from the row, and the reactions stay spelled under the dateline (SW19, SW20, decision 0196).
+  // RL6 (a marked entry's sign) went with the sign on entries: they react from the row, and the reactions stay spelled under the dateline (SW19, SW20, decision 0197).
   // RL1, RL2, RL5: "Idea" under the photo's entry is a link to Ideas; Back returns to the journal.
   const link5 = await photoEntry().locator('[data-testid=reaction-link-idea]').evaluate((e) => { const r = e.getBoundingClientRect(); return { role: e.getAttribute('role'), label: e.getAttribute('aria-label'), h: Math.round(r.height) }; }).catch(() => null);
   check(!!link5 && link5.role === 'link' && link5.label === 'Ideas' && link5.h >= 44, `RL5: a reaction under an entry is a link named for its lens, 44 px tall (${JSON.stringify(link5)})`);

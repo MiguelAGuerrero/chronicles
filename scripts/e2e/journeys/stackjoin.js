@@ -1,4 +1,4 @@
-// Stack with previous and the quick-action row (SW1-SW18, decision 0196): on Chronicle's page, a row of four icons under
+// Stack with previous and the quick-action row (SW1-SW18, decision 0197): on Chronicle's page, a row of four icons under
 // every entry, Stack with previous joining the entry just kept into the one before with Undo, and a stack as a
 // collapsible grid. In a fresh browser with nothing kept. E2E_ONLY=stackjoin runs it alone.
 
@@ -146,7 +146,7 @@ async function run(h) {
   await pg.waitForTimeout(2000);
   const moments = await stored();
   check(moments.some((m) => m.pieces.length === 2) && moments.length === before.length, `SW17: the stack survives a reload (${moments.map((m) => m.pieces.length).join(',')})`);
-  // Nov 17, after the cold find (decision 0196): captions under all of the row, Reaction in the row, nothing else on the top line.
+  // Nov 17, after the cold find (decision 0197): captions under all of the row, Reaction in the row, nothing else on the top line.
   const top = await pg.locator(entries).first().evaluate((e) => ({ more: e.querySelectorAll('[data-testid=moment-more]').length, sign: e.querySelectorAll('[data-testid=reaction-sign]').length }));
   check(top.more === 0 && top.sign === 0, `SW19: an entry's top line has no reaction sign and no More button (${JSON.stringify(top)})`);
   await pg.locator('[data-testid=quick-react]').first().click().catch(() => {});

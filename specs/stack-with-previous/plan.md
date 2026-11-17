@@ -1,6 +1,8 @@
-# Plan: stack with previous (SW1-SW18)
+# Plan: stack with previous (SW1-SW22)
 
-For the owner's review before any code. Decision 0196; spec `specs/stack-with-previous/spec.md`; mock-up
+> **Superseded in part by the owner's later calls (Nov 17, decision 0197):** the row is five captioned actions (Reaction first, the last captioned Join), entries have no More or reaction sign, a stack's words and voice notes are never hidden, a stack is a moment with no Edit, and the map dateline is underlined (SW19-SW22). The spec is the truth; this plan is the record of the first build.
+
+For the owner's review before any code. Decision 0197; spec `specs/stack-with-previous/spec.md`; mock-up
 `specs/stack-with-previous/mockup.html` (open it in a browser). It replaces this slice's first draft (an Add tool in
 the viewer's dock), which the owner simplified on Nov 17. Builds on moment stacks (0123) and the journal (0155).
 

@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-// Quick actions on an entry (SW1, SW4, SW5, decision 0196): which of the four slots apply. Test first.
+// Quick actions on an entry (SW1, SW4, SW5, decision 0197): which of the four slots apply. Test first.
 type Slot = { id: 'respond' | 'thread' | 'edit' | 'stack'; available: boolean; label: string };
 type Actions = { quickActions(entry: { pieces: number }, ctx: { joinable: boolean }): Slot[] };
 const mod = () => import('../../journal/actions' + '') as Promise<Actions>;
@@ -34,7 +34,7 @@ test('SW1: no label carries a digit or a count', async () => {
   for (const s of quickActions({ pieces: 5 }, { joinable: true })) assert.ok(!/\d/.test(s.label), s.label);
 });
 
-// Reaction in the row, captions (SW1, SW20, decision 0196, Nov 17). Test first.
+// Reaction in the row, captions (SW1, SW20, decision 0197, Nov 17). Test first.
 type Cap = { quickActions(entry: { pieces: number }, ctx: { joinable: boolean }): { id: string; available: boolean; label: string; caption: string }[] };
 const capMod = () => import('../../journal/actions' + '') as Promise<Cap>;
 

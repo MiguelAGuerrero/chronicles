@@ -1,7 +1,7 @@
 // @layer core
 
 /**
- * The quick-action row under an entry on Chronicle's page (decision 0196, SW1, SW4, SW5): five fixed slots, always in
+ * The quick-action row under an entry on Chronicle's page (decision 0197, SW1, SW4, SW5): five fixed slots, always in
  * this order, so an action that does not apply leaves its slot empty and moves no other. Pure: the page asks what
  * applies; the row draws it.
  */
@@ -12,7 +12,7 @@ export interface Slot {
   available: boolean;
   /** The icon's spoken name; a label never carries a number. */
   label: string;
-  /** The one word under the icon (decision 0196, the owner's call after the cold find). */
+  /** The one word under the icon (decision 0197, the owner's call after the cold find). */
   caption: string;
 }
 

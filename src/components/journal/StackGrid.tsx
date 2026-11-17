@@ -10,7 +10,7 @@ import { OWNER_FONT } from './type';
 const GAP = 4;
 
 /**
- * A stack as a gallery (decision 0196, SW12): every piece as a square tile in capture order, three to a row, each with
+ * A stack as a gallery (decision 0197, SW12): every piece as a square tile in capture order, three to a row, each with
  * its own time in words, under the entry's dateline, which says where. No tile or label gives a count or a position
  * (SW13). A tile opens the viewer on that piece.
  */

@@ -85,7 +85,7 @@ test('MS11: a moment shown at its face reads the face\'s patched fields, not its
   assert.equal(facedAt(patched, 'n').edit, null, 'another piece shows its own media');
 });
 
-// Stack with previous SW10, SW11 (decision 0196): a piece made later says when, a stack names its kinds in words.
+// Stack with previous SW10, SW11 (decision 0197): a piece made later says when, a stack names its kinds in words.
 const later = () => import('../../moment' + '') as Promise<{
   pieceWhen(m: Moment, p: Capture, now?: number): string | null;
   kindsLine(m: Pick<Moment, 'pieces'>): string;

@@ -125,8 +125,9 @@ export function HoldButton(props: {
       }
     });
   };
+  // Let go: the fill empties, after a hold that fired too, so a hold refused with a warning (a capture not saved yet)
+  // never leaves the button full (unsaved captures UN7); a stop under way shows its spinner meanwhile.
   const cancel = () => {
-    if (fired.current) return;
     fill.stopAnimation();
     Animated.timing(fill, { toValue: 0, duration: MOTION.fast, useNativeDriver: false }).start();
   };

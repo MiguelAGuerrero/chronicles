@@ -171,9 +171,9 @@
     },
     "map": {
       "state": "rough",
-      "swept": "2026-11-16",
-      "main": "54535dcbafec454cc4872303058c017d64dad8a5",
-      "note": "No sweep (lenses 1-7 not run): a run on four DEFERRED items. tend map 12 (the qol Hold check timed in the page; no app regression), 13 (O13, a pin on a start or end stops its stalk at the marker's edge), 14 (O14, a merged star draws two stars in its disc); O8 closed as stale on fresh pictures. Review (auditor, one round): audit 33 (the whole stalk cleared) and 34 (Hold proved on the loop) shipped; F33 medium (the place-name pack in the web entry bundle, the owner's 'Fetch on first search') and F38, F40 low filed [loop]."
+      "swept": "2026-11-17",
+      "main": "b812614044bf45fe3f12f2adba39c4958ce9155a",
+      "note": "No sweep (lenses 1-7 not run): a run on two DEFERRED [loop] items. tend map 15 (following, the compass brings the map north: the follow waits while the ease runs) and 16 (only the pins near the view are drawn on the web map; Chronicle with 500 placed moments, 500 markers to 28). Review (auditor, one round): audit 35 (a pin's reach grows the view), 36 (the box follows a move as it goes), 37 (the focused or pressed pin stays) shipped; F4 the owner's call (a screen reader reaches the pins near the view, recorded in map.md); F2 low filed [loop]; the native follow race filed in NATIVE_UNVERIFIED; F7 measured, the margin kept at 0.5."
     },
     "replay": {
       "state": "rough",
@@ -190,8 +190,8 @@
     "captures": {
       "state": "rough",
       "swept": "2026-11-17",
-      "main": "8e1515ca2be126bbf667ee94185ab239a63b6023",
-      "note": "No sweep (lenses 1-7 not run): a run on the two Navigate, ready voice-memo [loop] items. Built tend captures 1 (a memo whose stop timed out is said and let go, never held for a dead Retry; memoFile, failedMemo) and the review's F11 as tend captures audit 1 (the space journey's patched recorders ended). Item 2 was built and dropped after the review (F1-F8: incomplete); the owner's \"Ship fix 1, slice the rest\" makes it a slice where one holder owns every unsaved memo, noted on the item; the first attempt is the unpushed branch tend/captures-20261117-1418. F9, F10 filed [loop] low; memoFile on a phone in NATIVE_UNVERIFIED."
+      "main": "972c386009771fa942d94b44bb4048c2009a67d2",
+      "note": "No sweep (lenses 1-7 not run): a run on the capturehome journey's red HC10 on main, filed [loop] medium and closed. No commit made it red (it failed at acb18b06 and 972c3860 under load, passed at rest); the check read the stored note once (waitForFunction on an async predicate). Built tend captures 2 (the placed-at-stop check polls) and the review's five as tend captures audit 2-6 (both HC10 paths at a walker's pace, the note on its trace with no read, JN13 polled, stored() bounded, arch/e2eWaits.test.ts guards the trap). Nothing filed."
     }
   },
   "declined": []

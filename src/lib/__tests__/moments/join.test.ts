@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { Capture, Moment } from '../../types';
 
-// Stack with previous (SW6, SW8, decision 0196): which moment is "previous" and when an entry may be joined. Test first:
+// Stack with previous (SW6, SW8, decision 0197): which moment is "previous" and when an entry may be joined. Test first:
 // reached by name, so each fails until `lib/join.ts` exists.
 type Refs = Partial<Record<'thread' | 'link' | 'reminder' | 'find' | 'reaction' | 'hidden' | 'pick' | 'mention', boolean>>;
 type Join = {

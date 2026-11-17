@@ -1,0 +1,60 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Unsaved captures (UN1-UN15, decision 0196)",
+        "--new"
+      ],
+      "body": "- [loop] A Retry that does nothing, with no word: pressed while another screen's Retry holds the same held captures (or one stuck on a hung IndexedDB put), `take` returns none and the pill's Retry stays dead, while the walk's warning still says \"Retry\". Fix: say \"Saving…\" while every entry is `retrying`, with `retrying` in the selector's key (`useCaptures.ts` `retryNow`; the review of unsaved-captures, auditor F9, Nov 17, low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Unsaved captures (UN1-UN15, decision 0196)"
+      ],
+      "body": "- [loop] A memo held for an open moment that was deleted is kept by Retry as its own moment but unplaced (a piece's stamp has no fix), and `keepOrHold` returns the stale `into` as `momentId` (`useCaptures.ts`; the review of unsaved-captures, auditor F11, Nov 17, low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Unsaved captures (UN1-UN15, decision 0196)"
+      ],
+      "body": "- [loop] A Retry from a path that is not `enabled` (no walk, not loose) gets `{ id: null }` from `add` and settles the held capture as kept: its file is orphaned and the entry gone. Not reachable today (the walk screen's pills are gated by `walk`), latent (`useCaptures.ts` `keepCapture`, `retryNow`; the review of unsaved-captures, auditor F12, Nov 17, low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Unsaved captures (UN1-UN15, decision 0196)"
+      ],
+      "body": "- [loop] The held pills at 320 px and their words: \"Voice memos not saved\" wraps to three lines on the walk screen and the ready screen's memo pill to two (ui-patterns, \"Nothing wraps on a 320 px phone\"); Memories shows three \"not saved\" lines for one photo (the Retry's failure, the pill, the bar's warning); the same capture is \"voice note\" on Memories and \"voice memo\" elsewhere; the bar's Stop is an unlabelled square where the walk screen's says \"Hold\" (pictures `unsaved-walk-memos-320`, `unsaved-ready-pill-320`, `unsaved-bar-warning-320`; the review of unsaved-captures, the auditor's UI notes and the cold find, Nov 17, low)\n"
+    },
+    {
+      "argv": [
+        "inflight",
+        "remove",
+        "Unsaved captures have one owner",
+        "--reason",
+        "moved to Slices as it ships"
+      ],
+      "target": "sha256:e3ad44cbfecca3d3cb40fcccec52852701b8fde7039e1acf0c35e356b785998e"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "add",
+        "--top"
+      ],
+      "body": "| Unsaved captures have one owner (every photo, video and memo that fails to save is held by one app-wide in-memory holder: shown with Retry on the walk screen, Navigate, ready and Memories' open line, kept into its own walk, asked by both Stops, the second hold letting it go once the walk has ended; one failing after its walk ended is kept as its own moment; UN1-UN15, decision 0196) | built 2026-11-17, test-first by history; fast-forwarded to main on the owner's go-ahead; native unverified | `slice/unsaved-captures-20261117-1519` | `specs/unsaved-captures/spec.md` | the diff audited (fast lane): 12 findings, 9 accepted and fixed (`unsaved-captures audit 1-9`), 4 deferred low, 0 rejected; cold find (every task found) |\n"
+    }
+  ]
+}

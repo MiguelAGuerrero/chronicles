@@ -40,6 +40,7 @@ The map component (maplibre-gl on web, MapLibre RN on native), pins and icons, t
 - `CompassButton` draws only while `showsCompass(bearing)` (more than 1° off north). On the live walk it is the top of the column: the `compass` slot above Walk me back while that is shown, else Walk me back's own slot (so no gap and no other button moves); on the ready screen it sits above Locate; on Explore above Locate, only while focused. A map taken down and brought back opens north-up, so Explore resets its bearing state on blur.
 - `fitBounds` keeps the current bearing in maplibre; never pass a bearing to a follow or a fit.
 - The e2e turns the newest web map through `window.__turn(deg)`, defined only when `window.__perf` is (a two-finger gesture can't be made headless). The `ready` scenario sets `__perf` itself.
+- **Trap: a follow jump cuts an ease** (tend map 15). maplibre's `jumpTo` starts with `stop()`, so the live walk's follow (each glide frame's `jumpTo({ center })`, and the recenter on a fix) cut the compass's ease to north after one frame. Both ask `followMoves` (`lib/compass.ts`), which waits while `northAsked` holds; a new camera move made in code while following gets the same gate. The `qol` step turns the walk's map with two real fingers (`twoFingerTurn`: `__turn` has no `originalEvent`, so following never stops) and taps the compass with fixes still coming. Native's follow has no such gate yet (`docs/NATIVE_UNVERIFIED.md`, Compass).
 
 ## Swipes instead of pans (DN1-DN13, decision 0092)
 
@@ -130,6 +131,8 @@ The map component (maplibre-gl on web, MapLibre RN on native), pins and icons, t
   or label). The `qol` and `palette` journeys read the colours from the source, never a copied hex. **Trap:** the
   stone note (`#7b7469`) is the set's quietest; a change that fades or greys pins further makes a note read as
   disabled.
+- **Pins are drawn only near the view** (tend map 16, audits 35-37; web only). `usePinMarkers` keeps a box in a ref, never as React state: the view grown by a pin's reach on screen (`PIN_REACH_PX`: 24 px either side, its 48 px height and the most `stalkLift` gives below, through `unproject`, so a turned map grows the same way), widened by `PIN_CULL_MARGIN` (half the view) on each side. It is drawn again on `move` and `moveend` only when `boxHolds` says the grown view left it or zoomed in more than a level. The focused pin and the last pressed one (its viewer gives the focus back there) are never dropped (`drawsPin`). A pin past the box has no DOM marker, so an e2e reading pins reads those near the view. A margin of 0.25 drew 10 markers to 0.5's 28 for 8 in view with none missing, but no fall in drag cost showed through the noise (Nov 17), so the margin stays at half.
+- **A screen reader reaches only the pins near the view** (the owner, Nov 17, on tend map 16's review F4: "Accept, record it"). Moving the map brings others in reach, and Chronicle's journal and Memories list every moment.
 
 ## Explore's dots (WT12-WT14, decision 0132)
 

@@ -20,16 +20,43 @@ const COUNT_GEO = () => {
   };
 };
 
-const stored = (pg) => pg.evaluate(() => new Promise((resolve) => {
+// tend captures audit 5: a read that cannot settle fails in bounded time (it rejects on an error, a blocked open or
+// after 5 s) and closes its connection, so a poll of it never hangs the journey.
+const stored = (pg) => pg.evaluate(() => new Promise((resolve, reject) => {
+  const timer = setTimeout(() => reject(new Error('stored: no answer from IndexedDB in 5 s')), 5000);
+  const fail = (e) => { clearTimeout(timer); reject(e instanceof Error ? e : new Error(`stored: ${e && e.name}`)); };
   const req = indexedDB.open('chronicles');
+  req.onerror = () => fail(req.error);
+  req.onblocked = () => fail(new Error('stored: the open was blocked'));
   req.onsuccess = () => {
-    const names = ['moment', 'walk', 'thread_member'];
-    const tx = req.result.transaction(names, 'readonly');
-    const all = (n) => new Promise((r) => { const g = tx.objectStore(n).getAll(); g.onsuccess = () => r(g.result); });
-    // Each moment read back as its one piece with the moment's own fields (decision 0123).
-    Promise.all(names.map(all)).then(([moments, walks, members]) => resolve({ captures: moments.map((m) => ({ ...m.pieces[0], id: m.id, walk_id: m.walk_id, t: m.t, lat: m.lat, lon: m.lon, segment_id: m.segment_id })), walks, members }));
+    const conn = req.result;
+    try {
+      const names = ['moment', 'walk', 'thread_member'];
+      const tx = conn.transaction(names, 'readonly');
+      tx.oncomplete = () => conn.close();
+      tx.onerror = () => { conn.close(); fail(tx.error); };
+      const all = (n) => new Promise((r, x) => { const g = tx.objectStore(n).getAll(); g.onsuccess = () => r(g.result); g.onerror = () => x(g.error); });
+      // Each moment read back as its one piece with the moment's own fields (decision 0123).
+      Promise.all(names.map(all)).then(([moments, walks, members]) => {
+        clearTimeout(timer);
+        resolve({ captures: moments.map((m) => ({ ...m.pieces[0], id: m.id, walk_id: m.walk_id, t: m.t, lat: m.lat, lon: m.lon, segment_id: m.segment_id })), walks, members });
+      }, fail);
+    } catch (e) {
+      conn.close();
+      fail(e);
+    }
   };
 }));
+
+// How far a point lies from the segment a-b, in metres (the fake grid's units are 100 m).
+const offSegmentM = (h, p, a, b) => {
+  const xy = (q) => [(q[0] - h.at(0, 0)[0]) / h.dLon * 100, (q[1] - h.at(0, 0)[1]) / h.dLat * 100];
+  const [P, A, B] = [xy(p), xy(a), xy(b)];
+  const d = [B[0] - A[0], B[1] - A[1]];
+  const len2 = d[0] * d[0] + d[1] * d[1];
+  const k = len2 ? Math.max(0, Math.min(1, ((P[0] - A[0]) * d[0] + (P[1] - A[1]) * d[1]) / len2)) : 0;
+  return Math.hypot(P[0] - A[0] - k * d[0], P[1] - A[1] - k * d[1]);
+};
 
 const box = async (pg, sel) => {
   const b = await pg.locator(sel).filter({ visible: true }).first().boundingBox();
@@ -90,12 +117,17 @@ async function run(h) {
   await pg.waitForTimeout(1500);
   await pg.click('[data-testid=walk-minimize]');
   await pg.waitForSelector('[data-testid=recording-bar]', { timeout: 10000 });
-  // A few steps along Wickenden Street, so the walk has a trace and a fresh fix to place by.
+  // A few steps along Wickenden Street, so the walk has a trace and a fresh fix to place by. At a walker's pace
+  // (1.5 m a second): 12 m a second was over MAX_WALK_SPEED_MS (lib/geo), so every step was dropped as a jump and the
+  // walk kept only its first fix (tend captures audit 2).
+  const stepAt = (i) => h.at(-1 + i * 0.015, -1.5);
   const step = async (i) => {
-    await c.setGeolocation({ longitude: h.at(-1 + i * 0.12, -1.5)[0], latitude: h.at(-1 + i * 0.12, -1.5)[1], accuracy: 6 });
+    await c.setGeolocation({ longitude: stepAt(i)[0], latitude: stepAt(i)[1], accuracy: 6 });
     await pg.waitForTimeout(1000);
   };
   for (let i = 0; i < 6; i++) await step(i);
+  // The walk's last fix: the context sends no new one until the next step, so it ages from here.
+  const fixAt = Date.now();
   // A photo from the bar on Explore, which leaves its Edit pill up (T12).
   const barPhoto = async () => {
     await tabTo(pg, 'explore');
@@ -139,6 +171,12 @@ async function run(h) {
   const barBox = await box(pg, '[data-testid=recording-bar]');
   check(!!walkBand && !!barBox && walkBand.y + walkBand.h <= barBox.y + 0.5 && !(await shown('[data-testid=bar-photo]')),
     `HC7: with a walk minimized, the band sits above the recording bar, which shows no camera on Memories (${JSON.stringify({ walkBand, barBox })})`);
+  // tend captures audit 2: the walk's fix is stale (over FRESH_FIX_MS, 15 s, lib/pieceStamp) before the note begins,
+  // whatever the machine's speed, so the note is kept unplaced and only the stop can place it ("else at stop").
+  const fixAge = Date.now() - fixAt;
+  if (fixAge < 16000) await pg.waitForTimeout(16000 - fixAge);
+  // tend captures audit 3: no location is read for an entry on a walk (JN12; capture-from-chronicle audit 4).
+  const readsBefore = await pg.evaluate(() => window.__geo.reads);
   // The journal's composer (JN47): the toolbar's field opens it with the caret in it.
   await pg.click('[data-testid=bar-compose]').catch(() => {});
   await pg.waitForTimeout(600);
@@ -146,15 +184,29 @@ async function run(h) {
   await pg.waitForTimeout(1200);
   await pg.click('[data-testid=line-done]').catch(() => {});
   await pg.waitForTimeout(800);
+  const readsAfter = await pg.evaluate(() => window.__geo.reads);
   for (let i = 6; i < 10; i++) await step(i);
   const db = await stored(pg);
   const open = db.walks.find((w) => w.ended_at == null);
   const kept = db.captures.find((x) => x.body === 'Kept on the walk, from Memories.');
-  check(!!open && !!kept && kept.walk_id === open.id,
-    `HC10: a note from Memories with a walk minimized belongs to the walk (${kept && kept.walk_id} vs ${open && open.id})`);
+  check(!!open && !!kept && kept.walk_id === open.id && kept.lat == null && readsAfter === readsBefore,
+    `HC10 (tend captures audit 2, audit 3): a note from Memories with a walk minimized belongs to the walk, kept unplaced with a stale fix and no location read (${JSON.stringify({ walk: kept && kept.walk_id, open: open && open.id, lat: kept && kept.lat, fixAge, reads: [readsBefore, readsAfter] })})`);
   const pillAfterNote = await pg.locator('[data-testid=bar-edit-offer]').count();
   check(pillUp && pillOnMemories && pillAfterNote === 0,
     `tend tabs audit 21: the bar's Edit pill, up on Memories after a bar photo, ends with the next capture, a note from Memories' open line (${pillUp}, ${pillOnMemories}, ${pillAfterNote})`);
+  // tend captures audit 2: the other half of HC10, "the latest fix": a note begun just after a fresh fix is placed there
+  // when it is kept.
+  await step(10);
+  await pg.click('[data-testid=bar-compose]').catch(() => {});
+  await pg.waitForTimeout(600);
+  await pg.keyboard.type('Kept at the latest fix.', { delay: 10 });
+  await pg.waitForTimeout(1200);
+  await pg.click('[data-testid=line-done]').catch(() => {});
+  await pg.waitForTimeout(800);
+  const atFix = (await stored(pg)).captures.find((x) => x.body === 'Kept at the latest fix.');
+  const fixOff = atFix && atFix.lat != null ? Math.round(h.distanceM([atFix.lon, atFix.lat], stepAt(10))) : null;
+  check(!!atFix && atFix.walk_id === open?.id && fixOff != null && fixOff <= 5,
+    `HC10 (tend captures audit 2): a note begun with a fresh fix on the walk is placed at that fix when kept (${JSON.stringify({ walk: atFix && atFix.walk_id, fixOff })})`);
   await pg.click('[data-testid=recording-return]');
   await pg.waitForSelector('[data-testid=stop]', { timeout: 10000 });
   await pg.waitForTimeout(1200);
@@ -177,14 +229,20 @@ async function run(h) {
   await pg.waitForTimeout(1100);
   await pg.mouse.up();
   await pg.waitForURL(/replay/, { timeout: 30000 }).catch(() => {});
-  const placedNote = await pg.waitForFunction(() => new Promise((resolve) => {
-    const req = indexedDB.open('chronicles');
-    req.onsuccess = () => {
-      const g = req.result.transaction(['moment'], 'readonly').objectStore('moment').getAll();
-      g.onsuccess = () => resolve(g.result.map((m) => ({ ...m.pieces[0], id: m.id, walk_id: m.walk_id, t: m.t, lat: m.lat, lon: m.lon, segment_id: m.segment_id })).find((x) => x.body === 'Kept on the walk, from Memories.' && x.lat != null) ?? null);
-    };
-  }), null, { timeout: 15000, polling: 500 }).then((v) => v.jsonValue(), () => null);
-  check(!!placedNote && placedNote.walk_id === open?.id, `HC10: the stopped walk placed the note as its own capture (${placedNote && [placedNote.lat, placedNote.lon]})`);
+  // tend captures 2: polled from here, since waitForFunction takes an async predicate's pending promise as its first
+  // truthy result and resolves with that one read's value: it read the note once as the replay opened, before a slow
+  // snap (behind "Reading the streets you walked…") had placed it, and failed on a busy machine.
+  let placedNote = null;
+  let lastNote = null;
+  for (let i = 0; i < 60 && !placedNote; i++) {
+    lastNote = (await stored(pg).catch(() => ({ captures: [] }))).captures.find((x) => x.body === 'Kept on the walk, from Memories.') ?? null;
+    if (lastNote && lastNote.lat != null) placedNote = lastNote;
+    else await pg.waitForTimeout(500);
+  }
+  // tend captures audit 3: placed on the walk's trace at its time, between the fixes of steps 5 and 6.
+  const offTrace = placedNote ? Math.round(offSegmentM(h, [placedNote.lon, placedNote.lat], stepAt(5), stepAt(6))) : null;
+  check(!!placedNote && placedNote.walk_id === open?.id && offTrace != null && offTrace <= 5,
+    `HC10 (tend captures 2, audit 3): the stopped walk placed the note as its own capture, on its trace at its time, waited for and not read once (${JSON.stringify(placedNote ? { walk: placedNote.walk_id, offTrace } : lastNote && { walk: lastNote.walk_id, lat: lastNote.lat })})`);
   // Watched from before Stop: a short walk's replay can show the note and reach its card before a wait begins here.
   const played = await pg.waitForFunction(() => window.__sawNote === true, null, { timeout: 60000 }).then(() => true, () => false);
   check(played, 'HC10: the walk\'s replay plays the note kept from Memories');

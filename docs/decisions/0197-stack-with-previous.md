@@ -1,4 +1,4 @@
-# 0196. Quick actions on an entry, Stack with previous, and a stack as a gallery
+# 0197. Quick actions on an entry, Stack with previous, and a stack as a gallery
 
 Date: 2026-11-17 · Status: accepted · Area: captures, chronicle, journal, vision
 
@@ -40,5 +40,5 @@ piece keeps no place of its own (the moment keeps its one fix, 0036) and says in
 - `.claude/rules/journal.md` gains the narrow exception. MS12 (Add only while the pill is open) is unchanged by this slice.
 - **Proposed edit to `docs/VISION.md`** (the owner makes it): a Shapes row, "Quick actions on an entry: icons only, with spoken names, in fixed slots; Stack with the moment before | aligned if reshaped | A
   labelled button on the entry just kept, one tap with Undo, moves its pieces into the previous moment of the same day; only
-  while nothing points at it; a stack's pieces shown as a collapsible grid, never a number", plus 0123's missing row and 0196 in
+  while nothing points at it; a stack's pieces shown as a collapsible grid, never a number", plus 0123's missing row and 0197 in
   Precedents.

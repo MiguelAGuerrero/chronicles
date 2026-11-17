@@ -114,6 +114,11 @@ expo-image-manipulator; `lib/thumbPlan.ts` pure, `media/thumb.ts`).
     `blob:` URL the moment a preview's file changed left a picture still loading it to fail, logged by the browser.
   - **Trap (e2e): `waitForFunction` with an async predicate** resolves at once with its pending promise; poll a stored
     row from the test side instead (the videothumbs journey).
+  - **The same trap, said exactly** (tend captures 2, audit 6): `waitForFunction` takes an async predicate's pending
+    promise as its first truthy result and resolves with the one read's value; it never polls. The wait cannot time out
+    and `.then(() => true)` is always true. `arch/e2eWaits.test.ts` fails on such a wait in a journey.
+  - **Trap (e2e): a mocked walk's steps go at a walker's pace** (tend captures audit 2): a step over `MAX_WALK_SPEED_MS`
+    (7 m/s, `lib/geo`) is dropped as a jump, so the walk keeps none of them and nothing is placed where it was taken.
 - Previews show the copy, the icon while it is being made, and the photo
   when the copy's file is gone (`thumbShown`). The reminder card uses it
   too. The backup bundle leaves `thumb_path` out.
@@ -146,6 +151,21 @@ expo-image-manipulator; `lib/thumbPlan.ts` pure, `media/thumb.ts`).
   (`heldLabel`), Retry saves each with its stamp, and Stop warns once before ending without them. Every
   save failure is worded by `saveFailLine` (lack of room told apart by `isOutOfSpace`), never the raw error.
 
+- **Unsaved captures have one owner** (UN1-UN15, decision 0196): every photo, video and memo whose save fails goes to
+  the app-wide holder `lib/unsaved` (in memory, while the app is open), never to a path's own state. `useCaptures`
+  keeps every capture through `keepCapture` (the file once, then the row; `path` kept for every later Retry, UN12;
+  an `into` moment gone makes it its own, UN11) and files it by `Stamp.walk`, never the hook's `walkId`, so any
+  screen's Retry keeps a held capture in its own walk (UN4). The pills read the holder (`heldKey` in a selector, a
+  string); a path with no pill passes `retryShown: false` and its words say where the Retry is (`heldWhere`, UN10);
+  a path in front passes `sayHeld` and says, once, what failed on a screen gone (UN9) and a memo lost as it went
+  (UN13). The e2e refuses the moment store too (`__failMoment`, `scripts/e2e/failStorage.js`).
+- **The review's rules for the holder** (unsaved-captures audit 1-9): a Retry opens Add to this moment only on its
+  own walk's path (`ours(stamp.walk)`); once a row is written the capture is kept whatever fails after
+  (`keepInOrder`, and `add`'s steps after the write never throw); a Retry is `unsaved.track`ed and both Stops wait
+  for `settled()`; the walk's held captures go by `unsaved.ended(walkId)`, only after `endWalk` resolves, and a
+  capture failing after that is held loose (`looseAfterEnd`, the owner: "Keep it as its own moment"); "said" and
+  "lost" follow `sayHeld` (in front), never `alive`; `takeUnsaid` marks them in one change. The bar passes
+  `shortWords` ("No room left. Retry on the walk screen.", the owner).
 - All voice actions (start, save, discard, undo, retry) run on one promise queue in
   `useCaptures`, so taps never interleave. Stop waits for that queue.
 - Never call `stop()` on a recorder that already stopped by itself: on web it waits

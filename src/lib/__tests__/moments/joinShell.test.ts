@@ -6,7 +6,7 @@ import { createDeleteRunner } from '../../deletion/runner';
 import type { Moment } from '../../types';
 import { fakePorts } from '../fakes';
 
-// Stack with previous SW7, SW9 (decision 0196): the join through the Undo window, over fakePorts. Test first.
+// Stack with previous SW7, SW9 (decision 0197): the join through the Undo window, over fakePorts. Test first.
 type Join = {
   join(entry: Moment, into: Moment): Promise<void>;
   /** The moments as the page shows them at once, before the join is stored: the entry gone, its pieces in the previous. */
