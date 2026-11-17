@@ -169,3 +169,8 @@ fixed as `explore-subtypes ui 1`); triaged in one numbering:
 20. An unlabelled map button over the drawer at 320 px (U6): defer, not this slice's.
 
 20 findings: 16 accepted (15 fixed behind tests, 1 process), 3 deferred, 1 to the owner (answered: decision 0192, its own slice), 0 rejected.
+
+Verified after the fixes (Nov 17): `npm test` (2774), typecheck, lint, docs and records checks; the 15 journeys
+`check:affected --since ec1a0de` named ran once each, 14 pass (`subtypes` with audit 2 and 16), `scenic`'s "fix
+preview-clutter audit 1" fails on `main` too (3 of 3, `e2e:baseline`). Pictures retaken (audit 15): every label one line
+at 320 px, the new icons drawn.
