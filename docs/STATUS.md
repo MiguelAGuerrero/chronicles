@@ -202,7 +202,7 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
   Area: captures, vision. Seen: the steward's second pass on `specs/note-types` (audit 18): the app ships a Like and a Dislike on a note (decision 0161), while VISION.md's Never table still reads "A feed, followers, likes, public profiles". Rests on: your call in 0161; the gate may not edit the Never list.
   Recommended: in that row's "nearest thing that fits" column add "a mark on your own note, shown to no one and read by no feature about a place, a route or a recommendation (0161)". The page is at its size budget (12,000 bytes): shorten another row to fit.
 - **T33 [owner] The town borders on the replay and a day are the accent** (2026-11-17)
-  Area: replay, map (town borders). Seen: the map-palette slice (decision 0187): the replay and a day draw the walk's towns with `useWalkBorders` in `BORDER.color`, `#c2410c`, the accent's hex (a 12% tint and a firm edge at 0.9), while decision 0153 says "The replay never lights anything in the accent". Out of map-palette's scope by your answer ("The map's colours"); your answer to the spec's question 2, Nov 17: "Their own entry".
+  Area: replay, map (town borders). Seen: the map-palette slice (decision 0188): the replay and a day draw the walk's towns with `useWalkBorders` in `BORDER.color`, `#c2410c`, the accent's hex (a 12% tint and a firm edge at 0.9), while decision 0153 says "The replay never lights anything in the accent". Out of map-palette's scope by your answer ("The map's colours"); your answer to the spec's question 2, Nov 17: "Their own entry".
   Recommended: swatches of a border colour apart from the accent and from Earth and ink (`COLORS`), at 3.5:1 for the firm edge and 1.15 to 1.35 for the tint on the land as TB8 and TB10 hold them, on the replay's beat one and card, on Chronicle and Explore; you pick one; then it is built in `BORDER.color` (every map that draws borders follows).
   Otherwise: the borders change on the replay and a day only; or they stay the accent, a map's key like the area card's coloured lines (0186's second exception).
 
@@ -210,7 +210,7 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
 
 What the map-palette slice left for the owner (`specs/map-palette/spec.md`, decision 0187).
 
-- **QL2's words** (`specs/quality-of-life/spec.md`, your quality-of-life doc): it says "a white disc with a thick ring in the walked orange". Since T16 and T25 the end is a bullseye, and since map-palette (decision 0187) the walked colour is an ink, not orange. Your answer, Nov 17: "Build it, with that wording". Proposed for the doc: "a bullseye in the walked colour (a walked centre, a white band, a walked outer ring), so shape, not colour alone, tells it from the start and from the walker's dot". The doc is yours to amend; the mirror follows it.
+- **QL2's words** (`specs/quality-of-life/spec.md`, your quality-of-life doc): it says "a white disc with a thick ring in the walked orange". Since T16 and T25 the end is a bullseye, and since map-palette (decision 0188; the section's intro above says 0187, the number main took first) the walked colour is an ink, not orange. Your answer, Nov 17: "Build it, with that wording". Proposed for the doc: "a bullseye in the walked colour (a walked centre, a white band, a walked outer ring), so shape, not colour alone, tells it from the start and from the walker's dot". The doc is yours to amend; the mirror follows it.
 
 ### From /fix carousel-snap-back
 

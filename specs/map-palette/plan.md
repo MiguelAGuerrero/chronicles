@@ -65,7 +65,7 @@ keep the new palette's weakest values from slipping:
 | MP11 | `qol` journey: its T16, T25 and audit 25 reads, and `pinsOfSeveral`'s head check, take the walked and several colours from `map/types.ts` (read from the source as text) and label them "MP11"; `endsPaint.test.ts` unchanged | `check.todo` |
 | MP14 | new journey `scripts/e2e/journeys/palette.js` (from the comparison's throwaway, cleaned): one pin of each kind, a pin of several on the end; "MP14: each pin's head is its colour", "MP14: the end's centre and ring are the walked ink", "MP14: beat one's lit street is the blend, not the accent" (MP7's screen half), pictures `palette-beat-one`, `palette-card` at 390 and 320 px | `check.todo` |
 | MP1 | no test of its own: MP2 holds the change, and the journeys' existing checks of words, shapes and layers hold "nothing else moves"; recorded as such in the spec's record | - |
-| MP12 | the records (below) and decision 0187; `check:docs` holds the record | - |
+| MP12 | the records (below) and decision 0188; `check:docs` holds the record | - |
 | MP13 | `UNTESTED`, `device:` the native layers and pin views; the `docs/NATIVE_UNVERIFIED.md` item names MP13 | - |
 
 Then the code, criterion by criterion, each todo made real in the commit that makes it pass, `npm run check:affected`
@@ -99,9 +99,9 @@ no harness.
 
 ## Docs and records (at the build, not at this pause)
 
-- **Decision 0187** (`node scripts/bookkeeping.js next-decision` gives 0187 on `origin/main` at `d7608dd2`; claimed only
-  at the build, after the last fetch, and checked with `npm run book:next-decision -- --check 0187
-  docs/decisions/0187-earth-and-ink.md` before publishing): "Earth and ink: the map's palette". The owner's answers of
+- **Decision 0188** (0187 when the plan was written, at `d7608dd2`; main took 0187 for the empty walk before the build, so it is 0188, checked on `99875324`; claimed only
+  at the build, after the last fetch, and checked with `npm run book:next-decision -- --check 0188
+  docs/decisions/0188-earth-and-ink.md` before publishing): "Earth and ink: the map's palette". The owner's answers of
   Nov 17 to T22 (scope, process, the pick), every hex by role, the figures, and the magenta's rule narrowed from "the
   one hue no other layer uses" (0028, 0034) to "no other line, fill or label; every map colour 15 or more from it", with
   the reason (MP8) and the owner's answer to Open 1. A row in `docs/decisions/README.md`; a row in VISION.md's
@@ -110,13 +110,13 @@ no harness.
   - `.claude/rules/map.md`, "Icons and pins": the pin of several's head is `COLORS.several` (was `MIXED`'s own hex);
     every kind's colour is in `COLORS`, held by `map/palette.test.ts` (MP2-MP10), and a new hex for a map role needs
     the colour-blind floor and the accent's distance there.
-  - `.claude/rules/map-staples.md`: the end's ring and centre "in the walked ink (`COLORS.walked`, decision 0187)"; the
+  - `.claude/rules/map-staples.md`: the end's ring and centre "in the walked ink (`COLORS.walked`, decision 0188)"; the
     line "T22, a walked colour apart from the accent, is open" retired with a note.
-  - `.claude/rules/replay.md`: beat one lights the walked streets in the walked ink, never the accent (0153, 0187).
+  - `.claude/rules/replay.md`: beat one lights the walked streets in the walked ink, never the accent (0153, 0188).
   - `.claude/rules/streets-fog-snapping.md`: `colors.test.ts` holds the magenta by distance, not by hue alone (MP8).
 - **`docs/PRODUCT.md`**: "a solid orange disc with a white ring" becomes "a blue-violet bullseye".
 - **Records**, only through `npm run records`: `inflight add` at the start of the build; at the end `inbox remove T22
-  --reason "built as map-palette (MP1-MP14), decision 0187"`, `native item add` for MP13, `slice row add`, `inflight
+  --reason "built as map-palette (MP1-MP14), decision 0188"`, `native item add` for MP13, `slice row add`, `inflight
   remove`; a "From /slice" item proposing QL2's wording ("in the walked colour"); and, on a yes to Open 2, an `inbox
   add` for the borders. Nothing is filed at this pause.
 

@@ -99,7 +99,7 @@ Open: 1. The madder video beside the hotspot magenta (0028, 0034): keep `#87244e
     `qol` journey's reads of the end and the pin of several's head take their colours from the source, not from a
     copied hex, so they hold the new palette and any later one.
 12. **MP12** T22 is answered: the walked colour is apart from the accent. Once built, T22 leaves the inbox, decision
-    0187 records "Earth and ink" and the magenta rule's change, and QL2's "in the walked orange" is offered to the owner
+    0188 records "Earth and ink" and the magenta rule's change, and QL2's "in the walked orange" is offered to the owner
     as "in the walked colour".
 13. **MP13** On a phone the same colours paint the native map's layers and the pin views. Never run on a phone: a
     device check (`docs/NATIVE_UNVERIFIED.md`), **Do:** finish a walk with a photo, a video, a voice memo and a note
