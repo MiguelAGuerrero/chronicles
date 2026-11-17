@@ -113,3 +113,22 @@ The owner's task, in their words: "a more rich exploring experience, no matter h
 - Mountain peaks from the map's `mountain_peak` layer (outside towns; a slice of its own).
 - A bar's breakdown by type on a card (0183's later slice).
 - Outside the US: the archive is US-only; elsewhere only the map's classes feed the new kinds.
+
+## Record (Nov 17)
+
+- **Built:** XS1-XS28, every criterion tested first by history (`check:test-first`, 28 of 28): 25 unit tests in
+  `src/lib/__tests__/explore/subtypes.test.ts`, the `subtypes` journey for XS1, XS2, XS6, XS19, XS22-XS24.
+- **Suite:** `npm test` (2,761), typecheck, lint (7 warnings, all on `main` too), docs and vision checks pass. The 14 journeys
+  `check:affected` named ran once each: 12 pass (`marks` and `curiosities` after taking the headings' order and the
+  folly's subtype); `scenic`'s "fix preview-clutter audit 1" and `drive`'s area-card wait fail on `main` too, 3 of 3
+  runs each (`e2e:baseline`).
+- **Older tests moved to the owner's calls:** PP17, SP3-SP17, RP13, RP15, PK14, PR8 (six pairs in `CHANGED`), the p5
+  history test (generalised); `readers.golden.json` re-captured with every change accounted for (statues Art, attractions
+  their own kind, the map's ruins Curiosities, murals and markers subtypes, one statue and artwork merged in South End).
+- **Steward:** S1-S7 accepted (XS25-XS27, the defaults listed); its silent questions answered in the plan.
+- **Cold find and UI review:** found Ghost towns, Bridges and the kind switch; four icons read wrong (gear, footprints,
+  skull, pen), fixed behind `explore-subtypes ui 1`. Not found from three scroll positions: Fountains, Waterfalls; and
+  whether a kind's switch covers its subtypes: deferred to the owner (`docs/DEFERRED.md`, ui 2, ui 3).
+- **Data:** chronicles-data's contract v4 (ST1-ST10) is built and tested on `claude/explore-subtypes`; published early
+  on Nov 17 (`20261117.19`) and reverted (`20261117.21`, v3 classes) until this app ships.
+- **Native:** nothing native changed; never run on a device (`docs/NATIVE_UNVERIFIED.md`).

@@ -80,6 +80,11 @@ async function run(h) {
   check(!!ghost && !!curio && ghost.left > curio.left && ghostOn === 'false', `XS6: Ghost towns is indented and off (${JSON.stringify({ ghost: ghost?.left, curio: curio?.left, ghostOn })})`);
   check(drawer.every((r) => !/\d/.test(r.text)), 'XS19: no heading or row carries a number');
   await shot(pg, 'subtypes-what-im-into');
+  // The middle and the end of the list, for the UI review (decision 0145).
+  await pg.locator('[data-testid=kind-bridges]').scrollIntoViewIfNeeded().catch(() => {});
+  await shot(pg, 'subtypes-what-im-into-structures');
+  await pg.locator('[data-testid=kind-ghost_towns]').scrollIntoViewIfNeeded().catch(() => {});
+  await shot(pg, 'subtypes-what-im-into-curiosities');
   const rows = drawer.filter((r) => !r.id.startsWith('kind-heading-')).map((r) => r.id);
   check(ready.length > 0 && JSON.stringify(ready) === JSON.stringify(drawer.map((r) => r.id)), `XS24: the ready bar and the walk's drawer list the same rows (${ready.length} vs ${drawer.length})`);
 
