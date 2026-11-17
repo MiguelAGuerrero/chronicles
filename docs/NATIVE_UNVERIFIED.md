@@ -681,3 +681,9 @@ What the reactions slice wrote and has not run on a phone (`specs/reactions`, de
 Small places (decision 0183): the switches and dots on a phone.
 
 - [ ] **Do:** on a phone with switches saved before this update, open "What I'm into", then walk (Explore on) past a time capsule and a plaque from the places archive. **Expect:** Plaques and markers, Small memorials, Milestones and old stones and Wayside shrines and crosses sit indented under their kinds and are off; Time capsules and Little libraries are on; the time capsule is a "?" named "A time capsule" within 60 m and the plaque is not drawn until its row is switched on; an area's dots change at once when the row is switched (SP2, SP7, SP8, SP11, SP13).
+
+## Place search (GZ1-GZ19, decision 0184)
+
+Place search (decision 0184): the pack on a phone.
+
+- [ ] **Do:** on a phone, with the network off from launch, open Explore's magnifier for the first time. **Expect:** "Getting ready…" draws first, then "zuric" lists Zürich: the phone reads the pack bundled in the app (`gazetteer/source.ts`'s `require`), never the web's fetch; the loader split (`loader.ts`, gazetteer-web-fetch) adds one microtask before the pack is validated and nothing else (the review of the web fetch, Nov 17).
