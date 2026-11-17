@@ -172,9 +172,9 @@
     },
     "map": {
       "state": "rough",
-      "swept": "2026-11-12",
-      "main": "617b534735f14d777cd63f8ece070dde4cacd2fe",
-      "note": "First sweep, whole but for the largest text size (web cannot; T18 [phone]) and native. Two high and three medium loop findings (a fit straightened a turned map; the credits (i) unreachable on four maps; compass-less maps turned; pin grouping O(n x pins); markers drawn out of view, filed), with low ones shipped (keyboard focus on Locate and the compass, 999.6 m and scale thousands, render on turn, worker version). The review (one round, auditor and ux-reviewer): audit 1-7 shipped (the credits over Explore's hint, the (i) that moved and split words, its glow, a fit during the compass's ease, pins along a parallel, a compass left after the planner, three checks that could not fail); deferred [loop]: the live walk's compass under following (medium), Chronicle's (i) corner, the strip's line (on main too). T14-T17 [owner], T18 [phone] open."
+      "swept": "2026-11-16",
+      "main": "54535dcbafec454cc4872303058c017d64dad8a5",
+      "note": "No sweep (lenses 1-7 not run): a run on four DEFERRED items. tend map 12 (the qol Hold check timed in the page; no app regression), 13 (O13, a pin on a start or end stops its stalk at the marker's edge), 14 (O14, a merged star draws two stars in its disc); O8 closed as stale on fresh pictures. Review (auditor, one round): audit 33 (the whole stalk cleared) and 34 (Hold proved on the loop) shipped; F33 medium (the place-name pack in the web entry bundle, the owner's 'Fetch on first search') and F38, F40 low filed [loop]."
     },
     "replay": {
       "state": "rough",

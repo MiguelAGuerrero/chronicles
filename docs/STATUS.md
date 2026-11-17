@@ -253,12 +253,14 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
 
 ### Last tend
 
-**Nov 16, `/tend presence --deploy=main`, building the owner's answer to the `[arch]` neighbourhood read-past (decision 0172)** (opened from `d50d8a51`; no sweep, lenses 1-6 not run; the faster lane of decision 0181).
-- The item, as main held it: `[arch]` "The neighbourhood read-past runs on the raw name, before `normalizeWords`" (Explore and discovery). It leaves `docs/DEFERRED.md`.
-- `tend presence 1`: one read-past of a neighbourhood's "Old Town" and "old and new", after `normalizeWords`, for a museum's History and a community park alike, so "Old-Town", "Old_Town", "Old.Town" and "Old&New" read as "Old Town" and "Old & New" do; 0127's read-past itself stays. `PRESENCE_CODE` p4 to p5, nothing carried: every atlas and landing area is derived again, never patched; no other derivation code moves.
-- The review (one round, the `auditor`): pass, seven low; six accepted in this run under the same p5, since it has not shipped (`tend presence audit 1`): "Old Quarters" names a building (a possessive "Old Quarter's" reads the same and keeps its museum); "Old Towne", "Olde Town", "Olde Towne" and "Oldtown" read as "Old Town" (the owner's answer, Nov 16); the read is one stateless function, `readPastNeighbourhood`, no shared `/g` regex; the rule, parkKind's comment and presence's p4 line. One rejected (a malformed apostrophe joining two words, as "after `normalizeWords`" means).
-- The goldens answer the same before and after; over every fixture name only the named spellings, the possessives and plurals of town, city and village, the archaic forms and "Old Quarter's" move (a differential kept in the run's scratchpad).
-- Not run: the sweep's lenses and the balance; journeys: launch only (no journey holds a changed check); the rest is left to CI and the weekly full pass (decision 0181). Nothing here has run on a phone.
+**Nov 16, `/tend map --deploy=main`, the qol Hold item and the owner's answers O13, O14 and O8 (decision 0172)** (opened from `54535dcb`; no sweep, lenses 1-7 not run; the faster lane of decision 0181).
+- The items, as main held them: `[loop]` "The `qol` journey's `tend map audit 25` and `26` fail at Hold at 390 on `main` since the Place search commits"; `[owner]` "A capture pin standing on a start or end puts its stalk inside the marker" (O13); `[owner]` "A merged star looks like an unnamed lone star" (O14); `[owner]` "Explore's map labels collide" (O8). All four leave `docs/DEFERRED.md`.
+- `tend map 12`: the check, not the app. The replay's code is unchanged since `6c5174cd` and the dot runs the 60 m loop in about a second on both builds; the check's poll and stable-waiting click (140 to 784 ms) lost the race on the base as on main (2 of 5, 4 of 5 scratch runs). Hold is now timed in the page and tapped where the button is; `tend map audit 34` (the review's F35, F36) asks that the tap be on Hold, that Hold read Play and that the dot and the clock stand still.
+- `tend map 13` (O13): a pin standing on a start or end stops its stalk at the marker's edge (`stalkLift`, `lib/pins.ts`), drawn as padding under the pin on both maps so its target still covers the marker; `tend map audit 33` (F34) clears the whole stalk, not the foot alone. QL3's words stay in "Open before the loop".
+- `tend map 14` (O14): a merged star draws two white stars fanned in its one ink disc (`starGlyphs`, `lib/places.ts`); no numeral, one size.
+- O8 closes as stale: fresh pictures at 390 (`dense-1-names`, `dense-1b-names-close`, `dense-2-zoomed-in`, `11b-explore`, `11d-atlas-town`) show no label over another; the harness's base map draws no names of its own.
+- The review (one round, the `auditor`): two medium, six low; accepted five (F34, F35, F36, F37 the diagnosis's wording, F39 a stale test message), deferred three: F33 medium, the place-name pack in the web entry bundle (10.7 MB), filed `[loop]` in Explore and discovery with the owner's answer of Nov 16, "Fetch on first search"; F38 and F40 low, filed in the map's section. Two device checks filed (the pin's lift on native, the merged star's two stars).
+- Journeys: qol (221 ok) and launch after the review; chronicle, atlas and dense before it. Not run: the sweep's lenses and the balance; the rest is left to CI and the weekly full pass (decision 0181). Nothing here has run on a phone.
 
 ### Open before the loop
 
@@ -337,6 +339,7 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
   (`src/lib/__tests__/places/places.test.ts` l.84, "stars within 44 px merge into one with a count"; `Star.count` is
   still the number of places, now only spoken). Decision 0154's "Amends" names 0019 only. No rule line said the
   accent or the numeral; `.claude/rules/places-and-areas.md` has a "Since `tend places T15`" line under "Stars".
+  Since `tend map 14` (decision 0172, O14), Nov 16: a merged star draws two white stars fanned in its one ink disc, still no numeral and one size; criterion 13, H7 and the test row's "with a count" read so too.
 - **QL26's, NY10's, MR2's and RB7's words after T14** (Nov 13; decision 0154): since `tend map T14` a pin of several
   moments shows its kinds (the first two taken, fanned discs on the neutral head, one kind twice) and never a numeral,
   and says them in words with the minutes in ("A photo and a note, twelve minutes in. Open"; a memory pin "Memories: a

@@ -1,0 +1,82 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "A merged",
+        "--reason",
+        "the owner's answer (decision 0172, O14: \"Two stars fanned in one disc; no numeral, one size (0154 kept).\"), built in tend map 14: a merged star draws two white stars fanned in its one ink disc"
+      ],
+      "target": "sha256:f5f94fb99e5094f5ae35cead54aaebc555e92b1cb607b40cd9d44c13aeb8ea48"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore and discovery",
+        "--reason",
+        "the review's F33 with the owner's answer of Nov 16, \"Fetch on first search\"; filed by /tend map in the range that removes the [owner] items \"A capture pin standing on a start or end\", \"A merged star looks like an unnamed lone\" and \"Explore's map labels collide: a busy str\" (decision 0172, O13 and O14 built, O8 stale)"
+      ],
+      "body": "- [loop] The place-name pack is downloaded and parsed on every cold web launch: `require('../../../assets/gazetteer/places.json')` (`lib/gazetteer/source.ts` l.33) is inlined in the one-bundle web build, so the entry bundle is 10,708,626 bytes (5.0 MB before Place search) with the 5.7 MB pack as one object literal, 1.98 MB more over gzip (1.42 MB brotli), scanned at launch though the module runs only on first search, and every Pages deploy changes the bundle's hash, so the cost comes back after each; on the web, the one platform that runs, GZ15 and decision 0184's \"never at launch\" do not hold (the review of `/tend map`, auditor F33, Nov 16, medium). The owner's answer, in person, Nov 16: \"Fetch on first search\": on the web only the pack becomes its own file with a fixed name, fetched the first time search opens, from the app's own site (no host added, nothing leaves the device); a web exception listed in `docs/ARCHITECTURE.md`, with the stale-page trap (a fixed name survives deploys), and a post-export check that `index-*.js` holds no `geonames-cities5000`. Outside the map: for a `/tend explore` run, one commit.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Map, walk screen and motion polish",
+        "--reason",
+        "the review's F38, deferred; filed by /tend map in the range that removes the [owner] items \"A capture pin standing on a start or end\", \"A merged star looks like an unnamed lone\" and \"Explore's map labels collide: a busy str\" (decision 0172, O13 and O14 built, O8 stale)"
+      ],
+      "body": "- [loop] The web map's re-measure of a pin's lift on `zoom` and `rotate` (`usePinMarkers`, `tend map 13`) is held only by a source match: going from 390 to 320 keeps the zoom, so the `qol` check's 320 reading is the lift taken when the marker was made. A journey step that zooms in on the replay's card and reads the pin on the end at the marker's edge again would hold it (the review of `/tend map`, auditor F38, Nov 16, low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Map, walk screen and motion polish",
+        "--reason",
+        "the review's F40, deferred; filed by /tend map in the range that removes the [owner] items \"A capture pin standing on a start or end\", \"A merged star looks like an unnamed lone\" and \"Explore's map labels collide: a busy str\" (decision 0172, O13 and O14 built, O8 stale)"
+      ],
+      "body": "- [loop] No after picture or check of a pin on a walk's hollow start since `tend map 13`: the `days` journey (a single note pin on the start in `22-day-replay-walk` and `23-day-card`, the day's replay a host of the lift) was not run in `/tend map`; a `days` check that the note pin's stalk stops at the start's edge, with its picture, would hold it (the review of `/tend map`, auditor F40, Nov 16, low)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Map layers and markers"
+      ],
+      "body": "- [ ] **Do:** since `tend map 13` and `tend map audit 33` (decision 0172, O13), on a walk keep a photo and a note at the spot where you start and stop at the same place; on another, a note a step south of where you stop; open the replay's card and a day's replay, pinch in and out, turn the map with two fingers on a screen with a compass, and walk past an earlier walk's pin at its start. **Expect:** each pin on a start or end stands with its stem's foot at the marker's edge, never inside the white start or the end's bullseye, during and after a pinch (`liftOf` in `WalkMap.native.tsx` reads `view`, which moves in 0.25 zoom steps and on settle, and `initialZoom ?? 16` before the first region change) and after a turn (`namesBearing`, rounded to 5° and read on settle); the MapLibre RN `Marker` keeps its anchor when its child's `paddingBottom` changes; a tap on the marker still opens the pin; a faint memory pin (shrunk to 75% toward its foot, `transformOrigin: 'bottom'`) also stops at the edge.\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Map layers and markers"
+      ],
+      "body": "- [ ] **Do:** since `tend map 14` (decision 0172, O14), on Chronicle's map with two walked places close together, zoom out until their stars merge, on iOS and on Android. **Expect:** the merged star shows two white Ionicons stars (14 pt, positioned absolutely and turned ±12°) inside the one 36 pt ink disc and its white edge, none cut by the disc's edge, and no numeral; a lone star keeps its one 18 pt star.\n"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 16, `/tend map --deploy=main`, the qol Hold item and the owner's answers O13, O14 and O8 (decision 0172)** (opened from `54535dcb`; no sweep, lenses 1-7 not run; the faster lane of decision 0181).\n- The items, as main held them: `[loop]` \"The `qol` journey's `tend map audit 25` and `26` fail at Hold at 390 on `main` since the Place search commits\"; `[owner]` \"A capture pin standing on a start or end puts its stalk inside the marker\" (O13); `[owner]` \"A merged star looks like an unnamed lone star\" (O14); `[owner]` \"Explore's map labels collide\" (O8). All four leave `docs/DEFERRED.md`.\n- `tend map 12`: the check, not the app. The replay's code is unchanged since `6c5174cd` and the dot runs the 60 m loop in about a second on both builds; the check's poll and stable-waiting click (140 to 784 ms) lost the race on the base as on main (2 of 5, 4 of 5 scratch runs). Hold is now timed in the page and tapped where the button is; `tend map audit 34` (the review's F35, F36) asks that the tap be on Hold, that Hold read Play and that the dot and the clock stand still.\n- `tend map 13` (O13): a pin standing on a start or end stops its stalk at the marker's edge (`stalkLift`, `lib/pins.ts`), drawn as padding under the pin on both maps so its target still covers the marker; `tend map audit 33` (F34) clears the whole stalk, not the foot alone. QL3's words stay in \"Open before the loop\".\n- `tend map 14` (O14): a merged star draws two white stars fanned in its one ink disc (`starGlyphs`, `lib/places.ts`); no numeral, one size.\n- O8 closes as stale: fresh pictures at 390 (`dense-1-names`, `dense-1b-names-close`, `dense-2-zoomed-in`, `11b-explore`, `11d-atlas-town`) show no label over another; the harness's base map draws no names of its own.\n- The review (one round, the `auditor`): two medium, six low; accepted five (F34, F35, F36, F37 the diagnosis's wording, F39 a stale test message), deferred three: F33 medium, the place-name pack in the web entry bundle (10.7 MB), filed `[loop]` in Explore and discovery with the owner's answer of Nov 16, \"Fetch on first search\"; F38 and F40 low, filed in the map's section. Two device checks filed (the pin's lift on native, the merged star's two stars).\n- Journeys: qol (221 ok) and launch after the review; chronicle, atlas and dense before it. Not run: the sweep's lenses and the balance; the rest is left to CI and the weekly full pass (decision 0181). Nothing here has run on a phone.\n"
+    },
+    {
+      "argv": [
+        "open",
+        "note",
+        "**v0.5"
+      ],
+      "body": "  Since `tend map 14` (decision 0172, O14), Nov 16: a merged star draws two white stars fanned in its one ink disc, still no numeral and one size; criterion 13, H7 and the test row's \"with a count\" read so too.\n",
+      "target": "sha256:586ad264d35225321b205392cca35501b3ec6bc36cae11061d9393ee5306acbd"
+    }
+  ]
+}
