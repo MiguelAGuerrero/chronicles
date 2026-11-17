@@ -7,7 +7,7 @@ import { FROM, SHOPS } from './fixtures';
 // The one machine (OJ17-OJ19, OJ22, OJ24, OJ43-OJ45, decision 0199): journeys of chapters over areas, with or without a destination.
 
 const BANNED = /\b(best|top|most|popular|rated|fast(er|est)?|short(er|est)?|long(er|est)?|recommended|quick(er|est)?|first|second|third)\b|\d/i;
-const spot = (id: string, e: number, n: number, kind: string, unfound = false): Candidate => ({ id, at: at(e, n), facets: { kind: [kind] }, name: id, ...(unfound ? { unfound } : {}) });
+const spot = (id: string, e: number, n: number, kind: string, unfound = false): Candidate => ({ id, at: at(e, n), facets: { kind: [kind] }, name: id, ...(unfound ? { unfound } : { seen: true }) });
 const SPOTS = [spot('h1', 240, 120, 'history'), spot('h2', 480, 120, 'history'), spot('h3', 360, 360, 'culture'), spot('g1', 120, 240, 'parks'), spot('g2', 240, 360, 'viewpoints'), spot('g3', 480, 480, 'parks')];
 const ALL = [...SHOPS, ...SPOTS];
 
