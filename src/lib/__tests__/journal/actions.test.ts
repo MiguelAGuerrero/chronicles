@@ -33,3 +33,21 @@ test('SW1: no label carries a digit or a count', async () => {
   const { quickActions } = await mod();
   for (const s of quickActions({ pieces: 5 }, { joinable: true })) assert.ok(!/\d/.test(s.label), s.label);
 });
+
+// Reaction in the row, captions (SW1, SW20, decision 0196, Nov 17). Test first.
+type Cap = { quickActions(entry: { pieces: number }, ctx: { joinable: boolean }): { id: string; available: boolean; label: string; caption: string }[] };
+const capMod = () => import('../../journal/actions' + '') as Promise<Cap>;
+
+test('SW1: five slots, Reaction first, each with a one-word caption and none moved when another is empty', { todo: 'test first' }, async () => {
+  const { quickActions } = await capMod();
+  const row = quickActions({ pieces: 1 }, { joinable: true });
+  assert.deepEqual(row.map((s) => s.id), ['react', 'respond', 'thread', 'edit', 'stack']);
+  assert.deepEqual(row.map((s) => s.caption), ['Reaction', 'Respond', 'Thread', 'Edit', 'Stack']);
+  assert.ok(row.every((s) => !/\s/.test(s.caption) && !/\d/.test(s.caption)), 'one word, no number');
+  assert.deepEqual(quickActions({ pieces: 3 }, { joinable: false }).map((s) => s.id), ['react', 'respond', 'thread', 'edit', 'stack']);
+});
+
+test('SW20: Reaction is available on every entry, a stack included', { todo: 'test first' }, async () => {
+  const { quickActions } = await capMod();
+  for (const n of [1, 4]) assert.equal(quickActions({ pieces: n }, { joinable: false }).find((s) => s.id === 'react')?.available, true);
+});

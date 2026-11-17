@@ -123,6 +123,9 @@ async function run(h) {
   await pg.waitForTimeout(2000);
   const moments = await stored();
   check(moments.some((m) => m.pieces.length === 2) && moments.length === before.length, `SW17: the stack survives a reload (${moments.map((m) => m.pieces.length).join(',')})`);
+  // Nov 17, after the cold find (decision 0196): captions under all of the row, Reaction in the row, nothing else on the top line.
+  check.todo(false, 'SW19: an entry\'s top line has no reaction sign and no More button, and no Show less or Not this one anywhere on an entry');
+  check.todo(false, 'SW20: the Reaction slot opens the reactions panel for an entry of any day and the chosen reaction shows under the dateline');
   await c.close();
 }
 

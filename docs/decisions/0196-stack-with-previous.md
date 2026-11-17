@@ -17,7 +17,8 @@ The gate (`/vision`, decision 0094) found it **aligned if reshaped**: it serves 
 
 ## Decision
 The owner's calls, Nov 17:
-- **A row of quick-action icons under every entry** on Chronicle's page: Respond, Add to a thread, Edit and Stack with previous, icons only, with spoken names, in fixed slots. This overrules T5 and decision 0167's preference for a word or a captioned control for this row; the cold find (0167) still checks it, with a one-word caption as the fallback for a glyph it cannot place. Reaction and the map pin stay on the entry's top line.
+- **A row of quick-action icons under every entry** on Chronicle's page: Reaction, Respond, Add to a thread, Edit and Stack with previous, in fixed slots, **each with a one-word caption** (Reaction, Respond, Thread, Edit, Stack). The owner first chose icons only, then, shown the cold find (a reviewer not told what the icons are could not place three of the four glyphs), chose a caption under all of them.
+- **The entry's top line loses the reaction sign and More.** Show less like this and Not this one are removed from entries: "I never used any of those features because they were developed in mind for a feed, and I'm not consuming the app as a feed." Reaction moves into the row. The dateline stays the map button and a tap on the pieces opens the moment. The hidden and fewer choices already kept, and the Hidden screen that lists them, are left as they are for now.
 - **A stack is how a moment's pieces are shown together.** Each piece stays its own unit with its own capture time. No delta, no
   derived grouping and no setting decides it: the owner chooses, by the button.
 - **Stack with previous**, one of the four, **moves the new piece in**, only on the entry just kept in this sitting, with Undo (the reverse of Split out,
