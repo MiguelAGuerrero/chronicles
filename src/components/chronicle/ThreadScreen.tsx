@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ComponentRef } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { focusOn } from '../../lib/focus';
 import { moreFor } from '../../lib/quietLines';
+import { HINT_NOT_A_THREAD, HINT_RENAME_THREAD } from '../../lib/resurface/copy';
 import { threadLine, whenLine } from '../../lib/resurface/lines';
 import type { MomentView, Thread } from '../../lib/resurface/types';
 import type { Walk } from '../../lib/types';
@@ -50,9 +51,12 @@ export function ThreadScreen(props: {
         </Pressable>
         <ThreadMark kind="found" />
         <Text style={styles.eyebrow}>Thread</Text>
-        <Pressable testID="thread-more" accessibilityRole="button" accessibilityLabel={moreFor(props.thread.name)} accessibilityState={{ expanded: menu }} onPress={() => setMenu(true)} style={styles.more} hitSlop={4}>
-          <Icon name="ellipsis-horizontal" size={22} color={theme.ink} />
-        </Pressable>
+        {/* Not offered while the name is being written: Save or Cancel ends that first (tend chronicle audit 7). */}
+        {renaming ? null : (
+          <Pressable testID="thread-more" accessibilityRole="button" accessibilityLabel={moreFor(props.thread.name)} accessibilityState={{ expanded: menu }} onPress={() => setMenu(true)} style={styles.more} hitSlop={4}>
+            <Icon name="ellipsis-horizontal" size={22} color={theme.ink} />
+          </Pressable>
+        )}
       </View>
       {renaming ? (
         <View style={styles.rename}>
@@ -77,11 +81,13 @@ export function ThreadScreen(props: {
           <View style={styles.sheet} testID="thread-menu" accessibilityViewIsModal>
             <Pressable testID="thread-rename" accessibilityRole="button" onPress={() => { setMenu(false); setName(props.thread.name); setRenaming(true); }} style={styles.item}>
               <Text style={styles.label}>Rename</Text>
+              <Text style={styles.hint}>{HINT_RENAME_THREAD}</Text>
             </Pressable>
             <Pressable testID="thread-remove" accessibilityRole="button" onPress={() => { setMenu(false); props.onRemove(); }} style={styles.item}>
               <Text style={styles.label}>Not a thread</Text>
+              <Text style={styles.hint}>{HINT_NOT_A_THREAD}</Text>
             </Pressable>
-            <Pressable testID="thread-menu-cancel" accessibilityRole="button" onPress={() => setMenu(false)} style={styles.item}>
+            <Pressable testID="thread-more-cancel" accessibilityRole="button" onPress={() => setMenu(false)} style={styles.item}>
               <Text style={[styles.label, { color: theme.muted }]}>Cancel</Text>
             </Pressable>
           </View>
@@ -130,4 +136,5 @@ const styles = StyleSheet.create({
   sheet: { backgroundColor: theme.surface, borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: 12, paddingBottom: 24, gap: 2, width: '100%', maxWidth: 640, alignSelf: 'center' },
   item: { minHeight: 52, justifyContent: 'center', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12 },
   label: { color: theme.ink, fontSize: 16, fontWeight: '600' },
+  hint: { color: theme.muted, fontSize: 13 },
 });

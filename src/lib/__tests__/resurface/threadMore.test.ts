@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
+import { HINT_NOT_A_THREAD, HINT_RENAME_THREAD } from '../../resurface/copy';
 
 // A found thread's head (RM16, OT19): "Keep as my thread" is the screen's one button, and its rare actions, Rename and
 // Not a thread, are in a More beside the "Thread" label (ui-patterns: "Nothing wraps on a 320 px phone", "never as loose
@@ -34,6 +35,29 @@ test('tend chronicle 13: a found thread has one button, Keep as my thread, and i
   const sheet = /testID="thread-menu"[\s\S]*?<\/Modal>/.exec(src)?.[0].replace(/^testID="thread-menu"/, '') ?? '';
   assert.match(src, /import \{ Modal \} from '\.\.\/Modal';/, 'the sheet is the app\'s Modal');
   const items = [...sheet.matchAll(/testID="([\w-]+)"[\s\S]*?<Text style=\{[^>]*\}>([^<]+)<\/Text>/g)].map((m) => [m[1], m[2]]);
-  assert.deepEqual(items, [['thread-rename', 'Rename'], ['thread-remove', 'Not a thread'], ['thread-menu-cancel', 'Cancel']], JSON.stringify(items));
+  assert.deepEqual(items, [['thread-rename', 'Rename'], ['thread-remove', 'Not a thread'], ['thread-more-cancel', 'Cancel']], JSON.stringify(items));
   assert.doesNotMatch(src, /<Button\b[^>]*testID="thread-(rename|remove)"/, 'Rename and Not a thread are no longer loose buttons');
+});
+
+// The review of tend chronicle 13, U1 (A1: finish or cancel the action in progress before another opens): while the
+// name field is open the More is not offered, so Rename again cannot reset the words being typed; and the sheet's
+// Cancel has its own testID, not the owner's thread moment menu's.
+test('tend chronicle audit 7: while a found thread is being renamed its More is not offered, and the sheet\'s Cancel is its own', () => {
+  const src = read();
+  const top = /<View style=\{styles\.top\}>([\s\S]*?)\n {6}<\/View>/.exec(src)?.[1] ?? '';
+  assert.match(top, /\{renaming \? null : \(\s*<Pressable\b[^>]*testID="thread-more"/, `the More shows only when no rename is open: ${top}`);
+  assert.doesNotMatch(src, /thread-menu-cancel/, 'the sheet\'s Cancel is not ThreadMomentMenu\'s');
+  assert.match(src, /testID="thread-more-cancel"/);
+});
+
+// The owner's answer to the review's U3, Nov 17: "Add two hints": under Rename "Give it your own name", under Not a
+// thread "Off the list for good; the moments stay", in the sibling menus' muted hint style (ThreadMomentMenu, MemoryMenu).
+test('tend chronicle audit 9: the thread\'s More says what Rename and Not a thread do, in the owner\'s words, as its sibling sheets do', () => {
+  assert.equal(HINT_RENAME_THREAD, 'Give it your own name');
+  assert.equal(HINT_NOT_A_THREAD, 'Off the list for good; the moments stay');
+  const src = read();
+  const row = (id: string) => new RegExp(`testID="${id}"[\\s\\S]*?</Pressable>`).exec(src)?.[0] ?? '';
+  assert.match(row('thread-rename'), /<Text style=\{styles\.label\}>Rename<\/Text>\s*<Text style=\{styles\.hint\}>\{HINT_RENAME_THREAD\}<\/Text>/, row('thread-rename'));
+  assert.match(row('thread-remove'), /<Text style=\{styles\.label\}>Not a thread<\/Text>\s*<Text style=\{styles\.hint\}>\{HINT_NOT_A_THREAD\}<\/Text>/, row('thread-remove'));
+  assert.match(src, /\n  hint: \{ color: theme\.muted, fontSize: 13 \}/, 'the hint is the siblings\' muted 13 px');
 });

@@ -358,7 +358,7 @@ async function run(h) {
       await shot(pg, `tend-chronicle-13-thread-${width}`);
       const items = await menuItems();
       await shot(pg, `tend-chronicle-13-thread-more-${width}`);
-      await pg.click('[data-testid=thread-menu-cancel]').catch(() => {});
+      await pg.click('[data-testid=thread-more-cancel]').catch(() => {});
       await pg.waitForSelector('[data-testid=thread-menu]', { state: 'detached', timeout: 4000 }).catch(() => {});
       at[width] = { ...h, items };
     }
@@ -367,7 +367,10 @@ async function run(h) {
     const ok = (h) => !!h.label && !!h.more && !!h.keep && h.buttons.join() === 'thread-keep' && !h.loose && !h.keepWrapped
       && Math.abs(h.more.y + h.more.h / 2 - (h.label.y + h.label.h / 2)) <= 4 && h.more.x > h.label.x + h.label.w && h.more.x + h.more.w <= h.vw && h.more.w >= 44 && h.more.h >= 44
       && h.keep.x + h.keep.w <= h.vw && h.moreName === 'More for Harbor' && h.keepBg !== 'rgba(0, 0, 0, 0)'
-      && h.items.join('|') === 'Rename|Not a thread|Cancel';
+      && h.items.map((t) => t.split('\n')[0]).join('|') === 'Rename|Not a thread|Cancel';
+    // tend chronicle audit 9: the owner's two hints, under the rows they explain (the owner, Nov 17).
+    check([320, 390].every((w) => at[w].items.join('|') === 'Rename\nGive it your own name|Not a thread\nOff the list for good; the moments stay|Cancel'),
+      `tend chronicle audit 9: the thread's More says what Rename and Not a thread do (${JSON.stringify([at[320].items, at[390].items])})`);
     check(ok(at[320]) && ok(at[390]), `tend chronicle 13: Keep as my thread is the thread's one button, and Rename and Not a thread are in its More beside "Thread", at 320 and 390 px (${JSON.stringify(at)})`);
   }
   await pg.click('[data-testid=thread-more]');
@@ -376,6 +379,29 @@ async function run(h) {
   await pg.waitForTimeout(600);
   // The field has the keyboard once the sheet is gone: the sheet's focus trap gave focus back to the More (tend chronicle 13).
   check(await pg.evaluate(() => document.activeElement?.dataset?.testid === 'thread-name'), 'tend chronicle 13: Rename from the More puts the caret in the name field');
+  // tend chronicle audit 7: the rename state at 320 and 390 px: Save and Cancel on one row, no More while it is open,
+  // and what is typed stays until Save or Cancel.
+  {
+    const vp = pg.viewportSize();
+    await pg.keyboard.type('The harbor, typed');
+    const at7 = {};
+    for (const width of [320, 390]) {
+      await pg.setViewportSize({ width, height: vp.height });
+      await pg.waitForTimeout(600);
+      at7[width] = await pg.evaluate(() => {
+        const s = document.querySelector('[data-testid=thread-screen]');
+        const r = (sel) => { const b = s.querySelector(sel)?.getBoundingClientRect(); return b && b.width ? { x: Math.round(b.x), y: Math.round(b.y), w: Math.round(b.width), h: Math.round(b.height) } : null; };
+        const cancel = [...s.querySelectorAll('[role=button]')].find((e) => e.textContent.trim() === 'Cancel');
+        const c = cancel?.getBoundingClientRect();
+        return { save: r('[data-testid=thread-save]'), cancel: c ? { x: Math.round(c.x), y: Math.round(c.y), w: Math.round(c.width), h: Math.round(c.height) } : null, more: !!s.querySelector('[data-testid=thread-more]'), value: s.querySelector('[data-testid=thread-name]')?.value ?? null, vw: window.innerWidth };
+      });
+      await shot(pg, `tend-chronicle-audit-7-thread-rename-${width}`);
+    }
+    await pg.setViewportSize(vp);
+    await pg.waitForTimeout(400);
+    const ok7 = (t) => !!t.save && !!t.cancel && Math.abs(t.save.y - t.cancel.y) <= 2 && t.cancel.x + t.cancel.w <= t.vw && !t.more && !!t.value && t.value.includes('The harbor, typed') && t.value.replace('The harbor, typed', '') === 'Harbor';
+    check(ok7(at7[320]) && ok7(at7[390]), `tend chronicle audit 7: renaming a thread, Save and Cancel are one row, no More is offered, and the typed words stay, at 320 and 390 px (${JSON.stringify(at7)})`);
+  }
   await pg.fill('[data-testid=thread-name]', 'The harbor');
   await pg.click('[data-testid=thread-save]');
   check((await pg.locator('[data-testid=thread-title]').innerText()) === 'The harbor', 'RM16: Rename shows the new name');

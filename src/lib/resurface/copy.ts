@@ -16,6 +16,9 @@ export const HINT_HIDDEN = 'What you set aside';
 export const HINT_ON = 'On';
 export const HINT_OFF = 'Off';
 export const HINT_FORGET = 'Clears Hidden and thread names';
+/** A found thread's More (tend chronicle audit 9, the owner's words, Nov 17). */
+export const HINT_RENAME_THREAD = 'Give it your own name';
+export const HINT_NOT_A_THREAD = 'Off the list for good; the moments stay';
 export const NOTHING_HIDDEN = 'Nothing is hidden.';
 export const FAILED_SAVE = "Couldn't keep this choice; it may come back.";
 export const NO_PLACE = 'No place kept';
