@@ -83,9 +83,13 @@ async function run(h) {
   await pg.evaluate(() => {
     const stop = MediaRecorder.prototype.stop;
     window.__stopOff = 0;
+    // The recorders whose stop was ignored, and the browser's own stop, so the block ends them (tend captures audit 1).
+    window.__stopIgnored = [];
+    window.__stopOwn = stop;
     MediaRecorder.prototype.stop = function () {
       if (window.__stopOff > 0) {
         window.__stopOff--;
+        window.__stopIgnored.push(this);
         return undefined;
       }
       return stop.call(this);
@@ -111,6 +115,15 @@ async function run(h) {
   await memo({ stopOff: 1 });
   check((await retryShown()) === 0 && (await voiceRows()) === voices1 && voices1 === voices0 + 1,
     `tend captures 1: after a kept memo, one whose stop timed out offers no Retry for that memo's file, and keeps nothing (${voices0} → ${voices1} → ${await voiceRows()})`);
+  // The ignored recorders are stopped and the browser's stop put back, so no microphone records under the later steps.
+  const live = await pg.evaluate(() => {
+    for (const r of window.__stopIgnored) if (r.state !== 'inactive') window.__stopOwn.call(r);
+    MediaRecorder.prototype.stop = window.__stopOwn;
+    return new Promise((resolve) => setTimeout(() => resolve(window.__stopIgnored.filter((r) => r.state !== 'inactive').length), 300));
+  });
+  const ended = await pg.evaluate(() => window.__stopIgnored.length);
+  check(live === 0 && ended === 2 && (await pg.evaluate(() => MediaRecorder.prototype.stop === window.__stopOwn)),
+    `tend captures audit 1: the journey ends the recorders whose stop it ignored and puts the browser's stop back (${ended} ignored, ${live} still live)`);
 
   // The walk, with the room now very low: said again, because it got worse (SA3, SA4).
   await pg.evaluate(() => { window.__free = 50 * 1024 * 1024; });
