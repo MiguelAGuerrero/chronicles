@@ -218,6 +218,8 @@ Built 2026-11-17 on `claude/lucid-gates-810ryf`; the stores pack's side is `chro
 
 **Tests first.** QC4-QC38 and QC40 had failing todos committed before their code (`525ee2b`). QC41 and QC42 came with their code: the owner's third round of calls (Nov 16) arrived mid-slice. QC13's chains-on test likewise.
 
+**Waiver.** At `/deploy` (Nov 17) `check:test-first` failed on QC1, QC3, QC18, QC27 (journey checks written with the page), QC41 and QC42 (the owner's mid-slice calls), none of which history can redo; the owner waived them and the slice shipped with the exception recorded here.
+
 **Cold find** (the `ux-reviewer`, pictures only, Nov 17): the entry, the vocabulary, Loop/One way and Include chains were found; Start was not visible once a proposal existed; what a slot does on a tap and what Swap does were confused. Triage (ten findings, U1-U10):
 - accepted and fixed, each with a regression check in the journey `outing`: U1 Start pinned under the list (`quick-circuit ui 1`), U2 a slot shows a chevron and a spoken hint (`ui 2`), U4 Swap is a text button with an icon in full ink (`ui 3`), and a plain "Swapped for another one." (`ui 4`);
 - rejected: U3 (number the stops and dots): a numbered stop is the checklist tally the vision forbids (QC25); the dots' colour is the planner's pin colour, deferred to the owner;

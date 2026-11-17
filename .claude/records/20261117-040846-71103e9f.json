@@ -1,0 +1,21 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "slice",
+        "row",
+        "add",
+        "--top"
+      ],
+      "body": "| Plan an outing (one page from Explore: pick what you want to see from a vocabulary of Antiques, Books and Thrifting, one proposed circuit, a loop first or one way, stops named only on a tap or within 60 m on the walk and never stored, Swap with no wrap, \"Include chains\" off by default, the stores pack read only after a pick, shops presence and never marks; QC1-QC42, decision 0182) | built 2026-11-17, deployed to main 2026-11-17: test-first for 31 of 42 (QC1, QC3, QC18, QC27, QC41, QC42 waived by the owner at deploy, four more carry recorded reasons); unit tests, typecheck, lint, docs and vision checks; e2e `outing` and 21 more on the /chronicles build; cold find and UI review triaged (`quick-circuit ui 1-4`); the stores pack built in chronicles-data (ST1-ST10, fixtures only, unpublished); native unverified | `claude/lucid-gates-810ryf` | `specs/quick-circuit/spec.md` | no |\n"
+    },
+    {
+      "argv": [
+        "inflight",
+        "remove",
+        "Plan an outing (QC1-QC42"
+      ],
+      "target": "sha256:8f1353f478211d7005d0ba17c3edbe747e9d6d6fdc0a143d62b94dfdf90a12a3"
+    }
+  ]
+}
