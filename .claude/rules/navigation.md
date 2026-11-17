@@ -51,6 +51,10 @@ Routing inside a walk (`lib/nav`): walk me back, Go here, the route sources, rul
     the home has none). Every error clears it, so a reload doesn't repeat the
     failure, and it is only saved while the walk is still open. One route is
     found at a time.
+  - **Go here's find and the re-read** (`nav/findGate.ts`, core; tend navigation 2, 3): each Go here is a find with its
+    own number, and `goTo` asks `findGoesOn` after every await, so a Cancel holds wherever it lands and ends with its
+    find. A failed re-route's re-read has its own flag and no spinner: a Go here meanwhile is found at once, and the
+    re-read stops between views and adds nothing. `goHere.test.ts` runs the hook's own source with fakes.
   - **Screen readers:** the bar is not a live region. The distance is
     announced at 100 m steps (50 m under 200 m), at start and on a new route.
   - **Bridges and tunnels** (the concept doc's "Bridges and Open in Maps"

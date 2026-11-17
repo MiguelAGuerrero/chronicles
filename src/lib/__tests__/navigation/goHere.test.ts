@@ -127,6 +127,7 @@ function mount(t: TestContext, findGate: Record<string, unknown>, o: { scenic?: 
   const cleared: number[] = [];
   const errors: string[] = [];
   const stops: boolean[] = [];
+  const stopFns: (() => boolean)[] = [];
   const db = {
     getPauses: holdable('getPauses', () => []),
     getStills: holdable('getStills', () => []),
@@ -140,6 +141,7 @@ function mount(t: TestContext, findGate: Record<string, unknown>, o: { scenic?: 
     collect: async (_views: LngLat[], shouldStop?: () => boolean) => {
       asked.push('collect');
       stops.push(!!shouldStop?.());
+      stopFns.push(() => !!shouldStop?.());
       const h = held.get('collect');
       if (h) {
         held.delete('collect');
@@ -201,7 +203,7 @@ function mount(t: TestContext, findGate: Record<string, unknown>, o: { scenic?: 
   host.render();
   void t;
   return {
-    world, asked, saved, cleared, errors, stops,
+    world, asked, saved, cleared, errors, stops, stopFns,
     get nav(): Nav {
       return host!.result;
     },
@@ -224,9 +226,10 @@ const dest = (kind: Waypoint['kind'] = 'point'): Waypoint => ({ at: EAST, label:
 /** Runs Go here to `d`, presses Cancel while the read named `when` is held, then lets that read answer. */
 async function cancelDuring(h: ReturnType<typeof mount>, when: string, d: Waypoint) {
   const release = h.hold(when);
+  const before = h.asked.filter((x) => x === when).length;
   const going = h.nav.goTo(d);
-  for (let k = 0; k < 20 && !h.asked.includes(when); k++) await flush(1);
-  assert.ok(h.asked.includes(when), `the find reached ${when}`);
+  for (let k = 0; k < 20 && h.asked.filter((x) => x === when).length === before; k++) await flush(1);
+  assert.ok(h.asked.filter((x) => x === when).length > before, `the find reached ${when}`);
   h.nav.cancel();
   release();
   await going;
@@ -297,6 +300,56 @@ test('tend navigation 2: the decisions, pure: a find goes on only while it is th
   const b = startFind(ended)!;
   assert.ok(b.gen > a.gen && findGoesOn(b, b.gen) && !findGoesOn(b, a.gen), 'a later find is its own: an earlier one no longer goes on');
   assert.deepEqual(endFind(b, a.gen), b, 'an earlier find ending leaves the one under way alone');
+});
+
+test('tend navigation 3: a Go here tapped while a re-route reads the streets again is found at once, with its spinner', async (t) => {
+  t.mock.timers.enable({ apis: ['Date'], now: 1_000_000 });
+  const findGate = await gate();
+  const h = mount(t, findGate);
+  await h.nav.goTo(dest());
+  assert.ok(h.nav.nav, 'navigating east');
+  // A minute on, off the route where no source reaches: the streets around are read again (up to 90 s), held here.
+  t.mock.timers.tick(61_000);
+  h.world.streets = false;
+  const release = h.hold('collect');
+  const reads = h.stops.length;
+  await h.fix(at(150, 200), 2);
+  await h.fix(at(150, 210), 3);
+  assert.equal(h.stops.length, reads + 1, 'the re-read is under way');
+  const reread = h.stopFns.at(-1)!;
+  assert.equal(reread(), false, 'and goes on');
+  // Go here meanwhile, somewhere new: it is not dropped. Its spinner shows, and the re-read stops after the view at hand.
+  h.world.streets = true;
+  const south: Waypoint = { ...dest(), at: at(0, -300), label: 'South' };
+  const walkRead = h.hold('getWalk');
+  const walkReads = h.asked.filter((x) => x === 'getWalk').length;
+  const going = h.nav.goTo(south);
+  for (let k = 0; k < 20 && h.asked.filter((x) => x === 'getWalk').length === walkReads; k++) await flush(1);
+  assert.equal(h.nav.finding, true, 'the Go here is being found: "Finding a route" shows');
+  assert.equal(reread(), true, 'the re-read for the route being replaced stops between views');
+  release();
+  walkRead();
+  await going;
+  await flush();
+  assert.deepEqual(h.nav.nav?.dest.at, south.at, 'and the new route is followed');
+  assert.equal(h.nav.finding, false, 'the spinner is gone');
+});
+
+test('tend navigation 3: the decisions, pure: a re-read has its own flag and never holds back a Go here', async () => {
+  const { NO_FINDS, startFind, endFind, startReread, rereadStops, endReread } = await gate();
+  const r = startReread(NO_FINDS, 61_000, 0, 60_000);
+  assert.ok(r && r.reread !== null && !r.busy, 'a failed re-route reads the streets again, with no spinner');
+  assert.equal(startReread(NO_FINDS, 59_000, 0, 60_000), null, 'at most once a minute');
+  assert.equal(startReread(r, 200_000, 0, 60_000), null, 'one re-read at a time');
+  assert.equal(rereadStops(r), false, 'it goes on');
+  const f = startFind(r);
+  assert.ok(f && f.busy, 'a Go here during a re-read starts its find at once');
+  assert.equal(rereadStops(f), true, 'and the re-read, for the route being replaced, stops between views');
+  assert.deepEqual(endReread(f), { finds: { ...f, reread: null }, keep: false }, 'its streets are not added to the new route');
+  assert.equal(startReread(f, 200_000, 0, 60_000), null, 'no re-read while a Go here is found: it reads its own streets');
+  const done = endReread(r);
+  assert.deepEqual(done, { finds: { ...r, reread: null }, keep: true }, 'a re-read no Go here interrupted adds its streets');
+  assert.equal(endFind(f, f.gen).reread, r.reread, 'a find ending leaves a re-read alone');
 });
 
 void (null as unknown as NavState);

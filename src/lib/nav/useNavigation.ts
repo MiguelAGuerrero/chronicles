@@ -12,7 +12,7 @@ import type { LngLat, StreetSegment, Walk } from '../types';
 import { routeLeanings } from '../routeLeanings';
 import { getUnits } from '../units';
 import { aboutTimeLeft, DEFAULT_PACE_MPS, timeAtPaceMs } from './eta';
-import { cancelFind, endFind, findGoesOn, NO_FINDS, startFind, type Finds } from './findGate';
+import { cancelFind, endFind, endReread, findGoesOn, NO_FINDS, rereadStops, startFind, startReread, type Finds } from './findGate';
 import { announceStep, navStep, passedStops, rejoinPlanned, routeTo, routeVia, startNav, tooFar, viaAhead, type NavState } from './navigator';
 import { routeOptions, scenicPlan, scenicRouteSource, type RouteOption } from './scenic';
 import { scenicRead } from './scenicRead';
@@ -339,19 +339,23 @@ export function useNavigation(opts: {
           next = { ...next, route: again, leftM: again.lengthM, offCount: 0, offRoute: false, seg: 1 };
           latest.current.onNotice('New route');
           AccessibilityInfo.announceForAccessibility(`New route, ${formatDistance(again.lengthM)} to ${s.dest.label}`);
-        } else if (now - rereadAt.current >= REREAD_MS && !finds.current.busy) {
-          // Off the streets read before: read the ones around you, then try again.
-          rereadAt.current = now;
-          const read = startFind(finds.current)!;
-          finds.current = read;
-          readStreets(boundsOf([here, s.dest.at], AREA_PAD_M)!, [here, s.dest.at], () => !findGoesOn(finds.current, read.gen))
-            .then((streets) => {
-              sources.current = [...sources.current.filter((x) => x.id !== streets.id), streets];
-            })
-            .catch(() => {})
-            .finally(() => {
-              finds.current = endFind(finds.current, read.gen);
-            });
+        } else {
+          // Off the streets read before: read the ones around you, then try again. A re-read has its own flag, so a
+          // Go here tapped meanwhile is found at once; the re-read then stops and adds nothing (nav/findGate).
+          const reread = startReread(finds.current, now, rereadAt.current, REREAD_MS);
+          if (reread) {
+            rereadAt.current = now;
+            finds.current = reread;
+            readStreets(boundsOf([here, s.dest.at], AREA_PAD_M)!, [here, s.dest.at], () => rereadStops(finds.current))
+              .then((streets) => {
+                const { finds: after, keep } = endReread(finds.current);
+                finds.current = after;
+                if (keep) sources.current = [...sources.current.filter((x) => x.id !== streets.id), streets];
+              })
+              .catch(() => {
+                finds.current = endReread(finds.current).finds;
+              });
+          }
         }
       }
       apply(next);
