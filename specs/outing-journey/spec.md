@@ -230,4 +230,33 @@ dimension of shop (vintage against thrift); more than one destination.
 
 ## Record
 
-Not started. The plan waits on the owner.
+**Step 1 built 2026-11-17** on `claude/determined-wright-yg1fq9` (the owner's go-ahead, decision 0198). Steps 2 and 3 are not started.
+
+**Passed.** Unit tests for OJ7, OJ9, OJ11-OJ15, OJ17-OJ19, OJ21, OJ22, OJ25, OJ27, OJ35, OJ36, OJ38, OJ40 (`src/lib/__tests__/outing/`: `chips`,
+`sources`, `journeys`, `journeyWords`, `service`); the journey `outing`, rewritten for the page (OJ1, OJ2, OJ7, OJ9, OJ11, OJ12, OJ14, OJ15,
+OJ17, OJ18, OJ21, OJ35, and the first page's QC checks that still stand: 45 checks); `npm test`, typecheck, lint, `check:docs`,
+`check:vision`.
+
+**Tests first.** The core's tests were committed failing (`f691ead`) before its code. The service's journey test and the journey's
+checks were written with their code.
+
+**Changed from the first page, by default (the owner's to overrule).** The search box over chips is gone (eight chips; the field is the
+destination's): QC2's journey checks went, its unit tests stand. The Loop / One way switch is gone and QC3 retired: a journey is a loop
+when one can be made, else one way, and says which. A place far from you offers "When I get there" beside Start, as Explore's cards do.
+
+**Not built in step 1.** OJ8 (the near towns as shortcuts: it loads the gazetteer on opening the page, 5.6 MB on the web; with step 2,
+which reads it anyway); a press and hold on the map to set a destination (OJ1's second half); OJ16's "behind the pull-up" (the switch
+sits under the chips); the attractions of the places archive (the tiles' own only); OJ39 has no check yet (the stack is the planner's,
+shown while a session records); the cold find and the UI review (decisions 0167, 0145) have not run. The opened journey's sheet covers
+part of its route on a small screen.
+
+**Cold find** (the `ux-reviewer`, pictures only, Nov 17, nine tasks in the owner's words): eight found (where to, nowhere in mind,
+thrifting, the commitment, which shop, a different stop, Go, changing the place, the last one late). **Not found: "see another
+suggestion"**: every picture held one journey, already outlined, with a plural "Back to the journeys". Open, accepted, not yet fixed
+(so step 1 is not done): C1 the journey has no state with several journeys (the harness's street has shops only: a fixture with
+attractions, a picture and a check that the next card's edge shows); C2 "Back to the journeys" with one journey; C3 "Little of that in
+Kutztown." is a dead end with no next step; C4 the field reading "Around here" does not look changeable, and the close button beside it
+could be read as clearing it; C5 after a swap the rows read alike and nothing says which changed; C6 "One way" does not say whether
+the way back is yours. The plan's UI review has not run.
+
+**Native.** Nothing here has run on a device.

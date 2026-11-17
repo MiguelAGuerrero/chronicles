@@ -869,6 +869,7 @@ Plan an outing (QC1-QC42, decision 0194) is built to the core, the page, the Exp
 
 - Opening hours, admission and closing times: v1 says once that hours are not known and plans no time of day; the pack contract reserves `hours` and emits none. A later slice, and for hours a decision of the owner (the owner, Nov 16; QC20)
 - Plan an outing's cold find and UI review ran (Nov 17; findings U1-U10 triaged in `specs/quick-circuit/spec.md`, Record): four fixed behind `quick-circuit ui 1-4`; left: the stop dots wear the planner's magenta pin colour, which may read as "found" (the owner's call on a different colour), the empty page's map is blank in the e2e's fake basemap, a hint beside the search box, and the order of the controls (Start now pinned). The journey now covers Books from a served stores pack, Thrifting, Include chains across a reload and a second Swap (QC32)
+- Outing journey step 1 (OJ1-OJ40, decision 0198) left for later: the near towns as shortcuts (OJ8, with step 2: it loads the gazetteer on opening the page); a press and hold on the map to set a destination; "Include chains" behind the sheet's pull-up (OJ16); attractions from the places archive (the tiles' own only); a check for the capture stack on the page (OJ39); the cold find and the UI review of the new page (decisions 0167, 0145); the opened journey's sheet covers part of its route on a small screen; steps 2 (the towns between, a line on each, no cap, variety) and 3 (the session's bar) and the road engine slice (0198)
 
 ## Unsaved captures (UN1-UN15, decision 0196)
 

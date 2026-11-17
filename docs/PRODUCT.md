@@ -97,6 +97,15 @@ recording, and a recording bar brings a minimized walk back.
   replaces the three and keeps no history. Start plans again from where you are and either routes the walk you have open (capture is
   on the page meanwhile) or starts one ready; it says distance only, never a time left. Scenic routes (0095) are a separate feature on
   Route here.
+- **Plan an outing, destination first** (decisions 0197 and 0198, outing journey OJ1-OJ40; step 1 of three is built): the page below
+  is now the map, with a field over it, "Where to?", that opens Explore's own search (towns and cities), and "Nowhere in particular" to
+  stay around where you stand. With a place given, a sheet holds one list of chips, kinds of attraction (Art, Culture, Green, History,
+  Views, on at first as "What I'm into" has them) beside kinds of shop (Antiques, Books, Thrifting, off at first); each chip on widens
+  what a stop may be. It offers up to three journeys, one per leaning ("Among the shops", "Past old places", "Through green"), in a row
+  that scrolls sideways, each summarised in words with its distance on foot and drawn on the map; none is ranked or timed. Opening one
+  shows its stops by kind, a loop when one can be made, else one way. A named place far from you offers "When I get there" beside
+  Start, and that alone past what can be walked. The search box over chips and the Loop / One way switch of the first page are gone.
+  Owed: the towns between and a line on each (step 2), the session's bar from town to town (step 3), a road engine of the app's own.
 - **Plan an outing** (decision 0196, quick circuit QC1-QC42): one control under Explore's title, "Plan an outing", opens a page of its own over
   Explore. You say what you want to see by picking from a short vocabulary (a search box over chips: Antiques, Books, Thrifting) and the page
   proposes one circuit from where you stand, a loop (the default, not remembered) or one way, within the planner's distance ceiling. Its stops are
