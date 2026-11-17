@@ -211,6 +211,8 @@ export function HomeSheet(props: {
   placingId?: string | null;
   /** Starts a walk navigating to the place shown (N11). */
   onGoToPlace?: () => void;
+  /** Go here (GE1): the place's quiet way to the sheet of two choices, under Walk here. */
+  onGoHere?: () => void;
   /** The place's found places (E10), in the place view only. */
   placeExtra?: { found: string[] } | null;
   /** Days with something in them, newest first (M7). */
@@ -378,6 +380,20 @@ export function HomeSheet(props: {
             <Icon name="navigate" size={18} color="#ffffff" />
             <Text style={styles.goText}>Walk here</Text>
           </Pressable>
+          {props.onGoHere ? (
+            <Pressable
+              testID="place-go-here"
+              accessibilityRole="button"
+              accessibilityLabel={`Go here, ${place.title}`}
+              accessibilityHint="Choose Chronicles or your maps app"
+              onPress={props.onGoHere}
+              hitSlop={{ left: 8, right: 12 }}
+              style={({ pressed }) => [styles.goHere, pressed && styles.goHerePressed]}
+            >
+              <Icon name="navigate-outline" size={14} color={theme.ink} />
+              <Text style={styles.goHereText}>Go here</Text>
+            </Pressable>
+          ) : null}
         </View>
       )}
       {day && (
@@ -595,6 +611,10 @@ const styles = StyleSheet.create({
   goRow: { paddingHorizontal: 16, paddingTop: 4, maxWidth: 640, width: '100%', alignSelf: 'center' },
   go: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 48, borderRadius: 24, backgroundColor: theme.accent, alignSelf: 'flex-start', paddingHorizontal: 20 },
   goText: { color: '#ffffff', fontSize: 16, fontWeight: '700' },
+  // GE1, GE8: Go here under the pill: a ghost link in ink, 44 px high.
+  goHere: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 5, minHeight: 44, paddingHorizontal: 0 },
+  goHerePressed: { backgroundColor: theme.line, borderRadius: 8 },
+  goHereText: { fontSize: 12, fontWeight: '600', color: theme.ink, lineHeight: 16 },
   section: { marginTop: 12, fontSize: 13, fontWeight: '700', color: theme.muted, textTransform: 'uppercase', letterSpacing: 0.6 },
   row: { backgroundColor: theme.surface, borderRadius: theme.radius, padding: 14, gap: 4, borderWidth: 1, borderColor: theme.line },
   rowTitle: { fontSize: 17, fontWeight: '600', color: theme.ink },

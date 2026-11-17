@@ -1,0 +1,59 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inflight",
+        "add"
+      ],
+      "body": "| Explore subtypes (every kind's subtypes under five category headings, about 53 rows; contract v4 adds waterfalls, gardens, zoos, fountains, concert halls and more, and splits listed buildings and ruins by type; XS1-XS28, decision 0187; the data side is chronicles-data's ST1-ST10) | `claude/explorer-refinements-categories-audit-nhalt4` | in progress 2026-11-17: spec, plan and steward read; tests first committed (XS1-XS28); unit tests green for the slice; contract v4 merged then reverted on chronicles-data's `main` (published before the app could read it), waiting to merge again when this ships; native unverified; spec `specs/explore-subtypes/spec.md` |\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Small places"
+      ],
+      "body": "- [ ] **Do:** on a phone, open \"What I'm into\" in the walk's drawer and scroll it end to end; then walk (Explore on) past a waterfall from the places archive. **Expect:** five headings (Art, History, Parks & green spaces, Culture, Viewpoints & oddities), each over its kinds, subtypes indented under them; the list scrolls smoothly at about 53 rows; Fountains, Old trees, Survey marks and Ghost towns are off; the waterfall is a \"?\" named within 60 m (XS1, XS2, XS6, XS24).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore subtypes",
+        "--new"
+      ],
+      "body": "- Places of worship by tradition, house museums, chapels and meeting houses, and mountain peaks from the map's `mountain_peak` layer: counted by the second review (Nov 17), not asked for; each would be a subtype or a kind of its own\n",
+      "intro": "What the Explore subtypes slice left out (`specs/explore-subtypes`, decision 0187).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore subtypes"
+      ],
+      "body": "- [kept] A kept checklist item or find keeps its old kind (a historical marker found as a plaque, a lighthouse as a curiosity) until its area is rebuilt by a new archive version (E4, PW12): kept data is never patched (decision 0187)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore subtypes"
+      ],
+      "body": "- [owner] VISION.md's Precedents table has no row for 0187: the page is at its byte budget (12,000), and the row would put it 168 bytes over; trimming another line is the owner's\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "note",
+        "Plaques and markers, Small memorials, Milestones and old stones and Wayside"
+      ],
+      "body": "  Since Explore subtypes (decision 0187): the row reads \"Plaques\" and holds OSM's plaques only; Wikidata's markers are \"Markers\", on.\n",
+      "target": "sha256:022a269502fdf492d0dc138e1c55dfc458757bd05ab67d4e2d72c672e4e93626"
+    }
+  ]
+}

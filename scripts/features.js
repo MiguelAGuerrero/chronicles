@@ -154,10 +154,10 @@ const FEATURES = [
       'src/app/(tabs)/explore.tsx',
       'src/components/atlas/**',
       'src/lib/gazetteer/**',
-      'src/components/{MarkPinView,ExploreSettings,ReminderCard,RemindEditor}.tsx',
+      'src/components/{MarkPinView,ExploreSettings,ReminderCard,RemindEditor,GoHere,GoHereSheet}.tsx',
     ],
-    journeys: ['marks', 'atlas', 'grading', 'snap', 'carousel', 'curiosities', 'freelook', 'small-places', 'placesearch'],
-    specs: ['v1-discovery', 'explore-atlas', 'pocket-alert-nudge', 'reminder-bell', 'atlas-grading', 'town-presence', 'discrete-navigation', 'explore-carousel', 'places-worth-the-stop', 'places-pipeline', 'remarkable-and-public', 'places-out-of-town', 'presence-and-kinds', 'whole-towns', 'community-parks', 'free-look', 'small-places', 'place-search'],
+    journeys: ['marks', 'atlas', 'grading', 'snap', 'carousel', 'curiosities', 'freelook', 'small-places', 'placesearch', 'gohere', 'gohere-chronicle', 'subtypes'],
+    specs: ['v1-discovery', 'explore-atlas', 'pocket-alert-nudge', 'reminder-bell', 'atlas-grading', 'town-presence', 'discrete-navigation', 'explore-carousel', 'places-worth-the-stop', 'places-pipeline', 'remarkable-and-public', 'places-out-of-town', 'presence-and-kinds', 'whole-towns', 'community-parks', 'free-look', 'small-places', 'place-search', 'explore-go-here', 'go-here-everywhere', 'explore-subtypes'],
   },
   {
     name: 'kind-walk',
@@ -225,8 +225,8 @@ const FEATURES = [
       'src/lib/{pins,scaleBar,perfCount,mapReads,useTabMap,traceEnds,useLocate,units,useUnits,format,compass,mapTopInset}.ts',
       'src/lib/unitsStore/**',
     ],
-    journeys: ['qol'],
-    specs: ['quality-of-life', 'compass', 'native-map-frames'],
+    journeys: ['qol', 'palette'],
+    specs: ['quality-of-life', 'compass', 'native-map-frames', 'map-palette'],
   },
   {
     name: 'captures',
@@ -340,9 +340,9 @@ const FEATURES = [
     name: 'deletion',
     about: 'clearing walks and moments, with undo',
     rule: 'deletion',
-    source: ['src/lib/deletion/**', 'src/components/{WalkActions,UndoToast}.tsx'],
+    source: ['src/lib/deletion/**', 'src/lib/emptyWalk/**', 'src/components/{WalkActions,UndoToast}.tsx'],
     journeys: ['deletion'],
-    specs: ['clearing-walks-and-moments', 'ui-conformance'],
+    specs: ['clearing-walks-and-moments', 'ui-conformance', 'empty-walk'],
   },
   {
     name: 'memories',
@@ -430,7 +430,7 @@ const RETIRED = {
  * make (the web build can't reach it), `deferred: <why>` for the owner's call to wait. Keyed by spec.
  */
 const UNTESTED = {
-  // Plan an outing (decision 0187): criteria with no test of their own, each with where it is held instead.
+  // Plan an outing (decision 0194): criteria with no test of their own, each with where it is held instead.
   'quick-circuit': {
     QC32: 'deferred: a review criterion, the ux-reviewer\'s cold find (Nov 17, in the spec\'s Record), not a unit test',
     QC34: 'deferred: by construction: `HOURS_LINE` is one constant the page renders once under the slots, and no pack field holds hours; the journey `outing` checks the line (QC20)',
@@ -482,6 +482,8 @@ const UNTESTED = {
   // The replay on the web refuses sound without a tap, so a trimmed memo's advance past its end handle is tried on a phone.
   'voice-trim': { VT7: 'device: a replay moves on at a trimmed memo\'s end handle, tried on a phone (the logic is VT8, the one path VT12)' },
   'replay-rhythm': { RR17: 'device: both replays step through the moments with a screen reader on, native only' },
+  // The map's palette on a phone: the native layers and pin views take the same constants, never run on a device.
+  'map-palette': { MP13: 'device: the native map\'s layers and pin views in Earth and ink, seen on a phone (docs/NATIVE_UNVERIFIED.md)' },
 };
 
 /**
@@ -497,7 +499,8 @@ const RENAMED = {
   'video-thumbnails': { VS: 'VT' },
 };
 
-const IN_PROGRESS = {};
+const IN_PROGRESS = {
+};
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));
 

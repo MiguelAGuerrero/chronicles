@@ -1,7 +1,7 @@
 import type { Faced } from '../../lib/moment';
 import { notePatch } from '../../lib/noteEdit';
 import { useUnits } from '../../lib/useUnits';
-import { foundLine, foundList, passedLine } from '../../lib/explore/explore';
+import { foundLine, passedLine, replayFound } from '../../lib/explore/explore';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useWalkBorders } from '../../lib/areas/useOutlineSet';
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
@@ -21,7 +21,7 @@ import type { StageCtx } from '../../components/ceremony/layout';
 import { ceremonyFor } from '../../lib/ceremony/registry';
 import { chronicleSection } from '../../lib/resurface/sectionStore';
 import { pathDrawnAt, storySteps, walkStory } from '../../lib/ceremony/story';
-import { planViews, type WalkMapHandle } from '../../components/map/types';
+import { planViews, QUIET_TRACE_OPACITY, type WalkMapHandle } from '../../components/map/types';
 import { Button, theme } from '../../components/ui';
 import { db } from '../../lib/db';
 import { applyPatch, captureBus } from '../../lib/captureBus';
@@ -493,7 +493,7 @@ export default function Replay() {
   // Ridden distance (R6): the summary's, else the trace's for a summary written before rides.
   const rideM = s?.ride_m ?? data.rideM;
   const head = headline(s, data);
-  const finds = foundList(data.found.map((f) => f.name));
+  const finds = replayFound(data.found);
   const passed = passedLine(data.passed);
   // Streets walked and new, in words (tend replay T31), one clause when all are new (tend replay audit 14).
   // The name typed in Name it, unsaved, until Keep it or leaving (tend replay audit 16, the owner's "Show the typed name").
@@ -523,7 +523,7 @@ export default function Replay() {
         borders={borders}
         trace={drawn.trace}
         rides={drawn.rides}
-        traceOpacity={beat === 'fog' || beat === 'reading' ? 0.3 : 1}
+        traceOpacity={beat === 'fog' || beat === 'reading' ? QUIET_TRACE_OPACITY : 1}
         walked={shownWalked}
         fog={fog}
         captures={pinned}

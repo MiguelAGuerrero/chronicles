@@ -1,4 +1,4 @@
-# 0187. Shops are presence, not points of interest; the outing plans over facets; the stores pack ships
+# 0194. Shops are presence, not points of interest; the outing plans over facets; the stores pack ships
 
 Date: 2026-11-16 · Status: accepted · Area: explore, discovery, walk-planner, vision · Amends: decisions 0115 and 0044 for the stores layer and `outing/` only
 
@@ -24,7 +24,7 @@ The owner's calls, Nov 16:
 - **Chains are in the layer; whether they are stops is a setting, off by default** ("Include chains", meta `outing_chains`): a thrifting trip across several Goodwills is a legitimate outing. A chain is never a mark or a point of interest, whatever the setting says.
 
 ## Numbering
-Written as 0182 on the branch and renumbered 0187 on the merge with main, where 0182 is note pictures. Entries filed before the renumbering in DEFERRED, NATIVE_UNVERIFIED and STATUS say "decision 0182" and mean this one.
+Written as 0182 on the branch, renumbered 0187 and then 0194 on merges with main, where 0182 is note pictures and 0187 an empty walk dropped. Entries filed before the renumbering in DEFERRED, NATIVE_UNVERIFIED and STATUS say "decision 0182" or "0187" and mean this one.
 
 ## Consequences
 - 0115's "ordinary shops stay out" and 0044's "food, shops and nightlife stay in the place cache" are unchanged for the archive and for marks;

@@ -17,7 +17,18 @@ export type Kind =
   /** Parks whose name says a playground or the like and nothing notable lies in them: a subset of Parks the reader can switch off (community-parks, PC1). */
   | 'community_parks'
   /** Small places of the places archive, each a subset of its kind with a switch of its own (specs/small-places, decision 0183). */
-  | 'plaques' | 'small_memorials' | 'old_stones' | 'wayside_shrines' | 'time_capsules' | 'little_libraries';
+  | 'plaques' | 'small_memorials' | 'old_stones' | 'wayside_shrines' | 'time_capsules' | 'little_libraries'
+  /** Waterfalls, caves, hot springs and old trees, in Parks & green spaces (specs/explore-subtypes XS4, decision 0191). */
+  | 'nature'
+  /** Zoos, aquariums and the map's attractions, in Viewpoints & oddities (XS4). */
+  | 'attractions'
+  /** Subtypes of contract v4, each a switch under its kind (XS3, decision 0191). */
+  | 'statues' | 'murals' | 'fountains' | 'signs'
+  | 'markers' | 'war_memorials' | 'battlefields' | 'archaeological_sites'
+  | 'bridges' | 'mills' | 'stations' | 'lighthouses' | 'civic_buildings' | 'forts' | 'towers' | 'old_machines' | 'taverns' | 'mausoleums'
+  | 'gardens' | 'community_gardens' | 'waterfalls' | 'caves' | 'hot_springs' | 'old_trees'
+  | 'observatories' | 'concert_halls' | 'carousels'
+  | 'fire_towers' | 'old_ruins' | 'ghost_towns' | 'natural_oddities' | 'roadside_giants' | 'survey_marks';
 
 /** A place worth offering, from whatever source; cache, tagged with the build it came from. */
 export interface Place {

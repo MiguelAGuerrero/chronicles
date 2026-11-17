@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View, type LayoutChangeEvent, type StyleProp, type TextStyle } from 'react-native';
 import { COMPLEX_NOTE, switchLabel } from '../lib/complexes/kinds';
 import { useHiddenKinds } from '../lib/complexes/useComplexes';
 import { COMPLEX_KINDS } from '../lib/complexes/types';
+import { categoryOf } from '../lib/discovery/categories';
 import { kindRows, kindSwitch } from '../lib/discovery/refinements';
 import { EXPLORE_RULES, kindHint, KINDS, type Kind } from '../lib/explore/explore';
 import { formatRange } from '../lib/format';
@@ -17,14 +18,25 @@ export const walkNote = (m: number) => {
   return `about ${min} min walk`;
 };
 
-/** What I'm into (E16): a switch per kind, on unless hidden. Shared with Navigate's drawer (NV21). */
+/**
+ * What I'm into (E16): a switch per kind, on unless hidden, under the five findable categories' headings (XS2, XS23).
+ * Shared with Navigate's drawer (NV21, XS24). A heading is a label only: never a count of what is on or present (XS19).
+ */
 export function KindSwitches({ hidden, onToggle }: { hidden: Set<Kind>; onToggle: (k: Kind, on: boolean) => void }) {
+  const rows = kindRows(KINDS, hidden);
   return (
     <>
-      {kindRows(KINDS, hidden).map(({ kind: k, depth }) => {
+      {rows.map(({ kind: k, depth }, i) => {
         // PC23: a subset shows, indented under its parent, only while the parent is on.
         const sw = kindSwitch(hidden, k.id);
-        return <SwitchRow key={k.id} testID={`kind-${k.id}`} icon={k.icon as IconName} label={k.label} hint={kindHint(k.id)} value={sw.on} disabled={sw.locked} indent={depth} onChange={(v) => onToggle(k.id, v)} />;
+        // XS2: a heading before each category's first row.
+        const head = i === 0 || rows[i - 1].kind.category !== k.category;
+        return (
+          <Fragment key={k.id}>
+            {head ? <Text testID={`kind-heading-${k.category}`} accessibilityRole="header" style={styles.kindHeading}>{categoryOf(k.category).label}</Text> : null}
+            <SwitchRow testID={`kind-${k.id}`} icon={k.icon as IconName} label={k.label} hint={kindHint(k.id)} value={sw.on} disabled={sw.locked} indent={depth} onChange={(v) => onToggle(k.id, v)} />
+          </Fragment>
+        );
       })}
     </>
   );
@@ -98,6 +110,9 @@ export function RangeSlider({ value, onChange }: { value: number; onChange: (m: 
 
 const styles = StyleSheet.create({
   complexNote: { fontSize: 13, color: theme.muted, marginBottom: 4 },
+  // XS2: ink, never muted (Found before quiet); a heading over a block of rows.
+  // explore-subtypes audit 16: no smaller than the rows it heads (15), bold, with room above it.
+  kindHeading: { fontSize: 15, fontWeight: '700', color: theme.ink, marginTop: 16, marginBottom: 4 },
   sliderRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   // 44 pt, not hit slop: react-native-web has none (U4).
   stepBtn: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: theme.edge, alignItems: 'center', justifyContent: 'center' },

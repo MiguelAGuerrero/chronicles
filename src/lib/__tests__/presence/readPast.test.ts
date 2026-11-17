@@ -59,13 +59,14 @@ test('tend presence 1: a park named "Old-Town", "Old_Town", "Old.Town" or "Old&N
   assert.equal(kindOf("Old Town's Playground"), 'community_parks');
 });
 
-test('tend presence 1: the bump to p5 is presence\'s, carried by the codes that hold it, and every cached area is derived again', () => {
-  assert.equal(PRESENCE_CODE, 'p6');
-  assert.deepEqual(PRESENCE_CARRIED, ['p5'], 'p5 moved what a museum or a park reads as, so no p4 row stands (PS9); p6 only adds classes beside boutique (decision 0187), so p5 rows stand');
+// Generalised Nov 17 (explore-subtypes, decision 0191, p6): what held at p5 holds at every later bump, nothing carried.
+test('tend presence 1: the bump to p5 (and every bump since) is presence\'s, carried by the codes that hold it, and every cached area is derived again', () => {
+  assert.ok(Number(PRESENCE_CODE.slice(1)) >= 5, PRESENCE_CODE);
+  assert.ok(!PRESENCE_CARRIED.includes('p4') && PRESENCE_CARRIED.every((c) => Number(c.slice(1)) === Number(PRESENCE_CODE.slice(1)) - 1), 'what a museum or a park reads as moved, so no p4 row stands, and only the code just before is ever carried (PS9; p7 carries p6, decision 0194)');
   // The codes that hold presence's carry it; their own parts are what they were at p4.
-  assert.equal(ATLAS_CODE, 'a14.p6');
+  assert.equal(ATLAS_CODE, `a14.${PRESENCE_CODE}`);
   assert.equal(LANDING_CODE, 'l4');
-  assert.ok(LANDING_VERSION.startsWith('l4:p6:'), LANDING_VERSION);
+  assert.ok(LANDING_VERSION.startsWith(`l4:${PRESENCE_CODE}:`), LANDING_VERSION);
   // Truth vs cache: an area derived under p4 is derived again, never patched. Its row no longer stands, so the same area
   // is listed again as a new row with no profile, read afresh; a near read under p4 is made again; a remembered landing
   // area is stale until it is analyzed again.
@@ -75,13 +76,13 @@ test('tend presence 1: the bump to p5 is presence\'s, carried by the codes that 
     assert.equal(rowCurrent(old, 'b'), false, `a ${level} row of a14.p4`);
     const again = newRows([old], [{ level, name: 'Old Town', at, reachM: 800 }], 'b', 10);
     assert.equal(again.length, 1, `the ${level} is listed again`);
-    assert.deepEqual([again[0].code, again[0].profile, again[0].read_at], ['a14.p6', null, null]);
+    assert.deepEqual([again[0].code, again[0].profile, again[0].read_at], [ATLAS_CODE, null, null]);
     assert.equal(old.code, 'a14.p4', 'the old row is not patched');
-    assert.equal(newRows([{ ...old, code: 'a14.p5' }], [{ level, name: 'Old Town', at, reachM: 800 }], 'b', 10).length, 0, 'a p5 row stands');
+    assert.equal(newRows([{ ...old, code: ATLAS_CODE }], [{ level, name: 'Old Town', at, reachM: 800 }], 'b', 10).length, 0, 'a p5 row stands');
   }
   assert.equal(needsNear({ at, build: 'b', code: 'a14.p4' } as never, at, 'b'), true, 'a near read under p4 is made again');
-  assert.equal(needsNear({ at, build: 'b', code: 'a14.p5' } as never, at, 'b'), false);
-  const p4 = LANDING_VERSION.replace(':p6:', ':p4:');
+  assert.equal(needsNear({ at, build: 'b', code: ATLAS_CODE } as never, at, 'b'), false);
+  const p4 = LANDING_VERSION.replace(`:${PRESENCE_CODE}:`, ':p4:');
   assert.equal(rulesCurrent(p4), false);
   assert.equal(isStale({ build: 'b', rules: p4 } as LandingRow, 'b'), true, 'a landing area under p4 is stale');
   assert.equal(isStale({ build: 'b', rules: LANDING_VERSION } as LandingRow, 'b'), false);

@@ -22,9 +22,10 @@ thing that fits. The owner decides; you argue once, well.
 
 1. `docs/VISION.md`, whole. Note which lines are **[proposed]**: you may cite them as reasons, never as
    rules, and you say which is which.
-2. Precedent: `grep -ril '<two or three key words of the idea>' docs/decisions docs/DEFERRED.md specs`
+2. Prior calls: `grep -ril '<two or three key words of the idea>' docs/decisions docs/DEFERRED.md specs`
    and read what matches. A decision that already settled the idea ends the argument: cite it.
 3. Only if the idea names an area: that area's `.claude/rules/<area>.md`, for what exists today.
+4. `docs/research/adjacent-apps.md`: the job's section, for how adjacent apps do it (decision 0193).
 
 ## 1. The gate (default)
 
@@ -42,10 +43,15 @@ thing that fits. The owner decides; you argue once, well.
    - **out**: against the identity, with no shape that keeps what the owner asked for.
 6. **Shape.** For reshaped and out: the nearest version that fits, concretely (what the screen shows,
    what it never shows). Use VISION.md's Shapes table when it has the case.
-7. **Criteria.** The lines the spec must carry because of the verdict, written as testable outcomes:
+7. **Precedent.** How 2-3 adjacent apps handle the same job, from `docs/research/adjacent-apps.md`: the
+   app, what it does, its source, verified or not. The shape is measured against them: a departure from all
+   of them needs a reason, and one that breaks a Never line is a counter-example, never a model. Informs
+   how, never what. A job the file lacks: give what you found, with its source, for the caller to record
+   there; else "none found".
+8. **Criteria.** The lines the spec must carry because of the verdict, written as testable outcomes:
    "No route is labelled fastest or shows minutes saved", "A result is a moment with its place and time".
    `/slice` numbers them with the slice's prefix.
-8. **Silence.** If VISION.md says nothing that settles it, say "the vision is silent on <x>", give your
+9. **Silence.** If VISION.md says nothing that settles it, say "the vision is silent on <x>", give your
    recommendation, and put it to the owner as a question. Never invent a rule.
 
 ### Pushing back
@@ -67,6 +73,7 @@ Verb: earn | honour | return | none (<how>)
 Touches: <Never/Always lines and decisions, quoted>
 Verdict: aligned | aligned if reshaped | not now | out | no surface
 Shape: <the version that fits, or "as asked">
+Precedent: <2-3 adjacent apps' handling of the job, each with its source and verified or not, or "none found">
 Criteria: <testable lines the spec carries, or "none">
 Open: <questions for the owner, or "none">
 ```

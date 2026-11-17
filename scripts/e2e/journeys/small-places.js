@@ -17,7 +17,7 @@ async function run(h) {
   };
   const [x, y] = tileOf(capsuleAt);
   const feat = (p, name, cls, id) => ({ type: 'Feature', geometry: { type: 'Point', coordinates: p }, properties: { name, class: cls, src: 'osm', id } });
-  const archive = encodeArchive([{ z, x, y, data: encodeTile([feat(capsuleAt, '', 'time_capsule', 'p_0000000000a00001'), feat(plaqueAt, 'Founders Plaque', 'marker', 'p_0000000000a00002')], z, x, y, () => ['places']) }], [-125, 24, -66.9, 49.4]);
+  const archive = encodeArchive([{ z, x, y, data: encodeTile([feat(capsuleAt, '', 'time_capsule', 'p_0000000000a00001'), feat(plaqueAt, 'Founders Plaque', 'plaque', 'p_0000000000a00002')], z, x, y, () => ['places']) }], [-125, 24, -66.9, 49.4]);
   const file = 'places-us-20261116.pmtiles';
   places.files[file] = archive;
   places.manifest = JSON.stringify({
@@ -66,8 +66,8 @@ async function run(h) {
   const on = await pg.locator('[data-testid=kind-plaques]').getAttribute('aria-checked').catch(() => null);
   const label = await pg.locator('[data-testid=kind-plaques]').innerText().catch(() => '');
   await shot(pg, 'small-places-what-im-into');
-  check(!!mon && !!row && row.y > mon.y && on === 'false' && /Plaques and markers/.test(label),
-    `SP2: "What I'm into" lists Plaques and markers under Monuments and memorials, off (${JSON.stringify({ mon: mon?.y, at: row?.y, on, label })})`);
+  check(!!mon && !!row && row.y > mon.y && on === 'false' && /Plaques/.test(label) && !/markers/.test(label),
+    `SP2, XS10: "What I'm into" lists Plaques under Monuments and memorials, off (${JSON.stringify({ mon: mon?.y, at: row?.y, on, label })})`);
   const monText = await pg.locator('[data-testid=kind-monuments]').evaluate((e) => e.getBoundingClientRect().left + parseFloat(getComputedStyle(e).paddingLeft || '0')).catch(() => null);
   const rowText = await pg.locator('[data-testid=kind-plaques]').evaluate((e) => e.getBoundingClientRect().left + parseFloat(getComputedStyle(e).paddingLeft || '0')).catch(() => null);
   check(monText != null && rowText != null && rowText > monText, `SP2: the row is indented under its parent (${monText} < ${rowText})`);

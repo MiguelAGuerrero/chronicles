@@ -1,0 +1,94 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore subtypes"
+      ],
+      "body": "- The section title \"What I'm into\" shares the drawer's section style, so it reads no larger than \"Explore\" or \"“?” range\" above a 58-row list (explore-subtypes audit, U2); a larger title is a change to the shared style of the ready bar and the walk's drawer\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore subtypes"
+      ],
+      "body": "- Off switches may fall under 3:1 against the drawer's ground (WCAG 1.4.11): the shared `SwitchRow`'s off track and thumb edge, to be measured on the pictures before a change (explore-subtypes audit 19, U5)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore subtypes"
+      ],
+      "body": "- At 320 px an unlabelled round map button sits on the drawer's top edge on the walk screen, and the press-and-hold hint wraps to four lines (explore-subtypes audit 20, U6; not this slice's screen code)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Small places"
+      ],
+      "body": "- [ ] **Do:** on a phone with VoiceOver or TalkBack on, open \"What I'm into\" and move through it. **Expect:** each of the five category headings is announced as a heading; a subtype row says it is part of its kind; the list (about 58 rows) scrolls without the drawer moving, and a switch keeps its state after scrolling away and back; every icon draws (aperture, bulb, grid, moon, git-network among them) (XS23, XS24, explore-subtypes audit).\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Small places"
+      ],
+      "body": "- [ ] **Do:** on a phone that had \"Viewpoints and attractions\", \"Monuments and memorials\" or \"Plaques and markers\" switched off before this update (SQLite), open the app after it. **Expect:** zoos, statues and markers stay off; the atlas reads every area again once (p6) without a stall (XS7, explore-subtypes audit 5).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "set",
+        "A kept checklist item or find keeps its old kind",
+        "--reason",
+        "decision renumbered 0187 to 0191 (main took 0187)"
+      ],
+      "body": "- [kept] A kept checklist item or find keeps its old kind (a historical marker found as a plaque, a lighthouse as a curiosity) until its area is rebuilt by a new archive version (E4, PW12): kept data is never patched (decision 0191)\n",
+      "target": "sha256:96cb169d3cbc5b82325fa1c2d12d7149d8b7357bd3f4479e52303a889792c79e"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "set",
+        "Precedents table has no row for 0187",
+        "--reason",
+        "decision renumbered 0187 to 0191 (main took 0187)"
+      ],
+      "body": "- [owner] VISION.md's Precedents table has no row for 0191: the page is at its byte budget (12,000), and the row would put it 168 bytes over; trimming another line is the owner's\n",
+      "target": "sha256:79d81df0bafc681f225bf1e382352ec2dd83f2841e990697f69148fa29065b74"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "set",
+        "Since Explore subtypes (decision 0187)",
+        "--reason",
+        "decision renumbered 0187 to 0191 (main took 0187)"
+      ],
+      "body": "- [ ] **Do:** on a phone with switches saved before this update, open \"What I'm into\", then walk (Explore on) past a time capsule and a plaque from the places archive. **Expect:** Plaques and markers, Small memorials, Milestones and old stones and Wayside shrines and crosses sit indented under their kinds and are off; Time capsules and Little libraries are on; the time capsule is a \"?\" named \"A time capsule\" within 60 m and the plaque is not drawn until its row is switched on; an area's dots change at once when the row is switched (SP2, SP7, SP8, SP11, SP13).\n  Since Explore subtypes (decision 0191): the row reads \"Plaques\" and holds OSM's plaques only; Wikidata's markers are \"Markers\", on.\n",
+      "target": "sha256:1daa57ae98ea27b5e0c1db8f0d1ff0e8e2dd80fe734df79e2a2b98555a901d03"
+    },
+    {
+      "argv": [
+        "inflight",
+        "set",
+        "Explore subtypes (every kind"
+      ],
+      "body": "| Explore subtypes (every kind's subtypes under five category headings, about 58 rows; contract v4 adds waterfalls, gardens, zoos, fountains, concert halls and more, and splits listed buildings and ruins by type; XS1-XS28, decision 0191; the data side is chronicles-data's ST1-ST10) | `claude/explorer-refinements-categories-audit-nhalt4` | built 2026-11-17, test-first by history (28 of 28): unit tests (2774), typecheck, lint, docs and vision checks; steward read (S1-S7 accepted); cold find: four icons fixed (`explore-subtypes ui 1`); audited 2026-11-17 at the owner's request (20 findings: 16 accepted, 15 fixed behind `explore-subtypes audit 1-14, 16`, 1 process; 3 deferred; 1 to the owner, answered by decision 0192, \"What I'm into\" on its own page, the next slice); not merged or deployed; contract v4 waits on chronicles-data's `claude/explore-subtypes` to merge once this ships (published early Nov 17, reverted); native unverified; spec `specs/explore-subtypes/spec.md` |\n",
+      "target": "sha256:915d32b974c307897b9ab400deab32c4b92f24fd466cded0483c97dd3d08c2cc"
+    }
+  ]
+}

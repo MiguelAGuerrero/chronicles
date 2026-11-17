@@ -54,6 +54,32 @@ async function run(h) {
     const preview = (pg, timeout = 60000) => pg.waitForSelector('[data-testid=route-preview]', { timeout }).then(() => true, () => false);
     const gone = (pg, sel) => pg.waitForFunction((s) => !document.querySelector(s), `[data-testid=${sel}]`, { timeout: 5000 }).then(() => true, () => false);
     const navDest = async (pg) => JSON.parse((await metaOf(pg, 'nav')) || 'null')?.dest ?? null;
+    // Holds every read of the walk row (IndexedDB's walk store, 'walk') or of the cached streets ('streets') while on, so a
+    // step that waits on one can be caught there; null answers what was held. window.__held lists what was caught.
+    const holdReads = (pg, what) => pg.evaluate((w) => {
+      window.__hold = w;
+      window.__held ??= [];
+      if (!window.__holdPatched) {
+        window.__holdPatched = true;
+        const later = (req) => {
+          let fn = null;
+          Object.defineProperty(req, 'onsuccess', { configurable: true, get: () => fn, set: (h) => { fn = h; } });
+          req.addEventListener('success', (e) => window.__held.push(() => fn?.call(req, e)));
+          return req;
+        };
+        const get = IDBObjectStore.prototype.get;
+        IDBObjectStore.prototype.get = function (...a) {
+          const req = get.apply(this, a);
+          return window.__hold === 'walk' && this.name === 'walk' ? later(req) : req;
+        };
+        const getAll = IDBIndex.prototype.getAll;
+        IDBIndex.prototype.getAll = function (...a) {
+          const req = getAll.apply(this, a);
+          return window.__hold === 'streets' && this.objectStore.name === 'street_segment' ? later(req) : req;
+        };
+      }
+      if (!w) for (const answer of window.__held.splice(0)) answer();
+    }, what);
     // 300 m east, on screen at the walk's zoom (a 390 px map is about 700 m across): Transit Street direct, 360 m by the park.
     const east = at(2.5, -0.5);
 
@@ -115,6 +141,22 @@ async function run(h) {
       check((await gone(pg, 'route-preview')) && (await pg.locator('[data-testid=nav-bar]').count()) === 0, 'scenic SR8: Escape closes the preview, with no destination');
     } else check(false, 'scenic SR8: the preview came back for Escape');
 
+    // tend navigation 2: Cancel pressed after the corridor was read, while the walk is read before the routes are offered,
+    // sets nothing: no preview comes up, no route starts, no destination is kept.
+    await pg.waitForTimeout(1100);
+    await holdReads(pg, 'walk');
+    await goHere(pg, east);
+    const caught = await pg.waitForFunction(() => window.__held.length > 0, null, { timeout: 60000 }).then(() => true, () => false);
+    const cancelled = await pg.click('[data-testid=nav-cancel]', { timeout: 3000 }).then(() => true, () => false);
+    await holdReads(pg, null);
+    let shown = false;
+    for (let k = 0; k < 8; k++) {
+      shown ||= (await pg.locator('[data-testid=route-preview], [data-testid=nav-bar]').count()) > 0;
+      await pg.waitForTimeout(400);
+    }
+    check(caught && cancelled && !shown && (await navDest(pg)) === null && (await pg.locator('[data-testid=nav-cancel]').count()) === 0,
+      `tend navigation 2: Cancel while the walk is read after the corridor sets nothing (caught ${caught}, cancelled ${cancelled}, shown ${shown}, kept ${JSON.stringify(await navDest(pg))})`);
+
     // SR8, SR11: Go on Through green navigates that way, and the leaning is kept with the destination.
     await pg.waitForTimeout(1100);
     await goHere(pg, east);
@@ -135,6 +177,37 @@ async function run(h) {
       check(resumed && !previewed && JSON.stringify((await navDest(pg))?.leanings) === '["green"]', `scenic SR11: a reload resumes on the same leaning, without the preview (resumed ${resumed}, previewed ${previewed})`);
     } else check(false, 'scenic SR8: the preview came back for Go');
     await c.close();
+
+    // tend navigation 3: a Go here tapped while a re-route reads the streets again (off a route no street read before
+    // reaches, a minute or more after it began) is found at once: "Finding a route" shows. It used to be dropped unseen.
+    {
+      const { c: c3, pg: p3 } = await open('scenic-reread');
+      await startWalk(p3);
+      await goHere(p3, at(-0.5, -1.5));
+      const began = Date.now();
+      const led = await p3.waitForSelector('[data-testid=nav-bar]', { timeout: 60000 }).then(() => true, () => false);
+      // Paused, the walker is moved 400 m north of every street; resumed after the minute, the route can't be mended there.
+      await p3.click('[data-testid=pause-walk]');
+      await p3.waitForSelector('[data-testid=resume-walk]');
+      const far = at(-0.5, 6);
+      await c3.setGeolocation({ longitude: far[0], latitude: far[1], accuracy: 6 });
+      await p3.waitForTimeout(Math.max(0, began + 62000 - Date.now()));
+      await holdReads(p3, 'streets');
+      await p3.click('[data-testid=resume-walk]');
+      for (let k = 1; k <= 4; k++) {
+        await c3.setGeolocation({ longitude: far[0], latitude: far[1] + k * 1e-6, accuracy: 6 });
+        await p3.waitForTimeout(1000);
+      }
+      const off = await p3.waitForSelector('text=Off your route', { timeout: 15000 }).then(() => true, () => false);
+      // The re-read moves the camera view by view, then waits on the cached streets (held): the map is still again.
+      await p3.waitForTimeout(3000);
+      await goHere(p3, at(-0.5, 5));
+      const finding = await p3.waitForSelector('[data-testid=nav-cancel]', { timeout: 5000 }).then(() => true, () => false);
+      await shot(p3, 'scenic-reread-finding');
+      await holdReads(p3, null);
+      check(led && off && finding, `tend navigation 3: a Go here while a re-route reads the streets again shows "Finding a route" (led ${led}, off route ${off}, finding ${finding})`);
+      await c3.close();
+    }
 
     // SR1: all three off, kept across a reload; Go here then goes the direct way with no preview.
     const b = await open('scenic-off');

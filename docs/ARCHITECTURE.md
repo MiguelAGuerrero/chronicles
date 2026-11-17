@@ -226,7 +226,7 @@ Navigation (inside a walk)
   nav/scenicRead/            the corridor's tiles and Overture places for a scenic route (shell.ts, index.ts)
   routeLeanings/             the "Scenic routes" switches in meta `route_leanings` (`lib/routeLeanings`: shell.ts, index.ts)
   kindWalk/                  a suggested walk where a kind is dense (`lib/kindWalk`: density, plan, words, its settings and prefs)
-  outing/                    plan an outing (decision 0187, specs/quick-circuit): candidates.ts (Candidate, Want, matches over facets by dimension), wants.ts (the vocabulary), stores.ts and storesRead.ts (the stores pack's record and its only reader), storesMerge.ts (the pack and the tiles' shops as candidates, chains by setting), pick.ts, plan.ts (over the walk planner's fitOrder), swap.ts, words.ts, dest.ts, arrival.ts (core); service.ts, prefs.ts (meta `outing_chains`), storesPack.ts (the pack's tile read over the places archive's manifest and `net/tileReader`), app.ts (shell); useOuting.ts, useArrival.ts (view); components/outing/OutingDrawer.tsx
+  outing/                    plan an outing (decision 0194, specs/quick-circuit): candidates.ts (Candidate, Want, matches over facets by dimension), wants.ts (the vocabulary), stores.ts and storesRead.ts (the stores pack's record and its only reader), storesMerge.ts (the pack and the tiles' shops as candidates, chains by setting), pick.ts, plan.ts (over the walk planner's fitOrder), swap.ts, words.ts, dest.ts, arrival.ts (core); service.ts, prefs.ts (meta `outing_chains`), storesPack.ts (the pack's tile read over the places archive's manifest and `net/tileReader`), app.ts (shell); useOuting.ts, useArrival.ts (view); components/outing/OutingDrawer.tsx
   walkPlanner/               the walk planner's page (`lib/walkPlanner`: planner, presets, exposure, words; app.ts the instance)
 Filling gaps
   gaps/rules.ts              GAP_RULES: what counts as a gap, the paces, the budgets
@@ -244,7 +244,7 @@ Discovery and Explore (v1)
   discovery/archiveMerge.ts  mergePlaces (one mark per place, PW8), keepFindKeys (a find keeps its key); the owner's edits are applied in chronicles-data (decision 0108)
   discovery/refine.ts        the kind pipeline's engine: Refinement, refine() (pure, in order; PC18-PC19, decision 0144)
   discovery/refinements.ts   REFINEMENTS (the registry), refineRead, kindParent/kindChain, isKindHidden, kindSwitch, kindRows (PC20-PC23)
-  discovery/smallPlaces.ts   small places (SP3-SP22, decision 0183): SMALL_SUBSETS (rows, plurals, defaults), DEFAULT_OFF, SMALL_REFINEMENTS (a subset by presence's `subset`), isSmallPlace, passedNames, keepTheLows, foundRows
+  discovery/subtypes.ts      subtypes and small places (XS1-XS28, decision 0191; SP3-SP22, 0183): SUBTYPES (rows, plurals, defaults, small), DEFAULT_OFF, SUBTYPE_REFINEMENTS (a subtype by presence's `subset`), isSmallPlace (small only), passedNames, keepTheLows, foundRows
   discovery/parkKind.ts      communityParks: the first refinement, Parks into Community parks by name and what is near (PC1-PC5; its curation in communityWords.json, parkNotable.json; notable names are presence's notableName, PS3)
   discovery/green.ts         the tiles' park outlines, from presence's classesOfLandcover (PS4): GreenArea, greenFromTiles, outlinesOf; scenic routes re-export it
   discovery/archiveManifest.ts the manifest (PW2): parse, pickRegion, manifestDue, z12 tiles for a read, PLACES_BASE (the chronicles-data Pages site, PW16)

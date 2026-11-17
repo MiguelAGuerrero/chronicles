@@ -145,8 +145,9 @@ export function pieceDeleteText(kind: CaptureKind, bytes: number): ConfirmText {
 }
 
 /** D5: the pill's words, naming the moment's kind when it is known. */
-export function toastText(kind: DeleteKind, what?: CaptureKind): string {
-  if (kind === 'walk') return 'Walk deleted';
+export function toastText(kind: DeleteKind, what?: CaptureKind, dropped?: boolean): string {
+  // The app's own drop of an empty walk says a plain fact, never a count or a verdict on the walk (EW8).
+  if (kind === 'walk') return dropped ? 'Walk not kept.' : 'Walk deleted';
   if (kind === 'media') return 'Photos, videos and memos removed';
   if (kind === 'thread') return 'Thread deleted';
   if (kind === 'remove') return 'Removed from the thread';

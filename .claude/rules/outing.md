@@ -6,7 +6,7 @@ paths:
 ---
 # Plan an outing
 
-One page from Explore: pick what you want to see from a vocabulary, get one proposed circuit (QC1-QC40, decision 0187, the spec is `specs/quick-circuit/spec.md`, its plan `plan.md`, the data side's contract `handoff.md`). It reuses the walk planner's routing (`fitOrder`, the legs, the ceiling and retrace rules, `PlannerCapture`) and adds no second planner.
+One page from Explore: pick what you want to see from a vocabulary, get one proposed circuit (QC1-QC40, decision 0194, the spec is `specs/quick-circuit/spec.md`, its plan `plan.md`, the data side's contract `handoff.md`). It reuses the walk planner's routing (`fitOrder`, the legs, the ceiling and retrace rules, `PlannerCapture`) and adds no second planner.
 
 ## What it is
 

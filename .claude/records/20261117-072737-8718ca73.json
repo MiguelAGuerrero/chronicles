@@ -1,0 +1,22 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore subtypes"
+      ],
+      "body": "- [owner] \"What I'm into\" has about 58 rows and a heading scrolls away with its rows: the cold find (Nov 17) could not place Fountains or Waterfalls from pictures of three scroll positions, and could not tell whether a kind's switch (Buildings and structures) turns off its subtypes too, since a kind row looks like a subtype row but for its indent. Sticky headings, a jump list of the five categories, or a kind row drawn heavier are the candidates; each changes the list's layout, the owner's call (explore-subtypes ui 2, ui 3)\n"
+    },
+    {
+      "argv": [
+        "inflight",
+        "set",
+        "Explore subtypes (every kind"
+      ],
+      "body": "| Explore subtypes (every kind's subtypes under five category headings, about 58 rows; contract v4 adds waterfalls, gardens, zoos, fountains, concert halls and more, and splits listed buildings and ruins by type; XS1-XS28, decision 0187; the data side is chronicles-data's ST1-ST10) | `claude/explorer-refinements-categories-audit-nhalt4` | built 2026-11-17, test-first by history (28 of 28): unit tests (2761), typecheck, lint, docs and vision checks; the `subtypes` journey and 12 of the 14 journeys `check:affected` names pass (`scenic` and `drive` fail on `main` too, 3 of 3); steward read (S1-S7 accepted); cold find: four icons fixed (`explore-subtypes ui 1`), list navigation to the owner (DEFERRED); not merged or deployed; contract v4 waits on chronicles-data's `claude/explore-subtypes` to merge once this ships (published early Nov 17, reverted); native unverified; spec `specs/explore-subtypes/spec.md` |\n",
+      "target": "sha256:b85bc454a69491995c1449578c7094851bb11a9780828d19c55e83a78ef6ce74"
+    }
+  ]
+}

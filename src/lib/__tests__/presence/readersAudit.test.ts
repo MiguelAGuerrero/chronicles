@@ -50,11 +50,15 @@ const PLAIN_IN: Readonly<Record<string, readonly string[]>> = {
   // taxonomy): neither is a source tag read for what a place is
   shopping: ['complexes/'],
   parking: ['complexes/rule.ts'],
-  // the outing (decision 0187): `antiques` and `books` are values of a stores pack's `what` dimension, the contract's own vocabulary, never a poi tag
+  // the outing (decision 0194): `antiques` and `books` are values of a stores pack's `what` dimension, the contract's own vocabulary, never a poi tag
   // read for what a place is
   antiques: ['outing/'],
   books: ['outing/'],
   second_hand: ['outing/'],
+  // explore-subtypes (decision 0191): the archive's `bridge` and `sign` classes are also a road's bridge flag (streets) and a
+  // reaction's sign (a view): neither reads a source's tag for what a place is
+  bridge: ['streets.ts'],
+  sign: ['../components/reactions/'],
 };
 const plainIn = (w: string, rel: string) => !!PLAIN_IN[w]?.some((p) => (p.endsWith('/') ? rel.startsWith(p) : rel === p));
 

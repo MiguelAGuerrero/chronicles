@@ -1,6 +1,8 @@
 // @layer shell
 import { db } from './db';
 import { newId } from './id';
+import { deletions } from './deletion';
+import { dropEmpty } from './emptyWalk';
 import { clearNav, clearWayBack } from './nav/store';
 import { notifier } from './notify';
 import { recorder } from './recorder';
@@ -70,6 +72,18 @@ export function stopWalk(walkId: string): Promise<void> {
     });
   }
   return stopping;
+}
+
+/**
+ * Ends the walk the way every stop does (EW1, EW7): closes it, then drops it if it holds nothing, so the replay is
+ * skipped and Undo is offered. `leaves` says the caller changes screen right after: that one route change must not
+ * store the drop (EW8). A walk that could not be read stays and plays its replay (EW10).
+ */
+export async function endWalk(walkId: string, o: { leaves: boolean }): Promise<{ dropped: boolean }> {
+  await stopWalk(walkId);
+  const dropped = await dropEmpty(walkId);
+  if (dropped && o.leaves) deletions.holdNextFlush();
+  return { dropped };
 }
 
 /**

@@ -1,5 +1,5 @@
 {
-  "lastT": 32,
+  "lastT": 33,
   "lastG": 4,
   "balance": {
     "date": "2026-11-17",
@@ -142,8 +142,8 @@
     "chronicle": {
       "state": "rough",
       "swept": "2026-11-17",
-      "main": "28daf0a16d8c2f81f522c7379494d2df7a171f2d",
-      "note": "No sweep (lenses 1-7 not run), with /tend explore's accent run: tend chronicle 11 (the Thread label and quote rule in ink), 12 and audit 6 (a memo's card draws an ink mic, the owner's \"A mic glyph\"). Filed [loop] medium U3 (a found thread's loose buttons at 320 px, for /tend chronicle) and U4 (the journal toolbar's hint at 320 px), and low U8 (the hidden pill's Close). The selected tab keeps the accent tint, the owner's answer (decision 0186)."
+      "main": "d266ed4a98800a217e9a7c9f0a6b328ff87417d7",
+      "note": "No sweep (lenses 1-7 not run): built the accent run's two [loop] mediums, tend chronicle 13 (a found thread's one button is Keep as my thread; Rename and Not a thread in its More) and 14 (the bar's hint holds one line at 320 px: 16 px, the field's inset and Done's padding given back), with the review's tend chronicle audit 7, 8 and 9 (the owner's \"Add two hints\", Nov 17). Filed [owner] low: the bar's empty, focused field still wraps its hint at 320 px beside Open as a page and Done."
     },
     "explore": {
       "state": "rough",
@@ -153,9 +153,9 @@
     },
     "navigation": {
       "state": "rough",
-      "swept": "2026-11-11",
-      "main": "8bad3baa39209ae442a61aabfd94761d96956639",
-      "note": "First sweep, not whole: the nav bar, Open in Maps and the leanings drawer have no picture, and the scenic and drive journeys fail in this container from an unknown cause (DEFERRED). One low loop finding shipped (the preview's Go names); two medium hook races filed [loop] for want of a hook test harness."
+      "swept": "2026-11-17",
+      "main": "8e1515ca2be126bbf667ee94185ab239a63b6023",
+      "note": "No sweep (lenses 1-7 not run): a run on the two Go here [loop] items of Navigation and routes, which wanted a hook harness (goHere.test.ts runs the hook's own source with fakes). Built tend navigation 2 (Cancel while Go here reads the streets or the walk sets nothing; findGate.ts) and 3 (a Go here during a re-read is found at once), the review's F1-F3 as tend navigation audit 1-3, and a second tend navigation 2 after the rebase (the gate's flag underWay, SF13 on main). F4-F6 filed [loop] low; a re-read's camera on MapLibre RN in NATIVE_UNVERIFIED."
     },
     "walk-screen": {
       "state": "rough",
@@ -186,6 +186,12 @@
       "swept": "2026-11-16",
       "main": "d50d8a512f5c45e385e488945fa5ede2737f1124",
       "note": "First run, not a sweep (lenses 1-6 not run): built the owner's answer to the [arch] neighbourhood read-past (decision 0172) as tend presence 1, the read-past after normalizeWords in presence and community parks alike under PRESENCE_CODE p5, nothing carried; the auditor's F1, F2, F3, F4, F6 (the owner's Nov 16 answer: Old Towne, Olde Town, Oldtown) and F7 fixed as tend presence audit 1, F5 rejected. Goldens unchanged. No [loop] item of presence's own files left in DEFERRED."
+    },
+    "captures": {
+      "state": "rough",
+      "swept": "2026-11-17",
+      "main": "8e1515ca2be126bbf667ee94185ab239a63b6023",
+      "note": "No sweep (lenses 1-7 not run): a run on the two Navigate, ready voice-memo [loop] items. Built tend captures 1 (a memo whose stop timed out is said and let go, never held for a dead Retry; memoFile, failedMemo) and the review's F11 as tend captures audit 1 (the space journey's patched recorders ended). Item 2 was built and dropped after the review (F1-F8: incomplete); the owner's \"Ship fix 1, slice the rest\" makes it a slice where one holder owns every unsaved memo, noted on the item; the first attempt is the unpushed branch tend/captures-20261117-1418. F9, F10 filed [loop] low; memoFile on a phone in NATIVE_UNVERIFIED."
     }
   },
   "declined": []

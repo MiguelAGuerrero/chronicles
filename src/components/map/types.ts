@@ -55,20 +55,37 @@ export const HOTSPOT_INK = '#86145a';
  */
 export const FOG_STYLE = { opacity: 0.5, widthMin: 1, widthMax: 2.5, traceWidth: 4.5, edgeWidth: 7.5 } as const;
 
+/**
+ * The map's palette, "Earth and ink" (the owner's pick, Nov 17, decision 0188; map-palette MP2): the walked streets
+ * and the end in a blue-violet ink, apart from the accent (decision 0153); the kinds in earth pigments; a pin of
+ * several on charcoal. `map/palette.test.ts` holds the contrasts, the colour-blind floor and the accent's distance.
+ */
 export const COLORS = {
   fog: '#8b939e',
-  walked: '#c2410c',
+  /** The walked streets on the replay, and the end marker: ink. */
+  walked: '#5b5d9f',
   /** Where you walked: green (the owner's call), on a white edge. */
   trace: '#15803d',
   /** A route being navigated: map-navigation blue, with a white edge (N6). */
   route: '#2563eb',
   walker: '#1d3557',
-  photo: '#0f766e',
-  video: '#b42318',
-  voice: '#7b2cbf',
-  text: '#a16207',
+  /** A photo, and a moment of several pieces: verdigris. */
+  photo: '#286766',
+  /** Madder: a dark disc, 15 or more from the hotspot magenta (MP8). */
+  video: '#87244e',
+  /** Raw umber. */
+  voice: '#544516',
+  /** Stone. */
+  text: '#7b7469',
+  /** A pin of several moments' head: charcoal, under its kinds' discs. */
+  several: '#31352f',
   veil: '#d7dbe0',
 };
+
+/** The trace's white edge, as a share of the trace's own opacity, on both maps. */
+export const TRACE_EDGE_OPACITY = 0.9;
+/** The trace on the replay's first beats (the fog and the reading), faint under the lit streets. */
+export const QUIET_TRACE_OPACITY = 0.3;
 
 export interface Padding {
   top: number;
@@ -771,7 +788,7 @@ export function marksGeoJSON(marks: LngLat[] | undefined): GeoJSON.FeatureCollec
  * the first layer (`ends-ring`), draws the start and the end's walked outer ring with a thin white edge that keeps it
  * off the walked streets and the trace it stands on; the start comes first in `endsGeoJSON`, so a walk that ends on
  * its start keeps the end's ring over it (tend map audit 25). One width across, 22 px, the start's and the end's. No
- * new hue: the end takes the walked streets' colour (T22, a walked colour apart from the accent, is open).
+ * new hue: the end takes the walked streets' colour, apart from the accent since T22 (decision 0188).
  */
 export const ENDS_RING_PAINT = {
   'circle-color': ['match', ['get', 'kind'], 'start', '#ffffff', COLORS.walked],

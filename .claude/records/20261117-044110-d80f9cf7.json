@@ -1,0 +1,11 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inflight",
+        "add"
+      ],
+      "body": "| The map's palette, Earth and ink (walked streets and the end marker in a blue-violet ink, the trace green as before, the kinds in earth pigments, a pin of several on charcoal; the accent off every map colour; T22; MP1-MP14, decision 0187) | `slice/map-palette-20261117-0409` | building 2026-11-17 on the owner's answers in person (Nov 17: \"Keep it, narrow the rule\", \"Their own entry\", \"Follow the palette\", \"Build it, with that wording\"); tests first, then the colours, the `palette` journey and the records; spec `specs/map-palette/spec.md` |\n"
+    }
+  ]
+}

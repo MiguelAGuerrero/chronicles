@@ -1,6 +1,6 @@
 // @layer core
 import { barWeight, PRESENCE_CARRIED, PRESENCE_CODE, subsetOf, type PresenceClass } from '../presence/presence';
-import { SMALL_SUBSETS } from '../discovery/smallPlaces';
+import { SUBTYPES } from '../discovery/subtypes';
 import { countsToward } from '../discovery/curation';
 import { coveredBy, townAt, withOutlines, type OutlineSet } from '../areas/outlines';
 import { AREA_REACH_M } from '../areas/rules';
@@ -254,7 +254,7 @@ export function presenceTally(places: AtlasPlace[], centre: LngLat, within: With
 }
 
 /** Every small subset off: what a stored `steps` is counted with. */
-const ALL_SMALL_OFF: ReadonlySet<Kind> = new Set(SMALL_SUBSETS.map((s) => s.kind));
+const ALL_SMALL_OFF: ReadonlySet<Kind> = new Set(SUBTYPES.map((s) => s.kind));
 
 /** SP12, SP13: the bars from a tally, adding the shares of the subsets the reader has on (a parent off hides its subsets). */
 export function stepsFrom(t: Tally, hidden: ReadonlySet<Kind>): Steps {
@@ -273,6 +273,11 @@ export function withShownSteps<T extends { area: AtlasArea }>(list: readonly T[]
 
 /** SP13: the bars a reader sees for a profile: from its tally and their switches, or its stored steps before a14. */
 export const stepsShown = (p: Pick<AtlasProfile, 'steps' | 'tally'>, hidden: ReadonlySet<Kind>): Steps => (p.tally ? stepsFrom(p.tally, hidden) : p.steps);
+
+/** explore-subtypes audit 7: area rows (not listed ones) with the bars of the subtypes switched on, for a reader of `rows`. */
+export function rowsShown<T extends { profile?: Pick<AtlasProfile, 'steps' | 'tally'> | null }>(rows: readonly T[], hidden: ReadonlySet<Kind>): T[] {
+  return rows.map((r) => (r.profile?.tally ? { ...r, profile: { ...r.profile, steps: stepsShown(r.profile, hidden) } } : r));
+}
 
 /** AG3: the map knows almost nothing about this ring: fewer than `thinPlaces` places of the eight kinds, ordinary ones included. */
 export const thinRing = (places: AtlasPlace[], centre: LngLat, within: Within = ringWithin(centre)): boolean =>

@@ -212,6 +212,61 @@ async function run(h) {
     await c3.close();
   }
 
+  // Empty walk (EW1, EW8, EW9): a walk started and stopped from the bar where the phone never moved, holding nothing, has no replay:
+  // the pill says "Walk not kept." with Undo, which brings the walk back whole; closing the pill lets it go.
+  {
+    const { c: c4, pg: p4 } = await h.freshPage('capturehome-empty', { permissions: ['geolocation'] });
+    await p4.goto(url);
+    await tabTo(p4, 'navigate');
+    await p4.waitForSelector('[data-testid=start]', { timeout: 30000 });
+    const holdStop = async (id = 'bar-stop') => {
+      await p4.waitForSelector(`[data-testid=${id}]`, { timeout: 10000 });
+      const bb = await p4.locator(`[data-testid=${id}]`).boundingBox();
+      await p4.mouse.move(bb.x + bb.width / 2, bb.y + bb.height / 2);
+      await p4.mouse.down();
+      await p4.waitForTimeout(1100);
+      await p4.mouse.up();
+    };
+    const begin = async (minimize = true) => {
+      await p4.click('[data-testid=start]');
+      await p4.waitForSelector('[data-testid=stop]', { timeout: 15000 });
+      // Standing still, the phone keeps reporting the same place; the context's one fix is stale once a walk starts later (a phone's are fresh).
+      for (let i = 0; i < 3; i++) {
+        await c4.setGeolocation({ longitude: h.start[0], latitude: h.start[1], accuracy: 6 });
+        await p4.waitForTimeout(1300);
+      }
+      if (minimize) await p4.click('[data-testid=walk-minimize]');
+    };
+    await begin();
+    await holdStop();
+    const pill = await p4.waitForSelector('[data-testid=undo-toast]', { timeout: 15000 }).then(() => true, () => false);
+    const said = pill ? await p4.locator('[data-testid=undo-toast]').innerText() : '';
+    check(pill && /Walk not kept\./.test(said) && !/\d|nothing|empty|wasted/i.test(said) && !/replay/.test(p4.url()),
+      `EW1, EW8: stopping a walk that held nothing plays no replay and says "Walk not kept." (${said.replace(/\n/g, ' | ')}, ${p4.url()})`);
+    await p4.click('[data-testid=undo]');
+    await p4.waitForTimeout(1200);
+    const back = (await stored(p4)).walks.filter((w) => w.ended_at != null);
+    check(back.length === 1, `EW9: Undo brings the walk back, ended and whole (${back.length})`);
+    await p4.goto(url);
+    await tabTo(p4, 'navigate');
+    await begin();
+    await holdStop();
+    const again = await p4.waitForSelector('[data-testid=undo-dismiss]', { timeout: 15000 }).then(() => true, () => false);
+    check(again, `EW1: a second empty walk is dropped too (${p4.url()}, ${(await p4.locator('body').innerText()).replace(/\n/g, ' | ').slice(0, 160)})`);
+    if (again) await p4.click('[data-testid=undo-dismiss]');
+    await p4.waitForTimeout(1500);
+    check((await stored(p4)).walks.filter((w) => w.id !== back[0].id).length === 0, 'EW1: closing the pill lets the dropped walk go, as a delete does');
+    // The walk screen's own Stop reaches the same decision (EW7): it leaves the screen for where the walker was, with the pill.
+    await tabTo(p4, 'navigate');
+    await p4.waitForSelector('[data-testid=start]', { timeout: 15000 });
+    await begin(false);
+    await holdStop('stop');
+    const onScreen = await p4.waitForSelector('[data-testid=undo-toast]', { timeout: 15000 }).then(() => true, () => false);
+    check(onScreen && !/\/walk|replay/.test(p4.url()) && /Walk not kept\./.test(await p4.locator('[data-testid=undo-toast]').innerText()),
+      `EW7: Stop on the walk screen drops an empty walk the same way, back where the walker was (${p4.url()})`);
+    await c4.close();
+  }
+
   // HC14: Explore reads its one fix the first time it comes to the front.
   await pg.click('[data-testid=walk-minimize]').catch(() => {});
   const { c: c2, pg: p2 } = await h.freshPage('capturehome-explore');
@@ -239,6 +294,8 @@ module.exports = {
     'src/app/(tabs)/{_layout,index,explore}.tsx',
     'src/app/chronicle.tsx',
     'src/lib/startPlan.ts',
+    'src/lib/emptyWalk/**',
+    'src/lib/session.ts',
   ],
   run,
 };

@@ -69,6 +69,7 @@ Procedures are skills: `/vision` (the gate before any spec; `review` for drift; 
 ## Working with the owner
 
 - **Gate first:** `/vision` on any feature idea before its spec. Push back once when it betrays `docs/VISION.md`; then the owner decides (0094).
+- **Precedent beside every proposal** (0193): how adjacent apps do the job, from `docs/research/adjacent-apps.md`.
 - **Ask before architectural decisions:** libraries, data model, platform strategy, navigation flow. Use AskUserQuestion with a recommended option. Local fixes don't need asking.
 - **Spec first, test first.** A slice starts from numbered, testable criteria in its spec, then a plan the owner can read, then one failing test per criterion before its code (`/slice`), committed as todos first (`check:test-first` reads the history); `check:docs` fails on a criterion with no test or recorded reason. It is done when those pass with typecheck, lint, `npm test` and the e2e journeys covering its files; a slice that changes a screen adds a journey for it. The full e2e runs only when the owner asks.
 - **Audit when the owner asks** (`/audit`, 0074): a report-only pass to break the slice, triage (accept, defer, reject; architecture goes to the owner), a regression test `<slice> audit N` before each fix. A screen change gets the `ux-reviewer` (0145).

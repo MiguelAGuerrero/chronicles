@@ -19,7 +19,7 @@ a slice lands ─► its area is rough ─► the next /tend sweeps it
 
 | Skill | Run by | Takes | Leaves behind | Stops for the owner | Pushes |
 |---|---|---|---|---|---|
-| `/vision` | the owner; `/slice` 1b; `/fix`; `/tend` | an idea in one sentence | the Vision block (verdict, shape, criteria); a decision record only when the owner overrules | only when the owner is the caller and the verdict is out, not now or silent; called by a skill it returns the block and the caller decides | nothing; it reads and judges |
+| `/vision` | the owner; `/slice` 1b; `/fix`; `/tend` | an idea in one sentence | the Vision block (verdict, shape, precedent, criteria); a decision record only when the owner overrules | only when the owner is the caller and the verdict is out, not now or silent; called by a skill it returns the block and the caller decides | nothing; it reads and judges |
 | `/slice` | the owner; `/tend inbox G<n> yes` | a slug; with `--from=G<n>` the approved entry (criteria, verdict) | spec, plan, tests-first commit, code, docs, the STATUS row | the plan, unless `--from` (decision 0130); architecture always | nothing, ever; under `--from` the `/tend` run that called it publishes |
 | `/fix` | the owner only | one issue and its flags | one commit with its regression test; DEFERRED for anything else found | hard stops (`ship.md`) | `main` by default (0081) |
 | `/audit` | the owner only (0074) | a built slice's slug | the spec's audit record, regression tests named `<slug> audit N`, fixes | architectural findings | nothing; `/deploy` follows |

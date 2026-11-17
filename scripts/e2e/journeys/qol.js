@@ -1,7 +1,17 @@
 // Quality of life: map staples (QL1-QL12, the owner's spec, Nov 3): Locate, the scale bar and the
 // trace's end markers, read through the map's data attributes. E2E_ONLY=qol runs it alone.
 
+const fs = require('fs');
 const path = require('path');
+
+// map-palette MP11: the map's colours read from their source, `COLORS` in map/types.ts, so the checks hold whatever
+// the palette is and a palette change leaves no copied hex behind. An [r, g, b], or null for a key it does not hold.
+const MAP_TYPES = fs.readFileSync(path.join(path.dirname(module.filename), '..', '..', '..', 'src', 'components', 'map', 'types.ts'), 'utf8');
+function paletteRgb(key) {
+  const block = /export const COLORS = \{([\s\S]*?)\n\};/.exec(MAP_TYPES);
+  const m = block && new RegExp(`\\n\\s*${key}: '#([0-9a-fA-F]{6})'`).exec(block[1]);
+  return m ? [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)) : null;
+}
 
 // The map's credits start closed behind their (i) button, and a real tap on it opens them (owner, Nov 4: maplibre's
 // compact attribution opened itself across the bottom of a phone's map). Tapped where a finger would tap, never
@@ -149,7 +159,8 @@ async function pinsOfSeveral(h, pg8, c8, { check, shot }) {
       thumb: !!el.querySelector('[data-testid=pin-thumb]'),
     };
   }));
-  const MIXED = 'rgb(63, 63, 70)';
+  // The pin of several's head, read from the source (MP11).
+  const MIXED = `rgb(${(paletteRgb('several') || []).join(', ')})`;
 
   await pg8.goto(navUrl);
   await pg8.waitForSelector('[data-testid=start]');
@@ -181,6 +192,8 @@ async function pinsOfSeveral(h, pg8, c8, { check, shot }) {
   check(want.every((re) => walkPins.some((p) => re.test(p.label)))
     && walkPins.length === 4 && walkPins.every((p) => p.head === MIXED && p.discs.length === 2 && p.discs.every((d) => d.bg !== MIXED) && !p.digits && !p.videoMark && !p.thumb),
     `tend map audit 22: every pin of several is the neutral head with two discs of its kinds, one kind twice, no numeral, no still or video mark (${JSON.stringify(walkPins.map((p) => ({ label: p.label, head: p.head, discs: p.discs.map((d) => d.bg), digits: p.digits, videoMark: p.videoMark, thumb: p.thumb })))})`);
+  const severalSrc = paletteRgb('several');
+  check(!!severalSrc && walkPins.length === 4 && walkPins.every((p) => p.head === `rgb(${severalSrc.join(', ')})`), `MP11: every pin of several's head is COLORS.several, read from the source (${JSON.stringify(severalSrc)}; ${JSON.stringify(walkPins.map((p) => p.head))})`);
   await shot(pg8, 'qol-15-pins-several-390');
   await pg8.setViewportSize({ width: 320, height: 640 });
   await pg8.waitForTimeout(1500);
@@ -778,10 +791,14 @@ async function run(h) {
         const leftAfter = await hiddenNow();
         check(thrown && left === 0 && leftAfter === 0,
           `tend map audit 8: after the ends read every marker is visible again, a failed read too (hidden after a throw ${left}, after the read ${leftAfter})`);
-        const walked = [0xc2, 0x41, 0x0c];
+        // The walked colour, read from the source (MP11).
+        const walked = paletteRgb('walked');
         const nearWalked = (c) => Math.abs(c[0] - walked[0]) + Math.abs(c[1] - walked[1]) + Math.abs(c[2] - walked[2]) <= 60;
         check(pxStart.white && !pxEnd.white && nearWalked(pxEnd.centre),
           `tend map T16: the start is hollow (white middle) and the end solid in the walked colour (start ${JSON.stringify(pxStart.centre)}, end ${JSON.stringify(pxEnd.centre)})`);
+        const walkedSrc = paletteRgb('walked');
+        const nearSrc = (cc) => !!walkedSrc && Math.abs(cc[0] - walkedSrc[0]) + Math.abs(cc[1] - walkedSrc[1]) + Math.abs(cc[2] - walkedSrc[2]) <= 60;
+        check(nearSrc(pxEnd.centre) && pxEnd.radial.some((at) => at.some(nearSrc)), `MP11: the end's centre and ring are COLORS.walked, read from the source (${JSON.stringify(walkedSrc)}; centre ${JSON.stringify(pxEnd.centre)})`);
         // tend map T25 (the owner's yes, Nov 13; decision 0162): the end is a bullseye, so it differs in shape from the
         // walker's solid dot as well as from the hollow start: in each of the four directions from the walked centre, a
         // white band 4 to 6 px out and a walked ring 7 to 9 px out (a pixel's slack for where the point falls). The dot
@@ -1271,7 +1288,8 @@ async function run(h) {
       await creditsCheck(p3, 'Navigate at 320', 'qol-08-ready-credits-open-320');
       await p3.click('[data-testid=start]');
       await p3.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
-      for (let k = 1; k <= 4; k++) {
+      // Past the empty-walk threshold (15 m of spread, decision 0187), so Stop plays this walk's replay.
+      for (let k = 1; k <= 8; k++) {
         await fix3(at(-0.5 + k * 0.05, -0.5));
         await p3.waitForTimeout(900);
       }
@@ -1768,7 +1786,8 @@ async function run(h) {
           return el ? el.getAttribute(n) : null;
         }, name);
         const isWhite = (cc) => Math.abs(cc[0] - 255) + Math.abs(cc[1] - 255) + Math.abs(cc[2] - 255) <= 60;
-        const nearWalked = (cc) => Math.abs(cc[0] - 0xc2) + Math.abs(cc[1] - 0x41) + Math.abs(cc[2] - 0x0c) <= 60;
+        const walkedRgb = paletteRgb('walked');
+        const nearWalked = (cc) => Math.abs(cc[0] - walkedRgb[0]) + Math.abs(cc[1] - walkedRgb[1]) + Math.abs(cc[2] - walkedRgb[2]) <= 60;
         const hideMarkers = (hidden) => pg9.evaluate((v) => document.querySelectorAll('.maplibregl-marker').forEach((m) => { m.style.visibility = v ? 'hidden' : ''; }), hidden);
 
         // tend map audit 26: Hold once the dot has gone 40 px from the end along the loop, then read where both are.

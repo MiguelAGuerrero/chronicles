@@ -19,7 +19,7 @@ swept later. The map of the skills is `.claude/skills/README.md`.
 
 ## 1. Gather the inputs
 
-- the spec: `specs/<slug>/spec.md` (criteria and the decisions list);
+- the spec: `specs/<slug>/spec.md` (criteria, the decisions list, and "How adjacent apps do it");
 - the rule file(s): `.claude/rules/<area>.md` whose `paths:` cover the slice;
 - the changed files: `git diff --name-only <base>..HEAD` for the slice's
   commits, or the plan's file list (`specs/<slug>/plan.md`);
@@ -48,9 +48,11 @@ report before going on.
 Beside them, run the `ux-reviewer` subagent (`.claude/agents/ux-reviewer.md`) with
 the pictures, the spec and the plan's goal-to-control lines: a review of every
 changed screen against `docs/research/ui-references.md` (the cited patterns and
-the goal-to-control matrix), `docs/research/ui-teardown.md` and
+the goal-to-control matrix), the recorded precedent (the spec's "How adjacent
+apps do it" and `docs/research/adjacent-apps.md`, decision 0193) and
 `.claude/rules/ui-patterns.md`. Each finding cites its source or is marked
-opinion; an opinion is triaged as one. Its findings are numbered on after the
+opinion; an opinion is triaged as one. A screen that departs from every
+recorded app with no reason in the plan is a finding. Its findings are numbered on after the
 steward's.
 
 Before either of them is told where anything is, run the **cold find** (decision 0167): the `ux-reviewer`
@@ -64,8 +66,9 @@ code and say for each whether the feature reaches it, by intent or by accident: 
 name is a finding either way.
 
 Beside it, run the `steward` subagent (`.claude/agents/steward.md`) with the spec,
-its "## Vision" section, the changed screens and their pictures: does the built thing still pass
-the gate it was given (decision 0094)? Its findings are triaged with the
+its "## Vision" section and its "How adjacent apps do it", the changed screens and their pictures: does
+the built thing still pass the gate it was given (decision 0094), and did it copy a precedent's
+counter-example (a rating, a streak, a count) the record warned of? Its findings are triaged with the
 auditor's, numbered on after them.
 
 ## 3. Triage

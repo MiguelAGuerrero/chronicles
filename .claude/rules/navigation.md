@@ -51,6 +51,14 @@ Routing inside a walk (`lib/nav`): walk me back, Go here, the route sources, rul
     the home has none). Every error clears it, so a reload doesn't repeat the
     failure, and it is only saved while the walk is still open. One route is
     found at a time.
+  - **Go here's find and the re-read** (`nav/findGate.ts`, core; tend navigation 2, 3): each Go here is a find with its
+    own number, and `goTo` asks `findGoesOn` after every await, so a Cancel holds wherever it lands and ends with its
+    find. A failed re-route's re-read has its own flag and no spinner: a Go here meanwhile is found at once, and the
+    re-read stops between views and adds nothing. `goHere.test.ts` runs the hook's own source with fakes.
+  - **After the audit of tend navigation 2, 3:** a find that needs the map waits for a re-read under way to let go of it
+    (`mapReads` refuses a second read at once), and a re-read's streets join the route only if that route is still
+    followed (`sources.current` is the list it was read for). Cancel, a failure and a dismissed preview forget the saved
+    destination only while no route is followed. The harness uses the real `mapReadLock()`: a lock-free fake hid this.
   - **Screen readers:** the bar is not a live region. The distance is
     announced at 100 m steps (50 m under 200 m), at start and on a new route.
   - **Bridges and tunnels** (the concept doc's "Bridges and Open in Maps"
@@ -83,8 +91,8 @@ Routing inside a walk (`lib/nav`): walk me back, Go here, the route sources, rul
     the bar's button covers it.
   - **Android is not a priority** (the owner, Nov 3): its `geo:` chooser
     opens a pin, not walking directions, and stays as it is.
-  - **Deferred:** the Explore mark card, the dead-zone nudge, the home's
-    Walk here.
+  - **Deferred:** the dead-zone nudge. Go here (decisions 0189, 0190) is on Explore's tiles, card, rows and long press
+    and on Chronicle's star sheet and long press; the Explore mark is a pin with no card.
   - **Native** (unverified on a device): Apple Maps from the app, the Android
     chooser, and an iPhone Home Screen app's `window.open` reaching Apple Maps.
 - **UI.**

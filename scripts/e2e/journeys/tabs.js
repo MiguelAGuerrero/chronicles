@@ -570,7 +570,7 @@ async function run(h) {
       await pg.waitForURL(/\/walk/, { timeout: 15000 });
       await pg.waitForSelector('[data-testid=stop]');
       const second = await openWalk(pg);
-      await north(0.5, 0.6);
+      await north(0.5, 0.8);
       await holdStop();
       await pg.click('[data-testid=not-now]');
       await pg.waitForURL((u) => u.pathname === `${BASE}/`, { timeout: 5000 }).catch(() => {});

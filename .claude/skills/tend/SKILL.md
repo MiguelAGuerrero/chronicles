@@ -160,6 +160,7 @@ entry per finding, written so a yes or no is enough:
 - **T12 [owner] Threads: no way back to the moment a reply answers** (2026-11-11)
   Area: threads. Seen: <picture or file:line>. Rests on: <source, quoted>.
   Recommended: <the one shape, concretely, with its /vision verdict>.
+  Precedent: <how 2-3 adjacent apps do this job, each with its source, or "none found">.
   Otherwise: <the next shape>, or leave it.
 ```
 
@@ -173,7 +174,12 @@ entry per finding, written so a yes or no is enough:
   prints; never Edit, Write or sed.
 - Run `/vision` on each `[owner]` entry first (it returns its block and asks
   nothing): an **out** is not filed at all (say so in the report, with the
-  rule), and a reshaping is filed in its reshaped form.
+  rule), and a reshaping is filed in its reshaped form. Its `Precedent:` line
+  is the entry's (decision 0193): the recommended shape is measured against
+  how adjacent apps do the job (`docs/research/adjacent-apps.md`), and a
+  departure from all of them says why. The loop never edits `docs/research/`: a
+  precedent the file lacks goes in the entry with its source, marked "not yet
+  recorded", for the slice that builds it to record.
 - `[phone]` entries carry **Do** and **Expect** in place of a recommendation.
 - An addition too large for one commit is not a `T` entry: shape it as a `G`
   entry with criteria (section 9's form), so a yes has something to hold it to.
@@ -315,12 +321,15 @@ has none is not made.
 5. Repeated loop findings with one cause: three patches to the same screen
    say the screen wants a redesign, which is an evolution, not a fix.
 
-Never from: what other apps have (`docs/research/ui-teardown.md` informs how,
-never what), a Never row, or the wish to have something to propose. "This
+Never from: what other apps have (`docs/research/adjacent-apps.md` informs how,
+never what), a Never row, or the wish to have something to propose. But every
+proposal is grounded in how they do its job (decision 0193): the precedent is the
+model the owner evaluates the shape against. "This
 area is whole; nothing to add" is an answer, and makes it `resting`.
 
 **Shape each one as the thinnest slice a person would notice.** Run `/vision`
-on it; **out** is dropped, a reshaping is proposed reshaped. Then size it:
+on it; **out** is dropped, a reshaping is proposed reshaped; its `Precedent:` line
+goes in the entry, and the shape says where it departs from the apps and why. Then size it:
 
 - **S**: three criteria or so, inside the size of "Hard stops".
 - **M**: one slice, about ten criteria or fewer, no architectural decision.
@@ -353,6 +362,7 @@ ledger's `lastG`:
   Area: memories. From: VISION.md Shapes, "Search over moments"; polished since <sha>.
   Touches: <the gate's Never and Always lines and decisions, quoted, or none>.
   The slice: 1. <criterion, an observable outcome> 2. <…> (three to ten, the gate's own criteria among them).
+  Precedent: <how 2-3 adjacent apps do this job, each with its source; where the shape departs, and why>.
   Payoff: <words>. Cost: <words>. Reopens: <areas>. After it: <what it unlocks>.
   Instead: <the smaller shape>.
 ```

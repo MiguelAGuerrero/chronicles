@@ -154,7 +154,9 @@ export function waitingLabel(area: string, marks: readonly Pick<AtlasMark, 'cate
  * Back or Escape on a town's page steps out of one thing (tend explore 6, audit 1): the Layers panel, then the long press's
  * choices, then the page. The panel is the page's to close too, since it listens for Escape only on the web.
  */
-export function pageBack(o: { layersOpen: boolean; spot: boolean }): 'layers' | 'spot' | 'leave' {
+export function pageBack(o: { layersOpen: boolean; spot: boolean; goHere?: boolean }): 'gohere' | 'layers' | 'spot' | 'leave' {
+  // go-here-everywhere audit 1: Go here's sheet is the topmost thing; it closes itself, and the page does nothing.
+  if (o.goHere) return 'gohere';
   if (o.layersOpen) return 'layers';
   return o.spot ? 'spot' : 'leave';
 }

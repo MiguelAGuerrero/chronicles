@@ -53,7 +53,7 @@ Open: the owner's calls of Nov 16 are in Decisions; a decision record for the st
 - **Shops are presence, not points of interest** (the owner, Nov 16, second round): they matter to understanding where you are and are
   already in presence; a shop is not a mark or a place to find unless something particular (a listing, a history) makes it one, which the
   existing gates already decide. The stores layer is presence data for outings and never makes a store a point of interest (QC31). This
-  answers the blocking item below; the record is decision 0187.
+  answers the blocking item below; the record is decision 0194.
 - **The stores pack should ship** (the owner, Nov 16): the app's reader is built for it; the pack itself is built and published by
   chronicles-data (`handoff.md`), which this session cannot reach unless it is added.
 - **Books is the second entry** (confirmed).

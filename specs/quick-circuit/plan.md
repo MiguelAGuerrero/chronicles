@@ -122,7 +122,7 @@ chip, not a banner; Swap is text, not an inked button; v1's vocabulary has two e
 
 ## For the owner
 
-1. **Settled by the owner's Nov 16 message, recorded as decision 0187 (drafted, for the owner to confirm):** shops are presence, never points of interest;
+1. **Settled by the owner's Nov 16 message, recorded as decision 0194 (drafted, for the owner to confirm):** shops are presence, never points of interest;
    the stores pack ships; Books second; the engine extensible to dimensions. What follows is the question as first asked, kept for the record: a shop enters this layer by what it sells and by
    nothing a crowd says, amending 0115's "ordinary shops stay out" and 0044 for this layer and for `outing/` only (QC31); the vision's Shapes
    table gains a line for outings. Is "one layer, outing only" a lasting line or the start of a wider shift? Without the record the slice

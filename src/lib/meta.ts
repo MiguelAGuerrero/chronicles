@@ -141,7 +141,7 @@ export const META = {
   kindwalk_mode: { owner: 'kindwalk', codec: oneOf<'loop' | 'oneway'>('loop', 'oneway') },
   kindwalk_density: { owner: 'kindwalk', codec: oneOf<'anywhere' | 'some' | 'plenty'>('anywhere', 'some', 'plenty') },
   kindwalk_pref: { owner: 'kindwalk', codec: oneOf<'warn' | 'skip'>('warn', 'skip') },
-  // Plan an outing (lib/outing): whether a chain may be a stop, off by default (QC41, decision 0187)
+  // Plan an outing (lib/outing): whether a chain may be a stop, off by default (QC41, decision 0194)
   outing_chains: { owner: 'outing', codec: onOff },
   // Chronicle's Memories (lib/resurface): what the user chose to see less of, renamed or removed (RM21)
   resurface_prefs: { owner: 'resurface', codec: json<Prefs>((v) => parsePrefs(v) !== null) },

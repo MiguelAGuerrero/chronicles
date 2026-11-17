@@ -43,6 +43,7 @@ import { useTabMap, type Camera } from '../../lib/useTabMap';
 import { UndoToast } from '../../components/UndoToast';
 import { WalkActions } from '../../components/WalkActions';
 import { useOpenWalkInfo } from '../../components/OpenWalk';
+import { useGoHere } from '../../components/GoHere';
 
 // A tab that throws shows what broke, with the tab bar and the recording bar still there (fix ios-video audit 1).
 export { HomeScreenError as ErrorBoundary } from '../../components/ScreenError';
@@ -176,6 +177,16 @@ const ChronicleMap = forwardRef<ChronicleMapHandle, { section: 'walks' | 'days' 
   const openRef = useRef(openInfo);
   useEffect(() => {
     openRef.current = openInfo;
+  });
+  // Go here from a star's sheet and the long-press card (GE1): the one sheet, at the top here so it never covers the capture
+  // band (GE9, the owner Nov 16).
+  const gohere = useGoHere({
+    walkOpen: !!openInfo.walk,
+    start: (dest) => startWalk(dest),
+    later: (dest) => walkStart.later(dest),
+    onFail: () => setLoadError({ message: 'Couldn’t open a maps app.' }),
+    focused,
+    anchor: 'top',
   });
   useEffect(() => onRecallOpen((found) => {
     if (!openRef.current.known || openRef.current.walk) return false;
@@ -339,8 +350,8 @@ const ChronicleMap = forwardRef<ChronicleMapHandle, { section: 'walks' | 'days' 
     <View style={styles.screen}>
       <View style={[StyleSheet.absoluteFill, styles.over]} pointerEvents="box-none">
         <HomeSheet
-          // Back and Escape lower the sheet only while Chronicle is in front with nothing over it (section-bar audit 1).
-          ownKeys={focused && !viewing && !recalled && !actionsFor}
+          // Back and Escape lower the sheet only while Chronicle is in front with nothing over it (section-bar audit 1); Go here's sheet is something over it.
+          ownKeys={focused && !viewing && !recalled && !actionsFor && !gohere.open}
           index={index}
           summaries={summaries}
           unplaced={unplaced}
@@ -354,6 +365,8 @@ const ChronicleMap = forwardRef<ChronicleMapHandle, { section: 'walks' | 'days' 
           placingId={placingId}
           // A one-tap start to the place (NV12): the saved choices, never the drawer.
           onGoToPlace={selected ? () => startWalk({ at: selected.at, label: selected.label, kind: 'place' }) : undefined}
+          // GE1: the star's quiet Go here, beside its Walk here.
+          onGoHere={selected ? () => gohere.ask({ at: selected.at, label: selected.label, kind: 'star' }) : undefined}
           placeExtra={placeExtra}
           days={days}
           onOpenMoments={setViewing}
@@ -400,6 +413,22 @@ const ChronicleMap = forwardRef<ChronicleMapHandle, { section: 'walks' | 'days' 
                 startWalk({ at, label: 'Your spot', kind: 'point' });
               }}
             />
+            {/* GE1: a quiet Go here on its own line under Walk here; the stack stays above the capture band. */}
+            <Pressable
+              testID="spot-go-here"
+              accessibilityRole="button"
+              accessibilityLabel="Go here, Your spot"
+              accessibilityHint="Choose Chronicles or your maps app"
+              onPress={() => {
+                const at = spot;
+                setSpot(null);
+                gohere.ask({ at, label: 'Your spot', kind: 'spot' });
+              }}
+              style={({ pressed }) => [styles.spotGo, pressed && styles.spotGoPressed]}
+            >
+              <Icon name="navigate-outline" size={14} color={theme.ink} />
+              <Text style={styles.spotGoText}>Go here</Text>
+            </Pressable>
             <Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={() => setSpot(null)} style={styles.spotClose} hitSlop={8}>
               <Icon name="close" size={22} color={theme.ink} />
             </Pressable>
@@ -491,6 +520,7 @@ const ChronicleMap = forwardRef<ChronicleMapHandle, { section: 'walks' | 'days' 
           />
         )}
       </View>
+      {gohere.sheet}
     </View>
   );
 });
@@ -503,6 +533,9 @@ const styles = StyleSheet.create({
   over: { zIndex: 1 },
   top: { position: 'absolute', left: 16, right: 16, gap: 8, maxWidth: 640, alignSelf: 'center' },
   spotRow: { position: 'absolute', left: 16, right: 16, alignItems: 'center' },
+  spotGo: { alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: 5, minHeight: 44, paddingHorizontal: 12 },
+  spotGoPressed: { backgroundColor: theme.line, borderRadius: 8 },
+  spotGoText: { fontSize: 12, fontWeight: '600', color: theme.ink, lineHeight: 16 },
   spotClose: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', alignSelf: 'center' },
   spotStack: {
     backgroundColor: theme.surface, borderRadius: theme.radius, padding: 10, gap: 8, width: '100%', maxWidth: 360,

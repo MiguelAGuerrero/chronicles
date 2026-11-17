@@ -56,11 +56,23 @@ const item = (name: string, at: LngLat, kind: Kind = 'museums', area_key = 'A'):
 
 // ——— Kinds (E16) ———
 
-test('E16, PW4, RP8, PK11, PC6, SP10: eighteen kinds, in the settings order (Curiosities joined with Places worth the stop, Buildings and structures with Remarkable and public, Community spaces with Presence and kinds, Community parks with Community parks, the small places each after its parent with Small places)', () => {
+test('E16, PW4, RP8, PK11, PC6, SP10, XS2: the kinds in the settings order (Curiosities joined with Places worth the stop, Buildings and structures with Remarkable and public, Community spaces with Presence and kinds, Community parks with Community parks, the small places each after its parent with Small places; since explore-subtypes, decision 0191, every subtype after its kind, the kinds under their five categories)', () => {
+  // explore-subtypes XS2-XS4 (decision 0191): eighteen rows became the plan's fifty-three, grouped by category.
   assert.deepEqual(
     KINDS.map((k) => k.id),
-    ['public_art', 'museums', 'theatres', 'community', 'little_libraries', 'monuments', 'plaques', 'small_memorials', 'structures', 'old_stones', 'churches', 'wayside_shrines', 'cemeteries', 'parks', 'community_parks', 'viewpoints', 'curiosities', 'time_capsules'],
+    [
+      'public_art', 'statues', 'murals', 'fountains', 'signs',
+      'monuments', 'markers', 'plaques', 'war_memorials', 'small_memorials', 'battlefields', 'archaeological_sites',
+      'structures', 'bridges', 'mills', 'stations', 'lighthouses', 'civic_buildings', 'forts', 'towers', 'old_machines', 'taverns', 'old_stones',
+      'churches', 'wayside_shrines', 'cemeteries', 'mausoleums',
+      'parks', 'community_parks', 'gardens', 'community_gardens', 'nature', 'waterfalls', 'caves', 'hot_springs', 'old_trees',
+      'museums', 'observatories', 'theatres', 'concert_halls', 'community', 'little_libraries', 'carousels',
+      'viewpoints', 'fire_towers', 'attractions', 'curiosities', 'old_ruins', 'ghost_towns', 'natural_oddities', 'roadside_giants', 'survey_marks', 'time_capsules',
+    ],
   );
+  // XS2: the categories run in the headings' order, each a contiguous block.
+  const cats = KINDS.map((k) => k.category).filter((c, i, a) => c !== a[i - 1]);
+  assert.deepEqual(cats, ['art', 'history', 'parks', 'culture', 'viewpoints']);
 });
 
 test('E16: the tiles adapter gives each attraction its kind', () => {

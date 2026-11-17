@@ -654,6 +654,69 @@ async function run(h) {
   await pg.waitForTimeout(900);
   const INK = 'rgb(29, 36, 48)';
   const inBarNow = (id) => pg.evaluate((id) => !!document.querySelector(`[data-testid=open-line] [data-testid=${id}]`), id);
+  // tend chronicle 14: where the field sits in the bar (a thread, a lens), its hint holds one line beside the camera and
+  // the mic, at the web's 16 px minimum and in the typed words' serif (ui-patterns, "Nothing wraps on a 320 px phone").
+  // The placeholder is measured in the field's own font against the room the field leaves for words.
+  const barHint = () => pg.evaluate(() => {
+    const bar = document.querySelector('[data-testid=open-line]');
+    const f = bar?.querySelector('[data-testid=line-input]');
+    if (!f) return null;
+    const cs = getComputedStyle(f);
+    const ctx = document.createElement('canvas').getContext('2d');
+    ctx.font = `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+    const r = (e) => { const b = e?.getBoundingClientRect(); return b && b.width ? { x: Math.round(b.x), y: Math.round(b.y), w: Math.round(b.width), h: Math.round(b.height) } : null; };
+    const room = f.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    return {
+      hint: f.getAttribute('placeholder'), empty: f.value === '', size: parseFloat(cs.fontSize), font: cs.fontFamily,
+      words: Math.ceil(ctx.measureText(f.getAttribute('placeholder') ?? '').width), room: Math.floor(room),
+      field: r(f), photo: r(bar.querySelector('[data-testid=band-photo]')), voice: r(bar.querySelector('[data-testid=band-voice]')),
+      over: bar.scrollWidth > bar.clientWidth + 1, vw: window.innerWidth,
+    };
+  });
+  // The room is held to the widest phone serif too, not only this browser's: Android's Noto Serif sets the hint 168 px
+  // wide at 16 px (Georgia's metrics, about 156), so at 320 px the field leaves at least 170.
+  const hintHolds = (t) => !!t && t.hint === 'What’s on your mind?' && t.empty && t.size >= 16 && /serif/.test(t.font) && t.words <= t.room && t.room >= 170 && !t.over
+    && !!t.photo && !!t.voice && t.field.x + t.field.w <= t.photo.x && t.voice.x + t.voice.w <= t.vw
+    && [t.photo, t.voice].every((b) => Math.abs(b.y + b.h / 2 - (t.field.y + t.field.h / 2)) <= 4);
+  // At 320 and 390 px, a picture of each (the after pictures for the review).
+  const hintAt = async (name) => {
+    const vp = pg.viewportSize();
+    const out = {};
+    await pg.evaluate(() => document.activeElement?.blur?.());
+    for (const width of [320, 390]) {
+      await pg.setViewportSize({ width, height: width === 320 ? 640 : 844 });
+      await pg.waitForTimeout(800);
+      out[width] = await barHint();
+      await shot(pg, `tend-chronicle-14-${name}-${width}`);
+    }
+    await pg.setViewportSize(vp);
+    await pg.waitForTimeout(600);
+    return out;
+  };
+  // tend chronicle audit 8: the bar while typing in it (a thread, the threads), at 320 and 390 px: the walk's mark, the
+  // field, Open as a page, the camera, the mic and Done in one row, none over another, Done a 44 pt target.
+  const typingRow = () => pg.evaluate(() => {
+    const bar = document.querySelector('[data-testid=open-line]');
+    const r = (id) => { const e = bar?.querySelector(`[data-testid=${id}]`); const b = e?.getBoundingClientRect(); return b && b.width ? { x: Math.round(b.x * 2) / 2, y: Math.round(b.y), w: Math.round(b.width * 2) / 2, h: Math.round(b.height) } : null; };
+    const parts = { dot: r('line-recording'), field: r('line-input'), page: r('line-page'), photo: r('band-photo'), voice: r('band-voice'), done: r('line-done') };
+    const row = Object.values(parts).filter(Boolean).sort((a, b) => a.x - b.x);
+    return { ...parts, overlap: row.some((b, i) => i > 0 && row[i - 1].x + row[i - 1].w > b.x + 0.5), over: !!bar && bar.scrollWidth > bar.clientWidth + 1, vw: window.innerWidth };
+  });
+  const rowHolds = (t, { dot = false, tall = false } = {}) => !!t && !!t.field && !!t.page && !!t.photo && !!t.voice && !!t.done && !t.overlap && !t.over
+    && t.done.w >= 44 && t.done.h >= 44 && t.done.x + t.done.w <= t.vw && (!dot || !!t.dot) && (!tall || t.field.h >= 120);
+  const typingAt = async (name) => {
+    const vp = pg.viewportSize();
+    const out = {};
+    for (const width of [320, 390]) {
+      await pg.setViewportSize({ width, height: width === 320 ? 640 : 844 });
+      await pg.waitForTimeout(800);
+      out[width] = await typingRow();
+      await shot(pg, `tend-chronicle-audit-8-${name}-${width}`);
+    }
+    await pg.setViewportSize(vp);
+    await pg.waitForTimeout(600);
+    return out;
+  };
   const tool = () => pg.evaluate((ink) => {
     const bar = document.querySelector('[data-testid=open-line]');
     const r = (id) => { const e = bar?.querySelector(`[data-testid=${id}]`); const b = e?.getBoundingClientRect(); return b && b.width ? { x: Math.round(b.x), y: Math.round(b.y), w: Math.round(b.width), h: Math.round(b.height), label: e.getAttribute('aria-label'), ink: [e, ...e.querySelectorAll('*')].some((x) => getComputedStyle(x).color === ink) } : null; };
@@ -914,9 +977,19 @@ async function run(h) {
   await pg.locator('[data-testid=menu-cancel]').click().catch(() => {});
   await pg.waitForTimeout(400);
   check(inThread && anotherInThread === 0, `chronicle-journal audit 8: a thread moment's menu has no Another or Relive it (${anotherInThread})`);
+  const hintInThread = await hintAt('thread');
+  check(hintHolds(hintInThread[320]) && hintHolds(hintInThread[390]), `tend chronicle 14: in a thread the toolbar's "What’s on your mind?" holds one line beside the camera and the mic, at 320 and 390 px (${JSON.stringify(hintInThread)})`);
   // audit 15: writing from inside a thread goes back to the page at its foot, where the entry is seen.
   await pg.click(input).catch(() => {});
   await pg.keyboard.type('Written from inside a thread.', { delay: 10 });
+  await pg.waitForTimeout(1200);
+  const typing8 = await typingAt('thread-typing');
+  check(rowHolds(typing8[320]) && rowHolds(typing8[390]), `tend chronicle audit 8: typing in a thread, the bar's field, Open as a page, camera, mic and Done hold one row with Done a 44 pt target, at 320 and 390 px (${JSON.stringify(typing8)})`);
+  await pg.keyboard.type(' And a long line after it, to grow the field in the bar to its tallest: the harbor, the lights, the bakery two blocks off, the bridge and the walk home in the rain.', { delay: 2 });
+  await pg.waitForTimeout(1200);
+  const tall8 = await typingAt('thread-long');
+  check(rowHolds(tall8[320], { tall: true }) && rowHolds(tall8[390], { tall: true }) && tall8[320].field.h <= 132, `tend chronicle audit 8: a long line in the bar grows to its tallest and nothing in the row moves over another, at 320 and 390 px (${JSON.stringify(tall8)})`);
+  await pg.fill(input, 'Written from inside a thread.').catch(() => {});
   await pg.waitForTimeout(1200);
   await done();
   await pg.waitForTimeout(1000);
@@ -928,6 +1001,20 @@ async function run(h) {
   check(/Threads/.test(contents) && /Hidden/.test(contents) && !/[0-9]/.test(contents) && threadsUp && rail && mine && inThread && backOnPage,
     `JN21: the contents lists Threads and Hidden with no count; Threads holds the Chronicle's and yours, and Back returns to the page (${JSON.stringify({ contents, threadsUp, rail, mine, inThread, backOnPage })})`);
   check(lineInThreads && lineInThread, `JN9: the open line stays, unmoved, in the threads and in a thread (${JSON.stringify({ lineInThreads, lineInThread })})`);
+  // tend chronicle 14: in a lens (the seed's Ideas) the same.
+  await pg.click('[data-testid=memories-menu]').catch(() => {});
+  await there('[data-testid=memories-menu-sheet]', 4000);
+  await pg.waitForTimeout(800);
+  await pg.click('[data-testid=menu-reactions]', { timeout: 3000 }).catch(() => {});
+  await there('[data-testid=reactions-screen]', 5000);
+  await pg.click('[data-testid=lens-row-idea]', { timeout: 3000 }).catch(() => {});
+  const inLens = await there('[data-testid=lens-screen]', 5000);
+  const hintInLens = await hintAt('lens');
+  check(inLens && hintHolds(hintInLens[320]) && hintHolds(hintInLens[390]), `tend chronicle 14: in a lens the toolbar's "What’s on your mind?" holds one line beside the camera and the mic, at 320 and 390 px (${JSON.stringify({ inLens, hintInLens })})`);
+  await pg.click('[data-testid=lens-back]').catch(() => {});
+  await there('[data-testid=reactions-screen]', 4000);
+  await pg.click('[data-testid=reactions-back]').catch(() => {});
+  await there('[data-testid=journal-page]', 5000);
 
   // JN17: nothing inserts on a past page; a response lands at the end and says what it answers.
   // The one field on the page is its last line, after every entry (JN28): nothing writes into a past page.
@@ -1091,6 +1178,17 @@ async function run(h) {
   await shot(pg, 'journal-21-writing-on-a-walk');
   await done();
   await pg.waitForTimeout(900);
+  // tend chronicle audit 8: on a walk, the bar's field in the threads shows the walk's mark while it has the caret.
+  await h.toThreads(pg);
+  await there('[data-testid=threads-screen]', 5000);
+  await pg.click(input).catch(() => {});
+  await pg.waitForTimeout(800);
+  const walk8 = await typingAt('walk-typing');
+  check(rowHolds(walk8[320], { dot: true }) && rowHolds(walk8[390], { dot: true }), `tend chronicle audit 8: on a walk the bar keeps the walk's mark beside the field, and the row holds, at 320 and 390 px (${JSON.stringify(walk8)})`);
+  await pg.evaluate(() => document.activeElement?.blur?.());
+  await pg.waitForTimeout(600);
+  await h.toJournal(pg);
+  await there('[data-testid=journal-page]', 5000);
   await pg.click('[data-testid=recording-return]').catch(() => {});
   await pg.waitForSelector('[data-testid=stop]', { timeout: 10000 }).catch(() => {});
   await pg.waitForTimeout(1200);

@@ -41,6 +41,7 @@ Deleting a walk, its media, or a moment (`lib/deletion`): what goes, Undo, and w
   - `UndoToast` renders in each screen and in the viewer; only the newest
     mounted one shows (a phone's Modal hides what the screen draws).
   - The home reads again when a delete reached storage (`useOnDeleted`).
+- **An empty walk is dropped at Stop** (EW1-EW12, decision 0187): both stop paths call `session.endWalk`, which stops the walk and asks `emptyWalk/shell` whether it holds nothing (core `isEmptyWalk`: no moment, pause, still or gap, read fixes all within 15 m; no read fix means kept). A drop skips the replay and is a `volatile` delete: Undo waits as in 0113, but it is never saved to `pending_delete`, so a kill restores the walk, and the route change Stop causes does not flush it (`holdNextFlush`, once). The pill says "Walk not kept.".
 - **After the audit (Nov 1):** 13 findings, 8 fixed.
   - The recount counts named streets only (`isNamedStreet`, shared with
     `finish.ts`).

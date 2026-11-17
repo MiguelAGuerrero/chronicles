@@ -97,7 +97,7 @@ recording, and a recording bar brings a minimized walk back.
   replaces the three and keeps no history. Start plans again from where you are and either routes the walk you have open (capture is
   on the page meanwhile) or starts one ready; it says distance only, never a time left. Scenic routes (0095) are a separate feature on
   Go here.
-- **Plan an outing** (decision 0187, quick circuit QC1-QC42): one control under Explore's title, "Plan an outing", opens a page of its own over
+- **Plan an outing** (decision 0194, quick circuit QC1-QC42): one control under Explore's title, "Plan an outing", opens a page of its own over
   Explore. You say what you want to see by picking from a short vocabulary (a search box over chips: Antiques, Books, Thrifting) and the page
   proposes one circuit from where you stand, a loop (the default, not remembered) or one way, within the planner's distance ceiling. Its stops are
   slots said by kind and how far ("An antiques shop, a short walk on"), named only on a tap or, on the walk, once when you are within 60 m; no
@@ -128,6 +128,16 @@ recording, and a recording bar brings a minimized walk back.
   - what you found;
   - the areas next door;
   - Walk to, which starts you on a street of its storefronts.
+- **Go here on every tile** (decision 0189): the tile's last line is a quiet "Go here" with an arrow. It opens a
+  small sheet of two choices, Chronicles first, then the phone's maps app named for it (Apple Maps on an iPhone).
+  Chronicles saves the place as Navigate's destination and opens Navigate, ready; the walk starts only on Start,
+  at any distance. The maps app is handed the destination alone, on the tap. No minutes, no ranking. Not on the
+  tile of the area you are in. A saved destination is said to be replaced, once.
+- **Go here on the rest of the surfaces** (decision 0190): the same quiet "Go here" and the same sheet on the area
+  card's footer (under Walk to), its storefront and complex rows (beside Walk to, even when too far to walk), Explore's
+  long-press card, Chronicle's star sheet (under Walk here) and Chronicle's long-press card. On Chronicle the sheet
+  sits at the top, clear of the capture band. Only the destination leaves the device: the link carries coordinates,
+  and a star's title or "Your spot" never rides in it. With a walk open the Chronicles row routes that walk.
 - A long press on the small map still offers **What's here?** and
   **Walk here**. There are no counts of places on this tab.
 - **Storefronts are a density of places you walk into** (activity density, decision 0080; storefronts, decision 0180):
@@ -170,7 +180,12 @@ recording, and a recording bar brings a minimized walk back.
   default), plaques and markers, small memorials (benches, ghost bikes, Stolpersteine), milestones and boundary stones,
   and wayside shrines and crosses (off by default), each a switch under its kind in "What I'm into"; typed murals,
   sculptures and statues, and community gardens, join their kinds. An unnamed one is named by its type ("A time
-  capsule"). An area's bars count them by the size of the stop (a plaque a quarter, a little library a half) only for a
+  capsule"). **Subtypes** (decision 0191, contract v4): every kind may have subtypes, each a switch under it, and the
+  archive adds what the app could not show before: waterfalls, caves, hot springs and old trees (a new kind, Nature),
+  botanical gardens, zoos and aquariums (with the map's attractions, a kind of their own), fountains, concert halls,
+  observatories and carousels; listed buildings split into bridges, mills, stations, lighthouses, courthouses, forts,
+  towers, old machines and old taverns; ghost towns (off by default) apart from ruins; markers apart from plaques.
+  Small things start off unless they are art. An area's bars count them by the size of the stop (a plaque a quarter, a little library a half) only for a
   reader who has them on; they never keep a park a park, never lean a route, and a museum passed is never lost among
   plaques. `npm run places:coverage` measures what
   the app keeps of a town's destinations, for the owner.
@@ -227,7 +242,8 @@ recording, and a recording bar brings a minimized walk back.
   train) dashed. The map stays north-up unless you turn it with two fingers (a compass then
   shows above the edge buttons and sets north again, decision 0082); a soft cone on the dot shows the way
   you are walking, read from the last 20 m of the trace (decision 0075). A green ring marks where the walk began; the replay adds a
-  solid orange disc with a white ring where it ended (shape, not colour alone, tells them apart; decision 0154). Every map has a scale bar in its bottom-left
+  blue-violet bullseye where it ended (shape, not colour alone, tells them apart; decisions 0154, 0162). The map's colours are
+  Earth and ink (decision 0188): walked streets in an ink apart from the accent, the trace green, each kind of moment an earth pigment. Every map has a scale bar in its bottom-left
   corner. Pins mark captures, grouped by screen distance when zoomed
   out. A pin of one photo shows the photo itself, small and round. Faint
   pins with a clock badge show earlier walks' captures nearby (memories on
@@ -439,6 +455,7 @@ recording, and a recording bar brings a minimized walk back.
   an empty line and a Navigate button; with a walk open, "This walk is starred
   here when it ends" and no button, the recording bar's › being the way back
   (decision 0148).
+- **A walk with nothing in it is dropped** (decision 0187): stopping a walk with no moment, pause, still or gap and no movement past 15 m skips the replay and says "Walk not kept." with Undo; a killed app restores it.
 - **The replay** (the make-or-break): reading the streets, the fog clearing,
   the path, the card, then naming. The path has a rhythm (decision 0085): it
   glides into each moment and away, zips through long empty stretches with
@@ -484,7 +501,8 @@ recording, and a recording bar brings a minimized walk back.
 
 ## Settings and notifications
 
-- Explore settings (in the drawers: the ready bar's and the walk's, no panel of their own): "What I'm into" (8 kinds), the
+- Explore settings (in the drawers: the ready bar's and the walk's, no panel of their own): "What I'm into" (about 53
+  rows under five headings: Art, History, Parks & green spaces, Culture, Viewpoints & oddities), the
   "?" range with a ring preview on the map, the pocket alert (phones, and browsers that can
   buzz: Android Chrome; not iPhone Safari, decision 0138).
 - Notifications: Remind me here and Pause reminder, each switchable, plus a

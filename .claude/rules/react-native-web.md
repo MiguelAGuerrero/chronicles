@@ -78,3 +78,8 @@ UI code on both platforms: React Compiler lint rules, react-native-web differenc
   **The one exception is the read's web worker** (`compute-<hash>.js`, `landing/compute.worker.ts`; the owner's call,
   Nov 13, decision 0160): an open page that can't load it after a deploy computes the read on the page itself
   (`offPage`'s fallback, explore-dense-city DC8). The deploy's "one bundle" step allows it and nothing else.
+
+- **A sheet that closes and opens a field in the same tap loses the caret on the web** (tend chronicle 13): our `Modal`
+  unmounts at once, and react-native-web's focus trap gives focus back to what opened the sheet in a passive cleanup,
+  after the new field's `autoFocus`. Focus the field again in an effect keyed on the state that shows it (`focusOn`),
+  which runs after that cleanup, as `ThreadScreen`'s Rename does.

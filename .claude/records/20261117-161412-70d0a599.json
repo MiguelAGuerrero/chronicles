@@ -1,0 +1,42 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "A found thread",
+        "--reason",
+        "built in tend chronicle 13: a found thread's one button is Keep as my thread; Rename and Not a thread are in its More (with tend chronicle audit 7 and 9: no More while renaming, and the owner's two hints)"
+      ],
+      "target": "sha256:c931c2ed39422372ebc09b279c5a949ddac788d8f21a0e852dddd7662a304143"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "The journal toolbar",
+        "--reason",
+        "built in tend chronicle 14: the toolbar's hint holds one line at 320 px in a thread and a lens (16 px in the same serif, the field's inset and Done's padding given back; the bar while typing pictured in tend chronicle audit 8)"
+      ],
+      "target": "sha256:b742622304f3c3de06bd94ee9c886a9590f63478150034e4a32da727131bdd98"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Chronicle journal, cut 1"
+      ],
+      "body": "- [owner] The bar's field leaves its hint two lines tall at 320 px while it has the caret and is still empty (a thread, the threads, Hidden, a lens): with the caret in it the row also holds Open as a page and Done, which leave the field 128 px (114 px with a walk's mark) for a hint the field's 16 px serif sets about 143 to 168 px wide, so \"What’s on your / mind?\" shows with its second line under the bar's edge until the first character (picture `tend-chronicle-audit-8-walk-typing-320`, /tmp/claude-0/-workspace-chronicles/18c0adbd-a1f3-5a6a-af58-014872f7a509/scratchpad/tend-chronicle/shots-journal/; `src/components/journal/OpenLine.tsx`, the bar's row while `typing`). At rest it holds one line since tend chronicle 14. One line there needs a control to give way while the field is empty (Open as a page, whose empty-line page is NewNotePage, or Done, which closes nothing yet) or no hint while focused; each is the owner's (ui-patterns \"Nothing wraps on a 320 px phone\"; seen in the after pictures of `/tend chronicle`, Nov 17, low)\n"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 17, `/tend chronicle --deploy=main`, two `[loop]` medium items from the accent run's review** (opened from `d266ed4a`; no sweep, lenses 1-7 not run; the faster lane of decision 0181).\n- The items, as main held them: \"A found thread's three loose buttons wrap at 320 px: Rename, Not a thread and Keep as my thread …\" and \"The journal toolbar's hint wraps and is cut at 320 px wherever the field sits in the bar (a thread, a lens): …\". Both leave DEFERRED.\n- `tend chronicle 13`: a found thread's one button is \"Keep as my thread\", the primary (decision 0172); Rename and Not a thread moved, with their words, into an ink More beside the \"Thread\" label (\"More for <name>\"), opening the app's More sheet; Rename from it puts the caret in the name field (react-native-web's focus trap gave it back to the More).\n- `tend chronicle 14`: in the bar (a thread, the threads, Hidden, a lens) the field is 16 px in the same serif, the words unchanged; 16 px alone left 155 px for a hint a phone's serif sets 156 (Georgia's metrics) to 168 px (Noto Serif) wide, so the bar also gives back the field's 8 px inset and Done's padding (Done stays 44 pt): 172 px at 320.\n- The review (one round, the `ux-reviewer`, three lows, all accepted): `tend chronicle audit 7` (no More while renaming; the rename state pictured; the sheet's Cancel its own id), `audit 8` (the bar while typing pictured at 320 and 390, in a thread, a long line, on a walk; no code change) and `audit 9`, the owner's answer in person, Nov 17: \"Add two hints\": under Rename \"Give it your own name\", under Not a thread \"Off the list for good; the moments stay\".\n- Filed: one `[owner]` low in \"Chronicle journal, cut 1\": with the caret in the bar's empty field, Open as a page and Done leave the hint two lines at 320 px (seen in audit 8's pictures). A trap added to `react-native-web.md`.\n- Journeys: `resurface`, `journal`, `threads` and `launch` on the final export (`threads` failed OT8 once while four journeys ran at once, and passed alone); `npm test`, typecheck and lint. Not run: the sweep's lenses and the balance's evolve; the rest is left to CI and the weekly full pass (not due). Nothing here has run on a phone.\n"
+    }
+  ]
+}
