@@ -513,10 +513,14 @@ async function run(h) {
 
     // The day (RR16): its replay reaches the day's card with no taps, the note on the way.
     const wakesBefore = (await pg.evaluate(() => window.__wake.log.length));
-    // Discard leaves the first replay for Chronicle, the words typed gone with it (tend replay 15), at 390 here and at
-    // 320 on the second walk.
-    await pg.keyboard.press('Escape');
-    await pg.waitForSelector('[data-testid=name-ask]', { timeout: 3000 }).catch(() => {});
+    // Not now with words typed asks as Back and Escape do (tend replay audit 15; the owner's "Ask there too", Nov 17);
+    // with nothing typed it leaves at once (the tabs journey's U14). Then Discard leaves the first replay for Chronicle,
+    // the words typed gone with it (tend replay 15), at 390 here and at 320 on the second walk.
+    await pg.click('[data-testid=not-now]');
+    const notNowAsks = await pg.waitForSelector('[data-testid=name-ask]', { timeout: 3000 }).then(() => true, () => false);
+    const notNowStays = /\/replay\//.test(new URL(pg.url()).pathname);
+    const notNowWords = await pg.inputValue('[data-testid=title-input]').catch(() => null);
+    check(notNowAsks && notNowStays && notNowWords === 'Plums by the bridge', `tend replay audit 15: at 390 px Not now with words typed asks "Discard these edits?" over them (${notNowAsks}, ${new URL(pg.url()).pathname}, "${notNowWords}")`);
     await pg.click('[data-testid=name-discard]').catch(() => {});
     const discarded = await pg.waitForURL((u) => u.pathname === `${BASE}/`, { timeout: 15000 }).then(() => true, () => false);
     check(discarded, `tend replay 15: at 390 px Discard leaves the first replay for Chronicle (${new URL(pg.url()).pathname})`);

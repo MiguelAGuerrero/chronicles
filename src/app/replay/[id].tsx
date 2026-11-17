@@ -36,7 +36,7 @@ import { tileCollector } from '../../lib/tileCollector';
 import { GapCard } from '../../components/GapCard';
 import { ensureTileBuild } from '../../lib/tiles';
 import { setAudioMode } from '../../lib/audioMode';
-import { backFrom, beatWords, FOG_MS, pinHint, wordsTyped } from '../../lib/replay';
+import { backFrom, beatWords, fieldsAfterRename, FOG_MS, pinHint, wordsTyped } from '../../lib/replay';
 import { formatCaptures, formatDistance, formatDuration, loadReplay, suggestTitle, type ReplayData } from '../../lib/summary';
 import { renamePatch } from '../../lib/rename';
 import type { LngLat } from '../../lib/types';
@@ -222,6 +222,15 @@ export default function Replay() {
     } else go('card');
     return true;
   }, [go]);
+  // Not now leaves as Back and Escape leave the card: with words typed it asks first, else at once (tend replay audit
+  // 15; the owner's answer, Nov 17, "Ask there too").
+  const leaveCard = () => {
+    if (backFrom('card', wordsNow.current) !== 'ask') toChronicle();
+    else {
+      setAsking(true);
+      go('name');
+    }
+  };
   useEffect(() => {
     if (rewatch) return;
     // However it is left, the first replay ends on Chronicle's Memories (RM3).
@@ -696,7 +705,7 @@ export default function Replay() {
                     testID="not-now"
                     accessibilityRole="button"
                     accessibilityHint="Keeps the walk without a name and goes to Chronicle"
-                    onPress={toChronicle}
+                    onPress={leaveCard}
                     style={({ pressed }) => [styles.notNow, pressed && { opacity: 0.6 }]}
                   >
                     <Text style={styles.notNowText}>Not now</Text>
@@ -772,9 +781,11 @@ export default function Replay() {
         // The card shows the new name at once, and the name beat's fields with it (QL23).
         onRenamed={(walkId, patch) => {
           setData((d) => (d && d.walk.id === walkId ? { ...d, walk: { ...d.walk, ...patch } } : d));
-          setTitle(patch.title ?? suggestTitle(data.walk));
-          setOffered(patch.title ? null : suggestTitle(data.walk));
-          setEpilogue(patch.epilogue ?? '');
+          // Only what Rename changed, so a line typed in Name it stays (tend replay audit 15).
+          const fields = fieldsAfterRename(data.walk, patch, { title, epilogue, offered });
+          setTitle(fields.title);
+          setOffered(fields.offered);
+          setEpilogue(fields.epilogue);
         }}
       />
       <UndoToast style={{ top: insets.top + 12 }} />

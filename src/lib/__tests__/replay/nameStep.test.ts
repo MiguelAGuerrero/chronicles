@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
-import { backFrom, wordsTyped } from '../../replay';
+import { backFrom, fieldsAfterRename, wordsTyped } from '../../replay';
 import type { Walk } from '../../types';
 import { suggestTitle } from '../../walkTitle';
 
@@ -85,4 +85,30 @@ test('tend replay 15: the screen asks with the words as they stand, in Rename\'s
   assert.match(line, /onSubmitEditing=\{asking \? keepEditing : save\}/);
   // While it asks, the ask's two answers are the only ways on: no Back beside them.
   assert.match(SCREEN, /\{!asking && \(\s*(\{\/\*[\s\S]*?\*\/\}\s*)?<Pressable\s+testID="name-back"/);
+});
+
+// The run's review (steward S1, S2) and the owner's answer, Nov 17, to its first question, "Ask there too": with words
+// typed, Not now asks "Discard these edits?"; with nothing typed it leaves at once. And a Rename from the card's More
+// replaces only what it changed, so a line typed in Name it outlives a Rename of the title alone.
+test('tend replay audit 15: Not now asks as Back and Escape ask from the card, and leaves at once with nothing typed', () => {
+  assert.equal(backFrom('card', { typed: true }), 'ask');
+  assert.equal(backFrom('card', { typed: false }), 'leave');
+  const notNow = control('not-now');
+  assert.match(notNow, /onPress=\{leaveCard\}/, 'Not now goes through the card\'s way out, never straight to Chronicle');
+  assert.match(SCREEN, /const leaveCard = \(\) => \{[\s\S]{0,160}?backFrom\('card', wordsNow\.current\)/);
+});
+
+test('tend replay audit 15: a Rename from the card replaces only the fields it changed, so words typed in Name it stay', () => {
+  const bare = walk({ title: null, epilogue: null });
+  const offered = suggestTitle(bare);
+  const typed = { title: 'Plums', epilogue: 'The river was not', offered };
+  assert.deepEqual(fieldsAfterRename(bare, { title: 'Bridge', epilogue: null }, typed), { title: 'Bridge', offered: null, epilogue: 'The river was not' });
+  assert.deepEqual(fieldsAfterRename(bare, { title: null, epilogue: 'A line' }, typed), { title: 'Plums', offered, epilogue: 'A line' });
+  assert.deepEqual(fieldsAfterRename(bare, { title: null, epilogue: null }, typed), typed);
+  // A named walk's title cleared by Rename: the field shows the suggestion again, offered as one.
+  const named = walk();
+  assert.deepEqual(fieldsAfterRename(named, { title: null, epilogue: 'Old line' }, { title: 'Plums', epilogue: 'Mine', offered: null }), {
+    title: suggestTitle(named), offered: suggestTitle(named), epilogue: 'Mine',
+  });
+  assert.match(SCREEN, /fieldsAfterRename\(data\.walk, patch, \{ title, epilogue, offered \}\)/);
 });

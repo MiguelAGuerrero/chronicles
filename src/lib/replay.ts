@@ -3,6 +3,7 @@ import type { Faced } from './moment';
 import { distanceM, isBreak, type PauseSpan } from './geo';
 import { renameChanged } from './rename';
 import type { LngLat, TracePoint, Walk } from './types';
+import { suggestTitle } from './walkTitle';
 
 /**
  * The replay's shared pieces: the fog beat's length, captures grouped into
@@ -61,6 +62,20 @@ export function backFrom(beat: string, words: { typed?: boolean; asking?: boolea
 export function wordsTyped(walk: Walk, title: string, epilogue: string, offered: string | null): boolean {
   if (!title.trim() && !epilogue.trim()) return false;
   return renameChanged(walk, title, epilogue, offered);
+}
+
+/**
+ * Name it's fields after a Rename from the card's More (QL23): only a field Rename changed from `walk` (the walk as the
+ * card held it) takes Rename's words, so a line typed in Name it outlives a Rename of the title alone (tend replay
+ * audit 15, the review's S2; decision 0172, O17). A title Rename cleared shows the suggestion, offered as one.
+ */
+export function fieldsAfterRename(
+  walk: Walk,
+  patch: { title: string | null; epilogue: string | null },
+  fields: { title: string; epilogue: string; offered: string | null },
+): { title: string; epilogue: string; offered: string | null } {
+  const named = patch.title === walk.title ? { title: fields.title, offered: fields.offered } : { title: patch.title ?? suggestTitle(walk), offered: patch.title ? null : suggestTitle(walk) };
+  return { ...named, epilogue: patch.epilogue === walk.epilogue ? fields.epilogue : patch.epilogue ?? '' };
 }
 
 /**
