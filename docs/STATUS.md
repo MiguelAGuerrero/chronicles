@@ -252,13 +252,14 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
 
 ### Last tend
 
-**Nov 17, `/tend captures --deploy=main`, two voice-memo items of Navigate, ready** (opened from `8e1515ca`; no sweep, lenses 1-7 not run; the faster lane of decision 0181).
-- The items, as main held them: "A voice memo whose recorder stop timed out (`STOP_TIMEOUT_MS`, 3 s) can hold a null `uri` …" and "A memo that fails to save as the screen unmounts (the ready chevron, a browser Back) is lost silently …".
-- `tend captures 1`: a memo whose stop timed out is said ("Couldn’t save this voice memo.") and let go, never held for a Retry that cannot work; the web recorder's uri is this memo's only when its own prepare or stop set it (`media/memoSave.ts`, `memoFile`, `failedMemo`; Stop goes on for a memo with no file). The first item leaves DEFERRED.
-- `tend captures audit 1`: the `space` journey ends the recorders whose stop it ignored and puts the browser's stop back (the review's F11).
-- The second item was built as `tend captures 2` (the memo handed on through `memoGate`) and dropped after the review: the auditor found it incomplete (a held memo still dropped as its screen goes, a second failure overwriting the first, no Stop warning). The owner, in person: "Ship fix 1, slice the rest". The item stays open with that note; the review's F1-F8 are the slice's criteria; the unpushed branch `tend/captures-20261117-1418` holds the first attempt.
-- The review (one round, the `auditor`): accepted F11; deferred F1-F8 to the slice, F9 and F10 filed `[loop]` low; none rejected. The phone check for `memoFile` and the auditor's iOS interruption and media-reset notes went to NATIVE_UNVERIFIED.
-- Journeys: `space` and `launch` on the final export; `npm test`, typecheck and lint. Not run: the sweep's lenses and the balance's evolve; the rest is left to CI and the weekly full pass (not due). Nothing here has run on a phone.
+**Nov 17, `/tend navigation --deploy=main`, the two Go here [loop] items of Navigation and routes** (opened from `8e1515ca`; no sweep, lenses 1-7 not run; the faster lane of decision 0181).
+- The items, as main held them: "Go here: Cancel pressed while the scenic read has returned but the streets and the walk are still being read …" and "A Go here tapped while a re-route's street read runs …". Both wanted a hook harness: `goHere.test.ts` now runs the hook's own source with fakes.
+- `tend navigation 2`: Cancel while Go here reads the streets or the walk sets nothing; each Go here is a find with its own number, and `goTo` asks `findGoesOn` after every await (`nav/findGate.ts`, core). The first item leaves DEFERRED.
+- `tend navigation 3`: a Go here tapped while a re-route reads the streets again is found at once, with its spinner: the re-read has its own flag and stops between views. The second item leaves DEFERRED.
+- `tend navigation audit 1, 2, 3` (the review's F1, F2, F3): a Go here during a re-read waits for the re-read to let go of the map, then reads it (the harness now uses the real `mapReadLock()`); Cancel, a failure or a dismissed preview of a second Go here keeps the followed route saved; a re-read's streets stay with the route still followed and go to no new one.
+- `tend navigation 2` (a second commit, after the rebase on `c9bd039e`): the gate's flag is `underWay`, never `busy`, which main's Storefronts slice retired from `src/` (SF13, `storefronts.test.ts`); the branch failed that test from its base on.
+- The review (one round, the `auditor`): accepted F1-F3; deferred F4-F6, filed `[loop]` low with the auditor's scenario and test name; none rejected. Kept: the redundant checks the auditor's probes found (`endFind`'s gen guard, Walk me back's cached-streets check); `findGoesOn`'s gen check is the guard that matters. A re-read's camera on MapLibre RN went to NATIVE_UNVERIFIED.
+- Journeys: `scenic`, `launch` and `planner` on the final export (scenic's known red, "fix preview-clutter audit 1", is filed); `npm test`, typecheck and lint. Not run: the sweep's lenses and the balance's evolve; the rest is left to CI and the weekly full pass. Nothing here has run on a phone.
 
 ### Open before the loop
 

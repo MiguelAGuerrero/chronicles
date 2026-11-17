@@ -153,9 +153,9 @@
     },
     "navigation": {
       "state": "rough",
-      "swept": "2026-11-11",
-      "main": "8bad3baa39209ae442a61aabfd94761d96956639",
-      "note": "First sweep, not whole: the nav bar, Open in Maps and the leanings drawer have no picture, and the scenic and drive journeys fail in this container from an unknown cause (DEFERRED). One low loop finding shipped (the preview's Go names); two medium hook races filed [loop] for want of a hook test harness."
+      "swept": "2026-11-17",
+      "main": "8e1515ca2be126bbf667ee94185ab239a63b6023",
+      "note": "No sweep (lenses 1-7 not run): a run on the two Go here [loop] items of Navigation and routes, which wanted a hook harness (goHere.test.ts runs the hook's own source with fakes). Built tend navigation 2 (Cancel while Go here reads the streets or the walk sets nothing; findGate.ts) and 3 (a Go here during a re-read is found at once), the review's F1-F3 as tend navigation audit 1-3, and a second tend navigation 2 after the rebase (the gate's flag underWay, SF13 on main). F4-F6 filed [loop] low; a re-read's camera on MapLibre RN in NATIVE_UNVERIFIED."
     },
     "walk-screen": {
       "state": "rough",

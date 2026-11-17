@@ -1,0 +1,74 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "Go here: Cancel",
+        "--reason",
+        "shipped as tend navigation 2: Cancel while Go here reads the streets or the walk sets nothing"
+      ],
+      "target": "sha256:8c0d9f6161709c7ea15bd265bab4f22f95392538644b1a25636eaca3bfe13047"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "A Go here tapped while a re-route",
+        "--reason",
+        "shipped as tend navigation 3: a Go here tapped while a re-route reads the streets again is found at once"
+      ],
+      "target": "sha256:7a388c8207312debb2cdf2f20d2bed5c638f58d9ce2834c9d1b671f3fdcc00e6"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Navigation and routes",
+        "--top"
+      ],
+      "body": "- [loop] Go here: Cancel right after the route is applied leaves it unsaved. `begin` applies the route, then awaits `saveNav` while the spinner is still up (`setFinding(false)` runs in `goTo`'s `finally`, after `begin` returns), so a Cancel in that window queues `clearNav` after the save on the meta write: the route stays on screen with no saved destination, and a reload loses it (`nav/useNavigation.ts`, `begin` and `goTo`'s `finally`). Fix: end the find (spinner off) before `saveNav`, or have `cancel` ignore a find whose route is already applied. Test: `tend navigation audit 4: Cancel during the destination's save keeps the route and its save` (unit, `saveNav` held) (the review of tend navigation 2 and 3, auditor F4, Nov 17, low, from before the run; navigation.md \"The destination is kept with the open walk\")\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Navigation and routes",
+        "--after",
+        "Go here: Cancel right after"
+      ],
+      "body": "- [loop] A Go here tapped during a resumed find's first reads is still dropped without a sign. A reload resumes a find (`loadNav`, then `goTo`); while that find is still in `getPauses`, `getStills` or `getPoints`, `finding` is still false, so the buttons are enabled and no spinner shows, and `startFind` returns null for the tap, which vanishes (`nav/useNavigation.ts`, `goTo`'s first reads). Fix: `setFinding(true)` as soon as the find starts. Test: `tend navigation audit 5: a Go here during a resumed find's first reads is not dropped unseen` (unit) (the review of tend navigation 2 and 3, auditor F5, Nov 17, low, from before the run; NN/g H1, visibility of system status)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Navigation and routes",
+        "--after",
+        "resumed find's first reads"
+      ],
+      "body": "- [loop] A failed re-route's re-read moves the camera in sight and outlives End. The re-read sets no `finding`, so `follow` stays on and nothing covers the map (`walk.tsx`'s follow and the finding cover): the camera jumps view by view in front of the walker, and follow can ease it between a jump and its read. End, arrival or Stop during a re-read does not stop it (`rereadStops` answers only a new find), so the camera keeps moving for up to 90 s. Fix: `end()` stops the re-read, and the hook gives a `rereading` flag that pauses follow. Test: `tend navigation audit 6: End during a re-read stops it between views` (unit) (the review of tend navigation 2 and 3, auditor F6, Nov 17, low, from before the run; navigation.md \"Following pauses while it runs\"; on a phone in NATIVE_UNVERIFIED)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Navigation and tabs"
+      ],
+      "body": "- [ ] **Do:** since `tend navigation 2`, `3` and `audit 1` (Nov 17), Go here to a destination 1-2 km away, then walk 80 m off the route where nothing was read, so the walk reads the streets again (\"Off your route\"); during that read tap Go here on another place; then again, and tap Cancel; then again, and tap End. **Expect:** MapLibre RN's `collect` (`WalkMap.native.tsx`) checks `shouldStop` before each view, like the web: after the Go here or the Cancel the camera stops within one view (a view's four `querySourceFeatures` awaits finish first), the new find reads the map once the re-read lets go of it and is routed, and Cancel leaves the first route followed; record how the camera moves during the re-read (follow stays on, nothing covers the map) and whether it goes on moving after End (the review's F6, filed in DEFERRED), and whether a `collect` orphaned by its timeout keeps moving it.\n"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 17, `/tend navigation --deploy=main`, the two Go here [loop] items of Navigation and routes** (opened from `8e1515ca`; no sweep, lenses 1-7 not run; the faster lane of decision 0181).\n- The items, as main held them: \"Go here: Cancel pressed while the scenic read has returned but the streets and the walk are still being read …\" and \"A Go here tapped while a re-route's street read runs …\". Both wanted a hook harness: `goHere.test.ts` now runs the hook's own source with fakes.\n- `tend navigation 2`: Cancel while Go here reads the streets or the walk sets nothing; each Go here is a find with its own number, and `goTo` asks `findGoesOn` after every await (`nav/findGate.ts`, core). The first item leaves DEFERRED.\n- `tend navigation 3`: a Go here tapped while a re-route reads the streets again is found at once, with its spinner: the re-read has its own flag and stops between views. The second item leaves DEFERRED.\n- `tend navigation audit 1, 2, 3` (the review's F1, F2, F3): a Go here during a re-read waits for the re-read to let go of the map, then reads it (the harness now uses the real `mapReadLock()`); Cancel, a failure or a dismissed preview of a second Go here keeps the followed route saved; a re-read's streets stay with the route still followed and go to no new one.\n- `tend navigation 2` (a second commit, after the rebase on `c9bd039e`): the gate's flag is `underWay`, never `busy`, which main's Storefronts slice retired from `src/` (SF13, `storefronts.test.ts`); the branch failed that test from its base on.\n- The review (one round, the `auditor`): accepted F1-F3; deferred F4-F6, filed `[loop]` low with the auditor's scenario and test name; none rejected. Kept: the redundant checks the auditor's probes found (`endFind`'s gen guard, Walk me back's cached-streets check); `findGoesOn`'s gen check is the guard that matters. A re-read's camera on MapLibre RN went to NATIVE_UNVERIFIED.\n- Journeys: `scenic`, `launch` and `planner` on the final export (scenic's known red, \"fix preview-clutter audit 1\", is filed); `npm test`, typecheck and lint. Not run: the sweep's lenses and the balance's evolve; the rest is left to CI and the weekly full pass. Nothing here has run on a phone.\n"
+    }
+  ]
+}
