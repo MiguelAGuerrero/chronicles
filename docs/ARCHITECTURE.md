@@ -495,6 +495,16 @@ own code only where no Expo module covers the feature on web:
   `landing/compute.worker.ts`, built by Expo's export as a file of its own). No Expo module gives the web, or a phone, a
   background JS thread; native runs the same `computeRead` on the JS thread with a turn before each tile and stage. A
   worker that can't start (a page left open across a deploy asks for the old worker's file) leaves the read to the page.
+- **The place-name pack** (Place search, decision 0184; the owner's answer of Nov 16, "Fetch on first search"): on the web the pack is
+  a file of its own with a fixed name under the base path (`packUrl`, `PACK_FILE` in `gazetteer/pack.ts`), fetched from the
+  app's own site the first time search opens and kept in memory (`gazetteer/source.web.ts`); phones bundle it with `require`
+  (`source.ts`). The web build is one entry script, so a `require` inlined the 5.6 MB pack in it, downloaded and parsed at every
+  launch (10.7 MB before, 5.0 MB after). `scripts/copy-maplibre-worker.js` copies the one committed pack into `public/` on
+  install, before `export:web` and after `scripts/build-gazetteer.js` writes it. A fetch with no answer in `PACK_FETCH_MS` (60 s) is
+  "Search is unavailable." with Try again (audit 1). No host is added and nothing is sent. Trap: the name is fixed, so a page left open across a
+  deploy fetches the new pack, never a 404 (`public/sw.js` caches nothing); a change to the pack's format must stay readable by
+  the page before it, or that page shows search's "unavailable" until a reload. The query (`?v=` the credit's date) only keeps
+  a new page off an old pack in the browser's cache. A page loaded online that goes offline before its first search has no pack.
 - **Announcing a swipe's area** (DN12): a visually hidden `accessibilityLiveRegion` Text on Explore (`atlas-snap-said`, web only).
   react-native-web's `AccessibilityInfo.announceForAccessibility` is an empty function; phones announce through
   that call alone, since a live region as well would say it twice on Android.
@@ -670,6 +680,7 @@ stores the record whole.
 `src/lib/gazetteer/` reads a **pack** (`assets/gazetteer/places.json`, columnar: names, ASCII names, alternates, region and country
 indexes, points in 1e-4 degrees, region codes), built by `scripts/build-gazetteer.js` from GeoNames `cities5000`. The app reads
 packs only (`pack.ts`, validated: no population or any field outside `PACK_FIELDS`); another dataset or a downloaded region is
-another pack read through `GazetteerSource` (`source.ts`, adapter; the bundled one `require`s the asset lazily on first use).
+another pack read through `GazetteerSource` (`loader.ts`, adapter; the bundled one `require`s the asset lazily on first use in
+`source.ts`, and on the web is fetched as a file of its own on first search, `source.web.ts`: a web exception above).
 `search.ts` (core) builds a sorted key index once (`indexOf`, cached per source) and answers a prefix query in a few ms; order is by
 distance from the argument `origin`, else name then region, never by size. A read-only bundled asset: no schema, no migration.

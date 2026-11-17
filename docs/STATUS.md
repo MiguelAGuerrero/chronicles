@@ -253,6 +253,7 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
 
 ### Open before the loop
 
+- **Place search's GZ9 and GZ10 on the web** (Nov 17; the owner's answer in person to the web fetch's review, F2: "Acceptable"). What ships: on the web the pack is fetched on first search, so a page loaded online that goes offline before its first search shows "Search is unavailable." with Try again (`gazetteer-web-fetch audit 2`); the phone keeps the bundled pack. Still to say in the owner's words: `specs/place-search/spec.md` GZ9 ("The pack is bundled: no fetch of the data, ever") and GZ10 ("It works offline"), and decision 0184's "bundled", which now hold on the phone only; the answer goes into the decision record the accent run is writing.
 - **The replay rule's, M7's, MR4's, the map rule's, the pins' and R7's words after T31, T32, O16 and O11** (Nov 16;
   the owner's yeses to T31 and T32 in person, Nov 14; decision 0172 for O16 and O11; and the owner's answers in person
   during the review, Nov 16: "Elapsed time", "Number words in the preview", "three streets, all new to you" and "Accept
