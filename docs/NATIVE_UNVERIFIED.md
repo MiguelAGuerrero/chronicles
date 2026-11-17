@@ -683,6 +683,8 @@ What the reactions slice wrote and has not run on a phone (`specs/reactions`, de
 Small places (decision 0183): the switches and dots on a phone.
 
 - [ ] **Do:** on a phone with switches saved before this update, open "What I'm into", then walk (Explore on) past a time capsule and a plaque from the places archive. **Expect:** Plaques and markers, Small memorials, Milestones and old stones and Wayside shrines and crosses sit indented under their kinds and are off; Time capsules and Little libraries are on; the time capsule is a "?" named "A time capsule" within 60 m and the plaque is not drawn until its row is switched on; an area's dots change at once when the row is switched (SP2, SP7, SP8, SP11, SP13).
+  Since Explore subtypes (decision 0187): the row reads "Plaques" and holds OSM's plaques only; Wikidata's markers are "Markers", on.
+- [ ] **Do:** on a phone, open "What I'm into" in the walk's drawer and scroll it end to end; then walk (Explore on) past a waterfall from the places archive. **Expect:** five headings (Art, History, Parks & green spaces, Culture, Viewpoints & oddities), each over its kinds, subtypes indented under them; the list scrolls smoothly at about 53 rows; Fountains, Old trees, Survey marks and Ghost towns are off; the waterfall is a "?" named within 60 m (XS1, XS2, XS6, XS24).
 
 ## Place search (GZ1-GZ19, decision 0184)
 

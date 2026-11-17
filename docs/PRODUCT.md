@@ -160,7 +160,12 @@ recording, and a recording bar brings a minimized walk back.
   default), plaques and markers, small memorials (benches, ghost bikes, Stolpersteine), milestones and boundary stones,
   and wayside shrines and crosses (off by default), each a switch under its kind in "What I'm into"; typed murals,
   sculptures and statues, and community gardens, join their kinds. An unnamed one is named by its type ("A time
-  capsule"). An area's bars count them by the size of the stop (a plaque a quarter, a little library a half) only for a
+  capsule"). **Subtypes** (decision 0187, contract v4): every kind may have subtypes, each a switch under it, and the
+  archive adds what the app could not show before: waterfalls, caves, hot springs and old trees (a new kind, Nature),
+  botanical gardens, zoos and aquariums (with the map's attractions, a kind of their own), fountains, concert halls,
+  observatories and carousels; listed buildings split into bridges, mills, stations, lighthouses, courthouses, forts,
+  towers, old machines and old taverns; ghost towns (off by default) apart from ruins; markers apart from plaques.
+  Small things start off unless they are art. An area's bars count them by the size of the stop (a plaque a quarter, a little library a half) only for a
   reader who has them on; they never keep a park a park, never lean a route, and a museum passed is never lost among
   plaques. `npm run places:coverage` measures what
   the app keeps of a town's destinations, for the owner.
@@ -474,7 +479,8 @@ recording, and a recording bar brings a minimized walk back.
 
 ## Settings and notifications
 
-- Explore settings (in the drawers: the ready bar's and the walk's, no panel of their own): "What I'm into" (8 kinds), the
+- Explore settings (in the drawers: the ready bar's and the walk's, no panel of their own): "What I'm into" (about 53
+  rows under five headings: Art, History, Parks & green spaces, Culture, Viewpoints & oddities), the
   "?" range with a ring preview on the map, the pocket alert (phones, and browsers that can
   buzz: Android Chrome; not iPhone Safari, decision 0138).
 - Notifications: Remind me here and Pause reminder, each switchable, plus a

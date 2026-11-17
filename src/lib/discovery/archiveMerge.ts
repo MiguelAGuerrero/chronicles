@@ -24,9 +24,28 @@ export const SAME_KIND_M = 200;
 const samePlace = (t: Place, a: Place) =>
   same(t, a) || (t.category === a.category && normalizeName(t.name) === normalizeName(a.name) && distanceM(t.at, a.at) <= SAME_KIND_M);
 
+/**
+ * XS14 (the second review, Nov 17): an unnamed map place and an unnamed archive place of one category within this are one
+ * place: the map's untyped artwork reads "Public art", the archive's statue "A statue", so their names never match.
+ */
+export const SAME_UNNAMED_M = 20;
+
 /** PW8: the map's places and the archive's, a place in both kept once, with the archive's category and kind. */
 export function mergePlaces(tiles: Place[], archive: Place[]): Place[] {
-  return [...tiles.filter((t) => !archive.some((a) => samePlace(t, a))), ...archive];
+  if (!archive.length) return tiles;
+  // Indexed by name (performance.md: never a scan of one list inside a loop over the other); unnamed ones by category.
+  const byName = new Map<string, Place[]>();
+  const unnamed = new Map<string, Place[]>();
+  for (const a of archive) {
+    const k = normalizeName(a.name);
+    byName.set(k, [...(byName.get(k) ?? []), a]);
+    if (a.generic) unnamed.set(a.category, [...(unnamed.get(a.category) ?? []), a]);
+  }
+  const kept = tiles.filter((t) => {
+    if ((byName.get(normalizeName(t.name)) ?? []).some((a) => samePlace(t, a))) return false;
+    return !(t.generic && (unnamed.get(t.category) ?? []).some((a) => distanceM(t.at, a.at) <= SAME_UNNAMED_M));
+  });
+  return [...kept, ...archive];
 }
 
 /**

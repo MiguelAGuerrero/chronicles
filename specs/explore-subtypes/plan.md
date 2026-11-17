@@ -17,7 +17,7 @@ class/subclass. Default on unless marked. Weight is the bar weight of the stop (
 | | | Fountains (off) | `fountain` (an artistic fountain is `sculpture`, the kind itself) | ½ | yes |
 | | | Signs and totems | `sign` | ¼ | yes |
 | History | Monuments and memorials | | `monument`, `memorial`, `historic_site`; tile `monument`, `castle/castle` | 1 | |
-| | | Historical markers | `marker` (Wikidata) | ½ | yes |
+| | | Markers | `marker` (Wikidata; kind `markers`, PK16) | ½ | yes |
 | | | Plaques (off) | `plaque` (OSM) | ¼ | yes |
 | | | War memorials | `war_memorial` | 1 | |
 | | | Small memorials (off) | `small_memorial` | ¼ | yes |
@@ -58,7 +58,7 @@ class/subclass. Default on unless marked. Weight is the bar weight of the stop (
 | | | Fire lookout towers | `fire_tower` | ½ | |
 | | Zoos, aquariums and attractions (new) | | `zoo`; tile `attraction/attraction`, `zoo/*` (petting zoo, wildlife and safari parks too), `aquarium`, `theme_park` | 1 | |
 | | Curiosities | | `odd_engineering` | 1 | |
-| | | Ruins | `ruin`; tile `castle/ruins` | 1 | |
+| | | Ruins | `ruin`; tile `castle/ruins` (kind `old_ruins`: OSM spells `ruins`) | 1 | |
 | | | Ghost towns (off) | `ghost_town` | ½ | |
 | | | Natural arches and rocks | `natural_oddity` | 1 | |
 | | | Roadside giants and follies | `roadside_giant`, `folly`, `novelty_building`, `art_environment` | 1 | |
@@ -74,7 +74,7 @@ passed line only when nothing else was (SP16, SP19, SP20; XS17, XS18).
 |---|---|
 | `src/lib/discovery/types.ts` | `Kind` gains `nature`, `attractions` and the 33 subtypes |
 | `src/lib/presence/presence.ts` | new classes (weights, `bar`, `storefront` for concert hall, observatory, zoo, tavern; `subset`), the archive table for contract v4, `castle/ruins` to `ruin`, zoo subclasses to `attraction`, `attraction`'s kind to `attractions`, the unnamed words (XS13); `PRESENCE_CODE` p6, nothing carried |
-| `src/lib/discovery/smallPlaces.ts` → `subtypes.ts` | `SMALL_SUBSETS` becomes `SUBTYPES` (kind, parent, label, plural, single, `on`, `small`); `isSmallPlace` reads `small`; `SMALL_REFINEMENTS` → `SUBTYPE_REFINEMENTS`; `smallPlaces.ts` re-exports for one release of imports, or the imports move (the plan's choice: move them, 6 files) |
+| `src/lib/discovery/smallPlaces.ts` → `subtypes.ts` | `SMALL_SUBSETS` becomes `SUBTYPES` (kind, parent, label, plural, single, `on`, `small`); `isSmallPlace` reads `small`; `SMALL_REFINEMENTS` → `SUBTYPE_REFINEMENTS`; the imports moved (7 files) |
 | `src/lib/discovery/refinements.ts` | registry reads `SUBTYPE_REFINEMENTS` |
 | `src/lib/explore/explore.ts` | `KINDS` gains `category` per row and the new rows in the table's order; `kindHint`; `parseHidden` keeps `attractions` off when `viewpoints` was off and `attractions` unknown (XS7); `DEFAULT_OFF` adds `ghost_towns` |
 | `src/components/ExploreSettings.tsx` | `KindSwitches` draws a heading (`accessibilityRole="header"`) before each category's first row (XS2, XS23) |
@@ -83,7 +83,7 @@ passed line only when nothing else was (SP16, SP19, SP20; XS17, XS18).
 | `src/lib/__tests__/explore/contract/` | chronicles-data's contract v4, copied (XS3) |
 | `src/lib/__tests__/presence/golden.json`, `readers.golden.json` | re-captured; the changed pairs (`castle/ruins`, `zoo/*`, `attraction`) in `CHANGED` and listed here (PR8) |
 | `docs/decisions/0187-…md`, `docs/VISION.md` Precedents | the owner's calls of Nov 17 |
-| `.claude/rules/subtypes.md` (new, from `small-places.md`) | the registry, the small flag, the traps |
+| `.claude/rules/subtypes.md` (renamed from `small-places.md`) | the registry, the small flag, the traps |
 
 No storage change: `kind` is a string on checklist items and finds; kept items keep their old kind until their area is
 rebuilt (E4, PW12: a new archive version rebuilds them). No SQLite migration, no IndexedDB version.

@@ -11,7 +11,7 @@ import { waitingMarks, type AtlasMark } from '../../atlas/atlas';
 import { sightsFrom } from '../../nav/scenicSignals';
 import { classesOfArchive, isStorefront, storefrontWeight } from '../../presence/presence';
 import type { LngLat } from '../../types';
-import * as smallPlaces from '../../discovery/smallPlaces';
+import * as smallPlaces from '../../discovery/subtypes';
 
 // Small places (specs/small-places, SP1-SP22; decision 0183), written from the spec before the code. New modules are loaded
 // by a path TypeScript doesn't resolve, so a todo runs before they exist.

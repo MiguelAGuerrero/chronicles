@@ -1,12 +1,12 @@
 // @layer core
 import { greenFromTiles, inRings, type GreenArea } from '../discovery/green';
 import { isMarkable } from '../discovery/noise';
-import { isKindHidden } from '../discovery/refinements';
+import { isKindHidden, kindChain } from '../discovery/refinements';
 import type { CategoryId, Kind, Place } from '../discovery/types';
 import { distanceM, projector, type Bounds } from '../geo';
 import type { LngLat } from '../types';
 import { NAV, SCENIC } from './rules';
-import { isSmallPlace } from '../discovery/smallPlaces';
+import { isSmallPlace } from '../discovery/subtypes';
 
 /**
  * What a scenic route leans toward (specs/scenic-routes, SR6, SR15), from one read of the tiles
@@ -43,11 +43,14 @@ export const insideGreen = (p: LngLat, areas: GreenArea[]): boolean => areas.som
 /** The categories whose places are sights; parks are green instead, food and the rest are storefront streets. */
 const SIGHT_CATEGORIES: readonly CategoryId[] = ['art', 'history', 'culture', 'viewpoints'];
 
+/** XS17: Nature's places (a waterfall, a cave) are sights, though Nature sits under Parks & green spaces. */
+const isSightKind = (p: Place): boolean => SIGHT_CATEGORIES.includes(p.category) || (!!p.kind && kindChain(p.kind).includes('nature'));
+
 /** SR6: the places a Sights route leans toward: marks of a kind switched on in "What I'm into". */
 export function sightsFrom(places: Place[], hidden: Set<Kind>, found: Set<string>): Sight[] {
   return places
-    // SP16: a Sights route never leans on small places, on or off (decision 0183).
-    .filter((p) => SIGHT_CATEGORIES.includes(p.category) && isMarkable(p) && !isKindHidden(hidden, p.kind) && !isSmallPlace(p))
+    // SP16, XS17: a Sights route never leans on small places, on or off (decision 0183), nor on an unnamed place (steward S4).
+    .filter((p) => isSightKind(p) && isMarkable(p) && !isKindHidden(hidden, p.kind) && !isSmallPlace(p) && !p.generic)
     .map((p) => ({ key: p.key, at: p.at, name: p.name, found: found.has(p.key) }));
 }
 

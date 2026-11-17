@@ -46,7 +46,7 @@ listed buildings; ghost towns out of ruins; historical markers apart from plaque
 The owner's task, in their words: "a more rich exploring experience, no matter how small the point of interest is".
 
 - **XS1** (the task): on an exploring walk, an archive waterfall within the range shows as a "?", is named within 60 m,
-  and a capture beside it finds it ("Found: Bushkill Falls"); the same for a covered bridge, a fountain and a carousel.
+  and a capture beside it finds it ("Found: Bushkill Falls · Waterfalls", as every named find says its kind); the same for a covered bridge, a fountain and a carousel.
 - **XS2** (finding): "What I'm into" shows five headings in order, Art, History, Parks & green spaces, Culture,
   Viewpoints & oddities, each over its kinds; someone told only "turn on ghost towns" finds the row under Curiosities,
   under Viewpoints & oddities.
@@ -63,7 +63,8 @@ The owner's task, in their words: "a more rich exploring experience, no matter h
   seen (SP8's mechanism).
 - **XS8** a subtype switched on or off stays so after a reload and a new archive version.
 - **XS9** an off subtype's places show as no "?" on a walk, on Explore's map or in an area's "Waiting to be found".
-- **XS10** a historical marker from the archive is in "Historical markers" (History, under Monuments and memorials, on);
+- **XS10** a historical marker from the archive is in "Markers" (History, under Monuments and memorials, on; not "Historical
+  markers", which PK16 reads as a credential);
   an OpenStreetMap plaque is in "Plaques" (off).
 - **XS11** statues and busts are Public art (subtype "Statues and busts"), from the archive and the map alike; a map
   artwork whose type the tiles do not carry stays Public art itself.
@@ -78,10 +79,11 @@ The owner's task, in their words: "a more rich exploring experience, no matter h
   switch changes the dots without reading the area again (SP12, SP13 hold for every subtype).
 - **XS16** none of the new classes weighs toward storefronts but a concert hall, an observatory, a zoo and a historic
   tavern (places you walk into).
-- **XS17** the planner, scenic routes and the community-park rule treat a new subtype's place as its kind's (a covered
-  bridge pulls a History route; a waterfall is a scenic Sight); the small subtypes and every unnamed place stay out of them (SP16, SP19; steward S4).
+- **XS17** the planner and scenic routes treat a new subtype's place as its kind's (a covered bridge pulls a History
+  route; a waterfall is a scenic Sight, though Nature sits under Parks & green spaces); the small subtypes and every
+  unnamed place stay out of them, and small subtypes out of the community-park rule (SP16, SP19; steward S4).
 - **XS18** the walk's card and the replay's passed line keep their bounds; a small place is named only when nothing else
-  was passed (SP20), and the new small subtypes (historical markers, fountains, signs, old trees, survey marks) count as
+  was passed (SP20), and the new small subtypes (markers, fountains, signs, old trees, survey marks) count as
   small: passing a museum and three historical markers says "Passed <the museum> without stopping", and a History route
   is not pulled by markers (steward S3).
 - **XS19** no screen shows a number of places of any subtype, or a share found; no heading or kind row says how many of
@@ -96,7 +98,7 @@ The owner's task, in their words: "a more rich exploring experience, no matter h
   (small-places ui 2 holds).
 - **XS24** "What I'm into" is the same list in the ready bar's settings and the walk's drawer (NV21).
 - **XS25** no kind, subtype, plural or unnamed label contains "notable", "remarkable", "champion", "landmark", "listed",
-  "historic" or "wonder" (0110, RP18: no kind is named for significance; steward S1, S2).
+  "famous" or "wonder"; taverns read "Old taverns and inns", never "Historic" ("Historical markers" is the signs' own name) (0110, RP18: no kind is named for significance; steward S1, S2).
 - **XS26** three unnamed fountains found in one area read as one Found row "Fountains", with no number; passing two reads
   "Passed fountains without stopping"; the same for every class that may come unnamed (SP15, SP21, SP22; steward S5).
 - **XS28** a fountain the archive classes as a sculpture (typed or tagged as an artwork) is Public art and shows with

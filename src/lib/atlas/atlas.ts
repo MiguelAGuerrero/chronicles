@@ -1,6 +1,6 @@
 // @layer core
 import { barWeight, PRESENCE_CARRIED, PRESENCE_CODE, subsetOf, type PresenceClass } from '../presence/presence';
-import { SMALL_SUBSETS } from '../discovery/smallPlaces';
+import { SUBTYPES } from '../discovery/subtypes';
 import { countsToward } from '../discovery/curation';
 import { coveredBy, townAt, withOutlines, type OutlineSet } from '../areas/outlines';
 import { AREA_REACH_M } from '../areas/rules';
@@ -254,7 +254,7 @@ export function presenceTally(places: AtlasPlace[], centre: LngLat, within: With
 }
 
 /** Every small subset off: what a stored `steps` is counted with. */
-const ALL_SMALL_OFF: ReadonlySet<Kind> = new Set(SMALL_SUBSETS.map((s) => s.kind));
+const ALL_SMALL_OFF: ReadonlySet<Kind> = new Set(SUBTYPES.map((s) => s.kind));
 
 /** SP12, SP13: the bars from a tally, adding the shares of the subsets the reader has on (a parent off hides its subsets). */
 export function stepsFrom(t: Tally, hidden: ReadonlySet<Kind>): Steps {

@@ -40,7 +40,7 @@ const K = (s: string) => s as Kind;
 /** The plan's tree (specs/explore-subtypes/plan.md): archive class → [category, kind]. */
 const TREE: [string, string, string][] = [
   ['statue', 'art', 'statues'], ['mural', 'art', 'murals'], ['fountain', 'art', 'fountains'], ['sign', 'art', 'signs'], ['sculpture', 'art', 'public_art'],
-  ['marker', 'history', 'historical_markers'], ['plaque', 'history', 'plaques'], ['war_memorial', 'history', 'war_memorials'],
+  ['marker', 'history', 'markers'], ['plaque', 'history', 'plaques'], ['war_memorial', 'history', 'war_memorials'],
   ['small_memorial', 'history', 'small_memorials'], ['battlefield', 'history', 'battlefields'], ['archaeological_site', 'history', 'archaeological_sites'],
   ['monument', 'history', 'monuments'], ['bridge', 'history', 'bridges'], ['mill', 'history', 'mills'], ['station', 'history', 'stations'],
   ['lighthouse', 'history', 'lighthouses'], ['civic_building', 'history', 'civic_buildings'], ['fort', 'history', 'forts'],
@@ -52,12 +52,12 @@ const TREE: [string, string, string][] = [
   ['museum', 'culture', 'museums'], ['observatory', 'culture', 'observatories'], ['theatre', 'culture', 'theatres'], ['concert_hall', 'culture', 'concert_halls'],
   ['public_bookcase', 'culture', 'little_libraries'], ['carousel', 'culture', 'carousels'],
   ['overlook', 'viewpoints', 'viewpoints'], ['tower', 'viewpoints', 'viewpoints'], ['fire_tower', 'viewpoints', 'fire_towers'], ['zoo', 'viewpoints', 'attractions'],
-  ['odd_engineering', 'viewpoints', 'curiosities'], ['ruin', 'viewpoints', 'ruins'], ['ghost_town', 'viewpoints', 'ghost_towns'],
+  ['odd_engineering', 'viewpoints', 'curiosities'], ['ruin', 'viewpoints', 'old_ruins'], ['ghost_town', 'viewpoints', 'ghost_towns'],
   ['natural_oddity', 'viewpoints', 'natural_oddities'], ['roadside_giant', 'viewpoints', 'roadside_giants'], ['folly', 'viewpoints', 'roadside_giants'],
   ['marks_a_fact', 'viewpoints', 'survey_marks'], ['time_capsule', 'viewpoints', 'time_capsules'],
 ];
 
-test('XS1: a waterfall, a covered bridge, a fountain and a carousel from the archive show within range and a capture beside each finds it', { todo: 'test first' }, async () => {
+test('XS1: a waterfall, a covered bridge, a fountain and a carousel from the archive show within range and a capture beside each finds it', async () => {
   await sub();
   for (const [cls, name] of [['waterfall', 'Bushkill Falls'], ['bridge', 'Knox Covered Bridge'], ['fountain', 'Plaza Fountain'], ['carousel', 'Park Carousel']]) {
     const p = one(cls, name, at(40));
@@ -65,11 +65,12 @@ test('XS1: a waterfall, a covered bridge, a fountain and a carousel from the arc
     const shown = visibleMarks({ items: [it], here: O, rangeM: 100, found: new Set(), hidden: new Set(), revealed: new Set() });
     assert.equal(shown.length, 1, cls);
     assert.equal(findFor(at(30), [it], new Set())?.name, name, cls);
-    assert.equal(foundLine({ name, category: p.category, generic: false, kind: p.kind }), `Found: ${name}`);
+    // A named find says its kind after it, as every named find has since PC16.
+    assert.equal(foundLine({ name, category: p.category, generic: false, kind: p.kind }), `Found: ${name} · ${KINDS.find((k) => k.id === p.kind)?.label}`);
   }
 });
 
-test('XS3: each archive class of contract v4 maps to one category, kind and subtype, pinned; the app pins contract v4', { todo: 'test first' }, async () => {
+test('XS3: each archive class of contract v4 maps to one category, kind and subtype, pinned; the app pins contract v4', async () => {
   await sub();
   for (const [cls, category, kind] of TREE) {
     const p = one(cls);
@@ -82,7 +83,7 @@ test('XS3: each archive class of contract v4 maps to one category, kind and subt
   assert.deepEqual([...ARCHIVE_CLASS_NAMES].sort(), [...sources.classes].sort());
 });
 
-test('XS4: two new kinds, Nature and Zoos, aquariums and attractions; Viewpoints reads Viewpoints', { todo: 'test first' }, async () => {
+test('XS4: two new kinds, Nature and Zoos, aquariums and attractions; Viewpoints reads Viewpoints', async () => {
   await sub();
   const label = (id: string) => KINDS.find((k) => k.id === id)?.label;
   assert.equal(label('nature'), 'Nature');
@@ -96,7 +97,7 @@ test('XS4: two new kinds, Nature and Zoos, aquariums and attractions; Viewpoints
   assert.equal(tile('attraction', 'viewpoint', 'Lookout')[0]?.kind, 'viewpoints');
 });
 
-test('XS5: a subtype row shows indented under its kind only while the kind is on, locked under a kind off', { todo: 'test first' }, async () => {
+test('XS5: a subtype row shows indented under its kind only while the kind is on, locked under a kind off', async () => {
   const { SUBTYPES } = await sub();
   const rows = kindRows(KINDS, new Set());
   for (const s of SUBTYPES) {
@@ -107,7 +108,7 @@ test('XS5: a subtype row shows indented under its kind only while the kind is on
   }
 });
 
-test('XS6: a fresh install starts the small things and ghost towns off, everything else on', { todo: 'test first' }, async () => {
+test('XS6: a fresh install starts the small things and ghost towns off, everything else on', async () => {
   const { DEFAULT_OFF } = await sub();
   const OFF = ['plaques', 'small_memorials', 'old_stones', 'wayside_shrines', 'ghost_towns', 'fountains', 'old_trees', 'survey_marks'];
   assert.deepEqual([...DEFAULT_OFF].sort(), [...OFF].sort());
@@ -115,7 +116,7 @@ test('XS6: a fresh install starts the small things and ghost towns off, everythi
   for (const k of KINDS) assert.equal(hidden.has(k.id), OFF.includes(k.id), k.id);
 });
 
-test('XS7: saved switches keep their meaning after the update', { todo: 'test first' }, async () => {
+test('XS7: saved switches keep their meaning after the update', async () => {
   await sub();
   const before = ['public_art', 'museums', 'theatres', 'community', 'little_libraries', 'monuments', 'plaques', 'small_memorials', 'structures', 'old_stones', 'churches', 'wayside_shrines', 'cemeteries', 'parks', 'community_parks', 'viewpoints', 'curiosities', 'time_capsules'];
   // Viewpoints and attractions was off: zoos stay off under the new kind.
@@ -127,7 +128,7 @@ test('XS7: saved switches keep their meaning after the update', { todo: 'test fi
   assert.equal(kindSwitch(parseHidden(JSON.stringify(['structures']), JSON.stringify(before)), K('bridges')).on, false);
 });
 
-test('XS8: a subtype switched on or off stays so after a reload', { todo: 'test first' }, async () => {
+test('XS8: a subtype switched on or off stays so after a reload', async () => {
   await sub();
   const all = KINDS.map((k) => k.id);
   const h = parseHidden(JSON.stringify(['bridges']), JSON.stringify(all));
@@ -135,7 +136,7 @@ test('XS8: a subtype switched on or off stays so after a reload', { todo: 'test 
   assert.ok(!h.has(K('ghost_towns')), 'switched on, stays on');
 });
 
-test('XS9: an off subtype shows no "?" on a walk, on the map or in "Waiting"', { todo: 'test first' }, async () => {
+test('XS9: an off subtype shows no "?" on a walk, on the map or in "Waiting"', async () => {
   await sub();
   const p = one('ghost_town', 'Centralia', at(20));
   const it = item(p);
@@ -146,31 +147,31 @@ test('XS9: an off subtype shows no "?" on a walk, on the map or in "Waiting"', {
   assert.equal(waitingMarks([mark], new Set(), O, parseHidden(null, null), { all: true }).length, 0);
 });
 
-test('XS10: a historical marker is in Historical markers (on); an OSM plaque in Plaques (off)', { todo: 'test first' }, async () => {
+test('XS10: a historical marker is in Historical markers (on); an OSM plaque in Plaques (off)', async () => {
   await sub();
-  assert.equal(one('marker', 'Bethlehem Steel Historical Marker').kind, 'historical_markers');
+  assert.equal(one('marker', 'Bethlehem Steel Historical Marker').kind, 'markers');
   assert.equal(one('plaque', 'Blue plaque').kind, 'plaques');
   const hidden = parseHidden(null, null);
-  assert.ok(!hidden.has(K('historical_markers')));
+  assert.ok(!hidden.has(K('markers')));
   assert.ok(hidden.has(K('plaques')));
   assert.equal(KINDS.find((k) => k.id === 'plaques')?.label, 'Plaques');
 });
 
-test('XS11: statues and busts are Public art; a map artwork stays Public art itself', { todo: 'test first' }, async () => {
+test('XS11: statues and busts are Public art; a map artwork stays Public art itself', async () => {
   await sub();
   assert.equal(one('statue', 'Soldier').category, 'art');
   assert.equal(one('statue', 'Soldier').kind, 'statues');
   assert.equal(tile('art_gallery', 'artwork', 'Untitled')[0]?.kind, 'public_art');
 });
 
-test('XS12: ruins are one subtype whatever the source; a castle stays a monument', { todo: 'test first' }, async () => {
+test('XS12: ruins are one subtype whatever the source; a castle stays a monument', async () => {
   await sub();
-  assert.equal(one('ruin', 'Old Furnace').kind, 'ruins');
-  assert.equal(read(tile('castle', 'ruins', 'Fort Ruins'))[0]?.kind, 'ruins');
+  assert.equal(one('ruin', 'Old Furnace').kind, 'old_ruins');
+  assert.equal(read(tile('castle', 'ruins', 'Fort Ruins'))[0]?.kind, 'old_ruins');
   assert.equal(read(tile('castle', 'castle', 'Castle Hill'))[0]?.kind, 'monuments');
 });
 
-test('XS13: an unnamed place is named by its type, said once when found', { todo: 'test first' }, async () => {
+test('XS13: an unnamed place is named by its type, said once when found', async () => {
   await sub();
   const labels: [string, string][] = [
     ['fountain', 'A fountain'], ['waterfall', 'A waterfall'], ['lighthouse', 'A lighthouse'], ['war_memorial', 'A war memorial'], ['mill', 'A mill'],
@@ -186,7 +187,7 @@ test('XS13: an unnamed place is named by its type, said once when found', { todo
   assert.equal(foundLine({ name: 'A fountain', category: f?.category ?? 'art', generic: true, kind: K('fountains') }), 'Found: A fountain');
 });
 
-test('XS14: an unnamed archive statue and an unnamed map artwork within 20 m are one place, the archive\'s', { todo: 'test first' }, async () => {
+test('XS14: an unnamed archive statue and an unnamed map artwork within 20 m are one place, the archive\'s', async () => {
   await sub();
   const t = placesFromTilePois([{ geometry: { type: 'Point', coordinates: at(0) }, properties: { class: 'art_gallery', subclass: 'artwork' }, zoom: 14 }] as never, 'b');
   const a = [archivePlace('', 'statue', at(12), V)!];
@@ -195,7 +196,7 @@ test('XS14: an unnamed archive statue and an unnamed map artwork within 20 m are
   assert.equal(merged[0].kind, 'statues');
 });
 
-test('XS15: bars weigh each subtype by the size of the stop, only while it is on', { todo: 'test first' }, async () => {
+test('XS15: bars weigh each subtype by the size of the stop, only while it is on', async () => {
   await sub();
   const { presenceTally, stepsShown } = atlasModule;
   const bridges = Array.from({ length: 2 }, (_, i) => archivePlace(`Bridge ${i}`, 'bridge', at(i * 30, 40), V)!);
@@ -205,14 +206,14 @@ test('XS15: bars weigh each subtype by the size of the stop, only while it is on
   assert.equal(stepsShown(profile, new Set([K('bridges')])).history, 0, 'bridges off');
 });
 
-test('XS16: only a concert hall, an observatory, a zoo and a tavern of the new classes are storefronts', { todo: 'test first' }, async () => {
+test('XS16: only a concert hall, an observatory, a zoo and a tavern of the new classes are storefronts', async () => {
   await sub();
   const NEW = ['fountain', 'sign', 'plaque', 'war_memorial', 'battlefield', 'archaeological_site', 'bridge', 'mill', 'station', 'lighthouse', 'civic_building', 'fort', 'water_tower', 'clock_tower', 'tavern', 'historic_machine', 'mausoleum', 'garden', 'waterfall', 'cave', 'hot_spring', 'old_tree', 'concert_hall', 'observatory', 'carousel', 'zoo', 'fire_tower', 'ghost_town'];
   const front = NEW.filter((c) => classesOfArchive(c).some(isStorefront));
   assert.deepEqual(front.sort(), ['concert_hall', 'observatory', 'tavern', 'zoo']);
 });
 
-test('XS17: the planner and scenic routes treat a new subtype as its kind; small subtypes and unnamed places stay out', { todo: 'test first' }, async () => {
+test('XS17: the planner and scenic routes treat a new subtype as its kind; small subtypes and unnamed places stay out', async () => {
   const { isSmallPlace } = await sub();
   const places = read([archivePlace('Covered Bridge', 'bridge', at(10), V), archivePlace('Bushkill Falls', 'waterfall', at(20), V), archivePlace('', 'waterfall', at(30), V), archivePlace('Town Fountain', 'fountain', at(40), V), archivePlace('Marker', 'marker', at(50), V)]);
   assert.deepEqual(sightsFrom(places, new Set(), new Set()).map((s) => s.name).sort(), ['Bushkill Falls', 'Covered Bridge']);
@@ -220,40 +221,42 @@ test('XS17: the planner and scenic routes treat a new subtype as its kind; small
   assert.ok(isSmallPlace(places[3]) && isSmallPlace(places[4]));
 });
 
-test('XS18: a museum and three historical markers passed say the museum', { todo: 'test first' }, async () => {
+test('XS18: a museum and three historical markers passed say the museum', async () => {
   await sub();
   const places = read([archivePlace('Museum of the Revolution', 'museum', at(0, 10), V), archivePlace('A Marker', 'marker', at(5, 10), V), archivePlace('B Marker', 'marker', at(10, 10), V), archivePlace('C Marker', 'marker', at(15, 10), V)]);
   const passed = passedPlaces({ items: places.map(item), fixes: [{ at: O, t: 1 }], since: 0, hidden: new Set(), foundHere: new Set() });
   assert.equal(passedLine(passed), 'Passed Museum of the Revolution without stopping');
 });
 
-test('XS19: no subtype row, heading or label carries a number', { todo: 'test first' }, async () => {
+test('XS19: no subtype row, heading or label carries a number', async () => {
   const { SUBTYPES } = await sub();
   for (const k of KINDS) assert.doesNotMatch(`${k.label} ${kindHint(k.id) ?? ''}`, /\d/, k.id);
   for (const s of SUBTYPES) assert.doesNotMatch(`${s.plural} ${s.single ?? ''}`, /\d/, s.kind);
 });
 
-test('XS20: every subtype resolves from a class or a tile class; none needs a fetch of its own', { todo: 'test first' }, async () => {
+test('XS20: every subtype resolves from a class or a tile class; none needs a fetch of its own', async () => {
   const { SUBTYPES } = await sub();
   const fromArchive = new Set(TREE.map(([, , kind]) => kind));
   for (const s of SUBTYPES) assert.ok(fromArchive.has(s.kind) || s.kind === 'community_parks', `${s.kind} has a class`);
 });
 
-test('XS21: springs, dams, drinking fountains, benches and give boxes are never places', { todo: 'test first' }, async () => {
+test('XS21: springs, dams, drinking fountains, benches and give boxes are never places', async () => {
   await sub();
   for (const cls of ['spring', 'dam', 'drinking_water', 'bench', 'give_box']) assert.deepEqual(classesOfArchive(cls), [], cls);
   assert.equal(tile('drinking_water', 'drinking_water', 'Tap').length, 0);
   assert.deepEqual(classesOfOsm('fountain', 'fountain').filter((c) => c !== 'none'), []);
 });
 
-test('XS25: no label names significance', { todo: 'test first' }, async () => {
+test('XS25: no label names significance', async () => {
   const { SUBTYPES } = await sub();
-  const words = /notable|remarkable|champion|landmark|listed|historic|wonder/i;
+  // "Historical markers" is what the signs are called, not a credential; the other words name significance (0110).
+  const words = /notable|remarkable|champion|landmark|listed|wonder|famous/i;
+  assert.equal(KINDS.find((k) => k.id === 'taverns')?.label, 'Old taverns and inns', 'never "Historic taverns"');
   for (const k of KINDS) assert.doesNotMatch(k.label, words, k.id);
   for (const s of SUBTYPES) assert.doesNotMatch(`${s.label} ${s.plural} ${s.single ?? ''}`, words, s.kind);
 });
 
-test('XS26: three unnamed fountains found are one Found row; two passed read in the plural', { todo: 'test first' }, async () => {
+test('XS26: three unnamed fountains found are one Found row; two passed read in the plural', async () => {
   const { foundRows, SUBTYPES } = await sub();
   const f = (name: string) => ({ name, generic: true, category: 'art', at: O });
   assert.deepEqual(foundRows([f('A fountain'), f('A fountain'), f('A fountain')]).map((r) => r.name), ['Fountains']);
@@ -261,13 +264,13 @@ test('XS26: three unnamed fountains found are one Found row; two passed read in 
   for (const s of SUBTYPES.filter((x) => x.single)) assert.ok(s.plural.length > 0, s.kind);
 });
 
-test('XS27: an unnamed water tower is no place', { todo: 'test first' }, async () => {
+test('XS27: an unnamed water tower is no place', async () => {
   await sub();
   assert.equal(archivePlace('', 'water_tower', O, V), null);
   assert.equal(archivePlace('Old Water Tower', 'water_tower', O, V)?.name, 'Old Water Tower');
 });
 
-test('XS28: an artistic fountain is Public art and shows with Fountains off; a plain fountain only with Fountains on', { todo: 'test first' }, async () => {
+test('XS28: an artistic fountain is Public art and shows with Fountains off; a plain fountain only with Fountains on', async () => {
   await sub();
   const art = one('sculpture', 'Swann Memorial Fountain', at(20));
   const plain = one('fountain', 'Plaza Fountain', at(30));

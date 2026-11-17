@@ -841,3 +841,11 @@ What the native map frames slice (NF1-NF7, specs/native-map-frames) left out, fr
 - **The replay screen still renders at the clock's 30 fps** (`useCeremonyClock` sets state on the screen): since native map frames it no longer reaches the map's sources or pins; the stage and its overlays are the ceremony's own, left for a measurement on a device.
 - **The hidden `omt-query` source is mounted on every native map** (the replay, a day, the planner drawer, Chronicle), five invisible layers on the base tiles again, though only the maps that read tiles or hide the scale over a blank world need it: mount it only there (performance investigation, Nov 16).
 - **A native follow camera** (`Camera` `trackUserLocation`): it would move without JS per fix, but follows the OS fix, not the filtered one (`docs/research-reactivity.md`); the follow stays `GlideFollow`'s `jumpTo`.
+
+## Explore subtypes
+
+What the Explore subtypes slice left out (`specs/explore-subtypes`, decision 0187).
+
+- Places of worship by tradition, house museums, chapels and meeting houses, and mountain peaks from the map's `mountain_peak` layer: counted by the second review (Nov 17), not asked for; each would be a subtype or a kind of its own
+- [kept] A kept checklist item or find keeps its old kind (a historical marker found as a plaque, a lighthouse as a curiosity) until its area is rebuilt by a new archive version (E4, PW12): kept data is never patched (decision 0187)
+- [owner] VISION.md's Precedents table has no row for 0187: the page is at its byte budget (12,000), and the row would put it 168 bytes over; trimming another line is the owner's

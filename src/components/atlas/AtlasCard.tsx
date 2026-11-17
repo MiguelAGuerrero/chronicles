@@ -23,7 +23,7 @@ import type { LngLat } from '../../lib/types';
 import { COLORS, HOTSPOT } from '../map/types';
 import { Icon } from '../icons';
 import { Button, theme } from '../ui';
-import { foundRows } from '../../lib/discovery/smallPlaces';
+import { foundRows } from '../../lib/discovery/subtypes';
 import { KIND_COLOR, KIND_ICON_OF } from './kinds';
 import { KindRow } from './KindStrip';
 import { MiniMap } from './MiniMap';
