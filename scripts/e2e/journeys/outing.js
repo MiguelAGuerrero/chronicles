@@ -46,7 +46,17 @@ async function run(h) {
   await pg.waitForSelector('[data-testid=outing-slot-0]', { timeout: 90000 }).catch(() => {});
   await pg.waitForTimeout(2500);
   await shot(pg, '03-proposal');
-  const slots = await pg.locator('[data-testid^=outing-slot-open-]').evaluateAll((els) => els.map((e) => e.textContent));
+  {
+    const sb = await pg.locator('[data-testid=outing-start]').boundingBox().catch(() => null);
+    const vh = pg.viewportSize()?.height ?? 0;
+    check(!!sb && sb.y + sb.height <= vh && sb.height >= 43.5 && !(await pg.locator('[data-testid=outing-start]').isDisabled()), 'quick-circuit ui 1: Start is on screen, ready and at least 44 px tall once a proposal is made');
+    const open0 = pg.locator('[data-testid=outing-slot-open-0]');
+    check(!!(await open0.getAttribute('aria-label').catch(() => null)) && (await pg.locator('[data-testid=outing-slot-chevron-0]').count()) === 1, 'quick-circuit ui 2: a slot shows a chevron, so it reads as something to open');
+    const swapColor = await pg.locator('[data-testid=outing-swap-0] >> text=Swap this stop').evaluate((e) => getComputedStyle(e).color);
+    const m = /rgba?\((\d+), (\d+), (\d+)/.exec(swapColor) ?? [];
+    check(m.length > 0 && Number(m[1]) < 90 && Number(m[2]) < 90 && Number(m[3]) < 110, `quick-circuit ui 3: Swap this stop is in full ink, not a pale caption (${swapColor})`);
+  }
+  const slots = await pg.locator('[data-testid^=outing-slot-open-]').evaluateAll((els) => els.map((e) => (e.textContent ?? '').replace(/[^\x20-\x7e]/g, '').trim()));
   check(slots.length >= 2 && slots.length <= 3, `QC8: two or three stops (${slots.length})`);
   check(slots.every((s) => /^An antiques shop, (a short walk on|a little way on|some way on)$/.test(s ?? '')), `QC17: a slot says its kind and how far, in words (${slots.join(' | ')})`);
   const page = await pg.locator('[data-testid=outing]').innerText();
@@ -62,9 +72,10 @@ async function run(h) {
   check(NAMES.some((n) => card.includes(n)) && !/hour|open|closed|unknown/i.test(card), `QC18: a tap names the shop on a card and says nothing of hours (${card.replace(/\s+/g, ' ')})`);
   // QC21: Swap closes the card and the new slot is unnamed.
   await shot(pg, '04-card');
-  const swapLabel = await pg.locator('[data-testid=outing-swap-0]').innerText();
+  const swapLabel = (await pg.locator('[data-testid=outing-swap-0]').innerText()).replace(/[^\x20-\x7e]/g, '').trim();
   await pg.click('[data-testid=outing-swap-0]');
   await pg.waitForTimeout(300);
+  check((await pg.locator('[data-testid=outing-said]').innerText().catch(() => '')) === 'Swapped for another one.', 'quick-circuit ui 4: a swap says it swapped, in a plain line');
   const after = await pg.locator('[data-testid=outing]').innerText();
   check(swapLabel === 'Swap this stop' && (await pg.locator('[data-testid=outing-card]').count()) === 0 && !NAMES.some((n) => after.includes(n)), 'QC21: Swap is worded "Swap this stop", closes the card and leaves the new slot unnamed');
   await shot(pg, '05-after-swap');

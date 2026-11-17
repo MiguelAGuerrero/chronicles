@@ -208,4 +208,17 @@ when the slice is tracked.
 
 ## Record
 
-(Filled in as the slice is built.)
+Built 2026-11-17 on `claude/lucid-gates-810ryf`; the stores pack's side is `chronicles-data` on the same branch name (ST1-ST10).
+
+**Passed.** Unit tests for QC4-QC15, QC17-QC19, QC21-QC24, QC31, QC33, QC37-QC42 (`src/lib/__tests__/outing/`, `presence/antiquesClass.test.ts`); the journey `outing` (QC1-QC3, QC6, QC8, QC10, QC17-QC22, QC24, QC25, QC27, QC28, QC41, and the arrival line QC19, QC26 on web); `npm test`, typecheck, lint, `check:docs` and `check:vision`; 18 more affected journeys (planner, snap, tabs, ready, marks, switches, layers, walkability, headsup, reload, hidden, space, carousel, capturehome, dense, drive, edit, freelook, gaps), all green.
+
+**Not tested, and why.** QC14's real pack reader and QC29's pack-request shell tests wait on the first published stores pack (`docs/DEFERRED.md`); QC24's basemap-label clause is unchecked; QC36 (Start disabled with its reason) and QC34's "only while no hours" are by construction, not by a test of their own; QC39 needs a second dimension in the harness.
+
+**Tests first.** QC4-QC38 and QC40 had failing todos committed before their code (`525ee2b`). QC41 and QC42 came with their code: the owner's third round of calls (Nov 16) arrived mid-slice. QC13's chains-on test likewise.
+
+**Cold find** (the `ux-reviewer`, pictures only, Nov 17): the entry, the vocabulary, Loop/One way and Include chains were found; Start was not visible once a proposal existed; what a slot does on a tap and what Swap does were confused. Triage (ten findings, U1-U10):
+- accepted and fixed, each with a regression check in the journey `outing`: U1 Start pinned under the list (`quick-circuit ui 1`), U2 a slot shows a chevron and a spoken hint (`ui 2`), U4 Swap is a text button with an icon in full ink (`ui 3`), and a plain "Swapped for another one." (`ui 4`);
+- rejected: U3 (number the stops and dots): a numbered stop is the checklist tally the vision forbids (QC25); the dots' colour is the planner's pin colour, deferred to the owner;
+- deferred: U6 (the empty page's map is blank in the e2e's fake basemap), U8 (the Loop label is the planner's own), U9 (a hint beside the search box), U10 (the order of the controls); U5 is answered by the pinned Start; U7 is Explore's own card, not this slice.
+
+**Native.** Nothing here has run on a device (`docs/NATIVE_UNVERIFIED.md`).

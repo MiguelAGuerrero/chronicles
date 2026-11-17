@@ -1,0 +1,33 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "Plan an outing's cold find and UI review (the",
+        "--reason",
+        "the review ran; this entry is replaced by one saying what is left"
+      ],
+      "target": "sha256:c170788173757c1aafd6346ee364836299d83765c0eebeb20a904d4cd1957e42"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Plan an outing"
+      ],
+      "body": "- Plan an outing's cold find and UI review ran (Nov 17; findings U1-U10 triaged in `specs/quick-circuit/spec.md`, Record): four fixed behind `quick-circuit ui 1-4`; left: the stop dots wear the planner's magenta pin colour, which may read as \"found\" (the owner's call on a different colour), the empty page's map is blank in the e2e's fake basemap, a hint beside the search box, the order of the controls (Start now pinned), and the journey has no step for Include chains kept across a reload, a second Swap, or Thrifting and Books proposals (the harness has antiques only) (QC32)\n"
+    },
+    {
+      "argv": [
+        "inflight",
+        "set",
+        "Plan an outing (QC1-QC42"
+      ],
+      "body": "| Plan an outing (QC1-QC42, decision 0182) | `claude/lucid-gates-810ryf` | built 2026-11-17: core, page, Explore control, arrival line, journey `outing`; UI review done (U1-U10: four fixed, `quick-circuit ui 1-4`); 19 affected journeys green; the stores pack built in chronicles-data on the same branch name (ST1-ST10, fixtures only); not built: the pack reader; native unverified |\n",
+      "target": "sha256:ad82df788594f20b0fcf07e85341083ac7a8e2d3bdb0a84d567699cdf778fa44"
+    }
+  ]
+}

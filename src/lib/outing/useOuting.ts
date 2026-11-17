@@ -13,7 +13,7 @@ import { outingDest } from './dest';
 import { outingMap } from './map';
 import type { Outing } from './plan';
 import type { PlanAnswer, Session } from './service';
-import { NO_SWAP_LINE } from './words';
+import { NO_SWAP_LINE, SWAPPED_LINE } from './words';
 
 let loaded = false;
 
@@ -96,7 +96,7 @@ export function useOuting(you: LngLat | null) {
         setSwapped({ base: answer, outing: current, offered: { ...offered, [i]: [...(offered[i] ?? []), ...r.offered] } });
         return;
       }
-      setUi({ base: answer, open: null, said: null });
+      setUi({ base: answer, open: null, said: SWAPPED_LINE });
       setSwapped({ base: answer, outing: r.outing, offered: { ...offered, [i]: [...(offered[i] ?? []), ...r.offered] } });
     },
     canStart: !!current,

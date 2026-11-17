@@ -5,7 +5,7 @@ import { matches, mergeFacets } from '../../lib/outing/candidates';
 import { distanceM } from '../../lib/geo';
 import type { Waypoint } from '../../lib/nav/types';
 import { useOuting } from '../../lib/outing/useOuting';
-import { SEARCH_LABEL, CHAINS_LABEL, CLOSE_LABEL, HOURS_LINE, MODE_LABEL, NO_PICK_LINE, READING_LINE, START_LABEL, SWAP_LABEL, TITLE, cardLine, reasonLine, slotLine } from '../../lib/outing/words';
+import { SEARCH_LABEL, CHAINS_LABEL, CLOSE_LABEL, HOURS_LINE, MODE_LABEL, SLOT_HINT, NO_PICK_LINE, READING_LINE, START_LABEL, SWAP_LABEL, TITLE, cardLine, reasonLine, slotLine } from '../../lib/outing/words';
 import { hideTabs } from '../../lib/tabsHidden';
 import type { LngLat } from '../../lib/types';
 import { Icon } from '../icons';
@@ -166,11 +166,15 @@ export function OutingDrawer(props: {
               testID={`outing-slot-open-${i}`}
               accessibilityRole="button"
               accessibilityLabel={slotLine(s.word, s.m)}
+              accessibilityHint={SLOT_HINT}
               accessibilityState={{ expanded: o.open === i }}
               onPress={() => o.toggleOpen(i)}
               style={styles.slotMain}
             >
               <Text style={styles.slotText}>{slotLine(s.word, s.m)}</Text>
+              <View testID={`outing-slot-chevron-${i}`}>
+                <Icon name={o.open === i ? 'chevron-up' : 'chevron-down'} size={20} color={theme.muted} />
+              </View>
             </Pressable>
             <Pressable
               testID={`outing-swap-${i}`}
@@ -179,6 +183,7 @@ export function OutingDrawer(props: {
               onPress={() => o.swap(i)}
               style={styles.swap}
             >
+              <Icon name="swap-horizontal" size={18} color={theme.ink} />
               <Text style={styles.swapText}>{SWAP_LABEL}</Text>
             </Pressable>
             {o.open === i ? (
@@ -192,10 +197,11 @@ export function OutingDrawer(props: {
         {o.said ? <Text style={styles.line} testID="outing-said">{o.said}</Text> : null}
         {reasons.map((r) => <Text key={r} style={styles.line} testID={`outing-reason-${r}`}>{reasonLine(r)}</Text>)}
         {o.outing ? <Text style={styles.line} testID="outing-hours">{HOURS_LINE}</Text> : null}
-        <View style={styles.actions}>
-          <Button testID="outing-start" label={START_LABEL} disabled={!o.canStart || busy || props.starting} onPress={() => void start()} />
-        </View>
       </ScrollView>
+      {/* Start stays on screen under the list (quick-circuit ui 1); with a walk recording it clears the capture stack. */}
+      <View style={[styles.footer, { paddingBottom: o.walkId ? 120 : insets.bottom + 12 }]}>
+        <Button testID="outing-start" label={START_LABEL} disabled={!o.canStart || busy || props.starting} onPress={() => void start()} />
+      </View>
       {o.walkId ? <PlannerCapture walkId={o.walkId} here={props.you} lastFixAt={props.lastFixAt} /> : null}
     </View>
   );
@@ -208,7 +214,8 @@ const styles = StyleSheet.create({
   close: { width: 44, height: 44, borderRadius: 22, backgroundColor: theme.surface, alignItems: 'center', justifyContent: 'center' },
   map: { height: 240, borderTopWidth: 1, borderBottomWidth: 1, borderColor: theme.line, overflow: 'hidden' },
   body: { flex: 1 },
-  content: { padding: 16, gap: 12, paddingBottom: 140 },
+  content: { padding: 16, gap: 12, paddingBottom: 24 },
+  footer: { paddingHorizontal: 16, paddingTop: 10, borderTopWidth: 1, borderColor: theme.line, backgroundColor: theme.bg },
   search: { minHeight: 44, borderRadius: 12, borderWidth: 1, borderColor: theme.line, backgroundColor: theme.surface, paddingHorizontal: 12, fontSize: 16, color: theme.ink },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: { minHeight: 44, paddingHorizontal: 16, borderRadius: 22, borderWidth: 1, borderColor: theme.line, backgroundColor: theme.surface, alignItems: 'center', justifyContent: 'center' },
@@ -223,11 +230,10 @@ const styles = StyleSheet.create({
   switchRow: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44 },
   line: { fontSize: 14, color: theme.ink, lineHeight: 19 },
   slot: { borderRadius: 14, borderWidth: 1, borderColor: theme.line, backgroundColor: theme.surface, overflow: 'hidden' },
-  slotMain: { minHeight: 48, paddingHorizontal: 14, justifyContent: 'center' },
+  slotMain: { minHeight: 48, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   slotText: { fontSize: 16, fontWeight: '600', color: theme.ink },
-  swap: { minHeight: 44, paddingHorizontal: 14, justifyContent: 'center', borderTopWidth: 1, borderColor: theme.line },
-  swapText: { fontSize: 14, color: theme.muted },
+  swap: { minHeight: 44, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 8, borderTopWidth: 1, borderColor: theme.line },
+  swapText: { fontSize: 14, fontWeight: '600', color: theme.ink },
   card: { padding: 14, gap: 4, borderTopWidth: 1, borderColor: theme.line },
   cardName: { fontSize: 18, fontWeight: '800', color: theme.ink },
-  actions: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
 });
