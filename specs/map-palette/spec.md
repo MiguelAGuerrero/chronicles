@@ -140,3 +140,13 @@ Open: 1. The madder video beside the hotspot magenta (0028, 0034): keep `#87244e
 ## Record
 
 - Nov 17: spec and plan written; the plan waits on the owner.
+- Nov 17: the owner's answers to the four questions (Decisions above); built test-first (13 of 13 by history; MP13
+  device-only, in `docs/NATIVE_UNVERIFIED.md`). Tests: `map/palette.test.ts` (MP1-MP7, MP9, MP10, MP12),
+  `streets/colors.test.ts` (MP8), the `qol` journey (MP11), the new `palette` journey (MP14, MP9's stage). MP1 is held by
+  a test of the sizes and widths left as they were. The decision is 0188 (main took 0187 while this was built).
+- The UI review (decision 0145, one round, the `ux-reviewer` with pictures at 390 and 320 and colour-blind sims): the
+  cold read found every pin a pin (the stone note "reads as a pin, late", the umber memo "reads as a pin"); four lows.
+  Accepted U2 as `map-palette ui 1` (a test only: each kind disc on a pin of several keeps its white edge, 3:1 against
+  the charcoal head; the edge was already there). Deferred U1 (the stone note one step darker), U3 (photo and video
+  apart in lightness under colour blindness) and U4 (the ink measured against the route's blue), filed `[loop]` low in
+  `docs/DEFERRED.md` on the owner's answer, Nov 17: "Ship as picked, file them". Rejected none.

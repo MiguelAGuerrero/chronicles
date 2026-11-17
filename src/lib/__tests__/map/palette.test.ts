@@ -188,3 +188,22 @@ test('MP12: T22 is answered: out of the inbox, and decision 0188 records Earth a
   assert.match(text, /Earth and ink/);
   assert.match(text, /Keep it, narrow the rule/);
 });
+
+// The UI review of the slice (decision 0145), U2: on a pin of several the umber memo disc on the charcoal head is
+// about 1.3:1, so each kind's disc is told from the head by its white edge (WCAG 2.2, 1.4.11, 3:1 against adjacent
+// colours). The edge is the pin's own (tend map T14); this holds it, never adds one.
+test('map-palette ui 1: each kind disc on a pin of several keeps its white edge, 3:1 against the head and its own fill', () => {
+  const pin = read('components/CapturePinView.tsx');
+  const fan = /\n  fan: \{([^}]*)\}/.exec(pin);
+  assert.ok(fan, 'the pin of several\'s kind disc style');
+  const width = /borderWidth: ([0-9.]+)/.exec(fan[1]);
+  const edge = /borderColor: '(#[0-9a-fA-F]{6})'/.exec(fan[1]);
+  assert.ok(width && Number(width[1]) >= 1, `an edge at least 1 pt wide (${width && width[1]})`);
+  assert.ok(edge, 'an edge of its own colour');
+  assert.equal(edge[1].toLowerCase(), WHITE);
+  assert.match(pin, /testID="pin-kind" style=\{\[styles\.fan,/, 'the kind discs are drawn with that style');
+  assert.ok(contrast(edge[1], palette.several) >= 3, `the edge against the charcoal head ${contrast(edge[1], palette.several).toFixed(2)}`);
+  for (const k of ['photo', 'video', 'voice', 'text'] as const) {
+    assert.ok(contrast(edge[1], palette[k]) >= 3, `the edge against the ${k} disc ${contrast(edge[1], palette[k]).toFixed(2)}`);
+  }
+});

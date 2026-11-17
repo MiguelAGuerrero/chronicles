@@ -211,6 +211,7 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
 What the map-palette slice left for the owner (`specs/map-palette/spec.md`, decision 0187).
 
 - **QL2's words** (`specs/quality-of-life/spec.md`, your quality-of-life doc): it says "a white disc with a thick ring in the walked orange". Since T16 and T25 the end is a bullseye, and since map-palette (decision 0188; the section's intro above says 0187, the number main took first) the walked colour is an ink, not orange. Your answer, Nov 17: "Build it, with that wording". Proposed for the doc: "a bullseye in the walked colour (a walked centre, a white band, a walked outer ring), so shape, not colour alone, tells it from the start and from the walker's dot". The doc is yours to amend; the mirror follows it.
+  The palette's decision is 0188 (main took 0187 for the empty walk); the intro above and T22's removal say 0187.
 
 ### From /fix carousel-snap-back
 
