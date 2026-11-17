@@ -299,6 +299,11 @@ edge was thin). Eight findings, triaged:
 - left open: the first cold find's C5 is answered by Undo; a segmented control for the reach (U6's second half) and the pictures the
   review could not see (the folded sheet, the search results, 320 px, large text, the map itself, whose tiles are blank in the test build).
 
+**The stores pack merged 2026-11-17** (the owner's go-ahead): chronicles-data's `main` is at the merge (`efa45d9`, contract v5, 96 tests
+green). Its first build must complete the OpenStreetMap download before a pack is published; until the Pages site lists `stores`,
+shops still come from the map's own tiles. The app's pinned stores contract (`__tests__/outing/contract/`, v3) is to be taken again
+once the pack is live.
+
 **Not built.** The session carrying a journey from town to town (step 3: Start begins the first town's chapter, and the page says so);
 "Leave this town out" (OJ26); the atlas's own words and street names in a town's line (OJ23); the setting for how many towns are looked
 at (0198; eight today); marks per kind and town outlines on the page's map; the stores pack published (merged on a branch of chronicles-data, decision 0200); a journey toward a far place has only been run against the test world, where the towns between hold nothing.
