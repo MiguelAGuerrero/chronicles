@@ -118,6 +118,16 @@ recording, and a recording bar brings a minimized walk back.
   - what you found;
   - the areas next door;
   - Walk to, which starts you on a street of its storefronts.
+- **Go here on every tile** (decision 0189): the tile's last line is a quiet "Go here" with an arrow. It opens a
+  small sheet of two choices, Chronicles first, then the phone's maps app named for it (Apple Maps on an iPhone).
+  Chronicles saves the place as Navigate's destination and opens Navigate, ready; the walk starts only on Start,
+  at any distance. The maps app is handed the destination alone, on the tap. No minutes, no ranking. Not on the
+  tile of the area you are in. A saved destination is said to be replaced, once.
+- **Go here on the rest of the surfaces** (decision 0190): the same quiet "Go here" and the same sheet on the area
+  card's footer (under Walk to), its storefront and complex rows (beside Walk to, even when too far to walk), Explore's
+  long-press card, Chronicle's star sheet (under Walk here) and Chronicle's long-press card. On Chronicle the sheet
+  sits at the top, clear of the capture band. Only the destination leaves the device: the link carries coordinates,
+  and a star's title or "Your spot" never rides in it. With a walk open the Chronicles row routes that walk.
 - A long press on the small map still offers **What's here?** and
   **Walk here**. There are no counts of places on this tab.
 - **Storefronts are a density of places you walk into** (activity density, decision 0080; storefronts, decision 0180):
@@ -222,7 +232,8 @@ recording, and a recording bar brings a minimized walk back.
   train) dashed. The map stays north-up unless you turn it with two fingers (a compass then
   shows above the edge buttons and sets north again, decision 0082); a soft cone on the dot shows the way
   you are walking, read from the last 20 m of the trace (decision 0075). A green ring marks where the walk began; the replay adds a
-  solid orange disc with a white ring where it ended (shape, not colour alone, tells them apart; decision 0154). Every map has a scale bar in its bottom-left
+  blue-violet bullseye where it ended (shape, not colour alone, tells them apart; decisions 0154, 0162). The map's colours are
+  Earth and ink (decision 0188): walked streets in an ink apart from the accent, the trace green, each kind of moment an earth pigment. Every map has a scale bar in its bottom-left
   corner. Pins mark captures, grouped by screen distance when zoomed
   out. A pin of one photo shows the photo itself, small and round. Faint
   pins with a clock badge show earlier walks' captures nearby (memories on
@@ -434,6 +445,7 @@ recording, and a recording bar brings a minimized walk back.
   an empty line and a Navigate button; with a walk open, "This walk is starred
   here when it ends" and no button, the recording bar's › being the way back
   (decision 0148).
+- **A walk with nothing in it is dropped** (decision 0187): stopping a walk with no moment, pause, still or gap and no movement past 15 m skips the replay and says "Walk not kept." with Undo; a killed app restores it.
 - **The replay** (the make-or-break): reading the streets, the fog clearing,
   the path, the card, then naming. The path has a rhythm (decision 0085): it
   glides into each moment and away, zips through long empty stretches with

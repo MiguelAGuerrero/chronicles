@@ -62,7 +62,7 @@ import { startErrorFrom, type RecorderStatus } from '../lib/recorder/types';
 import { raisedAfter, retryRecorder } from '../lib/recorderRetry';
 import { useUnits } from '../lib/useUnits';
 import { formatRange } from '../lib/format';
-import { pauseWalk, restartRecording, resumeWalk, stopWalk } from '../lib/session';
+import { endWalk, pauseWalk, restartRecording, resumeWalk } from '../lib/session';
 import { formatDistance, formatDuration, formatElapsed } from '../lib/summary';
 import type { LngLat, Pause, StreetSegment, Walk } from '../lib/types';
 import { useCaptures } from '../lib/useCaptures';
@@ -74,6 +74,7 @@ import { askMotion, useMotionAccess } from '../lib/walkMotion';
 import { shareLogText, walkLogText } from '../lib/shareLog';
 import { notifyWalkChanged } from '../lib/walkEvents';
 import { routeAhead } from '../lib/nav/navigator';
+import { shareLabel } from '../lib/atlas/goHere';
 import { HANDOFF_HINT, openInMaps } from '../lib/nav/openInMaps';
 import { useNavigation } from '../lib/nav/useNavigation';
 import { loadWayBack, saveWayBack } from '../lib/nav/store';
@@ -684,7 +685,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
    */
   const handOff = (at: LngLat, label: string) => {
     feedback('tap');
-    openInMaps(at, label).then(
+    // go-here-everywhere audit 2: a star's title or a spot is the owner's own; only a neutral label rides in the link (0058).
+    openInMaps(at, shareLabel('spot', label)).then(
       (ok) => {
         if (!ok) setNotice({ message: 'Couldn’t open a maps app.', tone: 'error' });
       },
@@ -1024,9 +1026,14 @@ function WalkScreen(props: { onMinimize: () => void }) {
       }
       // The walk stays on screen until the replay replaces it (the keeper hears it ended first).
       setEnded(walk);
-      await stopWalk(walk.id);
+      const { dropped } = await endWalk(walk.id, { leaves: true });
       feedback('success');
-      router.replace(`/replay/${walk.id}`);
+      if (dropped) {
+        // A walk with nothing in it has no replay: back to where the walker was, with the pill's Undo (EW1).
+        const to = exitPlan(router.canGoBack());
+        if (to.kind === 'back') router.back();
+        else router.replace(to.to);
+      } else router.replace(`/replay/${walk.id}`);
     } catch (e) {
       // The walk stays on screen with the error, even if storage already closed it (audit 3).
       setNotice({ message: `The walk could not be stopped: ${e instanceof Error ? e.message : e}`, tone: 'error', sticky: true });

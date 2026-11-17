@@ -121,6 +121,16 @@ The map component (maplibre-gl on web, MapLibre RN on native), pins and icons, t
     hour sharing their unit ("from twelve to fifty minutes in"), else "from the start to ..." or the mixed units
     (`tend map audit 30`). `pinInto` is gone: `pinWhen` is the one place a pin's time is worded.
 
+- **The map's palette is Earth and ink** (decision 0188, `specs/map-palette`): every map colour of a role is in
+  `COLORS` (`map/types.ts`), the pin of several's head too (`COLORS.several`; `MIXED` in `CapturePinView` reads it,
+  where it was a hex of its own), and the replay's stage takes the kinds from it. `map/palette.test.ts` holds them by
+  role (MP2) with the contrasts (MP4, MP5), the colour-blind floor (MP6: 9.5 apart, CIEDE2000, with deuteranopia and
+  protanopia; 15 in normal vision) and the accent's distance (MP7, 20); a new colour for a map role goes through those
+  tests, and through `colors.test.ts`'s magenta rule (MP8: 15 from `HOTSPOT`, which stays the one hue of any line, fill
+  or label). The `qol` and `palette` journeys read the colours from the source, never a copied hex. **Trap:** the
+  stone note (`#7b7469`) is the set's quietest; a change that fades or greys pins further makes a note read as
+  disabled.
+
 ## Explore's dots (WT12-WT14, decision 0132)
 
 - `waitingDots` is one `waiting-dots` circle layer (`WAITING_DOT_PAINT`, `waitingDotsGeoJSON` in `map/types.ts`), under the `marks` layer, on both maps: a feature's only property is its colour, so a dot carries no name, number, icon or id. Its edge is `WAITING_DOT_EDGE` (dark, 3:1 or more on the base map, a ring and a town's tint; `whole-towns audit 18` holds it). The web writes `data-waiting-dots` (positions only) for the e2e. A tap on a dot is the map's own `onPress` (no layer tap handler): the screen finds the dot within the press's reach (`dotAt`). Native's layer is unverified on a device.

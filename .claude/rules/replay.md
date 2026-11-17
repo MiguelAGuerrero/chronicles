@@ -129,3 +129,7 @@ A walk's replay and the day replay: the five beats, the story and its ceremonies
   a muted back chevron before "Back" (no new colour, no new words) and the spoken hint "Returns to the card, your
   words kept". Q4 "File it as architecture": the browser's own back on web (docs/DEFERRED.md, Replay). A Rename from
   the card's More replaces only the Name it field it changed (`fieldsAfterRename`).
+- **Beat one lights the walked streets in the walked ink, never the accent** (decision 0188, T22; 0153): the trace is
+  faint at `QUIET_TRACE_OPACITY` over them (`map/types.ts`), so a lit street reads `#658694`, 3:1 on the land. The
+  stage's memo (its play disc and waveform), a note's bubble edge and the pile's video tile take the kinds' colours from
+  `COLORS` (the owner's "Follow the palette"); `replay-rhythm audit 19` keeps every hex out of the stage.

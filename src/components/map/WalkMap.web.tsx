@@ -34,7 +34,7 @@ import { useReminded } from '../../lib/useReminded';
 import { MOTION } from '../../lib/motionTokens';
 import { groundGeoJSON, groundStyle } from '../../lib/areas/groundDraw';
 import {
-  alternatesGeoJSON, storefrontNameLayers, storefrontNameRotate, storefrontNamesGeoJSON, roomCells, routeGradesGeoJSON, pinsGeoJSON, BORDER, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, OVERTURE_CREDIT, GAZETTEER_CREDIT, DERIVE_ZOOM, endsGeoJSON, ENDS_PAINT, ENDS_RING_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON,
+  alternatesGeoJSON, TRACE_EDGE_OPACITY, storefrontNameLayers, storefrontNameRotate, storefrontNamesGeoJSON, roomCells, routeGradesGeoJSON, pinsGeoJSON, BORDER, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, OVERTURE_CREDIT, GAZETTEER_CREDIT, DERIVE_ZOOM, endsGeoJSON, ENDS_PAINT, ENDS_RING_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON,
   LINE_SOURCE, LINE_SOURCE_IDS, type CollectedFeatures, mapWorkerUrl, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
@@ -101,21 +101,21 @@ function addOverlay(map: MapLibreMap) {
   // A gap with no line: grey dots between its ends, under the faint stretches (GW2).
   map.addLayer({ id: 'gap-links', type: 'line', source: 'gap-links', layout: lineLayout,
     paint: { 'line-color': FOG_BOLD, 'line-width': 3, 'line-opacity': 0.8, 'line-dasharray': GAP_LINK_DASH } });
-  map.addLayer({ id: 'faint-edge', type: 'line', source: 'faint', layout: lineLayout, paint: { 'line-color': '#ffffff', 'line-width': FOG_STYLE.edgeWidth, 'line-opacity': 0.9 * FAINT_OPACITY } });
+  map.addLayer({ id: 'faint-edge', type: 'line', source: 'faint', layout: lineLayout, paint: { 'line-color': '#ffffff', 'line-width': FOG_STYLE.edgeWidth, 'line-opacity': TRACE_EDGE_OPACITY * FAINT_OPACITY } });
   map.addLayer({ id: 'faint', type: 'line', source: 'faint', layout: lineLayout, paint: { 'line-color': COLORS.trace, 'line-width': FOG_STYLE.traceWidth, 'line-opacity': FAINT_OPACITY } });
   // Rides dashed on the same white edge, under the walked trace where they meet (R5).
-  map.addLayer({ id: 'rides-edge', type: 'line', source: 'rides', layout: lineLayout, paint: { 'line-color': '#ffffff', 'line-width': FOG_STYLE.edgeWidth, 'line-opacity': 0.9 } });
+  map.addLayer({ id: 'rides-edge', type: 'line', source: 'rides', layout: lineLayout, paint: { 'line-color': '#ffffff', 'line-width': FOG_STYLE.edgeWidth, 'line-opacity': TRACE_EDGE_OPACITY } });
   map.addLayer({ id: 'rides', type: 'line', source: 'rides', layout: { 'line-cap': 'butt', 'line-join': 'round' },
     paint: { 'line-color': COLORS.trace, 'line-width': FOG_STYLE.traceWidth, 'line-dasharray': RIDE_DASH } });
   // The trace on a white edge, so it reads over fog, walked streets and the base map alike.
   // Two sources, one look: the history (re-sent once per chunk) and the live tail (each publish).
   // The link: from the trace's end to the dot, so the line always reaches it (the live dot, Nov 1).
   for (const [id, source] of [['trace-history-edge', 'trace-history'], ['trace-edge', 'trace'], ['trace-link-edge', 'trace-link']])
-    map.addLayer({ id, type: 'line', source, layout: lineLayout, paint: { 'line-color': '#ffffff', 'line-width': FOG_STYLE.edgeWidth, 'line-opacity': 0.9 } });
+    map.addLayer({ id, type: 'line', source, layout: lineLayout, paint: { 'line-color': '#ffffff', 'line-width': FOG_STYLE.edgeWidth, 'line-opacity': TRACE_EDGE_OPACITY } });
   for (const [id, source] of [['trace-history-line', 'trace-history'], ['trace', 'trace'], ['trace-link-line', 'trace-link']])
     map.addLayer({ id, type: 'line', source, layout: lineLayout, paint: { 'line-color': COLORS.trace, 'line-width': FOG_STYLE.traceWidth } });
   // A gap's way being drawn: over the trace, dashed on its white edge (GW3).
-  map.addLayer({ id: 'drawing-edge', type: 'line', source: 'drawing', layout: lineLayout, paint: { 'line-color': '#ffffff', 'line-width': FOG_STYLE.edgeWidth, 'line-opacity': 0.9 } });
+  map.addLayer({ id: 'drawing-edge', type: 'line', source: 'drawing', layout: lineLayout, paint: { 'line-color': '#ffffff', 'line-width': FOG_STYLE.edgeWidth, 'line-opacity': TRACE_EDGE_OPACITY } });
   map.addLayer({ id: 'drawing', type: 'line', source: 'drawing', layout: { 'line-cap': 'butt', 'line-join': 'round' },
     paint: { 'line-color': COLORS.trace, 'line-width': FOG_STYLE.traceWidth, 'line-dasharray': DRAWING_DASH } });
   // Where the walk began and ended (QL1-QL3): above the trace, under the walker; the capture pins
@@ -995,11 +995,11 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   useEffect(() => {
     if (!ready) return;
     for (const id of ['trace', 'trace-history-line', 'trace-link-line', 'rides']) mapRef.current?.setPaintProperty(id, 'line-opacity', props.traceOpacity ?? 1);
-    for (const id of ['trace-edge', 'trace-history-edge', 'trace-link-edge', 'rides-edge']) mapRef.current?.setPaintProperty(id, 'line-opacity', 0.9 * (props.traceOpacity ?? 1));
+    for (const id of ['trace-edge', 'trace-history-edge', 'trace-link-edge', 'rides-edge']) mapRef.current?.setPaintProperty(id, 'line-opacity', TRACE_EDGE_OPACITY * (props.traceOpacity ?? 1));
     mapRef.current?.setPaintProperty('faint', 'line-opacity', FAINT_OPACITY * (props.traceOpacity ?? 1));
     // The dots go with the trace: hidden while navigating (gap-drawing audit 12).
     mapRef.current?.setPaintProperty('gap-links', 'line-opacity', 0.8 * (props.traceOpacity ?? 1));
-    mapRef.current?.setPaintProperty('faint-edge', 'line-opacity', 0.9 * FAINT_OPACITY * (props.traceOpacity ?? 1));
+    mapRef.current?.setPaintProperty('faint-edge', 'line-opacity', TRACE_EDGE_OPACITY * FAINT_OPACITY * (props.traceOpacity ?? 1));
     // The markers go with the trace (QL3): hidden while navigating, faint in the replay's first beats.
     for (const id of ['ends-ring', 'ends']) {
       mapRef.current?.setPaintProperty(id, 'circle-opacity', props.traceOpacity ?? 1);

@@ -15,6 +15,7 @@ import { formatDistance } from '../../lib/format';
 import { useReducedMotion } from '../../lib/motion';
 import { MOTION } from '../../lib/motionTokens';
 import { ATLAS_RULES, walkViaLine } from '../../lib/atlas/atlas';
+import { cardCanGoHere, rowActions } from '../../lib/atlas/goHere';
 import { STOREFRONTS_WHAT } from '../../lib/layers/registry';
 import { COMPLEX_TARGET_MIN, SEE_MORE, SEE_MORE_LABEL } from '../../lib/complexes/lines';
 import { useAreaWords } from '../../lib/walk/useAreaWords';
@@ -86,6 +87,8 @@ export function AtlasCard(props: {
   onLater?: (at: LngLat, label: string) => void;
   onWalk: () => void;
   onWalkAt: (at: LngLat, label: string) => void;
+  /** Go here (GE1): the sheet of two choices for a place on this card, any distance. */
+  onGoHere?: (at: LngLat, label: string, via?: string | null) => void;
   /** WP1: a kind's "Suggest a walk" button opens the walk planner for it. */
   onPlan: (kind: CategoryId) => void;
   /** The walk planner is open over the card: its Back and Escape are the planner's, and the card stays as it was (tend explore 4). */
@@ -116,6 +119,20 @@ export function AtlasCard(props: {
     if (props.askFirst?.(at)) setAsking({ at, label, now });
     else now();
   };
+  // GE1, GE8: Go here is a quiet ink link with the arrow, 44 px high, named for its place.
+  const goLink = (testID: string, at: LngLat, label: string, style?: object, via?: string | null) => (
+    <Pressable
+      testID={testID}
+      accessibilityRole="button"
+      accessibilityLabel={`Go here, ${label}`}
+      accessibilityHint="Choose Chronicles or your maps app"
+      onPress={() => props.onGoHere?.(at, label, via)}
+      style={({ pressed }) => [styles.goLink, style, pressed && styles.goPressed]}
+    >
+      <Icon name="navigate-outline" size={14} color={theme.ink} />
+      <Text style={styles.goText}>Go here</Text>
+    </Pressable>
+  );
   const covered = useRef(!!props.covered);
   useEffect(() => {
     covered.current = !!props.covered;
@@ -268,13 +285,16 @@ export function AtlasCard(props: {
                     <View key={b.label} style={styles.pocket} testID="atlas-storefront">
                       <View style={styles.storefrontName}>
                         <View style={styles.storefrontLine} />
-                        <Text style={styles.pocketName}>{b.label}</Text>
+                        <Text style={styles.pocketName} numberOfLines={2}>{b.label}</Text>
                       </View>
-                      {b.walkable && at ? (
-                        <Pressable testID="atlas-storefront-walk" accessibilityRole="button" accessibilityLabel={`Walk to ${b.label}`} onPress={() => walkTo(at, b.label, () => props.onWalkAt(at, b.label))} style={styles.pocketWalk}>
-                          <Text style={styles.howText}>Walk to</Text>
-                        </Pressable>
-                      ) : null}
+                      <View style={styles.rowLinks}>
+                        {rowActions({ walkable: b.walkable }).walk && at ? (
+                          <Pressable testID="atlas-storefront-walk" accessibilityRole="button" accessibilityLabel={`Walk to ${b.label}`} onPress={() => walkTo(at, b.label, () => props.onWalkAt(at, b.label))} style={styles.pocketWalk}>
+                            <Text style={styles.howText}>Walk to</Text>
+                          </Pressable>
+                        ) : null}
+                        {props.onGoHere && at ? goLink('atlas-storefront-go-here', at, b.label) : null}
+                      </View>
                     </View>
                   );
                 })}
@@ -295,12 +315,16 @@ export function AtlasCard(props: {
                       <View style={styles.complexText}>
                         <Text style={styles.pocketName}>{r.name}</Text>
                         <Text style={styles.muted}>{r.word}</Text>
+                        {/* go-here-everywhere ui 1: under the name, so the name keeps the width Walk to left it. */}
+                        {props.onGoHere ? goLink('atlas-complex-go-here', r.at, r.name, styles.complexGo) : null}
                       </View>
-                      {r.walkable ? (
-                        <Pressable testID="atlas-complex-walk" accessibilityRole="button" accessibilityLabel={`Walk to ${r.name}`} onPress={() => walkTo(r.at, r.name, () => props.onWalkAt(r.at, r.name))} style={styles.complexWalk}>
-                          <Text style={styles.howText}>Walk to</Text>
-                        </Pressable>
-                      ) : null}
+                      <View style={styles.rowLinks}>
+                        {rowActions({ walkable: r.walkable }).walk ? (
+                          <Pressable testID="atlas-complex-walk" accessibilityRole="button" accessibilityLabel={`Walk to ${r.name}`} onPress={() => walkTo(r.at, r.name, () => props.onWalkAt(r.at, r.name))} style={styles.complexWalk}>
+                            <Text style={styles.howText}>Walk to</Text>
+                          </Pressable>
+                        ) : null}
+                      </View>
                     </View>
                   ))}
                   {cx.more ? (
@@ -395,13 +419,17 @@ export function AtlasCard(props: {
             </>
           ) : props.walkTo && props.farOff ? (
             // DW14: too far to walk, not too far to go.
-            <Button testID="atlas-walk-later" label="When I get there" tall
-              accessibilityHint="Keeps it on Navigate. The walk starts when you tap Start."
-              onPress={() => props.walkTo && props.onLater?.(props.walkTo.at, props.walkTo.label)} />
+            <>
+              <Button testID="atlas-walk-later" label="When I get there" tall
+                accessibilityHint="Keeps it on Navigate. The walk starts when you tap Start."
+                onPress={() => props.walkTo && props.onLater?.(props.walkTo.at, props.walkTo.label)} />
+              {props.onGoHere && cardCanGoHere({ here: !!props.here, asking: false }) ? goLink('atlas-card-go-here', props.walkTo.at, props.walkTo.label, styles.goFoot, props.walkTo.via) : null}
+            </>
           ) : props.walkTo ? (
             <>
               <Button testID="atlas-walk" label={`Walk to ${props.walkTo.label}`} onPress={() => props.walkTo && walkTo(props.walkTo.at, props.walkTo.label, props.onWalk)} busy={props.starting} busyLabel="Starting…" tall />
               {props.walkTo.via ? <Text style={styles.via} testID="atlas-walk-via">{walkViaLine(props.walkTo.via)}</Text> : null}
+              {props.onGoHere && cardCanGoHere({ here: !!props.here, asking: false }) ? goLink('atlas-card-go-here', props.walkTo.at, props.walkTo.label, styles.goFoot, props.walkTo.via) : null}
             </>
           ) : (
             <Text style={[styles.muted, styles.hereLine]}>Too far to walk from here</Text>
@@ -504,6 +532,14 @@ const styles = StyleSheet.create({
   secHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
   secTitle: { fontSize: 12, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase', color: theme.muted },
   howBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 44 },
+  // GE1, GE8: Go here, the weakest control on its host: ink, no fill or border at rest, 44 px high.
+  goLink: { flexDirection: 'row', alignItems: 'center', gap: 5, minHeight: 44, paddingHorizontal: 8 },
+  goFoot: { alignSelf: 'center' },
+  // Under the complex's name and kind: left-aligned with them (no side padding), 44 px high.
+  complexGo: { alignSelf: 'flex-start', minHeight: COMPLEX_TARGET_MIN, paddingHorizontal: 0 },
+  goPressed: { backgroundColor: theme.line, borderRadius: 8 },
+  goText: { fontSize: 12, fontWeight: '600', color: theme.ink, lineHeight: 16 },
+  rowLinks: { flexDirection: 'row', alignItems: 'center', flexShrink: 0 },
   howText: { fontSize: 13, fontWeight: '600', color: theme.ink },
   explain: { backgroundColor: theme.bg, borderRadius: 12, padding: 12, gap: 6, marginBottom: 4 },
   explainText: { fontSize: 14, color: theme.ink, lineHeight: 19 },

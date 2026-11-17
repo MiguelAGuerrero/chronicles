@@ -83,8 +83,8 @@ Routing inside a walk (`lib/nav`): walk me back, Go here, the route sources, rul
     the bar's button covers it.
   - **Android is not a priority** (the owner, Nov 3): its `geo:` chooser
     opens a pin, not walking directions, and stays as it is.
-  - **Deferred:** the Explore mark card, the dead-zone nudge, the home's
-    Walk here.
+  - **Deferred:** the dead-zone nudge. Go here (decisions 0189, 0190) is on Explore's tiles, card, rows and long press
+    and on Chronicle's star sheet and long press; the Explore mark is a pin with no card.
   - **Native** (unverified on a device): Apple Maps from the app, the Android
     chooser, and an iPhone Home Screen app's `window.open` reaching Apple Maps.
 - **UI.**

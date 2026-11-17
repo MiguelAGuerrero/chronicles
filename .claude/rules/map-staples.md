@@ -43,6 +43,9 @@ paths:
     second; a Playwright `click` (it waits for the button to hold still) took 140 to 780 ms and a poll of round trips
     missed the moment, so the dot was on the end at Hold. Wait in the page (`waitForFunction`, `polling: 'raf'`) and tap
     the button's box with `mouse.click` (`tend map 12`).
+  - Since `map-palette` (decision 0188, T22 answered) the walked colour is the ink `#5b5d9f`, apart from the accent:
+    the end's centre and ring are no longer "the walked orange", and the lines above that say T22 is open read so. The
+    trace's white edge is `TRACE_EDGE_OPACITY` of the trace's own opacity on both maps.
 - **Scale bar** (`lib/scaleBar.ts`, pure; `components/map/ScaleBar.tsx`): the
   longest 1, 2 or 5 × 10^n metres within 100 px at the map's own `view` (zoom and
   latitude), in the bottom-left corner, as a sibling of the map inside the
