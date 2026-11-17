@@ -36,7 +36,7 @@ import { tileCollector } from '../../lib/tileCollector';
 import { GapCard } from '../../components/GapCard';
 import { ensureTileBuild } from '../../lib/tiles';
 import { setAudioMode } from '../../lib/audioMode';
-import { backFrom, beatWords, fieldsAfterRename, FOG_MS, pinHint, wordsTyped } from '../../lib/replay';
+import { backFrom, beatWords, cardTitle, fieldsAfterRename, FOG_MS, pinHint, wordsTyped } from '../../lib/replay';
 import { formatCaptures, formatDistance, formatDuration, loadReplay, suggestTitle, type ReplayData } from '../../lib/summary';
 import { renamePatch } from '../../lib/rename';
 import type { LngLat } from '../../lib/types';
@@ -464,6 +464,8 @@ export default function Replay() {
   const finds = foundList(data.found.map((f) => f.name));
   const passed = passedLine(data.passed);
   // Streets walked and new, in words (tend replay T31), one clause when all are new (tend replay audit 14).
+  // The name typed in Name it, unsaved, until Keep it or leaving (tend replay audit 16, the owner's "Show the typed name").
+  const shownTitle = cardTitle(data.walk, title, offered);
   const streetsLine = walkCardStreets(s?.streets_walked ?? 0, s?.streets_read ? data.newStreets : null);
 
   const save = async () => {
@@ -652,13 +654,13 @@ export default function Replay() {
             {beat === 'card' ? (
               <>
                 <View style={styles.titleRow}>
-                  <Text style={[styles.cardTitle, styles.flex]} accessibilityRole="header">{data.walk.title ?? suggestTitle(data.walk)}</Text>
+                  <Text style={[styles.cardTitle, styles.flex]} accessibilityRole="header">{shownTitle}</Text>
                   {!data.walk.open && (
                     <Pressable
                       testID="card-more"
                       accessibilityRole="button"
                       // Named by the title the card shows, as the walk's row names it (tend tabs 11).
-                      accessibilityLabel={moreFor(data.walk.title ?? suggestTitle(data.walk))}
+                      accessibilityLabel={moreFor(shownTitle)}
                       onPress={() => setActionsOpen(true)}
                       style={({ pressed }) => [styles.more, pressed && { opacity: 0.6 }]}
                       hitSlop={4}
@@ -720,9 +722,12 @@ export default function Replay() {
                   <Pressable
                     testID="name-back"
                     accessibilityRole="button"
+                    // The owner's "Add the chevron", Nov 17 (tend replay audit 16): a muted back chevron, and where it goes.
+                    accessibilityHint="Returns to the card, your words kept"
                     onPress={stepBack}
                     style={({ pressed }) => [styles.nameBack, pressed && { opacity: 0.6 }]}
                   >
+                    <Icon name="chevron-back" size={18} color={theme.muted} />
                     <Text style={styles.notNowText}>Back</Text>
                   </Pressable>
                 )}
@@ -840,7 +845,10 @@ const styles = StyleSheet.create({
   notNow: { minHeight: 44, alignSelf: 'center', justifyContent: 'center', paddingHorizontal: 16 },
   notNowText: { fontSize: 15, fontWeight: '600', color: theme.muted },
   // Not now's quiet text, at the name sheet's leading edge, its words in line with the labels below.
-  nameBack: { minHeight: 44, alignSelf: 'flex-start', justifyContent: 'center', paddingHorizontal: 16, marginLeft: -16, marginTop: -10 },
+  nameBack: {
+    minHeight: 44, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 2, paddingLeft: 12, paddingRight: 16,
+    marginLeft: -16, marginTop: -10,
+  },
   flex: { flex: 1 },
   label: { fontSize: 14, fontWeight: '600', color: theme.muted },
   input: { borderWidth: 1.5, borderColor: theme.edge, borderRadius: 10, padding: 12, fontSize: 16, color: theme.ink },

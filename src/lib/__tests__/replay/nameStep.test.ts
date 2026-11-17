@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
-import { backFrom, fieldsAfterRename, wordsTyped } from '../../replay';
+import { backFrom, cardTitle, fieldsAfterRename, wordsTyped } from '../../replay';
 import type { Walk } from '../../types';
 import { suggestTitle } from '../../walkTitle';
 
@@ -111,4 +111,33 @@ test('tend replay audit 15: a Rename from the card replaces only the fields it c
     title: suggestTitle(named), offered: suggestTitle(named), epilogue: 'Mine',
   });
   assert.match(SCREEN, /fieldsAfterRename\(data\.walk, patch, \{ title, epilogue, offered \}\)/);
+});
+
+// The owner's answers, Nov 17, to the review's second question and its S3: "Show the typed name": after Back, the card's
+// title shows the typed name (unsaved) until Keep it or leaving; "Add the chevron": a muted back chevron before "Back"
+// (no new colour, no new words) and the spoken hint "Returns to the card, your words kept".
+test('tend replay audit 16: after Back the card shows the name typed, unsaved; else the stored name or the suggestion', () => {
+  const bare = walk({ title: null, epilogue: null });
+  const offered = suggestTitle(bare);
+  assert.equal(cardTitle(bare, 'Plums', offered), 'Plums');
+  assert.equal(cardTitle(bare, '  Plums by the bridge ', offered), 'Plums by the bridge');
+  assert.equal(cardTitle(bare, offered, offered), suggestTitle(bare));
+  assert.equal(cardTitle(bare, '', offered), suggestTitle(bare));
+  // The suggestion offered then, the walk's area moved since: the card follows the walk, as Keep it would store no title.
+  const moved = { ...bare, area: 'Wayland Square' };
+  assert.equal(cardTitle(moved, offered, offered), suggestTitle(moved));
+  const named = walk();
+  assert.equal(cardTitle(named, 'Old title', null), 'Old title');
+  assert.equal(cardTitle(named, '', null), 'Old title', 'a field emptied is no name typed: the card keeps the walk\'s');
+  assert.equal(cardTitle(named, 'Plums', null), 'Plums');
+  // The card's title and its More's name read the same title, the one the card shows (tend tabs 11).
+  assert.match(SCREEN, /const shownTitle = cardTitle\(data\.walk, title, offered\)/);
+  assert.match(SCREEN, /accessibilityRole="header">\{shownTitle\}<\/Text>/);
+  assert.match(SCREEN, /accessibilityLabel=\{moreFor\(shownTitle\)\}/);
+});
+
+test('tend replay audit 16: the name sheet\'s Back carries a muted back chevron and says where it goes', () => {
+  const back = control('name-back');
+  assert.match(back, /<Icon name="chevron-back" size=\{\d+\} color=\{theme\.muted\} \/>\s*<Text style=\{styles\.notNowText\}>Back<\/Text>/);
+  assert.match(back, /accessibilityHint="Returns to the card, your words kept"/);
 });

@@ -1,7 +1,7 @@
 // @layer core
 import type { Faced } from './moment';
 import { distanceM, isBreak, type PauseSpan } from './geo';
-import { renameChanged } from './rename';
+import { renameChanged, renamePatch } from './rename';
 import type { LngLat, TracePoint, Walk } from './types';
 import { suggestTitle } from './walkTitle';
 
@@ -62,6 +62,15 @@ export function backFrom(beat: string, words: { typed?: boolean; asking?: boolea
 export function wordsTyped(walk: Walk, title: string, epilogue: string, offered: string | null): boolean {
   if (!title.trim() && !epilogue.trim()) return false;
   return renameChanged(walk, title, epilogue, offered);
+}
+
+/**
+ * The title the walk's card shows on the first replay: the name typed in Name it, unsaved, until Keep it or leaving (the
+ * owner's "Show the typed name", Nov 17; tend replay audit 16), read as Keep it would store it, so a suggestion kept or
+ * an emptied field shows the walk's own title or its suggestion, as the card did before.
+ */
+export function cardTitle(walk: Walk, title: string, offered: string | null): string {
+  return renamePatch(walk, title, null, offered).title ?? walk.title ?? suggestTitle(walk);
 }
 
 /**

@@ -344,18 +344,34 @@ async function run(h) {
         const r = b.getBoundingClientRect();
         const text = [...b.querySelectorAll('*')].find((x) => x.childElementCount === 0 && x.textContent === 'Back');
         const ink = text ? getComputedStyle(text).color : null;
+        // The chevron (tend replay audit 16): the icon font's glyph, before the word.
+        const glyph = [...b.querySelectorAll('*')].find((x) => x.childElementCount === 0 && /ionicons/i.test(getComputedStyle(x).fontFamily));
         return {
-          text: b.textContent, name: b.getAttribute('aria-label') ?? b.textContent, w: Math.round(r.width), h: Math.round(r.height),
-          left: Math.round(r.left), above: r.bottom <= label.getBoundingClientRect().top + 1, ink, labelInk: getComputedStyle(label).color,
+          word: text ? text.textContent : null, w: Math.round(r.width), h: Math.round(r.height),
+          left: Math.round(r.left), above: r.bottom <= label.getBoundingClientRect().top + 1, ink, muted: getComputedStyle(label).color,
+          chevronInk: glyph ? getComputedStyle(glyph).color : null,
+          chevronFirst: !!glyph && !!text && glyph.getBoundingClientRect().right <= text.getBoundingClientRect().left + 1,
           ground: getComputedStyle(b).backgroundColor,
         };
       });
-      check(back && back.text === 'Back' && back.h >= 44 && back.w >= 44 && back.left >= 0 && back.above && back.ink === back.labelInk && back.ink !== 'rgb(194, 65, 12)' && /rgba\(0, 0, 0, 0\)|transparent/.test(back.ground),
+      // The field labels are theme.muted, Not now's ink: the Back's word and chevron take that ink, no new colour.
+      check(back && back.word === 'Back' && back.h >= 44 && back.w >= 44 && back.left >= 0 && back.above && back.ink === back.muted && back.ink !== 'rgb(194, 65, 12)' && /rgba\(0, 0, 0, 0\)|transparent/.test(back.ground),
         `tend replay T21: at ${w} px the name sheet's top row holds a quiet Back, 44 px, in the muted ink, no ground (${JSON.stringify(back)})`);
+      check(back && back.chevronInk === back.muted && back.chevronFirst,
+        `tend replay audit 16: at ${w} px a muted back chevron stands before "Back" (${JSON.stringify(back)})`);
       await shot(pg, `rr-name-back-${w}`);
       await pg.click('[data-testid=name-back]');
       const onCardAgain = await pg.waitForSelector('[data-testid=to-name]', { timeout: 3000 }).then(() => true, () => false);
       const stillHere = /\/replay\//.test(new URL(pg.url()).pathname);
+      // After Back the card shows the name typed, unsaved, and its More is named by it (tend replay audit 16, tend tabs 11).
+      const shown = await pg.evaluate(() => {
+        const more = document.querySelector('[data-testid=card-more]');
+        const head = more?.parentElement?.querySelector('[role=heading]');
+        return { title: head?.textContent?.trim() ?? null, more: more?.getAttribute('aria-label') ?? null };
+      });
+      check(shown.title === 'Plums by the bridge' && shown.more === 'More for Plums by the bridge',
+        `tend replay audit 16: at ${w} px after Back the card's title is the name typed, unsaved (${JSON.stringify(shown)})`);
+      await shot(pg, `rr-card-typed-${w}`);
       await pg.click('[data-testid=to-name]').catch(() => {});
       const keptBack = await pg.inputValue('[data-testid=title-input]').catch(() => null);
       check(onCardAgain && stillHere && keptBack === 'Plums by the bridge', `tend replay T21: at ${w} px Back returns to the card, the words kept (${onCardAgain}, ${stillHere}, "${keptBack}")`);
