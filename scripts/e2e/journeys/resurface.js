@@ -332,15 +332,50 @@ async function run(h) {
   }));
   check(threadInk.label.length === 1 && [...threadInk.label, ...threadInk.rules].every((c) => c === 'rgb(29, 36, 48)') && threadInk.rules.length === 2,
     `tend chronicle 11: a thread's "Thread" label and its quotes' rule are ink at rest (${JSON.stringify(threadInk)})`);
+  // tend chronicle 13: Keep as my thread is the screen's one button, on one row, and Rename and Not a thread are in a
+  // More beside the "Thread" label, at 320 px and at 390 px (ui-patterns, "Nothing wraps on a 320 px phone"; matrix 3).
   {
     const vp = pg.viewportSize();
-    await pg.setViewportSize({ width: 320, height: vp.height });
-    await pg.waitForTimeout(400);
-    await shot(pg, 'tend-chronicle-11-thread-320');
+    const head = () => pg.evaluate(() => {
+      const s = document.querySelector('[data-testid=thread-screen]');
+      const r = (e) => { const b = e?.getBoundingClientRect(); return b && b.width ? { x: Math.round(b.x), y: Math.round(b.y), w: Math.round(b.width), h: Math.round(b.height) } : null; };
+      const label = [...s.querySelectorAll('div')].find((e) => e.childElementCount === 0 && e.textContent === 'Thread');
+      const buttons = [...s.querySelectorAll('[role=button]')].filter((e) => !e.closest('[data-testid=moment-card]') && !['thread-back', 'thread-more'].includes(e.dataset.testid)).map((e) => e.dataset.testid);
+      const keep = s.querySelector('[data-testid=thread-keep]');
+      return { label: r(label), more: r(s.querySelector('[data-testid=thread-more]')), moreName: s.querySelector('[data-testid=thread-more]')?.getAttribute('aria-label') ?? null, keep: r(keep), keepBg: keep ? getComputedStyle(keep).backgroundColor : null, keepWrapped: keep ? keep.scrollWidth > keep.clientWidth + 1 || keep.getBoundingClientRect().height > 56 : null, buttons, loose: !!s.querySelector('[data-testid=thread-rename], [data-testid=thread-remove]'), vw: window.innerWidth };
+    });
+    const menuItems = async () => {
+      await pg.click('[data-testid=thread-more]');
+      await pg.waitForSelector('[data-testid=thread-menu]', { timeout: 4000 }).catch(() => {});
+      await pg.waitForTimeout(800);
+      return pg.locator('[data-testid=thread-menu] [role=button]').allInnerTexts();
+    };
+    const at = {};
+    for (const width of [320, 390]) {
+      await pg.setViewportSize({ width, height: vp.height });
+      await pg.waitForTimeout(600);
+      const h = await head();
+      await shot(pg, `tend-chronicle-13-thread-${width}`);
+      const items = await menuItems();
+      await shot(pg, `tend-chronicle-13-thread-more-${width}`);
+      await pg.click('[data-testid=thread-menu-cancel]').catch(() => {});
+      await pg.waitForSelector('[data-testid=thread-menu]', { state: 'detached', timeout: 4000 }).catch(() => {});
+      at[width] = { ...h, items };
+    }
     await pg.setViewportSize(vp);
     await pg.waitForTimeout(400);
+    const ok = (h) => !!h.label && !!h.more && !!h.keep && h.buttons.join() === 'thread-keep' && !h.loose && !h.keepWrapped
+      && Math.abs(h.more.y + h.more.h / 2 - (h.label.y + h.label.h / 2)) <= 4 && h.more.x > h.label.x + h.label.w && h.more.x + h.more.w <= h.vw && h.more.w >= 44 && h.more.h >= 44
+      && h.keep.x + h.keep.w <= h.vw && h.moreName === 'More for Harbor' && h.keepBg !== 'rgba(0, 0, 0, 0)'
+      && h.items.join('|') === 'Rename|Not a thread|Cancel';
+    check(ok(at[320]) && ok(at[390]), `tend chronicle 13: Keep as my thread is the thread's one button, and Rename and Not a thread are in its More beside "Thread", at 320 and 390 px (${JSON.stringify(at)})`);
   }
+  await pg.click('[data-testid=thread-more]');
   await pg.click('[data-testid=thread-rename]');
+  await pg.waitForSelector('[data-testid=thread-name]');
+  await pg.waitForTimeout(600);
+  // The field has the keyboard once the sheet is gone: the sheet's focus trap gave focus back to the More (tend chronicle 13).
+  check(await pg.evaluate(() => document.activeElement?.dataset?.testid === 'thread-name'), 'tend chronicle 13: Rename from the More puts the caret in the name field');
   await pg.fill('[data-testid=thread-name]', 'The harbor');
   await pg.click('[data-testid=thread-save]');
   check((await pg.locator('[data-testid=thread-title]').innerText()) === 'The harbor', 'RM16: Rename shows the new name');
@@ -353,6 +388,7 @@ async function run(h) {
   await pg.waitForSelector('[data-testid=thread-tile]', { timeout: 20000 });
   check(/The harbor/.test(await pg.locator('[data-testid=thread-tile]').first().innerText()), 'RM16, RM21: the rename survives a reload');
   await pg.click('[data-testid=thread-tile]');
+  await pg.click('[data-testid=thread-more]');
   await pg.click('[data-testid=thread-remove]');
   await pg.waitForSelector('[data-testid=threads-hint]');
   check(!(await has('[data-testid=threads-rail]')), 'RM14, RM16: Not a thread takes the rail away, and a quiet line says threads appear when you keep coming back');
