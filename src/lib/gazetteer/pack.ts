@@ -81,3 +81,26 @@ export function placeAt(pack: GazetteerPack, index: number): Place {
     at: [pack.lon[index] / 1e4, pack.lat[index] / 1e4],
   };
 }
+
+/**
+ * Where the web build's pack is served (a web exception, docs/ARCHITECTURE.md): one file of a fixed name under the site's
+ * base path, copied from `assets/gazetteer` into `public/` by `scripts/copy-maplibre-worker.js`, so the entry script never
+ * holds it. A fixed name outlives a deploy: a page left open across one asks the same file and gets the new pack.
+ */
+export const PACK_FILE = 'gazetteer/places.json';
+
+/**
+ * How long the web waits for the pack before search says "Search is unavailable." with Try again (gazetteer-web-fetch audit 1):
+ * a stalled request otherwise left it on "Getting ready…" until a reload. About 2 MB over gzip, so a slow link gets its minute.
+ */
+export const PACK_FETCH_MS = 60_000;
+
+/**
+ * The pack's address under `base`, keyed by the date its credit carries (held equal to the pack's own credit), so a page
+ * built with a rebuilt pack never reads the old one from the browser's cache. A credit with no date is the key itself.
+ */
+export function packUrl(base: string, credit: string): string {
+  const dates = credit.match(/\d{4}-\d{2}-\d{2}/g);
+  const key = dates ? dates[dates.length - 1] : credit;
+  return `${base.replace(/\/+$/, '')}/${PACK_FILE}?v=${encodeURIComponent(key)}`;
+}

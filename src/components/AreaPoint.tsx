@@ -24,10 +24,10 @@ const styles = StyleSheet.create({
   // The dot sits at the middle of a fixed-width box, so the marker's centre anchor lands on the area's point.
   wrap: { width: W, alignItems: 'center', paddingTop: 0 },
   dot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#ffffff', borderWidth: 2, borderColor: theme.edge },
-  dotOn: { width: 14, height: 14, borderRadius: 7, borderColor: theme.accent, borderWidth: 3 },
+  dotOn: { width: 14, height: 14, borderRadius: 7, borderColor: theme.ink, borderWidth: 3 },
   label: {
     maxWidth: W, textAlign: 'center', marginTop: 2, fontSize: 11, fontWeight: '700', color: theme.ink,
     textShadowColor: '#ffffff', textShadowRadius: 3,
   },
-  labelOn: { color: theme.accent },
+  labelOn: { color: theme.ink },
 });

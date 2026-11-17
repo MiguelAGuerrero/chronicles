@@ -5,7 +5,7 @@ import { lookRowLabel, lookWords } from '../../atlas/freeLook';
 import { fold } from '../../gazetteer/normalize';
 import { PACK_FIELDS, validatePack, type GazetteerPack } from '../../gazetteer/pack';
 import { LIMIT, buildIndex, search } from '../../gazetteer/search';
-import { createGazetteerSource } from '../../gazetteer/source';
+import { createGazetteerSource } from '../../gazetteer/loader';
 import { announceSearch, placeLine, searchAvailable, searchWords } from '../../gazetteer/words';
 import type { LngLat } from '../../types';
 

@@ -166,6 +166,8 @@ export const META_FAMILIES = {
   explored: { owner: 'explore', codec: number },
   // A day's replay was watched (ms), so it advances by itself next time.
   day_watched: { owner: 'days', codec: number },
+  // The first replay asked about a walk's offered gaps (G15): asked once, per walk.
+  gaps_asked: { owner: 'gaps', codec: flag },
   // The last read of areas near you, per level (lib/atlas/read).
   atlas_near: { owner: 'atlas', codec: json<NearRead>(isNearRead) },
 } as const;

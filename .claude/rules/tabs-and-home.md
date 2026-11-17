@@ -25,6 +25,9 @@ The three tabs (Chronicle, Explore, Navigate), the home sheet, the recording bar
 - **`/chronicle` still works**: `src/app/chronicle.tsx` calls `router.dismissTo('/')`
   on focus. Not `<Redirect href="/">`: a replace from a screen over the tabs
   stacks a second set of tabs (two tab bars; the e2e counts one).
+- **The selected tab keeps the accent tint** (`tabBarActiveTintColor: theme.accent`, `(tabs)/_layout.tsx`): a named
+  exception to "the accent at rest" (decision 0172), the owner's "Keep the accent tint", Nov 17 (decision 0186): a tinted
+  selected tab is the platforms' convention. A run never moves it to ink by citing 0172.
 - **Memories keeps a moment in one tap** (HC6-HC15): see `.claude/rules/moments-and-days.md`
   for the open line (the journal, decision 0155; `.claude/rules/journal.md`). With a walk minimized, the recording bar
   shows no camera on Memories (`barCamera`, `lib/captureBand`), since the open line files into the walk.

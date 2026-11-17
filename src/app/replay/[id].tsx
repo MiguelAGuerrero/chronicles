@@ -27,13 +27,14 @@ import { db } from '../../lib/db';
 import { applyPatch, captureBus } from '../../lib/captureBus';
 import { captureEdits } from '../../lib/captureEdits';
 import { snapWalk } from '../../lib/finish';
-import { decide } from '../../lib/gaps';
-import { emptyGapAt, emptyGaps, gapKey, stretchAt, type Gap } from '../../lib/gaps/infer';
+import { decide, gapsAsked, keepAllOffers, noteAsked } from '../../lib/gaps';
+import { emptyGapAt, emptyGaps, gapKey, keepAllWords, offersOf, stretchAt, type Gap } from '../../lib/gaps/infer';
 import type { DrawnLine } from '../../lib/gaps/draw';
 import { useGapDraw } from '../../lib/gaps/useGapDraw';
 import { GapDraw } from '../../components/GapDraw';
 import { tileCollector } from '../../lib/tileCollector';
 import { GapCard } from '../../components/GapCard';
+import { KeepGapsCard } from '../../components/KeepGapsCard';
 import { ensureTileBuild } from '../../lib/tiles';
 import { setAudioMode } from '../../lib/audioMode';
 import { backFrom, beatWords, cardTitle, fieldsAfterRename, FOG_MS, pinHint, wordsTyped } from '../../lib/replay';
@@ -164,6 +165,25 @@ export default function Replay() {
     setGapOpen(null);
     setGapBusy(false);
   };
+  // Settled at walk's end (G15): the first replay asks once whether to keep every offered way. Asked once
+  // per walk, stored when it is shown (audit 1); shown only once the gaps are read (audit 3).
+  const [keepAsked, setKeepAsked] = useState(false);
+  const [askedBefore, setAskedBefore] = useState<boolean | null>(null);
+  const [gapsRead, setGapsRead] = useState(false);
+  const [keepError, setKeepError] = useState<string | null>(null);
+  const keepThem = async () => {
+    if (!data) return;
+    setGapBusy(true);
+    setKeepError(null);
+    // Whatever was stored is followed by the walk and the screen, even when a write failed (audit 2).
+    const failed = await keepAllOffers(data.walk.id, offersOf(data.stretches)).catch(() => 1);
+    await snapWalk(data.walk, tileCollector()).catch(() => db.updateWalk(data.walk.id, { snapped_build: null }).catch(() => {}));
+    const d = await loadReplay(id).catch(() => null);
+    if (d) setData(d);
+    if (failed) setKeepError('Couldn’t save all of them. Try again.');
+    else setKeepAsked(true);
+    setGapBusy(false);
+  };
   const showHere = (at: LngLat, radiusM?: number) => {
     if (here || viewing) return;
     const tap = ++hereTaps.current;
@@ -177,6 +197,7 @@ export default function Replay() {
   };
   // Opened from the log, or watched again. Only the screen reader's steps move on by themselves (RR17).
   const rewatch = ceremony === '0';
+  const rewatchRef = useRef(rewatch);
   const [watched, setWatched] = useState(false);
   // A screen reader hears the captures, not the animation: no fog, no path.
   const [srMode, setSrMode] = useState(false);
@@ -307,6 +328,7 @@ export default function Replay() {
       setOffered(d.walk.title ? null : suggestTitle(d.walk));
       setEpilogue(d.walk.epilogue ?? '');
       setStatus('ready');
+      if (!rewatchRef.current) gapsAsked(id).then((was) => alive && setAskedBefore(was), () => alive && setAskedBefore(false));
       // A new tile build drops the street cache and marks walks for re-snapping.
       const build = await ensureTileBuild().catch(() => 'unknown');
       if (!alive) return;
@@ -316,6 +338,7 @@ export default function Replay() {
         // Shown even when no snap follows: in a new session, gaps are only filled once read (audit 2).
         setData(d);
       }
+      setGapsRead(true);
       const stale = build !== 'unknown' && d.walk.snapped_build !== build;
       if (!d.summary || !d.walk.snapped_build || stale) {
         await snapWalk(d.walk, {
@@ -433,6 +456,15 @@ export default function Replay() {
   const faint = useMemo(() => (data && (beat === 'card' || beat === 'name') ? data.stretches.filter((x) => x.how === 'offer').map((x) => x.path) : []), [data, beat]);
   const openGap = gapOpen && data ? data.stretches.find((x) => gapKey(x) === gapOpen) ?? null : null;
   const openGapOf = gapOpen && data ? data.gaps.find((x) => gapKey(x) === gapOpen) ?? null : null;
+  // The walk's-end question (G15): first replay only, once the gaps are read, nothing else open.
+  const keepWords =
+    !rewatch && !keepAsked && askedBefore === false && gapsRead && beat === 'card' && data && !gapOpen && !isDrawing && !here && !viewing
+      ? keepAllWords(offersOf(data.stretches).length)
+      : null;
+  const keepShown = keepWords != null;
+  useEffect(() => {
+    if (keepShown) void noteAsked(id);
+  }, [keepShown, id]);
   // Gaps with no line across them, joined by grey dots on the card beats (GW2).
   const links = useMemo(
     () => (data && (beat === 'card' || beat === 'name') ? emptyGaps(data.gaps, data.stretches).map((g) => [g.from, g.to]) : []),
@@ -609,6 +641,20 @@ export default function Replay() {
           onClose={() => setGapOpen(null)}
           onKeep={() => void decideGap('kept')}
           onDismiss={() => void decideGap('dismissed')}
+        />
+      )}
+
+      {keepWords && (
+        <KeepGapsCard
+          words={keepWords}
+          busy={gapBusy}
+          error={keepError}
+          style={{ bottom: sheetH + 12, zIndex: 5 }}
+          onKeep={() => void keepThem()}
+          onLeave={() => {
+            setKeepError(null);
+            setKeepAsked(true);
+          }}
         />
       )}
 

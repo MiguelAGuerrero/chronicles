@@ -2,7 +2,7 @@
   "lastT": 32,
   "lastG": 4,
   "balance": {
-    "date": "2026-11-16",
+    "date": "2026-11-17",
     "days": 14,
     "slicesGrown": [
       "AD",
@@ -37,7 +37,6 @@
       "MS",
       "MT",
       "N",
-      "NB",
       "NH",
       "NI",
       "NP",
@@ -83,9 +82,9 @@
       "WT"
     ],
     "commits": {
-      "growth": 182,
-      "refinement": 492,
-      "other": 604
+      "growth": 180,
+      "refinement": 520,
+      "other": 594
     },
     "areas": {
       "rough": [
@@ -93,6 +92,7 @@
         "explore",
         "map",
         "navigation",
+        "presence",
         "replay",
         "tabs",
         "walk-screen"
@@ -117,7 +117,6 @@
       "notes",
       "notify",
       "places",
-      "presence",
       "reactions",
       "recording",
       "resurface",
@@ -131,26 +130,26 @@
       "web"
     ],
     "open": {
-      "openT": 4,
+      "openT": 3,
       "phoneT": 4,
       "openG": 0
     },
     "reading": "outgrowing its base",
     "propose": false,
-    "why": "seven areas are rough"
+    "why": "eight areas are rough"
   },
   "areas": {
     "chronicle": {
       "state": "rough",
-      "swept": "2026-11-16",
-      "main": "6c5174cddc722d0e0b9568efb29dedf9de5de6a3",
-      "note": "Ledger run, not whole (lenses 1-6 not run). Built the owner's answer O17 (decision 0172) as tend chronicle 9, Rename asking before a tap outside, Escape or Back drops changed words, and the medium [loop] item on figures broken from their units as tend chronicle 10; the review's F1 shipped as audit 5. Left [loop]: four low filed from the review (the ask's focus, a pure renameClose, \"a voice / memo\", Name it on the first replay with the owner's Nov 16 answer), and Quality of life 12, 13, 17, 19, 20."
+      "swept": "2026-11-17",
+      "main": "28daf0a16d8c2f81f522c7379494d2df7a171f2d",
+      "note": "No sweep (lenses 1-7 not run), with /tend explore's accent run: tend chronicle 11 (the Thread label and quote rule in ink), 12 and audit 6 (a memo's card draws an ink mic, the owner's \"A mic glyph\"). Filed [loop] medium U3 (a found thread's loose buttons at 320 px, for /tend chronicle) and U4 (the journal toolbar's hint at 320 px), and low U8 (the hidden pill's Close). The selected tab keeps the accent tint, the owner's answer (decision 0186)."
     },
     "explore": {
       "state": "rough",
-      "swept": "2026-11-16",
-      "main": "9c6b308dcc19ef3b204ca82f106f1915891a587f",
-      "note": "Built the owner's answer O9 (decision 0172) as tend explore 18, the reminder editor's two labelled menus, with its UI conformance duplicate; no sweep (lenses 1-7 not run). The ux-reviewer's U1 and U2 fixed as audits 20 and 21; U3-U5 filed [loop] low in Reminders and notifications. Still [loop]: readNear's write retry (medium) and the older lows."
+      "swept": "2026-11-17",
+      "main": "28daf0a16d8c2f81f522c7379494d2df7a171f2d",
+      "note": "No sweep (lenses 1-7 not run): the accent at rest (decision 0172) across Explore and Chronicle. Built tend explore 19 (How the marks work in ink) and 20 (the selected area's name and ring on the map in ink), and the review's U7 as tend explore audit 22 (Cancel while looking and the search's close in ink). The area card's status lines stay coloured, the owner's \"Leave them coloured\" (decision 0186). Filed [loop] low U1 (the selected ring under a pin's stalk) and U5 (the meta line's leading separator). Still [loop]: readNear's write retry (medium) and the older lows."
     },
     "navigation": {
       "state": "rough",

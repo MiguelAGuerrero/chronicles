@@ -80,4 +80,7 @@ if (require.main === module) {
   fs.mkdirSync(require('path').dirname(out), { recursive: true });
   fs.writeFileSync(out, json);
   console.log(`${pack.names.length} places, ${(json.length / 1e6).toFixed(2)} MB, ${pack.id}`);
+  // The web serves its own copy from public/ (fetched on first search): refresh it with the app's pack, or the web keeps the old one.
+  const appPack = require('path').join(__dirname, '..', 'assets', 'gazetteer', 'places.json');
+  if (require('path').resolve(out) === appPack) require('./copy-maplibre-worker.js');
 }

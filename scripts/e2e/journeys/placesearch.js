@@ -163,6 +163,82 @@ async function run(h) {
     snapWorld.serve = false;
     await c.close();
   }
+  await webFetch(h);
+}
+
+// gazetteer-web-fetch audit 1-2: on the web the pack is fetched on first search (a web exception, docs/ARCHITECTURE.md), so a
+// stalled request and a page gone offline before its first search each end in "Search is unavailable." with Try again.
+async function webFetch(h) {
+  const { exploreUrl, check, freshPage } = h;
+  // The failures these two cause on purpose (a request cut, the network off) are logged by the browser; only theirs are dropped.
+  const dropNetErrors = (from) => { for (let i = h.errors.length - 1; i >= from; i--) if (/^placesearch-(stall|offline): Failed to load resource: net::ERR_(FAILED|INTERNET_DISCONNECTED)$/.test(h.errors[i])) h.errors.splice(i, 1); };
+  const errorsFrom = h.errors.length;
+  const packTs = fs.readFileSync(path.join(h.scriptsDir, '..', 'src', 'lib', 'gazetteer', 'pack.ts'), 'utf8');
+  const timeoutMs = Number((/PACK_FETCH_MS = ([\d_]+)/.exec(packTs)?.[1] ?? '0').replace(/_/g, ''));
+  const PACK = /\/gazetteer\/places\.json(\?|$)/;
+  const search = (pg) => pg.locator('[data-testid=atlas-search]');
+  const retry = (pg) => pg.locator('[data-testid=atlas-search-retry]');
+  const ready = (pg) => pg.waitForSelector('[data-testid=atlas-search]', { timeout: 60000 }).catch(() => {});
+  const said = (pg, text) => pg.evaluate((t) => document.body.innerText.includes(t), text).catch(() => false);
+  const unavailable = async (pg) => (await said(pg, 'Search is unavailable.')) && (await retry(pg).count().catch(() => 0)) > 0;
+  const zurich = async (pg) => {
+    await pg.locator('[data-testid=atlas-search-field]').fill('').catch(() => {});
+    await pg.locator('[data-testid=atlas-search-field]').pressSequentially('zuric', { delay: 15, timeout: 10000 }).catch(() => {});
+    return pg.waitForFunction(() => [...document.querySelectorAll('[data-testid=atlas-search-result]')].some((e) => /Zürich/.test(e.innerText)), null, { timeout: 20000 }).then(() => true, () => false);
+  };
+  {
+    // audit 1: the request never answers: "Getting ready…", then after the timeout "Search is unavailable."; Try again reads it.
+    const { c, pg } = await freshPage('placesearch-stall');
+    let release = () => {};
+    const held = new Promise((r) => { release = r; });
+    let asked = 0;
+    try {
+      await pg.clock.install();
+      await c.route(PACK, async (r) => {
+        asked++;
+        if (asked > 1) return r.continue();
+        await held;
+        await r.abort().catch(() => {});
+      });
+      await pg.goto(exploreUrl);
+      await ready(pg);
+      await search(pg).click({ timeout: 10000 }).catch(() => {});
+      await pg.waitForTimeout(1500);
+      const waiting = await said(pg, 'Getting ready…');
+      await pg.clock.fastForward(timeoutMs + 1000);
+      await pg.waitForFunction(() => document.body.innerText.includes('Search is unavailable.'), null, { timeout: 10000 }).catch(() => {});
+      const shown = await unavailable(pg);
+      release();
+      await retry(pg).click({ timeout: 5000 }).catch(() => {});
+      const found = await zurich(pg);
+      check(timeoutMs > 0 && waiting && shown && found && asked === 2,
+        `gazetteer-web-fetch audit 1: a pack request that never answers ends in "Search is unavailable." with Try again, which then finds Zürich (${timeoutMs} ms; ${waiting}, ${shown}, ${found}, ${asked} asked)`);
+    } finally {
+      release();
+      await c.close();
+    }
+  }
+  {
+    // audit 2: the page loaded online, offline before its first search: unavailable; online again, Try again finds Zürich.
+    const { c, pg } = await freshPage('placesearch-offline');
+    try {
+      await pg.goto(exploreUrl);
+      await ready(pg);
+      await pg.waitForTimeout(1500);
+      await c.setOffline(true);
+      await search(pg).click({ timeout: 10000 }).catch(() => {});
+      await pg.waitForFunction(() => document.body.innerText.includes('Search is unavailable.'), null, { timeout: 15000 }).catch(() => {});
+      const shown = await unavailable(pg);
+      await c.setOffline(false);
+      await retry(pg).click({ timeout: 5000 }).catch(() => {});
+      const found = await zurich(pg);
+      check(shown && found, `gazetteer-web-fetch audit 2: offline before the first search says "Search is unavailable."; online again, Try again finds Zürich (${shown}, ${found})`);
+    } finally {
+      await c.setOffline(false).catch(() => {});
+      await c.close();
+    }
+  }
+  dropNetErrors(errorsFrom);
 }
 
 module.exports = {

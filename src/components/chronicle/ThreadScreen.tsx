@@ -83,7 +83,7 @@ const styles = StyleSheet.create({
   wrap: { gap: 18 },
   top: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   back: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: theme.line, backgroundColor: theme.surface, alignItems: 'center', justifyContent: 'center' },
-  eyebrow: { color: theme.accent, fontSize: 12, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase' },
+  eyebrow: { color: theme.ink, fontSize: 12, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase' },
   head: { gap: 8 },
   title: { color: theme.ink, fontSize: 30, fontWeight: '700' },
   line: { color: theme.muted, fontSize: 14 },
@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
   input: { backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.edge, borderRadius: 12, paddingHorizontal: 12, minHeight: 48, color: theme.ink, fontSize: 18 },
   sec: { gap: 10 },
   h: { color: theme.ink, fontSize: 16, fontWeight: '700' },
-  quote: { borderLeftWidth: 2, borderLeftColor: theme.accent, paddingLeft: 12, gap: 2 },
+  quote: { borderLeftWidth: 2, borderLeftColor: theme.ink, paddingLeft: 12, gap: 2 },
   qtext: { color: theme.ink, fontSize: 18, lineHeight: 25, fontStyle: 'italic' },
   qmeta: { color: theme.muted, fontSize: 12.5 },
 });

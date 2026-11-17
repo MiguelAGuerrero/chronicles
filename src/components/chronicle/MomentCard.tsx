@@ -57,7 +57,8 @@ export function MomentCard(props: {
         <View style={styles.body}>
           {m.kind === 'voice' && (
             <View style={styles.memo}>
-              <View style={styles.play}><Icon name="play" size={14} color={theme.accentInk} /></View>
+              {/* The kind, not a control: the card is the one button (tend chronicle audit 6, the owner's "A mic glyph"). */}
+              <Icon name="mic" size={16} color={theme.ink} testID="moment-mic" />
               <Text style={styles.memoText}>{memoWords(m.capture)}</Text>
             </View>
           )}
@@ -89,8 +90,7 @@ const styles = StyleSheet.create({
   owner: { fontStyle: 'italic' },
   note: { fontSize: 17 },
   meta: { color: theme.muted, fontSize: 13 },
-  memo: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  play: { width: 32, height: 32, borderRadius: 16, backgroundColor: theme.accent, alignItems: 'center', justifyContent: 'center' },
+  memo: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   memoText: { color: theme.ink, fontSize: 15, fontWeight: '600' },
   foot: { flexDirection: 'row', alignItems: 'center', paddingLeft: 14, paddingRight: 6, minHeight: 44 },
   from: { flex: 1, minHeight: 32, justifyContent: 'center' },

@@ -65,7 +65,7 @@ const FEATURES = [
     name: 'gaps',
     about: 'streets walked across a gap in the trace, and drawing a gap\'s way',
     rule: 'gaps',
-    source: ['src/lib/gaps/**', 'src/lib/tileCollector/**', 'src/components/{GapCard,GapDraw}.tsx'],
+    source: ['src/lib/gaps/**', 'src/lib/tileCollector/**', 'src/components/{GapCard,GapDraw,KeepGapsCard}.tsx'],
     journeys: ['gaps'],
     specs: ['filling-gaps', 'gap-drawing'],
   },

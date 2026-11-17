@@ -153,7 +153,7 @@ const styles = StyleSheet.create({
   iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   // A word, not a second x beside Clear's (place-search ui 1).
   closeBtn: { minWidth: 44, minHeight: 44, paddingHorizontal: 8, alignItems: 'center', justifyContent: 'center' },
-  closeText: { fontSize: 16, fontWeight: '600', color: theme.accent },
+  closeText: { fontSize: 16, fontWeight: '600', color: theme.ink },
   line: { fontSize: 15, color: theme.muted, paddingVertical: 10 },
   fail: { gap: 8, paddingVertical: 6, alignItems: 'flex-start' },
   row: { minHeight: 52, justifyContent: 'center', paddingVertical: 6, paddingHorizontal: 4, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: theme.line },

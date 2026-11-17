@@ -135,6 +135,35 @@ async function run(h) {
     }), false);
     check(rested, 'fix carousel-snap-back audit 1: and once the finger lifts the row settles on a card');
 
+    // fix carousel-flick: a short swipe on the row (30% of a card; the web has no snap) goes on to the neighbour, not back.
+    {
+      const swipe = (d) => pg.evaluate(async (dir) => {
+        const r = document.querySelector('[data-testid=atlas-carousel]');
+        const tiles = [...r.querySelectorAll('[data-testid=atlas-tile]')];
+        const step = tiles.length > 1 ? tiles[1].getBoundingClientRect().x - tiles[0].getBoundingClientRect().x : 250;
+        const b = r.getBoundingClientRect();
+        const t = new Touch({ identifier: 8, target: r, clientX: b.x + b.width / 2, clientY: b.y + b.height / 2, force: 0.5 });
+        const touch = (type) => r.dispatchEvent(new TouchEvent(type, { bubbles: true, cancelable: true, touches: type === 'touchend' ? [] : [t], targetTouches: type === 'touchend' ? [] : [t], changedTouches: [t] }));
+        touch('touchstart');
+        for (let i = 0; i < 3; i++) {
+          r.scrollLeft += dir * step * 0.1;
+          await new Promise((ok) => setTimeout(ok, 40));
+        }
+        touch('touchend');
+      }, d);
+      const list = await names();
+      const from = (await selected())[0];
+      const at = list.indexOf(from);
+      const dir = at >= 0 && at < list.length - 1 ? 1 : -1;
+      await swipe(dir);
+      await pg.waitForTimeout(1500);
+      const to = (await selected())[0];
+      check(list.indexOf(to) === at + dir, `fix carousel-flick: a 30% swipe goes on to the neighbour (${from} → ${to})`);
+      await swipe(-dir);
+      await pg.waitForTimeout(1500);
+      check((await selected())[0] === from, 'fix carousel-flick: and a 30% swipe the other way goes back');
+    }
+
     // EC5, EC6: the selected area has its ring and the one name; the other points are unnamed dots.
     const named = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=area-point]')].filter((e) => e.dataset.name).map((e) => e.dataset.name));
     check(named.length === 1 && named[0] === (await selected())[0], `EC6: the map names only the selected area (${JSON.stringify(named)})`);
