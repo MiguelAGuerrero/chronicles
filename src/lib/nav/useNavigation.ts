@@ -12,6 +12,7 @@ import type { LngLat, StreetSegment, Walk } from '../types';
 import { routeLeanings } from '../routeLeanings';
 import { getUnits } from '../units';
 import { aboutTimeLeft, DEFAULT_PACE_MPS, timeAtPaceMs } from './eta';
+import { cancelFind, endFind, findGoesOn, NO_FINDS, startFind, type Finds } from './findGate';
 import { announceStep, navStep, passedStops, rejoinPlanned, routeTo, routeVia, startNav, tooFar, viaAhead, type NavState } from './navigator';
 import { routeOptions, scenicPlan, scenicRouteSource, type RouteOption } from './scenic';
 import { scenicRead } from './scenicRead';
@@ -99,8 +100,8 @@ export function useNavigation(opts: {
   const sources = useRef<RouteSource[]>([]);
   // Where you are heading before there is a fix to route from (a walk just started from the home).
   const pending = useRef<Waypoint | null>(null);
-  const busy = useRef(false);
-  const cancelled = useRef(false);
+  // The Go here under way, if any, and its Cancel (nav/findGate): one is found at a time.
+  const finds = useRef<Finds>(NO_FINDS);
   const rereadAt = useRef(0);
   const latest = useRef(opts);
   useEffect(() => {
@@ -122,8 +123,8 @@ export function useNavigation(opts: {
     clearNav().catch(() => {});
   }, []);
 
-  /** Streets for an area, read from the map now (cancellable) and from the cache. */
-  const readStreets = async (bounds: Bounds, ends: LngLat[]): Promise<RouteSource> => {
+  /** Streets for an area, read from the map now (stopped between views once `stop` says so) and from the cache. */
+  const readStreets = async (bounds: Bounds, ends: LngLat[], stop: () => boolean): Promise<RouteSource> => {
     const m = latest.current.map();
     let read: StreetSegment[] = [];
     if (m) {
@@ -132,7 +133,7 @@ export function useNavigation(opts: {
       const ms = Math.min(READ_MAX_MS, Math.max(READ_MIN_MS, views.length * VIEW_MS));
       // One map read at a time: a scan in progress holds the camera, and the cache stands in.
       const features = await mapReads
-        .run(() => withTimeout(m.collect(views, () => cancelled.current), ms, 'The map'))
+        .run(() => withTimeout(m.collect(views, stop), ms, 'The map'))
         .catch(() => null);
       if (features) read = deriveSegments(features.roads, features.names);
     }
@@ -158,9 +159,12 @@ export function useNavigation(opts: {
 
   const goTo = useCallback(async (dest: Waypoint): Promise<void> => {
     const { walk, here } = latest.current;
-    if (!walk || busy.current) return;
-    busy.current = true;
-    cancelled.current = false;
+    const started = walk ? startFind(finds.current) : null;
+    if (!walk || !started) return;
+    finds.current = started;
+    // Cancel ends this find: after each await it goes on only while it is still the find under way, not cancelled.
+    const gen = started.gen;
+    const goesOn = () => findGoesOn(finds.current, gen);
     setPreview(null);
     previewRead.current = null;
     const fail = async (message: string) => {
@@ -172,6 +176,7 @@ export function useNavigation(opts: {
       const pauses = await db.getPauses(walk.id);
       const stills = await db.getStills(walk.id).catch(() => []);
       const points = await db.getPoints(walk.id);
+      if (!goesOn()) return;
       const last = points[points.length - 1];
       const from: LngLat | null = here ?? (last ? [last.lon, last.lat] : null);
       if (!from) {
@@ -191,12 +196,13 @@ export function useNavigation(opts: {
       const plan = dest.suggested ? { scenic: false as const, notice: null } : scenicPlan(dest, from, leanings, getUnits());
       if (!plan.scenic && plan.notice) latest.current.onNotice(plan.notice);
       if (plan.scenic) {
-        const read = await withTimeout(scenicRead.read(from, dest.at, () => cancelled.current), SCENIC_READ_MS, 'The scenic read').catch(() => null);
-        if (cancelled.current) return;
+        const read = await withTimeout(scenicRead.read(from, dest.at, () => !goesOn()), SCENIC_READ_MS, 'The scenic read').catch(() => null);
+        if (!goesOn()) return;
         if (read) {
           const cached = await db.getSegmentsIn(boundsOf([from, dest.at], AREA_PAD_M)!).catch(() => [] as StreetSegment[]);
+          if (!goesOn()) return;
           const streets = streetRouteSource([...new Map([...cached, ...read.segments].map((x) => [x.id, x])).values()]);
-          if (!(await db.getWalk(walk.id))?.open) return;
+          if (!(await db.getWalk(walk.id))?.open || !goesOn()) return;
           if (dest.leanings) {
             const src = scenicRouteSource(streets, read.signals, dest.leanings);
             const r = src.route(from, dest.at, hint0);
@@ -220,6 +226,7 @@ export function useNavigation(opts: {
       if (dest.kind === 'start' || dest.kind === 'capture') {
         list.push(traceRouteSource(points, pauses, walk.started_at, stills));
         list.push(await cachedStreets(boundsOf([from, dest.at], AREA_PAD_M)!));
+        if (!goesOn()) return;
       }
       const hint = { heading: here ? latest.current.heading : null };
       const stops = dest.via ?? [];
@@ -228,26 +235,27 @@ export function useNavigation(opts: {
       // streets around, read once.
       const planned = dest.path && dest.path.length > 1 ? plannedRoute(dest.path) : null;
       if (planned) list.push(await cachedStreets(boundsOf([from, ...dest.path!], AREA_PAD_M)!));
+      if (!goesOn()) return;
       let found = planned ? { route: planned } : routeVia(list, from, stops, dest.at, 'shortest', hint);
       if (!found.route) {
-        list.push(await readStreets(boundsOf([from, ...stops, dest.at], AREA_PAD_M)!, [from, ...stops, dest.at]));
-        if (cancelled.current) return;
+        list.push(await readStreets(boundsOf([from, ...stops, dest.at], AREA_PAD_M)!, [from, ...stops, dest.at], () => !goesOn()));
+        if (!goesOn()) return;
         found = routeVia(list, from, stops, dest.at, 'shortest', hint);
       }
       if (!found.route) return await fail(found.reason ?? 'No walking route found nearby');
       // Stopped while the route was being found: nothing to navigate.
-      if (!(await db.getWalk(walk.id))?.open) return;
+      if (!(await db.getWalk(walk.id))?.open || !goesOn()) return;
       // A scenic leaning that couldn't be routed again is dropped: this is the direct way (SR11).
       await begin(walk.id, directTo(dest), found.route, list);
     } finally {
-      busy.current = false;
+      finds.current = endFind(finds.current, gen);
       setFinding(false);
     }
   }, [begin]);
 
   /** Stops finding a route: the street read ends after the view at hand. */
   const cancel = useCallback(() => {
-    cancelled.current = true;
+    finds.current = cancelFind(finds.current);
     pending.current = null;
     clearNav().catch(() => {});
   }, []);
@@ -300,7 +308,7 @@ export function useNavigation(opts: {
     let alive = true;
     queueMicrotask(() => {
       if (!alive) return;
-      if (pending.current && !navRef.current && !busy.current) {
+      if (pending.current && !navRef.current && !finds.current.busy) {
         goTo(pending.current).catch(() => {});
         return;
       }
@@ -331,17 +339,18 @@ export function useNavigation(opts: {
           next = { ...next, route: again, leftM: again.lengthM, offCount: 0, offRoute: false, seg: 1 };
           latest.current.onNotice('New route');
           AccessibilityInfo.announceForAccessibility(`New route, ${formatDistance(again.lengthM)} to ${s.dest.label}`);
-        } else if (now - rereadAt.current >= REREAD_MS && !busy.current) {
+        } else if (now - rereadAt.current >= REREAD_MS && !finds.current.busy) {
           // Off the streets read before: read the ones around you, then try again.
           rereadAt.current = now;
-          busy.current = true;
-          readStreets(boundsOf([here, s.dest.at], AREA_PAD_M)!, [here, s.dest.at])
+          const read = startFind(finds.current)!;
+          finds.current = read;
+          readStreets(boundsOf([here, s.dest.at], AREA_PAD_M)!, [here, s.dest.at], () => !findGoesOn(finds.current, read.gen))
             .then((streets) => {
               sources.current = [...sources.current.filter((x) => x.id !== streets.id), streets];
             })
             .catch(() => {})
             .finally(() => {
-              busy.current = false;
+              finds.current = endFind(finds.current, read.gen);
             });
         }
       }

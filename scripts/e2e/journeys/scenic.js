@@ -54,6 +54,25 @@ async function run(h) {
     const preview = (pg, timeout = 60000) => pg.waitForSelector('[data-testid=route-preview]', { timeout }).then(() => true, () => false);
     const gone = (pg, sel) => pg.waitForFunction((s) => !document.querySelector(s), `[data-testid=${sel}]`, { timeout: 5000 }).then(() => true, () => false);
     const navDest = async (pg) => JSON.parse((await metaOf(pg, 'nav')) || 'null')?.dest ?? null;
+    // Holds every read of the walk row (IndexedDB's walk store) while on, so a step that waits on one can be caught there;
+    // off answers what was held. window.__held counts what was caught.
+    const holdWalkReads = (pg, on) => pg.evaluate((v) => {
+      window.__holdWalk = v;
+      window.__held ??= [];
+      if (!window.__holdPatched) {
+        window.__holdPatched = true;
+        const get = IDBObjectStore.prototype.get;
+        IDBObjectStore.prototype.get = function (...a) {
+          const req = get.apply(this, a);
+          if (!window.__holdWalk || this.name !== 'walk') return req;
+          let fn = null;
+          Object.defineProperty(req, 'onsuccess', { configurable: true, get: () => fn, set: (h) => { fn = h; } });
+          req.addEventListener('success', (e) => window.__held.push(() => fn?.call(req, e)));
+          return req;
+        };
+      }
+      if (!v) for (const answer of window.__held.splice(0)) answer();
+    }, on);
     // 300 m east, on screen at the walk's zoom (a 390 px map is about 700 m across): Transit Street direct, 360 m by the park.
     const east = at(2.5, -0.5);
 
@@ -114,6 +133,22 @@ async function run(h) {
       await pg.keyboard.press('Escape');
       check((await gone(pg, 'route-preview')) && (await pg.locator('[data-testid=nav-bar]').count()) === 0, 'scenic SR8: Escape closes the preview, with no destination');
     } else check(false, 'scenic SR8: the preview came back for Escape');
+
+    // tend navigation 2: Cancel pressed after the corridor was read, while the walk is read before the routes are offered,
+    // sets nothing: no preview comes up, no route starts, no destination is kept.
+    await pg.waitForTimeout(1100);
+    await holdWalkReads(pg, true);
+    await goHere(pg, east);
+    const caught = await pg.waitForFunction(() => window.__held.length > 0, null, { timeout: 60000 }).then(() => true, () => false);
+    const cancelled = await pg.click('[data-testid=nav-cancel]', { timeout: 3000 }).then(() => true, () => false);
+    await holdWalkReads(pg, false);
+    let shown = false;
+    for (let k = 0; k < 8; k++) {
+      shown ||= (await pg.locator('[data-testid=route-preview], [data-testid=nav-bar]').count()) > 0;
+      await pg.waitForTimeout(400);
+    }
+    check(caught && cancelled && !shown && (await navDest(pg)) === null && (await pg.locator('[data-testid=nav-cancel]').count()) === 0,
+      `tend navigation 2: Cancel while the walk is read after the corridor sets nothing (caught ${caught}, cancelled ${cancelled}, shown ${shown}, kept ${JSON.stringify(await navDest(pg))})`);
 
     // SR8, SR11: Go on Through green navigates that way, and the leaning is kept with the destination.
     await pg.waitForTimeout(1100);
