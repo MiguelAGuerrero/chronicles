@@ -105,3 +105,49 @@ test('UN15: held while the app is open: a new holder starts empty and writes not
   assert.deepEqual(u.store.get(), { list: [], lost: [] });
   assert.deepEqual(calls, []);
 });
+
+// The review's accepted findings (the auditor, Nov 17), each before its fix.
+type More = {
+  track(p: Promise<unknown>): void;
+  settled(): Promise<void>;
+  ended(walkId: string): Promise<void>;
+  hasEnded(walkId: string): boolean;
+  takeUnsaid(): { id: string }[];
+};
+const more = (u: unknown) => u as More;
+
+test('unsaved-captures audit 2: a Stop waits for every Retry under way before it reads or lets go', { todo: 'test first' }, async () => {
+  const { u } = holder();
+  let done = false;
+  let finish = () => {};
+  more(u).track(new Promise<void>((r) => (finish = () => {
+    done = true;
+    r();
+  })));
+  const waiting = more(u).settled();
+  setTimeout(finish, 20);
+  await waiting;
+  assert.equal(done, true);
+});
+
+test('unsaved-captures audit 3: an ended walk lets its held go, and is known ended after', { todo: 'test first' }, async () => {
+  const { u, calls, hold } = holder();
+  hold('photo', 'w1', 'blob:p');
+  await more(u).ended('w1');
+  assert.equal(u.heldFor('w1').length, 0);
+  assert.deepEqual(calls, ['drop blob:p']);
+  assert.equal(more(u).hasEnded('w1'), true);
+  assert.equal(more(u).hasEnded('w2'), false);
+});
+
+test('unsaved-captures audit 8: two captures failed away are each said once, in one change', { todo: 'test first' }, async () => {
+  const { u, hold } = holder();
+  const a = hold('photo', 'w1', 'blob:a', { said: false });
+  const b = hold('voice', 'w1', 'blob:b', { said: false });
+  let told = 0;
+  const off = u.store.subscribe(() => void told++);
+  assert.deepEqual(more(u).takeUnsaid().map((x) => x.id), [a, b]);
+  off();
+  assert.equal(told, 1);
+  assert.deepEqual(more(u).takeUnsaid(), []);
+});

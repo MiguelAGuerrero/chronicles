@@ -7,6 +7,8 @@ const { failStorage } = require('../failStorage');
 
 const OUT = 'Not saved: there is no room left. It is held here for Retry.';
 const OUT_WALK = 'Not saved: there is no room left. It is held for Retry on the walk screen.';
+// The bar's own, shorter words (the owner, Nov 17; unsaved-captures audit 7).
+const OUT_BAR = 'No room left. Retry on the walk screen.';
 const MEMO = /Voice (memo|note)s? not saved/;
 
 async function run(h) {
@@ -140,6 +142,7 @@ async function run(h) {
   const walkVoices0 = (await rows()).filter((m) => m.walk && m.kinds.includes('voice')).length;
   check(loose1 === loose0 + 1 && walkVoices0 === 0 && !(await there('[data-testid=held-memo]', 1000)),
     `UN4: Retry on the walk screen keeps the ready screen's memo as a moment of its own (${loose0} → ${loose1} outside a walk, ${walkVoices0} in it)`);
+  check.todo(!(await there('[data-testid=add-to-moment]', 1500)), 'unsaved-captures audit 1: a loose memo kept by Retry on the walk screen opens no Add to this moment pill');
 
   // UN3: two memos that fail in turn are both held; Retry keeps both, in the order taken.
   const walkId = await pg.evaluate(() => new Promise((resolve) => {
@@ -161,6 +164,54 @@ async function run(h) {
   const kept = await voices(walkId);
   check(kept.length === 2 && kept[0].t < kept[1].t && !(await there('[data-testid=held-memo]', 1000)),
     `UN3: Retry keeps both memos in the walk, in the order taken (${kept.length})`);
+
+  // unsaved-captures audit 3: a photo still being kept when the walk screen's Stop is held fails while Stop waits: it is
+  // warned of, and the walk goes on.
+  await pg.evaluate(() => { window.__slowBlob = 2500; window.__failMedia = 1; });
+  const picked = await Promise.all([pg.waitForEvent('filechooser', { timeout: 10000 }), pg.click('[data-testid=cap-photo]', { timeout: 10000 })]).catch(() => null);
+  if (picked) await picked[0].setFiles(path.join(fixtures, 'photo.jpg'));
+  await hold('[data-testid=stop]');
+  await pg.waitForTimeout(3000);
+  const waited = await pg.locator('body').innerText();
+  check.todo(/Photo not saved yet\. Retry, or hold Stop again/.test(waited) && /\/walk/.test(pg.url()),
+    `unsaved-captures audit 3: a photo failing while the walk screen's Stop waits is warned of, and the walk goes on (${pg.url().slice(-12)})`);
+  if (await there('[data-testid=held-retry]', 2000)) await shown('[data-testid=held-retry]').first().click();
+  await pg.waitForTimeout(2500);
+
+  // unsaved-captures audit 9: a reply failing in the viewer over the walk screen is said by the walk screen once the viewer
+  // closes, not behind it.
+  const walkPhoto = (await rows()).filter((m) => m.walk === walkId && m.kinds[0] === 'photo').sort((a, b) => b.t - a.t)[0];
+  await pg.click('[data-testid=walk-minimize]', { timeout: 10000 }).catch(() => {});
+  await pg.waitForTimeout(1500);
+  if (walkPhoto) {
+    await pg.evaluate((id) => new Promise((resolve) => {
+      const req = indexedDB.open('chronicles');
+      req.onsuccess = () => {
+        const tx = req.result.transaction('meta', 'readwrite');
+        tx.objectStore('meta').put({ key: 'recall_open', value: JSON.stringify([id]) });
+        tx.oncomplete = () => resolve();
+      };
+    }), walkPhoto.id);
+  }
+  await pg.click('[data-testid=recording-return]', { timeout: 10000 }).catch(() => {});
+  const viewerUp = await there('[data-testid=viewer-respond]', 10000);
+  let behind = false;
+  if (viewerUp) {
+    await pg.evaluate(() => { window.__failMedia = 1; });
+    await shown('[data-testid=viewer-respond]').first().click();
+    await pg.click('[data-testid=respond-voice]', { timeout: 5000 }).catch(() => {});
+    await pg.waitForSelector('[data-testid=respond-voice-stop]', { timeout: 10000 }).catch(() => {});
+    await pg.waitForTimeout(1300);
+    await pg.click('[data-testid=respond-voice-stop]', { timeout: 5000 }).catch(() => {});
+    // Longer than the walk's notice stays: one said behind the viewer is gone by the time it closes.
+    await pg.waitForTimeout(7500);
+    await pg.click('[data-testid=viewer-close]', { timeout: 5000 }).catch(() => {});
+    await pg.waitForTimeout(1500);
+    behind = (await pg.locator('body').innerText()).includes(OUT);
+  }
+  check.todo(viewerUp && behind, `unsaved-captures audit 9: a reply that failed in the viewer over the walk is said by the walk screen once the viewer closes (${viewerUp})`);
+  if (await there('[data-testid=held-memo]', 2000)) await shown('[data-testid=held-memo-retry]').first().click();
+  await pg.waitForTimeout(2500);
 
   // UN10: the recording bar's photo, refused out of room, says where its Retry is; UN2: Memories and the walk show it.
   await pg.click('[data-testid=walk-minimize]', { timeout: 10000 }).catch(() => {});
@@ -190,9 +241,9 @@ async function run(h) {
   });
   const saidWhole = !!saidBox && saidBox.shown >= saidBox.whole - 1;
   await wide(390);
-  check(barSaid.includes(OUT_WALK) && !barSaid.includes('held here'), `UN10: the bar's photo says its Retry is on the walk screen ("${barSaid}")`);
-  // Open, for the owner (the hand-back): at 320 px UN10's words need five lines in the bar, which shows four.
-  check.todo(saidWhole, `unsaved open 1: the bar's room words are whole at 320 px, nothing cut (${JSON.stringify(saidBox)})`);
+  check(/Retry on the walk screen\./.test(barSaid) && !barSaid.includes('held here'), `UN10: the bar's photo says its Retry is on the walk screen ("${barSaid}")`);
+  check.todo(barSaid === OUT_BAR, `unsaved-captures audit 7: the bar says the owner's words ("${barSaid}")`);
+  check.todo(saidWhole, `unsaved-captures audit 7: the bar's room words are whole at 320 px, nothing cut (${JSON.stringify(saidBox)})`);
   await pictures('bar-said');
   await tabTo(pg, 'chronicle', 'memories').catch(() => {});
   await pg.waitForTimeout(1500);
@@ -230,6 +281,15 @@ async function run(h) {
   await shot(pg, 'unsaved-bar-warning-390');
   check((await fillOf('[data-testid=bar-stop]')) === 0, `UN7: the bar's Stop is empty again after the refused hold (${await fillOf('[data-testid=bar-stop]')})`);
 
+  // unsaved-captures audit 4: a second hold whose Stop fails keeps the walk's held captures.
+  await pg.evaluate(() => { window.__failWalk = 1; });
+  await hold('[data-testid=bar-stop]');
+  const notStopped = await textOf('[data-testid=recording-said]');
+  check.todo(/could not be stopped/.test(notStopped) && (await there('[data-testid=held-captures]', 3000)),
+    `unsaved-captures audit 4: a Stop that fails keeps the walk's held photo ("${notStopped}")`);
+  await pg.evaluate(() => { window.__failWalk = 0; });
+  await pg.waitForTimeout(6500);
+
   // UN8: the second hold ends the walk without it: no pill anywhere, and no file of it left.
   await hold('[data-testid=bar-stop]');
   await pg.waitForURL(/\/replay\//, { timeout: 15000 }).catch(() => {});
@@ -241,6 +301,26 @@ async function run(h) {
   await pg.waitForSelector('[data-testid=moment-voice]', { timeout: 30000 }).catch(() => {});
   await pg.waitForTimeout(1500);
   check(added.length === 1 && !(await there('[data-testid=held-captures]', 1500)) && !(await there('[data-testid=held-memo]', 500)), 'UN8: nothing of the walk\'s held photo shows after the walk ended');
+
+  // unsaved-captures audit 5: a memo whose save fails as Memories loses the front (a tab change) is said there on return.
+  await tabTo(pg, 'chronicle', 'memories').catch(() => {});
+  await pg.waitForTimeout(1500);
+  await pg.evaluate(() => { window.__failMedia = 1; });
+  await pg.click('[data-testid=band-voice]', { timeout: 10000 }).catch(() => {});
+  await pg.waitForSelector('[data-testid=band-voice-save]', { timeout: 10000 }).catch(() => {});
+  await pg.waitForTimeout(1300);
+  await tabTo(pg, 'explore').catch(() => {});
+  // Longer than Memories' error stays: a why said to the hidden line is gone by the time it is back.
+  await pg.waitForTimeout(7500);
+  await tabTo(pg, 'chronicle', 'memories').catch(() => {});
+  await pg.waitForTimeout(1500);
+  const onReturn = await textOf('[data-testid=band-error]');
+  check.todo(onReturn.includes(OUT) && (await there('[data-testid=band-voice-retry]', 1000)), `unsaved-captures audit 5: a memo failing as Memories loses the front is said on return ("${onReturn}")`);
+  if (await there('[data-testid=band-voice-retry]', 1000)) await shown('[data-testid=band-voice-retry-act]').first().click();
+  await pg.waitForTimeout(2500);
+  await pg.goto(navUrl);
+  await pg.waitForSelector('[data-testid=moment-voice]', { timeout: 30000 }).catch(() => {});
+  await pg.waitForTimeout(1500);
 
   // UN11: a memo for an open moment, refused; the moment is deleted meanwhile; Retry keeps it as its own moment.
   await shoot('moment-photo');

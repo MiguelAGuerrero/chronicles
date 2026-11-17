@@ -100,3 +100,54 @@ test('UN14: no pill or warning holds a digit', async () => {
     heldWhere('photo', true, 'walk'), heldWhere('voice', true, 'memories')];
   for (const w of words) assert.doesNotMatch(String(w), /[0-9]/, String(w));
 });
+
+// The review's accepted findings (the auditor, Nov 17), each before its fix.
+type Audit = {
+  looseAfterEnd<S extends { walk: string | null; into?: string | null }>(s: S): S;
+  keepInOrder(k: { uri: string | null; path: string | null }, steps: {
+    keepFile(uri: string): Promise<string>;
+    write(path: string): Promise<string | null>;
+    after(id: string | null, path: string): void | Promise<void>;
+  }): Promise<{ id: string | null } | { path: string | null; error: unknown }>;
+  heldWhere(kind: 'photo' | 'video' | 'voice', outOfSpace: boolean, where: 'here' | 'walk' | 'memories', short?: boolean): string;
+};
+const audit = async () => (await core()) as unknown as Audit;
+
+test('unsaved-captures audit 3: a capture failing after its walk ended is held as a moment of its own', { todo: 'test first' }, async () => {
+  const { looseAfterEnd } = await audit();
+  assert.deepEqual(looseAfterEnd({ t: 5, at: [1, 2], walk: 'w1', into: 'm1', replyTo: null }), { t: 5, at: [1, 2], walk: null, into: null, replyTo: null });
+});
+
+test('unsaved-captures audit 6: a capture whose row is stored is never held, whatever fails after', { todo: 'test first' }, async () => {
+  const { keepInOrder } = await audit();
+  const kept = await keepInOrder({ uri: 'blob:a', path: null }, {
+    keepFile: async () => 'walks/w1/a.jpg',
+    write: async () => 'id1',
+    after: () => {
+      throw new Error('a read after the write failed');
+    },
+  });
+  assert.deepEqual(kept, { id: 'id1' });
+  // A failed row write holds it, with the file kept once (UN12).
+  const failed = await keepInOrder({ uri: 'blob:b', path: null }, {
+    keepFile: async () => 'walks/w1/b.jpg',
+    write: async () => {
+      throw new Error('refused');
+    },
+    after: () => {},
+  });
+  assert.ok('error' in failed && failed.path === 'walks/w1/b.jpg');
+  // A kept path is never kept again.
+  let kepts = 0;
+  await keepInOrder({ uri: 'blob:c', path: 'walks/w1/c.jpg' }, { keepFile: async () => String(++kepts), write: async () => 'id3', after: () => {} });
+  assert.equal(kepts, 0);
+});
+
+test('unsaved-captures audit 7: the bar says the owner’s shorter words', { todo: 'test first' }, async () => {
+  const { heldWhere } = await audit();
+  assert.equal(heldWhere('photo', true, 'walk', true), 'No room left. Retry on the walk screen.');
+  assert.equal(heldWhere('photo', true, 'memories', true), 'No room left. Retry on Memories.');
+  // Respond and the planner keep the full sentence; any other failure is as today.
+  assert.equal(heldWhere('voice', true, 'walk'), 'Not saved: there is no room left. It is held for Retry on the walk screen.');
+  assert.equal(heldWhere('photo', false, 'walk', true), 'Couldn’t save this photo.');
+});
