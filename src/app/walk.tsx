@@ -88,6 +88,8 @@ import { arrivalNotice, exitPlan, screenState, startNotice } from '../lib/readyN
 import { noticeShown } from '../lib/pauseReminder';
 import { getLastFix } from '../lib/lastFix';
 import { useStopArrival } from '../lib/outing/useArrival';
+import { PASS_LABEL, PUT_AWAY_LABEL } from '../lib/outing/journeyWords';
+import { useJourneyBar } from '../lib/outing/useJourneyBar';
 import { CaptureStack } from '../components/walk/CaptureStack';
 import { ReadyBar } from '../components/walk/ReadyBar';
 import { scaleInsetBottom } from '../lib/stackSlots';
@@ -670,6 +672,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
     setNotice((n) => (n?.maps ? null : n));
     void navigation.goTo(dest);
   };
+  // A journey carried by this session (OJ28-OJ31, decision 0201): the bar between towns, and the way on foot within reach of one.
+  const journey = useJourneyBar({ walkId: walk?.open ? walk.id : null, here: live.here, navigating: !!navigation.nav || navigation.finding || !!navigation.preview, goTo });
   // Scenic routes' preview (SR8): Back (Android) and Escape (web) cancel it, setting no destination.
   const routePreview = navigation.preview;
   const dismissPreview = navigation.dismiss;
@@ -1345,6 +1349,21 @@ function WalkScreen(props: { onMinimize: () => void }) {
           </Pressable>
           {/* The navigation bar takes the top row beside Minimize, so nothing sits above it (the owner, Nov 6: it keeps
               drifting down; supersedes Nov 5's "Minimize above the bar"). */}
+          {/* A journey between towns (OJ29, OJ31, decision 0201): the town ahead and how far, Maps for the road, a way to pass it by. */}
+          {!navigation.nav && journey.next && (
+            <View testID="journey-bar" style={styles.navBar}>
+              <Text testID="journey-next" style={styles.navText} numberOfLines={2}>{journey.next.line}</Text>
+              <Pressable testID="journey-maps" accessibilityRole="button" accessibilityLabel="Open in Maps" accessibilityHint={HANDOFF_HINT} onPress={() => journey.next && handOff(journey.next.at, journey.next.town)} style={({ pressed }) => [styles.navHandoff, pressed && styles.pressed]}>
+                <Icon name="open-outline" size={22} color="#ffffff" />
+              </Pressable>
+              <Pressable testID="journey-pass" accessibilityRole="button" accessibilityLabel={PASS_LABEL} onPress={journey.pass} style={styles.navEnd} hitSlop={8}>
+                <Text style={styles.navEndText}>Pass by</Text>
+              </Pressable>
+              <Pressable testID="journey-away" accessibilityRole="button" accessibilityLabel={PUT_AWAY_LABEL} onPress={journey.putAway} style={({ pressed }) => [styles.navHandoff, pressed && styles.pressed]}>
+                <Icon name="close" size={22} color="#ffffff" />
+              </Pressable>
+            </View>
+          )}
           {navigation.nav && (
             // Not a live region: it changes with every fix. The distance is announced in steps instead.
             <View testID="nav-bar" style={styles.navBar}>

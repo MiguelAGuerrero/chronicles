@@ -30,6 +30,7 @@ import { useLayers } from '../../lib/layers/useLayers';
 import { useWalkability } from '../../lib/walk/useWalkability';
 import { WalkMap } from '../../components/map/WalkMap';
 import { OutingPage } from '../../components/outing/OutingPage';
+import { journeyPlans } from '../../lib/outing/plans';
 import { PlannerDrawer } from '../../components/planner/PlannerDrawer';
 import { ENTRY_LABEL } from '../../lib/outing/words';
 import type { CategoryId } from '../../lib/discovery/types';
@@ -1052,10 +1053,11 @@ export default function Explore() {
           fixNow={() => getLastFix()?.at ?? you}
           starting={walkStart.starting}
           onClose={() => setOutingOpen(false)}
-          onStart={(dest) => {
+          onStart={(dest, plan) => {
             setOutingOpen(false);
             setOpen(null);
-            startWalk(dest);
+            // OJ48: the plan is offered first, so the session that starts now takes it up.
+            void (plan ? journeyPlans.offer(plan).catch(() => {}) : Promise.resolve()).then(() => walkStart.start(dest, undefined, { onError: sayQuiet }));
           }}
           onLater={(dest) => {
             setOutingOpen(false);

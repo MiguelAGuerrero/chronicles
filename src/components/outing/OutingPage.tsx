@@ -4,7 +4,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { matches } from '../../lib/outing/candidates';
 import { distanceM } from '../../lib/geo';
 import type { Waypoint } from '../../lib/nav/types';
-import { ANOTHER_LABEL, BACK_LABEL, CHANGE_LABEL, CHIPS_LINE, DISMISS_LABEL, FURTHER_LABEL, HERE_LABEL, LATER_LABEL, MAPS_FAILED_LINE, NOWHERE_LABEL, RETRY_LABEL, STRAIGHT_LINE, TOWNS_FAILED_LINE, PEEK_LABEL, READ_FAILED_LINE, REACH_LINE, SEE_LABEL, TOO_FAR_LINE, TOWNS_LINE, UNDO_LABEL, UNFOUND_LINE, UNPEEK_LABEL, WHERE_LABEL, awayLine, cardSummary, chapterLine, firstLine, lookedLine, nextMoveLine, nothingLine, reachLabel, townLine } from '../../lib/outing/journeyWords';
+import type { JourneyPlan } from '../../lib/outing/journeyPlan';
+import { ANOTHER_LABEL, BACK_LABEL, CHANGE_LABEL, CHIPS_LINE, DISMISS_LABEL, FURTHER_LABEL, HERE_LABEL, LATER_LABEL, LEAVE_OUT_LABEL, NEW_TOWN_LINE, MAPS_FAILED_LINE, NOWHERE_LABEL, RETRY_LABEL, STRAIGHT_LINE, TOWNS_FAILED_LINE, PEEK_LABEL, READ_FAILED_LINE, REACH_LINE, SEE_LABEL, TOO_FAR_LINE, TOWNS_LINE, UNDO_LABEL, UNFOUND_LINE, UNPEEK_LABEL, WHERE_LABEL, awayLine, cardSummary, chapterLine, firstLine, lookedLine, nextMoveLine, nothingLine, reachLabel, townLine } from '../../lib/outing/journeyWords';
 import { useJourney } from '../../lib/outing/useJourney';
 import { CHAINS_LABEL, CLOSE_LABEL, HOURS_LINE, NO_PICK_LINE, READING_LINE, SLOT_HINT, START_LABEL, SWAP_LABEL, TITLE, cardLine, reasonLine, slotLine } from '../../lib/outing/words';
 import { hideTabs } from '../../lib/tabsHidden';
@@ -34,7 +35,8 @@ export function OutingPage(props: {
   fixNow: () => LngLat | null;
   starting: boolean;
   onClose: () => void;
-  onStart: (dest: Waypoint) => void;
+  /** Start: the way on foot when the first chapter is around you (else none), and the plan the session carries, if any. */
+  onStart: (dest: Waypoint | null, plan: JourneyPlan | null) => void;
   /** "When I get there" (0121): the chapter kept as Navigate's destination, nothing started. */
   onLater: (dest: Waypoint) => void;
 }) {
@@ -105,8 +107,13 @@ export function OutingPage(props: {
     starting.current = true;
     setBusy(true);
     try {
-      const dest = j.start(props.fixNow());
-      if (dest) (later ? props.onLater : props.onStart)(dest);
+      if (later) {
+        const dest = j.later();
+        if (dest) props.onLater(dest);
+      } else {
+        const s = j.start(props.fixNow());
+        if (s) props.onStart(s.dest, s.plan);
+      }
     } finally {
       starting.current = false;
       setBusy(false);
@@ -124,7 +131,7 @@ export function OutingPage(props: {
   return (
     <View style={[StyleSheet.absoluteFill, styles.over]} testID="outing" accessibilityViewIsModal>
       <View style={StyleSheet.absoluteFill} testID="outing-map">
-        <WalkMap trace={NONE} walked={NONE} fog={NONE} captures={NONE} walker={props.you} route={j.map.route} alternates={NONE} routeGrades={NONE} foundPins={j.map.pins} fitBounds={j.map.fit} fitKey={fitN} hideLabels />
+        <WalkMap trace={NONE} walked={NONE} fog={NONE} captures={NONE} walker={props.you} route={j.map.route} alternates={j.map.link} routeGrades={NONE} foundPins={j.map.pins} fitBounds={j.map.fit} fitKey={fitN} hideLabels />
       </View>
       <View style={[styles.top, { top: insets.top + 8 }]}>
         <View style={styles.field}>
@@ -263,8 +270,14 @@ export function OutingPage(props: {
               {chapters.map((c) => (
                 <View key={c.ci} style={styles.chapter} testID={`outing-chapter-${c.ci}`}>
                   <Text style={styles.jname} accessibilityRole="header" testID={`outing-chapter-name-${c.ci}`}>{c.area.name ?? HERE_LABEL}</Text>
-                  <Text style={styles.line} testID={`outing-chapter-line-${c.ci}`}>{townLine(c.labels)} {chapterLine(c, j.units)}</Text>
+                  <Text style={styles.line} testID={`outing-chapter-line-${c.ci}`}>{c.area.isNew ? `${NEW_TOWN_LINE} ` : ''}{townLine(c.labels)} {chapterLine(c, j.units)}</Text>
                   {c.area.name ? <OpenInMapsButton testID={`outing-maps-${c.ci}`} variant="link" target={{ at: c.area.at, label: c.area.name, kind: 'area' }} onOpen={openMaps} /> : null}
+                  {j.canLeaveOut(c.area) ? (
+                    <Pressable testID={`outing-leave-${c.ci}`} accessibilityRole="button" accessibilityLabel={`${LEAVE_OUT_LABEL}: ${c.area.name}`} onPress={() => j.leaveOut(c.area)} style={styles.back}>
+                      <Icon name="remove-circle-outline" size={18} color={theme.ink} />
+                      <Text style={styles.swapText}>{LEAVE_OUT_LABEL}</Text>
+                    </Pressable>
+                  ) : null}
                   {c.slots.map((s) => {
                     const key = `${c.ci}:${s.i}`;
                     return (

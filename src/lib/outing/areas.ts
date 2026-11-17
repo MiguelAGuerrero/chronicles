@@ -101,3 +101,8 @@ export function areasToward(towns: Iterable<TownRow>, from: LngLat, to: TownRow,
 }
 
 export const areaKey = (a: Pick<Area, 'at'>): string => `${a.at[0].toFixed(5)},${a.at[1].toFixed(5)}`;
+
+/** OJ26: the look without the towns left out; where you stand and the destination's town are never left out. */
+export function withoutAreas(areas: readonly Area[], left: ReadonlySet<string>, destKey: string | null): Area[] {
+  return areas.filter((a) => a.name === null || areaKey(a) === destKey || !left.has(areaKey(a)));
+}

@@ -4,6 +4,7 @@ import { newId } from './id';
 import { deletions } from './deletion';
 import { dropEmpty } from './emptyWalk';
 import { clearNav, clearWayBack } from './nav/store';
+import { journeyPlans } from './outing/plans';
 import { notifier } from './notify';
 import { recorder } from './recorder';
 import type { Walk } from './types';
@@ -67,6 +68,8 @@ export function stopWalk(walkId: string): Promise<void> {
       await clearNav().catch(() => {});
       // So does the spot chosen with Walk back here (DW7).
       await clearWayBack().catch(() => {});
+      // And the plan of a journey it carried (OJ48).
+      await journeyPlans.clear().catch(() => {});
     })().finally(() => {
       stopping = null;
     });

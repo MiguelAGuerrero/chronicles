@@ -6,7 +6,6 @@ import { at } from '../walk-planner/grid';
 // The plan a session carries (OJ26, OJ28-OJ31, OJ34, OJ48-OJ50; decision 0201): towns and positions only, the chapter ahead read
 // from where you have been, nothing marked done.
 
-const TODO = { todo: 'test first' };
 const stop = (id: string, e: number, n: number) => ({ id, at: at(e, n), facets: { what: ['antiques'] }, name: `Secret ${id}` });
 const chapter = (name: string | null, e: number, stops: ReturnType<typeof stop>[], loop = false) => ({ area: { name, at: at(e, 0) }, outing: { stops, path: stops.map((s) => s.at), lengthM: 500, loop } });
 const JOURNEY = {
@@ -15,7 +14,7 @@ const JOURNEY = {
 };
 const HERE = at(0, 0);
 
-test('OJ34, OJ48: the plan holds town names, points, stops\' positions and the loop, and nothing else', TODO, async () => {
+test('OJ34, OJ48: the plan holds town names, points, stops\' positions and the loop, and nothing else', async () => {
   const { journeyPlan, isJourneyPlan } = await import('../../outing/journeyPlan');
   const plan = journeyPlan(JOURNEY as never);
   assert.deepEqual(plan.chapters.map((c) => Object.keys(c).sort()), [['at', 'loop', 'stops', 'town'], ['at', 'loop', 'stops', 'town'], ['at', 'loop', 'stops', 'town']]);
@@ -25,14 +24,14 @@ test('OJ34, OJ48: the plan holds town names, points, stops\' positions and the l
   assert.equal(isJourneyPlan({ chapters: [] }), false);
 });
 
-test('OJ29, OJ49: far from every town, the first is ahead, with how far away it is', TODO, async () => {
+test('OJ29, OJ49: far from every town, the first is ahead, with how far away it is', async () => {
   const { journeyPlan, chapterAhead } = await import('../../outing/journeyPlan');
   const a = chapterAhead(journeyPlan(JOURNEY as never), [HERE], HERE, new Set());
   assert.deepEqual([a!.index, a!.within], [0, false]);
   assert.ok(Math.abs(a!.awayM - 10000) < 200);
 });
 
-test('OJ30, OJ49: within reach of a town it is the one at hand; once left it is behind and the next is ahead', TODO, async () => {
+test('OJ30, OJ49: within reach of a town it is the one at hand; once left it is behind and the next is ahead', async () => {
   const { journeyPlan, chapterAhead } = await import('../../outing/journeyPlan');
   const plan = journeyPlan(JOURNEY as never);
   assert.deepEqual([chapterAhead(plan, [HERE, at(9500, 0)], at(9500, 0), new Set())!.index, chapterAhead(plan, [HERE, at(9500, 0)], at(9500, 0), new Set())!.within], [0, true]);
@@ -40,7 +39,7 @@ test('OJ30, OJ49: within reach of a town it is the one at hand; once left it is 
   assert.deepEqual([left!.index, left!.within], [1, false]);
 });
 
-test('OJ31, OJ49: a town driven past without stopping is let go; "Pass this town by" does the same ahead of time', TODO, async () => {
+test('OJ31, OJ49: a town driven past without stopping is let go; "Pass this town by" does the same ahead of time', async () => {
   const { journeyPlan, chapterAhead } = await import('../../outing/journeyPlan');
   const plan = journeyPlan(JOURNEY as never);
   const past = chapterAhead(plan, [HERE, at(5000, 6000), at(22000, 6000)], at(22000, 6000), new Set());
@@ -49,14 +48,14 @@ test('OJ31, OJ49: a town driven past without stopping is let go; "Pass this town
   assert.equal(chapterAhead(plan, [HERE, at(30000, 0)], at(30000, 0), new Set())!.index, 1, 'reaching a later town lets the earlier go');
 });
 
-test('OJ29: with every town behind there is no chapter ahead', TODO, async () => {
+test('OJ29: with every town behind there is no chapter ahead', async () => {
   const { journeyPlan, chapterAhead } = await import('../../outing/journeyPlan');
   const plan = journeyPlan(JOURNEY as never);
   assert.equal(chapterAhead(plan, [HERE, at(50000, 0), at(60000, 0)], at(60000, 0), new Set()), null);
   assert.equal(chapterAhead(plan, [HERE], HERE, new Set([0, 1, 2])), null);
 });
 
-test('OJ30: a chapter\'s way on foot is a suggested destination through its stops, positions only', TODO, async () => {
+test('OJ30: a chapter\'s way on foot is a suggested destination through its stops, positions only', async () => {
   const { journeyPlan, chapterDest } = await import('../../outing/journeyPlan');
   const plan = journeyPlan(JOURNEY as never);
   const d = chapterDest(plan.chapters[0]);
@@ -67,7 +66,7 @@ test('OJ30: a chapter\'s way on foot is a suggested destination through its stop
   assert.equal(chapterDest(plan.chapters[1]).via, undefined);
 });
 
-test('OJ26: a town left out is gone from the look, never the destination\'s town or where you stand', TODO, async () => {
+test('OJ26: a town left out is gone from the look, never the destination\'s town or where you stand', async () => {
   const { withoutAreas, areaKey } = await import('../../outing/areas');
   const areas = [{ name: null, at: at(0, 0) }, { name: 'Alder', at: at(10000, 0) }, { name: 'End', at: at(50000, 0) }];
   const left = new Set(areas.map(areaKey));
@@ -75,7 +74,7 @@ test('OJ26: a town left out is gone from the look, never the destination\'s town
   assert.deepEqual(withoutAreas(areas, new Set([areaKey(areas[1])]), null).map((a) => a.name), [null, 'End']);
 });
 
-test('OJ29, OJ31, OJ50: the bar\'s and the page\'s words: a distance, no time, no count, nothing done', TODO, async () => {
+test('OJ29, OJ31, OJ50: the bar\'s and the page\'s words: a distance, no time, no count, nothing done', async () => {
   const w = await import('../../outing/journeyWords');
   assert.equal(w.nextTownLine('Emmaus', 8200, 'km'), 'Emmaus next. 8.2 km away.');
   assert.equal(w.PASS_LABEL, 'Pass this town by');
@@ -84,21 +83,22 @@ test('OJ29, OJ31, OJ50: the bar\'s and the page\'s words: a distance, no time, n
   for (const s of [w.nextTownLine('Emmaus', 8200, 'km'), w.PASS_LABEL, w.LEAVE_OUT_LABEL, w.NEW_TOWN_LINE, w.PUT_AWAY_LABEL]) assert.doesNotMatch(s.replace(/8\.2 km/, ''), /\d|\b(minutes?|hours?|done|left|remaining|first|second|last|visited|skipped)\b/i, s);
 });
 
-test('OJ48: the plan is taken up only by the session started from the page, soon after, and goes when it stops', TODO, async () => {
+test('OJ48: the plan is taken up only by the session started from the page, soon after, and goes when it stops', async () => {
   const { createPlanStore, PLAN_CLAIM_MS } = await import('../../outing/planStore');
   const { journeyPlan } = await import('../../outing/journeyPlan');
   const ports = fakePorts();
   const store = createPlanStore(ports);
   const plan = journeyPlan(JOURNEY as never);
-  assert.equal(await store.load('w1'), null);
+  const [one, two, three] = ['w1', 'w2', 'w3'];
+  assert.equal(await store.load(one), null);
   await store.offer(plan);
   assert.doesNotMatch((await ports.db.getMeta('outing_journey')) ?? '', /Secret/);
-  assert.deepEqual(await store.load('w1'), plan, 'the session started next takes it up');
-  assert.deepEqual(await store.load('w1'), plan, 'and keeps it across a reload');
-  assert.equal(await store.load('w2'), null, 'another session never sees it');
+  assert.deepEqual(await store.load(one), plan, 'the session started next takes it up');
+  assert.deepEqual(await store.load(one), plan, 'and keeps it across a reload');
+  assert.equal(await store.load(two), null, 'another session never sees it');
   await store.clear();
-  assert.equal(await ports.db.getMeta('outing_journey'), null);
+  assert.ok(!(await ports.db.getMeta('outing_journey')), 'nothing is left under the key');
   await store.offer(plan);
-  ports.clock.advance?.(PLAN_CLAIM_MS + 1000);
-  assert.equal(await store.load('w3'), null, 'a plan offered long before is not this session\'s');
+  ports.clock.advance(PLAN_CLAIM_MS + 1000);
+  assert.equal(await store.load(three), null, 'a plan offered long before is not this session\'s');
 });

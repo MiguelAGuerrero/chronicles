@@ -15,7 +15,8 @@ import { useUnits } from '../useUnits';
 import { openWalkId } from '../walkPlanner/app';
 import { ceilingFor } from '../walkPlanner/settings';
 import { outingPrefs, outingService, walkedTowns } from './app';
-import { areaKey, areasAround, areasToward, type Area, type TownRow } from './areas';
+import { areaKey, areasAround, areasToward, withoutAreas, type Area, type TownRow } from './areas';
+import { journeyPlan, type JourneyPlan } from './journeyPlan';
 import { CHIPS, defaultChips } from './chips';
 import { outingDest } from './dest';
 import type { Chapter, Journey } from './journeys';
@@ -68,12 +69,15 @@ export function useJourney(you: LngLat | null) {
   // The last swap or "Another like this", so it can be taken back (ui 3).
   const [undo, setUndo] = useState<{ swaps: Record<string, Swap>; salts: Record<string, number>; line: string } | null>(null);
   const [townsFailed, setTownsFailed] = useState(false);
+  // OJ26: the towns left out of this look, by the page's own memory.
+  const [left, setLeft] = useState<ReadonlySet<string>>(new Set());
   // Audit 1: what was asked of one set of journeys (other places, a swap) does not carry to the next set.
   const fresh = () => {
     setUi({ leaning: null, opened: false, open: null, said: null });
     setSalts({});
     setSwaps({});
     setUndo(null);
+    setLeft(new Set());
   };
   useEffect(() => {
     if (!loaded) {
@@ -98,10 +102,11 @@ export function useJourney(you: LngLat | null) {
   }, [needTowns, rows, townsFailed]);
   const picked = useMemo(() => CHIPS.filter((c) => (pickedIds ?? []).includes(c.id)), [pickedIds]);
   const areas: Area[] = useMemo(() => {
-    if (dest) return origin && rows ? areasToward(rows.towns, origin, dest, rows.walked) : [{ name: dest.name, at: dest.at }];
-    if (!origin) return [];
-    return reachM > 0 && rows ? areasAround(rows.towns, origin, reachM, rows.walked) : [{ name: null, at: origin }];
-  }, [dest, origin, reachM, rows]);
+    const all: Area[] = dest
+      ? origin && rows ? areasToward(rows.towns, origin, dest, rows.walked) : [{ name: dest.name, at: dest.at }]
+      : !origin ? [] : reachM > 0 && rows ? areasAround(rows.towns, origin, reachM, rows.walked) : [{ name: null, at: origin }];
+    return withoutAreas(all, left, dest ? areaKey(dest) : null);
+  }, [dest, origin, reachM, rows, left]);
   const areasKey = areas.map(areaKey).join(';');
   const waiting = areas.filter((a) => !(areaKey(a) in reads));
   const hasPicks = picked.length > 0;
@@ -139,6 +144,11 @@ export function useJourney(you: LngLat | null) {
     return { ...base, chapters, footM: chapters.reduce((m, c) => m + c.outing.lengthM, 0) };
   }, [base, swaps]);
   const first = journey?.chapters[0] ?? null;
+  // OJ51: the towns joined by one faint straight line from where you stand, when the journey leaves it.
+  const link = useMemo(() => {
+    const pts = journey?.chapters.filter((c) => c.area.name).map((c) => c.area.at) ?? [];
+    return origin && pts.length ? [[origin, ...pts]] : [];
+  }, [journey, origin]);
   const pins = useMemo(() => journey?.chapters.flatMap((c) => c.outing.stops.map((s) => s.at)) ?? [], [journey]);
   const route = first && first.outing.path.length > 1 ? first.outing.path : null;
   const fit = useMemo(() => {
@@ -198,7 +208,13 @@ export function useJourney(you: LngLat | null) {
     journey,
     opened: ui.opened && !!journey,
     setOpened: (on: boolean) => setUi({ leaning: journey?.leaning ?? null, opened: on, open: null, said: null }),
-    map: { route, pins, fit },
+    map: { route, pins, fit, link },
+    /** OJ26: leaves a town out of this look; never the destination's, never where you stand. */
+    leaveOut: (a: Area) => {
+      setLeft(new Set([...left, areaKey(a)]));
+      setUi({ ...ui, open: null, said: null });
+    },
+    canLeaveOut: (a: Area) => !!a.name && (!dest || areaKey(a) !== areaKey(dest)) && (journey?.chapters.length ?? 0) > 1,
     walkId,
     open: ui.open,
     toggleOpen: (key: string) => setUi({ ...ui, open: ui.open === key ? null : key, said: null }),
@@ -244,14 +260,22 @@ export function useJourney(you: LngLat | null) {
     },
     /** How Start is offered (0121): at once when near; with "When I get there" beside it when far; that alone past what can be walked. */
     startChoice: first ? startChoice({ origin, first: first.area.at, named: !!first.area.name }) : ('start' as const),
-    /** Start (QC22): the first chapter, routed again from where the person is now when it is around them; positions only (QC24). */
-    start(now: LngLat | null): Waypoint | null {
+    /**
+     * Start (QC22, OJ28): the way on foot for the first chapter when it is around you (routed again from where you are now), none
+     * when it is far; and the plan the session carries when the journey names a town (OJ48). Positions only (QC24).
+     */
+    start(now: LngLat | null): { dest: Waypoint | null; plan: JourneyPlan | null } | null {
       const session = first ? reads[areaKey(first.area)] : null;
       if (!journey || !first || !session) return null;
-      if (first.outing.stops.length < 2) return outingDest(first.outing);
+      const plan = journey.chapters.some((c) => c.area.name) ? journeyPlan(journey) : null;
+      const from = now ?? origin;
+      if (first.area.name && (!from || distanceM(from, first.area.at) > GET_THERE_M)) return { dest: null, plan };
+      if (first.outing.stops.length < 2) return { dest: outingDest(first.outing), plan };
       const mode = first.outing.loop ? 'loop' : 'oneway';
-      const from = now && distanceM(now, session.from) <= GET_THERE_M ? now : session.from;
-      return outingDest(outingService.again({ session, picked: journey.wants, mode, ceilingM, chains, stops: first.outing.stops, from }) ?? first.outing);
+      const near = now && distanceM(now, session.from) <= GET_THERE_M ? now : session.from;
+      return { dest: outingDest(outingService.again({ session, picked: journey.wants, mode, ceilingM, chains, stops: first.outing.stops, from: near }) ?? first.outing), plan };
     },
+    /** "When I get there" (0121): the first chapter kept as Navigate's destination; nothing starts and no plan is carried. */
+    later: (): Waypoint | null => (first ? outingDest(first.outing) : null),
   };
 }

@@ -78,12 +78,12 @@ test('outing-journey audit 6: a look over several areas reads each outing\'s tra
   assert.deepEqual(log, ['rows', 'trace:w1', 'rows', 'trace:w1']);
 });
 
-test('outing-journey audit 9: with no position, or past what can be walked, a named place offers no Start', async () => {
+test('outing-journey audit 9: with no position a named place offers no Start; far, Start with When I get there beside it', async () => {
   const { startChoice } = await import('../../outing/choice');
   assert.equal(startChoice({ origin: null, first: at(500, 0), named: true }), 'later');
   assert.equal(startChoice({ origin: FROM, first: at(500, 0), named: true }), 'start');
   assert.equal(startChoice({ origin: FROM, first: at(5000, 0), named: true }), 'ask');
-  assert.equal(startChoice({ origin: FROM, first: at(50000, 0), named: true }), 'later');
+  assert.equal(startChoice({ origin: FROM, first: at(50000, 0), named: true }), 'ask', 'a session may begin wherever you are (OJ28, decision 0201)');
   assert.equal(startChoice({ origin: FROM, first: FROM, named: false }), 'start');
 });
 

@@ -55,7 +55,7 @@ export const reachSteps = (units: Units): number[] => (units === 'mi' ? [3, 10, 
 export const nothingLine = (place: string | null): string => (place ? `Little of that toward ${place}.` : 'Little of that close by.');
 
 export const READ_FAILED_LINE = "Couldn't read the map there.";
-export const TOO_FAR_LINE = 'Far from here: it waits in Navigate until you are there.';
+export const TOO_FAR_LINE = 'With no position yet, it waits in Navigate until you are there.';
 export const REACH_LINE = 'How far to look';
 export const ANOTHER_LABEL = 'Another like this';
 export const NO_OTHER_LINE = 'No other like it within reach.';
@@ -78,3 +78,11 @@ export const ANOTHER_LINE = 'Planned again from other places.';
 
 /** OJ41 (ui 1): what a wider reach looked at, said under it once the towns are read: their names, or that there was none. */
 export const lookedLine = (names: readonly string[]): string => (names.length ? `Looked in ${list(names)}.` : 'No town within that reach: this is around here.');
+
+/** OJ29: the session's bar between towns: the town ahead and how far away, in a straight line. */
+export const nextTownLine = (town: string, m: number, units: Units): string => `${town} next. ${awayLine(m, units)}.`;
+export const PASS_LABEL = 'Pass this town by';
+export const PUT_AWAY_LABEL = 'Put the plan away';
+export const LEAVE_OUT_LABEL = 'Leave this town out';
+/** OJ50: said of a town you have not been in on a recorded outing; never of a place, and nothing is said of the others. */
+export const NEW_TOWN_LINE = 'New to you.';
