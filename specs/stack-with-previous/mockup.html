@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stack with previous: UI mock-up</title>
+<style>
+  :root { --bg:#f3efe7; --paper:#fbf9f4; --ink:#1d2430; --muted:#6b7280; --line:#d9d3c5; --edge:#cfc8b8; --serif: Georgia, "Iowan Old Style", serif; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#14161a; --paper:#1b1e23; --ink:#e8e6e1; --muted:#9aa0aa; --line:#343841; --edge:#3a3e47; } }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.4 -apple-system, system-ui, "Segoe UI", sans-serif; padding:24px 16px 48px; }
+  h1 { font-size:20px; margin:0 0 4px; }
+  p.lead { margin:0 0 24px; color:var(--muted); max-width:62ch; }
+  .row { display:flex; flex-wrap:wrap; gap:28px; align-items:flex-start; }
+  figure { margin:0; width:280px; }
+  figcaption { margin-top:10px; font-size:13px; color:var(--muted); }
+  figcaption b { color:var(--ink); }
+  .phone { position:relative; width:280px; height:560px; border-radius:28px; overflow:hidden; background:var(--paper); border:6px solid #0b0d11; box-shadow:0 6px 24px rgba(0,0,0,.25); padding:14px 14px 0; }
+  .day { font-size:13px; color:var(--muted); margin:4px 0 6px; }
+  .entry { border-top:1px solid var(--line); padding:10px 0 12px; }
+  .head { display:flex; justify-content:space-between; align-items:center; font-size:12px; color:var(--muted); }
+  .words { font-family:var(--serif); font-style:italic; font-size:16px; line-height:1.35; margin:6px 0 0; }
+  .pic { margin-top:8px; height:96px; border-radius:10px; background:linear-gradient(160deg,#6a7a5e,#3e4a3a 55%,#2a3140); position:relative; }
+  .mark { position:absolute; right:6px; bottom:6px; width:22px; height:22px; border-radius:6px; background:#fff; display:grid; place-items:center; }
+  .mark svg { width:14px; height:14px; stroke:#1d2430; fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+  .btn { display:inline-flex; align-items:center; min-height:44px; margin-top:6px; padding:0 14px; border:1.5px solid var(--ink); border-radius:12px; color:var(--ink); font-size:14px; font-weight:600; background:transparent; }
+  .link { display:inline-flex; align-items:center; gap:6px; min-height:44px; font-size:14px; color:var(--ink); font-weight:600; }
+  .link svg { width:14px; height:14px; stroke:var(--ink); fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+  .pill { position:absolute; left:14px; right:14px; bottom:66px; background:var(--ink); color:var(--paper); border-radius:18px; padding:10px 14px; display:flex; justify-content:space-between; font-size:13px; box-shadow:0 4px 14px rgba(0,0,0,.35); }
+  .pill b { text-decoration:underline; }
+  .line { position:absolute; left:0; right:0; bottom:0; height:56px; border-top:1px solid var(--line); background:var(--paper); display:flex; align-items:center; padding:0 14px; color:var(--muted); font-size:15px; }
+  .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:4px; margin-top:8px; }
+  .tile { position:relative; aspect-ratio:1; border-radius:8px; overflow:hidden; background:linear-gradient(160deg,#6a7a5e,#2a3140); }
+  .tile.b { background:linear-gradient(160deg,#8a7a5e,#40362a); }
+  .tile.note { background:var(--paper); border:1px solid var(--edge); padding:6px; font-family:var(--serif); font-style:italic; font-size:11px; line-height:1.25; }
+  .tile.voice { background:var(--paper); border:1px solid var(--edge); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; font-size:10px; color:var(--muted); }
+  .tile.voice svg { width:22px; height:22px; stroke:var(--ink); fill:none; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
+  .tile .later { position:absolute; left:0; right:0; bottom:0; background:rgba(0,0,0,.6); color:#fff; font-size:9.5px; padding:2px 4px; font-family:-apple-system,system-ui,sans-serif; font-style:normal; }
+  .play { position:absolute; inset:0; display:grid; place-items:center; }
+  .play i { width:22px; height:22px; border-radius:50%; background:rgba(255,255,255,.9); display:block; position:relative; }
+  .play i::after { content:""; position:absolute; left:8px; top:6px; border-left:8px solid #1d2430; border-top:5px solid transparent; border-bottom:5px solid transparent; }
+  .legend { margin-top:26px; max-width:70ch; color:var(--muted); font-size:13px; }
+  .legend li { margin-bottom:6px; } .legend b { color:var(--ink); }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-stack" viewBox="0 0 24 24"><rect x="8" y="3.5" width="12" height="12" rx="2.5"/><path d="M4 8v10.5A2.5 2.5 0 0 0 6.5 21H17"/></symbol>
+    <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></symbol>
+    <symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+    <symbol id="i-up" viewBox="0 0 24 24"><path d="m6 15 6-6 6 6"/></symbol>
+  </defs>
+</svg>
+<h1>Stack with previous</h1>
+<p class="lead">A mock-up of Chronicle's page: the button on a fresh entry, the Undo pill, a stack collapsed and expanded as a grid. Static; nothing is wired. The journal's typography: your words in serif, the app's words in sans, no cards.</p>
+
+<div class="row">
+
+<figure>
+  <div class="phone" role="img" aria-label="Chronicle page with a new entry offering Stack with previous">
+    <div class="day">Today</div>
+    <div class="entry">
+      <div class="head"><span>Maple Street · 8:15 this morning</span><span>•••</span></div>
+      <div class="words">Turn left onto Maple Street.</div>
+      <div class="pic"></div>
+    </div>
+    <div class="entry">
+      <div class="head"><span>Maple Street · 8:21 this morning</span><span>•••</span></div>
+      <div class="words">Then at the stop sign, turn right onto East Union Boulevard.</div>
+      <div class="btn">Stack with previous</div>
+    </div>
+    <div class="line">What’s on your mind?</div>
+  </div>
+  <figcaption><b>1 · The button.</b> On the entry you just kept, under its words: a labelled ink button, one tap. It is shown only when a moment from the same day precedes it and nothing points at the new entry.</figcaption>
+</figure>
+
+<figure>
+  <div class="phone" role="img" aria-label="After stacking: one entry, collapsed, with the mark, an Undo pill">
+    <div class="day">Today</div>
+    <div class="entry">
+      <div class="head"><span>Maple Street · 8:15 this morning</span><span>•••</span></div>
+      <div class="words">Turn left onto Maple Street.</div>
+      <div class="pic"><span class="mark"><svg><use href="#i-stack"/></svg></span></div>
+      <div class="link">Show everything in this moment <svg><use href="#i-down"/></svg></div>
+    </div>
+    <div class="pill"><span>Stacked with the earlier moment</span><b>Undo</b></div>
+    <div class="line">What’s on your mind?</div>
+  </div>
+  <figcaption><b>2 · Stacked.</b> The new entry is gone; its piece joined the earlier moment, which now carries the two-card mark and a disclosure control. The pill stays until used or dismissed.</figcaption>
+</figure>
+
+<figure>
+  <div class="phone" role="img" aria-label="The stack expanded into a grid of every piece">
+    <div class="day">Today</div>
+    <div class="entry">
+      <div class="head"><span>Maple Street · 8:15 this morning</span><span>•••</span></div>
+      <div class="grid">
+        <div class="tile"></div>
+        <div class="tile note">Turn left onto Maple Street.</div>
+        <div class="tile note">Then at the stop sign, turn right onto East Union Boulevard.<span class="later">Added later, 8:21 am</span></div>
+        <div class="tile b"><span class="play"><i></i></span></div>
+        <div class="tile voice"><svg><use href="#i-mic"/></svg>A voice note</div>
+        <div class="tile"></div>
+      </div>
+      <div class="link">Show less <svg><use href="#i-up"/></svg></div>
+    </div>
+    <div class="line">What’s on your mind?</div>
+  </div>
+  <figcaption><b>3 · Everything in it.</b> Every piece as a tile, in capture order, three to a row: pictures, a video still under a play mark, a note's first words, a voice note. A tap opens the viewer on that piece. A piece made later says when, never where. No count anywhere.</figcaption>
+</figure>
+
+</div>
+
+<ul class="legend">
+  <li><b>Collapsed by default</b> (a default for you to overrule): a list stays a list, and the grid is one tap away.</li>
+  <li><b>Where it appears:</b> Chronicle's page now. Days, a walk's moments, Memories here and a thread keep their row and mark for now.</li>
+  <li><b>Place:</b> the stack keeps the earlier moment's one place. The note's own corner is not kept; Respond is how a new corner is kept.</li>
+</ul>
+</body>
+</html>

@@ -254,7 +254,7 @@ const FEATURES = [
       'src/components/VideoMark.tsx',
     ],
     journeys: ['edit', 'stacks', 'voicetrim', 'videothumbs'],
-    specs: ['memories-on-revisit', 'media-editing', 'moment-stacks', 'moment-append', 'voice-trim', 'note-types', 'video-thumbnails'],
+    specs: ['memories-on-revisit', 'media-editing', 'moment-stacks', 'stack-with-previous', 'voice-trim', 'note-types', 'video-thumbnails'],
   },
   {
     name: 'chronicle',
@@ -504,7 +504,7 @@ const RENAMED = {
 };
 
 const IN_PROGRESS = {
-  'moment-append': { branch: 'claude/jolly-faraday-8kcyum', since: '2026-11-17' },
+  'stack-with-previous': { branch: 'claude/jolly-faraday-8kcyum', since: '2026-11-17' },
 };
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));
