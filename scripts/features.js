@@ -181,7 +181,7 @@ const FEATURES = [
     rule: 'outing',
     source: ['src/lib/outing/**', 'src/components/outing/**'],
     journeys: ['outing'],
-    specs: ['quick-circuit'],
+    specs: ['quick-circuit', 'outing-journey'],
   },
   {
     name: 'layers',
@@ -506,6 +506,7 @@ const RENAMED = {
 };
 
 const IN_PROGRESS = {
+  'outing-journey': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-17' },
 };
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));

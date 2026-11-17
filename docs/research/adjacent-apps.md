@@ -159,6 +159,10 @@ source.
   (how several routes are listed is not on the page).
 - **Komoot**: planned routes with surface and way types and a difficulty. Source: from memory, unverified.
   **Unverified**.
+- **Google Maps**: a destination, then "Add stop" and a search along the route by category, results as pins with the
+  minutes each adds. Source: from memory, unverified. **Unverified**. A counter-example in part: minutes rank the stops.
+- **Roadtrippers**: a start and an end, then categories of place shown within a distance of the route, added one by one
+  to an itinerary. Source: from memory, unverified. **Unverified**. A counter-example in part: an itinerary is a list.
 
 ### Where you have been: visits and history (Return, Earn)
 
