@@ -50,6 +50,10 @@ Open: the vision is silent on how long a held capture lives and on what happens 
     held captures are let go and their files removed (UN8). UN1-UN15 are built as written: no ✕ on a pill outside a
     walk (Q5), and two pills as today (Q6).
   - Q4: the `/tend chronicle` run landed first (`7f210fc7`); this slice is built on it.
+- **Nov 17, at the build, for the owner to confirm:** UN6 said "whole on one line at 320 px". The bar's line beside its
+  dot, its return and its Stop holds about 190 px at 320, and the spec's words take two lines there (whole, nothing
+  cut: picture `unsaved-bar-warning-320`). Kept the words, amended the line to "two lines at most, nothing cut"; the
+  alternative is shorter words, which are the owner's to choose.
 
 ## How adjacent apps do it
 
@@ -98,9 +102,10 @@ the walker already looks (UN2; capture is one tap away, and so is its Retry).
    still held, from any screen (one that failed while Stop waited included), says so first, and the walk goes on. Holding
    Stop again ends the walk without them. A capture held after a warning is warned of again at the next hold. Captures
    taken outside a walk never hold up a walk's Stop.
-6. **UN6 · The bar's warning fits and promises no Retry on the bar.** The recording bar's warning is whole on one line
-   at 320 px wide and names no Retry on the bar: "Not saved yet. Hold Stop again to end without it." ("without them" for
-   several).
+6. **UN6 · The bar's warning fits and promises no Retry on the bar.** The recording bar's warning is whole at 320 px
+   wide, on two lines at most with nothing cut, and names no Retry on the bar: "Not saved yet. Hold Stop again to end
+   without it." ("without them" for several). (Amended at the build, Nov 17, pending the owner: "on one line" cannot
+   hold these words beside the bar's dot, return and Stop at 320 px; see Decisions.)
 7. **UN7 · A refused hold empties.** After a hold that is refused with a warning, the Stop button's fill goes back to
    empty, on the walk screen and on the recording bar.
 8. **UN8 · Let go knowingly, and leaving nothing behind.** Ending a walk by the second hold lets that walk's held

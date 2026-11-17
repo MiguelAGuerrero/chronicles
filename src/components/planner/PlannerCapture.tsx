@@ -18,8 +18,13 @@ export function PlannerCapture(props: { walkId: string; here: LngLat | null; las
   const message = said?.text ?? null;
   const setMessage = (text: string) => setSaid({ text, settings: false });
   // A permission refusal is only fixable in Settings; the web has none to open. Any later message drops the button.
-  const cap = useCaptures(props.walkId, props.here, props.lastFixAt, (e) =>
-    setSaid({ text: e.message, settings: !!e.openSettings && Platform.OS !== 'web' }),
+  const cap = useCaptures(
+    props.walkId,
+    props.here,
+    props.lastFixAt,
+    (e) => setSaid({ text: e.message, settings: !!e.openSettings && Platform.OS !== 'web' }),
+    // No Retry here: a failure says where it is held (unsaved captures UN10).
+    { retryShown: false },
   );
   // The note's page (note pages NP1; note-pages audit 13), begun at the pencil's tap, keyed per page.
   const [page, setPage] = useState(0);

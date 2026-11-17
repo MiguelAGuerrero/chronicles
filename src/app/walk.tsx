@@ -1,7 +1,7 @@
 import { type Faced, facedAll } from '../lib/moment';
 import { NewNotePage } from '../components/notePage/NewNotePage';
 import type { NotePageHandle } from '../components/notePage/NotePage';
-import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { router, useFocusEffect, useIsFocused, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
 import { walkClocks } from '../lib/pins';
 import { nextDayPartBoundary } from '../lib/resurface/context';
@@ -103,7 +103,9 @@ import { BORDER_ZOOM, OUTLINE_ZOOM } from '../lib/areas/outlines';
 import { useOutlineSet } from '../lib/areas/useOutlineSet';
 import { SpaceLine } from '../components/SpaceLine';
 import { space } from '../lib/space';
-import { heldLabel } from '../lib/space/core';
+import { heldLabel, saveFailLine } from '../lib/space/core';
+import { unsaved } from '../lib/unsaved';
+import { lostAtStop, memoLabel, stopWarning, stopWarns } from '../lib/unsaved/core';
 
 /** Streets around the walker: read from the map and shown as fog this far out. */
 const NEAR_RADIUS_M = 1000;
@@ -290,10 +292,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const [stopping, setStopping] = useState(false);
   const [fog, setFog] = useState<StreetSegment[]>([]);
   const [walked, setWalked] = useState<StreetSegment[]>([]);
-  // The memo whose save failed at Stop; holding Stop again ends the walk without it.
-  const giveUpMemo = useRef(false);
-  // How many held shots Stop has already warned about; a photo held beyond that is warned about too (SA8).
-  const giveUpHeld = useRef(0);
+  // The held captures of the walk Stop has warned of; one held beyond them is warned of too (SA8, unsaved captures UN5).
+  const warnedHeld = useRef<string[]>([]);
   const saveRef = useRef<PressableRef>(null);
   const mapRef = useRef<WalkMapHandle>(null);
   // The map's turn, for the compass (CP2): the map opens north-up and keeps no bearing (CP8).
@@ -405,15 +405,13 @@ function WalkScreen(props: { onMinimize: () => void }) {
     return bordersFor(drawnBorders, { firm: hereTown ? [hereTown] : [], near });
   }, [drawnBorders, hereTown, nearKey]);
   const motionAccess = useMotionAccess();
+  const screenFocused = useIsFocused();
   const cap = useCaptures(walk?.id ?? null, live.here, live.lastFixAt, onCaptureError, {
     // The pill (moment stacks MS2, MS5): a new moment opens it; a piece keeps it.
     onKept: (id, piece) => (piece ? momentPill.piece(id) : momentPill.kept(id, true)),
+    // In front, the walk's pills say why for a capture that failed on a screen gone (unsaved captures UN9).
+    sayHeld: screenFocused && !!walk,
   });
-  // Nothing held any more: a photo that fails later is warned about again at Stop, not ended without (SA8).
-  const heldCount = cap.held.length;
-  useEffect(() => {
-    if (heldCount === 0) giveUpHeld.current = 0;
-  }, [heldCount]);
   // A walk started or stopped closes the pill (MS4); on a walk, the trace walked counts toward its 100 m.
   const pillWalkId = walk?.id ?? null;
   useEffect(() => {
@@ -1016,17 +1014,20 @@ function WalkScreen(props: { onMinimize: () => void }) {
     try {
       // Waits for any voice action in flight (a start, a save) before ending.
       const r = await cap.finishVoice();
-      if ((r === 'failed' || cap.unsaved) && !giveUpMemo.current) {
-        giveUpMemo.current = true;
-        setNotice({ message: 'The voice memo could not be saved. Retry, or hold Stop again to end the walk without it.', tone: 'error', sticky: true });
+      // A memo with nothing to keep is said while the walker is still here; the next hold ends the walk (UN13).
+      if (r === 'lost') {
+        setNotice({ message: lostAtStop(saveFailLine('voice', false)), tone: 'error', sticky: true });
         return;
       }
-      // A photo or video still held is said before the walk ends without it (SA8).
-      if (cap.held.length > giveUpHeld.current) {
-        giveUpHeld.current = cap.held.length;
-        setNotice({ message: `${heldLabel(cap.held)} yet. Retry, or hold Stop again to end the walk without it.`, tone: 'error', sticky: true });
+      // Whatever of the walk is held, from any screen, read now (not from a render's closure), is said before the walk
+      // ends without it (SA8, UN5); the next hold lets it go, files and all (UN8).
+      const held = unsaved.heldFor(walk.id);
+      if (stopWarns(held.map((x) => x.id), warnedHeld.current)) {
+        warnedHeld.current = held.map((x) => x.id);
+        setNotice({ message: stopWarning(held.map((x) => x.kind)), tone: 'error', sticky: true });
         return;
       }
+      await unsaved.letGo(walk.id);
       // The walk stays on screen until the replay replaces it (the keeper hears it ended first).
       setEnded(walk);
       const { dropped } = await endWalk(walk.id, { leaves: true });
@@ -1105,7 +1106,6 @@ function WalkScreen(props: { onMinimize: () => void }) {
   async function startVoice(into: string | null = null) {
     if (await cap.startVoice(into)) {
       feedback('tap');
-      giveUpMemo.current = false;
       AccessibilityInfo.announceForAccessibility('Recording voice memo');
     }
   }
@@ -1523,10 +1523,10 @@ function WalkScreen(props: { onMinimize: () => void }) {
             </Pressable>
           </View>
         )}
-        {cap.unsaved && !recordingVoice && !spot && !openMark && !options && !memory && (
-          <View style={styles.undo} accessibilityLiveRegion="polite">
-            <Text style={styles.undoText}>Voice memo not saved</Text>
-            <Pressable accessibilityRole="button" onPress={() => cap.retrySave()} hitSlop={10} style={styles.undoBtn}>
+        {walk && cap.unsaved && !recordingVoice && !spot && !openMark && !options && !memory && (
+          <View testID="held-memo" style={styles.undo} accessibilityLiveRegion="polite">
+            <Text style={styles.undoText}>{memoLabel(cap.memosHeld, 'Voice memo')}</Text>
+            <Pressable testID="held-memo-retry" accessibilityRole="button" onPress={() => cap.retrySave()} hitSlop={10} style={styles.undoBtn}>
               <Text style={styles.undoBtnText}>Retry</Text>
             </Pressable>
           </View>

@@ -112,7 +112,7 @@ tests"). Each unit test is seen failing with its wiring reverted before it count
 | UN3 | shell: two holds, two entries, in order; `take()` twice gives each once | two memos refused in turn: "Voice memos not saved"; Retry keeps two voice rows in the order taken; one refused again stays |
 | UN4 | core: the stamp's walk decides the folder | UN1's loose memo, Retry on the walk screen: the row's `walk_id` is null, under `moments/` |
 | UN5 | core: `stopHolds` | the bar's Stop with a photo held by the walk screen: warned, the walk goes on; a second hold ends it; a photo refused while Stop waited is warned of |
-| UN6 | core: `barWarning`'s words | the bar's warning box at 320 px: one line, nothing cut (`scrollWidth <= clientWidth`) |
+| UN6 | core: `barWarning`'s words | the bar's warning box at 320 px: two lines at most, nothing cut (amended at the build; spec Decisions) |
 | UN7 | | after a refused hold the button's fill is 0, on both Stops |
 | UN8 | shell: `letGo` calls `dropTemp`/`removeMedia` for the walk's entries only | after the second hold: no pill anywhere, no media key left for it (`__failMoment` keeps a file first) |
 | UN9 | shell: `unsaid`, `said` | a memo refused out of room as the chevron goes: Memories says "Not saved: there is no room left. It is held here for Retry." once, and not again on return |
