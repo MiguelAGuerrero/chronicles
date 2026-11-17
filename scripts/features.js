@@ -218,7 +218,7 @@ const FEATURES = [
       'src/lib/unitsStore/**',
     ],
     journeys: ['qol'],
-    specs: ['quality-of-life', 'compass', 'native-map-frames'],
+    specs: ['quality-of-life', 'compass', 'native-map-frames', 'map-palette'],
   },
   {
     name: 'captures',
@@ -482,7 +482,9 @@ const RENAMED = {
   'video-thumbnails': { VS: 'VT' },
 };
 
-const IN_PROGRESS = {};
+const IN_PROGRESS = {
+  'map-palette': { branch: 'slice/map-palette-20261117-0409', since: '2026-11-17' },
+};
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));
 
