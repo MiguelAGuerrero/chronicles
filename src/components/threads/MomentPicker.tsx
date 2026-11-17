@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Keyboard, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useHidden } from '../../lib/deletion/useDeletions';
 import type { MomentView } from '../../lib/resurface/types';
@@ -54,7 +54,14 @@ export function MomentPicker(props: { pool: MomentPool; self: string | null; tit
             <Icon name="close" size={22} color={theme.ink} />
           </Pressable>
         </View>
-        {!props.only && <PickerTabs tab={tab} onTab={setTab} />}
+        {!props.only && <PickerTabs
+            tab={tab}
+            onTab={(t) => {
+              // Media's bar holds the one action: the keyboard of the note being written is put away first (picker media audit 4).
+              if (t === 'media') Keyboard.dismiss();
+              setTab(t);
+            }}
+          />}
         {media && <PickerMedia pool={props.pool} self={props.self} action="mention" marked={marked} onMark={setMarked} onPick={props.onPick} />}
         {!props.only && !media && (
           <TextInput

@@ -832,3 +832,9 @@ Small places (decision 0183): what the slice left for later.
 - **The data side is on chronicles-data's branch, not its main:** contract v3 and OSM's small places (its SL1-SL11) reach a pack only once that branch merges and the weekly job's OSM fetch runs; the noise review per test area comes with that first build, before a pack is published (decision 0109). Until then the app takes the new classes and nothing new shows.
 - **Category headings in "What I'm into"** (the UI review's U4): eighteen rows with no group names, so a card's "History" cannot be matched to a block of rows; the five categories as headers would answer it, a change to the whole list rather than to this slice.
 - **The drawer's grabber over a row** (the UI review's U6, before this slice): in the walk's drawer the grabber is drawn over the half-clipped first row; it wants its own strip above the scrolling list.
+
+## Picker media (specs/picker-media)
+
+- **Back and Escape with the picker's View menu open** (picker media audit 11): the menu is drawn inside the card, so a native Back or Escape closes the whole picker and drops the mark instead of the menu. A Modal's Back can't be taken from JS; the three hosts (`CaptureView`, `NotePage`, `OpenLine`) need a Back protocol the picker can join. Needs the owner's call on the protocol; today the cost is one mark.
+- **A stale scroll offset after Months to Days** (picker media audit 12): the list remounts at the landed day, but `offset.current` keeps the old value until a scroll event, so a Zoom In/Out chosen at once anchors from it. Shared by Chronicle's Media and the picker; one fix for both.
+- **The viewer's close and More circles over a picker's scrim** (picker media audit 13): the viewer's bars show above the dimming behind Add to a thread and Mention (older than the slice); hide them while an overlay is open, as a tap on a photo does.

@@ -562,6 +562,7 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 - [ ] **Do:** on an iPhone, open a moment, More → Add to a thread → A new thread, tap Media, and fling the grid; then tap Years, Months, Days, open the options button and pick Oldest First and Zoom Out, and pinch with two fingers. **Expect:** the grid keeps up inside the card, the options sheet opens inside the card (no second modal), the pinch changes the tiles across by one step and never zooms the page (MP13, MP14, MP17, MP18).
 - [ ] **Do:** with VoiceOver and TalkBack, move through List and Media, the kind row and the grid; mark a tile. **Expect:** List and Media and the chosen kind are read as selected tabs, a tile as its kind, time and walk or street, a marked tile as selected, Connect with the moment it would join; no count is spoken (MP7, MP9, MP11).
 - [ ] **Do:** in a note, type @, tap Media, mark a photo and tap Mention, on iOS with the keyboard up and on Android. **Expect:** List and Media are visible at once with the keyboard open, the reference lands where @ was, and the note keeps its place (MP2, MP10).
+- [ ] **Do:** on an iPhone and an Android phone, in a note, type @, then tap Media with the keyboard up; mark a photo, open View, then press Back (Android) or swipe back. **Expect:** the keyboard goes away on tapping Media so Connect or Mention is never under it; Back with the View menu open closes the picker (the known gap, picker media audit 11) and the note keeps its words (MP2, MP10).
 
 ## The section bar (SB1-SB5, decision 0136)
 

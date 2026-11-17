@@ -38,9 +38,11 @@ export function createGallery(p: Pick<Ports, 'db'>) {
   let saving: Promise<unknown> = Promise.resolve();
   let streetQueue: Promise<unknown> = Promise.resolve();
   const asked = new Set<string>();
+  // Streets asked for before the moments were read (the picker's Media opens on a cold store): read when they come (picker media audit 1).
+  const waiting = new Set<string>();
   let lastVisit: number | null = null;
 
-  return {
+  const api = {
     store,
     /** Reads every moment and walk again (MG14). A slower, older read never overwrites a newer one. */
     async load(): Promise<void> {
@@ -50,6 +52,11 @@ export function createGallery(p: Pick<Ports, 'db'>) {
         const [moments, walks] = await Promise.all([p.db.momentsBetween(0, Number.MAX_SAFE_INTEGER), p.db.listWalks()]);
         if (mine !== reads) return;
         store.set((s) => ({ ...s, status: 'ready', moments: facedAll(moments), walks }));
+        if (waiting.size) {
+          const ids = [...waiting];
+          waiting.clear();
+          void api.streetsFor(ids);
+        }
       } catch {
         if (mine === reads) store.set((s) => ({ ...s, status: s.status === 'ready' ? 'ready' : 'failed' }));
       }
@@ -97,7 +104,11 @@ export function createGallery(p: Pick<Ports, 'db'>) {
       for (const id of todo) asked.add(id);
       const readOne = async (id: string): Promise<void> => {
         const m = store.get().moments.find((x) => x.id === id);
-        if (!m) return void asked.delete(id);
+        if (!m) {
+          asked.delete(id);
+          waiting.add(id);
+          return;
+        }
         const fix = m.lat != null && m.lon != null ? ([m.lon, m.lat] as [number, number]) : null;
         try {
           let name: string | null = null;
@@ -115,6 +126,7 @@ export function createGallery(p: Pick<Ports, 'db'>) {
       await Promise.all(todo.map((id) => (streetQueue = streetQueue.then(() => readOne(id)))));
     },
   };
+  return api;
 }
 
 export type Gallery = ReturnType<typeof createGallery>;

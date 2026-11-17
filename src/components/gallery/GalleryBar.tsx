@@ -10,7 +10,7 @@ const ZOOMS: Zoom[] = ['years', 'months', 'days'];
  * The gallery's slim bar (MG9, MG19): Years, Months, Days as a segmented control, the View menu's button, and with a
  * kind chosen, which one in words with a way back to all.
  */
-export function GalleryBar(props: { zoom: Zoom; show: Show; onZoom: (z: Zoom) => void; onMenu: () => void; onShowAll: () => void; idPrefix?: string; showLine?: boolean; tall?: boolean }) {
+export function GalleryBar(props: { zoom: Zoom; show: Show; onZoom: (z: Zoom) => void; onMenu: () => void; onShowAll: () => void; idPrefix?: string; showLine?: boolean; tall?: boolean; menuWord?: string }) {
   const id = props.idPrefix ?? 'gallery';
   return (
     <View style={styles.wrap}>
@@ -33,8 +33,8 @@ export function GalleryBar(props: { zoom: Zoom; show: Show; onZoom: (z: Zoom) =>
             );
           })}
         </View>
-        <Pressable testID={`${id}-view-menu`} accessibilityRole="button" accessibilityLabel={VIEW_MENU} onPress={props.onMenu} style={styles.menu}>
-          <Icon name="options-outline" size={22} color={theme.ink} />
+        <Pressable testID={`${id}-view-menu`} accessibilityRole="button" accessibilityLabel={props.menuWord ?? VIEW_MENU} onPress={props.onMenu} style={[styles.menu, props.menuWord != null && styles.menuWord]}>
+          {props.menuWord != null ? <Text style={styles.menuWordText} numberOfLines={1}>{props.menuWord}</Text> : <Icon name="options-outline" size={22} color={theme.ink} />}
         </Pressable>
       </View>
       {props.showLine !== false && props.show !== 'all' ? (
@@ -52,9 +52,12 @@ export function GalleryBar(props: { zoom: Zoom; show: Show; onZoom: (z: Zoom) =>
 const styles = StyleSheet.create({
   wrap: { backgroundColor: theme.bg, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.line },
   bar: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 8, paddingBottom: 6, width: '100%', maxWidth: 640, alignSelf: 'center' },
-  segments: { flex: 1, flexDirection: 'row', backgroundColor: theme.line, borderRadius: 10, padding: 2 },
+  segments: { flex: 1, minWidth: 0, flexDirection: 'row', backgroundColor: theme.line, borderRadius: 10, padding: 2 },
   segment: { flex: 1, minHeight: 40, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   tall: { minHeight: 44 },
+  // A word beside the symbol (picker media audit 8): a control that must be found is drawn with its name.
+  menuWord: { width: 'auto', minWidth: 44, paddingHorizontal: 8, flexShrink: 0 },
+  menuWordText: { color: theme.ink, fontSize: 14, fontWeight: '600' },
   segmentOn: { backgroundColor: theme.surface },
   segmentText: { color: theme.muted, fontSize: 14, fontWeight: '600' },
   segmentTextOn: { color: theme.ink },

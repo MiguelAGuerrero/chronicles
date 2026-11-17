@@ -1,0 +1,84 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "--new",
+        "Picker media (specs/picker-media)"
+      ],
+      "body": "- **Back and Escape with the picker's View menu open** (picker media audit 11): the menu is drawn inside the card, so a native Back or Escape closes the whole picker and drops the mark instead of the menu. A Modal's Back can't be taken from JS; the three hosts (`CaptureView`, `NotePage`, `OpenLine`) need a Back protocol the picker can join. Needs the owner's call on the protocol; today the cost is one mark.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Picker media (specs/picker-media)"
+      ],
+      "body": "- **A stale scroll offset after Months to Days** (picker media audit 12): the list remounts at the landed day, but `offset.current` keeps the old value until a scroll event, so a Zoom In/Out chosen at once anchors from it. Shared by Chronicle's Media and the picker; one fix for both.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Picker media (specs/picker-media)"
+      ],
+      "body": "- **The viewer's close and More circles over a picker's scrim** (picker media audit 13): the viewer's bars show above the dimming behind Add to a thread and Mention (older than the slice); hide them while an overlay is open, as a tap on a photo does.\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Media gallery (MG1-MG22, decision 0139)"
+      ],
+      "body": "- [ ] **Do:** on an iPhone and an Android phone, in a note, type @, then tap Media with the keyboard up; mark a photo, open View, then press Back (Android) or swipe back. **Expect:** the keyboard goes away on tapping Media so Connect or Mention is never under it; Back with the View menu open closes the picker (the known gap, picker media audit 11) and the note keeps its words (MP2, MP10).\n"
+    },
+    {
+      "argv": [
+        "section",
+        "add",
+        "From the picker media audit (2026-11-17)"
+      ]
+    },
+    {
+      "argv": [
+        "section",
+        "item",
+        "add",
+        "From the picker media audit (2026-11-17)"
+      ],
+      "body": "- **The picker's three rows of controls** (picker media audit 14): List | Media, Years | Months | Days with View, and the kind row cost about 170 pt above the grid (two rows of tiles at 320 px). The kind row repeats the View menu's Show. Keep it as built, or move the kind row into View (one row fewer, a kind one tap deeper)? Recommended: keep, until a phone shows it is too tight.\n"
+    },
+    {
+      "argv": [
+        "inflight",
+        "remove",
+        "Picker media"
+      ],
+      "target": "sha256:4f148143ed7e40d6bae347431684ce74f749dd332e52778c64f1eb3581268909"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "add",
+        "--top"
+      ],
+      "body": "| Picker media (a List and Media switch in Join it with another moment and Mention a moment: Chronicle's grid with Years, Months, Days, the View menu and pinch, to find a moment by its picture; a tap marks the moment and Connect or Mention picks; MP1-MP19) | Built (web verified by the e2e `pickermedia`; native unverified; not merged or deployed) | 2026-11-17, branch `claude/moment-threading-media-gallery-jv3lz1`: test-first by history (19 of 19); unit tests (2738), typecheck, lint, docs and vision checks; journeys `pickermedia`, `gallery`, `threads`, `responses`, `videothumbs` pass on the web build (`threads` failed twice at OT8 under load, a read 800 ms after the Undo dismiss, then passed three times on unchanged code and 3/3 on main); steward read twice, cold find passed | `specs/picker-media/spec.md` | audited at the owner's request, 2026-11-17: 20 triaged, 10 fixed (`picker media audit 1-9`; 10 by typecheck and the journey), 3 deferred, 1 to the owner, 6 rejected |\n"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "set",
+        "Picker media"
+      ],
+      "body": "| Picker media (a List and Media switch in Join it with another moment and Mention a moment: Chronicle's grid with Years, Months, Days, the View menu and pinch, to find a moment by its picture; a tap marks the moment and Connect or Mention picks; MP1-MP19) | Built (web verified by the e2e `pickermedia`; native unverified; not merged or deployed) | 2026-11-17, branch `claude/moment-threading-media-gallery-jv3lz1`: test-first by history (19 of 19); unit tests (2738), typecheck, lint, docs and vision checks; journeys `pickermedia`, `gallery`, `threads`, `responses`, `videothumbs` pass on the web build (`threads` failed twice at OT8 under load, a read 800 ms after the Undo dismiss, then passed three times on unchanged code and 3/3 on main); steward read twice, cold find passed | `specs/picker-media/spec.md` | audited at the owner's request, 2026-11-17: 21 triaged, 10 fixed (`picker media audit 1-9`; 10 by typecheck and the journey), 3 deferred, 1 to the owner, 6 rejected, 1 noted |\n",
+      "target": "sha256:7cf13aa175d00f653e9491ed493fa0434d1e135821014834d67441ab1926ccf8"
+    }
+  ]
+}

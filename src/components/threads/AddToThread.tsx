@@ -1,5 +1,5 @@
 import type { Faced } from '../../lib/moment';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useHidden } from '../../lib/deletion/useDeletions';
@@ -36,7 +36,7 @@ export function AddToThread(props: { moment: Faced; onClose: () => void; onDone:
   const insets = useSafeAreaInsets();
   const { data } = useThreads();
   const mp = useMomentPool();
-  const pool = mp.ready ? { views: mp.views, walks: mp.walks } : null;
+  const pool = useMemo(() => (mp.ready ? { views: mp.views, walks: mp.walks } : null), [mp]);
   // List first (MP3); the mark survives a trip to List and back (MP6).
   const [tab, setTab] = useState<'list' | 'media'>('list');
   const [marked, setMarked] = useState<string | null>(null);
@@ -71,8 +71,13 @@ export function AddToThread(props: { moment: Faced; onClose: () => void; onDone:
     const ok = await threads.addToThread(threadId, props.moment.id).catch(() => false);
     props.onDone(ok ? 'Connected' : 'Could not connect', ok);
   };
+  // A second tap while the first is being made does nothing, so two taps make one thread (picker media audit 3).
+  const joining = useRef(false);
   const joinWith = async (other: MomentView) => {
+    if (joining.current) return;
+    joining.current = true;
     const id = await threads.startThread([props.moment.id, other.id]).catch(() => null);
+    joining.current = false;
     props.onDone(id ? 'Connected' : 'Could not connect', !!id);
   };
   return (

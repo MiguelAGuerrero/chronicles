@@ -101,3 +101,15 @@ test('MG6: a failed street read is asked again next time', async () => {
   assert.equal(g.store.get().streets.m, null);
 });
 
+
+test('picker media audit 1: streets asked for before the moments are loaded are read when they load', async () => {
+  const p = fakePorts();
+  const g = createGallery(p);
+  await p.db.putSegments([{ id: 's1', name: 'Hope Street', kind_detail: 'residential', length_m: 100, geometry: [[[-9.1400, 38.7100], [-9.1390, 38.7100]]], build: 'b' }]);
+  await p.db.addMoment(moment('near', 1, { lat: 38.71001, lon: -9.1395 }));
+  await g.streetsFor(['near']);
+  assert.equal('near' in g.store.get().streets, false, 'nothing to read it from yet');
+  await g.load();
+  await new Promise((r) => setTimeout(r, 20));
+  assert.equal(g.store.get().streets.near, 'Hope Street', 'read once the moments came');
+});

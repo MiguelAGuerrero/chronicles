@@ -7,7 +7,7 @@ import { blockTextHeight, coverHeight, tileLabel, type Block, type Row, type Til
 import type { GalleryView, Show, Zoom } from '../../lib/gallery/types';
 import { anchorAfter, fitFor, zoomed } from '../../lib/gallery/view';
 import { fromLine } from '../../lib/resurface/views';
-import { markedKeys, pickBar, PICKER_ACTION, PICKER_TABS, pickerEmpty, pickerRows, pickerTiles } from '../../lib/threads/pickerMedia';
+import { markedKeys, markStillOffered, pickBar, PICKER_ACTION, PICKER_TABS, pickerEmpty, pickerRows, pickerTiles } from '../../lib/threads/pickerMedia';
 import { useStore } from '../../lib/useStore';
 import { DayHeader } from '../gallery/DayHeader';
 import { GalleryBar } from '../gallery/GalleryBar';
@@ -80,10 +80,12 @@ export function PickerMedia(props: { pool: MomentPool; self: string | null; acti
   const list = useRef<FlatList<Row>>(null);
   const offset = useRef(0);
   const pending = useRef<number | null>(null);
+  // The grid is laid out once Media's saved view is read, so it never lays out at the default and then jumps (audit 5).
+  const [viewReady, setViewReady] = useState(false);
 
   // Media's saved view is where this starts (MP15); `load` reads the rows the streets of loose moments are read from (MG6).
   useEffect(() => {
-    void gallery.loadView();
+    void gallery.loadView().finally(() => setViewReady(true));
     void gallery.load();
   }, []);
 
@@ -128,7 +130,8 @@ export function PickerMedia(props: { pool: MomentPool; self: string | null; acti
     },
     [zoom],
   );
-  const mark = useCallback((t: Tile) => props.onMark(t.momentId), [props]);
+  const { onMark } = props;
+  const mark = useCallback((t: Tile) => onMark(t.momentId), [onMark]);
 
   const walks = props.pool.walks;
   // The streets of loose moments on screen (MG6), read as their days come into view.
@@ -172,14 +175,19 @@ export function PickerMedia(props: { pool: MomentPool; self: string | null; acti
   };
 
   const empty = props.pool.ready ? pickerEmpty(tiles, show) : null;
-  const picked = props.marked ? props.pool.byId.get(props.marked) : undefined;
+  // A mark whose moment went to Undo or is gone is no longer offered, and the bar goes with it (picker media audit 2).
+  const offered = useMemo(
+    () => !!props.marked && markStillOffered(props.pool.moments, props.pool.walkList, { hidden, self: props.self ?? '' }, props.marked),
+    [props.marked, props.pool.moments, props.pool.walkList, hidden, props.self],
+  );
+  const picked = props.marked && offered ? props.pool.byId.get(props.marked) : undefined;
   const bar = picked
-    ? pickBar({ kind: picked.kind, words: picked.words, place: picked.place, t: picked.t, walkLine: fromLine(picked.walkId ? walks.get(picked.walkId) : undefined), time: timeOf(picked.t), now })
+    ? pickBar({ kind: picked.kind, words: picked.words, place: picked.place, street: streets[picked.id] ?? null, t: picked.t, walkLine: fromLine(picked.walkId ? walks.get(picked.walkId) : undefined), time: timeOf(picked.t), now })
     : null;
 
   return (
     <View style={styles.wrap} testID="picker-media">
-      <GalleryBar idPrefix="picker" showLine={false} tall zoom={zoom} show={show} onZoom={setZoom} onMenu={() => setMenu(true)} onShowAll={() => setShow('all')} />
+      <GalleryBar idPrefix="picker" showLine={false} tall menuWord="View" zoom={zoom} show={show} onZoom={setZoom} onMenu={() => setMenu(true)} onShowAll={() => setShow('all')} />
       <View style={styles.kinds} accessibilityRole="tablist" testID="picker-kind">
         {KINDS.map((k) => {
           const on = show === k.show;
@@ -203,7 +211,7 @@ export function PickerMedia(props: { pool: MomentPool; self: string | null; acti
       </View>
       {show !== 'all' ? <Text testID="picker-only" style={styles.only}>{ONLY[show]}</Text> : null}
       <View style={[styles.body, PAN_ONLY]} onLayout={onLayout} {...pinch}>
-        {empty ? (
+        {!viewReady ? null : empty ? (
           <View style={styles.quiet}>
             <Text testID="picker-empty" style={styles.quietText}>{empty}</Text>
           </View>
@@ -232,8 +240,8 @@ export function PickerMedia(props: { pool: MomentPool; self: string | null; acti
         {bar ? (
           <>
             <View style={styles.barText}>
-              <Text testID="picker-bar-words" style={styles.barWords} numberOfLines={2}>{bar.words}</Text>
-              <Text testID="picker-bar-context" style={styles.barContext} numberOfLines={2}>{bar.context}</Text>
+              <Text testID="picker-bar-words" style={styles.barWords} numberOfLines={1}>{bar.words}</Text>
+              <Text testID="picker-bar-context" style={styles.barContext} numberOfLines={3}>{bar.context}</Text>
             </View>
             <Pressable testID="picker-action" accessibilityRole="button" accessibilityLabel={`${PICKER_ACTION[props.action]}, ${bar.words}. ${bar.context}`} onPress={() => picked && props.onPick(picked)} style={styles.action}>
               <Text style={styles.actionText}>{PICKER_ACTION[props.action]}</Text>

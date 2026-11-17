@@ -94,3 +94,40 @@ test('MP15: the picker never writes the gallery\'s view', () => {
   const src = readFileSync('src/components/threads/PickerMedia.tsx', 'utf8');
   assert.doesNotMatch(src, /gallery\.setView|setMeta|gallery\.setShow|gallery\.setZoom/);
 });
+
+test('picker media audit 2: a marked moment that goes to Undo, or is gone, is no longer offered; one a filter hides still is', async () => {
+  const { markStillOffered } = await core();
+  const o = { hidden: none, self: 'self' };
+  assert.equal(markStillOffered(moments(), walks(), o, 'stack'), true);
+  assert.equal(markStillOffered(moments(), walks(), { ...o, hidden: new Set(['stack']) }, 'stack'), false, 'waiting in Undo');
+  assert.equal(markStillOffered(moments(), walks(), o, 'nope'), false, 'gone');
+  assert.equal(markStillOffered(moments(), walks(), o, 'note'), false, 'a note has no tile');
+});
+
+test('picker media audit 6: the bar names a loose moment\'s street when its own place is none', async () => {
+  const { pickBar } = await core();
+  const o = { kind: 'photo' as const, words: null, t: at(2026, 11, 10, 9, 41), walkLine: null, time: '9:41 AM', now: NOW };
+  assert.equal(pickBar({ ...o, place: null, street: 'Hope Street' }).context, 'Hope Street, Nov 10, 9:41 AM');
+  assert.equal(pickBar({ ...o, place: 'Alfama', street: 'Hope Street' }).context, 'Alfama, Nov 10, 9:41 AM', 'its place first');
+  assert.equal(pickBar({ ...o, place: null, street: null }).context, 'Nov 10, 9:41 AM');
+});
+
+test('picker media audit 7: a day of four walks says its count in words, never a digit', async () => {
+  const { pickerTiles } = await core();
+  const { galleryDays } = await import('../../gallery/layout');
+  const ms = ['a', 'b', 'c', 'd'].map((id, i) => mo(`m${id}`, [['photo', at(2026, 11, 10, 8 + i)]], `w${id}`));
+  const ws = ['a', 'b', 'c', 'd'].map((id, i) => walk(`w${id}`, at(2026, 11, 10, 8 + i), { title: `Walk ${id}` }));
+  const days = galleryDays(pickerTiles(ms, ws, { hidden: none, self: 'x', show: 'all', order: 'newest' }), new Map(ws.map((w) => [w.id, w])), {}, NOW);
+  assert.match(days[0].line, /other walks|another walk/);
+  assert.doesNotMatch(days[0].line.replace(/Walk [a-d]/g, ''), /\d/);
+});
+
+test('picker media audit 4: entering Media puts the keyboard away, so the bar is not under it', () => {
+  const src = readFileSync('src/components/threads/MomentPicker.tsx', 'utf8');
+  assert.match(src, /Keyboard\.dismiss\(\)/);
+});
+
+test('picker media audit 3: Connect waits for its first tap to finish, so two taps make one thread', () => {
+  const src = readFileSync('src/components/threads/AddToThread.tsx', 'utf8');
+  assert.match(src, /joining\.current/);
+});

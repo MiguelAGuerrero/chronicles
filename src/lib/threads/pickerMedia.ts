@@ -46,10 +46,11 @@ export function markedKeys(tiles: Tile[], momentId: string | null): Set<string> 
 
 /**
  * The bar under the grid (MP9): place or street, date and time of day, then the walk's line; and the moment's own
- * words, or its kind when it has none. `time` is the time of day as the device writes it (a view's input).
+ * words, or its kind when it has none. A loose moment's `street` stands in when it has no place (picker media audit 6), so
+ * the bar never says less than its tile's spoken label. `time` is the time of day as the device writes it (a view's input).
  */
-export function pickBar(o: { kind: 'photo' | 'video' | 'voice' | 'text'; words: string | null; place: string | null; t: number; walkLine: string | null; time: string; now: number }): { context: string; words: string } {
-  const head = [o.place, `${dateLine(o.t, o.now)}, ${o.time}`].filter(Boolean).join(', ');
+export function pickBar(o: { kind: 'photo' | 'video' | 'voice' | 'text'; words: string | null; place: string | null; street?: string | null; t: number; walkLine: string | null; time: string; now: number }): { context: string; words: string } {
+  const head = [o.place ?? o.street, `${dateLine(o.t, o.now)}, ${o.time}`].filter(Boolean).join(', ');
   return { context: o.walkLine ? `${head} · ${o.walkLine}` : head, words: o.words?.trim() || KIND_WORD[o.kind] };
 }
 
@@ -58,4 +59,12 @@ export function pickerRows(tiles: Tile[], walks: Walk[], streets: Streets, now: 
   const byId = new Map(walks.map((w) => [w.id, w]));
   if (o.zoom === 'days') return dayRows(galleryDays(tiles, byId, streets, now), o.width, o.size, o.fontScale).rows;
   return blockRows(galleryBlocks(tiles, byId, streets, o.zoom === 'months' ? 'month' : 'year', now), o.width, o.fontScale);
+}
+
+/**
+ * Whether a marked moment still has a tile to be picked from (picker media audit 2): not gone, not waiting in Undo, not a
+ * note. A kind filter does not count: a mark it hides stays (MP6).
+ */
+export function markStillOffered(moments: Faced[], walks: Walk[], o: { hidden: ReadonlySet<string>; self: string }, momentId: string): boolean {
+  return pickerTiles(moments, walks, { ...o, show: 'all', order: 'newest' }).some((t) => t.momentId === momentId);
 }

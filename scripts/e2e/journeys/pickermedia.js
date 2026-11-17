@@ -36,7 +36,9 @@ const SEED = (onlyNotes) => {
     const req = indexedDB.open('chronicles');
     req.onerror = () => reject(req.error);
     req.onsuccess = () => {
-      const tx = req.result.transaction(['walk', 'moment', 'media'], 'readwrite');
+      const tx = req.result.transaction(['walk', 'moment', 'media', 'meta'], 'readwrite');
+      // Media's saved view: five across, so the picker's first paint must use it (picker media audit 5).
+      tx.objectStore('meta').put({ key: 'gallery_view', value: JSON.stringify({ order: 'newest', size: 1, shape: 'square' }) });
       tx.objectStore('walk').put(walk);
       for (const m of moments) tx.objectStore('moment').put(m);
       tx.objectStore('media').put({ key: 'p-photo', blob: photo });
@@ -113,6 +115,7 @@ async function run(h) {
     'MP3, MP4: Media drops the search and shows a tile for every photo, video and memo but the moment in hand, and no note');
 
   // MP5, MP7, MP11, MP14: bare tiles, headers with where, no counts, small copies, tabs.
+  check(ts.length > 0 && ts[0].w < 80, `picker media audit 5: the first paint uses Media's saved size, five across (${Math.round(ts[0]?.w ?? 0)} px)`);
   const pageText = await pg.locator(P).innerText().catch(() => '');
   const copy = ts.find((t) => t.piece === 'stack');
   check(ts.length > 0 && ts.every((t) => t.text === '' || /^\d+:\d{2}$/.test(t.text)) && !/The harbor at dusk/.test(pageText) && (await has(`${P} [data-testid=gallery-day-title]`)) && (await has(`${P} [data-testid=gallery-day-line]`)) && copy && copy.ref === 'p-thumb',
@@ -184,16 +187,20 @@ async function run(h) {
     return { tabs: rows('[data-testid=picker-tabs] [role=tab]'), zoom: rows('[data-testid=picker-zoom] [role=tab]'), kind: rows('[data-testid=picker-kind] [role=tab]'), menu: rows('[data-testid=picker-view-menu]') };
   });
   const oneRow = (a) => a.length > 0 && new Set(a.map((x) => x.top)).size === 1 && a.every((x) => x.h >= 44 && x.right <= 320 && !x.cut);
-  check(oneRow(fit.tabs) && oneRow(fit.zoom) && oneRow(fit.kind) && fit.menu.every((x) => x.h >= 44), `MP13, MP19: at 320 px the switch, the zoom bar and the kind row are each one row, 44 px or more (${JSON.stringify(fit)})`);
+  check(oneRow(fit.tabs) && oneRow(fit.zoom) && oneRow(fit.kind) && fit.menu.every((x) => x.h >= 44 && x.right <= 320 && !x.cut), `MP13, MP19: at 320 px the switch, the zoom bar and the kind row are each one row, 44 px or more (${JSON.stringify(fit)})`);
+  const barCut = await pg.evaluate(() => { const e = document.querySelector('[data-testid=picker-bar-context]'); return e ? e.scrollHeight > e.clientHeight + 1 || e.scrollWidth > e.clientWidth + 1 : null; });
+  const viewWord = await pg.locator('[data-testid=picker-view-menu]').first().innerText().catch(() => '');
+  check(barCut === false && /View/.test(viewWord), `picker media audit 8, 9: at 320 the marked bar shows its whole line, and the options button says View (${barCut}, ${viewWord})`);
   await shot(pg, '114-picker-320');
   await pg.setViewportSize({ width: 390, height: 844 });
 
   // MP10: Connect makes the thread.
   await vis(`${P} [data-testid=gallery-tile][data-piece=stack]`).first().click().catch(() => {});
-  await pg.click('[data-testid=picker-action]').catch(() => {});
+  await pg.locator('[data-testid=picker-action]').click({ clickCount: 2 }).catch(() => {});
   await gone('[data-testid=add-to-thread]');
+  await pg.waitForTimeout(600);
   const done = await writes(pg);
-  check(done.threads.length === 1 && done.members.map((m) => m.moment_id).sort().join() === 'anchor,stack', 'MP10: Connect makes the thread of the two moments, as a row does');
+  check(done.threads.length === 1 && done.members.map((m) => m.moment_id).sort().join() === 'anchor,stack', 'MP10, picker media audit 3: Connect makes the thread of the two moments, as a row does, and two quick taps make one');
   await pg.click('[data-testid=undo-dismiss]').catch(() => {});
   await pg.click('[data-testid=viewer-close]').catch(() => {});
 

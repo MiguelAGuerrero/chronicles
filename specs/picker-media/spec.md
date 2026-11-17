@@ -40,7 +40,7 @@ Open: none (the owner chose the switch, both pickers, and every photo, video and
 4. **MP4 · Every piece but the one in hand.** Media shows one tile for every photo, video and voice memo piece of every kept moment, loose or in a finished walk, newest first, ties by id, as Chronicle's Media (MG3): a moment with three photos shows three tiles, a note has no tile, an open walk's pieces are left out (0098). The moment being connected or written from is never offered, and one waiting in Undo is not shown (OT5, owner-threads audit 4); it returns with Undo. A moment already in the thread being joined is offered as a List row is today (the list does not leave it out).
 5. **MP5 · Bare tiles, a header for each day.** Tiles are as Chronicle's (MG4, MG5): a photo its small copy, a video its still with the play mark and its length, a memo a mic and its length; no caption, date, place or filename on a tile; edge to edge with hairline gaps. Tiles sit under a pinned header for each day carrying where (MG6, MG16), so no screen is only bare thumbnails. Headers and tiles read and are spoken as Chronicle's Media's do.
 6. **MP6 · A kind filter.** A row of All, Photos, Videos, Memos under the switch shows only that kind's tiles and the days that have them; it is All again each time the picker opens. With a kind chosen, one line in words says so ("Videos only") and the All item is the way back. A mark hidden by the filter stays, and the bar still names it; the mark also survives a trip to List and back.
-7. **MP7 · No counts.** Nothing in Media counts: no "N photos", no total, no number in a header or the bar, and no accessibility name, hint or value (the filter row, the switch's "1 of 2", a list size) carries one; the only digits are dates, times and lengths (MG7).
+7. **MP7 · No counts.** Nothing in Media counts: no "N photos", no total, no digit in a header or the bar, and no accessibility name, hint or value (the filter row, the switch's "1 of 2", a list size) carries one; the only digits are dates, times and lengths (MG7). A count the place line already says is a word in a clause, as Chronicle's Media says it ("and two other walks", 0052).
 8. **MP8 · Empty in words.** With no photo, video or memo kept (other than the moment in hand), Media is one line: "Photos, videos and voice memos you keep show here."; a kind with none shows its line ("No videos kept yet."). Never sample content.
 
 ### Choosing
@@ -69,3 +69,31 @@ Open: none (the owner chose the switch, both pickers, and every photo, video and
 ## Record
 
 Built Nov 17, 2026, test-first (19 of 19 by history). Unit tests `src/lib/__tests__/threads/pickerMedia.test.ts`; the `pickermedia` journey checks MP1-MP19 on the web build. Found while building: a moment dated later today is not in the pool before that hour (the journey seeds in the past); the zoom bar's segments were 40 pt, so the picker's bar takes `tall` (44). Native: `docs/NATIVE_UNVERIFIED.md`, "Media gallery". The in-walk note hosts (the walk's pencil, Navigate's bar, the planner) are held by the source check, not driven in a journey.
+
+## Audit
+
+Nov 17, 2026, at the owner's request: the auditor (A1-A11), the steward (S8-S11) and the ux-reviewer (U11-U17), with a cold find (U1-U10) before them: all five tasks in the owner's words were found from the pictures alone. Triage:
+
+1. Streets of loose moments stay blank on a cold open (A2): accept. The shell keeps ids asked before its moments are read and reads them when they come. Test: `picker media audit 1` (`gallery/shell.test.ts`).
+2. A marked moment that goes to Undo keeps its bar (A5): accept. `markStillOffered`; a kind filter does not count. Test: `picker media audit 2`.
+3. Two taps on Connect make two threads (A9): accept. Test: `picker media audit 3` (source check, and the journey's double click).
+4. The keyboard stays up under Media in Mention (A4): accept; device-only. `Keyboard.dismiss()` on entering Media. Test: `picker media audit 4` (source check); the phone check is in `docs/NATIVE_UNVERIFIED.md`.
+5. The saved view arrives after first paint (A6): accept. The grid waits for `loadView`. Test: the journey's `picker media audit 5` (a saved size of five across).
+6. The bar says less than its tile (S8): accept. A loose moment's street stands in for its place. Test: `picker media audit 6`.
+7. MP7 against Chronicle's counted-in-words clauses (S9): accept as wording: MP7 now says it. Test: `picker media audit 7` (a day of four walks has no digit).
+8. The options button is a bare glyph (cold U1, U11): accept. The picker's button says "View". Test: the journey's `picker media audit 8, 9`.
+9. At 320 px the bar cuts the walk line (A3, U14): accept. Up to three lines. The title that wraps (U17) is rejected, 19. Test: the same check.
+10. `mark` rebuilt every render (A7): accept. Covered by typecheck and the journey's flow; no render-count test.
+11. Back and Escape with the inline View menu open close the whole picker and drop the mark (A1): defer. A native Back inside a Modal can't be taken from JS; it needs a Back protocol across the three hosts (an architectural call). `docs/DEFERRED.md`, and a device check.
+12. A stale scroll offset after a zoom swap (A10): defer. `MediaScreen` has the same; one fix for both. `docs/DEFERRED.md`.
+13. The viewer's own close and More circles sit over the picker's scrim (U15): defer. Older than this slice (Add to a thread has always had it); `docs/DEFERRED.md`.
+14. Three rows of controls cost 170 px, and the kind row repeats the View menu's Show (U12, A UI note): the owner's call: kept as the plan's accepted cost (MP19); the owner may move the kind row into View. `docs/STATUS.md`, "From picker media's audit".
+15. A failed read prints the empty line (A8): reject. The line is the app's own instruction ("... you keep show here"), the same as Chronicle's Media (MG10) and List's; a read error is `useMomentPool`'s existing path.
+16. Duplicate test ids under Chronicle's mounted Media (A11): reject. The journey scopes by `picker-media`; every overlay of the app has the screen behind it.
+17. Muted grey on tabs and subtitles (U10, U13): reject. Measured: `theme.muted` is 4.66:1 on the tabs' ground and 6.14:1 on white, over 4.5:1.
+18. A hint in the bar's empty space (U16): reject. MP9 chose silence; the owner may overrule.
+19. The card's title wraps at 320 px (U17): reject. The title is Add to a thread's own copy (OT5), not a control row.
+20. Years and Months covers read as a pick (S10): reject. A block is never picked (`pickerRows` months are all blocks, MP16), and the cover is Chronicle's plain first-piece rule.
+21. In-walk hosts held only by a source check (S11): noted; `docs/NATIVE_UNVERIFIED.md`.
+
+21 triaged: 10 accepted and fixed, 3 deferred, 1 to the owner, 6 rejected, 1 noted. Journeys run: `pickermedia` (six runs, two since the fixes), `gallery` and `threads` twice, `responses` and `videothumbs` once each. `threads` failed twice at OT8 (a stored read 800 ms after the Undo dismiss) under load while the picker's journey ran beside it, then passed three times on unchanged code; `e2e:baseline` passed 3/3 on main, so it is not recorded as a known flake.
