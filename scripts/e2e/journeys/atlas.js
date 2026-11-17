@@ -124,6 +124,15 @@ async function checks(h) {
       for (let i = 0; i < 20 && !(await drawnAround()); i++) await page.waitForTimeout(500);
       check(points >= hoods.length && !ringBefore && (await drawnAround()) !== '' && selName === pickName && Math.abs(dx) <= 8 && Math.abs(dy - 30) <= 8,
         `AT9: the small map shows the areas' points; on your town's page its own card is selected on arrival (no ring), and opening an area's card frames it with its 800 m ring, or its own ground (${points} points for ${hoods.length} tiles, ring ${JSON.stringify(ringBefore)} → ${await ring()}, ${selName} at (${dx.toFixed(1)}, ${dy.toFixed(1)}) px from the middle)`);
+      // tend explore 20 (decision 0172, the accent at rest): the selected area's name and its dot's ring on the map are
+      // ink (#1d2430), never the accent; a selection is not an action.
+      const selInk = (await sel.count()) ? await sel.first().evaluate((el) => {
+        const named = [...el.querySelectorAll('div')].find((e) => e.childElementCount === 0 && e.textContent && e.textContent === el.dataset.name);
+        const ringed = [...el.querySelectorAll('div')].find((x) => { const r = x.getBoundingClientRect(); return Math.abs(r.width - 14) < 1 && Math.abs(r.height - 14) < 1; });
+        return { name: named ? getComputedStyle(named).color : null, dot: ringed ? getComputedStyle(ringed).borderTopColor : null };
+      }) : null;
+      check(selInk && selInk.name === 'rgb(29, 36, 48)' && selInk.dot === 'rgb(29, 36, 48)', `tend explore 20: the selected area's name and dot on the map are ink at rest (${JSON.stringify(selInk)})`);
+      await shot(page, 'tend-explore-20-map-name-390');
     }
     {
       // AT8: a tile opens its card; unfound places are never named (AT7), finds are.

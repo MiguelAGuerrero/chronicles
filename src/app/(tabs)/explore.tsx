@@ -337,7 +337,7 @@ export default function Explore() {
     return m;
   }, [shown, fresh.finds, fresh.hidden, found]);
 
-  // The map's areas: the page's neighborhoods (and the town), dots, the selected one named in the accent (round 3).
+  // The map's areas: the page's neighborhoods (and the town), dots, the selected one named, in ink at rest (round 3; tend explore 20, decision 0172).
   const pointsOf = useMemo(() => (town ? [{ area: town, distanceM: 0, here: false }, ...neighborhoods] : neighborhoods), [town, neighborhoods]);
   const points = useMemo(() => pointsOf.map((l) => l.area.at), [pointsOf]);
   // Only the selected area's level is drawn, so a town's name and its neighborhoods' never overlay (fix map-levels).
