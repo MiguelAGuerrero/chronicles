@@ -762,6 +762,58 @@ async function run(h) {
       check(shownW === 1 && (await compassW.count()) === 0 && focusedW === expectW,
         `tend map 6: on the walk, turned, the compass shows; pressed from the keyboard it leaves and the focus goes to the column's next button (shown ${shownW}, focus on ${focusedW}, expected ${expectW}; tend map audit 7)`);
     }
+    // tend map 15 (CP4, CP7 on the live walk): turned by two real fingers (following stops: the gesture carries an
+    // originalEvent, `__turn` does not), Recenter (following again, still turned), then the compass tapped while the dot
+    // moves on: the map goes north and keeps following. Each follow frame's jump cut the compass's ease after one frame,
+    // so the map stayed turned. Walked on east and back, so the trace still ends where the photo and the note were kept.
+    await qstep('tend map 15', async () => {
+      const compassF = pg.locator('[data-testid=compass]').filter({ visible: true });
+      const recenter = pg.locator('[data-testid=recenter]').filter({ visible: true });
+      let out = 0;
+      let back = false;
+      const walking = (async () => {
+        while (!back) {
+          out++;
+          await fix(at(-0.5 + (8 + out) * 0.05, -0.5));
+          await pg.waitForTimeout(1000);
+        }
+        for (let k = out - 1; k >= 0; k--) {
+          await fix(at(-0.5 + (8 + k) * 0.05, -0.5));
+          await pg.waitForTimeout(1000);
+        }
+      })();
+      try {
+        // Moving again: the dot glides and the camera follows it frame by frame.
+        await pg.waitForTimeout(3500);
+        const turned = await twoFingerTurn();
+        const stopped = await recenter.count();
+        if (stopped) await recenter.first().click();
+        await pg.waitForTimeout(800);
+        const followingAgain = (await recenter.count()) === 0;
+        const turnedStill = Number((await attr('data-bearing')) || 0);
+        const shownF = await compassF.count();
+        if (shownF) await compassF.first().click();
+        await pg.waitForTimeout(1500);
+        const north = Number((await attr('data-bearing')) || 0);
+        const left = await compassF.count();
+        const stillFollowing = (await recenter.count()) === 0;
+        // Following after the ease: the camera's middle is on the dot (the glide frames caught it up).
+        const off = await pg.evaluate(() => {
+          const maps = [...document.querySelectorAll('[data-zoom]')].filter((e) => !e.closest('[aria-hidden=true]'));
+          const c = maps[maps.length - 1]?.getAttribute('data-center');
+          const d = document.querySelector('[data-testid=walker-puck]')?.getAttribute('data-at');
+          return c && d ? [c.split(',').map(Number), d.split(',').map(Number)] : null;
+        });
+        const offM = off ? mAway(off[0], off[1]) : null;
+        check(Math.abs(turned) > 5 && stopped === 1 && followingAgain && Math.abs(turnedStill) > 5 && shownF === 1,
+          `tend map 15: on the walk, two fingers turn the map and stop following; Recenter follows again, still turned, with the compass (turned ${turned}, Recenter shown ${stopped}, following again ${followingAgain}, bearing ${turnedStill}, compass ${shownF})`);
+        check(Math.abs(north) < 0.5 && left === 0 && stillFollowing && offM != null && offM < 5,
+          `tend map 15: following while walking, the compass brings the map north and leaves, and the map keeps following the dot (CP4; bearing ${north}, ${left} compass, following ${stillFollowing}, middle ${offM == null ? '-' : offM.toFixed(1)} m from the dot)`);
+      } finally {
+        back = true;
+        await walking;
+      }
+    });
     await checkAttribution('the walk screen', 'qol-06-walk-credits-open');
 
     // Stopped: both ends, and the bar above the card.

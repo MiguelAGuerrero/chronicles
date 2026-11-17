@@ -32,6 +32,7 @@ import { useReducedMotion } from '../../lib/motion';
 import { useUnits } from '../../lib/useUnits';
 import { useReminded } from '../../lib/useReminded';
 import { MOTION } from '../../lib/motionTokens';
+import { followMoves } from '../../lib/compass';
 import { groundGeoJSON, groundStyle } from '../../lib/areas/groundDraw';
 import {
   alternatesGeoJSON, TRACE_EDGE_OPACITY, storefrontNameLayers, storefrontNameRotate, storefrontNamesGeoJSON, roomCells, routeGradesGeoJSON, pinsGeoJSON, BORDER, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, OVERTURE_CREDIT, GAZETTEER_CREDIT, DERIVE_ZOOM, endsGeoJSON, ENDS_PAINT, ENDS_RING_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON, BASE_VECTOR_SOURCE, poiLabelLayers,
@@ -356,8 +357,9 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     if ((window as { __perf?: unknown }).__perf) p.el.dataset.at = `${f.walker[0]},${f.walker[1]}`;
     p.cone.style.display = f.heading == null ? 'none' : '';
     if (f.heading != null) p.cone.style.transform = `rotate(${f.heading}deg)`;
-    // The camera follows the dot, so they move together; never while a hand is on the map.
-    if (followRef.current && !pointerDown.current) mapRef.current?.jumpTo({ center: f.walker });
+    // The camera follows the dot, so they move together; never while a hand is on the map, nor while the compass eases
+    // north (a jump would cut the ease: tend map 15).
+    if (followMoves({ following: !!followRef.current, handOnMap: pointerDown.current, northEasing: northAsked.current })) mapRef.current?.jumpTo({ center: f.walker });
   };
   useGlideFrames(props.walker, props.walkerHeading, glideOn, applyFrame, 0, props.walkerSource);
   useEffect(() => {
@@ -1322,7 +1324,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   }, [ready, props.fogEmphasis]);
   useEffect(() => {
     const map = mapRef.current;
-    if (!ready || !props.follow || !map || pointerDown.current) return;
+    if (!ready || !map || !props.follow || !followMoves({ following: !!props.follow, handOnMap: pointerDown.current, northEasing: northAsked.current })) return;
     // On the live walk the render loop moves the camera; this recenters at once
     // (Recenter, a read ending) on the dot as it is showing.
     const to = glideOn ? (lastFrame.current.walker ?? props.follow) : props.follow;
