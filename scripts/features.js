@@ -301,8 +301,8 @@ const FEATURES = [
     about: 'threads the owner makes: respond to a moment, connect moments across walks; a thread, its members and a directed reply are stored apart from the moments',
     rule: 'threads',
     source: ['src/lib/threads/**', 'src/lib/refs.ts', 'src/components/threads/**'],
-    journeys: ['threads', 'responses'],
-    specs: ['owner-threads', 'moment-references', 'response-thread'],
+    journeys: ['threads', 'responses', 'pickermedia'],
+    specs: ['owner-threads', 'moment-references', 'response-thread', 'picker-media'],
   },
   {
     name: 'notes',
@@ -478,7 +478,9 @@ const RENAMED = {
   'video-thumbnails': { VS: 'VT' },
 };
 
-const IN_PROGRESS = {};
+const IN_PROGRESS = {
+  'picker-media': { branch: 'claude/moment-threading-media-gallery-jv3lz1', since: '2026-11-17' },
+};
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));
 
