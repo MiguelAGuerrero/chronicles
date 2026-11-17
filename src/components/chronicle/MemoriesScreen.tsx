@@ -714,7 +714,9 @@ export function MemoriesScreen() {
       <CaptureViewer
         key={`memory:${viewing?.[0]?.id ?? 'none'}`}
         intent={intent}
-        captures={!memoOn && viewing ? viewing.map((v) => inThreadById.get(v.id)?.capture ?? v) : null}
+        // A stack's tile opens the viewer on its own piece (decision 0196, SW12, SW21).
+        startAt={viewing?.[0] ? { id: viewing[0].id, piece: viewing[0].piece_id } : null}
+        captures={!memoOn && viewing ? viewing.map((v) => (v.piece_id ? v : inThreadById.get(v.id)?.capture ?? v)) : null}
         // From an entry, a thread or Hidden a reaction opens its lens (RL3); from the slip it is plain words (RL4).
         onLens={viewingSlip ? undefined : (id) => openLens(id)}
         onClose={() => {

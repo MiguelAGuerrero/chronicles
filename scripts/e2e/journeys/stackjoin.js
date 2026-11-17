@@ -120,15 +120,22 @@ async function run(h) {
   await there('[data-testid=capture-viewer]', 8000);
   await pg.click('[data-testid=capture-viewer] [aria-label="More"]').catch(() => {});
   const split = await there('[data-testid=menu-split]', 4000);
-  check(editSlots === 0 && split, `SW21: a stack's row has no Edit, and from a tile's viewer a piece can be split out (${JSON.stringify({ editSlots, split })})`);
+  const shownPiece = await pg.locator('[data-testid=piece-shown]').getAttribute('data-piece').catch(() => null);
+  const firstId = (await stored()).find((m) => m.pieces.length === 2)?.pieces[0]?.id;
+  check(editSlots === 0 && split && !!shownPiece && shownPiece !== firstId, `SW21: a stack's row has no Edit, and from a tile's viewer a piece can be split out, and the tile's own piece is the one shown (${JSON.stringify({ editSlots, split, shownPiece })})`);
   await pg.keyboard.press('Escape');
-  await pg.click('[data-testid=viewer-close]').catch(() => {});
+  await pg.waitForTimeout(400);
+  await pg.click('[data-testid=viewer-close]', { timeout: 3000, force: true }).catch(() => {});
+  await pg.waitForTimeout(400);
+  if (await count('[data-testid=capture-viewer]')) await pg.keyboard.press('Escape');
+  await pg.waitForSelector('[data-testid=capture-viewer]', { state: 'detached', timeout: 6000 }).catch(() => {});
   await pg.waitForTimeout(500);
-  await pg.locator('[data-testid=stack-toggle]').first().click().catch(() => {});
+  if ((await count('[data-testid=stack-grid]')) > 0) await pg.locator('[data-testid=stack-toggle]').first().click().catch(() => {});
 
   // SW14: with the row showing, a new capture is still one write.
   await write('Then left again.');
-  check((await pg.locator(entries).count()) >= 2, 'SW14: a capture made with the row showing is kept as an entry of its own');
+  const afterWrite = await pg.locator(entries).count();
+  check(afterWrite >= 2, `SW14: a capture made with the row showing is kept as an entry of its own (${afterWrite} entries, viewer ${await count('[data-testid=capture-viewer]')})`);
 
   // SW17: once the window is closed the join is stored, and a reload shows one stack.
   await pg.locator('[data-testid=undo-dismiss]').click().catch(() => {});
