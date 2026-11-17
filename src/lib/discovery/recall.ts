@@ -188,3 +188,13 @@ export function reminderSight(o: { seenAt: number | null; inSight: boolean; now:
   const seenAt = o.seenAt ?? (o.inSight ? o.now : null);
   return { seenAt, goesInMs: seenAt == null ? null : Math.max(0, seenAt + o.showMs - o.now) };
 }
+
+/**
+ * A reminder card's spoken name (tend explore 23): its title and its words, then Open, with one full stop before Open:
+ * a body that ends its own sentence ("…of cardamom.", "?", a cut note's "…") takes none more.
+ */
+export function reminderName(captures: Faced[]): string {
+  const { title, body } = reminderText(captures);
+  const said = body ? `${title}: ${body}` : title;
+  return `${said}${/[.!?…]["'”’)\]]*$/.test(said) ? '' : '.'} Open`;
+}

@@ -54,6 +54,9 @@ async function checks(h) {
     }
     const reminded = await page.waitForSelector('[data-testid=reminder]', { timeout: 15000 }).then(() => true, () => false);
     check(reminded && /memor|note/i.test(await page.locator('[data-testid=reminder]').innerText()), 'a later walk passing a flagged capture brings it back');
+    // tend explore 23: one full stop before Open, though the note ends its own sentence.
+    const noteName = reminded ? await page.locator('[data-testid=reminder-open]').getAttribute('aria-label') : null;
+    check(noteName === 'A note from here: The bakery smelled of cardamom. Open', `tend explore 23: the note's reminder names itself with one full stop ("${noteName}")`);
     await shot(page, '13-reminder');
     // Memories on revisit: the first walk's captures nearby show as faint pins on this quiet walk
     // (MR1, MR6), but not the one whose reminder card is up (MR7).
