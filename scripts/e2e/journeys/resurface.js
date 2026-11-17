@@ -325,6 +325,21 @@ async function run(h) {
   await pg.waitForSelector('[data-testid=thread-screen]');
   check((await pg.locator('[data-testid=thread-title]').innerText()) === 'Harbor' && (await pg.locator('[data-testid=thread-quote]').count()) === 2
     && (await pg.locator('[data-testid=thread-screen] [data-testid=moment-card]').count()) === 3, 'RM15: the thread shows its name, two of the user\'s own sentences, and its three moments');
+  // tend chronicle 11 (decision 0172, the accent at rest): the "Thread" label and the quotes' rule are ink (#1d2430).
+  const threadInk = await pg.locator('[data-testid=thread-screen]').evaluate((el) => ({
+    label: [...el.querySelectorAll('div')].filter((e) => e.childElementCount === 0 && e.textContent === 'Thread').map((e) => getComputedStyle(e).color),
+    rules: [...el.querySelectorAll('[data-testid=thread-quote]')].map((e) => getComputedStyle(e).borderLeftColor),
+  }));
+  check(threadInk.label.length === 1 && [...threadInk.label, ...threadInk.rules].every((c) => c === 'rgb(29, 36, 48)') && threadInk.rules.length === 2,
+    `tend chronicle 11: a thread's "Thread" label and its quotes' rule are ink at rest (${JSON.stringify(threadInk)})`);
+  {
+    const vp = pg.viewportSize();
+    await pg.setViewportSize({ width: 320, height: vp.height });
+    await pg.waitForTimeout(400);
+    await shot(pg, 'tend-chronicle-11-thread-320');
+    await pg.setViewportSize(vp);
+    await pg.waitForTimeout(400);
+  }
   await pg.click('[data-testid=thread-rename]');
   await pg.fill('[data-testid=thread-name]', 'The harbor');
   await pg.click('[data-testid=thread-save]');
