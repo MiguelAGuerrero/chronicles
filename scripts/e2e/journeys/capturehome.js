@@ -177,14 +177,18 @@ async function run(h) {
   await pg.waitForTimeout(1100);
   await pg.mouse.up();
   await pg.waitForURL(/replay/, { timeout: 30000 }).catch(() => {});
-  const placedNote = await pg.waitForFunction(() => new Promise((resolve) => {
-    const req = indexedDB.open('chronicles');
-    req.onsuccess = () => {
-      const g = req.result.transaction(['moment'], 'readonly').objectStore('moment').getAll();
-      g.onsuccess = () => resolve(g.result.map((m) => ({ ...m.pieces[0], id: m.id, walk_id: m.walk_id, t: m.t, lat: m.lat, lon: m.lon, segment_id: m.segment_id })).find((x) => x.body === 'Kept on the walk, from Memories.' && x.lat != null) ?? null);
-    };
-  }), null, { timeout: 15000, polling: 500 }).then((v) => v.jsonValue(), () => null);
-  check(!!placedNote && placedNote.walk_id === open?.id, `HC10: the stopped walk placed the note as its own capture (${placedNote && [placedNote.lat, placedNote.lon]})`);
+  // tend captures 2: polled from here, since an async predicate in waitForFunction resolves at once with its pending
+  // promise: that read the note once as the replay opened, before a slow snap (behind "Reading the streets you
+  // walked…") had placed it, and failed on a busy machine.
+  let placedNote = null;
+  let lastNote = null;
+  for (let i = 0; i < 60 && !placedNote; i++) {
+    lastNote = (await stored(pg).catch(() => ({ captures: [] }))).captures.find((x) => x.body === 'Kept on the walk, from Memories.') ?? null;
+    if (lastNote && lastNote.lat != null) placedNote = lastNote;
+    else await pg.waitForTimeout(500);
+  }
+  check(!!placedNote && placedNote.walk_id === open?.id,
+    `HC10 (tend captures 2): the stopped walk placed the note as its own capture, waited for and not read once (${placedNote ? [placedNote.lat, placedNote.lon] : JSON.stringify(lastNote && { walk_id: lastNote.walk_id, lat: lastNote.lat })})`);
   // Watched from before Stop: a short walk's replay can show the note and reach its card before a wait begins here.
   const played = await pg.waitForFunction(() => window.__sawNote === true, null, { timeout: 60000 }).then(() => true, () => false);
   check(played, 'HC10: the walk\'s replay plays the note kept from Memories');
