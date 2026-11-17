@@ -16,7 +16,7 @@ For the owner's review before any code (`/slice` step 3). Spec: `specs/picker-me
 
 | File | Layer | What |
 |---|---|---|
-| `src/lib/threads/pickerMedia.ts` (new) | core | `pickerTiles(moments, walks, { hidden, self, show })`: Chronicle's tiles minus the moment in hand and what waits in Undo (MP4, MP6); `pickBar(view, now)`: the marked moment's context line and its words or kind (MP9); `PICKER_TABS`, `PICKER_ACTION` (Connect, Mention) words (MP1, MP9) |
+| `src/lib/threads/pickerMedia.ts` (new) | core | `pickerTiles(moments, walks, { hidden, self, show })`: Chronicle's tiles minus the moment in hand and what waits in Undo (MP4, MP6); `pickBar(view, now)`: the marked moment's place, date, time of day and walk, and its words or kind (MP9; a row's `contextLine` has no time, so the bar adds it); `markedKeys(tiles, momentId)`: every tile of a moment (MP9); `PICKER_TABS`, `PICKER_ACTION` (Connect, Mention) words (MP1, MP9) |
 | `src/components/threads/PickerMedia.tsx` (new) | view | the switch (`PickerTabs`: List, Media), the kind row, the grid (`FlatList` over `dayRows`, sticky day headers), the mark and the bottom bar with its one button; props `{ pool, self, action, onPick }` |
 | `src/components/threads/MomentPicker.tsx` | view | the switch under the title unless `only` is set (MP12); List is today's body, Media is `PickerMedia`; the search is List's (MP3); `action="Mention"` |
 | `src/components/threads/AddToThread.tsx` | view | its second step gets the same switch and `PickerMedia` with `action="Connect"` (MP1); its pool becomes `useMomentPool()` so both read the same shape |
@@ -82,3 +82,9 @@ are List's job.
 
 The grid's fling on a card in a Modal (iOS, Android); TalkBack and VoiceOver reading the switch and a marked tile. Added to
 `docs/NATIVE_UNVERIFIED.md`.
+
+## Steward (Nov 17), triage
+
+Accepted into the spec: S1 (the mark is the moment's, every tile of it rings; the bar's space is kept), S2 (the bar's content as an outcome, with the time of day; the owner's-call sentence is in "Defaults" above), S3 (every note-page host, one in-walk host in the journey), S4 (criteria say what is seen, not the component), S5 (first paint, 320 px, keyboard open), S6 (a mark hidden by a filter stays; it survives List and back; the list's scroll is not promised), S7 (accessibility names scanned too).
+
+Silent, answered in the spec or left to the owner: no Years/Months/menu/pinch is default 2 above (the owner may overrule); 0139's bare tiles in a picker is the gate's reshaping and is named for the decision record; a moment already in the thread is offered as the list does (MP4); a length is a time, not a count (MG7); a note found by its words in Media is out of scope (MP12).
