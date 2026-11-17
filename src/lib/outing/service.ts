@@ -8,7 +8,8 @@ import { LEANINGS, MIXED } from './leanings';
 import { outingCandidates, type TileShop } from './storesMerge';
 import { readStores, type StoresSource } from './storesRead';
 import { planOuting, planStops, type Outing, type OutingReason } from './plan';
-import { visitedIds } from './visited';
+import { visitedIds, walksNear } from './visited';
+import type { Leg } from '../walkPlanner/planner';
 import { swapCandidate } from './swap';
 import { legOver } from '../walkPlanner/service';
 
@@ -26,8 +27,15 @@ export interface OutingDeps {
   read(at: LngLat, radiusM: number): Promise<{ shops: TileShop[]; segments: StreetSegment[]; spots?: Candidate[] } | null>;
   /** The stores pack by tile; null until a pack is published (QC14). */
   stores: StoresSource | null;
-  /** OJ47: the fixes, on foot, of the recorded outings that were near a point, and the range within which a place counts as visited. */
-  walkedNear?(at: LngLat): Promise<{ fixes: { lon: number; lat: number }[]; rangeM: number }>;
+  /**
+   * OJ47: what visited is read from: the rows that say which outing was where, one outing's fixes on foot, and the range within which
+   * a place counts as visited. Each is asked once for a look over several areas (audit 6).
+   */
+  walked?: {
+    rows(): Promise<{ walk_id: string; lon: number; lat: number; last_t: number }[]>;
+    trace(walkId: string): Promise<{ lon: number; lat: number }[]>;
+    rangeM(): Promise<number>;
+  };
 }
 
 export interface Session {
@@ -59,7 +67,37 @@ const candsOf = (s: Session, chains: boolean): Candidate[] =>
   [...outingCandidates(s.stores, s.shops, { chains }), ...s.spots].map((c) => (s.visited.has(c.id) && !c.seen ? { ...c, seen: true } : c));
 
 export function createOutingService(deps: OutingDeps) {
+  // One street graph per read (audit 5), held only as long as the read is.
+  const legs = new WeakMap<Session, Leg>();
+  const legFor = (s: Session): Leg => {
+    let leg = legs.get(s);
+    if (!leg) legs.set(s, (leg = legOver(s.segments)));
+    return leg;
+  };
+  // One look's reads of the traces (audit 6): asked once each until `forget`.
+  let rowsP: ReturnType<NonNullable<OutingDeps['walked']>['rows']> | null = null;
+  let rangeP: Promise<number> | null = null;
+  const traces = new Map<string, Promise<{ lon: number; lat: number }[]>>();
+  async function walkedNear(at: LngLat): Promise<{ fixes: { lon: number; lat: number }[]; rangeM: number } | null> {
+    const w = deps.walked;
+    if (!w) return null;
+    const [rows, rangeM] = await Promise.all([(rowsP ??= w.rows()), (rangeP ??= w.rangeM())]);
+    const fixes: { lon: number; lat: number }[] = [];
+    for (const id of walksNear(rows, at)) {
+      let t = traces.get(id);
+      if (!t) traces.set(id, (t = w.trace(id)));
+      fixes.push(...(await t));
+    }
+    return { fixes, rangeM };
+  }
   return {
+    legFor,
+    /** A new look (the page opened): the traces are read again when next asked. */
+    forget() {
+      rowsP = null;
+      rangeP = null;
+      traces.clear();
+    },
     /** QC29: reads only when something is picked; with nothing, nothing is read and no session exists. */
     async open(from: LngLat | null, picked: readonly Want[]): Promise<Session | null> {
       if (!from || !picked.length) return null;
@@ -68,14 +106,14 @@ export function createOutingService(deps: OutingDeps) {
       const stores = await readStores(deps.stores, from, READ_M);
       const bare: Session = { from, shops: read.shops, stores, segments: read.segments, spots: read.spots ?? [], visited: new Set() };
       // OJ47: visited is read from the trace now, over every candidate here whatever the chains switch says, and never kept.
-      const walked = await deps.walkedNear?.(from).catch(() => null);
+      const walked = await walkedNear(from).catch(() => null);
       return walked ? { ...bare, visited: visitedIds(candsOf(bare, true), walked.fixes, walked.rangeM) } : bare;
     },
 
     plan(req: PlanRequest): PlanAnswer {
       const cands = candsOf(req.session, req.chains);
       if (!req.session.segments.length) return { outing: null, reasons: ['noRoute'], cands };
-      const r = planOuting({ cands, match: (c) => matchesAny(req.picked, c), from: req.session.from, mode: req.mode, ceilingM: req.ceilingM }, legOver(req.session.segments));
+      const r = planOuting({ cands, match: (c) => matchesAny(req.picked, c), from: req.session.from, mode: req.mode, ceilingM: req.ceilingM }, legFor(req.session));
       return { ...r, cands };
     },
 
@@ -84,7 +122,7 @@ export function createOutingService(deps: OutingDeps) {
      * around where you stand is one area, a reach or a way toward a place several, and the planner is the same.
      */
     journeys(req: { reads: readonly { area: Area; session: Session }[]; origin: LngLat | null; picked: readonly Want[]; ceilingM: number; chains: boolean; toward: boolean; salts?: Readonly<Record<string, number>> }): { journeys: Journey[]; reasons: OutingReason[] } {
-      const areas = req.reads.map((r) => ({ area: r.area, from: r.session.from, cands: candsOf(r.session, req.chains), leg: legOver(r.session.segments) }));
+      const areas = req.reads.map((r) => ({ area: r.area, from: r.session.from, cands: candsOf(r.session, req.chains), leg: legFor(r.session) }));
       return planJourneys({ areas, origin: req.origin, picked: req.picked, leanings: LEANINGS, mixed: MIXED, ceilingM: req.ceilingM, toward: req.toward, salts: req.salts });
     },
 
@@ -96,14 +134,17 @@ export function createOutingService(deps: OutingDeps) {
      * store that no longer fits the ceiling is passed over and counted as offered. None left: null, and the caller says so.
      */
     swap(req: PlanRequest & { outing: Outing; cands: readonly Candidate[]; index: number; offered: ReadonlySet<string> }): { outing: Outing | null; offered: string[] } {
-      const leg = legOver(req.session.segments);
+      const leg = legFor(req.session);
       const offered = new Set(req.offered);
+      const single = req.outing.stops.length === 1;
       const gone: string[] = [];
       for (;;) {
         const next = swapCandidate(req.outing.stops[req.index], req.outing.stops, req.cands, (c) => matchesAny(req.picked, c), req.session.from, req.ceilingM, offered);
         if (!next) return { outing: null, offered: gone };
         offered.add(next.id);
         gone.push(next.id);
+        // Audit 18: a chapter of one stop stays one stop, with no path to it.
+        if (single) return { outing: { stops: [next], path: [next.at], lengthM: 0, loop: false }, offered: gone };
         const stops = req.outing.stops.map((s, i) => (i === req.index ? next : s));
         const outing = planStops(stops, req.session.from, req.mode, req.ceilingM, leg);
         if (outing) return { outing, offered: gone };
@@ -112,7 +153,7 @@ export function createOutingService(deps: OutingDeps) {
 
     /** Start (QC22; as WP24): the same stops ordered and routed again from where the walker is now; null when they no longer fit. */
     again(req: PlanRequest & { stops: readonly Candidate[]; from: LngLat }): Outing | null {
-      return planStops(req.stops, req.from, req.mode, req.ceilingM, legOver(req.session.segments));
+      return planStops(req.stops, req.from, req.mode, req.ceilingM, legFor(req.session));
     },
 
     /** QC24: the name of the shop at a stop's position, from the data now (a tap or arrival); never stored. */

@@ -45,7 +45,7 @@ test('OJ47: the service marks what the trace has been near, and reads no trace w
   const service = createOutingService({
     read: async () => ({ shops: SHOPS.map((s) => ({ name: s.name, at: s.at, classes: ['antiques'] })), segments: segs }),
     stores: null,
-    walkedNear: async () => (log.walked++, { fixes: [{ lon: SHOPS[0].at[0], lat: SHOPS[0].at[1] }], rangeM: 100 }),
+    walked: { rows: async () => [{ walk_id: 'w', lon: FROM[0], lat: FROM[1], last_t: 1 }], trace: async () => (log.walked++, [{ lon: SHOPS[0].at[0], lat: SHOPS[0].at[1] }]), rangeM: async () => 100 },
   });
   const picked = CHIPS.filter((c) => c.id === 'antiques');
   await service.open(FROM, []);

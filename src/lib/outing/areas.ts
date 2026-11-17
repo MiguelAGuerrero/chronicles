@@ -27,6 +27,7 @@ export const AREA_RULES = {
   /** Toward a place: how far off the straight line a town may lie, as a share of its length, and at least this. */
   corridorShare: 0.2,
   corridorMinM: 3000,
+  corridorMaxM: 10_000,
   /** OJ37: how many areas one look reads; a bound on reading, never on what a journey may hold. */
   readMax: 8,
 } as const;
@@ -46,24 +47,32 @@ function distinct(sorted: { t: TownRow; d: number }[], taken: LngLat[]): { t: To
 
 const byNear = (a: { t: TownRow; d: number }, b: { t: TownRow; d: number }) => a.d - b.d || (a.t.name < b.t.name ? -1 : 1);
 
-/** OJ41: where you stand, then the towns within the reach: those new to you first, each nearest first. */
+const newFirst = <T extends { isNew: boolean }>(xs: T[]): T[] => [...xs.filter((x) => x.isNew), ...xs.filter((x) => !x.isNew)];
+
+/**
+ * OJ41, OJ42: where you stand, then the towns within the reach. The nearest are the ones looked at (a town is never left out for
+ * having been walked, audit 4); among them those new to you come first.
+ */
 export function areasAround(towns: Iterable<TownRow>, from: LngLat, reachM: number, walked: readonly TownRow[]): Area[] {
   const inside: { t: TownRow; d: number }[] = [];
   for (const t of towns) {
     const d = distanceM(from, t.at);
     if (d <= reachM) inside.push({ t, d: Math.round(d) });
   }
-  const kept = distinct(inside.sort(byNear), [from]).map((x) => ({ ...x, isNew: !been(x.t, walked) }));
-  const ordered = [...kept.filter((x) => x.isNew), ...kept.filter((x) => !x.isNew)].slice(0, AREA_RULES.readMax - 1);
-  return [{ name: null, at: from }, ...ordered.map((x) => ({ name: x.t.name, at: x.t.at, isNew: x.isNew }))];
+  const kept = distinct(inside.sort(byNear), [from]).slice(0, AREA_RULES.readMax - 1).map((x) => ({ ...x, isNew: !been(x.t, walked) }));
+  return [{ name: null, at: from }, ...newFirst(kept).map((x) => ({ name: x.t.name, at: x.t.at, isNew: x.isNew }))];
 }
 
-/** OJ20: the towns near the straight line from here to the place, in order along it, the place last; none behind you or beyond it. */
+/**
+ * OJ20: the towns near the straight line from here to the place, in order along it, the place last; none behind you or beyond it.
+ * When there are more than one look reads, they are taken spread along the way (one from each equal stretch of it, a town new to you
+ * before one that is not), never the first few beside home (audit 3).
+ */
 export function areasToward(towns: Iterable<TownRow>, from: LngLat, to: TownRow, walked: readonly TownRow[]): Area[] {
   const proj = projector(from);
   const [tx, ty] = proj(to.at);
   const len = Math.hypot(tx, ty) || 1;
-  const width = Math.max(AREA_RULES.corridorMinM, AREA_RULES.corridorShare * len);
+  const width = Math.max(AREA_RULES.corridorMinM, Math.min(AREA_RULES.corridorMaxM, AREA_RULES.corridorShare * len));
   const near: { t: TownRow; d: number }[] = [];
   for (const t of towns) {
     const [x, y] = proj(t.at);
@@ -73,7 +82,21 @@ export function areasToward(towns: Iterable<TownRow>, from: LngLat, to: TownRow,
     near.push({ t, d: Math.round(along) });
   }
   const kept = distinct(near.sort(byNear), [from, to.at]).map((x) => ({ ...x, isNew: !been(x.t, walked) }));
-  const chosen = [...kept.filter((x) => x.isNew), ...kept.filter((x) => !x.isNew)].slice(0, AREA_RULES.readMax - 1).sort(byNear);
+  const max = AREA_RULES.readMax - 1;
+  let chosen = kept;
+  if (kept.length > max) {
+    const taken = new Set<number>();
+    for (let b = 0; b < max; b++) {
+      const lo = (len * b) / max;
+      const hi = (len * (b + 1)) / max;
+      const inBin = kept.map((x, i) => ({ x, i })).filter(({ x, i }) => !taken.has(i) && x.d >= lo && x.d < hi);
+      const pick = inBin.find(({ x }) => x.isNew) ?? inBin[0];
+      if (pick) taken.add(pick.i);
+    }
+    // A stretch with no town leaves its place to the nearest town not yet taken.
+    for (let i = 0; taken.size < max && i < kept.length; i++) taken.add(i);
+    chosen = kept.filter((_, i) => taken.has(i));
+  }
   return [...chosen.map((x) => ({ name: x.t.name, at: x.t.at, isNew: x.isNew })), { name: to.name, at: to.at, isNew: !been(to, walked) }];
 }
 

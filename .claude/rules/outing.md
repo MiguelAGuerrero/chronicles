@@ -34,6 +34,14 @@ One page from Explore: pick what you want to see from a vocabulary, get one prop
 - **Visited is read from the trace, never stored** (`visited.ts`, decision 0200): `walkedNear` gives the walked fixes of the newest thirty outings near an area (found through `listWalkAreas`, read with `readTrace` and their pauses and stills), and a candidate within Explore's range of one is `seen`, offered after the new ones. Do not add a visited table without a slice of its own: it would be a cache of the trace.
 - Start takes the first chapter only; carrying a journey through the session is step 3.
 
+## From the audit (Nov 17)
+
+- **State asked of one set of journeys is dropped with it**: `fresh()` in `useJourney` clears `salts`, `swaps` and Undo on a new destination, reach, chip or chains. A new piece of per-journey state goes there too, or it outlives its journey (audit 1).
+- **`areasToward` spreads the towns it reads along the way** and keeps within 10 km of the line; `areasAround` takes the nearest and only then puts the new first. Never slice a new-first list: that turns "before" into "instead of" (audit 3, 4).
+- **`legFor(session)`** is the one way to a read's street graph; `legOver` in the service builds it again each call (audit 5). `walked` is asked once per look and `forget()` starts a new one (audit 6).
+- **A line never promises what the page does not keep**: nothing of a journey survives closing the page (OJ34), so no word says "wait", "later" or "kept" (audit 10).
+- The page's pinned parts are the footer (cards, dots, the primary) and, opened, the bar with Back: content that must be seen at the first look goes there, not in the scroll (audit 14, 15).
+
 ## Traps
 
 - Presence's guard (`presence-readers audit 1`) forbids spelling a poi tag outside presence; `antiques` and `books` are values of the pack's `what` dimension and are allowed under `outing/` only (`PLAIN_IN`).

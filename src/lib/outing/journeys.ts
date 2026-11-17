@@ -75,9 +75,20 @@ function ranked(cands: readonly Candidate[], wants: readonly Want[], from: LngLa
   return out;
 }
 
+const windowsOf = (n: number): number => Math.ceil(n / POOL);
+
+/** How many different sets of places "Another like this" can draw on in this area for these chips. */
+export const chapterWindows = (data: AreaData, wants: readonly Want[], ceilingM: number): number => windowsOf(ranked(data.cands, wants, data.from, ceilingM).length);
+
+/** OJ17: no more than this many journeys are offered. */
+export const MAX_JOURNEYS = 3;
+
 /** OJ24: a walk among three, else two, of the offered places (a loop when one can be made, else one way), else the first alone. */
 export function planChapter(data: AreaData, wants: readonly Want[], ceilingM: number, salt = 0): Chapter | null {
-  const pool = ranked(data.cands, wants, data.from, ceilingM).slice(salt * POOL, salt * POOL + POOL);
+  const all = ranked(data.cands, wants, data.from, ceilingM);
+  // OJ45 (audit 11): an area with no other places keeps the ones it has, so "Another like this" never drops a town.
+  const at = Math.min(salt, Math.max(0, windowsOf(all.length) - 1));
+  const pool = all.slice(at * POOL, at * POOL + POOL);
   if (!pool.length) return null;
   for (const n of [3, 2]) {
     if (pool.length < n) continue;
@@ -116,7 +127,10 @@ export function planJourneys(input: JourneysInput): { journeys: Journey[]; reaso
   const journeys: Journey[] = [];
   const seen = new Set<string>();
   for (const r of rows) {
+    if (journeys.length >= MAX_JOURNEYS) break;
     const salt = input.salts?.[r.id] ?? 0;
+    // OJ45: past the last other places of every area there is no other journey to offer.
+    if (salt > 0 && salt >= Math.max(0, ...input.areas.map((a) => chapterWindows(a, r.wants, input.ceilingM)))) continue;
     const chapters = input.areas.map((a) => planChapter(a, r.wants, input.ceilingM, salt)).filter((c): c is Chapter => !!c);
     if (!chapters.length) continue;
     // A mixed journey whose stops all came from one leaning is that leaning's journey, and is left to it.

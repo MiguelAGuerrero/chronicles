@@ -114,7 +114,14 @@ async function run(h) {
   const aroundHere = async () => {
     await pg.waitForSelector('[data-testid=outing-want-antiques]', { timeout: 15000 }).catch(() => {});
   };
-  check(((await pg.locator('[data-testid=outing-nowhere]').innerText().catch(() => '')) ?? '').replace(/[^\x20-\x7e]/g, '').trim() === 'Nowhere in particular', 'OJ7: with a destination the page offers "Nowhere in particular"');
+  check((await pg.locator('[data-testid=outing-nowhere]').getAttribute('aria-label').catch(() => '')) === 'Nowhere in particular', 'OJ7: with a destination the page offers "Nowhere in particular"');
+  {
+    const f = await pg.locator('[data-testid=outing-where]').boundingBox().catch(() => null);
+    const n = await pg.locator('[data-testid=outing-nowhere]').boundingBox().catch(() => null);
+    const x = await pg.locator('[data-testid=outing-close]').boundingBox().catch(() => null);
+    check(!!f && !!n && !!x && n.x >= f.x + f.width - 1 && n.x + n.width <= x.x && Math.abs(n.y + n.height / 2 - (f.y + f.height / 2)) < 6, 'outing-journey audit 29: clearing the destination is in its own field, apart from the page\'s close');
+  }
+  check(/straight lines/.test((await pg.locator('[data-testid=outing-straight]').innerText().catch(() => '')) ?? ''), 'outing-journey audit 22: with a destination the page says its distance is a straight line');
   await pg.click('[data-testid=outing-nowhere]');
   await pg.waitForSelector('[data-testid=outing-reach-0]', { timeout: 15000 }).catch(() => {});
   check((await pg.locator('[data-testid=outing-away]').count()) === 0 && (await pg.locator('[data-testid=outing-title]').innerText().catch(() => '')).trim() === 'Around here', 'OJ7: it goes back to around here');
@@ -178,6 +185,9 @@ async function run(h) {
   check((await pg.locator('[data-testid=outing-undo]').count()) === 1, 'outing-journey ui 3: a swap can be taken back');
   check(swapLabel === 'Swap this stop' && (await pg.locator('[data-testid=outing-card]').count()) === 0 && !NAMES.some((n) => after.includes(n)), 'QC21: Swap is worded "Swap this stop", closes the card and leaves the new slot unnamed');
   await shot(pg, '05-after-swap');
+  await pg.click('[data-testid=outing-slot-open-0]');
+  check((await pg.locator('[data-testid=outing-undo]').count()) === 1 && (await pg.locator('[data-testid=outing-dismiss]').count()) === 1, 'outing-journey audit 13: Undo is still there after opening the swapped stop, with a way to dismiss it');
+  await pg.click('[data-testid=outing-slot-open-0]');
   // QC21: a second Swap on the same slot never repeats a shop it offered and never wraps; with none left it says so and changes nothing.
   {
     const seen = [];
@@ -221,6 +231,14 @@ async function run(h) {
     const vh = pg.viewportSize()?.height ?? 0;
     check(!!sb && sb.y + sb.height <= vh, 'outing-journey ui 5: "See this journey" stays on screen under the list');
   }
+  {
+    const c0 = await pg.locator('[data-testid=outing-journey-0]').boundingBox().catch(() => null);
+    const see = await pg.locator('[data-testid=outing-see]').boundingBox().catch(() => null);
+    const sh = await pg.locator('[data-testid=outing-sheet]').boundingBox().catch(() => null);
+    check(!!c0 && !!see && !!sh && c0.y >= sh.y && c0.y + c0.height <= see.y, 'outing-journey audit 14: the journey in view shows whole, with its summary, above "See this journey"');
+    const ys = await pg.locator('[data-testid^=outing-reach-]').evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().top)));
+    check(ys.length === 4 && new Set(ys).size === 1, 'outing-journey audit 28: the reach is one row of four');
+  }
   await shot(pg, '05b-several');
   await pg.click('[data-testid=outing-journey-1]');
   await pg.waitForTimeout(600);
@@ -229,8 +247,16 @@ async function run(h) {
   await openJourney();
   {
     const mixed = await pg.locator('[data-testid^=outing-slot-open-]').evaluateAll((els) => els.map((e) => (e.textContent ?? '').replace(/[^\x20-\x7e]/g, '').trim()));
-    check(mixed.some((t) => /^An antiques shop/.test(t)) && mixed.some((t) => /^A viewpoint or an oddity/.test(t)), `OJ43: the mixed journey holds a shop and an attraction (${mixed.join(' | ')})`);
-    const i = mixed.findIndex((t) => /^A viewpoint or an oddity/.test(t));
+    check(mixed.some((t) => /^An antiques shop/.test(t)) && mixed.some((t) => /^A view or an oddity/.test(t)), `OJ43: the mixed journey holds a shop and an attraction (${mixed.join(' | ')})`);
+    const i = mixed.findIndex((t) => /^A view or an oddity/.test(t));
+    {
+      const bb = await pg.locator('[data-testid=outing-back]').boundingBox().catch(() => null);
+      const sh = await pg.locator('[data-testid=outing-sheet]').boundingBox().catch(() => null);
+      const heights = await pg.locator('[data-testid^=outing-slot-open-]').evaluateAll((els) => els.map((e) => e.getBoundingClientRect().height));
+      await pg.locator('[data-testid=outing-hours]').scrollIntoViewIfNeeded().catch(() => {});
+      const b2 = await pg.locator('[data-testid=outing-back]').boundingBox().catch(() => null);
+      check(!!bb && !!sh && !!b2 && Math.abs(b2.y - bb.y) < 2 && b2.y > sh.y && heights.every((h) => h <= 60), `outing-journey audit 15: Back stays in view when the journey is scrolled, and no stop row wraps (${heights.map((h) => Math.round(h)).join(',')})`);
+    }
     await pg.click(`[data-testid=outing-slot-open-${i}]`);
     const card = await pg.locator('[data-testid=outing-card]').innerText().catch(() => '');
     check(/Named when you reach it\./.test(card) && !/Folly/.test(card), `OJ25, OJ40: an attraction not found yet is not named on a tap (${card.replace(/\s+/g, ' ')})`);
@@ -254,7 +280,7 @@ async function run(h) {
   await pg.click('[data-testid=outing-reach-1]');
   await pg.waitForFunction(() => !document.querySelector('[data-testid=outing-reading-towns]') && !document.querySelector('[data-testid=outing-reading]'), null, { timeout: 120000 }).catch(() => {});
   check((await pg.locator('[data-testid=outing-reach-1]').getAttribute('aria-checked')) === 'true' && (await pg.locator('[data-testid^=outing-journey-]').count()) >= 1, 'OJ41, OJ44: a wider reach still proposes, by the same machine');
-  check(/^(Looked in .+\.|No town within that reach\.)$/.test(((await pg.locator('[data-testid=outing-looked]').innerText().catch(() => '')) ?? '').trim()), 'outing-journey ui 1: a wider reach says what it looked at');
+  check(/^(Looked in .+\.|No town within that reach: this is around here\.)$/.test(((await pg.locator('[data-testid=outing-looked]').innerText().catch(() => '')) ?? '').trim()), 'outing-journey ui 1: a wider reach says what it looked at');
   await shot(pg, '05d-reach');
   await pg.click('[data-testid=outing-peek]');
   await pg.waitForTimeout(400);
@@ -262,6 +288,17 @@ async function run(h) {
   await pg.click('[data-testid=outing-peek]');
   await pg.waitForTimeout(300);
   await pg.click('[data-testid=outing-reach-0]');
+  await only(['antiques']);
+  await openJourney();
+  // Audit 1: other places asked of one set of journeys do not carry to the next.
+  for (let k = 0; k < 4; k++) {
+    await pg.click('[data-testid=outing-another]');
+    await pg.waitForTimeout(250);
+  }
+  await backToChips();
+  await only(['antiques', 'thrifting']);
+  await pg.waitForTimeout(600);
+  check((await pg.locator('[data-testid^=outing-journey-]').count()) >= 1 && (await pg.locator('[data-testid=outing-reason-few]').count()) === 0, 'outing-journey audit 1: after "Another like this", a change of chips starts from the first places again');
   await only(['antiques']);
   await openJourney();
   // QC29: the pack was asked for only after the first pick, by byte ranges of its one file, with no cookie or referer.

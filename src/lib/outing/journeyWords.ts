@@ -37,7 +37,7 @@ export function cardSummary(j: { places: readonly (string | null)[]; labels: rea
 }
 
 /** OJ23: what a town holds of what you asked for, as the chips' own words; never how much or how good. */
-export const townLine = (labels: readonly string[]): string => `${list(labels)} here.`;
+export const townLine = (labels: readonly string[]): string => `${list(labels.map((l, i) => (i ? l.toLowerCase() : l)))} here.`;
 
 /** OJ24: a chapter: a walk with its distance, or one stop. */
 export function chapterLine(c: { stops: number; lengthM: number; loop: boolean }, units: Units): string {
@@ -52,21 +52,29 @@ export const reachLabel = (m: number, units: Units): string => (m <= 0 ? 'Close 
 export const reachSteps = (units: Units): number[] => (units === 'mi' ? [3, 10, 25].map((x) => Math.round(x * MI_M)) : [5000, 15000, 40000]);
 
 /** OJ22: chips on and nothing to propose. */
-export const nothingLine = (place: string | null): string => (place ? `Little of that in ${place}.` : 'Little of that close by.');
+export const nothingLine = (place: string | null): string => (place ? `Little of that toward ${place}.` : 'Little of that close by.');
 
-export const READ_FAILED_LINE = "Couldn't read the map there. Try again in a moment.";
-export const TOO_FAR_LINE = 'Too far to walk from here: it waits in Navigate until you are there.';
+export const READ_FAILED_LINE = "Couldn't read the map there.";
+export const TOO_FAR_LINE = 'Far from here: it waits in Navigate until you are there.';
 export const REACH_LINE = 'How far to look';
 export const ANOTHER_LABEL = 'Another like this';
 export const NO_OTHER_LINE = 'No other like it within reach.';
 export const FURTHER_LABEL = 'Look further';
-export const NEXT_MOVE_LINE = 'Switch on another chip, or look further.';
+/** OJ22 (audit 17): the next move names only a control that is on the page. */
+export const nextMoveLine = (canLookFurther: boolean): string => (canLookFurther ? 'Switch on another chip, or look further.' : 'Switch on another chip.');
 export const TOWNS_LINE = 'Reading the towns…';
-export const FIRST_LINE = 'Start begins here; the other towns wait on this page.';
+/** Audit 10: what Start does with a journey of several towns, and nothing the page does not keep. */
+export const firstLine = (town: string | null): string => (town ? `Start begins in ${town}.` : 'Start begins around here.');
+/** OJ27 (audit 22): said once with a destination. */
+export const STRAIGHT_LINE = 'Distances to towns are straight lines; Maps knows the road.';
+export const RETRY_LABEL = 'Try again';
+export const TOWNS_FAILED_LINE = "Couldn't read the list of towns.";
+export const MAPS_FAILED_LINE = "Couldn't open Maps.";
+export const DISMISS_LABEL = 'Dismiss';
 export const PEEK_LABEL = 'Show the map';
 export const UNPEEK_LABEL = 'Show the journeys';
 export const UNDO_LABEL = 'Undo';
 export const ANOTHER_LINE = 'Planned again from other places.';
 
 /** OJ41 (ui 1): what a wider reach looked at, said under it once the towns are read: their names, or that there was none. */
-export const lookedLine = (names: readonly string[]): string => (names.length ? `Looked in ${list(names)}.` : 'No town within that reach.');
+export const lookedLine = (names: readonly string[]): string => (names.length ? `Looked in ${list(names)}.` : 'No town within that reach: this is around here.');

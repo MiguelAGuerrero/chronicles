@@ -12,10 +12,10 @@ const ATTRACTIONS: readonly Want[] = [
   { id: 'culture', label: 'Culture', aliases: ['museums', 'theatres', 'theaters', 'libraries'], match: { kind: ['culture'] }, slotWord: 'a place of culture' },
   { id: 'parks', label: 'Green', aliases: ['parks', 'gardens', 'woods', 'nature'], match: { kind: ['parks'] }, slotWord: 'a green place' },
   { id: 'history', label: 'History', aliases: ['old places', 'old buildings', 'monuments', 'heritage'], match: { kind: ['history'] }, slotWord: 'a place with history' },
-  { id: 'viewpoints', label: 'Views', aliases: ['viewpoints', 'lookouts', 'oddities', 'curiosities'], match: { kind: ['viewpoints'] }, slotWord: 'a viewpoint or an oddity' },
+  { id: 'viewpoints', label: 'Views', aliases: ['viewpoints', 'lookouts', 'oddities', 'curiosities'], match: { kind: ['viewpoints'] }, slotWord: 'a view or an oddity' },
 ];
 
-export const CHIPS: readonly Want[] = [...WANTS, ...ATTRACTIONS].sort((a, b) => a.label.localeCompare(b.label));
+export const CHIPS: readonly Want[] = [...WANTS, ...ATTRACTIONS].sort((a, b) => (a.label < b.label ? -1 : a.label > b.label ? 1 : 0));
 
 const SHOP_IDS: ReadonlySet<string> = new Set(WANTS.map((w) => w.id));
 

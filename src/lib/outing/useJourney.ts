@@ -6,9 +6,9 @@ import { indexOf } from '../gazetteer/loader';
 import { bundledGazetteer } from '../gazetteer/source';
 import { boundsOf, distanceM } from '../geo';
 import { useKindWalkPrefs } from '../kindWalk/useKindWalk';
-import { NAV } from '../nav/rules';
 import type { Waypoint } from '../nav/types';
 import { GET_THERE_M } from '../startPlan';
+import { startChoice } from './choice';
 import type { LngLat } from '../types';
 import { useStore } from '../useStore';
 import { useUnits } from '../useUnits';
@@ -66,12 +66,22 @@ export function useJourney(you: LngLat | null) {
   const [salts, setSalts] = useState<Record<string, number>>({});
   const [swaps, setSwaps] = useState<Record<string, Swap>>({});
   // The last swap or "Another like this", so it can be taken back (ui 3).
-  const [undo, setUndo] = useState<{ swaps: Record<string, Swap>; salts: Record<string, number> } | null>(null);
+  const [undo, setUndo] = useState<{ swaps: Record<string, Swap>; salts: Record<string, number>; line: string } | null>(null);
+  const [townsFailed, setTownsFailed] = useState(false);
+  // Audit 1: what was asked of one set of journeys (other places, a swap) does not carry to the next set.
+  const fresh = () => {
+    setUi({ leaning: null, opened: false, open: null, said: null });
+    setSalts({});
+    setSwaps({});
+    setUndo(null);
+  };
   useEffect(() => {
     if (!loaded) {
       loaded = true;
       void outingPrefs.load();
     }
+    // A new look: the traces visited is read from are read again (audit 6).
+    outingService.forget();
     void openWalkId().then(setWalkId);
     // OJ12: the chips on at first follow "What I'm into"; a pick made before the settings arrive is kept.
     void loadSettings().then((s) => setPicked((p) => p ?? defaultChips(KINDS, s.hidden)));
@@ -79,12 +89,13 @@ export function useJourney(you: LngLat | null) {
   const needTowns = !!dest || reachM > 0;
   useEffect(() => {
     let live = true;
-    if (!needTowns || rows) return;
-    void Promise.all([towns(), walkedTowns().catch(() => [])]).then(([t, w]) => live && setRows({ towns: t, walked: w }), () => {});
+    if (!needTowns || rows || townsFailed) return;
+    // Audit 8: a list of towns that cannot be read says so and can be asked again.
+    void Promise.all([towns(), walkedTowns().catch(() => [])]).then(([t, w]) => live && setRows({ towns: t, walked: w }), () => live && setTownsFailed(true));
     return () => {
       live = false;
     };
-  }, [needTowns, rows]);
+  }, [needTowns, rows, townsFailed]);
   const picked = useMemo(() => CHIPS.filter((c) => (pickedIds ?? []).includes(c.id)), [pickedIds]);
   const areas: Area[] = useMemo(() => {
     if (dest) return origin && rows ? areasToward(rows.towns, origin, dest, rows.walked) : [{ name: dest.name, at: dest.at }];
@@ -128,7 +139,6 @@ export function useJourney(you: LngLat | null) {
     return { ...base, chapters, footM: chapters.reduce((m, c) => m + c.outing.lengthM, 0) };
   }, [base, swaps]);
   const first = journey?.chapters[0] ?? null;
-  const farM = origin && first?.area.name ? distanceM(origin, first.area.at) : 0;
   const pins = useMemo(() => journey?.chapters.flatMap((c) => c.outing.stops.map((s) => s.at)) ?? [], [journey]);
   const route = first && first.outing.path.length > 1 ? first.outing.path : null;
   const fit = useMemo(() => {
@@ -137,39 +147,49 @@ export function useJourney(you: LngLat | null) {
   }, [pins, route, origin, journey, dest]);
   const steps = reachSteps(units);
   const reading = hasPicks && waiting.length > 0;
-  const failed = hasPicks && !reading && areas.length > 0 && !ready.length;
+  const failedKeys = areas.filter((a) => reads[areaKey(a)] === null).map(areaKey);
+  const failed = hasPicks && !reading && failedKeys.length > 0;
   return {
     units,
     chips: CHIPS,
     pickedIds: pickedIds ?? [],
     toggle: (id: string) => {
       setPicked((p) => ((p ?? []).includes(id) ? (p ?? []).filter((x) => x !== id) : [...(p ?? []), id]));
-      // The journeys change with the chips: the row starts again at its first card.
-      setUi({ leaning: null, opened: false, open: null, said: null });
+      // The journeys change with the chips: the row starts again at its first card, from the first places.
+      fresh();
     },
     chains,
-    setChains: (on: boolean) => void outingPrefs.setChains(on),
+    setChains: (on: boolean) => {
+      fresh();
+      void outingPrefs.setChains(on);
+    },
     hasOrigin: !!origin,
     dest,
     /** How far the named place is in a straight line; null with none or with no position. */
     awayM: origin && dest ? distanceM(origin, dest.at) : null,
     setDest: (d: JourneyDest | null) => {
       setDestState(d);
-      setUi({ leaning: null, opened: false, open: null, said: null });
+      fresh();
     },
     /** OJ41: the reach: 0 is close by (what a walk reaches), then the steps of `reachSteps`. */
     reachM,
     reachSteps: [0, ...steps],
     setReach: (m: number) => {
       setReachState(m);
-      setUi({ leaning: null, opened: false, open: null, said: null });
+      fresh();
     },
     /** The next step out, or null at the last. */
     further: steps.find((s) => s > reachM) ?? null,
     reading,
-    readingTowns: needTowns && !rows,
+    readingTowns: needTowns && !rows && !townsFailed,
+    townsFailed: needTowns && townsFailed,
+    /** Audit 7, 8: asks again for what could not be read: the list of towns, and each area whose read failed. */
+    retry() {
+      setTownsFailed(false);
+      setReads((r) => Object.fromEntries(Object.entries(r).filter(([, s]) => s !== null)));
+    },
     /** OJ41 (ui 1): with a wider reach and its reads done, the towns that were looked at, by name; null otherwise. */
-    looked: !dest && reachM > 0 && rows && !reading ? areas.flatMap((a) => (a.name ? [a.name] : [])) : null,
+    looked: !dest && reachM > 0 && rows && !reading ? areas.flatMap((a) => (a.name && reads[areaKey(a)] ? [a.name] : [])) : null,
     failed,
     reasons: reading ? [] : answer?.reasons ?? [],
     journeys: planned,
@@ -194,7 +214,8 @@ export function useJourney(you: LngLat | null) {
       const mode = c.outing.loop ? 'loop' : 'oneway';
       const r = outingService.swap({ session, picked: journey.wants, mode, ceilingM, chains, outing: c.outing, cands: outingService.candidates(session, chains), index: i, offered: new Set(offered[i] ?? []) });
       setUi({ ...ui, open: null, said: r.outing ? SWAPPED_LINE : NO_SWAP_LINE });
-      setUndo(r.outing ? { swaps, salts } : null);
+      // Audit 13: an earlier change stays undoable when this one changed nothing.
+      if (r.outing) setUndo({ swaps, salts, line: SWAPPED_LINE });
       setSwaps({ ...swaps, [key]: { base: baseKey, outing: r.outing ?? c.outing, offered: { ...offered, [i]: [...(offered[i] ?? []), ...r.offered] } } });
     },
     /** OJ45: the journey in view planned again from other places; with none it says so and stays as it is. */
@@ -203,11 +224,17 @@ export function useJourney(you: LngLat | null) {
       const next = { ...salts, [journey.leaning]: (salts[journey.leaning] ?? 0) + 1 };
       const found = outingService.journeys({ ...request, salts: next }).journeys.some((j) => j.leaning === journey.leaning);
       if (found) setSalts(next);
-      setUndo(found ? { swaps, salts } : null);
+      if (found) setUndo({ swaps, salts, line: ANOTHER_LINE });
       setUi({ ...ui, leaning: journey.leaning, open: null, said: found ? ANOTHER_LINE : NO_OTHER_LINE });
     },
     /** ui 3: takes back the last swap or "Another like this"; offered only right after one. */
-    canUndo: !!undo && !!ui.said,
+    canUndo: !!undo,
+    /** The line beside Undo: what was last said, or what the change that can be taken back was. */
+    undoLine: ui.said ?? undo?.line ?? null,
+    dismiss() {
+      setUndo(null);
+      setUi({ ...ui, said: null });
+    },
     undo() {
       if (!undo) return;
       setSwaps(undo.swaps);
@@ -216,7 +243,7 @@ export function useJourney(you: LngLat | null) {
       setUi({ ...ui, open: null, said: null });
     },
     /** How Start is offered (0121): at once when near; with "When I get there" beside it when far; that alone past what can be walked. */
-    startChoice: (farM > NAV.maxM ? 'later' : farM > GET_THERE_M ? 'ask' : 'start') as 'start' | 'ask' | 'later',
+    startChoice: first ? startChoice({ origin, first: first.area.at, named: !!first.area.name }) : ('start' as const),
     /** Start (QC22): the first chapter, routed again from where the person is now when it is around them; positions only (QC24). */
     start(now: LngLat | null): Waypoint | null {
       const session = first ? reads[areaKey(first.area)] : null;

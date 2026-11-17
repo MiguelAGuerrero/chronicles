@@ -16,7 +16,6 @@ import { ports } from '../ports';
 import { createOutingPrefs } from './prefs';
 import { readTrace } from '../rides';
 import { createOutingService } from './service';
-import { walksNear } from './visited';
 import { placeCandidates } from './sources';
 import { createStoresPack } from './storesPack';
 import { decodeStoresTile } from './storesRead';
@@ -40,18 +39,16 @@ export const outingService = createOutingService({
       segments: deriveSegments(f.roads, f.names, build ?? ''),
     };
   },
-  // OJ47: the walked fixes of the outings that were near, read as every trace is (its start, pauses and stills), and Explore's range.
-  async walkedNear(at) {
-    const [rows, walks, settings] = await Promise.all([db.listWalkAreas(), db.listWalks(), loadSettings()]);
-    const byId = new Map(walks.map((w) => [w.id, w]));
-    const fixes: { lon: number; lat: number }[] = [];
-    for (const id of walksNear(rows, at)) {
-      const walk = byId.get(id);
-      if (!walk) continue;
+  // OJ47: the walked fixes of an outing, read as every trace is (its start, pauses and stills), and Explore's range.
+  walked: {
+    rows: () => db.listWalkAreas(),
+    async trace(id) {
+      const walk = (await db.listWalks()).find((w) => w.id === id);
+      if (!walk) return [];
       const [pauses, stills, points] = await Promise.all([db.getPauses(id), db.getStills(id).catch(() => []), db.getPoints(id)]);
-      for (const f of readTrace(withoutPauses(points, pauses), walk.started_at, pauses, stills).walked) fixes.push({ lon: f.lon, lat: f.lat });
-    }
-    return { fixes, rangeM: settings.rangeM };
+      return readTrace(withoutPauses(points, pauses), walk.started_at, pauses, stills).walked.map((f) => ({ lon: f.lon, lat: f.lat }));
+    },
+    rangeM: async () => (await loadSettings()).rangeM,
   },
   // QC14, QC29: the stores pack the places archive's manifest names, read by tile and only after an entry is picked; none, or a failed
   // read, leaves the tiles' shops serving the vocabulary.

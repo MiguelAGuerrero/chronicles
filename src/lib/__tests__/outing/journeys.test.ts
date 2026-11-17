@@ -26,7 +26,7 @@ test('OJ17: one journey per leaning the chips reach, in the leanings\' fixed ord
   const one = await plan(['antiques']);
   assert.deepEqual(one.journeys.map((j) => j.leaning), ['shops']);
   const r = await plan(['parks', 'antiques', 'history', 'books', 'viewpoints', 'culture']);
-  assert.deepEqual(r.journeys.slice(1).map((j) => j.leaning), LEANINGS.map((l) => l.id));
+  assert.deepEqual(r.journeys.map((j) => j.leaning), ['mixed', ...LEANINGS.slice(0, 2).map((l) => l.id)], 'at most three (audit 2)');
 });
 
 test('OJ43: chips that span leanings give a mixed journey ahead of the others, holding stops of more than one leaning', async () => {

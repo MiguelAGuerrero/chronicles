@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { matches } from '../../lib/outing/candidates';
 import { distanceM } from '../../lib/geo';
 import type { Waypoint } from '../../lib/nav/types';
-import { ANOTHER_LABEL, BACK_LABEL, CHANGE_LABEL, CHIPS_LINE, FIRST_LINE, FURTHER_LABEL, HERE_LABEL, LATER_LABEL, NEXT_MOVE_LINE, NOWHERE_LABEL, PEEK_LABEL, READ_FAILED_LINE, REACH_LINE, SEE_LABEL, TOO_FAR_LINE, TOWNS_LINE, UNDO_LABEL, UNFOUND_LINE, UNPEEK_LABEL, WHERE_LABEL, awayLine, cardSummary, chapterLine, lookedLine, nothingLine, reachLabel, townLine } from '../../lib/outing/journeyWords';
+import { ANOTHER_LABEL, BACK_LABEL, CHANGE_LABEL, CHIPS_LINE, DISMISS_LABEL, FURTHER_LABEL, HERE_LABEL, LATER_LABEL, MAPS_FAILED_LINE, NOWHERE_LABEL, RETRY_LABEL, STRAIGHT_LINE, TOWNS_FAILED_LINE, PEEK_LABEL, READ_FAILED_LINE, REACH_LINE, SEE_LABEL, TOO_FAR_LINE, TOWNS_LINE, UNDO_LABEL, UNFOUND_LINE, UNPEEK_LABEL, WHERE_LABEL, awayLine, cardSummary, chapterLine, firstLine, lookedLine, nextMoveLine, nothingLine, reachLabel, townLine } from '../../lib/outing/journeyWords';
 import { useJourney } from '../../lib/outing/useJourney';
 import { CHAINS_LABEL, CLOSE_LABEL, HOURS_LINE, NO_PICK_LINE, READING_LINE, SLOT_HINT, START_LABEL, SWAP_LABEL, TITLE, cardLine, reasonLine, slotLine } from '../../lib/outing/words';
 import { hideTabs } from '../../lib/tabsHidden';
@@ -46,7 +46,8 @@ export function OutingPage(props: {
   const [busy, setBusy] = useState(false);
   const starting = useRef(false);
   const row = useRef<ComponentRef<typeof ScrollView>>(null);
-  const openMaps = useOpenInMaps(() => {});
+  const [mapsFailed, setMapsFailed] = useState(false);
+  const openMaps = useOpenInMaps(() => setMapsFailed(true));
   useEffect(() => hideTabs(), []);
   const onBack = useRef<() => boolean>(() => false);
   useEffect(() => {
@@ -126,11 +127,19 @@ export function OutingPage(props: {
         <WalkMap trace={NONE} walked={NONE} fog={NONE} captures={NONE} walker={props.you} route={j.map.route} alternates={NONE} routeGrades={NONE} foundPins={j.map.pins} fitBounds={j.map.fit} fitKey={fitN} hideLabels />
       </View>
       <View style={[styles.top, { top: insets.top + 8 }]}>
-        <Pressable testID="outing-where" accessibilityRole="button" accessibilityLabel={j.dest ? `${j.dest.name}. ${CHANGE_LABEL}` : WHERE_LABEL} onPress={() => setSearching(true)} style={styles.field}>
-          <Icon name="search" size={18} color={theme.ink} />
-          <Text style={[styles.fieldText, !j.dest && styles.fieldHint]} numberOfLines={1} testID="outing-where-text">{j.dest ? j.dest.name : WHERE_LABEL}</Text>
-          {away ? <Text style={styles.away} testID="outing-away">{away}</Text> : null}
-        </Pressable>
+        <View style={styles.field}>
+          <Pressable testID="outing-where" accessibilityRole="button" accessibilityLabel={j.dest ? `${j.dest.name}. ${CHANGE_LABEL}` : WHERE_LABEL} onPress={() => setSearching(true)} style={styles.fieldMain}>
+            <Icon name="search" size={18} color={theme.ink} />
+            <Text style={[styles.fieldText, !j.dest && styles.fieldHint]} numberOfLines={1} testID="outing-where-text">{j.dest ? j.dest.name : WHERE_LABEL}</Text>
+            {away ? <Text style={styles.away} testID="outing-away">{away}</Text> : null}
+          </Pressable>
+          {/* Audit 29: clearing the destination is in the field it clears; the round button beside it closes the page. */}
+          {j.dest && j.hasOrigin ? (
+            <Pressable testID="outing-nowhere" accessibilityRole="button" accessibilityLabel={NOWHERE_LABEL} onPress={() => j.setDest(null)} style={styles.clear}>
+              <Icon name="close-circle" size={22} color={theme.ink} />
+            </Pressable>
+          ) : null}
+        </View>
         <Pressable testID="outing-close" accessibilityRole="button" accessibilityLabel={CLOSE_LABEL} onPress={props.onClose} style={styles.close}>
           <Icon name="close" size={22} color={theme.ink} />
         </Pressable>
@@ -163,21 +172,17 @@ export function OutingPage(props: {
               })}
             </View>
             {j.dest ? (
-              j.hasOrigin ? (
-                <Pressable testID="outing-nowhere" accessibilityRole="button" accessibilityLabel={NOWHERE_LABEL} onPress={() => j.setDest(null)} style={[styles.chip, styles.self]}>
-                  <Icon name="close" size={16} color={theme.ink} />
-                  <Text style={styles.chipText}>{NOWHERE_LABEL}</Text>
-                </Pressable>
-              ) : null
+              <Text style={styles.line} testID="outing-straight">{STRAIGHT_LINE}</Text>
             ) : (
               <>
                 <Text style={styles.label}>{REACH_LINE}</Text>
-                <View style={styles.chips} accessibilityRole="radiogroup" testID="outing-reach">
+                {/* Audit 28: one choice of four is a segmented control, in one row at any width. */}
+                <View style={styles.segment} accessibilityRole="radiogroup" testID="outing-reach">
                   {j.reachSteps.map((m, i) => {
                     const on = j.reachM === m;
                     return (
-                      <Pressable key={m} testID={`outing-reach-${i}`} accessibilityRole="radio" accessibilityState={{ checked: on }} {...({ 'aria-checked': on } as object)} onPress={() => j.setReach(m)} style={[styles.chip, on && styles.chipOn]}>
-                        <Text style={[styles.chipText, on && styles.chipTextOn]}>{reachLabel(m, j.units)}</Text>
+                      <Pressable key={m} testID={`outing-reach-${i}`} accessibilityRole="radio" accessibilityState={{ checked: on }} {...({ 'aria-checked': on } as object)} onPress={() => j.setReach(m)} style={[styles.segBtn, i > 0 && styles.segDivide, on && styles.chipOn]}>
+                        <Text style={[styles.segText, on && styles.chipTextOn]} numberOfLines={1}>{reachLabel(m, j.units)}</Text>
                       </Pressable>
                     );
                   })}
@@ -191,58 +196,70 @@ export function OutingPage(props: {
             </Pressable>
             {!j.pickedIds.length ? <Text style={styles.line} testID="outing-pick">{NO_PICK_LINE}</Text> : null}
             {j.readingTowns ? <Text style={styles.line} testID="outing-reading-towns">{TOWNS_LINE}</Text> : j.reading ? <Text style={styles.line} testID="outing-reading">{READING_LINE}</Text> : null}
-            {j.failed ? <Text style={styles.line} testID="outing-failed">{READ_FAILED_LINE}</Text> : null}
+            {j.failed || j.townsFailed ? (
+              <View style={styles.head} testID="outing-failed">
+                <Text style={styles.line}>{j.townsFailed ? TOWNS_FAILED_LINE : READ_FAILED_LINE}</Text>
+                <Button testID="outing-retry" label={RETRY_LABEL} variant="secondary" onPress={j.retry} />
+              </View>
+            ) : null}
             {reasons.map((r) => (
               <View key={r} style={styles.head} testID={`outing-reason-${r}`}>
-                <Text style={styles.line}>{r === 'few' ? `${nothingLine(place)} ${NEXT_MOVE_LINE}` : reasonLine(r)}</Text>
+                <Text style={styles.line}>{r === 'few' ? `${nothingLine(place)} ${nextMoveLine(!j.dest && j.further != null)}` : reasonLine(r)}</Text>
                 {r === 'few' && !j.dest && j.further != null ? <Button testID="outing-further" label={FURTHER_LABEL} variant="secondary" onPress={() => j.setReach(j.further!)} /> : null}
               </View>
             ))}
-            {j.journeys.length ? (
-              <ScrollView ref={row} horizontal showsHorizontalScrollIndicator={false} snapToInterval={cardW + GAP} decelerationRate="fast" onScroll={onScroll} scrollEventThrottle={64} contentContainerStyle={styles.cards} style={styles.cardsRow} testID="outing-journeys">
-                {j.journeys.map((x, i) => (
-                  <Pressable key={x.leaning} testID={`outing-journey-${i}`} accessibilityRole="button" accessibilityState={{ selected: i === j.cur }} {...({ 'aria-pressed': i === j.cur } as object)} onPress={() => show(i)} style={[styles.jcard, { width: cardW }, i === j.cur && styles.jcardOn]}>
-                    <Text style={styles.jname}>{x.name}</Text>
-                    <Text style={styles.line}>{summary(x)}</Text>
-                  </Pressable>
-                ))}
-              </ScrollView>
-            ) : null}
-            {j.journeys.length > 1 ? (
-              <View style={styles.dots} testID="outing-dots" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-                {j.journeys.map((x, i) => <View key={x.leaning} style={[styles.dot, i === j.cur && styles.dotOn]} />)}
-              </View>
-            ) : null}
           </ScrollView>
           {/* ui 5: the way on stays on screen under the list, as Start does. */}
           {j.journey ? (
             <View style={styles.footer}>
+              {j.journeys.length ? (
+                <ScrollView ref={row} horizontal showsHorizontalScrollIndicator={false} snapToInterval={cardW + GAP} decelerationRate="fast" onScroll={onScroll} scrollEventThrottle={64} contentContainerStyle={styles.cards} style={styles.cardsRow} testID="outing-journeys">
+                  {j.journeys.map((x, i) => (
+                    <Pressable key={x.leaning} testID={`outing-journey-${i}`} accessibilityRole="button" accessibilityState={{ selected: i === j.cur }} {...({ 'aria-pressed': i === j.cur } as object)} onPress={() => show(i)} style={[styles.jcard, { width: cardW }, i === j.cur && styles.jcardOn]}>
+                      <Text style={styles.jname}>{x.name}</Text>
+                      <Text style={styles.line}>{summary(x)}</Text>
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              ) : null}
+              {j.journeys.length > 1 ? (
+                <View style={styles.dots} testID="outing-dots" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+                  {j.journeys.map((x, i) => <View key={x.leaning} style={[styles.dot, i === j.cur && styles.dotOn]} />)}
+                </View>
+              ) : null}
               <Button testID="outing-see" label={SEE_LABEL} onPress={() => j.setOpened(true)} />
             </View>
           ) : null}
           </>
         ) : (
           <>
+            {/* Audit 15: the way back and the journey's name stay in view above what scrolls. */}
+            <View style={styles.bar}>
+              <Pressable testID="outing-back" accessibilityRole="button" accessibilityLabel={BACK_LABEL} onPress={() => j.setOpened(false)} style={styles.back}>
+                <Icon name="chevron-back" size={18} color={theme.ink} />
+                <Text style={styles.swapText}>{BACK_LABEL}</Text>
+              </Pressable>
+              <Text style={[styles.jname, styles.grow]} numberOfLines={1} accessibilityRole="header" testID="outing-journey-name">{j.journey!.name}</Text>
+            </View>
             <ScrollView contentContainerStyle={styles.pad} keyboardShouldPersistTaps="handled">
-              <View style={styles.head}>
-                <Pressable testID="outing-back" accessibilityRole="button" accessibilityLabel={BACK_LABEL} onPress={() => j.setOpened(false)} style={styles.back}>
-                  <Icon name="chevron-back" size={18} color={theme.ink} />
-                  <Text style={styles.swapText}>{BACK_LABEL}</Text>
-                </Pressable>
-                <Text style={styles.title} accessibilityRole="header" testID="outing-journey-name">{j.journey!.name}</Text>
-              </View>
               {chapters.length > 1 ? <Text style={styles.line} testID="outing-summary">{summary(j.journey!)}</Text> : null}
               <Button testID="outing-another" label={ANOTHER_LABEL} variant="secondary" onPress={j.another} />
-              {j.said ? (
+              {j.undoLine ? (
                 <View style={styles.saidRow}>
-                  <Text style={[styles.line, styles.grow]} testID="outing-said" accessibilityLiveRegion="polite">{j.said}</Text>
+                  <Text style={[styles.line, styles.grow]} testID="outing-said" accessibilityLiveRegion="polite">{j.undoLine}</Text>
                   {j.canUndo ? (
-                    <Pressable testID="outing-undo" accessibilityRole="button" accessibilityLabel={UNDO_LABEL} onPress={j.undo} style={styles.undo}>
-                      <Text style={styles.swapText}>{UNDO_LABEL}</Text>
-                    </Pressable>
+                    <>
+                      <Pressable testID="outing-undo" accessibilityRole="button" accessibilityLabel={UNDO_LABEL} onPress={j.undo} style={styles.undo}>
+                        <Text style={styles.swapText}>{UNDO_LABEL}</Text>
+                      </Pressable>
+                      <Pressable testID="outing-dismiss" accessibilityRole="button" accessibilityLabel={DISMISS_LABEL} onPress={j.dismiss} style={styles.dismiss}>
+                        <Icon name="close" size={18} color={theme.ink} />
+                      </Pressable>
+                    </>
                   ) : null}
                 </View>
               ) : null}
+              {mapsFailed ? <Text style={styles.line} testID="outing-maps-failed" accessibilityLiveRegion="polite">{MAPS_FAILED_LINE}</Text> : null}
               {chapters.map((c) => (
                 <View key={c.ci} style={styles.chapter} testID={`outing-chapter-${c.ci}`}>
                   <Text style={styles.jname} accessibilityRole="header" testID={`outing-chapter-name-${c.ci}`}>{c.area.name ?? HERE_LABEL}</Text>
@@ -274,7 +291,7 @@ export function OutingPage(props: {
                 </View>
               ))}
               <Text style={styles.line} testID="outing-hours">{HOURS_LINE}</Text>
-              {chapters.length > 1 ? <Text style={styles.line} testID="outing-first">{FIRST_LINE}</Text> : null}
+              {chapters.length > 1 ? <Text style={styles.line} testID="outing-first">{firstLine(chapters[0].area.name)}</Text> : null}
               {j.startChoice === 'later' ? <Text style={styles.line} testID="outing-too-far">{TOO_FAR_LINE}</Text> : null}
             </ScrollView>
             <View style={styles.footer}>
@@ -305,7 +322,15 @@ const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const styles = StyleSheet.create({
   over: { backgroundColor: theme.bg, zIndex: 50 },
   top: { position: 'absolute', left: 12, right: 12, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  field: { flex: 1, minHeight: 48, borderRadius: 14, borderWidth: 1, borderColor: theme.edge, backgroundColor: theme.surface, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12 },
+  field: { flex: 1, minHeight: 48, borderRadius: 14, borderWidth: 1, borderColor: theme.edge, backgroundColor: theme.surface, flexDirection: 'row', alignItems: 'center' },
+  fieldMain: { flex: 1, minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 12, paddingRight: 8 },
+  clear: { width: 44, height: 48, alignItems: 'center', justifyContent: 'center' },
+  bar: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, borderBottomWidth: 1, borderColor: theme.line },
+  segment: { flexDirection: 'row', borderRadius: 12, borderWidth: 1, borderColor: theme.edge, overflow: 'hidden' },
+  segBtn: { flex: 1, minHeight: 44, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4, backgroundColor: theme.surface },
+  segDivide: { borderLeftWidth: 1, borderColor: theme.edge },
+  segText: { fontSize: 14, fontWeight: '600', color: theme.ink },
+  dismiss: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   fieldText: { flex: 1, fontSize: 16, fontWeight: '700', color: theme.ink },
   fieldHint: { fontWeight: '400', color: theme.muted },
   away: { fontSize: 13, color: theme.muted },
@@ -333,7 +358,7 @@ const styles = StyleSheet.create({
   chipTextOn: { color: theme.surface },
   switchRow: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44 },
   line: { fontSize: 14, color: theme.ink, lineHeight: 19 },
-  cardsRow: { marginHorizontal: -16 },
+  cardsRow: { marginHorizontal: -16, flexGrow: 0 },
   cards: { paddingHorizontal: 16, gap: GAP },
   jcard: { borderRadius: 14, borderWidth: 1, borderColor: theme.line, backgroundColor: theme.surface, padding: 12, gap: 6 },
   jcardOn: { borderColor: theme.ink, borderWidth: 2, padding: 11 },

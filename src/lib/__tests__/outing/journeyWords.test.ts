@@ -24,18 +24,18 @@ test('OJ21: a card says the places in order, what it includes by the chips\' own
 
 test('OJ23, OJ24, OJ41: a town\'s line, a chapter\'s line and the reach, in words', async () => {
   const w = await import('../../outing/journeyWords');
-  assert.equal(w.townLine(['Antiques', 'History']), 'Antiques and History here.');
+  assert.equal(w.townLine(['Antiques', 'History']), 'Antiques and history here.');
   assert.equal(w.chapterLine({ stops: 1, lengthM: 0, loop: false }, 'km'), 'One stop.');
   assert.match(w.chapterLine({ stops: 3, lengthM: 1400, loop: true }, 'km'), /^A walk of 1\.4 km, back where it starts\.$/);
   assert.match(w.chapterLine({ stops: 2, lengthM: 900, loop: false }, 'km'), /one way: the way back is yours\.$/);
   assert.equal(w.reachLabel(0, 'km'), 'Close by');
   assert.equal(w.reachLabel(15000, 'km'), '15 km');
-  for (const s of [w.townLine(['Antiques']), w.ANOTHER_LABEL, w.NO_OTHER_LINE, w.FURTHER_LABEL, w.NEXT_MOVE_LINE, w.REACH_LINE]) assert.doesNotMatch(s, BANNED, s);
+  for (const s of [w.townLine(['Antiques']), w.ANOTHER_LABEL, w.NO_OTHER_LINE, w.FURTHER_LABEL, w.nextMoveLine(true), w.REACH_LINE]) assert.doesNotMatch(s, BANNED, s);
 });
 
 test('OJ22: nothing to propose is said in one plain line that names the place', async () => {
   const { nothingLine } = await import('../../outing/journeyWords');
-  assert.equal(nothingLine('Kutztown'), 'Little of that in Kutztown.');
+  assert.equal(nothingLine('Kutztown'), 'Little of that toward Kutztown.');
   assert.equal(nothingLine(null), 'Little of that close by.');
 });
 
@@ -55,7 +55,7 @@ test('OJ1, OJ2, OJ7, OJ27: the page\'s fixed words', async () => {
 test('outing-journey ui 1, ui 3: what a wider reach looked at is said by name, and a change can be taken back in a word', async () => {
   const w = await import('../../outing/journeyWords');
   assert.equal(w.lookedLine(['Cranston', 'Warwick']), 'Looked in Cranston and Warwick.');
-  assert.equal(w.lookedLine([]), 'No town within that reach.');
+  assert.equal(w.lookedLine([]), 'No town within that reach: this is around here.');
   assert.equal(w.UNDO_LABEL, 'Undo');
   for (const s of [w.lookedLine(['Cranston']), w.lookedLine([]), w.ANOTHER_LINE]) assert.doesNotMatch(s, BANNED, s);
 });

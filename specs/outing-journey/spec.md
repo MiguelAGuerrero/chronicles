@@ -44,6 +44,13 @@ Shape: up to three journeys that differ by leaning, in a fixed order, never by t
   is read about your position before you open the page and nothing is recorded before Start
 Precedent: Apple Maps (a destination, then routes and avoid options; verified); Google Maps (stops added along a route; unverified);
   Roadtrippers (places along a drive by category; unverified); Komoot (a planned tour between points you pick; unverified)
+Added after the verdict, by the owner's calls 0199 and 0200, and argued here at the audit (the steward's S7): a reach with no destination
+  (earn: the same look ahead, without a place to aim at; Touches "not tourists working through a list": the towns are looked at, never
+  listed to be done); "Another like this" (a re-roll: Touches "A route is a suggestion"; nothing is kept of what was passed over);
+  places new to you first, read from found states and the trace (Touches Shapes "Badges for neighbourhoods explored: out, the atlas's
+  'New to you' in words", and "All-day tracking": only recorded outings are read, nothing is stored, and nothing on the page marks a
+  place done; whether silence is right is the owner's, below). Precedent for these: Apple Maps' Visited Places keeps where you have
+  been on the device (verified, `docs/research/adjacent-apps.md`); a search within a radius and a re-roll have no recorded precedent
 Criteria: OJ1-OJ47 below
 Open: the road's distance (the app has no road routing: a straight-line distance, said as such, or a road graph of its own); capture
   while moving at driving speed; whether a time is ever said beside a distance
@@ -169,7 +176,9 @@ A journey, town by town:
   you have not found (the steward's S5, S6).
 - **OJ24.** A town's chapter is said as one of two things: a walk among a few stops with its distance on foot, or one stop by the road
   (D2). A walk stays within the planner's ceiling and its retrace rule (QC10).
-- **OJ25.** A stop's line holds only its chip's word and how far on it is, in words, and nothing that describes it; it is named only on a card you open by tapping it, and
+- **OJ25.** (An attraction not found yet is the exception to "named on a tap": its card says "Named when you reach it.", as Explore
+  never names a place before it is found; a shop is named on the tap. The spoken hint is the same for both. Audit 23.)
+  A stop's line holds only its chip's word and how far on it is, in words, and nothing that describes it; it is named only on a card you open by tapping it, and
   nowhere else (QC17, QC18, QC24). Stops are not numbered and nothing marks one done (QC25).
 - **OJ26.** Each stop has "Swap", which works as today within its town (QC21). Each town between has "Leave this town out", which
   removes it and replans the rest; the destination's town cannot be left out.
@@ -303,6 +312,48 @@ edge was thin). Eight findings, triaged:
 green). Its first build must complete the OpenStreetMap download before a pack is published; until the Pages site lists `stores`,
 shops still come from the map's own tiles. The app's pinned stores contract (`__tests__/outing/contract/`, v3) is to be taken again
 once the pack is live.
+
+## Audit (2026-11-17, the owner's ask)
+
+Cold find first (the `ux-reviewer`, pictures only, twelve tasks in the owner's words): all found, three late (an antiques run within
+a drive, another suggestion, forgetting the destination). Then the `auditor` (F1-F20), the `steward` (S1-S9) and the `ux-reviewer`
+(U1-U10): **31 findings, 21 fixed, 7 deferred, 3 rejected.** Unit tests failed before their fixes; the journey's checks were written
+with theirs. The journey `outing` ran once after the fixes: 66 checks, green; `npm test` 2,980, typecheck and lint green.
+
+1. "Another like this" outlived its journeys (F1): accept, a new destination, reach, chip or chains starts again (`outing-journey audit 1`, journey).
+2. Four journeys offered, not at most three (F2): accept (`audit 2`, unit).
+3. Toward a far place the towns read were beside home and far off the line (F3): accept, the corridor is at most 10 km wide and the towns are taken spread along the way (`audit 3`, unit).
+4. A wide reach never read a town you had been in (S4): accept, the nearest are read and the new ones only come first (`audit 4`, unit).
+5. Every re-plan rebuilt each area's street graph (F4): accept, one graph per read (`audit 5`, unit). The routing itself is still done in render: deferred below.
+6. Visited re-read the same traces for every area (F5): accept, each is read once per look (`audit 6`, unit).
+7. A failed read was final and said nothing useful (F6): accept, "Try again" asks again and a failed town is not said as looked at. Held by typecheck and the journey's flow only.
+8. A gazetteer that failed read "Reading the towns…" for good (F10): accept, it says so and can be asked again. Held by typecheck only.
+9. With no position a destination offered Start (F7): accept (`audit 9`, unit).
+10. "The other towns wait on this page" was not true (F8, S1): accept, "Start begins in <town>." (`audit 10`, unit).
+11. "Another like this" dropped whole towns (F9): accept, a town with no other places keeps the ones it has (`audit 11`, unit).
+12. Reads that no longer matter are ignored, not stopped (F11): defer, a read has no stop signal; at most one extra read runs after a change.
+13. Undo went before it was used or dismissed, and had no Close (F12, U9): accept (`audit 13`, journey).
+14. The journey cards sat under the fold (F13, U1, S9): accept, the cards, the dots and the button are pinned and the chips scroll (`audit 14`, journey).
+15. Back scrolled away, and a stop row wrapped (F14, U6, U7): accept, Back and the name are pinned; "A view or an oddity" (`audit 15`, journey).
+16. Open in Maps failed silently on this page (F15): accept, it says a line. Held by typecheck only.
+17. Words named controls that were not there, made walking the measure, and spoke of shops for any place (F16, S2, S8): accept (`audit 17`, unit). The spec's example "Along the storefronts" stands corrected to the built "Among the shops".
+18. Swapping a chapter of one stop made it a routed walk (F17): accept (`audit 18`, unit).
+19. New-first and visited miss by construction: names that differ, the outing being recorded now (F18): defer.
+20. Areas at scale and across the antimeridian (F19): defer; the cost is rejected with its n (tens of towns in a reach).
+21. `listFinds` and the settings read for every area; a locale in core (F20): defer the reads (at most eight per look); the chips now sort without the device's locale.
+22. A straight-line distance said as fact (S3): accept, said once with a destination (`audit 22`, unit and journey).
+23. An unfound attraction refuses its name on the tap the gate allowed (S5): accept as a stated exception in OJ25; the hint says "place".
+24. The capture stack on this page is unjudged (S6, OJ39): defer, the journey has no state with a session recording on the page.
+25. OJ41-OJ47 never passed the gate and carried no precedent (S7): accept, the Vision block argues them and says which precedent is recorded.
+26. "No town within that reach." beside a journey still offered (U2): accept (`audit 22, 26`, unit).
+27. Stop rows read identically (U3): reject, a row may hold only its chip's word and a distance in words (OJ25), and an ordinal is the checklist the vision forbids (QC25); Undo answers which change was made. The owner's to overrule.
+28. The reach drawn as multi-select chips (U4): accept, a segmented control in one row (`audit 28`, journey).
+29. The round close read as clearing the field (U5): accept, a clear mark inside the filled field (`audit 29`, journey).
+30. "Include chains" is a checkbox (U8): defer.
+31. "Another like this" as wide as Start (U10, opinion): reject, it is the outlined secondary and Start the one filled primary.
+
+Journeys run for the audit: `outing`, three times (once for the two new pictures, once that failed nothing, once after the fixes).
+The other journeys covering Explore were not rerun: `explore.tsx` did not change in the audit.
 
 **Not built.** The session carrying a journey from town to town (step 3: Start begins the first town's chapter, and the page says so);
 "Leave this town out" (OJ26); the atlas's own words and street names in a town's line (OJ23); the setting for how many towns are looked
