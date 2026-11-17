@@ -44,3 +44,13 @@ Open: none; outside sources (Smithsonian sculptures, state markers, city public 
 - **MA7** the app pins chronicles-data's contract v6; its class names are exactly the archive table.
 - **MA8** none of the new classes is named or labelled for significance, and none carries a number (XS19, XS25 hold).
 - **MA9** every new label fits one line at 320 px (XS22 holds).
+
+## Record (Nov 17)
+
+- **Built:** MA1-MA9, tested first by history (9 of 9): eight unit tests (`src/lib/__tests__/explore/moreAttractions.test.ts`),
+  MA9 in the `subtypes` journey. `npm test` (2956), typecheck, lint, docs and vision checks pass; on the `/chronicles`
+  build the journeys `subtypes`, `small-places`, `curiosities`, `marks`, `nudge`, `outing` and `replay` pass.
+- **Data:** chronicles-data's contract v6 (AT1-AT6) on `claude/more-attractions`, merged after this deploys.
+- **Not run:** the steward on this spec (an account usage limit stopped the session's helpers that evening); not audited.
+- **Native:** nothing native changed; never run on a device.
+
