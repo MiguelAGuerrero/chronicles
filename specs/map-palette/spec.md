@@ -26,6 +26,15 @@ Open: 1. The madder video beside the hotspot magenta (0028, 0034): keep `#87244e
 - **Process: "Candidate palettes to compare".** Three were rendered beside today's on beat one, the walk's card and
   Explore, in normal vision and with deuteranopia and protanopia, every ratio measured.
 - **"Earth and ink"**, from the three (Cool water and Seasonal muted were the others).
+- **The spec's open questions, answered in person after reading it:**
+  1. The video's madder beside the hotspot magenta: **"Keep it, narrow the rule"**. `#87244e` stays; the magenta stays
+     the only hue of any line, fill or label, and every map colour stays 15 or more from it (MP8 as written).
+  2. The town borders on the replay and a day: **"Their own entry"**. Filed as a new inbox entry, with their own
+     swatches to come; not built here.
+  3. The replay's stage: **"Follow the palette"**. MP9 includes a memo's play disc and waveform, a note bubble's edge
+     and the pile's video tile.
+  4. The spec: **"Build it, with that wording"**. MP1-MP14 stand; QL2's wording is proposed to the owner as "a
+     bullseye in the walked colour".
 
 ## Criteria
 
