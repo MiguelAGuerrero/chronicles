@@ -171,7 +171,28 @@ async function run(h) {
   await pg.evaluate(() => { window.__failMedia = 1; });
   if (await there('[data-testid=bar-photo]', 5000)) await shoot('bar-photo');
   const barSaid = await textOf('[data-testid=recording-said]');
+  await wide(320);
+  // Whole: the clamped line is as tall as the same words unclamped.
+  const saidBox = await pg.evaluate(() => {
+    const e = document.querySelector('[data-testid=recording-said]');
+    if (!e) return null;
+    const free = e.cloneNode(true);
+    free.style.webkitLineClamp = 'unset';
+    free.style.display = 'block';
+    free.style.overflow = 'visible';
+    free.style.position = 'absolute';
+    free.style.visibility = 'hidden';
+    free.style.width = `${e.getBoundingClientRect().width}px`;
+    e.parentElement.appendChild(free);
+    const whole = free.getBoundingClientRect().height;
+    free.remove();
+    return { shown: e.getBoundingClientRect().height, whole };
+  });
+  const saidWhole = !!saidBox && saidBox.shown >= saidBox.whole - 1;
+  await wide(390);
   check(barSaid.includes(OUT_WALK) && !barSaid.includes('held here'), `UN10: the bar's photo says its Retry is on the walk screen ("${barSaid}")`);
+  // Open, for the owner (the hand-back): at 320 px UN10's words need five lines in the bar, which shows four.
+  check.todo(saidWhole, `unsaved open 1: the bar's room words are whole at 320 px, nothing cut (${JSON.stringify(saidBox)})`);
   await pictures('bar-said');
   await tabTo(pg, 'chronicle', 'memories').catch(() => {});
   await pg.waitForTimeout(1500);

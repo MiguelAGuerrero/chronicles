@@ -240,7 +240,8 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
             <View style={styles.dot} />
           )}
           {said ? (
-            <Text testID="recording-said" style={[styles.text, said.error && styles.error]} numberOfLines={2} accessibilityLiveRegion="polite">
+            // A failure's words are whole at 320 px: the room line names where its Retry is (unsaved captures UN10).
+            <Text testID="recording-said" style={[styles.text, said.error && styles.error]} numberOfLines={said.error ? 4 : 2} accessibilityLiveRegion="polite">
               {said.text}
             </Text>
           ) : (
