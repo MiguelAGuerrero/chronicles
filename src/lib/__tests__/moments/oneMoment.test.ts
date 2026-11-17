@@ -59,7 +59,7 @@ test('SW15: the only join is joinMoment, and no menu lists another merge', () =>
   assert.ok(!/mergeMoments?\(/i.test(types), 'no other merge');
 });
 
-test('SW16: Entry is the quick-action row\'s only host, and a joined moment is one entry wherever moments are read', { todo: 'test first' }, () => {
+test('SW16: Entry is the quick-action row\'s only host, and a joined moment is one entry wherever moments are read', () => {
   const src = readFileSync(join(__dirname, '../../../components/journal/Entry.tsx'), 'utf8');
   assert.ok(/QuickActions/.test(src), 'the row is drawn by Entry');
   const loose = facedAll([stacked(null)]);

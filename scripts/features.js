@@ -256,7 +256,7 @@ const FEATURES = [
       'src/lib/thumbs/**',
       'src/components/VideoMark.tsx',
     ],
-    journeys: ['edit', 'stacks', 'voicetrim', 'videothumbs'],
+    journeys: ['edit', 'stacks', 'stackjoin', 'voicetrim', 'videothumbs'],
     specs: ['memories-on-revisit', 'media-editing', 'moment-stacks', 'stack-with-previous', 'voice-trim', 'note-types', 'video-thumbnails'],
   },
   {

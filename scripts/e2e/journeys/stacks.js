@@ -269,20 +269,7 @@ async function replayGrid(h, check) {
   const text = seen ? await pg.locator('[data-testid=replay-grid]').innerText() : '';
   check(seen && cells === 3, `MS17: the stacked moment comes up as one grid, a cell for each of its photos (${cells})`);
   check(seen && !/\d/.test(text) && (await pg.locator('[data-testid=replay-grid] [role=progressbar]').count()) === 0, 'MS17: the grid has no dots, numbers or progress bar');
-  // Stack with previous and the quick-action row (decision 0196): written before the code, one per screen criterion.
-  check.todo(false, 'SW1: every entry on the page has a row of four icons with spoken names, none with a caption');
-  check.todo(false, 'SW2: the reply icon opens the kinds menu titled "A new moment, linked to this one"; a note kept is a new linked entry at the end');
-  check.todo(false, 'SW3: the link icon opens Add to a thread and says "Added to a thread"');
-  check.todo(false, "SW4: Edit opens the note's page on a one-piece entry and its slot is empty on a stack");
-  check.todo(false, 'SW5: after a note is kept its Stack slot shows; after another capture it is empty on that entry');
-  check.todo(false, 'SW9: Stack with previous says "Stacked with the earlier moment" with Undo, and Undo restores the entry');
-  check.todo(false, 'SW10: a piece made later says "Added later" with its time and names no place');
-  check.todo(false, 'SW11: a two-piece moment shows its first piece, the mark, the kinds in words and Show all');
-  check.todo(false, 'SW12: Show all opens a grid, each tile with its own time; a tile opens the viewer on its piece; Show less collapses');
-  check.todo(false, 'SW13: no count digit, "of" or "+N" in the stack, grid, tiles or row');
-  check.todo(false, 'SW14: with the row showing, a new capture is still one tap');
-  check.todo(false, 'SW17: a stack survives a reload');
-  check.todo(false, 'SW18: at 320 px the row\'s four slots fit without wrapping and a tile is at least 88 px');
+  // Stack with previous and the quick-action row (SW1-SW18, decision 0196): its checks are the `stackjoin` journey's.
   await c.close();
 }
 
