@@ -116,3 +116,16 @@ A walk's replay and the day replay: the five beats, the story and its ceremonies
 - **Words for a screen reader, once per beat** (`beatWords`, keyed on `phase.t0`, `tend replay 9`): the walk is read
   again while its streets snap and when a note is edited, and an effect keyed on the data said each beat again.
 
+- **Words typed in Name it are never dropped without asking** (`tend replay 15`, the owner's "Ask there too", Nov 16;
+  decision 0172, O17): `backFrom(beat, { typed, asking })` asks before Back or Escape leaves the first replay with
+  words `wordsTyped` reads as Keep it would store them (Rename's `renameChanged`, with the suggestion offered); the ask
+  is Rename's, in Keep it's place under the fields; while it shows, Back, Escape and Done are Keep editing. Not now
+  leaves at once (a choice already made, as Rename's Cancel). The name sheet's quiet Back (`tend replay T21`) goes
+  through the same `stepBack` as Back and Escape.
+- **The owner's answers of Nov 17** (the review of `tend replay 15`): Q1 "Ask there too": with words typed, Not now
+  asks "Discard these edits?"; with nothing typed it leaves at once (`leaveCard`, `tend replay audit 15`; this
+  supersedes the line above that has Not now leave at once). Q2 "Show the typed name": after Back, the card's title
+  shows the typed name (unsaved) until Keep it or leaving (`cardTitle`, `tend replay audit 16`). S3 "Add the chevron":
+  a muted back chevron before "Back" (no new colour, no new words) and the spoken hint "Returns to the card, your
+  words kept". Q4 "File it as architecture": the browser's own back on web (docs/DEFERRED.md, Replay). A Rename from
+  the card's More replaces only the Name it field it changed (`fieldsAfterRename`).

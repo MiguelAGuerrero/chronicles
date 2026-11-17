@@ -37,7 +37,7 @@ import { GapCard } from '../../components/GapCard';
 import { KeepGapsCard } from '../../components/KeepGapsCard';
 import { ensureTileBuild } from '../../lib/tiles';
 import { setAudioMode } from '../../lib/audioMode';
-import { backFrom, beatWords, FOG_MS, pinHint } from '../../lib/replay';
+import { backFrom, beatWords, cardTitle, fieldsAfterRename, FOG_MS, pinHint, wordsTyped } from '../../lib/replay';
 import { formatCaptures, formatDistance, formatDuration, loadReplay, suggestTitle, type ReplayData } from '../../lib/summary';
 import { renamePatch } from '../../lib/rename';
 import type { LngLat } from '../../lib/types';
@@ -96,6 +96,9 @@ export default function Replay() {
   const [epilogue, setEpilogue] = useState('');
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  // Leaving the first replay with words typed in Name it asks first, in Rename's words (tend replay 15).
+  const [asking, setAsking] = useState(false);
+  const keepEditing = () => setAsking(false);
   const [reduceMotion, setReduceMotion] = useState(false);
   const { width, height } = useWindowDimensions();
   const [viewing, setViewing] = useState<Faced[] | null>(null);
@@ -222,21 +225,47 @@ export default function Replay() {
   useEffect(() => {
     beatNow.current = phase.beat;
   }, [phase.beat]);
+  // The words typed in Name it, as Keep it would store them, and whether the ask is up, as Back reads them (tend replay 15).
+  const wordsNow = useRef<{ typed: boolean; asking: boolean }>({ typed: false, asking: false });
+  useEffect(() => {
+    wordsNow.current = { typed: !rewatch && !!data && wordsTyped(data.walk, title, epilogue, offered), asking };
+  }, [rewatch, data, title, epilogue, offered, asking]);
+  // One way back, read once (tend replay 4, 5, T21): Android's Back, Escape and the name sheet's Back. True when it was
+  // taken here; false when the beat is left as Not now or Done leaves it. Words typed ask first, with the fields and
+  // their words above the ask (tend replay 15).
+  const stepBack = useCallback((): boolean => {
+    const way = backFrom(beatNow.current, wordsNow.current);
+    if (way === 'leave') return false;
+    if (way === 'keep-editing') setAsking(false);
+    else if (way === 'ask') {
+      setAsking(true);
+      go('name');
+    } else go('card');
+    return true;
+  }, [go]);
+  // Not now leaves as Back and Escape leave the card: with words typed it asks first, else at once (tend replay audit
+  // 15; the owner's answer, Nov 17, "Ask there too").
+  const leaveCard = () => {
+    if (backFrom('card', wordsNow.current) !== 'ask') toChronicle();
+    else {
+      setAsking(true);
+      go('name');
+    }
+  };
   useEffect(() => {
     if (rewatch) return;
     // However it is left, the first replay ends on Chronicle's Memories (RM3).
     chronicleSection.set('memories');
     const back = BackHandler.addEventListener('hardwareBackPress', () => {
       // Back on the name step returns to the card, the words typed kept (tend replay 4).
-      if (backFrom(beatNow.current) === 'card') go('card');
-      else toChronicle();
+      if (!stepBack()) toChronicle();
       return true;
     });
     return () => {
       back.remove();
       if (!leftForChronicle.current) setTimeout(() => router.navigate('/'), 0);
     };
-  }, [rewatch, toChronicle, go]);
+  }, [rewatch, toChronicle, stepBack]);
   // Escape on the web is Back's sibling (tend replay 5): the name step returns to the card; anywhere else the replay
   // is left as Not now or Done leaves it. Nothing while a viewer, the walk's menu or a gap's card holds the key.
   const held = viewing != null || here != null || actionsOpen || gapOpen != null || isDrawing;
@@ -245,15 +274,15 @@ export default function Replay() {
     const onKey = (e: KeyboardEvent) => {
       // A held key's repeats are not more presses: the name step's Escape stops at the card (tend replay audit 4).
       if (e.key !== 'Escape' || e.repeat) return;
-      if (backFrom(beatNow.current) === 'card') go('card');
-      else if (!rewatch) toChronicle();
+      if (stepBack()) return;
+      if (!rewatch) toChronicle();
       else if (router.canGoBack()) router.back();
       else router.dismissTo('/');
     };
     // In the capture phase: react-native-web's TextInput stops a key's propagation (the name step's fields).
     window.addEventListener('keydown', onKey, true);
     return () => window.removeEventListener('keydown', onKey, true);
-  }, [held, rewatch, toChronicle, go]);
+  }, [held, rewatch, toChronicle, stepBack]);
 
   // Memos and videos play with the ringer switch off, as the voice is the point.
   useEffect(() => {
@@ -467,6 +496,8 @@ export default function Replay() {
   const finds = foundList(data.found.map((f) => f.name));
   const passed = passedLine(data.passed);
   // Streets walked and new, in words (tend replay T31), one clause when all are new (tend replay audit 14).
+  // The name typed in Name it, unsaved, until Keep it or leaving (tend replay audit 16, the owner's "Show the typed name").
+  const shownTitle = cardTitle(data.walk, title, offered);
   const streetsLine = walkCardStreets(s?.streets_walked ?? 0, s?.streets_read ? data.newStreets : null);
 
   const save = async () => {
@@ -669,13 +700,13 @@ export default function Replay() {
             {beat === 'card' ? (
               <>
                 <View style={styles.titleRow}>
-                  <Text style={[styles.cardTitle, styles.flex]} accessibilityRole="header">{data.walk.title ?? suggestTitle(data.walk)}</Text>
+                  <Text style={[styles.cardTitle, styles.flex]} accessibilityRole="header">{shownTitle}</Text>
                   {!data.walk.open && (
                     <Pressable
                       testID="card-more"
                       accessibilityRole="button"
                       // Named by the title the card shows, as the walk's row names it (tend tabs 11).
-                      accessibilityLabel={moreFor(data.walk.title ?? suggestTitle(data.walk))}
+                      accessibilityLabel={moreFor(shownTitle)}
                       onPress={() => setActionsOpen(true)}
                       style={({ pressed }) => [styles.more, pressed && { opacity: 0.6 }]}
                       hitSlop={4}
@@ -722,7 +753,7 @@ export default function Replay() {
                     testID="not-now"
                     accessibilityRole="button"
                     accessibilityHint="Keeps the walk without a name and goes to Chronicle"
-                    onPress={toChronicle}
+                    onPress={leaveCard}
                     style={({ pressed }) => [styles.notNow, pressed && { opacity: 0.6 }]}
                   >
                     <Text style={styles.notNowText}>Not now</Text>
@@ -731,6 +762,21 @@ export default function Replay() {
               </>
             ) : (
               <>
+                {/* A quiet way back to the card, the words kept, where Back and Escape go (tend replay T21, decision 0165):
+                    an iPhone has neither. While the ask shows, its two answers are the ways on (tend replay 15). */}
+                {!asking && (
+                  <Pressable
+                    testID="name-back"
+                    accessibilityRole="button"
+                    // The owner's "Add the chevron", Nov 17 (tend replay audit 16): a muted back chevron, and where it goes.
+                    accessibilityHint="Returns to the card, your words kept"
+                    onPress={stepBack}
+                    style={({ pressed }) => [styles.nameBack, pressed && { opacity: 0.6 }]}
+                  >
+                    <Icon name="chevron-back" size={18} color={theme.muted} />
+                    <Text style={styles.notNowText}>Back</Text>
+                  </Pressable>
+                )}
                 <Text style={styles.label} nativeID="title-label">Name this walk</Text>
                 <TextInput
                   testID="title-input"
@@ -755,12 +801,24 @@ export default function Replay() {
                   placeholder="e.g. The bakery was closed, the river was not."
                   placeholderTextColor={theme.muted}
                   returnKeyType="done"
-                  onSubmitEditing={save}
+                  // While the ask shows, Done is Keep editing, never a hidden save (as tend chronicle audit 5).
+                  onSubmitEditing={asking ? keepEditing : save}
                   maxLength={200}
                   style={styles.input}
                 />
                 {saveError ? <Text style={styles.error} accessibilityRole="alert">Could not save: {saveError}</Text> : null}
-                <Button testID="save" label="Keep it" onPress={save} busy={saving} busyLabel="Saving…" />
+                {asking ? (
+                  // Rename's ask, in its words, in Keep it's place (tend chronicle 9; tend replay 15).
+                  <View testID="name-ask" style={styles.ask} accessibilityLiveRegion="polite">
+                    <Text style={styles.askText}>Discard these edits?</Text>
+                    <View style={styles.askRow}>
+                      <Button testID="name-keep" label="Keep editing" variant="secondary" onPress={keepEditing} style={styles.flex} />
+                      <Button testID="name-discard" label="Discard" variant="danger" onPress={toChronicle} style={styles.flex} />
+                    </View>
+                  </View>
+                ) : (
+                  <Button testID="save" label="Keep it" onPress={save} busy={saving} busyLabel="Saving…" />
+                )}
               </>
             )}
           </ScrollView>
@@ -774,9 +832,11 @@ export default function Replay() {
         // The card shows the new name at once, and the name beat's fields with it (QL23).
         onRenamed={(walkId, patch) => {
           setData((d) => (d && d.walk.id === walkId ? { ...d, walk: { ...d.walk, ...patch } } : d));
-          setTitle(patch.title ?? suggestTitle(data.walk));
-          setOffered(patch.title ? null : suggestTitle(data.walk));
-          setEpilogue(patch.epilogue ?? '');
+          // Only what Rename changed, so a line typed in Name it stays (tend replay audit 15).
+          const fields = fieldsAfterRename(data.walk, patch, { title, epilogue, offered });
+          setTitle(fields.title);
+          setOffered(fields.offered);
+          setEpilogue(fields.epilogue);
         }}
       />
       <UndoToast style={{ top: insets.top + 12 }} />
@@ -830,9 +890,18 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', gap: 10, marginTop: 6 },
   notNow: { minHeight: 44, alignSelf: 'center', justifyContent: 'center', paddingHorizontal: 16 },
   notNowText: { fontSize: 15, fontWeight: '600', color: theme.muted },
+  // Not now's quiet text, at the name sheet's leading edge, its words in line with the labels below.
+  nameBack: {
+    minHeight: 44, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 2, paddingLeft: 12, paddingRight: 16,
+    marginLeft: -16, marginTop: -10,
+  },
   flex: { flex: 1 },
   label: { fontSize: 14, fontWeight: '600', color: theme.muted },
   input: { borderWidth: 1.5, borderColor: theme.edge, borderRadius: 10, padding: 12, fontSize: 16, color: theme.ink },
   error: { color: theme.danger, fontSize: 14 },
+  // Rename's ask (components/WalkActions).
+  ask: { gap: 10, marginTop: 8 },
+  askText: { fontSize: 16, color: theme.ink, textAlign: 'center' },
+  askRow: { flexDirection: 'row', gap: 8 },
 });
 

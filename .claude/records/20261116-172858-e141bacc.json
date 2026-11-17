@@ -1,0 +1,44 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Small places (SP1-SP22, decision 0182)",
+        "--new"
+      ],
+      "body": "- [ ] **Do:** on a phone with switches saved before this update, open \"What I'm into\", then walk (Explore on) past a time capsule and a plaque from the places archive. **Expect:** Plaques and markers, Small memorials, Milestones and boundary stones and Wayside shrines and crosses sit indented under their kinds and are off; Time capsules and Little libraries are on; the time capsule is a \"?\" named \"A time capsule\" within 60 m and the plaque is not drawn until its row is switched on; an area's dots change at once when the row is switched (SP2, SP7, SP8, SP11, SP13).\n",
+      "intro": "Small places (decision 0182): the switches and dots on a phone.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Small places (SP1-SP22, decision 0182)",
+        "--new"
+      ],
+      "body": "- **A bar's breakdown by type** on a neighbourhood or town card (the types present, in words, in a fixed order, no counts): the owner's own later slice, with its own gate (decision 0182); the tension recorded there, that weighting is a form of curation.\n",
+      "intro": "Small places (decision 0182): what the slice left for later.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Small places (SP1-SP22, decision 0182)"
+      ],
+      "body": "- **Switched-on small subsets leaning a route:** the planner and scenic Sights leave every small subset out, on or off (SP16, a default the owner may overrule); whether a reader's switched-on ones should lean is for the breakdown slice.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Small places (SP1-SP22, decision 0182)"
+      ],
+      "body": "- **The data side is on chronicles-data's branch, not its main:** contract v3 and OSM's small places (its SL1-SL11) reach a pack only once that branch merges and the weekly job's OSM fetch runs; the noise review per test area comes with that first build, before a pack is published (decision 0109). Until then the app takes the new classes and nothing new shows.\n"
+    }
+  ]
+}

@@ -330,6 +330,104 @@ async function run(h) {
     await pg.click('[data-testid=viewer-close]').catch(() => {});
     await pg.waitForSelector('[data-testid=viewer-close]', { state: 'detached', timeout: 3000 }).catch(() => {});
 
+    // tend replay T21 (decision 0165, "A quiet Back"): the name sheet's top row holds a quiet Back in Not now's style, no
+    // new colour, a 44 px target above the first field, and it returns to the card with the words kept; at 390 and 320.
+    for (const [w, ht] of [[390, 844], [320, 568]]) {
+      await pg.setViewportSize({ width: w, height: ht });
+      await pg.click('[data-testid=to-name]');
+      await pg.fill('[data-testid=title-input]', 'Plums by the bridge');
+      await pg.waitForTimeout(300);
+      const back = await pg.evaluate(() => {
+        const b = document.querySelector('[data-testid=name-back]');
+        const label = document.getElementById('title-label');
+        if (!b || !label) return null;
+        const r = b.getBoundingClientRect();
+        const text = [...b.querySelectorAll('*')].find((x) => x.childElementCount === 0 && x.textContent === 'Back');
+        const ink = text ? getComputedStyle(text).color : null;
+        // The chevron (tend replay audit 16): the icon font's glyph, before the word.
+        const glyph = [...b.querySelectorAll('*')].find((x) => x.childElementCount === 0 && /ionicons/i.test(getComputedStyle(x).fontFamily));
+        return {
+          word: text ? text.textContent : null, w: Math.round(r.width), h: Math.round(r.height),
+          left: Math.round(r.left), above: r.bottom <= label.getBoundingClientRect().top + 1, ink, muted: getComputedStyle(label).color,
+          chevronInk: glyph ? getComputedStyle(glyph).color : null,
+          chevronFirst: !!glyph && !!text && glyph.getBoundingClientRect().right <= text.getBoundingClientRect().left + 1,
+          ground: getComputedStyle(b).backgroundColor,
+        };
+      });
+      // The field labels are theme.muted, Not now's ink: the Back's word and chevron take that ink, no new colour.
+      check(back && back.word === 'Back' && back.h >= 44 && back.w >= 44 && back.left >= 0 && back.above && back.ink === back.muted && back.ink !== 'rgb(194, 65, 12)' && /rgba\(0, 0, 0, 0\)|transparent/.test(back.ground),
+        `tend replay T21: at ${w} px the name sheet's top row holds a quiet Back, 44 px, in the muted ink, no ground (${JSON.stringify(back)})`);
+      check(back && back.chevronInk === back.muted && back.chevronFirst,
+        `tend replay audit 16: at ${w} px a muted back chevron stands before "Back" (${JSON.stringify(back)})`);
+      await shot(pg, `rr-name-back-${w}`);
+      await pg.click('[data-testid=name-back]');
+      const onCardAgain = await pg.waitForSelector('[data-testid=to-name]', { timeout: 3000 }).then(() => true, () => false);
+      const stillHere = /\/replay\//.test(new URL(pg.url()).pathname);
+      // After Back the card shows the name typed, unsaved, and its More is named by it (tend replay audit 16, tend tabs 11).
+      const shown = await pg.evaluate(() => {
+        const more = document.querySelector('[data-testid=card-more]');
+        const head = more?.parentElement?.querySelector('[role=heading]');
+        return { title: head?.textContent?.trim() ?? null, more: more?.getAttribute('aria-label') ?? null };
+      });
+      check(shown.title === 'Plums by the bridge' && shown.more === 'More for Plums by the bridge',
+        `tend replay audit 16: at ${w} px after Back the card's title is the name typed, unsaved (${JSON.stringify(shown)})`);
+      await shot(pg, `rr-card-typed-${w}`);
+      await pg.click('[data-testid=to-name]').catch(() => {});
+      const keptBack = await pg.inputValue('[data-testid=title-input]').catch(() => null);
+      check(onCardAgain && stillHere && keptBack === 'Plums by the bridge', `tend replay T21: at ${w} px Back returns to the card, the words kept (${onCardAgain}, ${stillHere}, "${keptBack}")`);
+      await pg.click('[data-testid=name-back]').catch(() => {});
+      await pg.waitForSelector('[data-testid=to-name]', { timeout: 3000 }).catch(() => {});
+      // tend replay 15 (the owner's "Ask there too", Nov 16): Escape twice with words typed, the name step to the card and
+      // then out, asks "Discard these edits?" in Rename's words, the fields and their words above it; Enter (a phone's
+      // Done) while it asks is Keep editing, and so is Escape; Keep editing stays with the words.
+      const askState = () => pg.evaluate(() => {
+        const ask = document.querySelector('[data-testid=name-ask]');
+        const btn = (id) => document.querySelector(`[data-testid=${id}]`)?.textContent ?? null;
+        const r = ask?.getBoundingClientRect();
+        return {
+          ask: ask ? ask.textContent : null, keep: btn('name-keep'), discard: btn('name-discard'), back: !!document.querySelector('[data-testid=name-back]'),
+          save: !!document.querySelector('[data-testid=save]'), field: document.querySelector('[data-testid=title-input]')?.value ?? null,
+          inside: !!r && r.left >= 0 && r.right <= window.innerWidth, replay: /\/replay\//.test(location.pathname),
+        };
+      });
+      await pg.click('[data-testid=to-name]');
+      await pg.keyboard.press('Escape');
+      await pg.waitForSelector('[data-testid=to-name]', { timeout: 3000 }).catch(() => {});
+      await pg.keyboard.press('Escape');
+      await pg.waitForSelector('[data-testid=name-ask]', { timeout: 3000 }).catch(() => {});
+      const asked = await askState();
+      check(asked.replay && /^Discard these edits\?/.test(asked.ask ?? '') && asked.keep === 'Keep editing' && asked.discard === 'Discard' && !asked.back && !asked.save && asked.field === 'Plums by the bridge' && asked.inside,
+        `tend replay 15: at ${w} px Escape twice with words typed asks "Discard these edits?" over the words, Keep editing and Discard in Keep it's place (${JSON.stringify(asked)})`);
+      await shot(pg, `rr-name-ask-${w}`);
+      await pg.click('[data-testid=epilogue-input]');
+      await pg.keyboard.press('Enter');
+      await pg.waitForTimeout(400);
+      const entered = await askState();
+      check(entered.replay && !entered.ask && entered.save && entered.back && entered.field === 'Plums by the bridge',
+        `tend replay 15: at ${w} px Enter while it asks is Keep editing, nothing stored and nothing left (${JSON.stringify(entered)})`);
+      await pg.keyboard.press('Escape');
+      await pg.waitForSelector('[data-testid=to-name]', { timeout: 3000 }).catch(() => {});
+      await pg.keyboard.press('Escape');
+      await pg.waitForSelector('[data-testid=name-ask]', { timeout: 3000 }).catch(() => {});
+      await pg.keyboard.press('Escape');
+      await pg.waitForTimeout(400);
+      const escaped = await askState();
+      check(escaped.replay && !escaped.ask && escaped.save && escaped.field === 'Plums by the bridge',
+        `tend replay 15: at ${w} px Escape while it asks is Keep editing (${JSON.stringify(escaped)})`);
+      await pg.keyboard.press('Escape');
+      await pg.waitForSelector('[data-testid=to-name]', { timeout: 3000 }).catch(() => {});
+      await pg.keyboard.press('Escape');
+      await pg.waitForSelector('[data-testid=name-ask]', { timeout: 3000 }).catch(() => {});
+      await pg.click('[data-testid=name-keep]').catch(() => {});
+      await pg.waitForTimeout(400);
+      const kept15 = await askState();
+      check(kept15.replay && !kept15.ask && kept15.save && kept15.field === 'Plums by the bridge',
+        `tend replay 15: at ${w} px Keep editing stays on the name step with the words (${JSON.stringify(kept15)})`);
+      await pg.click('[data-testid=name-back]').catch(() => {});
+      await pg.waitForSelector('[data-testid=to-name]', { timeout: 3000 }).catch(() => {});
+    }
+    await pg.setViewportSize({ width: 390, height: 844 });
+
     // A landscape phone: the card stands between the top row and the corner, clear of the buttons (replay-rhythm audit 13).
     await pg.setViewportSize({ width: 844, height: 390 });
     await pg.getByText('Watch again').click();
@@ -431,7 +529,18 @@ async function run(h) {
 
     // The day (RR16): its replay reaches the day's card with no taps, the note on the way.
     const wakesBefore = (await pg.evaluate(() => window.__wake.log.length));
+    // Not now with words typed asks as Back and Escape do (tend replay audit 15; the owner's "Ask there too", Nov 17);
+    // with nothing typed it leaves at once (the tabs journey's U14). Then Discard leaves the first replay for Chronicle,
+    // the words typed gone with it (tend replay 15), at 390 here and at 320 on the second walk.
     await pg.click('[data-testid=not-now]');
+    const notNowAsks = await pg.waitForSelector('[data-testid=name-ask]', { timeout: 3000 }).then(() => true, () => false);
+    const notNowStays = /\/replay\//.test(new URL(pg.url()).pathname);
+    const notNowWords = await pg.inputValue('[data-testid=title-input]').catch(() => null);
+    check(notNowAsks && notNowStays && notNowWords === 'Plums by the bridge', `tend replay audit 15: at 390 px Not now with words typed asks "Discard these edits?" over them (${notNowAsks}, ${new URL(pg.url()).pathname}, "${notNowWords}")`);
+    await pg.click('[data-testid=name-discard]').catch(() => {});
+    const discarded = await pg.waitForURL((u) => u.pathname === `${BASE}/`, { timeout: 15000 }).then(() => true, () => false);
+    check(discarded, `tend replay 15: at 390 px Discard leaves the first replay for Chronicle (${new URL(pg.url()).pathname})`);
+    if (!discarded) await pg.click('[data-testid=not-now]');
     await pg.waitForURL((u) => u.pathname === `${BASE}/`, { timeout: 15000 });
     await h.mapUp(pg);
     await pg.click('[data-testid=sheet-days]');
@@ -575,6 +684,17 @@ async function run(h) {
       await pg.click('[data-testid=skip]');
       await pg.waitForSelector('[data-testid=to-name]', { timeout: 15000 });
     }
+    // tend replay 15 at 320 px: words typed, Escape twice asks, and Discard leaves for Chronicle.
+    await pg.setViewportSize({ width: 320, height: 568 });
+    await pg.click('[data-testid=to-name]');
+    await pg.fill('[data-testid=title-input]', 'Wickenden at dusk');
+    await pg.keyboard.press('Escape');
+    await pg.waitForSelector('[data-testid=to-name]', { timeout: 3000 }).catch(() => {});
+    await pg.keyboard.press('Escape');
+    const asked320 = await pg.waitForSelector('[data-testid=name-ask]', { timeout: 3000 }).then(() => true, () => false);
+    await pg.click('[data-testid=name-discard]').catch(() => {});
+    const left320 = await pg.waitForURL((u) => u.pathname === `${BASE}/`, { timeout: 15000 }).then(() => true, () => false);
+    check(asked320 && left320, `tend replay 15: at 320 px Escape twice with words typed asks, and Discard leaves for Chronicle (${asked320}, ${new URL(pg.url()).pathname})`);
     await pg.setViewportSize({ width: 390, height: 844 });
     await c.close();
     // The scenario refuses a video's sound on purpose; expo-video lets that refusal go unhandled.

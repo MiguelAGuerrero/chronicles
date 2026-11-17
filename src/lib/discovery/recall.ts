@@ -95,6 +95,38 @@ export const editedRecall = (fresh: Recall, frequency: RecallFrequency, until: n
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
+/** One choice of the reminder editor's menus; `days` is an Until span from now (null: no end). */
+export interface RemindChoice { id: string; label: string; days?: number | null }
+
+const OFTEN: { id: RecallFrequency; label: string }[] = [
+  { id: 'once', label: 'Once' },
+  { id: 'visit', label: 'Every visit' },
+  { id: 'weekly', label: 'Weekly at most' },
+  { id: 'monthly', label: 'Monthly at most' },
+];
+/** The until-date, as a few spans from now: no date picker to fight on three platforms. */
+const UNTIL: RemindChoice[] = [
+  { id: 'none', label: 'No end', days: null },
+  { id: 'month', label: '1 month', days: 30 },
+  { id: 'season', label: '3 months', days: 91 },
+  { id: 'year', label: '1 year', days: 365 },
+];
+const REMIND_MENUS = { often: 'How often', until: 'Until' } as const;
+
+/**
+ * The choices of the reminder editor's two menus, How often and Until, in the order its chips had them (R1, R8;
+ * tend explore 18, decision 0172 O9). An end already set leads Until as its own choice, "Ends Nov 2", kept to the
+ * day unless another is picked; its local month and date are the caller's to read.
+ */
+export function remindChoices(kept: { month: number; date: number } | null): { often: RemindChoice[]; until: RemindChoice[] } {
+  return { often: OFTEN, until: kept ? [{ id: 'kept', label: `Ends ${MONTHS[kept.month]} ${kept.date}` }, ...UNTIL] : UNTIL };
+}
+
+/** What a menu's button says: its name and its choice, "How often: Once", "Until: No end" (tend explore 18). */
+export function remindMenuLabel(menu: keyof typeof REMIND_MENUS, items: readonly RemindChoice[], id: string): string {
+  return `${REMIND_MENUS[menu]}: ${(items.find((x) => x.id === id) ?? items[0]).label}`;
+}
+
 /**
  * "Two memories here", a count in words (VISION.md, "Counts are words"; tend explore T29), up to twelve; "Many memories
  * here" from thirteen, so the card's one line holds at 320 px (tend explore 16, decision 0172, the owner's "Many sooner").

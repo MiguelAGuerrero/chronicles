@@ -1,0 +1,38 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore atlas"
+      ],
+      "body": "- [ ] **fix carousel-snap-back, audit round 2 (low, deferred):** (a) after a release on web the next `onScroll` re-arms the settle at 120 ms, replacing the 300 ms grace, so a browser glide that stalls more than 120 ms mid-way still eases back (rare: browsers scroll continuously); (b) on web a touch on the row mid-way through the row's own scroll clears `intended`, so the remaining animation selects the cards it passes (a flicker on the map; before, only a drag cleared it); (c) `finger` is one flag, not a count: with two fingers, lifting one releases the hold for the other. Each wants its own failing test before a fix.\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Explore carousel"
+      ],
+      "body": "- [ ] **Do:** on a phone, drag the Explore row slowly and hold your finger still between two cards for two seconds, then drag on and let go; then do the same but start the drag on a card's face. **Expect:** the row follows your finger and settles on the next card the first time; a `touchcancel` the phone raises as the scroll takes the gesture never releases the hold early (fix carousel-snap-back audit round 2: `onTouchCancel` is treated as a release; its order against `onScrollBeginDrag` is unknown).\n"
+    },
+    {
+      "argv": [
+        "section",
+        "add",
+        "From /fix"
+      ]
+    },
+    {
+      "argv": [
+        "section",
+        "item",
+        "add",
+        "From /fix"
+      ],
+      "body": "- The `atlas` journey's check \"AT9: the small map shows the areas' points; on your town's page its own card is selected on arrival (no ring), and opening an area's card frames it with its 800 m ring\" fails on `main` as well (seen Nov 16 on `acb18b0` with and without the carousel-snap-back fix: \"ring \"\" → \", Fox Point at (0.0, 0.5) px from the middle). Not touched by this fix; the journey is the only place it shows, since CI runs no journey.\n"
+    }
+  ]
+}

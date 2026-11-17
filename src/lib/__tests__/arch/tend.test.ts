@@ -28,6 +28,7 @@ const tend = createRequire(__filename)(join(ROOT, 'scripts', 'tend.js')) as {
   citedOwnEdits(commits: { subject: string; body: string; files: File[] }[]): { subject: string; problem: string }[];
   logProblems(given: unknown): string[];
   runLine(r: { date: string; subjects: string[]; given: Record<string, unknown> }): Record<string, unknown>;
+  fullPassDue(lines: string[], today: string, days?: number): { due: boolean; last: { date: string; base: string | null } | null; dueFrom: string | null };
 };
 const known = new Set(['PK', 'RF', 'PW', 'OT', 'MS', 'MT', 'QL', 'OP', 'EC']);
 
@@ -325,4 +326,42 @@ test('tend 0135: a rule written in one commit of a run is not the source of anot
   assert.deepEqual(tend.citedOwnEdits([note, fix('WCAG 2.2, 1.3.1')]), []);
   assert.deepEqual(tend.citedOwnEdits([fix('.claude/rules/memories.md, Hidden')]), [], 'a rule nobody in the run touched');
   assert.deepEqual(tend.citedOwnEdits([{ ...note, subject: 'Memories: a rule (MC1)' }, fix('.claude/rules/memories.md, Hidden')]), [], 'a rule the owner or a slice wrote is theirs');
+});
+
+const pass = {
+  mode: 'e2e', e2e: 'full', deploy: 'main', base: 'acb18b06', journeys: 48, ok: 1618,
+  red: [{ journey: 'atlas', check: 'AT9' }], flaky: [], minutes: 99,
+};
+
+test('tend 0181: the weekly full pass logs itself as mode e2e, and a line that leaves a count out is refused', () => {
+  assert.deepEqual(tend.logProblems(pass), []);
+  assert.deepEqual(tend.logProblems({ ...pass, e2e: ['launch', 'atlas'], journeys: 2 }), [], 'a pass of some journeys names them');
+  assert.deepEqual(tend.logProblems({ ...sweep, e2e: ['memories', 'launch'] }), [], 'a run names the journeys it ran');
+  assert.deepEqual(tend.logProblems({ ...sweep, e2e: 'full' }), [], 'a run that made the pass says so');
+  const bad = (g: unknown) => tend.logProblems(g).length > 0;
+  assert.ok(bad({ ...pass, e2e: undefined }));
+  assert.ok(bad({ ...pass, e2e: 'all' }));
+  assert.ok(bad({ ...pass, e2e: [] }));
+  assert.ok(bad({ ...pass, e2e: ['launch'], journeys: 2 }), 'the journeys named are the journeys counted');
+  assert.ok(bad({ ...pass, journeys: 0 }));
+  assert.ok(bad({ ...pass, ok: undefined }));
+  assert.ok(bad({ ...pass, red: undefined }), 'none red is [], said');
+  assert.ok(bad({ ...pass, flaky: ['AT9'] }), 'a check is { journey, check }');
+  assert.ok(bad({ ...pass, red: [{ journey: 'atlas', check: ' ' }] }));
+  assert.ok(bad({ ...pass, minutes: -1 }));
+  assert.ok(bad({ ...pass, base: 'HEAD' }));
+  assert.ok(bad({ ...sweep, e2e: 'some' }));
+});
+
+test('tend 0181: the full pass is due when no line of the run log says "e2e":"full" in seven days', () => {
+  const line = (date: string, extra: Record<string, unknown>) => JSON.stringify({ date, ...extra });
+  const log = [line('2026-11-09', { ...pass, base: 'aaaaaaaa' }), line('2026-11-14', { ...sweep, e2e: ['launch'] }), 'not json', line('2026-11-16', { ...pass })];
+  assert.deepEqual(tend.fullPassDue(log, '2026-11-20'), { due: false, last: { date: '2026-11-16', base: 'acb18b06' }, dueFrom: '2026-11-23' });
+  assert.equal(tend.fullPassDue(log, '2026-11-23').due, true, 'seven days on, it is due');
+  assert.equal(tend.fullPassDue(log.slice(0, 3), '2026-11-15').due, false, 'a sweep that ran some journeys is no pass');
+  assert.equal(tend.fullPassDue(log.slice(0, 3), '2026-11-16').due, true);
+  assert.deepEqual(tend.fullPassDue([line('2026-11-10', { ...sweep, e2e: 'full' })], '2026-11-12').last, { date: '2026-11-10', base: sweep.base }, 'a run of any mode may make the pass');
+  assert.deepEqual(tend.fullPassDue([], '2026-11-16'), { due: true, last: null, dueFrom: null });
+  const runs = read('.claude/skills/tend/runs.jsonl').split('\n').filter(Boolean);
+  assert.equal(typeof tend.fullPassDue(runs, '2026-11-16').due, 'boolean', 'the log as it is reads');
 });

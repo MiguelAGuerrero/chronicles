@@ -127,7 +127,7 @@ Home / tabs
   NotificationSettings.tsx   the kind switches, permission state, the test notification
 Captures
   CaptureView.tsx            CaptureViewer (full-screen photos and videos over a strip; a note as its page, a card for memos; More menu) and CaptureContent (plays memos and videos)
-  notePage/                  a note as a page (NP1-NP14, decision 0151): JournalEditor.tsx ('use dom': TipTap, a WebView on phones), NotePage.tsx (the page, its saving, Aa, @, the camera and the Reaction tool; NoteReader for the viewer), NewNotePage.tsx (a page begun at the tap; its reactions held until it is kept)
+  notePage/                  a note as a page (NP1-NP14, decision 0151): JournalEditor.tsx ('use dom': TipTap, a WebView on phones), NotePage.tsx (the page, its saving, Aa, @, the camera and the Reaction tool, a mention's picture and its Edit menu over the media editor; NoteReader for the viewer), NewNotePage.tsx (a page begun at the tap; its reactions held until it is kept)
   CapturePinView.tsx         the round capture pin, grouped count, faint (memory) and found variants; a pin of one moment wears its reactions as ink bubbles from its bottom-left (`pinReactions`, RX17), an L on a video's pin (`reactionSpots`, RL12)
   reactions/                 ReactionPanel (the three families, RX6), ReactionMarks (glyphs and names, RX14-RX16; links to their lens with `onOpen`, RL2-RL5), ReactionSign (the face with a plus, always, RL6), ReactionsScreen and LensScreen (the contents' lenses, RX22-RX25)
   MarkPinView.tsx            an Explore "?" mark: unknown, named, found
@@ -236,13 +236,14 @@ Filling gaps
 Discovery and Explore (v1)
   discovery/types.ts         Place, Offered, Mark, Recall, PlaceSource, Kind, CategoryId
   presence/presence.ts       what a place is: the one table from poi classes, Overture's taxonomy, the places archive's classes and landcover to classes, each class's weight, category and kind; named (historic_name, historic); the unnamed pois kept and transit stops; SOURCE_TAGS; PRESENCE_CODE and PRESENCE_CARRIED (decision 0140, PR1-PR8, PS1-PS11)
-  presence/notable.ts        the one name rule (notableName, notable.json) and the museum's read-past of a neighbourhood (PS3)
+  presence/notable.ts        the one name rule (notableName, notable.json) and the read-past of a neighbourhood (readPastNeighbourhood, after normalizeWords: the museum's, PS3, and community parks', decision 0172)
   discovery/tilePois.ts      the poi layer's adapter: places from points, their category and kind from presence
   discovery/curation.ts      what makes a mark, over presence classes: NEVER_MARK, BY_NAME (with recorded or historic_name), countsToward (the atlas's and the planner's rule) (PR7, PS5, PS6)
   discovery/archivePois.ts   the places archive's schema: placesFromArchive (the only file that knows it; decision 0103); its classes are presence's, ARCHIVE_CLASSES lists them (pinned, PW5)
   discovery/archiveMerge.ts  mergePlaces (one mark per place, PW8), keepFindKeys (a find keeps its key); the owner's edits are applied in chronicles-data (decision 0108)
   discovery/refine.ts        the kind pipeline's engine: Refinement, refine() (pure, in order; PC18-PC19, decision 0144)
   discovery/refinements.ts   REFINEMENTS (the registry), refineRead, kindParent/kindChain, isKindHidden, kindSwitch, kindRows (PC20-PC23)
+  discovery/smallPlaces.ts   small places (SP3-SP22, decision 0183): SMALL_SUBSETS (rows, plurals, defaults), DEFAULT_OFF, SMALL_REFINEMENTS (a subset by presence's `subset`), isSmallPlace, passedNames, keepTheLows, foundRows
   discovery/parkKind.ts      communityParks: the first refinement, Parks into Community parks by name and what is near (PC1-PC5; its curation in communityWords.json, parkNotable.json; notable names are presence's notableName, PS3)
   discovery/green.ts         the tiles' park outlines, from presence's classesOfLandcover (PS4): GreenArea, greenFromTiles, outlinesOf; scenic routes re-export it
   discovery/archiveManifest.ts the manifest (PW2): parse, pickRegion, manifestDue, z12 tiles for a read, PLACES_BASE (the chronicles-data Pages site, PW16)
@@ -331,7 +332,7 @@ Captures and media
   useCaptures.ts             photo, video, memo and note capture; the voice queue; placing; UNDO_MS
   reactions/                 reactions (decision 0176): core.ts (the eight in three families, `pick`, `ordered`, `setsOf`, `migrateTypes`), lens.ts (the only gathering by reaction), shell.ts (read whole, `choose`, `hold`/`keep` for a new page, `saving` so a keep under way is not dropped, `notKept`; index.ts the instance), useReactions.ts
   captureBus.ts              news of a capture kept or patched (thumbnail, place, note, caption, edits), between the bar, the row and the walk screen
-  notePage/                  note pages (decision 0151): plain.ts (a page's words, through marked), head.ts, room.ts, autosave.ts (the save-as-you-write reducer), all core; schema.ts (adapter: TipTap's document, Markdown in and out, mentions as @[id|words])
+  notePage/                  note pages (decision 0151): plain.ts (a page's words, through marked), head.ts, room.ts, autosave.ts (the save-as-you-write reducer), all core; schema.ts (adapter: TipTap's document, Markdown in and out, mentions as @[id|words]); pictures.ts (core: which mentions are pictures, their spoken name, when one says where it is from, the key a picture is made by), csp.ts (the page's Content-Security-Policy), pictureStore.ts (shell: each picture made once per photo and edit); `media/pictureData.ts` (adapter: a 720 px `data:` URL of a photo or a video's still; decision 0182)
   noteEdit.ts                NOTE_MAX (20,000), noteText, notePatch (a page's body and its mark)
   transcript/                memo transcripts (decision 0169): core (needsTranscript, isStale, spanOf), shell (the queue, one memo at a time), engine and cutter adapters (`.native` over expo-speech-recognition and the local module's `exportTrimmedAudio`), the `transcript` cache table
   useTranscript.ts           a memo's words for the caption (view); `components/MemoTranscript.tsx` draws it
@@ -663,3 +664,12 @@ stores the record whole.
 
 - **Built outside the app, in chronicles-data** (decision 0108): the places pipeline, its schemas, its class names and the owner's `edits.json` live there (https://github.com/MiguelAGuerrero/chronicles-data, its docs/spec.md). It builds the packs weekly, publishes them with `manifest.json` (each file's z8 `blocks`) and serves its `contract/` beside them. The app pins a copy of that contract (`src/lib/__tests__/explore/contract/`), and `placesContract.test.ts` holds the app's class table and reader to it (PP17); the owner's edits are applied in the build, never in the app. The listing rule of Remarkable and public, built in this repo before the move, is handed to it in `specs/remarkable-and-public/handoff.md`. `npm run places:coverage` (`scripts/places-coverage.ts`, `scripts/places-archive/coverage.mjs`) measures what the app keeps of seven areas' destinations.
 - **Read by tile in the app,** through `lib/net`, in the explore read (checklists, every walk) and the atlas ring read (PW10); never stored, merged with the map's places, the archive's kind winning. `EXPO_PUBLIC_PLACES_BASE` points the e2e build at `/places-e2e/` on the harness's server.
+
+## The gazetteer (Place search, decision 0184)
+
+`src/lib/gazetteer/` reads a **pack** (`assets/gazetteer/places.json`, columnar: names, ASCII names, alternates, region and country
+indexes, points in 1e-4 degrees, region codes), built by `scripts/build-gazetteer.js` from GeoNames `cities5000`. The app reads
+packs only (`pack.ts`, validated: no population or any field outside `PACK_FIELDS`); another dataset or a downloaded region is
+another pack read through `GazetteerSource` (`source.ts`, adapter; the bundled one `require`s the asset lazily on first use).
+`search.ts` (core) builds a sorted key index once (`indexOf`, cached per source) and answers a prefix query in a few ms; order is by
+distance from the argument `origin`, else name then region, never by size. A read-only bundled asset: no schema, no migration.

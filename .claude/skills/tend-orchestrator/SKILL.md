@@ -190,7 +190,9 @@ says so); STATUS, DEFERRED and the ledger follow `/tend` section 10.3.
   10.3). Never two `G` builds, and never a second run late in a usage window.
 - When one lands, send the other one line: "main moved to <sha>; lastT is now N".
 - **The weekly full pass** is a run's (`/tend` section 10, recorded in the run log as
-  `"e2e":"full"`): when the log shows none in seven days, say so in the next code run's brief.
+  `"e2e":"full"`): when `node <main-tools>/scripts/tend.js e2e-due` says it is due (no such line
+  in seven days of `main`'s log), say so in the next code run's brief. The pass is `npm run e2e:all`;
+  made on its own, it logs mode `e2e` with the line the script prints.
 
 ## 7. When a run completes
 

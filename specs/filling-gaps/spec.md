@@ -26,7 +26,7 @@ How it decides: the likely way is the shortest walk over the streets between the
 
 ## Vision
 
-Gate (`/vision`, decision 0094), after the fact: **aligned if reshaped**. It serves Return (a walk that reads the same every time it is opened). It stays opt-in (0060): the question is asked, never answered for the walker; it says "a likely way", in words with no count; Leave them keeps the gap as it was. Decision 0182 is the record.
+Gate (`/vision`, decision 0094), after the fact: **aligned if reshaped**. It serves Return (a walk that reads the same every time it is opened). It stays opt-in (0060): the question is asked, never answered for the walker; it says "a likely way", in words with no count; Leave them keeps the gap as it was. Decision 0185 is the record.
 
 ## Tests
 
@@ -75,7 +75,7 @@ One report-only pass found 17 issues. 12 were fixed, each with a regression test
 5. Two same-weight primaries, Keep them and Name it (steward S4, ux-reviewer U1): accept, the owner's call: both answers secondary.
 6. "One gap" with "Keep them", and no outcome said (ux-reviewer U3): accept. The words agree, and the line says what each answer does.
 7. The prompt wasn't announced (auditor F8, ux-reviewer U6): accept. A polite live region; not run with a screen reader.
-8. No Vision section or decision record (steward S1): accept. Both added (0182).
+8. No Vision section or decision record (steward S1): accept. Both added (0185).
 9. `setData` after Keep can drop an edit made meanwhile (auditor F6): defer, same pattern as Keep on a card.
 10. A bulk keep keeps low-certainty offers (auditor F7, steward S2): reject. The owner chose a prompt with Keep for all; each stays reversible from its card.
 11. "Not now" is grey and ambiguous (ux-reviewer U4, U5): defer, an existing control outside this slice.

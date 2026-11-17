@@ -30,7 +30,7 @@ import { MediaEditor, type MediaEditorHandle } from './edit/MediaEditor';
 import type { CapturePatch } from '../lib/captureBus';
 import { exportPlan, isEmptyEdit } from '../lib/mediaEdit';
 import { exportVideo } from '../lib/videoEdit';
-import { RemindEditor } from './RemindEditor';
+import { RemindEditor, type RemindEditorHandle } from './RemindEditor';
 import { NotePage, NoteReader, type NotePageHandle } from './notePage/NotePage';
 import { noteHead, type NoteHead } from '../lib/notePage/head';
 import { UndoToast } from './UndoToast';
@@ -73,6 +73,8 @@ function touchPoint(e: { pageX?: number; pageY?: number; touches?: ArrayLike<{ p
 const timeOf = (c: Faced) => new Date(c.t).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 /** The viewer's top bar (Close, More) over a note's page: 48 pt buttons and their margins. */
 const VIEWER_TOP = 64;
+/** Add to this moment's row under the top bar: 4 above its 48 pt buttons, 8 below; a note's page starts under it (tend explore audit 21). */
+const ADD_ROW_H = 60;
 
 /** A refused memo in a replay that moves on by itself waits this long, as a photo does. */
 const REFUSED_MOVE_ON_MS = 4000;
@@ -242,6 +244,8 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
   responses?: { text: string; onPress: () => void } | null;
   /** A note is read as its page (NP5): its head, its drawing to its last line; a tap on the words asks to edit. */
   note?: { head: NoteHead; onEdit?: () => void; onOpenMention: (id: string) => void; gone?: (id: string) => boolean };
+  /** Add to this moment's row shows under the top bar: a note's page starts below it, never under it (T7; tend explore audit 21). */
+  addRow?: boolean;
 }>(function CaptureContent(props, actionRef) {
   const { capture } = props;
   const insets = useSafeAreaInsets();
@@ -349,10 +353,10 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
 
   if (capture.kind === 'text' && props.note) {
     return (
-      <View key="page" style={[StyleSheet.absoluteFill, { paddingTop: insets.top + VIEWER_TOP, paddingBottom: (props.dock ?? 0) + insets.bottom }]}>
+      <View key="page" style={[StyleSheet.absoluteFill, { paddingTop: insets.top + VIEWER_TOP + (props.addRow ? ADD_ROW_H : 0), paddingBottom: (props.dock ?? 0) + insets.bottom }]}>
         {/* The moment's content between the viewer's bars, as a note's card was (the journeys read it as `capture-card`). */}
         <View testID="capture-card" style={styles.pageArea}>
-        <NoteReader body={props.note.gone ? withGone(capture.body ?? '', props.note.gone) : (capture.body ?? '')} bodyFormat={capture.body_format ?? null} head={props.note.head} onEdit={props.note.onEdit} onOpenMention={props.note.onOpenMention} />
+        <NoteReader body={props.note.gone ? withGone(capture.body ?? '', props.note.gone) : (capture.body ?? '')} bodyFormat={capture.body_format ?? null} head={props.note.head} pageAt={{ t: capture.t, walkId: capture.walk_id ?? null }} onEdit={props.note.onEdit} onOpenMention={props.note.onOpenMention} />
         <View style={[styles.metaRow, styles.pageMeta]}>
           <Text style={[styles.meta, styles.metaText]} testID="capture-meta" accessibilityLiveRegion="polite">{meta}{responsesLink(false)}</Text>
           {actions(false)}
@@ -449,6 +453,8 @@ export function CaptureViewer(props: {
   const editor = useRef<MediaEditorHandle>(null);
   // A note being written or edited closes its @ picker first, then itself (tend chronicle 1).
   const noteEditor = useRef<NotePageHandle>(null);
+  // Back and Escape close an open menu of the reminder editor before the editor (tend explore 18).
+  const remindEditor = useRef<RemindEditorHandle>(null);
   const replyNote = useRef<NotePageHandle>(null);
   // Edits saved here show at once, whether or not the caller's list hears of it (ME21).
   const [patched, setPatched] = useState<Map<string, CapturePatch>>(() => new Map());
@@ -692,7 +698,7 @@ export function CaptureViewer(props: {
     <Modal
       visible={list.length > 0}
       animationType="fade"
-      onRequestClose={reactingTo ? () => setReactingTo(null) : menu ? () => setMenu(false) : mentionPick ? () => setMentionPick(false) : replyStage === 'note' ? () => replyNote.current?.requestClose() : replyStage ? () => setReplyStage(null) : sheetUp ? () => setSheet(null) : adding ? () => setAdding(null) : editing ? () => editor.current?.requestClose() : noting ? () => noteEditor.current?.requestClose() : reminding ? () => setReminding(null) : openedStack.length ? back : close}
+      onRequestClose={reactingTo ? () => setReactingTo(null) : menu ? () => setMenu(false) : mentionPick ? () => setMentionPick(false) : replyStage === 'note' ? () => replyNote.current?.requestClose() : replyStage ? () => setReplyStage(null) : sheetUp ? () => setSheet(null) : adding ? () => setAdding(null) : editing ? () => editor.current?.requestClose() : noting ? () => noteEditor.current?.requestClose() : reminding ? () => remindEditor.current?.requestClose() : openedStack.length ? back : close}
     >
       <View
         style={styles.viewer}
@@ -743,6 +749,7 @@ export function CaptureViewer(props: {
             pieces={stacked ? { onPrev: pi > 0 ? () => stepPiece(-1) : undefined, onNext: pi < pieces.length - 1 ? () => stepPiece(1) : undefined } : undefined}
             onOpenRef={(v) => setOpenedStack((st) => [...st, v.capture])}
             onLens={props.onLens ? (id) => { close(); props.onLens!(id); } : undefined}
+            addRow={openForAdd === current.id}
             note={
               current.kind === 'text'
                 ? {
@@ -771,7 +778,7 @@ export function CaptureViewer(props: {
         )}
         {current && openForAdd === current.id && !editing && !noting && !reminding && !adding && (
           // Add to this moment, only while its pill is open (MS12): back to the walk screen, which adds to it.
-          <View style={[styles.addRow, { top: insets.top + 68 }]} testID="viewer-add">
+          <View style={[styles.addRow, { top: insets.top + VIEWER_TOP + 4 }]} testID="viewer-add">
             {([['Add a photo to this moment', 'camera', 'photo'], ['Add a voice memo to this moment', 'mic', 'voice'], ['Add a note to this moment', 'create', 'text']] as const).map(([label, icon, kind]) => (
               <Pressable
                 key={kind}
@@ -910,6 +917,8 @@ export function CaptureViewer(props: {
             reaction={{ set: notingSet, moment: noting.id, onPick: (id) => void reactions.choose(noting.id, id).catch(() => {}) }}
             head={headOf(noting)}
             self={noting.id}
+            pageAt={{ t: noting.t, walkId: noting.walk_id ?? null }}
+            onEditMedia={props.onSaveEdit ? (c, patch) => props.onSaveEdit!(c, patch) : undefined}
             onClose={() => setNoting(null)}
             store={{
               kept: true,
@@ -937,6 +946,7 @@ export function CaptureViewer(props: {
         )}
         {reminding && (
           <RemindEditor
+            ref={remindEditor}
             key={reminding.id}
             current={recalls.get(reminding.id) ?? null}
             onClose={() => setReminding(null)}

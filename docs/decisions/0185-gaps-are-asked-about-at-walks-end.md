@@ -1,4 +1,4 @@
-# 0182. Offered gaps are asked about once, at the walk's end
+# 0185. Offered gaps are asked about once, at the walk's end
 
 Date: 2026-11-16 · Status: accepted · Area: trace, gaps, replay · Amends: [0060](0060-filling-gaps.md) and [0068](0068-uncertain-gaps-are-offered.md) (when an offer is decided, not whether)
 

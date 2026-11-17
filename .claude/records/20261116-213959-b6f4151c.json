@@ -1,0 +1,110 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "Typed words go without asking",
+        "--reason",
+        "the owner's answer (decision 0172, O17: \"Ask before a tap outside drops a walk's changed name, as the media editor's Close does\"), built in tend chronicle 9: a tap outside or Escape asks before Rename drops a walk's changed name (with tend chronicle audit 5); the note half is moot (decision 0151). The item: \"Typed words go without asking: a tap on the backdrop leaves Rename, and Cancel or Escape leave a changed note; the media editor's Close asks first (NN/g H4; A1; `/tend chronicle`, Nov 11, low)\""
+      ],
+      "target": "sha256:1fd7d3a42df86369868b7b99042df731f1ef202a837b8f796e14c2e191921957"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "A figure breaks from its unit",
+        "--reason",
+        "built in tend chronicle 10: a figure keeps to its unit at a line's end, \"589 m\" never \"589 / m\" (the pinned tests restated; \"1 / video\" was moot since tend replay T19). The item: \"A figure breaks from its unit or noun at a line's end: \"589 / m\" in a place's header, \"1 / video\" in a walks row (pictures `09-home-place`, `10-home-walks`). A no-break space inside each figure fixes it, but `walkRowMeta`'s test pins the plain space, so it waits for that test to be restated (ui-patterns, \"content must not be lost\"; `/tend chronicle`, Nov 11, medium)\""
+      ],
+      "target": "sha256:2a94cccf8d7a6661f6375d6ca6dc60fa74608c7055f837a2e930c44719eab7c8"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Quality of life",
+        "--after",
+        "The open walks list sorts",
+        "--reason",
+        "the review of tend chronicle 10, auditor F6, deferred as low; not a move of the [owner] item this run removed, \"Typed words go without asking: a tap on the backdrop leaves Rename, and Cancel or Escape leave a changed note; the media editor's Close asks first\", built in tend chronicle 9"
+      ],
+      "body": "31. [loop] \"a voice memo\" breaks between its words at 320 px: the walks row reads \"a voice / memo and a note\" (pictures `09-home-place-320`, `10-home-walks-320` in the `chronicle` journey). `kindsClause` (`lib/pins.ts`) binds \"a\" to \"voice\" in its bind mode but not \"voice\" to \"memo\"; binding both keeps the noun whole, as `tend chronicle 10` keeps a figure to its unit (the `tend chronicle` review's auditor F6, Nov 16, low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Quality of life",
+        "--reason",
+        "the review of tend chronicle 9, auditor F2, deferred as low; not a move of the [owner] item this run removed, \"Typed words go without asking: a tap on the backdrop leaves Rename, and Cancel or Escape leave a changed note; the media editor's Close asks first\", built in tend chronicle 9"
+      ],
+      "body": "29. [loop] The \"Discard these edits?\" ask, in Rename (`tend chronicle 9`) as in the media editor's Close, takes no focus, and its live region mounts already holding its words, so a screen reader may say nothing when Save and Cancel (or the tools) give way to it; iOS has no live region at all, and the focus stays in the field. Moving the focus to Keep editing as the ask opens (`focusOn`, `lib/focus`) would serve both (`WalkActions.tsx`, the `rename-ask` view; `MediaEditor.tsx` ~l.383; the `tend chronicle` review's auditor F2, Nov 16, low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Quality of life",
+        "--reason",
+        "the review of tend chronicle 9, auditor F4, deferred as low; not a move of the [owner] item this run removed, \"Typed words go without asking: a tap on the backdrop leaves Rename, and Cancel or Escape leave a changed note; the media editor's Close asks first\", built in tend chronicle 9"
+      ],
+      "body": "30. [loop] Rename's steps out (a confirm open, then saving, then the ask, then changed words, then out) branch in the view, `close` in `WalkActions.tsx`, where the media editor keeps its own in core (`editSession.ts`, `close` and `keepEditing`). A pure `renameClose` in `lib/rename.ts` with a unit test would pin the paths no test reaches: the hold while saving, Android Back, and Cancel leaving at once with changed words (the `tend chronicle` review's auditor F4, Nov 16, low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Replay rhythm",
+        "--reason",
+        "the review of tend chronicle 9, auditor F5, with the owner's answer of Nov 16, \"Ask there too\", filed for the replay's next run; it follows the [owner] item this run removed, \"Typed words go without asking: a tap on the backdrop leaves Rename, and Cancel or Escape leave a changed note; the media editor's Close asks first\", built in tend chronicle 9"
+      ],
+      "body": "- [loop] Leaving the first replay with words typed in Name it drops them without asking: type \"Plums\", Escape (back to the card, the words kept), Escape again (`toChronicle()`), and the walk stays unnamed; Android Back twice does the same (`src/app/replay/[id].tsx` ~l.210-211 and 227-228). The owner's answer, Nov 16, in person: \"Ask there too\": leaving the first replay with typed Name it words asks \"Discard these edits?\", as Rename does since `tend chronicle 9` (decision 0172, O17; the `tend chronicle` review's auditor F5, low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Map, walk screen and motion polish",
+        "--reason",
+        "a red check of main's found by this run's journeys, filed for the map; not a move of the [owner] item this run removed, \"Typed words go without asking: a tap on the backdrop leaves Rename, and Cancel or Escape leave a changed note; the media editor's Close asks first\", built in tend chronicle 9"
+      ],
+      "body": "- [loop] The `qol` journey's `tend map audit 25` and `26` fail at Hold at 390 on `main` since the Place search commits (`426d94e1`, `b647b841`): the walker's dot sits on the walk's end, 0 to 16 px apart (dot [195,423], end [195,423]), where the check asks them apart; at 320 both pass. They passed on `6c5174cd` (217 ok), and fail the same on `b647b841` alone and on the `/tend chronicle` branch rebased on it (three runs, Nov 16), so the cause is in those commits or what they reach (`WalkMap.web.tsx`, the credits control) (found by the `/tend chronicle` run, Nov 16, medium)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "joins a number and its unit with a plain space"
+      ],
+      "body": "  Since `tend chronicle 10` (Nov 16) the place sheet's header, Chronicle's walks row and a day's walk line bind their figures (`bound` in `lib/quietLines.ts`); `formatDistance` itself, and every other line it feeds, still joins with a plain space.\n",
+      "target": "sha256:83464d22e64ed7a3c7fabf24fcec14d88a6df30ca88d9d08604fd96cb30ab4af"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "note",
+        "tap Rename, type in both fields"
+      ],
+      "body": "  Since `tend chronicle 9` (decision 0172, O17, Nov 16): with the words changed, Back asks \"Discard these edits?\" in place of Save and Cancel; Back again keeps editing, Discard steps out to the menu, and words left as they opened step out at once. With the ask open, the keyboard's Done keeps editing and stores nothing (`tend chronicle audit 5`).\n",
+      "target": "sha256:9da772aed92cb8a11f45b65f3b9f5a20f1483c90da5d96be8514a6fb5eed9741"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 16, `/tend chronicle --deploy=main`, building the owner's answer to O17 of decision 0172** (from `6c5174cd`, rebased\non `edf96c57`; a ledger run, lenses 1-6 not run; the review in the faster lane of decision 0181, one auditor round).\n- `tend chronicle 9` (O17, \"Typed words go without asking\"): in Rename, a tap outside, Escape or Back with words Save\n  would store differently asks \"Discard these edits?\" with Keep editing and Discard, the media editor's Close confirm\n  and its words; Escape or a tap outside the ask keeps editing; Cancel and unchanged words leave at once. The note\n  half is moot (a note is a page saved as you write, decision 0151).\n- `tend chronicle 10` (Quality of life 14, medium): a figure keeps to its unit at a line's end in Chronicle's walks\n  row, a place's header and a day's walk line, \"589 m\" never \"589 / m\"; the tests that pinned the plain space restated.\n- The review (one round, the auditor: 0 high or medium, 6 low). Fixed: `tend chronicle audit 5` (F1: Enter or Done\n  while the ask shows keeps editing and stores nothing). Filed `[loop]` low: the ask's focus and announcement, in\n  Rename and the media editor (F2); a pure `renameClose` (F4); \"a voice / memo\" at 320 px (F6); Name it on the first\n  replay asking before its words go, with the owner's answer of Nov 16, \"Ask there too\" (F5). F3's spec wording (QL22)\n  went to the owner's list by the coordinator; the rule line is added.\n- Filed `[loop]` medium: `qol`'s `tend map audit 25/26` red at Hold at 390 on `main` since the Place search commits,\n  not this run's. A note on `formatDistance`'s item; a note on the native Rename check (Back now asks).\n- The balance: outgrowing its base (seven areas rough); no `G` entry filed. No inbox entry.\n- Not run: lenses 1-6; of the journeys, `qol` (holding the new checks; red only on main's 25/26), `chronicle` and\n  `launch`, the last two before the audit fix. Nothing here has run on a phone.\n"
+    }
+  ]
+}

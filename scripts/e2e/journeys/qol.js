@@ -811,6 +811,30 @@ async function run(h) {
       check(Math.abs(turnedReplay) < 0.5, `tend map 1: the replay's map has no compass, so two fingers never turn it (CP1, decision 0082; bearing ${turnedReplay})`);
     }
     await shot(pg, 'qol-03-replay-card');
+    // tend map 13 (decision 0172, O13; amends QL3's placement): the photo and the note were kept where the trace ends, so
+    // their pin stands on the end marker; its stalk stops at the marker's edge (11 px above its middle), never inside it.
+    // At 390 and at 320.
+    await qstep('tend map 13', async () => {
+      const footOnEnd = async () => {
+        const endAt = lonLat(((await attr('data-ends')) ?? '').split('|')[1]);
+        const [ex, ey] = await pg.evaluate((q) => window.__project(q), endAt);
+        const feet = await pg.evaluate(() => [...document.querySelectorAll('.maplibregl-marker [data-testid=pin-head]')]
+          .filter((h) => !h.closest('[aria-hidden="true"]') && h.getBoundingClientRect().width > 0)
+          .map((h) => { const r = h.getBoundingClientRect(); return [r.x + r.width / 2, r.bottom + 8]; }));
+        const foot = feet.filter(([x]) => Math.abs(x - ex) < 11).sort((a, b) => Math.abs(a[0] - ex) - Math.abs(b[0] - ex))[0] ?? null;
+        return { end: [ex, ey].map(Math.round), foot: foot && foot.map((v) => Math.round(v * 10) / 10), above: foot ? ey - foot[1] : null };
+      };
+      const at390 = await footOnEnd();
+      await pg.setViewportSize({ width: 320, height: 568 });
+      await pg.waitForTimeout(1500);
+      const at320 = await footOnEnd();
+      await shot(pg, 'qol-03b-pin-on-end-320');
+      await pg.setViewportSize({ width: 390, height: 844 });
+      await pg.waitForTimeout(1500);
+      const atEdge = (r) => r.above != null && Math.abs(r.above - 11) <= 1.5;
+      check(atEdge(at390) && atEdge(at320),
+        `tend map 13: a pin standing on the end stops its stalk at the marker's edge, 11 px above its middle, at 390 and 320 (${JSON.stringify({ at390, at320 })})`);
+    });
     await checkAttribution('the replay', 'qol-07-replay-credits-open');
     // QL3: the markers never take a tap: the photo and the note were kept where the trace ends, so their
     // pin stands on the end marker, and a tap there opens it.
@@ -1125,6 +1149,113 @@ async function run(h) {
       await pg.click('[data-testid=rename-cancel]');
       await pg.click('[data-testid=actions-cancel]');
       await pg.waitForSelector('[data-testid=walk-actions]', { state: 'detached', timeout: 5000 });
+    });
+
+    // tend chronicle 9 (decision 0172, O17): a tap outside or Escape with changed words in Rename asks first, in the
+    // media editor's words; Escape on the ask keeps editing, Discard steps out to the menu with nothing stored, and
+    // words left as they opened close at once. Pictured at 320 px with the ask open.
+    await qstep('tend chronicle 9', async () => {
+      const vp = pg.viewportSize();
+      await pg.setViewportSize({ width: 320, height: 640 });
+      const storedTitles = () => pg.evaluate(() => new Promise((resolve) => {
+        const req = indexedDB.open('chronicles');
+        req.onsuccess = () => {
+          const g = req.result.transaction('walk', 'readonly').objectStore('walk').getAll();
+          g.onsuccess = () => resolve(g.result.map((w) => w.title).sort());
+        };
+      }));
+      const state = async () => ({
+        ask: await pg.locator('[data-testid=rename-ask]').count(),
+        editor: await pg.locator('[data-testid=rename-editor]').count(),
+        menu: await pg.locator('[data-testid=walk-actions]').count(),
+        askText: (await pg.locator('[data-testid=rename-ask]').allInnerTexts()).join(' | '),
+        title: (await pg.locator('[data-testid=rename-title]').count()) ? await pg.locator('[data-testid=rename-title]').inputValue() : null,
+      });
+      try {
+        const before = await storedTitles();
+        await pg.locator('[data-testid=walk-more]').first().click();
+        await pg.click('[data-testid=action-rename]');
+        await pg.locator('[data-testid=rename-title]').waitFor({ timeout: 5000 });
+        await pg.waitForTimeout(800);
+        await pg.locator('[data-testid=rename-title]').fill('A name half typed');
+        // The backdrop, above the sheet.
+        await pg.mouse.click(160, 30);
+        await pg.waitForTimeout(400);
+        const tapped = await state();
+        await shot(pg, 'qol-04c-rename-ask-320');
+        await pg.keyboard.press('Escape');
+        await pg.waitForTimeout(400);
+        const kept = await state();
+        await pg.keyboard.press('Escape');
+        await pg.waitForTimeout(400);
+        const escaped = await state();
+        await pg.click('[data-testid=rename-discard]');
+        await pg.waitForTimeout(400);
+        const discarded = await state();
+        const after = await storedTitles();
+        // Opened again and left as it was: a tap outside steps out at once.
+        await pg.click('[data-testid=action-rename]');
+        await pg.locator('[data-testid=rename-title]').waitFor({ timeout: 5000 });
+        await pg.waitForTimeout(800);
+        await pg.mouse.click(160, 30);
+        await pg.waitForTimeout(400);
+        const unchanged = await state();
+        check(tapped.ask === 1 && tapped.editor === 1 && tapped.title === 'A name half typed'
+          && /Discard these edits\?/.test(tapped.askText) && /Keep editing/.test(tapped.askText) && /Discard$/.test(tapped.askText.trim())
+          && kept.ask === 0 && kept.editor === 1 && kept.title === 'A name half typed'
+          && escaped.ask === 1 && escaped.editor === 1
+          && discarded.editor === 0 && discarded.menu === 1 && JSON.stringify(after) === JSON.stringify(before)
+          && unchanged.ask === 0 && unchanged.editor === 0 && unchanged.menu === 1,
+          `tend chronicle 9: a tap outside or Escape with changed words asks first, Escape keeps editing, Discard stores nothing, unchanged words close at once (${JSON.stringify({ tapped, kept, escaped, discarded, unchanged, before, after })})`);
+      } finally {
+        await pg.click('[data-testid=rename-discard]', { timeout: 1000 }).catch(() => {});
+        await pg.click('[data-testid=rename-cancel]', { timeout: 1000 }).catch(() => {});
+        await pg.click('[data-testid=actions-cancel]', { timeout: 1000 }).catch(() => {});
+        await pg.waitForSelector('[data-testid=walk-actions]', { state: 'detached', timeout: 5000 }).catch(() => {});
+        if (vp) await pg.setViewportSize(vp);
+      }
+    });
+
+    // tend chronicle audit 5: Enter (a phone's Done) in the line while the ask shows is Keep editing, never a hidden
+    // Save: the ask goes, the editor keeps the words, and nothing is stored. Escape here is pressed with the focus in
+    // the changed field.
+    await qstep('tend chronicle audit 5', async () => {
+      const titles = () => pg.evaluate(() => new Promise((resolve) => {
+        const req = indexedDB.open('chronicles');
+        req.onsuccess = () => {
+          const g = req.result.transaction('walk', 'readonly').objectStore('walk').getAll();
+          g.onsuccess = () => resolve(g.result.map((w) => [w.title, w.epilogue]).sort());
+        };
+      }));
+      try {
+        const before = await titles();
+        await pg.locator('[data-testid=walk-more]').first().click();
+        await pg.click('[data-testid=action-rename]');
+        await pg.locator('[data-testid=rename-epilogue]').waitFor({ timeout: 5000 });
+        await pg.waitForTimeout(800);
+        const line = pg.locator('[data-testid=rename-epilogue]');
+        await line.fill('Words not yet kept');
+        await line.press('Escape');
+        await pg.waitForTimeout(400);
+        const asked = await pg.locator('[data-testid=rename-ask]').count();
+        await line.press('Enter');
+        await pg.waitForTimeout(600);
+        const after = {
+          ask: await pg.locator('[data-testid=rename-ask]').count(),
+          editor: await pg.locator('[data-testid=rename-editor]').count(),
+          save: await pg.locator('[data-testid=rename-save]').count(),
+          line: (await line.count()) ? await line.inputValue() : null,
+        };
+        const stored = await titles();
+        check(asked === 1 && after.ask === 0 && after.editor === 1 && after.save === 1 && after.line === 'Words not yet kept'
+          && JSON.stringify(stored) === JSON.stringify(before),
+          `tend chronicle audit 5: Enter while Rename asks keeps editing and stores nothing (${JSON.stringify({ asked, after, before, stored })})`);
+      } finally {
+        await pg.click('[data-testid=rename-cancel]', { timeout: 1000 }).catch(() => {});
+        await pg.click('[data-testid=rename-discard]', { timeout: 1000 }).catch(() => {});
+        await pg.click('[data-testid=actions-cancel]', { timeout: 1000 }).catch(() => {});
+        await pg.waitForSelector('[data-testid=walk-actions]', { state: 'detached', timeout: 5000 }).catch(() => {});
+      }
     });
     await c.close();
 
@@ -1641,22 +1772,36 @@ async function run(h) {
         const hideMarkers = (hidden) => pg9.evaluate((v) => document.querySelectorAll('.maplibregl-marker').forEach((m) => { m.style.visibility = v ? 'hidden' : ''; }), hidden);
 
         // tend map audit 26: Hold once the dot has gone 40 px from the end along the loop, then read where both are.
+        // tend map 12: the loop's path beat runs the whole loop in about a second, so the hold is timed in the page and
+        // tapped where the button is. A poll of three round trips and a click that waits for the button to hold still
+        // took 140 to 784 ms, and the check lost the race now and then from the start (2 of 5 scratch runs on 6c5174cd,
+        // 4 of 5 on main; the larger web bundle since the place-name pack is a possible contributor, not shown).
+        // tend map audit 34 (the review's F35, F36): the tap is on Hold itself (the stage under it holds the replay too),
+        // Hold then reads Play and the dot and the clock stand still for a second, and a dot that never leaves the end
+        // fails saying so.
         const holdApart = async (w) => {
           await pg9.waitForSelector('[data-testid=replay-clock]', { timeout: 60000 });
-          let d = null;
-          for (let k = 0; k < 400; k++) {
-            const [ends, walker] = [await mapAttr('data-ends'), await mapAttr('data-walker')];
-            const endAt = lonLatOf((ends ?? '').split('|')[1]);
-            const walkerAt = lonLatOf(walker);
-            if (endAt && walkerAt) {
-              const [a, b] = await pg9.evaluate(([p, q]) => [window.__project(p), window.__project(q)], [endAt, walkerAt]);
-              d = Math.hypot(a[0] - b[0], a[1] - b[1]);
-              if (d >= 40) break;
-            }
-            await pg9.waitForTimeout(40);
-          }
-          await pg9.click('[data-testid=hold]');
+          const hb = await pg9.locator('[data-testid=hold]').boundingBox();
+          const tap = hb ? [hb.x + hb.width / 2, hb.y + hb.height / 2] : [0, 0];
+          const left = await pg9.waitForFunction(([x, y]) => {
+            const el = [...document.querySelectorAll('[data-ends]')].filter((e) => !e.closest('[aria-hidden="true"]') && e.getBoundingClientRect().width > 0).pop();
+            const ll = (v) => (v ? v.split(',').map(Number) : null);
+            const endAt = el && ll((el.getAttribute('data-ends') ?? '').split('|')[1]);
+            const walkerAt = el && ll(el.getAttribute('data-walker'));
+            if (!endAt || !walkerAt || typeof window.__project !== 'function') return false;
+            const [a, b] = [window.__project(endAt), window.__project(walkerAt)];
+            if (Math.hypot(a[0] - b[0], a[1] - b[1]) < 40) return false;
+            return { onHold: !!document.elementFromPoint(x, y)?.closest('[data-testid=hold]') };
+          }, tap, { polling: 'raf', timeout: 30000 }).then((hd) => hd.jsonValue(), () => null);
+          await pg9.mouse.click(tap[0], tap[1]);
+          const still = async () => [await pg9.locator('[data-testid=replay-clock]').getAttribute('aria-label').catch(() => null), await mapAttr('data-walker')].join(' @ ');
           await pg9.waitForTimeout(600);
+          const at600 = await still();
+          await pg9.waitForTimeout(1000);
+          const at1600 = await still();
+          const label = (await pg9.locator('[data-testid=hold]').innerText().catch(() => '')).trim();
+          check(!!left && left.onHold && at600 === at1600 && label === 'Play',
+            `tend map audit 34: at Hold on the loop at ${w}, ${left ? '' : 'the dot never left the end; '}the tap is on Hold (${left && left.onHold}), Hold reads Play ("${label}") and the dot and the clock stand still (${at600} → ${at1600})`);
           const ends = await mapAttr('data-ends');
           const endAt = lonLatOf((ends ?? '').split('|')[1]);
           const walkerAt = lonLatOf(await mapAttr('data-walker'));

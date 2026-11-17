@@ -228,6 +228,11 @@ The three tabs (Chronicle, Explore, Navigate), the home sheet, the recording bar
   pure) writes only the title and the line. Chronicle and the replay patch the walk in
   place through `onRenamed`, so the row and the card show it at once. `suggestTitle`
   lives in the pure `lib/walkTitle.ts` (`summary.ts` re-exports it).
+- **Rename asks before it drops changed words** (decision 0172, O17; `tend chronicle 9`): a tap outside, Escape or
+  Back with words Save would store differently (`renameChanged`, `lib/rename.ts`, read through `renamePatch`) shows
+  the media editor's Close confirm in its words, "Discard these edits?" with Keep editing and Discard, in place of Save
+  and Cancel. Escape, a tap outside the ask, and Enter or Done in the line (`tend chronicle audit 5`) keep editing;
+  Discard steps out to the menu. Cancel leaves at once: a choice already made. Words left as they opened step out at once.
 - **A title is stored only when its words differ from the suggestion at save** (the owner's yes to inbox T1,
   Nov 11): `renamePatch` returns `title: null` for an empty title, the suggestion, or the suggestion the field was
   filled with (a gap kept on the first replay's card can move the walk's area meanwhile, tend chronicle audit 1),

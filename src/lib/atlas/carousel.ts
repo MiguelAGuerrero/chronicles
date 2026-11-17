@@ -90,10 +90,42 @@ export function storefrontNamesNear(view: LandingView | null, at: LngLat | null,
  * What a settled scroll means (explore-carousel audit 2). While the row is scrolling itself to a card (`intended`), a settle
  * that stopped short of it (a stalled page) is never the reader's: it aims on. Otherwise the card it stopped on is reported
  * when it is not already the selected one.
+ *
+ * While the reader's finger is down or the row is gliding from a release (`held`), a settle waits (fix carousel-snap-back): a
+ * pause between cards (a still finger, or a page that stalled mid-glide) is not a stop, and easing onto the nearest card then
+ * made it the row's own target, so the release, bound for the next card, was aimed back at the old one.
  */
-export function settleStep(p: { index: number; intended: number | null; selected: number }): { report: number | null; scrollTo: number | null } {
-  if (p.intended != null) return { report: null, scrollTo: p.index === p.intended ? null : p.intended };
-  return { report: p.index === p.selected ? null : p.index, scrollTo: null };
+export function settleStep(p: { index: number; intended: number | null; selected: number; held?: boolean }): { report: number | null; scrollTo: number | null; wait: boolean } {
+  if (p.held) return { report: null, scrollTo: null, wait: true };
+  if (p.intended != null) return { report: null, scrollTo: p.index === p.intended ? null : p.intended, wait: false };
+  return { report: p.index === p.selected ? null : p.index, scrollTo: null, wait: false };
+}
+
+/**
+ * Whether the reader holds the row (fix carousel-snap-back audits 1-4): a finger on it (`finger`, from the touch events, the only
+ * ones the web build fires; the native drag events say the same), or a release still gliding (`glide`, native's momentum events).
+ * `waits` counts the settles that waited since the row last scrolled, so an event that never comes (a glide with no end, a
+ * touch the system cancelled) lets go after `HOLD_MAX_WAITS` (a glide) or `FINGER_MAX_WAITS` (a finger) instead of freezing the row.
+ */
+export type Hold = { finger: boolean; glide: boolean; waits: number };
+export const HOLD_NONE: Hold = { finger: false, glide: false, waits: 0 };
+/** Settles that may wait on a glide whose end never came (about 3.6 s), and on a finger whose end never came (about 30 s: a real finger can rest). */
+export const HOLD_MAX_WAITS = 12;
+export const FINGER_MAX_WAITS = 100;
+export const isHeld = (h: Hold): boolean => h.finger || h.glide;
+export function holdStep(h: Hold, e: 'down' | 'up' | 'glide' | 'rest' | 'scroll' | 'waited'): Hold {
+  switch (e) {
+    // A new touch ends the glide it stopped.
+    case 'down': return { finger: true, glide: false, waits: 0 };
+    case 'up': return { ...h, finger: false, waits: 0 };
+    case 'glide': return { ...h, glide: true };
+    case 'rest': return { ...h, glide: false };
+    case 'scroll': return { ...h, waits: 0 };
+    case 'waited': {
+      const waits = h.waits + 1;
+      return { finger: h.finger && waits < FINGER_MAX_WAITS, glide: h.glide && waits < HOLD_MAX_WAITS, waits };
+    }
+  }
 }
 
 /**
