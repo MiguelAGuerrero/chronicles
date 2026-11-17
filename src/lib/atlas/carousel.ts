@@ -72,23 +72,31 @@ export function settledIndex(offsetX: number, step: number, count: number): numb
   return Math.max(0, Math.min(count - 1, Math.round(offsetX / step)));
 }
 
-/** How far, as a share of a card step, a scroll must travel from the card it began on to count as a flick toward the next. */
+/** How far, as a share of a card step, a scroll must travel from where the touch began to count as a flick toward the next card. */
 export const FLICK_SHARE = 0.12;
+/** A touch began "on a card" when its offset was within this share of a step of one. */
+const ON_CARD_SHARE = 0.05;
 
 /**
  * The card a settled scroll lands on (fix carousel-flick). The platform's snap does this on a phone (`snapToInterval`); the web
  * has none, so the nearest card alone sent a short swipe, one that stopped under half a card away, back to the card it began on
- * ("it snaps back; the second, firmer try works"). A scroll the reader began on card `from` (null: not a reader's gesture) that
- * has moved past `FLICK_SHARE` of a step and still rounds to `from` goes on to the next card that way; any other lands on the
- * nearest, so a long glide is never pulled back.
+ * ("it snaps back; the second, firmer try works"). A touch that began on a card (`start`, the offset when it landed; null: not a
+ * reader's gesture) and moved over `FLICK_SHARE` of a step, yet still rounds to that card, goes on to the neighbour that way. Any
+ * other lands on the nearest: a touch that landed between cards (a catch mid-ease) has no direction of its own, and a long glide
+ * is never pulled back (audits 1, 2).
  */
-export function snapTarget(p: { offset: number; step: number; count: number; from: number | null }): number {
+export function snapTarget(p: { offset: number; step: number; count: number; start: number | null }): number {
   const near = settledIndex(p.offset, p.step, p.count);
-  if (p.from == null || near !== p.from || p.step <= 0) return near;
-  const moved = p.offset - p.from * p.step;
+  if (p.start == null || p.step <= 0) return near;
+  const from = settledIndex(p.start, p.step, p.count);
+  if (near !== from || Math.abs(p.start - from * p.step) > p.step * ON_CARD_SHARE) return near;
+  const moved = p.offset - p.start;
   if (Math.abs(moved) < p.step * FLICK_SHARE) return near;
-  return Math.max(0, Math.min(p.count - 1, p.from + (moved > 0 ? 1 : -1)));
+  return Math.max(0, Math.min(p.count - 1, from + (moved > 0 ? 1 : -1)));
 }
+
+/** A gesture's start offset: the first touch event's, kept when a second of the same gesture comes (a phone sends two; audit 3). */
+export const keepStart = (kept: number | null, now: number): number => kept ?? now;
 
 /** Where to scroll to centre a card (EC4). */
 export const offsetOf = (index: number, step: number): number => index * step;

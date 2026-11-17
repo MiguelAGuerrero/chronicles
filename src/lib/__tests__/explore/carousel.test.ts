@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { ATLAS_CODE, ATLAS_RULES, type AtlasArea, type Listed, type NearRead } from '../../atlas/atlas';
-import { liveReport, holdStep, isHeld, HOLD_NONE, HOLD_MAX_WAITS, FINGER_MAX_WAITS, snapTarget, FLICK_SHARE, storefrontNamesNear, storefrontNamesOn, storefrontRadiusM, cardFooter, firstSelection, layerCentre, nearWords, townsListedAfter, offsetOf, rowOf, rowStep, settledIndex, settleStep, stepKey, townNote } from '../../atlas/carousel';
+import { liveReport, holdStep, isHeld, HOLD_NONE, HOLD_MAX_WAITS, FINGER_MAX_WAITS, snapTarget, keepStart, FLICK_SHARE, storefrontNamesNear, storefrontNamesOn, storefrontRadiusM, cardFooter, firstSelection, layerCentre, nearWords, townsListedAfter, offsetOf, rowOf, rowStep, settledIndex, settleStep, stepKey, townNote } from '../../atlas/carousel';
 import { readFileSync } from 'node:fs';
 import type { LandingView } from '../../landing/view';
 import type { LngLat } from '../../types';
@@ -253,17 +253,39 @@ test('fix carousel-snap-back audit 5: a finger held still stays held past the gl
 
 test('fix carousel-flick: a short swipe that stops under half a card away goes on to the next card, not back to the one it began on (web has no snap)', () => {
   const step = 300;
-  const at = (offset: number, from: number | null, count = 5) => snapTarget({ offset, step, count, from });
-  // Began on card 1 (offset 300).
-  assert.equal(at(300 + step * 0.3, 1), 2, 'a 30% swipe left goes to the next card');
-  assert.equal(at(300 - step * 0.3, 1), 0, 'a 30% swipe right goes to the previous card');
-  assert.equal(at(300 + step * (FLICK_SHARE + 0.01), 1), 2, 'just past the flick share');
-  assert.equal(at(300 + step * (FLICK_SHARE - 0.02), 1), 1, 'a wobble under the flick share stays');
-  assert.equal(at(300, 1), 1, 'no move stays');
-  assert.equal(at(300 + step * 0.7, 1), 2, 'past the middle is the nearest card, as before');
-  assert.equal(at(300 + step * 1.6, 1), 3, 'a long glide lands on the nearest card, the bias never pulls it back');
+  // Began on card 1 (offset 300), a touch that landed on a card.
+  const at = (offset: number, start: number | null, count = 5) => snapTarget({ offset, step, count, start });
+  assert.equal(at(300 + step * 0.3, 300), 2, 'a 30% swipe left goes to the next card');
+  assert.equal(at(300 - step * 0.3, 300), 0, 'a 30% swipe right goes to the previous card');
+  assert.equal(at(300 + step * (FLICK_SHARE + 0.01), 300), 2, 'just past the flick share');
+  assert.equal(at(300 + step * (FLICK_SHARE - 0.02), 300), 1, 'a wobble under the flick share stays');
+  assert.equal(at(300, 300), 1, 'no move stays');
+  assert.equal(at(300 + step * 0.7, 300), 2, 'past the middle is the nearest card, as before');
+  assert.equal(at(300 + step * 1.6, 300), 3, 'a long glide lands on the nearest card, the bias never pulls it back');
   assert.equal(at(300 + step * 0.3, null), 1, 'with no gesture (a wheel, the row\'s own scroll) the nearest card');
-  assert.equal(at(step * 4 + step * 0.3, 4), 4, 'clamped at the last card');
+  assert.equal(at(step * 4 + step * 0.3, step * 4), 4, 'clamped at the last card');
   assert.equal(at(-step * 0.3, 0), 0, 'clamped at the first card');
-  assert.equal(at(50, 1, 0), 0, 'an empty row');
+  assert.equal(at(50, 300, 0), 0, 'an empty row');
+});
+
+test('fix carousel-flick audit 1: a touch that did not land on a card (a catch mid-ease) never biases: the nearest card, whichever way it drifted', () => {
+  const step = 300;
+  const at = (offset: number, start: number) => snapTarget({ offset, step, count: 5, start });
+  // The row was easing to card 1 and the reader caught it at 0.6 of a step, lifting without moving: it is not reversed.
+  assert.equal(at(step * 0.6, step * 0.6), 1, 'caught at 0.6, lifted at 0.6');
+  assert.equal(at(step * 1.0, step * 0.6), 1, 'caught at 0.6, the ease carried on to the card');
+  // Landed mid-card and nudged toward the card it was nearest: not the opposite one.
+  assert.equal(at(step * 0.3, step * 0.4), 0, 'began at 0.4, dragged back to 0.3');
+  assert.equal(at(step * 1.3, step * 1.4), 1, 'caught a glide heading back at 1.4, lifted at 1.3');
+  // On a card within the tolerance still counts as landing on it.
+  assert.equal(at(300 + step * 0.3, 300 + 2), 2, 'a touch 2 px off a card');
+});
+
+test('fix carousel-flick audit 2, 3: a tap with no scroll never changes the target; one gesture keeps its first start', () => {
+  const step = 300;
+  assert.equal(snapTarget({ offset: 300, step, count: 5, start: 300 }), 1, 'a tap on a card');
+  assert.equal(snapTarget({ offset: 302, step, count: 5, start: 300 }), 1, 'a tap that moved 2 px');
+  // The start is kept by the caller: a second touch event of the same gesture (a phone sends two) never replaces it.
+  assert.equal(keepStart(null, 300), 300, 'the first touch sets it');
+  assert.equal(keepStart(300, 345), 300, 'the second, mid-gesture, keeps the first');
 });
