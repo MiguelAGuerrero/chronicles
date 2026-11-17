@@ -12,6 +12,14 @@ const path = require('path');
 const HEADING = 'How adjacent apps do it';
 const LIST = 'docs/research/adjacent-apps.md';
 
+/**
+ * Specs that predate the gate on other sessions' branches in flight (2026-11-17), each held in IN_PROGRESS there:
+ * grandfathered whole, IN_PROGRESS included, and allowed to be missing from main until they land
+ * (open-in-maps-here and shop-marks are not on main yet; places-pipeline is). Taken off when they land with the
+ * section or are abandoned. unsaved-captures is not one: its build adds the section.
+ */
+const IN_FLIGHT_SPECS = ['open-in-maps-here', 'shop-marks', 'places-pipeline'];
+
 /** Specs written before the gate (2026-11-17). Only shrinks: a listed spec that gains the section must leave. */
 const LEGACY_SPECS = [
   'activity-density', 'affected-checks', 'atlas-grading', 'bridges-and-open-in-maps', 'capture-from-chronicle',
@@ -30,6 +38,8 @@ const LEGACY_SPECS = [
   'test-organization', 'town-borders', 'town-outlines', 'town-presence', 'ui-conformance', 'v0.5-places',
   'v1-discovery', 'v1.5-landing', 'video-thumbnails', 'vision-gate', 'voice-trim', 'walk-planner',
   'walkability-headsup', 'walkability-urban-form', 'walkability', 'whole-towns',
+  // These predate the gate on branches in flight (IN_FLIGHT_SPECS above): grandfathered whole, IN_PROGRESS too.
+  ...IN_FLIGHT_SPECS.filter((slug) => slug !== 'places-pipeline'),
 ];
 
 const ITEM = /^(\s*)(?:[-*]|\d+\.)\s+(.*)$/;
@@ -64,9 +74,10 @@ function sectionOf(text) {
 }
 
 /** What is wrong (pure): specs [{ slug, text }], the slugs in IN_PROGRESS, the legacy list. */
-function specProblems(specs, inProgress, legacy = LEGACY_SPECS) {
+function specProblems(specs, inProgress, legacy = LEGACY_SPECS, inFlight = IN_FLIGHT_SPECS) {
   const out = [];
   const old = new Set(legacy);
+  const branch = new Set(inFlight.filter((slug) => old.has(slug)));
   const busy = new Set(inProgress);
   for (const { slug, text } of specs) {
     const s = sectionOf(text);
@@ -75,7 +86,7 @@ function specProblems(specs, inProgress, legacy = LEGACY_SPECS) {
       out.push({ slug, message: `${slug} has a "## ${HEADING}" section now: take it off scripts/precedent.js's LEGACY_SPECS (the list only shrinks).` });
       continue;
     }
-    if (old.has(slug) && !busy.has(slug)) continue;
+    if (old.has(slug) && (!busy.has(slug) || branch.has(slug))) continue;
     if (!s) {
       out.push({ slug, message: `specs/${slug}/spec.md has no "## ${HEADING}" section, and ${why}: add one with 2-3 adjacent apps' handling of its job, each \`- **<App>**: <controls, words, flow>. Source: <URL | observed <date> | from memory, unverified>.\`, from ${LIST} (record new ones there too).` });
     } else if (!s.entries.length) {
@@ -84,7 +95,7 @@ function specProblems(specs, inProgress, legacy = LEGACY_SPECS) {
   }
   const slugs = new Set(specs.map((s) => s.slug));
   for (const slug of legacy) {
-    if (!slugs.has(slug)) out.push({ slug, message: `scripts/precedent.js's LEGACY_SPECS names ${slug}, which has no spec: take it off (the list only shrinks).` });
+    if (!slugs.has(slug) && !branch.has(slug)) out.push({ slug, message: `scripts/precedent.js's LEGACY_SPECS names ${slug}, which has no spec: take it off (the list only shrinks).` });
   }
   return out;
 }
@@ -102,7 +113,7 @@ function check(root = path.join(__dirname, '..')) {
   return specProblems(specs, Object.keys(IN_PROGRESS || {}));
 }
 
-module.exports = { HEADING, LIST, LEGACY_SPECS, sectionOf, specProblems, check };
+module.exports = { HEADING, LIST, LEGACY_SPECS, IN_FLIGHT_SPECS, sectionOf, specProblems, check };
 
 if (require.main === module) {
   const problems = check();

@@ -17,8 +17,9 @@ type Problem = { slug: string; message: string };
 type Precedent = {
   HEADING: string;
   LEGACY_SPECS: string[];
+  IN_FLIGHT_SPECS: string[];
   sectionOf(text: string): { line: number; entries: Entry[] } | null;
-  specProblems(specs: { slug: string; text: string }[], inProgress: string[], legacy?: string[]): Problem[];
+  specProblems(specs: { slug: string; text: string }[], inProgress: string[], legacy?: string[], inFlight?: string[]): Problem[];
   check(root: string): Problem[];
 };
 const precedent = () => load(join(ROOT, 'scripts', 'precedent.js')) as Precedent;
@@ -93,7 +94,7 @@ test('precedent: this repo is clean, every spec before the gate is listed, and c
   const p = precedent();
   assert.deepEqual(p.check(ROOT).map((x) => x.message), []);
   const slugs = readdirSync(join(ROOT, 'specs')).filter((d) => existsSync(join(ROOT, 'specs', d, 'spec.md')));
-  for (const slug of p.LEGACY_SPECS) assert.ok(slugs.includes(slug), `${slug} is a spec`);
+  for (const slug of p.LEGACY_SPECS) assert.ok(slugs.includes(slug) || p.IN_FLIGHT_SPECS.includes(slug), `${slug} is a spec`);
   assert.ok(p.LEGACY_SPECS.length >= 85, 'the specs on main at the gate are grandfathered');
   assert.match(read('scripts/check-docs.js'), /require\('\.\/precedent'\)/);
 });
@@ -112,4 +113,22 @@ test('precedent: the list of adjacent apps and their implementations, and the pr
     assert.match(read(f), /adjacent-apps\.md|precedent/i, `${f} asks for precedent`);
   }
   assert.ok(existsSync(join(ROOT, 'docs', 'decisions')) && readdirSync(join(ROOT, 'docs', 'decisions')).some((f) => /^\d{4}-adjacent-apps/.test(f)), 'the owner\'s call is recorded');
+});
+
+test('precedent: a spec written before the gate on a branch in flight is grandfathered, missing from main or in IN_PROGRESS on its branch; unsaved-captures is not', () => {
+  const p = precedent();
+  const bare = '# A spec\n\n## Criteria\n\n1. **ZZ1** Something.\n';
+  assert.deepEqual([...p.IN_FLIGHT_SPECS].sort(), ['open-in-maps-here', 'places-pipeline', 'shop-marks']);
+  for (const slug of p.IN_FLIGHT_SPECS) assert.ok(p.LEGACY_SPECS.includes(slug), `${slug} is on LEGACY_SPECS`);
+  assert.ok(!p.LEGACY_SPECS.includes('unsaved-captures'), 'our own slice adds the section');
+  // On main: the listed slug has no spec yet, and that is allowed.
+  assert.deepEqual(p.specProblems([], [], ['branch-only'], ['branch-only']), []);
+  // A listed slug that is not in flight and has no spec still has to leave the list.
+  assert.equal(p.specProblems([], [], ['gone'], ['branch-only']).length, 1);
+  // After the branch rebases: its spec, in its IN_PROGRESS, without the section, passes.
+  assert.deepEqual(p.specProblems([{ slug: 'branch-only', text: bare }], ['branch-only'], ['branch-only'], ['branch-only']), []);
+  // The repo's own lists, as the branches will see them.
+  const theirs = p.IN_FLIGHT_SPECS.map((slug) => ({ slug, text: bare }));
+  assert.deepEqual(p.specProblems(theirs, p.IN_FLIGHT_SPECS).filter((x) => p.IN_FLIGHT_SPECS.includes(x.slug)).map((x) => x.message), []);
+  assert.equal(p.specProblems([{ slug: 'unsaved-captures', text: bare }], ['unsaved-captures']).filter((x) => x.slug === 'unsaved-captures').length, 1);
 });

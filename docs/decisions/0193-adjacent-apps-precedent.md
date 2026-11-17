@@ -31,7 +31,8 @@ our UI and user experience."
   on `main` before it are grandfathered in a list that only shrinks.
 
 ## Consequences
-- In-progress specs on branches not yet on `main` (unsaved-captures, open-in-maps-here, shop-marks, places-pipeline)
-  need the section before they land.
+- Specs written before the gate on other sessions' branches in flight (open-in-maps-here, shop-marks,
+  places-pipeline) are grandfathered whole, `IN_PROGRESS` included, so their rebases do not break. The
+  unsaved-captures slice is not: its build adds the section.
 - Web access from cloud sessions is limited: a source that cannot be fetched is written "from memory, unverified",
   never cited, and a recommendation resting only on unverified lines says so.
