@@ -51,7 +51,7 @@ Added after the verdict, by the owner's calls 0199 and 0200, and argued here at 
   'New to you' in words", and "All-day tracking": only recorded outings are read, nothing is stored, and nothing on the page marks a
   place done; whether silence is right is the owner's, below). Precedent for these: Apple Maps' Visited Places keeps where you have
   been on the device (verified, `docs/research/adjacent-apps.md`); a search within a radius and a re-roll have no recorded precedent
-Criteria: OJ1-OJ47 below
+Criteria: OJ1-OJ51 below
 Open: the road's distance (the app has no road routing: a straight-line distance, said as such, or a road graph of its own); capture
   while moving at driving speed; whether a time is ever said beside a distance
 ```
@@ -239,6 +239,16 @@ One machine, with or without a destination (the owner, Nov 17, decision 0199):
   search field at 320 px wide (QC30; the steward's S3).
 - **OJ40.** An attraction reached through a journey is found by Explore's existing rules and no others; the arrival chip reads the same
   for a shop and an attraction and says nothing of finding (QC19; the steward's S9).
+
+Carried like a trip plan (the owner, Nov 17, decision 0201):
+
+- **OJ48.** The plan a session carries holds each chapter's town name, its point, its stops' positions and whether it is a loop, and
+  nothing else: no stop's name, no chip, no path. It is kept under one key for the open session, taken up only by the session started
+  from the page within two minutes, and cleared when the session stops. (Rewrites OJ34's "saved destination" and QC29's one key.)
+- **OJ49.** The chapter ahead is read from where you have been: a town is behind you once you came within reach of it and left, once
+  a later town was reached, or once you are clearly past it toward the next. Nothing stores that a town was reached or passed.
+- **OJ50.** A town new to you says "New to you." in its chapter on the page; no place says so, and nothing is said of a town you have been in.
+- **OJ51.** The page's map joins the journey's towns with one faint straight line from where you stand, beside the walk in the first.
 
 ## Surfaces (from the code)
 
