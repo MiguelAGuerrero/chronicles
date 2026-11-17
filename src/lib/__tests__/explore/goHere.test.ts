@@ -57,7 +57,7 @@ test('GH10: the sheet\'s own words hold no digit, minutes, "fastest" or count; t
 
 test('GH14: a decision record cites 0058 and 0121 and lists the tile as a host', () => {
   const dir = new URL('../../../../docs/decisions/', import.meta.url);
-  const hit = readdirSync(dir).filter((f) => f.startsWith('0187')).map((f) => readFileSync(new URL(f, dir), 'utf8'));
+  const hit = readdirSync(dir).filter((f) => f.startsWith('0188')).map((f) => readFileSync(new URL(f, dir), 'utf8'));
   assert.ok(hit.length === 1, 'one record for Go here');
   assert.match(hit[0], /0058/);
   assert.match(hit[0], /0121/);
@@ -108,11 +108,11 @@ test('GE13: only the destination leaves; a star\'s title and "Your spot" never r
   }
 });
 
-test('GE12: a decision record cites 0187, 0058 and 0121, lists the hosts and keeps the dead-zone nudge deferred', () => {
+test('GE12: a decision record cites 0188, 0058 and 0121, lists the hosts and keeps the dead-zone nudge deferred', () => {
   const dir = new URL('../../../../docs/decisions/', import.meta.url);
-  const hit = readdirSync(dir).filter((f) => /go-here/.test(f) && !f.startsWith('0187')).map((f) => readFileSync(new URL(f, dir), 'utf8'));
+  const hit = readdirSync(dir).filter((f) => /go-here/.test(f) && !f.startsWith('0188')).map((f) => readFileSync(new URL(f, dir), 'utf8'));
   assert.ok(hit.length === 1, 'one record for Go here on the rest of the surfaces');
-  for (const need of [/0187/, /0058/, /0121/, /storefront/i, /complex/i, /long-press|long press/i, /star/i, /dead-zone/i]) assert.match(hit[0], need);
+  for (const need of [/0188/, /0058/, /0121/, /storefront/i, /complex/i, /long-press|long press/i, /star/i, /dead-zone/i]) assert.match(hit[0], need);
 });
 
 // ---- Audit of go-here-everywhere (Nov 16). ----

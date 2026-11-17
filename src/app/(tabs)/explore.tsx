@@ -241,7 +241,7 @@ export default function Explore() {
   }, []);
   const [looking, setLooking] = useState(false);
   const [notice, setNotice] = useState<{ message: string; tone?: 'info' | 'error' } | null>(null);
-  // Go here, from a tile, the card, its rows and the long-press card: one hook, one sheet (decision 0187 and the rest).
+  // Go here, from a tile, the card, its rows and the long-press card: one hook, one sheet (decision 0188 and the rest).
   const gohere = useGoHere({
     walkOpen: !!openInfo.walk,
     start: (dest) => startWalk(dest),
