@@ -6,7 +6,7 @@ import type { CategoryId, Kind, Place } from '../discovery/types';
 import { distanceM, projector, type Bounds } from '../geo';
 import type { LngLat } from '../types';
 import { NAV, SCENIC } from './rules';
-import { isSmallPlace } from '../discovery/subtypes';
+import { isSmallPlace, isSubtype } from '../discovery/subtypes';
 
 /**
  * What a scenic route leans toward (specs/scenic-routes, SR6, SR15), from one read of the tiles
@@ -49,8 +49,8 @@ const isSightKind = (p: Place): boolean => SIGHT_CATEGORIES.includes(p.category)
 /** SR6: the places a Sights route leans toward: marks of a kind switched on in "What I'm into". */
 export function sightsFrom(places: Place[], hidden: Set<Kind>, found: Set<string>): Sight[] {
   return places
-    // SP16, XS17: a Sights route never leans on small places, on or off (decision 0183), nor on an unnamed place (steward S4).
-    .filter((p) => isSightKind(p) && isMarkable(p) && !isKindHidden(hidden, p.kind) && !isSmallPlace(p) && !p.generic)
+    // SP16, XS17: a Sights route never leans on small places, on or off (decision 0183), nor on an unnamed place of a subtype (steward S4; explore-subtypes audit 6: the map's unnamed viewpoints and art stay).
+    .filter((p) => isSightKind(p) && isMarkable(p) && !isKindHidden(hidden, p.kind) && !isSmallPlace(p) && !(p.generic && isSubtype(p.kind)))
     .map((p) => ({ key: p.key, at: p.at, name: p.name, found: found.has(p.key) }));
 }
 

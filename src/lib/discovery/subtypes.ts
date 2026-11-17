@@ -28,7 +28,10 @@ export interface Subtype {
   small: boolean;
 }
 
-/** XS3, XS4: the subtypes, each after its parent in "What I'm into", in the plan's order. */
+/**
+ * XS3, XS4: the subtypes, each after its parent in "What I'm into", in the plan's order. A label is the type's own name and
+ * fits one line at 320 px (XS22, explore-subtypes audit 2): a planetarium is an observatory's, a bandstand a carousel's.
+ */
 export const SUBTYPES: readonly Subtype[] = [
   // Art: Public art.
   { kind: 'statues', parent: 'public_art', label: 'Statues and busts', plural: 'Statues', single: 'A statue', on: true, small: false },
@@ -41,40 +44,40 @@ export const SUBTYPES: readonly Subtype[] = [
   { kind: 'war_memorials', parent: 'monuments', label: 'War memorials', plural: 'War memorials', single: 'A war memorial', on: true, small: false },
   { kind: 'small_memorials', parent: 'monuments', label: 'Small memorials', plural: 'Memorials', single: 'A memorial', on: false, small: true },
   { kind: 'battlefields', parent: 'monuments', label: 'Battlefields', plural: 'Battlefields', single: null, on: true, small: false },
-  { kind: 'archaeological_sites', parent: 'monuments', label: 'Archaeological sites and rock art', plural: 'Archaeological sites', single: null, on: true, small: false },
+  { kind: 'archaeological_sites', parent: 'monuments', label: 'Archaeological sites', plural: 'Archaeological sites', single: null, on: true, small: false },
   // History: Buildings and structures.
   { kind: 'bridges', parent: 'structures', label: 'Bridges', plural: 'Bridges', single: null, on: true, small: false },
   { kind: 'mills', parent: 'structures', label: 'Mills', plural: 'Mills', single: 'A mill', on: true, small: false },
   { kind: 'stations', parent: 'structures', label: 'Stations and depots', plural: 'Stations', single: null, on: true, small: false },
   { kind: 'lighthouses', parent: 'structures', label: 'Lighthouses', plural: 'Lighthouses', single: 'A lighthouse', on: true, small: false },
-  { kind: 'civic_buildings', parent: 'structures', label: 'Courthouses, halls and libraries', plural: 'Civic buildings', single: null, on: true, small: false },
+  { kind: 'civic_buildings', parent: 'structures', label: 'Courthouses and halls', plural: 'Civic buildings', single: null, on: true, small: false },
   { kind: 'forts', parent: 'structures', label: 'Forts and armories', plural: 'Forts', single: null, on: true, small: false },
   { kind: 'towers', parent: 'structures', label: 'Water and clock towers', plural: 'Towers', single: null, on: true, small: false },
-  { kind: 'old_machines', parent: 'structures', label: 'Cannons, locomotives and old machines', plural: 'Old machines', single: 'An old machine', on: true, small: false },
-  { kind: 'taverns', parent: 'structures', label: 'Old taverns and inns', plural: 'Taverns', single: null, on: true, small: false },
-  { kind: 'old_stones', parent: 'structures', label: 'Milestones and old stones', plural: 'Old stones', single: 'An old stone', on: false, small: true },
+  { kind: 'old_machines', parent: 'structures', label: 'Old machines', plural: 'Old machines', single: 'An old machine', on: true, small: false },
+  { kind: 'taverns', parent: 'structures', label: 'Old taverns and inns', plural: 'Old taverns', single: null, on: true, small: false },
+  { kind: 'old_stones', parent: 'structures', label: 'Old stones', plural: 'Old stones', single: 'An old stone', on: false, small: true },
   // History: Places of worship, Cemeteries.
-  { kind: 'wayside_shrines', parent: 'churches', label: 'Wayside shrines and crosses', plural: 'Wayside shrines', single: 'A wayside shrine', on: false, small: true },
+  { kind: 'wayside_shrines', parent: 'churches', label: 'Wayside shrines', plural: 'Wayside shrines', single: 'A wayside shrine', on: false, small: true },
   { kind: 'mausoleums', parent: 'cemeteries', label: 'Mausoleums and tombs', plural: 'Mausoleums', single: null, on: true, small: false },
   // Parks & green spaces.
-  { kind: 'gardens', parent: 'parks', label: 'Botanical and Japanese gardens', plural: 'Gardens', single: null, on: true, small: false },
+  { kind: 'gardens', parent: 'parks', label: 'Gardens', plural: 'Gardens', single: null, on: true, small: false },
   { kind: 'community_gardens', parent: 'parks', label: 'Community gardens', plural: 'Community gardens', single: 'A community garden', on: true, small: false },
   { kind: 'waterfalls', parent: 'nature', label: 'Waterfalls', plural: 'Waterfalls', single: 'A waterfall', on: true, small: false },
   { kind: 'caves', parent: 'nature', label: 'Caves', plural: 'Caves', single: null, on: true, small: false },
   { kind: 'hot_springs', parent: 'nature', label: 'Hot springs and geysers', plural: 'Hot springs', single: 'A hot spring', on: true, small: false },
   { kind: 'old_trees', parent: 'nature', label: 'Old trees', plural: 'Old trees', single: 'An old tree', on: false, small: true },
   // Culture.
-  { kind: 'observatories', parent: 'museums', label: 'Observatories and planetariums', plural: 'Observatories', single: null, on: true, small: false },
-  { kind: 'concert_halls', parent: 'theatres', label: 'Concert halls and opera houses', plural: 'Concert halls', single: null, on: true, small: false },
+  { kind: 'observatories', parent: 'museums', label: 'Observatories', plural: 'Observatories', single: null, on: true, small: false },
+  { kind: 'concert_halls', parent: 'theatres', label: 'Concert halls', plural: 'Concert halls', single: null, on: true, small: false },
   { kind: 'little_libraries', parent: 'community', label: 'Little libraries', plural: 'Little libraries', single: 'A little library', on: true, small: true },
-  { kind: 'carousels', parent: 'community', label: 'Carousels and bandstands', plural: 'Carousels', single: 'A carousel', on: true, small: false },
+  { kind: 'carousels', parent: 'community', label: 'Carousels', plural: 'Carousels', single: 'A carousel', on: true, small: false },
   // Viewpoints & oddities.
   { kind: 'fire_towers', parent: 'viewpoints', label: 'Fire lookout towers', plural: 'Fire towers', single: null, on: true, small: false },
   { kind: 'old_ruins', parent: 'curiosities', label: 'Ruins', plural: 'Ruins', single: null, on: true, small: false },
   { kind: 'ghost_towns', parent: 'curiosities', label: 'Ghost towns', plural: 'Ghost towns', single: null, on: false, small: false },
   { kind: 'natural_oddities', parent: 'curiosities', label: 'Natural arches and rocks', plural: 'Natural arches', single: null, on: true, small: false },
-  { kind: 'roadside_giants', parent: 'curiosities', label: 'Roadside giants and follies', plural: 'Roadside giants', single: null, on: true, small: false },
-  { kind: 'survey_marks', parent: 'curiosities', label: 'Survey marks and centre points', plural: 'Survey marks', single: null, on: false, small: true },
+  { kind: 'roadside_giants', parent: 'curiosities', label: 'Giants and follies', plural: 'Roadside giants', single: null, on: true, small: false },
+  { kind: 'survey_marks', parent: 'curiosities', label: 'Survey marks', plural: 'Survey marks', single: null, on: false, small: true },
   { kind: 'time_capsules', parent: 'curiosities', label: 'Time capsules', plural: 'Time capsules', single: 'A time capsule', on: true, small: true },
 ];
 
@@ -110,7 +113,11 @@ export const SUBTYPE_REFINEMENTS: readonly Refinement[] = SUBTYPES.map((s) => ({
 const inSentence = (p: { name: string; generic: boolean }) => (p.generic ? p.name.charAt(0).toLowerCase() + p.name.slice(1) : p.name);
 
 /** SP22: the plural for an unnamed small place's words ("A plaque" → "Plaques"), or null. */
-export const pluralOf = (single: string): string | null => SUBTYPES.find((s) => s.single === single)?.plural ?? null;
+/** explore-subtypes audit 11: unnamed words that are no subtype's own, with their plural ("Public art" is a mass noun). */
+const OTHER_PLURALS: Readonly<Record<string, string>> = { 'Public art': 'Public art' };
+
+export const pluralOf = (single: string): string | null =>
+  SUBTYPES.find((s) => s.single === single)?.plural ?? (Object.prototype.hasOwnProperty.call(OTHER_PLURALS, single) ? OTHER_PLURALS[single] : null);
 
 /**
  * SP22, U13: places as they read in "Passed … without stopping": one or two by name; two unnamed of one type as its plural

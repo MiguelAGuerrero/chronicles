@@ -11,6 +11,7 @@ import type { LngLat } from '../../types';
 // (XS11), attractions and zoos their own kind (XS4), the map's ruins Curiosities (XS12), murals and markers subtypes (XS3),
 // every subtype left out of a ring's stored steps (XS15); one same-named statue and artwork 60 m apart became one place
 // (0111, "Science" in South End). The listed changes before it (T9, fix community-park) were already in what was captured.
+// Re-captured again after the audit (explore-subtypes audit 12): the map's attractions and theme parks are Viewpoints again.
 
 type View = { category: string; kind: string | null; markable: boolean; bars: string[] } | null;
 type Golden = {

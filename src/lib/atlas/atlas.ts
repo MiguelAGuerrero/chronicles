@@ -274,6 +274,11 @@ export function withShownSteps<T extends { area: AtlasArea }>(list: readonly T[]
 /** SP13: the bars a reader sees for a profile: from its tally and their switches, or its stored steps before a14. */
 export const stepsShown = (p: Pick<AtlasProfile, 'steps' | 'tally'>, hidden: ReadonlySet<Kind>): Steps => (p.tally ? stepsFrom(p.tally, hidden) : p.steps);
 
+/** explore-subtypes audit 7: area rows (not listed ones) with the bars of the subtypes switched on, for a reader of `rows`. */
+export function rowsShown<T extends { profile?: Pick<AtlasProfile, 'steps' | 'tally'> | null }>(rows: readonly T[], hidden: ReadonlySet<Kind>): T[] {
+  return rows.map((r) => (r.profile?.tally ? { ...r, profile: { ...r.profile, steps: stepsShown(r.profile, hidden) } } : r));
+}
+
 /** AG3: the map knows almost nothing about this ring: fewer than `thinPlaces` places of the eight kinds, ordinary ones included. */
 export const thinRing = (places: AtlasPlace[], centre: LngLat, within: Within = ringWithin(centre)): boolean =>
   inRing(places, centre, within).length < ATLAS_RULES.thinPlaces;

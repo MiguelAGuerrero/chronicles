@@ -1,6 +1,6 @@
 // @layer core
 import type { TileFeature } from '../areas/tilePlaces';
-import { ARCHIVE_CLASS_NAMES, archiveUnnamedLabel, classDef, classesOfArchive, markClassOf, named } from '../presence/presence';
+import { ARCHIVE_CLASS_NAMES, archiveClassOf, archiveUnnamedLabel, classDef, classesOfArchive, markClassOf, named } from '../presence/presence';
 import type { LngLat } from '../types';
 import { isMarkFor } from './curation';
 import { placeKey } from './places';
@@ -48,7 +48,9 @@ export function placesFromArchive(features: TileFeature[], version: string): Pla
     if (f.geometry?.type !== 'Point') continue;
     const p = f.properties ?? {};
     const name = typeof p.name === 'string' ? p.name : '';
-    const place = archivePlace(name, String(p.class ?? ''), f.geometry.coordinates as LngLat, version);
+    // explore-subtypes audit 1: a class as its source meant it (a v3 pack's OSM plaques), presence's call.
+    const cls = archiveClassOf(String(p.class ?? ''), String(p.src ?? ''));
+    const place = archivePlace(name, cls, f.geometry.coordinates as LngLat, version);
     if (place && !out.has(place.key)) out.set(place.key, place);
   }
   return [...out.values()];

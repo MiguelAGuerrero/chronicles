@@ -823,7 +823,7 @@
    "sub": "attraction",
    "plain": {
     "category": "viewpoints",
-    "kind": "attractions",
+    "kind": "viewpoints",
     "markable": true,
     "bars": [
      "viewpoints"
@@ -831,7 +831,7 @@
    },
    "notable": {
     "category": "viewpoints",
-    "kind": "attractions",
+    "kind": "viewpoints",
     "markable": true,
     "bars": [
      "viewpoints"
@@ -839,7 +839,7 @@
    },
    "hood": {
     "category": "viewpoints",
-    "kind": "attractions",
+    "kind": "viewpoints",
     "markable": true,
     "bars": [
      "viewpoints"
@@ -3050,7 +3050,7 @@
    "sub": "theme_park",
    "plain": {
     "category": "viewpoints",
-    "kind": "attractions",
+    "kind": "viewpoints",
     "markable": true,
     "bars": [
      "viewpoints"
@@ -3058,7 +3058,7 @@
    },
    "notable": {
     "category": "viewpoints",
-    "kind": "attractions",
+    "kind": "viewpoints",
     "markable": true,
     "bars": [
      "viewpoints"
@@ -3066,7 +3066,7 @@
    },
    "hood": {
     "category": "viewpoints",
-    "kind": "attractions",
+    "kind": "viewpoints",
     "markable": true,
     "bars": [
      "viewpoints"
@@ -3608,7 +3608,7 @@
    },
    "marks": [
     "[\"parks\",\"ross township park\",\"-75.3305\",\"40.8950\"]|parks",
-    "[\"viewpoints\",\"hotel of horror\",\"-75.3149\",\"40.8927\"]|attractions"
+    "[\"viewpoints\",\"hotel of horror\",\"-75.3149\",\"40.8927\"]|viewpoints"
    ],
    "thin": false
   },
@@ -4398,8 +4398,8 @@
     "[\"parks\",\"hald/strawberry park\",\"-122.7251\",\"42.1975\"]|parks",
     "[\"parks\",\"japanese garden\",\"-122.7189\",\"42.1917\"]|parks",
     "[\"parks\",\"rose garden\",\"-122.7174\",\"42.1943\"]|parks",
-    "[\"viewpoints\",\"green show\",\"-122.7146\",\"42.1963\"]|attractions",
-    "[\"viewpoints\",\"oregon shakespeare festival\",\"-122.7148\",\"42.1961\"]|attractions"
+    "[\"viewpoints\",\"green show\",\"-122.7146\",\"42.1963\"]|viewpoints",
+    "[\"viewpoints\",\"oregon shakespeare festival\",\"-122.7148\",\"42.1961\"]|viewpoints"
    ],
    "thin": false
   },
@@ -4442,7 +4442,7 @@
    "marks": [
     "[\"culture\",\"old grange\",\"-122.9139\",\"42.3757\"]|community",
     "[\"parks\",\"robert pfaff park\",\"-122.9136\",\"42.3780\"]|parks",
-    "[\"viewpoints\",\"rogue valley family fun center\",\"-122.9048\",\"42.3808\"]|attractions"
+    "[\"viewpoints\",\"rogue valley family fun center\",\"-122.9048\",\"42.3808\"]|viewpoints"
    ],
    "thin": false
   },
@@ -4468,7 +4468,7 @@
     "[\"history\",\"old grants pass city hall\",\"-123.3301\",\"42.4393\"]|structures",
     "[\"parks\",\"debo park\",\"-123.3312\",\"42.4405\"]|parks",
     "[\"parks\",\"robert c. martin park\",\"-123.3319\",\"42.4348\"]|parks",
-    "[\"viewpoints\",\"bear post office delivery bear\",\"-123.3269\",\"42.4397\"]|attractions"
+    "[\"viewpoints\",\"bear post office delivery bear\",\"-123.3269\",\"42.4397\"]|viewpoints"
    ],
    "thin": false
   },
@@ -4915,11 +4915,11 @@
     "[\"parks\",\"tai tung park\",\"-71.0615\",\"42.3483\"]|parks",
     "[\"parks\",\"underground at ink block\",\"-71.0604\",\"42.3448\"]|parks",
     "[\"parks\",\"winthrop square\",\"-71.0577\",\"42.3548\"]|parks",
-    "[\"viewpoints\",\"first public school site\",\"-71.0600\",\"42.3580\"]|attractions",
-    "[\"viewpoints\",\"frog pond carousel\",\"-71.0668\",\"42.3560\"]|attractions",
-    "[\"viewpoints\",\"good will hunting bench\",\"-71.0707\",\"42.3544\"]|attractions",
-    "[\"viewpoints\",\"swan boats\",\"-71.0697\",\"42.3540\"]|attractions",
-    "[\"viewpoints\",\"the lagoon\",\"-71.0697\",\"42.3539\"]|attractions"
+    "[\"viewpoints\",\"first public school site\",\"-71.0600\",\"42.3580\"]|viewpoints",
+    "[\"viewpoints\",\"frog pond carousel\",\"-71.0668\",\"42.3560\"]|viewpoints",
+    "[\"viewpoints\",\"good will hunting bench\",\"-71.0707\",\"42.3544\"]|viewpoints",
+    "[\"viewpoints\",\"swan boats\",\"-71.0697\",\"42.3540\"]|viewpoints",
+    "[\"viewpoints\",\"the lagoon\",\"-71.0697\",\"42.3539\"]|viewpoints"
    ],
    "thin": false
   },
@@ -5005,17 +5005,17 @@
     "[\"parks\",\"ramler park\",\"-71.1007\",\"42.3426\"]|parks",
     "[\"parks\",\"the green\",\"-71.1028\",\"42.3439\"]|parks",
     "[\"parks\",\"westgate/tang community gardens\",\"-71.1022\",\"42.3550\"]|parks",
-    "[\"viewpoints\",\"1\",\"-71.0994\",\"42.3470\"]|attractions",
-    "[\"viewpoints\",\"14\",\"-71.0996\",\"42.3471\"]|attractions",
-    "[\"viewpoints\",\"26\",\"-71.0998\",\"42.3472\"]|attractions",
-    "[\"viewpoints\",\"27\",\"-71.0995\",\"42.3471\"]|attractions",
-    "[\"viewpoints\",\"34\",\"-71.0999\",\"42.3472\"]|attractions",
-    "[\"viewpoints\",\"4\",\"-71.0994\",\"42.3470\"]|attractions",
-    "[\"viewpoints\",\"45\",\"-71.0997\",\"42.3471\"]|attractions",
-    "[\"viewpoints\",\"6\",\"-71.0996\",\"42.3471\"]|attractions",
-    "[\"viewpoints\",\"8\",\"-71.0995\",\"42.3471\"]|attractions",
-    "[\"viewpoints\",\"9\",\"-71.0994\",\"42.3470\"]|attractions",
-    "[\"viewpoints\",\"citgo sign\",\"-71.0963\",\"42.3493\"]|attractions"
+    "[\"viewpoints\",\"1\",\"-71.0994\",\"42.3470\"]|viewpoints",
+    "[\"viewpoints\",\"14\",\"-71.0996\",\"42.3471\"]|viewpoints",
+    "[\"viewpoints\",\"26\",\"-71.0998\",\"42.3472\"]|viewpoints",
+    "[\"viewpoints\",\"27\",\"-71.0995\",\"42.3471\"]|viewpoints",
+    "[\"viewpoints\",\"34\",\"-71.0999\",\"42.3472\"]|viewpoints",
+    "[\"viewpoints\",\"4\",\"-71.0994\",\"42.3470\"]|viewpoints",
+    "[\"viewpoints\",\"45\",\"-71.0997\",\"42.3471\"]|viewpoints",
+    "[\"viewpoints\",\"6\",\"-71.0996\",\"42.3471\"]|viewpoints",
+    "[\"viewpoints\",\"8\",\"-71.0995\",\"42.3471\"]|viewpoints",
+    "[\"viewpoints\",\"9\",\"-71.0994\",\"42.3470\"]|viewpoints",
+    "[\"viewpoints\",\"citgo sign\",\"-71.0963\",\"42.3493\"]|viewpoints"
    ],
    "thin": false
   },
@@ -5505,17 +5505,17 @@
     "[\"parks\",\"new place de france\",\"-90.0607\",\"29.9589\"]|parks",
     "[\"parks\",\"oscar dunn park\",\"-90.0622\",\"29.9570\"]|parks",
     "[\"parks\",\"woldenberg riverfront park\",\"-90.0629\",\"29.9543\"]|parks",
-    "[\"viewpoints\",\"basin street station\",\"-90.0707\",\"29.9597\"]|attractions",
-    "[\"viewpoints\",\"french quarter\",\"-90.0655\",\"29.9595\"]|attractions",
-    "[\"viewpoints\",\"hex: old world witchery\",\"-90.0591\",\"29.9611\"]|attractions",
-    "[\"viewpoints\",\"lalaurie mansion\",\"-90.0612\",\"29.9619\"]|attractions",
-    "[\"viewpoints\",\"louis armstrong park entrance\",\"-90.0678\",\"29.9614\"]|attractions",
-    "[\"viewpoints\",\"madame john's legacy\",\"-90.0631\",\"29.9594\"]|attractions",
-    "[\"viewpoints\",\"mystic tea leaves\",\"-90.0589\",\"29.9614\"]|attractions",
-    "[\"viewpoints\",\"new orleans jazz national historical park\",\"-90.0577\",\"29.9615\"]|attractions",
-    "[\"viewpoints\",\"riverboat city of new orleans\",\"-90.0623\",\"29.9552\"]|attractions",
-    "[\"viewpoints\",\"royal carriages\",\"-90.0627\",\"29.9569\"]|attractions",
-    "[\"viewpoints\",\"steamboat natchez\",\"-90.0624\",\"29.9549\"]|attractions"
+    "[\"viewpoints\",\"basin street station\",\"-90.0707\",\"29.9597\"]|viewpoints",
+    "[\"viewpoints\",\"french quarter\",\"-90.0655\",\"29.9595\"]|viewpoints",
+    "[\"viewpoints\",\"hex: old world witchery\",\"-90.0591\",\"29.9611\"]|viewpoints",
+    "[\"viewpoints\",\"lalaurie mansion\",\"-90.0612\",\"29.9619\"]|viewpoints",
+    "[\"viewpoints\",\"louis armstrong park entrance\",\"-90.0678\",\"29.9614\"]|viewpoints",
+    "[\"viewpoints\",\"madame john's legacy\",\"-90.0631\",\"29.9594\"]|viewpoints",
+    "[\"viewpoints\",\"mystic tea leaves\",\"-90.0589\",\"29.9614\"]|viewpoints",
+    "[\"viewpoints\",\"new orleans jazz national historical park\",\"-90.0577\",\"29.9615\"]|viewpoints",
+    "[\"viewpoints\",\"riverboat city of new orleans\",\"-90.0623\",\"29.9552\"]|viewpoints",
+    "[\"viewpoints\",\"royal carriages\",\"-90.0627\",\"29.9569\"]|viewpoints",
+    "[\"viewpoints\",\"steamboat natchez\",\"-90.0624\",\"29.9549\"]|viewpoints"
    ],
    "thin": false
   },
@@ -6285,8 +6285,8 @@
     "[\"parks\",\"hosta garden\",\"-90.4245\",\"42.4106\"]|parks",
     "[\"parks\",\"linmar gardens\",\"-90.4318\",\"42.4137\"]|parks",
     "[\"parks\",\"old cemetery park\",\"-90.4319\",\"42.4187\"]|parks",
-    "[\"viewpoints\",\"galena trolley tours\",\"-90.4300\",\"42.4140\"]|attractions",
-    "[\"viewpoints\",\"general store\",\"-90.4240\",\"42.4110\"]|attractions"
+    "[\"viewpoints\",\"galena trolley tours\",\"-90.4300\",\"42.4140\"]|viewpoints",
+    "[\"viewpoints\",\"general store\",\"-90.4240\",\"42.4110\"]|viewpoints"
    ],
    "thin": false
   },
@@ -6759,18 +6759,18 @@
     "[\"viewpoints\",\"\",\"-71.0478\",\"42.3606\"]|viewpoints",
     "[\"viewpoints\",\"\",\"-71.0494\",\"42.3671\"]|viewpoints",
     "[\"viewpoints\",\"\",\"-71.0498\",\"42.3677\"]|viewpoints",
-    "[\"viewpoints\",\"all saints way\",\"-71.0525\",\"42.3663\"]|attractions",
-    "[\"viewpoints\",\"boston stone\",\"-71.0568\",\"42.3617\"]|attractions",
+    "[\"viewpoints\",\"all saints way\",\"-71.0525\",\"42.3663\"]|viewpoints",
+    "[\"viewpoints\",\"boston stone\",\"-71.0568\",\"42.3617\"]|viewpoints",
     "[\"viewpoints\",\"custom house tower observation deck\",\"-71.0535\",\"42.3590\"]|viewpoints",
-    "[\"viewpoints\",\"faneuil hall marketplace\",\"-71.0546\",\"42.3601\"]|attractions",
-    "[\"viewpoints\",\"golden teapot\",\"-71.0593\",\"42.3594\"]|attractions",
-    "[\"viewpoints\",\"greenway carousel\",\"-71.0528\",\"42.3606\"]|attractions",
-    "[\"viewpoints\",\"new england aquarium whale watching\",\"-71.0500\",\"42.3594\"]|attractions",
+    "[\"viewpoints\",\"faneuil hall marketplace\",\"-71.0546\",\"42.3601\"]|viewpoints",
+    "[\"viewpoints\",\"golden teapot\",\"-71.0593\",\"42.3594\"]|viewpoints",
+    "[\"viewpoints\",\"greenway carousel\",\"-71.0528\",\"42.3606\"]|viewpoints",
+    "[\"viewpoints\",\"new england aquarium whale watching\",\"-71.0500\",\"42.3594\"]|viewpoints",
     "[\"viewpoints\",\"new england aquarium\",\"-71.0492\",\"42.3592\"]|attractions",
     "[\"viewpoints\",\"north end parks\",\"-71.0557\",\"42.3623\"]|viewpoints",
     "[\"viewpoints\",\"seal tank\",\"-71.0499\",\"42.3593\"]|attractions",
-    "[\"viewpoints\",\"skinny house\",\"-71.0562\",\"42.3669\"]|attractions",
-    "[\"viewpoints\",\"waterboat duck house\",\"-71.0492\",\"42.3605\"]|attractions"
+    "[\"viewpoints\",\"skinny house\",\"-71.0562\",\"42.3669\"]|viewpoints",
+    "[\"viewpoints\",\"waterboat duck house\",\"-71.0492\",\"42.3605\"]|viewpoints"
    ],
    "thin": false
   },
@@ -6981,7 +6981,7 @@
    "marks": [
     "[\"history\",\"cathedral of love missionary baptist church\",\"-87.6161\",\"41.7586\"]|churches",
     "[\"parks\",\"meyering park\",\"-87.6160\",\"41.7645\"]|parks",
-    "[\"viewpoints\",\"al capone's house\",\"-87.6188\",\"41.7625\"]|attractions"
+    "[\"viewpoints\",\"al capone's house\",\"-87.6188\",\"41.7625\"]|viewpoints"
    ],
    "thin": false
   },
@@ -7257,9 +7257,9 @@
     "[\"parks\",\"rittenhouse square\",\"-75.1719\",\"39.9495\"]|parks",
     "[\"parks\",\"sartain st community garden\",\"-75.1603\",\"39.9475\"]|parks",
     "[\"parks\",\"three logan square plaza\",\"-75.1690\",\"39.9558\"]|parks",
-    "[\"viewpoints\",\"chinatown friendship gate\",\"-75.1563\",\"39.9537\"]|attractions",
+    "[\"viewpoints\",\"chinatown friendship gate\",\"-75.1563\",\"39.9537\"]|viewpoints",
     "[\"viewpoints\",\"one liberty observation deck\",\"-75.1681\",\"39.9526\"]|viewpoints",
-    "[\"viewpoints\",\"reading terminal\",\"-75.1591\",\"39.9533\"]|attractions"
+    "[\"viewpoints\",\"reading terminal\",\"-75.1591\",\"39.9533\"]|viewpoints"
    ],
    "thin": false
   },
@@ -7440,8 +7440,8 @@
     "[\"parks\",\"hosta garden\",\"-90.4245\",\"42.4106\"]|parks",
     "[\"parks\",\"linmar gardens\",\"-90.4318\",\"42.4137\"]|parks",
     "[\"parks\",\"old cemetery park\",\"-90.4319\",\"42.4187\"]|parks",
-    "[\"viewpoints\",\"galena trolley tours\",\"-90.4300\",\"42.4140\"]|attractions",
-    "[\"viewpoints\",\"general store\",\"-90.4240\",\"42.4110\"]|attractions"
+    "[\"viewpoints\",\"galena trolley tours\",\"-90.4300\",\"42.4140\"]|viewpoints",
+    "[\"viewpoints\",\"general store\",\"-90.4240\",\"42.4110\"]|viewpoints"
    ],
    "thin": false
   },
@@ -7590,12 +7590,12 @@
     "[\"parks\",\"washington square\",\"-75.1523\",\"39.9470\"]|parks",
     "[\"parks\",\"welcome park\",\"-75.1440\",\"39.9473\"]|parks",
     "[\"parks\",\"wood st. park\",\"-75.1421\",\"39.9559\"]|parks",
-    "[\"viewpoints\",\"benjamin franklin grave\",\"-75.1483\",\"39.9524\"]|attractions",
-    "[\"viewpoints\",\"city tavern\",\"-75.1446\",\"39.9471\"]|attractions",
-    "[\"viewpoints\",\"first bank of the united states\",\"-75.1464\",\"39.9480\"]|attractions",
-    "[\"viewpoints\",\"liberty bell\",\"-75.1503\",\"39.9495\"]|attractions",
+    "[\"viewpoints\",\"benjamin franklin grave\",\"-75.1483\",\"39.9524\"]|viewpoints",
+    "[\"viewpoints\",\"city tavern\",\"-75.1446\",\"39.9471\"]|viewpoints",
+    "[\"viewpoints\",\"first bank of the united states\",\"-75.1464\",\"39.9480\"]|viewpoints",
+    "[\"viewpoints\",\"liberty bell\",\"-75.1503\",\"39.9495\"]|viewpoints",
     "[\"viewpoints\",\"president's house\",\"-75.1501\",\"39.9505\"]|old_ruins",
-    "[\"viewpoints\",\"u.s. mint at philadelphia tour\",\"-75.1481\",\"39.9530\"]|attractions"
+    "[\"viewpoints\",\"u.s. mint at philadelphia tour\",\"-75.1481\",\"39.9530\"]|viewpoints"
    ],
    "thin": false
   }
@@ -7665,7 +7665,7 @@
     "[\"parks\",\"ross township park\",\"-75.3305\",\"40.8950\"]|community_parks",
     "[\"parks\",\"saylorsburg ball field\",\"-75.3283\",\"40.8956\"]|parks",
     "[\"parks\",\"saylorsburg playground\",\"-75.3230\",\"40.8956\"]|community_parks",
-    "[\"viewpoints\",\"hotel of horror\",\"-75.3149\",\"40.8927\"]|attractions"
+    "[\"viewpoints\",\"hotel of horror\",\"-75.3149\",\"40.8927\"]|viewpoints"
    ],
    "thin": false
   },
@@ -8555,8 +8555,8 @@
     "[\"parks\",\"hald/strawberry park\",\"-122.7251\",\"42.1975\"]|community_parks",
     "[\"parks\",\"japanese garden\",\"-122.7189\",\"42.1917\"]|parks",
     "[\"parks\",\"rose garden\",\"-122.7174\",\"42.1943\"]|community_parks",
-    "[\"viewpoints\",\"green show\",\"-122.7146\",\"42.1963\"]|attractions",
-    "[\"viewpoints\",\"oregon shakespeare festival\",\"-122.7148\",\"42.1961\"]|attractions"
+    "[\"viewpoints\",\"green show\",\"-122.7146\",\"42.1963\"]|viewpoints",
+    "[\"viewpoints\",\"oregon shakespeare festival\",\"-122.7148\",\"42.1961\"]|viewpoints"
    ],
    "thin": false
   },
@@ -8603,7 +8603,7 @@
     "[\"parks\",\"central point ball field\",\"-122.9176\",\"42.3768\"]|parks",
     "[\"parks\",\"central point playground\",\"-122.9122\",\"42.3768\"]|community_parks",
     "[\"parks\",\"robert pfaff park\",\"-122.9136\",\"42.3780\"]|community_parks",
-    "[\"viewpoints\",\"rogue valley family fun center\",\"-122.9048\",\"42.3808\"]|attractions"
+    "[\"viewpoints\",\"rogue valley family fun center\",\"-122.9048\",\"42.3808\"]|viewpoints"
    ],
    "thin": false
   },
@@ -8631,7 +8631,7 @@
     "[\"parks\",\"grants pass ball field\",\"-123.3321\",\"42.4394\"]|parks",
     "[\"parks\",\"grants pass playground\",\"-123.3268\",\"42.4394\"]|parks",
     "[\"parks\",\"robert c. martin park\",\"-123.3319\",\"42.4348\"]|community_parks",
-    "[\"viewpoints\",\"bear post office delivery bear\",\"-123.3269\",\"42.4397\"]|attractions"
+    "[\"viewpoints\",\"bear post office delivery bear\",\"-123.3269\",\"42.4397\"]|viewpoints"
    ],
    "thin": false
   },
@@ -9107,11 +9107,11 @@
     "[\"parks\",\"tai tung park\",\"-71.0615\",\"42.3483\"]|parks",
     "[\"parks\",\"underground at ink block\",\"-71.0604\",\"42.3448\"]|parks",
     "[\"parks\",\"winthrop square\",\"-71.0577\",\"42.3548\"]|parks",
-    "[\"viewpoints\",\"first public school site\",\"-71.0600\",\"42.3580\"]|attractions",
-    "[\"viewpoints\",\"frog pond carousel\",\"-71.0668\",\"42.3560\"]|attractions",
-    "[\"viewpoints\",\"good will hunting bench\",\"-71.0707\",\"42.3544\"]|attractions",
-    "[\"viewpoints\",\"swan boats\",\"-71.0697\",\"42.3540\"]|attractions",
-    "[\"viewpoints\",\"the lagoon\",\"-71.0697\",\"42.3539\"]|attractions"
+    "[\"viewpoints\",\"first public school site\",\"-71.0600\",\"42.3580\"]|viewpoints",
+    "[\"viewpoints\",\"frog pond carousel\",\"-71.0668\",\"42.3560\"]|viewpoints",
+    "[\"viewpoints\",\"good will hunting bench\",\"-71.0707\",\"42.3544\"]|viewpoints",
+    "[\"viewpoints\",\"swan boats\",\"-71.0697\",\"42.3540\"]|viewpoints",
+    "[\"viewpoints\",\"the lagoon\",\"-71.0697\",\"42.3539\"]|viewpoints"
    ],
    "thin": false
   },
@@ -9201,17 +9201,17 @@
     "[\"parks\",\"ramler park\",\"-71.1007\",\"42.3426\"]|parks",
     "[\"parks\",\"the green\",\"-71.1028\",\"42.3439\"]|community_parks",
     "[\"parks\",\"westgate/tang community gardens\",\"-71.1022\",\"42.3550\"]|parks",
-    "[\"viewpoints\",\"1\",\"-71.0994\",\"42.3470\"]|attractions",
-    "[\"viewpoints\",\"14\",\"-71.0996\",\"42.3471\"]|attractions",
-    "[\"viewpoints\",\"26\",\"-71.0998\",\"42.3472\"]|attractions",
-    "[\"viewpoints\",\"27\",\"-71.0995\",\"42.3471\"]|attractions",
-    "[\"viewpoints\",\"34\",\"-71.0999\",\"42.3472\"]|attractions",
-    "[\"viewpoints\",\"4\",\"-71.0994\",\"42.3470\"]|attractions",
-    "[\"viewpoints\",\"45\",\"-71.0997\",\"42.3471\"]|attractions",
-    "[\"viewpoints\",\"6\",\"-71.0996\",\"42.3471\"]|attractions",
-    "[\"viewpoints\",\"8\",\"-71.0995\",\"42.3471\"]|attractions",
-    "[\"viewpoints\",\"9\",\"-71.0994\",\"42.3470\"]|attractions",
-    "[\"viewpoints\",\"citgo sign\",\"-71.0963\",\"42.3493\"]|attractions"
+    "[\"viewpoints\",\"1\",\"-71.0994\",\"42.3470\"]|viewpoints",
+    "[\"viewpoints\",\"14\",\"-71.0996\",\"42.3471\"]|viewpoints",
+    "[\"viewpoints\",\"26\",\"-71.0998\",\"42.3472\"]|viewpoints",
+    "[\"viewpoints\",\"27\",\"-71.0995\",\"42.3471\"]|viewpoints",
+    "[\"viewpoints\",\"34\",\"-71.0999\",\"42.3472\"]|viewpoints",
+    "[\"viewpoints\",\"4\",\"-71.0994\",\"42.3470\"]|viewpoints",
+    "[\"viewpoints\",\"45\",\"-71.0997\",\"42.3471\"]|viewpoints",
+    "[\"viewpoints\",\"6\",\"-71.0996\",\"42.3471\"]|viewpoints",
+    "[\"viewpoints\",\"8\",\"-71.0995\",\"42.3471\"]|viewpoints",
+    "[\"viewpoints\",\"9\",\"-71.0994\",\"42.3470\"]|viewpoints",
+    "[\"viewpoints\",\"citgo sign\",\"-71.0963\",\"42.3493\"]|viewpoints"
    ],
    "thin": false
   },
@@ -9735,17 +9735,17 @@
     "[\"parks\",\"new place de france\",\"-90.0607\",\"29.9589\"]|parks",
     "[\"parks\",\"oscar dunn park\",\"-90.0622\",\"29.9570\"]|parks",
     "[\"parks\",\"woldenberg riverfront park\",\"-90.0629\",\"29.9543\"]|parks",
-    "[\"viewpoints\",\"basin street station\",\"-90.0707\",\"29.9597\"]|attractions",
-    "[\"viewpoints\",\"french quarter\",\"-90.0655\",\"29.9595\"]|attractions",
-    "[\"viewpoints\",\"hex: old world witchery\",\"-90.0591\",\"29.9611\"]|attractions",
-    "[\"viewpoints\",\"lalaurie mansion\",\"-90.0612\",\"29.9619\"]|attractions",
-    "[\"viewpoints\",\"louis armstrong park entrance\",\"-90.0678\",\"29.9614\"]|attractions",
-    "[\"viewpoints\",\"madame john's legacy\",\"-90.0631\",\"29.9594\"]|attractions",
-    "[\"viewpoints\",\"mystic tea leaves\",\"-90.0589\",\"29.9614\"]|attractions",
-    "[\"viewpoints\",\"new orleans jazz national historical park\",\"-90.0577\",\"29.9615\"]|attractions",
-    "[\"viewpoints\",\"riverboat city of new orleans\",\"-90.0623\",\"29.9552\"]|attractions",
-    "[\"viewpoints\",\"royal carriages\",\"-90.0627\",\"29.9569\"]|attractions",
-    "[\"viewpoints\",\"steamboat natchez\",\"-90.0624\",\"29.9549\"]|attractions"
+    "[\"viewpoints\",\"basin street station\",\"-90.0707\",\"29.9597\"]|viewpoints",
+    "[\"viewpoints\",\"french quarter\",\"-90.0655\",\"29.9595\"]|viewpoints",
+    "[\"viewpoints\",\"hex: old world witchery\",\"-90.0591\",\"29.9611\"]|viewpoints",
+    "[\"viewpoints\",\"lalaurie mansion\",\"-90.0612\",\"29.9619\"]|viewpoints",
+    "[\"viewpoints\",\"louis armstrong park entrance\",\"-90.0678\",\"29.9614\"]|viewpoints",
+    "[\"viewpoints\",\"madame john's legacy\",\"-90.0631\",\"29.9594\"]|viewpoints",
+    "[\"viewpoints\",\"mystic tea leaves\",\"-90.0589\",\"29.9614\"]|viewpoints",
+    "[\"viewpoints\",\"new orleans jazz national historical park\",\"-90.0577\",\"29.9615\"]|viewpoints",
+    "[\"viewpoints\",\"riverboat city of new orleans\",\"-90.0623\",\"29.9552\"]|viewpoints",
+    "[\"viewpoints\",\"royal carriages\",\"-90.0627\",\"29.9569\"]|viewpoints",
+    "[\"viewpoints\",\"steamboat natchez\",\"-90.0624\",\"29.9549\"]|viewpoints"
    ],
    "thin": false
   },
@@ -10591,8 +10591,8 @@
     "[\"parks\",\"hosta garden\",\"-90.4245\",\"42.4106\"]|parks",
     "[\"parks\",\"linmar gardens\",\"-90.4318\",\"42.4137\"]|community_parks",
     "[\"parks\",\"old cemetery park\",\"-90.4319\",\"42.4187\"]|parks",
-    "[\"viewpoints\",\"galena trolley tours\",\"-90.4300\",\"42.4140\"]|attractions",
-    "[\"viewpoints\",\"general store\",\"-90.4240\",\"42.4110\"]|attractions"
+    "[\"viewpoints\",\"galena trolley tours\",\"-90.4300\",\"42.4140\"]|viewpoints",
+    "[\"viewpoints\",\"general store\",\"-90.4240\",\"42.4110\"]|viewpoints"
    ],
    "thin": false
   },
@@ -11109,18 +11109,18 @@
     "[\"viewpoints\",\"\",\"-71.0478\",\"42.3606\"]|viewpoints",
     "[\"viewpoints\",\"\",\"-71.0494\",\"42.3671\"]|viewpoints",
     "[\"viewpoints\",\"\",\"-71.0498\",\"42.3677\"]|viewpoints",
-    "[\"viewpoints\",\"all saints way\",\"-71.0525\",\"42.3663\"]|attractions",
-    "[\"viewpoints\",\"boston stone\",\"-71.0568\",\"42.3617\"]|attractions",
+    "[\"viewpoints\",\"all saints way\",\"-71.0525\",\"42.3663\"]|viewpoints",
+    "[\"viewpoints\",\"boston stone\",\"-71.0568\",\"42.3617\"]|viewpoints",
     "[\"viewpoints\",\"custom house tower observation deck\",\"-71.0535\",\"42.3590\"]|viewpoints",
-    "[\"viewpoints\",\"faneuil hall marketplace\",\"-71.0546\",\"42.3601\"]|attractions",
-    "[\"viewpoints\",\"golden teapot\",\"-71.0593\",\"42.3594\"]|attractions",
-    "[\"viewpoints\",\"greenway carousel\",\"-71.0528\",\"42.3606\"]|attractions",
-    "[\"viewpoints\",\"new england aquarium whale watching\",\"-71.0500\",\"42.3594\"]|attractions",
+    "[\"viewpoints\",\"faneuil hall marketplace\",\"-71.0546\",\"42.3601\"]|viewpoints",
+    "[\"viewpoints\",\"golden teapot\",\"-71.0593\",\"42.3594\"]|viewpoints",
+    "[\"viewpoints\",\"greenway carousel\",\"-71.0528\",\"42.3606\"]|viewpoints",
+    "[\"viewpoints\",\"new england aquarium whale watching\",\"-71.0500\",\"42.3594\"]|viewpoints",
     "[\"viewpoints\",\"new england aquarium\",\"-71.0492\",\"42.3592\"]|attractions",
     "[\"viewpoints\",\"north end parks\",\"-71.0557\",\"42.3623\"]|viewpoints",
     "[\"viewpoints\",\"seal tank\",\"-71.0499\",\"42.3593\"]|attractions",
-    "[\"viewpoints\",\"skinny house\",\"-71.0562\",\"42.3669\"]|attractions",
-    "[\"viewpoints\",\"waterboat duck house\",\"-71.0492\",\"42.3605\"]|attractions"
+    "[\"viewpoints\",\"skinny house\",\"-71.0562\",\"42.3669\"]|viewpoints",
+    "[\"viewpoints\",\"waterboat duck house\",\"-71.0492\",\"42.3605\"]|viewpoints"
    ],
    "thin": false
   },
@@ -11339,7 +11339,7 @@
     "[\"parks\",\"greater grand crossing ball field\",\"-87.6203\",\"41.7580\"]|parks",
     "[\"parks\",\"greater grand crossing playground\",\"-87.6150\",\"41.7580\"]|community_parks",
     "[\"parks\",\"meyering park\",\"-87.6160\",\"41.7645\"]|community_parks",
-    "[\"viewpoints\",\"al capone's house\",\"-87.6188\",\"41.7625\"]|attractions"
+    "[\"viewpoints\",\"al capone's house\",\"-87.6188\",\"41.7625\"]|viewpoints"
    ],
    "thin": false
   },
@@ -11632,9 +11632,9 @@
     "[\"parks\",\"rittenhouse square\",\"-75.1719\",\"39.9495\"]|parks",
     "[\"parks\",\"sartain st community garden\",\"-75.1603\",\"39.9475\"]|community_parks",
     "[\"parks\",\"three logan square plaza\",\"-75.1690\",\"39.9558\"]|parks",
-    "[\"viewpoints\",\"chinatown friendship gate\",\"-75.1563\",\"39.9537\"]|attractions",
+    "[\"viewpoints\",\"chinatown friendship gate\",\"-75.1563\",\"39.9537\"]|viewpoints",
     "[\"viewpoints\",\"one liberty observation deck\",\"-75.1681\",\"39.9526\"]|viewpoints",
-    "[\"viewpoints\",\"reading terminal\",\"-75.1591\",\"39.9533\"]|attractions"
+    "[\"viewpoints\",\"reading terminal\",\"-75.1591\",\"39.9533\"]|viewpoints"
    ],
    "thin": false
   },
@@ -11833,8 +11833,8 @@
     "[\"parks\",\"hosta garden\",\"-90.4245\",\"42.4106\"]|parks",
     "[\"parks\",\"linmar gardens\",\"-90.4318\",\"42.4137\"]|community_parks",
     "[\"parks\",\"old cemetery park\",\"-90.4319\",\"42.4187\"]|parks",
-    "[\"viewpoints\",\"galena trolley tours\",\"-90.4300\",\"42.4140\"]|attractions",
-    "[\"viewpoints\",\"general store\",\"-90.4240\",\"42.4110\"]|attractions"
+    "[\"viewpoints\",\"galena trolley tours\",\"-90.4300\",\"42.4140\"]|viewpoints",
+    "[\"viewpoints\",\"general store\",\"-90.4240\",\"42.4110\"]|viewpoints"
    ],
    "thin": false
   },
@@ -11987,12 +11987,12 @@
     "[\"parks\",\"washington square\",\"-75.1523\",\"39.9470\"]|parks",
     "[\"parks\",\"welcome park\",\"-75.1440\",\"39.9473\"]|parks",
     "[\"parks\",\"wood st. park\",\"-75.1421\",\"39.9559\"]|community_parks",
-    "[\"viewpoints\",\"benjamin franklin grave\",\"-75.1483\",\"39.9524\"]|attractions",
-    "[\"viewpoints\",\"city tavern\",\"-75.1446\",\"39.9471\"]|attractions",
-    "[\"viewpoints\",\"first bank of the united states\",\"-75.1464\",\"39.9480\"]|attractions",
-    "[\"viewpoints\",\"liberty bell\",\"-75.1503\",\"39.9495\"]|attractions",
+    "[\"viewpoints\",\"benjamin franklin grave\",\"-75.1483\",\"39.9524\"]|viewpoints",
+    "[\"viewpoints\",\"city tavern\",\"-75.1446\",\"39.9471\"]|viewpoints",
+    "[\"viewpoints\",\"first bank of the united states\",\"-75.1464\",\"39.9480\"]|viewpoints",
+    "[\"viewpoints\",\"liberty bell\",\"-75.1503\",\"39.9495\"]|viewpoints",
     "[\"viewpoints\",\"president's house\",\"-75.1501\",\"39.9505\"]|old_ruins",
-    "[\"viewpoints\",\"u.s. mint at philadelphia tour\",\"-75.1481\",\"39.9530\"]|attractions"
+    "[\"viewpoints\",\"u.s. mint at philadelphia tour\",\"-75.1481\",\"39.9530\"]|viewpoints"
    ],
    "thin": false
   }

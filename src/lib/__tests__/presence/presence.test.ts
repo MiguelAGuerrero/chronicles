@@ -20,11 +20,9 @@ const CHANGED: Record<string, Omit<Row, 'cls' | 'sub'>> = {
   'viewpoint|viewpoint': { weight: 0.5, category: 'viewpoints', kind: 'viewpoints', markPlain: true, markNotable: true },
   'florist|florist': shop, 'jewelry|jewelry': shop, 'gift|gift': shop, 'toys|toys': shop, 'stationery|stationery': shop, 'books|books': shop, 'shop|books': shop,
   'marketplace|marketplace': { weight: 1, category: 'food', kind: null, markPlain: false, markNotable: false },
-  // specs/explore-subtypes XS4, XS12 (decision 0187): attractions, zoos and aquariums are their own kind; the map's ruins are
-  // Curiosities (Ruins), a place to find and no storefront (SF10).
+  // specs/explore-subtypes XS4, XS12 (decision 0187) and audit 12: zoos and aquariums are their own kind (attractions and theme
+  // parks stay with Viewpoints); the map's ruins are Curiosities (Ruins), a place to find and no storefront (SF10).
   'aquarium|aquarium': { weight: 1, category: 'viewpoints', kind: 'attractions', markPlain: true, markNotable: true },
-  'attraction|attraction': { weight: 1, category: 'viewpoints', kind: 'attractions', markPlain: true, markNotable: true },
-  'theme_park|theme_park': { weight: 1, category: 'viewpoints', kind: 'attractions', markPlain: true, markNotable: true },
   'zoo|aviary': { weight: 1, category: 'viewpoints', kind: 'attractions', markPlain: true, markNotable: true },
   'zoo|zoo': { weight: 1, category: 'viewpoints', kind: 'attractions', markPlain: true, markNotable: true },
   'castle|ruins': { weight: 0, category: 'viewpoints', kind: 'curiosities', markPlain: true, markNotable: true },

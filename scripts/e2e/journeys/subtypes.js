@@ -79,6 +79,14 @@ async function run(h) {
   const ghostOn = await pg.locator('[data-testid=kind-ghost_towns]').getAttribute('aria-checked').catch(() => null);
   check(!!ghost && !!curio && ghost.left > curio.left && ghostOn === 'false', `XS6: Ghost towns is indented and off (${JSON.stringify({ ghost: ghost?.left, curio: curio?.left, ghostOn })})`);
   check(drawer.every((r) => !/\d/.test(r.text)), 'XS19: no heading or row carries a number');
+  // explore-subtypes audit 16: a category heading is no smaller than the rows it heads, and bold.
+  const sizes = await pg.evaluate(() => {
+    const px = (el) => (el ? parseFloat(getComputedStyle(el).fontSize) : 0);
+    const head = document.querySelector('[data-testid=kind-heading-art]');
+    const row = [...document.querySelectorAll('[data-testid=kind-public_art] *')].find((e) => e.childElementCount === 0 && /Public art/.test(e.textContent || ''));
+    return { head: px(head), row: px(row), weight: head ? getComputedStyle(head).fontWeight : '' };
+  });
+  check(sizes.head >= sizes.row && Number(sizes.weight) >= 600, `explore-subtypes audit 16: the heading is at least the rows' size, bold (${JSON.stringify(sizes)})`);
   await shot(pg, 'subtypes-what-im-into');
   // The middle and the end of the list, for the UI review (decision 0145).
   await pg.locator('[data-testid=kind-bridges]').scrollIntoViewIfNeeded().catch(() => {});
@@ -92,8 +100,19 @@ async function run(h) {
   await pg.setViewportSize({ width: 320, height: 700 });
   await pg.waitForTimeout(500);
   const narrow = await listOrder();
-  const tall = narrow.filter((r) => !r.id.startsWith('kind-heading-') && r.h > 64);
-  check(rows.length > 40 && tall.length === 0, `XS22: at 320 px no row wraps (${JSON.stringify(tall.map((r) => r.id))})`);
+  // explore-subtypes audit 2: rows have a 48 px floor that a two-line label fits under, so count the label's own lines.
+  const wrapped = await pg.evaluate(() => [...document.querySelectorAll('[data-testid^=kind-]')]
+    .filter((e) => !e.getAttribute('data-testid').startsWith('kind-heading-') && e.getBoundingClientRect().height > 0)
+    .map((e) => {
+      const leaf = [...e.querySelectorAll('*')].find((x) => x.childElementCount === 0 && /[A-Za-z]{3}/.test(x.textContent || ''));
+      if (!leaf || !leaf.firstChild) return null;
+      const range = document.createRange();
+      range.selectNodeContents(leaf);
+      const tops = new Set([...range.getClientRects()].map((r) => Math.round(r.top)));
+      return tops.size > 1 ? `${e.getAttribute('data-testid')} (${leaf.textContent})` : null;
+    })
+    .filter(Boolean));
+  check(rows.length > 40 && wrapped.length === 0, `XS22, explore-subtypes audit 2: at 320 px every row's label is one line (${JSON.stringify(wrapped)})`);
   await shot(pg, 'subtypes-what-im-into-320');
   await c.close();
   places.files = {};

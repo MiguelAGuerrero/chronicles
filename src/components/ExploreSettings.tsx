@@ -111,7 +111,8 @@ export function RangeSlider({ value, onChange }: { value: number; onChange: (m: 
 const styles = StyleSheet.create({
   complexNote: { fontSize: 13, color: theme.muted, marginBottom: 4 },
   // XS2: ink, never muted (Found before quiet); a heading over a block of rows.
-  kindHeading: { fontSize: 13, fontWeight: '700', color: theme.ink, marginTop: 12, marginBottom: 4 },
+  // explore-subtypes audit 16: no smaller than the rows it heads (15), bold, with room above it.
+  kindHeading: { fontSize: 15, fontWeight: '700', color: theme.ink, marginTop: 16, marginBottom: 4 },
   sliderRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   // 44 pt, not hit slop: react-native-web has none (U4).
   stepBtn: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: theme.edge, alignItems: 'center', justifyContent: 'center' },

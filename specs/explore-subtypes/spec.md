@@ -52,8 +52,10 @@ The owner's task, in their words: "a more rich exploring experience, no matter h
   under Viewpoints & oddities.
 - **XS3** each archive class of contract v4 maps to one category, kind and subtype, pinned (the plan's table); the app
   pins chronicles-data's contract v4 (PP17).
-- **XS4** two new kinds: "Nature" (Parks & green spaces: waterfalls, caves, hot springs and geysers, old trees) and "Zoos, aquariums and attractions" (Viewpoints & oddities: the map's attractions, zoos, aquariums and theme
-  parks, and the archive's zoos); "Viewpoints and attractions" reads "Viewpoints".
+- **XS4** two new kinds: "Nature" (Parks & green spaces: waterfalls, caves, hot springs and geysers, old trees) and "Zoos and
+  aquariums" (Viewpoints & oddities: the map's zoos and aquariums, and the archive's); the map's attractions and theme parks
+  stay under "Viewpoints and attractions" (amended by the audit, explore-subtypes audit 12: "attractions" names a draw, so
+  it is no new kind's name; the shipped label's word is the owner's open question).
 - **XS5** a subtype's row shows indented under its kind only while the kind is on, and is off and locked under a kind
   switched off (PC23 holds for every subtype).
 - **XS6** on a fresh install, Plaques, Small memorials, Milestones and old stones, Wayside shrines and crosses, Ghost

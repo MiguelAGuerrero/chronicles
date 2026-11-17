@@ -263,7 +263,7 @@ test('PW11: no count, rank or "popular" mark: the kinds, their labels and the ma
   // specs/presence-readers: a place carries presence's classes (what it is, never stored); for an archive place they are its
   // type and `recorded`, the same for every archive place, so nothing measures it.
   assert.deepEqual(fields, ['at', 'build', 'category', 'classes', 'generic', 'key', 'kind', 'markable', 'name'], 'nothing that measures a place reaches the app');
-  // explore-subtypes XS3 (decision 0187): a folly is presence's `roadside` (Roadside giants and follies) since contract v4.
+  // explore-subtypes XS3 (decision 0187): a folly is presence's `roadside` (Giants and follies) since contract v4.
   assert.deepEqual(place.classes, ['roadside', 'recorded']);
 });
 

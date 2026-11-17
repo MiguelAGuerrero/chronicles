@@ -83,17 +83,17 @@ test('XS3: each archive class of contract v4 maps to one category, kind and subt
   assert.deepEqual([...ARCHIVE_CLASS_NAMES].sort(), [...sources.classes].sort());
 });
 
-test('XS4: two new kinds, Nature and Zoos, aquariums and attractions; Viewpoints reads Viewpoints', async () => {
+test('XS4: two new kinds, Nature and Zoos and aquariums (audit 12); the map\'s attractions stay with Viewpoints and attractions', async () => {
   await sub();
   const label = (id: string) => KINDS.find((k) => k.id === id)?.label;
   assert.equal(label('nature'), 'Nature');
-  assert.equal(label('attractions'), 'Zoos, aquariums and attractions');
-  assert.equal(label('viewpoints'), 'Viewpoints');
+  assert.equal(label('attractions'), 'Zoos and aquariums');
+  assert.equal(label('viewpoints'), 'Viewpoints and attractions');
   for (const k of ['waterfalls', 'caves', 'hot_springs', 'old_trees']) assert.equal(kindRows(KINDS, new Set()).find((r) => r.kind.id === k)?.depth, 1, k);
   assert.equal(tile('zoo', 'zoo', 'City Zoo')[0]?.kind, 'attractions');
   assert.equal(tile('zoo', 'petting_zoo', 'Farm Zoo')[0]?.kind, 'attractions');
   assert.equal(tile('aquarium', 'aquarium', 'Aquarium')[0]?.kind, 'attractions');
-  assert.equal(tile('attraction', 'attraction', 'SteelStacks')[0]?.kind, 'attractions');
+  assert.equal(tile('attraction', 'attraction', 'SteelStacks')[0]?.kind, 'viewpoints');
   assert.equal(tile('attraction', 'viewpoint', 'Lookout')[0]?.kind, 'viewpoints');
 });
 
@@ -286,7 +286,97 @@ test('XS28: an artistic fountain is Public art and shows with Fountains off; a p
 test('explore-subtypes ui 1: no subtype wears an icon that reads as Settings, your trace, danger or another row\'s tool', () => {
   const icon = (id: string) => KINDS.find((k) => k.id === id)?.icon;
   assert.notEqual(icon('mills'), 'cog-outline', 'a gear reads as Settings');
-  assert.notEqual(icon('ghost_towns'), 'footprints-outline', 'footprints read as your own walks in a walking app');
+  assert.notEqual(icon('ghost_towns'), 'footsteps-outline', 'footsteps read as your own walks in a walking app (audit 8: the name the app uses)');
   assert.notEqual(icon('old_ruins'), 'skull-outline', 'a skull reads as danger or death');
   assert.notEqual(icon('lighthouses'), 'flashlight-outline', 'a flashlight reads as a pen or a hammer beside Archaeological sites');
+});
+
+// The audit (Nov 17, specs/explore-subtypes "Audit"): each accepted finding's regression test, before its fix.
+const pf = (props: Record<string, unknown>, p: LngLat) => ({ type: 'Feature', geometry: { type: 'Point', coordinates: p }, properties: props });
+
+test('explore-subtypes audit 1: on a v3 pack an OpenStreetMap `marker` is a plaque, off by default, never an on Marker', () => {
+  const [osm] = placesFromArchive([pf({ name: '', class: 'marker', src: 'osm', id: 'p1' }, O)] as never, V);
+  const [wd] = placesFromArchive([pf({ name: 'Bethlehem Steel Historical Marker', class: 'marker', src: 'wd', id: 'p2' }, at(50))] as never, V);
+  assert.equal(read([osm])[0].kind, 'plaques');
+  assert.equal(osm.name, 'A plaque');
+  assert.equal(read([wd])[0].kind, 'markers');
+  assert.ok(parseHidden(null, null).has(K('plaques')));
+});
+
+test('explore-subtypes audit 3: an unnamed map artwork beside an unnamed archive fountain stays shown; only artworks merge', () => {
+  const t = placesFromTilePois([{ geometry: { type: 'Point', coordinates: at(0) }, properties: { class: 'art_gallery', subclass: 'artwork' }, zoom: 14 }] as never, 'b');
+  const merged = read(mergePlaces(t, [archivePlace('', 'fountain', at(12), V)!]));
+  assert.deepEqual(merged.map((p) => p.name).sort(), ['A fountain', 'Public art']);
+});
+
+test('explore-subtypes audit 4: a found unnamed artwork merged into an archive statue stays found', async () => {
+  const { keepFindKeys } = await import('../../discovery/archiveMerge');
+  const t = placesFromTilePois([{ geometry: { type: 'Point', coordinates: at(0) }, properties: { class: 'art_gallery', subclass: 'artwork' }, zoom: 14 }] as never, 'b');
+  const merged = mergePlaces(t, [archivePlace('', 'statue', at(12), V)!]);
+  const kept = keepFindKeys(merged, [{ key: t[0].key, name: 'Public art', at: t[0].at, generic: true } as never]);
+  assert.deepEqual(kept.map((p) => p.key), [t[0].key]);
+});
+
+test('explore-subtypes audit 5: Monuments or Plaques and markers off before the update keeps statues and markers off', () => {
+  const before = ['public_art', 'museums', 'theatres', 'community', 'little_libraries', 'monuments', 'plaques', 'small_memorials', 'structures', 'old_stones', 'churches', 'wayside_shrines', 'cemeteries', 'parks', 'community_parks', 'viewpoints', 'curiosities', 'time_capsules'];
+  const mon = parseHidden(JSON.stringify(['monuments', 'plaques', 'small_memorials', 'old_stones', 'wayside_shrines']), JSON.stringify(before));
+  assert.ok(mon.has(K('statues')) && mon.has(K('markers')));
+  const plq = parseHidden(JSON.stringify(['plaques', 'small_memorials', 'old_stones', 'wayside_shrines']), JSON.stringify(before));
+  assert.ok(plq.has(K('markers')), 'Plaques and markers off keeps markers off');
+  assert.ok(!plq.has(K('statues')));
+  const on = parseHidden(JSON.stringify(['small_memorials', 'old_stones', 'wayside_shrines']), JSON.stringify(before));
+  assert.ok(!on.has(K('markers')) && !on.has(K('statues')));
+});
+
+test('explore-subtypes audit 6: an unnamed map viewpoint is still a scenic Sight; an unnamed subtype place is not', () => {
+  const vp = read(tile('attraction', 'viewpoint', ''));
+  const statue = read([archivePlace('', 'statue', at(30), V)]);
+  assert.deepEqual(sightsFrom([...vp, ...statue], new Set(), new Set()).map((s) => s.name), ['A viewpoint']);
+});
+
+test('explore-subtypes audit 7: an area row shows the bars of the subtypes switched on, whichever list it comes from', async () => {
+  const { presenceTally, rowsShown } = atlasModule as typeof atlasModule & { rowsShown: (rows: unknown[], hidden: Set<Kind>) => { profile: { steps: Record<string, number> } }[] };
+  const bridges = Array.from({ length: 2 }, (_, i) => archivePlace(`Bridge ${i}`, 'bridge', at(i * 30, 40), V)!);
+  const tally = presenceTally(ringOf(bridges, null, O).ring, O);
+  const row = { key: 't', profile: { steps: { history: 0 }, tally } };
+  assert.ok(rowsShown([row], new Set())[0].profile.steps.history >= 1);
+  assert.equal(rowsShown([row], new Set([K('bridges')]))[0].profile.steps.history, 0);
+});
+
+test('explore-subtypes audit 8: ghost towns wear no icon the app uses for walks', () => {
+  assert.notEqual(KINDS.find((k) => k.id === 'ghost_towns')?.icon, 'footsteps-outline');
+});
+
+test('explore-subtypes audit 9: a zoo\'s enclosures are not places of their own', () => {
+  assert.equal(tile('zoo', 'enclosure', 'Lion House').length, 0);
+});
+
+test('explore-subtypes audit 10: the replay folds unnamed finds of one type', async () => {
+  const { replayFound } = (await import('../../explore/explore')) as unknown as { replayFound: (f: { name: string; generic: boolean }[]) => string | null };
+  assert.equal(replayFound([{ name: 'A statue', generic: true }, { name: 'A statue', generic: true }]), 'Found Statues');
+});
+
+test('explore-subtypes audit 11: unnamed murals and sculptures fold into one "Public art" row and read once in a passed line', async () => {
+  const { foundRows } = await sub();
+  const f = (name: string) => ({ name, generic: true, category: 'art', at: O });
+  assert.deepEqual(foundRows([f('Public art'), f('Public art'), f('Public art')]).map((r) => r.name), ['Public art']);
+  assert.equal(passedLine([{ name: 'Public art', generic: true }, { name: 'Public art', generic: true }]), 'Passed public art without stopping');
+});
+
+test('explore-subtypes audit 12: zoos and aquariums are a kind named for what they are; the map\'s attractions stay with Viewpoints', () => {
+  assert.equal(KINDS.find((k) => k.id === 'attractions')?.label, 'Zoos and aquariums');
+  assert.equal(tile('zoo', 'zoo', 'City Zoo')[0]?.kind, 'attractions');
+  assert.equal(tile('attraction', 'attraction', 'SteelStacks')[0]?.kind, 'viewpoints');
+  assert.equal(tile('theme_park', 'theme_park', 'Dorney Park')[0]?.kind, 'viewpoints');
+  assert.equal(KINDS.find((k) => k.id === 'viewpoints')?.label, 'Viewpoints and attractions');
+});
+
+test('explore-subtypes audit 13: a marker weighs a quarter in a bar, as a plaque does', async () => {
+  const { barWeight } = await import('../../presence/presence');
+  assert.equal(barWeight(classesOfArchive('marker')), 0.25);
+});
+
+test('explore-subtypes audit 14: taverns read "Old taverns" in a sentence', async () => {
+  const { SUBTYPES } = await sub();
+  assert.equal(SUBTYPES.find((s) => s.kind === 'taverns')?.plural, 'Old taverns');
 });

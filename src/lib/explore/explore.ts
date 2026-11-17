@@ -7,7 +7,7 @@ import { isMarkable } from '../discovery/noise';
 import { keepFindKeys } from '../discovery/archiveMerge';
 import { isOffered } from '../discovery/places';
 import { isKindHidden, kindParent } from '../discovery/refinements';
-import { DEFAULT_OFF, keepTheLows, passedNames, SUBTYPES } from '../discovery/subtypes';
+import { DEFAULT_OFF, foundRows, keepTheLows, passedNames, SUBTYPES } from '../discovery/subtypes';
 import type { CategoryId, Kind, Place } from '../discovery/types';
 import { distanceM, nearPoints, projector } from '../geo';
 import type { LngLat } from '../types';
@@ -67,7 +67,7 @@ const SUBTYPE_ICON: Partial<Record<Kind, string>> = {
   gardens: 'sunny-outline', community_gardens: 'nutrition-outline', waterfalls: 'rainy-outline', caves: 'triangle-outline', hot_springs: 'thermometer-outline',
   old_trees: 'git-network-outline',
   observatories: 'planet-outline', concert_halls: 'musical-notes-outline', little_libraries: 'bookmarks-outline', carousels: 'sync-circle-outline',
-  fire_towers: 'bonfire-outline', old_ruins: 'grid-outline', ghost_towns: 'footsteps-outline', natural_oddities: 'earth-outline', roadside_giants: 'balloon-outline',
+  fire_towers: 'bonfire-outline', old_ruins: 'grid-outline', ghost_towns: 'moon-outline', natural_oddities: 'earth-outline', roadside_giants: 'balloon-outline',
   survey_marks: 'locate-outline', time_capsules: 'hourglass-outline',
 };
 
@@ -104,10 +104,10 @@ export const KINDS: readonly KindInfo[] = [
   // PK11-PK13: community centres (by a notable name), arts centres and libraries, in Culture (the owner, Nov 10).
   { id: 'community', label: 'Community spaces', icon: 'reader-outline', category: 'culture' },
   ...small('community', 'culture'),
-  { id: 'viewpoints', label: 'Viewpoints', icon: 'eye-outline', category: 'viewpoints' },
+  { id: 'viewpoints', label: 'Viewpoints and attractions', icon: 'eye-outline', category: 'viewpoints' },
   ...small('viewpoints', 'viewpoints'),
-  // XS4: attractions, zoos and aquariums, apart from Viewpoints; the word is the map's own class (RP13), never popularity.
-  { id: 'attractions', label: 'Zoos, aquariums and attractions', icon: 'paw-outline', category: 'viewpoints' },
+  // XS4, explore-subtypes audit 12: zoos and aquariums, named for what they are; the map's attractions stay with Viewpoints.
+  { id: 'attractions', label: 'Zoos and aquariums', icon: 'paw-outline', category: 'viewpoints' },
   // PW4: follies, roadside giants, natural oddities and the like, from the places archive (decision 0103).
   { id: 'curiosities', label: 'Curiosities', icon: 'telescope-outline', category: 'viewpoints' },
   ...small('curiosities', 'viewpoints'),
@@ -553,6 +553,9 @@ type Found = { name: string; category: CategoryId; generic: boolean; kind?: Kind
 export const foundLine = (f: Found): string =>
   f.generic ? `Found: ${f.name}` : `Found: ${f.name} · ${f.kind ? kindOf(f.kind).label : categoryOf(f.category).label}`;
 
+/** explore-subtypes audit 10: the replay's finds, unnamed ones of one type folded into their plural (SP21), as the card's list. */
+export const replayFound = (found: readonly { name: string; generic: boolean }[]): string | null => foundList(foundRows(found).map((f) => f.name));
+
 /**
  * The card's finds by name (E11): "Found RISD Museum · Old North Church", three at most, then how many more, in words,
  * "and two more" (tend replay T31).
@@ -621,6 +624,9 @@ export function parseHidden(raw: string | null, known: string | null = null): Se
   if (out.has('museums') && !knew.includes('community')) out.add('community');
   // XS7: zoos and attractions were under "Viewpoints and attractions": off there keeps them off in their own kind.
   if (out.has('viewpoints') && !knew.includes('attractions')) out.add('attractions');
+  // explore-subtypes audit 5: statues were Monuments, markers "Plaques and markers": a switch off before keeps them off.
+  if (out.has('monuments') && !knew.includes('statues')) out.add('statues');
+  if ((out.has('monuments') || out.has('plaques')) && knew.includes('plaques') && !knew.includes('markers')) out.add('markers');
   // SP7, SP8: a subset that starts off is off until the reader has seen it (a save writes every kind as known), fresh or updated.
   for (const k of DEFAULT_OFF) if (!knew.includes(k)) out.add(k);
   return out;

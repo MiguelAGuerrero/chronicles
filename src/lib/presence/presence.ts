@@ -62,14 +62,15 @@ const DEFS = {
   curiosity: { weight: FULL, category: 'viewpoints', kind: 'curiosities' },
   structure: { weight: FULL, category: 'history', kind: 'structures' },
   heritage: { weight: FULL, storefront: true },
-  // XS4 (decision 0187): attractions, zoos and aquariums are a kind of their own.
-  attraction: { weight: FULL, storefront: true, category: 'viewpoints', kind: 'attractions' },
+  // explore-subtypes audit 12: the map's attractions stay with Viewpoints ("Viewpoints and attractions"); zoos have their own kind.
+  attraction: { weight: FULL, storefront: true, category: 'viewpoints', kind: 'viewpoints' },
   // Small places (specs/small-places, decision 0183): each a subset of its kind (`subset`, a switch in "What I'm into"),
   // weighing in a bar by the size of the stop (`bar`); none is a storefront (SP14). A community garden has no switch.
   plaque: { weight: QUARTER, bar: QUARTER, category: 'history', kind: 'monuments', subset: 'plaques' },
   // Subtypes (specs/explore-subtypes, decision 0187): contract v4's classes, each a subtype of its kind, weighed by the
   // size of the stop (`bar`); a place you walk into is a storefront (XS16).
-  marker: { weight: HALF, bar: HALF, category: 'history', kind: 'monuments', subset: 'markers' },
+  // explore-subtypes audit 13: a marker is a small stop, a quarter as a plaque.
+  marker: { weight: QUARTER, bar: QUARTER, category: 'history', kind: 'monuments', subset: 'markers' },
   war_memorial: { weight: FULL, category: 'history', kind: 'monuments', subset: 'war_memorials' },
   battlefield: { weight: FULL, category: 'history', kind: 'monuments', subset: 'battlefields' },
   archaeological_site: { weight: FULL, category: 'history', kind: 'monuments', subset: 'archaeological_sites' },
@@ -201,10 +202,11 @@ const OSM: Record<string, Rule[]> = {
   theatre: [['*', 'theatre']],
   cinema: [['*', 'cinema_hall']],
   attraction: [[['viewpoint'], 'viewpoint'], [['attraction'], 'attraction']],
-  aquarium: [['*', 'attraction']],
+  aquarium: [['*', 'zoo']],
   // RP15: the National Aviary is OSM's zoo=aviary (the owner, Nov 9).
   // XS4: a petting zoo, a wildlife or safari park and the like are zoos too (the second review, Nov 17).
-  zoo: [[['zoo', 'aviary', 'petting_zoo', 'wildlife_park', 'safari_park', 'butterfly', 'reptile', 'enclosure'], 'attraction']],
+  // explore-subtypes audit 9, 12: an enclosure is a pen inside a zoo, never a place of its own; zoos are Zoos and aquariums.
+  zoo: [[['zoo', 'aviary', 'petting_zoo', 'wildlife_park', 'safari_park', 'butterfly', 'reptile'], 'zoo'], [['enclosure'], 'none']],
   theme_park: [['*', 'attraction']],
   bar: [[['bar', 'nightclub'], 'drink']],
   beer: [[['pub', 'biergarten'], 'drink']],
@@ -323,6 +325,16 @@ const ARCHIVE: Record<string, PresenceClass> = {
 /** The archive's class names, in the contract's order (PW5's listing, `archivePois.ts`). */
 export const ARCHIVE_CLASS_NAMES: readonly string[] = Object.keys(ARCHIVE);
 
+/**
+ * explore-subtypes audit 1: an archive feature's class as its source meant it. Contract v3 put OpenStreetMap's plaques under
+ * `marker` beside Wikidata's historical markers; v4 calls them `plaque`. A v3 pack (or one still served) reads the same.
+ */
+export const archiveClassOf = (cls: string, src: string): string => (cls === 'marker' && src === 'osm' ? 'plaque' : cls);
+
+/** XS14, explore-subtypes audit 3: whether a place is an artwork (the map's unnamed art, a statue, a mural or a sculpture). */
+const ARTWORK_CLASSES: ReadonlySet<PresenceClass> = new Set<PresenceClass>(['artwork', 'statue', 'mural']);
+export const isArtworkClass = (classes: readonly PresenceClass[]): boolean => classes.some((c) => ARTWORK_CLASSES.has(c));
+
 /** PS1: what a places-archive feature is, from its class. */
 export function classesOfArchive(cls: string): PresenceClass[] {
   const c = own(ARCHIVE, cls);
@@ -345,6 +357,9 @@ const UNNAMED: Record<string, string> = { artwork: 'Public art', viewpoint: 'A v
 
 /** D4: the words an unnamed poi of this subclass shows, or null where an unnamed one is no place. */
 export const unnamedLabel = (sub: string): string | null => own(UNNAMED, sub) ?? null;
+
+/** explore-subtypes audit 4: the words the map's unnamed artwork shows ("Public art"), for a find that follows a merge. */
+export const UNNAMED_ARTWORK: string = UNNAMED.artwork;
 
 /** SP5: the archive's classes that may come unnamed (contract v3), and the words such a place shows, as an unnamed viewpoint. */
 const ARCHIVE_UNNAMED: Record<string, string> = {
