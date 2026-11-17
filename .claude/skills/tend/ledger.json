@@ -190,8 +190,8 @@
     "captures": {
       "state": "rough",
       "swept": "2026-11-17",
-      "main": "8e1515ca2be126bbf667ee94185ab239a63b6023",
-      "note": "No sweep (lenses 1-7 not run): a run on the two Navigate, ready voice-memo [loop] items. Built tend captures 1 (a memo whose stop timed out is said and let go, never held for a dead Retry; memoFile, failedMemo) and the review's F11 as tend captures audit 1 (the space journey's patched recorders ended). Item 2 was built and dropped after the review (F1-F8: incomplete); the owner's \"Ship fix 1, slice the rest\" makes it a slice where one holder owns every unsaved memo, noted on the item; the first attempt is the unpushed branch tend/captures-20261117-1418. F9, F10 filed [loop] low; memoFile on a phone in NATIVE_UNVERIFIED."
+      "main": "972c386009771fa942d94b44bb4048c2009a67d2",
+      "note": "No sweep (lenses 1-7 not run): a run on the capturehome journey's red HC10 on main, filed [loop] medium and closed. No commit made it red (it failed at acb18b06 and 972c3860 under load, passed at rest); the check read the stored note once (waitForFunction on an async predicate). Built tend captures 2 (the placed-at-stop check polls) and the review's five as tend captures audit 2-6 (both HC10 paths at a walker's pace, the note on its trace with no read, JN13 polled, stored() bounded, arch/e2eWaits.test.ts guards the trap). Nothing filed."
     }
   },
   "declined": []
