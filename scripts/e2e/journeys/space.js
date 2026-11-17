@@ -71,6 +71,60 @@ async function run(h) {
   check((await pg.evaluate(() => window.__persistAsked)) === 1 && refused.includes(REFUSED), `SA10: asked once after a moment kept outside a walk; the refusal said ("${say(refused)}")`);
   await dismiss();
 
+  // tend captures 1: a memo whose stop is given up on (3 s) has no file of its own on the web. It is said and let go, never
+  // held for a Retry that cannot work, and never kept as the memo before it. The browser's MediaRecorder ignores the stop.
+  const voiceRows = () => pg.evaluate(() => new Promise((resolve) => {
+    const req = indexedDB.open('chronicles');
+    req.onsuccess = () => {
+      const g = req.result.transaction('moment', 'readonly').objectStore('moment').getAll();
+      g.onsuccess = () => resolve(g.result.filter((m) => m.pieces.some((x) => x.kind === 'voice')).length);
+    };
+  }));
+  await pg.evaluate(() => {
+    const stop = MediaRecorder.prototype.stop;
+    window.__stopOff = 0;
+    // The recorders whose stop was ignored, and the browser's own stop, so the block ends them (tend captures audit 1).
+    window.__stopIgnored = [];
+    window.__stopOwn = stop;
+    MediaRecorder.prototype.stop = function () {
+      if (window.__stopOff > 0) {
+        window.__stopOff--;
+        window.__stopIgnored.push(this);
+        return undefined;
+      }
+      return stop.call(this);
+    };
+  });
+  const memo = async ({ stopOff = 0 } = {}) => {
+    await pg.click('[data-testid=moment-voice]');
+    await pg.waitForSelector('[data-testid=moment-voice-save]', { timeout: 10000 });
+    await pg.waitForTimeout(1300);
+    await pg.evaluate((n) => { window.__stopOff = n; }, stopOff);
+    await pg.click('[data-testid=moment-voice-save]');
+    await pg.waitForSelector('[data-testid=moment-voice-save]', { state: 'detached', timeout: 10000 }).catch(() => {});
+    await pg.waitForTimeout(800);
+  };
+  const FAILED = 'Couldn’t save this voice memo.';
+  const retryShown = () => pg.locator('text=Voice memo not saved').count();
+  const voices0 = await voiceRows();
+  await memo({ stopOff: 1 });
+  check((await retryShown()) === 0 && (await pg.locator(`text=${FAILED}`).count()) > 0 && (await voiceRows()) === voices0,
+    `tend captures 1: a memo whose stop timed out, with no file, is said and offers no Retry (${await retryShown()}, ${(await voiceRows()) - voices0} kept)`);
+  await memo();
+  const voices1 = await voiceRows();
+  await memo({ stopOff: 1 });
+  check((await retryShown()) === 0 && (await voiceRows()) === voices1 && voices1 === voices0 + 1,
+    `tend captures 1: after a kept memo, one whose stop timed out offers no Retry for that memo's file, and keeps nothing (${voices0} → ${voices1} → ${await voiceRows()})`);
+  // The ignored recorders are stopped and the browser's stop put back, so no microphone records under the later steps.
+  const live = await pg.evaluate(() => {
+    for (const r of window.__stopIgnored) if (r.state !== 'inactive') window.__stopOwn.call(r);
+    MediaRecorder.prototype.stop = window.__stopOwn;
+    return new Promise((resolve) => setTimeout(() => resolve(window.__stopIgnored.filter((r) => r.state !== 'inactive').length), 300));
+  });
+  const ended = await pg.evaluate(() => window.__stopIgnored.length);
+  check(live === 0 && ended === 2 && (await pg.evaluate(() => MediaRecorder.prototype.stop === window.__stopOwn)),
+    `tend captures audit 1: the journey ends the recorders whose stop it ignored and puts the browser's stop back (${ended} ignored, ${live} still live)`);
+
   // The walk, with the room now very low: said again, because it got worse (SA3, SA4).
   await pg.evaluate(() => { window.__free = 50 * 1024 * 1024; });
   await pg.waitForTimeout(1500);
