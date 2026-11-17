@@ -17,7 +17,7 @@ holds a moment's pieces: **this slice needs no migration, no new `Db` method and
 
 | Where | What |
 |---|---|
-| `src/components/threads/ReplyDock.tsx` | An **Add** tool (glyph `layers`-style, the moment mark's) and its menu, titled; `cap.takePhoto(into)`, `cap.startVoice(into)` and a note page with `into` already take the moment's id (`useCaptures`, MS2/MS3), so the dock calls them with `answeredId`. Respond's menu gains its title. A recording for an add says "Recording a memo for this moment". |
+| `src/components/threads/ReplyDock.tsx` | An **Add** tool (a plus glyph of its own, never the moment's two-card mark) and its menu, titled; `cap.takePhoto(into)`, `cap.startVoice(into)` and a note page with `into` already take the moment's id (`useCaptures`, MS2/MS3), so the dock calls them with `answeredId`. Respond's menu gains its title. A recording for an add says "Recording a memo for this moment". |
 | `src/components/CaptureView.tsx` | Delete the top-row `viewer-add` block and `openForAdd` (MA6); the `ReplyDock` shows at every time (its condition loses `openForAdd !== current.id`); `kept` says "Added to this moment" and pages to the new piece (`facedAt`). |
 | `src/components/notePage/NewNotePage.tsx` | `into` is already a prop; the dock passes the moment's id for an add and null for a reply. |
 | `src/lib/useCaptures.ts` | The dock's second `useCaptures` instance carries an `into` per call, no change expected; a test pins it (MA3). |
@@ -36,7 +36,7 @@ is never edited. No SQLite migration, no IndexedDB version.
 |---|---|---|
 | MA1 | journey: open a moment made 5 minutes earlier, tap Add then Note, write, and the moment holds two pieces; the dock's Add is found by its label and glyph from the screenshot, no test id | `scripts/e2e/journeys/stacks.js` |
 | MA2 | `MA2: Add offers Photo or video, Voice memo, Note, in Respond's order and words` (a source check of the two menus' items from one list) | `moments/append.test.ts` |
-| MA3 | `MA3: a piece added to a closed moment keeps its own time and the moment's place, time, threads, links, reminder and find` (contract over the fake, IndexedDB, SQLite via `dbContract.ts`); `MA3: an add asks for no fix` (`stampFor` with `into`) | `dbContract.ts`, `captures/pieceStamp.test.ts` |
+| MA3 | `MA3: a piece made later shows its own time in words and no place, in the viewer and the replay` (core: a `pieceWhen(moment, piece)` rule in `lib/moment.ts`); `MA3: a piece added to a closed moment keeps its own time and the moment's place, time, threads, links, reminder and find` (contract over the fake, IndexedDB, SQLite via `dbContract.ts`); `MA3: an add asks for no fix` (`stampFor` with `into`) | `dbContract.ts`, `captures/pieceStamp.test.ts` |
 | MA4 | journey: after Add, the viewer pill says "Added to this moment" and the new piece shows, no digit | `stacks.js` |
 | MA5 | journey: both menus' titles show; a source check that neither title depends on the moment's size | `stacks.js`, `moments/append.test.ts` |
 | MA6 | `MA6: the viewer has one Add` (no `viewer-add` in the source; `openForAdd` is gone); journey: with the pill open and closed the dock's Add is there | `moments/append.test.ts`, `stacks.js` |
@@ -61,14 +61,14 @@ frame, per fix, on focus: nothing. No harness; "device only" for the camera and 
 
 | Goal | How often, where | Control | Matrix | Adjacent apps |
 |---|---|---|---|---|
-| Add more to a moment I made earlier | Occasional, standing or sitting, in Chronicle or on a walk | **Add** in the viewer's dock, labelled, a pull-down menu of kinds | Matrix 11 (an action on an item that exists: its toolbar, decision 0114); a choice of three kinds is a pull-down (ui-patterns) | Day One edits the entry; Apple Journal edits the entry |
+| Add more to a moment I made earlier | Occasional, standing or sitting, in Chronicle or on a walk | **Add** in the viewer's dock, labelled, a pull-down menu of kinds | Matrix 11 (an action on an item that exists: its toolbar, decision 0114); a choice of three kinds is a pull-down (ui-patterns) | Day One edits the entry (unverified); Apple Journal edits the entry (unverified) |
 | Say something that follows it, at another place | Occasional | **Respond**, unchanged, menu titled | as above | Apple Messages' Reply; Day One links |
 | Find them | On every viewer | Dock, bottom, labelled, ink | T5 (labels in a bar), found before quiet (0167) | as above |
 
 **Where the owner will look first:** the bottom of the moment's viewer, beside Respond, where Edit and Respond already are. It
 is drawn in ink with a word. **Defaults that make a control quieter:** none; Add is as loud as Respond. **Departure from precedent:**
-none; every adjacent app edits an entry in place. The single departure, Add's piece not keeping its own place, is the
-open question below (a Never-adjacent rule: one fix per moment, 0036).
+the adjacent apps' add-later lines are unverified (spec). No app is shown dropping an added item's place or time: that
+is our one departure, Add's piece not keeping its own place, and the open question below (a Never-adjacent rule: one fix per moment, 0036).
 
 ## Open for the owner
 
@@ -89,6 +89,11 @@ paths with an `into`); each is an item in `docs/NATIVE_UNVERIFIED.md`. Web has r
 
 ## The steward
 
-Run on this spec and plan before the owner reads it; findings below are triaged here.
+Run on this spec and plan; the owner's answers decide what is below marked **owner**.
 
-(pending)
+- **S1 (breach): accepted.** A piece added later is shown with its own time in words and no place (MA3). The viewer and the replay say it; `moment.ts` gains one pure rule. This is a visible change the **owner** should read in the mock-up (screen 4: "Added Nov 20, later").
+- **S2 (the glyph means two things): accepted.** Add has its own plus glyph; the two-card mark stays for stacks (MA1, MA8).
+- **S3 (Add vs Respond differ only after a tap): accepted.** Add's menu carries a helper line (MA5).
+- **S4 (unverified precedent): accepted.** Labelled unverified in the plan's table; the dropped place is named as the departure.
+- **S5 (size words on old moments): accepted,** MA8 carries the sixth/twelfth-piece test; `scripts/vision.allow.json`'s MS9 reason is read before the build.
+- **Silent, for the owner:** (1) a moment is never closed, it can gain pieces for years; the piece's own time (S1) is what keeps "what came just before" honest. (2) A location read at add time (option 3) would be a fix read on an explicit tap, which 0036 doesn't forbid ("one fix per moment's capture") but the plan doesn't take. (3) The replay's one beat (MS17) plays pieces at the moment's place; a piece made much later is announced by its own time, as S1 says; whether it plays at all in the ceremony is round 2's question and is deferred. (4) The VISION.md edits (0123's Shapes row, 0196's) are the owner's to make.
