@@ -1,0 +1,159 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "Go here on a tile that peeks at the row's edge",
+        "--reason",
+        "superseded: decision 0191 replaced Go here and its sheet with Open in Maps beside Walk"
+      ],
+      "target": "sha256:36b933604d8409f59bf80818a47cc11e6b5c38bfd26eb1315e3f17a3914fa5c3"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "Chronicle's Go here maps-failure notice",
+        "--reason",
+        "superseded: decision 0191 replaced Go here and its sheet with Open in Maps beside Walk"
+      ],
+      "target": "sha256:e5b493bf641a212e2d37bb43b3e7d8347c706aa24d17f5046130702342379e36"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "remove",
+        "tap Go here on a tile, then Apple Maps",
+        "--reason",
+        "superseded: decision 0191 replaced Go here and its sheet with Open in Maps beside Walk"
+      ],
+      "target": "sha256:75e42aa56f4a3bbcc3138675b5c860b063f355ca359098289982307e0d521840"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "remove",
+        "tap Go here under Walk to, then Apple Maps",
+        "--reason",
+        "superseded: decision 0191 replaced Go here and its sheet with Open in Maps beside Walk"
+      ],
+      "target": "sha256:b0c7a2543adc7e7d7b60b8fba47bdd9eb9f467f509a679d399b775be060fe5d7"
+    },
+    {
+      "argv": [
+        "section",
+        "item",
+        "remove",
+        "From the go-here-everywhere audit (2026-11-16)",
+        "meant to stop at Memories",
+        "--reason",
+        "superseded: decision 0191 replaced Go here and its sheet with Open in Maps beside Walk"
+      ],
+      "target": "sha256:8569233db0753d5fc272d593958b376716dedd2944f934bcfa547890896d3177"
+    },
+    {
+      "argv": [
+        "section",
+        "item",
+        "remove",
+        "From the go-here-everywhere audit (2026-11-16)",
+        "say once, in the sheet",
+        "--reason",
+        "superseded: decision 0191 replaced Go here and its sheet with Open in Maps beside Walk"
+      ],
+      "target": "sha256:dbe5f28fc1273eb4a2e68d59084cf1cc681fc9f9c4967ea98ee12d063dfc1f9d"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore and discovery"
+      ],
+      "body": "- [loop] On a tile that peeks at the row's edge, its right-hand Open in Maps and most of its Walk there are off-screen until the row scrolls it in, and scrolling selects that tile (the row's own pattern; open-in-maps-here cold find, Nov 17). Fix, if the owner wants it: the buttons only on the selected tile, or one pair in the row's header for the selected tile\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore and discovery"
+      ],
+      "body": "- [loop] A past-10 km tile's \"Set as destination\" has the hint \"Saves it in Navigate; starts nothing\", spoken on a phone; react-native-web draws no `accessibilityHint`, so no web journey can read it and only `tileWalk`'s unit test holds it (open-in-maps-here OM7, Nov 17). Fix: a device check, or an `aria-description` on the web\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Explore carousel (EC1-EC20, decision 0124; discrete navigation DN1, DN10, DN12, DN13)"
+      ],
+      "body": "- [ ] **Do:** on an iPhone, open Explore and tap Open in Maps on a tile, on a card's footer and on a complex's row. **Expect:** Apple Maps opens with walking directions to that place straight from the tap, with no sheet in between; the tile, the card and the row are as they were (OM2, OM4, decision 0191)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Explore carousel (EC1-EC20, decision 0124; discrete navigation DN1, DN10, DN12, DN13)"
+      ],
+      "body": "- [ ] **Do:** on an iPhone, on Chronicle's Map, select a place and tap Open in Maps beside Walk here; then long-press the map at street zoom and tap Open in Maps on the card. **Expect:** Apple Maps opens each time, and the place stays selected (OM2, OM4)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Explore carousel (EC1-EC20, decision 0124; discrete navigation DN1, DN10, DN12, DN13)"
+      ],
+      "body": "- [ ] **Do:** on an Android phone, with a place whose title is your own words, tap Open in Maps on its sheet, then on the walk screen's navigation bar. **Expect:** the maps chooser shows \"Destination\" or the area's name, never the title (OM10, 0058)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Explore carousel (EC1-EC20, decision 0124; discrete navigation DN1, DN10, DN12, DN13)"
+      ],
+      "body": "- [ ] **Do:** on a phone within 2 km of a neighborhood tap Walk there on its tile; then on a town 4 km away; then on a town past 10 km. **Expect:** the first starts a guided, recorded walk at once; the second opens the card asking Walk now / When I get there and starts nothing; the third says \"Set as destination\", saves it in Navigate and starts nothing (OM7, 0121)\n"
+    },
+    {
+      "argv": [
+        "section",
+        "item",
+        "add",
+        "From the go-here-everywhere audit (2026-11-16)"
+      ],
+      "body": "- Both questions above are moot: decision 0191 removed Go here and its sheet (Open in Maps beside Walk). The section is yours to remove.\n"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "set",
+        "Go here on the rest of the surfaces",
+        "--reason",
+        "superseded: decision 0191 replaced Go here and its sheet with Open in Maps beside Walk"
+      ],
+      "body": "| Go here on the rest of the surfaces (Explore's area card footer, its complex and busy-area rows, its long-press card; Chronicle's star sheet and long-press card: the same two-choice sheet, at the top on Chronicle; only coordinates and a neutral label leave; GE1-GE13, decision 0190) | superseded 2026-11-17 by Open in Maps beside Walk (decision 0191); was: built 2026-11-16 on `claude/focused-brahmagupta-eajl5h`; not deployed; native unverified | `claude/focused-brahmagupta-eajl5h` | `specs/go-here-everywhere/spec.md` | plan audited by the steward (1 breach, 1 breach in the criteria, 5 drifts, 1 tone: all accepted); cold find and UI review run; audited Nov 16 (19 findings: 6 fixed, 3 deferred, 10 rejected) |\n",
+      "target": "sha256:3250cbc08f49e14000d351aa42bd0c5fbe0f0af1c1970d57ed0c7ef1509c022b"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "set",
+        "Explore: Go here on every tile",
+        "--reason",
+        "superseded: decision 0191 replaced Go here and its sheet with Open in Maps beside Walk"
+      ],
+      "body": "| Explore: Go here on every tile (a quiet \"Go here\" on each area tile opens a sheet of two choices: Chronicles, which saves the destination and opens Navigate ready, or the phone's maps app, handed the destination alone; GH1-GH15, decision 0189) | superseded 2026-11-17 by Open in Maps beside Walk (decision 0191); was: built 2026-11-14 on `claude/focused-brahmagupta-eajl5h`; not deployed; native unverified | `claude/focused-brahmagupta-eajl5h` | `specs/explore-go-here/spec.md` | plan audited by the steward (1 breach, 5 drifts, 1 tone: all accepted); UI review and cold find run (2 accepted, 4 rejected as opinion); the built slice not audited |\n",
+      "target": "sha256:07410488bacfee41057b6c2e49e39ceb513fcd8533f5a8ce7ab401b14bee356d"
+    }
+  ]
+}

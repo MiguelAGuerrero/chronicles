@@ -15,7 +15,7 @@ import { formatDistance } from '../../lib/format';
 import { useReducedMotion } from '../../lib/motion';
 import { MOTION } from '../../lib/motionTokens';
 import { ATLAS_RULES, walkViaLine } from '../../lib/atlas/atlas';
-import { cardCanGoHere, rowActions } from '../../lib/atlas/goHere';
+import { cardCanOpenInMaps, rowActions } from '../../lib/atlas/mapsButton';
 import { STOREFRONTS_WHAT } from '../../lib/layers/registry';
 import { COMPLEX_TARGET_MIN, SEE_MORE, SEE_MORE_LABEL } from '../../lib/complexes/lines';
 import { useAreaWords } from '../../lib/walk/useAreaWords';
@@ -23,6 +23,7 @@ import { hideTabs } from '../../lib/tabsHidden';
 import type { LngLat } from '../../lib/types';
 import { COLORS, HOTSPOT } from '../map/types';
 import { Icon } from '../icons';
+import { OpenInMapsButton, type MapsTarget } from '../OpenInMapsButton';
 import { Button, theme } from '../ui';
 import { foundRows } from '../../lib/discovery/subtypes';
 import { KIND_COLOR, KIND_ICON_OF } from './kinds';
@@ -87,8 +88,12 @@ export function AtlasCard(props: {
   onLater?: (at: LngLat, label: string) => void;
   onWalk: () => void;
   onWalkAt: (at: LngLat, label: string) => void;
-  /** Go here (GE1): the sheet of two choices for a place on this card, any distance. */
-  onGoHere?: (at: LngLat, label: string, via?: string | null) => void;
+  /** OM4: Open in Maps for a place on this card, at any distance: the footer, the storefront and complex rows. */
+  onMaps?: (t: MapsTarget) => void;
+  /** OM7: a tile's Walk there past 2 km opens the card with the far question already showing. */
+  askOnOpen?: boolean;
+  /** Called once the card has opened asking, so the screen forgets the request. */
+  onAsked?: () => void;
   /** WP1: a kind's "Suggest a walk" button opens the walk planner for it. */
   onPlan: (kind: CategoryId) => void;
   /** The walk planner is open over the card: its Back and Escape are the planner's, and the card stays as it was (tend explore 4). */
@@ -110,7 +115,7 @@ export function AtlasCard(props: {
   const [moreComplexes, setMoreComplexes] = useState(false);
   const reduced = useReducedMotion();
   // DW2: Walk to a far place asks first, in the footer; Back and Escape close the question before the card.
-  const [asking, setAsking] = useState<{ at: LngLat; label: string; now: () => void } | null>(null);
+  const [asking, setAsking] = useState<{ at: LngLat; label: string; now: () => void } | null>(() => (props.askOnOpen && props.walkTo ? { at: props.walkTo.at, label: props.walkTo.label, now: props.onWalk } : null));
   const close = useRef(props.onClose);
   useEffect(() => {
     close.current = asking ? () => setAsking(null) : props.onClose;
@@ -119,20 +124,9 @@ export function AtlasCard(props: {
     if (props.askFirst?.(at)) setAsking({ at, label, now });
     else now();
   };
-  // GE1, GE8: Go here is a quiet ink link with the arrow, 44 px high, named for its place.
-  const goLink = (testID: string, at: LngLat, label: string, style?: object, via?: string | null) => (
-    <Pressable
-      testID={testID}
-      accessibilityRole="button"
-      accessibilityLabel={`Go here, ${label}`}
-      accessibilityHint="Choose Chronicles or your maps app"
-      onPress={() => props.onGoHere?.(at, label, via)}
-      style={({ pressed }) => [styles.goLink, style, pressed && styles.goPressed]}
-    >
-      <Icon name="navigate-outline" size={14} color={theme.ink} />
-      <Text style={styles.goText}>Go here</Text>
-    </Pressable>
-  );
+  useEffect(() => {
+    if (props.askOnOpen) props.onAsked?.();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const covered = useRef(!!props.covered);
   useEffect(() => {
     covered.current = !!props.covered;
@@ -283,18 +277,19 @@ export function AtlasCard(props: {
                   const at = b.at;
                   return (
                     <View key={b.label} style={styles.pocket} testID="atlas-storefront">
-                      <View style={styles.storefrontName}>
-                        <View style={styles.storefrontLine} />
-                        <Text style={styles.pocketName} numberOfLines={2}>{b.label}</Text>
+                      <View style={styles.storefrontText}>
+                        <View style={styles.storefrontName}>
+                          <View style={styles.storefrontLine} />
+                          <Text style={styles.pocketName} numberOfLines={2}>{b.label}</Text>
+                        </View>
+                        {/* OM4, OM9: Open in Maps under the name, so the name keeps the width Walk to leaves it. */}
+                        {props.onMaps && at ? <OpenInMapsButton testID="atlas-storefront-maps" variant="link" target={{ at, label: b.label, kind: 'area' }} onOpen={props.onMaps} /> : null}
                       </View>
-                      <View style={styles.rowLinks}>
-                        {rowActions({ walkable: b.walkable }).walk && at ? (
-                          <Pressable testID="atlas-storefront-walk" accessibilityRole="button" accessibilityLabel={`Walk to ${b.label}`} onPress={() => walkTo(at, b.label, () => props.onWalkAt(at, b.label))} style={styles.pocketWalk}>
-                            <Text style={styles.howText}>Walk to</Text>
-                          </Pressable>
-                        ) : null}
-                        {props.onGoHere && at ? goLink('atlas-storefront-go-here', at, b.label) : null}
-                      </View>
+                      {rowActions({ walkable: b.walkable }).walk && at ? (
+                        <Pressable testID="atlas-storefront-walk" accessibilityRole="button" accessibilityLabel={`Walk to ${b.label}`} onPress={() => walkTo(at, b.label, () => props.onWalkAt(at, b.label))} style={styles.pocketWalk}>
+                          <Text style={styles.howText}>Walk to</Text>
+                        </Pressable>
+                      ) : null}
                     </View>
                   );
                 })}
@@ -315,8 +310,8 @@ export function AtlasCard(props: {
                       <View style={styles.complexText}>
                         <Text style={styles.pocketName}>{r.name}</Text>
                         <Text style={styles.muted}>{r.word}</Text>
-                        {/* go-here-everywhere ui 1: under the name, so the name keeps the width Walk to left it. */}
-                        {props.onGoHere ? goLink('atlas-complex-go-here', r.at, r.name, styles.complexGo) : null}
+                        {/* OM4, OM9: under the name, so the name keeps the width Walk to leaves it. */}
+                        {props.onMaps ? <OpenInMapsButton testID="atlas-complex-maps" variant="link" target={{ at: r.at, label: r.name, kind: 'area' }} onOpen={props.onMaps} /> : null}
                       </View>
                       <View style={styles.rowLinks}>
                         {rowActions({ walkable: r.walkable }).walk ? (
@@ -423,13 +418,13 @@ export function AtlasCard(props: {
               <Button testID="atlas-walk-later" label="When I get there" tall
                 accessibilityHint="Keeps it on Navigate. The walk starts when you tap Start."
                 onPress={() => props.walkTo && props.onLater?.(props.walkTo.at, props.walkTo.label)} />
-              {props.onGoHere && cardCanGoHere({ here: !!props.here, asking: false }) ? goLink('atlas-card-go-here', props.walkTo.at, props.walkTo.label, styles.goFoot, props.walkTo.via) : null}
+              {props.onMaps && cardCanOpenInMaps({ here: !!props.here, asking: false }) ? <OpenInMapsButton testID="atlas-card-maps" variant="button" target={{ at: props.walkTo.at, label: props.walkTo.label, kind: 'area' }} onOpen={props.onMaps} style={styles.mapsFoot} /> : null}
             </>
           ) : props.walkTo ? (
             <>
               <Button testID="atlas-walk" label={`Walk to ${props.walkTo.label}`} onPress={() => props.walkTo && walkTo(props.walkTo.at, props.walkTo.label, props.onWalk)} busy={props.starting} busyLabel="Starting…" tall />
               {props.walkTo.via ? <Text style={styles.via} testID="atlas-walk-via">{walkViaLine(props.walkTo.via)}</Text> : null}
-              {props.onGoHere && cardCanGoHere({ here: !!props.here, asking: false }) ? goLink('atlas-card-go-here', props.walkTo.at, props.walkTo.label, styles.goFoot, props.walkTo.via) : null}
+              {props.onMaps && cardCanOpenInMaps({ here: !!props.here, asking: false }) ? <OpenInMapsButton testID="atlas-card-maps" variant="button" target={{ at: props.walkTo.at, label: props.walkTo.label, kind: 'area' }} onOpen={props.onMaps} style={styles.mapsFoot} /> : null}
             </>
           ) : (
             <Text style={[styles.muted, styles.hereLine]}>Too far to walk from here</Text>
@@ -532,13 +527,9 @@ const styles = StyleSheet.create({
   secHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
   secTitle: { fontSize: 12, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase', color: theme.muted },
   howBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 44 },
-  // GE1, GE8: Go here, the weakest control on its host: ink, no fill or border at rest, 44 px high.
-  goLink: { flexDirection: 'row', alignItems: 'center', gap: 5, minHeight: 44, paddingHorizontal: 8 },
-  goFoot: { alignSelf: 'center' },
-  // Under the complex's name and kind: left-aligned with them (no side padding), 44 px high.
-  complexGo: { alignSelf: 'flex-start', minHeight: COMPLEX_TARGET_MIN, paddingHorizontal: 0 },
-  goPressed: { backgroundColor: theme.line, borderRadius: 8 },
-  goText: { fontSize: 12, fontWeight: '600', color: theme.ink, lineHeight: 16 },
+  // OM4: Open in Maps under the walk primary, as wide as it.
+  mapsFoot: { alignSelf: 'stretch' },
+  storefrontText: { flexShrink: 1, flex: 1 },
   rowLinks: { flexDirection: 'row', alignItems: 'center', flexShrink: 0 },
   howText: { fontSize: 13, fontWeight: '600', color: theme.ink },
   explain: { backgroundColor: theme.bg, borderRadius: 12, padding: 12, gap: 6, marginBottom: 4 },

@@ -74,7 +74,7 @@ import { askMotion, useMotionAccess } from '../lib/walkMotion';
 import { shareLogText, walkLogText } from '../lib/shareLog';
 import { notifyWalkChanged } from '../lib/walkEvents';
 import { routeAhead } from '../lib/nav/navigator';
-import { shareLabel } from '../lib/atlas/goHere';
+import { shareLabel } from '../lib/atlas/mapsButton';
 import { HANDOFF_HINT, openInMaps } from '../lib/nav/openInMaps';
 import { useNavigation } from '../lib/nav/useNavigation';
 import { loadWayBack, saveWayBack } from '../lib/nav/store';
@@ -1459,7 +1459,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
               hitSlop={10}
               style={styles.undoBtn}
             >
-              <Text style={styles.undoBtnText}>Go here</Text>
+              <Text style={styles.undoBtnText}>Route here</Text>
             </Pressable>
             <Pressable accessibilityRole="button" accessibilityLabel="Dismiss" onPress={() => setNudge(null)} hitSlop={10}>
               <Icon name="close" size={18} color="#ffffff" />
@@ -1782,7 +1782,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
             <View style={styles.spotActions}>
               <Button
                 testID="mark-go"
-                label="Go here"
+                label="Route here"
                 onPress={() => {
                   const m = openMark;
                   setMarkOpen(null);
@@ -1872,7 +1872,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
             <View style={styles.spotActions}>
               <Button
                 testID="go-here"
-                label="Go here"
+                label="Route here"
                 onPress={() => {
                   const at = spot.at;
                   setSpot(null);

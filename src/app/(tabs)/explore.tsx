@@ -35,8 +35,8 @@ import { ENTRY_LABEL } from '../../lib/outing/words';
 import type { CategoryId } from '../../lib/discovery/types';
 import type { WaitingDot, WalkMapHandle } from '../../components/map/types';
 import { Icon } from '../../components/icons';
-import { useGoHere } from '../../components/GoHere';
-import { spotCanGoHere } from '../../lib/atlas/goHere';
+import { OpenInMapsButton, useOpenInMaps } from '../../components/OpenInMapsButton';
+import { spotCanOpenInMaps, tileWalk } from '../../lib/atlas/mapsButton';
 import { Banner, Button, theme } from '../../components/ui';
 import {
   ATLAS_RULES, areaPins, canWalkTo, distanceWords, familiarity, findsIn, nextDoor, nextFrame, readerTook, townPicked, townReachM, storefrontsOf, waitingMarks, walkTarget,
@@ -92,8 +92,8 @@ const NAMES_CLEAR_OF = ['atlas-title-card', 'atlas-search', 'outing-entry', 'lay
 const HINT_MS = 5000;
 /** The long press's choices over the map's bottom (`spot`): the overlay sits above them, never over (EC19). */
 const SPOT_H = 68;
-/** The long-press card's Go here line (GE1): 44 px under the buttons. */
-const SPOT_GO_H = 44;
+/** The long-press card's Open in Maps button (OM4): 44 px and 8 px of room under the buttons. */
+const SPOT_GO_H = 52;
 /** From this width the area's card opens as a side panel beside the map; narrower, as a full-screen drawer. */
 const TWO_PANES = 1000;
 const fmt = (m: number) => formatDistance(m);
@@ -245,15 +245,11 @@ export default function Explore() {
   }, []);
   const [looking, setLooking] = useState(false);
   const [notice, setNotice] = useState<{ message: string; tone?: 'info' | 'error' } | null>(null);
-  // Go here, from a tile, the card, its rows and the long-press card: one hook, one sheet (decision 0189 and the rest).
-  const gohere = useGoHere({
-    walkOpen: !!openInfo.walk,
-    start: (dest) => startWalk(dest),
-    later: (dest) => walkStart.later(dest),
-    onFail: () => setNotice({ message: 'Couldn’t open a maps app.', tone: 'error' }),
-    focused,
-  });
-  const goHereFor = (at: LngLat, label: string, via?: string | null) => gohere.ask({ at, label, kind: 'area', via });
+  // OM2, OM4: Open in Maps, from a tile, the card, its rows and the long-press card: straight to the phone's maps app, a failure said once.
+  const mapsFailed = useCallback(() => setNotice({ message: 'Couldn’t open a maps app.', tone: 'error' }), []);
+  const openMaps = useOpenInMaps(mapsFailed);
+  // OM7: a tile's Walk there past 2 km opens that area's card with its question showing; cleared once the card has taken it.
+  const [askKey, setAskKey] = useState<string | null>(null);
   const [locError, setLocError] = useState<LocateError | null>(null);
   // tend explore 8 (decision 0172, O6, O20): the location permission as it changes, and the count of its changes when a
   // Locate tap was refused; Find me waits until it changes from that.
@@ -478,8 +474,7 @@ export default function Explore() {
     // tend explore 6, audit 1: one Back or Escape steps out of one thing: the Layers panel, the long press's choices, the page.
     if (!townSeen || open || !focused) return;
     const out = () => {
-      const does = pageBack({ layersOpen: layersOpen, spot: !!spot, goHere: gohere.open });
-      if (does === 'gohere') return;
+      const does = pageBack({ layersOpen: layersOpen, spot: !!spot });
       if (does === 'layers') closeLayers();
       else if (does === 'spot') setSpot(null);
       else leave();
@@ -494,7 +489,7 @@ export default function Explore() {
       back.remove();
       if (Platform.OS === 'web' && typeof window !== 'undefined') window.removeEventListener('keydown', onKey);
     };
-  }, [townSeen, open, focused, leave, layersOpen, closeLayers, spot, gohere.open]);
+  }, [townSeen, open, focused, leave, layersOpen, closeLayers, spot]);
   // GZ2: Back closes the search sheet first (Escape is the field's own).
   useEffect(() => {
     if (!searching || !focused) return;
@@ -642,6 +637,36 @@ export default function Explore() {
     framed.current = readerTook(framed.current, pickFrom.current.page, pickFrom.current.build);
     frame([l.area.at], ATLAS_RULES.ringM);
   }, [selected, town, selectKey, enterArea, frame]);
+  // OM7 (decision 0121): a tile's Walk there starts the walk within 2 km of a fresh fix, opens the card asking beyond it, and past 10 km
+  // saves the place as Navigate's destination; a walk open is routed, as the card's Walk to does (NV10).
+  const onTileWalk = useCallback((key: string) => {
+    const l = shownRef.current.find((x) => x.area.key === key);
+    if (!l) return;
+    const t = walkTarget(l.area);
+    const far = !l.unplaced && !canWalkTo(l.distanceM);
+    const choice = far ? 'later' : walkToChoice(you ? metresBetween(you, t.at) : null, stale ? null : fixSeen.current || null, Date.now());
+    const does = tileWalk(choice, { walkOpen: !!openInfo.walk, selected: true }).does;
+    if (does === 'start') {
+      setOpen(null);
+      startWalk({ at: t.at, label: t.label, kind: 'point' });
+    } else if (does === 'later') {
+      setOpen(null);
+      void walkStart.later({ at: t.at, label: t.label, kind: 'point' });
+    } else {
+      setAskKey(key);
+      setSpot(null);
+      if (key !== selected) selectKey(key);
+      setOpen(key);
+      framed.current = readerTook(framed.current, pickFrom.current.page, pickFrom.current.build);
+      frame([l.area.at], ATLAS_RULES.ringM);
+    }
+  }, [you, stale, openInfo.walk, selected, selectKey, frame, walkStart]); // eslint-disable-line react-hooks/exhaustive-deps
+  const onTileMaps = useCallback((key: string) => {
+    const l = shownRef.current.find((x) => x.area.key === key);
+    if (!l) return;
+    const t = walkTarget(l.area);
+    openMaps({ at: t.at, label: l.area.name, kind: 'area' });
+  }, [openMaps]);
 
   const wide = screen.w >= TWO_PANES;
   // The title names the level shown (fix explore-town-scope): the towns near you, or the town whose page is open.
@@ -877,23 +902,9 @@ export default function Explore() {
             <Icon name="close" size={22} color={theme.ink} />
           </Pressable>
          </View>
-          {/* GE1, GE7: where Walk here is offered, a quiet Go here on its own line, never a third peer in the row; not while the far question is open. */}
-          {spotCanGoHere({ zoom: spot.zoom, asking: !!spot.ask }) ? (
-            <Pressable
-              testID="spot-go-here"
-              accessibilityRole="button"
-              accessibilityLabel="Go here, Your spot"
-              accessibilityHint="Choose Chronicles or your maps app"
-              onPress={() => {
-                const at = spot.at;
-                setSpot(null);
-                gohere.ask({ at, label: 'Your spot', kind: 'spot' });
-              }}
-              style={({ pressed }) => [styles.spotGo, pressed && styles.spotGoPressed]}
-            >
-              <Icon name="navigate-outline" size={14} color={theme.ink} />
-              <Text style={styles.spotGoText}>Go here</Text>
-            </Pressable>
+          {/* OM4, OM5: where Walk here is offered, Open in Maps under the row, an outlined button; not while the far question is open. */}
+          {spotCanOpenInMaps({ zoom: spot.zoom, asking: !!spot.ask }) ? (
+            <OpenInMapsButton testID="spot-maps" variant="button" target={{ at: spot.at, label: 'Your spot', kind: 'spot' }} onOpen={openMaps} style={styles.spotMaps} />
           ) : null}
         </View>
       ) : finding.edgeLocate ? (
@@ -915,7 +926,7 @@ export default function Explore() {
       {overlay ? <View style={[styles.overlay, { bottom: slots.overlayBottom }]} pointerEvents="box-none">{overlay}</View> : null}
       {/* On a town's page, the way back also sits low, where a thumb reaches (round 3), over the map above the row. */}
       {town ? (
-        <Pressable testID="atlas-back-pill" accessibilityRole="button" accessibilityLabel="Back to the towns" onPress={leave} style={[styles.backPill, spot ? { bottom: 10 + SPOT_H + (spotCanGoHere({ zoom: spot.zoom, asking: !!spot.ask }) ? SPOT_GO_H : 0) + 8 } : null]}>
+        <Pressable testID="atlas-back-pill" accessibilityRole="button" accessibilityLabel="Back to the towns" onPress={leave} style={[styles.backPill, spot ? { bottom: 10 + SPOT_H + (spotCanOpenInMaps({ zoom: spot.zoom, asking: !!spot.ask }) ? SPOT_GO_H : 0) + 8 } : null]}>
           <Icon name="chevron-back" size={18} color={theme.ink} />
           <Text style={styles.backPillText} numberOfLines={1}>Towns</Text>
         </Pressable>
@@ -952,13 +963,9 @@ export default function Explore() {
                 wide={!!town && l.area.key === town.key}
                 fromYou={lookOn}
                 onPress={onCard}
-                onGoHere={(key) => {
-                  const a = shown.find((x) => x.area.key === key)?.area;
-                  if (a) {
-                    const t = walkTarget(a);
-                    goHereFor(t.at, a.name, t.via);
-                  }
-                }}
+                walk={{ ...tileWalk(!l.unplaced && !canWalkTo(l.distanceM) ? 'later' : 'start', { walkOpen: false, selected: isSel }), starting: walkStart.starting }}
+                onWalk={onTileWalk}
+                onMaps={onTileMaps}
               />
             )}
           />
@@ -1024,8 +1031,10 @@ export default function Explore() {
             startWalk({ at, label, kind: 'point' });
           }}
           onPlan={(k) => setPlan(k)}
-          covered={plan != null || gohere.open}
-          onGoHere={goHereFor}
+          covered={plan != null}
+          onMaps={openMaps}
+          askOnOpen={askKey === card.area.key}
+          onAsked={() => setAskKey(null)}
           onWalk={() => {
             const t = walkTarget(card.area);
             setOpen(null);
@@ -1066,7 +1075,6 @@ export default function Explore() {
           }}
         />
       )}
-      {gohere.sheet}
     </View>
   );
 }
@@ -1104,9 +1112,7 @@ const styles = StyleSheet.create({
   },
   spotRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   spotBtn: { flex: 1 },
-  spotGo: { alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: 5, minHeight: SPOT_GO_H, paddingHorizontal: 12 },
-  spotGoPressed: { backgroundColor: theme.line, borderRadius: 8 },
-  spotGoText: { fontSize: 12, fontWeight: '600', color: theme.ink, lineHeight: 16 },
+  spotMaps: { alignSelf: 'stretch', marginTop: 8 },
   spotClose: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   toast: { position: 'absolute', alignSelf: 'center', bottom: 16, backgroundColor: theme.ink, borderRadius: 999, paddingVertical: 8, paddingHorizontal: 14 },
   toastText: { color: '#ffffff', fontSize: 14, fontWeight: '600' },

@@ -4,8 +4,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { ATLAS_CODE, type AtlasArea, type Listed } from '../../atlas/atlas';
 
-// Open in Maps beside Walk (specs/open-in-maps-here, OM1-OM14). Test first: each is a todo until its code lands; the
-// modules are imported inside each test, so a missing one fails that test alone.
+// Open in Maps beside Walk (specs/open-in-maps-here, OM1-OM14). The modules are imported inside each test.
 
 const area = (name: string, at: AtlasArea['at'] | null = [-71.4, 41.8]): AtlasArea => ({
   key: name, level: 'neighborhood', name, at: at as AtlasArea['at'], reachM: 1000, build: 'b1', code: ATLAS_CODE, listed_at: 1, read_at: null, failed_at: null, profile: null,
@@ -28,7 +27,7 @@ function sources(): { file: string; text: string }[] {
   return out;
 }
 
-test('OM1: no screen says "Go here": its label, spoken name and JSX text are gone from src', { todo: 'test first' }, () => {
+test('OM1: no screen says "Go here": its label, spoken name and JSX text are gone from src', () => {
   const bad: string[] = [];
   for (const { file, text } of sources()) {
     text.split('\n').forEach((line, i) => {
@@ -39,20 +38,20 @@ test('OM1: no screen says "Go here": its label, spoken name and JSX text are gon
   assert.deepEqual(bad, []);
 });
 
-test('OM3: a control\'s spoken name is "Open in Maps, <place>" and "Walk there, <place>"', { todo: 'test first' }, async () => {
+test('OM3: a control\'s spoken name is "Open in Maps, <place>" and "Walk there, <place>"', async () => {
   const { OPEN_IN_MAPS, openInMapsName, walkThereName } = await import('../../atlas/mapsButton');
   assert.equal(OPEN_IN_MAPS, 'Open in Maps');
   assert.equal(openInMapsName('Fox Point'), 'Open in Maps, Fox Point');
   assert.equal(walkThereName('Fox Point'), 'Walk there, Fox Point');
 });
 
-test('OM4: a storefront or complex row too far to walk still has Open in Maps; Walk to only when walkable', { todo: 'test first' }, async () => {
+test('OM4: a storefront or complex row too far to walk still has Open in Maps; Walk to only when walkable', async () => {
   const { rowActions } = await import('../../atlas/mapsButton');
   assert.deepEqual(rowActions({ walkable: true }), { walk: true, maps: true });
   assert.deepEqual(rowActions({ walkable: false }), { walk: false, maps: true });
 });
 
-test('OM5: not on the area you are in, an area with no point, a card asking its far question, or a long press below zoom 12', { todo: 'test first' }, async () => {
+test('OM5: not on the area you are in, an area with no point, a card asking its far question, or a long press below zoom 12', async () => {
   const { canOpenInMaps, cardCanOpenInMaps, spotCanOpenInMaps } = await import('../../atlas/mapsButton');
   assert.equal(canOpenInMaps(listed('Fox Point')), true);
   assert.equal(canOpenInMaps(listed('Cranston', { unplaced: true })), true, 'no fix: still has its point');
@@ -66,7 +65,7 @@ test('OM5: not on the area you are in, an area with no point, a card asking its 
   assert.equal(spotCanOpenInMaps({ zoom: 15, asking: true }), false);
 });
 
-test('OM7: a tile\'s walk button names what its tap does at every distance, and never starts a walk past 2 km', { todo: 'test first' }, async () => {
+test('OM7: a tile\'s walk button names what its tap does at every distance, and never starts a walk past 2 km', async () => {
   const { tileWalk } = await import('../../atlas/mapsButton');
   const near = tileWalk('start', { walkOpen: false, selected: true });
   assert.deepEqual([near.label, near.does], ['Walk there', 'start']);
@@ -81,7 +80,7 @@ test('OM7: a tile\'s walk button names what its tap does at every distance, and 
   for (const choice of ['ask', 'later'] as const) assert.notEqual(tileWalk(choice, { walkOpen: false, selected: true }).does, 'start');
 });
 
-test('OM8: only a selected tile\'s Walk there is the accent; Set as destination starts nothing and never is', { todo: 'test first' }, async () => {
+test('OM8: only a selected tile\'s Walk there is the accent; Set as destination starts nothing and never is', async () => {
   const { tileWalk } = await import('../../atlas/mapsButton');
   assert.equal(tileWalk('start', { walkOpen: false, selected: true }).accent, true);
   assert.equal(tileWalk('start', { walkOpen: false, selected: false }).accent, false);
@@ -89,7 +88,7 @@ test('OM8: only a selected tile\'s Walk there is the accent; Set as destination 
   assert.equal(tileWalk('later', { walkOpen: false, selected: true }).accent, false);
 });
 
-test('OM10: the link carries coordinates; a star\'s title and "Your spot" never ride in it', { todo: 'test first' }, async () => {
+test('OM10: the link carries coordinates; a star\'s title and "Your spot" never ride in it', async () => {
   const { shareLabel } = await import('../../atlas/mapsButton');
   const { mapsUrls } = await import('../../nav/handoff');
   assert.equal(shareLabel('area', 'Cranston'), 'Cranston');
@@ -101,7 +100,18 @@ test('OM10: the link carries coordinates; a star\'s title and "Your spot" never 
   }
 });
 
-test('OM11: no sheet, no sheet hook, no sheet handler anywhere in src', { todo: 'test first' }, () => {
+test('OM10: every openInMaps caller passes its label through shareLabel, so a star\'s title never rides in the link', () => {
+  const calls: string[] = [];
+  for (const { file, text } of sources()) {
+    for (const line of text.split('\n')) {
+      if (/\bopenInMaps\(/.test(line) && !/export (async )?function openInMaps|^\s*(\*|\/\/)/.test(line)) calls.push(`${file}: ${line.trim()}`);
+    }
+  }
+  assert.ok(calls.length >= 2, 'the callers are found');
+  for (const c of calls) assert.match(c, /shareLabel\(/, `${c} must pass its label through shareLabel`);
+});
+
+test('OM11: no sheet, no sheet hook, no sheet handler anywhere in src', () => {
   const bad: string[] = [];
   for (const { file, text } of sources()) {
     for (const needle of ['go-here-sheet', 'useGoHere', 'GoHereSheet']) if (text.includes(needle)) bad.push(`${file}: ${needle}`);
@@ -109,14 +119,14 @@ test('OM11: no sheet, no sheet hook, no sheet handler anywhere in src', { todo: 
   assert.deepEqual(bad, []);
 });
 
-test('OM12: a decision record supersedes 0189 and 0190, cites 0058 and 0121, lists the hosts and says "Route here"', { todo: 'test first' }, () => {
+test('OM12: a decision record supersedes 0189 and 0190, cites 0058 and 0121, lists the hosts and says "Route here"', () => {
   const dir = new URL('../../../../docs/decisions/', import.meta.url);
-  const hit = readdirSync(dir).filter((f) => /open-in-maps/.test(f)).map((f) => readFileSync(new URL(f, dir), 'utf8'));
+  const hit = readdirSync(dir).filter((f) => f.startsWith('0191')).map((f) => readFileSync(new URL(f, dir), 'utf8'));
   assert.equal(hit.length, 1, 'one record for Open in Maps beside Walk');
   for (const need of [/0189/, /0190/, /0058/, /0121/, /storefront/i, /complex/i, /long-press|long press/i, /star/i, /Route here/]) assert.match(hit[0], need);
 });
 
-test('OM13: the walk screen\'s buttons and the pin viewer\'s menu item say "Route here"', { todo: 'test first' }, () => {
+test('OM13: the walk screen\'s buttons and the pin viewer\'s menu item say "Route here"', () => {
   const all = sources();
   const walk = all.find((s) => s.file === 'app/walk.tsx')!.text;
   const viewer = all.find((s) => s.file === 'components/CaptureView.tsx')!.text;
@@ -124,7 +134,7 @@ test('OM13: the walk screen\'s buttons and the pin viewer\'s menu item say "Rout
   assert.match(viewer, /Route here/);
 });
 
-test('OM14: a tile with no fix (no distance) asks, and every kind of tile gets the same two buttons', { todo: 'test first' }, async () => {
+test('OM14: a tile with no fix (no distance) asks, and every kind of tile gets the same two buttons', async () => {
   const { tileWalk } = await import('../../atlas/mapsButton');
   const { walkToChoice } = await import('../../startPlan');
   assert.equal(walkToChoice(null, null, 0), 'ask', 'no distance and no fix');

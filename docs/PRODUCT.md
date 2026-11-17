@@ -96,7 +96,7 @@ recording, and a recording bar brings a minimized walk back.
   says so), how much of the kind a route must pass, and what to do about a stretch built around cars. "Suggest different routes"
   replaces the three and keeps no history. Start plans again from where you are and either routes the walk you have open (capture is
   on the page meanwhile) or starts one ready; it says distance only, never a time left. Scenic routes (0095) are a separate feature on
-  Go here.
+  Route here.
 - **Plan an outing** (decision 0194, quick circuit QC1-QC42): one control under Explore's title, "Plan an outing", opens a page of its own over
   Explore. You say what you want to see by picking from a short vocabulary (a search box over chips: Antiques, Books, Thrifting) and the page
   proposes one circuit from where you stand, a loop (the default, not remembered) or one way, within the planner's distance ceiling. Its stops are
@@ -128,16 +128,15 @@ recording, and a recording bar brings a minimized walk back.
   - what you found;
   - the areas next door;
   - Walk to, which starts you on a street of its storefronts.
-- **Go here on every tile** (decision 0189): the tile's last line is a quiet "Go here" with an arrow. It opens a
-  small sheet of two choices, Chronicles first, then the phone's maps app named for it (Apple Maps on an iPhone).
-  Chronicles saves the place as Navigate's destination and opens Navigate, ready; the walk starts only on Start,
-  at any distance. The maps app is handed the destination alone, on the tap. No minutes, no ranking. Not on the
-  tile of the area you are in. A saved destination is said to be replaced, once.
-- **Go here on the rest of the surfaces** (decision 0190): the same quiet "Go here" and the same sheet on the area
-  card's footer (under Walk to), its storefront and complex rows (beside Walk to, even when too far to walk), Explore's
-  long-press card, Chronicle's star sheet (under Walk here) and Chronicle's long-press card. On Chronicle the sheet
-  sits at the top, clear of the capture band. Only the destination leaves the device: the link carries coordinates,
-  and a star's title or "Your spot" never rides in it. With a walk open the Chronicles row routes that walk.
+- **Open in Maps beside Walk** (decision 0191): every place shown with a way to walk there has two controls named for
+  where you end up. The walk action (the accent: "Walk to <place>", "Walk here", "Walk there" on a tile) has
+  Chronicles guide and record the walk; **"Open in Maps ↗"** (outlined, never the accent) opens your phone's maps app
+  straight from the tap, with the destination alone and nothing recorded or saved. It is on every Explore tile (two
+  half-width buttons), the area card's footer, its storefront and complex rows (even when too far to walk), Explore's
+  long-press card, Chronicle's star sheet and Chronicle's long-press card. A tile's walk button follows the card's
+  rule: within 2 km with a fresh fix it starts the walk; farther it opens the card with Walk now / When I get there
+  showing; past 10 km it is "Set as destination", saving it for Navigate. Only the selected tile's Walk there is the
+  accent. A star's title or "Your spot" never rides in the link.
 - A long press on the small map still offers **What's here?** and
   **Walk here**. There are no counts of places on this tab.
 - **Storefronts are a density of places you walk into** (activity density, decision 0080; storefronts, decision 0180):
@@ -279,8 +278,8 @@ recording, and a recording bar brings a minimized walk back.
   return with location allowed.
 - **Pause** stops recording; captures still work while paused. A reminder
   shows after 10 min paused, as a notification on a phone.
-- **Navigation inside a walk**: a long press picks a spot (Go here); a pin's
-  viewer has Go here; **Walk me back** appears once 50 m from where it leads and
+- **Navigation inside a walk**: a long press picks a spot (Route here); a pin's
+  viewer has Route here; **Walk me back** appears once 50 m from where it leads and
   takes the shorter of the trace and the streets. It leads to the walk's start,
   or, after a ride (a drive, a bus), to where the last ride ended; "Walk back
   here" on the long press's card sets the spot by hand for the walk (decision 0121). A blue bar shows the
@@ -294,7 +293,7 @@ recording, and a recording bar brings a minimized walk back.
   When I get there alone. When I get there keeps the place as Navigate's
   destination and starts nothing: the walk starts only when you tap Start,
   never because you arrived.
-- **Scenic routes** (decision 0095): on Go here, or a destination set before
+- **Scenic routes** (decision 0095): on Route here, or a destination set before
   Start, the app shows Direct beside up to three scenic routes, one per
   leaning switched on: **Through green** (parks, gardens, woods), **Past the
   sights** (places worth seeing, of the kinds in "What I'm into") and **Along
@@ -307,7 +306,7 @@ recording, and a recording bar brings a minimized walk back.
 - **Open in Maps** hands the destination to the phone's maps app (Apple Maps
   on iPhone, the Android chooser, Google Maps elsewhere) for walking
   directions, when Chronicles' route is wrong: in the blue bar, on a route
-  that can't be found, beside Go here on the long-press
+  that can't be found, beside Route here on the long-press
   card and in a pin's viewer. Navigation and the walk go on.
 - **Explore mode** (off by default, the walk starts quiet): "?" marks within
   range (60-300 m), a chip when on a storefront strip, an optional pocket alert
@@ -495,7 +494,7 @@ recording, and a recording bar brings a minimized walk back.
   walk and a walk's photos, videos and memos still ask and say what goes. A delete
   waiting when the app is killed is completed at the next launch (decision 0113).
 - **The moment viewer** steps aside: a tap on a photo hides its bars. Its top bar
-  is Close and More (Remind me here and Go here are in More), and what you just
+  is Close and More (Remind me here and Route here are in More), and what you just
   did to a moment (a reply kept, added to a thread, a reminder set) is said in its
   info line rather than in a pill.
 
@@ -510,7 +509,7 @@ recording, and a recording bar brings a minimized walk back.
   switch turned on), never at launch. On the web, notifications come from a
   service worker and only work while the page is alive.
 - Scenic routes: three switches in the walk settings (Green, Sights, Streets
-  with life), all on by default; all off, Go here goes the direct way.
+  with life), all on by default; all off, Route here goes the direct way.
 - Distances show in km or miles: a "Distances" choice in the walk settings (the ready bar pulled up),
   defaulting from the device's region. It reaches every distance the app shows,
   the scale bar included.
@@ -572,7 +571,7 @@ recording, and a recording bar brings a minimized walk back.
 | Reactions (any moment carries at most one reaction per family: Feeling, Taste, Thought; set from the journal's sign, More, the viewer's More and a note page's Reaction tool; drawn under an entry's dateline, the viewer's info line, a card and a bubble, and as ink bubbles on a single moment's pin; gathered in the journal's contents → Reactions, a lens per reaction, oldest first, no count; never inferred, never said of a place; replaced note types, decision 0176; in Memories a reaction under an entry or the viewer's line opens its lens, the sign always the face with a plus, decision 0177) | Built 2026-11-14 (web verified by the e2e `reactions`, `journal`, `notepage`, `qol`, `threads`, `responses`; native unverified) |
 | Quality of life round 3: rename a walk later, edit a note, photos on their pins, months in the walks list | Shipped (web verified by the qol e2e; native unverified) |
 | Bridges and Open in Maps | Shipped on web, audited (native unverified) |
-| Scenic routes (Go here offers Direct and one route per leaning: green, sights, storefronts) | Shipped on web (native unverified) |
+| Scenic routes (Route here offers Direct and one route per leaning: green, sights, storefronts) | Shipped on web (native unverified) |
 | Storefronts ("busy" becomes storefronts everywhere, nearest first; only places you walk into count; SF1-SF14, decision 0180) | Built (web verified by the e2e; native unverified) |
 | Explore's route preview, "Walk this way" | Deferred |
 | Media editing: crop, rotate, filters, drawing, text, video and voice-memo trim, all saved out (a memo is never saved out) | Shipped on web (native unverified; the video module never compiled) |

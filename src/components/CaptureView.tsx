@@ -1041,7 +1041,7 @@ export function CaptureViewer(props: {
                   style={({ pressed }) => [styles.menuItem, pressed && styles.dim]}
                 >
                   <Icon name="navigate" size={22} color={theme.ink} />
-                  <Text style={styles.menuText}>Go here</Text>
+                  <Text style={styles.menuText}>Route here</Text>
                 </Pressable>
               )}
               {(current.kind === 'photo' || current.kind === 'video') && current.file_path && (

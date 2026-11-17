@@ -154,7 +154,7 @@ const FEATURES = [
       'src/app/(tabs)/explore.tsx',
       'src/components/atlas/**',
       'src/lib/gazetteer/**',
-      'src/components/{MarkPinView,ExploreSettings,ReminderCard,RemindEditor,GoHere,GoHereSheet}.tsx',
+      'src/components/{MarkPinView,ExploreSettings,ReminderCard,RemindEditor,OpenInMapsButton}.tsx',
     ],
     journeys: ['marks', 'atlas', 'grading', 'snap', 'carousel', 'curiosities', 'freelook', 'small-places', 'placesearch', 'gohere', 'gohere-chronicle', 'subtypes', 'openmaps', 'openmaps-chronicle'],
     specs: ['v1-discovery', 'explore-atlas', 'pocket-alert-nudge', 'reminder-bell', 'atlas-grading', 'town-presence', 'discrete-navigation', 'explore-carousel', 'places-worth-the-stop', 'places-pipeline', 'remarkable-and-public', 'places-out-of-town', 'presence-and-kinds', 'whole-towns', 'community-parks', 'free-look', 'small-places', 'place-search', 'explore-go-here', 'go-here-everywhere', 'explore-subtypes', 'open-in-maps-here'],
@@ -370,6 +370,10 @@ const FEATURES = [
 const V1_SCAN_AND_AMBIENT = ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S9', 'S10', 'S11', 'S12', 'S14', 'S15', 'S22', 'S23', ...Array.from({ length: 11 }, (_, i) => `A${i + 1}`)];
 
 const RETIRED = {
+  // Go here and its sheet were replaced by two outcome-named controls, Walk and "Open in Maps" (the owner, Nov 17, decision 0191):
+  // specs/open-in-maps-here (OM1-OM14) carries what stands of them.
+  'explore-go-here': Array.from({ length: 15 }, (_, i) => `GH${i + 1}`),
+  'go-here-everywhere': Array.from({ length: 13 }, (_, i) => `GE${i + 1}`),
   // A no-regression promise that could never fail first (the owner, Nov 17, at the deploy): NF8 took its place.
   'native-map-frames': ['NF6'],
   // The row under the line (decision 0175) was replaced by a toolbar at the foot the same day (decision 0178, the owner).
