@@ -1,0 +1,11 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inflight",
+        "add"
+      ],
+      "body": "| Moment append (the viewer's dock offers Add beside Respond on any moment at any time, so a moment made earlier can take a photo, video, memo or note; no time delta, never merged; replaces the top-row Add that showed only while the pill was open; MA1-MA13, decision 0196) | `claude/jolly-faraday-8kcyum` | spec, plan and mock-up written 2026-11-17, awaiting the owner's review of the plan (an added piece keeps no place of its own, a default to overrule); no code yet |\n"
+    }
+  ]
+}
