@@ -595,7 +595,7 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
             if (blurTimer.current) clearTimeout(blurTimer.current);
             blurTimer.current = setTimeout(() => setTyping(false), BLUR_HOLD_MS);
           }}
-          style={[styles.field, { height: text.length ? (inBar ? Math.min(FIELD_MAX, fieldH) : fieldH) : FIELD_MIN }]}
+          style={[styles.field, inBar && styles.fieldInBarText, { height: text.length ? (inBar ? Math.min(FIELD_MAX, fieldH) : fieldH) : FIELD_MIN }]}
         />
       </View>
     </View>
@@ -614,12 +614,12 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
     />
   ) : null;
   const doneBtn = (
-    <Pressable testID="line-done" accessibilityRole="button" accessibilityLabel="Done" onPress={done} style={styles.done}>
+    <Pressable testID="line-done" accessibilityRole="button" accessibilityLabel="Done" onPress={done} style={[styles.done, inBar && styles.doneInBar]}>
       <Text style={styles.doneText}>Done</Text>
     </Pressable>
   );
   const doneRoom = (
-    <View style={styles.done} pointerEvents="none" aria-hidden importantForAccessibility="no-hide-descendants">
+    <View style={[styles.done, inBar && styles.doneInBar]} pointerEvents="none" aria-hidden importantForAccessibility="no-hide-descendants">
       <Text style={[styles.doneText, styles.unseen]}>Done</Text>
     </View>
   );
@@ -659,7 +659,7 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
             {inBar ? (
               <>
                 {/* In a thread too, the recording's mark stays while the tabs are folded (audit 62). */}
-                {walk && typing ? <View style={styles.walkDot} testID="line-recording" accessible accessibilityRole="image" accessibilityLabel="Walk recording" /> : null}
+                {walk && typing ? <View style={[styles.walkDot, styles.dotInBar]} testID="line-recording" accessible accessibilityRole="image" accessibilityLabel="Walk recording" /> : null}
                 {fieldEl}
               </>
             ) : recording ? (
@@ -845,10 +845,18 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', minHeight: 44, width: '100%', maxWidth: 624, alignSelf: 'center' },
   // On the page: the column's own width, no box (JN28). In the bar: what the row leaves.
   fieldOnPage: { width: '100%' },
-  fieldInBar: { flex: 1, minHeight: 44, justifyContent: 'center', paddingLeft: 8 },
+  // The words start at the bar's own edge, so the hint has the room it needs (tend chronicle 14).
+  fieldInBar: { flex: 1, minHeight: 44, justifyContent: 'center' },
   datelineRoom: { height: 58 },
   // 16 px or more, or iOS Safari zooms the page on focus; no outline: the placeholder and the caret say where.
   field: { color: theme.ink, fontFamily: OWNER_FONT, fontSize: 19, lineHeight: 26, paddingVertical: 9, paddingHorizontal: 0, textAlignVertical: 'top', ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : null) },
+  // In the bar (a thread, a lens) the field shares its row with the camera, the mic and Done's room: at the web's 16 px
+  // minimum, in the same serif, "What’s on your mind?" holds one line at 320 px (tend chronicle 14). A placeholder alone
+  // cannot be styled apart on the web, so the words typed there are 16 px too.
+  fieldInBarText: { fontSize: 16 },
+  // In the bar Done (and its kept room) is its 44 pt target, with no padding beside its word, for the same room.
+  doneInBar: { paddingHorizontal: 0 },
+  dotInBar: { marginRight: 8 },
   // The toolbar's field (JN41): a soft grey a shade off the page, the app's sans, tight enough that its words are whole
   // at 320 px (JN46).
   // The composer's sheet: from a dimmed edge at the top to the keyboard (JN47).
