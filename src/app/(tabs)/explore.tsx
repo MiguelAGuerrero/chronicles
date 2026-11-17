@@ -25,7 +25,9 @@ import { useStorefrontsLayer } from '../../lib/layers/useStorefrontsLayer';
 import { useLayers } from '../../lib/layers/useLayers';
 import { useWalkability } from '../../lib/walk/useWalkability';
 import { WalkMap } from '../../components/map/WalkMap';
+import { OutingDrawer } from '../../components/outing/OutingDrawer';
 import { PlannerDrawer } from '../../components/planner/PlannerDrawer';
+import { ENTRY_LABEL } from '../../lib/outing/words';
 import type { CategoryId } from '../../lib/discovery/types';
 import type { WaitingDot, WalkMapHandle } from '../../components/map/types';
 import { Icon } from '../../components/icons';
@@ -79,7 +81,7 @@ const PRESS_HINT_KEY = 'atlas_press_seen';
 /** The Storefronts layer's street names show on the map only from this zoom, and only near the selected area (EC7, decision 0124). */
 const STOREFRONT_NAMES_ZOOM = 13;
 /** audit 11: Explore's controls over the map, whose room no storefront name takes. */
-const NAMES_CLEAR_OF = ['atlas-title-card', 'layers', 'atlas-move-map', 'atlas-show-here', 'compass', 'locate', 'atlas-back-pill'] as const;
+const NAMES_CLEAR_OF = ['atlas-title-card', 'outing-entry', 'layers', 'atlas-move-map', 'atlas-show-here', 'compass', 'locate', 'atlas-back-pill'] as const;
 /** How long the long press's hint stays up before it is marked seen (explore-carousel audit 10). */
 const HINT_MS = 5000;
 /** The long press's choices over the map's bottom (`spot`): the overlay sits above them, never over (EC19). */
@@ -191,6 +193,8 @@ export default function Explore() {
   const moveMapRef = useRef<ComponentRef<typeof Pressable>>(null);
   // The walk planner's kind (WP1): a page over the card, with a map of its own, so Explore's map steps aside while it is open.
   const [plan, setPlan] = useState<CategoryId | null>(null);
+  // Plan an outing (QC1): a page of its own over Explore, with a map of its own, so Explore's map steps aside while it is open.
+  const [outingOpen, setOutingOpen] = useState(false);
   // The map's credits are open (web), and the hint steps aside for them (tend map audit 1).
   const [creditsOpen, setCreditsOpen] = useState(false);
   // A store the compass reads, so a turn re-renders the compass alone (tend map 8).
@@ -650,7 +654,7 @@ export default function Explore() {
   const mapPane = (
     <View style={styles.map} onLayout={(e) => onMapLayout(e.nativeEvent.layout.width, e.nativeEvent.layout.height)}>
       {/* Only while Explore is in front (NV4): one map is live at a time. */}
-      {focused && !plan && (
+      {focused && !plan && !outingOpen && (
         <WalkMap
           trace={NONE}
           walked={NONE}
@@ -723,7 +727,7 @@ export default function Explore() {
         />
       )}
       {/* WT11: the selected area's "?" and dots, said once: the area and the kinds, never how many. */}
-      {focused && !plan && !!waitingSaid && (
+      {focused && !plan && !outingOpen && !!waitingSaid && (
         // Audit 5: the one way to the selected area's card for a keyboard or a screen reader, now that the "?" are hidden.
         <Pressable accessibilityRole="button" accessibilityLabel={`${waitingSaid}. Opens its card`} onPress={openSelected} style={styles.srOnly} testID="atlas-waiting-said">
           <Text>{waitingSaid}</Text>
@@ -740,6 +744,12 @@ export default function Explore() {
             <Text testID="explore-subtitle" style={styles.subtitle} numberOfLines={1}>{subtitle}</Text>
           </View>
         </View>
+        {!town && !lookOn ? (
+          <Pressable testID="outing-entry" accessibilityRole="button" accessibilityLabel={ENTRY_LABEL} onPress={() => setOutingOpen(true)} style={({ pressed }) => [styles.entry, pressed && { opacity: 0.7 }]}>
+            <Icon name="compass-outline" size={18} color={theme.ink} />
+            <Text style={styles.entryText} numberOfLines={1}>{ENTRY_LABEL}</Text>
+          </Pressable>
+        ) : null}
       </View>
       {/* The long press's choices sit over the map where it was pressed, never inside the scrolled list (round 3). */}
       {spot ? (
@@ -815,9 +825,9 @@ export default function Explore() {
       {focused && !spot && <LayersControl layers={layers} notes={layerNotes({ walkability: wk.status, storefrontsReading: storefronts.reading, storefrontsFailed: storefronts.failed })} top={insets.top + 8} right={12} paneWidth={screen.w} clearBottom={insets.bottom + 100} />}
       {focused && !spot && <CompassButton bearing={bearing} onPress={() => mapRef.current?.resetNorth()} bottom={8 + 44 + 12} focusAfter={finding.edgeLocate ? locateRef : moveMapRef} />}
       {/* Free look (FL2, FL5): Move map above the compass's slot; while it is on, the middle is marked and Show areas here loads it. */}
-      {focused && !plan && <MoveMapToggle ref={moveMapRef} on={free} onPress={() => setFree((f) => !f)} bottom={8 + 44 + 12 + 44 + 12} />}
-      {focused && !plan && free && <CentreMark />}
-      {focused && !plan && free && <ShowAreasPill onPress={showHere} bottom={slots.showBottom ?? 12} />}
+      {focused && !plan && !outingOpen && <MoveMapToggle ref={moveMapRef} on={free} onPress={() => setFree((f) => !f)} bottom={8 + 44 + 12 + 44 + 12} />}
+      {focused && !plan && !outingOpen && free && <CentreMark />}
+      {focused && !plan && !outingOpen && free && <ShowAreasPill onPress={showHere} bottom={slots.showBottom ?? 12} />}
       {toast ? <View style={styles.toast} accessibilityLiveRegion="polite"><Text style={styles.toastText}>{toast}</Text></View> : null}
       {/* DN12 on web: react-native-web's announceForAccessibility does nothing, so a hidden live region says it.
           Phones announce through the call alone (a live region too would say it twice on Android). */}
@@ -939,6 +949,20 @@ export default function Explore() {
           layout={cardLayout}
         />
       )}
+      {outingOpen && (
+        <OutingDrawer
+          you={getLastFix()?.at ?? you}
+          lastFixAt={getLastFix()?.t ?? null}
+          fixNow={() => getLastFix()?.at ?? you}
+          starting={walkStart.starting}
+          onClose={() => setOutingOpen(false)}
+          onStart={(dest) => {
+            setOutingOpen(false);
+            setOpen(null);
+            startWalk(dest);
+          }}
+        />
+      )}
       {card && plan && (
         <PlannerDrawer
           kind={plan}
@@ -970,7 +994,9 @@ const styles = StyleSheet.create({
   rowPane: { flexGrow: 0, flexShrink: 0, paddingBottom: 8, paddingTop: 4 },
   overlay: { position: 'absolute', left: 12, right: 64, alignItems: 'flex-start', gap: 8 },
   // Clear of the Layers button's column (free-look ui 1): the looked page's longer title never runs under it.
-  titleWrap: { position: 'absolute', right: 64, alignItems: 'flex-start' },
+  titleWrap: { position: 'absolute', right: 64, alignItems: 'flex-start', gap: 8 },
+  entry: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 44, paddingHorizontal: 14, borderRadius: 22, backgroundColor: theme.surface, shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 10, shadowOffset: { width: 0, height: 3 }, elevation: 5 },
+  entryText: { fontSize: 14, fontWeight: '700', color: theme.ink },
   titleCard: {
     flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: theme.surface, borderRadius: 14, paddingVertical: 8, paddingLeft: 14, paddingRight: 14,
     maxWidth: 616, shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 10, shadowOffset: { width: 0, height: 3 }, elevation: 5,

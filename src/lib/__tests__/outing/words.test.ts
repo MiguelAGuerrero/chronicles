@@ -2,13 +2,13 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { WANTS } from '../../outing/wants';
-import { cardLine, ENTRY_LABEL, FEW_LINE, HOURS_LINE, NO_LOOP_LINE, NO_PICK_LINE, NO_POSITION_LINE, NO_SWAP_LINE, nextWord, slotLine, SWAP_LABEL } from '../../outing/words';
+import { CHAINS_LABEL, CLOSE_LABEL, MODE_LABEL, NO_ROUTE_LINE, READING_LINE, SEARCH_LABEL, START_LABEL, TITLE, cardLine, ENTRY_LABEL, FEW_LINE, HOURS_LINE, NO_LOOP_LINE, NO_PICK_LINE, NO_POSITION_LINE, NO_SWAP_LINE, nextWord, slotLine, SWAP_LABEL } from '../../outing/words';
 
 // Whole words only (QC33). A digit is banned too: counts and distances are words here (QC25, QC28).
 const BANNED = /\b(minutes?|mins?|hours?|hrs?|ETA|pace|brisk|quick(er|est)?|fast(er|est)?|shorter|longer|more|most|best|densest|finest|top|popular|rated|rating|stars?|remaining|left|done|first|second|third|last)\b|\d/i;
 
 function everySentence(): string[] {
-  const out = [ENTRY_LABEL, SWAP_LABEL, FEW_LINE, NO_POSITION_LINE, NO_PICK_LINE, NO_SWAP_LINE, NO_LOOP_LINE];
+  const out = [TITLE, SEARCH_LABEL, MODE_LABEL.loop, MODE_LABEL.oneway, CHAINS_LABEL, START_LABEL, CLOSE_LABEL, READING_LINE, NO_ROUTE_LINE, ENTRY_LABEL, SWAP_LABEL, FEW_LINE, NO_POSITION_LINE, NO_PICK_LINE, NO_SWAP_LINE, NO_LOOP_LINE];
   for (const m of [0, 40, 200, 300, 599, 600, 900, 1500, 2400]) {
     out.push(nextWord(m));
     for (const w of WANTS) out.push(slotLine(w.slotWord, m), cardLine(w.slotWord, m));

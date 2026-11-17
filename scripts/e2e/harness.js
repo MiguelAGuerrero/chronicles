@@ -112,6 +112,12 @@ features.push({ type: 'Feature', properties: { class: 'minor', name: 'Row Street
 [[-124.2, 'First'], [-124, 'Second'], [-123.8, 'Third']].forEach(([x, n]) => {
   features.push({ type: 'Feature', properties: { class: 'monument', subclass: 'memorial', name: `${n} Memorial` }, geometry: { type: 'Point', coordinates: at(x, 0.8) } });
 });
+// Plan an outing (QC1-QC30): Curio Row, 24 km west of the start, one street with four antiques shops along it, 400 m apart, so a
+// one-way outing of two or three stops fits the default ceiling (a loop cannot be made on one street). E2E_ONLY=outing goes there.
+features.push({ type: 'Feature', properties: { class: 'minor', name: 'Curio Street' }, geometry: { type: 'LineString', coordinates: [at(-250, 0), at(-230, 0)] } });
+[[-247, 'Brass Key Antiques'], [-243, 'Dusty Attic'], [-239, 'Grandma Trunk Antiques'], [-235, 'Lamp and Ladder']].forEach(([x, n]) => {
+  features.push({ type: 'Feature', properties: { class: 'shop', subclass: 'antiques', name: n }, geometry: { type: 'Point', coordinates: at(x, 0.3) } });
+});
 // A busy strip 1.1 km east of Fox Point (v1.5 landing): Thayer Street lined with shops for 250 m,
 // inside the read around a press at Fox Point, and inside the walk's own explore read (E2).
 features.push({ type: 'Feature', properties: { class: 'tertiary', name: 'Thayer Street' }, geometry: { type: 'LineString', coordinates: [at(11, -3), at(11, 3)] } });

@@ -16,14 +16,14 @@ import { notableBeyondNeighbourhood, notableName } from './notable';
  * p2: the archive, names and landcover read here (specs/presence-readers); nothing derived changed, so p1 rows are carried (PS9).
  * p3: only storefronts weigh toward density (specs/storefronts SF10, decision 0180); a weight changed, so nothing is carried (SF11).
  */
-export const PRESENCE_CODE = 'p3';
+export const PRESENCE_CODE = 'p4';
 
 /**
  * PS9, presence-readers audit 2: the codes whose rows stand under this one, read by the atlas (`CARRIED`, `atlas.ts`) and the
  * landing (`LANDING_CARRIED`, `landing/view.ts`). Only ever the code just before, and only when the golden tables show
  * nothing derived changed; empty it at a bump that changes a bar, a mark or a weight.
  */
-export const PRESENCE_CARRIED: readonly string[] = [];
+export const PRESENCE_CARRIED: readonly string[] = ['p3'];
 
 const FULL = 1;
 const HALF = 0.5;
@@ -40,6 +40,8 @@ const DEFS = {
   // Places to go: shops, food, drink, what is shown.
   shop: { weight: FULL, storefront: true },
   boutique: { weight: FULL, storefront: true, category: 'shops' },
+  // A shop that sells antiques (the outing, decision 0182): beside `boutique`, never instead of it, so bars, marks and weights are as they were.
+  antiques: { weight: FULL, storefront: true },
   eatery: { weight: FULL, storefront: true, category: 'food' },
   food_counter: { weight: FULL, storefront: true },
   drink: { weight: FULL, storefront: true, category: 'nightlife' },
@@ -188,6 +190,7 @@ const OSM_DEFAULT: Record<string, PresenceClass> = {
 
 /** PR1: what an OpenMapTiles poi is: its class's own rules, else its subclass's, else its class's default. */
 export function classesOfOsm(cls: string, sub: string): PresenceClass[] {
+  if (cls === 'shop' && sub === 'antiques') return ['boutique', 'antiques'];
   for (const [subs, c] of own(OSM, cls) ?? []) if (subs === '*' || subs.includes(sub)) return [c];
   const bySub = own(OSM_SUBCLASS, sub);
   if (bySub) return [bySub];

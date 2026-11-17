@@ -1,6 +1,7 @@
 ---
 paths:
   - "src/lib/outing/**"
+  - "src/components/outing/**"
   - "src/lib/__tests__/outing/**"
 ---
 # Plan an outing
