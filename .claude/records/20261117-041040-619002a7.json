@@ -1,0 +1,11 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inflight",
+        "add"
+      ],
+      "body": "| Picker media (a List and Media switch in the two moment pickers: the gallery's grid to connect or mention a moment by its picture; MP1-MP19) | `claude/moment-threading-media-gallery-jv3lz1` | started 2026-11-17: spec and plan approved by the owner; tests first, then the code; spec `specs/picker-media/spec.md` |\n"
+    }
+  ]
+}
