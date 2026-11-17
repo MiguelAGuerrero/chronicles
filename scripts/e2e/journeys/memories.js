@@ -410,8 +410,62 @@ async function checks(h) {
       await shot(page, '16d-bar-reminder-after-fold-320');
       await page.setViewportSize({ width: 390, height: 844 });
       await page.waitForTimeout(400);
-      await page.click('[data-testid=recording-return]');
+
+      // tend explore audit 23: the bars folded under an area's card, a fire, then the card's Walk to, which leaves the
+      // tabs for the walk screen: the bar goes with what it held unseen, and hands it on to the walk screen's card.
+      await outOfReach();
+      await flags(true);
+      await page.goto(url);
+      await page.waitForSelector('[data-testid=recording-return], [data-testid=walk-minimize]', { timeout: 20000 });
+      if (!(await page.locator('[data-testid=recording-return]').count())) await page.click('[data-testid=walk-minimize]');
+      await page.waitForSelector('[data-testid=recording-return]', { timeout: 10000 });
+      await page.click('[data-testid=tab-explore]');
+      await h.areaTile(page, 'Fox Point', 40000);
+      const hoods = await page.locator('[data-testid=atlas-tile]').evaluateAll((els) => els.map((e) => e.getAttribute('data-name')));
+      // An area whose card offers a Walk to (the area's own, a storefront street's or a complex's: the one the walker is in
+      // has none of its own).
+      const walkSel = '[data-testid=atlas-walk], [data-testid=atlas-storefront-walk], [data-testid=atlas-complex-walk]';
+      let walkTo = null;
+      for (const name of [...hoods.filter((n) => n !== 'Fox Point'), 'Fox Point']) {
+        const tile = page.locator(`[data-testid=atlas-tile][data-name="${name}"]`).first();
+        if (!(await tile.count())) continue;
+        // A first tap may only select it (EC11), and the row may still be settling: a few tries.
+        let opened = false;
+        for (let k = 0; k < 4 && !opened; k++) {
+          await tile.click().catch(() => {});
+          opened = await page.waitForSelector('[data-testid=atlas-card]', { timeout: 4000 }).then(() => true, () => false);
+        }
+        if (!opened) continue;
+        if (await page.locator(walkSel).count()) {
+          walkTo = name;
+          break;
+        }
+        await page.keyboard.press('Escape');
+        await page.waitForTimeout(800);
+      }
+      const cardFold = { area: walkTo, hoods, wrapH: await wrapH(), flagged: await stillFlagged() };
+      const handFrom = north;
+      for (let j = north - 1; j >= -4 && walkTo && (await stillFlagged()) > 0; j--) {
+        north = j;
+        await ctx.setGeolocation({ longitude: spot[0], latitude: spot[1] + j * 0.00005, accuracy: 6 });
+        await page.waitForTimeout(1000);
+      }
+      const firedUnderCard = (await stillFlagged()) === 0;
+      if (walkTo) {
+        await page.locator(walkSel).first().scrollIntoViewIfNeeded().catch(() => {});
+        await page.locator(walkSel).first().click();
+        if (await page.waitForSelector('[data-testid=atlas-walk-now]', { timeout: 1500 }).then(() => true, () => false)) await page.click('[data-testid=atlas-walk-now]');
+      }
+      await page.waitForSelector('[data-testid=stop]', { timeout: 15000 }).catch(() => {});
+      const handed = await page.waitForSelector('[data-testid=reminder]', { timeout: 8000 }).then(() => true, () => false);
+      const handedSaid = handed ? await settled('[data-testid=reminder]') : '';
+      check(!!walkTo && cardFold.wrapH === 0 && cardFold.flagged === 2 && firedUnderCard && handed && /Two memories here/.test(handedSaid),
+        `tend explore audit 23: a reminder fired under an area's card reaches the walk screen's card when Walk to leaves the tabs (${JSON.stringify({ ...cardFold, firedUnderCard, handed, handedSaid, steps: `${handFrom} to ${north}` })})`);
+      if (handed) await shot(page, '16e-reminder-handed-on');
+      if (!(await page.locator('[data-testid=stop]').count())) await page.click('[data-testid=recording-return]');
       await page.waitForSelector('[data-testid=stop]', { timeout: 15000 });
+      // The walk goes on without the way Walk to set, as the steps after this one expect.
+      if (await page.waitForSelector('[data-testid=nav-end]', { timeout: 5000 }).then(() => true, () => false)) await page.click('[data-testid=nav-end]');
     } finally {
       await flags(false);
       // Back to the spot at a walking pace, from wherever the step stopped, north or south of it.

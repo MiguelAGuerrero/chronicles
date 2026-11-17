@@ -6,7 +6,7 @@ import { db } from '../db';
 import { boundsOf, distanceM } from '../geo';
 import { notifier } from '../notify';
 import type { LngLat } from '../types';
-import { afterFire, dueRecalls, firePlace, isExpired, RECALL_RULES, reminderText } from './recall';
+import { afterFire, createRecallPlaces, dueRecalls, isExpired, RECALL_RULES, reminderText } from './recall';
 import type { Recall } from './types';
 
 /** Captures a tapped reminder notification asked to open, for whichever screen mounts next (R4). */
@@ -58,21 +58,31 @@ export async function storedRecall(captureId: string): Promise<Recall | null> {
 
 // Fires go to the place in front that listens (the walk screen's card, the recording bar), else to a notification:
 // decided when a fire is shown, not where it was checked (audit). Every place listens; none takes another's place, so
-// a walk screen kept behind the tabs never takes a fire out of sight (tend explore 21).
-const places: { show: (captures: Faced[]) => void; inFront: () => boolean }[] = [];
+// a walk screen kept behind the tabs never takes a fire out of sight (tend explore 21). A place that goes with one
+// nobody has seen hands it on to the next in front (tend explore audit 23).
+const places = createRecallPlaces();
+const active = () => AppState.currentState === 'active';
+/** What waits is offered against the walk still open: a reminder of a walk that ended is dropped. */
+const offerHeld = () => {
+  void db.getOpenWalk().then((w) => places.offer(active(), w?.id ?? null)).catch(() => {});
+};
 /** Listen for fired reminders, while `inFront` says this place can be seen; returns the unsubscribe. */
 export function onRecallFired(show: (captures: Faced[]) => void, inFront: () => boolean = () => true): () => void {
-  const place = { show, inFront };
-  places.push(place);
-  return () => {
-    const i = places.indexOf(place);
-    if (i >= 0) places.splice(i, 1);
-  };
+  const off = places.listen(show, inFront);
+  offerHeld();
+  return off;
 }
+/** A place came to the front: it takes a reminder handed on unseen. */
+export const recallPlaceShown = offerHeld;
+/** A place goes with a reminder nobody has seen: the next place in front of its walk shows it. */
+export function handOnRecall(walkId: string, captures: Faced[]) {
+  void db.getOpenWalk().then((w) => places.handOn(walkId, captures, active(), w?.id ?? null)).catch(() => {});
+}
+AppState.addEventListener('change', (s) => {
+  if (s === 'active') offerHeld();
+});
 async function deliver(walkId: string, captures: Faced[]) {
-  const i = firePlace(AppState.currentState === 'active', places.map((p) => p.inFront()));
-  if (i != null) places[i].show(captures);
-  else await notifier.recall(reminderText(captures), captures.map((c) => c.id), walkId).catch(() => {});
+  if (!places.fire(captures, active())) await notifier.recall(reminderText(captures), captures.map((c) => c.id), walkId).catch(() => {});
 }
 
 // What waits in Undo, told by the Undo window (lib/deletion), which imports this module: so it is set, not imported.

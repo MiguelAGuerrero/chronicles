@@ -1,7 +1,7 @@
 import { type Faced, facedAll } from '../lib/moment';
 import { NewNotePage } from '../components/notePage/NewNotePage';
 import type { NotePageHandle } from '../components/notePage/NotePage';
-import { router, useFocusEffect, useIsFocused, useLocalSearchParams } from 'expo-router';
+import { router, useFocusEffect, useIsFocused, useLocalSearchParams, useNavigation as useRouteNavigation } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
 import { walkClocks } from '../lib/pins';
 import { nextDayPartBoundary } from '../lib/resurface/context';
@@ -34,7 +34,7 @@ import { RoutePreview } from '../components/RoutePreview';
 import { forPreview } from '../lib/nav/previewView';
 import { SwitchRow } from '../components/SwitchRow';
 import { ReminderCard } from '../components/ReminderCard';
-import { onRecallFired, onRecallOpen, onRecallWaiting, takeRecallOpen } from '../lib/discovery/recallCheck';
+import { onRecallFired, onRecallOpen, onRecallWaiting, recallPlaceShown, takeRecallOpen } from '../lib/discovery/recallCheck';
 import { reminderHeld, reminderText } from '../lib/discovery/recall';
 import { categoryOf } from '../lib/discovery/categories';
 import { deadZoneDue, deadZoneNudge, inDeadZone, stripAt } from '../lib/landing/walk';
@@ -847,10 +847,10 @@ function WalkScreen(props: { onMinimize: () => void }) {
   useEffect(() => {
     hereRef.current = live.here;
   }, [live.here]);
-  const focusedRef = useRef(screenFocused);
-  useEffect(() => {
-    focusedRef.current = screenFocused;
-  }, [screenFocused]);
+  // Whether this screen is in front, asked of the navigator when a fire comes, never a copy a frame behind (tend
+  // explore audit 26). As it comes to the front it takes a reminder the bar went with unseen (tend explore audit 23).
+  const routeNav = useRouteNavigation();
+  useFocusEffect(useCallback(() => recallPlaceShown(), []));
   // What the card holds, read by the listener below, so it announces the card's own title (tend explore audit 6).
   const reminderRef = useRef(reminder);
   useEffect(() => {
@@ -866,9 +866,9 @@ function WalkScreen(props: { onMinimize: () => void }) {
           AccessibilityInfo.announceForAccessibility(reminderText(next.captures).title);
         },
         // Only while in front: kept behind the tabs after a reload, the bar above them takes it (tend explore 21).
-        () => focusedRef.current,
+        () => routeNav.isFocused(),
       ),
-    [],
+    [routeNav],
   );
   // The card goes by itself after half a minute or 100 m walked on (it stays fired).
   useEffect(() => {

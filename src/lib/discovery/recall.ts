@@ -17,6 +17,8 @@ export const RECALL_RULES = {
   noteChars: 120,
   /** A moment made outside a walk rests this long before it can come back, as a walk's own captures never do in it (audit). */
   looseRestMs: 2 * 3_600_000,
+  /** A reminder on the recording bar counts as seen only after this long in sight (tend explore audit 23). */
+  glanceMs: 2_000,
 } as const;
 
 /** Past its until-date the flag ends silently; the capture stays an ordinary memory (R6). */
@@ -178,16 +180,35 @@ export function firePlace(active: boolean, inFront: readonly boolean[]): number 
   return null;
 }
 
+/** How long a reminder the recording bar holds has been in sight: the time before, and since when it is in sight now. */
+export type ReminderSight = { shownMs: number; since: number | null };
+export const UNSEEN: ReminderSight = { shownMs: 0, since: null };
+const inSightFor = (s: ReminderSight, now: number) => s.shownMs + (s.since != null ? now - s.since : 0);
+
 /**
- * When a reminder the recording bar holds counts as shown (tend explore 22): from the first moment the bar is in
- * sight (not folded under a full-screen card, nothing over it). Its half-minute runs from then; out of sight it waits,
- * however long, so a fire already marked (a "once" flag cleared) is never dropped unseen. Seen, then hidden again, the
- * half-minute goes on. `goesInMs` is null while it waits.
+ * When a reminder the recording bar holds counts as shown (tend explore 22, audit 27): only while the bar is in sight
+ * (`barInSight`). Its half-minute is time in sight: out of sight (folded, covered, the app behind) it waits, however
+ * long, and what was left of it comes back on return. A fire already marked (a "once" flag cleared) is never dropped
+ * unseen. `goesInMs` is null while it waits.
  */
-export function reminderSight(o: { seenAt: number | null; inSight: boolean; now: number; showMs: number }): { seenAt: number | null; goesInMs: number | null } {
-  const seenAt = o.seenAt ?? (o.inSight ? o.now : null);
-  return { seenAt, goesInMs: seenAt == null ? null : Math.max(0, seenAt + o.showMs - o.now) };
+export function reminderSight(o: { sight: ReminderSight; inSight: boolean; now: number; showMs: number }): { sight: ReminderSight; goesInMs: number | null } {
+  const shown = inSightFor(o.sight, o.now);
+  if (!o.inSight) return { sight: { shownMs: shown, since: null }, goesInMs: null };
+  return { sight: { shownMs: o.sight.shownMs, since: o.sight.since ?? o.now }, goesInMs: Math.max(0, o.showMs - shown) };
 }
+
+/**
+ * Whether the bar's reminder has been seen (tend explore audit 23): in sight for a glance's length at least. A bar that
+ * goes before (Walk here from the area card unfolds it for the moment the walk screen takes to come up) hands it on.
+ */
+export const reminderSeen = (sight: ReminderSight, now: number): boolean => inSightFor(sight, now) >= RECALL_RULES.glanceMs;
+
+/**
+ * Whether a person can see the recording bar (tend explore 22, audits 24, 27): the tabs not folded under a full-screen
+ * card, no Modal over it, no keyboard over the foot of the screen, and the app in front.
+ */
+export const barInSight = (o: { folded: boolean; covered: boolean; keyboard: boolean; active: boolean }): boolean =>
+  !o.folded && !o.covered && !o.keyboard && o.active;
 
 /**
  * A reminder card's spoken name (tend explore 23): its title and its words, then Open, with one full stop before Open:
@@ -197,4 +218,55 @@ export function reminderName(captures: Faced[]): string {
   const { title, body } = reminderText(captures);
   const said = body ? `${title}: ${body}` : title;
   return `${said}${/[.!?…]["'”’)\]]*$/.test(said) ? '' : '.'} Open`;
+}
+
+/**
+ * The places a fired reminder can be shown (tend explore 21, audit 23): each listens with whether it is in front now.
+ * A fire goes to the newest in front (`firePlace`); with none, `fire` says so and the caller notifies. A place that goes
+ * with a reminder nobody has seen (the recording bar, folded under the area card, when Walk here leaves the tabs)
+ * hands it on: it waits, merged with any handed on after it, for the next place in front of the same walk, offered as a
+ * place listens or comes to the front. The walk it came on over, it is dropped. Pure: it calls what it is given.
+ */
+export function createRecallPlaces() {
+  const places: { show: (captures: Faced[]) => void; inFront: () => boolean }[] = [];
+  let unseen: { walkId: string; captures: Faced[] } | null = null;
+  const newest = (active: boolean) => firePlace(active, places.map((p) => p.inFront()));
+  const offer = (active: boolean, openWalkId: string | null): boolean => {
+    if (!unseen) return false;
+    if (unseen.walkId !== openWalkId) {
+      unseen = null;
+      return false;
+    }
+    const i = newest(active);
+    if (i == null) return false;
+    const { captures } = unseen;
+    unseen = null;
+    places[i].show(captures);
+    return true;
+  };
+  return {
+    /** Listens while `inFront` says this place can be seen; returns the unsubscribe. */
+    listen(show: (captures: Faced[]) => void, inFront: () => boolean): () => void {
+      const place = { show, inFront };
+      places.push(place);
+      return () => {
+        const i = places.indexOf(place);
+        if (i >= 0) places.splice(i, 1);
+      };
+    },
+    /** A fire: shown by the newest place in front; false when none took it. */
+    fire(captures: Faced[], active: boolean): boolean {
+      const i = newest(active);
+      if (i == null) return false;
+      places[i].show(captures);
+      return true;
+    },
+    /** A place goes with a reminder nobody has seen: the next place in front of its walk takes it. */
+    handOn(walkId: string, captures: Faced[], active: boolean, openWalkId: string | null): void {
+      unseen = { walkId, captures: reminderHeld(unseen?.walkId === walkId ? unseen.captures : null, captures) };
+      offer(active, openWalkId);
+    },
+    /** A place listens or came to the front: it takes what waits, if the walk is still open. True when one did. */
+    offer,
+  };
 }
