@@ -14,7 +14,7 @@ import { COMPLEX_STYLE } from '../../lib/complexes/mapLayer';
 import { namedStars, StarView, starLabel } from '../StarView';
 import type { Star } from '../../lib/places';
 import { declutterMarks } from '../../lib/markNames';
-import { boxHolds, inBox, metersPerPixel, pinDrawBox, pinReactions, pinReminded, pinThumb, stalkLift, type CapturePin, type ViewBox, type WalkClock } from '../../lib/pins';
+import { boxAround, boxHolds, drawsPin, metersPerPixel, PIN_REACH_PX, pinDrawBox, pinReactions, pinReminded, pinThumb, stalkLift, type CapturePin, type ViewBox, type WalkClock } from '../../lib/pins';
 import type { ReactionSet } from '../../lib/reactions/core';
 import { useReactionSets } from '../../lib/reactions/useReactions';
 import { blankLookLayers, creditsAt, scaleBar, scaleShown } from '../../lib/scaleBar';
@@ -1512,10 +1512,19 @@ const NO_CAPTURES: Faced[] = [];
  * in a ref, so a pin whose members changed never opens stale captures; roots
  * unmount just after React's commit, which would otherwise warn.
  */
-/** What the map shows, west, south, east, north. */
-const viewBoxOf = (map: MapLibreMap): ViewBox => {
-  const b = map.getBounds();
-  return [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()];
+/**
+ * What a pin can be seen from: the canvas grown by a pin's reach (`PIN_REACH_PX`, tend map audit 35), its corners as
+ * the map places them, west, south, east, north.
+ */
+const pinViewOf = (map: MapLibreMap): ViewBox => {
+  const c = map.getCanvas();
+  const [w, h] = [c.clientWidth, c.clientHeight];
+  const r = PIN_REACH_PX;
+  const corners: [number, number][] = [[-r.left, -r.top], [w + r.right, -r.top], [w + r.right, h + r.bottom], [-r.left, h + r.bottom]];
+  return boxAround(corners.map((p) => {
+    const at = map.unproject(p);
+    return [at.lng, at.lat] as LngLat;
+  }));
 };
 /** A pin's marker is anchored at its bottom, its target's 6 px of padding below the stem's foot. */
 const PIN_FOOT = 6;
@@ -1545,6 +1554,8 @@ function usePinMarkers(
   // Only the pins in view and a margin round it are drawn (tend map 16): maplibre moves every marker on every camera
   // frame. The box is kept here, never as state, and redrawn only on a move's end that leaves it.
   const drawn = useRef<ViewBox | null>(null);
+  // The last pin pressed: its viewer gives the focus back to it on closing, so it is never dropped (audit 37).
+  const pressed = useRef<string | null>(null);
   useEffect(() => {
     const map = mapRef.current;
     if (!ready || !map) return;
@@ -1553,11 +1564,12 @@ function usePinMarkers(
       queueMicrotask(() => m.root.unmount());
     };
     const sync = () => {
-      if (!boxHolds(drawn.current, viewBoxOf(map))) drawn.current = pinDrawBox(viewBoxOf(map));
+      if (!boxHolds(drawn.current, pinViewOf(map))) drawn.current = pinDrawBox(pinViewOf(map));
       const box = drawn.current!;
       const live = new Set<string>();
       for (const pin of pins) {
-        if (!inBox(pin.lngLat, box)) continue;
+        const focused = !!markers.current.get(pin.id)?.marker.getElement().contains(document.activeElement);
+        if (!drawsPin(pin.lngLat, box, { focused, pressed: pressed.current === pin.id })) continue;
         live.add(pin.id);
         const ids = pin.captures.map((c) => c.id).join(',');
         const bell = pinReminded(pin, reminded);
@@ -1597,6 +1609,7 @@ function usePinMarkers(
           el.addEventListener('click', (e) => {
             e.stopPropagation();
             const p = latest.current.pins.get(id);
+            pressed.current = id;
             if (p) latest.current.onPress?.(p);
           });
         } else {
@@ -1623,11 +1636,14 @@ function usePinMarkers(
       }
     };
     sync();
+    // During a move too, not only at its end (audit 36): one read and a compare an event, a redraw only past the box.
     const moved = () => {
-      if (!boxHolds(drawn.current, viewBoxOf(map))) sync();
+      if (!boxHolds(drawn.current, pinViewOf(map))) sync();
     };
+    map.on('move', moved);
     map.on('moveend', moved);
     return () => {
+      map.off('move', moved);
       map.off('moveend', moved);
     };
   }, [mapRef, ready, pins, interactive, memory, openedAt, reminded, sets, clocks, now, standOn]);

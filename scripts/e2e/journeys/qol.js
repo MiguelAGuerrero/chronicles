@@ -659,6 +659,66 @@ async function run(h) {
       check(Math.abs(turnedChronicle) < 0.5, `tend map 1: Chronicle's map has no compass, so two fingers never turn it (CP1, decision 0082; bearing ${turnedChronicle})`);
       await checkAttribution('Chronicle');
     }
+    // tend map audit 35 (tend map 16's cull, the review's F1): the web map draws only the pins in a box round the view,
+    // and a pin's head stands up to 48 px above its foot. A placed moment 4 px past the box's south edge, the map panned
+    // south until its bottom is 2 px short of that edge: the foot is just off screen, the head on it, and the pin is drawn. 3 km
+    // east of the walk, and taken out again after, so no later check meets it.
+    // (qstep is defined with the walk below; this step reports a throw the same way.)
+    await (async () => {
+      const margin = Number(/export const PIN_CULL_MARGIN = ([\d.]+);/.exec(fs.readFileSync(path.join(scriptsDir, '..', 'src/lib/pins.ts'), 'utf8'))?.[1]);
+      const C = at(30, 0);
+      const Z = 16;
+      const canvasSize = () => pg.evaluate(() => {
+        const cs = [...document.querySelectorAll('canvas.maplibregl-canvas')].filter((e) => !e.closest('[aria-hidden=true]'));
+        const r = cs[cs.length - 1].getBoundingClientRect();
+        return { x: r.x, y: r.y, w: r.width, h: r.height };
+      });
+      await pg.evaluate(([c, z]) => window.__zoomTo(c, z), [C, Z]);
+      await pg.waitForTimeout(600);
+      const cv = await canvasSize();
+      const P = await pg.evaluate(([x, y]) => window.__unproject([x, y]), [cv.w / 2, cv.h * (1 + margin) + 4]);
+      const putMoment = (rm) => pg.evaluate(([lon, lat, del]) => new Promise((resolve, reject) => {
+        const req = indexedDB.open('chronicles');
+        req.onsuccess = () => {
+          const tx = req.result.transaction(['moment'], 'readwrite');
+          const id = 'audit35-edge';
+          const piece = { id, moment_id: id, t: Date.now() - 86_400_000, kind: 'text', file_path: null, body: 'At the edge' };
+          if (del) tx.objectStore('moment').delete(id);
+          else tx.objectStore('moment').put({ id, walk_id: null, t: piece.t, lat, lon, segment_id: null, piece_ids: [id], pieces: [piece] });
+          tx.oncomplete = () => resolve();
+          tx.onerror = () => reject(tx.error);
+        };
+      }), [P[0], P[1], rm]);
+      await putMoment(false);
+      try {
+        // Chronicle reads its moments when it comes to the front.
+        await tabTo(pg, 'navigate');
+        await pg.waitForTimeout(800);
+        await tabTo(pg, 'chronicle');
+        await pg.waitForTimeout(1500);
+        await pg.evaluate(([c, z]) => window.__zoomTo(c, z), [C, Z]);
+        await pg.waitForTimeout(800);
+        const pinHere = () => pg.evaluate(() => {
+          const el = [...document.querySelectorAll('.maplibregl-marker[data-ids="audit35-edge"]')].find((e) => !e.closest('[aria-hidden=true]'));
+          if (!el) return null;
+          const r = el.getBoundingClientRect();
+          return { top: Math.round(r.top), bottom: Math.round(r.bottom) };
+        });
+        const before = await pinHere();
+        // South by the margin less 2 px: the view's bottom is just inside the box's south edge, so the bare view never
+        // asks for a new box (an exact meeting can tip either way), and the foot lies 6 px below the screen.
+        const S = await pg.evaluate(([x, y]) => window.__unproject([x, y]), [cv.w / 2, cv.h / 2 + cv.h * margin - 2]);
+        await pg.evaluate(([c, z]) => window.__zoomTo(c, z), [S, Z]);
+        await pg.waitForTimeout(800);
+        const after = await pinHere();
+        const foot = await pg.evaluate((q) => window.__project(q), P);
+        await shot(pg, 'qol-audit35-pin-at-edge');
+        check(after !== null && foot[1] > cv.y + cv.h && after.top < cv.y + cv.h,
+          `tend map audit 35: a pin whose foot is just past the box's edge, its head on screen, is drawn (before the pan ${JSON.stringify(before)}, after ${JSON.stringify(after)}; foot at y ${Math.round(foot[1])}, canvas bottom ${Math.round(cv.y + cv.h)}; margin ${margin})`);
+      } finally {
+        await putMoment(true);
+      }
+    })().catch((e) => check(false, `tend map audit 35: ${String(e.message).split('\n')[0]}`));
     await tabTo(pg, 'navigate');
     await pg.waitForTimeout(800);
 

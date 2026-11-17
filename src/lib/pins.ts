@@ -157,6 +157,30 @@ export function boxHolds(drawn: ViewBox | null, view: ViewBox, margin = PIN_CULL
 export const END_MARK_R = 11;
 /** A pin's stalk: `CapturePinView`'s stem, from the point it marks up to its head, in pt. */
 export const PIN_STEM = 8;
+/** The most `stalkLift` raises a pin: past two overlapping markers, each at most its width and a stalk. */
+export const PIN_MAX_LIFT = 2 * (2 * END_MARK_R + PIN_STEM);
+/**
+ * How far a pin reaches on screen from its foot, in px (tend map audit 35): its 48 px target, 24 px either side and
+ * its height above the foot, plus the most it is lifted. A pin whose foot lies that far past the view's edge below, or
+ * beside it, still shows; the box it is drawn in is judged by the view grown by this much. On screen, so a turned map
+ * grows the same way (a marker never turns).
+ */
+export const PIN_REACH_PX = { top: 0, right: 24, bottom: 48 + PIN_MAX_LIFT, left: 24 } as const;
+
+/** The box round some points: the view's grown corners as the map places them (turned or not). */
+export function boxAround(points: readonly LngLat[]): ViewBox {
+  const lons = points.map((p) => p[0]);
+  const lats = points.map((p) => p[1]);
+  return [Math.min(...lons), Math.min(...lats), Math.max(...lons), Math.max(...lats)];
+}
+
+/**
+ * Whether a pin is drawn (tend map 16, audit 37): inside the box, or, outside it, while it holds the keyboard focus or
+ * was the last pressed, whose viewer gives the focus back to it on closing (ui-patterns; audit 3 of the bell).
+ */
+export function drawsPin(at: LngLat, box: ViewBox, o: { focused: boolean; pressed: boolean }): boolean {
+  return o.focused || o.pressed || inBox(at, box);
+}
 
 /**
  * How far up, in screen px, a pin is drawn above its point so that a pin standing on a walk's start or end stops its
