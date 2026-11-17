@@ -181,22 +181,6 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
   moments kept at one place, turn the map, then open its replay and Explore.
   Expect: the scale bar's label stays whole beside its line, a pin's count or kinds stay inside its head, the compass and
   Locate stay 44 pt and in their column, and the map's (i) stays reachable, none cut or pushed under the strip or a card.
-- **T22 [owner] The walked colour is separate from the accent** (2026-11-12)
-  Area: replay, and every map that draws walked streets (Chronicle's map, the walk's end marker, any map given
-  `walked`). Seen: `probe-390r-fog` (beat one lights the walked streets in `COLORS.walked`, `#c2410c`, the same hex as
-  `theme.accent`; they stay lit through the path; steward Q2). Rests on: your answer of Nov 12 (decision 0153), "the
-  replay must never light anything in the accent"; VISION.md Never, "Celebration: ... accent-coloured wins". The
-  palette is not chosen.
-  Recommended: a walked colour of its own in `COLORS.walked` (`components/map/types.ts`), a deep ochre or brick at
-  3:1 or more against the map's ground and apart from the accent and the kinds' colours, so every map follows at
-  once; the trace's green unchanged; QL2's end ring ("in the walked orange") takes it too. Not built until you pick
-  the hue. /vision: aligned (return; restraint in colour), amends QL2's colour word.
-  Otherwise: keep the hue but draw the walked streets lighter in the replay only; or leave it.
-  Since `tend places T15` (Nov 13): a walked place's star is ink (`#1d2430`), beside T14's pin of several on its dark neutral head (`#3f3f46`); the two grounds are about 1.5:1, told apart by the star's white glyph and the pin's kind discs and stem, not by hue (the T15 probe's `after-fit-390-close`; the T15 review's F5, no action). A walked hue picked here would not reach the stars, which are ink by your answer.
-  **Answered** by the owner in person (Nov 12; decision 0165): "Show me swatches", not a yes to a hue: a later run
-  renders three walked hues apart from the accent, the owner picks one, then it is built. Recorded Nov 13; waits for
-  the next `/tend inbox`, one build per run (T28 was built first).
-  Nov 17: swatches shown (olive, plum, umber; SCRATCH t22-swatches); umber picked, then 'Let's re-imagine the palette': no hue yet, a palette rethink comes first (decision 0186)
 - **T23 [phone] The replays at the largest text size** (2026-11-12)
   Area: replay. Seen: not on the web (react-native-web sizes text in px; the web cannot picture it).
   Do: on an iPhone, Settings › Accessibility › Display & Text Size › Larger Text at the largest size; finish a walk
@@ -217,6 +201,16 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
 - **T27 [owner] VISION.md's "Never likes" line disagrees with note types** (2026-11-13)
   Area: captures, vision. Seen: the steward's second pass on `specs/note-types` (audit 18): the app ships a Like and a Dislike on a note (decision 0161), while VISION.md's Never table still reads "A feed, followers, likes, public profiles". Rests on: your call in 0161; the gate may not edit the Never list.
   Recommended: in that row's "nearest thing that fits" column add "a mark on your own note, shown to no one and read by no feature about a place, a route or a recommendation (0161)". The page is at its size budget (12,000 bytes): shorten another row to fit.
+- **T33 [owner] The town borders on the replay and a day are the accent** (2026-11-17)
+  Area: replay, map (town borders). Seen: the map-palette slice (decision 0187): the replay and a day draw the walk's towns with `useWalkBorders` in `BORDER.color`, `#c2410c`, the accent's hex (a 12% tint and a firm edge at 0.9), while decision 0153 says "The replay never lights anything in the accent". Out of map-palette's scope by your answer ("The map's colours"); your answer to the spec's question 2, Nov 17: "Their own entry".
+  Recommended: swatches of a border colour apart from the accent and from Earth and ink (`COLORS`), at 3.5:1 for the firm edge and 1.15 to 1.35 for the tint on the land as TB8 and TB10 hold them, on the replay's beat one and card, on Chronicle and Explore; you pick one; then it is built in `BORDER.color` (every map that draws borders follows).
+  Otherwise: the borders change on the replay and a day only; or they stay the accent, a map's key like the area card's coloured lines (0186's second exception).
+
+### From /slice map-palette
+
+What the map-palette slice left for the owner (`specs/map-palette/spec.md`, decision 0187).
+
+- **QL2's words** (`specs/quality-of-life/spec.md`, your quality-of-life doc): it says "a white disc with a thick ring in the walked orange". Since T16 and T25 the end is a bullseye, and since map-palette (decision 0187) the walked colour is an ink, not orange. Your answer, Nov 17: "Build it, with that wording". Proposed for the doc: "a bullseye in the walked colour (a walked centre, a white band, a walked outer ring), so shape, not colour alone, tells it from the start and from the walker's dot". The doc is yours to amend; the mirror follows it.
 
 ### From /fix carousel-snap-back
 

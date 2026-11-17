@@ -179,7 +179,7 @@ test('MP10: only the replay and a day draw walked streets or an end; every other
   }
 });
 
-test('MP12: T22 is answered: out of the inbox, and decision 0188 records Earth and ink', { todo: 'test first' }, () => {
+test('MP12: T22 is answered: out of the inbox, and decision 0188 records Earth and ink', () => {
   const status = readFileSync(join(ROOT, 'docs', 'STATUS.md'), 'utf8');
   assert.doesNotMatch(status, /^- \*\*T22 /m, 'T22 has left the inbox');
   const record = readdirSync(join(ROOT, 'docs', 'decisions')).find((f) => /^0188-/.test(f));
