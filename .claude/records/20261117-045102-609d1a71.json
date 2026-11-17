@@ -1,0 +1,13 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Reminders and notifications"
+      ],
+      "body": "- **A recall taken while Chronicle's map blurs is lost** (fix chronicle-focus-reload audit 5, older than the fix): a reminder tapped with no walk open; Chronicle's map `load` calls `takeRecallOpen`, which clears `RECALL_OPEN_KEY` before it reads the moments; a replay or day opened (or a tab switched) during that read makes the `if (!live) return null` right after it return, so the moments are never shown and are no longer stored, and `fittedTo` is not recorded either. Take the recall only once nothing can stop the load, or keep it until it is shown (R4, NV13).\n"
+    }
+  ]
+}

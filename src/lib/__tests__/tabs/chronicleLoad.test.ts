@@ -49,7 +49,7 @@ function setBeforeLastAwait(src: string): string[] {
       if (!nested(n, fn)) sets.push({ name: n.expression.text, at: n.getStart() });
     }
     // A promise's callback: a setter passed by name, or called inside the callback, runs as that read resolves.
-    if (ts.isCallExpression(n) && ts.isPropertyAccessExpression(n.expression) && ['then', 'finally'].includes(n.expression.name.text) && !nested(n, fn)) {
+    if (ts.isCallExpression(n) && ts.isPropertyAccessExpression(n.expression) && ['then', 'catch', 'finally'].includes(n.expression.name.text) && !nested(n, fn)) {
       for (const arg of n.arguments) {
         if (ts.isIdentifier(arg) && /^set[A-Z]/.test(arg.text)) sets.push({ name: arg.text, at: n.getStart() });
         else walk(arg, (m) => {
@@ -59,6 +59,7 @@ function setBeforeLastAwait(src: string): string[] {
     }
   });
   assert.ok(awaits.length > 0, 'the load reads');
+  assert.ok(sets.length > 0, 'the load sets its state: a scan of nothing proves nothing (audit 6)');
   const last = Math.max(...awaits);
   return sets.filter((s) => s.at < last).map((s) => s.name);
 }
@@ -68,36 +69,81 @@ test('fix chronicle-focus-reload: Chronicle\'s load sets its state only after it
 });
 
 /**
- * The load's own steps after it has taken the recall (`takeRecallOpen`), up to its end: a blur there must not stop it.
- * Before this fix the load went on to the end once the recall was taken, blurred or not, and the screen relies on it.
+ * Every guard on `live` in the load's own steps between taking the recall (`takeRecallOpen`) and recording what it
+ * framed (the last `fittedTo.current =`): a blur there must not stop it. One is allowed, and only where it stands:
+ * the `if (!live)` that is the very next statement after the recall's declaration, older than this fix and filed
+ * (audit 5, DEFERRED: it can itself lose a recall taken while the screen blurs). Moved anywhere else, it is caught
+ * (audit 4), as is any other form: `live &&`, a ternary, a second `if`.
  */
-function liveReturnsAfterRecall(src: string): string[] {
+function liveGuardsAfterRecall(src: string): string[] {
   const fn = loadFn(parse(src));
-  let recallAt = -1;
+  let recallStmt: ts.Statement | null = null;
+  let framedAt = -1;
   walk(fn.body, (n) => {
-    if (ts.isCallExpression(n) && n.expression.getText() === 'takeRecallOpen' && !nested(n, fn)) recallAt = Math.max(recallAt, n.getStart());
+    if (nested(n, fn)) return;
+    if (ts.isCallExpression(n) && n.expression.getText() === 'takeRecallOpen' && !recallStmt) {
+      let s: ts.Node = n;
+      while (s.parent && !ts.isBlock(s.parent)) s = s.parent;
+      recallStmt = s as ts.Statement;
+    }
+    if (ts.isBinaryExpression(n) && n.operatorToken.kind === ts.SyntaxKind.EqualsToken && n.left.getText() === 'fittedTo.current') framedAt = Math.max(framedAt, n.getStart());
   });
-  assert.ok(recallAt >= 0, 'the load takes the recall');
-  // The check right after the recall read itself stays: the recall's own await, before anything was taken.
+  assert.ok(recallStmt, 'the load takes the recall');
+  assert.ok(framedAt >= 0, 'the load records what it framed');
+  const stmts = (recallStmt as ts.Statement).parent as ts.Block;
+  const next = stmts.statements[stmts.statements.indexOf(recallStmt as ts.Statement) + 1];
+  const allowed = next && ts.isIfStatement(next) && /^!\s*live$/.test(next.expression.getText()) ? next : null;
+  const from = (recallStmt as ts.Statement).getEnd();
   const out: string[] = [];
   walk(fn.body, (n) => {
-    if (ts.isIfStatement(n) && !nested(n, fn) && /\blive\b/.test(n.expression.getText()) && n.getStart() > recallAt) out.push(n.getText().split('\n')[0]);
+    if (nested(n, fn) || !ts.isIdentifier(n) || n.text !== 'live') return;
+    if (n.getStart() < from || n.getStart() > framedAt) return;
+    if (allowed && n.getStart() >= allowed.getStart() && n.getEnd() <= allowed.expression.getEnd()) return;
+    if (ts.isPropertyAccessExpression(n.parent) && n.parent.name === n) return; // `x.live` is another thing
+    let line: ts.Node = n;
+    while (line.parent && !ts.isBlock(line.parent)) line = line.parent;
+    out.push(line.getText().split('\n')[0]);
   });
-  // The one check that follows the recall's own await is allowed (it guards `takeRecallOpen` itself, as before).
-  return out.slice(1);
+  return out;
 }
 
 test('fix chronicle-focus-reload audit 1: a load cut off by a blur still counts its places as framed, so coming back keeps the view', () => {
   // H5, audit 2 of the home map: a quiet load (a walk placed in the background) records what it framed in
   // `fittedTo` even while a replay is open over it; stopped early on `live`, the return from the replay refits.
-  assert.deepEqual(liveReturnsAfterRecall(readFileSync(FILE, 'utf8')), [], 'no `live` return between the reads and `fittedTo`');
+  assert.deepEqual(liveGuardsAfterRecall(readFileSync(FILE, 'utf8')), [], 'no `live` guard between the recall and `fittedTo`');
 });
 
 test('fix chronicle-focus-reload audit 2: a recall the load has taken is shown even when the screen blurs before its reads end', () => {
   // R4, NV13: takeRecallOpen clears the stored recall as it returns it, so a load that then stops on `live` loses it.
   const src = readFileSync(FILE, 'utf8');
-  assert.deepEqual(liveReturnsAfterRecall(src), [], 'nothing between taking the recall and setRecalled stops the load');
-  assert.match(src, /if \(recalled\.length\) setRecalled\(recalled\);/, 'the taken recall is set');
+  assert.deepEqual(liveGuardsAfterRecall(src), [], 'nothing between taking the recall and setting it stops the load');
+  const fn = loadFn(parse(src));
+  const awaits: number[] = [];
+  const recalls: number[] = [];
+  walk(fn.body, (n) => {
+    if (nested(n, fn)) return;
+    if (ts.isAwaitExpression(n)) awaits.push(n.getStart());
+    if (ts.isCallExpression(n) && n.expression.getText() === 'setRecalled' && n.arguments[0]?.getText() === 'recalled') recalls.push(n.getStart());
+  });
+  assert.equal(recalls.length, 1, 'the taken recall is set, once');
+  assert.ok(recalls[0] > Math.max(...awaits), 'after the last read, so nothing in between can drop it');
+});
+
+test('fix chronicle-focus-reload audit 4: the guard scan catches a `live` check moved, added or written another way', () => {
+  const wrap = (body: string) => `const load = async () => {\n${body}\n};`;
+  const head = 'const recalled = await takeRecallOpen();';
+  const tail = 'fittedTo.current = key;\n if (recalled.length) setRecalled(recalled);';
+  // As the app has it: the one check right after the recall, nothing after the reads.
+  assert.deepEqual(liveGuardsAfterRecall(wrap(`${head}\n if (!live) return null;\n const r = await Promise.all([a(), b()]);\n setX(r);\n ${tail}`)), []);
+  // The check moved below the reads: caught, though there is still only one.
+  assert.equal(liveGuardsAfterRecall(wrap(`${head}\n const r = await Promise.all([a(), b()]);\n if (!live) return null;\n setX(r);\n ${tail}`)).length, 1);
+  // A second check added after the reads: caught.
+  assert.equal(liveGuardsAfterRecall(wrap(`${head}\n if (!live) return null;\n const r = await a();\n if (!live) return null;\n ${tail}`)).length, 1);
+  // Other forms: `live &&`, a ternary.
+  assert.equal(liveGuardsAfterRecall(wrap(`${head}\n const r = await a();\n live && setX(r);\n ${tail}`)).length, 1);
+  assert.equal(liveGuardsAfterRecall(wrap(`${head}\n const r = await a();\n const go = live ? 1 : 0;\n ${tail}`)).length, 1);
+  // Another object's `live` is not the guard.
+  assert.deepEqual(liveGuardsAfterRecall(wrap(`${head}\n if (!live) return null;\n const r = await a();\n setX(r.live);\n ${tail}`)), []);
 });
 
 test('fix chronicle-focus-reload audit 3: the scan catches a setter handed to a read before the last await', () => {
@@ -106,4 +152,10 @@ test('fix chronicle-focus-reload audit 3: the scan catches a setter handed to a 
   assert.deepEqual(setBeforeLastAwait(wrap('db.listFinds().then((f) => setFinds(f));\n const a = await db.listWalks();\n setData(a);')), ['setFinds']);
   assert.deepEqual(setBeforeLastAwait(wrap('setChecklists(await db.listChecklistAreas());\n const a = await db.listWalks();\n setData(a);')), ['setChecklists']);
   assert.deepEqual(setBeforeLastAwait(wrap('const [a, b] = await Promise.all([db.listWalks(), db.listFinds()]);\n setData(a);\n setFinds(b);')), []);
+});
+
+test('fix chronicle-focus-reload audit 6: the scan catches a setter in a .catch before the last await, and a load that sets nothing', () => {
+  const wrap = (body: string) => `const load = async () => {\n${body}\n};`;
+  assert.deepEqual(setBeforeLastAwait(wrap('db.listFinds().catch(() => setFinds([]));\n const a = await db.listWalks();\n setData(a);')), ['setFinds']);
+  assert.throws(() => setBeforeLastAwait(wrap('const a = await db.listWalks();\n store.set(a);')), /scan of nothing/);
 });
