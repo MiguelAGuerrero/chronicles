@@ -7,7 +7,7 @@ paths:
   - "scripts/e2e/journeys/openmaps-chronicle.js"
   - "specs/open-in-maps-here/**"
 ---
-# Open in Maps beside Walk (decision 0194)
+# Open in Maps beside Walk (decision 0195)
 
 Every place shown with a way to walk there has two controls named for where you end up: the host's walk action (the accent: Chronicles guides and records) and "Open in Maps ↗" (outlined, never the accent: the phone's maps app, nothing recorded). It replaced "Go here" and its two-choice sheet (0189, 0190). The spec: `specs/open-in-maps-here/spec.md` (OM1-OM14). Area rules: `.claude/rules/explore-atlas.md`, `navigation.md`.
 

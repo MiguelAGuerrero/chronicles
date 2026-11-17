@@ -1,4 +1,4 @@
-# 0194. Open in Maps beside Walk: two controls named for where you end up, in place of Go here and its sheet
+# 0195. Open in Maps beside Walk: two controls named for where you end up, in place of Go here and its sheet
 
 Date: 2026-11-17 · Status: accepted · Area: explore, chronicle, navigation · Supersedes the Go here label and sheet of [0189](0189-go-here-on-explore-tiles.md) and [0190](0190-go-here-on-the-rest-of-the-surfaces.md); builds on [0058](0058-open-in-maps.md) and [0121](0121-drive-there-walk-back.md)
 

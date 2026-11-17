@@ -128,7 +128,7 @@ recording, and a recording bar brings a minimized walk back.
   - what you found;
   - the areas next door;
   - Walk to, which starts you on a street of its storefronts.
-- **Open in Maps beside Walk** (decision 0194): every place shown with a way to walk there has two controls named for
+- **Open in Maps beside Walk** (decision 0195): every place shown with a way to walk there has two controls named for
   where you end up. The walk action (the accent: "Walk to <place>", "Walk here", "Walk there" on a tile) has
   Chronicles guide and record the walk; **"Open in Maps ↗"** (outlined, never the accent) opens your phone's maps app
   straight from the tap, with the destination alone and nothing recorded or saved. It is on every Explore tile (two

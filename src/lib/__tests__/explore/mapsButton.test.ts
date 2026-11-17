@@ -121,7 +121,7 @@ test('OM11: no sheet, no sheet hook, no sheet handler anywhere in src', () => {
 
 test('OM12: a decision record supersedes 0189 and 0190, cites 0058 and 0121, lists the hosts and says "Route here"', () => {
   const dir = new URL('../../../../docs/decisions/', import.meta.url);
-  const hit = readdirSync(dir).filter((f) => f.startsWith('0194')).map((f) => readFileSync(new URL(f, dir), 'utf8'));
+  const hit = readdirSync(dir).filter((f) => f.startsWith('0195')).map((f) => readFileSync(new URL(f, dir), 'utf8'));
   assert.equal(hit.length, 1, 'one record for Open in Maps beside Walk');
   for (const need of [/0189/, /0190/, /0058/, /0121/, /storefront/i, /complex/i, /long-press|long press/i, /star/i, /Route here/]) assert.match(hit[0], need);
 });
