@@ -47,9 +47,9 @@ test('MA3: a nature reserve is under Parks and gardens, in Nature reserves, on b
   assert.ok(!parseHidden(null, null).has(K('nature_reserves')));
 });
 
-test('MA4: amusement and water parks are under Zoos, aquariums and amusement parks, kept off for a reader who had zoos off', () => {
+test('MA4: amusement and water parks are under Zoos and amusement parks, kept off for a reader who had zoos off', () => {
   assert.equal(one('amusement_park', 'Dorney Park')?.kind, 'attractions');
-  assert.equal(label('attractions'), 'Zoos, aquariums and amusement parks');
+  assert.equal(label('attractions'), 'Zoos and amusement parks');
   const all = KINDS.map((k) => k.id);
   assert.ok(parseHidden(JSON.stringify(['attractions']), JSON.stringify(all)).has(K('attractions')));
 });

@@ -25,8 +25,9 @@ Open: none; outside sources (Smithsonian sculptures, state markers, city public 
 - **Wikidata types this round** (the owner, Nov 17, "Wikidata types now").
 - **All museums by type, Culture only unless listed** (the owner, Nov 17): a listed museum still lights History too (PK1).
 - **Reserves and gardens only, no parks** (the owner, Nov 17).
-- **Amusement and theme parks with zoos and aquariums** (the owner, Nov 17): the kind reads "Zoos, aquariums and amusement
-  parks" (amends `explore-subtypes audit 12`'s "Zoos and aquariums").
+- **Amusement and theme parks with zoos and aquariums** (the owner, Nov 17): the kind was to read "Zoos, aquariums and
+  amusement parks"; it reads "Zoos and amusement parks", since the longer label wraps at 320 px (MA9); aquariums stay in
+  it (amends `explore-subtypes audit 12`'s "Zoos and aquariums").
 
 ## Criteria
 
@@ -35,7 +36,7 @@ Open: none; outside sources (Smithsonian sculptures, state markers, city public 
 - **MA2** a museum by type (`museum_by_type`) is a museum of Culture, under Museums and galleries, and lights Culture alone; a
   listed museum (`museum`) still lights Culture and History.
 - **MA3** a nature reserve is under Parks and gardens, in its own subtype "Nature reserves", on by default.
-- **MA4** an amusement or water park is under "Zoos, aquariums and amusement parks", which a reader with zoos off before keeps
+- **MA4** an amusement or water park is under "Zoos and amusement parks", which a reader with zoos off before keeps
   off.
 - **MA5** a pier or boardwalk is under Buildings and structures, in "Piers and boardwalks", on by default.
 - **MA6** a suspension bridge is a Bridge; a national monument is under Monuments and memorials; every new garden type is a

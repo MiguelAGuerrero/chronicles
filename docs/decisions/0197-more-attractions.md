@@ -15,7 +15,8 @@ The owner's calls, Nov 17:
 - **All museums by type, Culture only unless listed**: a museum that enters by type lights Culture alone; one that enters
   by its listing still lights History too.
 - **Nature reserves and gardens, no parks**: the map's tiles carry parks.
-- **Amusement and theme parks with zoos and aquariums**: "Zoos, aquariums and amusement parks".
+- **Amusement and theme parks with zoos and aquariums**: the kind was to read "Zoos, aquariums and amusement parks"; it
+  reads "Zoos and amusement parks", since the longer label wraps at 320 px (XS22, MA9); aquariums stay in the kind.
 
 ## Consequences
 - chronicles-data contract v6 (its docs/attractions, AT1-AT6): `museum_by_type`, `nature_reserve`, `amusement_park`, `pier`;

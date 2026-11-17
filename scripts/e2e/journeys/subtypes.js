@@ -115,7 +115,7 @@ async function run(h) {
   check(rows.length > 40 && wrapped.length === 0, `XS22, explore-subtypes audit 2: at 320 px every row's label is one line (${JSON.stringify(wrapped)})`);
   // More attractions (decision 0197): the new rows, Nature reserves, Piers and boardwalks and the zoos' longer label, among them.
   const newRows = ['kind-nature_reserves', 'kind-piers', 'kind-attractions'];
-  check.todo(newRows.every((id) => rows.includes(id)) && !wrapped.some((w) => newRows.some((id) => w.startsWith(id))), `MA9: the new rows fit one line at 320 px (${JSON.stringify(wrapped)})`);
+  check(newRows.every((id) => rows.includes(id)) && !wrapped.some((w) => newRows.some((id) => w.startsWith(id))), `MA9: the new rows fit one line at 320 px (${JSON.stringify(wrapped)})`);
   await shot(pg, 'subtypes-what-im-into-320');
   await c.close();
   places.files = {};

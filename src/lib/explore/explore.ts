@@ -107,7 +107,7 @@ export const KINDS: readonly KindInfo[] = [
   { id: 'viewpoints', label: 'Viewpoints and attractions', icon: 'eye-outline', category: 'viewpoints' },
   ...small('viewpoints', 'viewpoints'),
   // XS4, explore-subtypes audit 12: zoos and aquariums, named for what they are; the map's attractions stay with Viewpoints.
-  { id: 'attractions', label: 'Zoos, aquariums and amusement parks', icon: 'paw-outline', category: 'viewpoints' },
+  { id: 'attractions', label: 'Zoos and amusement parks', icon: 'paw-outline', category: 'viewpoints' },
   // PW4: follies, roadside giants, natural oddities and the like, from the places archive (decision 0103).
   { id: 'curiosities', label: 'Curiosities', icon: 'telescope-outline', category: 'viewpoints' },
   ...small('curiosities', 'viewpoints'),

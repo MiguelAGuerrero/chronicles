@@ -90,7 +90,7 @@ test('XS4: two new kinds, Nature and Zoos and aquariums (audit 12); the map\'s a
   const label = (id: string) => KINDS.find((k) => k.id === id)?.label;
   assert.equal(label('nature'), 'Nature');
   // Decision 0197 (the owner, Nov 17): amusement parks joined zoos and aquariums.
-  assert.equal(label('attractions'), 'Zoos, aquariums and amusement parks');
+  assert.equal(label('attractions'), 'Zoos and amusement parks');
   assert.equal(label('viewpoints'), 'Viewpoints and attractions');
   for (const k of ['waterfalls', 'caves', 'hot_springs', 'old_trees']) assert.equal(kindRows(KINDS, new Set()).find((r) => r.kind.id === k)?.depth, 1, k);
   assert.equal(tile('zoo', 'zoo', 'City Zoo')[0]?.kind, 'attractions');
@@ -368,7 +368,7 @@ test('explore-subtypes audit 11: unnamed murals and sculptures fold into one "Pu
 
 test('explore-subtypes audit 12: zoos and aquariums are a kind named for what they are; the map\'s attractions stay with Viewpoints', () => {
   // Decision 0197 (the owner, Nov 17): amusement parks joined zoos and aquariums; still named for what they are.
-  assert.equal(KINDS.find((k) => k.id === 'attractions')?.label, 'Zoos, aquariums and amusement parks');
+  assert.equal(KINDS.find((k) => k.id === 'attractions')?.label, 'Zoos and amusement parks');
   assert.equal(tile('zoo', 'zoo', 'City Zoo')[0]?.kind, 'attractions');
   assert.equal(tile('attraction', 'attraction', 'SteelStacks')[0]?.kind, 'viewpoints');
   assert.equal(tile('theme_park', 'theme_park', 'Dorney Park')[0]?.kind, 'viewpoints');
