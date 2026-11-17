@@ -434,8 +434,9 @@ async function run(h) {
   await pg.waitForTimeout(600);
   check(fail9.line === 'Not kept yet' && fail9.chosen === 'false', `RL9: a reaction not kept is not shown as chosen, and the panel says so in words (${JSON.stringify(fail9)})`);
 
-  // tend chronicle 12 (decision 0172, the accent at rest): a voice memo's card in a lens shows its play disc in ink
-  // (#1d2430), its glyph white; the card itself is the one button. A memo with Idea is added last, so the checks above
+  // tend chronicle 12 (decision 0172, the accent at rest) and tend chronicle audit 6 (the owner's "A mic glyph", Nov 17):
+  // a voice memo's card in a lens draws a small ink mic (#1d2430) with no disc, as "Idea" is drawn; the card is the one
+  // button. A memo with Idea is added last, so the checks above
   // read the seed as they always have; the lens is the one place a memo's MomentCard shows (the journal draws entries).
   const memo12 = await pg.evaluate(({ now, p, day }) => new Promise((resolve, reject) => {
     const id = 'rx-memo';
@@ -460,20 +461,27 @@ async function run(h) {
   await pg.click('[data-testid=lens-row-idea]', { timeout: 3000 }).catch(() => {});
   await there('[data-testid=lens-screen]');
   await pg.waitForTimeout(800);
-  const disc12 = pg.locator('[data-testid=lens-screen] [data-testid=moment-play]').first();
-  await disc12.scrollIntoViewIfNeeded().catch(() => {});
-  const ink12 = (await disc12.count()) ? await disc12.evaluate((el) => ({
-    fill: getComputedStyle(el).backgroundColor,
-    glyph: [...el.querySelectorAll('*')].filter((e) => e.childElementCount === 0 && e.textContent).map((e) => getComputedStyle(e).color)[0] ?? null,
-  })) : null;
-  check(memo12 === true && !!ink12 && ink12.fill === INK && ink12.glyph === 'rgb(255, 255, 255)',
-    `tend chronicle 12: a memo's play disc on its card is ink at rest, its glyph white (${JSON.stringify({ memo12, ink12 })})`);
+  const mic12 = pg.locator('[data-testid=lens-screen] [data-testid=moment-mic]').first();
+  await mic12.scrollIntoViewIfNeeded().catch(() => {});
+  const ink12 = (await mic12.count()) ? await mic12.evaluate((el) => {
+    const box = el.parentElement?.getBoundingClientRect();
+    return {
+      glyph: getComputedStyle(el).color,
+      size: Math.round(parseFloat(getComputedStyle(el).fontSize)),
+      under: getComputedStyle(el.parentElement).backgroundColor,
+      words: el.nextElementSibling?.textContent ?? null,
+      boxH: box ? Math.round(box.height) : null,
+    };
+  }) : null;
+  const discs12 = await pg.locator('[data-testid=lens-screen] [data-testid=moment-play]').count();
+  check(memo12 === true && !!ink12 && ink12.glyph === INK && ink12.size === 16 && /^(rgba\(0, 0, 0, 0\)|transparent)$/.test(ink12.under) && /^Voice memo, 0:42$/.test(ink12.words) && discs12 === 0,
+    `tend chronicle audit 6: a memo's card draws a 16 px ink mic with no disc beside "Voice memo, 0:42" (${JSON.stringify({ memo12, ink12, discs12 })})`);
   {
     const vp = pg.viewportSize();
     await pg.setViewportSize({ width: 320, height: vp.height });
     await pg.waitForTimeout(400);
-    await disc12.scrollIntoViewIfNeeded().catch(() => {});
-    await shot(pg, 'tend-chronicle-12-memo-card-320');
+    await mic12.scrollIntoViewIfNeeded().catch(() => {});
+    await shot(pg, 'tend-chronicle-audit-6-memo-card-320');
     await pg.setViewportSize(vp);
   }
 

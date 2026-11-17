@@ -23,10 +23,22 @@ test('tend chronicle 11: a thread\'s "Thread" label and its quotes\' rule are in
 });
 
 // A memo's play disc on a moment's card is not a control: the card is one button that opens the moment (where the memo
-// plays), so the disc only says "a voice memo" and is at rest. Ink, its glyph white on it.
-test('tend chronicle 12: a memo\'s play disc on a moment card is ink at rest, never the accent', () => {
+// plays), so the disc only said "a voice memo" and was at rest. Since tend chronicle audit 6 there is no disc at all.
+test('tend chronicle 12: a memo\'s mark on a moment card is never the accent', () => {
   const card = read('chronicle', 'MomentCard.tsx');
   assert.doesNotMatch(card, /theme\.accent/, 'MomentCard draws nothing in the accent');
-  assert.match(style(card, 'play'), /backgroundColor:\s*theme\.ink\b/, style(card, 'play'));
-  assert.match(card, /testID="moment-play"/, 'the disc carries a testID the e2e reads');
+});
+
+// The owner's answer, Nov 17, to the review's U2 ("A mic glyph"): a filled disc with a triangle is the standard play
+// button, and the card only opens the moment, so the card draws the memo's kind, not a control: a small ink mic with no
+// disc, as a reaction's "Idea" is drawn on the same card, with "Voice memo, 0:42" beside it.
+test('tend chronicle audit 6: a memo\'s card draws a small ink mic with no disc, never a play button', () => {
+  const card = read('chronicle', 'MomentCard.tsx');
+  const mic = /<Icon name="mic"[^>]*\/>/.exec(card)?.[0] ?? '';
+  assert.match(mic, /size=\{16\}/, `the mic: ${mic}`);
+  assert.match(mic, /color=\{theme\.ink\}/, `the mic: ${mic}`);
+  assert.match(mic, /testID="moment-mic"/, `the mic carries a testID the e2e reads: ${mic}`);
+  assert.doesNotMatch(card, /name="play"/, 'no play triangle on the card');
+  assert.equal(style(card, 'play'), '', 'no disc style');
+  assert.doesNotMatch(card, /moment-play/, 'no disc');
 });
