@@ -55,6 +55,8 @@ const TREE: [string, string, string][] = [
   ['odd_engineering', 'viewpoints', 'curiosities'], ['ruin', 'viewpoints', 'old_ruins'], ['ghost_town', 'viewpoints', 'ghost_towns'],
   ['natural_oddity', 'viewpoints', 'natural_oddities'], ['roadside_giant', 'viewpoints', 'roadside_giants'], ['folly', 'viewpoints', 'roadside_giants'],
   ['marks_a_fact', 'viewpoints', 'survey_marks'], ['time_capsule', 'viewpoints', 'time_capsules'],
+  // More attractions (decision 0197).
+  ['nature_reserve', 'parks', 'nature_reserves'], ['pier', 'history', 'piers'], ['amusement_park', 'viewpoints', 'attractions'], ['museum_by_type', 'culture', 'museums'],
 ];
 
 test('XS1: a waterfall, a covered bridge, a fountain and a carousel from the archive show within range and a capture beside each finds it', async () => {
@@ -79,7 +81,7 @@ test('XS3: each archive class of contract v4 maps to one category, kind and subt
     assert.equal(p?.markable, true, `${cls} is a place to find`);
   }
   const sources = JSON.parse(readFileSync(join(__dirname, 'contract', 'sources.json'), 'utf8'));
-  assert.equal(sources.contractVersion, 4);
+  assert.ok(sources.contractVersion >= 4, 'v4 or later (v6 since more attractions)');
   assert.deepEqual([...ARCHIVE_CLASS_NAMES].sort(), [...sources.classes].sort());
 });
 
@@ -87,7 +89,8 @@ test('XS4: two new kinds, Nature and Zoos and aquariums (audit 12); the map\'s a
   await sub();
   const label = (id: string) => KINDS.find((k) => k.id === id)?.label;
   assert.equal(label('nature'), 'Nature');
-  assert.equal(label('attractions'), 'Zoos and aquariums');
+  // Decision 0197 (the owner, Nov 17): amusement parks joined zoos and aquariums.
+  assert.equal(label('attractions'), 'Zoos, aquariums and amusement parks');
   assert.equal(label('viewpoints'), 'Viewpoints and attractions');
   for (const k of ['waterfalls', 'caves', 'hot_springs', 'old_trees']) assert.equal(kindRows(KINDS, new Set()).find((r) => r.kind.id === k)?.depth, 1, k);
   assert.equal(tile('zoo', 'zoo', 'City Zoo')[0]?.kind, 'attractions');
@@ -364,7 +367,8 @@ test('explore-subtypes audit 11: unnamed murals and sculptures fold into one "Pu
 });
 
 test('explore-subtypes audit 12: zoos and aquariums are a kind named for what they are; the map\'s attractions stay with Viewpoints', () => {
-  assert.equal(KINDS.find((k) => k.id === 'attractions')?.label, 'Zoos and aquariums');
+  // Decision 0197 (the owner, Nov 17): amusement parks joined zoos and aquariums; still named for what they are.
+  assert.equal(KINDS.find((k) => k.id === 'attractions')?.label, 'Zoos, aquariums and amusement parks');
   assert.equal(tile('zoo', 'zoo', 'City Zoo')[0]?.kind, 'attractions');
   assert.equal(tile('attraction', 'attraction', 'SteelStacks')[0]?.kind, 'viewpoints');
   assert.equal(tile('theme_park', 'theme_park', 'Dorney Park')[0]?.kind, 'viewpoints');

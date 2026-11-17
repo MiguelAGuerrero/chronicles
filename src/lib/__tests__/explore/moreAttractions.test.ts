@@ -22,7 +22,7 @@ const item = (p: Place): ChecklistItem => ({ key: p.key, area_key: 'a', name: p.
 const K = (s: string) => s as Kind;
 const label = (id: string) => KINDS.find((k) => k.id === id)?.label;
 
-test('MA1: an archive museum no listing names shows within range and a capture beside it finds it', { todo: 'test first' }, () => {
+test('MA1: an archive museum no listing names shows within range and a capture beside it finds it', () => {
   const p = one('museum_by_type', 'Mid-Atlantic Air Museum', at(40));
   assert.ok(p, 'the class is known');
   const it = item(p);
@@ -30,7 +30,7 @@ test('MA1: an archive museum no listing names shows within range and a capture b
   assert.equal(findFor(at(30), [it], new Set())?.name, 'Mid-Atlantic Air Museum');
 });
 
-test('MA2: a museum by type lights Culture alone; a listed museum still lights Culture and History', { todo: 'test first' }, () => {
+test('MA2: a museum by type lights Culture alone; a listed museum still lights Culture and History', () => {
   const byType = one('museum_by_type', 'Mid-Atlantic Air Museum');
   assert.equal(byType?.category, 'culture');
   assert.equal(byType?.kind, 'museums');
@@ -38,7 +38,7 @@ test('MA2: a museum by type lights Culture alone; a listed museum still lights C
   assert.deepEqual(barsOf(one('museum', 'Moravian Museum')), ['culture', 'history']);
 });
 
-test('MA3: a nature reserve is under Parks and gardens, in Nature reserves, on by default', { todo: 'test first' }, () => {
+test('MA3: a nature reserve is under Parks and gardens, in Nature reserves, on by default', () => {
   const p = one('nature_reserve', 'Erie National Wildlife Refuge');
   assert.equal(p?.category, 'parks');
   assert.equal(p?.kind, 'nature_reserves');
@@ -47,14 +47,14 @@ test('MA3: a nature reserve is under Parks and gardens, in Nature reserves, on b
   assert.ok(!parseHidden(null, null).has(K('nature_reserves')));
 });
 
-test('MA4: amusement and water parks are under Zoos, aquariums and amusement parks, kept off for a reader who had zoos off', { todo: 'test first' }, () => {
+test('MA4: amusement and water parks are under Zoos, aquariums and amusement parks, kept off for a reader who had zoos off', () => {
   assert.equal(one('amusement_park', 'Dorney Park')?.kind, 'attractions');
   assert.equal(label('attractions'), 'Zoos, aquariums and amusement parks');
   const all = KINDS.map((k) => k.id);
   assert.ok(parseHidden(JSON.stringify(['attractions']), JSON.stringify(all)).has(K('attractions')));
 });
 
-test('MA5: a pier or boardwalk is under Buildings and structures, in Piers and boardwalks, on by default', { todo: 'test first' }, () => {
+test('MA5: a pier or boardwalk is under Buildings and structures, in Piers and boardwalks, on by default', () => {
   const p = one('pier', 'Steel Pier');
   assert.equal(p?.category, 'history');
   assert.equal(p?.kind, 'piers');
@@ -62,20 +62,20 @@ test('MA5: a pier or boardwalk is under Buildings and structures, in Piers and b
   assert.ok(!parseHidden(null, null).has(K('piers')));
 });
 
-test('MA6: suspension bridges are Bridges, national monuments are Monuments, every new garden type a Garden', { todo: 'test first' }, () => {
+test('MA6: suspension bridges are Bridges, national monuments are Monuments, every new garden type a Garden', () => {
   // The data side classes them (AT3, AT5): the app reads the classes it gets.
   assert.equal(one('bridge', 'Roebling Bridge')?.kind, 'bridges');
   assert.equal(one('monument', 'Statue of Liberty National Monument')?.kind, 'monuments');
   assert.equal(one('garden', 'Peace Garden')?.kind, 'gardens');
 });
 
-test('MA7: the app pins chronicles-data\'s contract v6, its class names exactly the archive table', { todo: 'test first' }, () => {
+test('MA7: the app pins chronicles-data\'s contract v6, its class names exactly the archive table', () => {
   const sources = JSON.parse(readFileSync(join(__dirname, 'contract', 'sources.json'), 'utf8'));
   assert.equal(sources.contractVersion, 6);
   assert.deepEqual([...ARCHIVE_CLASS_NAMES].sort(), [...sources.classes].sort());
 });
 
-test('MA8: no new label names significance or carries a number', { todo: 'test first' }, () => {
+test('MA8: no new label names significance or carries a number', () => {
   for (const id of ['nature_reserves', 'piers', 'attractions']) {
     const l = label(id) ?? '';
     assert.ok(l.length > 0, id);

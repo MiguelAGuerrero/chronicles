@@ -65,7 +65,7 @@ const SUBTYPE_ICON: Partial<Record<Kind, string>> = {
   forts: 'shield-half-outline', towers: 'time-outline', old_machines: 'construct-outline', taverns: 'beer-outline', old_stones: 'pin-outline',
   wayside_shrines: 'flame-outline', mausoleums: 'cube-outline',
   gardens: 'sunny-outline', community_gardens: 'nutrition-outline', waterfalls: 'rainy-outline', caves: 'triangle-outline', hot_springs: 'thermometer-outline',
-  old_trees: 'git-network-outline',
+  old_trees: 'git-network-outline', nature_reserves: 'bug-outline', piers: 'boat-outline',
   observatories: 'planet-outline', concert_halls: 'musical-notes-outline', little_libraries: 'bookmarks-outline', carousels: 'sync-circle-outline',
   fire_towers: 'bonfire-outline', old_ruins: 'grid-outline', ghost_towns: 'moon-outline', natural_oddities: 'earth-outline', roadside_giants: 'balloon-outline',
   survey_marks: 'locate-outline', time_capsules: 'hourglass-outline',
@@ -107,7 +107,7 @@ export const KINDS: readonly KindInfo[] = [
   { id: 'viewpoints', label: 'Viewpoints and attractions', icon: 'eye-outline', category: 'viewpoints' },
   ...small('viewpoints', 'viewpoints'),
   // XS4, explore-subtypes audit 12: zoos and aquariums, named for what they are; the map's attractions stay with Viewpoints.
-  { id: 'attractions', label: 'Zoos and aquariums', icon: 'paw-outline', category: 'viewpoints' },
+  { id: 'attractions', label: 'Zoos, aquariums and amusement parks', icon: 'paw-outline', category: 'viewpoints' },
   // PW4: follies, roadside giants, natural oddities and the like, from the places archive (decision 0103).
   { id: 'curiosities', label: 'Curiosities', icon: 'telescope-outline', category: 'viewpoints' },
   ...small('curiosities', 'viewpoints'),

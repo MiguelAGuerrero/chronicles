@@ -28,6 +28,7 @@ export type Kind =
   | 'bridges' | 'mills' | 'stations' | 'lighthouses' | 'civic_buildings' | 'forts' | 'towers' | 'old_machines' | 'taverns' | 'mausoleums'
   | 'gardens' | 'community_gardens' | 'waterfalls' | 'caves' | 'hot_springs' | 'old_trees'
   | 'observatories' | 'concert_halls' | 'carousels'
+  | 'nature_reserves' | 'piers'
   | 'fire_towers' | 'old_ruins' | 'ghost_towns' | 'natural_oddities' | 'roadside_giants' | 'survey_marks';
 
 /** A place worth offering, from whatever source; cache, tagged with the build it came from. */
