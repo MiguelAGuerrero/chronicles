@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
-import { firePlace } from '../../discovery/recall';
+import { firePlace, reminderSight } from '../../discovery/recall';
 
 // A fired reminder is marked fired (a "once" one cleared) as it is shown, so it must go where a person can see it.
 // The places that listen (the walk screen, the recording bar) import React Native, so their wiring is read as text;
@@ -36,4 +36,29 @@ test('tend explore 21: a fire goes to the newest place listening that is in fron
   assert.match(walk, /onRecallFired\(\s*\(due\) => \{[\s\S]*?\},\s*(\/\/[^\n]*\n\s*)*\(\) => focusedRef\.current,?\s*\)/, 'the walk screen takes a fire only while it is in front');
   const bar = read('..', 'components', 'RecordingBar.tsx');
   assert.match(bar, /onRecallFired\(/, 'the recording bar listens too');
+});
+
+// A Remind me here fired while a walk is minimized and the tabs are folded under a full-screen card (the area card, the
+// planner, the journal's keys) went to the recording bar, zero height and hidden then, which dropped it after 30 s:
+// marked fired, never seen. The same under a viewer held over the tab. A notification is no way out: with the page in
+// front the web shows none (docs/DEFERRED.md, "Tabs and the recording bar"). explore-marks: "The card goes after 30 s".
+test('tend explore 22: a reminder the bar holds out of sight waits, however long; its half-minute runs from when it is seen', () => {
+  const ms = 30_000;
+  // Fired while folded: it waits, no clock.
+  assert.deepEqual(reminderSight({ seenAt: null, inSight: false, now: 1_000, showMs: ms }), { seenAt: null, goesInMs: null });
+  assert.deepEqual(reminderSight({ seenAt: null, inSight: false, now: 1_000_000, showMs: ms }), { seenAt: null, goesInMs: null });
+  // Unfolded: seen now, and the whole half-minute is left.
+  assert.deepEqual(reminderSight({ seenAt: null, inSight: true, now: 1_000_000, showMs: ms }), { seenAt: 1_000_000, goesInMs: ms });
+  // Seen, then folded again: the half-minute it was seen for goes on.
+  assert.deepEqual(reminderSight({ seenAt: 1_000_000, inSight: false, now: 1_010_000, showMs: ms }), { seenAt: 1_000_000, goesInMs: 20_000 });
+  assert.deepEqual(reminderSight({ seenAt: 1_000_000, inSight: true, now: 1_040_000, showMs: ms }), { seenAt: 1_000_000, goesInMs: 0 });
+
+  // The wiring: the bar is in sight only unfolded with nothing over it, and clears by the sight's clock alone.
+  const bar = read('..', 'components', 'RecordingBar.tsx');
+  assert.match(bar, /useStore\(tabsHidden, /, 'the bar reads whether the tabs are folded');
+  assert.match(bar, /useStore\(modalsUp, /, 'the bar reads whether anything is over it');
+  assert.match(bar, /reminderSight\(\{ seenAt: [^}]*inSight[^}]*showMs: MOTION\.reminder \}\)/, 'its clock is the sight\'s');
+  assert.doesNotMatch(bar, /setTimeout\(\(\) => setReminder\(null\), MOTION\.reminder\)/, 'no half-minute from the fire itself');
+  const modal = read('..', 'components', 'Modal.tsx');
+  assert.match(modal, /holdModal\(\)/, 'every Modal up says so');
 });

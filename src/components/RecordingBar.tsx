@@ -11,7 +11,7 @@ import { memoGate } from '../lib/memoGate';
 import { unsaved } from '../lib/unsaved';
 import { barWarning, stopWarns } from '../lib/unsaved/core';
 import { endWalk } from '../lib/session';
-import { reminderHeld, reminderText } from '../lib/discovery/recall';
+import { reminderHeld, reminderSight, reminderText } from '../lib/discovery/recall';
 import { onRecallFired, RECALL_OPEN_KEY } from '../lib/discovery/recallCheck';
 import { feedback } from '../lib/motion';
 import { MOTION } from '../lib/motionTokens';
@@ -24,6 +24,7 @@ import type { Pause, Walk } from '../lib/types';
 import type { LiveTrace } from '../lib/useLiveTrace';
 import { useCaptures } from '../lib/useCaptures';
 import { settleWithin } from '../lib/settleWithin';
+import { modalsUp, tabsHidden } from '../lib/tabsHidden';
 import { showWalk } from '../lib/walkNav';
 import { Icon } from './icons';
 import { EditButton } from './edit/EditOffer';
@@ -108,21 +109,37 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
   useEffect(() => {
     reminderRef.current = reminder;
   }, [reminder]);
+  // When what the bar holds was first seen; a fire merging into it starts it again.
+  const seenAt = useRef<number | null>(null);
   useEffect(
     () =>
       onRecallFired((due) => {
         const all = reminderHeld(reminderRef.current, due);
         reminderRef.current = all;
+        seenAt.current = null;
         setReminder(all);
-        AccessibilityInfo.announceForAccessibility(reminderText(all).title);
       }),
     [],
   );
+  // In sight only unfolded, with nothing over it: folded under a full-screen card (the area card, the planner, the
+  // journal's keys) or under a viewer, the bar holds a reminder until it is seen, then for its half-minute (tend
+  // explore 22). It was marked fired as it came, so dropping it unseen would lose it.
+  const folded = useStore(tabsHidden, (h) => h);
+  const covered = useStore(modalsUp, (n) => n > 0);
+  const inSight = !folded && !covered;
   useEffect(() => {
-    if (!reminder) return;
-    const t = setTimeout(() => setReminder(null), MOTION.reminder);
+    if (!reminder) {
+      seenAt.current = null;
+      return;
+    }
+    const sight = reminderSight({ seenAt: seenAt.current, inSight, now: Date.now(), showMs: MOTION.reminder });
+    // Announced as it comes into sight, by the bar's own title (tend explore audit 6).
+    if (sight.seenAt != null && seenAt.current == null) AccessibilityInfo.announceForAccessibility(reminderText(reminder).title);
+    seenAt.current = sight.seenAt;
+    if (sight.goesInMs == null) return;
+    const t = setTimeout(() => setReminder(null), sight.goesInMs);
     return () => clearTimeout(t);
-  }, [reminder]);
+  }, [reminder, inSight]);
 
   const startedAt = walk.started_at;
   const distanceM = live.distanceM;

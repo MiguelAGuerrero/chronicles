@@ -273,6 +273,23 @@ async function checks(h) {
       return last ?? '';
     };
     let north = 0;
+    // How many of the two are still flagged: a "once" flag clears as it fires.
+    const stillFlagged = () => page.evaluate((list) => new Promise((resolve) => {
+      const req = indexedDB.open('chronicles');
+      req.onsuccess = () => {
+        const g = req.result.transaction('recall', 'readonly').objectStore('recall').getAll();
+        g.onsuccess = () => resolve(g.result.filter((r) => list.includes(r.capture_id)).length);
+      };
+    }), ids);
+    // North of the spot at a walking pace, past the 75 m reach of both, before they are flagged and the page read again:
+    // a check on the way could read the new rows and fire while the walk screen is in front.
+    const outOfReach = async () => {
+      while (north < 24) {
+        north += 1;
+        await ctx.setGeolocation({ longitude: spot[0], latitude: spot[1] + north * 0.00005, accuracy: 6 });
+        await page.waitForTimeout(1000);
+      }
+    };
     try {
       await flags(true);
       await page.goto(url);
@@ -301,13 +318,18 @@ async function checks(h) {
       // The same two again ("once" cleared them as they fired), with the walk minimized: the bar takes the fire (NV8).
       // Read again, as above: a bell's refresh after the fire reloads the flags held in memory, and a row written
       // here goes round `saveRecall`, which would drop them.
+      // Out of their reach first (tend explore 21): read again at the spot, a fire could come while the walk screen is
+      // still in front as the page opens, before the step minimizes it.
+      await outOfReach();
       await flags(true);
       await page.goto(url);
       await page.waitForSelector('[data-testid=recording-return], [data-testid=walk-minimize]', { timeout: 20000 });
       if (!(await page.locator('[data-testid=recording-return]').count())) await page.click('[data-testid=walk-minimize]');
       await page.waitForSelector('[data-testid=recording-return]', { timeout: 10000 });
       const cardAt = north;
-      for (let j = north - 1; j >= -4 && !(await page.locator('[data-testid=recording-reminder]').count()); j--) {
+      // On until both have fired: coming in from the north, one may come into reach a step before the other, and the
+      // bar merges the second into what it holds.
+      for (let j = north - 1; j >= -4 && (await stillFlagged()) > 0; j--) {
         north = j;
         await ctx.setGeolocation({ longitude: spot[0], latitude: spot[1] + j * 0.00005, accuracy: 6 });
         await page.waitForTimeout(1000);
@@ -340,6 +362,51 @@ async function checks(h) {
         await page.setViewportSize({ width: 390, height: 844 });
         await page.waitForTimeout(400);
       }
+      // tend explore 22: the same two again with the bars folded away (the journal's line has the keys, JN30, as the
+      // area card or the planner fold them): the bar holds the fire out of sight past its half-minute, and shows it
+      // once unfolded. Marked fired as it came, it was dropped unseen after 30 s before.
+      // Out of their reach before they are flagged and the page read again, so the fire comes only once the bars fold.
+      await outOfReach();
+      await flags(true);
+      await page.goto(url);
+      await page.waitForSelector('[data-testid=recording-return], [data-testid=walk-minimize]', { timeout: 20000 });
+      if (!(await page.locator('[data-testid=recording-return]').count())) await page.click('[data-testid=walk-minimize]');
+      await page.waitForSelector('[data-testid=recording-return]', { timeout: 10000 });
+      // Memories' "What's on your mind?" opens the composer with the caret in its field (JN47): the bars fold under it.
+      if (!(await page.locator('[data-testid=bar-compose] >> visible=true').count())) {
+        await page.click('[data-testid=tab-chronicle]');
+        await page.click('[data-testid=section-memories]').catch(() => {});
+      }
+      await page.click('[data-testid=bar-compose] >> visible=true', { timeout: 10000 });
+      await page.waitForTimeout(500);
+      if (!(await page.evaluate(() => document.activeElement?.getAttribute('data-testid') === 'line-input'))) await page.click('[data-testid=line-input] >> visible=true', { timeout: 8000 });
+      const wrapH = () => page.evaluate(() => Math.round(document.querySelector('[data-testid=tab-bar-wrap]')?.getBoundingClientRect().height ?? -1));
+      await page.waitForTimeout(400);
+      const foldedH = await wrapH();
+      const flaggedFolded = await stillFlagged();
+      const foldFrom = north;
+      for (let j = north - 1; j >= -4 && (await stillFlagged()) > 0; j--) {
+        north = j;
+        await ctx.setGeolocation({ longitude: spot[0], latitude: spot[1] + j * 0.00005, accuracy: 6 });
+        await page.waitForTimeout(1000);
+      }
+      const firedFolded = (await stillFlagged()) === 0;
+      const heldAt = Date.now();
+      // Past the half-minute, still folded.
+      await page.waitForTimeout(32000);
+      const held = { flaggedFolded, firedFolded, foldedH, stillH: await wrapH(), bars: await page.locator('[data-testid=recording-reminder]').count(), steps: `${foldFrom} to ${north}` };
+      // Escape closes the composer, keeping nothing (it is empty), and the bars unfold.
+      await page.keyboard.press('Escape');
+      await page.waitForFunction(() => (document.querySelector('[data-testid=tab-bar-wrap]')?.getBoundingClientRect().height ?? 0) > 0, null, { timeout: 5000 }).catch(() => {});
+      const seen = await page.locator('[data-testid=recording-reminder]').boundingBox().catch(() => null);
+      check(held.flaggedFolded === 2 && held.firedFolded && held.foldedH === 0 && held.stillH === 0 && held.bars === 1 && !!seen && seen.height >= 44 && seen.y + seen.height <= 844,
+        `tend explore 22: a reminder fired with the bars folded waits on the bar past its half-minute, and is seen once they unfold (${JSON.stringify({ ...held, waited: Date.now() - heldAt, seen })})`);
+      await shot(page, '16c-bar-reminder-after-fold');
+      await page.setViewportSize({ width: 320, height: 844 });
+      await page.waitForTimeout(400);
+      await shot(page, '16d-bar-reminder-after-fold-320');
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.waitForTimeout(400);
       await page.click('[data-testid=recording-return]');
       await page.waitForSelector('[data-testid=stop]', { timeout: 15000 });
     } finally {

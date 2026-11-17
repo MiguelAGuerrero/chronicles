@@ -177,3 +177,14 @@ export function firePlace(active: boolean, inFront: readonly boolean[]): number 
   for (let i = inFront.length - 1; i >= 0; i--) if (inFront[i]) return i;
   return null;
 }
+
+/**
+ * When a reminder the recording bar holds counts as shown (tend explore 22): from the first moment the bar is in
+ * sight (not folded under a full-screen card, nothing over it). Its half-minute runs from then; out of sight it waits,
+ * however long, so a fire already marked (a "once" flag cleared) is never dropped unseen. Seen, then hidden again, the
+ * half-minute goes on. `goesInMs` is null while it waits.
+ */
+export function reminderSight(o: { seenAt: number | null; inSight: boolean; now: number; showMs: number }): { seenAt: number | null; goesInMs: number | null } {
+  const seenAt = o.seenAt ?? (o.inSight ? o.now : null);
+  return { seenAt, goesInMs: seenAt == null ? null : Math.max(0, seenAt + o.showMs - o.now) };
+}
