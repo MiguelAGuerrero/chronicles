@@ -11,6 +11,7 @@ export function outingDest(o: Outing): Waypoint {
     kind: 'point',
     via: o.loop ? stops : stops.slice(0, -1),
     suggested: true,
+    outing: true,
     ...(o.loop ? { loop: true } : {}),
     path: o.path,
   };

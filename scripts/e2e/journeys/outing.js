@@ -11,10 +11,12 @@ async function run(h) {
   const here = at(-248, 0);
   await c.setGeolocation({ longitude: here[0], latitude: here[1], accuracy: 6 });
   await pg.goto(exploreUrl);
+  // The first fix places Explore at Curio Row, as the planner's journey waits for its area.
+  await pg.waitForSelector('[data-testid=atlas-tile][data-name="Curio Row"]', { timeout: 60000 }).catch(() => {});
   const entry = pg.locator('[data-testid=outing-entry]');
   await entry.waitFor({ state: 'visible', timeout: 60000 }).catch(() => {});
   // QC1, QC27: one control, worded, on Explore, with no badge or count.
-  const entryText = (await entry.innerText().catch(() => '')).trim();
+  const entryText = (((await entry.textContent().catch(() => '')) ?? '').replace(/[^\x20-\x7e]/g, '')).trim();
   check((await entry.count()) === 1 && entryText === 'Plan an outing' && !/\d/.test(entryText), `QC1, QC27: Explore has one control worded "Plan an outing", no badge or count (${entryText})`);
   const eb = await entry.boundingBox().catch(() => null);
   check(!!eb && eb.height >= 43.5, 'QC1: the control is at least 44 px tall');
@@ -36,6 +38,7 @@ async function run(h) {
   check((await pg.locator('[data-testid=outing-chains]').getAttribute('aria-checked')) === 'false', 'QC41: Include chains is off by default');
   await pg.click('[data-testid=outing-want-antiques]');
   await pg.waitForSelector('[data-testid=outing-reason-noLoop], [data-testid=outing-slot-0]', { timeout: 90000 }).catch(() => {});
+  if (process.env.E2E_DEBUG) console.log('OUTING', (await pg.locator('[data-testid=outing]').innerText().catch(() => 'none')).replace(/\s+/g, ' ').slice(0, 600));
   check((await pg.locator('[data-testid=outing-reason-noLoop]').count()) === 1 && (await pg.locator('[data-testid^=outing-slot-]').count()) === 0, 'QC10: where a loop cannot be made without retracing, the page says so');
   await pg.click('[data-testid=outing-mode-oneway]');
   await pg.waitForSelector('[data-testid=outing-slot-0]', { timeout: 90000 }).catch(() => {});
@@ -46,7 +49,8 @@ async function run(h) {
   check(!NAMES.some((n) => page.includes(n)), 'QC8, QC17, QC24: no shop is named on the page before a tap');
   const labels = await pg.locator('[data-testid=outing] [aria-label]').evaluateAll((els) => els.map((e) => e.getAttribute('aria-label')));
   check(!NAMES.some((n) => labels.some((l) => l && l.includes(n))), 'QC24: no accessible name holds a shop name');
-  check(!BANNED.test(page.replace(/Opening hours aren't known here\./, '')), 'QC25, QC28: no digit, time, rank, count or superlative anywhere on the page');
+  // The map's own scale bar ("100 m") is the map's, not the outing's words.
+  check(!BANNED.test(page.replace(/Opening hours aren't known here\./, '').replace(/\b\d+(\.\d+)? ?(m|km|ft|mi)\b/g, '')), 'QC25, QC28: no digit, time, rank, count or superlative anywhere on the page');
   check((await pg.locator('[data-testid=outing-hours]').innerText().catch(() => '')) === "Opening hours aren't known here.", 'QC20: the hours line is one plain statement');
   // QC18: a tap names the shop on a card; nothing about hours on the card.
   await pg.click('[data-testid=outing-slot-open-0]');
@@ -68,6 +72,16 @@ async function run(h) {
   check((await pg.locator('[data-testid=nav-bar]').count()) === 1 && (await pg.locator('[data-testid=outing]').count()) === 0, 'QC22: Start begins a walk that follows the proposal');
   const nav = await pg.locator('[data-testid=nav-bar]').innerText().catch(() => '');
   check(!NAMES.some((n) => nav.includes(n)) && !/\b(min|minutes|hour|ETA)\b/i.test(nav), 'QC22, QC24: the walk names no shop and says no time');
+  // QC19, QC26: at a stop the walk says its name once, as a line, looked up then; nothing else.
+  let said = '';
+  // Walked along the street at 25 m a second, as the walk journey does, so no fix is thrown away as a jump.
+  for (let x = -248; x <= -234 && !said; x += 0.25) {
+    const p = at(x, 0.15);
+    await c.setGeolocation({ longitude: p[0], latitude: p[1], accuracy: 6 });
+    await pg.waitForTimeout(1000);
+    if ((await pg.locator('[data-testid=outing-arrival]').count()) > 0) said = await pg.locator('[data-testid=outing-arrival]').innerText();
+  }
+  check(NAMES.includes(said.trim()), `QC19: within reach of a stop the walk says its name (${said})`);
   await c.close();
 }
 

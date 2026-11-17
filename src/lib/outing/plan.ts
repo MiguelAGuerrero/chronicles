@@ -73,7 +73,9 @@ export function planOuting(input: OutingInput, leg: Leg): { outing: Outing | nul
       if (r.outing) return { outing: r.outing, reasons: [] };
     }
   }
-  return { outing: null, reasons: [routed ? 'few' : loop ? 'noLoop' : 'noRoute'] };
+  // A loop that none of the stops can make, within the ceiling and without going back the way it came, says so and points to One way
+  // (as the planner's `noLoop`); a one-way trip that is routed but too far is too few.
+  return { outing: null, reasons: [loop ? 'noLoop' : routed ? 'few' : 'noRoute'] };
 }
 
 /** QC21: the same stops after a swap, ordered and routed again; null when they no longer fit the ceiling. */

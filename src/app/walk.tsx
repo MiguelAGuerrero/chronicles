@@ -86,6 +86,7 @@ import { useWalkability } from '../lib/walk/useWalkability';
 import { arrivalNotice, exitPlan, screenState, startNotice } from '../lib/readyNav';
 import { noticeShown } from '../lib/pauseReminder';
 import { getLastFix } from '../lib/lastFix';
+import { useStopArrival } from '../lib/outing/useArrival';
 import { CaptureStack } from '../components/walk/CaptureStack';
 import { ReadyBar } from '../components/walk/ReadyBar';
 import { scaleInsetBottom } from '../lib/stackSlots';
@@ -657,6 +658,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
       return paceMps(live.distanceM, walk ? t - walk.started_at - pausedMs(pauses, walk.started_at, t) : 0);
     },
   });
+  // A planned outing names a stop once, as it is reached (QC19).
+  const stopLine = useStopArrival(navigation.nav?.dest ?? null, live.here);
   /** Going somewhere new: a failed route's banner (sticky, with Open in Maps) has had its say. */
   const goTo = (dest: Parameters<typeof navigation.goTo>[0]) => {
     setNotice((n) => (n?.maps ? null : n));
@@ -1382,6 +1385,11 @@ function WalkScreen(props: { onMinimize: () => void }) {
             <Text style={styles.chipText}>On {onStrip}</Text>
           </LiftIn>
         )}
+        {stopLine ? (
+          <LiftIn testID="outing-arrival" style={styles.chip} accessibilityLiveRegion="polite">
+            <Text style={styles.chipText}>{stopLine}</Text>
+          </LiftIn>
+        ) : null}
         {navigation.nav?.offRoute && (
           <LiftIn style={styles.chip} accessibilityLiveRegion="polite">
             <View style={[styles.statusDot, { backgroundColor: theme.warn }]} />

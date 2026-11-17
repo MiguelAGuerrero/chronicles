@@ -114,6 +114,7 @@ features.push({ type: 'Feature', properties: { class: 'minor', name: 'Row Street
 });
 // Plan an outing (QC1-QC30): Curio Row, 24 km west of the start, one street with four antiques shops along it, 400 m apart, so a
 // one-way outing of two or three stops fits the default ceiling (a loop cannot be made on one street). E2E_ONLY=outing goes there.
+features.push({ type: 'Feature', properties: { class: 'neighbourhood', name: 'Curio Row' }, geometry: { type: 'Point', coordinates: at(-240, 0) } });
 features.push({ type: 'Feature', properties: { class: 'minor', name: 'Curio Street' }, geometry: { type: 'LineString', coordinates: [at(-250, 0), at(-230, 0)] } });
 [[-247, 'Brass Key Antiques'], [-243, 'Dusty Attic'], [-239, 'Grandma Trunk Antiques'], [-235, 'Lamp and Ladder']].forEach(([x, n]) => {
   features.push({ type: 'Feature', properties: { class: 'shop', subclass: 'antiques', name: n }, geometry: { type: 'Point', coordinates: at(x, 0.3) } });

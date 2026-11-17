@@ -16,7 +16,9 @@ test('QC22: the destination is an ordinary suggested one: the stops as via, the 
   assert.deepEqual(d.path, o.path);
   assert.deepEqual(d.via, o.stops.slice(0, -1).map((s) => s.at));
   const same = destFor({ preset: 'middle', stops: o.stops.map((s) => s.at), path: o.path, lengthM: o.lengthM, startM: 0, loop: false, runs: [] });
-  assert.deepEqual({ ...d, label: '' }, { ...same, label: '' }, 'the planner\'s shape');
+  const { outing: mark, ...rest } = d;
+  assert.equal(mark, true, 'the outing mark');
+  assert.deepEqual({ ...rest, label: '' }, { ...same, label: '' }, 'the planner\'s shape');
 });
 
 test('QC22: a loop ends where it began and carries its stops', () => {
