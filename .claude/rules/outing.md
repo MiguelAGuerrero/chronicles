@@ -34,6 +34,13 @@ One page from Explore: pick what you want to see from a vocabulary, get one prop
 - **Visited is read from the trace, never stored** (`visited.ts`, decision 0200): `walkedNear` gives the walked fixes of the newest thirty outings near an area (found through `listWalkAreas`, read with `readTrace` and their pauses and stills), and a candidate within Explore's range of one is `seen`, offered after the new ones. Do not add a visited table without a slice of its own: it would be a cache of the trace.
 - Start takes the first chapter only; carrying a journey through the session is step 3.
 
+## The plan a session carries (decision 0201)
+
+- **`journeyPlan.ts`** (core): towns, points, stops' positions, loop; `isJourneyPlan` refuses a field more. `chapterAhead` reads which town is ahead from where the session has been; **nothing stores reached, passed or done**, and "Pass by" lives only as long as the walk screen does. A done mark, a count of towns or an ordinal anywhere here is the trip planner's progress bar the vision forbids.
+- **`planStore.ts` / `plans.ts`**: meta `outing_journey`, offered by Explore at Start, taken up by the session that starts within two minutes, cleared in `session.ts` at Stop. `navigation` forgets a destination it cannot route ("Too far to walk"), which is why the plan is not in `nav`.
+- **`useJourneyBar.ts`** (the walk screen): between towns it gives the line and the point for Maps; within reach it calls `goTo(chapterDest(...))` once per town. The word "bar" is presence's in `src/lib`: the hook's field is `next`.
+- Start with a far first town passes `dest: null`: the session records and the bar leads; "When I get there" keeps only the first chapter.
+
 ## From the audit (Nov 17)
 
 - **State asked of one set of journeys is dropped with it**: `fresh()` in `useJourney` clears `salts`, `swaps` and Undo on a new destination, reach, chip or chains. A new piece of per-journey state goes there too, or it outlives its journey (audit 1).

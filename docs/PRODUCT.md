@@ -109,7 +109,11 @@ recording, and a recording bar brings a minimized walk back.
   the reach to the towns about (Close by, then three steps out), and a destination looks at the towns toward it; either way a journey
   is chapters, a walk or one stop in each town that has something, with a line on each and Open in Maps. Chips that span leanings add
   a mixed journey, "A bit of each"; "Another like this" plans a journey again from other places; places and towns new to you come
-  first. Owed: the session's bar from town to town (step 3; Start begins the first town), a road engine of the app's own.
+  first, and a town you have not been in says "New to you." A journey is carried as a trip planner carries an itinerary, in this
+  app's terms (decision 0201): Start begins a session wherever you are; between towns the walk screen's bar names the town ahead and
+  how far, with Open in Maps and "Pass by"; within reach of a town the way through its stops is on foot; a town driven past is let
+  go without a word; nothing is numbered or marked done, and the plan goes when the session stops. "Leave this town out" removes a
+  town on the page. Owed: a road engine of the app's own, and a published stores pack.
 - **Plan an outing** (decision 0196, quick circuit QC1-QC42): one control under Explore's title, "Plan an outing", opens a page of its own over
   Explore. You say what you want to see by picking from a short vocabulary (a search box over chips: Antiques, Books, Thrifting) and the page
   proposes one circuit from where you stand, a loop (the default, not remembered) or one way, within the planner's distance ceiling. Its stops are

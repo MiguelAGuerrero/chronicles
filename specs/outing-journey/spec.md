@@ -365,9 +365,22 @@ with theirs. The journey `outing` ran once after the fixes: 66 checks, green; `n
 Journeys run for the audit: `outing`, three times (once for the two new pictures, once that failed nothing, once after the fixes).
 The other journeys covering Explore were not rerun: `explore.tsx` did not change in the audit.
 
-**Not built.** The session carrying a journey from town to town (step 3: Start begins the first town's chapter, and the page says so);
-"Leave this town out" (OJ26); the atlas's own words and street names in a town's line (OJ23); the setting for how many towns are looked
-at (0198; eight today); marks per kind and town outlines on the page's map; the stores pack published (merged on a branch of chronicles-data, decision 0200); a journey toward a far place has only been run against the test world, where the towns between hold nothing.
+**A journey carried by the session, built 2026-11-17** (step 3, decision 0201; the owner's "proceed with reasonable defaults ...
+alignment with traditional trip planners", whose features and how each is said here are the table in that record). Start begins a
+session wherever you are and offers the plan (`journeyPlan.ts`, `planStore.ts`, meta `outing_journey`); the walk screen's bar names
+the town ahead with Open in Maps, "Pass by" and a way to put the plan away (`useJourneyBar.ts`); within reach of a town the way on
+foot is asked for once; a town left behind is let go, read from the trace (OJ49); the plan goes at Stop. On the page: "Leave this
+town out" (OJ26), "New to you." on a town (OJ50), the towns joined by a faint line (OJ51). Unit tests for OJ26, OJ28-OJ31, OJ34,
+OJ48-OJ50 (`journeyPlan.test.ts`), committed failing first (`9f288f3`); a new journey, `journey` (14 checks: a town a drive away, its
+one-stop chapter, Start, the bar whole on screen, a reload, Pass by); `outing` green at 66.
+
+**Not tested, and why.** The way on foot asked for within reach of a town (OJ30), a town let go by driving past (unit only), "Leave
+this town out" and the line between towns (OJ26, OJ51) have no check in a browser: the test world holds one town with anything in
+it, so no journey there has two. The plan's clearing at Stop is by the stop's code, with a unit test of `clear` only.
+
+**Not built.** A journey resumed in a later session, kept or shared; the atlas's own words and street names in a town's line (OJ23);
+the setting for how many towns are looked at (0198; eight today); marks per kind and town outlines on the page's map; the stores pack
+published (merged on chronicles-data's main, no OpenStreetMap run yet); the road engine (0198).
 
 **Cold find** (the `ux-reviewer`, pictures only, Nov 17, nine tasks in the owner's words): eight found (where to, nowhere in mind,
 thrifting, the commitment, which shop, a different stop, Go, changing the place, the last one late). **Not found: "see another
