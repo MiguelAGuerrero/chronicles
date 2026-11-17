@@ -9,7 +9,7 @@ import { Pressable, StyleSheet, Text, View, type StyleProp, type TextStyle } fro
 import { ENTRY_GOES_ON, noteBlocks, sheetBlocks, sheetWords } from '../../lib/journal/blocks';
 import { dateline, entrySpoken } from '../../lib/journal/lines';
 import type { Slot, SlotId } from '../../lib/journal/actions';
-import { face as faceOf, facedAt, hasMore, kindsLine } from '../../lib/moment';
+import { face as faceOf, facedAt, hasMore, pieceWhen, stackLine } from '../../lib/moment';
 import { parseRefs, plainRefs } from '../../lib/refs';
 import type { ContextEntry } from '../../lib/resurface/shell';
 import type { MomentView } from '../../lib/resurface/types';
@@ -107,15 +107,22 @@ export function Entry(props: {
         <StackGrid moment={m} onOpenPiece={(id) => props.onOpenPiece?.(id)} />
       ) : pieces.length > 0 && (
         <Pressable testID="moment-open" accessibilityRole="button" accessibilityLabel={`${entrySpoken(m.kind, m.words, line, hasMore(c))}. Open`} onPress={props.onOpen} style={styles.pieces}>
-          {pieces.map((p) => (
-            <Piece key={p.id} piece={p} moment={m} onOpenRef={props.onOpenRef} />
-          ))}
+          {pieces.map((p) => {
+            // A piece made later than its moment says so, in words and with no place (audit 10, SW10).
+            const later = pieceWhen(c, p);
+            return (
+              <View key={p.id} style={styles.pieceOne}>
+                <Piece piece={p} moment={m} onOpenRef={props.onOpenRef} />
+                {later ? <Text style={styles.app} testID="piece-later">{later}</Text> : null}
+              </View>
+            );
+          })}
         </Pressable>
       )}
       {stackedHere ? (
         <View style={styles.stackLine}>
           <StackMark />
-          <Text style={styles.app} testID="stack-kinds">{kindsLine(c)}</Text>
+          <Text style={styles.kinds} testID="stack-kinds">{stackLine(c)}</Text>
           <Pressable testID="stack-toggle" accessibilityRole="button" accessibilityState={{ expanded: spread }} onPress={() => setSpread((v) => !v)} style={styles.toggle}>
             <Text style={styles.toggleText}>{spread ? 'Show less' : 'Show all'}</Text>
             <Icon name={spread ? 'chevron-up' : 'chevron-down'} size={14} color={theme.ink} />
@@ -242,6 +249,9 @@ const styles = StyleSheet.create({
   picture: { height: 200, width: '100%' },
   from: { minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' },
   reactions: { paddingBottom: 8 },
+  pieceOne: { gap: 4 },
+  // The stack's line is ink at body size, a clause (audit 9; ux review 5).
+  kinds: { color: theme.ink, fontSize: 14, lineHeight: 20, flexShrink: 1 },
   stackLine: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 },
   toggle: { flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 44, paddingHorizontal: 6, marginLeft: 'auto' },
   toggleText: { color: theme.ink, fontSize: 14, fontWeight: '600' },

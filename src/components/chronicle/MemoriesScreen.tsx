@@ -384,7 +384,8 @@ export function MemoriesScreen() {
       if (alive) setPointed({ id: lastKeptId, refs });
     }, () => {});
     return () => { alive = false; };
-  }, [lastKeptId, moments, hiddenIds, pickedId]);
+    // A reaction or a thread added since it was offered changes what points at it (audit 1): the menu and the sheet closing re-read it.
+  }, [lastKeptId, moments, hiddenIds, pickedId, menuFor, threading]);
   const previousOf = (m: MomentView) => previousFor(moments.map((v) => momentOf(v.capture)), momentOf(m.capture));
   const actionsFor = (m: MomentView) => {
     const prev = m.id === lastKeptId && pointed?.id === m.id ? previousOf(m) : null;

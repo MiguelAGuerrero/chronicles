@@ -11,7 +11,7 @@ test('SW1: slots in the order Reaction, Respond, Thread, Edit, Stack, each named
   const { quickActions } = await mod();
   const full = quickActions({ pieces: 1 }, { joinable: true });
   assert.deepEqual(full.map((s) => s.id), ['react', 'respond', 'thread', 'edit', 'stack']);
-  assert.deepEqual(full.map((s) => s.label), ['Reaction', 'Respond', 'Add to a thread', 'Edit', 'Stack with previous']);
+  assert.deepEqual(full.map((s) => s.label), ['Reaction', 'Respond', 'Add to a thread', 'Edit', 'Join with previous']);
   assert.deepEqual(full.map((s) => s.available), [true, true, true, true, true]);
   const stack = quickActions({ pieces: 3 }, { joinable: false });
   assert.deepEqual(stack.map((s) => s.id), ['react', 'respond', 'thread', 'edit', 'stack'], 'the slots do not move');
@@ -52,7 +52,7 @@ test('SW20: Reaction is available on every entry, a stack included', async () =>
   for (const n of [1, 4]) assert.equal(quickActions({ pieces: n }, { joinable: false }).find((s) => s.id === 'react')?.available, true);
 });
 
-test('stack-with-previous audit 11: the caption is the first word of the spoken name, and the toast uses the same word', { todo: 'test first' }, async () => {
+test('stack-with-previous audit 11: the caption is the first word of the spoken name, and the toast uses the same word', async () => {
   const { quickActions } = await capMod();
   for (const s of quickActions({ pieces: 1 }, { joinable: true })) assert.ok(s.label.startsWith(s.caption) || s.id === 'thread', `${s.caption} / ${s.label}`);
   const stack = quickActions({ pieces: 1 }, { joinable: true }).find((x) => x.id === 'stack');

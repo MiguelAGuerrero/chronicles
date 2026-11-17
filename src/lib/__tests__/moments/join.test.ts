@@ -56,7 +56,7 @@ test('SW8: only the last entry kept, and not one being written, is joinable', as
   assert.equal(joinable(e, { refs: {}, lastKept: 'e', writing: 'e' }), false, 'being written');
 });
 
-test('stack-with-previous audit 4: canJoin holds the day, walk and 100 m rule where the join is stored', { todo: 'test first' }, async () => {
+test('stack-with-previous audit 4: canJoin holds the day, walk and 100 m rule where the join is stored', async () => {
   const { canJoin } = await mod();
   const e = mk('e', at(17, 8, 21));
   assert.equal(canJoin(e, mk('p', at(17, 8, 0))), true);

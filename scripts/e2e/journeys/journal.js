@@ -393,7 +393,7 @@ async function run(h) {
   await pg.locator(entries).last().locator('[data-testid=stack-toggle]').click().catch(() => {});
   await pg.waitForTimeout(500);
   const tiles15 = await pg.locator(entries).last().locator('[data-testid=grid-tile]').count();
-  check(s3.moments.length === before3 + 1 && kinds === 'photo,text,voice' && !!lastEntry && lastEntry.datelines === 1 && lastEntry.pieces.join(',') === 'photo,text,voice' && lastEntry.marks === 1 && lastEntry.kinds === 'a photo, a note and a voice note' && tiles15 === 3,
+  check(s3.moments.length === before3 + 1 && kinds === 'photo,text,voice' && !!lastEntry && lastEntry.datelines === 1 && lastEntry.pieces.join(',') === 'photo,text,voice' && lastEntry.marks === 1 && lastEntry.kinds === 'Holds a photo, a note and a voice note' && tiles15 === 3,
     `JN15: a photo, the line under it and a voice note are one entry under one dateline: its face, the mark and its kinds in words, and Show all opens every piece, no count (${JSON.stringify({ kinds, lastEntry, tiles15, moments: s3.moments.length - before3 })})`);
   await pg.locator(entries).last().locator('[data-testid=stack-toggle]').click().catch(() => {});
   check(!!lastEntry && lastEntry.pieces.length === 3, `JN3: a moment with several pieces is one entry with its words and voice notes shown, extra photos and videos behind Show all (${JSON.stringify(lastEntry)})`);

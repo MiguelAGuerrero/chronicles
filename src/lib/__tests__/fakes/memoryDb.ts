@@ -268,11 +268,13 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
       moments.delete(fromId);
     },
     async referencesTo(id) {
+      // A reminder or a find is kept on a piece's id, so every piece of the moment counts (stack-with-previous audit 5).
+      const ids = new Set([id, ...(moments.get(id)?.pieces.map((p) => p.id) ?? [])]);
       return {
         thread: members.all().some((m) => m.moment_id === id),
         link: links.all().some((l) => l.from_id === id || l.to_id === id),
-        reminder: !!recalls.get(id),
-        find: finds.all().some((f) => f.capture_id === id),
+        reminder: [...ids].some((i) => !!recalls.get(i)),
+        find: finds.all().some((f) => ids.has(f.capture_id)),
         reaction: reactions.all().some((r) => r.moment_id === id),
       };
     },

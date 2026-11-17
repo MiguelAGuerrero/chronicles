@@ -57,7 +57,7 @@ test('SW7, SW9: after the window the runner joins them: each piece keeps its own
 // stack-with-previous audit 1-4 (the audit of Nov 17). Test first.
 const modAudit = () => import('../../join/shell' + '') as Promise<{ createJoin(p: unknown, deps: { schedule(job: PendingJob): void; closeOpen?: () => void }): Join & { merged(m: Moment[], hidden?: ReadonlySet<string>): Moment[] } }>;
 
-test('stack-with-previous audit 1: Join refuses an entry something has come to point at', { todo: 'test first' }, async () => {
+test('stack-with-previous audit 1: Join refuses an entry something has come to point at', async () => {
   const p = await seeded();
   await p.db.setReaction({ moment_id: 'new', family: 'feeling', reaction: 'happy', set_at: 1 });
   const jobs: PendingJob[] = [];
@@ -66,7 +66,7 @@ test('stack-with-previous audit 1: Join refuses an entry something has come to p
   assert.equal(jobs.length, 0, 'nothing is scheduled');
 });
 
-test('stack-with-previous audit 2: once the join is stored the live pieces rule, so an edit or a delete shows', { todo: 'test first' }, async () => {
+test('stack-with-previous audit 2: once the join is stored the live pieces rule, so an edit or a delete shows', async () => {
   const p = await seeded();
   const s = (await modAudit()).createJoin(p, { schedule: () => {} });
   await s.join(one('new', 900, 'right onto East Union'), one('prev', 100, 'left onto Maple'));
@@ -77,7 +77,7 @@ test('stack-with-previous audit 2: once the join is stored the live pieces rule,
   assert.equal(s.merged([live], new Set(['new']))[0].pieces.length, 2, 'while pending, before it is stored, the snapshot still joins');
 });
 
-test('stack-with-previous audit 3: a join closes the open moment, so the next capture is its own', { todo: 'test first' }, async () => {
+test('stack-with-previous audit 3: a join closes the open moment, so the next capture is its own', async () => {
   const p = await seeded();
   let closed = 0;
   const s = (await modAudit()).createJoin(p, { schedule: () => {}, closeOpen: () => { closed += 1; } });
@@ -85,7 +85,7 @@ test('stack-with-previous audit 3: a join closes the open moment, so the next ca
   assert.equal(closed, 1);
 });
 
-test('stack-with-previous audit 4: the runner does not join an entry that has gained a reference, or moments of different days', { todo: 'test first' }, async () => {
+test('stack-with-previous audit 4: the runner does not join an entry that has gained a reference, or moments of different days', async () => {
   const p = await seeded();
   const jobs: PendingJob[] = [];
   const s = (await modAudit()).createJoin(p, { schedule: (j) => jobs.push(j) });

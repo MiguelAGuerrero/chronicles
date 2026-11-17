@@ -272,7 +272,7 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.equal((await db.referencesTo('b')).link, true, 'a reply is pointed from too');
     });
 
-    test('FC7 referencesTo: a find, a reaction, and a reminder or find kept on a later piece also count (stack-with-previous audit 5)', { todo: 'test first' }, async () => {
+    test('FC7 referencesTo: a find, a reaction, and a reminder or find kept on a later piece also count (stack-with-previous audit 5)', async () => {
       const db = await fresh();
       await db.addMoment(momentOf(capture('a', null, 1)));
       await db.addPiece('a', { id: 'a2', moment_id: 'a', t: 5, kind: 'text', file_path: null, body: 'later' });

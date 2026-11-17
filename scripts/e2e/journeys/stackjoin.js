@@ -37,6 +37,8 @@ async function run(h) {
   await there('[data-testid=memories]', 20000);
   await pg.waitForTimeout(2000);
   await write('Turn left onto Maple Street.');
+  // A minute apart, so the second is a piece made later than the first once they are stacked (audit 10).
+  await pg.waitForTimeout(61000);
   await write('Then at the stop sign, turn right onto East Union Boulevard.');
   await there('[data-testid=quick-actions]', 10000);
 
@@ -89,13 +91,15 @@ async function run(h) {
   await pg.waitForTimeout(800);
   const after = await pg.locator(entries).count();
   const toast = (await pg.locator('[data-testid=undo-toast]').innerText().catch(() => '')).trim();
-  check(after === 1 && /Stacked with the earlier moment/.test(toast), `SW9: the entry joined the one before at once, with a pill that says so (${after} entries, ${JSON.stringify(toast)})`);
+  check(after === 1 && /Joined with the earlier moment/.test(toast), `SW9: the entry joined the one before at once, with a pill that says so (${after} entries, ${JSON.stringify(toast)})`);
+  const laterOnPage = (await pg.locator('[data-testid=piece-later]').first().innerText().catch(() => '')).trim();
+  check(/^Added later, \d{1,2}:\d{2} [ap]m$/.test(laterOnPage), `stack-with-previous audit 10: the later piece says when on the page, not only on its tile (${JSON.stringify(laterOnPage)})`);
   await shot(pg, 'stackjoin-02-stacked');
 
   // SW11: a stack shows its face, the mark, the kinds in words and Show all.
   const kinds = (await pg.locator('[data-testid=stack-kinds]').first().innerText().catch(() => '')).trim();
   const toggle = (await pg.locator('[data-testid=stack-toggle]').first().innerText().catch(() => '')).replace(/[\uE000-\uF8FF]/g, '').trim();
-  check(kinds === 'notes' && toggle === 'Show all' && (await count('[data-testid=stack-mark]')) > 0, `SW11: a stack shows its mark, its kinds in words and Show all (${JSON.stringify({ kinds, toggle })})`);
+  check(kinds === 'Holds notes' && toggle === 'Show all' && (await count('[data-testid=stack-mark]')) > 0, `SW11: a stack shows its mark, its kinds in words and Show all (${JSON.stringify({ kinds, toggle })})`);
   // SW12, SW13: Show all opens a grid with each tile's own time; no count; a tile opens the viewer; Show less collapses.
   await pg.locator('[data-testid=stack-toggle]').first().click();
   await pg.waitForTimeout(500);
@@ -120,6 +124,8 @@ async function run(h) {
   await there('[data-testid=capture-viewer]', 8000);
   await pg.click('[data-testid=capture-viewer] [aria-label="More"]').catch(() => {});
   const split = await there('[data-testid=menu-split]', 4000);
+  const viewerLater = await pg.locator('[data-testid=capture-viewer]').innerText().catch(() => '');
+  check(/Added later, \d{1,2}:\d{2} [ap]m/.test(viewerLater), 'stack-with-previous audit 10: the viewer says the piece was added later');
   const shownPiece = await pg.locator('[data-testid=piece-shown]').getAttribute('data-piece').catch(() => null);
   const firstId = (await stored()).find((m) => m.pieces.length === 2)?.pieces[0]?.id;
   check(editSlots === 0 && split && !!shownPiece && shownPiece !== firstId, `SW21: a stack's row has no Edit, and from a tile's viewer a piece can be split out, and the tile's own piece is the one shown (${JSON.stringify({ editSlots, split, shownPiece })})`);
@@ -157,9 +163,22 @@ async function run(h) {
   await pg.waitForTimeout(800);
   const marksUnder = await pg.locator(`${entries} [data-testid=reaction-marks] [data-testid=reaction-name]`).allInnerTexts().catch(() => []);
   check(panel && marksUnder.join().includes('Idea'), `SW20: the Reaction slot opens the reactions and the chosen one shows under the dateline (${marksUnder.join()})`);
-  check.todo(false, 'stack-with-previous audit 1: reacting to or adding to a thread the entry just kept empties its Join slot');
-  check.todo(false, 'stack-with-previous audit 10: a piece added later says Added later on the page and in the viewer, not only on its tile');
-  check.todo(false, 'stack-with-previous audit 17: choosing a reaction changes nothing on the Reaction slot, which is never filled, toggled or counted');
+  // stack-with-previous audit 1, 17: an entry that gains a reaction loses its Join slot; the Reaction slot is never filled, toggled or counted.
+  await write('A third thing at the corner.');
+  await there('[data-testid=quick-stack]', 8000);
+  const offered = await count('[data-testid=quick-stack]');
+  const labelBefore = await pg.locator('[data-testid=quick-react]').last().getAttribute('aria-label').catch(() => null);
+  await pg.locator('[data-testid=quick-react]').last().click().catch(() => {});
+  await there('[data-testid=reaction-panel]', 8000);
+  await pg.click('[data-testid=reaction-pick-happy]', { timeout: 3000 }).catch(() => {});
+  await pg.waitForTimeout(500);
+  await pg.click('[data-testid=reaction-done]', { timeout: 3000 }).catch(() => {});
+  await pg.waitForTimeout(1500);
+  const afterReaction = await count('[data-testid=quick-stack]');
+  const labelAfter = await pg.locator('[data-testid=quick-react]').last().getAttribute('aria-label').catch(() => null);
+  const slotText = (await pg.locator('[data-testid=quick-react]').last().innerText().catch(() => '')).replace(/[\s\uE000-\uF8FF]/g, '');
+  check(offered === 1 && afterReaction === 0, `stack-with-previous audit 1: Join leaves once the entry has a reaction (${offered} before, ${afterReaction} after)`);
+  check(labelBefore === 'Reaction' && labelAfter === 'Reaction' && slotText === 'Reaction', `stack-with-previous audit 17: the Reaction slot shows no state, toggle or count (${JSON.stringify({ labelBefore, labelAfter, slotText })})`);
   await c.close();
 }
 
