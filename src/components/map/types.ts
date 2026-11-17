@@ -708,10 +708,11 @@ export const RING_COLOR = '#1a73e8';
  * Town borders (TB1-TB10): the town you're in (or a walk's towns) tinted with a firm edge, the
  * others in a grey line. The fill is under the streets, so the map reads through it; the lines are
  * over the streets, under the labels, since a border often runs along a road (TB10, Nov 4: at 7%
- * under the streets, the owner saw nothing on a phone).
+ * under the streets, the owner saw nothing on a phone). Both draw over the world's veil
+ * (`borderFillBefore`). Cocoa, apart from the accent (the owner's answer to T33, Nov 17; decision 0199).
  */
 export const BORDER = {
-  color: '#c2410c',
+  color: '#6e4f3f',
   fillOpacity: 0.12,
   firmWidth: 3,
   firmOpacity: 0.9,
@@ -721,6 +722,16 @@ export const BORDER = {
   /** Borders show from this zoom: below it a town is too small to read as a region (TB3). */
   minZoom: 8,
 } as const;
+
+/**
+ * The layer the borders' fill goes under on the web (decision 0199, the owner's "Borders above the veil", T33): the base
+ * map's first street layer, so the streets read over it (TB8), but while the world's veil is on (the replay, a day,
+ * unwalked streets) just under the borders' lines, which are always over the veil, so the edge and the tint keep TB8's and
+ * TB10's contrast there. With no street layer, just under the veil.
+ */
+export function borderFillBefore(veiled: boolean, firstRoad: string | undefined): string {
+  return veiled ? 'border-lined' : firstRoad ?? 'veil';
+}
 
 /** The borders a map draws (TB1-TB5), one feature per town with its role, id and name only (TB3). */
 export function bordersGeoJSON(view: BorderView | null | undefined): GeoJSON.FeatureCollection {

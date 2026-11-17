@@ -1,8 +1,9 @@
 // The map's palette, Earth and ink (map-palette MP1-MP14, decision 0188; the owner's answers to T22, Nov 17): one walk
 // with a pin of each kind kept apart (a photo, a stacked moment of two photos, a video, a voice memo, a note) and a
 // photo, a video and a note on the end (a pin of several); then the card's map, beat one's lit streets, the replay's
-// stage (a memo, a note, a video's tile) and Explore, at 390 and 320 px. Colours are read from their source, so the
-// checks hold whatever the palette is. E2E_ONLY=palette.
+// stage (a memo, a note, a video's tile) and Explore, at 390 and 320 px; then a short walk beside a town's border, its
+// edge and tint read on the replay's card (tend map T33). Colours are read from their source, so the checks hold whatever
+// the palette is. E2E_ONLY=palette.
 
 const fs = require('fs');
 const path = require('path');
@@ -255,10 +256,155 @@ async function run(h) {
   await pg.waitForTimeout(1500);
   await shot(pg, 'palette-09-explore-320');
   await c.close();
+  await townBorders(h);
+}
+
+/** WCAG contrast of two [r, g, b]. */
+const contrastOf = (a, b) => {
+  const lum = (c) => c.map((v) => v / 255).map((v) => (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4)).reduce((s, v, i) => s + v * [0.2126, 0.7152, 0.0722][i], 0);
+  const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p);
+  return (x + 0.05) / (y + 0.05);
+};
+
+// tend map T33 (the owner's answers to T33, Nov 17, decision 0199): the town borders in their own cocoa, drawn over the
+// replay's veil, so the edge holds TB8's 3.5:1 and the tint TB10's 1.15 there. Its own ground: Pawtucket's east edge
+// 100 m east of the start and Central Falls beyond it, served on this page only, so a short walk has the border in frame.
+async function townBorders(h) {
+  const { navUrl, url, exploreUrl, at, freshPage, shot, check, tabTo, mapUp, switchLayer, OVERTURE_HOST, OVERTURE_RELEASE } = h;
+  const { encodeTile } = await import('../../mvt-encode.mjs');
+  const { encodeArchive } = await import('../../pmtiles-encode.mjs');
+  const area = (name, id, x0, x1) => ({ type: 'Feature', geometry: { type: 'Polygon', coordinates: [[at(x0, -10), at(x1, -10), at(x1, 10), at(x0, 10), at(x0, -10)]] },
+    properties: { subtype: 'locality', class: 'land', '@name': name, division_id: id, id: `${id}-area` } });
+  const towns = [area('Pawtucket', 'pawtucket', -10, 1), { type: 'Feature', geometry: { type: 'Point', coordinates: at(-3, 4) }, properties: { subtype: 'locality', '@name': 'Pawtucket', id: 'pawtucket' } },
+    area('Central Falls', 'central-falls', 1, 12)];
+  const [lon, lat] = at(0, 0);
+  const archive = encodeArchive([10, 12].map((z) => {
+    const x = Math.floor(((lon + 180) / 360) * 2 ** z);
+    const y = Math.floor(((1 - Math.log(Math.tan((lat * Math.PI) / 180) + 1 / Math.cos((lat * Math.PI) / 180)) / Math.PI) / 2) * 2 ** z);
+    return { z, x, y, data: encodeTile(towns, z, x, y, (f) => [f.geometry.type === 'Polygon' ? 'division_area' : 'division']) };
+  }));
+  const { c, pg } = await freshPage('palette-borders');
+  await c.addInitScript(() => { window.__perf = {}; });
+  // Registered after the harness's own Overture route, so it answers first; everything but the towns falls through.
+  await c.route(`https://${OVERTURE_HOST}/**`, (r) => {
+    if (new URL(r.request().url()).pathname !== `/tiles/${OVERTURE_RELEASE}/divisions.pmtiles`) return r.fallback();
+    const m = /bytes=(\d+)-(\d+)/.exec(r.request().headers().range ?? '');
+    const from = m ? Number(m[1]) : 0;
+    const to = Math.min(m ? Number(m[2]) : archive.length - 1, archive.length - 1);
+    return r.fulfill({ status: 206, contentType: 'application/octet-stream', body: archive.subarray(from, to + 1),
+      headers: { 'access-control-allow-origin': '*', 'access-control-expose-headers': 'ETag, Content-Length, Content-Range, Accept-Ranges', 'content-range': `bytes ${from}-${to}/${archive.length}`, etag: '"e2e"' } });
+  });
+  const go = async (x, y) => {
+    const p = at(x, y);
+    await c.setGeolocation({ longitude: p[0], latitude: p[1], accuracy: 6 });
+    await pg.waitForTimeout(600);
+  };
+  let here = [-0.5, -0.5];
+  const walkTo = async (x, y) => {
+    const n = Math.max(1, Math.round(Math.hypot(x - here[0], y - here[1]) / 0.04));
+    for (let i = 1; i <= n; i++) await go(here[0] + ((x - here[0]) * i) / n, here[1] + ((y - here[1]) * i) / n);
+    here = [x, y];
+  };
+  const tinted = () => pg.waitForFunction(() => [...document.querySelectorAll('[data-borders]')].some((e) => /tinted:/.test(e.getAttribute('data-borders') ?? '')), null, { timeout: 45000 }).catch(() => {});
+
+  await pg.goto(navUrl);
+  await pg.waitForSelector('[data-testid=start]');
+  await pg.waitForTimeout(1500);
+  await go(-0.5, -0.5);
+  await pg.click('[data-testid=start]');
+  await pg.waitForSelector('[data-testid=stop]');
+  await walkTo(-0.5, 0.8);
+  await walkTo(0.85, 0.8);
+  await walkTo(0.85, -0.5);
+  await walkTo(0.1, -0.5);
+  await pg.waitForTimeout(1500);
+  const b = await pg.locator('[data-testid=stop]').boundingBox();
+  await pg.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
+  await pg.mouse.down();
+  await pg.waitForTimeout(1100);
+  await pg.mouse.up();
+  await pg.waitForURL(/replay/, { timeout: 30000 });
+  await pg.waitForSelector('[data-testid=skip]', { timeout: 30000 });
+  await pg.click('[data-testid=skip]');
+  await pg.waitForSelector('[data-testid=to-name]', { timeout: 30000 });
+  await tinted();
+  await pg.waitForTimeout(2500);
+  const drawn = await pg.$$eval('[data-borders]', (es) => es.map((e) => e.getAttribute('data-borders')).join(' '));
+  // A row of pixels across the east edge, at a block's middle (the fake grid's streets run every 100 m on the half), and
+  // a block's middle inside the town and one outside it: the replay's veiled ground, with and without the tint.
+  const row = async (p, r) => {
+    const [x, y] = await pg.evaluate((q) => window.__project(q), p);
+    const png = await pg.screenshot({ clip: { x: Math.round(x) - r, y: Math.round(y), width: 2 * r + 1, height: 1 } });
+    return pg.evaluate(async (b64) => {
+      const bytes = Uint8Array.from(atob(b64), (ch) => ch.charCodeAt(0));
+      const bmp = await createImageBitmap(new Blob([bytes], { type: 'image/png' }));
+      const cv = new OffscreenCanvas(bmp.width, bmp.height);
+      const g = cv.getContext('2d');
+      g.drawImage(bmp, 0, 0);
+      const d = g.getImageData(0, 0, bmp.width, 1).data;
+      return Array.from({ length: bmp.width }, (_, i) => [d[i * 4], d[i * 4 + 1], d[i * 4 + 2]]);
+    }, png.toString('base64'));
+  };
+  await pg.evaluate(() => document.querySelectorAll('.maplibregl-marker').forEach((m) => { m.style.visibility = 'hidden'; }));
+  const across = await row(at(1, 0), 6);
+  const inside = (await row(at(0, 0), 0))[0];
+  const outside = (await row(at(1.25, 0), 0))[0];
+  await pg.evaluate(() => document.querySelectorAll('.maplibregl-marker').forEach((m) => { m.style.visibility = ''; }));
+  const edge = across.reduce((m, p) => (p[0] + p[1] + p[2] < m[0] + m[1] + m[2] ? p : m), [255, 255, 255]);
+  // The edge as drawn: the border's colour at its firm opacity over Central Falls' grey line, which shares the edge.
+  const hexOf = (key) => {
+    const m = new RegExp(`export const BORDER = \\{[\\s\\S]*?\\n\\s*${key}: '#([0-9a-fA-F]{6})'`).exec(MAP_TYPES);
+    return m ? [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)) : null;
+  };
+  const opacityOf = (key) => Number((new RegExp(`export const BORDER = \\{[\\s\\S]*?\\n\\s*${key}: ([0-9.]+)`).exec(MAP_TYPES) ?? [])[1]);
+  const [border, lined] = [hexOf('color'), hexOf('lined')];
+  const want = border && lined ? over(border, over(lined, outside, opacityOf('linedOpacity')), opacityOf('firmOpacity')) : null;
+  const measured = `edge ${JSON.stringify(edge)} ${contrastOf(edge, outside).toFixed(2)}:1, tint ${JSON.stringify(inside)} ${contrastOf(inside, outside).toFixed(2)}, ground ${JSON.stringify(outside)}, want ${JSON.stringify(want)}; ${drawn}`;
+  console.log(`tend map T33 measured on the replay's card: ${measured}`);
+  check(/tinted:Pawtucket/.test(drawn) && contrastOf(edge, outside) >= 3.5 && near(edge, want, 24),
+    `tend map T33: on the replay's card the town's edge is the border's own colour drawn over the veil, 3.5:1 on the veiled ground (TB8) (${measured})`);
+  check(contrastOf(inside, outside) >= 1.15,
+    `tend map T33: on the replay's card the walked town's tint is drawn over the veil, 1.15 on the veiled ground (TB10) (${measured})`);
+  await shot(pg, 'palette-10-borders-card-390');
+  // The pictures for the review: beat one, Chronicle's map, a day's replay, Explore's town page.
+  await pg.getByText('Watch again').click();
+  if (await pg.waitForSelector('[data-testid=replay-headline]', { timeout: 15000 }).then(() => true, () => false)) {
+    await pg.waitForTimeout(1800);
+    await shot(pg, 'palette-11-borders-beat-one-390');
+  }
+  await pg.waitForSelector('[data-testid=to-name]', { timeout: 90000 }).catch(() => null);
+  await pg.goto(url);
+  await tabTo(pg, 'chronicle');
+  await mapUp(pg);
+  await tinted();
+  await pg.waitForTimeout(2500);
+  await shot(pg, 'palette-12-borders-chronicle-390');
+  await pg.click('[data-testid=sheet-days]').catch(() => null);
+  await pg.waitForSelector('[data-testid=day-row]', { timeout: 15000 }).catch(() => null);
+  await pg.click('[data-testid=day-row]').catch(() => null);
+  await pg.waitForSelector('[data-testid=day-title]', { timeout: 15000 }).catch(() => null);
+  await pg.click('[data-testid=day-replay]').catch(() => null);
+  await pg.waitForURL(/\/day\//, { timeout: 15000 }).catch(() => null);
+  await tinted();
+  await pg.waitForTimeout(1500);
+  await shot(pg, 'palette-13-borders-day-390');
+  await pg.waitForSelector('[data-testid=day-card]', { timeout: 30000 }).catch(() => null);
+  await pg.waitForTimeout(2000);
+  await shot(pg, 'palette-14-borders-day-card-390');
+  await pg.goto(exploreUrl);
+  await switchLayer(pg, 'borders');
+  const yours = '[data-testid=atlas-tile][data-level="town"][data-selected="1"]';
+  await pg.waitForSelector(yours, { timeout: 30000 }).catch(() => null);
+  await pg.click(yours).catch(() => {});
+  await pg.waitForSelector('[data-testid=atlas-town-head]', { timeout: 10000 }).catch(() => {});
+  await tinted();
+  await pg.waitForTimeout(4000);
+  await shot(pg, 'palette-15-borders-explore-town-390');
+  await c.close();
 }
 
 module.exports = {
   name: 'palette',
-  covers: ['src/components/map/types.ts', 'src/components/CapturePinView.tsx', 'src/components/ceremony/{Bubbles,Pile}.tsx'],
+  covers: ['src/components/map/types.ts', 'src/components/map/WalkMap.web.tsx', 'src/components/CapturePinView.tsx', 'src/components/ceremony/{Bubbles,Pile}.tsx'],
   run,
 };

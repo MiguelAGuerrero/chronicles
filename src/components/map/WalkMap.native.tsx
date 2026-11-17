@@ -472,10 +472,11 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
           {/* Water, so its tiles load for the blank-world look (tend map audit 14). */}
           <Layer id="q-water" type="fill" source-layer="water" paint={{ 'fill-opacity': 0 }} />
         </VectorSource>
-        {/* Town borders, the first overlay: under everything the app draws (TB8). MapLibre RN has no
-            base road layer id to go below, so they sit over the base map's streets (unverified on a device). */}
-        <BordersSource data={borders} />
+        {/* The world's veil, then the town borders over it (decision 0199: on the replay and a day the town's edge and
+            tint keep their contrast), under everything else the app draws (TB8). MapLibre RN has no base road layer id
+            to go below, so they sit over the base map's streets (unverified on a device). */}
         <VeilSource on={!!props.veil} />
+        <BordersSource data={borders} />
         {/* The Walkability layer (UF9), under the hotspots, fog and trace: soft tints, no antialiasing so no seams (unverified on a device). */}
         <WalkabilitySource data={walkability} />
         {/* Hotspots under the streets, in the one green no other layer uses (L9). */}
@@ -594,7 +595,7 @@ const ROUND = { 'line-cap': 'round', 'line-join': 'round' } as const;
 const BordersSource = memo(function BordersSource({ data }: { data: FC }) {
   return (
     <GeoJSONSource id="borders" data={data}>
-      {/* Town borders, the first overlay: under everything the app draws (TB8). MapLibre RN has no
+      {/* Town borders, the first overlay after the veil: under everything else the app draws (TB8). MapLibre RN has no
           base road layer id to go below, so they sit over the base map's streets (unverified on a device). */}
       <Layer id="border-fill" type="fill" minzoom={BORDER.minZoom} filter={['==', ['get', 'role'], 'tinted']}
         paint={{ 'fill-color': BORDER.color, 'fill-opacity': BORDER.fillOpacity }} />
