@@ -206,7 +206,9 @@ const ChronicleMap = forwardRef<ChronicleMapHandle, { section: 'walks' | 'days' 
           db.listFinds().catch(() => [] as Find[]),
           allCaptures().catch(() => [] as Faced[]),
         ]);
-        if (!live) return null;
+        // No `live` check here: once the recall is taken the load goes on to the end even blurred (a replay opened
+        // over it), so the recall is shown and its places count as framed on the way back (fix chronicle-focus-reload
+        // audit 1, 2; H5, R4).
         setChecklists(checklists);
         setFinds(finds);
         setCaptures(caps);
