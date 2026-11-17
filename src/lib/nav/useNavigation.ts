@@ -318,7 +318,7 @@ export function useNavigation(opts: {
     let alive = true;
     queueMicrotask(() => {
       if (!alive) return;
-      if (pending.current && !navRef.current && !finds.current.busy) {
+      if (pending.current && !navRef.current && !finds.current.underWay) {
         goTo(pending.current).catch(() => {});
         return;
       }

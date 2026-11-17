@@ -297,17 +297,23 @@ test('tend navigation 2: a Cancel ends with its find, so a later re-read of the 
 test('tend navigation 2: the decisions, pure: a find goes on only while it is the one under way and not cancelled', async () => {
   const { NO_FINDS, startFind, cancelFind, findGoesOn, endFind } = await gate();
   const a = startFind(NO_FINDS);
-  assert.ok(a && a.busy, 'Go here starts a find');
+  assert.ok(a && a.underWay, 'Go here starts a find');
   assert.equal(startFind(a), null, 'one route is found at a time: a second Go here while one is found waits for it');
   assert.equal(findGoesOn(a, a.gen), true, 'the find goes on');
   const c = cancelFind(a);
   assert.equal(findGoesOn(c, a.gen), false, 'Cancel stops it after the read at hand');
   const ended = endFind(c, a.gen);
-  assert.deepEqual([ended.busy, ended.cancelled], [false, false], 'the find ends, and its Cancel with it');
+  assert.deepEqual([ended.underWay, ended.cancelled], [false, false], 'the find ends, and its Cancel with it');
   assert.deepEqual(cancelFind(NO_FINDS), NO_FINDS, 'Cancel with no find under way changes nothing');
   const b = startFind(ended)!;
   assert.ok(b.gen > a.gen && findGoesOn(b, b.gen) && !findGoesOn(b, a.gen), 'a later find is its own: an earlier one no longer goes on');
   assert.deepEqual(endFind(b, a.gen), b, 'an earlier find ending leaves the one under way alone');
+});
+
+test('tend navigation 2: the gate says a find is under way, never "busy", the word Storefronts retired from src (SF13)', async () => {
+  const { NO_FINDS, startFind } = await gate();
+  assert.deepEqual(Object.keys(NO_FINDS).sort(), ['cancelled', 'gen', 'reread', 'underWay']);
+  assert.equal(startFind(NO_FINDS)?.underWay, true, 'Go here starts a find under way');
 });
 
 test('tend navigation 3: a Go here tapped while a re-route reads the streets again is found at once, with its spinner', async (t) => {
@@ -346,12 +352,12 @@ test('tend navigation 3: a Go here tapped while a re-route reads the streets aga
 test('tend navigation 3: the decisions, pure: a re-read has its own flag and never holds back a Go here', async () => {
   const { NO_FINDS, startFind, endFind, startReread, rereadStops, endReread } = await gate();
   const r = startReread(NO_FINDS, 61_000, 0, 60_000);
-  assert.ok(r && r.reread !== null && !r.busy, 'a failed re-route reads the streets again, with no spinner');
+  assert.ok(r && r.reread !== null && !r.underWay, 'a failed re-route reads the streets again, with no spinner');
   assert.equal(startReread(NO_FINDS, 59_000, 0, 60_000), null, 'at most once a minute');
   assert.equal(startReread(r, 200_000, 0, 60_000), null, 'one re-read at a time');
   assert.equal(rereadStops(r), false, 'it goes on');
   const f = startFind(r);
-  assert.ok(f && f.busy, 'a Go here during a re-read starts its find at once');
+  assert.ok(f && f.underWay, 'a Go here during a re-read starts its find at once');
   assert.equal(rereadStops(f), true, 'and the re-read, for the route being replaced, stops between views');
   assert.deepEqual(endReread(f, false), { finds: { ...f, reread: null }, keep: false }, 'its streets are not added to a new route');
   assert.equal(startReread(f, 200_000, 0, 60_000), null, 'no re-read while a Go here is found: it reads its own streets');

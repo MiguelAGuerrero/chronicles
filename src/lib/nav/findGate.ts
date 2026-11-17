@@ -14,38 +14,38 @@ export interface Finds {
   /** Counts the finds started: work begun for one can tell when another has taken over. */
   gen: number;
   /** A find is under way: its spinner and Cancel are up. */
-  busy: boolean;
+  underWay: boolean;
   /** Cancel was pressed during the find under way. */
   cancelled: boolean;
   /** The find count when the re-read under way began, or null when none runs. */
   reread: number | null;
 }
 
-export const NO_FINDS: Finds = { gen: 0, busy: false, cancelled: false, reread: null };
+export const NO_FINDS: Finds = { gen: 0, underWay: false, cancelled: false, reread: null };
 
 /** Go here: a new find, or null while one is under way (one route is found at a time; its spinner says so). */
 export function startFind(f: Finds): Finds | null {
-  return f.busy ? null : { ...f, gen: f.gen + 1, busy: true, cancelled: false };
+  return f.underWay ? null : { ...f, gen: f.gen + 1, underWay: true, cancelled: false };
 }
 
 /** Cancel: stops the find under way after the read at hand. With none under way, nothing changes. */
 export function cancelFind(f: Finds): Finds {
-  return f.busy ? { ...f, cancelled: true } : f;
+  return f.underWay ? { ...f, cancelled: true } : f;
 }
 
 /** After each await of find `gen`: it goes on only while it is the find under way and Cancel was not pressed. */
 export function findGoesOn(f: Finds, gen: number): boolean {
-  return f.busy && f.gen === gen && !f.cancelled;
+  return f.underWay && f.gen === gen && !f.cancelled;
 }
 
 /** Find `gen` ends, however it ends; its Cancel ends with it. Another find's ending leaves this one alone. */
 export function endFind(f: Finds, gen: number): Finds {
-  return f.gen === gen ? { ...f, busy: false, cancelled: false } : f;
+  return f.gen === gen ? { ...f, underWay: false, cancelled: false } : f;
 }
 
 /** A failed re-route reads the streets again: not while one runs or a Go here is found (it reads its own), and at most every `everyMs`. */
 export function startReread(f: Finds, now: number, lastAt: number, everyMs: number): Finds | null {
-  return f.busy || f.reread !== null || now - lastAt < everyMs ? null : { ...f, reread: f.gen };
+  return f.underWay || f.reread !== null || now - lastAt < everyMs ? null : { ...f, reread: f.gen };
 }
 
 /** The re-read stops between views once a Go here has started since it began: the route it serves is being replaced. */
