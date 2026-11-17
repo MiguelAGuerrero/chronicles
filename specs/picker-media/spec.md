@@ -24,6 +24,7 @@ Open: none (the owner chose the switch, both pickers, and every photo, video and
 - **"Canonical speech" is Chronicle's Media** (the grid of photos, videos and memos under day headers): the picker's gallery is that grid.
 - **A List | Media switch at the top** of the picker; the list and its search stay, the grid is the other half.
 - **Both pickers**: Join it with another moment (Add to a thread, from the viewer) and Mention a moment (a note, a journal entry). One shared gallery, so they stay alike.
+- **The baseline view controls are in** (Nov 17): Years, Months and Days, the View menu (Sort, Size, Grid) and pinch, as Chronicle's Media has them; sort, size and shape are local to the picker.
 - **Every photo, video and voice memo**, captioned or not: the same pieces as Chronicle's Media; each tile is bare.
 
 ## Criteria
@@ -48,6 +49,13 @@ Open: none (the owner chose the switch, both pickers, and every photo, video and
 10. **MP10 · It does what a row does.** Connect makes the thread of the two moments exactly as a row of List does (OT5, OT6) and says "Connected"; Mention puts the reference a row would put into the note and returns to writing, as before.
 11. **MP11 · Spoken.** The switch and the filter are tabs with the chosen one selected; a tile is a button spoken by its kind, time and walk or street (MG15); a marked tile is spoken as selected; the bar's action is a button spoken with the moment's context.
 
+### The baseline view controls (the owner, Nov 17)
+
+16. **MP16 · Years, Months, Days.** Under the switch, Media has Years | Months | Days as Chronicle's has (MG19), Days at first: a block per month or year with its cover and where, in Chronicle's words; a tap on a month opens Days at it, a tap on a year opens Months at it. A block is never itself picked: only a tile is, in Days.
+17. **MP17 · A View menu: Sort, Size, Grid.** A button on that bar opens the gallery's menu with Sort (Newest First, Oldest First), Size (Zoom In, Zoom Out) and Grid (Square Photo Grid, Aspect Ratio Grid), as MG18, MG20 and MG21; a choice applies at once. The kind filter is the row of MP6, not repeated in the menu. The menu is drawn inside the picker's card (MP13), not as a second Modal.
+18. **MP18 · Pinch.** In Days, pinching out shows fewer, larger tiles and pinching in more, smaller ones, in three steps; Zoom In and Zoom Out do the same, so the gesture is never the only way. The scroll stays on the day that was at the top (MG20). A tile is never under 44 pt.
+19. **MP19 · The bar still fits.** At 320 px and the default text size the switch, the Years | Months | Days control with its menu button, and the kind row each stay in one row, none wrapped or cut, each a target of 44 pt or more (MP13); the grid and the mark's bar keep room to be used, with the keyboard closed.
+
 ### Where it is not
 
 12. **MP12 · Not where nothing is a tile.** "Notes that mention it" (the viewer's list of the notes that mention a moment) is the one picker with no switch and no grid: a note has no tile, so there is nothing to browse, and finding a note by its words in Media is out of scope. The list stays as it is.
@@ -56,7 +64,7 @@ Open: none (the owner chose the switch, both pickers, and every photo, video and
 
 13. **MP13 · Inside the open dialog.** Media is drawn inside the picker's card, so one dialog is open at any time (iOS can't present a Modal over a Modal); the card is as wide as today's picker (520 pt at most), the switch, the filter and every tile are 44 pt or more, and at 320 px and the default text size nothing wraps or is cut.
 14. **MP14 · Small copies, any point at once.** A photo tile loads its small copy, never the full file while a copy exists (MG11); a fling to any point shows tiles at once, with no blank rows (MG12).
-15. **MP15 · Nothing new is kept.** The picker opens at the sort, tile size and grid shape set in Media, and nothing done in the picker changes Media afterwards or writes to the device; the filter and the mark are not kept.
+15. **MP15 · Nothing new is kept.** The picker opens at the sort, tile size and grid shape set in Media; what is chosen in the picker (MP16-MP19) holds while it is open and is then gone: it never changes Media, never writes to the device, and a new open starts from Media's again. The filter and the mark are not kept either.
 
 ## Record
 
