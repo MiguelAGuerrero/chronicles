@@ -78,6 +78,9 @@ Known constraints (do not rediscover them):
 - the largest text size cannot be pictured on web: a [phone] entry;
 - the balance reads <reading>: <no G entry | …>;
 - grep a rule line before citing it as a Source;
+- every T and G entry carries a `Precedent:` line beside "Recommended" (decision 0193): how 2-3 adjacent
+  apps do the job, from docs/research/adjacent-apps.md, verified or not, or "none found"; one the file
+  lacks goes in the entry with its source, marked "not yet recorded" (the loop never edits docs/research/);
 - the session's proxy refuses remote branch deletion: report leftovers, never push your run
   branch by name except as above[;
 - <a constraint the notes learned since this template last changed>].
@@ -97,7 +100,7 @@ mcp__github__actions_list and mcp__github__actions_get with ToolSearch; report a
 started 30 minutes after the push as unconfirmed. Clean up as ship.md "Clean up" says.
 
 Return, concisely: 1. the Report and the result block; 2. the commits on main, the head sha you
-pushed, Pages and the live check; 3. every entry filed, in full; 4. new skill friction, facts only, editing no skill.
+pushed, Pages and the live check; 3. every entry filed, in full, its `Precedent:` line included; 4. new skill friction, facts only, editing no skill.
 ```
 
 ## The reviewer relay

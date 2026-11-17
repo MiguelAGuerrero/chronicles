@@ -23,6 +23,12 @@ Two facts shape everything here:
 - **The reviewers are read-only** (decision 0133). They cannot save a file or run a script beyond
   tests; you save their reports, and anything to be run for them, the run writes.
 
+**Every question you put to the owner** has its recommended option first, and that option cites its
+precedent (decision 0193): for what a person sees or does, how 2-3 adjacent apps do the job (the entry's
+`Precedent:` line, from `docs/research/adjacent-apps.md`, verified or not), so the owner has a model to
+judge the shape against; for the loop itself (section 0), the decision it rests on. An entry filed without
+a `Precedent:` line gets one from that file before it is asked, or "none found" said in the option.
+
 ## 0. Open: the grant, the stop rule, the authority
 
 Typing this skill grants nothing yet. Ask once, with AskUserQuestion, recommended option first, and
@@ -74,7 +80,7 @@ dead runs' leftovers, reported, never removed by you.
    give the run every yes so its record carries them; it builds the first.
 2. **Everything else in the inbox goes to the owner**: every no, reshape or hold you would give (as
    a recommendation), every class 0157 keeps for the owner, and whatever `/vision` did not clear.
-   One AskUserQuestion, the entry's recommended shape first, four entries at most, asked after the
+   One AskUserQuestion, the entry's recommended shape first with its precedent, four entries at most, asked after the
    next independent run has been launched so the owner's time to answer is not idle time. Read the
    entries with `node <main-tools>/scripts/bookkeeping.js items inbox` (and `open`, `deferred --tag
    owner`): number, tag and title as `main` holds them.
