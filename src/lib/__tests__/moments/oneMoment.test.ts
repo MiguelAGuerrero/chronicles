@@ -50,3 +50,17 @@ test('MS14: no store method merges moments, and a piece is only ever added to a 
   assert.ok(names.length > 10);
   assert.deepEqual(names.filter((n) => /merge|join|combine|move(Piece|Moment)/i.test(n)), []);
 });
+
+// Stack with previous SW15, SW16 (decision 0196). Test first: reached by name.
+test('SW15: the only join is joinMoment, and no menu lists another merge', { todo: 'test first' }, () => {
+  const types = readFileSync(join(__dirname, '../../db/types.ts'), 'utf8');
+  assert.ok(/joinMoment\(/.test(types), 'the one door');
+  assert.ok(!/mergeMoments?\(/i.test(types), 'no other merge');
+});
+
+test('SW16: Entry is the quick-action row\'s only host, and a joined moment is one entry wherever moments are read', { todo: 'test first' }, () => {
+  const src = readFileSync(join(__dirname, '../../../components/journal/Entry.tsx'), 'utf8');
+  assert.ok(/QuickActions/.test(src), 'the row is drawn by Entry');
+  const loose = facedAll([stacked(null)]);
+  assert.equal(toMomentViews(loose, []).length, 1);
+});

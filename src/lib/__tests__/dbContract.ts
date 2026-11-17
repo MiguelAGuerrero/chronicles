@@ -247,6 +247,31 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       }
     });
 
+    test('FC7 joinMoment: the entry\'s pieces move into the previous moment, each keeping its own time; the previous moment is never edited; the emptied moment is gone', { todo: 'test first' }, async () => {
+      const db = (await fresh()) as Awaited<ReturnType<typeof fresh>> & { joinMoment(from: string, into: string): Promise<void> };
+      await db.addMoment(momentOf(capture('prev', null, 100)));
+      await db.addMoment(momentOf(capture('new', null, 900)));
+      await db.joinMoment('new', 'prev');
+      const [prev] = await db.getMomentsByIds(['prev']);
+      assert.deepEqual(prev.pieces.map((p) => [p.id, p.moment_id, p.t]), [['prev', 'prev', 100], ['new', 'prev', 900]]);
+      assert.deepEqual([prev.t, prev.walk_id], [100, null]);
+      assert.deepEqual(await db.getMomentsByIds(['new']), []);
+      await assert.rejects(db.joinMoment('missing', 'prev'), 'a missing entry rejects, changing nothing');
+      assert.equal((await db.getMomentsByIds(['prev']))[0].pieces.length, 2);
+    });
+
+    test('FC7 referencesTo: says whether a thread, a link, a reminder, a find or a reaction points at a moment', { todo: 'test first' }, async () => {
+      const db = (await fresh()) as Awaited<ReturnType<typeof fresh>> & { referencesTo(id: string): Promise<Record<'thread' | 'link' | 'reminder' | 'find' | 'reaction', boolean>> };
+      await db.addMoment(momentOf(capture('a', null, 1)));
+      await db.addMoment(momentOf(capture('b', null, 2)));
+      assert.deepEqual(await db.referencesTo('a'), { thread: false, link: false, reminder: false, find: false, reaction: false });
+      await db.applyThreads({ putThreads: [{ id: 't', name: null, created_at: 1 }], putMembers: [{ thread_id: 't', moment_id: 'a', added_at: 1 }, { thread_id: 't', moment_id: 'b', added_at: 1 }], putLinks: [{ from_id: 'b', to_id: 'a', created_at: 1 }] });
+      await db.setRecall({ capture_id: 'a', frequency: 'once', until: null, last_fired_at: null, fired_count: 0, last_walk_id: null });
+      const got = await db.referencesTo('a');
+      assert.deepEqual([got.thread, got.link, got.reminder], [true, true, true]);
+      assert.equal((await db.referencesTo('b')).link, true, 'a reply is pointed from too');
+    });
+
     test('FC7 addMoment: a moment id is used once; the first stays', async () => {
       const db = await fresh();
       await db.addMoment(momentOf(capture('c1', 'a', 1)));

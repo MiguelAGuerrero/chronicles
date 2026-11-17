@@ -1,0 +1,35 @@
+/// <reference types="node" />
+import assert from 'node:assert/strict';
+import { test } from 'node:test';
+
+// Quick actions on an entry (SW1, SW4, SW5, decision 0196): which of the four slots apply. Test first.
+type Slot = { id: 'respond' | 'thread' | 'edit' | 'stack'; available: boolean; label: string };
+type Actions = { quickActions(entry: { pieces: number }, ctx: { joinable: boolean }): Slot[] };
+const mod = () => import('../../journal/actions' + '') as Promise<Actions>;
+
+test('SW1: four slots, always in the order Respond, Thread, Edit, Stack, each named and none moved when another is empty', { todo: 'test first' }, async () => {
+  const { quickActions } = await mod();
+  const full = quickActions({ pieces: 1 }, { joinable: true });
+  assert.deepEqual(full.map((s) => s.id), ['respond', 'thread', 'edit', 'stack']);
+  assert.deepEqual(full.map((s) => s.label), ['Respond', 'Add to a thread', 'Edit', 'Stack with previous']);
+  assert.deepEqual(full.map((s) => s.available), [true, true, true, true]);
+  const stack = quickActions({ pieces: 3 }, { joinable: false });
+  assert.deepEqual(stack.map((s) => s.id), ['respond', 'thread', 'edit', 'stack'], 'the slots do not move');
+});
+
+test('SW4: Edit is available on a one-piece entry and empty on a stack', { todo: 'test first' }, async () => {
+  const { quickActions } = await mod();
+  assert.equal(quickActions({ pieces: 1 }, { joinable: false }).find((s) => s.id === 'edit')?.available, true);
+  assert.equal(quickActions({ pieces: 2 }, { joinable: false }).find((s) => s.id === 'edit')?.available, false);
+});
+
+test('SW5: Stack with previous is available only when the entry is joinable', { todo: 'test first' }, async () => {
+  const { quickActions } = await mod();
+  assert.equal(quickActions({ pieces: 1 }, { joinable: true }).find((s) => s.id === 'stack')?.available, true);
+  assert.equal(quickActions({ pieces: 1 }, { joinable: false }).find((s) => s.id === 'stack')?.available, false);
+});
+
+test('SW1: no label carries a digit or a count', { todo: 'test first' }, async () => {
+  const { quickActions } = await mod();
+  for (const s of quickActions({ pieces: 5 }, { joinable: true })) assert.ok(!/\d/.test(s.label), s.label);
+});
