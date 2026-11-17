@@ -70,6 +70,12 @@ async function run(h) {
     const stack = await pg.locator('[data-testid=capture-photo], [data-testid=capture-stack]').first().boundingBox().catch(() => null);
     check(!!b && (!stack || b.y + b.height <= stack.y || stack.y + stack.height <= b.y), 'OJ33: the bar never covers the capture stack');
   }
+  {
+    // The line is whole on screen: not cut short by the controls beside it.
+    const whole = await pg.locator('[data-testid=journey-next]').evaluate((e) => e.scrollWidth <= e.clientWidth + 1 && e.scrollHeight <= e.clientHeight + 1);
+    const b = await pg.locator('[data-testid=journey-bar]').boundingBox().catch(() => null);
+    check(whole && !!b && b.x + b.width <= (pg.viewportSize()?.width ?? 0), 'OJ29: the town and how far away it is read whole on the bar');
+  }
   await shot(pg, '03-bar');
   // OJ48: a reload keeps the session's plan.
   await pg.reload();

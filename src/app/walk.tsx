@@ -1351,17 +1351,20 @@ function WalkScreen(props: { onMinimize: () => void }) {
               drifting down; supersedes Nov 5's "Minimize above the bar"). */}
           {/* A journey between towns (OJ29, OJ31, decision 0201): the town ahead and how far, Maps for the road, a way to pass it by. */}
           {!navigation.nav && journey.next && (
-            <View testID="journey-bar" style={styles.navBar}>
+            // Two rows, so the town and its distance are never cut short by the controls beside them.
+            <View testID="journey-bar" style={[styles.navBar, styles.journeyBar]}>
               <Text testID="journey-next" style={styles.navText} numberOfLines={2}>{journey.next.line}</Text>
-              <Pressable testID="journey-maps" accessibilityRole="button" accessibilityLabel="Open in Maps" accessibilityHint={HANDOFF_HINT} onPress={() => journey.next && handOff(journey.next.at, journey.next.town)} style={({ pressed }) => [styles.navHandoff, pressed && styles.pressed]}>
-                <Icon name="open-outline" size={22} color="#ffffff" />
-              </Pressable>
-              <Pressable testID="journey-pass" accessibilityRole="button" accessibilityLabel={PASS_LABEL} onPress={journey.pass} style={styles.navEnd} hitSlop={8}>
-                <Text style={styles.navEndText}>Pass by</Text>
-              </Pressable>
-              <Pressable testID="journey-away" accessibilityRole="button" accessibilityLabel={PUT_AWAY_LABEL} onPress={journey.putAway} style={({ pressed }) => [styles.navHandoff, pressed && styles.pressed]}>
-                <Icon name="close" size={22} color="#ffffff" />
-              </Pressable>
+              <View style={styles.journeyActions}>
+                <Pressable testID="journey-maps" accessibilityRole="button" accessibilityLabel="Open in Maps" accessibilityHint={HANDOFF_HINT} onPress={() => journey.next && handOff(journey.next.at, journey.next.town)} style={styles.navEnd} hitSlop={4}>
+                  <Text style={styles.navEndText}>Open in Maps</Text>
+                </Pressable>
+                <Pressable testID="journey-pass" accessibilityRole="button" accessibilityLabel={PASS_LABEL} onPress={journey.pass} style={styles.navEnd} hitSlop={4}>
+                  <Text style={styles.navEndText}>Pass by</Text>
+                </Pressable>
+                <Pressable testID="journey-away" accessibilityRole="button" accessibilityLabel={PUT_AWAY_LABEL} onPress={journey.putAway} style={({ pressed }) => [styles.navHandoff, styles.journeyClose, pressed && styles.pressed]}>
+                  <Icon name="close" size={22} color="#ffffff" />
+                </Pressable>
+              </View>
             </View>
           )}
           {navigation.nav && (
@@ -2018,6 +2021,9 @@ const styles = StyleSheet.create({
     paddingLeft: 16, paddingRight: 8, minHeight: 56,
   },
   navText: { flex: 1, color: '#ffffff', fontSize: 16, fontWeight: '700' },
+  journeyBar: { flexDirection: 'column', alignItems: 'stretch', gap: 8, paddingVertical: 10, paddingRight: 16 },
+  journeyActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  journeyClose: { marginLeft: 'auto' },
   // A white pill: 5.2:1 for its blue text.
   navEnd: { minHeight: 44, minWidth: 64, paddingHorizontal: 16, borderRadius: 22, backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center' },
   navEndText: { color: COLORS.route, fontSize: 16, fontWeight: '700' },
