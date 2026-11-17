@@ -33,3 +33,7 @@ test('QC40: unknown dimensions and values are ignored, never an error', () => {
   assert.deepEqual(knownFacets({ mood: ['calm'] }, dims), {});
   assert.deepEqual(knownFacets(null, dims), {});
 });
+
+test('QC39: the first proposal needs one pick whatever dimensions the data holds; the vocabulary does not change with them', { todo: 'test first' }, () => {
+  assert.fail('written with its code');
+});
