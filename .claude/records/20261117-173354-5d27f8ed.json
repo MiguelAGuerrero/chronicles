@@ -1,0 +1,13 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Plan an outing"
+      ],
+      "body": "- Plan an outing on the live build (Nov 17, an iPhone 13 profile at Allentown): the page opens and the entry sits under the title beside the search button, but (a) picking Antiques says \"Few of those close by.\" because the map tiles carry few antiques shops, so the outing proposes little until chronicles-data publishes a stores pack (the app reads it once the manifest names one; QC14); (b) before a proposal the page's map shows the app's default view (Providence in the e2e's area), not the walker, since nothing sets its centre until there is a route (the empty page's map, U6; QC30)\n"
+    }
+  ]
+}
