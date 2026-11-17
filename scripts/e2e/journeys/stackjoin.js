@@ -157,6 +157,9 @@ async function run(h) {
   await pg.waitForTimeout(800);
   const marksUnder = await pg.locator(`${entries} [data-testid=reaction-marks] [data-testid=reaction-name]`).allInnerTexts().catch(() => []);
   check(panel && marksUnder.join().includes('Idea'), `SW20: the Reaction slot opens the reactions and the chosen one shows under the dateline (${marksUnder.join()})`);
+  check.todo(false, 'stack-with-previous audit 1: reacting to or adding to a thread the entry just kept empties its Join slot');
+  check.todo(false, 'stack-with-previous audit 10: a piece added later says Added later on the page and in the viewer, not only on its tile');
+  check.todo(false, 'stack-with-previous audit 17: choosing a reaction changes nothing on the Reaction slot, which is never filled, toggled or counted');
   await c.close();
 }
 

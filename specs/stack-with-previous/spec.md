@@ -79,3 +79,26 @@ Open: none (the owner's answers, Nov 17: move the new piece in, within Undo; pre
 ## Record
 
 Built Nov 17 on `claude/jolly-faraday-8kcyum` (tests first `78fc55c`, corrected so SW1 and SW18 read as todos first). SW1-SW22 have tests: the unit and contract tests under `src/lib/__tests__/` (`moments/join`, `moments/joinShell`, `journal/actions`, `moments/moment`, `moments/oneMoment`, `dbContract`) and the `stackjoin` journey. Journeys run green on the headless web build: stackjoin, journal, stacks, reactions, resurface, chronicle, threads, capturehome, deletion, edit, notepage, qol, responses, upgrade, voicetrim, walk, dense. **Deferred:** the grid on Days, a walk's moments, Memories here and threads; a hover word on the web; moving a piece between moments; joining across days or with an entry something points at. **Not run on a device:** `joinMoment` on SQLite, the row and the grid on a phone (`docs/NATIVE_UNVERIFIED.md`). The cold find on the captioned row placed Stack at about 40%; the owner chose Join as its caption (Nov 17).
+
+## Audit (Nov 17: the auditor, the steward, the ux-reviewer and a cold find on the final pictures)
+
+1. Join stays offered after the entry gains a reaction or a thread: accept (high). The offer re-reads what points at the entry after a reaction or a thread, and `join` refuses one that something points at. Test `stack-with-previous audit 1`.
+2. A stale snapshot overrides the live pieces once the join is stored: accept (high). Test `stack-with-previous audit 2`.
+3. A capture begun after the join goes into the vanished entry: accept (high). A join closes the open moment. Test `stack-with-previous audit 3`.
+4. `joinMoment`'s runner accepts an entry others point at, and moments of different days: accept. The runner re-checks references and `canJoin`. Tests `stack-with-previous audit 4` (two).
+5. `referencesTo` leaves find and reaction unproven, and misses a find or reminder on a later piece: accept. Test `stack-with-previous audit 5`.
+6. The previous moment deleted during the window: reject. A new delete stores the waiting join first (one job in the window), and deleting a stack deletes everything in it (OT16); nothing is lost.
+7. The mention scan reads only the loaded feed: defer (low), `docs/DEFERRED.md`.
+8. An entry with no place yet counts as near: defer (low); SW6 says so, the owner may want the place held on a walk.
+9. The stack's line is a bare "notes": accept (steward 5, ux 5, auditor 9, cold find). It is a clause, "Holds notes". Test `stack-with-previous audit 9`.
+10. A later piece does not say "Added later" on the page or in the viewer, only on its tile: accept (steward 1, breach of SW10). Test `stack-with-previous audit 10` (journey, waits a minute between the two notes).
+11. One act, three names (Join, Stack with previous, Stacked with): accept (steward 4, ux 1, WCAG 2.5.3). The spoken name is "Join with previous" and the toast "Joined with the earlier moment". Test `stack-with-previous audit 11`.
+12. The Join glyph reads as upload (ux 2): reject. The caption and spoken name carry the meaning, and the glyph is the owner's default (Nov 17).
+13. Show all adds nothing for a notes-only stack (ux 3, auditor UI): to the owner, with the question below.
+14. A five-icon row under every entry makes a long page (ux 4): reject. The owner's recorded call; the plan names the departure.
+15. Row captions and tile time bars: contrast unmeasured (ux 6): defer (low).
+16. No visible way to take one piece out of a stack, or to delete an entry, once More is gone (cold find, both high): to the owner, with the question below.
+17. The Reaction slot reads as a feed's like button (steward 3): accept. It is the owner's own mark: never filled, toggled or counted; what is chosen shows only as words under the dateline. Test `stack-with-previous audit 17`.
+18. Two components named StackGrid (auditor): reject (low); the ceremony's is older and unrelated.
+19. The underlined map date placed at about 40% and Join at about 55% (cold find): defer; recorded, the owner's defaults.
+20. SW15 and SW16 are source greps, and SW8's test hand-sets refs (auditor): covered by audits 1 and 4, which test behaviour.

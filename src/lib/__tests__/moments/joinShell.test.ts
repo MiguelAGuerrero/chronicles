@@ -53,3 +53,45 @@ test('SW7, SW9: after the window the runner joins them: each piece keeps its own
   assert.deepEqual([prev.t, prev.lat, prev.lon], [100, 41.8, -71.4], 'the previous moment is never edited');
   assert.equal((await p.db.getMomentsByIds(['new'])).length, 0, 'the emptied entry is gone');
 });
+
+// stack-with-previous audit 1-4 (the audit of Nov 17). Test first.
+const modAudit = () => import('../../join/shell' + '') as Promise<{ createJoin(p: unknown, deps: { schedule(job: PendingJob): void; closeOpen?: () => void }): Join & { merged(m: Moment[], hidden?: ReadonlySet<string>): Moment[] } }>;
+
+test('stack-with-previous audit 1: Join refuses an entry something has come to point at', { todo: 'test first' }, async () => {
+  const p = await seeded();
+  await p.db.setReaction({ moment_id: 'new', family: 'feeling', reaction: 'happy', set_at: 1 });
+  const jobs: PendingJob[] = [];
+  const s = (await modAudit()).createJoin(p, { schedule: (j) => jobs.push(j) });
+  await assert.rejects(s.join(one('new', 900, 'right onto East Union'), one('prev', 100, 'left onto Maple')));
+  assert.equal(jobs.length, 0, 'nothing is scheduled');
+});
+
+test('stack-with-previous audit 2: once the join is stored the live pieces rule, so an edit or a delete shows', { todo: 'test first' }, async () => {
+  const p = await seeded();
+  const s = (await modAudit()).createJoin(p, { schedule: () => {} });
+  await s.join(one('new', 900, 'right onto East Union'), one('prev', 100, 'left onto Maple'));
+  const stored: Moment = { ...one('prev', 100, 'left onto Maple'), pieces: [one('prev', 100, 'left onto Maple').pieces[0], { id: 'new', moment_id: 'prev', t: 900, kind: 'text', file_path: null, body: 'edited after the join' }] };
+  assert.equal(s.merged([stored], new Set(['new']))[0].pieces[1].body, 'edited after the join', 'the live piece, not the snapshot');
+  const without: Moment = { ...stored, pieces: [stored.pieces[0]] };
+  const live = { ...without, pieces: [...without.pieces] };
+  assert.equal(s.merged([live], new Set(['new']))[0].pieces.length, 2, 'while pending, before it is stored, the snapshot still joins');
+});
+
+test('stack-with-previous audit 3: a join closes the open moment, so the next capture is its own', { todo: 'test first' }, async () => {
+  const p = await seeded();
+  let closed = 0;
+  const s = (await modAudit()).createJoin(p, { schedule: () => {}, closeOpen: () => { closed += 1; } });
+  await s.join(one('new', 900, 'right onto East Union'), one('prev', 100, 'left onto Maple'));
+  assert.equal(closed, 1);
+});
+
+test('stack-with-previous audit 4: the runner does not join an entry that has gained a reference, or moments of different days', { todo: 'test first' }, async () => {
+  const p = await seeded();
+  const jobs: PendingJob[] = [];
+  const s = (await modAudit()).createJoin(p, { schedule: (j) => jobs.push(j) });
+  await s.join(one('new', 900, 'right onto East Union'), one('prev', 100, 'left onto Maple'));
+  await p.db.setReaction({ moment_id: 'new', family: 'feeling', reaction: 'happy', set_at: 2 });
+  await createDeleteRunner({ db: p.db, removeMedia: async () => 0, forgetRecalls: () => {} })(jobs[0].spec);
+  assert.equal((await p.db.getMomentsByIds(['new'])).length, 1, 'the entry stays, its reaction with it');
+  assert.equal((await p.db.listReactions()).length, 1);
+});

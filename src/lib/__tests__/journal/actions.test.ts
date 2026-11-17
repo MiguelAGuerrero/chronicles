@@ -51,3 +51,12 @@ test('SW20: Reaction is available on every entry, a stack included', async () =>
   const { quickActions } = await capMod();
   for (const n of [1, 4]) assert.equal(quickActions({ pieces: n }, { joinable: false }).find((s) => s.id === 'react')?.available, true);
 });
+
+test('stack-with-previous audit 11: the caption is the first word of the spoken name, and the toast uses the same word', { todo: 'test first' }, async () => {
+  const { quickActions } = await capMod();
+  for (const s of quickActions({ pieces: 1 }, { joinable: true })) assert.ok(s.label.startsWith(s.caption) || s.id === 'thread', `${s.caption} / ${s.label}`);
+  const stack = quickActions({ pieces: 1 }, { joinable: true }).find((x) => x.id === 'stack');
+  assert.equal(stack?.label, 'Join with previous');
+  const { toastText } = (await import('../../deletion/core' + '')) as { toastText(k: string): string };
+  assert.equal(toastText('join'), 'Joined with the earlier moment');
+});

@@ -272,6 +272,19 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.equal((await db.referencesTo('b')).link, true, 'a reply is pointed from too');
     });
 
+    test('FC7 referencesTo: a find, a reaction, and a reminder or find kept on a later piece also count (stack-with-previous audit 5)', { todo: 'test first' }, async () => {
+      const db = await fresh();
+      await db.addMoment(momentOf(capture('a', null, 1)));
+      await db.addPiece('a', { id: 'a2', moment_id: 'a', t: 5, kind: 'text', file_path: null, body: 'later' });
+      assert.equal((await db.referencesTo('a')).reaction, false);
+      await db.setReaction({ moment_id: 'a', family: 'feeling', reaction: 'happy', set_at: 1 });
+      await db.addFind({ key: 'f', area_key: null, walk_id: null, capture_id: 'a2', found_at: 1, name: 'Door', category: 'art', kind: 'public_art', at: [-71.4, 41.8], generic: false });
+      const got = await db.referencesTo('a');
+      assert.deepEqual([got.reaction, got.find], [true, true]);
+      await db.setRecall({ capture_id: 'a2', frequency: 'once', until: null, last_fired_at: null, fired_count: 0, last_walk_id: null });
+      assert.equal((await db.referencesTo('a')).reminder, true, 'a reminder on a later piece');
+    });
+
     test('FC7 addMoment: a moment id is used once; the first stays', async () => {
       const db = await fresh();
       await db.addMoment(momentOf(capture('c1', 'a', 1)));
