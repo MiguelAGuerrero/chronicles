@@ -1,0 +1,23 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "slice",
+        "row",
+        "add",
+        "--top"
+      ],
+      "body": "| Explore subtypes (every kind's subtypes under five category headings in \"What I'm into\", about 58 rows; contract v4's classes by what a place is: waterfalls, gardens, zoos and aquariums, fountains, concert halls and more, listed buildings and ruins split by type, markers apart from plaques; small things off unless art; XS1-XS28, decision 0191) | built 2026-11-17 on `claude/explorer-refinements-categories-audit-nhalt4`, merged with main; deploying; contract v4 (chronicles-data's `claude/explore-subtypes`) merges after; native unverified | `claude/explorer-refinements-categories-audit-nhalt4` | `specs/explore-subtypes/spec.md` | spec and plan read by the steward (S1-S7 accepted); cold find and UI review run (`explore-subtypes ui 1`); audited Nov 17 (20 findings: 15 fixed, 1 process, 3 deferred, 1 to the owner, decision 0192) |\n"
+    },
+    {
+      "argv": [
+        "inflight",
+        "remove",
+        "Explore subtypes (every kind",
+        "--reason",
+        "moved to Slices as it ships"
+      ],
+      "target": "sha256:7cb9c6a054d78c7a3fcc56fe61ba2086175e33d41e33f8b870a21534ac27c10a"
+    }
+  ]
+}
