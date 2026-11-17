@@ -1,0 +1,19 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inflight",
+        "remove",
+        "Stack with previous"
+      ],
+      "target": "sha256:3354a890807307224983da93f8bfc0dbbaac32b233128f8413cb15e95e54e838"
+    },
+    {
+      "argv": [
+        "inflight",
+        "add"
+      ],
+      "body": "| Quick actions and Stack with previous (a row of four icons under every Chronicle entry: Respond, Add to a thread, Edit, Stack with previous, which joins the entry just kept into the previous moment of the same day, same walk, within 100 m, with Undo and only while nothing points at it; a stack shown as a collapsible grid of every piece; SW1-SW18, decision 0196) | `claude/jolly-faraday-8kcyum` | spec, plan and mock-up written 2026-11-17, awaiting the owner's review of the plan (icons only, Edit empty on a stack, collapsed by default, 100 m); no code yet |\n"
+    }
+  ]
+}

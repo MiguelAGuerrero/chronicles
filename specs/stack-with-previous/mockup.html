@@ -23,6 +23,9 @@
   .pic { margin-top:8px; height:96px; border-radius:10px; background:linear-gradient(160deg,#6a7a5e,#3e4a3a 55%,#2a3140); position:relative; }
   .mark { position:absolute; right:6px; bottom:6px; width:22px; height:22px; border-radius:6px; background:#fff; display:grid; place-items:center; }
   .mark svg { width:14px; height:14px; stroke:#1d2430; fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+  .qa { display:flex; gap:0; margin-top:4px; }
+  .qa .s { width:44px; height:44px; display:grid; place-items:center; }
+  .qa svg { width:22px; height:22px; stroke:var(--ink); fill:none; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
   .btn { display:inline-flex; align-items:center; min-height:44px; margin-top:6px; padding:0 14px; border:1.5px solid var(--ink); border-radius:12px; color:var(--ink); font-size:14px; font-weight:600; background:transparent; }
   .link { display:inline-flex; align-items:center; gap:6px; min-height:44px; font-size:14px; color:var(--ink); font-weight:600; }
   .link svg { width:14px; height:14px; stroke:var(--ink); fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
@@ -49,12 +52,16 @@
   <defs>
     <symbol id="i-stack" viewBox="0 0 24 24"><rect x="8" y="3.5" width="12" height="12" rx="2.5"/><path d="M4 8v10.5A2.5 2.5 0 0 0 6.5 21H17"/></symbol>
     <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></symbol>
+    <symbol id="i-reply" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h9a7 7 0 0 1 7 7v3"/></symbol>
+    <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
+    <symbol id="i-pen" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13.5 6.5 4 4"/></symbol>
+    <symbol id="i-up2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="m8.5 12.5 3.5-3.5 3.5 3.5M12 9v7"/></symbol>
     <symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
     <symbol id="i-up" viewBox="0 0 24 24"><path d="m6 15 6-6 6 6"/></symbol>
   </defs>
 </svg>
-<h1>Stack with previous</h1>
-<p class="lead">A mock-up of Chronicle's page: the button on a fresh entry, the Undo pill, a stack collapsed and expanded as a grid. Static; nothing is wired. The journal's typography: your words in serif, the app's words in sans, no cards.</p>
+<h1>Quick actions and Stack with previous</h1>
+<p class="lead">A mock-up of Chronicle's page: the icon row under every entry (Respond, Add to a thread, Edit, Stack with previous), the Undo pill, a stack collapsed and expanded as a grid. Static; nothing is wired. The journal's typography: your words in serif, the app's words in sans, no cards.</p>
 
 <div class="row">
 
@@ -65,15 +72,16 @@
       <div class="head"><span>Maple Street · 8:15 this morning</span><span>•••</span></div>
       <div class="words">Turn left onto Maple Street.</div>
       <div class="pic"></div>
+      <div class="qa"><span class="s"><svg><use href="#i-reply"/></svg></span><span class="s"><svg><use href="#i-link"/></svg></span><span class="s"><svg><use href="#i-pen"/></svg></span><span class="s"></span></div>
     </div>
     <div class="entry">
       <div class="head"><span>Maple Street · 8:21 this morning</span><span>•••</span></div>
       <div class="words">Then at the stop sign, turn right onto East Union Boulevard.</div>
-      <div class="btn">Stack with previous</div>
+      <div class="qa"><span class="s"><svg><use href="#i-reply"/></svg></span><span class="s"><svg><use href="#i-link"/></svg></span><span class="s"><svg><use href="#i-pen"/></svg></span><span class="s"><svg><use href="#i-up2"/></svg></span></div>
     </div>
     <div class="line">What’s on your mind?</div>
   </div>
-  <figcaption><b>1 · The button.</b> On the entry you just kept, under its words: a labelled ink button, one tap. It is shown only when a moment from the same day, on the same walk and within 100 m, precedes it and nothing points at the new entry.</figcaption>
+  <figcaption><b>1 · The row.</b> Under every entry, four ink icons with spoken names: Respond, Add to a thread, Edit, Stack with previous (the up arrow, since the earlier entry is above). The last one is in the new entry only. Its slot is empty on the others, and on the earlier entry too, so nothing moves. It shows only when a moment from the same day, on the same walk and within 100 m, precedes it and nothing points at the new entry.</figcaption>
 </figure>
 
 <figure>
@@ -85,11 +93,12 @@
       <div class="pic"><span class="mark"><svg><use href="#i-stack"/></svg></span></div>
       <div class="kinds">A photo and a note</div>
       <div class="link">Show all <svg><use href="#i-down"/></svg></div>
+      <div class="qa"><span class="s"><svg><use href="#i-reply"/></svg></span><span class="s"><svg><use href="#i-link"/></svg></span><span class="s"></span><span class="s"></span></div>
     </div>
     <div class="pill"><span>Stacked with the earlier moment</span><b>Undo</b></div>
     <div class="line">What’s on your mind?</div>
   </div>
-  <figcaption><b>2 · Stacked.</b> The new entry is gone; its piece joined the earlier moment, which now carries the two-card mark and a disclosure control. The pill stays until used or dismissed.</figcaption>
+  <figcaption><b>2 · Stacked.</b> Edit's slot is empty on a stack (a default for you to overrule); a tile edits its own piece in the viewer. The new entry is gone; its piece joined the earlier moment, which now carries the two-card mark and a disclosure control. The pill stays until used or dismissed.</figcaption>
 </figure>
 
 <figure>
@@ -106,6 +115,7 @@
         <div class="tile b"><span class="later">8:20</span></div>
       </div>
       <div class="link">Show less <svg><use href="#i-up"/></svg></div>
+      <div class="qa"><span class="s"><svg><use href="#i-reply"/></svg></span><span class="s"><svg><use href="#i-link"/></svg></span><span class="s"></span><span class="s"></span></div>
     </div>
     <div class="line">What’s on your mind?</div>
   </div>
@@ -116,6 +126,7 @@
 
 <ul class="legend">
   <li><b>Collapsed by default</b> (a default for you to overrule): a list stays a list, and the grid is one tap away.</li>
+  <li><b>Icons only:</b> each has a spoken name; on the web a hover or long-press shows its word. If a cold review cannot place a glyph, that icon gets a one-word caption.</li>
   <li><b>Where it appears:</b> Chronicle's page now. Days, a walk's moments, Memories here and a thread keep their row and mark for now.</li>
   <li><b>Place:</b> the button is offered only within 100 m of the earlier moment (a default for you to overrule), so the stack's one place is true of every piece. Farther away, Respond is how a new corner is kept.</li>
 </ul>
