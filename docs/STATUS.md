@@ -210,10 +210,6 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
 - **T27 [owner] VISION.md's "Never likes" line disagrees with note types** (2026-11-13)
   Area: captures, vision. Seen: the steward's second pass on `specs/note-types` (audit 18): the app ships a Like and a Dislike on a note (decision 0161), while VISION.md's Never table still reads "A feed, followers, likes, public profiles". Rests on: your call in 0161; the gate may not edit the Never list.
   Recommended: in that row's "nearest thing that fits" column add "a mark on your own note, shown to no one and read by no feature about a place, a route or a recommendation (0161)". The page is at its size budget (12,000 bytes): shorten another row to fit.
-- **T33 [owner] The town borders on the replay and a day are the accent** (2026-11-17)
-  Area: replay, map (town borders). Seen: the map-palette slice (decision 0188): the replay and a day draw the walk's towns with `useWalkBorders` in `BORDER.color`, `#c2410c`, the accent's hex (a 12% tint and a firm edge at 0.9), while decision 0153 says "The replay never lights anything in the accent". Out of map-palette's scope by your answer ("The map's colours"); your answer to the spec's question 2, Nov 17: "Their own entry".
-  Recommended: swatches of a border colour apart from the accent and from Earth and ink (`COLORS`), at 3.5:1 for the firm edge and 1.15 to 1.35 for the tint on the land as TB8 and TB10 hold them, on the replay's beat one and card, on Chronicle and Explore; you pick one; then it is built in `BORDER.color` (every map that draws borders follows).
-  Otherwise: the borders change on the replay and a day only; or they stay the accent, a map's key like the area card's coloured lines (0186's second exception).
 
 ### From the go-here-everywhere audit (2026-11-16)
 
@@ -256,13 +252,12 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
 
 ### Last tend
 
-**Nov 17, `/tend captures --deploy=main`, the `capturehome` journey's red HC10 on main** (opened from `972c3860`; no sweep, lenses 1-7 not run; the faster lane of decision 0181).
-- Filed first as a `[loop]` medium in "Captures, media and export" with its failing line, `FAILED: HC10: the stopped walk placed the note as its own capture (null)`; the unsaved-captures slice had reported it as "HC10: a note from Memories with a walk minimized belongs to the walk", which passed in every run here.
-- No commit made it red: it failed alone at `acb18b06` (3 of 3) and `972c3860` (2 of 2) while the machine was busy and passed at rest at `b8126140` and `972c3860`, so no bisect was run. The cause was the check: `waitForFunction` takes an async predicate's pending promise as its first truthy result and resolves with that one read's value, so it read the note once as the replay opened, before a slow snap had placed it.
-- `tend captures 2`: HC10's placed-at-stop check polls the stored note from the test side (old: 0 of 3 under an induced load; new: 3 of 3).
-- The review (one round, the `auditor`; one medium, three low; five accepted, as `tend captures audit 2-6` in one commit): HC10's note begins with the walk's fix over 15 s old and is checked kept unplaced, and a second note checks "the latest fix" (audit 2; the journey's steps were 12 m a second, every one dropped as a jump, and now go at 1.5); the placed note sits on the trace at its time and no location is read for it (audit 3); JN13's `begun`, which could not fail, is polled (audit 4); `stored()` fails in bounded time (audit 5); `arch/e2eWaits.test.ts` fails on any journey's async `waitForFunction` (audit 6). Two lines added to `captures-and-media.md`.
-- The item left DEFERRED with the fix. Nothing else filed.
-- Journeys on the final export: `capturehome` (twice), `journal`, `launch`; `unsaved` on `tend captures 2`; typecheck, lint, `npm test`. Not run: the sweep's lenses and the balance's evolve. Nothing here touches native code.
+**Nov 17, `/tend inbox T33 --deploy=main`, the town borders' colour and their place against the veil** (opened from `84b47e2a`, rebased on `15d9ccca`; an inbox run, sections 0, 7 and 10; the faster lane of decision 0181).
+- The owner answered T33 in person (Nov 17), after the swatches: "Cocoa #6e4f3f" and "Borders above the veil"; and, at the review, the label floor: "Lighten the fill on veiled maps". Decision 0199 records the three.
+- `tend map T33`: `BORDER.color` is cocoa `#6e4f3f` on every map that draws borders; on the replay and a day the borders draw over the world's veil. On the e2e's replay card the edge went from 2.21:1 to 5.24:1 and the tint from 1.09 to 1.18.
+- The review (one round, the `ux-reviewer`; two medium, two low): three accepted as `tend map audit 38, 39` in one commit. Audit 38: the owner's answer, the fill 0.11 while over the veil (labels 4.00:1, tint 1.17 on Positron's land). Audit 39: only the replay and a day ask for the borders over the veil (`bordersOverVeil`); the walk's unwalked veil stays over its edge, as before (2.34:1 on the e2e). Two low deferred `[owner]` in "Town borders": a day's streets lose their lift under the tint, and beat one's edge is now its firmest long line.
+- T33 left the inbox; a native item was added under "Town borders". Nothing else filed.
+- Journeys (before the rebase; main's new commits touch no file they cover): `palette` (its new town-border step: the replay card's edge, tint and drawn opacity, and the walk with Unwalked streets on), `launch`; typecheck, lint, `npm test`. Not run: the other journeys (CI and the weekly pass). Native: the borders' mount order has never run on a device.
 
 ### Open before the loop
 

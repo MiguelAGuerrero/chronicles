@@ -259,6 +259,7 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 
 - [ ] **Do:** open Explore in a town with neighbours, then zoom out below z8. **Expect:** the `borders` GeoJSONSource draws your town with a soft fill and a firm border and the others as thin lines (fill and line layers, `filter`, `minzoom`) on MapLibre RN, the first overlay over the base map: under the trace and pins, gone below z8. (TB1, TB8)
 - [ ] **Do:** upgrade from a build before migration 18 that had outlines kept, open Explore, then reopen it in airplane mode. **Expect:** the app opens; SQLite migration 18 clears `outline_tile` and adds the `z` column; z10 tiles are read on a phone and the borders draw whole, and offline from the cache after. (TB6, TB7)
+- [ ] **Do:** finish a walk that runs beside your town's edge, watch its replay to the card, then open that day's replay; then on a walk turn on Town borders and Unwalked streets beside the same edge. **Expect:** on the replay and the day the town's tint (lighter, 11%) and its firm cocoa edge (`#6e4f3f`) draw over the world's veil (`BordersSource` mounts after `VeilSource` there, `bordersOverVeil`), still under the trace, the walked ink, the pins and the walker; on the walk the edge stays under the unwalked veil, faint, as before. (decision 0199, tend map T33, tend map audit 38, 39)
 
 ## Explore carousel (EC1-EC20, decision 0124; discrete navigation DN1, DN10, DN12, DN13)
 
