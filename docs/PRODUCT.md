@@ -97,6 +97,16 @@ recording, and a recording bar brings a minimized walk back.
   replaces the three and keeps no history. Start plans again from where you are and either routes the walk you have open (capture is
   on the page meanwhile) or starts one ready; it says distance only, never a time left. Scenic routes (0095) are a separate feature on
   Go here.
+- **Plan an outing** (decision 0182, quick circuit QC1-QC42): one control under Explore's title, "Plan an outing", opens a page of its own over
+  Explore. You say what you want to see by picking from a short vocabulary (a search box over chips: Antiques, Books, Thrifting) and the page
+  proposes one circuit from where you stand, a loop (the default, not remembered) or one way, within the planner's distance ceiling. Its stops are
+  slots said by kind and how far ("An antiques shop, a short walk on"), named only on a tap or, on the walk, once when you are within 60 m; no
+  name is stored, and no stop is numbered, counted or marked done. Each slot has "Swap this stop" (the nearest other shop of what you picked, never
+  offered twice, no wrap). One line says "Opening hours aren't known here."; nothing says a shop is open or closed. "Include chains" is a switch, off by
+  default: a thrifting trip across several Goodwills is a legitimate outing, and a chain is never a point of interest. Shops are presence, never marks
+  or finds: the stops come from the places the map's tiles carry and, when one is published, the stores pack that chronicles-data builds. Start begins an
+  ordinary walk that follows the proposal and never insists on it. The engine knows no kind of place: it plans over candidates with facets by
+  dimension, so another dimension (how a shop trades) or another kind of place is a table row and a data change.
 - **A neighborhood has its own ground** (neighborhood boundaries, decision 0152): selecting one on Explore draws one thin dark
   line around where it is, in place of the old 800 m ring: its real shape where the map data has one (Overture's neighborhoods and
   macrohoods; plazas and homeowners' associations are left out), or the edge of its nearest-point share where it has none. Two
