@@ -13,7 +13,7 @@ import { keepFile, releaseMedia, resolveMedia, videoFrame } from './index';
  * later, because its file was gone, keeps them. The filter and lines need
  * the baker, which only the editor has mounted.
  */
-async function withCropAndRotation(ref: ImageRef, c: Faced): Promise<ImageRef> {
+export async function withCropAndRotation(ref: ImageRef, c: Faced): Promise<ImageRef> {
   const e = c.edit;
   if (!e || (e.rotate === 0 && !e.crop)) return ref;
   const ctx = ImageManipulator.manipulate(ref);

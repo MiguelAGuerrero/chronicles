@@ -1,0 +1,67 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Explore carousel (EC1-EC20, decision 0124; discrete navigation DN1, DN10, DN12, DN13)"
+      ],
+      "body": "- [ ] **Do:** on a fresh install, tap Explore's magnifier for the first time and wait, then type \"zur\". **Expect:** \"Getting ready…\" draws first, the field stays usable, the matches list within a moment of the build (the index of about 250,000 keys builds on the JS thread, about 0.7 s in Node; note the phone's time), and the keyboard does not cover the field or the list (GZ2, GZ15).\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Explore carousel (EC1-EC20, decision 0124; discrete navigation DN1, DN10, DN12, DN13)"
+      ],
+      "body": "- [ ] **Do:** with VoiceOver or TalkBack on, open the search, type \"carl\" and listen, then double-tap a result. **Expect:** the field is named \"Search towns and cities\", the list's change is announced once as \"Matches listed\" and never on each keystroke or with a number, each row reads its name, region and country then \"Shows areas there\", and the pick announces \"Showing areas around <name>\" with focus back on the magnifier (GZ6, GZ11).\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Explore carousel (EC1-EC20, decision 0124; discrete navigation DN1, DN10, DN12, DN13)"
+      ],
+      "body": "- [ ] **Do:** open the search with the phone offline (airplane mode), type \"zuric\" and pick Zürich. **Expect:** the matches list with no signal, the map moves there and the page says \"Around Zürich\"; only the map's own reads report their failure (GZ10).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore and discovery"
+      ],
+      "body": "- **A precomputed index in the pack.** The search builds its sorted key index (about 250,000 keys) on the JS thread the first time it opens: about 0.7 s in Node, not measured on a phone. If it is slow there, the keys are built into the pack by the script instead (decision 0184).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore and discovery"
+      ],
+      "body": "- **Villages and a larger gazetteer.** `cities5000` omits places under about 5,000 people; `cities1000` or a country pack is another pack through `GazetteerSource`, and a download would need its own decision. Move map reaches smaller places meanwhile (decision 0184).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore and discovery"
+      ],
+      "body": "- **A visible word on the magnifier, and a distance on a result row.** The magnifier is an icon with no word; the cold find placed it on the first tap but called it low-to-medium opinion that it hides that the search reaches any town, not only nearby ones. A \"Search a town\" word, or a distance in words on each row, are the owner's call (specs/place-search).\n"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "add",
+        "--top"
+      ],
+      "body": "| Place search (Explore: a magnifier beside the title opens a labelled field; typing lists towns and cities from a GeoNames `cities5000` pack bundled in the app, 70,042 places, 5.6 MB, searched on the phone, nearest first with region and country; the pack holds no population; a pick is a look at the place, \"Around <name>\", Locate returns; nothing stored, nothing sent; GZ1-GZ19, decision 0184) | built 2026-11-16, test-first by history (19 of 19; an earlier attempt read 5 of 19 because the journey's todos went through an alias the checker cannot read, so the work was rebuilt with literal `check.todo(`): unit tests (2620), typecheck, lint, docs and vision checks; e2e `placesearch` (with `place-search ui 1-3`), `freelook`, `carousel`, `snap`, `atlas` and the journeys `check:affected` names; steward triaged into the plan (7 findings), cold find placed the magnifier on the first tap (icon-only noted as the owner's call), UI review triaged (3 accepted, 1 deferred, 3 rejected); native unverified; not audited | `claude/exciting-mccarthy-0ktfgm` | `specs/place-search/spec.md` | no |\n"
+    }
+  ]
+}

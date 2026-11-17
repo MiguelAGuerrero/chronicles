@@ -179,5 +179,9 @@ Placing walks in neighborhoods, towns, cities and states (`lib/areas`), the boun
     `tend places audit 5`). The selected star keeps its disc and white edge and gains a 3 pt ink ring outside it
     (ink, white, ink: filled stays chosen, `tend places audit 1`). `specs/v0.5-places` criterion 13 and H7 still say
     "with a count" (docs/STATUS.md, "Open before the loop").
+  - Since `tend map 14` (decision 0172, O14): a merged star draws two white stars fanned in its one ink disc (back at
+    the top left, front at the bottom right, each turned 12 degrees), as a pin of several fans its kinds; still no
+    numeral and one size. `starGlyphs` (`lib/places.ts`, core) says one or two; `StarView` reads the count through it
+    only.
   - A walk with no town is "Elsewhere in" its state, at town and
     neighborhood zoom.

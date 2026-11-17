@@ -65,6 +65,7 @@ export function profileFrom(at: LngLat, feats: CollectedFeatures, build: string,
   const frameM = (Math.hypot(SKETCH.w, SKETCH.h) / 2 / SKETCH.ringR) * ATLAS_RULES.ringM;
   const profile: AtlasProfile = {
     steps: counted.steps,
+    tally: counted.tally,
     thin: counted.thin,
     strips: [...new Set(strips.map((s) => s.name))],
     // SF3: each street's own point (its first strip's peak), beside its name, so the card lists them nearest first.

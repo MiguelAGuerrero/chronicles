@@ -48,7 +48,7 @@ run (it cannot run scripts).
 Tests and journeys: test-first for logic, each unit test seen failing with its wiring reverted; a
 words-only change, one unit test of the words seen failing. Before publishing, run the journeys
 holding a new or changed check, plus `launch`; the rest of `check:affected`'s set waits for CI and
-the weekly full pass[; this run is the full pass: `npm run e2e:web` with no `E2E_ONLY` before
+the weekly full pass[; this run is the full pass: `npm run e2e:all` (every journey once) before
 publishing, logged as `"e2e":"full"`] (`/tend` section 10). Log the journeys you ran in the run
 log's `e2e`.
 

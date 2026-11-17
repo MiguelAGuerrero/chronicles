@@ -157,8 +157,8 @@ the limit, nothing goes to `main`: push `<branch>` so the owner can look, and li
   at the base, its export, the journey) only when a reviewer cannot judge a visual change without them.
 - **Journeys before publishing:** those holding a new or changed check, plus `launch` as the smoke;
   after a rebase, again only if the new commits touch their files. The rest of `check:affected`'s set
-  is left to CI (typecheck, `npm test`, lint, the export: CI runs no journey) and the weekly full pass,
-  recorded in the run log (`/tend` section 10).
+  is left to CI (typecheck, `npm test`, lint, the export: CI runs no journey) and the weekly full pass
+  (`npm run e2e:all`), recorded in the run log (`/tend` section 10).
 - **Tests.** Test-first stays for logic, and a unit test must fail when its wiring is reverted (undo
   the call, see it fail, restore). A words-only change needs one unit test of the words, seen failing,
   not every journey check seen failing first.

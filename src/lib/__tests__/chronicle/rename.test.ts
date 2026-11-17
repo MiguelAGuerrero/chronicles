@@ -1,7 +1,7 @@
 /// <reference types="node" />
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { renamePatch, TITLE_MAX, EPILOGUE_MAX } from '../../rename';
+import { renameChanged, renameFields, renamePatch, TITLE_MAX, EPILOGUE_MAX } from '../../rename';
 import { suggestTitle } from '../../walkTitle';
 import type { Walk } from '../../types';
 
@@ -84,4 +84,39 @@ test('tend chronicle audit 2: a suggestion longer than the title field, kept unc
   assert.equal(renamePatch(w, suggestTitle(w), '').title, null);
   // As the web field shows a value set from code whole, and a phone's field may cut it.
   assert.equal(renamePatch(w, suggestTitle(w).slice(0, TITLE_MAX), '').title, null);
+});
+
+// Decision 0172, O17 ("Typed words go without asking"): a tap outside or Escape that would drop a walk's changed name
+// asks first, as the media editor's Close does; words that would store nothing new close at once.
+test('tend chronicle 9: Rename opens with the stored title or the suggestion, and the stored line', () => {
+  assert.deepEqual(renameFields(walk()), { title: 'Old title', epilogue: 'Old line' });
+  const bare = walk({ title: null, epilogue: null });
+  assert.deepEqual(renameFields(bare), { title: suggestTitle(bare), epilogue: '' });
+});
+
+test('tend chronicle 9: changed words need asking before they are dropped', () => {
+  const w = walk();
+  assert.equal(renameChanged(w, 'Down to the river', 'Old line'), true);
+  assert.equal(renameChanged(w, 'Old title', 'The light on the water'), true);
+  // A cleared title or line would store something new too.
+  assert.equal(renameChanged(w, '', 'Old line'), true);
+  assert.equal(renameChanged(w, 'Old title', ''), true);
+  const bare = walk({ title: null, epilogue: null });
+  assert.equal(renameChanged(bare, `${suggestTitle(bare)}!`, ''), true);
+  assert.equal(renameChanged(bare, suggestTitle(bare), 'A line'), true);
+});
+
+test('tend chronicle 9: words that would store nothing new close at once', () => {
+  const w = walk();
+  assert.equal(renameChanged(w, renameFields(w).title, renameFields(w).epilogue), false);
+  // Only spaces at either end: Save would store the same words.
+  assert.equal(renameChanged(w, '  Old title ', 'Old line  '), false);
+  // A walk with no title opened on its suggestion: kept, or cleared, it still stores no title.
+  const bare = walk({ title: null, epilogue: null });
+  assert.equal(renameChanged(bare, suggestTitle(bare), ''), false);
+  assert.equal(renameChanged(bare, '', '   '), false);
+  // A walk named before T1 with words that are now its suggestion: opened and left as it was, nothing asks.
+  const frozen = walk({ title: null, epilogue: null });
+  const old = { ...frozen, title: suggestTitle(frozen) };
+  assert.equal(renameChanged(old, renameFields(old).title, renameFields(old).epilogue), false);
 });

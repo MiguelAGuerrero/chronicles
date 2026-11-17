@@ -1,0 +1,22 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "The neighbourhood read-past runs on the raw name",
+        "--reason",
+        "the owner's answer (decision 0172, the [arch] row: \"Apply the read-past after `normalizeWords`, consistently, with a `PRESENCE_CODE` bump\"; l.25-26: \"the read-past applies after `normalizeWords`, consistently, in `presence/notable.ts` and `discovery/parkKind.ts` alike, with a `PRESENCE_CODE` bump so every area is derived again\"), built in tend presence 1: a neighbourhood's \"Old Town\" is read past after normalizeWords, in presence and community parks alike (with tend presence audit 1). The item: \"The neighbourhood read-past runs on the raw name, before `normalizeWords`: \"Old-Town\", \"Old_Town\", \"Old.Town\" and \"Old&New\" Playground stay parks where \"Old Town\" and \"Old & New\" Playground are community parks, and a museum splits the same way\""
+      ],
+      "target": "sha256:51c39bfb9daf9a153873de6b7b871e753283df8771ab12472d4c486bedde3b38"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 16, `/tend presence --deploy=main`, building the owner's answer to the `[arch]` neighbourhood read-past (decision 0172)** (opened from `d50d8a51`; no sweep, lenses 1-6 not run; the faster lane of decision 0181).\n- The item, as main held it: `[arch]` \"The neighbourhood read-past runs on the raw name, before `normalizeWords`\" (Explore and discovery). It leaves `docs/DEFERRED.md`.\n- `tend presence 1`: one read-past of a neighbourhood's \"Old Town\" and \"old and new\", after `normalizeWords`, for a museum's History and a community park alike, so \"Old-Town\", \"Old_Town\", \"Old.Town\" and \"Old&New\" read as \"Old Town\" and \"Old & New\" do; 0127's read-past itself stays. `PRESENCE_CODE` p4 to p5, nothing carried: every atlas and landing area is derived again, never patched; no other derivation code moves.\n- The review (one round, the `auditor`): pass, seven low; six accepted in this run under the same p5, since it has not shipped (`tend presence audit 1`): \"Old Quarters\" names a building (a possessive \"Old Quarter's\" reads the same and keeps its museum); \"Old Towne\", \"Olde Town\", \"Olde Towne\" and \"Oldtown\" read as \"Old Town\" (the owner's answer, Nov 16); the read is one stateless function, `readPastNeighbourhood`, no shared `/g` regex; the rule, parkKind's comment and presence's p4 line. One rejected (a malformed apostrophe joining two words, as \"after `normalizeWords`\" means).\n- The goldens answer the same before and after; over every fixture name only the named spellings, the possessives and plurals of town, city and village, the archaic forms and \"Old Quarter's\" move (a differential kept in the run's scratchpad).\n- Not run: the sweep's lenses and the balance; journeys: launch only (no journey holds a changed check); the rest is left to CI and the weekly full pass (decision 0181). Nothing here has run on a phone.\n"
+    }
+  ]
+}

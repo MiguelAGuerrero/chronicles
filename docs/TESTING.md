@@ -454,7 +454,20 @@ eight journeys for 27 minutes where three, about 12, proved every fix):
 6. **The loop's lane** (`/tend` and the orchestrator's runs; decision 0181): before publishing, the
    journeys holding a new or changed check, plus `launch` as the smoke, and no other. The rest of the
    reached set waits for the weekly full pass, which a run makes when the run log
-   (`.claude/skills/tend/runs.jsonl`) has no `"e2e":"full"` line in seven days; CI runs no journey.
+   (`.claude/skills/tend/runs.jsonl`) has no `"e2e":"full"` line in seven days
+   (`node scripts/tend.js e2e-due` says which, from `main`'s log); CI runs no journey. The pass is
+   `npm run e2e:all` (`scripts/e2e-all.js`, about 75 to 100 minutes): the export, the full flow, then
+   each journey the full flow does not hold, by name, all with `E2E_SOFT=1`. It reads each run's `ok`
+   and `not ok` lines by journey (the full flow prints `# journey: <name>` before each block; its
+   list is `journeys` in `full.js`), not exit codes; reruns alone each journey with a failure; calls a
+   check red when it fails in the pass and alone, flaky when it passes in the other run (a check the
+   other run never reached stays red), compared without its measured values and matched against
+   `flaky.json` the same way; and prints a summary and the run log's line, mode `e2e`
+   (`npm run tend:log -- <range> '{"mode":"e2e","e2e":"full","deploy":"main","base":…,"journeys":…,"ok":…,"red":[{"journey":…,"check":…}],"flaky":[],"minutes":…}'`).
+   It exits 1 while a check is red. `--only <a,b>` runs those journeys by name (`full` for the full
+   flow), `--no-export` keeps `dist/`, `--out <dir>` keeps each run's output there. A red check is
+   triaged as a finding; a pass made on its own writes only its log line and the records of what it
+   found.
 
 State in the report which journeys ran, which were reached and skipped, and why.
 

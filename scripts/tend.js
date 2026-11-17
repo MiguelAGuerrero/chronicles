@@ -10,6 +10,8 @@
 //                                                       range holds (shipped, audit fixes, reverts) with
 //                                                       what only the run knows (found, filed, answers)
 //   node scripts/tend.js next                           the area to sweep when the owner names none
+//   node scripts/tend.js e2e-due [--days N] [--json]    whether the weekly full pass is due: no line of main's run
+//                                                       log says "e2e":"full" in seven days (decision 0181)
 //   node scripts/tend.js commits <range>                a sweep's commits: each is a loop commit with a
 //                                                       real test and its source, and none touches what
 //                                                       the loop may not (exit 1 otherwise); CI runs
@@ -228,7 +230,8 @@ function citedOwnEdits(commits) {
   return problems;
 }
 
-const MODES = ['sweep', 'triage', 'evolve', 'inbox'];
+// `e2e` is the weekly full pass made on its own (decision 0181): every journey once, `npm run e2e:all`.
+const MODES = ['sweep', 'triage', 'evolve', 'inbox', 'e2e'];
 const DEPLOYS = ['main', 'branch', 'none'];
 const ANSWERS = ['yes', 'no', 'reshape'];
 const count = (v) => Number.isInteger(v) && v >= 0;
@@ -252,7 +255,39 @@ function logProblems(given) {
   for (const a of g.answers ?? []) if (!/^[TG]\d+$/.test(a?.entry ?? '') || !ANSWERS.includes(a?.answer)) p.push(`an answer is { entry: "T3", answer: ${ANSWERS.join(' | ')} }`);
   if (g.review && ![g.review.accepted, g.review.rejected, g.review.deferred].every(count)) p.push('review counts the auditor\'s findings: accepted, rejected, deferred');
   if (g.state && ![g.state.from, g.state.to].every((x) => x === null || STATES.includes(x))) p.push(`state moves between ${STATES.join(', ')}`);
+  const names = (v) => Array.isArray(v) && v.every((x) => typeof x === 'string' && /^[a-z][a-z0-9-]*$/.test(x));
+  if (g.e2e !== undefined && g.e2e !== 'full' && !names(g.e2e)) p.push('e2e is the journeys run, or "full" for every journey');
+  if (g.mode === 'e2e') {
+    const checks = (v) => Array.isArray(v) && v.every((c) => names([c?.journey]) && typeof c?.check === 'string' && c.check.trim() !== '');
+    if (g.e2e === undefined || (Array.isArray(g.e2e) && !g.e2e.length)) p.push('an e2e pass says what it ran: e2e is "full" or the journeys');
+    if (!count(g.journeys) || !g.journeys || (Array.isArray(g.e2e) && g.e2e.length !== g.journeys)) p.push('journeys counts the journeys the pass ran');
+    if (!count(g.ok)) p.push('ok counts the checks that passed in the pass');
+    if (!checks(g.red) || !checks(g.flaky)) p.push('red and flaky list each check as { journey, check }, none as []');
+    if (!count(g.minutes)) p.push('minutes is how long the pass took');
+  }
   return p;
+}
+
+const DAY = 24 * 60 * 60 * 1000;
+
+/**
+ * Whether the weekly full pass is due (decision 0181): no run-log line of any mode says `"e2e":"full"` within `days`
+ * of `today` (YYYY-MM-DD). `lines` are the log's lines as text; one that does not parse is skipped.
+ */
+function fullPassDue(lines, today, days = 7) {
+  let last = null;
+  for (const l of lines) {
+    let run;
+    try {
+      run = JSON.parse(l);
+    } catch {
+      continue;
+    }
+    if (run?.e2e === 'full' && typeof run.date === 'string' && (!last || run.date >= last.date)) last = { date: run.date, base: run.base ?? null };
+  }
+  if (!last) return { due: true, last: null, dueFrom: null };
+  const dueFrom = new Date(Date.parse(`${last.date}T00:00:00Z`) + days * DAY).toISOString().slice(0, 10);
+  return { due: today >= dueFrom, last, dueFrom };
 }
 
 /**
@@ -392,6 +427,25 @@ function appendLog(argv) {
   console.log(JSON.stringify(line));
 }
 
+/** The run log as origin/main holds it, else this checkout's: a pass logged on main counts wherever this runs. */
+function mainRuns() {
+  try {
+    return execFileSync('git', ['show', `origin/main:${RUNS_REL}`], { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+  } catch {
+    return fs.existsSync(RUNS) ? fs.readFileSync(RUNS, 'utf8') : '';
+  }
+}
+
+function e2eDue(argv) {
+  const at = argv.indexOf('--days');
+  const days = at >= 0 ? Number(argv[at + 1]) : 7;
+  const r = fullPassDue(mainRuns().split('\n').filter(Boolean), new Date().toISOString().slice(0, 10), days);
+  if (argv.includes('--json')) console.log(JSON.stringify(r));
+  else if (!r.last) console.log(`full pass: due (no run-log line says "e2e":"full"); run npm run e2e:all`);
+  else if (r.due) console.log(`full pass: due (the last on ${r.last.date}, ${r.last.base}; due from ${r.dueFrom}); run npm run e2e:all`);
+  else console.log(`full pass: not due (the last on ${r.last.date}, ${r.last.base}; due from ${r.dueFrom})`);
+}
+
 function next() {
   const ledger = mainLedger();
   const area = nextArea(changesByArea(sweptAt(ledger)), ledger.areas);
@@ -459,11 +513,12 @@ if (require.main === module) {
   else if (cmd === 'next') next();
   else if (cmd === 'log') appendLog(argv);
   else if (cmd === 'commits') commits(argv);
+  else if (cmd === 'e2e-due') e2eDue(argv);
   else if (require('./bookkeeping').COMMANDS[cmd]) process.exitCode = require('./bookkeeping').main([cmd, ...argv]);
   else {
-    console.error('usage: node scripts/tend.js balance [--days N] [--write] | next | log <range> "<json>" | commits [--loop-only] <range> | next-decision | next-audit | files | landed | review-paths | items (scripts/bookkeeping.js)');
+    console.error('usage: node scripts/tend.js balance [--days N] [--write] | next | log <range> "<json>" | commits [--loop-only] <range> | e2e-due [--days N] [--json] | next-decision | next-audit | files | landed | review-paths | items (scripts/bookkeeping.js)');
     process.exit(2);
   }
 }
 
-module.exports = { FORBIDDEN, LIMITS, STATES, classify, criteriaPrefixes, tally, areasByState, readStatus, reading, nextArea, isLoops, dropBoundary, testName, tendCommitProblems, citedOwnEdits, logProblems, runLine };
+module.exports = { FORBIDDEN, LIMITS, STATES, classify, criteriaPrefixes, tally, areasByState, readStatus, reading, nextArea, isLoops, dropBoundary, testName, tendCommitProblems, citedOwnEdits, logProblems, runLine, fullPassDue };

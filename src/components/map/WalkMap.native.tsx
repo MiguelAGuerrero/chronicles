@@ -15,7 +15,7 @@ import type { RoadFeature } from '../../lib/streets';
 import type { LngLat } from '../../lib/types';
 import { TILEJSON_URL } from '../../lib/tiles';
 import { declutterMarks } from '../../lib/markNames';
-import { metersPerPixel, pinKey, pinReactions, pinReminded, pinThumb } from '../../lib/pins';
+import { metersPerPixel, pinKey, pinReactions, pinReminded, pinThumb, stalkLift } from '../../lib/pins';
 import { useReactionSets } from '../../lib/reactions/useReactions';
 import { useReminded } from '../../lib/useReminded';
 import { drawnFrom, scaleBar, scaleShown } from '../../lib/scaleBar';
@@ -209,6 +209,12 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const endsKey = `${endPoints.start?.join(',') ?? ''}|${endPoints.end?.join(',') ?? ''}`;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const ends = useMemo(() => endsGeoJSON(endPoints.start, endPoints.end), [endsKey]);
+  // The markers a pin may stand on, whose edge its stalk stops at (decision 0172, O13): none while hidden with the trace.
+  const markersShown = (props.traceOpacity ?? 1) > 0;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const standOn = useMemo(() => (markersShown ? [endPoints.start, endPoints.end] : []), [endsKey, markersShown]);
+  // The pin rises by its lift and its target reaches on down over the marker, which never takes a tap (QL3):
+  // the pin lists work it out from these, never from a closure a memo list would keep stale (native map frames).
   const ring = useMemo(() => ringGeoJSON(props.ring), [props.ring]);
   const ground = useMemo(() => groundGeoJSON(props.ground ?? null), [props.ground]);
   const complexLines = useMemo(() => (props.complexes?.lines ?? { type: 'FeatureCollection', features: [] }) as GeoJSON.FeatureCollection, [props.complexes]);
@@ -499,10 +505,10 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         <GlideFollow frames={frames} walker={props.walker} heading={props.walkerHeading} enabled={glideOn} source={props.walkerSource} ready={ready} follow={props.follow} followZoom={props.followZoom} jump={jump} />
         {/* Memories from earlier walks: the same pins, faint, with their own tap (MR1-MR4), drawn
             before this walk's pins so those stay on top (audit 6). */}
-        <MemoryPinMarkers pins={memoryPins} sets={sets} reminded={reminded} now={props.now ?? openedAt} pressable={!!props.onMemoryPress} handlers={handlers} />
+        <MemoryPinMarkers pins={memoryPins} sets={sets} reminded={reminded} now={props.now ?? openedAt} pressable={!!props.onMemoryPress} handlers={handlers} standOn={standOn} zoom={view?.zoom ?? props.initialZoom ?? 16} bearing={namesBearing} />
         <PinMarkers
           pins={pins} sets={sets} reminded={reminded} clocks={props.clocks} now={props.now ?? openedAt} openedAt={openedAt}
-          seen={seenCaptures} pressable={!!props.onPinPress} handlers={handlers}
+          seen={seenCaptures} pressable={!!props.onPinPress} handlers={handlers} standOn={standOn} zoom={view?.zoom ?? props.initialZoom ?? 16} bearing={namesBearing}
         />
         <MarkMarkers
           marks={props.discoveries ?? NO_MARKS} zoom={view?.zoom ?? props.initialZoom ?? 16} seen={seenMarks}
@@ -831,14 +837,18 @@ type PinHandlers = Pick<WalkMapProps, 'onMemoryPress' | 'onPinPress' | 'onDiscov
 type Pins = ReturnType<typeof useZoomPins>;
 type Sets = ReturnType<typeof useReactionSets>;
 type ComplexLabels = NonNullable<NonNullable<WalkMapProps['complexes']>['labels']>;
-type PinListIn = { pins: Pins; sets: Sets; reminded: ReadonlySet<string>; now: number; pressable: boolean; handlers: RefObject<PinHandlers> };
+type PinListIn = {
+  pins: Pins; sets: Sets; reminded: ReadonlySet<string>; now: number; pressable: boolean; handlers: RefObject<PinHandlers>;
+  /** What a pin's stalk lift reads (tend map 13, decision 0172 O13): the markers it may stand on, the zoom and the bearing. */
+  standOn: readonly (LngLat | null)[]; zoom: number; bearing: number;
+};
 
 /** Each pin's reactions, worked out once per change of the pins or the reactions, not per render. */
 function useReactionsOf(pins: Pins, sets: Sets) {
   return useMemo(() => pins.map((pin) => pinReactions(pin, sets)), [pins, sets]);
 }
 
-const MemoryPinMarkers = memo(function MemoryPinMarkers({ pins, sets, reminded, now, pressable, handlers }: PinListIn) {
+const MemoryPinMarkers = memo(function MemoryPinMarkers({ pins, sets, reminded, now, pressable, handlers, standOn, zoom, bearing }: PinListIn) {
   const rx = useReactionsOf(pins, sets);
   return pins.map((pin, i) => {
     const bell = pinReminded(pin, reminded);
@@ -850,7 +860,7 @@ const MemoryPinMarkers = memo(function MemoryPinMarkers({ pins, sets, reminded, 
         anchor="bottom"
         onPress={pressable ? () => handlers.current?.onMemoryPress?.(pin.captures, pin.lngLat) : undefined}
       >
-        <View accessible accessibilityRole={pressable ? 'button' : 'image'} accessibilityLabel={pinLabel(pin, pressable, true, bell, undefined, now, rx[i])} style={styles.pinHit}>
+        <View accessible accessibilityRole={pressable ? 'button' : 'image'} accessibilityLabel={pinLabel(pin, pressable, true, bell, undefined, now, rx[i])} style={[styles.pinHit, { paddingBottom: stalkLift(pin.lngLat, standOn, zoom, bearing) }]}>
           <CapturePinView pin={pin} faint reminded={bell} reactions={rx[i]} />
         </View>
       </Marker>
@@ -860,14 +870,14 @@ const MemoryPinMarkers = memo(function MemoryPinMarkers({ pins, sets, reminded, 
 
 /* The photo's small copy is in the key, so one made after the pin was drawn shows (QL27); the bell too, so a
    reminder set or stopped shows at once (RB5). */
-const PinMarkers = memo(function PinMarkers({ pins, sets, reminded, clocks, now, openedAt, seen, pressable, handlers }: PinListIn & { clocks: WalkMapProps['clocks']; openedAt: number; seen: ReadonlySet<string> }) {
+const PinMarkers = memo(function PinMarkers({ pins, sets, reminded, clocks, now, openedAt, seen, pressable, handlers, standOn, zoom, bearing }: PinListIn & { clocks: WalkMapProps['clocks']; openedAt: number; seen: ReadonlySet<string> }) {
   const rx = useReactionsOf(pins, sets);
   return pins.map((pin, i) => {
     const bell = pinReminded(pin, reminded);
     const key = `${pinKey(pin)}:${rx[i].map((r) => r.id).join(',')}:${bell}`;
     return (
       <Marker key={key} id={key} lngLat={pin.lngLat} anchor="bottom" onPress={pressable ? () => handlers.current?.onPinPress?.(pin.captures) : undefined}>
-        <View accessible accessibilityRole={pressable ? 'button' : 'image'} accessibilityLabel={pinLabel(pin, pressable, false, bell, clocks, now, rx[i])} style={styles.pinHit}>
+        <View accessible accessibilityRole={pressable ? 'button' : 'image'} accessibilityLabel={pinLabel(pin, pressable, false, bell, clocks, now, rx[i])} style={[styles.pinHit, { paddingBottom: stalkLift(pin.lngLat, standOn, zoom, bearing) }]}>
           <CapturePinView pin={pin} drop={pinDrops(pin.captures, seen, openedAt)} reminded={bell} reactions={rx[i]} />
         </View>
       </Marker>

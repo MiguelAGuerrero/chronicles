@@ -7,6 +7,7 @@ import { archivePlace } from '../../discovery/archivePois';
 import { mergePlaces } from '../../discovery/archiveMerge';
 import { isMarkable } from '../../discovery/noise';
 import { categoryOfPoi, placesFromTilePois } from '../../discovery/tilePois';
+import { kindParent } from '../../discovery/refinements';
 import { KINDS } from '../../explore/explore';
 import { reachLine, REACH_M, wayNear } from '../../explore/reach/rule';
 import { createReach } from '../../explore/reach/shell';
@@ -105,7 +106,9 @@ test('RP18: no kind\'s label names a register or significance, and Buildings and
   for (const k of KINDS) assert.ok(!/\b(landmark|notable|listed|remarkable|register|significant)\b/i.test(k.label), k.label);
   const s = KINDS.find((k) => k.id === ('structures' as never));
   assert.equal(s?.label, 'Buildings and structures');
-  assert.ok(KINDS.findIndex((k) => k.id === ('structures' as never)) === KINDS.findIndex((k) => k.id === 'monuments') + 1, 'after Monuments and ruins');
+  // The next kind of its own after Monuments and memorials; Monuments' small subsets sit between (specs/small-places SP10).
+  const after = KINDS.slice(KINDS.findIndex((k) => k.id === 'monuments') + 1).find((k) => kindParent(k.id) !== 'monuments');
+  assert.equal(after?.id, 'structures', 'after Monuments and ruins');
 });
 
 test('RP20: a place with no street or path within 60 m is said, never filtered; with nothing cached around it, nothing is said', async () => {

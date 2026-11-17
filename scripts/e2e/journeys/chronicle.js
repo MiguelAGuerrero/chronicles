@@ -470,6 +470,16 @@ async function checks(h) {
       await merge.waitForSelector('[aria-label^="East Point,"]', { timeout: 15000 }).catch(() => {});
       const canvas = await merge.locator('canvas.maplibregl-canvas').boundingBox();
       const mergedStar = merge.locator('.maplibregl-marker[aria-label*=" places, "]');
+      // tend map 14 (decision 0172, O14): a merged star draws two stars fanned in its one disc; a lone place one star.
+      const glyphsOf = (b) => {
+        const disc = b.querySelector('[data-testid=star-disc]');
+        const d = disc?.getBoundingClientRect();
+        const inside = (r) => !!d && r.left >= d.left && r.right <= d.right && r.top >= d.top && r.bottom <= d.bottom;
+        const fanned = [...(disc?.querySelectorAll('[data-testid=star-glyph]') ?? [])].map((g) => g.getBoundingClientRect());
+        return { disc: d ? [Math.round(d.width), Math.round(d.height)] : null, fanned: fanned.length, inside: fanned.every(inside),
+          backTopLeft: fanned.length === 2 && fanned[0].left < fanned[1].left && fanned[0].top < fanned[1].top };
+      };
+      const lone = await merge.locator('.maplibregl-marker[aria-label^="Fox Point,"]').first().evaluate(glyphsOf, null, { timeout: 3000 }).catch(() => null);
       // Small steps, each left to settle: the stars follow the zoom at the move's end.
       // Until they merge, or the map has gone past neighborhoods (Fox Point's own star gone too).
       const hood = merge.locator('.maplibregl-marker[aria-label^="Fox Point,"]');
@@ -482,6 +492,14 @@ async function checks(h) {
       await shot(merge, '09b-home-merged-star');
       check(!!merged && merged.text !== null && !/\d/.test(merged.text) && /^[A-Z][a-z-]+ places, [a-z-]+ walks?\. Zoom in$/.test(merged.label),
         `tend places audit 3: a merged star draws no numeral and says its places and walks in words (${JSON.stringify(merged)})`);
+      const two = await mergedStar.first().evaluate(glyphsOf, null, { timeout: 3000 }).catch(() => null);
+      const one = (g) => !!g && JSON.stringify(g.disc) === '[36,36]';
+      check(one(lone) && lone.fanned === 0 && one(two) && two.fanned === 2 && two.inside && two.backTopLeft,
+        `tend map 14: a merged star draws two stars fanned in its one 36 px disc, a lone place one star (lone ${JSON.stringify(lone)}, merged ${JSON.stringify(two)})`);
+      // The picture at 320.
+      await merge.setViewportSize({ width: 320, height: 640 });
+      await merge.waitForTimeout(1200);
+      await shot(merge, '09c-home-merged-star-320');
       await seed(false);
       await merge.close();
     }

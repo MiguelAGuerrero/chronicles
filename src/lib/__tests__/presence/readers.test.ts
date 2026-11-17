@@ -170,7 +170,7 @@ test('PS7: PR2\'s guard holds with no exception: no module outside presence spel
   assert.ok(!/ALLOWED: Record<string, \(w: string\) => boolean> = \{\s*'/.test(readFileSync(join(__dirname, 'presenceAudit.test.ts'), 'utf8')), 'presence audit 2 allows nothing');
 });
 
-test('PS8: nothing else a person sees changes: the golden tables hold, with no listed change but tend explore T9\'s', async () => {
+test('PS8: nothing else a person sees changes: the golden tables hold, with no listed change but tend explore T9\'s, fix community-park\'s and small places\' (SP3, SP12)', async () => {
   const { placesFromArchive } = await import('../../discovery/archivePois');
   const { placesFromTilePois } = await import('../../discovery/tilePois');
   const { barsOf } = await import('../../discovery/bars');
@@ -189,6 +189,13 @@ test('PS8: nothing else a person sees changes: the golden tables hold, with no l
     const was = new Set(want);
     return got.map((m) => (m.endsWith('|community_parks') && !was.has(m) && was.has(m.replace(/\|community_parks$/, '|parks')) ? m.replace(/\|community_parks$/, '|parks') : m)).sort();
   };
+  // specs/small-places SP3, SP12 (decision 0183), the third listed change: the archive's markers are Plaques and markers,
+  // a subset that starts off, so their marks move from `monuments` to `plaques` and the stored bars (every small subset left
+  // out) may only lose History; nothing else of the ring moves.
+  const sp = (marks: string[], markers: Set<string>) =>
+    marks.map((m) => (m.endsWith('|monuments') && markers.has((JSON.parse(m.slice(0, m.lastIndexOf('|'))) as string[])[1]) ? m.replace(/\|monuments$/, '|plaques') : m)).sort();
+  const spSteps = (got: Record<string, number>, want: Record<string, number>, markers: Set<string>) =>
+    markers.size && got.history <= want.history ? { ...got, history: want.history } : got;
   const names = golden.names;
   for (const g of golden.archive)
     for (const k of ['plain', 'notable', 'hood'] as const)
@@ -206,14 +213,15 @@ test('PS8: nothing else a person sees changes: the golden tables hold, with no l
       const arch = placesFromArchive(a.archive.map(([name, cls, lon, lat]) => pt({ name, class: cls }, [lon, lat])), 'fixture');
       const r = ringOf(map, arch, a.at);
       const g = golden.steps[i];
+      const markers = new Set(a.archive.filter(([, cls]) => cls === 'marker').map(([name]) => name.normalize('NFC').trim().toLowerCase()));
       assert.deepEqual([g.file, g.name], [file, a.name], 'the golden rows follow the fixtures');
-      assert.deepEqual({ steps: r.steps, marks: marksOf(r), thin: r.thin }, { steps: g.steps, marks: t9(g.marks), thin: g.thin }, `${file} ${a.name}`);
+      assert.deepEqual({ steps: spSteps(r.steps, g.steps, markers), marks: marksOf(r), thin: r.thin }, { steps: g.steps, marks: sp(t9(g.marks), markers), thin: g.thin }, `${file} ${a.name}`);
       // presence-readers audit 8: the same ring fed landcover outlines, so the kind pipeline's refinement runs on outlines.
       const o = outlined(a);
       const outlinedMap = placesFromTilePois(o.pois.map(([name, cls, sub, lon, lat]) => pt({ name, class: cls, subclass: sub }, [lon, lat])), d.tiles);
       const ro = ringOf(outlinedMap, arch, a.at, undefined, [], o.landcover as never);
       const go = golden.outlined[i++];
-      assert.deepEqual({ steps: ro.steps, marks: smallOnly(marksOf(ro), t9(go.marks)), thin: ro.thin }, { steps: go.steps, marks: t9(go.marks), thin: go.thin }, `${file} ${a.name}, outlined`);
+      assert.deepEqual({ steps: spSteps(ro.steps, go.steps, markers), marks: smallOnly(marksOf(ro), sp(t9(go.marks), markers)), thin: ro.thin }, { steps: go.steps, marks: sp(t9(go.marks), markers), thin: go.thin }, `${file} ${a.name}, outlined`);
       if (file === 'presenceSample.json') lit.push(r.steps);
     }
   }
