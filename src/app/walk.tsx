@@ -847,6 +847,10 @@ function WalkScreen(props: { onMinimize: () => void }) {
   useEffect(() => {
     hereRef.current = live.here;
   }, [live.here]);
+  const focusedRef = useRef(screenFocused);
+  useEffect(() => {
+    focusedRef.current = screenFocused;
+  }, [screenFocused]);
   // What the card holds, read by the listener below, so it announces the card's own title (tend explore audit 6).
   const reminderRef = useRef(reminder);
   useEffect(() => {
@@ -854,12 +858,16 @@ function WalkScreen(props: { onMinimize: () => void }) {
   }, [reminder]);
   useEffect(
     () =>
-      onRecallFired((due) => {
-        const next = { captures: reminderHeld(reminderRef.current?.captures ?? null, due), at: hereRef.current, shownAt: Date.now() };
-        reminderRef.current = next;
-        setReminder(next);
-        AccessibilityInfo.announceForAccessibility(reminderText(next.captures).title);
-      }),
+      onRecallFired(
+        (due) => {
+          const next = { captures: reminderHeld(reminderRef.current?.captures ?? null, due), at: hereRef.current, shownAt: Date.now() };
+          reminderRef.current = next;
+          setReminder(next);
+          AccessibilityInfo.announceForAccessibility(reminderText(next.captures).title);
+        },
+        // Only while in front: kept behind the tabs after a reload, the bar above them takes it (tend explore 21).
+        () => focusedRef.current,
+      ),
     [],
   );
   // The card goes by itself after half a minute or 100 m walked on (it stays fired).

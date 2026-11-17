@@ -6,7 +6,7 @@ import { db } from '../db';
 import { boundsOf, distanceM } from '../geo';
 import { notifier } from '../notify';
 import type { LngLat } from '../types';
-import { afterFire, dueRecalls, isExpired, RECALL_RULES, reminderText } from './recall';
+import { afterFire, dueRecalls, firePlace, isExpired, RECALL_RULES, reminderText } from './recall';
 import type { Recall } from './types';
 
 /** Captures a tapped reminder notification asked to open, for whichever screen mounts next (R4). */
@@ -56,17 +56,22 @@ export async function storedRecall(captureId: string): Promise<Recall | null> {
   return (await recalls()).find((r) => r.capture_id === captureId) ?? null;
 }
 
-// Fires go to the walk screen when it is in front, else to a notification:
-// decided when a fire is shown, not where it was checked (audit).
-let screen: ((captures: Faced[]) => void) | null = null;
-export function onRecallFired(fn: (captures: Faced[]) => void): () => void {
-  screen = fn;
+// Fires go to the place in front that listens (the walk screen's card, the recording bar), else to a notification:
+// decided when a fire is shown, not where it was checked (audit). Every place listens; none takes another's place, so
+// a walk screen kept behind the tabs never takes a fire out of sight (tend explore 21).
+const places: { show: (captures: Faced[]) => void; inFront: () => boolean }[] = [];
+/** Listen for fired reminders, while `inFront` says this place can be seen; returns the unsubscribe. */
+export function onRecallFired(show: (captures: Faced[]) => void, inFront: () => boolean = () => true): () => void {
+  const place = { show, inFront };
+  places.push(place);
   return () => {
-    if (screen === fn) screen = null;
+    const i = places.indexOf(place);
+    if (i >= 0) places.splice(i, 1);
   };
 }
 async function deliver(walkId: string, captures: Faced[]) {
-  if (screen && AppState.currentState === 'active') screen(captures);
+  const i = firePlace(AppState.currentState === 'active', places.map((p) => p.inFront()));
+  if (i != null) places[i].show(captures);
   else await notifier.recall(reminderText(captures), captures.map((c) => c.id), walkId).catch(() => {});
 }
 

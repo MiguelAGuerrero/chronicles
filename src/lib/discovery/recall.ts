@@ -165,3 +165,15 @@ export function reminderHeld(held: readonly Faced[] | null, due: readonly Faced[
   const have = held ?? [];
   return [...have, ...due.filter((c) => !have.some((x) => x.id === c.id))];
 }
+
+/**
+ * Where a fired reminder goes (tend explore 21), decided when it is shown: with the app in front, the newest place
+ * listening that is in front (the walk screen's card, the recording bar); a place mounted out of sight (the walk
+ * screen kept behind the tabs after a reload) never takes it, as a tapped one's openers pass it on (`lib/openers`).
+ * With none in front, or the app behind, a notification: `null`. Else the index of the place, oldest first.
+ */
+export function firePlace(active: boolean, inFront: readonly boolean[]): number | null {
+  if (!active) return null;
+  for (let i = inFront.length - 1; i >= 0; i--) if (inFront[i]) return i;
+  return null;
+}

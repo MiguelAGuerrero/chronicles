@@ -327,11 +327,10 @@ async function checks(h) {
       }), ids);
       const barSaid = barUp ? await settled('[data-testid=recording-reminder]') : '';
       const barName = barUp ? await page.locator('[data-testid=recording-reminder]').getAttribute('aria-label') : '';
-      // After a reload the walk screen and the bar both listen for a fire, and either may hold the one slot
-      // (`onRecallFired`): a fire the walk screen takes shows nowhere while minimized (filed in docs/DEFERRED.md,
-      // "Reminders and notifications"). So the bar's words are checked when the bar has it, and the race is logged.
-      if (!barUp) console.log(`note: minimized, the fire did not reach the bar (steps ${cardAt} to ${north}; ${JSON.stringify(went)})`);
-      check(!barUp || (/(^|[^A-Za-z])Two memories here See\b/.test(barSaid) && !/\d/.test(barSaid) && barName === 'Two memories here. Return to the walk to see it'),
+      // tend explore 21: after a reload the walk screen (mounted as the app opens, NR3) and the bar both listen for a
+      // fire; the walk screen, kept behind the tabs, never takes it out of sight, so the bar has it every time.
+      check(barUp, `tend explore 21: minimized after a reload, the fire reaches the recording bar, not the walk screen out of sight (steps ${cardAt} to ${north}; ${JSON.stringify(went)})`);
+      check(barUp && /(^|[^A-Za-z])Two memories here See\b/.test(barSaid) && !/\d/.test(barSaid) && barName === 'Two memories here. Return to the walk to see it',
         `tend explore audit 7: minimized, the recording bar says the reminder of two in words (NV8; "${barSaid}", "${barName}"; steps ${cardAt} to ${north})`);
       if (barUp) {
         await shot(page, '16-bar-reminder-several');
