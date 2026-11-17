@@ -411,6 +411,43 @@ async function checks(h) {
       await page.setViewportSize({ width: 390, height: 844 });
       await page.waitForTimeout(400);
 
+      // tend explore audit 25: the same two under a moment's viewer on Memories, the tabs not folded: the Modal alone
+      // keeps the bar out of sight (`modalsUp`), past its half-minute, and the bar's line is seen once the viewer closes.
+      await outOfReach();
+      await flags(true);
+      await page.goto(url);
+      await page.waitForSelector('[data-testid=recording-return], [data-testid=walk-minimize]', { timeout: 20000 });
+      if (!(await page.locator('[data-testid=recording-return]').count())) await page.click('[data-testid=walk-minimize]');
+      await page.waitForSelector('[data-testid=recording-return]', { timeout: 10000 });
+      if (!(await page.locator('[data-testid=moment-open] >> visible=true').count())) {
+        await page.click('[data-testid=tab-chronicle]');
+        await page.click('[data-testid=section-memories]').catch(() => {});
+      }
+      await page.waitForSelector('[data-testid=moment-open] >> visible=true', { timeout: 10000 }).catch(() => {});
+      await page.locator('[data-testid=moment-open] >> visible=true').first().click().catch(() => {});
+      let viewerUp = await page.waitForSelector('[data-testid=viewer-close]', { timeout: 8000 }).then(() => true, () => false);
+      if (!viewerUp) {
+        await page.locator('[data-testid=moment-open] >> visible=true').first().click().catch(() => {});
+        viewerUp = await page.waitForSelector('[data-testid=viewer-close]', { timeout: 8000 }).then(() => true, () => false);
+      }
+      if (!viewerUp) await shot(page, '16f-no-viewer');
+      await page.waitForTimeout(400);
+      const underViewer = { viewerUp, wrapH: await wrapH(), flagged: await stillFlagged() };
+      const viewerFrom = north;
+      for (let j = north - 1; j >= -4 && viewerUp && (await stillFlagged()) > 0; j--) {
+        north = j;
+        await ctx.setGeolocation({ longitude: spot[0], latitude: spot[1] + j * 0.00005, accuracy: 6 });
+        await page.waitForTimeout(1000);
+      }
+      underViewer.fired = (await stillFlagged()) === 0;
+      await page.waitForTimeout(32000);
+      underViewer.bars = await page.locator('[data-testid=recording-reminder]').count();
+      await page.click('[data-testid=viewer-close]').catch(() => {});
+      await page.waitForTimeout(600);
+      const afterViewer = await page.locator('[data-testid=recording-reminder]').boundingBox().catch(() => null);
+      check(underViewer.viewerUp && underViewer.wrapH > 0 && underViewer.flagged === 2 && underViewer.fired && underViewer.bars === 1 && !!afterViewer && afterViewer.height >= 44,
+        `tend explore audit 25: a reminder fired under a viewer, the tabs unfolded, waits on the bar past its half-minute and is seen once the viewer closes (${JSON.stringify({ ...underViewer, steps: `${viewerFrom} to ${north}`, afterViewer })})`);
+
       // tend explore audit 23: the bars folded under an area's card, a fire, then the card's Walk to, which leaves the
       // tabs for the walk screen: the bar goes with what it held unseen, and hands it on to the walk screen's card.
       await outOfReach();
