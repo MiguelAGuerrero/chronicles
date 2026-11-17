@@ -378,11 +378,11 @@ export function HomeSheet(props: {
     >
       {place && props.onGoToPlace && (
         <View style={[styles.goRow, styles.goRowPair]}>
-          <Pressable testID="place-go" accessibilityRole="button" accessibilityLabel={`Start a walk to ${place.title}`} onPress={props.onGoToPlace} disabled={props.busy} style={({ pressed }) => [styles.go, (pressed || props.busy) && { opacity: 0.7 }]}>
+          <Pressable testID="place-go" accessibilityRole="button" accessibilityLabel={`Start a walk to ${place.title}`} onPress={props.onGoToPlace} disabled={props.busy} style={({ pressed }) => [styles.go, props.mapsTarget && styles.pairHalf, (pressed || props.busy) && { opacity: 0.7 }]}>
             <Icon name="navigate" size={18} color="#ffffff" />
             <Text style={styles.goText}>Walk here</Text>
           </Pressable>
-          {props.mapsTarget && props.onMaps ? <OpenInMapsButton testID="place-maps" variant="button" target={props.mapsTarget} onOpen={props.onMaps} /> : null}
+          {props.mapsTarget && props.onMaps ? <OpenInMapsButton testID="place-maps" variant="button" target={props.mapsTarget} onOpen={props.onMaps} style={styles.pairHalf} /> : null}
         </View>
       )}
       {day && (
@@ -597,8 +597,9 @@ const styles = StyleSheet.create({
   month: { gap: 10 },
   listContent: { padding: 16, gap: 10, maxWidth: 640, width: '100%', alignSelf: 'center' },
   note: { fontSize: 14, color: theme.muted, marginTop: -4 },
-  // OM4, OM9: Walk here and Open in Maps side by side; at 320 px the second wraps onto its own line.
-  goRowPair: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
+  // OM4, OM9 (ui 1): Walk here and Open in Maps side by side, each half the row, so nothing wraps at 320 px.
+  pairHalf: { flex: 1, minWidth: 0, paddingHorizontal: 8 },
+  goRowPair: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   goRow: { paddingHorizontal: 16, paddingTop: 4, maxWidth: 640, width: '100%', alignSelf: 'center' },
   go: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 48, borderRadius: 24, backgroundColor: theme.accent, alignSelf: 'flex-start', paddingHorizontal: 20 },
   goText: { color: '#ffffff', fontSize: 16, fontWeight: '700' },

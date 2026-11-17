@@ -68,3 +68,13 @@ No new route, truth or cache, migration or dependency. Reuses `nav/openInMaps.ts
 ## Tests
 
 See `plan.md`.
+
+## Record (Nov 17)
+
+- **Passed:** OM1-OM14, by `src/lib/__tests__/explore/mapsButton.test.ts` (OM1, OM3, OM4, OM5, OM7, OM8, OM10, OM11, OM12, OM13, OM14) and the journeys `openmaps` (the tiles, the near, 2-10 km, 10 km-plus and town-heading cases, the card, a complex row with the longest name at 320 px, the long-press card) and `openmaps-chronicle` (the star sheet, Chronicle's long press, 320 px), with the `walk` and `edit` journeys reading "Route here", typecheck and lint.
+- **Found while testing, journey faults and not product faults:** a tap on a neighborhood tile of a town's page selects it and opens its card in one go (existing behaviour), so the near-tile check closes the card first; a Playwright `click` scrolls the button into view and the row then selects that tile, so the checks tap with `mouse.click`; `accessibilityHint` is drawn by no web DOM, so the "Set as destination" hint is held by the unit test and a device item.
+- **Cold find:** all seven tasks (walk and open in Maps, on a tile, a card, a row, a star and a pressed spot) were placed. On the buttons the two kinds read as different (a filled walk verb against an outlined "Open in Maps ↗"); on the list rows it was "in the words only", because both were plain text links far apart: accepted, `open-in-maps-here ui 2`. It also found "When I get there" unclear without its question: not changed, the owner's own phrase (0121), and the question explains it on the card.
+- **UI review:** U2 accepted (`open-in-maps-here ui 1`: the star sheet's two buttons stay on one line at 320 px, each half the row, instead of wrapping), U3 accepted (`ui 2`: a row's Walk to and Open in Maps sit together under the name, Walk to first), U4 accepted in part (`ui 3`: a tile's button labels may wrap and are never truncated; whether a 200% text size fits is a device check, deferred). U1 deferred (the star sheet's existing "Map" pill, a section switch, sits beside Open in Maps: its label is a separate decision). Rejected: U5 (the outline is the design system's control edge, `theme.edge`, 3:1), U6 (the asking card has no Maps button, by design, OM5), U7 (the close × has the spoken name "Close").
+- **Deferred:** the peeking tile's right-hand button (the row's own pattern); the Map pill's label (U1); a 200% text check on the tile's strip (U4); the "Set as destination" hint on the web.
+- **Not audited** (`/audit` is the owner's to ask). Native has never run on a device (`docs/NATIVE_UNVERIFIED.md`).
+

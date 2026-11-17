@@ -115,7 +115,7 @@ export const AtlasTile = memo(function AtlasTile(props: {
             onPress={() => props.onWalk?.(a.key)}
             style={({ pressed }) => [styles.walkBtn, props.walk?.accent && styles.walkAccent, pressed && styles.pressed]}
           >
-            <Text style={[styles.walkText, props.walk.accent && styles.walkTextAccent]} numberOfLines={1}>{props.walk.starting ? 'Starting…' : props.walk.label}</Text>
+            <Text style={[styles.walkText, props.walk.accent && styles.walkTextAccent]}>{props.walk.starting ? 'Starting…' : props.walk.label}</Text>
           </Pressable>
           <OpenInMapsButton
             testID="tile-maps"

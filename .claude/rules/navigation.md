@@ -6,7 +6,7 @@ paths:
 ---
 # Navigation
 
-Routing inside a walk (`lib/nav`): walk me back, Go here, the route sources, rules and the navigation UI. The codemap is in `docs/ARCHITECTURE.md`; the decisions and their history are in `docs/decisions/`.
+Routing inside a walk (`lib/nav`): walk me back, Route here, the route sources, rules and the navigation UI. The codemap is in `docs/ARCHITECTURE.md`; the decisions and their history are in `docs/decisions/`.
 
 - **Navigation runs inside a walk**, which keeps recording. The routes are
   computed on the device; nothing is sent anywhere.
@@ -34,7 +34,7 @@ Routing inside a walk (`lib/nav`): walk me back, Go here, the route sources, rul
   not the two sides of a corner. The first version cut corners through
   buildings; a screenshot showed it.
 - **The destination is kept with the open walk** (meta `nav`), so a reload
-  resumes, routing again. From the home, Go here or Walk here saves the
+  resumes, routing again. From the home, Route here or Walk here saves the
   destination before opening the walk screen. Stop clears it.
 - **After the audit.**
   - **Routing:** joins happen per query (`WalkGraph.withExtra`), so the graph
@@ -81,7 +81,7 @@ Routing inside a walk (`lib/nav`): walk me back, Go here, the route sources, rul
     is hidden, as always). Only the destination leaves the device, on a tap.
   - The hint (`HANDOFF_HINT`) says recording pauses on the web: a hidden
     page takes no fixes. A failed route's banner stays until dismissed or a
-    new Go here (`goTo` in `walk.tsx`), its action 44 pt.
+    new Route here (`goTo` in `walk.tsx`), its action 44 pt.
   - **iPhone Home Screen app** (`navigator.standalone`): `window.open` of the https link left a blank
     window to navigate back from, so `mapsTarget` gives `appleApp` and the `maps://` scheme is set on
     `location.href`, which should open Maps without a window or an unload (unverified on a device).
@@ -127,7 +127,7 @@ Routing inside a walk (`lib/nav`): walk me back, Go here, the route sources, rul
     1.1 s before tapping the map after one.
   - "Off your route" shows as a chip.
   - Arrival shows "You're here: <name>" for 4 s, with a success haptic.
-  - The long press on the walk map opens a small sheet: Go here, plus "What
+  - The long press on the walk map opens a small sheet: Route here, plus "What
     happened here (N)" when captures are near.
   - Walk me back is the top edge button.
 - **Drive there, walk back** (DW1-DW14, decision 0121, the owner, Nov 10):
@@ -142,8 +142,8 @@ Routing inside a walk (`lib/nav`): walk me back, Go here, the route sources, rul
   - **E2E** (`E2E_ONLY=drive`): a drive is 45 s at 12 m/s; walking off must be under 3 m/s (`RIDE_RULES.edge`), or the
     ride joins across it as slow traffic and "On a ride" stays. A town's Explore tile opens its page; its card is
     behind `atlas-town-head`.
-  - A pin's viewer has Go here.
-- **Scenic routes** (SR1-SR15, decision 0095, the owner's calls, Nov 4): Go here offers Direct and one
+  - A pin's viewer has Route here.
+- **Scenic routes** (SR1-SR15, decision 0095, the owner's calls, Nov 4): Route here offers Direct and one
   route per leaning switched on (green, sights, storefronts), side by side, at most 30% longer.
   - `nav/scenic.ts` (core): `scenicPlan` (who gets the preview: not `start`, not with all leanings off, not
     past `SCENIC.maxM` 5 km), `routeOptions`, `scenicRouteSource` (re-routes keep the leaning, SR10),

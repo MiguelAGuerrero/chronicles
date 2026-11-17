@@ -33,6 +33,9 @@ async function tiles(h) {
       `OM6, OM4: every tile but the one you are in has a 44 px walk button and Open in Maps beside it (${n} tiles, ${await maps.count()} buttons)`);
     const hs = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=atlas-tile]')].map((e) => Math.round(e.getBoundingClientRect().height)));
     check(new Set(hs).size === 1, `OM6: every tile is one height, buttons or not (${hs.join(', ')})`);
+    // open-in-maps-here ui 3: a tile's button labels may wrap and are never truncated with an ellipsis (larger text sizes).
+    const wrap = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=tile-walk] [dir], [data-testid=tile-walk] div, [data-testid=tile-maps] [dir], [data-testid=tile-maps] div')].filter((e) => e.children.length === 0 && (e.textContent ?? '').trim()).map((e) => getComputedStyle(e).whiteSpace + '/' + getComputedStyle(e).textOverflow));
+    check(wrap.length > 0 && wrap.every((v) => !/nowrap/.test(v) && !/ellipsis/.test(v)), `open-in-maps-here ui 3: the tile's button labels may wrap and are never cut off with an ellipsis (${wrap.join(', ')})`);
     await shot(pg, 'openmaps-1-row');
 
     // OM1, OM3: the words, the glyph and the spoken names.
@@ -56,6 +59,7 @@ async function tiles(h) {
     // OM8 (selected): the selected tile's Walk there is the one accent-filled control across the row, and Open in Maps is not.
     const accent = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=tile-walk], [data-testid=tile-maps]')].map((e) => ({ id: e.dataset.testid, bg: getComputedStyle(e).backgroundColor })).filter((f) => /rgb\(194, 65, 12\)/.test(f.bg)));
     check(accent.length === 1 && accent[0].id === 'tile-walk', `OM8: with a tile selected, exactly one control across the row is the accent, its Walk there (${JSON.stringify(accent)})`);
+    await shot(pg, 'openmaps-1b-selected');
     const selBefore = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=atlas-tile]')].map((e) => e.dataset.selected).join(''));
     // OM2: Open in Maps opens the maps app straight from the tap: the destination alone, no sheet, nothing saved, no walk.
     await tap(maps.last());
@@ -183,8 +187,17 @@ async function rows(h) {
       const walk = document.querySelector('[data-testid=atlas-complex-walk]')?.getBoundingClientRect();
       return { right: go?.right, w: window.innerWidth, goLeft: go?.left, walkLeft: walk?.left };
     });
-    check((await m.count()) === 1 && /^Open in Maps, The Wickenden Street Arcade/.test((await m.first().getAttribute('aria-label')) ?? '') && !!mb && mb.height >= 44 && stack.right <= stack.w && (stack.walkLeft == null || stack.goLeft < stack.walkLeft),
+    check((await m.count()) === 1 && /^Open in Maps, The Wickenden Street Arcade/.test((await m.first().getAttribute('aria-label')) ?? '') && !!mb && mb.height >= 44 && stack.right <= stack.w,
       `OM4, OM9: the complex row with the longest name has Open in Maps under its name, whole at 320 px (${JSON.stringify(stack)})`);
+    // open-in-maps-here ui 2: on a row, Walk to and Open in Maps sit together under the name, Walk to first, on one line.
+    const pairRow = await pg.evaluate(() => {
+      const row = document.querySelector('[data-testid=atlas-complex]');
+      const w = row?.querySelector('[data-testid=atlas-complex-walk]')?.getBoundingClientRect();
+      const m = row?.querySelector('[data-testid=atlas-complex-maps]')?.getBoundingClientRect();
+      const kind = [...(row?.querySelectorAll('div') ?? [])].find((d) => /^Shopping$/.test(d.textContent ?? ''))?.getBoundingClientRect();
+      return w && m ? { walkFirst: w.left < m.left, sameLine: Math.abs(w.top - m.top) < 4, underName: !!kind && w.top >= kind.bottom - 2, right: m.right, w: window.innerWidth } : null;
+    });
+    check(!!pairRow && pairRow.walkFirst && pairRow.sameLine && pairRow.underName && pairRow.right <= pairRow.w, `open-in-maps-here ui 2: a row's Walk to and Open in Maps sit together under its name, Walk to first (${JSON.stringify(pairRow)})`);
     await shot(pg, 'openmaps-4-complex-320');
     await pg.click('[data-testid=atlas-complex-maps]').catch(() => {});
     await pg.waitForTimeout(500);

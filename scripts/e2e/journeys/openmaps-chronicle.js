@@ -76,6 +76,9 @@ async function checks(h) {
   await page.waitForSelector('[data-testid=place-maps]', { timeout: 8000 }).catch(() => {});
   const fit = await page.evaluate(() => { const e = document.querySelector('[data-testid=place-maps]'); const r = e?.getBoundingClientRect(); return { right: r?.right, w: window.innerWidth, clip: !!e && e.scrollWidth > e.clientWidth + 1 }; });
   check(!fit.clip && fit.right <= fit.w, `OM9: at 320 px the star sheet's Open in Maps shows whole (${JSON.stringify(fit)})`);
+  // open-in-maps-here ui 1: nothing wraps at 320 px: Walk here and Open in Maps stay on one line.
+  const pair = await page.evaluate(() => { const a = document.querySelector('[data-testid=place-go]')?.getBoundingClientRect(); const b = document.querySelector('[data-testid=place-maps]')?.getBoundingClientRect(); return a && b ? { dy: Math.abs(a.top - b.top), right: b.right, w: window.innerWidth, gap: b.left - a.right } : null; });
+  check(!!pair && pair.dy < 3 && pair.right <= pair.w && pair.gap >= 0, `open-in-maps-here ui 1: at 320 px the star sheet's two buttons stay on one line (${JSON.stringify(pair)})`);
   await shot(page, 'openmaps-c3-320');
 }
 

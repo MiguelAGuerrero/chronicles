@@ -282,14 +282,16 @@ export function AtlasCard(props: {
                           <View style={styles.storefrontLine} />
                           <Text style={styles.pocketName} numberOfLines={2}>{b.label}</Text>
                         </View>
-                        {/* OM4, OM9: Open in Maps under the name, so the name keeps the width Walk to leaves it. */}
-                        {props.onMaps && at ? <OpenInMapsButton testID="atlas-storefront-maps" variant="link" target={{ at, label: b.label, kind: 'area' }} onOpen={props.onMaps} /> : null}
+                        {/* OM4, OM9 (ui 2): Walk to and Open in Maps together under the name, Walk to first. */}
+                        <View style={styles.rowActionsLine}>
+                          {rowActions({ walkable: b.walkable }).walk && at ? (
+                            <Pressable testID="atlas-storefront-walk" accessibilityRole="button" accessibilityLabel={`Walk to ${b.label}`} onPress={() => walkTo(at, b.label, () => props.onWalkAt(at, b.label))} style={styles.rowWalk}>
+                              <Text style={styles.howText}>Walk to</Text>
+                            </Pressable>
+                          ) : null}
+                          {props.onMaps && at ? <OpenInMapsButton testID="atlas-storefront-maps" variant="link" target={{ at, label: b.label, kind: 'area' }} onOpen={props.onMaps} /> : null}
+                        </View>
                       </View>
-                      {rowActions({ walkable: b.walkable }).walk && at ? (
-                        <Pressable testID="atlas-storefront-walk" accessibilityRole="button" accessibilityLabel={`Walk to ${b.label}`} onPress={() => walkTo(at, b.label, () => props.onWalkAt(at, b.label))} style={styles.pocketWalk}>
-                          <Text style={styles.howText}>Walk to</Text>
-                        </Pressable>
-                      ) : null}
                     </View>
                   );
                 })}
@@ -310,15 +312,15 @@ export function AtlasCard(props: {
                       <View style={styles.complexText}>
                         <Text style={styles.pocketName}>{r.name}</Text>
                         <Text style={styles.muted}>{r.word}</Text>
-                        {/* OM4, OM9: under the name, so the name keeps the width Walk to leaves it. */}
-                        {props.onMaps ? <OpenInMapsButton testID="atlas-complex-maps" variant="link" target={{ at: r.at, label: r.name, kind: 'area' }} onOpen={props.onMaps} /> : null}
-                      </View>
-                      <View style={styles.rowLinks}>
-                        {rowActions({ walkable: r.walkable }).walk ? (
-                          <Pressable testID="atlas-complex-walk" accessibilityRole="button" accessibilityLabel={`Walk to ${r.name}`} onPress={() => walkTo(r.at, r.name, () => props.onWalkAt(r.at, r.name))} style={styles.complexWalk}>
-                            <Text style={styles.howText}>Walk to</Text>
-                          </Pressable>
-                        ) : null}
+                        {/* OM4, OM9 (ui 2): Walk to and Open in Maps together under the name, Walk to first. */}
+                        <View style={styles.rowActionsLine}>
+                          {rowActions({ walkable: r.walkable }).walk ? (
+                            <Pressable testID="atlas-complex-walk" accessibilityRole="button" accessibilityLabel={`Walk to ${r.name}`} onPress={() => walkTo(r.at, r.name, () => props.onWalkAt(r.at, r.name))} style={styles.rowWalk}>
+                              <Text style={styles.howText}>Walk to</Text>
+                            </Pressable>
+                          ) : null}
+                          {props.onMaps ? <OpenInMapsButton testID="atlas-complex-maps" variant="link" target={{ at: r.at, label: r.name, kind: 'area' }} onOpen={props.onMaps} /> : null}
+                        </View>
                       </View>
                     </View>
                   ))}
@@ -530,7 +532,9 @@ const styles = StyleSheet.create({
   // OM4: Open in Maps under the walk primary, as wide as it.
   mapsFoot: { alignSelf: 'stretch' },
   storefrontText: { flexShrink: 1, flex: 1 },
-  rowLinks: { flexDirection: 'row', alignItems: 'center', flexShrink: 0 },
+  // ui 2: a row's two actions under its name, Walk to first.
+  rowActionsLine: { flexDirection: 'row', alignItems: 'center', gap: 16, flexWrap: 'wrap' },
+  rowWalk: { minHeight: COMPLEX_TARGET_MIN, justifyContent: 'center' },
   howText: { fontSize: 13, fontWeight: '600', color: theme.ink },
   explain: { backgroundColor: theme.bg, borderRadius: 12, padding: 12, gap: 6, marginBottom: 4 },
   explainText: { fontSize: 14, color: theme.ink, lineHeight: 19 },
@@ -539,10 +543,8 @@ const styles = StyleSheet.create({
   // Room for a wrapped name, Walk to level with its first line; "See more" lines up with the names (the UI review, decision 0145).
   complexRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, minHeight: COMPLEX_TARGET_MIN, paddingVertical: 8, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: theme.line },
   complexMore: { minHeight: COMPLEX_TARGET_MIN, justifyContent: 'center' },
-  complexWalk: { minHeight: COMPLEX_TARGET_MIN, minWidth: COMPLEX_TARGET_MIN, justifyContent: 'center', paddingHorizontal: 8 },
   complexText: { flexShrink: 1, flex: 1 },
   pocketName: { flexShrink: 1, fontSize: 15, fontWeight: '600', color: theme.ink },
-  pocketWalk: { minHeight: 44, minWidth: 44, justifyContent: 'center', paddingHorizontal: 8 },
   storefrontName: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 },
   storefrontLine: { width: 10, height: 3, borderRadius: 2, backgroundColor: HOTSPOT },
   q: { width: 44, height: 44, borderRadius: 22, borderWidth: 1.6, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center' },

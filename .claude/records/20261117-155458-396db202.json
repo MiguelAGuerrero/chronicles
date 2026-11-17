@@ -1,0 +1,42 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "remove",
+        "with a star's title as its name, tap Go here on the star's sheet",
+        "--reason",
+        "superseded: decision 0191 replaced Go here and its sheet with Open in Maps beside Walk"
+      ],
+      "target": "sha256:957484bfbd3fa65b82c47b1a1dde67551146fc2ad8efa0a7a915fbd5512e777b"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore and discovery"
+      ],
+      "body": "- [loop] On Chronicle's star sheet the existing outlined \"Map\" pill (a section switch that shows the place on the map) sits beside \"Open in Maps ↗\", and both say \"Map\" with a map-style glyph; the arrow is the only difference (open-in-maps-here UI review U1, Nov 17). Fix, if the owner wants it: a label for the section switch that says what it does (\"Show on map\"), or no glyph on it\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore and discovery"
+      ],
+      "body": "- [loop] A tile's two half-width buttons were never checked at a 200% text size: their labels may wrap and are not truncated, but the tile's 52 px foot slot is fixed, so a very large size may crowd the footer above it (open-in-maps-here UI review U4, Nov 17; web cannot scale text, so device only). Fix: a device check, then a taller slot at large sizes\n"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "add",
+        "--top"
+      ],
+      "body": "| Open in Maps beside Walk (Go here and its sheet replaced by two outcome-named controls: the accent walk action and an outlined \"Open in Maps ↗\" that opens the phone's maps app straight from the tap; on every Explore tile as two half-width buttons, the card's footer and rows, both long-press cards and Chronicle's star sheet; a tile's Walk there starts within 2 km, opens the card's question beyond it, and is \"Set as destination\" past 10 km; the walk's own \"Go here\" is \"Route here\"; OM1-OM14, decision 0191) | built 2026-11-17 on `claude/focused-brahmagupta-eajl5h`; not deployed; native unverified | `claude/focused-brahmagupta-eajl5h` | `specs/open-in-maps-here/spec.md` | plan audited by the steward (1 breach, 5 drifts, 1 tone: all accepted); cold find (all seven tasks placed) and UI review (3 accepted with regression checks, 1 deferred, 3 rejected); the built slice not audited |\n"
+    }
+  ]
+}

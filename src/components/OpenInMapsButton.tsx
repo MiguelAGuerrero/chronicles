@@ -50,7 +50,7 @@ export function OpenInMapsButton(props: {
       onPress={() => props.onOpen(props.target)}
       style={({ pressed }) => [styles.base, v === 'half' && styles.half, v === 'button' && styles.button, v === 'link' && styles.link, props.style, pressed && styles.pressed]}
     >
-      <Text style={styles.text} numberOfLines={1}>{OPEN_IN_MAPS}</Text>
+      <Text style={styles.text}>{OPEN_IN_MAPS}</Text>
       <View testID="maps-glyph">
         <Icon name="open-outline" size={14} color={theme.ink} />
       </View>
