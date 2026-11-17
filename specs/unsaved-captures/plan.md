@@ -1,7 +1,7 @@
 # Unsaved captures have one owner: the plan (UN1-UN15)
 
-For the owner to review before any code. Criteria are in `spec.md`. The open questions are at the foot, each with a
-recommended answer; the criteria are written for those answers.
+Criteria are in `spec.md`. The owner answered the plan's questions in person on Nov 17 (the foot, and decision 0194):
+the recommended answers, built as written.
 
 ## What exists (main at `d266ed4a`)
 
@@ -21,7 +21,7 @@ recommended answer; the criteria are written for those answers.
   that never pulls again, a hidden tab taking it). Its e2e block (the chevron and Memories' pill) is the model for the
   new journey's first step.
 
-## Design (recommended; Q1)
+## Design (the owner's Q1)
 
 **One holder, outside every screen, in memory.** A shell `src/lib/unsaved/` owns every unsaved capture of the app as
 one list, in the order taken. Each entry carries what a Retry needs on any screen:
@@ -198,7 +198,23 @@ keeps them; the second hold removes them; after a force-quit nothing shows and t
   voice audit 16). Kept as each screen has it; not this slice's call.
 - No count, no celebration, nothing leaves the device, no capture button moves.
 
-## Open questions for the owner (recommended answer first)
+## Against the adjacent apps (spec, "How adjacent apps do it")
+
+Google Photos, Apple Photos and Day One each keep what has not been saved where it was put, with one owner of its
+state that no screen holds: the holder here. Where we depart: their failure is a copy to a server that can wait, ours
+is the only copy, so a failure is said on the screen in front (UN9) and a walk's Stop warns before ending without it
+(UN5); and their state is read behind a profile button, ours in the pills beside the captures (UN2), since the walker
+is already there and capture is one tap away.
+
+## The owner's answers (Nov 17, in person; decision 0194)
+
+1. Where held captures live: "One app-wide holder": a new in-memory module `src/lib/unsaved/`.
+2. How long: "While the app is open" (UN15 as written).
+3. A walk ended without them, and the build: "Let them go; build as written". At the second hold of Stop, a walk's held
+   captures are let go and their files removed (UN8); no ✕ on a pill outside a walk (Q5); two pills as today (Q6).
+4. The order beside `/tend chronicle`: it landed first (`7f210fc7`); the branch is rebased onto it.
+
+The questions as they were put:
 
 1. **Where do held captures live?** (architectural: the data's home)
    - **A new app-wide holder, `src/lib/unsaved/`** (recommended): one list, in memory, that every screen reads and both

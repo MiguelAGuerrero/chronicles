@@ -35,7 +35,7 @@ Touches: Always, "Capture is one tap away" (nothing held disables or moves a cap
 Verdict: aligned
 Shape: as asked. One reshaping in the details: a screen with no Retry of its own (the recording bar, Respond, the planner) never says "held here"; it says where the Retry is (UN10).
 Criteria: UN5 (both Stops warn; a second hold ends without them), UN8 (what is let go is let go knowingly, and only by Stop), UN10 (no words promise a Retry that is not on the screen), UN14 (no count, no capture button moved or disabled).
-Open: the vision is silent on how long a held capture lives (until the app closes, or across a reload) and on what happens to a walk's held captures once the walk is ended without them. Both are put to the owner in plan.md (Q2, Q3), with a recommendation.
+Open: the vision is silent on how long a held capture lives and on what happens to a walk's held captures once the walk is ended without them. Answered by the owner, Nov 17 (Q2, Q3; decision 0194).
 ```
 
 ## Decisions
@@ -43,10 +43,32 @@ Open: the vision is silent on how long a held capture lives (until the app close
 - **Nov 17, the owner, in person:** "Ship fix 1, slice the rest." Fix 1 (`tend captures 1`, a memo whose stop timed out is
   said and let go) is on `main`. The rest is this slice; the review's F1-F8 are its starting criteria, and the recording
   bar's Stop item joins it.
-- **Pending (plan.md, questions for the owner):** where held captures live (Q1), how long (Q2), what a walk ended without
-  them does with them (Q3), the order of work beside the parallel `/tend chronicle` run (Q4), a way to let go outside
-  a walk (Q5), one pill or two (Q6). The criteria below are
-  written for the recommended answers; each one that depends on an answer says so.
+- **Nov 17, the owner, in person, on the plan's questions** (decision 0194):
+  - Q1, where held captures live: "One app-wide holder": a new in-memory module `src/lib/unsaved/`.
+  - Q2, how long: "While the app is open" (UN15 as written).
+  - Q3, a walk ended without them, and the build: "Let them go; build as written". At the second hold of Stop, a walk's
+    held captures are let go and their files removed (UN8). UN1-UN15 are built as written: no ✕ on a pill outside a
+    walk (Q5), and two pills as today (Q6).
+  - Q4: the `/tend chronicle` run landed first (`7f210fc7`); this slice is built on it.
+
+## How adjacent apps do it
+
+- **Google Photos** (Android): every item that has not reached the cloud keeps a status on its own thumbnail, "Item
+  isn’t backed up", "In Queue or Paused: Item isn’t currently backing up but it will eventually", "Permanent failure:
+  Item permanently failed"; nothing is dropped from the library while it waits. Source:
+  https://support.google.com/photos/answer/6193313 (read Nov 17). **Verified**.
+- **Apple Photos** (iOS 26 and later): uploads to iCloud Photos are one library-wide state, read from one place
+  ("open the Photos app, then tap Collections. Tap the profile button"), where they can be paused for a day; the
+  photos stay in the library meanwhile. Source: https://support.apple.com/en-us/108782 (read Nov 17). **Verified**.
+- **Day One** (iOS): "An exclamation mark next to your avatar indicates a sync issue"; the state is read in one
+  place ("Tap the Profile Icon in the top right. Then tap Sync > Sync Status"), and entries stay in the journal while
+  they wait. Source: https://dayoneapp.com/guides/day-one-sync/sync-status/ (read Nov 17). **Verified**.
+
+All three keep what has not been saved where it was put and give one place that owns its state, never the screen it
+was made on: the shape of UN1 and Q1's holder. They differ from us in two ways, both on purpose. Their failures are a
+copy to a server that can wait; ours is the only copy, so it is said on the screen in front (UN9) and a walk never ends
+without a word (UN5). And their state sits behind a profile button; ours sits in the pills beside the captures, where
+the walker already looks (UN2; capture is one tap away, and so is its Retry).
 
 ## Criteria
 
@@ -83,7 +105,7 @@ Open: the vision is silent on how long a held capture lives (until the app close
    empty, on the walk screen and on the recording bar.
 8. **UN8 · Let go knowingly, and leaving nothing behind.** Ending a walk by the second hold lets that walk's held
    captures go: nothing of them shows afterwards and no file of theirs is left on the phone or in the browser's storage.
-   Nothing else lets a held capture go (pending Q3). Captures held outside a walk stay held across a walk's end.
+   Nothing else lets a held capture go. Captures held outside a walk stay held across a walk's end.
 
 ### Why, in words, where it is shown
 
@@ -112,13 +134,13 @@ Open: the vision is silent on how long a held capture lives (until the app close
 14. **UN14 · Nothing moves, nothing counts.** While anything is held, every capture button stays where it is and
     enabled, and the screens gain no control beyond the pills above. No pill or warning holds a digit. No notification is
     sent for a held capture.
-15. **UN15 · Held while the app is open** (pending Q2). Held captures live in memory while the app is open: a reload or
+15. **UN15 · Held while the app is open** (the owner's Q2). Held captures live in memory while the app is open: a reload or
     the app being closed drops them, as `docs/DEFERRED.md` records today ("Held captures live in memory"); nothing about
     them is written to storage.
 
 ## Routes and data
 
-- No new route, no migration, no new dependency, no meta key (pending Q2).
+- No new route, no migration, no new dependency, no meta key (Q2: "While the app is open").
 - New: `src/lib/unsaved/` (core: the words and the decisions; shell: the one holder, a `Store`; the app's instance).
 
 ## Native (unverified on a device)

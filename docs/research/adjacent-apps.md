@@ -70,6 +70,19 @@ source.
 - **Polarsteps**: photos join a step only when the step is edited. Source: from memory, unverified (the host refused
   fetches, teardown section 5). **Unverified**.
 
+### A capture that could not be saved (Honour)
+
+- **Google Photos** (Android): each item not yet in the cloud keeps a status on its own thumbnail: "Item isn’t backed
+  up", "In Queue or Paused: Item isn’t currently backing up but it will eventually", "Permanent failure: Item
+  permanently failed"; nothing leaves the library while it waits. Source:
+  https://support.google.com/photos/answer/6193313 , read Nov 17, 2026. **Verified**.
+- **Apple Photos** (iOS 26 and later): iCloud uploads are one library-wide state, read and paused for a day from one
+  place ("open the Photos app, then tap Collections. Tap the profile button, then tap Pause"). Source:
+  https://support.apple.com/en-us/108782 , read Nov 17, 2026. **Verified**.
+- **Day One** (iOS): "An exclamation mark next to your avatar indicates a sync issue"; the state is in one place ("Tap
+  the Profile Icon in the top right. Then tap Sync > Sync Status"). Source:
+  https://dayoneapp.com/guides/day-one-sync/sync-status/ , read Nov 17, 2026. **Verified**.
+
 ### View one moment full screen (Return)
 
 - **Apple Photos** (iOS 27): tap hides or shows the controls; named actions Share, Info, Edit, Delete; More holds
