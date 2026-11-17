@@ -681,3 +681,13 @@ What the reactions slice wrote and has not run on a phone (`specs/reactions`, de
 Small places (decision 0183): the switches and dots on a phone.
 
 - [ ] **Do:** on a phone with switches saved before this update, open "What I'm into", then walk (Explore on) past a time capsule and a plaque from the places archive. **Expect:** Plaques and markers, Small memorials, Milestones and old stones and Wayside shrines and crosses sit indented under their kinds and are off; Time capsules and Little libraries are on; the time capsule is a "?" named "A time capsule" within 60 m and the plaque is not drawn until its row is switched on; an area's dots change at once when the row is switched (SP2, SP7, SP8, SP11, SP13).
+
+## Native map frames (NF1-NF7)
+
+The phone's map no longer renders every source and pin on each glide frame or replay tick (specs/native-map-frames). The source scans in `mapFrames.test.ts` hold the shape; these hold the frame rate and that nothing a person sees changed.
+
+- [ ] **Do:** on a development build with React DevTools open, walk 10 min where the fog and the walked streets show and at least 30 pins sit along the way, and profile a minute of steady walking. **Expect:** `WalkMap` and its memo sources and pin lists render at most once per fix; only `ConeSource`, `PointsSource` and `GlideFollow` render at the glide's rate (~15 a second); the dot and the camera glide as before. (NF1, NF3, NF7)
+- [ ] **Do:** watch a walk's replay and a day's replay with the profiler on. **Expect:** per tick only the walker, the cone and the follow render; the trace grows in its 66 ms steps; pins appear as the story reaches them; the fog beat lights the streets as before. (NF2)
+- [ ] **Do:** tap a pin, a memory pin, a "?" mark, a found mark and a star, on a walk, on Chronicle and on Explore; set a reminder on a pin and react to a moment. **Expect:** each opens what it opened before (a found mark nothing); the bell and the reaction show on the pin at once. (NF4, NF6)
+- [ ] **Do:** zoom from 12 to 17 along a walked trace, a route and the fog. **Expect:** the lines look as before, with no gap or break at tile edges (`LINE_SOURCE`: tolerance 1, buffer 64, new on the phone). (NF5)
+- [ ] **Do:** watch a walk's replay to the card and tap a pin the instant the card comes up; on Chronicle, tap a star as the tab opens. **Expect:** the viewer (or the star's card) opens on the first tap, never a tap that does nothing: the press handlers are filled in a layout effect (native-map-frames audit 4).
