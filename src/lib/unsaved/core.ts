@@ -86,10 +86,53 @@ export function barWarning(several: boolean): string {
 /** Where a failure's Retry is: on this screen, on the walk screen, or on Memories. */
 export type HeldWhere = 'here' | 'walk' | 'memories';
 
-/** Why a save failed, in words: SA9's where the pill shows, and where its Retry is from a screen with none (UN9, UN10). */
-export function heldWhere(kind: UnsavedKind, outOfSpace: boolean, where: HeldWhere): string {
+/**
+ * Why a save failed, in words: SA9's where the pill shows, and where its Retry is from a screen with none (UN9, UN10).
+ * `short`: the recording bar's own words, which fit beside its controls (the owner, Nov 17; unsaved-captures audit 7).
+ */
+export function heldWhere(kind: UnsavedKind, outOfSpace: boolean, where: HeldWhere, short = false): string {
   if (where === 'here' || !outOfSpace) return saveFailLine(kind, outOfSpace);
-  return `Not saved: there is no room left. It is held for Retry on ${where === 'walk' ? 'the walk screen' : 'Memories'}.`;
+  const place = where === 'walk' ? 'the walk screen' : 'Memories';
+  return short ? `No room left. Retry on ${place}.` : `Not saved: there is no room left. It is held for Retry on ${place}.`;
+}
+
+/**
+ * A capture whose save fails after its walk ended: held as a moment of its own, at its time and place, outside the
+ * ended walk (the owner, Nov 17: "Keep it as its own moment"; unsaved-captures audit 3).
+ */
+export function looseAfterEnd<S extends { walk: string | null; into?: string | null }>(s: S): S {
+  return { ...s, walk: null, into: null };
+}
+
+/**
+ * Keeps a capture in order: its file once (never again when kept, UN12), then its row. Once the row is written it is
+ * kept, whatever fails after (unsaved-captures audit 6); before that, the kept path as far as it got and why.
+ */
+export async function keepInOrder(
+  k: { uri: string | null; path: string | null },
+  steps: {
+    keepFile(uri: string): Promise<string>;
+    write(path: string): Promise<string | null>;
+    after(id: string | null, path: string): void | Promise<void>;
+  },
+): Promise<{ id: string | null } | { path: string | null; error: unknown }> {
+  let path = k.path;
+  let id: string | null;
+  try {
+    if (!path) {
+      if (!k.uri) throw new Error('Nothing to keep.');
+      path = await steps.keepFile(k.uri);
+    }
+    id = await steps.write(path);
+  } catch (error) {
+    return { path, error };
+  }
+  try {
+    await steps.after(id, path);
+  } catch {
+    // The row is stored: what follows never makes it unsaved.
+  }
+  return { id };
 }
 
 /** The open moment a Retry joins: the one it was taken for, or none when that moment is gone (UN11). */

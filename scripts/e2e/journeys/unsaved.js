@@ -142,7 +142,7 @@ async function run(h) {
   const walkVoices0 = (await rows()).filter((m) => m.walk && m.kinds.includes('voice')).length;
   check(loose1 === loose0 + 1 && walkVoices0 === 0 && !(await there('[data-testid=held-memo]', 1000)),
     `UN4: Retry on the walk screen keeps the ready screen's memo as a moment of its own (${loose0} → ${loose1} outside a walk, ${walkVoices0} in it)`);
-  check.todo(!(await there('[data-testid=add-to-moment]', 1500)), 'unsaved-captures audit 1: a loose memo kept by Retry on the walk screen opens no Add to this moment pill');
+  check(!(await there('[data-testid=add-to-moment]', 1500)), 'unsaved-captures audit 1: a loose memo kept by Retry on the walk screen opens no Add to this moment pill');
 
   // UN3: two memos that fail in turn are both held; Retry keeps both, in the order taken.
   const walkId = await pg.evaluate(() => new Promise((resolve) => {
@@ -173,7 +173,7 @@ async function run(h) {
   await hold('[data-testid=stop]');
   await pg.waitForTimeout(3000);
   const waited = await pg.locator('body').innerText();
-  check.todo(/Photo not saved yet\. Retry, or hold Stop again/.test(waited) && /\/walk/.test(pg.url()),
+  check(/Photo not saved yet\. Retry, or hold Stop again/.test(waited) && /\/walk/.test(pg.url()),
     `unsaved-captures audit 3: a photo failing while the walk screen's Stop waits is warned of, and the walk goes on (${pg.url().slice(-12)})`);
   if (await there('[data-testid=held-retry]', 2000)) await shown('[data-testid=held-retry]').first().click();
   await pg.waitForTimeout(2500);
@@ -209,7 +209,7 @@ async function run(h) {
     await pg.waitForTimeout(1500);
     behind = (await pg.locator('body').innerText()).includes(OUT);
   }
-  check.todo(viewerUp && behind, `unsaved-captures audit 9: a reply that failed in the viewer over the walk is said by the walk screen once the viewer closes (${viewerUp})`);
+  check(viewerUp && behind, `unsaved-captures audit 9: a reply that failed in the viewer over the walk is said by the walk screen once the viewer closes (${viewerUp})`);
   if (await there('[data-testid=held-memo]', 2000)) await shown('[data-testid=held-memo-retry]').first().click();
   await pg.waitForTimeout(2500);
 
@@ -242,8 +242,8 @@ async function run(h) {
   const saidWhole = !!saidBox && saidBox.shown >= saidBox.whole - 1;
   await wide(390);
   check(/Retry on the walk screen\./.test(barSaid) && !barSaid.includes('held here'), `UN10: the bar's photo says its Retry is on the walk screen ("${barSaid}")`);
-  check.todo(barSaid === OUT_BAR, `unsaved-captures audit 7: the bar says the owner's words ("${barSaid}")`);
-  check.todo(saidWhole, `unsaved-captures audit 7: the bar's room words are whole at 320 px, nothing cut (${JSON.stringify(saidBox)})`);
+  check(barSaid === OUT_BAR, `unsaved-captures audit 7: the bar says the owner's words ("${barSaid}")`);
+  check(saidWhole, `unsaved-captures audit 7: the bar's room words are whole at 320 px, nothing cut (${JSON.stringify(saidBox)})`);
   await pictures('bar-said');
   await tabTo(pg, 'chronicle', 'memories').catch(() => {});
   await pg.waitForTimeout(1500);
@@ -285,7 +285,7 @@ async function run(h) {
   await pg.evaluate(() => { window.__failWalk = 1; });
   await hold('[data-testid=bar-stop]');
   const notStopped = await textOf('[data-testid=recording-said]');
-  check.todo(/could not be stopped/.test(notStopped) && (await there('[data-testid=held-captures]', 3000)),
+  check(/could not be stopped/.test(notStopped) && (await there('[data-testid=held-captures]', 3000)),
     `unsaved-captures audit 4: a Stop that fails keeps the walk's held photo ("${notStopped}")`);
   await pg.evaluate(() => { window.__failWalk = 0; });
   await pg.waitForTimeout(6500);
@@ -315,7 +315,7 @@ async function run(h) {
   await tabTo(pg, 'chronicle', 'memories').catch(() => {});
   await pg.waitForTimeout(1500);
   const onReturn = await textOf('[data-testid=band-error]');
-  check.todo(onReturn.includes(OUT) && (await there('[data-testid=band-voice-retry]', 1000)), `unsaved-captures audit 5: a memo failing as Memories loses the front is said on return ("${onReturn}")`);
+  check(onReturn.includes(OUT) && (await there('[data-testid=band-voice-retry]', 1000)), `unsaved-captures audit 5: a memo failing as Memories loses the front is said on return ("${onReturn}")`);
   if (await there('[data-testid=band-voice-retry]', 1000)) await shown('[data-testid=band-voice-retry-act]').first().click();
   await pg.waitForTimeout(2500);
   await pg.goto(navUrl);

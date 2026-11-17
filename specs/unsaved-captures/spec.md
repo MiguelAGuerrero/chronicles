@@ -50,10 +50,13 @@ Open: the vision is silent on how long a held capture lives and on what happens 
     held captures are let go and their files removed (UN8). UN1-UN15 are built as written: no ✕ on a pill outside a
     walk (Q5), and two pills as today (Q6).
   - Q4: the `/tend chronicle` run landed first (`7f210fc7`); this slice is built on it.
-- **Nov 17, at the build, for the owner to confirm:** UN6 said "whole on one line at 320 px". The bar's line beside its
-  dot, its return and its Stop holds about 190 px at 320, and the spec's words take two lines there (whole, nothing
-  cut: picture `unsaved-bar-warning-320`). Kept the words, amended the line to "two lines at most, nothing cut"; the
-  alternative is shorter words, which are the owner's to choose.
+- **Nov 17, the owner, in person, after the review** (decision 0196):
+  - UN6: "Two lines, nothing cut".
+  - UN10 on the bar only: "No room left. Retry on the walk screen." (outside a walk: "No room left. Retry on
+    Memories."). Other screens keep the full sentence.
+  - A capture failing after the walk has ended (the review's F3): "Keep it as its own moment". It stays held with its
+    Retry, and Retry keeps it as a moment of its own at its time and place, outside the ended walk; the walk is never
+    recomputed.
 
 ## How adjacent apps do it
 
@@ -103,14 +106,15 @@ the walker already looks (UN2; capture is one tap away, and so is its Retry).
    Stop again ends the walk without them. A capture held after a warning is warned of again at the next hold. Captures
    taken outside a walk never hold up a walk's Stop.
 6. **UN6 · The bar's warning fits and promises no Retry on the bar.** The recording bar's warning is whole at 320 px
-   wide, on two lines at most with nothing cut, and names no Retry on the bar: "Not saved yet. Hold Stop again to end
-   without it." ("without them" for several). (Amended at the build, Nov 17, pending the owner: "on one line" cannot
-   hold these words beside the bar's dot, return and Stop at 320 px; see Decisions.)
+   wide, "Two lines, nothing cut" (the owner, Nov 17), and names no Retry on the bar: "Not saved yet. Hold Stop again
+   to end without it." ("without them" for several).
 7. **UN7 · A refused hold empties.** After a hold that is refused with a warning, the Stop button's fill goes back to
    empty, on the walk screen and on the recording bar.
 8. **UN8 · Let go knowingly, and leaving nothing behind.** Ending a walk by the second hold lets that walk's held
    captures go: nothing of them shows afterwards and no file of theirs is left on the phone or in the browser's storage.
-   Nothing else lets a held capture go. Captures held outside a walk stay held across a walk's end.
+   Nothing else lets a held capture go. Captures held outside a walk stay held across a walk's end. A capture whose
+   save fails after its walk has ended is held as a moment of its own: its Retry keeps it at its time and place,
+   outside the ended walk, which is never recomputed (the owner: "Keep it as its own moment").
 
 ### Why, in words, where it is shown
 
@@ -119,9 +123,10 @@ the walker already looks (UN2; capture is one tap away, and so is its Retry).
    first screen in front that shows its pill ("Not saved: there is no room left. It is held here for Retry." or
    "Couldn’t save this voice memo."). Nothing is said twice on one screen for one capture.
 10. **UN10 · No promise of a Retry that isn't there.** On the recording bar, in Respond in the viewer and on the planner,
-    a failed save never says "held here": lack of room reads "Not saved: there is no room left. It is held for Retry on
-    the walk screen." during a walk, "… for Retry on Memories." outside one; any other failure "Couldn’t save this
-    photo." ("video", "voice memo") as today.
+    a failed save never says "held here". In Respond and on the planner, lack of room reads "Not saved: there is no
+    room left. It is held for Retry on the walk screen." during a walk, "… for Retry on Memories." outside one. On the
+    bar it reads "No room left. Retry on the walk screen." ("No room left. Retry on Memories." outside a walk; the
+    owner, Nov 17), whole at 320 px. Any other failure "Couldn’t save this photo." ("video", "voice memo") as today.
 
 ### A Retry that can work
 

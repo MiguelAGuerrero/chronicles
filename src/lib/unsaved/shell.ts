@@ -35,6 +35,10 @@ const isOf = (which: Which) => (x: Unsaved) => which === 'all' || (which === 'me
 
 export function createUnsaved(p: UnsavedPorts) {
   const store = createStore<UnsavedState>({ list: [], lost: [] });
+  /** Retries under way, which both Stops wait for (unsaved-captures audit 2). */
+  const retries = new Set<Promise<unknown>>();
+  /** Walks ended: a capture of one failing after is held as a moment of its own (audit 3). */
+  const endedWalks = new Set<string>();
   const patch = (id: string, change: Partial<Unsaved>) =>
     store.set((s) => ({ ...s, list: s.list.map((x) => (x.id === id ? { ...x, ...change } : x)) }));
   return {
@@ -70,7 +74,28 @@ export function createUnsaved(p: UnsavedPorts) {
       if (!was) return;
       patch(id, { retrying: false, path: r.path ?? was.path, outOfSpace: r.outOfSpace, said: true });
     },
-    /** The second hold of Stop: the walk's held captures go, and their files with them (UN8). */
+    /** A Retry under way, for the Stops to wait on. */
+    track(run: Promise<unknown>) {
+      const settled = run.then(
+        () => {},
+        () => {},
+      );
+      retries.add(settled);
+      void settled.then(() => retries.delete(settled));
+    },
+    /** Resolves once every Retry under way has ended (audit 2). */
+    async settled(): Promise<void> {
+      while (retries.size) await Promise.all([...retries]);
+    },
+    /** The walk has ended by the second hold: its held captures go, files and all (UN8), and it is known ended (audit 3, 4). */
+    async ended(walkId: string): Promise<void> {
+      endedWalks.add(walkId);
+      await this.letGo(walkId);
+    },
+    hasEnded(walkId: string): boolean {
+      return endedWalks.has(walkId);
+    },
+    /** The walk's held captures go, and their files with them (UN8). */
     async letGo(walkId: string): Promise<void> {
       const going = store.get().list.filter((x) => x.walkId === walkId);
       if (!going.length) return;
@@ -85,6 +110,13 @@ export function createUnsaved(p: UnsavedPorts) {
     },
     said(id: string) {
       patch(id, { said: true });
+    },
+    /** Every held capture not said yet, marked said in one change, so each is said once (UN9; audit 8). */
+    takeUnsaid(): Unsaved[] {
+      const unsaid = store.get().list.filter((x) => !x.said);
+      if (!unsaid.length) return [];
+      store.set((s) => ({ ...s, list: s.list.map((x) => (x.said ? x : { ...x, said: true })) }));
+      return unsaid;
     },
     /** A memo with nothing to keep, lost as its screen went (UN13). */
     lost(walkId: string | null, line: string) {

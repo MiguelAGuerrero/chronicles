@@ -21,6 +21,13 @@ The owner, in person on Nov 17, on the slice's plan:
 - **Q3, a walk ended without them, and the build:** "Let them go; build as written". At the second hold of Stop, a
   walk's held captures are let go and their files removed (UN8). No ✕ on a pill outside a walk; two pills as today.
 
+- **After the review, Nov 17, in person:**
+  - UN6: "Two lines, nothing cut".
+  - UN10 on the bar only: "No room left. Retry on the walk screen." (outside a walk: "No room left. Retry on
+    Memories."). Other screens keep the full sentence.
+  - A capture failing after the walk has ended: "Keep it as its own moment". It stays held with its Retry, and Retry
+    keeps it as a moment of its own at its time and place, outside the ended walk; the walk is never recomputed.
+
 ## Consequences
 - `memoGate` keeps its job (is anything recording or being saved); the holder answers what is held.
 - `docs/DEFERRED.md`'s "Held captures live in memory" still holds for a reload; leaving a screen no longer drops them.

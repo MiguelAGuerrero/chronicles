@@ -116,7 +116,7 @@ type More = {
 };
 const more = (u: unknown) => u as More;
 
-test('unsaved-captures audit 2: a Stop waits for every Retry under way before it reads or lets go', { todo: 'test first' }, async () => {
+test('unsaved-captures audit 2: a Stop waits for every Retry under way before it reads or lets go', async () => {
   const { u } = holder();
   let done = false;
   let finish = () => {};
@@ -130,7 +130,7 @@ test('unsaved-captures audit 2: a Stop waits for every Retry under way before it
   assert.equal(done, true);
 });
 
-test('unsaved-captures audit 3: an ended walk lets its held go, and is known ended after', { todo: 'test first' }, async () => {
+test('unsaved-captures audit 3: an ended walk lets its held go, and is known ended after', async () => {
   const { u, calls, hold } = holder();
   hold('photo', 'w1', 'blob:p');
   await more(u).ended('w1');
@@ -140,7 +140,7 @@ test('unsaved-captures audit 3: an ended walk lets its held go, and is known end
   assert.equal(more(u).hasEnded('w2'), false);
 });
 
-test('unsaved-captures audit 8: two captures failed away are each said once, in one change', { todo: 'test first' }, async () => {
+test('unsaved-captures audit 8: two captures failed away are each said once, in one change', async () => {
   const { u, hold } = holder();
   const a = hold('photo', 'w1', 'blob:a', { said: false });
   const b = hold('voice', 'w1', 'blob:b', { said: false });

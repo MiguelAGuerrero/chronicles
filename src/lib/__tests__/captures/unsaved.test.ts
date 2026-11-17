@@ -113,12 +113,12 @@ type Audit = {
 };
 const audit = async () => (await core()) as unknown as Audit;
 
-test('unsaved-captures audit 3: a capture failing after its walk ended is held as a moment of its own', { todo: 'test first' }, async () => {
+test('unsaved-captures audit 3: a capture failing after its walk ended is held as a moment of its own', async () => {
   const { looseAfterEnd } = await audit();
   assert.deepEqual(looseAfterEnd({ t: 5, at: [1, 2], walk: 'w1', into: 'm1', replyTo: null }), { t: 5, at: [1, 2], walk: null, into: null, replyTo: null });
 });
 
-test('unsaved-captures audit 6: a capture whose row is stored is never held, whatever fails after', { todo: 'test first' }, async () => {
+test('unsaved-captures audit 6: a capture whose row is stored is never held, whatever fails after', async () => {
   const { keepInOrder } = await audit();
   const kept = await keepInOrder({ uri: 'blob:a', path: null }, {
     keepFile: async () => 'walks/w1/a.jpg',
@@ -143,7 +143,7 @@ test('unsaved-captures audit 6: a capture whose row is stored is never held, wha
   assert.equal(kepts, 0);
 });
 
-test('unsaved-captures audit 7: the bar says the owner’s shorter words', { todo: 'test first' }, async () => {
+test('unsaved-captures audit 7: the bar says the owner’s shorter words', async () => {
   const { heldWhere } = await audit();
   assert.equal(heldWhere('photo', true, 'walk', true), 'No room left. Retry on the walk screen.');
   assert.equal(heldWhere('photo', true, 'memories', true), 'No room left. Retry on Memories.');

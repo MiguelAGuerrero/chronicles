@@ -105,6 +105,8 @@ import { SpaceLine } from '../components/SpaceLine';
 import { space } from '../lib/space';
 import { heldLabel, saveFailLine } from '../lib/space/core';
 import { unsaved } from '../lib/unsaved';
+import { memoGate } from '../lib/memoGate';
+import { settleWithin } from '../lib/settleWithin';
 import { lostAtStop, memoLabel, stopWarning, stopWarns } from '../lib/unsaved/core';
 
 /** Streets around the walker: read from the map and shown as fog this far out. */
@@ -122,6 +124,8 @@ function midpointOf(s: StreetSegment): LngLat {
 const WEAK_GPS_MS = 20_000;
 /** The screen's own clock: weak GPS (20 s) and the pause reminder (10 min) need no finer. */
 const SLOW_TICK_MS = 5000;
+/** Stop waits this long at most for a capture still being kept, and a Retry under way (as the bar's Stop does). */
+const STOP_WAIT_MS = 5000;
 
 /** Time walked (paused time left out) and distance, in the bottom strip; a ride's distance after it (R6). */
 function WalkStats(props: { startedAt: number | null; pauses: Pause[]; distanceM: number; rideM: number }) {
@@ -300,6 +304,9 @@ function WalkScreen(props: { onMinimize: () => void }) {
   // A store the compass reads, so a turn re-renders the compass alone (tend map 8).
   const [bearing] = useState(() => createStore(0));
   const [viewing, setViewing] = useState<Faced[] | null>(null);
+  // A memory pin's preview (MR4), and the viewer it opens; declared before the capture path, which says nothing behind them.
+  const [memory, setMemory] = useState<{ result: HereResult; from: LngLat | null } | null>(null);
+  const [memoryView, setMemoryView] = useState<HereResult | null>(null);
   // The walk's options card (A2).
   const [options, setOptions] = useState(false);
   // The GPS log, read when the card opens, so a tap can share it at once (a browser
@@ -410,7 +417,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
     // The pill (moment stacks MS2, MS5): a new moment opens it; a piece keeps it.
     onKept: (id, piece) => (piece ? momentPill.piece(id) : momentPill.kept(id, true)),
     // In front, the walk's pills say why for a capture that failed on a screen gone (unsaved captures UN9).
-    sayHeld: screenFocused && !!walk,
+    // Never behind a viewer or a memory's card (unsaved-captures audit 9).
+    sayHeld: screenFocused && !!walk && !viewing && !memoryView && !memory,
   });
   // A walk started or stopped closes the pill (MS4); on a walk, the trace walked counts toward its 100 m.
   const pillWalkId = walk?.id ?? null;
@@ -527,8 +535,6 @@ function WalkScreen(props: { onMinimize: () => void }) {
   // A long press on the map opens a small sheet for that spot: Go here, and
   // what happened here (every capture near it, on any walk) when there is any.
   const [here, setHere] = useState<HereResult | null>(null);
-  // A memory pin's preview (MR4).
-  const [memory, setMemory] = useState<{ result: HereResult; from: LngLat | null } | null>(null);
   const [spot, setSpot] = useState<{ at: LngLat; here: HereResult | null; from: LngLat | null } | null>(null);
   const hereTaps = useRef(0);
   const [hereKey, setHereKey] = useState(0);
@@ -816,7 +822,6 @@ function WalkScreen(props: { onMinimize: () => void }) {
     const ids = new Set(memoryIds.split(','));
     return memoryPool.filter((c) => ids.has(c.id));
   }, [memoryIds, memoryPool]);
-  const [memoryView, setMemoryView] = useState<HereResult | null>(null);
   const memoryTaps = useRef(0);
   const openMemory = async (group: Faced[], at: LngLat) => {
     const tap = ++memoryTaps.current;
@@ -1019,18 +1024,21 @@ function WalkScreen(props: { onMinimize: () => void }) {
         setNotice({ message: lostAtStop(saveFailLine('voice', false)), tone: 'error', sticky: true });
         return;
       }
+      // A photo or video still being kept from any screen (Memories' band, the bar), and a Retry under way, land first,
+      // as the bar's Stop waits: one that fails meanwhile is warned of (unsaved-captures audit 2, 3).
+      await settleWithin(Promise.all([memoGate.kept(), unsaved.settled()]), STOP_WAIT_MS);
       // Whatever of the walk is held, from any screen, read now (not from a render's closure), is said before the walk
-      // ends without it (SA8, UN5); the next hold lets it go, files and all (UN8).
+      // ends without it (SA8, UN5); the next hold lets it go, files and all, once the walk has ended (UN8; audit 4).
       const held = unsaved.heldFor(walk.id);
       if (stopWarns(held.map((x) => x.id), warnedHeld.current)) {
         warnedHeld.current = held.map((x) => x.id);
         setNotice({ message: stopWarning(held.map((x) => x.kind)), tone: 'error', sticky: true });
         return;
       }
-      await unsaved.letGo(walk.id);
       // The walk stays on screen until the replay replaces it (the keeper hears it ended first).
       setEnded(walk);
       const { dropped } = await endWalk(walk.id, { leaves: true });
+      await unsaved.ended(walk.id);
       feedback('success');
       if (dropped) {
         // A walk with nothing in it has no replay: back to where the walker was, with the pill's Undo (EW1).

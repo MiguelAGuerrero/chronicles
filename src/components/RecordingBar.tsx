@@ -69,7 +69,7 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
     setOffer((o) => barOfferAfter(o, null));
   }, []);
   // No Retry on the bar: a failure says where it is held (unsaved captures UN10).
-  const cap = useCaptures(walk.id, live.here, live.lastFixAt, onError, { retryShown: false });
+  const cap = useCaptures(walk.id, live.here, live.lastFixAt, onError, { retryShown: false, shortWords: true });
   // On Memories the band's camera files into the walk: the bar shows none there (decision 0112).
   const path = usePathname();
   const section = useStore(chronicleSection.store, (x) => x);
@@ -166,7 +166,7 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
         return;
       }
       // The bar's photo, and one still being kept from Memories' band (capture-from-chronicle audit 6).
-      await settleWithin(Promise.all([keeping.current, memoGate.kept()]), RETURN_WAIT_MS);
+      await settleWithin(Promise.all([keeping.current, memoGate.kept(), unsaved.settled()]), RETURN_WAIT_MS);
       // Whatever of the walk is held, from any screen, read now, is said first; the bar has no Retry, so its words
       // promise none (UN5, UN6). The next hold lets it go, files and all (UN8).
       const held = unsaved.heldFor(walk.id);
@@ -175,8 +175,9 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
         setSaid({ text: barWarning(held.length > 1), error: true });
         return;
       }
-      await unsaved.letGo(walk.id);
       const { dropped } = await endWalk(walk.id, { leaves: false });
+      // Only once the walk has ended (unsaved-captures audit 4).
+      await unsaved.ended(walk.id);
       feedback('success');
       // A walk with nothing in it has no replay: the bar goes, and the pill offers Undo on this screen (EW1).
       if (!dropped) router.push(`/replay/${walk.id}`);
