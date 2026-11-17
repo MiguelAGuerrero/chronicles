@@ -23,6 +23,9 @@ The owner's calls, Nov 17:
 - **Historical markers split from plaques, on**: Wikidata's commemorative plaques are "Historical markers"; OSM's
   plaques stay "Plaques", off.
 - **Category headings; subtypes fold under their kind**, shown while it is on.
+- **Small things off by default, unless truly artistic**: "small little stuff like fountains, unless they're like truly
+  like artistic in nature, are off by default". A fountain typed or tagged as an artwork is Public art; plain
+  fountains, old trees and survey marks start off; the owner's own "on" calls stand.
 - **Publish the small places now**: chronicles-data's `main` took SL1-SL11 on Nov 17.
 
 The gate's reshaping, carried as criteria: a subtype resolves from a type, tag or name the archive already reads

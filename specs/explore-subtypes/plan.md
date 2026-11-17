@@ -14,7 +14,7 @@ class/subclass. Default on unless marked. Weight is the bar weight of the stop (
 | Art | Public art | | tile `art_gallery/artwork`; `sculpture` | 1 | |
 | | | Statues and busts | `statue` | 1 | |
 | | | Murals and mosaics | `mural` | 1 | |
-| | | Fountains | `fountain` | ½ | yes |
+| | | Fountains (off) | `fountain` (an artistic fountain is `sculpture`, the kind itself) | ½ | yes |
 | | | Signs and totems | `sign` | ¼ | yes |
 | History | Monuments and memorials | | `monument`, `memorial`, `historic_site`; tile `monument`, `castle/castle` | 1 | |
 | | | Historical markers | `marker` (Wikidata) | ½ | yes |
@@ -46,7 +46,7 @@ class/subclass. Default on unless marked. Weight is the bar weight of the stop (
 | | | Waterfalls | `waterfall` | 1 | |
 | | | Caves | `cave` | 1 | |
 | | | Hot springs and geysers | `hot_spring` | 1 | |
-| | | Old trees | `old_tree` | ¼ | yes |
+| | | Old trees (off) | `old_tree` | ¼ | yes |
 | Culture | Museums and galleries | | `museum`; tile `museum`, `art_gallery/gallery` | 1 | |
 | | | Observatories and planetariums | `observatory` | 1 | |
 | | Theatres | | `theatre`; tile `theatre` | 1 | |
@@ -62,7 +62,7 @@ class/subclass. Default on unless marked. Weight is the bar weight of the stop (
 | | | Ghost towns (off) | `ghost_town` | ½ | |
 | | | Natural arches and rocks | `natural_oddity` | 1 | |
 | | | Roadside giants and follies | `roadside_giant`, `folly`, `novelty_building`, `art_environment` | 1 | |
-| | | Survey marks and centre points | `marks_a_fact` | ¼ | yes |
+| | | Survey marks and centre points (off) | `marks_a_fact` | ¼ | yes |
 | | | Time capsules | `time_capsule` | ¼ | yes |
 
 "Small" keeps a subtype out of the planner, scenic Sights and the community-park rule, and lets it be named in a
@@ -99,9 +99,9 @@ XS24; `small-places` journey updated for the plaque split (XS10). Every test nam
 
 - Weights and "small" per the table (fountains ½ and small; historical markers ½ and small, steward S3; ghost towns ½).
 - **Every default, row by row** (steward S7): off are Plaques, Small memorials, Milestones and old stones, Wayside
-  shrines and crosses, Ghost towns (the owner's and 0183's); **on by this plan's default**: Fountains, Signs and
-  totems, Carousels and bandstands, Old trees, Survey marks and centre points, and every other row. Fountains are the
-  likeliest clutter in a dense town; the owner may prefer them off.
+  shrines and crosses, Ghost towns, Fountains, Old trees, Survey marks and centre points (the owner's calls of Nov 14
+  and 17: small things off unless truly artistic); **on by this plan's default**: Signs and totems (art), Carousels and
+  bandstands (½, not small), and every other row.
 - An unnamed place of any subtype never pulls a route or counts as a scenic Sight (steward S4).
 - "Zoos, aquariums and attractions" keeps the word "attractions" (steward's silent question 2, rejected): it is the
   shipped wording of "Viewpoints and attractions" (RP13) and the map's own class, never a measure of popularity.

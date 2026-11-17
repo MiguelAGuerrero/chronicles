@@ -11,7 +11,7 @@ Verb: earn ("what makes a place itself": a covered bridge, a waterfall, a carous
 Touches: VISION.md Never, "Tallies such as '12 of 87'" and "Scores, … completion, coverage" (subtypes invite collecting: nothing counts them or treats them as a set, as 0183); Always, "Restraint in motion, colour and copy" (the page is silent on a settings list's length; DEFERRED notes eighteen rows with no headings); decisions 0103 ("type decides"; an unmapped type is left out, never guessed), 0109 (remarkable and public: a listing is the gate, reachable from public ground the bar), 0115 (kinds filter what you see, never what exists), 0117 ("No extra data is fetched or joined only to sort a place"), 0144 (subsets are refinements), 0183 (OSM locates a pinned table; repetitive types off by default; extended here by the owner).
 Verdict: aligned if reshaped
 Shape: a subtype resolves from a type, tag or name the archive already reads; switches filter what is shown and are never counted, ranked or listed as a set; the truly unremarkable stays out of the data (untyped springs and dams, drinking taps, plain benches, give boxes, wrecks off public ground); the list is grouped under the five findable categories; repetitive types and ghost towns start off.
-Criteria: XS1-XS27.
+Criteria: XS1-XS28.
 Open: none for the gate; the owner answered four calls on Nov 17 (Decisions).
 
 ## What it is
@@ -35,6 +35,10 @@ listed buildings; ghost towns out of ruins; historical markers apart from plaque
 - **Category headings; subtypes fold under their kind, shown while it is on** (the owner, Nov 17).
 - **Publish the small places now** (the owner, Nov 17): chronicles-data's `main` took the small-places branch (SL1-SL11)
   on Nov 17; its OpenStreetMap rows reach the pack at the next weekly or hand run (RB8).
+- **Small things off by default, unless truly artistic** (the owner, Nov 17): "small little stuff like fountains, unless
+  they're truly artistic in nature, are off by default". A fountain typed or tagged as an artwork is Public art (on);
+  plain fountains, old trees and survey marks start off; the owner's own "on" calls stand (time capsules, little
+  libraries, historical markers); signs and totems are art (on).
 - Defaults taken in the plan, for the owner to overrule: see plan.md, "Defaults to overrule".
 
 ## Criteria
@@ -52,8 +56,8 @@ The owner's task, in their words: "a more rich exploring experience, no matter h
   parks, and the archive's zoos); "Viewpoints and attractions" reads "Viewpoints".
 - **XS5** a subtype's row shows indented under its kind only while the kind is on, and is off and locked under a kind
   switched off (PC23 holds for every subtype).
-- **XS6** on a fresh install, Plaques, Small memorials, Milestones and old stones, Wayside shrines and crosses and Ghost
-  towns are off; every other subtype and both new kinds are on.
+- **XS6** on a fresh install, Plaques, Small memorials, Milestones and old stones, Wayside shrines and crosses, Ghost
+  towns, Fountains, Old trees and Survey marks and centre points are off; every other subtype and both new kinds are on.
 - **XS7** after the update, a reader's saved switches keep their meaning: a kind they had off hides its new subtypes;
   "Viewpoints and attractions" off keeps "Zoos, aquariums and attractions" off; a subtype that starts off is off until
   seen (SP8's mechanism).
@@ -95,6 +99,8 @@ The owner's task, in their words: "a more rich exploring experience, no matter h
   "historic" or "wonder" (0110, RP18: no kind is named for significance; steward S1, S2).
 - **XS26** three unnamed fountains found in one area read as one Found row "Fountains", with no number; passing two reads
   "Passed fountains without stopping"; the same for every class that may come unnamed (SP15, SP21, SP22; steward S5).
+- **XS28** a fountain the archive classes as a sculpture (typed or tagged as an artwork) is Public art and shows with
+  Fountains off; a plain fountain shows only with Fountains on.
 - **XS27** an unnamed OpenStreetMap water tower is no place; a named one, or one tagged `historic` or `heritage`, is
   (data ST4; steward S4).
 
