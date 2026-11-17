@@ -1,0 +1,13 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Captures, media and export"
+      ],
+      "body": "- [loop] The `capturehome` journey's HC10 is red on main: `FAILED: HC10: the stopped walk placed the note as its own capture (null)` (`scripts/e2e/journeys/capturehome.js` l.180-187), 2 of 2 alone at 972c3860 and 3 of 3 at acb18b06 under load, green at rest; reported by the unsaved-captures slice as `HC10: a note from Memories with a walk minimized belongs to the walk` (3 of 3 with `npm run e2e:baseline` at b8126140). The check waits with `waitForFunction` on an async predicate, which resolves at once with its pending promise (the trap in `.claude/rules/captures-and-media.md`), so it reads the note once as the replay opens, before the walk's snap has placed it (`/tend captures`, Nov 17, medium)\n"
+    }
+  ]
+}
