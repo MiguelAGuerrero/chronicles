@@ -187,13 +187,16 @@ async function run(h) {
   // JN12, JN13: the first character begins an entry with one fix; it is kept as it is written; no walk starts.
   let lineAtRest = null; // the bar's box above the tab bar, read once the page is pulled back (JN37)
   await type('A heron');
-  const begun = await pg.waitForFunction(() => new Promise((resolve) => {
-    const req = indexedDB.open('chronicles');
-    req.onsuccess = () => { const g = req.result.transaction('moment').objectStore('moment').getAll(); g.onsuccess = () => resolve(g.result.some((m) => /A heron/.test(m.pieces?.[0]?.body ?? ''))); };
-  }), null, { timeout: 6000 }).then(() => true, () => false);
+  // tend captures audit 4: polled from here, since an async predicate in waitForFunction is read once and its wait
+  // resolves with that read's value: `begun` was true whatever the store held.
+  let begun = false;
+  for (let i = 0; i < 24 && !begun; i++) {
+    begun = (await stored(pg).catch(() => ({ moments: [] }))).moments.some((m) => /A heron/.test(m.pieces?.[0]?.body ?? ''));
+    if (!begun) await pg.waitForTimeout(250);
+  }
   const status = (await pg.locator('[data-testid=line-status]').filter({ visible: true }).first().innerText().catch(() => '')).trim();
   check(begun && status === 'Kept as you write' && (await shown('[data-testid=line-done]')),
-    `JN13 (with JN48): what is typed is stored with no Save, and the composer says "Kept as you write" beside Done (${JSON.stringify({ begun, status })})`);
+    `JN13 (with JN48; tend captures audit 4): what is typed is stored with no Save, polled from the test side, and the composer says "Kept as you write" beside Done (${JSON.stringify({ begun, status })})`);
   await pg.keyboard.type(' on the old pier.', { delay: 15 });
   await pg.waitForTimeout(1500);
   await pg.reload();
