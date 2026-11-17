@@ -179,16 +179,6 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
   moments kept at one place, turn the map, then open its replay and Explore.
   Expect: the scale bar's label stays whole beside its line, a pin's count or kinds stay inside its head, the compass and
   Locate stay 44 pt and in their column, and the map's (i) stays reachable, none cut or pushed under the strip or a card.
-- **T21 [owner] Replay: the name step's only way on is Keep it** (2026-11-12)
-  Area: replay (beat five). Seen: `probe-390r-name`, `probe-320r-name` (two fields and Keep it, no Cancel or back).
-  Rests on: NN/g H3, "a clearly marked 'emergency exit'"; the goal-to-control matrix, row 18, "Text view in a sheet
-  with Cancel and Done" (UX U8). Since `tend replay 4` and `5`, Android's Back and the web's Escape return to the card
-  with the words kept; an iPhone has neither. A control on beat five is yours.
-  Recommended: a quiet "Back" in the name sheet's top row, in the card's "Not now" style, returning to the card with
-  the words kept. /vision: aligned (return; restraint: one quiet text control, no new colour).
-  Otherwise: leave it (Keep it with the suggested name loses nothing).
-  **Answered** by the owner in person (Nov 12; decision 0165): "A quiet Back", the recommended shape. Recorded Nov 13;
-  waits for the next `/tend inbox`, one build per run (T28 was built first).
 - **T22 [owner] The walked colour is separate from the accent** (2026-11-12)
   Area: replay, and every map that draws walked streets (Chronicle's map, the walk's end marker, any map given
   `walked`). Seen: `probe-390r-fog` (beat one lights the walked streets in `COLORS.walked`, `#c2410c`, the same hex as
@@ -253,14 +243,13 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
 
 ### Last tend
 
-**Nov 16, `/tend map --deploy=main`, the qol Hold item and the owner's answers O13, O14 and O8 (decision 0172)** (opened from `54535dcb`; no sweep, lenses 1-7 not run; the faster lane of decision 0181).
-- The items, as main held them: `[loop]` "The `qol` journey's `tend map audit 25` and `26` fail at Hold at 390 on `main` since the Place search commits"; `[owner]` "A capture pin standing on a start or end puts its stalk inside the marker" (O13); `[owner]` "A merged star looks like an unnamed lone star" (O14); `[owner]` "Explore's map labels collide" (O8). All four leave `docs/DEFERRED.md`.
-- `tend map 12`: the check, not the app. The replay's code is unchanged since `6c5174cd` and the dot runs the 60 m loop in about a second on both builds; the check's poll and stable-waiting click (140 to 784 ms) lost the race on the base as on main (2 of 5, 4 of 5 scratch runs). Hold is now timed in the page and tapped where the button is; `tend map audit 34` (the review's F35, F36) asks that the tap be on Hold, that Hold read Play and that the dot and the clock stand still.
-- `tend map 13` (O13): a pin standing on a start or end stops its stalk at the marker's edge (`stalkLift`, `lib/pins.ts`), drawn as padding under the pin on both maps so its target still covers the marker; `tend map audit 33` (F34) clears the whole stalk, not the foot alone. QL3's words stay in "Open before the loop".
-- `tend map 14` (O14): a merged star draws two white stars fanned in its one ink disc (`starGlyphs`, `lib/places.ts`); no numeral, one size.
-- O8 closes as stale: fresh pictures at 390 (`dense-1-names`, `dense-1b-names-close`, `dense-2-zoomed-in`, `11b-explore`, `11d-atlas-town`) show no label over another; the harness's base map draws no names of its own.
-- The review (one round, the `auditor`): two medium, six low; accepted five (F34, F35, F36, F37 the diagnosis's wording, F39 a stale test message), deferred three: F33 medium, the place-name pack in the web entry bundle (10.7 MB), filed `[loop]` in Explore and discovery with the owner's answer of Nov 16, "Fetch on first search"; F38 and F40 low, filed in the map's section. Two device checks filed (the pin's lift on native, the merged star's two stars).
-- Journeys: qol (221 ok) and launch after the review; chronicle, atlas and dense before it. Not run: the sweep's lenses and the balance; the rest is left to CI and the weekly full pass (decision 0181). Nothing here has run on a phone.
+**Nov 17, `/tend inbox T21 --deploy=main`, with the replay's `[loop]` item "Leaving the first replay with words typed in Name it drops them without asking"** (opened from `29d76a6f`, rebased on `9cd0647a`; no sweep, lenses 1-7 not run; the faster lane of decision 0181).
+- The entries, as main held them: T21 "Replay: the name step's only way on is Keep it" (the owner's yes, Nov 12, decision 0165, "A quiet Back"), and the `[loop]` item with the owner's answer of Nov 16, "Ask there too". Both leave the record.
+- `tend replay T21`: the name sheet's top row holds a quiet "Back" in Not now's style, at the leading edge above the first field; it goes where Android's Back and Escape go from the name step (one `stepBack` asking `backFrom`): the card, the words kept.
+- `tend replay 15`: Back or Escape that would leave the first replay with words typed in Name it (`wordsTyped`, read through Rename's `renameChanged` with the suggestion offered) asks "Discard these edits?", Rename's ask in Keep it's place under the fields and their words; Back, Escape and Done while it asks are Keep editing; Discard leaves for Chronicle. Unchanged or emptied words leave at once.
+- The review (one round, the `steward`): one medium, four low, four silent questions. The owner answered in person, Nov 17: Q1 "Ask there too": with words typed, Not now asks "Discard these edits?"; with nothing typed it leaves at once. Q2 "Show the typed name": after Back, the card's title shows the typed name (unsaved) until Keep it or leaving. S3 "Add the chevron": a muted back chevron before "Back" (no new colour, no new words) and the spoken hint "Returns to the card, your words kept". Q4 "File it as architecture": the browser's own back on web.
+- Accepted four: S1 and S2 as `tend replay audit 15` (Not now through `backFrom('card', …)`; a Rename from the card replaces only the Name it field it changed, `fieldsAfterRename`), Q2 and S3 as `tend replay audit 16` (`cardTitle`; the chevron and the hint). Deferred one: S4, the browser's back and Safari's edge swipe, a note with the owner's answer on the existing `[arch]` item "The browser's own Back on the name step" in Replay rhythm. S5 and Q3 (the ask from a re-watch's fog takes the walker to the name sheet) kept as built, nothing filed. One device check filed, a note on the old one.
+- Journeys on the final export: replay (80 ok), launch, tabs (Not now with nothing typed leaving at once). Not run: the sweep's lenses and the balance; the rest is left to CI and the weekly full pass (decision 0181). Nothing here has run on a phone.
 
 ### Open before the loop
 

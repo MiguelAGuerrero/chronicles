@@ -365,6 +365,11 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - [arch] The browser's own Back on the name step leaves the replay and drops the words typed (the auditor's F2, its web
   half): the replay's leave runs on unmount, and a browser's Back cannot be held cheaply (`tabs-and-home.md`).
   Android's Back and Escape return to the card (`tend replay 4`, `5`)
+  The owner's answer, Nov 17, in person, to the review of `tend replay 15` (its S4, low): "File it as architecture":
+  the browser's own back on web. Since `tend replay 15` and `tend replay audit 15` Back, Escape and Not now ask
+  "Discard these edits?" before words typed in Name it go; the browser's back, or Safari's edge swipe, from the name
+  step, the card or a re-watch's fog still leaves at once and drops them. A guard needs a routing decision (a guard on
+  leaving the route, or a pushed history entry); native is unaffected (`fullScreenModal`).
 - [loop] On a landscape phone the card stands under the whole top stack and is 157 px wide (138 with notched insets):
   standing beside the centred stack instead would give it the height back (`/tend replay`'s review, call 4, low)
 - [loop] On a narrow card (172 px at 320) the 147 x 48 "Tap for sound" pill covers most of the video's top; it could sit
@@ -374,7 +379,6 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
   the oldest leaving from the top (`Bubbles.tsx` `maxHeight: cornerHeight(ctx)`; the UX review's U13, low)
 - [loop] The day's map leaves out the faint stretch the walk's card draws across a gap (`rr-day-card` against `rr-card`,
   from before the sweep; `day/[key].tsx` draws only `pathDrawnAt`'s trace and rides; the UX review's U14, low)
-- [loop] Leaving the first replay with words typed in Name it drops them without asking: type "Plums", Escape (back to the card, the words kept), Escape again (`toChronicle()`), and the walk stays unnamed; Android Back twice does the same (`src/app/replay/[id].tsx` ~l.210-211 and 227-228). The owner's answer, Nov 16, in person: "Ask there too": leaving the first replay with typed Name it words asks "Discard these edits?", as Rename does since `tend chronicle 9` (decision 0172, O17; the `tend chronicle` review's auditor F5, low)
 
 ## Town presence (TP, decision 0089)
 
