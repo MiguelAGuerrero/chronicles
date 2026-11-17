@@ -254,7 +254,7 @@ const FEATURES = [
       'src/components/VideoMark.tsx',
     ],
     journeys: ['edit', 'stacks', 'voicetrim', 'videothumbs'],
-    specs: ['memories-on-revisit', 'media-editing', 'moment-stacks', 'voice-trim', 'note-types', 'video-thumbnails'],
+    specs: ['memories-on-revisit', 'media-editing', 'moment-stacks', 'voice-trim', 'note-types', 'video-thumbnails', 'unsaved-captures'],
   },
   {
     name: 'chronicle',
@@ -504,6 +504,7 @@ const RENAMED = {
 };
 
 const IN_PROGRESS = {
+  'unsaved-captures': { branch: 'slice/unsaved-captures-20261117-1519', since: '2026-11-17' },
 };
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));
