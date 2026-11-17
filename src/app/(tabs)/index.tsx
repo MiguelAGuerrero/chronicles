@@ -199,9 +199,16 @@ const ChronicleMap = forwardRef<ChronicleMapHandle, { section: 'walks' | 'days' 
         }
         const recalled = openWalk ? [] : await takeRecallOpen().catch(() => [] as Faced[]);
         if (!live) return null;
-        setChecklists(await db.listChecklistAreas().catch(() => [] as ChecklistArea[]));
-        setFinds(await db.listFinds().catch(() => [] as Find[]));
-        const caps = await allCaptures().catch(() => [] as Faced[]);
+        // Read together, then set together after the last await: each `setX(await …)` was a render of its own, and
+        // each render redraws the map's pins (fix chronicle-focus-reload: a section's open went from 6 renders to 4).
+        const [checklists, finds, caps] = await Promise.all([
+          db.listChecklistAreas().catch(() => [] as ChecklistArea[]),
+          db.listFinds().catch(() => [] as Find[]),
+          allCaptures().catch(() => [] as Faced[]),
+        ]);
+        if (!live) return null;
+        setChecklists(checklists);
+        setFinds(finds);
         setCaptures(caps);
         if (recalled.length) setRecalled(recalled);
         setData({ walks, summaries, areas, rows });
