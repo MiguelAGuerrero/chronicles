@@ -13,7 +13,7 @@ export function GoHereSheet(props: {
   name: string;
   mapsApp: string;
   mapsHint?: string;
-  /** The area's busiest street, when that is where Go here starts you (audit 9). */
+  /** The street Go here starts you on, when it starts you on one (audit 9). */
   via?: string | null;
   /** A destination is already saved: said once, that this replaces it. */
   replaces: boolean;

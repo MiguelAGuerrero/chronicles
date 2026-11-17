@@ -1,4 +1,4 @@
-# 0180. Go here on every Explore tile: a sheet of two choices, Chronicles or the phone's maps app
+# 0185. Go here on every Explore tile: a sheet of two choices, Chronicles or the phone's maps app
 
 Date: 2026-11-14 · Status: accepted · Area: explore, navigation · Extends [0058](0058-open-in-maps.md) and [0121](0121-drive-there-walk-back.md)
 

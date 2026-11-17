@@ -158,7 +158,7 @@ async function run(h) {
 }
 
 /**
- * Go here on the rest of Explore's surfaces (specs/go-here-everywhere, GE1-GE13): the area card's footer, its busy-area and
+ * Go here on the rest of Explore's surfaces (specs/go-here-everywhere, GE1-GE13): the area card's footer, its storefront and
  * complex rows, and the long-press card; the same sheet as the tiles'.
  */
 async function hosts(h) {
@@ -231,18 +231,18 @@ async function hosts(h) {
       `GE7: Go here is not shown while the far question is open, and returns after (${asking} asking, ${goWhileAsking} Go here)`);
     check((await pg.locator('[data-testid=atlas-walk]').count()) === 1, "GE6: the card's Walk to is as it was");
 
-    // GE1, GE5: each busy-area and complex row has Go here, whether or not Walk to is offered (rows exist only where the map has them).
+    // GE1, GE5: each storefront and complex row has Go here, whether or not Walk to is offered (rows exist only where the map has them).
     {
-      // No journey's world has a town with busy areas, so this holds for none here; the rows share the card's one `goLink`.
-      const n = await pg.locator('[data-testid=atlas-busy-area]').count();
-      const g = await pg.locator('[data-testid=atlas-busy-go-here]').count();
-      check(g === n, `GE1, GE5: every busy-area row that is there has a Go here (${g} of ${n}; this world has none: docs/DEFERRED.md)`);
+      // No journey's world has a town with storefronts, so this holds for none here; the rows share the card's one `goLink`.
+      const n = await pg.locator('[data-testid=atlas-storefront]').count();
+      const g = await pg.locator('[data-testid=atlas-storefront-go-here]').count();
+      check(g === n, `GE1, GE5: every storefront row that is there has a Go here (${g} of ${n}; this world has none: docs/DEFERRED.md)`);
     }
 
     // GE10: at 320 px with the card open nothing is clipped.
     await pg.setViewportSize({ width: 320, height: 640 });
     await pg.waitForTimeout(800);
-    const clip = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=atlas-card-go-here], [data-testid=atlas-busy-go-here], [data-testid=atlas-complex-go-here]')].some((e) => e.scrollWidth > e.clientWidth + 1 || e.getBoundingClientRect().right > window.innerWidth));
+    const clip = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=atlas-card-go-here], [data-testid=atlas-storefront-go-here], [data-testid=atlas-complex-go-here]')].some((e) => e.scrollWidth > e.clientWidth + 1 || e.getBoundingClientRect().right > window.innerWidth));
     check(!clip, 'GE10: at 320 px every Go here on the card shows whole');
     await shot(pg, 'gohere-6-card-320');
     await pg.setViewportSize({ width: 390, height: 844 });

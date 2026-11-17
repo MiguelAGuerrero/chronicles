@@ -118,13 +118,13 @@ recording, and a recording bar brings a minimized walk back.
   - what you found;
   - the areas next door;
   - Walk to, which starts you on a street of its storefronts.
-- **Go here on every tile** (decision 0180): the tile's last line is a quiet "Go here" with an arrow. It opens a
+- **Go here on every tile** (decision 0185): the tile's last line is a quiet "Go here" with an arrow. It opens a
   small sheet of two choices, Chronicles first, then the phone's maps app named for it (Apple Maps on an iPhone).
   Chronicles saves the place as Navigate's destination and opens Navigate, ready; the walk starts only on Start,
   at any distance. The maps app is handed the destination alone, on the tap. No minutes, no ranking. Not on the
   tile of the area you are in. A saved destination is said to be replaced, once.
-- **Go here on the rest of the surfaces** (decision 0182): the same quiet "Go here" and the same sheet on the area
-  card's footer (under Walk to), its busy-area and complex rows (beside Walk to, even when too far to walk), Explore's
+- **Go here on the rest of the surfaces** (decision 0186): the same quiet "Go here" and the same sheet on the area
+  card's footer (under Walk to), its storefront and complex rows (beside Walk to, even when too far to walk), Explore's
   long-press card, Chronicle's star sheet (under Walk here) and Chronicle's long-press card. On Chronicle the sheet
   sits at the top, clear of the capture band. Only the destination leaves the device: the link carries coordinates,
   and a star's title or "Your spot" never rides in it. With a walk open the Chronicles row routes that walk.

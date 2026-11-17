@@ -154,7 +154,7 @@ const FEATURES = [
       'src/app/(tabs)/explore.tsx',
       'src/components/atlas/**',
       'src/lib/gazetteer/**',
-      'src/components/{MarkPinView,ExploreSettings,ReminderCard,RemindEditor}.tsx',
+      'src/components/{MarkPinView,ExploreSettings,ReminderCard,RemindEditor,GoHere,GoHereSheet}.tsx',
     ],
     journeys: ['marks', 'atlas', 'grading', 'snap', 'carousel', 'curiosities', 'freelook', 'small-places', 'placesearch', 'gohere', 'gohere-chronicle'],
     specs: ['v1-discovery', 'explore-atlas', 'pocket-alert-nudge', 'reminder-bell', 'atlas-grading', 'town-presence', 'discrete-navigation', 'explore-carousel', 'places-worth-the-stop', 'places-pipeline', 'remarkable-and-public', 'places-out-of-town', 'presence-and-kinds', 'whole-towns', 'community-parks', 'free-look', 'small-places', 'place-search', 'explore-go-here', 'go-here-everywhere'],

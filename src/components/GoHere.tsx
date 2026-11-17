@@ -13,12 +13,12 @@ export interface GoHereTarget {
   at: LngLat;
   label: string;
   kind: 'area' | 'star' | 'spot';
-  /** The area's busiest street, when Go here starts you there (audit 9). */
+  /** The street Go here starts you on, when it starts you on one (audit 9). */
   via?: string | null;
 }
 
 /**
- * Go here on any surface (decision 0180 and the rest: specs/go-here-everywhere): `ask(target)` opens the one sheet of two
+ * Go here on any surface (decision 0185 and the rest: specs/go-here-everywhere): `ask(target)` opens the one sheet of two
  * choices; Chronicles saves the place and opens Navigate, ready (or, with a walk open, does what the host's own walk start
  * does, NV10); the maps app gets the destination straight from the tap. Back and Escape close the sheet. `sheet` is to be
  * rendered by the host, inside its screen.

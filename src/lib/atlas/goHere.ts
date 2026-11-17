@@ -57,7 +57,7 @@ export function sheetEdge(anchor: 'top' | 'bottom', insets: { top: number; botto
   return anchor === 'top' ? { top: insets.top } : { bottom: insets.bottom };
 }
 
-/** GE5: a busy-area or complex row has Go here whether or not Walk to is offered: Go here works at any distance. */
+/** GE5: a storefront or complex row has Go here whether or not Walk to is offered: Go here works at any distance. */
 export function rowActions(o: { walkable: boolean }): { walk: boolean; go: true } {
   return { walk: o.walkable, go: true };
 }
