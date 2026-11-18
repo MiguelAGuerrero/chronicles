@@ -429,6 +429,20 @@ test('RC7: no view of the stage reads the frame in its render', () => {
   assert.ok(!inRender("    planMs: () => (overlayOf(live.frame(), 'card', key)?.progress ?? 0) * lenMs,"));
 });
 
+// The owner's iPhone, Nov 18: "the reticle has after images". MapLibre rounds a marker to a whole pixel unless asked
+// not to, and a camera that follows the walker puts the dot at the screen's middle: on a screen of an odd width
+// (393 px) that is a half pixel, rounded one way or the other from frame to frame. Measured: 46 flips in one replay.
+
+test('RC1: the walker\'s dot is placed to the sub-pixel, never rounded to a whole one', { todo: 'test first' }, () => {
+  const src = readFileSync(join(SRC, 'components/map/WalkMap.web.tsx'), 'utf8');
+  const puck = /el\.dataset\.testid = 'walker-puck'[\s\S]*?new Marker\(\{([^}]*)\}\)/.exec(src);
+  assert.ok(puck, 'the walker\'s marker is made where its element is');
+  const placed = (options: string) => /subpixelPositioning:\s*true/.test(options);
+  assert.ok(placed(puck[1]), `the walker's marker: {${puck[1]}}`);
+  // Shown to fail: the marker as it was.
+  assert.ok(!placed(" element: el, anchor: 'center' "));
+});
+
 // ---------------------------------------------------------------- the same collection (RC4)
 
 const lines = (...runs: LngLat[][]) => ({ type: 'FeatureCollection', features: runs.map((r) => ({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: r } })) });
