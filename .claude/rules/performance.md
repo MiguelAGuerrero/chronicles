@@ -27,7 +27,9 @@ is already a recorded trade-off is reopened with a number, not rediscovered.
   A per-frame or per-fix cost over n is worth more than a once-at-Stop one over the same n.
 - **Measured or inferred, said so.** The harnesses are web-only: `scripts/perf-walk.js` (a long walk,
   `PERF_SEED`, `PERF_PROFILE`), `scripts/perf-explore.js` (a dense city) and `perfCount` counts under
-  `window.__perf` (`docs/TESTING.md`). **The reactivity budget measures the web build only**; native glides
+  `window.__perf` (`docs/TESTING.md`). No check runs the harnesses: one that fails to reach its screen is
+  fixed before its numbers are trusted. On a device, the native map counts `render:map` and `render:glide`
+  once a dev build's console sets `globalThis.__perf = {}`. **The reactivity budget measures the web build only**; native glides
   and draws through other code (`WalkMap.native.tsx`), so a native cost claim is a device check in
   `docs/NATIVE_UNVERIFIED.md`, never a pass.
 
