@@ -171,6 +171,11 @@ async function run(h) {
         `tend tabs T38: ${when}, the peek takes ${rest.join(' then ')} px and never a height between as the map mounts (${heights.join(', ')}; ${seen.length} frames)`);
       check(gaps.length > 0 && Math.max(...gaps) - Math.min(...gaps) <= 1,
         `tend tabs T38: ${when}, the scale bar sits one gap above the sheet in every frame (${[...new Set(gaps)].join(', ')})`);
+      if (rest.length > 1) {
+        // tend tabs audit 39 (the T38 review's ux 1): the plain peek is a placeholder for the first read, a moment at most.
+        const plain = seen.findIndex((f) => Math.abs(f.h - rest[rest.length - 1]) <= 1);
+        check(plain >= 0 && plain <= 6, `tend tabs audit 39: ${when}, the plain peek gives way to ${rest[rest.length - 1]} within 6 frames of the map's mount (${rest[0]} x ${plain}, then ${rest[rest.length - 1]})`);
+      }
     };
     // tend tabs audit 4: the empty line's top under the grabber, the same in both states.
     let lineTopNothingOpen = null;
