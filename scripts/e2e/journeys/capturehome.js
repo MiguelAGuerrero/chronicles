@@ -117,17 +117,6 @@ async function run(h) {
   await pg.waitForTimeout(1500);
   await pg.click('[data-testid=walk-minimize]');
   await pg.waitForSelector('[data-testid=recording-bar]', { timeout: 10000 });
-  // A few steps along Wickenden Street, so the walk has a trace and a fresh fix to place by. At a walker's pace
-  // (1.5 m a second): 12 m a second was over MAX_WALK_SPEED_MS (lib/geo), so every step was dropped as a jump and the
-  // walk kept only its first fix (tend captures audit 2).
-  const stepAt = (i) => h.at(-1 + i * 0.015, -1.5);
-  const step = async (i) => {
-    await c.setGeolocation({ longitude: stepAt(i)[0], latitude: stepAt(i)[1], accuracy: 6 });
-    await pg.waitForTimeout(1000);
-  };
-  for (let i = 0; i < 6; i++) await step(i);
-  // The walk's last fix: the context sends no new one until the next step, so it ages from here.
-  const fixAt = Date.now();
   // A photo from the bar on Explore, which leaves its Edit pill up (T12).
   const barPhoto = async () => {
     await tabTo(pg, 'explore');
@@ -138,7 +127,8 @@ async function run(h) {
   };
   // tend tabs T36 (the proxy's yes under 0157, 2026-11-18): with the bar's Edit pill up, its room lifts Explore's map, so
   // the press hint steps aside and at 320 x 700 the walker is under no words; it shows again as the pill goes, none of its
-  // five seconds (EC14's "after a few seconds on screen it is marked seen") having run while it stood aside.
+  // five seconds (EC14's "after a few seconds on screen it is marked seen") having run while it stood aside. Before the
+  // steps: its half minute between steps 5 and 6 left the stop unable to place HC10's note on the trace.
   {
     const hint = '[data-testid=atlas-press-hint]';
     await tabTo(pg, 'explore');
@@ -152,17 +142,38 @@ async function run(h) {
     const withPill320 = await pg.locator(hint).count();
     await shot(pg, 'tabs-T36-pill-on-explore-320');
     await pg.setViewportSize({ width: 390, height: 844 });
-    // Up past the hint's five seconds, then closed.
+    await pg.waitForTimeout(400);
+    // tend tabs audit 29: the pill's Edit opens the editor (a Modal); the hint counts none of its seconds beneath it.
+    await pg.click('[data-testid=bar-edit-offer] [data-testid=capture-edit]').catch(() => {});
+    const editor = await pg.waitForSelector('[data-testid=media-editor]', { timeout: 10000 }).then(() => true, () => false);
+    await pg.waitForTimeout(6000);
+    await pg.click('[data-testid=edit-close]').catch(() => {});
+    const afterEditor = await pg.waitForSelector(hint, { timeout: 5000 }).then(() => true, () => false);
+    check(editor && afterEditor,
+      `tend tabs audit 29: six seconds in the media editor, opened from the pill's Edit, leave the press hint unseen: it shows once the editor closes (${JSON.stringify({ editor, afterEditor })})`);
+    // The pill again, up past the hint's five seconds, then closed.
+    const upAgain = await barPhoto();
     await pg.waitForTimeout(6000);
     await pg.click('[data-testid=bar-edit-offer-close]').catch(() => {});
     const back = await pg.waitForSelector(hint, { timeout: 5000 }).then(() => true, () => false);
     await shot(pg, 'tabs-T36-hint-back');
     // Shown again, it is marked seen after its own few seconds on screen, and goes.
-    await pg.waitForTimeout(6500);
+    await pg.waitForTimeout(6000);
     const after = await pg.locator(hint).count();
-    check(hintBefore && up && withPill === 0 && withPill320 === 0 && back && after === 0,
-      `tend tabs T36: while the bar's Edit pill is up Explore's press hint steps aside (390 and 320 x 700), shows again as the pill goes, and is marked seen only after its few seconds on screen (${JSON.stringify({ hintBefore, up, withPill, withPill320, back, after })})`);
+    check(hintBefore && up && upAgain && withPill === 0 && withPill320 === 0 && back && after === 0,
+      `tend tabs T36: while the bar's Edit pill is up Explore's press hint steps aside (390 and 320 x 700), shows again as the pill goes, and is marked seen only after its few seconds on screen (${JSON.stringify({ hintBefore, up, upAgain, withPill, withPill320, back, after })})`);
   }
+  // A few steps along Wickenden Street, so the walk has a trace and a fresh fix to place by. At a walker's pace
+  // (1.5 m a second): 12 m a second was over MAX_WALK_SPEED_MS (lib/geo), so every step was dropped as a jump and the
+  // walk kept only its first fix (tend captures audit 2).
+  const stepAt = (i) => h.at(-1 + i * 0.015, -1.5);
+  const step = async (i) => {
+    await c.setGeolocation({ longitude: stepAt(i)[0], latitude: stepAt(i)[1], accuracy: 6 });
+    await pg.waitForTimeout(1000);
+  };
+  for (let i = 0; i < 6; i++) await step(i);
+  // The walk's last fix: the context sends no new one until the next step, so it ages from here.
+  const fixAt = Date.now();
   // tend tabs audit 16: the offer lives with the bar, so a screen opened over the tabs (a day's replay) ends it, as
   // decision 0149 says; back on the tabs the bar is whole and nothing breaks.
   {

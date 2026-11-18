@@ -81,7 +81,7 @@ test('tend tabs audit 19: while the walk is stopping from the bar the pill is no
 // shows again as it goes; its seconds on screen count only while it shows, so EC14's "after a few seconds on screen it
 // is marked seen" holds.
 test('tend tabs T36: Explore\'s press hint steps aside while the bar\'s Edit pill is up, and counts no time on screen meanwhile', () => {
-  const unseen = { seen: false, spot: false, located: true };
+  const unseen = { seen: false, spot: false, located: true, focused: true, covered: false, folded: false, slotTaken: false };
   assert.equal(pressHintUp({ ...unseen, barOffer: false }), true);
   assert.equal(pressHintUp({ ...unseen, barOffer: true }), false, 'stepped aside while the pill is up');
   // Nothing else moves: seen, a long press open or no place yet keep it down as before, the pill or not.
@@ -95,10 +95,12 @@ test('tend tabs T36: Explore\'s press hint steps aside while the bar\'s Edit pil
 test('tend tabs T36: the bar tells the tabs whether its Edit pill is up, and Explore times its hint by the same reading', () => {
   const bar = readFileSync(join(__dirname, '../../../components/RecordingBar.tsx'), 'utf8');
   const explore = readFileSync(join(__dirname, '../../../app/(tabs)/explore.tsx'), 'utf8');
-  assert.match(bar, /barOfferUp\.set\(offerUp\)/, 'the bar publishes what it shows, not its offer state');
-  assert.match(bar, /return \(\) => barOfferUp\.set\(false\)/, 'a bar that goes takes its pill with it');
+  // tend tabs audit 29 (the review's auditor 3): set on every change of what the bar shows and cleared as it goes, so
+  // effect deps of [] (stuck false) or a read with no subscription fail here.
+  assert.match(bar, /barOfferUp\.set\(offerUp\);\s*return \(\) => barOfferUp\.set\(false\);\s*\}, \[offerUp\]\);/, 'the bar publishes what it shows, and takes it with it');
+  assert.match(explore, /useStore\(barOfferUp,/, 'Explore subscribes to the pill');
   // The one reading gates both the timer that marks the hint seen and what is drawn, so it is never marked seen unseen.
   assert.match(explore, /const hintShown = pressHintUp\(\{[^}]*barOffer[^}]*\}\)/);
   assert.match(explore, /if \(!hintShown\) return;/);
-  assert.match(explore, /hintShown && !creditsOpen \?/);
+  assert.match(explore, /\) : hintShown \? \(/);
 });
