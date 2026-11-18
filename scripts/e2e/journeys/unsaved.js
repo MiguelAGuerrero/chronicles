@@ -533,6 +533,10 @@ async function run(h) {
   const undoSaying = await textOf('[data-testid=recording-said]');
   check(undoSaying === 'The voice memo is still being saved. Hold Stop again in a moment.',
     `tend tabs audit 41: a memo kept by Undo of its discard holds the bar's Stop and keeps the walk: the first hold says it is saving ("${undoSaying}")`);
+  // On Memories, with no camera on the bar: the words whole in three lines at most (tend tabs audit 48).
+  const memoriesBox = await saidBoxOf();
+  check(!!memoriesBox && memoriesBox.whole && memoriesBox.lines <= 3,
+    `tend tabs audit 48: on Memories at 320 px the saving words are whole in three lines at most (${JSON.stringify(memoriesBox)})`);
   await shot(pg, 'unsaved-bar-saving-320');
   await wide(390);
   await shot(pg, 'unsaved-bar-saving-390');
