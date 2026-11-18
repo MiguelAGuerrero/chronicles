@@ -1,4 +1,4 @@
-# 0219. Shops by two facets, drawn from a measurement
+# 0221. Shops by two facets, drawn from a measurement
 
 Date: 2026-11-18 · Status: accepted · Area: outing, stores pack, chronicles-data contract · Builds on [0194](0194-plan-an-outing.md), [0209](0209-outing-journey-the-owners-answers.md)
 

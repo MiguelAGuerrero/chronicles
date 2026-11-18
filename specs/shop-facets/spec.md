@@ -9,7 +9,7 @@ Nov 18, 2026 · @Miguel Guerrero
 The owner: "I want to ensure that we're comprehensive in our shop listing, because thrifting, antiques, and books are very
 specific. And so we need to ensure that refinement makes sense there rather than it being ad hoc, because each thing you would like
 to see is a facet of our data." Asked three things, they chose: **shops worth browsing**; **two facets that narrow**; and **measure
-the data first** (decision 0219).
+the data first** (decision 0221).
 
 **Widened the same day.** The owner: "shops are one type of store, but attractions and galleries and other sorts of stops,
 museums, things you can enter are also under consideration." Asked three more things, they chose: **one model for every stop**
@@ -181,6 +181,6 @@ sizes are known; the owner chooses from the mocks.
 
 ## Record
 
-Nothing is built in the app. Decision 0219, widened the same day. chronicles-data: the counts of every kind of stop are built on
+Nothing is built in the app. Decision 0221, widened the same day. chronicles-data: the counts of every kind of stop are built on
 its main since Nov 18 (SK1-SK12, 127 tests: every value of six keys, the second-hand among shops, and how many of each kind
 state opening hours); no OpenStreetMap run has reported them yet.
