@@ -87,6 +87,9 @@ is already a recorded trade-off is reopened with a number, not rediscovered.
 
 - Anything over features is O(n log n) or better: index with `EdgeGrid` or `Buckets`
   (`landing/spatial.ts`, numeric keys), never `some`/`find` inside a loop over the same n.
+- **Filter a tile's features before decoding their geometry.** A vector tile gives a feature's properties
+  without decoding its shape (`toGeoJSON` is the cost): read what decides whether it is kept first, as the
+  complexes reader keeps only named buildings of thousands (`namedBuilding`, performance review, Nov 18).
 - Native has no worker: a computation over a read (deriving streets, analysing an area) yields every
   ~16 ms, not only between stages (`landing.md`).
 - Recompute from the trace (truth vs cache), but not every tick: cache by a key that changes when the input
