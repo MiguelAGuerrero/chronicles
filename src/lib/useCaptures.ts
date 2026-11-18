@@ -498,7 +498,7 @@ export function useCaptures(
   };
   /** A walk never starts while this memo is stopping and saving (tabs audit 3). */
   const trackMemo = <T,>(p: Promise<T>): Promise<T> => {
-    memoGate.track(p);
+    memoGate.track(p, self);
     return p;
   };
   const withBusy = async <T,>(fn: () => Promise<T>): Promise<T> => {

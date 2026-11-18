@@ -13,8 +13,8 @@ import { stopUnderOf, type StopUnder } from './stopEnd/core';
  */
 export function createMemoGate() {
   const on = new Set<object>();
-  /** Each memo save under way, by its number (T35). */
-  const saves = new Map<Promise<unknown>, number>();
+  /** Each memo save under way: its number (T35) and its capture path (tend tabs audit 44). */
+  const saves = new Map<Promise<unknown>, { n: number; owner: unknown }>();
   let numbered = 0;
   const keeps = new Set<Promise<unknown>>();
   /** Stops that went through a save, each until its walk's drop is decided (T35). */
@@ -45,13 +45,13 @@ export function createMemoGate() {
     recordingNow(): boolean {
       return on.size > 0;
     },
-    /** A memo's save (or stop) under way; a start waits for it. */
-    track(p: Promise<unknown>) {
+    /** A memo's save (or stop) under way, of the capture path `owner`; a start waits for it. */
+    track(p: Promise<unknown>, owner: unknown = null) {
       const settled = p.then(
         () => {},
         () => {},
       );
-      saves.set(settled, ++numbered);
+      saves.set(settled, { n: ++numbered, owner });
       void settled.then(() => saves.delete(settled));
     },
     /** True once every save under way has ended and no memo records. */
@@ -61,7 +61,7 @@ export function createMemoGate() {
     },
     /** What a Stop meets once its wait is over (T35), decided in core from this gate's state (tend tabs audit 43). */
     stopUnder(warned: readonly number[]): StopUnder {
-      return stopUnderOf({ saving: [...saves.values()].map((n) => ({ n, owner: null })), on: [...on], warned });
+      return stopUnderOf({ saving: [...saves.values()], on: [...on], warned });
     },
     /** A memo recording or being saved, a photo or video being kept, or a stop through one: the walk is not dropped. */
     underWay(): boolean {

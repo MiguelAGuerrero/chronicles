@@ -23,7 +23,7 @@ test('tend tabs T35: memoGate tells a memo recording from one still being saved'
   gate.recording(memo, true);
   assert.deepEqual(gate.stopUnder([]), { go: false, recording: true }, 'a memo recording: refused as recording');
   const save = pending();
-  gate.track(save.p);
+  gate.track(save.p, memo);
   const under = gate.stopUnder([]);
   assert.equal(under.go, false);
   assert.ok(!under.go && 'saving' in under && under.saving.length === 1, 'a memo being saved: refused as saving, not recording');
@@ -111,4 +111,16 @@ test('tend tabs audit 41: every memo save is tracked: each keepMemo call sits in
     const head = lines.slice(d, d + 3).join('\n');
     assert.match(head, /=>\s*\n?\s*trackMemo\(/, `the action at line ${d + 1} (${lines[d].trim()}) is tracked, so a Stop waits for its save`);
   }
+});
+
+test('tend tabs audit 44: a memo recording on another path refuses the stop while one saves', () => {
+  const gate = createMemoGate();
+  const navigate = {};
+  const memories = {};
+  gate.recording(navigate, true);
+  gate.track(pending().p, navigate);
+  gate.recording(memories, true);
+  assert.deepEqual(gate.stopUnder([]), { go: false, recording: true });
+  // Each capture path names itself with its saves, as with its recording.
+  assert.match(source('src/lib/useCaptures.ts'), /memoGate\.track\(p, self\);/);
 });
