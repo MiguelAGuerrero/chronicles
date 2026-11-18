@@ -3,6 +3,7 @@
 // The browser's storage API is replaced in this page only (`__free`, `__persistAsked`), and the media
 // store's write is refused as out of quota on cue (`__failMedia`). E2E_ONLY=space runs it alone.
 const path = require('path');
+const { failStorage } = require('../failStorage');
 
 const LOW = 'Room for new photos and videos is running low.';
 const VERY_LOW = 'There is almost no room left for new photos, videos and memos.';
@@ -10,13 +11,12 @@ const OUT = 'Not saved: there is no room left. It is held here for Retry.';
 const REFUSED = 'This browser may clear Chronicles’ moments when it needs room.';
 
 async function run(h) {
-  const { navUrl, check, freshPage, scriptsDir } = h;
+  const { navUrl, check, freshPage, scriptsDir, toStop } = h;
   const fixtures = path.join(scriptsDir, 'fixtures');
   const { c, pg } = await freshPage('space');
   await c.addInitScript(() => {
     window.__free = 300 * 1024 * 1024;
     window.__persistAsked = 0;
-    window.__failMedia = 0;
     const quota = 1e12;
     // Only these three: the rest of the storage API (a worker's) stays the browser's own.
     const sm = StorageManager.prototype;
@@ -26,15 +26,9 @@ async function run(h) {
       window.__persistAsked++;
       return false;
     };
-    const put = IDBObjectStore.prototype.put;
-    IDBObjectStore.prototype.put = function (...args) {
-      if (this.name === 'media' && window.__failMedia > 0) {
-        window.__failMedia--;
-        throw new DOMException('The quota has been exceeded.', 'QuotaExceededError');
-      }
-      return put.apply(this, args);
-    };
   });
+  // The media store's write refused as out of quota on cue (`__failMedia`), shared with the unsaved journey.
+  await failStorage(c);
   const lineText = (timeout = 8000) =>
     pg.waitForSelector('[data-testid=space-line]', { timeout }).then((e) => e.innerText(), () => '');
   const enabled = async (id) => (await pg.locator(`[data-testid=${id}]`).getAttribute('aria-disabled')) !== 'true';
@@ -71,6 +65,60 @@ async function run(h) {
   check((await pg.evaluate(() => window.__persistAsked)) === 1 && refused.includes(REFUSED), `SA10: asked once after a moment kept outside a walk; the refusal said ("${say(refused)}")`);
   await dismiss();
 
+  // tend captures 1: a memo whose stop is given up on (3 s) has no file of its own on the web. It is said and let go, never
+  // held for a Retry that cannot work, and never kept as the memo before it. The browser's MediaRecorder ignores the stop.
+  const voiceRows = () => pg.evaluate(() => new Promise((resolve) => {
+    const req = indexedDB.open('chronicles');
+    req.onsuccess = () => {
+      const g = req.result.transaction('moment', 'readonly').objectStore('moment').getAll();
+      g.onsuccess = () => resolve(g.result.filter((m) => m.pieces.some((x) => x.kind === 'voice')).length);
+    };
+  }));
+  await pg.evaluate(() => {
+    const stop = MediaRecorder.prototype.stop;
+    window.__stopOff = 0;
+    // The recorders whose stop was ignored, and the browser's own stop, so the block ends them (tend captures audit 1).
+    window.__stopIgnored = [];
+    window.__stopOwn = stop;
+    MediaRecorder.prototype.stop = function () {
+      if (window.__stopOff > 0) {
+        window.__stopOff--;
+        window.__stopIgnored.push(this);
+        return undefined;
+      }
+      return stop.call(this);
+    };
+  });
+  const memo = async ({ stopOff = 0 } = {}) => {
+    await pg.click('[data-testid=moment-voice]');
+    await pg.waitForSelector('[data-testid=moment-voice-save]', { timeout: 10000 });
+    await pg.waitForTimeout(1300);
+    await pg.evaluate((n) => { window.__stopOff = n; }, stopOff);
+    await pg.click('[data-testid=moment-voice-save]');
+    await pg.waitForSelector('[data-testid=moment-voice-save]', { state: 'detached', timeout: 10000 }).catch(() => {});
+    await pg.waitForTimeout(800);
+  };
+  const FAILED = 'Couldn’t save this voice memo.';
+  const retryShown = () => pg.locator('text=Voice memo not saved').count();
+  const voices0 = await voiceRows();
+  await memo({ stopOff: 1 });
+  check((await retryShown()) === 0 && (await pg.locator(`text=${FAILED}`).count()) > 0 && (await voiceRows()) === voices0,
+    `tend captures 1: a memo whose stop timed out, with no file, is said and offers no Retry (${await retryShown()}, ${(await voiceRows()) - voices0} kept)`);
+  await memo();
+  const voices1 = await voiceRows();
+  await memo({ stopOff: 1 });
+  check((await retryShown()) === 0 && (await voiceRows()) === voices1 && voices1 === voices0 + 1,
+    `tend captures 1: after a kept memo, one whose stop timed out offers no Retry for that memo's file, and keeps nothing (${voices0} → ${voices1} → ${await voiceRows()})`);
+  // The ignored recorders are stopped and the browser's stop put back, so no microphone records under the later steps.
+  const live = await pg.evaluate(() => {
+    for (const r of window.__stopIgnored) if (r.state !== 'inactive') window.__stopOwn.call(r);
+    MediaRecorder.prototype.stop = window.__stopOwn;
+    return new Promise((resolve) => setTimeout(() => resolve(window.__stopIgnored.filter((r) => r.state !== 'inactive').length), 300));
+  });
+  const ended = await pg.evaluate(() => window.__stopIgnored.length);
+  check(live === 0 && ended === 2 && (await pg.evaluate(() => MediaRecorder.prototype.stop === window.__stopOwn)),
+    `tend captures audit 1: the journey ends the recorders whose stop it ignored and puts the browser's stop back (${ended} ignored, ${live} still live)`);
+
   // The walk, with the room now very low: said again, because it got worse (SA3, SA4).
   await pg.evaluate(() => { window.__free = 50 * 1024 * 1024; });
   await pg.waitForTimeout(1500);
@@ -85,23 +133,25 @@ async function run(h) {
   await pg.evaluate(() => { window.__failMedia = 2; });
   const before = await photoRows();
   await shoot('cap-photo');
-  await pg.waitForSelector('[data-testid=held-captures]', { timeout: 10000 }).catch(() => {});
+  await pg.waitForSelector('[data-testid=held-captures] >> visible=true', { timeout: 10000 }).catch(() => {});
   await shoot('cap-photo');
   await pg.waitForTimeout(1500);
-  const pill = await pg.locator('[data-testid=held-captures]').innerText().catch(() => '');
+  // Memories' open line, mounted beneath, shows the same held photos since unsaved captures (UN2): the walk's is the one in view.
+  const pill = await pg.locator('[data-testid=held-captures]').filter({ visible: true }).first().innerText().catch(() => '');
   check(/Photos not saved/.test(pill) && /Retry/.test(pill), `SA8: both refused photos are held with Retry ("${say(pill)}")`);
   const said = await pg.locator(`text=${OUT}`).count();
   const raw = await pg.locator('text=/quota/i').count();
   check(said > 0 && raw === 0, `SA9: it says why in words, never the raw error (${said}, ${raw})`);
   check((await photoRows()) === before, 'SA8: nothing is stored while they wait');
   check((await pg.evaluate(() => window.__persistAsked)) === 1, 'SA10: nothing is asked while the walk records');
-  if (pill) await pg.click('[data-testid=held-retry]');
+  if (pill) await pg.click('[data-testid=held-retry] >> visible=true');
   const kept = await pg.waitForSelector('[data-testid=held-captures]', { state: 'detached', timeout: 10000 }).then(() => true, () => false);
   check(!!pill && kept && (await photoRows()) === before + 2, `SA8: Retry keeps both photos (${(await photoRows()) - before})`);
 
   // tend walk-screen 1: Stop warns about what is held at that moment, not only the first time in the walk (SA8). A held photo,
   // Stop's warning, Retry keeps it; a later photo is held too: Stop warns again instead of ending the walk without it.
   const holdStop = async () => {
+    await toStop(pg);
     const b = await pg.locator('[data-testid=stop]').boundingBox();
     await pg.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
     await pg.mouse.down();
@@ -114,7 +164,7 @@ async function run(h) {
   await pg.waitForTimeout(2500);
   await pg.evaluate(() => { window.__failMedia = 1; });
   await shoot('cap-photo');
-  await pg.waitForSelector('[data-testid=held-captures]', { timeout: 10000 }).catch(() => {});
+  await pg.waitForSelector('[data-testid=held-captures] >> visible=true', { timeout: 10000 }).catch(() => {});
   await holdStop();
   check((await warned()) > 0 && /\/walk/.test(pg.url()), `SA8: Stop with a held photo warns first and the walk goes on (${await warned()}, ${pg.url().slice(-12)})`);
   // tend walk-screen audit 1: a second photo held while the first still is, after the warning, is warned about too.
@@ -128,18 +178,18 @@ async function run(h) {
   await pg.waitForTimeout(300);
   await holdStop();
   check(/\/walk/.test(pg.url()) && (await warned()) > 0, `tend walk-screen audit 1: a photo that fails while another is held, after the warning, is warned about too (${await warned()}, ${pg.url().slice(-12)})`);
-  await pg.click('[data-testid=held-retry]').catch(() => {});
+  await pg.click('[data-testid=held-retry] >> visible=true').catch(() => {});
   await pg.waitForSelector('[data-testid=held-captures]', { state: 'detached', timeout: 10000 }).catch(() => {});
   await pg.waitForTimeout(2500);
   await pg.evaluate(() => { window.__failMedia = 1; });
   await shoot('cap-photo');
-  await pg.waitForSelector('[data-testid=held-captures]', { timeout: 10000 }).catch(() => {});
+  await pg.waitForSelector('[data-testid=held-captures] >> visible=true', { timeout: 10000 }).catch(() => {});
   await pg.evaluate(() => document.querySelectorAll('[data-testid=banner-dismiss]').forEach((b) => b.click()));
   await pg.waitForTimeout(300);
   await holdStop();
   check(/\/walk/.test(pg.url()) && (await warned()) > 0 && (await pg.locator('[data-testid=held-captures]').count()) > 0, `tend walk-screen 1: a photo held after the first warning is warned about too; the walk does not end without it (${pg.url().slice(-12)})`);
   if (/\/walk/.test(pg.url())) {
-    await pg.click('[data-testid=held-retry]').catch(() => {});
+    await pg.click('[data-testid=held-retry] >> visible=true').catch(() => {});
     await pg.waitForSelector('[data-testid=held-captures]', { state: 'detached', timeout: 10000 }).catch(() => {});
   } else {
     await pg.goto(navUrl);

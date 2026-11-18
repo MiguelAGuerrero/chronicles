@@ -1,0 +1,26 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "The app does not read a stores pack yet",
+        "--reason",
+        "Built: the manifest's stores entry, the reader over net/tileReader (outing/storesPack.ts), the pack fixture test and the journey's Books proposal from a served pack (QC14, QC29)"
+      ],
+      "target": "sha256:ea26e038981cc053881590769101d62a5ff5ec8271c0524b4ceb0a23e2eedd5d"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "The proposal map and the followed walk's map may draw basemap labels",
+        "--reason",
+        "Built: hideLabels on WalkMap hides the base style's poi symbol layers (web) or the base source's poi layer (native) on the outing page and a followed outing; the native part is in NATIVE_UNVERIFIED (QC24)"
+      ],
+      "target": "sha256:e77f8c56367881195cae79c8d243de813648ea835ffbe34b2303b8b3731f953c"
+    }
+  ]
+}

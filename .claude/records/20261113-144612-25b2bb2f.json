@@ -1,0 +1,13 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Capture from Chronicle and the journal (HC1-HC15, decision 0112; JN1-JN24, decision 0155)"
+      ],
+      "body": "- [ ] **Do:** on the iPhone that showed the keyboard's own row (previous, next, a tick) floating over the journal's bar, open Memories from the Home Screen app, tap the empty page and type; then the same in Safari. **Expect:** the bar's Open as a page, camera, mic and Done are all visible and tappable above the floating row, with the page's own ground under the row; nothing of the bar is covered. On an iPhone that docks that row to the keyboard, no extra band under the bar. The room is 56 px, read off a screenshot. (fix keyboard-accessory)\n"
+    }
+  ]
+}

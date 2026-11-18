@@ -14,10 +14,17 @@ import { newId } from './id';
 import { threads } from './threads';
 import { locateOnce } from './locate';
 import { memoGate } from './memoGate';
+import { rereadTranscript, transcripts } from './transcript';
+import { nowPlaying, RECORDING } from './journal/nowPlaying';
+import { spareFresh } from './journal/target';
 import type { LocateResult } from './locate/types';
 import { dropTemp, keepFile, removeMedia } from './media';
 import { makeThumb } from './media/thumb';
-import { isOutOfSpace, saveFailLine } from './space/core';
+import { failedMemo, memoFile } from './media/memoSave';
+import { isOutOfSpace } from './space/core';
+import { unsaved } from './unsaved';
+import { folderOf, heldKey, heldWhere, keepInOrder, kindsOf, looseAfterEnd, retryInto, type Unsaved } from './unsaved/core';
+import { useStore } from './useStore';
 import { space } from './space';
 import { captureThumbStillWanted, THUMB } from './thumbPlan';
 import { stampFor } from './pieceStamp';
@@ -44,12 +51,15 @@ export const UNDO_MS = 5000;
 
 type Busy = CaptureKind | null;
 
-export type VoiceResult = 'saved' | 'dropped' | 'discarded' | 'failed' | 'none';
+/** `lost`: the memo had no file to keep, so it is said and let go, with no Retry (tend captures 1). */
+export type VoiceResult = 'saved' | 'dropped' | 'discarded' | 'failed' | 'lost' | 'none';
 
 /** When a capture was begun and where; a moment outside a walk also has its fix on the way. */
 export interface Stamp {
   t: number;
   at: LngLat | null;
+  /** The walk it was taken on, null outside one: a Retry from any screen keeps it there (unsaved captures UN4). */
+  walk: string | null;
   /** The moment a reply answers, fixed when the capture began, so a swipe meanwhile never moves it (ui-conformance audit 10). */
   replyTo?: { answeredId: string; from?: string | null } | null;
   locating?: Promise<LocateResult>;
@@ -66,22 +76,11 @@ export type MomentState = 'kept' | 'placed' | NonNullable<LocateResult['reason']
 /** The time a capture is begun; only ever called from a tap, never during render. */
 const clockNow = () => Date.now();
 
-/** Folder for the media of moments made outside any walk. */
-const LOOSE_FOLDER = 'moments';
-
 /**
- * A photo or video whose save failed, held for Retry with the time and place it was taken (SA8). `path`
- * is set once its file is kept, so a Retry after a failed row write doesn't move the file twice.
+ * A photo, video or memo to keep: new, or held by the one holder for Retry (SA8; unsaved captures, decision 0196).
+ * `path` is set once its file is kept, so a Retry after a failed row write never keeps the file twice (UN12).
  */
-interface HeldShot {
-  kind: 'photo' | 'video';
-  stamp: Stamp;
-  uri: string;
-  ext: string;
-  /** A video's length in ms, its capture's body. */
-  ms: number | null;
-  path: string | null;
-}
+type Keepable = Pick<Unsaved<Stamp>, 'kind' | 'stamp' | 'uri' | 'ext' | 'ms' | 'path'>;
 
 interface StoppedMemo {
   uri: string | null;
@@ -113,6 +112,15 @@ export function useCaptures(
     replyTo?: { answeredId: string; from?: string | null } | null;
     /** Told when a capture is kept: a new moment, or a piece added to one (moment stacks, the pill). */
     onKept?: (momentId: string, piece: boolean) => void;
+    /**
+     * This path draws no pill with Retry (the recording bar, Respond, the planner): a failure says where its Retry is
+     * instead of "held here" (unsaved captures UN10).
+     */
+    retryShown?: boolean;
+    /** This path's pills are on the screen in front: it says what failed on a screen gone, once (UN9, UN13). */
+    sayHeld?: boolean;
+    /** The recording bar's shorter words for a failure out of room (the owner, Nov 17; unsaved-captures audit 7). */
+    shortWords?: boolean;
   } = {},
 ) {
   const enabled = walkId != null || !!opts.loose;
@@ -141,6 +149,8 @@ export function useCaptures(
   const lock = useRef(false); // taps arrive faster than state updates
   const alive = useRef(true); // the screen is still mounted
   const voiceStamp = useRef<Stamp | null>(null);
+  /** The recorder's uri before this memo's prepare: one still the same at its stop is not this memo's (tend captures 1). */
+  const memoUriBefore = useRef<string | null>(null);
   const voice = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const pos = useRef({ here, lastFixAt });
   useEffect(() => {
@@ -160,8 +170,8 @@ export function useCaptures(
         if (alive.current) setCaptures((prev) => mergeCaptures(prev, [c]));
       },
       // A later change from that path (its thumbnail), sent even once that path is gone (tabs audit 5).
-      (id, patch) => {
-        if (alive.current) setCaptures((prev) => applyPatch(prev, id, patch));
+      (id, patch, pieceId) => {
+        if (alive.current) setCaptures((prev) => applyPatch(prev, id, patch, pieceId));
       },
     );
     db.getMoments(walkId).then(facedAll).then((stored) => {
@@ -174,7 +184,7 @@ export function useCaptures(
     // A piece for an open moment takes no fix: the moment's one place is its place (MS3, `pieceStamp`).
     const st = stampFor(clockNow(), pos.current, into);
     // The reply is fixed when the capture begins (ui-conformance audit 10); a piece answers nothing.
-    const s: Stamp = { t: st.t, at: st.at, into: st.into, replyTo: st.into ? null : replyTo.current };
+    const s: Stamp = { t: st.t, at: st.at, walk: walkId, into: st.into, replyTo: st.into ? null : replyTo.current };
     if (locate && st.locate) startLocating(s);
     return s;
   };
@@ -185,9 +195,20 @@ export function useCaptures(
    */
   const startLocating = (s: Stamp) => {
     // In a walk too: while paused the recorder is stopped, so the last fix is where the pause began.
-    if (!s.at && !s.locating && !s.into) s.locating = locateOnce().catch(() => ({ at: null, reason: 'unavailable' as const }));
+    if (s.at || s.locating || s.into) return;
+    // An entry emptied before it was kept left its read behind: the next one begun in the same sitting takes it,
+    // so nothing is read twice for one kept entry (chronicle journal JN12).
+    const left = spare.current;
+    spare.current = null;
+    // Aged from when it was read, never from when its entry was emptied (audit 5).
+    s.locating = left && spareFresh(left.at, clockNow()) ? left.fix : locateOnce().catch(() => ({ at: null, reason: 'unavailable' as const }));
   };
-  const folder = () => walkId ?? LOOSE_FOLDER;
+  /** The location read of the moment begun last, on its way or answered, and the moments an emptied line removed (JN12, JN13). */
+  const lastLocate = useRef<{ id: string; fix: Promise<LocateResult>; at: number } | null>(null);
+  const dropped = useRef(new Set<string>());
+  const spare = useRef<{ fix: Promise<LocateResult>; at: number } | null>(null);
+  /** Shown here: a capture of this path's walk (or of none, on a loose path); a held one of another is told on the bus. */
+  const ours = (walk: string | null) => walk === walkId;
 
   /**
    * A piece added to an open moment (moment stacks MS3, MS5): stored with its own time under the moment, whose place
@@ -197,14 +218,20 @@ export function useCaptures(
     const pieceId = newId();
     const piece: Capture = { id: pieceId, moment_id: into, t: stamp.t, kind, file_path, body, ...more };
     await db.addPiece(into, piece);
-    const [stored] = await db.getMomentsByIds([into]);
-    if (stored) {
-      const now = faced(stored);
-      if (alive.current) setCaptures((prev) => prev.map((x) => (x.id === into ? { ...now, lat: x.lat, lon: x.lon } : x)));
-      captureBus.emit(now, self);
-      if (!walkId) onMoment.current?.(now, 'kept');
+    // Stored: what follows never makes it unsaved (unsaved-captures audit 6).
+    try {
+      const [stored] = await db.getMomentsByIds([into]);
+      if (stored) {
+        const now = faced(stored);
+        if (alive.current && ours(stamp.walk)) setCaptures((prev) => prev.map((x) => (x.id === into ? { ...now, lat: x.lat, lon: x.lon } : x)));
+        captureBus.emit(now, self);
+        if (!stamp.walk) onMoment.current?.(now, 'kept');
+      }
+      // The pill opens only on this path's own walk: a held capture of another kept here opens nothing (audit 1).
+      if (ours(stamp.walk)) onKept.current?.(into, true);
+    } catch {
+      // The piece is kept; this screen shows it at its next read.
     }
-    onKept.current?.(into, true);
     return { momentId: into, pieceId };
   }
 
@@ -214,26 +241,33 @@ export function useCaptures(
     // A new moment and its first piece, under one id (decision 0123): its one place and time, the piece's media.
     const id = newId();
     const m: Moment = {
-      id, walk_id: walkId, t: stamp.t, lat: stamp.at?.[1] ?? null, lon: stamp.at?.[0] ?? null, segment_id: null,
+      id, walk_id: stamp.walk, t: stamp.t, lat: stamp.at?.[1] ?? null, lon: stamp.at?.[0] ?? null, segment_id: null,
       pieces: [{ id, moment_id: id, t: stamp.t, kind, file_path, body, ...more }],
     };
     await db.addMoment(m);
     const c = faced(m);
-    // A reply is linked once it is kept; a failed link leaves the moment kept, unconnected (OT2).
-    const answers = stamp.replyTo !== undefined ? stamp.replyTo : replyTo.current;
-    if (answers) void threads.reply(c.id, answers.answeredId, answers.from ?? null).catch(() => {});
-    // Without a fresh fix, it is stored unplaced (the trace places it at
-    // stop), but pinned meanwhile at the last known position.
-    const last = pos.current.here;
-    const shown = c.lat == null && last ? { ...c, lat: last[1], lon: last[0] } : c;
-    if (alive.current) setCaptures((prev) => [...prev, shown]);
-    // Told even once this path is gone: the walk screen may have come back meanwhile (NV9).
-    captureBus.emit(shown, self);
-    if (!walkId) onMoment.current?.(c, 'kept');
-    onKept.current?.(c.id, false);
-    placeMoment(c, stamp);
-    // The room again after each kept photo, video or memo (SA5); the web's request waits for a calm moment (SA10).
-    if (kind !== 'text') void space.afterKept({ recording: walkId != null });
+    // Stored: what follows never makes it unsaved (unsaved-captures audit 6).
+    try {
+      // A reply is linked once it is kept; a failed link leaves the moment kept, unconnected (OT2).
+      const answers = stamp.replyTo !== undefined ? stamp.replyTo : replyTo.current;
+      if (answers) void threads.reply(c.id, answers.answeredId, answers.from ?? null).catch(() => {});
+      // Without a fresh fix, it is stored unplaced (the trace places it at
+      // stop), but pinned meanwhile at the last known position.
+      const last = pos.current.here;
+      const shown = c.lat == null && last ? { ...c, lat: last[1], lon: last[0] } : c;
+      if (alive.current && ours(stamp.walk)) setCaptures((prev) => [...prev, shown]);
+      // Told even once this path is gone: the walk screen may have come back meanwhile (NV9).
+      captureBus.emit(shown, self);
+      if (!stamp.walk) onMoment.current?.(c, 'kept');
+      // The pill opens only on this path's own walk: a held capture of another kept here opens nothing (audit 1).
+      if (ours(stamp.walk)) onKept.current?.(c.id, false);
+      if (stamp.locating) lastLocate.current = { id: c.id, fix: stamp.locating, at: stamp.t };
+      placeMoment(c, stamp);
+      // The room again after each kept photo, video or memo (SA5); the web's request waits for a calm moment (SA10).
+      if (kind !== 'text') void space.afterKept({ recording: stamp.walk != null });
+    } catch {
+      // The moment is kept; this screen shows it at its next read.
+    }
     return c.id;
   }
 
@@ -244,7 +278,7 @@ export function useCaptures(
   function placeMoment(c: Faced, stamp: Stamp) {
     // In a walk, no fix leaves it for the trace to place at stop; nothing is reported.
     const report = (x: Faced, state: MomentState) => {
-      if (!walkId) onMoment.current?.(x, state);
+      if (!stamp.walk) onMoment.current?.(x, state);
     };
     if (c.lat != null || !stamp.locating) {
       report(c, c.lat != null ? 'placed' : 'unavailable');
@@ -252,15 +286,17 @@ export function useCaptures(
     }
     stamp.locating
       .then(async (r) => {
+        // Emptied meanwhile (JN13): nothing is left to place.
+        if (dropped.current.has(c.id)) return;
         if (!r.at) {
           report(c, r.reason ?? 'timeout');
           return;
         }
         const placed = { ...c, lon: r.at[0], lat: r.at[1] };
         await db.updateMoment(c.id, { lon: placed.lon, lat: placed.lat });
-        if (alive.current) setCaptures((prev) => prev.map((x) => (x.id === c.id ? placed : x)));
+        if (alive.current && ours(stamp.walk)) setCaptures((prev) => prev.map((x) => (x.id === c.id ? placed : x)));
         // The pin shown at the last position elsewhere moves too (NV9).
-        if (walkId) captureBus.patch(walkId, c.id, { lon: placed.lon, lat: placed.lat }, self);
+        if (stamp.walk) captureBus.patch(stamp.walk, c.id, { lon: placed.lon, lat: placed.lat }, self);
         report(placed, 'placed');
       })
       .catch(() => report(c, 'unavailable'));
@@ -283,56 +319,105 @@ export function useCaptures(
     }
   }
 
-  /** Photos and videos whose save failed, every one of them, held for Retry (SA8). */
-  const [held, setHeld] = useState<HeldShot[]>([]);
-
-  /** Keeps a shot's file, then its row; on a failure, the shot as far as it got and why. */
-  async function keepShot(s: HeldShot): Promise<{ id: string | null } | { failed: HeldShot; error: unknown }> {
-    let path = s.path;
-    try {
-      path = path ?? (await keepFile(s.uri, folder(), `${newId()}.${s.ext}`));
-      // With `into`, the id is the new piece's in that open moment (MS3).
-      const id = await add(s.kind, s.stamp, path, s.ms == null ? null : String(s.ms));
-      if (id && s.kind === 'photo') thumbFor(id, path, s.stamp.into ?? id);
-      return { id };
-    } catch (error) {
-      return { failed: { ...s, path }, error };
-    }
-  }
-
-  /** Keeps a new shot, or holds it with why in words, never the raw error (SA8, SA9). */
-  async function keepOrHold(s: HeldShot): Promise<{ kind: 'photo' | 'video'; id: string; momentId: string } | null> {
-    const r = await keepShot(s);
-    if ('failed' in r) {
-      if (alive.current) setHeld((prev) => [...prev, r.failed]);
-      setError({ message: saveFailLine(s.kind, isOutOfSpace(r.error)) });
-      return null;
-    }
-    return r.id ? { kind: s.kind, id: r.id, momentId: s.stamp.into ?? r.id } : null;
-  }
-
-  /** Retry: each held shot saved in turn; one that fails again stays held (SA8). */
-  const retryHeld = () =>
-    guarded(held[0]?.kind ?? 'photo', async () => {
-      const still: HeldShot[] = [];
-      let last: { kind: HeldShot['kind']; error: unknown } | null = null;
-      for (const s of held) {
-        const r = await keepShot(s);
-        if ('failed' in r) {
-          still.push(r.failed);
-          last = { kind: s.kind, error: r.error };
-        }
-      }
-      if (alive.current) setHeld(still);
-      if (last) setError({ message: saveFailLine(last.kind, isOutOfSpace(last.error)) });
-    });
+  /** Where this path's failures say their Retry is (SA9; UN10). */
+  const retryShown = opts.retryShown !== false;
+  /** This path is in front: mounted, and its screen in front when it says so (`sayHeld`; unsaved-captures audit 5). */
+  const sayHeldNow = useRef(opts.sayHeld);
+  useEffect(() => {
+    sayHeldNow.current = opts.sayHeld;
+  }, [opts.sayHeld]);
+  const inFront = () => alive.current && sayHeldNow.current !== false;
+  const where = () => (retryShown ? 'here' : walkId ? 'walk' : 'memories') as 'here' | 'walk' | 'memories';
 
   /**
-   * A new photo's small copy for previews (TH1), after the capture is kept: never holds it up or fails it (TH2). The
-   * copy is the piece's (`id`); the moment it sits in (`momentId`) is read fresh, and shows it when it is its face.
+   * Keeps a capture's file, then its row (with `into`, as a piece of that open moment, or as a moment of its own when
+   * that moment is gone: UN11); on a failure, the kept path as far as it got and why. Never throws.
    */
-  function thumbFor(id: string, path: string, momentId: string) {
-    void makeThumb(facedOf({ id, walk_id: folder(), t: Date.now(), lat: null, lon: null, kind: 'photo', file_path: path, body: null, segment_id: null })).then((thumb) => {
+  async function keepCapture(k: Keepable): Promise<{ id: string | null } | { path: string | null; error: unknown }> {
+    let stamp = k.stamp;
+    return keepInOrder(k, {
+      keepFile: async (uri) => {
+        if (stamp.into) {
+          const [m] = await db.getMomentsByIds([stamp.into]);
+          if (retryInto(stamp.into, !!m) !== stamp.into) stamp = { ...stamp, into: null };
+        }
+        return keepFile(uri, folderOf(stamp.walk), `${newId()}.${k.ext}`);
+      },
+      write: async (path) => {
+        if (k.path && stamp.into) {
+          const [m] = await db.getMomentsByIds([stamp.into]);
+          if (retryInto(stamp.into, !!m) !== stamp.into) stamp = { ...stamp, into: null };
+        }
+        // With `into`, the id is the new piece's in that open moment (MS3).
+        return add(k.kind, stamp, path, k.ms == null ? null : String(Math.round(k.ms)));
+      },
+      after: (id, path) => {
+        if (id && (k.kind === 'photo' || k.kind === 'video')) thumbFor(id, k.kind, path, stamp.into ?? id, stamp.walk);
+        // A memo's words are read in the background, when the phone can; it is already kept and never waits (TX1).
+        const body = k.ms == null ? null : String(Math.round(k.ms));
+        if (id && k.kind === 'voice') void transcripts.enqueue({ id, moment_id: stamp.into ?? id, t: stamp.t, file_path: path, body, edit: null }).catch(() => {});
+      },
+    });
+  }
+
+  /**
+   * A capture whose save failed goes to the one holder, which outlives this screen (UN1), said in words, never the raw
+   * error (SA9): here, or where its Retry is from a path with none (UN10). Said here only on a path in front.
+   */
+  function holdFailed(k: Keepable, path: string | null, error: unknown) {
+    const outOfSpace = isOutOfSpace(error);
+    // Its walk ended meanwhile: held as a moment of its own (the owner, Nov 17; unsaved-captures audit 3).
+    const stamp = k.stamp.walk && unsaved.hasEnded(k.stamp.walk) ? looseAfterEnd(k.stamp) : k.stamp;
+    // Said here only when this path's pill is in front; otherwise by the next screen in front (UN9; audit 5).
+    unsaved.hold<Stamp>({ kind: k.kind, walkId: stamp.walk, stamp, uri: k.uri, ext: k.ext, ms: k.ms, path, outOfSpace, said: inFront() && retryShown });
+    setError({ message: heldWhere(k.kind, outOfSpace, where(), !!opts.shortWords) });
+  }
+
+  /** Keeps a new shot, or holds it with why in words (SA8, SA9). */
+  async function keepOrHold(k: Keepable & { kind: 'photo' | 'video' }): Promise<{ kind: 'photo' | 'video'; id: string; momentId: string } | null> {
+    const r = await keepCapture(k);
+    if ('error' in r) {
+      holdFailed(k, r.path, r.error);
+      return null;
+    }
+    return r.id ? { kind: k.kind, id: r.id, momentId: k.stamp.into ?? r.id } : null;
+  }
+
+  /** Retry: each held capture of the pill, from every screen, kept in the order taken into its own walk (UN3, UN4). */
+  function retryTaken(which: 'shots' | 'memos'): Promise<VoiceResult> {
+    const run = retryNow(which);
+    // Both Stops wait for it before they read or let go (unsaved-captures audit 2).
+    unsaved.track(run);
+    return run;
+  }
+  async function retryNow(which: 'shots' | 'memos'): Promise<VoiceResult> {
+    const taken = unsaved.take(which) as Unsaved<Stamp>[];
+    let last: { kind: Unsaved['kind']; error: unknown } | null = null;
+    for (const e of taken) {
+      const r = await keepCapture(e);
+      if ('error' in r) {
+        unsaved.settle(e.id, { kept: false, path: r.path, outOfSpace: isOutOfSpace(r.error) });
+        last = { kind: e.kind, error: r.error };
+      } else unsaved.settle(e.id, { kept: true });
+    }
+    if (last) setError({ message: heldWhere(last.kind, isOutOfSpace(last.error), 'here') });
+    return !taken.length ? 'none' : last ? 'failed' : 'saved';
+  }
+
+  /** What the holder holds, every screen's, as a key of its kinds: the pills and the counts in words (UN2). */
+  const heldKinds = kindsOf(useStore(unsaved.store, (st) => heldKey(st.list)));
+  const heldShots = heldKinds.filter((k): k is 'photo' | 'video' => k !== 'voice');
+  const memosHeld = heldKinds.length - heldShots.length;
+
+  const retryHeld = () => guarded(heldShots[0] ?? 'photo', async () => void (await retryTaken('shots')));
+
+  /**
+   * A new photo's small copy, or a new video's still (TH1, VS1), after the capture is kept: never holds it up or fails
+   * it (TH2). The copy is the piece's (`id`); the moment it sits in (`momentId`) is read fresh, and shows it when it is
+   * its face.
+   */
+  function thumbFor(id: string, kind: 'photo' | 'video', path: string, momentId: string, walk: string | null) {
+    void makeThumb(facedOf({ id, walk_id: folderOf(walk), t: Date.now(), lat: null, lon: null, kind, file_path: path, body: null, segment_id: null })).then((thumb) => {
       if (!thumb) return;
       // An Edit offer's Done may have stored the edited copy meanwhile: this one then stands down (media-editing audit 8).
       void db.getMomentsByIds([momentId]).then(([m]) => {
@@ -342,11 +427,11 @@ export function useCaptures(
           return;
         }
         const isFace = !!m && faced(m).piece_id === id;
-        if (isFace && alive.current) setCaptures((prev) => prev.map((x) => (x.id === m.id ? { ...x, thumb_path: thumb } : x)));
+        if (isFace && alive.current && ours(walk)) setCaptures((prev) => prev.map((x) => (x.id === m.id ? { ...x, thumb_path: thumb } : x)));
         // Stored first, then told: a walk screen mounting meanwhile either reads it or hears it (tabs audit 5).
         void db.updatePiece(id, { thumb_path: thumb }).then(
           () => {
-            if (isFace) captureBus.patch(walkId, m.id, { thumb_path: thumb }, self);
+            if (isFace) captureBus.patch(walk, m.id, { thumb_path: thumb }, self);
           },
           () => {},
         );
@@ -425,8 +510,6 @@ export function useCaptures(
     }
   };
 
-  /** A stopped memo that could not be saved, kept so it can be retried. */
-  const [unsaved, setUnsaved] = useState<StoppedMemo | null>(null);
   /** A memo just discarded, kept for UNDO_MS so the discard can be undone. */
   const [discarded, setDiscarded] = useState<StoppedMemo | null>(null);
   const discardTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -450,8 +533,11 @@ export function useCaptures(
             setError({ message: accessOff('Microphone'), openSettings: true });
             return false;
           }
+          // Nothing plays over a recording: a voice note playing on the journal's page lets go of the sound.
+          nowPlaying.claim(RECORDING);
           // Keeps recording with the phone locked and in a pocket.
           await setAudioMode({ allowsRecording: true, playsInSilentMode: true, allowsBackgroundRecording: true });
+          memoUriBefore.current = voice.uri;
           await voice.prepareToRecordAsync();
           if (!alive.current) {
             // The screen went away while preparing: never leave the mic on.
@@ -499,20 +585,40 @@ export function useCaptures(
     await resetAudioMode();
     // The recorder's own duration is 0 once it has stopped; the wall clock is not.
     const ms = status.durationMillis > 0 ? status.durationMillis : wallMs;
-    return { uri: voice.uri, stamp, ms, short: wasRecording && wallMs < MIN_VOICE_MS };
+    // A stop given up on leaves the web's uri unset, or still the last memo's: no file of this memo's (tend captures 1).
+    return { uri: memoFile(memoUriBefore.current, voice.uri), stamp, ms, short: wasRecording && wallMs < MIN_VOICE_MS };
   }
 
-  async function saveMemo(m: StoppedMemo): Promise<void> {
-    if (!m.uri) throw new Error('The voice memo could not be saved.');
-    // Native records AAC in .m4a; on web the extension is only part of the key.
-    const ext = /\.(\w{2,4})$/.exec(m.uri.split('?')[0])?.[1] ?? (m.uri.startsWith('blob:') ? 'webm' : 'm4a');
-    await add('voice', m.stamp, await keepFile(m.uri, folder(), `${newId()}.${ext}`), String(Math.round(m.ms)));
+  /** A stopped memo, as the holder and `keepCapture` take it. Native records AAC in .m4a; on web the extension is only part of the key. */
+  const memoKeepable = (m: StoppedMemo): Keepable => ({
+    kind: 'voice', stamp: m.stamp, uri: m.uri, ms: m.ms, path: null,
+    ext: (m.uri && /\.(\w{2,4})$/.exec(m.uri.split('?')[0])?.[1]) ?? (m.uri?.startsWith('blob:') ? 'webm' : 'm4a'),
+  });
+
+  /**
+   * Keeps a stopped memo, or, when its save fails, holds it with the one holder for Retry when it has a file to retry
+   * with (SA8, tend captures 1). With none it is said and let go: here, or, lost as its screen went, by the next
+   * screen in front (UN13).
+   */
+  async function keepMemo(m: StoppedMemo): Promise<VoiceResult> {
+    const k = memoKeepable(m);
+    const r = m.uri ? await keepCapture(k) : { path: null, error: null };
+    if (!('error' in r)) return 'saved';
+    const plan = failedMemo({ file: m.uri, outOfSpace: isOutOfSpace(r.error) });
+    if (plan.hold === 'here') {
+      holdFailed(k, r.path, r.error);
+      return plan.result;
+    }
+    // Lost with this path out of front (gone, or a tab changed): said by the next screen in front (UN13; audit 5).
+    if (!inFront()) unsaved.lost(m.stamp.walk, plan.line);
+    setError({ message: plan.line });
+    return plan.result;
   }
 
   /**
    * Stops and saves the memo in progress, waiting for any voice action in
    * flight first. A memo under MIN_VOICE_MS was an accidental tap and is
-   * dropped. A memo that fails to save is kept for retrySave.
+   * dropped. A memo that fails to save is kept for retrySave, when it has a file to retry with.
    */
   const finishVoice = (): Promise<VoiceResult> =>
     trackMemo(enqueue(() =>
@@ -523,33 +629,12 @@ export function useCaptures(
           dropTemp(m.uri);
           return 'dropped';
         }
-        try {
-          await saveMemo(m);
-          return 'saved';
-        } catch (e) {
-          if (alive.current) setUnsaved(m);
-          setError({ message: saveFailLine('voice', isOutOfSpace(e)) });
-          return 'failed';
-        }
+        return keepMemo(m);
       }),
     ));
 
-  /** Retries a memo whose save failed. */
-  const retrySave = (): Promise<VoiceResult> =>
-    enqueue(() =>
-      withBusy(async () => {
-        const m = unsaved;
-        if (!m) return 'none';
-        try {
-          await saveMemo(m);
-          setUnsaved(null);
-          return 'saved';
-        } catch (e) {
-          setError({ message: saveFailLine('voice', isOutOfSpace(e)) });
-          return 'failed';
-        }
-      }),
-    );
+  /** Retries every memo held, from every screen (UN3). */
+  const retrySave = (): Promise<VoiceResult> => enqueue(() => withBusy(() => retryTaken('memos')));
 
   const forgetDiscarded = () => {
     if (discardTimer.current) clearTimeout(discardTimer.current);
@@ -585,14 +670,7 @@ export function useCaptures(
         if (!m) return 'none';
         forgetDiscarded();
         setDiscarded(null);
-        try {
-          await saveMemo(m);
-          return 'saved';
-        } catch (e) {
-          setUnsaved(m);
-          setError({ message: saveFailLine('voice', isOutOfSpace(e)) });
-          return 'failed';
-        }
+        return keepMemo(m);
       }),
     );
 
@@ -609,6 +687,19 @@ export function useCaptures(
       if (voiceOn.current) finishRef.current().catch(() => {});
     };
   }, []);
+  // A capture held on a screen gone, or on one with no Retry, says why here, once, as this screen in front shows its
+  // pill (UN9); a memo lost as its screen went is said here too (UN13).
+  const sayHeld = !!opts.sayHeld && enabled;
+  useEffect(() => {
+    if (!sayHeld) return;
+    // Taken in one change, so each is said once (unsaved-captures audit 8).
+    const say = () => {
+      for (const e of unsaved.takeUnsaid()) setError({ message: heldWhere(e.kind, e.outOfSpace, 'here') });
+      for (const l of unsaved.takeLost()) setError({ message: l.line });
+    };
+    say();
+    return unsaved.store.subscribe(say);
+  }, [sayHeld]);
 
   /**
    * A photo's or video's edits and caption, or its new small copy (ME21):
@@ -618,8 +709,10 @@ export function useCaptures(
     const id = c.id;
     // The edit is the piece's own; the screens show it on the moment (decision 0123).
     await db.updatePiece(c.piece_id, patch);
-    if (alive.current) setCaptures((prev) => applyPatch(prev, id, patch));
-    captureBus.patch(walkId, id, patch, self);
+    if (alive.current) setCaptures((prev) => applyPatch(prev, id, patch, c.piece_id));
+    captureBus.patch(walkId, id, patch, self, c.piece_id);
+    // A trim changed or reverted: the memo's words are for another span now, so they are read again (audit 4).
+    if ('edit' in patch) void rereadTranscript(id, c.piece_id).catch(() => {});
   }
 
   /**
@@ -629,9 +722,11 @@ export function useCaptures(
    */
   async function setNote(c: Pick<Faced, 'id' | 'piece_id'>, body: string) {
     const id = c.id;
-    await db.updatePiece(c.piece_id, notePatch(body));
-    if (alive.current) setCaptures((prev) => applyPatch(prev, id, notePatch(body)));
-    captureBus.patch(walkId, id, notePatch(body), self);
+    const change = notePatch(body);
+    await db.updatePiece(c.piece_id, change);
+    // Named by its piece: a note at a non-face piece lands on that piece's copy, never on the moment's face (note-types audit 1, 12, 13).
+    if (alive.current) setCaptures((prev) => applyPatch(prev, id, change, c.piece_id));
+    captureBus.patch(walkId, id, change, self, c.piece_id);
   }
 
   /** With `into`, the note joins that open moment as a piece (MS2, MS3). */
@@ -651,7 +746,51 @@ export function useCaptures(
     return { id: stamp.into ?? pieceId, piece_id: pieceId };
   }
 
+  /**
+   * The journal's open line (chronicle journal JN12, JN13): the first character stores a note at once, as a new
+   * moment or, with `into`, as a piece of the open one, and says which, so what is typed after can be written to it.
+   */
+  const beginLine = async (body: string, into: string | null = null): Promise<{ momentId: string; pieceId: string } | null> => {
+    if (!enabled) return null;
+    // On a walk no fix is read for an entry (JN12; audit 4): the walk's last fix or, at Stop, its trace places it.
+    const stamp = stampNow(walkId == null, into);
+    if (stamp.into) return addPiece(stamp.into, 'text', stamp, null, body);
+    const id = await add('text', stamp, null, body);
+    return id ? { momentId: id, pieceId: id } : null;
+  };
+
+  /** What the line holds now, written to its piece; the moment's face follows only when the piece is its face. */
+  const writeLine = async (e: { momentId: string; pieceId: string }, body: string) => {
+    await db.updatePiece(e.pieceId, { body });
+    if (e.pieceId !== e.momentId) return;
+    if (alive.current) setCaptures((prev) => applyPatch(prev, e.momentId, { body }));
+    captureBus.patch(walkId, e.momentId, { body }, self);
+  };
+
+  /**
+   * An entry emptied of its words is not kept (JN13): its piece goes, and the moment with it when it held nothing
+   * else. Says whether the moment went, and leaves its location read for the next entry of the sitting (JN12).
+   */
+  const dropLine = async (e: { momentId: string; pieceId: string }): Promise<'moment' | 'piece'> => {
+    const [stored] = await db.getMomentsByIds([e.momentId]);
+    if (stored && stored.pieces.some((x) => x.id !== e.pieceId)) {
+      await db.deletePieces([e.pieceId]);
+      const [now] = await db.getMomentsByIds([e.momentId]);
+      if (now && alive.current) setCaptures((prev) => prev.map((x) => (x.id === e.momentId ? { ...faced(now), lat: x.lat, lon: x.lon } : x)));
+      return 'piece';
+    }
+    dropped.current.add(e.momentId);
+    // Its read, answered or not, serves the next entry of the sitting: the place is where the writing began.
+    if (lastLocate.current?.id === e.momentId) spare.current = { fix: lastLocate.current.fix, at: lastLocate.current.at };
+    await db.deleteMoments([e.momentId]);
+    if (alive.current) setCaptures((prev) => prev.filter((x) => x.id !== e.momentId));
+    return 'moment';
+  };
+
   return {
+    beginLine,
+    writeLine,
+    dropLine,
     captures,
     busy,
     voiceStartedAt,
@@ -662,9 +801,11 @@ export function useCaptures(
     undoDiscard,
     discarded: discarded != null,
     retrySave,
-    unsaved: unsaved != null,
-    /** What is held for Retry, by kind, in the order taken (SA8). */
-    held: held.map((h) => h.kind),
+    /** Memos held for Retry, from every screen (UN2). */
+    unsaved: memosHeld > 0,
+    memosHeld,
+    /** Photos and videos held for Retry, from every screen, by kind, in the order taken (SA8, UN2). */
+    held: heldShots,
     retryHeld,
     saveNote,
     beginNote,

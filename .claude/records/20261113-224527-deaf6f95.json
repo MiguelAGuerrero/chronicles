@@ -1,0 +1,107 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Memo transcripts (TX1-TX18, decision 0165)",
+        "--new"
+      ],
+      "body": "- [ ] **Do:** on an iPhone and on an Android 13+ phone with a development build, record a voice memo (not during a walk), then wait a little. **Expect:** the system asks once to allow speech recognition; after allowing, the memo's words appear as a caption under it in the viewer and on the journal page, and nothing showed while it was being read (TX1, TX7, TX9, TX15).\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Memo transcripts (TX1-TX18, decision 0165)"
+      ],
+      "body": "- [ ] **Do:** put the phone in airplane mode, record a memo, wait. **Expect:** its words still appear (the recognizer is on the device); with a locale whose speech pack is not installed, nothing appears, no error, nothing is sent (TX5, TX16; the release gate for memo transcripts).\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Memo transcripts (TX1-TX18, decision 0165)"
+      ],
+      "body": "- [ ] **Do:** trim a memo so its tail holds a word, wait for its words, then search or open it. **Expect:** the cut word is not in the caption and not in any thread; the app made a short copy of the kept part for the recognizer and left none in the cache folder afterward; reverting the trim brings the whole memo's words back after a moment (TX13). On Android, check the recognizer accepts the trimmed m4a copy, and a whole memo's m4a (it may need a decoded copy).\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Memo transcripts (TX1-TX18, decision 0165)"
+      ],
+      "body": "- [ ] **Do:** refuse the speech permission, then record more memos and reopen the app. **Expect:** it is never asked again, nothing is said, and the memos play as before (TX6).\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Memo transcripts (TX1-TX18, decision 0165)"
+      ],
+      "body": "- [ ] **Do:** start a walk, record a memo during it, and play another while it is recording. **Expect:** no speech prompt and no reading until the walk has ended and nothing records or plays; then the words arrive (TX15).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Memo transcripts (TX1-TX18, decision 0165)",
+        "--new"
+      ],
+      "body": "- **Editing, hiding or re-reading a memo's words**: a wrong or private word is part of the memo (the owner, decision 0165); the only remedy is deleting the memo. A transcript is never shown in the replay's bubble, in the media gallery or on the memo's card.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Memo transcripts (TX1-TX18, decision 0165)"
+      ],
+      "body": "- **A memo in another language than the phone's locale** is left unread or misread; there is no language picker and no per-memo language. Android before 13 reads no memos (no on-device file recognition).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Memo transcripts (TX1-TX18, decision 0165)"
+      ],
+      "body": "- **A transcript row outlives a deleted single piece**: deleting a moment or a walk drops its rows (TX3), but removing one piece of a stack (a split or a piece delete) leaves its row, which nothing reads (a row is read by its piece's id). Harmless; a sweep could clear it.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Memo transcripts (TX1-TX18, decision 0165)"
+      ],
+      "body": "- **Words that arrive after Chronicle opened** reach Memories through a refresh (`resurface.refresh` on the transcripts' store); a thread formed by new words appears at the next open, not while Memories is up (the owner's threads are untouched).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "Resurfaced moments, round 2"
+      ],
+      "body": "Built: the memo transcriber (decision 0165, `specs/memo-transcripts`): the seam is now fed by `lib/transcript`.\n",
+      "target": "sha256:adb9c0606ccc77793b36cda45516c6cb241c6d4549ca9321b42f7026fc477ee0"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "Voice trim** (VT1-VT12, Nov 12)"
+      ],
+      "body": "Built: a transcript is read from a copy of the kept span (TX13, decision 0165).\n",
+      "target": "sha256:1524d268c7485cb7867808f0dfd0887e90cba6d1fe7a30bbf6dc2ea05a0cf730"
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "slice",
+        "row",
+        "add"
+      ],
+      "body": "| Memo transcripts (a voice memo read on the phone in the background with expo-speech-recognition, on the device only, and shown as a caption \"Read by your phone\" under the voice note in the viewer and on the journal page; a trimmed memo is read from a copy of its kept part; the words join Chronicle's threads; TX1-TX18, decision 0165) | built 2026-11-13, test-first by intent (the todo marks went in one commit after the first tests commit, so `check:test-first` reads 12 of 18; history not rewritten); unit tests, typecheck, lint, docs and vision checks; the `transcript` journey (the caption, from a stored row); the `voicetrim` journey was already failing on main (its `memories-list` selector is gone since the journal); native unverified: the engine, the cut copy and the permission flow never ran on a device | branch `claude/amazing-shannon-5jejnz` | `specs/memo-transcripts/spec.md` | no (decision 0074) |\n"
+    },
+    {
+      "argv": [
+        "inflight",
+        "remove",
+        "Memo transcripts"
+      ],
+      "target": "sha256:36f502e4bbb47b97abdcf32a699963e83d6ef28afae0590504395f89b7a346b8"
+    }
+  ]
+}

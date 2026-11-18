@@ -132,7 +132,12 @@ function markGreen(greens, name, k, now) {
 }
 
 function writeGreen(root, greens) {
-  fs.writeFileSync(path.join(root, GREEN_FILE), `${JSON.stringify(greens, null, 2)}\n`);
+  // Written whole and renamed into place: journeys run side by side (e2e:batch), and a reader that met a half-written
+  // file would read it as empty and write the others' passes away.
+  const file = path.join(root, GREEN_FILE);
+  const tmp = `${file}.${process.pid}.tmp`;
+  fs.writeFileSync(tmp, `${JSON.stringify(greens, null, 2)}\n`);
+  fs.renameSync(tmp, file);
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -172,9 +177,21 @@ function writeFlaky(root, registry) {
  * every run failed it. A check that failed every run is not a flake: main is broken, or the baseline's own setup is, and
  * nothing is recorded for it. Nothing is recorded either when no run failed: a failure on a branch is its own until shown otherwise.
  */
-function summarizeBaseline(runs) {
+/**
+ * Each check that failed across a baseline's runs, and how often. `statuses` are the runs' exit codes: a run that exited
+ * non-zero yet failed no check stopped before its checks (a locator's timeout, a throw), and counts as a failure named by
+ * its first error line, never as a pass (resurface on main, Nov 18: three timeouts read "passed 3/3").
+ */
+function summarizeBaseline(runs, statuses = []) {
   const counts = new Map();
-  for (const out of runs) for (const c of new Set(parseFailures(out))) counts.set(c, (counts.get(c) ?? 0) + 1);
+  runs.forEach((out, i) => {
+    const failed = new Set(parseFailures(out));
+    if (!failed.size && statuses[i] != null && statuses[i] !== 0) {
+      const line = out.split('\n').map((l) => l.trim()).find((l) => /error|timeout|exceeded|throw/i.test(l)) ?? `exit ${statuses[i]}`;
+      failed.add(`stopped: ${line.slice(0, 160)}`);
+    }
+    for (const c of failed) counts.set(c, (counts.get(c) ?? 0) + 1);
+  });
   return { runs: runs.length, failed: [...counts].map(([check, n]) => ({ check, fails: `${n}/${runs.length}`, always: runs.length > 1 && n === runs.length })) };
 }
 

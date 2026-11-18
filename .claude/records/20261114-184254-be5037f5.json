@@ -1,0 +1,48 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "The top entry's reaction sign is half under the held date's edge at rest",
+        "--reason",
+        "built in reaction-links (RL8): an entry right under a date, and the peek's first entry under the held date, start below the edge"
+      ],
+      "target": "sha256:d4e709bab0508e0721de4d81150218da780ae0674f918877b645f7afcdc240a7"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "(reactions audit 7, 11, 12, 15)",
+        "--reason",
+        "built in reaction-links: RL9 (Not kept yet), RL10 (setReactions in one transaction), RL11 (a keep under way is not dropped), RL12 (a video pin's L)"
+      ],
+      "target": "sha256:3d6a4ab6ba7c4c6d933602c8ea01de40cee0c47fbbb78633543cf162c6893359"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Reactions (RX1-RX36, decision 0176)",
+        "--after",
+        "open a note's page with the keyboard up and open its Reaction tool"
+      ],
+      "body": "- [ ] **Do:** on a phone, in Memories, tap \"Idea\" under an entry with VoiceOver or TalkBack off and then on; open the entry, tap \"Happy\" under the viewer's info line. **Expect:** \"Idea\" is its own target inside the entry's button, said as a link named \"Ideas\", and opens the Ideas lens; Back returns to the journal; in the viewer, the native Modal closes first and the Happy moments lens opens with no flash of the journal (RL1-RL5, decision 0177)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Reactions (RX1-RX36, decision 0176)",
+        "--after",
+        "on a phone, in Memories, tap \"Idea\" under an entry"
+      ],
+      "body": "- [ ] **Do:** on a phone, react to a moment with two families at once from a new note's page (Happy, then Idea, before any words), keep the note, and quit the app while it saves; also react to a video and look at its pin. **Expect:** the moment has both reactions or neither, never one (`setReactions` in one SQLite transaction through the write queue, RL10, RL11); the video pin's bubbles sit in an L at its left, the third above the first, none over the play mark nor clipped by the Marker on Android (RL12)\n"
+    }
+  ]
+}

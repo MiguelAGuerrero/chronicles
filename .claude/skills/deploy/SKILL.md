@@ -41,7 +41,11 @@ CHRONICLES_BASE_URL=/chronicles npm run export:web && E2E_BASE=/chronicles E2E_O
 - `npm run check:test-first <slug>` passes for each slice that ships (its
   tests were committed as todos before its code), and no shipped slice's spec
   is still in `IN_PROGRESS` in `scripts/features.js`.
-- `docs/STATUS.md` is updated (with the audit's counts, if one ran).
+- `docs/STATUS.md` is updated (with the audit's counts, if one ran), through `npm run records --
+  slice row set` (decision 0156), and `npm run check:records -- origin/main` passes.
+  Every agent commit is gated: the Pages run replays each commit of the push that carries a `Claude-Session:` or
+  `Co-Authored-By: Claude` trailer, so `node scripts/tend.js commits --loop-only origin/main..HEAD`
+  must pass too (it is what CI runs).
 - If the owner asked for an audit, its accepted findings are fixed.
 - `docs/PRODUCT.md` says what shipped. Run `/docs-gc` if it was not run.
 
@@ -52,7 +56,7 @@ Stop if any precondition fails; say which.
 ```bash
 git fetch origin main
 git log --oneline origin/main..HEAD      # what ships
-git checkout main && git merge --ff-only <branch>   # or the owner's merge
+git checkout main && git merge --ff-only <branch>   # a fast-forward: the record gate replays each commit, and a merge resolved by hand in the record documents fails it
 git push origin main
 ```
 
@@ -69,6 +73,21 @@ show the owner the divergence before merging.
    failed job.
 3. Open https://miguelaguerrero.github.io/chronicles/ and confirm the build
    is the new one (a changed screen, or the commit's visible change).
+4. **Do the owner's task on the live build** (decision 0167), when a screen changed: in a phone-size
+   browser (Playwright, an iPhone profile, the live URL), do what the slice lets a person do, from every
+   surface its spec lists, and take a picture of each step. Finding the new code in the bundle is not this
+   check: it says the code shipped, not that anyone can use it. A step you cannot do is a failed deploy
+   check; say so and fix forward. Send the pictures to the owner with where each control is.
+
+## The preview address (decision 0206)
+
+The same run also builds the branch named in `.github/preview-branch` and serves it at
+https://miguelaguerrero.github.io/chronicles/preview/ (`scripts/preview-pages.js` puts it under `dist/preview` and makes
+its routes survive a reload). It is for the owner to look at a slice on a phone before it replaces anything; it is the same
+site, so it reads the phone's own walks, and a slice that changes stored data must not go there. A preview that fails to
+build never fails the deploy (the step is `continue-on-error`): read the step's log. To refresh it after pushing the
+preview's branch, run the workflow by hand on `main` (`actions_run_trigger`, `workflow_dispatch`); nothing on `main` changes.
+An empty `.github/preview-branch` serves no preview.
 
 ## 4. If the export fails
 
@@ -85,4 +104,5 @@ show the owner the divergence before merging.
 
 ## Report
 
-The commit deployed, the run's URL and result, and the page checked.
+The commit deployed, the run's URL and result, the page checked, and "Where to find it": each new
+control, where it is on the live build, with its picture.

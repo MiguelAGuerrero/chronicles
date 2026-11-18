@@ -5,7 +5,7 @@ import { titleCase } from './terms';
 import type { MomentView, Prefs, SignalExtractor, Thread } from './types';
 
 /** Rules version: bump when a derivation rule below changes (nothing is cached yet, RM23). */
-export const THREAD_RULES = 'resurface-1';
+export const THREAD_RULES = 'resurface-2';
 /** A term is a thread from this many moments, on this many days (RM11). */
 export const THREAD_MIN_MOMENTS = 3;
 export const THREAD_MIN_DAYS = 2;

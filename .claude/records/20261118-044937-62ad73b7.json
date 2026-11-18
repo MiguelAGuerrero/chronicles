@@ -1,0 +1,31 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "The road engine"
+      ],
+      "body": "- The road engine, step 3 (guiding: RE3, RE19-RE24, RE26-RE28), left for later: a turn has no road name or number (RE20, RE21: the engine reads no names; the tiles' name layer is thin at z12); a roundabout is not known as one (the tiles do not mark them), so it is read as the turns it is made of and no exit is said by its place (RE21's one ordinal is unused); finding the way again reads its whole corridor when it is not inside the one held, not only the tiles the graph lacks (RE22); the road being driven is not drawn on the session's map, only the turn is said; the screen's position follows a drive only once the trace reads it as a ride (20 s of fast fixes, R1), so the first turn can lag that long after setting off, and the one-time statement stays up until then; the wait before finding again is 400 m driven off the way and \"off the way\" is 120 m, neither tried on a real road; guiding is offered on the web only (a phone waits for spoken turns, decision 0204), so RE25's speech and its mute, and RE33, are step 4; \"On this road\" with what is left of it is said after the last turn, a line the spec did not name.\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "The road engine"
+      ],
+      "body": "- Guiding a drive (RE19-RE28; `roads/turns.ts`, `roads/drive.ts`, `roads/useDrive.ts`, `outing/useJourneyBar.ts`, the bar in `src/app/walk.tsx`): \"Drive there\" is not offered on a phone at all (`CAN_GUIDE` is the web alone until turns can be spoken, decision 0204), so none of it has run on one: the bar's turn while moving, the way found again off the road, the guiding found again after the app is reopened, and how a turn reads at a glance in a car.\n"
+    },
+    {
+      "argv": [
+        "inflight",
+        "set",
+        "The road engine (the app finds"
+      ],
+      "body": "| The road engine (the app finds the road between towns and guides the drive: a road graph from the map's z12 tiles, one way through the journey's towns, distance by road, spoken turns; RE1-RE34, decisions 0203 and 0204) | `claude/determined-wright-yg1fq9` | step 0 (real tiles measured), 1 (the engine's core), 2 (the road on the outing page, distances by road, Open in Maps for driving; RE14 deferred) and 3 (guiding on the web: \"Drive there\", the turn ahead, End; no road names or roundabouts) done 2026-11-18; step 4 (speech, the lock screen, and with it guiding on a phone) owed; native unverified |\n",
+      "target": "sha256:8a08f10e2b69571824e6aa92380f7cf1c46a421dd0702eb7ad9ada0ca87368d1"
+    }
+  ]
+}

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { deadZoneDue, deadZoneNudge, stripAt } from '../../landing/walk';
 import type { LngLat } from '../../types';
+import { getUnits, setUnits } from '../../units';
 
 // v1.5 slice 3 (on the walk), written from criteria L14-L15 before the code. The loop (L13, L16) was retired by explore.
 
@@ -22,12 +23,12 @@ test('walk: a dead zone nudges once, after 10 min more than 400 m from every poc
   const base = { here: m(0, 0), pockets, quiet: false, nudged: false };
   assert.equal(deadZoneNudge({ ...base, farSinceMs: 9 * 60_000 }), null, 'not yet 10 min');
   const n = deadZoneNudge({ ...base, farSinceMs: 10 * 60_000 })!;
-  assert.equal(n.text, 'Thayer Street strip, 600 m north');
+  assert.equal(n.text, 'Thayer Street strip, 600\u00a0m north');
   assert.equal(deadZoneNudge({ ...base, farSinceMs: 11 * 60_000, nudged: true }), null, 'once a walk');
   assert.equal(deadZoneNudge({ ...base, farSinceMs: 11 * 60_000, quiet: true }), null, 'quiet walk');
   assert.equal(deadZoneNudge({ ...base, here: m(0, 300), farSinceMs: 11 * 60_000 }), null, 'within 400 m: not a dead zone');
   assert.equal(deadZoneNudge({ ...base, pockets: [{ name: 'Far', centre: m(0, 1700) }], farSinceMs: 11 * 60_000 }), null, 'none within 1.5 km');
-  assert.equal(deadZoneNudge({ ...base, pockets: [{ name: 'A busy pocket', centre: m(-500, 0) }], farSinceMs: 11 * 60_000 })!.text, 'A busy pocket, 500 m west');
+  assert.equal(deadZoneNudge({ ...base, pockets: [{ name: 'A pocket of storefronts', centre: m(-500, 0) }], farSinceMs: 11 * 60_000 })!.text, 'A pocket of storefronts, 500\u00a0m west');
 });
 
 // Audit regressions (v1.5 slice 3).
@@ -44,4 +45,20 @@ test('walk: the dead-zone check is free until it could fire (audit 6, 8)', () =>
   assert.equal(deadZoneDue({ here: m(0, 0), pockets, farSinceMs: 5 * 60_000 }), false, 'not yet 10 min');
   assert.equal(deadZoneDue({ here: m(0, 0), pockets: [{ name: 'Far', centre: m(0, 5000) }], farSinceMs: 11 * 60_000 }), false, 'none within reach');
   assert.equal(deadZoneDue({ here: m(0, 0), pockets, farSinceMs: 11 * 60_000 }), true);
+});
+
+// tend map audit 45 (the review of tend map 21, F3): the dead-zone nudge said "600 m" with a plain space, so a line of
+// its toast could end on "600", and in metres whatever the units setting. It says the distance as formatDistance does.
+test('tend map audit 45: the nudge binds its distance and follows the units', () => {
+  const base = { here: m(0, 0), pockets: [{ name: 'Thayer Street', centre: m(0, 600), strip: true }], quiet: false, nudged: false, farSinceMs: 10 * 60_000 };
+  const was = getUnits();
+  try {
+    setUnits('km');
+    assert.equal(deadZoneNudge(base)!.text, 'Thayer Street strip, 600\u00a0m north');
+    assert.equal(deadZoneNudge({ ...base, pockets: [{ name: 'Far', centre: m(0, 1000) }] })!.text, 'Far, 1.0\u00a0km north');
+    setUnits('mi');
+    assert.equal(deadZoneNudge(base)!.text, 'Thayer Street strip, 0.4\u00a0mi north');
+  } finally {
+    setUnits(was);
+  }
 });

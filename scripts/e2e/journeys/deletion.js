@@ -111,10 +111,29 @@ async function checks(h) {
       const media = (await capsOf()).filter((c) => c.kind !== 'text');
       const mediaRefs = media.flatMap((c) => [c.file_path, c.thumb_path]).filter((r) => r && r !== 'none');
       check(media.length >= 3 && mediaRefs.every(Boolean), `the walk has media to remove (${media.map((c) => c.kind).join(', ')})`);
+      // tend replay audit 10: on a card with finds and a low the hint still stands last, right above the buttons.
+      const hintLast = await page.evaluate(() => {
+        const again = [...document.querySelectorAll('[role=button]')].find((b) => b.textContent.trim() === 'Watch again');
+        let prev = again?.parentElement?.previousElementSibling;
+        while (prev && !prev.textContent.trim()) prev = prev.previousElementSibling;
+        return { before: prev?.textContent ?? null, finds: document.querySelector('[data-testid=card-finds]')?.textContent ?? null, low: document.querySelector('[data-testid=card-low]')?.textContent ?? null };
+      });
+      check(hintLast.before === 'Tap a pin to open it' && !!(hintLast.finds || hintLast.low),
+        `tend replay audit 10: a walk's card with finds or a low ends on its hint, right above its buttons (${JSON.stringify(hintLast)})`);
       await page.click('[data-testid=card-more]');
       await page.click('[data-testid=action-media]');
       await page.waitForSelector('[data-testid=confirm]');
       const askMedia = await page.locator('[data-testid=confirm]').innerText();
+      // tend deletion T30 (decision 0170, "All in words"): what goes is said in the pins' words, whole at 390 and 320 px.
+      for (const w of [390, 320]) {
+        await page.setViewportSize({ width: w, height: 844 });
+        await page.waitForTimeout(400);
+        const said = (await page.locator('[data-testid=confirm]').innerText()).replace(/\s+/g, ' ');
+        check(/(^| )(A|Two|Three|Four|Five) (photo|video|voice memo)s?\b[^.]* go(es)?\. The walk, its notes and its streets stay\./.test(said) && !/\d+ (photo|video|voice)/.test(said),
+          `tend deletion T30: at ${w} px removing media says what goes in words (${said})`);
+        await shot(page, `27b-media-confirm-${w}`);
+      }
+      await page.setViewportSize({ width: 390, height: 844 });
       check(/Remove photos, videos and memos\?/.test(askMedia) && /photo/.test(askMedia) && /stay/.test(askMedia), `removing media says what goes and what stays (D4: ${askMedia.replace(/\n/g, ' · ')})`);
       await page.click('[data-testid=confirm-delete]');
       await page.waitForSelector('[data-testid=undo-toast]');
@@ -142,6 +161,39 @@ async function checks(h) {
         await page.waitForTimeout(800);
         await shot(page, '27-walk-confirm');
         const t = await page.locator('[data-testid=confirm]').innerText();
+        // tend deletion T30: the walk's moments and streets in words, whole at 320 px too.
+        if (!deleteFirst.seen) {
+          deleteFirst.seen = true;
+          // tend deletion 1: "Delete walk" on one line and both actions at least 44 px, side by side at 390 and
+          // stacked at 320, the confirm on top and Cancel beneath (HIG Alerts; Material dialogs).
+          const actions = () => page.evaluate(() => {
+            const box = (id) => document.querySelector(`[data-testid=${id}]`).getBoundingClientRect();
+            const label = [...document.querySelectorAll('[data-testid=confirm-delete] *')].find((e) => e.childElementCount === 0 && e.textContent.trim());
+            const range = document.createRange();
+            range.selectNodeContents(label);
+            const lines = new Set([...range.getClientRects()].filter((r) => r.width > 0).map((r) => Math.round(r.top))).size;
+            const [d, c] = [box('confirm-delete'), box('confirm-cancel')];
+            return { lines, text: label.textContent, del: [Math.round(d.width), Math.round(d.height)], cancel: [Math.round(c.width), Math.round(c.height)], stacked: d.bottom <= c.top, side: Math.abs(d.top - c.top) < 1 && c.right <= d.left, apart: Math.round(c.top - d.bottom) };
+          });
+          // tend deletion audit 3: at 340 and 352, just past the switch, the row still holds "Delete walk" on one line.
+          for (const w of [390, 352, 340, 320]) {
+            await page.setViewportSize({ width: w, height: 844 });
+            await page.waitForTimeout(400);
+            const a = await actions();
+            check(a.text === 'Delete walk' && a.lines === 1 && [...a.del, ...a.cancel].every((n) => n >= 44) && (w === 320 ? a.stacked : a.side),
+              `${w === 390 || w === 320 ? 'tend deletion 1' : 'tend deletion audit 3'}: at ${w} px a walk delete's "Delete walk" is one line, both actions at least 44 px, ${w === 320 ? 'stacked, the confirm on top' : 'side by side, Cancel leading'} (${JSON.stringify(a)})`);
+            // tend deletion audit 4: stacked, the destructive action sits 12 px from Cancel, iOS's padding round a bezel.
+            if (w === 320) check(a.apart >= 12, `tend deletion audit 4: at 320 px the stacked "Delete walk" and Cancel are 12 px apart (${a.apart} px)`);
+          }
+          await shot(page, '27-walk-confirm-320');
+          const narrow = await page.evaluate(() => {
+            const c = document.querySelector('[data-testid=confirm]');
+            return [...c.querySelectorAll('div, span')].every((e) => e.getBoundingClientRect().right <= window.innerWidth + 0.5);
+          });
+          await page.setViewportSize({ width: 390, height: 844 });
+          check(/^Its trace[a-z ,\u00a0-]*[ \u00a0]go(es)?\./.test(t.replace(/\n/g, ' ').replace(/^.*?(Its trace)/, '$1')) && !/\d+ (moment|street)/.test(t) && narrow,
+            `tend deletion T30, tend deletion audit 2: deleting a walk says its moments and streets in words, whole at 320 px (${t.replace(/\n/g, ' · ')})`);
+        }
         await page.click('[data-testid=confirm-delete]');
         return t;
       };

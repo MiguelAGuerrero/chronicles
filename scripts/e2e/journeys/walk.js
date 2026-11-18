@@ -6,11 +6,14 @@
 const path = require('path');
 
 async function checks(h) {
-  const { BASE, browser, ctx, page, start, at, dLat, dLon, names, check, shot, pressedScale, metaOf, drawerTo, tabBarShown, tiles, scriptsDir, onTab, walkMap, walkMarks, walkRoute, walkPts, routed } = h;
+  const { BASE, browser, ctx, page, start, at, dLat, dLon, names, check, shot, toStop, pressedScale, metaOf, drawerTo, openInto, closeInto, tabBarShown, tiles, scriptsDir, onTab, walkMap, walkMarks, walkRoute, walkPts, routed } = h;
     // The ready bar pulled up (NR7, NV20-NV24): the choices, each saved as it changes.
     await onTab('navigate');
     await page.waitForSelector('[data-testid=ready-bar]');
     const barH = async () => Math.round((await page.locator('[data-testid=ready-bar]').boundingBox()).height);
+    // The busy streets the walk map draws, by their lines (`data-busy`, "strips:N"): their names are the map's own text, and
+    // on the walk maps only within 800 m of you (explore-dense-city DC1, DC18), so the lines say whether they are drawn.
+    const busyLines = async () => Number(/strips:(\d+)/.exec((await walkMap().getAttribute('data-storefronts').catch(() => null)) ?? '')?.[1] ?? 0);
     const peekH = await barH();
     await drawerTo(page, 'half');
     check((await page.locator('[data-testid=mode-quiet][aria-checked=true]').count()) === 1 && (await page.locator('[data-testid=mode-explore]').count()) === 1
@@ -43,11 +46,11 @@ async function checks(h) {
     const ringNow = () => page.locator('[data-ring]').last().getAttribute('data-ring');
     await page.click('[data-testid=mode-explore]');
     await page.waitForTimeout(500);
-    check((await page.locator('[data-testid=kind-churches]').count()) === 1 && (await page.locator('[data-testid=range-value]').innerText()) === '100 m' && (await ringNow()) === '100',
-      'with Explore chosen, what I’m into and the range show, the range drawn as a ring on this map (NV21)');
+    check((await page.locator('[data-testid=into-row]:visible').count()) === 1 && /^100[ \u00a0]m$/.test(await page.locator('[data-testid=range-value]').innerText()) && (await ringNow()) === '100',
+      'with Explore chosen, the row to what I’m into and the range show, the range drawn as a ring on this map (NV21, WI1)');
     await page.click('[data-testid=range-plus]');
     await page.waitForTimeout(400);
-    check((await page.locator('[data-testid=range-value]').innerText()) === '120 m' && (await ringNow()) === '120' && (await metaOf(page, 'explore_range')) === '120',
+    check(/^120[ \u00a0]m$/.test(await page.locator('[data-testid=range-value]').innerText()) && (await ringNow()) === '120' && (await metaOf(page, 'explore_range')) === '120',
       'the ring redraws as the range changes, and the range is saved at once (NV22)');
     await page.click('[data-testid=range-minus]');
     await page.waitForTimeout(300);
@@ -73,11 +76,11 @@ async function checks(h) {
       await page.mouse.up();
       await page.waitForSelector('[data-testid=ready-dest]', { timeout: 5000 }).catch(() => {});
       const line = await page.locator('[data-testid=ready-dest]').innerText().catch(() => '');
-      check(/^To Your spot · \d+ m away$/.test(line), `a long press on Navigate's map sets the destination, said on the bar with its distance (NV23, NR8: ${line})`);
+      check(/^To Your spot · \d+[ \u00a0]m away$/.test(line), `a long press on Navigate's map sets the destination, said on the bar with its distance (NV23, NR8: ${line})`);
       check(JSON.parse(await metaOf(page, 'nav')).walk_id === null, 'the destination is kept in meta nav, for no walk yet (NV22)');
       await shot(page, '00b-drawer-dest');
       await drawerTo(page, 'half');
-      check(/Your spot · \d+ m away/.test(await page.locator('[data-testid=drawer-dest]').innerText()), 'pulled up, the destination with its straight-line distance and Clear (NV20)');
+      check(/Your spot · \d+[ \u00a0]m away/.test(await page.locator('[data-testid=drawer-dest]').innerText()), 'pulled up, the destination with its straight-line distance and Clear (NV20)');
       await page.click('[data-testid=dest-clear]');
       await page.click('[data-testid=mode-quiet]');
       await page.waitForTimeout(300);
@@ -89,7 +92,7 @@ async function checks(h) {
     check(held.scale > 0.95 && held.scale < 0.99 && held.after === 1, `a large button presses down while held, and springs back (M4: ${held.scale.toFixed(3)} → ${held.after})`);
     // Start starts at once, in place (NV19, NV25, NR6).
     await page.click('[data-testid=start]');
-    await page.waitForSelector('[data-testid=stop]');
+    await page.waitForSelector('[data-testid=walk-actions]');
     check(new URL(page.url()).pathname === `${BASE}/walk` && !(await tabBarShown(page)), 'Start records on the walk screen over the tabs, the tab bar hidden (NV6, NV25, NR6)');
     // A fresh fix, as a phone's GPS gives one: the emulated position is otherwise re-sent with the time it was
     // read on Navigate, and a fix from before the walk began is dropped as stale (MAX_STALE_MS).
@@ -124,7 +127,7 @@ async function checks(h) {
     const fox = read.areas.find((x) => x.name === 'Fox Point');
     check(fox && fox.count === 4 && read.items.filter((x) => x.area_key === fox.key).map((x) => x.name).sort().join(',') === 'Fox Point Museum,Gano Park,Hessian Memorial,Public art',
       `a quiet walk still builds its neighborhood's checklist, attractions only (${JSON.stringify(read.areas.map((x) => [x.name, x.count]))})`);
-    check((await walkMarks().count()) === 0 && (await walkMap().getByText('Thayer Street', { exact: true }).count()) === 0, 'a quiet walk shows no "?" marks and no busy streets');
+    check((await walkMarks().count()) === 0 && (await busyLines()) === 0, 'a quiet walk shows no "?" marks and no busy streets');
     // Settings, from the walk's options: the range previewed as a ring around you (E16, E20, E21).
     await page.click('[data-testid=walk-summary]');
     await page.waitForSelector('[data-testid=options-card]');
@@ -135,15 +138,19 @@ async function checks(h) {
     await page.waitForSelector('[data-testid=range-slider]');
     await page.waitForTimeout(500);
     check((await page.locator('[data-testid=options-card] [data-testid=range-slider]').count()) === 1, 'the range and what I’m into are in the walk\'s drawer');
-    check((await page.locator('[data-testid=range-value]').innerText()) === '100 m' && (await ringNow()) === '100', 'the range is 100 m by default, drawn as a ring on the walk map while settings are open');
+    check(/^100[ \u00a0]m$/.test(await page.locator('[data-testid=range-value]').innerText()) && (await ringNow()) === '100', 'the range is 100 m by default, drawn as a ring on the walk map while settings are open');
+    // tend map audit 43 (the review of tend map 21, F1): the other checks accept either space; this one holds that the
+    // no-break space formatRange gives reaches the page, so the figure never ends a line apart from its unit.
+    const rangeText = await page.locator('[data-testid=range-value]').evaluate((el) => el.textContent);
+    check(rangeText === '100\u00a0m', `tend map audit 43: a distance on the page holds U+00A0 between its figure and unit (${JSON.stringify(rangeText)})`);
     await page.click('[data-testid=range-plus]');
     await page.waitForTimeout(300);
-    check((await page.locator('[data-testid=range-value]').innerText()) === '120 m' && (await ringNow()) === '120', 'the ring redraws as the range changes');
+    check(/^120[ \u00a0]m$/.test(await page.locator('[data-testid=range-value]').innerText()) && (await ringNow()) === '120', 'the ring redraws as the range changes');
     await page.click('[data-testid=range-minus]');
     for (let i = 0; i < 6; i++) await page.click('[data-testid=range-minus]');
-    check((await page.locator('[data-testid=range-value]').innerText()) === '60 m', 'the range never goes under 60 m');
+    check(/^60[ \u00a0]m$/.test(await page.locator('[data-testid=range-value]').innerText()), 'the range never goes under 60 m');
     for (let i = 0; i < 2; i++) await page.click('[data-testid=range-plus]');
-    check((await page.locator('[data-testid=kind-churches]').count()) === 1 && (await page.locator('[data-testid=pocket-alert]').count()) === (process.env.E2E_MOBILE ? 1 : 0), 'what I’m into lists the kinds; the pocket alert only on a touch screen (PA6, pocket-alert-nudge audit 4)');
+    check((await page.locator('[data-testid=options-card] [data-testid=into-row]').count()) === 1 && (await page.locator('[data-testid=pocket-alert]').count()) === (process.env.E2E_MOBILE ? 1 : 0), 'the drawer holds the row to what I’m into; the pocket alert only on a touch screen (PA6, pocket-alert-nudge audit 4, WI1)');
     await shot(page, '01a-settings');
     await page.click('[data-testid=explore-walk]');
     await page.keyboard.press('Escape');
@@ -174,7 +181,7 @@ async function checks(h) {
     const dotMoves = [];
     // N12: recording, pause, captures and the fog's streets go on while navigating to the "?" (from k 28).
     const navOn = async () => (await page.locator('[data-testid=nav-bar]').count()) === 1;
-    const walkedM = async () => Number(/ · (\d+) m$/.exec(await page.locator('text=/ · \\d+ m$/').first().innerText())?.[1]);
+    const walkedM = async () => Number(/ · (\d+)[ \u00a0]m$/.exec(await page.locator('text=/ · \\d+[ \\u00a0]m$/').first().innerText())?.[1]);
     const n12 = {};
     let dotLast = null;
     for (let k = 0; k < pts.length; k++) {
@@ -195,17 +202,16 @@ async function checks(h) {
         await page.click('[data-testid=voice-undo]');
         await page.waitForSelector('text=/Voice memo discarded/', { state: 'detached' });
         await page.waitForTimeout(2500);
-        check((await page.locator('[aria-label="Voice memo. Open"]').count()) === 1, 'undo brings a discarded memo back');
+        check((await page.locator('[aria-label^="Voice memo, "][aria-label$=". Open"]').count()) === 1, 'undo brings a discarded memo back');
         // A tap and an immediate save is an accidental tap: not kept, and said so.
         await page.click('[data-testid=cap-voice]');
         await page.waitForSelector('[data-testid=voice-save]');
         await page.click('[data-testid=voice-save]');
         await page.waitForSelector('text=Too short, not kept');
         check(true, 'a memo under a second is not kept, and the walker is told');
-        // A tap on Stop says it needs holding.
-        await page.click('[data-testid=stop]');
-        await page.waitForSelector('text=Hold to stop the walk');
-        check(true, 'a tap on Stop explains it needs a hold');
+        // Walking, there is no Stop to tap by accident (decision 0220): Pause comes first.
+        check((await page.locator('[data-testid=stop]').count()) === 0 && (await page.locator('[data-testid=pause-walk]').count()) === 1,
+          '0220: while walking the strip has Pause and no Stop');
       }
       if (k === 6) {
         // Explore on, for this walk (E1): the busy streets show, as information (E2, S21).
@@ -225,10 +231,10 @@ async function checks(h) {
         await page.click('[data-testid=walk-summary]');
         // The quiet read kept no busy streets (the owner's call); switching Explore on reads them at once. They are drawn only when
         // the Busy streets layer is on, on any walk (specs/map-layers ML8, ML10): Explore mode no longer draws them by itself.
-        check((await walkMap().getByText('Thayer Street', { exact: true }).count()) === 0, 'ML10: switching Explore on does not draw the busy streets by itself');
-        await h.switchLayer(page, 'busy');
-        await walkMap().getByText('Thayer Street', { exact: true }).first().waitFor({ timeout: 15000 }).catch(() => {});
-        check((await walkMap().getByText('Thayer Street', { exact: true }).count()) >= 1, 'ML8: with the Busy streets layer on, the busy streets around are drawn');
+        check((await busyLines()) === 0, 'ML10: switching Explore on does not draw the busy streets by itself');
+        await h.switchLayer(page, 'storefronts');
+        await page.waitForFunction(() => [...document.querySelectorAll('.maplibregl-map')].some((m) => /strips:[1-9]/.test(m.dataset.storefronts ?? '')), null, { timeout: 15000 }).catch(() => {});
+        check((await busyLines()) >= 1, 'ML8: with the Busy streets layer on, the busy streets around are drawn');
         // AD12: the busy streets draw graded, each grade wider than the one below.
         const graded = ((await walkMap().getAttribute('data-graded')) ?? '').split(',').filter(Boolean).map((g) => g.split(':').map(Number));
         const widths = graded.sort((a, b) => a[0] - b[0]).map((g) => g[1]);
@@ -308,18 +314,48 @@ async function checks(h) {
         const expectShared = apartM == null || apartM <= reachM;
         await page.waitForFunction((one) => {
           const labels = [...document.querySelectorAll('.maplibregl-map [aria-label$=". Open"]')].map((e) => e.getAttribute('aria-label'));
-          return one ? labels.includes('2 captures here. Open') : labels.includes('Voice memo. Open') && labels.includes('Video. Open');
+          return one ? labels.some((l) => /^A voice memo and a video, .+\. Open$/.test(l)) : labels.some((l) => /^Voice memo, .+\. Open$/.test(l)) && labels.some((l) => /^Video, .+\. Open$/.test(l));
         }, expectShared, { timeout: 10000 }).catch(() => {});
-        const shared = (await page.locator('[aria-label="2 captures here. Open"]').count()) === 1;
+        // tend map T14: the shared pin names its kinds in words with the minutes in, never "2 captures here".
+        const shared = (await page.$$eval('.maplibregl-map [aria-label$=". Open"]', (es) => es.map((e) => e.getAttribute('aria-label')))).filter((l) => /^A voice memo and a video, (at the start|.+ minutes? in)\. Open$/.test(l)).length === 1;
         const pinsAfter = await page.$$eval('.maplibregl-map [aria-label$=". Open"]', (es) => es.map((e) => e.getAttribute('aria-label')));
-        const twoPins = pinsAfter.includes('Voice memo. Open') && pinsAfter.includes('Video. Open');
+        // tend map T28: a pin of one moment says its minutes too ("Voice memo, twelve minutes in. Open").
+        const one = (kind) => pinsAfter.some((l) => new RegExp(`^${kind}, (at the start|.+ minutes? in)\\. Open$`).test(l));
+        const twoPins = one('Voice memo') && one('Video');
         const fair = apartM == null ? shared : apartM <= reachM ? shared : twoPins;
         check(fair, `a short video is kept, sharing a pin with the memo when within the pins' reach (${apartM?.toFixed(1)} m apart, ${reachM.toFixed(1)} m reach at z${zoomShown}: ${pinsAfter.join(' / ')})`);
         // The video is taken about 40 m from the memorial, after "Capture here" on it: it finds it (TC4).
         await page.waitForTimeout(500);
-        check((await page.locator('[aria-label="Found: Hessian Memorial, History"]').count()) === 1, 'TC4: the next capture finds the armed place, which stays drawn as found');
+        // tend walk-screen audit 11 (the owner, Nov 14): the found pin is said with the kind of the moment that found it.
+        const foundSaid = await page.$$eval('.maplibregl-map [aria-label^="Found"]', (es) => es.map((e) => e.getAttribute('aria-label')));
+        check(foundSaid.length === 1 && foundSaid[0] === 'Found with a video: Hessian Memorial, History',
+          `a capture within 60 m finds the place, which stays drawn as found; tend walk-screen audit 11: said "Found with a video: Hessian Memorial, History" (${JSON.stringify(foundSaid)})`);
+        // tend walk-screen 9 (decision 0172, O26): the found place's pin wears the kept moment's own glyph, here the video's,
+        // where it wore a tick (a checklist's "done"); its spoken name is as before. Pictured close at 390 and 320.
+        const foundPin = page.locator('[aria-label="Found with a video: Hessian Memorial, History"]');
+        const glyphs = async () => foundPin.first().evaluate((e) => [...e.querySelectorAll('[data-testid^=found-kind-]')].map((g) => g.getAttribute('data-testid'))).catch(() => null);
+        const closeUp = async (name) => {
+          const b = await foundPin.first().boundingBox();
+          const vw = page.viewportSize();
+          if (b && process.env.E2E_SHOTS) {
+            const x = Math.max(0, b.x - 70);
+            const y = Math.max(0, b.y - 50);
+            await page.screenshot({ path: path.join(process.env.E2E_SHOTS, `${name}.png`), clip: { x, y, width: Math.min(180, vw.width - x), height: Math.min(140, vw.height - y) } });
+          }
+          await shot(page, `${name}-screen`);
+        };
+        const kinds390 = await glyphs();
+        await closeUp('03h-found-pin-390');
+        await page.setViewportSize({ width: 320, height: 700 });
+        await page.waitForTimeout(800);
+        const kinds320 = await glyphs();
+        await closeUp('03h-found-pin-320');
+        await page.setViewportSize({ width: 390, height: 844 });
+        await page.waitForTimeout(800);
+        check(JSON.stringify(kinds390) === '["found-kind-videocam"]' && JSON.stringify(kinds320) === '["found-kind-videocam"]',
+          `tend walk-screen 9: the found place's pin shows the video's glyph, the moment that found it, in place of a tick (${JSON.stringify({ kinds390, kinds320 })})`);
         const seenEnters = await page.evaluate(() => window.__enters.map((e) => ({ kind: e.kind, animated: e.animated, label: e.label })));
-        check(seenEnters.some((e) => e.kind === 'pulse' && e.animated && /^Found: Hessian/.test(e.label)), 'a find pulses once from its pin (M12)');
+        check(seenEnters.some((e) => e.kind === 'pulse' && e.animated && /^Found( with a \w+)?: Hessian/.test(e.label)), 'a find pulses once from its pin (M12)');
         check(seenEnters.some((e) => e.kind === 'flip' && e.animated), 'a revealed "?" turns into its place, on its way to being found (M11)');
         check((await page.locator('[data-testid=armed-line]').count()) === 0, 'TC4: arming clears after the capture');
       }
@@ -328,7 +364,7 @@ async function checks(h) {
         await page.fill('[data-testid=note-input]', 'The bakery smelled of cardamom.');
         await page.click('[data-testid=note-done]');
         await page.waitForTimeout(2500);
-        check((await page.locator('[aria-label="Note. Open"], [aria-label$="captures here. Open"]').count()) >= 1, 'the note is pinned on the map');
+        check((await page.locator('[aria-label^="Note, "][aria-label$=". Open"], .maplibregl-map button[data-ids*=","]:not([data-testid=memory-pin])').count()) >= 1, 'the note is pinned on the map');
         await shot(page, '03-walking');
         // What happened here: a long press near where the note was taken (the
         // map follows the walker, so near the map's center) shows it. A plain
@@ -345,7 +381,8 @@ async function checks(h) {
         await page.mouse.down();
         await page.waitForTimeout(700);
         await page.mouse.up();
-        // The press sheet offers Go here, and what happened here when captures are near.
+        // The press sheet offers Route here (it was Go here), and what happened here when captures are near.
+        check(((await page.locator('[data-testid=go-here]').first().innerText().catch(() => '')).trim()) === 'Route here', 'OM13: the walk screen\'s press sheet says "Route here", not "Go here"');
         await page.click('[data-testid=here-open]');
         await page.waitForSelector('text=What happened here');
         // The note may share the spot with the video nearby: step to it.
@@ -363,8 +400,58 @@ async function checks(h) {
         await shot(page, '03b-viewer-more');
         await page.click('[data-testid=viewer-remind]');
         await page.waitForSelector('[data-testid=remind-editor]');
-        check((await page.locator('[data-testid=remind-once][aria-checked=true]').count()) === 1 && (await page.locator('[data-testid=remind-none][aria-checked=true]').count()) === 1, 'remind me here offers how often, once by default, and until when');
-        await shot(page, '03a-remind');
+        // tend explore 18 (decision 0172, O9; ui-patterns matrix 15): How often and Until are two labelled menus, each
+        // button one line at 390 and 320 px, each opening the chips' choices in their order with the chosen one checked.
+        const remindMenus = [];
+        const remindLong = [];
+        for (const w of [390, 320]) {
+          await page.setViewportSize({ width: w, height: 844 });
+          await page.waitForTimeout(400);
+          const sfx = w === 390 ? '' : `-${w}`;
+          // Whole, on one line: never cut short by its ellipsis, never wrapped.
+          const button = async (id) => page.locator(`[data-testid=remind-${id}-text]`).evaluate((t) => {
+            const lh = parseFloat(getComputedStyle(t).lineHeight) || parseFloat(getComputedStyle(t).fontSize) * 1.3;
+            return { text: t.textContent, oneLine: t.getBoundingClientRect().height < lh * 1.6 && t.scrollWidth <= t.clientWidth + 1, h: t.parentElement.getBoundingClientRect().height };
+          });
+          const often = await button('often');
+          const until = await button('until');
+          await shot(page, `03a-remind${sfx}`);
+          const menu = async (id, shotName) => {
+            await page.click(`[data-testid=remind-${id}]`);
+            await page.waitForSelector(`[data-testid=remind-${id}-menu]`);
+            await page.waitForTimeout(200);
+            await shot(page, shotName);
+            const items = await page.locator(`[data-testid=remind-${id}-menu] [role=radio]`).evaluateAll((els) => els.map((e) => [e.firstElementChild.textContent, e.getAttribute('aria-checked')]));
+            // (Its label alone: the checkmark is an icon font's glyph.)
+            const inView = await page.locator(`[data-testid=remind-${id}-menu]`).evaluate((el) => { const r = el.getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight && r.left >= 0 && r.right <= innerWidth; });
+            // A tap outside closes the menu and keeps the choice.
+            await page.mouse.click(4, 4);
+            const closed = await page.waitForSelector(`[data-testid=remind-${id}-menu]`, { state: 'detached', timeout: 3000 }).then(() => true, () => false);
+            return { items, inView, closed };
+          };
+          const oftenMenu = await menu('often', `03d-remind-often${sfx}`);
+          const untilMenu = await menu('until', `03e-remind-until${sfx}`);
+          remindMenus.push({ w, often, until, oftenMenu, untilMenu, editorOpen: await page.locator('[data-testid=remind-editor]').count() === 1 });
+          if (w === 320) {
+            // tend explore audit 20 (the review's U1): the longest choices show whole on the button at 320 px, then back to Once.
+            for (const id of ['weekly', 'monthly', 'once']) {
+              await page.click('[data-testid=remind-often]');
+              await page.click(`[data-testid=remind-${id}]`);
+              await page.waitForSelector('[data-testid=remind-often-menu]', { state: 'detached', timeout: 3000 }).catch(() => null);
+              if (id !== 'once') remindLong.push(await button('often'));
+              if (id === 'monthly') await shot(page, '03a-remind-monthly-320');
+            }
+          }
+        }
+        await page.setViewportSize({ width: 390, height: 844 });
+        await page.waitForTimeout(400);
+        check(remindLong.length === 2 && remindLong[0].text === 'How often: Weekly at most' && remindLong[1].text === 'How often: Monthly at most' && remindLong.every((b) => b.oneLine),
+          `tend explore audit 20: "How often: Weekly at most" and "How often: Monthly at most" show whole, on one line, at 320 px (${JSON.stringify(remindLong)})`);
+        const sameItems = (got, want) => JSON.stringify(got.map(([t]) => t)) === JSON.stringify(want) && got.filter(([, c]) => c === 'true').map(([t]) => t).join() === want[0];
+        const menusOk = remindMenus.every((m) => m.often.text === 'How often: Once' && m.until.text === 'Until: No end' && m.often.oneLine && m.until.oneLine && m.often.h >= 44 && m.until.h >= 44
+          && sameItems(m.oftenMenu.items, ['Once', 'Every visit', 'Weekly at most', 'Monthly at most']) && sameItems(m.untilMenu.items, ['No end', '1 month', '3 months', '1 year'])
+          && m.oftenMenu.inView && m.untilMenu.inView && m.oftenMenu.closed && m.untilMenu.closed && m.editorOpen);
+        check(menusOk, `tend explore 18: remind me here is two labelled menus, "How often: Once" and "Until: No end", one line each at 390 and 320 px, opening the chips' choices in order, the default checked (${JSON.stringify(remindMenus)})`);
         // Every pin element as it stands, to see that the bell redraws it in place (reminder-bell audit 3, 4).
         await page.evaluate(() => document.querySelectorAll('[data-ids]').forEach((e) => { e.__beforeBell = true; }));
         await page.click('[data-testid=remind-save]');
@@ -373,6 +460,23 @@ async function checks(h) {
         const reminderSaid = (await page.locator('[data-testid=capture-meta]:has-text("Reminder set")').count()) > 0 && (await page.locator('[data-testid=viewer-pill]').count()) === 0;
         check(reminderSaid, 'UC10, UC12: a set reminder says so in the info line, with no pill');
         await shot(page, '03c-reminder-set');
+        await page.setViewportSize({ width: 320, height: 844 });
+        await page.waitForTimeout(400);
+        await shot(page, '03c-reminder-set-320');
+        // tend explore audit 21 (the review's U2): Add to this moment's row has its own space above the note's page,
+        // never over its title (ui-patterns T7: a control may not float over content).
+        const addOverTitle = await page.evaluate(() => {
+          const shown = (el) => el && el.getBoundingClientRect().height > 0 && getComputedStyle(el).visibility !== 'hidden';
+          const row = [...document.querySelectorAll('[data-testid=viewer-add]')].find(shown);
+          const reader = [...document.querySelectorAll('[data-testid=note-reader]')].find(shown);
+          if (!row || !reader) return { row: !!row, reader: !!reader };
+          const a = row.getBoundingClientRect();
+          const b = reader.getBoundingClientRect();
+          return { row: true, reader: true, rowBottom: Math.round(a.bottom), pageTop: Math.round(b.top), clear: a.bottom <= b.top + 0.5 };
+        });
+        check(addOverTitle.clear === true, `tend explore audit 21: at 320 px the Add to this moment row sits above the note's page, not over its title (${JSON.stringify(addOverTitle)})`);
+        await page.setViewportSize({ width: 390, height: 844 });
+        await page.waitForTimeout(400);
         // The map behind the open viewer already wears the bell, on the same element (RB5, audit 3, 4).
         await page.waitForSelector('[data-ids] [data-testid=pin-reminder]', { timeout: 5000 }).catch(() => null);
         const keptOnSave = await page.locator('[data-ids]:has([data-testid=pin-reminder])').evaluateAll((els) => els.length === 1 && els[0].__beforeBell === true);
@@ -481,18 +585,92 @@ async function checks(h) {
         // Pause: positions sent while paused are not recorded, and the clock stops.
         n12.pause = await navOn();
         n12.grewM = (await walkedM()) - n12.fromM;
+        // Decision 0220 (AllTrails' pattern; amends O27 and tend walk-screen 7, audit 9): walking, the strip shows Pause alone;
+        // paused, Resume and a held Stop. Each is a pill, its icon and word side by side, no outline, 48 high: Pause and Stop
+        // soft, Resume solid accent. The spoken names are as before. At 390 and 320 every word is whole on one line, on
+        // screen, the strip 69 high.
+        const strip = (id) => page.evaluate((id) => {
+          const b = document.querySelector(`[data-testid=${id}]`);
+          const hold = document.querySelector('[data-testid=stop]');
+          const stats = document.querySelector('[data-testid=walk-stats]');
+          const bar = document.querySelector('[data-testid=walk-bar]');
+          if (!b || !stats) return null;
+          const oneLine = (el) => {
+            const r = document.createRange();
+            r.selectNodeContents(el);
+            const lines = new Set([...r.getClientRects()].filter((q) => q.width > 0).map((q) => Math.round(q.top)));
+            return lines.size === 1 && el.scrollWidth <= el.clientWidth + 1;
+          };
+          const leaf = (root) => [...root.querySelectorAll('div')].filter((d) => !d.querySelector('div') && d.innerText.trim());
+          const wordOf = (root) => leaf(root).find((d) => /[A-Za-z]/.test(d.innerText));
+          const iconOf = (root) => [...root.querySelectorAll('div')].find((d) => d.innerText.trim() && !/[A-Za-z]/.test(d.innerText));
+          // Beside: the word starts right of the icon, their middles level.
+          const beside = (root) => {
+            const w = wordOf(root)?.getBoundingClientRect();
+            const i = iconOf(root)?.getBoundingClientRect();
+            return !!(w && i && w.left >= i.right - 1 && Math.abs((w.top + w.bottom) / 2 - (i.top + i.bottom) / 2) < 3);
+          };
+          // A pill: no outline, its corners half its height, its own fill.
+          const pill = (el) => {
+            const cs = getComputedStyle(el);
+            const h = el.getBoundingClientRect().height;
+            return ['Top', 'Right', 'Bottom', 'Left'].every((e) => parseFloat(cs[`border${e}Width`]) === 0)
+              && parseFloat(cs.borderTopLeftRadius) >= h / 2 - 1 && cs.backgroundColor !== 'transparent' && !/rgba\(.*,\s*0\)$/.test(cs.backgroundColor);
+          };
+          const box = (el) => { const r = el.getBoundingClientRect(); return { l: r.left, r: r.right, t: r.top, b: r.bottom, w: r.width, h: r.height }; };
+          return {
+            said: b.getAttribute('aria-label'), word: wordOf(b)?.innerText.trim() ?? '', wordColor: wordOf(b) ? getComputedStyle(wordOf(b)).color : null,
+            beside: beside(b) && (!hold || beside(hold)), pill: pill(b) && (!hold || pill(hold)),
+            fill: getComputedStyle(b).backgroundColor, holdFill: hold ? getComputedStyle(hold).backgroundColor : null,
+            whole: leaf(b).every(oneLine) && (!hold || leaf(hold).every(oneLine)) && oneLine(stats.querySelector('div') ?? stats),
+            holdWord: hold ? wordOf(hold)?.innerText.trim() : null, holdSaid: hold?.getAttribute('aria-label') ?? null,
+            btn: box(b), hold: hold ? box(hold) : null, barH: bar ? Math.round(bar.getBoundingClientRect().height) : null, vw: window.innerWidth,
+          };
+        }, id);
+        const fits = (m) => !!m && m.whole && m.beside && m.pill && m.btn.w >= 44 && m.btn.h === 48 && m.btn.l >= 0 && m.btn.r <= m.vw && m.barH === 69
+          && (!m.hold || (m.hold.h === 48 && m.hold.r <= m.vw && m.btn.r <= m.hold.l && Math.abs(m.hold.t - m.btn.t) < 0.5 && Math.abs(m.hold.b - m.btn.b) < 0.5));
+        const seenStrip = {};
+        seenStrip.walking390 = await strip('pause-walk');
+        await shot(page, '03f-strip-walking-390');
+        await page.setViewportSize({ width: 320, height: 700 });
+        await page.waitForTimeout(600);
+        seenStrip.walking320 = await strip('pause-walk');
+        await shot(page, '03f-strip-walking-320');
+        await page.setViewportSize({ width: 390, height: 844 });
+        await page.waitForTimeout(600);
         await page.click('[data-testid=pause-walk]');
         await page.waitForSelector('text=Paused');
+        await page.waitForTimeout(400);
+        seenStrip.paused390 = await strip('resume-walk');
+        await shot(page, '03g-strip-paused-390');
+        await page.setViewportSize({ width: 320, height: 700 });
+        await page.waitForTimeout(600);
+        seenStrip.paused320 = await strip('resume-walk');
+        await shot(page, '03g-strip-paused-320');
+        await page.setViewportSize({ width: 390, height: 844 });
+        await page.waitForTimeout(600);
+        const walking = [seenStrip.walking390, seenStrip.walking320];
+        const pausedStrip = [seenStrip.paused390, seenStrip.paused320];
+        check(walking.every((m) => m?.word === 'Pause' && m.said === 'Pause the walk' && m.hold == null)
+          && pausedStrip.every((m) => m?.word === 'Resume' && m.said === 'Resume the walk' && m.holdWord === 'Stop' && m.holdSaid === 'Hold to stop')
+          && Object.values(seenStrip).every(fits),
+          `0220: walking, the strip shows Pause alone; paused, Resume and a held Stop; pills, icon and word side by side, no outline, 48 high and level, every word whole at 390 and 320, the strip 69 high (${JSON.stringify(seenStrip)})`);
+        // Resume is the strip's one primary action while paused: a solid accent pill, its word white (0172's rule); Pause and
+        // Stop are soft pills with ink words.
+        const soft = 'rgb(227, 224, 218)';
+        check(pausedStrip.every((m) => m?.fill === 'rgb(194, 65, 12)' && m.wordColor === 'rgb(255, 255, 255)' && m.holdFill === soft)
+          && walking.every((m) => m?.fill === soft && m.wordColor === 'rgb(29, 36, 48)'),
+          `0220: Resume is a solid accent pill with a white word; Pause and Stop soft pills with ink words (${[...walking, ...pausedStrip].map((m) => m && `${m.fill}/${m.wordColor}/${m.holdFill}`).join(', ')})`);
         // One publish cycle, so a fix taken just before the pause is already counted.
         await page.waitForTimeout(2500);
-        const before = await page.locator('text=/ · \\d+ m$/').first().innerText();
+        const before = await page.locator('text=/ · \\d+[ \\u00a0]m$/').first().innerText();
         // Walking on at a believable pace (4 m a second), which the speed gate would keep.
         for (let j = 1; j <= 3; j++) {
           await ctx.setGeolocation({ longitude: pts[k][0], latitude: pts[k][1] + j * 0.000036, accuracy: 6 });
           await page.waitForTimeout(1000);
         }
         await page.waitForTimeout(2200);
-        const during = await page.locator('text=/ · \\d+ m$/').first().innerText();
+        const during = await page.locator('text=/ · \\d+[ \\u00a0]m$/').first().innerText();
         check(before.split(' · ')[1] === during.split(' · ')[1], `nothing is recorded while paused (${before} → ${during})`);
         n12.held = before.split(' · ')[1] === during.split(' · ')[1];
         await page.click('[data-testid=resume-walk]');
@@ -510,15 +688,10 @@ async function checks(h) {
         await page.click('[data-testid=recenter]');
         await page.waitForSelector('[data-testid=recenter]', { state: 'detached' });
         check(true, 'after looking around, Recenter brings the map back');
-        // Unwalked streets near me.
+        // The fog of unwalked streets still draws, quietly (the unwalked-streets button went with decision 0222).
         n12.fog = await navOn();
-        await page.click('[data-testid=unwalked]');
-        await page.waitForSelector('text=/unwalked nearby/');
-        n12.unwalked = await page.locator('text=/unwalked nearby/').first().innerText();
-        check(n12.photo && n12.photoKept && n12.pause && n12.grewM > 0 && n12.held && n12.fog && /^[1-9]\d* unwalked nearby$/.test(n12.unwalked),
-          `N12: while navigating, the walk records, a photo is kept, Pause holds the bar's distance, and the fog counts its streets (${JSON.stringify(n12)})`);
-        await shot(page, '03c-unwalked');
-        await page.click('[data-testid=unwalked]');
+        check(n12.photo && n12.photoKept && n12.pause && n12.grewM > 0 && n12.held && n12.fog,
+          `N12: while navigating, the walk records, a photo is kept, Pause holds the bar's distance, and the fog draws (${JSON.stringify(n12)})`);
       }
       if (k === 39) {
         // 40 s of walking with captures, an explore read and a route: the page stays the same size (leak regression).
@@ -532,13 +705,14 @@ async function checks(h) {
         // 1.4 renders a second (scripts/perf-walk.js). Before the fixes it was 3.7 here.
         check(rate('render:walk') <= 2.5 && rate('setData:cone') <= 1.05 && rate('setData:trace') <= 0.6,
           `walking stays within its render budget, FC10 (walk ${rate('render:walk').toFixed(2)}/s, cone ${rate('setData:cone').toFixed(2)}/s, trace ${rate('setData:trace').toFixed(2)}/s)`);
+        check(rate('render:walk') <= 2.0, `CM3: with the React Compiler, the busy window renders the walk screen no more than before (${rate('render:walk').toFixed(2)}/s; 1.78 to 1.91 before)`);
         check(leak1.bodyDivs - leak0.bodyDivs <= 3 && leak1.listeners - leak0.listeners < 2000,
           `walking leaks no portals or listeners (body ${leak0.bodyDivs} → ${leak1.bodyDivs}, listeners ${leak0.listeners} → ${leak1.listeners}, nodes ${leak0.nodes} → ${leak1.nodes})`);
       }
       if (k === 40) {
         // A reload mid-walk is how the web resumes: it must land back on the walk.
         await page.reload();
-        await page.waitForSelector('[data-testid=stop]');
+        await page.waitForSelector('[data-testid=walk-actions]');
         check(page.url().endsWith(`${BASE}/walk`), 'a reload mid-walk resumes the walk');
         await page.waitForTimeout(2500);
         const replayed = await page.evaluate(() => window.__enters.length);
@@ -551,13 +725,16 @@ async function checks(h) {
       if (k === 54) {
         // What I'm into (E17): public art switched off hides its "?" at once; back on, it shows again.
         check((await page.locator('[aria-label="Public art, Art. Open"]').count()) === 1, 'the artwork shows, named, beside you');
-        await page.click('[data-testid=walk-summary]');
+        // Through What I'm into's page (decision 0192, WI8): the drawer's row, the switch, Back, the drawer lowered.
+        await openInto(page, 'walk');
         await page.click('[data-testid=kind-public_art]');
+        await closeInto(page);
         await page.keyboard.press('Escape');
         await page.waitForTimeout(500);
         check((await page.locator('[aria-label="Public art, Art. Open"]').count()) === 0, 'a kind switched off loses its "?" marks');
-        await page.click('[data-testid=walk-summary]');
+        await openInto(page, 'walk');
         await page.click('[data-testid=kind-public_art]');
+        await closeInto(page);
         await page.keyboard.press('Escape');
         await page.waitForTimeout(500);
         check((await page.locator('[aria-label="Public art, Art. Open"]').count()) === 1, 'switched back on, it shows at once');
@@ -718,12 +895,15 @@ async function checks(h) {
 
     // The walk back passed the flagged capture again: never in the walk that recorded it (R2).
     check((await page.locator('[data-testid=reminder]').count()) === 0, 'a flagged capture does not come back in its own walk');
+    await toStop(page);
     await page.click('[data-testid=stop]');
-    await page.waitForTimeout(600);
+    await page.waitForSelector('text=Hold to stop the walk', { timeout: 5000 }).catch(() => {});
+    check((await page.locator('text=Hold to stop the walk').count()) > 0, 'a tap on Stop explains it needs a hold');
     check(page.url().endsWith('/walk'), 'a tap on Stop does not end the walk');
 
     const dismissed = await hintDismissed;
     check(dismissed === true, `a dismissed banner leaves no copy behind (audit 5${dismissed == null ? ': the hint never showed' : ''})`);
+    await toStop(page);
     const box = await page.locator('[data-testid=stop]').boundingBox();
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
     let releaseTilejson;

@@ -1,0 +1,33 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "retag",
+        "When that file is split, reword its lines on `ATLAS_CODE`",
+        "owner",
+        "--reason",
+        "rewording rule lines is the owner's (decision 0135); the same as Open before the loop, Community parks' wording after T9"
+      ],
+      "target": "sha256:41496e2ddabe9ddffd5f92436d59f5b4bad55ece43c4e0e30a1d0b79ce4d14a8"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "Navigate, the walk screen and Walk me back naming a complex"
+      ],
+      "body": "Answered Nov 14 (the owner, in person; decision 0172): name a complex on the walk screen: inside one, the street line says its name (\"Strawberry Square\"), amending 0147 point 2. A slice, not a commit: its gate and criteria are in the decision, built as one slice (`/slice --from=G<n>` once filed, or the owner's `/slice`).\n",
+      "target": "sha256:64d55e5559d545818a4cb4d9fe02ff50ab6ca4a9920161602e23a560a701a5d9"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 14, `/tend triage`, records only** (from `74a8bc4e`; the owner's own answers, in person, Nov 14, to the `[owner]`\nitems of `docs/DEFERRED.md`, O1-O35, recorded in decision 0172).\n- `tend triage: the owner's answers to the deferred list (decision 0172), closed and noted`: the decision; ten items\n  closed (O1, O4, O5, O25, O28, O29, O32 answered \"leave\"; O12, O24 and the struck-through attribution item stale,\n  checked on `main`); twenty-two answered items noted for the loop to build (O2-O35 and the `[arch]` read-past), O8\n  noted stale-likely, the untagged twins of O9 and O23 noted; the eta item's premise rewritten; three bullets split\n  (QL item 5 into two `[phone]` items, the complexes and boundaries audit items into twelve); \"Open before the loop\":\n  the spec wording the answers need, and notes on the accent at launch and R7.\n- `tend triage: the ledger's retags, the second pair per section` and this record: the rest of the firm retags;\n  O31 noted as a slice.\nRetagged ten (`[owner]` six, one of them phone-only; `[arch]` three; `[kept]` one). Left as they are: O30, O33, O34 and\nevery note-type item, the `[loop]` item on the threads' ⋯ buttons among them (the owner is reworking note types); the\n\"to check\" `[loop]` items, for their area runs. O31 (name a complex on the walk screen) has its gate and criteria in\ndecision 0172 and is not filed as a `G` entry: the balance reads \"outgrowing its base\" (seven areas rough).\nNot a sweep: no lens ran, no area changed state, nothing a person sees changed, so no e2e ran. Nothing here has run on\na phone.\n"
+    }
+  ]
+}

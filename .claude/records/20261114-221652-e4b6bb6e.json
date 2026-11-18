@@ -1,0 +1,14 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "slice",
+        "row",
+        "set",
+        "Storefronts (\"busy\" becomes storefronts everywhere the concept shows: the layer"
+      ],
+      "body": "| Storefronts (\"busy\" becomes storefronts everywhere the concept shows: the layer, the area card's one list nearest you first with Walk to, \"Starts you on\", \"Where storefronts gather\", \"A pocket of storefronts\", the walk's line, the leaning \"Along storefronts\" naming streets in the order passed; storefronts is presence's own reading and counts only places you walk into; the code renamed, a choice saved as `busy` read across; SF1-SF15, decisions 0140, 0180; \"What's good here?\" is \"What's here?\" (SF15, the owner's call); from G2) | built 2026-11-14, test-first by history (15 of 15): unit tests (2561), typecheck, lint, docs, vision and records checks; e2e `layers`, `switches`, `dense`, `carousel`, `walk` pass, `atlas` whole (past its recorded AT9 flake with `E2E_SOFT`), `scenic` but for \"fix preview-clutter audit 1\" (fails 3 of 3 on main, 83d509eb); steward read once (S1, S2, S4 accepted; S3 taken by the owner as SF15); cold find and UI review (ui 1, 2 fixed, 3 and 5 deferred, 4 rejected); native renames only, never run on a device; deployed 2026-11-14 (`f51df3d`, Pages run 276; the three tasks done on the live build at Fox Point, Providence) | `f51df3d` on main, from `claude/wonderful-mendel-jfw77q` | `specs/storefronts/spec.md` (repo first) | no (decision 0074) |\n",
+      "target": "sha256:529c3a641479e265443404850d98990af20820eff29a8db6f37a92a291453eff"
+    }
+  ]
+}

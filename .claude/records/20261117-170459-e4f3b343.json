@@ -1,0 +1,80 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Plan an outing (QC1-QC42, decision 0194)",
+        "--new"
+      ],
+      "body": "- [ ] **Do:** on a phone, on Explore, tap \"Plan an outing\" under the title card; pick Antiques; switch to One way. **Expect:** the full-screen page opens over Explore with its own map, the tabs folded away; a proposal of two or three slots appears (\"An antiques shop, a short walk on\") with no shop named, and Back (Android) closes it with Explore as it was. (QC1-QC3, QC17, QC24)\n",
+      "intro": "Plan an outing is built and green on the web build only; nothing here has run on a device. Ids are the spec's (`specs/quick-circuit`, QC1-QC42).\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Plan an outing"
+      ],
+      "body": "- [ ] **Do:** on a phone, on the outing page, look at the map around the proposed route and its stop points, in a street with shops; then press Start and walk the proposal, looking at the walk's map the same way. **Expect:** no basemap shop or point-of-interest label is drawn on either map (`WalkMap` hides the base source's `poi` layer with `setSourceVisibility(false, 'openmaptiles', 'poi')`, assuming Positron's source is named `openmaptiles`, which the web build confirms); street names stay; a stop is a plain unlabelled point; Explore's and the walk's ordinary maps still draw their shop labels again after the page closes or the walk ends; and the walk still reads its marks and streets (the app's own `omt-query` source is not hidden). A printed shop name, or a missing street name, is a finding. (QC24)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Plan an outing"
+      ],
+      "body": "- [ ] **Do:** on a phone, once chronicles-data has published a stores pack and its manifest lists it, open the outing page near it with data on, pick Books (or any entry the pack carries); then repeat in airplane mode and with the pack's host blocked. **Expect:** a proposal whose stops come from the pack (a tap names a shop the tiles do not hold), after one manifest read and byte-range reads of the one stores file (`net/tileReader`, `PMTiles` over `net.source`), made only after the pick, never on opening the page or on Explore; with no network, a missing file or an older manifest the page still proposes from the tiles' shops (Antiques, Books and Thrifting's charity shops have tile fallbacks) and says nothing of the failed read. Not yet run against any real pack: the web build was checked over the contract's example pack and a served one. (QC14, QC29)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Plan an outing"
+      ],
+      "body": "- [ ] **Do:** on a phone, press Start on a one-way outing and walk its street past the first stop at normal pace, then keep going; repeat with the screen locked and then with a voice memo recording. **Expect:** within about 60 m of each stop the walk screen shows one line with the shop's name, once, with no sound, no haptic and no notification, and it fades by itself; passing a stop without the screen on shows nothing later; the capture stack is never covered. (QC19, QC26)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Plan an outing"
+      ],
+      "body": "- [ ] **Do:** on a phone, open the outing page with location off, then on; pick an entry; turn \"Include chains\" on and off with a screen reader. **Expect:** with no location the page says it needs one and proposes nothing; the switch is announced as on or off and keeps its state after the page is closed and opened again. (QC20, QC30, QC41)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Plan an outing (QC1-QC42, decision 0194)",
+        "--new"
+      ],
+      "body": "- Opening hours, admission and closing times: v1 says once that hours are not known and plans no time of day; the pack contract reserves `hours` and emits none. A later slice, and for hours a decision of the owner (the owner, Nov 16; QC20)\n",
+      "intro": "Plan an outing (QC1-QC42, decision 0194) is built to the core, the page, the Explore control, the arrival line and one journey; what follows is left out on purpose or waits.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Plan an outing"
+      ],
+      "body": "- Plan an outing's cold find and UI review ran (Nov 17; findings U1-U10 triaged in `specs/quick-circuit/spec.md`, Record): four fixed behind `quick-circuit ui 1-4`; left: the stop dots wear the planner's magenta pin colour, which may read as \"found\" (the owner's call on a different colour), the empty page's map is blank in the e2e's fake basemap, a hint beside the search box, and the order of the controls (Start now pinned). The journey now covers Books from a served stores pack, Thrifting, Include chains across a reload and a second Swap (QC32)\n"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "add",
+        "--top"
+      ],
+      "body": "| Plan an outing (one page from Explore: pick what you want to see from a vocabulary of Antiques, Books and Thrifting, one proposed circuit, a loop first or one way, stops named only on a tap or within 60 m on the walk and never stored, Swap with no wrap, \"Include chains\" off by default, the stores pack read only after a pick, shops presence and never marks; QC1-QC42, decision 0194) | built 2026-11-17, deployed to main 2026-11-17: test-first for 31 of 42 (QC1, QC3, QC18, QC27, QC41, QC42 waived by the owner at deploy, four more carry recorded reasons); unit tests, typecheck, lint, docs and vision checks; e2e `outing` and 21 more on the /chronicles build; cold find and UI review triaged (`quick-circuit ui 1-4`); the stores pack built in chronicles-data (ST1-ST10, fixtures only, unpublished); native unverified | `claude/lucid-gates-810ryf` | `specs/quick-circuit/spec.md` | no |\n"
+    }
+  ]
+}

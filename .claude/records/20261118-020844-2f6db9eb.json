@@ -1,0 +1,142 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "More attractions"
+      ],
+      "body": "- [owner] Places you can't walk to (more-attractions audit 9, Nov 18): a wildlife refuge, an amusement park or a national monument is one point, often deep inside the place, so a walker on its trails never comes within 60 m and never names or finds it; a Wikidata-only reserve is never checked for `access=no` (the steward). The owner, Nov 18: \"Large open spaces might have to be treated differently because right now we have attractions always supposed to represent attractions when you're driving somewhere that's off the beaten path that requires a little bit of a detour and you won't be able to discover that in a session so we have to deliberate on how to reconcile those sorts of points of interest that you can't easily be in walking distance of.\" The nearest precedent is Drive there first (decision 0121, \"When I get there\"). Decision 0198.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "More attractions"
+      ],
+      "body": "- [owner] No noise review of the v6 additions (more-attractions audit 10, Nov 18): the 4,441 museums and 1,256 reserves went out without the owner reviewing the per-area additions report (decision 0109; the steward's S5). Decision 0198.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "More attractions"
+      ],
+      "body": "- [owner] The \"Viewpoints and attractions\" label (more-attractions audit 11, Nov 18): the row sits under the heading \"Viewpoints & oddities\", and \"attractions\" is the tourist framing (the steward's S6); renaming it is the owner's call. Decision 0198.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "More attractions"
+      ],
+      "body": "- [loop] The Walk-me-back button over the drawer (more-attractions audit 12, Nov 18): at 320 px the round Walk-me-back button sits on the drawer's top edge over the first row's switch of \"What I'm into\". It predates the slice (picture `subtypes-what-im-into-320`).\n"
+    },
+    {
+      "argv": [
+        "section",
+        "add",
+        "From the more-attractions audit (Nov 18)"
+      ]
+    },
+    {
+      "argv": [
+        "section",
+        "item",
+        "add",
+        "From the more-attractions audit (Nov 18)"
+      ],
+      "body": "- Places you can't walk to (more-attractions audit 9; `specs/more-attractions/spec.md`, Audit; DEFERRED, \"More attractions\"): a refuge, an amusement park or a national monument is one point deep inside the place, so a walk on its trails never comes within 60 m of it. Your words of Nov 18: these are places off the beaten path \"that you can't easily be in walking distance of\", to deliberate. The nearest existing precedent is Drive there first (decision 0121, \"When I get there\"): the app already plans a walk that starts after a drive.\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "More attractions (MA1-MA9, decision 0198)",
+        "--new"
+      ],
+      "body": "- [ ] **Do:** on a phone that last opened the app before the more-attractions update (SQLite, atlas rows at `a14.p7` or `a14.p8`), open Explore and the walk's ready screen, then walk (Explore on) an area that was read before. **Expect:** every `atlas_area` and landing row is derived again once (p8, then p9 after the audit) with no stall or empty bars; a theme park shows under Amusement and theme parks; a reader who had Viewpoints or Zoos and aquariums off keeps Amusement and theme parks off (MA4, more-attractions audit 1).\n",
+      "intro": "More attractions (decision 0198) and its audit are built and green on the web build only; nothing here has run on a device. Ids are the spec's (`specs/more-attractions`, MA1-MA9, and the audit's numbers).\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "More attractions (MA1-MA9"
+      ],
+      "body": "- [ ] **Do:** on a phone, once chronicles-data publishes the v6 and v7 classes, walk (Explore on) near a museum by type, a nature reserve, an amusement park, a pier and a natural monument (Devils Tower or Muir Woods). **Expect:** the archive pmtiles read (byte ranges through `net.source`) yields each with its row (Museums and galleries, Nature reserves, Amusement and theme parks, Piers and boardwalks, Natural monuments); a museum by type lights Culture alone and a pier no History (MA1-MA6, more-attractions audits 1-3, 18).\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "More attractions (MA1-MA9"
+      ],
+      "body": "- [ ] **Do:** on a phone, open \"What I'm into\" in the walk's drawer and in the ready bar and scroll to Parks and gardens, Nature and Zoos and aquariums. **Expect:** Nature reserves (binoculars), Natural monuments (prism), Amusement and theme parks (rocket) and Piers and boardwalks (boat) draw their icons in the KindSwitches, each label on one line at 320 px, and a switch keeps its state after scrolling away and back (MA3, MA5, MA9, more-attractions audits 1, 4, 5, 18).\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "More attractions (MA1-MA9"
+      ],
+      "body": "- [ ] **Do:** on a phone (MapLibre RN), on an exploring walk near a nature reserve, an amusement park, a pier and a natural monument, wait for the \"?\" pins, then walk within 60 m of one. **Expect:** each new kind draws its \"?\" pin like the others, named within 60 m, and a capture beside it finds it (MA1, more-attractions audits 1, 18).\n"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "set",
+        "More attractions (every museum by its type",
+        "--reason",
+        "the more-attractions audit (Nov 18): its counts, the owner's calls and the branch"
+      ],
+      "body": "| More attractions (every museum by its type, Culture alone unless listed; nature reserves and wildlife refuges; every garden type; amusement, theme and water parks, their own row \"Amusement and theme parks\" under \"Zoos and aquariums\"; piers and boardwalks; suspension bridges and national monuments, natural ones under Nature; from Wikidata, contract v7; MA1-MA9, decision 0198) | shipped 2026-11-17 (Pages); the audit's fixes on `claude/more-attractions-audit`, not deployed; contract v6/v7 (chronicles-data's `claude/more-attractions`, `claude/more-attractions-audit-data`) publishes after; native unverified | `claude/more-attractions-audit` | `specs/more-attractions/spec.md` | audited 2026-11-18: 18 findings, 9 fixed in the app (`more-attractions audit 1-5, 7, 8, 18`; 6 in the docs) plus 3 on the data side, 4 deferred, 2 rejected |\n",
+      "target": "sha256:b49fc892c88df7f28c3c7a67a8c2a9f9a75910c0c8850fcf5d96c3c6117e98b6"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "set",
+        "More attractions (every museum by its type",
+        "--reason",
+        "the amusement row reads Amusement parks: the asked label wraps at 320 px"
+      ],
+      "body": "| More attractions (every museum by its type, Culture alone unless listed; nature reserves and wildlife refuges; every garden type; amusement, theme and water parks, their own row \"Amusement parks\" under \"Zoos and aquariums\"; piers and boardwalks; suspension bridges and national monuments, natural ones under Nature; from Wikidata, contract v7; MA1-MA9, decision 0198) | shipped 2026-11-17 (Pages); the audit's fixes on `claude/more-attractions-audit`, not deployed; contract v6/v7 (chronicles-data's `claude/more-attractions`, `claude/more-attractions-audit-data`) publishes after; native unverified | `claude/more-attractions-audit` | `specs/more-attractions/spec.md` | audited 2026-11-18: 18 findings, 9 fixed in the app (`more-attractions audit 1-5, 7, 8, 18`; 6 in the docs) plus 3 on the data side, 4 deferred, 2 rejected |\n",
+      "target": "sha256:a9df3df876f1739c9968c40a0e40eb9968c9538b8efe093c3b5a9693a2ec2fca"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "set",
+        "a theme park shows under Amusement and theme parks",
+        "--reason",
+        "the row reads Amusement parks (320 px)"
+      ],
+      "body": "- [ ] **Do:** on a phone that last opened the app before the more-attractions update (SQLite, atlas rows at `a14.p7` or `a14.p8`), open Explore and the walk's ready screen, then walk (Explore on) an area that was read before. **Expect:** every `atlas_area` and landing row is derived again once (p8, then p9 after the audit) with no stall or empty bars; a theme park shows under Amusement parks; a reader who had Viewpoints or Zoos and aquariums off keeps Amusement parks off (MA4, more-attractions audit 1).\n",
+      "target": "sha256:fa7d221e19a5d5332299f4bda81884cf8315c72b3e27094b7a04ff88de3d5ca9"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "set",
+        "Amusement and theme parks (rocket)",
+        "--reason",
+        "the row reads Amusement parks (320 px)"
+      ],
+      "body": "- [ ] **Do:** on a phone, open \"What I'm into\" in the walk's drawer and in the ready bar and scroll to Parks and gardens, Nature and Zoos and aquariums. **Expect:** Nature reserves (binoculars), Natural monuments (prism), Amusement parks (rocket) and Piers and boardwalks (boat) draw their icons in the KindSwitches, each label on one line at 320 px, and a switch keeps its state after scrolling away and back (MA3, MA5, MA9, more-attractions audits 1, 4, 5, 18).\n",
+      "target": "sha256:3c521633da053f9f49e4babdf237d8880fa5d637d68bc98ae28cd85e8b99c585"
+    }
+  ]
+}

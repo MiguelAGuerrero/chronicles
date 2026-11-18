@@ -5,7 +5,7 @@ import type { OutlineTile } from '../areas/outlines';
 import type { WalkTile } from '../walk/types';
 import type { AtlasArea } from '../atlas/atlas';
 import type { Complex } from '../complexes/types';
-import type { Db } from '../db/types';
+import { SEGMENT_BATCH, type Db } from '../db/types';
 import type { Mark, Place, Recall } from '../discovery/types';
 import type { ChecklistArea, ChecklistItem, ExploreRead, Find } from '../explore/explore';
 import type { LandingRow } from '../landing/view';
@@ -168,6 +168,34 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.equal((await db.listSummaries())[0].distance_m, 100);
     });
 
+    test('FC7 clearSnappedBuilds: every walk is marked to snap again, nothing else changes', async () => {
+      const db = await fresh();
+      await db.createWalk({ ...walk('a', 1), snapped_build: 'b1' });
+      await db.createWalk({ ...walk('b', 2), snapped_build: null, title: 'kept' });
+      await db.createWalk({ ...walk('c', 3), snapped_build: 'b2' });
+      await db.clearSnappedBuilds();
+      const all = await db.listWalks();
+      assert.deepEqual(all.map((w) => [w.id, w.snapped_build]).sort(), [['a', null], ['b', null], ['c', null]]);
+      assert.equal((await db.getWalk('b'))?.title, 'kept', 'the rest of a walk is left as it was');
+      await db.clearSnappedBuilds();
+      assert.equal((await db.listWalks()).length, 3, 'again is harmless');
+    });
+
+    // A replay reads one walk's summary, not every walk's (performance review, Nov 18: `loadReplay` listed them all).
+    test('FC7 getSummary: one walk\'s summary, a copy, or null for a walk with none', async () => {
+      const db = await fresh();
+      await db.createWalk(walk('a', 1));
+      await db.createWalk(walk('b', 2));
+      await db.saveSnap('a', [], [visit('s1', 'a')], summary('a'));
+      await db.saveSnap('b', [], [visit('s2', 'b')], { ...summary('b'), distance_m: 250 });
+      assert.equal((await db.getSummary('a'))?.distance_m, 100);
+      assert.equal((await db.getSummary('b'))?.distance_m, 250);
+      assert.equal(await db.getSummary('none'), null);
+      (await db.getSummary('a'))!.distance_m = 0;
+      assert.equal((await db.getSummary('a'))?.distance_m, 100, 'a copy');
+      assert.deepEqual(await db.getSummary('a'), (await db.listSummaries()).find((s) => s.walk_id === 'a'), 'the same row the list holds');
+    });
+
     // ---- trace
 
     test('FC7 appendPoints, getPoints: per walk, in time order; an empty batch is a no-op', async () => {
@@ -245,6 +273,44 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
         assert.deepEqual(rows.find((r) => r.id === 'ok')?.edit, edit);
         assert.equal(rows.find((r) => r.id === 'bad')?.edit, null);
       }
+    });
+
+    test('FC7 joinMoment: the entry\'s pieces move into the previous moment, each keeping its own time; the previous moment is never edited; the emptied moment is gone', async () => {
+      const db = await fresh();
+      await db.addMoment(momentOf(capture('prev', null, 100)));
+      await db.addMoment(momentOf(capture('new', null, 900)));
+      await db.joinMoment('new', 'prev');
+      const [prev] = await db.getMomentsByIds(['prev']);
+      assert.deepEqual(prev.pieces.map((p) => [p.id, p.moment_id, p.t]), [['prev', 'prev', 100], ['new', 'prev', 900]]);
+      assert.deepEqual([prev.t, prev.walk_id], [100, null]);
+      assert.deepEqual(await db.getMomentsByIds(['new']), []);
+      await assert.rejects(db.joinMoment('missing', 'prev'), 'a missing entry rejects, changing nothing');
+      assert.equal((await db.getMomentsByIds(['prev']))[0].pieces.length, 2);
+    });
+
+    test('FC7 referencesTo: says whether a thread, a link, a reminder, a find or a reaction points at a moment', async () => {
+      const db = await fresh();
+      await db.addMoment(momentOf(capture('a', null, 1)));
+      await db.addMoment(momentOf(capture('b', null, 2)));
+      assert.deepEqual(await db.referencesTo('a'), { thread: false, link: false, reminder: false, find: false, reaction: false });
+      await db.applyThreads({ putThreads: [{ id: 't', name: null, created_at: 1 }], putMembers: [{ thread_id: 't', moment_id: 'a', added_at: 1 }, { thread_id: 't', moment_id: 'b', added_at: 1 }], putLinks: [{ from_id: 'b', to_id: 'a', created_at: 1 }] });
+      await db.setRecall({ capture_id: 'a', frequency: 'once', until: null, last_fired_at: null, fired_count: 0, last_walk_id: null });
+      const got = await db.referencesTo('a');
+      assert.deepEqual([got.thread, got.link, got.reminder], [true, true, true]);
+      assert.equal((await db.referencesTo('b')).link, true, 'a reply is pointed from too');
+    });
+
+    test('FC7 referencesTo: a find, a reaction, and a reminder or find kept on a later piece also count (stack-with-previous audit 5)', async () => {
+      const db = await fresh();
+      await db.addMoment(momentOf(capture('a', null, 1)));
+      await db.addPiece('a', { id: 'a2', moment_id: 'a', t: 5, kind: 'text', file_path: null, body: 'later' });
+      assert.equal((await db.referencesTo('a')).reaction, false);
+      await db.setReaction({ moment_id: 'a', family: 'feeling', reaction: 'happy', set_at: 1 });
+      await db.addFind({ key: 'f', area_key: null, walk_id: null, capture_id: 'a2', found_at: 1, name: 'Door', category: 'art', kind: 'public_art', at: [-71.4, 41.8], generic: false });
+      const got = await db.referencesTo('a');
+      assert.deepEqual([got.reaction, got.find], [true, true]);
+      await db.setRecall({ capture_id: 'a2', frequency: 'once', until: null, last_fired_at: null, fired_count: 0, last_walk_id: null });
+      assert.equal((await db.referencesTo('a')).reminder, true, 'a reminder on a later piece');
     });
 
     test('FC7 addMoment: a moment id is used once; the first stays', async () => {
@@ -593,6 +659,24 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.deepEqual(ids(await db.getSegmentsIn([LON + 0.999, LAT - 0.01, LON + 1.01, LAT + 0.01])), ['far']);
     });
 
+    test('DC10 putSegments: written in batches; a caller stopped before the write starts writes nothing', async () => {
+      const db = await fresh();
+      const many = (prefix: string, n: number) => Array.from({ length: n }, (_, i) => segment(`${prefix}${i}`));
+      await db.putSegments(many('a', SEGMENT_BATCH * 2 + 10));
+      assert.equal((await db.getSegmentsIn(box)).length, SEGMENT_BATCH * 2 + 10, 'every batch written');
+      const db3 = await fresh();
+      await db3.putSegments(many('c', 10), () => true);
+      assert.equal((await db3.getSegmentsIn(box)).length, 0, 'stopped before the first batch: nothing written');
+    });
+
+    test('explore-dense-city audit 5 putSegments: a write once started finishes, so no tile is left half stored', async () => {
+      const db = await fresh();
+      const many = Array.from({ length: SEGMENT_BATCH * 2 + 10 }, (_, i) => segment(`s${i}`));
+      let asked = 0;
+      await db.putSegments(many, () => ++asked > 1);
+      assert.equal((await db.getSegmentsIn(box)).length, SEGMENT_BATCH * 2 + 10);
+    });
+
     test('FC7 getSegmentsIn: (web store as it is) a piece is found by the tile of its centre, so a piece far longer than 200 m that only grazes the bounds is missed (SQLite compares each piece\'s box, MT11)', async () => {
       // The web store files pieces under one z14 tile and reads the bounds' tiles widened by 250 m
       // (pieces are at most 200 m); SQLite compares each piece's box.
@@ -711,6 +795,101 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.deepEqual(await db.listRecalls(), [recall('c1', 2)]);
     });
 
+    // ---- reactions (specs/reactions, decision 0176): their own records, never fields of the moment
+
+    type Rx = { moment_id: string; family: string; reaction: string | null; set_at: number };
+    const rx = (db: Db) => db as unknown as { setReaction: (r: Rx) => Promise<void>; listReactions: () => Promise<Rx[]> };
+    const rxRows = async (db: Db) => (await rx(db).listReactions()).map((r) => [r.moment_id, r.family, r.reaction]).sort();
+
+    test('FC7 setReaction, listReactions, RX28: one per moment and family; set, replaced, cleared; the moment\'s row is never touched', async () => {
+      const db = await planned();
+      await db.addMoment(one('m1', 'a', 1));
+      await db.addMoment(one('m2', 'a', 2));
+      const before = await db.getMomentsByIds(['m1', 'm2']);
+      await rx(db).setReaction({ moment_id: 'm1', family: 'feeling', reaction: 'happy', set_at: 10 });
+      await rx(db).setReaction({ moment_id: 'm1', family: 'thought', reaction: 'idea', set_at: 11 });
+      await rx(db).setReaction({ moment_id: 'm1', family: 'feeling', reaction: 'sad', set_at: 12 });
+      await rx(db).setReaction({ moment_id: 'm2', family: 'taste', reaction: 'like', set_at: 13 });
+      await rx(db).setReaction({ moment_id: 'm2', family: 'taste', reaction: null, set_at: 14 });
+      await rx(db).setReaction({ moment_id: 'missing', family: 'taste', reaction: null, set_at: 15 });
+      assert.deepEqual(await rxRows(db), [['m1', 'feeling', 'sad'], ['m1', 'thought', 'idea']]);
+      assert.equal((await rx(db).listReactions()).find((r) => r.family === 'feeling')?.set_at, 12);
+      assert.deepEqual(await db.getMomentsByIds(['m1', 'm2']), before, 'no moment or piece changed');
+    });
+
+    test('FC7 setReactions, RL10: a moment\'s rows in one write: set, replaced, cleared; all or none', async () => {
+      const db = await planned();
+      const many = db as unknown as { setReactions: (rs: unknown[]) => Promise<void> };
+      await many.setReactions([]);
+      await many.setReactions([
+        { moment_id: 'm1', family: 'feeling', reaction: 'happy', set_at: 1 },
+        { moment_id: 'm1', family: 'thought', reaction: 'idea', set_at: 1 },
+      ]);
+      await many.setReactions([
+        { moment_id: 'm1', family: 'feeling', reaction: null, set_at: 2 },
+        { moment_id: 'm1', family: 'taste', reaction: 'like', set_at: 2 },
+      ]);
+      assert.deepEqual(await rxRows(db), [['m1', 'taste', 'like'], ['m1', 'thought', 'idea']]);
+      await assert.rejects(many.setReactions([
+        { moment_id: 'm2', family: 'feeling', reaction: 'sad', set_at: 3 },
+        { moment_id: null, family: 'thought', reaction: 'idea', set_at: 3 },
+      ]), 'a bad row fails the write');
+      assert.deepEqual((await rxRows(db)).filter((r) => r[0] === 'm2'), [], 'and none of it is kept');
+    });
+
+    test('FC7 deleteMoments, deleteWalk, splitPiece, RX31: a moment\'s reactions go with it and its walk; a piece split out takes none', async () => {
+      const db = await planned();
+      await db.createWalk(walk('a', 1));
+      await db.addMoment(one('m1', 'a', 1));
+      await db.addMoment(one('m2', 'a', 2));
+      await db.addMoment(one('m3', null, 3));
+      await db.addPiece('m3', { id: 'p3', moment_id: 'm3', t: 4, kind: 'text', file_path: null, body: 'two' });
+      for (const id of ['m1', 'm2', 'm3']) await rx(db).setReaction({ moment_id: id, family: 'thought', reaction: 'idea', set_at: 1 });
+      await db.splitPiece('p3', { id: 'p3', walk_id: null, t: 4, lat: null, lon: null, segment_id: null });
+      await db.addPiece('m2', { id: 'p2', moment_id: 'm2', t: 3, kind: 'text', file_path: null, body: 'more' });
+      await db.deletePieces(['p2']);
+      assert.deepEqual((await rxRows(db)).map((r) => r[0]), ['m1', 'm2', 'm3'], 'the split piece\'s new moment has none; m3 keeps its own; m2 keeps its own when one of its pieces goes');
+      await db.deleteMoments(['m1']);
+      assert.deepEqual((await rxRows(db)).map((r) => r[0]), ['m2', 'm3']);
+      await db.deleteWalk('a');
+      assert.deepEqual((await rxRows(db)).map((r) => r[0]), ['m3']);
+    });
+
+    test('FC7 setTranscript, listTranscripts, clearTranscript, TX3: one row per capture, replaced by capture, cleared by capture', async () => {
+      const db = await fresh() as unknown as Record<string, (...a: unknown[]) => Promise<{ capture_id: string; text: string }[] | void>>;
+      const row = (capture_id: string, text: string) => ({ capture_id, text, lang: 'en-US', from_ms: null, to_ms: null, made_at: 1 });
+      await db.setTranscript(row('c1', 'one'));
+      await db.setTranscript(row('c1', 'two'));
+      await db.setTranscript(row('c2', 'three'));
+      await db.clearTranscript('c2');
+      await db.clearTranscript('missing');
+      assert.deepEqual(((await db.listTranscripts()) as { capture_id: string; text: string }[]).map((r) => [r.capture_id, r.text]), [['c1', 'two']]);
+    });
+
+    test('FC7 deleteMoments, deleteWalk, TX3: a memo\'s transcript goes with its moment, and with its walk', async () => {
+      const db = await planned();
+      const t = db as unknown as Record<string, (...a: unknown[]) => Promise<{ capture_id: string }[] | void>>;
+      await db.createWalk(walk('a', 1));
+      await db.addMoment(one('m1', 'a', 1));
+      await db.addMoment(one('m2', 'a', 2));
+      await db.addMoment(one('m3', 'a', 3));
+      for (const id of ['m1', 'm2', 'm3']) await t.setTranscript({ capture_id: id, text: id, lang: 'en-US', from_ms: null, to_ms: null, made_at: 1 });
+      await db.deleteMoments(['m1']);
+      assert.deepEqual(((await t.listTranscripts()) as { capture_id: string }[]).map((r) => r.capture_id).sort(), ['m2', 'm3']);
+      await db.deleteWalk('a');
+      assert.deepEqual(await t.listTranscripts(), []);
+    });
+
+    test('FC7 deletePieces, memo-transcripts audit 1: deleting one voice piece deletes its transcript row, and leaves the others', async () => {
+      const db = await planned();
+      const t = db as unknown as Record<string, (...a: unknown[]) => Promise<{ capture_id: string }[] | void>>;
+      await db.addMoment(one('m1', 'a', 1));
+      await db.addPiece('m1', { id: 'p2', moment_id: 'm1', t: 2, kind: 'voice', file_path: 'x.m4a', body: '4000' });
+      for (const id of ['m1', 'p2']) await t.setTranscript({ capture_id: id, text: id, lang: 'en-US', from_ms: null, to_ms: null, made_at: 1 });
+      await db.deletePieces(['p2']);
+      assert.deepEqual(((await t.listTranscripts()) as { capture_id: string }[]).map((r) => r.capture_id), ['m1']);
+    });
+
     // ---- landing and atlas
 
     test('FC7 putLanding, listLandings: the same key replaces; others stay', async () => {
@@ -759,6 +938,52 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.deepEqual(await db.complexesNear([-76.88, 40.26], 0.01), []);
     });
 
+    // Where I've been (WB13, WB14): each walk's line, a cache of its trace. Written before the code: the methods are reached
+    // through a cast, so the typecheck holds while the cases fail.
+    type WalkLine = { walk_id: string; code: string; bounds: [number, number, number, number]; tiles: string[]; runs: [number, number][][] };
+    type LineDb = {
+      putWalkLine(l: WalkLine): Promise<void>;
+      getWalkLinesIn(tiles: string[]): Promise<WalkLine[]>;
+      listWalkLineCodes(): Promise<{ walk_id: string; code: string }[]>;
+      deleteWalkLine(walkId: string): Promise<void>;
+    };
+    const walkLine = (walk_id: string, tiles: string[], code = 'p1'): WalkLine => ({
+      walk_id, code, bounds: [LON, LAT, LON + 0.001, LAT + 0.001], tiles, runs: [[[LON, LAT], [LON + 0.001, LAT + 0.001]]],
+    });
+
+    test('FC7 putWalkLine, getWalkLinesIn, listWalkLineCodes, deleteWalkLine (WB14): the same walk replaces its line and its tiles; only lines crossing the tiles asked for come back, once each, in walk order; a delete takes the line', async () => {
+      const db = (await fresh()) as unknown as LineDb & Db;
+      assert.deepEqual(await db.getWalkLinesIn(['12/1/1']), []);
+      assert.deepEqual(await db.listWalkLineCodes(), []);
+      await db.putWalkLine(walkLine('b', ['12/1/1', '12/1/2']));
+      await db.putWalkLine(walkLine('a', ['12/1/2'], 'old'));
+      await db.putWalkLine(walkLine('a', ['12/5/5']));
+      await db.putWalkLine(walkLine('c', []));
+      assert.deepEqual(await db.getWalkLinesIn([]), []);
+      assert.deepEqual((await db.getWalkLinesIn(['12/1/1', '12/1/2'])).map((l) => l.walk_id), ['b'], 'once each, and a replaced line left its old tiles');
+      assert.deepEqual(await db.getWalkLinesIn(['12/5/5', '12/1/1']), [walkLine('a', ['12/5/5']), walkLine('b', ['12/1/1', '12/1/2'])]);
+      assert.deepEqual((await db.listWalkLineCodes()).sort((x, y) => x.walk_id.localeCompare(y.walk_id)), [
+        { walk_id: 'a', code: 'p1' }, { walk_id: 'b', code: 'p1' }, { walk_id: 'c', code: 'p1' },
+      ]);
+      await db.deleteWalkLine('b');
+      await db.deleteWalkLine('missing');
+      assert.deepEqual(await db.getWalkLinesIn(['12/1/1']), []);
+      assert.deepEqual((await db.listWalkLineCodes()).map((r) => r.walk_id).sort(), ['a', 'c']);
+    });
+
+    test('FC7 deleteWalk, purgeDerived (WB13, WB14): a deleted walk takes its line and tiles; a new tile build keeps every line (it reads no tiles)', async () => {
+      const db = (await fresh()) as unknown as LineDb & Db;
+      await db.createWalk(walk('a', 1));
+      await db.createWalk(walk('b', 2));
+      await db.putWalkLine(walkLine('a', ['12/1/1']));
+      await db.putWalkLine(walkLine('b', ['12/1/1']));
+      await db.purgeDerived();
+      assert.deepEqual((await db.getWalkLinesIn(['12/1/1'])).map((l) => l.walk_id), ['a', 'b']);
+      await db.deleteWalk('a');
+      assert.deepEqual((await db.getWalkLinesIn(['12/1/1'])).map((l) => l.walk_id), ['b']);
+      assert.deepEqual((await db.listWalkLineCodes()).map((r) => r.walk_id), ['b']);
+    });
+
     test('WK19 purgeDerived clears the walk tiles', async () => {
       const db = await fresh();
       await db.putWalkTiles([walkTile('1/2', 1)]);
@@ -780,6 +1005,17 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       await db.putOutlineTiles([outlineTile('10/1/2', 3)]);
       assert.deepEqual((await db.getOutlineTiles(['10/1/2']))[0], outlineTile('10/1/2', 3));
       assert.deepEqual((await db.getOutlineTiles(['12/1/2']))[0], outlineTile('12/1/2', 2));
+    });
+
+    test('HB12 outline tile: neighborhood shapes are kept with the tile, and a tile stored without them reads back with none', async () => {
+      const db = await fresh();
+      const shaped: OutlineTile = {
+        ...outlineTile('12/5/6', 1),
+        hoods: [{ id: 'h1', name: 'Riverside', subtype: 'neighborhood', polygons: [[[[-75.5, 40.6], [-75.4, 40.6], [-75.4, 40.7], [-75.5, 40.6]]]] }],
+      };
+      await db.putOutlineTiles([shaped, outlineTile('12/7/8', 1)]);
+      assert.deepEqual((await db.getOutlineTiles(['12/5/6']))[0], shaped);
+      assert.equal((await db.getOutlineTiles(['12/7/8']))[0].hoods, undefined);
     });
 
     // ---- explore

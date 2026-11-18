@@ -65,7 +65,7 @@ Open: none (the owner's calls below).
 
 ## Acceptance criteria
 
-1. **NP1 · The pencil opens the page.** The pencil on Navigate's stack, on the walk, on Memories' band, Respond →
+1. **NP1 · The pencil opens the page.** The pencil on Navigate's stack, on the walk, on Memories from the journal's open line (Open as a page, chronicle journal JN25, since the band went with decision 0155), Respond →
    Note and Add to this moment's note open the note's page full screen in one tap, with the keyboard up and the cursor
    in the body. The small note card is gone. What is written joins the moment that the card's Save made before: the
    same placing by one fix, the same walk, the same Add to this moment, the same reply link. The moment's time, its

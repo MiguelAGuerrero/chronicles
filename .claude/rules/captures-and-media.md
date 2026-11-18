@@ -2,28 +2,32 @@
 paths:
   - "src/components/Capture*.tsx"
   - "src/components/{Caption,Baker}*.tsx"
+  - "src/components/Picture.tsx"
   - "src/lib/media/**"
   - "src/lib/{useCaptures,thumbPlan,useMediaUri,captureBus}.ts"
   - "src/lib/here/**"
   - "src/lib/audioMode*.ts"
   - "src/lib/export/**"
+  - "src/components/edit/MediaEditor.tsx"
   - "src/lib/__tests__/captures/**"
-  - "src/lib/notePage/**"
-  - "src/components/notePage/**"
-  - "src/lib/noteEdit.ts"
-  - "src/lib/__tests__/notes/**"
-  - "src/components/edit/**"
-  - "src/lib/{mediaEdit,editSession,editOffer}.ts"
-  - "src/lib/{captureEdits,videoEdit}/**"
-  - "modules/**"
 ---
 # Captures and media
 
 Captures (photo, video, voice memo, note), their viewer, captions and baking, thumbnails, saving keepers, the backup bundle, and the voice-memo and web-video traps. The codemap is in `docs/ARCHITECTURE.md`; the decisions and their history are in `docs/decisions/`.
 
+## Pictures (expo-image, EI1-EI6)
+
+- **Every picture on screen is a `Picture`** (`components/Picture.tsx`, over expo-image): a pin's small copy, a gallery
+  tile and a month's cover, a moment's card, a memory preview, a reminder card, the replay's cards and pile. It keeps
+  pictures decoded in memory and on disk (`cachePolicy="memory-disk"`), never fades one in (no `transition`: restraint),
+  takes `fit` as `resizeMode` was, and a list's tile passes `recyclingKey` (its piece's id). An edited photo is
+  `EditedPicture` (an SVG under its edit's matrix and filter); React Native's `Image` only measures (`getSize`).
+- **On the web it is an `<img>`** (its `object-fit` the fit), not React Native's `div` with a background: a journey
+  reads a picture's fit from either shape (`gallery` MG21, EI5). Its cache on a phone is unverified (EI6).
+
 ## The viewer (decision 0114)
 
-- **Top bar, toolbar, menu; nothing over the moment.** `CaptureViewer` draws its top bar (More, Close; Remind me here and Go here are More's items since UC9, and a set reminder says so in the info line, UC12), hides its bars on a tap on a photo (`chrome`, UC7; never with a screen reader, UC8), says a kept reply or an added thread in the info line rather than a pill (`statusOf`, UC10), and `ReplyDock` docks a toolbar under the moment (Respond, and Edit for a photo or video with `onSaveEdit`, or a note with `onSaveNote`). `CaptureContent` takes `dock` and leaves that room clear: the strip and the note card sit above it, and a photo or video starts under the top bar (`TOP_BAR_H`). More holds Remind me here, Go here, Save, Open in Maps, Responses (when it has any, decision 0131), Add to a thread, Open its thread and Delete (no confirm; Undo on the pill, UC4).
+- **Top bar, toolbar, menu; nothing over the moment.** `CaptureViewer` draws its top bar (More, Close; Remind me here and Route here are More's items since UC9, and a set reminder says so in the info line, UC12), hides its bars on a tap on a photo (`chrome`, UC7; never with a screen reader, UC8), says a kept reply or an added thread in the info line rather than a pill (`statusOf`, UC10), and `ReplyDock` docks a toolbar under the moment (Respond, and Edit for a photo or video with `onSaveEdit`, or a note with `onSaveNote`). `CaptureContent` takes `dock` and leaves that room clear: the strip and the note card sit above it, and a photo or video starts under the top bar (`TOP_BAR_H`). More holds Remind me here, Route here, Save, Open in Maps, Responses (when it has any, decision 0131), Add to a thread, Open its thread and Delete (no confirm; Undo on the pill, UC4).
 - **Screenshots are taken after the Modal's fade** (`waitForTimeout(800)`): a picture taken during it shows the screen beneath through the viewer.
 
 ## Video
@@ -80,50 +84,10 @@ Captures (photo, video, voice memo, note), their viewer, captions and baking, th
   Blob parts on web). Missing media is counted, marked in walk.json and reported.
   There is no import yet.
 
-## Media editing (ME1-ME23, decision 0090)
+## Players
 
-- **Edits are data** on the untouched file (`Capture.edit`, `lib/mediaEdit`):
-  rotate, crop (against the original, so a later turn keeps the same part),
-  filter (photos), lines (original fractions; thickness against its shorter
-  side), trim (videos). One order everywhere: rotate, crop, filter, lines,
-  caption. `exportPlan` is the one transform the screen (`EditedPicture`'s SVG,
-  `VideoPicture`'s view transforms), both bakers and the video module follow.
-- **The editor** (`edit/MediaEditor`) is an overlay inside the viewer (iOS:
-  no Modal over a Modal) and its own Modal from the Edit offer on Navigate's
-  ready screen and the recording bar. Its state is `editSession` (core): Done
-  with no change writes nothing; Close with changes asks. After Done on a
-  photo, the small copy is remade from a bake without the caption.
-- **The viewer unmounts the shown capture while the editor is up.** On the
-  web, closing an editor drawn over a mounted `CaptureContent` left a stale
-  copy of it in the DOM each time (Nov 4; never explained, reproduced in
-  Chromium; `ME4` check in the `edit` journey). It also keeps a video from
-  playing under the editor.
-- **No drag may start a text selection on the web**: react-native-web ends the
-  responder on `selectionchange`, so a pen line kept one move (Nov 4). The
-  editor's root is `userSelect: 'none'`.
 - **Never mutate a player in a component body or its closures** (React
   Compiler lint): `seekTo(player, s)` and `playWithSound` sit at module level.
-- **Video sizes:** expo-video's track size is the encoded one (a portrait clip
-  reads landscape) and the web player has none, so `useVideoSize` asks a
-  first-frame thumbnail on phones and `probeVideoSize` reads the metadata on
-  the web.
-- **The replay's cards show the edits** (`ceremony/Cards`: `CardPhoto` fills the
-  card with the edited picture; `CardVideo` is turned, cropped and plays only the
-  kept part, its wait timed on the kept length). The pile shows the edited small copy.
-- **A loose moment's change goes on the bus's `LOOSE_MOMENTS` channel**
-  (`captureBus.patch(null, ...)`); the ready screen listens, so a moment
-  edited from its Edit offer shows on its pin (audit 2).
-- **An edited small copy is named by its edit** (`editedThumbName`): pins key
-  their picture by the ref, so the same name never reloaded (audit 3). The
-  capture-time copy stands down once a photo has a copy or an edit (audit 8).
-- **Escape and Back go through the editor's own Close** (`requestClose`), which
-  asks before discarding (audit 5). Choices (pens, colours, filters, aspects,
-  thicknesses) are radios with `aria-checked`; react-native-web ignores
-  `aria-selected` on a button (audit 11).
-- **Saving out:** photos through `bakers.bake` (the web applies the matrix to
-  the pixels); videos through `exportVideo` with the lines and caption as a
-  clear PNG (`bakers.bakeOverlay`): the local module on phones, canvas +
-  MediaRecorder on the web (real time; MP4 or WebM as the browser records).
 
 ## Thumbnails
 
@@ -142,6 +106,30 @@ expo-image-manipulator; `lib/thumbPlan.ts` pure, `media/thumb.ts`).
 - `THUMB.none` marks a photo that won't decode, so it isn't tried again. Two
   asks at once share one job. A leftover copy is replaced (`keepFile`
   `replace`).
+- **A video's still** (video thumbnails VS1-VS9): a 720 px JPEG of the frame where the kept part starts (`frameAt`:
+  the trim's start, else 0), with its crop and rotation, as the piece's `thumb_path`, made after capture, on an edit's
+  Done (named by the edit) and on first show (the gallery, the memory preview, Memories' cards through `lib/thumbs`).
+  `videoFrame` takes it from expo-video on phones and from a detached `<video>` on the web (a listed exception).
+  Previews draw it under `VideoMark`; a video's file is never a preview: no still yet, or `THUMB.none`, is the glyph.
+  - **Trap: a MediaRecorder WebM has no duration** in its header, and a seek into it may never land: the web's
+    `videoFrame` seeks past the end first (`1e101`) to learn it. iOS Safari loads nothing until `play()`: it plays
+    muted, then pauses, before the seek (unverified on an iPhone).
+  - **One shell, one queue, one hook** (video-thumbnails audit 2-6, 9): `lib/thumbs` makes every preview's copy or
+    still (`ask`, read fresh, written only if the piece is as it was read) and an edit's still (`remake`, which
+    replaces the still stored now and, with none made, drops it); a preview reads its piece through `useStill`, which
+    shows a still made or replaced since its row was read (`shownStill`) and asks for one it lacks (a pin and the pile
+    never ask). An edit remakes the still only when its trim, crop or turn moved (`stillChanged`), after Done closes.
+  - **A timeout is transient** (audit 1): `videoFrame` rejects with `transient: true` and `thumbJob` returns null (asked
+    again later); only a file that will not decode is `THUMB.none`.
+  - **A media URL is let go two seconds after its last use** (`useMediaUri`, video-thumbnails ui 1): revoking a
+    `blob:` URL the moment a preview's file changed left a picture still loading it to fail, logged by the browser.
+  - **Trap (e2e): `waitForFunction` with an async predicate** resolves at once with its pending promise; poll a stored
+    row from the test side instead (the videothumbs journey).
+  - **The same trap, said exactly** (tend captures 2, audit 6): `waitForFunction` takes an async predicate's pending
+    promise as its first truthy result and resolves with the one read's value; it never polls. The wait cannot time out
+    and `.then(() => true)` is always true. `arch/e2eWaits.test.ts` fails on such a wait in a journey.
+  - **Trap (e2e): a mocked walk's steps go at a walker's pace** (tend captures audit 2): a step over `MAX_WALK_SPEED_MS`
+    (7 m/s, `lib/geo`) is dropped as a jump, so the walk keeps none of them and nothing is placed where it was taken.
 - Previews show the copy, the icon while it is being made, and the photo
   when the copy's file is gone (`thumbShown`). The reminder card uses it
   too. The backup bundle leaves `thumb_path` out.
@@ -152,6 +140,19 @@ expo-image-manipulator; `lib/thumbPlan.ts` pure, `media/thumb.ts`).
 
 ## Voice memos
 
+- **A memo can be trimmed** (voice trim VT1-VT12, Nov 12): Edit in the viewer opens `MediaEditor` on a `voice` kind (`editSession`
+  `TOOLS.voice = ['trim']`, no picture), the same `Capture.edit.trim` a video has, on the untouched recording. Everything that plays
+  a memo or says its length goes through `lib/voiceTrim` (`voiceSpan`, `voiceClock`, `voiceState`, `memoWords`, `trimmedLine`);
+  a test fails when a file calling `useAudioPlayer` does not import it (VT12). A trimmed memo's player asks `updateInterval: 100`
+  (the default 500 ms stops it up to half a second past the end handle), seeks to the start before `play()`, and pauses and says
+  finished at the end handle (`VoicePlayer`, the replay's `MemoBubble`). A player is only mutated from module-level helpers.
+- **A change to a moment's other piece is that piece's** (voice-trim audit 1): `captureBus.patch` and `applyPatch` take the piece's id
+  (`c.piece_id`); a piece that is not the face's lands in `pieces` and the face keeps its own edit, caption and copy, or a memo's trim
+  overwrote its photo's crop. Every `onSaveEdit` path passes it. Note text is still patched on the face (docs/DEFERRED.md).
+- **A restart names the position it left** (audit 2): a seek is async, so one more status can carry the old end position; the press
+  stores it (`restartedFrom`) and `voiceReachedEnd` ignores that position until the player moves off it. The whole length is
+  `wholeMs(body, file)`: the stored one, the file's only when none is on record (audit 3, 4).
+
 - Voice memos stop when the phone locks unless `setAudioModeAsync` gets
   `allowsBackgroundRecording: true` and the expo-audio plugin has
   `enableBackgroundRecording`.
@@ -161,11 +162,31 @@ expo-image-manipulator; `lib/thumbPlan.ts` pure, `media/thumb.ts`).
   (`heldLabel`), Retry saves each with its stamp, and Stop warns once before ending without them. Every
   save failure is worded by `saveFailLine` (lack of room told apart by `isOutOfSpace`), never the raw error.
 
+- **Unsaved captures have one owner** (UN1-UN15, decision 0196): every photo, video and memo whose save fails goes to
+  the app-wide holder `lib/unsaved` (in memory, while the app is open), never to a path's own state. `useCaptures`
+  keeps every capture through `keepCapture` (the file once, then the row; `path` kept for every later Retry, UN12;
+  an `into` moment gone makes it its own, UN11) and files it by `Stamp.walk`, never the hook's `walkId`, so any
+  screen's Retry keeps a held capture in its own walk (UN4). The pills read the holder (`heldKey` in a selector, a
+  string); a path with no pill passes `retryShown: false` and its words say where the Retry is (`heldWhere`, UN10);
+  a path in front passes `sayHeld` and says, once, what failed on a screen gone (UN9) and a memo lost as it went
+  (UN13). The e2e refuses the moment store too (`__failMoment`, `scripts/e2e/failStorage.js`).
+- **The review's rules for the holder** (unsaved-captures audit 1-9): a Retry opens Add to this moment only on its
+  own walk's path (`ours(stamp.walk)`); once a row is written the capture is kept whatever fails after
+  (`keepInOrder`, and `add`'s steps after the write never throw); a Retry is `unsaved.track`ed and both Stops wait
+  for `settled()`; the walk's held captures go by `unsaved.ended(walkId)`, only after `endWalk` resolves, and a
+  capture failing after that is held loose (`looseAfterEnd`, the owner: "Keep it as its own moment"); "said" and
+  "lost" follow `sayHeld` (in front), never `alive`; `takeUnsaid` marks them in one change. The bar passes
+  `shortWords` ("No room left. Retry on the walk screen.", the owner).
 - All voice actions (start, save, discard, undo, retry) run on one promise queue in
   `useCaptures`, so taps never interleave. Stop waits for that queue.
 - Never call `stop()` on a recorder that already stopped by itself: on web it waits
   forever for `dataavailable`. `stopRecorder` checks `isRecording` and races a 3 s
   timeout.
+- **A stopped memo's file is the recorder's uri only when this memo set it** (`memoFile`, `media/memoSave.ts`;
+  tend captures 1). The web recorder (expo-audio 58) writes `uri` only when its stop answers and never clears it at
+  prepare, so a stop given up on leaves null or the last memo's blob URL (already revoked by `keepFile`). Read the
+  uri before `prepareToRecordAsync` and compare. A failed memo with no file is said and let go (`failedMemo`, the
+  `lost` result, which Stop does not wait on), never held for a Retry. Phones name a new file per prepare (unverified).
 - `getStatus().durationMillis` is 0 once a native recorder has stopped. Judge
   "accidental tap" by wall-clock time, never by that number.
 - The web image picker reports video `duration` in seconds; native reports
@@ -197,31 +218,3 @@ expo-image-manipulator; `lib/thumbPlan.ts` pure, `media/thumb.ts`).
   `chronicle` journey's fresh page copies iOS's rule by holding a `<video>`'s
   `readyState` at 1 until a `play()` is let through (Chromium loads a `blob:`
   video whatever its `preload` says).
-- **A note is a page** (note pages NP1-NP14, decision 0151; it replaced the note card and `NoteEditor`). The pencil (Navigate's
-  `MomentBar`, the walk's `walk.tsx`, Memories' band), Respond → Note (`ReplyDock`) and Add to this moment open
-  `NewNotePage` in a non-transparent `Modal`; the viewer's Edit opens `NotePage` inside its own Modal (iOS: never a Modal
-  over a Modal), and the viewer reads a note as `NoteReader` (`CaptureContent`'s `note` prop). The editor is TipTap in an
-  Expo DOM component (`notePage/JournalEditor.tsx`, `'use dom'`: plain DOM on the web, `@expo/dom-webview` on phones),
-  whose default export must be a plain function taking `ref` as a prop (lint `expo/use-dom-exports`); everything it
-  takes or gives back is JSON, and its handle (`format`, `insertMention`, `focus`) takes JSON arguments.
-  - **The document** is `lib/notePage/schema.ts` (adapter): StarterKit without code, link, strike, underline or rule;
-    task lists; the mention as `@[id|words]` (0125) through its own Markdown tokenizer; a paragraph's leading `#`, `1.`,
-    `-`, `>` kept as text. `toDoc(body, format)` reads a body the page wrote (`body_format` 'md') as Markdown and any
-    other note literally (a paragraph per line); `toBody` always writes Markdown. Unit tests run it in Node.
-  - **Words elsewhere** come from `plainNote(body, body_format)` (`lib/refs.ts`), which drops the marks of a page with
-    `marked`, the lexer `@tiptap/markdown` uses (a pure package in core). Every reader of a note passes `body_format`;
-    one that doesn't reads a page's marks as words.
-  - **Saving as it is written** is `lib/notePage/autosave.ts`'s reducer, run by `NotePage`'s `useAutosave`: a pause of
-    `NOTE_SAVE_PAUSE`, leaving, the background; an emptied page never writes an empty body, and only leaving it empty
-    deletes (`deleteNoteNow`, with Undo). A new note is stamped at the tap (`useCaptures.beginNote`) and kept by
-    `keepNote`; every host's `onSaveNote` stores `notePatch(body)` (the body and `body_format: 'md'`).
-  - **Ticks only on the page**: TaskItem's `onReadOnlyChecked` refuses while reading (the steward's S1, 0114).
-  - **On a phone, nothing loads** (NP13): the DOM document adds a Content-Security-Policy meta when `IS_DOM`; the
-    schema has no image, frame or link, so a paste keeps none. `@expo/dom-webview` can't refuse a navigation.
-  - **Leaving** (the audit): Done is the one way out; Escape and system Back go through `requestClose` and keep too. The page
-    closes only once what is written is kept (`closable`): a failed save keeps it open, "Not saved yet" in its top bar.
-  - **Mentions** read as cards in the reader (RF4): `useMentionCards` gives JSON to the DOM, drawn by TipTap's
-    `ReactNodeViewRenderer` under a React context; while writing, a chip. A gone moment's token is relabelled by `withGone`.
-  - **E2E:** `E2E_ONLY=notepage`. The editor is a contenteditable: `fill()` works, `inputValue()` doesn't (read
-    `innerText()`); the page is `note-page`, Done `note-done`, the body `note-input` being written and `note-text` read
-    (a reply's page sits over a read note). The web's viewer takes no Escape: leave a page in the viewer by Done.

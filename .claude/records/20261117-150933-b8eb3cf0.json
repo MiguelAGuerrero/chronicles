@@ -1,0 +1,63 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "A voice memo whose",
+        "--reason",
+        "shipped as tend captures 1: a memo whose stop timed out is said and let go, never held for a Retry that cannot work"
+      ],
+      "target": "sha256:5b30dc460e9db5dcd89f9f144e982bee5edc56abdb647cb8c998f4bb9d2ed9f9"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "A memo that fails to save as"
+      ],
+      "body": "  The owner, Nov 17: \"Ship fix 1, slice the rest\": a slice where one holder owns every unsaved memo; the review's F1-F8 (SCRATCH reviews/tend-captures-20261117-1418-diff-auditor.md) are its criteria; the unpushed branch tend/captures-20261117-1418 holds the first attempt.\n",
+      "target": "sha256:28fed58d6b7580e96bceb1d2756ed32d4aa6b6be4e2baf6d42f54deeba9a16ef"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Navigate, ready",
+        "--after",
+        "A memo that fails to save as"
+      ],
+      "body": "- [loop] A web memo stop answered after the 3 s give-up (`STOP_TIMEOUT_MS`) is told as lost though it had audio, and the late uri it sets (`AudioRecorder.web.js` writes `uri` when `dataavailable` comes) can be taken as the next memo's file if that memo's stop also times out (`memoFile` compares with the uri read before the next prepare); the late blob is never revoked. Fix: after a timed-out stop, accept only a uri the next memo's own stop sets, and revoke a late one (the review of tend captures 1, auditor F9, Nov 17, low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Navigate, ready",
+        "--after",
+        "A web memo stop answered"
+      ],
+      "body": "- [loop] Discard, then Undo, of a memo whose stop timed out (no file) is an Undo that cannot work: `discardVoice` sets it aside and its Undo ends in \"Couldn’t save this voice memo.\" Fix: a memo with no file is discarded with nothing set aside and no Undo pill (`useCaptures.ts` `discardVoice`; the review of tend captures 1, auditor F10, Nov 17, low)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Media and capture"
+      ],
+      "body": "- [ ] **Do:** on an iPhone and an Android phone, record three voice memos in a row on Navigate's ready screen and three on a walk; then, on the iPhone, one memo interrupted by a phone call and one across a media services reset (Settings, Developer, Reset Media Services). **Expect:** every memo is kept and plays back, none told \"Couldn’t save this voice memo.\": `memoFile` (`media/memoSave.ts`) takes the recorder's uri only when it changed since before the memo's prepare, and expo-audio 58 names a new file at each prepare on both phones (`recording-<UUID>`, read from its sources, never run). Record what the interrupted memo keeps (`pauseForSystem` leaves `isRecording` false, so `stop()` is never called and its file may be unfinished) and what the reset keeps (`handleMediaServicesReset` prepares again mid-memo: a fresh, empty file), and whether a native stop that times out keeps a file that will not play (tend captures 1; the review's native notes, Nov 17).\n"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 17, `/tend captures --deploy=main`, two voice-memo items of Navigate, ready** (opened from `8e1515ca`; no sweep, lenses 1-7 not run; the faster lane of decision 0181).\n- The items, as main held them: \"A voice memo whose recorder stop timed out (`STOP_TIMEOUT_MS`, 3 s) can hold a null `uri` …\" and \"A memo that fails to save as the screen unmounts (the ready chevron, a browser Back) is lost silently …\".\n- `tend captures 1`: a memo whose stop timed out is said (\"Couldn’t save this voice memo.\") and let go, never held for a Retry that cannot work; the web recorder's uri is this memo's only when its own prepare or stop set it (`media/memoSave.ts`, `memoFile`, `failedMemo`; Stop goes on for a memo with no file). The first item leaves DEFERRED.\n- `tend captures audit 1`: the `space` journey ends the recorders whose stop it ignored and puts the browser's stop back (the review's F11).\n- The second item was built as `tend captures 2` (the memo handed on through `memoGate`) and dropped after the review: the auditor found it incomplete (a held memo still dropped as its screen goes, a second failure overwriting the first, no Stop warning). The owner, in person: \"Ship fix 1, slice the rest\". The item stays open with that note; the review's F1-F8 are the slice's criteria; the unpushed branch `tend/captures-20261117-1418` holds the first attempt.\n- The review (one round, the `auditor`): accepted F11; deferred F1-F8 to the slice, F9 and F10 filed `[loop]` low; none rejected. The phone check for `memoFile` and the auditor's iOS interruption and media-reset notes went to NATIVE_UNVERIFIED.\n- Journeys: `space` and `launch` on the final export; `npm test`, typecheck and lint. Not run: the sweep's lenses and the balance's evolve; the rest is left to CI and the weekly full pass (not due). Nothing here has run on a phone.\n"
+    }
+  ]
+}

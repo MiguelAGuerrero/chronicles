@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { Area, WalkArea } from '../../areas/types';
 import {
-  ATLAS_CODE, ATLAS_RULES, MARKS_EXPLAINED, areaPins, SKETCH, busyAreas, distanceWords, kindsHeading, marksExplained, thinRing, familiarity, familiarityWords, findsIn, nearList, needsNear, newRows, nextDoor,
+  ATLAS_CODE, ATLAS_RULES, MARKS_EXPLAINED, areaPins, SKETCH, storefrontsOf, distanceWords, kindsHeading, marksExplained, thinRing, familiarity, familiarityWords, findsIn, nearList, needsNear, newRows, nextDoor,
   presenceSteps, readQueue, rereadAt, rowCurrent, sketchOf, sketchPaths, tileLabel, toSketch, waitingKinds, walkTarget,
   type AtlasArea, type AtlasPlace, type AtlasProfile,
 } from '../../atlas/atlas';
@@ -172,7 +172,7 @@ test('AT11, AT13: a tile says each kind present in words, and no number but how 
   const [l] = nearList([area], O, 'neighborhood', 'b1');
   l.here = false;
   const label = tileLabel(l, { walks: 0, last: null }, fmt);
-  assert.equal(label, 'Fox Point. 6 min walk. New to you. History: lots, Art: some, Green: plenty, Food: plenty. Busy along Wickenden Street.');
+  assert.equal(label, 'Fox Point. 6 min walk. New to you. Sights: History: lots, Art: some, Green: plenty. Local life: Food: plenty. Storefronts along Wickenden Street.');
   assert.ok(!/\d+\s*of\s*\d+/.test(label));
   assert.equal(label.replace('6 min', '').match(/\d/), null, 'how far is the only number here');
   assert.match(tileLabel({ ...l, area: { ...area, profile: null } }, { walks: 2, last: 1 }, fmt), /Walked 2 times\. Being read\.$/);
@@ -307,7 +307,8 @@ test('AT2: the step lists the view’s neighborhoods first, then the towns aroun
 test('AT16: an area’s character in words, never a count', async () => {
   const { characterLine } = await import('../../atlas/atlas');
   const z = { history: 0, art: 0, culture: 0, parks: 0, viewpoints: 0, food: 0, shops: 0, nightlife: 0 } as const;
-  assert.equal(characterLine({ ...z, history: 3, food: 3, art: 1 }), 'Lots of history and food');
+  // SG13 (decision 0201): the line leads with the Sights, so history before food.
+  assert.equal(characterLine({ ...z, history: 3, food: 3, art: 1 }), 'Lots of history');
   assert.equal(characterLine({ ...z, parks: 2, food: 1 }), 'Plenty of green space');
   assert.equal(characterLine({ ...z, history: 1, art: 1, culture: 1, parks: 1, food: 1 }), 'A little of everything');
   assert.equal(characterLine({ ...z, parks: 1 }), 'A little green space');
@@ -424,16 +425,18 @@ test('TP3: the tile\'s label says part of the town when the outline needed more 
 test('TP7: the busy areas of a graded town are its pockets, named for the street through them; one with no street is left out', () => {
   const pockets = [{ at: far, name: 'MacArthur Road' }, { at: east(100), name: null }];
   const town = row('Whitehall', O, { level: 'town', profile: { steps: {}, strips: [], extent: 'outline', pockets } as unknown as AtlasProfile });
-  assert.deepEqual(busyAreas(town), [{ label: 'MacArthur Road', at: far }]);
-  assert.deepEqual(busyAreas({ ...town, level: 'neighborhood' }), [], 'a neighborhood has none');
-  assert.deepEqual(busyAreas({ ...town, profile: { ...town.profile!, extent: 'ring' } }), [], 'a ring-graded town has none');
-  assert.deepEqual(busyAreas({ ...town, profile: null }), []);
+  // Since specs/storefronts, the card's one list (SF2): a town's pockets are among its storefront streets.
+  assert.deepEqual(storefrontsOf(town, O), [{ label: 'MacArthur Road', at: far }]);
+  assert.deepEqual(storefrontsOf({ ...town, level: 'neighborhood' }, O), [], 'a neighborhood has no pockets');
+  assert.deepEqual(storefrontsOf({ ...town, profile: { ...town.profile!, extent: 'ring' } }, O), [], 'nor has a ring-graded town');
+  assert.deepEqual(storefrontsOf({ ...town, profile: null }, O), []);
 });
 
 test('fix busy-areas-twice: two pockets on one street list the street once, at the busier pocket', () => {
   const pockets = [{ at: far, name: 'MacArthur Road' }, { at: east(900, far), name: 'MacArthur Road' }, { at: east(100), name: 'Chestnut Street' }];
   const town = row('Whitehall', O, { level: 'town', profile: { steps: {}, strips: [], extent: 'outline', pockets } as unknown as AtlasProfile });
-  assert.deepEqual(busyAreas(town), [{ label: 'MacArthur Road', at: far }, { label: 'Chestnut Street', at: east(100) }]);
+  // Listed nearest first since specs/storefronts (SF3); the street keeps the denser pocket's point.
+  assert.deepEqual(storefrontsOf(town, O), [{ label: 'Chestnut Street', at: east(100) }, { label: 'MacArthur Road', at: far }]);
 });
 
 test('TP8: a graded town\'s heading and explanation say it is counted across its outline; a ring keeps "around its centre"', () => {
@@ -455,7 +458,15 @@ test('TP9: fewer than 3 mapped places in the whole outline is thin', () => {
 });
 
 test('TP10: a town row from the older rules is stale; since a8 a neighborhood row from them is too (PK7); a9 carries none of a8 (PC13)', () => {
-  assert.equal(ATLAS_CODE, 'a10.p2', 'a10: community parks reads a name as presence does (tend explore T9); a9: community parks (PC13); a8: presence by bars (PK1-PK7), at every level, so no older a-code is carried; .p2: presence\'s classes (specs/presence PR6, specs/presence-readers PS9, which carries the atlas\'s own part over p1)');
+  assert.equal(ATLAS_CODE, 'a15.p10', 'a15.p10: Sights follow the switches, every Sights place kept under its kind in the tally, none carried (specs/sights-and-local-life SG12, decision 0201); a14.p10: typed bridges, contract v8\'s suspension bridge by type a Bridges place that lights no History, none carried (MA10, the owner, Nov 18); a14.p9: the more-attractions audit, every amusement, theme or water park its own row under Zoos and aquariums, a museum by type never History, a pier no bar, none carried (more-attractions audits 1-3); a14.p8: more attractions, museums by type, nature reserves, amusement parks and piers, none carried (more-attractions, decision 0198); a14.p7: the antiques, books and second_hand classes beside boutique, none moved a bar, weight or mark, p6 carried (decision 0194, QC14, QC16, QC42); a14.p6: explore subtypes, every subtype its kind\'s with a bar weight, the map\'s ruins Ruins and its attractions their own kind, none carried (explore-subtypes XS15, decision 0191); a14.p5: a neighbourhood\'s "Old Town" read past after normalizeWords, in presence and community parks alike, none carried (decision 0172, tend presence 1); a14.p4: small places, the bars kept as counts and shares (specs/small-places SP12, SP13); a13.p3: storefronts, each street\'s point kept and only storefronts weighed (specs/storefronts SF3, SF11), none carried; a12: a small park with nothing notable is a community park (fix community-park); a11: a neighborhood with a real shape is counted across it (neighborhood boundaries HB11); a10: community parks reads a name as presence does (tend explore T9); a9: community parks (PC13); a8: presence by bars (PK1-PK7), at every level, so no older a-code is carried; .p2: presence\'s classes (specs/presence PR6, specs/presence-readers PS9, which carries the atlas\'s own part over p1)');
+  assert.equal(rowCurrent(row('Fox Point', O, { level: 'neighborhood', code: 'a14.p5' }), 'b1'), false, 'XS15: a14.p5 rows, from before subtypes, are read again');
+  assert.equal(rowCurrent(row('Fox Point', O, { level: 'neighborhood', code: 'a14.p6' }), 'b1'), false, 'QC16 carried a14.p6 under a14.p7; p8 carries nothing (decision 0198)');
+  assert.equal(rowCurrent(row('Fox Point', O, { level: 'neighborhood', code: 'a14.p7' }), 'b1'), false, 'MA: a14.p7 rows, from before more attractions, are read again');
+  assert.equal(rowCurrent(row('Fox Point', O, { level: 'neighborhood', code: 'a14.p8' }), 'b1'), false, 'more-attractions audits 1-3: a14.p8 rows are read again');
+  assert.equal(rowCurrent(row('Fox Point', O, { level: 'neighborhood', code: 'a14.p9' }), 'b1'), false, 'MA10: a14.p9 rows, from before typed bridges, are read again');
+  assert.equal(rowCurrent(row('Fox Point', O, { level: 'neighborhood', code: 'a14.p10' }), 'b1'), false, 'SG12: a14 rows, with no Sights by kind, are read again');
+  for (const code of ['a12.p2', 'a13.p2', 'a12.p3', 'a13.p3']) assert.equal(rowCurrent(row('Fox Point', O, { level: 'neighborhood', code }), 'b1'), false, `SF11: ${code} rows are read again`);
+  assert.equal(rowCurrent(row('Fox Point', O, { level: 'neighborhood', code: 'a14.p4' }), 'b1'), false, 'only the code just before is carried');
   for (const code of ['a9.p2', 'a9.p1']) assert.equal(rowCurrent(row('Fox Point', O, { level: 'neighborhood', code }), 'b1'), false, `tend explore T9: ${code} rows, from before T9's park kinds, are read again`);
   assert.equal(rowCurrent(row('Fox Point', O, { level: 'neighborhood', code: 'a8.p1' }), 'b1'), false, 'PC13: a8 rows, from before community parks, are read again');
   assert.equal(rowCurrent(row('Fox Point', O, { level: 'neighborhood', code: 'a5' }), 'b1'), false, 'PK7: a5 neighborhoods are read again');
@@ -511,4 +522,43 @@ test('fix map-levels audit 2: a town with no listed neighborhoods still draws it
   const town = { area: row('Providence', O, { level: 'town' }), distanceM: 0, here: true };
   assert.deepEqual(areaPins([town], null, true).map((p) => p.id), ['Providence']);
   assert.deepEqual(areaPins([town], null, false), [], 'the near page draws no town among neighborhoods');
+});
+
+// specs/storefronts: an area's storefronts, nearest first (SF2, SF3), Walk to's words (SF4) and the spoken lines (SF7).
+type StorefrontsApi = {
+  storefrontsOf: (a: AtlasArea, from: LngLat | null) => { label: string; at: LngLat | null }[];
+  walkViaLine: (via: string) => string;
+};
+const sf = async () => (await import('../../atlas/atlas')) as unknown as StorefrontsApi;
+
+test('SF2: one list of an area\'s storefront streets: a graded town\'s pockets and its other streets, each once', async () => {
+  const { storefrontsOf } = await sf();
+  const pockets = [{ at: east(2000), name: 'MacArthur Road' }, { at: east(100), name: null }];
+  const town = row('Whitehall', O, { level: 'town', profile: { steps: {}, strips: ['MacArthur Road', 'Union Street'], stripPeaks: [east(2050), east(700)], stripAt: east(2050), extent: 'outline', pockets } as unknown as AtlasProfile });
+  assert.deepEqual(storefrontsOf(town, O).map((s) => s.label), ['Union Street', 'MacArthur Road'], 'each street once, a pocket with no street left out');
+  const hood = row('Fox Point', O, { profile: { steps: {}, strips: ['Wickenden Street', 'Ives Street'], stripPeaks: [east(300), east(200)], stripAt: east(300) } as unknown as AtlasProfile });
+  assert.deepEqual(storefrontsOf(hood, O), [{ label: 'Ives Street', at: east(200) }, { label: 'Wickenden Street', at: east(300) }], 'a neighborhood lists its streets too');
+  assert.deepEqual(storefrontsOf({ ...hood, profile: null }, O), []);
+});
+
+test('SF3: nearest you first; with no fix, nearest the area\'s point; ties by name; never by how many', async () => {
+  const { storefrontsOf } = await sf();
+  // Strips arrive with the most storefronts first: Main, then Elm, then Ash and Birch level.
+  const p = { steps: {}, strips: ['Main Street', 'Elm Street', 'Birch Street', 'Ash Street'], stripPeaks: [east(900), east(-300), east(500), east(500)], stripAt: east(900) } as unknown as AtlasProfile;
+  const a = row('Fox Point', O, { profile: p });
+  assert.deepEqual(storefrontsOf(a, east(1000)).map((s) => s.label), ['Main Street', 'Ash Street', 'Birch Street', 'Elm Street'], 'from you, east of it');
+  assert.deepEqual(storefrontsOf(a, null).map((s) => s.label), ['Elm Street', 'Ash Street', 'Birch Street', 'Main Street'], 'no fix: from the area\'s point');
+});
+
+test('SF4: Walk to\'s line says "Starts you on" the street, with no superlative', async () => {
+  const { walkViaLine } = await sf();
+  assert.equal(walkViaLine('Thayer Street'), 'Starts you on Thayer Street');
+});
+
+test('SF7: a tile says "Storefronts along" its street, and a whole town says where its storefronts gather is listed apart', () => {
+  const steps = { history: 0, art: 0, culture: 0, parks: 0, viewpoints: 0, food: 2, shops: 0, nightlife: 0 } as const;
+  const area = row('Fox Point', east(400), { profile: { steps, strips: ['Wickenden Street'], stripAt: O, marks: [], sketch: { streets: [], grades: [[], [], []], parks: [] }, overture: null } });
+  const [l] = nearList([area], O, 'neighborhood', 'b1');
+  assert.match(tileLabel(l, { walks: 0, last: null }, fmt), /Storefronts along Wickenden Street\.$/);
+  assert.match(marksExplained({ extent: 'outline' }).at(-1)!, /Where its storefronts gather is listed apart\.$/);
 });

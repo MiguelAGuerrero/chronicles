@@ -19,7 +19,7 @@ Deleting a walk, its media, or a moment (`lib/deletion`): what goes, Undo, and w
   finds, reminders, marks and `explored:<walk>`; later walks' new streets are
   recounted (`recountNewStreets`). A deleted moment takes its reminder and its
   find. Removing a walk's media keeps its finds (`keepFinds`). Offered places,
-  checklists and busy areas never move.
+  checklists and storefront areas never move.
 - **Threads follow the moments** (decision 0104): `deleteMoments` and `deleteWalk` also delete the memberships and reply links of the moments they delete and dissolve a thread left with fewer than two, in the same transaction. Deleting a thread (`threads.deleteThread`) uses this same Undo window and deletes no moment.
 - **Storage:** `db.deleteWalk` and `db.deleteMoments` (a moment with every piece; decision 0123), one transaction each
   (web: any error aborts it, `atomically`). Rows go first, then files
@@ -41,6 +41,7 @@ Deleting a walk, its media, or a moment (`lib/deletion`): what goes, Undo, and w
   - `UndoToast` renders in each screen and in the viewer; only the newest
     mounted one shows (a phone's Modal hides what the screen draws).
   - The home reads again when a delete reached storage (`useOnDeleted`).
+- **An empty walk is dropped at Stop** (EW1-EW12, decision 0187): both stop paths call `session.endWalk`, which stops the walk and asks `emptyWalk/shell` whether it holds nothing (core `isEmptyWalk`: no moment, pause, still or gap, read fixes all within 15 m; no read fix means kept; the pause still open at Stop is not counted, `pausesKept`, decision 0220). A drop skips the replay and is a `volatile` delete: Undo waits as in 0113, but it is never saved to `pending_delete`, so a kill restores the walk, and the route change Stop causes does not flush it (`holdNextFlush`, once). The pill says "Walk not kept.".
 - **After the audit (Nov 1):** 13 findings, 8 fixed.
   - The recount counts named streets only (`isNamedStreet`, shared with
     `finish.ts`).
@@ -72,6 +73,12 @@ Deleting a walk, its media, or a moment (`lib/deletion`): what goes, Undo, and w
     media deletes (a walk delete removes its folder).
   - The home's reload after a delete reruns its whole load.
   - A notification already shown for a deleted moment opens nothing.
+- **The confirm's two actions stack below 340 px** (tend deletion 1, `confirmActions` in `deletion/core.ts`): a row
+  holds "Delete walk" on one line only from about 340 px, so narrower the confirm goes on top and Cancel beneath, as
+  iOS alerts ("Cancel buttons are typically on the leading side of a row or at the bottom of a stack") and Material
+  dialogs ("Confirming actions appear above dismissive actions") stack theirs. The `deletion` journey checks it at 390
+  and 320.
+- The stacked order's sources, both read: `docs/research/ui-references.md` A2 (HIG Alerts, read Nov 18; Material dialogs).
 - **Native** (unverified on a device): the SQLite deletes, file and folder
   removal, `Directory.size`, the Undo pill over the viewer's Modal, the
   background commit, and `router.dismissTo` right after the actions Modal

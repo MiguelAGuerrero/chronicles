@@ -1,0 +1,41 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Memo transcripts (TX1-TX18, decision 0165)"
+      ],
+      "body": "- **Memo transcripts audit 5 (in part)**: the transcripts' store copies its map for every row written (O(n²) over a backfill of thousands of memos); a batch write per run would do. **Audit 20**: a long press on the caption selects its text (`selectable`) beside the viewer's swipe and tap-to-hide handlers; tried on a phone only. **Audit 21**: the caption does not set its language for a screen reader (WCAG 3.1.2), for a memo spoken in another language than the app's.\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Memo transcripts (TX1-TX18, decision 0165)"
+      ],
+      "body": "- [ ] **Do:** on an iPhone with the device's language dictation pack not installed (Settings, General, Keyboard, Dictation), airplane mode on, keep a memo. **Expect:** it stays unread, with nothing sent: the library only applies the on-device flag when the recognizer reports support, so a phone without it could fall to Apple's servers (memo-transcripts audit 11; the release gate beside the airplane-mode check).\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Memo transcripts (TX1-TX18, decision 0165)"
+      ],
+      "body": "- [ ] **Do:** keep a memo, then start recording another before the first is read; and trim a memo that already has words. **Expect:** the read stops when the recording begins and goes on afterwards; the trimmed memo's caption goes, then comes back for the kept part after a moment (memo-transcripts audit 4, 6; the abort and the recognizer's `aborted` error).\n"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "set",
+        "Memo transcripts"
+      ],
+      "body": "| Memo transcripts (a voice memo read on the phone in the background with expo-speech-recognition, on the device only, and shown as a caption \"Read by your phone\" under the voice note in the viewer and on the journal page; a trimmed memo is read from a copy of its kept part; the words join Chronicle's threads; TX1-TX18, decision 0165) | built 2026-11-13, test-first by intent (the todo marks went in one commit after the first tests commit, so `check:test-first` reads 12 of 18; history not rewritten); unit tests, typecheck, lint, docs and vision checks; the `transcript` journey (the caption, from a stored row); the `voicetrim` journey was already failing on main (its `memories-list` selector is gone since the journal); native unverified: the engine, the cut copy and the permission flow never ran on a device | branch `claude/amazing-shannon-5jejnz` | `specs/memo-transcripts/spec.md` | yes, at the owner's request (21 findings: 15 fixed, 3 deferred, 3 rejected; tests `memo-transcripts audit 1-14, 16`) |\n",
+      "target": "sha256:9639b00b667a8a665a440b5472dbc9a7618a5dcf35359f16ffcf8ede67e536d0"
+    }
+  ]
+}

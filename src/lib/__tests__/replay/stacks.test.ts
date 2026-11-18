@@ -32,18 +32,17 @@ const stack: Moment = {
 const lone: Moment = { id: 'l', walk_id: 'w1', t: t0 + 400_000, ...P(at(3, 0)), segment_id: null, pieces: [piece('l', 'l', t0 + 400_000, 'photo')] };
 type Card = { capture: Faced; t0: number; t1: number; pieces?: Faced[] };
 
-test('MS17: a stacked moment is one stop with one grid of its photos, held one photo slot after its swipe-ins; memos one after another beside it; one pile card per moment; under the cap', () => {
+test('MS17, RY4: a stacked moment is one stop with one grid of its photos, held after its swipe-ins; memos one after another beside it; one pile card per moment', () => {
   const plan = rhythmPlan(walkStory(storyOf(trace, [faced(stack), faced(lone)])), { reduceMotion: false });
   const cards = plan.cards as Card[];
   assert.equal(cards.length, 2, 'one card per moment');
   assert.deepEqual(cards[0].pieces?.map((c) => c.piece_id), ['s', 's2', 's3'], 'the grid holds its photos and videos');
-  assert.ok(cards[0].t1 - cards[0].t0 >= R.photo, 'held at least one photo slot');
+  assert.ok(cards[0].t1 - cards[0].t0 >= R.gridHold, 'held its 5 s (RY4)');
   const memos = plan.bubbles.filter((b) => b.capture.kind === 'voice');
   assert.equal(memos.length, 2);
   assert.ok(memos[1].ta >= memos[0].ta + memos[0].len, 'the second memo starts once the first has played');
   assert.ok(plan.bubbles.some((b) => b.capture.kind === 'text' && b.capture.body === 'a door'), 'its note is a bubble');
   assert.equal(plan.segs.filter((s) => s.k === 'stop').length, 2, 'one stop for the stack');
-  assert.ok(plan.total <= R.cap + 5_000);
 });
 
 test('MS17: a stack\'s stop spans its first piece to its last', () => {

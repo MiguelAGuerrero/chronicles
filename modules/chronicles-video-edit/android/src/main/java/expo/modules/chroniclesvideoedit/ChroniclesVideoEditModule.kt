@@ -56,6 +56,13 @@ class TrimRecord : Record {
   @Field("end_ms") var endMs: Double = 0.0
 }
 
+class AudioTrimInput : Record {
+  @Field var source: String = ""
+  @Field var output: String = ""
+  @Field var start_ms: Double = 0.0
+  @Field var end_ms: Double = 0.0
+}
+
 class VideoExportInput : Record {
   @Field var source: String = ""
   @Field var output: String = ""
@@ -82,6 +89,32 @@ class ChroniclesVideoEditModule : Module() {
 
   override fun definition() = ModuleDefinition {
     Name("ChroniclesVideoEdit")
+
+    // A copy of a voice memo's kept part as an audio-only file, for the speech recognizer (memo transcripts, TX13).
+    AsyncFunction("exportTrimmedAudio") { input: AudioTrimInput, promise: Promise ->
+      var outputFile: File? = null
+      try {
+        val output = fileOf(input.output, "output")
+        outputFile = output
+        if (!input.start_ms.isFinite() || !input.end_ms.isFinite() || input.start_ms < 0 || input.end_ms <= input.start_ms) {
+          throw VideoExportException("The kept part must have an end after its start, got ${input.start_ms} to ${input.end_ms}")
+        }
+        output.parentFile?.mkdirs()
+        if (output.exists() && !output.delete()) {
+          throw VideoExportException("Could not replace the existing output file at ${output.path}")
+        }
+        val clip = MediaItem.ClippingConfiguration.Builder()
+          .setStartPositionMs(input.start_ms.toLong())
+          .setEndPositionMs(input.end_ms.toLong())
+          .build()
+        val item = MediaItem.Builder().setUri(sourceUriOf(input.source)).setClippingConfiguration(clip).build()
+        val edited = EditedMediaItem.Builder(item).setRemoveVideo(true).build()
+        mainHandler.post { start(Job(edited), output, input.output, promise) }
+      } catch (e: Throwable) {
+        outputFile?.delete()
+        promise.reject(asExportException(e))
+      }
+    }
 
     AsyncFunction("exportEditedVideo") { input: VideoExportInput, promise: Promise ->
       var outputFile: File? = null

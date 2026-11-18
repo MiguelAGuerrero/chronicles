@@ -1,0 +1,26 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "The bar's way",
+        "--reason",
+        "built in tend tabs 12 (32afcd7f) with the review's tend tabs audit 26-28 (88fe2a5d): the bar's way back asks barGoesBack before and after its wait and again before it shows the walk, against a stop under way from any bar of the walk, within its bound"
+      ],
+      "target": "sha256:902ce6311708641f894356d84698f39b9ec9748acc802e2260cc6126880116ce"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "The recording bar's comment",
+        "--reason",
+        "built in tend tabs 13 (32afcd7f): the bar's comment names its held Stop (decision 0048)"
+      ],
+      "target": "sha256:f613df7de0dddfdc84eac43284208449e5bf8fbb9bc36709cb4a08b0c7fa8930"
+    }
+  ]
+}

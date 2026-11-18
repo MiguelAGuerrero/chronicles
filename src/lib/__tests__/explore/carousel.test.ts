@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { ATLAS_CODE, ATLAS_RULES, type AtlasArea, type Listed, type NearRead } from '../../atlas/atlas';
-import { liveReport, busyNamesNear, busyNamesOn, busyRadiusM, cardFooter, firstSelection, layerCentre, nearWords, townsListedAfter, offsetOf, rowOf, rowStep, settledIndex, settleStep, stepKey, townNote } from '../../atlas/carousel';
+import { liveReport, holdStep, isHeld, HOLD_NONE, HOLD_MAX_WAITS, FINGER_MAX_WAITS, snapTarget, keepStart, FLICK_SHARE, storefrontNamesNear, storefrontNamesOn, storefrontRadiusM, cardFooter, firstSelection, layerCentre, nearWords, townsListedAfter, offsetOf, rowOf, rowStep, settledIndex, settleStep, stepKey, townNote } from '../../atlas/carousel';
 import { readFileSync } from 'node:fs';
 import type { LandingView } from '../../landing/view';
 import type { LngLat } from '../../types';
@@ -120,47 +120,47 @@ const view = (): LandingView => ({
     { lines: [[east(5000), east(5100)]], name: 'Main Street', at: east(5000), stale: false },
   ],
   graded: [{ lines: [[east(0), east(100)]], grade: 2, stale: false }],
-  labels: [{ name: 'A busy pocket', at: east(200) }, { name: 'Far pocket', at: east(6000) }],
+  labels: [{ name: 'A pocket of storefronts', at: east(200) }, { name: 'Far pocket', at: east(6000) }],
 });
 
 test('EC7: the Busy names inside the selected area\'s ring stay, from zoom 13; its streets always draw', () => {
   const v = view();
-  const near = busyNamesNear(v, O, 14, 800, 13)!;
+  const near = storefrontNamesNear(v, O, 14, 800, 13)!;
   assert.deepEqual(near.strips.map((s) => s.name), ['Wickenden Street'], 'the street 5 km away is not named');
-  assert.deepEqual(near.labels.map((l) => l.name), ['A busy pocket']);
+  assert.deepEqual(near.labels.map((l) => l.name), ['A pocket of storefronts']);
   assert.deepEqual(near.graded, v.graded, 'the drawn busy streets are untouched');
   assert.deepEqual(near.pockets, v.pockets);
-  const far = busyNamesNear(v, O, 12.9, 800, 13)!;
+  const far = storefrontNamesNear(v, O, 12.9, 800, 13)!;
   assert.deepEqual([far.strips.length, far.labels.length], [0, 0], 'zoomed out: no names at all');
   assert.deepEqual(far.graded, v.graded, 'the lines stay at any zoom');
 });
 
 test('EC7: with no view or no selected area there are no names, and no view stays none', () => {
-  assert.equal(busyNamesNear(null, O, 15, 800, 13), null);
-  const none = busyNamesNear(view(), null, 15, 800, 13)!;
+  assert.equal(storefrontNamesNear(null, O, 15, 800, 13), null);
+  const none = storefrontNamesNear(view(), null, 15, 800, 13)!;
   assert.deepEqual([none.strips.length, none.labels.length], [0, 0]);
   assert.equal(none.graded.length, 1);
 });
 
 test('explore-carousel audit 2: a settle mid-way through the row\'s own scroll never selects a card, it aims again', () => {
   // The row is scrolling itself to card 3 (selected) and the page stalled: the last offset read is card 1.
-  assert.deepEqual(settleStep({ index: 1, intended: 3, selected: 3 }), { report: null, scrollTo: 3 }, 'mid-way: scroll on to the target, report nothing');
-  assert.deepEqual(settleStep({ index: 3, intended: 3, selected: 3 }), { report: null, scrollTo: null }, 'arrived: nothing to do');
+  assert.deepEqual(settleStep({ index: 1, intended: 3, selected: 3 }), { report: null, scrollTo: 3, wait: false }, 'mid-way: scroll on to the target, report nothing');
+  assert.deepEqual(settleStep({ index: 3, intended: 3, selected: 3 }), { report: null, scrollTo: null, wait: false }, 'arrived: nothing to do');
   // The reader's own scroll (nothing intended): a different card is reported, the same one is not.
-  assert.deepEqual(settleStep({ index: 2, intended: null, selected: 3 }), { report: 2, scrollTo: null });
-  assert.deepEqual(settleStep({ index: 3, intended: null, selected: 3 }), { report: null, scrollTo: null });
+  assert.deepEqual(settleStep({ index: 2, intended: null, selected: 3 }), { report: 2, scrollTo: null, wait: false });
+  assert.deepEqual(settleStep({ index: 3, intended: null, selected: 3 }), { report: null, scrollTo: null, wait: false });
 });
 
 test('explore-carousel audit 3: the names are on or off by one boolean, so the map is not sent a new Busy view on every camera move', () => {
-  assert.equal(busyNamesOn(13, 13), true);
-  assert.equal(busyNamesOn(15.7, 13), true);
-  assert.equal(busyNamesOn(12.99, 13), false);
-  assert.equal(busyNamesOn(0, 13), false, 'before the first view event there is no zoom: off');
-  assert.equal(busyNamesOn(11, 13), busyNamesOn(12, 13), 'zoomed out, every zoom is the same state');
+  assert.equal(storefrontNamesOn(13, 13), true);
+  assert.equal(storefrontNamesOn(15.7, 13), true);
+  assert.equal(storefrontNamesOn(12.99, 13), false);
+  assert.equal(storefrontNamesOn(0, 13), false, 'before the first view event there is no zoom: off');
+  assert.equal(storefrontNamesOn(11, 13), storefrontNamesOn(12, 13), 'zoomed out, every zoom is the same state');
   const v = view();
   const empty: LandingView = { pockets: [], strips: [], graded: [], labels: [] };
-  assert.equal(busyNamesNear(empty, O, 14, 800, 13), empty, 'a view with no names to drop is returned as it is');
-  assert.equal(busyNamesNear(v, O, 14, 800, 13)!.strips.length, 1, 'and one with names inside the ring keeps them');
+  assert.equal(storefrontNamesNear(empty, O, 14, 800, 13), empty, 'a view with no names to drop is returned as it is');
+  assert.equal(storefrontNamesNear(v, O, 14, 800, 13)!.strips.length, 1, 'and one with names inside the ring keeps them');
 });
 
 test('explore-carousel audit 4: a card\'s footer shows only on the selected card, a town\'s and a town page head\'s', () => {
@@ -178,9 +178,9 @@ test('explore-carousel audit 12: the note over a town with no neighborhoods says
 });
 
 test('explore-carousel audit 16: the Busy names reach a neighborhood\'s ring and a town\'s own reach, never an unseen 800 m', () => {
-  assert.equal(busyRadiusM('neighborhood', 800, 5000), 800);
-  assert.equal(busyRadiusM('town', 800, 5000), 5000);
-  assert.equal(busyRadiusM('town', 800, 300), 800, 'a small town is never less than the ring');
+  assert.equal(storefrontRadiusM('neighborhood', 800, 5000), 800);
+  assert.equal(storefrontRadiusM('town', 800, 5000), 5000);
+  assert.equal(storefrontRadiusM('town', 800, 300), 800, 'a small town is never less than the ring');
 });
 
 test('explore-carousel audit 7: a card\'s name is never cut to a number of lines (EC4: shown in full)', () => {
@@ -197,4 +197,95 @@ test('fix carousel-live-select: a card is selected as the reader scrolls past it
   assert.equal(liveReport({ index: 1, intended: null, selected: 2, last: 2 }), 1, 'scrolling back reports the earlier card');
   assert.equal(liveReport({ index: 0, intended: null, selected: 0, last: 1 }), 0, 'fix carousel-live-select audit 1: back to the stale selection after a report still reports');
   assert.equal(liveReport({ index: 2, intended: 3, selected: 1, last: null }), null, 'the row scrolling itself to a card never selects on the way');
+});
+
+test('fix carousel-snap-back: a settle while the reader\'s finger is down or the row is gliding waits, so it never sets a target the swipe is then sent back to', () => {
+  // The finger paused between cards 0 and 1 (selected 0, nearest 0) for the settle's 120 ms: easing onto card 0 there made it the
+  // row's own target, and the release, which was heading for card 1, was then aimed back at 0 (the reader had to swipe twice).
+  assert.deepEqual(settleStep({ index: 0, intended: null, selected: 0, held: true }), { report: null, scrollTo: null, wait: true }, 'held: nothing, and wait');
+  assert.deepEqual(settleStep({ index: 1, intended: null, selected: 0, held: true }), { report: null, scrollTo: null, wait: true }, 'held: a card passed is reported live, never by the settle');
+  assert.deepEqual(settleStep({ index: 1, intended: 3, selected: 3, held: true }), { report: null, scrollTo: null, wait: true }, 'held beats the row\'s own target too');
+  assert.deepEqual(settleStep({ index: 1, intended: null, selected: 0, held: false }), { report: 1, scrollTo: null, wait: false }, 'let go: the settle reports as before');
+  assert.deepEqual(settleStep({ index: 1, intended: 3, selected: 3 }), { report: null, scrollTo: 3, wait: false }, 'held is optional');
+});
+
+test('fix carousel-snap-back audit 1: a finger on the row holds the settle (touch events, the only ones the web build fires), and lifting it lets go', () => {
+  assert.equal(isHeld(HOLD_NONE), false);
+  const down = holdStep(HOLD_NONE, 'down');
+  assert.equal(isHeld(down), true, 'finger down');
+  assert.equal(isHeld(holdStep(down, 'scroll')), true, 'scrolling under the finger');
+  assert.equal(isHeld(holdStep(down, 'up')), false, 'finger up, nothing gliding');
+});
+
+test('fix carousel-snap-back audit 2, 3: a release that glides stays held until the glide ends; a glide that never reports its end is let go after a cap', () => {
+  const glide = holdStep(holdStep(holdStep(HOLD_NONE, 'down'), 'up'), 'glide');
+  assert.equal(isHeld(glide), true, 'gliding after the release');
+  assert.equal(isHeld(holdStep(glide, 'rest')), false, 'the glide ended');
+  assert.equal(isHeld(holdStep(holdStep(HOLD_NONE, 'down'), 'glide')), true, 'a touch end and a glide in either order');
+  // The settle keeps waiting and asking again; after the cap with no scroll between, the hold is dropped.
+  let h = glide;
+  for (let i = 0; i < HOLD_MAX_WAITS - 1; i++) h = holdStep(h, 'waited');
+  assert.equal(isHeld(h), true, 'one wait short of the cap');
+  assert.equal(isHeld(holdStep(h, 'waited')), false, 'the cap lets it go');
+  assert.equal(isHeld(holdStep(holdStep(h, 'scroll'), 'waited')), true, 'a scroll event restarts the count');
+});
+
+test('fix carousel-snap-back audit 4: a new touch ends a glide it interrupts', () => {
+  const glide = holdStep(HOLD_NONE, 'glide');
+  const down = holdStep(glide, 'down');
+  assert.equal(down.glide, false, 'the glide it stopped is over');
+  assert.equal(isHeld(holdStep(down, 'up')), false, 'and lifting lets go');
+});
+
+test('fix carousel-snap-back audit 5: a finger held still stays held past the glide\'s cap, and is only dropped when its end is plainly lost', () => {
+  let h = holdStep(HOLD_NONE, 'down');
+  for (let i = 0; i < HOLD_MAX_WAITS * 2; i++) h = holdStep(h, 'waited');
+  assert.equal(isHeld(h), true, 'a real finger is not dropped when a glide would be');
+  for (let i = HOLD_MAX_WAITS * 2; i < FINGER_MAX_WAITS - 1; i++) h = holdStep(h, 'waited');
+  assert.equal(isHeld(h), true, 'one wait short of the finger cap');
+  assert.equal(isHeld(holdStep(h, 'waited')), false, 'a touch end that never came lets go');
+  // A glide dropped by its cap leaves a finger that is down.
+  let both = holdStep(holdStep(HOLD_NONE, 'glide'), 'down');
+  both = holdStep(both, 'glide');
+  for (let i = 0; i < HOLD_MAX_WAITS; i++) both = holdStep(both, 'waited');
+  assert.deepEqual([both.finger, both.glide], [true, false]);
+});
+
+test('fix carousel-flick: a short swipe that stops under half a card away goes on to the next card, not back to the one it began on (web has no snap)', () => {
+  const step = 300;
+  // Began on card 1 (offset 300), a touch that landed on a card.
+  const at = (offset: number, start: number | null, count = 5) => snapTarget({ offset, step, count, start });
+  assert.equal(at(300 + step * 0.3, 300), 2, 'a 30% swipe left goes to the next card');
+  assert.equal(at(300 - step * 0.3, 300), 0, 'a 30% swipe right goes to the previous card');
+  assert.equal(at(300 + step * (FLICK_SHARE + 0.01), 300), 2, 'just past the flick share');
+  assert.equal(at(300 + step * (FLICK_SHARE - 0.02), 300), 1, 'a wobble under the flick share stays');
+  assert.equal(at(300, 300), 1, 'no move stays');
+  assert.equal(at(300 + step * 0.7, 300), 2, 'past the middle is the nearest card, as before');
+  assert.equal(at(300 + step * 1.6, 300), 3, 'a long glide lands on the nearest card, the bias never pulls it back');
+  assert.equal(at(300 + step * 0.3, null), 1, 'with no gesture (a wheel, the row\'s own scroll) the nearest card');
+  assert.equal(at(step * 4 + step * 0.3, step * 4), 4, 'clamped at the last card');
+  assert.equal(at(-step * 0.3, 0), 0, 'clamped at the first card');
+  assert.equal(at(50, 300, 0), 0, 'an empty row');
+});
+
+test('fix carousel-flick audit 1: a touch that did not land on a card (a catch mid-ease) never biases: the nearest card, whichever way it drifted', () => {
+  const step = 300;
+  const at = (offset: number, start: number) => snapTarget({ offset, step, count: 5, start });
+  // The row was easing to card 1 and the reader caught it at 0.6 of a step, lifting without moving: it is not reversed.
+  assert.equal(at(step * 0.6, step * 0.6), 1, 'caught at 0.6, lifted at 0.6');
+  assert.equal(at(step * 1.0, step * 0.6), 1, 'caught at 0.6, the ease carried on to the card');
+  // Landed mid-card and nudged toward the card it was nearest: not the opposite one.
+  assert.equal(at(step * 0.3, step * 0.4), 0, 'began at 0.4, dragged back to 0.3');
+  assert.equal(at(step * 1.3, step * 1.4), 1, 'caught a glide heading back at 1.4, lifted at 1.3');
+  // On a card within the tolerance still counts as landing on it.
+  assert.equal(at(300 + step * 0.3, 300 + 2), 2, 'a touch 2 px off a card');
+});
+
+test('fix carousel-flick audit 2, 3: a tap with no scroll never changes the target; one gesture keeps its first start', () => {
+  const step = 300;
+  assert.equal(snapTarget({ offset: 300, step, count: 5, start: 300 }), 1, 'a tap on a card');
+  assert.equal(snapTarget({ offset: 302, step, count: 5, start: 300 }), 1, 'a tap that moved 2 px');
+  // The start is kept by the caller: a second touch event of the same gesture (a phone sends two) never replaces it.
+  assert.equal(keepStart(null, 300), 300, 'the first touch sets it');
+  assert.equal(keepStart(300, 345), 300, 'the second, mid-gesture, keeps the first');
 });

@@ -1,21 +1,22 @@
 import type { Faced } from '../lib/moment';
-import { router } from 'expo-router';
+import { router, useIsFocused } from 'expo-router';
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import {
   Animated, BackHandler, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions,
   type GestureResponderEvent,
 } from 'react-native';
 import { useReducedMotion } from '../lib/motion';
-import { MOTION } from '../lib/motionTokens';
+import { MOTION, sheetMoveSnaps } from '../lib/motionTokens';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { placeWalks, type PlacesIndex } from '../lib/places';
 import { formatDistance, suggestTitle } from '../lib/summary';
-import { emptyPeek, timelineWalkSpoken, walkRowMeta, walkRowSpoken } from '../lib/quietLines';
+import { emptyPeek, moreFor, placeSheetLine, timelineWalkLine, timelineWalkSpoken, walkRowMeta, walkRowSpoken } from '../lib/quietLines';
 import { useUnits } from '../lib/useUnits';
-import { dayCounts, dayLabel, type Day, type DayEntry } from '../lib/days';
+import { dayCounts, dayLabel, daySpoken, type Day, type DayEntry } from '../lib/days';
 import { byMonth } from '../lib/months';
 import type { Walk, WalkSummary } from '../lib/types';
 import { Icon, KIND_ICON, KIND_LABEL } from './icons';
+import { OpenInMapsButton, type MapsTarget } from './OpenInMapsButton';
 import { theme } from './ui';
 import { plainNote } from '../lib/refs';
 
@@ -69,6 +70,9 @@ export function SheetFrame(props: {
   /** The sheet's live height, owned by the screen so what floats above it moves with it
    *  frame by frame, never from a height reported when a move ends. Read once, at mount. */
   height?: Animated.Value;
+  /** False until the screen knows what its peek holds (Chronicle's first read): the peek is set, not sprung, until
+   *  then and on the move that knowing asks for, so nothing rises at launch (tend tabs T38). Read live. */
+  known?: boolean;
   testID?: string;
   dragTestID?: string;
   /** False when a Modal around the sheet already lowers it on Back and Escape (a responses sheet in the viewer), so
@@ -96,31 +100,53 @@ export function SheetFrame(props: {
   useEffect(() => {
     onHeight.current = props.onHeight;
   });
-  // Every move reports where the sheet ends, finished or cut short by a drag (audit 2).
+  // Every move reports where the sheet ends, finished or cut short by a drag (audit 2). `moving` is true while the
+  // latest move's spring runs; a spring cut short by a later move never clears the later one's (tend tabs audit 38).
+  const moving = useRef({ id: 0, on: false });
   const [moveTo] = useState(() => (to: number, snap: boolean) => {
-    const done = () => onHeight.current?.(to);
+    const id = ++moving.current.id;
+    const done = () => {
+      if (moving.current.id === id) moving.current.on = false;
+      onHeight.current?.(to);
+    };
+    moving.current.on = !snap;
     if (snap) {
       h.setValue(to);
       done();
     } else Animated.spring(h, { toValue: to, ...MOTION.spring, useNativeDriver: false }).start(done);
   });
-  useEffect(() => {
-    moveTo(target, reduced);
-  }, [moveTo, target, reduced]);
+  // A peek is set, not sprung, on the sheet's mount and on the move its screen's first read asks for (tend tabs T38);
+  // every other move springs, before the read too (audit 37), and a first read that lands on a running spring springs
+  // to its height (audit 38). In a layout effect, so the frame that shows the first
+  // read shows its height and the scale bar reads it too. A change of `known` alone never restarts a running move.
+  const known = props.known !== false;
+  const wasKnown = useRef(known);
+  const lastMove = useRef<{ target: number; reduced: boolean } | null>(null);
+  useLayoutEffect(() => {
+    const firstKnown = known && !wasKnown.current;
+    wasKnown.current = known;
+    const last = lastMove.current;
+    if (last && last.target === target && last.reduced === reduced) return;
+    lastMove.current = { target, reduced };
+    moveTo(target, sheetMoveSnaps({ reduced, peek: size === 'peek', mount: !last, firstKnown, moving: moving.current.on }));
+  }, [moveTo, target, reduced, known, size]);
   const latest = useRef({ size, target, reduced });
   // Updated straight after each commit, so the settle check below reads the screen's answer.
   useLayoutEffect(() => {
     latest.current = { size, target, reduced };
   });
 
-  // Back on Android, and Escape on the web, lower an open sheet before anything else.
+  // Back on Android, and Escape on the web, lower an open sheet before anything else, while its screen is in front: a
+  // screen pushed over it (What I'm into's page) keeps it mounted and hidden, and Back or Escape there are the page's
+  // (what-im-into-page audit 1), as ReadyBar's are.
+  const focused = useIsFocused();
   const onSizeRef = useRef(props.onSize);
   useEffect(() => {
     onSizeRef.current = props.onSize;
   });
   const ownKeys = props.ownKeys !== false;
   useEffect(() => {
-    if (!expanded || !ownKeys) return;
+    if (!expanded || !ownKeys || !focused) return;
     const back = BackHandler.addEventListener('hardwareBackPress', () => {
       onSizeRef.current('peek');
       return true;
@@ -131,7 +157,7 @@ export function SheetFrame(props: {
       back.remove();
       if (Platform.OS === 'web' && typeof window !== 'undefined') window.removeEventListener('keydown', onKey);
     };
-  }, [expanded, ownKeys]);
+  }, [expanded, ownKeys, focused]);
 
   // Dragging the handle or header: it settles at the nearest of the three
   // heights, however the gesture ends (released, or taken by something else).
@@ -211,6 +237,9 @@ export function HomeSheet(props: {
   placingId?: string | null;
   /** Starts a walk navigating to the place shown (N11). */
   onGoToPlace?: () => void;
+  /** OM4: Open in Maps for the place, beside Walk here: outlined, wrapping to a second line when narrow. */
+  mapsTarget?: MapsTarget;
+  onMaps?: (t: MapsTarget) => void;
   /** The place's found places (E10), in the place view only. */
   placeExtra?: { found: string[] } | null;
   /** Days with something in them, newest first (M7). */
@@ -277,6 +306,8 @@ export function HomeSheet(props: {
       onSize={setSize}
       onHeight={props.onHeight}
       height={props.height}
+      // Until the first read the peek's state is not known: its first height is set, never sprung (tend tabs T38).
+      known={props.read !== false}
       bottomInset={props.bottomInset}
       areaHeight={props.areaHeight}
       peek={peekNavigate ? SHEET_PEEK + STACKED_EXTRA : undefined}
@@ -285,13 +316,14 @@ export function HomeSheet(props: {
           {day ? (
             <View style={styles.headerText}>
               <Text testID="day-title" style={styles.title} accessibilityRole="header" numberOfLines={1}>{dayLabel(day.key, nowT)}</Text>
-              <Text style={styles.meta} numberOfLines={1}>{dayCounts(day)}</Text>
+              {/* In words since tend tabs T32, so it may take two lines, as the place's line does, wrapping between words (tend tabs audit 25). */}
+              <Text testID="day-meta" style={styles.meta} numberOfLines={2}>{dayCounts(day)}</Text>
             </View>
           ) : place ? (
             <View style={styles.headerText}>
               <Text testID="place-title" style={styles.title} accessibilityRole="header" numberOfLines={1}>{place.title}</Text>
-              <Text style={styles.meta} numberOfLines={2}>
-                {[place.subtitle, `${place.walks.length} ${place.walks.length === 1 ? 'walk' : 'walks'}`, formatDistance(place.metres)].filter(Boolean).join(' · ')}
+              <Text testID="place-meta" style={styles.meta} numberOfLines={2}>
+                {placeSheetLine(place.subtitle, place.walks.length, formatDistance(place.metres))}
               </Text>
             </View>
           ) : noWalks && !expanded ? (
@@ -372,11 +404,12 @@ export function HomeSheet(props: {
       }
     >
       {place && props.onGoToPlace && (
-        <View style={styles.goRow}>
-          <Pressable testID="place-go" accessibilityRole="button" accessibilityLabel={`Start a walk to ${place.title}`} onPress={props.onGoToPlace} disabled={props.busy} style={({ pressed }) => [styles.go, (pressed || props.busy) && { opacity: 0.7 }]}>
+        <View style={[styles.goRow, styles.goRowPair]}>
+          <Pressable testID="place-go" accessibilityRole="button" accessibilityLabel={`Start a walk to ${place.title}`} onPress={props.onGoToPlace} disabled={props.busy} style={({ pressed }) => [styles.go, props.mapsTarget && styles.pairHalf, (pressed || props.busy) && { opacity: 0.7 }]}>
             <Icon name="navigate" size={18} color="#ffffff" />
             <Text style={styles.goText}>Walk here</Text>
           </Pressable>
+          {props.mapsTarget && props.onMaps ? <OpenInMapsButton testID="place-maps" variant="button" target={props.mapsTarget} onOpen={props.onMaps} style={styles.pairHalf} /> : null}
         </View>
       )}
       {day && (
@@ -402,12 +435,12 @@ export function HomeSheet(props: {
                   key={d.key}
                   testID="day-row"
                   accessibilityRole="button"
-                  accessibilityLabel={`${dayLabel(d.key, nowT)}, ${dayCounts(d)}`}
+                  accessibilityLabel={daySpoken(dayLabel(d.key, nowT), d)}
                   onPress={() => props.onMode({ kind: 'day', key: d.key })}
                   style={({ pressed }) => [styles.row, pressed && { opacity: 0.6 }]}
                 >
                   <Text style={styles.rowTitle}>{dayLabel(d.key, nowT)}</Text>
-                  <Text style={styles.rowMeta}>{dayCounts(d)}</Text>
+                  <Text testID="day-row-meta" style={styles.rowMeta}>{dayCounts(d, { bind: true })}</Text>
                 </Pressable>
               ))
             : day
@@ -465,7 +498,7 @@ function MoreButton({ walk, title, onMore, disabled }: { walk: Walk; title: stri
     <Pressable
       testID="walk-more"
       accessibilityRole="button"
-      accessibilityLabel={`More for ${title}`}
+      accessibilityLabel={moreFor(title)}
       // While old walks are being placed, a walk's streets may still be read (deletion audit 2).
       disabled={disabled}
       accessibilityState={{ disabled: !!disabled }}
@@ -481,7 +514,7 @@ function MoreButton({ walk, title, onMore, disabled }: { walk: Walk; title: stri
 function EntryRow({ entry: e, summary: s, disabled, onOpen, onMore }: { entry: DayEntry; summary: WalkSummary | null; disabled?: boolean; onOpen: (c: Faced[]) => void; onMore?: (walkId: string) => void }) {
   if (e.kind === 'walk') {
     const n = e.captures.length;
-    const line = ['Walk', s ? formatDistance(s.distance_m) : null, `${n} ${n === 1 ? 'moment' : 'moments'}`].filter(Boolean).join(' · ');
+    const line = timelineWalkLine(s ? formatDistance(s.distance_m) : null, n);
     const title = e.walk.title ?? suggestTitle(e.walk);
     return (
       <View style={styles.withMore}>
@@ -591,6 +624,9 @@ const styles = StyleSheet.create({
   month: { gap: 10 },
   listContent: { padding: 16, gap: 10, maxWidth: 640, width: '100%', alignSelf: 'center' },
   note: { fontSize: 14, color: theme.muted, marginTop: -4 },
+  // OM4, OM9 (ui 1): Walk here and Open in Maps side by side, each half the row, so nothing wraps at 320 px.
+  pairHalf: { flex: 1, minWidth: 0, paddingHorizontal: 8 },
+  goRowPair: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   goRow: { paddingHorizontal: 16, paddingTop: 4, maxWidth: 640, width: '100%', alignSelf: 'center' },
   go: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 48, borderRadius: 24, backgroundColor: theme.accent, alignSelf: 'flex-start', paddingHorizontal: 20 },
   goText: { color: '#ffffff', fontSize: 16, fontWeight: '700' },

@@ -12,5 +12,10 @@ export function noteText(body: string): string | null {
   return text ? text : null;
 }
 
-/** What a note written on its page stores (NP7, decision 0151): its body, and the mark that the body is Markdown. */
-export const notePatch = (body: string): { body: string; body_format: 'md' } => ({ body, body_format: 'md' });
+/**
+ * What a note written on its page stores (NP7, decision 0151): its body and the mark that the body is Markdown. A
+ * moment's reactions are their own records (RX28), never part of a note's write.
+ */
+export function notePatch(body: string): { body: string; body_format: 'md' } {
+  return { body, body_format: 'md' };
+}

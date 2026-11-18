@@ -10,6 +10,7 @@ import { theme } from '../ui';
 import { timeOf } from './layout';
 import { plainNote } from '../../lib/refs';
 import { stepNote } from '../../lib/notePage/plain';
+import { memoLengthMs } from '../../lib/voiceTrim';
 
 /** A note as the step reads it (NP10): its first 300 characters, then that it goes on. */
 const noteStep = (c: { body: string | null; body_format?: 'md' | null }) => {
@@ -68,7 +69,8 @@ export function StepThrough(props: {
   useEffect(() => {
     if (!props.auto || !capture) return;
     const media = capture.kind === 'voice' || capture.kind === 'video';
-    const timer = setTimeout(() => advanceRef.current(true), media ? (Number(capture.body) || 0) + 2500 : AUTO_MS);
+    // A memo or video for its kept part (a trimmed one plays no more) and a moment after (fix trimmed-length 4).
+    const timer = setTimeout(() => advanceRef.current(true), media ? memoLengthMs(capture) + 2500 : AUTO_MS);
     return () => clearTimeout(timer);
     // Once per moment shown.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -92,6 +94,8 @@ export function StepThrough(props: {
         key={`${capture.id}:${capture.piece_id}`}
         ref={continueRef}
         capture={capture}
+        // The ceremony is the content's: no reaction is drawn or said here (reactions audit 18).
+        reactions={false}
         autoPlay
         topInset={props.topInset}
         onVoiceFinished={props.auto ? () => advance(true) : undefined}

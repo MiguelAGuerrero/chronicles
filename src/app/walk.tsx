@@ -1,8 +1,10 @@
 import { type Faced, facedAll } from '../lib/moment';
 import { NewNotePage } from '../components/notePage/NewNotePage';
 import type { NotePageHandle } from '../components/notePage/NotePage';
-import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { router, useFocusEffect, useIsFocused, useLocalSearchParams, useNavigation as useRouteNavigation } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
+import { walkClocks } from '../lib/pins';
+import { nextDayPartBoundary } from '../lib/resurface/context';
 import { AccessibilityInfo, ActivityIndicator, AppState, BackHandler, Switch, Linking, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { Modal } from '../components/Modal';
 import { onWalkGap, useOpenWalk, useOpenWalkInfo } from '../components/OpenWalk';
@@ -14,7 +16,7 @@ import { WalkMap } from '../components/map/WalkMap';
 import { CompassButton } from '../components/CompassButton';
 import { WalkBandIcon } from '../components/WalkBandIcon';
 import { LayersControl, LayersKey } from '../components/LayersControl';
-import { COLORS, HOTSPOT, type WalkMapHandle } from '../components/map/types';
+import { COLORS, HOTSPOT, namesNearYou, type WalkMapHandle } from '../components/map/types';
 import { EditOfferPill, useEditOffer } from '../components/edit/EditOffer';
 import { MediaEditor } from '../components/edit/MediaEditor';
 import { CaptureViewer } from '../components/CaptureView';
@@ -25,20 +27,23 @@ import { emptyGapAt, gapKey, stretchAt, type Gap } from '../lib/gaps/infer';
 import type { DrawnLine } from '../lib/gaps/draw';
 import { useGapDraw } from '../lib/gaps/useGapDraw';
 import { GapDraw } from '../components/GapDraw';
-import { ComplexKindSwitches, KindSwitches, PASS_SCALE, passNote, RangeSlider, walkNote } from '../components/ExploreSettings';
+import { PASS_SCALE, passNote, RangeSlider, walkNote } from '../components/ExploreSettings';
+import { IntoRow } from '../components/IntoRow';
+import { tookDetour } from '../lib/intoNav';
 import { NotificationSettings } from '../components/NotificationSettings';
 import { RouteLeaningSettings } from '../components/RouteLeaningSettings';
 import { RoutePreview } from '../components/RoutePreview';
 import { forPreview } from '../lib/nav/previewView';
 import { SwitchRow } from '../components/SwitchRow';
 import { ReminderCard } from '../components/ReminderCard';
-import { onRecallFired, onRecallOpen, onRecallWaiting, takeRecallOpen } from '../lib/discovery/recallCheck';
+import { onRecallFired, onRecallOpen, onRecallWaiting, recallPlaceShown, takeRecallOpen } from '../lib/discovery/recallCheck';
+import { reminderHeld, reminderText } from '../lib/discovery/recall';
 import { categoryOf } from '../lib/discovery/categories';
 import { deadZoneDue, deadZoneNudge, inDeadZone, stripAt } from '../lib/landing/walk';
 import { rulesCurrent, type LandingRow } from '../lib/landing/view';
 import { placesFromTilePois } from '../lib/discovery/tilePois';
 import { canBuzz } from '../lib/canBuzz';
-import { armedLine, canArm, walkPassKey, clampPass, clampRange, EXPLORE_KEY, exploredKey, kindOf, POCKET_ALERT_NOTE, type Kind } from '../lib/explore/explore';
+import { armedLine, canArm, walkPassKey, clampPass, clampRange, EXPLORE_KEY, exploredKey, kindOf, POCKET_ALERT_NOTE } from '../lib/explore/explore';
 import { DEFAULT_SETTINGS, loadSettings, onSettings, saveSettings, type ExploreSettings } from '../lib/explore/settings';
 import { useExplore } from '../lib/explore/useExplore';
 import { reach } from '../lib/explore/reach';
@@ -49,43 +54,53 @@ import { boundsOf, distanceM, distanceToLinesM, nearPoints, pausedMs } from '../
 import { capturesHere, type HereResult } from '../lib/here';
 import { groupFirst, groupRadiusM, MEMORY_RULES, memoriesNear, memoryReader } from '../lib/memories';
 import { MemoryPreview } from '../components/MemoryPreview';
-import { deriveSegments, streetKey } from '../lib/streets';
+import { deriveSegments } from '../lib/streets';
 import { feedback } from '../lib/motion';
+import { MOTION } from '../lib/motionTokens';
 import { recorder } from '../lib/recorder';
 import { PAUSE_REMIND_MS } from '../lib/notify';
 import { ensureTileBuild } from '../lib/tiles';
-import type { RecorderStatus } from '../lib/recorder/types';
-import { retryRecorder } from '../lib/recorderRetry';
+import { startErrorFrom, type RecorderStatus } from '../lib/recorder/types';
+import { raisedAfter, retryRecorder } from '../lib/recorderRetry';
 import { useUnits } from '../lib/useUnits';
 import { formatRange } from '../lib/format';
-import { pauseWalk, restartRecording, resumeWalk, stopWalk } from '../lib/session';
+import { endWalk, pauseWalk, restartRecording, resumeWalk } from '../lib/session';
 import { formatDistance, formatDuration, formatElapsed } from '../lib/summary';
 import type { LngLat, Pause, StreetSegment, Walk } from '../lib/types';
 import { useCaptures } from '../lib/useCaptures';
 import { momentPill } from '../lib/momentPill';
 import { useStore } from '../lib/useStore';
+import { routeLeanings } from '../lib/routeLeanings';
+import { whileFocused } from '../lib/openers';
 import { AddToMomentPill } from '../components/walk/AddToMomentPill';
 import { walkScreenShown } from '../lib/walkNav';
 import { askMotion, useMotionAccess } from '../lib/walkMotion';
 import { shareLogText, walkLogText } from '../lib/shareLog';
 import { notifyWalkChanged } from '../lib/walkEvents';
 import { routeAhead } from '../lib/nav/navigator';
-import { HANDOFF_HINT, openInMaps } from '../lib/nav/openInMaps';
+import { shareLabel } from '../lib/atlas/mapsButton';
+import { travelMode, type TravelMode } from '../lib/nav/handoff';
+import { DRIVE_LABEL, END_LABEL, MUTE_LABEL, SHOWN_LINE, UNMUTE_LABEL } from '../lib/roads/words';
+import { HANDOFF_HINT, handoffHint, openInMaps } from '../lib/nav/openInMaps';
 import { useNavigation } from '../lib/nav/useNavigation';
 import { loadWayBack, saveWayBack } from '../lib/nav/store';
 import { CHOSEN_NOTICE, showsWayBack, wayBackTarget } from '../lib/nav/wayBack';
 import { layerNotes } from '../lib/layers/notes';
-import { useBusyLayer } from '../lib/layers/useBusyLayer';
+import { useStorefrontsLayer } from '../lib/layers/useStorefrontsLayer';
+import { usePastLines } from '../lib/pastLines/usePastLines';
 import { useLayers } from '../lib/layers/useLayers';
 import { useRouteWarning } from '../lib/walk/useRouteWarning';
 import { useWalkability } from '../lib/walk/useWalkability';
 import { arrivalNotice, exitPlan, screenState, startNotice } from '../lib/readyNav';
 import { noticeShown } from '../lib/pauseReminder';
 import { getLastFix } from '../lib/lastFix';
+import { useStopArrival } from '../lib/outing/useArrival';
+import { PASS_HINT, PASS_LABEL, WAY_LABEL } from '../lib/outing/journeyWords';
+import { useJourneyBar } from '../lib/outing/useJourneyBar';
 import { CaptureStack } from '../components/walk/CaptureStack';
 import { ReadyBar } from '../components/walk/ReadyBar';
 import { scaleInsetBottom } from '../lib/stackSlots';
-import { BAR_H, CAP, EDGE, GUTTER, raisedHeight, SCALE_BOTTOM, STACK_GAP, useStackLayout } from '../components/walk/layout';
+import { BAR_H, CAP, GUTTER, raisedHeight, SCALE_BOTTOM, STACK_GAP, useStackLayout } from '../components/walk/layout';
 import { useReady } from '../components/walk/useReady';
 import { aboutTimeLeft, formatTimeLeft, paceMps, timeLeftMs } from '../lib/nav/eta';
 import { optionAt } from '../lib/nav/scenic';
@@ -97,7 +112,11 @@ import { BORDER_ZOOM, OUTLINE_ZOOM } from '../lib/areas/outlines';
 import { useOutlineSet } from '../lib/areas/useOutlineSet';
 import { SpaceLine } from '../components/SpaceLine';
 import { space } from '../lib/space';
-import { heldLabel } from '../lib/space/core';
+import { heldLabel, saveFailLine } from '../lib/space/core';
+import { unsaved } from '../lib/unsaved';
+import { memoGate } from '../lib/memoGate';
+import { settleWithin } from '../lib/settleWithin';
+import { lostAtStop, memoLabel, stopWarning, stopWarns } from '../lib/unsaved/core';
 
 /** Streets around the walker: read from the map and shown as fog this far out. */
 const NEAR_RADIUS_M = 1000;
@@ -112,9 +131,10 @@ function midpointOf(s: StreetSegment): LngLat {
 }
 /** No accepted fix for this long while recording reads as weak GPS. */
 const WEAK_GPS_MS = 20_000;
-const NOTICE_MS = 6000;
 /** The screen's own clock: weak GPS (20 s) and the pause reminder (10 min) need no finer. */
 const SLOW_TICK_MS = 5000;
+/** Stop waits this long at most for a capture still being kept, and a Retry under way (as the bar's Stop does). */
+const STOP_WAIT_MS = 5000;
 
 /** Time walked (paused time left out) and distance, in the bottom strip; a ride's distance after it (R6). */
 function WalkStats(props: { startedAt: number | null; pauses: Pause[]; distanceM: number; rideM: number }) {
@@ -136,8 +156,7 @@ function WalkStats(props: { startedAt: number | null; pauses: Pause[]; distanceM
 /** The walk that has had its dead-zone nudge (L15): once a walk. */
 const NUDGED_KEY = 'deadzone_walk';
 
-/** A reminder's card goes after this long, or this far walked on. */
-const REMINDER_MS = 30_000;
+/** A reminder's card goes after `MOTION.reminder`, or this far walked on. */
 const REMINDER_AWAY_M = 100;
 
 type Notice = {
@@ -149,11 +168,17 @@ type Notice = {
   forPause?: number;
   /** A route that couldn't be found offers the destination to the phone's maps app (NH5). */
   maps?: { at: LngLat; label: string };
+  /**
+   * A quiet refusal (T26): no alert, so the walk's live region says it to a screen reader. A count, so a raise of the
+   * same words while they show still changes the region and is said again (tend recording audit 4).
+   */
+  said?: number;
 };
 
 
-// A screen that throws shows what broke, with Try again, never a blank page (bug, Nov 1).
-export { ScreenError as ErrorBoundary } from '../components/ScreenError';
+// A screen that throws shows what broke, with Try again, never a blank page (bug, Nov 1); here, that the walk is still
+// recording (decision 0172, O35).
+export { WalkScreenError as ErrorBoundary } from '../components/ScreenError';
 
 /**
  * The walk screen, and Navigate itself (NR1-NR6): ready with no walk open,
@@ -165,8 +190,11 @@ export default function WalkRoute() {
   // In front: another ask to show the walk does nothing (tabs audit 1). Only while in front, not
   // while mounted: a walk screen left mounted behind the tabs once left the bar's › dead (Nov 2).
   useFocusEffect(useCallback(() => walkScreenShown(), []));
-  // Leaving the walk screen (a tab, minimize) closes the Add to this moment pill (MS4).
-  useFocusEffect(useCallback(() => () => momentPill.leave(), []));
+  // Leaving the walk screen (a tab, minimize) closes the Add to this moment pill (MS4); What I'm into's page, a detour
+  // inside the walk, leaves it open (the owner, Nov 18; specs/what-im-into-page Q5).
+  useFocusEffect(useCallback(() => () => {
+    if (!tookDetour()) momentPill.leave();
+  }, []));
   const info = useOpenWalkInfo();
   const close = useCallback(() => {
     feedback('tap');
@@ -280,16 +308,17 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const [stopping, setStopping] = useState(false);
   const [fog, setFog] = useState<StreetSegment[]>([]);
   const [walked, setWalked] = useState<StreetSegment[]>([]);
-  // The memo whose save failed at Stop; holding Stop again ends the walk without it.
-  const giveUpMemo = useRef(false);
-  // How many held shots Stop has already warned about; a photo held beyond that is warned about too (SA8).
-  const giveUpHeld = useRef(0);
+  // The held captures of the walk Stop has warned of; one held beyond them is warned of too (SA8, unsaved captures UN5).
+  const warnedHeld = useRef<string[]>([]);
   const saveRef = useRef<PressableRef>(null);
   const mapRef = useRef<WalkMapHandle>(null);
   // The map's turn, for the compass (CP2): the map opens north-up and keeps no bearing (CP8).
   // A store the compass reads, so a turn re-renders the compass alone (tend map 8).
   const [bearing] = useState(() => createStore(0));
   const [viewing, setViewing] = useState<Faced[] | null>(null);
+  // A memory pin's preview (MR4), and the viewer it opens; declared before the capture path, which says nothing behind them.
+  const [memory, setMemory] = useState<{ result: HereResult; from: LngLat | null } | null>(null);
+  const [memoryView, setMemoryView] = useState<HereResult | null>(null);
   // The walk's options card (A2).
   const [options, setOptions] = useState(false);
   // The GPS log, read when the card opens, so a tap can share it at once (a browser
@@ -301,13 +330,30 @@ function WalkScreen(props: { onMinimize: () => void }) {
     const sub = AppState.addEventListener('change', (st) => st === 'active' && setResumed((n) => n + 1));
     return () => sub.remove();
   }, []);
+  // The moment the pins say their part of the day from (tend map audit 29): this one map stays up from the ready
+  // screen through the walk, so it is renewed on each return to the front and at the next boundary the words turn on.
+  const [pinNow, setPinNow] = useState(() => Date.now());
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (st) => st === 'active' && setPinNow(Date.now()));
+    return () => sub.remove();
+  }, []);
+  useEffect(() => {
+    const id = setTimeout(() => setPinNow(Date.now()), nextDayPartBoundary(pinNow) - pinNow);
+    return () => clearTimeout(id);
+  }, [pinNow]);
 
   // The ready state (NR1, NR5-NR13): with no walk open, the map and the overlay are its.
   // The buttons the compass hands the focus to as it leaves (tend map 6): Locate on the ready screen; on the walk,
-  // the one below it in the column, Walk me back while that shows, else the unwalked streets.
+  // the one below it in the column, Walk me back while that shows, else Recenter while it shows, else the map (WB3).
   const readyLocateRef = useRef<PressableRef>(null);
   const backRef = useRef<PressableRef>(null);
-  const unwalkedRef = useRef<PressableRef>(null);
+  const recenterRef = useRef<PressableRef>(null);
+  // Resolved as the compass is pressed, never in render: whichever is drawn then.
+  const [compassNext] = useState(() =>
+    Object.defineProperty({} as { current: unknown }, 'current', {
+      get: (): unknown => backRef.current ?? recenterRef.current ?? { focus: () => mapRef.current?.focus() },
+    }),
+  );
   const ready = useReady({
     locateRef: readyLocateRef,
     active: !walk,
@@ -324,6 +370,10 @@ function WalkScreen(props: { onMinimize: () => void }) {
   // message. A retry's own pass through "waiting" doesn't count as leaving it, so a failed retry
   // keeps the chip and says nothing again (QL20); the chip's tap brings the notice back (QL19).
   const raisedError = useRef<string | null>(null);
+  // The words of the refusal's notice, until the walk records again and takes it down (QL25).
+  const shownError = useRef<string | null>(null);
+  // Each quiet refusal raised, for the live region's repeat (tend recording audit 4).
+  const saidCount = useRef(0);
   const retrying = useRef(false);
   useEffect(
     () =>
@@ -331,12 +381,22 @@ function WalkScreen(props: { onMinimize: () => void }) {
         // The recorder reports "recording" with every fix: only a change re-renders the screen (perf).
         setStatus((prev) => (prev.kind === s.kind && JSON.stringify(prev) === JSON.stringify(s) ? prev : s));
         if (s.kind !== 'error') {
-          if (!retrying.current) raisedError.current = null;
+          // Recording again takes the refusal's notice down, whatever restarted it, even mid-retry (QL25).
+          const next = raisedAfter(raisedError.current, shownError.current, s.kind, retrying.current);
+          raisedError.current = next.raised;
+          shownError.current = next.shown;
+          const words = next.clear;
+          if (words != null) setNotice((n) => (n?.sticky && n.message === words ? null : n));
           return;
         }
         if (raisedError.current === s.message) return;
         raisedError.current = s.message;
-        setNotice({ message: s.message, tone: 'error', openSettings: s.openSettings, sticky: true });
+        shownError.current = s.message;
+        // Location refused is a quiet notice (T26), said as Navigate's is (tend map audit 12): the live region below on
+        // web, the call on a phone.
+        const quiet = s.tone === 'info';
+        setNotice({ message: s.message, tone: s.tone ?? 'error', openSettings: s.openSettings, sticky: true, said: quiet ? ++saidCount.current : undefined });
+        if (quiet) AccessibilityInfo.announceForAccessibility(s.message);
       }),
     [],
   );
@@ -370,15 +430,14 @@ function WalkScreen(props: { onMinimize: () => void }) {
     return bordersFor(drawnBorders, { firm: hereTown ? [hereTown] : [], near });
   }, [drawnBorders, hereTown, nearKey]);
   const motionAccess = useMotionAccess();
+  const screenFocused = useIsFocused();
   const cap = useCaptures(walk?.id ?? null, live.here, live.lastFixAt, onCaptureError, {
     // The pill (moment stacks MS2, MS5): a new moment opens it; a piece keeps it.
     onKept: (id, piece) => (piece ? momentPill.piece(id) : momentPill.kept(id, true)),
+    // In front, the walk's pills say why for a capture that failed on a screen gone (unsaved captures UN9).
+    // Never behind a viewer or a memory's card (unsaved-captures audit 9).
+    sayHeld: screenFocused && !!walk && !viewing && !memoryView && !memory,
   });
-  // Nothing held any more: a photo that fails later is warned about again at Stop, not ended without (SA8).
-  const heldCount = cap.held.length;
-  useEffect(() => {
-    if (heldCount === 0) giveUpHeld.current = 0;
-  }, [heldCount]);
   // A walk started or stopped closes the pill (MS4); on a walk, the trace walked counts toward its 100 m.
   const pillWalkId = walk?.id ?? null;
   useEffect(() => {
@@ -393,6 +452,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
   // The viewer's Add to this moment (MS12), run here where the camera, the mic and the note are; on a walk only
   // (the ready screen's capture row runs its own).
   const asked = useStore(momentPill.store, (st) => st.ask?.seq ?? 0);
+  // Scenic routes' Sights read What I'm into's kinds too: its row shows with Sights on (what-im-into-page audit 6).
+  const sightsOn = useStore(routeLeanings.store, (s) => s.includes('sights'));
   const onAsk = useRef<(kind: 'photo' | 'voice' | 'text') => void>(() => {});
   useEffect(() => {
     onAsk.current = (kind) => {
@@ -420,12 +481,12 @@ function WalkScreen(props: { onMinimize: () => void }) {
 
   useEffect(() => {
     if (!rawNotice || rawNotice.sticky) return;
-    const t = setTimeout(() => setNotice(null), NOTICE_MS);
+    const t = setTimeout(() => setNotice(null), MOTION.walkNotice);
     return () => clearTimeout(t);
   }, [rawNotice]);
   useEffect(() => {
     if (!toast) return;
-    const t = setTimeout(() => setToast(null), 1500);
+    const t = setTimeout(() => setToast(null), MOTION.walkToast);
     return () => clearTimeout(t);
   }, [toast]);
 
@@ -486,16 +547,10 @@ function WalkScreen(props: { onMinimize: () => void }) {
         run.busy = false;
       });
   }, [live.here, live.riding, build]);
-  // Unwalked streets near me: a count, and the fog drawn boldly over a veiled map.
-  const [showUnwalked, setShowUnwalked] = useState(false);
-  // Named streets only (the owner's call): unnamed paths are fog, not a count.
-  const unwalkedCount = useMemo(() => new Set(fog.filter((x) => x.name).map(streetKey)).size, [fog]);
 
   // A long press on the map opens a small sheet for that spot: Go here, and
   // what happened here (every capture near it, on any walk) when there is any.
   const [here, setHere] = useState<HereResult | null>(null);
-  // A memory pin's preview (MR4).
-  const [memory, setMemory] = useState<{ result: HereResult; from: LngLat | null } | null>(null);
   const [spot, setSpot] = useState<{ at: LngLat; here: HereResult | null; from: LngLat | null } | null>(null);
   const hereTaps = useRef(0);
   const [hereKey, setHereKey] = useState(0);
@@ -521,12 +576,6 @@ function WalkScreen(props: { onMinimize: () => void }) {
     if (walk && exploring && next.passM !== loaded.passM) {
       db.setMeta(walkPassKey(walk.id), String(clampPass(next.passM))).catch(() => {});
     }
-  };
-  const toggleKind = (k: Kind, on: boolean) => {
-    const hidden = new Set(settings.hidden);
-    if (on) hidden.delete(k);
-    else hidden.add(k);
-    changeSettings({ ...settings, hidden });
   };
   async function pressMap(at: LngLat, radiusM?: number) {
     if (cap.voiceStartedAt != null || stopping || viewing || here) return;
@@ -566,7 +615,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
   }, []);
   // The spot card (and the options card) goes once you walk on, or with Back (Android) and Escape (web).
   useEffect(() => {
-    if (!spot && !memory) return;
+    // Only while in front: under What I'm into's page, Back and Escape are the page's (what-im-into-page audit 1).
+    if ((!spot && !memory) || !screenFocused) return;
     const close = () => {
       setSpot(null);
       setMemory(null);
@@ -583,7 +633,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
       back.remove();
       if (Platform.OS === 'web' && typeof window !== 'undefined') window.removeEventListener('keydown', onKey);
     };
-  }, [spot, memory]);
+  }, [spot, memory, screenFocused]);
   useEffect(() => {
     if (!spot?.from || !live.here || distanceM(spot.from, live.here) < 30) return;
     const t = setTimeout(() => setSpot(null), 0);
@@ -600,7 +650,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const [arrived, setArrived] = useState<string | null>(null);
   useEffect(() => {
     if (!arrived) return;
-    const t = setTimeout(() => setArrived(null), 4000);
+    const t = setTimeout(() => setArrived(null), MOTION.arrival);
     return () => clearTimeout(t);
   }, [arrived]);
   const navigation = useNavigation({
@@ -628,16 +678,20 @@ function WalkScreen(props: { onMinimize: () => void }) {
       return paceMps(live.distanceM, walk ? t - walk.started_at - pausedMs(pauses, walk.started_at, t) : 0);
     },
   });
+  // A planned outing names a stop once, as it is reached (QC19).
+  const stopLine = useStopArrival(navigation.nav?.dest ?? null, live.here);
   /** Going somewhere new: a failed route's banner (sticky, with Open in Maps) has had its say. */
   const goTo = (dest: Parameters<typeof navigation.goTo>[0]) => {
     setNotice((n) => (n?.maps ? null : n));
     void navigation.goTo(dest);
   };
+  // A journey carried by this session (OJ28-OJ31, decision 0213): the bar between towns, and the way on foot within reach of one.
+  const journey = useJourneyBar({ walkId: walk?.open ? walk.id : null, here: live.here, navigating: !!navigation.nav || navigation.finding || !!navigation.preview, goTo });
   // Scenic routes' preview (SR8): Back (Android) and Escape (web) cancel it, setting no destination.
   const routePreview = navigation.preview;
   const dismissPreview = navigation.dismiss;
   useEffect(() => {
-    if (!routePreview) return;
+    if (!routePreview || !screenFocused) return;
     const back = BackHandler.addEventListener('hardwareBackPress', () => {
       dismissPreview();
       return true;
@@ -648,14 +702,15 @@ function WalkScreen(props: { onMinimize: () => void }) {
       back.remove();
       if (Platform.OS === 'web' && typeof window !== 'undefined') window.removeEventListener('keydown', onKey);
     };
-  }, [routePreview, dismissPreview]);
+  }, [routePreview, dismissPreview, screenFocused]);
   /**
    * Open in Maps (NH3-NH8): the destination to the phone's maps app, straight from the tap (a
    * browser opens a window only from one). Navigation and the walk go on as they were (NH7).
    */
-  const handOff = (at: LngLat, label: string) => {
+  const handOff = (at: LngLat, label: string, mode: TravelMode = 'walk') => {
     feedback('tap');
-    openInMaps(at, label).then(
+    // go-here-everywhere audit 2: a star's title or a spot is the owner's own; only a neutral label rides in the link (0058).
+    openInMaps(at, shareLabel('spot', label), mode).then(
       (ok) => {
         if (!ok) setNotice({ message: 'Couldn’t open a maps app.', tone: 'error' });
       },
@@ -674,18 +729,22 @@ function WalkScreen(props: { onMinimize: () => void }) {
           : null,
     [navigation.nav, navigation.preview, live.here],
   );
+  const drivePath = journey.next?.drivePath ?? null;
   // The preview's other routes, faint (SR2), and the map framed around all of them.
   const alternates = useMemo(
-    () => (navigation.preview ? navigation.preview.options.filter((_, i) => i !== navigation.preview!.selected).map((o) => o.route.path) : null),
-    [navigation.preview],
+    // Audit 12: a guided drive's road is drawn the same faint way: one line, no markers (RE16).
+    () => (navigation.preview ? navigation.preview.options.filter((_, i) => i !== navigation.preview!.selected).map((o) => o.route.path) : drivePath ? [drivePath] : null),
+    [navigation.preview, drivePath],
   );
   const previewFit = useMemo(() => (navigation.preview ? boundsOf(navigation.preview.options.flatMap((o) => o.route.path), 30) : null), [navigation.preview]);
   const previewKey = previewFit ? 300000 + (Math.abs(Math.round((previewFit[0] + previewFit[1]) * 1e5)) % 99999) : 0;
   // Walkability (WK13, WK15): the layer around you, and a quiet line before a stretch built around cars on the route.
   const layers = useLayers();
   const wk = useWalkability(live.here, !!layers.on.walkability);
-  const busy = useBusyLayer(live.here, !!layers.on.busy);
-  // While choosing among a preview's routes only the routes are drawn, in blue; the trace, the fog, the busy streets' shading and the rest
+  const storefronts = useStorefrontsLayer(live.here, !!layers.on.storefronts);
+  // Where I've been (WB6, WB8): earlier walks near you, never this one; read only while a walk is open (the ready screen reads its own).
+  const past = usePastLines(live.here, !!layers.on.past && !!walk, walk?.id ?? null);
+  // While choosing among a preview's routes only the routes are drawn, in blue; the trace, the fog, the storefront streets' shading and the rest
   // come back as it closes (fix preview-clutter).
   const drawn = forPreview(!!navigation.preview, {
     trace: live.runs,
@@ -694,11 +753,10 @@ function WalkScreen(props: { onMinimize: () => void }) {
     fog,
     faint: gapView.faint,
     gapLinks: isDrawing ? undefined : gapView.links,
-    landing: busy.view,
+    landing: storefronts.view,
     borders: layers.on.borders ? borders : null,
     walkability: wk.draw,
-    veil: showUnwalked,
-    fogEmphasis: showUnwalked,
+    past: past.view,
   });
   const aheadLine = useRouteWarning(navigation.nav?.route.path ?? null, live.here, !!layers.on.walkability);
   // Explore (v1 slice 5): checklists are built quietly on every walk (E2); the layers show only
@@ -727,7 +785,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
     previewRangeM: preview,
     onAreas: () => {
       reloadLandings();
-      busy.reload();
+      storefronts.reload();
     },
     onFound: (item) => {
       // Quietly on a quiet walk (E9): kept, shown in the replay, nothing on screen.
@@ -776,11 +834,14 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const memoryIds = memoriesNear({ pool: memoryPool, here: live.here, walkId: walk?.id ?? null, hidden: new Set(reminder?.captures.map((c) => c.id) ?? []) })
     .map((c) => c.id)
     .join(',');
+  // The walk's clock, so a pin says how far in it was (tend map T14, T28).
+  // Only while the open walk is this one: after Stop its pauses are gone (tend map audit 21).
+  const openRow = openWalk.walk;
+  const clocks = useMemo(() => walkClocks(walk, openRow, pauses), [walk, openRow, pauses]);
   const memories = useMemo(() => {
     const ids = new Set(memoryIds.split(','));
     return memoryPool.filter((c) => ids.has(c.id));
   }, [memoryIds, memoryPool]);
-  const [memoryView, setMemoryView] = useState<HereResult | null>(null);
   const memoryTaps = useRef(0);
   const openMemory = async (group: Faced[], at: LngLat) => {
     const tap = ++memoryTaps.current;
@@ -806,22 +867,34 @@ function WalkScreen(props: { onMinimize: () => void }) {
   useEffect(() => {
     hereRef.current = live.here;
   }, [live.here]);
+  // Whether this screen is in front, asked of the navigator when a fire comes, never a copy a frame behind (tend
+  // explore audit 26). As it comes to the front it takes a reminder the bar went with unseen (tend explore audit 23).
+  const routeNav = useRouteNavigation();
+  useFocusEffect(useCallback(() => recallPlaceShown(), []));
+  // What the card holds, read by the listener below, so it announces the card's own title (tend explore audit 6).
+  const reminderRef = useRef(reminder);
+  useEffect(() => {
+    reminderRef.current = reminder;
+  }, [reminder]);
   useEffect(
     () =>
-      onRecallFired((due) => {
-        setReminder((r) => {
-          const all = [...(r?.captures ?? []), ...due.filter((c) => !r?.captures.some((x) => x.id === c.id))];
-          return { captures: all, at: hereRef.current, shownAt: Date.now() };
-        });
-        AccessibilityInfo.announceForAccessibility(due.length > 1 ? `${due.length} memories here` : 'A memory from here');
-      }),
-    [],
+      onRecallFired(
+        (due) => {
+          const next = { captures: reminderHeld(reminderRef.current?.captures ?? null, due), at: hereRef.current, shownAt: Date.now() };
+          reminderRef.current = next;
+          setReminder(next);
+          AccessibilityInfo.announceForAccessibility(reminderText(next.captures).title);
+        },
+        // Only while in front: kept behind the tabs after a reload, the bar above them takes it (tend explore 21).
+        () => routeNav.isFocused(),
+      ),
+    [routeNav],
   );
   // The card goes by itself after half a minute or 100 m walked on (it stays fired).
   useEffect(() => {
     if (!reminder) return;
     const walkedOn = reminder.at && live.here && distanceM(reminder.at, live.here) > REMINDER_AWAY_M;
-    const t = setTimeout(() => setReminder(null), walkedOn ? 0 : Math.max(0, reminder.shownAt + REMINDER_MS - Date.now()));
+    const t = setTimeout(() => setReminder(null), walkedOn ? 0 : Math.max(0, reminder.shownAt + MOTION.reminder - Date.now()));
     return () => clearTimeout(t);
   }, [reminder, live.here]);
   // A tapped reminder notification opens its captures, playing (R4).
@@ -829,12 +902,15 @@ function WalkScreen(props: { onMinimize: () => void }) {
   useEffect(() => {
     if (!walk) return;
     let alive = true;
-    // A reminder tapped while this screen is in front opens here at once (audit 1).
-    const off = onRecallOpen((found) => {
-      setAutoPlay(true);
-      setViewing(found);
-      return true;
-    });
+    // A reminder tapped while this screen is in front opens here at once (audit 1); under What I'm into's page it is
+    // kept, and taken once the walk is in front again (what-im-into-page audit 9).
+    const inFront = () => routeNav.isFocused();
+    const off = onRecallOpen(
+      whileFocused(inFront, (found) => {
+        setAutoPlay(true);
+        setViewing(found);
+      }),
+    );
     const take = () =>
       takeRecallOpen()
         .then((found) => {
@@ -843,15 +919,18 @@ function WalkScreen(props: { onMinimize: () => void }) {
           setViewing(found);
         })
         .catch(() => {});
-    void take();
+    // Taken in front only: the effect runs again as the walk comes back from under the page.
+    if (screenFocused) void take();
     // Kept while this screen was mounting (a cold open now shows the walk sooner, NR3): taken as it lands.
-    const offWaiting = onRecallWaiting(() => void take());
+    const offWaiting = onRecallWaiting(() => {
+      if (inFront()) void take();
+    });
     return () => {
       alive = false;
       off();
       offWaiting();
     };
-  }, [walk, params.recall, resumed]);
+  }, [walk, params.recall, resumed, screenFocused, routeNav]);
   // This walk explores only once switched on (E1); otherwise it is quiet: navigation and captures (E9).
   useEffect(() => {
     if (!walk) return;
@@ -927,7 +1006,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
       db.setMeta(NUDGED_KEY, walk.id).catch(() => {});
       AccessibilityInfo.announceForAccessibility(nudge!.text);
     }
-    const t = setTimeout(() => setNudge(null), 20_000);
+    const t = setTimeout(() => setNudge(null), MOTION.deadZoneNudge);
     return () => clearTimeout(t);
   }, [nudgeShown, walk, nudge]);
   const walkStart: LngLat | null = live.runs[0]?.[0] ?? null;
@@ -974,22 +1053,33 @@ function WalkScreen(props: { onMinimize: () => void }) {
     try {
       // Waits for any voice action in flight (a start, a save) before ending.
       const r = await cap.finishVoice();
-      if ((r === 'failed' || cap.unsaved) && !giveUpMemo.current) {
-        giveUpMemo.current = true;
-        setNotice({ message: 'The voice memo could not be saved. Retry, or hold Stop again to end the walk without it.', tone: 'error', sticky: true });
+      // A memo with nothing to keep is said while the walker is still here; the next hold ends the walk (UN13).
+      if (r === 'lost') {
+        setNotice({ message: lostAtStop(saveFailLine('voice', false)), tone: 'error', sticky: true });
         return;
       }
-      // A photo or video still held is said before the walk ends without it (SA8).
-      if (cap.held.length > giveUpHeld.current) {
-        giveUpHeld.current = cap.held.length;
-        setNotice({ message: `${heldLabel(cap.held)} yet. Retry, or hold Stop again to end the walk without it.`, tone: 'error', sticky: true });
+      // A photo or video still being kept from any screen (Memories' band, the bar), and a Retry under way, land first,
+      // as the bar's Stop waits: one that fails meanwhile is warned of (unsaved-captures audit 2, 3).
+      await settleWithin(Promise.all([memoGate.kept(), unsaved.settled()]), STOP_WAIT_MS);
+      // Whatever of the walk is held, from any screen, read now (not from a render's closure), is said before the walk
+      // ends without it (SA8, UN5); the next hold lets it go, files and all, once the walk has ended (UN8; audit 4).
+      const held = unsaved.heldFor(walk.id);
+      if (stopWarns(held.map((x) => x.id), warnedHeld.current)) {
+        warnedHeld.current = held.map((x) => x.id);
+        setNotice({ message: stopWarning(held.map((x) => x.kind)), tone: 'error', sticky: true });
         return;
       }
       // The walk stays on screen until the replay replaces it (the keeper hears it ended first).
       setEnded(walk);
-      await stopWalk(walk.id);
+      const { dropped } = await endWalk(walk.id, { leaves: true });
+      await unsaved.ended(walk.id);
       feedback('success');
-      router.replace(`/replay/${walk.id}`);
+      if (dropped) {
+        // A walk with nothing in it has no replay: back to where the walker was, with the pill's Undo (EW1).
+        const to = exitPlan(router.canGoBack());
+        if (to.kind === 'back') router.back();
+        else router.replace(to.to);
+      } else router.replace(`/replay/${walk.id}`);
     } catch (e) {
       // The walk stays on screen with the error, even if storage already closed it (audit 3).
       setNotice({ message: `The walk could not be stopped: ${e instanceof Error ? e.message : e}`, tone: 'error', sticky: true });
@@ -1024,7 +1114,17 @@ function WalkScreen(props: { onMinimize: () => void }) {
       }
       feedback('tap');
     } catch (e) {
-      setNotice({ message: `Could not ${paused ? 'resume' : 'pause'}: ${e instanceof Error ? e.message : e}`, tone: 'error', sticky: true });
+      const fail = startErrorFrom(e);
+      if (paused && fail.tone === 'info') {
+        // Resume refused is the refusal's quiet notice, said, as Start's (tend recording audit 1). On the web the recorder's
+        // status raised it already; on a phone the start throws before any status, so it is raised here.
+        if (raisedError.current !== fail.message) {
+          raisedError.current = fail.message;
+          shownError.current = fail.message;
+          setNotice({ message: fail.message, tone: 'info', openSettings: fail.openSettings, sticky: true, said: ++saidCount.current });
+          AccessibilityInfo.announceForAccessibility(fail.message);
+        }
+      } else setNotice({ message: `Could not ${paused ? 'resume' : 'pause'}: ${fail.message}`, tone: 'error', sticky: true });
     } finally {
       // The screen shows whatever the database holds, even after a failure.
       await notifyWalkChanged();
@@ -1048,7 +1148,6 @@ function WalkScreen(props: { onMinimize: () => void }) {
   async function startVoice(into: string | null = null) {
     if (await cap.startVoice(into)) {
       feedback('tap');
-      giveUpMemo.current = false;
       AccessibilityInfo.announceForAccessibility('Recording voice memo');
     }
   }
@@ -1078,7 +1177,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
     const warn = (e: BeforeUnloadEvent) => e.preventDefault();
     if (Platform.OS === 'web') window.addEventListener('beforeunload', warn);
     // Focus moves to Save, which replaced the mic the person just tapped.
-    const t = setTimeout(() => focusOn(saveRef), 300);
+    const t = setTimeout(() => focusOn(saveRef), MOTION.saveFocus);
     return () => {
       sub.remove();
       clearTimeout(t);
@@ -1160,11 +1259,16 @@ function WalkScreen(props: { onMinimize: () => void }) {
     <View style={styles.screen}>
       {/* One map for both states, at one place in the tree, so Start never remounts it (NR6). */}
       {!walk ? (
-        <WalkMap {...ready.mapProps} borders={ready.bordersOn ? borders : null} ref={mapRef} onBearingChange={bearing.set} scaleInset={{ bottom: scaleInsetBottom({ barTop: at.barTop, scaleBottom: SCALE_BOTTOM, mapEndsAtStrip: true }), left: sideInset + 12 }} />
+        <WalkMap {...ready.mapProps} now={pinNow} borders={ready.bordersOn ? borders : null} ref={mapRef} onBearingChange={bearing.set} scaleInset={{ bottom: scaleInsetBottom({ barTop: at.barTop, scaleBottom: SCALE_BOTTOM, mapEndsAtStrip: true }), left: sideInset + 12 }} />
       ) : (
       <WalkMap
         {...drawn}
+        storefrontNamesNear={namesNearYou(live.here)}
+        // QC24: following an outing, the base map names no shop beside a stop.
+        hideLabels={navigation.nav?.dest?.outing === true}
         captures={captures}
+        clocks={clocks}
+        now={pinNow}
         // Opening a capture would hide a memo that is still recording.
         // While drawing, a tap on a pin is a point along the way like any other (gap-drawing audit 8).
         onPinPress={recordingVoice || stopping || isDrawing ? undefined : setViewing}
@@ -1204,6 +1308,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
           void openMemory(group, at);
         }}
         discoveries={explore.pins}
+        spreadMarks
         onDiscoveryPress={recordingVoice || stopping || isDrawing ? undefined : (id) => {
           // A found place is shown, not a card to open: its capture's pin is the thing to tap (audit, UI).
           if (explore.found.has(id)) return;
@@ -1246,11 +1351,13 @@ function WalkScreen(props: { onMinimize: () => void }) {
       />
       )}
 
+      {/* T26, as tend map audit 12: kept mounted, so a quiet refusal on the walk is read as its words arrive. */}
+      {Platform.OS === 'web' ? <Text testID="walk-said" accessibilityLiveRegion="polite" style={styles.said}>{walk && notice?.said ? (notice.said % 2 ? `${notice.message}\u200B` : notice.message) : ''}</Text> : null}
       {!walk ? (
         <>
           {ready.overlay}
           {/* The compass over Locate while the map is turned (CP2); the live walk has its own, below. */}
-          <CompassButton bearing={bearing} onPress={() => mapRef.current?.resetNorth()} bottom={at.edgeBottom('unwalked')} right={at.edgeRight} focusAfter={readyLocateRef} />
+          <CompassButton bearing={bearing} onPress={() => mapRef.current?.resetNorth()} bottom={at.edgeBottom('back')} right={at.edgeRight} focusAfter={readyLocateRef} />
         </>
       ) : (
       <>
@@ -1273,6 +1380,53 @@ function WalkScreen(props: { onMinimize: () => void }) {
           </Pressable>
           {/* The navigation bar takes the top row beside Minimize, so nothing sits above it (the owner, Nov 6: it keeps
               drifting down; supersedes Nov 5's "Minimize above the bar"). */}
+          {/* A journey between towns (OJ29, OJ31, decision 0213): the town ahead and how far, Maps for the road, a way to pass it by. */}
+          {!navigation.nav && journey.next && (
+            // On the surface's own ground, not the route's colour: this is where the outing is headed, not a way being followed.
+            <View testID="journey-bar" style={styles.journeyBar} {...({ dataSet: { drivePoints: drivePath?.length ?? 0 } } as object)}>
+              {/* RE20, RE26: while guiding, the turn and how far above the town; before the first turn, what the map cannot know. */}
+              {journey.next.turn ? <Text testID="journey-turn" style={styles.journeyTurn} numberOfLines={journey.next.notice ? 4 : 2}>{journey.next.turn}</Text> : null}
+              <Text testID="journey-next" style={journey.next.turn ? styles.journeyUnder : styles.journeyText} numberOfLines={2}>{journey.next.line}</Text>
+              {journey.next.note ? <Text testID="journey-note" style={styles.journeyUnder} accessibilityLiveRegion="polite">{journey.next.note}</Text> : null}
+              <View style={styles.journeyActions}>
+                {journey.next.driving && journey.next.speaks ? (
+                  // RE25: the mute, in words; it says what a tap does now.
+                  <Pressable testID="journey-mute" accessibilityRole="button" accessibilityLabel={journey.next.muted ? UNMUTE_LABEL : MUTE_LABEL} onPress={journey.mute} style={({ pressed }) => [styles.journeyBtn, pressed && styles.pressed]}>
+                    <Text style={styles.journeyBtnText}>{journey.next.muted ? UNMUTE_LABEL : MUTE_LABEL}</Text>
+                  </Pressable>
+                ) : null}
+                {journey.next.driving ? (
+                  // RE20a: nothing else to tap while guiding; Open in Maps and Pass by return when it ends.
+                  <Pressable testID="journey-end" accessibilityRole="button" accessibilityLabel={END_LABEL} onPress={journey.end} style={({ pressed }) => [styles.journeyBtn, pressed && styles.pressed]}>
+                    <Text style={styles.journeyBtnText}>{END_LABEL}</Text>
+                  </Pressable>
+                ) : null}
+                {journey.next.driving ? null : !journey.next.within && journey.next.at && journey.next.town ? (
+                  <Pressable testID="journey-drive" accessibilityRole="button" accessibilityLabel={DRIVE_LABEL} accessibilityHint={journey.next.speaks ? undefined : SHOWN_LINE} onPress={journey.drive} style={({ pressed }) => [styles.journeyBtn, pressed && styles.pressed]}>
+                    <Text style={styles.journeyBtnText}>{DRIVE_LABEL}</Text>
+                  </Pressable>
+                ) : null}
+                {journey.next.driving ? null : journey.next.within ? (
+                  <Pressable testID="journey-walk" accessibilityRole="button" accessibilityLabel={WAY_LABEL} onPress={journey.walk} style={({ pressed }) => [styles.journeyBtn, pressed && styles.pressed]}>
+                    <Text style={styles.journeyBtnText}>{WAY_LABEL}</Text>
+                  </Pressable>
+                ) : journey.next.at && journey.next.town ? (
+                  <Pressable testID="journey-maps" accessibilityRole="button" accessibilityLabel="Open in Maps" accessibilityHint={handoffHint(travelMode(journey.next.awayM))} onPress={() => journey.next?.at && journey.next.town && handOff(journey.next.at, journey.next.town, travelMode(journey.next.awayM))} style={({ pressed }) => [styles.journeyBtn, pressed && styles.pressed]}>
+                    <Text style={styles.journeyBtnText}>Open in Maps</Text>
+                  </Pressable>
+                ) : null}
+                {journey.next.driving ? null : journey.next.undo ? (
+                  <Pressable testID="journey-undo" accessibilityRole="button" accessibilityLabel="Undo" onPress={journey.undo} style={({ pressed }) => [styles.journeyPlain, pressed && styles.pressed]}>
+                    <Text style={styles.journeyBtnText}>Undo</Text>
+                  </Pressable>
+                ) : (
+                  <Pressable testID="journey-pass" accessibilityRole="button" accessibilityLabel={PASS_LABEL} accessibilityHint={PASS_HINT} onPress={journey.pass} style={({ pressed }) => [styles.journeyPlain, pressed && styles.pressed]}>
+                    <Text style={styles.journeyBtnText}>{PASS_LABEL}</Text>
+                  </Pressable>
+                )}
+              </View>
+            </View>
+          )}
           {navigation.nav && (
             // Not a live region: it changes with every fix. The distance is announced in steps instead.
             <View testID="nav-bar" style={styles.navBar}>
@@ -1330,6 +1484,11 @@ function WalkScreen(props: { onMinimize: () => void }) {
             <Text style={styles.chipText}>On {onStrip}</Text>
           </LiftIn>
         )}
+        {stopLine ? (
+          <LiftIn testID="outing-arrival" style={styles.chip} accessibilityLiveRegion="polite">
+            <Text style={styles.chipText}>{stopLine}</Text>
+          </LiftIn>
+        ) : null}
         {navigation.nav?.offRoute && (
           <LiftIn style={styles.chip} accessibilityLiveRegion="polite">
             <View style={[styles.statusDot, { backgroundColor: theme.warn }]} />
@@ -1369,7 +1528,10 @@ function WalkScreen(props: { onMinimize: () => void }) {
             onPress={() => {
               if (status.kind !== 'error') return;
               raisedError.current = status.message;
-              setNotice({ message: status.message, tone: 'error', openSettings: status.openSettings, sticky: true });
+              shownError.current = status.message;
+              const quiet = status.tone === 'info';
+              setNotice({ message: status.message, tone: status.tone ?? 'error', openSettings: status.openSettings, sticky: true, said: quiet ? ++saidCount.current : undefined });
+              if (quiet) AccessibilityInfo.announceForAccessibility(status.message);
             }}
             style={({ pressed }) => [styles.chip, pressed && styles.chipPressed]}
           >
@@ -1396,7 +1558,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
               hitSlop={10}
               style={styles.undoBtn}
             >
-              <Text style={styles.undoBtnText}>Go here</Text>
+              <Text style={styles.undoBtnText}>Route here</Text>
             </Pressable>
             <Pressable accessibilityRole="button" accessibilityLabel="Dismiss" onPress={() => setNudge(null)} hitSlop={10}>
               <Icon name="close" size={18} color="#ffffff" />
@@ -1460,10 +1622,10 @@ function WalkScreen(props: { onMinimize: () => void }) {
             </Pressable>
           </View>
         )}
-        {cap.unsaved && !recordingVoice && !spot && !openMark && !options && !memory && (
-          <View style={styles.undo} accessibilityLiveRegion="polite">
-            <Text style={styles.undoText}>Voice memo not saved</Text>
-            <Pressable accessibilityRole="button" onPress={() => cap.retrySave()} hitSlop={10} style={styles.undoBtn}>
+        {walk && cap.unsaved && !recordingVoice && !spot && !openMark && !options && !memory && (
+          <View testID="held-memo" style={styles.undo} accessibilityLiveRegion="polite">
+            <Text style={styles.undoText}>{memoLabel(cap.memosHeld, 'Voice memo')}</Text>
+            <Pressable testID="held-memo-retry" accessibilityRole="button" onPress={() => cap.retrySave()} hitSlop={10} style={styles.undoBtn}>
               <Text style={styles.undoBtnText}>Retry</Text>
             </Pressable>
           </View>
@@ -1521,32 +1683,41 @@ function WalkScreen(props: { onMinimize: () => void }) {
         summaryLabel={exploring ? 'The walk, exploring' : 'The walk'}
         summary={<WalkStats startedAt={walk?.started_at ?? null} pauses={pauses} distanceM={live.distanceM} rideM={live.rideM} />}
         actions={
-          <View style={styles.barActions}>
+          // Pause alone while walking; Resume and a held Stop once paused, as AllTrails and Nike Run Club do (decision 0220).
+          // Pills, no outline (the owner, Nov 18): Pause and Stop soft, Resume solid accent; Stop's hold fill sweeps across its pill.
+          <View testID="walk-actions" style={styles.barActions}>
             <Pressable
               testID={paused ? 'resume-walk' : 'pause-walk'}
               accessibilityRole="button"
               accessibilityLabel={paused ? 'Resume the walk' : 'Pause the walk'}
-              accessibilityHint={paused ? undefined : 'Stops recording until you resume'}
+              accessibilityHint={paused ? undefined : 'Stops recording until you resume. Stop is offered while paused'}
               onPress={togglePause}
               disabled={pausing || stopping || !walk}
-              style={({ pressed }) => [styles.pauseBtn, paused && styles.pauseBtnOn, pressed && styles.pressed]}
+              style={({ pressed }) => [styles.barBtn, paused && styles.resumeBtn, pressed && styles.pressed]}
             >
-              <Icon name={paused ? 'play' : 'pause'} size={20} color={paused ? '#ffffff' : theme.ink} />
+              {/* Resume is the strip's one primary action while paused: the accent, as 0172 allows. */}
+              <Icon name={paused ? 'play' : 'pause'} size={16} color={paused ? theme.accentInk : theme.ink} />
+              <Text style={[styles.barBtnText, paused && styles.resumeText]} numberOfLines={1} selectable={false}>
+                {paused ? 'Resume' : 'Pause'}
+              </Text>
             </Pressable>
-            <HoldButton
-              testID="stop"
-              label="Hold to stop"
-              busyLabel="Stopping…"
-              onHold={stop}
-              onTap={() => setToast('Hold to stop the walk')}
-              busy={stopping}
-              disabled={!walk || pausing}
-            >
-              <View style={styles.stopInner}>
-                <Icon name="stop" size={18} color={theme.ink} />
-                <Text style={styles.stopText} selectable={false}>Hold</Text>
-              </View>
-            </HoldButton>
+            {paused && (
+              <HoldButton
+                testID="stop"
+                label="Hold to stop"
+                busyLabel="Stopping…"
+                onHold={stop}
+                onTap={() => setToast('Hold to stop the walk')}
+                busy={stopping}
+                disabled={!walk || pausing}
+                style={styles.stopBtn}
+              >
+                <View style={styles.stopInner}>
+                  <Icon name="stop" size={16} color={theme.ink} />
+                  <Text style={styles.barBtnText} numberOfLines={1} selectable={false}>Stop</Text>
+                </View>
+              </HoldButton>
+            )}
           </View>
         }
       >
@@ -1557,7 +1728,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
                 <Text style={styles.optionLabel}>Explore</Text>
                 <Text style={styles.markSub}>
                   {exploring
-                    ? 'Places to find show as “?” when they’re close, with busy streets and reminders.'
+                    ? 'Places to find show as “?” when they’re close, a chip names the storefront street you’re on, and reminders are on.'
                     : 'Off: a quiet walk, just navigation and your captures. Captures still find places.'}
                 </Text>
               </View>
@@ -1574,9 +1745,6 @@ function WalkScreen(props: { onMinimize: () => void }) {
                 <Text style={styles.optionSection} accessibilityRole="header">Passing a place</Text>
                 <Text style={styles.markSub}>{passNote(settings.passM)}</Text>
                 <RangeSlider scale={PASS_SCALE} value={settings.passM} onChange={(m) => changeSettings({ ...settings, passM: clampPass(m) })} />
-                <Text style={styles.optionSection} accessibilityRole="header">What I’m into</Text>
-                <KindSwitches hidden={settings.hidden} onToggle={toggleKind} />
-                <ComplexKindSwitches sectionStyle={styles.optionSection} />
               </>
             )}
             {Object.values(layers.on).some(Boolean) && (
@@ -1627,33 +1795,22 @@ function WalkScreen(props: { onMinimize: () => void }) {
               <Icon name="share-outline" size={20} color={theme.ink} />
               <Text style={[styles.optionLabel, { flex: 1 }]}>Share GPS log</Text>
             </Pressable>
+            {(exploring || sightsOn) && (
+              // WI1, WI19: What I'm into lasts beyond this walk, so its row is a short section of its own after the walk's
+              // settings, out from under "This walk" (the owner, Nov 18), headed "Explore" (audit 13); the kinds and
+              // Complexes are on its page (0192). Scenic routes' Sights read the kinds too, so it shows with either on
+              // (audit 6, the owner, Nov 18).
+              <>
+                <View style={styles.rule} />
+                <Text style={styles.spotTitle} accessibilityRole="header">Explore</Text>
+                <IntoRow from="walk" />
+              </>
+            )}
         </View>
       </ReadyBar>
 
       {/* Small round controls in the stack's column, above the captures (as in AllTrails), inside the
           640 column on wide screens: Recenter where Locate sits on the ready screen (NR9). */}
-      <Pressable
-        ref={unwalkedRef}
-        testID="unwalked"
-        accessibilityRole="switch"
-        accessibilityState={{ checked: showUnwalked }}
-        aria-checked={showUnwalked}
-        accessibilityLabel="Show unwalked streets near me"
-        onPress={() => setShowUnwalked((v) => !v)}
-        style={({ pressed }) => [styles.edgeBtn, { right: at.edgeRight, bottom: at.edgeBottom('unwalked') }, showUnwalked && styles.edgeBtnOn, pressed && styles.pressed]}
-      >
-        <Icon name="footsteps-outline" size={22} color={showUnwalked ? '#ffffff' : theme.ink} />
-      </Pressable>
-      {showUnwalked && (
-        <View
-          style={[styles.unwalked, { right: at.edgeRight + EDGE + 8, bottom: at.edgeBottom('unwalked') + 7 }]}
-          accessibilityLiveRegion="polite"
-          pointerEvents="none"
-        >
-          <Text style={styles.unwalkedText}>{unwalkedCount} unwalked nearby</Text>
-        </View>
-      )}
-
       {/* The compass (CP2): the column's top, so no other button moves; it takes Walk me back's
           place while that is away, and sits above Locate on the ready screen. */}
       <CompassButton
@@ -1661,10 +1818,10 @@ function WalkScreen(props: { onMinimize: () => void }) {
         onPress={() => mapRef.current?.resetNorth()}
         bottom={at.edgeBottom(awayFromStart && !navigation.nav ? 'compass' : 'back')}
         right={at.edgeRight}
-        focusAfter={awayFromStart && wayBack && !navigation.nav ? backRef : unwalkedRef}
+        focusAfter={compassNext}
       />
       {/* Layers (ML3): the bottom-left corner above the scale bar, clear of the navigation bar. */}
-      <LayersControl layers={layers} notes={layerNotes({ walkability: wk.status, busyReading: busy.reading, busyFailed: busy.failed })} bottom={at.layers.bottom} left={at.layers.left} rightClear={at.layersRightClear} clearTop={at.insets.top + 152} />
+      <LayersControl layers={layers} notes={layerNotes({ walkability: wk.status, storefrontsReading: storefronts.reading, storefrontsFailed: storefronts.failed, past: past.status })} bottom={at.layers.bottom} left={at.layers.left} rightClear={at.layersRightClear} clearTop={at.insets.top + 152} />
 
       {awayFromStart && wayBack && !navigation.nav && (
         // Walk me back: the way back to where this walk began, where the last ride ended, or the spot chosen (N1, N11, DW6-DW8).
@@ -1684,6 +1841,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
       {!following && live.here && (
         // Back to following the walker, after looking around the map.
         <Pressable
+          ref={recenterRef}
           testID="recenter"
           accessibilityRole="button"
           accessibilityLabel="Recenter on your position"
@@ -1717,7 +1875,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
             <View style={styles.spotActions}>
               <Button
                 testID="mark-go"
-                label="Go here"
+                label="Route here"
                 onPress={() => {
                   const m = openMark;
                   setMarkOpen(null);
@@ -1818,7 +1976,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
             <View style={styles.spotActions}>
               <Button
                 testID="go-here"
-                label="Go here"
+                label="Route here"
                 onPress={() => {
                   const at = spot.at;
                   setSpot(null);
@@ -1899,6 +2057,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
         {page && (
           <NewNotePage
             key={page.key}
+            reactable
             ref={pageRef}
             cap={cap}
             into={page.into}
@@ -1920,6 +2079,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
 type PressableRef = ComponentRef<typeof Pressable>;
 
 const styles = StyleSheet.create({
+  said: { position: 'absolute', width: 1, height: 1, overflow: 'hidden', opacity: 0 },
   screen: { flex: 1, backgroundColor: theme.bg },
   top: { position: 'absolute', left: GUTTER, right: GUTTER, gap: 8, alignItems: 'center', maxWidth: 640, alignSelf: 'center' },
   chip: {
@@ -1935,6 +2095,16 @@ const styles = StyleSheet.create({
     paddingLeft: 16, paddingRight: 8, minHeight: 56,
   },
   navText: { flex: 1, color: '#ffffff', fontSize: 16, fontWeight: '700' },
+  journeyBar: { flex: 1, minWidth: 0, gap: 4, backgroundColor: theme.surface, borderRadius: 16, borderWidth: 1, borderColor: theme.edge, paddingHorizontal: 12, paddingVertical: 8 },
+  journeyText: { color: theme.ink, fontSize: 15, fontWeight: '700' },
+  // Audit: read at a glance, moving: the largest line on the bar.
+  journeyTurn: { color: theme.ink, fontSize: 22, fontWeight: '700' },
+  journeyUnder: { color: theme.ink, fontSize: 14 },
+  // Audit: 12 px between targets on a screen used in a car.
+  journeyActions: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 12 },
+  journeyBtn: { minHeight: 44, paddingHorizontal: 12, borderRadius: 22, borderWidth: 1, borderColor: theme.edge, alignItems: 'center', justifyContent: 'center' },
+  journeyPlain: { minHeight: 44, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center' },
+  journeyBtnText: { color: theme.ink, fontSize: 14, fontWeight: '700' },
   // A white pill: 5.2:1 for its blue text.
   navEnd: { minHeight: 44, minWidth: 64, paddingHorizontal: 16, borderRadius: 22, backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center' },
   navEndText: { color: COLORS.route, fontSize: 16, fontWeight: '700' },
@@ -1953,6 +2123,7 @@ const styles = StyleSheet.create({
     shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 6,
   },
   spotTitle: { fontSize: 16, fontWeight: '700', color: theme.ink },
+  rule: { height: StyleSheet.hairlineWidth, backgroundColor: theme.edge, marginTop: 8 },
   markSub: { fontSize: 14, color: theme.muted },
   optionRow: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 48 },
   optionLabel: { fontSize: 15, fontWeight: '600', color: theme.ink },
@@ -1980,15 +2151,19 @@ const styles = StyleSheet.create({
   disabled: { opacity: 0.5 },
   pressed: { opacity: 0.8 },
   stats: { color: theme.ink, fontSize: 17, fontWeight: '600', fontVariant: ['tabular-nums'], flexShrink: 1 },
-  stopInner: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  barActions: { flexDirection: 'row', alignItems: 'center', gap: 20 },
-  pauseBtn: {
-    width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1.5, borderColor: theme.ink, backgroundColor: theme.surface,
+  stopInner: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  barActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  // Pills, no outline (decision 0220, the owner's "pill fills"): icon and word side by side, 48 high, soft on the strip's
+  // ground. Measured so Resume and Stop together leave the walk's numbers whole at 320.
+  barBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 48, paddingHorizontal: 8, borderRadius: 24, backgroundColor: theme.line,
   },
-  // Resume is the one thing to do while paused.
-  pauseBtnOn: { backgroundColor: theme.accent, borderColor: theme.accent },
-  edgeBtnOn: { backgroundColor: theme.ink, borderColor: theme.ink },
+  barBtnText: { color: theme.ink, fontSize: 14, fontWeight: '600' },
+  // Resume, the one primary action while paused: solid accent, white icon and word.
+  resumeBtn: { backgroundColor: theme.accent },
+  resumeText: { color: theme.accentInk },
+  // HoldButton's outline off: a soft pill like Pause, the hold's fill sweeping across it.
+  stopBtn: { minHeight: 48, paddingHorizontal: 8, borderRadius: 24, borderWidth: 0, backgroundColor: theme.line },
   minRow: { alignSelf: 'stretch', flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
   noticeCell: { flex: 1, minWidth: 0 },
   noticeBelow: { alignSelf: 'stretch' },
@@ -1996,15 +2171,12 @@ const styles = StyleSheet.create({
   chipCell: { position: 'absolute', left: 0, right: 0, top: 0, height: 44, alignItems: 'center', justifyContent: 'center' },
   ahead: { flexDirection: 'row', alignItems: 'center', gap: 8, maxWidth: 360, backgroundColor: theme.glass, borderRadius: 999, paddingVertical: 8, paddingHorizontal: 12, borderWidth: 1, borderColor: theme.line },
   aheadText: { color: theme.ink, fontSize: 14, flexShrink: 1 },
-  unwalked: { position: 'absolute', backgroundColor: theme.ink, borderRadius: 999, paddingVertical: 8, paddingHorizontal: 12 },
-  unwalkedText: { color: '#ffffff', fontSize: 14, fontWeight: '600' },
   // Small round controls at the map's edges, as in AllTrails.
   edgeBtn: {
     position: 'absolute', width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center',
     backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.edge,
     shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 3,
   },
-  stopText: { color: theme.ink, fontSize: 15, fontWeight: '600' },
   modalBack: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)' },
   modalWrap: { flex: 1, justifyContent: 'flex-start', paddingHorizontal: 16 },
   modal: { backgroundColor: theme.surface, borderRadius: theme.radius, padding: 16, gap: 12, maxWidth: 520, width: '100%', alignSelf: 'center' },

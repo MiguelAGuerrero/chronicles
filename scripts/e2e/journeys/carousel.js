@@ -43,6 +43,20 @@ async function run(h) {
     // explore-carousel audit 4: a town card that is not selected makes no promise of a way in.
     const townFooters = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=atlas-tile][data-level="town"]')].map((e) => ({ sel: e.dataset.selected, has: /See its neighborhoods/.test(e.innerText) })));
     check(townFooters.length > 0 && townFooters.every((t) => t.has === (t.sel === '1')), `explore-carousel audit 4: the footer shows only on the selected town card (${JSON.stringify(townFooters)})`);
+    // tend explore 9 (decision 0172, O3, the accent at rest): the selected card's border, its "See its neighborhoods" and its
+    // chevron are ink (#1d2430); the accent is only for a card's single primary action.
+    const inkOf = (sel) => pg.evaluate((q) => {
+      const tile = document.querySelector(q);
+      if (!tile) return null;
+      const label = [...tile.querySelectorAll('div')].find((e) => e.childElementCount === 0 && /^(See its neighborhoods|What’s here)$/.test(e.textContent));
+      const chevron = label?.nextElementSibling;
+      const cs = (e) => (e ? getComputedStyle(e) : null);
+      return { border: cs(tile)?.borderTopColor, label: cs(label)?.color, chevron: cs(chevron)?.color };
+    }, sel);
+    const INK = 'rgb(29, 36, 48)';
+    const atRest = await inkOf('[data-testid=atlas-tile][data-level="town"][data-selected="1"]');
+    check(atRest && atRest.border === INK && atRest.label === INK && atRest.chevron === INK,
+      `tend explore 9: the selected town card's border, "See its neighborhoods" and its chevron are ink, not the accent (${JSON.stringify(atRest)})`);
 
     // A tap on the selected town opens its page: the town's own card, then its neighborhoods; the pill goes back to the towns.
     await safe(() => pg.locator('[data-testid=atlas-tile][data-selected="1"]').first().click());
@@ -54,6 +68,9 @@ async function run(h) {
       `fix explore-town-scope: a town's page is titled with its name and its pill reads "Towns" (${townSel}, ${JSON.stringify(pillText)})`);
     const pageLevels = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=atlas-town-head], [data-testid=atlas-tile]')].map((e) => e.dataset.level));
     check(pageLevels[0] === 'town' && pageLevels.slice(1).every((l) => l === 'neighborhood'), `EC3: a town's page is its own card, then its neighborhoods (${pageLevels.join(', ')})`);
+    const headAtRest = await inkOf('[data-testid=atlas-town-head][data-selected="1"]');
+    check(headAtRest && headAtRest.border === INK && headAtRest.label === INK && headAtRest.chevron === INK,
+      `tend explore 9: on a town's page its selected card's border, "What’s here" and its chevron are ink (${JSON.stringify(headAtRest)})`);
     // The town's own card leads; step onto its first neighborhood for the gestures (the keys go to the canvas, audit 3).
     await pg.locator('.maplibregl-canvas').first().focus().catch(() => {});
     await pg.keyboard.press('ArrowRight');
@@ -92,6 +109,60 @@ async function run(h) {
     check((await selected())[0] === after, 'EC8: a vertical drag on the map does nothing');
     await drag(80, 0);
     check((await selected())[0] === before, 'EC8: a drag right goes back to the previous card');
+
+    // fix carousel-snap-back audit 1: a finger held still on the row part-way between two cards is not a stop. The settle used to
+    // ease the row back onto the nearest card after 120 ms (making that its own target, so the release was aimed back at it).
+    const heldAt = await pg.evaluate(async () => {
+      const r = document.querySelector('[data-testid=atlas-carousel]');
+      const b = r.getBoundingClientRect();
+      const t = new Touch({ identifier: 7, target: r, clientX: b.x + b.width / 2, clientY: b.y + b.height / 2, force: 0.5 });
+      const touch = (type) => r.dispatchEvent(new TouchEvent(type, { bubbles: true, cancelable: true, touches: type === 'touchend' ? [] : [t], targetTouches: type === 'touchend' ? [] : [t], changedTouches: [t] }));
+      const start = r.scrollLeft;
+      touch('touchstart');
+      r.scrollLeft = start + 30;
+      await new Promise((ok) => setTimeout(ok, 900));
+      const held = r.scrollLeft;
+      touch('touchend');
+      return { start, held };
+    });
+    check(Math.abs(heldAt.held - heldAt.start - 30) < 4, `fix carousel-snap-back audit 1: a finger held between two cards leaves the row where it is (${heldAt.start} → ${heldAt.held})`);
+    await pg.waitForTimeout(1200);
+    const rested = await safe(() => pg.evaluate(() => {
+      const r = document.querySelector('[data-testid=atlas-carousel]').getBoundingClientRect();
+      const t = document.querySelector('[data-testid=atlas-tile][data-selected="1"], [data-testid=atlas-tile][data-selected="true"]');
+      const b = t.getBoundingClientRect();
+      return Math.abs(b.x + b.width / 2 - (r.x + r.width / 2)) < 40;
+    }), false);
+    check(rested, 'fix carousel-snap-back audit 1: and once the finger lifts the row settles on a card');
+
+    // fix carousel-flick: a short swipe on the row (30% of a card; the web has no snap) goes on to the neighbour, not back.
+    {
+      const swipe = (d) => pg.evaluate(async (dir) => {
+        const r = document.querySelector('[data-testid=atlas-carousel]');
+        const tiles = [...r.querySelectorAll('[data-testid=atlas-tile]')];
+        const step = tiles.length > 1 ? tiles[1].getBoundingClientRect().x - tiles[0].getBoundingClientRect().x : 250;
+        const b = r.getBoundingClientRect();
+        const t = new Touch({ identifier: 8, target: r, clientX: b.x + b.width / 2, clientY: b.y + b.height / 2, force: 0.5 });
+        const touch = (type) => r.dispatchEvent(new TouchEvent(type, { bubbles: true, cancelable: true, touches: type === 'touchend' ? [] : [t], targetTouches: type === 'touchend' ? [] : [t], changedTouches: [t] }));
+        touch('touchstart');
+        for (let i = 0; i < 3; i++) {
+          r.scrollLeft += dir * step * 0.1;
+          await new Promise((ok) => setTimeout(ok, 40));
+        }
+        touch('touchend');
+      }, d);
+      const list = await names();
+      const from = (await selected())[0];
+      const at = list.indexOf(from);
+      const dir = at >= 0 && at < list.length - 1 ? 1 : -1;
+      await swipe(dir);
+      await pg.waitForTimeout(1500);
+      const to = (await selected())[0];
+      check(list.indexOf(to) === at + dir, `fix carousel-flick: a 30% swipe goes on to the neighbour (${from} → ${to})`);
+      await swipe(-dir);
+      await pg.waitForTimeout(1500);
+      check((await selected())[0] === from, 'fix carousel-flick: and a 30% swipe the other way goes back');
+    }
 
     // EC5, EC6: the selected area has its ring and the one name; the other points are unnamed dots.
     const named = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=area-point]')].filter((e) => e.dataset.name).map((e) => e.dataset.name));
@@ -144,11 +215,13 @@ async function run(h) {
     check(layersBtn && row && layersBtn.y + layersBtn.height <= row.y, 'EC19: Layers is above the row');
 
     // EC5: the selected neighborhood has its ring; EC7: zoomed out, the map carries no street names.
-    const ringOn = await safe(() => map.evaluate((el) => !!el.getAttribute('data-ring')), false);
-    check(ringOn, 'EC5: the selected area has its ring on the map');
+    // Neighborhood boundaries (HB9): its own ground as a line stands in place of the ring once the tiles are kept.
+    await pg.waitForTimeout(3000);
+    const ringOn = await safe(() => map.evaluate((el) => !!el.getAttribute('data-ring') || !!el.getAttribute('data-ground')), false);
+    check(ringOn, 'EC5, HB9: the selected area has its ring, or its own ground, on the map');
     // The Busy layer's names are DOM markers that are not area points. This world has no busy streets to name, so what
     // the journey can show is that zoomed out the map carries none; the distance and zoom rule is `carousel.test.ts` (EC7).
-    const busyNames = () => pg.evaluate(() => [...document.querySelectorAll('.maplibregl-marker')].filter((m) => !m.matches('[data-testid=area-point]') && !m.querySelector('[data-testid=area-point]') && /Street|Avenue|Road/.test(m.textContent ?? '')).length);
+    const storefrontNames = () => pg.evaluate(() => [...document.querySelectorAll('.maplibregl-marker')].filter((m) => !m.matches('[data-testid=area-point]') && !m.querySelector('[data-testid=area-point]') && /Street|Avenue|Road/.test(m.textContent ?? '')).length);
     const mb = await map.boundingBox();
     await pg.mouse.move(mb.x + mb.width / 2, mb.y + mb.height / 2);
     for (let i = 0; i < 6 && Number(await map.getAttribute('data-zoom')) >= 12.5; i++) {
@@ -157,7 +230,7 @@ async function run(h) {
     }
     await pg.waitForTimeout(800);
     const zOut = Number(await map.getAttribute('data-zoom'));
-    check(zOut < 13 && (await busyNames()) === 0, `EC7: zoomed out (${zOut.toFixed(1)}) the map carries no Busy street names`);
+    check(zOut < 13 && (await storefrontNames()) === 0, `EC7: zoomed out (${zOut.toFixed(1)}) the map carries no Busy street names`);
 
     // EC18: a card names its busiest street; EC20: the area's card still holds Walk to.
     const busiest = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=atlas-tile]')].filter((e) => /Street|Avenue|Road/.test(e.innerText)).length);
@@ -314,6 +387,17 @@ async function townFramedOnce(h) {
     await pg.waitForTimeout(6000);
     const at2 = await map.getAttribute('data-bounds');
     check((await selTown()) && at1 === at2, `explore-carousel audit 6: a town selected in the row is framed once, not again when its outline arrives (${at1} → ${at2}; ${tiles.join(', ')})`);
+    // fix town-fit (the owner, Nov 13): back to yours and to it again, each town is framed whole each time, at its own
+    // zoom; a town selected a second time kept the zoom the last one left.
+    const z1 = Number(await map.getAttribute('data-zoom'));
+    await pg.keyboard.press('ArrowLeft');
+    await pg.waitForTimeout(3500);
+    const zHome = Number(await map.getAttribute('data-zoom'));
+    await pg.keyboard.press('ArrowRight');
+    await pg.waitForTimeout(3500);
+    const z2 = Number(await map.getAttribute('data-zoom'));
+    check((await selTown()) && Math.abs(z2 - z1) < 0.05 && Math.abs(zHome - z1) > 1,
+      `fix town-fit: a town selected again is framed whole again, at its own zoom (${z1.toFixed(2)} → yours ${zHome.toFixed(2)} → ${z2.toFixed(2)})`);
   } finally {
     snapWorld.serve = false;
     divisions.serve = false;
@@ -470,6 +554,207 @@ async function wholeTowns(h) {
   }
 }
 
+// Where focus goes as a card closes on the web (tend explore 27; WCAG 2.2, 2.4.3 Focus Order), in the snap world's row of
+// neighborhoods (the atlas journey's town has one).
+async function focusBack(h) {
+  const { exploreUrl, check, freshPage, areaTile, snapWorld } = h;
+  const focused = (pg) => pg.evaluate(() => {
+    const a = document.activeElement;
+    return a ? { id: a.getAttribute('data-testid') || a.tagName.toLowerCase(), name: a.getAttribute('data-name') } : null;
+  });
+  const openFox = async (pg) => {
+    const fox = await areaTile(pg, 'Fox Point');
+    await fox.click().catch(() => {});
+    if (!(await pg.waitForSelector('[data-testid=atlas-card]', { timeout: 3000 }).catch(() => null))) await fox.click().catch(() => {});
+    return pg.waitForSelector('[data-testid=atlas-card]', { timeout: 15000 }).then(() => true, () => false);
+  };
+  snapWorld.serve = true;
+  const { c, pg } = await freshPage('carousel-focus');
+  try {
+    // tend explore audit 37: at 1280 the card is a side panel beside the row; choosing another tile closes it, and focus
+    // stays on the tile chosen, never taken back to the one that opened the card (the HTML dialog element gives focus back
+    // only from inside itself).
+    await pg.setViewportSize({ width: 1280, height: 844 });
+    await pg.goto(exploreUrl);
+    const up = await openFox(pg);
+    await pg.waitForTimeout(700);
+    const other = pg.locator('[data-testid=atlas-tile][data-level="neighborhood"]:not([data-name="Fox Point"])').first();
+    const otherName = await other.getAttribute('data-name', { timeout: 5000 }).catch(() => null);
+    if (otherName) await other.click().catch(() => {});
+    await pg.waitForTimeout(900);
+    const now = await focused(pg);
+    check(up && !!otherName && (await pg.locator('[data-testid=atlas-card]').count()) === 0 && now && now.id === 'atlas-tile' && now.name === otherName,
+      `tend explore audit 37: at 1280, choosing ${otherName} while Fox Point's side card is open closes it and leaves focus on ${otherName} (${JSON.stringify(now)})`);
+    // tend explore audit 40 (WCAG 2.2, 2.4.3; Material: focus returns to what initiated the action): at 390, a card opened
+    // through Next door gives focus back to that area's tile as it closes, the one selected, and the selection stays.
+    await pg.setViewportSize({ width: 390, height: 844 });
+    await pg.waitForTimeout(800);
+    const up2 = await openFox(pg);
+    await pg.waitForTimeout(700);
+    const chip = pg.locator('[data-testid=atlas-next-door]').first();
+    const hasChip = (await chip.count()) > 0;
+    if (hasChip) await chip.click().catch(() => {});
+    await pg.waitForTimeout(1200);
+    const shown = await pg.locator('[data-testid=atlas-card-name]').innerText().catch(() => null);
+    await pg.keyboard.press('Escape');
+    await pg.waitForTimeout(400);
+    const back = await focused(pg);
+    await pg.waitForTimeout(1500);
+    const sel = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=atlas-tile][data-selected="1"]')].map((e) => e.dataset.name));
+    check(up2 && hasChip && !!shown && shown !== 'Fox Point' && back && back.id === 'atlas-tile' && back.name === shown && sel.length === 1 && sel[0] === shown,
+      `tend explore audit 40: closing a card opened through Next door gives focus to ${shown}'s tile, and ${shown} stays selected (${JSON.stringify({ back, sel })})`);
+  } finally {
+    await c.close();
+    snapWorld.serve = false;
+  }
+}
+
+// The area card's footer at 390 and 320 (decision 0172): where you are, it is a status line in ink (tend explore 10); a far
+// town's question has a quiet "Not now" and no name line (tend explore 11).
+async function cardFooter(h) {
+  const { exploreUrl, check, freshPage, shot, areaTile, snapWorld } = h;
+  for (const [w, hgt] of [[390, 844], [320, 700]]) {
+    const { c, pg } = await freshPage(`carousel-footer-${w}`);
+    try {
+      await pg.setViewportSize({ width: w, height: hgt });
+      await pg.goto(exploreUrl);
+      const fox = await areaTile(pg, 'Fox Point');
+      await fox.click().catch(() => {});
+      if (!(await pg.waitForSelector('[data-testid=atlas-card]', { timeout: 3000 }).catch(() => null))) await fox.click().catch(() => {});
+      await pg.waitForSelector('[data-testid=atlas-card]', { timeout: 15000 }).catch(() => {});
+      await pg.waitForTimeout(900);
+      // tend explore 10 (O10): "You're in Fox Point" is a status line in ink, never link-coloured; the page's heading stays the town.
+      const here = await pg.evaluate(() => {
+        const e = [...document.querySelectorAll('[data-testid=atlas-card] div')].find((d) => d.childElementCount === 0 && /^You’re in /.test(d.textContent));
+        return e ? { text: e.textContent, color: getComputedStyle(e).color, weight: getComputedStyle(e).fontWeight, link: !!e.closest('a,[role=link],[role=button]') } : null;
+      });
+      const heading = await pg.locator('[data-testid=explore-area]').innerText().catch(() => '');
+      // tend explore audit 17: in regular weight, so the status line never looks like a text button.
+      check(here && here.text === 'You’re in Fox Point' && here.color === 'rgb(29, 36, 48)' && here.weight === '400' && !here.link && heading === 'Providence',
+        `tend explore 10, tend explore audit 17: at ${w}, the card's "You're in Fox Point" is a status line in ink and regular weight, not link-coloured, and the heading stays the town (${JSON.stringify({ ...here, heading })})`);
+      await shot(pg, `carousel-here-card-${w}`);
+    } finally {
+      await c.close();
+    }
+    // tend explore 11 (O2): a far town's question says no name of its own (the card's header names the town), and its
+    // way out is a quiet "Not now" in words, not a second close button.
+    snapWorld.serve = true;
+    const { c: c2, pg: pg2 } = await freshPage(`carousel-far-${w}`);
+    try {
+      await pg2.setViewportSize({ width: w, height: hgt });
+      await pg2.goto(exploreUrl);
+      const cranston = pg2.locator('[data-testid=atlas-tile][data-name="Cranston"]');
+      await pg2.waitForSelector('[data-testid=atlas-tile][data-name="Cranston"]', { timeout: 60000 }).catch(() => {});
+      await cranston.first().click().catch(() => {});
+      await pg2.waitForTimeout(800);
+      if (!(await pg2.locator('[data-testid=atlas-card]').count()) && (await cranston.count())) await cranston.first().click().catch(() => {});
+      await pg2.waitForTimeout(800);
+      if (!(await pg2.locator('[data-testid=atlas-card]').count())) await pg2.click('[data-testid=atlas-town-head]', { timeout: 30000 }).catch(() => {});
+      await pg2.waitForSelector('[data-testid=atlas-card]', { timeout: 15000 }).catch(() => {});
+      await pg2.waitForTimeout(700);
+      // tend explore audit 41: pressed from the keyboard (Enter), so the ring a keyboard user sees is in the picture below.
+      await pg2.focus('[data-testid=atlas-walk]').catch(() => {});
+      await pg2.keyboard.press('Enter');
+      await pg2.waitForTimeout(900);
+      // tend explore 27 (WCAG 2.2, 2.4.3 Focus Order): the question takes focus as it replaces the Walk to button pressed.
+      const askFocus = await pg2.evaluate(() => document.activeElement?.getAttribute('data-testid') ?? document.activeElement?.tagName ?? null);
+      check(askFocus === 'atlas-walk-now', `tend explore 27: at ${w}, the question takes focus, on Walk now, as it replaces the button (${askFocus})`);
+      // tend explore audit 41 (WCAG 2.2, 2.4.7 Focus Visible): from the keyboard, Walk now shows the focus ring.
+      const ring41 = await pg2.evaluate(() => {
+        const a = document.activeElement;
+        return a ? { visible: a.matches(':focus-visible'), outline: getComputedStyle(a).outlineStyle } : null;
+      });
+      check(askFocus === 'atlas-walk-now' && ring41 && ring41.visible && ring41.outline !== 'none',
+        `tend explore audit 41: at ${w}, the question opened by Enter shows the ring on Walk now (${JSON.stringify(ring41)})`);
+      const asked = await pg2.evaluate(() => {
+        const footer = document.querySelector('[data-testid=atlas-footer]');
+        const cancel = document.querySelector('[data-testid=atlas-walk-cancel]');
+        const r = cancel?.getBoundingClientRect();
+        return {
+          footer: footer?.innerText.replace(/\s+/g, ' ').trim() ?? null,
+          cancel: cancel?.innerText.trim() ?? null,
+          spoken: cancel?.getAttribute('aria-label') ?? null,
+          size: r ? [Math.round(r.width), Math.round(r.height)] : null,
+          now: !!document.querySelector('[data-testid=atlas-walk-now]'),
+        };
+      });
+      check(asked.now && asked.cancel === 'Not now' && asked.spoken === 'Not now' && asked.footer != null && !/Cranston/.test(asked.footer)
+        && asked.size && asked.size[0] >= 44 && asked.size[1] >= 44,
+        `tend explore 11: at ${w}, a far town's question has no name line and a quiet "Not now" in words, a 44 px target (${JSON.stringify(asked)})`);
+      // tend explore audit 16: Not now is below the two choices, centred, a 44 px text button; below 360 px the choices stack
+      // full width (Walk now, When I get there, Not now), and no label wraps.
+      const order = await pg2.evaluate(() => {
+        const box = (id) => document.querySelector(`[data-testid=${id}]`)?.getBoundingClientRect();
+        const [now, later, cancel] = ['atlas-walk-now', 'atlas-walk-later', 'atlas-walk-cancel'].map(box);
+        const footer = document.querySelector('[data-testid=atlas-footer]')?.getBoundingClientRect();
+        const lines = (id) => {
+          const el = [...document.querySelectorAll(`[data-testid=${id}] div`)].find((d) => d.childElementCount === 0 && d.textContent.trim());
+          if (!el) return null;
+          const r = document.createRange();
+          r.selectNodeContents(el);
+          return new Set([...r.getClientRects()].filter((q) => q.width > 0).map((q) => Math.round(q.top))).size;
+        };
+        if (!now || !later || !cancel || !footer) return null;
+        return {
+          below: cancel.top >= Math.max(now.bottom, later.bottom) - 0.5,
+          centred: Math.abs((cancel.left + cancel.right) / 2 - (footer.left + footer.right) / 2) <= 2,
+          stacked: later.top >= now.bottom - 0.5,
+          // Stacked, each choice takes the footer's whole width (its 16 px padding aside).
+          full: [now, later].every((b) => Math.abs(b.width - (footer.width - 32)) <= 2),
+          target: [Math.round(cancel.width), Math.round(cancel.height)],
+          lines: [lines('atlas-walk-now'), lines('atlas-walk-later'), lines('atlas-walk-cancel')],
+        };
+      });
+      check(order && order.below && order.centred && order.target[1] >= 44 && order.target[0] >= 44 && order.stacked === (w < 360) && (w >= 360 || order.full) && order.lines.every((n) => n === 1),
+        `tend explore audit 16: at ${w}, Not now sits centred below the choices, a 44 px target; ${w < 360 ? 'stacked full width' : 'side by side'}, nothing wraps (${JSON.stringify(order)})`);
+      await shot(pg2, `carousel-far-question-${w}`);
+      await pg2.click('[data-testid=atlas-walk-cancel]').catch(() => {});
+      await pg2.waitForTimeout(500);
+      check((await pg2.locator('[data-testid=atlas-walk]').count()) === 1 && (await pg2.locator('[data-testid=atlas-walk-now]').count()) === 0,
+        `tend explore 11: at ${w}, Not now closes the question and leaves the card`);
+      // tend explore 27: Not now gives focus back to the Walk to button the question replaced.
+      const backFocus = await pg2.evaluate(() => document.activeElement?.getAttribute('data-testid') ?? document.activeElement?.tagName ?? null);
+      check(backFocus === 'atlas-walk', `tend explore 27: at ${w}, Not now gives focus back to Walk to (${backFocus})`);
+    } finally {
+      await c2.close();
+      snapWorld.serve = false;
+    }
+  }
+}
+
+// tend explore 12 (decision 0172, O7): a long press below zoom 10 says "Zoom in to look closer" for MOTION.exploreToast (3 s), then
+// the toast goes by itself; nothing else about it changed. At 390 and 320, pictured.
+async function toastDwell(h) {
+  const { exploreUrl, check, freshPage, shot } = h;
+  for (const [w, hgt] of [[390, 844], [320, 700]]) {
+    const { c, pg } = await freshPage(`carousel-toast-${w}`);
+    try {
+      await pg.setViewportSize({ width: w, height: hgt });
+      await pg.goto(exploreUrl);
+      await pg.waitForSelector('[data-testid=atlas-tile]', { timeout: 60000 }).catch(() => {});
+      await pg.waitForTimeout(2000);
+      const box = await pg.locator('canvas.maplibregl-canvas').filter({ visible: true }).last().boundingBox();
+      await pg.mouse.move(box.x + box.width / 2, box.y + box.height / 2 - 40);
+      for (let i = 0; i < 20; i++) {
+        await pg.mouse.wheel(0, 600);
+        await pg.waitForTimeout(120);
+      }
+      await pg.waitForTimeout(1500);
+      await pg.mouse.down();
+      await pg.waitForTimeout(700);
+      await pg.mouse.up();
+      await pg.waitForTimeout(400);
+      const up = await pg.getByText('Zoom in to look closer').count();
+      await shot(pg, `carousel-toast-${w}`);
+      await pg.waitForTimeout(3300);
+      const gone = await pg.getByText('Zoom in to look closer').count();
+      check(up === 1 && gone === 0, `tend explore 12: at ${w}, the toast shows, then goes by itself within its dwell, MOTION.exploreToast (${JSON.stringify({ up, gone })})`);
+    } finally {
+      await c.close();
+    }
+  }
+}
+
 module.exports = {
   name: 'carousel',
   // Explore carousel (EC1-EC20): the map and a row of area cards.
@@ -478,6 +763,7 @@ module.exports = {
     'src/lib/atlas/carousel.ts',
     'src/components/atlas/AtlasCarousel.tsx',
     'src/components/atlas/AtlasTile.tsx',
+    'src/components/atlas/AtlasCard.tsx',
     'src/components/map/WalkMap.web.tsx',
     'src/components/map/types.ts',
     'src/components/AreaPoint.tsx',
@@ -491,5 +777,8 @@ module.exports = {
     await hintOnce(h);
     await townFramedOnce(h);
     await wholeTowns(h);
+    await cardFooter(h);
+    await focusBack(h);
+    await toastDwell(h);
   },
 };

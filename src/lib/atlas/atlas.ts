@@ -1,5 +1,6 @@
 // @layer core
-import { PRESENCE_CARRIED, PRESENCE_CODE, type PresenceClass } from '../presence/presence';
+import { barWeight, PRESENCE_CARRIED, PRESENCE_CODE, subsetOf, type PresenceClass } from '../presence/presence';
+import { SUBTYPES } from '../discovery/subtypes';
 import { countsToward } from '../discovery/curation';
 import { coveredBy, townAt, withOutlines, type OutlineSet } from '../areas/outlines';
 import { AREA_REACH_M } from '../areas/rules';
@@ -7,7 +8,7 @@ import type { Area, PlaceCandidate, WalkArea } from '../areas/types';
 import type { RoadFeature } from '../streets';
 import { keepFindKeys, mergePlaces } from '../discovery/archiveMerge';
 import { isKindHidden, refineRead } from '../discovery/refinements';
-import { isMarkable } from '../discovery/noise';
+import { isMarkable, MARK_CATEGORIES } from '../discovery/noise';
 import { barsOf } from '../discovery/bars';
 import type { CategoryId, Kind, Place } from '../discovery/types';
 import { boundsOf, distanceM, projector, type Bounds } from '../geo';
@@ -33,9 +34,15 @@ import type { Pocket } from './pockets';
 /** a8: presence by bars (PK1-PK7): a museum the data calls historic lights History too; community spaces join Culture. */
 /** a9: a park whose name says a playground or the like, with nothing notable in it, is a community park (PC13); curation over presence's classes, so presence's own code is unchanged. */
 /** a10: community parks reads a park's name as presence reads a museum's, past a neighbourhood's "Old Town", and "heritage" keeps no park (tend explore T9); none carried. */
-/** The atlas's own part of a row's code (a10). */
-const ATLAS_OWN = 'a10';
-/** A row's code: the atlas's own (a10) and presence's (PR6), so a reclassification re-reads every row. */
+/** a11: a neighborhood with a real shape is counted across it (neighborhood boundaries, HB11); towns stand as under a10. */
+/** a12: a park with a small outline and nothing notable in or near it is a community park whatever its name (fix community-park, 0163); none carried. */
+/** a13: a profile keeps each storefront street's point, so the card lists them nearest first (specs/storefronts SF3); none carried. */
+/** The atlas's own part of a row's code (a13). */
+// a14: small places (specs/small-places SP12, SP13): the bars keep counts and each small subset's share apart.
+// a15: Sights follow the switches (specs/sights-and-local-life SG12, decision 0201): the tally keeps every Sights place
+// under its kind, so a profile of a14 has none to drop; none carried.
+const ATLAS_OWN = 'a15';
+/** A row's code: the atlas's own (a13) and presence's (PR6), so a reclassification re-reads every row. */
 export const ATLAS_CODE = `${ATLAS_OWN}.${PRESENCE_CODE}`;
 
 /**
@@ -85,6 +92,32 @@ export const ATLAS_LABEL: Record<CategoryId, string> = {
 export const STEP_WORDS = ['none', 'some', 'plenty', 'lots'] as const;
 
 /**
+ * Sights and Local life (specs/sights-and-local-life SG1, SG10, decision 0200): the kinds in two groups, in `ATLAS_ORDER`.
+ * Sights are what can turn up as a "?"; Local life counts every place you go into and never does. Culture stays a Sight
+ * until phase 2 moves it (it still counts only places that can be found).
+ */
+export type KindGroupId = 'sights' | 'life';
+export const KIND_GROUPS: readonly { id: KindGroupId; label: string; kinds: readonly CategoryId[] }[] = [
+  { id: 'sights', label: 'Sights', kinds: ['history', 'art', 'culture', 'parks', 'viewpoints'] },
+  { id: 'life', label: 'Local life', kinds: ['food', 'shops', 'nightlife'] },
+];
+const SIGHT_KINDS = KIND_GROUPS[0].kinds;
+const LIFE_KINDS = KIND_GROUPS[1].kinds;
+
+/** SG1: the one muted line under "Sights" on the card, tying the heading to the map's "?". */
+export const SIGHTS_LINE = 'Places that can turn up as a “?” on the map.';
+
+/**
+ * SG2, SG14: a tile's strip in px: a kind's slot, the space between kinds of a group, the space between the groups (216 of
+ * 222 px at 320) and the hairline standing in its middle (decision 0202).
+ */
+export const STRIP = { chip: 22, gap: 4, groupGap: 16, line: 1 } as const;
+
+/** SG2, SG9: each group's present kinds, in order; a group with none is left out (so a tile with one group has no space). */
+export const groupsPresent = (steps: Steps): { id: KindGroupId; label: string; kinds: CategoryId[] }[] =>
+  KIND_GROUPS.map((g) => ({ id: g.id, label: g.label, kinds: g.kinds.filter((c) => steps[c] > 0) })).filter((g) => g.kinds.length > 0);
+
+/**
  * Fixed steps per kind (AT4): places inside the ring for one, two and three
  * bars. Each about three times the last, because density spans orders of
  * magnitude; rarer kinds have lower steps. Never relative to the neighbors.
@@ -126,12 +159,26 @@ export interface Sketch {
   parks: number[];
 }
 
+/**
+ * SP12, SP13: what the bars are counted from, kept so a reader's switches re-add them without reading the area again:
+ * each category's weighted count of the places with no switch of their own, and each small subset's weighted share.
+ */
+export interface Tally {
+  counts: Partial<Record<CategoryId, number>>;
+  shares: Partial<Record<Kind, Partial<Record<CategoryId, number>>>>;
+}
+
 /** What a full ring read leaves (cache). */
 export interface AtlasProfile {
+  /** The bars with every small subset left out; a reader's own come from `stepsShown` (SP13). */
   steps: Steps;
-  /** Busy streets, busiest first. */
+  /** SP13: what `steps` was counted from, with the small subsets' shares (absent on a profile from before a14). */
+  tally?: Tally;
+  /** Storefront streets, the densest first (its order is never shown: the card lists them nearest first, SF3). */
   strips: string[];
-  /** The busiest strip's peak, where Walk to goes (AT8). */
+  /** SF3: each street's point, beside `strips` (absent on a profile from before a13). */
+  stripPeaks?: LngLat[];
+  /** The densest strip's peak, where Walk to goes (AT8). */
   stripAt: LngLat | null;
   marks: AtlasMark[];
   sketch: Sketch;
@@ -141,15 +188,15 @@ export interface AtlasProfile {
   archive?: string | null;
   /** The map knows almost nothing here: the kinds say nothing (AG3). */
   thin?: boolean;
-  /** TP1: what the bars were counted across: the town's whole outline, or the 800 m ring around its point (absent: the ring). */
-  extent?: 'outline' | 'ring';
+  /** TP1: what the bars were counted across: the town's whole outline, a neighborhood's own shape (HB11), or the 800 m ring around its point (absent: the ring). */
+  extent?: 'outline' | 'ring' | 'shape';
   /** TP3: the outline needed more tiles than a read takes, so this covers part of the town. */
   partial?: boolean;
-  /** TP4: the town's pockets of activity, busiest first. */
+  /** TP4: the town's pockets of activity, densest first. */
   pockets?: Pocket[];
   /** TP12: the town's outline could not be read, so this is the ring for now: read again after the retry wait. */
   outlineRetry?: boolean;
-  /** TP2: where the picture is drawn around: the busiest pocket for a graded town (absent: the area's point). */
+  /** TP2: where the picture is drawn around: the densest pocket for a graded town (absent: the area's point). */
   sketchAt?: LngLat;
 }
 
@@ -206,16 +253,60 @@ function inRing<T extends AtlasPlace>(places: T[], centre: LngLat, within: Withi
  * church counts toward nothing); food, shops and nightlife count every place.
  */
 export function presenceSteps(places: AtlasPlace[], centre: LngLat, within: Within = ringWithin(centre)): Steps {
+  return stepsFrom(presenceTally(places, centre, within), ALL_SMALL_OFF);
+}
+
+/**
+ * SP12: the weighted counts the bars are read from. A place counts by the size of the stop (presence's `barWeight`: a
+ * plaque a quarter, a little library a half, the rest whole); a small place goes to its subset's share, never the count.
+ */
+export function presenceTally(places: AtlasPlace[], centre: LngLat, within: Within = ringWithin(centre)): Tally {
   const seen = new Set<string>();
-  const counts = Object.fromEntries(ATLAS_ORDER.map((c) => [c, 0])) as Record<CategoryId, number>;
+  const counts: Partial<Record<CategoryId, number>> = {};
+  const shares: Tally['shares'] = {};
   for (const p of places) {
     if (!countsToward(p)) continue;
     if (seen.has(p.key) || !within(p.at)) continue;
     seen.add(p.key);
+    const w = barWeight(p.classes);
+    // SG12 (decision 0201): a Sights place goes to its kind's share, so a switched-off kind leaves its bars; Local life,
+    // which has no switches, stays in the counts.
+    const subset = (p.classes ? subsetOf(p.classes) : null) ?? (p.kind && MARK_CATEGORIES.includes(p.category) ? p.kind : null);
     // PK1-PK4: a place lights each of its bars once (a museum the data calls historic, History and Culture).
-    for (const bar of barsOf(p)) counts[bar] += 1;
+    for (const bar of barsOf(p)) {
+      if (subset) {
+        const sh = (shares[subset] ??= {});
+        sh[bar] = (sh[bar] ?? 0) + w;
+      } else counts[bar] = (counts[bar] ?? 0) + w;
+    }
   }
-  return Object.fromEntries(ATLAS_ORDER.map((c) => [c, STEPS[c].filter((s) => counts[c] >= s).length as Step])) as Steps;
+  return { counts, shares };
+}
+
+/** Every small subset off: what a stored `steps` is counted with. */
+const ALL_SMALL_OFF: ReadonlySet<Kind> = new Set(SUBTYPES.map((s) => s.kind));
+
+/** SP12, SP13: the bars from a tally, adding the shares of the subsets the reader has on (a parent off hides its subsets). */
+export function stepsFrom(t: Tally, hidden: ReadonlySet<Kind>): Steps {
+  const total = (c: CategoryId) =>
+    (t.counts[c] ?? 0) + Object.entries(t.shares).reduce((sum, [k, sh]) => (isKindHidden(hidden as Set<Kind>, k as Kind) ? sum : sum + (sh?.[c] ?? 0)), 0);
+  return Object.fromEntries(ATLAS_ORDER.map((c) => [c, STEPS[c].filter((s) => total(c) >= s - 1e-9).length as Step])) as Steps;
+}
+
+/**
+ * SP13: listed areas as a reader sees them: each profile's `steps` read again with their switches, so every view of the
+ * bars (the tile's dots, the card's rows, the character line, the spoken label) follows a switch without a read.
+ */
+export function withShownSteps<T extends { area: AtlasArea }>(list: readonly T[], hidden: ReadonlySet<Kind>): T[] {
+  return list.map((l) => (l.area.profile?.tally ? { ...l, area: { ...l.area, profile: { ...l.area.profile, steps: stepsShown(l.area.profile, hidden) } } } : l));
+}
+
+/** SP13: the bars a reader sees for a profile: from its tally and their switches, or its stored steps before a14. */
+export const stepsShown = (p: Pick<AtlasProfile, 'steps' | 'tally'>, hidden: ReadonlySet<Kind>): Steps => (p.tally ? stepsFrom(p.tally, hidden) : p.steps);
+
+/** explore-subtypes audit 7: area rows (not listed ones) with the bars of the subtypes switched on, for a reader of `rows`. */
+export function rowsShown<T extends { profile?: Pick<AtlasProfile, 'steps' | 'tally'> | null }>(rows: readonly T[], hidden: ReadonlySet<Kind>): T[] {
+  return rows.map((r) => (r.profile?.tally ? { ...r, profile: { ...r.profile, steps: stepsShown(r.profile, hidden) } } : r));
 }
 
 /** AG3: the map knows almost nothing about this ring: fewer than `thinPlaces` places of the eight kinds, ordinary ones included. */
@@ -340,6 +431,27 @@ export function needsNear(reads: NearRead[] | NearRead | null, at: LngLat, build
   return !list.some((r) => !r.town && r.build === build && codeCurrent(r.code) && distanceM(r.at, at) <= ATLAS_RULES.renearM && (radiusM == null || (r.radiusM ?? radiusM) >= radiusM));
 }
 
+/**
+ * A near read held in memory (tend explore audit 32): its write failed, so it is not kept, but it stands for its level
+ * beside the kept ones until `retryMs` has passed since `at`, so the other level is read meanwhile and then it is read again.
+ */
+export interface HeldNear {
+  read: NearRead;
+  at: number;
+}
+
+/** The kept near reads of a level, with those held in memory that still stand (tend explore audit 32). */
+export function heldNears(reads: NearRead[], held: HeldNear[], now: number): NearRead[] {
+  const standing = held.filter((h) => now - h.at < ATLAS_RULES.retryMs).map((h) => h.read);
+  return standing.length ? [...reads, ...standing] : reads;
+}
+
+/** How long until the first held read stops standing, or null with none (tend explore audit 32). */
+export function heldUntil(held: HeldNear[], now: number): number | null {
+  const left = held.map((h) => h.at + ATLAS_RULES.retryMs - now).filter((ms) => ms > 0);
+  return left.length ? Math.min(...left) : null;
+}
+
 /** FL15: reads made for looks kept apart from the reads around you, so looking about never pushes them out. */
 export const LOOK_KEPT = 6;
 
@@ -370,7 +482,18 @@ export function townOf(area: { at: LngLat }, towns: AtlasArea[], outlines: Outli
 }
 
 /** What a visit to a page has framed (AT9, TB11): its page and build, and the towns whose whole border it framed. */
-export type PageFramed = { page: string; build: string | null; towns: string[] };
+/** `awaiting`: the key of a town picked in the row before its border was known, framed whole when it arrives while still selected (fix town-fit audit 2). */
+/**
+ * `held`: the reader picked or selected an area in this visit, so the camera is theirs: a border that arrives later never
+ * moves it (smooth-switches late border), but for a town picked before its border was known (`awaiting`).
+ */
+export type PageFramed = { page: string; build: string | null; towns: string[]; awaiting?: string; held?: boolean };
+
+/** The reader took the camera on this page (picked an area, selected one in the row): nothing frames over it (late border). */
+export function readerTook(last: PageFramed | null, page: string, build: string | null): PageFramed {
+  const same = !!last && last.page === page && last.build === build;
+  return { page, build, towns: same ? last.towns : [], held: true };
+}
 
 /**
  * What a visit to a page of the atlas frames next (AT9, TB11; fix explore-fit-area, Nov 4): its
@@ -379,21 +502,42 @@ export type PageFramed = { page: string; build: string | null; towns: string[] }
  * once the border is known (yours near you, or the open town's). Within a visit nothing else
  * refits: areas listed after the border, a border briefly unknown (the tab blurred), you moving, a
  * Locate or a pan, or coming back into a town it already framed. A new page, a new build or
- * another town frames again. `last` is null at the start of a visit. Two separate frames once
+ * another town frames again; so does a town selected in the row (`townPicked`, fix town-fit). `last` is null at the start of a visit. Two separate frames once
  * raced, and the areas' won.
  */
 export function nextFrame(
   last: PageFramed | null,
-  p: { page: string; build: string | null; town: { id: string; bounds: Bounds } | null; points: LngLat[]; from: LngLat | null; padM: number },
+  p: { page: string; build: string | null; town: { id: string; bounds: Bounds } | null; points: LngLat[]; from: LngLat | null; padM: number; lit?: string | null },
 ): { framed: PageFramed; bounds: Bounds } | null {
   const same = !!last && last.page === p.page && last.build === p.build;
   if (p.town) {
-    if (same && last.towns.includes(p.town.id)) return null;
-    return { framed: { page: p.page, build: p.build, towns: [...(same ? last.towns : []), p.town.id] }, bounds: p.town.bounds };
+    const waited = same && last.awaiting != null && last.awaiting === p.lit;
+    if (same && (last.towns.includes(p.town.id) || last.held) && !waited) return null;
+    const kept = same ? last.towns.filter((t) => t !== p.town!.id) : [];
+    return { framed: { page: p.page, build: p.build, towns: [...kept, p.town.id], held: same && last.held }, bounds: p.town.bounds };
   }
   if (same || !p.points.length) return null;
   const box = boundsOf(p.page === 'near' && p.from ? [p.from, ...p.points] : p.points, p.padM);
   return box ? { framed: { page: p.page, build: p.build, towns: [] }, bounds: box } : null;
+}
+
+/**
+ * A town selected in the row, by a swipe or a key (fix town-fit, the owner, Nov 13): its whole border when known, else
+ * its reach around its point and its border once known (`nextFrame`). Every selection frames again: `nextFrame`'s
+ * once-a-visit rule kept a town selected a second time at the zoom the last one left, its own frame being the same
+ * reach for every town. The visit's record gains the town, never loses one, so a town framed in it still isn't framed
+ * again unasked (Locate back into yours, audit 1). The outline set a pick reads holds only the z10 tiles under you and
+ * the last selection, so a town in another tile waits for its border by its key (`awaiting`, audit 2).
+ */
+export function townPicked(
+  last: PageFramed | null,
+  p: { page: string; build: string | null; town: { id: string; bounds: Bounds } | null; key: string; at: LngLat; padM: number },
+): { framed: PageFramed; bounds: Bounds } {
+  const kept = last && last.page === p.page && last.build === p.build ? last.towns : [];
+  // A pick is the reader's: the camera is theirs from now on (late border), but for this town's own border.
+  if (!p.town) return { framed: { page: p.page, build: p.build, towns: kept, awaiting: p.key, held: true }, bounds: boundsOf([p.at], p.padM)! };
+  const towns = kept.includes(p.town.id) ? kept : [...kept, p.town.id];
+  return { framed: { page: p.page, build: p.build, towns, held: true }, bounds: p.town.bounds };
 }
 
 /** How far around a town's point its neighborhoods are looked for. */
@@ -442,11 +586,15 @@ const NOUN: Record<CategoryId, string> = {
 export function characterLine(steps: Steps, thin = false): string {
   // AG3: where the map knows almost nothing, say nothing rather than "not much".
   if (thin) return '';
-  const top = Math.max(...ATLAS_ORDER.map((c) => steps[c]));
+  const all = Math.max(...ATLAS_ORDER.map((c) => steps[c]));
   // Never "Quiet": that is the walk mode's name on Navigate (atlas round 3).
-  if (top === 0) return 'Not much on the map here';
-  const kinds = ATLAS_ORDER.filter((c) => steps[c] === top);
-  if (top === 1) return kinds.length >= 5 ? 'A little of everything' : `A little ${NOUN[kinds[0]]}`;
+  if (all === 0) return 'Not much on the map here';
+  if (all === 1 && ATLAS_ORDER.filter((c) => steps[c] === 1).length >= 5) return 'A little of everything';
+  // SG13 (decision 0201): the line leads with the Sights; Local life only where there is no Sight.
+  const group = SIGHT_KINDS.some((c) => steps[c] > 0) ? SIGHT_KINDS : LIFE_KINDS;
+  const top = Math.max(...group.map((c) => steps[c]));
+  const kinds = group.filter((c) => steps[c] === top);
+  if (top === 1) return `A little ${NOUN[kinds[0]]}`;
   const named = kinds.slice(0, 2).map((c) => NOUN[c]);
   return `${top === 3 ? 'Lots' : 'Plenty'} of ${named.join(' and ')}`;
 }
@@ -578,7 +726,7 @@ export function nextDoor(area: AtlasArea, rows: AtlasArea[], build: string | nul
 }
 
 /**
- * AT8: Walk to an area: it is named for the area, and starts you at its busiest
+ * AT8: Walk to an area: it is named for the area, and starts you at its densest
  * street (`via`) when it has one, else at its point (atlas round 3).
  */
 export function walkTarget(area: AtlasArea): { at: LngLat; label: string; via: string | null } {
@@ -616,28 +764,49 @@ export function areaPins(listed: Listed[], selected: string | null, inTown: bool
  * places, the same everywhere, and what each kind counts.
  */
 export const MARKS_EXPLAINED: readonly string[] = [
-  'Marks say how much of each kind is around an area, never how good it is.',
-  'History, art, culture, green and views count only places worth finding, the ones that can turn up as a “?”; one place can count toward two, as some museums count toward history and culture. Food, shops and nightlife count every place.',
-  'One mark: a place or two of the kind. Two: a handful. Three: a street’s worth.',
+  'Marks say which kinds of places are around an area and how much of each, never how good it is or how many people go there.',
+  'Sights (history, art, culture, green and views) count only places worth finding, the ones that can turn up as a “?”.',
+  'They count only the kinds you have on in “What I’m into”. Some museums count toward two kinds, history and culture.',
+  'Local life (food, shops and nightlife) counts every place of its kind, and never turns up as a “?”.',
+  'One mark: a little of the kind. Two: a handful. Three: a street’s worth.',
   'Every area is judged the same way, within about a ten-minute walk of its point, so the same marks mean the same anywhere.',
 ];
 
 /** The line a town counted across its whole outline says in place of the ring's (TP8). */
-const WHOLE_TOWN_LINE = 'A town is counted across its whole outline, and a neighborhood within about a ten-minute walk of its point, so the same marks mean the same anywhere. Where a town is busiest is listed apart.';
+const WHOLE_TOWN_LINE = 'A town is counted across its whole outline, and a neighborhood within about a ten-minute walk of its point, so the same marks mean the same anywhere. Where its storefronts gather is listed apart.';
+
+/** HB11: the line a neighborhood counted across its own shape says in place of the ring's. */
+const SHAPE_LINE = 'A neighborhood is counted across the ground drawn around it where the map has one, and within about a ten-minute walk of its point where it has not.';
 
 /** TP8: how the marks work for an area: a graded town says it is counted across its outline (no digits, AT11). */
 export const marksExplained = (p: Pick<AtlasProfile, 'extent'> | null | undefined): readonly string[] =>
-  p?.extent === 'outline' ? [...MARKS_EXPLAINED.slice(0, -1), WHOLE_TOWN_LINE] : MARKS_EXPLAINED;
+  p?.extent === 'outline' ? [...MARKS_EXPLAINED.slice(0, -1), WHOLE_TOWN_LINE] : p?.extent === 'shape' ? [...MARKS_EXPLAINED.slice(0, -1), SHAPE_LINE] : MARKS_EXPLAINED;
 
 /** TP8: the card's heading over the kinds: a town counted across its outline is no longer "around its centre". */
 export const kindsHeading = (level: AtlasLevel, p: Pick<AtlasProfile, 'extent'> | null | undefined): string =>
   level === 'town' && p?.extent !== 'outline' ? 'What’s here · around its centre' : 'What’s here';
 
-/** TP7: the busy areas of a town, busiest first, each a street with where Walk to goes; a pocket no street runs through is not listed (the owner, Nov 4: a busy area is a street, never a place); two pockets on one street list it once, at the busier; none for a neighborhood or a ring-graded town. */
-export const busyAreas = (a: AtlasArea): { label: string; at: LngLat }[] =>
-  a.level === 'town' && a.profile?.extent === 'outline'
-    ? (a.profile.pockets ?? []).flatMap((p, i, all) => (p.name && all.findIndex((q) => q.name === p.name) === i ? [{ label: p.name, at: p.at }] : []))
-    : [];
+/**
+ * SF2, SF3: an area's storefront streets, one list: a graded town's pockets named for a street (TP7: a pocket no street runs
+ * through is not listed; the owner, Nov 4) and the profile's strips, each street once, nearest `from` first (with no fix,
+ * the area's point), ties by name; never by how many storefronts. `at` is where Walk to goes; null for a strip of a profile
+ * from before a13, which kept no point (listed last, by name).
+ */
+export function storefrontsOf(a: AtlasArea, from: LngLat | null): { label: string; at: LngLat | null }[] {
+  const p = a.profile;
+  if (!p) return [];
+  const seen = new Map<string, LngLat | null>();
+  if (a.level === 'town' && p.extent === 'outline') for (const k of p.pockets ?? []) if (k.name && !seen.has(k.name)) seen.set(k.name, k.at);
+  p.strips.forEach((name, i) => {
+    if (seen.get(name) == null) seen.set(name, p.stripPeaks?.[i] ?? null);
+  });
+  const origin = from ?? a.at;
+  const d = (at: LngLat | null) => (at ? distanceM(origin, at) : Infinity);
+  return [...seen].map(([label, at]) => ({ label, at })).sort((x, y) => d(x.at) - d(y.at) || (x.label < y.label ? -1 : x.label > y.label ? 1 : 0));
+}
+
+/** SF4: Walk to's line under the footer: the street it starts you on, with no superlative. */
+export const walkViaLine = (via: string): string => `Starts you on ${via}`;
 
 /** AT13: one sentence a screen reader says for a tile; how far and the walked count are its only numbers (AT11). */
 export function tileLabel(l: Listed, fam: Familiarity, fmt: (m: number) => string): string {
@@ -646,8 +815,9 @@ export function tileLabel(l: Listed, fam: Familiarity, fmt: (m: number) => strin
   if (!a.profile) return `${head} Being read.`;
   if (a.profile.thin) return head;
   const part = a.profile.partial ? ' Covers part of the town.' : '';
-  const kinds = ATLAS_ORDER.filter((c) => a.profile!.steps[c]).map((c) => `${ATLAS_LABEL[c]}: ${STEP_WORDS[a.profile!.steps[c]]}`);
-  return [head, kinds.length ? `${kinds.join(', ')}.` : 'Quiet: little of any kind.', a.profile.strips[0] ? `Busy along ${a.profile.strips[0]}.` : '', part.trim()]
+  // SG5: the groups present, each named before its kinds.
+  const groups = groupsPresent(a.profile.steps).map((g) => `${g.label}: ${g.kinds.map((c) => `${ATLAS_LABEL[c]}: ${STEP_WORDS[a.profile!.steps[c]]}`).join(', ')}.`);
+  return [head, groups.length ? groups.join(' ') : 'Quiet: little of any kind.', a.profile.strips[0] ? `Storefronts along ${a.profile.strips[0]}.` : '', part.trim()]
     .filter(Boolean).join(' ');
 }
 
@@ -745,5 +915,6 @@ export function ringOf(tilePlaces: Place[], archivePlaces: Place[] | null, centr
   // AG1: each place says whether it could be found (chains too), so the findable kinds count only those.
   const ring = counted.filter((p) => within(p.at)).map((p) => ({ ...p, markable: isMarkable(p) }));
   const mapRing = tilePlaces.filter((p) => within(p.at));
-  return { ring, steps: presenceSteps(ring, centre, within), marks: marksOf(ring, isMarkable), thin: thinRing(mapRing, centre, within) };
+  const tally = presenceTally(ring, centre, within);
+  return { ring, steps: stepsFrom(tally, ALL_SMALL_OFF), tally, marks: marksOf(ring, isMarkable), thin: thinRing(mapRing, centre, within) };
 }

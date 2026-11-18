@@ -1,4 +1,4 @@
-import { type Faced, facedAll } from '../../lib/moment';
+import { type Faced, facedAll, patchFaced } from '../../lib/moment';
 import { notePatch } from '../../lib/noteEdit';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useWalkBorders } from '../../lib/areas/useOutlineSet';
@@ -9,10 +9,12 @@ import { CaptureViewer } from '../../components/CaptureView';
 import { Stage } from '../../components/ceremony/Stage';
 import { StepThrough } from '../../components/ceremony/StepThrough';
 import { useAwakeWhile } from '../../components/ceremony/useAwakeWhile';
+import { NextMoment } from '../../components/ceremony/NextMoment';
 import { useCeremonyClock } from '../../components/ceremony/useCeremonyClock';
 import { useRevealed } from '../../components/ceremony/useRevealed';
 import type { StageCtx } from '../../components/ceremony/layout';
 import { WalkMap } from '../../components/map/WalkMap';
+import type { WalkMapProps } from '../../components/map/types';
 import { Button, theme } from '../../components/ui';
 import { setAudioMode } from '../../lib/audioMode';
 import { db } from '../../lib/db';
@@ -31,6 +33,8 @@ import type { LngLat } from '../../lib/types';
 
 /** The drawn trace is rebuilt at most this often; the walker moves every frame. */
 const TRACE_STEP_MS = 66;
+/** A day draws no fog and no walked streets; one empty list, so the map isn't handed a new one each tick (NF2). */
+const NO_STREETS: WalkMapProps['walked'] = [];
 
 export { ScreenError as ErrorBoundary } from '../../components/ScreenError';
 
@@ -177,7 +181,7 @@ export default function DayReplay() {
     });
   }, []);
   const play = useCeremonyClock({ epoch: phase.t0, running: telling, paused: viewing != null || waits.size > 0, showing, onEnd: toCard });
-  const frame = telling ? showing.frame(play.ms) : null;
+  const frame = telling ? showing.frame(play.ms, play.jump) : null;
   // The screen stays awake while the replay plays, until the card (RR24).
   useAwakeWhile(phase.beat === 'path');
 
@@ -233,7 +237,9 @@ export default function DayReplay() {
   const cardAt = onCard ? phase.t0 : 0;
   // In the units setting, redrawn when it changes (tend replay 3).
   const units = useUnits();
-  const card = useMemo(() => (data && day && cardAt ? dayCard(day, cardAt, data.distance, units) : null), [data, day, cardAt, units]);
+  const card = useMemo(() => (data && day && cardAt ? dayCard(day, cardAt, data, units) : null), [data, day, cardAt, units]);
+  // Each walk's clock, so a pin of several from one walk says how far in it was (tend map T14).
+  const clocks = useMemo(() => (data ? [...data.walks.values()].map((r) => ({ id: r.walk.id, started_at: r.walk.started_at, pauses: r.pauses })) : undefined), [data]);
 
   if (failure) throw failure;
   if (status !== 'ready' || !data || !story) {
@@ -242,7 +248,7 @@ export default function DayReplay() {
         {status === 'missing' ? (
           <>
             <Text style={styles.missing}>Nothing was kept on this day.</Text>
-            <Button label="Back to the map" onPress={() => router.dismissTo('/')} />
+            <Button label="Back to Chronicle" onPress={() => router.dismissTo('/')} />
           </>
         ) : (
           <Text style={styles.muted}>Opening your day…</Text>
@@ -259,9 +265,10 @@ export default function DayReplay() {
         borders={borders}
         trace={drawn.trace}
         rides={drawn.rides}
-        walked={[]}
-        fog={[]}
+        walked={NO_STREETS}
+        fog={NO_STREETS}
         captures={pinned}
+        clocks={clocks}
         onPinPress={onCard ? setViewing : undefined}
         walker={frame?.walker ?? null}
         follow={follow}
@@ -273,6 +280,8 @@ export default function DayReplay() {
         initialCenter={data.bounds ? [(data.bounds[0] + data.bounds[2]) / 2, (data.bounds[1] + data.bounds[3]) / 2] : undefined}
         initialZoom={data.bounds ? undefined : 2}
         veil
+        // The town borders over the veil, at a lighter fill (decision 0199).
+        bordersOverVeil
         // The day's walks have ended: the day's first start and its last end are marked (QL2), from the whole traces.
         ended={whole}
         // Above the card once it is up; before that nothing sits at the bottom (Skip is at the top) (QL8).
@@ -310,6 +319,8 @@ export default function DayReplay() {
               toCard();
             }}
           />
+          {/* Under Skip, at the same edge: the clock sits between Hold and Skip, and the three do not fit one row on a 375 px phone (RY12). */}
+          {frame && play.canNext && <NextMoment onPress={play.next} />}
         </View>
       )}
       {frame && (
@@ -331,14 +342,15 @@ export default function DayReplay() {
         remind
         onSaveNote={async (c, body) => {
           // Stored first; the day's moments (Watch again) and any open view of the walk then show it (QL25).
-          await db.updatePiece(c.piece_id, notePatch(body));
-          setData((d) => d && withNote(d, c.id, body));
-          captureBus.patch(c.walk_id, c.id, notePatch(body), null);
+          const change = notePatch(body);
+          await db.updatePiece(c.piece_id, change);
+          setData((d) => d && withNote(d, c.id, change, c.piece_id));
+          captureBus.patch(c.walk_id, c.id, change, null, c.piece_id);
         }}
       />
 
       {onCard && card && (
-        // Quiet (M13): the day, its moments and places, and any distance walked. No streaks or badges.
+        // Quiet (M13): the day, its moments and named places in a clause (tend replay T19), and any distance walked. No streaks or badges.
         <View
           testID="day-card"
           style={[styles.sheet, { paddingBottom: 16 + insets.bottom }]}
@@ -352,9 +364,10 @@ export default function DayReplay() {
         >
           <View style={styles.sheetContent}>
             <Text style={styles.cardTitle} accessibilityRole="header">{card.title}</Text>
-            <Text testID="day-card-line" style={styles.cardLine}>{card.line}</Text>
+            {card.line ? <Text testID="day-card-line" style={styles.cardLine}>{card.line}</Text> : null}
             {card.walked ? <Text style={styles.cardMuted}>{card.walked}</Text> : null}
-            <Text style={styles.cardMuted}>Tap a pin to open it</Text>
+            {/* The one hint, as the walk's card words it (tend replay T19); no pin, no hint (audit 11). */}
+            {card.hint ? <Text style={styles.cardMuted}>{card.hint}</Text> : null}
             <View style={styles.row}>
               <Button
                 testID="day-again"
@@ -378,13 +391,13 @@ export default function DayReplay() {
 }
 
 /** The day with one note's new text, in its loose moments and its walks' captures (QL25). */
-function withNote(d: Loaded, id: string, body: string): Loaded {
+function withNote(d: Loaded, id: string, change: ReturnType<typeof notePatch>, pieceId: string): Loaded {
   const entries = d.day.entries.map((e) =>
     e.kind === 'walk'
-      ? { ...e, captures: applyPatch(e.captures, id, notePatch(body)) }
-      : e.capture.id === id ? { ...e, capture: { ...e.capture, ...notePatch(body) } } : e,
+      ? { ...e, captures: applyPatch(e.captures, id, change, pieceId) }
+      : e.capture.id === id ? { ...e, capture: patchFaced(e.capture, change, pieceId) } : e,
   );
-  const walks = new Map([...d.walks].map(([wid, r]) => [wid, { ...r, captures: applyPatch(r.captures, id, notePatch(body)) }]));
+  const walks = new Map([...d.walks].map(([wid, r]) => [wid, { ...r, captures: applyPatch(r.captures, id, change, pieceId) }]));
   return { ...d, day: { ...d.day, entries }, walks };
 }
 
@@ -393,7 +406,7 @@ const styles = StyleSheet.create({
   center: { alignItems: 'center', justifyContent: 'center', gap: 16 },
   muted: { color: theme.muted, fontSize: 16 },
   missing: { color: theme.ink, fontSize: 18, fontWeight: '600', textAlign: 'center' },
-  skip: { position: 'absolute', right: 12 },
+  skip: { position: 'absolute', right: 12, alignItems: 'flex-end', gap: 8 },
   hold: { position: 'absolute', left: 12 },
   sheet: {
     position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: theme.surface,

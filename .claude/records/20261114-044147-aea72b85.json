@@ -1,0 +1,36 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "`.claude/rules/explore-and-discovery.md` is within about 50 characters",
+        "--reason",
+        "split by topic in decision 0173 (the owner's call, Nov 14) (the owner's approval, Nov 14)"
+      ],
+      "target": "sha256:4e7307dd4791752b43720893289a96f6e773661332a84b261b84c9bb29d0645d"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "When that file is split, reword its lines on `ATLAS_CODE`",
+        "--reason",
+        "reworded in docs: reword the Explore rules' ATLAS_CODE and community parks' notable name; ATLAS_CODE is a12.p2 on main, not a10 (the owner's approval, Nov 14)"
+      ],
+      "target": "sha256:f9666fe10cd64be307552d9203495d5811613300e699c8544c7d08315c3adb32"
+    },
+    {
+      "argv": [
+        "open",
+        "remove",
+        "Community parks' wording after T9",
+        "--reason",
+        "both rewordings applied in docs: reword the Explore rules' ATLAS_CODE and community parks' notable name (2644e2a3), decision 0173 (the owner's approval, Nov 14)"
+      ],
+      "target": "sha256:b73a3182efd109b7363f5dfa4ffd3dbc257727d6d73aa28ab8654ab5c2344b56"
+    }
+  ]
+}

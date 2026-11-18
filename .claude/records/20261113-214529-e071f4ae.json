@@ -1,0 +1,63 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inbox",
+        "note",
+        "T28"
+      ],
+      "body": "  **Answered yes** by the owner in person (`/tend inbox T25 yes, T28 yes, T29 yes`, Nov 13; decision 0164): \"Time on\n  every pin\", the recommended shape: a pin of one moment says its minutes when its walk's clock is known; a pin whose\n  moments lie more than ten walked minutes apart says the span (\"from the start to fifty-eight minutes in\"); a map with\n  no walk clock says the part of the day of the pin's first moment. Waits for the next `/tend inbox`, one build per run\n  (T25 was built first).\n",
+      "target": "sha256:e78ff607528e4e8dcc7dc6b41946b80fde6eca02edb3e859776ff3ae468d5d22"
+    },
+    {
+      "argv": [
+        "inbox",
+        "note",
+        "T29"
+      ],
+      "body": "  **Answered yes** by the owner in person (`/tend inbox T25 yes, T28 yes, T29 yes`, Nov 13; decision 0164): \"Words;\n  keep '12 min in'\", the recommended shape: a reminder of several says \"Two memories here\" and its body takes the\n  pins' words from one table (`pinKindsWords`, in the order taken); the announcements say the same; \"What happened\n  here\" keeps \"12 min in\". Waits for the next `/tend inbox`, one build per run (T25 was built first).\n",
+      "target": "sha256:b09ef86055a6e839c5190554874f582604f99c4d7daf6f1b615e105954ad1c29"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "A capture pin standing on a start or end puts its stalk inside the marker",
+        "--reason",
+        "the T25 review's ux 25: the stalk now crosses the bullseye's band"
+      ],
+      "body": "  Since `tend map T25` the stalk crosses the bullseye's white band, so the end reads like a power glyph at 1x\n  (`qol-03-replay-card`, `qol-17-pins-several-replay`; the T25 review's ux 25, low). The fix stays yours.\n",
+      "target": "sha256:38d33acd4e8733ec8ce49c567d7660052d2280c302a82dc3d24ecf2fe976c15d"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "The solid end reads smaller than the hollow start",
+        "--reason",
+        "the T25 review: the end and the start now draw at one width"
+      ],
+      "body": "  The T25 pictures show the end and the start at one width, about 21 px each at 3x (`390-replay-card-zoom3x` in the\n  T25 probe; the T25 review's ux-reviewer), so this item no longer matches what is drawn: you may close it.\n",
+      "target": "sha256:e09ab6a308bce8303027f6d4be3f2882735a033d66097fa5a4e8bcd924e03e05"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "note",
+        "press Hold while the walker is a little short of the end"
+      ],
+      "body": "  - Since `tend map audit 25` `ends-ring` draws the start too, under the end's ring, and `ends` is filtered to the end\n    (its centre and band): also stop a walk that ends where it began (a loop round the block) and check that its end\n    shows the bullseye whole over the start.\n",
+      "target": "sha256:2051b1379b5f1da7c7c85d6b8d10aaadf31eb43dd044e639e65c90091c5693a5"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 13, `/tend inbox T25 yes, T28 yes, T29 yes`** (from `67a46a17`, rebased on `741f3b31`; the owner's own answers,\nin person, Nov 13: T25 in decision 0162, T28 and T29 in decision 0164; one build per run, so T28 and T29 wait, marked\nanswered).\n- `tend map T25`: the replay's end is a bullseye, a walked centre, a white band and a walked outer ring with a thin\n  white edge, 22 px across like the start, so it differs in shape from the walker's solid dot as well as from the hollow\n  start; the start and the dot unchanged, no hue of its own. Sibling lens: only the replay and the day replay pass\n  `ended`, so only they draw an end, web and native, through one paint; the live walk has none (its dot is its end);\n  Chronicle's map, Explore and the planner draw no trace; no walk card or mini-map draws a trace's end.\nThe review's fixes (one round of the auditor and the ux-reviewer, decision 0145):\n- `tend map audit 25`: a walk that ends on or near its start keeps its bullseye whole: the start is drawn in the first\n  layer, under the end's ring, and the second draws the end's centre and band alone (auditor 25, high: the start had\n  covered the end's ring, a regression from T16). The `qol` journey walks a small loop and reads the end over the start\n  at 390 and 320.\n- `tend map audit 26`: at Hold, with motion, the dot and the end are both on the map, apart, checked and pictured at\n  390 and 320 (ux 26).\nReview: 2 accepted (auditor 25, ux 26); 2 noted on `[owner]` items in `docs/DEFERRED.md` (ux 25, a pin's stalk across\nthe bullseye's band; the solid end's size item, which the pictures no longer match: you may close it); ux 27 no action\n(the dot arriving on the end covers it, as before); 0 rejected. Both reviewers ruled the white edge inside your answer.\nEach check was seen failing first: the unit tests on the code before each fix, the journey's T25 check on main's end\nand audit 25's on the T25 build (`E2E_SOFT`); audit 26 is evidence with no code change.\nNot a sweep: no lens ran and no area changed state. Journeys green on the final code: `qol`, `replay`, `days` (and on\nthe T25 build `layers`, `walkability`, `snap`, `freelook`, `dense`, `carousel`); main's four journal commits landed\nbefore the review and touch none of them. Nothing here has run on a phone; the bullseye on native is unverified\n(`docs/NATIVE_UNVERIFIED.md`). QL2's wording waits for your edit (noted under \"Open before the loop\").\n"
+    }
+  ]
+}

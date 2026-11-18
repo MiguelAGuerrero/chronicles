@@ -1,0 +1,15 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "open",
+        "set",
+        "**`.claude/rules/journal-rest.md`",
+        "--reason",
+        "the owner's answer of Nov 18 (decision 0208): the rule line is reworded; the plan's line is still to say"
+      ],
+      "body": "- **`specs/chronicle-journal/plan.md`'s footRoom line after `tend tabs audit 34`** (Nov 18; the owner's answer in person, \"Fix it in this run\", decision 0208). What ships: `footRoom` (`lib/journal/bar.ts`) is `barH + aboveH`, the toolbar and the messages above it, both. Still to say by hand: `specs/chronicle-journal/plan.md` l.221 says it \"is `max(barH, aboveH)`\" (audit 62). The rule line in `.claude/rules/journal-rest.md` was reworded by the orchestrator under the same answer.\n",
+      "target": "sha256:654a070c999ece1bdbcf9127f4b0165e189847cfbf2173fd57872caa4f0d8170"
+    }
+  ]
+}

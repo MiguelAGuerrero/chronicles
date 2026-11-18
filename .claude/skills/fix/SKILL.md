@@ -87,8 +87,9 @@ While the question is open the worktree stays; if the answer is no, scrap it.
    layering (`.claude/rules/functional-core.md`): decisions in core, effects in
    a shell. No refactors, no drive-by cleanups.
 2. Native code touched: add an item for it to `docs/NATIVE_UNVERIFIED.md`, the
-   device acceptance suite (`- [ ] **Do:** … **Expect:** …`), and say in the
-   report that it has never run on a device.
+   device acceptance suite (`- [ ] **Do:** … **Expect:** …`), with
+   `npm run records -- native item add "<section>" --file <item>`, and say in
+   the report that it has never run on a device.
 3. The regression test (per the level) fails before the fix and passes after.
    Never skip, loosen or quarantine a test to get green.
 
@@ -103,7 +104,9 @@ do not keep trying variations.
 - `none`: skip.
 - `self`: re-read your own diff against the covering rule files and the
   AGENTS.md invariants (truth vs cache, raw fixes, nothing is a score, local
-  only); run `/simplify` on it.
+  only) and the cost checklist (`.claude/rules/performance.md`: what the diff
+  reads, how often, over what n); run `/simplify` on it. A fix for slowness
+  gives the harness's number before and after.
 - `adversarial`: `.claude/skills/ship.md`, "Review", which adds the screenshots and the `ux-reviewer`
   whenever the fix changes a screen (decision 0145). The auditor has no spec
   for a fix, so give it the issue, the root cause, the diff and the rule
@@ -121,7 +124,14 @@ findings in the report.
 - `npm run check:docs` must pass (the hook and CI require it).
 - Run `/docs-gc` only if behaviour, a rule or a file location changed. A fix
   that changes how something works updates the rule file or `docs/ARCHITECTURE.md`
-  in the same commit, and `docs/STATUS.md` if a slice's state moved.
+  in the same commit, and `docs/STATUS.md` if a slice's state moved
+  (`npm run records -- slice row set <match> --file <row>`).
+- `docs/STATUS.md`, `docs/DEFERRED.md` and `docs/NATIVE_UNVERIFIED.md` change only through
+  `npm run records` (decision 0156; a second issue is `deferred item add`; a question for the owner
+  is a bullet of a "From /fix" section, `section add "From /fix"` then `section item add`).
+  Every agent commit is gated, a fix's too: CI replays each commit carrying your
+  `Claude-Session:` or `Co-Authored-By: Claude` trailer. Run `npm run check:records -- origin/main` before the commit, and
+  put the lines `npm run records -- trailers` prints in its message.
 - A fix that settles a trap goes in `.claude/rules/<area>.md`.
 
 ## 7. Commit and push the branch
@@ -140,7 +150,11 @@ findings in the report.
 `.claude/skills/ship.md`, "Publish to main", from `fix/<short-name>`, without
 asking again: the rebase, the one fast-forward push, the Pages run, the live
 check of the fix's visible effect, and on a red run one fix-forward at most,
-else the revert and a diagnosis on `fix/<short-name>-retry`.
+else the revert and a diagnosis on `fix/<short-name>-retry`. Before the push,
+`node scripts/tend.js commits --loop-only origin/main..HEAD` passes: every agent
+commit is replayed by the record gate, and a commit from before it that was
+rebased onto it is refused by name if it hand-edits the documents (ship.md,
+"The record documents", says how to mend it).
 
 ## 9. Clean up the worktree
 

@@ -3,4 +3,9 @@
 import * as SQLite from 'expo-sqlite';
 import { makeSqliteDb } from './sqliteStore';
 
-export const db = makeSqliteDb(() => SQLite.openDatabaseAsync('chronicles.db'));
+// The main connection for reads, and one writer connection the write queue keeps for the app's life
+// (`useNewConnection`: a connection of its own, not the shared one expo-sqlite hands out by name).
+export const db = makeSqliteDb(
+  () => SQLite.openDatabaseAsync('chronicles.db'),
+  () => SQLite.openDatabaseAsync('chronicles.db', { useNewConnection: true }),
+);

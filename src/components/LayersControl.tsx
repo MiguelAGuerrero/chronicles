@@ -5,7 +5,7 @@ import { cornerPanelBox, panelBox } from '../lib/layers/layout';
 import { LAYERS, type LegendRow, type SwatchKey } from '../lib/layers/registry';
 import type { useLayers } from '../lib/layers/useLayers';
 import { Icon, type IconName } from './icons';
-import { BORDER, HOTSPOT, WALK_STYLE } from './map/types';
+import { BORDER, COLORS, HOTSPOT, PAST_STYLE, WALK_STYLE } from './map/types';
 import { SwitchRow } from './SwitchRow';
 import { Tooltip } from './Tooltip';
 import { theme } from './ui';
@@ -18,6 +18,7 @@ const SWATCH: Record<SwatchKey, { color: string; opacity: number; outline?: bool
   hotspot: { color: HOTSPOT, opacity: 0.85 },
   'border-tint': { color: BORDER.color, opacity: BORDER.fillOpacity, outline: true },
   'border-line': { color: BORDER.lined, opacity: BORDER.linedOpacity, outline: true },
+  past: { color: COLORS.past, opacity: PAST_STYLE.opacity },
 };
 
 const BUTTON = 44;

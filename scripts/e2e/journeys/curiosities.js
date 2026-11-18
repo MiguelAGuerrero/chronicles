@@ -62,7 +62,8 @@ async function run(h) {
       tx.oncomplete = () => resolve({ folly: items.result.find((i) => i.name === 'Fox Point Folly') ?? null, archives: areas.result.map((a) => a.archive ?? null) });
     };
   }));
-  check(kept.folly?.kind === 'curiosities' && kept.folly?.category === 'viewpoints', `PW4: the checklist keeps it as a Curiosity of Viewpoints & oddities (${JSON.stringify(kept.folly)})`);
+  // XS3 (decision 0191): a folly is the Curiosities subtype Giants and follies.
+  check(kept.folly?.kind === 'roadside_giants' && kept.folly?.category === 'viewpoints', `PW4, XS3: the checklist keeps it as a Curiosity (Giants and follies) of Viewpoints & oddities (${JSON.stringify(kept.folly)})`);
   check(kept.archives.includes('20261108'), `PW12: the area's checklist records the archive version it was built with (${JSON.stringify(kept.archives)})`);
 
   const tiles = places.asked.filter((a) => a.name === file);

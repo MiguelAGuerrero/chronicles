@@ -1,10 +1,15 @@
 // @layer core
 import type { Faced } from './moment';
-import { distanceM } from './geo';
+import { distanceM, pausedMs, type PauseSpan } from './geo';
+import { ordered, type ReactionInfo, type ReactionSet } from './reactions/core';
+import { dayPartLine, JUST_AFTER_MS, minutesInLine } from './resurface/context';
+import { agoLine, daysAgo, numberWord } from './resurface/lines';
 import { THUMB } from './thumbPlan';
 import type { CaptureKind, LngLat } from './types';
 
-/** Pins closer than this on screen merge into one, with a count. */
+const MIN = 60_000;
+
+/** Pins closer than this on screen merge into one, drawn with its kinds (tend map T14). */
 export const PIN_GROUP_PX = 44;
 /** Never group captures further apart than this, however far out the map is. */
 const MAX_GROUP_M = 5000;
@@ -114,6 +119,110 @@ export function pinsFor(captures: Faced[], radiusM: number): CapturePin[] {
   return pins;
 }
 
+/** A view box: west, south, east, north, in degrees (maplibre's bounds run past ±180 when the view crosses it). */
+export type ViewBox = readonly [number, number, number, number];
+
+/** How far past the view pins are drawn, as a share of its width and height on each side (tend map 16). */
+export const PIN_CULL_MARGIN = 0.5;
+
+/** The box pins are drawn in: the view widened by the margin on each side, so a pan inside it draws nothing new. */
+export function pinDrawBox(view: ViewBox, margin = PIN_CULL_MARGIN): ViewBox {
+  const [w, s, e, n] = view;
+  const dx = (e - w) * margin;
+  const dy = (n - s) * margin;
+  return [w - dx, s - dy, e + dx, n + dy];
+}
+
+/** Whether a point lies in a box; across the antimeridian, a point a world away is the same point. */
+export function inBox([lon, lat]: LngLat, [w, s, e, n]: ViewBox): boolean {
+  if (lat < s || lat > n) return false;
+  return [lon, lon - 360, lon + 360].some((x) => x >= w && x <= e);
+}
+
+/**
+ * Whether the drawn box still serves the view: it holds the whole view and is no more than twice the box the view
+ * would draw now, on either side (a zoom in of more than a level draws afresh, or the pins of the wider view stay
+ * drawn). With none drawn yet, it does not.
+ */
+export function boxHolds(drawn: ViewBox | null, view: ViewBox, margin = PIN_CULL_MARGIN): boolean {
+  if (!drawn || view[0] < drawn[0] || view[1] < drawn[1] || view[2] > drawn[2] || view[3] > drawn[3]) return false;
+  const most = 2 * (1 + 2 * margin);
+  return drawn[2] - drawn[0] <= most * (view[2] - view[0]) && drawn[3] - drawn[1] <= most * (view[3] - view[1]);
+}
+
+/**
+ * The start and end markers' outer radius on screen, in px: the start's 7 and its 4 of ring, the end's 9.5 and its 1.5
+ * of white edge (`ENDS_RING_PAINT`, one width across, 22 px).
+ */
+export const END_MARK_R = 11;
+/** A pin's stalk: `CapturePinView`'s stem, from the point it marks up to its head, in pt. */
+export const PIN_STEM = 8;
+/** The most `stalkLift` raises a pin: past two overlapping markers, each at most its width and a stalk. */
+export const PIN_MAX_LIFT = 2 * (2 * END_MARK_R + PIN_STEM);
+/**
+ * How far a pin reaches on screen from its foot, in px (tend map audit 35): its 48 px target, 24 px either side and
+ * its height above the foot, plus the most it is lifted. A pin whose foot lies that far past the view's edge below, or
+ * beside it, still shows; the box it is drawn in is judged by the view grown by this much. On screen, so a turned map
+ * grows the same way (a marker never turns).
+ */
+export const PIN_REACH_PX = { top: 0, right: 24, bottom: 48 + PIN_MAX_LIFT, left: 24 } as const;
+
+/** The box round some points: the view's grown corners as the map places them (turned or not). */
+export function boxAround(points: readonly LngLat[]): ViewBox {
+  const lons = points.map((p) => p[0]);
+  const lats = points.map((p) => p[1]);
+  return [Math.min(...lons), Math.min(...lats), Math.max(...lons), Math.max(...lats)];
+}
+
+/**
+ * Whether a pin is drawn (tend map 16, audit 37): inside the box, or, outside it, while it holds the keyboard focus or
+ * was the last pressed, whose viewer gives the focus back to it on closing (ui-patterns; audit 3 of the bell).
+ */
+export function drawsPin(at: LngLat, box: ViewBox, o: { focused: boolean; pressed: boolean }): boolean {
+  return o.focused || o.pressed || inBox(at, box);
+}
+
+/**
+ * How far up, in screen px, a pin is drawn above its point so that a pin standing on a walk's start or end stops its
+ * stalk at the marker's edge, never inside it (decision 0172, O13; amends QL3's placement): a pin whose stalk (the
+ * foot up to `PIN_STEM` above it) crosses a marker moves up until its foot is at the marker's edge above it, and on
+ * past the other marker when a loop walk's two overlap (tend map audit 33: the whole stalk, not the foot alone). A pin
+ * whose stalk crosses no marker stays on its point (0). `ends` are the markers drawn (none while they are hidden); `bearing` is the
+ * map's, in degrees. Web mercator, 512 px tiles, as the maps.
+ */
+export function stalkLift(at: LngLat, ends: readonly (LngLat | null)[], zoom: number, bearing = 0, r = END_MARK_R, stem = PIN_STEM): number {
+  const size = 512 * 2 ** zoom;
+  const world = ([lon, lat]: LngLat) => [
+    ((lon + 180) / 360) * size,
+    ((1 - Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360)) / Math.PI) / 2) * size,
+  ];
+  const turn = (bearing * Math.PI) / 180;
+  const [cos, sin] = [Math.cos(turn), Math.sin(turn)];
+  const [px, py] = world(at);
+  // The foot's offset from each marker's centre on screen (y down), the map turned by its bearing.
+  const from = ends.filter((e): e is LngLat => !!e).map((e) => {
+    const [x, y] = world(e);
+    const [dx, dy] = [px - x, py - y];
+    return [dx * cos + dy * sin, dy * cos - dx * sin] as const;
+  });
+  let lift = 0;
+  for (let pass = 0; pass <= from.length; pass++) {
+    let moved = false;
+    for (const [dx, dy] of from) {
+      const half = r * r - dx * dx;
+      if (half <= 1e-9) continue;
+      // The marker's chord at the stalk's x, from `-h` (its upper edge) to `h`; the stalk runs from `y - stem` to `y`.
+      const h = Math.sqrt(half);
+      const y = dy - lift;
+      if (y <= -h + 1e-9 || y - stem >= h - 1e-9) continue;
+      lift += y + h;
+      moved = true;
+    }
+    if (!moved) break;
+  }
+  return lift;
+}
+
 /** Whether a pin wears the reminder bell (RB1, RB2): any of its captures has a live reminder. */
 export function pinReminded(pin: CapturePin, ids: ReadonlySet<string>): boolean {
   return pin.captures.some((c) => ids.has(c.id));
@@ -121,13 +230,206 @@ export function pinReminded(pin: CapturePin, ids: ReadonlySet<string>): boolean 
 
 /**
  * The stored ref of the small copy a pin's head shows (QL26): only for a pin of
- * one photo whose copy is made. Never the full photo: while the copy is being
- * made, or for a photo that won't decode, the pin keeps its icon, so a map never
- * decodes full photos. A pin of several keeps its count.
+ * one photo or one video (VS3) whose copy is made. Never the full photo or the
+ * video's file: while the copy is being made, or for one that won't decode, the
+ * pin keeps its icon, so a map never decodes full media. A pin of several shows its kinds (`pinHeadKinds`, tend map T14).
  */
+/** Where a pin's reaction bubbles sit, from the head's top left (a 36 pt head; 15 pt bubbles whose white edges meet). */
+const BUBBLE_STEP = 13;
+/**
+ * The bubbles' places on a pin of one moment (RX17, reactions ui 1, RL12): a row across the head's lower part from just
+ * outside its left edge; on a video's pin, whose play mark takes the bottom right, an L: two along the bottom-left and
+ * the third above them at the head's left edge, each on the head and clear of the mark (the owner, Nov 14, 0177).
+ */
+export function reactionSpots(count: number, video: boolean): { left: number; top: number }[] {
+  const row = (i: number) => ({ left: -8 + i * BUBBLE_STEP, top: 22 });
+  if (!video) return Array.from({ length: count }, (_, i) => row(i));
+  return Array.from({ length: count }, (_, i) => (i < 2 ? row(i) : { left: -8, top: 22 - BUBBLE_STEP }));
+}
+
+/**
+ * The reactions a pin wears as bubbles (RX17, RX19): a pin of exactly one moment, its reactions in the families' order;
+ * a pin of several, none. The head is never one of them (RX18).
+ */
+export function pinReactions(pin: Pick<CapturePin, 'captures'>, sets: ReadonlyMap<string, ReactionSet>): ReactionInfo[] {
+  if (pin.captures.length !== 1) return [];
+  const set = sets.get(pin.captures[0].id);
+  return set ? ordered(set) : [];
+}
+
 export function pinThumb(pin: CapturePin): string | null {
   if (pin.captures.length !== 1) return null;
   const c = pin.captures[0];
-  if (c.kind !== 'photo' || !c.thumb_path || c.thumb_path === THUMB.none) return null;
+  if ((c.kind !== 'photo' && c.kind !== 'video') || !c.thumb_path || c.thumb_path === THUMB.none) return null;
   return c.thumb_path;
+}
+
+/** A walk's clock, so a pin can say how far into the walk its moments were (tend map T14): its id, start and pauses. */
+export interface WalkClock {
+  id: string;
+  started_at: number;
+  pauses: PauseSpan[];
+}
+
+/** Moments in the order they were taken, by kind: a pin's, or a reminder's put in that order (tend explore T29). */
+interface KindsTaken {
+  captures: readonly { kind: CaptureKind }[];
+}
+
+/** Its kinds in the order first taken, each once. */
+function kindsInOrder(pin: KindsTaken): CaptureKind[] {
+  return [...new Set(pin.captures.map((c) => c.kind))];
+}
+
+/**
+ * The kinds a pin of several moments shows in its head, fanned, in place of a numeral (tend map T14, decision
+ * 0154): the first two kinds taken; a pin of one kind shows it twice, so it never reads as one moment. Null for a
+ * pin of one moment, which keeps its own head.
+ */
+export function pinHeadKinds(pin: CapturePin): CaptureKind[] | null {
+  if (pin.captures.length < 2) return null;
+  const kinds = kindsInOrder(pin);
+  return kinds.length > 1 ? kinds.slice(0, 2) : [kinds[0], kinds[0]];
+}
+
+const ONE: Record<CaptureKind, string> = { photo: 'a photo', video: 'a video', voice: 'a voice memo', text: 'a note' };
+const MANY: Record<CaptureKind, string> = { photo: 'photos', video: 'videos', voice: 'voice memos', text: 'notes' };
+
+/**
+ * A pin's moments by kind, in words, in the order first taken: "A photo and a note", "Two photos and a voice memo"
+ * (VISION.md, "Counts are words"). The one table of the kinds' words: a reminder of several says its kinds with it
+ * too (tend explore T29), its moments put in the order taken first.
+ */
+export function pinKindsWords(pin: KindsTaken): string {
+  return kindsClause(kindsInOrder(pin).map((k) => [k, pin.captures.filter((c) => c.kind === k).length]));
+}
+
+/**
+ * Kinds and how many of each, as one clause in the pins' words, in the order given, kinds with none left out: "Two
+ * photos, a video, a voice memo and a note" (tend replay T19, decision 0165). A pin, a reminder, a walk's card and
+ * its row, and what a removal of media takes all say their kinds with it. Empty when there are none. `bind`, for a line
+ * on screen, joins "a" to its noun with a no-break space.
+ */
+export function kindsClause(counts: readonly (readonly [CaptureKind, number])[], o: { bind?: boolean; its?: boolean } = {}): string {
+  // A line that wraps keeps "a" on its noun's line, "a video" never split (tend tabs audit 23); spoken words keep spaces.
+  const one = (k: CaptureKind) => (o.bind ? ONE[k].replace(/^a /, 'a\u00a0') : ONE[k]);
+  // Past fifty-nine, where numberWord says "many", a confirm says "its photos" (the owner, Nov 14; tend deletion audit 1).
+  const many = (k: CaptureKind, n: number) => (o.its && numberWord(n) === 'many' ? `its ${MANY[k]}` : `${numberWord(n)} ${MANY[k]}`);
+  const parts = counts.filter(([, n]) => n > 0).map(([k, n]) => (n === 1 ? one(k) : many(k, n)));
+  const text = parts.length > 1 ? `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}` : parts[0] ?? '';
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+/** The clock of the one walk every moment of a pin belongs to, if it is given; else null. */
+function clockOf(pin: CapturePin, clocks: readonly WalkClock[] | undefined): WalkClock | null {
+  const walkId = pin.captures[0]?.walk_id;
+  if (!walkId || pin.captures.some((c) => c.walk_id !== walkId)) return null;
+  return clocks?.find((w) => w.id === walkId) ?? null;
+}
+
+/** Walked time into a walk at `t`: its pauses left out, as the moment's own line counts it (MC3). */
+function walkedAt(clock: WalkClock, t: number): number {
+  return Math.max(0, t - clock.started_at - pausedMs(clock.pauses, clock.started_at, t));
+}
+
+const lower = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
+
+/** A day's part said after a comma: "Tuesday evening" keeps its capital, "This evening" is "this evening". */
+const NAMED = /^(Sun|Mon|Tues|Wednes|Thurs|Fri|Satur)day\b|^(January|February|March|April|May|June|July|August|September|October|November|December)\b/;
+const afterComma = (line: string) => (NAMED.test(line) ? line : lower(line));
+
+/** The day a moment belongs to, as `dayPartLine` reckons it: the small hours (before five) are the evening before's. */
+function dayOf(t: number): string {
+  const d = new Date(new Date(t).getHours() < 5 ? t - 5 * 3_600_000 : t);
+  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+}
+
+/** The small hours (before five) belong to the evening before, as `dayPartLine` reckons them. */
+const eveningOf = (t: number) => (new Date(t).getHours() < 5 ? t - 5 * 3_600_000 : t);
+
+/**
+ * A moment's when on a pin: within a week its part of the day, "Tuesday evening"; past a week the span alone, "two
+ * years ago", no month and no part of the day (tend map 11, decision 0172, the owner's "The span alone").
+ */
+const momentWhen = (t: number, now: number) => (daysAgo(eveningOf(t), now) >= 7 ? agoLine(eveningOf(t), now) : afterComma(dayPartLine(t, now)));
+
+/**
+ * When a pin no walk clock holds was taken (tend map T28): its first moment's part of the day, past a week how long
+ * ago alone (tend map 11); when its moments fall on different days, the span of their days (tend map audit 27, the
+ * owner's answer to ux 1): "from two years ago to Tuesday evening".
+ */
+function dayWhen(pin: CapturePin, now: number): string {
+  const first = pin.captures[0].t;
+  const last = pin.captures[pin.captures.length - 1].t;
+  if (dayOf(first) === dayOf(last)) return momentWhen(first, now);
+  const end = (t: number) => momentWhen(t, now);
+  // Two days whose ends read alike ("three weeks ago") are said once.
+  return end(first) === end(last) ? end(first) : `from ${end(first)} to ${end(last)}`;
+}
+
+/**
+ * When a pin's moments were, in words (tend map T28, decision 0164): with its walk's clock, the first one's minutes in
+ * ("twelve minutes in"), or, when they lie more than JUST_AFTER_MS apart in walked time, the span ("from the start to
+ * fifty-eight minutes in"); with none (no clock given, moments of two walks, a moment outside a walk), the part of the
+ * day of its first moment as the moment's own line says it (MC4, `dayPartLine`): "Tuesday evening". Null with neither
+ * a clock nor `now`.
+ */
+export function pinWhen(pin: CapturePin, clocks: readonly WalkClock[] | undefined, now: number | undefined): string | null {
+  const first = pin.captures[0];
+  if (!first) return null;
+  // A map of several walks (a day's replay) says every pin's part of the day: "ten minutes in" would not say which
+  // walk (tend map audit 28, the owner's answer to ux 2).
+  const clock = clocks && clocks.length > 1 ? null : clockOf(pin, clocks);
+  if (!clock) return now == null ? null : dayWhen(pin, now);
+  const from = walkedAt(clock, first.t);
+  const to = walkedAt(clock, pin.captures[pin.captures.length - 1].t);
+  // In the minutes the words name: a span only when they lie more than ten apart (tend map audit 30).
+  const [a, b] = [Math.round(from / MIN), Math.round(to / MIN)];
+  if (b - a <= JUST_AFTER_MS / MIN) return lower(minutesInLine(from));
+  if (a === 0) return `from the start to ${lower(minutesInLine(to))}`;
+  // Both under an hour share their unit: "from twelve to fifty minutes in".
+  if (b < 60) return `from ${numberWord(a)} to ${numberWord(b)} minutes in`;
+  return `from ${lower(minutesInLine(from).replace(/ in$/, ''))} to ${lower(minutesInLine(to))}`;
+}
+
+/** One moment's kind by name: "Photo", "Voice memo"; a pin's and a reminder's (tend explore T29). */
+export const KIND_NAME: Readonly<Record<CaptureKind, string>> = { photo: 'Photo', video: 'Video', voice: 'Voice memo', text: 'Note' };
+
+/**
+ * What a screen reader hears of a pin's moments, before its stack, its bell and its "Open": one moment by its kind
+ * ("Photo", "Note, idea", "Memory: a photo"), several by their kinds in words (tend map T14), each followed by when
+ * (`pinWhen`, tend map T28): "Photo, twelve minutes in", "A photo and a note, from the start to fifty-eight minutes
+ * in", "Memories: a photo and a note, Tuesday evening". A memory pin's moments are of other walks, so it always says
+ * the part of the day.
+ */
+export function pinSpoken(pin: CapturePin, o: { memory?: boolean; clocks?: readonly WalkClock[]; now?: number; reactions?: readonly ReactionInfo[] }): string {
+  // One moment's reactions are said after its kind, as its bubbles are drawn (RX21): "Photo, happy, idea".
+  // A memory says its kinds from one table however many it holds, "Memory: a photo", "Memories: a photo and a note"
+  // (tend map 19); a pin of this walk's one moment says its kind's name, "Photo".
+  const one = pin.captures.length === 1
+    ? [o.memory ? lower(pinKindsWords(pin)) : KIND_NAME[pin.captures[0].kind], ...(o.reactions ?? []).map((r) => r.name.toLowerCase())].join(', ')
+    : null;
+  const kinds = one ?? pinKindsWords(pin);
+  const what = o.memory
+    ? pin.captures.length === 1 ? `Memory: ${kinds}` : `Memories: ${lower(kinds)}`
+    : kinds;
+  const when = pinWhen(pin, o.memory ? undefined : o.clocks, o.now);
+  return when ? `${what}, ${when}` : what;
+}
+
+/**
+ * What a pin's marker is keyed by on native (tend map audit 20): its moments, its small copy and its note's mark, so a
+ * regroup that keeps the first id and the count (a photo and a note becoming two photos) still redraws its fan.
+ */
+export function pinKey(pin: CapturePin): string {
+  return [pin.id, pin.captures.map((c) => c.id).join(','), pinThumb(pin) ?? ''].join(':');
+}
+
+/**
+ * The walk screen's clocks (tend map audit 21): its walk's, with the open walk's pauses, only while the open walk is
+ * that same walk. After Stop the open walk and its pauses are gone while the screen still shows the walk, and its
+ * pins' minutes would count the pauses as walked; with no clock they say their part of the day (tend map T28).
+ */
+export function walkClocks(walk: { id: string; started_at: number } | null, open: { id: string } | null, pauses: PauseSpan[]): WalkClock[] | undefined {
+  return walk && open?.id === walk.id ? [{ id: walk.id, started_at: walk.started_at, pauses }] : undefined;
 }

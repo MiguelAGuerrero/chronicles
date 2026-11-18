@@ -1,0 +1,22 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore and discovery"
+      ],
+      "body": "- [loop] A spread row of marks (fix mark-overlap) is judged only against other unfound marks: the storefront names' room for each \"?\" (DC17) is still built at the mark's point, not where its moved head and side name stand, so a busy name can sit under a moved head (the head draws over it; F5, medium); a moved head can land on a capture pin or a found mark it stood clear of (F7); a side name is checked against neither the screen's edges nor the right-hand column, so a pair near an edge can lose its outer name off screen while it counts as shown (F8, ux U3; the storefront names' `storefrontNamesClearOf` is the in-house model); the reveal's turn (M11) swings the leg and the point's square with the head (F9); the middle mark of a row of three on one spot never shows its name, only speaks it (ux U5); and a chain past `ROW_MAX` keeps its overlap as the points have it. Rooms that follow the screen layout need a per-zoom resend (fix mark-overlap's review, Nov 18, low but F5)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Map layers and markers (MapLibre RN v11)"
+      ],
+      "body": "- [ ] **Do:** since fix mark-overlap, on an exploring walk beside two places mapped a metre apart (or any two \"?\" or named marks that touch), look at them, tap each, zoom in and out a level, then turn the map with two fingers; with VoiceOver, then TalkBack, touch each. **Expect:** the two heads stand side by side 56 px apart, a little above their points, each on a thin leg to a small square on its own point, names beside the outer heads; each tap opens its own place (MapLibre RN's `offset` moves the Marker and its `onPress` follows the moved head, on iOS and Android); the legs, squares and the left name draw outside the 36 x 44 view without clipping; the row redraws for the zoom and the turn (the Marker is keyed by its spread); each is spoken by its own name\n"
+    }
+  ]
+}

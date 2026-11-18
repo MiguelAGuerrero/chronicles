@@ -13,7 +13,7 @@ const moments = (pg) => pg.evaluate(() => new Promise((resolve) => {
 }));
 
 async function run(h) {
-  const { navUrl, check, shot, tabTo, freshPage, scriptsDir } = h;
+  const { navUrl, check, shot, tabTo, freshPage, scriptsDir, toStop } = h;
   let geoAfter = 0;
   const fixtures = path.join(scriptsDir, 'fixtures');
   const { c, pg } = await freshPage('stacks');
@@ -79,13 +79,15 @@ async function run(h) {
   await tabTo(pg, 'chronicle', 'memories');
   await pg.waitForTimeout(1500);
   const cards = await pg.locator('[data-testid=moment-card]').count();
-  const marks = await pg.locator('[data-testid=stack-mark]').count();
-  check(cards === 2 && marks === 1, `MS7, MS8: two moments, two cards, one marked as holding more (${cards} cards, ${marks} marks)`);
-  const markLabel = marks ? await pg.locator('[data-testid=stack-mark]').first().getAttribute('aria-label') : null;
-  check(markLabel === 'with more in this moment', `MS8: the mark is spoken in words (${markLabel})`);
+  // On the journal's page a closed stack shows its face, the mark and its kinds in words, and opens into a grid (decision 0197, SW11, amending JN3).
+  const stacked = await pg.locator('[data-testid=moment-card]:has([data-testid=stack-kinds])').count();
+  const marks = await pg.locator('[data-testid=journal-page] [data-testid=stack-mark]').count();
+  check(cards === 2 && stacked === 1 && marks === 1, `MS7, MS8: two moments, two entries, one holding more than one piece, each shown (${cards} entries, ${stacked} stacked, ${marks} marks)`);
+  const markLabel = stacked ? await pg.locator('[data-testid=moment-card]:has([data-testid=stack-kinds]) [data-testid=moment-open]').first().getAttribute('aria-label') : null;
+  check(/with more in this moment/.test(markLabel ?? ''), `MS8: that it holds more is spoken in words (${markLabel})`);
 
   // The viewer, opened from a list of several: pieces in order by arrows and buttons, no position or total (MS9, MS10).
-  await pg.locator('[data-testid=moment-card]:has([data-testid=stack-mark]) [data-testid=moment-open]').first().click();
+  await pg.locator('[data-testid=moment-card]:has([data-testid=stack-kinds]) [data-testid=moment-open]').first().click();
   await there('[data-testid=viewer-close]');
   const seen = [];
   const texts = [];
@@ -159,13 +161,14 @@ async function run(h) {
   // Split out (MS16): the stacked moment's note leaves it, shown at once as its own moment, stored after the window.
   await tabTo(pg, 'chronicle', 'memories');
   await pg.waitForTimeout(1500);
-  await pg.locator('[data-testid=moment-card]:has([data-testid=stack-mark]) [data-testid=moment-open]').first().click().catch(() => {});
+  await pg.locator('[data-testid=moment-card]:has([data-testid=stack-kinds]) [data-testid=moment-open]').first().click().catch(() => {});
   await there('[data-testid=viewer-close]');
   await pg.keyboard.press('ArrowRight');
   await pg.waitForTimeout(400);
   await pg.click('[data-testid=capture-viewer] [aria-label="More"]').catch(() => {});
   const splitText = (await there('[data-testid=menu-split]', 3000)) ? await pg.locator('[data-testid=menu-split]').innerText() : '';
-  check(/Split this (note|photo) out/.test(splitText), `MS16: More offers Split out by kind on a piece that is not the first (${splitText})`);
+  const dbg = await pg.evaluate(() => ({ menus: [...document.querySelectorAll('[data-testid^=menu-],[data-testid^=viewer-]')].map((e) => e.dataset.testid), viewer: !!document.querySelector('[data-testid=capture-viewer]'), shown: document.querySelector('[data-testid=piece-shown]')?.dataset?.kind })).catch(() => null);
+  check(/Split this (note|photo) out/.test(splitText), `MS16: More offers Split out by kind on a piece that is not the first (${splitText}) ${JSON.stringify(dbg)}`);
   if (splitText) await pg.click('[data-testid=menu-split]');
   const shownAtOnce = await there('[data-testid=undo-toast]', 3000);
   const nextMoment = await pg.locator('[data-testid=capture-viewer] [aria-label="Next moment"]').count();
@@ -202,14 +205,17 @@ async function run(h) {
   ms = await moments(pg);
   check(ms.length === before + 2, `MS19: after New moment the next capture is a new moment (${ms.length - before})`);
 
-  // The replay (MS17): a walk with a stacked moment of three photos and a memo shows one grid.
+  // The replay (MS17): a walk with a stacked moment of three photos, two videos and a memo shows one grid.
   await c.close();
   await replayGrid(h, check);
 }
 
-/** A walk seeded with a stacked moment, stopped so its replay plays: one grid, a cell per photo, no count (MS17). */
+/**
+ * A walk seeded with a stacked moment, stopped so its replay plays: one grid, a cell per photo and video, no count
+ * (MS17); its trimmed video plays only its kept part in its cell (fix trimmed-length 3).
+ */
 async function replayGrid(h, check) {
-  const { navUrl, BASE, start, at, freshPage } = h;
+  const { navUrl, BASE, start, at, freshPage, toStop } = h;
   const { c, pg } = await freshPage('stacks-replay');
   await pg.goto(navUrl);
   await pg.waitForSelector('[data-testid=start]', { timeout: 30000 });
@@ -229,16 +235,36 @@ async function replayGrid(h, check) {
   const now = Date.now();
   const pts = Array.from({ length: 40 }, (_, i) => { const p = at(-1 + i * 0.05, -0.5); return { walk_id: walk.id, t: now - 600_000 + i * 15_000, lat: p[1], lon: p[0], accuracy_m: 5, speed: 1.2, course: null }; });
   const mid = pts[12];
-  const piece = (id, t, kind, file_path, body) => ({ id, moment_id: 'grid-m', t, kind, file_path, body, caption: null, caption_y: null, thumb_path: null, edit: null });
+  const piece = (id, t, kind, file_path, body, edit = null) => ({ id, moment_id: 'grid-m', t, kind, file_path, body, caption: null, caption_y: null, thumb_path: null, edit });
+  // Two videos of 5 s from one file: one whole, one trimmed to the 1.5 s from 0:01.0 to 0:02.5 (fix trimmed-length 3).
+  const trim = { start_ms: 1000, end_ms: 2500 };
   const moment = {
-    id: 'grid-m', walk_id: walk.id, t: mid.t, lat: mid.lat, lon: mid.lon, segment_id: null, piece_ids: ['grid-m', 'grid-2', 'grid-3', 'grid-memo'],
-    pieces: [piece('grid-m', mid.t, 'photo', 'g-photo', null), piece('grid-2', mid.t + 10_000, 'photo', 'g-photo', null), piece('grid-3', mid.t + 20_000, 'photo', 'g-photo', null), piece('grid-memo', mid.t + 30_000, 'voice', null, '2000')],
+    id: 'grid-m', walk_id: walk.id, t: mid.t, lat: mid.lat, lon: mid.lon, segment_id: null, piece_ids: ['grid-m', 'grid-2', 'grid-3', 'grid-v1', 'grid-v2', 'grid-memo'],
+    pieces: [
+      piece('grid-m', mid.t, 'photo', 'g-photo', null), piece('grid-2', mid.t + 10_000, 'photo', 'g-photo', null), piece('grid-3', mid.t + 20_000, 'photo', 'g-photo', null),
+      piece('grid-v1', mid.t + 22_000, 'video', 'g-video', '5000'),
+      piece('grid-v2', mid.t + 24_000, 'video', 'g-video', '5000', { v: 1, rotate: 0, crop: null, filter: 'original', strokes: [], trim }),
+      piece('grid-memo', mid.t + 30_000, 'voice', null, '2000'),
+    ],
   };
   await pg.evaluate(([id, startedAt, pts, m]) => new Promise((resolve) => {
     const cv = document.createElement('canvas');
     cv.width = 120; cv.height = 120;
-    cv.getContext('2d').fillRect(0, 0, 120, 120);
-    cv.toBlob((blob) => {
+    const g = cv.getContext('2d');
+    g.fillRect(0, 0, 120, 120);
+    // A 5 s video, recorded from the canvas (as the replay journey's).
+    const rec = new MediaRecorder(cv.captureStream(10), { mimeType: 'video/webm' });
+    const parts = [];
+    let frame = 0;
+    const paint = setInterval(() => {
+      g.fillStyle = frame++ % 2 ? '#2f5f8f' : '#c0392b';
+      g.fillRect(0, 0, 120, 120);
+    }, 100);
+    rec.ondataavailable = (e) => parts.push(e.data);
+    const recorded = new Promise((r) => { rec.onstop = () => { clearInterval(paint); r(new Blob(parts, { type: 'video/webm' })); }; });
+    rec.start();
+    setTimeout(() => rec.stop(), 5200);
+    recorded.then((video) => cv.toBlob((blob) => {
       const req = indexedDB.open('chronicles');
       req.onsuccess = () => {
         const tx = req.result.transaction(['walk', 'trace_point', 'moment', 'media'], 'readwrite');
@@ -247,26 +273,48 @@ async function replayGrid(h, check) {
         for (const p of pts) tx.objectStore('trace_point').add(p);
         tx.objectStore('moment').put(m);
         tx.objectStore('media').put({ key: 'g-photo', blob });
+        tx.objectStore('media').put({ key: 'g-video', blob: video });
         tx.oncomplete = () => resolve(true);
       };
-    }, 'image/png');
+    }, 'image/png'));
   }), [walk.id, pts[0].t - 1000, pts, moment]);
   await pg.reload();
   await pg.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
   await c.setGeolocation({ longitude: start[0], latitude: start[1], accuracy: 6 });
   await pg.waitForTimeout(2000);
+  await toStop(pg);
   const b = await pg.locator('[data-testid=stop]').boundingBox();
   await pg.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
   await pg.mouse.down();
   await pg.waitForTimeout(1100);
   await pg.mouse.up();
   await pg.waitForURL(/replay/, { timeout: 30000 }).catch(() => {});
+  // Where each of the grid's videos plays, watched from before the grid comes up: the first position seen while it
+  // plays (with a frame to show: a tag told to play before it has loaded shows nothing), the furthest it gets, and
+  // whether it is paused when last seen (the whole one, then the trimmed one).
+  await pg.evaluate(() => {
+    window.__gridVideos = [];
+    setInterval(() => {
+      document.querySelectorAll('[data-testid=replay-grid] video').forEach((v, i) => {
+        const r = (window.__gridVideos[i] ??= { first: null, max: 0, paused: true });
+        if (!v.paused && v.readyState >= 2 && r.first == null) r.first = v.currentTime;
+        r.max = Math.max(r.max, v.currentTime);
+        r.paused = v.paused;
+      });
+    }, 40);
+  });
   await pg.waitForSelector('[data-testid=replay-clock]', { timeout: 60000 }).catch(() => {});
   const seen = await pg.waitForSelector('[data-testid=replay-grid]', { timeout: 40000 }).then(() => true, () => false);
   const cells = seen ? await pg.locator('[data-testid=replay-grid] [data-testid=grid-cell]').count() : 0;
   const text = seen ? await pg.locator('[data-testid=replay-grid]').innerText() : '';
-  check(seen && cells === 3, `MS17: the stacked moment comes up as one grid, a cell for each of its photos (${cells})`);
+  check(seen && cells === 5, `MS17: the stacked moment comes up as one grid, a cell for each of its photos and videos (${cells})`);
   check(seen && !/\d/.test(text) && (await pg.locator('[data-testid=replay-grid] [role=progressbar]').count()) === 0, 'MS17: the grid has no dots, numbers or progress bar');
+  // The grid holds for its longest kept part (the whole video's 5 s): by its end the trimmed one has played 1.0-2.5 s and stopped.
+  await pg.waitForSelector('[data-testid=replay-grid]', { state: 'detached', timeout: 20000 }).catch(() => {});
+  const [whole, kept] = await pg.evaluate(() => window.__gridVideos);
+  check(!!whole && !!kept && whole.max > 3.5 && kept.first != null && kept.first >= trim.start_ms / 1000 - 0.3 && kept.max <= trim.end_ms / 1000 + 0.4 && kept.max >= trim.end_ms / 1000 - 0.4 && kept.paused,
+    `fix trimmed-length 3: in a stack's grid a trimmed video plays only its kept part, from its start to its end (kept ${JSON.stringify(kept)}, whole ${JSON.stringify(whole)})`);
+  // Stack with previous and the quick-action row (SW1-SW18, decision 0197): its checks are the `stackjoin` journey's.
   await c.close();
 }
 

@@ -19,7 +19,7 @@ swept later. The map of the skills is `.claude/skills/README.md`.
 
 ## 1. Gather the inputs
 
-- the spec: `specs/<slug>/spec.md` (criteria and the decisions list);
+- the spec: `specs/<slug>/spec.md` (criteria, the decisions list, and "How adjacent apps do it");
 - the rule file(s): `.claude/rules/<area>.md` whose `paths:` cover the slice;
 - the changed files: `git diff --name-only <base>..HEAD` for the slice's
   commits, or the plan's file list (`specs/<slug>/plan.md`);
@@ -29,6 +29,9 @@ swept later. The map of the skills is `.claude/skills/README.md`.
   journey gets one first (after the Modal's fade). List the pictures by screen.
 
 ## 2. Spawn the auditor
+
+If the slice's own UI review and cold find have not run yet, they run in this round, beside the auditor and the
+steward, never as a round of their own before it (decision 0204).
 
 Run the `auditor` subagent (`.claude/agents/auditor.md`) with the Agent tool.
 Give it the three inputs above and ask for a report-only pass that:
@@ -48,24 +51,40 @@ report before going on.
 Beside them, run the `ux-reviewer` subagent (`.claude/agents/ux-reviewer.md`) with
 the pictures, the spec and the plan's goal-to-control lines: a review of every
 changed screen against `docs/research/ui-references.md` (the cited patterns and
-the goal-to-control matrix), `docs/research/ui-teardown.md` and
+the goal-to-control matrix), the recorded precedent (the spec's "How adjacent
+apps do it" and `docs/research/adjacent-apps.md`, decision 0193) and
 `.claude/rules/ui-patterns.md`. Each finding cites its source or is marked
-opinion; an opinion is triaged as one. Its findings are numbered on after the
+opinion; an opinion is triaged as one. A screen that departs from every
+recorded app with no reason in the plan is a finding. Its findings are numbered on after the
 steward's.
 
+Before either of them is told where anything is, run the **cold find** (decision 0167): the `ux-reviewer`
+with the pictures and one sentence per task in the owner's words, and no spec, no plan and no names of
+controls. Where would it tap, or can it not tell? A task it cannot place is a `high` finding. Write the
+briefs for the passes above so that they do not answer this for the reviewer: describing "a small tag at
+the end of the dateline" is how a control nobody could find passed three reviews (note types, Nov 13).
+
+Ask the auditor, for a feature on a shared component, to list **every host** of that component from the
+code and say for each whether the feature reaches it, by intent or by accident: a host the spec did not
+name is a finding either way.
+
 Beside it, run the `steward` subagent (`.claude/agents/steward.md`) with the spec,
-its "## Vision" section, the changed screens and their pictures: does the built thing still pass
-the gate it was given (decision 0094)? Its findings are triaged with the
+its "## Vision" section and its "How adjacent apps do it", the changed screens and their pictures: does
+the built thing still pass the gate it was given (decision 0094), and did it copy a precedent's
+counter-example (a rating, a streak, a count) the record warned of? Its findings are triaged with the
 auditor's, numbered on after them.
 
 ## 3. Triage
 
 For each finding, write one line in the spec's "Audit" record:
-`N. <title>: accept | defer | reject, <reason>`.
+`N. <title>: accept | defer | reject, <reason>`. N is the audit number, and you, the triager, give it
+alone: on from `npm run book:next-audit -- <slice>` in the worktree (every number in `main`, the
+branch and the working tree, files and commit messages), one per finding in the order triaged. The
+reviewers' own numbering is theirs and never becomes an audit number.
 
 - **Accept**: a real failure the slice should handle now.
 - **Defer**: real, but out of this slice; add it to `docs/DEFERRED.md` with
-  the finding's scenario.
+  the finding's scenario (`npm run records -- deferred item add "<section>" --file <item>`).
 - **Reject**: not a failure (by a rule, an owner's call, or the spec); say which.
 - **Architectural** findings (data model, library, platform strategy,
   navigation flow) go to the owner with AskUserQuestion and a recommended
@@ -75,7 +94,7 @@ For each finding, write one line in the spec's "Audit" record:
 
 For each accepted finding, in order:
 
-1. Write the regression test, named `<slice> audit N` (`test('rides audit 3:
+1. Write the regression test, named `<slice> audit N`, N from step 3 (`test('rides audit 3:
    ...')` in the slice's folder under `src/lib/__tests__/`, or a `step('tabs audit 5 ...')`
    check in its journey under `scripts/e2e/journeys/`). Run it; it fails.
 2. Fix it. Run it; it passes.
@@ -86,9 +105,14 @@ Findings covered only by the e2e's flow and typecheck are said so in the record.
 
 - The spec's record: "N findings, M fixed, D deferred, R rejected", with the
   date and the test names.
-- `docs/STATUS.md`: the counts on the slice's row.
-- `docs/DEFERRED.md`: the deferred findings.
-- `docs/NATIVE_UNVERIFIED.md`: the auditor's native list, merged in.
+- `docs/STATUS.md`: the counts on the slice's row (`npm run records -- slice row set <match> --file <row>`).
+- `docs/DEFERRED.md`: the deferred findings (`deferred item add`).
+- `docs/NATIVE_UNVERIFIED.md`: the auditor's native list, merged in (`native item add`, one per check).
+- These three change only through `npm run records` (decision 0156, `.claude/skills/ship.md`, "The
+  record documents"): run `npm run check:records -- origin/main` and commit with the trailers
+  `npm run records -- trailers` prints. Every agent commit is gated, the audit's record too. What the
+  audit leaves for the owner's call is a bullet of a "From <skill>" section (`section add "From the
+  <slice>'s audit (<date>)"`, then `section item add`).
 - A new rule or trap learned from a finding: `.claude/rules/<area>.md`.
 
 ## 6. Verify, then deploy

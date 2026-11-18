@@ -1,0 +1,75 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "The Remind editor's chip rows wrap with a lone chip",
+        "--reason",
+        "the owner's answer (decision 0172, O9: \"Two labelled menus, \"How often: Once ▾\" and \"Until: No end ▾\"; no Undo toast.\"), built in tend explore 18: the reminder editor's How often and Until are two labelled menus, not rows of chips (with tend explore audit 20). The item: \"The Remind editor's chip rows wrap with a lone chip on the second row, and \"Reminder set\" has no Undo (pictures `03a-remind`, `03c-reminder-set`; UX review, opinion, low; `/tend explore`, Nov 11)\""
+      ],
+      "target": "sha256:845938d23e7de296dc372f7f071123610c87029ef3c8a49aa36cee1ee931eb90"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "**The reminder editor's chip rows wrap at 390 px**",
+        "--reason",
+        "built in tend explore 18: the reminder editor's How often and Until are two labelled menus, not rows of chips (decision 0172, O9, names it the same change as the [owner] item). The item: \"**The reminder editor's chip rows wrap at 390 px** (`specs/ui-conformance` audit 25, the `ux-reviewer`'s U4): \"How often\" and \"Until\" are rows of four chips each; the patterns say a single choice from a short list is a menu (matrix 15). Fix: two labelled rows (\"How often: Once ▾\", \"Until: No end ▾\"), each opening a menu. The editor predates the slice.\""
+      ],
+      "target": "sha256:ec1604671f1a01a3c52e8051260db61da93654590ba51ea7a8ff89343b905831"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "UI conformance (UC1-UC13"
+      ],
+      "body": "- [ ] **Do:** since `tend explore 18` (decision 0172, O9), on iOS and Android on a phone 320 pt wide or the narrowest you have, open a moment's More, then Remind me here; tap How often, then Until; pick Monthly at most; open How often again and press Android's Back, then Back again; save, then open \"Reminder set: change or stop\" on a reminder whose end is set. With Add to this moment's row up, open a note. **Expect:** each menu opens from its button over the card (above it when there is no room below), never as a second Modal, its choice checked; a choice closes it and the button says it whole on one line, \"How often: Monthly at most\"; the first Back closes the open menu and leaves the editor up, the second closes the editor; Until opens on \"Until: Ends <date>\"; VoiceOver and TalkBack name the button with its choice and say it is expanded or collapsed (focus is not moved into the menu yet, filed `[loop]`); the note's title starts under the camera, mic and pen, never under them (`RemindEditor.tsx`, `CaptureView.tsx`; `tend explore audit 20`, `tend explore audit 21`).\n"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 16, `/tend explore --deploy=main`, building the owner's answer O9 (decision 0172)** (opened from `9c6b308d`, rebased on `54535dcb`; no sweep, lenses 1-7 not run; the faster lane of decision 0181).\n- The two items, as main held them: `[owner]` \"The Remind editor's chip rows wrap with a lone chip on the second row, and \"Reminder set\" has no Undo\" (Explore and discovery), and its untagged duplicate \"The reminder editor's chip rows wrap at 390 px\" (UI conformance, audit 25, U4). Both leave `docs/DEFERRED.md`.\n- `tend explore 18`: How often and Until are two labelled menus, \"How often: Once\" and \"Until: No end\" with the app's chevron, each opening the chips' choices in their order over the card, the chosen one checked; a choice closes the menu; a tap outside, Escape or Back closes it before the editor; no Undo toast (a reminder is changed or stopped from More). The choices and the button's words are core (`remindChoices`, `remindMenuLabel`). What a reminder schedules and when is unchanged.\n- The review (one round, the `ux-reviewer`): it conforms; two medium, three low. `tend explore audit 20` (U1): \"How often: Monthly at most\" was cut at 320 px; the button's text is 15 px with tighter padding, whole on one line, and the button and items wrap at large text instead of cutting. `tend explore audit 21` (U2, there before this run): a note's page starts under Add to this moment's row, never under its buttons. Filed `[loop]` low in \"Reminders and notifications\": focus into the menu (U3), the menu's edge on the white card (U4, opinion), Escape and Back untested (U5). A phone check in \"UI conformance\" of `docs/NATIVE_UNVERIFIED.md`, Android Back included.\n- Not run: the sweep's lenses and the balance; journeys on the final export: memories (it runs walk), walk and launch; the others `check:affected` names are left to CI and the weekly full pass (decision 0181). Nothing here has run on a phone.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Reminders and notifications",
+        "--reason",
+        "the review of tend explore 18, ux-reviewer U3, deferred as low; not a move of the [owner] item this run removed, \"The Remind editor's chip rows wrap with a lone chip on the second row, and \"Reminder set\" has no Undo\", built in tend explore 18"
+      ],
+      "body": "- [loop] The reminder editor's menus leave focus on their button: a screen reader passes Cancel, Remind me and \"Close the menu\" before the options, and on iOS the menu's `accessibilityViewIsModal` hides the scrim from VoiceOver. Move focus to the checked item as a menu opens and back to its button as it closes (`lib/focus`), and mark the scrim `accessible={false}`, done with the viewer's More menu so both match (`RemindEditor.tsx`; M3 dialogs' focus rule by analogy, X5; the review of `tend explore 18`, U3, low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Reminders and notifications",
+        "--reason",
+        "the review of tend explore 18, ux-reviewer U4, deferred as low (opinion); not a move of the [owner] item this run removed, \"The Remind editor's chip rows wrap with a lone chip on the second row, and \"Reminder set\" has no Undo\", built in tend explore 18"
+      ],
+      "body": "- [loop] The reminder editor's open menu is white on the white card, its edge only a faint shadow where it runs over the card: a hairline `theme.line` border on `styles.menu`, or a firmer shadow (`RemindEditor.tsx`; opinion; the review of `tend explore 18`, U4, low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Reminders and notifications",
+        "--reason",
+        "the review of tend explore 18, ux-reviewer U5, deferred as low; not a move of the [owner] item this run removed, \"The Remind editor's chip rows wrap with a lone chip on the second row, and \"Reminder set\" has no Undo\", built in tend explore 18"
+      ],
+      "body": "- [loop] Escape and Back closing the reminder editor's open menu before the editor are untested: in the walk journey, open How often, press Escape, check the menu gone and `remind-editor` still up, then Escape again and the editor gone (`RemindEditor.tsx` `requestClose`, the viewer Modal's `onRequestClose` in `CaptureView.tsx`; Android Back is a phone check in docs/NATIVE_UNVERIFIED.md; the review of `tend explore 18`, U5, low)\n"
+    }
+  ]
+}

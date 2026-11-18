@@ -1,0 +1,54 @@
+// @layer core
+
+/** Location permission as the platform reads it now; `unknown` where nothing can say (no permissions API). */
+export type LocatePermission = 'granted' | 'denied' | 'prompt' | 'unknown';
+
+/** The permission now, and how many times it was seen to change since the screen began watching. */
+export interface PermissionSeen {
+  state: LocatePermission;
+  changes: number;
+}
+
+/**
+ * One way to find you (decision 0172, O6 and O20; tend explore 8). With no fix, Explore's empty card offers Find me and the
+ * map's edge Locate steps aside, so the same crosshair is never offered twice. After a Locate refusal (its notice says
+ * where to turn location on) Find me waits until the permission changes from how it was refused: `refused` is the
+ * count of changes seen when the refusal came, and a later change that still reads "denied" (the refusal's own) does not
+ * count. While the card does not offer Find me, the edge Locate is the way to you, unless location is `blocked` (tend
+ * explore audit 8): refused, and the permission reads "denied", so a tap could only be refused again. Then neither shows
+ * and the card says where to turn location on (audit 9). Where a tap may still ask ("prompt", "unknown") the edge stays.
+ */
+export function findYou(p: { cardEmpty: boolean; refused: number | null; permission: PermissionSeen }): { findMe: boolean; edgeLocate: boolean; blocked: boolean } {
+  const waiting = p.refused != null && (p.permission.changes === p.refused || p.permission.state === 'denied');
+  const findMe = p.cardEmpty && !waiting;
+  const blocked = p.cardEmpty && p.refused != null && p.permission.state === 'denied';
+  return { findMe, edgeLocate: !findMe && !blocked, blocked };
+}
+
+/**
+ * The empty card's line while location is blocked (tend explore audit 9; the owner, in person, Nov 14, during the review:
+ * "Say where to turn it on"), muted, with no crosshair. The web's is the owner's sentence; a phone has no browser, so its
+ * line names Settings, as the phone's own refusal notice does (`LOCATION_OFF.native`, `locate/notice.ts`).
+ */
+export const BLOCKED_LINE = {
+  web: 'Location is off. Turn it on in your browser’s or your phone’s settings to see the areas around you.',
+  native: 'Location is turned off for Chronicles. Turn it on in Settings to see the areas around you.',
+} as const;
+
+/**
+ * Whether a new reading of the permission ends a refusal (tend explore audit 10): a change to anything but "denied", as
+ * `findYou` stops waiting on it. The refusal's notice goes with it, so "Location is off" never stands over Find me. The
+ * first reading (`was` null) is no change.
+ */
+export function refusalLifted(was: PermissionSeen | null, state: LocatePermission): boolean {
+  return was != null && state !== was.state && state !== 'denied';
+}
+
+/**
+ * Explore's banner for an error (tend walk-screen audit 10; the owner, in person, Nov 14, adding to 0172's O6/O20 answer:
+ * "Card only on Explore"): while the empty card says location is blocked, a refusal raises no banner over it, since the
+ * card says it. A fault (no tone, or `error`) keeps its banner; the walk and the other screens keep theirs.
+ */
+export function exploreBanner<E extends { tone?: 'info' | 'error' }>(error: E | null, blocked: boolean): E | null {
+  return error && blocked && error.tone === 'info' ? null : error;
+}

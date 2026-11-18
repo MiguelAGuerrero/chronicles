@@ -1,0 +1,64 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "retag",
+        "`.claude/rules/navigation.md` repeats the line",
+        "owner",
+        "--reason",
+        "removing a rule line is the owner's (decision 0135), as the item says; the owner's next pass over the file"
+      ],
+      "target": "sha256:81def2d05713713b38100432d4599768d3171a5aabde877010d0e8505baeba9d"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "retag",
+        "Cached places (`place` store) keep the category of their read",
+        "arch",
+        "--reason",
+        "a data-model call, as the item says: drop the store or read it"
+      ],
+      "target": "sha256:cf3b17f050db47b5bffcb08b59396b1b32fca69d475951ae5f75df8713955d87"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "retag",
+        "is within about 50 characters of its 40,000-character budget",
+        "owner",
+        "--reason",
+        "a split moves and rewords existing rule lines, which the loop may not (decision 0135); Open before the loop names the split as the owner's"
+      ],
+      "target": "sha256:4a99f94410f9b37aded2eb03c004a9e21a9c3e46544dd9bb218b666ec06ff3ef"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "retag",
+        "`scaleBar`'s default `units = getUnits()` has no app caller",
+        "owner",
+        "--reason",
+        "the fix shrinks layers.baseline.json, which the loop never edits; the same as the untagged Functional core item on the baseline's two core violations"
+      ],
+      "target": "sha256:d4f731838643fead018a144d59a6b5fabc3ac57d55658205ca4868e533421397"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "retag",
+        "Native keeps the motion setting the map loaded with",
+        "owner",
+        "--reason",
+        "phone-only: native code (WalkMap.native.tsx) that only a device can verify, as the item says; the gate moves no tag from [loop] to [phone] (decision 0156), so it waits with the owner's phone items"
+      ],
+      "target": "sha256:f24a465ca676144efc8faf23f2a3e0dc355190719bc5bcf9b1e1e32b842a0861"
+    }
+  ]
+}

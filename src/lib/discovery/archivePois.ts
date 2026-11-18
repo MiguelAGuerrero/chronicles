@@ -1,6 +1,6 @@
 // @layer core
 import type { TileFeature } from '../areas/tilePlaces';
-import { ARCHIVE_CLASS_NAMES, classDef, classesOfArchive, markClassOf, named } from '../presence/presence';
+import { ARCHIVE_CLASS_NAMES, archiveClassOf, archiveUnnamedLabel, classDef, classesOfArchive, markClassOf, named } from '../presence/presence';
 import type { LngLat } from '../types';
 import { isMarkFor } from './curation';
 import { placeKey } from './places';
@@ -23,15 +23,22 @@ export const ARCHIVE_CLASSES: Record<string, readonly [CategoryId, Kind]> = Obje
   }),
 );
 
-/** One archive place as the app's `Place`: its classes from presence, its mark from curation, tagged with the archive's version. */
+/**
+ * One archive place as the app's `Place`: its classes from presence, its mark from curation, tagged with the archive's version.
+ * SP5: a small place may come unnamed (contract v3) and is named by its type, as an unnamed viewpoint is; any other unnamed
+ * place is left out.
+ */
 export function archivePlace(name: string, cls: string, at: LngLat, version: string): Place | null {
-  const n = name.trim();
+  const raw = name.trim();
+  const label = raw ? null : archiveUnnamedLabel(cls);
+  const n = raw || label;
   const mark = markClassOf(classesOfArchive(cls));
   const category = mark ? classDef(mark).category : undefined;
   if (!mark || !category || !n || !Number.isFinite(at[0]) || !Number.isFinite(at[1])) return null;
-  const classes = named(classesOfArchive(cls), n);
+  const classes = raw ? named(classesOfArchive(cls), raw) : classesOfArchive(cls);
   const kind = classDef(mark).kind;
-  return { key: placeKey(category, n, at), name: n, category, at: [at[0], at[1]], generic: false, build: version, markable: isMarkFor(classes), classes, ...(kind ? { kind } : {}) };
+  // SP6: an unnamed one keys by its words and its ~10 m cell, so two of one type in a cell are one place, two types two.
+  return { key: placeKey(category, n, at), name: n, category, at: [at[0], at[1]], generic: !raw, build: version, markable: isMarkFor(classes), classes, ...(kind ? { kind } : {}) };
 }
 
 /** PW5, PW9: an archive tile's points as places; an unnamed place or an unknown class is left out. */
@@ -41,7 +48,9 @@ export function placesFromArchive(features: TileFeature[], version: string): Pla
     if (f.geometry?.type !== 'Point') continue;
     const p = f.properties ?? {};
     const name = typeof p.name === 'string' ? p.name : '';
-    const place = archivePlace(name, String(p.class ?? ''), f.geometry.coordinates as LngLat, version);
+    // explore-subtypes audit 1: a class as its source meant it (a v3 pack's OSM plaques), presence's call.
+    const cls = archiveClassOf(String(p.class ?? ''), String(p.src ?? ''));
+    const place = archivePlace(name, cls, f.geometry.coordinates as LngLat, version);
     if (place && !out.has(place.key)) out.set(place.key, place);
   }
   return [...out.values()];

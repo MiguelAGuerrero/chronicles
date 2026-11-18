@@ -9,7 +9,7 @@ paths:
 ---
 # Tabs and home
 
-The three tabs (Chronicle, Explore, Navigate), the home sheet, the recording bar, the way to the walk screen, and the home map's lifecycle. The codemap is in `docs/ARCHITECTURE.md`; the decisions and their history are in `docs/decisions/`.
+The three tabs (Chronicle, Explore, Navigate), the home sheet and the home map's lifecycle. The recording bar and the way to the walk screen (its ›, Edit offer, reminder and Stop) are in `.claude/rules/recording-bar.md`. The codemap is in `docs/ARCHITECTURE.md`; the decisions and their history are in `docs/decisions/`.
 
 ## The opening tab (the owner's call, Nov 9: 0112, superseding 0070's Explore)
 
@@ -25,9 +25,12 @@ The three tabs (Chronicle, Explore, Navigate), the home sheet, the recording bar
 - **`/chronicle` still works**: `src/app/chronicle.tsx` calls `router.dismissTo('/')`
   on focus. Not `<Redirect href="/">`: a replace from a screen over the tabs
   stacks a second set of tabs (two tab bars; the e2e counts one).
+- **The selected tab keeps the accent tint** (`tabBarActiveTintColor: theme.accent`, `(tabs)/_layout.tsx`): a named
+  exception to "the accent at rest" (decision 0172), the owner's "Keep the accent tint", Nov 17 (decision 0186): a tinted
+  selected tab is the platforms' convention. A run never moves it to ink by citing 0172.
 - **Memories keeps a moment in one tap** (HC6-HC15): see `.claude/rules/moments-and-days.md`
-  for the band. With a walk minimized, the recording bar shows no camera on Memories
-  (`barCamera`, `lib/captureBand`), since the band files into the walk.
+  for the open line (the journal, decision 0155; `.claude/rules/journal.md`). With a walk minimized, the recording bar
+  shows no camera on Memories (`barCamera`, `lib/captureBand`), since the open line files into the walk.
 - **A stale replay link at launch goes to Chronicle** (NV2, HC5): the root layout notes
   every path in `lib/launchRoute`; a replay or day that finds nothing on the
   path the app opened on calls `router.dismissTo('/')` (the replay first sets
@@ -57,7 +60,7 @@ The three tabs (Chronicle, Explore, Navigate), the home sheet, the recording bar
   viewport back with only a `visualViewport` resize, as iOS ends a zoom.
 - **The page covers the whole screen** (`viewport-fit=cover`, set by `components/pwa.web.ts` through `coverViewport`
   in `lib/safeInsets`; fix home-indicator, the owner's Home Screen app, Nov 12). Without it iOS reports every inset
-  as 0 and every bottom bar (the tab bar, Memories' capture band) sat in the home-indicator strip. `SafeInsets` hears
+  as 0 and every bottom bar (the tab bar, Memories' capture band, now the journal's open line) sat in the home-indicator strip. `SafeInsets` hears
   an `env()` change with no resize through its probe's `transitionend` (the fit is set after the HTML loads).
   Chromium's `env()` is 0, so the e2e can't show a real inset; the owner's phone is the check.
 - **e2e:** `url` opens Chronicle's Memories; `exploreUrl` (`${url}explore`) opens the
@@ -78,32 +81,6 @@ The three tabs (Chronicle, Explore, Navigate), the home sheet, the recording bar
   Navigate tab is never the focused tab, so its icon is never tinted.
 - **The launch** (the owner, Nov 9, 0112): with no walk open the app opens on Chronicle's Memories at `/`;
   with one, the root layout's launch cover brings the walk screen straight up (NV2 launch 1-5, HC2).
-- **Going to the walk screen is `showWalk()`** (`lib/walkNav`, gate in
-  `lib/walkGate`), never `router.push('/walk')`: a second ask while one is on
-  its way or the screen is up does nothing, and the root stack's `walk` is
-  `dangerouslySingular` (tabs audit 1).
-  - The gate holds only while the walk screen is in front (`useFocusEffect`),
-    never merely mounted, and the bar's return waits at most 5 s for its
-    photo (`settleWithin`). Nov 2: minimized on the owner's iPhone, the bar's
-    › did nothing, even after closing and reopening, while the tabs worked.
-    Never reproduced (desktop, phone emulation, `/chronicles`, reloads,
-    browser Back: `E2E_ONLY=reload`, `E2E_MOBILE=1`); these are the only two
-    ways the › can do nothing.
-  - **The bar's Edit offer waits** (T12, decision 0149; ME23's six seconds stay on the walk screen and Navigate's ready
-    screen): after the bar's photo, a pill above the bar (`bar-edit-offer`, the Undo pill's look on the page's ground,
-    in flow so it covers no screen's controls) says "Photo saved to your walk" with Edit (`capture-edit`) and ✕
-    (`bar-edit-offer-close`), until Edit, ✕ or the next capture of the walk from any path (`captureBus`; Memories'
-    band too); its photo deleted or waiting on Undo (`deletions`), a failed bar photo and the walk stopping end it
-    too. Paused, the line reads "0:05 · 18 m · Paused" (numbers first, so a cut at 320 px takes the word). The line keeps its time and distance; the words, the spoken line and the rule are `barOffer*` in
-    `lib/recordingBar`. The offer is the bar's own state, and the bar unmounts whenever the tabs lose focus, so
-    returning to the walk or opening any screen over the tabs (a day, a replay) ends it too; Edit stays in the
-    photo's viewer. No store keeps it (the coordinator's ruling on the review's F2). At 320 px the
-    pill fits one line with 8 px to spare in the e2e's font: its measures are tighter than Undo's at the sides.
-  - **The bar has its own Stop** (`bar-stop`, held as on the walk screen; a
-    tap says to hold), beside its camera: a way out even when the walk screen
-    can't be reached (the owner's quick fix, Nov 2). It refuses under a memo
-    (`memoGate`), waits at most 5 s for the bar's photo, then `stopWalk` and
-    the replay.
 - **A notification opener decides at tap time** from the keeper
   (`useOpenWalkInfo` in a ref), never from what its tab read on focus: a JS
   tab stays mounted, stale, under the others (tabs audit 2).
@@ -131,7 +108,7 @@ The three tabs (Chronicle, Explore, Navigate), the home sheet, the recording bar
   `dangerouslySingular` on the native stack, the memo saved on unmount.
 - **The second batch (U5-U15, audit 6; the owner's calls, Nov 2):**
   - Explore's hint sits in its drawer's header, so the peek says it at rest
-    (U5). On its long-press card What's good here? is the filled button and
+    (U5). On its long-press card What's here? is the filled button and
     Walk here secondary, still a one-tap start (U6).
   - Chronicle's peek: with no walk finished (a walk minimized or not), the
     empty line, Days and a Navigate button (U7); otherwise a Walks | Days
@@ -192,12 +169,13 @@ The three tabs (Chronicle, Explore, Navigate), the home sheet, the recording bar
     `onRequestClose` lowers it, and a key read twice would close the Modal too.
   - A screen may refuse a height (`onSize`). A drag let go then settles back where the screen holds it;
     it was once left tall and empty where the finger let go (Nov 2).
+  - **Trap (tend tabs T38, audits 37-38):** `SheetFrame` takes `known` (Chronicle passes its first read): the mount's move and the move the first read asks for are set, every other move springs (`sheetMoveSnaps`, decision 0219). The move runs in a `useLayoutEffect` so the frame that first draws the read's peek also carries its height to `onHeight` (the scale bar); back in a `useEffect` it would rise again, with only the tabs journey's `steadyMount` to notice.
 
 ## Navigate's settings are in the ready bar (the owner's call, Nov 3, 0076)
 
 - The Start dialog (0056) is gone: its body is `StartSettings` (`components/StartSettings.tsx`),
   shown in the ready bar pulled up (see `.claude/rules/walk-screen.md`): mode, destination, "?"
-  range and what I'm into (Explore only), pocket alert, reminders and alerts, distances. Every choice
+  range and the row to What I'm into's page (Explore only; decision 0192), pocket alert, reminders and alerts, distances. Every choice
   saves as it changes. Start just starts. Nothing raises the bar mid-memo.
 - `drawerTo(pg, 'half' | 'full')` in the e2e pulls the ready bar up by its grip; `'peek'` lowers it
   with Escape and waits for the settings to unmount. `tabTo(pg, id)` reaches a tab from wherever the
@@ -228,6 +206,11 @@ The three tabs (Chronicle, Explore, Navigate), the home sheet, the recording bar
   pure) writes only the title and the line. Chronicle and the replay patch the walk in
   place through `onRenamed`, so the row and the card show it at once. `suggestTitle`
   lives in the pure `lib/walkTitle.ts` (`summary.ts` re-exports it).
+- **Rename asks before it drops changed words** (decision 0172, O17; `tend chronicle 9`): a tap outside, Escape or
+  Back with words Save would store differently (`renameChanged`, `lib/rename.ts`, read through `renamePatch`) shows
+  the media editor's Close confirm in its words, "Discard these edits?" with Keep editing and Discard, in place of Save
+  and Cancel. Escape, a tap outside the ask, and Enter or Done in the line (`tend chronicle audit 5`) keep editing;
+  Discard steps out to the menu. Cancel leaves at once: a choice already made. Words left as they opened step out at once.
 - **A title is stored only when its words differ from the suggestion at save** (the owner's yes to inbox T1,
   Nov 11): `renamePatch` returns `title: null` for an empty title, the suggestion, or the suggestion the field was
   filled with (a gap kept on the first replay's card can move the walk's area meanwhile, tend chronicle audit 1),

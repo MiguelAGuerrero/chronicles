@@ -56,11 +56,23 @@ const item = (name: string, at: LngLat, kind: Kind = 'museums', area_key = 'A'):
 
 // ——— Kinds (E16) ———
 
-test('E16, PW4, RP8, PK11, PC6: twelve kinds, in the settings order (Curiosities joined with Places worth the stop, Buildings and structures with Remarkable and public, Community spaces with Presence and kinds, Community parks with Community parks)', () => {
+test('E16, PW4, RP8, PK11, PC6, SP10, XS2: the kinds in the settings order (Curiosities joined with Places worth the stop, Buildings and structures with Remarkable and public, Community spaces with Presence and kinds, Community parks with Community parks, the small places each after its parent with Small places; since explore-subtypes, decision 0191, every subtype after its kind, the kinds under their five categories)', () => {
+  // explore-subtypes XS2-XS4 (decision 0191): eighteen rows became the plan's fifty-three, grouped by category.
   assert.deepEqual(
     KINDS.map((k) => k.id),
-    ['public_art', 'museums', 'theatres', 'community', 'monuments', 'structures', 'churches', 'cemeteries', 'parks', 'community_parks', 'viewpoints', 'curiosities'],
+    [
+      'public_art', 'statues', 'murals', 'fountains', 'signs',
+      'monuments', 'markers', 'plaques', 'war_memorials', 'small_memorials', 'battlefields', 'archaeological_sites',
+      'structures', 'bridges', 'mills', 'stations', 'lighthouses', 'civic_buildings', 'forts', 'towers', 'old_machines', 'piers', 'taverns', 'old_stones',
+      'churches', 'wayside_shrines', 'cemeteries', 'mausoleums',
+      'parks', 'community_parks', 'gardens', 'community_gardens', 'nature_reserves', 'nature', 'waterfalls', 'caves', 'hot_springs', 'natural_monuments', 'old_trees',
+      'museums', 'observatories', 'theatres', 'concert_halls', 'community', 'little_libraries', 'carousels',
+      'viewpoints', 'fire_towers', 'attractions', 'amusement_parks', 'curiosities', 'old_ruins', 'ghost_towns', 'natural_oddities', 'roadside_giants', 'survey_marks', 'time_capsules',
+    ],
   );
+  // XS2: the categories run in the headings' order, each a contiguous block.
+  const cats = KINDS.map((k) => k.category).filter((c, i, a) => c !== a[i - 1]);
+  assert.deepEqual(cats, ['art', 'history', 'parks', 'culture', 'viewpoints']);
 });
 
 test('E16: the tiles adapter gives each attraction its kind', () => {
@@ -254,7 +266,7 @@ test('E8: a capture finds the one unfound place within 60 m; with two in reach i
   const a = item('A', m(50, 0));
   const b = item('B', m(30, 0));
   assert.equal(findFor(O, [a], new Set())?.name, 'A');
-  assert.equal(findFor(O, [a, b], new Set()), null, 'two in reach: the reader picks');
+  assert.equal(findFor(O, [a, b], new Set()), null, 'two in reach: nothing is guessed');
   assert.deepEqual(findCandidates(O, [a, b], new Set()).map((x) => x.name), ['B', 'A'], 'nearest first');
   assert.equal(findFor(O, [a, b], new Set([b.key]))?.name, 'A');
   assert.equal(findFor(O, [item('Far', m(70, 0))], new Set()), null);
@@ -399,7 +411,7 @@ test('E11: a found place shows its name and category with its capture', () => {
 
 test('E11: the card lists the places found on this walk, by name', () => {
   assert.equal(foundList(['RISD Museum', 'Old North Church']), 'Found RISD Museum · Old North Church');
-  assert.equal(foundList(['A', 'B', 'C', 'D', 'E']), 'Found A · B · C and 2 more');
+  assert.equal(foundList(['A', 'B', 'C', 'D', 'E']), 'Found A · B · C and two more', 'in words since tend replay T31');
   assert.equal(foundList([]), null);
 });
 

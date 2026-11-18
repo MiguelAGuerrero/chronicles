@@ -1,30 +1,41 @@
 import type React from 'react';
+import { START_FAR_HINT, START_NOW_LABEL, startFarLine } from '../../lib/outing/journeyWords';
+import { travelMode } from '../../lib/nav/handoff';
 import { useEffect, useRef, useState } from 'react';
 import {
-  Animated, BackHandler, PanResponder, Platform, Pressable, ScrollView, StyleSheet, Text, View,
+  Animated, BackHandler, PanResponder, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions,
   type NativeScrollEvent, type NativeSyntheticEvent, type PanResponderGestureState,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
-  ATLAS_ORDER, distanceWords, familiarityWords, kindsHeading, marksExplained,
+  distanceWords, familiarityWords, KIND_GROUPS, kindsHeading, marksExplained, SIGHTS_LINE,
   type AtlasArea, type Familiarity,
 } from '../../lib/atlas/atlas';
 import type { CategoryId } from '../../lib/discovery/types';
-import { focusOn } from '../../lib/focus';
+import { atlasTileId } from '../../lib/atlas/focusOrder';
+import { focusOn, useFocusReturn, useFocusSwap, useFocusTrap } from '../../lib/focus';
 import { formatDistance } from '../../lib/format';
 import { useReducedMotion } from '../../lib/motion';
 import { MOTION } from '../../lib/motionTokens';
-import { ATLAS_RULES } from '../../lib/atlas/atlas';
+import { ATLAS_RULES, walkViaLine } from '../../lib/atlas/atlas';
+import { cardCanOpenInMaps, rowActions } from '../../lib/atlas/mapsButton';
+import { STOREFRONTS_WHAT } from '../../lib/layers/registry';
 import { COMPLEX_TARGET_MIN, SEE_MORE, SEE_MORE_LABEL } from '../../lib/complexes/lines';
 import { useAreaWords } from '../../lib/walk/useAreaWords';
 import { hideTabs } from '../../lib/tabsHidden';
 import type { LngLat } from '../../lib/types';
-import { COLORS, HOTSPOT, HOTSPOT_INK } from '../map/types';
+import { COLORS, HOTSPOT } from '../map/types';
 import { Icon } from '../icons';
+import { OpenInMapsButton, type MapsTarget } from '../OpenInMapsButton';
 import { Button, theme } from '../ui';
+import { foundRows } from '../../lib/discovery/subtypes';
 import { KIND_COLOR, KIND_ICON_OF } from './kinds';
 import { KindRow } from './KindStrip';
 import { MiniMap } from './MiniMap';
+
+/** SG3: on the web, "What's here" is a level-2 heading and its groups level 3 (react-native-web makes a bare header an h1). */
+const WHATS_HERE_LEVEL = { 'aria-level': 2 } as object;
+const GROUP_LEVEL = { 'aria-level': 3 } as object;
 
 const fmt = (m: number) => formatDistance(m);
 const lastWords = (t: number | null) =>
@@ -39,12 +50,14 @@ const CLOSE_AT = 0.3;
 const FLING_VY = 1;
 /** A pull from the content starts only once it is clearly downward, not a tap or a sideways wobble. */
 const PULL_START = 8;
+/** tend explore audit 16: narrower than this, the far question's choices stack full width (at 320 "When I get there" wrapped). */
+const ASK_STACK_W = 360;
 
 type Pan = ReturnType<typeof PanResponder.create>;
 
 /**
  * An area's card (AT8, atlas round 3): the larger picture, the eight kinds in
- * words and dots, how the marks work, busy streets, what is waiting (kinds
+ * words and dots, how the marks work, storefront streets, what is waiting (kinds
  * only, AT7), what you found, the areas next door, and Walk to, always in
  * sight in a footer. On a phone it is a full-screen drawer over the tabs, which
  * fold away while it is open; on a wide screen a panel beside the map. ✕, Back
@@ -65,23 +78,31 @@ export function AtlasCard(props: {
   fam: Familiarity;
   walked: Set<string>;
   waiting: { category: CategoryId; at: LngLat }[];
-  finds: { name: string; category: CategoryId; at: LngLat }[];
+  finds: { name: string; category: CategoryId; at: LngLat; generic?: boolean }[];
   you: LngLat | null;
   nextDoor: { area: AtlasArea; distanceM: number }[];
   walkTo: { at: LngLat; label: string; via: string | null } | null;
-  /** TP7: a graded town's busy areas, busiest first; `walkable` is whether navigation will route from where you are. */
-  busyAreas: { label: string; at: LngLat; walkable: boolean }[];
+  /** SF2, SF3: the area's storefront streets, nearest you first (`storefrontsOf`); `walkable` is whether navigation will route from where you are. */
+  storefronts: { label: string; at: LngLat | null; walkable: boolean }[];
   /** CX4: this area's complexes (the nearest few, then "See more" for the rest), or null; `walkable` is whether navigation will route from where you are. */
   complexSection?: (expanded: boolean) => { title: string; rows: { id: string; name: string; word: string; at: LngLat; label: string; walkable: boolean }[]; more: boolean } | null;
   starting: boolean;
-  /** DW14: past what can be walked (N5), the footer offers When I get there alone. */
+  /** DO6 (amending DW14): past what can be walked (N5), the footer asks Start now or When I get there. */
   farOff?: boolean;
+  /** DO7: Start now for a place past what can be walked: the outing begins here, the place ahead. */
+  onStartFar?: (at: LngLat, label: string) => void;
   /** DW2, DW5: whether Walk to a place asks Walk now or When I get there first (decision 0121). */
   askFirst?: (at: LngLat) => boolean;
   /** DW3: When I get there: the place is kept for Navigate's Start; no walk starts. */
   onLater?: (at: LngLat, label: string) => void;
   onWalk: () => void;
   onWalkAt: (at: LngLat, label: string) => void;
+  /** OM4: Open in Maps for a place on this card, at any distance: the footer, the storefront and complex rows. */
+  onMaps?: (t: MapsTarget) => void;
+  /** OM7: a tile's Walk there past 2 km opens the card with the far question already showing. */
+  askOnOpen?: boolean;
+  /** Called once the card has opened asking, so the screen forgets the request. */
+  onAsked?: () => void;
   /** WP1: a kind's "Suggest a walk" button opens the walk planner for it. */
   onPlan: (kind: CategoryId) => void;
   /** The walk planner is open over the card: its Back and Escape are the planner's, and the card stays as it was (tend explore 4). */
@@ -103,7 +124,7 @@ export function AtlasCard(props: {
   const [moreComplexes, setMoreComplexes] = useState(false);
   const reduced = useReducedMotion();
   // DW2: Walk to a far place asks first, in the footer; Back and Escape close the question before the card.
-  const [asking, setAsking] = useState<{ at: LngLat; label: string; now: () => void } | null>(null);
+  const [asking, setAsking] = useState<{ at: LngLat; label: string; now: () => void } | null>(() => (props.askOnOpen && props.walkTo ? { at: props.walkTo.at, label: props.walkTo.label, now: props.onWalk } : null));
   const close = useRef(props.onClose);
   useEffect(() => {
     close.current = asking ? () => setAsking(null) : props.onClose;
@@ -112,6 +133,9 @@ export function AtlasCard(props: {
     if (props.askFirst?.(at)) setAsking({ at, label, now });
     else now();
   };
+  useEffect(() => {
+    if (props.askOnOpen) props.onAsked?.();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const covered = useRef(!!props.covered);
   useEffect(() => {
     covered.current = !!props.covered;
@@ -129,6 +153,10 @@ export function AtlasCard(props: {
       if (Platform.OS === 'web' && typeof window !== 'undefined') window.removeEventListener('keydown', onKey);
     };
   }, []);
+  // Closing the card gives focus back to what opened it, the row's tile (tend explore 27): read before it moves into the card.
+  // The tile of the area it shows comes first: a card opened through Next door gives it to that area's tile, the one
+  // selected, never the first area's (tend explore audit 40).
+  useFocusReturn(atlasTileId(area.key));
   // Focus moves into the card as it opens, so a screen reader and a keyboard start at its name.
   const nameRef = useRef<React.ComponentRef<typeof Text>>(null);
   useEffect(() => {
@@ -136,9 +164,20 @@ export function AtlasCard(props: {
     return () => clearTimeout(t);
   }, []);
 
+  // tend explore 27: the far question takes focus on Walk now as it replaces the Walk to pressed, and gives it back on Not
+  // now (to a row's Walk to, still there, or to the footer's, drawn again).
+  const nowRef = useRef<React.ComponentRef<typeof Button>>(null);
+  const walkRef = useRef<React.ComponentRef<typeof Button>>(null);
+  useFocusSwap(asking != null, nowRef, walkRef);
+
   const insets = useSafeAreaInsets();
+  // tend explore audit 16: under this width the question's two choices stack full width, so neither label wraps.
+  const narrow = useWindowDimensions().width < ASK_STACK_W;
   const sheet = layout.kind === 'sheet';
   const screenH = sheet ? layout.screenH : 0;
+  // tend explore 27: full screen, the card keeps Tab inside it on the web; the planner over it keeps its own.
+  const frameRef = useRef<React.ComponentRef<typeof Animated.View>>(null);
+  useFocusTrap(frameRef, sheet && !props.covered);
   // The tabs fold away while the drawer is up, and come back when it goes (however it goes).
   useEffect(() => {
     if (!sheet) return;
@@ -179,7 +218,7 @@ export function AtlasCard(props: {
           testID="atlas-scrim"
         />
       )}
-      <Animated.View style={frameStyle} testID="atlas-card" accessibilityViewIsModal>
+      <Animated.View ref={frameRef} style={frameStyle} testID="atlas-card" accessibilityViewIsModal>
         <View {...pullProps} testID="atlas-card-pull">
           {layout.kind === 'sheet' && (
             <View style={[styles.grip, { paddingTop: insets.top }]} accessibilityLabel="Pull down to close" testID="atlas-card-grip">
@@ -221,13 +260,13 @@ export function AtlasCard(props: {
 
           {/* AG3: a ring the map knows almost nothing about says nothing about its kinds. */}
           {!p?.thin && (
-            <View style={styles.sec}>
+            <View style={styles.sec} testID="atlas-kinds">
               <View style={styles.secHead}>
-                <Text style={styles.secTitle} accessibilityRole="header">
+                <Text style={styles.secTitle} accessibilityRole="header" {...WHATS_HERE_LEVEL}>
                   {kindsHeading(area.level, p)}
                 </Text>
                 <Pressable testID="atlas-how" accessibilityRole="button" accessibilityState={{ expanded: how }} onPress={() => setHow((v) => !v)} style={styles.howBtn}>
-                  <Icon name="information-circle-outline" size={16} color={theme.accent} />
+                  <Icon name="information-circle-outline" size={16} color={theme.ink} />
                   <Text style={styles.howText}>How the marks work</Text>
                 </Pressable>
               </View>
@@ -237,8 +276,15 @@ export function AtlasCard(props: {
                 </View>
               )}
               {p ? (
-                ATLAS_ORDER.map((c) => (
-                  <KindRow key={c} kind={c} step={p.steps[c]} testID={`atlas-kind-${c}`} onPress={p.steps[c] ? () => props.onPlan(c) : undefined} />
+                // SG1, SG3, SG4 (decision 0200): the kinds under Sights, then Local life; both headings even when a group is all none.
+                KIND_GROUPS.map((g) => (
+                  <View key={g.id} style={styles.group}>
+                    <Text style={styles.groupTitle} accessibilityRole="header" testID={`atlas-group-${g.id}`} {...GROUP_LEVEL}>{g.label}</Text>
+                    {g.id === 'sights' && <Text style={styles.groupLine} testID="atlas-sights-line">{SIGHTS_LINE}</Text>}
+                    {g.kinds.map((c) => (
+                      <KindRow key={c} kind={c} step={p.steps[c]} testID={`atlas-kind-${c}`} onPress={p.steps[c] ? () => props.onPlan(c) : undefined} />
+                    ))}
+                  </View>
                 ))
               ) : (
                 <Text style={styles.muted}>Reading this area…</Text>
@@ -249,21 +295,35 @@ export function AtlasCard(props: {
           {/* TP3: a town wider than one read takes says it covers part of it. */}
           {p?.partial && <Text style={styles.muted} testID="atlas-partial">Covers part of the town: the middle of it, around its point.</Text>}
 
-          {/* TP7: where a town is busy, apart from its kinds: each busy street once, busiest first, with Walk to. */}
-          {props.busyAreas.length > 0 && (
+          {/* SF2, SF3: the area's storefront streets, one list, nearest you first, each with Walk to where it can be walked to. */}
+          {props.storefronts.length > 0 && (
             <View style={styles.sec}>
-              <Text style={styles.secTitle} accessibilityRole="header">Busy areas</Text>
-              <View testID="atlas-busy-areas">
-                {props.busyAreas.map((b, i) => (
-                  <View key={`${b.label}-${i}`} style={styles.pocket} testID="atlas-busy-area">
-                    <Text style={styles.pocketName}>{b.label}</Text>
-                    {b.walkable ? (
-                      <Pressable testID="atlas-busy-walk" accessibilityRole="button" accessibilityLabel={`Walk to ${b.label}`} onPress={() => walkTo(b.at, b.label, () => props.onWalkAt(b.at, b.label))} style={styles.pocketWalk}>
-                        <Text style={styles.howText}>Walk to</Text>
-                      </Pressable>
-                    ) : null}
-                  </View>
-                ))}
+              <Text style={styles.secTitle} accessibilityRole="header">Storefronts</Text>
+              {/* storefronts ui 2: what counts, in the layer tip's own words, so "Shops" above and this list never read as one thing. */}
+              <Text style={styles.muted} testID="atlas-storefronts-what">{STOREFRONTS_WHAT}</Text>
+              <View testID="atlas-storefronts">
+                {props.storefronts.map((b) => {
+                  const at = b.at;
+                  return (
+                    <View key={b.label} style={styles.pocket} testID="atlas-storefront">
+                      <View style={styles.storefrontText}>
+                        <View style={styles.storefrontName}>
+                          <View style={styles.storefrontLine} />
+                          <Text style={styles.pocketName} numberOfLines={2}>{b.label}</Text>
+                        </View>
+                        {/* OM4, OM9 (ui 2): Walk to and Open in Maps together under the name, Walk to first. */}
+                        <View style={styles.rowActionsLine}>
+                          {rowActions({ walkable: b.walkable }).walk && at ? (
+                            <Pressable testID="atlas-storefront-walk" accessibilityRole="button" accessibilityLabel={`Walk to ${b.label}`} onPress={() => walkTo(at, b.label, () => props.onWalkAt(at, b.label))} style={styles.rowWalk}>
+                              <Text style={styles.howText}>Walk to</Text>
+                            </Pressable>
+                          ) : null}
+                          {props.onMaps && at ? <OpenInMapsButton testID="atlas-storefront-maps" variant="link" target={{ at, label: b.label, kind: 'area' }} onOpen={props.onMaps} /> : null}
+                        </View>
+                      </View>
+                    </View>
+                  );
+                })}
               </View>
             </View>
           )}
@@ -281,12 +341,16 @@ export function AtlasCard(props: {
                       <View style={styles.complexText}>
                         <Text style={styles.pocketName}>{r.name}</Text>
                         <Text style={styles.muted}>{r.word}</Text>
+                        {/* OM4, OM9 (ui 2): Walk to and Open in Maps together under the name, Walk to first. */}
+                        <View style={styles.rowActionsLine}>
+                          {rowActions({ walkable: r.walkable }).walk ? (
+                            <Pressable testID="atlas-complex-walk" accessibilityRole="button" accessibilityLabel={`Walk to ${r.name}`} onPress={() => walkTo(r.at, r.name, () => props.onWalkAt(r.at, r.name))} style={styles.rowWalk}>
+                              <Text style={styles.howText}>Walk to</Text>
+                            </Pressable>
+                          ) : null}
+                          {props.onMaps ? <OpenInMapsButton testID="atlas-complex-maps" variant="link" target={{ at: r.at, label: r.name, kind: 'area' }} onOpen={props.onMaps} /> : null}
+                        </View>
                       </View>
-                      {r.walkable ? (
-                        <Pressable testID="atlas-complex-walk" accessibilityRole="button" accessibilityLabel={`Walk to ${r.name}`} onPress={() => walkTo(r.at, r.name, () => props.onWalkAt(r.at, r.name))} style={styles.complexWalk}>
-                          <Text style={styles.howText}>Walk to</Text>
-                        </Pressable>
-                      ) : null}
                     </View>
                   ))}
                   {cx.more ? (
@@ -298,20 +362,6 @@ export function AtlasCard(props: {
               </View>
             );
           })()}
-
-          {p && p.strips.length > 0 && (
-            <View style={styles.sec}>
-              <Text style={styles.secTitle} accessibilityRole="header">Busy streets</Text>
-              <View style={styles.chips} testID="atlas-streets">
-                {p.strips.map((s) => (
-                  <View key={s} style={styles.busy}>
-                    <View style={styles.busyLine} />
-                    <Text style={styles.busyText}>{s}</Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-          )}
 
           {props.waiting.length > 0 && (
             <View style={styles.sec}>
@@ -331,7 +381,8 @@ export function AtlasCard(props: {
             <View style={styles.sec}>
               <Text style={styles.secTitle} accessibilityRole="header">Found</Text>
               <View testID="atlas-found">
-                {props.finds.map((f, i) => (
+                {/* SP21: unnamed finds of one type are one row in the plural, never a column of the same word. */}
+                {foundRows(props.finds).map((f, i) => (
                   <View key={`${f.name}-${i}`} style={styles.found}>
                     <Icon name={KIND_ICON_OF[f.category]} size={18} color={KIND_COLOR[f.category]} />
                     <Text style={styles.foundName}>{f.name}</Text>
@@ -363,26 +414,26 @@ export function AtlasCard(props: {
         </View>
 
         {/* The card's main step stays in sight (atlas round 3): never at the end of a scroll. */}
-        <View style={[styles.footer, sheet && { paddingBottom: 16 + insets.bottom }]}>
+        <View style={[styles.footer, sheet && { paddingBottom: 16 + insets.bottom }]} testID="atlas-footer">
           {props.here ? (
-            <Text style={[styles.you, styles.hereLine]}>You’re in {area.name}</Text>
+            // A status, not a link (tend explore 10, decision 0172): in ink, the page's heading staying the town; in regular weight,
+            // so it never looks like a text button (tend explore audit 17).
+            <Text style={[styles.hereLine, styles.you, styles.hereStatus]}>You’re in {area.name}</Text>
           ) : asking ? (
             // DW2: Walk now starts as Walk to always did; When I get there keeps the place for Navigate's Start (DW3).
             <>
-              <View style={styles.askHead}>
-                <Text style={styles.askTitle} numberOfLines={1} accessibilityRole="header">{asking.label}</Text>
-                <Pressable testID="atlas-walk-cancel" accessibilityRole="button" accessibilityLabel="Not now" onPress={() => setAsking(null)} style={styles.askClose}>
-                  <Icon name="close" size={22} color={theme.ink} />
-                </Pressable>
-              </View>
-              <View style={styles.askRow}>
-                <Button testID="atlas-walk-now" label="Walk now" busy={props.starting} busyLabel="Starting…" style={styles.askBtn}
+              {/* tend explore 11 (decision 0172, O2): the question's way out is a quiet "Not now" in words, not a second close
+                  button; it names what it asks about only when that is not the card's own area, which the header names.
+                  tend explore audit 16: "Not now" comes after the choices, centred, as a dismissive action goes last. */}
+              {asking.label === area.name ? null : <Text style={styles.askTitle} numberOfLines={1} accessibilityRole="header">{asking.label}</Text>}
+              <View style={[styles.askRow, narrow && styles.askStack]}>
+                <Button ref={nowRef} testID="atlas-walk-now" label={START_NOW_LABEL} busy={props.starting} busyLabel="Starting…" style={narrow ? null : styles.askBtn}
                   onPress={() => {
                     const go = asking.now;
                     setAsking(null);
                     go();
                   }} />
-                <Button testID="atlas-walk-later" variant="secondary" label="When I get there" style={styles.askBtn}
+                <Button testID="atlas-walk-later" variant="secondary" label="When I get there" style={narrow ? null : styles.askBtn}
                   accessibilityHint="Keeps it on Navigate. The walk starts when you tap Start."
                   onPress={() => {
                     const a = asking;
@@ -390,16 +441,31 @@ export function AtlasCard(props: {
                     props.onLater?.(a.at, a.label);
                   }} />
               </View>
+              <Button testID="atlas-walk-cancel" variant="ghost" label="Not now" onPress={() => setAsking(null)} style={styles.askClose} />
             </>
           ) : props.walkTo && props.farOff ? (
-            // DW14: too far to walk, not too far to go.
-            <Button testID="atlas-walk-later" label="When I get there" tall
-              accessibilityHint="Keeps it on Navigate. The walk starts when you tap Start."
-              onPress={() => props.walkTo && props.onLater?.(props.walkTo.at, props.walkTo.label)} />
+            // DO6 (amending DW14): too far to walk, not too far to go: the same question as any far place. Start now begins the
+            // outing where you are, with the place ahead and no way on foot (DO7).
+            <>
+              {/* Audit (drive-in-the-outing audit 2): what Start now does is said on the card's face, as the outing page says it. */}
+              {props.onStartFar ? <Text style={styles.via} testID="atlas-start-far-line">{startFarLine(props.walkTo.label)}</Text> : null}
+              <View style={[styles.askRow, narrow && styles.askStack]}>
+                {props.onStartFar ? (
+                  <Button testID="atlas-start-far" label={START_NOW_LABEL} busy={props.starting} busyLabel="Starting…" style={narrow ? null : styles.askBtn}
+                    accessibilityHint={START_FAR_HINT}
+                    onPress={() => props.walkTo && props.onStartFar?.(props.walkTo.at, props.walkTo.label)} />
+                ) : null}
+                <Button testID="atlas-walk-later" variant={props.onStartFar ? 'secondary' : undefined} label="When I get there" style={narrow ? null : styles.askBtn}
+                  accessibilityHint="Keeps it on Navigate. The walk starts when you tap Start."
+                  onPress={() => props.walkTo && props.onLater?.(props.walkTo.at, props.walkTo.label)} />
+              </View>
+              {props.onMaps && cardCanOpenInMaps({ here: !!props.here, asking: false }) ? <OpenInMapsButton testID="atlas-card-maps" variant="button" target={{ at: props.walkTo.at, label: props.walkTo.label, kind: 'area', mode: travelMode(props.distanceM ?? null) }} onOpen={props.onMaps} style={styles.mapsFoot} /> : null}
+            </>
           ) : props.walkTo ? (
             <>
-              <Button testID="atlas-walk" label={`Walk to ${props.walkTo.label}`} onPress={() => props.walkTo && walkTo(props.walkTo.at, props.walkTo.label, props.onWalk)} busy={props.starting} busyLabel="Starting…" tall />
-              {props.walkTo.via ? <Text style={styles.via} testID="atlas-walk-via">Starts you at {props.walkTo.via}, its busiest street</Text> : null}
+              <Button ref={walkRef} testID="atlas-walk" label={`Walk to ${props.walkTo.label}`} onPress={() => props.walkTo && walkTo(props.walkTo.at, props.walkTo.label, props.onWalk)} busy={props.starting} busyLabel="Starting…" tall />
+              {props.walkTo.via ? <Text style={styles.via} testID="atlas-walk-via">{walkViaLine(props.walkTo.via)}</Text> : null}
+              {props.onMaps && cardCanOpenInMaps({ here: !!props.here, asking: false }) ? <OpenInMapsButton testID="atlas-card-maps" variant="button" target={{ at: props.walkTo.at, label: props.walkTo.label, kind: 'area', mode: travelMode(props.distanceM ?? null) }} onOpen={props.onMaps} style={styles.mapsFoot} /> : null}
             </>
           ) : (
             <Text style={[styles.muted, styles.hereLine]}>Too far to walk from here</Text>
@@ -501,8 +567,18 @@ const styles = StyleSheet.create({
   sec: { gap: 4 },
   secHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
   secTitle: { fontSize: 12, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase', color: theme.muted },
+  // SG6 (the plan review's U1): a group's heading sits under the section title: sentence case, ink, its own size.
+  group: { gap: 0, marginTop: 8 },
+  groupTitle: { fontSize: 14, fontWeight: '600', color: theme.ink, marginBottom: 2 },
+  groupLine: { fontSize: 13, color: theme.muted, marginBottom: 2 },
   howBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 44 },
-  howText: { fontSize: 13, fontWeight: '600', color: theme.accent },
+  // OM4: Open in Maps under the walk primary, as wide as it.
+  mapsFoot: { alignSelf: 'stretch' },
+  storefrontText: { flexShrink: 1, flex: 1 },
+  // ui 2: a row's two actions under its name, Walk to first.
+  rowActionsLine: { flexDirection: 'row', alignItems: 'center', gap: 16, flexWrap: 'wrap' },
+  rowWalk: { minHeight: COMPLEX_TARGET_MIN, justifyContent: 'center' },
+  howText: { fontSize: 13, fontWeight: '600', color: theme.ink },
   explain: { backgroundColor: theme.bg, borderRadius: 12, padding: 12, gap: 6, marginBottom: 4 },
   explainText: { fontSize: 14, color: theme.ink, lineHeight: 19 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
@@ -510,13 +586,10 @@ const styles = StyleSheet.create({
   // Room for a wrapped name, Walk to level with its first line; "See more" lines up with the names (the UI review, decision 0145).
   complexRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, minHeight: COMPLEX_TARGET_MIN, paddingVertical: 8, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: theme.line },
   complexMore: { minHeight: COMPLEX_TARGET_MIN, justifyContent: 'center' },
-  complexWalk: { minHeight: COMPLEX_TARGET_MIN, minWidth: COMPLEX_TARGET_MIN, justifyContent: 'center', paddingHorizontal: 8 },
   complexText: { flexShrink: 1, flex: 1 },
   pocketName: { flexShrink: 1, fontSize: 15, fontWeight: '600', color: theme.ink },
-  pocketWalk: { minHeight: 44, minWidth: 44, justifyContent: 'center', paddingHorizontal: 8 },
-  busy: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(214,38,140,0.12)', borderRadius: 999, paddingVertical: 5, paddingHorizontal: 11 },
-  busyLine: { width: 10, height: 3, borderRadius: 2, backgroundColor: HOTSPOT },
-  busyText: { fontSize: 13, fontWeight: '600', color: HOTSPOT_INK },
+  storefrontName: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 },
+  storefrontLine: { width: 10, height: 3, borderRadius: 2, backgroundColor: HOTSPOT },
   q: { width: 44, height: 44, borderRadius: 22, borderWidth: 1.6, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center' },
   qMark: { position: 'absolute', top: -4, right: -4, fontSize: 11, fontWeight: '800', color: theme.ink, backgroundColor: theme.surface, borderRadius: 8, paddingHorizontal: 3, overflow: 'hidden' },
   found: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 5 },
@@ -525,9 +598,11 @@ const styles = StyleSheet.create({
   nbName: { fontSize: 14, fontWeight: '600', color: theme.ink },
   footer: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 16, borderTopWidth: 1, borderTopColor: theme.line, gap: 6, backgroundColor: theme.surface },
   via: { fontSize: 13, color: theme.muted, textAlign: 'center' },
-  askHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  askTitle: { flex: 1, fontSize: 15, fontWeight: '600', color: theme.ink },
-  askClose: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
+  askTitle: { fontSize: 15, fontWeight: '600', color: theme.ink },
+  askClose: { alignSelf: 'center', minWidth: 44, minHeight: 44, paddingHorizontal: 16 },
+  // One line per choice, each the footer's width: a wrapping column would size them to their words.
+  askStack: { flexDirection: 'column', flexWrap: 'nowrap' },
+  hereStatus: { fontWeight: '400' },
   askRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   askBtn: { flexGrow: 1, flexBasis: 140 },
   hereLine: { color: COLORS.route, fontWeight: '600', textAlign: 'center', paddingVertical: 12 },

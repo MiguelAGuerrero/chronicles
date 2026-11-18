@@ -1,7 +1,9 @@
 // @layer core
 import type { Faced } from './moment';
 import { distanceM, isBreak, type PauseSpan } from './geo';
-import type { LngLat, TracePoint } from './types';
+import { renameChanged, renamePatch } from './rename';
+import type { LngLat, TracePoint, Walk } from './types';
+import { suggestTitle } from './walkTitle';
 
 /**
  * The replay's shared pieces: the fog beat's length, captures grouped into
@@ -41,11 +43,48 @@ export function groupCaptures(captures: Faced[]): PauseGroup[] {
 }
 
 /**
- * Where Back (Android) or Escape (web) takes the walk's replay from a beat: the name step goes back to its card with
- * the words typed kept (tend replay 4); any other beat leaves the replay, as Not now or Done does.
+ * Where Back (Android), Escape (web) or the name sheet's Back takes the walk's replay from a beat: the name step goes
+ * back to its card with the words typed kept (tend replay 4, T21); any other beat leaves the replay, as Not now or Done
+ * does, unless words typed in Name it would go with it: then it asks first (`ask`, tend replay 15). While the ask
+ * shows, Back and Escape are Keep editing, as in Rename (tend chronicle 9).
  */
-export function backFrom(beat: string): 'card' | 'leave' {
-  return beat === 'name' ? 'card' : 'leave';
+export function backFrom(beat: string, words: { typed?: boolean; asking?: boolean } = {}): 'card' | 'leave' | 'ask' | 'keep-editing' {
+  if (words.asking) return 'keep-editing';
+  if (beat === 'name') return 'card';
+  return words.typed ? 'ask' : 'leave';
+}
+
+/**
+ * Whether leaving the first replay would drop words typed in Name it (the owner's "Ask there too", Nov 16; decision
+ * 0172, O17): words Keep it would store otherwise than the walk holds, read as Rename reads them (`renameChanged`, with
+ * `offered`, the suggestion the field was filled with). Words left as they were, or both fields emptied, leave at once.
+ */
+export function wordsTyped(walk: Walk, title: string, epilogue: string, offered: string | null): boolean {
+  if (!title.trim() && !epilogue.trim()) return false;
+  return renameChanged(walk, title, epilogue, offered);
+}
+
+/**
+ * The title the walk's card shows on the first replay: the name typed in Name it, unsaved, until Keep it or leaving (the
+ * owner's "Show the typed name", Nov 17; tend replay audit 16), read as Keep it would store it, so a suggestion kept or
+ * an emptied field shows the walk's own title or its suggestion, as the card did before.
+ */
+export function cardTitle(walk: Walk, title: string, offered: string | null): string {
+  return renamePatch(walk, title, null, offered).title ?? walk.title ?? suggestTitle(walk);
+}
+
+/**
+ * Name it's fields after a Rename from the card's More (QL23): only a field Rename changed from `walk` (the walk as the
+ * card held it) takes Rename's words, so a line typed in Name it outlives a Rename of the title alone (tend replay
+ * audit 15, the review's S2; decision 0172, O17). A title Rename cleared shows the suggestion, offered as one.
+ */
+export function fieldsAfterRename(
+  walk: Walk,
+  patch: { title: string | null; epilogue: string | null },
+  fields: { title: string; epilogue: string; offered: string | null },
+): { title: string; epilogue: string; offered: string | null } {
+  const named = patch.title === walk.title ? { title: fields.title, offered: fields.offered } : { title: patch.title ?? suggestTitle(walk), offered: patch.title ? null : suggestTitle(walk) };
+  return { ...named, epilogue: patch.epilogue === walk.epilogue ? fields.epilogue : patch.epilogue ?? '' };
 }
 
 /**
@@ -123,4 +162,12 @@ export function timedRuns(fixes: TracePoint[], pauses: PauseSpan[] = []): TimedR
     runs[runs.length - 1].push({ t: f.t, p: [f.lon, f.lat] });
   });
   return runs;
+}
+
+/**
+ * The cards' one hint (tend replay T19, decision 0165), and only while the map has a pin to tap: a moment with no
+ * place draws none (tend replay audit 11). Null without a placed moment.
+ */
+export function pinHint(captures: readonly Pick<Faced, 'lat' | 'lon'>[]): string | null {
+  return captures.some((c) => c.lat != null && c.lon != null) ? 'Tap a pin to open it' : null;
 }

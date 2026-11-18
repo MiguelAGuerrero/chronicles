@@ -81,6 +81,23 @@ async function checks(h) {
     await shot(page, '08-home-star');
     check(true, 'the walk is a star on the home map');
     check((await page.locator('[data-testid=enter-bounce]').count()) === 0, 'no star settles before one is selected');
+    // tend places T15 (decision 0154, "Ink star, no numeral"): the star is a white star on ink, never the accent, says
+    // its walks in words and ". Open" (tend places audit 5), and shows no digit; selected, it keeps its disc and gains an ink ring outside its white edge
+    // (tend places audit 1).
+    const starLook = () => page.evaluate(() => {
+      const b = document.querySelector('[aria-label^="Fox Point,"]');
+      // By its testID, never its drawn width, which a selection's bounce scales (tend places audit 2).
+      const disc = b?.querySelector('[data-testid=star-disc]');
+      const cs = disc && getComputedStyle(disc);
+      const glyph = [...(disc?.querySelectorAll('*') ?? [])].find((e) => !e.childElementCount && e.textContent);
+      const ring = b?.querySelector('[data-testid=star-ring]');
+      return { label: b?.getAttribute('aria-label'), bg: cs?.backgroundColor, ring: cs?.borderTopColor, ringW: cs?.borderTopWidth, glyph: glyph && getComputedStyle(glyph).color, text: disc?.innerText ?? '',
+        outer: ring ? { bg: getComputedStyle(ring).backgroundColor, w: Math.round(ring.getBoundingClientRect().width) } : null };
+    });
+    const ink = 'rgb(29, 36, 48)';
+    const rest = await starLook();
+    check(rest.label === 'Fox Point, one walk. Open' && rest.bg === ink && rest.ring === 'rgb(255, 255, 255)' && rest.glyph === 'rgb(255, 255, 255)' && !/\d/.test(rest.text),
+      `tend places T15: a walked place is a star in ink, not the accent, and says its walks in words (${JSON.stringify(rest)})`);
     // A star lists its place's walks in the sheet, with the place's parents (H6).
     await page.click('[aria-label^="Fox Point,"]');
     await page.waitForSelector('[data-testid=place-title]');
@@ -88,6 +105,28 @@ async function checks(h) {
     const sheet = (await page.locator('[data-testid=home-sheet]').innerText()).replace(/\s+/g, ' ');
     check(/Fox Point/.test(sheet) && /Providence, Rhode Island/.test(sheet) && /Cardamom and the river\./.test(sheet), `a star lists its place's walks (${sheet.slice(0, 120)})`);
     await shot(page, '09-home-place');
+    // tend tabs 10 (decision 0172, O15): the sheet says the place's walks in words, as its star does, at 390 and 320 px.
+    for (const w of [390, 320]) {
+      if (w !== 390) {
+        await page.setViewportSize({ width: w, height: 844 });
+        await page.waitForTimeout(500);
+        await shot(page, `09-home-place-${w}`);
+      }
+      const meta = await page.evaluate(() => {
+        const e = document.querySelector('[data-testid=place-meta]');
+        return { text: e?.textContent ?? null, right: e ? Math.round(e.getBoundingClientRect().right) : null };
+      });
+      check(/ · one walk · /.test(meta.text ?? '') && !/\d+ walks?\b/.test(meta.text) && meta.right <= w,
+        `tend tabs 10: at ${w} px the place sheet says its walks in words, as its star does (${JSON.stringify(meta)})`);
+    }
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.waitForTimeout(300);
+    // tend places audit 2: read once the selection's bounce has settled.
+    await page.waitForSelector('[data-testid=enter-bounce]', { state: 'detached', timeout: 5000 }).catch(() => {});
+    const chosen = await starLook();
+    check(rest.outer === null && chosen.bg === ink && chosen.ring === 'rgb(255, 255, 255)' && chosen.ringW === '2px' && chosen.glyph === 'rgb(255, 255, 255)'
+      && chosen.outer?.bg === ink && chosen.outer?.w === 42,
+      `tend places audit 1: a selected star keeps its ink disc and white star, and gains an ink ring outside its white edge (${JSON.stringify(chosen)})`);
     // Back to the map. A mouse drag on the sheet's header settles at a step, never halfway (audit).
     await page.click('[data-testid=sheet-map]');
     await page.waitForTimeout(400);
@@ -296,6 +335,27 @@ async function checks(h) {
       `opening the walks list leaves a view that already shows every place alone (M6, audit 7: ${fitsAfter - fitsBefore} fits, star at ${Math.round(starBefore.y)}, sheet at ${Math.round(sheetTop)})`);
     check((await page.locator('[data-testid=walk-row]').count()) === 1, 'the walks list has the one stopped walk');
     await shot(page, '10-home-walks');
+    // tend tabs 11 (decision 0172, O18: one walk, described one way): the walks row says what it kept as the walk's card
+    // does (tend replay T19), no digit among it, and its More is named by its title, at 390 and 320 px.
+    for (const w of [390, 320]) {
+      if (w !== 390) {
+        await page.setViewportSize({ width: w, height: 844 });
+        await page.waitForTimeout(500);
+        await shot(page, `10-home-walks-${w}`);
+      }
+      const row = await page.evaluate(() => {
+        const e = document.querySelector('[data-testid=walk-row]');
+        const more = e?.parentElement?.querySelector('[data-testid=walk-more]');
+        const texts = e ? [...e.querySelectorAll('div, span')].filter((x) => !x.childElementCount).map((x) => x.textContent) : [];
+        return { texts, name: e?.getAttribute('aria-label') ?? null, more: more?.getAttribute('aria-label') ?? null, right: more ? Math.round(more.getBoundingClientRect().right) : null };
+      });
+      const meta = row.texts.find((t) => / · /.test(t)) ?? '';
+      const kept = meta.split(' · ').slice(3).join(' · ');
+      check(/^(a|an|one|two|three|four|five|six|seven|eight|nine|ten)[ \u00a0].*(photo|video|voice memo|note)s?$/.test(kept) && !/\d/.test(kept) && /^More for .+/.test(row.more ?? '') && row.texts.includes(row.more.replace(/^More for /, '')) && row.right <= w,
+        `tend tabs 11, tend tabs audit 23: at ${w} px the walks row says what it kept in words, lowercase after its dot, and names its More by its title (${JSON.stringify({ meta, more: row.more })})`);
+    }
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.waitForTimeout(300);
     await page.locator('[data-testid=walk-row]').first().click();
     await page.waitForSelector('[data-testid=done]', { timeout: 90000 });
     check(true, 're-watching from the walks list reaches the card with no taps');
@@ -375,6 +435,74 @@ async function checks(h) {
     const starBack = await page.locator('[aria-label^="Fox Point,"]').boundingBox();
     check((await page.locator('canvas.maplibregl-canvas').count()) === 1 && Math.abs(starBack.x - starBefore.x) < 3 && Math.abs(starBack.y - starBefore.y) < 3,
       `the Map section comes back where it was, with its stars (RM2, NV3, NV4, audit 8: ${Math.round(starBack.x)},${Math.round(starBack.y)})`);
+
+    // tend places audit 3: a merged star draws no numeral and says its places and walks in words. On a page of its own
+    // (its camera is its own), the walk is put in a second place 500 m east of Fox Point (cache rows only), the map
+    // zooms out until the two stars merge, and the rows are taken out again.
+    {
+      const merge = await ctx.newPage();
+      merge.on('pageerror', (e) => errors.push(String(e)));
+      await merge.goto(page.url());
+      const seed = (put) => merge.evaluate(({ east, put }) => new Promise((resolve) => {
+        const req = indexedDB.open('chronicles');
+        req.onsuccess = () => {
+          const tx = req.result.transaction(['area', 'walk_area'], 'readwrite');
+          const a = tx.objectStore('area').getAll();
+          const w = tx.objectStore('walk_area').getAll();
+          w.onsuccess = () => {
+            const fp = a.result.find((x) => x.level === 'neighborhood' && x.name === 'Fox Point');
+            const row = w.result.find((r) => r.area_key === fp.key);
+            const key = `${fp.key}~east`;
+            if (put) {
+              tx.objectStore('area').put({ ...fp, key, name: 'East Point', lon: east[0], lat: east[1] });
+              tx.objectStore('walk_area').put({ ...row, area_key: key, lon: east[0], lat: east[1] });
+            } else {
+              tx.objectStore('walk_area').delete([row.walk_id, key]);
+              tx.objectStore('area').delete(key);
+            }
+          };
+          tx.oncomplete = () => resolve(true);
+        };
+      }), { east: at(6, 0), put });
+      await seed(true);
+      await merge.reload();
+      await h.mapUp(merge);
+      await merge.waitForSelector('[aria-label^="East Point,"]', { timeout: 15000 }).catch(() => {});
+      const canvas = await merge.locator('canvas.maplibregl-canvas').boundingBox();
+      const mergedStar = merge.locator('.maplibregl-marker[aria-label*=" places, "]');
+      // tend map 14 (decision 0172, O14): a merged star draws two stars fanned in its one disc; a lone place one star.
+      const glyphsOf = (b) => {
+        const disc = b.querySelector('[data-testid=star-disc]');
+        const d = disc?.getBoundingClientRect();
+        const inside = (r) => !!d && r.left >= d.left && r.right <= d.right && r.top >= d.top && r.bottom <= d.bottom;
+        const fanned = [...(disc?.querySelectorAll('[data-testid=star-glyph]') ?? [])].map((g) => g.getBoundingClientRect());
+        return { disc: d ? [Math.round(d.width), Math.round(d.height)] : null, fanned: fanned.length, inside: fanned.every(inside),
+          backTopLeft: fanned.length === 2 && fanned[0].left < fanned[1].left && fanned[0].top < fanned[1].top };
+      };
+      const lone = await merge.locator('.maplibregl-marker[aria-label^="Fox Point,"]').first().evaluate(glyphsOf, null, { timeout: 3000 }).catch(() => null);
+      // Small steps, each left to settle: the stars follow the zoom at the move's end.
+      // Until they merge, or the map has gone past neighborhoods (Fox Point's own star gone too).
+      const hood = merge.locator('.maplibregl-marker[aria-label^="Fox Point,"]');
+      for (let k = 0; k < 150 && !(await mergedStar.count()) && (await hood.count()); k++) {
+        await merge.mouse.move(canvas.x + canvas.width / 2, canvas.y + canvas.height * 0.35);
+        await merge.mouse.wheel(0, 25);
+        await merge.waitForTimeout(1000);
+      }
+      const merged = await mergedStar.first().evaluate((b) => ({ label: b.getAttribute('aria-label'), text: b.querySelector('[data-testid=star-disc]')?.innerText ?? null }), null, { timeout: 3000 }).catch(() => null);
+      await shot(merge, '09b-home-merged-star');
+      check(!!merged && merged.text !== null && !/\d/.test(merged.text) && /^[A-Z][a-z-]+ places, [a-z-]+ walks?\. Zoom in$/.test(merged.label),
+        `tend places audit 3: a merged star draws no numeral and says its places and walks in words (${JSON.stringify(merged)})`);
+      const two = await mergedStar.first().evaluate(glyphsOf, null, { timeout: 3000 }).catch(() => null);
+      const one = (g) => !!g && JSON.stringify(g.disc) === '[36,36]';
+      check(one(lone) && lone.fanned === 0 && one(two) && two.fanned === 2 && two.inside && two.backTopLeft,
+        `tend map 14: a merged star draws two stars fanned in its one 36 px disc, a lone place one star (lone ${JSON.stringify(lone)}, merged ${JSON.stringify(two)})`);
+      // The picture at 320.
+      await merge.setViewportSize({ width: 320, height: 640 });
+      await merge.waitForTimeout(1200);
+      await shot(merge, '09c-home-merged-star-320');
+      await seed(false);
+      await merge.close();
+    }
 
     // Reduce motion (M2): the same home with the system setting on. Nothing presses down, the sheet snaps.
     {

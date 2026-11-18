@@ -1,0 +1,131 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Chronicle journal, cut 1 (`specs/chronicle-journal/spec.md`, decision 0155)"
+      ],
+      "body": "- **Recording a voice note from a thread at 320 px leaves the field about 20 px, and a failed save in a thread shows Retry with no \"Not kept yet\"** (audit 46): the bar's row holds the field, the timer, Discard, the camera, stop and Done in 304 px; with the field in the bar the status is never drawn. Fix: the timer row replaces the field while recording there, and the status is drawn above the row.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Chronicle journal, cut 1 (`specs/chronicle-journal/spec.md`, decision 0155)"
+      ],
+      "body": "- **Deleting the entry the page opened on rearranges the stack, and Undo does not put it back** (audit 47): `anchorOf` falls to the last entry, so the entries written since slide away. Fix: remember the anchor's time and fall to the first entry after it.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Chronicle journal, cut 1 (`specs/chronicle-journal/spec.md`, decision 0155)"
+      ],
+      "body": "- **The line being written sits about 22 px lower under its dateline than a kept entry's words** (ui U8): the field's own padding and the entry's foot stand between them, so the words rise that much on Done. Fix: give the field a kept entry's offset, checked against a photo as the entry's last piece.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Chronicle journal, cut 1 (`specs/chronicle-journal/spec.md`, decision 0155)"
+      ],
+      "body": "- **No picture of the bar's failed save (\"Not kept yet\", Retry) at 320 px** (ui U9): the status has about 120 px there. Add a `shot()` at 390 and 320 and see whether it fits.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Chronicle journal, cut 1 (`specs/chronicle-journal/spec.md`, decision 0155)"
+      ],
+      "body": "- **The page's slide waits a hard-coded 450 ms** (`SETTLE_MS` in `JournalPage`, audit 49's second half): a timing outside `lib/motionTokens`. The animated scroll itself now respects reduce motion.\n"
+    },
+    {
+      "argv": [
+        "section",
+        "item",
+        "add",
+        "From the journal's audit (2026-11-12"
+      ],
+      "body": "- **(JN28-JN33, Nov 13) With the page pulled down, words are not one tap away** (steward S1, ui U1, audit 44's order): the pen left the bar with JN32, so reading back there is only the camera and the mic, and a screen reader meets the field after every entry. It bends JN9 and VISION's \"a capture behind an extra tap\". Recommended: the pen (\"Write an entry\") returns to the bar's leading side whenever the empty page is out of view. Yours: that, a pen always, or reading back is not where words are captured.\n"
+    },
+    {
+      "argv": [
+        "section",
+        "item",
+        "add",
+        "From the journal's audit (2026-11-12"
+      ],
+      "body": "- **(JN28-JN33, Nov 13) Camera and mic change place between rest and writing** (ui U5): Done takes the trailing slot while writing, so the camera's resting place becomes the mic and the mic's becomes Done. Recommended: Done's slot is kept empty at rest, so nothing moves.\n"
+    },
+    {
+      "argv": [
+        "section",
+        "item",
+        "add",
+        "From the journal's audit (2026-11-12"
+      ],
+      "body": "- **(JN28-JN33, Nov 13) A full stack cuts its top entry mid-line under the date** (steward S2, ui U7): the date has no edge and the slide stops wherever the stack ends, so half a line of the owner's words shows, without its dateline. Options: a short fade under the held date; or the slide settles on an entry's first line.\n"
+    },
+    {
+      "argv": [
+        "section",
+        "item",
+        "add",
+        "From the journal's audit (2026-11-12"
+      ],
+      "body": "- **(JN28-JN33, Nov 13) The bar at rest is a second bar above the tab bar** (ui U3, the family of ui 1): since JN28 it holds no field, only the camera and the mic. Options: leave it; or the two captures move into the page's own top row at rest.\n"
+    },
+    {
+      "argv": [
+        "section",
+        "item",
+        "add",
+        "From the journal's audit (2026-11-12"
+      ],
+      "body": "- **(JN28-JN33, Nov 13) While you type with a walk recording, the recording bar (the dot, the time, Stop) is folded away** (steward, a question VISION does not answer): acceptable for the length of an entry, or should the writing bar keep the dot?\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Capture from Chronicle and the journal (HC1-HC15, decision 0112; JN1-JN24, decision 0155)"
+      ],
+      "body": "- [ ] **Do:** on an iPhone, in Memories with five or six entries today, tap the empty page and type three lines. **Expect:** the line being written stays visible above the bar and the keyboard the whole time (the sheet pads its foot by the keyboard's height since audit 40); the tab chips and the date are not pushed off the top of the screen. (chronicle-journal audit 40)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Capture from Chronicle and the journal (HC1-HC15, decision 0112; JN1-JN24, decision 0155)"
+      ],
+      "body": "- [ ] **Do:** on an iPhone, open a thread, type in its bar, and leave it two minutes without touching anything; and separately, in a thread, type and then take a photo. **Expect:** when the app returns to the journal's page the tab bar and the recording bar are back; they never stay folded with no keyboard up. (chronicle-journal audit 41, no automated test)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Capture from Chronicle and the journal (HC1-HC15, decision 0112; JN1-JN24, decision 0155)"
+      ],
+      "body": "- [ ] **Do:** on an iPhone and an Android phone, in Memories: tap just under the last entry; scroll back while typing and hide the keyboard; go to Explore and come back. **Expect:** the tap raises the keyboard; the page stays where you scrolled it; coming back shows the last entry on top under its date. Never run on a device: the whole-page Pressable under the field, sticky dates with `maintainVisibleContentPosition`, the anchor's reset on focus. (chronicle-journal audit 42, 43, 45)\n"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "set",
+        "Chronicle journal, cut 1"
+      ],
+      "body": "| Chronicle journal, cut 1 (Memories as a journal page in book order; the open line where writing is the capture, kept as typed, with @ references; the slip; the contents; the line opens into the note's page and the sheet draws a page's shape; since Nov 13 the words are written on the page, the page opens on the last entry with the empty page as the pen, and the day's entries stack and slide up; JN1-JN33, decision 0155) | built and audited 2026-11-12; merged with note pages and deployed by `/fix`; JN28-JN33 built 2026-11-13 from the owner's phone and calls and deployed by `/deploy`, audited 2026-11-13 (web verified by the e2e `journal`, `notepage` and seven more on the sub-path build; native unverified) | `fix/journal-note-pages`, `fix/write-on-the-page` | `specs/chronicle-journal/spec.md` | yes (39 findings: 25 fixed, 6 deferred, 7 rejected; JN28-JN33, 23: 10 fixed, 4 deferred, 6 to the owner, 3 rejected; the `/fix` review, 19: 11 fixed, 6 deferred) |\n",
+      "target": "sha256:d8e03c19eb796fd5d66d6f9bde1b794893f41fc030eb26cd6fa551505bbcbb22"
+    }
+  ]
+}

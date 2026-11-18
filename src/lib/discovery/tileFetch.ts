@@ -7,6 +7,7 @@ import type { LngLat } from '../types';
 import { decodeTile } from './tileDecode';
 import { placesFromTilePois } from './tilePois';
 import { net } from '../net';
+import { createTileBodies } from './tileBodies';
 
 /** The z14 tiles read this session under a build, so walking around inside them fetches nothing (A11). */
 const read = new Set<string>();
@@ -17,34 +18,51 @@ const RETRY_MS = 2 * 60_000;
 const FETCH_MS = 10_000;
 let failedAt: { tile: string; at: number } | null = null;
 
-async function fetchTile(url: string, shouldStop?: () => boolean): Promise<ArrayBuffer> {
+/** One tile's bytes over the network, under its own timeout; stopped when the shared read's signal aborts. */
+async function fetchOne(url: string, signal: AbortSignal): Promise<ArrayBuffer> {
   const ctl = new AbortController();
   const t = setTimeout(() => ctl.abort(), FETCH_MS);
-  // Cancel stops the fetch itself, not just what is done with it (audit).
-  const poll = shouldStop ? setInterval(() => shouldStop() && ctl.abort(), 200) : null;
+  const stop = () => ctl.abort();
+  signal.addEventListener('abort', stop);
   try {
     const res = await net.fetch(url, { signal: ctl.signal });
     if (!res.ok) throw new Error(`${res.status}`);
     return await res.arrayBuffer();
   } finally {
     clearTimeout(t);
-    if (poll) clearInterval(poll);
+    signal.removeEventListener('abort', stop);
   }
+}
+
+/**
+ * Tile bodies shared between reads (performance review, Nov 18): one fetch for every reader of a tile at once, and the
+ * last 16 kept (about two reads' worth: iPhone Safari's memory is tight, map-reactivity.md). Cancel still stops the
+ * fetch once no reader waits on it (audit).
+ */
+const bodies = createTileBodies({ fetch: fetchOne, keep: 16 });
+const fetchTile = (url: string, shouldStop?: () => boolean): Promise<ArrayBuffer> => bodies.get(url, shouldStop);
+
+/**
+ * Fetches z14 tiles' bytes, in parallel, each with its own timeout; nothing decoded (a read decodes them off the page,
+ * explore-dense-city DC7). All or nothing: any failure rejects, so a partial read is never used.
+ */
+export async function fetchTileBodies(url: string, tiles: [number, number][], zoom = TILE_ZOOM, shouldStop?: () => boolean): Promise<ArrayBuffer[]> {
+  if (!tiles.length) throw new Error('No tiles to read');
+  return Promise.all(
+    tiles.map(([x, y]) => fetchTile(url.replace('{z}', String(zoom)).replace('{x}', String(x)).replace('{y}', String(y)), shouldStop)),
+  );
 }
 
 /**
  * Fetches and decodes z14 tiles in code, in parallel, each with its own
  * timeout. All or nothing: any failure rejects, so a partial read is never used.
  */
-export async function fetchTiles(url: string, tiles: [number, number][], zoom = TILE_ZOOM, shouldStop?: () => boolean): Promise<CollectedFeatures> {
-  if (!tiles.length) throw new Error('No tiles to read');
-  const bodies = await Promise.all(
-    tiles.map(([x, y]) => fetchTile(url.replace('{z}', String(zoom)).replace('{x}', String(x)).replace('{y}', String(y)), shouldStop)),
-  );
+export async function fetchTiles(url: string, tiles: [number, number][], zoom = TILE_ZOOM, shouldStop?: () => boolean, only?: Parameters<typeof decodeTile>[4]): Promise<CollectedFeatures> {
+  const bodies = await fetchTileBodies(url, tiles, zoom, shouldStop);
   const out: CollectedFeatures = { roads: [], names: [], places: [], pois: [], landcover: [], complete: true };
   for (let i = 0; i < tiles.length; i++) {
     const [x, y] = tiles[i];
-    const f = decodeTile(new Uint8Array(bodies[i]), zoom, x, y);
+    const f = decodeTile(new Uint8Array(bodies[i]), zoom, x, y, only);
     out.roads.push(...f.roads);
     out.names.push(...f.names);
     out.places.push(...f.places);

@@ -3,7 +3,7 @@
 // E2E_ONLY=outlines runs it alone.
 
 async function run(h) {
-  const { url, exploreUrl, overtureAsked, check, shot, freshPage, divisions, at, tabTo, switchLayer } = h;
+  const { url, exploreUrl, overtureAsked, check, shot, freshPage, divisions, at, tabTo, switchLayer, snapWorld, areaTile } = h;
     const titleOf = async (label) => {
       const { c, pg } = await freshPage(label);
       await pg.goto(exploreUrl);
@@ -100,6 +100,40 @@ async function run(h) {
     check(span(after.pageView) < 6, `fix explore-fit-area: the town's page is framed on the town, not far wider (${span(after.pageView).toFixed(1)}x its width)`);
     check(span(after.reopened) < span(after.pageView) * 1.2,
       `fix explore-fit-area audit 3: opened again, the page is framed on the town as the first time, not on its reach (${span(after.reopened).toFixed(1)}x, first ${span(after.pageView).toFixed(1)}x)`);
+    // Neighborhood boundaries (HB9, HB10, HB14, HB15): a selected neighborhood's own ground is drawn as a line, in place of
+    // the ring, and gone when another is selected; Point Street has a shape, Wickenden only its point (a nearest-point share).
+    snapWorld.serve = true;
+    divisions.serve = true;
+    const ground = await (async () => {
+      const { c, pg } = await freshPage('outlines-ground');
+      await pg.goto(exploreUrl);
+      const read = async () => ({
+        ground: (await pg.locator('[data-ground]').first().getAttribute('data-ground').catch(() => null)) ?? '',
+        ring: (await pg.locator('[data-ring]').first().getAttribute('data-ring').catch(() => null)) ?? '',
+      });
+      const select = async (name) => {
+        await (await areaTile(pg, name)).click().catch(() => {});
+        // The ground is drawn once the tiles are kept; the ring stands until then.
+        await pg.waitForFunction(() => (document.querySelector('[data-ground]')?.getAttribute('data-ground') ?? '') !== '', null, { timeout: 30000 }).catch(() => {});
+        await pg.waitForTimeout(500);
+        const got = { ...(await read()), card: await pg.locator(`[data-testid=atlas-tile][data-name="${name}"]`).first().innerText().catch(() => '') };
+        // The tile's tap opened its card over the map: close it, so the picture is the map with the line.
+        await pg.click('[data-testid=atlas-card-close]').catch(() => {});
+        await pg.waitForTimeout(800);
+        await shot(pg, `outlines-ground-${name.replace(/\s+/g, '-').toLowerCase()}`);
+        return got;
+      };
+      const shaped = await select('Point Street');
+      const shared = await select('Wickenden');
+      await c.close();
+      return { shaped, shared };
+    })();
+    snapWorld.serve = false;
+    divisions.serve = false;
+    const rings = (g) => Number(g.ground);
+    check(rings(ground.shaped) > 0 && ground.shaped.ring === '', `HB9: a selected neighborhood with a shape draws its own ground as a line, not the ring (ground ${ground.shaped.ground}, ring ${ground.shaped.ring})`);
+    check(rings(ground.shared) > 0 && ground.shared.ring === '', `HB9, HB15: one with only its point draws its share the same way (ground ${ground.shared.ground}, ring ${ground.shared.ring})`);
+    check(!/\d+\s*(%|of\b)/.test(ground.shaped.card + ground.shared.card), `HB10: a neighborhood's tile carries no tally or share (${ground.shaped.card.replace(/\s+/g, ' ').slice(0, 80)})`);
     const asked = overtureAsked.filter((q) => /divisions\.pmtiles/.test(q.url));
     check(asked.length > 0 && asked.every((q) => q.range), `TO12: outlines are read from Overture's divisions by byte range (${asked.length} requests)`);
 }

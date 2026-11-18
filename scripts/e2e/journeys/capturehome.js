@@ -1,8 +1,6 @@
-// Capture from Chronicle (HC1-HC15, decision 0112): the app opens on Chronicle's Memories, which keeps a
-// moment in one tap from a band at its foot. Its own browser: an empty app first, then seeded moments, then
+// Capture from Chronicle (HC1-HC5, HC7, HC10, HC14, decision 0112): the app opens on Chronicle's Memories, which keeps a
+// moment in one tap from its open line (the journal, decision 0155; the `journal` journey holds the line's own checks). Its own browser: an empty app first, then seeded moments, then
 // a walk minimized. E2E_ONLY=capturehome runs it alone.
-
-const DAY = 86400000;
 
 // Counts every location read, so a launch that reads none and a moment that reads one fix can be told (HC9, HC14).
 const COUNT_GEO = () => {
@@ -22,48 +20,60 @@ const COUNT_GEO = () => {
   };
 };
 
-const SEED = ({ now, day }) => {
-  const note = (id, t, body) => ({ id, walk_id: null, t, lat: null, lon: null, kind: 'text', file_path: null, body, segment_id: null });
-  const caps = [];
-  for (let i = 0; i < 14; i++) caps.push(note(`n${i}`, now - (i + 2) * day, `A quiet note from a walk around town, number ${String.fromCharCode(97 + i)}.`));
-  caps.push(note('h1', now - 50 * day, 'The harbor at dusk.'), note('h2', now - 40 * day, 'Harbor lights again.'), note('h3', now - 20 * day, 'Out to the harbor early.'));
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open('chronicles');
-    req.onerror = () => reject(req.error);
-    req.onsuccess = () => {
-      const tx = req.result.transaction(['moment'], 'readwrite');
-      for (const c of caps) tx.objectStore('moment').put(((c) => ({ id: c.id, walk_id: c.walk_id ?? null, t: c.t, lat: c.lat ?? null, lon: c.lon ?? null, segment_id: c.segment_id ?? null, piece_ids: [c.id], pieces: [Object.fromEntries(Object.entries({ ...c, moment_id: c.id }).filter(([k]) => !['walk_id', 'lat', 'lon', 'segment_id'].includes(k)))] }))(c));
-      tx.oncomplete = () => resolve(true);
-      tx.onerror = () => reject(tx.error);
-    };
-  });
-};
-
-const stored = (pg) => pg.evaluate(() => new Promise((resolve) => {
+// tend captures audit 5: a read that cannot settle fails in bounded time (it rejects on an error, a blocked open or
+// after 5 s) and closes its connection, so a poll of it never hangs the journey.
+const stored = (pg) => pg.evaluate(() => new Promise((resolve, reject) => {
+  const timer = setTimeout(() => reject(new Error('stored: no answer from IndexedDB in 5 s')), 5000);
+  const fail = (e) => { clearTimeout(timer); reject(e instanceof Error ? e : new Error(`stored: ${e && e.name}`)); };
   const req = indexedDB.open('chronicles');
+  req.onerror = () => fail(req.error);
+  req.onblocked = () => fail(new Error('stored: the open was blocked'));
   req.onsuccess = () => {
-    const names = ['moment', 'walk', 'thread_member'];
-    const tx = req.result.transaction(names, 'readonly');
-    const all = (n) => new Promise((r) => { const g = tx.objectStore(n).getAll(); g.onsuccess = () => r(g.result); });
-    // Each moment read back as its one piece with the moment's own fields (decision 0123).
-    Promise.all(names.map(all)).then(([moments, walks, members]) => resolve({ captures: moments.map((m) => ({ ...m.pieces[0], id: m.id, walk_id: m.walk_id, t: m.t, lat: m.lat, lon: m.lon, segment_id: m.segment_id })), walks, members }));
+    const conn = req.result;
+    try {
+      const names = ['moment', 'walk', 'thread_member'];
+      const tx = conn.transaction(names, 'readonly');
+      tx.oncomplete = () => conn.close();
+      tx.onerror = () => { conn.close(); fail(tx.error); };
+      const all = (n) => new Promise((r, x) => { const g = tx.objectStore(n).getAll(); g.onsuccess = () => r(g.result); g.onerror = () => x(g.error); });
+      // Each moment read back as its one piece with the moment's own fields (decision 0123).
+      Promise.all(names.map(all)).then(([moments, walks, members]) => {
+        clearTimeout(timer);
+        resolve({ captures: moments.map((m) => ({ ...m.pieces[0], id: m.id, walk_id: m.walk_id, t: m.t, lat: m.lat, lon: m.lon, segment_id: m.segment_id })), walks, members });
+      }, fail);
+    } catch (e) {
+      conn.close();
+      fail(e);
+    }
   };
 }));
+
+// How far a point lies from the segment a-b, in metres (the fake grid's units are 100 m).
+const offSegmentM = (h, p, a, b) => {
+  const xy = (q) => [(q[0] - h.at(0, 0)[0]) / h.dLon * 100, (q[1] - h.at(0, 0)[1]) / h.dLat * 100];
+  const [P, A, B] = [xy(p), xy(a), xy(b)];
+  const d = [B[0] - A[0], B[1] - A[1]];
+  const len2 = d[0] * d[0] + d[1] * d[1];
+  const k = len2 ? Math.max(0, Math.min(1, ((P[0] - A[0]) * d[0] + (P[1] - A[1]) * d[1]) / len2)) : 0;
+  return Math.hypot(P[0] - A[0] - k * d[0], P[1] - A[1] - k * d[1]);
+};
 
 const box = async (pg, sel) => {
   const b = await pg.locator(sel).filter({ visible: true }).first().boundingBox();
   return b && { x: Math.round(b.x), y: Math.round(b.y), w: Math.round(b.width), h: Math.round(b.height) };
 };
-const same = (a, b) => !!a && !!b && a.x === b.x && a.y === b.y && a.w === b.w && a.h === b.h;
 const overlap = (a, b) => !!a && !!b && a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
 
 async function run(h) {
-  const { url, BASE, check, shot, glyph, iconOf, tabTo } = h;
+  const { url, BASE, check, shot, tabTo, toStop } = h;
   const { c, pg } = await h.freshPage('capturehome', { permissions: ['geolocation', 'microphone'] });
   await c.addInitScript(COUNT_GEO);
+  // The map's projection for the e2e (`window.__project`, WalkMap.web.tsx), to find the walker on Explore (tend tabs audit 30).
+  await c.addInitScript(() => { window.__perf = {}; });
   const shown = async (sel) => (await pg.locator(sel).filter({ visible: true }).count()) > 0;
   const there = (sel, timeout = 10000) => pg.waitForSelector(sel, { timeout }).then(() => true, () => false);
-  const band = '[data-testid=capture-band]';
+  // The journal's toolbar at the foot (JN41, decision 0178).
+  const band = '[data-testid=open-line]';
 
   // HC1, HC14: an empty app opens on Memories, at /, with one tab bar, no map, and no location read.
   await pg.goto(url);
@@ -87,258 +97,28 @@ async function run(h) {
     els.filter((e) => /^tab-(chronicle|explore|navigate)$/.test(e.dataset.testid)).map((e) => e.innerText.replace(/[^A-Za-z]/g, '')));
   check(tabs.join(',') === 'Chronicle,Explore,Navigate', `HC3: the tabs read Chronicle, Explore, Navigate (${tabs.join(', ')})`);
 
-  // HC13: nothing kept is one line and the band, no other button, no accent.
-  const empty = await shown('[data-testid=memories-empty]') ? await pg.locator('[data-testid=memories-empty]').evaluate((e) => ({
-    text: e.innerText.trim(),
-    buttons: e.querySelectorAll('[role=button], button').length,
-  })) : null;
-  const emptyOk = !!empty && empty.text === 'Nothing kept yet.' && empty.buttons === 0 && (await shown(band));
-  check(emptyOk, `HC13: empty Memories is "Nothing kept yet." and the band (${JSON.stringify(empty)})`);
+  // Memories is a journal since decision 0155: what the band's checks proved here (HC6-HC9, HC11-HC13, HC15 and the
+  // audit's 2, 5, 8, 9, 11) is the open line's now, checked by the `journal` journey (JN2, JN9-JN15, JN18). What stays
+  // here is the launch and the tabs, the walk minimized under Memories, the recording bar and Explore's one fix.
 
-  // HC6, HC8: three buttons, camera, mic, note, left to right, each a thumb's target, named for a screen reader.
-  const buttons = await pg.locator(`${band} [data-testid^=band-]`).filter({ visible: true }).evaluateAll((els) => els
-    .filter((e) => /^band-(photo|voice|note)$/.test(e.dataset.testid))
-    .map((e) => { const r = e.getBoundingClientRect(); return { id: e.dataset.testid, x: r.x, w: r.width, h: r.height, label: e.getAttribute('aria-label'), text: e.innerText }; })
-    .sort((a, b) => a.x - b.x));
-  check(buttons.map((b) => b.id).join(',') === 'band-photo,band-voice,band-note',
-    `HC6: the band holds the camera, the mic and the note, in that order (${buttons.map((b) => b.id).join(', ')})`);
-  check(buttons.length === 3 && [glyph('camera'), glyph('mic'), glyph('document-text')].every((g, i) => (buttons[i].text ?? '').includes(g)),
-    `HC6: with the walk screen's glyphs (${buttons.map((b) => iconOf((b.text ?? '').trim()[0] ?? '')).join(', ')})`);
-  check(buttons.length === 3 && buttons.every((b) => b.w >= 44 && b.h >= 44)
-    && buttons[0].label === 'Keep a moment: take a photo or video' && buttons[1].label === 'Keep a moment: record a voice memo' && buttons[2].label === 'Keep a moment: write a note',
-    `HC8: each a thumb's target, named for a screen reader (${JSON.stringify(buttons.map((b) => [b.w, b.h, b.label]))})`);
-  // HC8: in screen-reader order the band comes right after the Memories options button.
-  let next = null;
-  if (await shown('[data-testid=memories-menu]')) {
-    await pg.focus('[data-testid=memories-menu]');
-    await pg.keyboard.press('Tab');
-    next = await pg.evaluate(() => document.activeElement?.getAttribute('data-testid'));
-  }
-  check(next === 'band-photo', `HC8: Tab from the options button reaches the camera next (${next})`);
-  // HC12: at rest, no accent colour, digit or prompt copy in the band or the empty state.
-  const loud = await pg.evaluate((sels) => {
-    const accent = 'rgb(194, 65, 12)';
-    const out = [];
-    for (const s of sels) for (const root of document.querySelectorAll(s)) {
-      for (const e of [root, ...root.querySelectorAll('*')]) {
-        const cs = getComputedStyle(e);
-        if ([cs.color, cs.backgroundColor, cs.borderTopColor].includes(accent)) out.push(`accent:${e.dataset.testid ?? e.tagName}`);
-      }
-      if (/[0-9]/.test(root.innerText)) out.push(`digit:${root.innerText}`);
-      if (/\b(capture|start|try|don'?t forget|remember to)\b/i.test(root.innerText)) out.push(`prompt:${root.innerText}`);
-    }
-    return out;
-  }, [band, '[data-testid=memories-empty]']);
-  check(loud.length === 0, `HC12: no accent colour, number or prompt copy at rest (${loud.join('; ')})`);
-  await shot(pg, '90-capturehome-empty');
-
-  // HC9, HC15: a note heads Lately at once, then its toast says where it went; one fix, nothing after.
-  const bandAtRest = await box(pg, band);
-  await pg.click('[data-testid=band-note]');
-  await pg.waitForSelector('[data-testid=note-input]', { timeout: 5000 }).catch(() => {});
-  await pg.fill('[data-testid=note-input]', 'A heron on the old pier.').catch(() => {});
-  await pg.click('[data-testid=note-done]').catch(() => {});
-  const headed = await pg.waitForFunction(() => {
-    const first = document.querySelector('[data-testid=memories-list] [data-testid=moment-card]');
-    return !!first && first.innerText.includes('A heron on the old pier.');
-  }, null, { timeout: 8000 }).then(() => true, () => false);
-  check(headed && (await pg.locator('[data-testid=tab-chronicle][aria-selected=true]').count()) === 1,
-    'HC9: a note kept from the band heads Lately at once, without leaving Memories');
-  const toast = await pg.waitForSelector('[data-testid=band-toast]', { timeout: 15000 }).then((e) => e.innerText(), () => null);
-  check(toast === 'Note kept here', `HC15: the toast says, in words, where the note went ("${toast}")`);
-  const toastBox = await box(pg, '[data-testid=band-toast]');
-  const bandWithToast = await box(pg, band);
-  check(!!toastBox && !!bandWithToast && toastBox.y + toastBox.h <= bandWithToast.y && same(bandAtRest, bandWithToast),
-    `HC15: the toast sits above the band, and the band keeps its box (${JSON.stringify({ toastBox, bandWithToast, bandAtRest })})`);
-  const placed = await pg.waitForFunction(() => {
-    const first = document.querySelector('[data-testid=memories-list] [data-testid=moment-card]');
-    return !!first && /Fox Point|Providence|College Hill|Wayland/.test(first.innerText) || window.__geo.watching === 0;
-  }, null, { timeout: 15000 }).then(() => true, () => false);
-  const geo1 = await pg.evaluate(() => ({ ...window.__geo }));
-  await pg.waitForTimeout(4000);
-  const geo2 = await pg.evaluate(() => ({ ...window.__geo }));
-  check(placed && geo1.reads >= 1 && geo2.reads === geo1.reads && geo2.watching === 0,
-    `HC9: the moment read one fix, and nothing reads a location after it (${JSON.stringify({ geo1, geo2 })})`);
-  // Memories' own toast (Undo) sits above the band too.
-  const first = pg.locator('[data-testid=memories-list] [data-testid=moment-card]').first();
-  await first.locator('[data-testid=moment-more]').click().catch(() => {});
-  await pg.locator('[data-testid=memory-menu-hide], [data-testid=menu-hide]').first().click({ timeout: 3000 }).catch(() => {});
-  const undoBox = await pg.waitForSelector('[data-testid=memories-toast]', { timeout: 5000 }).then(() => box(pg, '[data-testid=memories-toast]'), () => null);
-  const bandWithUndo = await box(pg, band);
-  check(!!undoBox && !!bandWithUndo && undoBox.y + undoBox.h <= bandWithUndo.y && same(bandAtRest, bandWithUndo),
-    `HC15: Memories' Undo toast sits above the band (${JSON.stringify({ undoBox, bandWithUndo })})`);
-  await pg.locator('[data-testid=memories-undo]').click({ timeout: 3000 }).catch(() => {});
-
-  // capture-from-chronicle audit 2: a moment's toast and Memories' Undo at once stack, never overlap, and Undo stays tappable.
-  await pg.click('[data-testid=band-note]').catch(() => {});
-  await pg.fill('[data-testid=note-input]', 'Kept while an Undo was up.').catch(() => {});
-  await pg.click('[data-testid=note-done]').catch(() => {});
-  await pg.waitForSelector('[data-testid=band-toast]', { timeout: 15000 }).catch(() => {});
-  await pg.locator('[data-testid=memories-list] [data-testid=moment-card]').nth(1).locator('[data-testid=moment-more]').click().catch(() => {});
-  await pg.locator('[data-testid=memory-menu-hide], [data-testid=menu-hide]').first().click({ timeout: 3000 }).catch(() => {});
-  await pg.waitForSelector('[data-testid=memories-toast]', { timeout: 5000 }).catch(() => {});
-  const both = { band: await box(pg, '[data-testid=band-toast]'), undo: await box(pg, '[data-testid=memories-toast]'), row: await box(pg, band) };
-  const undoHit = await pg.evaluate(() => {
-    const u = document.querySelector('[data-testid=memories-undo]');
-    if (!u) return false;
-    const r = u.getBoundingClientRect();
-    const at = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
-    return !!at && (at === u || u.contains(at));
-  });
-  check(!!both.band && !!both.undo && !overlap(both.band, both.undo) && both.undo.y + both.undo.h <= both.row.y && both.band.y + both.band.h <= both.row.y && undoHit,
-    `capture-from-chronicle audit 2: the moment's toast and Memories' Undo stack above the band, and Undo is tappable (${JSON.stringify(both)}, hit ${undoHit})`);
-  await pg.locator('[data-testid=memories-undo]').click({ timeout: 3000 }).catch(() => {});
-
-  // HC7: with many moments, the band stays put while Lately scrolls, and the last card clears it.
-  await pg.evaluate(SEED, { now: Date.now(), day: DAY });
-  await tabTo(pg, 'explore');
-  await tabTo(pg, 'chronicle', 'memories');
-  await pg.waitForSelector('[data-testid=memories-list] [data-testid=moment-card]', { timeout: 15000 });
-  const beforeScroll = await box(pg, band);
-  const list = pg.locator('[data-testid=memories-list]');
-  for (let i = 0; i < 12; i++) await list.evaluate((e) => {
-    const s = [e, ...e.querySelectorAll('*')].find((x) => x.scrollHeight > x.clientHeight + 4 && /(auto|scroll)/.test(getComputedStyle(x).overflowY));
-    if (s) s.scrollTop = s.scrollHeight;
-  });
-  await pg.waitForTimeout(800);
-  const afterScroll = await box(pg, band);
-  const lastCard = await pg.locator('[data-testid=memories-list] [data-testid=moment-card]').last().boundingBox();
-  check(same(beforeScroll, afterScroll) && !!lastCard && !!afterScroll && lastCard.y + lastCard.height <= afterScroll.y + 0.5,
-    `HC7: the band stays put as Lately scrolls, and the last card clears it (${JSON.stringify({ beforeScroll, afterScroll, last: lastCard && Math.round(lastCard.y + lastCard.height) })})`);
-  await shot(pg, '91-capturehome-scrolled');
-
-  // capture-from-chronicle audit 5: a tap on the band between its buttons opens nothing scrolled beneath it.
-  await list.evaluate((e) => {
-    const sc = [e, ...e.querySelectorAll('*')].find((x) => x.scrollHeight > x.clientHeight + 4 && /(auto|scroll)/.test(getComputedStyle(x).overflowY));
-    if (sc) sc.scrollTop = Math.round((sc.scrollHeight - sc.clientHeight) / 2);
-  });
+  // A note kept before the walk, so Days has a day to open (the bar's Edit offer, below).
+  // The journal's composer (JN47): the toolbar's field opens it with the caret in it.
+  await pg.click('[data-testid=bar-compose]').catch(() => {});
   await pg.waitForTimeout(600);
-  const b0 = await box(pg, '[data-testid=band-photo]');
-  const b1 = await box(pg, '[data-testid=band-voice]');
-  const gapAt = b0 && b1 ? { x: Math.round((b0.x + b0.w + b1.x) / 2), y: Math.round(b0.y + b0.h / 2) } : null;
-  const beneath = gapAt ? await pg.evaluate(({ x, y }) => {
-    // What lies under the band at that point: the band itself must take it.
-    const at = document.elementFromPoint(x, y);
-    return at ? (at.closest('[data-testid=capture-band]') ? 'band' : (at.closest('[data-testid=moment-card]') ? 'card' : at.tagName)) : null;
-  }, gapAt) : null;
-  if (gapAt) await pg.mouse.click(gapAt.x, gapAt.y);
-  await pg.waitForTimeout(800);
-  const gapOpened = await shown('[data-testid=viewer-close]');
-  check(beneath === 'band' && !gapOpened, `capture-from-chronicle audit 5: a tap between the band's buttons is the band's, and opens nothing beneath (${beneath}, viewer ${gapOpened})`);
-  if (gapOpened) await pg.locator('[data-testid=viewer-close]').click().catch(() => {});
-
-  // HC7, HC8: inside a Chronicle thread the band is still there, and a note kept there joins no thread.
-  let inThread = false;
-  if (await there('[data-testid=threads-rail] [role=button]', 5000)) {
-    await pg.locator('[data-testid=threads-rail] [role=button]').first().click();
-    inThread = await there('[data-testid=thread-screen]', 5000);
-  }
-  const threadCards = inThread ? await pg.locator('[data-testid=thread-screen] [data-testid=moment-card]').count() : -1;
-  const membersBefore = (await stored(pg)).members.length;
-  const bandInThread = await box(pg, band);
-  await pg.click('[data-testid=band-note]').catch(() => {});
-  await pg.fill('[data-testid=note-input]', 'Kept while reading a thread.').catch(() => {});
-  await pg.click('[data-testid=note-done]').catch(() => {});
+  await pg.keyboard.type('A note before the walk.', { delay: 10 });
   await pg.waitForTimeout(1200);
-  const afterThread = await stored(pg);
-  check(inThread && same(beforeScroll, bandInThread),
-    `HC7: the band is there, unmoved, while a thread is open (${JSON.stringify({ inThread, bandInThread })})`);
-  check(inThread && afterThread.members.length === membersBefore
-    && (await pg.locator('[data-testid=thread-screen] [data-testid=moment-card]').count()) === threadCards
-    && afterThread.captures.some((x) => x.body === 'Kept while reading a thread.' && x.walk_id == null),
-    'HC8: a note kept while a thread is open is kept, and joins no thread');
-  // capture-from-chronicle audit 9: in a thread, its Back and heading come before the band for a screen reader.
-  const backFirst = inThread && await pg.evaluate(() => {
-    const back = document.querySelector('[data-testid=thread-back]');
-    const cam = document.querySelector('[data-testid=band-photo]');
-    return !!back && !!cam && !!(back.compareDocumentPosition(cam) & Node.DOCUMENT_POSITION_FOLLOWING);
-  });
-  check(backFirst, 'capture-from-chronicle audit 9: in a thread, Back comes before the band in reading order');
-  if (inThread) await pg.locator('[data-testid=thread-back]').click().catch(() => {});
-
-  // HC6: Walks, Days and Map show no band.
-  const sections = {};
-  for (const s of ['walks', 'days', 'map']) {
-    await pg.click(`[data-testid=section-${s}]`);
-    await pg.waitForTimeout(700);
-    sections[s] = await shown(band);
-  }
-  await pg.click('[data-testid=section-memories]');
-  check(Object.values(sections).every((v) => v === false), `HC6: Walks, Days and Map show no band (${JSON.stringify(sections)})`);
-
-  // HC11: mid-memo the band's buttons keep their places, and leaving Memories saves the memo.
-  await pg.waitForSelector(band, { timeout: 5000 }).catch(() => {});
-  const restBoxes = { photo: await box(pg, '[data-testid=band-photo]'), voice: await box(pg, '[data-testid=band-voice]'), note: await box(pg, '[data-testid=band-note]') };
-  const voicesBefore = (await stored(pg)).captures.filter((x) => x.kind === 'voice').length;
-  await pg.click('[data-testid=band-voice]').catch(() => {});
-  await pg.waitForSelector('[data-testid=band-voice-save]', { timeout: 8000 }).catch(() => {});
-  const recBoxes = { discard: await box(pg, '[data-testid=band-voice-discard]'), save: await box(pg, '[data-testid=band-voice-save]'), timer: await box(pg, '[data-testid=band-voice-timer]') };
-  const centre = (b) => b && { x: b.x + b.w / 2, y: b.y + b.h / 2 };
-  const near = (a, b) => !!a && !!b && Math.abs(centre(a).x - centre(b).x) <= 1 && Math.abs(centre(a).y - centre(b).y) <= 1;
-  check(near(restBoxes.photo, recBoxes.discard) && near(restBoxes.voice, recBoxes.save) && near(restBoxes.note, recBoxes.timer),
-    `HC11: mid-memo, Discard, Stop & save and the timer take the camera's, mic's and note's places (${JSON.stringify({ restBoxes, recBoxes })})`);
-  await pg.waitForTimeout(1600);
-  await pg.click('[data-testid=section-walks]');
-  await pg.waitForTimeout(2000);
-  const voicesAfter = (await stored(pg)).captures.filter((x) => x.kind === 'voice').length;
-  check(voicesAfter === voicesBefore + 1, `HC11: leaving Memories mid-memo saves the memo (${voicesBefore} → ${voicesAfter})`);
-  await pg.click('[data-testid=section-memories]');
-
-  // HC11: mid-memo, opening a moment saves the memo first, and nothing plays over it.
-  await pg.waitForSelector(band, { timeout: 5000 }).catch(() => {});
-  await pg.click('[data-testid=band-voice]').catch(() => {});
-  await pg.waitForSelector('[data-testid=band-voice-save]', { timeout: 8000 }).catch(() => {});
-  await pg.waitForTimeout(1600);
-  await pg.evaluate(() => {
-    // Every frame for two seconds: a viewer and a recording memo never on screen together (audit 8).
-    window.__both = false;
-    const t0 = performance.now();
-    const tick = () => {
-      if (document.querySelector('[data-testid=viewer-close]') && document.querySelector('[data-testid=band-voice-save]')) window.__both = true;
-      if (performance.now() - t0 < 2000) requestAnimationFrame(tick);
-    };
-    requestAnimationFrame(tick);
-  });
-  await pg.locator('[data-testid=memories-list] [data-testid=moment-open]').first().click().catch(() => {});
-  await pg.waitForTimeout(2000);
-  const together = await pg.evaluate(() => window.__both);
-  check(!together, 'capture-from-chronicle audit 8: a moment opened mid-memo shows only once the memo has stopped, so nothing plays over it');
-  const voicesOpened = (await stored(pg)).captures.filter((x) => x.kind === 'voice').length;
-  check(voicesOpened === voicesAfter + 1 && !(await shown('[data-testid=band-voice-save]')),
-    `HC11: opening a moment mid-memo saves the memo first (${voicesAfter} → ${voicesOpened})`);
-  await pg.locator('[data-testid=viewer-close]').click({ timeout: 3000 }).catch(() => {});
-
-  // HC6: the band still keeps a moment when Memories failed to read.
-  await pg.evaluate(() => { window.__breakReads = true; });
-  await tabTo(pg, 'explore');
-  await tabTo(pg, 'chronicle', 'memories');
-  const failed = await there('[data-testid=memories-failed]', 8000);
-  const failedAccent = failed && await pg.evaluate(() => [...document.querySelectorAll('[data-testid=memories-failed], [data-testid=memories-failed] *')]
-    .some((e) => { const cs = getComputedStyle(e); return [cs.color, cs.backgroundColor, cs.borderTopColor].includes('rgb(194, 65, 12)'); }));
-  check(failed && !failedAccent, `capture-from-chronicle audit 11: Memories' failed state, now on the launch screen, uses no accent colour (${failedAccent})`);
-  await pg.evaluate(() => { window.__breakReads = false; });
-  await pg.click('[data-testid=band-note]').catch(() => {});
-  await pg.fill('[data-testid=note-input]', 'Kept while the list was down.').catch(() => {});
-  await pg.click('[data-testid=note-done]').catch(() => {});
-  await pg.waitForTimeout(1200);
-  check(failed && (await stored(pg)).captures.some((x) => x.body === 'Kept while the list was down.'),
-    `HC6: the band keeps a moment while Memories shows it failed to read (failed: ${failed})`);
+  await pg.click('[data-testid=line-done]').catch(() => {});
+  await pg.waitForTimeout(1500);
 
   // HC10, HC7, HC15: with a walk minimized, the band files into the walk, sits above the recording bar,
   // and the bar shows no camera on Memories (decision 0112).
   await tabTo(pg, 'navigate');
   await pg.waitForSelector('[data-testid=start]', { timeout: 15000 });
   await pg.click('[data-testid=start]');
-  await pg.waitForSelector('[data-testid=stop]', { timeout: 15000 });
+  await pg.waitForSelector('[data-testid=walk-actions]', { timeout: 15000 });
   await pg.waitForTimeout(1500);
   await pg.click('[data-testid=walk-minimize]');
   await pg.waitForSelector('[data-testid=recording-bar]', { timeout: 10000 });
-  // A few steps along Wickenden Street, so the walk has a trace and a fresh fix to place by.
-  const step = async (i) => {
-    await c.setGeolocation({ longitude: h.at(-1 + i * 0.12, -1.5)[0], latitude: h.at(-1 + i * 0.12, -1.5)[1], accuracy: 6 });
-    await pg.waitForTimeout(1000);
-  };
-  for (let i = 0; i < 6; i++) await step(i);
   // A photo from the bar on Explore, which leaves its Edit pill up (T12).
   const barPhoto = async () => {
     await tabTo(pg, 'explore');
@@ -347,6 +127,79 @@ async function run(h) {
     await chooser?.setFiles(require('path').join(h.scriptsDir, 'fixtures', 'photo.jpg'));
     return pg.waitForSelector('[data-testid=bar-edit-offer]', { timeout: 10000 }).then(() => true, () => false);
   };
+  // tend tabs T36 (the proxy's yes under 0157, 2026-11-18): with the bar's Edit pill up, its room lifts Explore's map, so
+  // the press hint steps aside and at 320 x 700 the walker is under no words; it shows again as the pill goes, none of its
+  // five seconds (EC14's "after a few seconds on screen it is marked seen") having run while it stood aside. Before the
+  // steps: its half minute between steps 5 and 6 left the stop unable to place HC10's note on the trace.
+  {
+    const hint = '[data-testid=atlas-press-hint]';
+    // tend tabs audit 30 (the review's ux 1, steward 1): measured, not counted. Explore draws the walker in the map's
+    // canvas (its 'points' layer, radius 7 and a 2 px ring), at the map's `data-walker`; a hint that is not drawn has no box.
+    const rect = (sel) => pg.evaluate((q) => {
+      const r = document.querySelector(q)?.getBoundingClientRect();
+      return r && r.width > 0 ? { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height) } : null;
+    }, sel);
+    const walkerBox = () => pg.evaluate(() => {
+      const maps = [...document.querySelectorAll('[data-walker]')].filter((e) => e.getAttribute('data-walker') && e.getBoundingClientRect().width > 0);
+      if (!maps.length || !window.__project) return null;
+      const [x, y] = window.__project(maps[maps.length - 1].getAttribute('data-walker').split(',').map(Number));
+      return { x: Math.round(x - 9), y: Math.round(y - 9), w: 18, h: 18 };
+    });
+    const walkerClear = async () => {
+      const walker = await walkerBox();
+      const words = await rect(hint);
+      return { walker, words, clear: !!walker && !overlap(walker, words) };
+    };
+    await tabTo(pg, 'explore');
+    const hintBefore = await pg.waitForSelector(hint, { timeout: 10000 }).then(() => true, () => false);
+    const up = await barPhoto();
+    await pg.waitForTimeout(400);
+    const withPill = await walkerClear();
+    await shot(pg, 'tabs-T36-pill-on-explore');
+    await pg.setViewportSize({ width: 320, height: 700 });
+    await pg.waitForTimeout(500);
+    const withPill320 = await walkerClear();
+    await shot(pg, 'tabs-T36-pill-on-explore-320');
+    await pg.setViewportSize({ width: 390, height: 844 });
+    await pg.waitForTimeout(400);
+    // tend tabs audit 29: the pill's Edit opens the editor (a Modal); the hint counts none of its seconds beneath it.
+    await pg.click('[data-testid=bar-edit-offer] [data-testid=capture-edit]').catch(() => {});
+    const editor = await pg.waitForSelector('[data-testid=media-editor]', { timeout: 10000 }).then(() => true, () => false);
+    await pg.waitForTimeout(6000);
+    await pg.click('[data-testid=edit-close]').catch(() => {});
+    const afterEditor = await pg.waitForSelector(hint, { timeout: 5000 }).then(() => true, () => false);
+    check(editor && afterEditor,
+      `tend tabs audit 29: six seconds in the media editor, opened from the pill's Edit, leave the press hint unseen: it shows once the editor closes (${JSON.stringify({ editor, afterEditor })})`);
+    // The pill again, up past the hint's five seconds, then closed.
+    const upAgain = await barPhoto();
+    await pg.waitForTimeout(6000);
+    await pg.click('[data-testid=bar-edit-offer-close]').catch(() => {});
+    const back = await pg.waitForSelector(hint, { timeout: 5000 }).then(() => true, () => false);
+    await shot(pg, 'tabs-T36-hint-back');
+    await pg.setViewportSize({ width: 320, height: 700 });
+    await pg.waitForTimeout(500);
+    const back320 = await walkerClear();
+    await shot(pg, 'tabs-T36-hint-back-320');
+    await pg.setViewportSize({ width: 390, height: 844 });
+    // Shown again, it is marked seen after its own few seconds on screen, and goes.
+    await pg.waitForTimeout(6000);
+    const after = await pg.locator(hint).count();
+    // back320, the pill gone at 320 x 700, is measured and not held: the two-line hint can reach the walker with no pill
+    // (filed for the owner with tend tabs audit 30).
+    check(hintBefore && up && upAgain && withPill.clear && withPill320.clear && back && after === 0,
+      `tend tabs T36, tend tabs audit 30: while the bar's Edit pill is up the walker stands clear of Explore's press hint (390 and 320 x 700); the hint shows again as the pill goes, and is marked seen only after its few seconds on screen (${JSON.stringify({ hintBefore, up, upAgain, withPill, withPill320, back, after, back320 })})`);
+  }
+  // A few steps along Wickenden Street, so the walk has a trace and a fresh fix to place by. At a walker's pace
+  // (1.5 m a second): 12 m a second was over MAX_WALK_SPEED_MS (lib/geo), so every step was dropped as a jump and the
+  // walk kept only its first fix (tend captures audit 2).
+  const stepAt = (i) => h.at(-1 + i * 0.015, -1.5);
+  const step = async (i) => {
+    await c.setGeolocation({ longitude: stepAt(i)[0], latitude: stepAt(i)[1], accuracy: 6 });
+    await pg.waitForTimeout(1000);
+  };
+  for (let i = 0; i < 6; i++) await step(i);
+  // The walk's last fix: the context sends no new one until the next step, so it ages from here.
+  const fixAt = Date.now();
   // tend tabs audit 16: the offer lives with the bar, so a screen opened over the tabs (a day's replay) ends it, as
   // decision 0149 says; back on the tabs the bar is whole and nothing breaks.
   {
@@ -368,10 +221,19 @@ async function run(h) {
   }
   // tend tabs audit 21: a photo from the bar on Explore leaves its Edit pill up, and it follows to Memories.
   const pillUp = await barPhoto();
+  // tend tabs T37: the room runs low while the pill is up, so Memories' look owes the storage notice (only `estimate`,
+  // as the space journey patches it; put back below).
+  await pg.evaluate(() => {
+    const sm = StorageManager.prototype;
+    window.__estimate = sm.estimate;
+    sm.estimate = async () => ({ quota: 1e12, usage: 1e12 - 300 * 1024 * 1024 });
+  });
   await tabTo(pg, 'chronicle', 'memories');
   await pg.waitForSelector(band, { timeout: 10000 }).catch(() => {});
   await pg.waitForTimeout(600);
   const pillOnMemories = await shown('[data-testid=bar-edit-offer]');
+  // tend tabs T37: one dark pill at a time; the storage notice waits while the bar's Edit pill is up.
+  const noticeWithPill = await shown('[data-testid=space-line]');
   await shot(pg, 'tabs-T12-pill-on-memories');
   await pg.setViewportSize({ width: 320, height: 700 });
   await pg.waitForTimeout(500);
@@ -382,44 +244,98 @@ async function run(h) {
   const barBox = await box(pg, '[data-testid=recording-bar]');
   check(!!walkBand && !!barBox && walkBand.y + walkBand.h <= barBox.y + 0.5 && !(await shown('[data-testid=bar-photo]')),
     `HC7: with a walk minimized, the band sits above the recording bar, which shows no camera on Memories (${JSON.stringify({ walkBand, barBox })})`);
-  const walkLabel = await pg.locator('[data-testid=band-note]').getAttribute('aria-label').catch(() => null);
-  check(walkLabel === 'Add to your walk: write a note', `HC8: with a walk open, the band is named for the walk ("${walkLabel}")`);
-  await pg.click('[data-testid=band-note]').catch(() => {});
-  await pg.fill('[data-testid=note-input]', 'Kept on the walk, from Memories.').catch(() => {});
-  await pg.click('[data-testid=note-done]').catch(() => {});
-  const walkToast = await pg.waitForSelector('[data-testid=band-toast]', { timeout: 8000 }).then((e) => e.innerText(), () => null);
+  // tend captures audit 2: the walk's fix is stale (over FRESH_FIX_MS, 15 s, lib/pieceStamp) before the note begins,
+  // whatever the machine's speed, so the note is kept unplaced and only the stop can place it ("else at stop").
+  const fixAge = Date.now() - fixAt;
+  if (fixAge < 16000) await pg.waitForTimeout(16000 - fixAge);
+  // tend captures audit 3: no location is read for an entry on a walk (JN12; capture-from-chronicle audit 4).
+  const readsBefore = await pg.evaluate(() => window.__geo.reads);
+  // The journal's composer (JN47): the toolbar's field opens it with the caret in it.
+  await pg.click('[data-testid=bar-compose]').catch(() => {});
+  await pg.waitForTimeout(600);
+  await pg.keyboard.type('Kept on the walk, from Memories.', { delay: 10 });
+  await pg.waitForTimeout(1200);
+  await pg.click('[data-testid=line-done]').catch(() => {});
+  await pg.waitForTimeout(800);
+  const readsAfter = await pg.evaluate(() => window.__geo.reads);
   for (let i = 6; i < 10; i++) await step(i);
   const db = await stored(pg);
   const open = db.walks.find((w) => w.ended_at == null);
   const kept = db.captures.find((x) => x.body === 'Kept on the walk, from Memories.');
-  check(!!open && !!kept && kept.walk_id === open.id && walkToast === 'Note saved to your walk',
-    `HC10: a note from Memories with a walk minimized belongs to the walk, and says so ("${walkToast}", ${kept && kept.walk_id} vs ${open && open.id})`);
+  check(!!open && !!kept && kept.walk_id === open.id && kept.lat == null && readsAfter === readsBefore,
+    `HC10 (tend captures audit 2, audit 3): a note from Memories with a walk minimized belongs to the walk, kept unplaced with a stale fix and no location read (${JSON.stringify({ walk: kept && kept.walk_id, open: open && open.id, lat: kept && kept.lat, fixAge, reads: [readsBefore, readsAfter] })})`);
   const pillAfterNote = await pg.locator('[data-testid=bar-edit-offer]').count();
+  // tend tabs T37: the pill gone (the next capture, a note), the notice shows, in its own words, once.
+  // tend tabs audit 36 (the T37 review's auditor 4): the browser's own `estimate` is put back whatever happens here, and
+  // the notice is dismissed once it shows, so neither lingers into the checks after this one.
+  let noticeAfter = '';
+  try {
+    noticeAfter = await pg.locator('[data-testid=space-line]').filter({ visible: true }).innerText({ timeout: 5000 }).catch(() => '');
+    await pg.setViewportSize({ width: 320, height: 700 });
+    await pg.waitForTimeout(500);
+    await shot(pg, 'tabs-T37-notice-after-pill-320');
+    await pg.setViewportSize({ width: 390, height: 844 });
+    await pg.locator('[data-testid=space-dismiss]').click({ timeout: 5000 }).catch(() => {});
+  } finally {
+    await pg.evaluate(() => {
+      if (window.__estimate) StorageManager.prototype.estimate = window.__estimate;
+    });
+  }
+  check(pillOnMemories && !noticeWithPill && pillAfterNote === 0 && noticeAfter.replace(/\s+/g, ' ').trim() === 'Room for new photos and videos is running low. OK',
+    `tend tabs T37: on Memories the storage notice waits while the bar's Edit pill is up, and shows in its own words once the pill goes (${JSON.stringify({ pillOnMemories, noticeWithPill, pillAfterNote, noticeAfter })})`);
   check(pillUp && pillOnMemories && pillAfterNote === 0,
-    `tend tabs audit 21: the bar's Edit pill, up on Memories after a bar photo, ends with the next capture, a note from Memories' band (${pillUp}, ${pillOnMemories}, ${pillAfterNote})`);
+    `tend tabs audit 21: the bar's Edit pill, up on Memories after a bar photo, ends with the next capture, a note from Memories' open line (${pillUp}, ${pillOnMemories}, ${pillAfterNote})`);
+  // tend captures audit 2: the other half of HC10, "the latest fix": a note begun just after a fresh fix is placed there
+  // when it is kept.
+  await step(10);
+  await pg.click('[data-testid=bar-compose]').catch(() => {});
+  await pg.waitForTimeout(600);
+  await pg.keyboard.type('Kept at the latest fix.', { delay: 10 });
+  await pg.waitForTimeout(1200);
+  await pg.click('[data-testid=line-done]').catch(() => {});
+  await pg.waitForTimeout(800);
+  const atFix = (await stored(pg)).captures.find((x) => x.body === 'Kept at the latest fix.');
+  const fixOff = atFix && atFix.lat != null ? Math.round(h.distanceM([atFix.lon, atFix.lat], stepAt(10))) : null;
+  check(!!atFix && atFix.walk_id === open?.id && fixOff != null && fixOff <= 5,
+    `HC10 (tend captures audit 2): a note begun with a fresh fix on the walk is placed at that fix when kept (${JSON.stringify({ walk: atFix && atFix.walk_id, fixOff })})`);
   await pg.click('[data-testid=recording-return]');
-  await pg.waitForSelector('[data-testid=stop]', { timeout: 10000 });
+  await pg.waitForSelector('[data-testid=walk-actions]', { timeout: 10000 });
   await pg.waitForTimeout(1200);
   await shot(pg, '92-capturehome-walk');
   // Stopped from the bar, the walk places the note as it places its own captures (here, at stop), and its
   // replay plays it.
   await pg.click('[data-testid=walk-minimize]');
   await pg.waitForSelector('[data-testid=bar-stop]', { timeout: 10000 });
+  await pg.evaluate(() => {
+    window.__sawNote = false;
+    const look = () => {
+      if (location.pathname.includes('/replay/') && document.body.innerText.includes('Kept on the walk, from Memories.')) window.__sawNote = true;
+      if (!window.__sawNote) requestAnimationFrame(look);
+    };
+    requestAnimationFrame(look);
+  });
   const sb = await pg.locator('[data-testid=bar-stop]').boundingBox();
   await pg.mouse.move(sb.x + sb.width / 2, sb.y + sb.height / 2);
   await pg.mouse.down();
   await pg.waitForTimeout(1100);
   await pg.mouse.up();
   await pg.waitForURL(/replay/, { timeout: 30000 }).catch(() => {});
-  const placedNote = await pg.waitForFunction(() => new Promise((resolve) => {
-    const req = indexedDB.open('chronicles');
-    req.onsuccess = () => {
-      const g = req.result.transaction(['moment'], 'readonly').objectStore('moment').getAll();
-      g.onsuccess = () => resolve(g.result.map((m) => ({ ...m.pieces[0], id: m.id, walk_id: m.walk_id, t: m.t, lat: m.lat, lon: m.lon, segment_id: m.segment_id })).find((x) => x.body === 'Kept on the walk, from Memories.' && x.lat != null) ?? null);
-    };
-  }), null, { timeout: 15000, polling: 500 }).then((v) => v.jsonValue(), () => null);
-  check(!!placedNote && placedNote.walk_id === open?.id, `HC10: the stopped walk placed the note as its own capture (${placedNote && [placedNote.lat, placedNote.lon]})`);
-  const played = await pg.waitForSelector('text=Kept on the walk, from Memories.', { timeout: 60000 }).then(() => true, () => false);
+  // tend captures 2: polled from here, since waitForFunction takes an async predicate's pending promise as its first
+  // truthy result and resolves with that one read's value: it read the note once as the replay opened, before a slow
+  // snap (behind "Reading the streets you walked…") had placed it, and failed on a busy machine.
+  let placedNote = null;
+  let lastNote = null;
+  for (let i = 0; i < 60 && !placedNote; i++) {
+    lastNote = (await stored(pg).catch(() => ({ captures: [] }))).captures.find((x) => x.body === 'Kept on the walk, from Memories.') ?? null;
+    if (lastNote && lastNote.lat != null) placedNote = lastNote;
+    else await pg.waitForTimeout(500);
+  }
+  // tend captures audit 3: placed on the walk's trace at its time, between the fixes of steps 5 and 6.
+  const offTrace = placedNote ? Math.round(offSegmentM(h, [placedNote.lon, placedNote.lat], stepAt(5), stepAt(6))) : null;
+  check(!!placedNote && placedNote.walk_id === open?.id && offTrace != null && offTrace <= 5,
+    `HC10 (tend captures 2, audit 3): the stopped walk placed the note as its own capture, on its trace at its time, waited for and not read once (${JSON.stringify(placedNote ? { walk: placedNote.walk_id, offTrace } : lastNote && { walk: lastNote.walk_id, lat: lastNote.lat })})`);
+  // Watched from before Stop: a short walk's replay can show the note and reach its card before a wait begins here.
+  const played = await pg.waitForFunction(() => window.__sawNote === true, null, { timeout: 60000 }).then(() => true, () => false);
   check(played, 'HC10: the walk\'s replay plays the note kept from Memories');
 
   // capture-from-chronicle audit 3, 4: a denied mic on the web says so above the band, with no Settings button
@@ -438,14 +354,169 @@ async function run(h) {
     const err = await p3.waitForSelector('[data-testid=band-error]', { timeout: 8000 }).then(() => true, () => false);
     const settingsBtn = err ? await p3.locator('[data-testid=band-error] [role=button]').count() : -1;
     check(err && settingsBtn === 0, `capture-from-chronicle audit 4: on the web a denied mic is said above the band, with no Settings button (${err}, ${settingsBtn})`);
-    await p3.click('[data-testid=band-note]').catch(() => {});
-    await p3.fill('[data-testid=note-input]', 'Kept beside an error.').catch(() => {});
-    await p3.click('[data-testid=note-done]').catch(() => {});
-    await p3.waitForSelector('[data-testid=band-toast]', { timeout: 15000 }).catch(() => {});
-    const pair = { err: await box(p3, '[data-testid=band-error]'), toast: await box(p3, '[data-testid=band-toast]') };
-    check(!!pair.err && !!pair.toast && !overlap(pair.err, pair.toast),
-      `capture-from-chronicle audit 3: an error above the band and a moment's toast stack, never covering each other (${JSON.stringify(pair)})`);
+    // An entry written beside the error: the line keeps its box under it (the journal has no toast to stack).
+    const pair = { err: await box(p3, '[data-testid=band-error]'), line: await box(p3, '[data-testid=open-line]') };
+    check(!!pair.err && !!pair.line && !overlap(pair.err, pair.line),
+      `capture-from-chronicle audit 3: an error sits above the open line, never over it (${JSON.stringify(pair)})`);
     await c3.close();
+  }
+
+  // Empty walk (EW1, EW8, EW9): a walk started and stopped from the bar where the phone never moved, holding nothing, has no replay:
+  // the pill says "Walk not kept." with Undo, which brings the walk back whole; closing the pill lets it go.
+  {
+    const { c: c4, pg: p4 } = await h.freshPage('capturehome-empty', { permissions: ['geolocation'] });
+    await p4.goto(url);
+    await tabTo(p4, 'navigate');
+    await p4.waitForSelector('[data-testid=start]', { timeout: 30000 });
+    const holdStop = async (id = 'bar-stop') => {
+      await p4.waitForSelector(`[data-testid=${id}]`, { timeout: 10000 });
+      const bb = await p4.locator(`[data-testid=${id}]`).boundingBox();
+      await p4.mouse.move(bb.x + bb.width / 2, bb.y + bb.height / 2);
+      await p4.mouse.down();
+      await p4.waitForTimeout(1100);
+      await p4.mouse.up();
+    };
+    const begin = async (minimize = true) => {
+      await p4.click('[data-testid=start]');
+      await p4.waitForSelector('[data-testid=walk-actions]', { timeout: 15000 });
+      // Standing still, the phone keeps reporting the same place; the context's one fix is stale once a walk starts later (a phone's are fresh).
+      for (let i = 0; i < 3; i++) {
+        await c4.setGeolocation({ longitude: h.start[0], latitude: h.start[1], accuracy: 6 });
+        await p4.waitForTimeout(1300);
+      }
+      if (minimize) await p4.click('[data-testid=walk-minimize]');
+    };
+    await begin();
+    await holdStop();
+    const pill = await p4.waitForSelector('[data-testid=undo-toast]', { timeout: 15000 }).then(() => true, () => false);
+    const said = pill ? await p4.locator('[data-testid=undo-toast]').innerText() : '';
+    check(pill && /Walk not kept\./.test(said) && !/\d|nothing|empty|wasted/i.test(said) && !/replay/.test(p4.url()),
+      `EW1, EW8: stopping a walk that held nothing plays no replay and says "Walk not kept." (${said.replace(/\n/g, ' | ')}, ${p4.url()})`);
+    await p4.click('[data-testid=undo]');
+    await p4.waitForTimeout(1200);
+    const back = (await stored(p4)).walks.filter((w) => w.ended_at != null);
+    check(back.length === 1, `EW9: Undo brings the walk back, ended and whole (${back.length})`);
+    await p4.goto(url);
+    await tabTo(p4, 'navigate');
+    await begin();
+    await holdStop();
+    const again = await p4.waitForSelector('[data-testid=undo-dismiss]', { timeout: 15000 }).then(() => true, () => false);
+    check(again, `EW1: a second empty walk is dropped too (${p4.url()}, ${(await p4.locator('body').innerText()).replace(/\n/g, ' | ').slice(0, 160)})`);
+    if (again) await p4.click('[data-testid=undo-dismiss]');
+    await p4.waitForTimeout(1500);
+    check((await stored(p4)).walks.filter((w) => w.id !== back[0].id).length === 0, 'EW1: closing the pill lets the dropped walk go, as a delete does');
+    // The walk screen's own Stop reaches the same decision (EW7): it leaves the screen for where the walker was, with the pill.
+    await tabTo(p4, 'navigate');
+    await p4.waitForSelector('[data-testid=start]', { timeout: 15000 });
+    await begin(false);
+    await toStop(p4);
+    await holdStop('stop');
+    const onScreen = await p4.waitForSelector('[data-testid=undo-toast]', { timeout: 15000 }).then(() => true, () => false);
+    check(onScreen && !/\/walk|replay/.test(p4.url()) && /Walk not kept\./.test(await p4.locator('[data-testid=undo-toast]').innerText()),
+      `EW7: Stop on the walk screen drops an empty walk the same way, back where the walker was (${p4.url()})`);
+    await c4.close();
+  }
+
+  // tend tabs audit 33 (the T37 review's auditor 2, steward 1; the owner's answer of Nov 18, "The whole column"): the
+  // storage notice waits while any dark pill stands in Memories' column, not only the bar's Edit pill: an empty walk's
+  // Undo ("Walk not kept.") and the band's own Edit offer after a photo. The room is read from `estimate` alone, as the
+  // space journey patches it, on a page of its own.
+  {
+    const { c: c5, pg: p5 } = await h.freshPage('capturehome-column', { permissions: ['geolocation'] });
+    await c5.addInitScript(() => {
+      window.__free = 4000 * 1024 * 1024;
+      const quota = 1e12;
+      const sm = StorageManager.prototype;
+      sm.estimate = async () => ({ quota, usage: quota - window.__free });
+      sm.persisted = async () => true;
+    });
+    const vis = async (sel) => (await p5.locator(sel).filter({ visible: true }).count()) > 0;
+    const words = () => p5.locator('[data-testid=space-line]').filter({ visible: true }).innerText({ timeout: 4000 }).then((t) => t.replace(/\s+/g, ' ').trim(), () => '');
+    const setFree = (mb) => p5.evaluate((n) => { window.__free = n * 1024 * 1024; }, mb);
+    await p5.goto(url);
+    await tabTo(p5, 'navigate');
+    await p5.waitForSelector('[data-testid=start]', { timeout: 30000 });
+    await p5.click('[data-testid=start]');
+    await p5.waitForSelector('[data-testid=walk-actions]', { timeout: 15000 });
+    for (let i = 0; i < 3; i++) {
+      await c5.setGeolocation({ longitude: h.start[0], latitude: h.start[1], accuracy: 6 });
+      await p5.waitForTimeout(1300);
+    }
+    await setFree(300);
+    await p5.click('[data-testid=walk-minimize]');
+    await p5.waitForSelector('[data-testid=bar-stop]', { timeout: 10000 });
+    const lowUp = await p5.waitForSelector('[data-testid=space-line]', { timeout: 8000 }).then(() => true, () => false);
+    // An empty walk stopped from the bar: its Undo pill rises in the column, and the notice steps aside.
+    const sb = await p5.locator('[data-testid=bar-stop]').boundingBox();
+    await p5.mouse.move(sb.x + sb.width / 2, sb.y + sb.height / 2);
+    await p5.mouse.down();
+    await p5.waitForTimeout(1100);
+    await p5.mouse.up();
+    const undoUp = await p5.waitForSelector('[data-testid=undo-toast]', { timeout: 15000 }).then(() => true, () => false);
+    await p5.waitForTimeout(400);
+    const withUndo = { undo: await vis('[data-testid=undo-toast]'), line: await vis('[data-testid=space-line]') };
+    await p5.setViewportSize({ width: 320, height: 700 });
+    await p5.waitForTimeout(400);
+    await shot(p5, 'tabs-audit33-undo-alone-320');
+    await p5.setViewportSize({ width: 390, height: 844 });
+    await p5.click('[data-testid=undo-dismiss]').catch(() => {});
+    await p5.waitForSelector('[data-testid=undo-toast]', { state: 'detached', timeout: 5000 }).catch(() => {});
+    const backLow = await words();
+    check(lowUp && undoUp && withUndo.undo && !withUndo.line && backLow === 'Room for new photos and videos is running low. OK',
+      `tend tabs audit 33: with Undo in Memories' column the storage notice steps aside, and comes back in its own words as Undo goes (${JSON.stringify({ lowUp, undoUp, withUndo, backLow })})`);
+    // A photo from the band with the room now very low: the band's Edit offer stands, and the notice waits for it.
+    await setFree(50);
+    const [chooser] = await Promise.all([p5.waitForEvent('filechooser', { timeout: 10000 }).catch(() => null), p5.click('[data-testid=band-photo]').catch(() => {})]);
+    await chooser?.setFiles(require('path').join(h.scriptsDir, 'fixtures', 'photo.jpg'));
+    const offerUp = await p5.waitForSelector('[data-testid=capture-offer]', { timeout: 10000 }).then(() => true, () => false);
+    await p5.waitForTimeout(600);
+    const withOffer = { offer: await vis('[data-testid=capture-offer]'), line: await vis('[data-testid=space-line]') };
+    await p5.waitForSelector('[data-testid=capture-offer]', { state: 'detached', timeout: 12000 }).catch(() => {});
+    const veryLow = await words();
+    check(offerUp && withOffer.offer && !withOffer.line && veryLow === 'There is almost no room left for new photos, videos and memos. OK',
+      `tend tabs audit 33: the band's Edit offer after a photo holds the storage notice back, which shows in its own words once the offer goes (${JSON.stringify({ offerUp, withOffer, veryLow })})`);
+    await c5.close();
+  }
+
+  // tend tabs audit 34 (the T37 review's ux 1, auditor 3, steward 5; the owner's answer of Nov 18, decision 0208): the
+  // page keeps room at its foot for the toolbar and the messages above it, both, so at 320 x 700 the storage notice
+  // with its longest words (the refusal on an iPhone's browser, four lines) covers none of the newest entry's actions.
+  {
+    const { c: c6, pg: p6 } = await h.freshPage('capturehome-foot', { permissions: ['geolocation'] });
+    await c6.addInitScript(() => {
+      Object.defineProperty(Navigator.prototype, 'userAgent', { get: () => 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1' });
+      const quota = 1e12;
+      const sm = StorageManager.prototype;
+      sm.estimate = async () => ({ quota, usage: quota - 4000 * 1024 * 1024 });
+      sm.persisted = async () => false;
+      sm.persist = async () => false;
+    });
+    await p6.setViewportSize({ width: 320, height: 700 });
+    await p6.goto(url);
+    await p6.waitForSelector('[data-testid=band-photo]', { timeout: 30000 });
+    await p6.waitForTimeout(1500);
+    // A photo kept outside a walk asks the browser, which refuses; its Edit offer holds the words back.
+    const [chooser] = await Promise.all([p6.waitForEvent('filechooser', { timeout: 10000 }).catch(() => null), p6.click('[data-testid=band-photo]').catch(() => {})]);
+    await chooser?.setFiles(require('path').join(h.scriptsDir, 'fixtures', 'photo.jpg'));
+    await p6.waitForSelector('[data-testid=capture-offer]', { timeout: 10000 }).catch(() => {});
+    await p6.waitForSelector('[data-testid=capture-offer]', { state: 'detached', timeout: 12000 }).catch(() => {});
+    // The next look off the walk says it (SA10): Memories in front again.
+    await tabTo(p6, 'explore');
+    await p6.waitForTimeout(800);
+    await tabTo(p6, 'chronicle', 'memories');
+    const said = await p6.waitForSelector('[data-testid=space-line]', { timeout: 10000 }).then((e) => e.innerText(), () => '');
+    await p6.waitForTimeout(1200);
+    const notice = await box(p6, '[data-testid=space-line]');
+    const actions = await p6.locator('[data-testid=quick-actions]').filter({ visible: true }).evaluateAll((els) => els.map((e) => {
+      const r = e.getBoundingClientRect();
+      return { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height) };
+    }));
+    const newest = actions[actions.length - 1] ?? null;
+    await shot(p6, 'tabs-audit34-notice-clear-320');
+    check(said.replace(/\s+/g, ' ').trim() === 'This browser may clear Chronicles’ moments when it needs room. The Home Screen app is less likely to. OK'
+      && !!notice && !!newest && !actions.some((a) => overlap(a, notice)),
+      `tend tabs audit 34: at 320 x 700 the storage notice, in its longest words, covers none of the newest entry's actions (${JSON.stringify({ said, notice, newest })})`);
+    await c6.close();
   }
 
   // HC14: Explore reads its one fix the first time it comes to the front.
@@ -475,6 +546,8 @@ module.exports = {
     'src/app/(tabs)/{_layout,index,explore}.tsx',
     'src/app/chronicle.tsx',
     'src/lib/startPlan.ts',
+    'src/lib/emptyWalk/**',
+    'src/lib/session.ts',
   ],
   run,
 };

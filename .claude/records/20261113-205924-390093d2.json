@@ -1,0 +1,54 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "open",
+        "note",
+        "QL2's wording after T16"
+      ],
+      "body": "  Since `tend map T25` (Nov 13; decision 0162): the end is a bullseye, a walked centre, a white band and a walked\n  outer ring with a thin white edge, as wide as the start (22 px); the start and the walker's dot are unchanged. Amend\n  QL2 instead to \"a bullseye in the walked colour (a walked centre, a white band, a walked outer ring), so shape, not\n  colour alone, tells it from the start and from the walker's dot\", in the doc and the mirror. `.claude/rules/map.md`\n  has a \"Since `tend map T25`\" line under the T16 one, whose \"the end solid\" now says the old paint, as does\n  `docs/NATIVE_UNVERIFIED.md`'s T16 check (noted there).\n",
+      "target": "sha256:2882f5a3c5108fb011ec40e3cd3eab847b543886a5f90005a293432a27b33217"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Quality of life",
+        "--after",
+        "both `match` expressions read"
+      ],
+      "body": "- [ ] **Do:** stop a walk and open its replay; press Hold while the walker is a little short of the end; then turn on Reduce Motion and open the walk's day replay. **Expect:** MapLibre RN draws the end as a bullseye (`tend map T25`, decision 0162): the `ends-ring` layer (`ENDS_RING_PAINT`, `components/map/types.ts`, filtered to the end) drawn under the `ends` layer, both on the `ends` source and both with the trace's opacity, so the end shows a walked centre, a white band, a walked ring and a thin white edge, 22 px across like the hollow start, and differs in shape from the walker's navy dot beside it; a pin standing on the end stays above both layers. (QL2)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "note",
+        "Since `tend map T16` the end is filled"
+      ],
+      "body": "  - Since `tend map T25` the end is a bullseye; see the check after the next one.\n",
+      "target": "sha256:3b8808e20e1ba86752e995e2921ebdb86aa5202ea29cc1601d9f7815d80e7b71"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "The solid end reads smaller than the hollow start"
+      ],
+      "body": "  Since `tend map T25` (decision 0162) the end is a bullseye: a walked outer ring 9.5 px out with a 1.5 px white edge,\n  round a white band and a walked centre, 22 px across like the start, so about 3.5 px of walked ring shows outside\n  the band.\n",
+      "target": "sha256:2e5aa151df507baf74938766d12f7478c0bf943b64499623fcd2a758e3c2aa02"
+    },
+    {
+      "argv": [
+        "inbox",
+        "remove",
+        "T25",
+        "--reason",
+        "the owner's yes (decision 0162), built in tend map T25"
+      ],
+      "target": "sha256:51f3a119ab8ad081189e854e5110ae460efaed0d8b87804476f92b14d425b154"
+    }
+  ]
+}

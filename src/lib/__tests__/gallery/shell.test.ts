@@ -101,16 +101,3 @@ test('MG6: a failed street read is asked again next time', async () => {
   assert.equal(g.store.get().streets.m, null);
 });
 
-test('MG11: a photo with no small copy gets one made once, kept, and shown', async () => {
-  const p = fakePorts();
-  let made = 0;
-  const g = createGallery(p, { makeThumb: async (c) => (made++, `${c.piece_id}.thumb.jpg`) });
-  await p.db.addMoment(moment('a', 1));
-  await p.db.addMoment({ ...moment('b', 2), pieces: [{ id: 'b', moment_id: 'b', t: 2, kind: 'photo', file_path: 'b.jpg', body: null, thumb_path: 'b.thumb.jpg' }] });
-  await g.load();
-  await Promise.all([g.thumbFor('a'), g.thumbFor('a'), g.thumbFor('b')]);
-  assert.equal(made, 1, 'once, and never for a photo that has its copy');
-  assert.equal(g.store.get().moments.find((m) => m.id === 'a')!.thumb_path, 'a.thumb.jpg');
-  const stored = (await p.db.getMomentsByIds(['a']))[0];
-  assert.equal(stored.pieces[0].thumb_path, 'a.thumb.jpg');
-});

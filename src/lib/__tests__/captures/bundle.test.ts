@@ -80,3 +80,31 @@ test('MT8: the bundle lists moments with their pieces, each piece\'s media named
   assert.equal(json.version, 2);
   assert.deepEqual(json.moments.map((m: { id: string; pieces: { id: string; moment_id: string; media: string }[] }) => [m.id, m.pieces.map((x) => [x.id, x.moment_id, x.media])]), [['m1', [['m1', 'm1', 'media/m1.jpg']]]]);
 });
+
+test('RX32: the bundle keeps a moment\'s reactions with it, and none for a moment with none', async () => {
+  const p = fakePorts({ now: Date.UTC(2026, 10, 4, 12) });
+  const db = p.db as unknown as { setReaction: (r: unknown) => Promise<void> };
+  await p.db.createWalk(walk);
+  await p.db.addMoment(momentOf(cap('felt', 'a.jpg')));
+  await p.db.addMoment(momentOf(cap('plain', null)));
+  await db.setReaction({ moment_id: 'felt', family: 'feeling', reaction: 'happy', set_at: 1 });
+  await db.setReaction({ moment_id: 'felt', family: 'thought', reaction: 'idea', set_at: 2 });
+  const io = memoryIO({ 'a.jpg': new Uint8Array([1, 2, 3]) });
+  await createBundleWriter(p).writeWalkBundle('w1', io);
+  const json = JSON.parse(strFromU8(unzipSync(io.bytes())['walk.json']));
+  const byId = Object.fromEntries(json.moments.map((m: { id: string }) => [m.id, m]));
+  assert.deepEqual(byId.felt.reactions, { feeling: 'happy', thought: 'idea' });
+  assert.equal(byId.plain.reactions ?? null, null);
+});
+
+test('reactions audit 13: the bundle carries no note_type: the reactions of a moment are its set alone', async () => {
+  const p = fakePorts({ now: Date.UTC(2026, 10, 4, 12) });
+  await p.db.createWalk(walk);
+  const m = momentOf(cap('old', null));
+  (m.pieces[0] as unknown as Record<string, unknown>).note_type = 'idea';
+  await p.db.addMoment(m);
+  const io = memoryIO({});
+  await createBundleWriter(p).writeWalkBundle('w1', io);
+  const json = JSON.parse(strFromU8(unzipSync(io.bytes())['walk.json']));
+  assert.equal('note_type' in json.moments[0].pieces[0], false);
+});

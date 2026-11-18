@@ -4,6 +4,7 @@ import * as TaskManager from 'expo-task-manager';
 import { AppState, PermissionsAndroid, Platform } from 'react-native';
 import { db } from '../db';
 import { checkRecalls } from '../discovery/recallCheck';
+import { startOffNotice } from '../locate/notice';
 import { keptFixes, readTrace } from '../rides';
 import type { LngLat, TracePoint } from '../types';
 import { currentStatus, emit, setStatus, subscribe, subscribeStatus } from './emitter';
@@ -87,12 +88,10 @@ TaskManager.defineTask<{ locations: Location.LocationObject[] }>(TASK, async ({ 
 async function ensurePermission(): Promise<string | undefined> {
   const fg = await Location.requestForegroundPermissionsAsync();
   if (fg.status !== 'granted') {
-    throw new RecorderError(
-      fg.canAskAgain
-        ? 'Location permission is needed to record a walk.'
-        : 'Location is turned off for Chronicles. Turn it on in Settings to record a walk.',
-      !fg.canAskAgain,
-    );
+    // Refused is the person's choice, said quietly (T26); turned off for good, the line Locate's sits beside.
+    if (fg.canAskAgain) throw new RecorderError('Location permission is needed to record a walk.', false, 'info');
+    const off = startOffNotice('native');
+    throw new RecorderError(off.message, true, off.tone);
   }
   if (Platform.OS === 'android' && Number(Platform.Version) >= 33) {
     // Without it, Android 13+ hides the "walk in progress" notification.
@@ -144,7 +143,7 @@ export const recorder: Recorder = {
     currentWalk = walkId;
     const fg = await Location.getForegroundPermissionsAsync();
     if (fg.status !== 'granted') {
-      setStatus({ kind: 'error', message: 'Location is turned off for Chronicles, so this walk is not recording.', openSettings: true });
+      setStatus({ kind: 'error', message: 'Location is turned off for Chronicles, so this walk is not recording.', openSettings: true, tone: 'info' });
       return;
     }
     setStatus({ kind: 'waiting' });

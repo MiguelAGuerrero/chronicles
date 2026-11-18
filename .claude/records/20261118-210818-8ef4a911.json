@@ -1,0 +1,55 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "The `resurface` journey stops on `main`",
+        "--reason",
+        "fixed: fix resurface-journey reaches the actions through the quick-action row and the resurfaced card's More (Nov 18)"
+      ],
+      "target": "sha256:a162890c03e8bdf905c7e614a2b8e0827aab5a783cd6bdd66083e0060b5dfbe2"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Chronicle journal, cut 1 (`specs/chronicle-journal/spec.md`, decision 0155)"
+      ],
+      "body": "- [owner] **A 4,000-character note's entry is 836 px tall, past `resurfaced-moments audit 12`'s 800 px** (found Nov 18 by fix resurface-journey, which moved the check from the More that SW19 took off entries to the quick-action row; the `/chronicles` build at 390 x 844): the row under the note (44 to 64 pt, decision 0197) adds what More on the top line did not, and the row stays inside the card. Clamp a long note's text further, or take 800 px as the old row's limit and set a new one: the owner's call, since the check guards how much of the page one long note may take. Until then `E2E_ONLY=resurface` stops there; every other check of it is green under `E2E_SOFT`.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "set",
+        "A 4,000-character note"
+      ],
+      "body": "- [owner] **A 4,000-character note's entry is 836 px tall, past `resurfaced-moments audit 12`'s 800 px** (found Nov 18 by fix resurface-journey, which moved the check from the More that SW19 took off entries to the quick-action row; the `/chronicles` build at 390 x 844): the row under the note (44 to 64 pt, decision 0197) adds what More on the top line did not. Clamp a long note's text further, or take 800 px as the old row's limit and set a new one: the owner's call, since the check guards how much of the page one long note may take. Until then `E2E_ONLY=resurface` stops there; every other check of it is green under `E2E_SOFT`.\n",
+      "target": "sha256:806083a3eaac64c8a49b2cfd3d45bec6a72c8ffb381c917084448e7bb51eb787"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "set",
+        "A 4,000-character note"
+      ],
+      "body": "- [owner] **A 4,000-character note's entry is 836 px tall, past `resurfaced-moments audit 12`'s 800 px** (found Nov 18 by fix resurface-journey, which moved the check from the More that SW19 took off entries to the quick-action row; the `/chronicles` build at 390 x 844): the row is drawn inside the card (352 x 52 at its foot), but with the card scrolled into view it ends at y 847, past the screen's 844. Audit 12 was settled as \"ten lines on a card\"; since JN27 a plain entry is cut at `SHEET_CHARS` = 1,200 characters (`journal/blocks.ts`), about 27 lines and 750 px of text, which passed 800 px by a few pixels until the row came under it (fix resurface-journey audit 3). Clamp a long note's text further, or set a new limit for a card with its row: the owner's call, since the check guards how much of the page one long note may take. Until then `E2E_ONLY=resurface` stops there; every other check of it is green under `E2E_SOFT`.\n",
+      "target": "sha256:e5112ab104137d35f7dba9d4b7519c86998b1d1015a05798c596758e47ae4f59"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Chronicle journal, cut 1 (`specs/chronicle-journal/spec.md`, decision 0155)",
+        "--after",
+        "A 4,000-character note"
+      ],
+      "body": "- [loop] `memories-context audit 7` in the resurface journey cannot fail on the regression it is named for: no word of `SEED_CONTEXT` stems differently from how it is written (only \"blossoms\", never the first term), so a screen that showed the stem instead of the written word (`fewerWord`'s `shown` dropped in `MemoriesScreen`'s `onLess`) still passes. Seed a moment whose first term stems differently (\"cookies\") and make it the resurfaced card at that step; the unit test covers `fewerWord` itself. Also its Undo is not asserted (`prefs.less` never read after it). Fix resurface-journey audit 1, Nov 18.\n"
+    }
+  ]
+}

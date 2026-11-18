@@ -4,7 +4,7 @@
 // it is offered faint until kept. E2E_ONLY=gaps runs it alone.
 
 async function run(h) {
-  const { navUrl, BASE, start, at, check, metaOf, freshPage, openWalk, tiles } = h;
+  const { navUrl, BASE, start, at, check, metaOf, freshPage, openWalk, tiles, shot, toStop } = h;
     const { c, pg } = await freshPage('gaps');
     await c.addInitScript(() => { window.__perf = {}; });
     const here = at(3.0, -0.5);
@@ -63,7 +63,7 @@ async function run(h) {
     // joined straight (every break is a gap, Nov 3), and Transit's is faint.
     check(st.runs === 3, `gaps: a gap along a street with nowhere else to go fills by itself, one line (G5: ${JSON.stringify(st)})`);
     check(st.faint === 1, `gaps: a gap with time to go round a block is offered faint (G6: ${JSON.stringify(st)})`);
-    const km = (t) => { const m = /([\d.]+) (k?m)\b/.exec(t); return m ? Number(m[1]) * (m[2] === 'km' ? 1000 : 1) : NaN; };
+    const km = (t) => { const m = /([\d.]+)[ \u00a0](k?m)\b/.exec(t); return m ? Number(m[1]) * (m[2] === 'km' ? 1000 : 1) : NaN; };
     const before = km(await pg.locator('[data-testid=walk-stats]').innerText());
     // A tap on the faint stretch opens its card (G9).
     await pg.waitForFunction(() => typeof window.__project === 'function');
@@ -122,6 +122,7 @@ async function run(h) {
     }));
     check(JSON.stringify(await rows()) === '["kept:Transit Street"]', `gaps: Keep is stored with the walk (G10: ${JSON.stringify(await rows())})`);
     // On the replay, the filled stretch along Thayer has its own card; Not this way breaks the line again (G9, G10, G12).
+    await toStop(pg);
     const b = await pg.locator('[data-testid=stop]').boundingBox();
     await pg.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
     await pg.mouse.down();
@@ -133,6 +134,7 @@ async function run(h) {
     await pg.waitForSelector('[data-testid=to-name], [data-testid=done]', { timeout: 30000 });
     await pg.waitForTimeout(1500);
     const firstCard = await mapState();
+    check((await pg.locator('[data-testid=keep-gaps-card]').count()) === 0, 'G15: nothing offered at the walk\'s end, so the first replay asks nothing');
     // A later session: nothing inferred is remembered, and the filled stretch must still be there (gaps audit 2).
     await pg.reload();
     await pg.waitForSelector('[data-testid=skip], [data-testid=to-name], [data-testid=done]', { timeout: 60000 });
@@ -171,7 +173,19 @@ async function run(h) {
       const empty = await pg.locator('[data-testid=gap-title]').innerText().catch(() => '');
       check(/^Not recorded for \d+ min$/.test(empty) && (await pg.locator('[data-testid=gap-draw]').count()) === 1 && (await pg.locator('[data-testid=gap-keep]').count()) === 0,
         `GW1, GW2: tapping the dotted line opens its card, with Draw my way ("${empty}")`);
-      // Paths slow to come: Done waits for them, and says so (gap-drawing audit 4).
+      // Paths slow to come: Done waits for them, and says so (gap-drawing audit 4). The tiles the replay read moments ago
+      // are kept for the session (createTileBodies), so a draw now would never wait: a reload holds none, and a dismissed
+      // gap is never read again, so the draw's own read is the one slowed (fix gaps-done-wait).
+      await pg.reload();
+      await pg.waitForSelector('[data-testid=skip], [data-testid=to-name], [data-testid=done]', { timeout: 60000 });
+      if (await pg.locator('[data-testid=skip]').count()) await pg.click('[data-testid=skip]');
+      await pg.waitForSelector('[data-testid=to-name], [data-testid=done]', { timeout: 30000 });
+      await pg.waitForFunction(() => typeof window.__project === 'function');
+      for (let k = 0; k < 20 && (await mapState()).links !== 1; k++) await pg.waitForTimeout(500);
+      await tap(at(11, 0.6));
+      // The card is open again before the paths are slowed, so a missed reopen is never read as audit 4 (fix gaps-done-wait audit 1).
+      const reopened = (await pg.locator('[data-testid=gap-draw]').count()) === 1;
+      check(reopened, 'fix gaps-done-wait audit 1: after a reload the dotted line\'s card opens again, with Draw my way');
       tiles.delayMs = 4000;
       await pg.click('[data-testid=gap-draw]').catch(() => {});
       await pg.waitForSelector('[data-testid=gap-draw-bar]', { timeout: 5000 }).catch(() => {});
@@ -204,13 +218,114 @@ async function run(h) {
         `GW5: Done keeps the drawn way: one line again, no dotted join (${JSON.stringify(drawn)}, ${JSON.stringify(keptNow)})`);
     }
     await c.close();
+
+    // G15: an offer left undecided at Stop is asked about once, on the first replay's card.
+    const endScenario = async (mode) => {
+      const { c: c2, pg: p2 } = await freshPage(`gaps-end-${mode}`);
+      await c2.addInitScript(() => { window.__perf = {}; });
+      const here2 = at(3.0, -0.5);
+      await p2.goto(navUrl);
+      await p2.waitForSelector('[data-testid=start]');
+      await p2.click('[data-testid=start]');
+      await p2.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
+      for (let k = 0; k < 3; k++) {
+        await c2.setGeolocation({ longitude: here2[0], latitude: here2[1] + k * 0.000001, accuracy: 6 });
+        await p2.waitForTimeout(1000);
+      }
+      for (let k = 0; k < 15 && !(await metaOf(p2, 'tile_url')); k++) await p2.waitForTimeout(1000);
+      const w2 = await openWalk(p2);
+      const t2 = Date.now();
+      const m = 60_000;
+      const run2 = (from, to, t0) => {
+        const pts = [];
+        const n = Math.max(1, Math.round(Math.hypot((to[0] - from[0]) * 100, (to[1] - from[1]) * 100) / 7));
+        for (let k = 0; k <= n; k++) {
+          const q = at(from[0] + ((to[0] - from[0]) * k) / n, from[1] + ((to[1] - from[1]) * k) / n);
+          pts.push({ walk_id: w2.id, t: t0 + k * 5000, lon: q[0], lat: q[1], accuracy_m: 6, speed: 1.4, course: null });
+        }
+        return pts;
+      };
+      const pts2 = [...run2([-1.9, -0.5], [-1.2, -0.5], t2 - 27 * m), ...run2([2.2, -0.5], [3.0, -0.5], t2 - 16 * m)];
+      await p2.evaluate(([id, startedAt, pts]) => new Promise((resolve) => {
+        const req = indexedDB.open('chronicles');
+        req.onsuccess = () => {
+          const tx = req.result.transaction(['walk', 'trace_point'], 'readwrite');
+          const w = tx.objectStore('walk').get(id);
+          w.onsuccess = () => tx.objectStore('walk').put({ ...w.result, started_at: startedAt });
+          for (const q of pts) tx.objectStore('trace_point').add(q);
+          tx.oncomplete = () => resolve(true);
+        };
+      }), [w2.id, t2 - 27 * m - 1000, pts2]);
+      await p2.reload();
+      await p2.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
+      await c2.setGeolocation({ longitude: here2[0], latitude: here2[1], accuracy: 6 });
+      const state2 = () => p2.locator('[data-faint]').last().evaluate((e) => ({ runs: Number(e.dataset.runs), faint: Number(e.dataset.faint) }));
+      let s2 = await state2();
+      for (let k = 0; k < 20 && s2.faint !== 1; k++) {
+        await p2.waitForTimeout(1000);
+        s2 = await state2();
+      }
+      await toStop(p2);
+      const stop2 = await p2.locator('[data-testid=stop]').boundingBox();
+      await p2.mouse.move(stop2.x + stop2.width / 2, stop2.y + stop2.height / 2);
+      await p2.mouse.down();
+      await p2.waitForTimeout(1100);
+      await p2.mouse.up();
+      await p2.waitForURL(/replay/, { timeout: 30000 });
+      await p2.waitForSelector('[data-testid=skip]', { timeout: 60000 });
+      await p2.click('[data-testid=skip]');
+      await p2.waitForSelector('[data-testid=to-name]', { timeout: 30000 });
+      await p2.waitForSelector('[data-testid=keep-gaps-card]', { timeout: 20000 }).catch(() => {});
+      await p2.waitForTimeout(800);
+      const asked = await p2.locator('[data-testid=keep-gaps-card]').innerText().catch(() => '');
+      check(/Keep the likely way\?/.test(asked) && !/\d/.test(asked.replace('Keep the likely way?', '')), `G15: the first replay asks once about the offered gap, in words ("${asked.replace(/\n/g, ' · ')}")`);
+      if (mode === 'leave') await shot(p2, 'g15-keep-gaps');
+      const keepLabel = await p2.locator('[data-testid=keep-gaps]').innerText();
+      check(keepLabel === 'Keep it' && (await p2.locator('[data-testid=leave-gaps]').innerText()) === 'Leave it', `filling-gaps audit 6: one gap, so the buttons say it ("${keepLabel}")`);
+      if (mode === 'leave') {
+        await p2.click('[data-testid=leave-gaps]');
+        await p2.waitForTimeout(500);
+        const left = await state2();
+        check((await p2.locator('[data-testid=keep-gaps-card]').count()) === 0 && left.faint === 1, `G15: Leave stores nothing; the gap stays offered (${JSON.stringify(left)})`);
+        // Asked once (audit 1): a reload of the same replay does not ask again, and the gap is still offered.
+        await p2.reload();
+        await p2.waitForSelector('[data-testid=skip], [data-testid=to-name]', { timeout: 60000 });
+        if (await p2.locator('[data-testid=skip]').count()) await p2.click('[data-testid=skip]');
+        await p2.waitForSelector('[data-testid=to-name]', { timeout: 30000 });
+        await p2.waitForTimeout(2500);
+        const again = await state2();
+        check((await p2.locator('[data-testid=keep-gaps-card]').count()) === 0 && again.faint === 1, `filling-gaps audit 1: after a reload the question is not asked again (${JSON.stringify(again)})`);
+      } else {
+        // The prompt stays out of the way of the card's one primary (audit 5): both buttons are secondary.
+        const fills = await p2.evaluate(() => ['keep-gaps', 'leave-gaps'].map((id) => getComputedStyle(document.querySelector(`[data-testid=${id}]`)).backgroundColor));
+        check(fills[0] === fills[1], `filling-gaps audit 5: Keep and Leave are the same weight (${fills.join(' / ')})`);
+        await p2.click('[data-testid=keep-gaps]');
+        let kept2 = await state2();
+        for (let k = 0; k < 30 && kept2.faint !== 0; k++) {
+          await p2.waitForTimeout(500);
+          kept2 = await state2();
+        }
+        const stored = await p2.evaluate(() => new Promise((resolve) => {
+          const req = indexedDB.open('chronicles');
+          req.onsuccess = () => {
+            const g = req.result.transaction('gap_fill', 'readonly').objectStore('gap_fill').getAll();
+            g.onsuccess = () => resolve(g.result.map((r) => r.state));
+          };
+        }));
+        check(kept2.faint === 0 && JSON.stringify(stored) === '["kept"]' && (await p2.locator('[data-testid=keep-gaps-card]').count()) === 0,
+          `G15: Keep keeps the offered way and the card goes (${JSON.stringify(kept2)}, ${JSON.stringify(stored)})`);
+      }
+      await c2.close();
+    };
+    await endScenario('leave');
+    await endScenario('keep');
 }
 
 module.exports = {
   name: 'gaps',
   covers: [
     'src/lib/gaps/**',
-    'src/components/{GapCard,GapDraw}.tsx',
+    'src/components/{GapCard,GapDraw,KeepGapsCard}.tsx',
     'src/app/replay/**',
     'src/app/walk.tsx',
   ],

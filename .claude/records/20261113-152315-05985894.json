@@ -1,0 +1,15 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inflight",
+        "set",
+        "Video thumbnails (a video's still",
+        "--reason",
+        "the row said deployed before the deploy; the gate refused run 243"
+      ],
+      "body": "| Video thumbnails (a video's still where its kept part starts, in every preview under a play mark: the gallery, Memories, a walk's memory preview, a one-video pin, the replay's pile; a web exception for the frame; VS1-VS9) | `claude/intelligent-galileo-4ptpyf` | built 2026-11-13, test-first by history (9 of 9): unit tests (2140), typecheck, lint, docs and vision checks; the `videothumbs` journey (14 checks, green four runs in a row) and the eleven journeys `check:affected` names pass; steward read (S1-S4 accepted); UI review (decision 0145): 5 findings, 3 fixed (`video-thumbnails ui 1, 3, 4`), 1 deferred (U1, older), 1 rejected; audited 2026-11-13 at the owner's request (13 findings: 9 fixed, tests `video-thumbnails audit 1-9`; 2 deferred; 2 rejected); merged with main (its ids renamed VS1-VS9, voice trim holding VT; `RENAMED` in scripts/features.js), 2323 unit tests, and twelve of the thirteen journeys `check:affected` names pass on the /chronicles build; `voicetrim` fails on main too (a test id the journal page dropped; DEFERRED); native unverified; merged to main on the owner's go-ahead (Nov 13, `b67935a`); its Pages run (243) was refused by the record gate (decision 0156): the merge's documents and one commit after it were hand-edited, mine; this row is set through `npm run records`, and the deploy follows it. Spec `specs/video-thumbnails/spec.md` |\n",
+      "target": "sha256:16dd7eefadc33f1a66d10a811f028f1b9505168445b6b141d729c82fd616659d"
+    }
+  ]
+}

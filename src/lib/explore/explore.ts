@@ -1,14 +1,17 @@
 // @layer core
-import { hoodAllowed, townAt, withOutlines, type OutlineSet } from '../areas/outlines';
+import { hoodAt } from '../areas/hoods';
+import { townAt, withOutlines, type OutlineSet } from '../areas/outlines';
 import type { AreaLevel, PlaceCandidate } from '../areas/types';
 import { categoryOf } from '../discovery/categories';
 import { isMarkable } from '../discovery/noise';
 import { keepFindKeys } from '../discovery/archiveMerge';
 import { isOffered } from '../discovery/places';
-import { isKindHidden } from '../discovery/refinements';
+import { isKindHidden, kindParent } from '../discovery/refinements';
+import { DEFAULT_OFF, foundRows, keepTheLows, passedNames, SUBTYPES } from '../discovery/subtypes';
 import type { CategoryId, Kind, Place } from '../discovery/types';
 import { distanceM, nearPoints, projector } from '../geo';
 import type { LngLat } from '../types';
+import { numberWord } from '../resurface/lines';
 
 export type { Kind } from '../discovery/types';
 
@@ -56,27 +59,74 @@ export interface KindInfo {
   label: string;
   /** Ionicons name. */
   icon: string;
+  /** XS2: the heading it sits under in "What I'm into". */
+  category: CategoryId;
 }
 
-/** The "What I'm into" switches, in their order (E16). */
+/** SP3, XS3: each subtype's icon (small-places ui 1: an easel reads as art; a sheet with lines as a sign with words). */
+const SUBTYPE_ICON: Partial<Record<Kind, string>> = {
+  statues: 'body-outline', murals: 'brush-outline', fountains: 'water-outline', signs: 'megaphone-outline',
+  markers: 'trail-sign-outline', plaques: 'document-text-outline', war_memorials: 'ribbon-outline', small_memorials: 'flower-outline',
+  battlefields: 'shield-outline', archaeological_sites: 'hammer-outline',
+  bridges: 'git-commit-outline', mills: 'aperture-outline', stations: 'train-outline', lighthouses: 'bulb-outline', civic_buildings: 'library-outline',
+  forts: 'shield-half-outline', towers: 'time-outline', old_machines: 'construct-outline', taverns: 'beer-outline', old_stones: 'pin-outline',
+  wayside_shrines: 'flame-outline', mausoleums: 'cube-outline',
+  gardens: 'sunny-outline', community_gardens: 'nutrition-outline', waterfalls: 'rainy-outline', caves: 'triangle-outline', hot_springs: 'thermometer-outline',
+  old_trees: 'git-network-outline', nature_reserves: 'binoculars-outline', piers: 'boat-outline', natural_monuments: 'prism-outline',
+  observatories: 'planet-outline', concert_halls: 'musical-notes-outline', little_libraries: 'bookmarks-outline', carousels: 'sync-circle-outline',
+  fire_towers: 'bonfire-outline', amusement_parks: 'rocket-outline', old_ruins: 'grid-outline', ghost_towns: 'moon-outline', natural_oddities: 'earth-outline', roadside_giants: 'balloon-outline',
+  survey_marks: 'locate-outline', time_capsules: 'hourglass-outline',
+};
+
+/** SP3, XS5: the subtypes of a kind, as rows of "What I'm into", each with its own icon, under its parent's heading. */
+function small(parent: Kind, category: CategoryId): KindInfo[] {
+  return SUBTYPES.filter((s) => s.parent === parent).map((s) => ({ id: s.kind, label: s.label, icon: SUBTYPE_ICON[s.kind] ?? 'ellipse-outline', category }));
+}
+
+/** The "What I'm into" switches, in their order under the five headings (E16, XS2). */
 export const KINDS: readonly KindInfo[] = [
-  { id: 'public_art', label: 'Public art', icon: 'color-palette-outline' },
-  { id: 'museums', label: 'Museums and galleries', icon: 'images-outline' },
-  { id: 'theatres', label: 'Theatres', icon: 'ticket-outline' },
-  // PK11-PK13: community centres (by a notable name), arts centres and libraries, in Culture (the owner, Nov 10).
-  { id: 'community', label: 'Community spaces', icon: 'reader-outline' },
-  { id: 'monuments', label: 'Monuments and memorials', icon: 'flag-outline' },
+  { id: 'public_art', label: 'Public art', icon: 'color-palette-outline', category: 'art' },
+  ...small('public_art', 'art'),
+  { id: 'monuments', label: 'Monuments and memorials', icon: 'flag-outline', category: 'history' },
+  // SP2, SP3, SP10 (decision 0183): small places, each a subset after its parent; XS3 (decision 0191): every subtype so.
+  ...small('monuments', 'history'),
   // RP8, RP18: the archive's listed buildings and structures, named for what they are, never their listing (decision 0109).
-  { id: 'structures', label: 'Buildings and structures', icon: 'home-outline' },
-  { id: 'churches', label: 'Places of worship', icon: 'business-outline' },
-  { id: 'cemeteries', label: 'Cemeteries', icon: 'rose-outline' },
-  { id: 'parks', label: 'Parks and gardens', icon: 'leaf-outline' },
+  { id: 'structures', label: 'Buildings and structures', icon: 'home-outline', category: 'history' },
+  ...small('structures', 'history'),
+  { id: 'churches', label: 'Places of worship', icon: 'business-outline', category: 'history' },
+  ...small('churches', 'history'),
+  { id: 'cemeteries', label: 'Cemeteries', icon: 'rose-outline', category: 'history' },
+  ...small('cemeteries', 'history'),
+  { id: 'parks', label: 'Parks and gardens', icon: 'leaf-outline', category: 'parks' },
   // PC6: a subset of Parks the reader can switch off; the rest stay. Named only here and on a found place (PC16).
-  { id: 'community_parks', label: 'Community parks', icon: 'people-outline' },
-  { id: 'viewpoints', label: 'Viewpoints and attractions', icon: 'eye-outline' },
+  { id: 'community_parks', label: 'Community parks', icon: 'people-outline', category: 'parks' },
+  ...small('parks', 'parks'),
+  // XS4 (decision 0191): waterfalls, caves, hot springs and old trees; named for what they are, never "wonders" (XS25).
+  { id: 'nature', label: 'Nature', icon: 'partly-sunny-outline', category: 'parks' },
+  ...small('nature', 'parks'),
+  { id: 'museums', label: 'Museums and galleries', icon: 'images-outline', category: 'culture' },
+  ...small('museums', 'culture'),
+  { id: 'theatres', label: 'Theatres', icon: 'ticket-outline', category: 'culture' },
+  ...small('theatres', 'culture'),
+  // PK11-PK13: community centres (by a notable name), arts centres and libraries, in Culture (the owner, Nov 10).
+  { id: 'community', label: 'Community spaces', icon: 'reader-outline', category: 'culture' },
+  ...small('community', 'culture'),
+  { id: 'viewpoints', label: 'Viewpoints and attractions', icon: 'eye-outline', category: 'viewpoints' },
+  ...small('viewpoints', 'viewpoints'),
+  // XS4, explore-subtypes audit 12: zoos and aquariums, named for what they are; the map's other attractions stay with
+  // Viewpoints. more-attractions audit 1 (the owner, Nov 18): amusement, theme and water parks are its own row under it.
+  { id: 'attractions', label: 'Zoos and aquariums', icon: 'paw-outline', category: 'viewpoints' },
+  ...small('attractions', 'viewpoints'),
   // PW4: follies, roadside giants, natural oddities and the like, from the places archive (decision 0103).
-  { id: 'curiosities', label: 'Curiosities', icon: 'telescope-outline' },
+  { id: 'curiosities', label: 'Curiosities', icon: 'telescope-outline', category: 'viewpoints' },
+  ...small('curiosities', 'viewpoints'),
 ];
+
+/** small-places ui 2: what a subset row tells a screen reader of its parent ("Part of Monuments and memorials"); none for a kind of its own. */
+export function kindHint(id: Kind): string | undefined {
+  const parent = kindParent(id);
+  return parent ? `Part of ${kindOf(parent).label}` : undefined;
+}
 
 export const kindOf = (id: Kind): KindInfo => KINDS.find((k) => k.id === id) ?? KINDS[0];
 
@@ -160,14 +210,11 @@ export const checklistKey = (a: AreaRef): string => JSON.stringify([a.level, a.n
 export function areaFor(at: LngLat, candidates: PlaceCandidate[], outlines: OutlineSet | null = null): AreaRef | null {
   const cands = withOutlines(candidates, outlines);
   const town = townAt(at, cands, outlines, { within: coverM });
-  let hood: PlaceCandidate | null = null;
-  let hoodD = Infinity;
-  for (const c of cands) {
-    if (c.level !== 'neighborhood') continue;
-    const d = distanceM(at, c.at);
-    if (d <= coverM(c) && d < hoodD && hoodAllowed(c, town, outlines)) [hood, hoodD] = [c, d];
-  }
-  if (hood) return { level: 'neighborhood', name: hood.name, at: hood.at };
+  // HB8: the neighborhood is decided as placing decides it, by the town at its own reach; the cap above is for the town returned.
+  const hood = hoodAt(at, cands, townAt(at, cands, outlines), outlines, coverM);
+  // A shape's far corner is past what its checklist reads around its point: that is the town's, or no one's, never dropped (audit 3).
+  const seen = hood && distanceM(at, hood.at) <= coverM(hood) ? hood : null;
+  if (seen) return { level: 'neighborhood', name: seen.name, at: seen.at };
   if (!town || distanceM(at, town.c.at) > coverM(town.c)) return null;
   return { level: 'town', name: town.c.name, at: town.c.at };
 }
@@ -406,11 +453,24 @@ export function findCandidates(at: LngLat, items: ChecklistItem[], found: Set<st
 /**
  * The place a capture finds by itself: the one unfound place within 60 m. With two or more in reach
  * the nearest is only a guess (a park's marker can sit farther than a statue in it), so nothing is
- * found until the reader picks from `findCandidates`.
+ * found: the walker taps a mark to make a moment about it.
  */
 export function findFor(at: LngLat, items: ChecklistItem[], found: Set<string>): ChecklistItem | null {
   const c = findCandidates(at, items, found);
   return c.length === 1 ? c[0] : null;
+}
+
+/** An explore read's key: its centre to five places (about a metre). */
+export const readKey = (centre: LngLat): string => `${centre[0].toFixed(5)},${centre[1].toFixed(5)}`;
+
+/**
+ * What an explore read asked for while another may run does (E5, E22; tend explore 15): with none running it starts; for
+ * the running read's own centre it shares that read; for another centre it waits for that read to end, then reads its own,
+ * never told that the running read was its area's.
+ */
+export function readJoin(runningAt: LngLat | null, centre: LngLat): 'start' | 'join' | 'wait' {
+  if (!runningAt) return 'start';
+  return readKey(runningAt) === readKey(centre) ? 'join' : 'wait';
 }
 
 /** The places an accepted fix came within 60 m of: named, never found, by walking past (E7). */
@@ -528,12 +588,18 @@ type Found = { name: string; category: CategoryId; generic: boolean; kind?: Kind
 export const foundLine = (f: Found): string =>
   f.generic ? `Found: ${f.name}` : `Found: ${f.name} · ${f.kind ? kindOf(f.kind).label : categoryOf(f.category).label}`;
 
-/** The card's finds by name (E11): "Found RISD Museum · Old North Church", three at most, then how many more. */
+/** explore-subtypes audit 10: the replay's finds, unnamed ones of one type folded into their plural (SP21), as the card's list. */
+export const replayFound = (found: readonly { name: string; generic: boolean }[]): string | null => foundList(foundRows(found).map((f) => f.name));
+
+/**
+ * The card's finds by name (E11): "Found RISD Museum · Old North Church", three at most, then how many more, in words,
+ * "and two more" (tend replay T31).
+ */
 export function foundList(names: string[]): string | null {
   if (!names.length) return null;
   const shown = names.slice(0, names.length > 4 ? 3 : 4).join(' · ');
   const more = names.length - (names.length > 4 ? 3 : names.length);
-  return `Found ${shown}${more > 0 ? ` and ${more} more` : ''}`;
+  return `Found ${shown}${more > 0 ? ` and ${numberWord(more)} more` : ''}`;
 }
 
 /**
@@ -578,7 +644,8 @@ export function passedPlaces(o: PassedInput): ChecklistItem[] {
   const fixes = o.fixes.filter((f) => f.t >= o.since);
   const named = new Set(shown.filter((x) => firstPass(fixes, x.at, passM) != null).map((x) => x.key));
   const seen = new Set<string>();
-  return shown.filter((i) => named.has(i.key) && !o.foundHere.has(i.key) && !seen.has(i.key) && !!seen.add(i.key));
+  // SP20: small places only when nothing else was passed.
+  return keepTheLows(shown.filter((i) => named.has(i.key) && !o.foundHere.has(i.key) && !seen.has(i.key) && !!seen.add(i.key)));
 }
 export const passedCount = (o: PassedInput): number => passedPlaces(o).length;
 
@@ -601,10 +668,9 @@ export function passedAlong(o: PassedInput): (ChecklistItem & { t: number })[] {
  * reads in the sentence's case.
  */
 export function passedLine(places: { name: string; generic: boolean }[]): string | null {
-  if (!places.length) return null;
-  if (places.length > 2) return 'Passed a few places without stopping';
-  const names = places.map((p) => (p.generic ? p.name.charAt(0).toLowerCase() + p.name.slice(1) : p.name));
-  return `Passed ${names.join(' and ')} without stopping`;
+  // SP22: two unnamed of one type in the plural ("Passed plaques without stopping").
+  const names = passedNames(places);
+  return names ? `Passed ${names} without stopping` : null;
 }
 
 const kindsIn = (raw: string | null): Kind[] => {
@@ -623,6 +689,17 @@ const kindsIn = (raw: string | null): Kind[] => {
  */
 export function parseHidden(raw: string | null, known: string | null = null): Set<Kind> {
   const out = new Set(kindsIn(raw));
-  if (out.has('museums') && !kindsIn(known).includes('community')) out.add('community');
+  const knew = kindsIn(known);
+  if (out.has('museums') && !knew.includes('community')) out.add('community');
+  // XS7: zoos and attractions were under "Viewpoints and attractions": off there keeps them off in their own kind.
+  if (out.has('viewpoints') && !knew.includes('attractions')) out.add('attractions');
+  // more-attractions audit 1: the map's theme parks were under Viewpoints and the archive's amusement parks under the zoos
+  // kind: either off before keeps every such park off in its own row.
+  if ((out.has('viewpoints') || out.has('attractions')) && !knew.includes('amusement_parks')) out.add('amusement_parks');
+  // explore-subtypes audit 5: statues were Monuments, markers "Plaques and markers": a switch off before keeps them off.
+  if (out.has('monuments') && !knew.includes('statues')) out.add('statues');
+  if ((out.has('monuments') || out.has('plaques')) && knew.includes('plaques') && !knew.includes('markers')) out.add('markers');
+  // SP7, SP8: a subset that starts off is off until the reader has seen it (a save writes every kind as known), fresh or updated.
+  for (const k of DEFAULT_OFF) if (!knew.includes(k)) out.add(k);
   return out;
 }

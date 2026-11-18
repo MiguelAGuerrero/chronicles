@@ -16,7 +16,7 @@ Fix the doc, not the code, unless the doc describes a rule the code broke.
 for f in $(cd src/app && find . -name '*.tsx' | sed 's#^\./##'); do
   grep -qF "$f" docs/ARCHITECTURE.md || echo "route not in codemap: $f"; done
 for d in src/lib/*/; do n=$(basename "$d"); [ "$n" = __tests__ ] && continue
-  grep -qE "lib/$n\b" docs/ARCHITECTURE.md || echo "lib dir not in codemap: $n"; done
+  grep -qE "lib/$n\b|^ +$n/" docs/ARCHITECTURE.md || echo "lib dir not in codemap: $n"; done
 ```
 
 ## 2. Budgets, rule globs and named paths
@@ -30,6 +30,18 @@ and skill sizes, that every rule's `paths:` glob matches a file, and that every
 path the docs name exists (short names like `lib/quietLines` included). CI and
 the Stop hook run it too; each failure says how to fix it. Fix the reference,
 not the check.
+
+## 2a. Rule files past the warning size (decision 0173)
+
+```bash
+npm run check:docs 2>&1 | grep 'warning:'
+```
+
+Each line names a rule file past 20,000 characters. In a session that is not
+the loop, split it by topic (one file per slice or sub-topic, `paths:` narrowed
+to its code, every line moved word for word, references to it updated).
+In a loop run, which only adds to rule files (0135), file a `T [owner]` inbox
+entry to split it instead (`/tend` section 5).
 
 ## 2b. The vision (decision 0094)
 
@@ -70,7 +82,14 @@ grep -oE '`[A-Za-z_][A-Za-z0-9_]*`' docs/DEFERRED.md | tr -d '`' | sort -u | whi
 ```
 
 Read each hit: a constant named in both is not proof. Move a shipped item to
-the spec's record and PRODUCT.md, and drop it from DEFERRED.md.
+the spec's record and PRODUCT.md, and drop it from DEFERRED.md with
+`npm run records -- deferred item remove <match> --reason "<what shipped it>"`
+(decision 0156: the three record documents change only through operations, two
+removals per section per commit; `npm run check:records -- origin/main` before
+the commit, whose message carries `npm run records -- trailers`).
+Every agent commit is gated, a docs clean-up's too: CI replays each commit carrying your
+`Claude-Session:` or `Co-Authored-By: Claude` trailer, so drift in these three is
+fixed by an operation, never by hand.
 
 ## 6. Native is still unverified
 
@@ -79,7 +98,7 @@ grep -n "never run on a device\|not run on a device" docs/NATIVE_UNVERIFIED.md A
 ```
 
 Both must say so unless the owner reports a device run; then update both and
-`docs/STATUS.md`.
+`docs/STATUS.md` (the owner's own words, or `npm run records` operations).
 
 ## 7. README commands match package.json
 

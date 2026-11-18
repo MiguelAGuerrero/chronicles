@@ -22,7 +22,7 @@ const FEATURES = [
     rule: 'functional-core',
     source: ['src/lib/types.ts', 'src/lib/{store,useStore,meta,id,focus}.ts', 'src/lib/ports/**', 'src/lib/net/**'],
     journeys: [],
-    specs: ['functional-core', 'affected-checks', 'test-organization', 'shells-saved-settings', 'test-gaps', 'device-acceptance', 'vision-gate'],
+    specs: ['functional-core', 'affected-checks', 'test-organization', 'shells-saved-settings', 'test-gaps', 'device-acceptance', 'vision-gate', 'react-compiler'],
   },
   {
     name: 'storage',
@@ -65,7 +65,7 @@ const FEATURES = [
     name: 'gaps',
     about: 'streets walked across a gap in the trace, and drawing a gap\'s way',
     rule: 'gaps',
-    source: ['src/lib/gaps/**', 'src/lib/tileCollector/**', 'src/components/{GapCard,GapDraw}.tsx'],
+    source: ['src/lib/gaps/**', 'src/lib/tileCollector/**', 'src/components/{GapCard,GapDraw,KeepGapsCard}.tsx'],
     journeys: ['gaps'],
     specs: ['filling-gaps', 'gap-drawing'],
   },
@@ -83,7 +83,7 @@ const FEATURES = [
     rule: 'replay',
     source: ['src/app/replay/**', 'src/lib/ceremony/**', 'src/components/ceremony/**', 'src/lib/{replay,quietLines,summary}.ts', 'src/components/CaptureView.tsx', 'src/lib/viewerBars.ts'],
     journeys: ['replay'],
-    specs: ['concept', 'replay-rhythm'],
+    specs: ['concept', 'replay-rhythm', 'replay-pace', 'replay-ceremony'],
   },
   {
     name: 'moments',
@@ -127,7 +127,7 @@ const FEATURES = [
   {
     name: 'presence',
     about: 'what a place is: one vocabulary of classes from every source\'s tags, read by density, marks and bars (decision 0140)',
-    rule: 'explore-and-discovery',
+    rule: 'presence',
     source: ['src/lib/presence/**'],
     // Its consumers own the journeys that show it: explore's marks, atlas and grading.
     journeys: [],
@@ -144,7 +144,7 @@ const FEATURES = [
   {
     name: 'explore',
     about: 'the Explore tab (the atlas), discovery, marks, reminders',
-    rule: 'explore-and-discovery',
+    rule: 'explore-atlas',
     source: [
       'src/lib/discovery/**',
       'src/lib/explore/**',
@@ -153,10 +153,12 @@ const FEATURES = [
       'src/lib/db/{exploreRow,placeRow,stores}.ts', 'src/lib/markNames.ts',
       'src/app/(tabs)/explore.tsx',
       'src/components/atlas/**',
-      'src/components/{MarkPinView,ExploreSettings,ReminderCard,RemindEditor}.tsx',
+      'src/lib/gazetteer/**',
+      'src/components/{MarkPinView,ExploreSettings,ReminderCard,RemindEditor,OpenInMapsButton,IntoPage,IntoRow}.tsx',
+      'src/app/into.tsx', 'src/lib/intoNav.ts', 'src/lib/intoGate.ts', 'src/lib/walkName.ts',
     ],
-    journeys: ['marks', 'atlas', 'grading', 'snap', 'carousel', 'curiosities', 'freelook'],
-    specs: ['v1-discovery', 'explore-atlas', 'pocket-alert-nudge', 'reminder-bell', 'atlas-grading', 'town-presence', 'discrete-navigation', 'explore-carousel', 'places-worth-the-stop', 'places-pipeline', 'remarkable-and-public', 'places-out-of-town', 'presence-and-kinds', 'whole-towns', 'community-parks', 'free-look', 'tap-to-capture-places'],
+    journeys: ['marks', 'atlas', 'grading', 'snap', 'carousel', 'curiosities', 'freelook', 'small-places', 'placesearch', 'subtypes', 'openmaps', 'openmaps-chronicle', 'into'],
+    specs: ['v1-discovery', 'explore-atlas', 'pocket-alert-nudge', 'reminder-bell', 'atlas-grading', 'town-presence', 'discrete-navigation', 'explore-carousel', 'places-worth-the-stop', 'places-pipeline', 'remarkable-and-public', 'places-out-of-town', 'presence-and-kinds', 'whole-towns', 'community-parks', 'free-look', 'small-places', 'place-search', 'explore-go-here', 'go-here-everywhere', 'explore-subtypes', 'more-attractions', 'open-in-maps-here', 'what-im-into-page', 'sights-and-local-life', 'tap-to-capture-places'],
   },
   {
     name: 'kind-walk',
@@ -175,12 +177,29 @@ const FEATURES = [
     specs: ['walk-planner', 'presence-and-kinds'],
   },
   {
+    name: 'roads',
+    about: 'the road engine: main roads from the map\'s z12 tiles, a directed graph, one way between towns with a cost by kind of road; drawn on the outing page with distances by road',
+    rule: 'roads',
+    source: ['src/lib/roads/**'],
+    // The road on the page is checked by the outing feature's `journey` (a journey belongs to one feature, TG1).
+    journeys: [],
+    specs: ['road-engine'],
+  },
+  {
+    name: 'outing',
+    about: 'plan an outing: describe what you want to see from a vocabulary, get one proposed circuit over candidates with facets; stops named on a tap or on arrival',
+    rule: 'outing',
+    source: ['src/lib/outing/**', 'src/components/outing/**'],
+    journeys: ['outing', 'journey', 'startfar'],
+    specs: ['quick-circuit', 'outing-journey', 'drive-in-the-outing', 'shop-facets'],
+  },
+  {
     name: 'layers',
-    about: 'map layers: the Layers button and panel, what is on, busy streets and town borders as layers',
+    about: 'map layers: the Layers button and panel, what is on, storefronts and town borders as layers',
     rule: 'layers',
-    source: ['src/lib/layers/**', 'src/components/LayersControl.tsx'],
-    journeys: ['layers'],
-    specs: ['map-layers'],
+    source: ['src/lib/layers/**', 'src/lib/pastLines/**', 'src/components/LayersControl.tsx'],
+    journeys: ['layers', 'dense', 'switches', 'where'],
+    specs: ['map-layers', 'explore-dense-city', 'smooth-switches', 'storefronts', 'where-ive-been'],
   },
   {
     name: 'walkability',
@@ -192,9 +211,9 @@ const FEATURES = [
   },
   {
     name: 'landing',
-    about: 'what\'s good here: landing analysis, busy streets, activity density',
+    about: 'what\'s good here: landing analysis, storefront streets, activity density',
     rule: 'landing',
-    source: ['src/lib/landing/**', 'src/lib/activity/**', 'src/components/LandingMarks.tsx'],
+    source: ['src/lib/landing/**', 'src/lib/activity/**'],
     journeys: [],
     specs: ['v1.5-landing', 'activity-density'],
   },
@@ -204,7 +223,7 @@ const FEATURES = [
     rule: 'places-and-areas',
     source: ['src/lib/areas/**', 'src/lib/{places,placeAll}.ts', 'src/lib/backlog/**', 'src/components/{StarView,AreaPoint}.tsx'],
     journeys: ['outlines'],
-    specs: ['v0.5-places', 'town-outlines', 'town-borders', 'town-presence'],
+    specs: ['v0.5-places', 'town-outlines', 'town-borders', 'town-presence', 'neighborhood-boundaries'],
   },
   {
     name: 'map',
@@ -216,8 +235,8 @@ const FEATURES = [
       'src/lib/{pins,scaleBar,perfCount,mapReads,useTabMap,traceEnds,useLocate,units,useUnits,format,compass,mapTopInset}.ts',
       'src/lib/unitsStore/**',
     ],
-    journeys: ['qol'],
-    specs: ['quality-of-life', 'compass'],
+    journeys: ['qol', 'palette'],
+    specs: ['quality-of-life', 'compass', 'native-map-frames', 'map-palette'],
   },
   {
     name: 'captures',
@@ -229,6 +248,9 @@ const FEATURES = [
       'src/lib/media/**',
       'src/lib/{useCaptures,thumbPlan,thumbJob,useMediaUri,captureBus,pieceStamp,openMoment,splitPlace}.ts',
       'src/lib/split/**',
+      // Stack with previous (SW1-SW18, decision 0197): the join, its Undo window and the quick-action row's rule.
+      'src/lib/join/**',
+      'src/components/journal/{QuickActions,StackGrid}.tsx',
       // Moment stacks (MS1-MS21): the open moment's store, the pill and the stacked mark.
       'src/lib/momentPill/**',
       'src/components/StackMark.tsx',
@@ -238,11 +260,18 @@ const FEATURES = [
       // Media editing (ME1-ME23): the editor, edited photos and videos, the Edit offer.
       'src/components/edit/**',
       'src/components/Baker*.ts',
-      'src/lib/{mediaEdit,editSession,editOffer,captionInput}.ts',
+      'src/lib/{mediaEdit,editSession,editOffer,captionInput,voiceTrim}.ts',
       'src/lib/{captureEdits,videoEdit}/**',
+      // Video thumbnails (VS1-VS9): every preview's small copies and stills, and the play mark.
+      'src/lib/thumbs/**',
+      'src/components/VideoMark.tsx',
+      // Unsaved captures (UN1-UN15, decision 0196): the one holder of every capture that failed to save.
+      'src/lib/unsaved/**',
+      // Pictures through expo-image (EI1-EI6): the one wrapper every picture on screen goes through.
+      'src/components/Picture.tsx',
     ],
-    journeys: ['edit', 'stacks'],
-    specs: ['memories-on-revisit', 'media-editing', 'moment-stacks'],
+    journeys: ['edit', 'stacks', 'stackjoin', 'voicetrim', 'videothumbs', 'unsaved'],
+    specs: ['memories-on-revisit', 'media-editing', 'moment-stacks', 'stack-with-previous', 'voice-trim', 'note-types', 'video-thumbnails', 'unsaved-captures', 'expo-image'],
   },
   {
     name: 'chronicle',
@@ -259,6 +288,30 @@ const FEATURES = [
     source: ['src/lib/resurface/**', 'src/components/chronicle/**'],
     journeys: ['resurface'],
     specs: ['resurfaced-moments', 'memories-context'],
+  },
+  {
+    name: 'transcript',
+    about: 'a voice memo\'s words, read on the phone in the background and shown as a caption under the memo (memo transcripts, decision 0169)',
+    rule: 'memo-transcripts',
+    source: ['src/lib/transcript/**', 'src/lib/useTranscript.ts', 'src/components/MemoTranscript.tsx'],
+    journeys: ['transcript'],
+    specs: ['memo-transcripts'],
+  },
+  {
+    name: 'reactions',
+    about: 'reactions on any moment, one per family (Feeling, Taste, Thought): the sign, the panel, marks, pin bubbles and the lenses (decision 0176)',
+    rule: 'reactions',
+    source: ['src/lib/reactions/**', 'src/components/reactions/**', 'src/lib/pins.ts'],
+    journeys: ['reactions'],
+    specs: ['reactions', 'reaction-links'],
+  },
+  {
+    name: 'journal',
+    about: "Chronicle's Memories as a journal: one sheet in book order, ending in an open line where writing is the capture (decision 0155)",
+    rule: 'journal',
+    source: ['src/lib/journal/**', 'src/components/journal/**'],
+    journeys: ['journal'],
+    specs: ['chronicle-journal'],
   },
   {
     name: 'gallery',
@@ -279,10 +332,10 @@ const FEATURES = [
   {
     name: 'notes',
     about: 'note pages: a note is a journal entry, written in TipTap (Expo DOM), kept as it is written, read in the viewer; its body is Markdown once the page wrote it',
-    rule: 'captures-and-media',
+    rule: 'note-pages',
     source: ['src/lib/notePage/**', 'src/components/notePage/**', 'src/lib/noteEdit.ts'],
     journeys: ['notepage'],
-    specs: ['note-pages'],
+    specs: ['note-pages', 'note-pictures'],
   },
   {
     name: 'motion',
@@ -304,9 +357,9 @@ const FEATURES = [
     name: 'deletion',
     about: 'clearing walks and moments, with undo',
     rule: 'deletion',
-    source: ['src/lib/deletion/**', 'src/components/{WalkActions,UndoToast}.tsx'],
+    source: ['src/lib/deletion/**', 'src/lib/emptyWalk/**', 'src/components/{WalkActions,UndoToast}.tsx'],
     journeys: ['deletion'],
-    specs: ['clearing-walks-and-moments', 'ui-conformance'],
+    specs: ['clearing-walks-and-moments', 'ui-conformance', 'empty-walk'],
   },
   {
     name: 'memories',
@@ -334,7 +387,27 @@ const FEATURES = [
 const V1_SCAN_AND_AMBIENT = ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S9', 'S10', 'S11', 'S12', 'S14', 'S15', 'S22', 'S23', ...Array.from({ length: 11 }, (_, i) => `A${i + 1}`)];
 
 const RETIRED = {
-  // A moment no longer finds a place by itself (the owner, Nov 12, decision 0155): only a tap on the place does (TC1-TC4).
+  // Captions in the replay wait for the first phone build (the owner, Nov 18, decision 0206): they cannot be seen on the web.
+  'replay-ceremony': ['RC38', 'RC39', 'RC40', 'RC41', 'RC42', 'RC43', 'RC44'],
+  // The soft cap of about 60 s and its floors went when each moment was given its own time (the owner, Nov 18, decision 0203):
+  // specs/replay-pace RY10 holds that nothing shrinks to fit a total.
+  'replay-rhythm': ['RR5'],
+  // The Loop / One way switch went with the page rebuilt as a map (outing-journey, decision 0210, a default taken on the owner's "proceed
+  // with reasonable defaults", theirs to overrule): a journey is a loop when one can be made, else one way, and says which (OJ7).
+  'quick-circuit': ['QC3'],
+  // Go here and its sheet were replaced by two outcome-named controls, Walk and "Open in Maps" (the owner, Nov 17, decision 0195):
+  // specs/open-in-maps-here (OM1-OM14) carries what stands of them.
+  'explore-go-here': Array.from({ length: 15 }, (_, i) => `GH${i + 1}`),
+  'go-here-everywhere': Array.from({ length: 13 }, (_, i) => `GE${i + 1}`),
+  // A no-regression promise that could never fail first (the owner, Nov 17, at the deploy): NF8 took its place.
+  'native-map-frames': ['NF6'],
+  // The row under the line (decision 0175) was replaced by a toolbar at the foot the same day (decision 0178, the owner).
+  // The composer (decision 0179) retired writing on the page: JN28-JN30, JN32, JN33, and the toolbar's pen (JN42).
+  'chronicle-journal': ['JN28', 'JN29', 'JN30', 'JN32', 'JN33', 'JN34', 'JN35', 'JN36', 'JN37', 'JN38', 'JN39', 'JN40', 'JN42'],
+  // Note types became reactions on any moment (the owner, Nov 14, decision 0176): one per family, their own records,
+  // the head always the kind, Type now Reaction. specs/reactions (RX1-RX36) carries what stands of them.
+  'note-types': Array.from({ length: 27 }, (_, i) => `NY${i + 1}`),
+  // A moment no longer finds a place by itself (the owner, Nov 12, decision 0223): only a tap on the place does (TC1-TC4).
   'shells-saved-settings': ['SH4'],
   // Moved to chronicles-data with the pipeline (the owner, Nov 9, decision 0108): that repo owns the build, its
   // schemas and their tests (its docs/spec.md). PP1-PP12, PP14, PP15 were built here first; the build-side criteria
@@ -374,6 +447,10 @@ const RETIRED = {
   // The test trim (Nov 5, the owner's call): the replay rhythm (decision 0085, RR1) replaced the ride's 4 s squeeze; a
   // ride is a stretch like any other, and still draws dashed (R5).
   rides: ['R10'],
+  // Memories became a journal (the owner, Nov 12, decision 0155): the capture band gave way to the open line, so the
+  // band's button names (HC8), its memo slots (HC11), its restraint (HC12) and its empty state (HC13) are the journal's
+  // JN10, JN14 and JN2 now, checked by the `journal` journey.
+  'capture-from-chronicle': ['HC8', 'HC11', 'HC12', 'HC13'],
   // DN5 (Nov 4): a swipe back lands back by itself, so there is no trail. DN3, DN4, DN6-DN9 (Nov 10, decision 0124): the
   // grid and the directional swipe gave way to a row of cards that a swipe steps; the new criteria are the explore-carousel spec's.
   'discrete-navigation': ['DN3', 'DN4', 'DN5', 'DN6', 'DN7', 'DN8', 'DN9'],
@@ -384,6 +461,37 @@ const RETIRED = {
  * make (the web build can't reach it), `deferred: <why>` for the owner's call to wait. Keyed by spec.
  */
 const UNTESTED = {
+  // Outing journey (decisions 0210-0210): criteria with no test of their own, each with where it is held instead. Recorded as the slice
+  // leaves IN_PROGRESS to ship (the owner's /deploy, Nov 18).
+  'outing-journey': {
+    D6: 'deferred: a decision, not a criterion: the capture stack is unchanged while driving, held by OJ33, OJ39 and RE27\'s checks in the journey `journey`',
+    OJ4: 'deferred: held in parts by other ids: the card\'s words by OJ21 and RE17, the map\'s line by RE1 and RE16 (the journey `journey`); the finding criterion is the ux-reviewer\'s cold find (Nov 18, in specs/road-engine\'s Audit)',
+    OJ6: 'deferred: by construction: the page hosts Explore\'s own search component (GZ9-GZ13 hold that nothing of a query is stored or sent); the journeys `outing` and `journey` pick a destination through it',
+    OJ8: 'deferred: not built: the towns near you as shortcuts (docs/DEFERRED.md, outing journey step 1)',
+    OJ10: 'deferred: no journey opens the page with no position; the line is the one QC30 tests in words, and the hook proposes nothing without an origin',
+    OJ16: 'deferred: held by QC41\'s tests (the switch, off by default, kept) and the journey `outing`, which toggles `outing-chains`',
+    OJ32: 'deferred: unchanged from QC19 and QC26, whose tests hold the chip; no journey of this slice walks to a stop',
+    OJ51: 'deferred: superseded in part by RE1 (the road in place of the straight line); the straight line that remains is checked by the journey `journey` as the count of points handed to the map',
+  },
+  // The road engine (decisions 0215-0214).
+  'road-engine': {
+    D6: 'deferred: a decision; held by RE26\'s checks (the one-time statement at the tap, and with the journey\'s towns on the page)',
+    RE14: 'deferred: not built: towns are still chosen by the straight line (docs/DEFERRED.md, the road engine step 2)',
+    RE24: 'deferred: the end at the town is the plan\'s own rule (OJ49\'s tests: within reach the town is at hand) dropping the `driving` flag; no journey drives nine kilometres to a town',
+    RE31: 'deferred: by construction: the bar exists only inside an open session\'s screen, and Drive there starts none',
+    RE33: 'device: speech and guiding with the phone locked or the app behind another; not met today (docs/DEFERRED.md, the road engine step 4)',
+  },
+  // Pictures through expo-image: the cache and the recycling are a phone's to see under memory pressure.
+  'expo-image': { EI6: 'device: memory and recycling over a few hundred photos on a phone; the web build has no native image cache' },
+  // Plan an outing (decision 0196): criteria with no test of their own, each with where it is held instead.
+  'quick-circuit': {
+    QC32: 'deferred: a review criterion, the ux-reviewer\'s cold find (Nov 17, in the spec\'s Record), not a unit test',
+    QC34: 'deferred: by construction: `HOURS_LINE` is one constant the page renders once under the slots, and no pack field holds hours; the journey `outing` checks the line (QC20)',
+    QC35: 'deferred: by construction: the page computes from the picks alone, and QC7\'s test plans with a second entry that wins no stop and says nothing of it',
+    QC36: 'deferred: Start is disabled with nothing to start; the reason is the line QC2 and QC30 test (nothing picked, no position); no test of its own for the disabled state',
+  },
+  // Native map frames: the source scans hold the shape; the frame rate is a profiler's on a phone.
+  'native-map-frames': { NF7: 'device: React DevTools on a development build during a walk; npm test cannot render MapLibre RN' },
   // Free look: the out-of-town stars (decision 0115) are queued, not built; FL19 is the call their slice carries.
   'free-look': { FL17: 'deferred: a launch fix that arrives late cannot be staged in the harness; the guard is the screen\'s `lookedRef` and `freeRef` in the fix handler, read by code review', FL19: 'deferred: the out-of-town stars of decision 0115 are not built yet; 0150 records that they follow the look, and that slice carries it' },
   // react-native-web always reports a screen reader, so the check that keeps the viewer's bars is a phone's (UC8).
@@ -424,14 +532,34 @@ const UNTESTED = {
     RP12: 'deferred: built and tested here, then the places pipeline moved to chronicles-data (decision 0108); the rule and its tests go there (specs/remarkable-and-public/handoff.md)',
   },
   // react-native-web always reports a screen reader, so the screen-reader path runs only on a device.
+  // The replay on the web refuses sound without a tap, so a trimmed memo's advance past its end handle is tried on a phone.
+  'voice-trim': { VT7: 'device: a replay moves on at a trimmed memo\'s end handle, tried on a phone (the logic is VT8, the one path VT12)' },
   'replay-rhythm': { RR17: 'device: both replays step through the moments with a screen reader on, native only' },
+  'replay-pace': { RY20: 'device: the screen reader\'s steps are unchanged and show no Next, native only (react-native-web never takes that path)' },
+  // The map's palette on a phone: the native layers and pin views take the same constants, never run on a device.
+  'map-palette': { MP13: 'device: the native map\'s layers and pin views in Earth and ink, seen on a phone (docs/NATIVE_UNVERIFIED.md)' },
 };
 
 /**
  * Specs a slice is building (TG22): from its plan until done, its criteria are exempt from the gate.
  * `{ slug: { branch, since: 'YYYY-MM-DD' } }`; an entry older than 7 days fails the docs check.
  */
+/**
+ * A spec whose criterion prefix was renamed after its tests were written, because another spec held the prefix first
+ * (check:docs, TG14): new prefix to old, so check:test-first reads the history under both. Never for any other reason.
+ */
+const RENAMED = {
+  // Video thumbnails were built as VT1-VT9 beside voice trim's VT1-VT12 on main; renamed on the merge (Nov 13).
+  'video-thumbnails': { VS: 'VT' },
+  // The React Compiler was built as RC1-RC3 beside the replay ceremony's RC1-RC48 on main; renamed on the merge (Nov 18).
+  'react-compiler': { CM: 'RC' },
+};
+
 const IN_PROGRESS = {
+  // Replay ceremony (RC1-RC48): the owner's go-ahead Nov 18 (decision 0206); built on the branch, shown at the preview address first.
+  'replay-ceremony': { branch: 'claude/funny-bohr-ztvwgv', since: '2026-11-18' },
+  'drive-in-the-outing': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-18' },
+  'shop-facets': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-18' },
 };
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));
@@ -470,4 +598,4 @@ const featureOfJourney = (name) => FEATURES.find((f) => f.journeys.includes(name
 /** The features that list a spec slug. */
 const featuresOfSpec = (slug) => FEATURES.filter((f) => f.specs.includes(slug));
 
-module.exports = { FEATURES, RETIRED, UNTESTED, IN_PROGRESS, globToRegExp, featuresOf, featureOfJourney, featuresOfSpec, byName };
+module.exports = { FEATURES, RETIRED, UNTESTED, RENAMED, IN_PROGRESS, globToRegExp, featuresOf, featureOfJourney, featuresOfSpec, byName };

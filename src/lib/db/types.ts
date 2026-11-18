@@ -4,7 +4,10 @@ import type { OutlineTile } from '../areas/outlines';
 import type { WalkTile } from '../walk/types';
 import type { AtlasArea } from '../atlas/atlas';
 import type { Complex } from '../complexes/types';
+import type { WalkLine } from '../pastLines/core';
 import type { Mark, Place, Recall } from '../discovery/types';
+import type { StoredReaction } from '../reactions/core';
+import type { Transcript } from '../transcript/core';
 import type { ChecklistArea, ChecklistItem, ExploreRead, Find } from '../explore/explore';
 import type { LandingRow } from '../landing/view';
 import type { ThreadsChange, ThreadsData } from '../threads/types';
@@ -15,9 +18,15 @@ import type { Capture, GapDecision, LngLat, Moment, Pause, Still, StreetSegment,
  * expo-sqlite; web uses IndexedDB. Nothing leaves the device. Writes are
  * serialized so the background recorder and the UI never interleave.
  */
+
+/** Street pieces written per transaction by `putSegments` (DC10): small enough that the page draws between batches. */
+export const SEGMENT_BATCH = 150;
+
 export interface Db {
   createWalk(walk: Walk): Promise<void>;
   updateWalk(id: string, patch: Partial<Omit<Walk, 'id'>>): Promise<void>;
+  /** Marks every walk to snap again (a rule change, `tiles.ts`): one write, never one per walk (performance review, Nov 18). */
+  clearSnappedBuilds(): Promise<void>;
   getWalk(id: string): Promise<Walk | null>;
   listWalks(): Promise<Walk[]>;
   getOpenWalk(): Promise<Walk | null>;
@@ -51,6 +60,18 @@ export interface Db {
    * other pieces, threads, links, reminder and find. Rejects, changing nothing, for a missing piece or a moment's last.
    */
   splitPiece(pieceId: string, moment: Omit<Moment, 'pieces'>): Promise<void>;
+  /**
+   * Stack with previous (decision 0197): the entry's pieces move into the previous moment, each keeping its own time
+   * and media, and the emptied entry's moment row goes, in one transaction. The previous moment's own row (place, time,
+   * threads, links, reminder, find) is never edited. Rejects, changing nothing, for a missing moment or two on different
+   * walks, so a walk's counts never move. The caller offers it only for an entry nothing points at (`referencesTo`).
+   */
+  joinMoment(fromId: string, intoId: string): Promise<void>;
+  /**
+   * Whether a thread, a reply or link, a reminder, a find or a reaction points at a moment by its id (SW8). One entry
+   * for every table that holds a moment id; a new table is added here with a decision, and the contract lists them.
+   */
+  referencesTo(id: string): Promise<{ thread: boolean; link: boolean; reminder: boolean; find: boolean; reaction: boolean }>;
   /** A walk's moments, with their pieces, in time order. */
   getMoments(walkId: string): Promise<Moment[]>;
   /** Every moment, loose or in a walk, with from <= t < to, in time order (days, M6). */
@@ -104,7 +125,11 @@ export interface Db {
   putGapDecision(d: GapDecision): Promise<void>;
 
   /** Caches street segments derived outside a snap (streets around the walker). */
-  putSegments(segments: StreetSegment[]): Promise<void>;
+  /**
+   * Caches street pieces. Written in batches of `SEGMENT_BATCH`, the page drawing between them (DC10). If `shouldStop`
+   * says so before the write starts, nothing is written; a write once started finishes, so no tile is half stored (audit 5).
+   */
+  putSegments(segments: StreetSegment[], shouldStop?: () => boolean): Promise<void>;
 
   /**
    * Stores freshly derived segments, the walk's visited rows and summary in one
@@ -133,6 +158,8 @@ export interface Db {
   /** Street keys visited by walks that started before `startedAt`. */
   streetKeysBefore(startedAt: number): Promise<Set<string>>;
   listSummaries(): Promise<WalkSummary[]>;
+  /** One walk's summary, or null: a replay reads its own, never the whole table (performance review, Nov 18). */
+  getSummary(walkId: string): Promise<WalkSummary | null>;
 
   /** Caches places read from the tiles (v1 discovery); same key, newer row. */
   putPlaces(places: Place[]): Promise<void>;
@@ -145,6 +172,20 @@ export interface Db {
   /** Stop reminding me, or a "once" that fired (R6, R8). */
   clearRecall(captureId: string): Promise<void>;
   listRecalls(): Promise<Recall[]>;
+
+  /**
+   * A moment's reactions (RX28, decision 0176): truth, one row per moment and family, never a field of the moment.
+   * `reaction: null` deletes the family's row. `deleteMoments` and `deleteWalk` take a moment's rows; a piece split out takes none.
+   */
+  setReaction(r: StoredReaction): Promise<void>;
+  /** A moment's changed rows in one transaction (RL10): every one is kept, or none; a row with `reaction: null` deletes. */
+  setReactions(rows: StoredReaction[]): Promise<void>;
+  listReactions(): Promise<StoredReaction[]>;
+
+  /** A memo's words, read on the phone (decision 0169): one per capture, replaced by capture. A cache beside the memo. */
+  setTranscript(t: Transcript): Promise<void>;
+  clearTranscript(captureId: string): Promise<void>;
+  listTranscripts(): Promise<Transcript[]>;
 
   /** Remembers an analyzed area (L11); the same key replaces it (L12). */
   putLanding(row: LandingRow): Promise<void>;
@@ -163,6 +204,18 @@ export interface Db {
   putOutlineTiles(tiles: OutlineTile[]): Promise<void>;
   /** The tiles of these keys that were read, in key order. */
   getOutlineTiles(keys: string[]): Promise<OutlineTile[]>;
+
+  /**
+   * Where I've been (WB14): each walk's walked line, a cache of its trace keyed by walk, with the z12 tiles it crosses;
+   * the same walk replaces its line and its tiles. Not tied to the tile build, so `purgeDerived` keeps it; `deleteWalk` takes it.
+   */
+  putWalkLine(line: WalkLine): Promise<void>;
+  /** The lines crossing any of these tiles, each once, in walk order. */
+  getWalkLinesIn(tiles: string[]): Promise<WalkLine[]>;
+  /** Every kept line's walk and rule code, never its runs: what is stale is decided from this. */
+  listWalkLineCodes(): Promise<{ walk_id: string; code: string }[]>;
+  /** Removes a walk's line and its tiles; a walk with none is a no-op. */
+  deleteWalkLine(walkId: string): Promise<void>;
 
   /** Walkability (WK2): what each read z14 tile held, a cache keyed `x/y`; the same key replaces a tile. */
   putWalkTiles(tiles: WalkTile[]): Promise<void>;

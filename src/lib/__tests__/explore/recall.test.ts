@@ -1,8 +1,12 @@
 /// <reference types="node" />
 import { type Faced, facedOf } from '../../moment';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { test } from 'node:test';
-import { RECALL_RULES, afterFire, dueRecalls, editedRecall, isExpired, newRecall, reminderText } from '../../discovery/recall';
+import { RECALL_RULES, afterFire, dueRecalls, editedRecall, isExpired, newRecall, remindChoices, remindMenuLabel, reminderHeld, reminderName, reminderText } from '../../discovery/recall';
+import { pinKindsWords } from '../../pins';
+import { moreHere, previewSpoken } from '../../memories';
 import type { Recall } from '../../discovery/types';
 import type { LngLat } from '../../types';
 
@@ -16,7 +20,8 @@ const DAY = 86_400_000;
 const NOW = Date.UTC(2026, 9, 31, 15);
 
 const capture = (id: string, over: Partial<Faced> = {}): Faced => facedOf({
-  id, walk_id: 'w0', t: Date.UTC(2026, 9, 20, 15), lat: O[1], lon: O[0], kind: 'text', file_path: null,
+  // Local time, so a moment's date reads Oct 20 in every zone (tend explore audit 5).
+  id, walk_id: 'w0', t: new Date(2026, 9, 20, 15).getTime(), lat: O[1], lon: O[0], kind: 'text', file_path: null,
   body: 'The bakery smelled of cardamom.', segment_id: null, caption: null, caption_y: null, ...over,
 });
 const recall = (captureId: string, over: Partial<Recall> = {}): Recall => ({
@@ -63,7 +68,7 @@ test('recall: two in reach show as one; quiet walk silences (R7, R8)', () => {
   const c = [capture('a'), capture('b', { lat: m(0, 30)[1] })];
   const both = dueRecalls({ here: m(0, 10), walkId: 'w1', now: NOW, quiet: false, recalls: [recall('a'), recall('b')], captures: c });
   assert.equal(both.length, 2);
-  assert.equal(reminderText(both.map((d) => d.capture)).title, '2 memories here');
+  assert.equal(reminderText(both.map((d) => d.capture)).title, 'Two memories here', 'in words since tend explore T29');
   assert.deepEqual(due({ recalls: [recall('a')], captures: c, quiet: true }), []);
 });
 
@@ -99,8 +104,29 @@ test('recall: any accepted fix of a batch can bring it back (audit 10)', () => {
 
 test('recall: two memories name their kinds (UI review)', () => {
   const t = reminderText([capture('a', { kind: 'photo', body: null }), capture('b')]);
-  assert.deepEqual(t, { title: '2 memories here', body: 'A photo and a note' });
-  assert.equal(reminderText([capture('a', { kind: 'voice', body: null }), capture('b', { kind: 'voice', body: null }), capture('c')]).body, '2 voice memos and a note');
+  assert.deepEqual(t, { title: 'Two memories here', body: 'A photo and a note' });
+  assert.equal(reminderText([capture('a', { kind: 'voice', body: null }), capture('b', { kind: 'voice', body: null }), capture('c')]).body, 'Two voice memos and a note');
+});
+
+test('tend explore T29: a reminder of several says its count and kinds in words, as the pins do', () => {
+  const at = (id: string, kind: Faced['kind'], min: number) => capture(id, { kind, body: kind === 'text' ? 'x' : null, t: new Date(2026, 9, 20, 15, min).getTime() });
+  // The kinds in the order taken, whatever order the flags came due in (the pins' order, pinKindsWords).
+  const three = [at('n', 'text', 9), at('p', 'photo', 5), at('v', 'voice', 1)];
+  assert.deepEqual(reminderText(three), { title: 'Three memories here', body: 'A voice memo, a photo and a note' });
+  // The words are the pins' own, from one table.
+  const pinOf = [...three].sort((a, b) => a.t - b.t);
+  assert.equal(reminderText(three).body, pinKindsWords({ captures: pinOf }));
+  // Two of one kind, said in words.
+  assert.deepEqual(reminderText([at('a', 'photo', 1), at('b', 'photo', 2)]), { title: 'Two memories here', body: 'Two photos' });
+  // Very many: never a numeral.
+  const many = Array.from({ length: 64 }, (_, i) => at(`m${i}`, i === 0 ? 'text' : 'photo', i));
+  const said = reminderText(many);
+  assert.deepEqual(said, { title: 'Many memories here', body: 'A note and many photos' });
+  assert.doesNotMatch(`${said.title} ${said.body}`, /\d/);
+  // The announcements say the card's own title (tend explore audit 6).
+  assert.equal(reminderText(reminderHeld(null, three)).title, 'Three memories here');
+  // One memory's body keeps its kind's name and date ("Voice memo, Oct 20"), from the pins' table too.
+  assert.deepEqual(reminderText([at('a', 'voice', 1)]), { title: 'A memory from here', body: 'Voice memo, Oct 20' });
 });
 
 test('audit (moments 15): a moment made outside a walk does not come back on a walk started right after, at the spot', () => {
@@ -109,4 +135,83 @@ test('audit (moments 15): a moment made outside a walk does not come back on a w
   // Once it has rested, it comes back as any flagged capture does.
   const old = [capture('m', { walk_id: null, t: NOW - RECALL_RULES.looseRestMs - 1 })];
   assert.deepEqual(due({ recalls: [recall('m')], captures: old }), ['m']);
+});
+
+test('tend explore audit 5: a reminder says the same words in any time zone, for ties and every count', () => {
+  const at = (id: string, kind: Faced['kind'], min: number) => capture(id, { kind, body: kind === 'text' ? 'x' : null, t: new Date(2026, 9, 20, 15, min).getTime() });
+  // A moment's own date, as the zone it was kept in reads it (run under TZ=Asia/Tokyo and TZ=Pacific/Kiritimati too).
+  assert.equal(reminderText([at('a', 'photo', 59)]).body, 'Photo, Oct 20');
+  // Taken in the same instant: by id, as the pins order them.
+  assert.equal(reminderText([at('b', 'text', 1), at('a', 'photo', 1)]).body, 'A photo and a note');
+  // A count of twenty to fifty-nine is hyphenated.
+  const photos = (n: number) => Array.from({ length: n }, (_, i) => at(`p${i}`, 'photo', i));
+  // The title says many from thirteen since tend explore 16; the body still counts each kind.
+  assert.deepEqual(reminderText(photos(21)), { title: 'Many memories here', body: 'Twenty-one photos' });
+  // Past fifty-nine the title says many while a body under sixty a kind still counts each.
+  const mixed = Array.from({ length: 61 }, (_, i) => at(`m${i}`, i % 2 ? 'text' : 'photo', i));
+  assert.deepEqual(reminderText(mixed), { title: 'Many memories here', body: 'Thirty-one photos and thirty notes' });
+});
+
+test('tend explore audit 6: the announcement says the card title, for every moment the card holds', () => {
+  const at = (id: string, kind: Faced['kind'], min: number) => capture(id, { kind, body: kind === 'text' ? 'x' : null, t: new Date(2026, 9, 20, 15, min).getTime() });
+  // One note: the card says "A note from here", and so does its announcement (no longer "A memory from here").
+  assert.equal(reminderText(reminderHeld(null, [at('n', 'text', 1)])).title, 'A note from here');
+  // A card of one joined by two more holds three, and says so: not the two just due.
+  const held = reminderHeld([at('a', 'photo', 1)], [at('b', 'voice', 2), at('c', 'text', 3)]);
+  assert.deepEqual(held.map((c) => c.id), ['a', 'b', 'c']);
+  assert.equal(reminderText(held).title, 'Three memories here');
+  // One already held is not counted twice.
+  assert.deepEqual(reminderHeld([at('a', 'photo', 1)], [at('a', 'photo', 1), at('b', 'text', 2)]).map((c) => c.id), ['a', 'b']);
+});
+
+// tend explore 16 (decision 0172, O11, "Many sooner"): a reminder of several says its count in words up to twelve and
+// "Many memories here" from thirteen, so the card's one line holds at 320 px.
+test('tend explore 16: "Many memories here" from thirteen', () => {
+  const notes = (n: number) => Array.from({ length: n }, (_, i) => capture(`n${i}`, { kind: 'text', body: 'x', t: new Date(2026, 9, 20, 15, i).getTime() }));
+  assert.equal(reminderText(notes(12)).title, 'Twelve memories here');
+  assert.equal(reminderText(notes(13)).title, 'Many memories here');
+  assert.equal(reminderText(notes(13)).body, 'Thirteen notes');
+  assert.equal(reminderText(notes(27)).title, 'Many memories here');
+});
+
+// tend explore audit 18 (the review's steward 4; the owner's answer in person, Nov 16, "Number words in the
+// preview"): the memory preview has the card's width, so it keeps its number words up to fifty-nine, "and twelve more
+// here"; only a reminder's one-line title says "Many" from thirteen.
+test('tend explore audit 18: the memory preview keeps number words to fifty-nine; only the reminder says "Many" from thirteen', () => {
+  assert.equal(moreHere(12), 'and twelve more here');
+  assert.equal(moreHere(14), 'and fourteen more here');
+  assert.equal(moreHere(59), 'and fifty-nine more here');
+  assert.equal(moreHere(60), 'and many more here');
+  assert.equal(previewSpoken({ date: 'Nov 2, 2026', line: 'Bought two plums', stack: null, more: 12 }), 'Memory from Nov 2, 2026: Bought two plums, and twelve more here. Open');
+});
+
+test('tend explore 18: the reminder editor\'s two menus offer the chips\' choices in their order, and say the chosen one', () => {
+  const fresh = remindChoices(null);
+  assert.deepEqual(fresh.often.map((x) => [x.id, x.label]), [['once', 'Once'], ['visit', 'Every visit'], ['weekly', 'Weekly at most'], ['monthly', 'Monthly at most']]);
+  assert.deepEqual(fresh.until.map((x) => [x.id, x.label, x.days]), [['none', 'No end', null], ['month', '1 month', 30], ['season', '3 months', 91], ['year', '1 year', 365]]);
+  // An end already set leads Until as its own choice, kept to the day (the month and date are the view's, read locally).
+  const kept = remindChoices({ month: 10, date: 2 });
+  assert.deepEqual(kept.until.map((x) => x.label), ['Ends Nov 2', 'No end', '1 month', '3 months', '1 year']);
+  assert.deepEqual(kept.often, fresh.often);
+  // The menu's button says its name and its choice: "How often: Once", "Until: No end".
+  assert.equal(remindMenuLabel('often', fresh.often, 'once'), 'How often: Once');
+  assert.equal(remindMenuLabel('often', fresh.often, 'monthly'), 'How often: Monthly at most');
+  assert.equal(remindMenuLabel('until', fresh.until, 'none'), 'Until: No end');
+  assert.equal(remindMenuLabel('until', kept.until, 'kept'), 'Until: Ends Nov 2');
+  assert.equal(remindMenuLabel('until', kept.until, 'year'), 'Until: 1 year');
+});
+
+// tend explore 23: a note's reminder card named itself "A note from here: The bakery smelled of cardamom.. Open"
+// (ReminderCard put ". Open" after a body that ends its own sentence). One full stop, as every other name reads
+// (the T29 review's ux 5; WCAG 2.2, 4.1.2 Name, Role, Value: the name is what is read).
+test('tend explore 23: a reminder card\'s name puts one full stop before Open, never two', () => {
+  assert.equal(reminderName([capture('n')]), 'A note from here: The bakery smelled of cardamom. Open');
+  assert.equal(reminderName([capture('q', { body: 'Was it the bakery?' })]), 'A note from here: Was it the bakery? Open');
+  assert.equal(reminderName([capture('l', { body: 'x'.repeat(RECALL_RULES.noteChars + 5) })]), `A note from here: ${'x'.repeat(RECALL_RULES.noteChars)}… Open`);
+  assert.equal(reminderName([capture('p', { kind: 'photo', body: null, caption: 'The mural' })]), 'A memory from here: The mural. Open');
+  assert.equal(reminderName([capture('v', { kind: 'voice', body: null })]), 'A memory from here: Voice memo, Oct 20. Open');
+  assert.equal(reminderName([capture('e', { body: '   ' })]), 'A note from here. Open');
+  // The card says the name it is given.
+  const card = readFileSync(join(__dirname, '..', '..', '..', 'components', 'ReminderCard.tsx'), 'utf8');
+  assert.match(card, /accessibilityLabel=\{reminderName\(props\.captures\)\}/);
 });

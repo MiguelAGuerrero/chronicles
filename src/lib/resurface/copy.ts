@@ -3,7 +3,7 @@
  * Every sentence Memories writes about its own controls (MC11, MC14, MC16), in one place so a test can read
  * each one. They state a fact: no "Okay,", no instruction, and none says hiding is private, because it is not.
  */
-export const HIDDEN_TOAST = 'Hidden. It stays in Lately and in its walk.';
+export const HIDDEN_TOAST = 'Hidden. It stays in your journal and in its walk.';
 export const NOT_A_THREAD = 'That is not a thread.';
 export const EMPTY = 'Nothing kept yet.';
 export const BRING_BACK = 'Bring back';
@@ -16,6 +16,9 @@ export const HINT_HIDDEN = 'What you set aside';
 export const HINT_ON = 'On';
 export const HINT_OFF = 'Off';
 export const HINT_FORGET = 'Clears Hidden and thread names';
+/** A found thread's More (tend chronicle audit 9, the owner's words, Nov 17). */
+export const HINT_RENAME_THREAD = 'Give it your own name';
+export const HINT_NOT_A_THREAD = 'Off the list for good; the moments stay';
 export const NOTHING_HIDDEN = 'Nothing is hidden.';
 export const FAILED_SAVE = "Couldn't keep this choice; it may come back.";
 export const NO_PLACE = 'No place kept';

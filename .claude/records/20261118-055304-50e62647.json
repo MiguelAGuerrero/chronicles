@@ -1,0 +1,13 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Chronicle journal, cut 1 (`specs/chronicle-journal/spec.md`, decision 0155)"
+      ],
+      "body": "- [loop] **The `resurface` journey stops on `main`** (found Nov 18, by the performance review's baseline: three runs on 17bcbcc, each the same): after RM17 it waits 30 s for `[data-testid=moment-card]:has-text(\"quiet quiet\") [data-testid=moment-more]`, a More that quick actions took off entries (SW19, decision 0197); the journey reaches the moment's actions another way now (its quick-action row), then RM8 onward run again.\n"
+    }
+  ]
+}

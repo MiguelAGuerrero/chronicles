@@ -49,6 +49,7 @@
         }
       ],
       "expo-sqlite",
+      "expo-image",
       [
         "expo-location",
         {
@@ -95,10 +96,21 @@
         {
           "color": "#c2410c"
         }
+      ],
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Chronicles records voice notes on a walk, and reads their words on your phone.",
+          "speechRecognitionPermission": "Chronicles reads the words of your voice notes on your phone, so you can find them later.",
+          "androidSpeechServicePackages": [
+            "com.google.android.as"
+          ]
+        }
       ]
     ],
     "experiments": {
-      "typedRoutes": false
+      "typedRoutes": false,
+      "reactCompiler": true
     }
   }
 }

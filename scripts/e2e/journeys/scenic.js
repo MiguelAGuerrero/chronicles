@@ -17,10 +17,11 @@ async function run(h) {
       await pg.waitForTimeout(1500);
       return { c, pg };
     };
-    const switches = (pg) => pg.locator('[data-testid^=leaning-]').evaluateAll((els) => els.map((e) => [e.dataset.testid, e.getAttribute('aria-checked')]));
+    // The switches only: a SwitchRow's note carries its own id, `<testID>-note` (WI18; fix scenic-switches).
+    const switches = (pg) => pg.locator('[role=switch][data-testid^=leaning-]').evaluateAll((els) => els.map((e) => [e.dataset.testid, e.getAttribute('aria-checked')]));
     const startWalk = async (pg) => {
       await pg.click('[data-testid=start]');
-      await pg.waitForSelector('[data-testid=stop]', { timeout: 15000 });
+      await pg.waitForSelector('[data-testid=walk-actions]', { timeout: 15000 });
       await pg.waitForTimeout(2500);
     };
     const press = async (pg, p) => {
@@ -54,14 +55,40 @@ async function run(h) {
     const preview = (pg, timeout = 60000) => pg.waitForSelector('[data-testid=route-preview]', { timeout }).then(() => true, () => false);
     const gone = (pg, sel) => pg.waitForFunction((s) => !document.querySelector(s), `[data-testid=${sel}]`, { timeout: 5000 }).then(() => true, () => false);
     const navDest = async (pg) => JSON.parse((await metaOf(pg, 'nav')) || 'null')?.dest ?? null;
+    // Holds every read of the walk row (IndexedDB's walk store, 'walk') or of the cached streets ('streets') while on, so a
+    // step that waits on one can be caught there; null answers what was held. window.__held lists what was caught.
+    const holdReads = (pg, what) => pg.evaluate((w) => {
+      window.__hold = w;
+      window.__held ??= [];
+      if (!window.__holdPatched) {
+        window.__holdPatched = true;
+        const later = (req) => {
+          let fn = null;
+          Object.defineProperty(req, 'onsuccess', { configurable: true, get: () => fn, set: (h) => { fn = h; } });
+          req.addEventListener('success', (e) => window.__held.push(() => fn?.call(req, e)));
+          return req;
+        };
+        const get = IDBObjectStore.prototype.get;
+        IDBObjectStore.prototype.get = function (...a) {
+          const req = get.apply(this, a);
+          return window.__hold === 'walk' && this.name === 'walk' ? later(req) : req;
+        };
+        const getAll = IDBIndex.prototype.getAll;
+        IDBIndex.prototype.getAll = function (...a) {
+          const req = getAll.apply(this, a);
+          return window.__hold === 'streets' && this.objectStore.name === 'street_segment' ? later(req) : req;
+        };
+      }
+      if (!w) for (const answer of window.__held.splice(0)) answer();
+    }, what);
     // 300 m east, on screen at the walk's zoom (a 390 px map is about 700 m across): Transit Street direct, 360 m by the park.
     const east = at(2.5, -0.5);
 
     const { c, pg } = await open('scenic');
     // SR1: the three leanings are switches in the walk settings, all on by default.
     await drawerTo(pg, 'half');
-    check(JSON.stringify(await switches(pg)) === JSON.stringify([['leaning-green', 'true'], ['leaning-sights', 'true'], ['leaning-busy', 'true']]),
-      `scenic SR1: Green, Sights and Streets with life are on by default (${JSON.stringify(await switches(pg))})`);
+    check(JSON.stringify(await switches(pg)) === JSON.stringify([['leaning-green', 'true'], ['leaning-sights', 'true'], ['leaning-storefronts', 'true']]),
+      `scenic SR1: Green, Sights and Storefronts are on by default (${JSON.stringify(await switches(pg))})`);
     await drawerTo(pg, 'peek');
     await startWalk(pg);
 
@@ -84,10 +111,10 @@ async function run(h) {
     check(r.length === 2 && /^Direct/.test(r[0].label) && /^Through green/.test(r[1].label) && r[0].selected === '1',
       `scenic SR2: Direct first and highlighted, then Through green (${JSON.stringify(r)})`);
     check((await alternates(pg)) === '1', `scenic SR2: the other route is drawn faint on the map (${await alternates(pg)})`);
-    check(r.length === 2 && /^Direct\n\d+ m$/.test(r[0].text) && /^Through green\n\d+ m · through India Point Park$/.test(r[1].text) && !/%|score|\bmin\b|minute|hour|detour|longer/i.test(r.map((x) => x.text).join(' ')),
+    check(r.length === 2 && /^Direct\n\d+[ \u00a0]m$/.test(r[0].text) && /^Through green\n\d+[ \u00a0]m · through India Point Park$/.test(r[1].text) && !/%|score|\bmin\b|minute|hour|detour|longer/i.test(r.map((x) => x.text).join(' ')),
       `scenic SR3: every row says its own distance, never a time or minutes compared (${JSON.stringify(r.map((x) => x.text))})`);
     check(r.length === 2 && /through India Point Park/.test(r[1].text), `scenic SR4: the park is named (${r[1]?.text})`);
-    check(r.length === 2 && /^Through green, \d+ m, through India Point Park$/.test(r[1].label), `scenic SR14: the row's label says the whole row (${r[1]?.label})`);
+    check(r.length === 2 && /^Through green, \d+[ \u00a0]m, through India Point Park$/.test(r[1].label), `scenic SR14: the row's label says the whole row (${r[1]?.label})`);
     // tend navigation 1: each row's Go has its own spoken name, the visible word first (X4, WCAG 2.5.3), not "Go" twice.
     const goNames = await pg.evaluate(() => [...document.querySelectorAll('[data-testid^=route-go-]')].map((b) => b.getAttribute('aria-label')));
     check(goNames.length === 2 && new Set(goNames).size === 2 && goNames.every((n) => /^Go\b/.test(n ?? '')) && /Direct/.test(goNames[0] ?? '') && /Through green/.test(goNames[1] ?? ''),
@@ -115,6 +142,22 @@ async function run(h) {
       check((await gone(pg, 'route-preview')) && (await pg.locator('[data-testid=nav-bar]').count()) === 0, 'scenic SR8: Escape closes the preview, with no destination');
     } else check(false, 'scenic SR8: the preview came back for Escape');
 
+    // tend navigation 2: Cancel pressed after the corridor was read, while the walk is read before the routes are offered,
+    // sets nothing: no preview comes up, no route starts, no destination is kept.
+    await pg.waitForTimeout(1100);
+    await holdReads(pg, 'walk');
+    await goHere(pg, east);
+    const caught = await pg.waitForFunction(() => window.__held.length > 0, null, { timeout: 60000 }).then(() => true, () => false);
+    const cancelled = await pg.click('[data-testid=nav-cancel]', { timeout: 3000 }).then(() => true, () => false);
+    await holdReads(pg, null);
+    let shown = false;
+    for (let k = 0; k < 8; k++) {
+      shown ||= (await pg.locator('[data-testid=route-preview], [data-testid=nav-bar]').count()) > 0;
+      await pg.waitForTimeout(400);
+    }
+    check(caught && cancelled && !shown && (await navDest(pg)) === null && (await pg.locator('[data-testid=nav-cancel]').count()) === 0,
+      `tend navigation 2: Cancel while the walk is read after the corridor sets nothing (caught ${caught}, cancelled ${cancelled}, shown ${shown}, kept ${JSON.stringify(await navDest(pg))})`);
+
     // SR8, SR11: Go on Through green navigates that way, and the leaning is kept with the destination.
     await pg.waitForTimeout(1100);
     await goHere(pg, east);
@@ -136,10 +179,43 @@ async function run(h) {
     } else check(false, 'scenic SR8: the preview came back for Go');
     await c.close();
 
+    // tend navigation 3: a Go here tapped while a re-route reads the streets again (off a route no street read before
+    // reaches, a minute or more after it began) is found at once: "Finding a route" shows. It used to be dropped unseen.
+    {
+      const { c: c3, pg: p3 } = await open('scenic-reread');
+      await startWalk(p3);
+      await goHere(p3, at(-0.5, -1.5));
+      const began = Date.now();
+      const led = await p3.waitForSelector('[data-testid=nav-bar]', { timeout: 60000 }).then(() => true, () => false);
+      // Paused, the walker is moved 400 m north of every street; resumed after the minute, the route can't be mended there.
+      await p3.click('[data-testid=pause-walk]');
+      await p3.waitForSelector('[data-testid=resume-walk]');
+      const far = at(-0.5, 6);
+      await c3.setGeolocation({ longitude: far[0], latitude: far[1], accuracy: 6 });
+      await p3.waitForTimeout(Math.max(0, began + 62000 - Date.now()));
+      await holdReads(p3, 'streets');
+      await p3.click('[data-testid=resume-walk]');
+      for (let k = 1; k <= 4; k++) {
+        await c3.setGeolocation({ longitude: far[0], latitude: far[1] + k * 1e-6, accuracy: 6 });
+        await p3.waitForTimeout(1000);
+      }
+      const off = await p3.waitForSelector('text=Off your route', { timeout: 15000 }).then(() => true, () => false);
+      // The re-read moves the camera view by view, then waits on the cached streets (held): the map is still again.
+      await p3.waitForTimeout(3000);
+      await goHere(p3, at(-0.5, 5));
+      const finding = await p3.waitForSelector('[data-testid=nav-cancel]', { timeout: 5000 }).then(() => true, () => false);
+      await shot(p3, 'scenic-reread-finding');
+      await holdReads(p3, null);
+      check(led && off && finding, `tend navigation 3: a Go here while a re-route reads the streets again shows "Finding a route" (led ${led}, off route ${off}, finding ${finding})`);
+      await c3.close();
+    }
+
     // SR1: all three off, kept across a reload; Go here then goes the direct way with no preview.
     const b = await open('scenic-off');
     await drawerTo(b.pg, 'half');
-    for (const id of ['green', 'sights', 'busy']) await b.pg.click(`[data-testid=leaning-${id}]`);
+    await b.pg.locator('[data-testid=route-leanings]').scrollIntoViewIfNeeded().catch(() => {});
+    await shot(b.pg, 'sf-leanings');
+    for (const id of ['green', 'sights', 'storefronts']) await b.pg.click(`[data-testid=leaning-${id}]`);
     await b.pg.waitForTimeout(500);
     const off = await switches(b.pg);
     // A reload of Navigate comes back on the ready screen.
@@ -148,8 +224,9 @@ async function run(h) {
     await b.pg.waitForTimeout(1500);
     await drawerTo(b.pg, 'half');
     const after = await switches(b.pg);
-    check(off.every(([, v]) => v === 'false') && after.every(([, v]) => v === 'false') && (await metaOf(b.pg, 'route_leanings')) === '[]',
-      `scenic SR1: switched off, the leanings stay off after a reload (${JSON.stringify(after)})`);
+    // Exactly the three switches, before and after: an empty read would pass `every` (fix scenic-switches audit 1).
+    check(off.length === 3 && after.length === 3 && off.every(([, v]) => v === 'false') && after.every(([, v]) => v === 'false') && (await metaOf(b.pg, 'route_leanings')) === '[]',
+      `scenic SR1: switched off, the leanings stay off after a reload (fix scenic-switches audit 1: three read each time) (${JSON.stringify([off, after])})`);
     await drawerTo(b.pg, 'peek');
     await startWalk(b.pg);
     await goHere(b.pg, east);

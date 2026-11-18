@@ -5,17 +5,45 @@
  * walks list keeps distance and time but counts no new streets. Pure.
  */
 import { formatCaptures, formatDistance, formatDuration } from './format';
+import type { Star } from './places';
+import { numberWord } from './resurface/lines';
 
-/** "your first time down Elm Street", or "3 streets new to you"; null when none were new. */
-export function newStreetsLine(names: string[]): string | null {
+/** A figure kept whole at a line's end, "589 m" never "589 / m" (tend chronicle 10): its spaces are no-break. */
+const bound = (figure: string) => figure.replace(/ /g, '\u00a0');
+
+/**
+ * "your first time down Elm Street", or past two "three streets new to you", in words (tend replay T31, the owner's yes,
+ * Nov 14); null when none were new. `bind`, for the card's line, keeps the count on its noun's line; the fog beat's
+ * headline is also said, so it keeps plain spaces. Being said is no reason for them, though: a screen reader says a
+ * no-break space as a space, and a spoken distance keeps the one formatDistance gives (tend map audit 47).
+ */
+export function newStreetsLine(names: string[], o: { bind?: boolean } = {}): string | null {
   if (!names.length) return null;
   if (names.length <= 2) return `your first time down ${names.join(' and ')}`;
-  return `${names.length} streets new to you`;
+  return `${numberWord(names.length)}${o.bind ? '\u00a0' : ' '}streets new to you`;
 }
 
-/** A walks list row's line: the date, distance and time, then what was kept. */
+/**
+ * The walk card's streets after its distance and time: "one street walked, your first time down Transit Street", "seven
+ * streets walked, three streets new to you" (tend replay T31), the count kept on its noun's line, as a day's walk line
+ * keeps its (tend tabs audit 24); when every street walked is new and they are counted, one clause, "three streets, all
+ * new to you" (tend replay audit 14, the owner's answer, Nov 16). `newStreets` is null while the streets are not read.
+ * Null with neither.
+ */
+export function walkCardStreets(walked: number, newStreets: string[] | null): string | null {
+  const fresh = newStreets ? newStreetsLine(newStreets, { bind: true }) : null;
+  const streets = `${numberWord(walked)}\u00a0${walked === 1 ? 'street' : 'streets'}`;
+  if (newStreets && newStreets.length > 2 && newStreets.length === walked) return `${streets}, all new to you`;
+  return [walked > 0 ? `${streets} walked` : null, fresh].filter(Boolean).join(', ') || null;
+}
+
+/**
+ * A walks list row's line: the date, distance and time, then what was kept, its clause lowercase after its dot (the
+ * owner, Nov 14, "Lowercase after a dot"; tend tabs audit 23): a capital only where a clause starts a line.
+ */
 export function walkRowMeta(date: string, s: { distance_m: number; duration_ms: number; photos: number; videos?: number; voices: number; notes: number }): string {
-  return [date, formatDistance(s.distance_m), formatDuration(s.duration_ms), formatCaptures(s)].filter(Boolean).join(' · ');
+  const kept = formatCaptures(s);
+  return [date, bound(formatDistance(s.distance_m)), bound(formatDuration(s.duration_ms)), kept.charAt(0).toLowerCase() + kept.slice(1)].filter(Boolean).join(' · ');
 }
 
 /**
@@ -26,6 +54,18 @@ export function walkRowSpoken(title: string, meta: string, epilogue: string | nu
   const line = epilogue?.trim();
   return [`Replay ${title}`, meta.split(' · ').join(', '), line ? `“${line}”` : null].filter(Boolean).join('. ');
 }
+
+/**
+ * A day's timeline entry for a walk, under its title: "Walk · 1.2 km · three moments" (tend tabs 11, decision 0172); a
+ * walk that kept nothing says no count, "Walk · 145 m" (tend tabs audit 22).
+ */
+export function timelineWalkLine(distance: string | null, moments: number): string {
+  // The count keeps to its noun when the line wraps, "one / moment" never split (tend tabs audit 24).
+  return ['Walk', distance && bound(distance), moments > 0 ? `${numberWord(moments)}\u00a0${moments === 1 ? 'moment' : 'moments'}` : null].filter(Boolean).join(' · ');
+}
+
+/** A walk's More, named by the title it shows wherever that title is known: its row, its timeline entry, its card (tend tabs 11). */
+export const moreFor = (title: string): string => `More for ${title}`;
 
 /** A day's timeline entry for a walk as a screen reader says it (tend chronicle 3): its time, the title it shows, its line. */
 export function timelineWalkSpoken(clock: string, title: string, line: string): string {
@@ -42,4 +82,26 @@ export function emptyPeek(walkOpen: boolean): { line: string; navigate: boolean 
   return walkOpen
     ? { line: 'This walk is starred here when it ends', navigate: false }
     : { line: 'Walk somewhere and it is starred here', navigate: true };
+}
+
+const capFirst = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+const walksWord = (n: number) => `${numberWord(n)} ${n === 1 ? 'walk' : 'walks'}`;
+
+/**
+ * The place sheet's line under a selected star: its parents, its walks in words as the star says them, and the
+ * distance walked there, "Providence, Rhode Island · one walk · 175 m" (tend tabs 10, decision 0172).
+ */
+export function placeSheetLine(subtitle: string | null | undefined, walks: number, distance: string): string {
+  return [subtitle, walksWord(walks), bound(distance)].filter(Boolean).join(' · ');
+}
+
+/**
+ * A walked place's star as a screen reader says it (tend places T15, decision 0154: the star draws no numeral): one
+ * place by its name and its walks in words, then what a tap does, "Fox Point, two walks. Open" (tend places audit 5);
+ * places merged at this zoom by how many, in words, "Three places, two walks. Zoom in", as a pin says its kinds
+ * before its "Open".
+ */
+export function starSpoken(star: Pick<Star, 'label' | 'walkIds' | 'count'>): string {
+  const walks = walksWord(star.walkIds.length);
+  return star.count > 1 ? `${capFirst(numberWord(star.count))} places, ${walks}. Zoom in` : `${star.label}, ${walks}. Open`;
 }

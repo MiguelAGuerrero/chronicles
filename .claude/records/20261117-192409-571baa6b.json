@@ -1,0 +1,19 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inflight",
+        "remove",
+        "Moment append"
+      ],
+      "target": "sha256:e0d7866fff04667e6eefa2dd43124a3f46c507026b3b35fd5f84dc66ea2a6f75"
+    },
+    {
+      "argv": [
+        "inflight",
+        "add"
+      ],
+      "body": "| Stack with previous (a labelled button on the entry just kept in Chronicle joins its pieces into the previous moment of the same day, with Undo, only while nothing points at it; a stack shown as a collapsible grid of every piece; SW1-SW14, decision 0196) | `claude/jolly-faraday-8kcyum` | spec, plan and mock-up written 2026-11-17, awaiting the owner's review of the plan (collapsed by default, grid on Chronicle's page only); no code yet |\n"
+    }
+  ]
+}

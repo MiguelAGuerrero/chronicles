@@ -7,7 +7,8 @@
  *   1. Budgets: AGENTS.md loads into every session, so it has a ceiling
  *      (Anthropic's guidance is under 200 lines; bytes are the real cost,
  *      since long lines dodge a line count). Rule files are cut off past
- *      40,000 characters; skills should stay under 500 lines.
+ *      40,000 characters, and warn past 20,000 (split them by topic first);
+ *      skills should stay under 500 lines.
  *   2. Every `paths:` glob of a rule file matches at least one file, or the
  *      rule never loads.
  *   3. Every repo path the docs name in backticks exists.
@@ -15,6 +16,8 @@
  *      (scripts/collisions.js).
  *   5. Every live criterion is tested, retired, untested with a reason, or in the
  *      legacy baseline (scripts/criteria.js).
+ *   6. A spec in IN_PROGRESS, or written after decision 0193, has a "How adjacent
+ *      apps do it" section with an entry naming an app and a source (scripts/precedent.js).
  *
  * Exit 1 with a list of problems, each saying how to fix it; exit 0 when clean.
  */
@@ -31,6 +34,8 @@ const BUDGET = {
   visionLines: 160,
   visionBytes: 12_000,
   ruleChars: 40_000,
+  // Past this a rule file only warns: split it by topic before the cut-off fails it (decision 0173).
+  ruleWarnChars: 20_000,
   skillLines: 500,
 };
 
@@ -68,6 +73,8 @@ function resolves(p) {
 
 const problems = [];
 const fail = (msg) => problems.push(msg);
+const warnings = [];
+const warn = (msg) => warnings.push(msg);
 
 function list(dir, ext) {
   if (!fs.existsSync(dir)) return [];
@@ -156,6 +163,8 @@ function frontmatterPaths(text) {
     const n = fs.readFileSync(f, 'utf8').length;
     if (n > BUDGET.ruleChars) {
       fail(`${f} is ${n} characters; past ${BUDGET.ruleChars} Claude sees only its start. Split it into two rule files with narrower paths.`);
+    } else if (n > BUDGET.ruleWarnChars) {
+      warn(`${f} is ${n} characters, past the ${BUDGET.ruleWarnChars} warning (it fails at ${BUDGET.ruleChars}): split it by topic (see the slice skill) before adding to it.`);
     }
   }
   for (const f of listSkills()) {
@@ -222,6 +231,11 @@ for (const doc of PATH_CHECKED) {
 for (const p of require('./criteria').check(ROOT)) fail(p.message);
 // The device acceptance suite: its format, and an item for every device-only criterion (DV1-DV5).
 for (const p of require('./device').check(ROOT)) fail(p.message);
+// 6. A spec in progress, or written after the gate, says how adjacent apps do its job (decision 0193).
+for (const p of require('./precedent').check(ROOT)) fail(p.message);
+
+// Warnings never fail the check: they say what to do before it would.
+for (const w of warnings) console.warn(`check-docs: warning: ${w}`);
 
 if (problems.length) {
   console.error(`check-docs: ${problems.length} problem${problems.length > 1 ? 's' : ''}`);

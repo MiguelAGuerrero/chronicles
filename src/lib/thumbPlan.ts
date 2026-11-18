@@ -1,5 +1,5 @@
 // @layer core
-import { isEmptyEdit, serializeEdit, type MediaEdit } from './mediaEdit';
+import { isEmptyEdit, isFull, serializeEdit, type MediaEdit } from './mediaEdit';
 /**
  * Thumbnails (TH1-TH5, the owner's call, Nov 1): a small copy beside each
  * photo, so a 56 px preview never decodes the full photo. The job is pure with
@@ -7,6 +7,8 @@ import { isEmptyEdit, serializeEdit, type MediaEdit } from './mediaEdit';
  */
 export const THUMB = {
   edge: 240,
+  /** A video's still (video thumbnails VS1, the owner's call, Nov 13): sharp enough for a month's cover. */
+  videoEdge: 720,
   compress: 0.7,
   /** Stored when a photo won't decode, so it is never tried again (audit 3); previews show the photo. */
   none: 'none',
@@ -39,8 +41,14 @@ export const editedThumbName = (c: { id: string }, edit: MediaEdit | null): stri
 export const captureThumbStillWanted = (row: { thumb_path?: string | null; edit?: MediaEdit | null } | null): boolean =>
   !!row && !row.thumb_path && isEmptyEdit(row.edit);
 
-/** A photo with a file and no copy yet (TH3); one marked undecodable is done. */
-export const wantsThumb = (c: ThumbCapture): boolean => c.kind === 'photo' && !!c.file_path && !c.thumb_path;
+/** A photo or a video with a file and no copy yet (TH3, VS1, VS2); one marked undecodable is done. */
+export const wantsThumb = (c: ThumbCapture): boolean => (c.kind === 'photo' || c.kind === 'video') && !!c.file_path && !c.thumb_path;
+
+/** The long edge of a kind's copy: a photo's 240, a video's still 720 (VS1). */
+export const thumbEdge = (kind: string): number => (kind === 'video' ? THUMB.videoEdge : THUMB.edge);
+
+/** Where a video's still is taken, in seconds (VS1, VS6): the start of its kept part, the trim's start, else 0. */
+export const frameAt = (edit: MediaEdit | null | undefined): number => (edit?.trim ? Math.max(0, edit.trim.start_ms) / 1000 : 0);
 
 /**
  * The stored ref a preview shows (TH4): the copy; the photo when the copy's file is
@@ -48,8 +56,34 @@ export const wantsThumb = (c: ThumbCapture): boolean => c.kind === 'photo' && !!
  * so a first showing doesn't decode the full photo too (audit 7).
  */
 export function thumbShown(c: ThumbCapture, copyBroken: boolean): string | null {
+  // A video's preview is its still or nothing: its file is never a picture (VS5).
+  if (c.kind === 'video') return c.thumb_path && c.thumb_path !== THUMB.none && !copyBroken ? c.thumb_path : null;
   if (c.kind !== 'photo' || !c.file_path) return null;
   if (c.thumb_path === THUMB.none || (c.thumb_path && copyBroken)) return c.file_path;
   return c.thumb_path ?? null;
 }
 
+
+/** What a video's still is taken from: where the kept part starts, its turn and its crop (VS1). Lines are not in it. */
+function stillOf(e: MediaEdit | null | undefined): string {
+  return JSON.stringify({ at: e?.trim ? e.trim.start_ms : 0, rotate: e?.rotate ?? 0, crop: e && !isFull(e.crop) ? e.crop : null });
+}
+
+/** Whether an edit makes a video's still again (VS6, video-thumbnails audit 8): a trim, crop or rotation changed. */
+export const stillChanged = (before: MediaEdit | null | undefined, after: MediaEdit | null | undefined): boolean => stillOf(before) !== stillOf(after);
+
+/** A still made or replaced this session (`lib/thumbs`): its ref (null when one was dropped), and the ref it replaced. */
+export interface MadeStill {
+  ref: string | null;
+  replaced: string | null;
+}
+
+/**
+ * The still a preview shows (video-thumbnails audit 2, 3, ui 1): what the shell made, while the row still holds the
+ * ref it replaced (or none); a row read later, holding anything else, is fresher and wins.
+ */
+export function shownStill(rowRef: string | null | undefined, made: MadeStill | undefined): string | null {
+  const row = rowRef ?? null;
+  if (!made) return row;
+  return row === null || row === made.replaced ? made.ref : row;
+}

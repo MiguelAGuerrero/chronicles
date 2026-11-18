@@ -86,7 +86,7 @@ test('whole-towns audit 4: no dot lies hidden under a "?" that does not say so; 
 });
 
 test('whole-towns audit 7: walks are placed in a hamlet only inside the town border that decided the piece', () => {
-  assert.equal(AREA_RULES, '4', 'every walk is placed again');
+  assert.equal(AREA_RULES, '5', 'every walk is placed again (5: neighborhood shapes, HB7)');
   const town: TownOutline = { id: 't', name: 'Allentown', at: O, polygons: [rect(O[0] - 0.05, O[1] - 0.03, O[0] + 0.05, O[1] + 0.03)], bbox: [O[0] - 0.05, O[1] - 0.03, O[0] + 0.05, O[1] + 0.03], areaM2: 1e8 };
   const set: OutlineSet = { tiles: new Set(['12/1191/1543', '12/1192/1543', '12/1191/1544', '12/1192/1544']), towns: [town] };
   const c: PlaceCandidate = { level: 'town', name: 'Allentown', at: O, reachM: 10_000, outline: town };

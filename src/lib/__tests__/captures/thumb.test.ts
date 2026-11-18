@@ -56,10 +56,12 @@ test('thumbnails audit 3: two previews of one photo at once make one copy', asyn
   assert.equal(calls.loads.length, 1);
 });
 
-test('thumbnails TH3: only a photo with a file and no copy wants one', () => {
+test('thumbnails TH3: only a photo (or, since VS1, a video) with a file and no copy wants one', () => {
   assert.equal(wantsThumb(photo()), true);
   assert.equal(wantsThumb(photo({ thumb_path: 'walks/w1/abc.thumb.jpg' })), false);
-  assert.equal(wantsThumb(photo({ kind: 'video' })), false);
+  assert.equal(wantsThumb(photo({ kind: 'video' })), true, 'a video wants its still (VS1, the owner, Nov 13)');
+  assert.equal(wantsThumb(photo({ kind: 'voice' })), false);
+  assert.equal(wantsThumb(photo({ kind: 'text', file_path: null })), false);
   assert.equal(wantsThumb(photo({ file_path: null })), false);
 });
 
@@ -68,4 +70,44 @@ test('thumbnails TH4, audit 6, 7: what a preview shows', () => {
   assert.equal(thumbShown(photo({ thumb_path: 'walks/w1/abc.thumb.jpg' }), true), 'walks/w1/abc.jpg', 'a missing copy falls back to the photo');
   assert.equal(thumbShown(photo({ thumb_path: THUMB.none }), false), 'walks/w1/abc.jpg', 'undecodable: the photo as before');
   assert.equal(thumbShown(photo(), false), null, 'while its copy is made: the icon, not a second full decode');
+});
+
+// Video thumbnails (specs/video-thumbnails).
+test('VS1: the job renders a video through its frame, 720 px, named by the piece or its edit', async () => {
+  const { deps, calls } = fakeDeps();
+  const got = await thumbJob(photo({ id: 'v1', kind: 'video', file_path: 'walks/w1/v1.mp4' }), deps);
+  assert.equal(got, 'walks/w1/v1.thumb.jpg');
+  assert.deepEqual(calls.loads, [{ uri: 'blob:full', max: THUMB.videoEdge }]);
+  const edited = await thumbJob(photo({ id: 'v1', kind: 'video', file_path: 'walks/w1/v1.mp4' }), deps, 'v1.thumb.abc.jpg');
+  assert.equal(edited, 'walks/w1/v1.thumb.abc.jpg', 'an edit names its copy (VS6)');
+  const { deps: bad } = fakeDeps({ fail: true });
+  assert.equal(await thumbJob(photo({ id: 'v2', kind: 'video', file_path: 'walks/w1/v2.mp4' }), bad), THUMB.none, 'a video that will not decode is marked so (VS5)');
+});
+
+test('VS9: one copy at a time', async () => {
+  const { deps, calls } = fakeDeps();
+  const v = photo({ id: 'v3', kind: 'video', file_path: 'walks/w1/v3.mp4' });
+  const [a, b] = await Promise.all([thumbJob(v, deps), thumbJob(v, deps)]);
+  assert.equal(a, b);
+  assert.equal(calls.loads.length, 1, 'two asks for the same video share one job');
+});
+
+test('video-thumbnails audit 1: a timed-out still is asked again later, never stored as THUMB.none', async () => {
+  const transient = Object.assign(new Error('timeout'), { transient: true });
+  const deps: ThumbDeps = { ...fakeDeps().deps, render: async () => { throw transient; } };
+  assert.equal(await thumbJob(photo({ id: 'v9', kind: 'video', file_path: 'walks/w1/v9.mp4' }), deps), null, 'null: tried again next time');
+  const { deps: bad } = fakeDeps({ fail: true });
+  assert.equal(await thumbJob(photo({ id: 'v10', kind: 'video', file_path: 'walks/w1/v10.mp4' }), bad), THUMB.none, 'a file that will not decode is still marked');
+});
+
+test('video-thumbnails audit 8: only a trim, crop or rotation makes a video\'s still again', async () => {
+  const { stillChanged } = await import('../../thumbPlan');
+  const base = { v: 1 as const, rotate: 0 as const, crop: null, filter: 'original' as const, strokes: [], trim: null };
+  assert.equal(stillChanged(null, null), false, 'a caption-only save');
+  assert.equal(stillChanged(null, base), false, 'an empty edit is none');
+  assert.equal(stillChanged(base, { ...base, strokes: [{ color: '#fff', width: 0.01, points: [[0, 0], [1, 1]] }] as never }), false, 'lines are not in the still');
+  assert.equal(stillChanged(base, { ...base, trim: { start_ms: 1000, end_ms: 3000 } }), true);
+  assert.equal(stillChanged(base, { ...base, rotate: 90 }), true);
+  assert.equal(stillChanged(base, { ...base, crop: { x: 0, y: 0, w: 0.5, h: 0.5 } } as never), true);
+  assert.equal(stillChanged({ ...base, trim: { start_ms: 1000, end_ms: 3000 } }, base), true, 'undoing a trim');
 });

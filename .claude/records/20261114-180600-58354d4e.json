@@ -1,0 +1,16 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "set",
+        "Places only OpenStreetMap knows",
+        "--reason",
+        "decision 0178 lets OSM locate a pinned table of small types"
+      ],
+      "body": "- **Places only OpenStreetMap knows** (the Bethlehem Steel blast furnaces' own feature): the owner's call, corroborate only (0110); adding them makes the archive a derived ODbL database. Answered in part by decision 0178 (Nov 14): OSM may locate a pinned table of small types (plaques, time capsules, little libraries and the like); every other type, the furnaces' feature among them, still only corroborates.\n",
+      "target": "sha256:8ad9e2188d404c1f2f9231e0e1d08f4b15b283d15ea915e6381aab03c86430e7"
+    }
+  ]
+}

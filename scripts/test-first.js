@@ -23,11 +23,15 @@ const REAL = /\b(test|it|step|qstep|check)\(/;
 
 /**
  * For each id, whether a todo naming it came first (pure). `commits` are oldest first, each with the
- * test lines naming ids as they stood at that commit.
+ * test lines naming ids as they stood at that commit. `renamed` maps a spec's new prefix to the one its ids had when
+ * its tests were written (`RENAMED` in scripts/features.js: a prefix another spec took first), so `VS1` is also read
+ * as `VT1` in the commits before the rename; the order the history holds is unchanged.
  */
-function testFirst(ids, commits) {
+function testFirst(ids, commits, renamed = {}) {
   return ids.map((id) => {
-    const re = new RegExp(`\\b${id}\\b`);
+    const m = /^([A-Z]{1,3})(\d+)$/.exec(id);
+    const old = m && renamed[m[1]] ? `${renamed[m[1]]}${m[2]}` : null;
+    const re = new RegExp(old ? `\\b(${id}|${old})\\b` : `\\b${id}\\b`);
     let firstTodo = -1;
     let firstReal = -1;
     commits.forEach((c, i) => {
@@ -104,7 +108,7 @@ function main(argv) {
     process.exit(64);
   }
   const { idsOf } = require('./check-specs');
-  let features = { RETIRED: {}, UNTESTED: {} };
+  let features = { RETIRED: {}, UNTESTED: {}, RENAMED: {} };
   try {
     features = require(path.join(ROOT, 'scripts', 'features.js'));
   } catch {
@@ -123,7 +127,7 @@ function main(argv) {
     process.exit(1);
   }
   const commits = shas.map((sha) => ({ sha: sha.slice(0, 7), lines: testLines(sha) }));
-  const r = testFirst(ids, commits);
+  const r = testFirst(ids, commits, (features.RENAMED ?? {})[slug] ?? {});
   for (const x of r) console.log(`${x.id} ${x.ok ? 'ok' : 'FAILED'}: ${x.why}`);
   const bad = r.filter((x) => !x.ok);
   console.log(`\n${r.length - bad.length} of ${r.length} criteria of ${slug} were tested first.`);

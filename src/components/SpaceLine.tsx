@@ -1,13 +1,17 @@
+import { useEffect } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { space } from '../lib/space';
+import { holdCount, spaceLines } from '../lib/space/sight';
 import { useStore } from '../lib/useStore';
 import { theme } from './ui';
 
 /**
  * The room left, in words, in the pills beside the capture buttons (SA3, SA10): the same ink pill as the
- * others at every level, with no icon, colour, haptic or motion of its own (SA7), and a dismiss (SA6).
+ * others at every level, with no icon, colour, haptic or motion of its own (SA7), and a dismiss (SA6). Mounted, it counts
+ * itself where a line can be seen, so a line is said and marked only where one is drawn (tend tabs audit 32).
  */
 export function SpaceLine() {
+  useEffect(() => holdCount(spaceLines), []);
   const line = useStore(space.store, (s) => s.line);
   if (!line) return null;
   return (

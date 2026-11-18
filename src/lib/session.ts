@@ -1,7 +1,11 @@
 // @layer shell
 import { db } from './db';
 import { newId } from './id';
+import { pastLines } from './pastLines';
+import { deletions } from './deletion';
+import { dropEmpty } from './emptyWalk';
 import { clearNav, clearWayBack } from './nav/store';
+import { journeyPlans } from './outing/plans';
 import { notifier } from './notify';
 import { recorder } from './recorder';
 import type { Walk } from './types';
@@ -57,6 +61,8 @@ export function stopWalk(walkId: string): Promise<void> {
       const at = Date.now();
       await db.updateWalk(walkId, { ended_at: at, open: false });
       await db.endPause(walkId, at);
+      // The plan of a journey it carried goes first (OJ48), so a recorder that fails to stop leaves no town's name behind.
+      await journeyPlans.clear().catch(() => {});
       await recorder.stop();
       void notifyWalkChanged();
       void notifier.pauseEnded(walkId);
@@ -65,11 +71,25 @@ export function stopWalk(walkId: string): Promise<void> {
       await clearNav().catch(() => {});
       // So does the spot chosen with Walk back here (DW7).
       await clearWayBack().catch(() => {});
+      // Its line joins Where I've been (WB8, WB14); a failure leaves it for the layer to prepare.
+      void pastLines.build(walkId).catch(() => {});
     })().finally(() => {
       stopping = null;
     });
   }
   return stopping;
+}
+
+/**
+ * Ends the walk the way every stop does (EW1, EW7): closes it, then drops it if it holds nothing, so the replay is
+ * skipped and Undo is offered. `leaves` says the caller changes screen right after: that one route change must not
+ * store the drop (EW8). A walk that could not be read stays and plays its replay (EW10).
+ */
+export async function endWalk(walkId: string, o: { leaves: boolean }): Promise<{ dropped: boolean }> {
+  await stopWalk(walkId);
+  const dropped = await dropEmpty(walkId);
+  if (dropped && o.leaves) deletions.holdNextFlush();
+  return { dropped };
 }
 
 /**

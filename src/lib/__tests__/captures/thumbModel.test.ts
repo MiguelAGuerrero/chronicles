@@ -73,3 +73,38 @@ test('TH5: one module makes the copy on both platforms, over expo-image-manipula
   assert.match(src, /from 'expo-image-manipulator'/, 'made with expo-image-manipulator, which has a web build');
   assert.match(src, /from '\.\.\/thumbJob'/, 'through the shared thumb job');
 });
+
+// Video thumbnails (specs/video-thumbnails).
+test("VS1: a video wants a copy, from its kept part's start, at 720 px", async () => {
+  const { wantsThumb, thumbEdge, frameAt, THUMB } = await import('../../thumbPlan');
+  const v = { id: 'v', walk_id: null, kind: 'video', file_path: 'walks/moments/v.mp4', thumb_path: null };
+  assert.equal(wantsThumb(v), true);
+  assert.equal(wantsThumb({ ...v, thumb_path: 'walks/moments/v.thumb.jpg' }), false, 'once made, never again (VS2)');
+  assert.equal(wantsThumb({ ...v, thumb_path: THUMB.none }), false, 'one that will not decode is not tried again');
+  assert.equal(wantsThumb({ ...v, kind: 'voice' }), false);
+  assert.equal(thumbEdge('video'), 720);
+  assert.equal(thumbEdge('photo'), 240, "a photo's copy is unchanged");
+  assert.equal(frameAt(null), 0);
+  assert.equal(frameAt({ v: 1, rotate: 0, crop: null, filter: 'original', strokes: [], trim: null }), 0);
+});
+
+test('VS5: a preview never shows the video file', async () => {
+  const { thumbShown, THUMB } = await import('../../thumbPlan');
+  const v = { id: 'v', walk_id: null, kind: 'video', file_path: 'walks/moments/v.mp4', thumb_path: null as string | null };
+  assert.equal(thumbShown(v, false), null, 'while the still is being made: the glyph');
+  assert.equal(thumbShown({ ...v, thumb_path: THUMB.none }, false), null, 'a video that will not decode: the glyph, never the file');
+  assert.equal(thumbShown({ ...v, thumb_path: 'walks/moments/v.thumb.jpg' }, true), null, "a still whose file is gone: the glyph, never the video's file");
+  assert.equal(thumbShown({ ...v, thumb_path: 'walks/moments/v.thumb.jpg' }, false), 'walks/moments/v.thumb.jpg');
+  // A photo is as before: its copy, else the photo when the copy is gone.
+  assert.equal(thumbShown({ ...v, kind: 'photo', file_path: 'p.jpg', thumb_path: THUMB.none }, false), 'p.jpg');
+});
+
+test('VS6: an edit makes a new copy', async () => {
+  const { editedThumbName, frameAt } = await import('../../thumbPlan');
+  const trim = { v: 1 as const, rotate: 0 as const, crop: null, filter: 'original' as const, strokes: [], trim: { start_ms: 2500, end_ms: 6000 } };
+  assert.equal(frameAt(trim), 2.5, "the still is taken at the trim's start");
+  const a = editedThumbName({ id: 'v' }, trim);
+  const b = editedThumbName({ id: 'v' }, { ...trim, trim: { start_ms: 1000, end_ms: 6000 } });
+  assert.notEqual(a, b, 'a new edit is a new name, so a preview keyed by it loads the new still');
+  assert.notEqual(editedThumbName({ id: 'v' }, null), a, 'undoing the edit to none is a new name too');
+});

@@ -1,0 +1,28 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "slice",
+        "row",
+        "set",
+        "More attractions (every museum by its type",
+        "--reason",
+        "renumbered to decision 0198; shipped"
+      ],
+      "body": "| More attractions (every museum by its type, Culture alone unless listed; nature reserves and wildlife refuges; every garden type; amusement and water parks with zoos and aquariums, \"Zoos and amusement parks\"; piers and boardwalks; suspension bridges and national monuments; from Wikidata, contract v6; MA1-MA9, decision 0198) | shipped 2026-11-17 (Pages); contract v6 (chronicles-data's `claude/more-attractions`) publishes after; native unverified | `claude/explorer-refinements-categories-audit-nhalt4` | `specs/more-attractions/spec.md` | not audited; the steward not run (usage limit) |\n",
+      "target": "sha256:485bf067eb1922707af0bb23bc832be8f913fd73d2a08a932fc1180363568350"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "set",
+        "Outside sources wait until each licence",
+        "--reason",
+        "the decision renumbered to 0198"
+      ],
+      "body": "- [owner] Outside sources wait until each licence is confirmed at its source (the owner, Nov 17): the Smithsonian's outdoor sculpture survey (about 32,000; CC0 and coordinates unconfirmed), the National Register's map layer and NPS National Natural Landmarks (likely public domain), state historical-marker programs (Texas, Virginia, Pennsylvania; attribution likely), city public-art inventories (New York, San Francisco, Buffalo; open terms, a schema each), the Forest Service's recreation sites (CC BY 4.0). Decision 0198 (numbered 0197 in the intro above before main took that number). The research notes: research_notes/Chronicles attraction data sources/ in the session's workspace.\n",
+      "target": "sha256:37d7239ff317b25102f39048d61c09a7486ea6cb9ea32e40c3c0c86b3fd0fb0e"
+    }
+  ]
+}

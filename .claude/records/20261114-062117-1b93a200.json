@@ -1,0 +1,46 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Explore atlas"
+      ],
+      "body": "- [ ] **Do:** with location never asked, open Explore with no fix; tap Find me and decline; then turn location on for Chronicles in Settings and come back to the app. **Expect:** before the tap the empty card offers Find me and the map's edge has no Locate; after the refusal the quiet notice with Open Settings shows, Find me is gone and the edge Locate is back; back from Settings with location on, Find me returns and the edge Locate steps aside: `watchLocatePermission` (`locate/permission.native.ts`) reads `getForegroundPermissionsAsync` again on each return to the front (`tend explore 8`, decision 0172, O6 and O20).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "With no fix, Explore shows Locate at the map's edge",
+        "--reason",
+        "the owner's answer (decision 0172), built in tend explore 8: one way to find you: no edge Locate beside Find me, and no Find me after a refusal until the permission changes"
+      ],
+      "target": "sha256:8f3e59a968bbcd9594a1530deafb17bfbff22ff472d2b27206807349515dd5ae"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "Explore's empty card still offers Find me under the refusal's notice",
+        "--reason",
+        "the owner's answer (decision 0172), built in tend explore 8: one way to find you: no edge Locate beside Find me, and no Find me after a refusal until the permission changes"
+      ],
+      "target": "sha256:8be7d6b77e1db6dfa4d65ceaec85c4c4605af95fc2e67a968c7a2edfe880aae9"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "Explore's area card carries the accent on its border",
+        "--reason",
+        "the owner's answer (decision 0172), built in tend explore 9: the selected area card's border and its footer link are ink at rest"
+      ],
+      "target": "sha256:89aaae218eae94a59219142c117917a509e95a1b1593ad36db4ae17522c32bcf"
+    }
+  ]
+}

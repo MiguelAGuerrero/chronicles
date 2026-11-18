@@ -112,6 +112,18 @@ features.push({ type: 'Feature', properties: { class: 'minor', name: 'Row Street
 [[-124.2, 'First'], [-124, 'Second'], [-123.8, 'Third']].forEach(([x, n]) => {
   features.push({ type: 'Feature', properties: { class: 'monument', subclass: 'memorial', name: `${n} Memorial` }, geometry: { type: 'Point', coordinates: at(x, 0.8) } });
 });
+// Plan an outing (QC1-QC30): Curio Row, 24 km west of the start, one street with four antiques shops along it, 400 m apart, so a
+// one-way outing of two or three stops fits the default ceiling (a loop cannot be made on one street). E2E_ONLY=outing goes there.
+features.push({ type: 'Feature', properties: { class: 'neighbourhood', name: 'Curio Row' }, geometry: { type: 'Point', coordinates: at(-240, 0) } });
+features.push({ type: 'Feature', properties: { class: 'minor', name: 'Curio Street' }, geometry: { type: 'LineString', coordinates: [at(-250, 0), at(-230, 0)] } });
+[[-247, 'Brass Key Antiques'], [-243, 'Dusty Attic'], [-239, 'Grandma Trunk Antiques'], [-235, 'Lamp and Ladder']].forEach(([x, n]) => {
+  features.push({ type: 'Feature', properties: { class: 'shop', subclass: 'antiques', name: n }, geometry: { type: 'Point', coordinates: at(x, 0.3) } });
+});
+// Thrift and charity shops between them (the tiles' `second_hand` fallback, QC14, QC42); the bookshops are in the stores pack the
+// `outing` journey serves, not here.
+[[-245, 'Helping Hands'], [-241, 'Rag and Bone'], [-237, 'Second Wind']].forEach(([x, n]) => {
+  features.push({ type: 'Feature', properties: { class: 'shop', subclass: 'charity', name: n }, geometry: { type: 'Point', coordinates: at(x, 0.3) } });
+});
 // A busy strip 1.1 km east of Fox Point (v1.5 landing): Thayer Street lined with shops for 250 m,
 // inside the read around a press at Fox Point, and inside the walk's own explore read (E2).
 features.push({ type: 'Feature', properties: { class: 'tertiary', name: 'Thayer Street' }, geometry: { type: 'LineString', coordinates: [at(11, -3), at(11, 3)] } });
@@ -223,7 +235,90 @@ const snapDivisionFeatures = [
     properties: { subtype: 'locality', class: 'land', '@name': 'Allentown', division_id: 'allentown', id: 'allentown-area' } },
   { type: 'Feature', geometry: { type: 'Polygon', coordinates: [[at(18, 4), at(24, 4), at(24, 10), at(18, 10), at(18, 4)]] },
     properties: { subtype: 'locality', class: 'land', '@name': 'Catasauqua', division_id: 'catasauqua', id: 'catasauqua-area' } },
+  // Neighborhood boundaries (HB9): Point Street has a real shape, 800 m across; the other three neighborhoods have only their points.
+  { type: 'Feature', geometry: { type: 'Polygon', coordinates: [[at(-13, -4), at(-5, -4), at(-5, 4), at(-13, 4), at(-13, -4)]] },
+    properties: { subtype: 'neighborhood', class: 'land', '@name': 'Point Street', division_id: 'point-street', id: 'point-street-area' } },
 ];
+// A dense downtown (explore-dense-city, the owner's Baltimore report, Nov 12): 3 km around the start with a named street
+// every 60 m cut into blocks as OSM ways are, an unnamed alley between each pair, 2,000 places thickest in the middle, a
+// city point, eight neighborhoods on a 700 m ring and one, Far Point, 2.2 km west, past what the first busy read covers.
+// Served only while denseWorld.serve is on (the dense journey and scripts/perf-explore.js), so no other journey changes.
+// Smooth switches (SS1-SS10, the owner's small-town report, Nov 13): Smallton, 20 km east of the harness's other places, with
+// its Main Street, five neighborhoods 0.9-1.3 km from its point each with a short shopping street and a cross street, and Far
+// Hollow 2.4 km west, past one read's 1.5 km, so a town's page has more than one remembered area. Served only while
+// smallWorld.serve is on (the switches journey).
+const smallWorld = { serve: false };
+const SMALL_TOWN = [200, 0];
+const SMALL_HOODS = [['Mill End', 188, 2, 'Mill Street'], ['Church Hill', 196, 10, 'Church Street'], ['Depot', 212, 4, 'Depot Street'],
+  ['Riverside', 207, -6, 'River Road'], ['Westfield', 192, -9, 'Field Avenue'], ['Far Hollow', 176, 0, 'Hollow Lane']];
+const smallFeatures = (() => {
+  const out = [];
+  const kinds = [['cafe', 'cafe'], ['shop', 'gift'], ['restaurant', 'restaurant'], ['bar', 'bar'], ['bakery', 'bakery'], ['clothing_store', 'clothes']];
+  const street = (name, x0, y0, x1, y1, shops) => {
+    out.push({ type: 'Feature', properties: { class: 'tertiary', name }, geometry: { type: 'LineString', coordinates: [at(x0, y0), at(x1, y1)] } });
+    const len = Math.hypot(x1 - x0, y1 - y0);
+    for (let i = 0; i < shops; i++) {
+      const f = (i + 0.5) / shops;
+      // 8 m off the street, on alternate sides.
+      const side = i % 2 ? 1 : -1;
+      const [cls, sub] = kinds[i % kinds.length];
+      out.push({ type: 'Feature', properties: { class: cls, subclass: sub, name: `${name} ${i}` },
+        geometry: { type: 'Point', coordinates: at(x0 + (x1 - x0) * f - ((y1 - y0) / len) * 0.08 * side, y0 + (y1 - y0) * f + ((x1 - x0) / len) * 0.08 * side) } });
+    }
+  };
+  out.push({ type: 'Feature', properties: { class: 'town', name: 'Smallton' }, geometry: { type: 'Point', coordinates: at(...SMALL_TOWN) } });
+  street('Main Street', 197, 0.3, 203, 0.3, 24);
+  street('Bridge Street', 200.3, -3, 200.3, 3, 12);
+  for (const [name, x, y, st] of SMALL_HOODS) {
+    out.push({ type: 'Feature', properties: { class: 'neighbourhood', name }, geometry: { type: 'Point', coordinates: at(x, y) } });
+    street(st, x - 2.5, y + 0.3, x + 2.5, y + 0.3, 14);
+    out.push({ type: 'Feature', properties: { class: 'minor', name: `${st} Cross` }, geometry: { type: 'LineString', coordinates: [at(x, y - 2), at(x, y + 2)] } });
+  }
+  return out;
+})();
+const denseWorld = { serve: false };
+const DENSE_HOODS = ['Old Market', 'Mount Hill', 'Harbor East', 'Little Port', 'Ridge Row', 'Canal Side', 'Upper Fells', 'Station North'];
+const denseFeatures = (() => {
+  const out = [];
+  const P = (x, y) => at(-0.5 + x / 100, -0.5 + y / 100);
+  const HALF = 1500;
+  const STEP = 60;
+  let n = 0;
+  for (let v = -HALF; v <= HALF; v += STEP) {
+    n++;
+    for (let b = -HALF; b < HALF; b += STEP) {
+      out.push({ type: 'Feature', properties: { class: n % 5 ? 'minor' : 'tertiary', name: `${n} Avenue` }, geometry: { type: 'LineString', coordinates: [P(v, b), P(v, b + STEP)] } });
+      out.push({ type: 'Feature', properties: { class: n % 5 ? 'minor' : 'tertiary', name: `${n} Street` }, geometry: { type: 'LineString', coordinates: [P(b, v), P(b + STEP, v)] } });
+    }
+    if (v + STEP / 2 <= HALF) {
+      out.push({ type: 'Feature', properties: { class: 'service', subclass: 'alley' }, geometry: { type: 'LineString', coordinates: [P(v + STEP / 2, -HALF), P(v + STEP / 2, HALF)] } });
+      out.push({ type: 'Feature', properties: { class: 'service', subclass: 'alley' }, geometry: { type: 'LineString', coordinates: [P(-HALF, v + STEP / 2), P(HALF, v + STEP / 2)] } });
+    }
+  }
+  let seed = 7;
+  const rnd = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 2 ** 32);
+  const kinds = [['cafe', 'cafe'], ['restaurant', 'restaurant'], ['shop', 'gift'], ['bar', 'bar'], ['clothing_store', 'clothes'], ['museum', 'museum'],
+    ['art_gallery', 'artwork'], ['park', 'park'], ['monument', 'memorial'], ['library', 'library'], ['theatre', 'theatre'], ['bakery', 'bakery']];
+  for (let i = 0; i < 2000; i++) {
+    const [cls, sub] = kinds[i % kinds.length];
+    // Thickest in the middle; on a street's side, 8 m off it, clear of the corner, as the grading tests place them.
+    const r = HALF * Math.pow(rnd(), 1.4);
+    const a = rnd() * 2 * Math.PI;
+    const x = Math.round((r * Math.cos(a)) / STEP) * STEP + 8;
+    const y = r * Math.sin(a);
+    const [px, py] = i % 2 ? [x, y] : [y, x];
+    out.push({ type: 'Feature', properties: { class: cls, subclass: sub, name: `Place ${i}` }, geometry: { type: 'Point', coordinates: P(px, py) } });
+  }
+  out.push({ type: 'Feature', properties: { class: 'city', name: 'Densburg' }, geometry: { type: 'Point', coordinates: P(0, 0) } });
+  DENSE_HOODS.forEach((name, i) => {
+    const a = (i / DENSE_HOODS.length) * 2 * Math.PI;
+    out.push({ type: 'Feature', properties: { class: 'neighbourhood', name }, geometry: { type: 'Point', coordinates: P(700 * Math.cos(a), 700 * Math.sin(a)) } });
+  });
+  out.push({ type: 'Feature', properties: { class: 'neighbourhood', name: 'Far Point' }, geometry: { type: 'Point', coordinates: P(-2200, 0) } });
+  return out;
+})();
+// The map's text (explore-dense-city DC1): OpenFreeMap's Noto Sans Bold, Latin-1 block, served for every range the map asks.
+const GLYPHS = fs.readFileSync(path.join(__dirname, 'fixtures', 'fonts', 'Noto Sans Bold', '0-255.pbf'));
 const OVERTURE_HOST = 'overturemaps-extras-us-west-2.s3.amazonaws.com';
 const OVERTURE_RELEASE = '2026-10-21.0';
 
@@ -232,6 +327,8 @@ const style = {
   // maxzoom 14 matters: at the default 18, lines are clipped to z18 tiles, which real data never is.
   // The credit makes maplibre draw its attribution control, as the real tiles' do.
   sources: { openmaptiles: { type: 'geojson', maxzoom: 14, attribution: 'Data from OpenStreetMap', data: { type: 'FeatureCollection', features } } },
+  // The real style's glyphs (Positron's), so the map's own text draws (explore-dense-city DC1).
+  glyphs: 'https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf',
   layers: [
     { id: 'bg', type: 'background', paint: { 'background-color': '#eeeae4' } },
     { id: 'roads', type: 'line', source: 'openmaptiles', paint: { 'line-color': '#ffffff', 'line-width': 6 } },
@@ -399,12 +496,81 @@ async function createHarness() {
     }
     await pg.waitForTimeout(700);
   };
+  // What I'm into's page (specs/what-im-into-page WI1, decision 0192): its row in the ready bar's settings (raised first,
+  // `from` 'ready') or in the walk's drawer (`walk-summary` first, 'walk'), then the page pushed over the screen. False
+  // when the row or the page never came. `closeInto` is the stack's Back (or Escape), and waits for the page to go.
+  const openInto = async (pg, from = 'ready') => {
+    // A drawer just lowered keeps its settings mounted until its spring settles: wait, or the row is seen and then gone.
+    await pg.waitForTimeout(800);
+    if (from === 'ready' && (await pg.locator('[data-testid=start-settings]:visible').count()) === 0) await drawerTo(pg, 'half');
+    if (from === 'walk' && (await pg.locator('[data-testid=options-card]:visible').count()) === 0) {
+      await pg.click('[data-testid=walk-summary]');
+      await pg.waitForSelector('[data-testid=options-card]', { timeout: 10000 }).catch(() => {});
+      await pg.waitForTimeout(700);
+    }
+    const row = pg.locator('[data-testid=into-row]:visible');
+    if ((await row.count()) === 0) return false;
+    await row.scrollIntoViewIfNeeded().catch(() => {});
+    await row.click();
+    const shown = await pg.waitForSelector('[data-testid=into-page]', { state: 'visible', timeout: 8000 }).then(() => true, () => false);
+    // The page's switches draw once the settings are read (WI9).
+    if (shown) await pg.waitForSelector('[data-testid=into-page] [data-testid^=kind-]', { timeout: 8000 }).catch(() => {});
+    await pg.waitForTimeout(400);
+    return shown;
+  };
+  const closeInto = async (pg, how = 'back') => {
+    if (how === 'escape') await pg.keyboard.press('Escape');
+    // From the walk's drawer, Back names the walk (WI20).
+    else await pg.locator('[aria-label="Go back"]:visible, [aria-label="Walk, back"]:visible').first().click().catch(() => {});
+    const gone = await pg.waitForSelector('[data-testid=into-page]', { state: 'hidden', timeout: 8000 }).then(() => true, () => false);
+    await pg.waitForTimeout(500);
+    return gone;
+  };
+  // The page scrolled so a row sits just under the pinned heading, then left to settle: the scroll comes to rest and two
+  // frames are drawn, so a picture never catches rows mid-scroll (WI25). Returns whether the row was found.
+  const intoScrollTo = async (pg, id) => {
+    const found = await pg.evaluate((tid) => {
+      const page = document.querySelector('[data-testid=into-page]');
+      const row = page && page.querySelector(`[data-testid=${tid}]`);
+      let sc = row && row.parentElement;
+      while (sc && !(sc.scrollHeight > sc.clientHeight + 4 && /(auto|scroll)/.test(getComputedStyle(sc).overflowY))) sc = sc.parentElement;
+      if (!row || !sc) return false;
+      const head = [...page.querySelectorAll('[data-testid^=kind-heading-]')][0];
+      const headH = head ? head.getBoundingClientRect().height : 52;
+      sc.scrollTop += row.getBoundingClientRect().top - sc.getBoundingClientRect().top - headH - 4;
+      return true;
+    }, id);
+    await intoSettled(pg);
+    return found;
+  };
+  // Waits for the page's scroll to rest and two frames to draw; then every row in view must show its switch (WI25).
+  const intoSettled = async (pg) => {
+    await pg.waitForTimeout(350);
+    await pg.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+    return pg.evaluate(() => {
+      const page = document.querySelector('[data-testid=into-page]');
+      if (!page) return ['no page'];
+      const box = page.getBoundingClientRect();
+      // A row is the role=switch with a testID; the Switch drawn inside it is a role=switch of its own.
+      return [...page.querySelectorAll('[role=switch][data-testid]')]
+        .filter((r) => {
+          const b = r.getBoundingClientRect();
+          return b.height > 0 && b.top > box.top + 60 && b.bottom < box.bottom;
+        })
+        .filter((r) => {
+          const sw = r.querySelector('[role=switch]');
+          const b = sw && sw.getBoundingClientRect();
+          return !b || b.width < 20 || b.height < 10 || getComputedStyle(sw).visibility === 'hidden';
+        })
+        .map((r) => r.getAttribute('data-testid'));
+    });
+  };
   // A tab, from wherever the test is (NR1-NR4): the ready screen covers the tabs, so its chevron goes back
   // to them first; Navigate opens the walk screen (ready or walking) and is left alone if it is up.
   const tabTo = async (pg, id, section = 'map') => {
     const shown = async (sel) => (await pg.locator(sel).filter({ visible: true }).count()) > 0;
     if (id === 'navigate') {
-      if ((await shown('[data-testid=ready-bar]')) || (await shown('[data-testid=stop]'))) return;
+      if ((await shown('[data-testid=ready-bar]')) || (await shown('[data-testid=walk-actions]'))) return;
     } else if (await shown('[data-testid=ready-close]')) {
       await pg.click('[data-testid=ready-close]');
       await pg.waitForTimeout(600);
@@ -414,6 +580,24 @@ async function createHarness() {
     if (id === 'chronicle' && section !== 'memories') {
       await pg.waitForSelector('[data-testid=chronicle-sections]', { timeout: 15000 }).catch(() => {});
       if (await pg.locator(`[data-testid=section-${section}]`).filter({ visible: true }).count()) await pg.click(`[data-testid=section-${section}]`);
+    }
+  };
+  // Memories is a journal (decision 0155): the threads, the Chronicle's and the owner's, are behind its contents
+  // button. `toThreads` opens them from the page; `toJournal` goes back to the page. Both do nothing when already there,
+  // or inside a thread or Hidden (their own Back comes first).
+  const toThreads = async (pg) => {
+    await pg.waitForSelector('[data-testid=threads-screen], [data-testid=memories-menu], [data-testid=thread-screen], [data-testid=own-thread]', { timeout: 20000, state: 'visible' }).catch(() => {});
+    if (await pg.locator('[data-testid=threads-screen], [data-testid=thread-screen], [data-testid=own-thread]').filter({ visible: true }).count()) return;
+    if (!(await pg.locator('[data-testid=memories-menu]').filter({ visible: true }).count())) return;
+    await pg.click('[data-testid=memories-menu]');
+    await pg.waitForSelector('[data-testid=menu-threads]', { timeout: 5000 }).catch(() => {});
+    await pg.click('[data-testid=menu-threads]').catch(() => {});
+    await pg.waitForSelector('[data-testid=threads-screen]', { timeout: 5000 }).catch(() => {});
+  };
+  const toJournal = async (pg) => {
+    if (await pg.locator('[data-testid=threads-back]').filter({ visible: true }).count()) {
+      await pg.click('[data-testid=threads-back]');
+      await pg.waitForSelector('[data-testid=journal-page]', { timeout: 5000 }).catch(() => {});
     }
   };
   // Chronicle opens on Memories (RM1); a journey that wants the map's sheet after leaving a replay brings it up.
@@ -446,11 +630,12 @@ async function createHarness() {
   // A stalled TileJSON request on demand, as on a phone with a weak signal (bug: a blank replay after Stop).
   // tiles.stall: a stalled TileJSON request, set by a journey (tiles.stall = promise).
   const tileRoute = async (r) => {
+    if (/\/fonts\/[^/]+\/\d+-\d+\.pbf$/.test(r.request().url())) return r.fulfill({ contentType: 'application/x-protobuf', body: GLYPHS });
     const tile = /\/(\d+)\/(\d+)\/(\d+)\.pbf$/.exec(r.request().url());
     if (tile && tiles.delayMs) await new Promise((res) => setTimeout(res, tiles.delayMs));
     if (tile) {
       const [z, x, y] = tile.slice(1).map(Number);
-      return r.fulfill({ contentType: 'application/x-protobuf', body: Buffer.from(encodeTile([...features, ...(snapWorld.serve ? [...snapFeatures, ...(divisions.serve ? snapTownFeatures : []), ...(wholeWorld.serve ? wholeFeatures : [])] : []), ...(scenicWorld.serve ? scenicFeatures : []), ...(hollowWorld.serve ? hollowFeatures : [])], z, x, y)) });
+      return r.fulfill({ contentType: 'application/x-protobuf', body: Buffer.from(encodeTile([...features, ...(snapWorld.serve ? [...snapFeatures, ...(divisions.serve ? snapTownFeatures : []), ...(wholeWorld.serve ? wholeFeatures : [])] : []), ...(scenicWorld.serve ? scenicFeatures : []), ...(hollowWorld.serve ? hollowFeatures : []), ...(denseWorld.serve ? denseFeatures : []), ...(smallWorld.serve ? smallFeatures : [])], z, x, y)) });
     }
     if (tiles.stall && r.request().url().endsWith('/planet')) await tiles.stall;
     return r.fulfill({
@@ -643,6 +828,16 @@ async function createHarness() {
     await browser.close();
     server.close();
   };
+  // The walk screen's Stop shows only while paused (decision 0220): taps Pause first, unless already paused, and waits
+  // for Stop. A journey reads Stop's box after this, never before.
+  const toStop = async (pg, timeout = 15000) => {
+    await pg.waitForSelector('[data-testid=pause-walk], [data-testid=resume-walk]', { timeout });
+    if (!(await pg.locator('[data-testid=stop]').count())) {
+      await pg.click('[data-testid=pause-walk]');
+      await pg.waitForSelector('[data-testid=resume-walk]', { timeout });
+    }
+    await pg.waitForSelector('[data-testid=stop]', { timeout });
+  };
   // Switches a map layer on (or off) through the Layers panel and closes the panel (specs/map-layers ML3-ML5): the layers all
   // start off, so a journey that looks at one turns it on first.
   const switchLayer = async (pg, id, wantOn = true) => {
@@ -680,8 +875,8 @@ async function createHarness() {
     return { x: m.x + m.width / 2, y: m.y + m.height / 2 };
   });
   return {
-    url, navUrl, exploreUrl, BASE, browser, ctx, page, errors, hosts, start, at, distanceM, dLat, dLon, features, names, overtureFeatures, OVERTURE_HOST, OVERTURE_RELEASE, overtureAsked, style, check, shot, glyph, iconOf, metricRegion, pressedScale, metaOf, drawerTo, tabTo, mapUp, shownCount, tabBarShown, tileRoute, overtureRoute, freshPage, openWalk, tiles, scriptsDir,
-    onTab, walkMap, walkMarks, walkRoute, walkPts, nothingLeaves, noConsoleErrors, close, divisions, snapWorld, wholeWorld, walkability, overpassAsked, OVERPASS_HOST, scenicWorld, routed, switchLayer, places, areaTile, hollowWorld, complexWorld, bareMapPoint,
+    url, navUrl, exploreUrl, BASE, browser, ctx, page, errors, hosts, start, at, distanceM, dLat, dLon, features, names, overtureFeatures, OVERTURE_HOST, OVERTURE_RELEASE, overtureAsked, style, check, shot, glyph, toStop, iconOf, metricRegion, pressedScale, metaOf, drawerTo, openInto, closeInto, intoScrollTo, intoSettled, tabTo, toThreads, toJournal, mapUp, shownCount, tabBarShown, tileRoute, overtureRoute, freshPage, openWalk, tiles, scriptsDir,
+    onTab, walkMap, walkMarks, walkRoute, walkPts, nothingLeaves, noConsoleErrors, close, divisions, snapWorld, wholeWorld, walkability, overpassAsked, OVERPASS_HOST, scenicWorld, routed, switchLayer, places, areaTile, hollowWorld, complexWorld, bareMapPoint, denseWorld, DENSE_HOODS, smallWorld, SMALL_TOWN, SMALL_HOODS,
   };
 }
 

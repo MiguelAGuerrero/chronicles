@@ -1,28 +1,30 @@
 import type { Faced } from '../../lib/moment';
-import { AttributionControl, getVersion, Map as MapLibreMap, Marker, setWorkerUrl, type CircleLayerSpecification, type GeoJSONFeature, type MapMouseEvent, type MapTouchEvent } from 'maplibre-gl';
+import { AttributionControl, getVersion, Map as MapLibreMap, Marker, setWorkerUrl, type CircleLayerSpecification, type GeoJSONFeature, type SymbolLayerSpecification, type MapMouseEvent, type MapTouchEvent } from 'maplibre-gl';
 // @ts-expect-error: a CSS side-effect import, which Metro bundles on web.
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { perfCount } from '../../lib/perfCount';
+import { perfCount, perfMark } from '../../lib/perfCount';
 import { StyleSheet, View } from 'react-native';
 import { CapturePinView, pinLabel } from '../CapturePinView';
 import { MarkPinView, markKey, markLabel, type MarkPin } from '../MarkPinView';
-import { StripLabel } from '../LandingMarks';
 import { AreaPointView } from '../AreaPoint';
 import { ComplexLabelView } from '../ComplexLabel';
 import { COMPLEX_STYLE } from '../../lib/complexes/mapLayer';
 import { namedStars, StarView, starLabel } from '../StarView';
 import type { Star } from '../../lib/places';
-import { declutterMarks } from '../../lib/markNames';
-import { metersPerPixel, pinReminded, pinThumb, type CapturePin } from '../../lib/pins';
-import { creditsAt, scaleBar } from '../../lib/scaleBar';
+import { declutterMarks, spreadKey } from '../../lib/markNames';
+import { boxAround, boxHolds, drawsPin, metersPerPixel, PIN_REACH_PX, pinDrawBox, pinReactions, pinReminded, pinThumb, stalkLift, type CapturePin, type ViewBox, type WalkClock } from '../../lib/pins';
+import type { ReactionSet } from '../../lib/reactions/core';
+import { useReactionSets } from '../../lib/reactions/useReactions';
+import { blankLookLayers, creditsAt, scaleBar, scaleShown } from '../../lib/scaleBar';
 import { traceEnds } from '../../lib/traceEnds';
 import type { RoadFeature } from '../../lib/streets';
 import { DEFAULT_SCALE_INSET, ScaleBar, SCALE_MAX_PX } from './ScaleBar';
 import type { LngLat } from '../../lib/types';
 import { distanceM } from '../../lib/geo';
 import { arrowSwipe, swipeOf, zoomStart } from '../../lib/atlas/snap';
+import { FIT_IDLE, fitStep, type FitState } from '../../lib/atlas/fitFlight';
 import { mapLabel } from '../../lib/atlas/freeLook';
 import { useGlideFrames, type GlideFrame } from '../../lib/useGlidingWalker';
 import { markEnter, pinDrops, starEnter } from '../../lib/enter';
@@ -30,12 +32,14 @@ import { useReducedMotion } from '../../lib/motion';
 import { useUnits } from '../../lib/useUnits';
 import { useReminded } from '../../lib/useReminded';
 import { MOTION } from '../../lib/motionTokens';
+import { followMoves } from '../../lib/compass';
+import { groundGeoJSON, groundStyle } from '../../lib/areas/groundDraw';
 import {
-  alternatesGeoJSON, routeGradesGeoJSON, pinsGeoJSON, BORDER, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, OVERTURE_CREDIT, DERIVE_ZOOM, endsGeoJSON, ENDS_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON,
-  type CollectedFeatures, mapWorkerUrl, type WalkMapHandle, type WalkMapProps,
+  alternatesGeoJSON, TRACE_EDGE_OPACITY, storefrontNameLayers, storefrontNameRotate, storefrontNamesGeoJSON, roomCells, routeGradesGeoJSON, pinsGeoJSON, BORDER, borderFillOpacity, borderMoves, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, OVERTURE_CREDIT, GAZETTEER_CREDIT, DERIVE_ZOOM, endsGeoJSON, ENDS_PAINT, ENDS_RING_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON, BASE_VECTOR_SOURCE, poiLabelLayers,
+  LINE_SOURCE, LINE_SOURCE_IDS, PAST_STYLE, type CollectedFeatures, mapWorkerUrl, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
-const VECTOR_SOURCE = 'openmaptiles';
+const VECTOR_SOURCE = BASE_VECTOR_SOURCE;
 /** Tiles that never arrive must not hang the stop. */
 const VIEW_TIMEOUT_MS = 4000;
 
@@ -46,7 +50,8 @@ setWorkerUrl(mapWorkerUrl(process.env.EXPO_BASE_URL ?? '', getVersion()));
 /** The trace's end joins the live dot only this close; farther, it's a pause or gap, not lag. */
 const LINK_MAX_M = 60;
 
-function addOverlay(map: MapLibreMap) {
+/** The layers the app adds over the base map; returns the base map's first street layer, which the borders' fill goes under. */
+function addOverlay(map: MapLibreMap): string | undefined {
   const empty: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: [] };
   // The veil goes under the first label layer, so names stay readable.
   const firstSymbol = map.getStyle().layers.find((l: { type: string; id: string }) => l.type === 'symbol')?.id;
@@ -57,24 +62,25 @@ function addOverlay(map: MapLibreMap) {
   map.addSource('borders', { type: 'geojson', data: empty, tolerance: 1 });
   map.addLayer({ id: 'border-fill', type: 'fill', source: 'borders', minzoom: BORDER.minZoom, filter: ['==', ['get', 'role'], 'tinted'],
     paint: { 'fill-color': BORDER.color, 'fill-opacity': BORDER.fillOpacity } }, firstRoad);
+  // The veil, then the borders' lines: on the replay and a day the town's edge stays firm over it (decision 0199); the veil
+  // effect (`borderMoves`) puts it back over them on every other map.
+  map.addSource('veil', { type: 'geojson', data: WORLD_VEIL });
+  map.addLayer({ id: 'veil', type: 'fill', source: 'veil', paint: { 'fill-color': COLORS.veil, 'fill-opacity': 0 } }, firstSymbol);
   // The lines over the streets, under the labels (TB10): a border often runs along a road.
   map.addLayer({ id: 'border-lined', type: 'line', source: 'borders', minzoom: BORDER.minZoom, filter: ['==', ['get', 'role'], 'lined'],
     layout: { 'line-join': 'round' }, paint: { 'line-color': BORDER.lined, 'line-width': BORDER.linedWidth, 'line-opacity': BORDER.linedOpacity } }, firstSymbol);
   map.addLayer({ id: 'border-firm', type: 'line', source: 'borders', minzoom: BORDER.minZoom, filter: ['!=', ['get', 'role'], 'lined'],
     layout: { 'line-join': 'round' }, paint: { 'line-color': BORDER.color, 'line-width': BORDER.firmWidth, 'line-opacity': BORDER.firmOpacity } }, firstSymbol);
-  map.addSource('veil', { type: 'geojson', data: WORLD_VEIL });
-  map.addLayer({ id: 'veil', type: 'fill', source: 'veil', paint: { 'fill-color': COLORS.veil, 'fill-opacity': 0 } }, firstSymbol);
   // The Walkability layer (UF9), under the hotspots, fog and trace: a soft green over ground easy on foot, a warm tint over
   // ground built around cars. No antialiasing, so shapes of one reading side by side show no seam.
   map.addSource('walkability', { type: 'geojson', data: empty, tolerance: 0 });
   for (const band of ['foot', 'car'] as const)
     map.addLayer({ id: `walk-${band}`, type: 'fill', source: 'walkability', filter: ['==', ['get', 'band'], band],
       paint: { 'fill-color': WALK_STYLE[band].color, 'fill-opacity': WALK_STYLE[band].opacity, 'fill-antialias': false } }, firstSymbol);
-  // Lines are simplified a little more than the default and keep a smaller tile buffer: less to
-  // re-tile on each update (perf, Nov 1; tolerance 0.375 and buffer 128 are maplibre's defaults).
-  const lineSource = { type: 'geojson' as const, data: empty, tolerance: 1, buffer: 64 };
-  for (const id of ['fog', 'walked', 'alternates', 'route-grades', 'route', 'gap-links', 'faint', 'rides', 'trace-history', 'trace', 'trace-link', 'drawing']) map.addSource(id, lineSource);
-  for (const id of ['pockets', 'strips', 'cone', 'marks', 'points', 'ring', 'ends', 'found-pins', 'waiting-dots', 'complexes']) map.addSource(id, { type: 'geojson', data: empty });
+  // Lines are simplified a little more than the default and keep a smaller tile buffer (`LINE_SOURCE`, NF5).
+  const lineSource = { type: 'geojson' as const, data: empty, ...LINE_SOURCE };
+  for (const id of LINE_SOURCE_IDS) map.addSource(id, lineSource);
+  for (const id of ['pockets', 'strips', 'cone', 'marks', 'points', 'ring', 'ends', 'found-pins', 'waiting-dots', 'complexes', 'ground']) map.addSource(id, { type: 'geojson', data: empty });
   const lineLayout = { 'line-cap': 'round', 'line-join': 'round' } as const;
   // Hotspots under the streets: pockets shaded, strips bold, in the one green no other layer uses (L9).
   // Stale areas (an older map or rules) are dimmed until looked at again (L11).
@@ -85,6 +91,9 @@ function addOverlay(map: MapLibreMap) {
   map.addLayer({ id: 'fog', type: 'line', source: 'fog', layout: lineLayout,
     paint: { 'line-color': COLORS.fog, 'line-opacity': FOG_STYLE.opacity,
       'line-width': ['interpolate', ['linear'], ['zoom'], 13, FOG_STYLE.widthMin, 17, FOG_STYLE.widthMax] } }, firstSymbol);
+  // Where I've been (WB9): earlier walks, one even tone, no edge, over the fog and under everything walked today.
+  map.addLayer({ id: 'past', type: 'line', source: 'past', layout: lineLayout,
+    paint: { 'line-color': COLORS.past, 'line-opacity': PAST_STYLE.opacity, 'line-width': ['interpolate', ['linear'], ['zoom'], 13, PAST_STYLE.width * 0.7, 17, PAST_STYLE.width] } }, firstSymbol);
   map.addLayer({ id: 'walked', type: 'line', source: 'walked', layout: lineLayout,
     paint: { 'line-color': COLORS.walked, 'line-width': ['interpolate', ['linear'], ['zoom'], 13, 3, 17, 8] } }, firstSymbol);
   // A preview's other routes, faint, under the one highlighted (SR2).
@@ -99,32 +108,38 @@ function addOverlay(map: MapLibreMap) {
   // A gap with no line: grey dots between its ends, under the faint stretches (GW2).
   map.addLayer({ id: 'gap-links', type: 'line', source: 'gap-links', layout: lineLayout,
     paint: { 'line-color': FOG_BOLD, 'line-width': 3, 'line-opacity': 0.8, 'line-dasharray': GAP_LINK_DASH } });
-  map.addLayer({ id: 'faint-edge', type: 'line', source: 'faint', layout: lineLayout, paint: { 'line-color': '#ffffff', 'line-width': FOG_STYLE.edgeWidth, 'line-opacity': 0.9 * FAINT_OPACITY } });
+  map.addLayer({ id: 'faint-edge', type: 'line', source: 'faint', layout: lineLayout, paint: { 'line-color': '#ffffff', 'line-width': FOG_STYLE.edgeWidth, 'line-opacity': TRACE_EDGE_OPACITY * FAINT_OPACITY } });
   map.addLayer({ id: 'faint', type: 'line', source: 'faint', layout: lineLayout, paint: { 'line-color': COLORS.trace, 'line-width': FOG_STYLE.traceWidth, 'line-opacity': FAINT_OPACITY } });
   // Rides dashed on the same white edge, under the walked trace where they meet (R5).
-  map.addLayer({ id: 'rides-edge', type: 'line', source: 'rides', layout: lineLayout, paint: { 'line-color': '#ffffff', 'line-width': FOG_STYLE.edgeWidth, 'line-opacity': 0.9 } });
+  map.addLayer({ id: 'rides-edge', type: 'line', source: 'rides', layout: lineLayout, paint: { 'line-color': '#ffffff', 'line-width': FOG_STYLE.edgeWidth, 'line-opacity': TRACE_EDGE_OPACITY } });
   map.addLayer({ id: 'rides', type: 'line', source: 'rides', layout: { 'line-cap': 'butt', 'line-join': 'round' },
     paint: { 'line-color': COLORS.trace, 'line-width': FOG_STYLE.traceWidth, 'line-dasharray': RIDE_DASH } });
   // The trace on a white edge, so it reads over fog, walked streets and the base map alike.
   // Two sources, one look: the history (re-sent once per chunk) and the live tail (each publish).
   // The link: from the trace's end to the dot, so the line always reaches it (the live dot, Nov 1).
   for (const [id, source] of [['trace-history-edge', 'trace-history'], ['trace-edge', 'trace'], ['trace-link-edge', 'trace-link']])
-    map.addLayer({ id, type: 'line', source, layout: lineLayout, paint: { 'line-color': '#ffffff', 'line-width': FOG_STYLE.edgeWidth, 'line-opacity': 0.9 } });
+    map.addLayer({ id, type: 'line', source, layout: lineLayout, paint: { 'line-color': '#ffffff', 'line-width': FOG_STYLE.edgeWidth, 'line-opacity': TRACE_EDGE_OPACITY } });
   for (const [id, source] of [['trace-history-line', 'trace-history'], ['trace', 'trace'], ['trace-link-line', 'trace-link']])
     map.addLayer({ id, type: 'line', source, layout: lineLayout, paint: { 'line-color': COLORS.trace, 'line-width': FOG_STYLE.traceWidth } });
   // A gap's way being drawn: over the trace, dashed on its white edge (GW3).
-  map.addLayer({ id: 'drawing-edge', type: 'line', source: 'drawing', layout: lineLayout, paint: { 'line-color': '#ffffff', 'line-width': FOG_STYLE.edgeWidth, 'line-opacity': 0.9 } });
+  map.addLayer({ id: 'drawing-edge', type: 'line', source: 'drawing', layout: lineLayout, paint: { 'line-color': '#ffffff', 'line-width': FOG_STYLE.edgeWidth, 'line-opacity': TRACE_EDGE_OPACITY } });
   map.addLayer({ id: 'drawing', type: 'line', source: 'drawing', layout: { 'line-cap': 'butt', 'line-join': 'round' },
     paint: { 'line-color': COLORS.trace, 'line-width': FOG_STYLE.traceWidth, 'line-dasharray': DRAWING_DASH } });
   // Where the walk began and ended (QL1-QL3): above the trace, under the walker; the capture pins
-  // are DOM markers, so they sit above every layer. The start hollow, ringed in the trace's green;
-  // the end solid, filled in the walked colour with a white ring (tend map T16).
-  map.addLayer({ id: 'ends', type: 'circle', source: 'ends',
+  // are DOM markers, so they sit above every layer. The start hollow, ringed in the trace's green
+  // (tend map T16); the end a bullseye (tend map T25): the start and the end's walked outer ring
+  // first, then the end's walked centre and white band alone, so a walk that ends on its start keeps
+  // its end whole (tend map audit 25).
+  map.addLayer({ id: 'ends-ring', type: 'circle', source: 'ends',
+    paint: ENDS_RING_PAINT });
+  map.addLayer({ id: 'ends', type: 'circle', source: 'ends', filter: ['==', ['get', 'kind'], 'end'],
     paint: ENDS_PAINT });
   // The way the walker is going, under the dot; and marked spots (a destination, a pressed spot).
   // The range preview (E21): a soft disc with a firm edge, under the walker.
   map.addLayer({ id: 'ring-fill', type: 'fill', source: 'ring', paint: { 'fill-color': RING_COLOR, 'fill-opacity': 0.12 } });
   map.addLayer({ id: 'ring', type: 'line', source: 'ring', paint: { 'line-color': RING_COLOR, 'line-width': 2.5, 'line-dasharray': [2, 1.5] } });
+  // A selected neighborhood's own ground (HB9): one line, one look for every neighborhood, no fill (HB14).
+  map.addLayer({ id: 'ground', type: 'line', source: 'ground', layout: lineLayout, paint: { 'line-color': groundStyle().color, 'line-width': groundStyle().width } });
   // The selected area's complexes (CX9): an outline with no fill, in a hue of its own, no heavier than an area's border.
   map.addLayer({ id: 'complexes', type: 'line', source: 'complexes', layout: lineLayout, paint: { 'line-color': COMPLEX_STYLE.color, 'line-width': COMPLEX_STYLE.width, 'line-opacity': COMPLEX_STYLE.opacity } });
   map.addLayer({ id: 'cone', type: 'fill', source: 'cone', paint: { 'fill-color': COLORS.walker, 'fill-opacity': 0.25 } });
@@ -141,6 +156,16 @@ function addOverlay(map: MapLibreMap) {
       'circle-stroke-color': '#ffffff',
       'circle-stroke-width': 2,
     } });
+  // The Storefronts layer's names (DC1-DC6, DC14): the map's own text, colliding with each other and the base map's labels. Where
+  // the layer sits in the stack is set by storefrontNamesOver (DC16); added on top here.
+  map.addSource('storefront-names', { type: 'geojson', data: empty });
+  const names = storefrontNameLayers();
+  map.addLayer({ id: 'storefront-names', type: 'symbol', source: 'storefront-names', minzoom: names.minzoom, filter: names.filter, layout: names.layout, paint: names.paint } as unknown as SymbolLayerSpecification);
+  // A turned name, centred or left out, never slid across its street (audit 1).
+  map.addLayer({ id: 'storefront-names-turned', type: 'symbol', source: 'storefront-names', minzoom: names.minzoom, filter: names.turned.filter, layout: names.turned.layout, paint: names.turned.paint } as unknown as SymbolLayerSpecification);
+  // The room the selected area's name and each "?" pin keep (DC14, DC17): above the names, so it is placed first.
+  map.addLayer({ id: 'storefront-names-room', type: 'symbol', source: 'storefront-names', minzoom: names.minzoom, filter: names.room.filter, layout: names.room.layout, paint: names.room.paint } as unknown as SymbolLayerSpecification);
+  return firstRoad;
 }
 
 /** A second tap within this long makes a double-tap zoom, not a press. */
@@ -172,9 +197,9 @@ class ClosedAttribution extends AttributionControl {
     // maplibre's control is content-box: the open box pads 8 px each side.
     el.style.setProperty('--credits-open-max', `${at.openMaxWidth - OPEN_PAD_X}px`);
   }
-  constructor() {
-    // Overture is credited beside the map data (AD16).
-    super({ compact: true, customAttribution: OVERTURE_CREDIT });
+  constructor(placeNames = false) {
+    // Overture is credited beside the map data (AD16); the place-name dataset only where the search reads it: Explore (GZ14).
+    super({ compact: true, customAttribution: placeNames ? [OVERTURE_CREDIT, GAZETTEER_CREDIT] : OVERTURE_CREDIT });
   }
   onAdd(map: MapLibreMap): HTMLElement {
     const el = super.onAdd(map);
@@ -263,10 +288,19 @@ const settled = (map: MapLibreMap) =>
     });
   });
 
+/** A fit as asked of maplibre, kept to ask it again (tend explore 17). */
+type FitAsk = { bounds: [[number, number], [number, number]]; options: { padding: { top: number; right: number; bottom: number; left: number }; maxZoom: number; duration: number; bearing?: number } };
+
+/** A mark's foot stands this far below its point on the web marker. */
+const MARK_BELOW = 6;
+
 export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(props, ref) {
   const container = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const [ready, setReady] = useState(false);
+  const baseLayers = useRef<string[]>([]);
+  /** The base map's first street layer, which the borders' fill goes under while the veil is off (TB8). */
+  const firstRoad = useRef<string | undefined>(undefined);
   const readyPromise = useRef<{ promise: Promise<void>; resolve: () => void } | null>(null);
   if (readyPromise.current == null) {
     let resolve!: () => void;
@@ -282,6 +316,10 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const onCreditsOpen = useRef(props.onCreditsOpen);
   const freePan = useRef(!!props.freePan);
   const fitPadding = useRef(props.fitPadding);
+  // The fit flying and whether a refit's own call is under way (tend explore 17, audit 19), read by the settle listeners.
+  const fit = useRef<FitState<FitAsk>>(FIT_IDLE);
+  const settleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onMoveState = useRef(props.onMoveState);
   // Before paint, so a click right after a render never reaches the previous handler (audit 8).
   useLayoutEffect(() => {
     onPress.current = props.onPress;
@@ -294,12 +332,15 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     onCreditsOpen.current = props.onCreditsOpen;
     freePan.current = !!props.freePan;
     fitPadding.current = props.fitPadding;
+    onMoveState.current = props.onMoveState;
   });
   const pointerDown = useRef(false);
   const creditsRef = useRef<ClosedAttribution | null>(null);
   // The compass asked for north and the map is still easing there: a fit meanwhile goes north too (tend map audit 4).
   const northAsked = useRef(false);
   const [view, setView] = useState<{ zoom: number; lat: number } | null>(null);
+  // The bearing the marks' rows are laid out at (fix mark-overlap audit 1), whole degrees, set as a turn settles.
+  const [marksBearing, setMarksBearing] = useState(0);
   perfCount('render:map');
   // On the live walk the dot, cone and camera glide between fixes. They are
   // moved by a render loop outside React (a DOM marker is cheap to move; the
@@ -330,8 +371,9 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     if ((window as { __perf?: unknown }).__perf) p.el.dataset.at = `${f.walker[0]},${f.walker[1]}`;
     p.cone.style.display = f.heading == null ? 'none' : '';
     if (f.heading != null) p.cone.style.transform = `rotate(${f.heading}deg)`;
-    // The camera follows the dot, so they move together; never while a hand is on the map.
-    if (followRef.current && !pointerDown.current) mapRef.current?.jumpTo({ center: f.walker });
+    // The camera follows the dot, so they move together; never while a hand is on the map, nor while the compass eases
+    // north (a jump would cut the ease: tend map 15).
+    if (followMoves({ following: !!followRef.current, handOnMap: pointerDown.current, northEasing: northAsked.current })) mapRef.current?.jumpTo({ center: f.walker });
   };
   useGlideFrames(props.walker, props.walkerHeading, glideOn, applyFrame, 0, props.walkerSource);
   useEffect(() => {
@@ -375,7 +417,9 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       map.keyboard.disableRotation();
     }
     map.on('load', () => {
-      addOverlay(map);
+      // The base map's own layers, before the app adds its overlay (T17: whether the tiles drew anything).
+      baseLayers.current = blankLookLayers(map.getStyle().layers as { id: string; type: string; 'source-layer'?: string }[]);
+      firstRoad.current = addOverlay(map);
       setReady(true);
       readyPromise.current!.resolve();
       // The e2e taps a spot on the newest map (a stretch across a gap), only when it is measuring.
@@ -392,6 +436,42 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         };
         // A two-finger turn can't be made headless: the e2e turns the newest map in code (CP1-CP5).
         (window as { __turn?: (deg: number) => void }).__turn = (deg) => { map.rotateTo(deg, { duration: 0 }); };
+        // Explore in a dense city (DC5, DC6, DC14, DC15): the e2e moves the newest map in code and asks which storefront names are
+        // drawn, where; names the map placed, never the reserved room (DC14).
+        const NAMES = ['storefront-names', 'storefront-names-turned'];
+        const storefrontsIn = (box?: [[number, number], [number, number]]) =>
+          [...new Set((box ? map.queryRenderedFeatures(box, { layers: NAMES }) : map.queryRenderedFeatures({ layers: NAMES }))
+            .filter((f) => !f.properties?.reserve).map((f) => String(f.properties?.name)))];
+        const canvasXY = (x: number, y: number): [number, number] => {
+          const r = map.getCanvas().getBoundingClientRect();
+          return [x - r.left, y - r.top];
+        };
+        const w = window as { __zoomTo?: unknown; __storefrontNamesIn?: unknown; __storefrontNamePoint?: unknown };
+        w.__zoomTo = (at: LngLat, zoom: number) => map.jumpTo({ center: at, zoom });
+        // smooth-switches SS9: the same move with the app idle, the bare camera's cost to measure a switch against. Started by a
+        // key, as a switch is (`__easeNext`, then F9): a move started from a script got almost no frames in headless Chromium.
+        window.addEventListener('keydown', (e) => {
+          const next = (window as { __easeNext?: [LngLat, number] }).__easeNext;
+          if (e.key !== 'F9' || !next) return;
+          map.easeTo({ center: next[0], duration: next[1] });
+        });
+        w.__storefrontNamesIn = (x0: number, y0: number, x1: number, y1: number) => storefrontsIn([canvasXY(x0, y0), canvasXY(x1, y1)]);
+        w.__storefrontNamePoint = () => {
+          const r = map.getCanvas().getBoundingClientRect();
+          for (let y = 60; y < r.height - 60; y += 8)
+            for (let x = 30; x < r.width - 30; x += 8) {
+              // Only where the name is what a finger meets: no pin or control over it.
+              if (document.elementFromPoint(r.left + x, r.top + y) !== map.getCanvas()) continue;
+              const hit = storefrontsIn([[x - 1, y - 1], [x + 1, y + 1]]);
+              if (hit.length) return { x: r.left + x, y: r.top + y, name: hit[0] };
+            }
+          return null;
+        };
+        map.on('movestart', () => container.current?.setAttribute('data-idle', '0'));
+        map.on('idle', () => {
+          container.current?.setAttribute('data-idle', '1');
+          container.current?.setAttribute('data-storefront-names', JSON.stringify(storefrontsIn()));
+        });
       }
     });
     // maplibre fires click for each tap of a double-tap zoom: wait to see
@@ -577,6 +657,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     // Only a real change of zoom or latitude band re-renders: a follow camera's moveend each fix
     // would otherwise re-render the map component and re-send the cone (perf, Nov 1).
     const track = () => {
+      if (fit.current.refitting) return;
       const zoom = map.getZoom();
       const lat = map.getCenter().lat;
       // The canvas's own middle: getCenter() is the padded centre a fit leaves behind, which a map
@@ -614,8 +695,24 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     map.on('rotateend', turned);
     // Any move's end (the ease to north done, or cut by a drag or a fit) ends the request.
     map.on('moveend', () => {
+      // A refit's own stop is not a move's end (tend explore audit 19).
+      if (fit.current.refitting) return;
       northAsked.current = false;
     });
+    // explore-dense-city ui 3: the storefront names fold upright for the bearing the map settles on (a turn, resetNorth).
+    let namesBearing = 0;
+    const uprightNames = () => {
+      const b = Math.round(map.getBearing());
+      if (b === namesBearing || !map.getLayer('storefront-names')) return;
+      namesBearing = b;
+      map.setLayoutProperty('storefront-names', 'text-rotate', storefrontNameRotate(b) as never);
+      map.setLayoutProperty('storefront-names-turned', 'text-rotate', storefrontNameRotate(b) as never);
+    };
+    map.on('rotateend', uprightNames);
+    map.on('moveend', uprightNames);
+    const marksTurned = () => setMarksBearing(Math.round(map.getBearing()));
+    map.on('rotateend', marksTurned);
+    map.on('moveend', marksTurned);
     // A camera move made in code cancels a drag in progress, and the glide moves
     // the camera every frame. So follow-moves wait while a pointer is down.
     const down = () => { pointerDown.current = true; };
@@ -629,10 +726,21 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     // The credits stay reachable (OSM asks it): top right on Chronicle, where the sheet never covers them; on every
     // other map beside the scale bar, on the strip its screen keeps clear, placed below (tend map 3). Bottom right,
     // they lay under the walk's strip, the replay's card, Locate and the capture stack.
-    const credits = new ClosedAttribution();
+    const credits = new ClosedAttribution(!!props.placeNamesCredit);
     credits.onOpen = (open) => onCreditsOpen.current?.(open);
     creditsRef.current = credits;
     map.addControl(credits, props.attributionTop ? 'top-right' : 'bottom-left');
+    // DC9: the camera's moves, once at their start and once at their settle (Explore's storefronts read waits for the settle).
+    map.on('movestart', () => {
+      perfMark('mark:moved');
+      onMoveState.current?.(true);
+    });
+    map.on('moveend', () => {
+      // DC9: the moveend a refit's own stop fires mid-air is not the settle (tend explore audit 19).
+      if (fit.current.refitting) return;
+      perfMark('mark:settled');
+      onMoveState.current?.(false);
+    });
     map.on('zoomend', track);
     // A pan changes the latitude the merge radius is measured at.
     map.on('moveend', track);
@@ -644,6 +752,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       // A map that comes back opens north-up (CP8), so its screen hears north as it goes: a map taken down under the
       // planner left its last turn with the compass (tend map audit 6).
       if (sentBearing !== 0) onBearingChange.current?.(0);
+      // audit 7: a map taken down mid-move fires no moveend; whatever waits for its settle goes on.
+      onMoveState.current?.(false);
       map.remove();
       mapRef.current = null;
     };
@@ -678,6 +788,23 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
 
   useEffect(() => { if (ready) setData('fog', segmentsGeoJSON(props.fog)); }, [ready, props.fog]);
   useEffect(() => { if (ready) setData('walked', segmentsGeoJSON(props.walked)); }, [ready, props.walked]);
+  // Sent only when the screen's lines change (WB16): the screen keeps the same object while they don't.
+  // Sent only when the lines drawn change (WB16), by their key, never because a screen made a new object: the walk screen's
+  // ready and live states hand the same lines over at Start. A map that never had lines sends none.
+  const pastSent = useRef('');
+  const pastNow = useRef(props.past);
+  useEffect(() => {
+    pastNow.current = props.past;
+  });
+  const pastKey = props.past?.key ?? '';
+  useEffect(() => {
+    if (!ready || pastKey === pastSent.current) return;
+    pastSent.current = pastKey;
+    const past = pastNow.current;
+    setData('past', traceGeoJSON(past?.runs ?? []));
+    perfCount('past:send');
+    container.current?.setAttribute('data-past', (past?.ids ?? []).slice().sort().join('|'));
+  }, [ready, pastKey]);
   const split = useMemo(() => splitTrace(props.trace), [props.trace]);
   const history = useRef(split.history);
   useEffect(() => {
@@ -705,6 +832,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   useEffect(() => { if (ready) setData('route', routeGeoJSON(props.route)); }, [ready, props.route]);
   useEffect(() => { if (ready) setData('route-grades', routeGradesGeoJSON(props.routeGrades)); }, [ready, props.routeGrades]);
   useEffect(() => { if (ready) setData('found-pins', pinsGeoJSON(props.foundPins)); }, [ready, props.foundPins]);
+  const hasLanding = !!props.landing;
   useEffect(() => {
     if (!ready) return;
     setData('alternates', alternatesGeoJSON(props.alternates));
@@ -712,18 +840,139 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     if ((window as { __perf?: unknown }).__perf && container.current) container.current.dataset.alternates = String(props.alternates?.length ?? 0);
     // The e2e reads which of the trace-like layers carry anything (only when it is measuring): none while a preview is up.
     if ((window as { __perf?: unknown }).__perf && container.current) {
-      container.current.dataset.drawn = [['trace', props.trace?.length], ['walked', props.walked?.length], ['fog', props.fog?.length], ['faint', props.faint?.length], ['landing', props.landing ? 1 : 0], ['borders', props.borders ? 1 : 0], ['walkability', props.walkability ? 1 : 0]].filter(([, n]) => n).map(([k]) => k).join(',');
+      container.current.dataset.drawn = [['trace', props.trace?.length], ['walked', props.walked?.length], ['fog', props.fog?.length], ['faint', props.faint?.length], ['landing', hasLanding ? 1 : 0], ['borders', props.borders ? 1 : 0], ['walkability', props.walkability ? 1 : 0]].filter(([, n]) => n).map(([k]) => k).join(',');
     }
-  }, [ready, props.alternates, props.trace, props.walked, props.fog, props.faint, props.landing, props.borders, props.walkability]);
+  }, [ready, props.alternates, props.trace, props.walked, props.fog, props.faint, hasLanding, props.borders, props.walkability]);
+  // SS3: the lines and pockets are sent only when they change, never because the names near the selected area did: each
+  // send drops the source's tiles, and a revisit's lines were cut again.
+  const graded = props.landing?.graded;
+  const pockets = props.landing?.pockets;
   useEffect(() => {
     if (!ready) return;
     setData('pockets', pocketsGeoJSON(props.landing));
     setData('strips', stripsGeoJSON(props.landing));
-    // The e2e reads whether busy streets are drawn (the Busy streets layer).
-    container.current?.setAttribute('data-busy', props.landing ? `strips:${stripsGeoJSON(props.landing).features.length}` : '');
+    // The e2e reads whether storefront streets are drawn (the Storefront streets layer).
+    container.current?.setAttribute('data-storefronts', props.landing ? `strips:${stripsGeoJSON(props.landing).features.length}` : '');
     // How many times the drawing was sent: the e2e checks it is not sent once a fix (layers audit 2).
-    container.current?.setAttribute('data-busy-sets', String(Number(container.current?.getAttribute('data-busy-sets') ?? 0) + 1));
-  }, [ready, props.landing]);
+    container.current?.setAttribute('data-storefronts-sets', String(Number(container.current?.getAttribute('data-storefronts-sets') ?? 0) + 1));
+    // The view is read whole; what it draws is in `graded` and `pockets`.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, graded, pockets]);
+  // The storefront names (DC1, DC14): sent when the areas or the reserved name change, never per fix or zoom.
+  const reserveKey = props.storefrontNamesReserve ? `${props.storefrontNamesReserve.name}|${props.storefrontNamesReserve.at.join(',')}` : '';
+  const reserveRef = useRef(props.storefrontNamesReserve);
+  // DC17: every "?" pin keeps its room; sent again only when the pins move, never per render.
+  const pinsAt = (props.discoveries ?? []).map((d) => d.at);
+  const pinsKey = props.landing ? pinsAt.map((a) => a.join(',')).join('|') : '';
+  const pinsRef = useRef(pinsAt);
+  useEffect(() => {
+    pinsRef.current = (props.discoveries ?? []).map((d) => d.at);
+  });
+  useEffect(() => {
+    reserveRef.current = props.storefrontNamesReserve;
+  });
+  // DC18: the walk maps' names near you, re-sent only when you move about 100 m.
+  const nearRef = useRef(props.storefrontNamesNear);
+  const nearKey = props.storefrontNamesNear ? `${props.storefrontNamesNear.at.map((x) => x.toFixed(3)).join(',')}:${props.storefrontNamesNear.m}` : '';
+  const clearOfRef = useRef(props.storefrontNamesClearOf);
+  const landingRef = useRef(props.landing);
+  useEffect(() => {
+    nearRef.current = props.storefrontNamesNear;
+    clearOfRef.current = props.storefrontNamesClearOf;
+    landingRef.current = props.landing;
+  });
+  // audit 11: the screen's controls over the map, and the map's edge, as room cells where the map now stands. Read from
+  // the page each time the map settles (a control never moves with the map); none while the Storefronts layer is off.
+  const roomOnScreen = (map: MapLibreMap): LngLat[] => {
+    const canvas = map.getCanvas().getBoundingClientRect();
+    const rects: { x: number; y: number; w: number; h: number }[] = [
+      { x: 0, y: 0, w: canvas.width, h: 0 }, { x: 0, y: canvas.height, w: canvas.width, h: 0 },
+      { x: 0, y: 0, w: 0, h: canvas.height }, { x: canvas.width, y: 0, w: 0, h: canvas.height },
+    ];
+    for (const id of clearOfRef.current ?? [])
+      for (const el of document.querySelectorAll(`[data-testid="${id}"]`)) {
+        const r = el.getBoundingClientRect();
+        if (!r.width || r.right < canvas.left || r.left > canvas.right || r.bottom < canvas.top || r.top > canvas.bottom) continue;
+        rects.push({ x: r.left - canvas.left, y: r.top - canvas.top, w: r.width, h: r.height });
+      }
+    return rects.flatMap((r) => roomCells(r)).map(([x, y]) => {
+      const c = map.unproject([x, y]);
+      return [c.lng, c.lat] as LngLat;
+    });
+  };
+  const sendNames = useRef<() => void>(() => {});
+  useEffect(() => {
+    sendNames.current = () => {
+      const map = mapRef.current;
+      if (!map || !map.getSource('storefront-names')) return;
+      const landing = landingRef.current;
+      const names = storefrontNamesGeoJSON(landing, reserveRef.current ?? null, pinsRef.current, nearRef.current ?? null, landing ? roomOnScreen(map) : []);
+      setData('storefront-names', names);
+      // The e2e reads what the map was given (only when it is measuring): each name and where it goes.
+      if ((window as { __perf?: unknown }).__perf && container.current) {
+        container.current.dataset.storefrontsGiven = JSON.stringify(names.features.filter((f) => !f.properties?.reserve).map((f) => ({ name: f.properties?.name, at: (f.geometry as GeoJSON.Point).coordinates })));
+      }
+    };
+  });
+  // SS5: a switch's move holds the names: cleared at once, sent once when that move settles (the moveend below).
+  const namesHeld = useRef(false);
+  const switchSeen = useRef(props.storefrontNamesSwitch);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map || props.storefrontNamesSwitch === switchSeen.current) return;
+    switchSeen.current = props.storefrontNamesSwitch;
+    namesHeld.current = true;
+    perfCount('storefront-names:clear');
+    (map.getSource('storefront-names') as { setData(d: GeoJSON.FeatureCollection): void } | undefined)?.setData({ type: 'FeatureCollection', features: [] });
+    // A switch that moves nothing (the camera already there) lets them go once its move would have ended.
+    const t = setTimeout(() => {
+      if (namesHeld.current && !map.isMoving()) {
+        namesHeld.current = false;
+        sendNames.current();
+      }
+    }, MOTION.camera + MOTION.ease);
+    return () => clearTimeout(t);
+  }, [ready, props.storefrontNamesSwitch]);
+  useEffect(() => {
+    if (ready && !namesHeld.current) sendNames.current();
+  }, [ready, props.landing, reserveKey, pinsKey, nearKey]);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map) return;
+    // The rooms follow the map: once it settles, and when the screen changes size. A switch's held names go out here,
+    // once, a frame on: a move cut short by the next one ends before that one starts (SS5).
+    const again = () => {
+      if (fit.current.refitting) return;
+      if (!namesHeld.current) {
+        if (landingRef.current) sendNames.current();
+        return;
+      }
+      requestAnimationFrame(() => {
+        if (!namesHeld.current || map.isMoving()) return;
+        namesHeld.current = false;
+        sendNames.current();
+      });
+    };
+    map.on('moveend', again);
+    map.on('resize', again);
+    return () => {
+      map.off('moveend', again);
+      map.off('resize', again);
+    };
+  }, [ready]);
+  // DC16: over every layer on Explore, so its names are placed before the base map's; elsewhere under the base map's labels
+  // (placed after them, so a road keeps its own name) and so under the trace and the route.
+  const namesOver = !!props.storefrontNamesOver;
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map) return;
+    const firstSymbol = (map.getStyle().layers as { type: string; id: string }[]).find((l) => l.type === 'symbol' && !l.id.startsWith('storefront-names'))?.id;
+    const below = namesOver ? undefined : firstSymbol ?? 'alternates-edge';
+    map.moveLayer('storefront-names', below);
+    map.moveLayer('storefront-names-turned', below);
+    map.moveLayer('storefront-names-room', below);
+    container.current?.setAttribute('data-storefronts-over', namesOver ? '1' : '0');
+  }, [ready, namesOver]);
   useEffect(() => {
     if (!ready) return;
     setData('waiting-dots', waitingDotsGeoJSON(props.waitingDots));
@@ -750,6 +999,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, endsKey]);
   useEffect(() => { if (ready) setData('ring', ringGeoJSON(props.ring)); }, [ready, props.ring]);
+  useEffect(() => { if (ready) setData('ground', groundGeoJSON(props.ground ?? null)); }, [ready, props.ground]);
   useEffect(() => { if (ready) setData('complexes', (props.complexes?.lines ?? { type: 'FeatureCollection', features: [] }) as GeoJSON.FeatureCollection); }, [ready, props.complexes]);
   // Town borders (TB1-TB5): sent again only when the towns or their roles change (TB9).
   const borderKey = props.borders?.key ?? '';
@@ -781,14 +1031,16 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   useEffect(() => {
     if (!ready) return;
     for (const id of ['trace', 'trace-history-line', 'trace-link-line', 'rides']) mapRef.current?.setPaintProperty(id, 'line-opacity', props.traceOpacity ?? 1);
-    for (const id of ['trace-edge', 'trace-history-edge', 'trace-link-edge', 'rides-edge']) mapRef.current?.setPaintProperty(id, 'line-opacity', 0.9 * (props.traceOpacity ?? 1));
+    for (const id of ['trace-edge', 'trace-history-edge', 'trace-link-edge', 'rides-edge']) mapRef.current?.setPaintProperty(id, 'line-opacity', TRACE_EDGE_OPACITY * (props.traceOpacity ?? 1));
     mapRef.current?.setPaintProperty('faint', 'line-opacity', FAINT_OPACITY * (props.traceOpacity ?? 1));
     // The dots go with the trace: hidden while navigating (gap-drawing audit 12).
     mapRef.current?.setPaintProperty('gap-links', 'line-opacity', 0.8 * (props.traceOpacity ?? 1));
-    mapRef.current?.setPaintProperty('faint-edge', 'line-opacity', 0.9 * FAINT_OPACITY * (props.traceOpacity ?? 1));
+    mapRef.current?.setPaintProperty('faint-edge', 'line-opacity', TRACE_EDGE_OPACITY * FAINT_OPACITY * (props.traceOpacity ?? 1));
     // The markers go with the trace (QL3): hidden while navigating, faint in the replay's first beats.
-    mapRef.current?.setPaintProperty('ends', 'circle-opacity', props.traceOpacity ?? 1);
-    mapRef.current?.setPaintProperty('ends', 'circle-stroke-opacity', props.traceOpacity ?? 1);
+    for (const id of ['ends-ring', 'ends']) {
+      mapRef.current?.setPaintProperty(id, 'circle-opacity', props.traceOpacity ?? 1);
+      mapRef.current?.setPaintProperty(id, 'circle-stroke-opacity', props.traceOpacity ?? 1);
+    }
   }, [ready, props.traceOpacity]);
   useEffect(() => {
     if (!ready) return;
@@ -814,6 +1066,25 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   // The scale bar follows the view (QL7): the longest round length that fits at this zoom and latitude.
   const units = useUnits();
   const scale = useMemo(() => (view ? scaleBar(metersPerPixel(view.zoom, view.lat), SCALE_MAX_PX, units) : null), [view, units]);
+  // No scale bar over a blank world (T17): with no fix, the map looks at what it drew each time it settles.
+  const blankWatch = !!props.hideScaleOnBlank && !props.walker;
+  const [drawn, setDrawn] = useState<boolean | null>(null);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map || !blankWatch) return;
+    // Only the base map's layers: the app's own (the world's veil among them) cover the world whatever the tiles did.
+    const look = () => {
+      const layers = baseLayers.current.filter((id) => map.getLayer(id));
+      setDrawn(layers.length > 0 && map.queryRenderedFeatures({ layers }).length > 0);
+    };
+    map.on('idle', look);
+    // A map already settled fires no idle until it draws again.
+    map.triggerRepaint();
+    return () => {
+      map.off('idle', look);
+    };
+  }, [ready, blankWatch]);
+  const scaleOn = scaleShown({ hideOnBlank: !!props.hideScaleOnBlank, fix: !!props.walker, drawn });
   // The live walk's dot and cone: one marker, drawn at the same size as the layers.
   useEffect(() => {
     const map = mapRef.current;
@@ -844,10 +1115,16 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const pins = useZoomPins(props.captures, view?.zoom ?? null, view?.lat ?? null);
   // One read of the reminders per map, for the bells on its pins (RB1, RB6).
   const reminded = useReminded();
-  usePinMarkers(mapRef, ready, pins, props.onPinPress ? (p) => props.onPinPress?.(p.captures) : undefined, false, reminded);
+  // One read of the reactions per map, for the bubbles on its pins (RX17, RX21).
+  const sets = useReactionSets(!!props.captures?.length || !!props.memories?.length);
+  // The start and end markers a pin may stand on (decision 0172, O13): none while they are hidden with the trace.
+  const markersShown = (props.traceOpacity ?? 1) > 0;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const standOn = useMemo<(LngLat | null)[]>(() => (markersShown ? [ends.start, ends.end] : []), [endsKey, markersShown]);
+  usePinMarkers(mapRef, ready, pins, props.onPinPress ? (p) => props.onPinPress?.(p.captures) : undefined, false, reminded, sets, props.clocks, props.now, standOn);
   // Memories from earlier walks: the same pins, faint, with their own tap (MR1-MR4).
   const memoryPins = useZoomPins(props.memories ?? NO_CAPTURES, view?.zoom ?? null, view?.lat ?? null);
-  usePinMarkers(mapRef, ready, memoryPins, props.onMemoryPress ? (p) => props.onMemoryPress?.(p.captures, p.lngLat) : undefined, true, reminded);
+  usePinMarkers(mapRef, ready, memoryPins, props.onMemoryPress ? (p) => props.onMemoryPress?.(p.captures, p.lngLat) : undefined, true, reminded, sets, undefined, props.now, standOn);
   // Stars (the home map) are DOM markers too, drawn with the same view as on
   // native. Clicks look the star up by id, so a merged star never opens stale places.
   const onViewChange = useRef(props.onViewChange);
@@ -858,7 +1135,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     if (view) onViewChange.current?.(view);
   }, [view]);
   const starLatest = useRef({ stars: new Map<string, Star>(), onStarPress: props.onStarPress });
-  useEffect(() => {
+  // Before paint, as the pins' (tend map 17).
+  useLayoutEffect(() => {
     starLatest.current = { stars: new Map((props.stars ?? []).map((st) => [st.id, st])), onStarPress: props.onStarPress };
   });
   const starMarkers = useRef(new Map<string, { marker: Marker; root: Root; key: string; selected: boolean }>());
@@ -885,6 +1163,9 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       const el = document.createElement('button');
       el.type = 'button';
       el.setAttribute('aria-label', starLabel(star));
+      // The selected star is told as it is drawn: "current" on the web, where a button takes no aria-selected (tend map
+      // 20, the owner's "Allow it", Nov 18).
+      if (selected) el.setAttribute('aria-current', 'true');
       el.style.cssText = 'background:none;border:0;padding:6px;cursor:pointer';
       const id = star.id;
       el.addEventListener('click', (e) => {
@@ -912,11 +1193,12 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   }, []);
   // Explore's "?" marks, as DOM markers like the stars; clicks look the mark up by id.
   const markLatest = useRef(props.onDiscoveryPress);
-  useEffect(() => {
+  // Before paint, as the pins' (tend map 17).
+  useLayoutEffect(() => {
     markLatest.current = props.onDiscoveryPress;
   });
   const viewZoom = view?.zoom ?? 16;
-  const markMarkers = useRef(new Map<string, { marker: Marker; root: Root; key: string; state: { revealed: boolean; found?: boolean; faint?: boolean } }>());
+  const markMarkers = useRef(new Map<string, { marker: Marker; root: Root; key: string; spread: string; state: { revealed: boolean; found?: boolean; faint?: boolean } }>());
   useEffect(() => {
     const map = mapRef.current;
     if (!ready || !map) return;
@@ -925,11 +1207,21 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       queueMicrotask(() => m.root.unmount());
     };
     const live = new Set<string>();
-    for (const pin of declutterMarks(props.discoveries ?? [], viewZoom)) {
+    for (const pin of declutterMarks(props.discoveries ?? [], viewZoom, { bearing: marksBearing, spread: !!props.spreadMarks })) {
       live.add(pin.id);
       const key = `${pin.at.join(',')}|${markKey(pin)}|${pin.name}|${pin.icon}|${pin.quiet ? 'q' : ''}`;
       const existing = markMarkers.current.get(pin.id);
-      if (existing?.key === key) continue;
+      const spread = spreadKey(pin.spread);
+      if (existing?.key === key) {
+        // A row that shifts with the zoom or a turn moves its marker in place, never a new one: focus and a tap in
+        // flight stay (fix mark-overlap audit 6).
+        if (existing.spread !== spread) {
+          existing.spread = spread;
+          existing.marker.setOffset([pin.spread?.dx ?? 0, MARK_BELOW + (pin.spread?.dy ?? 0)]);
+          existing.root.render(<MarkPinView pin={pin as MarkPin} below={MARK_BELOW} />);
+        }
+        continue;
+      }
       if (existing) drop(existing);
       // Revealed in front of you it turns in (M11); found, it pulses once (M12).
       const enter = markEnter(existing?.state, pin);
@@ -952,58 +1244,24 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
           markLatest.current?.(id);
         });
       const root = createRoot(el);
-      root.render(<MarkPinView pin={pin as MarkPin} enter={enter} />);
-      const marker = new Marker({ element: el, anchor: 'bottom', offset: [0, 6] }).setLngLat(pin.at).addTo(map);
-      markMarkers.current.set(pin.id, { marker, root, key, state: { revealed: pin.revealed, found: pin.found, faint: pin.faint } });
+      perfCount('marker:mark');
+      root.render(<MarkPinView pin={pin as MarkPin} enter={enter} below={MARK_BELOW} />);
+      // A spread pin stands off its point, on a leg back to it (fix mark-overlap).
+      const marker = new Marker({ element: el, anchor: 'bottom', offset: [pin.spread?.dx ?? 0, MARK_BELOW + (pin.spread?.dy ?? 0)] }).setLngLat(pin.at).addTo(map);
+      markMarkers.current.set(pin.id, { marker, root, key, spread, state: { revealed: pin.revealed, found: pin.found, faint: pin.faint } });
     }
     for (const [id, m] of markMarkers.current) {
       if (live.has(id)) continue;
       drop(m);
       markMarkers.current.delete(id);
     }
-  }, [ready, props.discoveries, viewZoom]);
+  }, [ready, props.discoveries, viewZoom, marksBearing, props.spreadMarks]);
   useEffect(() => () => {
     for (const m of markMarkers.current.values()) {
       m.marker.remove();
       queueMicrotask(() => m.root.unmount());
     }
     markMarkers.current.clear();
-  }, []);
-  // Strip and pocket names, as DOM markers like the stars.
-  const landingMarkers = useRef<{ marker: Marker; root: Root }[]>([]);
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!ready || !map) return;
-    for (const m of landingMarkers.current) {
-      m.marker.remove();
-      const r = m.root;
-      queueMicrotask(() => r.unmount());
-    }
-    landingMarkers.current = [];
-    for (const s of props.landing?.strips ?? []) {
-      const el = document.createElement('div');
-      el.style.pointerEvents = 'none';
-      el.setAttribute('aria-hidden', 'true');
-      const root = createRoot(el);
-      root.render(<StripLabel name={s.name} />);
-      landingMarkers.current.push({ marker: new Marker({ element: el, anchor: 'center' }).setLngLat(s.at).addTo(map), root });
-    }
-    for (const l of props.landing?.labels ?? []) {
-      const el = document.createElement('div');
-      el.style.pointerEvents = 'none';
-      el.setAttribute('aria-hidden', 'true');
-      const root = createRoot(el);
-      root.render(<StripLabel name={l.name} />);
-      landingMarkers.current.push({ marker: new Marker({ element: el, anchor: 'center' }).setLngLat(l.at).addTo(map), root });
-    }
-  }, [ready, props.landing]);
-  useEffect(() => () => {
-    for (const m of landingMarkers.current) {
-      m.marker.remove();
-      const r = m.root;
-      queueMicrotask(() => r.unmount());
-    }
-    landingMarkers.current = [];
   }, []);
   // The complexes' names (CX9), DOM markers like the strip names, rebuilt only when they change; the map adds no summary of its own.
   const complexMarkers = useRef<{ marker: Marker; root: Root }[]>([]);
@@ -1028,6 +1286,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       el.dataset.testid = 'complex-label';
       el.dataset.name = l.text;
       const root = createRoot(el);
+      perfCount('marker:complex');
       root.render(<ComplexLabelView text={l.text} />);
       complexMarkers.current.push({ marker: new Marker({ element: el, anchor: 'center' }).setLngLat(l.at).addTo(map), root });
     }
@@ -1040,8 +1299,9 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     }
     complexMarkers.current = [];
   }, []);
-  // Explore's area points (atlas round 3), as DOM markers like the strip names, rebuilt only when they change.
-  const areaMarkers = useRef<{ marker: Marker; root: Root }[]>([]);
+  // Explore's area points (atlas round 3), as DOM markers. SS6: kept by area and re-rendered in place when their look
+  // changes (the one left, the one selected); built only for an area new to the map, removed only for one gone.
+  const areaMarkers = useRef<{ id: string; at: string; look: string; el: HTMLDivElement; marker: Marker; root: Root }[]>([]);
   const areaKey = (props.areaPoints ?? []).map((p) => `${p.id}:${p.name ?? ''}:${p.selected ? 1 : 0}`).join('|');
   const areaPointsRef = useRef(props.areaPoints);
   useEffect(() => {
@@ -1050,13 +1310,29 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   useEffect(() => {
     const map = mapRef.current;
     if (!ready || !map) return;
-    for (const m of areaMarkers.current) {
+    const points = areaPointsRef.current ?? [];
+    const ids = new Set(points.map((p) => p.id));
+    for (const m of areaMarkers.current.filter((x) => !ids.has(x.id))) {
       m.marker.remove();
       const r = m.root;
       queueMicrotask(() => r.unmount());
     }
-    areaMarkers.current = [];
-    for (const p of areaPointsRef.current ?? []) {
+    const kept = areaMarkers.current.filter((x) => ids.has(x.id));
+    areaMarkers.current = points.map((p) => {
+      const look = `${p.name ?? ''}:${p.selected ? 1 : 0}`;
+      const at = p.at.join(',');
+      const was = kept.find((x) => x.id === p.id);
+      if (was) {
+        if (was.at !== at) was.marker.setLngLat(p.at);
+        if (was.look !== look) {
+          if (p.name) was.el.dataset.name = p.name;
+          else delete was.el.dataset.name;
+          if (p.selected) was.el.dataset.selected = '1';
+          else delete was.el.dataset.selected;
+          was.root.render(<AreaPointView pin={p} />);
+        }
+        return { ...was, at, look };
+      }
       const el = document.createElement('div');
       el.style.pointerEvents = 'none';
       el.setAttribute('aria-hidden', 'true');
@@ -1064,10 +1340,11 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       if (p.name) el.dataset.name = p.name;
       if (p.selected) el.dataset.selected = '1';
       const root = createRoot(el);
+      perfCount('marker:area');
       root.render(<AreaPointView pin={p} />);
       // Anchored at the top so the dot, not the label, sits on the point.
-      areaMarkers.current.push({ marker: new Marker({ element: el, anchor: 'top', offset: [0, -6] }).setLngLat(p.at).addTo(map), root });
-    }
+      return { id: p.id, at, look, el, root, marker: new Marker({ element: el, anchor: 'top', offset: [0, -6] }).setLngLat(p.at).addTo(map) };
+    });
   }, [ready, areaKey]);
   useEffect(() => () => {
     for (const m of areaMarkers.current) {
@@ -1078,20 +1355,31 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     areaMarkers.current = [];
   }, []);
   useEffect(() => {
-    if (ready) mapRef.current?.setPaintProperty('veil', 'fill-opacity', props.veil ? 0.45 : 0);
-  }, [ready, props.veil]);
+    const map = mapRef.current;
+    if (!ready || !map) return;
+    map.setPaintProperty('veil', 'fill-opacity', props.veil ? 0.45 : 0);
+    // The borders over the veil on the replay and a day, at a lighter fill, so a walk's town still reads as a region and
+    // its labels keep 4:1 (decision 0199); the walk's unwalked veil stays over them (tend map audit 39).
+    const overVeil = !!props.veil && !!props.bordersOverVeil;
+    for (const [id, before] of borderMoves(overVeil, firstRoad.current)) map.moveLayer(id, before);
+    map.setPaintProperty('border-fill', 'fill-opacity', borderFillOpacity(overVeil));
+  }, [ready, props.veil, props.bordersOverVeil]);
+  // QC24: the base map's shop and point-of-interest labels, hidden while a stop is a plain point (the outing's page, a followed outing).
   useEffect(() => {
     const map = mapRef.current;
     if (!ready || !map) return;
-    map.setPaintProperty('fog', 'line-color', props.fogEmphasis ? FOG_BOLD : COLORS.fog);
-    map.setPaintProperty('fog', 'line-opacity', props.fogEmphasis ? 1 : FOG_STYLE.opacity);
-    map.setPaintProperty('fog', 'line-width', props.fogEmphasis
-      ? ['interpolate', ['linear'], ['zoom'], 13, 2.5, 17, 7]
-      : ['interpolate', ['linear'], ['zoom'], 13, FOG_STYLE.widthMin, 17, FOG_STYLE.widthMax]);
-  }, [ready, props.fogEmphasis]);
+    for (const id of poiLabelLayers(map.getStyle().layers as { id: string; type: string; 'source-layer'?: string }[])) map.setLayoutProperty(id, 'visibility', props.hideLabels ? 'none' : 'visible');
+  }, [ready, props.hideLabels]);
+  // The fog is always quiet (decision 0222, WB1): its paint is set once with the layer. The e2e reads it, and the veil, here.
   useEffect(() => {
     const map = mapRef.current;
-    if (!ready || !props.follow || !map || pointerDown.current) return;
+    if (!ready || !map || !container.current) return;
+    container.current.setAttribute('data-fog-paint', `${map.getPaintProperty('fog', 'line-color')}|${map.getPaintProperty('fog', 'line-opacity')}`);
+    container.current.setAttribute('data-veil', props.veil ? '1' : '0');
+  }, [ready, props.veil]);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map || !props.follow || !followMoves({ following: !!props.follow, handOnMap: pointerDown.current, northEasing: northAsked.current })) return;
     // On the live walk the render loop moves the camera; this recenters at once
     // (Recenter, a read ending) on the dot as it is showing.
     const to = glideOn ? (lastFrame.current.walker ?? props.follow) : props.follow;
@@ -1106,6 +1394,42 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   }, [ready, props.follow, props.followZoom, glideOn]);
   // A fit is a request made while mounted: a map brought back (the home, after a walk) keeps its view.
   const fitAtMount = useRef(props.fitKey);
+  // A fit settles once its move has run, if the map is still up then; a refit restarts it (tend explore audit 19, F1).
+  const settleAfter = (key: number, ms: number) => {
+    if (settleTimer.current) clearTimeout(settleTimer.current);
+    settleTimer.current = setTimeout(() => {
+      settleTimer.current = null;
+      onFitSettled.current?.(key);
+    }, ms + 150);
+  };
+  // The fit flying (tend explore 17): resized meanwhile, it is asked again at the new size. An area's card folds the
+  // tabs away as it opens, so Explore's map grows mid-flight, which maplibre lands at the bounds' own middle (AT9).
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map) return;
+    const landed = () => {
+      fit.current = fitStep(fit.current, { kind: 'moveend' }).state;
+    };
+    const resized = () => {
+      const box = { width: map.getCanvas().clientWidth, height: map.getCanvas().clientHeight };
+      const r = fitStep(fit.current, { kind: 'resize', box, moving: map.isMoving() });
+      fit.current = r.state;
+      if (r.do.kind !== 'refit') return;
+      perfCount('refit');
+      // Its own stop fires a moveend mid-air, which the settle listeners skip while `refitting` (DC9).
+      map.fitBounds(r.do.ask.bounds, r.do.ask.options);
+      fit.current = fitStep(fit.current, { kind: 'refitted' }).state;
+      settleAfter(r.do.settle, r.do.ask.options.duration ?? 0);
+    };
+    map.on('moveend', landed);
+    map.on('resize', resized);
+    return () => {
+      map.off('moveend', landed);
+      map.off('resize', resized);
+      if (settleTimer.current) clearTimeout(settleTimer.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready]);
   useEffect(() => {
     if (ready && props.fitBounds && props.fitKey !== fitAtMount.current) {
       fitAtMount.current = undefined;
@@ -1116,11 +1440,15 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       // bearing; tend map 2).
       const map = mapRef.current;
       // While the compass's ease to north runs, north: the bearing read mid-ease would stop the map part-way (tend map audit 4).
-      map?.fitBounds([[w, s], [e, n]], { padding, maxZoom: props.fitMaxZoom ?? 17, duration, bearing: northAsked.current ? 0 : map.getBearing() });
-      // Settled once its move has run, if the map is still up then (a fit that moves nothing ends at once).
+      const ask: FitAsk = { bounds: [[w, s], [e, n]], options: { padding, maxZoom: props.fitMaxZoom ?? 17, duration, bearing: northAsked.current ? 0 : map?.getBearing() } };
       const key = props.fitKey ?? 0;
-      const t = setTimeout(() => onFitSettled.current?.(key), duration + 150);
-      return () => clearTimeout(t);
+      map?.fitBounds(ask.bounds, ask.options);
+      if (map) fit.current = fitStep(fit.current, { kind: 'fit', key, ask, box: { width: map.getCanvas().clientWidth, height: map.getCanvas().clientHeight }, moving: map.isMoving() }).state;
+      // Settled once its move has run, if the map is still up then (a fit that moves nothing ends at once).
+      settleAfter(key, duration);
+      return () => {
+        if (settleTimer.current) clearTimeout(settleTimer.current);
+      };
     }
     // Refits when the caller changes fitKey, not on every new bounds array.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1160,6 +1488,9 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       // fix 2, the owner's iPhone, Nov 4). The point lands in the middle of the padding all the same.
       const offset: [number, number] = [(padding.left - padding.right) / 2, (padding.top - padding.bottom) / 2];
       mapRef.current?.easeTo({ center: at, offset, duration: animateRef.current ? MOTION.ease : 0 });
+    },
+    focus() {
+      mapRef.current?.getCanvas().focus();
     },
     resetNorth() {
       const map = mapRef.current;
@@ -1219,9 +1550,9 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
 
   return (
     <View style={[styles.wrap, props.style]}>
-      <div ref={container} style={{ position: 'absolute', inset: 0 }} data-trace-opacity={String(props.traceOpacity ?? 1)} data-rides={`${props.rides?.length ?? 0}:${props.rides?.reduce((n, r) => n + r.length, 0) ?? 0}`} data-faint={String(props.faint?.length ?? 0)} data-gaplinks={String(props.gapLinks?.length ?? 0)} data-drawing={String(props.drawing?.length ?? 0)} data-runs={String(props.trace.filter((r) => r.length > 1).length)} data-ring={props.ring ? String(props.ring.radiusM) : ''} data-trace-end={traceEnd(props.trace)} data-ends={endsKey} data-graded={gradedKey} />
+      <div ref={container} style={{ position: 'absolute', inset: 0 }} data-trace-opacity={String(props.traceOpacity ?? 1)} data-rides={`${props.rides?.length ?? 0}:${props.rides?.reduce((n, r) => n + r.length, 0) ?? 0}`} data-faint={String(props.faint?.length ?? 0)} data-gaplinks={String(props.gapLinks?.length ?? 0)} data-drawing={String(props.drawing?.length ?? 0)} data-runs={String(props.trace.filter((r) => r.length > 1).length)} data-ring={props.ring ? String(props.ring.radiusM) : ''} data-ground={props.ground ? String(props.ground.polygons.reduce((n, rings) => n + rings.length, 0)) : ''} data-trace-end={traceEnd(props.trace)} data-ends={endsKey} data-graded={gradedKey} />
       {/* Beside the map's own DOM, not inside it, so React owns it. */}
-      {scale && <ScaleBar bar={scale} inset={props.scaleInset} />}
+      {scale && scaleOn && <ScaleBar bar={scale} inset={props.scaleInset} />}
       {props.covered && <View testID="map-cover" style={styles.cover} pointerEvents="none" />}
     </View>
   );
@@ -1239,6 +1570,24 @@ const NO_CAPTURES: Faced[] = [];
  * in a ref, so a pin whose members changed never opens stale captures; roots
  * unmount just after React's commit, which would otherwise warn.
  */
+/**
+ * What a pin can be seen from: the canvas grown by a pin's reach (`PIN_REACH_PX`, tend map audit 35), its corners as
+ * the map places them, west, south, east, north.
+ */
+const pinViewOf = (map: MapLibreMap): ViewBox => {
+  const c = map.getCanvas();
+  const [w, h] = [c.clientWidth, c.clientHeight];
+  const r = PIN_REACH_PX;
+  const corners: [number, number][] = [[-r.left, -r.top], [w + r.right, -r.top], [w + r.right, h + r.bottom], [-r.left, h + r.bottom]];
+  return boxAround(corners.map((p) => {
+    const at = map.unproject(p);
+    return [at.lng, at.lat] as LngLat;
+  }));
+};
+/** A pin's marker is anchored at its bottom, its target's 6 px of padding below the stem's foot. */
+const PIN_FOOT = 6;
+const NO_ENDS: readonly (LngLat | null)[] = [];
+
 function usePinMarkers(
   mapRef: RefObject<MapLibreMap | null>,
   ready: boolean,
@@ -1246,16 +1595,26 @@ function usePinMarkers(
   onPress: ((pin: CapturePin) => void) | undefined,
   memory: boolean,
   reminded: ReadonlySet<string>,
+  sets: ReadonlyMap<string, ReactionSet>,
+  clocks?: readonly WalkClock[],
+  now?: number,
+  standOn: readonly (LngLat | null)[] = NO_ENDS,
 ) {
   const latest = useRef({ pins: new Map<string, CapturePin>(), onPress });
-  useEffect(() => {
+  // Before paint, so a tap right after a render never reaches the previous handler (audit 8, tend map 17).
+  useLayoutEffect(() => {
     latest.current = { pins: new Map(pins.map((p) => [p.id, p])), onPress };
   });
-  const markers = useRef(new Map<string, { marker: Marker; root: Root; key: string; bell: boolean; drops: boolean }>());
+  const markers = useRef(new Map<string, { marker: Marker; root: Root; key: string; bell: boolean; rx: string; drops: boolean; lift: number }>());
   const interactive = !!onPress;
   // A capture taken since the screen opened drops in (M10); one already shown, or a reload, never.
   const [openedAt] = useState(() => Date.now());
   const seen = useRef(new Set<string>());
+  // Only the pins in view and a margin round it are drawn (tend map 16): maplibre moves every marker on every camera
+  // frame. The box is kept here, never as state, and redrawn only on a move's end that leaves it.
+  const drawn = useRef<ViewBox | null>(null);
+  // The last pin pressed: its viewer gives the focus back to it on closing, so it is never dropped (audit 37).
+  const pressed = useRef<string | null>(null);
   useEffect(() => {
     const map = mapRef.current;
     if (!ready || !map) return;
@@ -1263,59 +1622,117 @@ function usePinMarkers(
       m.marker.remove();
       queueMicrotask(() => m.root.unmount());
     };
-    const live = new Set<string>();
-    for (const pin of pins) {
-      live.add(pin.id);
-      const ids = pin.captures.map((c) => c.id).join(',');
-      const bell = pinReminded(pin, reminded);
-      // With the photo's small copy, so a copy made after the pin was drawn shows without a reload (QL27).
-      const key = `${pin.lngLat.join(',')}|${pin.kind}|${ids}|${interactive}|${pinThumb(pin) ?? ''}`;
-      const existing = markers.current.get(pin.id);
-      if (existing?.key === key) {
-        // A reminder set or stopped (RB5) redraws the same element in place: focus returns to it when
-        // the viewer closes (audit 3), and a photo keeps its painted picture (audit 4).
-        if (existing.bell !== bell) {
-          existing.marker.getElement().setAttribute('aria-label', pinLabel(pin, interactive, memory, bell));
-          existing.root.render(<CapturePinView pin={pin} faint={memory} drop={existing.drops} reminded={bell} />);
-          existing.bell = bell;
+    const sync = () => {
+      if (!boxHolds(drawn.current, pinViewOf(map))) drawn.current = pinDrawBox(pinViewOf(map));
+      const box = drawn.current!;
+      const live = new Set<string>();
+      for (const pin of pins) {
+        const focused = !!markers.current.get(pin.id)?.marker.getElement().contains(document.activeElement);
+        if (!drawsPin(pin.lngLat, box, { focused, pressed: pressed.current === pin.id })) continue;
+        live.add(pin.id);
+        const ids = pin.captures.map((c) => c.id).join(',');
+        const bell = pinReminded(pin, reminded);
+        const reactions = pinReactions(pin, sets);
+        const rx = reactions.map((r) => r.id).join(',');
+        // With the photo's small copy, so a copy made after the pin was drawn shows without a reload (QL27).
+        const key = `${pin.lngLat.join(',')}|${pin.kind}|${ids}|${interactive}|${pinThumb(pin) ?? ''}`;
+        const existing = markers.current.get(pin.id);
+        // Its walk's clock may come after the pin (tend map T14): the name follows in place. With none, the part of the
+        // day is told from the screen's `now`, renewed while it stays open, else from when the map opened (tend map T28,
+        // audit 29); a new one relabels in place.
+        const label = pinLabel(pin, interactive, memory, bell, clocks, now ?? openedAt, reactions);
+        if (existing?.key === key && existing.bell === bell && existing.rx === rx && existing.marker.getElement().getAttribute('aria-label') !== label) {
+          existing.marker.getElement().setAttribute('aria-label', label);
         }
-        continue;
+        if (existing?.key === key) {
+          // A reminder set or stopped (RB5), or a reaction changed (RX21), redraws the same element in place: focus
+          // returns to it when the viewer closes (audit 3), and a photo keeps its painted picture (audit 4).
+          if (existing.bell !== bell || existing.rx !== rx) {
+            existing.marker.getElement().setAttribute('aria-label', label);
+            existing.root.render(<CapturePinView pin={pin} faint={memory} drop={existing.drops} reminded={bell} reactions={reactions} />);
+            existing.bell = bell;
+            existing.rx = rx;
+          }
+          continue;
+        }
+        if (existing) drop(existing);
+        // A 48 px target around the 36 px pin: the touch minimum on phones.
+        const el = document.createElement(interactive ? 'button' : 'div');
+        el.setAttribute('aria-label', label);
+        el.dataset.ids = ids;
+        if (memory) el.dataset.testid = 'memory-pin';
+        if (interactive) {
+          (el as HTMLButtonElement).type = 'button';
+          el.style.cssText = 'background:none;border:0;padding:6px;cursor:pointer';
+          const id = pin.id;
+          el.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const p = latest.current.pins.get(id);
+            pressed.current = id;
+            if (p) latest.current.onPress?.(p);
+          });
+        } else {
+          el.setAttribute('role', 'img');
+          el.style.cssText = 'padding:6px;pointer-events:none';
+        }
+        const root = createRoot(el);
+        const drops = !memory && pinDrops(pin.captures, seen.current, openedAt);
+        for (const c of pin.captures) seen.current.add(c.id);
+        root.render(<CapturePinView pin={pin} faint={memory} drop={drops} reminded={bell} reactions={reactions} />);
+        // Anchored at the stem's foot, so the marked point stays visible; on a start or end, the foot at the marker's edge
+        // above it (decision 0172, O13), its target reaching on down over the marker, which never takes a tap (QL3).
+        const lift = stalkLift(pin.lngLat, standOn, map.getZoom(), map.getBearing());
+        el.style.paddingBottom = `${PIN_FOOT + lift}px`;
+        const marker = new Marker({ element: el, anchor: 'bottom', offset: [0, PIN_FOOT] }).setLngLat(pin.lngLat).addTo(map);
+        // Memories sit under this walk's pins, so a new capture over an old one opens the new one (audit 6).
+        marker.getElement().style.zIndex = memory ? '0' : '1';
+        markers.current.set(pin.id, { marker, root, key, bell, rx, drops, lift });
       }
-      if (existing) drop(existing);
-      // A 48 px target around the 36 px pin: the touch minimum on phones.
-      const el = document.createElement(interactive ? 'button' : 'div');
-      el.setAttribute('aria-label', pinLabel(pin, interactive, memory, bell));
-      el.dataset.ids = ids;
-      if (memory) el.dataset.testid = 'memory-pin';
-      if (interactive) {
-        (el as HTMLButtonElement).type = 'button';
-        el.style.cssText = 'background:none;border:0;padding:6px;cursor:pointer';
-        const id = pin.id;
-        el.addEventListener('click', (e) => {
-          e.stopPropagation();
-          const p = latest.current.pins.get(id);
-          if (p) latest.current.onPress?.(p);
-        });
-      } else {
-        el.setAttribute('role', 'img');
-        el.style.cssText = 'padding:6px;pointer-events:none';
+      for (const [id, m] of markers.current) {
+        if (live.has(id)) continue;
+        drop(m);
+        markers.current.delete(id);
       }
-      const root = createRoot(el);
-      const drops = !memory && pinDrops(pin.captures, seen.current, openedAt);
-      for (const c of pin.captures) seen.current.add(c.id);
-      root.render(<CapturePinView pin={pin} faint={memory} drop={drops} reminded={bell} />);
-      // Anchored at the stem's foot, so the marked point stays visible.
-      const marker = new Marker({ element: el, anchor: 'bottom', offset: [0, 6] }).setLngLat(pin.lngLat).addTo(map);
-      // Memories sit under this walk's pins, so a new capture over an old one opens the new one (audit 6).
-      marker.getElement().style.zIndex = memory ? '0' : '1';
-      markers.current.set(pin.id, { marker, root, key, bell, drops });
-    }
-    for (const [id, m] of markers.current) {
-      if (live.has(id)) continue;
-      drop(m);
-      markers.current.delete(id);
-    }
-  }, [mapRef, ready, pins, interactive, memory, openedAt, reminded]);
+    };
+    sync();
+    // During a move too, not only at its end (audit 36): one read and a compare an event, a redraw only past the box.
+    const moved = () => {
+      if (!boxHolds(drawn.current, pinViewOf(map))) sync();
+    };
+    map.on('move', moved);
+    map.on('moveend', moved);
+    return () => {
+      map.off('move', moved);
+      map.off('moveend', moved);
+    };
+  }, [mapRef, ready, pins, interactive, memory, openedAt, reminded, sets, clocks, now, standOn]);
+  // A pin standing on the walk's start or end stops its stalk at the marker's edge (decision 0172, O13): its lift is
+  // measured on screen, so it follows the map as it zooms or turns, and is set only when it moves. The target's padding
+  // below the foot carries it: the marker is anchored at the target's bottom, so the pin rises and its target still
+  // reaches the point.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map) return;
+    const place = () => {
+      const zoom = map.getZoom();
+      const bearing = map.getBearing();
+      for (const pin of pins) {
+        const m = markers.current.get(pin.id);
+        if (!m) continue;
+        const lift = stalkLift(pin.lngLat, standOn, zoom, bearing);
+        if (Math.abs(lift - m.lift) < 0.25) continue;
+        m.lift = lift;
+        m.marker.getElement().style.paddingBottom = `${PIN_FOOT + lift}px`;
+      }
+    };
+    place();
+    map.on('zoom', place);
+    map.on('rotate', place);
+    return () => {
+      map.off('zoom', place);
+      map.off('rotate', place);
+    };
+  }, [mapRef, ready, pins, standOn]);
   useEffect(() => () => {
     for (const m of markers.current.values()) {
       m.marker.remove();

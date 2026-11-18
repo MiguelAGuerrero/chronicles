@@ -4,6 +4,8 @@
 
 # Activity density (AD)
 
+> Amended by `specs/storefronts` (Nov 14, 2026): its "busy streets", "Busiest area" and "A busy pocket" are now storefronts (SF5, SF6), and only storefront classes weigh (SF10).
+
 Busy streets stop being a yes-or-no test of fixed thresholds. They become a grade of
 how densely places of any kind sit along each street, judged against the town around
 it, so even a small town shows where its activity centres. Places come from

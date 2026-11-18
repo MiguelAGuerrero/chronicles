@@ -1,5 +1,5 @@
 // @layer view
-import type { Faced } from '../moment';
+import { faced, type Faced } from '../moment';
 import { ensureOvertureRelease } from '../activity/overture';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { MarkPin } from '../../components/MarkPinView';
@@ -29,7 +29,8 @@ import {
   type ExploreRead,
 } from './explore';
 import { placesArchive } from '../discovery/archive';
-import { exploreBuild, exploreBusy, exploreRead, itemBounds } from './exploreRun';
+import { exploreBuild, exploreBusy, exploreHold, exploreRead, itemBounds } from './exploreRun';
+import { facesToRead, foundFaces } from './foundFace';
 import { DEFAULT_SETTINGS, loadSettings, onSettings, type ExploreSettings } from './settings';
 
 /** Items are read again around you after this much walking. */
@@ -62,13 +63,18 @@ export function useExplore(opts: {
   /** The range being previewed in settings, so the marks follow the slider (audit, UI). */
   previewRangeM?: number | null;
   onFound: (item: ChecklistItem) => void;
-  /** A read remembered new busy streets. */
+  /** A read remembered new storefront streets. */
   onAreas: () => void;
 }) {
   const [settings, setSettings] = useState<ExploreSettings>(DEFAULT_SETTINGS);
   const [items, setItems] = useState<ChecklistItem[]>([]);
   const [routeItems, setRouteItems] = useState<ChecklistItem[]>([]);
   const [found, setFound] = useState<Set<string> | null>(null);
+  // Which moment found each place, so its pin wears that moment's glyph (decision 0172, O26).
+  const [finds, setFinds] = useState<{ key: string; capture_id: string }[]>([]);
+  // Moments of other walks (or loose) that found a place on the map: read once each.
+  const [elsewhere, setElsewhere] = useState<Faced[]>([]);
+  const asked = useRef(new Set<string>());
   const [revealed, setRevealed] = useState<Set<string>>(() => new Set());
   const mounted = useRef(true);
   const latest = useRef(opts);
@@ -82,6 +88,18 @@ export function useExplore(opts: {
     };
   }, []);
 
+  // A capture's find, recorded through `record` (E8, E9) once the reader armed its place (TC4).
+  const handled = useRef(new Set<string>());
+  const record = useCallback(async (item: ChecklistItem, captureId: string) => {
+    const walkId = latest.current.walkId;
+    if (!walkId) return;
+    await db.addFind({ ...item, walk_id: walkId, capture_id: captureId, found_at: Date.now() }).catch(() => {});
+    if (!mounted.current) return;
+    setFound((f) => new Set([...(f ?? []), item.key]));
+    setFinds((fs) => [...fs.filter((x) => x.key !== item.key), { key: item.key, capture_id: captureId }]);
+    latest.current.onFound(item);
+  }, []);
+
   useEffect(() => {
     let alive = true;
     loadSettings().then((s) => alive && setSettings(s), () => {});
@@ -92,6 +110,7 @@ export function useExplore(opts: {
         // Captures that already found a place are handled: a reload never lets them find a second (audit 4).
         for (const x of f) handled.current.add(x.capture_id);
         setFound(new Set(f.map((x) => x.key)));
+        setFinds(f.map((x) => ({ key: x.key, capture_id: x.capture_id })));
       }, () => alive && setFound((was) => was ?? new Set()));
     readFinds();
     // A deleted moment takes its find: the place can be found again on this walk (deletion audit 6).
@@ -120,12 +139,13 @@ export function useExplore(opts: {
   // One read at a time, a failed one waiting 2 min and 100 m (E5); every walk, quiet or not (E2).
   const failed = useRef<{ at: LngLat; t: number } | null>(null);
   const checkedAt = useRef<LngLat | null>(null);
-  const readAt = useCallback(async (centre: LngLat): Promise<boolean> => {
-    // Busy streets only on an exploring walk (the owner's call); checklists on every walk.
-    const r = await exploreRead(centre, { remember: latest.current.exploring }, () => !mounted.current);
+  const readAt = useCallback(async (centre: LngLat, stop: () => boolean = () => false): Promise<boolean> => {
+    // Storefront streets only on an exploring walk (the owner's call); checklists on every walk.
+    const r = await exploreRead(centre, { remember: latest.current.exploring }, () => !mounted.current || stop());
     if (!mounted.current) return false;
     if (!r.ok) {
-      failed.current = { at: centre, t: Date.now() };
+      // tend explore audit 13: a read its caller stopped is no failure, so it sets no failure's wait.
+      if (!r.stopped) failed.current = { at: centre, t: Date.now() };
       return false;
     }
     failed.current = null;
@@ -133,25 +153,30 @@ export function useExplore(opts: {
     latest.current.onAreas();
     return true;
   }, [loadKnown]);
-  // Areas a quiet walk read without busy streets: read again once on an exploring walk, never in a loop.
+  // Areas a quiet walk read without storefront streets: read again once on an exploring walk, never in a loop.
   const sweptAt = useRef<LngLat[]>([]);
   const maybeRead = useCallback(async (fix: LngLat) => {
     if (exploreBusy() || !retryAllowed(failed.current, fix, Date.now())) return;
-    const build = await exploreBuild();
-    if (build === 'unknown') return;
-    const k = known.current ?? (await loadKnown());
-    const candidates = k.reads.filter((r) => r.build === build).flatMap((r) => r.candidates);
-    // Audit 3: the archive's version here, so an area built before it (or with an older one) is read again.
-    await placesArchive.refresh();
-    let centre = readCentre({ fix, candidates, areas: k.areas, reads: k.reads, build, archive: (at) => placesArchive.versionAt(at) });
-    if (!centre && latest.current.exploring && !sweptAt.current.some((p) => distanceM(p, fix) <= EXPLORE_RULES.rereadM)) {
-      const rows = await db.listLandings().catch(() => []);
-      // Asked, not assumed: on a walk opened straight from a launch the release isn't known yet (activity-density audit 8).
-      if (!sweepCovered(rows, fix, build, await ensureOvertureRelease().catch(() => null))) centre = fix;
-    }
-    if (!centre) return;
-    if (latest.current.exploring) sweptAt.current.push(centre);
-    if (await readAt(centre)) await loadItems(fix);
+    // tend explore audit 11: held from here, so a capture made while the read is still being decided waits for it; let go
+    // before the read's items load, so the capture is looked at again with them.
+    const read = await exploreHold(async () => {
+      const build = await exploreBuild();
+      if (build === 'unknown') return false;
+      const k = known.current ?? (await loadKnown());
+      const candidates = k.reads.filter((r) => r.build === build).flatMap((r) => r.candidates);
+      // Audit 3: the archive's version here, so an area built before it (or with an older one) is read again.
+      await placesArchive.refresh();
+      let centre = readCentre({ fix, candidates, areas: k.areas, reads: k.reads, build, archive: (at) => placesArchive.versionAt(at) });
+      if (!centre && latest.current.exploring && !sweptAt.current.some((p) => distanceM(p, fix) <= EXPLORE_RULES.rereadM)) {
+        const rows = await db.listLandings().catch(() => []);
+        // Asked, not assumed: on a walk opened straight from a launch the release isn't known yet (activity-density audit 8).
+        if (!sweepCovered(rows, fix, build, await ensureOvertureRelease().catch(() => null))) centre = fix;
+      }
+      if (!centre) return false;
+      if (latest.current.exploring) sweptAt.current.push(centre);
+      return readAt(centre);
+    });
+    if (read) await loadItems(fix);
   }, [loadKnown, loadItems, readAt]);
 
   const { here, exploring } = opts;
@@ -165,7 +190,7 @@ export function useExplore(opts: {
     maybeRead(here).catch(() => {});
   }, [here, riding, opts.walkId, loadItems, maybeRead]);
 
-  // Switched to exploring: check at once, so busy streets a quiet read skipped come in now, not 25 m on.
+  // Switched to exploring: check at once, so storefront streets a quiet read skipped come in now, not 25 m on.
   useEffect(() => {
     const at = latest.current.here;
     if (!exploring || !at || latest.current.riding) return;
@@ -182,16 +207,20 @@ export function useExplore(opts: {
       return () => clearTimeout(t);
     }
     let alive = true;
+    // tend explore audit 11: the route's reads hold the queue while they are decided, as `maybeRead`'s do, until its items load.
     (async () => {
-      for (const p of routeProbes(routePath)) {
-        if (!alive || !retryAllowed(failed.current, p, Date.now())) break;
-        const build = await exploreBuild();
-        if (build === 'unknown') break;
-        const k = known.current ?? (await loadKnown());
-        const candidates = k.reads.filter((r) => r.build === build).flatMap((r) => r.candidates);
-        const centre = readCentre({ fix: p, candidates, areas: k.areas, reads: k.reads, build, archive: (at) => placesArchive.versionAt(at) });
-        if (centre && !(await readAt(centre))) break;
-      }
+      await exploreHold(async () => {
+        for (const p of routeProbes(routePath)) {
+          if (!alive || !retryAllowed(failed.current, p, Date.now())) break;
+          const build = await exploreBuild();
+          if (build === 'unknown') break;
+          const k = known.current ?? (await loadKnown());
+          const candidates = k.reads.filter((r) => r.build === build).flatMap((r) => r.candidates);
+          const centre = readCentre({ fix: p, candidates, areas: k.areas, reads: k.reads, build, archive: (at) => placesArchive.versionAt(at) });
+          // tend explore audit 13: a route dropped meanwhile stops its reads, a waiting one included.
+          if (centre && !(await readAt(centre, () => !alive))) break;
+        }
+      });
       const box = boundsOf(routePath, EXPLORE_RULES.rangeMax);
       const got = box ? await db.checklistItemsIn(box).catch(() => []) : [];
       if (alive && mounted.current) setRouteItems(got);
@@ -220,16 +249,7 @@ export function useExplore(opts: {
 
   // A capture finds a place only when the reader tapped "Capture here" on it (TC1, TC4): the next capture of this
   // walk finds the armed place. Each capture is handled once, so one made before arming never counts.
-  const handled = useRef(new Set<string>());
   const [armed, setArmed] = useState<Armed | null>(null);
-  const record = useCallback(async (item: ChecklistItem, captureId: string) => {
-    const walkId = latest.current.walkId;
-    if (!walkId) return;
-    await db.addFind({ ...item, walk_id: walkId, capture_id: captureId, found_at: Date.now() }).catch(() => {});
-    if (!mounted.current) return;
-    setFound((f) => new Set([...(f ?? []), item.key]));
-    latest.current.onFound(item);
-  }, []);
   const armedNow = useMemo(() => armedStill(armed, here, opts.walkId, { exploring, found: found ?? undefined }), [armed, here, opts.walkId, exploring, found]);
   // Arming that no longer holds (the walker moved off, the walk ended) is let go.
   useEffect(() => {
@@ -279,16 +299,33 @@ export function useExplore(opts: {
     if (nudge) feedback('nudge');
   }, [exploring, settings.haptic, riding, previewing, shown, opts.walkId]);
 
+  // The found places on the map wear the glyph of the moment that found each (O26): this walk's captures, else read.
+  const shownFound = useMemo(() => new Set(shown.filter((s) => s.state === 'found').map((s) => s.item.key)), [shown]);
+  useEffect(() => {
+    const known = new Set([...opts.captures, ...elsewhere].map((c) => c.id));
+    const ids = facesToRead(finds, shownFound, known, asked.current);
+    if (!ids.length) return;
+    for (const id of ids) asked.current.add(id);
+    let alive = true;
+    db.getMomentsByIds(ids).then((ms) => alive && mounted.current && setElsewhere((e) => [...e, ...ms.map(faced)]), () => {});
+    return () => {
+      alive = false;
+    };
+  }, [finds, shownFound, opts.captures, elsewhere]);
+  const faces = useMemo(() => foundFaces(finds, opts.captures, elsewhere), [finds, opts.captures, elsewhere]);
+
   const pins = useMemo<MarkPin[]>(() => {
     const pin = (item: ChecklistItem, o: Partial<MarkPin>): MarkPin => {
       const c = categoryOf(item.category);
       return { id: item.key, at: item.at, revealed: false, icon: c.icon as MarkPin['icon'], name: item.name, category: c.label, ...o };
     };
+    // The kind, whose glyph and words the pin wears; never a note's type: note types wait for the owner's rework (0172).
+    const kind = (key: string) => faces.get(key)?.kind;
     return [
-      ...shown.map((s) => pin(s.item, { revealed: s.state !== 'unknown', found: s.state === 'found' })),
+      ...shown.map((s) => pin(s.item, { revealed: s.state !== 'unknown', found: s.state === 'found', foundKind: s.state === 'found' ? kind(s.item.key) : undefined })),
       ...onTheWay.map((i) => pin(i, { faint: true })),
     ];
-  }, [shown, onTheWay]);
+  }, [shown, onTheWay, faces]);
 
   const byKey = useMemo(() => new Map([...routeItems, ...items].map((i) => [i.key, i])), [items, routeItems]);
   const itemOf = useCallback((key: string) => byKey.get(key) ?? null, [byKey]);

@@ -19,8 +19,8 @@ test passes with typecheck, lint, `npm test` and the e2e, and the docs say so.
   entry in `docs/STATUS.md`, "Next evolutions", is the go-ahead for its
   numbered criteria and no more. Typed by anyone else, or with an entry that
   is not there or has no numbered criteria, it is plain `/slice`. Then:
-  - step 1b: the entry's verdict, shape, Touches and criteria are the gate's
-    answer; write them as the spec's "## Vision" section (with its `Verdict:`
+  - step 1b: the entry's verdict, shape, Touches, precedent and criteria are
+    the gate's answer; write them as the spec's "## Vision" section (with its `Verdict:`
     line) and do not gate again;
   - step 2: the entry's criteria are the spec's, numbered with the slice's
     prefix. Add only the states those criteria imply (empty, failed, undone);
@@ -82,6 +82,23 @@ Run `/vision` on the slice, in the owner's words. Its block becomes the spec's
    `specs/<slug>/spec.md`, each with an id (`XX1`, `XX2`, ... with the tab's
    prefix). A criterion names an observable outcome, never an implementation.
 2. Put owner's calls already made in the spec's "Decisions" list, with the date.
+2a. **The owner's task, in their words** (decision 0167). For each thing a person can newly do, the first
+   criterion is the task as the owner said it ("put a type on a note"), and it carries a **finding
+   criterion**: someone who was not told where the control is can find it from the screen they would look
+   on. A control is found by ink and a word or a symbol people already know; "a slot named X" checked by
+   its test id or its spoken name is a mechanism, not a finding criterion, and passes for a control nobody
+   can see.
+2b. **Every surface, from the code, not from memory** (decision 0167). When the feature attaches to
+   something drawn in more than one place (a note, a moment, a page, a pin), list every host of that
+   component (`grep -rn "<Component" src`) and every route into it, and give each one a criterion or a
+   line saying why the feature is not there. "A new note's page" is one host of the page; the page opened
+   from a note being written, from the viewer's Edit and from Respond are three more.
+2c. **How adjacent apps do it** (decision 0193). A section of that name in the spec: 2-3 adjacent apps'
+   handling of the slice's job, the gate's `Precedent:` line its start, each entry as
+   `docs/research/adjacent-apps.md` writes them (`- **<App>**: <controls, words, flow>. Source: <URL |
+   observed <date> | from memory, unverified>. **Verified** | **Unverified**.`), counter-examples marked.
+   Record a new finding in that file too. `check:docs` fails a spec in `IN_PROGRESS`, or new, without an
+   entry naming an app and a source (`scripts/precedent.js`).
 3. Number the gate's criteria with the slice's prefix, beside the others: they
    get tests like any criterion.
 4. List the spec in `IN_PROGRESS` in `scripts/features.js` (`{ branch, since }`):
@@ -100,11 +117,22 @@ Write `specs/<slug>/plan.md`:
   folder and a row in `scripts/features.js`) or a new journey, if the slice needs one;
 - what is deferred, and why;
 - native paths that will not run on a device;
+- **cost** (`.claude/rules/performance.md`): what the slice reads and writes and its n at scale (a
+  4-hour outing on foot or by car, a library of years), what runs per frame, per fix or on a tab's focus, and the harness that
+  measures it (`scripts/perf-walk.js`, `scripts/perf-explore.js`, a `perfCount` key), or "device only";
+  a cost already in `docs/DEFERRED.md` is named there;
 - for every screen it adds or changes, one line per action: the user's goal, how
   often and in what situation, the control, and its row in the goal-to-control
-  matrix (`docs/research/ui-references.md`, section 2), with a precedent from
-  `docs/research/ui-teardown.md` where there is one. A control the matrix says
-  to avoid needs a reason the owner accepts (`.claude/rules/ui-patterns.md`).
+  matrix (`docs/research/ui-references.md`, section 2), and how the spec's
+  adjacent apps do the same action ("How adjacent apps do it"). A control the matrix says
+  to avoid needs a reason the owner accepts (`.claude/rules/ui-patterns.md`);
+- **against precedent** (decision 0193): where our shape departs from every app in the spec's "How
+  adjacent apps do it", and the reason (a Never line, restraint, the person on the move: one-handed on foot, a glance in a vehicle); a
+  departure with no reason is a question for the owner, not a default;
+- for every such action, **where the owner will look for it first**, and what they will see there; and
+  every default you took that makes a control quieter (muted, smaller, wordless, behind a tap), named as a
+  default so the owner can overrule it. Restraint is the vision's; a control that cannot be found is not
+  restraint (`.claude/rules/ui-patterns.md`, "Found before quiet").
 
 Then run the `steward` subagent (`.claude/agents/steward.md`) on the spec and
 plan, unless the gate said no surface. Triage each finding in the plan (accept
@@ -114,7 +142,16 @@ Stop and show the owner the plan. Continue only on their go-ahead (`--from=G<n>`
 
 ## 4. Track
 
-Add a row to `docs/STATUS.md` "In flight": slice, spec path, started, state.
+Add a row to `docs/STATUS.md` "In flight": slice, spec path, started, state
+(`npm run records -- inflight add --file <row>`; it goes on top, newest first). Later
+changes to the row are `inflight set <match> --file <row>`. Every change to
+`docs/STATUS.md`, `docs/DEFERRED.md` and `docs/NATIVE_UNVERIFIED.md` is a `npm run
+records` operation (decision 0156, `.claude/skills/ship.md`, "The record documents"). Every agent commit
+is gated, a slice's as much as the loop's: CI replays each commit that carries your `Claude-Session:` or
+`Co-Authored-By: Claude` trailer and fails one that changes the documents by hand. What the slice leaves
+for the owner's call goes in a "From <skill>" section (`section add`, then `section item add`). When
+merging `origin/main` conflicts in the documents, `npm run records -- redo` during the merge (it takes
+`main`'s side), then the slice's entries filed again in a commit of their own.
 
 ## 5. Tests first
 
@@ -170,10 +207,19 @@ paths right.
 
 ## 7. Docs as you go
 
-- A new rule or trap: the matching `.claude/rules/<area>.md`.
-- An owner's call made during the slice: `docs/decisions/` (date, the call, why).
-- What was left out: `docs/DEFERRED.md`; untried native code: an item in
-  `docs/NATIVE_UNVERIFIED.md` (`**Do:** … **Expect:** …`).
+- A new rule or trap: the matching `.claude/rules/<area>.md`. A slice with its own decision record and its own
+  code folder gets its own `.claude/rules/<topic>.md` instead, `paths:` narrowed to that folder, rather than
+  appending to its area's file. A rule file past the warning size
+  (`check:docs` warns at 20,000 characters) is split by topic before more is added (decision 0173).
+- An owner's call made during the slice: `docs/decisions/` (date, the call, why), numbered by
+  `npm run book:next-decision` in the worktree (any checkout cut from `main` since decision 0174) after
+  your last fetch, never claimed early; before publishing, `npm run book:next-decision -- --check
+  <NNNN> <file>`.
+- What was left out: `docs/DEFERRED.md` (`npm run records -- deferred item add
+  "<section>" --file <item>`, `--new` for the slice's own section); untried native
+  code: an item in `docs/NATIVE_UNVERIFIED.md` (`**Do:** … **Expect:** …`;
+  `native item add`). A check the slice changed is removed and added again
+  (`item remove`, `item add`), or noted (`item note`), never rewritten in place.
 - A feature shipped or changed: `docs/PRODUCT.md`.
 - The spec's record section: what passed, what was deferred.
 
@@ -181,7 +227,8 @@ paths right.
 
 `/audit <slug>` runs only when the owner asks (decision 0074); the UI review in step 9 runs on every slice that
 changes a screen, audit or not (decision 0145). Then fix the
-accepted findings, each behind a regression test named `<slug> audit N`.
+accepted findings, each behind a regression test named `<slug> audit N`, N on from
+`npm run book:next-audit -- <slug>` in the worktree.
 
 ## 9. Before done
 
@@ -192,6 +239,9 @@ npm run test:feature <feature>                          # the slice's feature, w
 npm run check:test-first <slug>                         # each criterion's todo came before its real test
 npm run export:web && E2E_ONLY=<journey> npm run e2e:web   # the slice's own and those chosen as in docs/TESTING.md, "Choosing the journeys"
 ```
+
+A slice whose plan named a harness under **cost** runs it before its first code commit and again here,
+and the report gives both numbers; a native cost is an item in `docs/NATIVE_UNVERIFIED.md`.
 
 **The e2e's economy (docs/TESTING.md, `scripts/e2e/economy.js`).** Each journey is minutes
 of browser, so the named ones run once, at the end, and the rest is mechanical:
@@ -210,11 +260,25 @@ of browser, so the named ones run once, at the end, and the rest is mechanical:
 - The slice's report says which journeys ran, how many runs there were, and why any ran
   more than once.
 
+**One review round** (decision 0204): when the owner will want the slice audited, run this UI review, the cold find
+below and `/audit`'s steward and auditor together, once; never a review round and then an audit round. Run journeys
+three at a time with `npm run e2e:batch`.
+
 **The UI review** (decision 0145), when the slice changes a screen: run its journeys with
 `E2E_SHOTS=<scratchpad>/shots` (390 x 844), each seeding the longest text its screen can meet, and spawn the
 `ux-reviewer` subagent with the pictures, the spec and the plan's goal-to-control lines. Triage each finding in the
 spec's record (accept, defer, reject); an accepted one gets a regression test named `<slug> ui N` before its fix. A
 slice with an open accepted UI finding is not done.
+
+**The cold find** (decision 0167), before that review and apart from it: spawn the `ux-reviewer` with the
+pictures and one sentence per task in the owner's words ("put a type on the note you are writing"), and
+nothing else: no goal-to-control lines, no spec, no names of controls. It says where it would tap and
+why, or that it cannot tell. A task it cannot place, or places wrongly, is a `high` finding however well
+the control tests. Only then give it the plan's lines for the review above; a reviewer told where a
+control is cannot tell you whether it can be found.
+
+**Show the owner** (decision 0167): send the pictures of each new or moved control with `SendUserFile`,
+one line each saying where it is and what a tap does. The report's first section is "Where to find it".
 
 All green. A "Covered by nothing" line from `check:affected` for a file the
 slice wrote is a gap: give it a test (a shell over `fakePorts()`, a core unit
@@ -224,8 +288,12 @@ screen; the full flow (no `E2E_ONLY`) only when the owner asks. Then:
 
 1. Take the spec out of `IN_PROGRESS` in `scripts/features.js`; `npm run
    check:docs` then holds every criterion to a test (TG20).
-2. Update `docs/STATUS.md`: move the row to "Shipped" (or leave it in flight
-   with its state), with the audit's counts if there was one.
+2. Update `docs/STATUS.md`: a row in "Slices" (`npm run records -- slice row add
+   --file <row>`, or `slice row set <match>` for one already there) and the "In flight"
+   row removed (`inflight remove <match>`), or left in flight with its state
+   (`inflight set`), with the audit's counts if there was one. Then `npm run
+   check:records -- origin/main`, and the commit's message carries the lines
+   `npm run records -- trailers` prints.
 3. Run `/docs-gc`.
 4. Commit, criterion ids in the message as the repo does:
    `Navigate: a Locate button (QL9-QL12)`. Do not push to `main`; that is

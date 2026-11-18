@@ -1,0 +1,40 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Captures, media and export"
+      ],
+      "body": "- The journal's in-line voice note is not a focus target apart from its entry's open button for a screen reader on a phone, because it sits inside it; the viewer still plays the note. The fix splits the entry's open target, a navigation call for the owner (journal voice audit 2)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Captures, media and export"
+      ],
+      "body": "- The viewer's player says \"voice memo\" where the journal's says \"voice note\": one noun for both (journal voice audit 16, opinion)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Captures, media and export"
+      ],
+      "body": "- The journal's in-line voice note shows its pause glyph while the file is still resolving, before anything plays: a brief busy state would be honest (journal voice audit 19, opinion)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Capture from Chronicle and the journal"
+      ],
+      "body": "- [ ] **Do:** on a phone, open Memories and press play on a voice note in an entry; let it play, press play on another, then tap the mic to record. **Expect:** the note plays where it is, its bar filling and the clock counting, and the viewer does not open; the second note takes the sound from the first; the recording stops any playing note and never records it; a note played after a recording is audible with the ringer switch off; one played to its end and pressed again starts from the beginning. (journal voice audit 3, 4, 8)\n"
+    }
+  ]
+}

@@ -12,9 +12,12 @@ import type { Area, WalkArea } from '../areas/types';
 import type { LandingRow } from '../landing/view';
 import type { OutlineTile } from '../areas/outlines';
 import type { WalkTile } from '../walk/types';
+import type { WalkLine } from '../pastLines/core';
 import type { AtlasArea } from '../atlas/atlas';
 import type { Complex } from '../complexes/types';
 import type { Mark, Recall } from '../discovery/types';
+import type { StoredReaction } from '../reactions/core';
+import type { Transcript } from '../transcript/core';
 import { countsOf, recountNewStreets } from '../deletion/core';
 import { exploredKey, walkPassKey } from '../explore/explore';
 import { DERIVED_STORES } from './stores';
@@ -22,10 +25,23 @@ import type { Capture, GapDecision, Moment, LngLat, Pause, Still, StreetSegment,
 import { segmentBbox } from './segmentBounds';
 import { thinThreads } from '../threads/rules';
 import type { Link, Member, Thread, ThreadsChange } from '../threads/types';
-import type { Db } from './types';
+import { SEGMENT_BATCH, type Db } from './types';
 import { serializeEdit } from '../mediaEdit';
 import { foldRows, type JoinedRow } from '../moment';
 
+
+/**
+ * One statement prepared once and run for each row, finalized however it ends: a loop of `runAsync` crosses the
+ * bridge and parses its SQL again per row (performance review, Nov 18; `preparedWrites.test.ts`).
+ */
+async function eachRow<T>(t: SQLiteDatabase, sql: string, rows: Iterable<T>, args: (r: T) => SQLiteBindValue[]) {
+  const st = await t.prepareAsync(sql);
+  try {
+    for (const r of rows) await st.executeAsync(...args(r));
+  } finally {
+    await st.finalizeAsync();
+  }
+}
 
 /** Drops the threads, among `ids`, that fewer than two moments belong to, with their memberships (OT15). */
 async function dissolveThin(t: SQLiteDatabase, ids: Iterable<string>) {
@@ -77,13 +93,21 @@ function setClause(patch: Record<string, unknown>, allowed: readonly string[]) {
   return { sql: keys.map((k) => `${k} = ?`).join(', '), values };
 }
 
-export function makeSqliteDb(open: () => Promise<SQLiteDatabase>): Db {
+/**
+ * The native store. `open` is the main connection (reads, migrations); `openWriter`, when given, a second connection to
+ * the same file that the write queue holds for the app's life (performance review, Nov 18): an exclusive transaction
+ * per write (`withExclusiveTransactionAsync`) opened, initialized and closed a native connection each time, about once
+ * a second while walking, and that connection never had the main one's `busy_timeout`. Without it, writes go as before.
+ */
+export function makeSqliteDb(open: () => Promise<SQLiteDatabase>, openWriter?: () => Promise<SQLiteDatabase>): Db {
   let dbPromise: Promise<SQLiteDatabase> | null = null;
   function conn() {
     if (!dbPromise) {
       dbPromise = (async () => {
         const d = await open();
-        await d.execAsync('PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000;');
+        // WAL with synchronous NORMAL: a commit no longer waits on an fsync (the owner's default, Nov 18); a power cut
+        // can lose the last commits, never corrupt the file.
+        await d.execAsync('PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000; PRAGMA synchronous = NORMAL;');
         const row = await d.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
         for (let v = row?.user_version ?? 0; v < MIGRATIONS.length; v++) {
           await d.withExclusiveTransactionAsync(async (txn) => {
@@ -100,11 +124,41 @@ export function makeSqliteDb(open: () => Promise<SQLiteDatabase>): Db {
     return dbPromise;
   }
 
-  // Every write goes through one queue and one exclusive transaction, so the
-  // background location task and the UI never collide on the connection.
+  // The writer connection, opened once after the main one has migrated, with its own `busy_timeout`: another context's
+  // writer (a background task run apart) is waited for, never failed at once.
+  let writerPromise: Promise<SQLiteDatabase> | null = null;
+  function writer() {
+    if (!writerPromise) {
+      writerPromise = (async () => {
+        await conn();
+        const w = await openWriter!();
+        await w.execAsync('PRAGMA busy_timeout = 5000; PRAGMA synchronous = NORMAL;');
+        return w;
+      })().catch((e) => {
+        writerPromise = null;
+        throw e;
+      });
+    }
+    return writerPromise;
+  }
+
+  // Every write goes through one queue, one at a time, so the background location task and the UI never collide.
+  // With a writer: BEGIN IMMEDIATE on it takes the write lock at once (as the exclusive transaction did) and the
+  // main connection's reads see only what was committed (WAL).
   let queue: Promise<unknown> = Promise.resolve();
   function write(task: (txn: SQLiteDatabase) => Promise<void>): Promise<void> {
-    const run = queue.then(async () => (await conn()).withExclusiveTransactionAsync(task));
+    const run = queue.then(async () => {
+      if (!openWriter) return (await conn()).withExclusiveTransactionAsync(task);
+      const w = await writer();
+      await w.execAsync('BEGIN IMMEDIATE');
+      try {
+        await task(w);
+        await w.execAsync('COMMIT');
+      } catch (e) {
+        await w.execAsync('ROLLBACK').catch(() => {});
+        throw e;
+      }
+    });
     queue = run.catch(() => {});
     return run;
   }
@@ -120,6 +174,9 @@ export function makeSqliteDb(open: () => Promise<SQLiteDatabase>): Db {
       const { sql, values } = setClause(patch, WALK_COLUMNS);
       if (!sql) return Promise.resolve();
       return write((t) => t.runAsync(`UPDATE walk SET ${sql} WHERE id = ?`, ...values, id).then(() => {}));
+    },
+    clearSnappedBuilds() {
+      return write((t) => t.runAsync('UPDATE walk SET snapped_build = NULL WHERE snapped_build IS NOT NULL').then(() => {}));
     },
     async getWalk(id) {
       const r = await (await conn()).getFirstAsync<WalkRow>('SELECT * FROM walk WHERE id = ?', id);
@@ -195,6 +252,7 @@ export function makeSqliteDb(open: () => Promise<SQLiteDatabase>): Db {
           `SELECT DISTINCT c.moment_id, m.walk_id FROM capture c JOIN moment m ON c.moment_id = m.id WHERE c.id IN (${marks})`, ...ids,
         );
         await t.runAsync(`DELETE FROM capture WHERE id IN (${marks})`, ...ids);
+        await t.runAsync(`DELETE FROM transcript WHERE capture_id IN (${marks})`, ...ids);
         for (const h of hit) {
           if (!(await t.getFirstAsync('SELECT 1 FROM capture WHERE moment_id = ?', h.moment_id))) {
             throw new Error('Deleting every piece of a moment is deleting the moment.'); // rolls the transaction back
@@ -220,6 +278,29 @@ export function makeSqliteDb(open: () => Promise<SQLiteDatabase>): Db {
         );
         await t.runAsync('UPDATE capture SET moment_id = ? WHERE id = ?', nm.id, pieceId);
       });
+    },
+    joinMoment(fromId, intoId) {
+      return write(async (t) => {
+        const rows = await t.getAllAsync<{ id: string; walk_id: string | null }>('SELECT id, walk_id FROM moment WHERE id IN (?, ?)', fromId, intoId);
+        const from = rows.find((r) => r.id === fromId);
+        const into = rows.find((r) => r.id === intoId);
+        if (!from || !into) throw new Error(`No moment ${from ? intoId : fromId}.`);
+        if ((from.walk_id ?? null) !== (into.walk_id ?? null)) throw new Error('Moments on different walks are never joined.');
+        await t.runAsync('UPDATE capture SET moment_id = ? WHERE moment_id = ?', intoId, fromId);
+        await t.runAsync('DELETE FROM moment WHERE id = ?', fromId);
+      });
+    },
+    async referencesTo(id) {
+      const c = await conn();
+      const has = async (sql: string, ...args: string[]) => ((await c.getFirstAsync<{ n: number }>(sql, ...args))?.n ?? 0) > 0;
+      return {
+        thread: await has('SELECT COUNT(*) AS n FROM thread_member WHERE moment_id = ?', id),
+        link: await has('SELECT COUNT(*) AS n FROM moment_link WHERE from_id = ? OR to_id = ?', id, id),
+        // A reminder or a find is kept on a piece's id, so every piece of the moment counts (stack-with-previous audit 5).
+        reminder: await has('SELECT COUNT(*) AS n FROM recall WHERE capture_id IN (SELECT id FROM capture WHERE moment_id = ?)', id),
+        find: await has('SELECT COUNT(*) AS n FROM find WHERE capture_id IN (SELECT id FROM capture WHERE moment_id = ?)', id),
+        reaction: await has('SELECT COUNT(*) AS n FROM reaction WHERE moment_id = ?', id),
+      };
     },
     async getMoments(walkId) {
       return foldRows(await (await conn()).getAllAsync<JoinedRow>(`${MOMENT_SELECT} WHERE m.walk_id = ?${ORDER}`, walkId));
@@ -270,12 +351,17 @@ export function makeSqliteDb(open: () => Promise<SQLiteDatabase>): Db {
       return write(async (t) => {
         await dropMoments(t, (await t.getAllAsync<{ id: string }>('SELECT id FROM moment WHERE walk_id = ?', walkId)).map((r) => r.id));
         await t.runAsync('DELETE FROM recall WHERE capture_id IN (SELECT id FROM moment WHERE walk_id = ?)', walkId);
+        await t.runAsync('DELETE FROM transcript WHERE capture_id IN (SELECT id FROM capture WHERE moment_id IN (SELECT id FROM moment WHERE walk_id = ?))', walkId);
+        await t.runAsync('DELETE FROM reaction WHERE moment_id IN (SELECT id FROM moment WHERE walk_id = ?)', walkId);
         await t.runAsync('DELETE FROM capture WHERE moment_id IN (SELECT id FROM moment WHERE walk_id = ?)', walkId);
         for (const table of ['moment', 'trace_point', 'pause', 'still', 'gap_fill', 'visited_segment', 'walk_area', 'find', 'mark', 'walk_summary']) {
           await t.runAsync(`DELETE FROM ${table} WHERE walk_id = ?`, walkId);
         }
         await t.runAsync('DELETE FROM meta WHERE key = ?', exploredKey(walkId));
         await t.runAsync('DELETE FROM meta WHERE key = ?', walkPassKey(walkId));
+        // Its line goes with it (WB13).
+        await t.runAsync('DELETE FROM walk_line_tile WHERE walk_id = ?', walkId);
+        await t.runAsync('DELETE FROM walk_line WHERE walk_id = ?', walkId);
         await t.runAsync('DELETE FROM walk WHERE id = ?', walkId);
         // Places only this walk was in go (D8).
         await t.runAsync('DELETE FROM area WHERE key NOT IN (SELECT DISTINCT area_key FROM walk_area)');
@@ -283,9 +369,8 @@ export function makeSqliteDb(open: () => Promise<SQLiteDatabase>): Db {
         const walks = await t.getAllAsync<{ id: string; started_at: number }>('SELECT id, started_at FROM walk');
         const visited = await t.getAllAsync<{ walk_id: string; street_key: string }>('SELECT walk_id, street_key FROM visited_segment');
         const stored = await t.getAllAsync<{ walk_id: string; new_streets: number }>('SELECT walk_id, new_streets FROM walk_summary');
-        for (const ch of recountNewStreets(walks, visited, new Map(stored.map((r) => [r.walk_id, r.new_streets])))) {
-          await t.runAsync('UPDATE walk_summary SET new_streets = ? WHERE walk_id = ?', ch.new_streets, ch.walk_id);
-        }
+        await eachRow(t, 'UPDATE walk_summary SET new_streets = ? WHERE walk_id = ?',
+          recountNewStreets(walks, visited, new Map(stored.map((r) => [r.walk_id, r.new_streets]))), (ch) => [ch.new_streets, ch.walk_id]);
       });
     },
     deleteMoments(ids, opts = {}) {
@@ -294,6 +379,8 @@ export function makeSqliteDb(open: () => Promise<SQLiteDatabase>): Db {
       return write(async (t) => {
         const got = await t.getAllAsync<Omit<Moment, 'pieces'>>(`SELECT * FROM moment WHERE id IN (${marks})`, ...ids);
         await dropMoments(t, got.map((c) => c.id));
+        await t.runAsync(`DELETE FROM transcript WHERE capture_id IN (SELECT id FROM capture WHERE moment_id IN (${marks}))`, ...ids);
+        await t.runAsync(`DELETE FROM reaction WHERE moment_id IN (${marks})`, ...ids);
         await t.runAsync(`DELETE FROM capture WHERE moment_id IN (${marks})`, ...ids);
         await t.runAsync(`DELETE FROM moment WHERE id IN (${marks})`, ...ids);
         await t.runAsync(`DELETE FROM recall WHERE capture_id IN (${marks})`, ...ids);
@@ -351,21 +438,26 @@ export function makeSqliteDb(open: () => Promise<SQLiteDatabase>): Db {
       );
     },
 
-    putSegments(segments) {
-      if (segments.length === 0) return Promise.resolve();
-      return write(async (t) => {
-        const seg = await t.prepareAsync(
-          'INSERT OR REPLACE INTO street_segment (id, name, kind_detail, length_m, geometry, w, s, e, n, build) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        );
-        try {
-          for (const x of segments) {
-            const [w, so, e, n] = segmentBbox(x);
-            await seg.executeAsync(x.id, x.name, x.kind_detail, x.length_m, JSON.stringify(x.geometry), w, so, e, n, x.build);
+    async putSegments(segments, shouldStop) {
+      // DC10: one queued write per batch, so other writes can go between them. A caller stopped before the write starts
+      // writes nothing; a write once started finishes, so no tile is left half stored (audit 5).
+      if (shouldStop?.()) return;
+      for (let i = 0; i < segments.length; i += SEGMENT_BATCH) {
+        const batch = segments.slice(i, i + SEGMENT_BATCH);
+        await write(async (t) => {
+          const seg = await t.prepareAsync(
+            'INSERT OR REPLACE INTO street_segment (id, name, kind_detail, length_m, geometry, w, s, e, n, build) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          );
+          try {
+            for (const x of batch) {
+              const [w, so, e, n] = segmentBbox(x);
+              await seg.executeAsync(x.id, x.name, x.kind_detail, x.length_m, JSON.stringify(x.geometry), w, so, e, n, x.build);
+            }
+          } finally {
+            await seg.finalizeAsync();
           }
-        } finally {
-          await seg.finalizeAsync();
-        }
-      });
+        });
+      }
     },
 
     saveSnap(walkId, segments, visited, snapSummary, placed, complete = true) {
@@ -387,12 +479,8 @@ export function makeSqliteDb(open: () => Promise<SQLiteDatabase>): Db {
           await seg.finalizeAsync();
         }
         await t.runAsync('DELETE FROM visited_segment WHERE walk_id = ?', walkId);
-        for (const v of visited) {
-          await t.runAsync(
-            'INSERT INTO visited_segment (segment_id, walk_id, covered_fraction, first_t, street_key) VALUES (?, ?, ?, ?, ?)',
-            v.segment_id, v.walk_id, v.covered_fraction, v.first_t, v.street_key,
-          );
-        }
+        await eachRow(t, 'INSERT INTO visited_segment (segment_id, walk_id, covered_fraction, first_t, street_key) VALUES (?, ?, ?, ?, ?)',
+          visited, (v) => [v.segment_id, v.walk_id, v.covered_fraction, v.first_t, v.street_key]);
         await t.runAsync(
           `INSERT OR REPLACE INTO walk_summary (walk_id, build, distance_m, duration_ms, new_streets, streets_walked, photos, videos, voices, notes, streets_read, ride_m)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -449,6 +537,13 @@ export function makeSqliteDb(open: () => Promise<SQLiteDatabase>): Db {
         'SELECT * FROM walk_summary',
       );
       return rows.map((r) => ({ ...r, ride_m: r.ride_m ?? undefined, streets_read: r.streets_read === 1 }));
+    },
+    async getSummary(walkId) {
+      const r = await (await conn()).getFirstAsync<Omit<WalkSummary, 'streets_read'> & { streets_read: number }>(
+        'SELECT * FROM walk_summary WHERE walk_id = ?',
+        walkId,
+      );
+      return r ? { ...r, ride_m: r.ride_m ?? undefined, streets_read: r.streets_read === 1 } : null;
     },
 
     saveChecklists({ areas, items, read }) {
@@ -521,12 +616,8 @@ export function makeSqliteDb(open: () => Promise<SQLiteDatabase>): Db {
     putAtlasAreas(rows) {
       if (!rows.length) return Promise.resolve();
       return write(async (t) => {
-        for (const r of rows) {
-          await t.runAsync(
-            'INSERT OR REPLACE INTO atlas_area (key, level, name, lon, lat, reach_m, build, code, listed_at, read_at, failed_at, profile) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            r.key, r.level, r.name, r.at[0], r.at[1], r.reachM, r.build, r.code, r.listed_at, r.read_at, r.failed_at, r.profile ? JSON.stringify(r.profile) : null,
-          );
-        }
+        await eachRow(t, 'INSERT OR REPLACE INTO atlas_area (key, level, name, lon, lat, reach_m, build, code, listed_at, read_at, failed_at, profile) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          rows, (r) => [r.key, r.level, r.name, r.at[0], r.at[1], r.reachM, r.build, r.code, r.listed_at, r.read_at, r.failed_at, r.profile ? JSON.stringify(r.profile) : null]);
       });
     },
     async listAtlasAreas() {
@@ -540,12 +631,8 @@ export function makeSqliteDb(open: () => Promise<SQLiteDatabase>): Db {
     putComplexes(rows) {
       if (!rows.length) return Promise.resolve();
       return write(async (t) => {
-        for (const c of rows) {
-          await t.runAsync(
-            'INSERT OR REPLACE INTO complex (id, name, kind, release, code, lon, lat, west, south, east, north, polygons) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            c.id, c.name, c.kind, c.release, c.code, c.at[0], c.at[1], c.bbox[0], c.bbox[1], c.bbox[2], c.bbox[3], JSON.stringify(c.polygons),
-          );
-        }
+        await eachRow(t, 'INSERT OR REPLACE INTO complex (id, name, kind, release, code, lon, lat, west, south, east, north, polygons) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          rows, (c) => [c.id, c.name, c.kind, c.release, c.code, c.at[0], c.at[1], c.bbox[0], c.bbox[1], c.bbox[2], c.bbox[3], JSON.stringify(c.polygons)]);
       });
     },
     async complexesNear(at, spanDeg) {
@@ -559,30 +646,59 @@ export function makeSqliteDb(open: () => Promise<SQLiteDatabase>): Db {
     putOutlineTiles(tiles) {
       if (!tiles.length) return Promise.resolve();
       return write(async (t) => {
-        for (const r of tiles) {
-          await t.runAsync(
-            'INSERT OR REPLACE INTO outline_tile (key, z, x, y, release, read_at, pieces, points) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-            r.key, r.z, r.x, r.y, r.release, r.read_at, JSON.stringify(r.pieces), JSON.stringify(r.points),
-          );
-        }
+        await eachRow(t, 'INSERT OR REPLACE INTO outline_tile (key, z, x, y, release, read_at, pieces, points, hoods) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          tiles, (r) => [r.key, r.z, r.x, r.y, r.release, r.read_at, JSON.stringify(r.pieces), JSON.stringify(r.points), JSON.stringify(r.hoods ?? [])]);
       });
     },
     async getOutlineTiles(keys) {
       if (!keys.length) return [];
       const want = [...new Set(keys)].sort();
-      type Row = Omit<OutlineTile, 'pieces' | 'points'> & { pieces: string; points: string };
+      type Row = Omit<OutlineTile, 'pieces' | 'points' | 'hoods'> & { pieces: string; points: string; hoods: string };
       const rows = await (await conn()).getAllAsync<Row>(`SELECT * FROM outline_tile WHERE key IN (${want.map(() => '?').join(', ')}) ORDER BY key`, ...want);
-      return rows.map((r) => ({ ...r, pieces: JSON.parse(r.pieces), points: JSON.parse(r.points) }));
+      return rows.map(({ hoods, ...r }) => {
+        const shapes: OutlineTile['hoods'] = JSON.parse(hoods);
+        // A tile kept before the shapes were cut has none, as IndexedDB's has no field (HB12).
+        return { ...r, pieces: JSON.parse(r.pieces), points: JSON.parse(r.points), ...(shapes?.length ? { hoods: shapes } : {}) };
+      });
+    },
+    putWalkLine(line) {
+      return write(async (t) => {
+        const [west, south, east, north] = line.bounds;
+        await t.runAsync('INSERT OR REPLACE INTO walk_line (walk_id, code, west, south, east, north, runs) VALUES (?, ?, ?, ?, ?, ?, ?)',
+          line.walk_id, line.code, west, south, east, north, JSON.stringify(line.runs));
+        await t.runAsync('DELETE FROM walk_line_tile WHERE walk_id = ?', line.walk_id);
+        await eachRow(t, 'INSERT OR IGNORE INTO walk_line_tile (walk_id, tile) VALUES (?, ?)', line.tiles, (tile) => [line.walk_id, tile]);
+      });
+    },
+    async getWalkLinesIn(tiles) {
+      if (!tiles.length) return [];
+      const want = [...new Set(tiles)];
+      type Row = { walk_id: string; code: string; west: number; south: number; east: number; north: number; runs: string };
+      const db = await conn();
+      const rows = await db.getAllAsync<Row>(
+        `SELECT * FROM walk_line WHERE walk_id IN (SELECT DISTINCT walk_id FROM walk_line_tile WHERE tile IN (${want.map(() => '?').join(', ')})) ORDER BY walk_id`, ...want);
+      if (!rows.length) return [];
+      const ids = rows.map((r) => r.walk_id);
+      const tileRows = await db.getAllAsync<{ walk_id: string; tile: string }>(
+        `SELECT walk_id, tile FROM walk_line_tile WHERE walk_id IN (${ids.map(() => '?').join(', ')}) ORDER BY tile`, ...ids);
+      const tilesOf = new Map<string, string[]>();
+      for (const r of tileRows) tilesOf.set(r.walk_id, [...(tilesOf.get(r.walk_id) ?? []), r.tile]);
+      return rows.map((r) => ({ walk_id: r.walk_id, code: r.code, bounds: [r.west, r.south, r.east, r.north] as WalkLine['bounds'], tiles: tilesOf.get(r.walk_id) ?? [], runs: JSON.parse(r.runs) }));
+    },
+    async listWalkLineCodes() {
+      return (await conn()).getAllAsync<{ walk_id: string; code: string }>('SELECT walk_id, code FROM walk_line ORDER BY walk_id');
+    },
+    deleteWalkLine(walkId) {
+      return write(async (t) => {
+        await t.runAsync('DELETE FROM walk_line_tile WHERE walk_id = ?', walkId);
+        await t.runAsync('DELETE FROM walk_line WHERE walk_id = ?', walkId);
+      });
     },
     putWalkTiles(tiles) {
       if (!tiles.length) return Promise.resolve();
       return write(async (t) => {
-        for (const r of tiles) {
-          await t.runAsync(
-            'INSERT OR REPLACE INTO walk_tile (key, x, y, build, code, source, read_at, ways, junctions) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            r.key, r.x, r.y, r.build, r.code, r.from, r.read_at, JSON.stringify(r.ways), JSON.stringify(r.junctions),
-          );
-        }
+        await eachRow(t, 'INSERT OR REPLACE INTO walk_tile (key, x, y, build, code, source, read_at, ways, junctions) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          tiles, (r) => [r.key, r.x, r.y, r.build, r.code, r.from, r.read_at, JSON.stringify(r.ways), JSON.stringify(r.junctions)]);
       });
     },
     async getWalkTiles(keys) {
@@ -645,6 +761,39 @@ export function makeSqliteDb(open: () => Promise<SQLiteDatabase>): Db {
     },
     async listRecalls() {
       return (await conn()).getAllAsync<Recall>('SELECT * FROM recall');
+    },
+    setReaction(r) {
+      return write((t) => (r.reaction == null
+        ? t.runAsync('DELETE FROM reaction WHERE moment_id = ? AND family = ?', r.moment_id, r.family)
+        : t.runAsync('INSERT OR REPLACE INTO reaction (moment_id, family, reaction, set_at) VALUES (?, ?, ?, ?)', r.moment_id, r.family, r.reaction, r.set_at)
+      ).then(() => {}));
+    },
+    setReactions(rows) {
+      if (!rows.length) return Promise.resolve();
+      // One exclusive transaction through the write queue: a failed row rolls the rest back (RL10).
+      return write(async (t) => {
+        for (const r of rows) {
+          if (r.reaction == null) await t.runAsync('DELETE FROM reaction WHERE moment_id = ? AND family = ?', r.moment_id, r.family);
+          else await t.runAsync('INSERT OR REPLACE INTO reaction (moment_id, family, reaction, set_at) VALUES (?, ?, ?, ?)', r.moment_id, r.family, r.reaction, r.set_at);
+        }
+      });
+    },
+    async listReactions() {
+      return (await conn()).getAllAsync<StoredReaction>('SELECT moment_id, family, reaction, set_at FROM reaction');
+    },
+    setTranscript(r) {
+      return write((t) =>
+        t.runAsync(
+          'INSERT OR REPLACE INTO transcript (capture_id, text, lang, from_ms, to_ms, made_at) VALUES (?, ?, ?, ?, ?, ?)',
+          r.capture_id, r.text, r.lang, r.from_ms, r.to_ms, r.made_at,
+        ).then(() => {}),
+      );
+    },
+    clearTranscript(captureId) {
+      return write((t) => t.runAsync('DELETE FROM transcript WHERE capture_id = ?', captureId).then(() => {}));
+    },
+    async listTranscripts() {
+      return (await conn()).getAllAsync<Transcript>('SELECT * FROM transcript');
     },
     purgeDerived() {
       const clear = DERIVED_STORES.map((s) => `DELETE FROM ${s};`).join(' ');

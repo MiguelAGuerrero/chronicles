@@ -11,7 +11,15 @@ const LAYERS = { roads: 'transportation', names: 'transportation_name', places: 
  * task can't move a camera, so it reads tiles itself. The same layers as the
  * map's reads, as GeoJSON in lon/lat, tagged with the tile's zoom.
  */
-export function decodeTile(bytes: Uint8Array | ArrayBuffer, z: number, x: number, y: number): CollectedFeatures {
+export function decodeTile(
+  bytes: Uint8Array | ArrayBuffer,
+  z: number,
+  x: number,
+  y: number,
+  /** Only these layers (explore-dense-city audit 2: the atlas's near read wants places alone; decoding the roads too took
+   *  about 250 ms of a town's tiles on the page). All of them when left out. */
+  only?: readonly (keyof typeof LAYERS)[],
+): CollectedFeatures {
   const tile = new VectorTile(new PbfReader(bytes));
   const read = (name: string): RoadFeature[] => {
     const layer = tile.layers[name];
@@ -23,5 +31,6 @@ export function decodeTile(bytes: Uint8Array | ArrayBuffer, z: number, x: number
     }
     return out;
   };
-  return { roads: read(LAYERS.roads), names: read(LAYERS.names), places: read(LAYERS.places), pois: read(LAYERS.pois), landcover: read(LAYERS.landcover), complete: true };
+  const want = (k: keyof typeof LAYERS) => (!only || only.includes(k) ? read(LAYERS[k]) : []);
+  return { roads: want('roads'), names: want('names'), places: want('places'), pois: want('pois'), landcover: want('landcover'), complete: true };
 }

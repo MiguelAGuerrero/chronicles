@@ -1,0 +1,20 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inflight",
+        "add"
+      ],
+      "body": "| Pictures through expo-image (every picture on screen through one wrapper over expo-image: kept in memory and on disk, recycled in the gallery, no fade; EI1-EI6, after the performance review of Nov 18) | `claude/bold-hawking-dx3pc8` | started 2026-11-18 on the owner's go-ahead (\"with reasonable defaults forward\"); tests first next; native unverified. Spec `specs/expo-image/spec.md` |\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Media and capture"
+      ],
+      "body": "- [ ] **Do:** on a phone with a few hundred photos, scroll the Media gallery to the bottom and back fast, open a moment and come back, then watch a replay with photos to its pile. **Expect:** every tile and card shows its own picture (never another tile's after a fast scroll back), pictures already seen show at once without a flash, nothing fades in, and the app's memory settles once the scroll stops (expo-image's memory and disk cache). (EI6)\n"
+    }
+  ]
+}

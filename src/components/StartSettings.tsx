@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { canBuzz } from '../lib/canBuzz';
-import { clampPass, clampRange, POCKET_ALERT_NOTE, type Kind } from '../lib/explore/explore';
+import { clampPass, clampRange, POCKET_ALERT_NOTE } from '../lib/explore/explore';
 import type { ExploreSettings as Settings } from '../lib/explore/settings';
 import type { Waypoint } from '../lib/nav/types';
 import { formatRange } from '../lib/format';
@@ -8,7 +8,9 @@ import { destLine, type StartMode } from '../lib/startPlan';
 import { saveUnits } from '../lib/unitsStore';
 import { useUnits } from '../lib/useUnits';
 import type { LngLat } from '../lib/types';
-import { ComplexKindSwitches, KindSwitches, PASS_SCALE, passNote, RangeSlider, walkNote } from './ExploreSettings';
+import { PASS_SCALE, passNote, RangeSlider, walkNote } from './ExploreSettings';
+import { IntoRow } from './IntoRow';
+import { routeLeanings } from '../lib/routeLeanings';
 import { Icon } from './icons';
 import { LayersKey } from './LayersControl';
 import type { useLayers } from '../lib/layers/useLayers';
@@ -26,8 +28,8 @@ const GROUP_NOTE = 'Captures join the moment just made; a separate moment takes 
 /**
  * The walk's settings, inside the ready bar pulled up (NR7; the owner, Nov 3:
  * "You pull up the drawer. The bar should be a quick start"). Mode and
- * destination first; Explore's range and what I'm into only with Explore
- * chosen; then reminders and alerts, and distances. Each choice saves as it
+ * destination first; Explore's range and the row to What I'm into's page
+ * (decision 0192) only with Explore chosen; then reminders and alerts, and distances. Each choice saves as it
  * changes (NV22); Start stays at the bar's foot below.
  */
 export function StartSettings(props: {
@@ -38,12 +40,12 @@ export function StartSettings(props: {
   onMode: (m: StartMode) => void;
   onClearDest: () => void;
   onSettings: (s: Settings) => void;
-  onToggleKind: (k: Kind, on: boolean) => void;
   /** The map's layers: what each one that is on shows, here and not over the map. */
   layers?: ReturnType<typeof useLayers>;
 }) {
   const { mode, dest, fix, settings } = props;
   const grouping = useStore(momentPill.store, (st) => st.grouping);
+  const sightsOn = useStore(routeLeanings.store, (s) => s.includes('sights'));
   // Distances in km or miles (QL16): saved as it changes, every screen redraws at once.
   const units = useUnits();
   return (
@@ -94,11 +96,11 @@ export function StartSettings(props: {
           <Text style={styles.section} accessibilityRole="header">Passing a place</Text>
           <Text style={styles.sub}>{passNote(settings.passM)}</Text>
           <RangeSlider scale={PASS_SCALE} value={settings.passM} onChange={(m) => props.onSettings({ ...settings, passM: clampPass(m) })} />
-          <Text style={styles.section} accessibilityRole="header">What I’m into</Text>
-          <KindSwitches hidden={settings.hidden} onToggle={props.onToggleKind} />
-          <ComplexKindSwitches sectionStyle={styles.section} />
         </>
       )}
+      {/* WI1: one row where the list was; the kinds and Complexes are on its page (decision 0192). Scenic routes' Sights
+          read the kinds too, so it shows with Explore or Sights on (what-im-into-page audit 6, the owner, Nov 18). */}
+      {(mode === 'explore' || sightsOn) && <IntoRow />}
 
       {props.layers && Object.values(props.layers.on).some(Boolean) ? (
         <>

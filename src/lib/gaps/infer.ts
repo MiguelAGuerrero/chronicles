@@ -1,4 +1,5 @@
 // @layer core
+import { formatDistance } from '../format';
 import { bearingDeg, boundsOf, distanceM, lineLengthM, distanceToLinesM, isBreak, pointSegmentDist, projector, type Bounds } from '../geo';
 import type { ReadTrace } from '../rides';
 import type { Fill, GapDecision, LngLat, StreetSegment } from '../types';
@@ -551,6 +552,24 @@ export function fillsOf(stretches: Stretch[]): Fill[] {
   return stretches.filter((s) => s.how !== 'offer').map((s) => ({ t0: s.t0, t1: s.t1, path: s.path }));
 }
 
+/** The stretches only offered, none yet walked (G15). */
+export function offersOf(stretches: Stretch[]): Stretch[] {
+  return stretches.filter((s) => s.how === 'offer');
+}
+
+/** The walk's-end prompt (G15), in words and never a count, agreeing with how many; null with nothing offered. */
+export function keepAllWords(n: number): { title: string; sub: string; keep: string; leave: string } | null {
+  if (n <= 0) return null;
+  const one = n === 1;
+  const which = one ? 'One gap has' : n === 2 ? 'Two gaps have' : 'A few gaps have';
+  return {
+    title: 'Keep the likely way?',
+    sub: `${which} a likely way along the streets. Keeping ${one ? 'it adds it' : 'them adds them'} to your walk; leaving ${one ? 'it' : 'them'} lets you decide from ${one ? 'its' : 'their'} card.`,
+    keep: one ? 'Keep it' : 'Keep them',
+    leave: one ? 'Leave it' : 'Leave them',
+  };
+}
+
 /**
  * The stretch a tap at `p` reaches (G9): the nearest within `radiusM`, or
  * null. A tap near either end is the recorded trace there, where captures
@@ -574,7 +593,8 @@ export function stretchLines(s: Stretch): { title: string; sub: string } {
   const along = s.street ? `along ${s.street}` : 'this way';
   const min = Math.max(1, Math.round((s.t1 - s.t0) / 60_000));
   // "Not recorded": the app may have been closed, not only the GPS lost (audit, UI).
-  const facts = `${s.lengthM < 1000 ? `${Math.round(s.lengthM)} m` : `${(s.lengthM / 1000).toFixed(1)} km`} · not recorded for ${min} min.`;
+  // Its length as every distance is said: the units setting, rounded before the step, bound (tend map audit 44).
+  const facts = `${formatDistance(s.lengthM)} · not recorded for ${min} min.`;
   if (s.how === 'offer') return { title: `Probably ${along}`, sub: `${facts} Keep it to count it as walked.` };
   if (s.how === 'auto') return { title: `Filled in ${along}`, sub: `${facts} The only likely way in that time.` };
   return { title: `${along[0].toUpperCase()}${along.slice(1)}, kept`, sub: facts };

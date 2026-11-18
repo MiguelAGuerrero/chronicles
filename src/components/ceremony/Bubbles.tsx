@@ -1,4 +1,4 @@
-import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
+import { useAudioPlayer, useAudioPlayerStatus, type AudioPlayer } from 'expo-audio';
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { BubbleOverlay } from '../../lib/ceremony/types';
@@ -10,6 +10,7 @@ import { cornerHeight, STAGE_BOTTOM, timeOf, type StageCtx } from './layout';
 import { Skeleton } from './Skeleton';
 import { useMediaWait } from './useMediaWait';
 import { plainNote } from '../../lib/refs';
+import { memoLengthMs, memoLengthText, voiceClock, voiceSpan, voiceState, wholeMs } from '../../lib/voiceTrim';
 
 const BARS = 22;
 /** A waveform's bar heights, fixed per memo: a picture of a voice, not a measurement. */
@@ -20,25 +21,34 @@ function bars(id: string): number[] {
     return 5 + (h % 17);
   });
 }
-const secs = (ms: number) => `${Math.floor(ms / 60_000)}:${String(Math.floor((ms % 60_000) / 1000)).padStart(2, '0')}`;
+
+/** A trimmed memo reports every 100 ms, so it stops at its end handle, not up to half a second late (VT7). */
+const TRIMMED_PLAYER = { updateInterval: 100 };
+// Module level: the compiler lint does not see a player mutated in a component.
+function seekMemo(player: AudioPlayer, s: number) {
+  void player.seekTo(s);
+}
 
 /** A memo plays while its bubble says so, and stops when held (RR10, RR7). A refused start leaves the play button to tap. */
 function MemoBubble({ o, ctx }: { o: BubbleOverlay; ctx: StageCtx }) {
   const uri = useMediaUri(o.capture);
-  const player = useAudioPlayer(uri);
+  // A trimmed memo plays only its kept part: from the start handle to the end handle (VT7).
+  const trim = o.capture.edit?.trim ?? null;
+  const player = useAudioPlayer(uri, trim ? TRIMMED_PLAYER : undefined);
   const status = useAudioPlayerStatus(player);
   // A memo the viewer started themselves (sound refused, then a tap) plays to its end, and the stage waits for it (audits 8, 23).
   const [byHand, setByHand] = useState(false);
   // Paused with its own button: the stage goes on without it (audit 32).
   const [handPaused, setHandPaused] = useState(false);
   const stopped = ctx.held || ctx.paused;
-  const len = Number(o.capture.body) || 0;
-  const ended = status.didJustFinish || (status.duration > 0 && status.currentTime >= status.duration - 0.05);
+  const len = memoLengthMs(o.capture);
+  const span = voiceSpan(trim, wholeMs(o.capture.body, (status.duration || 0) * 1000));
+  const ended = status.didJustFinish || (trim ? voiceState(status.currentTime, span) === 'end' : status.duration > 0 && status.currentTime >= status.duration - 0.05);
   // Started once it has moved: a file that won't play can still say it is playing.
-  const started = status.currentTime > 0;
+  const started = trim ? status.currentTime * 1000 > span.startMs : status.currentTime > 0;
   const waited = useMediaWait(o.key, ctx, {
     inSlot: o.playing && !handPaused, slotOver: (o.progress >= 1 || byHand) && !ended && !handPaused, started, ended,
-    positionMs: () => status.currentTime * 1000, planMs: o.progress * Math.max(1000, len), lenMs: Math.max(1000, len), stopped,
+    positionMs: () => voiceClock(status.currentTime, span).atMs, planMs: o.progress * Math.max(1000, len), lenMs: Math.max(1000, len), stopped,
   });
   // Plays in its slot, while the stage waits for it, and after Hold if it was started by hand.
   const want = (o.playing || waited || byHand) && !ended && !stopped && !handPaused;
@@ -47,6 +57,12 @@ function MemoBubble({ o, ctx }: { o: BubbleOverlay; ctx: StageCtx }) {
     if (want) player.play();
     else player.pause();
   }, [want, status.isLoaded, player]);
+  // Found before the start handle once it is wanted: brought to it.
+  const strayed = !!trim && status.isLoaded && want && voiceState(status.currentTime, span) === 'before';
+  useEffect(() => {
+    if (strayed) seekMemo(player, span.startMs / 1000);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [strayed, player]);
   const lit = Math.round(o.progress * BARS);
   return (
     <View testID="memo-bubble" style={styles.memo}>
@@ -58,7 +74,10 @@ function MemoBubble({ o, ctx }: { o: BubbleOverlay; ctx: StageCtx }) {
           setByHand(!status.playing);
           setHandPaused(status.playing);
           if (status.playing) player.pause();
-          else player.play();
+          else {
+            if (trim && ended) seekMemo(player, span.startMs / 1000);
+            player.play();
+          }
         }}
         style={styles.play}
       >
@@ -77,7 +96,7 @@ function MemoBubble({ o, ctx }: { o: BubbleOverlay; ctx: StageCtx }) {
         )}
         {/* The time stays whole on a 320 px phone; the label gives way first (tend replay 8). */}
         <View style={styles.meta}>
-          <Text style={[styles.when, styles.label]} numberOfLines={1}>Voice memo · {secs(len)}{' ·\u00a0'}</Text>
+          <Text style={[styles.when, styles.label]} numberOfLines={1}>{memoLengthText(o.capture) ? `Voice memo · ${memoLengthText(o.capture)}` : 'Voice memo'}{' ·\u00a0'}</Text>
           <Text testID="memo-time" style={[styles.when, styles.time]} numberOfLines={1}>{timeOf(o.capture.t)}</Text>
         </View>
       </View>

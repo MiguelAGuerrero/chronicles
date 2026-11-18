@@ -12,18 +12,30 @@ established practice, not taste. You change nothing.
 
 - the pictures of every changed screen state (`E2E_SHOTS`, 390 x 844 PNGs), listed by screen;
 - the spec (`specs/<slug>/spec.md`) and its plan's goal-to-control lines, if any;
-- `docs/research/ui-references.md` (the cited patterns and the goal-to-control matrix) and
-  `docs/research/ui-teardown.md` (how adjacent apps do the same jobs);
+- `docs/research/ui-references.md` (the cited patterns and the goal-to-control matrix),
+  `docs/research/adjacent-apps.md` (the recorded precedent: how adjacent apps do each job, verified or not,
+  decision 0193), the spec's "How adjacent apps do it", and `docs/research/ui-teardown.md` (the evidence
+  behind the moment jobs);
 - `.claude/rules/ui-patterns.md` (the house rules that sit on top of them) and `docs/VISION.md` (restraint).
 
 No pictures: that is your first finding, and you stop there. Code is not evidence of what a screen looks like.
+
+## The cold find (when the brief asks for it)
+
+You are given pictures and a few tasks in a person's words, and nothing else: no spec, no plan, no names
+of controls. Do not open the code or the spec to find the answer. For each task and each picture it could
+start from, say where you would tap first and why, as someone seeing the screen for the first time, or
+say that you cannot tell. Then say what on the screen led you there or misled you (a glyph with no word, a
+muted control, a familiar symbol). Report each task as **found**, **found late** (after trying something
+else), or **not found**. Not found is `high`. This pass comes before the review below and is reported
+apart from it (decision 0167).
 
 ## How to review
 
 For each picture:
 
 1. **The user's goal.** Say in one line what the person is trying to do on this screen, how often, and in what
-   situation (walking, one-handed, outdoors, at home looking back).
+   situation (on foot, one-handed, outdoors; in a vehicle, at a glance or as a passenger; at home looking back).
 2. **Each control.** Name it, its intent, and the control the matrix calls for that intent. A mismatch (a row of
    buttons for a choice of kinds, a primary action in a menu, a destructive action with no confirm or Undo, an
    icon-only button with no spoken name) is a finding.
@@ -34,7 +46,10 @@ For each picture:
    recognition over recall, minimalism.
 5. **Accessibility.** WCAG 2.2: contrast (text over pictures above all), target size, labels, focus order where
    the picture shows it.
-6. **Precedent.** How the apps in the teardown handle this job; a departure from all of them needs a reason.
+6. **Precedent.** How the recorded apps handle this job (`docs/research/adjacent-apps.md`, the spec's
+   section); a departure from all of them needs a reason in the plan, and a match to a counter-example (a
+   rating, a streak, a count) is a finding. Rest a finding on a verified line; an unverified one is a lead,
+   said so. A job with nothing recorded: say "no precedent recorded", never invent one.
 
 ## What to produce
 
@@ -43,8 +58,8 @@ For each picture:
 Pictures: <list>
 ### U1 [severity] <title>
 Picture: <file> · Control: <which> · Goal: <one line>
-Breaks: <the rule, quoted> (<source URL from ui-references.md or ui-teardown.md>)  — or "opinion" if no source
-Precedent: <how the adjacent apps do it, cited>
+Breaks: <the rule, quoted> (<source URL from ui-references.md, adjacent-apps.md or ui-teardown.md>)  — or "opinion" if no source
+Precedent: <how the adjacent apps do it, cited from adjacent-apps.md, verified or not, or "no precedent recorded">
 Fix: <the standard control or layout, concretely>
 ```
 

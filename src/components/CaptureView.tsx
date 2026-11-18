@@ -1,12 +1,18 @@
-import { type Faced, faced, facedAt, hasMore, pieceKey } from '../lib/moment';
+import { type Faced, faced, facedAt, hasMore, pieceKey, pieceWhen } from '../lib/moment';
 import { split } from '../lib/split';
 import { momentPill } from '../lib/momentPill';
 import { useStore } from '../lib/useStore';
-import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
+import { useAudioPlayer, useAudioPlayerStatus, type AudioPlayer } from 'expo-audio';
 import { forwardRef, useEffect, useMemo, useRef, useState, type ComponentRef, type ReactNode } from 'react';
 import { HANDOFF_HINT } from '../lib/nav/openInMaps';
 import { AccessibilityInfo, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions, type LayoutChangeEvent, type LayoutRectangle, type StyleProp, type ViewStyle } from 'react-native';
 import { Modal } from './Modal';
+import { reactions } from '../lib/reactions';
+import { useReactions } from '../lib/reactions/useReactions';
+import type { ReactionId } from '../lib/reactions/core';
+import { ReactionMarks } from './reactions/ReactionMarks';
+import { ReactionPanel } from './reactions/ReactionPanel';
+import { MemoTranscript } from './MemoTranscript';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { db } from '../lib/db';
 import { editedRecall, liveRecalls, newRecall } from '../lib/discovery/recall';
@@ -24,7 +30,7 @@ import { MediaEditor, type MediaEditorHandle } from './edit/MediaEditor';
 import type { CapturePatch } from '../lib/captureBus';
 import { exportPlan, isEmptyEdit } from '../lib/mediaEdit';
 import { exportVideo } from '../lib/videoEdit';
-import { RemindEditor } from './RemindEditor';
+import { RemindEditor, type RemindEditorHandle } from './RemindEditor';
 import { NotePage, NoteReader, type NotePageHandle } from './notePage/NotePage';
 import { noteHead, type NoteHead } from '../lib/notePage/head';
 import { UndoToast } from './UndoToast';
@@ -44,6 +50,8 @@ import { ResponsesSheet } from './threads/ResponsesSheet';
 import { responseRows, responsesOf } from '../lib/threads/responses';
 import { IN_A_THREAD, MENTIONED, responsesWord } from '../lib/threads/lines';
 import { barsShown, viewerLine } from '../lib/viewerBars';
+import { trimmedLine, voiceClock, voiceReachedEnd, voiceSpan, voiceState, wholeMs } from '../lib/voiceTrim';
+import type { MediaEdit } from '../lib/mediaEdit';
 import { threadsOf } from '../lib/threads/rules';
 import { useThreads } from '../lib/threads/useThreads';
 import { Icon, KIND_LABEL } from './icons';
@@ -65,13 +73,30 @@ function touchPoint(e: { pageX?: number; pageY?: number; touches?: ArrayLike<{ p
 const timeOf = (c: Faced) => new Date(c.t).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 /** The viewer's top bar (Close, More) over a note's page: 48 pt buttons and their margins. */
 const VIEWER_TOP = 64;
+/** Add to this moment's row under the top bar: 4 above its 48 pt buttons, 8 below; a note's page starts under it (tend explore audit 21). */
+const ADD_ROW_H = 60;
 
 /** A refused memo in a replay that moves on by itself waits this long, as a photo does. */
 const REFUSED_MOVE_ON_MS = 4000;
 
-/** A voice memo with a play/pause control; `autoPlay` starts it, `onFinished` fires when it ends. */
-function VoicePlayer(props: { uri: string; autoPlay?: boolean; onFinished?: () => void; durationMs: number }) {
-  const player = useAudioPlayer(props.uri);
+/** A trimmed memo's player reports every 100 ms, so it stops at the end handle, not up to half a second late (VT6). */
+const TRIMMED_PLAYER = { updateInterval: 100 };
+// Module level, so the compiler lint does not see a player mutated in a component (captures-and-media rules).
+function seekMemo(player: AudioPlayer, s: number) {
+  void player.seekTo(s);
+}
+function pauseMemo(player: AudioPlayer) {
+  player.pause();
+}
+
+/**
+ * A voice memo with a play/pause control; `autoPlay` starts it, `onFinished` fires when it ends. A trimmed memo
+ * (VT6, VT7) starts at the start handle, stops at the end handle and counts as finished there; its clock and bar
+ * read against the kept part.
+ */
+function VoicePlayer(props: { uri: string; autoPlay?: boolean; onFinished?: () => void; durationMs: number; edit?: MediaEdit | null }) {
+  const trim = props.edit?.trim ?? null;
+  const player = useAudioPlayer(props.uri, trim ? TRIMMED_PLAYER : undefined);
   const status = useAudioPlayerStatus(player);
   const { autoPlay, onFinished } = props;
   const playing = useRef(false);
@@ -80,12 +105,28 @@ function VoicePlayer(props: { uri: string; autoPlay?: boolean; onFinished?: () =
     playing.current = status.playing;
     finished.current = onFinished;
   }, [status.playing, onFinished]);
+  // The stored length wins; the file's own only for a memo with none on record, so every surface agrees (audit 3, 4).
+  const whole = wholeMs(props.durationMs, (status.duration || 0) * 1000);
+  const span = voiceSpan(trim, whole);
+  const where = voiceState(status.currentTime, span);
+  // The press that restarts the kept part names the position it left: until the player moves off it, it is not the end (audit 2).
+  const [restartedFrom, setRestartedFrom] = useState<number | null>(null);
+  const restarting = restartedFrom !== null && status.currentTime === restartedFrom;
+  const atEnd = !!trim && voiceReachedEnd(status.currentTime, span, restarting);
+  // Once per play: the trim's end and the file's end can both say so.
+  const reported = useRef(false);
+  const report = () => {
+    if (reported.current) return;
+    reported.current = true;
+    finished.current?.();
+  };
   // A browser that refuses to start it without a tap (iOS) leaves the play
   // button showing; a replay that moves on by itself then moves on after a
   // while, instead of waiting for an end that never comes.
   const refused = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (!autoPlay || !status.isLoaded) return;
+    if (trim) seekMemo(player, trim.start_ms / 1000);
     player.play();
     if (Platform.OS !== 'web') return;
     const check = setTimeout(() => {
@@ -99,10 +140,25 @@ function VoicePlayer(props: { uri: string; autoPlay?: boolean; onFinished?: () =
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status.isLoaded]);
   useEffect(() => {
-    if (status.didJustFinish) onFinished?.();
-  }, [status.didJustFinish, onFinished]);
-  const total = status.duration || props.durationMs / 1000;
-  const fmt = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+    if (status.playing && !atEnd) reported.current = false;
+  }, [status.playing, atEnd]);
+  useEffect(() => {
+    if (status.didJustFinish) report();
+  }, [status.didJustFinish]);
+  // A trimmed memo that reaches its end handle stops and is finished; one found before its start is brought to it.
+  const stopAtEnd = status.playing && atEnd;
+  useEffect(() => {
+    if (!stopAtEnd) return;
+    pauseMemo(player);
+    report();
+  }, [stopAtEnd, player]);
+  const strayed = !!trim && status.playing && where === 'before';
+  useEffect(() => {
+    if (strayed) seekMemo(player, span.startMs / 1000);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [strayed, player]);
+  const clock = voiceClock(status.currentTime, span);
+  const fmt = (ms: number) => `${Math.floor(ms / 60000)}:${String(Math.floor((ms % 60000) / 1000)).padStart(2, '0')}`;
   return (
     <View style={styles.voice}>
       <Pressable
@@ -112,7 +168,10 @@ function VoicePlayer(props: { uri: string; autoPlay?: boolean; onFinished?: () =
           if (refused.current) clearTimeout(refused.current);
           if (status.playing) player.pause();
           else {
-            if (status.didJustFinish || (total && status.currentTime >= total - 0.1)) player.seekTo(0);
+            if (trim && where === 'end') {
+              setRestartedFrom(status.currentTime);
+              seekMemo(player, span.startMs / 1000);
+            } else if (status.didJustFinish || (!trim && whole && status.currentTime * 1000 >= whole - 100)) player.seekTo(span.startMs / 1000);
             player.play();
           }
         }}
@@ -122,10 +181,10 @@ function VoicePlayer(props: { uri: string; autoPlay?: boolean; onFinished?: () =
         <Icon name={status.playing ? 'pause' : 'play'} size={26} color="#ffffff" />
       </Pressable>
       <View style={styles.track}>
-        <View style={[styles.trackFill, { width: `${total ? Math.min(100, (status.currentTime / total) * 100) : 0}%` }]} />
+        <View style={[styles.trackFill, { width: `${clock.ofMs ? Math.min(100, (clock.atMs / clock.ofMs) * 100) : 0}%` }]} />
       </View>
-      <Text style={styles.voiceTime}>
-        {fmt(status.currentTime)} / {fmt(total)}
+      <Text style={styles.voiceTime} testID="voice-time">
+        {fmt(clock.atMs)} / {fmt(clock.ofMs)}
       </Text>
     </View>
   );
@@ -158,6 +217,10 @@ function MediaArea(props: { onTap?: () => void; onLayout: (e: LayoutChangeEvent)
 export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
   capture: Faced;
   autoPlay?: boolean;
+  /** False: the moment's reactions are neither drawn nor said (the replay's step-through, reactions audit 18). */
+  reactions?: boolean;
+  /** A reaction under the info line opens its lens (RL3): given only by Memories' viewers. */
+  onLens?: (id: ReactionId) => void;
   onVoiceFinished?: () => void;
   footer?: string;
   /** The viewer's parts of the line, in order; it names the day first and keeps one thread status (audit 19, 21). */
@@ -181,6 +244,8 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
   responses?: { text: string; onPress: () => void } | null;
   /** A note is read as its page (NP5): its head, its drawing to its last line; a tap on the words asks to edit. */
   note?: { head: NoteHead; onEdit?: () => void; onOpenMention: (id: string) => void; gone?: (id: string) => boolean };
+  /** Add to this moment's row shows under the top bar: a note's page starts below it, never under it (T7; tend explore audit 21). */
+  addRow?: boolean;
 }>(function CaptureContent(props, actionRef) {
   const { capture } = props;
   const insets = useSafeAreaInsets();
@@ -188,6 +253,8 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
   const media = (capture.kind === 'photo' || capture.kind === 'video') && !!uri;
   const [box, setBox] = useState<LayoutRectangle | null>(null);
   const [now] = useState(() => Date.now());
+  // The moment's reactions, under its info line, for every kind (RX15).
+  const reacted = useReactions(props.reactions === false ? null : capture.id);
   const meta = viewerLine({ kind: KIND_LABEL[capture.kind], t: capture.t, time: timeOf(capture), now, parts: props.parts ?? [props.footer] });
   // The responses' words come last, inside the info line: the viewer's only control for them (RT1, RT11).
   const responsesLink = (onDark: boolean) =>
@@ -277,6 +344,7 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
             <Text style={styles.stripMeta} numberOfLines={props.responses ? 3 : 2} testID="capture-meta" accessibilityLiveRegion="polite">{meta}{responsesLink(true)}</Text>
             {actions(true)}
           </View>
+          <ReactionMarks set={reacted} inverse style={styles.stripReactions} onOpen={props.onLens} />
         </View>
         )}
       </View>
@@ -285,14 +353,15 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
 
   if (capture.kind === 'text' && props.note) {
     return (
-      <View key="page" style={[StyleSheet.absoluteFill, { paddingTop: insets.top + VIEWER_TOP, paddingBottom: (props.dock ?? 0) + insets.bottom }]}>
+      <View key="page" style={[StyleSheet.absoluteFill, { paddingTop: insets.top + VIEWER_TOP + (props.addRow ? ADD_ROW_H : 0), paddingBottom: (props.dock ?? 0) + insets.bottom }]}>
         {/* The moment's content between the viewer's bars, as a note's card was (the journeys read it as `capture-card`). */}
         <View testID="capture-card" style={styles.pageArea}>
-        <NoteReader body={props.note.gone ? withGone(capture.body ?? '', props.note.gone) : (capture.body ?? '')} bodyFormat={capture.body_format ?? null} head={props.note.head} onEdit={props.note.onEdit} onOpenMention={props.note.onOpenMention} />
+        <NoteReader body={props.note.gone ? withGone(capture.body ?? '', props.note.gone) : (capture.body ?? '')} bodyFormat={capture.body_format ?? null} head={props.note.head} pageAt={{ t: capture.t, walkId: capture.walk_id ?? null }} onEdit={props.note.onEdit} onOpenMention={props.note.onOpenMention} />
         <View style={[styles.metaRow, styles.pageMeta]}>
           <Text style={[styles.meta, styles.metaText]} testID="capture-meta" accessibilityLiveRegion="polite">{meta}{responsesLink(false)}</Text>
           {actions(false)}
         </View>
+        <ReactionMarks set={reacted} style={styles.pageReactions} onOpen={props.onLens} />
         </View>
       </View>
     );
@@ -305,13 +374,15 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
           {capture.kind === 'text' &&
             (props.onOpenRef ? <NoteText body={capture.body ?? ''} format={capture.body_format} style={styles.note} onOpen={props.onOpenRef} /> : <Text style={styles.note}>{plainNote(capture.body, capture.body_format)}</Text>)}
           {capture.kind === 'voice' && uri && (
-            <VoicePlayer uri={uri} autoPlay={props.autoPlay} onFinished={props.onVoiceFinished} durationMs={Number(capture.body) || 0} />
+            <VoicePlayer uri={uri} autoPlay={props.autoPlay} onFinished={props.onVoiceFinished} durationMs={Number(capture.body) || 0} edit={capture.edit ?? null} />
           )}
+          {capture.kind === 'voice' && <MemoTranscript piece={{ id: capture.piece_id, t: capture.t, body: capture.body, edit: capture.edit }} />}
           {capture.kind !== 'text' && !uri && <Text style={styles.note}>{KIND_LABEL[capture.kind]}</Text>}
           <View style={styles.metaRow}>
             <Text style={[styles.meta, styles.metaText]} testID="capture-meta" accessibilityLiveRegion="polite">{meta}{responsesLink(false)}</Text>
             {actions(false)}
           </View>
+          <ReactionMarks set={reacted} onOpen={props.onLens} />
         </View>
       </View>
     </View>
@@ -325,6 +396,10 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
 export function CaptureViewer(props: {
   captures: Faced[] | null;
   onClose: () => void;
+  /** Opened from an entry's quick-action row (decision 0197): go straight to Respond's menu or to the piece's editor, once. */
+  intent?: 'respond' | 'edit' | 'more';
+  /** A reaction under the info line opens its lens (RL3): the viewer closes first. Memories' viewers alone pass it (RL4). */
+  onLens?: (id: ReactionId) => void;
   /** Extra words per capture, e.g. which walk it came from. */
   context?: Map<string, string>;
   /** A note's page head line per moment, where the screen has one (note pages NP2), without touching the info line. */
@@ -380,10 +455,16 @@ export function CaptureViewer(props: {
   const editor = useRef<MediaEditorHandle>(null);
   // A note being written or edited closes its @ picker first, then itself (tend chronicle 1).
   const noteEditor = useRef<NotePageHandle>(null);
+  // Back and Escape close an open menu of the reminder editor before the editor (tend explore 18).
+  const remindEditor = useRef<RemindEditorHandle>(null);
   const replyNote = useRef<NotePageHandle>(null);
   // Edits saved here show at once, whether or not the caller's list hears of it (ME21).
   const [patched, setPatched] = useState<Map<string, CapturePatch>>(() => new Map());
   const [noting, setNoting] = useState<Faced | null>(null);
+  const notingSet = useReactions(noting?.id);
+  // More's Reaction (RX11): the families in a panel inside the viewer, never a Modal on its Modal.
+  const [reactingTo, setReactingTo] = useState<string | null>(null);
+  const reactingSet = useReactions(reactingTo);
   // A note's page is headed by the day and the moment's context as the viewer was given it (NP2).
   const [headNow] = useState(() => Date.now());
   // With no line given, it says what it knows and never claims no place for a placed moment (note-pages audit 2).
@@ -392,6 +473,7 @@ export function CaptureViewer(props: {
   // Notes edited here show their new text at once, whether or not the
   // caller's list hears of it (QL25).
   const [edited, setEdited] = useState<Map<string, string>>(() => new Map());
+  // The type chosen with it, by piece: null is "No type" (NY7).
   // What was deleted (D3, D5) leaves the viewer at once; a piece split out (MS16) shows at once as its own moment,
   // right after the one it came from, while its split waits or once it is stored.
   const visible = useVisible(props.captures);
@@ -509,7 +591,8 @@ export function CaptureViewer(props: {
   const listed = moment && pieces[pi] ? facedAt(moment, pieces[pi].id) : moment;
   // Edits and notes are the piece's own (MS11): kept by the piece's id.
   const editedBody = listed ? edited.get(listed.piece_id) : undefined;
-  const withBody = listed && editedBody != null && listed.body !== editedBody ? { ...listed, body: editedBody, body_format: 'md' as const } : listed;
+  const withText = listed && editedBody != null && listed.body !== editedBody ? { ...listed, body: editedBody, body_format: 'md' as const } : listed;
+  const withBody = withText;
   const patch = withBody ? patched.get(withBody.piece_id) : undefined;
   const current = withBody && patch ? { ...withBody, ...patch } : withBody;
   // The notes that mention the moment shown, read from their text (RF7): by date, never by count.
@@ -540,6 +623,8 @@ export function CaptureViewer(props: {
   // Back to the note a mentioned moment was opened from (RF4).
   const back = () => setOpenedStack((s) => s.slice(0, -1));
   const close = () => {
+    // The reaction panel belongs to what was open: closing puts it away (reactions audit 8).
+    setReactingTo(null);
     setIndex(0);
     setOpenedStack([]);
     setMentionPick(false);
@@ -606,16 +691,30 @@ export function CaptureViewer(props: {
     router.navigate('/chronicle');
   };
   const editAction =
-    current && (current.kind === 'photo' || current.kind === 'video') && props.onSaveEdit
+    current && (current.kind === 'photo' || current.kind === 'video' || current.kind === 'voice') && props.onSaveEdit
       ? { label: 'Edit', testID: 'viewer-edit', onPress: () => setEditing(current) }
       : current && current.kind === 'text' && props.onSaveNote
         ? { label: 'Edit', testID: 'viewer-edit-note', onPress: () => setNoting(current) }
         : null;
+  // Once, when the viewer shows what an entry's row asked for (decision 0197, SW2, SW4): from a timer, not the effect body.
+  const intentDone = useRef(false);
+  const intentRef = useRef({ respond: () => setReplyStage('sheet'), edit: editAction?.onPress, more: () => setMenu(true) });
+  useEffect(() => {
+    intentRef.current = { respond: () => setReplyStage('sheet'), edit: editAction?.onPress, more: () => setMenu(true) };
+  });
+  const shown = !!current;
+  useEffect(() => {
+    if (!props.intent || intentDone.current || !shown) return;
+    intentDone.current = true;
+    const ask = props.intent;
+    const t = setTimeout(() => intentRef.current[ask]?.(), 0);
+    return () => clearTimeout(t);
+  }, [props.intent, shown]);
   return (
     <Modal
       visible={list.length > 0}
       animationType="fade"
-      onRequestClose={menu ? () => setMenu(false) : mentionPick ? () => setMentionPick(false) : replyStage === 'note' ? () => replyNote.current?.requestClose() : replyStage ? () => setReplyStage(null) : sheetUp ? () => setSheet(null) : adding ? () => setAdding(null) : editing ? () => editor.current?.requestClose() : noting ? () => noteEditor.current?.requestClose() : reminding ? () => setReminding(null) : openedStack.length ? back : close}
+      onRequestClose={reactingTo ? () => setReactingTo(null) : menu ? () => setMenu(false) : mentionPick ? () => setMentionPick(false) : replyStage === 'note' ? () => replyNote.current?.requestClose() : replyStage ? () => setReplyStage(null) : sheetUp ? () => setSheet(null) : adding ? () => setAdding(null) : editing ? () => editor.current?.requestClose() : noting ? () => noteEditor.current?.requestClose() : reminding ? () => remindEditor.current?.requestClose() : openedStack.length ? back : close}
     >
       <View
         style={styles.viewer}
@@ -659,10 +758,16 @@ export function CaptureViewer(props: {
               inThread,
               mentionedBy.length ? MENTIONED : null,
               props.remind && recalls.has(current.id) ? 'Reminder set' : null,
+              // One phrase: its spaces do not break, so "of 0:04" never sits alone on a line (voice-trim ui 3).
+              current.kind === 'voice' ? trimmedLine(current)?.replace(/ /g, '\u00a0') : null,
+              // A piece made later than its moment says when, never where (stack-with-previous audit 10).
+              moment && pieces[pi] ? pieceWhen(moment, pieces[pi]) : null,
               statusOf.get(current.id),
             ]}
             pieces={stacked ? { onPrev: pi > 0 ? () => stepPiece(-1) : undefined, onNext: pi < pieces.length - 1 ? () => stepPiece(1) : undefined } : undefined}
             onOpenRef={(v) => setOpenedStack((st) => [...st, v.capture])}
+            onLens={props.onLens ? (id) => { close(); props.onLens!(id); } : undefined}
+            addRow={openForAdd === current.id}
             note={
               current.kind === 'text'
                 ? {
@@ -691,7 +796,7 @@ export function CaptureViewer(props: {
         )}
         {current && openForAdd === current.id && !editing && !noting && !reminding && !adding && (
           // Add to this moment, only while its pill is open (MS12): back to the walk screen, which adds to it.
-          <View style={[styles.addRow, { top: insets.top + 68 }]} testID="viewer-add">
+          <View style={[styles.addRow, { top: insets.top + VIEWER_TOP + 4 }]} testID="viewer-add">
             {([['Add a photo to this moment', 'camera', 'photo'], ['Add a voice memo to this moment', 'mic', 'voice'], ['Add a note to this moment', 'create', 'text']] as const).map(([label, icon, kind]) => (
               <Pressable
                 key={kind}
@@ -826,8 +931,12 @@ export function CaptureViewer(props: {
             key={noting.id}
             body={noting.body ?? ''}
             bodyFormat={noting.body_format ?? null}
+            // The page's Reaction tool, on the moment shown (RX12): kept at once, never touching the words.
+            reaction={{ set: notingSet, moment: noting.id, onPick: (id) => void reactions.choose(noting.id, id).catch(() => {}) }}
             head={headOf(noting)}
             self={noting.id}
+            pageAt={{ t: noting.t, walkId: noting.walk_id ?? null }}
+            onEditMedia={props.onSaveEdit ? (c, patch) => props.onSaveEdit!(c, patch) : undefined}
             onClose={() => setNoting(null)}
             store={{
               kept: true,
@@ -855,6 +964,7 @@ export function CaptureViewer(props: {
         )}
         {reminding && (
           <RemindEditor
+            ref={remindEditor}
             key={reminding.id}
             current={recalls.get(reminding.id) ?? null}
             onClose={() => setReminding(null)}
@@ -893,10 +1003,34 @@ export function CaptureViewer(props: {
             }}
           />
         )}
+        {reactingTo && current?.id === reactingTo && (
+          <View style={[styles.reactSheet, { paddingBottom: insets.bottom + 12 }]} testID="viewer-reactions">
+            <View style={styles.reactHead}>
+              <Text style={styles.reactTitle} accessibilityRole="header">Reaction</Text>
+              <Pressable testID="reaction-done" accessibilityRole="button" onPress={() => setReactingTo(null)} style={styles.reactDone}>
+                <Text style={styles.reactDoneText}>Done</Text>
+              </Pressable>
+            </View>
+            {/* A choice not kept is said in the panel, the one line for it (RL9). */}
+            <ReactionPanel set={reactingSet} moment={reactingTo} onPick={(id) => void reactions.choose(reactingTo, id).catch(() => {})} />
+          </View>
+        )}
         {menu && current && (
           <>
             <Pressable style={StyleSheet.absoluteFill} onPress={() => setMenu(false)} accessible={false} />
             <ScrollView style={[styles.menu, { top: insets.top + 64, maxHeight: Math.max(220, height - insets.top - insets.bottom - 140) }]} testID="viewer-menu">
+              <Pressable
+                testID="viewer-reaction"
+                accessibilityRole="button"
+                onPress={() => {
+                  setMenu(false);
+                  setReactingTo(current.id);
+                }}
+                style={({ pressed }) => [styles.menuItem, pressed && styles.dim]}
+              >
+                <Icon name="happy-outline" size={22} color={theme.ink} />
+                <Text style={styles.menuText}>Reaction</Text>
+              </Pressable>
               {current.lat != null && props.remind && (
                 // In More since UC9; its state is in the info line (UC12).
                 <Pressable
@@ -925,7 +1059,7 @@ export function CaptureViewer(props: {
                   style={({ pressed }) => [styles.menuItem, pressed && styles.dim]}
                 >
                   <Icon name="navigate" size={22} color={theme.ink} />
-                  <Text style={styles.menuText}>Go here</Text>
+                  <Text style={styles.menuText}>Route here</Text>
                 </Pressable>
               )}
               {(current.kind === 'photo' || current.kind === 'video') && current.file_path && (
@@ -1095,6 +1229,14 @@ const styles = StyleSheet.create({
   },
   metaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   pageArea: { flex: 1 },
+  // A note's type, one line above the page it marks (NY9).
+  pageReactions: { paddingHorizontal: 16, paddingBottom: 10, backgroundColor: theme.surface },
+  stripReactions: { width: '100%', maxWidth: 640, alignSelf: 'center', paddingBottom: 6 },
+  reactSheet: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: theme.surface, borderTopLeftRadius: 22, borderTopRightRadius: 22, paddingTop: 6 },
+  reactHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, width: '100%', maxWidth: 640, alignSelf: 'center' },
+  reactTitle: { color: theme.ink, fontSize: 16, fontWeight: '600' },
+  reactDone: { minHeight: 44, minWidth: 44, alignItems: 'center', justifyContent: 'center' },
+  reactDoneText: { color: theme.ink, fontSize: 16, fontWeight: '700' },
   pageMeta: { paddingHorizontal: 16, paddingVertical: 10, backgroundColor: theme.surface, borderTopWidth: StyleSheet.hairlineWidth, borderColor: theme.line },
   nav: { flexDirection: 'row', gap: 8 },
   action: {

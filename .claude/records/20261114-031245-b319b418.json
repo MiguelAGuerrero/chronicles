@@ -1,0 +1,13 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Capture from Chronicle and the journal (HC1-HC15, decision 0112; JN1-JN24, decision 0155)"
+      ],
+      "body": "- [ ] **Do:** on an iPhone and an Android phone, with a journal of a few dozen entries, force-quit the app and open it on Memories; watch the latest entry. **Expect:** the sheet appears once, with the latest entry under today's date where it rests, and nothing slides or jumps after; a journal with nothing kept appears with its empty page and no gap longer than half a second. Never run on a device: the sheet's opacity gate and its one scroll to the end after the first measure. (fix entry-jitter)\n"
+    }
+  ]
+}

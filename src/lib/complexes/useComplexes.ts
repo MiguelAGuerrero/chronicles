@@ -1,25 +1,51 @@
 // @layer view
+import { nextShown } from './shown';
 import { useEffect, useRef, useState } from 'react';
+import type { Stillness } from '../layers/useStorefrontsLayer';
 import { ensureOvertureRelease } from '../activity/overture';
 import type { LngLat } from '../types';
 import { retryIn } from './extent';
 import { complexes } from './index';
+import { createKindSwitches } from './kindSwitches';
 import { loadHiddenKinds, onHiddenKinds, saveHiddenKinds } from './settings';
 import type { Complex, ComplexKind } from './types';
 
-/** CX10: the kinds switched off, saved as they change. */
-export function useHiddenKinds(): { hidden: ComplexKind[]; set: (next: ComplexKind[]) => void } {
-  const [hidden, setHidden] = useState<ComplexKind[]>([]);
+/**
+ * CX10: the kinds switched off, saved as they change. `loaded` is false until the setting is read: What I'm into's page
+ * draws no switch before (what-im-into-page audit 2). `toggle` builds on the latest list (`createKindSwitches`), so two
+ * quick taps both stay; `hidden` is empty before the read.
+ */
+export function useHiddenKinds(): { hidden: ComplexKind[]; loaded: boolean; toggle: (kind: ComplexKind, on: boolean) => void } {
+  const [hidden, setHidden] = useState<ComplexKind[] | null>(null);
+  const [switches] = useState(() => createKindSwitches((next) => void saveHiddenKinds(next).catch(() => undefined)));
   useEffect(() => {
     let live = true;
-    void loadHiddenKinds().then((h) => live && setHidden(h), () => undefined);
-    const off = onHiddenKinds((h) => live && setHidden(h));
+    void loadHiddenKinds().then(
+      (h) => {
+        if (!live) return;
+        switches.loaded(h);
+        setHidden(switches.get());
+      },
+      () => undefined,
+    );
+    const off = onHiddenKinds((h) => {
+      if (!live) return;
+      switches.heard(h);
+      setHidden(switches.get());
+    });
     return () => {
       live = false;
       off();
     };
-  }, []);
-  return { hidden, set: (next) => void saveHiddenKinds(next) };
+  }, [switches]);
+  return {
+    hidden: hidden ?? [],
+    loaded: hidden != null,
+    toggle: (kind, on) => {
+      const next = switches.toggle(kind, on);
+      if (next) setHidden(next);
+    },
+  };
 }
 
 /**
@@ -27,10 +53,23 @@ export function useHiddenKinds(): { hidden: ComplexKind[]; set: (next: ComplexKi
  * read shows nothing and is asked again once COMPLEX_RETRY_MS has passed, with no change of tab or area (complexes audit 4).
  * Never for the areas merely in view.
  */
-export function useComplexes(enabled: boolean, area: { key: string; at: LngLat; reachM: number } | null): { complexes: Complex[]; partial: boolean } {
+export function useComplexes(
+  enabled: boolean,
+  area: { key: string; at: LngLat; reachM: number } | null,
+  /** Explore's: the read starts once the camera is still, never mid-switch (smooth-switches SS9). */
+  stillness?: Stillness,
+): { complexes: Complex[]; partial: boolean } {
   const [state, setState] = useState<{ key: string | null; complexes: Complex[]; partial: boolean }>({ key: null, complexes: [], partial: false });
   const [tick, setTick] = useState(0);
+  const stateNow = useRef(state);
+  useEffect(() => {
+    stateNow.current = state;
+  }, [state]);
   const failedAt = useRef<{ key: string; t: number } | null>(null);
+  const stillRef = useRef(stillness);
+  useEffect(() => {
+    stillRef.current = stillness;
+  });
   const key = area?.key ?? null;
   const lon = area?.at[0];
   const lat = area?.at[1];
@@ -45,21 +84,33 @@ export function useComplexes(enabled: boolean, area: { key: string; at: LngLat; 
       return () => clearTimeout(timer);
     }
     let live = true;
+    let retry: ReturnType<typeof setTimeout> | null = null;
     void (async () => {
+      const still = stillRef.current;
+      while (still?.().moving) {
+        await still().settled();
+        if (!live) return;
+      }
       const release = await ensureOvertureRelease().catch(() => null);
       if (!live) return;
       const r = release ? await complexes.readArea({ at: [lon, lat], reachM }, release, () => !live).catch(() => null) : null;
       if (!live) return;
       if (!r || r.failed) {
-        failedAt.current = { key, t: Date.now() };
-        setTick((n) => n + 1);
+        // Asked again when due, by the timer alone: a render now would only set it (smooth-switches SS9).
+        const t = Date.now();
+        failedAt.current = { key, t };
+        retry = setTimeout(() => setTick((n) => n + 1), retryIn(t, Date.now()) ?? 0);
         return;
       }
       failedAt.current = null;
-      setState({ key, complexes: r.complexes, partial: r.partial });
+      // explore-dense-city DC12, audit 10: no update when nothing on screen changes: even a setState that hands back the
+      // same state renders once (map rules), so it is compared here first.
+      const next = nextShown(stateNow.current, key, r);
+      if (next !== stateNow.current) setState(next);
     })();
     return () => {
       live = false;
+      if (retry) clearTimeout(retry);
     };
   }, [enabled, key, lon, lat, reachM, tick]);
   return state.key === key ? { complexes: state.complexes, partial: state.partial } : { complexes: [], partial: false };

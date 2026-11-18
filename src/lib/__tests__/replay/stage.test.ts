@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { cardWidth, restCenter, STACK_TOP, STAGE_BOTTOM, STAGE_TOP, type StageCtx } from '../../../components/ceremony/layout';
+import { cardWidth, heldShown, restCenter, STACK_TOP, STAGE_BOTTOM, STAGE_SIDE, STAGE_TOP, type StageCtx } from '../../../components/ceremony/layout';
 
 /** The stage of a phone this size, portrait or landscape, with no insets. */
 const stage = (width: number, height: number): StageCtx => ({
@@ -61,4 +61,20 @@ test('tend replay audit 3: at 320 x 568 under a 20 px status bar a card still st
   assert.ok(y + ch / 2 <= 568 - STAGE_BOTTOM - BUBBLE + 0.01, `the card's foot at ${Math.round(y + ch / 2)} reaches the bubble's ${568 - STAGE_BOTTOM - BUBBLE}`);
   assert.ok(y - ch / 2 >= 20 + STACK_TOP - 0.01, `the card's head at ${Math.round(y - ch / 2)} under the stack`);
   assert.ok(cw >= 80, `no narrower than a card can be (${cw})`);
+});
+
+// Replay pace, the UI review (Nov 18): the line under the clock can now be a sentence ("Passed ... without stopping", RY21).
+test('replay-pace ui 2: "Held" is not drawn under a long line, which wraps and would push it onto a card', () => {
+  assert.equal(heldShown(true, null), true);
+  assert.equal(heldShown(true, '43 min later'), true, 'a break\'s short line leaves it its room');
+  assert.equal(heldShown(true, '1 h 20 min later'), true);
+  assert.equal(heldShown(true, 'Passed Hessian Memorial without stopping'), false);
+  assert.equal(heldShown(true, 'Passed a few places without stopping'), false);
+  assert.equal(heldShown(false, null), false);
+});
+
+test('replay-pace ui 3: the line keeps clear of Hold and of Skip with Next under it, on a 320 px phone too', () => {
+  // The edge, a worded button's width (Skip, Next: 70 px) and 8 px between.
+  assert.ok(STAGE_SIDE >= 12 + 70 + 8, `each side keeps ${STAGE_SIDE} px`);
+  assert.ok(320 - 2 * STAGE_SIDE >= 120, 'and the line still has room to say a place on a 320 px phone');
 });

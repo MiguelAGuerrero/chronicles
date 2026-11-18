@@ -1,6 +1,6 @@
 // @layer core
 import type { LngLat } from '../types';
-import { OUTLINE_ZOOM, outlineTileKey, type OutlinePiece, type OutlineTile } from './outlines';
+import { OUTLINE_ZOOM, outlineTileKey, type HoodPiece, type OutlinePiece, type OutlineTile } from './outlines';
 import type { TileFeature } from './tilePlaces';
 
 /*
@@ -8,8 +8,13 @@ import type { TileFeature } from './tilePlaces';
  * schema. A `division_area` of subtype `locality` on land is a town's border,
  * cut at the tile's edge; a `division` point of the same subtype is the
  * town's own point, joined by `division_id`. Counties, regions and countries
- * are left to the boundary pack, and neighborhood areas are not used: they
- * are mostly districts ("Manhattan Community Board 5"), not neighborhoods.
+ * are left to the boundary pack. Neighborhood shapes (HB1): a `neighborhood` or
+ * `macrohood` area on land with a name is read at the deciding zoom, and the
+ * ones that are not neighborhoods to a walker are left out: a `microhood` is a
+ * plaza or a square, and a name ending in "Association" is a homeowners' or
+ * community association (the owner, Nov 12). Overture's other neighborhood
+ * areas were once left out whole as districts ("Manhattan Community Board 5");
+ * that is what these two subtypes avoid.
  * A locality inside another locality is a subdivision, not a town: Allentown's
  * "10th Ward" is a `locality` whose hierarchy runs through Allentown (fix
  * ward-subdivision). Only the `division` points carry the hierarchy, so a
@@ -21,6 +26,9 @@ import type { TileFeature } from './tilePlaces';
 
 /** Overture classes of a locality that is a settlement in its own right. */
 const SETTLEMENT_CLASSES = new Set(['megacity', 'city', 'town', 'village']);
+
+/** A homeowners' or community association is not a neighborhood to a walker (HB1). */
+const ASSOCIATION = /association\s*$/i;
 
 /** True when every hierarchy of this division has another locality above it (a ward in a city). */
 function nestedLocality(id: string, hierarchies: unknown): boolean {
@@ -67,11 +75,23 @@ export function outlineTileFrom(
     const polygons = polygonsOf(f.geometry).filter((rings) => rings[0]?.length >= 4);
     if (polygons.length) pieces.push({ id, name, polygons });
   }
+  const hoods: HoodPiece[] = [];
+  if (z === OUTLINE_ZOOM) {
+    for (const f of layers.division_area ?? []) {
+      const p = f.properties ?? {};
+      const name = p['@name'];
+      const id = p.division_id;
+      const subtype = p.subtype;
+      if ((subtype !== 'neighborhood' && subtype !== 'macrohood') || p.class === 'maritime' || typeof name !== 'string' || !name.trim() || typeof id !== 'string' || ASSOCIATION.test(name)) continue;
+      const polygons = polygonsOf(f.geometry).filter((rings) => rings[0]?.length >= 4);
+      if (polygons.length) hoods.push({ id, name, subtype, polygons });
+    }
+  }
   const points: OutlineTile['points'] = [];
   for (const f of layers.division ?? []) {
     const p = f.properties ?? {};
     if (p.subtype !== 'locality' || typeof p.id !== 'string' || nested.has(p.id) || f.geometry.type !== 'Point') continue;
     points.push({ id: p.id, at: f.geometry.coordinates as LngLat });
   }
-  return { key: outlineTileKey(x, y, z), z, x, y, release, read_at: readAt, pieces, points, nested: [...nested] };
+  return { key: outlineTileKey(x, y, z), z, x, y, release, read_at: readAt, pieces, points, ...(z === OUTLINE_ZOOM ? { hoods } : {}), nested: [...nested] };
 }

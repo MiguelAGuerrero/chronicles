@@ -1,0 +1,16 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "section",
+        "item",
+        "remove",
+        "From /slice reactions",
+        "Gathering a reaction's moments was found late",
+        "--reason",
+        "built in reaction-links (decision 0177)"
+      ],
+      "target": "sha256:0e6680da4d79002a3607561bac0cd9e808d2ed9cdbd17819963fb8930ebecf9a"
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "downloaded and parsed on every cold web launch",
+        "--reason",
+        "Shipped as the owner answered in person, Nov 16: \"Fetch on first search\": on the web only, the pack is its own file with a fixed name, fetched the first time search opens, from the app's own site; native keeps the bundled require. In the commit \"Place search on the web: the pack is a file of its own, fetched on first search (gazetteer web fetch 1-5)\": the entry script went from 10,710,885 to about 5.0 MB; the launch journey checks it holds no geonames-cities5000 and that the pack is fetched once, on first search; the exception and its stale-page trap are in docs/ARCHITECTURE.md."
+      ],
+      "target": "sha256:79a7b8c32ea53a33220bd5ffca96ef3ad98b26e4d6bd508fd7fde012734efa5a"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Place search (GZ1-GZ19, decision 0184)",
+        "--new"
+      ],
+      "body": "- [ ] **Do:** on a phone, with the network off from launch, open Explore's magnifier for the first time. **Expect:** \"Getting ready…\" draws first, then \"zuric\" lists Zürich: the phone reads the pack bundled in the app (`gazetteer/source.ts`'s `require`), never the web's fetch; the loader split (`loader.ts`, gazetteer-web-fetch) adds one microtask before the pack is validated and nothing else (the review of the web fetch, Nov 17).\n",
+      "intro": "Place search (decision 0184): the pack on a phone.\n"
+    },
+    {
+      "argv": [
+        "open",
+        "add"
+      ],
+      "body": "- **Place search's GZ9 and GZ10 on the web** (Nov 17; the owner's answer in person to the web fetch's review, F2: \"Acceptable\"). What ships: on the web the pack is fetched on first search, so a page loaded online that goes offline before its first search shows \"Search is unavailable.\" with Try again (`gazetteer-web-fetch audit 2`); the phone keeps the bundled pack. Still to say in the owner's words: `specs/place-search/spec.md` GZ9 (\"The pack is bundled: no fetch of the data, ever\") and GZ10 (\"It works offline\"), and decision 0184's \"bundled\", which now hold on the phone only; the answer goes into the decision record the accent run is writing.\n"
+    }
+  ]
+}

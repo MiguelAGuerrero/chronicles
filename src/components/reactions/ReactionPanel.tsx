@@ -1,0 +1,73 @@
+import { useCallback, useEffect } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { reactions } from '../../lib/reactions';
+import type { ReactionsState } from '../../lib/reactions/shell';
+import { useStore } from '../../lib/useStore';
+import { familyRows, type ReactionId, type ReactionSet } from '../../lib/reactions/core';
+import { Icon, type IconName } from '../icons';
+import { theme } from '../ui';
+
+const ROWS = familyRows();
+
+/**
+ * The reactions (RX6, RX10-RX12, RX34, RX36; decision 0176): three rows under the words Feeling, Taste and Thought,
+ * each reaction a glyph over its name. A tap chooses it, replacing its family's, or clears it if it was the one; the
+ * panel stays, so a second family is one more tap. In ink only: a chosen one is shown by weight, a check beside its name
+ * and its spoken state, never a fill, a rule like a tab's or a second colour (reactions ui 3). Every row has three
+ * columns, so the families line up (reactions ui 5). Drawn where it is asked for (above the journal's bar, in a sheet,
+ * above a page's bar); never a Modal of its own.
+ */
+export function ReactionPanel(props: { set: ReactionSet; onPick: (id: ReactionId) => void; testID?: string; /** The moment chosen for: a choice not kept is said for it, and forgotten when the panel closes (RL9). */ moment?: string | null }) {
+  const { moment } = props;
+  const notKept = useStore(reactions.store, useCallback((s: ReactionsState) => !!moment && s.notKept === moment, [moment]));
+  useEffect(() => () => reactions.closed(moment), [moment]);
+  return (
+    <View testID={props.testID ?? 'reaction-panel'} style={styles.panel} accessibilityLabel="Reactions">
+      {/* A choice that could not be kept, said once in the journal's words (RL9); never a count, never a nag. In ink at
+          the top, right under the panel's header, where it is seen (reaction-links ui 2). */}
+      {notKept ? <Text style={styles.notKept} testID="reaction-not-kept" accessibilityLiveRegion="polite">Not kept yet</Text> : null}
+      {ROWS.map((f) => (
+        <View key={f.id} style={styles.family} testID={`reaction-family-${f.id}`} accessibilityRole="radiogroup" accessibilityLabel={f.name}>
+          <Text style={styles.familyName} testID="reaction-group-name">{f.name}</Text>
+          <View style={styles.row}>
+            {f.reactions.map((r) => {
+              const on = props.set[f.id] === r.id;
+              return (
+                <Pressable
+                  key={r.id}
+                  testID={`reaction-pick-${r.id}`}
+                  accessibilityRole="radio"
+                  accessibilityLabel={`${r.name}, ${f.name}`}
+                  accessibilityState={{ checked: on }}
+                  aria-checked={on}
+                  onPress={() => props.onPick(r.id)}
+                  style={({ pressed }) => [styles.pick, on && styles.pickOn, pressed && styles.pressed]}
+                >
+                  <Icon name={r.glyph as IconName} size={22} color={theme.ink} testID={`reaction-glyph-${r.id}`} />
+                  <View style={styles.nameRow}>
+                    <Text style={[styles.name, on && styles.nameOn]} numberOfLines={1} testID="reaction-name">{r.name}</Text>
+                    {on ? <Icon name="checkmark" size={13} color={theme.ink} testID="reaction-check" /> : null}
+                  </View>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  panel: { width: '100%', maxWidth: 624, alignSelf: 'center', paddingHorizontal: 8, paddingBottom: 4, gap: 2 },
+  family: { gap: 0 },
+  familyName: { fontSize: 12, color: theme.muted, paddingHorizontal: 6, paddingTop: 4 },
+  row: { flexDirection: 'row' },
+  pick: { width: '33.333%', minHeight: 52, minWidth: 44, alignItems: 'center', justifyContent: 'center', gap: 2, paddingHorizontal: 2 },
+  pickOn: {},
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  pressed: { opacity: 0.6 },
+  name: { color: theme.ink, fontSize: 12 },
+  nameOn: { fontWeight: '700' },
+  notKept: { color: theme.ink, fontSize: 14, paddingHorizontal: 6, paddingTop: 4 },
+});

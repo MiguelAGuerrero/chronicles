@@ -1,7 +1,17 @@
 // Quality of life: map staples (QL1-QL12, the owner's spec, Nov 3): Locate, the scale bar and the
 // trace's end markers, read through the map's data attributes. E2E_ONLY=qol runs it alone.
 
+const fs = require('fs');
 const path = require('path');
+
+// map-palette MP11: the map's colours read from their source, `COLORS` in map/types.ts, so the checks hold whatever
+// the palette is and a palette change leaves no copied hex behind. An [r, g, b], or null for a key it does not hold.
+const MAP_TYPES = fs.readFileSync(path.join(path.dirname(module.filename), '..', '..', '..', 'src', 'components', 'map', 'types.ts'), 'utf8');
+function paletteRgb(key) {
+  const block = /export const COLORS = \{([\s\S]*?)\n\};/.exec(MAP_TYPES);
+  const m = block && new RegExp(`\\n\\s*${key}: '#([0-9a-fA-F]{6})'`).exec(block[1]);
+  return m ? [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)) : null;
+}
 
 // The map's credits start closed behind their (i) button, and a real tap on it opens them (owner, Nov 4: maplibre's
 // compact attribution opened itself across the bottom of a phone's map). Tapped where a finger would tap, never
@@ -101,8 +111,170 @@ function creditsChecks({ check, shot }) {
   };
 }
 
+// tend map audit 22-24 (the T14 review's F4, F5, U1, U2; decision 0154): pins of several of every shape, at 390 and
+// 320 (two photos, three notes, a voice memo and a video, a photo and a note), the same faint as memories, and a bell
+// on each. A walk of its own in a fresh page, so the steps before it change nothing here.
+async function pinsOfSeveral(h, pg8, c8, { check, shot }) {
+  const { navUrl, at, scriptsDir, toStop } = h;
+  const go = async (x, y) => {
+    const p = at(x, y);
+    await c8.setGeolocation({ longitude: p[0], latitude: p[1], accuracy: 6 });
+    await pg8.waitForTimeout(900);
+  };
+  const take = async (file, saved) => {
+    const [chooser] = await Promise.all([pg8.waitForEvent('filechooser'), pg8.click('[data-testid=cap-photo]')]);
+    await chooser.setFiles(path.join(scriptsDir, 'fixtures', file));
+    await pg8.waitForSelector(`text=${saved}`, { timeout: 20000 }).catch(() => null);
+    await pg8.waitForTimeout(1500);
+  };
+  const note = async (text) => {
+    await pg8.click('[data-testid=cap-note]');
+    await pg8.fill('[data-testid=note-input]', text);
+    await pg8.click('[data-testid=note-done]');
+    await pg8.waitForTimeout(1500);
+  };
+  const voice = async () => {
+    await pg8.click('[data-testid=cap-voice]');
+    await pg8.waitForSelector('[data-testid=voice-save]');
+    await pg8.waitForTimeout(2500);
+    await pg8.click('[data-testid=voice-save]');
+    await pg8.waitForTimeout(1500);
+  };
+  // Every pin of several on the map: its name, its head's colour, its discs' colours and boxes, the bell's box, the
+  // opacity each is seen at (its own times every ancestor's, up to the marker), any digit or video mark.
+  const several = (memory) => pg8.$$eval(memory ? '.maplibregl-map [data-testid=memory-pin][data-ids*=","]' : '.maplibregl-map button[data-ids*=","]:not([data-testid=memory-pin])', (els) => els.map((el) => {
+    const seen = (n) => { let o = 1; for (let e = n; e && e !== el; e = e.parentElement) o *= Number(getComputedStyle(e).opacity); return o; };
+    const box = (n) => { if (!n) return null; const r = n.getBoundingClientRect(); return { l: r.left, t: r.top, r: r.right, b: r.bottom }; };
+    const head = el.querySelector('[data-testid=pin-head]');
+    const discs = [...el.querySelectorAll('[data-testid=pin-kind]')];
+    const bell = el.querySelector('[data-testid=pin-reminder]');
+    return {
+      label: el.getAttribute('aria-label'),
+      head: head && getComputedStyle(head).backgroundColor,
+      headSeen: head && Math.round(seen(head) * 100) / 100,
+      discs: discs.map((d) => ({ bg: getComputedStyle(d).backgroundColor, seen: Math.round(seen(d) * 100) / 100, box: box(d) })),
+      bell: box(bell),
+      digits: /\d/.test(el.textContent || ''),
+      videoMark: !!el.querySelector('[data-testid=pin-video-mark]'),
+      thumb: !!el.querySelector('[data-testid=pin-thumb]'),
+    };
+  }));
+  // The pin of several's head, read from the source (MP11).
+  const MIXED = `rgb(${(paletteRgb('several') || []).join(', ')})`;
+
+  await pg8.goto(navUrl);
+  await pg8.waitForSelector('[data-testid=start]');
+  await pg8.waitForTimeout(1500);
+  await go(-0.5, -0.5);
+  await pg8.click('[data-testid=start]');
+  await pg8.waitForSelector('[data-testid=walk-actions]');
+  for (let i = 1; i <= 5; i++) await go(-0.5, -0.5 + i * 0.04);
+  // Two photos; 140 m on, three notes; 140 m on, a voice memo and a video; 140 m on, a photo and a note, reminded.
+  await take('photo.jpg', 'Photo saved here');
+  await take('photo.jpg', 'Photo saved here');
+  for (let i = 1; i <= 35; i++) await go(-0.5 + i * 0.04, -0.3);
+  await note('One.');
+  await note('Two.');
+  await note('Three.');
+  for (let i = 1; i <= 35; i++) await go(0.9, -0.3 + i * 0.04);
+  await voice();
+  await take('clip-4s.webm', 'Video saved here');
+  for (let i = 1; i <= 35; i++) await go(0.9 - i * 0.04, 1.1);
+  await take('photo.jpg', 'Photo saved here');
+  await note('Four.');
+  await go(-0.5, 1.14);
+  await pg8.waitForTimeout(2500);
+
+  // tend map audit 22: every pin of several on the neutral head, its two discs in their kinds' colours; one kind twice;
+  // no numeral; and a pin of two videos (or a video and a memo) has no still and no video mark (VS3, VS4 are one moment's).
+  const walkPins = await several(false);
+  const want = [/^Two photos, .+\. Open$/, /^Three notes, .+\. Open$/, /^A voice memo and a video, .+\. Open$/, /^A photo and a note, .+\. Open$/];
+  check(want.every((re) => walkPins.some((p) => re.test(p.label)))
+    && walkPins.length === 4 && walkPins.every((p) => p.head === MIXED && p.discs.length === 2 && p.discs.every((d) => d.bg !== MIXED) && !p.digits && !p.videoMark && !p.thumb),
+    `tend map audit 22: every pin of several is the neutral head with two discs of its kinds, one kind twice, no numeral, no still or video mark (${JSON.stringify(walkPins.map((p) => ({ label: p.label, head: p.head, discs: p.discs.map((d) => d.bg), digits: p.digits, videoMark: p.videoMark, thumb: p.thumb })))})`);
+  const severalSrc = paletteRgb('several');
+  check(!!severalSrc && walkPins.length === 4 && walkPins.every((p) => p.head === `rgb(${severalSrc.join(', ')})`), `MP11: every pin of several's head is COLORS.several, read from the source (${JSON.stringify(severalSrc)}; ${JSON.stringify(walkPins.map((p) => p.head))})`);
+  await shot(pg8, 'qol-15-pins-several-390');
+  await pg8.setViewportSize({ width: 320, height: 640 });
+  await pg8.waitForTimeout(1500);
+  await shot(pg8, 'qol-15-pins-several-320');
+  await pg8.setViewportSize({ width: 390, height: 844 });
+  await pg8.waitForTimeout(1000);
+
+  // Two boxes that do not overlap.
+  const apart = (a, b) => !a || !b || a.r <= b.l || b.r <= a.l || a.b <= b.t || b.b <= a.t;
+  // tend map audit 24: a reminder on the pin of a photo and a note; its bell stands clear of both discs.
+  const four = pg8.locator('.maplibregl-map button[data-ids*=","]:not([data-testid=memory-pin])[aria-label^="A photo and a note"]');
+  await four.first().click();
+  await pg8.waitForSelector('[data-testid=viewer-more]');
+  await pg8.locator('[data-testid=viewer-more]').filter({ visible: true }).first().click();
+  await pg8.locator('[data-testid=viewer-remind]').filter({ visible: true }).first().click();
+  await pg8.waitForSelector('[data-testid=remind-editor]');
+  await pg8.click('[data-testid=remind-save]');
+  await pg8.waitForSelector('[data-testid=capture-meta] >> text=/Reminder set/');
+  await pg8.locator('[data-testid=viewer-close]').filter({ visible: true }).first().click();
+  await pg8.waitForTimeout(1200);
+  const belled = (await several(false)).find((p) => /^A photo and a note/.test(p.label));
+  check(!!belled && !!belled.bell && belled.discs.length === 2 && belled.discs.every((d) => apart(belled.bell, d.box)) && /reminder set/.test(belled.label),
+    `tend map audit 24: a pin of several with a reminder shows its bell clear of its discs, and says so (${JSON.stringify(belled)})`);
+  await shot(pg8, 'qol-16-pin-several-bell');
+
+  // Stop; then a second walk past the first one's pins brings them back as memories.
+  await toStop(pg8);
+  const b = await pg8.locator('[data-testid=stop]').boundingBox();
+  await pg8.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
+  await pg8.mouse.down();
+  await pg8.waitForTimeout(1100);
+  await pg8.mouse.up();
+  await pg8.waitForURL(/replay/, { timeout: 30000 });
+  await pg8.waitForSelector('[data-testid=skip]', { timeout: 30000 });
+  await pg8.click('[data-testid=skip]');
+  await pg8.waitForSelector('[data-testid=to-name]', { timeout: 30000 });
+  await pg8.waitForTimeout(1500);
+  await shot(pg8, 'qol-17-pins-several-replay');
+  await pg8.goto(navUrl);
+  await pg8.waitForSelector('[data-testid=start]');
+  await pg8.waitForTimeout(1500);
+  await go(-0.5, -0.5);
+  await pg8.click('[data-testid=start]');
+  await pg8.waitForSelector('[data-testid=walk-actions]');
+  for (let i = 1; i <= 5; i++) await go(-0.5, -0.5 + i * 0.04);
+  for (let i = 1; i <= 20; i++) await go(-0.5 + i * 0.04, -0.3);
+  await pg8.waitForSelector('[data-testid=memory-pin][data-ids*=","]', { timeout: 15000 }).catch(() => null);
+  await pg8.waitForTimeout(1500);
+
+  // tend map audit 23: on a memory, the discs keep their full opacity at the faint pin's size; the head stays faded.
+  const faint = await several(true);
+  check(faint.length >= 1 && faint.every((p) => p.headSeen === 0.55 && p.discs.length === 2 && p.discs.every((d) => d.seen === 1) && /^Memories: /.test(p.label) && !p.digits),
+    `tend map audit 23: a memory pin of several shows its discs solid over its faded head (${JSON.stringify(faint.map((p) => ({ label: p.label, head: p.headSeen, discs: p.discs.map((d) => d.seen) })))})`);
+  await shot(pg8, 'qol-18-memory-several-390');
+  await pg8.setViewportSize({ width: 320, height: 640 });
+  await pg8.waitForTimeout(1500);
+  await shot(pg8, 'qol-18-memory-several-320');
+  await pg8.setViewportSize({ width: 390, height: 844 });
+  await pg8.waitForTimeout(1000);
+
+  // tend map audit 24, on a memory: a reminder set from the memory's viewer; the bell top left stays clear of the discs.
+  const memoryPin = pg8.locator('.maplibregl-map [data-testid=memory-pin][data-ids*=","]').first();
+  await memoryPin.click();
+  await pg8.waitForSelector('[data-testid=memory-preview]');
+  await pg8.click('[data-testid=memory-open]');
+  await pg8.waitForSelector('text=Memories here');
+  await pg8.locator('[data-testid=viewer-more]').filter({ visible: true }).last().click();
+  await pg8.locator('[data-testid=viewer-remind]').filter({ visible: true }).last().click();
+  await pg8.waitForSelector('[data-testid=remind-editor]');
+  await pg8.click('[data-testid=remind-save]');
+  await pg8.waitForSelector('[data-testid=capture-meta] >> text=/Reminder set/');
+  await pg8.locator('[data-testid=viewer-close]').filter({ visible: true }).last().click();
+  await pg8.waitForTimeout(1500);
+  const faintBell = (await several(true)).find((p) => p.bell);
+  check(!!faintBell && faintBell.discs.length === 2 && faintBell.discs.every((d) => apart(faintBell.bell, d.box)) && /reminder set/.test(faintBell.label),
+    `tend map audit 24: a memory pin of several with a reminder shows its bell clear of its discs (${JSON.stringify(faintBell)})`);
+  await shot(pg8, 'qol-19-memory-several-bell');
+}
+
 async function run(h) {
-  const { navUrl, BASE, browser, start, at, style, check, shot, drawerTo, tabTo, freshPage, scriptsDir } = h;
+  const { navUrl, exploreUrl, BASE, browser, start, at, style, check, shot, drawerTo, tabTo, freshPage, scriptsDir, toStop } = h;
     const creditsCheck = creditsChecks(h);
     const { c, pg } = await freshPage('qol');
     await c.addInitScript(() => {
@@ -172,6 +344,7 @@ async function run(h) {
       return [z0, Number(await attr('data-zoom'))];
     };
     const holdStop = async () => {
+      await toStop(pg);
       const b = await pg.locator('[data-testid=stop]').boundingBox();
       await pg.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
       await pg.mouse.down();
@@ -186,10 +359,12 @@ async function run(h) {
 
     // What is drawn around a point of the map (QL3): green pixels (the trace's colour) and the middle one,
     // read from a screenshot of the composited page, decoded in the page.
-    const pixelsAround = async (p, r = 14) => {
-      const [x, y] = await pg.evaluate((q) => window.__project(q), p);
-      const png = await pg.screenshot({ clip: { x: x - r, y: y - r, width: 2 * r, height: 2 * r } });
-      return pg.evaluate(async (b64) => {
+    // `radial`: for each radius in CSS px from the point, the four pixels right, left, below and above it (tend map T25).
+    // `page`: another page than the journey's own (tend map audit 25's loop walk).
+    const pixelsAround = async (p, r = 14, radii = [], page = pg) => {
+      const [x, y] = await page.evaluate((q) => window.__project(q), p);
+      const png = await page.screenshot({ clip: { x: x - r, y: y - r, width: 2 * r, height: 2 * r } });
+      return page.evaluate(async ([b64, r, radii]) => {
         const bytes = Uint8Array.from(atob(b64), (ch) => ch.charCodeAt(0));
         const bmp = await createImageBitmap(new Blob([bytes], { type: 'image/png' }));
         const cv = new OffscreenCanvas(bmp.width, bmp.height);
@@ -200,8 +375,14 @@ async function run(h) {
         let green = 0;
         for (let i = 0; i < d.length; i += 4) if (near(i, [0x15, 0x80, 0x3d], 90)) green++;
         const c = ((bmp.height >> 1) * bmp.width + (bmp.width >> 1)) * 4;
-        return { green, white: near(c, [255, 255, 255], 24), centre: [d[c], d[c + 1], d[c + 2]] };
-      }, png.toString('base64'));
+        const k = bmp.width / (2 * r);
+        const px = (dx, dy) => {
+          const i = ((Math.round(bmp.height / 2 + dy * k) * bmp.width) + Math.round(bmp.width / 2 + dx * k)) * 4;
+          return [d[i], d[i + 1], d[i + 2]];
+        };
+        const radial = radii.map((q) => [px(q, 0), px(-q, 0), px(0, q), px(0, -q)]);
+        return { green, white: near(c, [255, 255, 255], 24), centre: [d[c], d[c + 1], d[c + 2]], radial };
+      }, [png.toString('base64'), r, radii]);
     };
 
     // A real two-finger turn (tend map 1): two touches swung 90° about a point in the map's top third, sent through
@@ -355,7 +536,7 @@ async function run(h) {
       await pg.waitForTimeout(1100);
       await drawerTo(pg, 'full');
       const destText = await pg.locator('[data-testid=drawer-dest]').innerText().catch(() => '');
-      check(/\d+(\.\d+)? (m|km|ft|mi)\b/.test(destText), `qol QL14: the destination line carries a distance (${JSON.stringify(destText)})`);
+      check(/\d+(\.\d+)?[ \u00a0](m|km|ft|mi)\b/.test(destText), `qol QL14: the destination line carries a distance (${JSON.stringify(destText)})`);
       await drawerTo(pg, 'peek');
     }
 
@@ -480,6 +661,66 @@ async function run(h) {
       check(Math.abs(turnedChronicle) < 0.5, `tend map 1: Chronicle's map has no compass, so two fingers never turn it (CP1, decision 0082; bearing ${turnedChronicle})`);
       await checkAttribution('Chronicle');
     }
+    // tend map audit 35 (tend map 16's cull, the review's F1): the web map draws only the pins in a box round the view,
+    // and a pin's head stands up to 48 px above its foot. A placed moment 4 px past the box's south edge, the map panned
+    // south until its bottom is 2 px short of that edge: the foot is just off screen, the head on it, and the pin is drawn. 3 km
+    // east of the walk, and taken out again after, so no later check meets it.
+    // (qstep is defined with the walk below; this step reports a throw the same way.)
+    await (async () => {
+      const margin = Number(/export const PIN_CULL_MARGIN = ([\d.]+);/.exec(fs.readFileSync(path.join(scriptsDir, '..', 'src/lib/pins.ts'), 'utf8'))?.[1]);
+      const C = at(30, 0);
+      const Z = 16;
+      const canvasSize = () => pg.evaluate(() => {
+        const cs = [...document.querySelectorAll('canvas.maplibregl-canvas')].filter((e) => !e.closest('[aria-hidden=true]'));
+        const r = cs[cs.length - 1].getBoundingClientRect();
+        return { x: r.x, y: r.y, w: r.width, h: r.height };
+      });
+      await pg.evaluate(([c, z]) => window.__zoomTo(c, z), [C, Z]);
+      await pg.waitForTimeout(600);
+      const cv = await canvasSize();
+      const P = await pg.evaluate(([x, y]) => window.__unproject([x, y]), [cv.w / 2, cv.h * (1 + margin) + 4]);
+      const putMoment = (rm) => pg.evaluate(([lon, lat, del]) => new Promise((resolve, reject) => {
+        const req = indexedDB.open('chronicles');
+        req.onsuccess = () => {
+          const tx = req.result.transaction(['moment'], 'readwrite');
+          const id = 'audit35-edge';
+          const piece = { id, moment_id: id, t: Date.now() - 86_400_000, kind: 'text', file_path: null, body: 'At the edge' };
+          if (del) tx.objectStore('moment').delete(id);
+          else tx.objectStore('moment').put({ id, walk_id: null, t: piece.t, lat, lon, segment_id: null, piece_ids: [id], pieces: [piece] });
+          tx.oncomplete = () => resolve();
+          tx.onerror = () => reject(tx.error);
+        };
+      }), [P[0], P[1], rm]);
+      await putMoment(false);
+      try {
+        // Chronicle reads its moments when it comes to the front.
+        await tabTo(pg, 'navigate');
+        await pg.waitForTimeout(800);
+        await tabTo(pg, 'chronicle');
+        await pg.waitForTimeout(1500);
+        await pg.evaluate(([c, z]) => window.__zoomTo(c, z), [C, Z]);
+        await pg.waitForTimeout(800);
+        const pinHere = () => pg.evaluate(() => {
+          const el = [...document.querySelectorAll('.maplibregl-marker[data-ids="audit35-edge"]')].find((e) => !e.closest('[aria-hidden=true]'));
+          if (!el) return null;
+          const r = el.getBoundingClientRect();
+          return { top: Math.round(r.top), bottom: Math.round(r.bottom) };
+        });
+        const before = await pinHere();
+        // South by the margin less 2 px: the view's bottom is just inside the box's south edge, so the bare view never
+        // asks for a new box (an exact meeting can tip either way), and the foot lies 6 px below the screen.
+        const S = await pg.evaluate(([x, y]) => window.__unproject([x, y]), [cv.w / 2, cv.h / 2 + cv.h * margin - 2]);
+        await pg.evaluate(([c, z]) => window.__zoomTo(c, z), [S, Z]);
+        await pg.waitForTimeout(800);
+        const after = await pinHere();
+        const foot = await pg.evaluate((q) => window.__project(q), P);
+        await shot(pg, 'qol-audit35-pin-at-edge');
+        check(after !== null && foot[1] > cv.y + cv.h && after.top < cv.y + cv.h,
+          `tend map audit 35: a pin whose foot is just past the box's edge, its head on screen, is drawn (before the pan ${JSON.stringify(before)}, after ${JSON.stringify(after)}; foot at y ${Math.round(foot[1])}, canvas bottom ${Math.round(cv.y + cv.h)}; margin ${margin})`);
+      } finally {
+        await putMoment(true);
+      }
+    })().catch((e) => check(false, `tend map audit 35: ${String(e.message).split('\n')[0]}`));
     await tabTo(pg, 'navigate');
     await pg.waitForTimeout(800);
 
@@ -515,12 +756,15 @@ async function run(h) {
       await chooser.setFiles(path.join(scriptsDir, 'fixtures', 'photo.jpg'));
       await pg.waitForSelector('text=Photo saved here', { timeout: 15000 }).catch(() => {});
       // Inside the photo's own pin on the walk map (a pin's content may be hidden from screen readers under its label).
-      const thumb = pg.locator('.maplibregl-map [aria-label="Photo. Open"] [data-testid=pin-thumb]');
+      const thumb = pg.locator('.maplibregl-map [aria-label^="Photo, "][aria-label$=". Open"] [data-testid=pin-thumb]');
       await thumb.first().waitFor({ timeout: 20000 }).catch(() => {});
       const row = await capRow('photo');
       const inPin = (await thumb.count()) > 0;
       check((await thumb.count()) === 1 && inPin && row && row.thumb_path && row.thumb_path !== 'none',
         `qol QL26, QL27: the photo's pin shows its small copy once it is made, without a reload (${await thumb.count()} pictures, in its pin ${inPin}, thumb ${row && row.thumb_path})`);
+      // tend map audit 31: the pin of one photo says its minutes in (tend map T28), read whole, not only by its kind.
+      const photoLabel = await pg.locator('.maplibregl-map [aria-label^="Photo"][aria-label$=". Open"]').first().getAttribute('aria-label').catch(() => null);
+      check(/^Photo, (at the start|.+ in)(, with more in this moment)?(, reminder set)?\. Open$/.test(photoLabel ?? ''), `tend map audit 31: a pin of one photo says its minutes in (${photoLabel})`);
     });
     await qstep('qol note', async () => {
       await pg.click('[data-testid=cap-note]');
@@ -556,6 +800,7 @@ async function run(h) {
       check(qlNav && qlNav.opacity === '0' && qlNav.px.green <= 3 && px && px.white && px.green >= 30,
         `qol QL3: the start marker sits above the trace and goes with it while navigating (navigating: ${JSON.stringify(qlNav && { opacity: qlNav.opacity, ...qlNav.px })}; after End: ${JSON.stringify(px)})`);
       const s5 = await scaleBar();
+      await toStop(pg);
       const stop = await pg.locator('[data-testid=stop]').boundingBox();
       check(round(s5) && fits(s5) && s5.box && stop && s5.box.y + s5.box.height <= stop.y + 0.5,
         `qol QL8: the walk screen's scale bar sits clear of its bottom strip (bar bottom ${s5 && s5.box && Math.round(s5.box.y + s5.box.height)}, strip from ${stop && Math.round(stop.y)}; ${describe(s5)})`);
@@ -569,8 +814,10 @@ async function run(h) {
       await pg.waitForTimeout(600);
       const shownW = await compassW.count();
       await shot(pg, 'qol-02a-walk-compass');
-      // The button below the compass in this state: Walk me back while it shows, else the unwalked switch (tend map audit 7).
-      const expectW = (await pg.locator('[data-testid=walk-back]').filter({ visible: true }).count()) ? 'walk-back' : 'unwalked';
+      // The button below the compass in this state: Walk me back while it shows, else Recenter while it shows, else the map
+      // (tend map audit 7; WB3, the unwalked switch went with decision 0222).
+      const expectW = (await pg.locator('[data-testid=walk-back]').filter({ visible: true }).count()) ? 'walk-back'
+        : (await pg.locator('[data-testid=recenter]').filter({ visible: true }).count()) ? 'recenter' : 'CANVAS';
       if (shownW) {
         await compassW.first().focus();
         await pg.keyboard.press('Enter');
@@ -580,6 +827,58 @@ async function run(h) {
       check(shownW === 1 && (await compassW.count()) === 0 && focusedW === expectW,
         `tend map 6: on the walk, turned, the compass shows; pressed from the keyboard it leaves and the focus goes to the column's next button (shown ${shownW}, focus on ${focusedW}, expected ${expectW}; tend map audit 7)`);
     }
+    // tend map 15 (CP4, CP7 on the live walk): turned by two real fingers (following stops: the gesture carries an
+    // originalEvent, `__turn` does not), Recenter (following again, still turned), then the compass tapped while the dot
+    // moves on: the map goes north and keeps following. Each follow frame's jump cut the compass's ease after one frame,
+    // so the map stayed turned. Walked on east and back, so the trace still ends where the photo and the note were kept.
+    await qstep('tend map 15', async () => {
+      const compassF = pg.locator('[data-testid=compass]').filter({ visible: true });
+      const recenter = pg.locator('[data-testid=recenter]').filter({ visible: true });
+      let out = 0;
+      let back = false;
+      const walking = (async () => {
+        while (!back) {
+          out++;
+          await fix(at(-0.5 + (8 + out) * 0.05, -0.5));
+          await pg.waitForTimeout(1000);
+        }
+        for (let k = out - 1; k >= 0; k--) {
+          await fix(at(-0.5 + (8 + k) * 0.05, -0.5));
+          await pg.waitForTimeout(1000);
+        }
+      })();
+      try {
+        // Moving again: the dot glides and the camera follows it frame by frame.
+        await pg.waitForTimeout(3500);
+        const turned = await twoFingerTurn();
+        const stopped = await recenter.count();
+        if (stopped) await recenter.first().click();
+        await pg.waitForTimeout(800);
+        const followingAgain = (await recenter.count()) === 0;
+        const turnedStill = Number((await attr('data-bearing')) || 0);
+        const shownF = await compassF.count();
+        if (shownF) await compassF.first().click();
+        await pg.waitForTimeout(1500);
+        const north = Number((await attr('data-bearing')) || 0);
+        const left = await compassF.count();
+        const stillFollowing = (await recenter.count()) === 0;
+        // Following after the ease: the camera's middle is on the dot (the glide frames caught it up).
+        const off = await pg.evaluate(() => {
+          const maps = [...document.querySelectorAll('[data-zoom]')].filter((e) => !e.closest('[aria-hidden=true]'));
+          const c = maps[maps.length - 1]?.getAttribute('data-center');
+          const d = document.querySelector('[data-testid=walker-puck]')?.getAttribute('data-at');
+          return c && d ? [c.split(',').map(Number), d.split(',').map(Number)] : null;
+        });
+        const offM = off ? mAway(off[0], off[1]) : null;
+        check(Math.abs(turned) > 5 && stopped === 1 && followingAgain && Math.abs(turnedStill) > 5 && shownF === 1,
+          `tend map 15: on the walk, two fingers turn the map and stop following; Recenter follows again, still turned, with the compass (turned ${turned}, Recenter shown ${stopped}, following again ${followingAgain}, bearing ${turnedStill}, compass ${shownF})`);
+        check(Math.abs(north) < 0.5 && left === 0 && stillFollowing && offM != null && offM < 5,
+          `tend map 15: following while walking, the compass brings the map north and leaves, and the map keeps following the dot (CP4; bearing ${north}, ${left} compass, following ${stillFollowing}, middle ${offM == null ? '-' : offM.toFixed(1)} m from the dot)`);
+      } finally {
+        back = true;
+        await walking;
+      }
+    });
     await checkAttribution('the walk screen', 'qol-06-walk-credits-open');
 
     // Stopped: both ends, and the bar above the card.
@@ -604,14 +903,29 @@ async function run(h) {
         const hiddenNow = () => pg.evaluate(() => [...document.querySelectorAll('.maplibregl-marker')].filter((m) => m.style.visibility === 'hidden').length);
         const thrown = await markersHidden(async () => { throw new Error('a read that fails'); }).then(() => false, () => true);
         const left = await hiddenNow();
-        const [pxStart, pxEnd] = await markersHidden(async () => [await pixelsAround(startAt), await pixelsAround(endAt)]);
+        // tend map T25: the end read across, 4 to 9 px out from its point.
+        const [pxStart, pxEnd] = await markersHidden(async () => [await pixelsAround(startAt), await pixelsAround(endAt, 14, [4, 5, 6, 7, 8, 9])]);
         const leftAfter = await hiddenNow();
         check(thrown && left === 0 && leftAfter === 0,
           `tend map audit 8: after the ends read every marker is visible again, a failed read too (hidden after a throw ${left}, after the read ${leftAfter})`);
-        const walked = [0xc2, 0x41, 0x0c];
+        // The walked colour, read from the source (MP11).
+        const walked = paletteRgb('walked');
         const nearWalked = (c) => Math.abs(c[0] - walked[0]) + Math.abs(c[1] - walked[1]) + Math.abs(c[2] - walked[2]) <= 60;
         check(pxStart.white && !pxEnd.white && nearWalked(pxEnd.centre),
           `tend map T16: the start is hollow (white middle) and the end solid in the walked colour (start ${JSON.stringify(pxStart.centre)}, end ${JSON.stringify(pxEnd.centre)})`);
+        const walkedSrc = paletteRgb('walked');
+        const nearSrc = (cc) => !!walkedSrc && Math.abs(cc[0] - walkedSrc[0]) + Math.abs(cc[1] - walkedSrc[1]) + Math.abs(cc[2] - walkedSrc[2]) <= 60;
+        check(nearSrc(pxEnd.centre) && pxEnd.radial.some((at) => at.some(nearSrc)), `MP11: the end's centre and ring are COLORS.walked, read from the source (${JSON.stringify(walkedSrc)}; centre ${JSON.stringify(pxEnd.centre)})`);
+        // tend map T25 (the owner's yes, Nov 13; decision 0162): the end is a bullseye, so it differs in shape from the
+        // walker's solid dot as well as from the hollow start: in each of the four directions from the walked centre, a
+        // white band 4 to 6 px out and a walked ring 7 to 9 px out (a pixel's slack for where the point falls). The dot
+        // is one navy disc to 9 px, with no band.
+        const isWhite = (c) => Math.abs(c[0] - 255) + Math.abs(c[1] - 255) + Math.abs(c[2] - 255) <= 60;
+        const dirs = [0, 1, 2, 3].map((k) => pxEnd.radial.map((at) => at[k]));
+        const bandWhite = dirs.filter((d) => d.slice(0, 3).some(isWhite)).length;
+        const ringWalked = dirs.filter((d) => d.slice(3).some(nearWalked)).length;
+        check(nearWalked(pxEnd.centre) && bandWhite === 4 && ringWalked === 4,
+          `tend map T25: the end is a bullseye, a walked centre, a white band and a walked outer ring (centre ${JSON.stringify(pxEnd.centre)}, band white ${bandWhite}/4, ring walked ${ringWalked}/4; right, left, below, above from 4 to 9 px ${JSON.stringify(dirs)})`);
       }
       const s6 = await scaleBar();
       // The card: the outermost painted box around Name it.
@@ -631,6 +945,30 @@ async function run(h) {
       check(Math.abs(turnedReplay) < 0.5, `tend map 1: the replay's map has no compass, so two fingers never turn it (CP1, decision 0082; bearing ${turnedReplay})`);
     }
     await shot(pg, 'qol-03-replay-card');
+    // tend map 13 (decision 0172, O13; amends QL3's placement): the photo and the note were kept where the trace ends, so
+    // their pin stands on the end marker; its stalk stops at the marker's edge (11 px above its middle), never inside it.
+    // At 390 and at 320.
+    await qstep('tend map 13', async () => {
+      const footOnEnd = async () => {
+        const endAt = lonLat(((await attr('data-ends')) ?? '').split('|')[1]);
+        const [ex, ey] = await pg.evaluate((q) => window.__project(q), endAt);
+        const feet = await pg.evaluate(() => [...document.querySelectorAll('.maplibregl-marker [data-testid=pin-head]')]
+          .filter((h) => !h.closest('[aria-hidden="true"]') && h.getBoundingClientRect().width > 0)
+          .map((h) => { const r = h.getBoundingClientRect(); return [r.x + r.width / 2, r.bottom + 8]; }));
+        const foot = feet.filter(([x]) => Math.abs(x - ex) < 11).sort((a, b) => Math.abs(a[0] - ex) - Math.abs(b[0] - ex))[0] ?? null;
+        return { end: [ex, ey].map(Math.round), foot: foot && foot.map((v) => Math.round(v * 10) / 10), above: foot ? ey - foot[1] : null };
+      };
+      const at390 = await footOnEnd();
+      await pg.setViewportSize({ width: 320, height: 568 });
+      await pg.waitForTimeout(1500);
+      const at320 = await footOnEnd();
+      await shot(pg, 'qol-03b-pin-on-end-320');
+      await pg.setViewportSize({ width: 390, height: 844 });
+      await pg.waitForTimeout(1500);
+      const atEdge = (r) => r.above != null && Math.abs(r.above - 11) <= 1.5;
+      check(atEdge(at390) && atEdge(at320),
+        `tend map 13: a pin standing on the end stops its stalk at the marker's edge, 11 px above its middle, at 390 and 320 (${JSON.stringify({ at390, at320 })})`);
+    });
     await checkAttribution('the replay', 'qol-07-replay-credits-open');
     // QL3: the markers never take a tap: the photo and the note were kept where the trace ends, so their
     // pin stands on the end marker, and a tap there opens it.
@@ -651,7 +989,7 @@ async function run(h) {
 
     // A note edited from the replay's viewer reads the new words when opened again (QL24, QL25).
     const openNote = async () => {
-      await pg.locator('[aria-label$="captures here. Open"], [aria-label="Note. Open"]').last().click();
+      await pg.locator('.maplibregl-map button[data-ids*=","]:not([data-testid=memory-pin]), [aria-label^="Note, "][aria-label$=". Open"]').last().click();
       await pg.waitForSelector('[data-testid=viewer-close]', { timeout: 10000 });
       for (let i = 0; i < 4; i++) {
         if (await pg.locator('[data-testid=viewer-more]').count()) {
@@ -694,6 +1032,71 @@ async function run(h) {
       check(prefilled === 'First words on the corner.' && blankRefused && seenNow && seenAgain && row && row.body === 'Edited on the replay.',
         `qol QL24, QL25: Edit note opens prefilled, refuses blank, and the new words show at once and when opened again (prefilled ${JSON.stringify(prefilled)}, blank refused ${blankRefused}, now ${seenNow}, again ${seenAgain}, stored ${JSON.stringify(row && row.body)})`);
       await pg.click('[data-testid=viewer-close]');
+      await pg.waitForTimeout(400);
+    });
+
+    // Reactions on the replay's note (RX12, RX15, RX18; they replaced note types, decision 0176): the page's Reaction
+    // tool where Type was, the panel in view on a small phone, the viewer's marks, and the pin the note shares with a
+    // photo still saying its kinds.
+    await qstep('reactions RX12, RX15', async () => {
+      await openNote();
+      const bare = await pg.locator('[data-testid=capture-viewer] [data-testid=reaction-marks]').count();
+      await pg.click('[data-testid=viewer-edit-note]');
+      await pg.locator('[data-testid=note-page]').waitFor({ timeout: 5000 });
+      const tool = pg.locator('[data-testid=note-reaction-tool]');
+      const toolBefore = (await tool.count()) ? await tool.getAttribute('aria-label') : '';
+      const typeTool = await pg.locator('[data-testid=note-type-row]').count();
+      if (await tool.count()) await tool.click();
+      const pressed = (await tool.count()) ? await tool.getAttribute('aria-pressed') : null;
+      const picks = await pg.locator('[data-testid=reaction-panel] [data-testid^=reaction-pick-]').count();
+      // note-types audit 9, carried: on a small phone with the panel open, the panel and the page's bar stay in view.
+      const vp = pg.viewportSize();
+      await pg.setViewportSize({ width: 320, height: 520 });
+      await pg.waitForTimeout(500);
+      const inView = await pg.evaluate(() => {
+        const m = document.querySelector('[data-testid=reaction-panel]')?.getBoundingClientRect();
+        const b = document.querySelector('[data-testid=note-bar]').getBoundingClientRect();
+        return { top: m ? Math.round(m.top) : -1, right: m ? Math.round(m.right) : 9999, barBottom: Math.round(b.bottom), h: window.innerHeight, w: window.innerWidth };
+      });
+      await shot(pg, 'qol-06-reaction-panel-320');
+      await pg.setViewportSize(vp);
+      await pg.waitForTimeout(400);
+      await pg.click('[data-testid=reaction-pick-idea]').catch(() => null);
+      await pg.waitForTimeout(500);
+      const toolAfter = (await tool.count()) ? await tool.getAttribute('aria-label') : '';
+      await pg.click('[data-testid=note-done]');
+      await pg.waitForTimeout(800);
+      const marks = await pg.locator('[data-testid=capture-viewer] [data-testid=reaction-marks]').getAttribute('aria-label').catch(() => null);
+      const nameStyle = await pg.evaluate(() => {
+        const el = document.querySelector('[data-testid=capture-viewer] [data-testid=reaction-marks] [data-testid=reaction-name]');
+        if (!el) return null;
+        const st = getComputedStyle(el);
+        return { color: st.color, size: parseFloat(st.fontSize) };
+      });
+      await shot(pg, 'qol-07-reaction-on-the-note');
+      await pg.click('[data-testid=viewer-close]');
+      await pg.waitForTimeout(600);
+      // The note shares its pin with the photo: a pin of several says its kinds (tend map T14) and wears no bubbles (RX19).
+      const several = await pg.$$eval('.maplibregl-map button[data-ids*=","]:not([data-testid=memory-pin])', (es) => es.map((e) => ({
+        label: e.getAttribute('aria-label'), kinds: e.querySelectorAll('[data-testid=pin-kind]').length, digits: /\d/.test(e.textContent || ''), bubbles: e.querySelectorAll('[data-testid=pin-reaction]').length,
+      })));
+      const pin = several.filter((p) => /^A photo and a note, (at the start|.+ minutes? in)\. Open$/.test(p.label) && p.kinds === 2 && !p.digits && p.bubbles === 0).length;
+      check(bare === 0 && typeTool === 0 && toolBefore === 'Reaction, none' && picks === 8 && toolAfter === 'Reaction, Idea' && pressed === 'true',
+        `RX12: the note page's Reaction tool, where Type was, opens the eight and shows the choice (${JSON.stringify({ bare, typeTool, toolBefore, picks, toolAfter, pressed })})`);
+      check(inView.top >= 0 && inView.barBottom <= inView.h && inView.right <= inView.w, `note-types audit 9, carried: at 320 x 520 the reactions and the page's bar stay in view (${JSON.stringify(inView)})`);
+      check(marks === 'Idea' && !!nameStyle && nameStyle.color === 'rgb(29, 36, 48)' && nameStyle.size >= 14,
+        `RX15: the viewer shows the note's reaction under its info line, its name in ink at 14 px or more (${JSON.stringify({ marks, nameStyle })})`);
+      check(pin >= 1, `RX19, tend map T14: the pin that holds the note and a photo says its two kinds, fanned, no numeral, no bubbles (${JSON.stringify(several)})`);
+      // Back to none, so the steps after this one meet the note as before.
+      await openNote();
+      await pg.click('[data-testid=viewer-edit-note]');
+      await pg.locator('[data-testid=note-reaction-tool]').click().catch(() => null);
+      await pg.click('[data-testid=reaction-pick-idea]').catch(() => null);
+      await pg.click('[data-testid=note-done]').catch(() => null);
+      await pg.waitForTimeout(600);
+      const cleared = await pg.locator('[data-testid=capture-viewer] [data-testid=reaction-marks]').count();
+      check(cleared === 0, `RX5: choosing the chosen reaction again clears it (${cleared})`);
+      await pg.click('[data-testid=viewer-close]').catch(() => null);
       await pg.waitForTimeout(400);
     });
 
@@ -881,6 +1284,113 @@ async function run(h) {
       await pg.click('[data-testid=actions-cancel]');
       await pg.waitForSelector('[data-testid=walk-actions]', { state: 'detached', timeout: 5000 });
     });
+
+    // tend chronicle 9 (decision 0172, O17): a tap outside or Escape with changed words in Rename asks first, in the
+    // media editor's words; Escape on the ask keeps editing, Discard steps out to the menu with nothing stored, and
+    // words left as they opened close at once. Pictured at 320 px with the ask open.
+    await qstep('tend chronicle 9', async () => {
+      const vp = pg.viewportSize();
+      await pg.setViewportSize({ width: 320, height: 640 });
+      const storedTitles = () => pg.evaluate(() => new Promise((resolve) => {
+        const req = indexedDB.open('chronicles');
+        req.onsuccess = () => {
+          const g = req.result.transaction('walk', 'readonly').objectStore('walk').getAll();
+          g.onsuccess = () => resolve(g.result.map((w) => w.title).sort());
+        };
+      }));
+      const state = async () => ({
+        ask: await pg.locator('[data-testid=rename-ask]').count(),
+        editor: await pg.locator('[data-testid=rename-editor]').count(),
+        menu: await pg.locator('[data-testid=walk-actions]').count(),
+        askText: (await pg.locator('[data-testid=rename-ask]').allInnerTexts()).join(' | '),
+        title: (await pg.locator('[data-testid=rename-title]').count()) ? await pg.locator('[data-testid=rename-title]').inputValue() : null,
+      });
+      try {
+        const before = await storedTitles();
+        await pg.locator('[data-testid=walk-more]').first().click();
+        await pg.click('[data-testid=action-rename]');
+        await pg.locator('[data-testid=rename-title]').waitFor({ timeout: 5000 });
+        await pg.waitForTimeout(800);
+        await pg.locator('[data-testid=rename-title]').fill('A name half typed');
+        // The backdrop, above the sheet.
+        await pg.mouse.click(160, 30);
+        await pg.waitForTimeout(400);
+        const tapped = await state();
+        await shot(pg, 'qol-04c-rename-ask-320');
+        await pg.keyboard.press('Escape');
+        await pg.waitForTimeout(400);
+        const kept = await state();
+        await pg.keyboard.press('Escape');
+        await pg.waitForTimeout(400);
+        const escaped = await state();
+        await pg.click('[data-testid=rename-discard]');
+        await pg.waitForTimeout(400);
+        const discarded = await state();
+        const after = await storedTitles();
+        // Opened again and left as it was: a tap outside steps out at once.
+        await pg.click('[data-testid=action-rename]');
+        await pg.locator('[data-testid=rename-title]').waitFor({ timeout: 5000 });
+        await pg.waitForTimeout(800);
+        await pg.mouse.click(160, 30);
+        await pg.waitForTimeout(400);
+        const unchanged = await state();
+        check(tapped.ask === 1 && tapped.editor === 1 && tapped.title === 'A name half typed'
+          && /Discard these edits\?/.test(tapped.askText) && /Keep editing/.test(tapped.askText) && /Discard$/.test(tapped.askText.trim())
+          && kept.ask === 0 && kept.editor === 1 && kept.title === 'A name half typed'
+          && escaped.ask === 1 && escaped.editor === 1
+          && discarded.editor === 0 && discarded.menu === 1 && JSON.stringify(after) === JSON.stringify(before)
+          && unchanged.ask === 0 && unchanged.editor === 0 && unchanged.menu === 1,
+          `tend chronicle 9: a tap outside or Escape with changed words asks first, Escape keeps editing, Discard stores nothing, unchanged words close at once (${JSON.stringify({ tapped, kept, escaped, discarded, unchanged, before, after })})`);
+      } finally {
+        await pg.click('[data-testid=rename-discard]', { timeout: 1000 }).catch(() => {});
+        await pg.click('[data-testid=rename-cancel]', { timeout: 1000 }).catch(() => {});
+        await pg.click('[data-testid=actions-cancel]', { timeout: 1000 }).catch(() => {});
+        await pg.waitForSelector('[data-testid=walk-actions]', { state: 'detached', timeout: 5000 }).catch(() => {});
+        if (vp) await pg.setViewportSize(vp);
+      }
+    });
+
+    // tend chronicle audit 5: Enter (a phone's Done) in the line while the ask shows is Keep editing, never a hidden
+    // Save: the ask goes, the editor keeps the words, and nothing is stored. Escape here is pressed with the focus in
+    // the changed field.
+    await qstep('tend chronicle audit 5', async () => {
+      const titles = () => pg.evaluate(() => new Promise((resolve) => {
+        const req = indexedDB.open('chronicles');
+        req.onsuccess = () => {
+          const g = req.result.transaction('walk', 'readonly').objectStore('walk').getAll();
+          g.onsuccess = () => resolve(g.result.map((w) => [w.title, w.epilogue]).sort());
+        };
+      }));
+      try {
+        const before = await titles();
+        await pg.locator('[data-testid=walk-more]').first().click();
+        await pg.click('[data-testid=action-rename]');
+        await pg.locator('[data-testid=rename-epilogue]').waitFor({ timeout: 5000 });
+        await pg.waitForTimeout(800);
+        const line = pg.locator('[data-testid=rename-epilogue]');
+        await line.fill('Words not yet kept');
+        await line.press('Escape');
+        await pg.waitForTimeout(400);
+        const asked = await pg.locator('[data-testid=rename-ask]').count();
+        await line.press('Enter');
+        await pg.waitForTimeout(600);
+        const after = {
+          ask: await pg.locator('[data-testid=rename-ask]').count(),
+          editor: await pg.locator('[data-testid=rename-editor]').count(),
+          save: await pg.locator('[data-testid=rename-save]').count(),
+          line: (await line.count()) ? await line.inputValue() : null,
+        };
+        const stored = await titles();
+        check(asked === 1 && after.ask === 0 && after.editor === 1 && after.save === 1 && after.line === 'Words not yet kept'
+          && JSON.stringify(stored) === JSON.stringify(before),
+          `tend chronicle audit 5: Enter while Rename asks keeps editing and stores nothing (${JSON.stringify({ asked, after, before, stored })})`);
+      } finally {
+        await pg.click('[data-testid=rename-cancel]', { timeout: 1000 }).catch(() => {});
+        await pg.click('[data-testid=rename-discard]', { timeout: 1000 }).catch(() => {});
+        await pg.click('[data-testid=actions-cancel]', { timeout: 1000 }).catch(() => {});
+        await pg.waitForSelector('[data-testid=walk-actions]', { state: 'detached', timeout: 5000 }).catch(() => {});
+      }
+    });
     await c.close();
 
     // tend map 3 at 320 px: the credits stay reachable, and open over no control, on every map of a narrow phone.
@@ -895,12 +1405,14 @@ async function run(h) {
       await creditsCheck(p3, 'Navigate at 320', 'qol-08-ready-credits-open-320');
       await p3.click('[data-testid=start]');
       await p3.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
-      for (let k = 1; k <= 4; k++) {
+      // Past the empty-walk threshold (15 m of spread, decision 0187), so Stop plays this walk's replay.
+      for (let k = 1; k <= 8; k++) {
         await fix3(at(-0.5 + k * 0.05, -0.5));
         await p3.waitForTimeout(900);
       }
       await p3.waitForTimeout(1500);
       await creditsCheck(p3, 'the walk screen at 320', 'qol-09-walk-credits-open-320');
+      await toStop(p3);
       const sb = await p3.locator('[data-testid=stop]').boundingBox();
       await p3.mouse.move(sb.x + sb.width / 2, sb.y + sb.height / 2);
       await p3.mouse.down();
@@ -923,6 +1435,50 @@ async function run(h) {
       await c3.close();
     }
 
+    // tend map T17 (decision 0154): a refused location is a quiet notice in ink, never the red fault, in the owner's words,
+    // every word of it on screen; and with no fix and no tiles drawn, no scale bar over the blank world ("2,000 km").
+    // tend walk-screen 4 (decision 0172, O19): the browser's or the phone's settings, on Locate's line and Start's.
+    const T17_WORDS = 'Location is off for this site. Turn it on in your browser’s or your phone’s settings to see where you are.';
+    // tend explore audit 9: the empty card's line while location is blocked (the owner, in person, Nov 14).
+    const BLOCKED_WORDS = 'Location is off. Turn it on in your browser’s or your phone’s settings to see the areas around you.';
+    // tend recording T26 (decision 0162): Start's refusal, Locate's line with its own end.
+    const T26_WORDS = 'Location is off for this site. Turn it on in your browser’s or your phone’s settings to record a walk.';
+    // The region's text as written, the zero-width space a repeat adds kept (tend recording audit 4).
+    const rawSaid = (page, id) => page.evaluate((id) => [...document.querySelectorAll(`[data-testid=${id}]`)].map((e) => e.textContent), id);
+    const saidIn = (page, id) => page.evaluate((id) => [...document.querySelectorAll(`[data-testid=${id}]`)].map((e) => ({ live: e.getAttribute('aria-live'), text: e.textContent.replace(/\u200B/g, '') })), id);
+    // The quiet notice holding `words`, read from the page: its role and live region, its colours, and each line of its
+    // words from the browser's own line boxes (getClientRects), none cut.
+    const readNotice = (page, words) => page.evaluate((words) => {
+      const shown = (el) => !el.closest('[aria-hidden=true]') && el.getBoundingClientRect().width > 0;
+      const banner = [...document.querySelectorAll('[data-testid=lift-in]')].filter(shown).find((b) => b.innerText.includes(words));
+      const bars = [...document.querySelectorAll('[data-testid=scale-bar]')].filter((b) => b.getBoundingClientRect().width > 0).map((b) => b.innerText);
+      if (!banner) return { banner: null, bars, texts: [...document.querySelectorAll('[data-testid=lift-in]')].map((b) => b.innerText) };
+      const text = [...banner.querySelectorAll('div')].find((d) => d.innerText.trim() === words && !d.querySelector('div'));
+      const box = banner.getBoundingClientRect();
+      // Each line of the words, from the browser's own line boxes: none cut by the banner or the screen's edge.
+      const range = document.createRange();
+      if (text) range.selectNodeContents(text);
+      const lines = text ? [...range.getClientRects()].filter((q) => q.width > 0) : [];
+      const cut = lines.filter((q) => q.left < box.left - 0.5 || q.right > box.right + 0.5 || q.top < box.top - 0.5 || q.bottom > box.bottom + 0.5 || q.right > window.innerWidth || q.left < 0);
+      const textColor = text ? getComputedStyle(text).color : null;
+      return {
+        banner: { role: banner.getAttribute('role'), live: banner.getAttribute('aria-live'), bg: getComputedStyle(banner).backgroundColor, color: textColor },
+        lines: lines.length,
+        cut: cut.length,
+        bars,
+      };
+    }, words);
+    const isQuiet = (b) => !!b && b.role !== 'alert' && b.live === 'polite' && b.bg === 'rgb(255, 247, 230)' && b.color !== 'rgb(180, 35, 24)';
+    const deniedNotice = async (page, where, { blank }) => {
+      const seen = await readNotice(page, T17_WORDS);
+      const b = seen.banner;
+      // The error banner is #fdecea with the danger red's text; the quiet notice is the app's notice, dark amber on cream (#fff7e6).
+      check(isQuiet(b) && seen.lines >= 1 && seen.cut === 0,
+        `tend map T17: ${where}, Locate refused says "${T17_WORDS}" as a quiet notice, not an alert in red, every line whole (${JSON.stringify(seen)})`);
+      if (blank) check(seen.bars.length === 0, `tend map T17: ${where}, with no fix and no tiles drawn, no scale bar over a blank world (${JSON.stringify(seen.bars)})`);
+      else check(seen.bars.length === 1, `tend map T17: ${where}, with no fix but the tiles drawn, the scale bar stays (${JSON.stringify(seen.bars)})`);
+    };
+
     // Location denied (QL19): a browser that refuses position requests. The "Not recording" chip is a
     // button that brings the recorder's notice back after it was dismissed.
     {
@@ -931,7 +1487,7 @@ async function run(h) {
       await pg2.waitForSelector('[data-testid=start]');
       // QL21: Navigate's own fix as it comes to the front is refused, quietly: no banner, no chip. Locate
       // is the loud path: its tap says why.
-      const deniedSaid = () => pg2.getByText(/Location permission was denied|Couldn.t find your position/).count();
+      const deniedSaid = () => pg2.getByText(/Location is off for this site|Couldn.t find your position/).count();
       await pg2.waitForTimeout(3000);
       const quiet = { banners: await deniedSaid(), chip: await pg2.locator('[data-testid=status-chip]').count() };
       await pg2.locator('xpath=//*[@data-testid="locate"][not(ancestor::*[@aria-hidden="true"])]').first().click();
@@ -940,32 +1496,502 @@ async function run(h) {
       await shot(pg2, 'qol-13-locate-denied');
       check(quiet.banners === 0 && quiet.chip === 0 && loud >= 1,
         `qol QL21: denied, Navigate's own fix on focus stays quiet; Locate says why (on focus ${JSON.stringify(quiet)}, after Locate ${loud})`);
+      // The fake streets draw at the world's zoom (a speck): tiles drawn, so the bar stays.
+      await deniedNotice(pg2, 'Navigate at 390', { blank: false });
       for (let i = 0; i < 4 && (await pg2.locator('[data-testid=banner-dismiss]').count()); i++) {
         await pg2.locator('[data-testid=banner-dismiss]').first().click();
         await pg2.waitForTimeout(300);
       }
       await pg2.waitForTimeout(800);
+      // tend recording T26 (decision 0162): Start refused says Locate's line with its own end, quietly, in the same slot,
+      // and the polite region kept on screen says it to a screen reader (as tend map audit 12).
       await pg2.click('[data-testid=start]');
-      const chip = pg2.locator('[data-testid=status-chip]');
-      await chip.waitFor({ timeout: 20000 }).catch(() => {});
-      const onWalk = /\/walk$/.test(new URL(pg2.url()).pathname);
-      if (onWalk && (await chip.count())) {
-        const noticeText = 'Location permission was denied';
-        const notice = () => pg2.locator('[data-testid=lift-in]', { hasText: noticeText });
-        const first = (await notice().count()) > 0;
-        const dismiss = pg2.locator('[data-testid=banner-dismiss]');
-        if (await dismiss.count()) await dismiss.first().click();
-        await pg2.waitForTimeout(400);
-        const gone = (await notice().count()) === 0;
-        await chip.first().click();
-        await pg2.waitForTimeout(600);
-        check((await chip.first().getAttribute('role')) === 'button' && (await chip.first().getAttribute('aria-label')) === 'Not recording. Why?' && first && gone && (await notice().count()) === 1,
-          `qol QL19: denied, the Not recording chip is a button whose tap brings the notice back (first ${first}, dismissed ${gone}, back ${await notice().count()})`);
-      } else {
-        const banner = await pg2.locator('[data-testid=lift-in]').allInnerTexts();
-        check(banner.some((t) => /Location permission was denied/.test(t)), `qol QL19: denied, Start explains where to allow location (walk opened: ${onWalk}; ${JSON.stringify(banner)})`);
+      await pg2.waitForTimeout(3000);
+      const startSeen = await readNotice(pg2, T26_WORDS);
+      const startSaid = await saidIn(pg2, 'ready-said');
+      await shot(pg2, 'qol-13b-start-denied');
+      check(isQuiet(startSeen.banner) && startSeen.lines >= 1 && startSeen.cut === 0 && startSaid.length === 1 && startSaid[0].text === T26_WORDS
+        && (await pg2.getByText(/Location permission was denied/).count()) === 0,
+        `tend recording T26: Navigate at 390, Start refused says "${T26_WORDS}" as a quiet notice, not an alert in red, every line whole, and the live region says it (${JSON.stringify({ ...startSeen, said: startSaid })})`);
+      // tend walk-screen audit 2 (the review's auditor 1): a refused Start has no walk, so location given back after it
+      // records nothing: no position is stored, and no walk opens.
+      await c2.grantPermissions(['geolocation']);
+      for (let j = 1; j <= 3; j++) {
+        const p = at(-0.5, -0.5 + j * 0.01);
+        await c2.setGeolocation({ longitude: p[0], latitude: p[1], accuracy: 6 });
+        await pg2.waitForTimeout(1000);
       }
+      const afterStart = await pg2.evaluate(() => new Promise((resolve) => {
+        const req = indexedDB.open('chronicles');
+        req.onsuccess = () => {
+          const tx = req.result.transaction(['trace_point', 'walk'], 'readonly');
+          const f = tx.objectStore('trace_point').count();
+          const w = tx.objectStore('walk').getAll();
+          tx.oncomplete = () => resolve({ fixes: f.result, open: w.result.filter((x) => x.open).length });
+        };
+      }));
+      check(afterStart.fixes === 0 && afterStart.open === 0,
+        `tend walk-screen audit 2: after a refused Start, location given back stores no position and opens no walk (${JSON.stringify(afterStart)})`);
       await c2.close();
+    }
+
+    // QL19 and tend recording T26: a walk whose location is refused once it is open (permission taken back, the page
+    // reloaded) shows the "Not recording" chip, a button whose tap brings the recorder's quiet notice back after a
+    // dismissal, in Start's words; the walk's live region says it. At 390 and 320.
+    for (const [w, hgt] of [[390, 844], [320, 700]]) {
+      const { c: c5, pg: pg5 } = await freshPage(`qol-denied-walk-${w}`);
+      // The page's visibility, faked (as `hidden`), so a return to the front can be made (tend walk-screen 2).
+      await c5.addInitScript(() => {
+        window.__vis = 'visible';
+        Object.defineProperty(document, 'visibilityState', { get: () => window.__vis });
+        Object.defineProperty(document, 'hidden', { get: () => window.__vis === 'hidden' });
+      });
+      await pg5.setViewportSize({ width: w, height: hgt });
+      await pg5.goto(navUrl);
+      await pg5.waitForSelector('[data-testid=start]');
+      await pg5.waitForTimeout(1500);
+      await pg5.click('[data-testid=start]');
+      await pg5.waitForSelector('[data-testid=walk-minimize]', { timeout: 20000 });
+      await pg5.waitForTimeout(1500);
+      await c5.clearPermissions();
+      await pg5.reload();
+      const chip = pg5.locator('[data-testid=status-chip]');
+      await chip.waitFor({ timeout: 20000 }).catch(() => {});
+      await pg5.waitForTimeout(1500);
+      const notice = () => pg5.locator('[data-testid=lift-in]', { hasText: T26_WORDS });
+      const firstSeen = await readNotice(pg5, T26_WORDS);
+      const firstSaid = await saidIn(pg5, 'walk-said');
+      await shot(pg5, `qol-13c-walk-not-recording-${w}`);
+      const dismiss = pg5.locator('[data-testid=banner-dismiss]');
+      if (await dismiss.count()) await dismiss.first().click();
+      await pg5.waitForTimeout(400);
+      const gone = (await notice().count()) === 0;
+      const goneSaid = await saidIn(pg5, 'walk-said');
+      if (await chip.count()) await chip.first().click();
+      await pg5.waitForTimeout(600);
+      const back = await notice().count();
+      const backSaid = await saidIn(pg5, 'walk-said');
+      check((await chip.count()) === 1 && (await chip.first().getAttribute('role')) === 'button' && (await chip.first().getAttribute('aria-label')) === 'Not recording. Why?' && !!firstSeen.banner && gone && back === 1,
+        `qol QL19: ${w}, denied, the Not recording chip is a button whose tap brings the notice back (first ${!!firstSeen.banner}, dismissed ${gone}, back ${back})`);
+      check(isQuiet(firstSeen.banner) && firstSeen.lines >= 1 && firstSeen.cut === 0
+        && firstSaid.length === 1 && firstSaid[0].live === 'polite' && firstSaid[0].text === T26_WORDS && goneSaid[0]?.text === '' && backSaid[0]?.text === T26_WORDS,
+        `tend recording T26: the walk at ${w}, Not recording says "${T26_WORDS}" quietly, every line whole, and the live region says it each time it shows (${JSON.stringify({ ...firstSeen, said: [firstSaid, goneSaid, backSaid] })})`);
+      // tend recording audit 4: a second tap of the chip with the notice still up is said again: the region's text changes.
+      const upRaw = await rawSaid(pg5, 'walk-said');
+      if (await chip.count()) await chip.first().click();
+      await pg5.waitForTimeout(600);
+      const againRaw = await rawSaid(pg5, 'walk-said');
+      check(upRaw.length === 1 && againRaw.length === 1 && againRaw[0] !== upRaw[0] && againRaw[0].replace(/\u200B/g, '') === T26_WORDS,
+        `tend recording audit 4: at ${w}, the chip's tap with the notice up changes the walk's live region, so it is said again (${JSON.stringify([upRaw, againRaw])})`);
+      // tend walk-screen 2: location allowed again and the page back in front, the walk records again, and the
+      // refusal's notice goes with the chip; it outlived the retry that restarted the recorder (the T26 review's F5).
+      const fixesOf = () => pg5.evaluate(() => new Promise((resolve) => {
+        const req = indexedDB.open('chronicles');
+        req.onsuccess = () => {
+          const g = req.result.transaction('trace_point', 'readonly').objectStore('trace_point').count();
+          g.onsuccess = () => resolve(g.result);
+        };
+      }));
+      const fixesOff = await fixesOf();
+      await c5.grantPermissions(['geolocation']);
+      await pg5.evaluate(() => { window.__vis = 'hidden'; document.dispatchEvent(new Event('visibilitychange')); });
+      await pg5.waitForTimeout(300);
+      await pg5.evaluate(() => { window.__vis = 'visible'; document.dispatchEvent(new Event('visibilitychange')); });
+      for (let j = 1; j <= 3; j++) {
+        const p = at(-0.5, -0.5 + j * 0.01);
+        await c5.setGeolocation({ longitude: p[0], latitude: p[1], accuracy: 6 });
+        await pg5.waitForTimeout(1000);
+      }
+      const back5 = { chip: await chip.count(), notice: await notice().count(), fixes: (await fixesOf()) - fixesOff };
+      check(back5.chip === 0 && back5.notice === 0 && back5.fixes > 0,
+        `tend walk-screen 2: at ${w}, location allowed again and the page back in front, the walk records again and the refusal's notice goes with the chip (${JSON.stringify(back5)})`);
+      await c5.close();
+    }
+
+    // tend walk-screen 3 (decision 0172, O22): location turned off mid-walk, on the page as it is (no reload, no return to
+    // the front), stops the recording with the quiet notice; turned back on, the walk records again by itself, with no
+    // new words: the notice and the chip go. Nothing is stored for the off span: no pause row, so it reads as a gap.
+    for (const [w, hgt] of [[390, 844], [320, 700]]) {
+      const { c: c8, pg: pg8 } = await freshPage(`qol-location-back-${w}`);
+      // tend walk-screen audit 6: the screen's wake locks, counted (headless Chromium grants none of its own).
+      await c8.addInitScript(() => {
+        window.__locks = { held: 0, taken: 0 };
+        Object.defineProperty(navigator, 'wakeLock', {
+          configurable: true,
+          value: {
+            request: async () => {
+              window.__locks.held++;
+              window.__locks.taken++;
+              let released = false;
+              return { release: async () => { if (!released) { released = true; window.__locks.held--; } } };
+            },
+          },
+        });
+      });
+      await pg8.setViewportSize({ width: w, height: hgt });
+      await pg8.goto(navUrl);
+      await pg8.waitForSelector('[data-testid=start]');
+      await pg8.waitForTimeout(1500);
+      await pg8.click('[data-testid=start]');
+      await pg8.waitForSelector('[data-testid=walk-minimize]', { timeout: 20000 });
+      await pg8.waitForTimeout(1500);
+      const stored = () => pg8.evaluate(() => new Promise((resolve) => {
+        const req = indexedDB.open('chronicles');
+        req.onsuccess = () => {
+          const tx = req.result.transaction(['trace_point', 'pause'], 'readonly');
+          const f = tx.objectStore('trace_point').count();
+          const p = tx.objectStore('pause').count();
+          tx.oncomplete = () => resolve({ fixes: f.result, pauses: p.result });
+        };
+      }));
+      const chip8 = pg8.locator('[data-testid=status-chip]');
+      const notice8 = () => pg8.locator('[data-testid=lift-in]', { hasText: T26_WORDS }).count();
+      await c8.clearPermissions();
+      await chip8.waitFor({ timeout: 10000 }).catch(() => {});
+      await pg8.waitForTimeout(800);
+      const off = { chip: await chip8.count(), notice: await notice8(), ...(await stored()) };
+      await shot(pg8, `qol-13g-walk-location-off-${w}`);
+      await c8.grantPermissions(['geolocation']);
+      for (let j = 1; j <= 4; j++) {
+        const p = at(-0.5, -0.5 + j * 0.01);
+        await c8.setGeolocation({ longitude: p[0], latitude: p[1], accuracy: 6 });
+        await pg8.waitForTimeout(1000);
+      }
+      const on = { chip: await chip8.count(), notice: await notice8(), ...(await stored()) };
+      await shot(pg8, `qol-13h-walk-location-back-${w}`);
+      // tend walk-screen audit 10: the walk keeps its banner for a refusal; only Explore's card says it alone.
+      check(off.notice === 1, `tend walk-screen audit 10: at ${w}, the walk refused shows its banner (${JSON.stringify(off)})`);
+      check(off.chip === 1 && off.notice === 1 && on.chip === 0 && on.notice === 0 && on.fixes > off.fixes && on.pauses === 0,
+        `tend walk-screen 3: at ${w}, location turned off mid-walk says so quietly; turned back on, the walk records again by itself, the notice and chip gone, and no pause stored (${JSON.stringify({ off, on })})`);
+      // tend walk-screen audit 6 (the review's auditor 5): the restart took a second wake lock and never let go of the
+      // first, which kept the screen awake after the walk ended. One is held after a refusal and a return.
+      const locks = await pg8.evaluate(() => window.__locks);
+      check(locks.held === 1 && locks.taken >= 2, `tend walk-screen audit 6: at ${w}, one wake lock held after a refusal and a return (${JSON.stringify(locks)})`);
+      await c8.close();
+    }
+
+    // tend recording audit 1-3: the same refusal is the same quiet notice, said, wherever a walk is asked for: Resume on a
+    // paused walk (never "Could not resume: ..."), Walk here on Explore, and Walk here on Chronicle. Location is granted
+    // first, so the screens have a fix and the map is near, then taken back before the tap. At 390 and 320.
+    const noOldWords = async (page) => (await page.getByText(/Could not resume|Location permission was denied/).count()) === 0;
+    const longPress = async (page) => {
+      const box = await page.locator('canvas.maplibregl-canvas').filter({ visible: true }).last().boundingBox();
+      await page.mouse.move(box.x + box.width / 2 + 30, box.y + box.height / 2 - 40);
+      await page.mouse.down();
+      await page.waitForTimeout(700);
+      await page.mouse.up();
+    };
+    for (const [w, hgt] of [[390, 844], [320, 700]]) {
+      {
+        const { c: c6, pg: pg6 } = await freshPage(`qol-resume-refused-${w}`);
+        await pg6.setViewportSize({ width: w, height: hgt });
+        await pg6.goto(navUrl);
+        await pg6.waitForSelector('[data-testid=start]');
+        await pg6.waitForTimeout(1500);
+        await pg6.click('[data-testid=start]');
+        await pg6.waitForSelector('[data-testid=pause-walk]', { timeout: 20000 });
+        await pg6.waitForTimeout(1500);
+        await pg6.click('[data-testid=pause-walk]');
+        await pg6.waitForSelector('[data-testid=resume-walk]', { timeout: 10000 });
+        await pg6.waitForTimeout(800);
+        await c6.clearPermissions();
+        await pg6.click('[data-testid=resume-walk]');
+        await pg6.waitForTimeout(3000);
+        const seen = await readNotice(pg6, T26_WORDS);
+        const said = await saidIn(pg6, 'walk-said');
+        const old = await noOldWords(pg6);
+        await shot(pg6, `qol-13d-resume-refused-${w}`);
+        check(isQuiet(seen.banner) && seen.lines >= 1 && seen.cut === 0 && old && said.length === 1 && said[0].text === T26_WORDS,
+          `tend recording audit 1: at ${w}, a refused Resume is the quiet notice in Start's words, said, never "Could not resume" (${JSON.stringify({ ...seen, said, old })})`);
+        await c6.close();
+      }
+      // tend recording audit 2: Walk here on Explore; tend recording audit 3: Walk here on Chronicle, with a region of its own.
+      for (const [tab, region, name] of [['explore', 'atlas-snap-said', 'Explore'], ['chronicle', 'chronicle-said', 'Chronicle']]) {
+        const { c: c7, pg: pg7 } = await freshPage(`qol-walk-here-refused-${tab}-${w}`);
+        await pg7.setViewportSize({ width: w, height: hgt });
+        await pg7.goto(navUrl);
+        await pg7.waitForSelector('[data-testid=start]');
+        await pg7.waitForTimeout(1500);
+        await tabTo(pg7, tab);
+        await pg7.waitForTimeout(3000);
+        if (tab === 'chronicle') {
+          // Chronicle offers Walk here only at street zoom (NV12); with no walks its map shows the world, so zoom in first.
+          const box = await pg7.locator('canvas.maplibregl-canvas').filter({ visible: true }).last().boundingBox();
+          await pg7.mouse.move(box.x + box.width / 2, box.y + box.height / 2 - 40);
+          for (let i = 0; i < 30; i++) {
+            await pg7.mouse.wheel(0, -600);
+            await pg7.waitForTimeout(120);
+          }
+          await pg7.waitForTimeout(1500);
+        }
+        await c7.clearPermissions();
+        await longPress(pg7);
+        await pg7.locator('[data-testid=walk-here]').filter({ visible: true }).first().click({ timeout: 10000 }).catch(() => {});
+        await pg7.waitForTimeout(600);
+        if (await pg7.locator('[data-testid=spot-walk-now]').filter({ visible: true }).count()) await pg7.locator('[data-testid=spot-walk-now]').filter({ visible: true }).first().click();
+        await pg7.waitForTimeout(3000);
+        const seen = await readNotice(pg7, T26_WORDS);
+        const said = await saidIn(pg7, region);
+        const old = await noOldWords(pg7);
+        await shot(pg7, `qol-13${tab === 'explore' ? 'e' : 'f'}-${tab}-walk-here-refused-${w}`);
+        check(isQuiet(seen.banner) && seen.lines >= 1 && seen.cut === 0 && old && said.length === 1 && said[0].text === T26_WORDS,
+          `tend recording audit ${tab === 'explore' ? 2 : 3}: ${name} at ${w}, Walk here refused is the quiet notice in Start's words and its live region says it (${JSON.stringify({ ...seen, said, old })})`);
+        await c7.close();
+      }
+    }
+
+    // tend map T17: Locate refused on Navigate and Explore, at 390 and 320, with no tiles drawn (the tile host's style
+    // holds no streets, as when nothing has loaded): the same quiet notice, and no scale bar over the blank world.
+    for (const [screen, url] of [['Navigate', navUrl], ['Explore', exploreUrl]]) {
+      for (const [w, hgt] of [[390, 844], [320, 700]]) {
+        const { c: c4, pg: pg4 } = await freshPage(`qol-denied-${screen}-${w}`, { permissions: [] });
+        // tend explore audit 15: the map turned in code needs the e2e's measuring hooks.
+        if (screen === 'Explore') await c4.addInitScript(() => { window.__perf = {}; });
+        await c4.route('https://tiles.openfreemap.org/**', (r) => {
+          const u = r.request().url();
+          if (/\.pbf$/.test(u) || u.endsWith('/planet')) return r.fallback();
+          return r.fulfill({ contentType: 'application/json', body: JSON.stringify({ ...style, sources: { openmaptiles: { ...style.sources.openmaptiles, data: { type: 'FeatureCollection', features: [] } } } }) });
+        });
+        await pg4.setViewportSize({ width: w, height: hgt });
+        await pg4.goto(url);
+        await pg4.waitForTimeout(4000);
+        // tend map audit 12: the quiet notice is no alert, so a polite live region kept on screen says the refusal; one
+        // inserted with its words already in it is often never read.
+        const saidId = screen === 'Navigate' ? 'ready-said' : 'atlas-snap-said';
+        const said = () => pg4.evaluate((id) => [...document.querySelectorAll(`[data-testid=${id}]`)].map((e) => ({ live: e.getAttribute('aria-live'), text: e.textContent.replace(/\u200B/g, '') })), saidId);
+        const saidBefore = await said();
+        // tend explore 8 (decision 0172, O6): with no fix Explore's empty card offers Find me, and the edge Locate steps aside.
+        const ways = async () => ({
+          findMe: await pg4.locator('[data-testid=atlas-locate]').filter({ visible: true }).count(),
+          edge: await pg4.locator('xpath=//*[@data-testid="locate"][not(ancestor::*[@aria-hidden="true"])]').count(),
+        });
+        const waysBefore = screen === 'Explore' ? await ways() : null;
+        if (waysBefore) {
+          check(waysBefore.findMe === 1 && waysBefore.edge === 0,
+            `tend explore 8: Explore at ${w}, with no fix, one way to find you: Find me in the card and no Locate at the map's edge (${JSON.stringify(waysBefore)})`);
+        }
+        await pg4.locator(screen === 'Explore' ? '[data-testid=atlas-locate]' : 'xpath=//*[@data-testid="locate"][not(ancestor::*[@aria-hidden="true"])]').first().click();
+        await pg4.waitForTimeout(2500);
+        const saidAfter = await said();
+        check(saidBefore.length === 1 && saidBefore[0].live === 'polite' && !saidBefore[0].text.includes(T17_WORDS) && saidAfter.length === 1 && saidAfter[0].text === T17_WORDS,
+          `tend map audit 12: ${screen} at ${w}, a polite live region on screen before the tap says the refusal after it (before ${JSON.stringify(saidBefore)}, after ${JSON.stringify(saidAfter)})`);
+        await shot(pg4, `qol-14-${screen.toLowerCase()}-locate-denied-${w}`);
+        if (screen === 'Explore') {
+          // tend walk-screen audit 10 (the review's ux 3; the owner, in person, Nov 14: "Card only on Explore"): while the card
+          // says location is blocked, no banner says it again over it; with no fix and no tiles, still no scale bar.
+          const seen = await readNotice(pg4, T17_WORDS);
+          const banners = await pg4.locator('[data-testid=lift-in]', { hasText: /Location is off/ }).filter({ visible: true }).count();
+          check(seen.banner == null && banners === 0 && seen.bars.length === 0,
+            `tend walk-screen audit 10: Explore at ${w}, refused while the card says location is blocked, no banner says it again, and no scale bar over the blank world (${JSON.stringify({ ...seen, banners })})`);
+        } else await deniedNotice(pg4, `${screen} at ${w}`, { blank: true });
+        if (screen === 'Explore') {
+          // tend explore 8 (O20): after the refusal Find me waits, the card saying where to turn location on; the edge
+          // Locate is the one way meanwhile. Once the permission changes (the site allowed), Find me is back, the edge's gone.
+          const refused = await ways();
+          // tend explore audit 8: while the permission reads "denied" the edge Locate could only be refused again, so it goes too.
+          check(refused.findMe === 0 && refused.edge === 0,
+            `tend explore 8, tend explore audit 8: Explore at ${w}, after a refusal, location blocked, no Find me and no edge Locate, only the card that says where to turn location on (${JSON.stringify(refused)})`);
+          // tend explore audit 9 (the owner, in person, Nov 14, during the review: "Say where to turn it on"): while location is
+          // blocked the empty card's line is the refusal's own sentence, muted, with no crosshair glyph.
+          const card = await pg4.evaluate(() => {
+            const e = document.querySelector('[data-testid=atlas-empty]');
+            if (!e) return null;
+            const leaf = [...e.querySelectorAll('div')].filter((d) => d.childElementCount === 0 && d.textContent.trim());
+            const text = leaf.map((d) => d.textContent).join(' | ');
+            const line = leaf.find((d) => /Location is off/.test(d.textContent));
+            return { text, color: line ? getComputedStyle(line).color : null, glyphs: leaf.filter((d) => /[\uE000-\uF8FF]/.test(d.textContent)).length };
+          });
+          check(card && card.text === BLOCKED_WORDS && card.color === 'rgb(89, 98, 115)' && card.glyphs === 0,
+            `tend explore audit 9: Explore at ${w}, while location is blocked the card says where to turn it on, muted, with no crosshair (${JSON.stringify(card)})`);
+          // tend explore audit 15: with no edge Locate, the compass pressed from the keyboard hands the focus to a control on
+          // screen (Move map, the column's next button), never to the page.
+          await pg4.evaluate(() => window.__turn?.(90));
+          await pg4.waitForTimeout(500);
+          const compass = pg4.locator('[data-testid=compass]').filter({ visible: true });
+          let handed = null;
+          if (await compass.count()) {
+            await compass.first().focus();
+            await pg4.keyboard.press('Enter');
+            await pg4.waitForTimeout(1500);
+            handed = await pg4.evaluate(() => {
+              const a = document.activeElement;
+              const r = a?.getBoundingClientRect();
+              return { id: a?.getAttribute('data-testid') ?? a?.tagName ?? null, shown: !!r && r.width > 0 };
+            });
+          }
+          check(handed && handed.id === 'atlas-move-map' && handed.shown,
+            `tend explore audit 15: Explore at ${w}, with no edge Locate the compass hands the focus to Move map, on screen (${JSON.stringify(handed)})`);
+          await c4.grantPermissions(['geolocation']);
+          await pg4.waitForTimeout(1500);
+          const allowed = await ways();
+          // tend explore audit 10: the refusal's notice goes with the refusal: "Location is off" no longer stands over Find me.
+          const stale = (await readNotice(pg4, T17_WORDS)).banner != null;
+          check(allowed.findMe === 1 && allowed.edge === 0 && !stale,
+            `tend explore 8, tend explore audit 10: Explore at ${w}, once the permission changes Find me comes back, the edge Locate steps aside and the refusal's notice goes (${JSON.stringify({ ...allowed, stale })})`);
+          await shot(pg4, `qol-14-explore-allowed-${w}`);
+        }
+        await c4.close();
+      }
+    }
+
+    // tend walk-screen 5 (decision 0172, O21): Locate that finds nothing in time says "Couldn’t find your position. Try
+    // again in a moment." as the quiet notice, not the red fault, said by the screen's live region; on Explore it is no
+    // refusal, so Find me stays offered. The browser here never gives a position, so every Locate times out (10 s).
+    const TIMEOUT_WORDS = 'Couldn’t find your position. Try again in a moment.';
+    for (const [screen, url, saidId] of [['Navigate', navUrl, 'ready-said'], ['Explore', exploreUrl, 'atlas-snap-said']]) {
+      for (const [w, hgt] of [[390, 844], [320, 700]]) {
+        const { c: c10, pg: pg10 } = await freshPage(`qol-timeout-${screen}-${w}`);
+        await c10.addInitScript(() => {
+          let n = 0;
+          navigator.geolocation.watchPosition = () => ++n;
+          navigator.geolocation.getCurrentPosition = () => {};
+          navigator.geolocation.clearWatch = () => {};
+        });
+        await pg10.setViewportSize({ width: w, height: hgt });
+        await pg10.goto(url);
+        await pg10.waitForTimeout(3000);
+        const findMe = () => pg10.locator('[data-testid=atlas-locate]').filter({ visible: true }).count();
+        const button = screen === 'Explore' && (await findMe()) ? '[data-testid=atlas-locate]' : 'xpath=//*[@data-testid="locate"][not(ancestor::*[@aria-hidden="true"])]';
+        await pg10.locator(button).filter({ visible: true }).first().click({ timeout: 10000 }).catch(() => {});
+        await pg10.waitForTimeout(11_500);
+        const seen = await readNotice(pg10, TIMEOUT_WORDS);
+        const said = await saidIn(pg10, saidId);
+        const red = await pg10.getByText(/^Couldn.t find your position$/).count();
+        const offered = screen === 'Explore' ? await findMe() : null;
+        await shot(pg10, `qol-15-${screen.toLowerCase()}-locate-timeout-${w}`);
+        check(isQuiet(seen.banner) && seen.lines >= 1 && seen.cut === 0 && red === 0 && said.length === 1 && said[0].text === TIMEOUT_WORDS && (offered == null || offered === 1),
+          `tend walk-screen 5: ${screen} at ${w}, Locate timed out says "${TIMEOUT_WORDS}" as the quiet notice, every line whole, said by the live region, and on Explore Find me stays offered (${JSON.stringify({ ...seen, said, red, offered })})`);
+        await c10.close();
+      }
+    }
+
+    // tend map audit 25 (the T25 review): a loop walk, its end a few metres from its start. The start's marker drew over
+    // the end's outer ring; the end is now a bullseye over the start. And tend map audit 26: at Hold, with motion, the
+    // walker's dot and the end are both on the map, apart, and pictured, at 390 and at 320.
+    {
+      const { c: c9, pg: pg9 } = await freshPage('qol-loop');
+      await c9.addInitScript(() => { window.__perf = {}; });
+      try {
+        const go = async (x, y) => {
+          const p = at(x, y);
+          await c9.setGeolocation({ longitude: p[0], latitude: p[1], accuracy: 6 });
+          await pg9.waitForTimeout(900);
+        };
+        await pg9.goto(navUrl);
+        await pg9.waitForSelector('[data-testid=start]');
+        await go(-0.5, -0.5);
+        await pg9.click('[data-testid=start]');
+        await pg9.waitForSelector('[data-testid=walk-actions]');
+        // A square of about 60 m, walked round 4 m at a time (as the pins' walk is), ending 3 m short of where it began.
+        const corners = [[-0.5, -0.5], [0.1, -0.5], [0.1, 0.1], [-0.5, 0.1], [-0.5, -0.47]];
+        for (let k = 1; k < corners.length; k++) {
+          const [[x0, y0], [x1, y1]] = [corners[k - 1], corners[k]];
+          const n = Math.ceil(Math.hypot(x1 - x0, y1 - y0) / 0.04);
+          for (let i = 1; i <= n; i++) await go(x0 + ((x1 - x0) * i) / n, y0 + ((y1 - y0) * i) / n);
+        }
+        await pg9.waitForTimeout(1500);
+        await toStop(pg9);
+        const stopBox = await pg9.locator('[data-testid=stop]').boundingBox();
+        await pg9.mouse.move(stopBox.x + stopBox.width / 2, stopBox.y + stopBox.height / 2);
+        await pg9.mouse.down();
+        await pg9.waitForTimeout(1100);
+        await pg9.mouse.up();
+        await pg9.waitForURL(/replay/, { timeout: 30000 });
+        const replayUrl = pg9.url().replace(/\?.*$/, '');
+        const lonLatOf = (s) => (s ? s.split(',').map(Number) : null);
+        // The replay's own map: the walk screen's stays mounted under it.
+        const mapAttr = (name) => pg9.evaluate((n) => {
+          const el = [...document.querySelectorAll('[data-ends]')].filter((e) => !e.closest('[aria-hidden="true"]') && e.getBoundingClientRect().width > 0).pop();
+          return el ? el.getAttribute(n) : null;
+        }, name);
+        const isWhite = (cc) => Math.abs(cc[0] - 255) + Math.abs(cc[1] - 255) + Math.abs(cc[2] - 255) <= 60;
+        const walkedRgb = paletteRgb('walked');
+        const nearWalked = (cc) => Math.abs(cc[0] - walkedRgb[0]) + Math.abs(cc[1] - walkedRgb[1]) + Math.abs(cc[2] - walkedRgb[2]) <= 60;
+        const hideMarkers = (hidden) => pg9.evaluate((v) => document.querySelectorAll('.maplibregl-marker').forEach((m) => { m.style.visibility = v ? 'hidden' : ''; }), hidden);
+
+        // tend map audit 26: Hold once the dot has gone 40 px from the end along the loop, then read where both are.
+        // tend map 12: the loop's path beat runs the whole loop in about a second, so the hold is timed in the page and
+        // tapped where the button is. A poll of three round trips and a click that waits for the button to hold still
+        // took 140 to 784 ms, and the check lost the race now and then from the start (2 of 5 scratch runs on 6c5174cd,
+        // 4 of 5 on main; the larger web bundle since the place-name pack is a possible contributor, not shown).
+        // tend map audit 34 (the review's F35, F36): the tap is on Hold itself (the stage under it holds the replay too),
+        // Hold then reads Play and the dot and the clock stand still for a second, and a dot that never leaves the end
+        // fails saying so.
+        const holdApart = async (w) => {
+          await pg9.waitForSelector('[data-testid=replay-clock]', { timeout: 60000 });
+          const hb = await pg9.locator('[data-testid=hold]').boundingBox();
+          const tap = hb ? [hb.x + hb.width / 2, hb.y + hb.height / 2] : [0, 0];
+          const left = await pg9.waitForFunction(([x, y]) => {
+            const el = [...document.querySelectorAll('[data-ends]')].filter((e) => !e.closest('[aria-hidden="true"]') && e.getBoundingClientRect().width > 0).pop();
+            const ll = (v) => (v ? v.split(',').map(Number) : null);
+            const endAt = el && ll((el.getAttribute('data-ends') ?? '').split('|')[1]);
+            const walkerAt = el && ll(el.getAttribute('data-walker'));
+            if (!endAt || !walkerAt || typeof window.__project !== 'function') return false;
+            const [a, b] = [window.__project(endAt), window.__project(walkerAt)];
+            if (Math.hypot(a[0] - b[0], a[1] - b[1]) < 40) return false;
+            return { onHold: !!document.elementFromPoint(x, y)?.closest('[data-testid=hold]') };
+          }, tap, { polling: 'raf', timeout: 30000 }).then((hd) => hd.jsonValue(), () => null);
+          await pg9.mouse.click(tap[0], tap[1]);
+          const still = async () => [await pg9.locator('[data-testid=replay-clock]').getAttribute('aria-label').catch(() => null), await mapAttr('data-walker')].join(' @ ');
+          await pg9.waitForTimeout(600);
+          const at600 = await still();
+          await pg9.waitForTimeout(1000);
+          const at1600 = await still();
+          const label = (await pg9.locator('[data-testid=hold]').innerText().catch(() => '')).trim();
+          check(!!left && left.onHold && at600 === at1600 && label === 'Play',
+            `tend map audit 34: at Hold on the loop at ${w}, ${left ? '' : 'the dot never left the end; '}the tap is on Hold (${left && left.onHold}), Hold reads Play ("${label}") and the dot and the clock stand still (${at600} → ${at1600})`);
+          const ends = await mapAttr('data-ends');
+          const endAt = lonLatOf((ends ?? '').split('|')[1]);
+          const walkerAt = lonLatOf(await mapAttr('data-walker'));
+          const canvas = await pg9.locator('xpath=//canvas[contains(@class,"maplibregl-canvas")][not(ancestor::*[@aria-hidden="true"])]').last().boundingBox();
+          const [a, b] = endAt && walkerAt ? await pg9.evaluate(([p, q]) => [window.__project(p), window.__project(q)], [endAt, walkerAt]) : [null, null];
+          const inside = (q) => !!q && !!canvas && q[0] >= canvas.x + 11 && q[0] <= canvas.x + canvas.width - 11 && q[1] >= canvas.y + 11 && q[1] <= canvas.y + canvas.height - 11;
+          const apartPx = a && b ? Math.hypot(a[0] - b[0], a[1] - b[1]) : null;
+          const held = await pg9.locator('[data-testid=replay-held]').count();
+          check(held > 0 && inside(a) && inside(b) && apartPx >= 20,
+            `tend map audit 26: at Hold at ${w}, with motion, the walker's dot and the end are both on the map and apart (held ${held}, end ${JSON.stringify(a && a.map(Math.round))}, dot ${JSON.stringify(b && b.map(Math.round))}, ${apartPx && Math.round(apartPx)} px apart, canvas ${JSON.stringify(canvas && [canvas.x, canvas.y, canvas.width, canvas.height].map(Math.round))})`);
+          await shot(pg9, `qol-20-loop-held-${w}`);
+          await pg9.click('[data-testid=hold]');
+        };
+        // tend map audit 25: on the card, the end read across, 4 to 9 px out, as for the walk above.
+        const loopEnd = async (w) => {
+          await pg9.waitForSelector('[data-testid=to-name], [data-testid=done]', { timeout: 120000 });
+          await pg9.waitForTimeout(1500);
+          const [a, b] = ((await mapAttr('data-ends')) ?? '').split('|');
+          const startAt = lonLatOf(a);
+          const endAt = lonLatOf(b);
+          const apartPx = startAt && endAt ? await pg9.evaluate(([p, q]) => { const [x, y] = [window.__project(p), window.__project(q)]; return Math.hypot(x[0] - y[0], x[1] - y[1]); }, [startAt, endAt]) : null;
+          await hideMarkers(true);
+          let px = null;
+          try { px = endAt ? await pixelsAround(endAt, 14, [4, 5, 6, 7, 8, 9], pg9) : null; } finally { await hideMarkers(false); }
+          const dirs = px ? [0, 1, 2, 3].map((k) => px.radial.map((q) => q[k])) : [];
+          const band = dirs.filter((dd) => dd.slice(0, 3).some(isWhite)).length;
+          const ring = dirs.filter((dd) => dd.slice(3).some(nearWalked)).length;
+          check(px && apartPx != null && apartPx < 11 && nearWalked(px.centre) && band === 4 && ring === 4,
+            `tend map audit 25: a loop walk at ${w}, its end ${apartPx != null ? apartPx.toFixed(1) : '-'} px from its start, shows the bullseye whole over the start (centre ${JSON.stringify(px && px.centre)}, band white ${band}/4, ring walked ${ring}/4; right, left, below, above from 4 to 9 px ${JSON.stringify(dirs)})`);
+          await shot(pg9, `qol-21-loop-card-${w}`);
+        };
+        await holdApart('390');
+        await loopEnd('390');
+        await pg9.setViewportSize({ width: 320, height: 568 });
+        await pg9.goto(`${replayUrl}?ceremony=0`);
+        await holdApart('320');
+        await loopEnd('320');
+      } catch (e) {
+        check(false, `tend map audit 25: the loop walk: ${String(e.message).split('\n')[0]}`);
+      }
+      await c9.close();
+    }
+
+    // tend map audit 22: pins of several, in a walk of their own.
+    {
+      const { c: c8, pg: pg8 } = await freshPage('qol-pins');
+      try {
+        await pinsOfSeveral(h, pg8, c8, { check, shot });
+      } catch (e) {
+        check(false, `tend map audit 22: ${String(e.message).split('\n')[0]}`);
+      }
+      await c8.close();
     }
 }
 
@@ -973,12 +1999,17 @@ module.exports = {
   name: 'qol',
   // tend chronicle 7: Rename (QL22) and Edit note (QL24) are checked here, so a change to either names this journey.
   covers: [
-    'src/components/{LocateButton,CompassButton,HomeSheet,CaptureView,CapturePinView,WalkActions}.tsx',
+    'src/components/Picture.tsx',
+    'src/components/{LocateButton,CompassButton,HomeSheet,CaptureView,CapturePinView,WalkActions,NoteMark}.tsx',
+    'src/components/notePage/{NotePage,NoteTypeMenu}.tsx',
     'src/components/map/**',
     'src/app/(tabs)/index.tsx',
-    'src/lib/{scaleBar,units,useUnits,useLocate,rename,noteEdit,months,pins,thumbPlan,thumbJob,walkTitle,useReminded}.ts',
+    'src/lib/{scaleBar,units,useUnits,useLocate,rename,noteEdit,noteType,months,pins,thumbPlan,thumbJob,walkTitle,useReminded}.ts',
       'src/lib/unitsStore/**',
     'src/lib/nav/eta.ts',
+    // tend explore 8: Explore's one way to find you, before and after a refusal.
+    'src/lib/atlas/findYou.ts',
+    'src/lib/locate/permission*.ts',
   ],
   run,
 };

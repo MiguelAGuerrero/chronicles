@@ -40,8 +40,9 @@ Before editing, or as soon as it shows, the work stops when it needs any of:
   change (the AGENTS.md "ask before architectural decisions");
 - a change to derivation rules (`SNAP_RULES`, `STREET_CODE`, `LANDING_CODE`);
 - anything that sends data off the device, or a new host;
-- more than the caller's size: about 8 files for a fix or a loop finding; for a slice built from a
-  proposal, anything its approved criteria do not name.
+- more than the caller's size: about 8 source files for a fix or a loop finding (`src/` and `scripts/`;
+  tests, journeys and record documents do not count: `npm run book:files -- HEAD --max-src 8` in the
+  worktree); for a slice built from a proposal, anything its approved criteria do not name.
 
 Who hears of it depends on who was typed:
 
@@ -50,6 +51,69 @@ Who hears of it depends on who was typed:
 - **`/tend`, and anything it runs:** never ask mid-run. A loop finding is reclassified and filed, and
   the run goes on. A slice built from a proposal returns "Stopped on" in its result block; `/tend` files
   the question in the inbox, pushes the branch for review and cleans up.
+
+## The record documents
+
+`docs/STATUS.md`, `docs/DEFERRED.md` and `docs/NATIVE_UNVERIFIED.md` change only through
+`npm run records -- <op>` (decision 0156; `scripts/records.js`'s header lists the operations: the
+inbox, "Last tend", "Open before the loop", the "From <skill>" sections of "Needs the owner", the "In
+flight" and "Slices" rows, and the items of the other two). Each changes one entry and refuses to write
+if any other byte would move. Write the text to a file in the scratchpad and pass `--file`, so nothing
+needs quoting; never edit these files with Edit, Write or sed.
+
+- **Every agent commit is gated, slices and fixes too.** An agent commit is one whose message has a
+  `Claude-Session:` or a `Co-Authored-By: Claude` trailer; write both on every commit you make, a revert
+  or a merge included (`git revert --no-edit` and `git merge --no-edit` write none: give the message
+  yourself). CI replays every agent commit and every loop commit (`tend …`, and the revert of one) of the
+  push; only the owner's own hand edits, which carry neither, are left alone. A refusal ends with its fix
+  in one line: the operation, `redo`, and this section.
+- **Each operation is recorded.** It is added to a pending sidecar under `.claude/records/`, staged as
+  it is written. Commit the sidecar with the documents, and put the lines
+  `npm run records -- trailers` prints (one `Records-Op:` per operation, in order) in the message's
+  last paragraph, beside `Co-Authored-By` and `Claude-Session`. The gate replays them on the parent's
+  documents and fails the commit unless it gets the commit's documents byte for byte: a hand edit, a
+  dropped trailer or a sidecar edited afterwards all fail.
+- **What the run did not file is the owner's.** Removing or rewriting an entry this run did not add
+  (`inbox remove`/`set`, `open remove`/`set`, `section item remove`/`set`, `item remove`/`set`/`retag`)
+  needs `--reason "<why>"`, which goes into the trailer, and a commit does it to at most two entries per
+  section. A tag moves only toward `[owner]`, `[arch]` or `[kept]`, or from `[loop]` to `[phone]` (the
+  owner's check on a device), never from `[owner]` or `[arch]` to `[loop]`. A shipped item is removed (`item
+  remove`), never struck through; a line that amends an entry is appended (`note`); a reworded one is
+  `set`, with its reason. An `inbox set` keeps every line an earlier `inbox note` added to the entry, word
+  for word and in order (the owner's answers): an answer is added to with `inbox note`, never rewritten.
+- **What waits on the owner from a slice, a fix or an audit** goes in a "From <skill>" section of
+  "Needs the owner": `npm run records -- section add "From /fix" [--intro <file>]` makes it right after
+  "From /tend" (newest first), `section item add "From /fix" --file <bullet>` adds each bullet, and
+  `section item note|set|remove "<section>" <match>` change them; `section remove "<section>"` takes one
+  with no bullet left. A section is never renamed by an agent.
+- **Before the commit:** `npm run check:records -- origin/main` (the commits since `main` and the
+  working tree with its pending operations). It names each change no operation makes. A commit that
+  fails and is not pushed yet is made again: `git reset --soft HEAD~1` (the last commit), `git checkout
+  HEAD -- <the documents>`, `git rm -q --cached <its sidecar>` and remove the file (else it reads as
+  pending, and the operations made again are refused or stack on it), the operations, the commit. A
+  commit already on `main` stays (`main` is never rewritten); the next push carries the record through
+  operations.
+- **On a rebase conflict** in them, in the commit being replayed (its sidecar is pending again), take
+  `main`'s side of the three documents and the ledger and run `npm run records -- redo`: it runs the
+  commit's operations again on `HEAD`'s documents, an inbox entry numbering on from `main`'s ledger
+  (an operation that named the run's own new entry follows it by its handle, `@1`), and the trailers
+  stay as they are. It refuses when an entry an operation acted on is no longer the same: look again.
+  A rebase that renumbers without a conflict cannot be redone, since the record is committed: stop
+  and report (`/tend` section 10). Never amend a record commit: an amend after a further operation
+  carries two sidecars, and the gate fails it.
+- **On a merge conflict** in them (`git merge origin/main` into a slice or fix branch), run `npm run
+  records -- redo` during the merge: it writes `main`'s side of the three documents, exactly, whatever
+  the conflict left, stages them, and lists this branch's record commits since the merge base. Commit
+  the merge with your trailers, then file the branch's entries again with `npm run records` in a commit
+  of its own. The gate accepts a merge's documents only as git's clean merge or as `main`'s side (the
+  second parent's); any other resolution fails, with or without trailers when the push holds an agent
+  commit. This holds for a branch made before the gate too: its merge of the gated `main` is judged the
+  same. A loop run never merges `main` into its branch; it rebases.
+- **A commit from before the gate, rebased onto it**, is gated like any other: if it edited the
+  documents by hand, CI refuses it by name. Drop the edit from that commit (`git checkout <sha>^ --
+  <document>` and amend it when it is the last commit, or split it out) and make it again with `npm
+  run records` in a commit of its own; `npm run records -- redo` with nothing pending names such
+  commits. A branch made before the gate is better merged with `main` than rebased.
 
 ## Review
 
@@ -70,11 +134,37 @@ fix still gets its screens looked at.
 
 Triage each finding accept, defer or reject with a reason (as `/audit` does). An accepted one gets a
 regression test before its fix, named for the caller (`fix <name> audit N`, `tend <scope> audit N`,
-`<slug> audit N`). An architectural finding is a hard stop.
+`<slug> audit N`), N from `npm run book:next-audit -- "<prefix>"` in the worktree, given by whoever triages,
+never by a reviewer. An architectural finding is a hard stop.
 
 Each round is: review, fix what was accepted, run the caller's checks again. Stop at the caller's
 round limit or at the first round with no new accepted finding. With accepted findings still open at
 the limit, nothing goes to `main`: push `<branch>` so the owner can look, and list them.
+
+### The faster lane
+
+`/tend` and the runs `/tend-orchestrator` briefs take this lane in place of the above where they differ
+(decision 0181: faster turnaround over comprehensive testing, keeping what caught real defects); a
+`/fix` or a slice the owner typed keeps the above.
+
+- **Reviewers by risk.** Wording or style only: one, the `ux-reviewer`, or the `steward` when the words
+  are the replay's or a `docs/VISION.md` line's. Behaviour that touches recording, storage, navigation,
+  timing or data: the `auditor`, always, with the `ux-reviewer` beside it when a screen changed. Records
+  only (the record documents, the ledger, the run log): none.
+- **Fixes in the run: medium and above.** A low is deferred: filed `[loop]` in its area's section of
+  `docs/DEFERRED.md` (`npm run records -- deferred item add`) for the area's next sweep. A cost finding is
+  graded by its n and how often it runs (`.claude/agents/auditor.md`), not filed low because nothing
+  breaks; one that needs a measurement first is filed with the harness that would take it.
+- **Pictures: after only**, each changed state at 320 px (`pg.setViewportSize({ width: 320, … })`, then
+  `shot()`, as the `tabs` journey does), and at 390 too where width matters. Before pictures (a worktree
+  at the base, its export, the journey) only when a reviewer cannot judge a visual change without them.
+- **Journeys before publishing:** those holding a new or changed check, plus `launch` as the smoke;
+  after a rebase, again only if the new commits touch their files. The rest of `check:affected`'s set
+  is left to CI (typecheck, `npm test`, lint, the export: CI runs no journey) and the weekly full pass
+  (`npm run e2e:all`), recorded in the run log (`/tend` section 10).
+- **Tests.** Test-first stays for logic, and a unit test must fail when its wiring is reverted (undo
+  the call, see it fail, restore). A words-only change needs one unit test of the words, seen failing,
+  not every journey check seen failing first.
 
 ## Publish to main
 
@@ -83,9 +173,21 @@ with the checks the calling skill names.
 
 1. The worktree holds only this run's commits.
 2. `git fetch origin main`; if `main` moved, rebase `<branch>`, run the caller's checks again, and only
-   then continue. On a conflict, stop and keep the branch.
+   then continue. On a conflict, stop: push `<branch>` and keep it for the owner ("Clean up", pushed
+   for review), with one exception: a source conflict confined
+   to imports and comments, where the two sides mean independent things, may be resolved by the run, with
+   a test that proves the two changes independent (it fails if either side's change is lost); the run
+   reports it as a stop ruled through, with the files and the test. Anything else, or a conflict in the
+   record documents (`/tend` section 10), keeps its own rule. The checks include `node scripts/tend.js
+   commits --loop-only origin/main..HEAD`, what CI runs: a commit of the branch made before the record
+   gate landed and hand-editing the documents is refused there by name, with how to mend it ("The
+   record documents"). A decision record of the branch, in the worktree: `npm run book:next-decision --
+   --check <NNNN> <file>` now, after this fetch; if main took the number, renumber the file, its title,
+   the README row and what cites it, and check again.
 3. `main` is checked out elsewhere, so publish with `git push origin <branch>:main` (a fast-forward; no
-   force, no history rewrite, no empty commits), once.
+   force, no history rewrite, no empty commits), once. Refused as not a fast-forward (`main` moved since
+   step 2): fetch, rebase, the caller's checks, `npm run book:next-decision -- --check` in the worktree
+   again, then push.
 4. Watch the Pages run with the GitHub MCP tools until it completes (`/deploy` section 3).
 5. Green: load https://miguelaguerrero.github.io/chronicles/ (Playwright is installed) and check the
    visible effect. If the page cannot be reached from the session, say the live check was not done.
@@ -101,20 +203,31 @@ What to revert:
 
 - **A fix:** its commit.
 - **A sweep:** the commit the log names as the cause, alone. If the log does not name one, every code
-  commit of the run. The same push carries a corrected record (documents and the ledger only): the
+  commit of the run. The same push carries a corrected record (documents and the ledger only, through `npm run records`): the
   finding filed as `[owner]` with the log's cause, "Last tend" saying what was reverted, the area `rough`.
 - **A slice:** all of it as one unit, its record included (`git revert --no-commit <base>..<tip>`), so
   the spec, the feature map and the proposal's entry go back together and the docs check stays green.
 
-After a revert, diagnose: reproduce the failure locally with the job's own command, name the cause,
-and put a corrected change on `<branch>-retry` with the failing check passing. Push that branch, not
-`main`; the grant is spent. Report the cause, the branch, and what you would change.
+A revert commit's message keeps git's `This reverts commit <sha>.` line, one for each commit it
+reverts, and your trailers: the record gate accepts it when its documents are exactly those commits'
+undone and their sidecars deleted, nothing else. A fix-forward that takes a slice's row back out uses
+`npm run records -- slice row remove <match>`, which undoes only a row the same range added.
+
+After a revert, diagnose: reproduce the failure locally with the job's own command, red at rest, k of n
+runs on both ends (the base and the head), before naming a cause or bisecting (a load-dependent red is
+a check race until shown otherwise); name the cause, and put a corrected change on `<branch>-retry`
+with the failing check passing. Push that branch, not `main`; the grant is spent. Report the cause,
+the branch, and what you would change.
 
 ## Clean up
 
 Every run ends here, whatever happened. Remove only the worktree and branches this run created.
 
 1. Look first: `git -C <worktree> status --short` and `git -C <worktree> log --oneline origin/main..HEAD`.
+   After a publish, while the worktree is there, in the worktree: `npm run book:landed -- <base>..<pushed
+   sha> --live https://miguelaguerrero.github.io/chronicles/` (every commit of the run on `main`, and the
+   live entry bundle against the worktree's `dist/` when it is a Pages export; it cannot see Pages,
+   which stays with the GitHub tools).
 2. Anything unpushed or uncommitted that is worth keeping: save it as a patch
    (`git -C <worktree> diff HEAD > <scratchpad>/<name>.patch`, plus `git format-patch` for commits)
    before removing, and name the patch in the report. Never remove a worktree holding work that is
@@ -126,14 +239,26 @@ Every run ends here, whatever happened. Remove only the worktree and branches th
 
 | Outcome | Local branch | Remote branch |
 |---|---|---|
-| Pushed for review (no grant to publish, or parked by an open finding) | delete (`git fetch origin <branch>` brings it back) | keep: it is what the owner reviews |
+| Pushed for review (no grant to publish, parked by an open finding, or stopped on a conflict) | delete (`git fetch origin <branch>` brings it back) | keep: it is what the owner reviews |
 | Published, Pages green, live check done | delete | delete (`git push origin --delete <branch>`): it is merged and carries nothing |
 | Reverted, diagnosis pushed | delete | keep `<branch>-retry`; delete `<branch>` |
-| Scrapped (cannot reproduce, hard stop declined, three failures, conflict) | delete | delete if you had pushed it, after saving any patch |
+| Scrapped (cannot reproduce, hard stop declined, three failures) | delete | delete if you had pushed it, after saving any patch |
 | Nothing pushed by choice | delete after the patch is saved | none |
 
-5. `git worktree prune`, then `git worktree list` and `git branch --list '<family>/*'` to confirm
-   nothing of this run remains. If a removal failed, say what is left and its path.
+   A remote deletion the session's proxy refuses is reported to the owner (the branch and the refusal),
+   never retried.
+
+5. `git worktree prune`, then confirm nothing of this run remains. The worktree is gone and the primary
+   checkout may predate the script, so read `main`'s scripts into `<main-scripts>` (a scratchpad folder;
+   they need only node, git and curl, no `node_modules`), then check the branch from there:
+
+   ```bash
+   mkdir -p <main-scripts> && git -C <primary> archive origin/main scripts | tar -x -C <main-scripts>
+   TEND_ROOT=<primary> node <main-scripts>/scripts/bookkeeping.js landed --branch <branch>
+   ```
+
+   It fails while a worktree under `.claude/worktrees/` or a local branch is left for `<branch>`. If a
+   removal failed, say what is left and its path.
 
 ## The result block
 

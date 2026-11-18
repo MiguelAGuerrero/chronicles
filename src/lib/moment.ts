@@ -1,7 +1,7 @@
 // @layer core
 import { distanceM, positionAt, type PauseSpan } from './geo';
 import { parseEdit } from './mediaEdit';
-import type { Capture, LngLat, Moment, StreetSegment, TracePoint } from './types';
+import type { Capture, CaptureKind, LngLat, Moment, StreetSegment, TracePoint } from './types';
 
 /**
  * A moment holds its media (decision 0123, MT4, MT5, MT10): the pure helpers over it. The store keeps a moment's
@@ -11,6 +11,21 @@ import type { Capture, LngLat, Moment, StreetSegment, TracePoint } from './types
 /** The moment's face: its first photo or video, else its first piece (MS8). */
 export function face(m: Pick<Moment, 'pieces'>): Capture {
   return m.pieces.find((p) => p.kind === 'photo' || p.kind === 'video') ?? m.pieces[0];
+}
+
+/**
+ * A faced row with one change applied (note-types audit 12, 13; voice-trim audit 1): a change that names a `pieceId` lands
+ * on that piece's copy in the row's `pieces` (what a reopened stack and a split read), and on the face's own fields only
+ * when the piece is the face; one that names none lands on the face, as before.
+ */
+export function patchFaced<F extends Faced>(f: F, patch: Partial<Capture>, pieceId?: string): F {
+  const pieces = pieceId ? f.pieces.map((p) => (p.id === pieceId ? { ...p, ...patch } : p)) : f.pieces;
+  return pieceId && pieceId !== f.piece_id ? { ...f, pieces } : { ...f, ...patch, pieces };
+}
+
+/** Whether a faced moment is shown at its face's piece: only then is it the row, the pin or the card of the moment (note-types audit 1). */
+export function isFacePiece(f: Pick<Faced, 'piece_id' | 'pieces'>): boolean {
+  return f.pieces.length === 0 || f.piece_id === face(f).id;
 }
 
 /**
@@ -137,3 +152,36 @@ export function facedAt(f: Faced, pieceId: string): Faced {
 
 /** A piece waiting in the Undo window is hidden by this key, never by its id: a moment's first piece shares its id. */
 export const pieceKey = (pieceId: string): string => `piece:${pieceId}`;
+
+/** A clock time in words ("8:15 am"): a tile's own time (decision 0197, SW12). */
+export function clockOf(t: number): string {
+  const d = new Date(t);
+  const h = d.getHours();
+  return `${h % 12 === 0 ? 12 : h % 12}:${String(d.getMinutes()).padStart(2, '0')} ${h < 12 ? 'am' : 'pm'}`;
+}
+
+/** A piece made later than its moment says when, in words, and names no place (decision 0197, SW10); null within the same minute. */
+export function pieceWhen(m: Pick<Moment, 't'>, p: Pick<Capture, 't'>): string | null {
+  if (Math.floor(p.t / 60_000) <= Math.floor(m.t / 60_000)) return null;
+  return `Added later, ${clockOf(p.t)}`;
+}
+
+const KIND_ONE: Record<CaptureKind, string> = { photo: 'a photo', video: 'a video', voice: 'a voice note', text: 'a note' };
+const KIND_MANY: Record<CaptureKind, string> = { photo: 'photos', video: 'videos', voice: 'voice notes', text: 'notes' };
+
+/** The kinds a stack holds, in words and never a number ("a photo, a note and a voice note"; several of a kind: its plural) (SW11). */
+export function kindsLine(m: Pick<Moment, 'pieces'>): string {
+  const order: CaptureKind[] = [];
+  const seen = new Map<CaptureKind, number>();
+  for (const p of m.pieces) {
+    if (!seen.has(p.kind)) order.push(p.kind);
+    seen.set(p.kind, (seen.get(p.kind) ?? 0) + 1);
+  }
+  const parts = order.map((k) => ((seen.get(k) ?? 0) > 1 ? KIND_MANY[k] : KIND_ONE[k]));
+  return parts.length < 2 ? (parts[0] ?? '') : `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}`;
+}
+
+/** The stack's line on the page: a clause that names the kinds, never a bare plural or a number (stack-with-previous audit 9). */
+export function stackLine(m: Pick<Moment, 'pieces'>): string {
+  return `Holds ${kindsLine(m)}`;
+}

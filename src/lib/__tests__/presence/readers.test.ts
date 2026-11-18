@@ -7,7 +7,18 @@ import type { LngLat } from '../../types';
 // Presence readers (specs/presence-readers, PS1-PS11, decision 0140): the archive, the bars, notable names, scenic greens and
 // the planner read presence's classes. readers.golden.json holds what the code answered before the slice: captured from
 // 0d03c4b4, then again from main (6b099ea6) when the slice was resumed there (T8), with each mark's kind and rings fed
-// landcover outlines (presence-readers audit 8).
+// landcover outlines (presence-readers audit 8). Re-captured Nov 17 for Explore subtypes (decision 0191): statues are Art
+// (XS11), attractions and zoos their own kind (XS4), the map's ruins Curiosities (XS12), murals and markers subtypes (XS3),
+// every subtype left out of a ring's stored steps (XS15); one same-named statue and artwork 60 m apart became one place
+// (0111, "Science" in South End). The listed changes before it (T9, fix community-park) were already in what was captured.
+// Re-captured again after the audit (explore-subtypes audit 12): the map's attractions and theme parks are Viewpoints again.
+// Re-captured Nov 18 for the more-attractions audit (decision 0198, audits 1-3): the map's theme parks and water parks are of
+// the zoos kind (refined to Amusement parks), and contract v6's four classes are pinned under the three names, so
+// a museum by type stays Culture alone with a historic name (audit 2). One ring moved: Central Point's theme park (Rogue
+// Valley Family Fun Center) is Amusement parks, so its stored Viewpoints step, counted with every subtype left out
+// (XS15), went from 1 to 0; a reader with the row on sees it lit as before.
+// Typed bridges (MA10, contract v8, the owner, Nov 18) add `suspension_bridge` under the three names: a place of History's
+// Bridges, as `bridge` (its bar weight is 0, as a pier's, which the bars below never read); no fixture holds one, so no ring moved.
 
 type View = { category: string; kind: string | null; markable: boolean; bars: string[] } | null;
 type Golden = {
@@ -170,7 +181,7 @@ test('PS7: PR2\'s guard holds with no exception: no module outside presence spel
   assert.ok(!/ALLOWED: Record<string, \(w: string\) => boolean> = \{\s*'/.test(readFileSync(join(__dirname, 'presenceAudit.test.ts'), 'utf8')), 'presence audit 2 allows nothing');
 });
 
-test('PS8: nothing else a person sees changes: the golden tables hold, with no listed change but tend explore T9\'s', async () => {
+test('PS8: nothing else a person sees changes: the golden tables hold, with no listed change but tend explore T9\'s, fix community-park\'s and small places\' (SP3, SP12)', async () => {
   const { placesFromArchive } = await import('../../discovery/archivePois');
   const { placesFromTilePois } = await import('../../discovery/tilePois');
   const { barsOf } = await import('../../discovery/bars');
@@ -182,6 +193,20 @@ test('PS8: nothing else a person sees changes: the golden tables hold, with no l
   const T9 = new Set(['heritage park playground']);
   const t9 = (marks: string[]) =>
     marks.map((m) => (m.endsWith('|parks') && T9.has((JSON.parse(m.slice(0, m.lastIndexOf('|'))) as string[])[1]) ? m.replace(/\|parks$/, '|community_parks') : m)).sort();
+  // fix community-park (0163), the second listed change: a park with a small landcover outline and nothing notable in it is a
+  // community park whatever its name. Only rings fed outlines move, and only a `parks` mark into `community_parks`: nothing
+  // else of the ring (steps, other marks, thin) changes. Which parks is the unit tests' (communityParks.test.ts PC17).
+  const smallOnly = (got: string[], want: string[]) => {
+    const was = new Set(want);
+    return got.map((m) => (m.endsWith('|community_parks') && !was.has(m) && was.has(m.replace(/\|community_parks$/, '|parks')) ? m.replace(/\|community_parks$/, '|parks') : m)).sort();
+  };
+  // specs/small-places SP3, SP12 (decision 0183), the third listed change: the archive's markers are Plaques and markers,
+  // a subset that starts off, so their marks move from `monuments` to `plaques` and the stored bars (every small subset left
+  // out) may only lose History; nothing else of the ring moves.
+  const sp = (marks: string[], markers: Set<string>) =>
+    marks.map((m) => (m.endsWith('|monuments') && markers.has((JSON.parse(m.slice(0, m.lastIndexOf('|'))) as string[])[1]) ? m.replace(/\|monuments$/, '|plaques') : m)).sort();
+  const spSteps = (got: Record<string, number>, want: Record<string, number>, markers: Set<string>) =>
+    markers.size && got.history <= want.history ? { ...got, history: want.history } : got;
   const names = golden.names;
   for (const g of golden.archive)
     for (const k of ['plain', 'notable', 'hood'] as const)
@@ -199,14 +224,15 @@ test('PS8: nothing else a person sees changes: the golden tables hold, with no l
       const arch = placesFromArchive(a.archive.map(([name, cls, lon, lat]) => pt({ name, class: cls }, [lon, lat])), 'fixture');
       const r = ringOf(map, arch, a.at);
       const g = golden.steps[i];
+      const markers = new Set(a.archive.filter(([, cls]) => cls === 'marker').map(([name]) => name.normalize('NFC').trim().toLowerCase()));
       assert.deepEqual([g.file, g.name], [file, a.name], 'the golden rows follow the fixtures');
-      assert.deepEqual({ steps: r.steps, marks: marksOf(r), thin: r.thin }, { steps: g.steps, marks: t9(g.marks), thin: g.thin }, `${file} ${a.name}`);
+      assert.deepEqual({ steps: spSteps(r.steps, g.steps, markers), marks: marksOf(r), thin: r.thin }, { steps: g.steps, marks: sp(t9(g.marks), markers), thin: g.thin }, `${file} ${a.name}`);
       // presence-readers audit 8: the same ring fed landcover outlines, so the kind pipeline's refinement runs on outlines.
       const o = outlined(a);
       const outlinedMap = placesFromTilePois(o.pois.map(([name, cls, sub, lon, lat]) => pt({ name, class: cls, subclass: sub }, [lon, lat])), d.tiles);
       const ro = ringOf(outlinedMap, arch, a.at, undefined, [], o.landcover as never);
       const go = golden.outlined[i++];
-      assert.deepEqual({ steps: ro.steps, marks: marksOf(ro), thin: ro.thin }, { steps: go.steps, marks: t9(go.marks), thin: go.thin }, `${file} ${a.name}, outlined`);
+      assert.deepEqual({ steps: spSteps(ro.steps, go.steps, markers), marks: smallOnly(marksOf(ro), sp(t9(go.marks), markers)), thin: ro.thin }, { steps: go.steps, marks: sp(t9(go.marks), markers), thin: go.thin }, `${file} ${a.name}, outlined`);
       if (file === 'presenceSample.json') lit.push(r.steps);
     }
   }
@@ -226,7 +252,7 @@ test('PS9: the presence code moves on; atlas and landing rows from the last code
   assert.notEqual(PRESENCE_CODE, 'p1');
   assert.ok(ATLAS_CODE.endsWith(PRESENCE_CODE));
   // presence-readers audit 2: p1's rows stand only while the code is p2; the next bump decides its carry afresh.
-  if (PRESENCE_CODE === 'p2') {
+  if ((PRESENCE_CODE as string) === 'p2') {
     // The carry is spelled with the atlas's own part (decision 0146): a9.p1 under a9.p2, a10.p1 under a10.p2 (tend explore T9).
     const carried = `${ATLAS_CODE.split('.')[0]}.p1`;
     for (const level of ['neighborhood', 'town'] as const) assert.equal(rowCurrent({ build: 'b', code: carried, level }, 'b'), true, `${level} ${carried} stands`);

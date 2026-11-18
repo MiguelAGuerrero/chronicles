@@ -1,0 +1,14 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "note",
+        "the refusal is the quiet notice"
+      ],
+      "body": "  - Since `tend map audit 14` native counts the `omt-query` source's roads (`transportation`), water (a hidden `q-water`\n    layer, added so its tiles load) and places as drawn (`drawnFrom`): check that Explore with no fix over open sea,\n    forest or farmland at z13-16 keeps its scale bar, and that querying three source layers on each full render does not\n    stall the map.\n",
+      "target": "sha256:8b63535f364ae34ad4b688e70ba07a30f77161f6c8a9d807e7faa6c5f47e29dd"
+    }
+  ]
+}

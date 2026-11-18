@@ -4,6 +4,8 @@ import { distanceM } from '../geo';
 import type { LngLat } from '../types';
 import type { Recall, RecallFrequency } from './types';
 import { plainNote } from '../refs';
+import { KIND_NAME, pinKindsWords } from '../pins';
+import { numberWord } from '../resurface/lines';
 
 /** Remind me here's numbers (R2, R4, R5). */
 export const RECALL_RULES = {
@@ -15,6 +17,8 @@ export const RECALL_RULES = {
   noteChars: 120,
   /** A moment made outside a walk rests this long before it can come back, as a walk's own captures never do in it (audit). */
   looseRestMs: 2 * 3_600_000,
+  /** A reminder on the recording bar counts as seen only after this long in sight (tend explore audit 23). */
+  glanceMs: 2_000,
 } as const;
 
 /** Past its until-date the flag ends silently; the capture stays an ordinary memory (R6). */
@@ -92,11 +96,58 @@ export function newRecall(captureId: string, frequency: RecallFrequency, until: 
 export const editedRecall = (fresh: Recall, frequency: RecallFrequency, until: number | null): Recall => ({ ...fresh, frequency, until });
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-const KIND_WORD: Record<Faced['kind'], string> = { photo: 'Photo', video: 'Video', voice: 'Voice memo', text: 'Note' };
 
-/** The reminder's words, carrying the content (R4); two or more in reach are one (R7). */
+/** One choice of the reminder editor's menus; `days` is an Until span from now (null: no end). */
+export interface RemindChoice { id: string; label: string; days?: number | null }
+
+const OFTEN: { id: RecallFrequency; label: string }[] = [
+  { id: 'once', label: 'Once' },
+  { id: 'visit', label: 'Every visit' },
+  { id: 'weekly', label: 'Weekly at most' },
+  { id: 'monthly', label: 'Monthly at most' },
+];
+/** The until-date, as a few spans from now: no date picker to fight on three platforms. */
+const UNTIL: RemindChoice[] = [
+  { id: 'none', label: 'No end', days: null },
+  { id: 'month', label: '1 month', days: 30 },
+  { id: 'season', label: '3 months', days: 91 },
+  { id: 'year', label: '1 year', days: 365 },
+];
+const REMIND_MENUS = { often: 'How often', until: 'Until' } as const;
+
+/**
+ * The choices of the reminder editor's two menus, How often and Until, in the order its chips had them (R1, R8;
+ * tend explore 18, decision 0172 O9). An end already set leads Until as its own choice, "Ends Nov 2", kept to the
+ * day unless another is picked; its local month and date are the caller's to read.
+ */
+export function remindChoices(kept: { month: number; date: number } | null): { often: RemindChoice[]; until: RemindChoice[] } {
+  return { often: OFTEN, until: kept ? [{ id: 'kept', label: `Ends ${MONTHS[kept.month]} ${kept.date}` }, ...UNTIL] : UNTIL };
+}
+
+/** What a menu's button says: its name and its choice, "How often: Once", "Until: No end" (tend explore 18). */
+export function remindMenuLabel(menu: keyof typeof REMIND_MENUS, items: readonly RemindChoice[], id: string): string {
+  return `${REMIND_MENUS[menu]}: ${(items.find((x) => x.id === id) ?? items[0]).label}`;
+}
+
+/**
+ * "Two memories here", a count in words (VISION.md, "Counts are words"; tend explore T29), up to twelve; "Many memories
+ * here" from thirteen, so the card's one line holds at 320 px (tend explore 16, decision 0172, the owner's "Many sooner").
+ */
+function severalHere(n: number): string {
+  // The reminder's title alone: a memory preview keeps its number words (tend explore audit 18).
+  const w = n >= 13 ? 'many' : numberWord(n);
+  return `${w.charAt(0).toUpperCase()}${w.slice(1)} memories here`;
+}
+
+/**
+ * The reminder's words, carrying the content (R4); two or more in reach are one (R7): "Two memories here", its body
+ * the pins' words for its kinds, in the order taken ("A voice memo and two photos", tend explore T29).
+ */
 export function reminderText(captures: Faced[]): { title: string; body: string } {
-  if (captures.length > 1) return { title: `${captures.length} memories here`, body: kindsOf(captures) };
+  if (captures.length > 1) {
+    const taken = [...captures].sort((a, b) => a.t - b.t || a.id.localeCompare(b.id));
+    return { title: severalHere(captures.length), body: pinKindsWords({ captures: taken }) };
+  }
   const c = captures[0];
   if (c.kind === 'text' && c.body) {
     const text = (plainNote(c.body, c.body_format) ?? '').trim();
@@ -104,19 +155,165 @@ export function reminderText(captures: Faced[]): { title: string; body: string }
   }
   if (c.caption) return { title: 'A memory from here', body: c.caption };
   const d = new Date(c.t);
-  return { title: 'A memory from here', body: `${KIND_WORD[c.kind]}, ${MONTHS[d.getMonth()]} ${d.getDate()}` };
+  return { title: 'A memory from here', body: `${KIND_NAME[c.kind]}, ${MONTHS[d.getMonth()]} ${d.getDate()}` };
 }
 
-const ONE: Record<Faced['kind'], string> = { photo: 'a photo', video: 'a video', voice: 'a voice memo', text: 'a note' };
-const MANY: Record<Faced['kind'], string> = { photo: 'photos', video: 'videos', voice: 'voice memos', text: 'notes' };
+/**
+ * What a reminder card holds once more come due (tend explore audit 6): what it held, then each newly due one it
+ * did not hold. The walk screen and the recording bar announce this list's own title (`reminderText`), so the words
+ * heard are the card's: "A note from here", "Three memories here".
+ */
+export function reminderHeld(held: readonly Faced[] | null, due: readonly Faced[]): Faced[] {
+  const have = held ?? [];
+  return [...have, ...due.filter((c) => !have.some((x) => x.id === c.id))];
+}
 
-/** "A photo and a note", "2 voice memos and a note". */
-function kindsOf(captures: Faced[]): string {
-  const order: Faced['kind'][] = ['photo', 'video', 'voice', 'text'];
-  const parts = order
-    .map((k) => [k, captures.filter((c) => c.kind === k).length] as const)
-    .filter(([, n]) => n > 0)
-    .map(([k, n]) => (n === 1 ? ONE[k] : `${n} ${MANY[k]}`));
-  const text = parts.length > 1 ? `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}` : parts[0];
-  return text.charAt(0).toUpperCase() + text.slice(1);
+/**
+ * Where a fired reminder goes (tend explore 21), decided when it is shown: with the app in front, the newest place
+ * listening that is in front (the walk screen's card, the recording bar); a place mounted out of sight (the walk
+ * screen kept behind the tabs after a reload) never takes it, as a tapped one's openers pass it on (`lib/openers`).
+ * With none in front, or the app behind, a notification: `null`. Else the index of the place, oldest first.
+ */
+export function firePlace(active: boolean, inFront: readonly boolean[]): number | null {
+  if (!active) return null;
+  for (let i = inFront.length - 1; i >= 0; i--) if (inFront[i]) return i;
+  return null;
+}
+
+/** How long a reminder the recording bar holds has been in sight: the time before, and since when it is in sight now. */
+export type ReminderSight = { shownMs: number; since: number | null };
+export const UNSEEN: ReminderSight = { shownMs: 0, since: null };
+const inSightFor = (s: ReminderSight, now: number) => s.shownMs + (s.since != null ? now - s.since : 0);
+
+/**
+ * When a reminder the recording bar holds counts as shown (tend explore 22, audit 27): only while the bar is in sight
+ * (`barInSight`). Its half-minute is time in sight: out of sight (folded, covered, the app behind) it waits, however
+ * long, and what was left of it comes back on return. A fire already marked (a "once" flag cleared) is never dropped
+ * unseen. `goesInMs` is null while it waits.
+ */
+export function reminderSight(o: { sight: ReminderSight; inSight: boolean; now: number; showMs: number }): { sight: ReminderSight; goesInMs: number | null } {
+  const shown = inSightFor(o.sight, o.now);
+  if (!o.inSight) return { sight: { shownMs: shown, since: null }, goesInMs: null };
+  return { sight: { shownMs: o.sight.shownMs, since: o.sight.since ?? o.now }, goesInMs: Math.max(0, o.showMs - shown) };
+}
+
+/**
+ * Whether the bar's reminder has been seen (tend explore audit 23): in sight for a glance's length at least. A bar that
+ * goes before (Walk here from the area card unfolds it for the moment the walk screen takes to come up) hands it on.
+ */
+export const reminderSeen = (sight: ReminderSight, now: number): boolean => inSightFor(sight, now) >= RECALL_RULES.glanceMs;
+
+/**
+ * Whether a person can see the recording bar (tend explore 22, audits 24, 27): the tabs not folded under a full-screen
+ * card, no Modal over it, no keyboard over the foot of the screen, and the app in front.
+ */
+export const barInSight = (o: { folded: boolean; covered: boolean; keyboard: boolean; active: boolean }): boolean =>
+  !o.folded && !o.covered && !o.keyboard && o.active;
+
+/**
+ * A reminder card's spoken name (tend explore 23): its title and its words, then Open, with one full stop before Open:
+ * a body that ends its own sentence ("…of cardamom.", "?", a cut note's "…") takes none more.
+ */
+export function reminderName(captures: Faced[]): string {
+  const { title, body } = reminderText(captures);
+  const said = body ? `${title}: ${body}` : title;
+  return `${said}${/[.!?…]["'”’)\]]*$/.test(said) ? '' : '.'} Open`;
+}
+
+/** A reminder that waits or went to a notification: its walk and what it holds. */
+export type WaitingRecall = { walkId: string; captures: Faced[] };
+const NONE: ReadonlySet<string> = new Set();
+
+/**
+ * The places a fired reminder can be shown (tend explore 21, audit 23): each listens with whether it is in front now.
+ * A fire goes to the newest in front (`firePlace`, `take`). A place that goes with a reminder nobody has seen (the
+ * recording bar, folded under the area card, when Walk here leaves the tabs) hands it on: it waits, merged with any
+ * handed on after it, for the next place in front of the same walk, offered as a place listens or comes to the front;
+ * so does a fire none in front takes with the app in front (`take`, tend explore 24). The walk it came on over, it is
+ * dropped; a moment of it gone into Undo meanwhile is left out (tend explore audit 29). The app going behind, what
+ * waits becomes a notification (`drain`, tend explore audit 28), merged with what was notified of the same walk since
+ * the app was last in front, as a fire with the app behind is: one notification a walk, so none replaces another.
+ * Pure: it calls what it is given.
+ */
+export function createRecallPlaces() {
+  const places: { show: (captures: Faced[]) => void; inFront: () => boolean }[] = [];
+  let unseen: WaitingRecall | null = null;
+  let notified: WaitingRecall | null = null;
+  const newest = (active: boolean) => firePlace(active, places.map((p) => p.inFront()));
+  const merged = (into: WaitingRecall | null, walkId: string, captures: Faced[]): WaitingRecall => ({
+    walkId,
+    captures: reminderHeld(into?.walkId === walkId ? into.captures : null, captures),
+  });
+  /** What waits, still of the open walk and without what went into Undo; null (and nothing waits) otherwise. */
+  const waiting = (openWalkId: string | null, hidden: ReadonlySet<string>): WaitingRecall | null => {
+    if (!unseen) return null;
+    const left = unseen.walkId === openWalkId ? unseen.captures.filter((c) => !hidden.has(c.id)) : [];
+    if (!left.length) {
+      unseen = null;
+      return null;
+    }
+    unseen = { walkId: unseen.walkId, captures: left };
+    return unseen;
+  };
+  const offer = (active: boolean, openWalkId: string | null, hidden: ReadonlySet<string> = NONE): boolean => {
+    const w = waiting(openWalkId, hidden);
+    if (!w) return false;
+    const i = newest(active);
+    if (i == null) return false;
+    unseen = null;
+    places[i].show(w.captures);
+    return true;
+  };
+  return {
+    /** Listens while `inFront` says this place can be seen; returns the unsubscribe. */
+    listen(show: (captures: Faced[]) => void, inFront: () => boolean): () => void {
+      const place = { show, inFront };
+      places.push(place);
+      return () => {
+        const i = places.indexOf(place);
+        if (i >= 0) places.splice(i, 1);
+      };
+    },
+    /**
+     * A fire of a walk (tend explore 24): shown by the newest place in front; with none in front and the app in front (a
+     * replay or a day over the tabs), a notification would show nothing (the web) or only in the list (a phone), so it
+     * waits as one handed on does: null either way. With the app behind, what the caller notifies: this fire merged with
+     * what was notified of its walk since the app was last in front (tend explore audit 28).
+     */
+    take(walkId: string, captures: Faced[], active: boolean): Faced[] | null {
+      const i = newest(active);
+      if (i != null) {
+        places[i].show(captures);
+        return null;
+      }
+      if (active) {
+        unseen = merged(unseen, walkId, captures);
+        return null;
+      }
+      notified = merged(notified, walkId, captures);
+      return notified.captures;
+    },
+    /** A place goes with a reminder nobody has seen: the next place in front of its walk takes it. */
+    handOn(walkId: string, captures: Faced[], active: boolean, openWalkId: string | null): void {
+      unseen = merged(unseen, walkId, captures);
+      offer(active, openWalkId);
+    },
+    /** A place listens or came to the front: it takes what waits, if the walk is still open. True when one did. */
+    offer,
+    /**
+     * The app went behind (tend explore audit 28): what waits, to notify, merged with what was notified of its walk since
+     * the app was last in front; nothing waits after. Null when nothing waits, or its walk ended.
+     */
+    drain(openWalkId: string | null, hidden: ReadonlySet<string> = NONE): WaitingRecall | null {
+      const w = waiting(openWalkId, hidden);
+      if (!w) return null;
+      unseen = null;
+      notified = merged(notified, w.walkId, w.captures);
+      return notified;
+    },
+    /** The app came to the front: a notification after this starts afresh. */
+    front(): void {
+      notified = null;
+    },
+  };
 }

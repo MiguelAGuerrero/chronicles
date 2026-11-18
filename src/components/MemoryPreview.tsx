@@ -1,11 +1,12 @@
-import { type Faced, facedAll, hasMore } from '../lib/moment';
+import { type Faced, hasMore } from '../lib/moment';
+import { Picture } from './Picture';
 import { STACK_SPOKEN } from './StackMark';
-import { useEffect, useState } from 'react';
-import { db } from '../lib/db';
-import { makeThumb } from '../lib/media/thumb';
-import { thumbShown, wantsThumb } from '../lib/thumbPlan';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
-import { previewLine } from '../lib/memories';
+import { useState } from 'react';
+import { thumbShown } from '../lib/thumbPlan';
+import { useStill } from '../lib/thumbs/useStill';
+import { VideoMark } from './VideoMark';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { moreHere, previewLine, previewSpoken } from '../lib/memories';
 
 import { useMediaUri } from '../lib/useMediaUri';
 import { Icon, KIND_ICON } from './icons';
@@ -13,7 +14,7 @@ import { LiftIn, theme } from './ui';
 
 /**
  * A memory pin's quick preview (MR4): the photo or the note's line, the date
- * and the walk, and "N more here". A tap on it opens the viewer (MR5).
+ * and the walk, and "and two more here" in words (tend memories T30). A tap on it opens the viewer (MR5).
  */
 export function MemoryPreview(props: {
   captures: Faced[];
@@ -23,27 +24,10 @@ export function MemoryPreview(props: {
   onClose: () => void;
 }) {
   const first = props.captures[0];
-  // A photo's small copy (TH4). An older photo makes it once, here (TH3), read fresh from storage,
-  // since the walk's memory pool may be older than its copy (audit 3). Until it lands, the icon
-  // rather than a second full decode (audit 7); a copy whose file is gone, the photo (audit 6).
-  const [row, setRow] = useState<Faced>(first);
-  useEffect(() => {
-    if (first.kind !== 'photo') return;
-    let alive = true;
-    (async () => {
-      const fresh = (await db.getMomentsByIds([first.id]).then(facedAll).catch(() => []))[0] ?? first;
-      if (!alive) return;
-      setRow(fresh);
-      if (!wantsThumb(fresh)) return;
-      const t = await makeThumb(fresh);
-      if (!t) return;
-      void db.updatePiece(fresh.piece_id, { thumb_path: t }).catch(() => {});
-      if (alive) setRow({ ...fresh, thumb_path: t });
-    })();
-    return () => {
-      alive = false;
-    };
-  }, [first]);
+  // A photo's small copy (TH4) or a video's still (VS2): an older one is made through the thumbs shell, read fresh,
+  // since the walk's memory pool may be older than its copy (audit 3). Until it lands, the icon rather than a second
+  // full decode (audit 7); a photo's copy whose file is gone, the photo (audit 6).
+  const row = useStill(first);
   const [copyBroken, setCopyBroken] = useState(false);
   const ref = thumbShown(row, copyBroken);
   const uri = useMediaUri(ref ? { ...row, file_path: ref } : null);
@@ -53,47 +37,66 @@ export function MemoryPreview(props: {
   const line = previewLine(first);
   return (
     <LiftIn testID="memory-preview" style={styles.card}>
-      <Pressable
-        testID="memory-open"
-        accessibilityRole="button"
-        accessibilityLabel={`Memory from ${date}: ${line}${hasMore(first) ? `, ${STACK_SPOKEN}` : ''}${more > 0 ? `, and ${more} more here` : ''}. Open`}
-        onPress={props.onOpen}
-        style={styles.body}
-      >
-        <View style={styles.thumb}>
-          {uri && broken !== uri ? (
-            <Image
-              source={{ uri }}
-              style={StyleSheet.absoluteFill}
-              resizeMode="cover"
-              onError={() => (ref === row.thumb_path && ref !== row.file_path ? setCopyBroken(true) : setBroken(uri))}
-            />
-          ) : (
-            <Icon name={KIND_ICON[first.kind]} size={24} color={theme.muted} />
-          )}
-        </View>
-        <View style={styles.text}>
-          <Text style={styles.line} numberOfLines={2}>{line}</Text>
-          <Text style={styles.meta} numberOfLines={1}>
-            {[date, props.walkLine].filter(Boolean).join(' · ')}
-          </Text>
-          {more > 0 && <Text style={styles.meta}>{`${more} more here`}</Text>}
-        </View>
-      </Pressable>
-      <Pressable testID="memory-close" accessibilityRole="button" accessibilityLabel="Close the memory" onPress={props.onClose} style={styles.close} hitSlop={8}>
-        <Icon name="close" size={22} color={theme.ink} />
-      </Pressable>
+      <View style={styles.top}>
+        <Pressable
+          testID="memory-open"
+          accessibilityRole="button"
+          accessibilityLabel={previewSpoken({ date, line, stack: hasMore(first) ? STACK_SPOKEN : null, more })}
+          onPress={props.onOpen}
+          style={styles.body}
+        >
+          <View style={styles.thumb}>
+            {uri && broken !== uri ? (
+              <Picture
+                uri={uri}
+                style={StyleSheet.absoluteFill}
+                fit="cover"
+                onError={() => (ref === row.thumb_path && ref !== row.file_path && row.kind === 'photo' ? setCopyBroken(true) : setBroken(uri))}
+              />
+            ) : (
+              <Icon name={KIND_ICON[first.kind]} size={24} color={theme.muted} />
+            )}
+            {row.kind === 'video' && uri && broken !== uri ? <VideoMark size={10} style={styles.mark} /> : null}
+          </View>
+          <View style={styles.text}>
+            <Text style={styles.line} numberOfLines={2}>{line}</Text>
+            <Text style={styles.meta} numberOfLines={1}>
+              {[date, props.walkLine].filter(Boolean).join(' · ')}
+            </Text>
+          </View>
+        </Pressable>
+        <Pressable testID="memory-close" accessibilityRole="button" accessibilityLabel="Close the memory" onPress={props.onClose} style={styles.close} hitSlop={8}>
+          <Icon name="close" size={22} color={theme.ink} />
+        </Pressable>
+      </View>
+      {/* The rest of the group, across the card's whole width so "and one more here" holds one line at 320 px (tend
+          memories audit 3). A tap opens, as the card does; a screen reader has it in the card's name already. */}
+      {more > 0 && (
+        <Pressable
+          onPress={props.onOpen}
+          focusable={false}
+          aria-hidden
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          style={styles.moreRow}
+        >
+          <Text testID="memory-more" style={styles.meta} numberOfLines={1}>{moreHere(more)}</Text>
+        </Pressable>
+      )}
     </LiftIn>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: theme.surface, borderRadius: theme.radius, padding: 10, gap: 6,
+    backgroundColor: theme.surface, borderRadius: theme.radius, padding: 10, gap: 4,
     width: '100%', maxWidth: 520,
     shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 6,
   },
+  top: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  moreRow: { paddingLeft: 2 },
   body: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 56 },
+  mark: { position: 'absolute', right: 3, bottom: 3 },
   thumb: { width: 56, height: 56, borderRadius: 10, overflow: 'hidden', backgroundColor: theme.bg, alignItems: 'center', justifyContent: 'center' },
   text: { flex: 1, gap: 2 },
   line: { fontSize: 15, fontWeight: '600', color: theme.ink },

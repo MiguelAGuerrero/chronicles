@@ -1,0 +1,24 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "The `gaps` journey fails gap-drawing audit 4",
+        "--reason",
+        "fixed: fix gaps-done-wait; the draw's tiles were kept from the replay's read (createTileBodies), the journey reloads first (Nov 18)"
+      ],
+      "target": "sha256:fe300869b7533f013fec287225ea20eef4857593b00563cda4ae541fd9e76365"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Navigation and routes"
+      ],
+      "body": "- [loop] The atlas journey's \"Cancel goes at once and keeps nothing\" (`atlas.js` l.498-528) slows tiles with `tiles.delayMs`, but the look's `readAround` may get every tile from the 16 the area reads kept (`createTileBodies`), so Cancel may land during the compute, not while a read is out. Inferred, not measured (fix gaps-done-wait audit F3, Nov 18): have the harness count the requests it holds under the delay and assert one is held when Cancel is tapped, here and in gaps audit 4.\n"
+    }
+  ]
+}

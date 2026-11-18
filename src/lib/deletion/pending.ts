@@ -19,6 +19,8 @@ export type DeleteSpec =
   | { type: 'piece'; momentId: string; pieceId: string }
   /** A piece split out as a moment of its own (MS16), placed when it was split. */
   | { type: 'split'; pieceId: string; moment: Omit<Moment, 'pieces'> }
+  /** An entry's pieces stacked into the previous moment (decision 0197, SW9); the emptied entry goes. */
+  | { type: 'join'; fromId: string; intoId: string }
   | { type: 'thread'; threadId: string }
   | { type: 'remove'; threadId: string; momentId: string };
 
@@ -29,6 +31,8 @@ export interface PendingJob {
   /** Ids every screen hides while it waits, and after it went (a removal hides `thread/moment`). */
   ids: string[];
   spec: DeleteSpec;
+  /** The app's own drop of an empty walk (EW9): hidden and stored like any delete, but never saved for a relaunch, so a kill leaves the walk. */
+  volatile?: boolean;
 }
 
 /** The key a waiting removal from a thread hides (UC6). */
@@ -39,7 +43,7 @@ export const FAILED_TEXT = "Couldn't delete. Try again.";
 
 export interface PendingState {
   /** The delete Undo would reach, while it waits. */
-  pending: { kind: DeleteKind; what?: CaptureKind } | null;
+  pending: { kind: DeleteKind; what?: CaptureKind; /** The app's own drop of an empty walk: its pill says a plain fact (EW8). */ dropped?: boolean } | null;
   error: string | null;
 }
 
@@ -54,7 +58,9 @@ export function createPending(o: {
   let waiting: PendingJob | null = null;
   // Not yet stored: the waiting delete and those being stored now (ui-conformance audit 5, 9).
   let unstored: PendingJob[] = [];
-  const keep = () => o.save?.([...unstored]);
+  const keep = () => o.save?.(unstored.filter((j) => !j.volatile));
+  // The route change Stop itself causes must not store the drop (EW8, an exception to 0113 the owner approved, Nov 16).
+  let held = false;
   let errorTimer: unknown = null;
   // Waiting and gone ids, counted so two deletes of one id (a moment, then its walk) unhide right.
   const hiddenCount = new Map<string, number>();
@@ -123,7 +129,7 @@ export function createPending(o: {
       waiting = job;
       unstored = [...unstored, job];
       keep();
-      set({ pending: { kind: job.kind, what: job.what }, error: null });
+      set({ pending: { kind: job.kind, what: job.what, ...(job.volatile ? { dropped: true } : {}) }, error: null });
     },
     /** Takes back the waiting delete: nothing was stored. */
     undo(): void {
@@ -136,9 +142,22 @@ export function createPending(o: {
       set({ pending: null });
     },
     /** Close on the pill: the delete stands, stored now (UC2). */
-    dismiss: release,
-    /** Stores what waits now. */
-    flush: release,
+    dismiss(): Promise<void> {
+      held = false;
+      return release();
+    },
+    /** Stores what waits now, unless a hold was asked for: that flush is skipped, the next one stores. */
+    flush(): Promise<void> {
+      if (held) {
+        held = false;
+        return Promise.resolve();
+      }
+      return release();
+    },
+    /** Skips the next `flush` once: the screen change Stop causes (EW8). Any other way out of the window still stores. */
+    holdNextFlush(): void {
+      held = true;
+    },
     /** Deletes saved by a run that was killed: hidden, stored, and no pill (UC13), whatever waits now (audit 9). */
     resume(jobs: PendingJob[]): Promise<void> {
       unstored = [...jobs, ...unstored];

@@ -3,7 +3,7 @@ import { notePatch } from '../../lib/noteEdit';
 import type { Faced } from '../../lib/moment';
 import { router, useFocusEffect } from 'expo-router';
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
-import { Animated, Linking, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { AccessibilityInfo, Animated, Linking, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { SafeAreaInsetsContext, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MemoriesScreen } from '../../components/chronicle/MemoriesScreen';
 import { SectionBar } from '../../components/chronicle/SectionBar';
@@ -27,7 +27,7 @@ import { placeFinds, type ChecklistArea, type Find } from '../../lib/explore/exp
 import { onRecallOpen, recallWaiting, takeRecallOpen } from '../../lib/discovery/recallCheck';
 import { zoomOutFor } from '../../lib/zoomOut';
 import { backlogStatus, placeBacklog } from '../../lib/backlog';
-import type { Bounds } from '../../lib/geo';
+import { boundsOf, type Bounds } from '../../lib/geo';
 import { bordersFor, outlineIdsOf, townPlaces } from '../../lib/areas/borders';
 import { BORDER_ZOOM } from '../../lib/areas/outlines';
 import { useOutlineSet } from '../../lib/areas/useOutlineSet';
@@ -37,14 +37,16 @@ import { deletions } from '../../lib/deletion';
 import { useHidden, useOnDeleted } from '../../lib/deletion/useDeletions';
 import { fitWithMoments, MOMENT_PIN_ZOOM, placedMoments } from '../../lib/momentPins';
 import { useStartWalk } from '../../lib/useStartWalk';
+import type { Waypoint } from '../../lib/nav/types';
 import { showWalk } from '../../lib/walkNav';
 import { useTabMap, type Camera } from '../../lib/useTabMap';
 import { UndoToast } from '../../components/UndoToast';
 import { WalkActions } from '../../components/WalkActions';
 import { useOpenWalkInfo } from '../../components/OpenWalk';
+import { OpenInMapsButton, useOpenInMaps } from '../../components/OpenInMapsButton';
 
 // A tab that throws shows what broke, with the tab bar and the recording bar still there (fix ios-video audit 1).
-export { ScreenError as ErrorBoundary } from '../../components/ScreenError';
+export { HomeScreenError as ErrorBoundary } from '../../components/ScreenError';
 
 const NONE: never[] = [];
 /** With nothing walked yet: the world, and one line. */
@@ -56,6 +58,8 @@ const tried = new Set<string>();
  * section switch, a replay): a walk placed while the map was away is followed quietly on return (audit 9).
  */
 const placedSeen = { n: 0 };
+/** How far around a moment the map frames when a journal entry asks for it (JN6). */
+const MOMENT_FOCUS_M = 150;
 const boundsKey = (b: Bounds | null) => (b ? b.map((v) => v.toFixed(5)).join(',') : '');
 /** The closest any of Chronicle's fits may zoom (tabs audit U15). */
 const FIT_MAX_ZOOM = 15;
@@ -65,7 +69,7 @@ const allCaptures = () => db.momentsBetween(0, Number.MAX_SAFE_INTEGER).then(fac
 /**
  * Chronicle (NV11-NV13): review. Stars where you have walked, a sheet that
  * peeks with a summary and lists walks and days, and the replays. Start,
- * Explore, What's good here and quick capture live on the other tabs. It reads
+ * Explore, What's here and quick capture live on the other tabs. It reads
  * only walks, summaries, Area, WalkArea and capture rows; placing old walks
  * (which reads their traces) lives in lib/backlog.
  */
@@ -95,6 +99,17 @@ const ChronicleMap = forwardRef<ChronicleMapHandle, { section: 'walks' | 'days' 
   const [actionsFor, setActionsFor] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const walkStart = useStartWalk();
+  // A refused start is the quiet notice, no alert, so a screen reader hears it through a hidden live region kept mounted
+  // on web and the call on a phone (tend recording audit 3, as tend map audit 12); `n` makes a repeat a change.
+  const [said, setSaid] = useState({ text: '', n: 0 });
+  const startWalk = (dest: Waypoint) =>
+    walkStart.start(dest, undefined, {
+      onError: (e) => {
+        if (e.tone !== 'info') return;
+        setSaid((s) => ({ text: e.message, n: s.n + 1 }));
+        AccessibilityInfo.announceForAccessibility(e.message);
+      },
+    });
   const [loadError, setLoadError] = useState<{ message: string; openSettings?: boolean } | null>(null);
   const error = walkStart.error ?? loadError;
   // Walks and Days open the sheet on that list (RM2); Map is the sheet at rest.
@@ -163,6 +178,9 @@ const ChronicleMap = forwardRef<ChronicleMapHandle, { section: 'walks' | 'days' 
   useEffect(() => {
     openRef.current = openInfo;
   });
+  // OM4: Open in Maps from a star's sheet and the long-press card: straight to the phone's maps app; a failure is said once, in Chronicle's banner.
+  const mapsFailed = useCallback(() => setLoadError({ message: 'Couldn’t open a maps app.' }), []);
+  const openMaps = useOpenInMaps(mapsFailed);
   useEffect(() => onRecallOpen((found) => {
     if (!openRef.current.known || openRef.current.walk) return false;
     setRecalled(found);
@@ -185,9 +203,18 @@ const ChronicleMap = forwardRef<ChronicleMapHandle, { section: 'walks' | 'days' 
         }
         const recalled = openWalk ? [] : await takeRecallOpen().catch(() => [] as Faced[]);
         if (!live) return null;
-        setChecklists(await db.listChecklistAreas().catch(() => [] as ChecklistArea[]));
-        setFinds(await db.listFinds().catch(() => [] as Find[]));
-        const caps = await allCaptures().catch(() => [] as Faced[]);
+        // Read together, then set together after the last await: each `setX(await …)` was a render of its own, and
+        // each render redraws the map's pins (fix chronicle-focus-reload: a section's open went from 6 renders to 4).
+        const [checklists, finds, caps] = await Promise.all([
+          db.listChecklistAreas().catch(() => [] as ChecklistArea[]),
+          db.listFinds().catch(() => [] as Find[]),
+          allCaptures().catch(() => [] as Faced[]),
+        ]);
+        // No `live` check here: once the recall is taken the load goes on to the end even blurred (a replay opened
+        // over it), so the recall is shown and its places count as framed on the way back (fix chronicle-focus-reload
+        // audit 1, 2; H5, R4).
+        setChecklists(checklists);
+        setFinds(finds);
         setCaptures(caps);
         if (recalled.length) setRecalled(recalled);
         setData({ walks, summaries, areas, rows });
@@ -200,7 +227,13 @@ const ChronicleMap = forwardRef<ChronicleMapHandle, { section: 'walks' | 'days' 
         // its places count as framed, so coming back from a replay keeps the view you left (H5; audit 2).
         const key = boundsKey(bounds);
         let framed = false;
-        if (key !== fittedTo.current) {
+        // Asked for from a journal entry's dateline (JN6): the map frames that moment, not everything walked.
+        const asked = chronicleSection.takeFocus();
+        if (asked) {
+          fittedTo.current = key;
+          zoomOnMount.current = false;
+          setFit((f) => ({ bounds: boundsOf([asked], MOMENT_FOCUS_M), key: f.key + 1 }));
+        } else if (key !== fittedTo.current) {
           const fit = fitsOnRead(fittedTo.current, key, !refit);
           fittedTo.current = key;
           if (fit) setFit((f) => ({ bounds, key: f.key + 1 }));
@@ -319,7 +352,7 @@ const ChronicleMap = forwardRef<ChronicleMapHandle, { section: 'walks' | 'days' 
     <View style={styles.screen}>
       <View style={[StyleSheet.absoluteFill, styles.over]} pointerEvents="box-none">
         <HomeSheet
-          // Back and Escape lower the sheet only while Chronicle is in front with nothing over it (section-bar audit 1).
+          // Back and Escape lower the sheet only while Chronicle is in front with nothing over it (section-bar audit 1)
           ownKeys={focused && !viewing && !recalled && !actionsFor}
           index={index}
           summaries={summaries}
@@ -333,7 +366,10 @@ const ChronicleMap = forwardRef<ChronicleMapHandle, { section: 'walks' | 'days' 
           busy={walkStart.starting}
           placingId={placingId}
           // A one-tap start to the place (NV12): the saved choices, never the drawer.
-          onGoToPlace={selected ? () => walkStart.start({ at: selected.at, label: selected.label, kind: 'place' }) : undefined}
+          onGoToPlace={selected ? () => startWalk({ at: selected.at, label: selected.label, kind: 'place' }) : undefined}
+          // OM4: Open in Maps for the star, beside its Walk here.
+          mapsTarget={selected ? { at: selected.at, label: selected.label, kind: 'star' } : undefined}
+          onMaps={openMaps}
           placeExtra={placeExtra}
           days={days}
           onOpenMoments={setViewing}
@@ -352,7 +388,8 @@ const ChronicleMap = forwardRef<ChronicleMapHandle, { section: 'walks' | 'days' 
       <View style={[styles.top, styles.over, { top: insets.top + 8 }]} pointerEvents="box-none">
         {error && (
           <Banner
-            tone="error"
+            // Location refused by Walk here or Go is the quiet notice (tend recording audit 3); anything else a fault.
+            tone={walkStart.error?.tone ?? 'error'}
             onDismiss={() => {
               walkStart.setError(null);
               setLoadError(null);
@@ -362,6 +399,7 @@ const ChronicleMap = forwardRef<ChronicleMapHandle, { section: 'walks' | 'days' 
             {error.message}
           </Banner>
         )}
+        {Platform.OS === 'web' ? <Text testID="chronicle-said" accessibilityLiveRegion="polite" style={styles.said}>{said.n % 2 ? `${said.text}\u200B` : said.text}</Text> : null}
       </View>
 
       {spot && (
@@ -375,9 +413,11 @@ const ChronicleMap = forwardRef<ChronicleMapHandle, { section: 'walks' | 'days' 
               onPress={() => {
                 const at = spot;
                 setSpot(null);
-                walkStart.start({ at, label: 'Your spot', kind: 'point' });
+                startWalk({ at, label: 'Your spot', kind: 'point' });
               }}
             />
+            {/* OM4: Open in Maps, an outlined button under Walk here; the stack stays above the capture band. */}
+            <OpenInMapsButton testID="spot-maps" variant="button" target={{ at: spot, label: 'Your spot', kind: 'spot' }} onOpen={openMaps} />
             <Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={() => setSpot(null)} style={styles.spotClose} hitSlop={8}>
               <Icon name="close" size={22} color={theme.ink} />
             </Pressable>
@@ -393,9 +433,10 @@ const ChronicleMap = forwardRef<ChronicleMapHandle, { section: 'walks' | 'days' 
         remind
         onSaveNote={async (c, body) => {
           // Stored first; Chronicle's pins and any open view of the walk then show it (QL25).
-          await db.updatePiece(c.piece_id, notePatch(body));
-          setCaptures((prev) => applyPatch(prev, c.id, notePatch(body)));
-          captureBus.patch(c.walk_id, c.id, notePatch(body), null);
+          const change = notePatch(body);
+          await db.updatePiece(c.piece_id, change);
+          setCaptures((prev) => applyPatch(prev, c.id, change, c.piece_id));
+          captureBus.patch(c.walk_id, c.id, change, null, c.piece_id);
         }}
       />
       <CaptureViewer
@@ -406,13 +447,14 @@ const ChronicleMap = forwardRef<ChronicleMapHandle, { section: 'walks' | 'days' 
         onSaveEdit={async (c, patch) => {
           // Stored and told on the bus first (ME21); Chronicle's pins then show it.
           await captureEdits.save(c, patch);
-          setCaptures((prev) => applyPatch(prev, c.id, patch));
+          setCaptures((prev) => applyPatch(prev, c.id, patch, c.piece_id));
         }}
         onSaveNote={async (c, body) => {
           // Stored first; Chronicle's pins and any open view of the walk then show it (QL25).
-          await db.updatePiece(c.piece_id, notePatch(body));
-          setCaptures((prev) => applyPatch(prev, c.id, notePatch(body)));
-          captureBus.patch(c.walk_id, c.id, notePatch(body), null);
+          const change = notePatch(body);
+          await db.updatePiece(c.piece_id, change);
+          setCaptures((prev) => applyPatch(prev, c.id, change, c.piece_id));
+          captureBus.patch(c.walk_id, c.id, change, null, c.piece_id);
         }}
       />
       <WalkActions
@@ -472,6 +514,7 @@ const ChronicleMap = forwardRef<ChronicleMapHandle, { section: 'walks' | 'days' 
 });
 
 const styles = StyleSheet.create({
+  said: { position: 'absolute', width: 1, height: 1, overflow: 'hidden', opacity: 0 },
   screen: { flex: 1, backgroundColor: theme.bg },
   body: { flex: 1 },
   under: { zIndex: 0 },

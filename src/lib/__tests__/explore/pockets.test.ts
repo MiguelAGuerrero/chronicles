@@ -7,7 +7,7 @@ import { distanceM } from '../../geo';
 import type { LngLat } from '../../types';
 
 // Town presence (TP4-TP6). The real cases run on Overture's places (release 2026-10-21.0) inside each
-// town's whole outline, weighted as busy streets weigh them (scripts/fixture-town-points.mjs).
+// town's whole outline, weighted as storefront streets weigh them (scripts/fixture-town-points.mjs).
 const require = createRequire(import.meta.url);
 type Fixture = { points: [number, number, number][] };
 const pointsOf = (name: string): PocketPoint[] => (require(`./${name}Points.json`) as Fixture).points.map(([lon, lat, weight]) => ({ at: [lon, lat], weight }));
@@ -53,7 +53,7 @@ test('TP6: Allentown and Bethlehem give several pockets, at least 1.5 km apart',
     assert.ok(p.length >= 2, `${name} has more than one`);
     for (let i = 0; i < p.length; i++) for (let j = i + 1; j < p.length; j++) assert.ok(distanceM(p[i].at, p[j].at) >= POCKET_RULES.sepM, `${name} ${i}/${j}`);
   }
-  // The busiest holds each town's downtown (Allentown's Hamilton and 7th; Bethlehem's Main and Broad).
+  // The densest holds each town's downtown (Allentown's Hamilton and 7th; Bethlehem's Main and Broad).
   assert.ok(distanceM(findPockets(pointsOf('allentown'))[0].at, [-75.4714, 40.6029]) < 800);
   assert.ok(distanceM(findPockets(pointsOf('bethlehem'))[0].at, [-75.3774, 40.6217]) < 1000);
 });

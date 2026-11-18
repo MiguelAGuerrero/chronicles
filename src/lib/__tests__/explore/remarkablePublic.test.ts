@@ -7,6 +7,7 @@ import { archivePlace } from '../../discovery/archivePois';
 import { mergePlaces } from '../../discovery/archiveMerge';
 import { isMarkable } from '../../discovery/noise';
 import { categoryOfPoi, placesFromTilePois } from '../../discovery/tilePois';
+import { kindParent } from '../../discovery/refinements';
 import { KINDS } from '../../explore/explore';
 import { reachLine, REACH_M, wayNear } from '../../explore/reach/rule';
 import { createReach } from '../../explore/reach/shell';
@@ -67,11 +68,12 @@ test('RP13: every named attraction in the tiles is a place to find, SteelStacks 
   const places = placesNow();
   for (const f of attractions) {
     const p = places.find((x) => x.name === f.properties!.name);
+    // explore-subtypes audit 12: the map's attractions stay with Viewpoints and attractions.
     assert.ok(p && isMarkable(p) && p.kind === 'viewpoints', `${f.properties!.name} is a place to find of Viewpoints and attractions`);
   }
   const steel = places.find((p) => p.name === 'SteelStacks');
   assert.ok(steel && isMarkable(steel));
-  // Pinned with the slice: the kind's label says "attractions".
+  // Pinned with the slice: the kind's label says "attractions" (zoos and aquariums apart since XS4 and audit 12).
   assert.equal(KINDS.find((k) => k.id === 'viewpoints')?.label, 'Viewpoints and attractions');
   assert.ok(KINDS.some((k) => k.id === ('structures' as never)), 'the slice adds Buildings and structures beside it');
 });
@@ -90,7 +92,7 @@ test('RP14: an attraction stays one place to find through the merge', () => {
 test('RP15: the National Aviary (zoo/aviary) is a place to find', () => {
   assert.equal(categoryOfPoi('zoo', 'aviary'), 'viewpoints');
   const aviary = placesNow().find((p) => p.name === 'National Aviary');
-  assert.ok(aviary && isMarkable(aviary) && aviary.kind === 'viewpoints');
+  assert.ok(aviary && isMarkable(aviary) && aviary.kind === ('attractions' as never), 'XS4: a zoo is of Zoos and aquariums');
 });
 
 test('RP16: a lodging place in the tiles is never a place to find', () => {
@@ -105,7 +107,9 @@ test('RP18: no kind\'s label names a register or significance, and Buildings and
   for (const k of KINDS) assert.ok(!/\b(landmark|notable|listed|remarkable|register|significant)\b/i.test(k.label), k.label);
   const s = KINDS.find((k) => k.id === ('structures' as never));
   assert.equal(s?.label, 'Buildings and structures');
-  assert.ok(KINDS.findIndex((k) => k.id === ('structures' as never)) === KINDS.findIndex((k) => k.id === 'monuments') + 1, 'after Monuments and ruins');
+  // The next kind of its own after Monuments and memorials; Monuments' small subsets sit between (specs/small-places SP10).
+  const after = KINDS.slice(KINDS.findIndex((k) => k.id === 'monuments') + 1).find((k) => kindParent(k.id) !== 'monuments');
+  assert.equal(after?.id, 'structures', 'after Monuments and ruins');
 });
 
 test('RP20: a place with no street or path within 60 m is said, never filtered; with nothing cached around it, nothing is said', async () => {

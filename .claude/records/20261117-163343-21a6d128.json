@@ -1,0 +1,63 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "slice",
+        "row",
+        "set",
+        "Open in Maps beside Walk (Go here and its sheet replaced"
+      ],
+      "body": "| Open in Maps beside Walk (Go here and its sheet replaced by two outcome-named controls: the accent walk action and an outlined \"Open in Maps ↗\" that opens the phone's maps app straight from the tap; on every Explore tile as two half-width buttons, the card's footer and rows, both long-press cards and Chronicle's star sheet; a tile's Walk there starts within 2 km, opens the card's question beyond it, and is \"Set as destination\" past 10 km; the walk's own \"Go here\" is \"Route here\"; OM1-OM14, decision 0194) | built 2026-11-17 on `claude/focused-brahmagupta-eajl5h`; not deployed; native unverified | `claude/focused-brahmagupta-eajl5h` | `specs/open-in-maps-here/spec.md` | plan audited by the steward (1 breach, 5 drifts, 1 tone: all accepted); cold find (all seven tasks placed) and UI review (3 accepted with regression checks, 1 deferred, 3 rejected); the built slice not audited |\n",
+      "target": "sha256:4b6831817c0ccd50b6c40626a2f44ea7c6cbb83aa3114f2864231bfc4e9a5dfc"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "set",
+        "| Go here on the rest of the surfaces",
+        "--reason",
+        "decision number renumbered 0193 to 0194 after another rebase onto main, which took 0193 for the adjacent-apps rule"
+      ],
+      "body": "| Go here on the rest of the surfaces (Explore's area card footer, its complex and busy-area rows, its long-press card; Chronicle's star sheet and long-press card: the same two-choice sheet, at the top on Chronicle; only coordinates and a neutral label leave; GE1-GE13, decision 0190) | superseded 2026-11-17 by Open in Maps beside Walk (decision 0194); was: built 2026-11-16 on `claude/focused-brahmagupta-eajl5h`; not deployed; native unverified | `claude/focused-brahmagupta-eajl5h` | `specs/go-here-everywhere/spec.md` | plan audited by the steward (1 breach, 1 breach in the criteria, 5 drifts, 1 tone: all accepted); cold find and UI review run; audited Nov 16 (19 findings: 6 fixed, 3 deferred, 10 rejected) |\n",
+      "target": "sha256:0c95f62627e37e0fc15881cf5f0efcde41d068a83e3eb2e56762e30a6994bccf"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "set",
+        "| Explore: Go here on every tile",
+        "--reason",
+        "decision number renumbered 0193 to 0194 after another rebase onto main, which took 0193 for the adjacent-apps rule"
+      ],
+      "body": "| Explore: Go here on every tile (a quiet \"Go here\" on each area tile opens a sheet of two choices: Chronicles, which saves the destination and opens Navigate ready, or the phone's maps app, handed the destination alone; GH1-GH15, decision 0189) | superseded 2026-11-17 by Open in Maps beside Walk (decision 0194); was: built 2026-11-14 on `claude/focused-brahmagupta-eajl5h`; not deployed; native unverified | `claude/focused-brahmagupta-eajl5h` | `specs/explore-go-here/spec.md` | plan audited by the steward (1 breach, 5 drifts, 1 tone: all accepted); UI review and cold find run (2 accepted, 4 rejected as opinion); the built slice not audited |\n",
+      "target": "sha256:4423e51aee9098329f4b64e0051126a9f48ff6915f3fa302e2561bc8dcb49d05"
+    },
+    {
+      "argv": [
+        "section",
+        "item",
+        "set",
+        "From the go-here-everywhere audit (2026-11-16)",
+        "Both questions above are moot",
+        "--reason",
+        "decision number renumbered 0193 to 0194 after another rebase onto main, which took 0193 for the adjacent-apps rule"
+      ],
+      "body": "- Both questions above are moot: decision 0194 removed Go here and its sheet (Open in Maps beside Walk). The section is yours to remove.\n",
+      "target": "sha256:a411e7d17899fbc92596ca89a9317453bbd080c3dab25af89ef0a837c6efd496"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "set",
+        "tap Open in Maps on a tile, on a card's footer",
+        "--reason",
+        "decision number renumbered 0193 to 0194 after another rebase onto main, which took 0193 for the adjacent-apps rule"
+      ],
+      "body": "- [ ] **Do:** on an iPhone, open Explore and tap Open in Maps on a tile, on a card's footer and on a complex's row. **Expect:** Apple Maps opens with walking directions to that place straight from the tap, with no sheet in between; the tile, the card and the row are as they were (OM2, OM4, decision 0194)\n",
+      "target": "sha256:d53a274f89f68df324312da61a71fc8837cfbbed569d7f6b8f3fe71670fbeb2c"
+    }
+  ]
+}

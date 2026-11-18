@@ -10,7 +10,7 @@ test('tabs audit U13: new streets are a quiet clause, naming one or two, never a
   assert.equal(newStreetsLine([]), null);
   assert.equal(newStreetsLine(['Elm Street']), 'your first time down Elm Street');
   assert.equal(newStreetsLine(['Elm Street', 'Hope Street']), 'your first time down Elm Street and Hope Street');
-  assert.equal(newStreetsLine(['A Street', 'B Street', 'C Street']), '3 streets new to you');
+  assert.equal(newStreetsLine(['A Street', 'B Street', 'C Street']), 'three streets new to you', 'in words since tend replay T31');
 });
 
 test('tabs audit U13: what a walk passed is named, or "a few places", never counted', () => {
@@ -24,7 +24,7 @@ test('tabs audit U13: what a walk passed is named, or "a few places", never coun
 test('tabs audit U13: a walks list row keeps distance and time, and counts no new streets', () => {
   const s = { distance_m: 1234, duration_ms: 25 * 60_000, new_streets: 3, photos: 1, videos: 0, voices: 0, notes: 2 };
   const meta = walkRowMeta('Nov 2, 2026', s);
-  assert.match(meta, /^Nov 2, 2026 · 1\.2 km · 25 min/);
+  assert.match(meta, /^Nov 2, 2026 · 1\.2\u00a0km · 25\u00a0min/);
   assert.doesNotMatch(meta, /new street/);
 });
 

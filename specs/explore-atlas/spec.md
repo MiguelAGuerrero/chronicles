@@ -3,6 +3,8 @@
 
 # Explore atlas (AT)
 
+> Amended by `specs/storefronts` (Nov 14, 2026): "Busy streets" on the card and "Starts you at X, its busiest street" are "Storefronts" and "Starts you on X" (SF2, SF4); the tile says "Storefronts along X." (SF7).
+
 Explore stops being a lens over the map. It becomes an atlas of the areas near you:
 a grid of same-scale tiles, one per neighborhood or town, each a small picture of
 what is there, under a small map. It answers "what's around me, and what is each

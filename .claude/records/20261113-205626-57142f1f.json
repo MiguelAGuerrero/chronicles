@@ -1,0 +1,33 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Smooth neighborhood switches (SS1-SS10, decision 0164)",
+        "--new"
+      ],
+      "body": "- **Native's busy names at a switch's settle** (SS5 is the web's): on a phone the names still follow the selection at the move's start. MapLibre RN has no `moveend` the names can wait on in the same way; do it with `onRegionDidChange` if the phone shows the names flicker.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Smooth neighborhood switches (SS1-SS10, decision 0164)"
+      ],
+      "body": "- **The card, ring and name held until the camera settles** (the owner, Nov 13: not now, re-measure first). After the slice a switch's one Explore render, the selection's, is what it adds to the camera alone's cost (SS9); holding it would put the card about 0.4 s behind the camera.\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Smooth neighborhood switches (SS1-SS10, decision 0164)",
+        "--new"
+      ],
+      "body": "- [ ] **Do:** with the Busy layer on, open a town's page and swipe through its neighborhoods to the end of the row and back. **Expect:** the magenta lines stay put, none redrawn or swapped (SS3: native's strips and pockets made again only when `graded` or `pockets` change; SS4: the areas within the town's reach held); each neighborhood's outline appears once the map stops, and at once on the way back (SS1, SS2: `useHoodGround`'s kept outlines, waiting on `onRegionDidChange`); the map never resizes as the selected card changes (the row keeps its tallest height).\n"
+    }
+  ]
+}

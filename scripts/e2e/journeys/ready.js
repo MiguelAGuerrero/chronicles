@@ -2,7 +2,7 @@
 // flows in fresh browsers, in the order the full flow ran them.
 
 async function run(h) {
-  const { url, navUrl, BASE, browser, page, errors, start, at, dLon, check, shot, metricRegion, metaOf, tabTo, tabBarShown, tileRoute, freshPage, openWalk, tiles } = h;
+  const { url, navUrl, BASE, browser, page, errors, start, at, dLon, check, shot, metricRegion, metaOf, tabTo, tabBarShown, tileRoute, freshPage, openWalk, tiles, toStop } = h;
   // Navigate, ready (NR1-NR13): Navigate is the walk screen, ready with no walk open, and Start records
   // in place. In fresh browsers, at 390×844 and at 375×667. E2E_ONLY=ready runs it alone.
   const readyScenario = async () => {
@@ -42,7 +42,7 @@ async function run(h) {
       `ready NR1: Navigate opens the ready walk screen, with no tab bar (${pathOf(pg)})`);
     const s0 = await stats(pg);
     await pg.waitForTimeout(2500);
-    check(/^0:00 · 0(\.0+)? ?(m|km|mi|ft)$/.test(s0) && (await stats(pg)) === s0 && (await pg.locator('[data-testid=stop]').count()) === 0,
+    check(/^0:00 · 0(\.0+)?[ \u00a0]?(m|km|mi|ft)$/.test(s0) && (await stats(pg)) === s0 && (await pg.locator('[data-testid=stop]').count()) === 0,
       `ready NR1, NR5: at rest the bar reads 0:00 and no distance, and nothing ticks (${s0})`);
     check((await pg.locator('canvas.maplibregl-canvas').count()) === 1 && (await boxOf(pg, 'locate')) !== null,
       'ready NR1, NR12: one map, and Locate');
@@ -114,7 +114,7 @@ async function run(h) {
       await pg.waitForSelector('[data-testid=ready-dest]', { timeout: 5000 }).catch(() => {});
     }
     const destText = await pg.locator('[data-testid=ready-dest]').innerText().catch(() => '');
-    check(/^To Your spot · \d+ m away$/.test(destText), `ready NR8: a long press puts the destination on the resting bar (${destText})`);
+    check(/^To Your spot · \d+[ \u00a0]m away$/.test(destText), `ready NR8: a long press puts the destination on the resting bar (${destText})`);
 
     // NR7: pull the bar up for the settings; Start stays at its foot.
     const startRest = await boxOf(pg, 'start');
@@ -188,16 +188,16 @@ async function run(h) {
     await pg.evaluate(() => { document.querySelector('canvas.maplibregl-canvas').__readyMark = 1; });
     await pg.evaluate(() => { window.__navs = 0; window.addEventListener('popstate', () => window.__navs++); const p = history.pushState; history.pushState = function (...a) { window.__navs++; return p.apply(this, a); }; });
     await pg.click('[data-testid=start]');
-    await pg.waitForSelector('[data-testid=stop]', { timeout: 15000 });
+    await pg.waitForSelector('[data-testid=walk-actions]', { timeout: 15000 });
     await pg.waitForTimeout(600);
-    const after = { cam: await boxOf(pg, 'cap-photo'), mic: await boxOf(pg, 'cap-voice'), pen: await boxOf(pg, 'cap-note'), chev: await boxOf(pg, 'walk-minimize'), stop: await boxOf(pg, 'stop') };
+    const after = { cam: await boxOf(pg, 'cap-photo'), mic: await boxOf(pg, 'cap-voice'), pen: await boxOf(pg, 'cap-note'), chev: await boxOf(pg, 'walk-minimize'), stop: await boxOf(pg, 'walk-actions') };
     const notice = (await pg.locator('[data-testid=lift-in]').allInnerTexts()).join(' | ');
     check(pathOf(pg) === `${BASE}/walk` && (await pg.evaluate(() => window.__navs)) === 0 && same(before.cam, after.cam) && same(before.mic, after.mic) && same(before.pen, after.pen) && same(before.chev, after.chev),
       `ready NR6: Start records in place; the stack and the chevron don't move (${JSON.stringify({ before, after })})`);
     // fix minimize-top-align: 4 pt under the safe area top edge (0 in the headless browser), not the old 12.
     check(Math.abs(before.chev.y - 4) <= 1 && Math.abs(after.chev.y - 4) <= 1, `ready fix minimize-top-align: the chevron and Minimize sit 4 pt below the top (${before.chev.y}, ${after.chev.y})`);
     check(Math.abs(before.start.x + before.start.w - (after.stop.x + after.stop.w)) <= 2 && Math.abs(before.start.y + before.start.h / 2 - (after.stop.y + after.stop.h / 2)) <= 2,
-      `ready NR5: Start sits in the strip where Stop sits (${JSON.stringify({ start: before.start, stop: after.stop })})`);
+      `ready NR5: Start sits in the strip where the walk's actions end (Pause, then Resume and Stop; 0220) (${JSON.stringify({ start: before.start, stop: after.stop })})`);
     check(/Walk started · recording/.test(notice), `ready NR6: the notice says the walk is recording (${notice})`);
     {
       // banner-spacing: the notice banner, the chevron and the capture stack keep a 16 pt gutter from the screen's edge.
@@ -234,7 +234,7 @@ async function run(h) {
     const minimizedTo = pathOf(pg);
     const bar = await pg.locator('[data-testid=recording-bar]').count();
     await tabTo(pg, 'navigate');
-    await pg.waitForSelector('[data-testid=stop]', { timeout: 10000 });
+    await pg.waitForSelector('[data-testid=walk-actions]', { timeout: 10000 });
     await pg.waitForTimeout(600);
     check(minimizedTo === `${BASE}/` && bar === 1 && (await pg.locator('[data-testid=ready-bar]').count()) === 0 && !/^0:00/.test(await stats(pg)),
       `ready NR2, NR4: minimized to Chronicle with the recording bar; Navigate opens that walk (${minimizedTo}, bar ${bar})`);
@@ -274,7 +274,7 @@ async function run(h) {
       const readyBad = await layout(['ready-close', 'locate', 'moment-photo', 'moment-voice', 'moment-note', 'start']);
       check(readyBad.length === 0, `ready NR11: at 375×667 the ready screen's buttons are on screen, 44 or more, apart (${readyBad.join(', ')})`);
       await sp.click('[data-testid=start]');
-      await sp.waitForSelector('[data-testid=stop]', { timeout: 15000 });
+      await sp.waitForSelector('[data-testid=walk-actions]', { timeout: 15000 });
       // A first fix for the walk, as the main flow gives it; then 70 m east at a walker's pace so Walk me
       // back shows, then a pan so Recenter does.
       await small.setGeolocation({ longitude: start[0], latitude: start[1] + 0.000002, accuracy: 6 });
@@ -293,8 +293,13 @@ async function run(h) {
         await sp.waitForTimeout(600);
       }
       await shot(sp, 'ready-nr11-walk');
-      const walkBad = await layout(['walk-minimize', 'unwalked', 'walk-back', 'recenter', 'cap-photo', 'cap-voice', 'cap-note', 'pause-walk', 'stop']);
+      const walkBad = await layout(['walk-minimize', 'walk-back', 'recenter', 'cap-photo', 'cap-voice', 'cap-note', 'pause-walk']);
       check(walkBad.length === 0, `ready NR11: at 375×667 the walk's buttons, with every edge button up, are on screen, 44 or more, apart (${walkBad.join(', ')}; ${await stats(sp)})`);
+      // Paused, Resume and Stop take Pause's place (decision 0220): the same rule holds.
+      await toStop(sp);
+      await shot(sp, 'ready-nr11-walk-paused');
+      const pausedBad = await layout(['walk-minimize', 'walk-back', 'recenter', 'cap-photo', 'cap-voice', 'cap-note', 'resume-walk', 'stop']);
+      check(pausedBad.length === 0, `ready NR11, 0220: paused, Resume and Stop are on screen, 44 or more, apart from the rest (${pausedBad.join(', ')}; ${await stats(sp)})`);
       await small.close();
     }
 
@@ -309,7 +314,8 @@ async function run(h) {
       await pg2.locator('[data-testid=locate]').filter({ visible: true }).first().click();
       await pg2.waitForTimeout(1500);
       const denied = (await pg2.locator('[data-testid=lift-in]').allInnerTexts()).join(' | ');
-      check(/Location permission was denied/.test(denied) && (await pg2.locator('[data-testid=ready-bar]').count()) === 1,
+      // tend map T17: refused, Locate says where to turn location on (the quiet notice, `locate/notice.ts`).
+      check(/Location is off for this site/.test(denied) && (await pg2.locator('[data-testid=ready-bar]').count()) === 1,
         `ready NR13: a denied location says so on the ready screen (${denied})`);
       // M2 on the ready screen: a moment with no fix is kept and says so.
       await pg2.click('[data-testid=moment-note]');
@@ -355,7 +361,7 @@ async function run(h) {
     // Start, under the band's right end, still starts (a tap, as a thumb makes it).
     const sb = await pg.locator('[data-testid=start]').boundingBox();
     await pg.touchscreen.tap(sb.x + sb.width / 2, sb.y + 6);
-    const started = await pg.waitForSelector('[data-testid=stop]', { timeout: 15000 }).then(() => true, () => false);
+    const started = await pg.waitForSelector('[data-testid=walk-actions]', { timeout: 15000 }).then(() => true, () => false);
     check(started, `navigate-ready touch 2: a tap on the top edge of Start still starts the walk (${started})`);
     await c.close();
   };
@@ -437,7 +443,7 @@ async function run(h) {
 
     // audit 5: the walk's options card leaves the stack's column free.
     await pg.click('[data-testid=start]');
-    await pg.waitForSelector('[data-testid=stop]', { timeout: 15000 });
+    await pg.waitForSelector('[data-testid=walk-actions]', { timeout: 15000 });
     await pg.waitForTimeout(800);
     // The options are the walk strip's drawer (no button): pulled up, it is the settings, not a card among the stack.
     await pg.click('[data-testid=walk-summary]');
@@ -447,7 +453,7 @@ async function run(h) {
       await pg.click('[data-testid=explore-walk]');
       await pg.waitForSelector('[data-testid=range-slider]');
       const shown = await pg.locator('[data-testid=range-value]').innerText();
-      check(shown === '120 m', `fix walk-drawer-settings audit 1: the range set on the ready bar (120 m) is the walk drawer's (${shown})`);
+      check(/^120[ \u00a0]m$/.test(shown), `fix walk-drawer-settings audit 1: the range set on the ready bar (120 m) is the walk drawer's (${shown})`);
       await pg.click('[data-testid=range-minus]');
       await pg.waitForTimeout(300);
       await pg.click('[data-testid=explore-walk]');

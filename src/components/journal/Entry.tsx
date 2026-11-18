@@ -1,0 +1,263 @@
+import { momentPill } from '../../lib/momentPill';
+import { useStore } from '../../lib/useStore';
+import { useReactions } from '../../lib/reactions/useReactions';
+import type { ReactionId } from '../../lib/reactions/core';
+import { ReactionMarks } from '../reactions/ReactionMarks';
+import { ReactionSign } from '../reactions/ReactionSign';
+import { useState } from 'react';
+import { Pressable, StyleSheet, Text, View, type StyleProp, type TextStyle } from 'react-native';
+import { ENTRY_GOES_ON, noteBlocks, sheetBlocks, sheetWords } from '../../lib/journal/blocks';
+import { dateline, entrySpoken } from '../../lib/journal/lines';
+import type { Slot, SlotId } from '../../lib/journal/actions';
+import { face as faceOf, facedAt, hasMore, pieceWhen, stackLine } from '../../lib/moment';
+import { parseRefs, plainRefs } from '../../lib/refs';
+import type { ContextEntry } from '../../lib/resurface/shell';
+import type { MomentView } from '../../lib/resurface/types';
+import { fromLine } from '../../lib/resurface/views';
+import type { Capture, Walk } from '../../lib/types';
+import { MomentPicture } from '../chronicle/MomentPicture';
+import { Icon } from '../icons';
+import { StackMark } from '../StackMark';
+import { NoteText } from '../threads/NoteText';
+import { theme } from '../ui';
+import { MemoLine } from './MemoLine';
+import { QuickActions } from './QuickActions';
+import { StackGrid } from './StackGrid';
+import { OWNER_FONT } from './type';
+
+export type NoFix = 'denied' | 'timeout' | 'unavailable';
+
+/**
+ * One entry on the journal's page (chronicle journal JN3-JN7): its dateline in the app's voice, then every piece
+ * in the order captured, with no card around it. The owner's words are in the serif; a memo's line, the walk it
+ * came from and what it answers are the app's, in its sans. `writing` is the piece the open line holds: it is
+ * drawn there, not here.
+ */
+export function Entry(props: {
+  moment: MomentView;
+  walk: Walk | undefined;
+  context?: ContextEntry;
+  now: number;
+  reason?: NoFix | null;
+  answering?: string | null;
+  writing?: string | null;
+  onOpen: () => void;
+  /** Shows the moment on Chronicle's Map (JN6); given only for a placed one. */
+  onMap?: () => void;
+  onWalk: (walkId: string) => void;
+  /** The sign of the entry being written was tapped (RX6): the reactions open above the bar. */
+  onSign?: () => void;
+  /** The reactions are open for the entry being written: the sign shows it. */
+  signOpen?: boolean;
+  onOpenRef: (v: MomentView) => void;
+  /** A reaction under the dateline opens its lens (RL2). */
+  onLens?: (id: ReactionId) => void;
+  /** The quick-action row's slots and what a tap on one does (decision 0197, SW1); none draws no row. */
+  actions?: Slot[];
+  onAction?: (id: SlotId) => void;
+  /** A stack's tile opens the viewer on its piece (SW12). */
+  onOpenPiece?: (pieceId: string) => void;
+  /** A stack's Take out: opens the piece's viewer on its menu, where Split out and Delete are (audit 16). */
+  onTakeOut?: (pieceId: string) => void;
+}) {
+  const { moment: m, walk } = props;
+  const c = m.capture;
+  // A stack is shown as its face with a line naming its kinds, and opens into a grid of every piece (SW11, SW12).
+  const [spread, setSpread] = useState(false);
+  // The entry still being added to (the pill's open moment) shows every piece, so a note or a memo being made is never hidden.
+  const openId = useStore(momentPill.store, (st) => st.id);
+  const placed = c.lat != null && c.lon != null;
+  const line = dateline({
+    t: m.t,
+    now: props.now,
+    placed,
+    context: props.context?.state === 'done' ? { place: props.context.place, into: props.context.into } : null,
+    reason: props.reason,
+    // Its walk is not among the finished ones: still recording (audit 3).
+    onOpenWalk: !!m.walkId && !walk,
+  });
+  const from = fromLine(walk);
+  const stackedHere = hasMore(c) && openId !== c.id && !c.pieces.some((p) => p.id === props.writing);
+  // Show all is there only when a second or later photo or video is behind it (audit 13, the owner's call): a stack of words already shows them.
+  const hiddenMedia = stackedHere && c.pieces.some((p) => (p.kind === 'photo' || p.kind === 'video') && p.id !== faceOf(c).id);
+  const pieces = c.pieces.filter((p) => p.id !== props.writing && (!stackedHere || spread || p.id === faceOf(c).id || p.kind === 'text' || p.kind === 'voice'));
+  // The entry being written has the sign at its dateline's end (RX6); one kept today, the same sign (RX9). Its
+  // reactions are spelled out under the dateline (RX14), so choosing one moves nothing.
+  const reacted = useReactions(c.id);
+  const writingHere = !!props.onSign && c.pieces.some((p) => p.id === props.writing);
+  // A placed dateline wears a small pin, so it reads as the way to the map (ui 3); an unplaced one is plain words.
+  const lineText = (
+    <View style={styles.lineRow}>
+      {placed && props.onMap ? <Icon name="location-outline" size={13} color={theme.muted} /> : null}
+      <Text style={[styles.app, placed && props.onMap ? styles.linked : null]} testID="entry-dateline">{line}</Text>
+    </View>
+  );
+  return (
+    <View style={styles.entry} testID="moment-card">
+      {/* The dateline's row is the entry's header: where and when, and More trailing (ui 4). */}
+      <View style={styles.head}>
+        {placed && props.onMap ? (
+          <Pressable testID="entry-map" accessibilityRole="button" accessibilityLabel={`${line}. Show on the map`} onPress={props.onMap} style={styles.dateline}>
+            {lineText}
+          </Pressable>
+        ) : (
+          <View style={styles.dateline}>{lineText}</View>
+        )}
+        {/* Only the entry being written keeps its sign (RX6); every other entry reacts from the row (SW19, SW20). */}
+        {writingHere ? <ReactionSign testID="reaction-slot" set={reacted} open={!!props.signOpen} onPress={() => props.onSign?.()} /> : null}
+      </View>
+      <ReactionMarks set={reacted} style={styles.reactions} onOpen={props.onLens} />
+      {stackedHere && spread ? (
+        <StackGrid moment={m} onOpenPiece={(id) => props.onOpenPiece?.(id)} onTakeOut={(id) => props.onTakeOut?.(id)} />
+      ) : pieces.length > 0 && (
+        <Pressable testID="moment-open" accessibilityRole="button" accessibilityLabel={`${entrySpoken(m.kind, m.words, line, hasMore(c))}. Open`} onPress={props.onOpen} style={styles.pieces}>
+          {pieces.map((p) => {
+            // A piece made later than its moment says so, in words and with no place (audit 10, SW10).
+            const later = pieceWhen(c, p);
+            return (
+              <View key={p.id} style={styles.pieceOne}>
+                <Piece piece={p} moment={m} onOpenRef={props.onOpenRef} />
+                {later ? <Text style={styles.app} testID="piece-later">{later}</Text> : null}
+              </View>
+            );
+          })}
+        </Pressable>
+      )}
+      {stackedHere ? (
+        <View style={styles.stackLine}>
+          <StackMark />
+          <Text style={styles.kinds} testID="stack-kinds">{stackLine(c)}</Text>
+          {hiddenMedia ? <Pressable testID="stack-toggle" accessibilityRole="button" accessibilityState={{ expanded: spread }} onPress={() => setSpread((v) => !v)} style={styles.toggle}>
+            <Text style={styles.toggleText}>{spread ? 'Show less' : 'Show all'}</Text>
+            <Icon name={spread ? 'chevron-up' : 'chevron-down'} size={14} color={theme.ink} />
+          </Pressable> : null}
+        </View>
+      ) : null}
+      {props.actions && props.onAction && !writingHere ? <QuickActions slots={props.actions} onPress={props.onAction} /> : null}
+      {props.answering ? <Text style={[styles.app, styles.answering]} testID="moment-answering">{props.answering}</Text> : null}
+      {from && walk ? (
+        <Pressable testID="moment-walk" accessibilityRole="button" accessibilityLabel={`${from}. Replay the walk`} onPress={() => props.onWalk(walk.id)} style={styles.from}>
+          <Text style={styles.app} numberOfLines={1}>{from}</Text>
+        </Pressable>
+      ) : null}
+    </View>
+  );
+}
+
+function Piece({ piece: p, moment: m, onOpenRef }: { piece: Capture; moment: MomentView; onOpenRef: (v: MomentView) => void }) {
+  if (p.kind === 'text') {
+    const body = p.body ?? '';
+    if (!body.trim()) return null;
+    // An entry the page wrote is drawn in its shape, natively (JN26); one it did not stays literal (NP7).
+    if (p.body_format === 'md') return <View testID="entry-piece-text"><Blocks body={body} onOpenRef={onOpenRef} /></View>;
+    // A reference is drawn as the moment it names (JN16, RF4); the words around it stay the owner's.
+    return (
+      <View testID="entry-piece-text">
+        {parseRefs(body).some((x) => 'ref' in x) ? (
+          <View testID="entry-words"><NoteText body={body} style={styles.words} onOpen={onOpenRef} /></View>
+        ) : (
+          <Plain body={body} />
+        )}
+      </View>
+    );
+  }
+  // A voice note plays in line, with its bar filling as it goes; it never opens the viewer.
+  if (p.kind === 'voice') return <MemoLine piece={p} moment={m.capture} />;
+  return (
+    <View testID={`entry-piece-${p.kind}`} style={styles.plate}>
+      <MomentPicture capture={facedAt(m.capture, p.id)} style={styles.picture} iconSize={36} />
+      {p.caption?.trim() ? <Text style={styles.words} testID="entry-words">{p.caption.trim()}</Text> : null}
+    </View>
+  );
+}
+
+const LISTED = new Set(['bullet', 'number', 'task']);
+
+/** A plain entry's words: whole when short, cut at a word with a line that says so when long (JN27, audit 3). */
+function Plain({ body }: { body: string }) {
+  const cut = sheetWords(body);
+  if (!cut.more) return <Text style={styles.words} testID="entry-words">{body}</Text>;
+  return (
+    <View testID="entry-words" style={styles.blocks}>
+      <Text style={styles.words}>{cut.text}</Text>
+      <Text style={styles.app} testID="entry-goes-on">{ENTRY_GOES_ON}</Text>
+    </View>
+  );
+}
+
+/** A block's words, with each mention as that moment's card. */
+function Words(props: { text: string; style: StyleProp<TextStyle>; onOpenRef: (v: MomentView) => void }) {
+  if (parseRefs(props.text).some((x) => 'ref' in x)) return <View style={styles.grow}><NoteText body={props.text} style={props.style} onOpen={props.onOpenRef} /></View>;
+  return <Text style={[props.style, styles.grow]}>{props.text}</Text>;
+}
+
+/**
+ * A page-written note on the sheet (JN26, JN27): headings, bullets, numbered lines, checkboxes and quotes as plain
+ * text in the owner's serif. Never the editor: it is a web view on a phone, and a sheet holds dozens of entries. A
+ * checkbox is shown ticked or not and is ticked in its page; nothing counts them.
+ */
+function Blocks({ body, onOpenRef }: { body: string; onOpenRef: (v: MomentView) => void }) {
+  const { shown, more } = sheetBlocks(noteBlocks(body));
+  return (
+    <View testID="entry-words" style={styles.blocks}>
+      {shown.map((b, i) => {
+        // Lines of one list sit closer than paragraphs do (ui 6).
+        const tight = i > 0 && LISTED.has(b.k) && shown[i - 1].k === b.k ? styles.tight : null;
+        if (b.k === 'heading') return <View key={i} testID="entry-block-heading" accessibilityRole="header"><Words text={b.text} style={[styles.words, b.level === 1 ? styles.h1 : styles.h2]} onOpenRef={onOpenRef} /></View>;
+        if (b.k === 'para') return <View key={i} testID="entry-block-para"><Words text={b.text} style={styles.words} onOpenRef={onOpenRef} /></View>;
+        if (b.k === 'quote') return <View key={i} testID="entry-block-quote" style={styles.quote}><Words text={b.text} style={[styles.words, styles.quoted]} onOpenRef={onOpenRef} /></View>;
+        if (b.k === 'task') {
+          return (
+            <View key={i} testID="entry-block-task" style={[styles.item, tight]} accessible accessibilityRole="checkbox" aria-checked={b.done} aria-disabled accessibilityLabel={plainRefs(b.text)}>
+              <View style={styles.box}>{/* Muted: on the sheet a box is read, and ticked in its page (ui 7). */}
+                <Icon name={b.done ? 'checkbox-outline' : 'square-outline'} size={20} color={theme.muted} /></View>
+              <Words text={b.text} style={styles.words} onOpenRef={onOpenRef} />
+            </View>
+          );
+        }
+        return (
+          <View key={i} testID={`entry-block-${b.k}`} style={[styles.item, tight]}>
+            <Text style={[styles.words, styles.mark]}>{b.k === 'number' ? `${b.n}.` : '•'}</Text>
+            <Words text={b.text} style={styles.words} onOpenRef={onOpenRef} />
+          </View>
+        );
+      })}
+      {more ? <Text style={styles.app} testID="entry-goes-on">{ENTRY_GOES_ON}</Text> : null}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  blocks: { gap: 8 },
+  tight: { marginTop: -5 },
+  grow: { flex: 1 },
+  h1: { fontSize: 23, lineHeight: 30, fontWeight: '600' },
+  h2: { fontSize: 20, lineHeight: 28, fontWeight: '600' },
+  item: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+  mark: { minWidth: 20 },
+  box: { width: 20, height: 28, alignItems: 'center', justifyContent: 'center' },
+  quote: { paddingLeft: 12, borderLeftWidth: 2, borderLeftColor: theme.edge },
+  quoted: { fontStyle: 'italic' },
+  entry: { paddingBottom: 14 },
+  head: { flexDirection: 'row', alignItems: 'flex-end' },
+  // A thumb's target for the map (JN6), and the breath between entries.
+  dateline: { flex: 1, minHeight: 44, justifyContent: 'flex-end', paddingBottom: 6 },
+  lineRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  app: { color: theme.muted, fontSize: 13, lineHeight: 18, flexShrink: 1 },
+  // A placed dateline is the way to the map, so it reads as tappable (SW22).
+  linked: { color: theme.ink, textDecorationLine: 'underline' },
+  answering: { paddingTop: 8 },
+  pieces: { gap: 10 },
+  words: { color: theme.ink, fontFamily: OWNER_FONT, fontSize: 19, lineHeight: 28 },
+  plate: { gap: 8 },
+  picture: { height: 200, width: '100%' },
+  from: { minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' },
+  reactions: { paddingBottom: 8 },
+  pieceOne: { gap: 4 },
+  // The stack's line is ink at body size, a clause (audit 9; ux review 5).
+  kinds: { color: theme.ink, fontSize: 14, lineHeight: 20, flexShrink: 1 },
+  stackLine: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 },
+  toggle: { flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 44, paddingHorizontal: 6, marginLeft: 'auto' },
+  toggleText: { color: theme.ink, fontSize: 14, fontWeight: '600' },
+  more: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', marginRight: -12 },
+});

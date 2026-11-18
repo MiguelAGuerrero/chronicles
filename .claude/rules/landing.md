@@ -2,14 +2,13 @@
 paths:
   - "src/lib/landing/**"
   - "src/lib/activity/**"
-  - "src/components/LandingMarks.tsx"
   - "src/lib/__tests__/landing/**"
 ---
 # Landing
 
-What's good here (`lib/landing`): reading an area, finding busy strips and pockets, drawing hotspots, and the on-walk chip and dead-zone pill. The codemap is in `docs/ARCHITECTURE.md`; the decisions and their history are in `docs/decisions/`.
+What's here (`lib/landing`): reading an area, finding storefront strips and pockets, drawing hotspots, and the on-walk chip and dead-zone pill. The codemap is in `docs/ARCHITECTURE.md`; the decisions and their history are in `docs/decisions/`.
 
-- **What's good here** (a home long press from z10): `landing/read.ts` reads
+- **What's here** (a home long press from z10): `landing/read.ts` reads
   the area with the tile decoder, with no camera moves, on both platforms.
   - A z11 read finds the towns, and the nearest town or city within 1.5 km
     becomes the centre (never a village, and never one so far that the press
@@ -17,7 +16,7 @@ What's good here (`lib/landing`): reading an area, finding busy strips and pocke
   - It then reads the z14 tiles of 1.5 km around the centre.
   - Cancel aborts the fetches and keeps nothing.
 - **Activity density** (AD1-AD16, decision 0080; supersedes L4 and L5's fixed
-  thresholds). Busy means a density of places, never foot traffic.
+  thresholds). Storefronts are a density of places you walk into (specs/storefronts), never foot traffic.
   - **What counts** (`activity/weights.ts`, the one table for both sources):
     full for shops, food, drink, attractions; half for services, health,
     civic places, worship, parks; a quarter for offices and vehicle services;
@@ -55,7 +54,7 @@ What's good here (`lib/landing`): reading an area, finding busy strips and pocke
     sampled every 10 m along each line, however its vertices fall; a sample
     within 2 m of one already taken on the street is skipped (joints, a
     piece given twice). A sample sums `weight × (1 − d/120)` over the
-    same-named street's places within 120 m. Lengths (busy streets,
+    same-named street's places within 120 m. Lengths (storefront streets,
     pockets) are `runLength`: samples thinned to one per 30 m, then their
     joining tree, so two carriageways measure as one street.
   - **Grades** are fractions of the read's high point (the density beaten by
@@ -64,15 +63,15 @@ What's good here (`lib/landing`): reading an area, finding busy strips and pocke
     one small cluster is never strong. Scale-free once these minimums are
     cleared; the fringe where density fades past the floor reaches a little
     further with more places (AD10's test compares 2× with 8×).
-  - **Busy streets** (`Strip`): one name at medium or above, linked within
+  - **Storefronts** (`Strip`): one name at medium or above, linked within
     25 m, at least 120 m long, heaviest first. **Pockets**: medium-or-stronger
     samples of any street linked within 80 m, together 200 m or more, named
-    for their heaviest busy street, else the neighbourhood, else "A busy
-    pocket". `graded` keeps every stretch per street and grade, for drawing.
+    for their heaviest storefront street, else the neighbourhood, else "A pocket of
+    storefronts" (SF6). `graded` keeps every stretch per street and grade, for drawing.
   - **Landing:** a station by the top pocket lands on its own street, else
-    the top busy street's peak, else the pocket's densest sample. A landing
+    the top storefront street's peak, else the pocket's densest sample. A landing
     snaps at most 150 m. **Fallbacks** (main roads, `mainStreets.json`, the
-    centre) name the landing only with no busy street or pocket; the graded
+    centre) name the landing only with no storefront street or pocket; the graded
     stretches still draw (activity-density audit 1).
   - **Tests:** synthetic shops sit 8 m off their street and clear of corners,
     or a cross street takes them. `phillipsburg.json` is Overture's real
@@ -92,11 +91,25 @@ What's good here (`lib/landing`): reading an area, finding busy strips and pocke
   without one while a release is known, is stale too (`isStale`). An area
   centred within 1 km of a remembered one replaces it. Markers are rebuilt only
   when areas change, never per zoom. A strip's name keeps 80 m from the pin.
-- **A street's name is drawn once** (fix street-label-double, Nov 4): two remembered
-  areas up to 3 km apart can both find one street, each with its own peak.
-  `landingView` keeps one label per name within 300 m (strips and pocket labels
-  alike); the same name further away is another street.
-- **Busy areas are information only** (the owner's call, Nov 1): no Start here
+- **Storefront names are the map's text** (decision 0160, `.claude/rules/map-reactivity.md`): `storefrontNames` (`landing/names.ts`) gives one per
+  strip at its label point, turned along its street (`alongAngle`), and one per unlabelled pocket; `landingView` lists strips
+  and labels heaviest first and never carries a weight (L9's test).
+- **A street's name is drawn once** (fix street-label-double, Nov 4; explore-dense-city audit 4, the owner: once per 300 m):
+  two remembered areas, or two busy stretches in one area, or a pocket named for the street, give one name per name within
+  300 m (the street's own over a pocket's); two pockets of one placeholder name stay two; the same name further away is
+  another stretch. A current area's names come before a stale one's (DC19).
+- **The read runs off the page** (explore-dense-city DC7-DC11, DC13, decision 0160): `readAround` fetches the tiles' bytes
+  (`fetchTileBodies`) and hands them, with Overture's and the archive's places, to `computeRead` (`landing/compute.ts`, core:
+  one staged generator, so the page's run and the worker's are the same code). `offPage` (`runOffPage.web.ts`) runs it in a
+  web worker (`compute.worker.ts`), copying the bytes, never transferring them, so the page can still compute them itself if
+  the worker can't start, errors, answers an error or stays silent 60 s (DC8). Native runs it on the JS thread with a turn
+  before each tile and stage (`runOffPage.ts`, DC11). Street pieces are stored in batches of `SEGMENT_BATCH` (150), a turn
+  between them; a read cancelled before its write writes nothing, and a write once started finishes, so no tile is half
+  stored (DC10, audit 5: `wayNear` reads a tile as read once any piece is in it). The atlas's ring reads use the same
+  worker (`atlas/ringCompute.ts`, `profileFrom` in core `atlas/profile.ts`, audit 2); one worker serves job after job,
+  and a cancel ends it without computing on the page (audit 9). At 4x CPU a first read held the page in one 4.4 s task (deriving
+  streets 1.7 s, storing them 1.7 s); now in no task over 50 ms after the first drawing of the layer.
+- **Storefront areas are information only** (the owner's call, Nov 1): no Start here
   pin, no card, no Walk the loop (L10, L13, L16 retired by explore).
   `analysis.landing` is still computed and stored; nothing draws it.
 - **On the walk** (slice 3, `landing/walk.ts` pure), only while exploring:

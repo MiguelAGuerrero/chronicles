@@ -1,5 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { formatElapsed } from '../../lib/format';
+import { memoWords } from '../../lib/voiceTrim';
 import { whenLine } from '../../lib/resurface/lines';
 import type { MomentView } from '../../lib/resurface/types';
 import { fromLine } from '../../lib/resurface/views';
@@ -10,6 +10,9 @@ import { theme } from '../ui';
 import { MomentPicture } from './MomentPicture';
 import { hasMore } from '../../lib/moment';
 import { StackMark, STACK_SPOKEN } from '../StackMark';
+import { spokenReactions, type ReactionSet } from '../../lib/reactions/core';
+import { useReactions } from '../../lib/reactions/useReactions';
+import { ReactionMarks } from '../reactions/ReactionMarks';
 
 const KIND_WORD = { photo: 'Photo', video: 'Video', voice: 'Voice memo', text: 'Note' } as const;
 
@@ -18,10 +21,13 @@ export function contextText(context: ContextEntry | undefined, m: MomentView, no
   return context?.state === 'done' ? context.line : whenLine(m.t, now);
 }
 
-/** What a moment says about itself in one line, for a screen reader (RM25). */
-export function momentSpoken(m: MomentView, now: number, context?: ContextEntry): string {
+/**
+ * What a moment says about itself in one line, for a screen reader (RM25). Its reactions are said only where they are
+ * drawn (RX16): a caller that draws `ReactionMarks` passes the set; the slip passes none.
+ */
+export function momentSpoken(m: MomentView, now: number, context?: ContextEntry, reacted?: ReactionSet): string {
   // A moment with more than one piece says so in words (MS8), never how many (MS9).
-  return [KIND_WORD[m.kind], hasMore(m.capture) ? STACK_SPOKEN : null, m.words, contextText(context, m, now)].filter(Boolean).join(', ');
+  return [KIND_WORD[m.kind], ...(reacted ? spokenReactions(reacted) : []), hasMore(m.capture) ? STACK_SPOKEN : null, m.words, contextText(context, m, now)].filter(Boolean).join(', ');
 }
 
 /**
@@ -42,20 +48,22 @@ export function MomentCard(props: {
 }) {
   const { moment: m, walk, now } = props;
   const from = fromLine(walk);
-  const memo = m.kind === 'voice' ? Number(m.capture.body) : NaN;
+  const reacted = useReactions(m.id);
   return (
     <View style={styles.card} testID="moment-card">
-      <Pressable testID="moment-open" accessibilityRole="button" accessibilityLabel={`${momentSpoken(m, now, props.context)}. Open`} onPress={props.onOpen}>
+      <Pressable testID="moment-open" accessibilityRole="button" accessibilityLabel={`${momentSpoken(m, now, props.context, reacted)}. Open`} onPress={props.onOpen}>
         {(m.kind === 'photo' || m.kind === 'video') && <MomentPicture capture={m.capture} style={styles.picture} iconSize={36} />}
         {hasMore(m.capture) && <StackMark style={m.kind === 'photo' || m.kind === 'video' ? styles.markOnPicture : styles.markInline} light={!(m.kind === 'photo' || m.kind === 'video')} />}
         <View style={styles.body}>
           {m.kind === 'voice' && (
             <View style={styles.memo}>
-              <View style={styles.play}><Icon name="play" size={14} color={theme.accentInk} /></View>
-              <Text style={styles.memoText}>{Number.isFinite(memo) && memo > 0 ? `Voice memo, ${formatElapsed(memo)}` : 'Voice memo'}</Text>
+              {/* The kind, not a control: the card is the one button (tend chronicle audit 6, the owner's "A mic glyph"). */}
+              <Icon name="mic" size={16} color={theme.ink} testID="moment-mic" />
+              <Text style={styles.memoText}>{memoWords(m.capture)}</Text>
             </View>
           )}
           {m.words ? <Text style={[styles.words, styles.owner, m.kind === 'text' && styles.note]} numberOfLines={10}>{m.words}</Text> : null}
+          <ReactionMarks set={reacted} quiet />
           {props.answering ? <Text style={styles.meta} testID="moment-answering">{props.answering}</Text> : null}
           <Text style={styles.meta} numberOfLines={2} testID="moment-context">{contextText(props.context, m, now)}</Text>
         </View>
@@ -82,8 +90,7 @@ const styles = StyleSheet.create({
   owner: { fontStyle: 'italic' },
   note: { fontSize: 17 },
   meta: { color: theme.muted, fontSize: 13 },
-  memo: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  play: { width: 32, height: 32, borderRadius: 16, backgroundColor: theme.accent, alignItems: 'center', justifyContent: 'center' },
+  memo: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   memoText: { color: theme.ink, fontSize: 15, fontWeight: '600' },
   foot: { flexDirection: 'row', alignItems: 'center', paddingLeft: 14, paddingRight: 6, minHeight: 44 },
   from: { flex: 1, minHeight: 32, justifyContent: 'center' },

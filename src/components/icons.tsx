@@ -4,8 +4,8 @@ import type { CaptureKind } from '../lib/types';
 
 export type IconName = ComponentProps<typeof Ionicons>['name'];
 
-export function Icon(props: { name: IconName; size?: number; color: string }) {
-  return <Ionicons name={props.name} size={props.size ?? 24} color={props.color} accessible={false} />;
+export function Icon(props: { name: IconName; size?: number; color: string; testID?: string }) {
+  return <Ionicons name={props.name} size={props.size ?? 24} color={props.color} accessible={false} testID={props.testID} />;
 }
 
 export const KIND_ICON: Record<CaptureKind | 'mixed', IconName> = {
@@ -22,3 +22,8 @@ export const KIND_LABEL: Record<CaptureKind, string> = {
   voice: 'Voice memo',
   text: 'Note',
 };
+
+/** The glyph a capture wears where its kind's icon is drawn: always its kind's (RX18); a reaction is never the head. */
+export function captureIcon(c: { kind: CaptureKind }): IconName {
+  return KIND_ICON[c.kind];
+}

@@ -1,0 +1,259 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "slice",
+        "row",
+        "add",
+        "--top"
+      ],
+      "body": "| Reactions (note types became reactions on any moment, at most one per family: Feeling, Taste, Thought; the face with a plus on the entry being written and today's entries, More's Reaction, the viewer's More and a note page's Reaction tool; marks under a dateline, the viewer's info line, a card and a bubble; ink bubbles across a single moment's pin; the journal's contents → Reactions → a lens per reaction, oldest first, no count; RX1-RX36, decision 0176) | built and audited 2026-11-14, test-first (36 of 36): unit tests, typecheck, lint, docs and vision checks; e2e `reactions` (new), `journal`, `notepage`, `qol`, `threads`, `responses`, `upgrade`; cold find and UI review triaged (`reactions ui 1-5`); native unverified | `claude/trusting-gates-cd90zs` | `specs/reactions/spec.md` | yes (22 findings: 15 fixed, 4 deferred, 1 rejected, 1 merged, 1 for the owner; tests `reactions audit 1-6, 8-10, 13, 16-18, 20, 21`) |\n"
+    },
+    {
+      "argv": [
+        "inflight",
+        "add"
+      ],
+      "body": "| Reactions slice (RX1-RX36, `specs/reactions/spec.md`, decision 0176) | `claude/trusting-gates-cd90zs` | built and audited 2026-11-14, all green; the deploy the owner asked for is next |\n"
+    },
+    {
+      "argv": [
+        "section",
+        "add",
+        "From /slice reactions"
+      ],
+      "intro": "What the reactions slice left for the owner (`specs/reactions/spec.md`, Record).\n"
+    },
+    {
+      "argv": [
+        "section",
+        "item",
+        "add",
+        "From /slice reactions"
+      ],
+      "body": "- **The sign once a moment has a reaction** (UI review U3): today it turns into the first reaction's glyph, so a plain smiling face can mean \"no reaction yet\" or \"Happy\", and the reaction is also spelled out under the dateline. Recommended: keep the face with a plus as the sign always and let the line under the dateline say what is chosen. It changes RX9, RX12 and decision 0168's \"marked, the type's own glyph\".\n"
+    },
+    {
+      "argv": [
+        "section",
+        "item",
+        "add",
+        "From /slice reactions"
+      ],
+      "body": "- **\"Contents\" as the way to the lenses** (the cold find, RX2): \"Gather all my ideas\" was found, but late: \"Contents\" reads as a book's table of contents, and Threads was tried first. Recommended: keep Contents (your call in 0176) and rename its spoken name and line only if the owner sees the same on a phone; the alternative is a reaction under a moment opening its lens, which you declined.\n"
+    },
+    {
+      "argv": [
+        "section",
+        "item",
+        "add",
+        "From /slice reactions"
+      ],
+      "body": "- **Gathering a reaction's moments was found late** (the audit's cold find, high, reactions audit 22): \"Gather all my ideas\" was placed only through Contents → Reactions, and called borderline not found (\"Contents\" reads as a table of contents, and an Idea is never seen as a reaction from the journal). Recommended: a reaction under an entry or in the viewer opens its lens (a second way in, beside Contents), which you set aside on Nov 14; or keep Contents and look on a phone first.\n"
+    },
+    {
+      "argv": [
+        "section",
+        "item",
+        "note",
+        "From /slice reactions",
+        "The sign once a moment has a reaction"
+      ],
+      "body": "  Answered Nov 14 (decision 0177): always the face with a plus; a follow-up slice after the deploy.\n",
+      "target": "sha256:cc425c13f49f797634ee702f9338df404bdc4838836d36143b5f5f535eacf2d6"
+    },
+    {
+      "argv": [
+        "section",
+        "item",
+        "note",
+        "From /slice reactions",
+        "Contents\" as the way to the lenses"
+      ],
+      "body": "  Answered Nov 14 (decision 0177): Contents stays, and a reaction under a moment becomes a second way in.\n",
+      "target": "sha256:6c40d5e8f38c00ad87c426bd29bc5112ad0d8d6ba5439d8aced5df1e3e4a8d1f"
+    },
+    {
+      "argv": [
+        "section",
+        "item",
+        "note",
+        "From /slice reactions",
+        "Gathering a reaction"
+      ],
+      "body": "  Answered Nov 14 (decision 0177): a reaction under a moment opens its lens, beside Contents; a follow-up slice after the deploy.\n",
+      "target": "sha256:1417549c2a1d7cbbdc7aa84fc848e9785790c886c7b31ab83d6d3c083ac59ef2"
+    },
+    {
+      "argv": [
+        "section",
+        "item",
+        "note",
+        "From the journal's audit",
+        "A note's reaction: its word"
+      ],
+      "body": "  Answered Nov 14 (decision 0176): \"Reaction\" everywhere, with the families Feeling, Taste and Thought; built in the reactions slice.\n",
+      "target": "sha256:b420df5971082f2038a8bb358ee3dc5c4b366a6fdd533dd27f390b86408d1fb9"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "remove",
+        "start an entry, tap the tag in the corner of its dateline, pick a type",
+        "--reason",
+        "note types became reactions (decision 0176); the Reactions section carries the device checks that replace it"
+      ],
+      "target": "sha256:4b8098afa8ca37ca9fb9fdb9f5c064ebd0f2aef621096cf8b58f51485d615918"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "remove",
+        "tap the tag in the corner of the entry being written",
+        "--reason",
+        "note types became reactions (decision 0176); the Reactions section carries the device checks that replace it"
+      ],
+      "target": "sha256:8e164ff32e4bfd1101cbe00ab94152b77dcec63cbd2aff3c1b51b212b8edbb52"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "remove",
+        "upgrade from a build before note types",
+        "--reason",
+        "note types became reactions (decision 0176); the Reactions section carries the device checks that replace it"
+      ],
+      "target": "sha256:f4bf35da298e68dce229263d022c25b3407551e28425e51193d940d4ca215318"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "remove",
+        "open a note's page with Edit and open its Type tool",
+        "--reason",
+        "note types became reactions (decision 0176); the Reactions section carries the device checks that replace it"
+      ],
+      "target": "sha256:8fcc6ca60e097480b933487e5d80f18cdf28de23b2744ea5684d1a7a6bffe9cd"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "(0161, audit 2)",
+        "--reason",
+        "reactions (0176): a pin's reactions are not in its web marker key; a change redraws the same element (RX21, the reactions journey)"
+      ],
+      "target": "sha256:d3bbdbd15a530a51761f0d70eb14ea913b188655c7548d13a3bc2a8aa0858e81"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "(0161, audit 22)",
+        "--reason",
+        "carried to the Reactions section as RX34's 200% item (decision 0176)"
+      ],
+      "target": "sha256:cf7081f87203e4b02f3fbbb3507239a616fa86895abb0a9ef15dbd8b29323ba3"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Reactions (RX1-RX36, decision 0176)",
+        "--new"
+      ],
+      "body": "- [ ] **Do:** upgrade from a build with note types to this one, with a note typed Idea and a stacked moment holding two notes typed Happy and Sad; open Memories, then the contents, Reactions. **Expect:** the app opens (SQLite migration 29 makes the `reaction` table and moves each type onto its moment); Ideas lists the note; the stacked moment shows Happy only, the earlier note's (RX29)\n",
+      "intro": "What the reactions slice wrote and has not run on a phone (`specs/reactions`, decision 0176).\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Reactions (RX1-RX36, decision 0176)"
+      ],
+      "body": "- [ ] **Do:** on an iPhone, in Memories, start an entry, tap the face with a plus at the end of its dateline, choose Happy and then Idea, keep typing, tap Done. **Expect:** the three rows of reactions sit just above the bar and above the keyboard, the camera, the mic and Done stay in their places, both choices stay chosen, the next character closes the rows, and the entry shows Happy and Idea under its dateline (RX6-RX8, RX14)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Reactions (RX1-RX36, decision 0176)"
+      ],
+      "body": "- [ ] **Do:** on a phone, react to a photo from the viewer's More, then open Chronicle's Map and the walk screen near it. **Expect:** the photo's pin keeps its picture and wears a row of small ink bubbles from its bottom-left (Happy, Like, Idea), faint on a memory pin, and a change made from the viewer shows on the pin when it closes (RX17-RX21; the Marker is keyed by its reactions)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Reactions (RX1-RX36, decision 0176)"
+      ],
+      "body": "- [ ] **Do:** on a phone, react to a moment from the viewer opened from its pin on the walk screen, close the viewer, then turn on VoiceOver or TalkBack and move to that pin. **Expect:** the pin shows its new bubbles, and focus is where it was: on native the Marker is keyed by its reactions, so a change rebuilds it; and the bubbles at the head's left (from x -8, -20 on a video) are not clipped by the Marker's view on Android (reactions audit, native list)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Reactions (RX1-RX36, decision 0176)"
+      ],
+      "body": "- [ ] **Do:** on a phone, open an entry's More, then Reaction, choose two reactions and tap Done; open a note's page with the keyboard up and open its Reaction tool. **Expect:** the reactions take the native sheet (one Modal) with Done at its top right; on the page the rows sit above the keyboard over the editor's web view, and a choice never moves the caret or the words (RX10, RX12)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Reactions (RX1-RX36, decision 0176)",
+        "--new"
+      ],
+      "body": "- [owner] **Reactions** (0176): a lens narrowed by location (\"my likes around here\"), Emphasis offering a reminder and a Question asking again when you are back are each a later slice, gated at `/vision` first (the gate argued once that likes gathered by place must never become something said of a place).\n",
+      "intro": "What the reactions slice left out (`specs/reactions`, decision 0176).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Reactions (RX1-RX36, decision 0176)"
+      ],
+      "body": "- [loop] **Reactions** (RX34): the panel at 200% text. The web build sets sizes in px; on a phone the rows of three may crowd at a large font scale. Carries note types' audit 22 (a one-column fallback above a font scale of about 1.5).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Reactions (RX1-RX36, decision 0176)"
+      ],
+      "body": "- [loop] **Reactions** (RX20): the journey checks the bubbles against the bell, the clock and the video mark only on a pin that has none of them; a pin with a reminder, a memory pin and a video pin with reactions are not pictured yet.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Reactions (RX1-RX36, decision 0176)"
+      ],
+      "body": "- [loop] **Reactions** (UI review U6, U8, U9): the panel above the bar while writing has no Done of its own (the sign shows it open; typing or the sign closes it); a lens card's More sits at its foot, as `MomentCard`'s does in the thread screens; the three faces may blur at a pin's bubble size, to check on a phone.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Reactions (RX1-RX36, decision 0176)"
+      ],
+      "body": "- [loop] **Reactions** (reactions audit 7, 11, 12, 15): a failed reaction write outside the viewer is silent (the journal's sign, More, a new page; as note-types audit 59); `keep` writes a row per family with no transaction, so a failure part-way keeps half a set; held reactions are dropped if a new page unmounts while its first save is in flight; on a video's pin the bubbles clear the play mark but sit mostly off the head (three cannot both touch the head and clear the mark: a design call).\n"
+    }
+  ]
+}

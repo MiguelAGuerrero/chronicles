@@ -1,0 +1,89 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Plan an outing (QC1-QC42, decision 0182)",
+        "--new"
+      ],
+      "body": "- [ ] **Do:** on a phone, on Explore, tap \"Plan an outing\" under the title card; pick Antiques; switch to One way. **Expect:** the full-screen page opens over Explore with its own map, the tabs folded away; a proposal of two or three slots appears (\"An antiques shop, a short walk on\") with no shop named, and Back (Android) closes it with Explore as it was. (QC1-QC3, QC17, QC24)\n",
+      "intro": "Plan an outing is built and green on the web build only; nothing here has run on a device. Ids are the spec's (`specs/quick-circuit`, QC1-QC42).\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Plan an outing"
+      ],
+      "body": "- [ ] **Do:** on a phone, on the outing page, look at the map around the proposed route and its stop points, in a street with shops. **Expect:** no basemap label near a stop names the shop (QC24 asks that shop and POI labels are not drawn near a stop; the walk's map style has not been checked for this, so a printed name here is a finding). (QC24)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Plan an outing"
+      ],
+      "body": "- [ ] **Do:** on a phone, press Start on a one-way outing and walk its street past the first stop at normal pace, then keep going; repeat with the screen locked and then with a voice memo recording. **Expect:** within about 60 m of each stop the walk screen shows one line with the shop's name, once, with no sound, no haptic and no notification, and it fades by itself; passing a stop without the screen on shows nothing later; the capture stack is never covered. (QC19, QC26)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Plan an outing"
+      ],
+      "body": "- [ ] **Do:** on a phone, open the outing page with location off, then on; pick an entry; turn \"Include chains\" on and off with a screen reader. **Expect:** with no location the page says it needs one and proposes nothing; the switch is announced as on or off and keeps its state after the page is closed and opened again. (QC20, QC30, QC41)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Plan an outing (QC1-QC42, decision 0182)",
+        "--new"
+      ],
+      "body": "- Opening hours, admission and closing times: v1 says once that hours are not known and plans no time of day; the pack contract reserves `hours` and emits none. A later slice, and for hours a decision of the owner (the owner, Nov 16; QC20)\n",
+      "intro": "Plan an outing (QC1-QC42, decision 0182) is built to the core, the page, the Explore control, the arrival line and one journey; what follows is left out on purpose or waits.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Plan an outing"
+      ],
+      "body": "- The app does not read a stores pack yet: `outing/app.ts` passes `stores: null`, so only the tiles' shops serve the vocabulary, and only Antiques has a tile fallback (presence has no `books` or `second_hand` class, so Books and Thrifting's second-hand shops have no candidates until a pack is published). Built: the pack's contract, its adapter `storesFromFeatures`, the merge and the in-memory source; waiting on chronicles-data's first stores pack and the manifest's `stores` entry, then a reader through `net/tileReader` and the shell tests QC24 and QC29 (todo in `service.test.ts`) (QC14, QC29)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Plan an outing"
+      ],
+      "body": "- The proposal map and the followed walk's map may draw basemap labels (shop names) near a stop: QC24 asks they are not, and the map style's layer filter has not been looked at, so it is unchecked (a native, unverified item records the look). If `WalkMap` cannot filter its basemap labels, the page draws the route on a style without POI labels and the walk's map stays a gap (QC24)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Plan an outing"
+      ],
+      "body": "- Plan an outing's cold find and UI review (the `ux-reviewer` with pictures at 390 px, decision 0145 and 0167) have not run, and no regression test `quick-circuit ui N` exists; the e2e `outing` has no step for Include chains kept across a reload, a second Swap, or Thrifting and Books proposals (the harness has antiques only) (QC32)\n"
+    },
+    {
+      "argv": [
+        "inflight",
+        "set",
+        "Plan an outing (QC1-QC40"
+      ],
+      "body": "| Plan an outing (QC1-QC42, decision 0182) | `claude/lucid-gates-810ryf` | built 2026-11-17: core, page, Explore control, arrival line, journey `outing`; tests first for QC4-QC38 and QC40; the stores pack built in chronicles-data on the same branch name (ST1-ST10, fixtures only); not built: the pack reader, the cold find and UI review; native unverified |\n",
+      "target": "sha256:d088bb929a47dfd27aaf1be72965d057d2679636943db03f4986c26c92f04f8b"
+    }
+  ]
+}

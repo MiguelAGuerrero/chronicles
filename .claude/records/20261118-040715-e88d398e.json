@@ -1,0 +1,23 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "The road engine",
+        "--new"
+      ],
+      "body": "- The road engine, step 1 (RE4-RE13, decisions 0203 and 0204), left for later: steps 2 to 4 (the tiles' source and the road on the outing page; guiding with \"Drive there\"; spoken turns and the lock screen); a road's end is joined to another road's point within 10 m, not to the nearest place along its line, so a side road meeting a simplified main road between its points may stay apart (about 1.4% of the measured road length is outside the largest part); links are flagged and not yet costed or named differently; no cache of roads (the graph is built again for each plan: 76 ms for nine tiles on a desktop, unmeasured for sixty or on a phone); the road pack from chronicles-data; the live tile host's roads have never been read\n"
+    },
+    {
+      "argv": [
+        "inflight",
+        "set",
+        "The road engine"
+      ],
+      "body": "| The road engine (the app finds the road between towns and guides the drive: a road graph from the map's z12 tiles, one way through the journey's towns, distance by road, spoken turns; RE1-RE34, decisions 0203 and 0204) | `claude/determined-wright-yg1fq9` | step 0 (real tiles measured) and step 1 (the engine's core, unit-tested on nine real tiles) done 2026-11-18; step 2 (the road on the outing page), 3 (guiding) and 4 (speech, the lock screen) owed; native unverified |\n",
+      "target": "sha256:a265361a7683c37547302045608cb5609188c8c89f3ac8ab873e42849aeb1421"
+    }
+  ]
+}

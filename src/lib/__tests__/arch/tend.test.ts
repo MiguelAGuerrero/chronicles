@@ -26,8 +26,11 @@ const tend = createRequire(__filename)(join(ROOT, 'scripts', 'tend.js')) as {
   testName(subject: string): string | null;
   tendCommitProblems(c: { subject: string; body: string; files: File[]; added?: string; rewritesLog?: boolean; rewritesRules?: string[] }): string[];
   citedOwnEdits(commits: { subject: string; body: string; files: File[] }[]): { subject: string; problem: string }[];
+  rewritesBaseLines(removed: string[], base: string): boolean;
+  mainOrHere(rel: string, show: (rel: string) => string | null, here: (rel: string) => string): string;
   logProblems(given: unknown): string[];
   runLine(r: { date: string; subjects: string[]; given: Record<string, unknown> }): Record<string, unknown>;
+  fullPassDue(lines: string[], today: string, days?: number): { due: boolean; last: { date: string; base: string | null } | null; dueFrom: string | null };
 };
 const known = new Set(['PK', 'RF', 'PW', 'OT', 'MS', 'MT', 'QL', 'OP', 'EC']);
 
@@ -320,9 +323,97 @@ test('tend 0135: a rule written in one commit of a run is not the source of anot
   const rule = '.claude/rules/memories.md';
   const note = { subject: "tend memories: the run's record", body: '', files: [M('docs/STATUS.md'), M(rule)] };
   const fix = (source: string) => ({ subject: 'tend memories 2: a thing', body: `Test: tend memories 2\nSource: ${source}\n`, files: [M('src/app/a.tsx'), M('scripts/e2e/journeys/memories.js')] });
-  assert.equal(tend.citedOwnEdits([fix('.claude/rules/memories.md, Hidden'), note]).length, 1);
   assert.match(tend.citedOwnEdits([note, fix('memories.md, Hidden')])[0].problem, /a rule the loop wrote is not a source/);
   assert.deepEqual(tend.citedOwnEdits([note, fix('WCAG 2.2, 1.3.1')]), []);
   assert.deepEqual(tend.citedOwnEdits([fix('.claude/rules/memories.md, Hidden')]), [], 'a rule nobody in the run touched');
   assert.deepEqual(tend.citedOwnEdits([{ ...note, subject: 'Memories: a rule (MC1)' }, fix('.claude/rules/memories.md, Hidden')]), [], 'a rule the owner or a slice wrote is theirs');
+});
+
+test('tend rule lines: a commit rests only on rule lines written before it; a trap line added in a later commit of the push fails no earlier Source', () => {
+  const rule = '.claude/rules/memories.md';
+  const note = { subject: "tend memories: the run's record", body: '', files: [M('docs/STATUS.md'), M(rule)] };
+  const fix = (n: number, source: string, files: File[] = [M('src/app/a.tsx'), M('scripts/e2e/journeys/memories.js')]) => ({ subject: `tend memories ${n}: a thing`, body: `Test: tend memories ${n}\nSource: ${source}\n`, files });
+  // In commit order, oldest first: the record commit that adds the trap comes last.
+  assert.deepEqual(tend.citedOwnEdits([fix(1, '.claude/rules/memories.md, Hidden'), fix(2, 'memories.md, Hidden'), note]), [], 'a line written after a commit is not what it rested on');
+  const after = tend.citedOwnEdits([fix(1, 'memories.md, Hidden'), note, fix(2, 'memories.md, Hidden')]);
+  assert.deepEqual(after.map((p) => p.subject), ['tend memories 2: a thing'], 'a line written before it in the same push is still the loop\'s own');
+  assert.equal(tend.citedOwnEdits([fix(3, 'memories.md, Hidden', [M('src/app/a.tsx'), M('scripts/e2e/journeys/memories.js'), M(rule)])]).length, 1, 'itself included');
+});
+
+test('tend rule lines, reworded: a later commit of the push may reword a rule line an earlier one added; a line the base holds stays add-only', () => {
+  const base = '# Memories\n\n- Hidden moments stay hidden in the replay.\n- Undo names what it restores.\n';
+  assert.equal(tend.rewritesBaseLines(['- The run\'s own trap, first worded.'], base), false, 'a line absent from the push\'s base is the run\'s to reword');
+  assert.equal(tend.rewritesBaseLines(['- Undo names what it restores.'], base), true, 'a line on main stays add-only');
+  assert.equal(tend.rewritesBaseLines(['- The run\'s own trap.', '- Hidden moments stay hidden in the replay.'], base), true);
+  assert.equal(tend.rewritesBaseLines(['- Undo names what it'], base), false, 'a whole line is matched, not a part');
+  assert.equal(tend.rewritesBaseLines(['- a line'], ''), false, 'a rule file new in the push');
+  assert.equal(tend.rewritesBaseLines([], base), false);
+});
+
+const pass = {
+  mode: 'e2e', e2e: 'full', deploy: 'main', base: 'acb18b06', journeys: 48, ok: 1618,
+  red: [{ journey: 'atlas', check: 'AT9' }], flaky: [], minutes: 99,
+};
+
+test('tend 0181: the weekly full pass logs itself as mode e2e, and a line that leaves a count out is refused', () => {
+  assert.deepEqual(tend.logProblems(pass), []);
+  assert.deepEqual(tend.logProblems({ ...pass, e2e: ['launch', 'atlas'], journeys: 2 }), [], 'a pass of some journeys names them');
+  assert.deepEqual(tend.logProblems({ ...sweep, e2e: ['memories', 'launch'] }), [], 'a run names the journeys it ran');
+  assert.deepEqual(tend.logProblems({ ...sweep, e2e: 'full' }), [], 'a run that made the pass says so');
+  const bad = (g: unknown) => tend.logProblems(g).length > 0;
+  assert.ok(bad({ ...pass, e2e: undefined }));
+  assert.ok(bad({ ...pass, e2e: 'all' }));
+  assert.ok(bad({ ...pass, e2e: [] }));
+  assert.ok(bad({ ...pass, e2e: ['launch'], journeys: 2 }), 'the journeys named are the journeys counted');
+  assert.ok(bad({ ...pass, journeys: 0 }));
+  assert.ok(bad({ ...pass, ok: undefined }));
+  assert.ok(bad({ ...pass, red: undefined }), 'none red is [], said');
+  assert.ok(bad({ ...pass, flaky: ['AT9'] }), 'a check is { journey, check }');
+  assert.ok(bad({ ...pass, red: [{ journey: 'atlas', check: ' ' }] }));
+  assert.ok(bad({ ...pass, minutes: -1 }));
+  assert.ok(bad({ ...pass, base: 'HEAD' }));
+  assert.ok(bad({ ...sweep, e2e: 'some' }));
+});
+
+test('tend 0181: the full pass is due when no line of the run log says "e2e":"full" in seven days', () => {
+  const line = (date: string, extra: Record<string, unknown>) => JSON.stringify({ date, ...extra });
+  const log = [line('2026-11-09', { ...pass, base: 'aaaaaaaa' }), line('2026-11-14', { ...sweep, e2e: ['launch'] }), 'not json', line('2026-11-16', { ...pass })];
+  assert.deepEqual(tend.fullPassDue(log, '2026-11-20'), { due: false, last: { date: '2026-11-16', base: 'acb18b06' }, dueFrom: '2026-11-23' });
+  assert.equal(tend.fullPassDue(log, '2026-11-23').due, true, 'seven days on, it is due');
+  assert.equal(tend.fullPassDue(log.slice(0, 3), '2026-11-15').due, false, 'a sweep that ran some journeys is no pass');
+  assert.equal(tend.fullPassDue(log.slice(0, 3), '2026-11-16').due, true);
+  assert.deepEqual(tend.fullPassDue([line('2026-11-10', { ...sweep, e2e: 'full' })], '2026-11-12').last, { date: '2026-11-10', base: sweep.base }, 'a run of any mode may make the pass');
+  assert.deepEqual(tend.fullPassDue([], '2026-11-16'), { due: true, last: null, dueFrom: null });
+  const runs = read('.claude/skills/tend/runs.jsonl').split('\n').filter(Boolean);
+  assert.equal(typeof tend.fullPassDue(runs, '2026-11-16').due, 'boolean', 'the log as it is reads');
+});
+
+test('tend run log: the run log counts every finding a grouped subject names, not only the first', () => {
+  const line = tend.runLine({
+    date: '2026-11-18', given: sweep,
+    subjects: [
+      "tend tabs 12: the bar's way back does nothing while the walk is stopping; tend tabs 13: its comment names its held Stop",
+      'tend map 17, 18: the pin, star and "?" taps read handlers filled before paint',
+      "tend tabs audit 26-28: the bar's stop is shared by any bar of the walk",
+      'tend explore audit 42, audit 43, audit 44: dividers at 3:1',
+      "tend chronicle audit 7, 8, 9: the thread's rename state",
+      'tend chronicle 2: Escape closes 3 pickers in 10 ms', 'tend chronicle T1: a kept suggestion; tend chronicle T4: its twin',
+      "tend chronicle: the run's record",
+    ],
+  });
+  assert.deepEqual(line.shipped, [2, 12, 13, 17, 18], 'a number in the words is not a finding');
+  assert.deepEqual(line.auditFixes, [7, 8, 9, 26, 27, 28, 42, 43, 44]);
+  assert.deepEqual(line.built, ['T1', 'T4']);
+});
+
+test('tend balance: the balance reads the documents as origin/main holds them, not the branch\'s unpushed record', () => {
+  const show = (rel: string) => (rel === 'docs/STATUS.md' ? 'main' : null);
+  assert.equal(tend.mainOrHere('docs/STATUS.md', show, () => 'branch'), 'main');
+  assert.equal(tend.mainOrHere('.claude/skills/tend/ledger.json', show, () => 'branch'), 'branch', 'only where origin/main cannot be read');
+  const src = read('scripts/tend.js');
+  const balance = src.slice(src.indexOf('function balance('), src.indexOf('\n}\n', src.indexOf('function balance(')));
+  assert.match(balance, /mainOrHere\('docs\/STATUS\.md'/, 'the open entries are main\'s');
+  assert.match(balance, /mainOrHere\(LEDGER_REL/, 'the areas\' states are main\'s');
+  assert.doesNotMatch(balance, /readFileSync\(path\.join\(ROOT, 'docs', 'STATUS\.md'\)/);
+  assert.match(balance, /log\(`--since=\$\{days\} days ago`, 'origin\/main'\)/, 'the commits are main\'s');
 });

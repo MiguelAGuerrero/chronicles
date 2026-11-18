@@ -2,10 +2,13 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { boundsOf, distanceM, splitAtGaps, stepToward, traceDistanceM, smoothDwells, type Bounds } from '../../geo';
-import { fillsOf, GAP_RULES, gapsOf, inferGap, movingPace, readBounds, stretchAt, stretchesFor, stretchLines } from '../../gaps/infer';
+import { fillsOf, GAP_RULES, gapsOf, inferGap, keepAllWords, offersOf, movingPace, readBounds, stretchAt, stretchesFor, stretchLines } from '../../gaps/infer';
 import { liveRuns, readTrace, traceDistances, withFilled } from '../../rides';
 import { tilesNear } from '../../tileMath';
+import { getUnits, setUnits } from '../../units';
 import { snap } from '../../snapper';
+import { keepAll, markAsked, wasAsked } from '../../gaps/keep';
+import { memoryDb } from '../fakes';
 import { deriveSegments, type RoadFeature } from '../../streets';
 import type { GapDecision, LngLat, StreetSegment, TracePoint } from '../../types';
 
@@ -252,10 +255,10 @@ test('gaps: a kept line that no longer meets a gap is left out (G10, G11)', () =
 
 test('gaps: the card says what a stretch is, its length and how long the GPS was out (G9)', () => {
   const base = { t0: 0, t1: 6 * 60_000, path: [at(0, 0), at(4, 0)], lengthM: 400, street: 'Elm Street' };
-  assert.deepEqual(stretchLines({ ...base, how: 'offer' }), { title: 'Probably along Elm Street', sub: '400 m · not recorded for 6 min. Keep it to count it as walked.' });
+  assert.deepEqual(stretchLines({ ...base, how: 'offer' }), { title: 'Probably along Elm Street', sub: '400\u00a0m · not recorded for 6 min. Keep it to count it as walked.' });
   assert.equal(stretchLines({ ...base, how: 'auto' }).title, 'Filled in along Elm Street');
   assert.equal(stretchLines({ ...base, how: 'kept', street: null, lengthM: 1250 }).title, 'This way, kept');
-  assert.equal(stretchLines({ ...base, how: 'kept', lengthM: 1250 }).sub, '1.3 km · not recorded for 6 min.');
+  assert.equal(stretchLines({ ...base, how: 'kept', lengthM: 1250 }).sub, '1.3\u00a0km · not recorded for 6 min.');
 });
 
 // After the audit (Nov 3): each accepted finding's regression, `gaps audit N`.
@@ -445,4 +448,66 @@ test('G1 (Nov 3): a break within 10 m is joined straight and filled by itself, w
   assert.equal(inf.path.length, 2);
   const filled = readTrace(withGap([at(0, 0), at(1, 0)], [at(1.06, 0), at(2, 0)], 300), 0, [], [], fillsOf(stretchesFor(gaps, [inf], [])));
   assert.equal(liveRuns(filled).length, 1, 'one line');
+});
+
+// G15: settled at walk's end (the owner's call, Nov 16).
+test('G15 offers are the stretches only offered, and the prompt is words', () => {
+  const mk = (t0: number, how: 'offer' | 'kept' | 'certain') => ({ t0, t1: t0 + 1, path: [at(0, 0), at(1, 0)], lengthM: 100, street: null, how }) as never;
+  const list = [mk(1, 'offer'), mk(3, 'kept'), mk(5, 'offer'), mk(7, 'certain')];
+  assert.deepEqual(offersOf(list).map((s) => s.t0), [1, 5]);
+  assert.deepEqual(offersOf([mk(3, 'kept')]), []);
+  assert.deepEqual(keepAllWords(0), null);
+  for (const n of [1, 2, 3, 12]) {
+    const w = keepAllWords(n)!;
+    assert.equal(w.title, 'Keep the likely way?');
+    assert.ok(!/\d/.test(w.sub), `no number in "${w.sub}"`);
+  }
+});
+
+// Audit of G15 (Nov 16), named "filling-gaps audit N".
+const offer = (t0: number) => ({ t0, t1: t0 + 1000, path: [at(0, 0), at(1, 0)], lengthM: 100, street: 'Elm', how: 'offer' }) as never;
+
+test('filling-gaps audit 1: the question is stored as asked, per walk, so it is asked once', async () => {
+  const db = memoryDb();
+  assert.equal(await wasAsked(db, 'w1'), false);
+  await markAsked(db, 'w1');
+  assert.equal(await wasAsked(db, 'w1'), true);
+  assert.equal(await wasAsked(db, 'w2'), false);
+});
+
+test('filling-gaps audit 2: keepAll goes on past a failed write and says how many failed', async () => {
+  const written: number[] = [];
+  const put = async (d: GapDecision) => {
+    if (d.t0 === 2) throw new Error('disk');
+    written.push(d.t0);
+  };
+  const failed = await keepAll(put, 'w', [offer(1), offer(2), offer(3)], 5);
+  assert.deepEqual(written, [1, 3]);
+  assert.equal(failed, 1);
+  assert.equal(await keepAll(put, 'w', [offer(4)], 5), 0);
+});
+
+test('filling-gaps audit 6: the words agree with the gaps and say what each answer does', () => {
+  const one = keepAllWords(1)!;
+  assert.deepEqual([one.keep, one.leave], ['Keep it', 'Leave it']);
+  const many = keepAllWords(3)!;
+  assert.deepEqual([many.keep, many.leave], ['Keep them', 'Leave them']);
+  for (const w of [one, many]) assert.match(w.sub, /walk/i);
+});
+
+// tend map audit 44 (the review of tend map 21, F2): the gap card built its own distance, in metres whatever the units
+// setting and rounded after the step, so 999.6 m read "1000 m" (tend map 7's bug) and a stretch in miles said "400 m"
+// while the drawn gap beside it said miles. It says its length as formatDistance does.
+test('tend map audit 44: a stretch\'s facts say its length as formatDistance does, in the units setting', () => {
+  const base = { t0: 0, t1: 6 * 60_000, path: [at(0, 0), at(4, 0)], lengthM: 400, street: 'Elm Street', how: 'kept' as const };
+  const was = getUnits();
+  try {
+    setUnits('km');
+    assert.equal(stretchLines({ ...base, lengthM: 999.6 }).sub, '1.0\u00a0km · not recorded for 6 min.', 'rounded before the step');
+    setUnits('mi');
+    assert.equal(stretchLines(base).sub, '0.2\u00a0mi · not recorded for 6 min.');
+    assert.equal(stretchLines({ ...base, lengthM: 100 }).sub, '328\u00a0ft · not recorded for 6 min.');
+  } finally {
+    setUnits(was);
+  }
 });

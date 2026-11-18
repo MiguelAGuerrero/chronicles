@@ -149,22 +149,22 @@ test('M13: places are spots 100 m apart; moments with no place are not one', () 
 
 test('M13: the card is the weekday, moments, places and any walk distance; no streaks', () => {
   const [day] = buildDays([walk('w', at(3, 10), at(3, 11))], [cap('a', at(3, 9), null), cap('b', at(3, 10, 30), 'w', -71.39)]);
-  const card = dayCard(day, at(20, 9), new Map([['w', 2100]]));
+  const card = dayCard(day, at(20, 9), { distance: new Map([['w', 2100]]), walks: new Map() });
   assert.match(card.title, /Tue/);
-  assert.equal(card.line, '2 moments · 2 places');
-  assert.equal(card.walked, '2.1 km walked');
+  assert.equal(card.line, 'Two moments');
+  assert.equal(card.walked, '2.1\u00a0km walked');
   const [loose] = buildDays([], [cap('a', at(3, 9), null)]);
-  const c2 = dayCard(loose, at(20, 9), new Map());
-  assert.equal(c2.line, '1 moment · 1 place');
+  const c2 = dayCard(loose, at(20, 9), { distance: new Map(), walks: new Map() });
+  assert.equal(c2.line, 'One moment');
   assert.equal(c2.walked, null);
   assert.doesNotMatch(JSON.stringify(card), /streak|badge|record/i);
 });
 
 test('tend replay 3: the day card says its distance in the units the walk card uses', () => {
   const [day] = buildDays([walk('w', at(3, 10), at(3, 11))], [cap('a', at(3, 10, 30), 'w', -71.39)]);
-  assert.equal(dayCard(day, at(20, 9), new Map([['w', 2100]]), 'mi').walked, '1.3 mi walked');
-  assert.equal(dayCard(day, at(20, 9), new Map([['w', 559]]), 'mi').walked, '0.3 mi walked');
-  assert.equal(dayCard(day, at(20, 9), new Map([['w', 999.6]]), 'km').walked, '1.0 km walked');
+  assert.equal(dayCard(day, at(20, 9), { distance: new Map([['w', 2100]]), walks: new Map() }, 'mi').walked, '1.3\u00a0mi walked');
+  assert.equal(dayCard(day, at(20, 9), { distance: new Map([['w', 559]]), walks: new Map() }, 'mi').walked, '0.3\u00a0mi walked');
+  assert.equal(dayCard(day, at(20, 9), { distance: new Map([['w', 999.6]]), walks: new Map() }, 'km').walked, '1.0\u00a0km walked');
 });
 
 test('audit (moments 13): a placeless moment first in a group does not pull in a far one', () => {

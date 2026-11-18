@@ -2,6 +2,8 @@
 import type { Faced } from '../moment';
 import { THUMB } from '../thumbPlan';
 import type { Capture, CaptureKind, WalkSummary } from '../types';
+import { kindsClause } from '../pins';
+import { numberWord } from '../resurface/lines';
 
 /**
  * Clearing walks and moments (D1-D11, the concept doc's "Clearing walks and
@@ -9,7 +11,7 @@ import type { Capture, CaptureKind, WalkSummary } from '../types';
  * `db.deleteCaptures`; the Undo window is `pending.ts`.
  */
 
-export type DeleteKind = 'walk' | 'media' | 'moment' | 'piece' | 'split' | 'thread' | 'remove';
+export type DeleteKind = 'walk' | 'media' | 'moment' | 'piece' | 'split' | 'join' | 'thread' | 'remove';
 
 /** Photos, videos and memos: what "Remove photos, videos and memos" takes (D2). Notes stay. */
 export const isMedia = (c: { kind: CaptureKind }): boolean => c.kind !== 'text';
@@ -89,7 +91,11 @@ export function sizeText(bytes: number): string {
   return `Frees about ${shown} ${unit}.`;
 }
 
-const count = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+/**
+ * A count in words, as the reminders and pins say one (tend deletion T30, decision 0170): "three moments"; past
+ * fifty-nine "its moments", never "many" (the owner, Nov 14, "its moments"; tend deletion audit 1).
+ */
+const count = (n: number, one: string, many: string) => (numberWord(n) === 'many' ? `its ${many}` : `${numberWord(n)} ${n === 1 ? one : many}`);
 
 function joinAnd(parts: string[]): string {
   if (parts.length <= 1) return parts.join('');
@@ -104,23 +110,32 @@ export interface ConfirmText {
   confirm: string;
 }
 
-/** D4: what deleting a walk takes. */
+/** Below this window width a confirm's two actions no longer fit side by side ("Delete walk" wrapped at 320 px). */
+export const CONFIRM_STACK_BELOW = 340;
+
+/**
+ * A confirm's two actions, in reading order (tend deletion 1): a row, Cancel leading and the confirm trailing, where
+ * both fit; below `CONFIRM_STACK_BELOW` a stack, the confirm on top and Cancel at the bottom, as both platforms'
+ * alerts stack theirs (HIG Alerts; Material dialogs, "Confirming actions appear above dismissive actions").
+ */
+export function confirmActions(windowWidth: number): { stacked: boolean; order: ['cancel', 'confirm'] | ['confirm', 'cancel'] } {
+  return windowWidth < CONFIRM_STACK_BELOW ? { stacked: true, order: ['confirm', 'cancel'] } : { stacked: false, order: ['cancel', 'confirm'] };
+}
+
+/** D4: what deleting a walk takes, its counts in words: "Its trace, three moments and twelve streets walked go." (tend deletion T30). */
 export function walkDeleteText(o: { moments: number; streets: number; bytes: number }): ConfirmText {
   const parts = ['Its trace'];
   if (o.moments) parts.push(count(o.moments, 'moment', 'moments'));
   if (o.streets) parts.push(count(o.streets, 'street walked', 'streets walked'));
-  const body = `${joinAnd(parts)} ${parts.length > 1 ? 'go' : 'goes'}.`;
+  // "go." keeps to the word before it, never alone on a line at 320 px (tend deletion audit 2).
+  const body = `${joinAnd(parts)}\u00a0${parts.length > 1 ? 'go' : 'goes'}.`;
   return { title: 'Delete this walk?', body: withSize(body, o.bytes), confirm: 'Delete walk' };
 }
 
-/** D4: what removing a walk's media takes, and what stays. */
+/** D4: what removing a walk's media takes, and what stays: its kinds in the pins' words, "Two photos and a voice memo go." (tend deletion T30). */
 export function mediaRemoveText(o: { photos: number; videos: number; voices: number; bytes: number }): ConfirmText {
-  const parts: string[] = [];
-  if (o.photos) parts.push(count(o.photos, 'photo', 'photos'));
-  if (o.videos) parts.push(count(o.videos, 'video', 'videos'));
-  if (o.voices) parts.push(count(o.voices, 'voice memo', 'voice memos'));
   const n = o.photos + o.videos + o.voices;
-  const body = `${joinAnd(parts)} ${n === 1 ? 'goes' : 'go'}. The walk, its notes and its streets stay.`;
+  const body = `${kindsClause([['photo', o.photos], ['video', o.videos], ['voice', o.voices]], { its: true })} ${n === 1 ? 'goes' : 'go'}. The walk, its notes and its streets stay.`;
   return { title: 'Remove photos, videos and memos?', body: withSize(body, o.bytes), confirm: 'Remove' };
 }
 
@@ -142,11 +157,13 @@ export function pieceDeleteText(kind: CaptureKind, bytes: number): ConfirmText {
 }
 
 /** D5: the pill's words, naming the moment's kind when it is known. */
-export function toastText(kind: DeleteKind, what?: CaptureKind): string {
-  if (kind === 'walk') return 'Walk deleted';
+export function toastText(kind: DeleteKind, what?: CaptureKind, dropped?: boolean): string {
+  // The app's own drop of an empty walk says a plain fact, never a count or a verdict on the walk (EW8).
+  if (kind === 'walk') return dropped ? 'Walk not kept.' : 'Walk deleted';
   if (kind === 'media') return 'Photos, videos and memos removed';
   if (kind === 'thread') return 'Thread deleted';
   if (kind === 'remove') return 'Removed from the thread';
+  if (kind === 'join') return 'Joined with the earlier moment';
   if (!what) return 'Moment deleted';
   if (kind === 'split') {
     const noun = KIND_NOUN[what];
@@ -165,5 +182,6 @@ export function dismissLabel(kind: DeleteKind): string {
   if (kind === 'remove') return 'Close, it stays removed';
   if (kind === 'media') return 'Close, they stay removed';
   if (kind === 'split') return 'Close, it stays split out';
+  if (kind === 'join') return 'Close, it stays joined';
   return 'Close, it stays deleted';
 }

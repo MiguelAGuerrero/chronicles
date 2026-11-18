@@ -50,7 +50,7 @@ Classify every finding before touching code. When in doubt, it waits.
 |---|---|---|
 | **loop** | An **existing** element made to behave or look right against a **cited** source: `docs/research/ui-references.md`, `.claude/rules/ui-patterns.md`, a rule file, WCAG 2.2, the platform's guidelines, a line of `docs/VISION.md`'s Always that an existing screen breaks, or a spec criterion that shipped (its test exists, its slice's record says shipped) and the build now breaks. Also bugs, performance, cleanup, missing tests and journeys, docs drift. | Shipped, one commit each |
 | **owner** | Anything new a person can see or act on: a control, a screen, a setting, a stored field, a notification, copy that says something new or changes what a line means (an empty state's words included). Anything removed. A criterion never built: one in `UNTESTED` or `IN_PROGRESS` (`scripts/features.js`), in `docs/DEFERRED.md`, or in a queued spec. Anything whose only source is opinion. Anything `/vision` answers with other than **aligned** or **no surface**. The replay's beats, order or copy. | The inbox, with a recommended shape |
-| **architecture** | A dependency, a migration or data-model change, a navigation-flow change, a host, a derivation-rule bump (`SNAP_RULES`, `STREET_CODE`, `LANDING_CODE`), more than about 8 files. | The inbox as `[arch]`; never started |
+| **architecture** | A dependency, a migration or data-model change, a navigation-flow change, a host, a derivation-rule bump (`SNAP_RULES`, `STREET_CODE`, `LANDING_CODE`), more than about 8 source files (tests, journeys and record documents apart). | The inbox as `[arch]`; never started |
 | **phone** | Anything only a device can show or verify: haptics, gestures, native map behaviour, background recording, VoiceOver and TalkBack, real GPS. | The inbox as `[phone]`, with **Do** and **Expect**; never shipped |
 
 A loop fix that turns out to need an owner or architecture change stops there
@@ -62,10 +62,13 @@ The loop never edits `docs/VISION.md`, a spec, a `vision-ok:` or
 same check on every `tend …` commit pushed to `main` (decision 0133).
 
 A rule file (`.claude/rules/`) is where a fix notes the trap it settled, so
-the loop may **add** lines to one. It never changes or removes a line
-already there (a reworded rule is the owner's, filed as a `T` entry), and no
-commit of a run names as its `Source:` a rule file the run edited (decision
-0135): a rule the loop wrote is not a source.
+the loop may **add** lines to one. It never changes or removes a line `main`
+already holds (a reworded rule is the owner's, filed as a `T` entry); a later
+commit of the same unpushed run may reword or drop a line the run itself
+added, so a review fix needs no rewritten history. A trap line goes in the
+commit that needs it or a later one, and no commit names as its `Source:` a
+rule file that it or an earlier commit of the run edited (decision 0135): a
+rule the loop wrote is not a source.
 
 ## 2. Sweep: deduce, do not wait to be told
 
@@ -95,12 +98,15 @@ source.
 4. **The promises.** Each shipped criterion in the area's specs against what
    the build does now, beyond what its test pins; each line of the rule files.
 5. **The code.** The `auditor` subagent on the area's modules against the
-   AGENTS.md invariants: truth vs cache, `readTrace` inputs, layers, anything
-   over features not indexed, re-renders on the walk screen
-   (`scripts/perf-walk.js`), dead code, a layer baseline entry that is fixed.
+   AGENTS.md invariants: truth vs cache, `readTrace` inputs, layers, dead code,
+   a layer baseline entry that is fixed, and cost (`.claude/rules/performance.md`):
+   anything over features not indexed, whole-table reads, per-frame state above
+   a map, re-renders on the area's screens (`scripts/perf-walk.js`,
+   `scripts/perf-explore.js`, `perfCount`), each against `docs/DEFERRED.md` first.
 6. **The identity.** `npm run check:vision -- --list`; score words, numerals
    and accent colour in the area's copy and pictures.
-7. **The ledger.** `[loop]` items of the area in `docs/DEFERRED.md`.
+7. **The ledger.** `[loop]` items of the area in `docs/DEFERRED.md`, in the worktree:
+   `npm run book:items -- deferred --tag loop --section "<area's section>"`.
 
 Run the subagents in one message. An empty lens is a result: say "nothing
 found" and move on. Never invent a finding to fill a run, and never turn a
@@ -127,7 +133,9 @@ The shared steps are in `.claude/skills/ship.md`; they are named by heading.
    (`tend <area> N`, in the feature's folder under `src/lib/__tests__/`) or a
    journey step, then the smallest change that removes its cause; no
    refactors beside it. No finding shares a commit; none rides along
-   untested. The message, exactly in this form:
+   untested. Logic: a unit test that fails when its wiring is reverted;
+   words only: one unit test of the words, seen failing
+   (`ship.md`, "The faster lane"). The message, exactly in this form:
 
    ```
    tend memories 3: the Undo toast is a button with a spoken name
@@ -135,10 +143,13 @@ The shared steps are in `.claude/skills/ship.md`; they are named by heading.
    Test: tend memories 3 (src/lib/__tests__/memories/undo.test.ts)
    Source: WCAG 2.2, 4.1.2 Name, Role, Value (docs/research/ui-references.md, section 4)
    ```
-2. **Checks per commit:** `npm run check:affected`. For storage, the
+2. **Checks per commit:** `npm run check:affected`, and before committing,
+   in the worktree, the size tripwire `npm run book:files -- HEAD --max-src 8`
+   (the finding's source files, untracked included; past it, "Hard stops"). For storage, the
    recorder, the walk screen, the replay, and any change to what a screen
-   shows: `npm test` and the journey that covers it, once, with a before and
-   after picture kept for the report.
+   shows: `npm test` and the journey holding the commit's new or changed
+   check, once, with an after picture at 320 px kept for the report (a
+   before picture only as `ship.md`, "The faster lane", allows).
 3. **A hard stop** (`.claude/skills/ship.md`, "Hard stops") reclassifies the
    finding and drops the half-made change.
 4. Stop at `--cap`; file what is left as `[loop]` in `docs/DEFERRED.md`.
@@ -152,26 +163,53 @@ entry per finding, written so a yes or no is enough:
 - **T12 [owner] Threads: no way back to the moment a reply answers** (2026-11-11)
   Area: threads. Seen: <picture or file:line>. Rests on: <source, quoted>.
   Recommended: <the one shape, concretely, with its /vision verdict>.
+  Precedent: <how 2-3 adjacent apps do this job, each with its source, or "none found">.
   Otherwise: <the next shape>, or leave it.
 ```
 
-- **Numbers** go on from `lastT` in the worktree's ledger (which is `main`'s);
-  write the new `lastT` back. Section 10 renumbers if `main` moved meanwhile.
+- **File it** with `npm run records -- inbox add --file <entry>`, the entry written
+  as above with `T?` (or `G?`) for its number: the script numbers it on from
+  `lastT` in the ledger at `HEAD` (which is `main`'s) and the inbox, and writes
+  the new `lastT` back. Section 10 renumbers if `main` moved meanwhile. These
+  three documents change only through `npm run records` (decision 0156,
+  `.claude/skills/ship.md`, "The record documents"): each operation is
+  recorded, and its commit carries the trailers `npm run records -- trailers`
+  prints; never Edit, Write or sed.
 - Run `/vision` on each `[owner]` entry first (it returns its block and asks
   nothing): an **out** is not filed at all (say so in the report, with the
-  rule), and a reshaping is filed in its reshaped form.
+  rule), and a reshaping is filed in its reshaped form. Its `Precedent:` line
+  is the entry's (decision 0193): the recommended shape is measured against
+  how adjacent apps do the job (`docs/research/adjacent-apps.md`), and a
+  departure from all of them says why. The loop never edits `docs/research/`: a
+  precedent the file lacks goes in the entry with its source, marked "not yet
+  recorded", for the slice that builds it to record.
 - `[phone]` entries carry **Do** and **Expect** in place of a recommendation.
 - An addition too large for one commit is not a `T` entry: shape it as a `G`
   entry with criteria (section 9's form), so a yes has something to hold it to.
+  While the balance reads **outgrowing its base** no `G` is filed (section 8):
+  file it as an `[owner]` `T` entry that says it is slice-sized and held while
+  the balance reads outgrowing, its criteria in it; a yes builds it as a slice
+  (section 7), as T11 was.
+- A rule file past the warning size (`check:docs` warns at 20,000 characters) is
+  never a `[loop]` item: the loop only adds to rule files (0135), so it cannot split
+  one. File it as a `T [owner]` entry asking to split it by topic, so it is asked,
+  not left in the ledger (decision 0173).
 - Findings that are real but not worth the owner's time now go to the area's
-  section of `docs/DEFERRED.md`, tagged.
+  section of `docs/DEFERRED.md`, tagged: `npm run records -- deferred item add
+  "<section>" --file <item>` (`--after <match>` beside its kin; `--new` for a
+  section that does not exist yet). A native path the sweep touched is a
+  `native item add` in `docs/NATIVE_UNVERIFIED.md`.
 
 ## 6. Triage the deferred ledger (`/tend triage`)
 
 Give every untagged bullet in `docs/DEFERRED.md` (or the named section's) one
-tag at its start, by the table in section 1, keeping its words:
+tag at its start, by the table in section 1, keeping its words
+(`npm run records -- deferred item tag <match> <tag>`). In the worktree, `npm run
+book:items -- deferred --tag none [--section <text>]` lists them with a `<match>`
+records.js accepts and its `shell:` form to paste; it reads the run's own copy once
+an operation changed it, and says which. Never shorten a match by hand:
 
-- `[loop]`: the loop may ship it;
+- `[loop]`: the loop may ship it (never a rule file's split: section 5);
 - `[owner]`: an addition, a product question, or an owner's call already
   named as one;
 - `[arch]`: needs an architectural decision;
@@ -179,7 +217,9 @@ tag at its start, by the table in section 1, keeping its words:
 - `[kept]`: a limit recorded on purpose (a decision says so); nothing to do.
 
 A bullet holding several items is split first, one item per bullet, the
-words kept. Then put
+words kept (`npm run records -- deferred item split <match> --file <bullets>`,
+whose parts keep the bullet's marker and checkbox and its words in their order, none dropped,
+added or moved). Then put
 the `[owner]` and `[arch]` items the owner would most want to answer (**five
 at most** per run, and none while ten wait) in the inbox with
 recommendations; the rest stay tagged in place. Nothing but docs ships in a
@@ -192,10 +232,18 @@ entry that is gone, or whose title the owner's words plainly do not fit, is
 not acted on. One build per run: with several yeses, build the first and say
 which wait for the next `/tend inbox`. Every no is recorded in the same run.
 
+- **Yes to a slice-sized `[owner]` `T` entry** (filed so while the balance read
+  outgrowing, section 5): one slice, the `slice` skill with the entry's criteria
+  as its start; not `--from`, which only a `G` entry takes (decision 0130).
 - **Yes to an `[owner]` `T` entry** (one commit's worth, by section 5): build
   its recommended shape as section 4 does, one commit, subject
   `tend <area> T<n>: …`, its test named the same, `Source:` naming the entry
-  and what it rests on. The entry leaves the inbox.
+  and what it rests on. The entry leaves the inbox (`npm run records -- inbox
+  remove T<n> --reason "the owner's yes, built in tend <area> T<n>"`); a yes
+  that waits for the next run is noted on it instead (`inbox note T<n> --file
+  <line>`). An entry the run did not file leaves only with a `--reason`, and a
+  commit removes or rewrites at most two per section: with more answers, the
+  record takes a commit per pair.
 - **Yes to an `[arch]` entry** is the owner's architectural call, not a
   build: write its decision record, and shape the work as a `G` entry with
   criteria (section 9's form) for a yes of its own.
@@ -205,7 +253,8 @@ which wait for the next `/tend inbox`. Every no is recorded in the same run.
   `slice` skill with `<slug> --from=G<n>` **in this run's worktree**: the
   entry's criteria and verdict are its start, its plan is written and read by
   the steward but not held for the owner, and it returns its result block
-  without publishing or asking. Remove the entry from "Next evolutions", then
+  without publishing or asking. Remove the entry from "Next evolutions"
+  (`npm run records -- inbox remove G<n> --reason "<why>"`), then
   section 10 (its checks are the slice's own step 9; the review's fixes are
   named `<slug> audit N`; `check:tend` is not run, since a slice's commits
   are not loop commits).
@@ -217,11 +266,13 @@ which wait for the next `/tend inbox`. Every no is recorded in the same run.
   **A yes or no to such an entry** resumes it: check out the parked branch,
   rebase it on `origin/main`, apply the answer, and finish the slice as above;
   if the answer ends it, delete the parked branch and decline the `G` entry.
-- **Reshape** ("yes, but…"): rewrite the entry as told and run `/vision` on
+- **Reshape** ("yes, but…"): rewrite the entry as told (`npm run records --
+  inbox set <id> --reason "the owner's reshape" --file <entry>`, its number
+  kept) and run `/vision` on
   the new shape. A reshaped `T` entry is built only if it is still aligned
   and still one commit's worth. A reshaped `G` entry is never built in the
   same run: its rewritten criteria are filed for the owner's plain yes.
-- **No:** remove the entry and add `{ title, area, date, reason }` to the
+- **No:** remove the entry (`inbox remove <id> --reason "the owner's no"`) and add `{ title, area, date, reason }` to the
   ledger's `declined`, so no sweep proposes it again. A no that states a rule
   ("never a count there") is a new decision record too. A no to every
   evolution of a polished area makes it `resting`.
@@ -250,13 +301,15 @@ the loop built included), counts as `rough` whoever landed the change.
 (`scripts/tend.js`). Over the last 14 days of `origin/main` it names the
 slices that grew (commits carrying a spec's criteria and changing the app's
 source), counts refinement beside them, groups the areas by state, counts the
-open `T` and `G` entries, and writes its reading to the ledger. The reading is the script's; a red `main` in the
+open `T` and `G` entries, and writes its reading to the ledger. It reads the
+ledger and the inbox as `origin/main` holds them: this run's unpushed record
+is not counted. The reading is the script's; a red `main` in the
 window is the one sign it cannot see, and reads as outgrowing its base.
 
 | Reading | Means | The run ends by |
 |---|---|---|
 | **settling** | No slice grew in 14 days | Section 9 for the app (not only this area), said first in the report. Proposals may sit on a rough area then, each saying what must be tended first. |
-| **outgrowing its base** | More than three `rough` areas, more than ten unanswered `[owner]` and `[arch]` entries, or a red `main` | Filing no new `G` entry; the report names the areas to tend and the entries to answer first |
+| **outgrowing its base** | More than three `rough` areas, more than ten unanswered `[owner]` and `[arch]` entries, or a red `main` | Filing no new `G` entry (a slice-sized addition is a held `[owner]` `T` entry, section 5); the report names the areas to tend and the entries to answer first |
 | **in step** | Otherwise | Section 9 only if this area is polished. `/tend evolve`, typed by the owner, proposes for polished areas whatever the reading, and names the area to tend first when there is none. |
 
 ## 9. Evolve: propose the next iteration
@@ -280,12 +333,15 @@ has none is not made.
 5. Repeated loop findings with one cause: three patches to the same screen
    say the screen wants a redesign, which is an evolution, not a fix.
 
-Never from: what other apps have (`docs/research/ui-teardown.md` informs how,
-never what), a Never row, or the wish to have something to propose. "This
+Never from: what other apps have (`docs/research/adjacent-apps.md` informs how,
+never what), a Never row, or the wish to have something to propose. But every
+proposal is grounded in how they do its job (decision 0193): the precedent is the
+model the owner evaluates the shape against. "This
 area is whole; nothing to add" is an answer, and makes it `resting`.
 
 **Shape each one as the thinnest slice a person would notice.** Run `/vision`
-on it; **out** is dropped, a reshaping is proposed reshaped. Then size it:
+on it; **out** is dropped, a reshaping is proposed reshaped; its `Precedent:` line
+goes in the entry, and the shape says where it departs from the apps and why. Then size it:
 
 - **S**: three criteria or so, inside the size of "Hard stops".
 - **M**: one slice, about ten criteria or fewer, no architectural decision.
@@ -318,6 +374,7 @@ ledger's `lastG`:
   Area: memories. From: VISION.md Shapes, "Search over moments"; polished since <sha>.
   Touches: <the gate's Never and Always lines and decisions, quoted, or none>.
   The slice: 1. <criterion, an observable outcome> 2. <…> (three to ten, the gate's own criteria among them).
+  Precedent: <how 2-3 adjacent apps do this job, each with its source; where the shape departs, and why>.
   Payoff: <words>. Cost: <words>. Reopens: <areas>. After it: <what it unlocks>.
   Instead: <the smaller shape>.
 ```
@@ -331,45 +388,86 @@ The owner picks; the loop never starts a `G` entry unasked.
    opened from, never a later one, so that anything landing during the run
    reads as a change since the sweep; `lastT`, `lastG`; anything declined;
    valid JSON, only those fields, the balance left to the script) and
-   `docs/STATUS.md`, "Last tend", replaced with this run's digest (area,
-   commits with one line each, entries filed, the balance in a sentence,
-   lenses not run). Commit it with the inbox and `docs/DEFERRED.md` edits as
-   `tend <area>: the run's record`. It holds documents, the ledger and the
-   run log only.
+   `docs/STATUS.md`, "Last tend", replaced with this run's digest by every
+   mode, an inbox run and a triage included (area or mode, commits with one
+   line each, entries filed or answered, the balance in a sentence, lenses not
+   run): write the digest to a file and run `npm run records --
+   last-tend set --file <digest>`, which keeps the heading and every section
+   after it. What the owner must change by hand (a spec's or a rule's wording)
+   is an `open add` to "Open before the loop"; an item there that the run did
+   not file changes only by `open note`, or by `open set` and `open remove` with
+   a `--reason` (two at most per commit). Run `npm run check:records --
+   origin/main` (it replays the pending operations and names any change no
+   operation makes), then commit it with the inbox and `docs/DEFERRED.md`
+   operations as `tend <area>: the run's record`, the pending sidecar the
+   operations staged and the lines of `npm run records -- trailers` in
+   the message's last paragraph. It holds documents, the sidecar, the ledger
+   and the run log only.
 
    **The run log** (decision 0139) is `.claude/skills/tend/runs.jsonl`, one
    line a run, never edited afterwards. Every mode writes one, in its last
-   record commit:
+   record commit, before that commit is made (a record commit is never
+   amended):
 
    ```
    npm run tend:log -- origin/main..HEAD '{"mode":"sweep","area":"memories","deploy":"main","base":"<the worktree's base>",
      "lenses":{"whole":false,"skipped":["2: offline not pictured"]},
      "found":{"loop":{"high":0,"medium":2,"low":5},"owner":2,"arch":0,"phone":1,"out":1},
-     "filed":{"T":["T4","T5","T6"],"G":[]},"answers":[],"state":{"from":"rough","to":"settling"}}'
+     "filed":{"T":["T4","T5","T6"],"G":[]},"answers":[],"state":{"from":"rough","to":"settling"},
+     "e2e":["memories","launch"]}'
    ```
 
    The script adds the date and what the commits say (findings shipped, the
    review's fixes, entries built, reverts) and refuses a line that leaves a
    count out. `found` counts everything the sweep found, shipped or not,
    zeros included; `answers` is each entry the owner answered this run, as
-   `yes`, `no` or `reshape`; `review` is the auditor's findings
-   (`accepted`, `rejected`, `deferred`). The line is written once: when the
-   review of step 2 leads to a second record commit, write it there.
+   `yes`, `no` or `reshape`; `review` is the review's findings
+   (`accepted`, `rejected`, `deferred`, a filed low counted deferred); `e2e`
+   is the journeys run, or `"full"` for the full pass. The line is written once. A
+   run makes one record commit, or two around the review of step 2 (one before
+   it, one after it when the review's fixes change the record): the line goes in
+   the last, with the review's counts, and the first carries none. A full pass
+   made on its own logs mode `e2e` with the line `npm run e2e:all` prints
+   (`"e2e":"full"`, the base it ran on, `journeys`, `ok`, `red` and `flaky` as
+   `{ journey, check }`, `minutes`; `docs/TESTING.md`, "Choosing the journeys", 6).
    Write facts, never a judgment of the run: no lesson, no rating, no advice.
-2. **Checks:** `npm run check:docs`. A run that changed code (a sweep, a `T`
+2. **Checks:** `npm run check:docs` and `npm run check:records -- origin/main..HEAD`
+   (CI replays the trailers of every `tend …` commit and every agent commit; a later record commit of the run may
+   set or remove what an earlier one filed without a reason or a cap). A run that changed code (a sweep, a `T`
    build) also runs `npm run check:tend -- origin/main..HEAD` (every commit is
    a loop commit with its own named, real test and its source, and none
    touches what the loop may not), `npm run typecheck && npm run lint &&
-   npm test`, then `.claude/skills/ship.md`, "Review": one `auditor` pass over
-   the run's whole diff, one round, fixes named `tend <area> audit N`. A `G`
+   npm test`, then `.claude/skills/ship.md`, "Review", in its faster lane: the
+   reviewers by risk over the run's whole diff (the `auditor` on any behaviour
+   change; one reviewer for words or style; none for records only), one round,
+   medium and above fixed, named `tend <area> audit N`, N on from
+   `npm run book:next-audit -- "tend <area>"` in the worktree (main's, the branch's and the
+   working tree's highest, in files and commit messages), lows filed `[loop]`. A `G`
    build runs the slice's step 9 and the same review in place of `check:tend`.
+   **Journeys** before publishing: those holding a new or changed check, and
+   `launch`. **The weekly full pass:** when no run-log line of the last seven
+   days says `"e2e":"full"` (`node scripts/tend.js e2e-due` in the worktree), a
+   run that changed code runs every journey once with `npm run e2e:all` before
+   publishing (the full flow and each journey it does not hold, a failing one
+   rerun alone; it prints red and flaky checks and the log line), and a red
+   check is triaged as a finding of the run. Before diagnosing or bisecting a red
+   check, confirm it red at rest: the check alone, k of n runs, on both ends (the
+   base and the head). A red that comes and goes with load is a check race until
+   shown otherwise, not a regression of whatever landed last.
 3. **Publish**, by `--deploy`:
-   - `main`: `.claude/skills/ship.md`, "Publish to main", once. Whenever
+   - `main`: `.claude/skills/ship.md`, "Publish to main", once (a decision
+     record the run wrote: `npm run book:next-decision -- --check <NNNN> <file>`
+     in the worktree after the last fetch). Whenever
      `main` moved, compare its `lastT` and `lastG` with the ones this run
-     started from: if they changed, or the rebase conflicts in
-     `docs/STATUS.md`, `docs/DEFERRED.md` or the ledger, take `main`'s side of
-     those three and write this run's entries again, numbered on from
-     `main`'s. Any other conflict is `ship.md`'s stop. A red run is handled
+     started from. If the rebase conflicts in `docs/STATUS.md`,
+     `docs/DEFERRED.md`, `docs/NATIVE_UNVERIFIED.md` and the ledger, take
+     `main`'s side of all four and run `npm run records -- redo` in the
+     conflicted commit (it runs its recorded operations again; the inbox
+     numbers on from `main`'s ledger and the trailers stay), then
+     `check:records` again. A record commit whose inbox numbers would move
+     but whose rebase does not conflict cannot be redone (it is committed, and
+     a record commit is never amended): stop and report, the branch pushed
+     for the owner, rather than publish a record the gate fails. Any other conflict is `ship.md`'s stop. A red run is handled
      by `ship.md`, "A red run".
    - `branch`: push the run's branch and stop; `none`: save a patch. Neither
      moves an area's state, the entry numbers are provisional, and step 5 is

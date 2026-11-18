@@ -2,25 +2,28 @@ import type { Faced } from '../../lib/moment';
 import {
   Camera, GeoJSONSource, Layer, Map, Marker, VectorSource, type CameraRef, type MapRef, type VectorSourceRef,
 } from '@maplibre/maplibre-react-native';
-import { forwardRef, memo, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
+import { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { PanResponder, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import { CapturePinView, pinLabel } from '../CapturePinView';
 import { MarkPinView, markKey, markLabel } from '../MarkPinView';
-import { StripLabel } from '../LandingMarks';
 import { AreaPointView } from '../AreaPoint';
 import { ComplexLabelView } from '../ComplexLabel';
 import { COMPLEX_STYLE } from '../../lib/complexes/mapLayer';
+import { groundGeoJSON, groundStyle } from '../../lib/areas/groundDraw';
 import { namedStars, StarView, starLabel } from '../StarView';
 import type { RoadFeature } from '../../lib/streets';
 import type { LngLat } from '../../lib/types';
 import { TILEJSON_URL } from '../../lib/tiles';
-import { declutterMarks } from '../../lib/markNames';
-import { metersPerPixel, pinReminded, pinThumb } from '../../lib/pins';
+import { declutterMarks, markListKey, spreadKey } from '../../lib/markNames';
+import { metersPerPixel, pinKey, pinReactions, pinReminded, pinThumb, stalkLift } from '../../lib/pins';
+import { useReactionSets } from '../../lib/reactions/useReactions';
 import { useReminded } from '../../lib/useReminded';
-import { scaleBar } from '../../lib/scaleBar';
+import { drawnFrom, scaleBar, scaleShown } from '../../lib/scaleBar';
 import { traceEnds } from '../../lib/traceEnds';
 import { ScaleBar, SCALE_MAX_PX } from './ScaleBar';
-import { useGlidingWalker } from '../../lib/useGlidingWalker';
+import { NATIVE_FRAME_MS, useGlideFrames, useGlideShown, type GlideFrame } from '../../lib/useGlidingWalker';
+import { createStore, type Store } from '../../lib/store';
+import { perfCount } from '../../lib/perfCount';
 import { distanceM } from '../../lib/geo';
 import { releaseSwipe, SNAP } from '../../lib/atlas/snap';
 import { capFitBounds } from '../../lib/zoomOut';
@@ -30,8 +33,8 @@ import { useReducedMotion } from '../../lib/motion';
 import { useUnits } from '../../lib/useUnits';
 import { MOTION } from '../../lib/motionTokens';
 import {
-  alternatesGeoJSON, routeGradesGeoJSON, pinsGeoJSON, BORDER, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, DERIVE_ZOOM, endsGeoJSON, ENDS_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON,
-  type CollectedFeatures, type WalkMapHandle, type WalkMapProps,
+  alternatesGeoJSON, PAST_STYLE, type PastView, TRACE_EDGE_OPACITY, storefrontLayerOrder, storefrontNameLayers, storefrontNameRotate, storefrontNamesGeoJSON, routeGradesGeoJSON, pinsGeoJSON, BORDER, borderFillOpacity, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, DERIVE_ZOOM, endsGeoJSON, ENDS_PAINT, ENDS_RING_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON, BASE_VECTOR_SOURCE, POI_SOURCE_LAYER,
+  LINE_SOURCE, type CollectedFeatures, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
 const VIEW_TIMEOUT_MS = 4000;
@@ -92,6 +95,8 @@ function createSwiper() {
 const HIDDEN = { 'line-opacity': 0 } as const;
 
 export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(props, ref) {
+  // Counted as the web map is (nothing unless `globalThis.__perf` is set): NF7's numbers on a device.
+  perfCount('render:map');
   const mapRef = useRef<MapRef>(null);
   const cameraRef = useRef<CameraRef>(null);
   const lastBearing = useRef(0);
@@ -113,6 +118,14 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const rendered = useRef<(() => void) | null>(null);
   const size = useRef({ width: 0, height: 0 });
   const [view, setView] = useState<{ zoom: number; lat: number } | null>(null);
+  // QC24: the base style's shop and point-of-interest labels, hidden while a stop is a plain point (the outing's page, a followed
+  // outing). Native cannot read the style, so the base source's `poi` layer is hidden whole; it is the base style's own source, never
+  // the app's `omt-query` one (unverified on a device: NATIVE_UNVERIFIED). Redone when the style has finished loading.
+  const hideLabels = !!props.hideLabels;
+  useEffect(() => {
+    if (!ready) return;
+    void mapRef.current?.setSourceVisibility(!hideLabels, BASE_VECTOR_SOURCE, POI_SOURCE_LAYER).catch(() => {});
+  }, [ready, hideLabels]);
   const lastView = useRef<{ zoom: number; lat: number } | null>(null);
   // Discrete navigation (DN1, DN2): with onSwipe, a one-finger drag is a swipe, never a pan.
   const [swiper] = useState(createSwiper);
@@ -125,6 +138,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const memoryPins = useZoomPins(props.memories ?? NO_CAPTURES, view?.zoom ?? props.initialZoom ?? null, view?.lat ?? null);
   // One read of the reminders per map, for the bells on its pins (RB1, RB6).
   const reminded = useReminded();
+  // One read of the reactions per map, for the bubbles on its pins (RX17); in the Marker key, as the bell is (unverified on a device).
+  const sets = useReactionSets(!!props.captures?.length || !!props.memories?.length);
   // What was on screen before this change, for the deferred four (M10-M12): a remounted pin's view
   // gets its entrance from here. Nothing animates on first render, nor for captures older than the screen.
   const [openedAt] = useState(() => Date.now());
@@ -159,8 +174,44 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const alternates = useMemo(() => alternatesGeoJSON(props.alternates), [props.alternates]);
   const routeGrades = useMemo(() => routeGradesGeoJSON(props.routeGrades), [props.routeGrades]);
   const foundPins = useMemo(() => pinsGeoJSON(props.foundPins), [props.foundPins]);
-  const pockets = useMemo(() => pocketsGeoJSON(props.landing), [props.landing]);
-  const strips = useMemo(() => stripsGeoJSON(props.landing), [props.landing]);
+  // SS3: the lines and pockets are made again only when they change, never because the names near the selected area did.
+  const landingGraded = props.landing?.graded;
+  const landingPockets = props.landing?.pockets;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const pockets = useMemo(() => pocketsGeoJSON(props.landing), [landingPockets]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const strips = useMemo(() => stripsGeoJSON(props.landing), [landingGraded]);
+  // The storefront names (DC1, DC14), as the map's own text; re-made only when the areas or the reserved name change.
+  const reserveKey = props.storefrontNamesReserve ? `${props.storefrontNamesReserve.name}|${props.storefrontNamesReserve.at.join(',')}` : '';
+  // DC17: every "?" pin keeps its room; re-made only when the pins move.
+  const pinsKey = props.landing ? (props.discoveries ?? []).map((d) => d.at.join(',')).join('|') : '';
+  // DC18: the walk maps' names near you, re-made only when you move about 100 m.
+  const nearKey = props.storefrontNamesNear ? `${props.storefrontNamesNear.at.map((x) => x.toFixed(3)).join(',')}:${props.storefrontNamesNear.m}` : '';
+  const storefrontNameData = useMemo(
+    () => storefrontNamesGeoJSON(props.landing, props.storefrontNamesReserve ?? null, (props.discoveries ?? []).map((d) => d.at), props.storefrontNamesNear ?? null),
+    // The reserved name, the pins and where you are are read through their keys: a new object for the same is no change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [props.landing, reserveKey, pinsKey, nearKey],
+  );
+  // explore-dense-city ui 3: the names fold upright for the bearing the map settled on, to the nearest 5 degrees.
+  const [namesBearing, setNamesBearing] = useState(0);
+  // Set only when it changes: the same value set again still renders (map rules, DC12).
+  const namesBearingNow = useRef(0);
+  const nameLayers = useMemo(() => {
+    const l = storefrontNameLayers();
+    const rotate = storefrontNameRotate(namesBearing);
+    return { ...l, layout: { ...l.layout, 'text-rotate': rotate }, turned: { ...l.turned, layout: { ...l.turned.layout, 'text-rotate': rotate } } };
+  }, [namesBearing]);
+  // DC16, audit 6: the storefront lines under the base labels, as on the web; the names over the lines (added after them), and
+  // on Explore over everything.
+  // audit 7: a map taken down mid-move reports no settle; say it is still, so whatever waits for its settle goes on.
+  const onMoveStateRef = useRef(props.onMoveState);
+  useEffect(() => {
+    onMoveStateRef.current = props.onMoveState;
+  });
+  useEffect(() => () => onMoveStateRef.current?.(false), []);
+  const storefrontOrder = storefrontLayerOrder(!!props.storefrontNamesOver);
+  const namesBelow = storefrontOrder.names;
   const marks = useMemo(() => marksGeoJSON(props.marks), [props.marks]);
   const waitingDots = useMemo(() => waitingDotsGeoJSON(props.waitingDots), [props.waitingDots]);
   // The start and end markers (QL1, QL2): a new source only when they move, not with every publish
@@ -169,12 +220,21 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const endsKey = `${endPoints.start?.join(',') ?? ''}|${endPoints.end?.join(',') ?? ''}`;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const ends = useMemo(() => endsGeoJSON(endPoints.start, endPoints.end), [endsKey]);
+  // The markers a pin may stand on, whose edge its stalk stops at (decision 0172, O13): none while hidden with the trace.
+  const markersShown = (props.traceOpacity ?? 1) > 0;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const standOn = useMemo(() => (markersShown ? [endPoints.start, endPoints.end] : []), [endsKey, markersShown]);
+  // The pin rises by its lift and its target reaches on down over the marker, which never takes a tap (QL3):
+  // the pin lists work it out from these, never from a closure a memo list would keep stale (native map frames).
   const ring = useMemo(() => ringGeoJSON(props.ring), [props.ring]);
+  const ground = useMemo(() => groundGeoJSON(props.ground ?? null), [props.ground]);
   const complexLines = useMemo(() => (props.complexes?.lines ?? { type: 'FeatureCollection', features: [] }) as GeoJSON.FeatureCollection, [props.complexes]);
   // Town borders (TB1-TB5): rebuilt only when the towns or their roles change (TB9).
   const borderKey = props.borders?.key ?? '';
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const borders = useMemo(() => bordersGeoJSON(props.borders), [borderKey]);
+  /** Over the veil (the replay and a day, decision 0199): fixed for a screen, so the mount order never changes under it. */
+  const bordersOver = !!props.bordersOverVeil;
   // Walkability (WK13): rebuilt only when the picture changes.
   const walkKey = props.walkability?.key ?? '';
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -182,8 +242,25 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   // The scale bar follows the view (QL7): the longest round length that fits at this zoom and latitude.
   const units = useUnits();
   const scale = useMemo(() => (view ? scaleBar(metersPerPixel(view.zoom, view.lat), SCALE_MAX_PX, units) : null), [view, units]);
-  // The dot, cone and camera glide between fixes instead of jumping.
-  const glide = useGlidingWalker(props.walker, props.walkerHeading, props.glideWalker === true, props.walkerSource);
+  // No scale bar over a blank world (T17): with no fix, the map looks at what it drew each time it finishes drawing.
+  const blankWatch = !!props.hideScaleOnBlank && !props.walker;
+  const [drawn, setDrawn] = useState<boolean | null>(null);
+  // The base tiles, read through the query source (the app's own layers, the world's veil among them, cover the world
+  // whatever the tiles did): roads, water or places in them have drawn something (`drawnFrom`, tend map audit 14).
+  const lookDrawn = () => {
+    const source = queryRef.current;
+    if (!blankWatch || !source) return;
+    const count = (sourceLayer: string) => source.querySourceFeatures({ sourceLayer }).then((fs) => fs.length, () => 0);
+    Promise.all([count('transportation'), count('water'), count('place')])
+      .then(([roads, water, places]) => setDrawn(drawnFrom({ roads, water, places })))
+      .catch(() => {});
+  };
+  const scaleOn = scaleShown({ hideOnBlank: !!props.hideScaleOnBlank, fix: !!props.walker, drawn });
+  // The dot, cone and camera glide between fixes instead of jumping. The frames run outside React into a
+  // store that only the dot, the cone and the follow read, so a frame never renders the map (NF1).
+  const [frames] = useState(() => createStore<GlideFrame>({ walker: props.walker ?? null, heading: props.walkerHeading ?? null }));
+  const glideOn = props.glideWalker === true;
+  useGlideFrames(props.walker, props.walkerHeading, glideOn, frames.set, NATIVE_FRAME_MS, props.walkerSource);
   // The trace's end joins the live dot, so the line always reaches it (the live dot, Nov 1); never across a pause or gap.
   const openRun = split.tail[split.tail.length - 1];
   const traceEnd = props.walkerSource && openRun?.length ? openRun[openRun.length - 1] : null;
@@ -194,18 +271,19 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     () => traceGeoJSON(traceEnd && dotLead && distanceM(traceEnd, dotLead) <= LINK_MAX_M ? [[traceEnd, dotLead]] : []),
     [traceEnd, dotLead],
   );
-  const cone = useMemo(() => coneGeoJSON(glide.walker, glide.heading, view?.zoom ?? 16), [glide.walker, glide.heading, view]);
-  const points = useMemo(() => walkerGeoJSON(glide.walker), [glide.walker]);
-
-  useEffect(() => {
-    // Follows the gliding dot, so the camera and the dot move together.
-    if (!ready || !props.follow) return;
-    // The replay holds a zoom while it follows (RR3; unverified on a device).
-    const zoom = props.followZoom == null ? undefined : Math.round(props.followZoom * 100) / 100;
-    // Gliding (the live walk), the camera rides the dot; otherwise it goes where `follow` says (a ceremony's camera, audit 25).
-    const center = props.glideWalker ? (glide.walker ?? props.follow) : props.follow;
-    cameraRef.current?.jumpTo(zoom == null ? { center } : { center, zoom });
-  }, [ready, props.follow, props.followZoom, props.glideWalker, glide.walker]);
+  // NF8: the screen's marks array is new on every fix; the list is handed one that changes only with what they show.
+  const marksIn = props.discoveries ?? NO_MARKS;
+  const marksKey = markListKey(marksIn);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const shownMarks = useMemo(() => marksIn, [marksKey]);
+  const jump = useCallback((to: { center: LngLat; zoom?: number }) => cameraRef.current?.jumpTo(to), []);
+  // The pins' presses, read when pressed: a screen's new closure each render never re-renders a pin list (NF4).
+  // Filled in a layout effect, before the commit can take a tap: a pin made pressable in the same render as its
+  // handler (the replay's card beat) never meets an empty ref (native-map-frames audit 4).
+  const handlers = useRef<PinHandlers>({});
+  useLayoutEffect(() => {
+    handlers.current = { onMemoryPress: props.onMemoryPress, onPinPress: props.onPinPress, onDiscoveryPress: props.onDiscoveryPress, onStarPress: props.onStarPress };
+  });
   // A fit is a request made while mounted: a map brought back (the home, after a walk) keeps its view.
   const onFitSettled = useRef(props.onFitSettled);
   useEffect(() => {
@@ -268,6 +346,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       out.pois = (await source.querySourceFeatures({ sourceLayer: 'poi' })).map(toRoad);
       return out;
     },
+    // A phone's screen reader moves on by itself when the compass goes (unverified on a device).
+    focus() {},
     resetNorth() {
       void cameraRef.current?.setStop({ bearing: 0, duration: props.animate === false || reduced ? 0 : MOTION.camera });
     },
@@ -351,6 +431,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         }}
         onRegionWillChange={(e) => {
           if (e.nativeEvent.userInteraction) props.onUserMove?.();
+          props.onMoveState?.(true);
         }}
         // Two fingers turn a map with a compass (CP1, decision 0082); the others stay north-up (tend map 1). A tilt never.
         touchRotate={!!props.onBearingChange}
@@ -358,8 +439,14 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         dragPan={!props.onSwipe || !!props.freePan}
         onRegionDidChange={(e) => {
           regionChanged.current?.();
+          props.onMoveState?.(false);
           const { zoom, center, bearing } = e.nativeEvent;
           swiper.at([center[0], center[1]], zoom);
+          const nb = typeof bearing === 'number' ? Math.round(bearing / 5) * 5 : 0;
+          if (nb !== namesBearingNow.current) {
+            namesBearingNow.current = nb;
+            setNamesBearing(nb);
+          }
           if (typeof bearing === 'number' && Math.abs(bearing - lastBearing.current) >= 0.5) {
             lastBearing.current = bearing;
             props.onBearingChange?.(bearing);
@@ -373,7 +460,10 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
             props.onViewChange?.(lastView.current);
           }
         }}
-        onDidFinishRenderingMapFully={() => rendered.current?.()}
+        onDidFinishRenderingMapFully={() => {
+          rendered.current?.();
+          lookDrawn();
+        }}
       >
         <Camera
           ref={cameraRef}
@@ -386,216 +476,73 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
           <Layer id="q-names" type="line" source-layer="transportation_name" paint={HIDDEN} />
           <Layer id="q-places" type="circle" source-layer="place" paint={{ 'circle-opacity': 0 }} />
           <Layer id="q-pois" type="circle" source-layer="poi" paint={{ 'circle-opacity': 0 }} />
+          {/* Water, so its tiles load for the blank-world look (tend map audit 14). */}
+          <Layer id="q-water" type="fill" source-layer="water" paint={{ 'fill-opacity': 0 }} />
         </VectorSource>
-        {/* Town borders, the first overlay: under everything the app draws (TB8). MapLibre RN has no
+        {/* The town borders, under everything else the app draws (TB8), and under the world's veil but on the replay and
+            a day, where they mount after it, at a lighter fill (decision 0199: the town's edge and tint keep their
+            contrast). Mount order is layer order; the screen's ask never changes while it is open. MapLibre RN has no
             base road layer id to go below, so they sit over the base map's streets (unverified on a device). */}
-        <GeoJSONSource id="borders" data={borders}>
-          <Layer id="border-fill" type="fill" minzoom={BORDER.minZoom} filter={['==', ['get', 'role'], 'tinted']}
-            paint={{ 'fill-color': BORDER.color, 'fill-opacity': BORDER.fillOpacity }} />
-          <Layer id="border-lined" type="line" minzoom={BORDER.minZoom} filter={['==', ['get', 'role'], 'lined']} layout={{ 'line-join': 'round' }}
-            paint={{ 'line-color': BORDER.lined, 'line-width': BORDER.linedWidth, 'line-opacity': BORDER.linedOpacity }} />
-          <Layer id="border-firm" type="line" minzoom={BORDER.minZoom} filter={['!=', ['get', 'role'], 'lined']} layout={{ 'line-join': 'round' }}
-            paint={{ 'line-color': BORDER.color, 'line-width': BORDER.firmWidth, 'line-opacity': BORDER.firmOpacity }} />
-        </GeoJSONSource>
-        <GeoJSONSource id="veil" data={WORLD_VEIL}>
-          <Layer id="veil" type="fill" paint={{ 'fill-color': COLORS.veil, 'fill-opacity': props.veil ? 0.45 : 0 }} />
-        </GeoJSONSource>
+        {!bordersOver && <BordersSource data={borders} lighter={false} />}
+        <VeilSource on={!!props.veil} />
+        {bordersOver && <BordersSource data={borders} lighter={!!props.veil} />}
         {/* The Walkability layer (UF9), under the hotspots, fog and trace: soft tints, no antialiasing so no seams (unverified on a device). */}
-        <GeoJSONSource id="walkability" data={walkability}>
-          {(['foot', 'car'] as const).map((band) => (
-            <Layer key={band} id={`walk-${band}`} type="fill" filter={['==', ['get', 'band'], band]}
-              paint={{ 'fill-color': WALK_STYLE[band].color, 'fill-opacity': WALK_STYLE[band].opacity, 'fill-antialias': false }} />
-          ))}
-        </GeoJSONSource>
+        <WalkabilitySource data={walkability} />
         {/* Hotspots under the streets, in the one green no other layer uses (L9). */}
-        <GeoJSONSource id="pockets" data={pockets}>
-          <Layer id="pockets" type="fill" paint={{ 'fill-color': HOTSPOT, 'fill-opacity': ['case', ['get', 'stale'], 0.06, 0.14] }} />
-        </GeoJSONSource>
-        <GeoJSONSource id="strips" data={strips}>
-          <Layer id="strips" type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }} paint={{
-            'line-color': HOTSPOT,
-            // Graded (AD12): each feature carries its grade's width and opacity.
-            'line-width': ['interpolate', ['linear'], ['zoom'], 12, ['*', 3, ['get', 'width']], 17, ['*', 10, ['get', 'width']]],
-            'line-opacity': ['get', 'opacity'],
-          }} />
-        </GeoJSONSource>
-        <GeoJSONSource id="fog" data={fog}>
-          <Layer id="fog" type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }}
-            paint={{
-              'line-color': props.fogEmphasis ? FOG_BOLD : COLORS.fog,
-              'line-opacity': props.fogEmphasis ? 1 : FOG_STYLE.opacity,
-              'line-width': props.fogEmphasis ? 5 : FOG_STYLE.widthMax,
-            }} />
-        </GeoJSONSource>
-        <GeoJSONSource id="walked" data={walked}>
-          <Layer id="walked" type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }}
-            paint={{ 'line-color': COLORS.walked, 'line-width': 6 }} />
-        </GeoJSONSource>
+        <PocketsSource data={pockets} beforeId={storefrontOrder.lines} />
+        <StripsSource data={strips} beforeId={storefrontOrder.lines} />
+        <FogSource data={fog} />
+        <PastSource view={props.past ?? null} />
+        <WalkedSource data={walked} />
         {/* A preview's other routes, faint, under the one highlighted (SR2). */}
-        <GeoJSONSource id="alternates" data={alternates}>
-          <Layer id="alternates-edge" type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }} paint={{ 'line-color': '#ffffff', 'line-width': 9, 'line-opacity': 0.8 }} />
-          <Layer id="alternates" type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }} paint={{ 'line-color': COLORS.route, 'line-width': 6, 'line-opacity': 0.4 }} />
-        </GeoJSONSource>
+        <AlternatesSource data={alternates} />
         {/* The walk planner's graded stretches: a band under the route, wider where the kind is denser (WP16). */}
-        <GeoJSONSource id="route-grades" data={routeGrades}>
-          <Layer id="route-grades" type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }} paint={{ 'line-color': HOTSPOT, 'line-width': ['get', 'width'], 'line-opacity': 0.45 }} />
-        </GeoJSONSource>
-        <GeoJSONSource id="route" data={route}>
-          <Layer id="route-edge" type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }} paint={{ 'line-color': '#ffffff', 'line-width': 12 }} />
-          <Layer id="route" type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }} paint={{ 'line-color': COLORS.route, 'line-width': 8 }} />
-        </GeoJSONSource>
+        <RouteGradesSource data={routeGrades} />
+        <RouteSource data={route} />
         {/* The trace on a white edge, so it reads over fog, walked streets and the base map alike:
             the history (memoized, so it isn't serialized again each render) and the live tail. */}
         {/* Offered stretches across gaps: the trace, see-through (Filling gaps, G6). */}
         {/* A gap with no line: grey dots between its ends (GW2). */}
-        <GeoJSONSource id="gap-links" data={gapLinks}>
-          <Layer id="gap-links" type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }}
-            paint={{ 'line-color': FOG_BOLD, 'line-width': 3, 'line-opacity': 0.8 * (props.traceOpacity ?? 1), 'line-dasharray': GAP_LINK_DASH }} />
-        </GeoJSONSource>
+        <GapLinksSource data={gapLinks} opacity={props.traceOpacity ?? 1} />
         <TraceSource id="faint" data={faint} opacity={FAINT_OPACITY * (props.traceOpacity ?? 1)} />
         <TraceSource id="rides" data={rides} opacity={props.traceOpacity ?? 1} dashed />
         <TraceSource id="trace-history" data={traceHistory} opacity={props.traceOpacity ?? 1} />
         <TraceSource id="trace" data={traceTail} opacity={props.traceOpacity ?? 1} />
         <TraceSource id="trace-link" data={traceLink} opacity={props.traceOpacity ?? 1} />
         {/* A gap's way being drawn, dashed over the trace (GW3). */}
-        <GeoJSONSource id="drawing" data={drawing}>
-          <Layer id="drawing-edge" type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }} paint={{ 'line-color': '#ffffff', 'line-width': FOG_STYLE.edgeWidth, 'line-opacity': 0.9 }} />
-          <Layer id="drawing" type="line" layout={{ 'line-cap': 'butt', 'line-join': 'round' }}
-            paint={{ 'line-color': COLORS.trace, 'line-width': FOG_STYLE.traceWidth, 'line-dasharray': DRAWING_DASH }} />
-        </GeoJSONSource>
-        {/* Where the walk began and ended (QL1-QL3): above the trace, under the walker and the pins,
-            going with the trace's opacity. The start hollow, ringed in the trace's green; the end solid,
-            filled in the walked colour with a white ring (tend map T16). */}
-        <GeoJSONSource id="ends" data={ends}>
-          <Layer id="ends" type="circle" paint={{
-            ...ENDS_PAINT,
-            'circle-opacity': props.traceOpacity ?? 1,
-            'circle-stroke-opacity': props.traceOpacity ?? 1,
-          }} />
-        </GeoJSONSource>
-        <GeoJSONSource id="cone" data={cone}>
-          <Layer id="cone" type="fill" paint={{ 'fill-color': COLORS.walker, 'fill-opacity': 0.25 }} />
-        </GeoJSONSource>
+        <DrawingSource data={drawing} />
+        <EndsSource data={ends} opacity={props.traceOpacity ?? 1} />
+        <ConeSource frames={frames} walker={props.walker} heading={props.walkerHeading} enabled={glideOn} source={props.walkerSource} zoom={view?.zoom ?? 16} />
         {/* The range preview (E21): a soft disc with a firm edge. */}
-        <GeoJSONSource id="ring" data={ring}>
-          <Layer id="ring-fill" type="fill" paint={{ 'fill-color': RING_COLOR, 'fill-opacity': 0.12 }} />
-          <Layer id="ring" type="line" paint={{ 'line-color': RING_COLOR, 'line-width': 2.5, 'line-dasharray': [2, 1.5] }} />
-        </GeoJSONSource>
+        <RingSource data={ring} />
+        {/* A selected neighborhood's own ground (HB9): one line, one look for every neighborhood, no fill (HB14). */}
+        <GroundSource data={ground} />
         {/* The selected area's complexes (CX9): an outline with no fill, in a hue of its own. */}
-        <GeoJSONSource id="complexes" data={complexLines}>
-          <Layer id="complexes" type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }} paint={{ 'line-color': COMPLEX_STYLE.color, 'line-width': COMPLEX_STYLE.width, 'line-opacity': COMPLEX_STYLE.opacity }} />
-        </GeoJSONSource>
-        <GeoJSONSource id="found-pins" data={foundPins}>
-          <Layer id="found-pins" type="circle" paint={{ 'circle-color': HOTSPOT, 'circle-radius': 7, 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 3 }} />
-        </GeoJSONSource>
+        <ComplexesSource data={complexLines} />
+        <FoundPinsSource data={foundPins} />
         {/* Explore's places still to find where a "?" would crowd (WT12, WT14). */}
-        <GeoJSONSource id="waiting-dots" data={waitingDots}>
-          <Layer id="waiting-dots" type="circle" paint={WAITING_DOT_PAINT as never} />
-        </GeoJSONSource>
-        <GeoJSONSource id="marks" data={marks}>
-          <Layer id="marks" type="circle" paint={{ 'circle-color': '#ffffff', 'circle-radius': 9, 'circle-stroke-color': COLORS.walker, 'circle-stroke-width': 4 }} />
-        </GeoJSONSource>
-        <GeoJSONSource id="points" data={points}>
-          <Layer id="points" type="circle" paint={{
-            'circle-color': COLORS.walker,
-            'circle-radius': 7,
-            'circle-stroke-color': '#ffffff',
-            'circle-stroke-width': 2,
-          }} />
-        </GeoJSONSource>
+        <WaitingDotsSource data={waitingDots} />
+        <MarksSource data={marks} />
+        <PointsSource frames={frames} walker={props.walker} heading={props.walkerHeading} enabled={glideOn} source={props.walkerSource} />
+        {/* The storefront names (DC1-DC6, DC14, DC16), the map's own text. Unverified on a device. */}
+        <StorefrontNamesSource data={storefrontNameData} layers={nameLayers} beforeId={namesBelow} />
+        <GlideFollow frames={frames} walker={props.walker} heading={props.walkerHeading} enabled={glideOn} source={props.walkerSource} ready={ready} follow={props.follow} followZoom={props.followZoom} jump={jump} />
         {/* Memories from earlier walks: the same pins, faint, with their own tap (MR1-MR4), drawn
             before this walk's pins so those stay on top (audit 6). */}
-        {memoryPins.map((pin) => (
-          <Marker
-            key={`memory:${pin.id}:${pin.captures.map((c) => c.id).join(',')}:${pinThumb(pin) ?? ''}:${pinReminded(pin, reminded)}`}
-            id={`memory:${pin.id}`}
-            lngLat={pin.lngLat}
-            anchor="bottom"
-            onPress={props.onMemoryPress ? () => props.onMemoryPress?.(pin.captures, pin.lngLat) : undefined}
-          >
-            <View
-              accessible
-              accessibilityRole={props.onMemoryPress ? 'button' : 'image'}
-              accessibilityLabel={pinLabel(pin, !!props.onMemoryPress, true, pinReminded(pin, reminded))}
-              style={styles.pinHit}
-            >
-              <CapturePinView pin={pin} faint reminded={pinReminded(pin, reminded)} />
-            </View>
-          </Marker>
-        ))}
-        {/* The Marker's own onPress: on iOS the annotation's tap recognizer
-            swallows touches meant for a Pressable inside it. */}
-        {/* The photo's small copy is in the key, so one made after the pin was drawn shows (QL27);
-            the bell too, so a reminder set or stopped shows at once (RB5). */}
-        {pins.map((pin) => (
-          <Marker
-            key={`${pin.id}:${pin.captures.length}:${pinThumb(pin) ?? ''}:${pinReminded(pin, reminded)}`}
-            id={`${pin.id}:${pin.captures.length}:${pinThumb(pin) ?? ''}:${pinReminded(pin, reminded)}`}
-            lngLat={pin.lngLat}
-            anchor="bottom"
-            onPress={props.onPinPress ? () => props.onPinPress?.(pin.captures) : undefined}
-          >
-            <View
-              accessible
-              accessibilityRole={props.onPinPress ? 'button' : 'image'}
-              accessibilityLabel={pinLabel(pin, !!props.onPinPress, false, pinReminded(pin, reminded))}
-              style={styles.pinHit}
-            >
-              <CapturePinView pin={pin} drop={pinDrops(pin.captures, seenCaptures, openedAt)} reminded={pinReminded(pin, reminded)} />
-            </View>
-          </Marker>
-        ))}
-        {declutterMarks(props.discoveries ?? [], view?.zoom ?? props.initialZoom ?? 16).map((pin) => (
-          <Marker
-            key={`mark:${pin.id}:${markKey(pin)}`}
-            id={`mark:${pin.id}:${markKey(pin)}`}
-            lngLat={pin.at}
-            anchor="bottom"
-            onPress={props.onDiscoveryPress && !pin.found ? () => props.onDiscoveryPress?.(pin.id) : undefined}
-          >
-            <View
-              // WT11: Explore's "?" are one summary for a screen reader, never announced one by one.
-              accessible={!pin.quiet}
-              accessibilityElementsHidden={pin.quiet}
-              importantForAccessibility={pin.quiet ? 'no-hide-descendants' : 'auto'}
-              accessibilityRole={pin.found ? 'image' : 'button'}
-              accessibilityLabel={markLabel(pin)}
-              style={pin.found ? undefined : styles.pinHit}
-            >
-              <MarkPinView pin={pin} enter={seenMarks.size ? markEnter(markFrom(seenMarks.get(pin.id)), pin) : null} />
-            </View>
-          </Marker>
-        ))}
-        {(props.complexes?.labels ?? []).map((l) => (
-          <Marker key={`complex:${l.id}:${l.text}`} id={`complex:${l.id}`} lngLat={l.at} anchor="center">
-            <ComplexLabelView text={l.text} />
-          </Marker>
-        ))}
-        {(props.areaPoints ?? []).map((p) => (
-          <Marker key={`area:${p.id}:${p.name ?? ''}:${p.selected ? 1 : 0}`} id={`area:${p.id}`} lngLat={p.at} anchor="top" offset={[0, -6]}>
-            <AreaPointView pin={p} />
-          </Marker>
-        ))}
-        {[...(props.landing?.strips ?? []), ...(props.landing?.labels ?? [])].map((s) => (
-          <Marker key={`label:${s.name}:${s.at.join(',')}`} id={`label:${s.name}:${s.at.join(',')}`} lngLat={s.at} anchor="center">
-            <StripLabel name={s.name} />
-          </Marker>
-        ))}
-        {(props.stars ?? []).map((star) => (
-          <Marker
-            key={`star:${star.id}:${star.count}`}
-            id={`star:${star.id}:${star.count}`}
-            lngLat={star.at}
-            anchor="center"
-            onPress={props.onStarPress ? () => props.onStarPress?.(star) : undefined}
-          >
-            <View accessible accessibilityRole="button" accessibilityLabel={starLabel(star)} style={styles.pinHit}>
-              <StarView star={star} selected={star.id === props.selectedStar} named={names.has(star.id)} />
-            </View>
-          </Marker>
-        ))}
+        <MemoryPinMarkers pins={memoryPins} sets={sets} reminded={reminded} now={props.now ?? openedAt} pressable={!!props.onMemoryPress} handlers={handlers} standOn={standOn} zoom={view?.zoom ?? props.initialZoom ?? 16} bearing={namesBearing} />
+        <PinMarkers
+          pins={pins} sets={sets} reminded={reminded} clocks={props.clocks} now={props.now ?? openedAt} openedAt={openedAt}
+          seen={seenCaptures} pressable={!!props.onPinPress} handlers={handlers} standOn={standOn} zoom={view?.zoom ?? props.initialZoom ?? 16} bearing={namesBearing}
+        />
+        <MarkMarkers
+          marks={shownMarks} zoom={view?.zoom ?? props.initialZoom ?? 16} bearing={namesBearing} spread={!!props.spreadMarks} seen={seenMarks}
+          pressable={!!props.onDiscoveryPress} handlers={handlers}
+        />
+        <ComplexLabelMarkers labels={props.complexes?.labels ?? NO_LABELS} />
+        <AreaPointMarkers points={props.areaPoints ?? NO_AREA_POINTS} />
+        <StarMarkers stars={props.stars ?? NO_STARS} names={names} selected={props.selectedStar} pressable={!!props.onStarPress} handlers={handlers} />
       </Map>
-      {scale && <ScaleBar bar={scale} inset={props.scaleInset} />}
+      {scale && scaleOn && <ScaleBar bar={scale} inset={props.scaleInset} />}
       {props.covered && <View style={styles.cover} pointerEvents="none" />}
     </View>
   );
@@ -614,9 +561,9 @@ const styles = StyleSheet.create({
  */
 const TraceSource = memo(function TraceSource(props: { id: string; data: GeoJSON.FeatureCollection; opacity: number; dashed?: boolean }) {
   return (
-    <GeoJSONSource id={props.id} data={props.data}>
+    <GeoJSONSource id={props.id} data={props.data} {...LINE_SOURCE}>
       <Layer id={`${props.id}-edge`} type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }}
-        paint={{ 'line-color': '#ffffff', 'line-width': FOG_STYLE.edgeWidth, 'line-opacity': 0.9 * props.opacity }} />
+        paint={{ 'line-color': '#ffffff', 'line-width': FOG_STYLE.edgeWidth, 'line-opacity': TRACE_EDGE_OPACITY * props.opacity }} />
       {/* A ride is dashed (rides, R5). */}
       <Layer id={`${props.id}-line`} type="line" layout={{ 'line-cap': props.dashed ? 'butt' : 'round', 'line-join': 'round' }}
         paint={{ 'line-color': COLORS.trace, 'line-width': FOG_STYLE.traceWidth, 'line-opacity': props.opacity, ...(props.dashed ? { 'line-dasharray': RIDE_DASH } : {}) }} />
@@ -638,6 +585,402 @@ function useDotLead(source: DotSource | null | undefined): LngLat | null {
 }
 
 const NO_CAPTURES: Faced[] = [];
+const NO_MARKS: NonNullable<WalkMapProps['discoveries']> = [];
+const NO_STARS: NonNullable<WalkMapProps['stars']> = [];
+const NO_AREA_POINTS: NonNullable<WalkMapProps['areaPoints']> = [];
+const NO_LABELS: ComplexLabels = [];
 
 const markState = (p: { revealed: boolean; found?: boolean; faint?: boolean }) => `${p.revealed ? 'r' : ''}${p.found ? 'f' : ''}${p.faint ? 'w' : ''}`;
 const markFrom = (v: string | undefined) => (v == null ? undefined : { revealed: v.includes('r'), found: v.includes('f'), faint: v.includes('w') });
+
+/*
+ * Native map frames (NF1-NF4). Each source below is a memo component handed only its data and primitives:
+ * MapLibre RN's GeoJSONSource serializes its data whenever it renders, and inline <Layer> children are new
+ * elements on every render, so a source written inline under WalkMap was sent again on every glide frame
+ * and replay tick. Layer order is mount order, so each sits where its inline source was.
+ */
+type FC = GeoJSON.FeatureCollection;
+const ROUND = { 'line-cap': 'round', 'line-join': 'round' } as const;
+
+const BordersSource = memo(function BordersSource({ data, lighter }: { data: FC; lighter: boolean }) {
+  return (
+    <GeoJSONSource id="borders" data={data}>
+      {/* Town borders: under everything else the app draws (TB8). MapLibre RN has no base road layer id to go below, so
+          they sit over the base map's streets (unverified on a device). */}
+      <Layer id="border-fill" type="fill" minzoom={BORDER.minZoom} filter={['==', ['get', 'role'], 'tinted']}
+        paint={{ 'fill-color': BORDER.color, 'fill-opacity': borderFillOpacity(lighter) }} />
+      <Layer id="border-lined" type="line" minzoom={BORDER.minZoom} filter={['==', ['get', 'role'], 'lined']} layout={{ 'line-join': 'round' }}
+        paint={{ 'line-color': BORDER.lined, 'line-width': BORDER.linedWidth, 'line-opacity': BORDER.linedOpacity }} />
+      <Layer id="border-firm" type="line" minzoom={BORDER.minZoom} filter={['!=', ['get', 'role'], 'lined']} layout={{ 'line-join': 'round' }}
+        paint={{ 'line-color': BORDER.color, 'line-width': BORDER.firmWidth, 'line-opacity': BORDER.firmOpacity }} />
+    </GeoJSONSource>
+  );
+});
+
+const VeilSource = memo(function VeilSource({ on }: { on: boolean }) {
+  return (
+    <GeoJSONSource id="veil" data={WORLD_VEIL}>
+      <Layer id="veil" type="fill" paint={{ 'fill-color': COLORS.veil, 'fill-opacity': on ? 0.45 : 0 }} />
+    </GeoJSONSource>
+  );
+});
+
+const WalkabilitySource = memo(function WalkabilitySource({ data }: { data: FC }) {
+  return (
+    <GeoJSONSource id="walkability" data={data}>
+      {(['foot', 'car'] as const).map((band) => (
+        <Layer key={band} id={`walk-${band}`} type="fill" filter={['==', ['get', 'band'], band]}
+          paint={{ 'fill-color': WALK_STYLE[band].color, 'fill-opacity': WALK_STYLE[band].opacity, 'fill-antialias': false }} />
+      ))}
+    </GeoJSONSource>
+  );
+});
+
+const PocketsSource = memo(function PocketsSource({ data, beforeId }: { data: FC; beforeId?: string }) {
+  return (
+    <GeoJSONSource id="pockets" data={data}>
+      <Layer id="pockets" type="fill" beforeId={beforeId} paint={{ 'fill-color': HOTSPOT, 'fill-opacity': ['case', ['get', 'stale'], 0.06, 0.14] }} />
+    </GeoJSONSource>
+  );
+});
+
+const StripsSource = memo(function StripsSource({ data, beforeId }: { data: FC; beforeId?: string }) {
+  return (
+    <GeoJSONSource id="strips" data={data}>
+      <Layer id="strips" type="line" beforeId={beforeId} layout={ROUND} paint={{
+        'line-color': HOTSPOT,
+        // Graded (AD12): each feature carries its grade's width and opacity.
+        'line-width': ['interpolate', ['linear'], ['zoom'], 12, ['*', 3, ['get', 'width']], 17, ['*', 10, ['get', 'width']]],
+        'line-opacity': ['get', 'opacity'],
+      }} />
+    </GeoJSONSource>
+  );
+});
+
+/** The fog is always quiet (decision 0222, WB1). */
+const FogSource = memo(function FogSource({ data }: { data: FC }) {
+  return (
+    <GeoJSONSource id="fog" data={data} {...LINE_SOURCE}>
+      <Layer id="fog" type="line" layout={ROUND}
+        paint={{
+          'line-color': COLORS.fog,
+          'line-opacity': FOG_STYLE.opacity,
+          'line-width': FOG_STYLE.widthMax,
+        }} />
+    </GeoJSONSource>
+  );
+});
+
+/** Where I've been (WB9): one even tone, no edge, over the fog and under everything walked today (unverified on a device). */
+const PastSource = memo(
+  function PastSource({ view }: { view: PastView | null }) {
+    const data = useMemo(() => traceGeoJSON(view?.runs ?? []), [view]);
+    return (
+      <GeoJSONSource id="past" data={data} {...LINE_SOURCE}>
+        <Layer id="past" type="line" layout={ROUND} paint={{ 'line-color': COLORS.past, 'line-opacity': PAST_STYLE.opacity, 'line-width': PAST_STYLE.width }} />
+      </GeoJSONSource>
+    );
+  },
+  // By the lines' key (WB16): the same lines from a new object are not sent again.
+  (a, b) => (a.view?.key ?? '') === (b.view?.key ?? ''),
+);
+
+const WalkedSource = memo(function WalkedSource({ data }: { data: FC }) {
+  return (
+    <GeoJSONSource id="walked" data={data} {...LINE_SOURCE}>
+      <Layer id="walked" type="line" layout={ROUND} paint={{ 'line-color': COLORS.walked, 'line-width': 6 }} />
+    </GeoJSONSource>
+  );
+});
+
+const AlternatesSource = memo(function AlternatesSource({ data }: { data: FC }) {
+  return (
+    <GeoJSONSource id="alternates" data={data} {...LINE_SOURCE}>
+      <Layer id="alternates-edge" type="line" layout={ROUND} paint={{ 'line-color': '#ffffff', 'line-width': 9, 'line-opacity': 0.8 }} />
+      <Layer id="alternates" type="line" layout={ROUND} paint={{ 'line-color': COLORS.route, 'line-width': 6, 'line-opacity': 0.4 }} />
+    </GeoJSONSource>
+  );
+});
+
+const RouteGradesSource = memo(function RouteGradesSource({ data }: { data: FC }) {
+  return (
+    <GeoJSONSource id="route-grades" data={data} {...LINE_SOURCE}>
+      <Layer id="route-grades" type="line" layout={ROUND} paint={{ 'line-color': HOTSPOT, 'line-width': ['get', 'width'], 'line-opacity': 0.45 }} />
+    </GeoJSONSource>
+  );
+});
+
+const RouteSource = memo(function RouteSource({ data }: { data: FC }) {
+  return (
+    <GeoJSONSource id="route" data={data} {...LINE_SOURCE}>
+      <Layer id="route-edge" type="line" layout={ROUND} paint={{ 'line-color': '#ffffff', 'line-width': 12 }} />
+      <Layer id="route" type="line" layout={ROUND} paint={{ 'line-color': COLORS.route, 'line-width': 8 }} />
+    </GeoJSONSource>
+  );
+});
+
+const GapLinksSource = memo(function GapLinksSource({ data, opacity }: { data: FC; opacity: number }) {
+  return (
+    <GeoJSONSource id="gap-links" data={data} {...LINE_SOURCE}>
+      <Layer id="gap-links" type="line" layout={ROUND}
+        paint={{ 'line-color': FOG_BOLD, 'line-width': 3, 'line-opacity': 0.8 * opacity, 'line-dasharray': GAP_LINK_DASH }} />
+    </GeoJSONSource>
+  );
+});
+
+const DrawingSource = memo(function DrawingSource({ data }: { data: FC }) {
+  return (
+    <GeoJSONSource id="drawing" data={data} {...LINE_SOURCE}>
+      <Layer id="drawing-edge" type="line" layout={ROUND} paint={{ 'line-color': '#ffffff', 'line-width': FOG_STYLE.edgeWidth, 'line-opacity': TRACE_EDGE_OPACITY }} />
+      <Layer id="drawing" type="line" layout={{ 'line-cap': 'butt', 'line-join': 'round' }}
+        paint={{ 'line-color': COLORS.trace, 'line-width': FOG_STYLE.traceWidth, 'line-dasharray': DRAWING_DASH }} />
+    </GeoJSONSource>
+  );
+});
+
+/*
+ * Where the walk began and ended (QL1-QL3): above the trace, under the walker and the pins, going with the
+ * trace's opacity. The start hollow, ringed in the trace's green (tend map T16); the end a bullseye (tend map
+ * T25): the start and the end's walked outer ring first, then the end's walked centre and white band alone, so
+ * a walk that ends on its start keeps its end whole (tend map audit 25).
+ */
+const EndsSource = memo(function EndsSource({ data, opacity }: { data: FC; opacity: number }) {
+  return (
+    <GeoJSONSource id="ends" data={data}>
+      <Layer id="ends-ring" type="circle" paint={{ ...ENDS_RING_PAINT, 'circle-opacity': opacity, 'circle-stroke-opacity': opacity }} />
+      <Layer id="ends" type="circle" filter={['==', ['get', 'kind'], 'end']} paint={{ ...ENDS_PAINT, 'circle-opacity': opacity, 'circle-stroke-opacity': opacity }} />
+    </GeoJSONSource>
+  );
+});
+
+const RingSource = memo(function RingSource({ data }: { data: FC }) {
+  return (
+    <GeoJSONSource id="ring" data={data}>
+      <Layer id="ring-fill" type="fill" paint={{ 'fill-color': RING_COLOR, 'fill-opacity': 0.12 }} />
+      <Layer id="ring" type="line" paint={{ 'line-color': RING_COLOR, 'line-width': 2.5, 'line-dasharray': [2, 1.5] }} />
+    </GeoJSONSource>
+  );
+});
+
+const GroundSource = memo(function GroundSource({ data }: { data: FC }) {
+  return (
+    <GeoJSONSource id="ground" data={data}>
+      <Layer id="ground" type="line" layout={ROUND} paint={{ 'line-color': groundStyle().color, 'line-width': groundStyle().width }} />
+    </GeoJSONSource>
+  );
+});
+
+const ComplexesSource = memo(function ComplexesSource({ data }: { data: FC }) {
+  return (
+    <GeoJSONSource id="complexes" data={data}>
+      <Layer id="complexes" type="line" layout={ROUND} paint={{ 'line-color': COMPLEX_STYLE.color, 'line-width': COMPLEX_STYLE.width, 'line-opacity': COMPLEX_STYLE.opacity }} />
+    </GeoJSONSource>
+  );
+});
+
+const FoundPinsSource = memo(function FoundPinsSource({ data }: { data: FC }) {
+  return (
+    <GeoJSONSource id="found-pins" data={data}>
+      <Layer id="found-pins" type="circle" paint={{ 'circle-color': HOTSPOT, 'circle-radius': 7, 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 3 }} />
+    </GeoJSONSource>
+  );
+});
+
+const WaitingDotsSource = memo(function WaitingDotsSource({ data }: { data: FC }) {
+  return (
+    <GeoJSONSource id="waiting-dots" data={data}>
+      <Layer id="waiting-dots" type="circle" paint={WAITING_DOT_PAINT as never} />
+    </GeoJSONSource>
+  );
+});
+
+const MarksSource = memo(function MarksSource({ data }: { data: FC }) {
+  return (
+    <GeoJSONSource id="marks" data={data}>
+      <Layer id="marks" type="circle" paint={{ 'circle-color': '#ffffff', 'circle-radius': 9, 'circle-stroke-color': COLORS.walker, 'circle-stroke-width': 4 }} />
+    </GeoJSONSource>
+  );
+});
+
+type NameLayers = ReturnType<typeof storefrontNameLayers>;
+const StorefrontNamesSource = memo(function StorefrontNamesSource({ data, layers, beforeId }: { data: FC; layers: NameLayers; beforeId?: string }) {
+  return (
+    <GeoJSONSource id="storefront-names" data={data}>
+      <Layer id="storefront-names" type="symbol" minzoom={layers.minzoom} beforeId={beforeId} filter={layers.filter as never} layout={layers.layout as never} paint={layers.paint as never} />
+      {/* A turned name, centred or left out, never slid across its street (audit 1). */}
+      <Layer id="storefront-names-turned" type="symbol" minzoom={layers.minzoom} beforeId={beforeId} filter={layers.turned.filter as never} layout={layers.turned.layout as never} paint={layers.turned.paint as never} />
+      {/* The room the selected area's name and each "?" pin keep (DC14, DC17), placed first. */}
+      <Layer id="storefront-names-room" type="symbol" minzoom={layers.minzoom} beforeId={beforeId} filter={layers.room.filter as never} layout={layers.room.layout as never} paint={layers.room.paint as never} />
+    </GeoJSONSource>
+  );
+});
+
+/** What the glide's parts read: the frames, and the props that stand in until a frame comes (NF1). */
+type GlideIn = {
+  frames: Store<GlideFrame>;
+  walker: LngLat | null | undefined;
+  heading: number | null | undefined;
+  enabled: boolean;
+  source: DotSource | null | undefined;
+};
+
+/** The walker's cone: renders per glide frame, alone. */
+const ConeSource = memo(function ConeSource({ frames, walker, heading, enabled, source, zoom }: GlideIn & { zoom: number }) {
+  perfCount('render:glide');
+  const g = useGlideShown(frames, walker, heading, enabled, source);
+  const data = useMemo(() => coneGeoJSON(g.walker, g.heading, zoom), [g.walker, g.heading, zoom]);
+  return (
+    <GeoJSONSource id="cone" data={data}>
+      <Layer id="cone" type="fill" paint={{ 'fill-color': COLORS.walker, 'fill-opacity': 0.25 }} />
+    </GeoJSONSource>
+  );
+});
+
+/** The walker's dot: renders per glide frame, alone. */
+const PointsSource = memo(function PointsSource({ frames, walker, heading, enabled, source }: GlideIn) {
+  const g = useGlideShown(frames, walker, heading, enabled, source);
+  const data = useMemo(() => walkerGeoJSON(g.walker), [g.walker]);
+  return (
+    <GeoJSONSource id="points" data={data}>
+      <Layer id="points" type="circle" paint={{
+        'circle-color': COLORS.walker,
+        'circle-radius': 7,
+        'circle-stroke-color': '#ffffff',
+        'circle-stroke-width': 2,
+      }} />
+    </GeoJSONSource>
+  );
+});
+
+/** The follow camera: rides the gliding dot, so the camera and the dot move together. Draws nothing. */
+const GlideFollow = memo(function GlideFollow(p: GlideIn & { ready: boolean; follow: LngLat | null | undefined; followZoom: number | null | undefined; jump: (to: { center: LngLat; zoom?: number }) => void }) {
+  const g = useGlideShown(p.frames, p.walker, p.heading, p.enabled, p.source);
+  const { ready, follow, followZoom, enabled, jump } = p;
+  useEffect(() => {
+    if (!ready || !follow) return;
+    // The replay holds a zoom while it follows (RR3; unverified on a device).
+    const zoom = followZoom == null ? undefined : Math.round(followZoom * 100) / 100;
+    // Gliding (the live walk), the camera rides the dot; otherwise it goes where `follow` says (a ceremony's camera, audit 25).
+    const center = enabled ? (g.walker ?? follow) : follow;
+    jump(zoom == null ? { center } : { center, zoom });
+  }, [ready, follow, followZoom, enabled, g.walker, jump]);
+  return null;
+});
+
+/*
+ * The pins (NF4): each list re-renders only when its own pins, their reactions or reminders, or what it is
+ * drawn against change, never with a glide frame or a screen's new closure. Presses are read from `handlers`
+ * when pressed. The Marker's own onPress: on iOS the annotation's tap recognizer swallows touches meant for
+ * a Pressable inside it.
+ */
+type PinHandlers = Pick<WalkMapProps, 'onMemoryPress' | 'onPinPress' | 'onDiscoveryPress' | 'onStarPress'>;
+type Pins = ReturnType<typeof useZoomPins>;
+type Sets = ReturnType<typeof useReactionSets>;
+type ComplexLabels = NonNullable<NonNullable<WalkMapProps['complexes']>['labels']>;
+type PinListIn = {
+  pins: Pins; sets: Sets; reminded: ReadonlySet<string>; now: number; pressable: boolean; handlers: RefObject<PinHandlers>;
+  /** What a pin's stalk lift reads (tend map 13, decision 0172 O13): the markers it may stand on, the zoom and the bearing. */
+  standOn: readonly (LngLat | null)[]; zoom: number; bearing: number;
+};
+
+/** Each pin's reactions, worked out once per change of the pins or the reactions, not per render. */
+function useReactionsOf(pins: Pins, sets: Sets) {
+  return useMemo(() => pins.map((pin) => pinReactions(pin, sets)), [pins, sets]);
+}
+
+const MemoryPinMarkers = memo(function MemoryPinMarkers({ pins, sets, reminded, now, pressable, handlers, standOn, zoom, bearing }: PinListIn) {
+  const rx = useReactionsOf(pins, sets);
+  return pins.map((pin, i) => {
+    const bell = pinReminded(pin, reminded);
+    return (
+      <Marker
+        key={`memory:${pin.id}:${pin.captures.map((c) => c.id).join(',')}:${pinThumb(pin) ?? ''}:${rx[i].map((r) => r.id).join(',')}:${bell}`}
+        id={`memory:${pin.id}`}
+        lngLat={pin.lngLat}
+        anchor="bottom"
+        onPress={pressable ? () => handlers.current?.onMemoryPress?.(pin.captures, pin.lngLat) : undefined}
+      >
+        <View accessible accessibilityRole={pressable ? 'button' : 'image'} accessibilityLabel={pinLabel(pin, pressable, true, bell, undefined, now, rx[i])} style={[styles.pinHit, { paddingBottom: stalkLift(pin.lngLat, standOn, zoom, bearing) }]}>
+          <CapturePinView pin={pin} faint reminded={bell} reactions={rx[i]} />
+        </View>
+      </Marker>
+    );
+  });
+});
+
+/* The photo's small copy is in the key, so one made after the pin was drawn shows (QL27); the bell too, so a
+   reminder set or stopped shows at once (RB5). */
+const PinMarkers = memo(function PinMarkers({ pins, sets, reminded, clocks, now, openedAt, seen, pressable, handlers, standOn, zoom, bearing }: PinListIn & { clocks: WalkMapProps['clocks']; openedAt: number; seen: ReadonlySet<string> }) {
+  const rx = useReactionsOf(pins, sets);
+  return pins.map((pin, i) => {
+    const bell = pinReminded(pin, reminded);
+    const key = `${pinKey(pin)}:${rx[i].map((r) => r.id).join(',')}:${bell}`;
+    return (
+      <Marker key={key} id={key} lngLat={pin.lngLat} anchor="bottom" onPress={pressable ? () => handlers.current?.onPinPress?.(pin.captures) : undefined}>
+        <View accessible accessibilityRole={pressable ? 'button' : 'image'} accessibilityLabel={pinLabel(pin, pressable, false, bell, clocks, now, rx[i])} style={[styles.pinHit, { paddingBottom: stalkLift(pin.lngLat, standOn, zoom, bearing) }]}>
+          <CapturePinView pin={pin} drop={pinDrops(pin.captures, seen, openedAt)} reminded={bell} reactions={rx[i]} />
+        </View>
+      </Marker>
+    );
+  });
+});
+
+const MarkMarkers = memo(function MarkMarkers({ marks, zoom, bearing, spread, seen, pressable, handlers }: { marks: NonNullable<WalkMapProps['discoveries']>; zoom: number; bearing: number; spread: boolean; seen: ReadonlyMap<string, string>; pressable: boolean; handlers: RefObject<PinHandlers> }) {
+  const shown = useMemo(() => declutterMarks(marks, zoom, { bearing, spread }), [marks, zoom, bearing, spread]);
+  // The spread is in the key: whether a Marker's children redraw without a new key is unverified on a device (pins.md).
+  return shown.map((pin) => (
+    <Marker
+      key={`mark:${pin.id}:${markKey(pin)}:${spreadKey(pin.spread)}`}
+      id={`mark:${pin.id}:${markKey(pin)}:${spreadKey(pin.spread)}`}
+      lngLat={pin.at}
+      anchor="bottom"
+      // A spread pin stands off its point, on a leg back to it (fix mark-overlap).
+      offset={pin.spread ? [pin.spread.dx, pin.spread.dy] : undefined}
+      onPress={pressable && !pin.found ? () => handlers.current?.onDiscoveryPress?.(pin.id) : undefined}
+    >
+      <View
+        // WT11: Explore's "?" are one summary for a screen reader, never announced one by one.
+        accessible={!pin.quiet}
+        accessibilityElementsHidden={pin.quiet}
+        importantForAccessibility={pin.quiet ? 'no-hide-descendants' : 'auto'}
+        accessibilityRole={pin.found ? 'image' : 'button'}
+        accessibilityLabel={markLabel(pin)}
+        style={pin.found ? undefined : styles.pinHit}
+      >
+        <MarkPinView pin={pin} enter={seen.size ? markEnter(markFrom(seen.get(pin.id)), pin) : null} />
+      </View>
+    </Marker>
+  ));
+});
+
+const ComplexLabelMarkers = memo(function ComplexLabelMarkers({ labels }: { labels: ComplexLabels }) {
+  return labels.map((l) => (
+    <Marker key={`complex:${l.id}:${l.text}`} id={`complex:${l.id}`} lngLat={l.at} anchor="center">
+      <ComplexLabelView text={l.text} />
+    </Marker>
+  ));
+});
+
+const AreaPointMarkers = memo(function AreaPointMarkers({ points }: { points: NonNullable<WalkMapProps['areaPoints']> }) {
+  return points.map((p) => (
+    <Marker key={`area:${p.id}:${p.name ?? ''}:${p.selected ? 1 : 0}`} id={`area:${p.id}`} lngLat={p.at} anchor="top" offset={[0, -6]}>
+      <AreaPointView pin={p} />
+    </Marker>
+  ));
+});
+
+const StarMarkers = memo(function StarMarkers({ stars, names, selected, pressable, handlers }: { stars: NonNullable<WalkMapProps['stars']>; names: ReadonlySet<string>; selected: string | null | undefined; pressable: boolean; handlers: RefObject<PinHandlers> }) {
+  return stars.map((star) => (
+    <Marker
+      key={`star:${star.id}:${star.count}`}
+      id={`star:${star.id}:${star.count}`}
+      lngLat={star.at}
+      anchor="center"
+      onPress={pressable ? () => handlers.current?.onStarPress?.(star) : undefined}
+    >
+      <View accessible accessibilityRole="button" accessibilityLabel={starLabel(star)} accessibilityState={{ selected: star.id === selected }} style={styles.pinHit}>
+        <StarView star={star} selected={star.id === selected} named={names.has(star.id)} />
+      </View>
+    </Marker>
+  ));
+});

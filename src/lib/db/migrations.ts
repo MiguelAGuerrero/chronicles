@@ -254,4 +254,45 @@ export const MIGRATIONS: readonly string[] = [
   `
   ALTER TABLE capture ADD COLUMN body_format TEXT;
   `,
+  // Neighborhood boundaries (HB1, HB12): the neighborhood shapes a z12 divisions tile held, beside its towns, a cache cleared
+  // with the derived stores. A tile kept before this has '[]' and is read again by the decoder stamp (OUTLINE_DECODE).
+  // IndexedDB keeps the tile whole and needs no version.
+  `
+  ALTER TABLE outline_tile ADD COLUMN hoods TEXT NOT NULL DEFAULT '[]';
+  `,
+  // Note types (NY4, decision 0160): a note's type, chosen by the owner, raw; null for none and for every note kept before.
+  `
+  ALTER TABLE capture ADD COLUMN note_type TEXT;
+  `,
+  // Memo transcripts (TX12, decision 0169): a memo's words, a cache beside the memo, keyed by its piece's id; '' when none were heard.
+  `
+  CREATE TABLE transcript (
+    capture_id TEXT PRIMARY KEY, text TEXT NOT NULL, lang TEXT NOT NULL, from_ms INTEGER, to_ms INTEGER, made_at INTEGER NOT NULL
+  );
+  `,
+  // Reactions (RX28, RX29, decision 0176): their own records, one per moment and family. Every note type kept before moves
+  // onto its moment, the earliest note winning its family (the first row in time order is kept, the rest ignored);
+  // capture.note_type is left, never read again.
+  `
+  CREATE TABLE reaction (
+    moment_id TEXT NOT NULL, family TEXT NOT NULL, reaction TEXT NOT NULL, set_at INTEGER NOT NULL,
+    PRIMARY KEY (moment_id, family)
+  );
+  INSERT OR IGNORE INTO reaction (moment_id, family, reaction, set_at)
+    SELECT moment_id,
+      CASE WHEN note_type IN ('happy', 'neutral', 'sad') THEN 'feeling' WHEN note_type IN ('like', 'dislike') THEN 'taste' ELSE 'thought' END,
+      note_type, t
+    FROM capture
+    WHERE note_type IN ('happy', 'neutral', 'sad', 'like', 'dislike', 'question', 'emphasis', 'idea')
+    ORDER BY t, id;
+  `,
+  // Where I've been (WB14, decision 0222): each walk's walked line, a cache of its trace, and the z12 tiles it crosses, so the
+  // lines near the map are an indexed read of a few tiles. Not a derived store of the tile build: it reads no tiles.
+  `
+  CREATE TABLE walk_line (
+    walk_id TEXT PRIMARY KEY, code TEXT NOT NULL, west REAL NOT NULL, south REAL NOT NULL, east REAL NOT NULL, north REAL NOT NULL, runs TEXT NOT NULL
+  );
+  CREATE TABLE walk_line_tile (walk_id TEXT NOT NULL, tile TEXT NOT NULL, PRIMARY KEY (walk_id, tile));
+  CREATE INDEX walk_line_tile_tile ON walk_line_tile (tile);
+  `,
 ];

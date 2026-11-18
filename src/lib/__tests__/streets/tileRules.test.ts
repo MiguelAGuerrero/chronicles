@@ -99,3 +99,27 @@ test('G13: the gap rules bumped SNAP_RULES, which marks every walk to snap again
   await loadTiles(db).ensureTileBuild();
   assert.equal((await db.getWalk('w1'))?.snapped_build, 'b1', 'not marked again on the next launch');
 });
+
+// Performance review (Nov 18): a rule change marked every walk with its own updateWalk, each an exclusive transaction
+// of its own on SQLite (a native connection opened and closed per walk), at launch, inside the tile check's time
+// limit. One write marks them all.
+test('the rules\' change marks every snapped walk with one write, not one per walk', async () => {
+  const db = await seeded({ tile_build: 'b1', street_code: 'x', snap_rules: 'older rules' });
+  await db.createWalk(walk('w3', null));
+  const calls: string[] = [];
+  const counted = new Proxy(db, {
+    get(t, k, r) {
+      const v = Reflect.get(t, k, r);
+      return typeof v === 'function' && typeof k === 'string' ? (...a: unknown[]) => (calls.push(k), (v as (...x: unknown[]) => unknown).apply(t, a)) : v;
+    },
+  });
+  // The street code current, so only the rules differ.
+  const fresh = memoryDb();
+  await loadTiles(fresh).ensureTileBuild();
+  await db.setMeta('street_code', (await fresh.getMeta('street_code'))!);
+  calls.length = 0;
+  await loadTiles(counted as Db).ensureTileBuild();
+  assert.deepEqual((await db.listWalks()).map((w) => w.snapped_build), [null, null, null], 'every walk snaps again');
+  assert.equal(calls.filter((c) => c === 'updateWalk').length, 0, 'no write per walk');
+  assert.equal(calls.filter((c) => c === 'clearSnappedBuilds').length, 1, 'one write for them all');
+});

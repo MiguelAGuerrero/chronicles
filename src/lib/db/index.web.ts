@@ -6,21 +6,24 @@ import { countsOf, recountNewStreets } from '../deletion/core';
 import type { LandingRow } from '../landing/view';
 import type { OutlineTile } from '../areas/outlines';
 import type { WalkTile } from '../walk/types';
+import type { WalkLine } from '../pastLines/core';
 import type { AtlasArea } from '../atlas/atlas';
 import type { Complex } from '../complexes/types';
 import type { Mark, Place, Recall } from '../discovery/types';
+import { migrateTypes, type StoredReaction } from '../reactions/core';
+import type { Transcript } from '../transcript/core';
 import { DERIVED_STORES } from './stores';
 import type { Capture, GapDecision, Moment, Pause, Still, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
 import { intersects, segmentBbox, segmentTile, tileKeysFor } from './segmentBounds';
 import { thinThreads } from '../threads/rules';
 import type { Link, Member, Thread, ThreadsChange } from '../threads/types';
-import type { Db } from './types';
+import { SEGMENT_BATCH, type Db } from './types';
 import { parseEdit } from '../mediaEdit';
 import { momentOf, type Flat } from '../moment';
 
 // Same tables as the native SQLite store, as IndexedDB object stores.
 const DB_NAME = 'chronicles';
-const VERSION = 19;
+const VERSION = 23;
 
 /** Raised when another open tab holds an older version of the database. */
 export class BlockedByOtherTabError extends Error {
@@ -159,6 +162,35 @@ export function migrate(d: IDBDatabase, tx: IDBTransaction, oldVersion: number, 
     // Complexes (CX14, specs/complexes): derived rows, one per named building made of other places; cleared with the derived stores.
     d.createObjectStore('complex', { keyPath: 'id' });
   }
+  if (oldVersion < 20 && upTo >= 20) {
+    // Note types (NY4, decision 0161): a piece's `note_type` lives inside its moment's record, so there is nothing to move;
+    // the version marks the first build that writes it, and a note kept before reads as no type.
+  }
+  if (oldVersion < 21 && upTo >= 21) {
+    // Memo transcripts (TX12, decision 0169): a memo's words, a cache beside the memo, keyed by its piece's id.
+    d.createObjectStore('transcript', { keyPath: 'capture_id' });
+  }
+  if (oldVersion < 22 && upTo >= 22) {
+    // Reactions (RX28, RX29, decision 0176): their own records, one per moment and family. Every note type kept before
+    // moves onto its moment, the earliest note winning its family; the pieces' old field is left, never read again.
+    const reactions = d.createObjectStore('reaction', { keyPath: ['moment_id', 'family'] });
+    reactions.createIndex('moment_id', 'moment_id');
+    const cur = tx.objectStore('moment').openCursor();
+    cur.onsuccess = () => {
+      const c = cur.result;
+      if (!c) return;
+      // Read raw: the pieces' old `note_type` is no longer part of a capture's type.
+      for (const r of migrateTypes((c.value as { pieces: { id: string; moment_id: string; t: number; note_type?: string | null }[] }).pieces)) reactions.put(r);
+      c.continue();
+    };
+  }
+  if (oldVersion < 23 && upTo >= 23) {
+    // Where I've been (WB14, decision 0222): each walk's walked line, a cache of its trace, found by the z12 tiles it crosses.
+    const lines = d.createObjectStore('walk_line', { keyPath: 'walk_id' });
+    lines.createIndex('tiles', 'tiles', { multiEntry: true });
+    // Read by key alone, so listing what is stale never loads a line's runs.
+    lines.createIndex('code', 'code');
+  }
 }
 
 let dbPromise: Promise<IDBDatabase> | null = null;
@@ -290,6 +322,13 @@ export const db: Db = {
   async updateWalk(id, p) {
     await patch<Walk>('walk', id, p);
   },
+  async clearSnappedBuilds() {
+    // One transaction over the walks, not one per walk.
+    const tx = (await conn()).transaction('walk', 'readwrite');
+    const s = tx.objectStore('walk');
+    for (const w of (await done(s.getAll())) as Walk[]) if (w.snapped_build != null) s.put({ ...w, snapped_build: null });
+    await committed(tx);
+  },
   async getWalk(id) {
     return ((await done((await store('walk')).get(id))) as Walk | undefined) ?? null;
   },
@@ -338,9 +377,10 @@ export const db: Db = {
   },
   async deletePieces(ids) {
     if (!ids.length) return;
-    const tx = (await conn()).transaction(['moment', 'walk_summary'], 'readwrite');
+    const tx = (await conn()).transaction(['moment', 'walk_summary', 'transcript'], 'readwrite');
     return atomically(tx, async () => {
       const st = tx.objectStore('moment');
+      for (const id of ids) tx.objectStore('transcript').delete(id);
       const gone = new Set(ids);
       const hit = new Map<string, MomentRecord>();
       for (const id of ids) {
@@ -373,6 +413,39 @@ export const db: Db = {
       st.put(toRecord({ ...m, pieces: m.pieces.filter((x) => x.id !== pieceId) }));
       st.add(toRecord({ ...nm, pieces: [{ ...p, moment_id: nm.id }] }));
     });
+  },
+  async joinMoment(fromId, intoId) {
+    const tx = (await conn()).transaction('moment', 'readwrite');
+    return atomically(tx, async () => {
+      const st = tx.objectStore('moment');
+      const from = (await done(st.get(fromId))) as MomentRecord | undefined;
+      const into = (await done(st.get(intoId))) as MomentRecord | undefined;
+      if (!from || !into) throw new Error(`No moment ${from ? intoId : fromId}.`);
+      if ((from.walk_id ?? null) !== (into.walk_id ?? null)) throw new Error('Moments on different walks are never joined.');
+      st.put(toRecord({ ...fromRecord(into), pieces: [...fromRecord(into).pieces, ...fromRecord(from).pieces.map((p) => ({ ...p, moment_id: intoId }))].sort((x, y) => x.t - y.t) }));
+      st.delete(fromId);
+    });
+  },
+  async referencesTo(id) {
+    const tx = (await conn()).transaction(['moment', 'thread_member', 'moment_link', 'recall', 'find', 'reaction'], 'readonly');
+    const all = <T,>(name: string) => done(tx.objectStore(name).getAll()) as Promise<T[]>;
+    const moment = (await done(tx.objectStore('moment').get(id))) as MomentRecord | undefined;
+    // A reminder or a find is kept on a piece's id, so every piece of the moment counts (stack-with-previous audit 5).
+    const ids = new Set([id, ...(moment?.pieces.map((p) => p.id) ?? [])]);
+    const [members, links, recalls, finds, reactions] = await Promise.all([
+      all<{ moment_id: string }>('thread_member'),
+      all<{ from_id: string; to_id: string }>('moment_link'),
+      all<{ capture_id: string }>('recall'),
+      all<{ capture_id: string }>('find'),
+      all<{ moment_id: string }>('reaction'),
+    ]);
+    return {
+      thread: members.some((m) => m.moment_id === id),
+      link: links.some((l) => l.from_id === id || l.to_id === id),
+      reminder: recalls.some((r) => ids.has(r.capture_id)),
+      find: finds.some((f) => ids.has(f.capture_id)),
+      reaction: reactions.some((r) => r.moment_id === id),
+    };
   },
   async getMoments(walkId) {
     return (await byWalk<MomentRecord>('moment', walkId)).map(fromRecord).sort(byT);
@@ -426,7 +499,7 @@ export const db: Db = {
   },
 
   async deleteWalk(walkId) {
-    const names = ['walk', 'trace_point', 'moment', 'pause', 'still', 'gap_fill', 'visited_segment', 'walk_summary', 'walk_area', 'area', 'find', 'recall', 'mark', 'meta', 'thread', 'thread_member', 'moment_link'];
+    const names = ['walk', 'trace_point', 'moment', 'pause', 'still', 'gap_fill', 'visited_segment', 'walk_summary', 'walk_area', 'area', 'find', 'recall', 'mark', 'meta', 'thread', 'thread_member', 'moment_link', 'transcript', 'reaction', 'walk_line'];
     const tx = (await conn()).transaction(names, 'readwrite');
     const os = (n: string) => tx.objectStore(n);
     return atomically(tx, async () => {
@@ -435,6 +508,8 @@ export const db: Db = {
       for (const c of caps) {
         os('moment').delete(c.id);
         os('recall').delete(c.id);
+        for (const piece of c.pieces) os('transcript').delete(piece.id);
+        await dropBy(os('reaction'), 'moment_id', c.id);
       }
       await dropBy(os('trace_point'), 'walk_id', walkId);
       await dropBy(os('pause'), 'walk_id', walkId);
@@ -447,6 +522,8 @@ export const db: Db = {
       os('walk_summary').delete(walkId);
       os('meta').delete(exploredKey(walkId));
       os('meta').delete(walkPassKey(walkId));
+      // Its line goes with it (WB13).
+      os('walk_line').delete(walkId);
       os('walk').delete(walkId);
       // Places only this walk was in go (D8).
       const rows = (await done(os('walk_area').getAll())) as WalkArea[];
@@ -463,7 +540,7 @@ export const db: Db = {
   },
   async deleteMoments(ids, opts = {}) {
     if (!ids.length) return;
-    const tx = (await conn()).transaction(['moment', 'recall', 'find', 'walk_summary', 'thread', 'thread_member', 'moment_link'], 'readwrite');
+    const tx = (await conn()).transaction(['moment', 'recall', 'find', 'walk_summary', 'thread', 'thread_member', 'moment_link', 'transcript', 'reaction'], 'readwrite');
     return atomically(tx, async () => {
       const capStore = tx.objectStore('moment');
       const got = (await Promise.all(ids.map((id) => done(capStore.get(id)) as Promise<MomentRecord | undefined>))).filter((c): c is MomentRecord => !!c);
@@ -471,6 +548,8 @@ export const db: Db = {
       for (const c of got) {
         capStore.delete(c.id);
         tx.objectStore('recall').delete(c.id);
+        for (const piece of c.pieces) tx.objectStore('transcript').delete(piece.id);
+        await dropBy(tx.objectStore('reaction'), 'moment_id', c.id);
       }
       if (!opts.keepFinds && got.length) {
         // The find store is indexed by walk only, and an index skips a loose moment's null walk.
@@ -539,12 +618,17 @@ export const db: Db = {
     await committed(tx);
   },
 
-  async putSegments(segments) {
-    if (segments.length === 0) return;
-    const tx = (await conn()).transaction('street_segment', 'readwrite');
-    const st = tx.objectStore('street_segment');
-    for (const x of segments) st.put({ ...x, tile: segmentTile(x) });
-    await committed(tx);
+  async putSegments(segments, shouldStop) {
+    // DC10: one transaction per batch, a turn for the page between them. A caller that has stopped before the write
+    // starts writes nothing; a write once started finishes, so no tile is left half stored (audit 5).
+    if (shouldStop?.()) return;
+    for (let i = 0; i < segments.length; i += SEGMENT_BATCH) {
+      if (i) await new Promise((resolve) => setTimeout(resolve, 0));
+      const tx = (await conn()).transaction('street_segment', 'readwrite');
+      const st = tx.objectStore('street_segment');
+      for (const x of segments.slice(i, i + SEGMENT_BATCH)) st.put({ ...x, tile: segmentTile(x) });
+      await committed(tx);
+    }
   },
 
   async saveSnap(walkId, segments, visited, summary, placed, complete = true) {
@@ -602,6 +686,9 @@ export const db: Db = {
   },
   async listSummaries() {
     return (await done((await store('walk_summary')).getAll())) as WalkSummary[];
+  },
+  async getSummary(walkId) {
+    return ((await done((await store('walk_summary')).get(walkId))) as WalkSummary | undefined) ?? null;
   },
 
   async saveChecklists({ areas, items, read }) {
@@ -690,6 +777,38 @@ export const db: Db = {
     const got = await Promise.all([...new Set(keys)].sort().map((k) => done(s.get(k)) as Promise<OutlineTile | undefined>));
     return got.filter((t): t is OutlineTile => !!t);
   },
+  async putWalkLine(line) {
+    const tx = (await conn()).transaction('walk_line', 'readwrite');
+    tx.objectStore('walk_line').put(line);
+    await committed(tx);
+  },
+  async getWalkLinesIn(tiles) {
+    if (!tiles.length) return [];
+    const idx = (await store('walk_line')).index('tiles');
+    const byId = new Map<string, WalkLine>();
+    for (const tile of new Set(tiles)) for (const l of (await done(idx.getAll(tile))) as WalkLine[]) byId.set(l.walk_id, l);
+    return [...byId.values()].sort((a, b) => a.walk_id.localeCompare(b.walk_id));
+  },
+  async listWalkLineCodes() {
+    const idx = (await store('walk_line')).index('code');
+    const out: { walk_id: string; code: string }[] = [];
+    await new Promise<void>((resolve, reject) => {
+      const cur = idx.openKeyCursor();
+      cur.onsuccess = () => {
+        const c = cur.result;
+        if (!c) return resolve();
+        out.push({ walk_id: String(c.primaryKey), code: String(c.key) });
+        c.continue();
+      };
+      cur.onerror = () => reject(cur.error);
+    });
+    return out.sort((a, b) => a.walk_id.localeCompare(b.walk_id));
+  },
+  async deleteWalkLine(walkId) {
+    const tx = (await conn()).transaction('walk_line', 'readwrite');
+    tx.objectStore('walk_line').delete(walkId);
+    await committed(tx);
+  },
   async putWalkTiles(tiles) {
     if (!tiles.length) return;
     const tx = (await conn()).transaction('walk_tile', 'readwrite');
@@ -741,6 +860,45 @@ export const db: Db = {
   },
   async listRecalls() {
     return (await done((await store('recall')).getAll())) as Recall[];
+  },
+  async setReaction(r) {
+    const tx = (await conn()).transaction('reaction', 'readwrite');
+    if (r.reaction == null) tx.objectStore('reaction').delete([r.moment_id, r.family]);
+    else tx.objectStore('reaction').put({ moment_id: r.moment_id, family: r.family, reaction: r.reaction, set_at: r.set_at });
+    await committed(tx);
+  },
+  async setReactions(rows) {
+    if (!rows.length) return;
+    const tx = (await conn()).transaction('reaction', 'readwrite');
+    const st = tx.objectStore('reaction');
+    try {
+      for (const r of rows) {
+        if (!r.moment_id || !r.family) throw new DOMException('a reaction row needs its moment and family', 'DataError');
+        if (r.reaction == null) st.delete([r.moment_id, r.family]);
+        else st.put({ moment_id: r.moment_id, family: r.family, reaction: r.reaction, set_at: r.set_at });
+      }
+    } catch (e) {
+      // One transaction: a bad row takes back the rows before it (RL10).
+      tx.abort();
+      throw e;
+    }
+    await committed(tx);
+  },
+  async listReactions() {
+    return (await done((await store('reaction')).getAll())) as StoredReaction[];
+  },
+  async setTranscript(t) {
+    const tx = (await conn()).transaction('transcript', 'readwrite');
+    tx.objectStore('transcript').put(t);
+    await committed(tx);
+  },
+  async clearTranscript(captureId) {
+    const tx = (await conn()).transaction('transcript', 'readwrite');
+    tx.objectStore('transcript').delete(captureId);
+    await committed(tx);
+  },
+  async listTranscripts() {
+    return (await done((await store('transcript')).getAll())) as Transcript[];
   },
   async purgeDerived() {
     const tx = (await conn()).transaction([...DERIVED_STORES, 'walk'], 'readwrite');

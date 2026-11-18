@@ -37,6 +37,36 @@ export function streetAt(fix: LngLat | null, segments: StreetSegment[], snappedI
   return best && name ? { name, near: !snapped } : null;
 }
 
+const SMALLEST_FIRST = ['neighborhood', 'town', 'state'] as const;
+
+/**
+ * MC18 (the owner, Nov 18, decision 0214): where a moment was when it was made. An outing may pass through several towns, by any
+ * means of travel, and its areas say when it was in each (ridden stretches count, R8): the moment's place is the smallest area its
+ * outing was in at that time, a neighborhood before its town, and between towns whatever larger place is known. Two areas of one
+ * size that both span the moment (a town left and come back to) give the narrower stay. Outside every stay nothing is said, never a
+ * town the moment was not in; only an outing with no areas at all keeps its own one name (`fallback`).
+ */
+export function placeAt(
+  rows: readonly { walk_id: string; area_key: string; first_t: number; last_t: number }[],
+  areas: readonly { key: string; level: string; name: string }[],
+  walkId: string,
+  t: number,
+  fallback: string | null,
+): string | null {
+  const mine = rows.filter((r) => r.walk_id === walkId);
+  // An outing not placed yet (still open, or from before areas were kept) has only its own name.
+  if (!mine.length) return fallback;
+  const byKey = new Map(areas.map((a) => [a.key, a]));
+  for (const level of SMALLEST_FIRST) {
+    const spans = mine
+      .filter((r) => byKey.get(r.area_key)?.level === level && r.first_t <= t && t <= r.last_t)
+      .sort((a, b) => a.last_t - a.first_t - (b.last_t - b.first_t) || b.first_t - a.first_t || (a.area_key < b.area_key ? -1 : 1));
+    const name = spans.length ? byKey.get(spans[0].area_key)?.name.trim() : null;
+    if (name) return name;
+  }
+  return null;
+}
+
 /** The place line (MC1): only what is known. */
 export function placeLine(o: { street: string | null; near?: boolean; town: string | null; complex?: { name: string; near: boolean } | null }): string {
   // CX11: a complex leads and the street stays, with its own "Near" when it was found only by nearness (complexes audit 14).
@@ -65,6 +95,22 @@ export type PartOfDay = 'morning' | 'afternoon' | 'evening' | 'night';
 export function partOfDay(t: number): PartOfDay {
   const h = new Date(t).getHours();
   return h < 5 ? 'night' : h < 12 ? 'morning' : h < 17 ? 'afternoon' : h < 21 ? 'evening' : 'night';
+}
+
+/** The hours at which `dayPartLine`'s words can change: the day itself, the small hours' end, and `partOfDay`'s. */
+const DAY_PART_HOURS = [0, 5, 12, 17, 21];
+
+/**
+ * The next moment after `now` at which a part of the day said relative to it can change (tend map audit 29): the next
+ * of midnight, five, noon, five and nine by the phone's clock zone, so a screen left open renews its words then.
+ */
+export function nextDayPartBoundary(now: number): number {
+  const d = new Date(now);
+  for (const h of DAY_PART_HOURS) {
+    const t = new Date(d.getFullYear(), d.getMonth(), d.getDate(), h).getTime();
+    if (t > now) return t;
+  }
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1, 0).getTime();
 }
 
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -130,4 +176,14 @@ export function arrivalLine(o: ArrivalInput): string {
   const after = o.walkedMs == null ? null : justAfter(o.prev);
   const into = `${minutesInLine(o.walkedMs)}${after ? `, ${after}` : ''}`;
   return [placeLine({ street: o.street, near: o.streetNear, town: o.town, complex: o.complex }), dayPartLine(o.t, o.now), into].join(' · ');
+}
+
+/**
+ * The same facts in two parts, for the journal's dateline (chronicle journal JN5), which says the time itself:
+ * the place, or null when nothing around the fix is known, and how far into its walk, or null outside one.
+ */
+export function arrivalParts(o: ArrivalInput): { place: string | null; into: string | null } {
+  const place = placeLine({ street: o.street, near: o.streetNear, town: o.town, complex: o.complex });
+  const after = o.walkedMs == null ? null : justAfter(o.prev);
+  return { place: place === NO_PLACE ? null : place, into: o.walkedMs == null ? null : `${minutesInLine(o.walkedMs)}${after ? `, ${after}` : ''}` };
 }

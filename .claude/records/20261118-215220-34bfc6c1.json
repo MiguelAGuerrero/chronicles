@@ -1,0 +1,22 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Recording and the background task"
+      ],
+      "body": "- [ ] **Do:** on a walk, tap Pause, then hold Stop; on another, Pause, then Resume and walk on. **Expect:** walking, the strip shows Pause alone (no Stop); paused, Resume (a solid orange pill) and Stop (a soft pill), no outlines, the numbers whole on a small phone; held, an orange fill sweeps across Stop and the replay opens; Resume records again (decision 0220).\n"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "add",
+        "--top"
+      ],
+      "body": "| Pause, then Resume or a held Stop (the walk strip as AllTrails has it: walking, Pause alone; paused, Resume as a solid accent pill and a held Stop as a soft pill, no outlines; the recording bar keeps its own held Stop; the pause open at Stop no longer keeps an empty walk, EW5 amended; decision 0220) | shipped (web verified by the e2e `walk`, `capturehome`, `ready`, `unsaved`, `space`, `tabs`, `reload`, `layers`, `headsup`, `replay`, `qol`, `memories` and the other journeys that hold Stop; native not run) | branch `claude/quirky-rubin-xyt5at`, 2026-11-18 | none (the owner's call, decision 0220); `specs/empty-walk/spec.md` EW5 | no |\n"
+    }
+  ]
+}

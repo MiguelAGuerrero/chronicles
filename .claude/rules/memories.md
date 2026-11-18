@@ -39,6 +39,12 @@ Earlier walks' captures shown as faint pins on a walk (`lib/memories`) and the m
 - **Under this walk's pins:** memory markers get z-index 0 on web and are drawn
   first on native. A faint pin shrinks toward its stem's foot. Its label is "N
   memories here".
+  Since `tend map T14` a memory pin of several shows its kinds fanned, no numeral, and says "Memories: a photo
+  and a note" (`pinSpoken`, `lib/pins.ts`).
+  Since `tend map T28` a memory pin says the part of the day of its first moment after its kinds ("Memory: Photo,
+  Tuesday evening", "Memories: a photo and a note, Tuesday evening"; `pins.md`, "When a pin says it").
+  Since `tend map 19` a memory pin of one moment says its kind from the kinds' clause, as one of several does
+  ("Memory: a photo, Tuesday evening"); a pin of this walk's one moment keeps its name ("Photo").
 - **A clock badge** (MR10, after the audit: a faded pin read as "my pin, faded")
   marks a memory pin as from the past. It is a solid ink disc with a white clock,
   outside the fade, unlike a find's white check.

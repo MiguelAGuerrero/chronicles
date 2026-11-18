@@ -7,6 +7,9 @@ const path = require('path');
 
 async function checks(h) {
   const { url, BASE, browser, page, start, at, check, shownCount, tabBarShown, onTab, routed } = h;
+  // gazetteer web fetch 4-5: every request for the place-name pack this page makes, from its first load.
+  const packAsked = [];
+  page.on('request', (r) => { if (/\/gazetteer\/places\.json/.test(new URL(r.url()).pathname)) packAsked.push(r.url()); });
     // HC5: a launch on a replay or a day that is no longer kept, and the old /chronicle path, open Chronicle
     // at /, with one tab bar (NV2: the owner's Home Screen app reopened on "This walk could not be found", Nov 3).
     for (const stale of ['replay/no-such-walk', 'day/1999-01-01', 'chronicle']) {
@@ -17,6 +20,131 @@ async function checks(h) {
         && (await page.locator('[data-testid=tab-bar-wrap]').count()) === 1 && (await page.locator('text=This walk could not be found.').count()) === 0
         && (await page.locator('text=Nothing was kept on this day.').count()) === 0,
         `HC5: a launch on ${stale.split('/')[0]} opens Chronicle at / (${page.url()})`);
+    }
+    // tend replay T20 (decision 0165): reached from inside the app, a walk not found, a day with nothing kept and a
+    // screen that threw keep their words, and the way back names where it goes: "Back to Chronicle", to / (decision
+    // 0112), whole on one line and on screen at 390 and 320 px. The throw is one failed read of the walks.
+    {
+      const inApp = (p) => page.evaluate((to) => { window.history.pushState({}, '', to); window.dispatchEvent(new PopStateEvent('popstate')); }, `${BASE}/${p}`);
+      const backBox = () => page.evaluate(() => {
+        const b = [...document.querySelectorAll('[role=button]')].find((e) => e.getAttribute('aria-label') === 'Back to Chronicle' && e.offsetParent);
+        if (!b) return null;
+        const r = b.getBoundingClientRect();
+        const t = [...b.querySelectorAll('*')].find((e) => e.textContent === 'Back to Chronicle' && !e.children.length);
+        const tr = t?.getBoundingClientRect();
+        const lh = t ? parseFloat(getComputedStyle(t).lineHeight) || parseFloat(getComputedStyle(t).fontSize) * 1.2 : 0;
+        return {
+          said: b.getAttribute('aria-label'), shown: t?.textContent ?? null, h: Math.round(r.height),
+          oneLine: !!(tr && tr.height < lh * 1.6), whole: !!(t && t.scrollWidth <= t.clientWidth + 1 && tr.left >= r.left - 1 && tr.right <= r.right + 1),
+          onScreen: r.left >= 0 && r.right <= window.innerWidth && r.bottom <= window.innerHeight, wide: document.documentElement.scrollWidth <= window.innerWidth,
+        };
+      });
+      const fine = (m) => !!(m && m.said === 'Back to Chronicle' && m.shown === 'Back to Chronicle' && m.h >= 44 && m.oneLine && m.whole && m.onScreen && m.wide);
+      const deadEnds = [
+        ['replay', 'replay/no-such-walk', 'text=This walk could not be found.'],
+        ['day', 'day/1999-01-01', 'text=Nothing was kept on this day.'],
+        ['error', 'day/2000-01-01', '[data-testid=screen-error]'],
+      ];
+      for (const [name, p, sign] of deadEnds) {
+        await page.goto(url);
+        await page.waitForSelector('[data-testid=memories]', { timeout: 15000 }).catch(() => {});
+        // One read of the walks fails, the next ones read again: the day screen's load throws into its ErrorBoundary.
+        // Only a read made on the day's route fails, so Chronicle beneath never takes it (the T20 review's auditor 4).
+        if (name === 'error') await page.evaluate(() => {
+          const real = IDBObjectStore.prototype.getAll;
+          window.__t20Failed = false;
+          IDBObjectStore.prototype.getAll = function (...a) {
+            if (this.name !== 'walk' || !location.pathname.includes('/day/')) return real.apply(this, a);
+            IDBObjectStore.prototype.getAll = real;
+            window.__t20Failed = true;
+            throw new Error('tend replay T20: one read of the walks failed');
+          };
+        });
+        await inApp(p);
+        await page.waitForSelector(sign, { timeout: 15000 }).catch(() => {});
+        const shown = (await page.locator(sign).count()) === 1 && (name !== 'error' || (await page.evaluate(() => window.__t20Failed)));
+        const at390 = await backBox();
+        await h.shot(page, `t20-${name}-390`);
+        let at320 = null;
+        try {
+          await page.setViewportSize({ width: 320, height: 700 });
+          await page.waitForTimeout(400);
+          at320 = await backBox();
+          await h.shot(page, `t20-${name}-320`);
+        } finally {
+          await page.setViewportSize({ width: 390, height: 844 });
+          await page.waitForTimeout(400);
+        }
+        await page.getByRole('button', { name: 'Back to Chronicle', exact: true }).click({ timeout: 5000 }).catch(() => {});
+        await page.waitForURL((u) => u.pathname === `${BASE}/`, { timeout: 15000 }).catch(() => {});
+        await page.waitForSelector('[data-testid=tab-chronicle][aria-selected=true]', { timeout: 15000 }).catch(() => {});
+        const home = new URL(page.url()).pathname === `${BASE}/` && (await page.locator('[data-testid=tab-chronicle][aria-selected=true]').count()) === 1
+          && (await page.locator(sign).count()) === 0;
+        check(shown && fine(at390) && fine(at320) && home,
+          `tend replay T20: ${p} reached from inside the app keeps its words, and its way back reads and is said "Back to Chronicle", whole on one line at 390 and 320 px, and opens Chronicle at / (${JSON.stringify({ shown, at390, at320, home, url: page.url() })})`);
+      }
+      // The failed read is the step's own doing, and the boundary logs it: not the app's console error.
+      for (let i = h.errors.length - 1; i >= 0; i--) if (/tend replay T20: one read of the walks failed/.test(h.errors[i])) h.errors.splice(i, 1);
+    }
+    // A tab's error screen (fix ios-video audit 1): the map's WebGL context refused while armed, on the paths named,
+    // so the map throws into that tab's own ErrorBoundary; the step's own errors are dropped from the console list.
+    const failMaps = (on) => page.evaluate((paths) => {
+      const proto = HTMLCanvasElement.prototype;
+      window.__glReal = window.__glReal ?? proto.getContext;
+      const real = window.__glReal;
+      proto.getContext = !paths ? real : function (kind, ...rest) {
+        if (/webgl/.test(String(kind)) && paths.some((q) => location.pathname.endsWith(q))) return null;
+        return real.call(this, kind, ...rest);
+      };
+    }, on);
+    const dropGlErrors = (from) => { for (let i = h.errors.length - 1; i >= from; i--) if (/WebGL|webgl|GPUInitialization/.test(h.errors[i])) h.errors.splice(i, 1); };
+    const screenErr = () => shownCount(page, '[data-testid=screen-error]');
+    const shownButton = (name) => page.getByRole('button', { name, exact: true }).filter({ visible: true }).count();
+    {
+      // tend replay audit 7 (the T20 review's auditor 1): inside the tabs dismissTo('/') did nothing, so Explore's
+      // "Back to Chronicle" goes by router.navigate('/') and opens Chronicle's tab.
+      const from = h.errors.length;
+      await page.goto(url);
+      await page.waitForSelector('[data-testid=memories]', { timeout: 15000 }).catch(() => {});
+      // Memories draws no map (NV4), so every map refused from here on is Explore's, made as its tab opens.
+      await failMaps(['']);
+      await page.click('[data-testid=tab-explore]');
+      await page.waitForFunction(() => [...document.querySelectorAll('[data-testid=screen-error]')].some((e) => !e.closest('[aria-hidden=true]')), null, { timeout: 15000 }).catch(() => {});
+      const errs = await screenErr();
+      const backs = await shownButton('Back to Chronicle');
+      const shown = errs === 1 && backs === 1;
+      await h.shot(page, 'audit7-explore-error-390');
+      await failMaps(null);
+      await page.getByRole('button', { name: 'Back to Chronicle', exact: true }).filter({ visible: true }).click({ timeout: 5000 }).catch(() => {});
+      await page.waitForSelector('[data-testid=tab-chronicle][aria-selected=true]', { timeout: 10000 }).catch(() => {});
+      const home = new URL(page.url()).pathname === `${BASE}/` && (await page.locator('[data-testid=tab-chronicle][aria-selected=true]').count()) === 1
+        && (await screenErr()) === 0;
+      check(shown && home, `tend replay audit 7: Explore's error screen shows "Back to Chronicle", and it opens Chronicle's tab at / (${JSON.stringify({ errs, backs, home, url: page.url() })})`);
+      dropGlErrors(from);
+    }
+    {
+      // tend replay audit 8 (the T20 review's ux 1, auditor 2): on Chronicle's own tab a way back to Chronicle goes
+      // nowhere, so its error screen has Try again alone, and Try again redraws the tab.
+      const from = h.errors.length;
+      await page.goto(url);
+      await page.waitForSelector('[data-testid=memories]', { timeout: 15000 }).catch(() => {});
+      await failMaps(['/']);
+      await h.mapUp(page);
+      await page.waitForFunction(() => [...document.querySelectorAll('[data-testid=screen-error]')].some((e) => !e.closest('[aria-hidden=true]')), null, { timeout: 15000 }).catch(() => {});
+      const shown = (await screenErr()) === 1;
+      const tryAgain = await shownButton('Try again');
+      const back = await shownButton('Back to Chronicle');
+      await h.shot(page, 'audit8-chronicle-error-390');
+      await failMaps(null);
+      await page.getByRole('button', { name: 'Try again', exact: true }).filter({ visible: true }).click({ timeout: 5000 }).catch(() => {});
+      await page.waitForFunction(() => ![...document.querySelectorAll('[data-testid=screen-error]')].some((e) => !e.closest('[aria-hidden=true]')), null, { timeout: 10000 }).catch(() => {});
+      const redrawn = (await screenErr()) === 0;
+      check(shown && tryAgain === 1 && back === 0 && redrawn,
+        `tend replay audit 8: Chronicle's own error screen has Try again alone, no "Back to Chronicle", and Try again redraws the tab (${JSON.stringify({ shown, tryAgain, back, redrawn })})`);
+      dropGlErrors(from);
+      // Back to Memories, where the launch's later checks expect Chronicle to open.
+      if (await page.locator('[data-testid=section-memories]').filter({ visible: true }).count()) await page.click('[data-testid=section-memories]');
+      await page.waitForTimeout(400);
     }
     await page.goto(`${url}explore`);
     await page.waitForSelector('[data-testid=tab-explore][aria-selected=true]', { timeout: 15000 }).catch(() => {});
@@ -56,7 +184,7 @@ async function checks(h) {
     await h.mapUp(page);
     await page.waitForSelector('text=Walk somewhere and it is starred here');
     check(ch.path === '/' && ch.canvases === 1, `Chronicle's map at /, one live map (NV4, NV5: ${JSON.stringify(ch)})`);
-    check((await shownCount(page, '[data-testid=start], [data-testid=moment-note], [data-testid=band-note], [data-testid=look-here]')) === 0,
+    check((await shownCount(page, '[data-testid=start], [data-testid=moment-note], [data-testid=line-input], [data-testid=look-here]')) === 0,
       'Chronicle\'s map has no Start, Explore button, quick capture or What’s good here; the band is on Memories only (NV11, HC6)');
     await page.reload();
     await page.waitForSelector('[data-testid=tab-chronicle][aria-selected=true]');
@@ -86,11 +214,116 @@ async function checks(h) {
       return r ? { scope: r.scope, active: !!r.active } : null;
     });
     check(sw && sw.active && sw.scope.endsWith(`${BASE}/`), `the service worker is active at the base path (${JSON.stringify(sw)})`);
+
+    // gazetteer web fetch 4 (the owner's answer of Nov 16, "Fetch on first search"): the entry script holds no place-name
+    // pack, and nothing asked for it through the launch, three tabs and the service worker.
+    const entry = await page.evaluate(async () => {
+      const srcs = [...document.querySelectorAll('script[src]')].map((s) => s.src).filter((s) => /\/_expo\/static\/js\/web\/index-[^/]*\.js$/.test(s));
+      const texts = await Promise.all(srcs.map(async (s) => (await fetch(s)).text()));
+      return { srcs, bytes: texts.map((t) => t.length), pack: texts.some((t) => t.includes('geonames-cities5000')),
+        // CM1: each component the React Compiler compiles checks its memo cache against this sentinel.
+        memo: texts.reduce((n, t) => n + t.split('react.memo_cache_sentinel').length - 1, 0) };
+    });
+    check(entry.memo >= 100, `CM1: the app is built with the React Compiler: its components carry the memo cache (${entry.memo} sentinels; one before it was on)`);
+    check(entry.srcs.length === 1 && !entry.pack && packAsked.length === 0,
+      `gazetteer web fetch 4: the entry script holds no place-name pack, and nothing asked for it before search opened (${entry.bytes.join()} bytes, ${packAsked.length} asked)`);
+    // gazetteer web fetch 5: the first search asks for it once, from the app's own site under the base path, and finds a town.
+    await page.locator('[data-testid=atlas-search]').click({ timeout: 10000 }).catch(() => {});
+    await page.locator('[data-testid=atlas-search-field]').pressSequentially('zuric', { delay: 15, timeout: 10000 }).catch(() => {});
+    await page.waitForFunction(() => [...document.querySelectorAll('[data-testid=atlas-search-result]')].some((e) => /Zürich/.test(e.innerText)), null, { timeout: 20000 }).catch(() => {});
+    const found = await page.locator('[data-testid=atlas-search-result]').allInnerTexts().catch(() => []);
+    const asked = packAsked.map((u) => new URL(u));
+    check(asked.length === 1 && asked[0].origin === new URL(url).origin && asked[0].pathname === `${BASE}/gazetteer/places.json` && found.some((t) => /Zürich/.test(t)),
+      `gazetteer web fetch 5: the first search fetches the pack once from ${BASE}/gazetteer/places.json and finds Zürich (${packAsked.join()}; ${found.length} rows)`);
+    await page.keyboard.press('Escape').catch(() => {});
+    await page.waitForTimeout(300);
 }
 
 // The fresh-browser flows. The full flow runs them after the shared page's story, as before.
 async function fresh(h) {
   const { navUrl, start, at, dLat, dLon, check, metaOf, drawerTo, tabTo, shownCount, tabBarShown, freshPage, openWalk, scriptsDir, routed } = h;
+    // tend walk-screen 6 (decision 0172, O35): the walk screen throwing mid-walk (its map's WebGL context refused, as a
+    // tab's in fix ios-video audit 1) says "Your walk is still recording.", never "Your walk is saved.", which reads as
+    // ended; the button stays "Back to Chronicle". And it is true: positions sent behind the error screen are stored.
+    {
+      // tend walk-screen audit 5 (the review's auditor 3, ux 2): Navigate with no walk open is the same route, and its map
+      // is the likely thing to throw there (no WebGL2): its error says nothing of a walk.
+      const { c: c0, pg: pg0 } = await freshPage('ready-error');
+      await c0.addInitScript(() => {
+        const real = HTMLCanvasElement.prototype.getContext;
+        HTMLCanvasElement.prototype.getContext = function (kind, ...rest) {
+          if (/webgl/.test(String(kind)) && location.pathname.endsWith('/walk')) return null;
+          return real.call(this, kind, ...rest);
+        };
+      });
+      const from0 = h.errors.length;
+      await pg0.goto(navUrl);
+      await pg0.waitForFunction(() => [...document.querySelectorAll('[data-testid=screen-error]')].some((e) => !e.closest('[aria-hidden=true]')), null, { timeout: 20000 }).catch(() => {});
+      await pg0.waitForTimeout(1000);
+      const ready = await pg0.evaluate(() => {
+        const s = [...document.querySelectorAll('[data-testid=screen-error]')].find((e) => !e.closest('[aria-hidden=true]'));
+        if (!s) return null;
+        return { texts: [...s.querySelectorAll('div')].filter((d) => !d.querySelector('div') && d.innerText.trim()).map((d) => d.innerText.trim()), path: location.pathname };
+      });
+      await h.shot(pg0, 'ready-screen-error-390');
+      check(!!ready && /\/walk$/.test(ready.path) && !ready.texts.some((t) => /^Your walk is/.test(t)),
+        `tend walk-screen audit 5: Navigate's error with no walk open says nothing of a walk, neither "still recording" nor "saved" (${JSON.stringify(ready)})`);
+      for (let i = h.errors.length - 1; i >= from0; i--) if (/^ready-error: .*(WebGL|webgl|GPUInitialization)/.test(h.errors[i])) h.errors.splice(i, 1);
+      await c0.close();
+    }
+    {
+      const { c, pg } = await freshPage('walk-error');
+      await pg.goto(navUrl);
+      await pg.waitForSelector('[data-testid=start]');
+      await pg.waitForTimeout(1500);
+      await pg.click('[data-testid=start]');
+      await pg.waitForSelector('[data-testid=walk-minimize]', { timeout: 20000 });
+      await pg.waitForTimeout(1500);
+      await c.addInitScript(() => {
+        const real = HTMLCanvasElement.prototype.getContext;
+        HTMLCanvasElement.prototype.getContext = function (kind, ...rest) {
+          if (/webgl/.test(String(kind)) && location.pathname.endsWith('/walk')) return null;
+          return real.call(this, kind, ...rest);
+        };
+      });
+      const fixes = () => pg.evaluate(() => new Promise((resolve) => {
+        const req = indexedDB.open('chronicles');
+        req.onsuccess = () => {
+          const g = req.result.transaction('trace_point', 'readonly').objectStore('trace_point').count();
+          g.onsuccess = () => resolve(g.result);
+        };
+      }));
+      const from = h.errors.length;
+      await pg.reload();
+      await pg.waitForFunction(() => [...document.querySelectorAll('[data-testid=screen-error]')].some((e) => !e.closest('[aria-hidden=true]')), null, { timeout: 20000 }).catch(() => {});
+      await pg.waitForTimeout(1500);
+      const read = () => pg.evaluate(() => {
+        const s = [...document.querySelectorAll('[data-testid=screen-error]')].find((e) => !e.closest('[aria-hidden=true]'));
+        if (!s) return null;
+        const texts = [...s.querySelectorAll('div')].filter((d) => !d.querySelector('div') && d.innerText.trim()).map((d) => d.innerText.trim());
+        const buttons = [...s.querySelectorAll('[role=button]')].map((b) => b.getAttribute('aria-label') ?? b.innerText.trim());
+        return { texts, buttons, wide: document.documentElement.scrollWidth <= window.innerWidth };
+      });
+      const seen = await read();
+      await h.shot(pg, 'walk-screen-error-390');
+      const before = await fixes();
+      for (let j = 1; j <= 3; j++) {
+        const p = at(-0.5, -0.5 + j * 0.01);
+        await c.setGeolocation({ longitude: p[0], latitude: p[1], accuracy: 6 });
+        await pg.waitForTimeout(1000);
+      }
+      const recorded = (await fixes()) - before;
+      await pg.setViewportSize({ width: 320, height: 700 });
+      await pg.waitForTimeout(500);
+      const at320 = await read();
+      await h.shot(pg, 'walk-screen-error-320');
+      check(!!seen && seen.texts.includes('Your walk is still recording.') && !seen.texts.includes('Your walk is saved.')
+        && seen.buttons.includes('Back to Chronicle') && seen.buttons.includes('Try again') && recorded > 0 && at320?.wide,
+        `tend walk-screen 6: the walk screen's error mid-walk says "Your walk is still recording.", with Try again and "Back to Chronicle", whole at 390 and 320, and the walk does record behind it (${JSON.stringify({ seen, at320, recorded })})`);
+      // The refused map is the step's own doing: not the app's console errors.
+      for (let i = h.errors.length - 1; i >= from; i--) if (/^walk-error: .*(WebGL|webgl|GPUInitialization)/.test(h.errors[i])) h.errors.splice(i, 1);
+      await c.close();
+    }
     // Starting from the tabs, in fresh browsers (NV12, NV15, NV25).
     {
       // Walk here on Explore is a one-tap start to that spot, with the saved choices; it never fills the drawer (NV12, NV15).
@@ -135,7 +368,7 @@ async function fresh(h) {
         };
       }), { lon: memAt[0], lat: memAt[1] });
       await pg.click('[data-testid=start]');
-      await pg.waitForSelector('[data-testid=stop]');
+      await pg.waitForSelector('[data-testid=walk-actions]');
       const w = await openWalk(pg);
       const north = async (y0, y1, each) => {
         for (let k = 0, y = y0; y <= y1 + 1e-9; k++, y += 0.05) {
@@ -160,7 +393,7 @@ async function fresh(h) {
       const barText = () => pg.locator('[data-testid=recording-stats]').innerText();
       const barBox = await pg.locator('[data-testid=recording-bar]').boundingBox();
       const tabBox = await pg.locator('[data-testid=tab-navigate]').boundingBox();
-      check(!/\/walk/.test(new URL(pg.url()).pathname) && (await tabBarShown(pg)) && /^\d+:\d\d · \d+ m · Paused$/.test(await barText())
+      check(!/\/walk/.test(new URL(pg.url()).pathname) && (await tabBarShown(pg)) && /^\d+:\d\d · \d+[ \u00a0]m · Paused$/.test(await barText())
         && Math.abs(barBox.y + barBox.height - tabBox.y) < 6 && (await pg.locator('[data-testid=recording-bar] [data-testid=stop]').count()) === 0,
         `minimized, a recording bar sits just above the tab bar: time, distance, Paused, and no Stop (NV9: "${await barText()}")`);
       // Minimized to the tab beneath: Chronicle's Memories since 0112, which has no map. Never two.
@@ -226,7 +459,7 @@ async function fresh(h) {
           };
         });
         const fine = (m) => !!(m && m.above && m.oneLine && m.whole && m.inPill && m.apart >= 4 && m.close === 'Close, the photo stays as it is'
-          && m.live === 'polite' && /^\d+:\d\d · \d+ m · Paused$/.test(m.stats ?? '') && m.numbers && !m.said && m.wide);
+          && m.live === 'polite' && /^\d+:\d\d · \d+[ \u00a0]m · Paused$/.test(m.stats ?? '') && m.numbers && !m.said && m.wide);
         const at390 = await pill();
         await h.shot(pg, 'tabs-9-bar-edit-offer');
         let at320 = null;
@@ -248,14 +481,14 @@ async function fresh(h) {
         await pg.waitForTimeout(400);
         const closed = await pg.locator('[data-testid=bar-edit-offer]').count();
         const stats = await pg.locator('[data-testid=recording-stats]').innerText().catch(() => '');
-        check(fine(waited) && closed === 0 && /^\d+:\d\d · \d+ m · Paused$/.test(stats),
+        check(fine(waited) && closed === 0 && /^\d+:\d\d · \d+[ \u00a0]m · Paused$/.test(stats),
           `tend tabs T12: the pill is still up after 6 s and goes with its Close, the line still its time and distance (${!!waited}, ${closed}, "${stats}")`);
       }
       // A tap on the bar returns to the walk, where the photo is pinned (NV9).
       await pg.click('[data-testid=recording-return]');
-      await pg.waitForSelector('[data-testid=stop]');
+      await pg.waitForSelector('[data-testid=walk-actions]');
       await pg.waitForTimeout(1500);
-      check(/\/walk/.test(new URL(pg.url()).pathname) && (await pg.locator('[aria-label="Photo. Open"], [aria-label$="captures here. Open"]').count()) >= 1 && !(await tabBarShown(pg)),
+      check(/\/walk/.test(new URL(pg.url()).pathname) && (await pg.locator('[aria-label^="Photo, "][aria-label$=". Open"], .maplibregl-map button[data-ids*=","]:not([data-testid=memory-pin])').count()) >= 1 && !(await tabBarShown(pg)),
         'a tap on the bar returns to the walk, the tab bar hidden, with the bar’s photo on its map (NV6, NV9)');
       await pg.click('[data-testid=resume-walk]');
       await pg.waitForSelector('[data-testid=pause-walk]');
@@ -265,7 +498,7 @@ async function fresh(h) {
       await pg.waitForSelector('[data-testid=recording-stats]', { timeout: 10000 });
       await pg.waitForTimeout(2200);
       const m = (t) => {
-        const r = /([\d.]+) (km|m)$/.exec(t);
+        const r = /([\d.]+)[ \u00a0](km|m)$/.exec(t);
         return r ? parseFloat(r[1]) * (r[2] === 'km' ? 1000 : 1) : NaN;
       };
       const d0 = m(await barText());
@@ -293,7 +526,7 @@ async function fresh(h) {
       }
       const d1 = m(await barText());
       check(onTabs.join(',') === 'chronicle:1:0,explore:1:1,chronicle:1:0', `the bar is on every tab, with one live map where there is a map; Chronicle's Memories has none (NV4, NV9, RM1: ${onTabs.join(', ')})`);
-      check(d1 > d0 + 100 && /^\d+:\d\d · \d+ m$/.test(await barText()), `minimized, the walk keeps recording: the bar's distance grows (NV8: ${d0} → ${d1} m)`);
+      check(d1 > d0 + 100 && /^\d+:\d\d · \d+[ \u00a0]m$/.test(await barText()), `minimized, the walk keeps recording: the bar's distance grows (NV8: ${d0} → ${d1} m)`);
       // Remind me here keeps firing while minimized (NV8): checked outside the walk screen, shown on the bar.
       const fired = await pg.evaluate(() => new Promise((resolve) => {
         const req = indexedDB.open('chronicles');
@@ -367,7 +600,7 @@ async function fresh(h) {
       await pg.mouse.up();
       await pg.waitForSelector('[data-testid=ready-dest]', { timeout: 5000 });
       await pg.click('[data-testid=start]');
-      await pg.waitForSelector('[data-testid=stop]', { timeout: 15000 });
+      await pg.waitForSelector('[data-testid=walk-actions]', { timeout: 15000 });
       const said = await pg.waitForSelector('text=Walk started · recording', { timeout: 10000 }).then(() => true, () => false);
       const w = await openWalk(pg);
       const nav = JSON.parse((await metaOf(pg, 'nav')) || 'null');
@@ -394,6 +627,10 @@ module.exports = {
     // The app's web styles and shared primitives: every screen wears them, and the launch shows the first.
     'src/components/webStyles*.ts',
     'src/components/{icons,ui}.tsx',
+    // The web's place-name pack: a file of its own, fetched on first search, never in the entry script.
+    'src/lib/gazetteer/{source.web,pack,loader}.ts',
+    'assets/gazetteer/places.json',
+    'scripts/copy-maplibre-worker.js',
   ],
   run,
   checks,

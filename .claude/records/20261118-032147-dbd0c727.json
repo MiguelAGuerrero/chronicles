@@ -1,0 +1,25 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Plan an outing"
+      ],
+      "body": "- A moment's own place (MC18, decision 0202), left for later: between towns the context line can only say the state, since a road's name or a county needs the map read there (the street cache holds only where streets were derived); a session still open has no areas until Stop, so its moments name no town until then; `contextFor` reads every outing's area rows once per batch (n: outings times the areas each crossed, a few thousand rows over years; a per-outing read would need a new `Db` method and its contract case); `MomentView.place` in `resurface/views.ts` still carries the outing's one name and nothing reads it\n"
+    },
+    {
+      "argv": [
+        "section",
+        "item",
+        "remove",
+        "From the outing journey's second audit (2026-11-18)",
+        "A moment captured on the drive between towns",
+        "--reason",
+        "answered by the owner, decision 0202"
+      ],
+      "target": "sha256:9884e71a6797287f65784cdefa9a2506e397e6142b36864b619ea039b07434a5"
+    }
+  ]
+}

@@ -1,0 +1,107 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inflight",
+        "add"
+      ],
+      "body": "| Where I've been (the walk's unwalked-streets button, veil, bold fog and count removed; a \"Where I've been\" layer draws earlier walks' lines near the map in one even muted green under today's trace, from a cache of each walk's line; WB1-WB17, decision 0220) | `claude/modest-johnson-pctfuj` | built 2026-11-18, test-first by history: unit, shell and contract tests, typecheck, lint, the `where` journey and the journeys holding changed checks; the steward, the cold find and the UI review triaged; waits on the owner's deploy |\n"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "add",
+        "--top"
+      ],
+      "body": "| Where I've been (the walk screen's unwalked-streets button, its veil, bold fog and \"N unwalked nearby\" pill removed, the fog always quiet; a fourth layer, \"Where I've been\", off by default on Navigate and Explore's main map, draws every earlier walk's walked line within 5 km in one even muted sage green under today's trace, never a count or date; each walk's line a cache of its trace, SQLite migration 30 and IndexedDB 23; WB1-WB17, decision 0220) | shipped on the branch | `claude/modest-johnson-pctfuj` 2026-11-18 | `specs/where-ive-been/spec.md` | no (steward, cold find and UI review only) |\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "unwalked-streets pill says",
+        "--reason",
+        "The pill went with the unwalked-streets button (decision 0220, WB1)"
+      ],
+      "target": "sha256:5fe103eee17128a4334806f93b2a536d6258e30ffe39da0216c08418f9520315"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Where I've been (specs/where-ive-been, decision 0220)",
+        "--new"
+      ],
+      "body": "- A tap on an earlier walk's line opens that walk: the layer's Return (the steward's S5); today a line names no walk and opens nothing.\n",
+      "intro": "What the Where I've been slice left out (specs/where-ive-been, decision 0220).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Where I've been (specs/where-ive-been, decision 0220)"
+      ],
+      "body": "- Simplification by zoom: every line is simplified once, within 5 m, at every zoom; a town crossed by hundreds of walks sends tens of thousands of vertices. Reopens with a phone's frame time over 16 ms while panning with the layer on.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Where I've been (specs/where-ive-been, decision 0220)"
+      ],
+      "body": "- A date window or a picker of walks: the layer draws every earlier walk in reach (the owner's call).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Where I've been (specs/where-ive-been, decision 0220)"
+      ],
+      "body": "- `usePastLines` on another screen first draws the last lines read, which may be around another centre, until its own read answers (well under a second on the web); a hook keeps no lines per centre.\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Where I've been (WB1-WB17, decision 0220)",
+        "--new"
+      ],
+      "body": "- [ ] **Do:** upgrade from a build at migration 29 with several walks kept, open Navigate and turn on Layers, Where I've been. **Expect:** the app opens with no error; the panel says \"Getting your walks ready…\", then every earlier walk near you appears at once as a pale green line under the streets' names (migration 30, `walk_line` and `walk_line_tile`). (WB4, WB6, WB14, WB15)\n",
+      "intro": "The \"Where I've been\" layer and the walk screen without its unwalked-streets button (specs/where-ive-been, decision 0220). The web build ran the `where` journey; none of this has run on a phone.\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Where I've been (WB1-WB17, decision 0220)"
+      ],
+      "body": "- [ ] **Do:** with Where I've been on, press Start where earlier walks pass and walk ten minutes, then stop. **Expect:** the earlier lines stay drawn through Start without blinking; today's green trace draws over them on its white edge; after Stop and the replay, the walk's own line joins the layer on Navigate. (WB8, WB9, WB16)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Where I've been (WB1-WB17, decision 0220)"
+      ],
+      "body": "- [ ] **Do:** on a phone with a year of walks, turn Where I've been on for the first time and pan the Navigate map while it prepares. **Expect:** the map keeps moving smoothly while older walks are prepared one at a time; the lines appear together within a minute; the walk screen has no unwalked-streets button and the fog stays faint. (WB1, WB15, WB16)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Where I've been (WB1-WB17, decision 0220)"
+      ],
+      "body": "- [ ] **Do:** with VoiceOver on, turn the walk's map with two fingers near the start (no Walk me back) while following (no Recenter), then double-tap the compass. **Expect:** the map turns north and VoiceOver moves on to a sensible element; the map's own `focus()` does nothing on a phone. (WB3)\n"
+    }
+  ]
+}

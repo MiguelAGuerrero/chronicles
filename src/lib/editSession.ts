@@ -34,7 +34,7 @@ export interface Saved {
 }
 
 export interface Session {
-  kind: 'photo' | 'video';
+  kind: MediaKind;
   tool: EditTool;
   edit: MediaEdit;
   caption: string;
@@ -77,19 +77,22 @@ export type SessionEffect = { type: 'close' } | { type: 'save'; saved: Saved } |
 export const DEFAULT_CAPTION_Y = 0.6;
 /** Said when Draw stops taking lines (ME11); counts are words (media-editing audit 12). */
 export const FULL_LINES_TEXT = 'A moment holds fifty lines at most.';
-export const TOOLS: Record<'photo' | 'video', EditTool[]> = {
+/** What the editor opens on: a photo, a video, or a voice memo (trim only, VT1). */
+export type MediaKind = 'photo' | 'video' | 'voice';
+export const TOOLS: Record<MediaKind, EditTool[]> = {
   photo: ['crop', 'filter', 'draw', 'text'],
   video: ['crop', 'draw', 'text', 'trim'],
+  voice: ['trim'],
 };
 
 const captionOf = (text: string): string | null => text.trim() || null;
 const isFullCrop = (r: Rect | null) => !r || (r.x <= 1e-6 && r.y <= 1e-6 && r.w >= 1 - 1e-6 && r.h >= 1 - 1e-6);
 
-export function openSession(kind: 'photo' | 'video', saved: Saved, tool: EditTool = 'crop'): Session {
+export function openSession(kind: MediaKind, saved: Saved, tool: EditTool = 'crop'): Session {
   const edit = parseEdit(saved.edit) ?? emptyEdit();
   return {
     kind,
-    tool: TOOLS[kind].includes(tool) ? tool : 'crop',
+    tool: TOOLS[kind].includes(tool) ? tool : TOOLS[kind][0],
     edit,
     caption: saved.caption ?? '',
     captionY: saved.caption_y ?? DEFAULT_CAPTION_Y,
@@ -176,7 +179,7 @@ export function step(s: Session, e: SessionEvent): { state: Session; effect: Ses
     case 'caption':
       return done({ ...s, caption: e.text, captionY: e.y });
     case 'trim': {
-      if (s.kind !== 'video') return done(s);
+      if (s.kind === 'photo') return done(s);
       const t = clampTrim(e.start, e.end, e.duration);
       return done({ ...s, edit: { ...s.edit, trim: isFullTrim(t, e.duration) ? null : t } });
     }

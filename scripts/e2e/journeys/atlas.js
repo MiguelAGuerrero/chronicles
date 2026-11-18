@@ -16,6 +16,25 @@ async function arrive(h) {
   }
 }
 
+/** The element with focus: its test id (or tag) and name (tend explore 27). */
+const focused = (page) => page.evaluate(() => {
+  const a = document.activeElement;
+  return a ? { id: a.getAttribute('data-testid') || a.tagName.toLowerCase(), name: a.getAttribute('data-name') } : null;
+});
+/** Whether focus is inside the element with this test id. */
+const focusIn = (page, id) => page.evaluate((id) => !!document.activeElement?.closest(`[data-testid=${id}]`), id);
+
+/** A picture at 390 and at 320 px, the focus where it is (tend explore 27). */
+async function shot27(page, shot, name) {
+  const vp = page.viewportSize();
+  await shot(page, `${name}-${vp.width}`);
+  await page.setViewportSize({ width: 320, height: vp.height });
+  await page.waitForTimeout(300);
+  await shot(page, `${name}-320`);
+  await page.setViewportSize(vp);
+  await page.waitForTimeout(300);
+}
+
 async function checks(h) {
   const { BASE, ctx, page, start, at, distanceM, names, OVERTURE_RELEASE, overtureAsked, check, shot, tabTo, tabBarShown, tiles, areaTile } = h;
   await arrive(h);
@@ -50,6 +69,52 @@ async function checks(h) {
         'AT3, AT5: its ring was read by itself; the card has the kinds it has (round 3: only those present) and no picture (the area\'s card has it, decision 0124)');
       check(/Walked (once|\d+ times)/.test(label) && /History: (some|plenty|lots)/.test(label),
         `AT3, AT13: the tile says how often you walked there and each kind present in words (${label})`);
+      {
+        // SG2, SG5: the strip in two groups, one row, the last kind inside it; the spoken line names the groups present.
+        const strip = await fox.evaluate((el) => {
+          const kinds = [...el.querySelectorAll('[data-kind]')];
+          // The whole strip (the groups' parent), never one group, and never past the tile itself.
+          const row = el.querySelector('[data-testid^=atlas-strip-]')?.parentElement;
+          const r = row?.getBoundingClientRect();
+          const tile = el.getBoundingClientRect();
+          const last = kinds[kinds.length - 1]?.getBoundingClientRect();
+          return { n: kinds.length, top: new Set(kinds.map((k) => Math.round(k.getBoundingClientRect().top))).size, right: last?.right ?? 0, edge: r ? Math.min(r.right, tile.right) : 0,
+            life: !!el.querySelector('[data-testid=atlas-strip-life]'), sights: !!el.querySelector('[data-testid=atlas-strip-sights]') };
+        });
+        check(strip.n > 0 && strip.top === 1 && strip.right <= strip.edge + 0.5 && (strip.sights || strip.life),
+          `SG2: the tile's kinds stay one row inside the strip, in their groups (${JSON.stringify(strip)})`);
+        check(/Sights: History: (some|plenty|lots)/.test(label) && (!strip.life || /Local life: /.test(label)),
+          `SG5: the tile's spoken line names its groups (${label})`);
+        {
+          // SG14 (decision 0202): one hairline between the groups, only with both, between the last Sight and the first Local life kind.
+          const line = await fox.evaluate((el) => {
+            const d = el.querySelectorAll('[data-testid=atlas-strip-line]');
+            const sights = el.querySelector('[data-testid=atlas-strip-sights]')?.getBoundingClientRect();
+            const life = el.querySelector('[data-testid=atlas-strip-life]')?.getBoundingClientRect();
+            const r = d[0]?.getBoundingClientRect();
+            return { n: d.length, both: !!sights && !!life, w: r ? r.width : 0, between: !!r && !!sights && !!life && r.left >= sights.right && r.right <= life.left };
+          });
+          check(line.both ? line.n === 1 && line.w <= 1.5 && line.w > 0 && line.between : line.n === 0,
+            `SG14: a hairline between the tile's groups, only with both (${JSON.stringify(line)})`);
+        }
+        {
+          const vp = page.viewportSize();
+          await page.setViewportSize({ width: 320, height: vp.height });
+          await page.waitForTimeout(600);
+          const narrow = await fox.evaluate((el) => {
+            const kinds = [...el.querySelectorAll('[data-kind]')];
+            const last = kinds[kinds.length - 1]?.getBoundingClientRect();
+            const t = el.getBoundingClientRect();
+            return { n: kinds.length, top: new Set(kinds.map((k) => Math.round(k.getBoundingClientRect().top))).size, right: last?.right ?? 0, edge: t.right - 12 };
+          });
+          check(narrow.top === 1 && narrow.right <= narrow.edge + 0.5, `SG2: at 320 px the strip stays one row inside the tile (${JSON.stringify(narrow)})`);
+          await shot(page, 'sg-tile-320');
+          // The tile itself, scrolled into the row's view, for the UI review (the page shot shows the selected town).
+          if (process.env.E2E_SHOTS) await fox.screenshot({ path: `${process.env.E2E_SHOTS}/sg-tile-fox-320.png` }).catch(() => {});
+          await page.setViewportSize(vp);
+          await page.waitForTimeout(600);
+        }
+      }
       const atlasRows = await page.evaluate(() => new Promise((resolve) => {
         const req = indexedDB.open('chronicles');
         req.onsuccess = () => {
@@ -83,6 +148,8 @@ async function checks(h) {
     {
       // AT9: the small map shows the areas' points; selecting a tile frames its area with its 800 m ring.
       const ring = () => page.locator('[data-ring]').last().getAttribute('data-ring');
+      // Neighborhood boundaries (HB9): its own ground, as a line, stands in place of the ring once the tiles are kept.
+      const drawnAround = async () => ((await ring()) || (await page.locator('[data-ground]').last().getAttribute('data-ground')) || '');
       // The points are drawn once the map has loaded its style and the areas are read: wait for them before counting.
       await page.waitForSelector('[data-testid=area-point]', { timeout: 15000 }).catch(() => {});
       const points = await page.locator('[data-testid=area-point]').count();
@@ -93,6 +160,19 @@ async function checks(h) {
       await tileOf(pickName).click();
       if (!(await page.waitForSelector('[data-testid=atlas-card]', { timeout: 3000 }).then(() => true, () => false))) await tileOf(pickName).click();
       await page.waitForSelector('[data-testid=atlas-card]');
+      {
+        // specs/storefronts SF2, SF4, SF9: the card says storefronts, one list, and Walk to starts you on a street with no superlative.
+        const text = await page.locator('[data-testid=atlas-card]').innerText();
+        const list = page.locator('[data-testid=atlas-storefronts]');
+        const via = await page.locator('[data-testid=atlas-walk-via]').innerText().catch(() => null);
+        check(!/\bbus(y|iest)\b/i.test(text) && (await list.count()) <= 1 && (!(await list.count()) || (/(^|\n)Storefronts\n/i.test(text) && /you walk into/.test(text))) && (via == null || /^Starts you on \S/.test(via)),
+          `SF2, SF4, SF9: ${pickName}'s card says Storefronts, one list (${await list.locator('[data-testid=atlas-storefront]').count()} streets), never busy; Walk to's line ${JSON.stringify(via)}`);
+        if (await list.count()) {
+          await list.scrollIntoViewIfNeeded().catch(() => {});
+          await page.waitForTimeout(400);
+          await shot(page, 'sf-card-storefronts');
+        }
+      }
       await page.keyboard.press('Escape');
       await page.waitForTimeout(1500);
       const canvas = await page.locator('canvas.maplibregl-canvas').boundingBox();
@@ -106,8 +186,36 @@ async function checks(h) {
       const dy = dot ? dot.y + dot.height / 2 - (canvas.y + canvas.height / 2) : NaN;
       const selName = (await sel.count()) ? await sel.first().getAttribute('data-name') : null;
       // Explore's fit pads 84 px under its title and 24 px at the bottom: the area sits 30 px below the middle.
-      check(points >= hoods.length && !ringBefore && (await ring()) === '800' && selName === pickName && Math.abs(dx) <= 8 && Math.abs(dy - 30) <= 8,
-        `AT9: the small map shows the areas' points; on your town's page its own card is selected on arrival (no ring), and opening an area's card frames it with its 800 m ring (${points} points for ${hoods.length} tiles, ring ${JSON.stringify(ringBefore)} → ${await ring()}, ${selName} at (${dx.toFixed(1)}, ${dy.toFixed(1)}) px from the middle)`);
+      for (let i = 0; i < 20 && !(await drawnAround()); i++) await page.waitForTimeout(500);
+      check(points >= hoods.length && !ringBefore && (await drawnAround()) !== '' && selName === pickName && Math.abs(dx) <= 8 && Math.abs(dy - 30) <= 8,
+        `AT9: the small map shows the areas' points; on your town's page its own card is selected on arrival (no ring), and opening an area's card frames it with its 800 m ring, or its own ground (${points} points for ${hoods.length} tiles, ring ${JSON.stringify(ringBefore)} → ${await ring()}, ${selName} at (${dx.toFixed(1)}, ${dy.toFixed(1)}) px from the middle)`);
+      // tend explore 20 (decision 0172, the accent at rest): the selected area's name and its dot's ring on the map are
+      // ink (#1d2430), never the accent; a selection is not an action.
+      const selInk = (await sel.count()) ? await sel.first().evaluate((el) => {
+        const named = [...el.querySelectorAll('div')].find((e) => e.childElementCount === 0 && e.textContent && e.textContent === el.dataset.name);
+        const ringed = [...el.querySelectorAll('div')].find((x) => { const r = x.getBoundingClientRect(); return Math.abs(r.width - 14) < 1 && Math.abs(r.height - 14) < 1; });
+        return { name: named ? getComputedStyle(named).color : null, dot: ringed ? getComputedStyle(ringed).borderTopColor : null };
+      }) : null;
+      check(selInk && selInk.name === 'rgb(29, 36, 48)' && selInk.dot === 'rgb(29, 36, 48)', `tend explore 20: the selected area's name and dot on the map are ink at rest (${JSON.stringify(selInk)})`);
+      await shot(page, 'tend-explore-20-map-name-390');
+      {
+        // tend explore audit 22 (decision 0172, the accent at rest; the review's U7): the search's close word is ink, a
+        // dismissal, never a card's primary action.
+        await page.click('[data-testid=atlas-search]').catch(() => {});
+        const open22 = await page.waitForSelector('[data-testid=atlas-search-close]', { timeout: 8000 }).then(() => true, () => false);
+        const close22 = open22 ? await page.locator('[data-testid=atlas-search-close]').evaluate((el) =>
+          [...el.querySelectorAll('*')].filter((e) => e.childElementCount === 0 && e.textContent).map((e) => ({ text: e.textContent, color: getComputedStyle(e).color }))) : null;
+        const vp = page.viewportSize();
+        await page.setViewportSize({ width: 320, height: vp.height });
+        await page.waitForTimeout(400);
+        await shot(page, 'tend-explore-audit-22-search-320');
+        await page.setViewportSize(vp);
+        await page.waitForTimeout(300);
+        await page.click('[data-testid=atlas-search-close]').catch(() => {});
+        await page.waitForTimeout(400);
+        check(!!close22 && close22.length === 1 && close22[0].color === 'rgb(29, 36, 48)' && (await page.locator('[data-testid=atlas-search-sheet]').count()) === 0,
+          `tend explore audit 22: the search's close word is ink at rest, and it closes the search (${JSON.stringify(close22)})`);
+      }
     }
     {
       // AT8: a tile opens its card; unfound places are never named (AT7), finds are.
@@ -166,29 +274,174 @@ async function checks(h) {
         await page.waitForSelector('[data-testid=atlas-card]');
         await page.waitForTimeout(700);
       }
+      {
+        // tend explore 27 (WCAG 2.2, 2.4.3 Focus Order and 2.4.11 Focus Not Obscured): while the full-screen card is up, Tab and
+        // Shift+Tab stay inside it, wrapping at either end, never reaching the map or the row under it.
+        const start = await focused(page);
+        const seen = [];
+        let out = null;
+        await page.keyboard.press('Shift+Tab');
+        if (!(await focusIn(page, 'atlas-card'))) out = `Shift+Tab: ${JSON.stringify(await focused(page))}`;
+        await shot27(page, shot, 'tend-explore-27-card-shift-tab');
+        for (let i = 0; i < 60 && !out; i++) {
+          await page.keyboard.press('Tab');
+          if (!(await focusIn(page, 'atlas-card'))) out = `Tab ${i + 1}: ${JSON.stringify(await focused(page))}`;
+          else seen.push((await focused(page)).id);
+        }
+        const cycle = seen.indexOf(seen[0], 1);
+        {
+          // tend explore audit 39 (WCAG 2.2, 2.4.3): after a click on the card's text (focus on the page, the browser's starting
+          // point there), Tab goes on from where the click was, the Storefronts list, never back to the card's first stop.
+          const at = await page.evaluate(() => {
+            const t = [...document.querySelectorAll('[data-testid=atlas-card] *')].find((d) => d.childElementCount === 0 && d.textContent === 'Storefronts');
+            if (!t) return null;
+            t.scrollIntoView({ block: 'center' });
+            const r = t.getBoundingClientRect();
+            return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+          });
+          await page.waitForTimeout(300);
+          const hit = at ? await page.evaluate(({ x, y }) => { const e = document.elementFromPoint(x, y); return e ? `${e.tagName}:${e.textContent?.slice(0, 20)}` : null; }, at) : null;
+          if (at) await page.mouse.click(at.x, at.y);
+          const clicked = await focused(page);
+          await page.keyboard.press('Tab');
+          const after = await focused(page);
+          check(!!at && after && after.id === 'atlas-storefront-walk',
+            `tend explore audit 39: Tab after a click on the card's Storefronts heading goes on to its first street (${JSON.stringify({ hit, clicked, after })})`);
+        }
+        check(start && start.id === 'atlas-card-name' && !out && cycle > 0,
+          `tend explore 27: the card opens at its name, and Tab and Shift+Tab stay inside the full-screen card, wrapping (${out ?? `from ${start && start.id}, Shift+Tab then Tab: ${seen.slice(0, cycle + 1).join(' > ')}`})`);
+      }
       await page.click('[data-testid=atlas-how]');
       {
         const how = await page.locator('[data-testid=atlas-how-panel]').innerText();
-        check(/same marks mean the same anywhere/.test(how) && !/\d/.test(how), `atlas round 3: How the marks work says it in words, with no counts (${how.replace(/\s+/g, ' ').slice(0, 80)})`);
+        // A neighborhood counted across its own ground says so instead of the ring's line (neighborhood boundaries audit 11).
+        check(/same marks mean the same anywhere|counted across the ground drawn around it/.test(how) && !/\d/.test(how), `atlas round 3: How the marks work says it in words, with no counts (${how.replace(/\s+/g, ' ').slice(0, 80)})`);
+      }
+      {
+        // Sights and Local life (SG1-SG7, SG11, decisions 0200, 0201): the card's kinds under two headings, in order.
+        const sec = page.locator('[data-testid=atlas-kinds]');
+        const order = await sec.locator('[data-testid^=atlas-group-], [data-testid^=atlas-kind-]:not([data-testid^=atlas-kind-walk-])')
+          .evaluateAll((els) => els.map((e) => e.getAttribute('data-testid')));
+        const want = ['atlas-group-sights', 'atlas-kind-history', 'atlas-kind-art', 'atlas-kind-culture', 'atlas-kind-parks', 'atlas-kind-viewpoints',
+          'atlas-group-life', 'atlas-kind-food', 'atlas-kind-shops', 'atlas-kind-nightlife'];
+        const heads = await sec.locator('[data-testid^=atlas-group-]').allInnerTexts();
+        check(JSON.stringify(order) === JSON.stringify(want) && heads.join('|') === 'Sights|Local life',
+          `SG1, SG4: Sights then Local life, each over its kinds, all eight rows (${order.join(', ')}; ${heads.join('|')})`);
+        const line = await sec.locator('[data-testid=atlas-sights-line]').innerText().catch(() => '');
+        check(/“?\?”? on the map/.test(line) && (await sec.locator('[data-testid=atlas-life-line]').count()) === 0,
+          `SG1: one muted line under Sights ties it to the "?", none under Local life (${line})`);
+        const levels = await sec.locator('[role=heading]').evaluateAll((els) => els.map((e) => [e.textContent, e.getAttribute('aria-level')]));
+        const top = levels.find(([t]) => /What’s here/.test(t ?? ''));
+        const sub = levels.filter(([t]) => /^(Sights|Local life)$/.test(t ?? ''));
+        check(!!top && sub.length === 2 && sub.every(([, l]) => Number(l) === Number(top[1] ?? 2) + 1),
+          `SG3: Sights and Local life are headings one level under "What's here" (${JSON.stringify(levels)})`);
+        const style = await sec.locator('[data-testid=atlas-group-sights]').evaluate((el) => {
+          const c = getComputedStyle(el);
+          return { tt: c.textTransform, color: c.color, size: parseFloat(c.fontSize) };
+        });
+        const kindColors = await sec.locator('[data-testid^=atlas-group-]').evaluateAll((els) => els.map((e) => getComputedStyle(e).color));
+        check(style.tt !== 'uppercase' && style.color === 'rgb(29, 36, 48)' && style.size >= 13 && kindColors.every((c) => c === 'rgb(29, 36, 48)'),
+          `SG6: the headings are sentence case, ink, not the section titles' style (${JSON.stringify(style)})`);
+        const storefronts = await page.locator('[data-testid=atlas-storefronts]').count();
+        const after = storefronts === 0 || await page.evaluate(() => {
+          const k = document.querySelector('[data-testid=atlas-kinds]');
+          const s = document.querySelector('[data-testid=atlas-storefronts]');
+          return !!k && !!s && !k.contains(s) && !!(k.compareDocumentPosition(s) & Node.DOCUMENT_POSITION_FOLLOWING);
+        });
+        check(after, 'SG6: the Storefronts list is its own section after the kinds, never under Local life');
+        const how = await page.locator('[data-testid=atlas-how-panel]').innerText();
+        const text = `${await sec.innerText()} ${how}`;
+        check(/Sights/.test(how) && /Local life/.test(how) && !/\d/.test(text) && !/\b(busy|popular|trending|lively|alive|buzzing|vibrant)\b/i.test(text),
+          `SG7, SG11: the explanation names both groups; no digit or busy word in the section (${how.replace(/\s+/g, ' ').slice(0, 120)})`);
+        // The UI review's pictures (decision 0145): the rows under their headings, the explanation closed, then open again as it was.
+        await page.click('[data-testid=atlas-how]');
+        await page.locator('[data-testid=atlas-group-sights]').scrollIntoViewIfNeeded();
+        await page.waitForTimeout(300);
+        await shot(page, 'sg-card-kinds');
+        // sights-and-local-life ui 3: Local life's rows in the picture, not under the card's footer.
+        await page.locator('[data-testid=atlas-kind-nightlife]').evaluate((el) => el.scrollIntoView({ block: 'center' }));
+        await page.waitForTimeout(400);
+        {
+          const row = await page.locator('[data-testid=atlas-kind-nightlife]').boundingBox();
+          const foot = await page.locator('[data-testid=atlas-card]').evaluate((el) => el.getBoundingClientRect().bottom - 80);
+          check(!!row && row.y + row.height <= foot, `sights-and-local-life ui 3: Local life's last row is in view for its picture (${row && Math.round(row.y + row.height)} of ${Math.round(foot)})`);
+        }
+        await shot(page, 'sg-card-life');
+        await page.click('[data-testid=atlas-how]');
+        await page.locator('[data-testid=atlas-how]').scrollIntoViewIfNeeded();
       }
       await shot(page, '11c-atlas-card');
+      {
+        // tend explore 19 (decision 0172, the accent at rest): "How the marks work" and its icon are ink (#1d2430), never
+        // the accent; it is a toggle, not the card's primary action.
+        const howInk = await page.locator('[data-testid=atlas-how]').evaluate((el) =>
+          [...el.querySelectorAll('*')].filter((e) => e.childElementCount === 0 && e.textContent).map((e) => getComputedStyle(e).color));
+        check(howInk.length === 2 && howInk.every((c) => c === 'rgb(29, 36, 48)'), `tend explore 19: "How the marks work" and its icon are ink at rest (${JSON.stringify(howInk)})`);
+        const vp = page.viewportSize();
+        await page.setViewportSize({ width: 320, height: vp.height });
+        await page.waitForTimeout(400);
+        await shot(page, 'tend-explore-19-how-320');
+        await page.setViewportSize(vp);
+        await page.waitForTimeout(400);
+      }
       {
         // tend explore 4: with the planner open over the card, one Escape closes the planner only; the card is as it was.
         const plan = page.locator('[data-testid^=atlas-kind-walk-]').first();
         const has = (await plan.count()) === 1;
+        let into = null;
+        let kept = null;
+        const planStops = [];
+        let ring41 = null;
+        let back = null;
+        const opener = has ? await plan.getAttribute('data-testid') : null;
         if (has) {
-          await plan.click();
+          // tend explore audit 41: opened from the keyboard (Enter), so the planner's picture shows the ring on its title.
+          await plan.focus();
+          await page.keyboard.press('Enter');
           await page.waitForSelector('[data-testid=planner]', { timeout: 10000 });
+          // tend explore 27: the planner moves focus into itself as it opens, as the card does.
+          await page.waitForTimeout(400);
+          into = await focused(page);
+          // tend explore audit 41 (WCAG 2.2, 2.4.7 Focus Visible): from the keyboard the title shows the focus ring.
+          ring41 = await page.evaluate(() => {
+            const a = document.activeElement;
+            return a ? { visible: a.matches(':focus-visible'), outline: getComputedStyle(a).outlineStyle } : null;
+          });
+          await shot27(page, shot, 'tend-explore-27-planner-open');
+          // tend explore 27: and Tab and Shift+Tab stay inside it.
+          kept = true;
+          await page.keyboard.press('Shift+Tab');
+          kept = kept && (await focusIn(page, 'planner'));
+          for (let i = 0; i < 30 && kept; i++) {
+            await page.keyboard.press('Tab');
+            kept = await focusIn(page, 'planner');
+            planStops.push((await focused(page)).id);
+          }
           await page.keyboard.press('Escape');
           await page.waitForTimeout(400);
+          back = await focused(page);
         }
         const planner = await page.locator('[data-testid=planner]').count();
         const card = await page.locator('[data-testid=atlas-card]').count();
         check(has && planner === 0 && card === 1, `tend explore 4: one Escape closes the planner and leaves the card open (button ${has}, planner ${planner}, card ${card})`);
+        check(into && into.id === 'plan-title' && back && back.id === opener,
+          `tend explore 27: the planner takes focus as it opens, at its title, and gives it back to ${opener} as it closes (${JSON.stringify({ into, back })})`);
+        check(kept === true, `tend explore 27: Tab and Shift+Tab stay inside the planner (${kept})`);
+        check(into && into.id === 'plan-title' && ring41 && ring41.visible && ring41.outline !== 'none',
+          `tend explore audit 41: the planner opened by Enter shows the ring on its title (${JSON.stringify(ring41)})`);
+        // tend explore audit 38 (WCAG 2.2, 2.1.1 Keyboard): the trap keeps every stop the browser has, the map's credits (a <summary>) too.
+        check(planStops.includes('summary'), `tend explore audit 38: Tab inside the planner reaches the map's credits (${[...new Set(planStops)].join(' > ')})`);
       }
       await page.keyboard.press('Escape');
       await page.waitForTimeout(300);
       check((await page.locator('[data-testid=atlas-card]').count()) === 0, 'AT8: Escape closes the card');
+      {
+        // tend explore 27 (WCAG 2.2, 2.4.3 Focus Order; Material: on close "focus returns to the interactive element that
+        // initiated the action"): closing the card gives focus back to the tile that opened it.
+        const back = await focused(page);
+        await shot27(page, shot, 'tend-explore-27-card-closed');
+        check(back && back.id === 'atlas-tile' && back.name === 'Fox Point', `tend explore 27: closing the card gives focus back to the tile that opened it (${JSON.stringify(back)})`);
+      }
       // explore-atlas audit 8: a card left open closes when another tab comes to the front, so it never keeps
       // Back and Escape from that tab.
       await tileOf('Fox Point').click();
@@ -220,7 +473,7 @@ async function checks(h) {
       check((await page.locator('[data-testid=atlas-town-head]').count()) === 0 && (await page.locator(`[data-testid=atlas-tile][data-name="${homeName}"][data-selected="1"]`).count()) === 1,
         'AT2: back returns to the towns, the one you left still selected');
     }
-    // What's good here (v1.5): a long press on the small map, then a read of the area around the city
+    // What's here (v1.5): a long press on the small map, then a read of the area around the city
     // nearby, finds Thayer Street's strip, as information (L1, L2, L5, L7, L9, NV15).
     {
       const press = async () => {
@@ -252,7 +505,22 @@ async function checks(h) {
         check(sp && map && sp.y >= map.y - 1 && sp.y + sp.height <= map.y + map.height + 1, 'atlas round 3: the long press’s choices sit over the map');
         check((await page.locator('[data-testid=atlas-press-hint]').count()) === 0, 'atlas round 3: the press hint goes once the long press is used');
       }
+      const lookWords = await page.locator('[data-testid=look-here]').innerText().catch(() => '');
+      check(/^What’s here\?$/.test(lookWords.trim()), `SF15: the long press offers "What’s here?" (${JSON.stringify(lookWords)})`);
       await page.click('[data-testid=look-here]');
+      {
+        // tend explore audit 22 (decision 0172, the accent at rest; the review's U7): "Cancel" while Explore looks is ink,
+        // a dismissal, never a card's primary action.
+        const cancel22 = await page.locator('[data-testid=look-cancel]').evaluate((el) =>
+          [...el.querySelectorAll('*')].filter((e) => e.childElementCount === 0 && e.textContent === 'Cancel').map((e) => getComputedStyle(e).color)).catch(() => null);
+        const vp = page.viewportSize();
+        await page.setViewportSize({ width: 320, height: vp.height });
+        await page.waitForTimeout(300);
+        await shot(page, 'tend-explore-audit-22-look-cancel-320');
+        await page.setViewportSize(vp);
+        await page.waitForTimeout(200);
+        check(!!cancel22 && cancel22.length === 1 && cancel22[0] === 'rgb(29, 36, 48)', `tend explore audit 22: "Cancel" while Explore looks is ink at rest (${JSON.stringify(cancel22)})`);
+      }
       await page.click('[data-testid=look-cancel]');
       const gone = (await page.locator('[data-testid=look-cancel]').count()) === 0;
       await page.waitForTimeout(6000);
@@ -269,7 +537,7 @@ async function checks(h) {
       await page.click('[data-testid=look-here]');
       const said = await page.waitForSelector('text=/A best guess from the map|Couldn’t read the map here/', { timeout: 30000 }).then((e) => e.innerText(), () => 'nothing');
       await shot(page, '11c-landing');
-      check(/Busiest area: Thayer Street/.test(said), `what’s good here finds the strip, named (${said})`);
+      check(/Where storefronts gather: Thayer Street/.test(said), `what’s good here finds the strip, named (${said})`);
       const first = await rows();
       check(first.some((r) => r.analysis.strips.some((x) => x.name === 'Thayer Street')), 'the area is remembered, Thayer Street among its strips');
       {
@@ -295,7 +563,7 @@ async function checks(h) {
       // Again: the same area is replaced, not added (L12).
       await press();
       await page.click('[data-testid=look-here]');
-      await page.waitForSelector('text=/Busiest area/', { timeout: 30000 });
+      await page.waitForSelector('text=/Where storefronts gather/', { timeout: 30000 });
       check((await rows()).length === first.length, 'looking again replaces the area');
       // Reloaded on the tab, the atlas comes back from storage at once (AT12), offline of the map's reads (NV5).
       await page.reload();
@@ -326,6 +594,69 @@ async function checks(h) {
       await page.waitForSelector('[aria-label^="Fox Point,"]', { timeout: 30000 });
       await page.waitForTimeout(1000);
     }
+    {
+      // tend explore audit 32 (and tend explore 25, audit 33 at runtime): with the atlas's writes refused after a first
+      // listing (its rows and near reads cleared, then every write of them aborted, as a full disk aborts it), Explore lists
+      // again: the row shows the towns it read, their rings read too, unkept, and does not settle on "No towns are named".
+      // CDP's Storage.overrideQuotaForOrigin is ignored for a Playwright context in this headless Chromium (Nov 18: a page
+      // session, a persistent context; a browser session answers "Internal error"), so the writes are refused in the page.
+      const { c, pg } = await h.freshPage('atlas-full');
+      await c.addInitScript(() => {
+        if (localStorage.getItem('e2e_refuse_atlas') !== '1') return;
+        const refuse = (store, key) => store === 'atlas_area' || (store === 'meta' && typeof key === 'string' && key.startsWith('atlas_near:'));
+        const put = IDBObjectStore.prototype.put;
+        IDBObjectStore.prototype.put = function (value, key) {
+          const req = put.call(this, value, key);
+          if (refuse(this.name, value && value.key)) this.transaction.abort();
+          return req;
+        };
+      });
+      const errorsBefore = h.errors.length;
+      try {
+        await pg.goto(h.exploreUrl);
+        await pg.waitForSelector('[data-testid=atlas-tile][data-level="town"]', { timeout: 60000 }).catch(() => {});
+        await pg.waitForTimeout(3000);
+        const idb = (src) => pg.evaluate((body) => new Promise((resolve) => {
+          const req = indexedDB.open('chronicles');
+          req.onsuccess = () => new Function('db', 'resolve', body)(req.result, resolve);
+          req.onerror = () => resolve('open failed');
+        }), src);
+        const listed = await idb(`const g = db.transaction('atlas_area', 'readonly').objectStore('atlas_area').getAll(); g.onsuccess = () => resolve(g.result.length);`);
+        const cleared = await idb(`const tx = db.transaction(['atlas_area', 'meta'], 'readwrite');
+          tx.objectStore('atlas_area').clear(); tx.objectStore('meta').delete('atlas_near:neighborhood'); tx.objectStore('meta').delete('atlas_near:town');
+          tx.oncomplete = () => resolve(true); tx.onabort = () => resolve(String(tx.error && tx.error.name));`);
+        await pg.evaluate(() => localStorage.setItem('e2e_refuse_atlas', '1'));
+        await pg.reload();
+        const refused = await idb(`const tx = db.transaction('atlas_area', 'readwrite'); tx.objectStore('atlas_area').put({ key: 'e2e_probe' });
+          tx.oncomplete = () => resolve('written'); tx.onabort = () => resolve('aborted');`);
+        const said = [];
+        let seen = { towns: [], read: 0 };
+        const until = Date.now() + 45000;
+        while (Date.now() < until) {
+          said.push(await pg.locator('[data-testid=atlas-empty]').innerText().catch(() => ''));
+          seen = await pg.locator('[data-testid=atlas-tile][data-level="town"]').evaluateAll((els) => ({
+            towns: els.map((e) => e.getAttribute('data-name')),
+            read: els.filter((e) => e.getAttribute('data-read') === '1').length,
+          }));
+          if (seen.towns.length && seen.read) break;
+          await pg.waitForTimeout(500);
+        }
+        // A few seconds more: the row holds.
+        await pg.waitForTimeout(4000);
+        const settled = await pg.locator('[data-testid=atlas-empty]').innerText().catch(() => '');
+        const stillTowns = await pg.locator('[data-testid=atlas-tile][data-level="town"]').count();
+        const kept = await idb(`const g = db.transaction('atlas_area', 'readonly').objectStore('atlas_area').getAll(); g.onsuccess = () => resolve(g.result.length);`);
+        await shot(pg, 'tend-explore-audit-32-writes-refused');
+        const none = said.filter((t) => /No towns are named/.test(t)).length;
+        check(listed > 0 && cleared === true && refused === 'aborted' && seen.towns.length > 0 && seen.read > 0 && stillTowns > 0 && !/No towns are named/.test(settled) && kept === 0,
+          `tend explore audit 32: with the atlas's writes refused, the row lists the towns read (their rings too, unkept) and does not settle on "No towns are named" (${JSON.stringify({ listed, cleared, refused, ...seen, stillTowns, settled, kept, samplesSayingNone: `${none} of ${said.length}` })})`);
+      } finally {
+        await c.close();
+        // The writes this step refused are its own: console errors for them are expected here, and nowhere else.
+        const own = h.errors.splice(errorsBefore).filter((e) => !/^atlas-full: .*(AbortError|Transaction aborted|aborted)/i.test(e));
+        h.errors.push(...own);
+      }
+    }
 }
 
 // Alone: the walk journey first (the first walk, with its captures), then this.
@@ -339,7 +670,6 @@ module.exports = {
   covers: [
     'src/lib/landing/**',
     'src/lib/activity/**',
-    'src/components/LandingMarks.tsx',
     'src/components/atlas/**',
     'src/lib/atlas/**',
   ],

@@ -40,6 +40,15 @@ export interface Star {
   points: LngLat[];
 }
 
+/**
+ * How many star glyphs a star's disc draws (decision 0172, O14): two, fanned, for places merged at this zoom, as a pin
+ * of several shows two discs (tend map T14), so a tap that zooms in does not look like one that opens a place; one for a
+ * lone place. Never a numeral, and every star one size (decision 0154).
+ */
+export function starGlyphs(star: Pick<Star, 'count'>): 1 | 2 {
+  return star.count > 1 ? 2 : 1;
+}
+
 const ELSEWHERE = 'elsewhere:';
 const stopped = (w: Walk) => !w.open && w.ended_at != null;
 
@@ -137,7 +146,7 @@ export function starsFor(index: PlacesIndex, level: AreaLevel, zoom: number, lat
     const id = ELSEWHERE + parent;
     base.push({ id, label: `Elsewhere in ${index.areas.get(parent)!.name}`, at: e.at, walkIds: [...e.walkIds], count: 1, keys: [id], points: [e.at] });
   }
-  // The busiest place leads its group; ties by name, so the grouping is stable.
+  // The densest place leads its group; ties by name, so the grouping is stable.
   base.sort((x, y) => y.walkIds.length - x.walkIds.length || x.label.localeCompare(y.label));
   const radius = metersPerPixel(zoom, lat) * PIN_GROUP_PX;
   const stars: Star[] = [];

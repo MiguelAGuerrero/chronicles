@@ -1,0 +1,46 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inbox",
+        "remove",
+        "T31",
+        "--reason",
+        "the owner's yes, in person, Nov 14, built in tend replay T31: the walk's card and the fog beat say their streets and finds in words"
+      ],
+      "target": "sha256:f6ef73f62b89addb30e65270d9e2a14b673e7a73e4a2fb62847d104d1ec52f01"
+    },
+    {
+      "argv": [
+        "inbox",
+        "remove",
+        "T32",
+        "--reason",
+        "the owner's yes, in person, Nov 14, built in tend tabs T32: Chronicle's Days say their counts in words, as the timeline under them does"
+      ],
+      "target": "sha256:fb7604f00d712f4bc574afce7b6a19644e369debff8d95172ea838853f90def2"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "A pin's",
+        "--reason",
+        "the owner's answer (decision 0172), built in tend map 11: a pin of moments past a week says how long ago alone"
+      ],
+      "target": "sha256:550d6b41ff143d2e6a4a8033af612b7e951d0db2215365effa2b9747357921b8"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "Long reminder",
+        "--reason",
+        "the owner's answer (decision 0172), built in tend explore 16: a reminder says \"Many memories here\" from thirteen, and the preview agrees"
+      ],
+      "target": "sha256:35d9fa6ae80efb8809cd358288819f850b957f68af2d074498ed74447e8f6af3"
+    }
+  ]
+}

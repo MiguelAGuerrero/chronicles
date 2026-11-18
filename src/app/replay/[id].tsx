@@ -1,7 +1,7 @@
 import type { Faced } from '../../lib/moment';
 import { notePatch } from '../../lib/noteEdit';
 import { useUnits } from '../../lib/useUnits';
-import { foundLine, foundList, passedLine } from '../../lib/explore/explore';
+import { foundLine, passedLine, replayFound } from '../../lib/explore/explore';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useWalkBorders } from '../../lib/areas/useOutlineSet';
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
@@ -15,28 +15,30 @@ import { CaptureViewer } from '../../components/CaptureView';
 import { Stage } from '../../components/ceremony/Stage';
 import { StepThrough } from '../../components/ceremony/StepThrough';
 import { useAwakeWhile } from '../../components/ceremony/useAwakeWhile';
+import { NextMoment } from '../../components/ceremony/NextMoment';
 import { useCeremonyClock } from '../../components/ceremony/useCeremonyClock';
 import { useRevealed } from '../../components/ceremony/useRevealed';
 import type { StageCtx } from '../../components/ceremony/layout';
 import { ceremonyFor } from '../../lib/ceremony/registry';
 import { chronicleSection } from '../../lib/resurface/sectionStore';
 import { pathDrawnAt, storySteps, walkStory } from '../../lib/ceremony/story';
-import { planViews, type WalkMapHandle } from '../../components/map/types';
+import { planViews, QUIET_TRACE_OPACITY, type WalkMapHandle } from '../../components/map/types';
 import { Button, theme } from '../../components/ui';
 import { db } from '../../lib/db';
 import { applyPatch, captureBus } from '../../lib/captureBus';
 import { captureEdits } from '../../lib/captureEdits';
 import { snapWalk } from '../../lib/finish';
-import { decide } from '../../lib/gaps';
-import { emptyGapAt, emptyGaps, gapKey, stretchAt, type Gap } from '../../lib/gaps/infer';
+import { decide, gapsAsked, keepAllOffers, noteAsked } from '../../lib/gaps';
+import { emptyGapAt, emptyGaps, gapKey, keepAllWords, offersOf, stretchAt, type Gap } from '../../lib/gaps/infer';
 import type { DrawnLine } from '../../lib/gaps/draw';
 import { useGapDraw } from '../../lib/gaps/useGapDraw';
 import { GapDraw } from '../../components/GapDraw';
 import { tileCollector } from '../../lib/tileCollector';
 import { GapCard } from '../../components/GapCard';
+import { KeepGapsCard } from '../../components/KeepGapsCard';
 import { ensureTileBuild } from '../../lib/tiles';
 import { setAudioMode } from '../../lib/audioMode';
-import { backFrom, beatWords, FOG_MS } from '../../lib/replay';
+import { backFrom, beatWords, cardTitle, fieldsAfterRename, FOG_MS, pinHint, wordsTyped } from '../../lib/replay';
 import { formatCaptures, formatDistance, formatDuration, loadReplay, suggestTitle, type ReplayData } from '../../lib/summary';
 import { renamePatch } from '../../lib/rename';
 import type { LngLat } from '../../lib/types';
@@ -45,7 +47,7 @@ import { useHidden } from '../../lib/deletion/useDeletions';
 import { UndoToast } from '../../components/UndoToast';
 import { WalkActions } from '../../components/WalkActions';
 import { pausedMs } from '../../lib/geo';
-import { newStreetsLine } from '../../lib/quietLines';
+import { moreFor, newStreetsLine, walkCardStreets } from '../../lib/quietLines';
 import { capturesHere, type HereResult } from '../../lib/here';
 import { launchRoute } from '../../lib/launchRoute';
 
@@ -95,6 +97,9 @@ export default function Replay() {
   const [epilogue, setEpilogue] = useState('');
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  // Leaving the first replay with words typed in Name it asks first, in Rename's words (tend replay 15).
+  const [asking, setAsking] = useState(false);
+  const keepEditing = () => setAsking(false);
   const [reduceMotion, setReduceMotion] = useState(false);
   const { width, height } = useWindowDimensions();
   const [viewing, setViewing] = useState<Faced[] | null>(null);
@@ -161,6 +166,25 @@ export default function Replay() {
     setGapOpen(null);
     setGapBusy(false);
   };
+  // Settled at walk's end (G15): the first replay asks once whether to keep every offered way. Asked once
+  // per walk, stored when it is shown (audit 1); shown only once the gaps are read (audit 3).
+  const [keepAsked, setKeepAsked] = useState(false);
+  const [askedBefore, setAskedBefore] = useState<boolean | null>(null);
+  const [gapsRead, setGapsRead] = useState(false);
+  const [keepError, setKeepError] = useState<string | null>(null);
+  const keepThem = async () => {
+    if (!data) return;
+    setGapBusy(true);
+    setKeepError(null);
+    // Whatever was stored is followed by the walk and the screen, even when a write failed (audit 2).
+    const failed = await keepAllOffers(data.walk.id, offersOf(data.stretches)).catch(() => 1);
+    await snapWalk(data.walk, tileCollector()).catch(() => db.updateWalk(data.walk.id, { snapped_build: null }).catch(() => {}));
+    const d = await loadReplay(id).catch(() => null);
+    if (d) setData(d);
+    if (failed) setKeepError('Couldn’t save all of them. Try again.');
+    else setKeepAsked(true);
+    setGapBusy(false);
+  };
   const showHere = (at: LngLat, radiusM?: number) => {
     if (here || viewing) return;
     const tap = ++hereTaps.current;
@@ -174,6 +198,7 @@ export default function Replay() {
   };
   // Opened from the log, or watched again. Only the screen reader's steps move on by themselves (RR17).
   const rewatch = ceremony === '0';
+  const rewatchRef = useRef(rewatch);
   const [watched, setWatched] = useState(false);
   // A screen reader hears the captures, not the animation: no fog, no path.
   const [srMode, setSrMode] = useState(false);
@@ -201,21 +226,47 @@ export default function Replay() {
   useEffect(() => {
     beatNow.current = phase.beat;
   }, [phase.beat]);
+  // The words typed in Name it, as Keep it would store them, and whether the ask is up, as Back reads them (tend replay 15).
+  const wordsNow = useRef<{ typed: boolean; asking: boolean }>({ typed: false, asking: false });
+  useEffect(() => {
+    wordsNow.current = { typed: !rewatch && !!data && wordsTyped(data.walk, title, epilogue, offered), asking };
+  }, [rewatch, data, title, epilogue, offered, asking]);
+  // One way back, read once (tend replay 4, 5, T21): Android's Back, Escape and the name sheet's Back. True when it was
+  // taken here; false when the beat is left as Not now or Done leaves it. Words typed ask first, with the fields and
+  // their words above the ask (tend replay 15).
+  const stepBack = useCallback((): boolean => {
+    const way = backFrom(beatNow.current, wordsNow.current);
+    if (way === 'leave') return false;
+    if (way === 'keep-editing') setAsking(false);
+    else if (way === 'ask') {
+      setAsking(true);
+      go('name');
+    } else go('card');
+    return true;
+  }, [go]);
+  // Not now leaves as Back and Escape leave the card: with words typed it asks first, else at once (tend replay audit
+  // 15; the owner's answer, Nov 17, "Ask there too").
+  const leaveCard = () => {
+    if (backFrom('card', wordsNow.current) !== 'ask') toChronicle();
+    else {
+      setAsking(true);
+      go('name');
+    }
+  };
   useEffect(() => {
     if (rewatch) return;
     // However it is left, the first replay ends on Chronicle's Memories (RM3).
     chronicleSection.set('memories');
     const back = BackHandler.addEventListener('hardwareBackPress', () => {
       // Back on the name step returns to the card, the words typed kept (tend replay 4).
-      if (backFrom(beatNow.current) === 'card') go('card');
-      else toChronicle();
+      if (!stepBack()) toChronicle();
       return true;
     });
     return () => {
       back.remove();
       if (!leftForChronicle.current) setTimeout(() => router.navigate('/'), 0);
     };
-  }, [rewatch, toChronicle, go]);
+  }, [rewatch, toChronicle, stepBack]);
   // Escape on the web is Back's sibling (tend replay 5): the name step returns to the card; anywhere else the replay
   // is left as Not now or Done leaves it. Nothing while a viewer, the walk's menu or a gap's card holds the key.
   const held = viewing != null || here != null || actionsOpen || gapOpen != null || isDrawing;
@@ -224,15 +275,15 @@ export default function Replay() {
     const onKey = (e: KeyboardEvent) => {
       // A held key's repeats are not more presses: the name step's Escape stops at the card (tend replay audit 4).
       if (e.key !== 'Escape' || e.repeat) return;
-      if (backFrom(beatNow.current) === 'card') go('card');
-      else if (!rewatch) toChronicle();
+      if (stepBack()) return;
+      if (!rewatch) toChronicle();
       else if (router.canGoBack()) router.back();
       else router.dismissTo('/');
     };
     // In the capture phase: react-native-web's TextInput stops a key's propagation (the name step's fields).
     window.addEventListener('keydown', onKey, true);
     return () => window.removeEventListener('keydown', onKey, true);
-  }, [held, rewatch, toChronicle, go]);
+  }, [held, rewatch, toChronicle, stepBack]);
 
   // Memos and videos play with the ringer switch off, as the voice is the point.
   useEffect(() => {
@@ -278,6 +329,7 @@ export default function Replay() {
       setOffered(d.walk.title ? null : suggestTitle(d.walk));
       setEpilogue(d.walk.epilogue ?? '');
       setStatus('ready');
+      if (!rewatchRef.current) gapsAsked(id).then((was) => alive && setAskedBefore(was), () => alive && setAskedBefore(false));
       // A new tile build drops the street cache and marks walks for re-snapping.
       const build = await ensureTileBuild().catch(() => 'unknown');
       if (!alive) return;
@@ -287,6 +339,7 @@ export default function Replay() {
         // Shown even when no snap follows: in a new session, gaps are only filled once read (audit 2).
         setData(d);
       }
+      setGapsRead(true);
       const stale = build !== 'unknown' && d.walk.snapped_build !== build;
       if (!d.summary || !d.walk.snapped_build || stale) {
         await snapWalk(d.walk, {
@@ -334,7 +387,7 @@ export default function Replay() {
     });
   }, []);
   const play = useCeremonyClock({ epoch: phase.t0, running: telling, paused: viewing != null || waits.size > 0, showing, onEnd: () => go('card') });
-  const frame = telling ? showing.frame(play.ms) : null;
+  const frame = telling ? showing.frame(play.ms, play.jump) : null;
   // The screen stays awake while the replay plays, until the card (RR24).
   useAwakeWhile(beat === 'reading' || beat === 'fog' || beat === 'path');
 
@@ -404,11 +457,22 @@ export default function Replay() {
   const faint = useMemo(() => (data && (beat === 'card' || beat === 'name') ? data.stretches.filter((x) => x.how === 'offer').map((x) => x.path) : []), [data, beat]);
   const openGap = gapOpen && data ? data.stretches.find((x) => gapKey(x) === gapOpen) ?? null : null;
   const openGapOf = gapOpen && data ? data.gaps.find((x) => gapKey(x) === gapOpen) ?? null : null;
+  // The walk's-end question (G15): first replay only, once the gaps are read, nothing else open.
+  const keepWords =
+    !rewatch && !keepAsked && askedBefore === false && gapsRead && beat === 'card' && data && !gapOpen && !isDrawing && !here && !viewing
+      ? keepAllWords(offersOf(data.stretches).length)
+      : null;
+  const keepShown = keepWords != null;
+  useEffect(() => {
+    if (keepShown) void noteAsked(id);
+  }, [keepShown, id]);
   // Gaps with no line across them, joined by grey dots on the card beats (GW2).
   const links = useMemo(
     () => (data && (beat === 'card' || beat === 'name') ? emptyGaps(data.gaps, data.stretches).map((g) => [g.from, g.to]) : []),
     [data, beat],
   );
+  // The walk's clock, so a pin of several says how far in it was (tend map T14).
+  const clocks = useMemo(() => (data ? [{ id: data.walk.id, started_at: data.walk.started_at, pauses: data.pauses }] : undefined), [data]);
 
   if (failure) throw failure;
   if (status !== 'ready' || !data || !story) {
@@ -417,7 +481,7 @@ export default function Replay() {
         {status === 'missing' ? (
           <>
             <Text style={styles.missing}>This walk could not be found.</Text>
-            <Button label="Back to walks" onPress={() => router.dismissTo('/')} />
+            <Button label="Back to Chronicle" onPress={() => router.dismissTo('/')} />
           </>
         ) : (
           <Text style={styles.muted}>Opening your walk…</Text>
@@ -430,9 +494,12 @@ export default function Replay() {
   // Ridden distance (R6): the summary's, else the trace's for a summary written before rides.
   const rideM = s?.ride_m ?? data.rideM;
   const head = headline(s, data);
-  const finds = foundList(data.found.map((f) => f.name));
+  const finds = replayFound(data.found);
   const passed = passedLine(data.passed);
-  const freshLine = s?.streets_read ? newStreetsLine(data.newStreets) : null;
+  // Streets walked and new, in words (tend replay T31), one clause when all are new (tend replay audit 14).
+  // The name typed in Name it, unsaved, until Keep it or leaving (tend replay audit 16, the owner's "Show the typed name").
+  const shownTitle = cardTitle(data.walk, title, offered);
+  const streetsLine = walkCardStreets(s?.streets_walked ?? 0, s?.streets_read ? data.newStreets : null);
 
   const save = async () => {
     if (saving) return;
@@ -457,10 +524,11 @@ export default function Replay() {
         borders={borders}
         trace={drawn.trace}
         rides={drawn.rides}
-        traceOpacity={beat === 'fog' || beat === 'reading' ? 0.3 : 1}
+        traceOpacity={beat === 'fog' || beat === 'reading' ? QUIET_TRACE_OPACITY : 1}
         walked={shownWalked}
         fog={fog}
         captures={pinned}
+        clocks={clocks}
         // While drawing, a tap on a pin is a point along the way like any other (gap-drawing audit 8).
         onPinPress={(beat === 'card' || beat === 'name') && !isDrawing ? setViewing : undefined}
         onPress={beat === 'card' || beat === 'name' ? pressCard : undefined}
@@ -477,6 +545,8 @@ export default function Replay() {
         initialCenter={data.fixes[0] ? [data.fixes[0].lon, data.fixes[0].lat] : undefined}
         covered={beat === 'reading'}
         veil
+        // The town borders over the veil, at a lighter fill (decision 0199).
+        bordersOverVeil
         // The walk has ended: its last point is marked (QL2), where the whole trace ends in every beat, never at
         // the tip of the path being told (tend replay 2).
         ended={data.runs}
@@ -533,13 +603,14 @@ export default function Replay() {
         onSaveEdit={async (c, patch) => {
           // A failed write throws to the viewer, which says so; the screen only changes once it is stored (ME21).
           await captureEdits.save(c, patch);
-          setData((d) => d && { ...d, captures: applyPatch(d.captures, c.id, patch) });
+          setData((d) => d && { ...d, captures: applyPatch(d.captures, c.id, patch, c.piece_id) });
         }}
         onSaveNote={async (c, body) => {
           // Stored first; the replay's own list and any open view of the walk then show it (QL25).
-          await db.updatePiece(c.piece_id, notePatch(body));
-          setData((d) => d && { ...d, captures: applyPatch(d.captures, c.id, notePatch(body)) });
-          captureBus.patch(c.walk_id, c.id, notePatch(body), null);
+          const change = notePatch(body);
+          await db.updatePiece(c.piece_id, change);
+          setData((d) => d && { ...d, captures: applyPatch(d.captures, c.id, change, c.piece_id) });
+          captureBus.patch(c.walk_id, c.id, change, null, c.piece_id);
         }}
       />
       <CaptureViewer
@@ -551,9 +622,10 @@ export default function Replay() {
         onClose={() => setHere(null)}
         onSaveNote={async (c, body) => {
           // Stored first; the replay's own list and any open view of the walk then show it (QL25).
-          await db.updatePiece(c.piece_id, notePatch(body));
-          setData((d) => d && { ...d, captures: applyPatch(d.captures, c.id, notePatch(body)) });
-          captureBus.patch(c.walk_id, c.id, notePatch(body), null);
+          const change = notePatch(body);
+          await db.updatePiece(c.piece_id, change);
+          setData((d) => d && { ...d, captures: applyPatch(d.captures, c.id, change, c.piece_id) });
+          captureBus.patch(c.walk_id, c.id, change, null, c.piece_id);
         }}
       />
 
@@ -575,9 +647,25 @@ export default function Replay() {
         />
       )}
 
+      {keepWords && (
+        <KeepGapsCard
+          words={keepWords}
+          busy={gapBusy}
+          error={keepError}
+          style={{ bottom: sheetH + 12, zIndex: 5 }}
+          onKeep={() => void keepThem()}
+          onLeave={() => {
+            setKeepError(null);
+            setKeepAsked(true);
+          }}
+        />
+      )}
+
       {(beat === 'fog' || beat === 'path') && (
         <View style={[styles.skip, { top: insets.top + 12 }]}>
           <Button testID="skip" variant="secondary" label="Skip" onPress={() => go('card')} />
+          {/* Under Skip, at the same edge: the clock sits between Hold and Skip, and the three do not fit one row on a 375 px phone (RY12). */}
+          {frame && play.canNext && <NextMoment onPress={play.next} />}
         </View>
       )}
       {frame && (
@@ -617,12 +705,13 @@ export default function Replay() {
             {beat === 'card' ? (
               <>
                 <View style={styles.titleRow}>
-                  <Text style={[styles.cardTitle, styles.flex]} accessibilityRole="header">{data.walk.title ?? suggestTitle(data.walk)}</Text>
+                  <Text style={[styles.cardTitle, styles.flex]} accessibilityRole="header">{shownTitle}</Text>
                   {!data.walk.open && (
                     <Pressable
                       testID="card-more"
                       accessibilityRole="button"
-                      accessibilityLabel="More for this walk"
+                      // Named by the title the card shows, as the walk's row names it (tend tabs 11).
+                      accessibilityLabel={moreFor(shownTitle)}
                       onPress={() => setActionsOpen(true)}
                       style={({ pressed }) => [styles.more, pressed && { opacity: 0.6 }]}
                       hitSlop={4}
@@ -634,16 +723,19 @@ export default function Replay() {
                 {/* New streets are a clause in the line, never a big orange number (tabs audit U13). */}
                 <Text testID="card-line" style={styles.cardLine}>
                   <Text testID="card-distance">{formatDistance(s?.distance_m ?? 0)}</Text> · {formatDuration(s?.duration_ms ?? Math.max(0, (data.walk.ended_at ?? data.walk.started_at) - data.walk.started_at - pausedMs(data.pauses, data.walk.started_at, data.walk.ended_at ?? data.walk.started_at)))}
-                  {s && s.streets_walked > 0 ? ` · ${s.streets_walked} ${s.streets_walked === 1 ? 'street' : 'streets'} walked` : ''}
-                  {freshLine ? `, ${freshLine}` : ''}
+                  {streetsLine ? ` · ${streetsLine}` : ''}
                 </Text>
                 {/* A ride on its own line, so the card's line doesn't say "walked" twice (rides audit, UI). */}
                 {rideM >= 1 ? <Text testID="card-ride" style={styles.cardMuted}>+ {formatDistance(rideM)} by ride</Text> : null}
-                {s && formatCaptures(s) ? <Text style={styles.cardMuted}>{formatCaptures(s)} · tap a pin to open</Text> : null}
+                {/* What was kept, a clause (tend replay T19). */}
+                {s && formatCaptures(s) ? <Text testID="card-kept" style={styles.cardMuted}>{formatCaptures(s)}</Text> : null}
                 {finds ? <Text testID="card-finds" style={styles.cardMuted}>{finds}</Text> : null}
                 {/* The lows stay in (E11): what came within view and wasn't stopped for. */}
                 {passed ? <Text testID="card-low" style={styles.cardMuted}>{passed}</Text> : null}
                 {data.walk.epilogue ? <Text style={styles.epilogue}>“{data.walk.epilogue}”</Text> : null}
+                {/* The one hint, the card's last line before its buttons, as on the day's card (tend replay T19, audit 10);
+                    no pin, no hint (audit 11). */}
+                {pinHint(pinned) ? <Text style={styles.cardMuted}>{pinHint(pinned)}</Text> : null}
                 <View style={styles.row}>
                   <Button
                     variant="secondary"
@@ -666,7 +758,7 @@ export default function Replay() {
                     testID="not-now"
                     accessibilityRole="button"
                     accessibilityHint="Keeps the walk without a name and goes to Chronicle"
-                    onPress={toChronicle}
+                    onPress={leaveCard}
                     style={({ pressed }) => [styles.notNow, pressed && { opacity: 0.6 }]}
                   >
                     <Text style={styles.notNowText}>Not now</Text>
@@ -675,6 +767,21 @@ export default function Replay() {
               </>
             ) : (
               <>
+                {/* A quiet way back to the card, the words kept, where Back and Escape go (tend replay T21, decision 0165):
+                    an iPhone has neither. While the ask shows, its two answers are the ways on (tend replay 15). */}
+                {!asking && (
+                  <Pressable
+                    testID="name-back"
+                    accessibilityRole="button"
+                    // The owner's "Add the chevron", Nov 17 (tend replay audit 16): a muted back chevron, and where it goes.
+                    accessibilityHint="Returns to the card, your words kept"
+                    onPress={stepBack}
+                    style={({ pressed }) => [styles.nameBack, pressed && { opacity: 0.6 }]}
+                  >
+                    <Icon name="chevron-back" size={18} color={theme.muted} />
+                    <Text style={styles.notNowText}>Back</Text>
+                  </Pressable>
+                )}
                 <Text style={styles.label} nativeID="title-label">Name this walk</Text>
                 <TextInput
                   testID="title-input"
@@ -699,12 +806,24 @@ export default function Replay() {
                   placeholder="e.g. The bakery was closed, the river was not."
                   placeholderTextColor={theme.muted}
                   returnKeyType="done"
-                  onSubmitEditing={save}
+                  // While the ask shows, Done is Keep editing, never a hidden save (as tend chronicle audit 5).
+                  onSubmitEditing={asking ? keepEditing : save}
                   maxLength={200}
                   style={styles.input}
                 />
                 {saveError ? <Text style={styles.error} accessibilityRole="alert">Could not save: {saveError}</Text> : null}
-                <Button testID="save" label="Keep it" onPress={save} busy={saving} busyLabel="Saving…" />
+                {asking ? (
+                  // Rename's ask, in its words, in Keep it's place (tend chronicle 9; tend replay 15).
+                  <View testID="name-ask" style={styles.ask} accessibilityLiveRegion="polite">
+                    <Text style={styles.askText}>Discard these edits?</Text>
+                    <View style={styles.askRow}>
+                      <Button testID="name-keep" label="Keep editing" variant="secondary" onPress={keepEditing} style={styles.flex} />
+                      <Button testID="name-discard" label="Discard" variant="danger" onPress={toChronicle} style={styles.flex} />
+                    </View>
+                  </View>
+                ) : (
+                  <Button testID="save" label="Keep it" onPress={save} busy={saving} busyLabel="Saving…" />
+                )}
               </>
             )}
           </ScrollView>
@@ -718,9 +837,11 @@ export default function Replay() {
         // The card shows the new name at once, and the name beat's fields with it (QL23).
         onRenamed={(walkId, patch) => {
           setData((d) => (d && d.walk.id === walkId ? { ...d, walk: { ...d.walk, ...patch } } : d));
-          setTitle(patch.title ?? suggestTitle(data.walk));
-          setOffered(patch.title ? null : suggestTitle(data.walk));
-          setEpilogue(patch.epilogue ?? '');
+          // Only what Rename changed, so a line typed in Name it stays (tend replay audit 15).
+          const fields = fieldsAfterRename(data.walk, patch, { title, epilogue, offered });
+          setTitle(fields.title);
+          setOffered(fields.offered);
+          setEpilogue(fields.epilogue);
         }}
       />
       <UndoToast style={{ top: insets.top + 12 }} />
@@ -760,7 +881,7 @@ const styles = StyleSheet.create({
   },
   headlineLabel: { fontSize: 17, color: theme.ink, fontWeight: '600', textAlign: 'center' },
   headlineNote: { fontSize: 14, color: theme.muted, textAlign: 'center', marginTop: 6 },
-  skip: { position: 'absolute', right: 12 },
+  skip: { position: 'absolute', right: 12, alignItems: 'flex-end', gap: 8 },
   hold: { position: 'absolute', left: 12 },
   sheetWrap: { position: 'absolute', left: 0, right: 0, bottom: 0, maxHeight: '70%' },
   sheet: { backgroundColor: theme.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20 },
@@ -774,9 +895,18 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', gap: 10, marginTop: 6 },
   notNow: { minHeight: 44, alignSelf: 'center', justifyContent: 'center', paddingHorizontal: 16 },
   notNowText: { fontSize: 15, fontWeight: '600', color: theme.muted },
+  // Not now's quiet text, at the name sheet's leading edge, its words in line with the labels below.
+  nameBack: {
+    minHeight: 44, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 2, paddingLeft: 12, paddingRight: 16,
+    marginLeft: -16, marginTop: -10,
+  },
   flex: { flex: 1 },
   label: { fontSize: 14, fontWeight: '600', color: theme.muted },
   input: { borderWidth: 1.5, borderColor: theme.edge, borderRadius: 10, padding: 12, fontSize: 16, color: theme.ink },
   error: { color: theme.danger, fontSize: 14 },
+  // Rename's ask (components/WalkActions).
+  ask: { gap: 10, marginTop: 8 },
+  askText: { fontSize: 16, color: theme.ink, textAlign: 'center' },
+  askRow: { flexDirection: 'row', gap: 8 },
 });
 

@@ -1,0 +1,31 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore and discovery"
+      ],
+      "body": "- [loop] Go here (decision 0180) is only on Explore's area tiles. The other hosts of a place's Walk to have none yet: a complex's row, a busy street's row, the long press's card, the mark card, Chronicle's Walk here and HomeSheet's `place-go`. Open in Maps on the Explore mark card is still the deferral of 0058. Fix: the same `goHereChoices` sheet on each, if the owner asks (Explore Go here, Nov 14; the owner named Explorers' tiles)\n- [loop] Go here on a tile that peeks at the row's edge is off-screen until the row scrolls it in, and scrolling selects that tile (`explore-go-here` cold find: \"not found\" at the edge, found once centred). The row's own pattern, kept. Fix, if the owner wants it: the action on the selected tile alone, or one Go here in the row's header for the selected tile (Explore Go here, Nov 14, cold find)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Explore carousel (EC1-EC20, decision 0124; discrete navigation DN1, DN10, DN12, DN13)"
+      ],
+      "body": "- [ ] **Do:** on an iPhone, open Explore, tap Go here on a tile, then Apple Maps. **Expect:** Apple Maps opens with walking directions to that area's place; back in Chronicles the sheet is closed and recording (if a walk is open) went on (GH4, decision 0180)\n- [ ] **Do:** on a phone, tap Go here on a tile, then Chronicles. **Expect:** Navigate opens ready, \"To <place>\", no walk started and nothing recorded until you tap Start (GH5, GH6)\n"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "add",
+        "--top"
+      ],
+      "body": "| Explore: Go here on every tile (a quiet \"Go here\" on each area tile opens a sheet of two choices: Chronicles, which saves the destination and opens Navigate ready, or the phone's maps app, handed the destination alone; GH1-GH15, decision 0180) | built 2026-11-14 on `claude/focused-brahmagupta-eajl5h`; not deployed; native unverified | `claude/focused-brahmagupta-eajl5h` | `specs/explore-go-here/spec.md` | plan audited by the steward (1 breach, 5 drifts, 1 tone: all accepted); UI review and cold find run (2 accepted, 4 rejected as opinion); the built slice not audited |\n"
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "Native's busy names at a switch's settle"
+      ],
+      "body": "  Now 0166: 0165 went to the owner's answers to T19-T22 on main first, too.\n",
+      "target": "sha256:5f9e4ecf290d0724b0933d6e94c756563ca6f1084e21aeb95ab22957862862c9"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "note",
+        "swipe through its neighborhoods to the end of the row and back"
+      ],
+      "body": "  Now 0166: 0165 went to the owner's answers to T19-T22 on main first, too.\n",
+      "target": "sha256:6caa34897a9c2e5578f90b2008209c3ac62eb31d0467de9c4ecb0b08fc5944ed"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "set",
+        "Smooth neighborhood switches"
+      ],
+      "body": "| Smooth neighborhood switches (a switch redraws nothing it already showed: the neighborhood's outline kept and derived after the move, unchanged Busy lines never resent, the names once at the settle, the lines held on a town's page, markers kept, a cut read retried; one Explore render per move, costing what the camera alone does; SS1-SS10, decision 0166) | built 2026-11-13, not deployed | `claude/trusting-cannon-f5wdhg` | `specs/smooth-switches/spec.md` | no (UI review: 1 finding, fixed) |\n",
+      "target": "sha256:1425ead84140124edcfd538b0aa24641f4e0c649b587dd15b4a9b4497bb425ab"
+    },
+    {
+      "argv": [
+        "inflight",
+        "set",
+        "Smooth neighborhood switches"
+      ],
+      "body": "| Smooth neighborhood switches (a switch redraws nothing it already showed: the outline kept and derived after the settle, unchanged Busy lines never resent, the names sent once at the settle, lines held on a town's page, markers not rebuilt, a cut read retried; SS1-SS10, after Explore in a dense city) | `claude/trusting-cannon-f5wdhg` | built 2026-11-13, test-first by history (10 of 10): unit tests (2344), typecheck, lint, docs and vision checks; the `switches` journey (at 4x CPU each switch paired with the camera alone's move) and the 16 journeys `check:affected` names pass on the merged build; steward read (S1-S3 accepted); UI review: U1 fixed, then superseded by main's fix carousel-height on the merge; SS9 amended on the owner's call (decision 0166); native unverified; not audited; not merged or deployed. Spec `specs/smooth-switches/spec.md` |\n",
+      "target": "sha256:7795abaa832c466bec6cd7f118989b10b834f5b2d6df0fe85cc77abb8edd1ee0"
+    }
+  ]
+}

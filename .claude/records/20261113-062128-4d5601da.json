@@ -1,0 +1,97 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "slice",
+        "row",
+        "add",
+        "--top"
+      ],
+      "body": "| Note types (a note carries one of eight ink marks the owner chooses: question, emphasis, idea, happy, neutral, sad, like, dislike; set from the note page's Type tool; on the viewer's note, the single-note pin and the thread bubble; NY1-NY17, decision 0161) | built 2026-11-12 and audited twice (11 findings, 4 fixed, 3 deferred, 4 rejected; then 14 findings, 7 fixed, 2 deferred, 5 rejected); merged with note pages 2026-11-13: unit tests, `dbContract` on all three stores, the `qol`, `threads` and `responses` journeys; native unverified | `claude/note-types-custom-icons-22hkgd` | `specs/note-types/spec.md` | yes (tests `note-types audit 1, 3, 8, 9, 12-16, 20, 21`) |\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Note types (NY1-NY17, decision 0161)",
+        "--new"
+      ],
+      "body": "- [owner] **Note types** (0161): a type chosen while a note is first written (a new note's page and Respond's start with no type; Edit sets one, so capture stays one tap); searching, lensing or threading notes by type; a type on a photo, video or memo. Any feature that reads types goes through the vision gate again.\n",
+      "intro": "What the note types slice left out (`specs/note-types`, decision 0161).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Note types (NY1-NY17, decision 0161)"
+      ],
+      "body": "- [loop] **Note types** (0161, audit 2): a pin's marker is rebuilt, and web focus lost, when its note's type changes (the key includes the mark); the reminder bell keeps the element. No test reaches a single-note pin in the e2e (the replay's is always a group).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Note types (NY1-NY17, decision 0161)"
+      ],
+      "body": "- [loop] **Note types** (0161, audit 11): the owner-thread bubbles' ⋯ buttons are 44 px but drawn small and sit outside the bubble; a larger drawn target is the threads' slice.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Note types (NY1-NY17, decision 0161)"
+      ],
+      "body": "- [loop] **Note types** (0161, audit 22): the Type menu on the note page, in two columns, may wrap or crowd at 200% text or below 320 px wide; fall back to one column above a font scale of about 1.5, and give the menu menu-item roles instead of a radiogroup (which wants a popup trigger with `aria-haspopup`).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Note types (NY1-NY17, decision 0161)"
+      ],
+      "body": "- [owner] **Note types** (0161, audit 23): Neutral is a dash in a circle because Ionicons has no neutral face. `MaterialCommunityIcons` has `emoticon-neutral-outline`; using it adds a second icon font to the web and phone builds.\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Note types (NY1-NY17, decision 0161)",
+        "--new"
+      ],
+      "body": "- [ ] **Do:** upgrade from a build before note types, open a note taken before it, open its page with Edit, set Type to Idea and leave, then kill and reopen the app. **Expect:** the app opens (SQLite migration 27 adds `capture.note_type`), the note kept before reads as no type and its words are unchanged, and after the choice the viewer shows the lightbulb and \"Idea\" above the page and the note's single pin wears the bulb after the reopen (NY4, NY7, NY9, NY10)\n",
+      "intro": "What the note types slice wrote and has not run on a phone (`specs/note-types`, decision 0161).\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Note types (NY1-NY17, decision 0161)"
+      ],
+      "body": "- [ ] **Do:** on a phone, open a note's page with Edit and open its Type tool, with the keyboard up. **Expect:** nine entries in two columns with their glyphs (a question, exclamation, bulb, happy, a dash in a circle, sad, thumbs up, thumbs down) all in one ink colour, the menu and the bar both in view above the keyboard, each entry read aloud by its name by VoiceOver or TalkBack with which is selected, and \"No type\" clears the mark (NY6, NY11, note-types audit 8, 9, 20)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Note types (NY1-NY17, decision 0161)"
+      ],
+      "body": "- [ ] **Do:** on a phone, open a moment with a photo and a note, open the note by its piece, set Type to Question, then look at the moment's pin and its card, and Split the note out. **Expect:** the photo's pin and card keep the photo and show no type; the note shows the question mark when opened again; Split out keeps the type on the note (NY5, note-types audit 1, 12, 13)\n"
+    },
+    {
+      "argv": [
+        "inbox",
+        "add"
+      ],
+      "body": "- **T? [owner] VISION.md's \"Never likes\" line disagrees with note types** (2026-11-13)\n  Area: captures, vision. Seen: the steward's second pass on `specs/note-types` (audit 18): the app ships a Like and a Dislike on a note (decision 0161), while VISION.md's Never table still reads \"A feed, followers, likes, public profiles\". Rests on: your call in 0161; the gate may not edit the Never list.\n  Recommended: in that row's \"nearest thing that fits\" column add \"a mark on your own note, shown to no one and read by no feature about a place, a route or a recommendation (0161)\". The page is at its size budget (12,000 bytes): shorten another row to fit.\n",
+      "number": "T27"
+    }
+  ]
+}

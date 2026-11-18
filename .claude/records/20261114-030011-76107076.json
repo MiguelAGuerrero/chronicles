@@ -1,0 +1,14 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "Memo transcripts audit 5"
+      ],
+      "body": "Followed up (memo-transcripts-followups): the store half is fixed (the shell writes rows to a pending map and publishes once per run or every 50 rows; test \"memo-transcripts audit 5b\"). Left open: the rest of audit 5 is as recorded above.\n",
+      "target": "sha256:623a51ad22d53138b1055901ec476af1603041dcbb417b114fb0a30e48bb02d3"
+    }
+  ]
+}

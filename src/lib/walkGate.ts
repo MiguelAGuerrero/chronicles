@@ -6,7 +6,9 @@
  * screens, two live maps. Pure: the clock is given.
  */
 export function createWalkGate(pendingMs: number) {
-  let shown = false;
+  // The walk screens up: counted, so one going down (a launch's replace, a focus before the old one's blur) leaves
+  // the other's hold (tend tabs 14).
+  let shown = 0;
   let pendingUntil = 0;
   let launchUntil = 0;
   return {
@@ -16,18 +18,21 @@ export function createWalkGate(pendingMs: number) {
      * notification can ask before the router is ready, and that push is lost (navigate-ready, NR3).
      */
     ask(now: number, opts?: { launch?: boolean }): boolean {
-      if (shown || (!opts?.launch && now < pendingUntil) || (opts?.launch && now < launchUntil)) return false;
+      if (shown > 0 || (!opts?.launch && now < pendingUntil) || (opts?.launch && now < launchUntil)) return false;
       pendingUntil = now + pendingMs;
       if (opts?.launch) launchUntil = now + pendingMs;
       return true;
     },
-    /** The walk screen mounted; returns its unmount. */
+    /** The walk screen mounted; returns its unmount, which counts once however often it is called. */
     shown(): () => void {
-      shown = true;
+      shown += 1;
       pendingUntil = 0;
       launchUntil = 0;
+      let down = false;
       return () => {
-        shown = false;
+        if (down) return;
+        down = true;
+        shown -= 1;
       };
     },
   };

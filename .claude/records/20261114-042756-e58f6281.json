@@ -1,0 +1,479 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "The route preview's selected row shows by a 2 px border",
+        "--reason",
+        "the owner's answer, Nov 14 (decision 0172): leave it; the outline and the filled Go are already two cues that are not colour"
+      ],
+      "target": "sha256:1b94159c004c784ff830b75e65304fcb9d276a3ceeda305f30b1f24d82d63a15"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "set",
+        "`spokenTimeLeft` and the exported `PACE_CLAMP` in `nav/eta.ts`",
+        "--reason",
+        "premise wrong, checked on main Nov 14: aboutTimeLeft calls spokenTimeLeft (nav/eta.ts l.55) and paceMps reads PACE_CLAMP (l.22), so neither can be deleted; only their exports are test-only"
+      ],
+      "body": "- [loop] `spokenTimeLeft` and `PACE_CLAMP` in `nav/eta.ts` are exported only for their own tests: `aboutTimeLeft` calls `spokenTimeLeft` (l.55) and `paceMps` reads `PACE_CLAMP` (l.22), so neither can go. Un-export them and test through `aboutTimeLeft` and `paceMps` (`/tend navigation`, Nov 11; auditor, low; the premise corrected by `/tend triage`, Nov 14)\n",
+      "target": "sha256:817dd22940ef1e7afd8ed4fccfed486c4ee05552e06c7510b0d42b2121a46678"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "When the places archive fails to load, the planner and the atlas ring",
+        "--reason",
+        "the owner's answer, Nov 14 (decision 0172): leave it; it mends itself on the next load and nothing kept is lost"
+      ],
+      "target": "sha256:d4f1af14305a3090ac6d8943538e8b99e796f0a0469209a34058f717f8bc1423"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "Philadelphia's Old City Hall, a map museum",
+        "--reason",
+        "the owner's answer, Nov 14 (decision 0172): leave it; neighbourhood names never contribute to presence, so 0127's read-past stays"
+      ],
+      "target": "sha256:7ab2495d66bdeb2af0f6811d85b06947c0a350ef2168357edbf34e6666139e4d"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "The solid end reads smaller than the hollow start",
+        "--reason",
+        "stale, checked on main Nov 14 (decision 0172): since tend map T25 the end is a bullseye as wide as the start (ENDS_RING_PAINT); the item says it no longer matches what is drawn"
+      ],
+      "target": "sha256:c8b77c37cc9c5a0482079648a8cb194b509df6e72c1ae729769d99f692ff6ba1"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "The map's attribution (i) is about 22 px",
+        "--reason",
+        "struck through in place: done by tend map 3 (a 44 px target on every map, beside the scale bar off Chronicle)"
+      ],
+      "target": "sha256:d22e3e500f3fe4a00b70e5546967ccec9e29d48147bd08c825edb0d3a8b3ade6"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "Map pins that group show a bare count",
+        "--reason",
+        "stale, checked on main Nov 14 (decision 0172): since tend map T14 a pin of several fans its kinds and never draws a numeral (CapturePinView.tsx)"
+      ],
+      "target": "sha256:4311403b18d61bc107fcf91edabf55a2644912ebc2559cd9875415ac689ea965"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "While a voice memo records, the note and camera buttons leave the stack",
+        "--reason",
+        "the owner's answer, Nov 14 (decision 0172): leave it, and say why in VISION.md, which the owner edits (the line is proposed in the decision)"
+      ],
+      "target": "sha256:7b8c48fb26446d2cc16c3a1130031d9b5fc6185d603eeed6d8be075ab0400408"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "A card's time can run a minute ahead of the rolling clock",
+        "--reason",
+        "the owner's answer, Nov 14 (decision 0172): leave it; the card's time is the moment's own, the clock is the rhythm's"
+      ],
+      "target": "sha256:4c5a881fe6080644e162ebe6d4723a6f588a76b6f79d05b34b4c3e5bccd9f808"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "retag",
+        "The browser's own Back on the name step leaves the replay",
+        "arch",
+        "--reason",
+        "holding the browser's Back is a navigation-flow change (tabs-and-home.md: it cannot be held cheaply)"
+      ],
+      "target": "sha256:3ad3c6182f9c0aeafb43bb76d097e1ee2abf9e39087439a8f7045ef04f4f31ef"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "Pages serves `index.html` with `cache-control: max-age=600`",
+        "--reason",
+        "the owner's answer, Nov 14 (decision 0172): leave it; not reproduced, and the host sets the header"
+      ],
+      "target": "sha256:b8b75d140912f0d7e75506c0afd2f1d36c9faf9ef8cd7988866b866dffa2d94e"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "retag",
+        "A change to `app.json` or `app.config.js` alone selects no test",
+        "owner",
+        "--reason",
+        "the fix is in scripts/affected.js (HARNESS), which the loop never edits"
+      ],
+      "target": "sha256:9cd17725225e2443ecb43c1d8c8efd2bfc92d45cdd921001654acf21c1d29397"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "retag",
+        "the kinds Markets, Campuses, Stations and Civic are told from Overture's building subtype",
+        "arch",
+        "--reason",
+        "tuning MIN_* and bumping COMPLEX_CODE is a derivation-rule change with no cited source; its fixture needs hosts blocked from cloud sessions"
+      ],
+      "target": "sha256:a03c6ae464dfdcdf9b7dac73b680f3c820f05b9c61838be4272375e8bdcf56ac"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "retag",
+        "a read covers at most `COMPLEX_TILE_BUDGET` (9) z14 tiles",
+        "kept",
+        "--reason",
+        "a limit kept on purpose: the owner's answer to O32 (b), Nov 14 (decision 0172): leave it"
+      ],
+      "target": "sha256:3c9c04e33bd66e2a4a6d5c99267b5fabad67817ef901097f664f9b305d735bce"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "the card does not say where the kind switches are",
+        "--reason",
+        "the owner's answer, Nov 14 (decision 0172): (a) leave it, (b) leave it, (c) acceptable: the store is derived, recomputable and cleared by a purge"
+      ],
+      "target": "sha256:8fd1d935983bb8535007aaf92640f50efdc31bb72e3db3d6b7801d6351651adc"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "split",
+        "The scale bar's miles mode at native's coarser 0.25-zoom view updates"
+      ],
+      "body": "5. [phone] The scale bar's miles mode at native's coarser 0.25-zoom view updates (Quality of life)\n5. [phone] And native's view never follows the latitude, so after a long pan at one zoom the bar is measured at the old latitude (42° to 27° at z6: 20% off, where QL7 asks 5%; `WalkMap.native.tsx` ~l.357; `/tend map`'s auditor F11, Nov 12, [loop] low, phone)\n",
+      "target": "sha256:39ad2cbd2e45b3d3de67fd78030dc520dbc9601cd4645161565dc3b9ac717912"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "split",
+        "`neededTiles` lists the tiles that hold a vertex"
+      ],
+      "body": "- [arch] **Complexes audit** (0147): `neededTiles` lists the tiles that hold a vertex, so a building longer than a z14 tile with no vertex in a middle tile can lose places there (audit 3).\n- [arch] A joined outline draws the tiles' clip edges inside a building cut across tiles; it needs a polygon union (audit 9).\n- [arch] A release whose `buildings.pmtiles` is missing falls back to no older release the way the places reader does (audit 6).\n- [arch] A row for a building that stops qualifying, or is renamed, is never deleted: only a code bump or a purge clears it (audit 7).\n- [arch] A fix's accuracy, the antimeridian and label collisions (audit 12).\n- [loop] A seeded complex on Memories' card has no journey step (audit 20).\n- [loop] After \"See more\" the first new row should take a screen reader's focus (audit 21).\n",
+      "target": "sha256:b894984064ab96c8b459d06651b8a4c38b44f7c427d3eb171d7c2621129088de"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "split",
+        "a shape clipped at a z12 tile edge is judged by the pieces read"
+      ],
+      "body": "- [arch] **Neighborhood boundaries audit** (0152): a shape clipped at a z12 tile edge is judged by the pieces read, so one overlap point can be owned differently by what is kept (audit, first deferral; as towns, TO2).\n- [arch] Checklists and finds built under the old nearest-point rule keep their area until the next tile build, so Explore and Chronicle can name different neighborhoods for one place until then (audit, second deferral; `AREA_RULES` does not reach the kept checklist stores).\n- [arch] The \"Association\" filter loses a real neighborhood named so (steward).\n- [arch] A macrohood is a big neighborhood where nothing smaller holds a point, with no size cap (steward).\n- [arch] A town's page lists a shape with no tile point only from tiles already kept (a listing asks for no more); a share-only neighborhood past 1 km of its point is the town's on Explore (audit 3).\n",
+      "target": "sha256:9d4d482da2e4334f7d005ab6253eca0af1c4d83ea65f83a305051c2e6e949b9d"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "The far town's card (Walk now / When I get there) shows two close buttons"
+      ],
+      "body": "Answered Nov 14 (the owner, in person; decision 0172): \"Not now\" in words: the question's ✕ becomes a quiet text button reading \"Not now\", and its name line goes. The loop's to build in a `/tend explore` run, one commit; it leaves with the decision's reason.\n",
+      "target": "sha256:ef46f4e45effbaeb8413cfe630593a0ef6b7a78392835d141618b6de59bb7df9"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "Explore's area card carries the accent on its border"
+      ],
+      "body": "Answered Nov 14 (the owner, in person; decision 0172): ink at rest, app-wide: the selected card's border and footer link in ink; the accent only for a card's single primary action. The loop's to build in a `/tend explore` run, one commit; it leaves with the decision's reason.\n",
+      "target": "sha256:bcdcc51a4e5a93b6a818c3947dcda54fd9a59684187c05a5600e6aab8f9cfefa"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "With no fix, Explore shows Locate at the map's edge"
+      ],
+      "body": "Answered Nov 14 (the owner, in person; decision 0172): one way to find you (with O20): hide the edge Locate while the card offers Find me. The loop's to build in a `/tend explore` run, one commit; it leaves with the decision's reason.\n",
+      "target": "sha256:16bbd4353bee2de080ba382e4166e8482cec774543c841ff0c3ae2bda54456c4"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "Explore's empty card still offers Find me under the refusal's notice"
+      ],
+      "body": "Answered Nov 14 (the owner, in person; decision 0172): one way to find you (with O6): after a refusal, hide Find me until the permission changes. The loop's to build in a `/tend explore` run, one commit; it leaves with the decision's reason.\n",
+      "target": "sha256:5ff61110508343bf8f5aea3ce5ebc8070a718b5fcfe2f10f08c5217e17b4b276"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "The Explore toast's 3000 ms dwell"
+      ],
+      "body": "Answered Nov 14 (the owner, in person; decision 0172): yes, dwell times are timings (with O23): a named token in `lib/motionTokens`; nothing visible changes. The loop's to build in a `/tend explore` run, one commit; it leaves with the decision's reason.\n",
+      "target": "sha256:dead48104b751d92b2c2d8b6f0ef9097b6da038999f4e0bd7ae85d1db52187d4"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "Dwell times hard-coded in the walk screen"
+      ],
+      "body": "Answered Nov 14 (the owner, in person; decision 0172): yes, they are timings: each gets a named token in `lib/motionTokens` beside `MOTION.tip`; nothing visible changes (O7 and the journal's 450 ms settle with it). The loop's to build in a `/tend walk-screen` run, one commit; it leaves with the decision's reason.\n",
+      "target": "sha256:10b4fa02f614235a126683d1ab9617dd7e0af5e0adaba83020b751ad94991dfe"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "The Remind editor's chip rows wrap with a lone chip"
+      ],
+      "body": "Answered Nov 14 (the owner, in person; decision 0172): two labelled menus, \"How often: Once ▾\" and \"Until: No end ▾\"; no Undo toast. The loop's to build in a `/tend explore` run, one commit; it leaves with the decision's reason.\n",
+      "target": "sha256:0f86f8d8cd6181ad1dfb92b77f82a980ce99ada19ac7fceb9b4c10a3174835da"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "On a town's neighborhood page the title reads the parent town"
+      ],
+      "body": "Answered Nov 14 (the owner, in person; decision 0172): \"You're in Fox Point\" in ink; the heading stays the town. The loop's to build in a `/tend explore` run, one commit; it leaves with the decision's reason.\n",
+      "target": "sha256:8aa347b2083bec2caedd895036386d15de4ea6b2e6c756688f4288fd9292a4c6"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "Long reminder words are cut on the card"
+      ],
+      "body": "Answered Nov 14 (the owner, in person; decision 0172): \"Many memories here\" from thirteen (amends 0164's words); the card stays one line. The loop's to build in a `/tend explore` run, one commit; it leaves with the decision's reason.\n",
+      "target": "sha256:367c20282ce0a3d6abca752720b03037e162fedd4a77e4a8ec3f15b8d7464a41"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "A capture pin standing on a start or end puts its stalk inside the marker"
+      ],
+      "body": "Answered Nov 14 (the owner, in person; decision 0172): the stalk stops at the marker's edge (amends QL3's placement; the spec's words are in STATUS.md \"Open before the loop\"). The loop's to build in a `/tend map` run, one commit; it leaves with the decision's reason.\n",
+      "target": "sha256:2d23a95bf3565eb9bacbb58d34ab2ff3a52146b4052f3b3aef23ab3a8d6298fc"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "A merged star looks like an unnamed lone star"
+      ],
+      "body": "Answered Nov 14 (the owner, in person; decision 0172): two stars fanned in one disc; no numeral, one size. The loop's to build in a `/tend places` run, one commit; it leaves with the decision's reason.\n",
+      "target": "sha256:106eb5f15d36570083a174c6236190ad39c95f27d4eb78a4ce3f569de931a94f"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "The place sheet under a selected star says its walks in digits"
+      ],
+      "body": "Answered Nov 14 (the owner, in person; decision 0172): in words, \"one walk\", built with T19 and T30 (with O18; amends 0052's carve-out for meta lines, as 0170 did). The loop's to build in a `/tend tabs` run, one commit; it leaves with the decision's reason.\n",
+      "target": "sha256:abc5a92dfa87396956c4b75289320c8ea7b200a24abcf632079cea534150b3fc"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "One walk, described three ways"
+      ],
+      "body": "Answered Nov 14 (the owner, in person; decision 0172): counts in words, \"Walk · 1.2 km · three moments\", and More is \"More for <title>\" wherever the title is known; built with T19 and T30 (with O15; amends 0052's carve-out). The loop's to build in a `/tend tabs` run, one commit; it leaves with the decision's reason.\n",
+      "target": "sha256:1f4ff17c0503ecd13cd34b93d9e88ced76b559060d5ac3810b4d6180f24914ac"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "A pin's part of the day nests the long-ago line's own comma"
+      ],
+      "body": "Answered Nov 14 (the owner, in person; decision 0172): the span alone for old moments, \"a photo and a note, two years ago\": past a week no month and no part of the day (amends 0164's and 0165's words). The loop's to build in a `/tend map` run, one commit; it leaves with the decision's reason.\n",
+      "target": "sha256:f450745aa618a52f054d824f4930f58140e77a476112252eff163bec13f51302"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "Typed words go without asking"
+      ],
+      "body": "Answered Nov 14 (the owner, in person; decision 0172): ask before a tap outside drops a walk's changed name. The loop's to build in a `/tend chronicle` run, one commit; it leaves with the decision's reason.\n",
+      "target": "sha256:9a852224470211c9cf2e6b666bc3369244d4ab4e556f0134a57ced634949ebf6"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "Locate's web refusal names only the browser's settings"
+      ],
+      "body": "Answered Nov 14 (the owner, in person; decision 0172): \"your browser's or your phone's settings\" (amends 0154's words). The loop's to build in a `/tend moments` run, one commit; it leaves with the decision's reason.\n",
+      "target": "sha256:fdec949867f6295450c9775a296562787eb783d8a2860ddd083f8a72bde43131"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "Locate's timeout"
+      ],
+      "body": "Answered Nov 14 (the owner, in person; decision 0172): \"Couldn't find your position. Try again in a moment.\" in the quiet notice's tone, not red. The loop's to build in a `/tend moments` run, one commit; it leaves with the decision's reason.\n",
+      "target": "sha256:6f6f9db80970675346eb7741f4ba9c2ab25d832050ee1926735d56570ef1b5fd"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "does not say what happens once it is on: the walk is already open"
+      ],
+      "body": "Answered Nov 14 (the owner, in person; decision 0172): the walk resumes by itself when the permission comes back; no new words. Built with the `[loop]` item on a refused walk's notice that outlives a retry. The loop's to build in a `/tend recording` run, one commit; it leaves with the decision's reason.\n",
+      "target": "sha256:3d19fbb34af517dec590d0d8bcdd7a46a7e588a14ace17407fa8afde44da8a59"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "The green place pin carries a tick"
+      ],
+      "body": "Answered Nov 14 (the owner, in person; decision 0172): the moment's glyph instead of the tick (the alternative): a tick reads as a checklist's \"done\". The loop's to build in a `/tend walk-screen` run, one commit; it leaves with the decision's reason.\n",
+      "target": "sha256:08c13c527d112be72b0c14c9a9c6a9ab203a549d82522be5b9d31a1a9c761f90"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "The strip mixes an icon-only Pause"
+      ],
+      "body": "Answered Nov 14 (the owner, in person; decision 0172): \"Pause\" and \"Resume\" under the icon, as Hold shows its word; the spoken name unchanged. The loop's to build in a `/tend walk-screen` run, one commit; it leaves with the decision's reason.\n",
+      "target": "sha256:2074b766015a5f10a991bdce1829d3a08e946e4b098ea7ecbf942952817a199e"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "The walk screen's error mid-walk"
+      ],
+      "body": "Answered Nov 14 (the owner, in person; decision 0172): \"Your walk is still recording.\" as the error's body, on the walk screen only. The loop's to build in a `/tend walk-screen` run, one commit; it leaves with the decision's reason.\n",
+      "target": "sha256:acf5dfae6b7cb144b5d2041ec5640d4c3d4ca4b45ff0ea34c0cd59c96c94a2b6"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "The neighbourhood read-past runs on the raw name, before `normalizeWords`"
+      ],
+      "body": "Answered Nov 14 (the owner, in person; decision 0172): fix it consistently: the read-past after `normalizeWords`, with a `PRESENCE_CODE` bump and every area derived again; neighbourhood names never contribute to presence. The loop's to build in a `/tend presence` run, one commit; it leaves with the decision's reason.\n",
+      "target": "sha256:152fe7ca80ddcf9d6fd0d6165c58194d330ba30ebf007c24a4a47ed0095559fc"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "Explore's map labels collide"
+      ],
+      "body": "Stale-likely (decision 0172, Nov 14): since 0160 the busy names are a map symbol layer with collision. It closes as stale once a fresh picture in the next `/tend map` run confirms it.\n",
+      "target": "sha256:950575154cbc384892b23d71d078344e656d87cd4a6aad2f40e00f4fb50a35c8"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "The reminder editor's chip rows wrap"
+      ],
+      "body": "Built with O9's answer (decision 0172, Nov 14): two labelled menus, no Undo toast; it leaves with that item.\n",
+      "target": "sha256:88236a369b14d2bb4834ffcc75e09534b6fa3ea1c9483d760cf4b774bb3ba3ea"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "The page's slide waits a hard-coded 450 ms"
+      ],
+      "body": "Built with O23's answer (decision 0172, Nov 14): dwell and settle times are timings, each a named token in `lib/motionTokens`; it leaves with that item.\n",
+      "target": "sha256:03bfac15ff6d599c4a678eb3f9b43598681c2a2ce5e333b504d40a52dfce035a"
+    },
+    {
+      "argv": [
+        "open",
+        "add"
+      ],
+      "body": "- **The spec wording the owner's answers of Nov 14 need** (Nov 14; decision 0172): the answers to the deferred list\n  change words or placements that shipped criteria pin. Amend, in the docs and their mirrors (the loop may not edit a\n  spec): QL3 (`specs/quality-of-life/spec.md` l.23), whose markers sit under the capture pins: a pin standing on a\n  start or end stops its stalk at the marker's edge (O13); QL11 (l.37): \"Couldn't find your position\" becomes\n  \"Couldn't find your position. Try again in a moment.\", in the quiet notice's tone (O21); M8's example\n  (`specs/moments-and-days/spec.md` l.34): \"Walk · 2.1 km · 4 moments\" becomes \"Walk · 2.1 km · four moments\" (O18,\n  ending 0052's carve-out there); and when the pins' examples after T14 and T28 are written into QL26, NY10 and RB7\n  (the item on them below), a pin of moments past a week says the span alone, \"a photo and a note, two years ago\"\n  (O16). No criterion pins the place sheet's walks line (O15). Until then the loop builds them, citing decision 0172.\n"
+    },
+    {
+      "argv": [
+        "open",
+        "note",
+        "The accent at launch"
+      ],
+      "body": "Item 4 answered Nov 14 (decision 0172): the accent at rest is kept for a card's single primary action, app-wide (extending 0153); a label at rest is ink. The loop applies it to these in later runs.\n",
+      "target": "sha256:e34794fbffddd2e5bbd3734139eeaf215ec23acb0d5da2361bbcb271685895d2"
+    },
+    {
+      "argv": [
+        "open",
+        "note",
+        "v1-discovery R7's example after T29"
+      ],
+      "body": "O11's answer, Nov 14 (decision 0172): \"Many memories here\" from thirteen, not past fifty-nine.\n",
+      "target": "sha256:d04441304140deef17afe27f442e79421af80587758bc1be9ac0d53e1187651f"
+    }
+  ]
+}

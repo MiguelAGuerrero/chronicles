@@ -1,0 +1,40 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Moment stacks"
+      ],
+      "body": "- [ ] **Do:** take two photos and a video in one moment, trim the video to 0:02 – 0:05 in the editor, and replay the walk, on iOS and Android; then trim a lone voice memo and a lone video on another walk and replay it. **Expect:** in the grid the video's square plays only 0:02 to 0:05, muted, starting at 0:02 with no flash of the cut beginning (`Grid.tsx` `CellVideo` seeks before `play()` and again at `readyToPlay`) and stopping on its last kept frame; the grid tucks away after its longest video's kept part; the lone memo and the lone video hold the walker for their kept part only, not their stored length (fix trimmed-length 1-4).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Replay rhythm"
+      ],
+      "body": "- **A video in a stack's grid is not turned or cropped** (found by fix trimmed-length, Nov 18): `Grid.tsx` `CellVideo` draws a plain `VideoView`, so an edited video shows its trim there (fix trimmed-length 3) but not its rotation, crop or lines, which its own card draws through `VideoPicture`. Its tag has no `playsInline` either, which iPhone Safari asks of a video that plays by itself (`captures-and-media.md`); untried on an iPhone\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Replay rhythm"
+      ],
+      "body": "- **The 60 s cap shrinks a grid below its video** (found by fix trimmed-length, Nov 18): `rhythm.ts` `fitCap` takes a grid's floor from `gridDuration(n, 0)`, so in a plan over the cap a stack's grid holding a 20 s video is up 1.4 s (measured: a photo and a 20 s video stacked, with a 90 s memo later on the walk), though RR5 keeps a memo's and a lone video's length. Whether a grid's muted video keeps its kept length under the cap is a call on the rhythm\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Replay rhythm"
+      ],
+      "body": "- **A trimmed video with no stored length gets the shortest slot** (found by fix trimmed-length, Nov 18): a clip the picker gave no duration for has `body` 0, its trim is then made against the player's duration, and `memoLengthMs` clamps a trim inside the stored length, so the plan gives it 1 s (`mediaMin`) and the stage waits for the player to reach the trim's end, as it did before the fix for any video with no length on record\n"
+    }
+  ]
+}

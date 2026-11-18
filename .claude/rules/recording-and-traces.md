@@ -149,6 +149,12 @@ Recording a walk and reading its trace: pauses, standstills, GPS jitter, the liv
   (see Rides), then `FixFilter` per walked stretch (speed over 7 m/s, and re-anchoring
   when the first accepted fix was the outlier). Always pass the walk's `started_at`
   and pauses. `filterFixes` is the walking filter alone, kept for its tests.
+- **A web walk refused mid-way follows the permission** (decision 0172, O22; `tend walk-screen 3`). In
+  Chromium, location taken back mid-walk reaches the open watch as `PERMISSION_DENIED`, and that watch delivers
+  nothing after it. The web recorder then follows `watchLocatePermission` (`recorder/followPermission.ts`) and resumes
+  the walk once the permission changes to granted, with no new words. The first report is only where it stood: a
+  phone that blocks the browser can read granted while it refuses every fix, and a restart on it would loop. Nothing
+  is stored meanwhile, so the off span reads as lost GPS does, a gap over a minute (G1), never a pause.
 
 ## Expo location gotchas
 

@@ -28,9 +28,35 @@ export function notableName(name: string): boolean {
 }
 
 /**
+ * The phrases of a neighbourhood's name that say nothing of a place, over a name after `normalizeWords` (decision 0172):
+ * "Old Town", "Old City", "Old Village", their plurals and possessives ("Old Towns", "Old Cities", "Old Town's"), "Old
+ * Quarter" (never "Old Quarters", lodgings: a building), "old and new", and the archaic and joined "Old Towne", "Olde Town",
+ * "Olde Towne" and "Oldtown" (tend presence audit 1, the owner, Nov 16). So "Old-Town", "Old_Town", "Old.Town" and
+ * "Old&New" read as "Old Town" and "Old & New" do. A source, never a shared `/g` object: each read builds its own.
+ */
+const NEIGHBOURHOOD = String.raw`\b(?:olde? towne?s?|oldtowne?s?|old (?:citys?|cities|villages?|quarter|and new))\b`;
+
+/**
+ * The name after `normalizeWords`, each neighbourhood phrase read past (a space in its place), or only those that `before`
+ * accepts: it is given what follows the phrase, trimmed (community parks reads one past only just before a community word).
+ * The one list, for presence and community parks alike; a change to it is a `PRESENCE_CODE` bump. Keeps no state.
+ */
+export function readPastNeighbourhood(name: string, before: (rest: string) => boolean = () => true): string {
+  const n = normalizeWords(name);
+  let out = '';
+  let from = 0;
+  for (const m of n.matchAll(new RegExp(NEIGHBOURHOOD, 'g'))) {
+    const end = m.index + m[0].length;
+    out += n.slice(from, m.index) + (before(n.slice(end).trim()) ? ' ' : m[0]);
+    from = end;
+  }
+  return out + n.slice(from);
+}
+
+/**
  * presence-and-kinds audit 5: "Old" in a neighbourhood's name (Old Town, Old City) or in "old and new" says nothing of the
  * place, so the step that makes a museum historic reads those phrases past (community parks reads them past only just
  * before a community word, `discovery/parkKind.ts`, tend explore T9 and audit 1); marks read the name whole (the steward, S1).
+ * The read-past runs after `normalizeWords` (decision 0172, tend presence 1).
  */
-export const notableBeyondNeighbourhood = (name: string): boolean =>
-  notableName(name.replace(/\bold\s+(town|city|quarter|village)\b/gi, ' ').replace(/\bold\s+(and|&)\s+new\b/gi, ' '));
+export const notableBeyondNeighbourhood = (name: string): boolean => notableName(readPastNeighbourhood(name));

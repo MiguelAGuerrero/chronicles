@@ -1,0 +1,189 @@
+<title>Outing Journey Draft</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: four phone screens in reading order, each with a caption beneath; the app's own palette, one look (the app has no dark theme). */
+:root{--bg:#f4f2ee;--surface:#fff;--ink:#1d2430;--muted:#596273;--line:#e3e0da;--edge:#8a857d;--accent:#c2410c;
+  --land:#ebe7df;--town:#dcd6ca;--green:#cfdcc4;--water:#bcd3e0;--road:#fff;--route:#1d2430;--drive:#8a857d;
+  --ui:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+body{background:var(--bg);color:var(--ink);font-family:var(--ui);padding-block:28px 56px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));line-height:1.45}
+.wrap{max-width:1360px;margin:0 auto;display:flex;flex-direction:column;gap:28px}
+h1{font-size:26px;margin:0;font-weight:800;text-wrap:balance}
+.lede{max-width:65ch;color:var(--muted);margin:6px 0 0;font-size:15px}
+.note{font-size:13px;color:var(--muted);border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:10px 14px;max-width:65ch}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:36px 24px;justify-items:center}
+figure{margin:0;display:flex;flex-direction:column;gap:12px;width:300px;max-width:100%}
+figcaption b{display:block;font-size:15px}
+figcaption span{font-size:13.5px;color:var(--muted)}
+.phone{width:300px;max-width:100%;height:620px;border-radius:30px;border:7px solid var(--ink);background:var(--bg);position:relative;overflow:hidden;display:flex;flex-direction:column}
+.map{position:absolute;inset:0}
+.map svg{width:100%;height:100%;display:block}
+.t{font:600 9px var(--ui);fill:var(--muted);letter-spacing:.04em;text-transform:uppercase}
+.top{position:relative;margin:14px 12px 0;display:flex;gap:8px;align-items:center}
+.field{flex:1;min-width:0;background:var(--surface);border:1px solid var(--edge);border-radius:12px;min-height:44px;display:flex;align-items:center;gap:8px;padding:0 12px;font-size:15px;font-weight:600}
+.field small{font-weight:400;color:var(--muted);font-size:12px;margin-left:auto;white-space:nowrap}
+.x{width:44px;height:44px;border-radius:22px;background:var(--surface);border:1px solid var(--line);display:grid;place-items:center;font-size:18px;flex:none}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--surface);border-radius:18px 18px 0 0;border-top:1px solid var(--line);padding:8px 14px 14px;display:flex;flex-direction:column;gap:10px}
+.grab{width:36px;height:4px;border-radius:2px;background:var(--line);align-self:center}
+.h{font-size:16px;font-weight:800;margin:0}
+.p{font-size:13.5px;margin:0}
+.m{color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:7px}
+.chip{border:1px solid var(--edge);border-radius:20px;padding:8px 13px;font-size:13.5px;font-weight:600;background:var(--surface);color:var(--ink);font-family:inherit;cursor:pointer}
+.chip[aria-pressed=true]{background:var(--ink);color:#fff;border-color:var(--ink)}
+.btn{background:var(--accent);color:#fff;border:0;border-radius:14px;min-height:48px;font:700 16px var(--ui);width:100%;cursor:pointer}
+.btn.sec{background:var(--surface);color:var(--ink);border:1px solid var(--edge)}
+.row{display:flex;gap:8px}
+.cards{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;margin:0 -14px;padding:0 14px 2px;scrollbar-width:none}
+.cards::-webkit-scrollbar{display:none}
+.card{flex:0 0 86%;scroll-snap-align:center;border:1px solid var(--line);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:6px;background:var(--surface);text-align:left;font-family:inherit;color:inherit;cursor:pointer}
+.card[aria-current=true]{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.dots{display:flex;gap:6px;justify-content:center}
+.dots i{width:7px;height:7px;border-radius:4px;border:1px solid var(--edge)}
+.dots i.on{background:var(--ink);border-color:var(--ink)}
+.chap{border:1px solid var(--line);border-radius:14px;overflow:hidden;flex:none}
+.scroll>p{flex:none}
+.chap>div{padding:10px 12px;display:flex;flex-direction:column;gap:3px}
+.chap .stop{border-top:1px solid var(--line);flex-direction:row;justify-content:space-between;align-items:center;font-size:13.5px;font-weight:600}
+.link{font-size:13px;font-weight:600;text-decoration:underline;color:var(--ink);background:none;border:0;font-family:inherit;padding:0}
+.scroll{overflow:auto;display:flex;flex-direction:column;gap:10px;padding:0 14px 12px;flex:1;min-height:0}
+.foot{padding:10px 14px 14px;border-top:1px solid var(--line);background:var(--bg)}
+.bar{position:relative;margin:14px 12px 0;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.stack{position:absolute;right:12px;bottom:92px;display:flex;flex-direction:column;gap:10px}
+.stack span{width:52px;height:52px;border-radius:26px;background:var(--surface);border:1px solid var(--edge);display:grid;place-items:center;font-size:20px}
+.strip{position:absolute;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);padding:12px 14px;display:flex;justify-content:space-between;align-items:center;font-size:14px;font-weight:600}
+.stopb{background:var(--ink);color:#fff;border-radius:12px;padding:10px 18px}
+.chip:focus-visible,.card:focus-visible,.btn:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+h2{font-size:18px;margin:0}
+table{border-collapse:collapse;font-size:14px;width:100%}
+td,th{border-top:1px solid var(--line);padding:8px 10px 8px 0;text-align:left;vertical-align:top}
+th{color:var(--muted);font-weight:600;font-size:12.5px;text-transform:uppercase;letter-spacing:.05em}
+.tw{overflow-x:auto;max-width:900px}
+</style>
+
+<div class="wrap">
+<header>
+  <h1>Plan an outing, destination first</h1>
+  <p class="lede">A draft of the four screens, in the app's own colours and words. Screen 2 is live: tap a chip or a journey card. Towns are real names used as an example; the stops are invented and said by kind, as the app would say them.</p>
+</header>
+<div class="note">Draft for review, not the app. Nothing here is built. The map is a sketch standing in for the real one.</div>
+
+<div class="grid">
+
+<figure>
+  <div class="phone">
+    <div class="map" id="m1"></div>
+    <div class="top"><div class="field"><span>⌕</span><span class="m" style="font-weight:400">Where to?</span></div><div class="x">✕</div></div>
+    <div class="sheet">
+      <div class="grab"></div>
+      <p class="h">Plan an outing</p>
+      <p class="p m">Name a place, or leave it open and stay around here.</p>
+      <div class="chips"><span class="chip">Kutztown</span><span class="chip">Bethlehem</span><span class="chip">Nowhere in particular</span></div>
+      <p class="p m">The towns are ones near you, in order of distance.</p>
+    </div>
+  </div>
+  <figcaption><b>1. Where to</b><span>The map is the page. A search field over it takes a town or a place. "Nowhere in particular" keeps today's loop from where you stand.</span></figcaption>
+</figure>
+
+<figure>
+  <div class="phone">
+    <div class="map" id="m2"></div>
+    <div class="top"><div class="field"><span>⌕</span>Kutztown<small>27 km away</small></div><div class="x">✕</div></div>
+    <div class="sheet">
+      <div class="grab"></div>
+      <p class="p m">What you'd like on the way</p>
+      <div class="chips" id="chips"></div>
+      <div class="cards" id="cards"></div>
+      <div class="dots" id="dots"></div>
+      <button class="btn" id="see">See this journey</button>
+    </div>
+  </div>
+  <figcaption><b>2. Pick what you like, swipe the journeys</b><span>Chips say character, attractions and shops in one list, preset from "What I'm into". Up to three journeys, each with its own leaning. None is ranked, timed or called best.</span></figcaption>
+</figure>
+
+<figure>
+  <div class="phone">
+    <div class="top" style="margin-bottom:10px"><div style="flex:1;min-width:0"><p class="h">Along the storefronts</p><p class="p m">To Kutztown, 27 km away</p></div><div class="x">✕</div></div>
+    <div class="scroll">
+      <p class="p">Emmaus, Macungie, then Kutztown. Second-hand shops, storefronts and old places. About five kilometres on foot in all.</p>
+      <div class="chap"><div><p class="h">Emmaus</p><p class="p m">Storefronts along Main Street. Plenty of shops, some history, some green.</p><p class="p">A walk among a few stops, about two kilometres.</p></div>
+        <div class="stop">A thrift shop, a short walk on <button class="link">Swap</button></div>
+        <div class="stop">A bookshop, a little further <button class="link">Swap</button></div>
+        <div class="stop">An old place, further on <button class="link">Swap</button></div></div>
+      <div class="chap"><div><p class="h">Macungie</p><p class="p m">Storefronts along Main Street. Some green.</p><p class="p">One stop, by the road.</p></div>
+        <div class="stop">A second-hand shop <button class="link">Swap</button></div>
+        <div style="border-top:1px solid var(--line)"><button class="link" style="text-align:left">Leave this town out</button></div></div>
+      <div class="chap"><div><p class="h">Kutztown</p><p class="p m">Storefronts along Main Street. Lots of shops, plenty of history.</p><p class="p">A walk among a few stops, about three kilometres.</p></div>
+        <div class="stop">An antiques shop, a short walk on <button class="link">Swap</button></div>
+        <div class="stop">A vintage shop, a little further <button class="link">Swap</button></div></div>
+      <p class="p m">Opening hours aren't known here. Distances between towns are as the crow flies; Maps knows the road.</p>
+    </div>
+    <div class="foot"><button class="btn">Start the outing</button></div>
+  </div>
+  <figcaption><b>3. One journey, town by town</b><span>What to expect in each town, in the atlas's own words, then its stops by kind. A stop is named only on a tap or when you reach it. A town can be a walk or a single stop you drive to.</span></figcaption>
+</figure>
+
+<figure>
+  <div class="phone">
+    <div class="map" id="m4"></div>
+    <div class="bar"><div><p class="h">Emmaus next</p><p class="p m">8 km on. A walk among a few stops.</p></div>
+      <div class="row"><button class="btn sec" style="min-height:44px;font-size:14px">Open in Maps ↗</button><button class="btn sec" style="min-height:44px;font-size:14px">Pass this town by</button></div></div>
+    <div class="stack"><span>◉</span><span>🎙</span><span>✎</span></div>
+    <div class="strip"><span>Recording · 3.2 km</span><span class="stopb">Stop</span></div>
+  </div>
+  <figcaption><b>4. On the outing</b><span>Recording starts at Start, the drive included. Between towns the bar names the next one and hands the road to Maps. A town you drive past is let go without a word. Within reach of a town's stops the app shows the way on foot. Capture stays one tap away.</span></figcaption>
+</figure>
+
+</div>
+
+<section>
+  <h2>What changes from the page that shipped</h2>
+  <div class="tw"><table>
+    <tr><th>Today</th><th>This draft</th></tr>
+    <tr><td>A form with a small map strip above it</td><td>The map is the page; choices sit in a sheet over it</td></tr>
+    <tr><td>No destination; a loop of about 2 km from where you stand</td><td>A destination first; the loop stays as "Nowhere in particular"</td></tr>
+    <tr><td>Three shop chips: Antiques, Books, Thrifting</td><td>One list of character chips, attractions and shops together</td></tr>
+    <tr><td>One proposal</td><td>Up to three journeys to swipe, each with a different leaning</td></tr>
+    <tr><td>Distance to each stop only</td><td>A summary in words: the towns in order, what is included by kind, how much is on foot</td></tr>
+    <tr><td>Nothing about towns</td><td>A line per town on what to expect there</td></tr>
+  </table></div>
+</section>
+</div>
+
+<script>
+const T={A:[258,150,'Allentown'],E:[214,196,'Emmaus'],M:[168,214,'Macungie'],X:[176,150,'Trexlertown'],P:[108,172,'Topton'],F:[150,96,'Fogelsville'],K:[52,110,'Kutztown']};
+const J=[
+ {n:'Along the storefronts',via:['E','M'],line:'Emmaus, Macungie, then Kutztown.',what:'Second-hand shops, storefronts, old places.',foot:'About five kilometres on foot.',need:['thrift','store']},
+ {n:'Past old places',via:['X','P'],line:'Trexlertown, Topton, then Kutztown.',what:'Old places, antiques shops.',foot:'About four kilometres on foot.',need:['old','thrift']},
+ {n:'Through green',via:['F'],line:'Fogelsville, then Kutztown.',what:'Green, views.',foot:'About six kilometres on foot.',need:['green','views']}];
+const C=[['thrift','Thrifting'],['old','Old places'],['store','Storefronts'],['green','Green'],['views','Views'],['books','Books'],['art','Art']];
+let on=new Set(['thrift','old','store','green']),cur=0;
+function map(el,via,walker){
+  let s='<svg viewBox="0 0 300 620" preserveAspectRatio="xMidYMid slice"><rect width="300" height="620" fill="var(--land)"/>'+
+  '<path d="M0 70 C80 40 120 120 190 70 S280 60 300 40" fill="none" stroke="var(--water)" stroke-width="7"/>'+
+  '<g transform="translate(0,90)"><ellipse cx="150" cy="70" rx="46" ry="26" fill="var(--green)"/><ellipse cx="96" cy="250" rx="60" ry="30" fill="var(--green)"/>';
+  for(const k in T){const[x,y,n]=T[k];const r=k=='A'?30:k=='K'?20:14;
+    s+=`<ellipse cx="${x}" cy="${y}" rx="${r}" ry="${r*.75}" fill="var(--town)"/><text class="t" x="${x}" y="${y-r*.75-4}" text-anchor="middle">${n}</text>`}
+  if(via){const pts=['A',...via,'K'].map(k=>T[k]);
+    s+=`<polyline points="${pts.map(p=>p[0]+','+p[1]).join(' ')}" fill="none" stroke="var(--drive)" stroke-width="3" stroke-dasharray="2 6" stroke-linecap="round"/>`;
+    for(const k of [...via,'K']){const[x,y]=T[k];
+      s+=`<path d="M${x-9} ${y+3} q5 -12 10 -3 t9 -2" fill="none" stroke="var(--route)" stroke-width="3" stroke-linecap="round"/>`+
+         `<circle cx="${x-9}" cy="${y+3}" r="3.5" fill="var(--surface)" stroke="var(--route)" stroke-width="2"/><circle cx="${x+10}" cy="${y-2}" r="3.5" fill="var(--surface)" stroke="var(--route)" stroke-width="2"/>`}}
+  const[w,z]=walker||T.A;s+=`<circle cx="${w}" cy="${z}" r="7" fill="var(--accent)" stroke="#fff" stroke-width="3"/></g></svg>`;
+  el.innerHTML=s}
+function shown(){const l=J.filter(j=>j.need.some(n=>on.has(n)));return l.length?l:[]}
+function draw(){
+  const l=shown();if(cur>=l.length)cur=0;
+  chips.innerHTML=C.map(([id,t])=>`<button class="chip" id="chip-${id}" aria-pressed="${on.has(id)}" data-id="${id}">${t}</button>`).join('');
+  cards.innerHTML=l.length?l.map((j,i)=>`<button class="card" id="card-${i}" aria-current="${i==cur}" data-i="${i}"><span class="h">${j.n}</span><span class="p">${j.line}</span><span class="p m">${j.what} ${j.foot}</span></button>`).join('')
+    :'<p class="p" style="padding:8px 0">Pick something you would like on the way.</p>';
+  dots.innerHTML=l.map((_,i)=>`<i class="${i==cur?'on':''}"></i>`).join('');
+  see.disabled=!l.length;see.style.opacity=l.length?1:.45;
+  map(m2,l[cur]?l[cur].via:null)}
+chips.onclick=e=>{const b=e.target.closest('[data-id]');if(!b)return;on.has(b.dataset.id)?on.delete(b.dataset.id):on.add(b.dataset.id);draw()};
+cards.onclick=e=>{const b=e.target.closest('[data-i]');if(!b)return;cur=+b.dataset.i;draw();document.getElementById('card-'+cur).scrollIntoView({inline:'center',block:'nearest',behavior:'smooth'})};
+let tick;cards.addEventListener('scroll',()=>{clearTimeout(tick);tick=setTimeout(()=>{const r=cards.getBoundingClientRect(),mid=r.left+r.width/2;let best=cur,d=1e9;
+  cards.querySelectorAll('[data-i]').forEach(c=>{const b=c.getBoundingClientRect(),x=Math.abs(b.left+b.width/2-mid);if(x<d){d=x;best=+c.dataset.i}});
+  if(best!=cur){cur=best;const l=shown();cards.querySelectorAll('[data-i]').forEach(c=>c.setAttribute('aria-current',c.dataset.i==cur));dots.innerHTML=l.map((_,i)=>`<i class="${i==cur?'on':''}"></i>`).join('');map(m2,l[cur].via)}},120)});
+map(m1,null);map(m4,J[0].via,[236,174]);draw();
+</script>

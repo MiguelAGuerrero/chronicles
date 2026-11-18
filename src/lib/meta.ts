@@ -96,13 +96,15 @@ export const META = {
   tile_build: { owner: 'tiles', codec: text },
   tile_url: { owner: 'tiles', codec: text },
   snap_rules: { owner: 'tiles', codec: text },
-  /** The Overture release busy streets are measured with, and when the listing was last checked (AD6). */
+  /** The Overture release storefront streets are measured with, and when the listing was last checked (AD6). */
   overture_release: { owner: 'activity', codec: text },
   overture_checked_at: { owner: 'activity', codec: number },
   /** The places archive's manifest as last read, and when it was checked (PW2, decision 0103). */
   places_archive_manifest: { owner: 'discovery', codec: text },
   places_archive_checked_at: { owner: 'discovery', codec: number },
   street_code: { owner: 'tiles', codec: text },
+  /** Memo transcripts: set once the owner refused speech recognition, so it is never asked again (TX6, decision 0169). */
+  transcript_off: { owner: 'transcript', codec: text },
   // Navigation (lib/nav/store, lib/startPlan): where the open walk, or the drawer, is heading.
   nav: { owner: 'nav', codec: json<{ walk_id: string | null; dest: Waypoint }>(isNav) },
   // Scenic routes (lib/routeLeanings): the leanings switched on in the walk settings (SR1).
@@ -140,6 +142,10 @@ export const META = {
   kindwalk_mode: { owner: 'kindwalk', codec: oneOf<'loop' | 'oneway'>('loop', 'oneway') },
   kindwalk_density: { owner: 'kindwalk', codec: oneOf<'anywhere' | 'some' | 'plenty'>('anywhere', 'some', 'plenty') },
   kindwalk_pref: { owner: 'kindwalk', codec: oneOf<'warn' | 'skip'>('warn', 'skip') },
+  // Plan an outing (lib/outing): whether a chain may be a stop, off by default (QC41, decision 0194)
+  outing_chains: { owner: 'outing', codec: onOff },
+  /** The plan of the open session (OJ48): town names and positions, cleared when it stops. */
+  outing_journey: { owner: 'outing', codec: json<{ walk_id: string | null; at: number; plan: unknown }>((v) => isObject(v) && (v.walk_id === null || typeof v.walk_id === 'string') && typeof v.at === 'number' && isObject(v.plan)) },
   // Chronicle's Memories (lib/resurface): what the user chose to see less of, renamed or removed (RM21)
   resurface_prefs: { owner: 'resurface', codec: json<Prefs>((v) => parsePrefs(v) !== null) },
   // Media gallery (MG22): Sort, tile size and grid shape, kept as they change.
@@ -167,6 +173,8 @@ export const META_FAMILIES = {
   walk_pass: { owner: 'explore', codec: number },
   // A day's replay was watched (ms), so it advances by itself next time.
   day_watched: { owner: 'days', codec: number },
+  // The first replay asked about a walk's offered gaps (G15): asked once, per walk.
+  gaps_asked: { owner: 'gaps', codec: flag },
   // The last read of areas near you, per level (lib/atlas/read).
   atlas_near: { owner: 'atlas', codec: json<NearRead>(isNearRead) },
 } as const;

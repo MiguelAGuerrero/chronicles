@@ -8,7 +8,10 @@ import { bandWhy } from '../walk/bandWords';
  */
 
 /** Which colour a legend row's swatch wears; the view maps these to the map's own colours (`components/map/types`). */
-export type SwatchKey = 'foot' | 'car' | 'hotspot' | 'border-tint' | 'border-line';
+export type SwatchKey = 'foot' | 'car' | 'hotspot' | 'border-tint' | 'border-line' | 'past';
+
+/** SF1, storefronts ui 2: what counts as a storefront, one sentence: the layer's tip and the line under the card's Storefronts heading. */
+export const STOREFRONTS_WHAT = 'Streets lined with shops, food, drink, services and offices you walk into.';
 
 export interface LegendRow {
   key: string;
@@ -45,11 +48,11 @@ export const LAYERS: readonly LayerDef[] = [
     note: "From OpenStreetMap and Overture. Judged from how the ground is built, so an area can read differently from how it feels.",
   },
   {
-    id: 'busy',
-    name: 'Busy streets',
+    id: 'storefronts',
+    name: 'Storefronts',
     icon: 'storefront-outline',
     defaultOn: false,
-    legend: [{ key: 'places', text: 'Busy with places', swatch: 'hotspot', tip: 'Busy with places: streets with many shops, food and services along them.' }],
+    legend: [{ key: 'places', text: 'Storefronts', swatch: 'hotspot', tip: STOREFRONTS_WHAT }],
   },
   {
     id: 'borders',
@@ -60,5 +63,13 @@ export const LAYERS: readonly LayerDef[] = [
       { key: 'yours', text: 'Your town', swatch: 'border-tint' },
       { key: 'nearby', text: 'Nearby towns', swatch: 'border-line' },
     ],
+  },
+  {
+    // Where I've been (specs/where-ive-been WB4, WB11; decision 0222): earlier walks' lines, one even tone, never a count.
+    id: 'past',
+    name: 'Where I\u2019ve been',
+    icon: 'footsteps-outline',
+    defaultOn: false,
+    legend: [{ key: 'earlier', text: 'Your earlier walks', swatch: 'past' }],
   },
 ];

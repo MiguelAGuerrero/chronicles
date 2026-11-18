@@ -1,0 +1,11 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inflight",
+        "add"
+      ],
+      "body": "| Native map frames (the phone's walk map and the replays stop re-rendering every map source and pin per glide frame or clock tick: memoised sources, a GlideLayer, memoised marker lists, the web's line simplification on native; NF1-NF7, after the performance investigation of Nov 16) | `claude/bold-hawking-dx3pc8` | started 2026-11-16: plan approved by the owner; tests first next; native unverified. Spec `specs/native-map-frames/spec.md` |\n"
+    }
+  ]
+}

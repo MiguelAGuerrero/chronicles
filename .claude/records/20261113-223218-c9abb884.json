@@ -1,0 +1,43 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "slice",
+        "row",
+        "set",
+        "Smooth neighborhood switches"
+      ],
+      "body": "| Smooth neighborhood switches (a switch redraws nothing it already showed: the neighborhood's outline kept and derived after the move, unchanged Busy lines never resent, the names once at the settle, the lines held on a town's page, markers kept, a cut read retried; one Explore render per move, costing what the camera alone does; SS1-SS10, decision 0165) | built 2026-11-13, not deployed | `claude/trusting-cannon-f5wdhg` | `specs/smooth-switches/spec.md` | no (UI review: 1 finding, fixed) |\n",
+      "target": "sha256:bbdcd5f90f502df6341aca1dd134099483329395065ea3b7e065a78453a273dd"
+    },
+    {
+      "argv": [
+        "inflight",
+        "set",
+        "Smooth neighborhood switches"
+      ],
+      "body": "| Smooth neighborhood switches (a switch redraws nothing it already showed: the outline kept and derived after the settle, unchanged Busy lines never resent, the names sent once at the settle, lines held on a town's page, markers not rebuilt, a cut read retried; SS1-SS10, after Explore in a dense city) | `claude/trusting-cannon-f5wdhg` | built 2026-11-13, test-first by history (10 of 10): unit tests (2344), typecheck, lint, docs and vision checks; the `switches` journey (at 4x CPU each switch paired with the camera alone's move) and the 16 journeys `check:affected` names pass on the merged build; steward read (S1-S3 accepted); UI review: U1 fixed (`smooth-switches ui 1`); SS9 amended on the owner's call (decision 0165); native unverified; not audited; not merged or deployed. Spec `specs/smooth-switches/spec.md` |\n",
+      "target": "sha256:8709ecb6fdac6bbba8fb3e6213144afcc205c5f1a15426b61422fc80a3ee63ca"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "Native's busy names at a switch's settle"
+      ],
+      "body": "  The slice's decision is 0165: 0164 went to the owner's answers to T28 and T29 on main first, and a section heading can't be renamed by an operation.\n",
+      "target": "sha256:3e7c1009ddd74f0e6cb62e371d1094ab7a9fb47c719740baef7481f5e7e4c8f8"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "note",
+        "swipe through its neighborhoods to the end of the row and back"
+      ],
+      "body": "  The slice's decision is 0165: 0164 went to the owner's answers to T28 and T29 on main first, and a section heading can't be renamed by an operation.\n",
+      "target": "sha256:c3c0e50aeccb9a716453be14edccb87e55caef9c561e98a8ce1e2f1f398ebf84"
+    }
+  ]
+}

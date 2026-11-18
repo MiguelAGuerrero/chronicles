@@ -3,12 +3,15 @@ import type { Area, WalkArea } from '../../areas/types';
 import type { OutlineTile } from '../../areas/outlines';
 import type { Complex } from '../../complexes/types';
 import type { WalkTile } from '../../walk/types';
+import type { WalkLine } from '../../pastLines/core';
 import type { AtlasArea } from '../../atlas/atlas';
 import { intersects, segmentBbox, segmentTile, tileKeysFor } from '../../db/segmentBounds';
 import { DERIVED_STORES } from '../../db/stores';
-import type { Db } from '../../db/types';
+import { SEGMENT_BATCH, type Db } from '../../db/types';
 import { countsOf, recountNewStreets } from '../../deletion/core';
 import type { Mark, Place, Recall } from '../../discovery/types';
+import type { StoredReaction } from '../../reactions/core';
+import type { Transcript } from '../../transcript/core';
 import { exploredKey, walkPassKey, type ChecklistArea, type ChecklistItem, type ExploreRead, type Find } from '../../explore/explore';
 import type { LandingRow } from '../../landing/view';
 import { parseEdit } from '../../mediaEdit';
@@ -20,8 +23,8 @@ import type { Capture, GapDecision, Moment, Pause, Still, StreetSegment, TracePo
 export const DB_READS = [
   'getWalk', 'listWalks', 'getOpenWalk', 'getPoints', 'getMoments', 'momentsBetween', 'getMomentsByIds', 'momentsIn',
   'getPauses', 'getStills', 'getGapDecisions', 'listThreads',
-  'listAreas', 'listWalkAreas', 'getSegmentsIn', 'getVisited', 'visitedSegmentIds', 'streetKeysBefore', 'listSummaries',
-  'placesIn', 'listMarks', 'listRecalls', 'listLandings', 'listAtlasAreas', 'getOutlineTiles', 'getWalkTiles', 'complexesNear',
+  'listAreas', 'listWalkAreas', 'getSegmentsIn', 'getVisited', 'visitedSegmentIds', 'streetKeysBefore', 'listSummaries', 'getSummary',
+  'placesIn', 'listMarks', 'listRecalls', 'listTranscripts', 'listLandings', 'listAtlasAreas', 'getOutlineTiles', 'getWalkTiles', 'getWalkLinesIn', 'listWalkLineCodes', 'complexesNear',
   'listChecklistAreas', 'checklistItemsIn', 'listExploreReads', 'listFinds', 'getMeta',
 ] as const;
 
@@ -117,6 +120,7 @@ function band(lo: number, hi: number): (v: Key) => boolean {
  * key order. A write that would fail part-way (a duplicate id) fails before
  * changing anything, like a transaction.
  */
+
 export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
   const copy = <T>(v: T): T => structuredClone(v);
   // As the real stores: a piece's edit is read through parseEdit (media-editing audit 7).
@@ -140,11 +144,18 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
   const places = new Table<Place>((p) => p.key);
   const marks = new Table<Mark>((m) => m.id);
   const recalls = new Table<Recall>((r) => r.capture_id);
+  const transcripts = new Table<Transcript>((r) => r.capture_id);
+  const reactions = new Table<StoredReaction>((r) => `${r.moment_id}|${r.family}`);
+  const dropReactions = (ids: string[]) => {
+    const gone = new Set(ids);
+    for (const r of reactions.all()) if (gone.has(r.moment_id)) reactions.delete(`${r.moment_id}|${r.family}`);
+  };
   const landings = new Table<LandingRow>((r) => r.key);
   const atlas = new Table<AtlasArea>((r) => r.key);
   const outlineTiles = new Table<OutlineTile>((r) => r.key);
   const complexes = new Table<Complex>((r) => r.id);
   const walkTiles = new Table<WalkTile>((r) => r.key);
+  const walkLines = new Table<WalkLine>((r) => r.walk_id);
   const checklistAreas = new Table<ChecklistArea>((a) => a.key);
   const checklistItems = new Table<ChecklistItem>((i) => i.key);
   const finds = new Table<Find>((f) => f.key);
@@ -192,6 +203,9 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
     async updateWalk(id, p) {
       patch(walks, id, p);
     },
+    async clearSnappedBuilds() {
+      for (const w of walks.all()) if (w.snapped_build != null) patch(walks, w.id, { snapped_build: null });
+    },
     async getWalk(id) {
       const w = walks.get(id);
       return w ? copy(w) : null;
@@ -234,6 +248,7 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
       const hit = moments.all().filter((m) => m.pieces.some((p) => gone.has(p.id)));
       if (hit.some((m) => m.pieces.every((p) => gone.has(p.id)))) throw new Error('a moment would be left with no piece');
       for (const m of hit) moments.put({ ...m, pieces: m.pieces.filter((p) => !gone.has(p.id)) });
+      for (const id of ids) transcripts.delete(id);
       for (const w of new Set(hit.map((m) => m.walk_id))) {
         if (w == null) continue;
         const s = summaries.get(w);
@@ -248,6 +263,25 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
       const p = m.pieces.find((x) => x.id === pieceId)!;
       moments.put({ ...m, pieces: m.pieces.filter((x) => x.id !== pieceId) });
       moments.put(copy({ ...nm, pieces: [{ ...p, moment_id: nm.id }] }));
+    },
+    async joinMoment(fromId, intoId) {
+      const from = moments.get(fromId);
+      const into = moments.get(intoId);
+      if (!from || !into) throw new Error(`no moment ${from ? intoId : fromId}`);
+      if ((from.walk_id ?? null) !== (into.walk_id ?? null)) throw new Error('moments on different walks are never joined');
+      moments.put({ ...into, pieces: [...into.pieces, ...from.pieces.map((p) => ({ ...p, moment_id: intoId }))].sort((x, y) => x.t - y.t) });
+      moments.delete(fromId);
+    },
+    async referencesTo(id) {
+      // A reminder or a find is kept on a piece's id, so every piece of the moment counts (stack-with-previous audit 5).
+      const ids = new Set([id, ...(moments.get(id)?.pieces.map((p) => p.id) ?? [])]);
+      return {
+        thread: members.all().some((m) => m.moment_id === id),
+        link: links.all().some((l) => l.from_id === id || l.to_id === id),
+        reminder: [...ids].some((i) => !!recalls.get(i)),
+        find: finds.all().some((f) => ids.has(f.capture_id)),
+        reaction: reactions.all().some((r) => r.moment_id === id),
+      };
     },
     async getMoments(walkId) {
       return moments.where(walkOf, walkId).map(readMoment).sort(byT);
@@ -271,9 +305,11 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
 
     async deleteWalk(walkId) {
       dropMoments(moments.where(walkOf, walkId).map((c) => c.id));
+      dropReactions(moments.where(walkOf, walkId).map((c) => c.id));
       for (const c of moments.where(walkOf, walkId)) {
         moments.delete(c.id);
         recalls.delete(c.id);
+        for (const piece of c.pieces) transcripts.delete(piece.id);
       }
       points.dropWhere(walkOf, walkId);
       pauses.dropWhere(walkOf, walkId);
@@ -284,6 +320,7 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
       finds.dropWhere(walkOf, walkId);
       marks.dropWhere(walkOf, walkId);
       summaries.delete(walkId);
+      walkLines.delete(walkId);
       meta.delete(exploredKey(walkId));
       meta.delete(walkPassKey(walkId));
       walks.delete(walkId);
@@ -303,9 +340,11 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
         return c ? [c] : [];
       });
       dropMoments(got.map((c) => c.id));
+      dropReactions(got.map((c) => c.id));
       for (const c of got) {
         moments.delete(c.id);
         recalls.delete(c.id);
+        for (const piece of c.pieces) transcripts.delete(piece.id);
       }
       if (!opts.keepFinds && got.length) {
         // As the web store: finds are looked up by their moments' walks (all of them when a
@@ -370,8 +409,11 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
       gapFills.put(d);
     },
 
-    async putSegments(ss) {
-      for (const x of ss) segments.put({ ...x, tile: segmentTile(x) });
+    async putSegments(ss, shouldStop) {
+      if (shouldStop?.()) return;
+      for (let i = 0; i < ss.length; i += SEGMENT_BATCH) {
+        for (const x of ss.slice(i, i + SEGMENT_BATCH)) segments.put({ ...x, tile: segmentTile(x) });
+      }
     },
     async saveSnap(walkId, segs, vis, summary, placed, complete = true) {
       const w = walks.get(walkId);
@@ -418,6 +460,10 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
     async listSummaries() {
       return out(summaries.all());
     },
+    async getSummary(walkId) {
+      const s = summaries.all().find((x) => x.walk_id === walkId);
+      return s ? out([s])[0] : null;
+    },
 
     async putPlaces(ps) {
       // As the stores: presence's classes are never stored (specs/presence-readers).
@@ -439,6 +485,30 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
     },
     async listRecalls() {
       return out(recalls.all());
+    },
+    async setReaction(r) {
+      if (r.reaction == null) reactions.delete(`${r.moment_id}|${r.family}`);
+      else reactions.put({ ...r });
+    },
+    async setReactions(rs) {
+      // As the stores: a row with no moment or family fails the whole write, before anything is changed.
+      if (rs.some((r) => !r.moment_id || !r.family)) throw new Error('a reaction row needs its moment and family');
+      for (const r of rs) {
+        if (r.reaction == null) reactions.delete(`${r.moment_id}|${r.family}`);
+        else reactions.put({ ...r });
+      }
+    },
+    async listReactions() {
+      return out(reactions.all());
+    },
+    async setTranscript(t) {
+      transcripts.put(t);
+    },
+    async clearTranscript(captureId) {
+      transcripts.delete(captureId);
+    },
+    async listTranscripts() {
+      return out(transcripts.all());
     },
 
     async putLanding(r) {
@@ -471,6 +541,19 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
       return out([...new Set(keys)].sort().flatMap((k) => outlineTiles.all().filter((t) => t.key === k)));
     },
 
+    async putWalkLine(line) {
+      walkLines.put(line);
+    },
+    async getWalkLinesIn(tiles) {
+      const want = new Set(tiles);
+      return out(walkLines.all().filter((l) => l.tiles.some((t) => want.has(t))).sort((a, b) => a.walk_id.localeCompare(b.walk_id)));
+    },
+    async listWalkLineCodes() {
+      return walkLines.all().map((l) => ({ walk_id: l.walk_id, code: l.code })).sort((a, b) => a.walk_id.localeCompare(b.walk_id));
+    },
+    async deleteWalkLine(walkId) {
+      walkLines.delete(walkId);
+    },
     async putWalkTiles(tiles) {
       for (const t of tiles) walkTiles.put(t);
     },

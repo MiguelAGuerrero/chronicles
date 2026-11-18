@@ -11,7 +11,7 @@ import { Buckets, cross, hull, linkWithin, longest, nearestOn, runLength, type X
 /**
  * Where a town's activity centres (v1.5, then activity density): how densely
  * places of every kind sit along each street, graded against the read itself
- * (AD9, AD10); the busy streets and pockets those grades make (AD13); one
+ * (AD9, AD10); the storefront streets and pockets those grades make (AD13); one
  * landing point. Pure: places, streets and towns come in from whatever
  * source; nothing here knows a tile schema.
  */
@@ -22,8 +22,8 @@ export const LANDING_RULES = {
   townM: 3000,
   /** Density and its grades (AD9, AD10). */
   ...GRADE_RULES,
-  /** A busy street: one name at medium or above, this long at least, its samples no further apart than this (AD13). */
-  busyMinM: 120,
+  /** A storefront street: one name at medium or above, this long at least, its samples no further apart than this (AD13). */
+  storefrontMinM: 120,
   runGapM: 25,
   /** A pocket: medium-or-stronger stretches no more than a block apart, together this long at least. */
   maxGapM: 80,
@@ -32,7 +32,7 @@ export const LANDING_RULES = {
   cellM: 50,
   /** A station this close to the pocket is where to start. */
   transitM: 150,
-  /** A pocket with no busy street takes the neighbourhood within this. */
+  /** A pocket with no storefront street takes the neighbourhood within this. */
   neighbourhoodM: 1000,
 } as const;
 
@@ -42,7 +42,7 @@ export const readTiles = (centre: LngLat) => tilesIn(boundsOf([centre], LANDING_
 /** Common main-street names, the last fallback (L6). Data, not code. */
 export const MAIN_STREET_NAMES: readonly string[] = mainStreets.names;
 
-/** A busy street (AD13): a run of one named street at medium grade or above. */
+/** A storefront street (AD13): a run of one named street at medium grade or above. */
 export interface Strip {
   name: string;
   /** End to end along the run. */
@@ -50,7 +50,7 @@ export interface Strip {
   weight: number;
   /** The street pieces it covers, for drawing. */
   lines: LngLat[][];
-  /** Its busiest point, on the street. */
+  /** Its peak, on the street. */
   peak: LngLat;
 }
 
@@ -180,23 +180,23 @@ export function analyzeArea(o: {
   const { samples, grades } = g;
   /** A sample's share of the places near it: summed over a run, about the weight of its places. */
   const mass = (i: number) => (samples[i].density * R.stepM) / R.kernelM;
-  const busy = (i: number) => grades[i] >= 2;
+  const strong = (i: number) => grades[i] >= 2;
 
-  // Busy streets (AD13): per name, medium-or-stronger samples linked along the street.
+  // Storefront streets (AD13): per name, medium-or-stronger samples linked along the street.
   type StripX = Strip & { members: Set<number> };
   const strips: StripX[] = [];
-  const busyByName = new Map<string, number[]>();
+  const stripsByName = new Map<string, number[]>();
   samples.forEach((s, i) => {
-    if (!busy(i)) return;
-    const list = busyByName.get(s.name);
+    if (!strong(i)) return;
+    const list = stripsByName.get(s.name);
     if (list) list.push(i);
-    else busyByName.set(s.name, [i]);
+    else stripsByName.set(s.name, [i]);
   });
-  for (const [name, idx] of busyByName) {
+  for (const [name, idx] of stripsByName) {
     for (const group of linkWithin(idx.map((i) => samples[i].xy), R.runGapM, false)) {
       const members = group.members.map((k) => idx[k]);
       const lengthM = runLength(members.map((i) => samples[i].xy));
-      if (lengthM < R.busyMinM) continue;
+      if (lengthM < R.storefrontMinM) continue;
       const set = new Set(members);
       let peak = members[0];
       for (const i of members) if (samples[i].density > samples[peak].density) peak = i;
@@ -208,11 +208,11 @@ export function analyzeArea(o: {
   strips.sort((a, b) => b.weight - a.weight);
 
   // Pockets: medium-or-stronger stretches of any street, no more than a block apart.
-  const busyIdx = samples.map((_, i) => i).filter(busy);
+  const strongIdx = samples.map((_, i) => i).filter(strong);
   type PocketX = Omit<Pocket, 'strips'> & { members: Set<number>; list: number[]; strips: StripX[] };
   const pockets: PocketX[] = [];
-  for (const group of linkWithin(busyIdx.map((i) => samples[i].xy), R.maxGapM, false)) {
-    const list = group.members.map((k) => busyIdx[k]);
+  for (const group of linkWithin(strongIdx.map((i) => samples[i].xy), R.maxGapM, false)) {
+    const list = group.members.map((k) => strongIdx[k]);
     if (runLength(list.map((i) => samples[i].xy)) < R.minSpanM) continue;
     const weight = list.reduce((acc, i) => acc + mass(i), 0);
     const spanM = longest(list.map((i) => samples[i].xy));
@@ -244,7 +244,7 @@ export function analyzeArea(o: {
         const d = distanceM(t.at, p.centre);
         if (d <= hoodD) [hood, hoodD] = [t.name, d];
       }
-      p.name = hood ?? 'A busy pocket';
+      p.name = hood ?? 'A pocket of storefronts';
     }
   }
   const strip = ({ members: _m, ...rest }: StripX): Strip => rest;
@@ -290,7 +290,7 @@ export function analyzeArea(o: {
       for (const i of top.list) if (samples[i].density > samples[densest].density) densest = i;
       landing = land(samples[densest].xy, 'cell');
     }
-    return { basis: 'density', reason: 'Busiest area', pockets: cleanPockets, strips: cleanStrips, graded: g.graded, landing };
+    return { basis: 'density', reason: 'Where storefronts gather', pockets: cleanPockets, strips: cleanStrips, graded: g.graded, landing };
   }
 
   // Fallbacks, only with nothing graded medium (L6). The graded stretches still draw (activity-density audit 1).

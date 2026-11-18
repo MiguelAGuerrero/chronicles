@@ -28,7 +28,26 @@ A walk's replay and the day replay: the five beats, the story and its ceremonies
   pulled back past `zipAtM`); a break is a cut with "N min later"; notes and memos
   are bubbles, photos and videos cards that tuck into the pile; passed places
   whisper by (one or two by name, more than two as one "Passed a few places without stopping", RP19); a clock rolls with the walker. Every number is in `REPLAY_RHYTHM`
-  (`motionTokens.ts`). A soft cap of 60 s shrinks everything but memos and videos.
+  (`motionTokens.ts`). Nothing shrinks to fit a total: the 60 s cap went with replay pace (RY10, decision 0203).
+- **Replay pace** (`specs/replay-pace`, RY1-RY22, decision 0203; the first slice of the replay's rework):
+  - **Each moment's time is its own** (`rhythm.ts` `holdPhotos`, `slotDur`, `grid.ts`): a photo on its own is fully
+    shown `photoHold` between `grow` and `tuck`; the first of the replay and one after `longM` with nothing kept, a
+    fifth longer; photos at one stop tighten, the last whole again. A photo walked to is never shortened (the owner,
+    Nov 18: where it stands in the walk says nothing of its worth). A grid stays `gridHold` after its last swipe-in;
+    `mediaTail` stands after a memo and inside a video's card.
+  - **The walker keeps a steady pace** (`ease.ts` `steady`, the leg's `ra`, `rb`): the same curve gives the walker,
+    the clock (audit 24) and a whisper's timing (`legWalkTime`); change one and the others drift.
+  - **A bubble leaves at the next card or cut, never before a note could be read** (`noteRead`), and a memo never
+    before it has played. **A whisper never starts under a card** (RY22): its `tw` moves to the card's end.
+  - **Next** (`clock.ts` `nextStop`, `seekClock`; `useCeremonyClock` `next`, `canNext`, `jump`): a ceremony says when
+    its moments begin and where a press lands (`Showing.stops`: 0.45 s before, never inside the stop before, so never
+    inside a memo or video); the screens never import the rhythm. `aimed` makes two quick presses two moments; a
+    moment about to begin is never skipped. The frame is given the press (`frame(ms, jump)`): it drops a memo's bubble
+    that began before it (the bubble unmounts, so its sound stops and its wait is let go) and says under the clock
+    how much later it is and each place passed (RY21), which is why the line under the clock can wrap
+    (`layout.ts` `STAGE_SIDE`, `heldShown`). A rebuilt telling forgets the press.
+  - **The button says "Next"** (`NextMoment.tsx`, under Skip on both replays): the cold find took a bare chevron for
+    something else and tapped Skip first, which ends the replay. It is not drawn when no moment lies ahead.
 - **A stacked moment is one beat** (moment stacks MS17, decision 0123): `rhythm.ts` `stopSlots` makes a moment
   with two or more photos and videos one `grid` slot (`ceremony/grid.ts`: the closest square up to 3×3, scrolling past
   nine; `gridDuration`: swipe-ins, then one photo slot or the longest muted video), its memos and notes `beside` slots
@@ -78,6 +97,14 @@ A walk's replay and the day replay: the five beats, the story and its ceremonies
   2 s more; one that plays, up to its length (30 s at least). Hold and the viewer
   pause the medium itself (`ctx.held`, `ctx.paused`); a wait never does, or it would
   never catch up. A memo started by hand plays to its end and resumes after Hold.
+- **A medium's length is its kept part** (`fix trimmed-length 1-4`): the plan's slot (`mediaLen`), a grid's longest
+  video, the card's wait and the steps' re-watch all ask `memoLengthMs` (`lib/voiceTrim`; a video's `edit.trim` is the
+  same data as a memo's), never `Number(body)`: the players stop at the trim's end, so the stored length left the
+  walker standing through the cut part. A grid's video plays only its kept part too (`Grid.tsx` `CellVideo`; the
+  `stacks` journey watches both). A test scans the ceremony and its stage for a stored length read directly.
+- **A video's player is made with its file, never empty and filled later** (`CellVideo`, as `CardVideo`): given a new
+  source, expo-video's web hook calls `replace()`, which plays the tag whatever the stage says, and React then sets
+  the tag's `src` again on its next draw, a second load that fails that start with a logged AbortError.
 - **A rebuilt telling keeps its place** (audits 22, 31, 33): deleting a moment from the
   pile, Undo, or editing a note rebuilds the story; `useCeremonyClock` re-anchors with
   `reanchor` in the very render that first shows it: the same time of day, and where the
@@ -116,3 +143,20 @@ A walk's replay and the day replay: the five beats, the story and its ceremonies
 - **Words for a screen reader, once per beat** (`beatWords`, keyed on `phase.t0`, `tend replay 9`): the walk is read
   again while its streets snap and when a note is edited, and an effect keyed on the data said each beat again.
 
+- **Words typed in Name it are never dropped without asking** (`tend replay 15`, the owner's "Ask there too", Nov 16;
+  decision 0172, O17): `backFrom(beat, { typed, asking })` asks before Back or Escape leaves the first replay with
+  words `wordsTyped` reads as Keep it would store them (Rename's `renameChanged`, with the suggestion offered); the ask
+  is Rename's, in Keep it's place under the fields; while it shows, Back, Escape and Done are Keep editing. Not now
+  leaves at once (a choice already made, as Rename's Cancel). The name sheet's quiet Back (`tend replay T21`) goes
+  through the same `stepBack` as Back and Escape.
+- **The owner's answers of Nov 17** (the review of `tend replay 15`): Q1 "Ask there too": with words typed, Not now
+  asks "Discard these edits?"; with nothing typed it leaves at once (`leaveCard`, `tend replay audit 15`; this
+  supersedes the line above that has Not now leave at once). Q2 "Show the typed name": after Back, the card's title
+  shows the typed name (unsaved) until Keep it or leaving (`cardTitle`, `tend replay audit 16`). S3 "Add the chevron":
+  a muted back chevron before "Back" (no new colour, no new words) and the spoken hint "Returns to the card, your
+  words kept". Q4 "File it as architecture": the browser's own back on web (docs/DEFERRED.md, Replay). A Rename from
+  the card's More replaces only the Name it field it changed (`fieldsAfterRename`).
+- **Beat one lights the walked streets in the walked ink, never the accent** (decision 0188, T22; 0153): the trace is
+  faint at `QUIET_TRACE_OPACITY` over them (`map/types.ts`), so a lit street reads `#658694`, 3:1 on the land. The
+  stage's memo (its play disc and waveform), a note's bubble edge and the pile's video tile take the kinds' colours from
+  `COLORS` (the owner's "Follow the palette"); `replay-rhythm audit 19` keeps every hex out of the stage.

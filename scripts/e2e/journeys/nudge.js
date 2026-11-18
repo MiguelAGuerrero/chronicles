@@ -2,7 +2,7 @@
 // expo-haptics' web build, which calls navigator.vibrate; recorded here. E2E_ONLY=nudge runs it alone.
 
 async function run(h) {
-  const { navUrl, BASE, start, at, check, drawerTo, freshPage } = h;
+  const { navUrl, BASE, start, at, check, drawerTo, openInto, closeInto, freshPage, toStop } = h;
     // A touch screen, so the switch is offered (PA6); taps still come as clicks.
     const { c, pg } = await freshPage('nudge', { touch: true });
     await c.addInitScript(() => {
@@ -43,6 +43,7 @@ async function run(h) {
       return firstMark;
     };
     const holdStop = async () => {
+      await toStop(pg);
       const b = await pg.locator('[data-testid=stop]').boundingBox();
       await pg.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
       await pg.mouse.down();
@@ -67,6 +68,18 @@ async function run(h) {
     // It goes first: a walk that starts where the last one ended near the memorial would find it already named.
     await setMeta('start_mode', 'explore');
     await pg.reload();
+    {
+      // WI11 (specs/what-im-into-page): with Explore chosen the pocket alert stays in the settings beside What I'm into's
+      // row, and is not on its page.
+      await pg.waitForSelector('[data-testid=start]');
+      await drawerTo(pg, 'half');
+      const both = (await pg.locator('[data-testid=start-settings] [data-testid=pocket-alert]').count()) === 1 && (await pg.locator('[data-testid=start-settings] [data-testid=into-row]').count()) === 1;
+      const opened = await openInto(pg, 'ready');
+      const onPage = await pg.locator('[data-testid=into-page] [data-testid=pocket-alert]').count();
+      await closeInto(pg);
+      check(both && opened && onPage === 0, `WI11, PA5: the pocket alert stays in the settings beside What I'm into's row, not on its page (${JSON.stringify({ both, opened, onPage })})`);
+      await drawerTo(pg, 'peek');
+    }
     await startWalk();
     const atStart = (await buzzes()).length;
     check(atStart === 0, `PA6: starting the walk, a button press, gives nothing on the web (${atStart} vibrations)`);
@@ -108,7 +121,7 @@ module.exports = {
   covers: [
     'src/lib/{haptics,motion,motionTokens,canBuzz,canBuzz.web}.ts',
     'src/lib/explore/{explore,useExplore,settings}.ts',
-    'src/components/{StartSettings,ExploreSettings}.tsx',
+    'src/components/{StartSettings,ExploreSettings,IntoRow}.tsx',
   ],
   run,
 };

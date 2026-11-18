@@ -1,0 +1,57 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Plan an outing"
+      ],
+      "body": "- Outing journey, second audit (Nov 18), deferred: a stop's position reaches the maps app through a failed route's \"Open in Maps\" banner and through \"When I get there\", which saves a stop as Navigate's destination (audit 40; OJ29 asks for the town's point); a journey's way, once tapped, may still say \"Off your route\" (audit 51, unconfirmed); a long journey scrolls in a sheet that opens at three quarters of the screen (audit 57); beside the capture stack the sheet is narrowed for its whole height (audit 58); Start does not say it records a drive and the walk screen's glyph is footprints (audit 60, with the session's name, decision 0197); no browser check of \"Show the way\" within reach of a town, of a town let go by drifting, or of the line between towns: the test world's towns are a drive apart and its map tiles are blank\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Plan an outing"
+      ],
+      "body": "- [ ] **Do:** on a phone on a real drive with a two-town journey: after Start, turn off the planned way and drive 10 km another way; come back and drive into the first town; tap \"Show the way\", walk some of it, tap End, minimise the session and return; tap \"Pass by\", then Undo, then \"Pass by\" again and drive on; open the planning page while recording and leave a town out, then Undo. **Expect:** the white bar reads \"Toward <town>. <distance> away.\" on one or two lines with both controls on one row at any phone width; drifting far lets the town go with nothing said; in the town it reads \"<town> is here.\" and nothing is routed until \"Show the way\"; after End nothing routes again by itself, on return too; a town passed by does not come back after the app is reopened; with no town ahead the bar is gone and nothing says the journey is over; the capture buttons are never covered on either screen (OJ29-OJ31, OJ33, OJ39, audit 32-49)\n"
+    },
+    {
+      "argv": [
+        "section",
+        "add",
+        "From the outing journey's second audit (2026-11-18)"
+      ],
+      "intro": "The steward's questions from the second audit that only the owner answers; nothing here is built or decided.\n"
+    },
+    {
+      "argv": [
+        "section",
+        "item",
+        "add",
+        "From the outing journey's second audit (2026-11-18)"
+      ],
+      "body": "- A moment captured on the drive between towns: what is its place and its \"what came just before\"? A road has no street walked and no town, and the plan is never stored, so its context cannot say \"on the way to Providence\" after the session stops. The vision says a moment never arrives bare. (the steward)\n"
+    },
+    {
+      "argv": [
+        "section",
+        "item",
+        "add",
+        "From the outing journey's second audit (2026-11-18)"
+      ],
+      "body": "- The second audit changed three things the plan had decided, each within the vision's own lines but yours to overrule: the way on foot in a town is offered (\"Show the way\") and no longer begins by itself; the bar's close is gone, and \"Pass by\" on the last town puts the plan away; a town you drift well away from is let go without a tap. (audits 33, 45, 46)\n"
+    },
+    {
+      "argv": [
+        "inflight",
+        "set",
+        "Outing journey"
+      ],
+      "body": "| Outing journey (Plan an outing, destination first: a full-map page, a destination from the search or a reach with none, chips for attractions and shops in one pool, journeys by leaning with a mixed one, town by town, places new to you first, carried by the session as a trip plan; OJ1-OJ51, decisions 0197-0201) | `claude/determined-wright-yg1fq9` | built 2026-11-17 and 18; audited twice: 31 findings, 21 fixed, 7 deferred, 3 rejected (`outing-journey audit 1-31`), then the carried journey, 29 findings, 21 fixed, 5 deferred, 3 rejected (`audit 32-60`); the road engine slice and the stores pack published are owed; native unverified |\n",
+      "target": "sha256:d8d6f9d65fbdb102ae4be3a1aaf2a5d5530a32b192246a859d8860a52aa57797"
+    }
+  ]
+}
