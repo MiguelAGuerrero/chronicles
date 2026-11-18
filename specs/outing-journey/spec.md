@@ -374,6 +374,13 @@ town out" (OJ26), "New to you." on a town (OJ50), the towns joined by a faint li
 OJ48-OJ50 (`journeyPlan.test.ts`), committed failing first (`9f288f3`); a new journey, `journey` (14 checks: a town a drive away, its
 one-stop chapter, Start, the bar whole on screen, a reload, Pass by); `outing` green at 66.
 
+**Journeys run for the carried journey** (Nov 18, once each after the last change, in the foreground: two background runs were lost
+to container restarts): `journey` (14), `outing` (66), `capturehome`, `carousel`, `dense`, `edit`, `freelook`, `gaps`, `headsup`,
+`hidden`, `layers`, `marks`, `openmaps`, `placesearch`, `ready`, `reload`, `snap`, `space`, `switches`, `tabs`, `unsaved`,
+`walkability`: all green. `drive` fails where `docs/DEFERRED.md` records it failing on `main` (a town's card not opening after
+"When I get there"); not rerun and not baselined here. `journey` failed once in three before its fix: with no fix yet the bar did
+not show at all; it now says the town without a distance, and ran green four times running.
+
 **Not tested, and why.** The way on foot asked for within reach of a town (OJ30), a town let go by driving past (unit only), "Leave
 this town out" and the line between towns (OJ26, OJ51) have no check in a browser: the test world holds one town with anything in
 it, so no journey there has two. The plan's clearing at Stop is by the stop's code, with a unit test of `clear` only.
