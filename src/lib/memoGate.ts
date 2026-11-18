@@ -1,4 +1,5 @@
 // @layer shell
+import { stopUnderOf, type StopUnder } from './stopEnd/core';
 /**
  * Whether a voice memo is recording anywhere (Navigate's row, the walk
  * screen), and the saves still under way (tabs audit 3). A walk never starts
@@ -58,15 +59,9 @@ export function createMemoGate() {
       while (saves.size) await Promise.all([...saves.keys()]);
       return on.size === 0;
     },
-    /**
-     * What a Stop meets once its wait is over (T35): it goes (through the saves `warned` already named, which keep
-     * saving into the ended walk); or it is refused, as saving (the numbers to name, for the next hold) or as a memo
-     * recording with none being saved. A save takes the place of its memo's recording: the memo stopped to be saved.
-     */
-    stopUnder(warned: readonly number[]): { go: true; under: number[] } | { go: false; saving: number[] } | { go: false; recording: true } {
-      const saving = [...saves.values()];
-      if (saving.length) return saving.every((n) => warned.includes(n)) ? { go: true, under: saving } : { go: false, saving };
-      return on.size ? { go: false, recording: true } : { go: true, under: [] };
+    /** What a Stop meets once its wait is over (T35), decided in core from this gate's state (tend tabs audit 43). */
+    stopUnder(warned: readonly number[]): StopUnder {
+      return stopUnderOf({ saving: [...saves.values()].map((n) => ({ n, owner: null })), on: [...on], warned });
     },
     /** A memo recording or being saved, a photo or video being kept, or a stop through one: the walk is not dropped. */
     underWay(): boolean {
