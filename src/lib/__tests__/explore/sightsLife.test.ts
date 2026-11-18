@@ -30,7 +30,7 @@ const listed = (steps: Steps): Listed => ({
 const place = (key: string, category: CategoryId, kind: Kind | undefined, o: Partial<AtlasPlace> = {}): AtlasPlace =>
   ({ key, category, at: O, markable: kind ? true : undefined, kind, ...o });
 
-test('SG10: Sights and Local life hold every kind once, in ATLAS_ORDER', { todo: 'test first' }, () => {
+test('SG10: Sights and Local life hold every kind once, in ATLAS_ORDER', () => {
   const groups = A.KIND_GROUPS as { id: string; label: string; kinds: CategoryId[] }[];
   assert.deepEqual(groups.map((g) => g.label), ['Sights', 'Local life']);
   assert.deepEqual(groups[0].kinds, SIGHTS);
@@ -38,7 +38,7 @@ test('SG10: Sights and Local life hold every kind once, in ATLAS_ORDER', { todo:
   assert.deepEqual(groups.flatMap((g) => g.kinds), [...ATLAS_ORDER]);
 });
 
-test('SG2: a tile\'s kinds by group, in order, a group with none dropped', { todo: 'test first' }, () => {
+test('SG2: a tile\'s kinds by group, in order, a group with none dropped', () => {
   const g = A.groupsPresent as (s: Steps) => { id: string; kinds: CategoryId[] }[];
   assert.deepEqual(g({ ...z, art: 1, history: 2, food: 3 }).map((x) => [x.id, x.kinds]), [['sights', ['history', 'art']], ['life', ['food']]]);
   assert.deepEqual(g({ ...z, food: 1, nightlife: 2 }).map((x) => x.id), ['life'], 'no Sights: one group, so no space between');
@@ -46,7 +46,7 @@ test('SG2: a tile\'s kinds by group, in order, a group with none dropped', { tod
   assert.deepEqual(g(z), []);
 });
 
-test('SG9: over the presence sample, the groups laid end to end are the present kinds in ATLAS_ORDER', { todo: 'test first' }, () => {
+test('SG9: over the presence sample, the groups laid end to end are the present kinds in ATLAS_ORDER', () => {
   const g = A.groupsPresent as (s: Steps) => { kinds: CategoryId[] }[];
   const pt = (props: Record<string, string>, c: LngLat) => ({ type: 'Feature', geometry: { type: 'Point', coordinates: c }, properties: props });
   type Area = { name: string; at: LngLat; pois: [string, string, string, number, number][]; archive: [string, string, number, number, string][] };
@@ -64,7 +64,7 @@ test('SG9: over the presence sample, the groups laid end to end are the present 
   assert.ok(n > 100, 'the sample and the towns');
 });
 
-test('SG5: a tile\'s spoken line names the groups present, in order', { todo: 'test first' }, () => {
+test('SG5: a tile\'s spoken line names the groups present, in order', () => {
   const fmt = (m: number) => `${m} m`;
   const both = tileLabel(listed({ ...z, history: 1, art: 2, food: 3 }), fam, fmt);
   assert.match(both, /Sights: History: some, Art: plenty\. Local life: Food: lots\./, both);
@@ -73,7 +73,7 @@ test('SG5: a tile\'s spoken line names the groups present, in order', { todo: 't
   assert.doesNotMatch(life, /Sights/, 'a group with nothing present is not said');
 });
 
-test('SG7: how the marks work names both groups, in words, the ring\'s line last', { todo: 'test first' }, () => {
+test('SG7: how the marks work names both groups, in words, the ring\'s line last', () => {
   for (const extent of [undefined, 'outline', 'shape'] as const) {
     const lines = marksExplained(extent ? ({ extent } as never) : null);
     const all = lines.join(' ');
@@ -84,13 +84,13 @@ test('SG7: how the marks work names both groups, in words, the ring\'s line last
     assert.match(all, /What I.m into/, 'Sights follow the switches (SG12)');
     assert.match(all, /never turns? up as a “?\?”?/i);
     assert.match(all, /never how good/i);
-    assert.match(all, /how busy/i);
+    assert.match(all, /how many people go there/i, 'never how busy, in words that are not the banned word (SG11)');
     assert.match(all, /history and culture/i, 'while Culture is a Sight, a museum may count toward both');
     assert.match(lines[lines.length - 1], extent === 'outline' ? /whole outline/ : /ten-minute walk|shape/i, 'its own last line kept (TP8)');
   }
 });
 
-test('SG11: no number and no word for busyness in the groups, the line under Sights, the explanation or a tile\'s line', { todo: 'test first' }, () => {
+test('SG11: no number and no word for busyness in the groups, the line under Sights, the explanation or a tile\'s line', () => {
   const words = [...(A.KIND_GROUPS ?? []).map((g: { label: string }) => g.label), A.SIGHTS_LINE ?? '', ...marksExplained(null)];
   for (const s of [{ ...z, food: 3, shops: 3 }, { ...z, history: 2, food: 3 }, { ...z, art: 1 }] as Steps[]) words.push(characterLine(s));
   assert.ok(A.SIGHTS_LINE, 'the line under Sights exists');
@@ -100,7 +100,7 @@ test('SG11: no number and no word for busyness in the groups, the line under Sig
   }
 });
 
-test('SG12: a Sights kind switched off leaves its bar; back on restores it; Local life has no switch', { todo: 'test first' }, () => {
+test('SG12: a Sights kind switched off leaves its bar; back on restores it; Local life has no switch', () => {
   const ring = [
     place('m1', 'history', 'monuments'), place('m2', 'history', 'monuments'), place('m3', 'history', 'monuments'), place('m4', 'history', 'monuments'),
     place('c1', 'history', 'cemeteries'),
@@ -122,11 +122,11 @@ test('SG12: a Sights kind switched off leaves its bar; back on restores it; Loca
   assert.deepEqual(stepsFrom(t, parseHidden(null, null)), on);
 });
 
-test('SG12: a profile from before a15 is read again', { todo: 'test first' }, () => {
+test('SG12: a profile from before a15 is read again', () => {
   assert.match(atlasModule.ATLAS_CODE, /^a15\./);
 });
 
-test('SG13: a tile\'s line leads with Sights, Local life only when there is no Sight', { todo: 'test first' }, () => {
+test('SG13: a tile\'s line leads with Sights, Local life only when there is no Sight', () => {
   assert.equal(characterLine({ ...z, history: 2, parks: 2, food: 3, shops: 3 }), 'Plenty of history and green space');
   assert.equal(characterLine({ ...z, history: 3, food: 3, art: 1 }), 'Lots of history');
   assert.equal(characterLine({ ...z, food: 3, shops: 3 }), 'Lots of food and shops');
@@ -136,7 +136,7 @@ test('SG13: a tile\'s line leads with Sights, Local life only when there is no S
   assert.equal(characterLine({ ...z, food: 3 }, true), '', 'a thin area says nothing (SG8)');
 });
 
-test('SG2: eight kinds in two groups fit a selected tile on a 320 px phone', { todo: 'test first' }, () => {
+test('SG2: eight kinds in two groups fit a selected tile on a 320 px phone', () => {
   // A tile at 320 px is round(320 * 0.78) = 250 px (AtlasCarousel's cardW), less 2 x 12 px padding and the selected
   // tile's 2 px border on each side: 222 px inside (the plan review's A1).
   const s = A.STRIP as { chip: number; gap: number; groupGap: number };

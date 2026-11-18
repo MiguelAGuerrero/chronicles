@@ -60,9 +60,9 @@ async function checks(h) {
           return { n: kinds.length, top: new Set(kinds.map((k) => Math.round(k.getBoundingClientRect().top))).size, right: last?.right ?? 0, edge: r ? r.right : 0,
             life: !!el.querySelector('[data-testid=atlas-strip-life]'), sights: !!el.querySelector('[data-testid=atlas-strip-sights]') };
         });
-        check.todo(strip.n > 0 && strip.top === 1 && strip.right <= strip.edge + 0.5 && (strip.sights || strip.life),
+        check(strip.n > 0 && strip.top === 1 && strip.right <= strip.edge + 0.5 && (strip.sights || strip.life),
           `SG2: the tile's kinds stay one row inside the strip, in their groups (${JSON.stringify(strip)})`);
-        check.todo(/Sights: History: (some|plenty|lots)/.test(label) && (!strip.life || /Local life: /.test(label)),
+        check(/Sights: History: (some|plenty|lots)/.test(label) && (!strip.life || /Local life: /.test(label)),
           `SG5: the tile's spoken line names its groups (${label})`);
       }
       const atlasRows = await page.evaluate(() => new Promise((resolve) => {
@@ -238,22 +238,22 @@ async function checks(h) {
         const want = ['atlas-group-sights', 'atlas-kind-history', 'atlas-kind-art', 'atlas-kind-culture', 'atlas-kind-parks', 'atlas-kind-viewpoints',
           'atlas-group-life', 'atlas-kind-food', 'atlas-kind-shops', 'atlas-kind-nightlife'];
         const heads = await sec.locator('[data-testid^=atlas-group-]').allInnerTexts();
-        check.todo(JSON.stringify(order) === JSON.stringify(want) && heads.join('|') === 'Sights|Local life',
+        check(JSON.stringify(order) === JSON.stringify(want) && heads.join('|') === 'Sights|Local life',
           `SG1, SG4: Sights then Local life, each over its kinds, all eight rows (${order.join(', ')}; ${heads.join('|')})`);
         const line = await sec.locator('[data-testid=atlas-sights-line]').innerText().catch(() => '');
-        check.todo(/“?\?”? on the map/.test(line) && (await sec.locator('[data-testid=atlas-life-line]').count()) === 0,
+        check(/“?\?”? on the map/.test(line) && (await sec.locator('[data-testid=atlas-life-line]').count()) === 0,
           `SG1: one muted line under Sights ties it to the "?", none under Local life (${line})`);
         const levels = await sec.locator('[role=heading]').evaluateAll((els) => els.map((e) => [e.textContent, e.getAttribute('aria-level')]));
         const top = levels.find(([t]) => /What’s here/.test(t ?? ''));
         const sub = levels.filter(([t]) => /^(Sights|Local life)$/.test(t ?? ''));
-        check.todo(!!top && sub.length === 2 && sub.every(([, l]) => Number(l) === Number(top[1] ?? 2) + 1),
+        check(!!top && sub.length === 2 && sub.every(([, l]) => Number(l) === Number(top[1] ?? 2) + 1),
           `SG3: Sights and Local life are headings one level under "What's here" (${JSON.stringify(levels)})`);
         const style = await sec.locator('[data-testid=atlas-group-sights]').evaluate((el) => {
           const c = getComputedStyle(el);
           return { tt: c.textTransform, color: c.color, size: parseFloat(c.fontSize) };
         });
         const kindColors = await sec.locator('[data-testid^=atlas-group-]').evaluateAll((els) => els.map((e) => getComputedStyle(e).color));
-        check.todo(style.tt !== 'uppercase' && style.color === 'rgb(29, 36, 48)' && style.size >= 13 && kindColors.every((c) => c === 'rgb(29, 36, 48)'),
+        check(style.tt !== 'uppercase' && style.color === 'rgb(29, 36, 48)' && style.size >= 13 && kindColors.every((c) => c === 'rgb(29, 36, 48)'),
           `SG6: the headings are sentence case, ink, not the section titles' style (${JSON.stringify(style)})`);
         const storefronts = await page.locator('[data-testid=atlas-storefronts]').count();
         const after = storefronts === 0 || await page.evaluate(() => {
@@ -261,10 +261,10 @@ async function checks(h) {
           const s = document.querySelector('[data-testid=atlas-storefronts]');
           return !!k && !!s && !k.contains(s) && !!(k.compareDocumentPosition(s) & Node.DOCUMENT_POSITION_FOLLOWING);
         });
-        check.todo(after, 'SG6: the Storefronts list is its own section after the kinds, never under Local life');
+        check(after, 'SG6: the Storefronts list is its own section after the kinds, never under Local life');
         const how = await page.locator('[data-testid=atlas-how-panel]').innerText();
         const text = `${await sec.innerText()} ${how}`;
-        check.todo(/Sights/.test(how) && /Local life/.test(how) && !/\d/.test(text) && !/\b(busy|popular|trending|lively|alive|buzzing|vibrant)\b/i.test(text),
+        check(/Sights/.test(how) && /Local life/.test(how) && !/\d/.test(text) && !/\b(busy|popular|trending|lively|alive|buzzing|vibrant)\b/i.test(text),
           `SG7, SG11: the explanation names both groups; no digit or busy word in the section (${how.replace(/\s+/g, ' ').slice(0, 120)})`);
       }
       await shot(page, '11c-atlas-card');

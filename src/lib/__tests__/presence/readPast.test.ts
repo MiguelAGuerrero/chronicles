@@ -64,7 +64,7 @@ test('tend presence 1: the bump to p5 (and every bump since) is presence\'s, car
   assert.ok(Number(PRESENCE_CODE.slice(1)) >= 5, PRESENCE_CODE);
   assert.ok(!PRESENCE_CARRIED.includes('p4') && PRESENCE_CARRIED.every((c) => Number(c.slice(1)) === Number(PRESENCE_CODE.slice(1)) - 1), 'what a museum or a park reads as moved, so no p4 row stands, and only the code just before is ever carried (PS9; p7 carries p6, decision 0194)');
   // The codes that hold presence's carry it; their own parts are what they were at p4.
-  assert.equal(ATLAS_CODE, `a14.${PRESENCE_CODE}`);
+  assert.equal(ATLAS_CODE, `a15.${PRESENCE_CODE}`);
   assert.equal(LANDING_CODE, 'l4');
   assert.ok(LANDING_VERSION.startsWith(`l4:${PRESENCE_CODE}:`), LANDING_VERSION);
   // Truth vs cache: an area derived under p4 is derived again, never patched. Its row no longer stands, so the same area

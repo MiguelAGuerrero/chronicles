@@ -24,7 +24,7 @@ async function run(h) {
     check((await card.count()) === 1 && (await card.locator('[data-testid^=atlas-kind-]').count()) === 0
       && (await card.locator('[data-testid=atlas-how]').count()) === 0 && !/\bnone\b/.test(await card.innerText().catch(() => '')),
       'AG3: a thin ring\'s card shows no kind rows, no "none", no "How the marks work"');
-    check.todo((await card.locator('[data-testid^=atlas-group-]').count()) === 0 && (await tile.locator('[data-testid=atlas-strip-life]').count()) === 0,
+    check((await card.locator('[data-testid^=atlas-group-]').count()) === 0 && (await tile.locator('[data-testid=atlas-strip-life]').count()) === 0,
       'SG8: a thin ring\'s card and tile show neither Sights nor Local life');
     } finally {
       // Never left on for the journeys after this one (fix explore-town-scope audit 7).
