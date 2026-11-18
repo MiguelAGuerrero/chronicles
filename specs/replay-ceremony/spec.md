@@ -63,6 +63,9 @@ Open: the three questions under "For the owner" (how the map is driven; how it i
   voice memos play one after another ("a slideshow is necessary for things that are not pictures"); captions in the replay.
 - Nov 18, the owner, after the first slice went live: build the rest whole on the branch and deploy nothing until they have seen
   it running and say it matches the mock-up.
+- Nov 18, the owner, on this plan (decision 0206): the replay is driven by **a loop outside the screen's rendering**; it is
+  shown first at **a preview address** on the live site; **captions wait for the first phone build** (RC38-RC44 are not built
+  here); and **the replay draws the pictures on the map itself**, the map's pins left as 0154 has them.
 - From the audit of the direction (`docs/research/replay-ceremony-direction-audit.md`), taken here: the opening is the fog beat,
   not a second overview; a break too small to see is a stand; the stack entry arrives after the card has reached its pin; the
   last view holds 2 s, not 4; the close names the passed places.
@@ -149,7 +152,8 @@ Open: the three questions under "For the owner" (how the map is driven; how it i
 
 ### What stays behind
 
-28. **RC28** A photo's, grid's or video's card shrinks onto its own pin on the map, not into a corner.
+28. **RC28** A photo's, grid's or video's card shrinks onto its own place on the map, where its picture then stands, not into a
+    corner.
 29. **RC29** The owner's task, "a stack that shoots up as moments come into view": at the right edge a stack gathers one entry
     for each moment that had a picture or a video, the newest on top, each arriving once its card has reached its pin. A
     moment of several pieces is one entry with a layered edge; a video's has a play mark.
@@ -161,7 +165,10 @@ Open: the three questions under "For the owner" (how the map is driven; how it i
 32. **RC32** A new entry settles with an overshoot of 1.5% and the ones under it give 3 px; with reduce motion it appears in
     place.
 33. **RC33** The stack leaves as the card arrives; the card's map has the pins, as today.
-34. **RC34** Pins group as they do everywhere (0154): a pin of several shows its kinds.
+34. **RC34** The owner's task, "a photo stays on its pin": through the path and on the last view, each moment that had a picture
+    or a video stands as that picture at its place on the map, drawn by the replay over the map. Where two would overlap, the
+    later one shows, with a layered edge. The map's own pins for those moments wait until the card, and every other map in the
+    app keeps its pins as they are (0154).
 
 ### A moment on screen
 
@@ -173,7 +180,9 @@ Open: the three questions under "For the owner" (how the map is driven; how it i
     on its own has, and the card stays up while its memos play. Nothing counts its pieces: no dots, no position. (Amends MS17:
     a moment's videos no longer play muted in the grid's cells. The steward's S2.)
 
-### Captions (a phone build only)
+### Captions (not built here: the owner, Nov 18, with the first phone build)
+
+Kept as written for that slice; RC38-RC44 are retired from this one in `scripts/features.js`.
 
 38. **RC38** A voice memo's bubble shows what the phone read from it: the line "Read by your phone", then at most three lines of
     the words, which move on by the share of the memo played. No word is marked as being spoken (the phone keeps no timings).
@@ -193,7 +202,7 @@ Open: the three questions under "For the owner" (how the map is driven; how it i
     accent light (RR19, 0153). The stack's height is the one exception, the owner's call, recorded in its decision (the
     steward's S1).
 46. **RC46** Every way into a replay plays this way: a walk's first replay, a re-watch, a link reopened and the day's replay.
-47. **RC47** The screen reader's steps are as they were (RR17), captions aside (RC43).
+47. **RC47** The screen reader's steps are as they were (RR17).
 48. **RC48** The old way of playing is gone, not kept beside the new: one engine, one camera, one way across a break.
 
 ## Every surface
@@ -204,17 +213,12 @@ stage (RC47). `WalkMap` is drawn by the walk screen, Chronicle's map, Explore an
 intent; nothing else here changes them, and pins are left as they are (RC34) because `CapturePinView` is drawn on every one.
 `MemoTranscript` is drawn by the viewer and the journal's memo line: RC41 adds a video's reading to the viewer only.
 
-## For the owner
+## For the owner: answered Nov 18 (decision 0206)
 
-1. **How the map is driven** (architecture): a loop outside the screen's rendering, as the live walk already moves its dot, with
-   the walked line revealed by a paint property (plan, "The engine"). Measured in a spike; the phone's own GPU is not measured.
-2. **How it is shown before it goes live**: the owner watches on an iPhone in the browser, and the only place that serves the app
-   is the live site (plan, "How the owner sees it").
-3. **Captions**: they need a phone build, which does not exist yet; on the web the owner will see none. Three more calls come
-   with them: whether a caption can be put away (0169 said no, for the viewer; a replay is shown to others), a bystander's
-   speech in a video shown as text, and a memo in another language.
-4. **Pictures on the map**: pins merge when moments are close (0154: a pin of several shows kinds, never a picture), and a wider
-   zoom merges more, so "a photo stays on its pin" would often shrink a card into a pin of icons (plan, "Pictures on the map").
+1. How the map is driven: a loop outside the screen's rendering.
+2. How it is shown before it goes live: a preview address on the live site, the engine alone first.
+3. Captions: with the first phone build.
+4. Pictures on the map: the replay draws them.
 
 ## Record
 

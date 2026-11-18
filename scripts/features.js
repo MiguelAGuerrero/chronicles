@@ -378,6 +378,8 @@ const FEATURES = [
 const V1_SCAN_AND_AMBIENT = ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S9', 'S10', 'S11', 'S12', 'S14', 'S15', 'S22', 'S23', ...Array.from({ length: 11 }, (_, i) => `A${i + 1}`)];
 
 const RETIRED = {
+  // Captions in the replay wait for the first phone build (the owner, Nov 18, decision 0206): they cannot be seen on the web.
+  'replay-ceremony': ['RC38', 'RC39', 'RC40', 'RC41', 'RC42', 'RC43', 'RC44'],
   // The soft cap of about 60 s and its floors went when each moment was given its own time (the owner, Nov 18, decision 0203):
   // specs/replay-pace RY10 holds that nothing shrinks to fit a total.
   'replay-rhythm': ['RR5'],
@@ -518,7 +520,7 @@ const RENAMED = {
 };
 
 const IN_PROGRESS = {
-  // Replay ceremony (RC1-RC48): the spec and plan are with the owner; nothing is built (Nov 18).
+  // Replay ceremony (RC1-RC48): the owner's go-ahead Nov 18 (decision 0206); built on the branch, shown at the preview address first.
   'replay-ceremony': { branch: 'claude/funny-bohr-ztvwgv', since: '2026-11-18' },
 };
 

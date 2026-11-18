@@ -59,14 +59,17 @@ Each part is spec-first and test-first as the repo does it, ends green, and is c
    card, so nothing jumps between them); the pull-back, the named passed places, the date, the 2 s hold.
 5. **What stays behind, and a moment on screen** (RC28-RC37): the card onto its pin, the stack with its first-in first-out
    bound, the scrim and the drift, a moment's videos and memos in turn.
-6. **Captions** (RC38-RC44): the memo's caption window in the bubble; a video's reading (new native code); only if the owner
-   wants them before a phone build exists (question 3).
+6. Captions (RC38-RC44) are not built here: the owner, Nov 18, with the first phone build.
 
 **The owner looks twice**: once after the engine alone (is it smooth on the iPhone; which ceiling on frames a second looks
 best), before the look is built on it, and once at the end (the steward's S8). Then the cold find, the UI review with pictures
 and `/docs-gc`. `/deploy` only on the owner's word.
 
 ## How the owner sees it
+
+**Answered Nov 18: a preview address.** `.github/workflows/pages.yml` also builds the branch named in `.github/preview-branch`
+and publishes it under `/chronicles/preview/`; a preview that fails to build never blocks the app's own deploy. The engine goes
+there alone first.
 
 The owner watches on an iPhone in the browser. Only the live site serves the app, and it serves only `main`. The choices:
 
@@ -160,6 +163,10 @@ scans gain the new files).
   RR19).
 
 ## Pictures on the map (question 4)
+
+**Answered Nov 18: the stage draws the pictures** (RC28, RC34): a `picture` overlay kind, placed by the frame's camera each
+frame like a card's origin, with the overlap rule in core (`src/lib/ceremony/pictures.ts`); the screens pass the map only the
+pins of moments with no picture until the card.
 
 The map's pins merge within 44 px, and a pin of several shows its kinds, never a picture (0154). At the wider walking zoom
 merges roughly double, and on the whole-walk view most of a town walk merges. So as specified (RC28, RC34) a card often shrinks
