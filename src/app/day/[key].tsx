@@ -10,17 +10,17 @@ import { Stage } from '../../components/ceremony/Stage';
 import { StepThrough } from '../../components/ceremony/StepThrough';
 import { useAwakeWhile } from '../../components/ceremony/useAwakeWhile';
 import { NextMoment } from '../../components/ceremony/NextMoment';
-import { useCeremonyClock } from '../../components/ceremony/useCeremonyClock';
+import { useReplay } from '../../components/ceremony/useCeremonyLoop';
 import { useRevealed } from '../../components/ceremony/useRevealed';
 import type { StageCtx } from '../../components/ceremony/layout';
 import { WalkMap } from '../../components/map/WalkMap';
-import type { WalkMapProps } from '../../components/map/types';
+import type { WalkMapHandle, WalkMapProps } from '../../components/map/types';
 import { Button, theme } from '../../components/ui';
 import { setAudioMode } from '../../lib/audioMode';
 import { db } from '../../lib/db';
 import { applyPatch, captureBus } from '../../lib/captureBus';
 import { ceremonyFor } from '../../lib/ceremony/registry';
-import { dayStory, pathDrawnAt, storySteps } from '../../lib/ceremony/story';
+import { dayStory, storySteps } from '../../lib/ceremony/story';
 import { buildDays, dayCaptures, dayCard, dayFrame, dayStart, dayWithout, nextDayStart, watchedKey, type Day } from '../../lib/days';
 import { launchRoute } from '../../lib/launchRoute';
 import type { Bounds } from '../../lib/geo';
@@ -28,11 +28,12 @@ import { beatWords } from '../../lib/replay';
 import { loadReplay, type ReplayData } from '../../lib/summary';
 import { useHidden } from '../../lib/deletion/useDeletions';
 import { useUnits } from '../../lib/useUnits';
+import { perfCount } from '../../lib/perfCount';
 import { UndoToast } from '../../components/UndoToast';
 import type { LngLat } from '../../lib/types';
 
-/** The drawn trace is rebuilt at most this often; the walker moves every frame. */
-const TRACE_STEP_MS = 66;
+/** While the path is told the map is given no trace: the replay's frames reveal the line on it (replay ceremony RC3, RC9). */
+const NO_RUNS: LngLat[][] = [];
 /** A day draws no fog and no walked streets; one empty list, so the map isn't handed a new one each tick (NF2). */
 const NO_STREETS: WalkMapProps['walked'] = [];
 
@@ -53,9 +54,13 @@ interface Loaded {
  * quiet card (M13). With a screen reader, its moments one at a time (RR17).
  */
 export default function DayReplay() {
-  // `style` names the ceremony that tells it (RR21, audit 25).
-  const { key, style } = useLocalSearchParams<{ key: string; style?: string }>();
+  // Counted for the e2e (only when measuring): the path renders it for what arrives or leaves, never because time
+  // passed (replay ceremony RC2, RC9).
+  perfCount('render:day');
+  // `style` names the ceremony that tells it (RR21, audit 25); `fps` asks a ceiling on the frames drawn a second (RC6).
+  const { key, style, fps } = useLocalSearchParams<{ key: string; style?: string; fps?: string }>();
   const insets = useSafeAreaInsets();
+  const mapRef = useRef<WalkMapHandle>(null);
   const { width, height } = useWindowDimensions();
   const [data, setData] = useState<Loaded | null>(null);
   const [status, setStatus] = useState<'loading' | 'missing' | 'ready'>('loading');
@@ -180,8 +185,9 @@ export default function DayReplay() {
       return next;
     });
   }, []);
-  const play = useCeremonyClock({ epoch: phase.t0, running: telling, paused: viewing != null || waits.size > 0, showing, onEnd: toCard });
-  const frame = telling ? showing.frame(play.ms, play.jump) : null;
+  // The path is told by a loop outside this screen's rendering, the same as a walk's replay (replay ceremony RC9):
+  // each frame goes straight to the map and the stage; the screen reads only the pins, Hold and whether Next is there.
+  const play = useReplay({ epoch: phase.t0, telling, paused: viewing != null || waits.size > 0, story, showing, map: mapRef, fps, onEnd: toCard });
   // The screen stays awake while the replay plays, until the card (RR24).
   useAwakeWhile(phase.beat === 'path');
 
@@ -197,40 +203,20 @@ export default function DayReplay() {
     if (!skipped) db.setMeta(watchedKey(data.day.key), String(Date.now())).catch(() => {});
   }, [onCard, data, skipped, phase.t0]);
 
-  // Each walk's trace as far as the ceremony has drawn it; every walk whole on the card.
-  const bucket = telling ? Math.floor(play.ms / TRACE_STEP_MS) : -1;
-  // The trace is rebuilt on TRACE_STEP_MS buckets, not every frame: from the frame at the bucket's time.
-  const traceFrame = useMemo(() => (telling && bucket >= 0 ? showing.frame(bucket * TRACE_STEP_MS) : null), [telling, showing, bucket]);
-  const drawn = useMemo(
-    () => {
-      const trace: LngLat[][] = [];
-      const rides: LngLat[][] = [];
-      if (!story) return { trace, rides };
-      const upTo: Record<string, number> = traceFrame ? traceFrame.drawn : onCard || srMode ? Object.fromEntries(Object.keys(story.paths).map((id) => [id, Infinity])) : {};
-      for (const [id, t] of Object.entries(upTo)) {
-        const p = story.paths[id];
-        if (!p) continue;
-        const d = pathDrawnAt(p, t);
-        trace.push(...d.trace);
-        rides.push(...d.rides);
-      }
-      return { trace, rides };
-    },
-    [story, traceFrame, onCard, srMode],
-  );
-
-  // Every walk of the day whole: where the end marker sits in every beat, never at the tip being told (tend replay 2).
-  const whole = useMemo(() => (story ? Object.values(story.paths).flatMap((p) => pathDrawnAt(p, Infinity).trace) : []), [story]);
+  // Every walk of the day whole: on the card (and under a screen reader's steps), and where the end marker sits in
+  // every beat, never at the tip being told (tend replay 2). While the path is told the map reveals each walk's line
+  // itself, frame by frame, as far as the ceremony has drawn it.
+  const whole = useMemo(() => (story ? Object.values(story.paths).flatMap((p) => p.drawn) : NO_RUNS), [story]);
+  const wholeRides = useMemo(() => (story ? Object.values(story.paths).flatMap((p) => p.rideRuns) : NO_RUNS), [story]);
+  const drawnWhole = onCard || srMode;
 
   // Pins appear as their moments are reached; on the card every pin opens its moments.
   // The story already leaves out a moment deleted from its viewer (D3).
-  const pinned = useRevealed(story, frame ? frame.pins : onCard || srMode ? 'all' : 'none');
+  const pinned = useRevealed(story, telling ? play.pins : onCard || srMode ? 'all' : 'none');
 
-  // The camera is the ceremony's to say (audit 10).
-  const follow = frame?.camera.center ?? null;
-  const followZoom = follow ? frame?.camera.zoom ?? null : null;
+  // The camera is the ceremony's to say (audit 10), in each frame.
   const ctx: StageCtx = {
-    width, height, insets, center: follow, zoom: followZoom ?? 0,
+    width, height, insets, live: play.live,
     held: play.held, paused: viewing != null, reduceMotion, open: setViewing, wait,
   };
   // The card is computed once it is reached, not every frame (audit).
@@ -262,17 +248,16 @@ export default function DayReplay() {
   return (
     <View style={styles.screen}>
       <WalkMap
+        ref={mapRef}
         borders={borders}
-        trace={drawn.trace}
-        rides={drawn.rides}
+        trace={drawnWhole ? whole : NO_RUNS}
+        rides={drawnWhole ? wholeRides : NO_RUNS}
+        replay={telling}
         walked={NO_STREETS}
         fog={NO_STREETS}
         captures={pinned}
         clocks={clocks}
         onPinPress={onCard ? setViewing : undefined}
-        walker={frame?.walker ?? null}
-        follow={follow}
-        followZoom={followZoom}
         fitBounds={data.bounds}
         fitKey={fitKey}
         fitPadding={onCard ? { top: 48 + insets.top, right: 32, bottom: sheetH + 24, left: 32 } : undefined}
@@ -288,11 +273,11 @@ export default function DayReplay() {
         scaleInset={onCard ? { bottom: sheetH + 12, left: 12 } : { bottom: insets.bottom + 12, left: 12 }}
       />
 
-      {frame && (
+      {telling && (
         <>
           {/* A tap anywhere holds the replay, and another goes on (RR7). */}
           <Pressable testID="replay-stage" style={StyleSheet.absoluteFill} onPress={play.toggleHold} accessible={false} />
-          <Stage frame={frame} ctx={ctx} />
+          <Stage ctx={ctx} />
         </>
       )}
       {phase.beat === 'path' && srMode && (
@@ -320,10 +305,10 @@ export default function DayReplay() {
             }}
           />
           {/* Under Skip, at the same edge: the clock sits between Hold and Skip, and the three do not fit one row on a 375 px phone (RY12). */}
-          {frame && play.canNext && <NextMoment onPress={play.next} />}
+          {telling && play.canNext && <NextMoment onPress={play.next} />}
         </View>
       )}
-      {frame && (
+      {telling && (
         <View style={[styles.hold, { top: insets.top + 12 }]}>
           <Button
             testID="hold"

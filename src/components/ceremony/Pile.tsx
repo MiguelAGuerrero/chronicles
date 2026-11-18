@@ -1,6 +1,7 @@
 import type { Faced } from '../../lib/moment';
 import { Picture } from '../Picture';
 import { Pressable, StyleSheet, View } from 'react-native';
+import { overlayOf } from '../../lib/ceremony/live';
 import type { PileOverlay } from '../../lib/ceremony/types';
 import { THUMB } from '../../lib/thumbPlan';
 
@@ -11,6 +12,7 @@ import { VideoMark } from '../VideoMark';
 import { useStill } from '../../lib/thumbs/useStill';
 import { theme } from '../ui';
 import { PILE, pileCenter, tiltOf, type StageCtx } from './layout';
+import { useLive } from './useLive';
 
 /** A photo's small copy where it has one (a map never decodes full photos; nor does the pile). */
 const small = (c: Faced): Faced => (c.kind === 'photo' && c.thumb_path && c.thumb_path !== THUMB.none ? { ...c, file_path: c.thumb_path } : c);
@@ -37,9 +39,18 @@ function Thumb({ capture: row }: { capture: Faced }) {
   );
 }
 
-/** The photos and videos so far, the last three dropped in a pile; no count (RR11, RR19). A tap opens them (RR13). */
+/**
+ * The photos and videos so far, the last three dropped in a pile; no count (RR11, RR19). A tap opens them (RR13).
+ * It renders when one more is tucked into it, read from the frame on stage (replay ceremony RC7): `items` is the
+ * pile as it first came.
+ */
 export function Pile({ items, ctx }: { items: PileOverlay[]; ctx: StageCtx }) {
-  const captures = items[0]?.captures ?? [];
+  // How many it holds and its newest: a telling rebuilt (one deleted from the viewer) renders the stage, and this with it.
+  useLive(ctx.live, (f) => {
+    const now = overlayOf(f, 'pile', 'pile')?.captures;
+    return now ? `${now.length}:${now[now.length - 1]?.id ?? ''}` : '';
+  });
+  const captures = (overlayOf(ctx.live.frame(), 'pile', 'pile') ?? items[0])?.captures ?? [];
   if (!captures.length) return null;
   const [cx, cy] = pileCenter(ctx);
   return (

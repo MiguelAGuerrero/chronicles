@@ -3,6 +3,7 @@ import { useVideoPlayer, VideoView } from 'expo-video';
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { gridLayout } from '../../lib/ceremony/grid';
+import { overlayOf, type StageLive } from '../../lib/ceremony/live';
 import type { CardOverlay } from '../../lib/ceremony/types';
 import type { Trim } from '../../lib/mediaEdit';
 import type { Faced } from '../../lib/moment';
@@ -10,6 +11,7 @@ import { useMediaUri } from '../../lib/useMediaUri';
 import { MomentPicture } from '../chronicle/MomentPicture';
 import { seekTo } from '../edit/EditedVideo';
 import type { StageCtx } from './layout';
+import { useLive, useLiveStyle } from './useLive';
 
 const GAP = 4;
 
@@ -64,6 +66,21 @@ function GridVideo({ piece, play, size }: { piece: Faced; play: boolean; size: n
   return <CellVideo key={uri} uri={uri} trim={piece.edit?.trim ?? null} play={play} size={size} />;
 }
 
+/** A piece's cell: it swipes in as the frame says, written on it frame by frame (replay ceremony RC7). */
+function GridCell({ live, card, index, still, size, children }: { live: StageLive; card: string; index: number; still: boolean; size: number; children: React.ReactNode }) {
+  const swipe = useLiveStyle(live, (f) => {
+    const now = overlayOf(f, 'card', card);
+    if (!now) return null;
+    const u = still || now.fade ? 1 : (now.shown?.[index] ?? 1);
+    return { opacity: u, translateX: (1 - u) * 18 };
+  });
+  return (
+    <View ref={swipe} testID="grid-cell" style={{ width: size, height: size }}>
+      {children}
+    </View>
+  );
+}
+
 /**
  * A stack's grid in its replay card (moment stacks MS17, decision 0123): the closest square up to 3×3, each picture
  * cropped to fill its square, each piece swiping in a beat after the one before, the grid held, and past nine it
@@ -77,24 +94,25 @@ export function StackGrid({ o, ctx, width }: { o: CardOverlay; ctx: StageCtx; wi
   const windowH = g.rows * cell + GAP * (g.rows - 1);
   const totalRows = Math.ceil(pieces.length / g.cols);
   const totalH = totalRows * cell + GAP * (totalRows - 1);
-  // The frame says how far each piece has swiped in and how far the grid has scrolled (the rhythm's timing).
-  const scroll = g.scrolls ? (o.scroll ?? 0) * (totalH - windowH) : 0;
-  const play = o.playing && !ctx.held && !ctx.paused;
+  // The frame says how far each piece has swiped in and how far the grid has scrolled (the rhythm's timing): each is
+  // written on its own element as the frames come, and the grid renders only when its videos start or stop.
+  const { live } = ctx;
+  const key = o.key;
+  const span = g.scrolls ? totalH - windowH : 0;
+  const scroll = useLiveStyle(live, (f) => {
+    const now = overlayOf(f, 'card', key);
+    return now ? { translateY: -(now.scroll ?? 0) * span } : null;
+  });
+  const playing = useLive(live, (f) => overlayOf(f, 'card', key)?.playing ?? false);
+  const play = playing && !ctx.held && !ctx.paused;
   return (
     <View testID="replay-grid" style={{ width, height: windowH, overflow: 'hidden' }} pointerEvents="none" accessible={false}>
-      <View style={[styles.wrap, { width, transform: [{ translateY: -scroll }] }]}>
-        {pieces.map((p, i) => {
-          const u = ctx.reduceMotion || o.fade ? 1 : (o.shown?.[i] ?? 1);
-          return (
-            <View
-              key={p.piece_id}
-              testID="grid-cell"
-              style={{ width: cell, height: cell, opacity: u, transform: [{ translateX: (1 - u) * 18 }] }}
-            >
-              {p.kind === 'video' ? <GridVideo piece={p} play={play} size={cell} /> : <MomentPicture capture={p} style={{ width: cell, height: cell }} />}
-            </View>
-          );
-        })}
+      <View ref={scroll} style={[styles.wrap, { width }]}>
+        {pieces.map((p, i) => (
+          <GridCell key={p.piece_id} live={live} card={key} index={i} still={ctx.reduceMotion} size={cell}>
+            {p.kind === 'video' ? <GridVideo piece={p} play={play} size={cell} /> : <MomentPicture capture={p} style={{ width: cell, height: cell }} />}
+          </GridCell>
+        ))}
       </View>
     </View>
   );

@@ -699,12 +699,14 @@ test('replay-rhythm audit 24: a stand with no moment rolls the clock, never leap
 });
 
 test('replay-rhythm audit 25: a frame\'s camera, with or without a zoom, is where the stage projects', () => {
-  const ctx: StageCtx = { width: 400, height: 800, insets: { top: 0, bottom: 0, left: 0, right: 0 }, center: A, zoom: 16, held: false, paused: false, reduceMotion: false, open: () => {}, wait: () => {} };
-  assert.deepEqual(project(ctx, A)?.map(Math.round), [200, 400], 'the centre is the middle');
-  const east = project(ctx, at(100, 0));
+  // The camera is each frame's own (replay ceremony RC7): the stage is handed its size, and reads where the map is held from the frame.
+  const ctx: Pick<StageCtx, 'width' | 'height'> = { width: 400, height: 800 };
+  const camera = { center: A, zoom: 16 };
+  assert.deepEqual(project(ctx, camera, A)?.map(Math.round), [200, 400], 'the centre is the middle');
+  const east = project(ctx, camera, at(100, 0));
   assert.ok(east && east[0] > 240 && Math.abs(east[1] - 400) < 1, '100 m east is to the right');
-  assert.equal(project({ ...ctx, zoom: null }, at(100, 0)), null, 'no zoom: nothing is projected, never all to the middle');
-  assert.equal(project({ ...ctx, center: null }, at(100, 0)), null);
+  assert.equal(project(ctx, { ...camera, zoom: null }, at(100, 0)), null, 'no zoom: nothing is projected, never all to the middle');
+  assert.equal(project(ctx, { ...camera, center: null }, at(100, 0)), null);
 });
 
 test('replay-rhythm audit 25: both screens name the ceremony they tell with', () => {

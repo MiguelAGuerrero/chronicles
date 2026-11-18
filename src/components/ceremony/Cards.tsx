@@ -3,8 +3,8 @@ import { Picture } from '../Picture';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useEffect, useRef, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
-import { easeInOut, easeOut } from '../../lib/ceremony/ease';
 import { gridLayout } from '../../lib/ceremony/grid';
+import { overlayOf } from '../../lib/ceremony/live';
 import type { CardOverlay } from '../../lib/ceremony/types';
 import { editedSize, isEmptyEdit, type MediaEdit } from '../../lib/mediaEdit';
 import { useMediaUri } from '../../lib/useMediaUri';
@@ -13,10 +13,11 @@ import { EditedPicture, useNaturalSize } from '../edit/EditedPhoto';
 import { seekTo, useVideoSize, VideoPicture } from '../edit/EditedVideo';
 import { Icon, KIND_LABEL } from '../icons';
 import { theme } from '../ui';
-import { cardWidth, PILE, pileCenter, project, restCenter, tiltOf, timeOf, type StageCtx } from './layout';
+import { cardPose, cardWidth, restCenter, timeOf, type StageCtx } from './layout';
 import { Skeleton } from './Skeleton';
 import { StackGrid } from './Grid';
 
+import { useLive, useLiveStyle } from './useLive';
 import { useMediaWait } from './useMediaWait';
 
 /** A grid's height for its width: its rows of square cells (MS17). */
@@ -26,7 +27,6 @@ function gridHeight(n: number, width: number): number {
   return g.rows * cell + 4 * (g.rows - 1);
 }
 
-const lerp = (a: number, b: number, u: number) => a + (b - a) * u;
 /** How long a video may take to start before it is treated as refused sound (as the viewer's player). */
 const AUTOPLAY_CHECK_MS = 800;
 
@@ -85,11 +85,18 @@ function CardVideo({ o, ctx, uri, height, width }: { o: CardOverlay; ctx: StageC
   });
   const stopped = ctx.held || ctx.paused;
   const startS = (trim?.start_ms ?? 0) / 1000;
-  // The kept part's length, as the plan reads it: `o.progress` is a fraction of it (fix trimmed-length 2, 4).
+  // The kept part's length, as the plan reads it: the card's `progress` is a fraction of it (fix trimmed-length 2, 4).
   const lenMs = Math.max(1000, memoLengthMs(o.capture));
+  // Whether its slot says it plays, and whether the slot is over: read from the frame on stage, so the card renders
+  // when one changes and not as the slot's time passes (replay ceremony RC7).
+  const { live } = ctx;
+  const key = o.key;
+  const inSlot = useLive(live, (f) => overlayOf(f, 'card', key)?.playing ?? false);
+  const over = useLive(live, (f) => (overlayOf(f, 'card', key)?.progress ?? 0) >= 1);
   // The stage waits while the video is behind its slot or not done at its end (audit 20); it plays on meanwhile.
   const waited = useMediaWait(o.key, ctx, {
-    inSlot: o.playing, slotOver: o.progress >= 1 && !ended, started, ended, positionMs: () => (player.currentTime - startS) * 1000, planMs: o.progress * lenMs, lenMs, stopped,
+    inSlot, slotOver: over && !ended, started, ended, positionMs: () => (player.currentTime - startS) * 1000,
+    planMs: () => (overlayOf(live.frame(), 'card', key)?.progress ?? 0) * lenMs, lenMs, stopped,
   });
   // A player told to play before it has loaded ignores it on web: it starts once ready (audit 8).
   useEventListener(player, 'statusChange', ({ status }) => {
@@ -99,7 +106,7 @@ function CardVideo({ o, ctx, uri, height, width }: { o: CardOverlay; ctx: StageC
     setReady(true);
   });
   // A video that has started plays on past its slot until it ends: never a pause at the slot's edge (audit 34).
-  const want = (o.playing || waited || (started && o.progress >= 1)) && !ended && !stopped;
+  const want = (inSlot || waited || (started && over)) && !ended && !stopped;
   const cover = edit && size && width ? coverRect(editedSize(size.w, size.h, edit), width, height) : null;
   // The web player plays only the <video> it has mounted, and iOS loads a video only once play() is
   // called, so it is never ready before then (fix ios-video 1). On the web, play is asked once the shown
@@ -135,7 +142,7 @@ function CardVideo({ o, ctx, uri, height, width }: { o: CardOverlay; ctx: StageC
         )}
       </View>
       {/* Until it plays (loading, or a muted retry), a skeleton where the picture will be (RR23). */}
-      {!started && !ended && (o.playing || waited) && <Skeleton testID="media-skeleton" style={StyleSheet.absoluteFill} still={ctx.reduceMotion} />}
+      {!started && !ended && (inSlot || waited) && <Skeleton testID="media-skeleton" style={StyleSheet.absoluteFill} still={ctx.reduceMotion} />}
       {muted && (
         <Pressable
           testID="video-sound"
@@ -157,7 +164,11 @@ function CardVideo({ o, ctx, uri, height, width }: { o: CardOverlay; ctx: StageC
   );
 }
 
-/** A photo or video grows from its pin, holds, and tucks into the pile; with reduce motion it fades in place (RR11, RR12, RR18). */
+/**
+ * A photo or video grows from its pin, holds, and tucks into the pile; with reduce motion it fades in place (RR11,
+ * RR12, RR18). Where it stands, its size and its fade are written on it frame by frame (`cardPose`, replay ceremony
+ * RC7): `o` is the card as it arrived, read here only for what never moves (its capture, its pieces).
+ */
 function MomentCard({ o, ctx }: { o: CardOverlay; ctx: StageCtx }) {
   const uri = useMediaUri(o.capture);
   // A photo's picture, once it has loaded: a skeleton stands in until then (RR23).
@@ -168,35 +179,23 @@ function MomentCard({ o, ctx }: { o: CardOverlay; ctx: StageCtx }) {
   const imgH = grid ? gridHeight(o.pieces!.length, w - 14) : w * 1.15;
   const h = imgH + 7 + 34;
   const rest = restCenter(ctx, h);
+  const key = o.key;
   // It grows from its pin, where the frame says the pin is (audit 10).
-  const pin = (o.from ? project(ctx, o.from) : null) ?? rest;
-  const pile = pileCenter(ctx);
-  let at = rest;
-  let scale = 1;
-  let tilt = 0;
-  let opacity = 1;
-  if (o.fade) {
-    opacity = o.tuck > 0 ? 1 - o.tuck : o.grow;
-  } else if (o.tuck > 0) {
-    const b = easeInOut(o.tuck);
-    at = [lerp(rest[0], pile[0], b), lerp(rest[1], pile[1], b)];
-    scale = lerp(1, PILE.thumb / w, b);
-    tilt = lerp(0, tiltOf(o.capture.id), b);
-  } else {
-    const a = easeOut(o.grow);
-    at = [lerp(pin[0], rest[0], a), lerp(pin[1], rest[1], a)];
-    scale = lerp(0.08, 1, a);
-    opacity = Math.min(1, o.grow * 3);
-  }
+  const pose = useLiveStyle(ctx.live, (f) => {
+    const now = overlayOf(f, 'card', key);
+    return now ? cardPose(now, ctx, f.camera, w, h) : null;
+  });
   const label = o.capture.caption || KIND_LABEL[o.capture.kind];
   return (
     <View
+      ref={pose}
       testID="replay-card"
       accessible
       accessibilityLabel={`${label}, ${timeOf(o.capture.t)}`}
       // Taps go through to the stage (hold), except on the card's own buttons ("Tap for sound", audit 3).
       pointerEvents="box-none"
-      style={[styles.card, { left: at[0] - w / 2, top: at[1] - h / 2, width: w, opacity, transform: [{ rotate: `${tilt}deg` }, { scale }] }]}
+      // Where it rests, until its first frame is written on it, before it is seen.
+      style={[styles.card, { left: rest[0] - w / 2, top: rest[1] - h / 2, width: w }]}
     >
       <View style={[styles.media, { height: imgH }]} pointerEvents="box-none">
         {grid ? (

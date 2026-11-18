@@ -176,3 +176,16 @@ export const REPLAY_RHYTHM = {
   /** After a press, "N min later" stays this long under the clock before any passed place is said (RY21). */
   jumpLine: 2000,
 } as const;
+
+/**
+ * The replay's engine (replay ceremony RC6, decision 0206), apart from any ceremony: a ceremony says what a time shows,
+ * the engine how often it is drawn. `frameMs` is the least time between two frames the replay draws: 0 draws every
+ * display frame (60 a second on an iPhone); 1000 / 30 draws 30. It is the one number to set after watching on a phone
+ * whose map cannot be drawn every frame (a replay's link can ask for one with `fps`, to try it without a build).
+ * `resendMs` is for a map that cannot reveal a line and is sent it as data instead (the phone's, untried): at most
+ * ten times a second.
+ */
+export const REPLAY_ENGINE = {
+  frameMs: 0,
+  resendMs: 100,
+} as const;

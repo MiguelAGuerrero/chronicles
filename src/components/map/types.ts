@@ -1,3 +1,4 @@
+import type { LineReveal } from '../../lib/ceremony/reveal';
 import type { Faced } from '../../lib/moment';
 import type { BorderView } from '../../lib/areas/borders';
 import type { WalkTint } from '../../lib/walk/tint';
@@ -222,6 +223,12 @@ export interface WalkMapProps {
   follow?: LngLat | null;
   /** While following, holds the camera at this zoom: the replay's walking zoom and its pull-back (RR3). Rounded to 0.01. */
   followZoom?: number | null;
+  /**
+   * A replay's path is being told on this map (replay ceremony RC1-RC3, decision 0206): its walker, camera and walked
+   * line come frame by frame through the handle's `replayFrame`, outside React, never as props. The screen passes no
+   * `walker`, no `follow` and an empty `trace` meanwhile.
+   */
+  replay?: boolean;
   /** Fits the camera to these bounds whenever `fitKey` changes. */
   fitBounds?: Bounds | null;
   fitKey?: number;
@@ -307,7 +314,47 @@ export interface WalkMapHandle {
   showPoint(at: LngLat, padding: Padding): void;
   /** Eases the bearing back to north, keeping the centre and zoom (CP4). */
   resetNorth(): void;
+  /**
+   * One frame of a replay, drawn now and without a render (replay ceremony RC1-RC3): the walker, the camera and how
+   * much of the walked line shows, together. Null ends the telling: the walker goes, and the line with it once the
+   * map has drawn the trace it is given as a prop.
+   */
+  replayFrame(frame: ReplayMapFrame | null): void;
 }
+
+/** A frame of a replay as a map takes it (`WalkMapHandle.replayFrame`). */
+export interface ReplayMapFrame {
+  /** The time into the telling: a line a map draws as data is sent again by it, at most every `REPLAY_ENGINE.resendMs`. */
+  ms: number;
+  walker: LngLat | null;
+  /** Where the camera holds the map; a null centre leaves the map where it is (reduce motion). */
+  camera: { center: LngLat | null; zoom: number | null };
+  /** The walked line and the rides: the runs drawn whole, and how far the run being walked shows. */
+  walked: LineReveal;
+  rides: LineReveal;
+}
+
+/**
+ * The replay's own line sources (replay ceremony RC3). The walked line: the runs behind the walker whole, the run
+ * being walked sent whole once and revealed by its gradient. The rides: one source, sent as data. A dashed line
+ * cannot be revealed that way: maplibre-gl (6.16) draws a dash over a source with line metrics at a scale that follows
+ * the line's length, not the screen, so the dashes of a ride being revealed came out as fine dots. A ride is sent
+ * again, cut where it ends, at most every `REPLAY_ENGINE.resendMs` of the telling's time while it is being ridden.
+ */
+export const REPLAY_LINES = {
+  walked: { done: 'replay-done', run: 'replay-run' },
+  rides: 'replay-rides',
+} as const;
+
+/**
+ * What decides a line drawn as data is sent again (a ride on the web; both lines on a phone): its whole runs, and the
+ * run being drawn by the telling's bucket of time, never by the frame.
+ */
+export const resendKey = (l: LineReveal, ms: number, everyMs: number): string =>
+  `${l.doneKey}#${l.run ? `${l.run.length}:${l.p >= 1 ? 'whole' : Math.floor(ms / everyMs)}` : ''}`;
+
+/** A line's colour up to a share of its length and nothing after: the walked line's reveal (`line-gradient` over `line-progress`). */
+export const revealGradient = (color: string, p: number): unknown[] => ['step', ['line-progress'], color, Math.max(0, p), 'rgba(0,0,0,0)'];
 
 /** The zoom the wide read of place points happens at: a z10 tile spans about 30 km. */
 export const PLACES_ZOOM = 10;
@@ -383,6 +430,13 @@ export const RIDE_DASH = [1.6, 1.4];
 export const LINE_SOURCE = { tolerance: 1, buffer: 64 } as const;
 /** The sources drawn as lines, simplified by `LINE_SOURCE` on both maps (NF5). */
 export const LINE_SOURCE_IDS = ['fog', 'walked', 'alternates', 'route-grades', 'route', 'gap-links', 'faint', 'rides', 'trace-history', 'trace', 'trace-link', 'drawing'] as const;
+
+/** A reveal's place in a source: a run that ended stays whole until the next begins, since by then it is among the whole ones. */
+export function revealStop(drawn: { run: LngLat[] | null }, next: LineReveal): { run: LngLat[] | null; p: number } {
+  if (next.run) return { run: next.run, p: Math.min(1, Math.max(0, next.p)) };
+  // Past its end by a hair, so the last texel shows; hidden when the run is not one of this telling's.
+  return { run: drawn.run, p: drawn.run && next.done.includes(drawn.run) ? 1.001 : 0 };
+}
 
 export function traceGeoJSON(runs: LngLat[][]): GeoJSON.FeatureCollection {
   return {

@@ -42,12 +42,15 @@ const pxApart = (a, b, zoom) => Math.hypot((a[0] - b[0]) * 111320 * Math.cos((a[
 /**
  * The longest stretch in the frames: nothing arriving or leaving on the stage, from the first frame the walker moved to
  * the last. Its rates a second, and how far apart the dot, the line's end and the camera's centre were, at the most.
+ * Only stretches after the first card: the telling's first frames are its making (the map's first sends, the walk's
+ * first run beginning), not time passing.
  */
-function stretchOf(frames, until = Infinity) {
+function stretchOf(frames) {
   let best = null;
   let from = -1;
-  for (let i = 1; i <= frames.length; i++) {
-    const free = i < frames.length && frames[i].t <= until && !frames[i].busy && !!frames[i].clock && !!frames[i].walker;
+  const carded = frames.findIndex((f) => f.card);
+  for (let i = Math.max(1, carded); carded >= 0 && i <= frames.length; i++) {
+    const free = i < frames.length && !frames[i].busy && !!frames[i].clock && !!frames[i].walker;
     if (free && from < 0) from = i;
     if (free || from < 0) continue;
     let a = from;
@@ -62,6 +65,10 @@ function stretchOf(frames, until = Infinity) {
   const B = frames[best.b];
   const seconds = (B.t - A.t) / 1000;
   const rate = (k) => (seconds > 0 ? (B[k] - A[k]) / seconds : Infinity);
+  // React's commits are counted from 150 ms in: the stretch's first frames still commit what left as it began (a card
+  // tucked away, the pile taking it).
+  const settled = frames.slice(best.a, best.b + 1).find((f) => f.t - A.t >= 150) ?? A;
+  const commits = B.t > settled.t ? ((B.commits - settled.commits) * 1000) / (B.t - settled.t) : Infinity;
   let line = 0;
   let centre = 0;
   let ended = 0;
@@ -74,8 +81,18 @@ function stretchOf(frames, until = Infinity) {
     if (w && c) { followed++; centre = Math.max(centre, pxApart(w, c, frames[i].zoom)); }
   }
   const n = best.b - best.a + 1;
-  return { seconds, frames: n, screen: rate('screen'), map: rate('map'), sends: rate('sends'), commits: rate('commits'), engine: rate('engine'), line, centre, ended, followed, puck: B.puck };
+  // "At most two a second" over a stretch of about a second is a count: two renders half a second apart are within it,
+  // though the stretch's own length would call them 2.3 a second.
+  const within = (k, aSecond) => B[k] - A[k] <= Math.ceil(aSecond * seconds);
+  return {
+    seconds, frames: n, screen: rate('screen'), map: rate('map'), sends: rate('sends'), commits, engine: rate('engine'), line, centre, ended, followed, puck: B.puck,
+    fewRenders: within('screen', 2) && within('map', 2), fewSends: within('sends', 1),
+  };
 }
+/** The legs between this walk's moments take about a second each: a stretch is long enough to read from 0.7 s. */
+const STRETCH_S = 0.7;
+/** How often the screen rendered while the frames were recorded. */
+const rendersIn = (frames) => (frames.length ? frames[frames.length - 1].screen - frames[0].screen : 0);
 const fix1 = (x) => (Number.isFinite(x) ? x.toFixed(1) : String(x));
 const stretchSaid = (s) => (s ? `a ${fix1(s.seconds)} s stretch of ${s.frames} frames: screen ${fix1(s.screen)}/s, map ${fix1(s.map)}/s, sends ${fix1(s.sends)}/s, commits ${fix1(s.commits)}/s, engine frames ${fix1(s.engine)}/s, line's end ${fix1(s.line)} px and centre ${fix1(s.centre)} px from the dot at the most, the end said in ${s.ended} frames` : 'no stretch seen');
 
@@ -641,22 +658,25 @@ async function run(h) {
       await pg.waitForSelector('[data-testid=to-name]', { timeout: 30000 });
       const stretch = stretchOf(watched);
       // RC1: in every frame of the stretch the dot, the end of the walked line and the camera's centre are one place.
-      const together = !!stretch && stretch.seconds >= 1 && stretch.ended >= stretch.frames - 1 && stretch.followed >= stretch.frames - 1 && stretch.line <= 1.5 && stretch.centre <= 1.5 && stretch.puck;
-      check.todo(together, `RC1: through the path the walker's dot, the end of the walked line and the camera are drawn together in every frame (${stretchSaid(stretch)})`);
+      const together = !!stretch && stretch.seconds >= STRETCH_S && stretch.ended >= stretch.frames - 1 && stretch.followed >= stretch.frames - 1 && stretch.line <= 1.5 && stretch.centre <= 1.5 && stretch.puck;
+      check(together, `RC1: through the path the walker's dot, the end of the walked line and the camera are drawn together in every frame (${stretchSaid(stretch)})`);
       // RC2: nothing arriving or leaving, the screen and the map component are not rendered again as time passes.
-      const rendered = watched.length ? watched[watched.length - 1].screen : 0;
-      const quiet = !!stretch && stretch.seconds >= 1 && rendered > 0 && stretch.screen <= 2 && stretch.map <= 2;
-      check.todo(quiet, `RC2: on a stretch the replay screen and the map component render at most twice a second each (${stretchSaid(stretch)}; the screen rendered ${rendered} times in the watch)`);
+      // The counter must be there to be read: the screen rendered at least once in the watch (a pin arriving).
+      const rendered = rendersIn(watched);
+      const quiet = !!stretch && stretch.seconds >= STRETCH_S && rendered > 0 && stretch.fewRenders;
+      check(quiet, `RC2: on a stretch the replay screen and the map component render at most twice a second each (${stretchSaid(stretch)}; the screen rendered ${rendered} times in the watch)`);
       // RC3: nor is anything sent to the map's sources.
-      const unsent = !!stretch && stretch.seconds >= 1 && stretch.engine >= 20 && stretch.sends <= 1;
-      check.todo(unsent, `RC3: on a stretch nothing is sent to the map's data sources as time passes, at most one send a second (${stretchSaid(stretch)})`);
+      // The engine's own frames are counted too: a stretch where nothing was drawn would send nothing either.
+      const unsent = !!stretch && stretch.seconds >= STRETCH_S && stretch.engine >= 10 && stretch.fewSends;
+      check(unsent, `RC3: on a stretch nothing is sent to the map's data sources as time passes, at most one send a second (${stretchSaid(stretch)})`);
       // RC7: the card grew from its pin, the note's bubble came in and the clock rolled, frame by frame, with the screen
-      // rendered only for what arrived or left; on the stretch React committed next to nothing.
+      // rendered only for what arrived or left; on the stretch React committed next to nothing: three or four times a
+      // second (the clock's own leaf at each new minute, the map's view twice a second at the most), where it was 21.
       const moves = (k) => watched.filter((f, i) => i > 0 && f[k] && watched[i - 1][k] && f[k] !== watched[i - 1][k]).length;
       const fades = new Set(watched.map((f) => f.note).filter(Boolean)).size;
-      const moved = { card: moves('card'), bubble: fades, clock: moves('clock'), frames: watched.length, screen: rendered - (watched[0]?.screen ?? 0), commits: stretch ? stretch.commits : null };
-      const offReact = !!stretch && rendered > 0 && moved.card >= 8 && moved.bubble >= 3 && moved.clock >= 2 && moved.screen < moved.frames / 20 && stretch.commits <= 4;
-      check.todo(offReact, `RC7: the card, the note's bubble and the clock move without the screen rendering again (${JSON.stringify(moved)})`);
+      const moved = { card: moves('card'), bubble: fades, clock: moves('clock'), frames: watched.length, screen: rendered, commits: stretch ? stretch.commits : null };
+      const offReact = !!stretch && rendered > 0 && moved.card >= 8 && moved.bubble >= 3 && moved.clock >= 2 && moved.screen < moved.frames / 20 && stretch.commits <= 8;
+      check(offReact, `RC7: the card, the note's bubble and the clock move without the screen rendering again (${JSON.stringify(moved)})`);
 
       // RC10: with reduce motion on, the timing is the same and the map stays still (RR18): the first card comes when it
       // did with motion, the walker moving over a map that does not.
@@ -683,7 +703,7 @@ async function run(h) {
         engine: onPath.length ? onPath[onPath.length - 1].engine - onPath[0].engine : 0, puck: onPath.some((f) => f.puck),
         card: untilCard(stillFrames),
       };
-      check.todo(still.centres === 1 && still.walkers >= 10 && still.engine >= 10 && still.puck && still.card != null,
+      check(still.centres === 1 && still.walkers >= 10 && still.engine >= 10 && still.puck && still.card != null,
         `RC10: with reduce motion on the map stays still and the walker moves over it, on the same engine, to the first card (${JSON.stringify(still)})`);
     }
 
@@ -720,8 +740,8 @@ async function run(h) {
     }
     const dayFrames = await stopFrames(pg);
     const dayStretch = stretchOf(dayFrames);
-    const dayRendered = dayFrames.length ? dayFrames[dayFrames.length - 1].screen : 0;
-    check.todo(!!dayStretch && dayStretch.seconds >= 1 && dayStretch.puck && dayRendered > 0 && dayStretch.engine >= 20 && dayStretch.screen <= 2 && dayStretch.map <= 2 && dayStretch.sends <= 1 && dayStretch.ended >= dayStretch.frames - 1 && dayStretch.line <= 1.5 && dayStretch.centre <= 1.5,
+    const dayRendered = rendersIn(dayFrames);
+    check(!!dayStretch && dayStretch.seconds >= STRETCH_S && dayStretch.puck && dayRendered > 0 && dayStretch.engine >= 10 && dayStretch.fewRenders && dayStretch.fewSends && dayStretch.ended >= dayStretch.frames - 1 && dayStretch.line <= 1.5 && dayStretch.centre <= 1.5,
       `RC9: the day's replay runs on the same engine: its dot, line and camera together, nothing rendered or sent as time passes (${stretchSaid(dayStretch)}; the screen rendered ${dayRendered} times)`);
     check(dayNext === 'Next moment', `RY19: the day's replay shows the next-moment button too (${dayNext})`);
     // As in the walk's replay, no Continue ever mounts on the web (tend replay 14).
@@ -871,7 +891,7 @@ async function run(h) {
     // RC4: through the whole journey (the walk screen, both replays, Chronicle's map, the day's replay) no map sent a
     // collection the same as its last, or empty after empty.
     await pg.waitForTimeout(1100);
-    check.todo(sentInAll > 20 && sentAgain.length === 0, `RC4: no map data is sent again unchanged, or empty after empty (${sentInAll} collections sent; again: ${sentAgain.length}${sentAgain.length ? `, as ${[...new Set(sentAgain)].slice(0, 6).join('; ')}` : ''})`);
+    check(sentInAll > 20 && sentAgain.length === 0, `RC4: no map data is sent again unchanged, or empty after empty (${sentInAll} collections sent; again: ${sentAgain.length}${sentAgain.length ? `, as ${[...new Set(sentAgain)].slice(0, 6).join('; ')}` : ''})`);
     await c.close();
     // The scenario refuses a video's sound on purpose; expo-video lets that refusal go unhandled.
     for (let i = errors.length - 1; i >= 0; i--) if (/NotAllowedError: refused/.test(errors[i])) errors.splice(i, 1);

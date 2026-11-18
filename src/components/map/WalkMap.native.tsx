@@ -23,6 +23,8 @@ import { traceEnds } from '../../lib/traceEnds';
 import { ScaleBar, SCALE_MAX_PX } from './ScaleBar';
 import { NATIVE_FRAME_MS, useGlideFrames, useGlideShown, type GlideFrame } from '../../lib/useGlidingWalker';
 import { createStore, type Store } from '../../lib/store';
+import { useStore } from '../../lib/useStore';
+import { revealedRuns } from '../../lib/ceremony/reveal';
 import { perfCount } from '../../lib/perfCount';
 import { distanceM } from '../../lib/geo';
 import { releaseSwipe, SNAP } from '../../lib/atlas/snap';
@@ -31,10 +33,10 @@ import type { DotSource } from '../../lib/liveDot';
 import { markEnter, pinDrops, sameSeen } from '../../lib/enter';
 import { useReducedMotion } from '../../lib/motion';
 import { useUnits } from '../../lib/useUnits';
-import { MOTION } from '../../lib/motionTokens';
+import { MOTION, REPLAY_ENGINE } from '../../lib/motionTokens';
 import {
   alternatesGeoJSON, TRACE_EDGE_OPACITY, storefrontLayerOrder, storefrontNameLayers, storefrontNameRotate, storefrontNamesGeoJSON, routeGradesGeoJSON, pinsGeoJSON, BORDER, borderFillOpacity, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, DERIVE_ZOOM, endsGeoJSON, ENDS_PAINT, ENDS_RING_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON, BASE_VECTOR_SOURCE, POI_SOURCE_LAYER,
-  LINE_SOURCE, type CollectedFeatures, type WalkMapHandle, type WalkMapProps,
+  LINE_SOURCE, type CollectedFeatures, resendKey, type ReplayMapFrame, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
 const VIEW_TIMEOUT_MS = 4000;
@@ -277,6 +279,34 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const shownMarks = useMemo(() => marksIn, [marksKey]);
   const jump = useCallback((to: { center: LngLat; zoom?: number }) => cameraRef.current?.jumpTo(to), []);
+  // A replay's path (replay ceremony RC1-RC3, RC9; decision 0206): its frames come through the handle, outside React,
+  // into a store only the replay's own dot and lines read, so a frame never renders the map. The camera is told where
+  // to be in the same call as the dot. The line is sent as data, cut where it ends: whether MapLibre RN can reveal a
+  // line by a gradient is untried, so the run being walked is sent again at most every `REPLAY_ENGINE.resendMs` of the
+  // telling's time (ten times a second) and may trail the dot by that much. Unverified on a device.
+  const [replayShown] = useState(() => createStore<ReplayShown>(NO_REPLAY));
+  const replaySent = useRef<{ camera: string; walked: string; rides: string }>({ camera: '', walked: '', rides: '' });
+  const applyReplay = useCallback((f: ReplayMapFrame | null) => {
+    if (!f) {
+      replaySent.current = { camera: '', walked: '', rides: '' };
+      replayShown.set(NO_REPLAY);
+      return;
+    }
+    const { center, zoom } = f.camera;
+    const camera = center ? `${center[0]},${center[1]},${zoom}` : '';
+    if (center && camera !== replaySent.current.camera) cameraRef.current?.jumpTo(zoom == null ? { center } : { center, zoom });
+    replaySent.current.camera = camera;
+    const was = replayShown.get();
+    const walked = resendKey(f.walked, f.ms, REPLAY_ENGINE.resendMs);
+    const rides = resendKey(f.rides, f.ms, REPLAY_ENGINE.resendMs);
+    replayShown.set({
+      walker: f.walker,
+      trace: walked === replaySent.current.walked ? was.trace : traceGeoJSON(revealedRuns(f.walked)),
+      rides: rides === replaySent.current.rides ? was.rides : traceGeoJSON(revealedRuns(f.rides)),
+    });
+    replaySent.current.walked = walked;
+    replaySent.current.rides = rides;
+  }, [replayShown]);
   // The pins' presses, read when pressed: a screen's new closure each render never re-renders a pin list (NF4).
   // Filled in a layout effect, before the commit can take a tap: a pin made pressable in the same render as its
   // handler (the replay's card beat) never meets an empty ref (native-map-frames audit 4).
@@ -328,6 +358,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
 
   useImperativeHandle(ref, () => ({
     size: () => size.current,
+    replayFrame: applyReplay,
     async collectView(): Promise<CollectedFeatures> {
       await whenReady();
       const source = queryRef.current;
@@ -506,6 +537,9 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         <TraceSource id="trace-history" data={traceHistory} opacity={props.traceOpacity ?? 1} />
         <TraceSource id="trace" data={traceTail} opacity={props.traceOpacity ?? 1} />
         <TraceSource id="trace-link" data={traceLink} opacity={props.traceOpacity ?? 1} />
+        {/* A replay's line as far as it is told (replay ceremony RC3): the rides under the walked line, as the trace's are. */}
+        <ReplayLine store={replayShown} id="replay-rides" pick={replayRides} dashed />
+        <ReplayLine store={replayShown} id="replay-trace" pick={replayTrace} />
         {/* A gap's way being drawn, dashed over the trace (GW3). */}
         <DrawingSource data={drawing} />
         <EndsSource data={ends} opacity={props.traceOpacity ?? 1} />
@@ -521,6 +555,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         <WaitingDotsSource data={waitingDots} />
         <MarksSource data={marks} />
         <PointsSource frames={frames} walker={props.walker} heading={props.walkerHeading} enabled={glideOn} source={props.walkerSource} />
+        <ReplayDot store={replayShown} />
         {/* The storefront names (DC1-DC6, DC14, DC16), the map's own text. Unverified on a device. */}
         <StorefrontNamesSource data={storefrontNameData} layers={nameLayers} beforeId={namesBelow} />
         <GlideFollow frames={frames} walker={props.walker} heading={props.walkerHeading} enabled={glideOn} source={props.walkerSource} ready={ready} follow={props.follow} followZoom={props.followZoom} jump={jump} />
@@ -564,6 +599,36 @@ const TraceSource = memo(function TraceSource(props: { id: string; data: GeoJSON
       {/* A ride is dashed (rides, R5). */}
       <Layer id={`${props.id}-line`} type="line" layout={{ 'line-cap': props.dashed ? 'butt' : 'round', 'line-join': 'round' }}
         paint={{ 'line-color': COLORS.trace, 'line-width': FOG_STYLE.traceWidth, 'line-opacity': props.opacity, ...(props.dashed ? { 'line-dasharray': RIDE_DASH } : {}) }} />
+    </GeoJSONSource>
+  );
+});
+
+/** What a replay's frames have put on the map: the walker, and its lines as data (the same objects until sent again). */
+type ReplayShown = { walker: LngLat | null; trace: GeoJSON.FeatureCollection; rides: GeoJSON.FeatureCollection };
+const NO_LINES: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: [] };
+const NO_REPLAY: ReplayShown = { walker: null, trace: NO_LINES, rides: NO_LINES };
+const replayTrace = (s: ReplayShown) => s.trace;
+const replayRides = (s: ReplayShown) => s.rides;
+const replayWalker = (s: ReplayShown) => s.walker;
+
+/** A replay's line, walked or ridden: renders when it is sent again, alone (replay ceremony RC3). */
+const ReplayLine = memo(function ReplayLine({ store, id, pick, dashed }: { store: Store<ReplayShown>; id: string; pick: (s: ReplayShown) => GeoJSON.FeatureCollection; dashed?: boolean }) {
+  const data = useStore(store, pick);
+  return <TraceSource id={id} data={data} opacity={1} dashed={dashed} />;
+});
+
+/** A replay's walker: renders per frame, alone (replay ceremony RC1). */
+const ReplayDot = memo(function ReplayDot({ store }: { store: Store<ReplayShown> }) {
+  const walker = useStore(store, replayWalker);
+  const data = useMemo(() => walkerGeoJSON(walker), [walker]);
+  return (
+    <GeoJSONSource id="replay-points" data={data}>
+      <Layer id="replay-points" type="circle" paint={{
+        'circle-color': COLORS.walker,
+        'circle-radius': 7,
+        'circle-stroke-color': '#ffffff',
+        'circle-stroke-width': 2,
+      }} />
     </GeoJSONSource>
   );
 });

@@ -31,13 +31,15 @@ import { markEnter, pinDrops, starEnter } from '../../lib/enter';
 import { useReducedMotion } from '../../lib/motion';
 import { useUnits } from '../../lib/useUnits';
 import { useReminded } from '../../lib/useReminded';
-import { MOTION } from '../../lib/motionTokens';
+import { MOTION, REPLAY_ENGINE } from '../../lib/motionTokens';
 import { followMoves } from '../../lib/compass';
 import { groundGeoJSON, groundStyle } from '../../lib/areas/groundDraw';
 import {
   alternatesGeoJSON, TRACE_EDGE_OPACITY, storefrontNameLayers, storefrontNameRotate, storefrontNamesGeoJSON, roomCells, routeGradesGeoJSON, pinsGeoJSON, BORDER, borderFillOpacity, borderMoves, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, OVERTURE_CREDIT, GAZETTEER_CREDIT, DERIVE_ZOOM, endsGeoJSON, ENDS_PAINT, ENDS_RING_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON, BASE_VECTOR_SOURCE, poiLabelLayers,
-  LINE_SOURCE, LINE_SOURCE_IDS, type CollectedFeatures, mapWorkerUrl, type WalkMapHandle, type WalkMapProps,
+  LINE_SOURCE, LINE_SOURCE_IDS, REPLAY_LINES, resendKey, revealGradient, revealStop, type CollectedFeatures, mapWorkerUrl, type ReplayMapFrame, type WalkMapHandle, type WalkMapProps,
 } from './types';
+import { nextSend, type Sent } from './sent';
+import { revealedRuns, type LineReveal } from '../../lib/ceremony/reveal';
 
 const VECTOR_SOURCE = BASE_VECTOR_SOURCE;
 /** Tiles that never arrive must not hang the stop. */
@@ -118,6 +120,20 @@ function addOverlay(map: MapLibreMap): string | undefined {
     map.addLayer({ id, type: 'line', source, layout: lineLayout, paint: { 'line-color': '#ffffff', 'line-width': FOG_STYLE.edgeWidth, 'line-opacity': TRACE_EDGE_OPACITY } });
   for (const [id, source] of [['trace-history-line', 'trace-history'], ['trace', 'trace'], ['trace-link-line', 'trace-link']])
     map.addLayer({ id, type: 'line', source, layout: lineLayout, paint: { 'line-color': COLORS.trace, 'line-width': FOG_STYLE.traceWidth } });
+  // A replay's line (replay ceremony RC1, RC3): the runs behind the walker whole, the run being walked sent whole once,
+  // with line metrics, and revealed by its gradient up to the walker: nothing is sent as time passes. Rides are under
+  // the walked line (R5), dashed, and sent as data: a dash is not drawn to scale over line metrics (`REPLAY_LINES`).
+  map.addSource(REPLAY_LINES.rides, lineSource);
+  map.addSource(REPLAY_LINES.walked.done, lineSource);
+  map.addSource(REPLAY_LINES.walked.run, { ...lineSource, lineMetrics: true });
+  const hidden = (color: string) => revealGradient(color, 0) as unknown as GradientSpec;
+  map.addLayer({ id: 'replay-rides-edge', type: 'line', source: REPLAY_LINES.rides, layout: lineLayout, paint: { 'line-color': '#ffffff', 'line-width': FOG_STYLE.edgeWidth, 'line-opacity': TRACE_EDGE_OPACITY } });
+  map.addLayer({ id: 'replay-rides-line', type: 'line', source: REPLAY_LINES.rides, layout: { 'line-cap': 'butt', 'line-join': 'round' },
+    paint: { 'line-color': COLORS.trace, 'line-width': FOG_STYLE.traceWidth, 'line-dasharray': RIDE_DASH } });
+  map.addLayer({ id: 'replay-done-edge', type: 'line', source: REPLAY_LINES.walked.done, layout: lineLayout, paint: { 'line-color': '#ffffff', 'line-width': FOG_STYLE.edgeWidth, 'line-opacity': TRACE_EDGE_OPACITY } });
+  map.addLayer({ id: 'replay-run-edge', type: 'line', source: REPLAY_LINES.walked.run, layout: lineLayout, paint: { 'line-gradient': hidden('#ffffff'), 'line-width': FOG_STYLE.edgeWidth, 'line-opacity': TRACE_EDGE_OPACITY } });
+  map.addLayer({ id: 'replay-done-line', type: 'line', source: REPLAY_LINES.walked.done, layout: lineLayout, paint: { 'line-color': COLORS.trace, 'line-width': FOG_STYLE.traceWidth } });
+  map.addLayer({ id: 'replay-run-line', type: 'line', source: REPLAY_LINES.walked.run, layout: lineLayout, paint: { 'line-gradient': hidden(COLORS.trace), 'line-width': FOG_STYLE.traceWidth } });
   // A gap's way being drawn: over the trace, dashed on its white edge (GW3).
   map.addLayer({ id: 'drawing-edge', type: 'line', source: 'drawing', layout: lineLayout, paint: { 'line-color': '#ffffff', 'line-width': FOG_STYLE.edgeWidth, 'line-opacity': TRACE_EDGE_OPACITY } });
   map.addLayer({ id: 'drawing', type: 'line', source: 'drawing', layout: { 'line-cap': 'butt', 'line-join': 'round' },
@@ -345,12 +361,87 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   // The trace's newest point. The link to the dot is drawn once per fix, to where the dot is
   // heading, never per frame: each draw re-tiles the source in the worker (motion audit 5).
   const linkFrom = useRef<LngLat | null>(null);
+  // The one gate every source's data goes through (replay ceremony RC4): a source is sent a collection only when it
+  // changed (`nextSend`: not the same again, not empty after empty). Each send is a round trip through the map's worker
+  // and a reload of that source's tiles; the replay sent four empty collections thirty times a second.
+  const sent = useRef(new Map<string, Sent>());
   const drawLink = (walker: LngLat | null) => {
     const end = linkFrom.current;
-    perfCount('setData:trace-link');
-    const src = mapRef.current?.getSource('trace-link') as { setData(d: GeoJSON.FeatureCollection): void } | undefined;
     // Never across a pause or a gap: a link that long isn't the line catching up.
-    src?.setData(traceGeoJSON(end && walker && distanceM(end, walker) <= LINK_MAX_M ? [[end, walker]] : []));
+    sendData(mapRef.current, sent.current, 'trace-link', traceGeoJSON(end && walker && distanceM(end, walker) <= LINK_MAX_M ? [[end, walker]] : []));
+  };
+  // A replay's path (replay ceremony RC1-RC3): the frame last given, what of it the map holds, and whether its line
+  // waits to be cleared. `applyReplay` draws a frame; the handle's `replayFrame` is its way in.
+  const replayOn = props.replay === true;
+  const replayLast = useRef<ReplayMapFrame | null>(null);
+  const replayDrawn = useRef(freshReplayDrawn());
+  // The canvas's size, read when it changes and never per camera move (the replay moves the camera every frame, and a
+  // read of layout between two frames' style writes makes the browser lay the page out twice).
+  const canvasSize = useRef({ width: 0, height: 0 });
+  // While a replay moves the camera every frame, the zoom reaches React (the scale bar, the pins' grouping) at most
+  // twice a second.
+  const viewWaiting = useRef<{ zoom: number; lat: number } | null>(null);
+  const viewTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const applyReplay = (f: ReplayMapFrame | null) => {
+    replayLast.current = f;
+    const map = mapRef.current;
+    // Before the style has loaded there is nothing to draw on: the frame is kept and drawn when it has.
+    if (!map || !map.getSource(REPLAY_LINES.walked.run)) return;
+    const st = replayDrawn.current;
+    const p = puck.current;
+    if (!f) {
+      if (p) p.el.style.display = 'none';
+      if (st.at) {
+        st.at = '';
+        container.current?.setAttribute('data-walker', '');
+        container.current?.removeAttribute('data-reveal-end');
+      }
+      // The line stays until the map has drawn the whole trace it is now given as a prop, so the card's first frames
+      // show a line and not a gap; a telling begun again meanwhile takes it over.
+      if (!st.clearing && (st.walked.doneKey || st.walked.run || st.rides)) {
+        st.clearing = true;
+        map.once('idle', () => {
+          if (!replayDrawn.current.clearing) return;
+          for (const id of [REPLAY_LINES.walked.done, REPLAY_LINES.walked.run, REPLAY_LINES.rides]) sendData(map, sent.current, id, EMPTY_LINES);
+          replayDrawn.current = freshReplayDrawn();
+        });
+      }
+      return;
+    }
+    st.clearing = false;
+    let changed = revealLine(map, sent.current, st.walked, f.walked, REPLAY_LINES.walked, WALKED_REVEAL_LAYERS);
+    // A ride, dashed, is data: sent again as it is ridden, by the telling's time and never by the frame.
+    const rides = f.rides.doneKey || f.rides.run ? resendKey(f.rides, f.ms, REPLAY_ENGINE.resendMs) : '';
+    if (rides !== st.rides) {
+      st.rides = rides;
+      sendData(map, sent.current, REPLAY_LINES.rides, traceGeoJSON(revealedRuns(f.rides)));
+      changed = true;
+    }
+    const { center, zoom } = f.camera;
+    const at = `${p ? 1 : 0}|${f.walker ? `${f.walker[0]},${f.walker[1]}` : ''}|${center ? `${center[0]},${center[1]},${zoom}` : ''}`;
+    if (at !== st.at) {
+      st.at = at;
+      changed = true;
+      // The camera first, then the dot on it: the map's markers are placed as the camera moves.
+      if (center && followMoves({ following: true, handOnMap: pointerDown.current, northEasing: northAsked.current })) {
+        perfCount('camera');
+        map.jumpTo(zoom == null ? { center } : { center, zoom });
+      }
+      if (p) {
+        p.el.style.display = f.walker ? '' : 'none';
+        p.cone.style.display = 'none';
+        if (f.walker) p.marker.setLngLat(f.walker);
+      }
+      // Where the dot is drawn (QL12), for the e2e.
+      container.current?.setAttribute('data-walker', fmt(f.walker));
+    }
+    // Where the line ends, for the e2e and the harness (only when measuring).
+    if ((window as { __perf?: unknown }).__perf) container.current?.setAttribute('data-reveal-end', fmt(f.walked.end));
+    // Drawn now, in this frame: the canvas and the dot, which is an element over it, never part by a frame (RC1).
+    if (changed) {
+      perfCount('redraw');
+      map.redraw();
+    }
   };
   const applyFrame = (f: GlideFrame) => {
     lastFrame.current = f;
@@ -408,6 +499,12 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       map.touchZoomRotate.disableRotation();
       map.keyboard.disableRotation();
     }
+    const measure = () => {
+      const c = map.getCanvas();
+      canvasSize.current = { width: c.clientWidth, height: c.clientHeight };
+    };
+    map.on('resize', measure);
+    map.on('load', measure);
     map.on('load', () => {
       // The base map's own layers, before the app adds its overlay (T17: whether the tiles drew anything).
       baseLayers.current = blankLookLayers(map.getStyle().layers as { id: string; type: string; 'source-layer'?: string }[]);
@@ -653,9 +750,9 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       const zoom = map.getZoom();
       const lat = map.getCenter().lat;
       // The canvas's own middle: getCenter() is the padded centre a fit leaves behind, which a map
-      // made fresh (without the padding) would put elsewhere.
-      const canvas = map.getCanvas();
-      const c = map.unproject([canvas.clientWidth / 2, canvas.clientHeight / 2]);
+      // made fresh (without the padding) would put elsewhere. Its size as last measured, never read per move.
+      if (!canvasSize.current.width) measure();
+      const c = map.unproject([canvasSize.current.width / 2, canvasSize.current.height / 2]);
       onCameraChange.current?.({ center: [c.lng, c.lat], zoom });
       // For the e2e (tabs audit U15): the zoom, written straight to the DOM, never a render.
       container.current?.setAttribute('data-zoom', zoom.toFixed(2));
@@ -664,7 +761,18 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       // And what is in view, west,south,east,north (fix explore-fit-area: the whole town is framed).
       const b = map.getBounds();
       container.current?.setAttribute('data-bounds', [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()].map((x) => x.toFixed(5)).join(','));
-      setView((v) => (v && Math.abs(v.zoom - zoom) < 0.05 && Math.abs(v.lat - lat) < 0.01 ? v : { zoom, lat }));
+      const seen = (v: { zoom: number; lat: number } | null, to: { zoom: number; lat: number }) => (v && Math.abs(v.zoom - to.zoom) < 0.05 && Math.abs(v.lat - to.lat) < 0.01 ? v : to);
+      // A replay's frames move the camera, and often the zoom, every frame (RC2): the view is taken at most twice a second.
+      if (replayLast.current) {
+        viewWaiting.current = { zoom, lat };
+        viewTimer.current ??= setTimeout(() => {
+          viewTimer.current = null;
+          const to = viewWaiting.current;
+          if (to) setView((v) => seen(v, to));
+        }, REPLAY_VIEW_MS);
+        return;
+      }
+      setView((v) => seen(v, { zoom, lat }));
     };
     // Only gestures carry an originalEvent; camera moves made in code do not.
     // Zooming keeps following, as in Google Maps: only a pan or a turn looks away.
@@ -736,6 +844,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     map.on('load', track);
     return () => {
       clearTimeout(pressTimer);
+      if (viewTimer.current) clearTimeout(viewTimer.current);
       clearTimeout(holdTimer);
       dropSwipe();
       // A map that comes back opens north-up (CP8), so its screen hears north as it goes: a map taken down under the
@@ -750,10 +859,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const setData = (id: string, data: GeoJSON.FeatureCollection) => {
-    perfCount(`setData:${id}`);
-    (mapRef.current?.getSource(id) as { setData(d: GeoJSON.FeatureCollection): void } | undefined)?.setData(data);
-  };
+  const setData = (id: string, data: GeoJSON.FeatureCollection) => sendData(mapRef.current, sent.current, id, data);
 
   // Free look (FL3): one finger pans while it is on. maplibre's own handlers take over and ours stand down;
   // the inline touch-action goes back to its class, which leaves the pan to the map (the swipe sets `none`).
@@ -810,11 +916,14 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     setData('alternates', alternatesGeoJSON(props.alternates));
     // The e2e reads how many faint routes are drawn (only when it is measuring: window.__perf).
     if ((window as { __perf?: unknown }).__perf && container.current) container.current.dataset.alternates = String(props.alternates?.length ?? 0);
+  }, [ready, props.alternates]);
+  useEffect(() => {
+    if (!ready) return;
     // The e2e reads which of the trace-like layers carry anything (only when it is measuring): none while a preview is up.
     if ((window as { __perf?: unknown }).__perf && container.current) {
       container.current.dataset.drawn = [['trace', props.trace?.length], ['walked', props.walked?.length], ['fog', props.fog?.length], ['faint', props.faint?.length], ['landing', hasLanding ? 1 : 0], ['borders', props.borders ? 1 : 0], ['walkability', props.walkability ? 1 : 0]].filter(([, n]) => n).map(([k]) => k).join(',');
     }
-  }, [ready, props.alternates, props.trace, props.walked, props.fog, props.faint, hasLanding, props.borders, props.walkability]);
+  }, [ready, props.trace, props.walked, props.fog, props.faint, hasLanding, props.borders, props.walkability]);
   // SS3: the lines and pockets are sent only when they change, never because the names near the selected area did: each
   // send drops the source's tiles, and a revisit's lines were cut again.
   const graded = props.landing?.graded;
@@ -895,7 +1004,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     switchSeen.current = props.storefrontNamesSwitch;
     namesHeld.current = true;
     perfCount('storefront-names:clear');
-    (map.getSource('storefront-names') as { setData(d: GeoJSON.FeatureCollection): void } | undefined)?.setData({ type: 'FeatureCollection', features: [] });
+    // Counted as the clear it is, never as a send of the names (SS10 counts those).
+    sendData(map, sent.current, 'storefront-names', { type: 'FeatureCollection', features: [] }, false);
     // A switch that moves nothing (the camera already there) lets them go once its move would have ended.
     const t = setTimeout(() => {
       if (namesHeld.current && !map.isMoving()) {
@@ -1017,8 +1127,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   useEffect(() => {
     if (!ready) return;
     setData('points', walkerGeoJSON(glideOn ? null : props.walker));
-    // Where the dot is drawn (QL12), for the e2e; empty with none.
-    container.current?.setAttribute('data-walker', fmt(props.walker));
+    // Where the dot is drawn (QL12), for the e2e; empty with none. A replay's frames say their own (`applyReplay`).
+    if (!replayLast.current) container.current?.setAttribute('data-walker', fmt(props.walker));
   }, [ready, glideOn, props.walker]);
   // The credits beside the scale bar (tend map 3), moved with the inset (a sheet's height) and the map's width.
   const scaleBottom = (props.scaleInset ?? DEFAULT_SCALE_INSET).bottom;
@@ -1057,10 +1167,11 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     };
   }, [ready, blankWatch]);
   const scaleOn = scaleShown({ hideOnBlank: !!props.hideScaleOnBlank, fix: !!props.walker, drawn });
-  // The live walk's dot and cone: one marker, drawn at the same size as the layers.
+  // The live walk's dot and cone: one marker, drawn at the same size as the layers. A replay's walker is the same
+  // marker, moved by the replay's own frames (replay ceremony RC1).
   useEffect(() => {
     const map = mapRef.current;
-    if (!ready || !map || !glideOn) return;
+    if (!ready || !map || !(glideOn || replayOn)) return;
     const el = document.createElement('div');
     el.dataset.testid = 'walker-puck';
     el.setAttribute('aria-hidden', 'true');
@@ -1073,13 +1184,19 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     const cone = el.querySelector('[data-cone]') as HTMLElement;
     const marker = new Marker({ element: el, anchor: 'center' }).setLngLat([0, 0]).addTo(map);
     puck.current = { marker, el, cone };
-    applyFrame(lastFrame.current);
+    if (replayOn) applyReplay(replayLast.current);
+    else applyFrame(lastFrame.current);
     return () => {
       marker.remove();
       puck.current = null;
     };
-    // applyFrame only reads refs.
-  }, [ready, glideOn]);
+    // applyFrame and applyReplay only read refs.
+  }, [ready, glideOn, replayOn]);
+  // A frame that came before the style had loaded is drawn once it has.
+  useEffect(() => {
+    if (ready && replayLast.current) applyReplay(replayLast.current);
+    // applyReplay only reads refs.
+  }, [ready]);
 
   // Capture pins are DOM markers rendered with the same view as on native,
   // grouped for the current zoom. Clicks look the pin up by id, so a pin
@@ -1093,10 +1210,10 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const markersShown = (props.traceOpacity ?? 1) > 0;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const standOn = useMemo<(LngLat | null)[]>(() => (markersShown ? [ends.start, ends.end] : []), [endsKey, markersShown]);
-  usePinMarkers(mapRef, ready, pins, props.onPinPress ? (p) => props.onPinPress?.(p.captures) : undefined, false, reminded, sets, props.clocks, props.now, standOn);
+  usePinMarkers(mapRef, ready, canvasSize, pins, props.onPinPress ? (p) => props.onPinPress?.(p.captures) : undefined, false, reminded, sets, props.clocks, props.now, standOn);
   // Memories from earlier walks: the same pins, faint, with their own tap (MR1-MR4).
   const memoryPins = useZoomPins(props.memories ?? NO_CAPTURES, view?.zoom ?? null, view?.lat ?? null);
-  usePinMarkers(mapRef, ready, memoryPins, props.onMemoryPress ? (p) => props.onMemoryPress?.(p.captures, p.lngLat) : undefined, true, reminded, sets, undefined, props.now, standOn);
+  usePinMarkers(mapRef, ready, canvasSize, memoryPins, props.onMemoryPress ? (p) => props.onMemoryPress?.(p.captures, p.lngLat) : undefined, true, reminded, sets, undefined, props.now, standOn);
   // Stars (the home map) are DOM markers too, drawn with the same view as on
   // native. Clicks look the star up by id, so a merged star never opens stale places.
   const onViewChange = useRef(props.onViewChange);
@@ -1422,6 +1539,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       const c = mapRef.current?.getCanvas();
       return { width: c?.clientWidth ?? 0, height: c?.clientHeight ?? 0 };
     },
+    // applyReplay only reads refs.
+    replayFrame: (f) => applyReplay(f),
     async collectView(): Promise<CollectedFeatures> {
       await readyPromise.current!.promise;
       const map = mapRef.current;
@@ -1534,9 +1653,8 @@ const NO_CAPTURES: Faced[] = [];
  * What a pin can be seen from: the canvas grown by a pin's reach (`PIN_REACH_PX`, tend map audit 35), its corners as
  * the map places them, west, south, east, north.
  */
-const pinViewOf = (map: MapLibreMap): ViewBox => {
-  const c = map.getCanvas();
-  const [w, h] = [c.clientWidth, c.clientHeight];
+const pinViewOf = (map: MapLibreMap, size: { width: number; height: number }): ViewBox => {
+  const [w, h] = [size.width, size.height];
   const r = PIN_REACH_PX;
   const corners: [number, number][] = [[-r.left, -r.top], [w + r.right, -r.top], [w + r.right, h + r.bottom], [-r.left, h + r.bottom]];
   return boxAround(corners.map((p) => {
@@ -1551,6 +1669,8 @@ const NO_ENDS: readonly (LngLat | null)[] = [];
 function usePinMarkers(
   mapRef: RefObject<MapLibreMap | null>,
   ready: boolean,
+  /** The canvas's size as the map last measured it: the view is worked out from it on every camera move, with no read of layout (replay ceremony: a replay moves the camera every frame). */
+  canvasSize: RefObject<{ width: number; height: number }>,
   pins: CapturePin[],
   onPress: ((pin: CapturePin) => void) | undefined,
   memory: boolean,
@@ -1582,8 +1702,13 @@ function usePinMarkers(
       m.marker.remove();
       queueMicrotask(() => m.root.unmount());
     };
+    // Measured here when the map has not yet said its size (a map just made), then only as the map resizes.
+    const view = () => {
+      if (!canvasSize.current.width) canvasSize.current = { width: map.getCanvas().clientWidth, height: map.getCanvas().clientHeight };
+      return pinViewOf(map, canvasSize.current);
+    };
     const sync = () => {
-      if (!boxHolds(drawn.current, pinViewOf(map))) drawn.current = pinDrawBox(pinViewOf(map));
+      if (!boxHolds(drawn.current, view())) drawn.current = pinDrawBox(view());
       const box = drawn.current!;
       const live = new Set<string>();
       for (const pin of pins) {
@@ -1657,7 +1782,7 @@ function usePinMarkers(
     sync();
     // During a move too, not only at its end (audit 36): one read and a compare an event, a redraw only past the box.
     const moved = () => {
-      if (!boxHolds(drawn.current, pinViewOf(map))) sync();
+      if (!boxHolds(drawn.current, view())) sync();
     };
     map.on('move', moved);
     map.on('moveend', moved);
@@ -1665,7 +1790,7 @@ function usePinMarkers(
       map.off('move', moved);
       map.off('moveend', moved);
     };
-  }, [mapRef, ready, pins, interactive, memory, openedAt, reminded, sets, clocks, now, standOn]);
+  }, [mapRef, ready, canvasSize, pins, interactive, memory, openedAt, reminded, sets, clocks, now, standOn]);
   // A pin standing on the walk's start or end stops its stalk at the marker's edge (decision 0172, O13): its lift is
   // measured on screen, so it follows the map as it zooms or turns, and is set only when it moves. The target's padding
   // below the foot carries it: the marker is anchored at the target's bottom, so the pin rises and its target still
@@ -1707,6 +1832,60 @@ function traceEnd(trace: LngLat[][] | undefined): string {
   const run = trace?.filter((r) => r.length).at(-1);
   return fmt(run?.[run.length - 1]);
 }
+
+/**
+ * A collection to one of a map's sources, through the one gate (replay ceremony RC4): sent only when it changed
+ * (`nextSend`). `sent` is that map's own record of what each source holds.
+ */
+function sendData(map: MapLibreMap | null, sent: Map<string, Sent>, id: string, data: GeoJSON.FeatureCollection, counted = true): void {
+  const src = map?.getSource(id) as { setData(d: GeoJSON.FeatureCollection): void } | undefined;
+  if (!src) return;
+  const next = nextSend(sent.get(id), data);
+  sent.set(id, next.sent);
+  if (!next.send) return;
+  if (counted) perfCount(`setData:${id}`);
+  src.setData(data);
+}
+
+/**
+ * One kind of a replay's line brought to what a frame says (replay ceremony RC3): the whole runs sent when their list
+ * changes, the run being walked sent once when it begins, and how far it shows painted, with nothing sent. True when
+ * anything changed.
+ */
+function revealLine(map: MapLibreMap, sent: Map<string, Sent>, drawn: RevealDrawn, next: LineReveal, ids: { done: string; run: string }, layers: readonly (readonly [string, string])[]): boolean {
+  let changed = false;
+  if (next.doneKey !== drawn.doneKey) {
+    drawn.doneKey = next.doneKey;
+    sendData(map, sent, ids.done, traceGeoJSON(next.done));
+    changed = true;
+  }
+  const stop = revealStop(drawn, next);
+  if (stop.run !== drawn.run) {
+    drawn.run = stop.run;
+    drawn.p = -1;
+    sendData(map, sent, ids.run, traceGeoJSON(stop.run ? [stop.run] : []));
+    changed = true;
+  }
+  if (stop.p !== drawn.p) {
+    drawn.p = stop.p;
+    perfCount('reveal');
+    for (const [layer, color] of layers) map.setPaintProperty(layer, 'line-gradient', revealGradient(color, stop.p) as unknown as GradientSpec, { validate: false });
+    changed = true;
+  }
+  return changed;
+}
+
+/** What of a replay's line a source holds: the whole runs by their key, the run in the revealed source and how far it shows. */
+type RevealDrawn = { doneKey: string; run: LngLat[] | null; p: number };
+const freshReplayDrawn = (): { walked: RevealDrawn; rides: string; at: string; clearing: boolean } => ({
+  walked: { doneKey: '', run: null, p: -1 }, rides: '', at: '', clearing: false,
+});
+type GradientSpec = NonNullable<NonNullable<import('maplibre-gl').LineLayerSpecification['paint']>['line-gradient']>;
+/** The layers a reveal paints, each with its colour: the white edge, then the line. */
+const WALKED_REVEAL_LAYERS = [['replay-run-edge', '#ffffff'], ['replay-run-line', COLORS.trace]] as const;
+const EMPTY_LINES: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: [] };
+/** While a replay moves the camera every frame, the view reaches React at most this often. */
+const REPLAY_VIEW_MS = 500;
 
 /** A point as "lon,lat" to 6 decimals, for the e2e's data attributes; empty for none. */
 const fmt = (p: LngLat | null | undefined) => (p ? `${p[0].toFixed(6)},${p[1].toFixed(6)}` : '');
