@@ -4,7 +4,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { test } from 'node:test';
 
-// The React Compiler (RC1-RC2, specs/react-compiler, decision 0203). babel-preset-expo 58 runs it only when app.json asks.
+// The React Compiler (RC1-RC2, specs/react-compiler, decision 0206). babel-preset-expo 58 runs it only when app.json asks.
 // Every component and screen compiles but the functions listed when it was turned on; the list only shrinks.
 
 const ROOT = join(__dirname, '../../../..');

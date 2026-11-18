@@ -1,6 +1,6 @@
 # The React Compiler: plan (RC1-RC3)
 
-Built on the owner's go-ahead of Nov 18: no stop at this plan. Decision 0203.
+Built on the owner's go-ahead of Nov 18: no stop at this plan. Decision 0206.
 
 - `app.json`: `experiments.reactCompiler: true` (babel-preset-expo 58 reads it; `@expo/metro-config` passes it to Metro,
   `expo export` to the build).

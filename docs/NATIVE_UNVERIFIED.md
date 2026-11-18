@@ -775,3 +775,7 @@ More attractions (decision 0198) and its audit are built and green on the web bu
 - [ ] **Do:** with VoiceOver or TalkBack on, open a walk's replay and a day's. **Expect:** the steps with Continue, one moment at a time, as before; no Next button anywhere. (RY20)
 - [ ] **Do:** replay a walk with a photo on its own, a 10 s voice memo and a video, with no touch. **Expect:** the photo stays fully shown about 4.5 s (the first one about 5.4 s); the walker stands about a second after the memo's last word; the video's card stands about a second after it ends; the screen stays awake through the whole replay, minutes long (expo-keep-awake). (RY1, RY2, RY6)
 - [ ] **Do:** on an iPhone SE or mini (375 pt wide), replay a walk past a place it passed and across a break, pressing Next over both. **Expect:** "N min later", then "Passed … without stopping", show under the clock between Hold and the Skip and Next column, wrapped, over no button and no card. (RY21)
+
+## The React Compiler (RC1-RC3, decision 0206)
+
+- [ ] **Do:** on a development build, walk 10 min, open the replay, scroll Memories and the gallery, switch Explore's neighbourhoods. **Expect:** everything behaves as on the web build; no screen shows stale content after a change (a compiled component skips a render only when its inputs are the same); React DevTools shows the compiled components as "Memo ✨". (RC1, decision 0206)

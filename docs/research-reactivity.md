@@ -1,6 +1,6 @@
 # Keeping the live walk screen light: research findings
 
-Scope: maplibre-gl 6.16 (web), MapLibre RN 11.5 (native), React 19.3. **Correction (Nov 16):** the React Compiler was assumed on; it was not, and is since decision 0203 (Nov 18); before that (`app.json` has no `experiments.reactCompiler`; only its lint rules run, `docs/DEFERRED.md`), so the notes below on what it caches describe it if it is turned on. I checked claims against the installed `node_modules` where I could. Several primary hosts are blocked from this cloud session: bugs.webkit.org, maplibre.org and react.dev. For those, I used search snippets or the same docs mirrored on GitHub. Items marked **[uncertain]** are unverified or depend on the version.
+Scope: maplibre-gl 6.16 (web), MapLibre RN 11.5 (native), React 19.3. **Correction (Nov 16):** the React Compiler was assumed on; it was not, and is since decision 0206 (Nov 18); before that (`app.json` has no `experiments.reactCompiler`; only its lint rules run, `docs/DEFERRED.md`), so the notes below on what it caches describe it if it is turned on. I checked claims against the installed `node_modules` where I could. Several primary hosts are blocked from this cloud session: bugs.webkit.org, maplibre.org and react.dev. For those, I used search snippets or the same docs mirrored on GitHub. Items marked **[uncertain]** are unverified or depend on the version.
 
 ## Summary ranking (expected impact for Chronicles)
 

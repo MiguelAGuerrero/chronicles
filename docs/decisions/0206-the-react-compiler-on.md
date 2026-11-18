@@ -1,4 +1,4 @@
-# 0203. The React Compiler is on
+# 0206. The React Compiler is on
 
 Date: 2026-11-18 · Status: accepted · Area: performance, every screen
 
