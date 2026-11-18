@@ -20,7 +20,18 @@ const recordFrames = (pg) => pg.evaluate(() => {
     const p = window.__perf;
     let sends = 0;
     for (const k in p) if (k.startsWith('setData:')) sends += p[k];
+    // Anything with a ground of its own laid over the map at its left edge, a third of the way down, where no card,
+    // bubble or control stands (replay ceremony RC17: a break never dims the map).
+    let veil = '';
+    for (const e of document.elementsFromPoint(6, Math.round(window.innerHeight / 3))) {
+      if (e.closest('.maplibregl-map') || e === document.body || e === document.documentElement) break;
+      const st = getComputedStyle(e);
+      if (!/rgba\(0, 0, 0, 0\)|transparent/.test(st.backgroundColor) && Number(st.opacity) > 0.02 && e.getBoundingClientRect().height > window.innerHeight / 2) veil = `${e.tagName} ${st.backgroundColor} at ${st.opacity}`;
+    }
+    const later = document.querySelector('[data-testid=replay-later]');
+    const fade = document.querySelector('[data-testid=replay-clock-fade]');
     E.frames.push({
+      hops: map?.getAttribute('data-hops') ?? '', later: later?.textContent ?? '', veil, clockFade: fade ? Number(getComputedStyle(fade).opacity) : null,
       t, busy: !!card || !!note || has('memo-bubble') || has('replay-whisper') || has('replay-later'),
       walker: map?.getAttribute('data-walker') ?? '', centre: map?.getAttribute('data-center') ?? '', zoom: Number(map?.getAttribute('data-zoom')), end: map?.getAttribute('data-reveal-end') ?? '',
       cam: map?.getAttribute('data-cam') ?? '', held: has('replay-held'), w: window.innerWidth, h: window.innerHeight,
@@ -151,6 +162,49 @@ function cameraOf(frames, places) {
   // The walker went on while the camera stood: frames in which the dot moved and the camera did not.
   const walkedStill = told.filter((f, i) => i > 0 && f.cam === told[i - 1].cam && f.walker && told[i - 1].walker && f.walker !== told[i - 1].walker).length;
   return { frames: told.length, runs: runs.length, longest: Math.max(0, ...seconds), still: told.length > 1 ? still / (told.length - 1) : 0, walkedStill, underCard, pins, zooms: [...new Set(told.map((f) => lonLat(f.cam)[2].toFixed(2)))] };
+}
+
+/**
+ * The breaks through a watch (replay ceremony RC17-RC21), from the frames recorded. Time is counted only while the
+ * replay is not held (a picture holds it). `far` is the break crossed by a hop, read while its line is under the clock
+ * (the walk's 20-minute gap); `stand` the one too small to see (its 4-minute gap).
+ */
+function breaksOf(frames) {
+  const told = frames.filter((f) => f.clock);
+  const passed = (list) => list.reduce((n, f) => n + (f.dt ?? 0), 0);
+  told.forEach((f, i) => { f.dt = i > 0 && !f.held && !told[i - 1].held ? f.t - told[i - 1].t : 0; });
+  const hopOf = (f) => {
+    const m = /^(-?[\d.]+),(-?[\d.]+)>(-?[\d.]+),(-?[\d.]+)@([\d.]+)/.exec(f.hops || '');
+    return m ? { from: [Number(m[1]), Number(m[2])], to: [Number(m[3]), Number(m[4])], p: Number(m[5]) } : null;
+  };
+  const first = told.findIndex((f) => hopOf(f));
+  const hop = first >= 0 ? hopOf(told[first]) : null;
+  const out = { frames: told.length, veiled: told.filter((f) => f.veil).length, veil: told.find((f) => f.veil)?.veil ?? '', laters: [...new Set(told.map((f) => f.later).filter(Boolean))], far: null, stand: null };
+  if (hop) {
+    const lon = (f) => lonLat(f.walker)?.[0];
+    const between = (f) => { const x = lon(f); return x != null && x > hop.from[0] + 1e-6 && x < hop.to[0] - 1e-6; };
+    const drawing = told.filter((f) => { const k = hopOf(f); return k && k.p > 0 && k.p < 1; });
+    const sliding = told.filter(between);
+    const said = told.filter((f) => /^20 min later$/.test(f.later));
+    const after = told.slice(first).filter((f) => !hopOf(f) || hopOf(f).p < 1).length - drawing.length;
+    const inView = (f, place) => { const c = lonLat(f.cam); if (!c || c.length !== 3) return false; const at = screenAt(c, place, f.w, f.h); return at[0] >= 0 && at[0] <= f.w && at[1] >= 0 && at[1] <= f.h; };
+    const last = told[told.length - 1];
+    // Where the walker stands once the camera has closed in: the last frame it is where the trace picks up, before it walks on.
+    const landed = told.slice(first).filter((f) => lon(f) != null && Math.abs(lon(f) - hop.to[0]) < 2e-6 && lonLat(f.cam)?.[2] === 15).pop();
+    const landedAt = landed ? screenAt(lonLat(landed.cam), lonLat(landed.walker), landed.w, landed.h) : null;
+    out.far = {
+      steps: new Set(drawing.map((f) => hopOf(f).p)).size, endsInView: drawing.every((f) => inView(f, hop.from) && inView(f, hop.to)) && sliding.every((f) => inView(f, hop.from) && inView(f, hop.to)),
+      slid: new Set(sliding.map((f) => f.walker)).size, onLine: sliding.every((f) => Math.abs(lonLat(f.walker)[1] - hop.from[1]) < 2e-6), drawnFirst: sliding.every((f) => hopOf(f)?.p === 1),
+      pulledBack: Math.min(...drawing.concat(sliding).map((f) => lonLat(f.cam)?.[2] ?? 99)), undrawnAfter: after, stays: hopOf(last)?.p === 1,
+      landed: landedAt ? landedAt.map(Math.round) : null, focus: landed ? [Math.round(landed.w / 2), Math.round(landed.h * 0.42)] : null,
+      saidS: Math.round(passed(said) / 10) / 100, clocks: [...new Set(said.map((f) => f.clock))], faded: Math.min(1, ...said.map((f) => f.clockFade ?? 1)),
+    };
+  }
+  const stood = told.filter((f) => /^4 min later$/.test(f.later));
+  // The stand itself is its line's first second and a bit; the line stays a little after, into the walk's last view.
+  const standing = stood.filter((f) => f.t - stood[0].t <= 1100);
+  if (stood.length) out.stand = { frames: stood.length, saidS: Math.round(passed(stood) / 10) / 100, cams: new Set(stood.map((f) => f.cam)).size, hops: new Set(stood.map((f) => f.hops)).size, clocks: [...new Set(standing.map((f) => f.clock))], walkers: new Set(standing.map((f) => f.walker)).size };
+  return out;
 }
 
 async function run(h) {
@@ -764,11 +818,42 @@ async function run(h) {
       };
       check(still.centres === 1 && still.walkers >= 10 && still.engine >= 10 && still.puck && still.card != null,
         `RC10: with reduce motion on the map stays still and the walker moves over it, on the same engine, to the first card (${JSON.stringify(still)})`);
+
+      // RC22: with reduce motion a break is one still view with both ends and the hop drawn. Next to the note, then the
+      // break by itself: the map does not move, the hop is whole from its first frame, the walker is at one end and then
+      // the other, and the line is said for as long as with motion.
+      await pg.emulateMedia({ reducedMotion: 'reduce' });
+      await pg.waitForTimeout(300);
+      await pg.getByText('Watch again').click();
+      await pg.waitForSelector('[data-testid=replay-clock]', { timeout: 30000 });
+      for (let k = 0; k < 4 && !(await pg.locator('[data-testid=replay-note]').count()); k++) {
+        await pg.click('[data-testid=next-moment]', { timeout: 2000 }).catch(() => {});
+        await pg.waitForTimeout(700);
+      }
+      await recordFrames(pg);
+      await pg.waitForFunction(() => document.querySelector('[data-testid=replay-later]')?.textContent === '20 min later', null, { timeout: 60000 }).catch(() => {});
+      await pg.waitForTimeout(900);
+      await shot(pg, 'rc-hop-reduced');
+      await pg.waitForSelector('[data-testid=memo-bubble]', { timeout: 30000 }).catch(() => {});
+      const reduced = (await stopFrames(pg)).filter((f) => f.clock);
+      await pg.click('[data-testid=skip]').catch(() => {});
+      await pg.waitForSelector('[data-testid=to-name]', { timeout: 30000 });
+      await pg.emulateMedia({ reducedMotion: 'no-preference' });
+      const hopped = reduced.filter((f) => f.hops);
+      const saidReduced = reduced.filter((f) => f.later === '20 min later');
+      const one = {
+        frames: reduced.length, centres: new Set(reduced.map((f) => f.centre)).size, hopFrames: hopped.length, partial: hopped.filter((f) => !/@1\.000$/.test(f.hops)).length,
+        between: hopped.filter((f) => { const m = /^(-?[\d.]+),[^>]*>(-?[\d.]+),/.exec(f.hops); const x = lonLat(f.walker)?.[0]; return !!m && x != null && x > Number(m[1]) + 1e-6 && x < Number(m[2]) - 1e-6; }).length, saidS: saidReduced.length > 1 ? Math.round((saidReduced[saidReduced.length - 1].t - saidReduced[0].t) / 10) / 100 : 0,
+        veiled: reduced.filter((f) => f.veil).length,
+      };
+      const stillOk = one.frames > 100 && one.centres === 1 && one.hopFrames >= 30 && one.partial === 0 && one.between === 0 && one.saidS >= 3.0 && one.saidS <= 4.1 && one.veiled === 0;
+      check.todo(stillOk, `RC22: with reduce motion a break is one still view, the hop drawn whole, the walker at one end and then the other, and it lasts as long (${JSON.stringify(one)})`);
     }
 
-    // Replay ceremony, the camera (RC11, RC12, RC14; decision 0206): a re-watch at 390 and at 320 px, read frame by
-    // frame to its card, with a picture of each state: walking at the walking zoom, a card up with its pin under it,
-    // the camera re-framing as the walker leaves the card. Hold stands the replay still for each picture.
+    // Replay ceremony, the camera and the breaks (RC11, RC12, RC14, RC17-RC21; decision 0206): a re-watch at 390 and at
+    // 320 px, read frame by frame to its card, with a picture of each state: walking at the walking zoom, a card up
+    // with its pin under it, the camera re-framing as the walker leaves the card, a break mid-hop, a stand. Hold stands
+    // the replay still for each picture.
     for (const [w, ht] of [[390, 844], [320, 568]]) {
       await pg.setViewportSize({ width: w, height: ht });
       await pg.waitForTimeout(300);
@@ -796,22 +881,51 @@ async function run(h) {
       await pg.waitForSelector('[data-testid=replay-card]', { state: 'detached', timeout: 60000 }).catch(() => {});
       await pg.waitForTimeout(150);
       await pictured('rc-reframe');
-      await pg.waitForSelector('[data-testid=replay-note]', { timeout: 120000 }).catch(() => {});
-      await pg.waitForTimeout(1500);
+      // The 20-minute gap: its line under the clock once both ends are in view, the walker part of the way across.
+      await pg.waitForFunction(() => document.querySelector('[data-testid=replay-later]')?.textContent === '20 min later', null, { timeout: 120000 }).catch(() => {});
+      await pg.waitForTimeout(650);
+      await pictured('rc-hop');
+      // The 4-minute gap, too small to see: a stand.
+      await pg.waitForFunction(() => document.querySelector('[data-testid=replay-later]')?.textContent === '4 min later', null, { timeout: 45000 }).catch(() => {});
+      await pg.waitForTimeout(300);
+      await pictured('rc-stand');
+      // On to the card, by itself.
+      await pg.waitForSelector('[data-testid=to-name]', { timeout: 60000 }).catch(() => {});
       const seenFrames = await stopFrames(pg);
       await pg.click('[data-testid=skip]').catch(() => {});
       await pg.waitForSelector('[data-testid=to-name]', { timeout: 30000 });
+      await pg.waitForTimeout(600);
+      const linksOnCard = Number(await pg.locator('[data-gaplinks]').last().getAttribute('data-gaplinks').catch(() => -1));
       const cam = cameraOf(seenFrames, places);
       const said = JSON.stringify({ ...cam, longest: Math.round(cam.longest * 100) / 100, still: Math.round(cam.still * 100) / 100 });
       // RC12: the camera moves in a few short runs (a card's pin settling, a re-frame as the walker leaves the middle)
       // and is exactly still between them: more of the watch than not, and the walker goes on meanwhile.
-      check(cam.frames > 200 && cam.runs >= 3 && cam.runs <= 12 && cam.longest <= 2.6 && cam.still >= 0.6 && cam.walkedStill >= 20, `RC12: at ${w} px the camera holds still between its re-frames, the walker going on meanwhile (${said})`);
+      check(cam.frames > 200 && cam.runs >= 3 && cam.runs <= 18 && cam.longest <= 2.6 && cam.still >= 0.6 && cam.walkedStill >= 20, `RC12: at ${w} px the camera holds still between its re-frames, the walker going on meanwhile (${said})`);
       // RC14: with a photo's or the video's card at rest, its pin stands on the screen just under the card, in line with
       // its middle, and the camera does not move while the card is up.
       const pins = Object.values(cam.pins);
       check(pins.length === 3 && pins.every((p) => Math.abs(p.dx) <= 2 && p.under >= 44 && p.under <= 60 && p.y < p.h) && cam.underCard === 0, `RC14: at ${w} px each card's pin shows just under where the card rests, the camera still while it is up (${said})`);
       // RC11: the walking zoom is 15: every frame of the watch but the opening and a stretch's rise.
       check(cam.zooms.includes('15.00') && cam.zooms.every((z) => Number(z) <= 15) && !cam.zooms.includes('16.00'), `RC11: at ${w} px the replay walks at zoom 15 (${cam.zooms.slice(0, 8).join(', ')}${cam.zooms.length > 8 ? ', …' : ''})`);
+      const br = breaksOf(seenFrames);
+      const brSaid = JSON.stringify(br);
+      // RC17: nothing is laid over the map in any frame of the watch, the two breaks' among them.
+      check.todo(br.frames > 400 && br.laters.length === 2 && br.veiled === 0, `RC17: at ${w} px a break never dims the map: nothing is laid over it in any frame (${br.frames} frames, ${br.veiled} with something over the map${br.veil ? `: ${br.veil}` : ''}; said: ${br.laters.join(' | ')})`);
+      // RC18: across the far break the camera is pulled back with both ends in view while a dotted line draws from where
+      // the trace stops, step by step; the walker then slides along it, on the line; and the camera closes in at the far
+      // end, the walker in the middle of the screen. A 340 m break is far: its line shows for 0.7 of 4.2 s and 0.6 s more.
+      const far = br.far;
+      const hopOk = !!far && far.steps >= 3 && far.endsInView && far.slid >= 8 && far.onLine && far.drawnFirst && far.undrawnAfter === 0 && !!far.landed && Math.abs(far.landed[0] - far.focus[0]) <= 2 && Math.abs(far.landed[1] - far.focus[1]) <= 2 && far.saidS >= 3.0 && far.saidS <= 4.1;
+      check.todo(hopOk, `RC18: at ${w} px the camera holds both ends in view while a dotted line draws and the walker slides along it, and closes in at the far end (${brSaid})`);
+      // RC19: the clock is one time, then the other, and fades out between them.
+      check.todo(!!far && far.clocks.length === 2 && far.faded < 0.35, `RC19: at ${w} px across the break the clock changes from one time to the other in a dissolve (${JSON.stringify(far && { clocks: far.clocks, faded: far.faded })})`);
+      // RC20: the small break is a stand: its line and the clock's change, the camera where it was, no hop drawn for it
+      // (the far break's stays as it is), the walker on one side and then the other.
+      const stand = br.stand;
+      const standOk = !!stand && stand.frames >= 20 && stand.cams === 1 && stand.hops === 1 && stand.clocks.length === 2 && stand.walkers <= 2 && stand.saidS >= 1.3 && stand.saidS <= 2.3;
+      check.todo(standOk, `RC20: at ${w} px a break too small to see is a stand: the line and the clock's change, no hop, no camera move (${JSON.stringify(stand)})`);
+      // RC21: the hop stays to the end of the path, and on the card it is among the map's dotted links.
+      check.todo(!!far && far.stays && linksOnCard >= 1, `RC21: at ${w} px the hop stays on the map through the card (whole in the path's last frame: ${far && far.stays}; dotted links on the card: ${linksOnCard})`);
     }
     await pg.setViewportSize({ width: 390, height: 844 });
 
