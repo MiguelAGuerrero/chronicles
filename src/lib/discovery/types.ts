@@ -20,7 +20,10 @@ export type Kind =
   | 'plaques' | 'small_memorials' | 'old_stones' | 'wayside_shrines' | 'time_capsules' | 'little_libraries'
   /** Waterfalls, caves, hot springs and old trees, in Parks & green spaces (specs/explore-subtypes XS4, decision 0191). */
   | 'nature'
-  /** Zoos, aquariums and the map's attractions, in Viewpoints & oddities (XS4). */
+  /**
+   * Zoos and aquariums, in Viewpoints & oddities (XS4; the map's other attractions stay with Viewpoints, explore-subtypes
+   * audit 12), with amusement, theme and water parks as its subtype (more-attractions audit 1).
+   */
   | 'attractions'
   /** Subtypes of contract v4, each a switch under its kind (XS3, decision 0191). */
   | 'statues' | 'murals' | 'fountains' | 'signs'
@@ -28,7 +31,7 @@ export type Kind =
   | 'bridges' | 'mills' | 'stations' | 'lighthouses' | 'civic_buildings' | 'forts' | 'towers' | 'old_machines' | 'taverns' | 'mausoleums'
   | 'gardens' | 'community_gardens' | 'waterfalls' | 'caves' | 'hot_springs' | 'old_trees'
   | 'observatories' | 'concert_halls' | 'carousels'
-  | 'nature_reserves' | 'piers'
+  | 'nature_reserves' | 'piers' | 'amusement_parks'
   | 'fire_towers' | 'old_ruins' | 'ghost_towns' | 'natural_oddities' | 'roadside_giants' | 'survey_marks';
 
 /** A place worth offering, from whatever source; cache, tagged with the build it came from. */

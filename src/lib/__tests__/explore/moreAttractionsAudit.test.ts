@@ -94,3 +94,22 @@ test('more-attractions audit 7: an unnamed pier, nature reserve, amusement park 
     assert.equal(archivePlace('', cls, O, V), null, cls);
   }
 });
+
+test('more-attractions audit 18: a natural national monument is a Natural monuments place under Nature, never History', () => {
+  // The owner, Nov 18: "Own subtype under Nature". Contract v7's `natural_monument` (Devils Tower, Muir Woods, Jewel Cave).
+  const p = one('natural_monument', 'Devils Tower National Monument');
+  assert.equal(p?.category, 'parks');
+  assert.equal(p?.kind, 'natural_monuments');
+  assert.deepEqual(barsOf(p), ['parks'], 'what Nature lights, never History');
+  assert.ok(!p?.classes?.includes('recorded'), 'held for its type, never a listing');
+  const row = SUBTYPES.find((s) => s.kind === 'natural_monuments');
+  assert.equal(row?.parent, 'nature');
+  assert.equal(row?.label, 'Natural monuments');
+  assert.equal(row?.on, true);
+  assert.equal(row?.small, false);
+  assert.equal(kindRows(KINDS, new Set()).find((r) => r.kind.id === 'natural_monuments')?.depth, 1);
+  const icon = KINDS.find((k) => k.id === 'natural_monuments')?.icon;
+  assert.ok(icon && icon !== 'ellipse-outline', 'an icon of its own');
+  assert.equal(KINDS.filter((k) => k.icon === icon).length, 1, 'no other row wears it');
+  assert.ok(!parseHidden(null, null).has(row!.kind), 'on for a new reader');
+});

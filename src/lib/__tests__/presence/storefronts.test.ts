@@ -34,12 +34,13 @@ test('SF10: presence says which classes are storefronts; only a storefront weigh
   assert.equal(presence.densityWeight(['artwork']), 1);
 });
 
-test('SF11: the reclassification re-derives what depends on it: a new presence code; p6 was carried under p7 (QC16, QC14), nothing under p8 (more attractions moved weights, decision 0198)', () => {
+test('SF11: the reclassification re-derives what depends on it: a new presence code; p6 was carried under p7 (QC16, QC14), nothing under p8 (more attractions moved weights, decision 0198) or p9 (the more-attractions audit moved kinds and bars)', () => {
   assert.notEqual(presence.PRESENCE_CODE, 'p2');
-  assert.deepEqual(presence.PRESENCE_CARRIED, [], 'p8 adds classes with weights and kinds (more attractions), so no earlier row stands');
+  assert.deepEqual(presence.PRESENCE_CARRIED, [], 'p9 moves theme parks, a museum by type\'s History and a pier\'s bar (more-attractions audits 1-3), so no earlier row stands');
   assert.ok(ATLAS_CODE.endsWith(`.${presence.PRESENCE_CODE}`), 'the atlas reads its areas again');
   assert.ok(LANDING_VERSION.includes(`:${presence.PRESENCE_CODE}:`), 'the landing reads its areas again');
   assert.equal(rulesCurrent(LANDING_VERSION.replace(`:${presence.PRESENCE_CODE}:`, ':p2:')), false, 'a remembered area under p2 is read again');
   assert.equal(rulesCurrent(LANDING_VERSION.replace(`:${presence.PRESENCE_CODE}:`, ':p7:')), false, 'p7 is read again: p8 carries nothing (decision 0198)');
+  assert.equal(rulesCurrent(LANDING_VERSION.replace(`:${presence.PRESENCE_CODE}:`, ':p8:')), false, 'p8 is read again: p9 carries nothing (more-attractions audits 1-3)');
   assert.equal(rulesCurrent(LANDING_VERSION.replace(`:${presence.PRESENCE_CODE}:`, ':p3:')), false, 'p3 is read again: only the code just before is carried');
 });

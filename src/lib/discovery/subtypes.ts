@@ -62,8 +62,9 @@ export const SUBTYPES: readonly Subtype[] = [
   { kind: 'mausoleums', parent: 'cemeteries', label: 'Mausoleums and tombs', plural: 'Mausoleums', single: null, on: true, small: false },
   // Parks & green spaces.
   { kind: 'gardens', parent: 'parks', label: 'Gardens', plural: 'Gardens', single: null, on: true, small: false },
-  { kind: 'nature_reserves', parent: 'parks', label: 'Nature reserves', plural: 'Nature reserves', single: null, on: true, small: false },
   { kind: 'community_gardens', parent: 'parks', label: 'Community gardens', plural: 'Community gardens', single: 'A community garden', on: true, small: false },
+  // more-attractions audit 4: after Community gardens.
+  { kind: 'nature_reserves', parent: 'parks', label: 'Nature reserves', plural: 'Nature reserves', single: null, on: true, small: false },
   { kind: 'waterfalls', parent: 'nature', label: 'Waterfalls', plural: 'Waterfalls', single: 'A waterfall', on: true, small: false },
   { kind: 'caves', parent: 'nature', label: 'Caves', plural: 'Caves', single: null, on: true, small: false },
   { kind: 'hot_springs', parent: 'nature', label: 'Hot springs and geysers', plural: 'Hot springs', single: 'A hot spring', on: true, small: false },
@@ -75,6 +76,8 @@ export const SUBTYPES: readonly Subtype[] = [
   { kind: 'carousels', parent: 'community', label: 'Carousels', plural: 'Carousels', single: 'A carousel', on: true, small: false },
   // Viewpoints & oddities.
   { kind: 'fire_towers', parent: 'viewpoints', label: 'Fire lookout towers', plural: 'Fire towers', single: null, on: true, small: false },
+  // more-attractions audit 1 (the owner, Nov 18, "Own row, on"): every amusement, theme or water park, whatever its source.
+  { kind: 'amusement_parks', parent: 'attractions', label: 'Amusement and theme parks', plural: 'Amusement parks', single: null, on: true, small: false },
   { kind: 'old_ruins', parent: 'curiosities', label: 'Ruins', plural: 'Ruins', single: null, on: true, small: false },
   { kind: 'ghost_towns', parent: 'curiosities', label: 'Ghost towns', plural: 'Ghost towns', single: null, on: false, small: false },
   { kind: 'natural_oddities', parent: 'curiosities', label: 'Natural arches and rocks', plural: 'Natural arches', single: null, on: true, small: false },

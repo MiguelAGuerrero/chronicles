@@ -1,12 +1,39 @@
 {
- "captured": "2026-11-17",
- "from": "explore-subtypes (decision 0187), re-captured for XS3, XS4, XS12, XS15",
+ "captured": "2026-11-18",
+ "from": "explore-subtypes (decision 0187), re-captured for XS3, XS4, XS12, XS15; the more-attractions audit (decision 0198, audits 1-3) re-captured theme_park, added water_park and contract v6's four classes",
  "names": {
   "plain": "Corner Spot",
   "notable": "Old Corner Spot",
   "hood": "Old Town Corner Spot"
  },
  "archive": [
+  {
+   "cls": "amusement_park",
+   "plain": {
+    "category": "viewpoints",
+    "kind": "attractions",
+    "markable": true,
+    "bars": [
+     "viewpoints"
+    ]
+   },
+   "notable": {
+    "category": "viewpoints",
+    "kind": "attractions",
+    "markable": true,
+    "bars": [
+     "viewpoints"
+    ]
+   },
+   "hood": {
+    "category": "viewpoints",
+    "kind": "attractions",
+    "markable": true,
+    "bars": [
+     "viewpoints"
+    ]
+   }
+  },
   {
    "cls": "art_environment",
    "plain": {
@@ -335,6 +362,33 @@
    }
   },
   {
+   "cls": "museum_by_type",
+   "plain": {
+    "category": "culture",
+    "kind": "museums",
+    "markable": true,
+    "bars": [
+     "culture"
+    ]
+   },
+   "notable": {
+    "category": "culture",
+    "kind": "museums",
+    "markable": true,
+    "bars": [
+     "culture"
+    ]
+   },
+   "hood": {
+    "category": "culture",
+    "kind": "museums",
+    "markable": true,
+    "bars": [
+     "culture"
+    ]
+   }
+  },
+  {
    "cls": "natural_oddity",
    "plain": {
     "category": "viewpoints",
@@ -358,6 +412,33 @@
     "markable": true,
     "bars": [
      "viewpoints"
+    ]
+   }
+  },
+  {
+   "cls": "nature_reserve",
+   "plain": {
+    "category": "parks",
+    "kind": "parks",
+    "markable": true,
+    "bars": [
+     "parks"
+    ]
+   },
+   "notable": {
+    "category": "parks",
+    "kind": "parks",
+    "markable": true,
+    "bars": [
+     "parks"
+    ]
+   },
+   "hood": {
+    "category": "parks",
+    "kind": "parks",
+    "markable": true,
+    "bars": [
+     "parks"
     ]
    }
   },
@@ -439,6 +520,33 @@
     "markable": true,
     "bars": [
      "viewpoints"
+    ]
+   }
+  },
+  {
+   "cls": "pier",
+   "plain": {
+    "category": "history",
+    "kind": "structures",
+    "markable": true,
+    "bars": [
+     "history"
+    ]
+   },
+   "notable": {
+    "category": "history",
+    "kind": "structures",
+    "markable": true,
+    "bars": [
+     "history"
+    ]
+   },
+   "hood": {
+    "category": "history",
+    "kind": "structures",
+    "markable": true,
+    "bars": [
+     "history"
     ]
    }
   },
@@ -2136,13 +2244,6 @@
    "hood": null
   },
   {
-   "cls": "parking",
-   "sub": "parking",
-   "plain": null,
-   "notable": null,
-   "hood": null
-  },
-  {
    "cls": "park",
    "sub": "nature_reserve",
    "plain": {
@@ -2197,6 +2298,13 @@
      "parks"
     ]
    }
+  },
+  {
+   "cls": "parking",
+   "sub": "parking",
+   "plain": null,
+   "notable": null,
+   "hood": null
   },
   {
    "cls": "pet",
@@ -3050,7 +3158,7 @@
    "sub": "theme_park",
    "plain": {
     "category": "viewpoints",
-    "kind": "viewpoints",
+    "kind": "attractions",
     "markable": true,
     "bars": [
      "viewpoints"
@@ -3058,7 +3166,7 @@
    },
    "notable": {
     "category": "viewpoints",
-    "kind": "viewpoints",
+    "kind": "attractions",
     "markable": true,
     "bars": [
      "viewpoints"
@@ -3066,7 +3174,7 @@
    },
    "hood": {
     "category": "viewpoints",
-    "kind": "viewpoints",
+    "kind": "attractions",
     "markable": true,
     "bars": [
      "viewpoints"
@@ -3235,6 +3343,34 @@
    "hood": {
     "category": "viewpoints",
     "kind": "viewpoints",
+    "markable": true,
+    "bars": [
+     "viewpoints"
+    ]
+   }
+  },
+  {
+   "cls": "water_park",
+   "sub": "water_park",
+   "plain": {
+    "category": "viewpoints",
+    "kind": "attractions",
+    "markable": true,
+    "bars": [
+     "viewpoints"
+    ]
+   },
+   "notable": {
+    "category": "viewpoints",
+    "kind": "attractions",
+    "markable": true,
+    "bars": [
+     "viewpoints"
+    ]
+   },
+   "hood": {
+    "category": "viewpoints",
+    "kind": "attractions",
     "markable": true,
     "bars": [
      "viewpoints"
@@ -4434,7 +4570,7 @@
     "art": 0,
     "culture": 1,
     "parks": 1,
-    "viewpoints": 1,
+    "viewpoints": 0,
     "food": 2,
     "shops": 1,
     "nightlife": 1
@@ -4442,7 +4578,7 @@
    "marks": [
     "[\"culture\",\"old grange\",\"-122.9139\",\"42.3757\"]|community",
     "[\"parks\",\"robert pfaff park\",\"-122.9136\",\"42.3780\"]|parks",
-    "[\"viewpoints\",\"rogue valley family fun center\",\"-122.9048\",\"42.3808\"]|viewpoints"
+    "[\"viewpoints\",\"rogue valley family fun center\",\"-122.9048\",\"42.3808\"]|amusement_parks"
    ],
    "thin": false
   },
@@ -8593,7 +8729,7 @@
     "art": 0,
     "culture": 1,
     "parks": 2,
-    "viewpoints": 1,
+    "viewpoints": 0,
     "food": 2,
     "shops": 1,
     "nightlife": 1
@@ -8603,7 +8739,7 @@
     "[\"parks\",\"central point ball field\",\"-122.9176\",\"42.3768\"]|parks",
     "[\"parks\",\"central point playground\",\"-122.9122\",\"42.3768\"]|community_parks",
     "[\"parks\",\"robert pfaff park\",\"-122.9136\",\"42.3780\"]|community_parks",
-    "[\"viewpoints\",\"rogue valley family fun center\",\"-122.9048\",\"42.3808\"]|viewpoints"
+    "[\"viewpoints\",\"rogue valley family fun center\",\"-122.9048\",\"42.3808\"]|amusement_parks"
    ],
    "thin": false
   },

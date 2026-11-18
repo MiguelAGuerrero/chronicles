@@ -65,9 +65,9 @@ const SUBTYPE_ICON: Partial<Record<Kind, string>> = {
   forts: 'shield-half-outline', towers: 'time-outline', old_machines: 'construct-outline', taverns: 'beer-outline', old_stones: 'pin-outline',
   wayside_shrines: 'flame-outline', mausoleums: 'cube-outline',
   gardens: 'sunny-outline', community_gardens: 'nutrition-outline', waterfalls: 'rainy-outline', caves: 'triangle-outline', hot_springs: 'thermometer-outline',
-  old_trees: 'git-network-outline', nature_reserves: 'bug-outline', piers: 'boat-outline',
+  old_trees: 'git-network-outline', nature_reserves: 'binoculars-outline', piers: 'boat-outline',
   observatories: 'planet-outline', concert_halls: 'musical-notes-outline', little_libraries: 'bookmarks-outline', carousels: 'sync-circle-outline',
-  fire_towers: 'bonfire-outline', old_ruins: 'grid-outline', ghost_towns: 'moon-outline', natural_oddities: 'earth-outline', roadside_giants: 'balloon-outline',
+  fire_towers: 'bonfire-outline', amusement_parks: 'rocket-outline', old_ruins: 'grid-outline', ghost_towns: 'moon-outline', natural_oddities: 'earth-outline', roadside_giants: 'balloon-outline',
   survey_marks: 'locate-outline', time_capsules: 'hourglass-outline',
 };
 
@@ -106,8 +106,10 @@ export const KINDS: readonly KindInfo[] = [
   ...small('community', 'culture'),
   { id: 'viewpoints', label: 'Viewpoints and attractions', icon: 'eye-outline', category: 'viewpoints' },
   ...small('viewpoints', 'viewpoints'),
-  // XS4, explore-subtypes audit 12: zoos and aquariums, named for what they are; the map's attractions stay with Viewpoints.
-  { id: 'attractions', label: 'Zoos and amusement parks', icon: 'paw-outline', category: 'viewpoints' },
+  // XS4, explore-subtypes audit 12: zoos and aquariums, named for what they are; the map's other attractions stay with
+  // Viewpoints. more-attractions audit 1 (the owner, Nov 18): amusement, theme and water parks are its own row under it.
+  { id: 'attractions', label: 'Zoos and aquariums', icon: 'paw-outline', category: 'viewpoints' },
+  ...small('attractions', 'viewpoints'),
   // PW4: follies, roadside giants, natural oddities and the like, from the places archive (decision 0103).
   { id: 'curiosities', label: 'Curiosities', icon: 'telescope-outline', category: 'viewpoints' },
   ...small('curiosities', 'viewpoints'),
@@ -624,6 +626,9 @@ export function parseHidden(raw: string | null, known: string | null = null): Se
   if (out.has('museums') && !knew.includes('community')) out.add('community');
   // XS7: zoos and attractions were under "Viewpoints and attractions": off there keeps them off in their own kind.
   if (out.has('viewpoints') && !knew.includes('attractions')) out.add('attractions');
+  // more-attractions audit 1: the map's theme parks were under Viewpoints and the archive's amusement parks under the zoos
+  // kind: either off before keeps every such park off in its own row.
+  if ((out.has('viewpoints') || out.has('attractions')) && !knew.includes('amusement_parks')) out.add('amusement_parks');
   // explore-subtypes audit 5: statues were Monuments, markers "Plaques and markers": a switch off before keeps them off.
   if (out.has('monuments') && !knew.includes('statues')) out.add('statues');
   if ((out.has('monuments') || out.has('plaques')) && knew.includes('plaques') && !knew.includes('markers')) out.add('markers');
