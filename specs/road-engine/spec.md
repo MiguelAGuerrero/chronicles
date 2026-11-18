@@ -203,4 +203,20 @@ driven trace and the session's name (decision 0197's own slices).
 
 ## Record
 
-Not started. The plan waits on the owner.
+**Step 0, the measurement, 2026-11-18**: in `plan.md`. z12 is the zoom; the tiles can carry a road graph.
+
+**Step 1, the engine's core, built 2026-11-18** on `claude/determined-wright-yg1fq9` (the owner's answers, decision 0204): `src/lib/roads/`
+(`types`, `rules`, `fromTiles`, `graph`, `way`, `corridor`, `words`). Nothing a person sees changes yet.
+
+**Passed.** Unit tests for RE4-RE7, RE9-RE13, RE29, RE32, RE34 (`src/lib/__tests__/roads/roads.test.ts`), over hand-made roads and
+nine real z12 tiles of Zurich; committed failing first (`a28f1e7`). `npm test` (3,009), typecheck, lint, `check:docs`.
+
+**Measured on the real tiles** (a desktop, not a phone): 5,594 roads cut to their tiles, 12,377 junctions, 98.6% of the road length in
+one part; the graph built in 76 ms; a way of 20.9 km found in 6 ms, against 13.8 km in a straight line, on primary, secondary and
+tertiary roads with no motorway.
+
+**Not tested, and why.** The tiles' own source (the adapter over the fetcher) is step 2; a corridor of sixty tiles and a way of
+150 km have not been run (the pinned data is nine tiles); the live host's tiles cannot be read from a cloud session; RE5's "links"
+are flagged but not yet treated differently from their road.
+
+**Native.** Nothing here has run on a device.
