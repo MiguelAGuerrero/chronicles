@@ -46,7 +46,7 @@ const TRAFFIC = /far apart and busy/;
  * queue at work, SQLite's busy timeout, walkability's traffic. Each is a token, so a new use of the concept never passes.
  */
 const OTHER_BUSY = [
-  /busyLabel|busyRow|busyQuiet/, /\bbusy[?]?: (boolean|true|locating|\(\) =>)/, /\bbusy=\{/, /\{ busy[,:} ]/, /[gG]apBusy/, /run\.busy/, /exploreBusy|atlasBusy/,
+  /busyLabel|busyRow/, /\bbusy[?]?: (boolean|true|locating|\(\) =>)/, /\bbusy=\{/, /\{ busy[,:} ]/, /[gG]apBusy/, /run\.busy/, /exploreBusy|atlasBusy/,
   /OVERPASS_BUSY|BUSY_MS/, /busy_timeout/, /withBusy|type Busy = |<Busy>/, /props\.busy|cap\.busy|p\.busy\(\)|busy\.current/, /\blet busy\b|\bbusy = (true|false)/,
   /const busy = (useRef|\(retryAfter)|return busy\(|=> busy\(\)/, /far apart and busy/, /\[busy, setBusy\]|setBusy|isBusy/, /accessibilityState=\{\{ busy/,
   /busy, ask later|busy answer|made it busy|card stays, busy|said \(busy/, /\bbusy\b,?$/, /shows busy|while busy|aria-busy|busy is said/,
