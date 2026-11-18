@@ -159,8 +159,8 @@ run, and check:tend does not apply to your commits. Read `AGENTS.md` and, from y
 from origin/main), the files you change, whole.
 The owner's answer, verbatim, <date>: "<answer>" to <entry>, as STATUS holds it: "<title>".
 The job: <the shape, exactly>. Nothing else: no rewording beyond it, no fix on the way (file it).
-[A decision record for the call: number it with `npm run book:next-decision -- --check <NNNN> <file>`
-after the last fetch.] The entry leaves the inbox with `npm run records -- inbox remove <id> --reason
+[A decision record for the call: number it in your worktree with `npm run book:next-decision -- --check <NNNN>
+<file>` after the last fetch.] The entry leaves the inbox with `npm run records -- inbox remove <id> --reason
 "the owner's yes, <date>"`; ship.md "The record documents" holds.
 Checks: `npm run check:docs`[, typecheck, lint, npm test when a test or code moves]. Commit on your
 branch and push nothing: I read the diff and land it. Commit trailers: <the session's attribution
