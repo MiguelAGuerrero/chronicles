@@ -176,6 +176,14 @@ const FEATURES = [
     specs: ['walk-planner', 'presence-and-kinds'],
   },
   {
+    name: 'roads',
+    about: 'the road engine: main roads from the map\'s z12 tiles, a directed graph, one way between towns with a cost by kind of road',
+    rule: 'roads',
+    source: ['src/lib/roads/**'],
+    journeys: [],
+    specs: ['road-engine'],
+  },
+  {
     name: 'outing',
     about: 'plan an outing: describe what you want to see from a vocabulary, get one proposed circuit over candidates with facets; stops named on a tap or on arrival',
     rule: 'outing',
