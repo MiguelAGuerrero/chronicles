@@ -219,14 +219,18 @@ function citesRule(body, rulePath) {
 }
 
 /**
- * Across one push: a loop commit may not rest on a rule file that a loop commit of the same push
- * touched, so a rule cannot be written in one commit and cited as the source in the next.
+ * Across one push, `commits` in commit order (oldest first): a loop commit may not rest on a rule file
+ * that a loop commit at or before it in the push touched, so a rule cannot be written in one commit and
+ * cited as the source in the next. A line a later commit adds (the run's trap, in its record) is not
+ * what an earlier commit rested on.
  */
 function citedOwnEdits(commits) {
-  const loops = commits.filter((c) => /^tend /.test(c.subject));
-  const touched = new Set(loops.flatMap((c) => c.files.map((f) => f.path).filter((p) => RULE_FILE.test(p))));
+  const touched = new Set();
   const problems = [];
-  for (const c of loops) for (const rule of touched) if (citesRule(c.body, rule)) problems.push({ subject: c.subject, problem: `cites ${rule}, which this run's commits edit: a rule the loop wrote is not a source` });
+  for (const c of commits.filter((x) => /^tend /.test(x.subject))) {
+    for (const p of c.files.map((f) => f.path)) if (RULE_FILE.test(p)) touched.add(p);
+    for (const rule of touched) if (citesRule(c.body, rule)) problems.push({ subject: c.subject, problem: `cites ${rule}, which this run's commits edit at or before it: a rule the loop wrote is not a source` });
+  }
   return problems;
 }
 
@@ -461,7 +465,8 @@ function commits(argv) {
     console.error('usage: node scripts/tend.js commits [--loop-only] <range>, e.g. origin/main..HEAD');
     process.exit(2);
   }
-  const all = git('rev-list', '--no-merges', range).split('\n').filter(Boolean);
+  // Oldest first: citedOwnEdits reads the push in commit order.
+  const all = git('rev-list', '--reverse', '--no-merges', range).split('\n').filter(Boolean);
   const shas = loopOnly ? all.filter((sha) => /^tend /.test(git('show', '-s', '--format=%s', sha))) : all;
   let bad = 0;
   const read = [];

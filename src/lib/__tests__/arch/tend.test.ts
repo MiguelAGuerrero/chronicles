@@ -321,11 +321,21 @@ test('tend 0135: a rule written in one commit of a run is not the source of anot
   const rule = '.claude/rules/memories.md';
   const note = { subject: "tend memories: the run's record", body: '', files: [M('docs/STATUS.md'), M(rule)] };
   const fix = (source: string) => ({ subject: 'tend memories 2: a thing', body: `Test: tend memories 2\nSource: ${source}\n`, files: [M('src/app/a.tsx'), M('scripts/e2e/journeys/memories.js')] });
-  assert.equal(tend.citedOwnEdits([fix('.claude/rules/memories.md, Hidden'), note]).length, 1);
   assert.match(tend.citedOwnEdits([note, fix('memories.md, Hidden')])[0].problem, /a rule the loop wrote is not a source/);
   assert.deepEqual(tend.citedOwnEdits([note, fix('WCAG 2.2, 1.3.1')]), []);
   assert.deepEqual(tend.citedOwnEdits([fix('.claude/rules/memories.md, Hidden')]), [], 'a rule nobody in the run touched');
   assert.deepEqual(tend.citedOwnEdits([{ ...note, subject: 'Memories: a rule (MC1)' }, fix('.claude/rules/memories.md, Hidden')]), [], 'a rule the owner or a slice wrote is theirs');
+});
+
+test('tend rule lines: a commit rests only on rule lines written before it; a trap line added in a later commit of the push fails no earlier Source', () => {
+  const rule = '.claude/rules/memories.md';
+  const note = { subject: "tend memories: the run's record", body: '', files: [M('docs/STATUS.md'), M(rule)] };
+  const fix = (n: number, source: string, files: File[] = [M('src/app/a.tsx'), M('scripts/e2e/journeys/memories.js')]) => ({ subject: `tend memories ${n}: a thing`, body: `Test: tend memories ${n}\nSource: ${source}\n`, files });
+  // In commit order, oldest first: the record commit that adds the trap comes last.
+  assert.deepEqual(tend.citedOwnEdits([fix(1, '.claude/rules/memories.md, Hidden'), fix(2, 'memories.md, Hidden'), note]), [], 'a line written after a commit is not what it rested on');
+  const after = tend.citedOwnEdits([fix(1, 'memories.md, Hidden'), note, fix(2, 'memories.md, Hidden')]);
+  assert.deepEqual(after.map((p) => p.subject), ['tend memories 2: a thing'], 'a line written before it in the same push is still the loop\'s own');
+  assert.equal(tend.citedOwnEdits([fix(3, 'memories.md, Hidden', [M('src/app/a.tsx'), M('scripts/e2e/journeys/memories.js'), M(rule)])]).length, 1, 'itself included');
 });
 
 const pass = {
