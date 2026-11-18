@@ -113,10 +113,33 @@ async function run(h) {
   await shot(pg, 'stackjoin-01b-picker-keyboard');
   check(!!picker && picker.y + picker.height <= kbTop && !!reach && reach.field && reach.foot && reach.aboveKeys,
     `fix picker-keyboard: with the keyboard up, Join it with another moment ends above the keys and nothing is drawn over it (${picker && Math.round(picker.y + picker.height)} <= ${kbTop}, ${JSON.stringify(reach)})`);
-  await pg.evaluate(() => {
+  // fix picker-keyboard audit 1: with the keys up the card gives its top margin to the rows (the screen's top is Memories' own).
+  const screenTop = await pg.locator('[data-testid=memories]').boundingBox().then((b) => b && b.y).catch(() => null);
+  check(!!picker && screenTop != null && picker.y - screenTop <= 12,
+    `fix picker-keyboard audit 1: with the keyboard up, the picker rises to the screen's top to show more rows (${picker && Math.round(picker.y)} - ${screenTop})`);
+  const keysDown = () => pg.evaluate(() => {
     delete window.visualViewport.height;
     window.visualViewport.dispatchEvent(new Event('resize'));
   });
+  await keysDown();
+  // fix picker-keyboard audit 2: what lies under the picker is measured again when the window changes (a turn to landscape
+  // and back), so the card still ends above the keys.
+  await pg.setViewportSize({ width: 844, height: 390 });
+  await pg.waitForTimeout(500);
+  await pg.setViewportSize({ width: 390, height: 844 });
+  await pg.waitForTimeout(500);
+  const kbTop2 = await pg.evaluate(() => {
+    const vv = window.visualViewport;
+    const top = window.innerHeight - 300;
+    Object.defineProperty(vv, 'height', { configurable: true, get: () => top });
+    vv.dispatchEvent(new Event('resize'));
+    return top;
+  });
+  await pg.waitForTimeout(400);
+  const turned = await pg.locator('[data-testid=add-to-thread]').boundingBox().catch(() => null);
+  await keysDown();
+  check(!!turned && turned.y + turned.height <= kbTop2 && turned.y + turned.height >= kbTop2 - 24,
+    `fix picker-keyboard audit 2: after a turn to landscape and back, the picker ends just above the keys (${turned && Math.round(turned.y + turned.height)} in ${kbTop2 - 24}..${kbTop2})`);
   await pg.click('[data-testid=add-to-thread-close]').catch(() => {});
   await pg.waitForTimeout(500);
 
