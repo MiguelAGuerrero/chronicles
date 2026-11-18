@@ -13,6 +13,10 @@ const LOW = 'Room for new photos and videos is running low.';
 const VERY_LOW = 'There is almost no room left for new photos, videos and memos.';
 const REFUSED = 'This browser may clear Chronicles’ moments when it needs room.';
 const walking = { recording: true };
+// Where the line can be seen (tend tabs audit 32): loaded inside a test's body, as the shell is.
+const sightMod = (): Promise<any> => import(`../../space/${'sight'}`);
+/** The bar's pill as a sight with one SpaceLine mounted and no Modal, as Memories has it. */
+const onMemories = async (pill: ReturnType<typeof createStore<boolean>>) => (await sightMod()).sightOf({ pill, lines: createStore(1), modals: createStore(0) });
 const ready = { recording: false };
 
 /** A probe whose free space and persistence answer are set by the test; counts the asks. */
@@ -174,7 +178,7 @@ test('tend tabs T37: a line due while the bar\'s Edit pill is up waits unmarked,
   const { createSpace, SAID_KEY } = await shell();
   const p = fakePorts();
   const pill = createStore(true);
-  const s = createSpace(p, probe(300 * MB), pill);
+  const s = createSpace(p, probe(300 * MB), await onMemories(pill));
   assert.equal(await s.check(walking), null, 'nothing said while the pill is up');
   await s.afterKept(walking);
   assert.equal(s.store.get().line, null, 'nor after a capture meanwhile');
@@ -185,7 +189,7 @@ test('tend tabs T37: a line due while the bar\'s Edit pill is up waits unmarked,
   // The pill goes: said now, in the same words, and marked.
   const q = fakePorts();
   const pill2 = createStore(true);
-  const t = createSpace(q, probe(300 * MB), pill2);
+  const t = createSpace(q, probe(300 * MB), await onMemories(pill2));
   await t.check(walking);
   await t.check(walking);
   pill2.set(false);
@@ -202,7 +206,7 @@ test('tend tabs T37: a line due while the bar\'s Edit pill is up waits unmarked,
 test('tend tabs T37: a line already up steps aside while the pill is up and comes back as it goes, its words unchanged', async () => {
   const { createSpace } = await shell();
   const pill = createStore(false);
-  const s = createSpace(fakePorts(), probe(300 * MB), pill);
+  const s = createSpace(fakePorts(), probe(300 * MB), await onMemories(pill));
   assert.equal(await s.check(walking), LOW);
   pill.set(true);
   assert.equal(s.store.get().line, null, 'never two pills at once');
@@ -223,7 +227,7 @@ test('tend tabs audit 31: a refusal due while the pill is up is not said as the 
   const p = fakePorts();
   const pill = createStore(true);
   const pr = probe(4000 * MB, false);
-  const s = createSpace(p, pr, pill);
+  const s = createSpace(p, pr, await onMemories(pill));
   await s.afterKept(ready);
   assert.equal(pr.persists, 1, 'the browser is asked; only the saying waits');
   assert.equal(s.store.get().line, null, 'not said while the pill is up');
@@ -241,4 +245,114 @@ test('tend tabs audit 31: a refusal due while the pill is up is not said as the 
   await s.check(ready);
   assert.equal(s.store.get().line, null, 'never said again');
   assert.equal(pr.persists, 1, 'never asked again');
+});
+
+// tend tabs audit 32 (the T37 review's auditor 1, ux 2, steward 2; the coordinator's ruling): the T37 build marked an owed
+// line as the pill went wherever that was (Explore's ✕, under the media editor Edit opens, under a day or a replay), with
+// nothing drawing it, so a reload then lost it. A line is said and marked only when it can be seen: a SpaceLine mounted,
+// no dark pill beside it, no Modal over it. Otherwise it is owed, and looked at again when any of the three changes.
+const view = async (o: { pill?: boolean; lines?: number; modals?: number } = {}) => {
+  const pill = createStore(o.pill ?? false);
+  const lines = createStore(o.lines ?? 1);
+  const modals = createStore(o.modals ?? 0);
+  return { pill, lines, modals, sight: (await sightMod()).sightOf({ pill, lines, modals }) };
+};
+
+test('tend tabs audit 32: the sight is clear only with a SpaceLine mounted, no pill and no Modal; the pill alone sets a line aside', async () => {
+  const v = await view();
+  assert.equal(v.sight.clear(), true);
+  assert.equal(v.sight.aside(), false);
+  v.pill.set(true);
+  assert.deepEqual([v.sight.clear(), v.sight.aside()], [false, true]);
+  v.pill.set(false);
+  v.lines.set(0);
+  assert.deepEqual([v.sight.clear(), v.sight.aside()], [false, false]);
+  v.lines.set(2);
+  v.modals.set(1);
+  assert.deepEqual([v.sight.clear(), v.sight.aside()], [false, false]);
+  let told = 0;
+  const off = v.sight.subscribe(() => told++);
+  v.modals.set(0);
+  v.lines.set(1);
+  v.pill.set(true);
+  off();
+  v.pill.set(false);
+  assert.equal(told, 3, 'told of each of the three, until unsubscribed');
+  const { holdCount } = await sightMod();
+  const n = createStore(0);
+  const a = holdCount(n);
+  const b = holdCount(n);
+  a();
+  a();
+  assert.equal(n.get(), 1, 'a hold is released once');
+  b();
+  assert.equal(n.get(), 0);
+});
+
+test('tend tabs audit 32: the pill going while no SpaceLine is mounted marks nothing; the line is said and marked when a SpaceLine mounts', async () => {
+  const { createSpace, SAID_KEY } = await shell();
+  const p = fakePorts();
+  const v = await view({ pill: true });
+  const s = createSpace(p, probe(300 * MB), v.sight);
+  assert.equal(await s.check(walking), null, 'owed on Memories while the pill stands');
+  v.lines.set(0); // back to Explore, which draws no SpaceLine
+  v.pill.set(false); // its close there
+  assert.equal(await s.check(walking), null);
+  assert.ok(!(await p.db.getMeta(SAID_KEY)), 'nothing marked where nothing draws it');
+  v.lines.set(1); // Memories again
+  assert.equal(await s.check(walking), null, 'said by the SpaceLine mounting, not by a later look');
+  assert.equal(s.store.get().line, LOW);
+  assert.equal(await p.db.getMeta(SAID_KEY), 'low', 'marked as it can be seen');
+});
+
+test('tend tabs audit 32: a reload after the pill went off Memories still says the line', async () => {
+  const { createSpace } = await shell();
+  const p = fakePorts();
+  const v = await view({ pill: true });
+  const s = createSpace(p, probe(300 * MB), v.sight);
+  await s.check(walking);
+  v.lines.set(0);
+  v.pill.set(false);
+  await s.check(walking);
+  const reloaded = createSpace(p, probe(300 * MB), (await view()).sight);
+  assert.equal(await reloaded.check(walking), LOW, 'said after the reload');
+});
+
+test('tend tabs audit 32: a line owed when Edit opens the editor stays unmarked until the editor closes', async () => {
+  const { createSpace, SAID_KEY } = await shell();
+  for (const editorFirst of [true, false]) {
+    const p = fakePorts();
+    const v = await view({ pill: true });
+    const s = createSpace(p, probe(300 * MB), v.sight);
+    await s.check(walking);
+    // Edit: the editor (a Modal) opens and the pill ends, in either order.
+    if (editorFirst) v.modals.set(1);
+    v.pill.set(false);
+    if (!editorFirst) v.modals.set(1);
+    assert.equal(await s.check(walking), null);
+    assert.ok(!(await p.db.getMeta(SAID_KEY)), `unmarked under the editor (${editorFirst ? 'editor first' : 'pill first'})`);
+    v.modals.set(0);
+    assert.equal(await s.check(walking), null);
+    assert.equal(s.store.get().line, LOW, 'said as the editor closes');
+    assert.equal(await p.db.getMeta(SAID_KEY), 'low');
+  }
+});
+
+test('tend tabs audit 32: a pill raised during an awaited look owes the line rather than marking it', async () => {
+  const { createSpace, SAID_KEY } = await shell();
+  const p = fakePorts();
+  const v = await view();
+  let release: (n: number) => void = () => {};
+  const pr = probe(() => new Promise<number>((r) => (release = r)));
+  const s = createSpace(p, pr, v.sight);
+  const looking = s.check(walking);
+  await new Promise((r) => setImmediate(r));
+  v.pill.set(true); // the bar's photo publishes its pill while the room is read
+  release(300 * MB);
+  assert.equal(await looking, null, 'owed');
+  assert.ok(!(await p.db.getMeta(SAID_KEY)), 'nothing marked');
+  pr.set(300 * MB);
+  v.pill.set(false);
+  assert.equal(await s.check(walking), null);
+  assert.equal(s.store.get().line, LOW, 'said once the pill goes');
 });

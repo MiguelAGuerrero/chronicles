@@ -1,7 +1,8 @@
 // @layer shell
 import type { Ports } from '../ports/types';
-import { createStore, type Store } from '../store';
+import { createStore } from '../store';
 import { persistLine, shouldSay, spaceLevel, spaceLine, type SpaceLevel, type SpaceProbe } from './core';
+import type { Sight } from './sight';
 
 /** Meta: the level last said beside the captures (SA4); cleared when the room is back above low. */
 export const SAID_KEY = 'space_said';
@@ -20,25 +21,25 @@ export interface Where {
   recording: boolean;
 }
 
-/** Nothing stands in the line's way. */
-const NO_PILL: Pick<Store<boolean>, 'get' | 'subscribe'> = { get: () => false, subscribe: () => () => {} };
+/** A line is always seen: nothing stands in its way. */
+const IN_SIGHT: Sight = { clear: () => true, aside: () => false, subscribe: () => () => {} };
 
 /**
  * Storage awareness (SA1-SA10, decision 0107): reads the room left through the probe, decides with
  * `core`, keeps what was said in meta so a reload doesn't say it again, and holds the one line the
  * pills show. Calls run one at a time, so two looks at once never ask the browser twice.
  *
- * `pill` is true while the recording bar's Edit pill stands (`tabsHidden.barOfferUp`): one dark pill at a time, and the
- * pill, answering what the person just did, comes first (tend tabs T37). Meanwhile the line steps aside, and a line
- * that comes due is neither said nor marked said; it is said, and marked, once the pill goes.
+ * A line is said, and marked said, only while it can be seen (`sight.clear()`, tend tabs audit 32); otherwise it is
+ * owed, neither said nor marked, and looked at again as the sight changes. While a dark pill stands beside it
+ * (`sight.aside()`) a line already up steps aside and comes back as the pill goes (tend tabs T37).
  */
-export function createSpace(p: Pick<Ports, 'db'>, probe: SpaceProbe, pill: Pick<Store<boolean>, 'get' | 'subscribe'> = NO_PILL) {
+export function createSpace(p: Pick<Ports, 'db'>, probe: SpaceProbe, sight: Sight = IN_SIGHT) {
   const store = createStore<SpaceState>({ line: null });
   let shown: 'space' | 'persist' | null = null;
-  // The line said; the store shows it unless the pill is up.
+  // The line said; the store shows it unless a pill stands beside it.
   let current: string | null = null;
-  // A look that came due while the pill was up: looked at again as it goes. A refusal is never owed: it stays `refused`
-  // in meta for the next look off the walk, where SA10 says it (tend tabs audit 31).
+  // A look that came due while the line could not be seen: looked at again as the sight changes. A refusal is never
+  // owed: it stays `refused` in meta for the next look off the walk, where SA10 says it (tend tabs audit 31).
   let owed = false;
   // undefined: not read from meta yet.
   let said: SpaceLevel | null | undefined;
@@ -53,7 +54,7 @@ export function createSpace(p: Pick<Ports, 'db'>, probe: SpaceProbe, pill: Pick<
   const show = (line: string | null, kind: typeof shown) => {
     shown = line ? kind : null;
     current = line;
-    store.set({ line: pill.get() ? null : line });
+    store.set({ line: sight.aside() ? null : line });
   };
   // Meta read once, then kept here; an unreadable or failed read is nothing said, nothing asked.
   const loadSaid = async () => {
@@ -101,14 +102,15 @@ export function createSpace(p: Pick<Ports, 'db'>, probe: SpaceProbe, pill: Pick<
       return null;
     }
     if (!shouldSay(last, level)) return null;
-    if (pill.get()) {
+    if (!sight.clear()) {
       owed = true;
       return null;
     }
+    // Said in the same turn as the sight was read, then written: nothing can rise between (tend tabs audit 32).
     said = level;
-    await p.db.setMeta(SAID_KEY, level).catch(() => {});
     const line = spaceLine(level);
     show(line, 'space');
+    await p.db.setMeta(SAID_KEY, level).catch(() => {});
     return line;
   }
 
@@ -122,19 +124,15 @@ export function createSpace(p: Pick<Ports, 'db'>, probe: SpaceProbe, pill: Pick<
   /** Off the walk: a due request is asked, and a refusal is said when the pills are free (SA10). */
   async function settle() {
     if ((await loadPersist()) === 'due') await ask();
-    if (persist === 'refused' && current == null && !pill.get()) {
+    if (persist === 'refused' && current == null && sight.clear()) {
       show(persistLine(probe.homeScreen()), 'persist');
       await setPersist('asked');
     }
   }
 
-  pill.subscribe(() => {
-    if (pill.get()) {
-      store.set({ line: null });
-      return;
-    }
-    store.set({ line: current });
-    if (!owed) return;
+  sight.subscribe(() => {
+    store.set({ line: sight.aside() ? null : current });
+    if (!owed || !sight.clear()) return;
     owed = false;
     void serial(look);
   });

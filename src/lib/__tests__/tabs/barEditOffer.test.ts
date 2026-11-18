@@ -109,6 +109,15 @@ test('tend tabs T36: the bar tells the tabs whether its Edit pill is up, and Exp
 // (the shell's half is in storage/spaceShell.test.ts); the app's instance reads the same store the bar sets.
 test('tend tabs T37: the app\'s storage awareness waits on the bar\'s Edit pill, the store the bar publishes', () => {
   const index = readFileSync(join(__dirname, '../../space/index.ts'), 'utf8');
-  assert.match(index, /import \{ barOfferUp \} from '\.\.\/tabsHidden';/);
-  assert.match(index, /createSpace\(ports, probe, barOfferUp\)/, 'the instance is given the pill');
+  // tend tabs audit 32: the pill is one part of where the line can be seen.
+  assert.match(index, /import \{ barOfferUp, modalsUp \} from '\.\.\/tabsHidden';/);
+  assert.match(index, /createSpace\(ports, probe, sightOf\(\{ pill: barOfferUp, lines: spaceLines, modals: modalsUp \}\)\)/, 'the instance is given the pill');
+});
+
+// tend tabs audit 32 (the T37 review's auditor 1, ux 2, steward 2): a line is said and marked only where it can be seen, so
+// every SpaceLine counts itself mounted, before it knows whether it has a line to draw.
+test('tend tabs audit 32: each SpaceLine counts itself mounted, and the instance reads that count and the Modals up', () => {
+  const line = readFileSync(join(__dirname, '../../../components/SpaceLine.tsx'), 'utf8');
+  assert.match(line, /useEffect\(\(\) => holdCount\(spaceLines\), \[\]\);\s*const line = useStore\(space\.store/, 'held in an effect, before the line is read');
+  assert.match(line, /import \{ holdCount, spaceLines \} from '\.\.\/lib\/space\/sight';/);
 });
