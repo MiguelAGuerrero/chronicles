@@ -525,7 +525,7 @@ async function run(h) {
         `tend map audit 11: at ${w} px the walk's card is up with its title, its map drawing both ends of the walk (data-ends ${JSON.stringify(endsHere)})`);
       await shot(pg, `rr-card-${w}`);
     }
-    // Replay pace (RY12, RY13, RY17, RY18; decision 0200): the next-moment button beside Skip, on a re-watch, at 390 and
+    // Replay pace (RY12, RY13, RY17, RY18; decision 0203): the next-moment button beside Skip, on a re-watch, at 390 and
     // at 320 px. The seeded walk has four moments, so the button has somewhere to go (the steward's S6).
     for (const [w, ht] of [[390, 844], [320, 568]]) {
       await pg.setViewportSize({ width: w, height: ht });
@@ -760,6 +760,7 @@ async function run(h) {
 module.exports = {
   name: 'replay',
   covers: [
+    'src/components/Picture.tsx',
     'src/app/replay/**',
     'src/app/day/**',
     'src/components/ceremony/**',

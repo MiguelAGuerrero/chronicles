@@ -69,6 +69,52 @@ async function checks(h) {
         'AT3, AT5: its ring was read by itself; the card has the kinds it has (round 3: only those present) and no picture (the area\'s card has it, decision 0124)');
       check(/Walked (once|\d+ times)/.test(label) && /History: (some|plenty|lots)/.test(label),
         `AT3, AT13: the tile says how often you walked there and each kind present in words (${label})`);
+      {
+        // SG2, SG5: the strip in two groups, one row, the last kind inside it; the spoken line names the groups present.
+        const strip = await fox.evaluate((el) => {
+          const kinds = [...el.querySelectorAll('[data-kind]')];
+          // The whole strip (the groups' parent), never one group, and never past the tile itself.
+          const row = el.querySelector('[data-testid^=atlas-strip-]')?.parentElement;
+          const r = row?.getBoundingClientRect();
+          const tile = el.getBoundingClientRect();
+          const last = kinds[kinds.length - 1]?.getBoundingClientRect();
+          return { n: kinds.length, top: new Set(kinds.map((k) => Math.round(k.getBoundingClientRect().top))).size, right: last?.right ?? 0, edge: r ? Math.min(r.right, tile.right) : 0,
+            life: !!el.querySelector('[data-testid=atlas-strip-life]'), sights: !!el.querySelector('[data-testid=atlas-strip-sights]') };
+        });
+        check(strip.n > 0 && strip.top === 1 && strip.right <= strip.edge + 0.5 && (strip.sights || strip.life),
+          `SG2: the tile's kinds stay one row inside the strip, in their groups (${JSON.stringify(strip)})`);
+        check(/Sights: History: (some|plenty|lots)/.test(label) && (!strip.life || /Local life: /.test(label)),
+          `SG5: the tile's spoken line names its groups (${label})`);
+        {
+          // SG14 (decision 0202): one hairline between the groups, only with both, between the last Sight and the first Local life kind.
+          const line = await fox.evaluate((el) => {
+            const d = el.querySelectorAll('[data-testid=atlas-strip-line]');
+            const sights = el.querySelector('[data-testid=atlas-strip-sights]')?.getBoundingClientRect();
+            const life = el.querySelector('[data-testid=atlas-strip-life]')?.getBoundingClientRect();
+            const r = d[0]?.getBoundingClientRect();
+            return { n: d.length, both: !!sights && !!life, w: r ? r.width : 0, between: !!r && !!sights && !!life && r.left >= sights.right && r.right <= life.left };
+          });
+          check(line.both ? line.n === 1 && line.w <= 1.5 && line.w > 0 && line.between : line.n === 0,
+            `SG14: a hairline between the tile's groups, only with both (${JSON.stringify(line)})`);
+        }
+        {
+          const vp = page.viewportSize();
+          await page.setViewportSize({ width: 320, height: vp.height });
+          await page.waitForTimeout(600);
+          const narrow = await fox.evaluate((el) => {
+            const kinds = [...el.querySelectorAll('[data-kind]')];
+            const last = kinds[kinds.length - 1]?.getBoundingClientRect();
+            const t = el.getBoundingClientRect();
+            return { n: kinds.length, top: new Set(kinds.map((k) => Math.round(k.getBoundingClientRect().top))).size, right: last?.right ?? 0, edge: t.right - 12 };
+          });
+          check(narrow.top === 1 && narrow.right <= narrow.edge + 0.5, `SG2: at 320 px the strip stays one row inside the tile (${JSON.stringify(narrow)})`);
+          await shot(page, 'sg-tile-320');
+          // The tile itself, scrolled into the row's view, for the UI review (the page shot shows the selected town).
+          if (process.env.E2E_SHOTS) await fox.screenshot({ path: `${process.env.E2E_SHOTS}/sg-tile-fox-320.png` }).catch(() => {});
+          await page.setViewportSize(vp);
+          await page.waitForTimeout(600);
+        }
+      }
       const atlasRows = await page.evaluate(() => new Promise((resolve) => {
         const req = indexedDB.open('chronicles');
         req.onsuccess = () => {
@@ -270,6 +316,59 @@ async function checks(h) {
         const how = await page.locator('[data-testid=atlas-how-panel]').innerText();
         // A neighborhood counted across its own ground says so instead of the ring's line (neighborhood boundaries audit 11).
         check(/same marks mean the same anywhere|counted across the ground drawn around it/.test(how) && !/\d/.test(how), `atlas round 3: How the marks work says it in words, with no counts (${how.replace(/\s+/g, ' ').slice(0, 80)})`);
+      }
+      {
+        // Sights and Local life (SG1-SG7, SG11, decisions 0200, 0201): the card's kinds under two headings, in order.
+        const sec = page.locator('[data-testid=atlas-kinds]');
+        const order = await sec.locator('[data-testid^=atlas-group-], [data-testid^=atlas-kind-]:not([data-testid^=atlas-kind-walk-])')
+          .evaluateAll((els) => els.map((e) => e.getAttribute('data-testid')));
+        const want = ['atlas-group-sights', 'atlas-kind-history', 'atlas-kind-art', 'atlas-kind-culture', 'atlas-kind-parks', 'atlas-kind-viewpoints',
+          'atlas-group-life', 'atlas-kind-food', 'atlas-kind-shops', 'atlas-kind-nightlife'];
+        const heads = await sec.locator('[data-testid^=atlas-group-]').allInnerTexts();
+        check(JSON.stringify(order) === JSON.stringify(want) && heads.join('|') === 'Sights|Local life',
+          `SG1, SG4: Sights then Local life, each over its kinds, all eight rows (${order.join(', ')}; ${heads.join('|')})`);
+        const line = await sec.locator('[data-testid=atlas-sights-line]').innerText().catch(() => '');
+        check(/“?\?”? on the map/.test(line) && (await sec.locator('[data-testid=atlas-life-line]').count()) === 0,
+          `SG1: one muted line under Sights ties it to the "?", none under Local life (${line})`);
+        const levels = await sec.locator('[role=heading]').evaluateAll((els) => els.map((e) => [e.textContent, e.getAttribute('aria-level')]));
+        const top = levels.find(([t]) => /What’s here/.test(t ?? ''));
+        const sub = levels.filter(([t]) => /^(Sights|Local life)$/.test(t ?? ''));
+        check(!!top && sub.length === 2 && sub.every(([, l]) => Number(l) === Number(top[1] ?? 2) + 1),
+          `SG3: Sights and Local life are headings one level under "What's here" (${JSON.stringify(levels)})`);
+        const style = await sec.locator('[data-testid=atlas-group-sights]').evaluate((el) => {
+          const c = getComputedStyle(el);
+          return { tt: c.textTransform, color: c.color, size: parseFloat(c.fontSize) };
+        });
+        const kindColors = await sec.locator('[data-testid^=atlas-group-]').evaluateAll((els) => els.map((e) => getComputedStyle(e).color));
+        check(style.tt !== 'uppercase' && style.color === 'rgb(29, 36, 48)' && style.size >= 13 && kindColors.every((c) => c === 'rgb(29, 36, 48)'),
+          `SG6: the headings are sentence case, ink, not the section titles' style (${JSON.stringify(style)})`);
+        const storefronts = await page.locator('[data-testid=atlas-storefronts]').count();
+        const after = storefronts === 0 || await page.evaluate(() => {
+          const k = document.querySelector('[data-testid=atlas-kinds]');
+          const s = document.querySelector('[data-testid=atlas-storefronts]');
+          return !!k && !!s && !k.contains(s) && !!(k.compareDocumentPosition(s) & Node.DOCUMENT_POSITION_FOLLOWING);
+        });
+        check(after, 'SG6: the Storefronts list is its own section after the kinds, never under Local life');
+        const how = await page.locator('[data-testid=atlas-how-panel]').innerText();
+        const text = `${await sec.innerText()} ${how}`;
+        check(/Sights/.test(how) && /Local life/.test(how) && !/\d/.test(text) && !/\b(busy|popular|trending|lively|alive|buzzing|vibrant)\b/i.test(text),
+          `SG7, SG11: the explanation names both groups; no digit or busy word in the section (${how.replace(/\s+/g, ' ').slice(0, 120)})`);
+        // The UI review's pictures (decision 0145): the rows under their headings, the explanation closed, then open again as it was.
+        await page.click('[data-testid=atlas-how]');
+        await page.locator('[data-testid=atlas-group-sights]').scrollIntoViewIfNeeded();
+        await page.waitForTimeout(300);
+        await shot(page, 'sg-card-kinds');
+        // sights-and-local-life ui 3: Local life's rows in the picture, not under the card's footer.
+        await page.locator('[data-testid=atlas-kind-nightlife]').evaluate((el) => el.scrollIntoView({ block: 'center' }));
+        await page.waitForTimeout(400);
+        {
+          const row = await page.locator('[data-testid=atlas-kind-nightlife]').boundingBox();
+          const foot = await page.locator('[data-testid=atlas-card]').evaluate((el) => el.getBoundingClientRect().bottom - 80);
+          check(!!row && row.y + row.height <= foot, `sights-and-local-life ui 3: Local life's last row is in view for its picture (${row && Math.round(row.y + row.height)} of ${Math.round(foot)})`);
+        }
+        await shot(page, 'sg-card-life');
+        await page.click('[data-testid=atlas-how]');
+        await page.locator('[data-testid=atlas-how]').scrollIntoViewIfNeeded();
       }
       await shot(page, '11c-atlas-card');
       {

@@ -1,5 +1,5 @@
 /// <reference types="node" />
-// Replay pace (specs/replay-pace/spec.md, RY1-RY22; decision 0200). Written before the code, as todos, in the commit
+// Replay pace (specs/replay-pace/spec.md, RY1-RY22; decision 0203). Written before the code, as todos, in the commit
 // before this slice's first code.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';

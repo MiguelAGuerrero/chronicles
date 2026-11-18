@@ -1,0 +1,13 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Recording and the background task"
+      ],
+      "body": "- [ ] **Do:** walk 15 min with the screen locked part of the time, keeping a photo, a note and a voice memo on the way; then kill the app mid-walk and reopen it. **Expect:** the trace is whole with no gap at the lock, the captures are kept, the walk reopens; nothing in the logs says `database is locked`: every write goes through the one writer connection (`BEGIN IMMEDIATE` on it, `synchronous = NORMAL`), and the background task's writes wait for it rather than fail (performance review, Nov 18).\n"
+    }
+  ]
+}

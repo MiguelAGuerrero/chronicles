@@ -85,6 +85,8 @@ Chronicle's Memories (decision 0098)
   resurface/useResurface.ts  the view hook (reads on focus and after a delete)
   chronicle/                 SectionBar (Memories, Walks, Days, Map, Media), MemoriesScreen (the journal's page and its screens), MemoriesMenu (the contents), ThreadsRail, ThreadScreen, MomentCard (a thread's cards), MomentPicture, MemoryMenu
 The journal (specs/chronicle-journal, JN1-JN24, decision 0155): Memories as one sheet in book order, ending in an open line
+  join/{rules,shell}.ts      Stack with previous (decision 0197): which moment is previous, and the join through the Undo window; `join/index.ts` the app's instance
+  emptyWalk/{core,shell}.ts  Empty walk (decision 0187): a walk with nothing in it is dropped at Stop, with Undo; `emptyWalk/index.ts` the app's instance
   journal/page.ts            journalMoments (the feed's and an open walk's, oldest first), journalPage (rows: day headings, the slip, entries; the latest page)
   journal/lines.ts           dayHeading, clockTime, dateline (time, then place and walk once read; No location), entrySpoken, the open line's labels
   journal/pen.ts             the open line's reducer: begin on the first character, save as typed, drop when emptied, Done, a kept capture, a failed save
@@ -262,7 +264,7 @@ Discovery and Explore (v1)
   complexes/rule.ts          which named buildings are complexes, and of what kind: pieces joined by building id, judged once every tile holding a vertex is read (CX1-CX3, CX14)
   complexes/{types,geom,place,lines,kinds,mapLayer,extent}.ts   the complex type, the card's words and order, the kind switches, the map layer's style and data, the tile budget, a fix's complex (CX4-CX11, CX16)
   complexes/{shell,overtureReader,overtureSource,index,settings,useComplexes}.ts   the read and the derived `complex` store (shell), Overture's `buildings` and `places` tiles (adapter), the app's instance, the saved switches, the screens' hook (CX12-CX16)
-  atlas/atlas.ts             the Explore atlas: near list, presence steps (findable kinds count markable places, AG1), thin rings (AG3), sketch, familiarity, labels
+  atlas/atlas.ts             the Explore atlas: near list, presence steps (findable kinds count markable places, AG1), thin rings (AG3), sketch, familiarity, labels; Sights and Local life (`KIND_GROUPS`, `groupsPresent`, `STRIP`, the tally keeping Sights by kind; SG1-SG14, decisions 0200-0202)
   atlas/extent.ts            a town's whole-outline extent and the z14 tiles a read takes, capped (TP1-TP3)
   atlas/hoods.ts             a town's page: every neighborhood inside its border, hamlets in, wards out (WT1-WT6, 0132)
   atlas/pockets.ts           a town's pockets of activity: peak picking on a smoothed 400 m grid (TP4)
@@ -387,8 +389,6 @@ Session, screens and small helpers
   useTabMap.ts               a tab's map taken down while the tab isn't in front
   memoGate.ts                a memo recording anywhere blocks a start
   unsaved/                   the one holder of every capture that failed to save (core words, in-memory shell; UN1-UN15, 0196)
-  emptyWalk/                 a walk with nothing in it is dropped at Stop: core.ts (the strict test, 15 m spread), shell.ts, index.ts (EW1-EW12, 0187)
-  join/                      Stack with previous: rules.ts (when an entry may join the one before), shell.ts, index.ts on the one Undo window (0197)
   settleWithin.ts            await a promise, but never longer than ms
   recordingBar.ts, quietLines.ts, format.ts, scaleBar.ts         the bar's line and its waiting Edit offer, counts as words, distances and times, the scale bar's length
   audioMode(.native|.web).ts setAudioMode: expo-audio on native, navigator.audioSession on web

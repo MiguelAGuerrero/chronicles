@@ -69,7 +69,8 @@ test('tend map T14: the spoken name says the kinds and the minutes in; one momen
   assert.equal(pinSpoken(two, { memory: true }), 'Memories: a photo and a note');
   // Amended by tend map T28 (decision 0164): a pin of one moment says its minutes too.
   assert.equal(pinSpoken(pinOf(cap('a', 'photo', 12)), { clocks: [W1] }), 'Photo, twelve minutes in');
-  assert.equal(pinSpoken(pinOf(cap('a', 'voice', 12)), { memory: true }), 'Memory: Voice memo');
+  // Amended by tend map 19: a memory pin of one moment says its kind from the same table as a pin of several.
+  assert.equal(pinSpoken(pinOf(cap('a', 'voice', 12)), { memory: true }), 'Memory: a voice memo');
   // RX21 (amends NY10): a single moment's reactions follow its kind, in the families' order.
   assert.equal(pinSpoken(pinOf(cap('a', 'text', 12)), { reactions: REACTIONS.filter((r) => r.id === 'idea' || r.id === 'happy') }), 'Note, happy, idea');
   assert.doesNotMatch(pinSpoken(pinOf(cap('a', 'photo', 1), cap('b', 'photo', 2), cap('c', 'voice', 3)), { clocks: [W1] }), /\d/);
@@ -172,7 +173,8 @@ test('tend map T28: with no walk clock, the part of the day of the pin\'s first 
   assert.equal(pinSpoken(pinOf(evening('a', 'photo')), { now: NOW }), 'Photo, Tuesday evening');
   // Memory pins say it whatever clocks the map has: their moments are of other walks.
   assert.equal(pinSpoken(two, { memory: true, clocks: [W1], now: NOW }), 'Memories: a photo and a note, Tuesday evening');
-  assert.equal(pinSpoken(pinOf(evening('a', 'voice')), { memory: true, now: NOW }), 'Memory: Voice memo, Tuesday evening');
+  // Amended by tend map 19.
+  assert.equal(pinSpoken(pinOf(evening('a', 'voice')), { memory: true, now: NOW }), 'Memory: a voice memo, Tuesday evening');
   // Morning, today's evening, night, and the small hours, which belong to the evening before (MC4, audit 10).
   assert.equal(pinSpoken(pinOf(day('a', 'photo', at(12, 9))), { now: NOW }), 'Photo, yesterday morning');
   assert.equal(pinSpoken(pinOf(day('a', 'photo', at(13, 18))), { now: NOW }), 'Photo, this evening');
@@ -305,4 +307,17 @@ test('tend map audit 32: a pin\'s ago words count whole months and years elapsed
   // The weeks are as before.
   assert.equal(agoLine(t(2026, 10, 5), t(2026, 10, 13)), 'last week');
   assert.equal(agoLine(t(2026, 9, 20), t(2026, 10, 13)), 'three weeks ago');
+});
+
+// tend map 19 (amends RB7, MR2; the review's F43): a memory pin of one moment said "Memory: Voice memo" (the kind's name) where one of several says
+// "Memories: a photo and a note" (the kinds' clause): two tables for one thing. Both now say it from the clause's,
+// as a pin of several does; a pin of one moment of this walk keeps its name, "Photo" (T14).
+test('tend map 19: a memory pin of one moment says its kind as a memory pin of several does, "Memory: a photo"', () => {
+  for (const [kind, words] of [['photo', 'a photo'], ['video', 'a video'], ['voice', 'a voice memo'], ['text', 'a note']] as const) {
+    assert.equal(pinSpoken(pinOf(cap('a', kind, 12)), { memory: true }), `Memory: ${words}`);
+  }
+  // Its reactions follow its kind, as on any pin of one moment (RX21).
+  assert.equal(pinSpoken(pinOf(cap('a', 'photo', 12)), { memory: true, reactions: REACTIONS.filter((r) => r.id === 'idea' || r.id === 'happy') }), 'Memory: a photo, happy, idea');
+  // A pin of one moment of this walk is as it was.
+  assert.equal(pinSpoken(pinOf(cap('a', 'voice', 12)), {}), 'Voice memo');
 });

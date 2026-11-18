@@ -6,7 +6,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
-  ATLAS_ORDER, distanceWords, familiarityWords, kindsHeading, marksExplained,
+  distanceWords, familiarityWords, KIND_GROUPS, kindsHeading, marksExplained, SIGHTS_LINE,
   type AtlasArea, type Familiarity,
 } from '../../lib/atlas/atlas';
 import type { CategoryId } from '../../lib/discovery/types';
@@ -30,6 +30,10 @@ import { foundRows } from '../../lib/discovery/subtypes';
 import { KIND_COLOR, KIND_ICON_OF } from './kinds';
 import { KindRow } from './KindStrip';
 import { MiniMap } from './MiniMap';
+
+/** SG3: on the web, "What's here" is a level-2 heading and its groups level 3 (react-native-web makes a bare header an h1). */
+const WHATS_HERE_LEVEL = { 'aria-level': 2 } as object;
+const GROUP_LEVEL = { 'aria-level': 3 } as object;
 
 const fmt = (m: number) => formatDistance(m);
 const lastWords = (t: number | null) =>
@@ -252,9 +256,9 @@ export function AtlasCard(props: {
 
           {/* AG3: a ring the map knows almost nothing about says nothing about its kinds. */}
           {!p?.thin && (
-            <View style={styles.sec}>
+            <View style={styles.sec} testID="atlas-kinds">
               <View style={styles.secHead}>
-                <Text style={styles.secTitle} accessibilityRole="header">
+                <Text style={styles.secTitle} accessibilityRole="header" {...WHATS_HERE_LEVEL}>
                   {kindsHeading(area.level, p)}
                 </Text>
                 <Pressable testID="atlas-how" accessibilityRole="button" accessibilityState={{ expanded: how }} onPress={() => setHow((v) => !v)} style={styles.howBtn}>
@@ -268,8 +272,15 @@ export function AtlasCard(props: {
                 </View>
               )}
               {p ? (
-                ATLAS_ORDER.map((c) => (
-                  <KindRow key={c} kind={c} step={p.steps[c]} testID={`atlas-kind-${c}`} onPress={p.steps[c] ? () => props.onPlan(c) : undefined} />
+                // SG1, SG3, SG4 (decision 0200): the kinds under Sights, then Local life; both headings even when a group is all none.
+                KIND_GROUPS.map((g) => (
+                  <View key={g.id} style={styles.group}>
+                    <Text style={styles.groupTitle} accessibilityRole="header" testID={`atlas-group-${g.id}`} {...GROUP_LEVEL}>{g.label}</Text>
+                    {g.id === 'sights' && <Text style={styles.groupLine} testID="atlas-sights-line">{SIGHTS_LINE}</Text>}
+                    {g.kinds.map((c) => (
+                      <KindRow key={c} kind={c} step={p.steps[c]} testID={`atlas-kind-${c}`} onPress={p.steps[c] ? () => props.onPlan(c) : undefined} />
+                    ))}
+                  </View>
                 ))
               ) : (
                 <Text style={styles.muted}>Reading this area…</Text>
@@ -542,6 +553,10 @@ const styles = StyleSheet.create({
   sec: { gap: 4 },
   secHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
   secTitle: { fontSize: 12, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase', color: theme.muted },
+  // SG6 (the plan review's U1): a group's heading sits under the section title: sentence case, ink, its own size.
+  group: { gap: 0, marginTop: 8 },
+  groupTitle: { fontSize: 14, fontWeight: '600', color: theme.ink, marginBottom: 2 },
+  groupLine: { fontSize: 13, color: theme.muted, marginBottom: 2 },
   howBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 44 },
   // OM4: Open in Maps under the walk primary, as wide as it.
   mapsFoot: { alignSelf: 'stretch' },

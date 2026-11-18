@@ -1,4 +1,4 @@
-# 0200. The replay takes its time: no cap, a button to the next moment, the grid kept
+# 0203. The replay takes its time: no cap, a button to the next moment, the grid kept
 
 Date: 2026-11-18 · Status: accepted · Area: replay · Amends: 0085 (the soft cap of about 60 s; RR5), RR1, RR2, RR9, RR11, MS17 (the grid's hold)
 

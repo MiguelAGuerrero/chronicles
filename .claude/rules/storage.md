@@ -18,11 +18,16 @@ SQLite (native) and IndexedDB (web) behind the shared `Db` interface, migrations
   entries are held to their hashes). The native store is a factory, `db/sqliteStore.ts`, run under the Db
   contract over `node:sqlite` (`__tests__/fakes/nodeSqlite.ts`, MT11); keep its expo-sqlite calls to those
   the adapter covers, or add them there.
-- expo-sqlite: all writes go through the single queue in `db/sqliteStore.ts`, using
-  `withExclusiveTransactionAsync`. Plain `withTransactionAsync` collides with
-  concurrent writes from the background task. Each exclusive transaction opens, inits and closes a
-  connection of its own (`Transaction.createAsync`, `useNewConnection`, expo-sqlite 58), so it is a cost
-  per write, and PRAGMAs set on the main connection (`busy_timeout`) don't reach it: fewer, larger writes.
+- expo-sqlite: all writes go through the single queue in `db/sqliteStore.ts`, one at a time, on **one writer
+  connection held for the app's life** (`openWriter`, `useNewConnection`; performance review, Nov 18): `BEGIN
+  IMMEDIATE` … `COMMIT` (or `ROLLBACK`) on it, with its own `busy_timeout`, so another context's writer is waited
+  for. The main connection reads, and under WAL sees only what was committed. Before, each write was an
+  `withExclusiveTransactionAsync`, which opens, inits and closes a connection of its own (`Transaction.createAsync`)
+  with none of the main one's PRAGMAs: about once a second while walking. Never write on the main connection (a
+  read mid-write would see half of it), and never use `withTransactionAsync`: it collided with the background
+  task's writes. Both connections run `synchronous = NORMAL` under WAL (the owner's default, Nov 18): a commit no
+  longer waits on an fsync; a power cut can lose the last commits, never corrupt the file. The contract runs every
+  case over two connections to one file (`nodeSqlite(file)`).
   Schema changes go in `MIGRATIONS`,
   tracked with `PRAGMA user_version`. Never edit an existing migration.
 - IndexedDB: bump `VERSION` and add an `oldVersion < N` step in `migrate()`. An
@@ -42,4 +47,10 @@ SQLite (native) and IndexedDB (web) behind the shared `Db` interface, migrations
   for one row, a count or an emptiness test (`listSummaries().find`, `listWalks().find` on the web's
   `getOpenWalk`); not `momentsBetween(0, Number.MAX_SAFE_INTEGER)` in new code (the existing callers
   are recorded in `docs/DEFERRED.md`). Indexes match each new WHERE and ORDER BY; a bbox read on four
-  ranges prunes on its first column only. Loops of writes use one prepared statement.
+  ranges prunes on its first column only. Loops of writes use one prepared statement: `eachRow` in
+  `db/sqliteStore.ts`; `preparedWrites.test.ts` fails a new loop that runs a statement per row unless its n is
+  a handful (a short list that only shrinks).
+  A change to many rows is one `Db` method and one statement (`clearSnappedBuilds`), never a loop of
+  `updateX` calls: each queued write is its own exclusive transaction and connection on SQLite, and the
+  rule-change loop ran one per walk at launch (performance review, Nov 18). Read one row by its key
+  (`getSummary`), never a whole table and a `find`.

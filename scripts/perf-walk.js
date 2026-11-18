@@ -106,7 +106,8 @@ if (require.main === module) (async () => {
     console.log(JSON.stringify(row));
   };
   try {
-    await page.goto(url);
+    // The app opens on Chronicle (decision 0112); Start is on the walk screen, which /navigate opens (as the journeys' navUrl).
+    await page.goto(`${url}navigate`);
     await page.waitForSelector('[data-testid=start]', { timeout: 30000 });
     await page.click('[data-testid=start]');
     await page.waitForSelector('[data-testid=stop]');

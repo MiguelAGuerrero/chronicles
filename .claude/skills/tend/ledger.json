@@ -1,5 +1,5 @@
 {
-  "lastT": 33,
+  "lastT": 34,
   "lastG": 4,
   "balance": {
     "date": "2026-11-18",
@@ -69,7 +69,6 @@
       "SW",
       "TB",
       "TD",
-      "TO",
       "TP",
       "TX",
       "UC",
@@ -83,9 +82,9 @@
       "XS"
     ],
     "commits": {
-      "growth": 180,
-      "refinement": 584,
-      "other": 643
+      "growth": 178,
+      "refinement": 596,
+      "other": 636
     },
     "areas": {
       "rough": [
@@ -132,7 +131,7 @@
       "web"
     ],
     "open": {
-      "openT": 2,
+      "openT": 3,
       "phoneT": 4,
       "openG": 0
     },
@@ -150,8 +149,8 @@
     "explore": {
       "state": "rough",
       "swept": "2026-11-18",
-      "main": "9992f1df3a41cbe2b21f207bf180e5c321bb2c44",
-      "note": "No sweep (lenses 1-7 not run): aimed at DEFERRED's [loop] medium \"Focus on the web\". Built tend explore 27 (focus into the area card and the planner, a Tab trap while the card is full screen, focus back to the opener; the far question takes focus on Walk now and gives it back to Walk to) and the review's U1-U6 as tend explore audits 36-41 (the trap stands aside for a modal above it, wraps only at its ends, focus given back only from the page and to a drawn element, the closing card prefers its own area's tile, the keyboard ring pictured). Filed [loop]: the planner wrapping at 390 and 320 (medium), the siblings with no focus handling (low), Escape in the note page over the planner (low, to verify); [owner] low: Walk now's spoken hint with the distance."
+      "main": "ea3bba0987dc9c387930c669c5e8478cb56d6faf",
+      "note": "No sweep (lenses 1-7 not run): aimed at DEFERRED's [loop] medium \"At 390 and 320 px the walk planner's settings wrap\". Built tend explore 28 (density's three choices a column in the same pill, the mode and cars pills and the actions row unwrapped, Start kept on the right) and the ux-reviewer's U1-U3 as tend explore audits 42-44 (the column's corner 12, dividers at 3:1, none beside the chosen fill). U4 a line in walk-planner.md; filed [loop] low: the Outing page's loop or one-way choice wraps at 320 (U5, handed to the Outing session)."
     },
     "navigation": {
       "state": "rough",
@@ -173,9 +172,9 @@
     },
     "map": {
       "state": "rough",
-      "swept": "2026-11-17",
-      "main": "b812614044bf45fe3f12f2adba39c4958ce9155a",
-      "note": "No sweep (lenses 1-7 not run): a run on two DEFERRED [loop] items. tend map 15 (following, the compass brings the map north: the follow waits while the ease runs) and 16 (only the pins near the view are drawn on the web map; Chronicle with 500 placed moments, 500 markers to 28). Review (auditor, one round): audit 35 (a pin's reach grows the view), 36 (the box follows a move as it goes), 37 (the focused or pressed pin stays) shipped; F4 the owner's call (a screen reader reaches the pins near the view, recorded in map.md); F2 low filed [loop]; the native follow race filed in NATIVE_UNVERIFIED; F7 measured, the margin kept at 0.5."
+      "swept": "2026-11-18",
+      "main": "17bcbccb28e1a864c58dee985354219255f42e69",
+      "note": "No sweep (lenses 1-7 not run): a run on DEFERRED's [loop] lows. tend map 17 (the pin, star and \"?\" tap refs filled in layout effects), 18 (the worker test reaches its setWorkerUrl call), 19 (a memory pin of one moment says \"Memory: a voice memo\", one table with several), 20 (the selected star told to a screen reader: aria-current on the web, accessibilityState selected on native; the owner's \"Allow it\", Nov 18). Review (auditor, one round, four low, all accepted): audit 40 and 42 (the source-reading tests hold their wiring), 41 (a tap between commit and marker sync is dropped, never stale; recorded in map.md), F43 (the 19 test names what it amends). map.md passed the 20,000-character warning: T34 [owner] asks to split it. formatDistance's no-break space noted, not built (the planner journey was held by a parallel run)."
     },
     "replay": {
       "state": "rough",

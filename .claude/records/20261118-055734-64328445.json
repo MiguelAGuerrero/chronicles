@@ -1,0 +1,50 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Sights and Local life (SG1-SG14, decisions 0200-0202)",
+        "--new"
+      ],
+      "body": "- **Phase 2 of Sights and Local life** (decision 0200): Culture and Community into Local life, museums, galleries, theaters, cinemas and community spaces out of the marks (an archive-recorded building or a \"memorial\"/\"monument\" name stays a Sight under History), \"What I'm into\" under the two headings, the out-of-town stars by the same rule, `PRESENCE_CODE` bumped and the goldens re-captured. Held until chronicles-data covers National Park Service sites or carries a listing flag, or Independence Hall, Congress Hall and the Betsy Ross House leave the marks.\n",
+      "intro": "The first phase was built Nov 18 (SG1-SG14); what it left and what it found.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Sights and Local life (SG1-SG14, decisions 0200-0202)"
+      ],
+      "body": "- **A kind's dots move between rows** (sights-and-local-life UI review, U2, before this slice): on a row with something the dots sit beside Suggest a walk, on a \"none\" row at the right edge, so a column of dots does not line up (M3 lists: \"Don't vary the position of elements within a list\"). Keeping the button's slot empty on a \"none\" row would align them.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Sights and Local life (SG1-SG14, decisions 0200-0202)"
+      ],
+      "body": "- **\"How the marks work\" looks the same open and closed** (UI review U4, before this slice): no chevron that turns; `accessibilityState.expanded` is set, so only sight lacks it. The card also says \"marks\" where a reader says \"dots\" (the cold find).\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Explore atlas"
+      ],
+      "body": "- [ ] **Do:** with VoiceOver, then TalkBack, open an area's card and swipe through \"What's here\"; then look at a tile on a 320 pt wide phone with all eight kinds. **Expect:** \"Sights\" is read as a heading, then its line and its five kinds, then \"Local life\" as a heading and its three; the tile's icons stay one row, the Local life ones after a thin vertical line, the last inside the tile. (SG2, SG3, SG14)\n"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "add"
+      ],
+      "body": "| Sights and Local life, phase 1 (Explore's bars under two headings, Sights and Local life, a muted line under Sights; the tile's strip in two groups with a hairline between them, its spoken line naming them, its line leading with Sights; the Sights bars follow \"What I'm into\", the tally keeping Sights by kind, `ATLAS_OWN` a15; SG1-SG14, decisions 0200-0202) | shipped 2026-11-18 | `claude/modest-hopper-df0ev8` | `specs/sights-and-local-life/spec.md` | no (plan reviewed by steward, auditor and UX reviewer; UI review and cold find on the built screens: 3 fixed, the owner's line added) |\n"
+    }
+  ]
+}

@@ -95,7 +95,7 @@ export const NOTE_SAVE_PAUSE = 1000;
 export const durationFor = (token: MotionToken, reduced: boolean): number => (reduced ? 0 : MOTION[token]);
 
 /**
- * The replay's rhythm (RR1-RR16, decision 0085) and its pace (RY1-RY22, decision 0200): the prototypes' numbers
+ * The replay's rhythm (RR1-RR16, decision 0085) and its pace (RY1-RY22, decision 0203): the prototypes' numbers
  * (https://claude.ai/artifact/XouW4WPy8e2yPQWYsYDUNc, https://claude.ai/artifact/7oLxtuZMhpvXd18H4BLR5P), in
  * milliseconds unless named in metres or as a share. The owner's tuned settings change only this object. Nothing
  * shrinks to fit a total: there is no cap (RY10).

@@ -71,6 +71,12 @@ recording, and a recording bar brings a minimized walk back.
   turn up as a "?"), so a plain parish church counts toward nothing; food, shops
   and nightlife count every place. A ring with fewer than three mapped places
   says nothing about its kinds (atlas grading, decision 0084).
+- **Sights and Local life** (decisions 0200, 0201; SG1-SG13): the card lists the kinds under two headings, **Sights**
+  (history, art, culture, green, views: what can turn up as a "?", said in a line under the heading) and **Local life**
+  (food, shops, nightlife: every place of its kind, never a "?"); a tile keeps one row with the two groups set apart by
+  a hairline (decision 0202), says them aloud by name, and its line leads with the Sights ("Plenty of history and green space"), Local
+  life only where there is no Sight. The Sights bars follow "What I'm into": a kind switched off leaves its bar at once.
+  Culture moves to Local life in phase 2, once the places data covers National Park Service sites.
 - A place may light two bars (presence and kinds, decision 0127): a museum or
   gallery lights History as well as Culture when the data already says it is
   historic (a listed museum in the places archive, or a historic word in its
@@ -482,7 +488,7 @@ recording, and a recording bar brings a minimized walk back.
   rolls through the time of day. Notes and memos stack as speech bubbles in a
   corner; photos and videos grow from their pin into a card and tuck into a
   pile, which opens them full screen; places passed without stopping whisper
-  by. Each moment takes its time (decision 0200): a photo is fully shown about four and a half seconds
+  by. Each moment takes its time (decision 0203): a photo is fully shown about four and a half seconds
   (several at one stop tighten, the last whole again), a moment's grid five, a note long enough to read, and a second
   of quiet follows a memo or video. Nothing shrinks to fit a length: a walk with many moments is simply longer.
   Nothing waits for a tap: a tap (or Hold) holds it, Skip goes to the card, and **Next**, under Skip, goes to the
@@ -548,7 +554,8 @@ recording, and a recording bar brings a minimized walk back.
   and reports touching it must say so. The phone's map redraws a layer or a
   pin only when it changes, never on each step of the gliding dot or a
   replay's clock, and simplifies its lines as the web does (native map frames,
-  NF1-NF8; unverified on a device).
+  NF1-NF8; unverified on a device). Every picture on screen is kept, decoded, in memory and on
+  disk once drawn (expo-image, EI1-EI6), so a gallery scrolled back or a pin shown again appears at once.
 - **Web**: the same loop with a browser's limits, deployed to GitHub Pages on
   every push to `main`. It traces the real browser location while the page is
   open and visible, holds a wake lock, and shows the gap when the page was

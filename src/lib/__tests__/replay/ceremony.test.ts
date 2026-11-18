@@ -187,7 +187,7 @@ function metresOf(p: RhythmPlan, f: Frame): number {
 }
 
 test('RR2, RY8: the walker slows into a moment and away from it', () => {
-  // The long stretch's steeper ease went with replay pace (RY8, decision 0200): pace.test.ts holds the steady pace.
+  // The long stretch's steeper ease went with replay pace (RY8, decision 0203): pace.test.ts holds the steady pace.
   const short = plan(walkStory(input(line(A, at(300, 0), 0), [cap('text', 215_000, at(300, 0), 'x')])));
   const sl = legs(short)[0];
   const f = (p: RhythmPlan, l: { t0: number; t1: number }, u: number) => metresOf(p, rhythmFrame(p, l.t0 + u * (l.t1 - l.t0)));
@@ -229,7 +229,7 @@ test('RR4: laterLine says minutes and hours', () => {
   assert.equal(laterLine(20_000), 'Moments later');
 });
 
-// RR5 (the 60 s cap and its floors) was retired by replay pace (RY10, decision 0200): pace.test.ts holds that nothing shrinks.
+// RR5 (the 60 s cap and its floors) was retired by replay pace (RY10, decision 0203): pace.test.ts holds that nothing shrinks.
 
 test('RR7: a frame is a function of the time alone, so holding the time holds everything', () => {
   const p = plan(sampleWalk().story);
@@ -572,7 +572,7 @@ test('replay-rhythm audit 10: the screens and the stage know no ceremony but thr
   }
 });
 
-// replay-rhythm audit 11 (cuts shrink under the cap) went with RR5 (RY10, decision 0200).
+// replay-rhythm audit 11 (cuts shrink under the cap) went with RR5 (RY10, decision 0203).
 
 test('replay-rhythm audit 12: reduce motion keeps the timing and holds the camera', () => {
   const { story } = sampleWalk();

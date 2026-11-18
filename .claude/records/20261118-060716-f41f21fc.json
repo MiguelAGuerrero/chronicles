@@ -1,0 +1,14 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inbox",
+        "remove",
+        "T34",
+        "--reason",
+        "The owner, in person on Nov 18: \"Split it by topic\". map.md's \"Icons and pins\" moved word for word into .claude/rules/pins.md (decision 0173); \"Map staples\" was already in map-staples.md since the Nov 14 split."
+      ],
+      "target": "sha256:abde0e3cf47143800c861c81b11a0f77a890101293b5fd9d9e06998605cad576"
+    }
+  ]
+}

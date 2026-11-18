@@ -1,7 +1,8 @@
 import { useState } from 'react';
+import { Picture } from './Picture';
 import { hasMore } from '../lib/moment';
 import { StackMark, STACK_SPOKEN } from './StackMark';
-import { Image, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { pinHeadKinds, pinSpoken, pinThumb, reactionSpots, type CapturePin, type WalkClock } from '../lib/pins';
 import type { ReactionInfo } from '../lib/reactions/core';
 import { VideoMark } from './VideoMark';
@@ -70,11 +71,11 @@ export function CapturePinView({ pin, faint = false, drop: dropNow = false, remi
         <View testID="pin-head" style={[styles.head, { backgroundColor: color }]}>
           {!fan && !painted && <Icon name={n === 1 ? captureIcon(pin.captures[0]) : KIND_ICON[pin.kind]} size={18} color="#ffffff" />}
           {picture && (
-            <Image
+            <Picture
               testID="pin-thumb"
-              source={{ uri: picture }}
+              uri={picture}
               style={styles.thumb}
-              resizeMode="cover"
+              fit="cover"
               accessibilityIgnoresInvertColors
               onLoad={() => setLoaded(picture)}
               onError={() => setFailed(picture)}

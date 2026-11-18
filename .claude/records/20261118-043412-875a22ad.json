@@ -1,0 +1,22 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore in a dense city (decision 0156)"
+      ],
+      "body": "- **On a phone, deriving streets and analysing an area run as one block on the JS thread** (performance review, Nov 18): native has no worker (`landing/runOffPage.ts`), and `computeReadPaced` yields only between tiles and stages, so `deriveSegments`' junction and pair loops and the sidewalk merge (`streets.ts`), and `analyzeArea`, each run whole: about 1.7 s of deriving at 4x CPU on a dense read (landing.md). Yield every ~16 ms inside those loops with the same output (no `STREET_CODE` bump); measure on a device. A slice, not a fix.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Streets and snapping"
+      ],
+      "body": "- **`snapWalk` samples every cached piece in the walk's box, not only those near the trace** (performance review, Nov 18): `getSegmentsIn(walkBounds)` then every 5 m of each piece (`snapper.ts`); a long or diagonal walk pulls in tens of thousands of pieces whose cells the trace never touches. Skip a piece whose box meets no trace cell, provided the credits come out the same (else it is a snapping rule: `SNAP_RULES`).\n"
+    }
+  ]
+}

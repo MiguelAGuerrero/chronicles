@@ -123,8 +123,8 @@ export function PlannerDrawer(props: {
         {failed ? <Text style={styles.line} testID="plan-failed">{reasonLine('noRoute')}</Text> : null}
         {p.walkId && p.replaces ? <Text style={styles.line} testID="plan-replaces">{replacesLine}</Text> : null}
         <View style={styles.actions}>
-          <Button testID="plan-different" variant="secondary" label={differentLabel} disabled={!p.routes.length} onPress={p.different} />
-          <Button testID="plan-start" label={startLabel} disabled={!p.canStart || busy || props.starting} onPress={() => void start()} />
+          <Button testID="plan-different" variant="secondary" label={differentLabel} disabled={!p.routes.length} onPress={p.different} style={styles.different} />
+          <Button testID="plan-start" label={startLabel} disabled={!p.canStart || busy || props.starting} onPress={() => void start()} style={styles.start} />
         </View>
         <PlannerSettings prefs={p.prefs} units={units} kind={props.kind} />
       </ScrollView>
@@ -142,5 +142,9 @@ const styles = StyleSheet.create({
   body: { flex: 1 },
   content: { padding: 16, gap: 12, paddingBottom: 140 },
   line: { fontSize: 14, color: theme.ink, lineHeight: 19 },
-  actions: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
+  // One row at 320 px, Start to the right: the padding is what lets both fit; at a large text size the long label wraps inside
+  // its own button and Start keeps its place (tend explore 28; ui-patterns, "Nothing wraps on a 320 px phone").
+  actions: { flexDirection: 'row', gap: 8 },
+  different: { flexShrink: 1, paddingHorizontal: 12 },
+  start: { paddingHorizontal: 12 },
 });

@@ -1,0 +1,13 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Explore atlas"
+      ],
+      "body": "- [ ] **Do:** with VoiceOver, then TalkBack, open an area's card and swipe through \"What's here\"; then look at a tile on a 320 pt wide phone with all eight kinds. **Expect:** \"Sights\" is read as a heading, then its line and its five kinds, then \"Local life\" as a heading and its three; the tile's icons stay one row, the Local life ones set apart by a wider space, the last inside the tile. (SG2, SG3)\n"
+    }
+  ]
+}

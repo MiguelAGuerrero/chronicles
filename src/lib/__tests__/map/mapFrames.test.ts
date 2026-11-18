@@ -273,3 +273,23 @@ test('NF8: the marks reach their memo list keyed on what they show, not on the a
   assert.ok(decl, `${given} is a useMemo`);
   assert.match(decl.arguments[1]?.getText() ?? '', /markListKey|marksKey/, `${given} changes only with the marks' key`);
 });
+
+// The phone's device checks need numbers: the native map counts its renders as the web's does (perfCount, nothing unless
+// `globalThis.__perf` is set, as a dev build's console can), the map as `render:map` and the glide as `render:glide`.
+function countsRenders(src: string): { map: boolean; glide: boolean } {
+  const sf = ts.createSourceFile('x.tsx', src, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  const body = walkMapBody(sf);
+  let cone: ts.Node | null = null;
+  walk(sf, (n) => {
+    if (ts.isVariableDeclaration(n) && n.name.getText() === 'ConeSource') cone = n;
+  });
+  const counted = (root: ts.Node | null, name: string) => !!root && calls(root, 'perfCount').some((c) => c.arguments[0]?.getText() === `'${name}'`);
+  return { map: counted(body, 'render:map'), glide: counted(cone, 'render:glide') };
+}
+
+test('native-map-frames: the native map counts its renders and its glide frames, as the web map does (the numbers a device check reads)', () => {
+  assert.deepEqual(countsRenders(readFileSync(join(ROOT, NATIVE), 'utf8')), { map: true, glide: true });
+  // Shown to fail: the same shape with no counters.
+  const bare = "const WalkMap = forwardRef(function WalkMap() { return null; });\nconst ConeSource = memo(function ConeSource() { return null; });";
+  assert.deepEqual(countsRenders(bare), { map: false, glide: false });
+});

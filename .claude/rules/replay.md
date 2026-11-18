@@ -28,8 +28,8 @@ A walk's replay and the day replay: the five beats, the story and its ceremonies
   pulled back past `zipAtM`); a break is a cut with "N min later"; notes and memos
   are bubbles, photos and videos cards that tuck into the pile; passed places
   whisper by (one or two by name, more than two as one "Passed a few places without stopping", RP19); a clock rolls with the walker. Every number is in `REPLAY_RHYTHM`
-  (`motionTokens.ts`). Nothing shrinks to fit a total: the 60 s cap went with replay pace (RY10, decision 0200).
-- **Replay pace** (`specs/replay-pace`, RY1-RY22, decision 0200; the first slice of the replay's rework):
+  (`motionTokens.ts`). Nothing shrinks to fit a total: the 60 s cap went with replay pace (RY10, decision 0203).
+- **Replay pace** (`specs/replay-pace`, RY1-RY22, decision 0203; the first slice of the replay's rework):
   - **Each moment's time is its own** (`rhythm.ts` `holdPhotos`, `slotDur`, `grid.ts`): a photo on its own is fully
     shown `photoHold` between `grow` and `tuck`; the first of the replay and one after `longM` with nothing kept, a
     fifth longer; photos at one stop tighten, the last whole again. A photo walked to is never shortened (the owner,

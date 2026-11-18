@@ -397,14 +397,18 @@ export const KIND_NAME: Readonly<Record<CaptureKind, string>> = { photo: 'Photo'
 
 /**
  * What a screen reader hears of a pin's moments, before its stack, its bell and its "Open": one moment by its kind
- * ("Photo", "Note, idea", "Memory: Photo"), several by their kinds in words (tend map T14), each followed by when
+ * ("Photo", "Note, idea", "Memory: a photo"), several by their kinds in words (tend map T14), each followed by when
  * (`pinWhen`, tend map T28): "Photo, twelve minutes in", "A photo and a note, from the start to fifty-eight minutes
  * in", "Memories: a photo and a note, Tuesday evening". A memory pin's moments are of other walks, so it always says
  * the part of the day.
  */
 export function pinSpoken(pin: CapturePin, o: { memory?: boolean; clocks?: readonly WalkClock[]; now?: number; reactions?: readonly ReactionInfo[] }): string {
   // One moment's reactions are said after its kind, as its bubbles are drawn (RX21): "Photo, happy, idea".
-  const one = pin.captures.length === 1 ? [KIND_NAME[pin.captures[0].kind], ...(o.reactions ?? []).map((r) => r.name.toLowerCase())].join(', ') : null;
+  // A memory says its kinds from one table however many it holds, "Memory: a photo", "Memories: a photo and a note"
+  // (tend map 19); a pin of this walk's one moment says its kind's name, "Photo".
+  const one = pin.captures.length === 1
+    ? [o.memory ? lower(pinKindsWords(pin)) : KIND_NAME[pin.captures[0].kind], ...(o.reactions ?? []).map((r) => r.name.toLowerCase())].join(', ')
+    : null;
   const kinds = one ?? pinKindsWords(pin);
   const what = o.memory
     ? pin.captures.length === 1 ? `Memory: ${kinds}` : `Memories: ${lower(kinds)}`

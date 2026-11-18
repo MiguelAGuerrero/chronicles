@@ -131,7 +131,7 @@ Report-only, on the spec and this plan: eight drifts, two of tone, no breach.
 - **S6 on a walk with one moment or none the button never appears: accepted.** The deploy's live task and the owner's pictures use
   a walk with three or more moments, and "Where to find it" says it shows only while a moment lies ahead.
 - **S7 "Later slices" recorded calls the gate has not seen: accepted.** They are now headed as leanings, each gated before its spec.
-- **S8 the cap's record put off: accepted.** Decision 0200 is written with this plan.
+- **S8 the cap's record put off: accepted.** Decision 0203 is written with this plan.
 - **S9 precedent: accepted.** Story players' segments are recorded as a counter-example; the hold lengths are said to have no
   verified precedent.
 - **Silent, kept as they are and said here:** no ceiling on length (the owner's call; memos and videos were never capped); no "back
