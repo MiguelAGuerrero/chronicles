@@ -160,7 +160,7 @@ async function run(h) {
   await p2.waitForTimeout(400);
   await openPanel(p2);
   const clash = [];
-  for (const id of ['cap-photo', 'cap-voice', 'cap-note', 'stop']) {
+  for (const id of ['cap-photo', 'cap-voice', 'cap-note', 'walk-actions']) {
     const b = await box(p2, `[data-testid=${id}]`).catch(() => null);
     if (b && panel.x < b.x + b.width && panel.x + panel.width > b.x && panel.y < b.y + b.height && panel.y + panel.height > b.y) clash.push(id);
   }

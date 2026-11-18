@@ -2,7 +2,7 @@
 // expo-haptics' web build, which calls navigator.vibrate; recorded here. E2E_ONLY=nudge runs it alone.
 
 async function run(h) {
-  const { navUrl, BASE, start, at, check, drawerTo, openInto, closeInto, freshPage } = h;
+  const { navUrl, BASE, start, at, check, drawerTo, openInto, closeInto, freshPage, toStop } = h;
     // A touch screen, so the switch is offered (PA6); taps still come as clicks.
     const { c, pg } = await freshPage('nudge', { touch: true });
     await c.addInitScript(() => {
@@ -43,6 +43,7 @@ async function run(h) {
       return firstMark;
     };
     const holdStop = async () => {
+      await toStop(pg);
       const b = await pg.locator('[data-testid=stop]').boundingBox();
       await pg.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
       await pg.mouse.down();

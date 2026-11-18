@@ -4,7 +4,7 @@
 // it is offered faint until kept. E2E_ONLY=gaps runs it alone.
 
 async function run(h) {
-  const { navUrl, BASE, start, at, check, metaOf, freshPage, openWalk, tiles, shot } = h;
+  const { navUrl, BASE, start, at, check, metaOf, freshPage, openWalk, tiles, shot, toStop } = h;
     const { c, pg } = await freshPage('gaps');
     await c.addInitScript(() => { window.__perf = {}; });
     const here = at(3.0, -0.5);
@@ -122,6 +122,7 @@ async function run(h) {
     }));
     check(JSON.stringify(await rows()) === '["kept:Transit Street"]', `gaps: Keep is stored with the walk (G10: ${JSON.stringify(await rows())})`);
     // On the replay, the filled stretch along Thayer has its own card; Not this way breaks the line again (G9, G10, G12).
+    await toStop(pg);
     const b = await pg.locator('[data-testid=stop]').boundingBox();
     await pg.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
     await pg.mouse.down();
@@ -174,7 +175,19 @@ async function run(h) {
       const empty = await pg.locator('[data-testid=gap-title]').innerText().catch(() => '');
       check(/^Not recorded for \d+ min$/.test(empty) && (await pg.locator('[data-testid=gap-draw]').count()) === 1 && (await pg.locator('[data-testid=gap-keep]').count()) === 0,
         `GW1, GW2: tapping the dotted line opens its card, with Draw my way ("${empty}")`);
-      // Paths slow to come: Done waits for them, and says so (gap-drawing audit 4).
+      // Paths slow to come: Done waits for them, and says so (gap-drawing audit 4). The tiles the replay read moments ago
+      // are kept for the session (createTileBodies), so a draw now would never wait: a reload holds none, and a dismissed
+      // gap is never read again, so the draw's own read is the one slowed (fix gaps-done-wait).
+      await pg.reload();
+      await pg.waitForSelector('[data-testid=skip], [data-testid=to-name], [data-testid=done]', { timeout: 60000 });
+      if (await pg.locator('[data-testid=skip]').count()) await pg.click('[data-testid=skip]');
+      await pg.waitForSelector('[data-testid=to-name], [data-testid=done]', { timeout: 30000 });
+      await pg.waitForFunction(() => typeof window.__project === 'function');
+      for (let k = 0; k < 20 && (await mapState()).links !== 1; k++) await pg.waitForTimeout(500);
+      await tap(at(11, 0.6));
+      // The card is open again before the paths are slowed, so a missed reopen is never read as audit 4 (fix gaps-done-wait audit 1).
+      const reopened = (await pg.locator('[data-testid=gap-draw]').count()) === 1;
+      check(reopened, 'fix gaps-done-wait audit 1: after a reload the dotted line\'s card opens again, with Draw my way');
       tiles.delayMs = 4000;
       await pg.click('[data-testid=gap-draw]').catch(() => {});
       await pg.waitForSelector('[data-testid=gap-draw-bar]', { timeout: 5000 }).catch(() => {});
@@ -255,6 +268,7 @@ async function run(h) {
         await p2.waitForTimeout(1000);
         s2 = await state2();
       }
+      await toStop(p2);
       const stop2 = await p2.locator('[data-testid=stop]').boundingBox();
       await p2.mouse.move(stop2.x + stop2.width / 2, stop2.y + stop2.height / 2);
       await p2.mouse.down();

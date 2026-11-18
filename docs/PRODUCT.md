@@ -316,7 +316,9 @@ recording, and a recording bar brings a minimized walk back.
   screen's, the recording bar's) say what is held before the walk ends without it; the second hold lets it go, and one
   that fails after the walk has ended is kept as a moment of its own. Held while the app is open (unsaved captures UN1-UN15, decision 0196). On the web the app asks the browser once to keep its data, never mid-walk, and says once on
   Navigate, ready if it was refused. There is no Storage screen (0041). Storage awareness, decision 0107.
-- The bottom strip has time, distance, Pause, walk options and hold-to-stop.
+- The bottom strip has time, distance and walk options, with Pause alone while walking; paused, Resume (a solid
+  orange pill) and hold-to-stop (a soft pill), as AllTrails has it (decision 0220). The recording bar keeps its own
+  held Stop.
   A status chip shows only when something is wrong (waiting for GPS, weak GPS,
   not recording) or on a ride. "Not recording" is a button: it says why, with
   Open Settings on a phone, and the walk picks recording back up when you
@@ -360,7 +362,7 @@ recording, and a recording bar brings a minimized walk back.
 - **Remind me here**: flag a capture, and the next walk that passes within
   75 m of it shows its card, or a notification when the app is behind.
   Its pin wears a small bell on every map while the reminder is set.
-- **Unwalked streets near me** bolds the fog of named streets within 1 km.
+- **The fog of unwalked streets** stays faint on every walk; the button that bolded it and counted them went (decision 0222): the trace says where you have been.
 - **What happened here**: a long press on the map lists captures near that
   spot, from any walk.
 - Walk options: the Explore switch, settings, motion permission, and
@@ -378,9 +380,13 @@ recording, and a recording bar brings a minimized walk back.
 
 #### Map layers and walkability (before and during)
 
-- **Layers.** One Layers button on the Explore map and the Navigate map opens a small panel of switches: Walkability, Storefronts and Town
-  borders. Each draws something over the base map and shows its own legend while on. All three start off, so a fresh map is clear; the button is outlined, and its glyph
+- **Layers.** One Layers button on the Explore map and the Navigate map opens a small panel of switches: Walkability, Storefronts, Town
+  borders and Where I've been. Each draws something over the base map and shows its own legend while on. All start off, so a fresh map is clear; the button is outlined, and its glyph
   and a firmer edge say a layer is on. One setting for every map, kept across launches.
+- **Where I've been** (decision 0222) draws your earlier walks near the map, each its walked line in one muted sage green under today's
+  trace: the same tone however often a street was walked, with no date and no count. Rides and gaps you didn't keep stay breaks.
+  The walk being recorded joins once stopped. Only the Navigate map and Explore's main map draw it; turning it on the first time
+  prepares older walks quietly ("Getting your walks ready…"), and the lines appear together.
 - **Walkability** tints the map a light blue where the ground is easy on foot (streets close together, crossings, places along them) and a darker slate where it is
   built around cars (streets far apart and busy), and nothing in between. It is judged from how the ground is built, so a walkable grid with its
   sidewalks unmapped still reads walkable; a missing sidewalk never lowers a reading. It comes from Overture's transportation tiles, with
@@ -509,7 +515,7 @@ recording, and a recording bar brings a minimized walk back.
   an empty line and a Navigate button; with a walk open, "This walk is starred
   here when it ends" and no button, the recording bar's › being the way back
   (decision 0148).
-- **A walk with nothing in it is dropped** (decision 0187): stopping a walk with no moment, pause, still or gap and no movement past 15 m skips the replay and says "Walk not kept." with Undo; a killed app restores it.
+- **A walk with nothing in it is dropped** (decision 0187): stopping a walk with no moment, pause (the one still open at Stop aside, decision 0220), still or gap and no movement past 15 m skips the replay and says "Walk not kept." with Undo; a killed app restores it.
 - **The replay** (the make-or-break): reading the streets, the fog clearing,
   the path, the card, then naming. The path has a rhythm (decision 0085): the
   walker keeps a steady pace, slowing into each moment; the camera holds still and re-frames, rises on a

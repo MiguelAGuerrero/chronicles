@@ -368,7 +368,7 @@ async function fresh(h) {
         };
       }), { lon: memAt[0], lat: memAt[1] });
       await pg.click('[data-testid=start]');
-      await pg.waitForSelector('[data-testid=stop]');
+      await pg.waitForSelector('[data-testid=walk-actions]');
       const w = await openWalk(pg);
       const north = async (y0, y1, each) => {
         for (let k = 0, y = y0; y <= y1 + 1e-9; k++, y += 0.05) {
@@ -486,7 +486,7 @@ async function fresh(h) {
       }
       // A tap on the bar returns to the walk, where the photo is pinned (NV9).
       await pg.click('[data-testid=recording-return]');
-      await pg.waitForSelector('[data-testid=stop]');
+      await pg.waitForSelector('[data-testid=walk-actions]');
       await pg.waitForTimeout(1500);
       check(/\/walk/.test(new URL(pg.url()).pathname) && (await pg.locator('[aria-label^="Photo, "][aria-label$=". Open"], .maplibregl-map button[data-ids*=","]:not([data-testid=memory-pin])').count()) >= 1 && !(await tabBarShown(pg)),
         'a tap on the bar returns to the walk, the tab bar hidden, with the bar’s photo on its map (NV6, NV9)');
@@ -600,7 +600,7 @@ async function fresh(h) {
       await pg.mouse.up();
       await pg.waitForSelector('[data-testid=ready-dest]', { timeout: 5000 });
       await pg.click('[data-testid=start]');
-      await pg.waitForSelector('[data-testid=stop]', { timeout: 15000 });
+      await pg.waitForSelector('[data-testid=walk-actions]', { timeout: 15000 });
       const said = await pg.waitForSelector('text=Walk started · recording', { timeout: 10000 }).then(() => true, () => false);
       const w = await openWalk(pg);
       const nav = JSON.parse((await metaOf(pg, 'nav')) || 'null');

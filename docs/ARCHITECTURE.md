@@ -303,6 +303,9 @@ Map layers (ML1-ML13)
   layers/shell.ts            createLayers: the state and the panel's open flag as a Store (meta `map_layers`); index.ts is the app's instance
   layers/storefronts.ts, useStorefrontsLayer.ts  Storefronts as a layer: the remembered areas and the one read
   layers/useLayers.ts        the hook the maps call
+  pastLines/core.ts          Where I've been (WB, decision 0222): a walk's walked line from its trace, simplified, its z12 tiles; nearLines, staleIds, prepareOrder
+  pastLines/shell.ts         createPastLines: build (Stop), drop (a gap decision), prepare stale lines one walk at a time; index.ts is the app's instance
+  pastLines/usePastLines.ts  the layer's lines near a centre for a map, read per area key and when preparing is done; the status words' state
 Walkability (WK1-WK23, UF1-UF20)
   walk/form.ts               the rule and its one table of thresholds (judge)
   walk/cells.ts              cells on a fixed grid, judged from their 450 m neighbourhood through a spatial index
@@ -634,7 +637,9 @@ kind_detail, length_m, geometry, build), `VisitedSegment` (segment_id,
 walk_id, covered_fraction, first_t, street_key), `WalkSummary` (distance_m,
 ride_m, duration_ms, new_streets, streets_walked, photos, videos, voices,
 notes, streets_read), `Area` and `WalkArea`, `OutlineTile` (`outline_tile`:
-the town outlines one tile held, keyed `z/x/y` (z12 to decide, z10 to draw), with its release; TO12, TB7).
+the town outlines one tile held, keyed `z/x/y` (z12 to decide, z10 to draw), with its release; TO12, TB7),
+`WalkLine` (`pastLines/core.ts`, `walk_line` and SQLite's `walk_line_tile`, migration 30 and IndexedDB 23: a walk's walked
+line simplified, its bounds and z12 tiles, `code`; a cache of the trace that no tile build clears, decision 0222).
 
 Discovery and Explore (`discovery/types.ts`, `explore/explore.ts`): `Place`
 (cache, per build, `markable`), `Offered`, `Mark`, `Recall` (kept),

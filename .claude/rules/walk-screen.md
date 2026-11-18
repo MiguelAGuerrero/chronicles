@@ -30,11 +30,11 @@ The walk screen (`src/app/walk.tsx`), which is also Navigate, ready: its layout,
   `BAR_H` (69) above the safe area; the captures are a column of 56 pt buttons at the right edge
   (camera nearest the strip, then mic, then note), inside the 640 column; the 44 pt edge buttons sit
   above them in the same column (Locate on the ready screen where Recenter sits on the walk, then
-  unwalked streets, then walk me back). The ready bar at rest is the strip, at its height, with Start
-  where Stop sits. The e2e checks the boxes match across Start.
+  walk me back, then the compass; the unwalked-streets button went with decision 0222, WB2). The ready bar at rest is the strip, at its height, with Start
+  where the walk's actions end (Pause; Resume and Stop paused). The e2e checks the boxes match across Start.
 - **The Layers button is in the bottom-left corner** (fix layers-corner, Nov 5, the owner): a 44 pt button just
   above the scale bar (`layersCorner`, `lib/stackSlots.ts`), not the right column's top, where the navigation
-  bar's End button sat under it. The column has four edge slots and the compass is its top; the pills sit above
+  bar's End button sat under it. The column has three edge slots since the unwalked button went (WB2) and the compass is its top; the pills sit above
   the button (`pillsBottom`). Its panel opens to the button's right, bottom level with it, growing upward
   (`cornerPanelBox`, `lib/layers/layout.ts`), stopping short of the capture column and the top overlay; it
   paints over the pills while open and closes on a tap on the map. Explore's button is still anchored from the
@@ -46,7 +46,18 @@ The walk screen (`src/app/walk.tsx`), which is also Navigate, ready: its layout,
   measures both (the button clears the bar, rows keep off the edges, labels stay on one line).
 - Capture controls are one component, `CaptureStack` (`components/walk/CaptureStack.tsx`), given ids
   and handlers: `moment-*` on the ready screen (moments, `MomentBar`), `cap-*` on the walk. Time,
-  distance and hold-to-stop stay in the thin strip at the very bottom, with Stop at the right end.
+  distance, Pause and hold-to-stop stay in the thin strip at the very bottom, at its right end.
+- **Pause alone, then Resume or Stop** (decision 0220, AllTrails' pattern; fix walk-strip-buttons): the strip's actions
+  (`walk-actions`, `flex: 1`) fill what the numbers leave. Walking: `strip-more` (a round 48 "…", "Walk settings" /
+  "Lower the walk settings", `aria-expanded` for the web, which calls `raiseOptions` as the drag and a tap on the numbers
+  do; never `walk-more`, a finished walk's More in Chronicle's list) and a wide `pause-walk`; paused: `resume-walk` (solid
+  accent) and the held `stop`, half each, words only, Resume on the left. No … while paused (it does not fit at 320).
+  Pills with no outline, 48 high (taller would move the row's middle off Start's, NR5), 4 px at the sides; below 360 the
+  words are 14 px (`narrow`). Stop's busy state is the spinner alone (`busyQuiet`, at every width; the recording bar's
+  Stop too), "Stopping…" its spoken name. The walk journey measures an
+  hour-long walk's numbers at 320 by writing them into the page and putting them back in the same task (React would not
+  redraw them while paused). The recording bar keeps its own held Stop with no Pause (0048). The e2e reaches Stop with
+  the harness's `toStop(pg)`, which pauses first; wait for `walk-actions`, never `stop`, to know the walk screen is up.
 - Why low and at the right edge: Hoober's touch research puts the most accurate taps near the centre
   and the least at the edges and corners, which is why the row was centred (0008). The owner chose
   AllTrails' look instead (Nov 3, 0076): AllTrails floats its map controls at the right edge, as Google
@@ -76,11 +87,11 @@ The walk screen (`src/app/walk.tsx`), which is also Navigate, ready: its layout,
 - **The notice follows the walk's arrival** (capture-from-chronicle audit 1): Walk here and Start can
   show the screen before the keeper reads the new walk, so `WalkScreen` sets `arrivalNotice(params)`
   (`lib/readyNav`) when the walk first appears, not only as it mounts.
-- A quick tap on Stop shows "Hold to stop the walk".
+- A quick tap on Stop shows "Hold to stop the walk". Its word is "Stop"; its spoken name "Hold to stop".
 - Walk options (the Explore switch, its range and kinds, motion, Share GPS log) are the strip's
-  drawer, not a button (the owner, Nov 4): the walk's strip is the same `ReadyBar` as the ready
+  drawer (the owner, Nov 4), raised also by the strip's … since 0220: the walk's strip is the same `ReadyBar` as the ready
   screen's (`idPrefix="walk"`: `walk-bar`, `walk-grip`, `walk-summary`), pulled up by a drag or a tap on
-  the numbers, with Pause and Stop at its foot. Mid-memo it is locked. `options-card` is its content,
+  the numbers, with Pause (or Resume and Stop) at its foot. Mid-memo it is locked. `options-card` is its content,
   and Explore's settings are in it, not in a panel of their own (the owner, Nov 4): with Explore on, the
   "?" range (the ring on the map, fitted above the raised drawer), then the pocket alert and reminders; each saves as it
   changes. Last, after a rule, a short section of its own, "Explore", with the "What I'm into ›" row to its page, shown

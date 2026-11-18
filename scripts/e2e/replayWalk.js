@@ -6,7 +6,7 @@
 // the same walk. Leaves the page on the walk's first replay (/replay/<id>), its reading beat or later.
 
 async function seedReplayWalk(h, c, pg) {
-  const { navUrl, BASE, at, metaOf, openWalk } = h;
+  const { navUrl, BASE, at, metaOf, openWalk, toStop } = h;
   const here = at(3.0, -0.5);
   await pg.goto(navUrl);
   await pg.waitForSelector('[data-testid=start]');
@@ -82,6 +82,8 @@ async function seedReplayWalk(h, c, pg) {
   await pg.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
   await c.setGeolocation({ longitude: here[0], latitude: here[1], accuracy: 6 });
   await pg.waitForTimeout(2000);
+  // Stop shows only while paused (decision 0220).
+  await toStop(pg);
   const b = await pg.locator('[data-testid=stop]').boundingBox();
   await pg.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
   await pg.mouse.down();

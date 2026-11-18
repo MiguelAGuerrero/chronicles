@@ -6,7 +6,7 @@
 const path = require('path');
 
 async function checks(h) {
-  const { BASE, browser, ctx, page, start, at, dLat, dLon, names, check, shot, pressedScale, metaOf, drawerTo, openInto, closeInto, tabBarShown, tiles, scriptsDir, onTab, walkMap, walkMarks, walkRoute, walkPts, routed } = h;
+  const { BASE, browser, ctx, page, start, at, dLat, dLon, names, check, shot, toStop, pressedScale, metaOf, drawerTo, openInto, closeInto, tabBarShown, tiles, scriptsDir, onTab, walkMap, walkMarks, walkRoute, walkPts, routed } = h;
     // The ready bar pulled up (NR7, NV20-NV24): the choices, each saved as it changes.
     await onTab('navigate');
     await page.waitForSelector('[data-testid=ready-bar]');
@@ -92,7 +92,7 @@ async function checks(h) {
     check(held.scale > 0.95 && held.scale < 0.99 && held.after === 1, `a large button presses down while held, and springs back (M4: ${held.scale.toFixed(3)} → ${held.after})`);
     // Start starts at once, in place (NV19, NV25, NR6).
     await page.click('[data-testid=start]');
-    await page.waitForSelector('[data-testid=stop]');
+    await page.waitForSelector('[data-testid=walk-actions]');
     check(new URL(page.url()).pathname === `${BASE}/walk` && !(await tabBarShown(page)), 'Start records on the walk screen over the tabs, the tab bar hidden (NV6, NV25, NR6)');
     // A fresh fix, as a phone's GPS gives one: the emulated position is otherwise re-sent with the time it was
     // read on Navigate, and a fix from before the walk began is dropped as stale (MAX_STALE_MS).
@@ -209,10 +209,9 @@ async function checks(h) {
         await page.click('[data-testid=voice-save]');
         await page.waitForSelector('text=Too short, not kept');
         check(true, 'a memo under a second is not kept, and the walker is told');
-        // A tap on Stop says it needs holding.
-        await page.click('[data-testid=stop]');
-        await page.waitForSelector('text=Hold to stop the walk');
-        check(true, 'a tap on Stop explains it needs a hold');
+        // Walking, there is no Stop to tap by accident (decision 0220): Pause comes first.
+        check((await page.locator('[data-testid=stop]').count()) === 0 && (await page.locator('[data-testid=pause-walk]').count()) === 1,
+          '0220: while walking the strip has Pause and no Stop');
       }
       if (k === 6) {
         // Explore on, for this walk (E1): the busy streets show, as information (E2, S21).
@@ -571,61 +570,129 @@ async function checks(h) {
         // Pause: positions sent while paused are not recorded, and the clock stops.
         n12.pause = await navOn();
         n12.grewM = (await walkedM()) - n12.fromM;
-        // tend walk-screen 7 (decision 0172, O27): Pause shows its word under its icon, as Hold shows its own, and Resume
-        // while paused; the spoken name is as before. At 390 and 320 the strip keeps every word whole on one line, its
-        // buttons 44 or more and on screen, and its height (`BAR_H`, 69).
-        const strip = (id) => page.evaluate((id) => {
-          const b = document.querySelector(`[data-testid=${id}]`);
-          const hold = document.querySelector('[data-testid=stop]');
-          const stats = document.querySelector('[data-testid=walk-stats]');
-          const bar = document.querySelector('[data-testid=walk-bar]');
-          if (!b || !hold || !stats) return null;
+        // Decision 0220 (AllTrails' pattern; amends O27 and tend walk-screen 7, audit 9; the owner's AllTrails look, fix
+        // walk-strip-buttons): walking, … and a wide Pause fill what the numbers leave; paused, Resume and a held Stop, half
+        // each, words only, no …. Pills with no outline, 48 high. At 390 and 320 every word whole, on screen, strip 69 high;
+        // with an hour-long walk's numbers too (fix walk-strip-buttons audit 1: the numbers set in the page, then measured
+        // in the same task, before the clock's next tick writes them back).
+        const strip = (longStats = null, keep = false) => page.evaluate(([longStats, keep]) => {
+          const q = (id) => document.querySelector(`[data-testid=${id}]`);
+          const main = q('pause-walk') ?? q('resume-walk');
+          const more = q('strip-more');
+          const hold = q('stop');
+          const stats = q('walk-stats');
+          const bar = q('walk-bar');
+          if (!main || !stats) return null;
+          const statsText = stats.querySelector('div') ?? stats;
+          // React keeps its own copy of the numbers: they are put back below, or a paused clock never redraws them.
+          const was = statsText.textContent;
+          if (longStats) statsText.textContent = longStats;
           const oneLine = (el) => {
             const r = document.createRange();
             r.selectNodeContents(el);
-            const lines = new Set([...r.getClientRects()].filter((q) => q.width > 0).map((q) => Math.round(q.top)));
+            const lines = new Set([...r.getClientRects()].filter((x) => x.width > 0).map((x) => Math.round(x.top)));
             return lines.size === 1 && el.scrollWidth <= el.clientWidth + 1;
           };
           const leaf = (root) => [...root.querySelectorAll('div')].filter((d) => !d.querySelector('div') && d.innerText.trim());
-          const words = leaf(b);
-          const icon = [...b.querySelectorAll('div')].find((d) => d.innerText.trim() && !/[A-Za-z]/.test(d.innerText));
-          const wr = words.find((d) => /[A-Za-z]/.test(d.innerText))?.getBoundingClientRect();
-          const ir = icon?.getBoundingClientRect();
-          const box = (el) => { const r = el.getBoundingClientRect(); return { l: r.left, r: r.right, t: r.top, b: r.bottom, w: r.width, h: r.height }; };
-          return {
-            said: b.getAttribute('aria-label'), word: words.map((d) => d.innerText.trim()).filter((t) => /[A-Za-z]/.test(t)).join(' '),
-            under: !!(wr && ir && wr.top >= ir.bottom - 1), whole: words.every(oneLine) && leaf(hold).every(oneLine) && oneLine(stats.querySelector('div') ?? stats),
-            btn: box(b), hold: box(hold), barH: bar ? Math.round(bar.getBoundingClientRect().height) : null, vw: window.innerWidth,
+          const wordOf = (root) => leaf(root).find((d) => /[A-Za-z]/.test(d.innerText));
+          // Whole: the word's full text (a range over it, not clipped by an ellipsis) fits the box it is drawn in, and that box
+          // sits inside its pill. scrollWidth missed a cut "Resu…" here (fix walk-strip-buttons audit 7's picture).
+          const inside = (root) => {
+            const el = wordOf(root);
+            if (!el) return false;
+            const r = document.createRange();
+            r.selectNodeContents(el);
+            const text = r.getBoundingClientRect().width;
+            const w = el.getBoundingClientRect();
+            const b = root.getBoundingClientRect();
+            return text <= w.width + 0.5 && w.left >= b.left - 0.5 && w.right <= b.right + 0.5;
           };
-        }, id);
-        const fits = (m) => !!m && m.whole && m.under && m.btn.w >= 44 && m.btn.h >= 44 && m.hold.h >= 44 && m.btn.l >= 0 && m.hold.r <= m.vw && m.btn.r <= m.hold.l;
+          const pill = (el) => {
+            const cs = getComputedStyle(el);
+            const h = el.getBoundingClientRect().height;
+            return ['Top', 'Right', 'Bottom', 'Left'].every((e) => parseFloat(cs[`border${e}Width`]) === 0)
+              && parseFloat(cs.borderTopLeftRadius) >= h / 2 - 1 && !/rgba\(.*,\s*0\)$|transparent/.test(cs.backgroundColor);
+          };
+          const box = (el) => { const r = el.getBoundingClientRect(); return { l: r.left, r: r.right, t: r.top, b: r.bottom, w: r.width, h: r.height }; };
+          const sb = statsText.getBoundingClientRect();
+          const seen = {
+            id: main.getAttribute('data-testid'), said: main.getAttribute('aria-label'), word: wordOf(main)?.innerText.trim() ?? '',
+            wordColor: wordOf(main) ? getComputedStyle(wordOf(main)).color : null, fill: getComputedStyle(main).backgroundColor,
+            icon: [...main.querySelectorAll('div')].some((d) => d.innerText.trim() && !/[A-Za-z]/.test(d.innerText)),
+            pill: pill(main) && (!more || pill(more)) && (!hold || pill(hold)),
+            whole: leaf(main).every(oneLine) && inside(main) && (!hold || (leaf(hold).every(oneLine) && inside(hold))) && oneLine(statsText),
+            more: more ? { said: more.getAttribute('aria-label'), expanded: more.getAttribute('aria-expanded'), n: document.querySelectorAll('[data-testid=strip-more]').length, ...box(more) } : null,
+            hold: hold ? { said: hold.getAttribute('aria-label'), word: wordOf(hold)?.innerText.trim() ?? '', fill: getComputedStyle(hold).backgroundColor, ...box(hold) } : null,
+            btn: box(main), statsR: sb.right, statsText: statsText.textContent, barH: bar ? Math.round(bar.getBoundingClientRect().height) : null, vw: window.innerWidth,
+          };
+          // Put back now, unless kept for a picture (restoreStats then puts them back).
+          if (!keep) statsText.textContent = was;
+          else window.__statsWas = was;
+          return seen;
+        }, [longStats, keep]);
+        const restoreStats = () => page.evaluate(() => {
+          const q = document.querySelector('[data-testid=walk-stats]');
+          const t = q?.querySelector('div') ?? q;
+          if (t && window.__statsWas != null) t.textContent = window.__statsWas;
+          window.__statsWas = null;
+        });
+        const soft = 'rgb(227, 224, 218)';
+        const LONG = '1:05:12 · 12.4 km';
+        const fills = (m) => !!m && m.whole && m.pill && m.btn.h === 48 && m.barH === 69 && m.btn.l > m.statsR;
+        const walkingOk = (m) => fills(m) && m.id === 'pause-walk' && m.word === 'Pause' && m.said === 'Pause the walk' && m.hold == null
+          && m.fill === soft && m.wordColor === 'rgb(29, 36, 48)'
+          && !!m.more && m.more.n === 1 && m.more.said === 'Walk settings' && m.more.expanded === 'false' && m.more.w === 48 && m.more.h === 48
+          && m.more.r <= m.btn.l && m.more.l > m.statsR && Math.abs(m.btn.r - (m.vw - 16)) < 1;
+        // Paused: Resume left, Stop right, the same width (the owner's half and half), words only.
+        const pausedOk = (m) => fills(m) && m.id === 'resume-walk' && m.word === 'Resume' && !m.icon && m.said === 'Resume the walk' && m.more == null
+          && m.fill === 'rgb(194, 65, 12)' && m.wordColor === 'rgb(255, 255, 255)'
+          && !!m.hold && m.hold.said === 'Hold to stop' && m.hold.word === 'Stop' && m.hold.h === 48 && m.hold.fill === soft
+          && m.btn.r <= m.hold.l && Math.abs(m.hold.w - m.btn.w) < 1 && Math.abs(m.hold.r - (m.vw - 16)) < 1 && Math.abs(m.hold.t - m.btn.t) < 0.5;
         const seenStrip = {};
-        seenStrip.walking390 = await strip('pause-walk');
+        seenStrip.walking390 = await strip();
         await shot(page, '03f-strip-walking-390');
         await page.setViewportSize({ width: 320, height: 700 });
         await page.waitForTimeout(600);
-        seenStrip.walking320 = await strip('pause-walk');
+        seenStrip.walking320 = await strip();
         await shot(page, '03f-strip-walking-320');
+        // A picture of it too (fix walk-strip-buttons audit 7): walking, the clock's next tick may redraw them first.
+        seenStrip.walking320long = await strip(LONG, true);
+        await shot(page, '03f-strip-walking-320-long');
+        await restoreStats();
         await page.setViewportSize({ width: 390, height: 844 });
         await page.waitForTimeout(600);
+        // … raises the walk's settings, as the drag and a tap on the numbers do, and says so (fix walk-strip-buttons audit 4).
+        await page.click('[data-testid=strip-more]');
+        const optionsUp = await page.waitForSelector('[data-testid=options-card]', { state: 'visible', timeout: 5000 }).then(() => true, () => false);
+        // The settings mount a render before the button's own words change: wait for those.
+        await page.waitForFunction(() => document.querySelector('[data-testid=strip-more]')?.getAttribute('aria-label') === 'Lower the walk settings', null, { timeout: 5000 }).catch(() => {});
+        const moreUp = await page.locator('[data-testid=strip-more]').evaluate((e) => [e.getAttribute('aria-expanded'), e.getAttribute('aria-label')]).catch(() => null);
+        await shot(page, '03f-strip-more-options');
+        await page.keyboard.press('Escape');
+        await page.waitForSelector('[data-testid=options-card]', { state: 'detached', timeout: 5000 }).catch(() => {});
+        await page.waitForTimeout(600);
+        check(optionsUp && moreUp?.[0] === 'true' && moreUp?.[1] === 'Lower the walk settings',
+          `fix walk-strip-buttons audit 4: … opens the walk's settings and says it is expanded, named as the numbers name it (${JSON.stringify(moreUp)})`);
         await page.click('[data-testid=pause-walk]');
         await page.waitForSelector('text=Paused');
         await page.waitForTimeout(400);
-        seenStrip.paused390 = await strip('resume-walk');
+        seenStrip.paused390 = await strip();
         await shot(page, '03g-strip-paused-390');
         await page.setViewportSize({ width: 320, height: 700 });
         await page.waitForTimeout(600);
-        seenStrip.paused320 = await strip('resume-walk');
+        seenStrip.paused320 = await strip();
         await shot(page, '03g-strip-paused-320');
+        seenStrip.paused320long = await strip(LONG, true);
+        await shot(page, '03g-strip-paused-320-long');
+        await restoreStats();
         await page.setViewportSize({ width: 390, height: 844 });
         await page.waitForTimeout(600);
-        check(seenStrip.walking390?.word === 'Pause' && seenStrip.walking390.said === 'Pause the walk' && seenStrip.paused390?.word === 'Resume' && seenStrip.paused390.said === 'Resume the walk'
-          && Object.values(seenStrip).every((m) => fits(m) && m.barH === 69),
-          `tend walk-screen 7: the strip's Pause says "Pause" under its icon, and "Resume" while paused, its spoken name unchanged; at 390 and 320 every word whole on one line, 44 or more, on screen, the strip 69 high (${JSON.stringify(seenStrip)})`);
-        // tend walk-screen audit 9 (the review's ux 1): Hold stood 44 high beside the 48 pt Pause, their tops and bottoms 2 px
-        // apart; on the walk's strip both are 48 and share a top and a bottom.
-        check(Object.values(seenStrip).every((m) => m && m.hold.h === 48 && Math.abs(m.hold.t - m.btn.t) < 0.5 && Math.abs(m.hold.b - m.btn.b) < 0.5),
-          `tend walk-screen audit 9: on the walk's strip Hold is 48 high, level with Pause at top and bottom, walking and paused, at 390 and 320 (${JSON.stringify(Object.values(seenStrip).map((m) => m && [m.btn.t, m.btn.b, m.hold.t, m.hold.b]))})`);
+        check(walkingOk(seenStrip.walking390) && walkingOk(seenStrip.walking320),
+          `0220, fix walk-strip-buttons audit 3: walking, one … (a unique id, Walk settings) and a wide soft Pause fill the row after the numbers, no Stop, words whole at 390 and 320 (${JSON.stringify([seenStrip.walking390, seenStrip.walking320])})`);
+        check(pausedOk(seenStrip.paused390) && pausedOk(seenStrip.paused320),
+          `0220, fix walk-strip-buttons: paused, Resume (solid accent) and a held Stop, half each, words only, no …, whole at 390 and 320 (${JSON.stringify([seenStrip.paused390, seenStrip.paused320])})`);
+        check(walkingOk(seenStrip.walking320long) && pausedOk(seenStrip.paused320long) && seenStrip.paused320long.statsText === LONG,
+          `fix walk-strip-buttons audit 1: at 320 an hour-long walk's numbers ("${LONG}") still leave Pause, Resume and Stop whole (${JSON.stringify([seenStrip.walking320long, seenStrip.paused320long])})`);
         // One publish cycle, so a fix taken just before the pause is already counted.
         await page.waitForTimeout(2500);
         const before = await page.locator('text=/ · \\d+[ \\u00a0]m$/').first().innerText();
@@ -653,15 +720,10 @@ async function checks(h) {
         await page.click('[data-testid=recenter]');
         await page.waitForSelector('[data-testid=recenter]', { state: 'detached' });
         check(true, 'after looking around, Recenter brings the map back');
-        // Unwalked streets near me.
+        // The fog of unwalked streets still draws, quietly (the unwalked-streets button went with decision 0222).
         n12.fog = await navOn();
-        await page.click('[data-testid=unwalked]');
-        await page.waitForSelector('text=/unwalked nearby/');
-        n12.unwalked = await page.locator('text=/unwalked nearby/').first().innerText();
-        check(n12.photo && n12.photoKept && n12.pause && n12.grewM > 0 && n12.held && n12.fog && /^[1-9]\d* unwalked nearby$/.test(n12.unwalked),
-          `N12: while navigating, the walk records, a photo is kept, Pause holds the bar's distance, and the fog counts its streets (${JSON.stringify(n12)})`);
-        await shot(page, '03c-unwalked');
-        await page.click('[data-testid=unwalked]');
+        check(n12.photo && n12.photoKept && n12.pause && n12.grewM > 0 && n12.held && n12.fog,
+          `N12: while navigating, the walk records, a photo is kept, Pause holds the bar's distance, and the fog draws (${JSON.stringify(n12)})`);
       }
       if (k === 39) {
         // 40 s of walking with captures, an explore read and a route: the page stays the same size (leak regression).
@@ -682,7 +744,7 @@ async function checks(h) {
       if (k === 40) {
         // A reload mid-walk is how the web resumes: it must land back on the walk.
         await page.reload();
-        await page.waitForSelector('[data-testid=stop]');
+        await page.waitForSelector('[data-testid=walk-actions]');
         check(page.url().endsWith(`${BASE}/walk`), 'a reload mid-walk resumes the walk');
         await page.waitForTimeout(2500);
         const replayed = await page.evaluate(() => window.__enters.length);
@@ -865,21 +927,32 @@ async function checks(h) {
 
     // The walk back passed the flagged capture again: never in the walk that recorded it (R2).
     check((await page.locator('[data-testid=reminder]').count()) === 0, 'a flagged capture does not come back in its own walk');
+    await toStop(page);
     await page.click('[data-testid=stop]');
-    await page.waitForTimeout(600);
+    await page.waitForSelector('text=Hold to stop the walk', { timeout: 5000 }).catch(() => {});
+    check((await page.locator('text=Hold to stop the walk').count()) > 0, 'a tap on Stop explains it needs a hold');
     check(page.url().endsWith('/walk'), 'a tap on Stop does not end the walk');
 
     const dismissed = await hintDismissed;
     check(dismissed === true, `a dismissed banner leaves no copy behind (audit 5${dismissed == null ? ': the hint never showed' : ''})`);
+    await toStop(page);
     const box = await page.locator('[data-testid=stop]').boundingBox();
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
     let releaseTilejson;
     tiles.stall = new Promise((res) => { releaseTilejson = res; });
     await page.mouse.down();
     await page.waitForTimeout(1100);
+    // Caught while the stop is under way, if it lasts long enough to be seen: the spinner alone, the words its spoken name
+    // (fix walk-strip-buttons audit 5).
+    const busyStop = await page.evaluate(() => {
+      const b = document.querySelector('[data-testid=stop]');
+      return b ? { label: b.getAttribute('aria-label'), words: b.innerText.trim() } : null;
+    });
     await page.mouse.up();
     await page.waitForURL(/replay/, { timeout: 30000 });
     check(true, 'holding Stop opens the replay');
+    check(!busyStop || busyStop.label !== 'Stopping…' || busyStop.words === '',
+      `fix walk-strip-buttons audit 5: a busy Stop draws the spinner alone, "Stopping…" its spoken name (${JSON.stringify(busyStop)})`);
     // The walk opens from the device, whatever the network does (bug, Nov 1: blank until a reload).
     let opened = false;
     for (let k = 0; k < 40 && !opened; k++) {

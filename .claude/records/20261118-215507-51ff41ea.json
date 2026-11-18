@@ -1,0 +1,25 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "`E2E_ONLY=scenic` fails `fix preview-clutter audit 1`"
+      ],
+      "body": "  - Nov 18 (fix drive-card-return, scrapped after six instrumented runs on the `/chronicles` build; its debug steps saved, not shipped): the far step (DW14) fails at once after `pg.goto(exploreUrl)` from 11.5 km east, and passes when the journey waits 8 s before `openCard`. The Towns row shows Providence selected, yet the first tap on Cranston enters its page as if Cranston were the screen's selection; on the page the neighborhood's card is selected, not the town's own, against EC12 (\"opening a page selects the first card\"), so the tap on the town's card only selects it and a second tap opens it. The row was not scrolling (scrollLeft 316 throughout). Where the screen's selection and the row's shown one part is not found; the next step is to log `selected` beside `firstSelection` on Explore's mount after a far `goto`.\n",
+      "target": "sha256:480fc173ed0e6cd7f15f47fac2d23a6fc8d8f2bfaa8e887949050d7a96d38e73"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "The `drive` journey stops on `main`",
+        "--reason",
+        "a duplicate of the Navigation and routes entry that already records drive's DW3 timeout; the evidence is noted there (Nov 18)"
+      ],
+      "target": "sha256:7d608673045fbdab2cd3bd6408b0ed31c1fb9dc911278238211df4c30e5e296a"
+    }
+  ]
+}

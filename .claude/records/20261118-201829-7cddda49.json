@@ -1,0 +1,13 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Recording and the background task"
+      ],
+      "body": "- [ ] **Do:** on a walk, tap Pause, then hold Stop; on another, Pause, then Resume and walk on. **Expect:** walking, the strip shows Pause alone (no Stop); paused, Resume in the accent and Stop, each an icon and word with no box, the numbers whole on a small phone; held, an orange fill sweeps behind Stop and the replay opens; Resume records again (decision 0208).\n"
+    }
+  ]
+}

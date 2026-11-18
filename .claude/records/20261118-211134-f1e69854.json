@@ -1,0 +1,13 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inflight",
+        "set",
+        "Shop facets (widened"
+      ],
+      "body": "| Shop facets (widened to every stop of an outing by the same facets: the kind of place, whether it is entered or had from outside, and for shops what is sold and how; picks across facets narrowing; the lists drawn from a count of every OpenStreetMap kind in the US; SHF1-SHF30, decision 0219) | `claude/determined-wright-yg1fq9` | specced 2026-11-18, nothing built in the app; chronicles-data counts every kind, and its stated hours, on its main; an OpenStreetMap run has yet to report them; the composer's form waits for mocks |\n",
+      "target": "sha256:368aa4164eb9d48693945b48cc2d80d82aae4f42ae7bec159a061adca48ceab3"
+    }
+  ]
+}

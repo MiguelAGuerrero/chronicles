@@ -11,7 +11,7 @@ const OUT = 'Not saved: there is no room left. It is held here for Retry.';
 const REFUSED = 'This browser may clear Chronicles’ moments when it needs room.';
 
 async function run(h) {
-  const { navUrl, check, freshPage, scriptsDir } = h;
+  const { navUrl, check, freshPage, scriptsDir, toStop } = h;
   const fixtures = path.join(scriptsDir, 'fixtures');
   const { c, pg } = await freshPage('space');
   await c.addInitScript(() => {
@@ -151,6 +151,7 @@ async function run(h) {
   // tend walk-screen 1: Stop warns about what is held at that moment, not only the first time in the walk (SA8). A held photo,
   // Stop's warning, Retry keeps it; a later photo is held too: Stop warns again instead of ending the walk without it.
   const holdStop = async () => {
+    await toStop(pg);
     const b = await pg.locator('[data-testid=stop]').boundingBox();
     await pg.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
     await pg.mouse.down();

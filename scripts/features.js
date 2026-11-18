@@ -191,15 +191,15 @@ const FEATURES = [
     rule: 'outing',
     source: ['src/lib/outing/**', 'src/components/outing/**'],
     journeys: ['outing', 'journey', 'startfar'],
-    specs: ['quick-circuit', 'outing-journey', 'drive-in-the-outing'],
+    specs: ['quick-circuit', 'outing-journey', 'drive-in-the-outing', 'shop-facets'],
   },
   {
     name: 'layers',
     about: 'map layers: the Layers button and panel, what is on, storefronts and town borders as layers',
     rule: 'layers',
-    source: ['src/lib/layers/**', 'src/components/LayersControl.tsx'],
-    journeys: ['layers', 'dense', 'switches'],
-    specs: ['map-layers', 'explore-dense-city', 'smooth-switches', 'storefronts'],
+    source: ['src/lib/layers/**', 'src/lib/pastLines/**', 'src/components/LayersControl.tsx'],
+    journeys: ['layers', 'dense', 'switches', 'where'],
+    specs: ['map-layers', 'explore-dense-city', 'smooth-switches', 'storefronts', 'where-ive-been'],
   },
   {
     name: 'walkability',
@@ -557,6 +557,7 @@ const IN_PROGRESS = {
   // Replay ceremony (RC1-RC48): the owner's go-ahead Nov 18 (decision 0206); built on the branch, shown at the preview address first.
   'replay-ceremony': { branch: 'claude/funny-bohr-ztvwgv', since: '2026-11-18' },
   'drive-in-the-outing': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-18' },
+  'shop-facets': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-18' },
 };
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));

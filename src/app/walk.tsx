@@ -54,7 +54,7 @@ import { boundsOf, distanceM, distanceToLinesM, nearPoints, pausedMs } from '../
 import { capturesHere, type HereResult } from '../lib/here';
 import { groupFirst, groupRadiusM, MEMORY_RULES, memoriesNear, memoryReader } from '../lib/memories';
 import { MemoryPreview } from '../components/MemoryPreview';
-import { deriveSegments, streetKey } from '../lib/streets';
+import { deriveSegments } from '../lib/streets';
 import { feedback } from '../lib/motion';
 import { MOTION } from '../lib/motionTokens';
 import { recorder } from '../lib/recorder';
@@ -87,6 +87,7 @@ import { loadWayBack, saveWayBack } from '../lib/nav/store';
 import { CHOSEN_NOTICE, showsWayBack, wayBackTarget } from '../lib/nav/wayBack';
 import { layerNotes } from '../lib/layers/notes';
 import { useStorefrontsLayer } from '../lib/layers/useStorefrontsLayer';
+import { usePastLines } from '../lib/pastLines/usePastLines';
 import { useLayers } from '../lib/layers/useLayers';
 import { useRouteWarning } from '../lib/walk/useRouteWarning';
 import { useWalkability } from '../lib/walk/useWalkability';
@@ -99,7 +100,7 @@ import { useJourneyBar } from '../lib/outing/useJourneyBar';
 import { CaptureStack } from '../components/walk/CaptureStack';
 import { ReadyBar } from '../components/walk/ReadyBar';
 import { scaleInsetBottom } from '../lib/stackSlots';
-import { BAR_H, CAP, EDGE, GUTTER, raisedHeight, SCALE_BOTTOM, STACK_GAP, useStackLayout } from '../components/walk/layout';
+import { BAR_H, CAP, GUTTER, raisedHeight, SCALE_BOTTOM, STACK_GAP, useStackLayout } from '../components/walk/layout';
 import { useReady } from '../components/walk/useReady';
 import { aboutTimeLeft, formatTimeLeft, paceMps, timeLeftMs } from '../lib/nav/eta';
 import { optionAt } from '../lib/nav/scenic';
@@ -233,6 +234,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
   useUnits();
   const insets = useSafeAreaInsets();
   const { width, height: screenH } = useWindowDimensions();
+  // The strip's words step down a size below 360, so long numbers still leave them whole (fix walk-strip-buttons audit 1).
+  const narrow = width < 360;
   /** The top column's side margin: centered in 640 on wide screens, like the rest. */
   const sideInset = Math.max(GUTTER, (width - 640) / 2);
   const params = useLocalSearchParams<{ warning?: string; started?: string; recall?: string }>();
@@ -343,10 +346,16 @@ function WalkScreen(props: { onMinimize: () => void }) {
 
   // The ready state (NR1, NR5-NR13): with no walk open, the map and the overlay are its.
   // The buttons the compass hands the focus to as it leaves (tend map 6): Locate on the ready screen; on the walk,
-  // the one below it in the column, Walk me back while that shows, else the unwalked streets.
+  // the one below it in the column, Walk me back while that shows, else Recenter while it shows, else the map (WB3).
   const readyLocateRef = useRef<PressableRef>(null);
   const backRef = useRef<PressableRef>(null);
-  const unwalkedRef = useRef<PressableRef>(null);
+  const recenterRef = useRef<PressableRef>(null);
+  // Resolved as the compass is pressed, never in render: whichever is drawn then.
+  const [compassNext] = useState(() =>
+    Object.defineProperty({} as { current: unknown }, 'current', {
+      get: (): unknown => backRef.current ?? recenterRef.current ?? { focus: () => mapRef.current?.focus() },
+    }),
+  );
   const ready = useReady({
     locateRef: readyLocateRef,
     active: !walk,
@@ -540,10 +549,6 @@ function WalkScreen(props: { onMinimize: () => void }) {
         run.busy = false;
       });
   }, [live.here, live.riding, build]);
-  // Unwalked streets near me: a count, and the fog drawn boldly over a veiled map.
-  const [showUnwalked, setShowUnwalked] = useState(false);
-  // Named streets only (the owner's call): unnamed paths are fog, not a count.
-  const unwalkedCount = useMemo(() => new Set(fog.filter((x) => x.name).map(streetKey)).size, [fog]);
 
   // A long press on the map opens a small sheet for that spot: Go here, and
   // what happened here (every capture near it, on any walk) when there is any.
@@ -735,6 +740,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const layers = useLayers();
   const wk = useWalkability(live.here, !!layers.on.walkability);
   const storefronts = useStorefrontsLayer(live.here, !!layers.on.storefronts);
+  // Where I've been (WB6, WB8): earlier walks near you, never this one; read only while a walk is open (the ready screen reads its own).
+  const past = usePastLines(live.here, !!layers.on.past && !!walk, walk?.id ?? null);
   // While choosing among a preview's routes only the routes are drawn, in blue; the trace, the fog, the storefront streets' shading and the rest
   // come back as it closes (fix preview-clutter).
   const drawn = forPreview(!!navigation.preview, {
@@ -747,8 +754,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
     landing: storefronts.view,
     borders: layers.on.borders ? borders : null,
     walkability: wk.draw,
-    veil: showUnwalked,
-    fogEmphasis: showUnwalked,
+    past: past.view,
   });
   const aheadLine = useRouteWarning(navigation.nav?.route.path ?? null, live.here, !!layers.on.walkability);
   // Explore (v1 slice 5): checklists are built quietly on every walk (E2); the layers show only
@@ -1089,6 +1095,19 @@ function WalkScreen(props: { onMinimize: () => void }) {
     props.onMinimize();
   }
 
+  // The walk's options, raised or lowered by the strip's drag, a tap on its numbers or its … (decision 0220).
+  function raiseOptions(u: boolean) {
+    if (u) {
+      setSpot(null);
+      setMarkOpen(null);
+      setMemory(null);
+      setGapOpen(null);
+    }
+    setOptions(u && !recordingVoice);
+    // Lowered with the ring up: back to following you, out of the ring's zoom (audit, UI); a pan stays otherwise.
+    if (!u && preview != null) setFollowing(true);
+  }
+
   async function togglePause() {
     if (!walk || pausing) return;
     setPausing(true);
@@ -1349,7 +1368,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
         <>
           {ready.overlay}
           {/* The compass over Locate while the map is turned (CP2); the live walk has its own, below. */}
-          <CompassButton bearing={bearing} onPress={() => mapRef.current?.resetNorth()} bottom={at.edgeBottom('unwalked')} right={at.edgeRight} focusAfter={readyLocateRef} />
+          <CompassButton bearing={bearing} onPress={() => mapRef.current?.resetNorth()} bottom={at.edgeBottom('back')} right={at.edgeRight} focusAfter={readyLocateRef} />
         </>
       ) : (
       <>
@@ -1645,58 +1664,70 @@ function WalkScreen(props: { onMinimize: () => void }) {
         }}
       />
 
-      {/* The walk's strip is the ready bar's twin (NR7): pull it up for the walk's options, which are
-          no button of their own. Pause and Stop stay at its foot at every height. */}
+      {/* The walk's strip is the ready bar's twin (NR7): pull it up, tap the numbers, or (walking) tap … for the
+          walk's options (decision 0220). Its buttons stay at its foot at every height. */}
       <ReadyBar
         idPrefix="walk"
         up={options}
-        onUp={(u) => {
-          if (u) {
-            setSpot(null);
-            setMarkOpen(null);
-            setMemory(null);
-            setGapOpen(null);
-          }
-          setOptions(u && !recordingVoice);
-          // Lowered with the ring up: back to following you, out of the ring's zoom (audit, UI); a pan stays otherwise.
-          if (!u && preview != null) setFollowing(true);
-        }}
+        onUp={raiseOptions}
         areaHeight={screenH}
         locked={recordingVoice}
         summaryLabel={exploring ? 'The walk, exploring' : 'The walk'}
         summary={<WalkStats startedAt={walk?.started_at ?? null} pauses={pauses} distanceM={live.distanceM} rideM={live.rideM} />}
         actions={
-          <View style={styles.barActions}>
+          // Pause alone while walking; Resume and a held Stop once paused, as AllTrails does (decision 0220). The owner's
+          // AllTrails look (Nov 18): the buttons fill what the numbers leave. Walking: … (the walk's settings) and a wide
+          // Pause; paused: Resume and Stop, half each, words only (the owner's picks), and no …: at 320 px it does not fit
+          // beside them, and the numbers still open the settings.
+          <View testID="walk-actions" style={styles.barActions}>
+            {!paused && (
+              <Pressable
+                testID="strip-more"
+                accessibilityRole="button"
+                // Named as the numbers name the same drawer (fix walk-strip-buttons audit 4).
+                accessibilityLabel={options ? 'Lower the walk settings' : 'Walk settings'}
+                accessibilityState={{ expanded: options, disabled: recordingVoice || stopping || !walk }}
+                // react-native-web reads aria-expanded, not accessibilityState's (fix walk-strip-buttons audit 4).
+                aria-expanded={options}
+                onPress={() => raiseOptions(!options)}
+                disabled={recordingVoice || stopping || !walk}
+                style={({ pressed }) => [styles.roundBtn, (recordingVoice || stopping || !walk) && styles.disabled, pressed && styles.pressed]}
+              >
+                <Icon name="ellipsis-horizontal" size={22} color={theme.ink} />
+              </Pressable>
+            )}
             <Pressable
               testID={paused ? 'resume-walk' : 'pause-walk'}
               accessibilityRole="button"
               accessibilityLabel={paused ? 'Resume the walk' : 'Pause the walk'}
-              accessibilityHint={paused ? undefined : 'Stops recording until you resume'}
+              accessibilityHint={paused ? undefined : 'Stops recording until you resume. Stop is offered while paused'}
               onPress={togglePause}
               disabled={pausing || stopping || !walk}
-              style={({ pressed }) => [styles.pauseBtn, paused && styles.pauseBtnOn, pressed && styles.pressed]}
+              style={({ pressed }) => [styles.barBtn, narrow && styles.barBtnNarrow, paused && styles.resumeBtn, pressed && styles.pressed]}
             >
-              {/* Its word under its icon, as Hold shows its own (decision 0172, O27); the spoken name stays the button's. */}
-              <Icon name={paused ? 'play' : 'pause'} size={18} color={paused ? '#ffffff' : theme.ink} />
-              <Text style={[styles.pauseText, paused && styles.pauseTextOn]} numberOfLines={1} selectable={false}>
+              {/* Resume is the strip's one primary action while paused: the accent, as 0172 allows. */}
+              {!paused && <Icon name="pause" size={narrow ? 16 : 18} color={theme.ink} />}
+              <Text style={[styles.barBtnText, narrow && styles.barBtnTextNarrow, paused && styles.resumeText]} numberOfLines={1} selectable={false}>
                 {paused ? 'Resume' : 'Pause'}
               </Text>
             </Pressable>
-            <HoldButton
-              testID="stop"
-              label="Hold to stop"
-              busyLabel="Stopping…"
-              onHold={stop}
-              onTap={() => setToast('Hold to stop the walk')}
-              busy={stopping}
-              disabled={!walk || pausing}
-              style={styles.stopBtn}
-            >
-              <View style={styles.stopInner}>
-                <Icon name="stop" size={18} color={theme.ink} />
-                <Text style={styles.stopText} selectable={false}>Hold</Text>
-              </View>
-            </HoldButton>
+            {paused && (
+              <HoldButton
+                testID="stop"
+                label="Hold to stop"
+                busyLabel="Stopping…"
+                // The spinner alone while stopping: "Stopping…" does not fit a half on most phones, and stays the spoken
+                // name (fix walk-strip-buttons audits 2, 5).
+                busyQuiet
+                onHold={stop}
+                onTap={() => setToast('Hold to stop the walk')}
+                busy={stopping}
+                disabled={!walk || pausing}
+                style={[styles.stopBtn, narrow && styles.barBtnNarrow]}
+              >
+                <Text style={[styles.barBtnText, narrow && styles.barBtnTextNarrow]} numberOfLines={1} selectable={false}>Stop</Text>
+              </HoldButton>
+            )}
           </View>
         }
       >
@@ -1787,28 +1818,6 @@ function WalkScreen(props: { onMinimize: () => void }) {
 
       {/* Small round controls in the stack's column, above the captures (as in AllTrails), inside the
           640 column on wide screens: Recenter where Locate sits on the ready screen (NR9). */}
-      <Pressable
-        ref={unwalkedRef}
-        testID="unwalked"
-        accessibilityRole="switch"
-        accessibilityState={{ checked: showUnwalked }}
-        aria-checked={showUnwalked}
-        accessibilityLabel="Show unwalked streets near me"
-        onPress={() => setShowUnwalked((v) => !v)}
-        style={({ pressed }) => [styles.edgeBtn, { right: at.edgeRight, bottom: at.edgeBottom('unwalked') }, showUnwalked && styles.edgeBtnOn, pressed && styles.pressed]}
-      >
-        <Icon name="footsteps-outline" size={22} color={showUnwalked ? '#ffffff' : theme.ink} />
-      </Pressable>
-      {showUnwalked && (
-        <View
-          style={[styles.unwalked, { right: at.edgeRight + EDGE + 8, bottom: at.edgeBottom('unwalked') + 7 }]}
-          accessibilityLiveRegion="polite"
-          pointerEvents="none"
-        >
-          <Text style={styles.unwalkedText}>{unwalkedCount} unwalked nearby</Text>
-        </View>
-      )}
-
       {/* The compass (CP2): the column's top, so no other button moves; it takes Walk me back's
           place while that is away, and sits above Locate on the ready screen. */}
       <CompassButton
@@ -1816,10 +1825,10 @@ function WalkScreen(props: { onMinimize: () => void }) {
         onPress={() => mapRef.current?.resetNorth()}
         bottom={at.edgeBottom(awayFromStart && !navigation.nav ? 'compass' : 'back')}
         right={at.edgeRight}
-        focusAfter={awayFromStart && wayBack && !navigation.nav ? backRef : unwalkedRef}
+        focusAfter={compassNext}
       />
       {/* Layers (ML3): the bottom-left corner above the scale bar, clear of the navigation bar. */}
-      <LayersControl layers={layers} notes={layerNotes({ walkability: wk.status, storefrontsReading: storefronts.reading, storefrontsFailed: storefronts.failed })} bottom={at.layers.bottom} left={at.layers.left} rightClear={at.layersRightClear} clearTop={at.insets.top + 152} />
+      <LayersControl layers={layers} notes={layerNotes({ walkability: wk.status, storefrontsReading: storefronts.reading, storefrontsFailed: storefronts.failed, past: past.status })} bottom={at.layers.bottom} left={at.layers.left} rightClear={at.layersRightClear} clearTop={at.insets.top + 152} />
 
       {awayFromStart && wayBack && !navigation.nav && (
         // Walk me back: the way back to where this walk began, where the last ride ended, or the spot chosen (N1, N11, DW6-DW8).
@@ -1839,6 +1848,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
       {!following && live.here && (
         // Back to following the walker, after looking around the map.
         <Pressable
+          ref={recenterRef}
           testID="recenter"
           accessibilityRole="button"
           accessibilityLabel="Recenter on your position"
@@ -2132,21 +2142,26 @@ const styles = StyleSheet.create({
   disabled: { opacity: 0.5 },
   pressed: { opacity: 0.8 },
   stats: { color: theme.ink, fontSize: 17, fontWeight: '600', fontVariant: ['tabular-nums'], flexShrink: 1 },
-  stopInner: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  barActions: { flexDirection: 'row', alignItems: 'center', gap: 20 },
-  // The strip's height holds it: 48 high, its word under its icon, in Hold's frame (O27). Pause stays 48 wide and Resume
-  // about 53, so the walk's numbers keep their room at 320.
-  pauseBtn: {
-    minWidth: 48, height: 48, paddingHorizontal: 4, borderRadius: theme.radius, alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1.5, borderColor: theme.ink, backgroundColor: theme.surface,
+  // The buttons fill what the numbers leave (the owner's AllTrails look, decision 0220): the numbers keep their width.
+  barActions: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 8 },
+  // Pause, Resume and Stop: wide pills sharing the row, no outline, words centred, 48 high. Thin at the sides, so an
+  // hour-long walk's numbers at 320 still leave the words whole (fix walk-strip-buttons audit 1).
+  barBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 48, paddingHorizontal: 4,
+    borderRadius: 24, backgroundColor: theme.line,
   },
-  // Resume is the one thing to do while paused.
-  pauseBtnOn: { backgroundColor: theme.accent, borderColor: theme.accent },
-  pauseText: { color: theme.ink, fontSize: 11, lineHeight: 14, fontWeight: '600' },
-  // As high as Pause beside it, so the two share a top and a bottom (tend walk-screen audit 9); the walk's strip only.
-  stopBtn: { minHeight: 48 },
-  pauseTextOn: { color: '#ffffff' },
-  edgeBtnOn: { backgroundColor: theme.ink, borderColor: theme.ink },
+  barBtnText: { color: theme.ink, fontSize: 16, fontWeight: '600' },
+  barBtnTextNarrow: { fontSize: 14 },
+  // Below 360, Pause's icon closer to its word and no side padding (the words are centred, so it shows only when tight), so
+  // an hour-long walk's numbers leave every word whole (fix walk-strip-buttons audits 1, 7).
+  barBtnNarrow: { gap: 4, paddingHorizontal: 0 },
+  // Resume, the one primary action while paused: solid accent, white word.
+  resumeBtn: { backgroundColor: theme.accent },
+  resumeText: { color: theme.accentInk },
+  // …: round, 48, soft like Pause.
+  roundBtn: { width: 48, height: 48, borderRadius: 24, backgroundColor: theme.line, alignItems: 'center', justifyContent: 'center' },
+  // Stop: HoldButton with its outline off, half the row beside Resume, the hold's fill sweeping across it.
+  stopBtn: { flex: 1, minHeight: 48, paddingHorizontal: 4, borderRadius: 24, borderWidth: 0, backgroundColor: theme.line },
   minRow: { alignSelf: 'stretch', flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
   noticeCell: { flex: 1, minWidth: 0 },
   noticeBelow: { alignSelf: 'stretch' },
@@ -2154,15 +2169,12 @@ const styles = StyleSheet.create({
   chipCell: { position: 'absolute', left: 0, right: 0, top: 0, height: 44, alignItems: 'center', justifyContent: 'center' },
   ahead: { flexDirection: 'row', alignItems: 'center', gap: 8, maxWidth: 360, backgroundColor: theme.glass, borderRadius: 999, paddingVertical: 8, paddingHorizontal: 12, borderWidth: 1, borderColor: theme.line },
   aheadText: { color: theme.ink, fontSize: 14, flexShrink: 1 },
-  unwalked: { position: 'absolute', backgroundColor: theme.ink, borderRadius: 999, paddingVertical: 8, paddingHorizontal: 12 },
-  unwalkedText: { color: '#ffffff', fontSize: 14, fontWeight: '600' },
   // Small round controls at the map's edges, as in AllTrails.
   edgeBtn: {
     position: 'absolute', width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center',
     backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.edge,
     shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 3,
   },
-  stopText: { color: theme.ink, fontSize: 15, fontWeight: '600' },
   modalBack: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)' },
   modalWrap: { flex: 1, justifyContent: 'flex-start', paddingHorizontal: 16 },
   modal: { backgroundColor: theme.surface, borderRadius: theme.radius, padding: 16, gap: 12, maxWidth: 520, width: '100%', alignSelf: 'center' },

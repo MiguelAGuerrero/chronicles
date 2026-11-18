@@ -1,0 +1,11 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inflight",
+        "add"
+      ],
+      "body": "| Where I've been (the walk's unwalked-streets button, veil, bold fog and count removed; a \"Where I've been\" layer draws earlier walks' lines near the map in one even pale green under today's trace, from a cache of each walk's line; WB1-WB17, decision 0208) | `claude/modest-johnson-pctfuj` | started 2026-11-18: spec and plan approved by the owner; tests first |\n"
+    }
+  ]
+}

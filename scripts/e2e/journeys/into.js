@@ -547,7 +547,7 @@ async function run(h) {
   const escapedWalk = await closeInto(pg, 'escape');
   check(escapedWalk && (await pg.locator('[data-testid=options-card]:visible').count()) === 1, 'what-im-into-page audit 1: Escape on the page pops it, and the walk\'s drawer beneath stays raised');
   const pointsAfter = await tracePoints();
-  const ok10 = pointsAfter >= pointsBefore + 4 && (await pg.locator('[data-testid=stop]').count()) === 1 && new URL(pg.url()).pathname === `${BASE}/walk`;
+  const ok10 = pointsAfter >= pointsBefore + 4 && (await pg.locator('[data-testid=walk-actions]').count()) === 1 && new URL(pg.url()).pathname === `${BASE}/walk`;
   check(ok10, `WI10: the fixes that came while the page was up are in the trace, on the one walk screen (${pointsBefore} → ${pointsAfter})`);
   await pg.keyboard.press('Escape');
   await pg.waitForTimeout(1500);
@@ -654,7 +654,7 @@ async function run(h) {
   await openInto(pg, 'walk');
   await pg.reload();
   await pg.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 }).catch(() => {});
-  await pg.waitForSelector('[data-testid=stop]', { timeout: 15000 }).catch(() => {});
+  await pg.waitForSelector('[data-testid=walk-actions]', { timeout: 15000 }).catch(() => {});
   check(new URL(pg.url()).pathname === `${BASE}/walk` && !(await pageShown()), `WI16: a reload on the page with a walk open comes back to the walk (${pg.url()})`);
 
   await c.close();

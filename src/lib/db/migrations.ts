@@ -286,4 +286,13 @@ export const MIGRATIONS: readonly string[] = [
     WHERE note_type IN ('happy', 'neutral', 'sad', 'like', 'dislike', 'question', 'emphasis', 'idea')
     ORDER BY t, id;
   `,
+  // Where I've been (WB14, decision 0222): each walk's walked line, a cache of its trace, and the z12 tiles it crosses, so the
+  // lines near the map are an indexed read of a few tiles. Not a derived store of the tile build: it reads no tiles.
+  `
+  CREATE TABLE walk_line (
+    walk_id TEXT PRIMARY KEY, code TEXT NOT NULL, west REAL NOT NULL, south REAL NOT NULL, east REAL NOT NULL, north REAL NOT NULL, runs TEXT NOT NULL
+  );
+  CREATE TABLE walk_line_tile (walk_id TEXT NOT NULL, tile TEXT NOT NULL, PRIMARY KEY (walk_id, tile));
+  CREATE INDEX walk_line_tile_tile ON walk_line_tile (tile);
+  `,
 ];

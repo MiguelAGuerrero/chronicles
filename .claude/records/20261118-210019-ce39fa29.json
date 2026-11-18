@@ -1,0 +1,16 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "set",
+        "Pause, then hold Stop; on another",
+        "--reason",
+        "the owner asked for pill fills (decision 0208)"
+      ],
+      "body": "- [ ] **Do:** on a walk, tap Pause, then hold Stop; on another, Pause, then Resume and walk on. **Expect:** walking, the strip shows Pause alone (no Stop); paused, Resume (a solid orange pill) and Stop (a soft pill), no outlines, the numbers whole on a small phone; held, an orange fill sweeps across Stop and the replay opens; Resume records again (decision 0208).\n",
+      "target": "sha256:98b69e3f681701a0b6190635ca3f0fdedd7e3aca6c70e53e36bcc20b962cf946"
+    }
+  ]
+}

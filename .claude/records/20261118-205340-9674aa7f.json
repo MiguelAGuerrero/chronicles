@@ -1,0 +1,20 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inflight",
+        "add"
+      ],
+      "body": "| Shop facets (the outing's shop chips as two facets of the stores data, what is sold and how, picks across the two narrowing; the lists drawn from a count of every OpenStreetMap shop kind in the US; SH1-SH18, decision 0219) | `claude/determined-wright-yg1fq9` | specced 2026-11-18, nothing built in the app; chronicles-data's shop counts built on its branch, waiting to be merged there and for an OpenStreetMap run to report |\n"
+    },
+    {
+      "argv": [
+        "inflight",
+        "set",
+        "Shop facets (the outing"
+      ],
+      "body": "| Shop facets (the outing's shop chips as two facets of the stores data, what is sold and how, picks across the two narrowing; the lists drawn from a count of every OpenStreetMap shop kind in the US; SHF1-SHF18, decision 0219) | `claude/determined-wright-yg1fq9` | specced 2026-11-18, nothing built in the app; chronicles-data's shop counts built on its branch, waiting to be merged there and for an OpenStreetMap run to report |\n",
+      "target": "sha256:76fc2484961c152c5f5023d5911aecd655aa5a98430c643352b90b8e17b819e5"
+    }
+  ]
+}

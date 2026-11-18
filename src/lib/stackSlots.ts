@@ -5,8 +5,9 @@
  */
 
 /** Edge slots in the right column above the captures, from the bottom up. The Layers button is not one: it sits in the left corner. */
-export type EdgeSlot = 'locate' | 'unwalked' | 'back' | 'compass';
-export const EDGE_INDEX: Record<EdgeSlot, number> = { locate: 0, unwalked: 1, back: 2, compass: 3 };
+export type EdgeSlot = 'locate' | 'back' | 'compass';
+/** No gap where the unwalked-streets button was (decision 0222, WB2): the ready screen's compass sits in `back`, above Locate. */
+export const EDGE_INDEX: Record<EdgeSlot, number> = { locate: 0, back: 1, compass: 2 };
 
 /** The gap between the Layers button and what sits above it (the pills). */
 const CORNER_GAP = 8;
