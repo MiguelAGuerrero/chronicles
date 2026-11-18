@@ -47,6 +47,9 @@ screen render every tick. It is inside B either way, as B's first commit.
 
 Each part is spec-first and test-first as the repo does it, ends green, and is committed; none is deployed.
 
+0. **The decision record**, before the first test commit: the owner's calls and answers, amending RR3 and RR4 (the pull-back
+   and the cut), RR11 and RR19 (the stack grows; its height the one exception to "nothing counts"), MS17 (a moment's videos in
+   turn) and 0169 (captions in the replay), with the objection the owner heard on the stack (the steward's S1).
 1. **Engine** (RC1-RC10, RC48): spike A's changes, then the loop, the marker, the revealed line, the overlays off React, the
    day's replay on it; `scripts/perf-replay.js` (the spike's harness, kept) run before and after.
 2. **Camera** (RC11-RC16): the screen's size becomes an input to the ceremony; the camera is keyframes in the plan (pure), read
@@ -59,7 +62,32 @@ Each part is spec-first and test-first as the repo does it, ends green, and is c
 6. **Captions** (RC38-RC44): the memo's caption window in the bubble; a video's reading (new native code); only if the owner
    wants them before a phone build exists (question 3).
 
-Then the cold find, the UI review with pictures, `/docs-gc`, and the owner's look. `/deploy` only on the owner's word.
+**The owner looks twice**: once after the engine alone (is it smooth on the iPhone; which ceiling on frames a second looks
+best), before the look is built on it, and once at the end (the steward's S8). Then the cold find, the UI review with pictures
+and `/docs-gc`. `/deploy` only on the owner's word.
+
+## How the owner sees it
+
+The owner watches on an iPhone in the browser. Only the live site serves the app, and it serves only `main`. The choices:
+
+- **A preview address** (recommended): the deploy also publishes this branch's build at a second address under the same site,
+  reached only by its link; the app at its usual address is untouched. It needs a small change to the deploy workflow, which
+  itself goes to `main`. Because it is the same site, the preview reads the owner's own walks from the phone (the same storage),
+  which is what makes it worth looking at; nothing in this spec changes stored data.
+- **Recordings**: videos of the replay from the test browser. They show the look, not how it runs on an iPhone.
+- A switch inside the live app is not offered: it is a deploy of the whole thing, and the engine cannot sit behind a switch.
+
+## What will still differ from the mock-up on the owner's iPhone
+
+Said now, so nothing surprises again:
+- Real photos and real map tiles, not drawings, and whatever the phone's GPU makes of a map drawn every frame.
+- In iPhone Safari a voice memo shows its play button until tapped and a video plays muted with "Tap for sound" (RR10, RR12): the
+  browser refuses sound without a tap. "In turn, with sound" needs those taps.
+- No captions at all on the web (0169): they need a phone build.
+- The opening is the replay's own first beat (the walk whole, its streets lighting up), not a separate overview; the last view
+  holds 2 s, not 4.
+- The stack has one entry for each moment, not each picture, and goes when the card arrives.
+- Pictures on the map depend on question 4.
 
 ## Files
 
@@ -131,13 +159,25 @@ scans gain the new files).
 - Against precedent: Relive flies a 3D camera and shows a scrub bar; ours is flat, north-up and has neither (screen direction;
   RR19).
 
+## Pictures on the map (question 4)
+
+The map's pins merge within 44 px, and a pin of several shows its kinds, never a picture (0154). At the wider walking zoom
+merges roughly double, and on the whole-walk view most of a town walk merges. So as specified (RC28, RC34) a card often shrinks
+into a pin of icons, and the last view is studded with pictures only where moments stand apart. The choices:
+
+- **The stage draws the pictures** (recommended): in the replay only, each moment's picture stands at its place on the map,
+  drawn by the stage over the map (not by the map's pins, which every screen shares); where several would overlap, the latest
+  shows with a layered edge. The map's own pins for those moments wait until the card. 0154 holds everywhere else.
+- **Keep 0154 as it is**: where a pin is a pin of several, the picture stays in the stack only (RC34 as written).
+
 ## Defaults I took that the owner can overrule
 
-- Pins stay as 0154 has them: where several moments share a pin on the whole-walk view it shows their kinds, not a picture. So
-  the last view is "studded with pictures" only where moments stand apart. Changing 0154 would change every map in the app.
 - The stack goes when the card arrives (RC33); the mock-up's second pass lifted it above the card.
-- A video's reading goes nowhere but its caption (RC41).
-- The scrim is a fifth and the drift 3%, the mock-up's second-pass defaults; two reviewers disagreed on them.
+- A video's reading goes nowhere but its caption in the replay (RC41).
+- The map dims a fifth under a card and a held photo drifts 3% closer, the mock-up's second-pass values. The steward objects to
+  both: the dim is a fade (the owner called the break's fade jarring), and the drift is the slow pan this spec lists as Apple
+  Photos' counter-example. They are one number each in `REPLAY_RHYTHM`; 0 turns either off.
+- Next leaves a whole moment, however many pieces it has.
 
 ## Deferred
 
@@ -150,6 +190,23 @@ The loop's frames through MapLibre RN (`jumpTo` with a zoom every frame, `lineGr
 through `Animated` on the native driver; speech recognition on a video's sound and the audio cut for it; the keep-awake for
 minutes. Each becomes a `**Do:** … **Expect:** …` item. Native has never run on a device.
 
-## The steward's findings
+## The steward's findings (Nov 18), triaged
 
-(Triage follows the steward's pass.)
+Ten drifts, no breach.
+
+- **S1 the stack's height is a count: accepted as the owner's call to record** (step 0), with RC45's exception and RC30's
+  two additions (no overlap at 320 px; a dropped entry still opens).
+- **S2 a moment ordered by kind, its voice parted from its pictures: accepted.** RC37 keeps memos beside the grid, or the card
+  up while they play.
+- **S3 the phone's guess beside the owner's caption: accepted.** RC41: below the card, muted, never in the caption strip; the
+  replay only, not the viewer.
+- **S4 a caption cannot be put away: the owner's**, with question 3. RC38 now says the window moves by the share played and
+  marks no word.
+- **S5 the drift copies a counter-example and the dim brings a fade back: the owner's**, named under defaults; RC35 shares one
+  dim across a stop.
+- **S6 the pins shortfall is larger than the plan said: the owner's**, question 4.
+- **S7 the last view: accepted.** RC25 and RC26 say the ink, the one line for more than two, and the day's.
+- **S8 promises the engine cannot keep on native, and criteria that can pass while the iPhone stutters: accepted.** RC1 is the
+  web's; the owner looks at the engine alone on the iPhone before the look is built.
+- **S9 how the owner sees it: accepted.** "How the owner sees it" and "What will still differ from the mock-up".
+- **S10 precedent: accepted.** Polarsteps' complaint and Voice Memos are cited; the spec says how little is verified.

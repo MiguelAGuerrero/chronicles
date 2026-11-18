@@ -79,13 +79,20 @@ Open: the three questions under "For the owner" (how the map is driven; how it i
   https://support.google.com/photos/answer/9454489?hl=en&co=GENIE.Platform%3DAndroid . **Verified**.
 - **Apple Photos** (iOS): a memory plays as a movie with music and slow pans. Counter-examples (restraint; no music). Source: from
   memory, unverified. **Unverified**.
+- **Polarsteps**: a trip drawn as a route with photo steps; users report photos covering the path and straight lines between
+  stops (a warning for pictures on the map and for the hop). Source: from memory, unverified. **Unverified**.
+- **Apple Voice Memos**: a recording's transcript can be read and searched. Source:
+  https://support.apple.com/guide/iphone/search-for-or-rename-a-recording-iph0e546e6ec/27/ios/27 . **Verified**. No recorded app
+  shows a transcript as a caption over a map.
+- Only two lines here are verified (Google Photos, Voice Memos); the shape rests mostly on the owner's own prototype.
 
 ## Criteria
 
 ### The engine: it moves together
 
-1. **RC1** The owner's task, "smooth": through the path the walker's dot, the end of the walked line and the camera are drawn
-   together in every frame. The line never ends short of the dot, and the dot never trails the camera.
+1. **RC1** The owner's task, "smooth": on the web, through the path the walker's dot, the end of the walked line and the camera
+   are drawn together in every frame. The line never ends short of the dot, and the dot never trails the camera. (A phone build
+   may trail the line by up to a tenth of a second if its map cannot reveal a line; untried, the steward's S8.)
 2. **RC2** As time passes on a stretch with nothing arriving or leaving, the replay screen and the map component are not
    rendered again: at most two renders a second of each.
 3. **RC3** As time passes on a stretch, nothing is sent to the map's data sources: at most one send a second. A run beginning or
@@ -134,8 +141,10 @@ Open: the three questions under "For the owner" (how the map is driven; how it i
     2.2 s, with no cut and no second overview. The day's replay, which has no fog beat, shows the whole day for 2 s and dives.
 24. **RC24** After the last moment the walker stands 1.6 s, then the camera pulls back in 3 s to the view the card uses, and
     holds it 2 s. The card then arrives without the map moving under it.
-25. **RC25** On that last view each place passed without stopping is named beside it, as firmly as the pins of what was kept.
-26. **RC26** The last view shows the walk's date, and nothing on it is a figure larger than body text or in the accent.
+25. **RC25** On a walk's last view each place passed without stopping is named beside it, in body ink at full strength; more
+    than two are said as the one line the card uses (RP19). The day's last view names none, as the day's card carries none (0153).
+26. **RC26** The last view shows the date (the walk's, or the day's), and nothing on it is a figure larger than body text or in
+    the accent.
 27. **RC27** Skip goes to the card at once, as today.
 
 ### What stays behind
@@ -145,7 +154,8 @@ Open: the three questions under "For the owner" (how the map is driven; how it i
     for each moment that had a picture or a video, the newest on top, each arriving once its card has reached its pin. A
     moment of several pieces is one entry with a layered edge; a video's has a play mark.
 30. **RC30** The stack grows upward. When one more would reach the controls at the top, the oldest drops off the bottom. It
-    never shows a number.
+    never shows a number, and at 320 px it never overlaps a card, a bubble or the line under the clock. An entry that dropped
+    off is still among the photos the stack opens.
 31. **RC31** The stack is one control, at least 44 pt, named "Photos and videos so far": it opens them full screen at the latest,
     and the replay holds until it closes (RR13). It replaces the pile (RR11).
 32. **RC32** A new entry settles with an overshoot of 1.5% and the ones under it give 3 px; with reduce motion it appears in
@@ -155,28 +165,33 @@ Open: the three questions under "For the owner" (how the map is driven; how it i
 
 ### A moment on screen
 
-35. **RC35** While a card is up the map under it dims by a fifth, fading in and out in 0.3 s.
+35. **RC35** While a card is up the map under it dims by a fifth. Cards one after another at one stop share one dim, down once
+    and up once; with reduce motion it does not fade.
 36. **RC36** A photo held in its card drifts 3% closer over its hold; not with reduce motion.
-37. **RC37** A moment of several pieces plays its pictures as one grid, then each of its videos in turn in the same card, with
-    sound as a video on its own has, then its voice memos one after another and its notes, as bubbles. (Amends MS17: a
-    moment's videos no longer play muted in the grid's cells.)
+37. **RC37** A moment of several pieces arrives whole. With no video its memos and notes play beside its grid, as MS17 has
+    them. With videos, its pictures show as the grid, then each video plays in turn in the same card, with sound as a video
+    on its own has, and the card stays up while its memos play. Nothing counts its pieces: no dots, no position. (Amends MS17:
+    a moment's videos no longer play muted in the grid's cells. The steward's S2.)
 
 ### Captions (a phone build only)
 
 38. **RC38** A voice memo's bubble shows what the phone read from it: the line "Read by your phone", then at most three lines of
-    the words, which move on as the memo plays. The bubble's size does not change once it is shown.
+    the words, which move on by the share of the memo played. No word is marked as being spoken (the phone keeps no timings).
+    The bubble's size does not change once it is shown.
 39. **RC39** Nothing is shown for a memo not read yet, and a reading that arrives while its bubble is up waits for the next watch.
 40. **RC40** A walk's memos begin to be read when the walk stops, without making the replay wait.
-41. **RC41** A video's sound is read the same way and shown under its card in at most two lines, with the same label. A video's
-    reading is shown there and in the viewer only: it joins no thread and no search.
+41. **RC41** A video's sound is read the same way and shown below its card, never in the strip that holds the owner's own
+    caption, in at most two lines of muted ink under the same label. A word in a video's cut part is never read. A video's
+    reading is shown in the replay only: it joins no thread, no search and no other screen. (The steward's S3.)
 42. **RC42** The permission to recognise speech is never asked while a replay plays.
 43. **RC43** A screen reader is told a caption is the phone's reading, and never hears it over the recording itself.
 44. **RC44** On the web there are no captions (0169).
 
 ### Restraint, and every surface
 
-45. **RC45** Nothing added here counts or celebrates: no number on the stack, the last view or a caption; no progress bar; no
-    accent light (RR19, 0153).
+45. **RC45** Nothing added here counts or celebrates: no numeral on the stack, the last view or a caption; no progress bar; no
+    accent light (RR19, 0153). The stack's height is the one exception, the owner's call, recorded in its decision (the
+    steward's S1).
 46. **RC46** Every way into a replay plays this way: a walk's first replay, a re-watch, a link reopened and the day's replay.
 47. **RC47** The screen reader's steps are as they were (RR17), captions aside (RC43).
 48. **RC48** The old way of playing is gone, not kept beside the new: one engine, one camera, one way across a break.
@@ -194,8 +209,12 @@ intent; nothing else here changes them, and pins are left as they are (RC34) bec
 1. **How the map is driven** (architecture): a loop outside the screen's rendering, as the live walk already moves its dot, with
    the walked line revealed by a paint property (plan, "The engine"). Measured in a spike; the phone's own GPU is not measured.
 2. **How it is shown before it goes live**: the owner watches on an iPhone in the browser, and the only place that serves the app
-   is the live site.
-3. **Captions**: they need a phone build, which does not exist yet; on the web the owner will see none.
+   is the live site (plan, "How the owner sees it").
+3. **Captions**: they need a phone build, which does not exist yet; on the web the owner will see none. Three more calls come
+   with them: whether a caption can be put away (0169 said no, for the viewer; a replay is shown to others), a bystander's
+   speech in a video shown as text, and a memo in another language.
+4. **Pictures on the map**: pins merge when moments are close (0154: a pin of several shows kinds, never a picture), and a wider
+   zoom merges more, so "a photo stays on its pin" would often shrink a card into a pin of icons (plan, "Pictures on the map").
 
 ## Record
 
