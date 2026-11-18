@@ -7,7 +7,7 @@ paths:
 ---
 # The road engine
 
-The app's own router for a drive between towns (RE1-RE34, decisions 0203 and 0204; the spec is `specs/road-engine/spec.md`, its plan and the measurement of real tiles `plan.md`). A second `RouteSource`-shaped engine beside the one on foot, which it never touches. Step 1 (the core) is built; the page, guiding and speech are steps 2 to 4.
+The app's own router for a drive between towns (RE1-RE34, decisions 0203 and 0204; the spec is `specs/road-engine/spec.md`, its plan and the measurement of real tiles `plan.md`). A second `RouteSource`-shaped engine beside the one on foot, which it never touches. Steps 1 (the core) and 2 (the road on the outing page) are built; guiding and speech are steps 3 and 4.
 
 ## What it is
 
@@ -19,7 +19,22 @@ The app's own router for a drive between towns (RE1-RE34, decisions 0203 and 020
 - **A town with no main road within `snapM` has a null leg**: a straight stretch, and the way is not `whole`. Never invent a road to it.
 - **`tilesAlong` returns tiles in no order along the way** (sorted by column and row): the order of requests must not tell the tile host which end is the start (the steward's S6).
 
+## On the page (step 2)
+
+- **`tilesSource.ts` is the adapter** over what fetches and what decodes (both given, so a test reads no network): all or nothing, one tile decoded per turn. A test tile's values are text, so the sense is read with `Number()`.
+- **`service.ts` (`createRoads`) is the only way in**: `way(points, shouldStop)` answers `found`, `long` (more than `tilesMax` tiles: nothing is read), `failed` (the read), `none` (read, and no road joins the points), or null when stopped. One read at a time; the last corridor's graph is kept in memory and reused for a corridor inside it; `forget()` when the page closes. Nothing is stored.
+- **Roads are read only for a place the person picked** (RE8): `useJourney` asks when `dest` is set, the journey in view first, then the other cards'. Never on opening the app, a tab or the page; a reach with no place draws its towns joined straight.
+- **The page says one line** (`roadLine`): straight-line caveat until the road is found (with "Finding the road…" beside it), then how the way is chosen; a failure says why and keeps the caveat. `outing-straight` and `outing-road` are the test ids.
+- **"By road" only for a whole way** (`way.whole`): a way with a straight stretch is drawn, and its length stays "away".
+- **The map gets `thinLine(path, 400)`**, never the whole path: a map source is serialised whole on every change.
+- **Open in Maps takes a travel mode** (`nav/handoff.ts` `travelMode`, `mapsUrls(..., mode)`): driving past `GET_THERE_M`, walking otherwise and wherever no mode is passed.
+
 ## Traps
+
+- The e2e harness serves the same small streets at every zoom, so the `outing` journey sees "Couldn't find the road"; the `journey` journey serves its own z12 tiles with one main road (a page route, not the harness) and sees it found. A fresh page there has no `window.open` recorder: the journey sets its own.
+- react-native-web renders `dataSet`, not `data-*` props: the page's `data-link-points` (the count of points handed to the map) is set that way.
+- This feature names no e2e journey of its own (a journey belongs to one feature): after a change here, run `E2E_ONLY=journey` by hand.
+- RE14 (towns chosen by the road) is deferred: `areasToward` still measures from the straight line.
 
 - The fixture `zurichRoads.json` is nine real z12 tiles (`scripts/fixture-roads.mjs`, from tileserver-gl's `test_data.zip`); hand-made roads never show what a tile edge does. The live host (`tiles.openfreemap.org`) cannot be read from a cloud session: what differs there is unknown.
 - Distances in tests are `distanceM`'s, a few metres off round numbers: compare with a tolerance.

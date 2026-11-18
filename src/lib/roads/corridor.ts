@@ -1,14 +1,14 @@
 // @layer core
 import { distanceM } from '../geo';
 import type { LngLat } from '../types';
-import { ROAD_RULES } from './rules';
+import { ROAD_RULES, type RoadRules } from './rules';
 
 /*
  * The tiles a way may run through (RE7): those within a set distance of the straight stretches between the points, at the engine's
  * zoom. More than the bound and there are none: the journey is too long for one read. They come back in no order along the way
  * (sorted by column and row), so the order they are asked for says nothing of which end is the start.
  */
-type Rules = Pick<typeof ROAD_RULES, 'zoom' | 'padM' | 'tilesMax'>;
+type Rules = Pick<RoadRules, 'zoom' | 'padM' | 'tilesMax'>;
 
 const M_PER_DEG = 111_320;
 

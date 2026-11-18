@@ -220,3 +220,22 @@ tertiary roads with no motorway.
 are flagged but not yet treated differently from their road.
 
 **Native.** Nothing here has run on a device.
+
+**Step 2, the road on the page, built 2026-11-18**: `roads/tilesSource.ts` (the map's tiles as a source), `roads/service.ts` and
+`index.ts` (read a corridor, build the graph, find one way in turns), `roads/thin.ts`; `outing/useJourney.ts` asks for the road of
+each journey toward a picked place; `OutingPage` draws it in place of the straight line and says "by road"; `nav/handoff.ts` takes
+a travel mode.
+
+**Passed.** Unit tests for RE1, RE2, RE4, RE5, RE7, RE8, RE15-RE19, RE29 (`roads/page.test.ts`, `navigation/handoff.test.ts`,
+`outing/journeyWords.test.ts`), committed as todos first (`7db879d`). The journey `journey` (30 checks) serves z12 tiles with one
+main road and checks: no road read before a place is picked (RE8); the map's host only, 24 tiles (RE7, RE30); the line handed to
+the map is the road (8 points where the towns joined straight are 3; RE1, RE16); "24 km by road" on the field and last on the card
+(RE2, RE13, RE17); the one line of how the way is chosen in place of the straight-line caveat (RE11a, RE18); Open in Maps for the
+town asks for driving (RE19). The journey `outing` (no main road in its tiles) keeps the caveat with "Couldn't find the road."
+(RE15).
+
+**Deferred.** RE14, and RE18's second sentence (a journey whose towns come from the road): the towns are still those near the
+straight line. The graph is built on the page in turns, not in a worker. Both are in `docs/DEFERRED.md`.
+
+**Not tested, and why.** What is painted on the map (the e2e counts the points handed to it; the fake map shows no tiles); a
+corridor of sixty tiles; the live host; any phone.

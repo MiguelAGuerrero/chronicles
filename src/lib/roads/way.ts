@@ -2,7 +2,7 @@
 import { distanceM } from '../geo';
 import type { LngLat } from '../types';
 import type { RoadGraph } from './graph';
-import { ROAD_RULES } from './rules';
+import { ROAD_RULES, type RoadRules } from './rules';
 import type { RoadKind, RoadLeg, RoadWay } from './types';
 
 /*
@@ -10,7 +10,7 @@ import type { RoadKind, RoadLeg, RoadWay } from './types';
  * A* over the directed graph. It runs as a generator that hands back every so many junctions, so whoever drives it can give the
  * screen a turn or stop it. Ties go to the lower junction, so the same graph gives the same way.
  */
-type Rules = Pick<typeof ROAD_RULES, 'cost' | 'snapM' | 'yieldEvery' | 'nodesMax'>;
+type Rules = Pick<RoadRules, 'cost' | 'snapM' | 'yieldEvery' | 'nodesMax'>;
 
 /** A binary heap of (cost, node), least first; equal costs by the lower node. */
 class Heap {

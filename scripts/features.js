@@ -177,9 +177,10 @@ const FEATURES = [
   },
   {
     name: 'roads',
-    about: 'the road engine: main roads from the map\'s z12 tiles, a directed graph, one way between towns with a cost by kind of road',
+    about: 'the road engine: main roads from the map\'s z12 tiles, a directed graph, one way between towns with a cost by kind of road; drawn on the outing page with distances by road',
     rule: 'roads',
     source: ['src/lib/roads/**'],
+    // The road on the page is checked by the outing feature's `journey` (a journey belongs to one feature, TG1).
     journeys: [],
     specs: ['road-engine'],
   },

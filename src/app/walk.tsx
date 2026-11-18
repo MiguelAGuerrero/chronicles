@@ -75,7 +75,8 @@ import { shareLogText, walkLogText } from '../lib/shareLog';
 import { notifyWalkChanged } from '../lib/walkEvents';
 import { routeAhead } from '../lib/nav/navigator';
 import { shareLabel } from '../lib/atlas/mapsButton';
-import { HANDOFF_HINT, openInMaps } from '../lib/nav/openInMaps';
+import { travelMode, type TravelMode } from '../lib/nav/handoff';
+import { HANDOFF_HINT, handoffHint, openInMaps } from '../lib/nav/openInMaps';
 import { useNavigation } from '../lib/nav/useNavigation';
 import { loadWayBack, saveWayBack } from '../lib/nav/store';
 import { CHOSEN_NOTICE, showsWayBack, wayBackTarget } from '../lib/nav/wayBack';
@@ -694,10 +695,10 @@ function WalkScreen(props: { onMinimize: () => void }) {
    * Open in Maps (NH3-NH8): the destination to the phone's maps app, straight from the tap (a
    * browser opens a window only from one). Navigation and the walk go on as they were (NH7).
    */
-  const handOff = (at: LngLat, label: string) => {
+  const handOff = (at: LngLat, label: string, mode: TravelMode = 'walk') => {
     feedback('tap');
     // go-here-everywhere audit 2: a star's title or a spot is the owner's own; only a neutral label rides in the link (0058).
-    openInMaps(at, shareLabel('spot', label)).then(
+    openInMaps(at, shareLabel('spot', label), mode).then(
       (ok) => {
         if (!ok) setNotice({ message: 'Couldn’t open a maps app.', tone: 'error' });
       },
@@ -1360,7 +1361,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
                     <Text style={styles.journeyBtnText}>{WAY_LABEL}</Text>
                   </Pressable>
                 ) : journey.next.at && journey.next.town ? (
-                  <Pressable testID="journey-maps" accessibilityRole="button" accessibilityLabel="Open in Maps" accessibilityHint={HANDOFF_HINT} onPress={() => journey.next?.at && journey.next.town && handOff(journey.next.at, journey.next.town)} style={({ pressed }) => [styles.journeyBtn, pressed && styles.pressed]}>
+                  <Pressable testID="journey-maps" accessibilityRole="button" accessibilityLabel="Open in Maps" accessibilityHint={handoffHint(travelMode(journey.next.awayM))} onPress={() => journey.next?.at && journey.next.town && handOff(journey.next.at, journey.next.town, travelMode(journey.next.awayM))} style={({ pressed }) => [styles.journeyBtn, pressed && styles.pressed]}>
                     <Text style={styles.journeyBtnText}>Open in Maps</Text>
                   </Pressable>
                 ) : null}

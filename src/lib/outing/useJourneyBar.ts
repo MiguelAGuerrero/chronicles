@@ -59,9 +59,9 @@ export function useJourneyBar(o: { walkId: string | null; here: LngLat | null; n
       !mine || o.navigating
         ? null
         : ahead && town
-          ? { line: ahead.within ? hereLine(town) : towardLine(town, ahead.awayM, units), within: ahead.within, at: ahead.at, town, undo: undoShown }
+          ? { line: ahead.within ? hereLine(town) : towardLine(town, ahead.awayM, units), within: ahead.within, at: ahead.at, awayM: ahead.awayM, town, undo: undoShown }
           : undoShown
-            ? { line: NO_TOWN_LINE, within: false, at: null, town: null, undo: true }
+            ? { line: NO_TOWN_LINE, within: false, at: null, awayM: null, town: null, undo: true }
             : null,
     /** OJ31: the town ahead leaves the plan; it can be taken back until you have moved on. */
     pass() {

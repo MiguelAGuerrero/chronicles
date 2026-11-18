@@ -28,9 +28,7 @@ const counted = (roads: readonly Road[] | null) => {
   return { source, calls };
 };
 
-const TODO = { todo: 'test first' };
-
-test('RE4, RE5: a tile\'s features reach the engine as its own: class, sense and ramp, lines only', TODO, async () => {
+test('RE4, RE5: a tile\'s features reach the engine as its own: class, sense and ramp, lines only', async () => {
   const { tileFeatures } = await import('../../roads/tilesSource');
   const line = [A, B];
   const got = tileFeatures([
@@ -44,7 +42,7 @@ test('RE4, RE5: a tile\'s features reach the engine as its own: class, sense and
   assert.deepEqual(got.map((f) => [f.class, f.oneway, !!f.ramp, f.lines.length]), [['primary', 1, false, 1], ['motorway', -1, true, 2], ['trunk', 1, false, 1]]);
 });
 
-test('RE4, RE8: the tiles source asks for the corridor\'s tiles at the engine\'s zoom and nothing else; a failed read gives none', TODO, async () => {
+test('RE4, RE8: the tiles source asks for the corridor\'s tiles at the engine\'s zoom and nothing else; a failed read gives none', async () => {
   const { createTileRoads } = await import('../../roads/tilesSource');
   const { ROAD_RULES } = await import('../../roads/rules');
   const { tileRect } = await import('../../roads/fromTiles');
@@ -69,7 +67,7 @@ test('RE4, RE8: the tiles source asks for the corridor\'s tiles at the engine\'s
   assert.equal(await stopped.read([[2144, 1434]], () => true), null);
 });
 
-test('RE1, RE10: the service reads the corridor once and finds one way through the points, a road and not a line', TODO, async () => {
+test('RE1, RE10: the service reads the corridor once and finds one way through the points, a road and not a line', async () => {
   const { createRoads } = await import('../../roads/service');
   const { source, calls } = counted(ROADS);
   const roads = createRoads({ source, pause: async () => {} });
@@ -80,14 +78,14 @@ test('RE1, RE10: the service reads the corridor once and finds one way through t
   assert.ok(got.way.lengthM > 8050 && got.way.lengthM < 8150, `${got.way.lengthM}`);
   assert.equal(got.way.path.length, 3);
   // The same corridor again reads nothing more: the graph is kept while the page is open, and dropped when it says so.
-  await roads.way([A, at(4000, 600)]);
+  await roads.way([A, at(4000, 0)]);
   assert.equal(calls.length, 1);
   roads.forget();
   await roads.way([A, B]);
   assert.equal(calls.length, 2);
 });
 
-test('RE7: a journey too long for one read says so and reads nothing', TODO, async () => {
+test('RE7: a journey too long for one read says so and reads nothing', async () => {
   const { createRoads } = await import('../../roads/service');
   const { source, calls } = counted(ROADS);
   const got = await createRoads({ source, pause: async () => {} }).way([A, at(900_000, 0)]);
@@ -95,7 +93,7 @@ test('RE7: a journey too long for one read says so and reads nothing', TODO, asy
   assert.equal(calls.length, 0);
 });
 
-test('RE15: roads that could not be read, or that do not join the towns, are a failure said plainly, never a made-up road', TODO, async () => {
+test('RE15: roads that could not be read, or that do not join the towns, are a failure said plainly, never a made-up road', async () => {
   const { createRoads } = await import('../../roads/service');
   assert.deepEqual(await createRoads({ source: counted(null).source, pause: async () => {} }).way([A, B]), { state: 'failed' });
   // Two roads that never meet: nothing joins the towns.
@@ -109,7 +107,7 @@ test('RE15: roads that could not be read, or that do not join the towns, are a f
   assert.equal(flaky.calls.length, 2);
 });
 
-test('RE29: finding a way gives the screen its turns and can be stopped: a stopped find answers nothing', TODO, async () => {
+test('RE29: finding a way gives the screen its turns and can be stopped: a stopped find answers nothing', async () => {
   const { createRoads } = await import('../../roads/service');
   const { ROAD_RULES } = await import('../../roads/rules');
   // A long road of many junctions, and a rule that yields often.
@@ -124,7 +122,7 @@ test('RE29: finding a way gives the screen its turns and can be stopped: a stopp
   assert.equal(await roads.way([A, at(7000, 0)], () => ++n > 2), null);
 });
 
-test('RE7: one read at a time: a second ask waits for the first', TODO, async () => {
+test('RE7: one read at a time: a second ask waits for the first', async () => {
   const { createRoads } = await import('../../roads/service');
   let open = 0;
   let most = 0;
@@ -142,7 +140,7 @@ test('RE7: one read at a time: a second ask waits for the first', TODO, async ()
   assert.equal(most, 1);
 });
 
-test('RE16: the line handed to the map is the road thinned to a set number of points, its ends kept', TODO, async () => {
+test('RE16: the line handed to the map is the road thinned to a set number of points, its ends kept', async () => {
   const { thinLine } = await import('../../roads/thin');
   const path: LngLat[] = [];
   for (let i = 0; i <= 5000; i++) path.push(at(i * 10, Math.sin(i / 40) * 300));
@@ -153,7 +151,7 @@ test('RE16: the line handed to the map is the road thinned to a set number of po
   assert.deepEqual(thinLine([A, B], 400), [A, B]);
 });
 
-test('RE2, RE11a, RE15, RE18, RE32: what the page says of the road: found, being read, not found, too far; no time, speed or comparison', TODO, async () => {
+test('RE2, RE11a, RE15, RE18, RE32: what the page says of the road: found, being read, not found, too far; no time, speed or comparison', async () => {
   const w = await import('../../roads/words');
   assert.equal(w.roadLine('reading'), 'Finding the road…');
   assert.equal(w.roadLine('found'), 'The way keeps to the roads through the towns.');
@@ -165,7 +163,7 @@ test('RE2, RE11a, RE15, RE18, RE32: what the page says of the road: found, being
   }
 });
 
-test('RE9: the page\'s side of the engine is layered: the source an adapter, the service a shell that takes its effects', TODO, () => {
+test('RE9: the page\'s side of the engine is layered: the source an adapter, the service a shell that takes its effects', () => {
   const src = (f: string) => readFileSync(new URL(`../../roads/${f}.ts`, import.meta.url), 'utf8');
   assert.match(src('tilesSource'), /^\/\/ @layer adapter/);
   assert.match(src('service'), /^\/\/ @layer shell/);

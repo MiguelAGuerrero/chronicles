@@ -38,6 +38,16 @@ async function run(h) {
   places.manifest = JSON.stringify({ schema: 1, regions: [{ id: 'us', current: file(placesFile, places.files[placesFile].length), previous: [], stores: { current: file(storesFile, places.files[storesFile].length), previous: [] } }] });
   const { c, pg } = await freshPage('journey');
   const here = at(-248, 0);
+  // The road engine (RE1, RE8): the tiles at its zoom hold one main road from here through the town to the place, bent once so it
+  // is not the straight line; every request for them is kept.
+  const bend = [(here[0] + town[0]) / 2, (here[1] + town[1]) / 2 + 0.01];
+  const mainRoad = { type: 'Feature', properties: { class: 'primary' }, geometry: { type: 'LineString', coordinates: [here, bend, town, end] } };
+  const roadAsked = [];
+  await pg.route(/\/12\/\d+\/\d+\.pbf$/, (r) => {
+    const m = /\/12\/(\d+)\/(\d+)\.pbf$/.exec(r.request().url());
+    roadAsked.push(r.request().url());
+    return r.fulfill({ contentType: 'application/x-protobuf', body: Buffer.from(encodeTile([mainRoad], 12, Number(m[1]), Number(m[2]))) });
+  });
   await c.setGeolocation({ longitude: here[0], latitude: here[1], accuracy: 6 });
   await pg.goto(exploreUrl);
   const entry = pg.locator('[data-testid=outing-entry]');
@@ -69,10 +79,25 @@ async function run(h) {
     await pg.waitForFunction(() => !document.querySelector('[data-testid=outing-reading]') && !document.querySelector('[data-testid=outing-reading-towns]') && !!document.querySelector('[data-testid=outing-journey-0]'), null, { timeout: 180000 }).catch(() => {});
     await pg.waitForTimeout(500);
   };
+  await pg.waitForTimeout(1500);
+  check(roadAsked.length === 0, `RE8: opening Explore and the page reads no road (${roadAsked.length} tiles asked)`);
   await toward();
+  // RE1, RE2, RE11a, RE17, RE18, RE30: the road is found after the journeys are offered; the page then says how the way is chosen
+  // in place of the straight-line caveat, and distances are by road.
+  await pg.waitForFunction(() => /keeps to the roads/.test(document.querySelector('[data-testid=outing-road]')?.textContent ?? ''), null, { timeout: 90000 }).catch(() => {});
+  {
+    const said = ((await pg.locator('[data-testid=outing-road]').innerText().catch(() => '')) ?? '').trim();
+    check(said === 'The way keeps to the roads through the towns.' && (await pg.locator('[data-testid=outing-straight]').count()) === 0, `RE1, RE11a, RE18: with the road found the page says once how the way is chosen, and no longer that distances are straight lines (${said})`);
+    const linkPoints = Number(await pg.locator('[data-testid=outing-map]').getAttribute('data-link-points'));
+    check(linkPoints > 3 && linkPoints <= 400, `RE1, RE16: the line handed to the map is the road, not the towns joined straight (${linkPoints} points)`);
+    const awayNow = ((await pg.locator('[data-testid=outing-away]').innerText().catch(() => '')) ?? '').trim();
+    check(/^\d+(\.\d)? (km|mi) by road$/.test(awayNow), `RE2, RE13: the place's distance is said by road, with no time (${awayNow})`);
+    const hosts = [...new Set(roadAsked.map((u) => new URL(u).host))];
+    check(roadAsked.length > 0 && roadAsked.length <= 60 && hosts.length === 1 && hosts[0] === 'tiles.openfreemap.org', `RE7, RE8, RE30: the road is read from the map's own tiles alone, a bounded strip of them, once a place is picked (${roadAsked.length} tiles, ${hosts.join(' ')})`);
+  }
   if (process.env.E2E_DEBUG) console.log('SHEET', (await pg.locator('[data-testid=outing-sheet]').innerText().catch(() => '')).replace(/\s+/g, ' ').slice(0, 500), JSON.stringify(places.asked.map((x) => x.name + ':' + (x.range ?? '')).slice(-12)));
   const card = ((await pg.locator('[data-testid=outing-journey-0]').innerText().catch(() => '')) ?? '').replace(/\s+/g, ' ').trim();
-  check(/^Among the shops North Scituate and Providence\. Books\.$/.test(card), `OJ20, OJ21: toward a place a drive away, the journey names the towns in order and what they hold, with no distance on foot for single stops (${card})`);
+  check(/^Among the shops North Scituate and Providence\. Books\. \d+(\.\d)? (km|mi) by road\.$/.test(card), `OJ20, OJ21: toward a place a drive away, the journey names the towns in order and what they hold, with no distance on foot for single stops and its distance by road last (RE17) (${card})`);
   await shot(pg, '01-toward');
   await pg.click('[data-testid=outing-see]');
   await pg.waitForSelector('[data-testid=outing-chapter-0]', { timeout: 15000 }).catch(() => {});
@@ -81,6 +106,15 @@ async function run(h) {
   check((await pg.locator('[data-testid=outing-maps-0]').count()) === 1 && (await pg.locator('[data-testid=outing-leave-0]').count()) === 1 && (await pg.locator('[data-testid=outing-leave-1]').count()) === 0, 'OJ26, OJ29: each town has Open in Maps; a town on the way can be left out, the destination\'s cannot');
   check((await pg.locator('[data-testid=outing-chapter-name-1]').innerText().catch(() => '')).trim() === END && (await pg.locator('[data-testid=outing-start-line]').innerText().catch(() => '')).trim() === 'Start records from here, toward North Scituate.' && (await pg.locator('[data-testid=outing-later-line]').innerText().catch(() => '')).trim() === '"When I get there" keeps North Scituate only.', 'OJ5, outing-journey audit 47, 48: the towns are chapters in order; beside Start the page says recording begins here, and what "When I get there" keeps');
   check((await pg.locator('[data-testid=outing-start]').count()) === 1 && (await pg.locator('[data-testid=outing-later]').count()) === 1, 'OJ28: far from the first town, Start is offered with "When I get there" beside it');
+  // RE19: a town a drive away is handed to the maps app for driving directions, the point alone.
+  // This page is a fresh one: the links it opens are recorded here, never followed.
+  await pg.evaluate(() => { window.__opened = []; window.open = (u) => { window.__opened.push(String(u)); return null; }; });
+  await pg.click('[data-testid=outing-maps-0]');
+  await pg.waitForTimeout(500);
+  {
+    const opened = await pg.evaluate(() => window.__opened ?? []);
+    check(opened.length === 1 && /(travelmode=driving|dirflg=d)/.test(opened[0]) && !/Scituate/i.test(decodeURIComponent(opened[0])), `RE19: Open in Maps for a town a drive away asks for driving directions, with the point alone (${opened[0]})`);
+  }
   const page = await pg.locator('[data-testid=outing]').innerText();
   check(!page.includes('Hollow Oak'), 'QC24: the shop is not named on the page before a tap');
   await shot(pg, '02-town');

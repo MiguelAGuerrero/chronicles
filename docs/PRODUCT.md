@@ -114,7 +114,12 @@ recording, and a recording bar brings a minimized walk back.
   far, with Open in Maps and "Pass by"; within reach of a town it says the town is here and offers "Show the way", which begins only
   on a tap; a town left, driven past or drifted away from is let go without a word; nothing is numbered or marked done, and the
   plan, which holds only the towns still ahead, goes when the session stops. "Leave this town out" removes a
-  town on the page. Owed: a road engine of the app's own, and a published stores pack.
+  town on the page. With a place picked, the app finds the road itself (the road engine, decisions 0203 and 0204, RE1-RE34): the
+  road through the journey's towns is drawn on the page's map in place of the straight line, the place and each card say their
+  distance "by road" (never a time), the page says once that the way keeps to the roads through the towns, and Open in Maps asks
+  for driving directions for a town a drive away. The road is read from the map's own tiles only once a place is picked; when it
+  can't be found the page says so and keeps the straight line. Owed: guiding the drive ("Drive there", turns, speech), and a
+  published stores pack.
 - **Plan an outing** (decision 0196, quick circuit QC1-QC42): one control under Explore's title, "Plan an outing", opens a page of its own over
   Explore. You say what you want to see by picking from a short vocabulary (a search box over chips: Antiques, Books, Thrifting) and the page
   proposes one circuit from where you stand, a loop (the default, not remembered) or one way, within the planner's distance ceiling. Its stops are

@@ -13,6 +13,7 @@ import type { LngLat } from '../../lib/types';
 import { SearchSheet } from '../atlas/PlaceSearch';
 import { Icon } from '../icons';
 import { OpenInMapsButton, useOpenInMaps } from '../OpenInMapsButton';
+import { byRoadLine, roadLine } from '../../lib/roads/words';
 import { WalkMap } from '../map/WalkMap';
 import { PlannerCapture } from '../planner/PlannerCapture';
 import { Button, theme } from '../ui';
@@ -121,16 +122,18 @@ export function OutingPage(props: {
   }
   const place = j.dest?.name ?? null;
   const reasons = [...new Set(j.reasons)];
-  const away = j.awayM != null ? awayLine(j.awayM, j.units) : null;
+  // RE2: by road where the road is known, "away" where it is not.
+  const away = j.awayRoadM != null ? byRoadLine(j.awayRoadM, j.units) : j.awayM != null ? awayLine(j.awayM, j.units) : null;
   const capturing = !!j.walkId;
   // OJ21: a summary names only the chips its stops came from, never one that found nothing.
   const summary = (x: NonNullable<typeof j.journey>) => {
     const labels = x.wants.filter((w) => x.chapters.some((c) => c.outing.stops.some((s) => matches(w.match, s)))).map((w) => w.label);
-    return cardSummary({ places: x.chapters.map((c) => c.area.name), labels, footM: x.footM }, j.units);
+    return cardSummary({ places: x.chapters.map((c) => c.area.name), labels, footM: x.footM, roadM: j.roadMOf(x) }, j.units);
   };
   return (
     <View style={[StyleSheet.absoluteFill, styles.over]} testID="outing" accessibilityViewIsModal>
-      <View style={StyleSheet.absoluteFill} testID="outing-map">
+      {/* The points of the line handed to the map, for the e2e: a road has more than the towns it joins (RE1). */}
+      <View style={StyleSheet.absoluteFill} testID="outing-map" {...({ dataSet: { linkPoints: j.map.link[0]?.length ?? 0 } } as object)}>
         <WalkMap trace={NONE} walked={NONE} fog={NONE} captures={NONE} walker={props.you} route={j.map.route} alternates={j.map.link} routeGrades={NONE} foundPins={j.map.pins} fitBounds={j.map.fit} fitKey={fitN} hideLabels />
       </View>
       <View style={[styles.top, { top: insets.top + 8 }]}>
@@ -179,7 +182,11 @@ export function OutingPage(props: {
               })}
             </View>
             {j.dest ? (
-              <Text style={styles.line} testID="outing-straight">{STRAIGHT_LINE}</Text>
+              <>
+                {/* RE11a, RE15, RE18: one line about the road: how the way is chosen once found; straight lines until then, and why when not. */}
+                {j.road === 'found' ? null : <Text style={styles.line} testID="outing-straight">{j.road && j.road !== 'reading' ? roadLine(j.road) : STRAIGHT_LINE}</Text>}
+                {j.road === 'found' || j.road === 'reading' ? <Text style={styles.line} testID="outing-road" accessibilityLiveRegion="polite">{roadLine(j.road)}</Text> : null}
+              </>
             ) : (
               <>
                 <Text style={styles.label}>{REACH_LINE}</Text>
@@ -273,7 +280,7 @@ export function OutingPage(props: {
                   <Text style={styles.line} testID={`outing-chapter-line-${c.ci}`}>{townLine(c.labels)} {chapterLine(c, j.units)}{j.isNewTown(c.area) ? ` ${NEW_TOWN_LINE}` : ''}</Text>
                   {c.area.name ? (
                     <View style={styles.townRow}>
-                      <OpenInMapsButton testID={`outing-maps-${c.ci}`} variant="link" target={{ at: c.area.at, label: c.area.name, kind: 'area' }} onOpen={openMaps} />
+                      <OpenInMapsButton testID={`outing-maps-${c.ci}`} variant="link" target={{ at: c.area.at, label: c.area.name, kind: 'area', mode: j.travel(c.area) }} onOpen={openMaps} />
                       {j.canLeaveOut(c.area) ? (
                         <Pressable testID={`outing-leave-${c.ci}`} accessibilityRole="button" accessibilityLabel={`${LEAVE_OUT_LABEL}: ${c.area.name}`} onPress={() => j.leaveOut(c.area)} style={styles.back}>
                           <Icon name="remove-circle-outline" size={18} color={theme.ink} />

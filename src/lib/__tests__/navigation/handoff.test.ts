@@ -12,8 +12,6 @@ const IPAD_AS_MAC = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit
 const ANDROID_CHROME = 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36';
 const DESKTOP = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36';
 
-const TODO = { todo: 'test first' };
-
 test('handoff: the system’s maps app for each platform (NH2)', () => {
   assert.equal(mapsTarget({ os: 'ios' }), 'apple');
   assert.equal(mapsTarget({ os: 'android' }), 'geo');
@@ -43,7 +41,7 @@ test('handoff: an iPhone Home Screen app opens the maps: scheme, not a window (f
   assert.deepEqual(mapsUrls(DEST, 'Your spot', 'appleApp'), ['maps://?daddr=40.619512,-75.378457&dirflg=w']);
 });
 
-test('RE19: a town a drive away is handed over for driving directions; a place at hand for walking, as before', TODO, () => {
+test('RE19: a town a drive away is handed over for driving directions; a place at hand for walking, as before', () => {
   assert.equal(travelMode(900), 'walk');
   assert.equal(travelMode(2000), 'walk');
   assert.equal(travelMode(2001), 'drive');

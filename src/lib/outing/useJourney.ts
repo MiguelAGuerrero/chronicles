@@ -6,7 +6,11 @@ import { indexOf } from '../gazetteer/loader';
 import { bundledGazetteer } from '../gazetteer/source';
 import { boundsOf, distanceM } from '../geo';
 import { useKindWalkPrefs } from '../kindWalk/useKindWalk';
+import { travelMode } from '../nav/handoff';
 import type { Waypoint } from '../nav/types';
+import { roads } from '../roads';
+import type { RoadAnswer } from '../roads/service';
+import { thinLine } from '../roads/thin';
 import { GET_THERE_M } from '../startPlan';
 import { startChoice } from './choice';
 import type { LngLat } from '../types';
@@ -42,6 +46,11 @@ function towns(): Promise<TownRow[]> {
   return townRows;
 }
 const stopsOf = (o: Outing) => o.stops.map((s) => s.id).join('|');
+/** RE1: the points a journey's road passes through: where you stand, then its towns in order. */
+const roadPoints = (origin: LngLat, j: Journey): LngLat[] => [origin, ...j.chapters.filter((c) => c.area.name).map((c) => c.area.at)];
+const roadKey = (pts: readonly LngLat[]): string => pts.map((p) => `${p[0].toFixed(5)},${p[1].toFixed(5)}`).join(';');
+/** RE16: the road reaches the map as at most this many points. */
+const ROAD_POINTS = 400;
 
 /**
  * The outing page's state (OJ1-OJ4, OJ7, OJ12, OJ14, OJ17, OJ20, OJ21, OJ25, OJ35, OJ41-OJ45; decision 0199). One machine: the areas to
@@ -72,6 +81,8 @@ export function useJourney(you: LngLat | null) {
   const [townsFailed, setTownsFailed] = useState(false);
   // OJ26: the towns left out of this look, by the page's own memory.
   const [left, setLeft] = useState<ReadonlySet<string>>(new Set());
+  // RE1: the way by road of each journey asked for, by its points; held by the page alone.
+  const [ways, setWays] = useState<Record<string, RoadAnswer>>({});
   // Audit 1: what was asked of one set of journeys (other places, a swap) does not carry to the next set.
   const fresh = () => {
     setUi({ leaning: null, opened: false, open: null, said: null });
@@ -132,7 +143,7 @@ export function useJourney(you: LngLat | null) {
   const ready = useMemo(() => areas.flatMap((a) => (reads[areaKey(a)] ? [{ area: a, session: reads[areaKey(a)]! }] : [])), [areas, reads]);
   const request = useMemo(() => ({ reads: ready, origin: origin ?? dest?.at ?? null, picked, ceilingM, chains, toward: !!dest }), [ready, origin, dest, picked, ceilingM, chains]);
   const answer = useMemo(() => (ready.length && hasPicks ? outingService.journeys({ ...request, salts }) : null), [ready.length, hasPicks, request, salts]);
-  const planned: Journey[] = answer?.journeys ?? [];
+  const planned: Journey[] = useMemo(() => answer?.journeys ?? [], [answer]);
   const base: Journey | null = planned.find((j) => j.leaning === ui.leaning) ?? planned[0] ?? null;
   const cur = base ? planned.indexOf(base) : 0;
   // A swap made in a chapter stands while that chapter is still the one it was made on.
@@ -145,17 +156,52 @@ export function useJourney(you: LngLat | null) {
     return { ...base, chapters, footM: chapters.reduce((m, c) => m + c.outing.lengthM, 0) };
   }, [base, swaps]);
   const first = journey?.chapters[0] ?? null;
-  // OJ51: the towns joined by one faint straight line from where you stand, when the journey leaves it.
+  // RE8: roads are read only for a journey toward a place the person picked; the one in view first, then the other cards'.
+  const asks = useMemo(() => {
+    if (!dest || !origin) return [];
+    const order = base ? [base, ...planned.filter((j) => j !== base)] : planned;
+    return order.map((j) => roadPoints(origin, j)).filter((p) => p.length > 1);
+  }, [dest, origin, planned, base]);
+  const asksKey = asks.map(roadKey).join('|');
+  useEffect(() => {
+    let live = true;
+    const todo = asks.filter((p) => !(roadKey(p) in ways));
+    if (!todo.length) return;
+    void (async () => {
+      for (const p of todo) {
+        const a = await roads.way(p, () => !live);
+        if (!live || !a) return;
+        setWays((w) => ({ ...w, [roadKey(p)]: a }));
+      }
+    })();
+    return () => {
+      live = false;
+    };
+    // The asks are read through their key; an answer already held is not asked for again.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [asksKey]);
+  // The graph is the page's: dropped when it closes.
+  useEffect(() => () => roads.forget(), []);
+  const wayOf = (j: Journey | null): RoadAnswer | null => (j && dest && origin ? ways[roadKey(roadPoints(origin, j))] ?? null : null);
+  /** RE2, RE13: a journey's length by road, where every stretch of it is on the road. */
+  const roadMOf = (j: Journey | null): number | null => {
+    const a = wayOf(j);
+    return a?.state === 'found' && a.way.whole ? a.way.lengthM : null;
+  };
+  const road = wayOf(journey);
+  const asked = !!journey && !!dest && !!origin && roadPoints(origin, journey).length > 1;
+  // OJ51, RE1, RE16: the towns joined by one faint line from where you stand: the road where it is known, else straight.
   const link = useMemo(() => {
+    if (road?.state === 'found') return [thinLine(road.way.path, ROAD_POINTS)];
     const pts = journey?.chapters.filter((c) => c.area.name).map((c) => c.area.at) ?? [];
     return origin && pts.length ? [[origin, ...pts]] : [];
-  }, [journey, origin]);
+  }, [journey, origin, road]);
   const pins = useMemo(() => journey?.chapters.flatMap((c) => c.outing.stops.map((s) => s.at)) ?? [], [journey]);
   const route = first && first.outing.path.length > 1 ? first.outing.path : null;
   const fit = useMemo(() => {
-    if (pins.length) return boundsOf([...pins, ...(route ?? []), ...(origin && journey && journey.chapters.length > 1 ? [origin] : [])], 60);
+    if (pins.length) return boundsOf([...pins, ...(route ?? []), ...(origin && journey && journey.chapters.length > 1 ? [origin, ...(road?.state === 'found' ? link[0] ?? [] : [])] : [])], 60);
     return dest ? boundsOf([dest.at], 1200) : null;
-  }, [pins, route, origin, journey, dest]);
+  }, [pins, route, origin, journey, dest, road, link]);
   const steps = reachSteps(units);
   const reading = hasPicks && waiting.length > 0;
   const failedKeys = areas.filter((a) => reads[areaKey(a)] === null).map(areaKey);
@@ -178,6 +224,14 @@ export function useJourney(you: LngLat | null) {
     dest,
     /** How far the named place is in a straight line; null with none or with no position. */
     awayM: origin && dest ? distanceM(origin, dest.at) : null,
+    /** RE2: how far the named place is by road, when the journey in view ends there and its road is known; else null. */
+    awayRoadM: journey && dest && areaKey(journey.chapters[journey.chapters.length - 1].area) === areaKey(dest) ? roadMOf(journey) : null,
+    /** RE17: a card's distance by road; null where the road is not known. */
+    roadMOf,
+    /** RE15, RE18: what the page says of the road: null when none was asked for. */
+    road: !asked ? null : road ? road.state : ('reading' as const),
+    /** RE19: how the maps app is asked to reach a town: by road when it is a drive away. */
+    travel: (a: Area) => travelMode(origin ? distanceM(origin, a.at) : null),
     setDest: (d: JourneyDest | null) => {
       setDestState(d);
       setLeft(new Set());
@@ -199,6 +253,8 @@ export function useJourney(you: LngLat | null) {
     /** Audit 7, 8: asks again for what could not be read: the list of towns, and each area whose read failed. */
     retry() {
       setTownsFailed(false);
+      // A road that could not be read is asked for again with the rest.
+      setWays((w) => Object.fromEntries(Object.entries(w).filter(([, a]) => a.state !== 'failed')));
       setReads((r) => Object.fromEntries(Object.entries(r).filter(([, s]) => s !== null)));
     },
     /** OJ41 (ui 1): with a wider reach and its reads done, the towns that were looked at, by name; null otherwise. */
