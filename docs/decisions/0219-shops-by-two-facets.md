@@ -32,6 +32,15 @@ also under consideration." Their answers:
 - The composer's form (the owner: "we might opt to using a step form like a wizard, but that decision depends on how other apps
   handle this") is decided from precedent with mocks, once the lists' sizes are known.
 
+## The owner's rule for what is entered, and two more calls (Nov 18)
+- "Perform the merge": chronicles-data's counts went onto its main.
+- **Entered or from outside:** "any sort of fenced off or bordered area that must be entered, especially with admission gating or
+  some sort of visitation registration, should be entered. But things that can be appreciated from the outside, like a monument
+  or a sculpture, would be outside." Two sides, by whether a place is bounded, not by whether it is indoors.
+- **"Galleries and museums should join the pack."**
+- **"There has to be some consideration on operational hours as well."** Hours are carried where a source states them; what the
+  page does with them waits for their measured coverage.
+
 ## Consequences
 - chronicles-data counts every `shop` and `craft` value, and the second-hand among each, in its OpenStreetMap run (its
   `docs/shop-counts/spec.md`, SK1-SK8, on the branch `claude/determined-wright-yg1fq9` there). OpenStreetMap cannot be read from a

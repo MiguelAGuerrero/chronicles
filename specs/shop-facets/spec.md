@@ -30,7 +30,7 @@ Verdict: aligned if reshaped
 Shape: a count decides which kinds are worth a value and never orders, weights or ranks anything a person sees; no chip says how
   many shops it holds; errands and services are out by kind, not by popularity; a chain stays behind "Include chains"
 Precedent: see "How adjacent apps do it"
-Criteria: SHF1-SHF28 below, with SHF14a
+Criteria: SHF1-SHF30 below, with SHF14a and SHF21a
 Open: the lists themselves, after the count; the composer's form
 ```
 
@@ -87,11 +87,18 @@ Every stop (the widening):
   several kinds (a gallery that sells is a gallery and a shop) and is one stop.
 - **SHF20.** The kinds are the kinds "What I'm into" already switches (57 today, in five groups), with the kinds missing from them
   added from the count: a gallery is none of them today. One list serves both screens: a kind added here is a switch there.
-- **SHF21.** A second facet says **how a place is visited**: gone inside (a museum, a gallery, a shop, a church), looked at (a
-  statue, a mural, a marker, a view), or out in the open (a park, a garden, a reserve). Each kind is assigned one by a table in
-  the code, recorded kind by kind; a place is never assigned by its name or by anything a crowd says.
-- **SHF22.** The page offers that facet as its own choice of three, beside the kinds: with "Inside" picked, every stop proposed
-  is a place you go into, whatever else is picked. With none picked it does not narrow.
+- **SHF21.** A second facet says **whether a place is entered**. The owner's rule (Nov 18): "any sort of fenced off or bordered
+  area that must be entered, especially with admission gating or some sort of visitation registration, should be entered. But
+  things that can be appreciated from the outside, like a monument or a sculpture, would be outside." So **entered** is a
+  bounded place you go into to have it: a museum, a gallery, a shop, a garden behind a wall, a zoo, a fort, a reserve with a
+  gate; **from outside** is what is had from where you stand: a monument, a sculpture, a mural, a marker, a bridge, a view.
+  Being indoors is not the test; being bounded is.
+- **SHF21a.** Each kind is assigned one side by a table in the code, kind by kind, with its reason. Where the source says a
+  place charges admission, asks for a booking or is fenced (OpenStreetMap's `fee`, `reservation`, `barrier` and `access`; a
+  perimeter where one is known, the drive spec's DO12a), that place is entered whatever its kind's default. A place is never
+  assigned by its name or by anything a crowd says.
+- **SHF22.** The page offers that facet as its own choice of two beside the kinds: with "To go into" picked, every stop proposed
+  is a place that is entered, whatever else is picked; with "From outside", none is. With neither picked it does not narrow.
 - **SHF23.** `what` and `how` (SHF1-SHF5) belong to shops alone: their chips appear when Shops is among the kinds picked, or when
   no kind is picked, and are gone otherwise; a pick made in them is kept if Shops is picked again.
 - **SHF24.** Today's five attraction chips (Art, Culture, Green, History, Views) become the groups the kinds sit under, not
@@ -102,8 +109,15 @@ Every stop (the widening):
   it opens, and no step stands before it.
 - **SHF27.** The journeys' leanings ("Among the shops", "Past old places", "Through green", "A bit of each") are drawn from the
   groups of kinds, by the same table, not from a list of chips kept beside it.
-- **SHF28.** Whether a place can be entered now is never said or implied: no source holds opening hours ("Opening hours aren't
-  known here." stays).
+- **SHF28.** (the owner, Nov 18: "there has to be some consideration on operational hours as well") Opening hours are carried
+  with a place where its source states them, in the source's own form, in both packs (the stores contract's reserved `hours`
+  becomes a field; the places pack gains one). A place with none stated says nothing: it is never guessed open or closed.
+- **SHF29.** What the page does with hours is decided once their coverage is measured (the count's `withHours`, by kind): the
+  candidates are a line on a stop when it is opened ("Open 10 to 5 today, by the map's word"); leaving out of a proposal a place
+  its source says is closed today; or both. Whatever is built, a time stays a statement about the place and never becomes a
+  schedule, a countdown or a prompt to hurry, and "Opening hours aren't known here." stays for a place with none.
+- **SHF30.** Galleries and museums join the places pack from OpenStreetMap as kinds of their own (the owner, Nov 18: "galleries
+  and museums should join the pack"), beside Wikidata's; one place found in both is one place.
 
 The data:
 
@@ -149,13 +163,16 @@ sizes are known; the owner chooses from the mocks.
 1. **The lists** (SHF2, SHF20): after chronicles-data's next OpenStreetMap run reports `osmKindCounts` (every value of `shop`,
    `craft`, `tourism`, `historic`, `leisure` and `amenity` in the US).
 2. **Whether clothes, shoes and jewellery sold new are "worth browsing"** or errands: the owner's, kind by kind, with the count.
-3. **The table of how each kind is visited** (SHF21): a church, a lighthouse, a fort and a cemetery are each arguable; drafted
-   with the lists and shown to the owner.
+3. **The table of which kinds are entered** (SHF21a), by the owner's rule: drafted with the lists and shown to the owner. By that
+   rule a park with no fence is arguable, as are a cemetery and a church; the draft will say which way each went and why.
 4. **The composer's form** (SHF14a), now with facets that depend on one another.
-5. **Where galleries and other new kinds come from**: the places pack is Wikidata alone today, and OpenStreetMap's own galleries
-   and museums are not in it. A contract change in chronicles-data, after the count.
+5. **Galleries and museums in the pack** (SHF30): decided; a slice of its own in chronicles-data (a contract version), after the
+   count says how many there are and how many Wikidata already holds.
+6. **What the page does with hours** (SHF29), and how the source's hours text is read: OpenStreetMap's `opening_hours` is a
+   small language of its own, so reading it means a parser, a library choice that is the owner's.
 
 ## Record
 
 Nothing is built in the app. Decision 0219, widened the same day. chronicles-data: the counts of every kind of stop are built on
-its branch `claude/determined-wright-yg1fq9` (SK1-SK9, 125 tests), not on its main, so no run has reported yet.
+its main since Nov 18 (SK1-SK11, 127 tests: every value of six keys, the second-hand among shops, and how many of each kind
+state opening hours); no OpenStreetMap run has reported them yet.
