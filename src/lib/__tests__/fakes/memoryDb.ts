@@ -22,7 +22,7 @@ import type { Capture, GapDecision, Moment, Pause, Still, StreetSegment, TracePo
 export const DB_READS = [
   'getWalk', 'listWalks', 'getOpenWalk', 'getPoints', 'getMoments', 'momentsBetween', 'getMomentsByIds', 'momentsIn',
   'getPauses', 'getStills', 'getGapDecisions', 'listThreads',
-  'listAreas', 'listWalkAreas', 'getSegmentsIn', 'getVisited', 'visitedSegmentIds', 'streetKeysBefore', 'listSummaries',
+  'listAreas', 'listWalkAreas', 'getSegmentsIn', 'getVisited', 'visitedSegmentIds', 'streetKeysBefore', 'listSummaries', 'getSummary',
   'placesIn', 'listMarks', 'listRecalls', 'listTranscripts', 'listLandings', 'listAtlasAreas', 'getOutlineTiles', 'getWalkTiles', 'complexesNear',
   'listChecklistAreas', 'checklistItemsIn', 'listExploreReads', 'listFinds', 'getMeta',
 ] as const;
@@ -452,6 +452,10 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
     },
     async listSummaries() {
       return out(summaries.all());
+    },
+    async getSummary(walkId) {
+      const s = summaries.all().find((x) => x.walk_id === walkId);
+      return s ? out([s])[0] : null;
     },
 
     async putPlaces(ps) {

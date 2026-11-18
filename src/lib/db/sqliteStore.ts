@@ -484,6 +484,13 @@ export function makeSqliteDb(open: () => Promise<SQLiteDatabase>): Db {
       );
       return rows.map((r) => ({ ...r, ride_m: r.ride_m ?? undefined, streets_read: r.streets_read === 1 }));
     },
+    async getSummary(walkId) {
+      const r = await (await conn()).getFirstAsync<Omit<WalkSummary, 'streets_read'> & { streets_read: number }>(
+        'SELECT * FROM walk_summary WHERE walk_id = ?',
+        walkId,
+      );
+      return r ? { ...r, ride_m: r.ride_m ?? undefined, streets_read: r.streets_read === 1 } : null;
+    },
 
     saveChecklists({ areas, items, read }) {
       return write(async (t) => {

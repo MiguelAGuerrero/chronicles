@@ -155,6 +155,8 @@ export interface Db {
   /** Street keys visited by walks that started before `startedAt`. */
   streetKeysBefore(startedAt: number): Promise<Set<string>>;
   listSummaries(): Promise<WalkSummary[]>;
+  /** One walk's summary, or null: a replay reads its own, never the whole table (performance review, Nov 18). */
+  getSummary(walkId: string): Promise<WalkSummary | null>;
 
   /** Caches places read from the tiles (v1 discovery); same key, newer row. */
   putPlaces(places: Place[]): Promise<void>;

@@ -168,6 +168,21 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.equal((await db.listSummaries())[0].distance_m, 100);
     });
 
+    // A replay reads one walk's summary, not every walk's (performance review, Nov 18: `loadReplay` listed them all).
+    test('FC7 getSummary: one walk\'s summary, a copy, or null for a walk with none', async () => {
+      const db = await fresh();
+      await db.createWalk(walk('a', 1));
+      await db.createWalk(walk('b', 2));
+      await db.saveSnap('a', [], [visit('s1', 'a')], summary('a'));
+      await db.saveSnap('b', [], [visit('s2', 'b')], { ...summary('b'), distance_m: 250 });
+      assert.equal((await db.getSummary('a'))?.distance_m, 100);
+      assert.equal((await db.getSummary('b'))?.distance_m, 250);
+      assert.equal(await db.getSummary('none'), null);
+      (await db.getSummary('a'))!.distance_m = 0;
+      assert.equal((await db.getSummary('a'))?.distance_m, 100, 'a copy');
+      assert.deepEqual(await db.getSummary('a'), (await db.listSummaries()).find((s) => s.walk_id === 'a'), 'the same row the list holds');
+    });
+
     // ---- trace
 
     test('FC7 appendPoints, getPoints: per walk, in time order; an empty batch is a no-op', async () => {

@@ -669,6 +669,9 @@ export const db: Db = {
   async listSummaries() {
     return (await done((await store('walk_summary')).getAll())) as WalkSummary[];
   },
+  async getSummary(walkId) {
+    return ((await done((await store('walk_summary')).get(walkId))) as WalkSummary | undefined) ?? null;
+  },
 
   async saveChecklists({ areas, items, read }) {
     const tx = (await conn()).transaction(['checklist_area', 'checklist_item', 'explore_read'], 'readwrite');
