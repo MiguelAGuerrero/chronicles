@@ -49,7 +49,9 @@ paths:
   (audit 42): the held captures read and warned of; else, in the same tick, nothing awaited between, a pin
   (`memoGate.pin`) while anything is under way until `endWalk` has decided the drop, so the walk is never dropped
   mid-save (0187 amended), and `unsaved.ended(walkId, held ids)` lets go only what was warned of: a save failing as the
-  walk ends stays held for Retry. The bar's words are announced on iOS when said (audit 45).
+  walk ends stays held for Retry. The bar's words are announced on iOS when said (audit 45). A failure's or a refusal's
+  words (`said.error`) are unclamped, so they stay whole beside the camera at 320 px, where the saving line takes five
+  lines (audit 46); three on Memories, where the bar has no camera (audit 48).
 - **The bar's Stop warns of what is held** (unsaved captures UN5-UN8): after waiting for the memo and the photo,
   it reads `unsaved.heldFor(walk.id)`, says `barWarning` in its line (no Retry on the bar; two lines at most at
   320 px, nothing cut) and goes on; the second hold lets the walk's held captures go. Its camera's failure says its
