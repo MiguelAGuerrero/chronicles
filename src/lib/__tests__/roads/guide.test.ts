@@ -162,3 +162,77 @@ test('RE20: the turn ahead carries which turn it is, so it is said once; the roa
   assert.ok(a.turn && b.turn && a.turn.id != null && a.turn.id === b.turn.id);
   assert.equal(driveStep(way.path, turns, at(1000, 500), null).turn?.id, null);
 });
+
+// The third audit (Nov 18): each finding's regression test, written before its fix.
+const AUDIT = { todo: 'audit: test first' };
+
+test('road-engine audit 1: a fix that jitters across the last metres before a turn keeps that turn up and speaks each turn once', AUDIT, async () => {
+  const { driveStep, speakStep } = await import('../../roads/drive');
+  // East 1000 m, right (south) for 100 m, then left (east).
+  const roads = [road([[0, 0], [1000, 0]]), road([[1000, 0], [2000, 0]]), road([[1000, 0], [1000, -100]]), road([[1000, -100], [1000, -900]]), road([[1000, -100], [2000, -100]])];
+  const { way, turns } = await turnsOf(roads, [0, 0], [2000, -100]);
+  assert.deepEqual(turns.map((t) => t.say), ['right', 'left']);
+  let said: number | null = null;
+  let alongM: number | null = null;
+  const spoken: string[] = [];
+  for (const x of [650, 960, 975, 968, 973, 966, 975, 969, 972]) {
+    const s = driveStep(way.path, turns, at(x, 0), null, undefined, alongM);
+    alongM = s.alongM;
+    assert.equal(s.turn?.say, 'right', `at ${x} m the turn not yet made is the one shown`);
+    const sp = speakStep(s.turn, said);
+    said = sp.said;
+    if (sp.say) spoken.push(sp.say);
+  }
+  assert.deepEqual(spoken, ['right']);
+  // Round the corner, the next is spoken once, and never the first again.
+  for (const y of [-20, -40, -30, -45]) {
+    const s = driveStep(way.path, turns, at(1000, y), null, undefined, alongM);
+    alongM = s.alongM;
+    const sp = speakStep(s.turn, said);
+    said = sp.said;
+    if (sp.say) spoken.push(sp.say);
+  }
+  assert.deepEqual(spoken, ['right', 'left']);
+});
+
+test('road-engine audit 2: a fix between two passes of the way stays on the pass being driven', AUDIT, async () => {
+  const { driveStep } = await import('../../roads/drive');
+  // Out east for 2 km, a hairpin, and back west 40 m to the north; a side road off the way back makes a turn there.
+  const roads = [road([[0, 0], [2000, 0]]), road([[2000, 0], [2000, 40]]), road([[2000, 40], [1000, 40]]), road([[1000, 40], [0, 40]]), road([[1000, 40], [1000, 900]])];
+  const { way, turns } = await turnsOf(roads, [0, 0], [1000, 900]);
+  let alongM: number | null = null;
+  const seen: number[] = [];
+  for (const y of [5, 15, 21, 19, 22]) {
+    const s = driveStep(way.path, turns, at(500, y), null, undefined, alongM);
+    alongM = s.alongM;
+    seen.push(Math.round(s.alongM ?? -1));
+  }
+  // Driven outward at 500 m: the way back (3500 m along) is never where the fix is taken to be.
+  assert.ok(seen.every((m) => m > 400 && m < 600), `${seen}`);
+});
+
+test('road-engine audit 4: leaving or joining a motorway at a real turn says the side', AUDIT, async () => {
+  // A motorway stretch ends at a T on a primary road: the way turns left there.
+  const roads = [road([[0, 0], [1000, 0]], 'motorway'), road([[1000, -800], [1000, 0]]), road([[1000, 0], [1000, 800]])];
+  assert.deepEqual((await turnsOf(roads, [0, 0], [1000, 800])).turns.map((t) => t.say), ['left']);
+  // Straight on from a primary road onto a motorway, with a side road: still "onto the motorway".
+  const on = [road([[0, 0], [1000, 0]]), road([[1000, 0], [3000, 0]], 'motorway'), road([[1000, 0], [1000, 900]])];
+  assert.deepEqual((await turnsOf(on, [0, 0], [3000, 0])).turns.map((t) => t.say), ['join']);
+});
+
+test('road-engine audit 7: a graph being built when the page closes is not kept after', AUDIT, async () => {
+  const { createRoads } = await import('../../roads/service');
+  const { memoryRoads } = await import('../../roads/types');
+  let reads = 0;
+  const base = memoryRoads([road([[0, 0], [4000, 0]])]);
+  const r = createRoads({ source: { read: (t, s) => (reads++, base.read(t, s)) }, pause: async () => { if (reads === 1) r.forget(); } });
+  await r.way([at(0, 0), at(4000, 0)]);
+  await r.way([at(0, 0), at(4000, 0)]);
+  assert.equal(reads, 2, 'the second ask reads again: nothing was kept past forget');
+});
+
+test('road-engine audit 10, 11: "End directions" says what ends; the page\'s note names the maps app, not "Maps"', AUDIT, async () => {
+  const w = await import('../../roads/words');
+  assert.equal(w.END_LABEL, 'End directions');
+  assert.match(w.MAPS_ROAD_LINE, /^Your maps app chooses its own road/);
+});

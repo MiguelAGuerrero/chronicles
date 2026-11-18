@@ -120,3 +120,23 @@ test('DO5, DO6: the question says "Start now", at every distance, never "Walk no
   assert.match(w.START_FAR_HINT, /records from here/i);
   assert.doesNotMatch(`${w.START_NOW_LABEL} ${w.START_FAR_HINT}`, /walk/i);
 });
+
+test('road-engine audit 3: a mute survives a town left behind and a town passed by; the guiding does not', { todo: 'audit: test first' }, async () => {
+  const { passBy, stepPlan, emptyState } = await import('../../outing/journeyPlan');
+  const c = (town: string, lon: number) => ({ town, at: [lon, 47.3] as [number, number], stops: [[lon, 47.3] as [number, number]], loop: false });
+  const plan = { chapters: [c('A', 8.5), c('B', 9.2)], driving: true as const, muted: true as const };
+  const passed = passBy(plan);
+  assert.equal(passed?.muted, true);
+  assert.equal(passed?.driving, undefined);
+  // Reach A, then leave it far behind: A is let go.
+  let st = emptyState(plan);
+  let cur: typeof plan | ReturnType<typeof passBy> = plan;
+  for (const lon of [8.5, 8.56, 8.7]) {
+    const r = stepPlan(cur!, st, [lon, 47.3]);
+    cur = r.plan;
+    st = r.state;
+  }
+  assert.equal(cur?.chapters.length, 1);
+  assert.equal(cur?.muted, true);
+  assert.equal(cur?.driving, undefined);
+});
