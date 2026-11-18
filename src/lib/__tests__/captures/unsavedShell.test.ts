@@ -151,3 +151,27 @@ test('unsaved-captures audit 8: two captures failed away are each said once, in 
   assert.equal(told, 1);
   assert.deepEqual(more(u).takeUnsaid(), []);
 });
+
+test('tend tabs T35: a Stop lets go only what it warned of; a save failing as the walk ends stays held', async () => {
+  const { u, calls, hold } = holder();
+  const warned = hold('photo', 'w1', 'blob:warned');
+  // A memo still saving when the second hold went through fails before the walk is known ended.
+  const late = hold('voice', 'w1', 'blob:late');
+  await (u.ended as (walkId: string, only?: readonly string[]) => Promise<void>)('w1', [warned]);
+  assert.deepEqual(u.heldFor('w1').map((x) => x.id), [late], 'the memo no one was warned of is still held for Retry');
+  assert.deepEqual(calls, ['drop blob:warned']);
+  assert.equal(u.hasEnded('w1'), true);
+});
+
+test('tend tabs T35: a Retry under way is a save under way: the walk is not dropped meanwhile', async () => {
+  const { u } = holder();
+  const retrying = (u as unknown as { retrying(): boolean }).retrying;
+  assert.equal(typeof retrying, 'function');
+  assert.equal(retrying(), false);
+  let finish = () => {};
+  more(u).track(new Promise<void>((r) => (finish = r)));
+  assert.equal(retrying(), true);
+  finish();
+  await more(u).settled();
+  assert.equal(retrying(), false);
+});

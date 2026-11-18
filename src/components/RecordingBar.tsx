@@ -87,6 +87,8 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
   const stopping = useStore(barStop, (s) => s?.walkId === walk.id);
   // The held captures of the walk this Stop has warned of; one held beyond them is warned of too (unsaved captures UN5).
   const warnedHeld = useRef<string[]>([]);
+  // The memo saves this Stop has said are still being saved; the next hold goes through them (T35).
+  const warnedSaves = useRef<number[]>([]);
   const offerUp = barOfferShown(offer, cap.captures.map((c) => c.id), hidden, stopping);
   // Told to the tabs, so Explore's press hint steps aside while the pill lifts its map (tend tabs T36).
   useEffect(() => {
@@ -208,10 +210,14 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
     const mine = { walkId: walk.id, since: Date.now() };
     barStop.set(mine);
     try {
-      // Never under a memo, as Start (tabs audit 3); the bar's photo is kept first, as on its return.
-      const ready = await Promise.race([memoGate.readyToStart(), new Promise<boolean>((r) => setTimeout(() => r(false), RETURN_WAIT_MS))]);
-      if (!ready) {
-        setSaid({ text: 'A voice memo is recording. Save it first.', error: true });
+      // Never under a memo recording, as Start (tabs audit 3); a memo still being saved after the wait is said once, and
+      // the next hold goes through it, the memo saving into the ended walk (T35). The bar's photo is kept first, as on
+      // its return.
+      await Promise.race([memoGate.readyToStart(), new Promise<boolean>((r) => setTimeout(() => r(false), RETURN_WAIT_MS))]);
+      const memo = memoGate.stopUnder(warnedSaves.current);
+      if (!memo.go) {
+        if ('saving' in memo) warnedSaves.current = memo.saving;
+        setSaid({ text: 'saving' in memo ? 'The voice memo is still being saved. Hold Stop again in a moment.' : 'A voice memo is recording. Save it first.', error: true });
         return;
       }
       // The bar's photo, and one still being kept from Memories' band (capture-from-chronicle audit 6).
@@ -224,9 +230,13 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
         setSaid({ text: barWarning(held.length > 1), error: true });
         return;
       }
-      const { dropped } = await endWalk(walk.id, { leaves: false });
-      // Only once the walk has ended (unsaved-captures audit 4).
-      await unsaved.ended(walk.id);
+      // Read with the held captures, nothing between: whatever is still being saved keeps the walk from the empty drop
+      // until it is decided, even if it ends meanwhile (T35, the owner: "never drop mid-save").
+      const release = memoGate.underWay() ? memoGate.pin() : null;
+      const { dropped } = await endWalk(walk.id, { leaves: false }).finally(() => release?.());
+      // Only once the walk has ended (unsaved-captures audit 4), and only what was warned of: a save failing as the
+      // walk ended stays held for Retry (T35).
+      await unsaved.ended(walk.id, held.map((x) => x.id));
       feedback('success');
       // A walk with nothing in it has no replay: the bar goes, and the pill offers Undo on this screen (EW1).
       if (!dropped) router.push(`/replay/${walk.id}`);

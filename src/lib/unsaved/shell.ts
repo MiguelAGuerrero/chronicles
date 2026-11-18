@@ -83,23 +83,32 @@ export function createUnsaved(p: UnsavedPorts) {
       retries.add(settled);
       void settled.then(() => retries.delete(settled));
     },
+    /** A Retry under way: a save under way, so its walk is not dropped as empty meanwhile (T35). */
+    retrying(): boolean {
+      return retries.size > 0;
+    },
     /** Resolves once every Retry under way has ended (audit 2). */
     async settled(): Promise<void> {
       while (retries.size) await Promise.all([...retries]);
     },
-    /** The walk has ended by the second hold: its held captures go, files and all (UN8), and it is known ended (audit 3, 4). */
-    async ended(walkId: string): Promise<void> {
+    /**
+     * The walk has ended by the second hold: its held captures go, files and all (UN8), and it is known ended (audit 3,
+     * 4). With `only`, just those go: the ones the Stop warned of, so a save that failed as the walk ended stays held for
+     * Retry (T35).
+     */
+    async ended(walkId: string, only?: readonly string[]): Promise<void> {
       endedWalks.add(walkId);
-      await this.letGo(walkId);
+      await this.letGo(walkId, only);
     },
     hasEnded(walkId: string): boolean {
       return endedWalks.has(walkId);
     },
     /** The walk's held captures go, and their files with them (UN8). */
-    async letGo(walkId: string): Promise<void> {
-      const going = store.get().list.filter((x) => x.walkId === walkId);
+    async letGo(walkId: string, only?: readonly string[]): Promise<void> {
+      const goes = (x: Unsaved) => x.walkId === walkId && (!only || only.includes(x.id));
+      const going = store.get().list.filter(goes);
       if (!going.length) return;
-      store.set((s) => ({ ...s, list: s.list.filter((x) => x.walkId !== walkId) }));
+      store.set((s) => ({ ...s, list: s.list.filter((x) => !goes(x)) }));
       const { temps, kept } = letGoFiles(going);
       for (const uri of temps) p.dropTemp(uri);
       if (kept.length) await p.removeMedia(kept).catch(() => {});

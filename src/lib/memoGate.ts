@@ -5,11 +5,19 @@
  * while a memo records: leaving Navigate mid-memo saves it, and a Start or
  * Walk here tapped meanwhile waits for that save rather than starting under
  * it. Photos and videos being kept are tracked too, for the bar's Stop. Pure: no storage, no React.
+ *
+ * The bar's Stop tells a memo recording from one still being saved (T35, the owner's yes, Nov 18): each save has a
+ * number, and a hold whose wait ends with saves it already said goes through them. Anything under way keeps the walk
+ * from the empty-walk drop (`underWay`).
  */
 export function createMemoGate() {
   const on = new Set<object>();
-  const saves = new Set<Promise<unknown>>();
+  /** Each memo save under way, by its number (T35). */
+  const saves = new Map<Promise<unknown>, number>();
+  let numbered = 0;
   const keeps = new Set<Promise<unknown>>();
+  /** Stops that went through a save, each until its walk's drop is decided (T35). */
+  const pins = new Set<object>();
   return {
     /**
      * A photo or video being kept, from any capture path (capture-from-chronicle audit 6): Stop from the
@@ -42,13 +50,33 @@ export function createMemoGate() {
         () => {},
         () => {},
       );
-      saves.add(settled);
+      saves.set(settled, ++numbered);
       void settled.then(() => saves.delete(settled));
     },
     /** True once every save under way has ended and no memo records. */
     async readyToStart(): Promise<boolean> {
-      while (saves.size) await Promise.all([...saves]);
+      while (saves.size) await Promise.all([...saves.keys()]);
       return on.size === 0;
+    },
+    /**
+     * What a Stop meets once its wait is over (T35): it goes (through the saves `warned` already named, which keep
+     * saving into the ended walk); or it is refused, as saving (the numbers to name, for the next hold) or as a memo
+     * recording with none being saved. A save takes the place of its memo's recording: the memo stopped to be saved.
+     */
+    stopUnder(warned: readonly number[]): { go: true; under: number[] } | { go: false; saving: number[] } | { go: false; recording: true } {
+      const saving = [...saves.values()];
+      if (saving.length) return saving.every((n) => warned.includes(n)) ? { go: true, under: saving } : { go: false, saving };
+      return on.size ? { go: false, recording: true } : { go: true, under: [] };
+    },
+    /** A memo recording or being saved, a photo or video being kept, or a stop through one: the walk is not dropped. */
+    underWay(): boolean {
+      return on.size > 0 || saves.size > 0 || keeps.size > 0 || pins.size > 0;
+    },
+    /** Holds `underWay` until released (twice is harmless): a stop through a save, until its walk's drop is decided. */
+    pin(): () => void {
+      const mine = {};
+      pins.add(mine);
+      return () => void pins.delete(mine);
     },
   };
 }

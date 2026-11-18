@@ -128,6 +128,20 @@ test('EW5 (decision 0220): a walk paused only to reach Stop, standing still, is 
   assert.equal(await resumed.drop('w'), false);
 });
 
+test('tend tabs T35: a walk stopped while a save is under way is never dropped as empty (the owner, Nov 18)', async () => {
+  const { p, scheduled } = await setup(standing(60));
+  const busy = createDropEmpty(p, { schedule: (job) => void scheduled.push(job), underWay: () => true });
+  assert.equal(await busy('w'), false, 'a memo or photo still being saved keeps the walk: uncertain means kept');
+  assert.equal(scheduled.length, 0);
+  // A save begun while the walk's rows are read keeps it too.
+  let reads = 0;
+  const during = createDropEmpty(p, { schedule: (job) => void scheduled.push(job), underWay: () => reads++ > 0 });
+  assert.equal(await during('w'), false, 'under way by the time the reads end');
+  assert.equal(scheduled.length, 0);
+  const idle = createDropEmpty(p, { schedule: (job) => void scheduled.push(job), underWay: () => false });
+  assert.equal(await idle('w'), true, 'with nothing under way the empty walk is dropped as before');
+});
+
 test('EW10: a failure to read the walk keeps it and plays the replay', async () => {
   const { drop, scheduled } = await setup(standing(60), { failRead: true });
   assert.equal(await drop('w'), false);

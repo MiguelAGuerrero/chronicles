@@ -38,6 +38,15 @@ paths:
     (`memoGate`), waits at most 5 s for the bar's photo, then `stopWalk` and
     the replay.
   - **The bar's reminder is never lost with the bar** (audits 23-27): `.claude/rules/explore-marks.md`, "Remind me here".
+- **The bar's Stop through a memo being saved** (`tend tabs T35`, decision 0227, amending the line above that it
+  "refuses under a memo"): after its 5 s wait it asks `memoGate.stopUnder(warned)`. A memo recording with none being
+  saved still refuses ("A voice memo is recording. Save it first."); a save still running reads "The voice memo is still
+  being saved. Hold Stop again in a moment." once, its numbers kept in `warnedSaves`, and the next hold whose wait ends
+  with only those still running goes through them: the memo saves into the ended walk. A save begun since is said
+  first. While anything is under way (`memoGate.underWay`: a memo recording or saving, a photo being kept) the stop
+  pins it (`memoGate.pin`) until `endWalk` has decided the drop, so the walk is never dropped mid-save (0187 amended),
+  and `unsaved.ended(walk.id, held ids)` lets go only what this Stop warned of: a save failing as the walk ends stays
+  held for Retry. The pin is taken in the same tick as the `heldFor` read, nothing awaited between.
 - **The bar's Stop warns of what is held** (unsaved captures UN5-UN8): after waiting for the memo and the photo,
   it reads `unsaved.heldFor(walk.id)`, says `barWarning` in its line (no Retry on the bar; two lines at most at
   320 px, nothing cut) and goes on; the second hold lets the walk's held captures go. Its camera's failure says its
