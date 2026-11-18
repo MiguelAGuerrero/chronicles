@@ -1,7 +1,7 @@
 /// <reference types="node" />
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { mapsTarget, mapsUrls } from '../../nav/handoff';
+import { mapsTarget, mapsUrls, travelMode } from '../../nav/handoff';
 import type { LngLat } from '../../types';
 
 // Bridges and Open in Maps (the concept doc's tab, NH1-NH2), written before the code.
@@ -11,6 +11,8 @@ const IPHONE = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_1 like Mac OS X) AppleWebK
 const IPAD_AS_MAC = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.1 Safari/605.1.15';
 const ANDROID_CHROME = 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36';
 const DESKTOP = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36';
+
+const TODO = { todo: 'test first' };
 
 test('handoff: the system’s maps app for each platform (NH2)', () => {
   assert.equal(mapsTarget({ os: 'ios' }), 'apple');
@@ -39,4 +41,17 @@ test('handoff: an iPhone Home Screen app opens the maps: scheme, not a window (f
   assert.equal(mapsTarget({ os: 'web', ua: IPHONE, touchPoints: 5, standalone: false }), 'apple', 'a Safari tab');
   assert.equal(mapsTarget({ os: 'web', ua: DESKTOP, touchPoints: 0, standalone: true }), 'google');
   assert.deepEqual(mapsUrls(DEST, 'Your spot', 'appleApp'), ['maps://?daddr=40.619512,-75.378457&dirflg=w']);
+});
+
+test('RE19: a town a drive away is handed over for driving directions; a place at hand for walking, as before', TODO, () => {
+  assert.equal(travelMode(900), 'walk');
+  assert.equal(travelMode(2000), 'walk');
+  assert.equal(travelMode(2001), 'drive');
+  assert.equal(travelMode(null), 'walk', 'with no position it is as before');
+  assert.deepEqual(mapsUrls(DEST, 'Emmaus', 'apple', 'drive'), ['https://maps.apple.com/?daddr=40.619512,-75.378457&dirflg=d']);
+  assert.deepEqual(mapsUrls(DEST, 'Emmaus', 'appleApp', 'drive'), ['maps://?daddr=40.619512,-75.378457&dirflg=d']);
+  assert.deepEqual(mapsUrls(DEST, 'Emmaus', 'google', 'drive'), ['https://www.google.com/maps/dir/?api=1&destination=40.619512,-75.378457&travelmode=driving']);
+  assert.deepEqual(mapsUrls(DEST, 'Emmaus', 'geo', 'drive'), ['geo:40.619512,-75.378457?q=40.619512,-75.378457(Emmaus)', 'https://www.google.com/maps/dir/?api=1&destination=40.619512,-75.378457&travelmode=driving']);
+  // Left out, it is walking: every other host is unchanged.
+  assert.deepEqual(mapsUrls(DEST, 'Your spot', 'apple'), mapsUrls(DEST, 'Your spot', 'apple', 'walk'));
 });

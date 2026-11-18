@@ -5,6 +5,8 @@ import { test } from 'node:test';
 
 const BANNED = /\b(minutes?|mins?|hours?|hrs?|ETA|pace|brisk|quick(er|est)?|fast(er|est)?|shorter|longer|more|most|best|top|popular|rated|few|many|several|lots|remaining|left|done|first|second|third|last)\b/i;
 
+const TODO = { todo: 'test first' };
+
 test('OJ9: a destination\'s distance is said as "away", in the units setting, with no time', async () => {
   const { awayLine } = await import('../../outing/journeyWords');
   assert.equal(awayLine(27_000, 'km'), '27 km away');
@@ -58,4 +60,11 @@ test('outing-journey ui 1, ui 3: what a wider reach looked at is said by name, a
   assert.equal(w.lookedLine([]), 'No town within that reach: this is around here.');
   assert.equal(w.UNDO_LABEL, 'Undo');
   for (const s of [w.lookedLine(['Cranston']), w.lookedLine([]), w.ANOTHER_LINE]) assert.doesNotMatch(s, BANNED, s);
+});
+
+test('RE17: a card says its distance by road beside its distance on foot, last, each with its unit; none where the road is not known', TODO, async () => {
+  const { cardSummary } = await import('../../outing/journeyWords');
+  assert.match(cardSummary({ places: ['Emmaus', 'Kutztown'], labels: ['Antiques'], footM: 2100, roadM: 31_400 }, 'km'), /2\.1 km on foot\. 31 km by road\.$/);
+  assert.match(cardSummary({ places: ['Emmaus'], labels: ['Antiques'], footM: 0, roadM: 31_400 }, 'km'), /Antiques\. 31 km by road\.$/);
+  assert.doesNotMatch(cardSummary({ places: ['Emmaus'], labels: ['Antiques'], footM: 2100, roadM: null }, 'km'), /by road/);
 });
