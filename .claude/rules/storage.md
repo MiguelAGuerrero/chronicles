@@ -42,7 +42,9 @@ SQLite (native) and IndexedDB (web) behind the shared `Db` interface, migrations
   for one row, a count or an emptiness test (`listSummaries().find`, `listWalks().find` on the web's
   `getOpenWalk`); not `momentsBetween(0, Number.MAX_SAFE_INTEGER)` in new code (the existing callers
   are recorded in `docs/DEFERRED.md`). Indexes match each new WHERE and ORDER BY; a bbox read on four
-  ranges prunes on its first column only. Loops of writes use one prepared statement.
+  ranges prunes on its first column only. Loops of writes use one prepared statement: `eachRow` in
+  `db/sqliteStore.ts`; `preparedWrites.test.ts` fails a new loop that runs a statement per row unless its n is
+  a handful (a short list that only shrinks).
   A change to many rows is one `Db` method and one statement (`clearSnappedBuilds`), never a loop of
   `updateX` calls: each queued write is its own exclusive transaction and connection on SQLite, and the
   rule-change loop ran one per walk at launch (performance review, Nov 18). Read one row by its key
