@@ -87,6 +87,10 @@ is already a recorded trade-off is reopened with a number, not rediscovered.
 
 - Anything over features is O(n log n) or better: index with `EdgeGrid` or `Buckets`
   (`landing/spatial.ts`, numeric keys), never `some`/`find` inside a loop over the same n.
+- **A tile is fetched once for every reader of it.** In-code reads go through `fetchTileBodies`/`fetchTiles`
+  (`discovery/tileFetch.ts`), which share a fetch in flight and keep the last 16 bodies (`createTileBodies`,
+  `discovery/tileBodies.ts`); a new reader of tiles uses them, never its own `fetch`. A reader's cancel stops
+  the download only once no other reader waits on it.
 - **Filter a tile's features before decoding their geometry.** A vector tile gives a feature's properties
   without decoding its shape (`toGeoJSON` is the cost): read what decides whether it is kept first, as the
   complexes reader keeps only named buildings of thousands (`namedBuilding`, performance review, Nov 18).
