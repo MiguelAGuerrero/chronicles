@@ -58,4 +58,16 @@ photo and draws nothing. React Native's `Image` now draws nothing in the app.
 
 ## Record
 
-Not built yet.
+Built 2026-11-18 on `claude/bold-hawking-dx3pc8`, on the owner's go-ahead (no stop at the plan).
+
+- **Tests:** `src/lib/__tests__/captures/pictures.test.ts` (EI1-EI5, todo first in `30f970e`, each scan shown to fail on
+  a snippet); the `gallery` journey's EI5 check (an `<img>` contained) and MG21 reading either web shape. Test-first by
+  history: 5 of 5. EI6 is device-only.
+- **Checks:** typecheck, lint, `npm test` (3111), docs, records; `expo-doctor` 18 of 20 (the two failures are the cloud
+  session's blocked hosts, `exp.host` and React Native Directory). Journeys on the /chronicles build, once each:
+  `gallery`, `memories`, `palette`, `qol`, `replay`, `stacks`, `upgrade`, `videothumbs`, `walk` green; `walkability`
+  already green on these inputs; `resurface` stops on `main` too (a More quick actions removed; DEFERRED, filed `[loop]`).
+- **UI review:** no finding: cover crops (the replay's colour-bar still), contain shows the aspect grid's photos whole,
+  rounding clips round pins and cards. It could not see EI2-EI4 in stills (the gallery fixtures are flat colour).
+- **Not drawn through Picture:** an edited photo (`EditedPicture`, an SVG); React Native's `Image` now only measures.
+- Not audited. Native has never run on a device (EI6).

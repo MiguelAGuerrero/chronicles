@@ -544,7 +544,8 @@ recording, and a recording bar brings a minimized walk back.
   and reports touching it must say so. The phone's map redraws a layer or a
   pin only when it changes, never on each step of the gliding dot or a
   replay's clock, and simplifies its lines as the web does (native map frames,
-  NF1-NF8; unverified on a device).
+  NF1-NF8; unverified on a device). Every picture on screen is kept, decoded, in memory and on
+  disk once drawn (expo-image, EI1-EI6), so a gallery scrolled back or a pin shown again appears at once.
 - **Web**: the same loop with a browser's limits, deployed to GitHub Pages on
   every push to `main`. It traces the real browser location while the page is
   open and visible, holds a wake lock, and shows the gap when the page was
