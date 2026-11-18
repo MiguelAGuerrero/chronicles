@@ -106,4 +106,20 @@ Open: none (the owner answered overlaps: one even tone, Nov 18).
 
 ## Record
 
-(Filled at the end of the slice.)
+Built Nov 18, 2026 on `claude/modest-johnson-pctfuj`, test-first by history (`bd957f8`: every criterion's todo before its code).
+
+- **Passed:** WB1-WB17. Unit tests (`layers/pastLines.test.ts`, `layers/pastLinesShell.test.ts`, `layers/layers.test.ts`,
+  `map/palette.test.ts`, `walk-screen/layersCorner.test.ts`), the Db contract over the fake, IndexedDB and SQLite
+  (`putWalkLine`, `getWalkLinesIn`, `listWalkLineCodes`, `deleteWalkLine`, `deleteWalk`), and the `where` journey (21 checks:
+  WB1-WB6, WB8-WB12, WB16, nothing leaves the device). `walk`, `qol`, `ready`, `palette`, `layers`, `reload` and `launch` green;
+  `gaps` fails "gap-drawing audit 4" on `main` too (3 of 3 baseline runs, `scripts/e2e/flaky.json`).
+- **The steward** (before the plan): four drifts, one tone, no breach; all accepted (S1-S5 above, decision 0220).
+- **The cold find** (pictures and the task only): found from all three screens through the Layers button, medium confidence;
+  its doubts (a wordless glyph, filled when on, another corner on Explore) are the button's, from decision 0097 and fix
+  layers-corner, not this slice's.
+- **The UI review:** U1 (the seeded walk ran mid-block: the fixture's, fixed), **U2 accepted** (the pale line read 1.9:1, under
+  WCAG 1.4.11's 3:1: `where-ive-been ui 1`, a muted sage `#588a78` at 3.54:1 and 3 px, still under the trace's 4.5:1), U3 (the
+  legend below the fold in its picture: the journey's, fixed), U4 (the footsteps glyph reused: noted in decision 0220).
+- **Deferred:** a tap on a line opening its walk (the layer's Return), simplification by zoom, a date window, a hook's first
+  draw from the last lines read (`docs/DEFERRED.md`). **Native:** four device checks in `docs/NATIVE_UNVERIFIED.md`; none of it
+  has run on a phone.
