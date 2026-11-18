@@ -21,6 +21,8 @@ export interface JourneyPlan {
   chapters: PlanChapter[];
   /** RE28: the drive to the town ahead is being guided; kept so a reload finds it again. No way, turn or road is kept. */
   driving?: true;
+  /** RE25: spoken turns are muted; kept beside the guiding, so a reload does not start speaking. */
+  muted?: true;
 }
 
 export const PLAN_RULES = {
@@ -45,8 +47,8 @@ const isAt = (v: unknown): v is LngLat => Array.isArray(v) && v.length === 2 && 
 export function isJourneyPlan(v: unknown): v is JourneyPlan {
   if (!v || typeof v !== 'object') return false;
   const cs = (v as { chapters?: unknown }).chapters;
-  const driving = (v as { driving?: unknown }).driving;
-  if (!Array.isArray(cs) || !cs.length || Object.keys(v).length !== (driving === true ? 2 : 1)) return false;
+  const flags = Object.keys(v).filter((k) => k !== 'chapters');
+  if (!Array.isArray(cs) || !cs.length || !flags.every((k) => (k === 'driving' || k === 'muted') && (v as Record<string, unknown>)[k] === true)) return false;
   return cs.every((c) => {
     if (!c || typeof c !== 'object') return false;
     const x = c as Record<string, unknown>;

@@ -7,7 +7,7 @@ paths:
 ---
 # The road engine
 
-The app's own router for a drive between towns (RE1-RE34, decisions 0203 and 0204; the spec is `specs/road-engine/spec.md`, its plan and the measurement of real tiles `plan.md`). A second `RouteSource`-shaped engine beside the one on foot, which it never touches. Steps 1 (the core), 2 (the road on the outing page) and 3 (guiding, on the web) are built; speech and the lock screen are step 4.
+The app's own router for a drive between towns (RE1-RE34, decisions 0203 and 0204; the spec is `specs/road-engine/spec.md`, its plan and the measurement of real tiles `plan.md`). A second `RouteSource`-shaped engine beside the one on foot, which it never touches. Steps 1 to 4 are built (the core, the road on the outing page, guiding, spoken turns; decision 0205); speech behind the lock screen is not.
 
 ## What it is
 
@@ -35,7 +35,8 @@ The app's own router for a drive between towns (RE1-RE34, decisions 0203 and 020
 - **`driveStep(path, turns, here, left)` is the whole decision** (`drive.ts`): the turn ahead and how far; off the way (`offM`) it gives no turn and nothing else, and `again` after `againM` driven off it. It gives the screen no flag for "off": never add one (RE22).
 - **`useDrive` asks the service** for the way from the fix it holds to the town, once, and again when `again`; a failed first ask ends the guiding with one line, a failed later one waits another `againM`. Nothing is stored; the plan keeps one flag, `driving: true` (`isJourneyPlan` accepts that key and no other).
 - **The bar while guiding** (`useJourneyBar`, `walk.tsx`): the turn over the town, End, and nothing else to tap (RE20a). From the tap until 50 m moved it says what the map cannot know, never beside a turn (RE26). Within reach of the town the flag is dropped and the bar is the ordinary "is here".
-- **`CAN_GUIDE` is the web alone** (`walk.tsx`): decision 0204 says guiding does not ship on a phone before turns are spoken. Do not widen it without step 4.
+- **Speech goes through `roads/speech.ts` only** (`expo-speech`; `canSpeak` is false in a browser with no speech synthesis, and the tap then says turns are shown, not said). `speakStep` decides: once per turn, within `sayM`, never off the way or for the road's last stretch. What was said is tracked even when muted, so unmuting says nothing late. The mute is the plan's `muted: true`.
+- **Nothing is spoken behind the lock screen**: `live.here` is read only while the app is active. RE33 needs the drive step run from the background task.
 - **The screen's position lags a drive by about 20 s**: `live.here` is the last kept fix, and fast fixes are kept only once they read as a ride (R1). The e2e drives at 12 m/s for 25 s before it expects a turn; a jump of the mocked GPS is never a fix.
 - The presence guard reads comments too: "bar" (a kind of place) cannot be written in `src/lib/roads/`.
 

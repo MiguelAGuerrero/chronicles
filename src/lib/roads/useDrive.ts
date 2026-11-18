@@ -1,16 +1,18 @@
 // @layer view
 import { useEffect, useRef, useState } from 'react';
 import type { LngLat } from '../types';
-import { driveStep } from './drive';
+import { driveStep, speakStep } from './drive';
 import { roads } from './index';
-import type { Turn } from './types';
+import { hush, sayTurn } from './speech';
+import type { Turn, TurnSay } from './types';
+import { spokenTurn } from './words';
 
 /**
  * A guided drive to one point (RE20, RE22-RE24, RE28): while `on`, the way by road from where you are is found once, each fix is
  * placed on it, and the turn ahead comes back. Off the way no turn comes back, and after a set distance driven off it the way is
  * found again from there, with nothing said. Nothing is stored: a reload finds the way again from the fix it then has.
  */
-export function useDrive(o: { on: boolean; here: LngLat | null; to: LngLat | null; onFail: () => void }) {
+export function useDrive(o: { on: boolean; here: LngLat | null; to: LngLat | null; muted: boolean; onFail: () => void }) {
   const [found, setFound] = useState<{ key: string; path: LngLat[]; turns: Turn[] } | null>(null);
   const [left, setLeft] = useState<LngLat | null>(null);
   const key = o.on && o.to ? `${o.to[0].toFixed(5)},${o.to[1].toFixed(5)}` : null;
@@ -20,11 +22,21 @@ export function useDrive(o: { on: boolean; here: LngLat | null; to: LngLat | nul
   if (!key && left) setLeft(null);
   const step = mine && o.here ? driveStep(mine.path, mine.turns, o.here, left) : null;
   if (step && step.left !== left) setLeft(step.left);
+  // RE25: a turn is spoken once as it nears; which one was last said is kept, muted or not, so unmuting says nothing late.
+  const [said, setSaid] = useState<{ id: number; say: TurnSay } | null>(null);
+  const due = speakStep(step?.turn ?? null, said?.id ?? null);
+  if (due.say && due.said != null) setSaid({ id: due.said, say: due.say });
+  if (!key && said) setSaid(null);
+  const muted = useRef(o.muted);
+  useEffect(() => {
+    if (said && !muted.current) sayTurn(spokenTurn(said.say));
+  }, [said]);
   const here = useRef(o.here);
   const fail = useRef(o.onFail);
   useEffect(() => {
     here.current = o.here;
     fail.current = o.onFail;
+    muted.current = o.muted;
   });
   const hasHere = !!o.here;
   const again = !!step?.again;
@@ -53,7 +65,10 @@ export function useDrive(o: { on: boolean; here: LngLat | null; to: LngLat | nul
   // The graph is dropped with the guiding.
   useEffect(() => {
     if (!key) return;
-    return () => roads.forget();
+    return () => {
+      roads.forget();
+      hush();
+    };
   }, [key]);
   return {
     /** The way is being found for the first time. */

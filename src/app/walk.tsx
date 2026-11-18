@@ -76,7 +76,7 @@ import { notifyWalkChanged } from '../lib/walkEvents';
 import { routeAhead } from '../lib/nav/navigator';
 import { shareLabel } from '../lib/atlas/mapsButton';
 import { travelMode, type TravelMode } from '../lib/nav/handoff';
-import { DRIVE_LABEL, END_LABEL, SHOWN_LINE } from '../lib/roads/words';
+import { DRIVE_LABEL, END_LABEL, MUTE_LABEL, SHOWN_LINE, UNMUTE_LABEL } from '../lib/roads/words';
 import { HANDOFF_HINT, handoffHint, openInMaps } from '../lib/nav/openInMaps';
 import { useNavigation } from '../lib/nav/useNavigation';
 import { loadWayBack, saveWayBack } from '../lib/nav/store';
@@ -114,8 +114,6 @@ import { settleWithin } from '../lib/settleWithin';
 import { lostAtStop, memoLabel, stopWarning, stopWarns } from '../lib/unsaved/core';
 
 /** Streets around the walker: read from the map and shown as fog this far out. */
-/** RE25 (decision 0204): guiding does not ship on a phone before its turns can be spoken; on the web they are shown and it says so. */
-const CAN_GUIDE = Platform.OS === 'web';
 const NEAR_RADIUS_M = 1000;
 /** The streets around the walker are read again after this far. */
 const FOG_STEP_M = 100;
@@ -1368,8 +1366,14 @@ function WalkScreen(props: { onMinimize: () => void }) {
                     <Text style={styles.journeyBtnText}>{END_LABEL}</Text>
                   </Pressable>
                 ) : null}
-                {journey.next.driving ? null : CAN_GUIDE && !journey.next.within && journey.next.at && journey.next.town ? (
-                  <Pressable testID="journey-drive" accessibilityRole="button" accessibilityLabel={DRIVE_LABEL} accessibilityHint={SHOWN_LINE} onPress={journey.drive} style={({ pressed }) => [styles.journeyBtn, pressed && styles.pressed]}>
+                {journey.next.driving && journey.next.speaks ? (
+                  // RE25: the mute, in words; it says what a tap does now.
+                  <Pressable testID="journey-mute" accessibilityRole="button" accessibilityLabel={journey.next.muted ? UNMUTE_LABEL : MUTE_LABEL} onPress={journey.mute} style={({ pressed }) => [styles.journeyPlain, pressed && styles.pressed]}>
+                    <Text style={styles.journeyBtnText}>{journey.next.muted ? UNMUTE_LABEL : MUTE_LABEL}</Text>
+                  </Pressable>
+                ) : null}
+                {journey.next.driving ? null : !journey.next.within && journey.next.at && journey.next.town ? (
+                  <Pressable testID="journey-drive" accessibilityRole="button" accessibilityLabel={DRIVE_LABEL} accessibilityHint={journey.next.speaks ? undefined : SHOWN_LINE} onPress={journey.drive} style={({ pressed }) => [styles.journeyBtn, pressed && styles.pressed]}>
                     <Text style={styles.journeyBtnText}>{DRIVE_LABEL}</Text>
                   </Pressable>
                 ) : null}

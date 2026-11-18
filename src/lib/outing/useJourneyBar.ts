@@ -7,6 +7,7 @@ import { useUnits } from '../useUnits';
 import { chapterDest, emptyState, passBy, stepPlan, type JourneyPlan, type PlanState } from './journeyPlan';
 import { hereLine, NO_TOWN_LINE, towardLine } from './journeyWords';
 import { journeyPlans } from './plans';
+import { canSpeak } from '../roads/speech';
 import { useDrive } from '../roads/useDrive';
 import { LIMITS_LINE, NO_ROAD_LINE, roadLine, SHOWN_LINE, turnLine } from '../roads/words';
 
@@ -59,16 +60,16 @@ export function useJourneyBar(o: { walkId: string | null; here: LngLat | null; n
   const town = ahead?.town ?? null;
   // RE24: with the town at hand the guiding ends by itself, with nothing said.
   const guided = !!mine?.plan?.driving && !!ahead && !ahead.within;
-  if (mine?.plan?.driving && ahead?.within) setHeld({ ...mine, plan: { chapters: mine.plan.chapters } });
+  if (mine?.plan?.driving && ahead?.within) setHeld({ ...mine, plan: { chapters: mine.plan.chapters, ...(mine.plan.muted ? { muted: true as const } : {}) } });
   const endDrive = (said: string | null) => {
-    if (mine?.plan?.driving) setHeld({ ...mine, plan: { chapters: mine.plan.chapters } });
+    if (mine?.plan?.driving) setHeld({ ...mine, plan: { chapters: mine.plan.chapters, ...(mine.plan.muted ? { muted: true as const } : {}) } });
     setBegan(null);
     setNote(said);
   };
-  const drive = useDrive({ on: guided && !o.navigating, here: o.here, to: guided ? ahead.at : null, onFail: () => endDrive(NO_ROAD_LINE) });
+  const drive = useDrive({ on: guided && !o.navigating, here: o.here, to: guided ? ahead.at : null, muted: !!mine?.plan?.muted, onFail: () => endDrive(NO_ROAD_LINE) });
   const notice = guided && !!began && (!o.here || distanceM(began, o.here) < NOTICE_M);
   // RE20, RE22: the turn and how far; nothing while off the way or at the road's end, where the town's own line stands alone.
-  const turn = !guided ? null : notice ? `${SHOWN_LINE} ${LIMITS_LINE}` : drive.finding ? roadLine('reading') : drive.turn ? turnLine(drive.turn, units) : null;
+  const turn = !guided ? null : notice ? (canSpeak ? LIMITS_LINE : `${SHOWN_LINE} ${LIMITS_LINE}`) : drive.finding ? roadLine('reading') : drive.turn ? turnLine(drive.turn, units) : null;
   return {
     /**
      * What the screen says of the journey, or null: with no plan, while a way is followed, or with no town ahead (then only while
@@ -88,6 +89,9 @@ export function useJourneyBar(o: { walkId: string | null; here: LngLat | null; n
               undo: undoShown,
               /** RE20, RE20a: guiding: the line above the town's, and nothing to tap but End. */
               driving: guided,
+              /** RE25: turns are spoken here, and whether they are muted. */
+              speaks: canSpeak,
+              muted: !!mine?.plan?.muted,
               turn,
               /** RE26: the line above is the one-time statement, which may take a third line. */
               notice,
@@ -95,7 +99,7 @@ export function useJourneyBar(o: { walkId: string | null; here: LngLat | null; n
               note: guided ? null : note,
             }
           : undoShown
-            ? { line: NO_TOWN_LINE, within: false, at: null, awayM: null, town: null, undo: true, driving: false, turn: null, notice: false, note: null }
+            ? { line: NO_TOWN_LINE, within: false, at: null, awayM: null, town: null, undo: true, driving: false, speaks: canSpeak, muted: false, turn: null, notice: false, note: null }
             : null,
     /** RE19: guiding begins on this tap and no sooner. */
     drive() {
@@ -103,6 +107,12 @@ export function useJourneyBar(o: { walkId: string | null; here: LngLat | null; n
       setHeld({ ...mine, plan: { ...mine.plan, driving: true } });
       setBegan(o.here);
       setNote(null);
+    },
+    /** RE25: the mute on the bar. */
+    mute() {
+      if (!mine?.plan) return;
+      const { muted: was, ...rest } = mine.plan;
+      setHeld({ ...mine, plan: was ? rest : { ...rest, muted: true } });
     },
     /** RE19: "End": guiding stops; the town stays ahead. */
     end: () => endDrive(null),

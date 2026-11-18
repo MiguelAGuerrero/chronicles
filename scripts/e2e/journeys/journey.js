@@ -152,11 +152,13 @@ async function run(h) {
     const text = async (id) => ((await pg.locator(`[data-testid=${id}]`).innerText().catch(() => '')) ?? '').replace(/\s+/g, ' ').trim();
     const z12Before = roadAsked.length;
     check((await pg.locator('[data-testid=journey-drive]').count()) === 1 && (await text('journey-drive')) === 'Drive there' && (await pg.locator('[data-testid=journey-turn]').count()) === 0, 'RE3, RE19: between towns the bar offers "Drive there" beside Open in Maps and Pass by, and guides nothing by itself');
+    // What is spoken is recorded, never played (RE25).
+    await pg.evaluate(() => { window.__said = []; window.speechSynthesis.speak = (u) => { window.__said.push(u.text); }; window.speechSynthesis.cancel = () => {}; });
     await pg.click('[data-testid=journey-drive]');
     await pg.waitForSelector('[data-testid=journey-turn]', { timeout: 15000 }).catch(() => {});
     const notice = await text('journey-turn');
-    check(notice === 'Turns are shown, not said. The map holds no turn restrictions and no closures.', `RE25, RE26: at the tap, before any turn, the bar says turns are shown and what the map cannot know (${notice})`);
-    check((await pg.locator('[data-testid=journey-end]').count()) === 1 && (await pg.locator('[data-testid=journey-maps], [data-testid=journey-pass], [data-testid=journey-drive]').count()) === 0, 'RE20a: while guiding the bar holds End and nothing else to tap');
+    check(notice === 'The map holds no turn restrictions and no closures.' && (await pg.evaluate(() => window.__said.length)) === 0, `RE26: at the tap, before any turn, the bar says what the map cannot know, and nothing is spoken (${notice})`);
+    check((await pg.locator('[data-testid=journey-end]').count()) === 1 && (await text('journey-mute')) === 'Mute turns' && (await pg.locator('[data-testid=journey-maps], [data-testid=journey-pass], [data-testid=journey-drive]').count()) === 0, 'RE20a, RE25: while guiding the bar holds End and the mute, and nothing else to tap');
     {
       const b = await pg.locator('[data-testid=journey-bar]').boundingBox().catch(() => null);
       const caps = await pg.locator('[aria-label="Take a photo or video"], [aria-label="Record a voice memo"], [aria-label="Write a note"]').evaluateAll((els) => els.map((e) => { const q = e.getBoundingClientRect(); return { x: q.x, y: q.y, w: q.width, h: q.height }; }).filter((q) => q.w > 0));
@@ -168,6 +170,8 @@ async function run(h) {
     const turn = await text('journey-turn');
     const under = await text('journey-next');
     check(/^(Left|Right)\. \d+(\.\d)? (km|mi|m|ft)\.$/.test(turn) && under === 'Toward North Scituate.', `RE20, RE21: moving, the bar says the turn coming and how far to it, and under it the town; no time, speed or count (${turn} / ${under})`);
+    const said1 = await pg.evaluate(() => window.__said);
+    check(said1.length === 1 && /^(Left|Right) ahead\.$/.test(said1[0]), `RE25: the turn is spoken once as it nears, the turn alone (${JSON.stringify(said1)})`);
     check(roadAsked.length > z12Before, 'RE8: the road for the drive is read on the tap on "Drive there"');
     await shot(pg, '03c-guiding');
     {
@@ -185,11 +189,15 @@ async function run(h) {
     await pg.waitForFunction(() => /^On this road\./.test(document.querySelector('[data-testid=journey-turn]')?.textContent ?? ''), null, { timeout: 60000 }).catch(() => {});
     const after = await text('journey-turn');
     check(/^On this road\. \d+(\.\d)? (km|mi|m|ft)\.$/.test(after), `RE23: a turn passed is not said again (${after})`);
+    // The mute says what a tap does now, and is kept with the guiding.
+    await pg.click('[data-testid=journey-mute]');
+    await pg.waitForTimeout(600);
+    check((await text('journey-mute')) === 'Say turns' && /muted/.test(JSON.stringify(await h.metaOf(pg, 'outing_journey').catch(() => null))), `RE25: muted, the control offers to say turns again, and the mute rides with the session (${await text('journey-mute')})`);
     // Off the way: no turn is shown, and nothing says so.
     const off = await go(p2, [p2[0] - ((d[1] / len) * (250 / 111320)) / k, p2[1] + (d[0] / len) * (250 / 111320)]);
     await pg.waitForFunction(() => !document.querySelector('[data-testid=journey-turn]'), null, { timeout: 60000 }).catch(() => {});
     const body = await pg.locator('body').innerText();
-    check((await pg.locator('[data-testid=journey-turn]').count()) === 0 && /^Toward North Scituate\. /.test(await text('journey-next')) && !/recalculat|off route|turn around|wrong way/i.test(body), `RE22: off the way the bar shows the town and no turn, and nothing is flagged (${await text('journey-next')})`);
+    check((await pg.locator('[data-testid=journey-turn]').count()) === 0 && /^Toward North Scituate\. /.test(await text('journey-next')) && !/recalculat|off route|turn around|wrong way/i.test(body) && (await pg.evaluate(() => window.__said.length)) === 1, `RE22, RE25: off the way the bar shows the town and no turn, nothing is flagged and nothing more is spoken (${await text('journey-next')})`);
     // Back on it, a reload finds the guiding again; End stops it and the other controls return.
     await go(off, p2);
     await pg.waitForFunction(() => /^On this road\./.test(document.querySelector('[data-testid=journey-turn]')?.textContent ?? ''), null, { timeout: 60000 }).catch(() => {});

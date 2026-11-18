@@ -15,13 +15,15 @@ export const DRIVE_RULES = {
   againM: 400,
   /** A turn within this behind the fix is behind; the road's last stretch shorter than this has nothing to say. */
   nearM: 30,
+  /** RE25: a turn is spoken once, when it is this near. */
+  sayM: 400,
 } as const;
 
 export interface DriveStep {
   /** Off the way: no turn is shown. */
   off: boolean;
   /** The turn ahead and how far to it; 'on' when no turn is left, with what is left of the road; null off the way or at its end. */
-  turn: { say: TurnSay | 'on'; toM: number } | null;
+  turn: { say: TurnSay | 'on'; toM: number; /** Which turn it is (where along the way), so it is spoken once; null for the road's last stretch. */ id: number | null } | null;
   /** Where the way was left, kept from fix to fix; null on it. */
   left: LngLat | null;
   /** The way should be found again from here. */
@@ -56,6 +58,15 @@ export function driveStep(path: readonly LngLat[], turns: readonly Turn[], here:
   }
   const next = turns.find((t) => t.alongM > at.alongM + rules.nearM);
   const restM = at.totalM - at.alongM;
-  const turn = next ? { say: next.say, toM: next.alongM - at.alongM } : restM > rules.nearM ? { say: 'on' as const, toM: restM } : null;
+  const turn = next ? { say: next.say, toM: next.alongM - at.alongM, id: Math.round(next.alongM) } : restM > rules.nearM ? { say: 'on' as const, toM: restM, id: null } : null;
   return { off: false, turn, left: null, again: false };
+}
+
+/**
+ * RE25: whether a turn is to be spoken at this fix: once, as it nears, and never otherwise. Nothing is spoken off the way, of the
+ * road's last stretch, or of a turn already said.
+ */
+export function speakStep(turn: DriveStep['turn'], said: number | null, rules: Pick<typeof DRIVE_RULES, 'sayM'> = DRIVE_RULES): { say: TurnSay | null; said: number | null } {
+  if (!turn || turn.say === 'on' || turn.id == null || turn.id === said || turn.toM > rules.sayM) return { say: null, said };
+  return { say: turn.say, said: turn.id };
 }

@@ -128,9 +128,7 @@ test('RE1, RE21: the service answers a way with its turns', async () => {
   if (got?.state === 'found') assert.deepEqual(got.turns.map((t) => t.say), ['left']);
 });
 
-const TODO = { todo: 'test first' };
-
-test('RE25: a turn is spoken once as it nears, and never otherwise: not far off, not twice, not the road\'s last stretch, not off the way', TODO, async () => {
+test('RE25: a turn is spoken once as it nears, and never otherwise: not far off, not twice, not the road\'s last stretch, not off the way', async () => {
   const { speakStep, DRIVE_RULES } = await import('../../roads/drive');
   const far = speakStep({ say: 'left', toM: DRIVE_RULES.sayM + 200, id: 1000 }, null);
   assert.deepEqual(far, { say: null, said: null });
@@ -142,7 +140,7 @@ test('RE25: a turn is spoken once as it nears, and never otherwise: not far off,
   assert.deepEqual(speakStep(null, 2400), { say: null, said: 2400 }, 'off the way nothing is spoken');
 });
 
-test('RE25, RE32: what is spoken is the turn alone: no distance left, time, destination or rebuke', TODO, async () => {
+test('RE25, RE32: what is spoken is the turn alone: no distance left, time, destination or rebuke', async () => {
   const w = await import('../../roads/words');
   assert.equal(w.spokenTurn('left'), 'Left ahead.');
   assert.equal(w.spokenTurn('right'), 'Right ahead.');
@@ -155,7 +153,7 @@ test('RE25, RE32: what is spoken is the turn alone: no distance left, time, dest
   for (const say of ['left', 'right', 'keep-left', 'keep-right', 'join', 'leave'] as const) assert.doesNotMatch(w.spokenTurn(say), /\d|\b(min|minutes?|km|mi|metres?|miles?|arriv\w*|recalculat\w*|toward)\b/i);
 });
 
-test('RE20: the turn ahead carries which turn it is, so it is said once; the road\'s last stretch is no turn', TODO, async () => {
+test('RE20: the turn ahead carries which turn it is, so it is said once; the road\'s last stretch is no turn', async () => {
   const { driveStep } = await import('../../roads/drive');
   const roads = [road([[0, 0], [1000, 0]]), road([[1000, 0], [2000, 0]]), road([[1000, 0], [1000, 1000]])];
   const { way, turns } = await turnsOf(roads, [0, 0], [1000, 1000]);

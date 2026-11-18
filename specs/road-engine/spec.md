@@ -259,3 +259,16 @@ still is" where the road ends short is the ordinary line between towns, with no 
 **Not tested, and why.** RE22's finding again after 400 m off the way (the unit test holds the rule; the journey only leaves and
 returns); RE24's end at the town (the plan's own rule, tested as OJ49, drops the flag; no journey drives nine kilometres); RE31
 (guiding needs an open session: the bar exists only in one, by construction); real roads, real junctions, any phone.
+
+**Step 4, spoken turns, built 2026-11-18** (decision 0205, the owner's "Proceed"): `expo-speech` behind `roads/speech.ts`;
+`speakStep` (once per turn, within 400 m); the mute in words on the bar, kept as the plan's `muted`; "Drive there" on every
+platform.
+
+**Passed.** Unit tests for RE25 (`roads/guide.test.ts`, `outing/journeyPlan.test.ts`), todos first (`912ada9`). The journey
+`journey`, with the browser's speech recorded: nothing spoken at the tap; "Right ahead." once as the turn nears; nothing more past
+it or off the way; "Mute turns" becomes "Say turns" and is kept with the session.
+
+**Not met.** RE33: nothing is spoken with the phone locked or the app behind another (the position is read only in front). RE25's
+"a phone before step 4" clause is moot. Both in `docs/DEFERRED.md`.
+
+**Native.** Guiding and speech are now offered on phones and have never run on one.

@@ -55,3 +55,16 @@ export const LIMITS_LINE = 'The map holds no turn restrictions and no closures.'
 export const MAPS_ROAD_LINE = 'Maps chooses its own road, which may not be this one.';
 /** RE15: said once when guiding could not begin. */
 export const NO_ROAD_LINE = "Couldn't find the road.";
+
+const SPOKEN: Record<TurnSay, string> = {
+  left: 'Left ahead.',
+  right: 'Right ahead.',
+  'keep-left': 'Keep left ahead.',
+  'keep-right': 'Keep right ahead.',
+  join: 'The motorway ahead.',
+  leave: 'Off the motorway ahead.',
+};
+/** RE25: what is spoken as a turn nears: the turn alone. */
+export const spokenTurn = (say: TurnSay): string => SPOKEN[say];
+export const MUTE_LABEL = 'Mute turns';
+export const UNMUTE_LABEL = 'Say turns';
