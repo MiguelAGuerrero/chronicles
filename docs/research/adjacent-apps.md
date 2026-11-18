@@ -163,6 +163,17 @@ source.
 - **Komoot**: planned routes with surface and way types and a difficulty. Source: from memory, unverified.
   **Unverified**.
 
+### Say what an area holds: findable places apart from the places you go into (Earn)
+
+- **Atlas Obscura** (web and app): lists only curiosities and odd places, each a page; restaurants and shops are not in
+  it. Source: from memory, unverified. **Unverified**.
+- **Google Maps** (Android and iOS): nearby search offers chips by type (Restaurants, Coffee, Shopping, Things to do,
+  Hotels); landmarks and attractions sit under "Things to do", apart from places to eat or shop. Source: from memory,
+  unverified. **Unverified**.
+- **Walk Score** (web): groups nearby amenities by type (dining and drinking, groceries, shopping, errands, parks,
+  schools, culture and entertainment) and sums them into a 0-100 score. Counter-example (Never: scores); the grouping by
+  type is the model. Source: from memory, unverified. **Unverified**.
+
 ### Places worth noticing nearby (Earn)
 
 - **Pikmin Bloom** (iOS, Android): postcards come from Niantic's Wayspot database (Ingress portals, PokéStops), seeded from
