@@ -547,9 +547,11 @@ async function run(h) {
       const sb = row.skip;
       // Under Skip, at the same edge: the clock sits between Hold and Skip, and the three do not fit one row on a 375 px phone.
       check(!!nb && !!sb && nb.w >= 44 && nb.h >= 44 && nb.y >= sb.y + sb.h && nb.y - (sb.y + sb.h) <= 16 && Math.abs(nb.x + nb.w - (sb.x + sb.w)) <= 2 && nb.x >= 0 && nb.x + nb.w <= w
-        && nb.name === 'Next moment' && !/[A-Za-z0-9]/.test(nb.text) && nb.edge === sb.edge && nb.ground === sb.ground && !!row.hold && row.hold.x + row.hold.w <= nb.x,
-        `RY12: at ${w} px the replay's controls have a next-moment button with Skip, right under it, 44 px, in Skip's outline, named for a screen reader (${JSON.stringify(row)})`);
+        && nb.name === 'Next moment' && nb.text === 'Next' && nb.edge === sb.edge && nb.ground === sb.ground && !!row.hold && row.hold.x + row.hold.w <= nb.x,
+        `RY12: at ${w} px the replay's controls have a Next button with Skip, right under it, 44 px, in Skip's outline, named "Next moment" for a screen reader (${JSON.stringify(row)})`);
       await shot(pg, `ry-next-${w}`);
+      // The cold find took a bare chevron for something else and tapped Skip first (Nov 18): the button says its word.
+      check(!!nb && nb.text === 'Next', `replay-pace ui 1: at ${w} px the next-moment button says "Next" ("${nb && nb.text}")`);
       // A press: the walker is at the next moment and its first piece comes (RY13); nothing counts (RY18).
       const walkerAt = () => pg.locator('[data-walker]').first().getAttribute('data-walker').catch(() => null);
       const before = await walkerAt();

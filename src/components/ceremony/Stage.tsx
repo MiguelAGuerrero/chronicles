@@ -2,7 +2,7 @@ import { createElement } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import type { Frame, Overlay } from '../../lib/ceremony/types';
 import { theme } from '../ui';
-import type { StageCtx } from './layout';
+import { heldShown, STAGE_SIDE, type StageCtx } from './layout';
 import { OVERLAY_ORDER, OVERLAYS } from './overlays';
 import { RollingClock } from './RollingClock';
 
@@ -25,18 +25,15 @@ export function Stage({ frame, ctx }: { frame: Frame; ctx: StageCtx }) {
         {frame.clock != null && <RollingClock time={frame.clock} still={ctx.reduceMotion} />}
         {frame.line ? (
           // Between Hold and the controls under Skip: a passed place's line can be long (RY21).
-          <Text testID="replay-later" style={[styles.line, { opacity: frame.lineOpacity, maxWidth: Math.max(120, ctx.width - 2 * SIDE) }]}>{frame.line}</Text>
+          <Text testID="replay-later" style={[styles.line, { opacity: frame.lineOpacity, maxWidth: Math.max(120, ctx.width - 2 * STAGE_SIDE) }]}>{frame.line}</Text>
         ) : null}
-        {ctx.held ? (
+        {heldShown(ctx.held, frame.line) ? (
           <Text testID="replay-held" accessibilityLiveRegion="polite" style={styles.held}>Held · tap to go on</Text>
         ) : null}
       </View>
     </>
   );
 }
-
-/** The room each side of the top column keeps for Hold, and for Skip with the next-moment button under it. */
-const SIDE = 76;
 
 const styles = StyleSheet.create({
   dim: { backgroundColor: theme.ink },
