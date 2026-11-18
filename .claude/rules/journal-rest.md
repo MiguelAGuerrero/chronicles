@@ -22,6 +22,9 @@ paths:
 
 - **One toolbar, always drawn** (`open-line`): at rest a grey field (`bar-compose`, a button spoken "What’s on your mind?", the app's sans at 15 px, `theme.line` ground) that opens the composer (below), Done after it while an entry is open (JN44), the camera and the mic. The pen is gone (0179). In a thread the field is in the bar as before (`inBar`).
 - **The row under the line is gone** (JN34-JN40 retired, `scripts/features.js` `RETIRED`): no "+", no `line-row`, no `controlsAt`, no `onOpen`/`onAway`. Its audit's lessons that still hold: `footRoom` (`lib/journal/bar.ts`) is `max(barH, aboveH)` plus the iPhone accessory room and the lift while typing, `barH` measured without the accessory room (audit 62, 63); no Done shows mid-note (audit 65).
+- **The foot's room since tend tabs audit 34** (the owner's answer of Nov 18, decision 0208, in place of audit 62's
+  taller of the two): `footRoom` is `barH + aboveH`, the toolbar and the messages standing above it, both, so a message
+  (the storage notice at 320 px) covers no entry's actions. `aboveH` includes the column's 10 px foot even when empty.
 - **Done's unseen place in a recording begun from the writing row** (`recTyping`): the writing row ends in Done, so without it the camera moves as the note starts (JN14). A recording begun at rest has no trailing slot, so Stop lands where the mic was (JN45).
 - **The delete's `UndoToast` stays in the line's column** (`above`), where its height pads the sheet's foot (audit 67's remount trap is deferred).
 - **"bar" is a presence tag**: a string `'bar'` anywhere in `src` fails `presence-readers audit 1`.
