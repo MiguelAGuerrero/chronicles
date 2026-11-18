@@ -27,7 +27,7 @@ const near = (a, b, tol) => !!a && !!b && Math.abs(a[0] - b[0]) + Math.abs(a[1] 
 const over = (top, under, a) => top.map((v, i) => Math.round(v * a + under[i] * (1 - a)));
 
 async function run(h) {
-  const { navUrl, at, scriptsDir, freshPage, shot, check, tabTo } = h;
+  const { navUrl, at, scriptsDir, freshPage, shot, check, tabTo, toStop } = h;
   const { c, pg } = await freshPage('palette', { permissions: ['geolocation', 'microphone'] });
   // The map's projection for the pixel reads (`window.__project`), defined only when the page asks for perf counts.
   await c.addInitScript(() => { window.__perf = {}; });
@@ -102,7 +102,7 @@ async function run(h) {
   await pg.waitForTimeout(1500);
   await go(-0.5, -0.5);
   await pg.click('[data-testid=start]');
-  await pg.waitForSelector('[data-testid=stop]');
+  await pg.waitForSelector('[data-testid=walk-actions]');
   // Each pin 90 m or more from the next, so none group at the card's zoom.
   await walkTo(-0.5, 0.3);
   await take('photo.jpg', 'Photo saved here');
@@ -152,6 +152,8 @@ async function run(h) {
       `MP14: on ${where} a pin of several is the charcoal head with its kinds' discs (${JSON.stringify(many.map((p) => [p.head, p.discs]))})`);
   };
   await pinChecks('the walk screen');
+
+  await toStop(pg);
 
   const b = await pg.locator('[data-testid=stop]').boundingBox();
   await pg.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
@@ -270,7 +272,7 @@ const contrastOf = (a, b) => {
 // replay's veil, so the edge holds TB8's 3.5:1 and the tint TB10's 1.15 there. Its own ground: Pawtucket's east edge
 // 100 m east of the start and Central Falls beyond it, served on this page only, so a short walk has the border in frame.
 async function townBorders(h) {
-  const { navUrl, url, exploreUrl, at, freshPage, shot, check, tabTo, mapUp, switchLayer, OVERTURE_HOST, OVERTURE_RELEASE } = h;
+  const { navUrl, url, exploreUrl, at, freshPage, shot, check, tabTo, mapUp, switchLayer, OVERTURE_HOST, OVERTURE_RELEASE, toStop } = h;
   const { encodeTile } = await import('../../mvt-encode.mjs');
   const { encodeArchive } = await import('../../pmtiles-encode.mjs');
   const area = (name, id, x0, x1) => ({ type: 'Feature', geometry: { type: 'Polygon', coordinates: [[at(x0, -10), at(x1, -10), at(x1, 10), at(x0, 10), at(x0, -10)]] },
@@ -331,17 +333,18 @@ async function townBorders(h) {
   await switchLayer(pg, 'borders');
   await go(-0.5, -0.5);
   await pg.click('[data-testid=start]');
-  await pg.waitForSelector('[data-testid=stop]');
+  await pg.waitForSelector('[data-testid=walk-actions]');
   await walkTo(-0.5, 0.8);
   await walkTo(0.85, 0.8);
   // tend map audit 39 measured the town's edge under the walk's unwalked veil; the veil went with the unwalked-streets
-  // button (decision 0220, WB1), so the walk draws its firm edge on the plain map. The replay and a day keep theirs below.
+  // button (decision 0221, WB1), so the walk draws its firm edge on the plain map. The replay and a day keep theirs below.
   await pg.waitForFunction(() => [...document.querySelectorAll('[data-borders]')].some((e) => /firm:Pawtucket/.test(e.getAttribute('data-borders') ?? '')), null, { timeout: 45000 }).catch(() => {});
   const walkDrawn = await pg.$$eval('[data-borders]', (es) => es.map((e) => e.getAttribute('data-borders')).join(' '));
   check(/firm:Pawtucket/.test(walkDrawn), `the walk draws the town's firm edge (${walkDrawn})`);
   await walkTo(0.85, -0.5);
   await walkTo(0.1, -0.5);
   await pg.waitForTimeout(1500);
+  await toStop(pg);
   const b = await pg.locator('[data-testid=stop]').boundingBox();
   await pg.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
   await pg.mouse.down();

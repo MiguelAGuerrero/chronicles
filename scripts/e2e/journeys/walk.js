@@ -6,7 +6,7 @@
 const path = require('path');
 
 async function checks(h) {
-  const { BASE, browser, ctx, page, start, at, dLat, dLon, names, check, shot, pressedScale, metaOf, drawerTo, openInto, closeInto, tabBarShown, tiles, scriptsDir, onTab, walkMap, walkMarks, walkRoute, walkPts, routed } = h;
+  const { BASE, browser, ctx, page, start, at, dLat, dLon, names, check, shot, toStop, pressedScale, metaOf, drawerTo, openInto, closeInto, tabBarShown, tiles, scriptsDir, onTab, walkMap, walkMarks, walkRoute, walkPts, routed } = h;
     // The ready bar pulled up (NR7, NV20-NV24): the choices, each saved as it changes.
     await onTab('navigate');
     await page.waitForSelector('[data-testid=ready-bar]');
@@ -92,7 +92,7 @@ async function checks(h) {
     check(held.scale > 0.95 && held.scale < 0.99 && held.after === 1, `a large button presses down while held, and springs back (M4: ${held.scale.toFixed(3)} → ${held.after})`);
     // Start starts at once, in place (NV19, NV25, NR6).
     await page.click('[data-testid=start]');
-    await page.waitForSelector('[data-testid=stop]');
+    await page.waitForSelector('[data-testid=walk-actions]');
     check(new URL(page.url()).pathname === `${BASE}/walk` && !(await tabBarShown(page)), 'Start records on the walk screen over the tabs, the tab bar hidden (NV6, NV25, NR6)');
     // A fresh fix, as a phone's GPS gives one: the emulated position is otherwise re-sent with the time it was
     // read on Navigate, and a fix from before the walk began is dropped as stale (MAX_STALE_MS).
@@ -209,10 +209,9 @@ async function checks(h) {
         await page.click('[data-testid=voice-save]');
         await page.waitForSelector('text=Too short, not kept');
         check(true, 'a memo under a second is not kept, and the walker is told');
-        // A tap on Stop says it needs holding.
-        await page.click('[data-testid=stop]');
-        await page.waitForSelector('text=Hold to stop the walk');
-        check(true, 'a tap on Stop explains it needs a hold');
+        // Walking, there is no Stop to tap by accident (decision 0220): Pause comes first.
+        check((await page.locator('[data-testid=stop]').count()) === 0 && (await page.locator('[data-testid=pause-walk]').count()) === 1,
+          '0220: while walking the strip has Pause and no Stop');
       }
       if (k === 6) {
         // Explore on, for this walk (E1): the busy streets show, as information (E2, S21).
@@ -571,15 +570,16 @@ async function checks(h) {
         // Pause: positions sent while paused are not recorded, and the clock stops.
         n12.pause = await navOn();
         n12.grewM = (await walkedM()) - n12.fromM;
-        // tend walk-screen 7 (decision 0172, O27): Pause shows its word under its icon, as Hold shows its own, and Resume
-        // while paused; the spoken name is as before. At 390 and 320 the strip keeps every word whole on one line, its
-        // buttons 44 or more and on screen, and its height (`BAR_H`, 69).
+        // Decision 0220 (AllTrails' pattern; amends O27 and tend walk-screen 7, audit 9): walking, the strip shows Pause alone;
+        // paused, Resume and a held Stop. Each is a pill, its icon and word side by side, no outline, 48 high: Pause and Stop
+        // soft, Resume solid accent. The spoken names are as before. At 390 and 320 every word is whole on one line, on
+        // screen, the strip 69 high.
         const strip = (id) => page.evaluate((id) => {
           const b = document.querySelector(`[data-testid=${id}]`);
           const hold = document.querySelector('[data-testid=stop]');
           const stats = document.querySelector('[data-testid=walk-stats]');
           const bar = document.querySelector('[data-testid=walk-bar]');
-          if (!b || !hold || !stats) return null;
+          if (!b || !stats) return null;
           const oneLine = (el) => {
             const r = document.createRange();
             r.selectNodeContents(el);
@@ -587,18 +587,33 @@ async function checks(h) {
             return lines.size === 1 && el.scrollWidth <= el.clientWidth + 1;
           };
           const leaf = (root) => [...root.querySelectorAll('div')].filter((d) => !d.querySelector('div') && d.innerText.trim());
-          const words = leaf(b);
-          const icon = [...b.querySelectorAll('div')].find((d) => d.innerText.trim() && !/[A-Za-z]/.test(d.innerText));
-          const wr = words.find((d) => /[A-Za-z]/.test(d.innerText))?.getBoundingClientRect();
-          const ir = icon?.getBoundingClientRect();
+          const wordOf = (root) => leaf(root).find((d) => /[A-Za-z]/.test(d.innerText));
+          const iconOf = (root) => [...root.querySelectorAll('div')].find((d) => d.innerText.trim() && !/[A-Za-z]/.test(d.innerText));
+          // Beside: the word starts right of the icon, their middles level.
+          const beside = (root) => {
+            const w = wordOf(root)?.getBoundingClientRect();
+            const i = iconOf(root)?.getBoundingClientRect();
+            return !!(w && i && w.left >= i.right - 1 && Math.abs((w.top + w.bottom) / 2 - (i.top + i.bottom) / 2) < 3);
+          };
+          // A pill: no outline, its corners half its height, its own fill.
+          const pill = (el) => {
+            const cs = getComputedStyle(el);
+            const h = el.getBoundingClientRect().height;
+            return ['Top', 'Right', 'Bottom', 'Left'].every((e) => parseFloat(cs[`border${e}Width`]) === 0)
+              && parseFloat(cs.borderTopLeftRadius) >= h / 2 - 1 && cs.backgroundColor !== 'transparent' && !/rgba\(.*,\s*0\)$/.test(cs.backgroundColor);
+          };
           const box = (el) => { const r = el.getBoundingClientRect(); return { l: r.left, r: r.right, t: r.top, b: r.bottom, w: r.width, h: r.height }; };
           return {
-            said: b.getAttribute('aria-label'), word: words.map((d) => d.innerText.trim()).filter((t) => /[A-Za-z]/.test(t)).join(' '),
-            under: !!(wr && ir && wr.top >= ir.bottom - 1), whole: words.every(oneLine) && leaf(hold).every(oneLine) && oneLine(stats.querySelector('div') ?? stats),
-            btn: box(b), hold: box(hold), barH: bar ? Math.round(bar.getBoundingClientRect().height) : null, vw: window.innerWidth,
+            said: b.getAttribute('aria-label'), word: wordOf(b)?.innerText.trim() ?? '', wordColor: wordOf(b) ? getComputedStyle(wordOf(b)).color : null,
+            beside: beside(b) && (!hold || beside(hold)), pill: pill(b) && (!hold || pill(hold)),
+            fill: getComputedStyle(b).backgroundColor, holdFill: hold ? getComputedStyle(hold).backgroundColor : null,
+            whole: leaf(b).every(oneLine) && (!hold || leaf(hold).every(oneLine)) && oneLine(stats.querySelector('div') ?? stats),
+            holdWord: hold ? wordOf(hold)?.innerText.trim() : null, holdSaid: hold?.getAttribute('aria-label') ?? null,
+            btn: box(b), hold: hold ? box(hold) : null, barH: bar ? Math.round(bar.getBoundingClientRect().height) : null, vw: window.innerWidth,
           };
         }, id);
-        const fits = (m) => !!m && m.whole && m.under && m.btn.w >= 44 && m.btn.h >= 44 && m.hold.h >= 44 && m.btn.l >= 0 && m.hold.r <= m.vw && m.btn.r <= m.hold.l;
+        const fits = (m) => !!m && m.whole && m.beside && m.pill && m.btn.w >= 44 && m.btn.h === 48 && m.btn.l >= 0 && m.btn.r <= m.vw && m.barH === 69
+          && (!m.hold || (m.hold.h === 48 && m.hold.r <= m.vw && m.btn.r <= m.hold.l && Math.abs(m.hold.t - m.btn.t) < 0.5 && Math.abs(m.hold.b - m.btn.b) < 0.5));
         const seenStrip = {};
         seenStrip.walking390 = await strip('pause-walk');
         await shot(page, '03f-strip-walking-390');
@@ -619,13 +634,18 @@ async function checks(h) {
         await shot(page, '03g-strip-paused-320');
         await page.setViewportSize({ width: 390, height: 844 });
         await page.waitForTimeout(600);
-        check(seenStrip.walking390?.word === 'Pause' && seenStrip.walking390.said === 'Pause the walk' && seenStrip.paused390?.word === 'Resume' && seenStrip.paused390.said === 'Resume the walk'
-          && Object.values(seenStrip).every((m) => fits(m) && m.barH === 69),
-          `tend walk-screen 7: the strip's Pause says "Pause" under its icon, and "Resume" while paused, its spoken name unchanged; at 390 and 320 every word whole on one line, 44 or more, on screen, the strip 69 high (${JSON.stringify(seenStrip)})`);
-        // tend walk-screen audit 9 (the review's ux 1): Hold stood 44 high beside the 48 pt Pause, their tops and bottoms 2 px
-        // apart; on the walk's strip both are 48 and share a top and a bottom.
-        check(Object.values(seenStrip).every((m) => m && m.hold.h === 48 && Math.abs(m.hold.t - m.btn.t) < 0.5 && Math.abs(m.hold.b - m.btn.b) < 0.5),
-          `tend walk-screen audit 9: on the walk's strip Hold is 48 high, level with Pause at top and bottom, walking and paused, at 390 and 320 (${JSON.stringify(Object.values(seenStrip).map((m) => m && [m.btn.t, m.btn.b, m.hold.t, m.hold.b]))})`);
+        const walking = [seenStrip.walking390, seenStrip.walking320];
+        const pausedStrip = [seenStrip.paused390, seenStrip.paused320];
+        check(walking.every((m) => m?.word === 'Pause' && m.said === 'Pause the walk' && m.hold == null)
+          && pausedStrip.every((m) => m?.word === 'Resume' && m.said === 'Resume the walk' && m.holdWord === 'Stop' && m.holdSaid === 'Hold to stop')
+          && Object.values(seenStrip).every(fits),
+          `0220: walking, the strip shows Pause alone; paused, Resume and a held Stop; pills, icon and word side by side, no outline, 48 high and level, every word whole at 390 and 320, the strip 69 high (${JSON.stringify(seenStrip)})`);
+        // Resume is the strip's one primary action while paused: a solid accent pill, its word white (0172's rule); Pause and
+        // Stop are soft pills with ink words.
+        const soft = 'rgb(227, 224, 218)';
+        check(pausedStrip.every((m) => m?.fill === 'rgb(194, 65, 12)' && m.wordColor === 'rgb(255, 255, 255)' && m.holdFill === soft)
+          && walking.every((m) => m?.fill === soft && m.wordColor === 'rgb(29, 36, 48)'),
+          `0220: Resume is a solid accent pill with a white word; Pause and Stop soft pills with ink words (${[...walking, ...pausedStrip].map((m) => m && `${m.fill}/${m.wordColor}/${m.holdFill}`).join(', ')})`);
         // One publish cycle, so a fix taken just before the pause is already counted.
         await page.waitForTimeout(2500);
         const before = await page.locator('text=/ · \\d+[ \\u00a0]m$/').first().innerText();
@@ -653,7 +673,7 @@ async function checks(h) {
         await page.click('[data-testid=recenter]');
         await page.waitForSelector('[data-testid=recenter]', { state: 'detached' });
         check(true, 'after looking around, Recenter brings the map back');
-        // The fog of unwalked streets still draws, quietly (the unwalked-streets button went with decision 0220).
+        // The fog of unwalked streets still draws, quietly (the unwalked-streets button went with decision 0221).
         n12.fog = await navOn();
         check(n12.photo && n12.photoKept && n12.pause && n12.grewM > 0 && n12.held && n12.fog,
           `N12: while navigating, the walk records, a photo is kept, Pause holds the bar's distance, and the fog draws (${JSON.stringify(n12)})`);
@@ -677,7 +697,7 @@ async function checks(h) {
       if (k === 40) {
         // A reload mid-walk is how the web resumes: it must land back on the walk.
         await page.reload();
-        await page.waitForSelector('[data-testid=stop]');
+        await page.waitForSelector('[data-testid=walk-actions]');
         check(page.url().endsWith(`${BASE}/walk`), 'a reload mid-walk resumes the walk');
         await page.waitForTimeout(2500);
         const replayed = await page.evaluate(() => window.__enters.length);
@@ -860,12 +880,15 @@ async function checks(h) {
 
     // The walk back passed the flagged capture again: never in the walk that recorded it (R2).
     check((await page.locator('[data-testid=reminder]').count()) === 0, 'a flagged capture does not come back in its own walk');
+    await toStop(page);
     await page.click('[data-testid=stop]');
-    await page.waitForTimeout(600);
+    await page.waitForSelector('text=Hold to stop the walk', { timeout: 5000 }).catch(() => {});
+    check((await page.locator('text=Hold to stop the walk').count()) > 0, 'a tap on Stop explains it needs a hold');
     check(page.url().endsWith('/walk'), 'a tap on Stop does not end the walk');
 
     const dismissed = await hintDismissed;
     check(dismissed === true, `a dismissed banner leaves no copy behind (audit 5${dismissed == null ? ': the hint never showed' : ''})`);
+    await toStop(page);
     const box = await page.locator('[data-testid=stop]').boundingBox();
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
     let releaseTilejson;

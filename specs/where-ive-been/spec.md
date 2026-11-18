@@ -30,7 +30,7 @@ Open: none (the owner answered overlaps: one even tone, Nov 18).
 - **Fog of World**: the map stays fogged except where you have been; a percentage explored and levels. Counter-example (Never: coverage, levels); the fog alone is the model for our faint fog. Source: from memory, unverified. **Unverified**.
 - **Strava personal heatmap**: every recorded activity's line overlaid on one map, brighter where you have gone more often, filtered by sport and date; a subscriber feature. Counter-example for the stacking (frequency drawn as intensity, the owner chose one tone); the overlay of your own lines on and off is the job. Source: from memory, unverified. **Unverified**.
 
-## Decisions (the owner's calls, Nov 18; decision 0220)
+## Decisions (the owner's calls, Nov 18; decision 0221)
 
 - **The "Unwalked streets near me" button goes**, with its veil, its bold fog and its "unwalked nearby" line: "the trace already provides that information implicitly".
 - **The quiet fog and the ink walked streets stay as they are**, always drawn; only the button and what it switched go.
@@ -113,13 +113,13 @@ Built Nov 18, 2026 on `claude/modest-johnson-pctfuj`, test-first by history (`bd
   (`putWalkLine`, `getWalkLinesIn`, `listWalkLineCodes`, `deleteWalkLine`, `deleteWalk`), and the `where` journey (21 checks:
   WB1-WB6, WB8-WB12, WB16, nothing leaves the device). `walk`, `qol`, `ready`, `palette`, `layers`, `reload` and `launch` green;
   `gaps` fails "gap-drawing audit 4" on `main` too (3 of 3 baseline runs, `scripts/e2e/flaky.json`).
-- **The steward** (before the plan): four drifts, one tone, no breach; all accepted (S1-S5 above, decision 0220).
+- **The steward** (before the plan): four drifts, one tone, no breach; all accepted (S1-S5 above, decision 0221).
 - **The cold find** (pictures and the task only): found from all three screens through the Layers button, medium confidence;
   its doubts (a wordless glyph, filled when on, another corner on Explore) are the button's, from decision 0097 and fix
   layers-corner, not this slice's.
 - **The UI review:** U1 (the seeded walk ran mid-block: the fixture's, fixed), **U2 accepted** (the pale line read 1.9:1, under
   WCAG 1.4.11's 3:1: `where-ive-been ui 1`, a muted sage `#588a78` at 3.54:1 and 3 px, still under the trace's 4.5:1), U3 (the
-  legend below the fold in its picture: the journey's, fixed), U4 (the footsteps glyph reused: noted in decision 0220).
+  legend below the fold in its picture: the journey's, fixed), U4 (the footsteps glyph reused: noted in decision 0221).
 - **Deferred:** a tap on a line opening its walk (the layer's Return), simplification by zoom, a date window, a hook's first
   draw from the last lines read (`docs/DEFERRED.md`). **Native:** four device checks in `docs/NATIVE_UNVERIFIED.md`; none of it
   has run on a phone.

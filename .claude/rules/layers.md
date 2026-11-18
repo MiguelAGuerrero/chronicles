@@ -18,7 +18,7 @@ A layer puts graphics on the base map; one Layers button opens a panel with a sw
 - **Where a layer's drawing is gated:** Walkability by `useWalkability(centre, on)`; Storefronts by `useStorefrontsLayer(centre, on, stillness?)` (the remembered areas within 3 km, drawn on any walk; with none within 1.5 km it reads once, the same read What's here does, and on Explore only once the map has settled: `storefrontsReadDue`, Explore's `stillness` from the map's `onMoveState`, kept in a ref so a move never renders, DC9; it sets rows, build and reading only when they change, DC12; it lists the remembered areas only when the layer comes on, after a read or a reload, or where none covers the centre, never for a switch alone, SS8; a read a switch cuts short leaves its place untried, SS7; on a town's page Explore passes `hold` (`storefrontsHold`), and `drawnAreas` keeps every area within the town's reach drawn while its neighborhoods are switched, SS4); Town borders by the screens handing `borders` to the map only while on (a town's own page keeps the border it frames, TB2).
 - Nothing is read for a layer that is off. No number, count or percentage appears on the button, the panel or a legend (a test checks the words).
 
-## Where I've been (WB1-WB17, decision 0220)
+## Where I've been (WB1-WB17, decision 0221)
 
 - **A cache of each walk's line** (`pastLines/`): `core` builds it from the trace read with pauses, stills and kept gaps only
   (an inferred fill needs tiles and is never stored: a break), simplified within 5 m, indexed by its z12 tiles; `LINE_CODE`

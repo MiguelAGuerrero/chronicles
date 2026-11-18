@@ -1,6 +1,6 @@
 # Where I've been: plan (WB1-WB17)
 
-For the owner's review before any code. Spec: `specs/where-ive-been/spec.md`. Decision record 0220 is written with the first code commit
+For the owner's review before any code. Spec: `specs/where-ive-been/spec.md`. Decision record 0221 is written with the first code commit
 (booked then with `npm run book:next-decision`).
 
 ## What the walker sees
@@ -31,7 +31,7 @@ For the owner's review before any code. Spec: `specs/where-ive-been/spec.md`. De
 | `src/lib/stackSlots.ts`, `components/walk/layout.ts` | `EdgeSlot` loses `unwalked`: `locate` 0, `back` 1, `compass` 2 (WB2) |
 | `src/app/walk.tsx` | the button, pill, `showUnwalked`, the count and their styles go; the compass's slot and focus hand-off (WB3); `usePastLines(live.here, on)` into `drawn` |
 | `src/components/walk/useReady.tsx`, `src/app/(tabs)/explore.tsx` | `usePastLines` at each screen's layer centre (`fix`, `layersAt`) |
-| `docs/` | `PRODUCT.md` (the button out, the layer in), `decisions/0220`, `.claude/rules/map.md` and `streets-fog-snapping.md` (the switch lines), `research/adjacent-apps.md` (Strava's personal heatmap), `ARCHITECTURE.md` (the new cache) |
+| `docs/` | `PRODUCT.md` (the button out, the layer in), `decisions/0221`, `.claude/rules/map.md` and `streets-fog-snapping.md` (the switch lines), `research/adjacent-apps.md` (Strava's personal heatmap), `ARCHITECTURE.md` (the new cache) |
 
 ## Data
 

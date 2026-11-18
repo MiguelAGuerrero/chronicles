@@ -2,7 +2,7 @@
 // gap and a long stretch, watched with no taps but the ones it checks; then its day. E2E_ONLY=replay runs it alone.
 
 async function run(h) {
-  const { navUrl, BASE, page, start, at, check, shot, metaOf, freshPage, openWalk, errors } = h;
+  const { navUrl, BASE, page, start, at, check, shot, metaOf, freshPage, openWalk, errors, toStop } = h;
     const { c, pg } = await freshPage('replay');
     // Media calls are recorded; a video's sound is refused unless a tap came just before, as iOS does.
     await c.addInitScript(() => {
@@ -105,6 +105,7 @@ async function run(h) {
     await pg.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
     await c.setGeolocation({ longitude: here[0], latitude: here[1], accuracy: 6 });
     await pg.waitForTimeout(2000);
+    await toStop(pg);
     const b = await pg.locator('[data-testid=stop]').boundingBox();
     await pg.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
     await pg.mouse.down();
@@ -695,6 +696,7 @@ async function run(h) {
     await pg.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
     await c.setGeolocation({ longitude: here[0], latitude: here[1], accuracy: 6 });
     await pg.waitForTimeout(2000);
+    await toStop(pg);
     const b2 = await pg.locator('[data-testid=stop]').boundingBox();
     await pg.mouse.move(b2.x + b2.width / 2, b2.y + b2.height / 2);
     await pg.mouse.down();

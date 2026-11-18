@@ -1370,7 +1370,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     if (!ready || !map) return;
     for (const id of poiLabelLayers(map.getStyle().layers as { id: string; type: string; 'source-layer'?: string }[])) map.setLayoutProperty(id, 'visibility', props.hideLabels ? 'none' : 'visible');
   }, [ready, props.hideLabels]);
-  // The fog is always quiet (decision 0220, WB1): its paint is set once with the layer. The e2e reads it, and the veil, here.
+  // The fog is always quiet (decision 0221, WB1): its paint is set once with the layer. The e2e reads it, and the veil, here.
   useEffect(() => {
     const map = mapRef.current;
     if (!ready || !map || !container.current) return;

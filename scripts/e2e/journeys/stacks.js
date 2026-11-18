@@ -13,7 +13,7 @@ const moments = (pg) => pg.evaluate(() => new Promise((resolve) => {
 }));
 
 async function run(h) {
-  const { navUrl, check, shot, tabTo, freshPage, scriptsDir } = h;
+  const { navUrl, check, shot, tabTo, freshPage, scriptsDir, toStop } = h;
   let geoAfter = 0;
   const fixtures = path.join(scriptsDir, 'fixtures');
   const { c, pg } = await freshPage('stacks');
@@ -215,7 +215,7 @@ async function run(h) {
  * (MS17); its trimmed video plays only its kept part in its cell (fix trimmed-length 3).
  */
 async function replayGrid(h, check) {
-  const { navUrl, BASE, start, at, freshPage } = h;
+  const { navUrl, BASE, start, at, freshPage, toStop } = h;
   const { c, pg } = await freshPage('stacks-replay');
   await pg.goto(navUrl);
   await pg.waitForSelector('[data-testid=start]', { timeout: 30000 });
@@ -282,6 +282,7 @@ async function replayGrid(h, check) {
   await pg.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
   await c.setGeolocation({ longitude: start[0], latitude: start[1], accuracy: 6 });
   await pg.waitForTimeout(2000);
+  await toStop(pg);
   const b = await pg.locator('[data-testid=stop]').boundingBox();
   await pg.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
   await pg.mouse.down();

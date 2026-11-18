@@ -657,7 +657,7 @@ const StripsSource = memo(function StripsSource({ data, beforeId }: { data: FC; 
   );
 });
 
-/** The fog is always quiet (decision 0220, WB1). */
+/** The fog is always quiet (decision 0221, WB1). */
 const FogSource = memo(function FogSource({ data }: { data: FC }) {
   return (
     <GeoJSONSource id="fog" data={data} {...LINE_SOURCE}>

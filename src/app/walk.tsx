@@ -1670,37 +1670,41 @@ function WalkScreen(props: { onMinimize: () => void }) {
         summaryLabel={exploring ? 'The walk, exploring' : 'The walk'}
         summary={<WalkStats startedAt={walk?.started_at ?? null} pauses={pauses} distanceM={live.distanceM} rideM={live.rideM} />}
         actions={
-          <View style={styles.barActions}>
+          // Pause alone while walking; Resume and a held Stop once paused, as AllTrails and Nike Run Club do (decision 0220).
+          // Pills, no outline (the owner, Nov 18): Pause and Stop soft, Resume solid accent; Stop's hold fill sweeps across its pill.
+          <View testID="walk-actions" style={styles.barActions}>
             <Pressable
               testID={paused ? 'resume-walk' : 'pause-walk'}
               accessibilityRole="button"
               accessibilityLabel={paused ? 'Resume the walk' : 'Pause the walk'}
-              accessibilityHint={paused ? undefined : 'Stops recording until you resume'}
+              accessibilityHint={paused ? undefined : 'Stops recording until you resume. Stop is offered while paused'}
               onPress={togglePause}
               disabled={pausing || stopping || !walk}
-              style={({ pressed }) => [styles.pauseBtn, paused && styles.pauseBtnOn, pressed && styles.pressed]}
+              style={({ pressed }) => [styles.barBtn, paused && styles.resumeBtn, pressed && styles.pressed]}
             >
-              {/* Its word under its icon, as Hold shows its own (decision 0172, O27); the spoken name stays the button's. */}
-              <Icon name={paused ? 'play' : 'pause'} size={18} color={paused ? '#ffffff' : theme.ink} />
-              <Text style={[styles.pauseText, paused && styles.pauseTextOn]} numberOfLines={1} selectable={false}>
+              {/* Resume is the strip's one primary action while paused: the accent, as 0172 allows. */}
+              <Icon name={paused ? 'play' : 'pause'} size={16} color={paused ? theme.accentInk : theme.ink} />
+              <Text style={[styles.barBtnText, paused && styles.resumeText]} numberOfLines={1} selectable={false}>
                 {paused ? 'Resume' : 'Pause'}
               </Text>
             </Pressable>
-            <HoldButton
-              testID="stop"
-              label="Hold to stop"
-              busyLabel="Stopping…"
-              onHold={stop}
-              onTap={() => setToast('Hold to stop the walk')}
-              busy={stopping}
-              disabled={!walk || pausing}
-              style={styles.stopBtn}
-            >
-              <View style={styles.stopInner}>
-                <Icon name="stop" size={18} color={theme.ink} />
-                <Text style={styles.stopText} selectable={false}>Hold</Text>
-              </View>
-            </HoldButton>
+            {paused && (
+              <HoldButton
+                testID="stop"
+                label="Hold to stop"
+                busyLabel="Stopping…"
+                onHold={stop}
+                onTap={() => setToast('Hold to stop the walk')}
+                busy={stopping}
+                disabled={!walk || pausing}
+                style={styles.stopBtn}
+              >
+                <View style={styles.stopInner}>
+                  <Icon name="stop" size={16} color={theme.ink} />
+                  <Text style={styles.barBtnText} numberOfLines={1} selectable={false}>Stop</Text>
+                </View>
+              </HoldButton>
+            )}
           </View>
         }
       >
@@ -2115,20 +2119,19 @@ const styles = StyleSheet.create({
   disabled: { opacity: 0.5 },
   pressed: { opacity: 0.8 },
   stats: { color: theme.ink, fontSize: 17, fontWeight: '600', fontVariant: ['tabular-nums'], flexShrink: 1 },
-  stopInner: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  barActions: { flexDirection: 'row', alignItems: 'center', gap: 20 },
-  // The strip's height holds it: 48 high, its word under its icon, in Hold's frame (O27). Pause stays 48 wide and Resume
-  // about 53, so the walk's numbers keep their room at 320.
-  pauseBtn: {
-    minWidth: 48, height: 48, paddingHorizontal: 4, borderRadius: theme.radius, alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1.5, borderColor: theme.ink, backgroundColor: theme.surface,
+  stopInner: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  barActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  // Pills, no outline (decision 0220, the owner's "pill fills"): icon and word side by side, 48 high, soft on the strip's
+  // ground. Measured so Resume and Stop together leave the walk's numbers whole at 320.
+  barBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 48, paddingHorizontal: 8, borderRadius: 24, backgroundColor: theme.line,
   },
-  // Resume is the one thing to do while paused.
-  pauseBtnOn: { backgroundColor: theme.accent, borderColor: theme.accent },
-  pauseText: { color: theme.ink, fontSize: 11, lineHeight: 14, fontWeight: '600' },
-  // As high as Pause beside it, so the two share a top and a bottom (tend walk-screen audit 9); the walk's strip only.
-  stopBtn: { minHeight: 48 },
-  pauseTextOn: { color: '#ffffff' },
+  barBtnText: { color: theme.ink, fontSize: 14, fontWeight: '600' },
+  // Resume, the one primary action while paused: solid accent, white icon and word.
+  resumeBtn: { backgroundColor: theme.accent },
+  resumeText: { color: theme.accentInk },
+  // HoldButton's outline off: a soft pill like Pause, the hold's fill sweeping across it.
+  stopBtn: { minHeight: 48, paddingHorizontal: 8, borderRadius: 24, borderWidth: 0, backgroundColor: theme.line },
   minRow: { alignSelf: 'stretch', flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
   noticeCell: { flex: 1, minWidth: 0 },
   noticeBelow: { alignSelf: 'stretch' },
@@ -2142,7 +2145,6 @@ const styles = StyleSheet.create({
     backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.edge,
     shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 3,
   },
-  stopText: { color: theme.ink, fontSize: 15, fontWeight: '600' },
   modalBack: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)' },
   modalWrap: { flex: 1, justifyContent: 'flex-start', paddingHorizontal: 16 },
   modal: { backgroundColor: theme.surface, borderRadius: theme.radius, padding: 16, gap: 12, maxWidth: 520, width: '100%', alignSelf: 'center' },

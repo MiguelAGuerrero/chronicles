@@ -2,7 +2,7 @@
 // marks that an exploring walk passing them never drew. E2E_ONLY=marks runs it alone.
 
 async function run(h) {
-  const { navUrl, BASE, start, at, check, freshPage, shot, openInto, closeInto } = h;
+  const { navUrl, BASE, start, at, check, freshPage, shot, openInto, closeInto, toStop } = h;
     const { c, pg } = await freshPage('marks');
     await c.addInitScript(() => { window.__perf = {}; });
     const setMeta = (k, v) => pg.evaluate(([key, value]) => new Promise((resolve) => {
@@ -26,6 +26,7 @@ async function run(h) {
       return marksNow();
     };
     const holdStop = async () => {
+      await toStop(pg);
       const b = await pg.locator('[data-testid=stop]').boundingBox();
       await pg.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
       await pg.mouse.down();

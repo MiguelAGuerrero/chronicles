@@ -21,7 +21,7 @@ async function run(h) {
     const switches = (pg) => pg.locator('[role=switch][data-testid^=leaning-]').evaluateAll((els) => els.map((e) => [e.dataset.testid, e.getAttribute('aria-checked')]));
     const startWalk = async (pg) => {
       await pg.click('[data-testid=start]');
-      await pg.waitForSelector('[data-testid=stop]', { timeout: 15000 });
+      await pg.waitForSelector('[data-testid=walk-actions]', { timeout: 15000 });
       await pg.waitForTimeout(2500);
     };
     const press = async (pg, p) => {

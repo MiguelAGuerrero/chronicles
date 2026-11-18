@@ -235,7 +235,7 @@ source.
   streaks and stickers (counter-examples). Source: from memory, unverified. **Unverified**.
 - **Strava personal heatmap**: every recorded activity's line overlaid on one map, brighter where you have gone more often,
   filtered by sport and date; a subscriber feature. Counter-example for the brightness (frequency drawn as intensity; the
-  owner chose one even tone, decision 0220); the overlay of your own lines turned on and off is the job of Where I've been.
+  owner chose one even tone, decision 0221); the overlay of your own lines turned on and off is the job of Where I've been.
   Source: from memory, unverified (recorded for `specs/where-ive-been`, Nov 18). **Unverified**.
 
 ### Choose what you are shown: a long list of switches (Earn)
