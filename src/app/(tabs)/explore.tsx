@@ -14,8 +14,10 @@ import type { Place } from '../../lib/gazetteer/pack';
 import { searchAvailable } from '../../lib/gazetteer/words';
 import { BLOCKED_LINE, exploreBanner, findYou, refusalLifted, type PermissionSeen } from '../../lib/atlas/findYou';
 import { cancelLook, endLook, IDLE, isLive, LOOK_LABEL, runLook, startLook, type Look } from '../../lib/atlas/look';
-import { exploreSlots, SCALE_LEFT } from '../../lib/atlas/overlaySlots';
+import { exploreSlots, pressHintUp, SCALE_LEFT } from '../../lib/atlas/overlaySlots';
 import { createStore } from '../../lib/store';
+import { barOfferUp } from '../../lib/tabsHidden';
+import { useStore } from '../../lib/useStore';
 import { KIND_COLOR, KIND_ICON_OF } from '../../components/atlas/kinds';
 import type { MarkPin } from '../../components/MarkPinView';
 import { CATEGORIES } from '../../lib/discovery/categories';
@@ -179,7 +181,9 @@ export default function Explore() {
   const [toast, setToast] = useState<string | null>(null);
   const [pressSeen, setPressSeen] = useState(true);
   // The hint is shown once (explore-carousel audit 10): after a few seconds on screen it is marked seen, used or not.
-  const hintShown = !pressSeen && !spot && !!from;
+  // It steps aside while the bar's Edit pill is up, and its seconds wait for it (tend tabs T36).
+  const barOffer = useStore(barOfferUp, (x) => x);
+  const hintShown = pressHintUp({ seen: pressSeen, spot: !!spot, located: !!from, barOffer });
   useEffect(() => {
     if (!hintShown) return;
     const t = setTimeout(() => {
@@ -721,7 +725,7 @@ export default function Explore() {
         <Text style={styles.scanCancelText}>Cancel</Text>
       </Pressable>
     </View>
-  ) : !pressSeen && !spot && from && !creditsOpen ? (
+  ) : hintShown && !creditsOpen ? (
     // Not while the map's credits are open: they grow up into the hint's row (tend map audit 1).
     <Text style={styles.hint} testID="atlas-press-hint">Press and hold the map to look anywhere.</Text>
   ) : null;

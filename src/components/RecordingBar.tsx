@@ -25,7 +25,7 @@ import type { Pause, Walk } from '../lib/types';
 import type { LiveTrace } from '../lib/useLiveTrace';
 import { useCaptures } from '../lib/useCaptures';
 import { settleWithin } from '../lib/settleWithin';
-import { barStop, modalsUp, tabsHidden } from '../lib/tabsHidden';
+import { barOfferUp, barStop, modalsUp, tabsHidden } from '../lib/tabsHidden';
 import { showWalk } from '../lib/walkNav';
 import { Icon } from './icons';
 import { EditButton } from './edit/EditOffer';
@@ -88,6 +88,11 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
   // The held captures of the walk this Stop has warned of; one held beyond them is warned of too (unsaved captures UN5).
   const warnedHeld = useRef<string[]>([]);
   const offerUp = barOfferShown(offer, cap.captures.map((c) => c.id), hidden, stopping);
+  // Told to the tabs, so Explore's press hint steps aside while the pill lifts its map (tend tabs T36).
+  useEffect(() => {
+    barOfferUp.set(offerUp);
+    return () => barOfferUp.set(false);
+  }, [offerUp]);
   const offerWords = offer ? barOfferWords(offer.kind) : null;
   // Announced politely, without moving focus, as Undo is: iOS reads no live regions (decision 0113).
   const spoken = offerUp ? offerWords?.spoken : undefined;

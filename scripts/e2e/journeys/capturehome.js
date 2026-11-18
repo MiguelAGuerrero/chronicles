@@ -136,6 +136,33 @@ async function run(h) {
     await chooser?.setFiles(require('path').join(h.scriptsDir, 'fixtures', 'photo.jpg'));
     return pg.waitForSelector('[data-testid=bar-edit-offer]', { timeout: 10000 }).then(() => true, () => false);
   };
+  // tend tabs T36 (the proxy's yes under 0157, 2026-11-18): with the bar's Edit pill up, its room lifts Explore's map, so
+  // the press hint steps aside and at 320 x 700 the walker is under no words; it shows again as the pill goes, none of its
+  // five seconds (EC14's "after a few seconds on screen it is marked seen") having run while it stood aside.
+  {
+    const hint = '[data-testid=atlas-press-hint]';
+    await tabTo(pg, 'explore');
+    const hintBefore = await pg.waitForSelector(hint, { timeout: 10000 }).then(() => true, () => false);
+    const up = await barPhoto();
+    await pg.waitForTimeout(400);
+    const withPill = await pg.locator(hint).count();
+    await shot(pg, 'tabs-T36-pill-on-explore');
+    await pg.setViewportSize({ width: 320, height: 700 });
+    await pg.waitForTimeout(500);
+    const withPill320 = await pg.locator(hint).count();
+    await shot(pg, 'tabs-T36-pill-on-explore-320');
+    await pg.setViewportSize({ width: 390, height: 844 });
+    // Up past the hint's five seconds, then closed.
+    await pg.waitForTimeout(6000);
+    await pg.click('[data-testid=bar-edit-offer-close]').catch(() => {});
+    const back = await pg.waitForSelector(hint, { timeout: 5000 }).then(() => true, () => false);
+    await shot(pg, 'tabs-T36-hint-back');
+    // Shown again, it is marked seen after its own few seconds on screen, and goes.
+    await pg.waitForTimeout(6500);
+    const after = await pg.locator(hint).count();
+    check(hintBefore && up && withPill === 0 && withPill320 === 0 && back && after === 0,
+      `tend tabs T36: while the bar's Edit pill is up Explore's press hint steps aside (390 and 320 x 700), shows again as the pill goes, and is marked seen only after its few seconds on screen (${JSON.stringify({ hintBefore, up, withPill, withPill320, back, after })})`);
+  }
   // tend tabs audit 16: the offer lives with the bar, so a screen opened over the tabs (a day's replay) ends it, as
   // decision 0149 says; back on the tabs the bar is whole and nothing breaks.
   {

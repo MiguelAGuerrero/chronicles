@@ -3,7 +3,10 @@
 // the bar, "Photo saved to your walk · Edit · ✕", until Edit, Close or the next capture; the line keeps its time and
 // distance.
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { test } from 'node:test';
+import { pressHintUp } from '../../atlas/overlaySlots';
 import { EDIT_OFFER_MS, offerEdit, offerLeft } from '../../editOffer';
 import { barOffer, barOfferAfter, barOfferAfterHidden, barOfferShown, barOfferWords } from '../../recordingBar';
 
@@ -71,4 +74,31 @@ test('tend tabs audit 19: while the walk is stopping from the bar the pill is no
   const o = barOffer(photo);
   assert.equal(barOfferShown(o, ['p1'], new Set(), true), false);
   assert.equal(barOfferShown(o, ['p1'], new Set(), false), true);
+});
+
+// /tend inbox T36 (the proxy's yes under 0157, 2026-11-18): the pill's room above the bar lifts Explore's map, so at
+// 320 x 700 the walker sat under "Press and hold the map to look anywhere." The hint steps aside while the pill is up and
+// shows again as it goes; its seconds on screen count only while it shows, so EC14's "after a few seconds on screen it
+// is marked seen" holds.
+test('tend tabs T36: Explore\'s press hint steps aside while the bar\'s Edit pill is up, and counts no time on screen meanwhile', () => {
+  const unseen = { seen: false, spot: false, located: true };
+  assert.equal(pressHintUp({ ...unseen, barOffer: false }), true);
+  assert.equal(pressHintUp({ ...unseen, barOffer: true }), false, 'stepped aside while the pill is up');
+  // Nothing else moves: seen, a long press open or no place yet keep it down as before, the pill or not.
+  for (const barOffer of [false, true]) {
+    assert.equal(pressHintUp({ ...unseen, seen: true, barOffer }), false);
+    assert.equal(pressHintUp({ ...unseen, spot: true, barOffer }), false);
+    assert.equal(pressHintUp({ ...unseen, located: false, barOffer }), false);
+  }
+});
+
+test('tend tabs T36: the bar tells the tabs whether its Edit pill is up, and Explore times its hint by the same reading', () => {
+  const bar = readFileSync(join(__dirname, '../../../components/RecordingBar.tsx'), 'utf8');
+  const explore = readFileSync(join(__dirname, '../../../app/(tabs)/explore.tsx'), 'utf8');
+  assert.match(bar, /barOfferUp\.set\(offerUp\)/, 'the bar publishes what it shows, not its offer state');
+  assert.match(bar, /return \(\) => barOfferUp\.set\(false\)/, 'a bar that goes takes its pill with it');
+  // The one reading gates both the timer that marks the hint seen and what is drawn, so it is never marked seen unseen.
+  assert.match(explore, /const hintShown = pressHintUp\(\{[^}]*barOffer[^}]*\}\)/);
+  assert.match(explore, /if \(!hintShown\) return;/);
+  assert.match(explore, /hintShown && !creditsOpen \?/);
 });
