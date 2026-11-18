@@ -412,6 +412,20 @@ async function run(h) {
   await pg.waitForURL(/\/replay\/|\/$/, { timeout: 15000 }).catch(() => {});
   check(lost && !/\/walk/.test(pg.url()), `UN13: the second hold ends the walk (${pg.url().slice(-20)})`);
 
+  // The bar's said line: whole within its four-line clamp for its words (UN10's room line), and the lines it takes.
+  const saidBoxOf = () => pg.evaluate(() => {
+    const e = document.querySelector('[data-testid=recording-said]');
+    if (!e) return null;
+    const line = parseFloat(getComputedStyle(e).lineHeight) || parseFloat(getComputedStyle(e).fontSize) * 1.2;
+    const free = e.cloneNode(true);
+    Object.assign(free.style, { webkitLineClamp: 'unset', display: 'block', overflow: 'visible', position: 'absolute', visibility: 'hidden', width: `${e.getBoundingClientRect().width}px` });
+    e.parentElement.appendChild(free);
+    const wholeH = free.getBoundingClientRect().height;
+    free.remove();
+    const shownH = e.getBoundingClientRect().height;
+    return { whole: shownH >= wholeH - 1 && e.scrollWidth <= e.clientWidth + 1, lines: Math.round(wholeH / line) };
+  });
+
   // tend tabs T35 (the owner, Nov 18): a memo still being saved past the bar's 5 s wait is said as saving, not as
   // recording; the next hold ends the walk through it, the walk is kept (never dropped mid-save), and the memo lands in it.
   await pg.goto(navUrl);
@@ -434,24 +448,22 @@ async function run(h) {
   // The memo's file is read back slowly: its save runs past both holds' waits.
   await pg.evaluate(() => { window.__slowBlob = 25000; });
   await memo('band');
+  // On Explore, where the bar shows its camera beside the line (tend tabs audit 46).
+  await tabTo(pg, 'explore').catch(() => {});
+  await pg.waitForTimeout(1500);
   await wide(320);
   await hold('[data-testid=bar-stop]');
   await pg.waitForTimeout(4500);
   const stillSaving = await textOf('[data-testid=recording-said]');
-  // Whole within the bar's four-line clamp for its words (UN10's room line); the lines it takes are reported.
-  const savingBox = await pg.evaluate(() => {
-    const e = document.querySelector('[data-testid=recording-said]');
-    if (!e) return null;
-    const line = parseFloat(getComputedStyle(e).lineHeight) || 20;
-    return { whole: e.scrollWidth <= e.clientWidth + 1 && e.scrollHeight <= e.clientHeight + 1, lines: Math.round(e.getBoundingClientRect().height / line) };
-  });
+  const savingBox = await saidBoxOf();
   const savingWhole = !!savingBox && savingBox.whole;
   check(stillSaving === 'The voice memo is still being saved. Hold Stop again in a moment.' && (await there('[data-testid=recording-bar]', 2000)),
     `tend tabs T35: past the wait, the bar says the memo is still being saved, not recording, and the walk goes on ("${stillSaving}")`);
-  check(savingWhole, `tend tabs T35: the bar's saving words are whole at 320 px, nothing cut (${JSON.stringify(savingBox)})`);
-  await shot(pg, 'unsaved-bar-saving-320');
+  check(savingWhole && (await there('[data-testid=bar-photo]', 1000)),
+    `tend tabs audit 46: the bar's saving words are whole at 320 px with its camera shown, nothing cut (${JSON.stringify(savingBox)})`);
+  await shot(pg, 'unsaved-bar-saving-explore-320');
   await wide(390);
-  await shot(pg, 'unsaved-bar-saving-390');
+  await shot(pg, 'unsaved-bar-saving-explore-390');
   await hold('[data-testid=bar-stop]');
   await pg.waitForURL(/\/replay\//, { timeout: 15000 }).catch(() => {});
   const through = /\/replay\//.test(pg.url());
@@ -510,11 +522,15 @@ async function run(h) {
   await pg.evaluate(() => { window.__slowBlob = 25000; });
   await shown('[data-testid=band-voice-undo-act]').first().click({ timeout: 5000 }).catch(() => {});
   await pg.waitForTimeout(900);
+  await wide(320);
   await hold('[data-testid=bar-stop]');
   await pg.waitForTimeout(4500);
   const undoSaying = await textOf('[data-testid=recording-said]');
   check(undoSaying === 'The voice memo is still being saved. Hold Stop again in a moment.',
     `tend tabs audit 41: a memo kept by Undo of its discard holds the bar's Stop and keeps the walk: the first hold says it is saving ("${undoSaying}")`);
+  await shot(pg, 'unsaved-bar-saving-320');
+  await wide(390);
+  await shot(pg, 'unsaved-bar-saving-390');
   await hold('[data-testid=bar-stop]');
   await pg.waitForURL(/\/replay\//, { timeout: 15000 }).catch(() => {});
   await pg.waitForTimeout(14000);
