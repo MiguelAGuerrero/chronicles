@@ -93,7 +93,7 @@ export function OutingPage(props: {
     });
   }, [j.journey]);
   // ui 2: the next card shows by about 50 px, and dots under the row say how many there are.
-  const cardW = Math.min(width - 82, 340);
+  const cardW = Math.min(width - 82 - (j.walkId ? 76 : 0), 340);
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const i = Math.max(0, Math.min(j.journeys.length - 1, Math.round(e.nativeEvent.contentOffset.x / (cardW + GAP))));
     if (i !== j.cur) j.setCur(i);
@@ -151,7 +151,7 @@ export function OutingPage(props: {
           <Icon name="close" size={22} color={theme.ink} />
         </Pressable>
       </View>
-      <View style={[styles.sheet, { maxHeight: Math.round(height * (j.opened ? 0.76 : 0.62)), paddingBottom: capturing ? 120 : insets.bottom + 12 }]} testID="outing-sheet">
+      <View style={[styles.sheet, { maxHeight: Math.round(height * (j.opened ? 0.76 : 0.62)), paddingBottom: insets.bottom + 12 }, capturing && styles.beside]} testID="outing-sheet">
         <Pressable testID="outing-peek" accessibilityRole="button" accessibilityLabel={peek ? UNPEEK_LABEL : PEEK_LABEL} accessibilityState={{ expanded: !peek }} onPress={() => setPeek(!peek)} style={styles.peek}>
           <Icon name={peek ? 'chevron-up' : 'chevron-down'} size={20} color={theme.ink} />
           <Text style={styles.swapText}>{peek ? UNPEEK_LABEL : PEEK_LABEL}</Text>
@@ -352,6 +352,8 @@ const styles = StyleSheet.create({
   pad: { padding: 16, paddingTop: 4, gap: 12 },
   peek: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderBottomWidth: 1, borderColor: theme.line, marginBottom: 8 },
   self: { alignSelf: 'flex-start' },
+  // OJ39 (outing-journey audit 32): while a session records, everything in the sheet stays left of the capture stack.
+  beside: { paddingRight: 76 },
   dots: { flexDirection: 'row', justifyContent: 'center', gap: 8 },
   dot: { width: 8, height: 8, borderRadius: 4, borderWidth: 1, borderColor: theme.edge },
   dotOn: { backgroundColor: theme.ink, borderColor: theme.ink, width: 16 },
