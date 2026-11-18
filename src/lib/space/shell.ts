@@ -1,6 +1,6 @@
 // @layer shell
 import type { Ports } from '../ports/types';
-import { createStore } from '../store';
+import { createStore, type Store } from '../store';
 import { persistLine, shouldSay, spaceLevel, spaceLine, type SpaceLevel, type SpaceProbe } from './core';
 
 /** Meta: the level last said beside the captures (SA4); cleared when the room is back above low. */
@@ -20,14 +20,25 @@ export interface Where {
   recording: boolean;
 }
 
+/** Nothing stands in the line's way. */
+const NO_PILL: Pick<Store<boolean>, 'get' | 'subscribe'> = { get: () => false, subscribe: () => () => {} };
+
 /**
  * Storage awareness (SA1-SA10, decision 0107): reads the room left through the probe, decides with
  * `core`, keeps what was said in meta so a reload doesn't say it again, and holds the one line the
  * pills show. Calls run one at a time, so two looks at once never ask the browser twice.
+ *
+ * `pill` is true while the recording bar's Edit pill stands (`tabsHidden.barOfferUp`): one dark pill at a time, and the
+ * pill, answering what the person just did, comes first (tend tabs T37). Meanwhile the line steps aside, and a line
+ * that comes due is neither said nor marked said; it is said, and marked, once the pill goes.
  */
-export function createSpace(p: Pick<Ports, 'db'>, probe: SpaceProbe) {
+export function createSpace(p: Pick<Ports, 'db'>, probe: SpaceProbe, pill: Pick<Store<boolean>, 'get' | 'subscribe'> = NO_PILL) {
   const store = createStore<SpaceState>({ line: null });
   let shown: 'space' | 'persist' | null = null;
+  // The line said; the store shows it unless the pill is up.
+  let current: string | null = null;
+  // What came due while the pill was up: looked at again as it goes, the refusal too when a look off the walk waited.
+  let owed: { settle: boolean } | null = null;
   // undefined: not read from meta yet.
   let said: SpaceLevel | null | undefined;
   let persist: Persist | null | undefined;
@@ -40,7 +51,11 @@ export function createSpace(p: Pick<Ports, 'db'>, probe: SpaceProbe) {
 
   const show = (line: string | null, kind: typeof shown) => {
     shown = line ? kind : null;
-    store.set({ line });
+    current = line;
+    store.set({ line: pill.get() ? null : line });
+  };
+  const owe = (settle: boolean) => {
+    owed = { settle: settle || !!owed?.settle };
   };
   // Meta read once, then kept here; an unreadable or failed read is nothing said, nothing asked.
   const loadSaid = async () => {
@@ -88,6 +103,10 @@ export function createSpace(p: Pick<Ports, 'db'>, probe: SpaceProbe) {
       return null;
     }
     if (!shouldSay(last, level)) return null;
+    if (pill.get()) {
+      owe(false);
+      return null;
+    }
     said = level;
     await p.db.setMeta(SAID_KEY, level).catch(() => {});
     const line = spaceLine(level);
@@ -105,11 +124,30 @@ export function createSpace(p: Pick<Ports, 'db'>, probe: SpaceProbe) {
   /** Off the walk: a due request is asked, and a refusal is said when the pills are free (SA10). */
   async function settle() {
     if ((await loadPersist()) === 'due') await ask();
-    if (persist === 'refused' && store.get().line == null) {
+    if (persist === 'refused' && current == null) {
+      if (pill.get()) {
+        owe(true);
+        return;
+      }
       show(persistLine(probe.homeScreen()), 'persist');
       await setPersist('asked');
     }
   }
+
+  pill.subscribe(() => {
+    if (pill.get()) {
+      store.set({ line: null });
+      return;
+    }
+    store.set({ line: current });
+    const due = owed;
+    owed = null;
+    if (due)
+      void serial(async () => {
+        await look();
+        if (due.settle) await settle();
+      });
+  });
 
   return {
     store,

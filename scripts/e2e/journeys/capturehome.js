@@ -221,10 +221,19 @@ async function run(h) {
   }
   // tend tabs audit 21: a photo from the bar on Explore leaves its Edit pill up, and it follows to Memories.
   const pillUp = await barPhoto();
+  // tend tabs T37: the room runs low while the pill is up, so Memories' look owes the storage notice (only `estimate`,
+  // as the space journey patches it; put back below).
+  await pg.evaluate(() => {
+    const sm = StorageManager.prototype;
+    window.__estimate = sm.estimate;
+    sm.estimate = async () => ({ quota: 1e12, usage: 1e12 - 300 * 1024 * 1024 });
+  });
   await tabTo(pg, 'chronicle', 'memories');
   await pg.waitForSelector(band, { timeout: 10000 }).catch(() => {});
   await pg.waitForTimeout(600);
   const pillOnMemories = await shown('[data-testid=bar-edit-offer]');
+  // tend tabs T37: one dark pill at a time; the storage notice waits while the bar's Edit pill is up.
+  const noticeWithPill = await shown('[data-testid=space-line]');
   await shot(pg, 'tabs-T12-pill-on-memories');
   await pg.setViewportSize({ width: 320, height: 700 });
   await pg.waitForTimeout(500);
@@ -256,6 +265,18 @@ async function run(h) {
   check(!!open && !!kept && kept.walk_id === open.id && kept.lat == null && readsAfter === readsBefore,
     `HC10 (tend captures audit 2, audit 3): a note from Memories with a walk minimized belongs to the walk, kept unplaced with a stale fix and no location read (${JSON.stringify({ walk: kept && kept.walk_id, open: open && open.id, lat: kept && kept.lat, fixAge, reads: [readsBefore, readsAfter] })})`);
   const pillAfterNote = await pg.locator('[data-testid=bar-edit-offer]').count();
+  // tend tabs T37: the pill gone (the next capture, a note), the notice shows, in its own words, once.
+  const noticeAfter = await pg.locator('[data-testid=space-line]').filter({ visible: true }).innerText({ timeout: 3000 }).catch(() => '');
+  await pg.setViewportSize({ width: 320, height: 700 });
+  await pg.waitForTimeout(500);
+  await shot(pg, 'tabs-T37-notice-after-pill-320');
+  await pg.setViewportSize({ width: 390, height: 844 });
+  await pg.click('[data-testid=space-dismiss]').catch(() => {});
+  await pg.evaluate(() => {
+    StorageManager.prototype.estimate = window.__estimate;
+  });
+  check(pillOnMemories && !noticeWithPill && pillAfterNote === 0 && noticeAfter.replace(/\s+/g, ' ').trim() === 'Room for new photos and videos is running low. OK',
+    `tend tabs T37: on Memories the storage notice waits while the bar's Edit pill is up, and shows in its own words once the pill goes (${JSON.stringify({ pillOnMemories, noticeWithPill, pillAfterNote, noticeAfter })})`);
   check(pillUp && pillOnMemories && pillAfterNote === 0,
     `tend tabs audit 21: the bar's Edit pill, up on Memories after a bar photo, ends with the next capture, a note from Memories' open line (${pillUp}, ${pillOnMemories}, ${pillAfterNote})`);
   // tend captures audit 2: the other half of HC10, "the latest fix": a note begun just after a fresh fix is placed there

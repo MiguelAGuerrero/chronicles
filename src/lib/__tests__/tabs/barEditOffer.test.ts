@@ -104,3 +104,11 @@ test('tend tabs T36: the bar tells the tabs whether its Edit pill is up, and Exp
   assert.match(explore, /if \(!hintShown\) return;/);
   assert.match(explore, /\) : hintShown \? \(/);
 });
+
+// /tend inbox T37 (the proxy's yes under 0157, 2026-11-18): the storage notice on Memories waits for the bar's Edit pill
+// (the shell's half is in storage/spaceShell.test.ts); the app's instance reads the same store the bar sets.
+test('tend tabs T37: the app\'s storage awareness waits on the bar\'s Edit pill, the store the bar publishes', () => {
+  const index = readFileSync(join(__dirname, '../../space/index.ts'), 'utf8');
+  assert.match(index, /import \{ barOfferUp \} from '\.\.\/tabsHidden';/);
+  assert.match(index, /createSpace\(ports, probe, barOfferUp\)/, 'the instance is given the pill');
+});

@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { fakePorts } from '../fakes';
+import { createStore } from '../../store';
 
 // Storage awareness (specs/storage-awareness): the shell over fakes and a fake probe. Written before the
 // module, which a test loads inside its body.
@@ -161,4 +162,77 @@ test('SA10: the room left wins over the refusal when both are due; the refusal w
   s.dismiss();
   await s.check(ready);
   assert.equal(s.store.get().line, REFUSED, 'the refusal on the next look');
+});
+
+// /tend inbox T37 (the proxy's yes under 0157, 2026-11-18): on Memories the recording bar's Edit pill and this line
+// stood as two dark pills at once (Material: "Only one snackbar may be displayed at a time."). The pill, answering what
+// the person just did, comes first: the line waits while it is up and shows once it goes (Edit, its ✕, the next
+// capture, or the bar going), its words unchanged, still once (SA4, SA10). Nothing is marked said while it waits, so
+// a reload meanwhile says it again rather than never.
+
+test('tend tabs T37: a line due while the bar\'s Edit pill is up waits unmarked, and is said once as the pill goes', async () => {
+  const { createSpace, SAID_KEY } = await shell();
+  const p = fakePorts();
+  const pill = createStore(true);
+  const s = createSpace(p, probe(300 * MB), pill);
+  assert.equal(await s.check(walking), null, 'nothing said while the pill is up');
+  await s.afterKept(walking);
+  assert.equal(s.store.get().line, null, 'nor after a capture meanwhile');
+  assert.ok(!(await p.db.getMeta(SAID_KEY)), 'and nothing marked said while it waits');
+  // A reload while it waits (the pill gone with the page) says it then: never lost.
+  const reloaded = createSpace(p, probe(300 * MB));
+  assert.equal(await reloaded.check(walking), LOW, 'said after a reload');
+  // The pill goes: said now, in the same words, and marked.
+  const q = fakePorts();
+  const pill2 = createStore(true);
+  const t = createSpace(q, probe(300 * MB), pill2);
+  await t.check(walking);
+  await t.check(walking);
+  pill2.set(false);
+  assert.equal(await t.check(walking), null, 'said by the pill going, not by a later look');
+  assert.equal(t.store.get().line, LOW, 'once the pill goes');
+  assert.equal(await q.db.getMeta(SAID_KEY), 'low', 'marked said as it shows');
+  t.dismiss();
+  pill2.set(true);
+  pill2.set(false);
+  assert.equal(await t.check(walking), null);
+  assert.equal(t.store.get().line, null, 'never again: one showing, however many looks waited');
+});
+
+test('tend tabs T37: a line already up steps aside while the pill is up and comes back as it goes, its words unchanged', async () => {
+  const { createSpace } = await shell();
+  const pill = createStore(false);
+  const s = createSpace(fakePorts(), probe(300 * MB), pill);
+  assert.equal(await s.check(walking), LOW);
+  pill.set(true);
+  assert.equal(s.store.get().line, null, 'never two pills at once');
+  assert.equal(await s.check(walking), null, 'not said again meanwhile');
+  pill.set(false);
+  assert.equal(s.store.get().line, LOW, 'back as the pill goes');
+  s.dismiss();
+  pill.set(true);
+  pill.set(false);
+  assert.equal(s.store.get().line, null, 'a dismissed line stays dismissed');
+});
+
+test('tend tabs T37: the browser\'s refusal waits for the pill unmarked, then is said once (SA10 kept)', async () => {
+  const { createSpace, PERSIST_KEY } = await shell();
+  const p = fakePorts();
+  const pill = createStore(true);
+  const pr = probe(4000 * MB, false);
+  const s = createSpace(p, pr, pill);
+  await s.afterKept(ready);
+  assert.equal(pr.persists, 1, 'the browser is asked; only the saying waits');
+  assert.equal(s.store.get().line, null, 'not said while the pill is up');
+  assert.equal(await p.db.getMeta(PERSIST_KEY), 'refused', 'and not marked asked meanwhile');
+  pill.set(false);
+  await s.check(walking);
+  assert.equal(s.store.get().line, REFUSED, 'said once the pill goes');
+  assert.equal(await p.db.getMeta(PERSIST_KEY), 'asked');
+  s.dismiss();
+  pill.set(true);
+  pill.set(false);
+  await s.check(ready);
+  assert.equal(s.store.get().line, null, 'never said again');
+  assert.equal(pr.persists, 1, 'never asked again');
 });

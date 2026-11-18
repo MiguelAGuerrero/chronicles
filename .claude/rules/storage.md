@@ -40,6 +40,9 @@ SQLite (native) and IndexedDB (web) behind the shared `Db` interface, migrations
   web exception. Never a gauge, a number or a limit on capturing; no Storage screen (0041).
   - The browser's request is never made while a walk records (a Firefox prompt mid-capture): it waits for
     Navigate, ready (`check({ recording: false })`) or a moment kept outside a walk.
+  - One dark pill at a time (tend tabs T37): while the recording bar's Edit pill is up (`tabsHidden.barOfferUp`, given
+    to the shell by `index.ts`) a line already up steps aside, and a line that comes due is neither said nor marked
+    (`space_said`, `space_persist`) until the pill goes; then it is looked at again and said once.
   - The e2e (`space`) patches `StorageManager.prototype`'s three methods only; replacing
     `navigator.storage` whole hides what other code needs.
   - The meta key scan (FC8) reads only `getMeta` / `setMeta` calls, so the shell calls those, not `metaStore`.
