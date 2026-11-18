@@ -953,7 +953,7 @@ const StarMarkers = memo(function StarMarkers({ stars, names, selected, pressabl
       anchor="center"
       onPress={pressable ? () => handlers.current?.onStarPress?.(star) : undefined}
     >
-      <View accessible accessibilityRole="button" accessibilityLabel={starLabel(star)} style={styles.pinHit}>
+      <View accessible accessibilityRole="button" accessibilityLabel={starLabel(star)} accessibilityState={{ selected: star.id === selected }} style={styles.pinHit}>
         <StarView star={star} selected={star.id === selected} named={names.has(star.id)} />
       </View>
     </Marker>

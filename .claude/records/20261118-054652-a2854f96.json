@@ -1,0 +1,36 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "The pin, star and",
+        "--reason",
+        "built in \"tend map 17, 18: the pin, star and \"?\" taps read handlers filled before paint; the worker test reaches its call\" (useLayoutEffect for latest, starLatest and markLatest), its test held by tend map audit 40"
+      ],
+      "target": "sha256:26c22749923559c0da6541b32e31465f83f4b17c1a8850d82b34aa6c8417137b"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "The selected star is not told",
+        "--reason",
+        "built in \"tend map 20, audit 40, 41, 42: the selected star is told to a screen reader; the tap and worker tests hold their wiring\", on the owner's answer in person, Nov 18: \"Allow it\" (aria-current=\"true\" on the web, spoken \"current\"; accessibilityState selected on native)"
+      ],
+      "target": "sha256:dc2ead29efd87bcaafbbbe1cd6490009374428918258c2719660773e617e2cad"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "`formatDistance` joins"
+      ],
+      "body": "  Tried Nov 18 (`/tend map`), not shipped: a no-break space in `formatDistance` and `formatRange` themselves fails 20 unit tests' literal expectations in 8 files and checks in the launch, memories, gaps, ready, scenic, walk, qol and outing journeys (each wants `\\s` or ` ` for the space), and the planner journey's WP14 regexes (`planner.js` l.95, 98), which a parallel explore run held that day.\n",
+      "target": "sha256:48cce0d7180222c565578ea5a3f65614a1adf503a439acd40a16bc382813d948"
+    }
+  ]
+}

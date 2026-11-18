@@ -3,7 +3,7 @@ import { REPLAY_RHYTHM as R } from '../motionTokens';
 
 /**
  * Whether the stage should wait for a memo or video (replay-rhythm audits 20,
- * 23): the plan gives a medium a slot as long as its stored length, but the
+ * 23): the plan gives a medium a slot as long as its kept length, but the
  * player may start late (loading, sound refused then retried muted, a tap
  * from the viewer) or run longer than stored. While a started medium is
  * behind its slot, or not finished when the slot ends, the stage waits, up to

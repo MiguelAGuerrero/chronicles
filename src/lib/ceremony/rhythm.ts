@@ -15,6 +15,7 @@ import { plainNote } from '../refs';
 import { REPLAY_RHYTHM as R } from '../motionTokens';
 import { GAP_MS } from '../replay';
 import type { LngLat } from '../types';
+import { memoLengthMs } from '../voiceTrim';
 import { easeInOut, easeOut } from './ease';
 import { positionAt, timeAtMetres } from './story';
 import type {
@@ -34,7 +35,7 @@ export interface Slot {
   kind: SlotKind;
   t0: number;
   t1: number;
-  /** A memo's or video's play time; a grid's longest video. */
+  /** A memo's or video's play time (its kept part); a grid's longest video. */
   len: number;
   /** A stack's grid (MS17): its photos and videos, each the moment at that piece. */
   pieces?: Faced[];
@@ -143,7 +144,11 @@ function stopLength(slots: Slot[]): number {
   }
   return Math.max(t, side);
 }
-const mediaLen = (c: Faced) => Math.max(R.mediaMin, Number(c.body) || 0);
+/**
+ * A memo's or video's play time: its kept part (`edit.trim`, the same on both; VT7, ME15), where the players stop, never
+ * the stored whole length, or the walker stands through the cut part with nothing playing (fix trimmed-length 1-3).
+ */
+const mediaLen = (c: Faced) => Math.max(R.mediaMin, memoLengthMs(c));
 function slotDur(c: Faced): number {
   switch (slotKind(c)) {
     case 'note': return noteSlotPause(c);
