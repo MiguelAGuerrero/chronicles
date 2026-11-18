@@ -31,8 +31,8 @@ Shape: nothing starts, stops or offers itself on a car, a speed or an arrival; a
 Precedent: Apple Voice Memos (the Action button starts one, saved with the name of your location; verified), Polarsteps (a trip as
   a route with steps; straight lines between stops are the thing to avoid; unverified), Google Maps Timeline (records your day
   unasked: the counter-example; verified), iOS Driving Focus (silences notifications while driving; unverified)
-Criteria: DO1-DO30 below
-Open: four, at the end
+Criteria: DO1-DO30 below, with DO12a
+Open: two, at the end (the owner answered the rest on Nov 18)
 ```
 
 The gate ran before it knew of decisions 0203 and 0209. Two of its eleven criteria are re-gated here: its third ("no route, turn or
@@ -53,7 +53,8 @@ Everywhere:
   notifies anything.
 - **DO2.** (the owner's safety rule) Nothing on a ride asks for a look or a tap: a ride causes no prompt, banner, sheet, sound,
   haptic or notification of its own. The one exception is a turn spoken by guiding the person started ("Drive there", decision
-  0211). Reminders the person set still fire; the phone's own driving mode quiets them.
+  0211; the owner, Nov 18: "A spoken turn is an acceptable exception"). Reminders the person set still fire; the phone's own
+  driving mode quiets them.
 - **DO3.** No speed, average, maximum, driving time or ranking is shown or stored as a figure, anywhere. A drive's distance is said
   in words with its unit.
 - **DO4.** Nothing leaves the device and no new host is used.
@@ -74,15 +75,20 @@ Start a journey in the car:
 Places found from the road:
 
 - **DO11.** While on a ride Explore names no place and marks none (R12 holds).
-- **DO12.** A large place (a refuge, a park, a natural monument, and the other kinds the pack marks as large) is found only by a
-  capture inside its outline or within reach of one of its entrances, made after a ride has ended. A single point is never what a
-  large place is judged by.
+- **DO12.** A large place (a refuge, a park, a natural monument, a complex, any large open space) is found only by a capture
+  inside its perimeter or within reach of one of its entrances, made after a ride has ended. A single point is never what a large
+  place is judged by.
+- **DO12a.** (the owner, Nov 18: "any complexes or large open spaces should ideally have their perimeters marked as if any town if
+  available") Where a large place's perimeter is known it is drawn on the map as a town's border is: a thin line, no fill, no
+  label of its own, and nothing where none is known. It marks where the place is, never that you have been.
 - **DO13.** A capture made while riding never finds a place, and passing one never finds, names, whispers, lists or counts it:
   in the replay, on Explore, on a place's sheet and on the card.
-- **DO14.** Time on foot inside a large place's outline, with no capture, names it in the replay's words ("Walked at Muir Woods")
-  and does not find it. How long on foot counts is a rule in the code, said nowhere as a figure.
-- **DO15.** Outlines and entrances reach the app through the places adapter, from the pack; none is hard-coded. A place with
-  neither is judged as today.
+- **DO14.** Being inside a large place's perimeter during an outing, off a ride, with no capture, names the place in the replay's
+  words and does not find it. It is named by where you were, never by how you moved ("At Muir Woods", not "Walked at"): walking is
+  no longer a named idea in the app (0203; the owner, Nov 18). A stretch is said to be on foot only where the trace makes that
+  plain. How long counts is a rule in the code, said nowhere as a figure.
+- **DO15.** Perimeters and entrances reach the app through an adapter, with an in-memory source for tests; none is hard-coded. A
+  place with neither is judged as today. Where they come from is measured before this part is planned (open question 1).
 - **DO16.** A large place found this way is a find like any other: a memory, with no count, badge or line of its own.
 - **DO17.** This closes the deferred "Places you can't walk to".
 
@@ -102,8 +108,10 @@ Captures while driving:
   step is added before a capture.
 - **DO25.** A capture made on a ride keeps where it was made (MC18) and is placed on the ride in the replay.
 - **DO26.** Nothing new appears on the screen for a driver.
-- **DO27.** A moment can be begun without the screen, through the phone's own entry points: a voice memo by a spoken request or
-  the Action button, saved into the open outing with where it was made. Native only.
+- **DO27.** (the owner, Nov 18: iOS, "for all capture tools") On iOS a moment of any kind the capture stack offers (a photo or
+  video, a voice memo, a note) can be begun without the app's screen, through the phone's own entry points (a spoken request, the
+  Action button), and is saved into the open outing with where it was made. A kind the system cannot finish without the screen (a
+  photo needs a look) opens the app at that capture and nothing else. iOS only; Android has none.
 - **DO28.** A hands-free capture begins only when an outing is open; with none it does nothing and says so by the system's own
   means. It never starts an outing.
 - **DO29.** A hands-free capture confirms with the system's own sound or haptic and nothing of the app's.
@@ -124,18 +132,25 @@ Captures while driving:
 2. The drive in the replay (it touches the replay: the steward and the ux-reviewer).
 3. Places from the road (it waits on outlines or entrances in the pack: a chronicles-data contract change; the live pack holds
    these kinds as points only).
-4. Hands-free capture (native; an architecture call; cannot be finished without a phone).
+4. Hands-free capture (iOS only, every kind of capture; native; an architecture call; cannot be finished without a phone).
 
-## Open, the owner's
+## Answered by the owner (Nov 18, in this session; decision 0212)
 
-1. **The safety rule and the spoken turn.** "No prompt, banner or sound on a ride" and the road engine's spoken turns meet on a
-   guided drive. DO2 keeps the turn as the one exception, because the person asked for it by tapping "Drive there". The bar's "End"
-   and the mute are still taps on a moving screen. Is that the rule you want, or should guiding have nothing to tap once moving?
-2. **Where outlines come from.** DO12 needs a large place's outline or its entrances in the pack. Which source, and whether an
-   entrance alone is enough, is a data decision for chronicles-data before slice 3 can be planned.
-3. **How long on foot names a place** (DO14), and whether "Walked at" is the wording.
-4. **Hands-free** (DO27): an App Intent and the Action button on iOS only, or Android's equivalent as well; and whether a voice
-   memo is the only kind.
+- The safety rule: "A spoken turn is an acceptable exception." DO2 stands as written; "End" and the mute stay.
+- Perimeters: the owner does not know where they come from; "any complexes or large open spaces should ideally have their
+  perimeters marked as if any town if available" (DO12, DO12a, DO15).
+- Naming a place: not by walking. "Walking is no longer going to be a named concept in the app. So I wouldn't lean too hard into
+  refining that. Unless it's very obviously or self-evident during a session that you're walking." (DO14)
+- Hands-free: "iOS. And for all capture tools." (DO27)
+
+## Open
+
+1. **Where perimeters come from** (ours to measure, as the road engine's step 0 did, then the owner's call). Three candidates:
+   the map's own tiles, which the app already reads (their park and land-use shapes: no new host, but cut at tile edges and
+   unnamed); Overture, the host town borders already come from; or the chronicles-data pack (a contract change, one build for
+   every place, joined to the pack's own ids). The measurement: for the pack's large places in one region, how many have a shape
+   in each source, and how many shapes can be matched to the place's point.
+2. **How a named place reads in the replay** (DO14): the wording "At Muir Woods" is this spec's, not the owner's.
 
 ## Not in this spec
 

@@ -19,9 +19,17 @@ The owner's calls as relayed, Nov 18:
 
 The spec is `specs/drive-in-the-outing/spec.md` (DO1-DO30). The gate's "no route or turn for the road" is withdrawn by "Keep 0209".
 
+## The owner's answers in this session (Nov 18)
+- "A spoken turn is an acceptable exception" to the safety rule.
+- Perimeters: "I'm not sure where outlines or entrances for large places come from. In fact, any complexes or large open spaces
+  should ideally have their perimeters marked as if any town if available."
+- "Walking is no longer going to be a named concept in the app. So I wouldn't lean too hard into refining that. Unless it's very
+  obviously or self-evident during a session that you're walking." A place is named by being there, not by walking there.
+- Hands-free capture: "iOS. And for all capture tools."
+
 ## Consequences
-- Nothing is built. The spec waits for the owner's review, and four questions in it are theirs: the safety rule against the spoken
-  turn and the taps on the guiding bar; where outlines come from; how long on foot names a place; the scope of hands-free capture.
+- Nothing is built. Two things stay open: where perimeters come from (to be measured, then the owner's call) and the replay's
+  wording for a place named without a capture.
 - Places from the road needs outlines or entrances in the chronicles-data pack, a contract change.
 - The safety rule is not on `docs/VISION.md` yet (the page is at its size budget): the owner's edit.
 - It amends rides R10 (the four-second squeeze) and DW14 (nothing offered past 10 km) when it lands.
