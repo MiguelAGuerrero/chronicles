@@ -85,8 +85,11 @@ The same run also builds the branch named in `.github/preview-branch` and serves
 https://miguelaguerrero.github.io/chronicles/preview/ (`scripts/preview-pages.js` puts it under `dist/preview` and makes
 its routes survive a reload). It is for the owner to look at a slice on a phone before it replaces anything; it is the same
 site, so it reads the phone's own walks, and a slice that changes stored data must not go there. A preview that fails to
-build never fails the deploy (the step is `continue-on-error`): read the step's log. To refresh it after pushing the
-preview's branch, run the workflow by hand on `main` (`actions_run_trigger`, `workflow_dispatch`); nothing on `main` changes.
+build never fails the deploy (the step is `continue-on-error`): read the step's log. It is rebuilt from the
+branch's tip by every deploy of `main`, so after pushing the preview's branch the next deploy refreshes it. A cloud session
+cannot start the run itself (`actions_run_trigger` answers 403, Nov 18): wait for the next deploy, or the owner runs the
+workflow by hand on `main` (Actions, "Deploy web build to GitHub Pages", Run workflow); nothing on `main` changes. To see
+which build is up, read the bundle's name in the preview's page.
 An empty `.github/preview-branch` serves no preview.
 
 ## 4. If the export fails
