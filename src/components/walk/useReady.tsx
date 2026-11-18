@@ -16,9 +16,8 @@ import { applyPatch, captureBus, LOOSE_MOMENTS } from '../../lib/captureBus';
 import { captureEdits } from '../../lib/captureEdits';
 import { MOMENT_PIN_ZOOM, placedMoments, upsertMoment } from '../../lib/momentPins';
 import { useVisible } from '../../lib/deletion/useDeletions';
-import { type Kind } from '../../lib/explore/explore';
 import { findForMoment } from '../../lib/explore/momentFind';
-import { DEFAULT_SETTINGS, loadSettings, saveSettings, type ExploreSettings } from '../../lib/explore/settings';
+import { DEFAULT_SETTINGS, loadSettings, onSettings, saveSettings, type ExploreSettings } from '../../lib/explore/settings';
 import { boundsOf, type Bounds } from '../../lib/geo';
 import { getLastFix, setLastFix } from '../../lib/lastFix';
 import { locateOnce } from '../../lib/locate';
@@ -127,6 +126,10 @@ export function useReady(props: {
     }, [active]),
   );
 
+  // A save from elsewhere (What I'm into's page) reaches this copy at once, as the walk's does: a range changed on the
+  // return, before the focus read lands, never writes the kinds held before the page back (what-im-into-page audit 5).
+  useEffect(() => onSettings((s) => setSettings(s)), []);
+
   const pickMode = (m: StartMode) => {
     setModeState(m);
     ready.setMode(m).catch(() => {});
@@ -134,12 +137,6 @@ export function useReady(props: {
   const changeSettings = (next: ExploreSettings) => {
     setSettings(next);
     saveSettings(next).catch(() => {});
-  };
-  const toggleKind = (k: Kind, on: boolean) => {
-    const hidden = new Set(settings.hidden);
-    if (on) hidden.delete(k);
-    else hidden.add(k);
-    changeSettings({ ...settings, hidden });
   };
   const chooseDest = (d: Waypoint | null) => {
     setDest(d);
@@ -331,7 +328,6 @@ export function useReady(props: {
           onMode={pickMode}
           onClearDest={() => chooseDest(null)}
           onSettings={changeSettings}
-          onToggleKind={toggleKind}
           layers={layers}
         />
       </ReadyBar>

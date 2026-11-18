@@ -206,7 +206,7 @@ The three tabs (Chronicle, Explore, Navigate), the home sheet, the recording bar
 
 - The Start dialog (0056) is gone: its body is `StartSettings` (`components/StartSettings.tsx`),
   shown in the ready bar pulled up (see `.claude/rules/walk-screen.md`): mode, destination, "?"
-  range and what I'm into (Explore only), pocket alert, reminders and alerts, distances. Every choice
+  range and the row to What I'm into's page (Explore only; decision 0192), pocket alert, reminders and alerts, distances. Every choice
   saves as it changes. Start just starts. Nothing raises the bar mid-memo.
 - `drawerTo(pg, 'half' | 'full')` in the e2e pulls the ready bar up by its grip; `'peek'` lowers it
   with Escape and waits for the settings to unmount. `tabTo(pg, id)` reaches a tab from wherever the

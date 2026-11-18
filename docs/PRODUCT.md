@@ -209,8 +209,8 @@ recording, and a recording bar brings a minimized walk back.
   it and keeps its street ("Strawberry Square, N 2nd St, Harrisburg"), from complexes already on the
   phone: viewing a moment fetches nothing. Information only: never a mark, a find or a place a walk is
   assigned to. A complex is a named building from Overture that holds enough places, or a market, a
-  station, a campus or a civic building by its type; five switches, beside What I'm into, hide a kind
-  from the card and the map. Built on web, native unverified.
+  station, a campus or a civic building by its type; five switches, on What I'm into's page under their own
+  heading "Complexes", hide a kind from the card and the map. Built on web, native unverified.
 
 ### Navigate (during)
 
@@ -222,8 +222,8 @@ recording, and a recording bar brings a minimized walk back.
   top-left goes back to the tab you came from. With a walk open, Navigate opens
   that walk.
 - The bar pulls up (a drag on it, or a tap) into the **walk settings**: quiet or
-  Explore mode, the destination (a long press on the map), "What I'm into" and the
-  "?" range (Explore only), reminders and alerts, distances. Start stays at its
+  Explore mode, the destination (a long press on the map), the "?" range and the
+  "What I'm into ›" row to its page (Explore only), reminders and alerts, distances. Start stays at its
   foot. A destination shows on the resting bar in one line ("To Your spot · 120 m
   away").
 - The camera, mic and note are stacked at the right edge, above the bar, in the
@@ -530,10 +530,19 @@ recording, and a recording bar brings a minimized walk back.
 
 ## Settings and notifications
 
-- Explore settings (in the drawers: the ready bar's and the walk's, no panel of their own): "What I'm into" (about 53
-  rows under five headings: Art, History, Parks & green spaces, Culture, Viewpoints & oddities), the
-  "?" range with a ring preview on the map, the pocket alert (phones, and browsers that can
-  buzz: Android Chrome; not iPhone Safari, decision 0138).
+- Explore settings (in the drawers: the ready bar's with Explore chosen and the walk's with Explore on): the "?" range
+  with a ring preview on the map, the pocket alert (phones, and browsers that can buzz: Android Chrome; not iPhone
+  Safari, decision 0138), and one row, "What I'm into ›" (shown with Explore or scenic routes' Sights on, since both
+  read the kinds), that opens **What I'm into's page** (decision 0192): a page
+  of its own pushed over the screen with Back (reading "‹ Walk" when opened from the walk), the same from both drawers,
+  about sixty switches under five headings (Art, History, Parks & green spaces, Culture, Viewpoints & oddities) and
+  Complexes' five, each with its icon; each heading stays pinned while its rows scroll, with a hairline under it, and
+  names as a second line the kind whose subtypes pass under it ("› Zoos and aquariums"); a kind's name is drawn heavier
+  than its subtypes', with a quiet line naming only those switched from their default ("Ghost towns on", "Waterfalls
+  off", never a count; none as installed), and a little space above a kind that follows a subtype;
+  at large text the rows drop their icons and indents so labels wrap only between words; every switch saves as it
+  changes. In the walk's drawer the row is a short section of its own, "Explore", after the walk's settings. A walk
+  goes on under it; the row and the page carry no count. Built on web, native unverified.
 - Notifications: Remind me here and Pause reminder, each switchable, plus a
   test. Permission is asked only from a tap (first pause, a reminder saved, a
   switch turned on), never at launch. On the web, notifications come from a

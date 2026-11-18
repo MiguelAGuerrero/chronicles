@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { OpenWalkProvider } from '../components/OpenWalk';
+import { WALK_NAME } from '../lib/walkName';
 import { SafeInsets } from '../components/SafeInsets';
 import { theme } from '../components/ui';
 import '../components/webStyles';
@@ -97,7 +98,10 @@ export default function RootLayout() {
             {/* No header: the growing trace says a walk is on. Its way out is Minimize, to the bar above the
                 tabs (NV7), or Stop; a swipe would only minimize it unasked. */}
             {/* One walk screen at most, however it is reached (tabs audit 1). */}
-            <Stack.Screen name="walk" dangerouslySingular options={{ headerShown: false, gestureEnabled: false }} />
+            <Stack.Screen name="walk" dangerouslySingular options={{ headerShown: false, gestureEnabled: false, title: WALK_NAME }} />
+            {/* What I'm into (decision 0192, WI4): a page pushed over the walk and the tabs, with the stack's Back,
+                the iOS edge swipe and Android's Back; never a modal, so it never meets a Modal under it. */}
+            <Stack.Screen name="into" options={{ title: 'What I’m into', presentation: 'card', headerShown: true, headerBackTitle: 'Back' }} />
             <Stack.Screen name="replay/[id]" options={{ headerShown: false, presentation: 'fullScreenModal' }} />
             {/* The day's replay (M10): moments and walks in time order. */}
             <Stack.Screen name="day/[key]" options={{ headerShown: false, presentation: 'fullScreenModal' }} />

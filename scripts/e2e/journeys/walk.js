@@ -6,7 +6,7 @@
 const path = require('path');
 
 async function checks(h) {
-  const { BASE, browser, ctx, page, start, at, dLat, dLon, names, check, shot, pressedScale, metaOf, drawerTo, tabBarShown, tiles, scriptsDir, onTab, walkMap, walkMarks, walkRoute, walkPts, routed } = h;
+  const { BASE, browser, ctx, page, start, at, dLat, dLon, names, check, shot, pressedScale, metaOf, drawerTo, openInto, closeInto, tabBarShown, tiles, scriptsDir, onTab, walkMap, walkMarks, walkRoute, walkPts, routed } = h;
     // The ready bar pulled up (NR7, NV20-NV24): the choices, each saved as it changes.
     await onTab('navigate');
     await page.waitForSelector('[data-testid=ready-bar]');
@@ -46,8 +46,8 @@ async function checks(h) {
     const ringNow = () => page.locator('[data-ring]').last().getAttribute('data-ring');
     await page.click('[data-testid=mode-explore]');
     await page.waitForTimeout(500);
-    check((await page.locator('[data-testid=kind-churches]').count()) === 1 && (await page.locator('[data-testid=range-value]').innerText()) === '100 m' && (await ringNow()) === '100',
-      'with Explore chosen, what I’m into and the range show, the range drawn as a ring on this map (NV21)');
+    check((await page.locator('[data-testid=into-row]:visible').count()) === 1 && (await page.locator('[data-testid=range-value]').innerText()) === '100 m' && (await ringNow()) === '100',
+      'with Explore chosen, the row to what I’m into and the range show, the range drawn as a ring on this map (NV21, WI1)');
     await page.click('[data-testid=range-plus]');
     await page.waitForTimeout(400);
     check((await page.locator('[data-testid=range-value]').innerText()) === '120 m' && (await ringNow()) === '120' && (await metaOf(page, 'explore_range')) === '120',
@@ -146,7 +146,7 @@ async function checks(h) {
     for (let i = 0; i < 6; i++) await page.click('[data-testid=range-minus]');
     check((await page.locator('[data-testid=range-value]').innerText()) === '60 m', 'the range never goes under 60 m');
     for (let i = 0; i < 2; i++) await page.click('[data-testid=range-plus]');
-    check((await page.locator('[data-testid=kind-churches]').count()) === 1 && (await page.locator('[data-testid=pocket-alert]').count()) === (process.env.E2E_MOBILE ? 1 : 0), 'what I’m into lists the kinds; the pocket alert only on a touch screen (PA6, pocket-alert-nudge audit 4)');
+    check((await page.locator('[data-testid=options-card] [data-testid=into-row]').count()) === 1 && (await page.locator('[data-testid=pocket-alert]').count()) === (process.env.E2E_MOBILE ? 1 : 0), 'the drawer holds the row to what I’m into; the pocket alert only on a touch screen (PA6, pocket-alert-nudge audit 4, WI1)');
     await shot(page, '01a-settings');
     await page.click('[data-testid=explore-walk]');
     await page.keyboard.press('Escape');
@@ -690,13 +690,16 @@ async function checks(h) {
       if (k === 54) {
         // What I'm into (E17): public art switched off hides its "?" at once; back on, it shows again.
         check((await page.locator('[aria-label="Public art, Art. Open"]').count()) === 1, 'the artwork shows, named, beside you');
-        await page.click('[data-testid=walk-summary]');
+        // Through What I'm into's page (decision 0192, WI8): the drawer's row, the switch, Back, the drawer lowered.
+        await openInto(page, 'walk');
         await page.click('[data-testid=kind-public_art]');
+        await closeInto(page);
         await page.keyboard.press('Escape');
         await page.waitForTimeout(500);
         check((await page.locator('[aria-label="Public art, Art. Open"]').count()) === 0, 'a kind switched off loses its "?" marks');
-        await page.click('[data-testid=walk-summary]');
+        await openInto(page, 'walk');
         await page.click('[data-testid=kind-public_art]');
+        await closeInto(page);
         await page.keyboard.press('Escape');
         await page.waitForTimeout(500);
         check((await page.locator('[aria-label="Public art, Art. Open"]').count()) === 1, 'switched back on, it shows at once');

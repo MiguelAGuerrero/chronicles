@@ -34,11 +34,12 @@ split (see Invariants).
 
 ```
 index.js                     entry: imports lib/recorder (defines the background location task) before expo-router/entry
-src/app/_layout.tsx          root stack: the tabs first, then walk and replay over them; opens the open walk at launch under a cover (lib/launchWalk), then reconciles the recorder; sets the audio mode; notes the launch path (lib/launchRoute)
+src/app/_layout.tsx          root stack: the tabs first, then walk, What I'm into's page and replay over them; opens the open walk at launch under a cover (lib/launchWalk), then reconciles the recorder; sets the audio mode; notes the launch path (lib/launchRoute)
 src/app/(tabs)/_layout.tsx   the three tabs, Explore · Navigate · Chronicle; Explore opens first, at / (NV2); Navigate's press opens the walk screen (NR1)
 src/app/(tabs)/navigate.tsx  Navigate's entry route (/navigate): Explore beneath, then the walk screen, ready (NR1, NR3)
 src/app/(tabs)/index.tsx     Chronicle (/), where the app opens (0112): Memories as a journal with its open line (0155); Walks, Days and Map (stars by area at the level for the zoom, moment pins from z11, the HomeSheet, old-walk placement)
 src/app/(tabs)/explore.tsx   Explore (/explore): the atlas of the areas near you (tiles, the area card; 0066, 0067); long press = What's good here / Walk here
+src/app/into.tsx             What I'm into's page (/into, decision 0192): pushed over the walk screen and the tabs from both drawers' row (lib/intoNav), the stack's Back, Escape on the web; components/IntoPage
 src/app/chronicle.tsx        the old /chronicle path: dismissTo("/") down to Chronicle (HC5, 0112)
 src/app/walk.tsx             the walk screen, and Navigate: one screen and one map, ready with no walk open (`useReady`), else live trace and dot, fog, captures, navigation bar, Explore marks, memories, reminders, options, hold-to-stop
 src/app/replay/[id].tsx      a walk's replay: the five beats; the path beat is a ceremony told over the map (lib/ceremony, components/ceremony), or the screen reader's steps; the card, naming
@@ -125,7 +126,9 @@ Home / tabs
   StackMark.tsx              the two-card mark of a moment holding more than one piece (MS8)
   GapCard.tsx                a filled or offered stretch: Keep, Not this way
   KeepGapsCard.tsx           the first replay's one question: keep every offered way (G15)
-  ExploreSettings.tsx        the shared pieces of the drawers' settings: `KindSwitches`, `RangeSlider`, `walkNote`
+  ExploreSettings.tsx        the shared pieces of the drawers' settings: `RangeSlider`, `walkNote`
+  IntoRow.tsx                the drawers' "What I'm into ›" row, opening its page (decision 0192)
+  IntoPage.tsx               What I'm into's page: the kinds and Complexes' switches, headings pinned (`stickyHeaderIndices`), from lib/explore/intoPage
   NotificationSettings.tsx   the kind switches, permission state, the test notification
 Captures
   CaptureView.tsx            CaptureViewer (full-screen photos and videos over a strip; a note as its page, a card for memos; More menu) and CaptureContent (plays memos and videos)
@@ -274,6 +277,8 @@ Discovery and Explore (v1)
   atlas/snap.ts              discrete navigation (DN1, DN10-DN13): what a drag or an arrow key means; one finger never pans Explore's map
   atlas/carousel.ts          Explore's row of area cards (EC1-EC15): the row's order, the selection, a swipe as a row step, the card a scroll settled on, the Storefront names kept near the selection
   explore/settings.ts        what I'm into, range, pocket alert (meta)
+  explore/intoPage.ts        What I'm into's page, pure: its sections, rows (heavy, hint) and pinned indices (WI5-WI7, WI15)
+  explore/settingsChange.ts  a kind switched on the page: the next settings, null before they are read (WI9)
   explore/momentFind/        a loose moment finds a place (shell.ts, index.ts)
   explore/reach/             a street or path close by, said on a place's card (rule.ts core, shell.ts, index.ts; RP20)
 Activity density (AD1-AD16)
