@@ -22,8 +22,9 @@ const recordFrames = (pg) => pg.evaluate(() => {
     E.frames.push({
       t, busy: !!card || !!note || has('memo-bubble') || has('replay-whisper') || has('replay-later'),
       walker: map?.getAttribute('data-walker') ?? '', centre: map?.getAttribute('data-center') ?? '', zoom: Number(map?.getAttribute('data-zoom')), end: map?.getAttribute('data-reveal-end') ?? '',
+      cam: map?.getAttribute('data-cam') ?? '', held: has('replay-held'), w: window.innerWidth, h: window.innerHeight,
       screen: (p['render:replay'] ?? 0) + (p['render:day'] ?? 0), map: p['render:map'] ?? 0, sends, commits: window.__commits?.[0] ?? 0, engine: p['replay:frame'] ?? 0,
-      card: cb ? `${cb.x.toFixed(1)},${cb.y.toFixed(1)},${cb.width.toFixed(1)}` : '', note: note ? getComputedStyle(note.parentElement).opacity : '',
+      card: cb ? `${cb.x.toFixed(1)},${cb.y.toFixed(1)},${cb.width.toFixed(1)},${cb.height.toFixed(1)}` : '', cardName: card?.getAttribute('aria-label') ?? '', note: note ? getComputedStyle(note.parentElement).opacity : '',
       clock: document.querySelector('[data-testid=replay-clock]')?.getAttribute('aria-label') ?? '', puck: !!document.querySelector('[data-testid=walker-puck]'),
     });
     requestAnimationFrame(tick);
@@ -39,6 +40,14 @@ const stopFrames = (pg) => pg.evaluate(() => {
 const lonLat = (s) => (s ? s.split(',').map(Number) : null);
 /** Pixels between two places at a zoom (512 px tiles, as maplibre counts zoom). */
 const pxApart = (a, b, zoom) => Math.hypot((a[0] - b[0]) * 111320 * Math.cos((a[1] * Math.PI) / 180), (a[1] - b[1]) * 111320) * ((512 * 2 ** zoom) / (40075016.686 * Math.cos((a[1] * Math.PI) / 180)));
+/** A place on a screen under a camera, as a map lays it out (Web Mercator, 512 px tiles). */
+const world = (p) => [p[0] / 360 + 0.5, 0.5 - Math.log(Math.tan(Math.PI / 4 + (p[1] * Math.PI) / 360)) / (2 * Math.PI)];
+function screenAt(cam, p, w, h) {
+  const s = 512 * 2 ** cam[2];
+  const c = world(cam);
+  const q = world(p);
+  return [w / 2 + (q[0] - c[0]) * s, h / 2 + (q[1] - c[1]) * s];
+}
 /**
  * The longest stretch in the frames: nothing arriving or leaving on the stage, from the first frame the walker moved to
  * the last. Its rates a second, and how far apart the dot, the line's end and the camera's centre were, at the most.
@@ -95,6 +104,42 @@ const STRETCH_S = 0.7;
 const rendersIn = (frames) => (frames.length ? frames[frames.length - 1].screen - frames[0].screen : 0);
 const fix1 = (x) => (Number.isFinite(x) ? x.toFixed(1) : String(x));
 const stretchSaid = (s) => (s ? `a ${fix1(s.seconds)} s stretch of ${s.frames} frames: screen ${fix1(s.screen)}/s, map ${fix1(s.map)}/s, sends ${fix1(s.sends)}/s, commits ${fix1(s.commits)}/s, engine frames ${fix1(s.engine)}/s, line's end ${fix1(s.line)} px and centre ${fix1(s.centre)} px from the dot at the most, the end said in ${s.ended} frames` : 'no stretch seen');
+
+/**
+ * The camera through a watch (replay ceremony RC12, RC14), from the frames recorded: the runs of frames in which it
+ * moved, how much of the watch it stood exactly still, whether it ever moved under a card at rest, and where each
+ * card's pin was on the screen against the card's own lower edge. `places` are the cards' places, by the card's name.
+ */
+function cameraOf(frames, places) {
+  const told = frames.filter((f) => f.clock && f.cam);
+  const runs = [];
+  let still = 0;
+  let underCard = 0;
+  const pins = {};
+  for (let i = 1; i < told.length; i++) {
+    const f = told[i];
+    const was = told[i - 1];
+    const movedNow = f.cam !== was.cam;
+    if (movedNow) {
+      const last = runs[runs.length - 1];
+      if (last && last.b === i - 1) last.b = i;
+      else runs.push({ a: i - 1, b: i });
+    } else still++;
+    // A card at rest: the same box as the frame before, at its full width.
+    const rest = f.card && f.card === was.card;
+    if (rest && movedNow) underCard++;
+    const place = rest && Object.entries(places).find(([name]) => f.cardName.startsWith(name));
+    if (place) {
+      const [x, y, cw, ch] = f.card.split(',').map(Number);
+      const pin = screenAt(lonLat(f.cam), place[1], f.w, f.h);
+      pins[place[0]] = { dx: Math.round((pin[0] - (x + cw / 2)) * 10) / 10, under: Math.round((pin[1] - (y + ch)) * 10) / 10, y: Math.round(pin[1]), foot: Math.round(y + ch), h: f.h };
+    }
+  }
+  const seconds = runs.map((r) => (told[r.b].t - told[r.a].t) / 1000);
+  // The walker went on while the camera stood: frames in which the dot moved and the camera did not.
+  const walkedStill = told.filter((f, i) => i > 0 && f.cam === told[i - 1].cam && f.walker && told[i - 1].walker && f.walker !== told[i - 1].walker).length;
+  return { frames: told.length, runs: runs.length, longest: Math.max(0, ...seconds), still: told.length > 1 ? still / (told.length - 1) : 0, walkedStill, underCard, pins, zooms: [...new Set(told.map((f) => lonLat(f.cam)[2].toFixed(2)))] };
+}
 
 async function run(h) {
   const { navUrl, BASE, at, check, shot, freshPage, openWalk, errors } = h;
@@ -173,7 +218,7 @@ async function run(h) {
     });
     // The walk (scripts/e2e/replayWalk.js, shared with scripts/perf-replay.js): 600 m east along Transit Street, a photo
     // early on and a note at the end; 20 min with no fixes; 80 m more and a memo. Stopped, so its first replay opens.
-    const { here } = await seedReplayWalk(h, c, pg);
+    const { here, places } = await seedReplayWalk(h, c, pg);
     const min = 60_000;
     // The reading beat can be shorter than a poll with the streets already read: pictured when it shows.
     if (await pg.waitForSelector('[data-testid=replay-reading]', { timeout: 3000 }).then(() => true, () => false)) await shot(pg, 'rr-reading');
@@ -706,6 +751,55 @@ async function run(h) {
       check(still.centres === 1 && still.walkers >= 10 && still.engine >= 10 && still.puck && still.card != null,
         `RC10: with reduce motion on the map stays still and the walker moves over it, on the same engine, to the first card (${JSON.stringify(still)})`);
     }
+
+    // Replay ceremony, the camera (RC11, RC12, RC14; decision 0206): a re-watch at 390 and at 320 px, read frame by
+    // frame to its card, with a picture of each state: walking at the walking zoom, a card up with its pin under it,
+    // the camera re-framing as the walker leaves the card. Hold stands the replay still for each picture.
+    for (const [w, ht] of [[390, 844], [320, 568]]) {
+      await pg.setViewportSize({ width: w, height: ht });
+      await pg.waitForTimeout(300);
+      await pg.getByText('Watch again').click();
+      await pg.waitForSelector('[data-testid=replay-clock]', { timeout: 30000 });
+      await recordFrames(pg);
+      const pictured = async (name) => {
+        await pg.click('[data-testid=hold]').catch(() => {});
+        await pg.waitForTimeout(250);
+        await shot(pg, `${name}-${w}`);
+        await pg.click('[data-testid=hold]').catch(() => {});
+      };
+      // Walking, the opening over: the walking zoom.
+      await pg.waitForFunction(() => {
+        const map = [...document.querySelectorAll('[data-cam]')].pop();
+        return !!map && Number((map.getAttribute('data-cam') || '').split(',')[2]) === 15;
+      }, null, { timeout: 15000 }).catch(() => {});
+      await pictured('rc-walking');
+      // The first photo's card at rest, its pin under it.
+      await pg.waitForSelector('[data-testid=replay-card]', { timeout: 30000 }).catch(() => {});
+      await pg.waitForTimeout(1100);
+      await pictured('rc-card-pin');
+      // The video's card gone, the walker setting off for the note: the camera re-framing.
+      await pg.waitForSelector('[data-testid=replay-card][aria-label^=Video]', { timeout: 60000 }).catch(() => {});
+      await pg.waitForSelector('[data-testid=replay-card]', { state: 'detached', timeout: 60000 }).catch(() => {});
+      await pg.waitForTimeout(500);
+      await pictured('rc-reframe');
+      await pg.waitForSelector('[data-testid=replay-note]', { timeout: 120000 }).catch(() => {});
+      await pg.waitForTimeout(1500);
+      const seenFrames = await stopFrames(pg);
+      await pg.click('[data-testid=skip]').catch(() => {});
+      await pg.waitForSelector('[data-testid=to-name]', { timeout: 30000 });
+      const cam = cameraOf(seenFrames, places);
+      const said = JSON.stringify({ ...cam, longest: Math.round(cam.longest * 100) / 100, still: Math.round(cam.still * 100) / 100 });
+      // RC12: the camera moves in a few short runs (a card's pin settling, a re-frame as the walker leaves the middle)
+      // and is exactly still between them: more of the watch than not, and the walker goes on meanwhile.
+      check.todo(cam.frames > 200 && cam.runs >= 3 && cam.runs <= 12 && cam.longest <= 2.6 && cam.still >= 0.6 && cam.walkedStill >= 20, `RC12: at ${w} px the camera holds still between its re-frames, the walker going on meanwhile (${said})`);
+      // RC14: with a photo's or the video's card at rest, its pin stands on the screen just under the card, in line with
+      // its middle, and the camera does not move while the card is up.
+      const pins = Object.values(cam.pins);
+      check.todo(pins.length === 3 && pins.every((p) => Math.abs(p.dx) <= 2 && p.under >= 44 && p.under <= 60 && p.y < p.h) && cam.underCard === 0, `RC14: at ${w} px each card's pin shows just under where the card rests, the camera still while it is up (${said})`);
+      // RC11: the walking zoom is 15: every frame of the watch but the opening and a stretch's rise.
+      check.todo(cam.zooms.includes('15.00') && cam.zooms.every((z) => Number(z) <= 15) && !cam.zooms.includes('16.00'), `RC11: at ${w} px the replay walks at zoom 15 (${cam.zooms.slice(0, 8).join(', ')}${cam.zooms.length > 8 ? ', …' : ''})`);
+    }
+    await pg.setViewportSize({ width: 390, height: 844 });
 
     // The day (RR16): its replay reaches the day's card with no taps, the note on the way.
     const wakesBefore = (await pg.evaluate(() => window.__wake.log.length));

@@ -82,7 +82,9 @@ async function seedReplayWalk(h, c, pg) {
   await pg.waitForTimeout(1100);
   await pg.mouse.up();
   await pg.waitForURL(/replay/, { timeout: 30000 });
-  return { walk, here };
+  // Where each card's moment was made, by the card's name: the journey reads its pin against its card (replay ceremony RC14).
+  const places = { 'Blue door': [first[8].lon, first[8].lat], 'Green gate': [first[25].lon, first[25].lat], Video: [first[45].lon, first[45].lat] };
+  return { walk, here, places };
 }
 
 module.exports = { seedReplayWalk };
