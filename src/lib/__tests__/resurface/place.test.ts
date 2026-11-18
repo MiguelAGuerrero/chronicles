@@ -6,7 +6,7 @@ import type { Walk } from '../../types';
 import { fakePorts } from '../fakes';
 import { at, NOW } from './fixtures';
 
-// A moment keeps where it was made (MC18; the owner, Nov 18, decision 0211): on an outing through several towns, by any means of
+// A moment keeps where it was made (MC18; the owner, Nov 18, decision 0212): on an outing through several towns, by any means of
 // travel, its place is the one it was in at that time, never the outing's one name and never where the outing was headed.
 
 type Any = any;

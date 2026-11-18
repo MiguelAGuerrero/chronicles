@@ -1,6 +1,6 @@
-# 0207. The outing journey: no cap on towns, variety chooses them; the app gets a road engine of its own, as its own slice
+# 0208. The outing journey: no cap on towns, variety chooses them; the app gets a road engine of its own, as its own slice
 
-Date: 2026-11-17 · Status: accepted · Area: explore, outing, navigation, platform · Follows [0206](0206-the-session-is-an-outing.md); amends [0194](0194-shops-are-presence-the-outing-and-its-stores-pack.md) for the outing page
+Date: 2026-11-17 · Status: accepted · Area: explore, outing, navigation, platform · Follows [0207](0207-the-session-is-an-outing.md); amends [0194](0194-shops-are-presence-the-outing-and-its-stores-pack.md) for the outing page
 
 ## Context
 The plan for the destination-first outing (`specs/outing-journey/plan.md`, OJ1-OJ40) put eight questions to the owner, with a draft of the

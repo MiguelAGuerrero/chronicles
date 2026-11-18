@@ -1,9 +1,9 @@
-# 0209. A place is visited when the trace came within range of it; the stores pack merges onto the data repo's main
+# 0210. A place is visited when the trace came within range of it; the stores pack merges onto the data repo's main
 
-Date: 2026-11-17 · Status: accepted · Area: outing, trace, data · Follows [0208](0208-one-machine-for-every-outing.md), which left "what makes a shop been there" to the owner
+Date: 2026-11-17 · Status: accepted · Area: outing, trace, data · Follows [0209](0209-one-machine-for-every-outing.md), which left "what makes a shop been there" to the owner
 
 ## Context
-The outing offers places new to you first (0208). An attraction has a found state; a shop has none, because an arrival is never kept
+The outing offers places new to you first (0209). An attraction has a found state; a shop has none, because an arrival is never kept
 (QC19). Asked what should make a shop "been there", the owner chose inference over a record. They also asked for the data repository
 to be added, so the stores pack could be published.
 

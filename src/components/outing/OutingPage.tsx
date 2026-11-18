@@ -22,7 +22,7 @@ const NONE: never[] = [];
 const GAP = 10;
 
 /**
- * Plan an outing (OJ1-OJ46, decisions 0206-0199): the map is the page, and one machine plans every outing. It opens proposing around
+ * Plan an outing (OJ1-OJ46, decisions 0207-0199): the map is the page, and one machine plans every outing. It opens proposing around
  * where you stand, within a reach you can widen to the towns about; a field over the map says where to instead (Explore's own search),
  * and the towns toward it are looked at. The sheet holds the chips and the journeys in a row that scrolls sideways, a mixed one ahead
  * when the chips span leanings; opening one shows it town by town, its stops by kind and never named until a tap, Swap on each,

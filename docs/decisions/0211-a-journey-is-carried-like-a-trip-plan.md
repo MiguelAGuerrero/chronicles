@@ -1,6 +1,6 @@
-# 0210. The session carries a journey town by town, as a trip planner carries an itinerary, in this app's terms
+# 0211. The session carries a journey town by town, as a trip planner carries an itinerary, in this app's terms
 
-Date: 2026-11-17 · Status: accepted · Area: outing, navigation, vision · Follows [0208](0208-one-machine-for-every-outing.md); amends QC29 ("the one new meta key") and OJ34
+Date: 2026-11-17 · Status: accepted · Area: outing, navigation, vision · Follows [0209](0209-one-machine-for-every-outing.md); amends QC29 ("the one new meta key") and OJ34
 
 ## Context
 The audit left three questions with the owner (the silence of new-first, stops that read alike, the order after a first town) and the
@@ -27,10 +27,10 @@ What a trip planner does, and how it is said here (each a default, the owner's t
 The three questions, by default: a town new to you says "New to you." (the vision's own words; places stay silent); stops of one kind
 keep reading alike (kind and distance only, no numbers); the order after a first town is not a done mark, and it stands.
 
-Start begins a recorded session wherever you are, the drive included (0206); "When I get there" stays beside it for a far first town.
+Start begins a recorded session wherever you are, the drive included (0207); "When I get there" stays beside it for a far first town.
 
 ## Consequences
 - A second meta key, `outing_journey` (the plan of the open session), beside `outing_chains`; cleared when the session stops.
 - `outing/journeyPlan.ts` (core): the plan, the chapter ahead, a chapter's destination on foot. The walk screen gains a bar.
-- Not here: a road route (0207), a kept or shared journey, a journey resumed in a later session.
+- Not here: a road route (0208), a kept or shared journey, a journey resumed in a later session.
 - Native: nothing here has run on a device.

@@ -1,4 +1,4 @@
-// A journey carried by the session (OJ5, OJ20, OJ24, OJ26, OJ28, OJ29, OJ31, OJ39, OJ48, OJ50; decision 0210): from Curio Row toward
+// A journey carried by the session (OJ5, OJ20, OJ24, OJ26, OJ28, OJ29, OJ31, OJ39, OJ48, OJ50; decision 0211): from Curio Row toward
 // Providence, a town on the way and the destination each hold one bookshop (from a stores pack this journey serves), so the journey has
 // two chapters of one stop. Start begins a session at once and the walk screen's bar names the town ahead with Open in Maps and "Pass
 // by"; the page, opened again while the session records, carries the capture stack and can leave a town out. E2E_ONLY=journey runs it.

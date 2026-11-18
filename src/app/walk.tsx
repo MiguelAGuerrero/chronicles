@@ -678,7 +678,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
     setNotice((n) => (n?.maps ? null : n));
     void navigation.goTo(dest);
   };
-  // A journey carried by this session (OJ28-OJ31, decision 0210): the bar between towns, and the way on foot within reach of one.
+  // A journey carried by this session (OJ28-OJ31, decision 0211): the bar between towns, and the way on foot within reach of one.
   const journey = useJourneyBar({ walkId: walk?.open ? walk.id : null, here: live.here, navigating: !!navigation.nav || navigation.finding || !!navigation.preview, goTo });
   // Scenic routes' preview (SR8): Back (Android) and Escape (web) cancel it, setting no destination.
   const routePreview = navigation.preview;
@@ -1371,7 +1371,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
           </Pressable>
           {/* The navigation bar takes the top row beside Minimize, so nothing sits above it (the owner, Nov 6: it keeps
               drifting down; supersedes Nov 5's "Minimize above the bar"). */}
-          {/* A journey between towns (OJ29, OJ31, decision 0210): the town ahead and how far, Maps for the road, a way to pass it by. */}
+          {/* A journey between towns (OJ29, OJ31, decision 0211): the town ahead and how far, Maps for the road, a way to pass it by. */}
           {!navigation.nav && journey.next && (
             // On the surface's own ground, not the route's colour: this is where the outing is headed, not a way being followed.
             <View testID="journey-bar" style={styles.journeyBar} {...({ dataSet: { drivePoints: drivePath?.length ?? 0 } } as object)}>
