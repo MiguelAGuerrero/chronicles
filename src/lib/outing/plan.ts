@@ -37,7 +37,9 @@ function* combinations(n: number, k: number, from = 0): Generator<number[]> {
   for (let i = from; i <= n - k; i++) for (const rest of combinations(n, k - 1, i + 1)) yield [i, ...rest];
 }
 
-type Cache = Map<string, Route | null>;
+/** The legs routed so far between pairs of points, shared by the attempts of one plan so none is routed twice. */
+export type LegCache = Map<string, Route | null>;
+type Cache = LegCache;
 const pkey = (p: LngLat) => `${p[0].toFixed(5)},${p[1].toFixed(5)}`;
 const hereOf = (leg: Leg): Leg => (a, b, avoid) => (distanceM(a, b) < 5 ? { path: [a, b], lengthM: 0, source: 'here' } : leg(a, b, avoid));
 
@@ -79,6 +81,6 @@ export function planOuting(input: OutingInput, leg: Leg): { outing: Outing | nul
 }
 
 /** QC21: the same stops after a swap, ordered and routed again; null when they no longer fit the ceiling. */
-export function planStops(stops: readonly Candidate[], from: LngLat, mode: 'loop' | 'oneway', ceilingM: number, leg: Leg): Outing | null {
-  return fitStops(stops, from, mode === 'loop', ceilingM, hereOf(leg), new Map()).outing;
+export function planStops(stops: readonly Candidate[], from: LngLat, mode: 'loop' | 'oneway', ceilingM: number, leg: Leg, legs: LegCache = new Map()): Outing | null {
+  return fitStops(stops, from, mode === 'loop', ceilingM, hereOf(leg), legs).outing;
 }

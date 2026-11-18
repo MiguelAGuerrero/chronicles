@@ -4,7 +4,7 @@ import type { LngLat } from '../types';
 import type { Leg } from '../walkPlanner/planner';
 import type { Area } from './areas';
 import { matches, type Candidate, type Want } from './candidates';
-import { planStops, type Outing, type OutingReason } from './plan';
+import { planStops, type LegCache, type Outing, type OutingReason } from './plan';
 
 /*
  * The one machine (OJ17-OJ19, OJ22, OJ24, OJ42-OJ45; decision 0211): every outing is a journey of chapters over areas. Around where
@@ -51,6 +51,8 @@ export interface JourneysInput {
 
 /** How many places a chapter is fitted from, and so how far each "Another like this" moves on. */
 export const POOL = 4;
+/** Audit 62: how many places beyond the pool's size are tried for a street that reaches them. */
+const REACH_TRIES = 4;
 
 /** The places a chapter may use, in the order they are offered: by chip in turn, in each those new to you first, then the nearest. */
 function ranked(cands: readonly Candidate[], wants: readonly Want[], from: LngLat, ceilingM: number): Candidate[] {
@@ -84,17 +86,47 @@ export const chapterWindows = (data: AreaData, wants: readonly Want[], ceilingM:
 export const MAX_JOURNEYS = 3;
 
 /** OJ24: a walk among three, else two, of the offered places (a loop when one can be made, else one way), else the first alone. */
+/** The shortest way through the stops from `from` as the crow flies, in any order: no walk by street is shorter. */
+function straightM(from: LngLat, stops: readonly Candidate[]): number {
+  const go = (at: LngLat, left: readonly Candidate[]): number =>
+    left.length ? Math.min(...left.map((c, i) => distanceM(at, c.at) + go(c.at, left.filter((_, k) => k !== i)))) : 0;
+  return go(from, stops);
+}
+
+/** The ways of taking `n` of the items, each in the items' order, the earliest items first. */
+function subsets<T>(items: readonly T[], n: number): T[][] {
+  if (n === 0) return [[]];
+  if (items.length < n) return [];
+  const [head, ...rest] = items;
+  return [...subsets(rest, n - 1).map((s) => [head, ...s]), ...subsets(rest, n)];
+}
+
 export function planChapter(data: AreaData, wants: readonly Want[], ceilingM: number, salt = 0): Chapter | null {
   const all = ranked(data.cands, wants, data.from, ceilingM);
   // OJ45 (audit 11): an area with no other places keeps the ones it has, so "Another like this" never drops a town.
   const at = Math.min(salt, Math.max(0, windowsOf(all.length) - 1));
-  const pool = all.slice(at * POOL, at * POOL + POOL);
-  if (!pool.length) return null;
+  const window = all.slice(at * POOL);
+  if (!window.length) return null;
+  // One cache of legs for the whole chapter: a pair of places is routed once, however many attempts hold it.
+  const legs: LegCache = new Map();
+  // Audit 62: a place no street reaches (inside a mall, on a campus) takes no room in the pool: it would spoil every walk it is
+  // tried in, and a route that fails is the dearest to look for. A set number are looked at, so a town of them costs no more.
+  const pool: Candidate[] = [];
+  for (const c of window.slice(0, POOL + REACH_TRIES)) {
+    if (pool.length >= POOL) break;
+    if (planStops([c], data.from, 'oneway', Infinity, data.leg, legs)) pool.push(c);
+  }
+  // None can be walked to from the town's point: the first is still a stop, with no walk drawn, as before.
+  if (!pool.length) return { area: data.area, outing: { stops: [window[0]], path: [window[0].at], lengthM: 0, loop: false } };
+  // Audit 61: every way of taking three of the pool, then two, in the pool's own order (a loop before one way), as the single
+  // outing's planner does: one far place at the front must not leave a town of bookshops a single stop.
   for (const n of [3, 2]) {
-    if (pool.length < n) continue;
-    const stops = pool.slice(0, n);
-    const outing = planStops(stops, data.from, 'loop', ceilingM, data.leg) ?? planStops(stops, data.from, 'oneway', ceilingM, data.leg);
-    if (outing) return { area: data.area, outing };
+    for (const stops of subsets(pool, n)) {
+      // A walk no shorter than the straight lines between its stops: when even those pass the ceiling, no street is asked.
+      if (straightM(data.from, stops) > ceilingM) continue;
+      const outing = planStops(stops, data.from, 'loop', ceilingM, data.leg, legs) ?? planStops(stops, data.from, 'oneway', ceilingM, data.leg, legs);
+      if (outing) return { area: data.area, outing };
+    }
   }
   return { area: data.area, outing: { stops: [pool[0]], path: [pool[0].at], lengthM: 0, loop: false } };
 }
