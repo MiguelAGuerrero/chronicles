@@ -37,6 +37,7 @@
 //                                                           during a merge, main's side of the documents, and
 //                                                           the branch's record commits to file again after it;
 //                                                           with nothing pending, the commits that hand-edit
+//   npm run records -- help                                 this usage
 //   npm run records -- verify [<base>..<head> | <rev>]      (npm run check:records) each commit of the range
 //                                                           replayed; with one rev, the commits since its merge
 //                                                           base with HEAD and the working tree against HEAD
@@ -1782,7 +1783,19 @@ function verify(argv) {
   return 0;
 }
 
-const USAGE = "usage: npm run records -- <operation> | trailers | redo (scripts/records.js's header lists them), or npm run check:records -- <range>";
+const USAGE = "usage: npm run records -- <operation> | trailers | redo (npm run records -- help lists them), or npm run check:records -- <range>";
+
+/** The comment at the top of this file, its markers dropped: the usage. */
+function help() {
+  const lines = fs.readFileSync(__filename, 'utf8').split('\n');
+  const out = [];
+  for (const l of lines.slice(lines[0].startsWith('#!') ? 1 : 0)) {
+    if (!l.startsWith('//')) break;
+    out.push(l.replace(/^\/\/ ?/, ''));
+  }
+  console.log(out.join('\n'));
+  return 0;
+}
 
 function main(argv) {
   const [group] = argv;
@@ -1790,6 +1803,7 @@ function main(argv) {
     console.error(USAGE);
     return 2;
   }
+  if (group === 'help' || group === '--help' || group === '-h') return help();
   if (group === 'verify') return verify(argv.slice(1));
   if (group === 'trailers') return trailers();
   if (group === 'redo') return redo();

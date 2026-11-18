@@ -1502,3 +1502,30 @@ test('records tags, phone: a [loop] item may move to [phone], the owner\'s devic
   assert.match(problems(withDeferred(DOCS0, phoned), [retag('Cancel pressed', 'loop')]).join('\n'), /\[phone\] to \[loop\]/);
   assert.match(problems(DOCS0, [retag('route preview', 'loop')]).join('\n'), /toward \[owner\], \[arch\] or \[kept\], or from \[loop\] to \[phone\]/, 'the rule says so');
 });
+
+test('records native: item add --after puts the new item after the matched bullet\'s indented notes, never between them', () => {
+  const doc = [
+    '# Native', '', '## A', '',
+    '- [ ] **Do:** one. **Expect:** a.', '  - Since `tend map T16` the end is filled.', '  - Since `tend map T25` a bullseye.',
+    '- [ ] **Do:** two. **Expect:** b.', '  Superseded in its names by the check below:', '  every pin says when.',
+    '- [ ] **Do:** three. **Expect:** c.', '', '  A note after a blank line.',
+    '- [ ] **Do:** four. **Expect:** d.', '',
+  ].join('\n');
+  const add = (after: string) => records.apply('native', 'item add', doc, { section: 'A', body: '- [ ] NEW', after }).text.split('\n');
+  const before = (after: string) => { const t = add(after); return t[t.indexOf('- [ ] NEW') - 1]; };
+  assert.equal(before('**Do:** one.'), '  - Since `tend map T25` a bullseye.', 'after its sub-bullets');
+  assert.equal(before('**Do:** two.'), '  every pin says when.', 'after its indented lines');
+  assert.equal(before('**Do:** three.'), '  A note after a blank line.', 'after a note past a blank line');
+  assert.equal(before('the end is filled'), '  - Since `tend map T25` a bullseye.', 'a match in a note names its bullet');
+  assert.equal(before('**Do:** four.'), '- [ ] **Do:** four. **Expect:** d.');
+});
+
+test('records help: prints the usage at the top of scripts/records.js', () => {
+  const out = spawnSync(process.execPath, [join(ROOT, 'scripts', 'records.js'), 'help'], { encoding: 'utf8' });
+  assert.equal(out.status, 0, out.stderr);
+  for (const op of ['npm run records -- inbox add', 'npm run records -- deferred|native item add <section>', 'npm run records -- trailers', 'npm run records -- redo', 'npm run records -- verify']) assert.ok(out.stdout.includes(op), op);
+  assert.doesNotMatch(out.stdout, /^\/\//m, 'the comment markers are dropped');
+  assert.doesNotMatch(out.stdout, /require\(/, 'the usage alone, no code');
+  const none = spawnSync(process.execPath, [join(ROOT, 'scripts', 'records.js')], { encoding: 'utf8' });
+  assert.match(none.stderr, /npm run records -- help/, 'the usage line names it');
+});
