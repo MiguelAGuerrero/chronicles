@@ -1731,7 +1731,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
                 busyLabel="Stopping…"
                 // The spinner alone while stopping: "Stopping…" does not fit a half on most phones, and stays the spoken
                 // name (fix walk-strip-buttons audits 2, 5).
-                busyQuiet
+                quietWhilePending
                 onHold={stop}
                 onTap={() => setToast('Hold to stop the walk')}
                 busy={stopping}
