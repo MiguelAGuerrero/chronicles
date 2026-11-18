@@ -43,6 +43,7 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - A 200 m chunk end on a bridge within 3 m of a junction below still merges with it, `MERGE_M` (Bridges and tunnels, after the audit)
 - The 12 m heading window, `NAV.headingJoinM`, can pick a parallel street at an alley mouth (first leg only) (Bridges and tunnels, after the audit)
 - Indoor `level` is not read (Bridges and tunnels, after the audit)
+- **`snapWalk` samples every cached piece in the walk's box, not only those near the trace** (performance review, Nov 18): `getSegmentsIn(walkBounds)` then every 5 m of each piece (`snapper.ts`); a long or diagonal walk pulls in tens of thousands of pieces whose cells the trace never touches. Skip a piece whose box meets no trace cell, provided the credits come out the same (else it is a snapping rule: `SNAP_RULES`).
 
 ## Trace, rides and gaps
 
@@ -800,6 +801,7 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - **A name along its whole street** (`symbol-placement: line-center`) was tried and dropped: a strip's pieces don't meet end to end (tile clipping) and a 120-300 m strip is shorter than its name at zoom 15, so none was placed. Names sit at the busiest point, turned along the street.
 - **The `drive` journey's DW14 flake:** Cranston's area card does not open within 15 s on its page about one run in two, on main and on the build before decision 0160 alike (spec record). Not investigated.
 - **From the audit (Nov 13):** iOS suspending a page past the read's 60 s worker timeout makes the page compute the read again on resume (audit 9); the busy names keep clear of controls and the map's edge on the web only, native does not (audit 11); a street's name is placed at its busiest point only, so at street zoom in a downtown dense with "?" pins few names fit and the card's busiest street may have none on the map: choosing a point along the street clear of the pins is a larger change (UX X3, audit 18); the "?" pins are the clutter that remains (audit 19, the owner's next round).
+- **On a phone, deriving streets and analysing an area run as one block on the JS thread** (performance review, Nov 18): native has no worker (`landing/runOffPage.ts`), and `computeReadPaced` yields only between tiles and stages, so `deriveSegments`' junction and pair loops and the sidewalk merge (`streets.ts`), and `analyzeArea`, each run whole: about 1.7 s of deriving at 4x CPU on a dense read (landing.md). Yield every ~16 ms inside those loops with the same output (no `STREET_CODE` bump); measure on a device. A slice, not a fix.
 
 ## Note types (NY1-NY17, decision 0161)
 
