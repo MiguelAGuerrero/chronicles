@@ -506,6 +506,7 @@ const RENAMED = {
 };
 
 const IN_PROGRESS = {
+  'sights-and-local-life': { branch: 'claude/modest-hopper-df0ev8', since: '2026-11-18' },
 };
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));

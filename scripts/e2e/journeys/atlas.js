@@ -67,6 +67,18 @@ async function checks(h) {
         check(/Sights: History: (some|plenty|lots)/.test(label) && (!strip.life || /Local life: /.test(label)),
           `SG5: the tile's spoken line names its groups (${label})`);
         {
+          // SG14 (decision 0199): one hairline between the groups, only with both, between the last Sight and the first Local life kind.
+          const line = await fox.evaluate((el) => {
+            const d = el.querySelectorAll('[data-testid=atlas-strip-line]');
+            const sights = el.querySelector('[data-testid=atlas-strip-sights]')?.getBoundingClientRect();
+            const life = el.querySelector('[data-testid=atlas-strip-life]')?.getBoundingClientRect();
+            const r = d[0]?.getBoundingClientRect();
+            return { n: d.length, both: !!sights && !!life, w: r ? r.width : 0, between: !!r && !!sights && !!life && r.left >= sights.right && r.right <= life.left };
+          });
+          check.todo(line.both ? line.n === 1 && line.w <= 1.5 && line.w > 0 && line.between : line.n === 0,
+            `SG14: a hairline between the tile's groups, only with both (${JSON.stringify(line)})`);
+        }
+        {
           const vp = page.viewportSize();
           await page.setViewportSize({ width: 320, height: vp.height });
           await page.waitForTimeout(600);

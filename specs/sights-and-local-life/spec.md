@@ -24,7 +24,7 @@ Touches: Always "Guidance is structural… never whether it is good"; Always "Co
 Verdict: aligned if reshaped
 Shape: the card's kinds under two quiet headings, Sights then Local life, each in a fixed order; tiles keep one row, the groups apart; dots and step words as today; Local life never yields a "?", a find, a name or a ranking, and "Local life" means what is there, never how busy it is.
 Precedent: Atlas Obscura lists only curiosities, never businesses (a Sights-only list); Google Maps' nearby search splits "Things to do" from Restaurants, Coffee and Shopping chips (a type split); Walk Score groups amenities by type with a score (a counter-example). All from memory, unverified.
-Criteria: SG1-SG13.
+Criteria: SG1-SG14.
 Open: none for phase 1 (phase 2's two are in decision 0197).
 ```
 
@@ -38,6 +38,7 @@ Open: none for phase 1 (phase 2's two are in decision 0197).
 - **Culture stays a Sight in phase 1** (the plan's reading of 0197, Nov 18): it still counts only places that can be a "?", so filing it under Local life before phase 2 would be untrue.
 - **The tile sets the groups apart by space alone, no word; a tile's line leads with Sights; the Sights bars follow the
   switches** (Nov 18, the owner's answers to the plan's three questions, decision 0198).
+- **A hairline between the tile's groups** (Nov 18, after the cold find: "Add the line.", decision 0199).
 - **Phase 2 waits** on chronicles-data's National Park Service sites (Nov 18, decision 0197).
 
 ## How adjacent apps do it
@@ -111,6 +112,12 @@ Open: none for phase 1 (phase 2's two are in decision 0197).
     ("Plenty of history and green space"), and the strongest Local life kinds only when there is no Sight ("Lots of
     food and shops"). "A little of everything", "Not much on the map here" and a thin area's silence are as before.
 
+### The owner's answer to the cold find (decision 0199)
+
+14. **SG14 · A line between a tile's groups.** Where a tile has kinds of both groups, a 1 px vertical line in the
+    hairline ink stands in the space between the last Sight and the first Local life kind; with one group there is no
+    line. It is no wider than the space it stands in, so SG2 holds at 320 px, and it says nothing to a screen reader.
+
 ## Hosts (every place the bars are drawn or said, from the code)
 
 - `KindRow`, in `AtlasCard` only (the area's card, phone drawer and wide side panel): SG1, SG3, SG4, SG6.
@@ -157,8 +164,7 @@ Pictures `sg-card-kinds`, `sg-card-life`, `sg-tile-fox-320`, `11c-atlas-card` (3
 - C task 1, which kinds are findables: found, sure.
 - C task 3, what Food's dots promise: found after one tap on "How the marks work", sure.
 - C task 2 and U5, from the tile alone, things to find or only places to go into: found late, guessing; the 16 px
-  between the groups reads as faint, or as a missing kind. Space alone is the owner's call (0198); put back to the owner
-  with this evidence (STATUS, "From /slice").
+  between the groups reads as faint, or as a missing kind. Put back to the owner, who chose a line (0199, SG14).
 - C, no line under "Local life": reject, the owner took the recommendation of one line under Sights only (plan review U2).
 - U1 no picture showed Local life: accept, `sights-and-local-life ui 3` (the e2e scrolls its last row into view first).
 - U2 a kind's dots move between rows: defer, before this slice (DEFERRED).

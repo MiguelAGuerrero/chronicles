@@ -157,3 +157,10 @@ test('sights-and-local-life ui 1: the explanation names the setting in quotes, e
 test('sights-and-local-life ui 2: the line under Sights is a plain sentence, not a fragment leaning on the heading', () => {
   assert.equal(A.SIGHTS_LINE, 'Places that can turn up as a “?” on the map.');
 });
+
+test('SG14: the line between a tile\'s groups stands inside the space between them', { todo: 'test first' }, () => {
+  const s = A.STRIP as { chip: number; gap: number; groupGap: number; line: number };
+  assert.equal(s.line, 1, 'a hairline');
+  assert.ok(s.line < s.groupGap, 'inside the space');
+  assert.ok(8 * s.chip + 6 * s.gap + s.groupGap <= 222, 'SG2 still holds at 320 px');
+});
