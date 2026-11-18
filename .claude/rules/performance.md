@@ -60,7 +60,9 @@ is already a recorded trade-off is reopened with a number, not rediscovered.
 - Long lists that grow with the library are virtualized (`FlatList` with `keyExtractor` and
   `getItemLayout`, as `gallery/MediaScreen.tsx` does), not a `ScrollView` over `map()`.
 - A media player is created when it is played, not for every row that could be (`useAudioPlayer` per row
-  holds a native player each). Timers and subscriptions on a tab stop while it is unfocused.
+  holds a native player each). Timers and subscriptions on a tab stop while it is unfocused: an effect on
+  `isFocused` that returns before its `setInterval` (Memories' clock rendered the whole journal twice a minute
+  under the walk; `journal/hiddenTick.test.ts`).
 
 ## Async loads
 
