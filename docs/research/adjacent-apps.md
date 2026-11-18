@@ -199,6 +199,21 @@ source.
   (editorial guidance, and its terms forbid reuse of its data). Source: from memory, unverified; the terms from the
   research pass of Nov 17 (research_notes, state_city_nonprofit). **Unverified**.
 
+### Places that share a spot on the map (Earn)
+
+- **Leaflet.markercluster** (web map library): markers that stay together at the bottom zoom are spread out when
+  their cluster is clicked (`spiderfyOnMaxZoom`, on by default), each on a drawn leg back to the shared point
+  (`spiderLegPolylineOptions`: weight 1.5, colour #222, opacity 0.5); otherwise a cluster "shows the marker count in a
+  circle". The legs are the model for `fix mark-overlap`'s row (drawn at once, not on a click, since two or three marks
+  need no tap to part); the count is a counter-example (nothing is a score). Source:
+  https://github.com/Leaflet/Leaflet.markercluster , read Nov 18, 2026. **Verified**.
+- **Google Maps** (Android SDK marker clustering): nearby markers merge into one bubble with their number. A
+  counter-example (a count). Source: from memory, unverified (developers.google.com unreachable from the session).
+  **Unverified**.
+- **Apple MapKit** (`displayPriority`, `collisionMode`): an annotation of lower priority that collides with another is
+  hidden until the map zooms in. Not followed: a hidden mark is a place lost from the walk. Source: from memory,
+  unverified (the page returned no body). **Unverified**.
+
 ### Where you have been: visits and history (Return, Earn)
 
 - **Google Maps Timeline** (Android): kept on the device ("saving each of your devices' precise locations to that
