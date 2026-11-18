@@ -144,3 +144,16 @@ test('SG2: eight kinds in two groups fit a selected tile on a 320 px phone', () 
   assert.ok(width <= 222, `${width} px`);
   assert.ok(s.groupGap >= 3 * s.gap, 'the space between the groups reads as wider than between kinds');
 });
+
+test('sights-and-local-life ui 1: the explanation names the setting in quotes, each paragraph short', () => {
+  for (const extent of [undefined, 'outline', 'shape'] as const) {
+    const lines = marksExplained(extent ? ({ extent } as never) : null);
+    assert.match(lines.join(' '), /“What I’m into”/, 'the setting\'s name is marked');
+    // About three lines at 390 px (the card's 14 px text runs some 45 characters a line), the area's own last line apart.
+    for (const l of lines.slice(0, -1)) assert.ok(l.length <= 150, `${l.length}: ${l}`);
+  }
+});
+
+test('sights-and-local-life ui 2: the line under Sights is a plain sentence, not a fragment leaning on the heading', () => {
+  assert.equal(A.SIGHTS_LINE, 'Places that can turn up as a “?” on the map.');
+});

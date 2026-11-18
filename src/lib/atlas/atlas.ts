@@ -105,7 +105,7 @@ const SIGHT_KINDS = KIND_GROUPS[0].kinds;
 const LIFE_KINDS = KIND_GROUPS[1].kinds;
 
 /** SG1: the one muted line under "Sights" on the card, tying the heading to the map's "?". */
-export const SIGHTS_LINE = 'The places that can turn up as a “?” on the map.';
+export const SIGHTS_LINE = 'Places that can turn up as a “?” on the map.';
 
 /** SG2: a tile's strip in px: a kind's slot, the space between kinds of a group and between the groups (216 of 222 px at 320). */
 export const STRIP = { chip: 22, gap: 4, groupGap: 16 } as const;
@@ -741,7 +741,8 @@ export function areaPins(listed: Listed[], selected: string | null, inTown: bool
  */
 export const MARKS_EXPLAINED: readonly string[] = [
   'Marks say which kinds of places are around an area and how much of each, never how good it is or how many people go there.',
-  'Sights (history, art, culture, green and views) count only places worth finding, of the kinds you have on in What I’m into: the ones that can turn up as a “?”. One place can count toward two, as some museums count toward history and culture.',
+  'Sights (history, art, culture, green and views) count only places worth finding, the ones that can turn up as a “?”.',
+  'They count only the kinds you have on in “What I’m into”. Some museums count toward two kinds, history and culture.',
   'Local life (food, shops and nightlife) counts every place of its kind, and never turns up as a “?”.',
   'One mark: a little of the kind. Two: a handful. Three: a street’s worth.',
   'Every area is judged the same way, within about a ten-minute walk of its point, so the same marks mean the same anywhere.',

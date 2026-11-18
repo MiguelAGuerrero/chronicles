@@ -149,6 +149,35 @@ Steward (S), auditor (A) and UX reviewer (U) read the spec and plan; no screens 
 - A8 a digit check on the whole card fails on "12 min walk": accept, SG11 scoped to the section, strip and panel.
 - A10 SG4's test area does not make a group all none: accept, Green Row.
 
+## UI review and cold find (Nov 18, built screens)
+
+Pictures `sg-card-kinds`, `sg-card-life`, `sg-tile-fox-320`, `11c-atlas-card` (390 x 844, the tile at 320). The cold find
+(C, pictures and the owner's tasks only) and the review (U):
+
+- C task 1, which kinds are findables: found, sure.
+- C task 3, what Food's dots promise: found after one tap on "How the marks work", sure.
+- C task 2 and U5, from the tile alone, things to find or only places to go into: found late, guessing; the 16 px
+  between the groups reads as faint, or as a missing kind. Space alone is the owner's call (0198); put back to the owner
+  with this evidence (STATUS, "From /slice").
+- C, no line under "Local life": reject, the owner took the recommendation of one line under Sights only (plan review U2).
+- U1 no picture showed Local life: accept, `sights-and-local-life ui 3` (the e2e scrolls its last row into view first).
+- U2 a kind's dots move between rows: defer, before this slice (DEFERRED).
+- U3 the explanation long, the setting's name unmarked: accept, `sights-and-local-life ui 1` (quoted, no paragraph over
+  about three lines).
+- U4 the explanation's open state unseen: defer, before this slice (DEFERRED).
+- U6 "The places…" a fragment: accept, `sights-and-local-life ui 2`.
+- U7 Suggest a walk's spoken name: reject, it already says its kind ("Suggest a walk through history").
+
 ## Record
 
-Not built yet.
+Built Nov 18 on `claude/modest-hopper-df0ev8`, test-first by history (13 of 13, `check:test-first`). SG1-SG13 pass:
+unit tests in `src/lib/__tests__/explore/sightsLife.test.ts` (with AT11, AT16, TP10 and the ATLAS_CODE pins updated
+for a15) and the `atlas` and `grading` journeys. The journeys covering the changed files ran once each: atlas, grading,
+marks, carousel, planner, complexes, openmaps, outlines and walkability passed; `drive` fails on `main` the same way
+(DEFERRED, with `e2e:baseline` calling that a pass). The atlas journey ran five times: the first run's SG2 check measured
+one group, not the strip (a test bug, fixed); then for the review's pictures twice, after its fixes, and after one more wording change (presence-and-kinds audit 13 kept "count toward two"). SG2 at 320 px is
+held by `STRIP`'s widths (unit) and the journey at 320 on a tile with five kinds: no harness area lights all eight (the
+plan review's A2 fixture was not built). SG12 is a unit test over `presenceTally`/`stepsFrom`; the screens read it
+through `withShownSteps`, as the small subsets' switches already do. Native unverified (one check in
+`docs/NATIVE_UNVERIFIED.md`). UI review and cold find: 8 findings,
+3 fixed (`sights-and-local-life ui 1-3`), 2 deferred, 2 rejected, 1 put to the owner.

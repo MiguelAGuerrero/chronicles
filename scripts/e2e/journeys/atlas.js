@@ -290,8 +290,14 @@ async function checks(h) {
         await page.locator('[data-testid=atlas-group-sights]').scrollIntoViewIfNeeded();
         await page.waitForTimeout(300);
         await shot(page, 'sg-card-kinds');
-        await page.locator('[data-testid=atlas-group-life]').scrollIntoViewIfNeeded();
-        await page.waitForTimeout(300);
+        // sights-and-local-life ui 3: Local life's rows in the picture, not under the card's footer.
+        await page.locator('[data-testid=atlas-kind-nightlife]').evaluate((el) => el.scrollIntoView({ block: 'center' }));
+        await page.waitForTimeout(400);
+        {
+          const row = await page.locator('[data-testid=atlas-kind-nightlife]').boundingBox();
+          const foot = await page.locator('[data-testid=atlas-card]').evaluate((el) => el.getBoundingClientRect().bottom - 80);
+          check(!!row && row.y + row.height <= foot, `sights-and-local-life ui 3: Local life's last row is in view for its picture (${row && Math.round(row.y + row.height)} of ${Math.round(foot)})`);
+        }
         await shot(page, 'sg-card-life');
         await page.click('[data-testid=atlas-how]');
         await page.locator('[data-testid=atlas-how]').scrollIntoViewIfNeeded();
