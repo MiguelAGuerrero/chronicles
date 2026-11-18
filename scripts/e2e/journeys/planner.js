@@ -92,10 +92,10 @@ async function run(h) {
   check(!/Memorial/.test(await pg.locator('[data-testid=planner]').innerText()), 'WP28: no place is named');
   const text = await pg.locator('[data-testid=planner]').innerText();
   check(!BANNED.test(text), 'WP7: no time, pace, comparison or superlative anywhere on the page');
-  check(!/\b(Plenty|Some|Little)[^.]*\d/.test(text.replace(/About [\d.]+ (km|mi|m|ft)/g, '')), 'WP14: no digit in what a row passes');
+  check(!/\b(Plenty|Some|Little)[^.]*\d/.test(text.replace(/About [\d.]+[ \u00a0](km|mi|m|ft)/g, '')), 'WP14: no digit in what a row passes');
   const first = pg.locator('[data-testid=plan-row-0]');
   const dist = await pg.locator('[data-testid=plan-row-distance-0]').innerText().catch(() => '');
-  check(/^About \d+(\.\d)? (km|mi|m|ft)/.test(dist), `WP14: a row gives its own distance (${dist})`);
+  check(/^About \d+(\.\d)?[ \u00a0](km|mi|m|ft)/.test(dist), `WP14: a row gives its own distance (${dist})`);
   check((await pg.locator('[data-testid=plan-strip-0]').count()) === 1 && /^Green along this route/.test((await pg.locator('[data-testid=plan-strip-0]').getAttribute('aria-label')) ?? ''), 'WP15: each row has a strip with a text equivalent');
   check(/^(Easy on foot|Part of it|It is not known)/.test(await pg.locator('[data-testid=plan-reach-0]').innerText().catch(() => '')), 'KW10, WP20: each row says whether it can be walked the whole way');
   await shot(pg, 'planner-open');

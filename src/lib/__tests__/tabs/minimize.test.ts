@@ -15,28 +15,28 @@ const cap = (id: string, t: number, extra: Partial<Faced> = {}): Faced => facedO
 
 test('NV9: the recording bar shows the time walked and the distance', () => {
   const r = recordingLine({ startedAt: 0, pauses: [], now: 125_000, distanceM: 340 });
-  assert.equal(r.text, '2:05 · 340 m');
+  assert.equal(r.text, '2:05 · 340\u00a0m');
   assert.equal(r.paused, false);
-  assert.match(r.label, /340 m walked in 2 min/);
+  assert.match(r.label, /340[ \u00a0]m walked in 2 min/);
   assert.match(r.label, /return to the walk/i);
 });
 
 test('NV9: paused, it says Paused, and paused time is not counted', () => {
   const r = recordingLine({ startedAt: 0, pauses: [{ started_at: 60_000, ended_at: null }], now: 125_000, distanceM: 1250 });
   // The numbers first since tend tabs audit 17: NV9's "elapsed time, distance, and Paused when paused".
-  assert.equal(r.text, '1:00 · 1.3 km · Paused');
+  assert.equal(r.text, '1:00 · 1.3\u00a0km · Paused');
   assert.equal(r.paused, true);
   assert.match(r.label, /^Walk paused/);
 });
 
 test('NV9: an ended pause is left out of the time, and the bar is running again', () => {
   const r = recordingLine({ startedAt: 0, pauses: [{ started_at: 10_000, ended_at: 40_000 }], now: 100_000, distanceM: 0 });
-  assert.equal(r.text, '1:10 · 0 m');
+  assert.equal(r.text, '1:10 · 0\u00a0m');
   assert.equal(r.paused, false);
 });
 
 test('NV9: before the walk is known, the bar shows nothing walked', () => {
-  assert.equal(recordingLine({ startedAt: null, pauses: [], now: 5000, distanceM: 0 }).text, '0:00 · 0 m');
+  assert.equal(recordingLine({ startedAt: null, pauses: [], now: 5000, distanceM: 0 }).text, '0:00 · 0\u00a0m');
 });
 
 test('NV9: a capture from the bar reaches the walk screen once, whichever comes first, load or news (no loss, no double)', () => {
@@ -96,9 +96,9 @@ test('NV8: whoever keeps the open walk hears it start, pause, resume and stop', 
 
 test('tend tabs audit 17: paused, the line puts its time and distance first, so a narrow bar cuts the word, never the numbers', () => {
   const r = recordingLine({ startedAt: 0, pauses: [{ started_at: 1_000, ended_at: null }], now: 9_000, distanceM: 18 });
-  assert.match(r.text, /^\d+:\d\d · 18 m · Paused$/);
+  assert.match(r.text, /^\d+:\d\d · 18[ \u00a0]m · Paused$/);
   // The spoken label is unchanged: the state first.
-  assert.match(r.label, /^Walk paused, 18 m walked in /);
+  assert.match(r.label, /^Walk paused, 18[ \u00a0]m walked in /);
   // Recording, the line is the numbers alone, as before.
   assert.doesNotMatch(recordingLine({ startedAt: 0, pauses: [], now: 9_000, distanceM: 18 }).text, /Paused/);
 });

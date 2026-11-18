@@ -1,7 +1,7 @@
 /// <reference types="node" />
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { formatDistance } from '../../format';
+import { formatDistance, formatDistanceNear, formatRange } from '../../format';
 import { metersPerPixel } from '../../pins';
 import { scaleBar } from '../../scaleBar';
 import { getUnits, onUnits, setUnits, unitsForLocale } from '../../units';
@@ -45,30 +45,30 @@ test('QL13: the store reads synchronously and tells its listeners of a change', 
 });
 
 test('QL14: imperial says whole feet under 0.1 mi, then miles with one decimal', () => {
-  assert.equal(formatDistance(0, 'mi'), '0 ft');
-  assert.equal(formatDistance(137, 'mi'), '449 ft');
-  assert.equal(formatDistance(527 * FT, 'mi'), '527 ft');
+  assert.equal(formatDistance(0, 'mi'), '0\u00a0ft');
+  assert.equal(formatDistance(137, 'mi'), '449\u00a0ft');
+  assert.equal(formatDistance(527 * FT, 'mi'), '527\u00a0ft');
   // 450 m is 1,476 ft: past a tenth of a mile, so it is said in miles.
-  assert.equal(formatDistance(450, 'mi'), '0.3 mi');
-  assert.equal(formatDistance(0.1 * MI, 'mi'), '0.1 mi');
-  assert.equal(formatDistance(160.934, 'mi'), '0.1 mi');
-  assert.equal(formatDistance(1931, 'mi'), '1.2 mi');
-  assert.equal(formatDistance(16093, 'mi'), '10.0 mi');
+  assert.equal(formatDistance(450, 'mi'), '0.3\u00a0mi');
+  assert.equal(formatDistance(0.1 * MI, 'mi'), '0.1\u00a0mi');
+  assert.equal(formatDistance(160.934, 'mi'), '0.1\u00a0mi');
+  assert.equal(formatDistance(1931, 'mi'), '1.2\u00a0mi');
+  assert.equal(formatDistance(16093, 'mi'), '10.0\u00a0mi');
 });
 
 test('QL14: metric is unchanged', () => {
-  assert.equal(formatDistance(450, 'km'), '450 m');
-  assert.equal(formatDistance(1200, 'km'), '1.2 km');
-  assert.equal(formatDistance(0, 'km'), '0 m');
+  assert.equal(formatDistance(450, 'km'), '450\u00a0m');
+  assert.equal(formatDistance(1200, 'km'), '1.2\u00a0km');
+  assert.equal(formatDistance(0, 'km'), '0\u00a0m');
 });
 
 test('QL14: without the parameter, formatDistance reads the store', () => {
   const was = getUnits();
   setUnits('mi');
-  assert.equal(formatDistance(450), '0.3 mi');
-  assert.equal(formatDistance(137), '449 ft');
+  assert.equal(formatDistance(450), '0.3\u00a0mi');
+  assert.equal(formatDistance(137), '449\u00a0ft');
   setUnits('km');
-  assert.equal(formatDistance(450), '450 m');
+  assert.equal(formatDistance(450), '450\u00a0m');
   setUnits(was);
 });
 
@@ -155,7 +155,21 @@ test('QL15: metric is unchanged, with the units given or from the store', () => 
 
 // tend map 7: metres were compared with a kilometre before rounding, so 999.6 m read "1000 m"; the miles round first.
 test('tend map 7: a distance that rounds to a kilometre reads in kilometres', () => {
-  assert.equal(formatDistance(999.6, 'km'), '1.0 km');
-  assert.equal(formatDistance(999.4, 'km'), '999 m');
-  assert.equal(formatDistance(1000, 'km'), '1.0 km');
+  assert.equal(formatDistance(999.6, 'km'), '1.0\u00a0km');
+  assert.equal(formatDistance(999.4, 'km'), '999\u00a0m');
+  assert.equal(formatDistance(1000, 'km'), '1.0\u00a0km');
+});
+
+// tend map 21: the number and its unit were joined by a plain space, so a line could break between them ("175" at one
+// line's end, "m" on the next: the place sheet at 390 px). Every distance the formatters say holds them together.
+test('tend map 21: a distance keeps its number and unit together with a no-break space, and says nothing else new', () => {
+  const said = [
+    [formatDistance(175, 'km'), '175', 'm'], [formatDistance(1200, 'km'), '1.2', 'km'],
+    [formatDistance(137, 'mi'), '449', 'ft'], [formatDistance(1931, 'mi'), '1.2', 'mi'],
+    [formatDistanceNear(321, 'km'), '320', 'm'], [formatRange(100, 'km'), '100', 'm'], [formatRange(100, 'mi'), '328', 'ft'],
+  ];
+  for (const [text, figure, unit] of said) {
+    assert.equal(text, `${figure}\u00a0${unit}`, `"${text}" binds ${figure} to ${unit}`);
+    assert.ok(!/ /.test(text), `no plain space left to break at in "${text}"`);
+  }
 });

@@ -366,6 +366,10 @@ Re-export without the variable afterwards for the plain e2e.
   at the bottom) frames the fix (top - bottom) / 2 px below it. Measure a
   framing in pixels against the padding (`qol QL10`), not in metres from
   `data-center`.
+- A distance the app says holds a no-break space between its number and its
+  unit (`formatDistance`, `formatRange`; tend map 21, Nov 18), so `/\d+ m/`
+  never matches it. A check on one matches `[ \u00a0]`, not `\s` (which
+  takes a line break too); an exact string says the `\u00a0` outright.
 ## 4. The long walk: `scripts/perf-walk.js`
 
 ```bash
