@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
-import { archivePlace } from '../../discovery/archivePois';
+import { archivePlace, placesFromArchive } from '../../discovery/archivePois';
 import { barsOf } from '../../discovery/bars';
 import { kindRows, refineRead } from '../../discovery/refinements';
 import type { Kind, Place } from '../../discovery/types';
@@ -26,7 +26,10 @@ test('MA1: an archive museum no listing names shows within range and a capture b
   const p = one('museum_by_type', 'Mid-Atlantic Air Museum', at(40));
   assert.ok(p, 'the class is known');
   const it = item(p);
-  assert.equal(visibleMarks({ items: [it], here: O, rangeM: 100, found: new Set(), hidden: parseHidden(null, null), revealed: new Set() }).length, 1);
+  const shown = (here: LngLat) => visibleMarks({ items: [it], here, rangeM: 100, found: new Set(), hidden: parseHidden(null, null), revealed: new Set() });
+  // more-attractions audit 7: "named within 60 m": a "?" from farther, its name at 60 m and closer.
+  assert.deepEqual(shown(at(-50)).map((m) => m.state), ['unknown'], 'a "?" at 90 m');
+  assert.deepEqual(shown(at(0)).map((m) => m.state), ['named'], 'named at 40 m');
   assert.equal(findFor(at(30), [it], new Set())?.name, 'Mid-Atlantic Air Museum');
 });
 
@@ -47,11 +50,16 @@ test('MA3: a nature reserve is under Parks and gardens, in Nature reserves, on b
   assert.ok(!parseHidden(null, null).has(K('nature_reserves')));
 });
 
-test('MA4: amusement and water parks are under Zoos and amusement parks, kept off for a reader who had zoos off', () => {
-  assert.equal(one('amusement_park', 'Dorney Park')?.kind, 'attractions');
-  assert.equal(label('attractions'), 'Zoos and amusement parks');
-  const all = KINDS.map((k) => k.id);
-  assert.ok(parseHidden(JSON.stringify(['attractions']), JSON.stringify(all)).has(K('attractions')));
+test('MA4: amusement and water parks are under "Amusement and theme parks", in Zoos and aquariums, kept off for a reader who had zoos off', () => {
+  // more-attractions audit 1 (the owner, Nov 18, "Own row, on"): their own row under the zoos kind.
+  assert.equal(one('amusement_park', 'Dorney Park')?.kind, 'amusement_parks');
+  assert.equal(label('attractions'), 'Zoos and aquariums');
+  assert.equal(label('amusement_parks'), 'Amusement and theme parks');
+  // more-attractions audit 7: a reader whose choice was saved before the row existed, with zoos off: the row starts off
+  // (the raw choice does not hold it, so only parseHidden can).
+  const before = JSON.stringify(KINDS.map((k) => k.id).filter((k) => k !== 'amusement_parks'));
+  assert.ok(parseHidden(JSON.stringify(['attractions']), before).has(K('amusement_parks')));
+  assert.ok(!parseHidden(JSON.stringify([]), before).has(K('amusement_parks')));
 });
 
 test('MA5: a pier or boardwalk is under Buildings and structures, in Piers and boardwalks, on by default', () => {
@@ -63,10 +71,16 @@ test('MA5: a pier or boardwalk is under Buildings and structures, in Piers and b
 });
 
 test('MA6: suspension bridges are Bridges, national monuments are Monuments, every new garden type a Garden', () => {
-  // The data side classes them (AT3, AT5): the app reads the classes it gets.
-  assert.equal(one('bridge', 'Roebling Bridge')?.kind, 'bridges');
-  assert.equal(one('monument', 'Statue of Liberty National Monument')?.kind, 'monuments');
-  assert.equal(one('garden', 'Peace Garden')?.kind, 'gardens');
+  // The data side classes them (AT3, AT5): the app reads the classes it gets, as an archive tile carries them.
+  const feature = (name: string, cls: string) => placesFromArchive([{ geometry: { type: 'Point', coordinates: O }, properties: { name, class: cls, src: 'wd', id: 'p_1' } }] as never, V);
+  const of = (name: string, cls: string) => refineRead(feature(name, cls), { archive: [] })[0];
+  assert.equal(of('Roebling Suspension Bridge', 'bridge')?.kind, 'bridges');
+  assert.equal(of('Statue of Liberty National Monument', 'monument')?.kind, 'monuments');
+  assert.equal(of('Morris Arboretum', 'garden')?.kind, 'gardens');
+  // more-attractions audit 7: v6 brings them under those classes and no other: a contract that gave suspension bridges,
+  // national monuments or a garden type a class of its own would fail here before the app left them out.
+  const sources = JSON.parse(readFileSync(join(__dirname, 'contract', 'sources.json'), 'utf8')) as { classes: string[] };
+  assert.deepEqual(sources.classes.filter((c) => /bridge|monument|garden|arboretum/.test(c)).sort(), ['bridge', 'community_garden', 'garden', 'monument']);
 });
 
 test('MA7: the app pins chronicles-data\'s contract v6, its class names exactly the archive table', () => {
@@ -76,7 +90,7 @@ test('MA7: the app pins chronicles-data\'s contract v6, its class names exactly 
 });
 
 test('MA8: no new label names significance or carries a number', () => {
-  for (const id of ['nature_reserves', 'piers', 'attractions']) {
+  for (const id of ['nature_reserves', 'piers', 'attractions', 'amusement_parks']) {
     const l = label(id) ?? '';
     assert.ok(l.length > 0, id);
     assert.doesNotMatch(l, /notable|remarkable|champion|landmark|listed|wonder|famous|\d/i, id);
