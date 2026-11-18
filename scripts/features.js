@@ -177,12 +177,21 @@ const FEATURES = [
     specs: ['walk-planner', 'presence-and-kinds'],
   },
   {
+    name: 'roads',
+    about: 'the road engine: main roads from the map\'s z12 tiles, a directed graph, one way between towns with a cost by kind of road; drawn on the outing page with distances by road',
+    rule: 'roads',
+    source: ['src/lib/roads/**'],
+    // The road on the page is checked by the outing feature's `journey` (a journey belongs to one feature, TG1).
+    journeys: [],
+    specs: ['road-engine'],
+  },
+  {
     name: 'outing',
     about: 'plan an outing: describe what you want to see from a vocabulary, get one proposed circuit over candidates with facets; stops named on a tap or on arrival',
     rule: 'outing',
     source: ['src/lib/outing/**', 'src/components/outing/**'],
-    journeys: ['outing'],
-    specs: ['quick-circuit'],
+    journeys: ['outing', 'journey', 'startfar'],
+    specs: ['quick-circuit', 'outing-journey', 'drive-in-the-outing'],
   },
   {
     name: 'layers',
@@ -383,6 +392,9 @@ const RETIRED = {
   // The soft cap of about 60 s and its floors went when each moment was given its own time (the owner, Nov 18, decision 0203):
   // specs/replay-pace RY10 holds that nothing shrinks to fit a total.
   'replay-rhythm': ['RR5'],
+  // The Loop / One way switch went with the page rebuilt as a map (outing-journey, decision 0210, a default taken on the owner's "proceed
+  // with reasonable defaults", theirs to overrule): a journey is a loop when one can be made, else one way, and says which (OJ7).
+  'quick-circuit': ['QC3'],
   // Go here and its sheet were replaced by two outcome-named controls, Walk and "Open in Maps" (the owner, Nov 17, decision 0195):
   // specs/open-in-maps-here (OM1-OM14) carries what stands of them.
   'explore-go-here': Array.from({ length: 15 }, (_, i) => `GH${i + 1}`),
@@ -447,6 +459,26 @@ const RETIRED = {
  * make (the web build can't reach it), `deferred: <why>` for the owner's call to wait. Keyed by spec.
  */
 const UNTESTED = {
+  // Outing journey (decisions 0210-0210): criteria with no test of their own, each with where it is held instead. Recorded as the slice
+  // leaves IN_PROGRESS to ship (the owner's /deploy, Nov 18).
+  'outing-journey': {
+    D6: 'deferred: a decision, not a criterion: the capture stack is unchanged while driving, held by OJ33, OJ39 and RE27\'s checks in the journey `journey`',
+    OJ4: 'deferred: held in parts by other ids: the card\'s words by OJ21 and RE17, the map\'s line by RE1 and RE16 (the journey `journey`); the finding criterion is the ux-reviewer\'s cold find (Nov 18, in specs/road-engine\'s Audit)',
+    OJ6: 'deferred: by construction: the page hosts Explore\'s own search component (GZ9-GZ13 hold that nothing of a query is stored or sent); the journeys `outing` and `journey` pick a destination through it',
+    OJ8: 'deferred: not built: the towns near you as shortcuts (docs/DEFERRED.md, outing journey step 1)',
+    OJ10: 'deferred: no journey opens the page with no position; the line is the one QC30 tests in words, and the hook proposes nothing without an origin',
+    OJ16: 'deferred: held by QC41\'s tests (the switch, off by default, kept) and the journey `outing`, which toggles `outing-chains`',
+    OJ32: 'deferred: unchanged from QC19 and QC26, whose tests hold the chip; no journey of this slice walks to a stop',
+    OJ51: 'deferred: superseded in part by RE1 (the road in place of the straight line); the straight line that remains is checked by the journey `journey` as the count of points handed to the map',
+  },
+  // The road engine (decisions 0215-0214).
+  'road-engine': {
+    D6: 'deferred: a decision; held by RE26\'s checks (the one-time statement at the tap, and with the journey\'s towns on the page)',
+    RE14: 'deferred: not built: towns are still chosen by the straight line (docs/DEFERRED.md, the road engine step 2)',
+    RE24: 'deferred: the end at the town is the plan\'s own rule (OJ49\'s tests: within reach the town is at hand) dropping the `driving` flag; no journey drives nine kilometres to a town',
+    RE31: 'deferred: by construction: the bar exists only inside an open session\'s screen, and Drive there starts none',
+    RE33: 'device: speech and guiding with the phone locked or the app behind another; not met today (docs/DEFERRED.md, the road engine step 4)',
+  },
   // Pictures through expo-image: the cache and the recycling are a phone's to see under memory pressure.
   'expo-image': { EI6: 'device: memory and recycling over a few hundred photos on a phone; the web build has no native image cache' },
   // Plan an outing (decision 0196): criteria with no test of their own, each with where it is held instead.
@@ -522,10 +554,11 @@ const RENAMED = {
 };
 
 const IN_PROGRESS = {
-  // Where I've been (WB1-WB17): the owner's request Nov 18 (decision 0208 at the first code commit); the plan waits on the owner's review.
+  // Where I've been (WB1-WB17): the owner's request Nov 18 (decision 0220 at the first code commit); the plan waits on the owner's review.
   'where-ive-been': { branch: 'claude/modest-johnson-pctfuj', since: '2026-11-18' },
   // Replay ceremony (RC1-RC48): the owner's go-ahead Nov 18 (decision 0206); built on the branch, shown at the preview address first.
   'replay-ceremony': { branch: 'claude/funny-bohr-ztvwgv', since: '2026-11-18' },
+  'drive-in-the-outing': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-18' },
 };
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));

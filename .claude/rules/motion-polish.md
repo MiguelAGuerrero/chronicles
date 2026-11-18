@@ -31,6 +31,8 @@ Animation and haptics: the motion tokens, reduce motion, presses, the sheet spri
   - `HomeSheet` springs its height in JavaScript (height can't use the native
     driver). It reports every move's end, finished or cut short, and a grab
     mid-move holds where the sheet is.
+  - The sheet's first known height is set, not sprung: its mount's move and the one Chronicle's first read asks
+    for (the owner's answer, decision 0219; `tend tabs T38`); the spring holds for every move after it.
   - `LiftIn` (and `Banner`, built on it) fades and rises in, and goes at once
     when removed.
 - **The walks list zooms out** only when the view doesn't already hold every

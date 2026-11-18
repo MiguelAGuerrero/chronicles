@@ -118,7 +118,7 @@ Write `specs/<slug>/plan.md`:
 - what is deferred, and why;
 - native paths that will not run on a device;
 - **cost** (`.claude/rules/performance.md`): what the slice reads and writes and its n at scale (a
-  4-hour walk, a library of years), what runs per frame, per fix or on a tab's focus, and the harness that
+  4-hour outing on foot or by car, a library of years), what runs per frame, per fix or on a tab's focus, and the harness that
   measures it (`scripts/perf-walk.js`, `scripts/perf-explore.js`, a `perfCount` key), or "device only";
   a cost already in `docs/DEFERRED.md` is named there;
 - for every screen it adds or changes, one line per action: the user's goal, how
@@ -127,7 +127,7 @@ Write `specs/<slug>/plan.md`:
   adjacent apps do the same action ("How adjacent apps do it"). A control the matrix says
   to avoid needs a reason the owner accepts (`.claude/rules/ui-patterns.md`);
 - **against precedent** (decision 0193): where our shape departs from every app in the spec's "How
-  adjacent apps do it", and the reason (a Never line, restraint, the walker on foot, one-handed); a
+  adjacent apps do it", and the reason (a Never line, restraint, the person on the move: one-handed on foot, a glance in a vehicle); a
   departure with no reason is a question for the owner, not a default;
 - for every such action, **where the owner will look for it first**, and what they will see there; and
   every default you took that makes a control quieter (muted, smaller, wordless, behind a tap), named as a

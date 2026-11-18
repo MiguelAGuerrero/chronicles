@@ -27,7 +27,7 @@ test('QC24: the layers hidden are the style\'s symbol layers of the poi source l
 });
 
 test('QC24: the outing\'s page and a walk following an outing ask for no labels; both maps honour it', () => {
-  assert.match(src('src/components/outing/OutingDrawer.tsx'), /<WalkMap[\s\S]*?hideLabels[\s\S]*?\/>/);
+  assert.match(src('src/components/outing/OutingPage.tsx'), /<WalkMap[\s\S]*?hideLabels[\s\S]*?\/>/);
   assert.match(src('src/app/walk.tsx'), /hideLabels=\{navigation\.nav\?\.dest\?\.outing === true\}/);
   assert.match(src('src/components/map/WalkMap.web.tsx'), /poiLabelLayers\(/);
   assert.match(src('src/components/map/WalkMap.native.tsx'), /setSourceVisibility\(!hideLabels, BASE_VECTOR_SOURCE, POI_SOURCE_LAYER\)/);

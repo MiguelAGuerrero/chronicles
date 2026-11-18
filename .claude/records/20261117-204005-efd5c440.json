@@ -1,0 +1,22 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Plan an outing"
+      ],
+      "body": "- Outing journey step 1 (OJ1-OJ40, decision 0198) left for later: the near towns as shortcuts (OJ8, with step 2: it loads the gazetteer on opening the page); a press and hold on the map to set a destination; \"Include chains\" behind the sheet's pull-up (OJ16); attractions from the places archive (the tiles' own only); a check for the capture stack on the page (OJ39); the cold find and the UI review of the new page (decisions 0167, 0145); the opened journey's sheet covers part of its route on a small screen; steps 2 (the towns between, a line on each, no cap, variety) and 3 (the session's bar) and the road engine slice (0198)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Plan an outing"
+      ],
+      "body": "- [ ] **Do:** on a phone, on Explore, tap \"Plan an outing\"; tap the field \"Where to?\", type a town an hour's drive away and pick it; switch chips on and off; swipe the journey cards; tap \"See this journey\"; then go back, close, open again and tap \"Nowhere in particular\". **Expect:** the page is the map with the field over it and a sheet below; the town shows with its distance \"away\"; the map moves to it; up to three cards scroll sideways one at a time and the map draws the one in view; a far town offers \"When I get there\" beside Start (alone past 10 km); around here the journey starts at once; the keyboard never covers the search results (OJ1-OJ4, OJ7, OJ9, OJ17)\n"
+    }
+  ]
+}

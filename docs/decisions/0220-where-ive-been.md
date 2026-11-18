@@ -1,4 +1,4 @@
-# 0219. Where I've been: the unwalked-streets button goes, a layer draws earlier walks
+# 0220. Where I've been: the unwalked-streets button goes, a layer draws earlier walks
 
 Date: 2026-11-18 · Status: accepted · Area: map, layers, walk screen, storage · Amends [0011](0011-unwalked-streets-named-only.md) (the count) and [0028](0028-green-trace-quiet-fog.md) (the bold fog), and [0097](0097-map-layers.md)'s "the unwalked-streets toggle stays"
 
@@ -50,4 +50,4 @@ verified app draws every past line at once; the owner chose it knowingly.
   stale lines one walk at a time nearest the centre first. `purgeDerived` keeps the lines: they read no tiles.
 - **Proposed edit to `docs/VISION.md`** (the owner makes it): a Shapes row, "Where I've been (your own walks on the map) |
   aligned | A layer off by default; every earlier walk's walked line in one even, pale tone; no count, date or coverage; the fog
-  stays faint", and 0219 in Precedents.
+  stays faint", and 0220 in Precedents.

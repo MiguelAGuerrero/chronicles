@@ -335,7 +335,7 @@ async function townBorders(h) {
   await walkTo(-0.5, 0.8);
   await walkTo(0.85, 0.8);
   // tend map audit 39 measured the town's edge under the walk's unwalked veil; the veil went with the unwalked-streets
-  // button (decision 0208, WB1), so the walk draws its firm edge on the plain map. The replay and a day keep theirs below.
+  // button (decision 0220, WB1), so the walk draws its firm edge on the plain map. The replay and a day keep theirs below.
   await pg.waitForFunction(() => [...document.querySelectorAll('[data-borders]')].some((e) => /firm:Pawtucket/.test(e.getAttribute('data-borders') ?? '')), null, { timeout: 45000 }).catch(() => {});
   const walkDrawn = await pg.$$eval('[data-borders]', (es) => es.map((e) => e.getAttribute('data-borders')).join(' '));
   check(/firm:Pawtucket/.test(walkDrawn), `the walk draws the town's firm edge (${walkDrawn})`);

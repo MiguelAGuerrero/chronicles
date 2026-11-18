@@ -30,7 +30,7 @@ The walk screen (`src/app/walk.tsx`), which is also Navigate, ready: its layout,
   `BAR_H` (69) above the safe area; the captures are a column of 56 pt buttons at the right edge
   (camera nearest the strip, then mic, then note), inside the 640 column; the 44 pt edge buttons sit
   above them in the same column (Locate on the ready screen where Recenter sits on the walk, then
-  walk me back, then the compass; the unwalked-streets button went with decision 0219, WB2). The ready bar at rest is the strip, at its height, with Start
+  walk me back, then the compass; the unwalked-streets button went with decision 0220, WB2). The ready bar at rest is the strip, at its height, with Start
   where Stop sits. The e2e checks the boxes match across Start.
 - **The Layers button is in the bottom-left corner** (fix layers-corner, Nov 5, the owner): a 44 pt button just
   above the scale bar (`layersCorner`, `lib/stackSlots.ts`), not the right column's top, where the navigation

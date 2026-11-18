@@ -65,7 +65,7 @@ export const LAYERS: readonly LayerDef[] = [
     ],
   },
   {
-    // Where I've been (specs/where-ive-been WB4, WB11; decision 0208): earlier walks' lines, one even tone, never a count.
+    // Where I've been (specs/where-ive-been WB4, WB11; decision 0220): earlier walks' lines, one even tone, never a count.
     id: 'past',
     name: 'Where I\u2019ve been',
     icon: 'footsteps-outline',

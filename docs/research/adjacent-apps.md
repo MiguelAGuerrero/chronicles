@@ -174,6 +174,10 @@ source.
   (how several routes are listed is not on the page).
 - **Komoot**: planned routes with surface and way types and a difficulty. Source: from memory, unverified.
   **Unverified**.
+- **Google Maps**: a destination, then "Add stop" and a search along the route by category, results as pins with the
+  minutes each adds. Source: from memory, unverified. **Unverified**. A counter-example in part: minutes rank the stops.
+- **Roadtrippers**: a start and an end, then categories of place shown within a distance of the route, added one by one
+  to an itinerary. Source: from memory, unverified. **Unverified**. A counter-example in part: an itinerary is a list.
 
 ### Say what an area holds: findable places apart from the places you go into (Earn)
 
@@ -199,6 +203,21 @@ source.
   (editorial guidance, and its terms forbid reuse of its data). Source: from memory, unverified; the terms from the
   research pass of Nov 17 (research_notes, state_city_nonprofit). **Unverified**.
 
+### Places that share a spot on the map (Earn)
+
+- **Leaflet.markercluster** (web map library): markers that stay together at the bottom zoom are spread out when
+  their cluster is clicked (`spiderfyOnMaxZoom`, on by default), each on a drawn leg back to the shared point
+  (`spiderLegPolylineOptions`: weight 1.5, colour #222, opacity 0.5); otherwise a cluster "shows the marker count in a
+  circle". The legs are the model for `fix mark-overlap`'s row (drawn at once, not on a click, since two or three marks
+  need no tap to part); the count is a counter-example (nothing is a score). Source:
+  https://github.com/Leaflet/Leaflet.markercluster , read Nov 18, 2026. **Verified**.
+- **Google Maps** (Android SDK marker clustering): nearby markers merge into one bubble with their number. A
+  counter-example (a count). Source: from memory, unverified (developers.google.com unreachable from the session).
+  **Unverified**.
+- **Apple MapKit** (`displayPriority`, `collisionMode`): an annotation of lower priority that collides with another is
+  hidden until the map zooms in. Not followed: a hidden mark is a place lost from the walk. Source: from memory,
+  unverified (the page returned no body). **Unverified**.
+
 ### Where you have been: visits and history (Return, Earn)
 
 - **Google Maps Timeline** (Android): kept on the device ("saving each of your devices' precise locations to that
@@ -216,7 +235,7 @@ source.
   streaks and stickers (counter-examples). Source: from memory, unverified. **Unverified**.
 - **Strava personal heatmap**: every recorded activity's line overlaid on one map, brighter where you have gone more often,
   filtered by sport and date; a subscriber feature. Counter-example for the brightness (frequency drawn as intensity; the
-  owner chose one even tone, decision 0219); the overlay of your own lines turned on and off is the job of Where I've been.
+  owner chose one even tone, decision 0220); the overlay of your own lines turned on and off is the job of Where I've been.
   Source: from memory, unverified (recorded for `specs/where-ive-been`, Nov 18). **Unverified**.
 
 ### Choose what you are shown: a long list of switches (Earn)
@@ -305,3 +324,26 @@ On both pages a notification leaves the list when the person clears it, and neit
 (an inference from what the pages say, not their words). That is the model `tend explore 21-24` followed (a fire
 waits until a place in front can show it). Those runs wrote "until it is seen", from memory; the pages say it stays
 until it is cleared.
+
+### Guide a drive (Earn)
+
+- **Apple Maps** (iOS 27): directions from a search or a press on the map, then Go or Steps; the route card lists several driving
+  routes, each with its time and distance; spoken directions go on with the phone locked or another app open; Options, below
+  Directions, has an Avoid section. Source: https://support.apple.com/guide/iphone/get-driving-directions-ipha84a94043/ios , read
+  Nov 18, 2026 through a fetcher that summarised the article's body (not verbatim). **Partly verified**. A counter-example in part:
+  several routes ranked by time.
+- **Organic Maps**: turn-by-turn driving on OpenStreetMap, on the device, with no account; voice guidance optional. Source: from
+  memory, unverified (organicmaps.app unreachable from cloud sessions). **Unverified**.
+- **Google Maps**: a route with its arrival time, spoken turns, "faster route available" prompts and rerouting said aloud. Source:
+  from memory, unverified. **Unverified**. A counter-example: the prompt to change route is the nag this product leaves out.
+
+### Keep a drive as part of the day (Honour, Return)
+
+- **Apple Voice Memos**: the Action button can start a recording, saved with the name of your location. Source: support.apple.com,
+  as read by the session that ran the gate for decision 0218 (Nov 18, 2026). **Verified there, not re-read here**. The model for a
+  capture without the screen.
+- **Polarsteps**: a trip as a route with steps; users report straight lines between stops. Source: from memory. **Unverified**. The
+  model for the road in a replay, and the straight lines are what to avoid.
+- **Google Maps Timeline**: kept on the device, and it records your day unasked. Source: as read by the same session. **Verified
+  there, not re-read here**. A counter-example: nothing here is started for you.
+- **iOS Driving Focus**: silences notifications while driving. Source: from memory. **Unverified**.

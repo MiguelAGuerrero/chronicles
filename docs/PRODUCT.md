@@ -103,6 +103,35 @@ recording, and a recording bar brings a minimized walk back.
   replaces the three and keeps no history. Start plans again from where you are and either routes the walk you have open (capture is
   on the page meanwhile) or starts one ready; it says distance only, never a time left. Scenic routes (0095) are a separate feature on
   Route here.
+- **Plan an outing, destination first** (decisions 0209 and 0210, outing journey OJ1-OJ40; step 1 of three is built): the page below
+  is now the map, with a field over it, "Where to?", that opens Explore's own search (towns and cities), and "Nowhere in particular" to
+  stay around where you stand. With a place given, a sheet holds one list of chips, kinds of attraction (Art, Culture, Green, History,
+  Views, on at first as "What I'm into" has them) beside kinds of shop (Antiques, Books, Thrifting, off at first); each chip on widens
+  what a stop may be. It offers up to three journeys, one per leaning ("Among the shops", "Past old places", "Through green"), in a row
+  that scrolls sideways, each summarised in words with its distance on foot and drawn on the map; none is ranked or timed. Opening one
+  shows its stops by kind, a loop when one can be made, else one way. A named place far from you offers "When I get there" beside
+  Start, and that alone past what can be walked. The search box over chips and the Loop / One way switch of the first page are gone.
+  One machine plans every outing (decision 0211): the page opens already proposing around where you stand; "How far to look" widens
+  the reach to the towns about (Close by, then three steps out), and a destination looks at the towns toward it; either way a journey
+  is chapters, a walk or one stop in each town that has something, with a line on each and Open in Maps. Chips that span leanings add
+  a mixed journey, "A bit of each"; "Another like this" plans a journey again from other places; places and towns new to you come
+  first, and a town you have not been in says "New to you." A journey is carried as a trip planner carries an itinerary, in this
+  app's terms (decision 0213): Start begins a session wherever you are; between towns the walk screen says "Toward <town>" and how
+  far, with Open in Maps and "Pass by"; within reach of a town it says the town is here and offers "Show the way", which begins only
+  on a tap; a town left, driven past or drifted away from is let go without a word; nothing is numbered or marked done, and the
+  plan, which holds only the towns still ahead, goes when the session stops. "Leave this town out" removes a
+  town on the page. With a place picked, the app finds the road itself (the road engine, decisions 0215 and 0216, RE1-RE34): the
+  road through the journey's towns is drawn on the page's map in place of the straight line, the place and each card say their
+  distance "by road" (never a time), the page says once that the way keeps to the roads through the towns, and Open in Maps asks
+  for driving directions for a town a drive away. The road is read from the map's own tiles only once a place is picked; when it
+  can't be found the page says so and keeps the straight line. Between towns the session's bar offers "Drive there": on a tap it says once that the map
+  holds no turn restrictions and no closures; each turn is spoken once as it nears ("Right ahead."), with "Mute turns" on the bar
+  (decision 0217; where there is no voice it says turns are shown, not said), then the turn coming and how far ("Right. 310 m.") over the town, with End and nothing else to
+  tap; off the way it shows no turn and says nothing, and finds the way again after a stretch; with the town at hand it ends by
+  itself. Owed: speech with the phone locked, road names in a turn, and a published stores pack. None of it has run on a phone.
+  A place too far to walk to no longer offers "When I get there" alone (decision 0218, DO6): Explore's card asks "Start now" or
+  "When I get there" at every distance, and Start now begins the outing where you are, the drive included, with the place ahead
+  on the session's bar as a journey's town is.
 - **Plan an outing** (decision 0196, quick circuit QC1-QC42): one control under Explore's title, "Plan an outing", opens a page of its own over
   Explore. You say what you want to see by picking from a short vocabulary (a search box over chips: Antiques, Books, Thrifting) and the page
   proposes one circuit from where you stand, a loop (the default, not remembered) or one way, within the planner's distance ceiling. Its stops are
@@ -331,7 +360,7 @@ recording, and a recording bar brings a minimized walk back.
 - **Remind me here**: flag a capture, and the next walk that passes within
   75 m of it shows its card, or a notification when the app is behind.
   Its pin wears a small bell on every map while the reminder is set.
-- **The fog of unwalked streets** stays faint on every walk; the button that bolded it and counted them went (decision 0219): the trace says where you have been.
+- **The fog of unwalked streets** stays faint on every walk; the button that bolded it and counted them went (decision 0220): the trace says where you have been.
 - **What happened here**: a long press on the map lists captures near that
   spot, from any walk.
 - Walk options: the Explore switch, settings, motion permission, and
@@ -352,7 +381,7 @@ recording, and a recording bar brings a minimized walk back.
 - **Layers.** One Layers button on the Explore map and the Navigate map opens a small panel of switches: Walkability, Storefronts, Town
   borders and Where I've been. Each draws something over the base map and shows its own legend while on. All start off, so a fresh map is clear; the button is outlined, and its glyph
   and a firmer edge say a layer is on. One setting for every map, kept across launches.
-- **Where I've been** (decision 0219) draws your earlier walks near the map, each its walked line in one muted sage green under today's
+- **Where I've been** (decision 0220) draws your earlier walks near the map, each its walked line in one muted sage green under today's
   trace: the same tone however often a street was walked, with no date and no count. Rides and gaps you didn't keep stay breaks.
   The walk being recorded joins once stopped. Only the Navigate map and Explore's main map draw it; turning it on the first time
   prepares older walks quietly ("Getting your walks ready…"), and the lines appear together.

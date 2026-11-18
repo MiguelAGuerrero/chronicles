@@ -1,0 +1,45 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Tabs and the recording bar"
+      ],
+      "body": "- [loop] A fit applied in the same commit as Chronicle's first read still pads for the plain peek's 76: with nothing walked, a journal entry's moment focus (JN6, `takeFocus`) or loose moments with a place (`fitWithMoments`), and the map `ready` before the read (a Map remount with its style cached, a read slowed by many captures), React runs the read commit's passive effects first, so `WalkMap.web.tsx`'s fit effect (l.1415-1437) reads `fitPadding` at `sheetH + 96` = 172 before `onHeight(124)`'s re-render: the frame's centre sits 24 px low, its foot still 48 px clear of the sheet. Not a regression of T38 (main padded the same). Fix: pad from the `emptyPeek` decision in `ChronicleMap` (the stacked peek's 124 when Navigate shows), not from the reported height; test: a moment focus with nothing walked frames above the 124 peek (e2e) (the T38 review's auditor 2 and ux 2, Nov 18, low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Tabs and the recording bar"
+      ],
+      "body": "- [loop] At 320 px Chronicle's section bar chips (Memories, Walks, Days, Map, Media) look about 4 px apart, and Media about 8 px from the right edge (estimates from the T38 pictures, `tabs-2-chronicle-peek-with-nothing-walked-320.png`): measure first; Material asks for \"targets separated by 8dp of space or more\" (`docs/research/ui-references.md` l.555). Fix if measured short: keep 8 px between chips (padding or margin); test: at 320 the five chips stand 8 px apart (the T38 review's ux 3, Nov 18, low, older)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Navigation and tabs"
+      ],
+      "body": "- [ ] **Do:** on a phone with nothing walked, force-quit, open Chronicle's Map. **Expect:** the plain peek at most a moment, then the line and Navigate at their height in one step, no rise; the scale bar never under the sheet; and Escape back to the peek before the first read still springs (`tend tabs T38`, audits 37-39, decision 0219). Unverified: `Animated.Value.setValue` in a layout effect on Fabric (whether 124 and `sheetH` reach the same native frame), `onHeight` called in the layout phase with the scale bar over MapLibre RN, and how SQLite's first read compares with the native map's load (the T38 review's auditor 3, steward 3, ux 1)\n"
+    },
+    {
+      "argv": [
+        "open",
+        "add"
+      ],
+      "body": "- **M5's words and motion-polish.md's springs line after `tend tabs T38`** (Nov 18; the owner's answers in person, \"Only later moves\" and \"Keep the plain peek\", decision 0219). What ships: the sheet's first known height is set, not sprung (its mount's move and the one Chronicle's first read asks for), and the spring holds for every move after it; the plain peek shows as the read's placeholder. Still to say by hand: M5 in the owner's polish-motion doc (`specs/polish-motion/spec.md` l.13, \"The home sheet settles at its height with a spring rather than a fixed timing\") and `.claude/rules/motion-polish.md` l.31's \"`HomeSheet` springs its height in JavaScript\", which decision 0219 reads as covering the moves after the first known height (the loop added a line beside it only).\n"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 18, `/tend inbox T38 yes, T35 yes, T40 yes --deploy=main`, Chronicle's empty peek no longer rises at launch** (opened from `9dfd547e`; no sweep, lenses 1-7 not run; T38 is the proxy's yes under 0157, 2026-11-18; T35 and T40 the owner's yes, in person, 2026-11-18).\n- The entries, as main held them: T38 \"Chronicle's stacked empty peek springs from 76 to 124 px as the map mounts\" (built); T35 \"The bar's Stop calls a memo still being saved \"recording\"\" (the owner's \"Yes, as recommended\") and T40 \"At 320 x 700 the two-line press hint can reach the walker…\" (the owner's \"Pad the map camera\"): both wait for the next `/tend inbox`, one build per run.\n- T38's state was misnamed at filing: its Seen line, its Recommended and the proxy's first /vision criterion said \"with a walk open and none finished\", but the 76-to-124 rise is the nothing-walked, no-walk-open state (`HomeSheet.tsx`: only Navigate makes the peek taller, decision 0148; the tabs journey's `tend tabs audit 3`). The run stopped before building; the proxy's ruling under 0157, 2026-11-18, corrected the criteria (\"from the first frame\" became \"from Chronicle's first read\"; /vision again: aligned (Restraint)).\n- `tend tabs T38`: with nothing walked and no walk open, the sheet takes the stacked peek's 124 with no spring as soon as Chronicle's first read lands, and the sheet and the scale bar are right from that frame (a fit applied in the read's own commit may still pad for 76: filed); with a walk open and none finished the peek is 76 from the first frame; a walk finished, half and full unchanged, and a later change of state still springs.\n- The review (one round: the `auditor`, the `ux-reviewer` and the `steward`; accepted 8, deferred 2, rejected 0), the proxy's rulings under 0157: `tend tabs audit 37`: only the mount's move and the first read's are set, so a peek reached from half before the read springs (auditor 1, medium, a regression of the T38 build); `audit 38`: a first read landing on a running spring springs on from it; `audit 39`: the journey bounds the plain peek to 6 frames (ux 1); `audit 40`: decision 0219 and two added rule lines (auditor 4). The steward's two questions went to the owner, who answered in person, 2026-11-18: \"Only later moves\" (M5's spring holds for every move after the first known height) and \"Keep the plain peek\" (decision 0219, the owner's).\n- Filed: two `[loop]` lows under \"Tabs and the recording bar\" (a fit in the read's own commit pads for 76; the section bar's chips at 320 px, measure first); a phone item under \"Navigation and tabs\"; an \"Open before the loop\" item (M5's words and motion-polish.md's springs line). Removed: the DEFERRED item built (Chronicle's stacked empty peek springs up from 76 to 124 px).\n- Journeys: tabs (holding the new checks; the criterion-1 and audit 39 checks red on a build with main's sheet code, green on this one) and launch, green on the final build.\n- The balance: outgrowing its base, as main's ledger reads it; no `G` entry filed.\n"
+    }
+  ]
+}

@@ -47,8 +47,8 @@ export interface TileWalk {
  * OM7, OM8: a tile's walk button names what its tap does at every distance (0121). `choice` is `walkToChoice`'s answer for that
  * area. A walk open routes it, as the card's Walk to does (NV10); a place too far to walk is a destination, walk open or not.
  */
-export function tileWalk(choice: 'start' | 'ask' | 'later', o: { walkOpen: boolean; selected: boolean }): TileWalk {
-  if (choice === 'later') return { label: 'Set as destination', hint: 'Saves it in Navigate; starts nothing', does: 'later', accent: false };
+export function tileWalk(choice: 'start' | 'ask' | 'later' | 'far', o: { walkOpen: boolean; selected: boolean }): TileWalk {
+  if (choice === 'later' || choice === 'far') return { label: 'Set as destination', hint: 'Saves it in Navigate; starts nothing', does: 'later', accent: false };
   const does = o.walkOpen || choice === 'start' ? 'start' : 'ask';
   return { label: 'Walk there', hint: does === 'ask' ? 'Asks whether to start now or when you get there' : null, does, accent: o.selected };
 }

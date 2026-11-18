@@ -30,7 +30,7 @@ Open: none (the owner answered overlaps: one even tone, Nov 18).
 - **Fog of World**: the map stays fogged except where you have been; a percentage explored and levels. Counter-example (Never: coverage, levels); the fog alone is the model for our faint fog. Source: from memory, unverified. **Unverified**.
 - **Strava personal heatmap**: every recorded activity's line overlaid on one map, brighter where you have gone more often, filtered by sport and date; a subscriber feature. Counter-example for the stacking (frequency drawn as intensity, the owner chose one tone); the overlay of your own lines on and off is the job. Source: from memory, unverified. **Unverified**.
 
-## Decisions (the owner's calls, Nov 18; decision 0208)
+## Decisions (the owner's calls, Nov 18; decision 0220)
 
 - **The "Unwalked streets near me" button goes**, with its veil, its bold fog and its "unwalked nearby" line: "the trace already provides that information implicitly".
 - **The quiet fog and the ink walked streets stay as they are**, always drawn; only the button and what it switched go.

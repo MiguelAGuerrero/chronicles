@@ -653,7 +653,7 @@ async function checks(h) {
         await page.click('[data-testid=recenter]');
         await page.waitForSelector('[data-testid=recenter]', { state: 'detached' });
         check(true, 'after looking around, Recenter brings the map back');
-        // The fog of unwalked streets still draws, quietly (the unwalked-streets button went with decision 0208).
+        // The fog of unwalked streets still draws, quietly (the unwalked-streets button went with decision 0220).
         n12.fog = await navOn();
         check(n12.photo && n12.photoKept && n12.pause && n12.grewM > 0 && n12.held && n12.fog,
           `N12: while navigating, the walk records, a photo is kept, Pause holds the bar's distance, and the fog draws (${JSON.stringify(n12)})`);

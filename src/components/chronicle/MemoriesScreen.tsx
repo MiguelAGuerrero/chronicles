@@ -27,6 +27,7 @@ import { onRecallOpen, recallWaiting, takeRecallOpen } from '../../lib/discovery
 import { chronicleSection } from '../../lib/resurface/sectionStore';
 import { useOpenWalkInfo } from '../OpenWalk';
 import { UndoToast } from '../UndoToast';
+import { columnPills, holdCount } from '../../lib/space/sight';
 import { useStore } from '../../lib/useStore';
 
 import { showWalk } from '../../lib/walkNav';
@@ -341,6 +342,9 @@ export function MemoriesScreen() {
   const [lineH, setLineH] = useState(LINE_REST_H);
   const clear = { paddingBottom: lineH + 24 };
   // Memories' own toast (Undo) goes in the band's column, above its pills, so the two never cover each other (audit 2).
+  // It counts among the column's dark pills while Memories is in front (tend tabs audit 33).
+  const toastUp = !!toast;
+  useEffect(() => (bandFocused && toastUp ? holdCount(columnPills) : undefined), [bandFocused, toastUp]);
   const undoToast = toast ? (
     <View style={styles.toast} accessibilityLiveRegion="polite" testID="memories-toast">
           <Text style={styles.toastText}>{toast.msg}</Text>
@@ -613,7 +617,7 @@ export function MemoriesScreen() {
           Inside a thread or Hidden, after the screen, so its Back and heading come first (audit 9). */}
       {/* The open line owns the bar at the foot and the field; the page takes the field as its last line (JN28), and a
           screen with no page (a thread, the threads, Hidden) leaves it in the bar. */}
-      <OpenLine ref={lineRef} inBar={body != null} onTypeOpen={setTypeOpen} onComposing={setComposing} focused={bandFocused} onChanged={onChanged} onMoment={onMoment} onWriting={setWriting} onWritten={onWritten} onDropped={onDropped} onRecording={setMemoOn} onFoot={toFoot} onSeen={onSeen} onHeight={setLineH} above={<>{undoToast}<UndoToast style={styles.undoInColumn} /></>}>
+      <OpenLine ref={lineRef} inBar={body != null} onTypeOpen={setTypeOpen} onComposing={setComposing} focused={bandFocused} onChanged={onChanged} onMoment={onMoment} onWriting={setWriting} onWritten={onWritten} onDropped={onDropped} onRecording={setMemoOn} onFoot={toFoot} onSeen={onSeen} onHeight={setLineH} above={<>{undoToast}<UndoToast style={styles.undoInColumn} column={bandFocused} /></>}>
         {(line) => (line ? journal(line) : body)}
       </OpenLine>
       <MemoriesMenu

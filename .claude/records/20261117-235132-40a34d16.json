@@ -1,0 +1,67 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Plan an outing"
+      ],
+      "body": "- A journey carried by the session (decision 0201, OJ48-OJ51), left for later: no check in a browser of the way on foot within reach of a town (OJ30), of a town let go by driving past (unit only), of \"Leave this town out\" or of the line between towns (OJ26, OJ51), since the test world holds one town with anything in it; a journey resumed in a later session, kept or shared; `sessionTrace` reads the whole trace once when the walk screen opens (n: up to 30k fixes, thinned to a tenth); \"Pass by\" and putting the plan away last only while the screen does, by design (nothing stores reached or passed)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Plan an outing"
+      ],
+      "body": "- [ ] **Do:** on a phone, plan a journey toward a town an hour's drive away with two or more towns in it; leave one town out on the page; tap Start at home and drive; watch the walk screen in each of these: before the first town, in it on foot, driving past the second without stopping, after \"Pass by\", after locking the phone for the drive, after killing and reopening the app mid-drive; then Stop. **Expect:** the session records from Start, the drive included; the bar names the town ahead with its distance in two rows that never cover the capture stack; \"Open in Maps\" opens the town in the maps app; within about 2 km of a town the way on foot through its stops appears once and its stops are named only on arrival; a town left behind or driven past is never named again and nothing is marked done; the plan survives the app being killed; after Stop, the next session shows no bar (OJ28-OJ31, OJ33, OJ48, OJ49)\n"
+    },
+    {
+      "argv": [
+        "section",
+        "item",
+        "remove",
+        "From the outing journey's audit (2026-11-17)",
+        "Places new to you are offered first",
+        "--reason",
+        "answered by the owner's defaults, decision 0201"
+      ],
+      "target": "sha256:616b4b1306e7efb8977e9e4ddc1620672be990295db8f2a33ff987fb4a2fca5a"
+    },
+    {
+      "argv": [
+        "section",
+        "item",
+        "remove",
+        "From the outing journey's audit (2026-11-17)",
+        "Three stops of one kind read alike",
+        "--reason",
+        "answered by the owner's defaults, decision 0201"
+      ],
+      "target": "sha256:8add698eed1accb2c955b227bace4080c99435fb285123ff094fb656b911a9d7"
+    },
+    {
+      "argv": [
+        "section",
+        "item",
+        "remove",
+        "From the outing journey's audit (2026-11-17)",
+        "After the first town of a journey",
+        "--reason",
+        "answered by the owner's defaults, decision 0201"
+      ],
+      "target": "sha256:b0ba703dce3018a668b3cf1b2ed5ad4749b8ea76500371dd1c09e40f14d6d411"
+    },
+    {
+      "argv": [
+        "inflight",
+        "set",
+        "Outing journey"
+      ],
+      "body": "| Outing journey (Plan an outing, destination first: a full-map page, a destination from the search or a reach with none, chips for attractions and shops in one pool, journeys by leaning with a mixed one, town by town, places new to you first, carried by the session as a trip plan; OJ1-OJ51, decisions 0197-0201) | `claude/determined-wright-yg1fq9` | the page, the one machine and the carried journey built 2026-11-17; audited the same day: 31 findings, 21 fixed, 7 deferred, 3 rejected (`outing-journey audit 1-29`); the carried journey (decision 0201) is not yet audited; the road engine slice and the stores pack published are owed; native unverified |\n",
+      "target": "sha256:67c6b8da605341f90ea53a007aefd8227db361ee99eaf821b91038fceac53643"
+    }
+  ]
+}

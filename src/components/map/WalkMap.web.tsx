@@ -13,7 +13,7 @@ import { ComplexLabelView } from '../ComplexLabel';
 import { COMPLEX_STYLE } from '../../lib/complexes/mapLayer';
 import { namedStars, StarView, starLabel } from '../StarView';
 import type { Star } from '../../lib/places';
-import { declutterMarks } from '../../lib/markNames';
+import { declutterMarks, spreadKey } from '../../lib/markNames';
 import { boxAround, boxHolds, drawsPin, metersPerPixel, PIN_REACH_PX, pinDrawBox, pinReactions, pinReminded, pinThumb, stalkLift, type CapturePin, type ViewBox, type WalkClock } from '../../lib/pins';
 import type { ReactionSet } from '../../lib/reactions/core';
 import { useReactionSets } from '../../lib/reactions/useReactions';
@@ -291,6 +291,9 @@ const settled = (map: MapLibreMap) =>
 /** A fit as asked of maplibre, kept to ask it again (tend explore 17). */
 type FitAsk = { bounds: [[number, number], [number, number]]; options: { padding: { top: number; right: number; bottom: number; left: number }; maxZoom: number; duration: number; bearing?: number } };
 
+/** A mark's foot stands this far below its point on the web marker. */
+const MARK_BELOW = 6;
+
 export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(props, ref) {
   const container = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
@@ -336,6 +339,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   // The compass asked for north and the map is still easing there: a fit meanwhile goes north too (tend map audit 4).
   const northAsked = useRef(false);
   const [view, setView] = useState<{ zoom: number; lat: number } | null>(null);
+  // The bearing the marks' rows are laid out at (fix mark-overlap audit 1), whole degrees, set as a turn settles.
+  const [marksBearing, setMarksBearing] = useState(0);
   perfCount('render:map');
   // On the live walk the dot, cone and camera glide between fixes. They are
   // moved by a render loop outside React (a DOM marker is cheap to move; the
@@ -705,6 +710,9 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     };
     map.on('rotateend', uprightNames);
     map.on('moveend', uprightNames);
+    const marksTurned = () => setMarksBearing(Math.round(map.getBearing()));
+    map.on('rotateend', marksTurned);
+    map.on('moveend', marksTurned);
     // A camera move made in code cancels a drag in progress, and the glide moves
     // the camera every frame. So follow-moves wait while a pointer is down.
     const down = () => { pointerDown.current = true; };
@@ -1190,7 +1198,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     markLatest.current = props.onDiscoveryPress;
   });
   const viewZoom = view?.zoom ?? 16;
-  const markMarkers = useRef(new Map<string, { marker: Marker; root: Root; key: string; state: { revealed: boolean; found?: boolean; faint?: boolean } }>());
+  const markMarkers = useRef(new Map<string, { marker: Marker; root: Root; key: string; spread: string; state: { revealed: boolean; found?: boolean; faint?: boolean } }>());
   useEffect(() => {
     const map = mapRef.current;
     if (!ready || !map) return;
@@ -1199,11 +1207,21 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       queueMicrotask(() => m.root.unmount());
     };
     const live = new Set<string>();
-    for (const pin of declutterMarks(props.discoveries ?? [], viewZoom)) {
+    for (const pin of declutterMarks(props.discoveries ?? [], viewZoom, { bearing: marksBearing, spread: !!props.spreadMarks })) {
       live.add(pin.id);
       const key = `${pin.at.join(',')}|${markKey(pin)}|${pin.name}|${pin.icon}|${pin.quiet ? 'q' : ''}`;
       const existing = markMarkers.current.get(pin.id);
-      if (existing?.key === key) continue;
+      const spread = spreadKey(pin.spread);
+      if (existing?.key === key) {
+        // A row that shifts with the zoom or a turn moves its marker in place, never a new one: focus and a tap in
+        // flight stay (fix mark-overlap audit 6).
+        if (existing.spread !== spread) {
+          existing.spread = spread;
+          existing.marker.setOffset([pin.spread?.dx ?? 0, MARK_BELOW + (pin.spread?.dy ?? 0)]);
+          existing.root.render(<MarkPinView pin={pin as MarkPin} below={MARK_BELOW} />);
+        }
+        continue;
+      }
       if (existing) drop(existing);
       // Revealed in front of you it turns in (M11); found, it pulses once (M12).
       const enter = markEnter(existing?.state, pin);
@@ -1227,16 +1245,17 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         });
       const root = createRoot(el);
       perfCount('marker:mark');
-      root.render(<MarkPinView pin={pin as MarkPin} enter={enter} />);
-      const marker = new Marker({ element: el, anchor: 'bottom', offset: [0, 6] }).setLngLat(pin.at).addTo(map);
-      markMarkers.current.set(pin.id, { marker, root, key, state: { revealed: pin.revealed, found: pin.found, faint: pin.faint } });
+      root.render(<MarkPinView pin={pin as MarkPin} enter={enter} below={MARK_BELOW} />);
+      // A spread pin stands off its point, on a leg back to it (fix mark-overlap).
+      const marker = new Marker({ element: el, anchor: 'bottom', offset: [pin.spread?.dx ?? 0, MARK_BELOW + (pin.spread?.dy ?? 0)] }).setLngLat(pin.at).addTo(map);
+      markMarkers.current.set(pin.id, { marker, root, key, spread, state: { revealed: pin.revealed, found: pin.found, faint: pin.faint } });
     }
     for (const [id, m] of markMarkers.current) {
       if (live.has(id)) continue;
       drop(m);
       markMarkers.current.delete(id);
     }
-  }, [ready, props.discoveries, viewZoom]);
+  }, [ready, props.discoveries, viewZoom, marksBearing, props.spreadMarks]);
   useEffect(() => () => {
     for (const m of markMarkers.current.values()) {
       m.marker.remove();
@@ -1351,7 +1370,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     if (!ready || !map) return;
     for (const id of poiLabelLayers(map.getStyle().layers as { id: string; type: string; 'source-layer'?: string }[])) map.setLayoutProperty(id, 'visibility', props.hideLabels ? 'none' : 'visible');
   }, [ready, props.hideLabels]);
-  // The fog is always quiet (decision 0208, WB1): its paint is set once with the layer. The e2e reads it, and the veil, here.
+  // The fog is always quiet (decision 0220, WB1): its paint is set once with the layer. The e2e reads it, and the veil, here.
   useEffect(() => {
     const map = mapRef.current;
     if (!ready || !map || !container.current) return;

@@ -1,4 +1,6 @@
 import type React from 'react';
+import { START_FAR_HINT, START_NOW_LABEL, startFarLine } from '../../lib/outing/journeyWords';
+import { travelMode } from '../../lib/nav/handoff';
 import { useEffect, useRef, useState } from 'react';
 import {
   Animated, BackHandler, PanResponder, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions,
@@ -85,8 +87,10 @@ export function AtlasCard(props: {
   /** CX4: this area's complexes (the nearest few, then "See more" for the rest), or null; `walkable` is whether navigation will route from where you are. */
   complexSection?: (expanded: boolean) => { title: string; rows: { id: string; name: string; word: string; at: LngLat; label: string; walkable: boolean }[]; more: boolean } | null;
   starting: boolean;
-  /** DW14: past what can be walked (N5), the footer offers When I get there alone. */
+  /** DO6 (amending DW14): past what can be walked (N5), the footer asks Start now or When I get there. */
   farOff?: boolean;
+  /** DO7: Start now for a place past what can be walked: the outing begins here, the place ahead. */
+  onStartFar?: (at: LngLat, label: string) => void;
   /** DW2, DW5: whether Walk to a place asks Walk now or When I get there first (decision 0121). */
   askFirst?: (at: LngLat) => boolean;
   /** DW3: When I get there: the place is kept for Navigate's Start; no walk starts. */
@@ -423,7 +427,7 @@ export function AtlasCard(props: {
                   tend explore audit 16: "Not now" comes after the choices, centred, as a dismissive action goes last. */}
               {asking.label === area.name ? null : <Text style={styles.askTitle} numberOfLines={1} accessibilityRole="header">{asking.label}</Text>}
               <View style={[styles.askRow, narrow && styles.askStack]}>
-                <Button ref={nowRef} testID="atlas-walk-now" label="Walk now" busy={props.starting} busyLabel="Starting…" style={narrow ? null : styles.askBtn}
+                <Button ref={nowRef} testID="atlas-walk-now" label={START_NOW_LABEL} busy={props.starting} busyLabel="Starting…" style={narrow ? null : styles.askBtn}
                   onPress={() => {
                     const go = asking.now;
                     setAsking(null);
@@ -440,18 +444,28 @@ export function AtlasCard(props: {
               <Button testID="atlas-walk-cancel" variant="ghost" label="Not now" onPress={() => setAsking(null)} style={styles.askClose} />
             </>
           ) : props.walkTo && props.farOff ? (
-            // DW14: too far to walk, not too far to go.
+            // DO6 (amending DW14): too far to walk, not too far to go: the same question as any far place. Start now begins the
+            // outing where you are, with the place ahead and no way on foot (DO7).
             <>
-              <Button testID="atlas-walk-later" label="When I get there" tall
-                accessibilityHint="Keeps it on Navigate. The walk starts when you tap Start."
-                onPress={() => props.walkTo && props.onLater?.(props.walkTo.at, props.walkTo.label)} />
-              {props.onMaps && cardCanOpenInMaps({ here: !!props.here, asking: false }) ? <OpenInMapsButton testID="atlas-card-maps" variant="button" target={{ at: props.walkTo.at, label: props.walkTo.label, kind: 'area' }} onOpen={props.onMaps} style={styles.mapsFoot} /> : null}
+              {/* Audit (drive-in-the-outing audit 2): what Start now does is said on the card's face, as the outing page says it. */}
+              {props.onStartFar ? <Text style={styles.via} testID="atlas-start-far-line">{startFarLine(props.walkTo.label)}</Text> : null}
+              <View style={[styles.askRow, narrow && styles.askStack]}>
+                {props.onStartFar ? (
+                  <Button testID="atlas-start-far" label={START_NOW_LABEL} busy={props.starting} busyLabel="Starting…" style={narrow ? null : styles.askBtn}
+                    accessibilityHint={START_FAR_HINT}
+                    onPress={() => props.walkTo && props.onStartFar?.(props.walkTo.at, props.walkTo.label)} />
+                ) : null}
+                <Button testID="atlas-walk-later" variant={props.onStartFar ? 'secondary' : undefined} label="When I get there" style={narrow ? null : styles.askBtn}
+                  accessibilityHint="Keeps it on Navigate. The walk starts when you tap Start."
+                  onPress={() => props.walkTo && props.onLater?.(props.walkTo.at, props.walkTo.label)} />
+              </View>
+              {props.onMaps && cardCanOpenInMaps({ here: !!props.here, asking: false }) ? <OpenInMapsButton testID="atlas-card-maps" variant="button" target={{ at: props.walkTo.at, label: props.walkTo.label, kind: 'area', mode: travelMode(props.distanceM ?? null) }} onOpen={props.onMaps} style={styles.mapsFoot} /> : null}
             </>
           ) : props.walkTo ? (
             <>
               <Button ref={walkRef} testID="atlas-walk" label={`Walk to ${props.walkTo.label}`} onPress={() => props.walkTo && walkTo(props.walkTo.at, props.walkTo.label, props.onWalk)} busy={props.starting} busyLabel="Starting…" tall />
               {props.walkTo.via ? <Text style={styles.via} testID="atlas-walk-via">{walkViaLine(props.walkTo.via)}</Text> : null}
-              {props.onMaps && cardCanOpenInMaps({ here: !!props.here, asking: false }) ? <OpenInMapsButton testID="atlas-card-maps" variant="button" target={{ at: props.walkTo.at, label: props.walkTo.label, kind: 'area' }} onOpen={props.onMaps} style={styles.mapsFoot} /> : null}
+              {props.onMaps && cardCanOpenInMaps({ here: !!props.here, asking: false }) ? <OpenInMapsButton testID="atlas-card-maps" variant="button" target={{ at: props.walkTo.at, label: props.walkTo.label, kind: 'area', mode: travelMode(props.distanceM ?? null) }} onOpen={props.onMaps} style={styles.mapsFoot} /> : null}
             </>
           ) : (
             <Text style={[styles.muted, styles.hereLine]}>Too far to walk from here</Text>

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import type { EnterKind } from '../lib/enter';
 import { foundLabel } from '../lib/explore/foundFace';
+import type { MarkSpread } from '../lib/markNames';
 import type { CaptureKind } from '../lib/types';
 import { Enter } from './Enter';
 import type { IconName } from './icons';
@@ -21,6 +22,8 @@ export interface MarkPin {
   faint?: boolean;
   /** Its name would be written over another's (lib/markNames): the pin shows without it. */
   nameHidden?: boolean;
+  /** Its head would cover another's (lib/markNames): moved off its point, on a leg back to a dot there (fix mark-overlap). */
+  spread?: MarkSpread;
   /** Hidden from a screen reader: the map speaks for it in one summary (Explore, WT11). */
   quiet?: boolean;
   icon: IconName;
@@ -42,9 +45,10 @@ const NAME_WIDTH = 140;
  * `enter` is the map's call: both maps rebuild a mark's view on each change, and know what it
  * showed before (M11 turns, M12 pulses). Kept from mount, so a later render can't cut it short.
  */
-export function MarkPinView({ pin, enter }: { pin: MarkPin; enter?: EnterKind | null }) {
+/** `below`: how far the pin's foot stands below its point (the web marker's offset), so a spread pin's leg ends on it. */
+export function MarkPinView({ pin, enter, below = 0 }: { pin: MarkPin; enter?: EnterKind | null; below?: number }) {
   const [kind] = useState(enter ?? null);
-  const body = <MarkBody pin={pin} />;
+  const body = <MarkBody pin={pin} below={below} />;
   if (kind === 'flip' || kind === 'pulse')
     return (
       <Enter kind={kind} ring={[styles.ringAt, pin.found && styles.ringFound]}>
@@ -54,10 +58,37 @@ export function MarkPinView({ pin, enter }: { pin: MarkPin; enter?: EnterKind | 
   return body;
 }
 
-function MarkBody({ pin }: { pin: MarkPin }) {
+/** The pin's foot: the bottom of its 36 x 44 box, where it stands. */
+const FOOT = { x: 18, y: 44 };
+const LEG_W = 1.5;
+/** The point's mark: a small rounded square, a mark's own shape, never the walker's round dot (fix mark-overlap ux U1). */
+const DOT = 6;
+
+/** A spread pin's leg from its foot back to its point, and the dot on the point (fix mark-overlap). */
+function Leg({ spread, below }: { spread: MarkSpread; below: number }) {
+  const vx = -spread.dx;
+  const vy = -spread.dy - below;
+  const len = Math.hypot(vx, vy);
+  return (
+    <>
+      <View
+        style={[
+          styles.leg,
+          { left: FOOT.x + vx / 2 - LEG_W / 2, top: FOOT.y + vy / 2 - len / 2, height: len, transform: [{ rotate: `${Math.atan2(-vx, vy)}rad` }] },
+        ]}
+      />
+      <View style={[styles.dot, { left: FOOT.x + vx - DOT / 2, top: FOOT.y + vy - DOT / 2 }]} />
+    </>
+  );
+}
+
+function MarkBody({ pin, below }: { pin: MarkPin; below: number }) {
   const shown = pin.revealed || pin.found;
+  const named = shown && !pin.faint && !pin.found && !pin.nameHidden;
+  const side = pin.spread ? pin.spread.side : 'below';
   return (
     <View style={[styles.wrap, pin.faint && styles.faint, pin.found && styles.wrapFound]} pointerEvents="none">
+      {pin.spread && <Leg spread={pin.spread} below={below} />}
       <View style={[styles.head, pin.found && styles.headFound]}>
         {shown ? <Icon name={pin.icon} size={pin.found ? 13 : 18} color="#ffffff" /> : <Text style={styles.q}>?</Text>}
         {pin.found && pin.foundKind && (
@@ -67,10 +98,16 @@ function MarkBody({ pin }: { pin: MarkPin }) {
         )}
       </View>
       <View style={[styles.stem, pin.found && styles.stemFound]} />
-      {shown && !pin.faint && !pin.found && !pin.nameHidden && (
+      {named && side === 'below' && (
         <Text style={styles.name}>
           {pin.name}
         </Text>
+      )}
+      {named && (side === 'left' || side === 'right') && (
+        // Beside the head on a spread row's outer side, so two names of one spot both stay readable.
+        <View style={[styles.beside, side === 'left' ? styles.besideLeft : styles.besideRight]}>
+          <Text style={[styles.name, styles.nameBeside, { textAlign: side === 'left' ? 'right' : 'left' }]}>{pin.name}</Text>
+        </View>
       )}
     </View>
   );
@@ -134,4 +171,12 @@ const styles = StyleSheet.create({
     textShadowColor: '#ffffff',
     textShadowRadius: 3,
   },
+  // A spread pin's name, beside its head and centred on it (fix mark-overlap).
+  beside: { position: 'absolute', top: 0, height: 34, width: NAME_WIDTH, justifyContent: 'center' },
+  besideLeft: { right: 36 + 4 },
+  besideRight: { left: 36 + 4 },
+  nameBeside: { position: 'relative', top: 0 },
+  // The leg and the dot are the mark's ink, thin and small: they say where the place is, the head says what.
+  leg: { position: 'absolute', width: LEG_W, backgroundColor: MARK_COLOR, opacity: 0.7 },
+  dot: { position: 'absolute', width: DOT, height: DOT, borderRadius: 1.5, backgroundColor: MARK_COLOR },
 });

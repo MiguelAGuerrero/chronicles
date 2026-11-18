@@ -1,10 +1,11 @@
 // @layer core
+import { GET_THERE_M } from '../startPlan';
 import type { LngLat } from '../types';
 
 /**
  * Open in Maps (NH1, NH2): the destination handed to the phone's own maps app
  * for walking directions, for when Chronicles' route is wrong (a bridge, a
- * closed path). Pure: which app, and the links to open, in order. Only the
+ * closed path), or for driving directions to a town a drive away (RE19). Pure: which app, and the links to open, in order. Only the
  * destination leaves the app, and only on a tap.
  */
 export type MapsTarget = 'apple' | 'appleApp' | 'google' | 'geo';
@@ -30,14 +31,21 @@ export function mapsName(target: MapsTarget): string {
   return 'Maps';
 }
 
+/** How the maps app is asked to take you there: on foot, as ever, or by road for a town a drive away (RE19). */
+export type TravelMode = 'walk' | 'drive';
+
+/** Further than a walk to the start (`GET_THERE_M`) is a drive; with no position it is a walk, as before. */
+export const travelMode = (awayM: number | null): TravelMode => (awayM != null && awayM > GET_THERE_M ? 'drive' : 'walk');
+
 const fix6 = (n: number) => n.toFixed(6);
 
 /** The links to try, in order: the first that opens wins. */
-export function mapsUrls(at: LngLat, label: string, target: MapsTarget): string[] {
+export function mapsUrls(at: LngLat, label: string, target: MapsTarget, mode: TravelMode = 'walk'): string[] {
   const ll = `${fix6(at[1])},${fix6(at[0])}`;
-  const google = `https://www.google.com/maps/dir/?api=1&destination=${ll}&travelmode=walking`;
-  if (target === 'appleApp') return [`maps://?daddr=${ll}&dirflg=w`];
-  if (target === 'apple') return [`https://maps.apple.com/?daddr=${ll}&dirflg=w`];
+  const google = `https://www.google.com/maps/dir/?api=1&destination=${ll}&travelmode=${mode === 'drive' ? 'driving' : 'walking'}`;
+  const flag = mode === 'drive' ? 'd' : 'w';
+  if (target === 'appleApp') return [`maps://?daddr=${ll}&dirflg=${flag}`];
+  if (target === 'apple') return [`https://maps.apple.com/?daddr=${ll}&dirflg=${flag}`];
   if (target === 'google') return [google];
   // geo: shows the pin in whichever maps app the walker picks; the label in
   // brackets ends at the first ")", so its own brackets are squared.

@@ -15,11 +15,11 @@ Deriving streets from tiles, the fog, snapping a walk to streets, tile builds an
 
 - **The fog** is the named and unnamed streets within 1 km by real distance that no walk credited.
   Pieces along this walk's trace (20 m) are left out of the fog until stop credits them. The
-  "Unwalked streets near me" button that counted and bolded them went (decision 0219).
+  "Unwalked streets near me" button that counted and bolded them went (decision 0220).
 - **The trace is green, on a white edge, and the fog is quiet** (the owner's
   call, Nov 1, after a scan's read filled a phone's walk map with grey). Fog is
   `FOG_STYLE`: 50% opacity, 1–2.5 px, narrower than the 4.5 px trace. It is never
-  bold (decision 0219: no `fogEmphasis`). `colors.test.ts` checks the
+  bold (decision 0220: no `fogEmphasis`). `colors.test.ts` checks the
   hues and contrasts.
   Since decision 0188 it holds the hotspot magenta by distance (CIEDE2000, 15 or
   more from every map colour, MP8), not by 20° of hue; the trace keeps its 25°.

@@ -35,7 +35,7 @@ apart from it (decision 0167).
 For each picture:
 
 1. **The user's goal.** Say in one line what the person is trying to do on this screen, how often, and in what
-   situation (walking, one-handed, outdoors, at home looking back).
+   situation (on foot, one-handed, outdoors; in a vehicle, at a glance or as a passenger; at home looking back).
 2. **Each control.** Name it, its intent, and the control the matrix calls for that intent. A mismatch (a row of
    buttons for a choice of kinds, a primary action in a menu, a destructive action with no confirm or Undo, an
    icon-only button with no spoken name) is a finding.
