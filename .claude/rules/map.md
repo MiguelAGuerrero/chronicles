@@ -65,3 +65,7 @@ The map component (maplibre-gl on web, MapLibre RN on native), the reactivity bu
 ## Explore's dots (WT12-WT14, decision 0132)
 
 - `waitingDots` is one `waiting-dots` circle layer (`WAITING_DOT_PAINT`, `waitingDotsGeoJSON` in `map/types.ts`), under the `marks` layer, on both maps: a feature's only property is its colour, so a dot carries no name, number, icon or id. Its edge is `WAITING_DOT_EDGE` (dark, 3:1 or more on the base map, a ring and a town's tint; `whole-towns audit 18` holds it). The web writes `data-waiting-dots` (positions only) for the e2e. A tap on a dot is the map's own `onPress` (no layer tap handler): the screen finds the dot within the press's reach (`dotAt`). Native's layer is unverified on a device.
+
+## Distances in words (`lib/format.ts`)
+
+- `formatDistance` and `formatRange` bind the figure to its unit with a no-break space (U+00A0, tend map 21), so no line ends on "175" with "m" on the next; a line that builds a distance itself binds it too, or better calls `formatDistance`, which also follows the units setting (tend map audits 44-46). A no-break space is fine in a spoken string (`accessibilityLabel`, `announceForAccessibility`, `accessibilityValue.text`): a screen reader says it as a space, so a spoken line keeps the formatter's words, not a plain-space copy (tend map audit 47; VoiceOver and TalkBack unverified on a device).

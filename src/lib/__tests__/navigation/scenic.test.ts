@@ -69,7 +69,7 @@ test('SR2: scenic applies to Go here within 5 km with a leaning on; SR9 says why
   assert.deepEqual(scenicPlan(dest('point', at(10, 0)), from, []), { scenic: false, notice: null }, 'all off: as before, no notice');
   const tooFar = at(SCENIC.maxM / 100 + 1, 0);
   assert.ok(distanceM(from, tooFar) > SCENIC.maxM);
-  assert.deepEqual(scenicPlan(dest('place', tooFar), from, ['green']), { scenic: false, notice: 'Scenic routes reach 5 km' });
+  assert.deepEqual(scenicPlan(dest('place', tooFar), from, ['green']), { scenic: false, notice: 'Scenic routes reach 5\u00a0km' });
 });
 
 test('SR12: Walk me back gets no options and no notice', () => {
@@ -236,4 +236,12 @@ test('SF8: a storefronts route names its streets in the order you pass them, nev
   const row = o.find((x) => (x.leanings as string[]).includes('storefronts'));
   assert.ok(row, 'a storefronts route');
   assert.deepEqual(row.passes.streets, ['Near Lane', 'Far Lane']);
+});
+
+// tend map audit 46 (the review of tend map 21, F4): the "too far" notice bound its distance in miles (formatDistance)
+// but built "5 km" itself with a plain space. Both units now keep the figure on its unit's line.
+test('tend map audit 46: the scenic notice binds its distance in both units', () => {
+  const tooFar: Waypoint = { at: at(SCENIC.maxM / 100 + 1, 0), label: 'Your spot', kind: 'place' };
+  assert.deepEqual(scenicPlan(tooFar, from, ['green'], 'km'), { scenic: false, notice: 'Scenic routes reach 5\u00a0km' });
+  assert.deepEqual(scenicPlan(tooFar, from, ['green'], 'mi'), { scenic: false, notice: 'Scenic routes reach 3.1\u00a0mi' });
 });

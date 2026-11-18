@@ -139,6 +139,10 @@ async function checks(h) {
     await page.waitForTimeout(500);
     check((await page.locator('[data-testid=options-card] [data-testid=range-slider]').count()) === 1, 'the range and what I’m into are in the walk\'s drawer');
     check(/^100[ \u00a0]m$/.test(await page.locator('[data-testid=range-value]').innerText()) && (await ringNow()) === '100', 'the range is 100 m by default, drawn as a ring on the walk map while settings are open');
+    // tend map audit 43 (the review of tend map 21, F1): the other checks accept either space; this one holds that the
+    // no-break space formatRange gives reaches the page, so the figure never ends a line apart from its unit.
+    const rangeText = await page.locator('[data-testid=range-value]').evaluate((el) => el.textContent);
+    check(rangeText === '100\u00a0m', `tend map audit 43: a distance on the page holds U+00A0 between its figure and unit (${JSON.stringify(rangeText)})`);
     await page.click('[data-testid=range-plus]');
     await page.waitForTimeout(300);
     check(/^120[ \u00a0]m$/.test(await page.locator('[data-testid=range-value]').innerText()) && (await ringNow()) === '120', 'the ring redraws as the range changes');

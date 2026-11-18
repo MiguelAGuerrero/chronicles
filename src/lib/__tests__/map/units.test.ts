@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { formatDistance, formatDistanceNear, formatRange } from '../../format';
 import { metersPerPixel } from '../../pins';
+import { recordingLine } from '../../recordingBar';
 import { scaleBar } from '../../scaleBar';
 import { getUnits, onUnits, setUnits, unitsForLocale } from '../../units';
 
@@ -171,5 +172,19 @@ test('tend map 21: a distance keeps its number and unit together with a no-break
   for (const [text, figure, unit] of said) {
     assert.equal(text, `${figure}\u00a0${unit}`, `"${text}" binds ${figure} to ${unit}`);
     assert.ok(!/ /.test(text), `no plain space left to break at in "${text}"`);
+  }
+});
+
+// tend map audit 47 (the review of tend map 21, F5): a spoken line keeps the no-break space formatDistance gives (a
+// screen reader says it as a space), so the bar's label is exactly the formatter's words, not a plain-space copy.
+test('tend map audit 47: a spoken distance says exactly what formatDistance says', () => {
+  const was = getUnits();
+  try {
+    setUnits('km');
+    const r = recordingLine({ startedAt: 0, pauses: [], now: 125_000, distanceM: 340 });
+    assert.equal(r.label, 'Walk recording, 340\u00a0m walked in 2 min. Return to the walk');
+    assert.ok(r.label.includes(formatDistance(340, 'km')));
+  } finally {
+    setUnits(was);
   }
 });
