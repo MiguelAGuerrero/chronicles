@@ -70,6 +70,8 @@ import type { LngLat, Pause, StreetSegment, Walk } from '../lib/types';
 import { useCaptures } from '../lib/useCaptures';
 import { momentPill } from '../lib/momentPill';
 import { useStore } from '../lib/useStore';
+import { routeLeanings } from '../lib/routeLeanings';
+import { whileFocused } from '../lib/openers';
 import { AddToMomentPill } from '../components/walk/AddToMomentPill';
 import { walkScreenShown } from '../lib/walkNav';
 import { askMotion, useMotionAccess } from '../lib/walkMotion';
@@ -439,6 +441,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
   // The viewer's Add to this moment (MS12), run here where the camera, the mic and the note are; on a walk only
   // (the ready screen's capture row runs its own).
   const asked = useStore(momentPill.store, (st) => st.ask?.seq ?? 0);
+  // Scenic routes' Sights read What I'm into's kinds too: its row shows with Sights on (what-im-into-page audit 6).
+  const sightsOn = useStore(routeLeanings.store, (s) => s.includes('sights'));
   const onAsk = useRef<(kind: 'photo' | 'voice' | 'text') => void>(() => {});
   useEffect(() => {
     onAsk.current = (kind) => {
@@ -600,7 +604,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
   }, []);
   // The spot card (and the options card) goes once you walk on, or with Back (Android) and Escape (web).
   useEffect(() => {
-    if (!spot && !memory) return;
+    // Only while in front: under What I'm into's page, Back and Escape are the page's (what-im-into-page audit 1).
+    if ((!spot && !memory) || !screenFocused) return;
     const close = () => {
       setSpot(null);
       setMemory(null);
@@ -617,7 +622,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
       back.remove();
       if (Platform.OS === 'web' && typeof window !== 'undefined') window.removeEventListener('keydown', onKey);
     };
-  }, [spot, memory]);
+  }, [spot, memory, screenFocused]);
   useEffect(() => {
     if (!spot?.from || !live.here || distanceM(spot.from, live.here) < 30) return;
     const t = setTimeout(() => setSpot(null), 0);
@@ -673,7 +678,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const routePreview = navigation.preview;
   const dismissPreview = navigation.dismiss;
   useEffect(() => {
-    if (!routePreview) return;
+    if (!routePreview || !screenFocused) return;
     const back = BackHandler.addEventListener('hardwareBackPress', () => {
       dismissPreview();
       return true;
@@ -684,7 +689,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
       back.remove();
       if (Platform.OS === 'web' && typeof window !== 'undefined') window.removeEventListener('keydown', onKey);
     };
-  }, [routePreview, dismissPreview]);
+  }, [routePreview, dismissPreview, screenFocused]);
   /**
    * Open in Maps (NH3-NH8): the destination to the phone's maps app, straight from the tap (a
    * browser opens a window only from one). Navigation and the walk go on as they were (NH7).
@@ -881,12 +886,15 @@ function WalkScreen(props: { onMinimize: () => void }) {
   useEffect(() => {
     if (!walk) return;
     let alive = true;
-    // A reminder tapped while this screen is in front opens here at once (audit 1).
-    const off = onRecallOpen((found) => {
-      setAutoPlay(true);
-      setViewing(found);
-      return true;
-    });
+    // A reminder tapped while this screen is in front opens here at once (audit 1); under What I'm into's page it is
+    // kept, and taken once the walk is in front again (what-im-into-page audit 9).
+    const inFront = () => routeNav.isFocused();
+    const off = onRecallOpen(
+      whileFocused(inFront, (found) => {
+        setAutoPlay(true);
+        setViewing(found);
+      }),
+    );
     const take = () =>
       takeRecallOpen()
         .then((found) => {
@@ -895,15 +903,18 @@ function WalkScreen(props: { onMinimize: () => void }) {
           setViewing(found);
         })
         .catch(() => {});
-    void take();
+    // Taken in front only: the effect runs again as the walk comes back from under the page.
+    if (screenFocused) void take();
     // Kept while this screen was mounting (a cold open now shows the walk sooner, NR3): taken as it lands.
-    const offWaiting = onRecallWaiting(() => void take());
+    const offWaiting = onRecallWaiting(() => {
+      if (inFront()) void take();
+    });
     return () => {
       alive = false;
       off();
       offWaiting();
     };
-  }, [walk, params.recall, resumed]);
+  }, [walk, params.recall, resumed, screenFocused, routeNav]);
   // This walk explores only once switched on (E1); otherwise it is quiet: navigation and captures (E9).
   useEffect(() => {
     if (!walk) return;
@@ -1704,12 +1715,14 @@ function WalkScreen(props: { onMinimize: () => void }) {
               <Icon name="share-outline" size={20} color={theme.ink} />
               <Text style={[styles.optionLabel, { flex: 1 }]}>Share GPS log</Text>
             </Pressable>
-            {exploring && (
+            {(exploring || sightsOn) && (
               // WI1, WI19: What I'm into lasts beyond this walk, so its row is a short section of its own after the walk's
-              // settings, out from under "This walk" (the owner, Nov 18); the kinds and Complexes are on its page (0192).
+              // settings, out from under "This walk" (the owner, Nov 18), headed "Explore" (audit 13); the kinds and
+              // Complexes are on its page (0192). Scenic routes' Sights read the kinds too, so it shows with either on
+              // (audit 6, the owner, Nov 18).
               <>
                 <View style={styles.rule} />
-                <Text style={styles.spotTitle} accessibilityRole="header">Every walk</Text>
+                <Text style={styles.spotTitle} accessibilityRole="header">Explore</Text>
                 <IntoRow from="walk" />
               </>
             )}

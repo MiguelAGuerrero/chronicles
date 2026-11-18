@@ -22,8 +22,8 @@ type IntoPage = {
   intoChildren: (sections: Section[], complexes: readonly ComplexKind[]) => { children: Child[]; sticky: number[] };
   intoPin: (children: readonly Child[], heights: readonly number[], scrollY: number, headingH: number) => Pin;
   offLine: (kind: Kind, hidden: ReadonlySet<Kind>) => string | null;
-  OFF_LINE_MAX: number;
-  intoBack: (from: string | undefined) => { title: string; spoken: string } | null;
+  CHANGED_LINE: string;
+  intoBack: (from: string | undefined, walkOpen: boolean) => { title: string; spoken: string } | null;
   intoMeasures: (width: number, fontScale: number) => Measures;
   COMPLEX_ICON: Record<ComplexKind, string>;
 };
@@ -87,27 +87,32 @@ test('WI22: the incoming heading pushes the pinned one out', async () => {
   }
 });
 
-test('WI18: a kind with some subtypes off names them, in words, on one short line', async () => {
-  const { offLine, OFF_LINE_MAX, intoSections } = await page();
-  assert.equal(offLine('curiosities', new Set<Kind>(['ghost_towns'])), 'Ghost towns off');
-  assert.equal(offLine('monuments', new Set<Kind>(['plaques', 'small_memorials'])), 'Plaques and Small memorials off');
+test('WI18: a kind with some subtypes changed from their default names them, in words, on one short line', async () => {
+  const { offLine, CHANGED_LINE, intoSections } = await page();
+  const defaults = new Set<Kind>(DEFAULT_OFF);
+  // Only the reader's changes, either way (the owner, Nov 18, "Only your changes"; audit 7).
+  assert.equal(offLine('curiosities', new Set<Kind>([...defaults].filter((k) => k !== 'ghost_towns'))), 'Ghost towns on');
+  assert.equal(offLine('nature', new Set<Kind>([...defaults, 'waterfalls'])), 'Waterfalls off');
   for (const p of PARENTS) {
     const kids = kidsOf(p.id).map((k) => k.id);
-    assert.equal(offLine(p.id, new Set()), null, `${p.id}: all on, no line`);
-    assert.equal(offLine(p.id, new Set<Kind>([p.id, kids[0]])), null, `${p.id} off: no line`);
-    // Any set of its subtypes off: a line of names, or "Some of these off", never a number, never too long.
+    assert.equal(offLine(p.id, defaults), null, `${p.id}: as installed, no line`);
+    assert.equal(offLine(p.id, new Set<Kind>([p.id, ...kids])), null, `${p.id} off: no line`);
+    // Any set of its subtypes switched: a line of names, or the fallback, never a number.
     for (let n = 1; n <= kids.length; n++) {
-      const line = offLine(p.id, new Set(kids.slice(0, n)));
-      assert.ok(line && /off$/.test(line) && !/\d/.test(line) && line.length <= OFF_LINE_MAX, `${p.id}, ${n} off: "${line}"`);
-      if (line !== 'Some of these off') for (const k of kids.slice(0, n)) assert.ok(line.includes(kindOf(k).label), `${line} names ${k}`);
+      const flipped = new Set<Kind>(defaults);
+      for (const k of kids.slice(0, n)) if (flipped.has(k)) flipped.delete(k);
+      else flipped.add(k);
+      const line = offLine(p.id, flipped);
+      assert.ok(line && !/\d/.test(line), `${p.id}, ${n} changed: "${line}"`);
+      if (line !== CHANGED_LINE) for (const k of kids.slice(0, n)) assert.ok(line.toLowerCase().includes(kindOf(k).label.toLowerCase()), `${line} names ${k}`);
     }
   }
   // A row with no subtypes of its own (a subtype) says nothing.
   for (const k of KINDS.filter((k) => !kidsOf(k.id).length)) assert.equal(offLine(k.id, new Set(DEFAULT_OFF)), null, `${k.id} has no subtypes`);
   // The row carries it, as its note and in what a screen reader hears.
-  const curio = intoSections(KINDS, new Set<Kind>(['ghost_towns'])).flatMap((s) => s.rows).find((r) => r.id === 'curiosities')!;
-  assert.equal(curio.note, 'Ghost towns off');
-  assert.ok(curio.hint?.includes('Ghost towns off'));
+  const curio = intoSections(KINDS, new Set<Kind>([...defaults].filter((k) => k !== 'ghost_towns'))).flatMap((s) => s.rows).find((r) => r.id === 'curiosities')!;
+  assert.equal(curio.note, 'Ghost towns on');
+  assert.ok(curio.hint?.includes('Ghost towns on'));
 });
 
 test('WI19: the walk\'s drawer draws the row after the walk\'s settings, under a heading of its own', () => {
@@ -115,14 +120,15 @@ test('WI19: the walk\'s drawer draws the row after the walk\'s settings, under a
   const row = text.indexOf('<IntoRow');
   assert.ok(row > text.indexOf('testID="share-gps-log"'), 'after the walk\'s settings');
   const heads = [...text.slice(0, row).matchAll(/accessibilityRole="header">([^<]+)</g)].map((m) => m[1]);
-  assert.equal(heads[heads.length - 1], 'Every walk');
+  // "Explore" (the owner, Nov 18; audit 13).
+  assert.equal(heads[heads.length - 1], 'Explore');
 });
 
 test('WI20: Back reads "Walk" when the page came from the walk\'s drawer, and only then', async () => {
   const { intoBack } = await page();
-  assert.deepEqual(intoBack('walk'), { title: 'Walk', spoken: 'Walk, back' });
-  assert.equal(intoBack('ready'), null);
-  assert.equal(intoBack(undefined), null);
+  assert.deepEqual(intoBack('walk', true), { title: 'Walk', spoken: 'Walk, back' });
+  assert.equal(intoBack('ready', true), null);
+  assert.equal(intoBack(undefined, true), null);
 });
 
 test('WI21: at large text the indent, the gutter and the margins shrink so a label gets the width', async () => {

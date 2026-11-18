@@ -15,6 +15,24 @@ Precedent: iOS Settings, Notifications (a row per app opens that app's page of s
 Criteria: WI1-WI16 (WI12 carries the Never lines on counts; WI10 the walk going on under the page).
 Open: none for the gate; the plan's questions (Complexes, how the page is presented, a kind row's weight) were answered by the owner on Nov 18.
 
+### Vision addendum: the review and the audit (Nov 18)
+
+The gate ran before WI1-WI16; the review's calls (WI17-WI20) and the audit's (WI1, WI18, WI19 amended) are judged here
+against the same lines (the steward's S2).
+Verb: earn, still: each call helps the walker find and read their own choices; none tells them what to notice.
+Never lines touched: "Tallies such as '12 of 87' or '40%'" and "Scores, … completion, coverage" by WI18's line (names
+only, never a count; its fallback, "Changed from the usual", carries none, and says nothing about how many); none by
+WI17 (the kind's name), WI19 (a heading) or WI20 (Back's word). Always, "Restraint in motion, colour and copy": the
+line is muted and only for the reader's own changes, so a fresh install shows none (audit 7); the gap above a kind row is
+8 pt (audit 16).
+Precedent: WI18's line: iOS Settings, Notifications, whose list says under each app how it is set ("Deliver Quietly",
+"Off"), in words (from memory, unverified). WI20's Back: iOS's navigation bar, whose back button carries the previous
+screen's title and drops it with no room (from memory, unverified). WI17: iOS Contacts' pinned letters (from memory,
+unverified). WI19 and audit 6 (the row with Sights): Android's app notification page, whose groups gather what is set
+for every use of the app under one heading (developer.android.com, verified Nov 18). Recorded in
+`docs/research/adjacent-apps.md`, "Choose what you are shown".
+Verdict: aligned.
+
 ## How adjacent apps do it
 
 From `docs/research/adjacent-apps.md`, "Choose what you are shown: a long list of switches" (recorded Nov 18):
@@ -74,14 +92,22 @@ keep one row, and the list moves, whole, to a page reached from both.
   4. **Back names the walk**: opened from the walk's drawer, Back reads "Walk", the arrow and the word, with its
      spoken name; from the ready bar it stays as it is (WI20).
 - **Not changing:** Amusement parks under Zoos and aquariums (the owner's call of Nov 18, the more-attractions audit).
+- **The audit's three calls** (the owner, Nov 18):
+  1. **"Row shows with Sights too"** (audit 6): scenic routes' Sights read the kinds too, so the "What I'm into" row
+     shows in both drawers whenever Explore or Sights is on (WI1 amended).
+  2. **"Only your changes"** (audit 7; the steward's S1, S3): the line under a kind row names only the subtypes whose
+     switch differs from its default, in either direction ("Ghost towns on", "Waterfalls off", "Old trees on, waterfalls
+     off"); a fresh install shows none; where the names don't fit, "Changed from the usual", with no count (WI18
+     amended).
+  3. **The walk drawer's heading reads "Explore"** (audit 13; the steward's S4), not "Every walk" (WI19 amended).
 
 ## Criteria
 
 The owner's task, in their words: "turn a kind on or off in What I'm into, from the ready bar or from the walk".
 
-- **WI1** (the task): in the ready bar's settings with Explore chosen, and in the walk's drawer with Explore on,
-  "What I'm into" is one row, its words and a chevron, where the list was; a tap anywhere on the row opens the page;
-  neither drawer holds a kind's switch any more.
+- **WI1** (the task): in the ready bar's settings and in the walk's drawer, whenever Explore or scenic routes' Sights
+  is on (both read the kinds; the owner, Nov 18, audit 6), "What I'm into" is one row, its words and a chevron, where
+  the list was; a tap anywhere on the row opens the page; neither drawer holds a kind's switch any more.
 - **WI2** (finding): someone told only "turn off ghost towns", shown the ready bar pulled up with Explore chosen, finds
   the row (ink, the words "What I'm into", a chevron, a row of at least 44 pt), and on the page finds Ghost towns
   under the pinned heading "Viewpoints & oddities", under Curiosities (the cold find, decision 0167); the same told
@@ -130,15 +156,19 @@ local fixes):
   the web and on a phone: one pinned level is all the platforms' sticky headers carry, so the second is the heading's
   words, changing as the page scrolls. The heading's height never changes with it, and a screen reader hears the
   heading by its category alone. (The owner's call 1.)
-- **WI18** a kind row whose subtypes are partly off says which, on a quiet, muted line under its label: "Ghost towns
-  off", "Plaques and Small memorials off", names only and never a count; one line at 320 px at the default text size,
-  and where the names would not fit, "Some of these off". No line while all its subtypes are on, or while the kind
-  itself is off (its subtypes are hidden then). A screen reader hears it with the row. (The owner's call 2.)
+- **WI18** a kind row whose subtypes are switched from their defaults says which, on a quiet, muted line under its
+  label: only those whose switch differs from its default, either way, "Ghost towns on", "Waterfalls off", "Old trees
+  on, waterfalls off", with no capital mid-sentence; names only and never a count; one line at 320 px at the default
+  text size, and where the names would not fit, "Changed from the usual". No line as installed, or while the kind
+  itself is off (its subtypes are hidden then). A screen reader hears it with the row. (The owner's call 2; amended by
+  the owner's "Only your changes", Nov 18, audit 7.)
 - **WI19** in the walk's drawer, the "What I'm into" row is out from under "This walk": a short section of its own,
-  below the walk's settings, after a rule and under the heading "Every walk", with Explore on. The ready bar's row stays
-  where it is, under "Walk settings", which claims no walk of its own. (The owner's call 3.)
+  below the walk's settings, after a rule and under the heading "Explore", with Explore or Sights on. The ready bar's row
+  stays where it is, under "Walk settings", which claims no walk of its own. (The owner's call 3; the heading "Explore"
+  is the owner's call of Nov 18, audit 13.)
 - **WI20** opened from the walk's drawer during a walk, the page's Back reads "Walk", its arrow and the word, and is
-  spoken as "Walk, back"; opened from the ready bar it stays as it was (the arrow, "Go back"). At large text, where the
+  spoken as "Walk, back"; opened from the ready bar, or by a link with no walk open, it stays as it was (the arrow, "Go
+  back"). The word is the walk screen's own name (`WALK_NAME`). At large text, where the
   word would squeeze the title to nothing, the arrow shows alone, still spoken "Walk, back", as iOS drops a back title
   with no room. (The owner's call 4.)
 - **WI21** at 200% text a label wraps only between words, a wrapped row stands clear of the next, and at large text
@@ -194,8 +224,8 @@ local fixes):
   on Nov 18, below. The pictures are
   the `into` journey's `into-*` shots; WI2's own check (ink, words, chevron, 48 pt; the page's rows findable) passes.
 - **Known:** a reminder that fires while the page is up on a walk finds no place in front (the walk screen is not
-  focused and the recording bar is over the tabs only), so on the web it goes to a notification, as under a replay or a
-  day over the tabs (`.claude/rules/explore-marks.md`, "Remind me here"). Left for the owner; not filed.
+  focused), so it waits until the walk is in front again, as a handed-on one does (tend explore 24,
+  `.claude/rules/explore-marks.md`, "Remind me here"); one tapped under the page opens once the walk is back (audit 9).
 - **Not audited** (`/audit` is the owner's to ask). Native has never run on a device: five items in
   `docs/NATIVE_UNVERIFIED.md`, "Navigation and tabs".
 
@@ -221,3 +251,48 @@ local fixes):
 - **Passed:** WI17-WI25 by `src/lib/__tests__/explore/intoReview.test.ts` (WI17-WI23) and the `into` journey (WI17-WI25),
   `subtypes` (WI25). Native has never run on a device: two more items in `docs/NATIVE_UNVERIFIED.md`, "Navigation and
   tabs" (the heading's second line, Back's "Walk").
+
+## Audit (Nov 18)
+
+The adversarial pass (the auditor A1-A12, the steward S1-S5, the cold find), triaged by the owner's calls of Nov 18.
+
+1. Android Back and Escape under the page lowered a hidden Chronicle sheet: accept, the sheet's keys gated on focus as
+   ReadyBar's are (`SheetFrame`), and GapCard's and the walk's spot card and route preview too.
+2. Complexes' switches drew before their setting was read, and two quick taps kept one: accept, nothing drawn before
+   the read, each tap built on the latest (`createKindSwitches`).
+3. A double tap on the row pushed the page twice and left the detour flag stale: accept, `openInto` gated as
+   `walkGate` is, and a detour counts only on the blur that follows its push (`createIntoNav`).
+4. The web dropped the row's "Opens its page" and a subtype's "Part of <kind>": accept, both carried by
+   `aria-describedby` from a hidden copy.
+5. Back from the page, the ready screen could save its stale kinds with a range change: accept, `useReady` hears
+   `onSettings`.
+6. The row hid with Explore off though Sights reads the kinds: accept, the owner's call ("Row shows with Sights too");
+   WI1 amended.
+7. The off line named defaults as changes and capitalised mid-sentence; its length test could not fail: accept, the
+   owner's call ("Only your changes"); WI18 amended, the test replaced by one that can fail.
+8. WI20's spoken "Walk, back" was computed but never set: accept, `intoHeader` passes the back title where iOS and the
+   web speak it, and on Android the route draws its own Back with the spoken name (native-stack has no option for it).
+9. A reminder tapped under the page opened unseen: accept, the walk's opener declines while unfocused and takes it
+   once in front (`whileFocused`).
+10. `/into?from=walk` with no walk open read "Walk": accept, `intoBack` reads the open walk.
+11. A failed settings read left a blank page: accept, a quiet line in words (`INTO_UNREAD`); Back works.
+12. Pictures: a blank band above "Art" at 200%, the pushed heading's hairline on the incoming one, and
+    `complexes-settings-all` taken mid-scroll: accept, each heading as tall as its own lines (`intoHeadingH`), no
+    hairline while pushed, the picture after `intoSettled`.
+13. The walk drawer's heading: accept, the owner's call, "Explore"; WI19 amended.
+14. Back's word was a literal: accept, `WALK_NAME`, also the walk route's title.
+15. The gate's addendum for WI17-WI20 and the audit's calls: accept, the Vision addendum above and two precedents in
+    `docs/research/adjacent-apps.md` (docs, no test).
+16. No gap above a kind row after a subtype: accept, 8 pt above it (`INTO_KIND_GAP`).
+17. At 390 x 844 the Complexes heading never pins, the page ending first: defer, [loop] (DEFERRED, "What I'm into").
+18. The walk drawer's row sits far down, below Motion and Share GPS log: defer, the drawer's own order, [loop].
+19. WI1 and WI19's tests are regexes over the source: defer, a render-level check when one exists, [loop].
+20. "Amusement parks under Zoos is unexpected" (the cold find): reject, the owner's call of Nov 18.
+21. Off switches faint: reject, already deferred as explore-subtypes audit 19.
+22. Screens outside the slice ("4 unwalked nearby" in digits, the area card's dots, the 320 px route strip, stacked
+    toasts): reject, out of the slice; each checked against `docs/DEFERRED.md` and filed there where it was not.
+
+22 findings, 16 fixed, 3 deferred, 3 rejected (2026-11-18). Tests: `src/lib/__tests__/explore/intoAudit.test.ts`
+(`what-im-into-page audit 2`, `3`, `7`, `8`, `9`, `10`, `11`, `12`, `14`, `16`), the `into` journey (`what-im-into-page
+audit 1`, `4`, `5`, `6`, `7`, `12`, `13`, `16`) and the `complexes` journey (`what-im-into-page audit 12`); 15 is docs.
+Native has never run on a device: five more items in `docs/NATIVE_UNVERIFIED.md`, "Navigation and tabs".

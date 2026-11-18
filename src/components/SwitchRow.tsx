@@ -25,31 +25,39 @@ export function SwitchRow(props: {
   gap?: number;
   onChange: (on: boolean) => void;
 }) {
-  // The note is heard with the row: the hint on a phone, a description on the web, which has no hint (WI18).
+  // The note is heard with the row: the hint on a phone, a description on the web, which has no hint (WI18). A hint
+  // beyond the note ("Part of Nature") is a description too, from a hidden copy (what-im-into-page audit 4).
+  const web = Platform.OS === 'web';
   const noteId = props.note && props.testID ? `${props.testID}-note` : undefined;
-  const described = Platform.OS === 'web' && noteId ? ({ 'aria-describedby': noteId } as object) : {};
+  const hintId = web && props.hint && props.hint !== props.note && props.testID ? `${props.testID}-hint` : undefined;
+  const describedBy = hintId ?? noteId;
+  const described = web && describedBy ? ({ 'aria-describedby': describedBy } as object) : {};
   return (
-    <Pressable
-      testID={props.testID}
-      accessibilityRole="switch"
-      accessibilityLabel={props.label}
-      accessibilityHint={props.hint ?? props.note}
-      accessibilityState={{ checked: props.value, disabled: !!props.disabled }}
-      aria-checked={props.value}
-      disabled={props.disabled}
-      {...described}
-      onPress={() => !props.disabled && props.onChange(!props.value)}
-      style={({ pressed }) => [styles.row, pressed && !props.disabled && styles.rowPressed, props.disabled && styles.rowDisabled, !!props.indent && { marginLeft: props.indent * (props.indentStep ?? 28) }, props.gap != null && { gap: props.gap }]}
-    >
-      {props.icon && <Icon name={props.icon} size={20} color={theme.ink} />}
-      <View style={styles.rowText} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
-        <Text style={[styles.rowLabel, props.heavy && styles.rowLabelHeavy]}>{props.label}</Text>
-        {props.note ? <Text testID={noteId} nativeID={noteId} style={styles.sub}>{props.note}</Text> : null}
-      </View>
-      <View pointerEvents="none" importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
-        <Switch value={props.value} tabIndex={-1} />
-      </View>
-    </Pressable>
+    <>
+      <Pressable
+        testID={props.testID}
+        accessibilityRole="switch"
+        accessibilityLabel={props.label}
+        accessibilityHint={props.hint ?? props.note}
+        accessibilityState={{ checked: props.value, disabled: !!props.disabled }}
+        aria-checked={props.value}
+        disabled={props.disabled}
+        {...described}
+        onPress={() => !props.disabled && props.onChange(!props.value)}
+        style={({ pressed }) => [styles.row, pressed && !props.disabled && styles.rowPressed, props.disabled && styles.rowDisabled, !!props.indent && { marginLeft: props.indent * (props.indentStep ?? 28) }, props.gap != null && { gap: props.gap }]}
+      >
+        {props.icon && <Icon name={props.icon} size={20} color={theme.ink} />}
+        <View style={styles.rowText} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+          <Text style={[styles.rowLabel, props.heavy && styles.rowLabelHeavy]}>{props.label}</Text>
+          {props.note ? <Text testID={noteId} nativeID={noteId} style={styles.sub}>{props.note}</Text> : null}
+        </View>
+        <View pointerEvents="none" importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+          <Switch value={props.value} tabIndex={-1} />
+        </View>
+      </Pressable>
+      {/* Outside the row, so it never takes a place in it. */}
+      {hintId ? <Text nativeID={hintId} style={styles.unseen}>{props.hint}</Text> : null}
+    </>
   );
 }
 
@@ -62,4 +70,5 @@ const styles = StyleSheet.create({
   rowLabel: { fontSize: 15, fontWeight: '400', color: theme.ink },
   rowLabelHeavy: { fontWeight: '600' },
   sub: { fontSize: 13, color: theme.muted },
+  unseen: { display: 'none' },
 });

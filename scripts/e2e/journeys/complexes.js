@@ -4,7 +4,7 @@
 // switching Shopping off in the settings takes it off the card. E2E_ONLY=complexes runs it alone.
 
 async function run(h) {
-  const { exploreUrl, navUrl, at, check, shot, freshPage, areaTile, complexWorld, drawerTo, openInto, closeInto, overtureAsked, OVERTURE_RELEASE } = h;
+  const { exploreUrl, navUrl, at, check, shot, freshPage, areaTile, complexWorld, drawerTo, openInto, closeInto, intoScrollTo, intoSettled, overtureAsked, OVERTURE_RELEASE } = h;
   complexWorld.serve = true;
   const { c, pg } = await freshPage('complexes');
   const setMeta = (k, v) => pg.evaluate(([key, value]) => new Promise((resolve) => {
@@ -62,8 +62,10 @@ async function run(h) {
     await row.click();
     await pg.waitForTimeout(500);
     await shot(pg, 'complexes-settings');
-    await pg.locator('[data-testid=into-page] [data-testid=complex-kind-civic]').scrollIntoViewIfNeeded().catch(() => {});
-    await pg.waitForTimeout(300);
+    // what-im-into-page audit 12: the picture once caught rows mid-scroll; taken once the scroll is at rest (WI25).
+    await intoScrollTo(pg, 'complex-kind-civic');
+    const unsettled = await intoSettled(pg);
+    check(unsettled.length === 0, `what-im-into-page audit 12: complexes-settings-all is of settled rows, each with its switch (${JSON.stringify(unsettled)})`);
     await shot(pg, 'complexes-settings-all');
     await closeInto(pg);
     await openFoxPoint();

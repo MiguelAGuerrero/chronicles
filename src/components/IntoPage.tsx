@@ -5,7 +5,7 @@ import { COMPLEX_NOTE, switchLabel } from '../lib/complexes/kinds';
 import { COMPLEX_KINDS } from '../lib/complexes/types';
 import { useHiddenKinds } from '../lib/complexes/useComplexes';
 import { KINDS } from '../lib/explore/explore';
-import { COMPLEX_ICON, INTO_TITLE, intoChildren, intoMeasures, intoPin, intoSections, type IntoChild, type IntoMeasures, type IntoPin } from '../lib/explore/intoPage';
+import { COMPLEX_ICON, INTO_KIND_GAP, INTO_TITLE, INTO_UNREAD, intoBody, intoChildren, intoHeadingH, intoMeasures, intoPin, intoSections, type IntoChild, type IntoMeasures, type IntoPin } from '../lib/explore/intoPage';
 import { useExploreSettings } from '../lib/explore/useExploreSettings';
 import { focusOn } from '../lib/focus';
 import { createStore, type Store } from '../lib/store';
@@ -45,7 +45,7 @@ export function IntoTitle() {
  */
 /** `onWidth`: the page's own width, so the route can fit its header to it (WI21). */
 export function IntoPage(props: { onWidth?: (width: number) => void }) {
-  const { settings, setKind } = useExploreSettings();
+  const { settings, failed, setKind } = useExploreSettings();
   const complexes = useHiddenKinds();
   const insets = useSafeAreaInsets();
   const win = useWindowDimensions();
@@ -53,19 +53,23 @@ export function IntoPage(props: { onWidth?: (width: number) => void }) {
   const [pin] = useState(() => createStore<IntoPin>({ at: 0, push: 0, stuck: false, kind: null }));
   const heights = useRef(new Map<string, number>());
   const scrollY = useRef(0);
-  const laid = useRef<{ children: IntoChild[]; m: IntoMeasures } | null>(null);
+  const laid = useRef<{ children: IntoChild[]; m: IntoMeasures; w: number; scale: number } | null>(null);
   const m = intoMeasures(width ?? win.width, win.fontScale);
-  const built = settings ? intoChildren(intoSections(KINDS, settings.hidden), COMPLEX_KINDS) : null;
+  // Complexes' switches only once their setting is read (audit 2): before, a tap would save over it.
+  const built = settings ? intoChildren(intoSections(KINDS, settings.hidden), complexes.loaded ? COMPLEX_KINDS : []) : null;
+  const pageW = width ?? win.width;
+  // Each heading as tall as its own lines (audit 12).
+  const headH = (label: string) => intoHeadingH(label, pageW, win.fontScale);
   const repin = () => {
     const now = laid.current;
     if (!now) return;
-    const hs = now.children.map((c) => (c.type === 'heading' ? now.m.headingH : (heights.current.get(keyOf(c)) ?? 48)));
+    const hs = now.children.map((c) => (c.type === 'heading' ? intoHeadingH(c.label, now.w, now.scale) : (heights.current.get(keyOf(c)) ?? 48)));
     const next = intoPin(now.children, hs, scrollY.current, now.m.headingH);
     const cur = pin.get();
     if (cur.at !== next.at || cur.push !== next.push || cur.stuck !== next.stuck || cur.kind !== next.kind) pin.set(next);
   };
   useEffect(() => {
-    laid.current = built ? { children: built.children, m } : null;
+    laid.current = built ? { children: built.children, m, w: pageW, scale: win.fontScale } : null;
     repin();
   });
   const measured = (key: string) => (e: LayoutChangeEvent) => {
@@ -78,6 +82,15 @@ export function IntoPage(props: { onWidth?: (width: number) => void }) {
     setWidth(e.nativeEvent.layout.width);
     props.onWidth?.(e.nativeEvent.layout.width);
   };
+  // Audit 11: a failed read says so in words; the stack's Back still works.
+  if (intoBody(settings, failed) === 'failed')
+    return (
+      <View testID="into-page" style={styles.page} onLayout={sized}>
+        <Text testID="into-unread" style={[styles.unread, { paddingHorizontal: m.pad }]} accessibilityLiveRegion="polite">
+          {INTO_UNREAD}
+        </Text>
+      </View>
+    );
   if (!settings || !built) return <View testID="into-page" style={styles.page} onLayout={sized} />;
   const { children, sticky } = built;
   const cell = { paddingHorizontal: m.pad };
@@ -85,10 +98,11 @@ export function IntoPage(props: { onWidth?: (width: number) => void }) {
     const key = keyOf(c);
     switch (c.type) {
       case 'heading':
-        return <Heading key={key} id={c.id} label={c.label} ord={sticky.indexOf(children.indexOf(c))} pin={pin} m={m} />;
+        return <Heading key={key} id={c.id} label={c.label} ord={sticky.indexOf(children.indexOf(c))} pin={pin} m={m} h={headH(c.label)} />;
       case 'row':
         return (
-          <View key={key} style={cell} onLayout={measured(key)}>
+          // Audit 16: a kind row after a subtype's stands a little apart; padding, so the cell's height carries it.
+          <View key={key} style={[cell, c.row.spaced && { paddingTop: INTO_KIND_GAP }]} onLayout={measured(key)}>
             <SwitchRow
               testID={`kind-${c.row.id}`}
               icon={m.icon ? (c.row.icon as IconName) : undefined}
@@ -113,11 +127,11 @@ export function IntoPage(props: { onWidth?: (width: number) => void }) {
         );
       case 'complex': {
         const k = c.kind;
-        const { hidden, set } = complexes;
-        // WI23: laid out as a kind row is, an icon and the label at the same start.
+        const { hidden, toggle } = complexes;
+        // WI23: laid out as a kind row is, an icon and the label at the same start. Audit 2: each tap builds on the latest.
         return (
           <View key={key} style={cell} onLayout={measured(key)}>
-            <SwitchRow testID={`complex-kind-${k}`} icon={m.icon ? (COMPLEX_ICON[k] as IconName) : undefined} label={switchLabel(k)} value={!hidden.includes(k)} heavy gap={m.gap} onChange={(on) => set(on ? hidden.filter((x) => x !== k) : [...hidden, k])} />
+            <SwitchRow testID={`complex-kind-${k}`} icon={m.icon ? (COMPLEX_ICON[k] as IconName) : undefined} label={switchLabel(k)} value={!hidden.includes(k)} heavy gap={m.gap} onChange={(on) => toggle(k, on)} />
           </View>
         );
       }
@@ -147,7 +161,7 @@ const keyOf = (c: IntoChild): string => (c.type === 'heading' ? `h-${c.id}` : c.
  * kind's label (WI23), and while it is pinned over a kind's subtypes, that kind's name under it. A screen reader hears
  * the category alone. A hairline under it while rows pass under it. Only it reads the scroll position.
  */
-function Heading(props: { id: string; label: string; ord: number; pin: Store<IntoPin>; m: IntoMeasures }) {
+function Heading(props: { id: string; label: string; ord: number; pin: Store<IntoPin>; m: IntoMeasures; h: number }) {
   const { ord, pin, m } = props;
   const kind = useStore(pin, (s) => (s.at === ord ? s.kind : null));
   const push = useStore(pin, (s) => (s.at === ord ? s.push : 0));
@@ -162,7 +176,7 @@ function Heading(props: { id: string; label: string; ord: number; pin: Store<Int
       accessibilityLabel={props.label}
       style={[
         styles.heading,
-        { height: m.headingH, paddingHorizontal: m.pad },
+        { height: props.h, paddingHorizontal: m.pad },
         stuck && styles.headingStuck,
         web && push < 0 && { transform: [{ translateY: push }] },
         web && covered && styles.hidden,
@@ -189,4 +203,5 @@ const styles = StyleSheet.create({
   headingText: { fontSize: 17, lineHeight: 22, fontWeight: '700', color: theme.ink },
   headingKind: { fontSize: 15, lineHeight: 20, fontWeight: '600', color: theme.ink },
   note: { fontSize: 13, color: theme.muted, marginBottom: 4 },
+  unread: { fontSize: 15, lineHeight: 21, color: theme.muted, paddingTop: 24 },
 });

@@ -209,3 +209,11 @@ Recorded for the What I'm into page (decision 0192, `specs/what-im-into-page`).
   unverified. **Unverified**.
 - **iOS Contacts** (iOS): a plain list whose letter headings stay pinned at the top while their names scroll under
   them, the next heading pushing the last one out. Source: from memory, unverified. **Unverified**.
+- **iOS Settings, Notifications, the per-app summary line** (iOS): under each app's name in the Notifications list a
+  short line says how its notifications are set ("Deliver Quietly", "Off", "Banners, Sounds, Badges"), in words and with
+  no count. The precedent for a kind row's quiet line naming what was changed (`what-im-into-page` WI18, audit 7).
+  Source: from memory, unverified. **Unverified**.
+- **iOS navigation bar, the back button's title** (iOS): a pushed page's back button carries the previous screen's
+  title ("‹ Settings"), and VoiceOver speaks it with "back button"; with no room the title drops to "Back" or the
+  chevron alone. The precedent for Back reading "Walk" from the walk (WI20, audits 8, 10, 14). Source: from memory,
+  unverified. **Unverified**.

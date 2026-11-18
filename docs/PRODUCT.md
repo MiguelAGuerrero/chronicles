@@ -522,14 +522,16 @@ recording, and a recording bar brings a minimized walk back.
 
 - Explore settings (in the drawers: the ready bar's with Explore chosen and the walk's with Explore on): the "?" range
   with a ring preview on the map, the pocket alert (phones, and browsers that can buzz: Android Chrome; not iPhone
-  Safari, decision 0138), and one row, "What I'm into ›", that opens **What I'm into's page** (decision 0192): a page
+  Safari, decision 0138), and one row, "What I'm into ›" (shown with Explore or scenic routes' Sights on, since both
+  read the kinds), that opens **What I'm into's page** (decision 0192): a page
   of its own pushed over the screen with Back (reading "‹ Walk" when opened from the walk), the same from both drawers,
   about sixty switches under five headings (Art, History, Parks & green spaces, Culture, Viewpoints & oddities) and
   Complexes' five, each with its icon; each heading stays pinned while its rows scroll, with a hairline under it, and
   names as a second line the kind whose subtypes pass under it ("› Zoos and aquariums"); a kind's name is drawn heavier
-  than its subtypes', with a quiet line naming those that are off ("Plaques and Small memorials off", never a count);
+  than its subtypes', with a quiet line naming only those switched from their default ("Ghost towns on", "Waterfalls
+  off", never a count; none as installed), and a little space above a kind that follows a subtype;
   at large text the rows drop their icons and indents so labels wrap only between words; every switch saves as it
-  changes. In the walk's drawer the row is a short section of its own, "Every walk", after the walk's settings. A walk
+  changes. In the walk's drawer the row is a short section of its own, "Explore", after the walk's settings. A walk
   goes on under it; the row and the page carry no count. Built on web, native unverified.
 - Notifications: Remind me here and Pause reminder, each switchable, plus a
   test. Permission is asked only from a tap (first pause, a reminder saved, a

@@ -1,8 +1,12 @@
 import { router, Stack, useIsFocused, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Platform, useWindowDimensions } from 'react-native';
+import { Platform, Pressable, StyleSheet, useWindowDimensions } from 'react-native';
+import { Icon } from '../components/icons';
 import { IntoPage, IntoTitle } from '../components/IntoPage';
-import { intoBack, intoMeasures } from '../lib/explore/intoPage';
+import { useOpenWalkInfo } from '../components/OpenWalk';
+import { theme } from '../components/ui';
+import { intoBack, intoHeader, intoMeasures } from '../lib/explore/intoPage';
+import { intoShown } from '../lib/intoNav';
 
 export { ScreenError as ErrorBoundary } from '../components/ScreenError';
 
@@ -14,14 +18,18 @@ export { ScreenError as ErrorBoundary } from '../components/ScreenError';
  */
 export default function IntoRoute() {
   const focused = useIsFocused();
-  // From the walk's drawer, Back reads "Walk", the arrow and the word (WI20): the web's header shows it with the
-  // display mode `default`, iOS's own back button too; Android's shows its arrow alone, as the platform does.
-  const back = intoBack(useLocalSearchParams<{ from?: string }>().from);
+  // While it is up, a second tap on the row pushes nothing (audit 3).
+  useEffect(() => intoShown(), []);
+  // From the walk's drawer, Back reads the walk screen's name, the arrow and the word (WI20, audit 14); a link with no
+  // walk open has no walk beneath, so it stays "Go back" (audit 10).
+  const walkOpen = !!useOpenWalkInfo().walk;
+  const back = intoBack(useLocalSearchParams<{ from?: string }>().from, walkOpen);
   // At large text the word would squeeze the title to nothing: Back keeps its arrow alone there, still heard as "Walk,
   // back" (WI21), as iOS drops a back title that has no room.
   const win = useWindowDimensions();
   const [width, setWidth] = useState<number | null>(null);
   const roomy = intoMeasures(width ?? win.width, win.fontScale).icon > 0;
+  const header = intoHeader(back, roomy, Platform.OS);
   useEffect(() => {
     if (!focused || Platform.OS !== 'web' || typeof window === 'undefined') return;
     const onKey = (e: KeyboardEvent) => {
@@ -32,10 +40,31 @@ export default function IntoRoute() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [focused]);
+  const { backSpoken, ...options } = header;
   return (
     <>
-      <Stack.Screen options={{ headerTitle: () => <IntoTitle />, ...(back ? { headerBackTitle: back.title, headerBackButtonDisplayMode: roomy ? ('default' as const) : ('minimal' as const) } : {}) }} />
+      <Stack.Screen
+        options={{
+          headerTitle: () => <IntoTitle />,
+          ...options,
+          // Android (audit 8): native-stack has no spoken name for its back arrow, so the route draws its own, named
+          // "Walk, back"; the system Back and its gesture still pop the page.
+          ...(backSpoken
+            ? {
+                headerLeft: () => (
+                  <Pressable testID="into-back" accessibilityRole="button" accessibilityLabel={backSpoken} onPress={() => router.back()} hitSlop={8} style={styles.back}>
+                    <Icon name="arrow-back" size={24} color={theme.ink} />
+                  </Pressable>
+                ),
+              }
+            : {}),
+        }}
+      />
       <IntoPage onWidth={setWidth} />
     </>
   );
 }
+
+const styles = StyleSheet.create({
+  back: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', marginLeft: -8 },
+});

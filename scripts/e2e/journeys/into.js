@@ -101,7 +101,8 @@ async function run(h) {
     if (!r) return null;
     const b = r.getBoundingClientRect();
     const leaf = [...r.querySelectorAll('*')].find((x) => x.childElementCount === 0 && /What/.test(x.textContent || ''));
-    return { h: b.height, text: r.innerText.trim(), role: r.getAttribute('role'), label: r.getAttribute('aria-label'), color: leaf ? getComputedStyle(leaf).color : '', glyphs: r.innerText.replace(/[A-Za-z’' ]/g, '').length };
+    const desc = (r.getAttribute('aria-describedby') || '').split(' ').filter(Boolean).map((id) => (document.getElementById(id) || {}).textContent || '').join(' ');
+    return { h: b.height, text: r.innerText.trim(), role: r.getAttribute('role'), label: r.getAttribute('aria-label'), desc, color: leaf ? getComputedStyle(leaf).color : '', glyphs: r.innerText.replace(/[A-Za-z’' ]/g, '').length };
   });
   const inReady = await pg.locator('[data-testid=start-settings] [data-testid^=kind-], [data-testid=start-settings] [data-testid^=complex-kind-]').count();
   const ok1 = !!rowLook && inReady === 0 && (await pg.locator('[data-testid=start-settings] [data-testid=range-slider]').count()) === 1;
@@ -110,6 +111,9 @@ async function run(h) {
   check(ok2, `WI2: the row is found: ink, its words, a chevron, at least 44 pt (${JSON.stringify(rowLook)})`);
   check(!!rowLook && rowLook.role === 'button' && rowLook.label === INTO, `WI14: the row is a button named "${INTO}" (${JSON.stringify(rowLook)})`);
   check(!!rowLook && !/\d/.test(rowLook.text), `WI12: the row says no count (${rowLook && rowLook.text})`);
+
+  // what-im-into-page audit 4: the web announces what the row does (react-native-web drops accessibilityHint).
+  check(!!rowLook && rowLook.desc === 'Opens its page', `what-im-into-page audit 4: on the web the row is described "Opens its page" (${JSON.stringify(rowLook && rowLook.desc)})`);
   await shot(pg, 'into-ready-row');
 
   // WI4, WI14: the page covers the screen, its title at the top, Back at the leading edge; focus starts at the title.
@@ -137,6 +141,26 @@ async function run(h) {
   check(ok5, `WI15: Complexes' switches follow the five sections, under their own heading (${complexAt})`);
   check(top.every((r) => !/\d/.test(r.text)) && !/\d/.test(await pg.locator('[data-testid=into-page]').innerText().catch(() => '0')), 'WI12: no heading, row or the page carries a number');
   await shot(pg, 'into-page-top');
+
+  // what-im-into-page audit 16: a kind row that follows a subtype stands a little apart from it, more than a kind from its
+  // first subtype, so "Buildings and structures" never reads as one more child of the kind above.
+  const spacing = await pg.evaluate(() => {
+    const rows = [...document.querySelectorAll('[data-testid=into-page] [role=switch][data-testid^=kind-]')].filter((e) => e.getBoundingClientRect().height > 0);
+    const left = (e) => e.getBoundingClientRect().left;
+    const base = Math.min(...rows.map(left));
+    const label = (e) => [...e.querySelectorAll('*')].find((x) => x.childElementCount === 0 && /[A-Za-z]{3}/.test(x.textContent || ''));
+    const gap = (a, b) => label(b).getBoundingClientRect().top - label(a).getBoundingClientRect().bottom;
+    const before = [];
+    const under = [];
+    for (let i = 1; i < rows.length; i++) {
+      const a = rows[i - 1];
+      const b = rows[i];
+      if (left(a) > base + 4 && left(b) <= base + 4 && !a.querySelector('[data-testid$=-note]')) before.push(Math.round(gap(a, b)));
+      if (left(a) <= base + 4 && left(b) > base + 4 && !a.querySelector('[data-testid$=-note]')) under.push(Math.round(gap(a, b)));
+    }
+    return { before: Math.min(...before), under: Math.max(...under), n: before.length };
+  });
+  check(spacing.n > 3 && spacing.before >= spacing.under + 6, `what-im-into-page audit 16: a kind row after a subtype has space above it (${JSON.stringify(spacing)})`);
 
   // WI5: at every scroll position, the heading at the page's top is the section of the first row shown under it, on its
   // own ground, the rows passing under it.
@@ -245,7 +269,9 @@ async function run(h) {
       }
       const border = parseFloat(getComputedStyle(head).borderBottomWidth) || 0;
       const atRest = y === 0;
-      if (atRest ? border > 0 : (hb.top <= box.top + 1 && border < 0.5)) lines.push({ y, head: head.getAttribute('data-testid'), border });
+      // what-im-into-page audit 12: a heading being pushed out has no hairline: it would sit on the incoming heading.
+      const pushed = hb.top < box.top - 0.5;
+      if (pushed ? border > 0 : atRest ? border > 0 : (hb.top <= box.top + 1 && border < 0.5)) lines.push({ y, head: head.getAttribute('data-testid'), border, pushed });
       // A heading still in the flow below the top has no hairline.
       for (const h of heads) {
         const b = h.getBoundingClientRect();
@@ -257,7 +283,7 @@ async function run(h) {
   });
   check(levels.checked > 20 && levels.named > 10 && levels.two.length === 0 && levels.heights.length === 1, `WI17: an indented row under the pinned heading has its kind named there, a kind's own row none, at one height (${JSON.stringify(levels)})`);
   check(levels.checked > 20 && levels.partly.length === 0, `WI22: no heading's words show partly over or under another (${JSON.stringify(levels.partly)})`);
-  check(levels.checked > 20 && levels.lines.length === 0, `WI24: a hairline under the pinned heading while rows pass under it, none at rest or in the flow (${JSON.stringify(levels.lines)})`);
+  check(levels.checked > 20 && levels.lines.length === 0, `WI24, what-im-into-page audit 12: a hairline under the pinned heading while rows pass under it, none at rest, in the flow or while pushed out (${JSON.stringify(levels.lines)})`);
   // WI23: Complexes' rows laid out as the kind rows: an icon, the label at the same start; a heading larger than a kind's label.
   const complexLook = await pg.evaluate(() => {
     const leaf = (sel, re) => {
@@ -282,7 +308,16 @@ async function run(h) {
   const glyphs = complexLook.rows.map((r) => r.glyph);
   check(complexLook.rows.every((r) => r.left === complexLook.kindLeft && r.glyph) && new Set(glyphs).size === glyphs.length && complexLook.headSize > complexLook.kindSize, `WI23: Complexes' rows have an icon each and the kind rows' text start; a heading is larger than a kind's label (${JSON.stringify(complexLook)})`);
 
-  // WI18: a kind with some subtypes off says which, muted, in words, and it is part of what the row is heard as.
+  // what-im-into-page audit 7: as installed, no kind row carries a line; switching a subtype against its default does.
+  const notesAtFirst = await pg.locator('[data-testid=into-page] [data-testid$=-note]').count();
+  for (const k of ['kind-plaques', 'kind-ghost_towns', 'kind-old_trees']) {
+    await intoScrollTo(pg, k);
+    await pg.locator(`[data-testid=into-page] [data-testid=${k}]`).click().catch(() => {});
+    await pg.waitForTimeout(250);
+  }
+  const ghost = await pg.locator('[data-testid=into-page] [data-testid=kind-curiosities-note]').textContent().catch(() => null);
+  check(notesAtFirst === 0 && ghost === 'Ghost towns on', `what-im-into-page audit 7: no line as installed; a subtype switched on is named "on" (${JSON.stringify({ notesAtFirst, ghost })})`);
+  // WI18: a kind with some subtypes changed says which, muted, in words, and it is part of what the row is heard as.
   const offLook = await pg.evaluate(() => {
     const row = document.querySelector('[data-testid=into-page] [data-testid=kind-monuments]');
     const note = document.querySelector('[data-testid=into-page] [data-testid=kind-monuments-note]');
@@ -291,8 +326,15 @@ async function run(h) {
     const allOn = document.querySelector('[data-testid=into-page] [data-testid=kind-attractions-note]');
     return { note: note ? note.textContent : null, color: note ? getComputedStyle(note).color : '', described, allOn: !!allOn };
   });
-  check(offLook.note === 'Plaques and Small memorials off' && offLook.color === 'rgb(89, 98, 115)' && offLook.described.includes(offLook.note) && !offLook.allOn,
-    `WI18: Monuments and memorials says which of its subtypes are off, muted, in words, heard with the row; a kind with all on says nothing (${JSON.stringify(offLook)})`);
+  check(offLook.note === 'Plaques on' && offLook.color === 'rgb(89, 98, 115)' && offLook.described.includes(offLook.note) && !offLook.allOn,
+    `WI18: Monuments and memorials says which of its subtypes changed, muted, in words, heard with the row; a kind as installed says nothing (${JSON.stringify(offLook)})`);
+
+  // what-im-into-page audit 4: on the web a subtype's row is described as part of its kind (react-native-web drops the hint).
+  const partOf = await pg.evaluate(() => {
+    const r = document.querySelector('[data-testid=into-page] [data-testid=kind-waterfalls]');
+    return r ? (r.getAttribute('aria-describedby') || '').split(' ').filter(Boolean).map((id) => (document.getElementById(id) || {}).textContent || '').join(' ') : null;
+  });
+  check(partOf === 'Part of Nature', `what-im-into-page audit 4: on the web Waterfalls is described "Part of Nature" (${JSON.stringify(partOf)})`);
   // The middle of the page, pinned, for the cold find (WI2: "turn on waterfalls") and the UI review.
   // WI25: each picture after its scroll has come to rest, every row in view showing its switch.
   const unsettled = [];
@@ -344,6 +386,52 @@ async function run(h) {
   await openInto(pg, 'ready');
   const escaped = await closeInto(pg, 'escape');
   check(escaped && (await pg.locator('[data-testid=start-settings]:visible').count()) === 1, 'WI4: Escape returns to the ready bar still raised');
+
+  // what-im-into-page audit 5: back from the page, a range changed before the ready screen has read again never writes the
+  // kinds it held before the page back over the page's change.
+  {
+    await openInto(pg, 'ready');
+    await pg.locator('[data-testid=into-page] [data-testid=kind-churches]').click().catch(() => {});
+    await pg.waitForTimeout(400);
+    const offOnPage = /churches/.test(String(await metaOf('explore_hidden')));
+    await pg.evaluate(() => {
+      // The ready screen's read on its return is held back, as on a slow phone.
+      const req = indexedDB.open('chronicles');
+      req.onsuccess = () => {
+        const tx = req.result.transaction('meta', 'readwrite');
+        const store = tx.objectStore('meta');
+        const until = performance.now() + 2500;
+        const spin = () => {
+          if (performance.now() < until) store.get('start_mode').onsuccess = spin;
+        };
+        spin();
+      };
+    });
+    await closeInto(pg, 'back');
+    await pg.click('[data-testid=start-settings] [data-testid=range-plus]').catch(() => {});
+    await pg.waitForTimeout(3000);
+    const kept = /churches/.test(String(await metaOf('explore_hidden')));
+    check(offOnPage && kept, `what-im-into-page audit 5: a range changed on the return keeps the kind switched off on the page (${JSON.stringify({ offOnPage, kept })})`);
+    await pg.click('[data-testid=start-settings] [data-testid=range-minus]').catch(() => {});
+    await openInto(pg, 'ready');
+    await pg.locator('[data-testid=into-page] [data-testid=kind-churches]').click().catch(() => {});
+    await pg.waitForTimeout(300);
+    await closeInto(pg);
+  }
+
+  // what-im-into-page audit 6: in the ready bar too, Quiet with Sights on keeps the row; with Sights off it goes.
+  {
+    await pg.click('[data-testid=start-settings] [data-testid=mode-quiet]');
+    await pg.waitForTimeout(400);
+    const quietSights = await pg.locator('[data-testid=start-settings] [data-testid=into-row]').count();
+    await pg.click('[data-testid=start-settings] [data-testid=leaning-sights]');
+    await pg.waitForTimeout(400);
+    const quietNone = await pg.locator('[data-testid=start-settings] [data-testid=into-row]').count();
+    await pg.click('[data-testid=start-settings] [data-testid=leaning-sights]');
+    await pg.click('[data-testid=start-settings] [data-testid=mode-explore]');
+    await pg.waitForTimeout(400);
+    check(quietSights === 1 && quietNone === 0, `what-im-into-page audit 6: the ready bar's row shows with Quiet and Sights on, and not with Sights off too (${quietSights}, ${quietNone})`);
+  }
 
   // WI9: while the settings are being read the page draws no switch, and nothing is written.
   const hiddenWas = await metaOf('explore_hidden');
@@ -402,7 +490,22 @@ async function run(h) {
     const head = before.filter((e) => e.getAttribute('role') === 'heading').at(-1);
     return { head: head ? head.textContent.trim() : null, afterShare: before.some((e) => e.getAttribute('data-testid') === 'share-gps-log') };
   });
-  check(!!section && section.head === 'Every walk' && section.afterShare, `WI19: the walk's row sits in a section of its own, "Every walk", after the walk's settings (${JSON.stringify(section)})`);
+  check(!!section && section.head === 'Explore' && section.afterShare, `WI19, what-im-into-page audit 13: the walk's row sits in a section of its own, "Explore", after the walk's settings (${JSON.stringify(section)})`);
+
+  // what-im-into-page audit 6: Sights (scenic routes) reads the kinds too: with Explore off and Sights on the row stays;
+  // with both off it goes.
+  {
+    await pg.click('[data-testid=options-card] [data-testid=explore-walk]');
+    await pg.waitForTimeout(400);
+    const withSights = await pg.locator('[data-testid=options-card] [data-testid=into-row]').count();
+    await pg.click('[data-testid=options-card] [data-testid=leaning-sights]');
+    await pg.waitForTimeout(400);
+    const neither = await pg.locator('[data-testid=options-card] [data-testid=into-row]').count();
+    await pg.click('[data-testid=options-card] [data-testid=leaning-sights]');
+    await pg.click('[data-testid=options-card] [data-testid=explore-walk]');
+    await pg.waitForTimeout(400);
+    check(withSights === 1 && neither === 0, `what-im-into-page audit 6: the walk's row shows with Sights on and Explore off, and not with both off (${withSights}, ${neither})`);
+  }
 
   // WI3: the same page from the walk's drawer, the same rows in the same order.
   const fromWalk = await openInto(pg, 'walk');
@@ -439,7 +542,10 @@ async function run(h) {
   await pg.locator('[data-testid=into-page] [data-testid=kind-waterfalls]').click().catch(() => {});
   await pg.waitForTimeout(300);
   const savedOff = /waterfalls/.test(String(await metaOf('explore_hidden')));
-  await closeInto(pg);
+  // what-im-into-page audit 1: Escape on the page pops the page alone: the walk's drawer beneath stays raised, its
+  // handler and those of the cards beneath the page being the screen's only while it is in front.
+  const escapedWalk = await closeInto(pg, 'escape');
+  check(escapedWalk && (await pg.locator('[data-testid=options-card]:visible').count()) === 1, 'what-im-into-page audit 1: Escape on the page pops it, and the walk\'s drawer beneath stays raised');
   const pointsAfter = await tracePoints();
   const ok10 = pointsAfter >= pointsBefore + 4 && (await pg.locator('[data-testid=stop]').count()) === 1 && new URL(pg.url()).pathname === `${BASE}/walk`;
   check(ok10, `WI10: the fixes that came while the page was up are in the trace, on the one walk screen (${pointsBefore} → ${pointsAfter})`);
@@ -533,6 +639,13 @@ async function run(h) {
     return { split: split.slice(0, 8), close: close.slice(0, 8), indent: (indent('kind-statues') - indent('kind-public_art')) / 2 };
   });
   check(big.split.length === 0 && big.close.length === 0 && big.indent > 0 && big.indent < 28, `WI21: at 200% labels break only between words, rows stand apart, the indent is smaller (${JSON.stringify(big)})`);
+  // what-im-into-page audit 12: at 200% the heading at rest has no blank band above a one-line category ("Art").
+  const band = await pg.evaluate(() => {
+    const h = document.querySelector('[data-testid=into-page] [data-testid=kind-heading-art]');
+    const l = h && h.querySelector('[data-testid=heading-label]');
+    return h && l ? (l.getBoundingClientRect().top - h.getBoundingClientRect().top) / 2 : null;
+  });
+  check(band != null && band <= 26, `what-im-into-page audit 12: at 200% the heading "Art" reserves no more above it than at the default size (${band} CSS px)`);
   await shot(pg, 'into-page-200');
   await pg.evaluate(() => { document.documentElement.style.zoom = ''; });
   await closeInto(pg);
@@ -556,7 +669,8 @@ module.exports = {
     'src/components/IntoPage.tsx',
     'src/components/IntoRow.tsx',
     'src/lib/explore/{intoPage,settingsChange,useExploreSettings}.ts',
-    'src/lib/intoNav.ts',
+    'src/lib/{intoNav,intoGate,walkName}.ts',
+    'src/lib/complexes/kindSwitches.ts',
   ],
   run,
 };

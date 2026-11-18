@@ -1,5 +1,5 @@
 import type { Faced } from '../lib/moment';
-import { router } from 'expo-router';
+import { router, useIsFocused } from 'expo-router';
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import {
   Animated, BackHandler, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions,
@@ -114,14 +114,17 @@ export function SheetFrame(props: {
     latest.current = { size, target, reduced };
   });
 
-  // Back on Android, and Escape on the web, lower an open sheet before anything else.
+  // Back on Android, and Escape on the web, lower an open sheet before anything else, while its screen is in front: a
+  // screen pushed over it (What I'm into's page) keeps it mounted and hidden, and Back or Escape there are the page's
+  // (what-im-into-page audit 1), as ReadyBar's are.
+  const focused = useIsFocused();
   const onSizeRef = useRef(props.onSize);
   useEffect(() => {
     onSizeRef.current = props.onSize;
   });
   const ownKeys = props.ownKeys !== false;
   useEffect(() => {
-    if (!expanded || !ownKeys) return;
+    if (!expanded || !ownKeys || !focused) return;
     const back = BackHandler.addEventListener('hardwareBackPress', () => {
       onSizeRef.current('peek');
       return true;
@@ -132,7 +135,7 @@ export function SheetFrame(props: {
       back.remove();
       if (Platform.OS === 'web' && typeof window !== 'undefined') window.removeEventListener('keydown', onKey);
     };
-  }, [expanded, ownKeys]);
+  }, [expanded, ownKeys, focused]);
 
   // Dragging the handle or header: it settles at the nearest of the three
   // heights, however the gesture ends (released, or taken by something else).

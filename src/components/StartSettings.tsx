@@ -10,6 +10,7 @@ import { useUnits } from '../lib/useUnits';
 import type { LngLat } from '../lib/types';
 import { RangeSlider, walkNote } from './ExploreSettings';
 import { IntoRow } from './IntoRow';
+import { routeLeanings } from '../lib/routeLeanings';
 import { Icon } from './icons';
 import { LayersKey } from './LayersControl';
 import type { useLayers } from '../lib/layers/useLayers';
@@ -44,6 +45,7 @@ export function StartSettings(props: {
 }) {
   const { mode, dest, fix, settings } = props;
   const grouping = useStore(momentPill.store, (st) => st.grouping);
+  const sightsOn = useStore(routeLeanings.store, (s) => s.includes('sights'));
   // Distances in km or miles (QL16): saved as it changes, every screen redraws at once.
   const units = useUnits();
   return (
@@ -91,10 +93,11 @@ export function StartSettings(props: {
             {fix ? ' The ring on the map shows how far that is.' : ' The ring shows on the map once there’s a position.'}
           </Text>
           <RangeSlider value={settings.rangeM} onChange={(m) => props.onSettings({ ...settings, rangeM: clampRange(m) })} />
-          {/* WI1: one row where the list was; the kinds and Complexes are on its page (decision 0192). */}
-          <IntoRow />
         </>
       )}
+      {/* WI1: one row where the list was; the kinds and Complexes are on its page (decision 0192). Scenic routes' Sights
+          read the kinds too, so it shows with Explore or Sights on (what-im-into-page audit 6, the owner, Nov 18). */}
+      {(mode === 'explore' || sightsOn) && <IntoRow />}
 
       {props.layers && Object.values(props.layers.on).some(Boolean) ? (
         <>

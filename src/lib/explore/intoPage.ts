@@ -2,7 +2,9 @@
 import type { ComplexKind } from '../complexes/types';
 import { categoryOf } from '../discovery/categories';
 import { isKindHidden, kindParent, kindRows, kindSwitch } from '../discovery/refinements';
+import { DEFAULT_OFF } from '../discovery/subtypes';
 import type { CategoryId, Kind } from '../discovery/types';
+import { WALK_NAME } from '../walkName';
 import { KINDS, kindHint, type KindInfo } from './explore';
 
 /*
@@ -30,9 +32,14 @@ export interface IntoRow {
   heavy: boolean;
   /** A subtype says its kind (XS23, small-places ui 2); a kind says which of its subtypes are off (WI18). */
   hint?: string;
-  /** The quiet line under a kind's label naming its subtypes that are off (WI18). */
+  /** The quiet line under a kind's label naming its subtypes changed from their default (WI18, audit 7). */
   note?: string;
+  /** A kind row right after a subtype's: a little space above it, so it never reads as one more child (audit 16). */
+  spaced?: boolean;
 }
+
+/** The space above a kind row that follows a subtype's (what-im-into-page audit 16): restrained. */
+export const INTO_KIND_GAP = 8;
 
 export interface IntoSection {
   category: CategoryId;
@@ -49,6 +56,8 @@ export function intoSections(kinds: readonly KindInfo[], hidden: ReadonlySet<Kin
     const hint = [kindHint(kind.id), note].filter(Boolean).join('. ') || undefined;
     const row: IntoRow = { id: kind.id, label: kind.label, icon: kind.icon, depth, on: sw.on, locked: sw.locked, heavy: depth === 0, hint, note };
     const last = sections[sections.length - 1];
+    const prev = last && last.category === kind.category ? last.rows[last.rows.length - 1] : undefined;
+    if (depth === 0 && prev && prev.depth > 0) row.spaced = true;
     if (last && last.category === kind.category) last.rows.push(row);
     else sections.push({ category: kind.category, label: categoryOf(kind.category).label, rows: [row] });
   }
@@ -82,27 +91,38 @@ export function intoChildren(sections: readonly IntoSection[], complexes: readon
 }
 
 /**
- * WI18: the longest off line, in characters, that stays one line at 320 px at the default text size under a kind's
- * label: the column is 208 px there and the e2e's 13 px font runs about 6.6 px a character ("Plaques and Small memorials
- * off", 31, is 200 px; "Ghost towns and Survey marks off", 32, wrapped). Past it the line says "Some of these off". The
- * `into` journey checks every line drawn at 320 px.
+ * WI18: the longest line, in characters, that stays one line at 320 px at the default text size under a kind's label:
+ * the column is 208 px there and the e2e's 13 px font runs about 6.6 px a character ("Plaques and small memorials off",
+ * 31, is 200 px; 32 wrapped). Measured in Chromium's font only: SF and Roboto at 320 px are a native check. Past it the
+ * line says `CHANGED_LINE`. The `into` journey checks every line drawn at 320 px.
  */
 export const OFF_LINE_MAX = 31;
-const SOME_OFF = 'Some of these off';
+/** Where the names would not fit (audit 7): no count, and true whichever way the switches went. */
+export const CHANGED_LINE = 'Changed from the usual';
+
+const DEFAULTS_OFF: ReadonlySet<Kind> = new Set(DEFAULT_OFF);
+/** "Ghost towns", then "small memorials": no capital mid-sentence (audit 7). */
+const said = (labels: string[], first: boolean): string => {
+  const names = labels.map((l, i) => (first && i === 0 ? l : l.charAt(0).toLowerCase() + l.slice(1)));
+  return names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+};
 
 /**
- * WI18 (the owner's call, Nov 18): the quiet line under a kind's row naming its subtypes that are off, "Ghost towns
- * off", "Plaques and Small memorials off"; names only, never a count (VISION's Never; counts are words, `quietLines`);
- * "Some of these off" where the names would not fit one line. Null while all are on, for a kind with no subtypes, and
- * while the kind itself is off (its subtypes are hidden then).
+ * WI18 (the owner's calls, Nov 18: "Only your changes"; what-im-into-page audit 7): the quiet line under a kind's row
+ * naming its subtypes whose switch differs from its default, either way: "Ghost towns on", "Waterfalls off", "Ghost
+ * towns on, time capsules off"; names only, never a count (VISION's Never; counts are words, `quietLines`);
+ * `CHANGED_LINE` where the names would not fit one line. Null as installed, for a kind with no subtypes, and while the
+ * kind itself is off (its subtypes are hidden then).
  */
 export function offLine(kind: Kind, hidden: ReadonlySet<Kind>, kinds: readonly KindInfo[] = KINDS): string | null {
   if (isKindHidden(hidden, kind)) return null;
-  const off = kinds.filter((k) => kindParent(k.id) === kind && hidden.has(k.id)).map((k) => k.label);
-  if (!off.length) return null;
-  const names = off.length === 1 ? off[0] : `${off.slice(0, -1).join(', ')} and ${off[off.length - 1]}`;
-  const line = `${names} off`;
-  return line.length <= OFF_LINE_MAX ? line : SOME_OFF;
+  const kids = kinds.filter((k) => kindParent(k.id) === kind);
+  const on = kids.filter((k) => DEFAULTS_OFF.has(k.id) && !hidden.has(k.id)).map((k) => k.label);
+  const off = kids.filter((k) => !DEFAULTS_OFF.has(k.id) && hidden.has(k.id)).map((k) => k.label);
+  if (!on.length && !off.length) return null;
+  const parts = [on.length ? `${said(on, true)} on` : null, off.length ? `${said(off, !on.length)} off` : null].filter(Boolean);
+  const line = parts.join(', ');
+  return line.length <= OFF_LINE_MAX ? line : CHANGED_LINE;
 }
 
 /** WI17: how much of a row must show under the pinned heading before it counts as the first row there. */
@@ -136,12 +156,15 @@ export function intoPin(children: readonly IntoChild[], heights: readonly number
   const heads = children.flatMap((c, i) => (c.type === 'heading' ? [i] : []));
   let at = 0;
   heads.forEach((i, n) => {
-    if (tops[i] <= scrollY + 0.5) at = n;
+    if (tops[i] <= scrollY + 1.5) at = n;
   });
+  // Each heading is as tall as its own lines (audit 12): the pinned one's height, where it is known.
+  const pinnedH = heads.length ? (heights[heads[at]] ?? headingH) : headingH;
   const next = heads[at + 1];
-  const push = next == null ? 0 : Math.min(0, tops[next] - scrollY - headingH);
-  const stuck = scrollY > 0 && heads.length > 0 && scrollY >= tops[heads[at]] - 0.5;
-  const line = scrollY + headingH;
+  const push = next == null ? 0 : Math.min(0, tops[next] - scrollY - pinnedH);
+  // No hairline while it is pushed out: it would sit on the incoming heading (audit 12).
+  const stuck = scrollY > 0 && heads.length > 0 && scrollY >= tops[heads[at]] - 1.5 && push > -0.5;
+  const line = scrollY + pinnedH;
   // The first row showing at least PIN_SLACK under the heading: a sliver of the row before it doesn't count.
   const probe = line + PIN_SLACK;
   const i = tops.findIndex((t, k) => t <= probe && probe < t + heights[k]);
@@ -165,10 +188,42 @@ export function intoPin(children: readonly IntoChild[], heights: readonly number
   return { at, push, stuck, kind };
 }
 
-/** WI20 (the owner's call, Nov 18): opened from the walk's drawer, Back names the walk; from the ready bar, as it was. */
-export function intoBack(from: string | undefined): { title: string; spoken: string } | null {
-  return from === 'walk' ? { title: 'Walk', spoken: 'Walk, back' } : null;
+/**
+ * WI20 (the owner's call, Nov 18): opened from the walk's drawer, Back names the walk, by the walk screen's own name
+ * (`WALK_NAME`, audit 14); from the ready bar, as it was. A link to `/into?from=walk` with no walk open has none
+ * beneath it, so Back says "Go back" (audit 10).
+ */
+export function intoBack(from: string | undefined, walkOpen: boolean): { title: string; spoken: string } | null {
+  return from === 'walk' && walkOpen ? { title: WALK_NAME, spoken: `${WALK_NAME}, back` } : null;
 }
+
+/** The route's header options for Back (WI20, audit 8); `backSpoken` names the route's own back button on Android. */
+export interface IntoHeader {
+  headerBackTitle?: string;
+  headerBackButtonDisplayMode?: 'default' | 'minimal';
+  backSpoken?: string;
+}
+
+/**
+ * WI20, audit 8: how the route carries Back's word and its spoken name. iOS's back button and the web's header speak
+ * their title as "the title, back" themselves (VoiceOver: "Walk, back button"; react-native-web: `aria-label`), so the
+ * title is passed, the word dropped at large text (`roomy` false) as iOS drops a title with no room. native-stack has no
+ * option for the back button's spoken name, and Android's draws an arrow named by the system ("Navigate up"), so there
+ * the route draws its own Back, named `backSpoken`; the system Back and its gesture are untouched.
+ */
+export function intoHeader(back: { title: string; spoken: string } | null, roomy: boolean, os: string): IntoHeader {
+  if (!back) return {};
+  if (os === 'android') return { backSpoken: back.spoken };
+  return { headerBackTitle: back.title, headerBackButtonDisplayMode: roomy ? 'default' : 'minimal' };
+}
+
+/** What the page draws (WI9, audit 11): nothing while the settings are read, a line in words if the read failed. */
+export function intoBody(settings: object | null, failed: boolean): 'wait' | 'failed' | 'page' {
+  if (settings) return 'page';
+  return failed ? 'failed' : 'wait';
+}
+/** Audit 11: a failed read leaves no blank page; Back still works. */
+export const INTO_UNREAD = 'Your choices couldn’t be read just now. Go back and open this page again.';
 
 /** The page's measures (WI21): a subtype's indent, the gaps beside the icon and switch, the margins, the heading's height. */
 export interface IntoMeasures {
@@ -193,6 +248,19 @@ export function intoMeasures(width: number, fontScale: number): IntoMeasures {
   // The category (22 a line) and the kind (20), at the scale; at large text the category may take two lines.
   if (width / scale < 300) return { indent: 12, gap: 6, pad: 12, icon: 0, headingH: Math.ceil(64 * scale) + 10, headingLines: 2 };
   return { indent: 28, gap: 10, pad: 16, icon: 20, headingH: Math.ceil(42 * scale) + 10, headingLines: 1 };
+}
+
+/**
+ * A heading's own height (audit 12): its category's lines and the kind's line under it (WI17), at the scale. At large
+ * text a category that would not fit one line takes two; one that fits ("Art") reserves one, so no blank band stands
+ * above it at rest. The fit is judged generously (10.5 px a character of the 17 px bold heading), so a category is
+ * never cut: at worst one keeps a second line it did not need.
+ */
+export function intoHeadingH(label: string, width: number, fontScale: number): number {
+  const scale = fontScale > 0 ? fontScale : 1;
+  const m = intoMeasures(width, scale);
+  const lines = m.headingLines > 1 && label.length * 10.5 * scale > width - 2 * m.pad ? 2 : 1;
+  return Math.ceil((22 * lines + 20) * scale) + 10;
 }
 
 /** WI23: Complexes' rows wear an icon each (`complexes/kinds`, where a complex's kinds are named). */

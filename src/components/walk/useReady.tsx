@@ -17,7 +17,7 @@ import { captureEdits } from '../../lib/captureEdits';
 import { MOMENT_PIN_ZOOM, placedMoments, upsertMoment } from '../../lib/momentPins';
 import { useVisible } from '../../lib/deletion/useDeletions';
 import { findForMoment } from '../../lib/explore/momentFind';
-import { DEFAULT_SETTINGS, loadSettings, saveSettings, type ExploreSettings } from '../../lib/explore/settings';
+import { DEFAULT_SETTINGS, loadSettings, onSettings, saveSettings, type ExploreSettings } from '../../lib/explore/settings';
 import { boundsOf, type Bounds } from '../../lib/geo';
 import { getLastFix, setLastFix } from '../../lib/lastFix';
 import { locateOnce } from '../../lib/locate';
@@ -125,6 +125,10 @@ export function useReady(props: {
       };
     }, [active]),
   );
+
+  // A save from elsewhere (What I'm into's page) reaches this copy at once, as the walk's does: a range changed on the
+  // return, before the focus read lands, never writes the kinds held before the page back (what-im-into-page audit 5).
+  useEffect(() => onSettings((s) => setSettings(s)), []);
 
   const pickMode = (m: StartMode) => {
     setModeState(m);
