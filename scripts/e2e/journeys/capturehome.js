@@ -437,7 +437,7 @@ async function run(h) {
     await tabTo(p5, 'navigate');
     await p5.waitForSelector('[data-testid=start]', { timeout: 30000 });
     await p5.click('[data-testid=start]');
-    await p5.waitForSelector('[data-testid=stop]', { timeout: 15000 });
+    await p5.waitForSelector('[data-testid=walk-actions]', { timeout: 15000 });
     for (let i = 0; i < 3; i++) {
       await c5.setGeolocation({ longitude: h.start[0], latitude: h.start[1], accuracy: 6 });
       await p5.waitForTimeout(1300);
