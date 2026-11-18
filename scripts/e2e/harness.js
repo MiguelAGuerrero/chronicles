@@ -496,6 +496,33 @@ async function createHarness() {
     }
     await pg.waitForTimeout(700);
   };
+  // What I'm into's page (specs/what-im-into-page WI1, decision 0192): its row in the ready bar's settings (raised first,
+  // `from` 'ready') or in the walk's drawer (`walk-summary` first, 'walk'), then the page pushed over the screen. False
+  // when the row or the page never came. `closeInto` is the stack's Back (or Escape), and waits for the page to go.
+  const openInto = async (pg, from = 'ready') => {
+    if (from === 'ready' && (await pg.locator('[data-testid=start-settings]:visible').count()) === 0) await drawerTo(pg, 'half');
+    if (from === 'walk' && (await pg.locator('[data-testid=options-card]:visible').count()) === 0) {
+      await pg.click('[data-testid=walk-summary]');
+      await pg.waitForSelector('[data-testid=options-card]', { timeout: 10000 }).catch(() => {});
+      await pg.waitForTimeout(700);
+    }
+    const row = pg.locator('[data-testid=into-row]:visible');
+    if ((await row.count()) === 0) return false;
+    await row.scrollIntoViewIfNeeded().catch(() => {});
+    await row.click();
+    const shown = await pg.waitForSelector('[data-testid=into-page]', { state: 'visible', timeout: 8000 }).then(() => true, () => false);
+    // The page's switches draw once the settings are read (WI9).
+    if (shown) await pg.waitForSelector('[data-testid=into-page] [data-testid^=kind-]', { timeout: 8000 }).catch(() => {});
+    await pg.waitForTimeout(400);
+    return shown;
+  };
+  const closeInto = async (pg, how = 'back') => {
+    if (how === 'escape') await pg.keyboard.press('Escape');
+    else await pg.locator('[aria-label="Go back"]:visible').first().click().catch(() => {});
+    const gone = await pg.waitForSelector('[data-testid=into-page]', { state: 'hidden', timeout: 8000 }).then(() => true, () => false);
+    await pg.waitForTimeout(500);
+    return gone;
+  };
   // A tab, from wherever the test is (NR1-NR4): the ready screen covers the tabs, so its chevron goes back
   // to them first; Navigate opens the walk screen (ready or walking) and is left alone if it is up.
   const tabTo = async (pg, id, section = 'map') => {
@@ -796,7 +823,7 @@ async function createHarness() {
     return { x: m.x + m.width / 2, y: m.y + m.height / 2 };
   });
   return {
-    url, navUrl, exploreUrl, BASE, browser, ctx, page, errors, hosts, start, at, distanceM, dLat, dLon, features, names, overtureFeatures, OVERTURE_HOST, OVERTURE_RELEASE, overtureAsked, style, check, shot, glyph, iconOf, metricRegion, pressedScale, metaOf, drawerTo, tabTo, toThreads, toJournal, mapUp, shownCount, tabBarShown, tileRoute, overtureRoute, freshPage, openWalk, tiles, scriptsDir,
+    url, navUrl, exploreUrl, BASE, browser, ctx, page, errors, hosts, start, at, distanceM, dLat, dLon, features, names, overtureFeatures, OVERTURE_HOST, OVERTURE_RELEASE, overtureAsked, style, check, shot, glyph, iconOf, metricRegion, pressedScale, metaOf, drawerTo, openInto, closeInto, tabTo, toThreads, toJournal, mapUp, shownCount, tabBarShown, tileRoute, overtureRoute, freshPage, openWalk, tiles, scriptsDir,
     onTab, walkMap, walkMarks, walkRoute, walkPts, nothingLeaves, noConsoleErrors, close, divisions, snapWorld, wholeWorld, walkability, overpassAsked, OVERPASS_HOST, scenicWorld, routed, switchLayer, places, areaTile, hollowWorld, complexWorld, bareMapPoint, denseWorld, DENSE_HOODS, smallWorld, SMALL_TOWN, SMALL_HOODS,
   };
 }
