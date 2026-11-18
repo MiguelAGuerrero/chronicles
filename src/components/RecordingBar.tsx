@@ -10,8 +10,8 @@ import { useUnits } from '../lib/useUnits';
 import { db } from '../lib/db';
 import { memoGate } from '../lib/memoGate';
 import { unsaved } from '../lib/unsaved';
-import { barWarning, stopWarns } from '../lib/unsaved/core';
-import { endWalk } from '../lib/session';
+import { barWarning } from '../lib/unsaved/core';
+import { stopEnd } from '../lib/stopEnd';
 import { barInSight, reminderHeld, reminderSeen, reminderSight, reminderText, UNSEEN, type ReminderSight } from '../lib/discovery/recall';
 import { handOnRecall, onRecallFired, RECALL_OPEN_KEY } from '../lib/discovery/recallCheck';
 import { feedback } from '../lib/motion';
@@ -223,20 +223,15 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
       // The bar's photo, and one still being kept from Memories' band (capture-from-chronicle audit 6).
       await settleWithin(Promise.all([keeping.current, memoGate.kept(), unsaved.settled()]), RETURN_WAIT_MS);
       // Whatever of the walk is held, from any screen, read now, is said first; the bar has no Retry, so its words
-      // promise none (UN5, UN6). The next hold lets it go, files and all (UN8).
-      const held = unsaved.heldFor(walk.id);
-      if (stopWarns(held.map((x) => x.id), warnedHeld.current)) {
-        warnedHeld.current = held.map((x) => x.id);
-        setSaid({ text: barWarning(held.length > 1), error: true });
+      // promise none (UN5, UN6). The next hold lets go only what it warned of, files and all (UN8), and nothing still
+      // being saved lets the walk be dropped as empty: the end both Stops share (tend tabs audit 42, decision 0227).
+      const r = await stopEnd(walk.id, { leaves: false, warned: warnedHeld.current });
+      if ('warn' in r) {
+        warnedHeld.current = r.warn.map((x) => x.id);
+        setSaid({ text: barWarning(r.warn.length > 1), error: true });
         return;
       }
-      // Read with the held captures, nothing between: whatever is still being saved keeps the walk from the empty drop
-      // until it is decided, even if it ends meanwhile (T35, the owner: "never drop mid-save").
-      const release = memoGate.underWay() ? memoGate.pin() : null;
-      const { dropped } = await endWalk(walk.id, { leaves: false }).finally(() => release?.());
-      // Only once the walk has ended (unsaved-captures audit 4), and only what was warned of: a save failing as the
-      // walk ended stays held for Retry (T35).
-      await unsaved.ended(walk.id, held.map((x) => x.id));
+      const { dropped } = r;
       feedback('success');
       // A walk with nothing in it has no replay: the bar goes, and the pill offers Undo on this screen (EW1).
       if (!dropped) router.push(`/replay/${walk.id}`);

@@ -96,8 +96,7 @@ test('tend tabs T35: the app drops an empty walk only with nothing under way, an
   assert.match(bar, /memoGate\.stopUnder\(/, 'the bar\'s Stop asks memoGate what it meets');
   assert.ok(bar.includes("'The voice memo is still being saved. Hold Stop again in a moment.'"), 'the entry\'s words');
   assert.ok(bar.includes("'A voice memo is recording. Save it first.'"), 'the recording words are kept');
-  assert.match(bar, /memoGate\.pin\(\)/, 'a stop through a save pins the walk');
-  assert.match(bar, /unsaved\.ended\(walk\.id, held\.map\(/, 'the bar lets go only what it warned of');
+  // The pin and the ids let go are the shared end's, tested on behaviour in stopEnd.test.ts (tend tabs audit 42).
 });
 
 test('tend tabs audit 41: every memo save is tracked: each keepMemo call sits inside trackMemo', () => {

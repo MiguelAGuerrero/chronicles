@@ -32,6 +32,37 @@ async function run(h) {
     };
   });
 
+  await c.addInitScript(() => {
+    // tend tabs audit 42: the next picked or recorded file's read waits until a given walk's end is written, so a memo
+    // still being saved fails while that walk's Stop is ending it.
+    let release = null;
+    let until = null;
+    window.__holdBlobUntilEnd = (walkId) => {
+      window.__holdFor = walkId;
+      until = new Promise((r) => (release = r));
+    };
+    const fetchBefore = window.fetch;
+    window.fetch = async function (input, ...rest) {
+      const url = typeof input === 'string' ? input : input?.url ?? '';
+      if (url.startsWith('blob:') && until) {
+        const u = until;
+        until = null;
+        await u;
+      }
+      return fetchBefore.call(this, input, ...rest);
+    };
+    const putBefore = IDBObjectStore.prototype.put;
+    IDBObjectStore.prototype.put = function (value, ...rest) {
+      if (this.name === 'walk' && value && value.id === window.__holdFor && value.ended_at != null && release) {
+        const r = release;
+        release = null;
+        window.__holdFor = null;
+        r();
+      }
+      return putBefore.call(this, value, ...rest);
+    };
+  });
+
   const say = (t) => String(t).replace(/\n/g, ' ');
   const shown = (sel) => pg.locator(sel).filter({ visible: true });
   const there = (sel, timeout = 8000) => shown(sel).first().waitFor({ timeout }).then(() => true, () => false);
@@ -490,6 +521,33 @@ async function run(h) {
   const undoKept = (await voices(undoWalk)).length;
   check(!!undoWalk && /\/replay\//.test(pg.url()) && (await walkStands(undoWalk)) && undoKept === 1,
     `tend tabs audit 41: a memo kept by Undo of its discard holds the bar's Stop and keeps the walk: the walk stands with the memo in it (${undoKept})`);
+
+  // tend tabs audit 42: a memo from Memories whose save fails while the walk screen's Stop is ending the walk stays held
+  // (not let go unwarned with what the Stop warned of), its walk stands, and its Retry lands in that walk.
+  const failWalk = await walkOnMemories();
+  await pg.evaluate((id) => { window.__holdBlobUntilEnd(id); window.__failMedia = 1; }, failWalk);
+  await memo('band');
+  await pg.click('[data-testid=recording-return]', { timeout: 10000 }).catch(() => {});
+  await pg.waitForSelector('[data-testid=cap-voice]', { timeout: 30000 }).catch(() => {});
+  await pg.waitForTimeout(1500);
+  await toStop(pg).catch(() => {});
+  await hold('[data-testid=stop]');
+  await pg.waitForURL(/\/replay\//, { timeout: 15000 }).catch(() => {});
+  const failStood = /\/replay\//.test(pg.url()) && (await walkStands(failWalk));
+  await pg.evaluate(() => { window.__failMedia = 0; });
+  // Out of the first replay by its own way (a reload would drop what is held, UN15), to Chronicle's Memories.
+  if (await there('[data-testid=not-now]', 15000)) await shown('[data-testid=not-now]').first().click().catch(() => {});
+  await pg.waitForTimeout(1500);
+  await tabTo(pg, 'chronicle', 'memories').catch(() => {});
+  await pg.waitForTimeout(1500);
+  const failHeld = await there('[data-testid=band-voice-retry]', 5000);
+  check(!!failWalk && failStood && failHeld,
+    `tend tabs audit 42: a memo from Memories failing while the walk screen stops stays held, and its walk stands (${pg.url().slice(-20)}, held ${failHeld})`);
+  if (failHeld) await shown('[data-testid=band-voice-retry-act]').first().click();
+  await pg.waitForTimeout(3000);
+  const failKept = (await voices(failWalk)).length;
+  check(failKept === 1 && !(await there('[data-testid=band-voice-retry]', 1000)),
+    `tend tabs audit 42: the held memo's Retry lands in its walk (${failKept})`);
   await c.close();
 }
 
@@ -497,6 +555,7 @@ module.exports = {
   name: 'unsaved',
   covers: [
     'src/lib/unsaved/**',
+    'src/lib/stopEnd/**',
     'src/lib/useCaptures.ts',
     'src/lib/media/memoSave.ts',
     'src/components/RecordingBar.tsx',
