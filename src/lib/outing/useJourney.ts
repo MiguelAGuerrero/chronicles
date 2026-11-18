@@ -53,7 +53,7 @@ const roadKey = (pts: readonly LngLat[]): string => pts.map((p) => `${p[0].toFix
 const ROAD_POINTS = 400;
 
 /**
- * The outing page's state (OJ1-OJ4, OJ7, OJ12, OJ14, OJ17, OJ20, OJ21, OJ25, OJ35, OJ41-OJ45; decision 0199). One machine: the areas to
+ * The outing page's state (OJ1-OJ4, OJ7, OJ12, OJ14, OJ17, OJ20, OJ21, OJ25, OJ35, OJ41-OJ45; decision 0205). One machine: the areas to
  * look at (where you stand, the towns within the reach, or the towns toward a place) are each read once and planned as chapters; the
  * journeys are recomputed as each read lands and when the chips or "Include chains" change. The page proposes as it opens, around
  * where you stood then; towns are read only when the reach or a destination asks. Nothing here is stored.

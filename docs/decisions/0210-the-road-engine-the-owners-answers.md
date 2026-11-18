@@ -1,6 +1,6 @@
-# 0204. The road engine: turns are spoken from the tap, capture is unchanged, distance only, journeys to about 150 km
+# 0210. The road engine: turns are spoken from the tap, capture is unchanged, distance only, journeys to about 150 km
 
-Date: 2026-11-18 · Status: accepted · Area: navigation, outing, vision · Follows [0203](0203-the-road-engine.md)
+Date: 2026-11-18 · Status: accepted · Area: navigation, outing, vision · Follows [0209](0209-the-road-engine.md)
 
 ## Context
 The road engine's plan (`specs/road-engine/plan.md`) put six questions to the owner after its measurement of real tiles (z12 is the
@@ -11,7 +11,7 @@ The owner's answers, Nov 18:
 - **Turns are spoken from the tap on "Drive there", with a mute on the bar.** Each turn is said once as it nears; nothing else is
   ever spoken. On a phone, guiding does not ship until speech works (the steward's S2 over the draft's "off until switched on").
 - **The capture stack is unchanged while guiding**: one tap each, as on every screen. The app cannot tell a driver from a passenger.
-  This also answers what decision 0197 left open about capture at driving speed.
+  This also answers what decision 0203 left open about capture at driving speed.
 - **Distance only**: no duration, at rest or moving.
 - **About 150 km**: sixty z12 tiles a plan; a longer journey says so and keeps the straight line and Open in Maps.
 

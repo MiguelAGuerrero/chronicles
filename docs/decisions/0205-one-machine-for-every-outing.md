@@ -1,6 +1,6 @@
-# 0199. One machine for every outing, with or without a destination; a reach you set; new places first
+# 0205. One machine for every outing, with or without a destination; a reach you set; new places first
 
-Date: 2026-11-17 · Status: accepted · Area: explore, outing · Follows [0198](0198-outing-journey-the-owners-answers.md); amends OJ35 and the steward's S4 (`specs/outing-journey`)
+Date: 2026-11-17 · Status: accepted · Area: explore, outing · Follows [0204](0204-outing-journey-the-owners-answers.md); amends OJ35 and the steward's S4 (`specs/outing-journey`)
 
 ## Context
 Step 1 of the destination-first page was built and shown. Asked what would make it stronger, the agent proposed six things: real data
@@ -25,12 +25,12 @@ Taken as defaults, the owner's to overrule:
   (this sets aside the steward's S4 guard and rewrites OJ35). A town further off is read only once the reach or a destination asks.
 - **A mixed journey** leads when the chips span leanings; **"Another like this"** plans the journey in view again from other places.
 - Reading looks at the nearest eight towns of a reach or a way, new ones first: a bound on reading (OJ37), not on a journey, and a
-  setting later (0198).
+  setting later (0204).
 - Until the session carries a journey (step 3), Start begins the first town's chapter, and each town has Open in Maps.
 
 ## Consequences
 - `planJourneys` takes areas, each with its own candidates and streets, and returns journeys of chapters; around here is the case of
   one area. No second planner.
 - Not done here: publishing the stores pack (chronicles-data, a repository this session does not hold); marks per kind and town
-  outlines on the page's map (the map component, on two platforms); the road engine (0198).
+  outlines on the page's map (the map component, on two platforms); the road engine (0204).
 - Native: nothing here has run on a device.

@@ -1,6 +1,6 @@
-# 0206. The drive in the outing: four parts specced together, and a safety rule for rides
+# 0212. The drive in the outing: four parts specced together, and a safety rule for rides
 
-Date: 2026-11-18 · Status: accepted, relayed · Area: product, vision, rides, replay, finding, capture, native · Builds on [0197](0197-the-session-is-an-outing.md), [0203](0203-the-road-engine.md), [0205](0205-spoken-turns-with-expo-speech.md)
+Date: 2026-11-18 · Status: accepted, relayed · Area: product, vision, rides, replay, finding, capture, native · Builds on [0203](0203-the-session-is-an-outing.md), [0209](0209-the-road-engine.md), [0211](0211-spoken-turns-with-expo-speech.md)
 
 ## Context
 In another session the owner asked for "just enough support so that if the user wants to capture their drive as part of the journey
@@ -11,13 +11,13 @@ the owner's answers; in this session the owner said "Proceed" to speccing it.
 ## Decision
 The owner's calls as relayed, Nov 18:
 - All four parts, specced now: start a journey in the car; places found from the road; the drive in the replay; captures while driving.
-- "Keep 0203": the road engine's full directions stand.
+- "Keep 0209": the road engine's full directions stand.
 - A large place driven to is found by "arriving at it", judged against its outline or entrance, never a point; time on foot there
   with no capture "names it; a capture finds it".
 - A safety rule for the vision page: "Nothing on a ride asks for a look or a tap."
-- The session's name follows the outing work (0197).
+- The session's name follows the outing work (0203).
 
-The spec is `specs/drive-in-the-outing/spec.md` (DO1-DO30). The gate's "no route or turn for the road" is withdrawn by "Keep 0203".
+The spec is `specs/drive-in-the-outing/spec.md` (DO1-DO30). The gate's "no route or turn for the road" is withdrawn by "Keep 0209".
 
 ## Consequences
 - Nothing is built. The spec waits for the owner's review, and four questions in it are theirs: the safety rule against the spoken

@@ -171,7 +171,7 @@ Everything, as always; and in particular: finding a way on the JS thread with no
 connection; the bar at speed; speech (which Expo module, checked from `node_modules` when step 4 starts); guiding behind the lock
 screen from the background location task, which today only caches tiles; battery over an hour's drive.
 
-## The owner's answers (Nov 18, decision 0204)
+## The owner's answers (Nov 18, decision 0210)
 
 Turns are spoken from the tap on "Drive there", with a mute on the bar, and guiding does not ship on a phone before speech works;
 the capture stack is unchanged while guiding; distance only; about 150 km (sixty z12 tiles). The motorway rule (half as long again)
@@ -195,4 +195,4 @@ Ten drifts, no breach; the gate's verdict stands. All ten are taken into the spe
 | S10 | The road drawn is not the one Maps will take | **Accepted**: RE19 |
 
 The steward's silences are the questions above, and two more for the vision page itself: it has no line on sound or on safety, and
-0203 amends its shape "Several routes to one point" without the page yet saying so. Both are the owner's edits.
+0209 amends its shape "Several routes to one point" without the page yet saying so. Both are the owner's edits.

@@ -9,10 +9,10 @@ Nov 18, 2026 · @Miguel Guerrero
 The owner, Nov 18: "The goal is not to compete with Apple Maps, Waze, or any of the big scale navigation apps. It's just enough
 support so that if the user wants to capture their drive as part of the journey itself, they can." Asked which gaps they meant, they
 chose all four: starting a journey in the car, places found from the road, the drive in the replay, and captures while driving; and
-"Spec all four now". Asked whether that withdraws the road engine: "Keep 0203".
+"Spec all four now". Asked whether that withdraws the road engine: "Keep 0209".
 
 The owner's words reached this spec through the session that ran the gate, not from the owner in this one. They are quoted as that
-session gave them, and decision 0206 says so.
+session gave them, and decision 0212 says so.
 
 ## Vision
 
@@ -23,7 +23,7 @@ Verb: honour (the drive is what came before a moment), return (the road in the r
 Touches: Never "All-day tracking", "A capture behind a menu, a drawer or an extra tap", "Nagging", "Celebration", "Fitness numbers",
   "Tallies", "Several ways ranked by minutes"; Always "Capture is one tap away", "Restraint", "A route is a suggestion"; 0001 (five
   beats in a fixed order), 0085 (the soft cap), 0040 and rides R1-R14 (R9 captures on a ride, R10 the squeeze, R12 Explore silent
-  while moving), 0115 (places reached by car), 0121 (nothing starts on arrival), 0197 (the session is an outing), 0203-0205 (the
+  while moving), 0115 (places reached by car), 0121 (nothing starts on arrival), 0203 (the session is an outing), 0209-0205 (the
   road engine), main's deferred "Places you can't walk to"
 Verdict: aligned if reshaped
 Shape: nothing starts, stops or offers itself on a car, a speed or an arrival; a place is found by a capture, never by passing or by
@@ -35,8 +35,8 @@ Criteria: DO1-DO30 below
 Open: four, at the end
 ```
 
-The gate ran before it knew of decisions 0197 and 0203. Two of its eleven criteria are re-gated here: its third ("no route, turn or
-re-route for the road") is withdrawn by "Keep 0203", and its fifth ("nothing new is caused by a ride") is kept with the road
+The gate ran before it knew of decisions 0203 and 0209. Two of its eleven criteria are re-gated here: its third ("no route, turn or
+re-route for the road") is withdrawn by "Keep 0209", and its fifth ("nothing new is caused by a ride") is kept with the road
 engine's spoken turn as the one named exception, which is the first open question.
 
 ## How adjacent apps do it
@@ -53,11 +53,11 @@ Everywhere:
   notifies anything.
 - **DO2.** (the owner's safety rule) Nothing on a ride asks for a look or a tap: a ride causes no prompt, banner, sheet, sound,
   haptic or notification of its own. The one exception is a turn spoken by guiding the person started ("Drive there", decision
-  0205). Reminders the person set still fire; the phone's own driving mode quiets them.
+  0211). Reminders the person set still fire; the phone's own driving mode quiets them.
 - **DO3.** No speed, average, maximum, driving time or ranking is shown or stored as a figure, anywhere. A drive's distance is said
   in words with its unit.
 - **DO4.** Nothing leaves the device and no new host is used.
-- **DO5.** The words are the session's, as 0197 names it: the app says "outing" where this spec's surfaces say what is recorded;
+- **DO5.** The words are the session's, as 0203 names it: the app says "outing" where this spec's surfaces say what is recorded;
   "ride" stays the word for a stretch not on foot.
 
 Start a journey in the car:
@@ -140,7 +140,7 @@ Captures while driving:
 ## Not in this spec
 
 Detecting a car; a passenger mode; CarPlay or Android Auto; a dashboard of drives; fuel, tolls or stops suggested; telling a bus or
-a train from a car; fog and streets from a driven trace and driven gap inference (0197's own slices).
+a train from a car; fog and streets from a driven trace and driven gap inference (0203's own slices).
 
 ## Record
 

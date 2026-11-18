@@ -6,7 +6,7 @@ import type { LngLat } from '../types';
 import type { Journey } from './journeys';
 
 /*
- * The plan a session carries (OJ28-OJ31, OJ34, OJ48, OJ49; decision 0201): a journey's towns in order, each with its point, its
+ * The plan a session carries (OJ28-OJ31, OJ34, OJ48, OJ49; decision 0207): a journey's towns in order, each with its point, its
  * stops' positions and whether it is a loop. No stop's name, no chip, no path. It holds only the towns still ahead: one that is
  * behind you simply leaves it, and nothing records whether it was reached, passed by or drifted from, so nothing is ever marked done.
  */

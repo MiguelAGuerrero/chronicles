@@ -381,7 +381,7 @@ const FEATURES = [
 const V1_SCAN_AND_AMBIENT = ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S9', 'S10', 'S11', 'S12', 'S14', 'S15', 'S22', 'S23', ...Array.from({ length: 11 }, (_, i) => `A${i + 1}`)];
 
 const RETIRED = {
-  // The Loop / One way switch went with the page rebuilt as a map (outing-journey, decision 0198, a default taken on the owner's "proceed
+  // The Loop / One way switch went with the page rebuilt as a map (outing-journey, decision 0204, a default taken on the owner's "proceed
   // with reasonable defaults", theirs to overrule): a journey is a loop when one can be made, else one way, and says which (OJ7).
   'quick-circuit': ['QC3'],
   // Go here and its sheet were replaced by two outcome-named controls, Walk and "Open in Maps" (the owner, Nov 17, decision 0195):

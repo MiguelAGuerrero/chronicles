@@ -3,7 +3,7 @@ import type { RoadKind } from './types';
 
 /*
  * The road engine's rules (RE5-RE7, RE11, RE29), each a number the plan's measurement of real tiles gave or the owner chose
- * (decisions 0203, 0204). The cost is by kind of road and nothing else: no speed, no time.
+ * (decisions 0209, 0210). The cost is by kind of road and nothing else: no speed, no time.
  */
 export interface RoadRules {
   zoom: number;
@@ -30,7 +30,7 @@ export const ROAD_RULES: RoadRules = {
    * is taken only when the way without it is more than half as long again; a trunk road a little more than a town's road.
    */
   cost: { motorway: 1.5, trunk: 1.15, primary: 1, secondary: 1, tertiary: 1 },
-  /** RE7: a plan reads at most this many tiles, about 150 km of road (decision 0204). */
+  /** RE7: a plan reads at most this many tiles, about 150 km of road (decision 0210). */
   tilesMax: 60,
   /** RE7: the corridor reaches this far to each side of the straight stretches between the points. */
   padM: 4000,

@@ -3,7 +3,7 @@ import { distanceM, projector } from '../geo';
 import type { LngLat } from '../types';
 
 /*
- * Where an outing looks (OJ20, OJ37, OJ41, OJ42; decision 0199): a list of areas, each a point a chapter may be planned around. With
+ * Where an outing looks (OJ20, OJ37, OJ41, OJ42; decision 0205): a list of areas, each a point a chapter may be planned around. With
  * no destination they are where you stand and the towns within a reach; toward a place, the towns near the straight line to it, in
  * order, the place last. The planner is handed the list and does not know which it was. Towns are plain rows (the gazetteer's); a
  * town you have not been in is looked at before one you have. Pure geometry: nothing is read here.

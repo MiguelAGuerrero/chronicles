@@ -4,7 +4,7 @@ import { GET_THERE_M } from '../startPlan';
 import type { LngLat } from '../types';
 
 /**
- * How Start is offered for a journey's first chapter (0121, 0197, 0201; audit 9): around where you stand it starts at once; for a
+ * How Start is offered for a journey's first chapter (0121, 0203, 0207; audit 9): around where you stand it starts at once; for a
  * named place it starts at once when near, and with "When I get there" beside it when far, since a session may begin wherever you
  * are, the drive included (OJ28). With no position to begin from, only "When I get there".
  */
