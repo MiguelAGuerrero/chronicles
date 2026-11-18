@@ -381,9 +381,10 @@ The owner picks; the loop never starts a `G` entry unasked.
    opened from, never a later one, so that anything landing during the run
    reads as a change since the sweep; `lastT`, `lastG`; anything declined;
    valid JSON, only those fields, the balance left to the script) and
-   `docs/STATUS.md`, "Last tend", replaced with this run's digest (area,
-   commits with one line each, entries filed, the balance in a sentence,
-   lenses not run): write the digest to a file and run `npm run records --
+   `docs/STATUS.md`, "Last tend", replaced with this run's digest by every
+   mode, an inbox run and a triage included (area or mode, commits with one
+   line each, entries filed or answered, the balance in a sentence, lenses not
+   run): write the digest to a file and run `npm run records --
    last-tend set --file <digest>`, which keeps the heading and every section
    after it. What the owner must change by hand (a spec's or a rule's wording)
    is an `open add` to "Open before the loop"; an item there that the run did
@@ -398,7 +399,8 @@ The owner picks; the loop never starts a `G` entry unasked.
 
    **The run log** (decision 0139) is `.claude/skills/tend/runs.jsonl`, one
    line a run, never edited afterwards. Every mode writes one, in its last
-   record commit:
+   record commit, before that commit is made (a record commit is never
+   amended):
 
    ```
    npm run tend:log -- origin/main..HEAD '{"mode":"sweep","area":"memories","deploy":"main","base":"<the worktree's base>",
@@ -414,8 +416,10 @@ The owner picks; the loop never starts a `G` entry unasked.
    zeros included; `answers` is each entry the owner answered this run, as
    `yes`, `no` or `reshape`; `review` is the review's findings
    (`accepted`, `rejected`, `deferred`, a filed low counted deferred); `e2e`
-   is the journeys run, or `"full"` for the full pass. The line is written once: when the
-   review of step 2 leads to a second record commit, write it there. A full pass
+   is the journeys run, or `"full"` for the full pass. The line is written once. A
+   run makes one record commit, or two around the review of step 2 (one before
+   it, one after it when the review's fixes change the record): the line goes in
+   the last, with the review's counts, and the first carries none. A full pass
    made on its own logs mode `e2e` with the line `npm run e2e:all` prints
    (`"e2e":"full"`, the base it ran on, `journeys`, `ok`, `red` and `flaky` as
    `{ journey, check }`, `minutes`; `docs/TESTING.md`, "Choosing the journeys", 6).
