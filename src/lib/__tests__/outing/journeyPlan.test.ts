@@ -100,3 +100,23 @@ test('RE25: the mute is kept with the guiding as one more flag, and only beside 
   assert.equal(isJourneyPlan({ chapters: [c], muted: false }), false);
   assert.equal(isJourneyPlan({ chapters: [c], driving: true, muted: true, voice: 'x' }), false);
 });
+
+test('DO7: a far place begun now is carried as a one-town plan: its name and its point, nothing else', { todo: 'test first' }, async () => {
+  const { placePlan, isJourneyPlan, stepPlan, emptyState, PLAN_RULES } = await import('../../outing/journeyPlan');
+  const plan = placePlan('Cranston', [-71.44, 41.78]);
+  assert.equal(isJourneyPlan(JSON.parse(JSON.stringify(plan))), true);
+  assert.deepEqual(plan, { chapters: [{ town: 'Cranston', at: [-71.44, 41.78], stops: [[-71.44, 41.78]], loop: false }] });
+  // Far from it the session heads toward it; within reach it is at hand, as any town of a journey.
+  const far = stepPlan(plan, emptyState(plan), [-71.0, 41.78]);
+  assert.equal(far.ahead?.town, 'Cranston');
+  assert.equal(far.ahead?.within, false);
+  assert.ok(PLAN_RULES.reachM > 0);
+  assert.equal(stepPlan(plan, emptyState(plan), [-71.441, 41.78]).ahead?.within, true);
+});
+
+test('DO5, DO6: the question says "Start now", at every distance, never "Walk now"', { todo: 'test first' }, async () => {
+  const w = await import('../../outing/journeyWords');
+  assert.equal(w.START_NOW_LABEL, 'Start now');
+  assert.match(w.START_FAR_HINT, /records from here/i);
+  assert.doesNotMatch(`${w.START_NOW_LABEL} ${w.START_FAR_HINT}`, /walk/i);
+});

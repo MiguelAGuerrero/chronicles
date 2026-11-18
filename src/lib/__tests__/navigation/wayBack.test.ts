@@ -83,9 +83,11 @@ test('DW5: no position, or a fix over 30 minutes old, asks', async () => {
 test('DW14: too far to walk offers When I get there alone', async () => {
   const { walkToChoice } = await startPlan();
   const now = 10 * 3600_000;
-  assert.equal(walkToChoice(10_001, now, now), 'later');
+  assert.equal(walkToChoice(10_001, now, now), 'far');
   assert.equal(walkToChoice(10_000, now, now), 'ask', 'exactly 10 km is still walkable (N5)');
-  assert.equal(walkToChoice(40_000, null, now), 'later', 'too far whatever the fix');
+  assert.equal(walkToChoice(40_000, null, now), 'far', 'too far to walk whatever the fix');
+  // DO6: past what can be walked the question is still asked: it is never "When I get there" alone.
+  assert.notEqual(walkToChoice(400_000, now, now), 'later');
 });
 
 // ---- The way back ----
