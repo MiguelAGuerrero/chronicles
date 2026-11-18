@@ -259,7 +259,7 @@ const FEATURES = [
       'src/lib/unsaved/**',
     ],
     journeys: ['edit', 'stacks', 'stackjoin', 'voicetrim', 'videothumbs', 'unsaved'],
-    specs: ['memories-on-revisit', 'media-editing', 'moment-stacks', 'stack-with-previous', 'voice-trim', 'note-types', 'video-thumbnails', 'unsaved-captures'],
+    specs: ['memories-on-revisit', 'media-editing', 'moment-stacks', 'stack-with-previous', 'voice-trim', 'note-types', 'video-thumbnails', 'unsaved-captures', 'expo-image'],
   },
   {
     name: 'chronicle',
@@ -439,6 +439,8 @@ const RETIRED = {
  * make (the web build can't reach it), `deferred: <why>` for the owner's call to wait. Keyed by spec.
  */
 const UNTESTED = {
+  // Pictures through expo-image: the cache and the recycling are a phone's to see under memory pressure.
+  'expo-image': { EI6: 'device: memory and recycling over a few hundred photos on a phone; the web build has no native image cache' },
   // Plan an outing (decision 0196): criteria with no test of their own, each with where it is held instead.
   'quick-circuit': {
     QC32: 'deferred: a review criterion, the ux-reviewer\'s cold find (Nov 17, in the spec\'s Record), not a unit test',
@@ -508,7 +510,9 @@ const RENAMED = {
   'video-thumbnails': { VS: 'VT' },
 };
 
-const IN_PROGRESS = {};
+const IN_PROGRESS = {
+  'expo-image': { branch: 'claude/bold-hawking-dx3pc8', since: '2026-11-18' },
+};
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));
 

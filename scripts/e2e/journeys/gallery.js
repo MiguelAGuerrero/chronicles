@@ -241,12 +241,16 @@ async function run(h) {
   const sizes = await pg.evaluate(() => {
     const img = [...document.querySelectorAll('[data-testid=gallery-img]')].find((e) => !e.closest('[aria-hidden=true]'));
     const tile = img && img.closest('[data-testid=gallery-tile]');
+    // React Native's Image drew a background (its size the fit); expo-image draws an <img> (its object-fit).
     const bg = img && [img, ...img.querySelectorAll('div')].map((d) => getComputedStyle(d).backgroundSize).find((s) => s && s !== 'auto');
+    const el = img && (img.tagName === 'IMG' ? img : img.querySelector('img'));
+    const objectFit = el ? getComputedStyle(el).objectFit : null;
     const r = tile && tile.getBoundingClientRect();
-    return { bg, w: r && Math.round(r.width), h: r && Math.round(r.height) };
+    return { bg, objectFit, w: r && Math.round(r.width), h: r && Math.round(r.height) };
   });
   await shot(pg, '98-gallery-aspect');
-  check(sizes.bg === 'contain' && sizes.w === sizes.h, `MG21: the photo shows whole in a cell that stays square (${JSON.stringify(sizes)})`);
+  check((sizes.bg === 'contain' || sizes.objectFit === 'contain') && sizes.w === sizes.h, `MG21: the photo shows whole in a cell that stays square (${JSON.stringify(sizes)})`);
+  check.todo(sizes.objectFit === 'contain' && !sizes.bg, `EI5: the tile is a picture drawn by expo-image, its fit kept: an <img> contained, no background (${JSON.stringify(sizes)})`);
   await menu();
   await pg.click('[data-testid=gallery-menu-shape-square]');
   await done();
