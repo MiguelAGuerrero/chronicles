@@ -38,7 +38,7 @@ const H = 52;
 const layout = (children: readonly Child[]) => children.map((c) => (c.type === 'heading' ? H : c.type === 'note' ? 36 : 48));
 const topsOf = (heights: readonly number[]) => heights.map((_, i) => heights.slice(0, i).reduce((a, b) => a + b, 0));
 
-test('WI17: while a kind\'s subtypes scroll under the pinned heading, the heading carries the kind\'s name', { todo: 'test first' }, async () => {
+test('WI17: while a kind\'s subtypes scroll under the pinned heading, the heading carries the kind\'s name', async () => {
   const { intoSections, intoChildren, intoPin } = await page();
   const { children, sticky } = intoChildren(intoSections(KINDS, new Set(DEFAULT_OFF)), COMPLEX_KINDS);
   const heights = layout(children);
@@ -67,7 +67,7 @@ test('WI17: while a kind\'s subtypes scroll under the pinned heading, the headin
   assert.deepEqual(intoPin(children, heights, 0, H), { at: 0, push: 0, stuck: false, kind: null });
 });
 
-test('WI22: the incoming heading pushes the pinned one out', { todo: 'test first' }, async () => {
+test('WI22: the incoming heading pushes the pinned one out', async () => {
   const { intoSections, intoChildren, intoPin } = await page();
   const { children, sticky } = intoChildren(intoSections(KINDS, new Set()), COMPLEX_KINDS);
   const heights = layout(children);
@@ -87,7 +87,7 @@ test('WI22: the incoming heading pushes the pinned one out', { todo: 'test first
   }
 });
 
-test('WI18: a kind with some subtypes off names them, in words, on one short line', { todo: 'test first' }, async () => {
+test('WI18: a kind with some subtypes off names them, in words, on one short line', async () => {
   const { offLine, OFF_LINE_MAX, intoSections } = await page();
   assert.equal(offLine('curiosities', new Set<Kind>(['ghost_towns'])), 'Ghost towns off');
   assert.equal(offLine('monuments', new Set<Kind>(['plaques', 'small_memorials'])), 'Plaques and Small memorials off');
@@ -110,7 +110,7 @@ test('WI18: a kind with some subtypes off names them, in words, on one short lin
   assert.ok(curio.hint?.includes('Ghost towns off'));
 });
 
-test('WI19: the walk\'s drawer draws the row after the walk\'s settings, under a heading of its own', { todo: 'test first' }, () => {
+test('WI19: the walk\'s drawer draws the row after the walk\'s settings, under a heading of its own', () => {
   const text = readFileSync(join(SRC, 'app/walk.tsx'), 'utf8');
   const row = text.indexOf('<IntoRow');
   assert.ok(row > text.indexOf('testID="share-gps-log"'), 'after the walk\'s settings');
@@ -118,14 +118,14 @@ test('WI19: the walk\'s drawer draws the row after the walk\'s settings, under a
   assert.equal(heads[heads.length - 1], 'Every walk');
 });
 
-test('WI20: Back reads "Walk" when the page came from the walk\'s drawer, and only then', { todo: 'test first' }, async () => {
+test('WI20: Back reads "Walk" when the page came from the walk\'s drawer, and only then', async () => {
   const { intoBack } = await page();
   assert.deepEqual(intoBack('walk'), { title: 'Walk', spoken: 'Walk, back' });
   assert.equal(intoBack('ready'), null);
   assert.equal(intoBack(undefined), null);
 });
 
-test('WI21: at large text the indent, the gutter and the margins shrink so a label gets the width', { todo: 'test first' }, async () => {
+test('WI21: at large text the indent, the gutter and the margins shrink so a label gets the width', async () => {
   const { intoMeasures } = await page();
   const SWITCH = 40;
   const labelW = (width: number, scale: number, depth: number) => {
@@ -143,7 +143,7 @@ test('WI21: at large text the indent, the gutter and the margins shrink so a lab
   assert.ok(intoMeasures(390, 2).headingH >= 2 * normal.headingH - 10 && normal.headingH >= 48);
 });
 
-test('WI23: Complexes\' rows each have an icon of their own, used by no other row', { todo: 'test first' }, async () => {
+test('WI23: Complexes\' rows each have an icon of their own, used by no other row', async () => {
   const { COMPLEX_ICON } = await page();
   const icons = COMPLEX_KINDS.map((k) => COMPLEX_ICON[k]);
   assert.ok(icons.every(Boolean));

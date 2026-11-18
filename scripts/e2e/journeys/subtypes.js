@@ -106,7 +106,7 @@ async function run(h) {
   const structuresWas = await structuresAt();
   await settledShot('kind-structures', 'subtypes-what-im-into-structures');
   const structuresNow = await structuresAt();
-  check.todo(structuresWas != null && structuresNow != null && structuresNow < structuresWas && structuresNow < 200, `WI25: the structures picture is scrolled to Buildings and structures (${structuresWas} → ${structuresNow})`);
+  check(structuresWas != null && structuresNow != null && structuresNow < structuresWas && structuresNow < 200, `WI25: the structures picture is scrolled to Buildings and structures (${structuresWas} → ${structuresNow})`);
   await settledShot('kind-curiosities', 'subtypes-what-im-into-curiosities');
   // More attractions' rows in their sections, for the UI review (decision 0198).
   await settledShot('kind-parks', 'subtypes-what-im-into-parks');
@@ -119,7 +119,7 @@ async function run(h) {
   check(fun === 1, `more-attractions audit 8: Amusement parks is a row under Zoos and aquariums (${fun})`);
   await settledShot('kind-amusement_parks', 'subtypes-what-im-into-amusement');
   await settledShot('kind-piers', 'subtypes-what-im-into-piers');
-  check.todo(unsettled.length === 0, `WI25: every row in view shows its switch in each of the page's pictures (${JSON.stringify(unsettled)})`);
+  check(unsettled.length === 0, `WI25: every row in view shows its switch in each of the page's pictures (${JSON.stringify(unsettled)})`);
   const rows = drawer.filter((r) => !r.id.startsWith('kind-heading-')).map((r) => r.id);
   check(ready.length > 0 && JSON.stringify(ready) === JSON.stringify(drawer.map((r) => r.id)), `XS24, WI3: the page lists the same rows from the ready bar and the walk's drawer (${ready.length} vs ${drawer.length})`);
 
