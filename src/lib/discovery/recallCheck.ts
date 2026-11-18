@@ -6,7 +6,7 @@ import { db } from '../db';
 import { boundsOf, distanceM } from '../geo';
 import { notifier } from '../notify';
 import type { LngLat } from '../types';
-import { afterFire, dueRecalls, isExpired, RECALL_RULES, reminderText } from './recall';
+import { afterFire, createRecallPlaces, dueRecalls, isExpired, RECALL_RULES, reminderText } from './recall';
 import type { Recall } from './types';
 
 /** Captures a tapped reminder notification asked to open, for whichever screen mounts next (R4). */
@@ -56,24 +56,64 @@ export async function storedRecall(captureId: string): Promise<Recall | null> {
   return (await recalls()).find((r) => r.capture_id === captureId) ?? null;
 }
 
-// Fires go to the walk screen when it is in front, else to a notification:
-// decided when a fire is shown, not where it was checked (audit).
-let screen: ((captures: Faced[]) => void) | null = null;
-export function onRecallFired(fn: (captures: Faced[]) => void): () => void {
-  screen = fn;
-  return () => {
-    if (screen === fn) screen = null;
-  };
-}
-async function deliver(walkId: string, captures: Faced[]) {
-  if (screen && AppState.currentState === 'active') screen(captures);
-  else await notifier.recall(reminderText(captures), captures.map((c) => c.id), walkId).catch(() => {});
-}
-
+// Fires go to the place in front that listens (the walk screen's card, the recording bar), else to a notification:
+// decided when a fire is shown, not where it was checked (audit). Every place listens; none takes another's place, so
+// a walk screen kept behind the tabs never takes a fire out of sight (tend explore 21). A place that goes with one
+// nobody has seen hands it on to the next in front (tend explore audit 23).
 // What waits in Undo, told by the Undo window (lib/deletion), which imports this module: so it is set, not imported.
 let hiddenNow: () => ReadonlySet<string> = () => new Set();
 export function setRecallHidden(fn: () => ReadonlySet<string>) {
   hiddenNow = fn;
+}
+
+const places = createRecallPlaces();
+const active = () => AppState.currentState === 'active';
+/**
+ * What waits is offered against the walk still open: a reminder of a walk that ended is dropped, and a moment of it
+ * gone into Undo meanwhile is left out (tend explore audit 29).
+ */
+const offerHeld = () => {
+  void db.getOpenWalk().then((w) => places.offer(active(), w?.id ?? null, hiddenNow())).catch(() => {});
+};
+/** Listen for fired reminders, while `inFront` says this place can be seen; returns the unsubscribe. */
+export function onRecallFired(show: (captures: Faced[]) => void, inFront: () => boolean = () => true): () => void {
+  const off = places.listen(show, inFront);
+  offerHeld();
+  return off;
+}
+/** A place came to the front: it takes a reminder handed on unseen. */
+export const recallPlaceShown = offerHeld;
+/** A place goes with a reminder nobody has seen: the next place in front of its walk shows it. */
+export function handOnRecall(walkId: string, captures: Faced[]) {
+  void db.getOpenWalk().then((w) => places.handOn(walkId, captures, active(), w?.id ?? null)).catch(() => {});
+}
+const notify = (walkId: string, captures: Faced[]) =>
+  notifier.recall(reminderText(captures), captures.map((c) => c.id), walkId).catch(() => {});
+/**
+ * The app went behind with a reminder waiting (tend explore audit 28): it becomes a notification at once, as it would
+ * have fired behind, so a phone that kills the app later, or a browser that discards the page, loses nothing.
+ */
+const notifyHeld = () => {
+  void db
+    .getOpenWalk()
+    .then((w) => {
+      const held = places.drain(w?.id ?? null, hiddenNow());
+      if (held) return notify(held.walkId, held.captures);
+    })
+    .catch(() => {});
+};
+// 'background' only: iOS passes through 'inactive' for Control Center or the app switcher's first frame.
+AppState.addEventListener('change', (s) => {
+  if (s === 'active') {
+    places.front();
+    offerHeld();
+  } else if (s === 'background') notifyHeld();
+});
+// With the app in front and no place in front (a replay over the tabs), it waits for the next place (tend explore 24);
+// with the app behind, a notification of everything fired behind on the walk, so none replaces another (audit 28).
+async function deliver(walkId: string, captures: Faced[]) {
+  const behind = places.take(walkId, captures, active());
+  if (behind) await notify(walkId, behind);
 }
 
 let running: Promise<boolean> | null = null;

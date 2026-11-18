@@ -7,16 +7,16 @@ const BANNED = /\b(minutes?|mins?|hours?|hrs?|ETA|pace|brisk|quick(er|est)?|fast
 
 test('OJ9: a destination\'s distance is said as "away", in the units setting, with no time', async () => {
   const { awayLine } = await import('../../outing/journeyWords');
-  assert.equal(awayLine(27_000, 'km'), '27 km away');
-  assert.equal(awayLine(27_000, 'mi'), '17 mi away');
-  assert.equal(awayLine(800, 'km'), '800 m away');
+  assert.equal(awayLine(27_000, 'km'), '27\u00a0km away');
+  assert.equal(awayLine(27_000, 'mi'), '17\u00a0mi away');
+  assert.equal(awayLine(800, 'km'), '800\u00a0m away');
   assert.doesNotMatch(awayLine(27_000, 'km'), BANNED);
 });
 
 test('OJ21: a card says the places in order, what it includes by the chips\' own words, and the distance on foot; no quantity word', async () => {
   const { cardSummary } = await import('../../outing/journeyWords');
   const s = cardSummary({ places: ['Emmaus', 'Kutztown'], labels: ['Antiques', 'Books'], footM: 2100 }, 'km');
-  assert.match(s, /^Emmaus and Kutztown\. Antiques and Books\. 2\.1 km on foot\.$/);
+  assert.match(s, /^Emmaus and Kutztown\. Antiques and Books\. 2\.1\u00a0km on foot\.$/);
   assert.doesNotMatch(s, BANNED);
   assert.match(cardSummary({ places: [null], labels: ['Green'], footM: 900 }, 'km'), /^Around here\./);
   assert.match(cardSummary({ places: ['Emmaus'], labels: ['History'], footM: 0 }, 'km'), /^Emmaus\. History\.$/, 'a journey of single stops says no distance on foot');
@@ -26,10 +26,10 @@ test('OJ23, OJ24, OJ41: a town\'s line, a chapter\'s line and the reach, in word
   const w = await import('../../outing/journeyWords');
   assert.equal(w.townLine(['Antiques', 'History']), 'Antiques and history here.');
   assert.equal(w.chapterLine({ stops: 1, lengthM: 0, loop: false }, 'km'), 'One stop.');
-  assert.match(w.chapterLine({ stops: 3, lengthM: 1400, loop: true }, 'km'), /^A walk of 1\.4 km, back where it starts\.$/);
+  assert.match(w.chapterLine({ stops: 3, lengthM: 1400, loop: true }, 'km'), /^A walk of 1\.4\u00a0km, back where it starts\.$/);
   assert.match(w.chapterLine({ stops: 2, lengthM: 900, loop: false }, 'km'), /one way: the way back is yours\.$/);
   assert.equal(w.reachLabel(0, 'km'), 'Close by');
-  assert.equal(w.reachLabel(15000, 'km'), '15 km');
+  assert.equal(w.reachLabel(15000, 'km'), '15\u00a0km');
   for (const s of [w.townLine(['Antiques']), w.ANOTHER_LABEL, w.NO_OTHER_LINE, w.FURTHER_LABEL, w.nextMoveLine(true), w.REACH_LINE]) assert.doesNotMatch(s, BANNED, s);
 });
 
@@ -62,7 +62,7 @@ test('outing-journey ui 1, ui 3: what a wider reach looked at is said by name, a
 
 test('RE17: a card says its distance by road beside its distance on foot, last, each with its unit; none where the road is not known', async () => {
   const { cardSummary } = await import('../../outing/journeyWords');
-  assert.match(cardSummary({ places: ['Emmaus', 'Kutztown'], labels: ['Antiques'], footM: 2100, roadM: 31_400 }, 'km'), /2\.1 km on foot\. 31 km by road\.$/);
-  assert.match(cardSummary({ places: ['Emmaus'], labels: ['Antiques'], footM: 0, roadM: 31_400 }, 'km'), /Antiques\. 31 km by road\.$/);
+  assert.match(cardSummary({ places: ['Emmaus', 'Kutztown'], labels: ['Antiques'], footM: 2100, roadM: 31_400 }, 'km'), /2\.1\u00a0km on foot\. 31\u00a0km by road\.$/);
+  assert.match(cardSummary({ places: ['Emmaus'], labels: ['Antiques'], footM: 0, roadM: 31_400 }, 'km'), /Antiques\. 31\u00a0km by road\.$/);
   assert.doesNotMatch(cardSummary({ places: ['Emmaus'], labels: ['Antiques'], footM: 2100, roadM: null }, 'km'), /by road/);
 });

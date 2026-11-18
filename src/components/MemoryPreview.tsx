@@ -1,10 +1,11 @@
 import { type Faced, hasMore } from '../lib/moment';
+import { Picture } from './Picture';
 import { STACK_SPOKEN } from './StackMark';
 import { useState } from 'react';
 import { thumbShown } from '../lib/thumbPlan';
 import { useStill } from '../lib/thumbs/useStill';
 import { VideoMark } from './VideoMark';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { moreHere, previewLine, previewSpoken } from '../lib/memories';
 
 import { useMediaUri } from '../lib/useMediaUri';
@@ -46,10 +47,10 @@ export function MemoryPreview(props: {
         >
           <View style={styles.thumb}>
             {uri && broken !== uri ? (
-              <Image
-                source={{ uri }}
+              <Picture
+                uri={uri}
                 style={StyleSheet.absoluteFill}
-                resizeMode="cover"
+                fit="cover"
                 onError={() => (ref === row.thumb_path && ref !== row.file_path && row.kind === 'photo' ? setCopyBroken(true) : setBroken(uri))}
               />
             ) : (

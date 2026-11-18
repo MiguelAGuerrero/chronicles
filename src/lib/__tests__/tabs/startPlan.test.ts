@@ -52,7 +52,7 @@ test('NV22, NV23: the drawer keeps its destination in nav with no walk yet; a wa
 
 test('NV20: the destination shows its name and straight-line distance', () => {
   const near: [number, number] = [-71.4, 41.812 + 320 / 111320];
-  assert.equal(destLine(spot, near), 'Your spot · 320 m away');
+  assert.equal(destLine(spot, near), 'Your spot · 320\u00a0m away');
   assert.equal(destLine(spot, null), 'Your spot');
 });
 
@@ -67,12 +67,12 @@ test('tend tabs 6: the destination’s distance follows the units setting, as ev
   const far: [number, number] = [-71.4, 41.812 + 2400 / 111320];
   try {
     setUnits('mi');
-    assert.equal(destLine(spot, near), 'Your spot · 0.2 mi away');
-    assert.equal(destLine(spot, [-71.4, 41.812 + 100 / 111320]), 'Your spot · 328 ft away');
-    assert.equal(destLine(spot, far), 'Your spot · 1.5 mi away');
+    assert.equal(destLine(spot, near), 'Your spot · 0.2\u00a0mi away');
+    assert.equal(destLine(spot, [-71.4, 41.812 + 100 / 111320]), 'Your spot · 328\u00a0ft away');
+    assert.equal(destLine(spot, far), 'Your spot · 1.5\u00a0mi away');
     setUnits('km');
-    assert.equal(destLine(spot, near), 'Your spot · 320 m away', 'metres still round to ten');
-    assert.equal(destLine(spot, far), 'Your spot · 2.4 km away');
+    assert.equal(destLine(spot, near), 'Your spot · 320\u00a0m away', 'metres still round to ten');
+    assert.equal(destLine(spot, far), 'Your spot · 2.4\u00a0km away');
   } finally {
     setUnits('km');
   }
@@ -82,10 +82,10 @@ test('tend tabs audit 7: in miles the destination is converted from its own dist
   try {
     setUnits('mi');
     // 162 m is 531 ft, past the 528 ft where miles take over; rounded to 160 m first it read "525 ft".
-    assert.equal(destLine(spot, [-71.4, 41.812 + 162 / 111320]), 'Your spot · 0.1 mi away');
-    assert.equal(destLine(spot, [-71.4, 41.812 + 101 / 111320]), 'Your spot · 331 ft away');
+    assert.equal(destLine(spot, [-71.4, 41.812 + 162 / 111320]), 'Your spot · 0.1\u00a0mi away');
+    assert.equal(destLine(spot, [-71.4, 41.812 + 101 / 111320]), 'Your spot · 331\u00a0ft away');
     setUnits('km');
-    assert.equal(destLine(spot, [-71.4, 41.812 + 162 / 111320]), 'Your spot · 160 m away', 'metres still round to ten');
+    assert.equal(destLine(spot, [-71.4, 41.812 + 162 / 111320]), 'Your spot · 160\u00a0m away', 'metres still round to ten');
   } finally {
     setUnits('km');
   }
@@ -96,8 +96,8 @@ test('tend tabs audit 6: every step of the "?" range reads a distinct value, in 
   for (let m = EXPLORE_RULES.rangeMin; m <= EXPLORE_RULES.rangeMax; m += EXPLORE_RULES.rangeStep) steps.push(m);
   const mi = steps.map((m) => formatRange(m, 'mi'));
   assert.equal(new Set(mi).size, steps.length, `each step its own value: ${mi.join(', ')}`);
-  assert.ok(mi.every((t) => / ft$/.test(t)), 'a range this short is said in feet');
-  assert.equal(formatRange(100, 'mi'), '328 ft');
-  assert.equal(formatRange(100, 'km'), '100 m');
+  assert.ok(mi.every((t) => /[ \u00a0]ft$/.test(t)), 'a range this short is said in feet');
+  assert.equal(formatRange(100, 'mi'), '328\u00a0ft');
+  assert.equal(formatRange(100, 'km'), '100\u00a0m');
   assert.equal(new Set(steps.map((m) => formatRange(m, 'km'))).size, steps.length);
 });

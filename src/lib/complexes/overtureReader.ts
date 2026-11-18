@@ -3,7 +3,7 @@ import { VectorTile } from '@mapbox/vector-tile';
 import { PbfReader } from 'pbf';
 import type { Archive } from '../activity/release';
 import { TileMemo } from '../net/tileReader';
-import { piecesFromBuildingsTile, placesFromPlacesTile, type TileFeatureIn } from './overtureSource';
+import { namedBuilding, piecesFromBuildingsTile, placesFromPlacesTile, type TileFeatureIn } from './overtureSource';
 import type { BuildingPiece, ComplexRead, ComplexSource, PlaceIn } from './types';
 
 /*
@@ -13,13 +13,22 @@ import type { BuildingPiece, ComplexRead, ComplexSource, PlaceIn } from './types
  */
 const Z = 14;
 
-type Layer = { length: number; feature(i: number): { toGeoJSON(x: number, y: number, z: number): { geometry: unknown; properties?: unknown } } };
+type Layer = {
+  length: number;
+  feature(i: number): { properties: Record<string, unknown>; toGeoJSON(x: number, y: number, z: number): { geometry: unknown; properties?: unknown } };
+};
 
-function featuresOf(bytes: ArrayBuffer, name: 'building' | 'place', x: number, y: number): TileFeatureIn[] {
+/**
+ * The layer's features as GeoJSON. `keep` reads a feature's properties, which the decoder gives without its geometry, so
+ * a feature it drops is never decoded: a buildings tile holds thousands, a few named (performance review, Nov 18).
+ */
+function featuresOf(bytes: ArrayBuffer, name: 'building' | 'place', x: number, y: number, keep?: (p: Record<string, unknown>) => boolean): TileFeatureIn[] {
   const layer = new VectorTile(new PbfReader(new Uint8Array(bytes))).layers[name] as Layer | undefined;
   const out: TileFeatureIn[] = [];
   for (let i = 0; layer && i < layer.length; i++) {
-    const f = layer.feature(i).toGeoJSON(x, y, Z);
+    const raw = layer.feature(i);
+    if (keep && !keep(raw.properties ?? {})) continue;
+    const f = raw.toGeoJSON(x, y, Z);
     out.push({ geometry: f.geometry as TileFeatureIn['geometry'], properties: (f.properties ?? {}) as Record<string, unknown> });
   }
   return out;
@@ -81,7 +90,7 @@ export function createOvertureSource(o: { open: (release: string, file: 'buildin
               const [b, p] = await Promise.all([
                 buildings.get(release, x, y, async () => {
                   const d = await bytes(release, 'buildings', x, y);
-                  return d ? piecesFromBuildingsTile(x, y, featuresOf(d, 'building', x, y)) : [];
+                  return d ? piecesFromBuildingsTile(x, y, featuresOf(d, 'building', x, y, namedBuilding)) : [];
                 }),
                 places.get(release, x, y, async () => {
                   const d = await bytes(release, 'places', x, y);

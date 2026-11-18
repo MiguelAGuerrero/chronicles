@@ -24,15 +24,24 @@ import { notableBeyondNeighbourhood, notableName } from './notable';
  *     the map's ruins are Ruins, its zoos and attractions their own kind; weights and kinds changed, so nothing is carried.
  * p7: the classes `antiques`, `books` and `second_hand` beside `boutique` (the outing, decision 0194, QC14, QC16, QC42). A class
  *     beside `boutique` moves no bar, mark or weight, so p6 is carried (PS9).
+ * p8: more attractions (specs/more-attractions, decision 0198): contract v6's museums by type, nature reserves, amusement
+ *     parks and piers; new classes and weights move bars and marks, so nothing is carried.
+ * p9: the more-attractions audit (the owner's calls, Nov 18): every amusement, theme or water park is the subtype Amusement
+ *     and theme parks under Zoos and aquariums, the map's theme parks moved from Viewpoints (audit 1); a museum by type never
+ *     lights History by its name (audit 2); a pier adds nothing to a bar (audit 3); contract v7's natural national monuments
+ *     are Natural monuments under Nature (audit 18). Bars and kinds move, so nothing is carried.
+ * p10: typed bridges (specs/more-attractions MA10, the owner's call of Nov 18): contract v8's `suspension_bridge`, a
+ *     suspension bridge known only by its type, is a Bridges place held `by_type` that adds nothing to the History bar; a
+ *     bar moves, so nothing is carried.
  */
-export const PRESENCE_CODE = 'p7';
+export const PRESENCE_CODE = 'p10';
 
 /**
  * PS9, presence-readers audit 2: the codes whose rows stand under this one, read by the atlas (`CARRIED`, `atlas.ts`) and the
  * landing (`LANDING_CARRIED`, `landing/view.ts`). Only ever the code just before, and only when the golden tables show
  * nothing derived changed; empty it at a bump that changes a bar, a mark or a weight.
  */
-export const PRESENCE_CARRIED: readonly string[] = ['p6'];
+export const PRESENCE_CARRIED: readonly string[] = [];
 
 const FULL = 1;
 const HALF = 0.5;
@@ -69,7 +78,8 @@ const DEFS = {
   curiosity: { weight: FULL, category: 'viewpoints', kind: 'curiosities' },
   structure: { weight: FULL, category: 'history', kind: 'structures' },
   heritage: { weight: FULL, storefront: true },
-  // explore-subtypes audit 12: the map's attractions stay with Viewpoints ("Viewpoints and attractions"); zoos have their own kind.
+  // explore-subtypes audit 12: the map's attractions stay with Viewpoints ("Viewpoints and attractions"); zoos have their own
+  // kind. Its theme parks are `amusement` since the more-attractions audit 1.
   attraction: { weight: FULL, storefront: true, category: 'viewpoints', kind: 'viewpoints' },
   // Small places (specs/small-places, decision 0183): each a subset of its kind (`subset`, a switch in "What I'm into"),
   // weighing in a bar by the size of the stop (`bar`); none is a storefront (SP14). A community garden has no switch.
@@ -101,6 +111,8 @@ const DEFS = {
   cave: { weight: FULL, category: 'parks', kind: 'nature', subset: 'caves' },
   hot_spring: { weight: FULL, category: 'parks', kind: 'nature', subset: 'hot_springs' },
   old_tree: { weight: QUARTER, bar: QUARTER, category: 'parks', kind: 'nature', subset: 'old_trees' },
+  // more-attractions audit 18 (the owner, Nov 18, "Own subtype under Nature"): Devils Tower, Muir Woods, Jewel Cave.
+  natural_monument: { weight: FULL, category: 'parks', kind: 'nature', subset: 'natural_monuments' },
   observatory: { weight: FULL, storefront: true, category: 'culture', kind: 'museums', subset: 'observatories' },
   concert_hall: { weight: FULL, storefront: true, category: 'culture', kind: 'theatres', subset: 'concert_halls' },
   carousel: { weight: HALF, bar: HALF, category: 'culture', kind: 'community', subset: 'carousels' },
@@ -111,6 +123,17 @@ const DEFS = {
   natural_oddity: { weight: FULL, category: 'viewpoints', kind: 'curiosities', subset: 'natural_oddities' },
   roadside: { weight: FULL, category: 'viewpoints', kind: 'curiosities', subset: 'roadside_giants' },
   survey_mark: { weight: QUARTER, bar: QUARTER, category: 'viewpoints', kind: 'curiosities', subset: 'survey_marks' },
+  // More attractions (specs/more-attractions, decision 0198): contract v6's conventional attractions.
+  nature_reserve: { weight: HALF, category: 'parks', kind: 'parks', subset: 'nature_reserves' },
+  // more-attractions audit 1 (the owner, Nov 18, "Own row, on"): every amusement, theme or water park, from the archive or
+  // the map, is Amusement parks under Zoos and aquariums.
+  amusement: { weight: FULL, storefront: true, category: 'viewpoints', kind: 'attractions', subset: 'amusement_parks' },
+  // more-attractions audit 3 (the owner, Nov 18, "Only when listed"): a pier enters by its type (a listed one is the archive's
+  // `building_structure`), so it keeps its row but weighs nothing in the History bar.
+  pier: { weight: HALF, bar: 0, category: 'history', kind: 'structures', subset: 'piers' },
+  // MA10 (the owner, Nov 18): contract v8's suspension bridge known only by its type, never a listing: the Bridges row of a
+  // listed `bridge`, but it weighs nothing in the History bar, as a pier.
+  typed_bridge: { weight: FULL, bar: 0, category: 'history', kind: 'structures', subset: 'bridges' },
   small_memorial: { weight: QUARTER, bar: QUARTER, category: 'history', kind: 'monuments', subset: 'small_memorials' },
   old_stone: { weight: QUARTER, bar: QUARTER, category: 'history', kind: 'structures', subset: 'old_stones' },
   wayside_shrine: { weight: QUARTER, bar: QUARTER, category: 'history', kind: 'churches', subset: 'wayside_shrines' },
@@ -142,6 +165,12 @@ const DEFS = {
   // curation judges what they make a mark, and only `historic` lights a bar (PS11).
   /** The places archive holds it: it admits only Wikidata items of fixed types and heritage listings. */
   recorded: { weight: 0 },
+  /**
+   * more-attractions audits 2 and 18, MA10: the archive holds it for its type alone, never a listing (contract v6's
+   * `museum_by_type`, v7's `natural_monument`, v8's `suspension_bridge`): it is not `recorded`, and its name never makes it `historic` (the owner,
+   * Nov 18: Culture only for a museum).
+   */
+  by_type: { weight: 0 },
   /** Its name holds a word of `notable.json`. */
   historic_name: { weight: 0 },
   /** A place of history too: a museum the archive records, or whose name says historic beyond a neighbourhood's (PK1-PK3). */
@@ -214,7 +243,9 @@ const OSM: Record<string, Rule[]> = {
   // XS4: a petting zoo, a wildlife or safari park and the like are zoos too (the second review, Nov 17).
   // explore-subtypes audit 9, 12: an enclosure is a pen inside a zoo, never a place of its own; zoos are Zoos and aquariums.
   zoo: [[['zoo', 'aviary', 'petting_zoo', 'wildlife_park', 'safari_park', 'butterfly', 'reptile'], 'zoo'], [['enclosure'], 'none']],
-  theme_park: [['*', 'attraction']],
+  // more-attractions audit 1: a theme or water park is an amusement park, as the archive's (the owner, Nov 18).
+  theme_park: [['*', 'amusement']],
+  water_park: [['*', 'amusement']],
   bar: [[['bar', 'nightclub'], 'drink']],
   beer: [[['pub', 'biergarten'], 'drink']],
   // PR5: tags the old tables answered differently, each given the class its like already had.
@@ -238,6 +269,8 @@ const OSM_SUBCLASS: Record<string, PresenceClass> = {
   massage: 'service', tailor: 'service', locksmith: 'service', copyshop: 'service', optician: 'service', hearing_aids: 'service',
   beauty: 'service', hairdresser: 'service', travel_agency: 'office',
   books: 'boutique', library: 'civic', viewpoint: 'service', food_court: 'food_counter',
+  // more-attractions audit 1: a water park under another poi class (OpenMapTiles' leisure tags) is an amusement park.
+  water_park: 'amusement',
   // Not places to go; an empty storefront is no activity (activity-density audit 12).
   post_box: 'none', parcel_locker: 'none', charging_station: 'none', vacant: 'none', disused: 'none',
 };
@@ -320,8 +353,11 @@ export function classesOfOverture(hierarchy: readonly string[]): PresenceClass[]
 }
 
 /**
- * PS1: the places archive's classes (chronicles-data's contract v2, decision 0108), each to the class it is; every archive
- * place is `recorded` too, since the archive admits only recorded places (PS6). A class not here is no place, never guessed.
+ * PS1: the places archive's classes (chronicles-data's contract v8, decision 0108; the pinned copy in
+ * `__tests__/explore/contract`), each to the class it is. Every archive place is `recorded` too (PS6), but a museum by type,
+ * a natural monument and a suspension bridge by type, which the archive holds for their type and never a listing: they are
+ * `by_type` instead (MA2, more-attractions audits 2 and 18, MA10). A class
+ * not here is no place, never guessed.
  */
 const ARCHIVE: Record<string, PresenceClass> = {
   folly: 'roadside', novelty_building: 'roadside', roadside_giant: 'roadside', natural_oddity: 'natural_oddity', odd_engineering: 'curiosity',
@@ -342,7 +378,19 @@ const ARCHIVE: Record<string, PresenceClass> = {
   water_tower: 'water_tower', clock_tower: 'clock_tower', tavern: 'tavern', historic_machine: 'old_machine', mausoleum: 'mausoleum',
   garden: 'garden', waterfall: 'waterfall', cave: 'cave', hot_spring: 'hot_spring', old_tree: 'old_tree',
   concert_hall: 'concert_hall', observatory: 'observatory', carousel: 'carousel', zoo: 'zoo', fire_tower: 'fire_tower', ghost_town: 'ghost_town',
+  // Contract v6 (specs/more-attractions MA2-MA5, decision 0198); a museum by type is held for its type alone, never a
+  // listing, so it is `by_type`, not `recorded` (classesOfArchive), and lights Culture alone whatever its name (MA2, audit 2).
+  museum_by_type: 'museum', nature_reserve: 'nature_reserve', amusement_park: 'amusement', pier: 'pier',
+  // Contract v7 (more-attractions audit 18): a national monument Wikidata types only so, that is a natural place; held for
+  // its type, so never `recorded` and never History (a listed one keeps its listing's class on the data side).
+  natural_monument: 'natural_monument',
+  // Contract v8 (MA10, the owner, Nov 18): a suspension bridge Wikidata types only so, with no National Register listing;
+  // listed and covered bridges stay `bridge`. Held for its type, so never `recorded`, and it lights no History. Never unnamed.
+  suspension_bridge: 'typed_bridge',
 };
+
+/** The archive's classes held for their type alone, never a listing: `by_type`, never `recorded` (MA2, audit 18, MA10). */
+const BY_TYPE: ReadonlySet<string> = new Set(['museum_by_type', 'natural_monument', 'suspension_bridge']);
 
 /** The archive's class names, in the contract's order (PW5's listing, `archivePois.ts`). */
 export const ARCHIVE_CLASS_NAMES: readonly string[] = Object.keys(ARCHIVE);
@@ -360,7 +408,9 @@ export const isArtworkClass = (classes: readonly PresenceClass[]): boolean => cl
 /** PS1: what a places-archive feature is, from its class. */
 export function classesOfArchive(cls: string): PresenceClass[] {
   const c = own(ARCHIVE, cls);
-  return c ? [c, 'recorded'] : [];
+  if (!c) return [];
+  // MA2: a museum by type is held for its type, not its listing: no `recorded`, so no History from the record (PK1).
+  return BY_TYPE.has(cls) ? [c, 'by_type'] : [c, 'recorded'];
 }
 
 /** OpenMapTiles' landcover classes and subclasses that are green to a scenic route (SR15): parks and gardens, and woods. */
@@ -435,12 +485,13 @@ export const SOURCE_TAGS: readonly string[] = [
 
 /**
  * PS2, PS3: what a place's name adds to its classes. A notable name is `historic_name` (marks read it, by curation); a
- * museum the archive records, or whose name is notable once a neighbourhood's "Old Town" is read past, is `historic` too.
+ * museum the archive records, or whose name is notable once a neighbourhood's "Old Town" is read past, is `historic` too,
+ * but never a museum by type (`by_type`, more-attractions audit 2: the owner, Nov 18, Culture only).
  */
 export function named(classes: readonly PresenceClass[], name: string): PresenceClass[] {
   const out = [...classes];
   if (notableName(name)) out.push('historic_name');
-  if (out.includes('museum') && (out.includes('recorded') || notableBeyondNeighbourhood(name))) out.push('historic');
+  if (out.includes('museum') && !out.includes('by_type') && (out.includes('recorded') || notableBeyondNeighbourhood(name))) out.push('historic');
   return out;
 }
 

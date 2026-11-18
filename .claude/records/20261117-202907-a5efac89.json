@@ -1,0 +1,22 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Capture from Chronicle and the journal (HC1-HC15, decision 0112; JN1-JN24, decision 0155)"
+      ],
+      "body": "- [ ] **Do:** on a phone, keep two notes back to back on Chronicle's page, tap the up-arrow icon under the second (\"Stack with previous\"), then tap Undo, then tap it again and close the pill. **Expect:** the entry joins the earlier moment at once with the pill \"Stacked with the earlier moment\", Undo brings it back as its own entry, and after the pill is closed the stack is stored: the SQLite `joinMoment` repoints the pieces and deletes the emptied moment, and a relaunch shows one stack (SW5, SW7, SW9, SW17, `db.joinMoment` on `sqliteStore.ts`).\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Capture from Chronicle and the journal (HC1-HC15, decision 0112; JN1-JN24, decision 0155)"
+      ],
+      "body": "- [ ] **Do:** on a phone, open a stack on Chronicle's page with \"Show all\". **Expect:** three square tiles to a row, each at least 88 pt with its own time in words, a tap opens the viewer on that piece, \"Show less\" collapses it, and the four icons under every entry are each a 44 pt target that a screen reader names (SW1, SW12, SW18).\n"
+    }
+  ]
+}

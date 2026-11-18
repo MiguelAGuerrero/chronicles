@@ -1,7 +1,7 @@
 import { type Faced, facedAll } from '../lib/moment';
 import { NewNotePage } from '../components/notePage/NewNotePage';
 import type { NotePageHandle } from '../components/notePage/NotePage';
-import { router, useFocusEffect, useIsFocused, useLocalSearchParams } from 'expo-router';
+import { router, useFocusEffect, useIsFocused, useLocalSearchParams, useNavigation as useRouteNavigation } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
 import { walkClocks } from '../lib/pins';
 import { nextDayPartBoundary } from '../lib/resurface/context';
@@ -27,21 +27,23 @@ import { emptyGapAt, gapKey, stretchAt, type Gap } from '../lib/gaps/infer';
 import type { DrawnLine } from '../lib/gaps/draw';
 import { useGapDraw } from '../lib/gaps/useGapDraw';
 import { GapDraw } from '../components/GapDraw';
-import { ComplexKindSwitches, KindSwitches, RangeSlider, walkNote } from '../components/ExploreSettings';
+import { RangeSlider, walkNote } from '../components/ExploreSettings';
+import { IntoRow } from '../components/IntoRow';
+import { tookDetour } from '../lib/intoNav';
 import { NotificationSettings } from '../components/NotificationSettings';
 import { RouteLeaningSettings } from '../components/RouteLeaningSettings';
 import { RoutePreview } from '../components/RoutePreview';
 import { forPreview } from '../lib/nav/previewView';
 import { SwitchRow } from '../components/SwitchRow';
 import { ReminderCard } from '../components/ReminderCard';
-import { onRecallFired, onRecallOpen, onRecallWaiting, takeRecallOpen } from '../lib/discovery/recallCheck';
+import { onRecallFired, onRecallOpen, onRecallWaiting, recallPlaceShown, takeRecallOpen } from '../lib/discovery/recallCheck';
 import { reminderHeld, reminderText } from '../lib/discovery/recall';
 import { categoryOf } from '../lib/discovery/categories';
 import { deadZoneDue, deadZoneNudge, inDeadZone, stripAt } from '../lib/landing/walk';
 import { rulesCurrent, type LandingRow } from '../lib/landing/view';
 import { placesFromTilePois } from '../lib/discovery/tilePois';
 import { canBuzz } from '../lib/canBuzz';
-import { clampRange, EXPLORE_KEY, exploredKey, kindOf, POCKET_ALERT_NOTE, type Kind } from '../lib/explore/explore';
+import { clampRange, EXPLORE_KEY, exploredKey, kindOf, POCKET_ALERT_NOTE } from '../lib/explore/explore';
 import { DEFAULT_SETTINGS, loadSettings, onSettings, saveSettings, type ExploreSettings } from '../lib/explore/settings';
 import { useExplore } from '../lib/explore/useExplore';
 import { reach } from '../lib/explore/reach';
@@ -68,6 +70,8 @@ import type { LngLat, Pause, StreetSegment, Walk } from '../lib/types';
 import { useCaptures } from '../lib/useCaptures';
 import { momentPill } from '../lib/momentPill';
 import { useStore } from '../lib/useStore';
+import { routeLeanings } from '../lib/routeLeanings';
+import { whileFocused } from '../lib/openers';
 import { AddToMomentPill } from '../components/walk/AddToMomentPill';
 import { walkScreenShown } from '../lib/walkNav';
 import { askMotion, useMotionAccess } from '../lib/walkMotion';
@@ -185,8 +189,11 @@ export default function WalkRoute() {
   // In front: another ask to show the walk does nothing (tabs audit 1). Only while in front, not
   // while mounted: a walk screen left mounted behind the tabs once left the bar's › dead (Nov 2).
   useFocusEffect(useCallback(() => walkScreenShown(), []));
-  // Leaving the walk screen (a tab, minimize) closes the Add to this moment pill (MS4).
-  useFocusEffect(useCallback(() => () => momentPill.leave(), []));
+  // Leaving the walk screen (a tab, minimize) closes the Add to this moment pill (MS4); What I'm into's page, a detour
+  // inside the walk, leaves it open (the owner, Nov 18; specs/what-im-into-page Q5).
+  useFocusEffect(useCallback(() => () => {
+    if (!tookDetour()) momentPill.leave();
+  }, []));
   const info = useOpenWalkInfo();
   const close = useCallback(() => {
     feedback('tap');
@@ -438,6 +445,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
   // The viewer's Add to this moment (MS12), run here where the camera, the mic and the note are; on a walk only
   // (the ready screen's capture row runs its own).
   const asked = useStore(momentPill.store, (st) => st.ask?.seq ?? 0);
+  // Scenic routes' Sights read What I'm into's kinds too: its row shows with Sights on (what-im-into-page audit 6).
+  const sightsOn = useStore(routeLeanings.store, (s) => s.includes('sights'));
   const onAsk = useRef<(kind: 'photo' | 'voice' | 'text') => void>(() => {});
   useEffect(() => {
     onAsk.current = (kind) => {
@@ -561,12 +570,6 @@ function WalkScreen(props: { onMinimize: () => void }) {
     setLoaded(next);
     saveSettings(next).catch(() => {});
   };
-  const toggleKind = (k: Kind, on: boolean) => {
-    const hidden = new Set(settings.hidden);
-    if (on) hidden.delete(k);
-    else hidden.add(k);
-    changeSettings({ ...settings, hidden });
-  };
   async function pressMap(at: LngLat, radiusM?: number) {
     if (cap.voiceStartedAt != null || stopping || viewing || here) return;
     setMarkOpen(null);
@@ -605,7 +608,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
   }, []);
   // The spot card (and the options card) goes once you walk on, or with Back (Android) and Escape (web).
   useEffect(() => {
-    if (!spot && !memory) return;
+    // Only while in front: under What I'm into's page, Back and Escape are the page's (what-im-into-page audit 1).
+    if ((!spot && !memory) || !screenFocused) return;
     const close = () => {
       setSpot(null);
       setMemory(null);
@@ -622,7 +626,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
       back.remove();
       if (Platform.OS === 'web' && typeof window !== 'undefined') window.removeEventListener('keydown', onKey);
     };
-  }, [spot, memory]);
+  }, [spot, memory, screenFocused]);
   useEffect(() => {
     if (!spot?.from || !live.here || distanceM(spot.from, live.here) < 30) return;
     const t = setTimeout(() => setSpot(null), 0);
@@ -680,7 +684,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const routePreview = navigation.preview;
   const dismissPreview = navigation.dismiss;
   useEffect(() => {
-    if (!routePreview) return;
+    if (!routePreview || !screenFocused) return;
     const back = BackHandler.addEventListener('hardwareBackPress', () => {
       dismissPreview();
       return true;
@@ -691,7 +695,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
       back.remove();
       if (Platform.OS === 'web' && typeof window !== 'undefined') window.removeEventListener('keydown', onKey);
     };
-  }, [routePreview, dismissPreview]);
+  }, [routePreview, dismissPreview, screenFocused]);
   /**
    * Open in Maps (NH3-NH8): the destination to the phone's maps app, straight from the tap (a
    * browser opens a window only from one). Navigation and the walk go on as they were (NH7).
@@ -853,6 +857,10 @@ function WalkScreen(props: { onMinimize: () => void }) {
   useEffect(() => {
     hereRef.current = live.here;
   }, [live.here]);
+  // Whether this screen is in front, asked of the navigator when a fire comes, never a copy a frame behind (tend
+  // explore audit 26). As it comes to the front it takes a reminder the bar went with unseen (tend explore audit 23).
+  const routeNav = useRouteNavigation();
+  useFocusEffect(useCallback(() => recallPlaceShown(), []));
   // What the card holds, read by the listener below, so it announces the card's own title (tend explore audit 6).
   const reminderRef = useRef(reminder);
   useEffect(() => {
@@ -860,13 +868,17 @@ function WalkScreen(props: { onMinimize: () => void }) {
   }, [reminder]);
   useEffect(
     () =>
-      onRecallFired((due) => {
-        const next = { captures: reminderHeld(reminderRef.current?.captures ?? null, due), at: hereRef.current, shownAt: Date.now() };
-        reminderRef.current = next;
-        setReminder(next);
-        AccessibilityInfo.announceForAccessibility(reminderText(next.captures).title);
-      }),
-    [],
+      onRecallFired(
+        (due) => {
+          const next = { captures: reminderHeld(reminderRef.current?.captures ?? null, due), at: hereRef.current, shownAt: Date.now() };
+          reminderRef.current = next;
+          setReminder(next);
+          AccessibilityInfo.announceForAccessibility(reminderText(next.captures).title);
+        },
+        // Only while in front: kept behind the tabs after a reload, the bar above them takes it (tend explore 21).
+        () => routeNav.isFocused(),
+      ),
+    [routeNav],
   );
   // The card goes by itself after half a minute or 100 m walked on (it stays fired).
   useEffect(() => {
@@ -880,12 +892,15 @@ function WalkScreen(props: { onMinimize: () => void }) {
   useEffect(() => {
     if (!walk) return;
     let alive = true;
-    // A reminder tapped while this screen is in front opens here at once (audit 1).
-    const off = onRecallOpen((found) => {
-      setAutoPlay(true);
-      setViewing(found);
-      return true;
-    });
+    // A reminder tapped while this screen is in front opens here at once (audit 1); under What I'm into's page it is
+    // kept, and taken once the walk is in front again (what-im-into-page audit 9).
+    const inFront = () => routeNav.isFocused();
+    const off = onRecallOpen(
+      whileFocused(inFront, (found) => {
+        setAutoPlay(true);
+        setViewing(found);
+      }),
+    );
     const take = () =>
       takeRecallOpen()
         .then((found) => {
@@ -894,15 +909,18 @@ function WalkScreen(props: { onMinimize: () => void }) {
           setViewing(found);
         })
         .catch(() => {});
-    void take();
+    // Taken in front only: the effect runs again as the walk comes back from under the page.
+    if (screenFocused) void take();
     // Kept while this screen was mounting (a cold open now shows the walk sooner, NR3): taken as it lands.
-    const offWaiting = onRecallWaiting(() => void take());
+    const offWaiting = onRecallWaiting(() => {
+      if (inFront()) void take();
+    });
     return () => {
       alive = false;
       off();
       offWaiting();
     };
-  }, [walk, params.recall, resumed]);
+  }, [walk, params.recall, resumed, screenFocused, routeNav]);
   // This walk explores only once switched on (E1); otherwise it is quiet: navigation and captures (E9).
   useEffect(() => {
     if (!walk) return;
@@ -1700,9 +1718,6 @@ function WalkScreen(props: { onMinimize: () => void }) {
                   {live.here ? ' The ring on the map shows how far that is.' : ' The ring shows on the map once there’s a position.'}
                 </Text>
                 <RangeSlider value={settings.rangeM} onChange={(m) => changeSettings({ ...settings, rangeM: clampRange(m) })} />
-                <Text style={styles.optionSection} accessibilityRole="header">What I’m into</Text>
-                <KindSwitches hidden={settings.hidden} onToggle={toggleKind} />
-                <ComplexKindSwitches sectionStyle={styles.optionSection} />
               </>
             )}
             {Object.values(layers.on).some(Boolean) && (
@@ -1753,6 +1768,17 @@ function WalkScreen(props: { onMinimize: () => void }) {
               <Icon name="share-outline" size={20} color={theme.ink} />
               <Text style={[styles.optionLabel, { flex: 1 }]}>Share GPS log</Text>
             </Pressable>
+            {(exploring || sightsOn) && (
+              // WI1, WI19: What I'm into lasts beyond this walk, so its row is a short section of its own after the walk's
+              // settings, out from under "This walk" (the owner, Nov 18), headed "Explore" (audit 13); the kinds and
+              // Complexes are on its page (0192). Scenic routes' Sights read the kinds too, so it shows with either on
+              // (audit 6, the owner, Nov 18).
+              <>
+                <View style={styles.rule} />
+                <Text style={styles.spotTitle} accessibilityRole="header">Explore</Text>
+                <IntoRow from="walk" />
+              </>
+            )}
         </View>
       </ReadyBar>
 
@@ -2078,6 +2104,7 @@ const styles = StyleSheet.create({
     shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 6,
   },
   spotTitle: { fontSize: 16, fontWeight: '700', color: theme.ink },
+  rule: { height: StyleSheet.hairlineWidth, backgroundColor: theme.edge, marginTop: 8 },
   markSub: { fontSize: 14, color: theme.muted },
   optionRow: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 48 },
   optionLabel: { fontSize: 15, fontWeight: '600', color: theme.ink },

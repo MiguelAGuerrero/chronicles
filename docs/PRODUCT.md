@@ -71,6 +71,12 @@ recording, and a recording bar brings a minimized walk back.
   turn up as a "?"), so a plain parish church counts toward nothing; food, shops
   and nightlife count every place. A ring with fewer than three mapped places
   says nothing about its kinds (atlas grading, decision 0084).
+- **Sights and Local life** (decisions 0200, 0201; SG1-SG13): the card lists the kinds under two headings, **Sights**
+  (history, art, culture, green, views: what can turn up as a "?", said in a line under the heading) and **Local life**
+  (food, shops, nightlife: every place of its kind, never a "?"); a tile keeps one row with the two groups set apart by
+  a hairline (decision 0202), says them aloud by name, and its line leads with the Sights ("Plenty of history and green space"), Local
+  life only where there is no Sight. The Sights bars follow "What I'm into": a kind switched off leaves its bar at once.
+  Culture moves to Local life in phase 2, once the places data covers National Park Service sites.
 - A place may light two bars (presence and kinds, decision 0127): a museum or
   gallery lights History as well as Culture when the data already says it is
   historic (a listed museum in the places archive, or a historic word in its
@@ -207,12 +213,18 @@ recording, and a recording bar brings a minimized walk back.
   sculptures and statues, and community gardens, join their kinds. An unnamed one is named by its type ("A time
   capsule"). **Subtypes** (decision 0191, contract v4): every kind may have subtypes, each a switch under it, and the
   archive adds what the app could not show before: waterfalls, caves, hot springs and old trees (a new kind, Nature),
-  botanical gardens, zoos and aquariums (with the map's attractions, a kind of their own), fountains, concert halls,
+  botanical gardens, zoos and aquariums (a kind of their own), fountains, concert halls,
   observatories and carousels; listed buildings split into bridges, mills, stations, lighthouses, courthouses, forts,
   towers, old machines and old taverns; ghost towns (off by default) apart from ruins; markers apart from plaques.
-  Small things start off unless they are art. An area's bars count them by the size of the stop (a plaque a quarter, a little library a half) only for a
-  reader who has them on; they never keep a park a park, never lean a route, and a museum passed is never lost among
-  plaques. `npm run places:coverage` measures what
+  Small things start off unless they are art. An area's bars count the subtypes by the size of the stop (a plaque a
+  quarter, a little library a half) only for a reader who has them on; small places never keep a park a park, never lean a
+  route, and a museum passed is never lost among plaques.
+  **More attractions** (decision 0198): every museum by its type, not only listed ones (Culture alone unless listed,
+  whatever its name), nature reserves and wildlife refuges, every kind of garden, amusement, theme and water parks (their
+  own row, Amusement parks, under Zoos and aquariums, on by default, from the archive and the map alike), piers
+  and boardwalks (no History unless listed), suspension bridges (Bridges; a bridge known only by its type, with no
+  listing, adds nothing to History), national monuments, and natural national monuments such as
+  Devils Tower (Natural monuments, under Nature). `npm run places:coverage` measures what
   the app keeps of a town's destinations, for the owner.
 - **Complexes** (CX1-CX16, decision 0147). A named place made of other places (Strawberry Square,
   the Lehigh Valley Mall; a market, a campus, a station, a civic centre) is a subdivision of the area
@@ -223,8 +235,8 @@ recording, and a recording bar brings a minimized walk back.
   it and keeps its street ("Strawberry Square, N 2nd St, Harrisburg"), from complexes already on the
   phone: viewing a moment fetches nothing. Information only: never a mark, a find or a place a walk is
   assigned to. A complex is a named building from Overture that holds enough places, or a market, a
-  station, a campus or a civic building by its type; five switches, beside What I'm into, hide a kind
-  from the card and the map. Built on web, native unverified.
+  station, a campus or a civic building by its type; five switches, on What I'm into's page under their own
+  heading "Complexes", hide a kind from the card and the map. Built on web, native unverified.
 
 ### Navigate (during)
 
@@ -236,8 +248,8 @@ recording, and a recording bar brings a minimized walk back.
   top-left goes back to the tab you came from. With a walk open, Navigate opens
   that walk.
 - The bar pulls up (a drag on it, or a tap) into the **walk settings**: quiet or
-  Explore mode, the destination (a long press on the map), "What I'm into" and the
-  "?" range (Explore only), reminders and alerts, distances. Start stays at its
+  Explore mode, the destination (a long press on the map), the "?" range and the
+  "What I'm into ›" row to its page (Explore only), reminders and alerts, distances. Start stays at its
   foot. A destination shows on the resting bar in one line ("To Your spot · 120 m
   away").
 - The camera, mic and note are stacked at the right edge, above the bar, in the
@@ -396,6 +408,16 @@ recording, and a recording bar brings a minimized walk back.
     in the app's voice ("8:15 this morning · Elm Street, Fox Point"; on a walk, "Forty minutes in, just after a photo"),
     then every piece in the order captured. Your words are in a serif, everything the app says in its sans. A tap on a
     placed entry's dateline shows it on Chronicle's Map; a tap on the entry opens it; "From …" opens its walk's replay.
+  - **Quick actions under every entry** (decision 0197, SW1-SW20): a row of five icons, each with a one-word caption:
+    **Reaction** (the reactions, any day), **Respond** (a new linked moment), **Thread** (Add to a thread), **Edit** and
+    **Stack** (Stack with previous). A slot that does not apply is empty and moves no other; the entry being written has no row.
+    An entry has no More and no reaction sign: Show less like this and Not this one are gone from entries (the slip keeps its own More).
+  - **Stack with previous**: on the entry just kept in this sitting, while nothing points at it, one tap moves its pieces into
+    the previous moment of the same day, same walk and within 100 m, with Undo ("Stacked with the earlier moment"). Each piece
+    keeps its own time; one that was made later says "Added later, 4:12 pm" and names no place.
+  - **A stack as a gallery**: a moment with several pieces shows its first photo or video, your words and voice notes as before,
+    a quiet mark and its kinds in words ("a photo, a note and a voice note"); **Show all** opens a grid of every piece, three to a
+    row, each tile with its own time, and **Show less** closes it. No count anywhere.
   - **When it opens** the page is aligned to the top: today's date, the last entry under it, and the empty page below,
     down to the toolbar. Pull down to read back; each day's date holds at the top while its entries pass.
   - **A toolbar at the foot** (decisions 0178, 0179): above the tab bar, wherever the page is scrolled, a soft grey
@@ -530,10 +552,19 @@ recording, and a recording bar brings a minimized walk back.
 
 ## Settings and notifications
 
-- Explore settings (in the drawers: the ready bar's and the walk's, no panel of their own): "What I'm into" (about 53
-  rows under five headings: Art, History, Parks & green spaces, Culture, Viewpoints & oddities), the
-  "?" range with a ring preview on the map, the pocket alert (phones, and browsers that can
-  buzz: Android Chrome; not iPhone Safari, decision 0138).
+- Explore settings (in the drawers: the ready bar's with Explore chosen and the walk's with Explore on): the "?" range
+  with a ring preview on the map, the pocket alert (phones, and browsers that can buzz: Android Chrome; not iPhone
+  Safari, decision 0138), and one row, "What I'm into ›" (shown with Explore or scenic routes' Sights on, since both
+  read the kinds), that opens **What I'm into's page** (decision 0192): a page
+  of its own pushed over the screen with Back (reading "‹ Walk" when opened from the walk), the same from both drawers,
+  about sixty switches under five headings (Art, History, Parks & green spaces, Culture, Viewpoints & oddities) and
+  Complexes' five, each with its icon; each heading stays pinned while its rows scroll, with a hairline under it, and
+  names as a second line the kind whose subtypes pass under it ("› Zoos and aquariums"); a kind's name is drawn heavier
+  than its subtypes', with a quiet line naming only those switched from their default ("Ghost towns on", "Waterfalls
+  off", never a count; none as installed), and a little space above a kind that follows a subtype;
+  at large text the rows drop their icons and indents so labels wrap only between words; every switch saves as it
+  changes. In the walk's drawer the row is a short section of its own, "Explore", after the walk's settings. A walk
+  goes on under it; the row and the page carry no count. Built on web, native unverified.
 - Notifications: Remind me here and Pause reminder, each switchable, plus a
   test. Permission is asked only from a tap (first pause, a reminder saved, a
   switch turned on), never at launch. On the web, notifications come from a
@@ -554,7 +585,8 @@ recording, and a recording bar brings a minimized walk back.
   and reports touching it must say so. The phone's map redraws a layer or a
   pin only when it changes, never on each step of the gliding dot or a
   replay's clock, and simplifies its lines as the web does (native map frames,
-  NF1-NF8; unverified on a device).
+  NF1-NF8; unverified on a device). Every picture on screen is kept, decoded, in memory and on
+  disk once drawn (expo-image, EI1-EI6), so a gallery scrolled back or a pin shown again appears at once.
 - **Web**: the same loop with a browser's limits, deployed to GitHub Pages on
   every push to `main`. It traces the real browser location while the page is
   open and visible, holds a wake lock, and shows the gap when the page was

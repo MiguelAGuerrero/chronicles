@@ -1,0 +1,48 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inbox",
+        "remove",
+        "T33",
+        "--reason",
+        "the owner's answers in person, Nov 17: \"Cocoa #6e4f3f\" and \"Borders above the veil\", then at the review \"Lighten the fill on veiled maps\"; built in tend map T33 and tend map audit 38, 39; decision 0199"
+      ],
+      "target": "sha256:d3413a0a6a8c90646ef8aef1faf8abfa2909541874c45bf9db04f75bd24aeba6"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Town borders (TB1-TB9)"
+      ],
+      "body": "- [ ] **Do:** finish a walk that runs beside your town's edge, watch its replay to the card, then open that day's replay; then on a walk turn on Town borders and Unwalked streets beside the same edge. **Expect:** on the replay and the day the town's tint (lighter, 11%) and its firm cocoa edge (`#6e4f3f`) draw over the world's veil (`BordersSource` mounts after `VeilSource` there, `bordersOverVeil`), still under the trace, the walked ink, the pins and the walker; on the walk the edge stays under the unwalked veil, faint, as before. (decision 0199, tend map T33, tend map audit 38, 39)\n"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 17, `/tend inbox T33 --deploy=main`, the town borders' colour and their place against the veil** (opened from `84b47e2a`, rebased on `15d9ccca`; an inbox run, sections 0, 7 and 10; the faster lane of decision 0181).\n- The owner answered T33 in person (Nov 17), after the swatches: \"Cocoa #6e4f3f\" and \"Borders above the veil\"; and, at the review, the label floor: \"Lighten the fill on veiled maps\". Decision 0199 records the three.\n- `tend map T33`: `BORDER.color` is cocoa `#6e4f3f` on every map that draws borders; on the replay and a day the borders draw over the world's veil. On the e2e's replay card the edge went from 2.21:1 to 5.24:1 and the tint from 1.09 to 1.18.\n- The review (one round, the `ux-reviewer`; two medium, two low): three accepted as `tend map audit 38, 39` in one commit. Audit 38: the owner's answer, the fill 0.11 while over the veil (labels 4.00:1, tint 1.17 on Positron's land). Audit 39: only the replay and a day ask for the borders over the veil (`bordersOverVeil`); the walk's unwalked veil stays over its edge, as before (2.34:1 on the e2e). Two low deferred `[owner]` in \"Town borders\": a day's streets lose their lift under the tint, and beat one's edge is now its firmest long line.\n- T33 left the inbox; a native item was added under \"Town borders\". Nothing else filed.\n- Journeys (before the rebase; main's new commits touch no file they cover): `palette` (its new town-border step: the replay card's edge, tint and drawn opacity, and the walk with Unwalked streets on), `launch`; typecheck, lint, `npm test`. Not run: the other journeys (CI and the weekly pass). Native: the borders' mount order has never run on a device.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Town borders (TB1-TB9, decision 0088)"
+      ],
+      "body": "- [owner] On a day's replay the town's tint now lies over its streets, so they lose the lift they had: the grid inside the walked town reads as muted warm-grey lines barely lighter than the ground, the town more a flat block (tend map T33 review, U3, low, Nov 17). It is the cost of the owner's \"Borders above the veil\" (decision 0199): with the fill over the veil it is over the base streets too, so TB8's \"the fill is under the streets\" holds only off the replay and a day. Pictures, before and after: `palette-13-borders-day-390.png` and `palette-14-borders-day-card-390.png` in the run's `rec-t33/shots-before/` and `rec-t33/shots-audit/` (scratchpad of session 01PPdXwfDA1oN7EH5eQhY9Ry)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Town borders (TB1-TB9, decision 0088)"
+      ],
+      "body": "- [owner] On the replay's beat one the cocoa edge is now the firmest long line on the screen while the trace is faint (0.3): it runs the full height beside the walk and pulls the eye from the beat's subject, the walked ink; at 2.2:1 under the veil it did not (tend map T33 review, U4, low, opinion against H8, Nov 17). The 3.5:1 edge is what the owner asked for. Pictures, before and after: `palette-11-borders-beat-one-390.png` in the run's `rec-t33/shots-before/` and `rec-t33/shots-audit/` (scratchpad of session 01PPdXwfDA1oN7EH5eQhY9Ry)\n"
+    }
+  ]
+}

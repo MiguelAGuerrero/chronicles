@@ -11,7 +11,7 @@ const MI_M = 1609.344;
 /** RE2, RE13: a way's length, worded "by road": whole units from ten of them on. */
 export function byRoadLine(m: number, units: Units): string {
   const big = units === 'mi' ? m / MI_M : m / 1000;
-  return `${big >= 10 ? `${Math.round(big)} ${units}` : formatDistance(m, units)} by road`;
+  return `${big >= 10 ? `${Math.round(big)}\u00a0${units}` : formatDistance(m, units)} by road`;
 }
 
 /**
@@ -28,7 +28,7 @@ export function roadLine(state: 'reading' | 'found' | 'failed' | 'none' | 'long'
 /** A distance beside a turn: whole units from ten of them on, tens of metres under a kilometre, so it does not flicker with each fix. */
 function turnDistance(m: number, units: Units): string {
   const big = units === 'mi' ? m / MI_M : m / 1000;
-  if (big >= 10) return `${Math.round(big)} ${units}`;
+  if (big >= 10) return `${Math.round(big)}\u00a0${units}`;
   return formatDistance(units === 'km' && m < 995 ? Math.max(10, Math.round(m / 10) * 10) : m, units);
 }
 

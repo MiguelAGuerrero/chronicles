@@ -288,6 +288,9 @@ to it (`scripts/e2e/economy.js`; tests `arch/e2eEconomy.test.ts`):
   runner prints "known flake" under that check's failure and the run **still fails**:
   nothing is skipped, quarantined or turned green. A journey that never failed on `main`
   records nothing, so its failure on a branch is the branch's until shown otherwise.
+  A run that stops before its checks (a locator's timeout, a throw) counts as a failure named
+  `stopped: <its first error line>`, never as a pass: stopped every run means `main` is broken
+  there (resurface, Nov 18, read "passed 3/3" through three timeouts until it did).
 
 The habit it replaces: sweeping the whole named set at every checkpoint, rerunning a flaky
 check on the branch to see whether it flakes. Run each named journey once, at the end;
@@ -351,12 +354,22 @@ Re-export without the variable afterwards for the plain e2e.
   bar is gone after the first push), so that regression is a unit test.
 - Each capture adds a replay stop: loop on Continue. Captions are checked
   through their aria-label after the photo's size loaded.
+- A storage write that fails: CDP's `Storage.overrideQuotaForOrigin` is
+  ignored for a Playwright context in this headless Chromium (a page session
+  and a persistent context write on; a browser session answers "Internal
+  error"; Nov 18). The `atlas` journey's `tend explore audit 32` step refuses
+  the writes in the page instead: an init script, behind a `localStorage`
+  flag, aborts the transaction of each put it names, as a full disk aborts it.
 
 - `data-center` is the canvas's middle, not the middle of what you see: a
   screen that fits with uneven padding (Explore: 84 px under its title, 24 px
   at the bottom) frames the fix (top - bottom) / 2 px below it. Measure a
   framing in pixels against the padding (`qol QL10`), not in metres from
   `data-center`.
+- A distance the app says holds a no-break space between its number and its
+  unit (`formatDistance`, `formatRange`; tend map 21, Nov 18), so `/\d+ m/`
+  never matches it. A check on one matches `[ \u00a0]`, not `\s` (which
+  takes a line break too); an exact string says the `\u00a0` outright.
 ## 4. The long walk: `scripts/perf-walk.js`
 
 ```bash

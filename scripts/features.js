@@ -154,10 +154,11 @@ const FEATURES = [
       'src/app/(tabs)/explore.tsx',
       'src/components/atlas/**',
       'src/lib/gazetteer/**',
-      'src/components/{MarkPinView,ExploreSettings,ReminderCard,RemindEditor,OpenInMapsButton}.tsx',
+      'src/components/{MarkPinView,ExploreSettings,ReminderCard,RemindEditor,OpenInMapsButton,IntoPage,IntoRow}.tsx',
+      'src/app/into.tsx', 'src/lib/intoNav.ts', 'src/lib/intoGate.ts', 'src/lib/walkName.ts',
     ],
-    journeys: ['marks', 'atlas', 'grading', 'snap', 'carousel', 'curiosities', 'freelook', 'small-places', 'placesearch', 'subtypes', 'openmaps', 'openmaps-chronicle'],
-    specs: ['v1-discovery', 'explore-atlas', 'pocket-alert-nudge', 'reminder-bell', 'atlas-grading', 'town-presence', 'discrete-navigation', 'explore-carousel', 'places-worth-the-stop', 'places-pipeline', 'remarkable-and-public', 'places-out-of-town', 'presence-and-kinds', 'whole-towns', 'community-parks', 'free-look', 'small-places', 'place-search', 'explore-go-here', 'go-here-everywhere', 'explore-subtypes', 'open-in-maps-here'],
+    journeys: ['marks', 'atlas', 'grading', 'snap', 'carousel', 'curiosities', 'freelook', 'small-places', 'placesearch', 'subtypes', 'openmaps', 'openmaps-chronicle', 'into'],
+    specs: ['v1-discovery', 'explore-atlas', 'pocket-alert-nudge', 'reminder-bell', 'atlas-grading', 'town-presence', 'discrete-navigation', 'explore-carousel', 'places-worth-the-stop', 'places-pipeline', 'remarkable-and-public', 'places-out-of-town', 'presence-and-kinds', 'whole-towns', 'community-parks', 'free-look', 'small-places', 'place-search', 'explore-go-here', 'go-here-everywhere', 'explore-subtypes', 'more-attractions', 'open-in-maps-here', 'what-im-into-page', 'sights-and-local-life'],
   },
   {
     name: 'kind-walk',
@@ -247,6 +248,9 @@ const FEATURES = [
       'src/lib/media/**',
       'src/lib/{useCaptures,thumbPlan,thumbJob,useMediaUri,captureBus,pieceStamp,openMoment,splitPlace}.ts',
       'src/lib/split/**',
+      // Stack with previous (SW1-SW18, decision 0197): the join, its Undo window and the quick-action row's rule.
+      'src/lib/join/**',
+      'src/components/journal/{QuickActions,StackGrid}.tsx',
       // Moment stacks (MS1-MS21): the open moment's store, the pill and the stacked mark.
       'src/lib/momentPill/**',
       'src/components/StackMark.tsx',
@@ -263,9 +267,11 @@ const FEATURES = [
       'src/components/VideoMark.tsx',
       // Unsaved captures (UN1-UN15, decision 0196): the one holder of every capture that failed to save.
       'src/lib/unsaved/**',
+      // Pictures through expo-image (EI1-EI6): the one wrapper every picture on screen goes through.
+      'src/components/Picture.tsx',
     ],
-    journeys: ['edit', 'stacks', 'voicetrim', 'videothumbs', 'unsaved'],
-    specs: ['memories-on-revisit', 'media-editing', 'moment-stacks', 'voice-trim', 'note-types', 'video-thumbnails', 'unsaved-captures'],
+    journeys: ['edit', 'stacks', 'stackjoin', 'voicetrim', 'videothumbs', 'unsaved'],
+    specs: ['memories-on-revisit', 'media-editing', 'moment-stacks', 'stack-with-previous', 'voice-trim', 'note-types', 'video-thumbnails', 'unsaved-captures', 'expo-image'],
   },
   {
     name: 'chronicle',
@@ -448,6 +454,8 @@ const RETIRED = {
  * make (the web build can't reach it), `deferred: <why>` for the owner's call to wait. Keyed by spec.
  */
 const UNTESTED = {
+  // Pictures through expo-image: the cache and the recycling are a phone's to see under memory pressure.
+  'expo-image': { EI6: 'device: memory and recycling over a few hundred photos on a phone; the web build has no native image cache' },
   // Plan an outing (decision 0196): criteria with no test of their own, each with where it is held instead.
   'quick-circuit': {
     QC32: 'deferred: a review criterion, the ux-reviewer\'s cold find (Nov 17, in the spec\'s Record), not a unit test',

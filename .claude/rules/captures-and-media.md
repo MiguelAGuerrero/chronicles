@@ -2,6 +2,7 @@
 paths:
   - "src/components/Capture*.tsx"
   - "src/components/{Caption,Baker}*.tsx"
+  - "src/components/Picture.tsx"
   - "src/lib/media/**"
   - "src/lib/{useCaptures,thumbPlan,useMediaUri,captureBus}.ts"
   - "src/lib/here/**"
@@ -13,6 +14,16 @@ paths:
 # Captures and media
 
 Captures (photo, video, voice memo, note), their viewer, captions and baking, thumbnails, saving keepers, the backup bundle, and the voice-memo and web-video traps. The codemap is in `docs/ARCHITECTURE.md`; the decisions and their history are in `docs/decisions/`.
+
+## Pictures (expo-image, EI1-EI6)
+
+- **Every picture on screen is a `Picture`** (`components/Picture.tsx`, over expo-image): a pin's small copy, a gallery
+  tile and a month's cover, a moment's card, a memory preview, a reminder card, the replay's cards and pile. It keeps
+  pictures decoded in memory and on disk (`cachePolicy="memory-disk"`), never fades one in (no `transition`: restraint),
+  takes `fit` as `resizeMode` was, and a list's tile passes `recyclingKey` (its piece's id). An edited photo is
+  `EditedPicture` (an SVG under its edit's matrix and filter); React Native's `Image` only measures (`getSize`).
+- **On the web it is an `<img>`** (its `object-fit` the fit), not React Native's `div` with a background: a journey
+  reads a picture's fit from either shape (`gallery` MG21, EI5). Its cache on a phone is unverified (EI6).
 
 ## The viewer (decision 0114)
 
@@ -114,6 +125,11 @@ expo-image-manipulator; `lib/thumbPlan.ts` pure, `media/thumb.ts`).
     `blob:` URL the moment a preview's file changed left a picture still loading it to fail, logged by the browser.
   - **Trap (e2e): `waitForFunction` with an async predicate** resolves at once with its pending promise; poll a stored
     row from the test side instead (the videothumbs journey).
+  - **The same trap, said exactly** (tend captures 2, audit 6): `waitForFunction` takes an async predicate's pending
+    promise as its first truthy result and resolves with the one read's value; it never polls. The wait cannot time out
+    and `.then(() => true)` is always true. `arch/e2eWaits.test.ts` fails on such a wait in a journey.
+  - **Trap (e2e): a mocked walk's steps go at a walker's pace** (tend captures audit 2): a step over `MAX_WALK_SPEED_MS`
+    (7 m/s, `lib/geo`) is dropped as a jump, so the walk keeps none of them and nothing is placed where it was taken.
 - Previews show the copy, the icon while it is being made, and the photo
   when the copy's file is gone (`thumbShown`). The reminder card uses it
   too. The backup bundle leaves `thumb_path` out.

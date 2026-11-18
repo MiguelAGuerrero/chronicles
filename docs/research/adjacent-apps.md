@@ -51,6 +51,9 @@ source.
 | Strava | walking and outdoor | Recording a walk; the social and score shapes we refuse (a counter-example) | Honour |
 | Fog of World | walking and outdoor; location history | Revealing the map where you have been: the shape our fog and familiarity must not become a score | Earn |
 | Swarm (Foursquare) | location check-ins | Marking that you were at a place, and a history of them | Honour, Return |
+| OpenStreetMap Carto | maps and navigation | osm.org's standard style, drawn from the data our maps use: how it draws borders and places | Earn |
+| Positron (OpenMapTiles) | maps and navigation | Our own base map's style: what our borders and marks sit on | Earn, Return |
+| iPhone Notification Center, Android notifications | the phone's own | Where a notification waits when the person is busy: the model for a reminder that is never lost | Return |
 
 ## Implementations, by job
 
@@ -164,6 +167,30 @@ source.
 - **Roadtrippers**: a start and an end, then categories of place shown within a distance of the route, added one by one
   to an itinerary. Source: from memory, unverified. **Unverified**. A counter-example in part: an itinerary is a list.
 
+### Say what an area holds: findable places apart from the places you go into (Earn)
+
+- **Atlas Obscura** (web and app): lists only curiosities and odd places, each a page; restaurants and shops are not in
+  it. Source: from memory, unverified. **Unverified**.
+- **Google Maps** (Android and iOS): nearby search offers chips by type (Restaurants, Coffee, Shopping, Things to do,
+  Hotels); landmarks and attractions sit under "Things to do", apart from places to eat or shop. Source: from memory,
+  unverified. **Unverified**.
+- **Walk Score** (web): groups nearby amenities by type (dining and drinking, groceries, shopping, errands, parks,
+  schools, culture and entertainment) and sums them into a 0-100 score. Counter-example (Never: scores); the grouping by
+  type is the model. Source: from memory, unverified. **Unverified**.
+
+### Places worth noticing nearby (Earn)
+
+- **Pikmin Bloom** (iOS, Android): postcards come from Niantic's Wayspot database (Ingress portals, PokéStops), seeded from
+  the Historical Marker Database and grown by players' nominations under "a great place to explore … unique story";
+  Decor Pikmin use OpenStreetMap and Foursquare place types. Source: docs/research/small-places-wayspots.md (Nov 14, with
+  its URLs). **Verified**.
+- **Google Maps** (iOS, Android): "Things to do" and the Explore sheet list attractions by category, ordered with star
+  ratings and review counts. A counter-example (VISION Never: ratings, popularity). Source: from memory, unverified.
+  **Unverified**.
+- **Atlas Obscura** (iOS): a curated editorial list of odd places near you, each with a written entry. A counter-example
+  (editorial guidance, and its terms forbid reuse of its data). Source: from memory, unverified; the terms from the
+  research pass of Nov 17 (research_notes, state_city_nonprofit). **Unverified**.
+
 ### Where you have been: visits and history (Return, Earn)
 
 - **Google Maps Timeline** (Android): kept on the device ("saving each of your devices' precise locations to that
@@ -179,6 +206,93 @@ source.
   unverified. **Unverified**.
 - **Swarm**: a check-in marks a place with an optional note and photo; a history map of places checked into, with
   streaks and stickers (counter-examples). Source: from memory, unverified. **Unverified**.
+
+### Choose what you are shown: a long list of switches (Earn)
+
+Recorded for the What I'm into page (decision 0192, `specs/what-im-into-page`).
+
+- **iOS Settings, Notifications** (iOS): the Notifications page lists the apps under "Notification Style"; a tap on
+  one opens that app's own page of switches (Allow Notifications, Time Sensitive Notifications, Badges), with "Customize
+  Notifications" a further row for the app's types; each switch acts at once, there is no Save, and Back returns.
+  Source: https://support.apple.com/guide/iphone/change-notification-settings-iph7c3d96bab/ios , read Nov 18, 2026.
+  **Verified**.
+- **Android system settings, an app's notification categories** (Android 8 and later): each app's notification
+  settings are a page of their own listing its categories, each a switch, which the app may gather under group
+  headings ("Notification channel settings with groups for personal and work accounts"). Source:
+  https://developer.android.com/develop/ui/views/notifications/channels , read Nov 18, 2026. **Verified**.
+- **Google Maps** (iOS, Android): Settings, then Notifications, opens a page of its own whose switches sit under
+  plain section headings; the headings scroll away with their rows. Source: from memory, unverified. **Unverified**.
+- **AllTrails** (iOS): Filters opens a full-screen page of sections (activities, difficulty, length, attractions), a
+  heading over each block of chips; a filter for one search, not a lasting preference. Source: from memory,
+  unverified. **Unverified**.
+- **iOS Contacts** (iOS): a plain list whose letter headings stay pinned at the top while their names scroll under
+  them, the next heading pushing the last one out. Source: from memory, unverified. **Unverified**.
+- **iOS Settings, Notifications, the per-app summary line** (iOS): under each app's name in the Notifications list a
+  short line says how its notifications are set ("Deliver Quietly", "Off", "Banners, Sounds, Badges"), in words and with
+  no count. The precedent for a kind row's quiet line naming what was changed (`what-im-into-page` WI18, audit 7).
+  Source: from memory, unverified. **Unverified**.
+- **iOS navigation bar, the back button's title** (iOS): a pushed page's back button carries the previous screen's
+  title ("‹ Settings"), and VoiceOver speaks it with "back button"; with no room the title drops to "Back" or the
+  chevron alone. The precedent for Back reading "Walk" from the walk (WI20, audits 8, 10, 14). Source: from memory,
+  unverified. **Unverified**.
+
+### Bring the map back to north while following (Earn)
+
+- **Apple Maps** (iOS 27): "Tap [the Tracking Off button]. Your position is marked in the middle of the map. The top
+  of the map is north." Then "Show your heading instead of north at the top: Tap [the Tracking On button]." and
+  "Resume showing north at the top: Tap [the Tracking On With Heading button] or [the Compass button]." (the buttons
+  are icons; the bracketed names are the page's own alt text). The page does not say whether the map keeps following
+  once the compass is tapped. Source: https://support.apple.com/guide/iphone/set-up-maps-iph10d7bdf26/ios , read
+  Nov 18, 2026. **Verified**.
+- **Apple Maps in CarPlay** (iOS 27): when not following directions, "Show your current location: Tap [the Tracking
+  Off button]. Your position is marked in the middle of the map." and "Show your heading at the top of the screen: Tap
+  [the Tracking On button]. To resume showing north at the top, tap [the Tracking On Heading button]." Source:
+  https://support.apple.com/guide/iphone/change-the-map-view-iph93c7df449/ios , read Nov 18, 2026. **Verified**.
+
+Both make heading or north a state of the location button, and back to north one tap, with the walker's position the
+centre of the map. `tend map 15` (CP4) cited the CarPlay page; that the position stays in the middle "throughout", so
+back to north keeps following, is that run's reading: neither page says it in words.
+
+### Draw a town's border on the map (Earn, Return)
+
+- **OpenStreetMap Carto** (osm.org's standard style): borders are lines only, in a muted purple
+  (`@admin-boundaries: #8d618b; // Lch(47,30,327)`); a town's (admin level 8) from zoom 12 is a 1.4 px line dashed
+  `8,2,2,2,2.5,2,2,2` over a white 1.4 px backing line, 1.6 px from zoom 14; no fill. Source:
+  https://raw.githubusercontent.com/gravitystorm/openstreetmap-carto/master/style/admin.mss , read Nov 17, 2026 (the
+  T33 comparison) and again Nov 18, 2026. **Verified**.
+- **Positron** (our base map, OpenMapTiles): only state (dashed) and country borders, both `rgb(230, 204, 207)`, a
+  pale pink; no town borders, no fill. Source: https://raw.githubusercontent.com/openmaptiles/positron-gl-style/master/style.json ,
+  read Nov 17 and Nov 18, 2026 (its `boundary_state` and `boundary_country_*` layers). **Verified**.
+- **Organic Maps**: country and region borders only, in warm greys (`@border_country: #63635C`,
+  `@border_region: #73726B`) at 0.7 opacity, regions dashed; no town borders, no fill. Source:
+  https://raw.githubusercontent.com/organicmaps/organicmaps/master/data/styles/default/include/Basemap.mapcss and
+  https://raw.githubusercontent.com/organicmaps/organicmaps/master/data/styles/default/light/colors.mapcss , read
+  Nov 17 and Nov 18, 2026. **Verified**.
+- **Google Maps**: a searched town is outlined with a red or pink dashed line, no fill, nothing dimmed outside it.
+  Source: from memory, unverified (its help pages read for T33 do not describe it). **Unverified**.
+
+A border is a quiet line in a hue the map's other layers do not use, and none tints the region. Our tinted,
+firm-edged town (TB10) is our own; decision 0199 chose cocoa `#6e4f3f`, beside Organic Maps' warm greys, from this
+comparison.
+
+### A reminder that arrives while you are busy (Return)
+
+- **iPhone Notification Center** (iOS 27): "Unless you have notifications silenced with a Focus, iPhone displays them
+  as they arrive"; Notification Center keeps them ("Swipe down from the top-left corner. Then you can scroll up to see
+  older notifications, if there are any"); one leaves when the person clears it ("Swipe left on the notification or
+  group of notifications, then tap Clear or Clear All"), and a muted app's go "directly to Notification Center".
+  Source: https://support.apple.com/guide/iphone/view-and-respond-to-notifications-iph6534c01bc/ios , read Nov 18,
+  2026. **Verified**.
+- **Android notifications** (Android Help; "Some of these steps may vary based on your device"): "At the top of your
+  screen, notifications show when you swipe down"; one is dismissed by the person ("To dismiss one notification, swipe
+  it left or right"); notification history, where the device has it, keeps "Snoozed notifications", "Recently
+  dismissed notifications" and "A history of the day’s notifications". Source:
+  https://support.google.com/android/answer/9079661?hl=en , read Nov 18, 2026. **Verified**.
+
+On both pages a notification leaves the list when the person clears it, and neither describes one dropped unseen
+(an inference from what the pages say, not their words). That is the model `tend explore 21-24` followed (a fire
+waits until a place in front can show it). Those runs wrote "until it is seen", from memory; the pages say it stays
+until it is cleared.
 
 ### Guide a drive (Earn)
 

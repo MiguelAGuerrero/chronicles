@@ -27,6 +27,8 @@ A page of its own for a kind, opened from its "Suggest a walk" button (WP1-WP27,
 - **Grades are absolute** (one place the faintest): a lone place must never read "plenty" (audit 9).
 - **Tabs are held, not set.** `hideTabs()` counts holds; the area card and the planner over it each hold, and release in either order (audit 12).
 - **The ceiling in force is the step shown** (`ceilingFor`), in either unit (audit 6). A kind that can be found counts only places that could be, the opened kind too (audit 5).
+- **Nothing on the page wraps at 320 px** (tend explore 28): a choice's pill is one row or, for density's three long words, a column (`Segment`'s `column`), never a row broken in two; its padding (10) and the actions' (12) are what let "Loop, back where you start" beside "One way", and Start beside "Suggest different routes", fit. The `planner` journey measures both widths; a longer word there needs a new layout, not less padding.
+- **Not pictured at 200% text** (tend explore 28's review): "Suggest different routes" gives way beside Start and its label may take two or three lines; nothing is lost. react-native-web text does not follow the OS font scale, so the web stand-in is a 160 px viewport (320 px at 200%).
 
 - The planner's words are held to the same banned-word grep as the kind walk's: no "most", "more", "shorter", "longer", "best", "densest", time or pace (`words.test.ts`).
 - Native, unverified: `routeGrades` and `foundPins` line and circle layers on MapLibre RN, the drawer over a second map instance, `showWalk()` with a loop destination, the loop's arrival on a phone, three routes' walkability reads.

@@ -42,7 +42,7 @@ test('WP14: A row gives its own distance, what it passes and how much is getting
     for (const r of planRoutes({ cells: c.cells, from: c.from, mode: 'oneway', ceilingM: 3500, density: 'anywhere' }, leg).routes) {
       const w = rowWords(r, 'km');
       rows += 1;
-      assert.match(w.distance, /^About \d+(\.\d)? (km|m)\b/);
+      assert.match(w.distance, /^About \d+(\.\d)?[ \u00a0](km|m)\b/);
       assert.ok(!/\d/.test(w.passes) && !/\d/.test(w.title), 'no digit in what it passes');
       if (w.getting) {
         withGetting += 1;

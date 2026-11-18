@@ -1,0 +1,13 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Deletion"
+      ],
+      "body": "- **Deleting a walk reads every walk's visited streets and summaries inside its write** (performance review, Nov 18): `deleteWalk` (`db/sqliteStore.ts`) recounts later walks' new streets (D7) from `SELECT` over all of `walk`, `visited_segment` and `walk_summary`, inside the exclusive transaction, so the write queue (and a walk's fix batches) waits on a read that grows with the library. Read only the walks after the deleted one and the visited rows of the walks before them by `street_key`, or recount in one `UPDATE … FROM`; its updates are now one prepared statement.\n"
+    }
+  ]
+}

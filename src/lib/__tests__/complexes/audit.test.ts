@@ -1,3 +1,4 @@
+import { VectorTileFeature } from '@mapbox/vector-tile';
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
@@ -131,7 +132,8 @@ test('complexes audit 11: the outline\'s data does not change with zoom, so the 
 
 test('complexes audit 13: no grid surface of the gallery names a complex, and no view outside the card, the map and the settings reaches them', () => {
   assert.equal(/complexes\//.test(read('lib/gallery/shell.ts')), false, 'the gallery\'s street map is street names only');
-  const allowed = new Set(['components/atlas/AtlasCard.tsx', 'components/ExploreSettings.tsx', 'components/ComplexLabel.tsx', 'components/map/WalkMap.web.tsx', 'components/map/WalkMap.native.tsx', 'components/map/types.ts', 'app/(tabs)/explore.tsx']);
+  // The settings' switches moved to What I'm into's page (IntoPage, decision 0192, WI15).
+  const allowed = new Set(['components/atlas/AtlasCard.tsx', 'components/IntoPage.tsx', 'components/ComplexLabel.tsx', 'components/map/WalkMap.web.tsx', 'components/map/WalkMap.native.tsx', 'components/map/types.ts', 'app/(tabs)/explore.tsx']);
   const walk = (dir: string, out: string[] = []): string[] => {
     for (const f of readdirSync(dir)) {
       const p = join(dir, f);
@@ -183,7 +185,8 @@ test('complexes audit 24: the outline\'s hue is far from every kind\'s and every
 test('complexes audit 25: the settings note says what the switches are, in words and no number', () => {
   assert.equal(/\d|\b(one|two|three|four|five|six|seven|eight|nine|ten|dozen|several|few|many|couple)\b/i.test(COMPLEX_NOTE), false);
   assert.ok(/cards/.test(COMPLEX_NOTE) && /map/.test(COMPLEX_NOTE));
-  assert.ok(/COMPLEX_NOTE/.test(read('components/ExploreSettings.tsx')));
+  // On What I'm into's page since decision 0192 (WI15).
+  assert.ok(/COMPLEX_NOTE/.test(read('components/IntoPage.tsx')));
 });
 
 test('complexes audit 28: the card\'s controls are 48 points, as on Android', () => {
@@ -206,4 +209,36 @@ test('complexes audit 1: a place seen first from a neighbour\'s buffer, before i
   await c.readArea({ at: [-76.8815 - 0.05, 40.2617], reachM: 50 }, RELEASE);
   const r = await c.readArea({ at, reachM: 50 }, RELEASE);
   assert.equal(r.complexes.length, 1);
+});
+
+// Performance review (Nov 18): a buildings tile holds thousands of buildings, a few named; the reader decoded every
+// building's geometry (`toGeoJSON`) and the adapter then kept only the named ones. A building with no name is skipped
+// before its geometry is decoded.
+test('complexes reader: an unnamed building\'s geometry is never decoded', async () => {
+  const { encodeTile } = await import('../mvtFixture');
+  const at: LngLat = [-76.8815, 40.2617];
+  const t = tileAt(at);
+  const box = (i: number) => [square(-76.8814 + i * 0.0001, 40.2616, 0.00005)];
+  const features = [
+    { layer: 'building', props: { '@name': 'Strawberry Square', id: 'named' }, coords: box(0) },
+    ...Array.from({ length: 40 }, (_, i) => ({ layer: 'building', props: { id: `plain${i}` }, coords: box(i + 1) })),
+  ];
+  const bytes = encodeTile(features, 14, t.x, t.y);
+  const data = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+  const archive = { getZxy: async () => ({ data }) };
+  const proto = VectorTileFeature.prototype as unknown as { toGeoJSON: (...a: unknown[]) => unknown };
+  const real = proto.toGeoJSON;
+  let decoded = 0;
+  proto.toGeoJSON = function (this: unknown, ...a: unknown[]) {
+    decoded++;
+    return real.apply(this, a);
+  };
+  try {
+    const r = await createOvertureSource({ open: () => archive, tileMs: 1000, readMs: 5000 }).read('perf', [[t.x, t.y]]);
+    assert.ok(r.ok, 'the tile reads');
+    // The tile has no `place` layer, so every decode is a building's.
+    assert.equal(decoded, 1, 'of the 41 buildings, only the named one is decoded');
+  } finally {
+    proto.toGeoJSON = real;
+  }
 });

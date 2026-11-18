@@ -534,7 +534,7 @@ async function run(h) {
       await pg.waitForTimeout(1100);
       await drawerTo(pg, 'full');
       const destText = await pg.locator('[data-testid=drawer-dest]').innerText().catch(() => '');
-      check(/\d+(\.\d+)? (m|km|ft|mi)\b/.test(destText), `qol QL14: the destination line carries a distance (${JSON.stringify(destText)})`);
+      check(/\d+(\.\d+)?[ \u00a0](m|km|ft|mi)\b/.test(destText), `qol QL14: the destination line carries a distance (${JSON.stringify(destText)})`);
       await drawerTo(pg, 'peek');
     }
 
@@ -659,6 +659,66 @@ async function run(h) {
       check(Math.abs(turnedChronicle) < 0.5, `tend map 1: Chronicle's map has no compass, so two fingers never turn it (CP1, decision 0082; bearing ${turnedChronicle})`);
       await checkAttribution('Chronicle');
     }
+    // tend map audit 35 (tend map 16's cull, the review's F1): the web map draws only the pins in a box round the view,
+    // and a pin's head stands up to 48 px above its foot. A placed moment 4 px past the box's south edge, the map panned
+    // south until its bottom is 2 px short of that edge: the foot is just off screen, the head on it, and the pin is drawn. 3 km
+    // east of the walk, and taken out again after, so no later check meets it.
+    // (qstep is defined with the walk below; this step reports a throw the same way.)
+    await (async () => {
+      const margin = Number(/export const PIN_CULL_MARGIN = ([\d.]+);/.exec(fs.readFileSync(path.join(scriptsDir, '..', 'src/lib/pins.ts'), 'utf8'))?.[1]);
+      const C = at(30, 0);
+      const Z = 16;
+      const canvasSize = () => pg.evaluate(() => {
+        const cs = [...document.querySelectorAll('canvas.maplibregl-canvas')].filter((e) => !e.closest('[aria-hidden=true]'));
+        const r = cs[cs.length - 1].getBoundingClientRect();
+        return { x: r.x, y: r.y, w: r.width, h: r.height };
+      });
+      await pg.evaluate(([c, z]) => window.__zoomTo(c, z), [C, Z]);
+      await pg.waitForTimeout(600);
+      const cv = await canvasSize();
+      const P = await pg.evaluate(([x, y]) => window.__unproject([x, y]), [cv.w / 2, cv.h * (1 + margin) + 4]);
+      const putMoment = (rm) => pg.evaluate(([lon, lat, del]) => new Promise((resolve, reject) => {
+        const req = indexedDB.open('chronicles');
+        req.onsuccess = () => {
+          const tx = req.result.transaction(['moment'], 'readwrite');
+          const id = 'audit35-edge';
+          const piece = { id, moment_id: id, t: Date.now() - 86_400_000, kind: 'text', file_path: null, body: 'At the edge' };
+          if (del) tx.objectStore('moment').delete(id);
+          else tx.objectStore('moment').put({ id, walk_id: null, t: piece.t, lat, lon, segment_id: null, piece_ids: [id], pieces: [piece] });
+          tx.oncomplete = () => resolve();
+          tx.onerror = () => reject(tx.error);
+        };
+      }), [P[0], P[1], rm]);
+      await putMoment(false);
+      try {
+        // Chronicle reads its moments when it comes to the front.
+        await tabTo(pg, 'navigate');
+        await pg.waitForTimeout(800);
+        await tabTo(pg, 'chronicle');
+        await pg.waitForTimeout(1500);
+        await pg.evaluate(([c, z]) => window.__zoomTo(c, z), [C, Z]);
+        await pg.waitForTimeout(800);
+        const pinHere = () => pg.evaluate(() => {
+          const el = [...document.querySelectorAll('.maplibregl-marker[data-ids="audit35-edge"]')].find((e) => !e.closest('[aria-hidden=true]'));
+          if (!el) return null;
+          const r = el.getBoundingClientRect();
+          return { top: Math.round(r.top), bottom: Math.round(r.bottom) };
+        });
+        const before = await pinHere();
+        // South by the margin less 2 px: the view's bottom is just inside the box's south edge, so the bare view never
+        // asks for a new box (an exact meeting can tip either way), and the foot lies 6 px below the screen.
+        const S = await pg.evaluate(([x, y]) => window.__unproject([x, y]), [cv.w / 2, cv.h / 2 + cv.h * margin - 2]);
+        await pg.evaluate(([c, z]) => window.__zoomTo(c, z), [S, Z]);
+        await pg.waitForTimeout(800);
+        const after = await pinHere();
+        const foot = await pg.evaluate((q) => window.__project(q), P);
+        await shot(pg, 'qol-audit35-pin-at-edge');
+        check(after !== null && foot[1] > cv.y + cv.h && after.top < cv.y + cv.h,
+          `tend map audit 35: a pin whose foot is just past the box's edge, its head on screen, is drawn (before the pan ${JSON.stringify(before)}, after ${JSON.stringify(after)}; foot at y ${Math.round(foot[1])}, canvas bottom ${Math.round(cv.y + cv.h)}; margin ${margin})`);
+      } finally {
+        await putMoment(true);
+      }
+    })().catch((e) => check(false, `tend map audit 35: ${String(e.message).split('\n')[0]}`));
     await tabTo(pg, 'navigate');
     await pg.waitForTimeout(800);
 
@@ -762,6 +822,58 @@ async function run(h) {
       check(shownW === 1 && (await compassW.count()) === 0 && focusedW === expectW,
         `tend map 6: on the walk, turned, the compass shows; pressed from the keyboard it leaves and the focus goes to the column's next button (shown ${shownW}, focus on ${focusedW}, expected ${expectW}; tend map audit 7)`);
     }
+    // tend map 15 (CP4, CP7 on the live walk): turned by two real fingers (following stops: the gesture carries an
+    // originalEvent, `__turn` does not), Recenter (following again, still turned), then the compass tapped while the dot
+    // moves on: the map goes north and keeps following. Each follow frame's jump cut the compass's ease after one frame,
+    // so the map stayed turned. Walked on east and back, so the trace still ends where the photo and the note were kept.
+    await qstep('tend map 15', async () => {
+      const compassF = pg.locator('[data-testid=compass]').filter({ visible: true });
+      const recenter = pg.locator('[data-testid=recenter]').filter({ visible: true });
+      let out = 0;
+      let back = false;
+      const walking = (async () => {
+        while (!back) {
+          out++;
+          await fix(at(-0.5 + (8 + out) * 0.05, -0.5));
+          await pg.waitForTimeout(1000);
+        }
+        for (let k = out - 1; k >= 0; k--) {
+          await fix(at(-0.5 + (8 + k) * 0.05, -0.5));
+          await pg.waitForTimeout(1000);
+        }
+      })();
+      try {
+        // Moving again: the dot glides and the camera follows it frame by frame.
+        await pg.waitForTimeout(3500);
+        const turned = await twoFingerTurn();
+        const stopped = await recenter.count();
+        if (stopped) await recenter.first().click();
+        await pg.waitForTimeout(800);
+        const followingAgain = (await recenter.count()) === 0;
+        const turnedStill = Number((await attr('data-bearing')) || 0);
+        const shownF = await compassF.count();
+        if (shownF) await compassF.first().click();
+        await pg.waitForTimeout(1500);
+        const north = Number((await attr('data-bearing')) || 0);
+        const left = await compassF.count();
+        const stillFollowing = (await recenter.count()) === 0;
+        // Following after the ease: the camera's middle is on the dot (the glide frames caught it up).
+        const off = await pg.evaluate(() => {
+          const maps = [...document.querySelectorAll('[data-zoom]')].filter((e) => !e.closest('[aria-hidden=true]'));
+          const c = maps[maps.length - 1]?.getAttribute('data-center');
+          const d = document.querySelector('[data-testid=walker-puck]')?.getAttribute('data-at');
+          return c && d ? [c.split(',').map(Number), d.split(',').map(Number)] : null;
+        });
+        const offM = off ? mAway(off[0], off[1]) : null;
+        check(Math.abs(turned) > 5 && stopped === 1 && followingAgain && Math.abs(turnedStill) > 5 && shownF === 1,
+          `tend map 15: on the walk, two fingers turn the map and stop following; Recenter follows again, still turned, with the compass (turned ${turned}, Recenter shown ${stopped}, following again ${followingAgain}, bearing ${turnedStill}, compass ${shownF})`);
+        check(Math.abs(north) < 0.5 && left === 0 && stillFollowing && offM != null && offM < 5,
+          `tend map 15: following while walking, the compass brings the map north and leaves, and the map keeps following the dot (CP4; bearing ${north}, ${left} compass, following ${stillFollowing}, middle ${offM == null ? '-' : offM.toFixed(1)} m from the dot)`);
+      } finally {
+        back = true;
+        await walking;
+      }
+    });
     await checkAttribution('the walk screen', 'qol-06-walk-credits-open');
 
     // Stopped: both ends, and the bar above the card.
@@ -1880,6 +1992,7 @@ module.exports = {
   name: 'qol',
   // tend chronicle 7: Rename (QL22) and Edit note (QL24) are checked here, so a change to either names this journey.
   covers: [
+    'src/components/Picture.tsx',
     'src/components/{LocateButton,CompassButton,HomeSheet,CaptureView,CapturePinView,WalkActions,NoteMark}.tsx',
     'src/components/notePage/{NotePage,NoteTypeMenu}.tsx',
     'src/components/map/**',

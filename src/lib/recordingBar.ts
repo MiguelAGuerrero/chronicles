@@ -23,6 +23,37 @@ export function recordingLine(o: { startedAt: number | null; pauses: PauseSpan[]
   };
 }
 
+/** The longest the bar's way back waits for its photo, and its Stop for a memo, then for the captures being kept. */
+export const BAR_WAIT_MS = 5000;
+
+/**
+ * The longest a stop from the bar holds the way back and a second Stop: its two waits and a margin for the walk's end.
+ * A stop that hangs past it (a wedged store, a recorder that never stops) lets them go, so the › is never dead until a
+ * reopen (tend tabs audit 28).
+ */
+export const BAR_STOP_HOLD_MS = 2 * BAR_WAIT_MS + 2000;
+
+/**
+ * A stop from the bar under way: its walk and when it began. Kept outside the bar, which unmounts as its tab loses
+ * focus while the stop goes on (tend tabs audit 26).
+ */
+export interface BarStop {
+  walkId: string;
+  since: number;
+}
+
+/** Whether `walkId` is being stopped from the bar at `now`, within the stop's own bound. */
+export const barStopping = (stop: BarStop | null, walkId: string, now: number): boolean =>
+  !!stop && stop.walkId === walkId && now - stop.since < BAR_STOP_HOLD_MS;
+
+/**
+ * Whether the bar's way back (its line, a tapped reminder) opens the walk screen: one at a time, and never while the
+ * walk is stopping from the bar, before the way back's wait for a photo or after it, since the stop's replay would land
+ * over the walk screen it opened (NV27; tend tabs 12).
+ */
+export const barGoesBack = (o: { returning: boolean; stop: BarStop | null; walkId: string; now: number }): boolean =>
+  !o.returning && !barStopping(o.stop, o.walkId, o.now);
+
 /**
  * The bar's Edit offer after its photo (T12, decision 0149; amends ME23 on the bar alone): a pill above the bar that
  * waits, as Undo does (decision 0113). It has no end of its own: Edit, its Close or the next capture ends it, and the

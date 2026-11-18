@@ -11,7 +11,7 @@ import { numberWord } from '../resurface/lines';
  * `db.deleteCaptures`; the Undo window is `pending.ts`.
  */
 
-export type DeleteKind = 'walk' | 'media' | 'moment' | 'piece' | 'split' | 'thread' | 'remove';
+export type DeleteKind = 'walk' | 'media' | 'moment' | 'piece' | 'split' | 'join' | 'thread' | 'remove';
 
 /** Photos, videos and memos: what "Remove photos, videos and memos" takes (D2). Notes stay. */
 export const isMedia = (c: { kind: CaptureKind }): boolean => c.kind !== 'text';
@@ -110,6 +110,18 @@ export interface ConfirmText {
   confirm: string;
 }
 
+/** Below this window width a confirm's two actions no longer fit side by side ("Delete walk" wrapped at 320 px). */
+export const CONFIRM_STACK_BELOW = 340;
+
+/**
+ * A confirm's two actions, in reading order (tend deletion 1): a row, Cancel leading and the confirm trailing, where
+ * both fit; below `CONFIRM_STACK_BELOW` a stack, the confirm on top and Cancel at the bottom, as both platforms'
+ * alerts stack theirs (HIG Alerts; Material dialogs, "Confirming actions appear above dismissive actions").
+ */
+export function confirmActions(windowWidth: number): { stacked: boolean; order: ['cancel', 'confirm'] | ['confirm', 'cancel'] } {
+  return windowWidth < CONFIRM_STACK_BELOW ? { stacked: true, order: ['confirm', 'cancel'] } : { stacked: false, order: ['cancel', 'confirm'] };
+}
+
 /** D4: what deleting a walk takes, its counts in words: "Its trace, three moments and twelve streets walked go." (tend deletion T30). */
 export function walkDeleteText(o: { moments: number; streets: number; bytes: number }): ConfirmText {
   const parts = ['Its trace'];
@@ -151,6 +163,7 @@ export function toastText(kind: DeleteKind, what?: CaptureKind, dropped?: boolea
   if (kind === 'media') return 'Photos, videos and memos removed';
   if (kind === 'thread') return 'Thread deleted';
   if (kind === 'remove') return 'Removed from the thread';
+  if (kind === 'join') return 'Joined with the earlier moment';
   if (!what) return 'Moment deleted';
   if (kind === 'split') {
     const noun = KIND_NOUN[what];
@@ -169,5 +182,6 @@ export function dismissLabel(kind: DeleteKind): string {
   if (kind === 'remove') return 'Close, it stays removed';
   if (kind === 'media') return 'Close, they stay removed';
   if (kind === 'split') return 'Close, it stays split out';
+  if (kind === 'join') return 'Close, it stays joined';
   return 'Close, it stays deleted';
 }

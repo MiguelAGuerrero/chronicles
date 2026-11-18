@@ -1,0 +1,20 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "slice",
+        "row",
+        "add"
+      ],
+      "body": "| Pictures through expo-image (every picture on screen through one `Picture` over expo-image: kept in memory and on disk, recycled in the gallery, no fade; EI1-EI6, after the performance review of Nov 18) | built 2026-11-18 on the owner's go-ahead, test-first by history 5 of 5: unit tests (3111), typecheck, lint, docs and records; nine journeys green on the /chronicles build, `walkability` already green, `resurface` stopped on `main` too (filed); UI review: no finding; EI6 device-only; native never run on a device; not audited; not merged | `claude/bold-hawking-dx3pc8` | `specs/expo-image/spec.md` | no |\n"
+    },
+    {
+      "argv": [
+        "inflight",
+        "remove",
+        "Pictures through expo-image"
+      ],
+      "target": "sha256:7d7346bdc7b1cc45988d517f8eb7adae20eacbbe4f192a443792c7cc9c357f2e"
+    }
+  ]
+}

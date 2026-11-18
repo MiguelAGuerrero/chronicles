@@ -20,15 +20,15 @@ test('KW7: no sentence says a time, a pace, or a rank', () => {
 });
 
 test('KW7: the length is a number in the displayed unit', () => {
-  assert.match(lengthLine(2000, 'km'), /^About 2\.0 km$/);
-  assert.match(lengthLine(2400, 'km'), /^About 2\.4 km$/);
-  assert.match(lengthLine(2414, 'mi'), /^About 1\.5 mi$/);
+  assert.match(lengthLine(2000, 'km'), /^About 2\.0[ \u00a0]km$/);
+  assert.match(lengthLine(2400, 'km'), /^About 2\.4[ \u00a0]km$/);
+  assert.match(lengthLine(2414, 'mi'), /^About 1\.5[ \u00a0]mi$/);
   assert.ok(!/min/.test(lengthLine(950, 'km')));
 });
 
 test('KW9: the start is said only when it is a walk away', () => {
   assert.equal(startLine(150, 'km'), null);
-  assert.equal(startLine(640, 'km'), 'Starts 600 m from here');
+  assert.equal(startLine(640, 'km'), 'Starts 600\u00a0m from here');
   assert.match(startLine(1500, 'mi')!, /mi from here$/);
 });
 

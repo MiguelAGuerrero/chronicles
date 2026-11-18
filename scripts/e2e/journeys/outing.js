@@ -90,7 +90,7 @@ async function run(h) {
   await pg.waitForSelector('[data-testid=outing-away]', { timeout: 15000 }).catch(() => {});
   const townText = ((await pg.locator('[data-testid=outing-where-text]').innerText().catch(() => '')) ?? '').trim();
   const awayText = ((await pg.locator('[data-testid=outing-away]').innerText().catch(() => '')) ?? '').trim();
-  check(townText === 'Kutztown' && /^\d+(\.\d)? (km|mi|m|ft) away$/.test(awayText), `OJ1, OJ9: a town from the search is the destination, with its distance worded "away" (${townText}, ${awayText})`);
+  check(townText === 'Kutztown' && /^\d+(\.\d)?[ \u00a0](km|mi|m|ft) away$/.test(awayText), `OJ1, OJ9: a town from the search is the destination, with its distance worded "away" (${townText}, ${awayText})`);
   check(!/\b(min|minutes|hours?|ETA)\b/i.test(await pg.locator('[data-testid=outing]').innerText()), 'OJ9: no time is said for a destination');
   await shot(pg, '02b-destination');
   // Around here, for the rest: Curio Row is where the harness's shops are.
@@ -140,7 +140,7 @@ async function run(h) {
   if (process.env.E2E_DEBUG) console.log('OUTING', (await pg.locator('[data-testid=outing]').innerText().catch(() => 'none')).replace(/\s+/g, ' ').slice(0, 600));
   // OJ17, OJ18, OJ21: one chip of one leaning gives one journey, named for its leaning, with its summary in words.
   const jcards = await pg.locator('[data-testid^=outing-journey-]').evaluateAll((els) => els.map((e) => (e.textContent ?? '').replace(/\s+/g, ' ').trim()));
-  check(jcards.length === 1 && /^Among the shops/.test(jcards[0]) && /Around here\. Antiques\. [\d.]+ (m|km|ft|mi) on foot\./.test(jcards[0]), `OJ17, OJ18, OJ21: one journey, named for its leaning, summarised in words (${jcards.join(' | ')})`);
+  check(jcards.length === 1 && /^Among the shops/.test(jcards[0]) && /Around here\. Antiques\. [\d.]+[ \u00a0](m|km|ft|mi) on foot\./.test(jcards[0]), `OJ17, OJ18, OJ21: one journey, named for its leaning, summarised in words (${jcards.join(' | ')})`);
   await shot(pg, '03-journeys');
   await openJourney();
   check(/one way: the way back is yours\./.test(await pg.locator('[data-testid=outing-chapter-line-0]').innerText().catch(() => '')), 'OJ7, OJ24: where no loop can be made without retracing, the walk is one way and says the way back is yours');
@@ -164,7 +164,7 @@ async function run(h) {
   const labels = await pg.locator('[data-testid=outing] [aria-label]').evaluateAll((els) => els.map((e) => e.getAttribute('aria-label')));
   check(!NAMES.some((n) => labels.some((l) => l && l.includes(n))), 'QC24: no accessible name holds a shop name');
   // The map's own scale bar ("100 m") is the map's, not the outing's words.
-  check(!BANNED.test(page.replace(/Opening hours aren't known here\./, '').replace(/\b\d+(\.\d+)? ?(m|km|ft|mi)\b/g, '')), 'QC25, QC28: no digit, time, rank, count or superlative anywhere on the page');
+  check(!BANNED.test(page.replace(/Opening hours aren't known here\./, '').replace(/\b\d+(\.\d+)?[ \u00a0]?(m|km|ft|mi)\b/g, '')), 'QC25, QC28: no digit, time, rank, count or superlative anywhere on the page');
   check((await pg.locator('[data-testid=outing-hours]').innerText().catch(() => '')) === "Opening hours aren't known here.", 'QC20: the hours line is one plain statement');
   // QC18: a tap names the shop on a card; nothing about hours on the card.
   await pg.click('[data-testid=outing-slot-open-0]');

@@ -1,0 +1,74 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "Focus on the web: closing an area's card",
+        "--reason",
+        "built in tend explore 27 (cc0e87a1: focus into the card and the planner, a trap while the card is full screen, focus back to the opener; the question takes focus and gives it back) and the review's tend explore audits 36-41 (47c6e895, cda71141)"
+      ],
+      "target": "sha256:51cdf499d529f1047a0b8d12c259228b2daef210a2f27710b3079e4cf70e025b"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore and discovery"
+      ],
+      "body": "- [loop] At 390 and 320 px the walk planner's settings wrap: the density segments break into a two-row pill whose white fills miss its edge, and at 320 \"Loop, back where you start / One way\" stacks and Start drops under \"Suggest different routes\" (pictures `tend-explore-27-planner-open-390`, `-320`, /tmp/claude-0/-workspace-chronicles/18c0adbd-a1f3-5a6a-af58-014872f7a509/scratchpad/focus-shots; ui-patterns, \"Nothing wraps on a 320 px phone at the default text size\"; the ux-reviewer of `tend explore 27`, Nov 18, medium)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore and discovery"
+      ],
+      "body": "- [loop] Full-screen siblings of the area card and the planner have no focus handling on the web (`lib/focus`'s `useFocusReturn`, `useFocusTrap`, `tend explore 27`): the Outing page (`OutingPage`, formerly `OutingDrawer`, the Outing session's; no focus in, no return, no trap), the place search (`PlaceSearch.tsx`, focus in and back but no trap though it sets `accessibilityViewIsModal`) and `GapCard.tsx` (walk screen and replay: `accessibilityViewIsModal` with no focus in, return or trap) (WCAG 2.2, 2.4.3; ui-patterns, siblings; the ux-reviewer of `tend explore 27`, Nov 18, low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore and discovery"
+      ],
+      "body": "- [loop] To verify: Escape in the note page over the walk planner (`PlannerCapture`'s `NewNotePage` in a `Modal`) may close the planner too, since both listen on `window`, and lose the note; it predates `tend explore 27` (the ux-reviewer of `tend explore 27`, Nov 18, low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore and discovery"
+      ],
+      "body": "- [owner] When the far question takes focus on Walk now, a screen reader hears \"Walk now\" without why the app asks (the distance sits in the card's header; the question has no line of its own for the card's own area). Shape: Walk now's spoken hint carries the distance (\"4.0 km away. Starts the walk now\"), the layout unchanged: new spoken words, the owner's (picture `carousel-far-question-390`; the ux-reviewer of `tend explore 27`, U7, Nov 18, low, opinion)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Explore atlas"
+      ],
+      "body": "- [ ] **Do:** on iOS with VoiceOver and Android with TalkBack, open Explore, open a far area's card (more than 2 km away), double-tap Walk to; then Not now; then open a kind's Suggest a walk on any card. **Expect:** as the question replaces Walk to, the reader's focus lands on Walk now; Not now gives it back to Walk to; the planner's focus lands on its title as it opens. The moves are `AccessibilityInfo.setAccessibilityFocus` on an Animated pressable's ref and on the title's Text, unverified: a move that does not land may want a delay, as the card's name has 60 ms. Closing the card or the planner gives nothing back on a phone (web only: no focused element to read), so the reader's focus goes wherever the system puts it. (tend explore 27, audits 36-41)\n"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 18, `/tend explore --deploy=main`, focus on the web: the area card, its far question and the planner** (opened from `9992f1df`; no sweep, lenses 1-7 not run; aimed at Explore and discovery's `[loop]` medium \"Focus on the web\"; the faster lane of decision 0181).\n- The rules it broke: WCAG 2.2, 2.4.3 Focus Order and 2.4.11 Focus Not Obscured; `docs/research/ui-references.md` X5, Material's dialogs: on close \"focus returns to the interactive element that initiated the action\". The precedent (decision 0193) is the platform's own: the WAI-ARIA dialog pattern, the HTML `<dialog>` element and react-native-web's `Modal` (`ModalFocusTrap`) move focus in, trap Tab while modal and give focus back to the opener; the card and the planner are not Modals, so they had none of it.\n- `tend explore 27`: the decisions are core (`atlas/focusOrder.ts`: `returnTarget`, `trapStep`), the page's side `lib/focus` (`useFocusReturn`, `useFocusSwap`, `useFocusTrap`; `Button` takes a ref). Closing an area's card gives focus back to the tile that opened it (before: the page); Walk to's far question takes focus on Walk now and Not now gives it back to Walk to (before: the page, both); while the card is full screen Tab and Shift+Tab stay in it, wrapping (before: Shift+Tab from its name reached the row's tile); the planner moves focus to its title as it opens, keeps Tab inside and gives focus back to the kind's button (before: focus stayed on the button under it). Journeys `atlas` and `carousel` read `document.activeElement`.\n- The review (one round, the `ux-reviewer`; one high, three medium, three low; six accepted, four deferred, one to the owner, none rejected): `tend explore audits 36-39` in one commit (the trap stands aside while a Modal is open above it, so Tab reaches the planner's note page's Save; focus goes back only when it fell to the page and to an element still drawn, so a tile chosen while the side card closes keeps it; the trap wraps only at its two ends, so MapLibre's credits stay a stop; from the page Tab goes on from a click); `audits 40, 41` in one (a closing card focuses its own area's tile first, so after Next door the selection stays; the far question and the planner opened by Enter, the ring pictured at 390 and 320). Two lines added to `react-native-web.md`, three in all.\n- Filed under Explore and discovery: `[loop]` medium, the planner's settings wrap at 390 and 320; `[loop]` low, the full-screen siblings with no focus handling (the Outing page, the Outing session's; the place search's missing trap; `GapCard`); `[loop]` low, Escape in the note page over the planner may close the planner too (to verify); `[owner]` low, Walk now's spoken hint carrying the distance (new spoken words). A native check: the focus moves on Walk now and the planner's title. The item built left DEFERRED.\n- The balance (`npm run tend:balance`, 14 days of main): outgrowing its base, ten areas rough (explore among them), 76 slices grew; no evolution proposed.\n- Journeys on the final export: `atlas`, `carousel`, `planner`, `launch`; typecheck, lint, `npm test`. The new checks were each seen failing first: `tend explore 27`'s on `origin/main`, audits 36-40's with the fix's wiring reverted. The atlas standalone run's walk prefix failed \"heading 5: the cone points north\" twice in about eight runs, passing on rerun: not this run's. Not run: the sweep's lenses, the weekly full pass (not due). Nothing here has run on a phone: there the return and the trap do nothing, and the moves on Walk now and the planner's title are unverified.\n"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 18, `/tend explore --deploy=main`, focus on the web: the area card, its far question and the planner** (opened from `9992f1df`; no sweep, lenses 1-7 not run; aimed at Explore and discovery's `[loop]` medium \"Focus on the web\"; the faster lane of decision 0181).\n- The rules it broke: WCAG 2.2, 2.4.3 Focus Order and 2.4.11 Focus Not Obscured; `docs/research/ui-references.md` X5, Material's dialogs: on close \"focus returns to the interactive element that initiated the action\". The precedent (decision 0193) is the platform's own: the WAI-ARIA dialog pattern, the HTML `<dialog>` element and react-native-web's `Modal` (`ModalFocusTrap`) move focus in, trap Tab while modal and give focus back to the opener; the card and the planner are not Modals, so they had none of it.\n- `tend explore 27`: the decisions are core (`atlas/focusOrder.ts`: `returnTarget`, `trapStep`), the page's side `lib/focus` (`useFocusReturn`, `useFocusSwap`, `useFocusTrap`; `Button` takes a ref). Closing an area's card gives focus back to the tile that opened it (before: the page); Walk to's far question takes focus on Walk now and Not now gives it back to Walk to (before: the page, both); while the card is full screen Tab and Shift+Tab stay in it, wrapping (before: Shift+Tab from its name reached the row's tile); the planner moves focus to its title as it opens, keeps Tab inside and gives focus back to the kind's button (before: focus stayed on the button under it). Journeys `atlas` and `carousel` read `document.activeElement`.\n- The review (one round, the `ux-reviewer`; one high, three medium, three low; six accepted, four deferred, one to the owner, none rejected): `tend explore audits 36-39` in one commit (the trap stands aside while a Modal is open above it, so Tab reaches the planner's note page's Save; focus goes back only when it fell to the page and to an element still drawn, so a tile chosen while the side card closes keeps it; the trap wraps only at its two ends, so MapLibre's credits stay a stop; from the page Tab goes on from a click); `audits 40, 41` in one (a closing card focuses its own area's tile first, so after Next door the selection stays; the far question and the planner opened by Enter, the ring pictured at 390 and 320). Two lines added to `react-native-web.md`, three in all.\n- Filed under Explore and discovery: `[loop]` medium, the planner's settings wrap at 390 and 320; `[loop]` low, the full-screen siblings with no focus handling (the Outing page, the Outing session's; the place search's missing trap; `GapCard`); `[loop]` low, Escape in the note page over the planner may close the planner too (to verify); `[owner]` low, Walk now's spoken hint carrying the distance (new spoken words). A native check: the focus moves on Walk now and the planner's title. The item built left DEFERRED.\n- The balance (`npm run tend:balance`, 14 days of main): outgrowing its base, ten areas rough (explore among them), 76 slices grew; no evolution proposed.\n- Journeys on the final export: `atlas`, `carousel`, `planner`, `launch`; typecheck, lint, `npm test`. The new checks were each seen failing first: `tend explore 27`'s on `origin/main`, audits 36-40's with the fix's wiring reverted. The atlas standalone run's walk prefix failed \"heading 5: the cone points north\" three times in about nine runs, each passing on rerun: not this run's. Not run: the sweep's lenses, the weekly full pass (not due). Nothing here has run on a phone: there the return and the trap do nothing, and the moves on Walk now and the planner's title are unverified.\n"
+    }
+  ]
+}

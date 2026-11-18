@@ -34,11 +34,12 @@ split (see Invariants).
 
 ```
 index.js                     entry: imports lib/recorder (defines the background location task) before expo-router/entry
-src/app/_layout.tsx          root stack: the tabs first, then walk and replay over them; opens the open walk at launch under a cover (lib/launchWalk), then reconciles the recorder; sets the audio mode; notes the launch path (lib/launchRoute)
+src/app/_layout.tsx          root stack: the tabs first, then walk, What I'm into's page and replay over them; opens the open walk at launch under a cover (lib/launchWalk), then reconciles the recorder; sets the audio mode; notes the launch path (lib/launchRoute)
 src/app/(tabs)/_layout.tsx   the three tabs, Explore · Navigate · Chronicle; Explore opens first, at / (NV2); Navigate's press opens the walk screen (NR1)
 src/app/(tabs)/navigate.tsx  Navigate's entry route (/navigate): Explore beneath, then the walk screen, ready (NR1, NR3)
 src/app/(tabs)/index.tsx     Chronicle (/), where the app opens (0112): Memories as a journal with its open line (0155); Walks, Days and Map (stars by area at the level for the zoom, moment pins from z11, the HomeSheet, old-walk placement)
 src/app/(tabs)/explore.tsx   Explore (/explore): the atlas of the areas near you (tiles, the area card; 0066, 0067); long press = What's good here / Walk here
+src/app/into.tsx             What I'm into's page (/into, decision 0192): pushed over the walk screen and the tabs from both drawers' row (lib/intoNav), the stack's Back, Escape on the web; components/IntoPage
 src/app/chronicle.tsx        the old /chronicle path: dismissTo("/") down to Chronicle (HC5, 0112)
 src/app/walk.tsx             the walk screen, and Navigate: one screen and one map, ready with no walk open (`useReady`), else live trace and dot, fog, captures, navigation bar, Explore marks, memories, reminders, options, hold-to-stop
 src/app/replay/[id].tsx      a walk's replay: the five beats; the path beat is a ceremony told over the map (lib/ceremony, components/ceremony), or the screen reader's steps; the card, naming
@@ -85,6 +86,8 @@ Chronicle's Memories (decision 0098)
   resurface/useResurface.ts  the view hook (reads on focus and after a delete)
   chronicle/                 SectionBar (Memories, Walks, Days, Map, Media), MemoriesScreen (the journal's page and its screens), MemoriesMenu (the contents), ThreadsRail, ThreadScreen, MomentCard (a thread's cards), MomentPicture, MemoryMenu
 The journal (specs/chronicle-journal, JN1-JN24, decision 0155): Memories as one sheet in book order, ending in an open line
+  join/{rules,shell}.ts      Stack with previous (decision 0197): which moment is previous, and the join through the Undo window; `join/index.ts` the app's instance
+  emptyWalk/{core,shell}.ts  Empty walk (decision 0187): a walk with nothing in it is dropped at Stop, with Undo; `emptyWalk/index.ts` the app's instance
   journal/page.ts            journalMoments (the feed's and an open walk's, oldest first), journalPage (rows: day headings, the slip, entries; the latest page)
   journal/lines.ts           dayHeading, clockTime, dateline (time, then place and walk once read; No location), entrySpoken, the open line's labels
   journal/pen.ts             the open line's reducer: begin on the first character, save as typed, drop when emptied, Done, a kept capture, a failed save
@@ -123,7 +126,9 @@ Home / tabs
   StackMark.tsx              the two-card mark of a moment holding more than one piece (MS8)
   GapCard.tsx                a filled or offered stretch: Keep, Not this way
   KeepGapsCard.tsx           the first replay's one question: keep every offered way (G15)
-  ExploreSettings.tsx        the shared pieces of the drawers' settings: `KindSwitches`, `RangeSlider`, `walkNote`
+  ExploreSettings.tsx        the shared pieces of the drawers' settings: `RangeSlider`, `walkNote`
+  IntoRow.tsx                the drawers' "What I'm into ›" row, opening its page (decision 0192)
+  IntoPage.tsx               What I'm into's page: the kinds and Complexes' switches, headings pinned (`stickyHeaderIndices`), from lib/explore/intoPage
   NotificationSettings.tsx   the kind switches, permission state, the test notification
 Captures
   CaptureView.tsx            CaptureViewer (full-screen photos and videos over a strip; a note as its page, a card for memos; More menu) and CaptureContent (plays memos and videos)
@@ -262,16 +267,18 @@ Discovery and Explore (v1)
   complexes/rule.ts          which named buildings are complexes, and of what kind: pieces joined by building id, judged once every tile holding a vertex is read (CX1-CX3, CX14)
   complexes/{types,geom,place,lines,kinds,mapLayer,extent}.ts   the complex type, the card's words and order, the kind switches, the map layer's style and data, the tile budget, a fix's complex (CX4-CX11, CX16)
   complexes/{shell,overtureReader,overtureSource,index,settings,useComplexes}.ts   the read and the derived `complex` store (shell), Overture's `buildings` and `places` tiles (adapter), the app's instance, the saved switches, the screens' hook (CX12-CX16)
-  atlas/atlas.ts             the Explore atlas: near list, presence steps (findable kinds count markable places, AG1), thin rings (AG3), sketch, familiarity, labels
+  atlas/atlas.ts             the Explore atlas: near list, presence steps (findable kinds count markable places, AG1), thin rings (AG3), sketch, familiarity, labels; Sights and Local life (`KIND_GROUPS`, `groupsPresent`, `STRIP`, the tally keeping Sights by kind; SG1-SG14, decisions 0200-0202)
   atlas/extent.ts            a town's whole-outline extent and the z14 tiles a read takes, capped (TP1-TP3)
   atlas/hoods.ts             a town's page: every neighborhood inside its border, hamlets in, wards out (WT1-WT6, 0132)
   atlas/pockets.ts           a town's pockets of activity: peak picking on a smoothed 400 m grid (TP4)
-  atlas/read.ts              the atlas's reads: areas near you, one ring or one whole town at a time (decoder)
+  atlas/{readShell,read}.ts  the atlas's reads: areas near you, one ring or one whole town at a time (decoder); the factory on fake ports, the app's instance
   atlas/waitingPins.ts       the selected area's places on the map: a "?" where it has room, a dot where not (WT7, WT12-WT14)
   atlas/useAtlas.ts          the atlas's data and its read loop, while Explore is in front
   atlas/snap.ts              discrete navigation (DN1, DN10-DN13): what a drag or an arrow key means; one finger never pans Explore's map
   atlas/carousel.ts          Explore's row of area cards (EC1-EC15): the row's order, the selection, a swipe as a row step, the card a scroll settled on, the Storefront names kept near the selection
   explore/settings.ts        what I'm into, range, pocket alert (meta)
+  explore/intoPage.ts        What I'm into's page, pure: its sections, rows (heavy, hint) and pinned indices (WI5-WI7, WI15)
+  explore/settingsChange.ts  a kind switched on the page: the next settings, null before they are read (WI9)
   explore/momentFind/        a loose moment finds a place (shell.ts, index.ts)
   explore/reach/             a street or path close by, said on a place's card (rule.ts core, shell.ts, index.ts; RP20)
 Activity density (AD1-AD16)

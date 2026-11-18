@@ -126,7 +126,7 @@ test('RE7: the tiles of a corridor about the towns, bounded: a journey too long 
   const { tilesAlong } = await import('../../roads/corridor');
   const { ROAD_RULES } = await import('../../roads/rules');
   const near = tilesAlong([at(0, 0), at(20000, 0)])!;
-  assert.ok(near.length >= 3 && near.length <= 20, `${near.length} tiles for 20 km`);
+  assert.ok(near.length >= 3 && near.length <= 20, `${near.length} tiles for 20\u00a0km`);
   assert.equal(new Set(near.map((t) => t.join('/'))).size, near.length);
   assert.equal(tilesAlong([at(0, 0), at(400000, 0)]), null);
   assert.equal(ROAD_RULES.tilesMax, 60);
@@ -148,7 +148,7 @@ test('RE9, RE13, RE32: the core holds no word of an outing, no clock and no stat
     assert.doesNotMatch(code, /outing|chapter|chip|journey|Date\.now|setTimeout|Math\.random/i, f);
   }
   const { byRoadLine } = await import('../../roads/words');
-  assert.equal(byRoadLine(31_400, 'km'), '31 km by road');
-  assert.equal(byRoadLine(4_300, 'km'), '4.3 km by road');
+  assert.equal(byRoadLine(31_400, 'km'), '31\u00a0km by road');
+  assert.equal(byRoadLine(4_300, 'km'), '4.3\u00a0km by road');
   assert.doesNotMatch(byRoadLine(31_400, 'mi'), /\b(min|minutes?|hours?|fast|quick|short|best)\b/i);
 });

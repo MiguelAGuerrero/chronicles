@@ -26,7 +26,7 @@ const MI_M = 1609.344;
 /** OJ9: how far a destination is in a straight line, worded "away": whole units from ten of them on. */
 export function awayLine(m: number, units: Units): string {
   const big = units === 'mi' ? m / MI_M : m / 1000;
-  return `${big >= 10 ? `${Math.round(big)} ${units}` : formatDistanceNear(m, units)} away`;
+  return `${big >= 10 ? `${Math.round(big)}\u00a0${units}` : formatDistanceNear(m, units)} away`;
 }
 
 const list = (xs: readonly string[]): string => (xs.length <= 1 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);

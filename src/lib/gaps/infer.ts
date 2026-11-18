@@ -1,4 +1,5 @@
 // @layer core
+import { formatDistance } from '../format';
 import { bearingDeg, boundsOf, distanceM, lineLengthM, distanceToLinesM, isBreak, pointSegmentDist, projector, type Bounds } from '../geo';
 import type { ReadTrace } from '../rides';
 import type { Fill, GapDecision, LngLat, StreetSegment } from '../types';
@@ -592,7 +593,8 @@ export function stretchLines(s: Stretch): { title: string; sub: string } {
   const along = s.street ? `along ${s.street}` : 'this way';
   const min = Math.max(1, Math.round((s.t1 - s.t0) / 60_000));
   // "Not recorded": the app may have been closed, not only the GPS lost (audit, UI).
-  const facts = `${s.lengthM < 1000 ? `${Math.round(s.lengthM)} m` : `${(s.lengthM / 1000).toFixed(1)} km`} · not recorded for ${min} min.`;
+  // Its length as every distance is said: the units setting, rounded before the step, bound (tend map audit 44).
+  const facts = `${formatDistance(s.lengthM)} · not recorded for ${min} min.`;
   if (s.how === 'offer') return { title: `Probably ${along}`, sub: `${facts} Keep it to count it as walked.` };
   if (s.how === 'auto') return { title: `Filled in ${along}`, sub: `${facts} The only likely way in that time.` };
   return { title: `${along[0].toUpperCase()}${along.slice(1)}, kept`, sub: facts };

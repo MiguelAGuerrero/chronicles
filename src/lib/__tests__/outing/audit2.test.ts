@@ -97,14 +97,14 @@ test('outing-journey audit 44: a plan offered for a Start that did not happen ca
 
 test('outing-journey audit 47, 48: the bar\'s and the page\'s words hold no ordinal and say only what happens', async () => {
   const w = await import('../../outing/journeyWords');
-  assert.equal(w.towardLine('Providence', 24000, 'km'), 'Toward Providence. 24 km away.');
+  assert.equal(w.towardLine('Providence', 24000, 'km'), 'Toward Providence. 24\u00a0km away.');
   assert.equal(w.towardLine('Providence', null, 'km'), 'Toward Providence.');
   assert.equal(w.hereLine('Emmaus'), 'Emmaus is here.');
   assert.equal(w.startLine('Emmaus'), 'Start records from here, toward Emmaus.');
   assert.equal(w.laterLine('Emmaus'), '"When I get there" keeps Emmaus only.');
   assert.equal(w.leftOutLine('Emmaus'), 'Left Emmaus out.');
   for (const s of [w.towardLine('Providence', 24000, 'km'), w.hereLine('Emmaus'), w.startLine('Emmaus'), w.laterLine('Emmaus'), w.leftOutLine('Emmaus'), w.PASS_LABEL, w.WAY_LABEL]) {
-    assert.doesNotMatch(s.replace(/24 km/, ''), /\d|\b(next|then|first|last|second|done|skipped|remaining|minutes?|begins in)\b/i, s);
+    assert.doesNotMatch(s.replace(/24\u00a0km/, ''), /\d|\b(next|then|first|last|second|done|skipped|remaining|minutes?|begins in)\b/i, s);
   }
 });
 

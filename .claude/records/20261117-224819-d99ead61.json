@@ -1,0 +1,30 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Capture from Chronicle and the journal (HC1-HC15, decision 0112; JN1-JN24, decision 0155)"
+      ],
+      "body": "- [ ] **Do:** on a phone, keep two notes back to back on Chronicle's page, tap the up-arrow icon under the second (\"Stack with previous\"), then tap Undo, then tap it again and close the pill. **Expect:** the entry joins the earlier moment at once with the pill \"Stacked with the earlier moment\", Undo brings it back as its own entry, and after the pill is closed the stack is stored: the SQLite `joinMoment` repoints the pieces and deletes the emptied moment, and a relaunch shows one stack (SW5, SW7, SW9, SW17, `db.joinMoment` on `sqliteStore.ts`).\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Capture from Chronicle and the journal (HC1-HC15, decision 0112; JN1-JN24, decision 0155)"
+      ],
+      "body": "- [ ] **Do:** on a phone, open a stack on Chronicle's page with \"Show all\". **Expect:** three square tiles to a row, each at least 88 pt with its own time in words, a tap opens the viewer on that piece, \"Show less\" collapses it, and the four icons under every entry are each a 44 pt target that a screen reader names (SW1, SW12, SW18).\n"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "add"
+      ],
+      "body": "| Stack with previous (a row of five captioned actions under every Chronicle entry: Reaction, Respond, Thread, Edit, Join; Join, \"Stack with previous\", moves the entry just kept into the previous moment of the same day, same walk, within 100 m, with Undo and only while nothing points at it; a stack shown as a collapsible grid; no More or reaction sign on entries; SW1-SW22, decision 0197) | built 2026-11-17, test-first by history (22 of 22); journeys green on the headless web build; the grid only on Chronicle's page; native unverified | `claude/jolly-faraday-8kcyum` | `specs/stack-with-previous/spec.md` | not audited; two cold finds (the second placed Stack at about 40%, the owner chose Join); the full UX review not run |\n"
+    }
+  ]
+}

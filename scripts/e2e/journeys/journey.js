@@ -112,13 +112,13 @@ async function run(h) {
     const linkPoints = Number(await pg.locator('[data-testid=outing-map]').getAttribute('data-link-points'));
     check(linkPoints > 3 && linkPoints <= 400, `RE1, RE16: the line handed to the map is the road, not the towns joined straight (${linkPoints} points)`);
     const awayNow = ((await pg.locator('[data-testid=outing-away]').innerText().catch(() => '')) ?? '').trim();
-    check(/^\d+(\.\d)? (km|mi) by road$/.test(awayNow), `RE2, RE13: the place's distance is said by road, with no time (${awayNow})`);
+    check(/^\d+(\.\d)?[ \u00a0](km|mi) by road$/.test(awayNow), `RE2, RE13: the place's distance is said by road, with no time (${awayNow})`);
     const hosts = [...new Set(roadAsked.map((u) => new URL(u).host))];
     check(roadAsked.length > 0 && roadAsked.length <= 60 && hosts.length === 1 && hosts[0] === 'tiles.openfreemap.org', `RE7, RE8, RE30: the road is read from the map's own tiles alone, a bounded strip of them, once a place is picked (${roadAsked.length} tiles, ${hosts.join(' ')})`);
   }
   if (process.env.E2E_DEBUG) console.log('SHEET', (await pg.locator('[data-testid=outing-sheet]').innerText().catch(() => '')).replace(/\s+/g, ' ').slice(0, 500), JSON.stringify(places.asked.map((x) => x.name + ':' + (x.range ?? '')).slice(-12)));
   const card = ((await pg.locator('[data-testid=outing-journey-0]').innerText().catch(() => '')) ?? '').replace(/\s+/g, ' ').trim();
-  check(/^Among the shops North Scituate and Providence\. Books\. \d+(\.\d)? (km|mi) by road\.$/.test(card), `OJ20, OJ21: toward a place a drive away, the journey names the towns in order and what they hold, with no distance on foot for single stops and its distance by road last (RE17) (${card})`);
+  check(/^Among the shops North Scituate and Providence\. Books\. \d+(\.\d)?[ \u00a0](km|mi) by road\.$/.test(card), `OJ20, OJ21: toward a place a drive away, the journey names the towns in order and what they hold, with no distance on foot for single stops and its distance by road last (RE17) (${card})`);
   await shot(pg, '01-toward');
   await pg.click('[data-testid=outing-see]');
   await pg.waitForSelector('[data-testid=outing-chapter-0]', { timeout: 15000 }).catch(() => {});
@@ -145,7 +145,7 @@ async function run(h) {
   await c.setGeolocation({ longitude: here[0], latitude: here[1], accuracy: 6 });
   await pg.waitForFunction(() => /away\.$/.test(document.querySelector('[data-testid=journey-next]')?.textContent ?? ''), null, { timeout: 60000 }).catch(() => {});
   const bar = ((await pg.locator('[data-testid=journey-next]').innerText().catch(() => '')) ?? '').trim();
-  check(/^Toward North Scituate\. \d+(\.\d)? (km|mi) away\.$/.test(bar), `OJ28, OJ29: Start begins a session at once and its bar says the town it is headed toward and how far away (${bar})`);
+  check(/^Toward North Scituate\. \d+(\.\d)?[ \u00a0](km|mi) away\.$/.test(bar), `OJ28, OJ29: Start begins a session at once and its bar says the town it is headed toward and how far away (${bar})`);
   check((await pg.locator('[data-testid=journey-maps]').getAttribute('aria-label')) === 'Open in Maps' && (await pg.locator('[data-testid=journey-pass]').getAttribute('aria-label')) === 'Pass by' && ((await pg.locator('[data-testid=journey-pass]').innerText()) ?? '').trim() === 'Pass by' && (await pg.locator('[data-testid=nav-bar]').count()) === 0, 'OJ29-OJ31, outing-journey audit 33: the bar hands the road to Maps and lets the town be passed by, spoken as it is written; no way on foot was started for you');
   // Guiding the drive (RE3, RE19-RE28): "Drive there" on the bar; nothing guides until it is tapped.
   {
@@ -169,7 +169,7 @@ async function run(h) {
     await pg.waitForFunction(() => /^(Left|Right)\./.test(document.querySelector('[data-testid=journey-turn]')?.textContent ?? ''), null, { timeout: 60000 }).catch(() => {});
     const turn = await text('journey-turn');
     const under = await text('journey-next');
-    check(/^(Left|Right)\. \d+(\.\d)? (km|mi|m|ft)\.$/.test(turn) && under === 'Toward North Scituate.', `RE20, RE21: moving, the bar says the turn coming and how far to it, and under it the town; no time, speed or count (${turn} / ${under})`);
+    check(/^(Left|Right)\. \d+(\.\d)?[ \u00a0](km|mi|m|ft)\.$/.test(turn) && under === 'Toward North Scituate.', `RE20, RE21: moving, the bar says the turn coming and how far to it, and under it the town; no time, speed or count (${turn} / ${under})`);
     const said1 = await pg.evaluate(() => window.__said);
     check(said1.length === 1 && /^(Left|Right) ahead\.$/.test(said1[0]), `RE25: the turn is spoken once as it nears, the turn alone (${JSON.stringify(said1)})`);
     check(roadAsked.length > z12Before, 'RE8: the road for the drive is read on the tap on "Drive there"');
@@ -188,7 +188,7 @@ async function run(h) {
     const p2 = await go(bend, along(bend, town, 200 / h.distanceM(bend, town)));
     await pg.waitForFunction(() => /^On this road\./.test(document.querySelector('[data-testid=journey-turn]')?.textContent ?? ''), null, { timeout: 60000 }).catch(() => {});
     const after = await text('journey-turn');
-    check(/^On this road\. \d+(\.\d)? (km|mi|m|ft)\.$/.test(after), `RE23: a turn passed is not said again (${after})`);
+    check(/^On this road\. \d+(\.\d)?[ \u00a0](km|mi|m|ft)\.$/.test(after), `RE23: a turn passed is not said again (${after})`);
     // The mute says what a tap does now, and is kept with the guiding.
     await pg.click('[data-testid=journey-mute]');
     await pg.waitForTimeout(600);

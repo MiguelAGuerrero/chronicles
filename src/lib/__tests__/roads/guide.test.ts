@@ -54,7 +54,7 @@ test('RE21: joining and leaving a motorway are turns of their own', async () => 
 });
 
 test('RE21: the two halves of one turn across a divided road are one turn', async () => {
-  // Heading east, then north over a road whose two carriageways are 20 m apart.
+  // Heading east, then north over a road whose two carriageways are 20\u00a0m apart.
   const roads = [road([[0, 0], [1000, 0]]), road([[1000, 0], [1020, 0]]), road([[1020, 0], [2000, 0]]), road([[1000, 0], [1000, 1000]], 'primary', -1), road([[1020, 0], [1020, 1000]], 'primary', 1), road([[1000, -500], [1000, 0]], 'primary', -1), road([[1020, -500], [1020, 0]], 'primary', 1)];
   const got = await turnsOf(roads, [0, 0], [1020, 1000]);
   assert.deepEqual(got.turns.map((t) => t.say), ['left']);
@@ -103,13 +103,13 @@ test('RE22: off the way no turn is shown and nothing is flagged; the way is aske
 
 test('RE20, RE21, RE25, RE26, RE32: the words of a drive: the turn and how far, the one-time lines; no time, speed, count or rebuke', async () => {
   const w = await import('../../roads/words');
-  assert.equal(w.turnLine({ say: 'left', toM: 2400 }, 'km'), 'Left. 2.4 km.');
-  assert.equal(w.turnLine({ say: 'right', toM: 350 }, 'km'), 'Right. 350 m.');
-  assert.equal(w.turnLine({ say: 'keep-left', toM: 900 }, 'km'), 'Keep left. 900 m.');
-  assert.equal(w.turnLine({ say: 'keep-right', toM: 900 }, 'km'), 'Keep right. 900 m.');
-  assert.equal(w.turnLine({ say: 'join', toM: 5000 }, 'km'), 'Onto the motorway. 5.0 km.');
-  assert.equal(w.turnLine({ say: 'leave', toM: 31_000 }, 'km'), 'Off the motorway. 31 km.');
-  assert.equal(w.turnLine({ say: 'on', toM: 12_000 }, 'km'), 'On this road. 12 km.');
+  assert.equal(w.turnLine({ say: 'left', toM: 2400 }, 'km'), 'Left. 2.4\u00a0km.');
+  assert.equal(w.turnLine({ say: 'right', toM: 350 }, 'km'), 'Right. 350\u00a0m.');
+  assert.equal(w.turnLine({ say: 'keep-left', toM: 900 }, 'km'), 'Keep left. 900\u00a0m.');
+  assert.equal(w.turnLine({ say: 'keep-right', toM: 900 }, 'km'), 'Keep right. 900\u00a0m.');
+  assert.equal(w.turnLine({ say: 'join', toM: 5000 }, 'km'), 'Onto the motorway. 5.0\u00a0km.');
+  assert.equal(w.turnLine({ say: 'leave', toM: 31_000 }, 'km'), 'Off the motorway. 31\u00a0km.');
+  assert.equal(w.turnLine({ say: 'on', toM: 12_000 }, 'km'), 'On this road. 12\u00a0km.');
   assert.equal(w.DRIVE_LABEL, 'Drive there');
   assert.equal(w.END_LABEL, 'End');
   assert.equal(w.SHOWN_LINE, 'Turns are shown, not said.');

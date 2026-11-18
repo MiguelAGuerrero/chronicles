@@ -72,7 +72,12 @@ commands, or anything that changes the tree.
    (`*.native.ts`, migrations, expo modules, MapLibre RN markers, tasks),
    with what a device run must confirm.
 4. **Tests reviewed**: which existing tests cover the slice, and any test
-   that cannot fail (asserts nothing, mocks what it checks). Run
+   that cannot fail (asserts nothing, mocks what it checks). A source scan
+   (a screen's or a native file's syntax read by a unit test) counts as
+   proven only when it has been shown to fail on a snippet or a mutation of
+   each regression it guards; one that skips a match by position, or passes
+   when it finds nothing, is a finding (`.claude/rules/performance.md`,
+   "Testing a cost"). Run
    `npm run test:coverage <feature>` for the slice's feature and list the
    lines of the slice's own files that no test runs; a report, never a score.
 

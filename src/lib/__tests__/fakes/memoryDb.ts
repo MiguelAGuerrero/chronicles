@@ -22,7 +22,7 @@ import type { Capture, GapDecision, Moment, Pause, Still, StreetSegment, TracePo
 export const DB_READS = [
   'getWalk', 'listWalks', 'getOpenWalk', 'getPoints', 'getMoments', 'momentsBetween', 'getMomentsByIds', 'momentsIn',
   'getPauses', 'getStills', 'getGapDecisions', 'listThreads',
-  'listAreas', 'listWalkAreas', 'getSegmentsIn', 'getVisited', 'visitedSegmentIds', 'streetKeysBefore', 'listSummaries',
+  'listAreas', 'listWalkAreas', 'getSegmentsIn', 'getVisited', 'visitedSegmentIds', 'streetKeysBefore', 'listSummaries', 'getSummary',
   'placesIn', 'listMarks', 'listRecalls', 'listTranscripts', 'listLandings', 'listAtlasAreas', 'getOutlineTiles', 'getWalkTiles', 'complexesNear',
   'listChecklistAreas', 'checklistItemsIn', 'listExploreReads', 'listFinds', 'getMeta',
 ] as const;
@@ -201,6 +201,9 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
     async updateWalk(id, p) {
       patch(walks, id, p);
     },
+    async clearSnappedBuilds() {
+      for (const w of walks.all()) if (w.snapped_build != null) patch(walks, w.id, { snapped_build: null });
+    },
     async getWalk(id) {
       const w = walks.get(id);
       return w ? copy(w) : null;
@@ -258,6 +261,25 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
       const p = m.pieces.find((x) => x.id === pieceId)!;
       moments.put({ ...m, pieces: m.pieces.filter((x) => x.id !== pieceId) });
       moments.put(copy({ ...nm, pieces: [{ ...p, moment_id: nm.id }] }));
+    },
+    async joinMoment(fromId, intoId) {
+      const from = moments.get(fromId);
+      const into = moments.get(intoId);
+      if (!from || !into) throw new Error(`no moment ${from ? intoId : fromId}`);
+      if ((from.walk_id ?? null) !== (into.walk_id ?? null)) throw new Error('moments on different walks are never joined');
+      moments.put({ ...into, pieces: [...into.pieces, ...from.pieces.map((p) => ({ ...p, moment_id: intoId }))].sort((x, y) => x.t - y.t) });
+      moments.delete(fromId);
+    },
+    async referencesTo(id) {
+      // A reminder or a find is kept on a piece's id, so every piece of the moment counts (stack-with-previous audit 5).
+      const ids = new Set([id, ...(moments.get(id)?.pieces.map((p) => p.id) ?? [])]);
+      return {
+        thread: members.all().some((m) => m.moment_id === id),
+        link: links.all().some((l) => l.from_id === id || l.to_id === id),
+        reminder: [...ids].some((i) => !!recalls.get(i)),
+        find: finds.all().some((f) => ids.has(f.capture_id)),
+        reaction: reactions.all().some((r) => r.moment_id === id),
+      };
     },
     async getMoments(walkId) {
       return moments.where(walkOf, walkId).map(readMoment).sort(byT);
@@ -433,6 +455,10 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
     },
     async listSummaries() {
       return out(summaries.all());
+    },
+    async getSummary(walkId) {
+      const s = summaries.all().find((x) => x.walk_id === walkId);
+      return s ? out([s])[0] : null;
     },
 
     async putPlaces(ps) {

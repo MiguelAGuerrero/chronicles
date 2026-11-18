@@ -1,6 +1,7 @@
 import type { Faced } from '../../lib/moment';
+import { Picture } from '../Picture';
 import { useState } from 'react';
-import { Image, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { thumbShown } from '../../lib/thumbPlan';
 import { useStill } from '../../lib/thumbs/useStill';
 import { VideoMark } from '../VideoMark';
@@ -26,10 +27,10 @@ export function MomentPicture(props: { capture: Faced; style?: StyleProp<ViewSty
   return (
     <View style={[styles.box, props.style]} accessible={false}>
       {uri && broken !== uri ? (
-        <Image
-          source={{ uri }}
+        <Picture
+          uri={uri}
           style={StyleSheet.absoluteFill}
-          resizeMode="cover"
+          fit="cover"
           onError={() => (ref === row.thumb_path && ref !== capture.file_path && capture.kind === 'photo' ? setCopyBroken(true) : setBroken(uri))}
         />
       ) : (

@@ -78,6 +78,14 @@ A walk's replay and the day replay: the five beats, the story and its ceremonies
   2 s more; one that plays, up to its length (30 s at least). Hold and the viewer
   pause the medium itself (`ctx.held`, `ctx.paused`); a wait never does, or it would
   never catch up. A memo started by hand plays to its end and resumes after Hold.
+- **A medium's length is its kept part** (`fix trimmed-length 1-4`): the plan's slot (`mediaLen`), a grid's longest
+  video, the card's wait and the steps' re-watch all ask `memoLengthMs` (`lib/voiceTrim`; a video's `edit.trim` is the
+  same data as a memo's), never `Number(body)`: the players stop at the trim's end, so the stored length left the
+  walker standing through the cut part. A grid's video plays only its kept part too (`Grid.tsx` `CellVideo`; the
+  `stacks` journey watches both). A test scans the ceremony and its stage for a stored length read directly.
+- **A video's player is made with its file, never empty and filled later** (`CellVideo`, as `CardVideo`): given a new
+  source, expo-video's web hook calls `replace()`, which plays the tag whatever the stage says, and React then sets
+  the tag's `src` again on its next draw, a second load that fails that start with a logged AbortError.
 - **A rebuilt telling keeps its place** (audits 22, 31, 33): deleting a moment from the
   pile, Undo, or editing a note rebuilds the story; `useCeremonyClock` re-anchors with
   `reanchor` in the very render that first shows it: the same time of day, and where the

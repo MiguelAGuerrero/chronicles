@@ -1,5 +1,6 @@
 // @layer shell
-// @instance: a store (lib/store) the area card sets and the tab layout reads
+// @instance: stores (lib/store) the full-screen cards, every Modal and the bar's stop set, read by the tab layout and the recording bar
+import type { BarStop } from './recordingBar';
 import { createStore } from './store';
 
 /**
@@ -28,3 +29,27 @@ export function hideTabs(): () => void {
     tabsHidden.set(holds > 0);
   };
 }
+
+/**
+ * How many Modals are up (`components/Modal`, each while it shows): with any, the recording bar is out of sight beneath
+ * it, so a reminder it holds waits (tend explore 22).
+ */
+export const modalsUp = createStore(0);
+
+/** Counts a Modal up until the returned function is called, once. */
+export function holdModal(): () => void {
+  modalsUp.set((n) => n + 1);
+  let released = false;
+  return () => {
+    if (released) return;
+    released = true;
+    modalsUp.set((n) => Math.max(0, n - 1));
+  };
+}
+
+/**
+ * A stop from the recording bar under way (`lib/recordingBar`, `BarStop`): set by the bar's Stop as it begins and
+ * cleared by that same stop as it ends, so a bar mounted again meanwhile (its tab back in front) still refuses its way
+ * back and a second Stop (tend tabs audit 26).
+ */
+export const barStop = createStore<BarStop | null>(null);

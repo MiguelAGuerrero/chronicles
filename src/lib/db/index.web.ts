@@ -314,6 +314,13 @@ export const db: Db = {
   async updateWalk(id, p) {
     await patch<Walk>('walk', id, p);
   },
+  async clearSnappedBuilds() {
+    // One transaction over the walks, not one per walk.
+    const tx = (await conn()).transaction('walk', 'readwrite');
+    const s = tx.objectStore('walk');
+    for (const w of (await done(s.getAll())) as Walk[]) if (w.snapped_build != null) s.put({ ...w, snapped_build: null });
+    await committed(tx);
+  },
   async getWalk(id) {
     return ((await done((await store('walk')).get(id))) as Walk | undefined) ?? null;
   },
@@ -398,6 +405,39 @@ export const db: Db = {
       st.put(toRecord({ ...m, pieces: m.pieces.filter((x) => x.id !== pieceId) }));
       st.add(toRecord({ ...nm, pieces: [{ ...p, moment_id: nm.id }] }));
     });
+  },
+  async joinMoment(fromId, intoId) {
+    const tx = (await conn()).transaction('moment', 'readwrite');
+    return atomically(tx, async () => {
+      const st = tx.objectStore('moment');
+      const from = (await done(st.get(fromId))) as MomentRecord | undefined;
+      const into = (await done(st.get(intoId))) as MomentRecord | undefined;
+      if (!from || !into) throw new Error(`No moment ${from ? intoId : fromId}.`);
+      if ((from.walk_id ?? null) !== (into.walk_id ?? null)) throw new Error('Moments on different walks are never joined.');
+      st.put(toRecord({ ...fromRecord(into), pieces: [...fromRecord(into).pieces, ...fromRecord(from).pieces.map((p) => ({ ...p, moment_id: intoId }))].sort((x, y) => x.t - y.t) }));
+      st.delete(fromId);
+    });
+  },
+  async referencesTo(id) {
+    const tx = (await conn()).transaction(['moment', 'thread_member', 'moment_link', 'recall', 'find', 'reaction'], 'readonly');
+    const all = <T,>(name: string) => done(tx.objectStore(name).getAll()) as Promise<T[]>;
+    const moment = (await done(tx.objectStore('moment').get(id))) as MomentRecord | undefined;
+    // A reminder or a find is kept on a piece's id, so every piece of the moment counts (stack-with-previous audit 5).
+    const ids = new Set([id, ...(moment?.pieces.map((p) => p.id) ?? [])]);
+    const [members, links, recalls, finds, reactions] = await Promise.all([
+      all<{ moment_id: string }>('thread_member'),
+      all<{ from_id: string; to_id: string }>('moment_link'),
+      all<{ capture_id: string }>('recall'),
+      all<{ capture_id: string }>('find'),
+      all<{ moment_id: string }>('reaction'),
+    ]);
+    return {
+      thread: members.some((m) => m.moment_id === id),
+      link: links.some((l) => l.from_id === id || l.to_id === id),
+      reminder: recalls.some((r) => ids.has(r.capture_id)),
+      find: finds.some((f) => ids.has(f.capture_id)),
+      reaction: reactions.some((r) => r.moment_id === id),
+    };
   },
   async getMoments(walkId) {
     return (await byWalk<MomentRecord>('moment', walkId)).map(fromRecord).sort(byT);
@@ -635,6 +675,9 @@ export const db: Db = {
   },
   async listSummaries() {
     return (await done((await store('walk_summary')).getAll())) as WalkSummary[];
+  },
+  async getSummary(walkId) {
+    return ((await done((await store('walk_summary')).get(walkId))) as WalkSummary | undefined) ?? null;
   },
 
   async saveChecklists({ areas, items, read }) {

@@ -1,13 +1,11 @@
 {
-  "lastT": 33,
+  "lastT": 39,
   "lastG": 4,
   "balance": {
-    "date": "2026-11-17",
+    "date": "2026-11-18",
     "days": 14,
     "slicesGrown": [
-      "AD",
       "AG",
-      "AT",
       "CP",
       "CX",
       "DC",
@@ -15,11 +13,12 @@
       "DW",
       "E",
       "EC",
-      "FC",
+      "EI",
+      "EW",
       "FL",
       "G",
-      "GT",
-      "GW",
+      "GE",
+      "GH",
       "GZ",
       "H",
       "HB",
@@ -27,33 +26,33 @@
       "JN",
       "KW",
       "L",
-      "M",
+      "MA",
       "MC",
       "ME",
       "MG",
       "ML",
       "MO",
+      "MP",
       "MR",
       "MS",
       "MT",
       "N",
+      "NF",
       "NH",
       "NI",
       "NP",
-      "NR",
       "NV",
       "NY",
+      "OM",
       "OT",
-      "PA",
       "PC",
       "PK",
       "PP",
       "PR",
       "PS",
       "PW",
-      "QL",
+      "QC",
       "R",
-      "RB",
       "RF",
       "RL",
       "RM",
@@ -64,31 +63,37 @@
       "SA",
       "SB",
       "SF",
+      "SG",
       "SH",
       "SP",
       "SR",
       "SS",
+      "SW",
       "TB",
       "TD",
-      "TO",
       "TP",
       "TX",
       "UC",
       "UF",
+      "UN",
       "VT",
       "WH",
+      "WI",
       "WK",
       "WP",
-      "WT"
+      "WT",
+      "XS"
     ],
     "commits": {
-      "growth": 180,
-      "refinement": 520,
-      "other": 594
+      "growth": 189,
+      "refinement": 604,
+      "other": 672
     },
     "areas": {
       "rough": [
+        "captures",
         "chronicle",
+        "deletion",
         "explore",
         "map",
         "navigation",
@@ -102,9 +107,7 @@
       "resting": []
     },
     "neverSwept": [
-      "captures",
       "complexes",
-      "deletion",
       "gallery",
       "gaps",
       "journal",
@@ -116,6 +119,7 @@
       "motion",
       "notes",
       "notify",
+      "outing",
       "places",
       "reactions",
       "recording",
@@ -130,13 +134,13 @@
       "web"
     ],
     "open": {
-      "openT": 3,
+      "openT": 7,
       "phoneT": 4,
       "openG": 0
     },
     "reading": "outgrowing its base",
     "propose": false,
-    "why": "eight areas are rough"
+    "why": "ten areas are rough"
   },
   "areas": {
     "chronicle": {
@@ -147,9 +151,9 @@
     },
     "explore": {
       "state": "rough",
-      "swept": "2026-11-17",
-      "main": "28daf0a16d8c2f81f522c7379494d2df7a171f2d",
-      "note": "No sweep (lenses 1-7 not run): the accent at rest (decision 0172) across Explore and Chronicle. Built tend explore 19 (How the marks work in ink) and 20 (the selected area's name and ring on the map in ink), and the review's U7 as tend explore audit 22 (Cancel while looking and the search's close in ink). The area card's status lines stay coloured, the owner's \"Leave them coloured\" (decision 0186). Filed [loop] low U1 (the selected ring under a pin's stalk) and U5 (the meta line's leading separator). Still [loop]: readNear's write retry (medium) and the older lows."
+      "swept": "2026-11-18",
+      "main": "ea3bba0987dc9c387930c669c5e8478cb56d6faf",
+      "note": "No sweep (lenses 1-7 not run): aimed at DEFERRED's [loop] medium \"At 390 and 320 px the walk planner's settings wrap\". Built tend explore 28 (density's three choices a column in the same pill, the mode and cars pills and the actions row unwrapped, Start kept on the right) and the ux-reviewer's U1-U3 as tend explore audits 42-44 (the column's corner 12, dividers at 3:1, none beside the chosen fill). U4 a line in walk-planner.md; filed [loop] low: the Outing page's loop or one-way choice wraps at 320 (U5, handed to the Outing session)."
     },
     "navigation": {
       "state": "rough",
@@ -165,15 +169,15 @@
     },
     "tabs": {
       "state": "rough",
-      "swept": "2026-11-11",
-      "main": "6b099ea6f3f46045fcbfbf869bd0f867582c4a27",
-      "note": "First sweep, not whole: real 200% text (phone, T13), offline and an interrupted launch were not pictured. Shipped: the focus ring on ink (two-tone, swapped on the recording bar), the bar's spoken camera, units on the destination and the range (with the review's three fixes), the empty peek's cut line, the bar's two-line word at 320, pictures. Dropped after the review and filed [loop] medium: a reminder into the folded bar, the bar's Stop and a held photo. T10-T12 [owner], T13 [phone] open."
+      "swept": "2026-11-18",
+      "main": "e45412a940a7b1b87429a4d70029784cac345763",
+      "note": "No sweep (lenses 1-6 not run): five of DEFERRED's ten [loop] lows. tend tabs 12 (the bar's way back does nothing while the bar's stop is under way), 13 (its comment names its held Stop), 14 (the walk gate counts the walk screens up), 15 (lib/launchRoute a shell, says Chronicle). Review (auditor, one round, four low, all accepted): audits 26-28 (the stop shared by any bar of the walk in barStop, asked again before the walk shows, bounded by BAR_STOP_HOLD_MS), F4 a line in tabs-and-home.md, which passed the 20,000-character warning: T39 asks for the split. T35-T38 [owner] filed from four items needing words or a visual change; the reminder's stale key left (a baseline the loop may not prune); dead code's shape noted. T11 [owner], T13 [phone] still open."
     },
     "map": {
       "state": "rough",
-      "swept": "2026-11-16",
-      "main": "54535dcbafec454cc4872303058c017d64dad8a5",
-      "note": "No sweep (lenses 1-7 not run): a run on four DEFERRED items. tend map 12 (the qol Hold check timed in the page; no app regression), 13 (O13, a pin on a start or end stops its stalk at the marker's edge), 14 (O14, a merged star draws two stars in its disc); O8 closed as stale on fresh pictures. Review (auditor, one round): audit 33 (the whole stalk cleared) and 34 (Hold proved on the loop) shipped; F33 medium (the place-name pack in the web entry bundle, the owner's 'Fetch on first search') and F38, F40 low filed [loop]."
+      "swept": "2026-11-18",
+      "main": "e45412a940a7b1b87429a4d70029784cac345763",
+      "note": "No sweep (lenses 1-7 not run): a run on DEFERRED's [loop] formatDistance item. tend map 21 (formatDistance and formatRange bind the figure to its unit with a no-break space; 20-odd unit tests and the gaps, launch, memories, outing, planner, qol, ready, scenic and walk journeys restated to accept [ \\u00a0], exact strings pinning it). Review (auditor, one round, no check weaker; one medium, five low): F1-F5 accepted as tend map audit 43 (a journey check that U+00A0 reaches the page), 44 (the gap card in formatDistance's words, the medium), 45 (the dead-zone nudge), 46 (scenic's notice in km), 47 (spoken distances keep the no-break space; map.md gains the line); F6 (reachLabel's \".0 \" replace) is the Outing session's branch. A native check filed for U+00A0 in Text and screen readers."
     },
     "replay": {
       "state": "rough",
@@ -190,8 +194,14 @@
     "captures": {
       "state": "rough",
       "swept": "2026-11-17",
-      "main": "8e1515ca2be126bbf667ee94185ab239a63b6023",
-      "note": "No sweep (lenses 1-7 not run): a run on the two Navigate, ready voice-memo [loop] items. Built tend captures 1 (a memo whose stop timed out is said and let go, never held for a dead Retry; memoFile, failedMemo) and the review's F11 as tend captures audit 1 (the space journey's patched recorders ended). Item 2 was built and dropped after the review (F1-F8: incomplete); the owner's \"Ship fix 1, slice the rest\" makes it a slice where one holder owns every unsaved memo, noted on the item; the first attempt is the unpushed branch tend/captures-20261117-1418. F9, F10 filed [loop] low; memoFile on a phone in NATIVE_UNVERIFIED."
+      "main": "972c386009771fa942d94b44bb4048c2009a67d2",
+      "note": "No sweep (lenses 1-7 not run): a run on the capturehome journey's red HC10 on main, filed [loop] medium and closed. No commit made it red (it failed at acb18b06 and 972c3860 under load, passed at rest); the check read the stored note once (waitForFunction on an async predicate). Built tend captures 2 (the placed-at-stop check polls) and the review's five as tend captures audit 2-6 (both HC10 paths at a walker's pace, the note on its trace with no read, JN13 polled, stored() bounded, arch/e2eWaits.test.ts guards the trap). Nothing filed."
+    },
+    "deletion": {
+      "state": "rough",
+      "swept": "2026-11-18",
+      "main": "c91583935de60c0433f938a35d35546dfb3469a3",
+      "note": "No sweep (lenses 1-7 not run): aimed at the Deletion section's one [loop] item, \"Delete walk\" wrapping in the walk delete confirm's row at 320 px. Built tend deletion 1 (below 340 px the confirm stacks its actions, the confirm on top and Cancel beneath, as HIG Alerts and Material dialogs stack theirs; no words changed) and the review's U1 and U2 as tend deletion audit 3 (the row measured at 340 and 352 px; the threshold stays 340) and audit 4 (stacked, 12 px apart). Filed [owner] low: the destructive button's filled red in every confirm (U3). The HIG Alerts quote (U4) is in Last tend for docs/research."
     }
   },
   "declined": []
