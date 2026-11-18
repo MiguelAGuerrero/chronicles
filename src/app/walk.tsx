@@ -79,7 +79,9 @@ import { shareLogText, walkLogText } from '../lib/shareLog';
 import { notifyWalkChanged } from '../lib/walkEvents';
 import { routeAhead } from '../lib/nav/navigator';
 import { shareLabel } from '../lib/atlas/mapsButton';
-import { HANDOFF_HINT, openInMaps } from '../lib/nav/openInMaps';
+import { travelMode, type TravelMode } from '../lib/nav/handoff';
+import { DRIVE_LABEL, END_LABEL, MUTE_LABEL, SHOWN_LINE, UNMUTE_LABEL } from '../lib/roads/words';
+import { HANDOFF_HINT, handoffHint, openInMaps } from '../lib/nav/openInMaps';
 import { useNavigation } from '../lib/nav/useNavigation';
 import { loadWayBack, saveWayBack } from '../lib/nav/store';
 import { CHOSEN_NOTICE, showsWayBack, wayBackTarget } from '../lib/nav/wayBack';
@@ -92,6 +94,8 @@ import { arrivalNotice, exitPlan, screenState, startNotice } from '../lib/readyN
 import { noticeShown } from '../lib/pauseReminder';
 import { getLastFix } from '../lib/lastFix';
 import { useStopArrival } from '../lib/outing/useArrival';
+import { PASS_HINT, PASS_LABEL, WAY_LABEL } from '../lib/outing/journeyWords';
+import { useJourneyBar } from '../lib/outing/useJourneyBar';
 import { CaptureStack } from '../components/walk/CaptureStack';
 import { ReadyBar } from '../components/walk/ReadyBar';
 import { scaleInsetBottom } from '../lib/stackSlots';
@@ -674,6 +678,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
     setNotice((n) => (n?.maps ? null : n));
     void navigation.goTo(dest);
   };
+  // A journey carried by this session (OJ28-OJ31, decision 0213): the bar between towns, and the way on foot within reach of one.
+  const journey = useJourneyBar({ walkId: walk?.open ? walk.id : null, here: live.here, navigating: !!navigation.nav || navigation.finding || !!navigation.preview, goTo });
   // Scenic routes' preview (SR8): Back (Android) and Escape (web) cancel it, setting no destination.
   const routePreview = navigation.preview;
   const dismissPreview = navigation.dismiss;
@@ -694,10 +700,10 @@ function WalkScreen(props: { onMinimize: () => void }) {
    * Open in Maps (NH3-NH8): the destination to the phone's maps app, straight from the tap (a
    * browser opens a window only from one). Navigation and the walk go on as they were (NH7).
    */
-  const handOff = (at: LngLat, label: string) => {
+  const handOff = (at: LngLat, label: string, mode: TravelMode = 'walk') => {
     feedback('tap');
     // go-here-everywhere audit 2: a star's title or a spot is the owner's own; only a neutral label rides in the link (0058).
-    openInMaps(at, shareLabel('spot', label)).then(
+    openInMaps(at, shareLabel('spot', label), mode).then(
       (ok) => {
         if (!ok) setNotice({ message: 'Couldn’t open a maps app.', tone: 'error' });
       },
@@ -716,10 +722,12 @@ function WalkScreen(props: { onMinimize: () => void }) {
           : null,
     [navigation.nav, navigation.preview, live.here],
   );
+  const drivePath = journey.next?.drivePath ?? null;
   // The preview's other routes, faint (SR2), and the map framed around all of them.
   const alternates = useMemo(
-    () => (navigation.preview ? navigation.preview.options.filter((_, i) => i !== navigation.preview!.selected).map((o) => o.route.path) : null),
-    [navigation.preview],
+    // Audit 12: a guided drive's road is drawn the same faint way: one line, no markers (RE16).
+    () => (navigation.preview ? navigation.preview.options.filter((_, i) => i !== navigation.preview!.selected).map((o) => o.route.path) : drivePath ? [drivePath] : null),
+    [navigation.preview, drivePath],
   );
   const previewFit = useMemo(() => (navigation.preview ? boundsOf(navigation.preview.options.flatMap((o) => o.route.path), 30) : null), [navigation.preview]);
   const previewKey = previewFit ? 300000 + (Math.abs(Math.round((previewFit[0] + previewFit[1]) * 1e5)) % 99999) : 0;
@@ -1363,6 +1371,53 @@ function WalkScreen(props: { onMinimize: () => void }) {
           </Pressable>
           {/* The navigation bar takes the top row beside Minimize, so nothing sits above it (the owner, Nov 6: it keeps
               drifting down; supersedes Nov 5's "Minimize above the bar"). */}
+          {/* A journey between towns (OJ29, OJ31, decision 0213): the town ahead and how far, Maps for the road, a way to pass it by. */}
+          {!navigation.nav && journey.next && (
+            // On the surface's own ground, not the route's colour: this is where the outing is headed, not a way being followed.
+            <View testID="journey-bar" style={styles.journeyBar} {...({ dataSet: { drivePoints: drivePath?.length ?? 0 } } as object)}>
+              {/* RE20, RE26: while guiding, the turn and how far above the town; before the first turn, what the map cannot know. */}
+              {journey.next.turn ? <Text testID="journey-turn" style={styles.journeyTurn} numberOfLines={journey.next.notice ? 4 : 2}>{journey.next.turn}</Text> : null}
+              <Text testID="journey-next" style={journey.next.turn ? styles.journeyUnder : styles.journeyText} numberOfLines={2}>{journey.next.line}</Text>
+              {journey.next.note ? <Text testID="journey-note" style={styles.journeyUnder} accessibilityLiveRegion="polite">{journey.next.note}</Text> : null}
+              <View style={styles.journeyActions}>
+                {journey.next.driving && journey.next.speaks ? (
+                  // RE25: the mute, in words; it says what a tap does now.
+                  <Pressable testID="journey-mute" accessibilityRole="button" accessibilityLabel={journey.next.muted ? UNMUTE_LABEL : MUTE_LABEL} onPress={journey.mute} style={({ pressed }) => [styles.journeyBtn, pressed && styles.pressed]}>
+                    <Text style={styles.journeyBtnText}>{journey.next.muted ? UNMUTE_LABEL : MUTE_LABEL}</Text>
+                  </Pressable>
+                ) : null}
+                {journey.next.driving ? (
+                  // RE20a: nothing else to tap while guiding; Open in Maps and Pass by return when it ends.
+                  <Pressable testID="journey-end" accessibilityRole="button" accessibilityLabel={END_LABEL} onPress={journey.end} style={({ pressed }) => [styles.journeyBtn, pressed && styles.pressed]}>
+                    <Text style={styles.journeyBtnText}>{END_LABEL}</Text>
+                  </Pressable>
+                ) : null}
+                {journey.next.driving ? null : !journey.next.within && journey.next.at && journey.next.town ? (
+                  <Pressable testID="journey-drive" accessibilityRole="button" accessibilityLabel={DRIVE_LABEL} accessibilityHint={journey.next.speaks ? undefined : SHOWN_LINE} onPress={journey.drive} style={({ pressed }) => [styles.journeyBtn, pressed && styles.pressed]}>
+                    <Text style={styles.journeyBtnText}>{DRIVE_LABEL}</Text>
+                  </Pressable>
+                ) : null}
+                {journey.next.driving ? null : journey.next.within ? (
+                  <Pressable testID="journey-walk" accessibilityRole="button" accessibilityLabel={WAY_LABEL} onPress={journey.walk} style={({ pressed }) => [styles.journeyBtn, pressed && styles.pressed]}>
+                    <Text style={styles.journeyBtnText}>{WAY_LABEL}</Text>
+                  </Pressable>
+                ) : journey.next.at && journey.next.town ? (
+                  <Pressable testID="journey-maps" accessibilityRole="button" accessibilityLabel="Open in Maps" accessibilityHint={handoffHint(travelMode(journey.next.awayM))} onPress={() => journey.next?.at && journey.next.town && handOff(journey.next.at, journey.next.town, travelMode(journey.next.awayM))} style={({ pressed }) => [styles.journeyBtn, pressed && styles.pressed]}>
+                    <Text style={styles.journeyBtnText}>Open in Maps</Text>
+                  </Pressable>
+                ) : null}
+                {journey.next.driving ? null : journey.next.undo ? (
+                  <Pressable testID="journey-undo" accessibilityRole="button" accessibilityLabel="Undo" onPress={journey.undo} style={({ pressed }) => [styles.journeyPlain, pressed && styles.pressed]}>
+                    <Text style={styles.journeyBtnText}>Undo</Text>
+                  </Pressable>
+                ) : (
+                  <Pressable testID="journey-pass" accessibilityRole="button" accessibilityLabel={PASS_LABEL} accessibilityHint={PASS_HINT} onPress={journey.pass} style={({ pressed }) => [styles.journeyPlain, pressed && styles.pressed]}>
+                    <Text style={styles.journeyBtnText}>{PASS_LABEL}</Text>
+                  </Pressable>
+                )}
+              </View>
+            </View>
+          )}
           {navigation.nav && (
             // Not a live region: it changes with every fix. The distance is announced in steps instead.
             <View testID="nav-bar" style={styles.navBar}>
@@ -2025,6 +2080,16 @@ const styles = StyleSheet.create({
     paddingLeft: 16, paddingRight: 8, minHeight: 56,
   },
   navText: { flex: 1, color: '#ffffff', fontSize: 16, fontWeight: '700' },
+  journeyBar: { flex: 1, minWidth: 0, gap: 4, backgroundColor: theme.surface, borderRadius: 16, borderWidth: 1, borderColor: theme.edge, paddingHorizontal: 12, paddingVertical: 8 },
+  journeyText: { color: theme.ink, fontSize: 15, fontWeight: '700' },
+  // Audit: read at a glance, moving: the largest line on the bar.
+  journeyTurn: { color: theme.ink, fontSize: 22, fontWeight: '700' },
+  journeyUnder: { color: theme.ink, fontSize: 14 },
+  // Audit: 12 px between targets on a screen used in a car.
+  journeyActions: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 12 },
+  journeyBtn: { minHeight: 44, paddingHorizontal: 12, borderRadius: 22, borderWidth: 1, borderColor: theme.edge, alignItems: 'center', justifyContent: 'center' },
+  journeyPlain: { minHeight: 44, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center' },
+  journeyBtnText: { color: theme.ink, fontSize: 14, fontWeight: '700' },
   // A white pill: 5.2:1 for its blue text.
   navEnd: { minHeight: 44, minWidth: 64, paddingHorizontal: 16, borderRadius: 22, backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center' },
   navEndText: { color: COLORS.route, fontSize: 16, fontWeight: '700' },

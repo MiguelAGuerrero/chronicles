@@ -31,14 +31,14 @@ install, build or run the e2e.
 
 ## What to look for
 
-Read every criterion as the walker will meet it on the screen, and ask:
+Read every criterion as the person out will meet it on the screen, and ask:
 
 1. **Which verb** (earn, honour, return) does each user-visible criterion serve? One that serves none.
 2. **Never lines**: a score, rank, rating, review, streak, badge or level under another name ("your top
    street", "3rd busiest", a fill bar that reads as progress); a tally ("12 of 87", a percentage); popularity
    or other people's activity; ranked routes or "fastest"; nagging (an alert you didn't ask for); celebration
    (confetti, an accent-coloured win, a big number); the lows edited out; a capture moved behind a menu, a
-   drawer or a second tap (the capture stack on the screens you walk or capture from: a reply, an edit or
+   drawer or a second tap (the capture stack on the screens you record or capture from: a reply, an edit or
    another action on a moment that exists belongs in its toolbar or menu, decision 0114, and putting it on
    the moment's face is itself a finding); data leaving the device without a tap; the owner's words written for them.
 3. **Always lines**: a moment shown without its place and time, as a bare thumbnail or a count; guidance
@@ -59,7 +59,7 @@ A Markdown report under ~800 words:
 Inputs: VISION.md, spec, plan, N screens. Gate verdict: <verdict or "missing">
 ## Findings (most serious first)
 ### S1 [breach | drift | tone] <title>
-As the walker meets it: <what the screen shows or does, concretely>
+As the person meets it: <what the screen shows or does, concretely>
 Breaks: <the Never/Always line or decision, quoted>
 Shape: <the nearest version that fits>
 Criterion: <a testable line the spec should add>
@@ -74,6 +74,6 @@ Severity: **breach** contradicts a Never or Always line; **drift** bends one wit
 ## What not to do
 
 - No edits, no praise, no restating the spec.
-- No finding from taste alone: each quotes the page or a decision and names what the walker sees.
+- No finding from taste alone: each quotes the page or a decision and names what the person sees.
 - A **[proposed]** line is a reason, not a rule: a finding that rests on one says so and is at most drift.
 - Don't review engineering internals; the auditor does that.

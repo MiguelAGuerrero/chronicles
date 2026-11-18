@@ -1,0 +1,31 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "The road engine"
+      ],
+      "body": "- The road engine, step 4 (spoken turns, RE25; decision 0205), left for later: nothing is spoken with the phone locked or the app behind another, since the screen's position is read only while the app is in front (`useLiveTrace` skips while not active), so RE33 is not met: it needs the drive step and the speech run from the background location task; a turn found again after leaving the way may be spoken a second time (it is told apart by where it is along the way, which changes with the new way); the voice, its language and its rate are the phone's defaults, and speech does not lower or pause other audio by any choice of ours; \"End\" and the mute are taps on a moving screen.\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "The road engine"
+      ],
+      "body": "- Spoken turns and guiding on a phone (RE25, RE33; decision 0205; `roads/speech.ts` over `expo-speech`, `roads/useDrive.ts`): \"Drive there\" is now offered on iOS and Android and has never run on either: whether a turn is heard at all, over music or a call, through CarPlay or Bluetooth; whether it is spoken once; the mute; and that nothing is spoken once the phone is locked (known: the position is read only in front).\n"
+    },
+    {
+      "argv": [
+        "inflight",
+        "set",
+        "The road engine (the app finds"
+      ],
+      "body": "| The road engine (the app finds the road between towns and guides the drive: a road graph from the map's z12 tiles, one way through the journey's towns, distance by road, spoken turns; RE1-RE34, decisions 0203, 0204 and 0205) | `claude/determined-wright-yg1fq9` | steps 0 to 4 built 2026-11-18: the engine, the road on the outing page, guiding (\"Drive there\", the turn ahead, End), turns spoken once with a mute (expo-speech); owed: RE14 (towns by the road), road names and roundabouts, speech behind the lock screen (RE33); nothing run on a phone |\n",
+      "target": "sha256:f0b3fe88b950a31b23739dda323b565505a514e1733479648dec3094e24d1bbc"
+    }
+  ]
+}

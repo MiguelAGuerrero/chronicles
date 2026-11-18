@@ -1,0 +1,81 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "The road engine"
+      ],
+      "body": "- The road engine's audit (Nov 18), deferred: the session's bar wraps its actions to a second row at 390 px and a third at 320 (audit 19: a menu for \"Pass by\" changes the bar's shape, the owner's); the way starts at the junction nearest the fix whatever the carriageway or heading, so on a divided road it can begin against the drive (20); nothing guides while the session's screen is minimised inside the app, and a turn is spoken again on return (21); the one-time statement shows to someone already moving and a turn can be spoken beside it (22); someone who starts from Explore's far card never reads that the way keeps to the roads through the towns (26); \"Undo\" on the bar names nothing and turns back into \"Pass by\" after 300 m (27); the page says \"by road\" and the bar \"away\" for one place, 11.5 km on a card is 11 km on the bar, and the bar's Open in Maps has no leaves-the-app glyph (30); \"Pass by\" on a one-town plan (31); the mute's state is only its words, and the plan's row still says a switch in options (32); the journey's footer explains its buttons in two lines, small text controls sit close together on the page, and the far card's Open in Maps is 42 px tall (33); Android's `geo:` link carries no travel mode, RE29's bound is a count of junctions and not a time, and no test drives a muted turn (35); one synchronous graph build per corridor, per card (9, in part). From the drive in the outing's: a start held up past two minutes loses its plan (3); a far place reached from a row of another area's card gets the ordinary question and \"Start now\" then routes on foot (4).\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "set",
+        "\"Drive there\" is not offered on a phone at all",
+        "--reason",
+        "the entry contradicted the next one: guiding has been offered on phones since step 4 (road-engine audit 15)"
+      ],
+      "body": "- Guiding a drive (RE19-RE28; `roads/turns.ts`, `roads/drive.ts`, `roads/useDrive.ts`, `outing/useJourneyBar.ts`, the bar in `src/app/walk.tsx`): offered on phones since step 4 (decision 0214) and never run on one: the bar's turn while moving, the road drawn ahead on the native map's `alternates` layer, the way found again off the road, the guiding found again after the app is reopened, how a turn reads at a glance in a car, and the bar's state set during render on every fix.\n",
+      "target": "sha256:3d1bd84199b32aaeee2af5f21014327da612581885fd04e954694ad3d5a9a12e"
+    },
+    {
+      "argv": [
+        "section",
+        "add",
+        "From the road engine's audit (2026-11-18)"
+      ],
+      "intro": "The steward's questions from the road engine's audit that only the owner answers; nothing here is built or decided.\n"
+    },
+    {
+      "argv": [
+        "section",
+        "item",
+        "add",
+        "From the road engine's audit (2026-11-18)",
+        "--end"
+      ],
+      "body": "- Guiding still needs the screen (road-engine audit 23): the voice says the turn and never how far, so two junctions close together are told apart only by looking; nothing is spoken with the phone locked; muted, or in a browser with no voice, it is look-only. Either the spoken turn carries the distance, or the shown turn is a second exception to \"Nothing on a ride asks for a look or a tap\".\n"
+    },
+    {
+      "argv": [
+        "section",
+        "item",
+        "add",
+        "From the road engine's audit (2026-11-18)",
+        "--end"
+      ],
+      "body": "- A ride now has a bar with controls (road-engine audit 24): after \"Start now\" for a far place, or with a journey carried, the session shows \"Toward <town>\" with Drive there, Open in Maps and Pass by, where DO8 and DO26 say a ride adds nothing to the screen. Either the bar is the town's line alone while moving, or DO8 and DO26 name it.\n"
+    },
+    {
+      "argv": [
+        "section",
+        "item",
+        "add",
+        "From the road engine's audit (2026-11-18)",
+        "--end"
+      ],
+      "body": "- DO1 against arrival (road-engine audit 25): \"no arrival ever offers anything\", yet with the town at hand guiding ends by itself and the bar offers \"Show the way\" (OJ30, RE24). Which gives way, or whether DO1 names these as its two exceptions.\n"
+    },
+    {
+      "argv": [
+        "inflight",
+        "set",
+        "The road engine (the app finds"
+      ],
+      "body": "| The road engine (the app finds the road between towns and guides the drive: a road graph from the map's z12 tiles, one way through the journey's towns, distance by road, spoken turns; RE1-RE34, decisions 0212, 0213 and 0214) | `claude/determined-wright-yg1fq9` | steps 0 to 4 built 2026-11-18: the engine, the road on the outing page, guiding (\"Drive there\", the turn ahead, End), turns spoken once with a mute (expo-speech); owed: RE14 (towns by the road), road names and roundabouts, speech behind the lock screen (RE33); audited 2026-11-18 (35 findings: 18 fixed, 11 deferred, 3 for the owner, 3 rejected); nothing run on a phone |\n",
+      "target": "sha256:f77e00027d02a13475fe32b06a73021244b822880bf39668cae59bc082d23281"
+    },
+    {
+      "argv": [
+        "inflight",
+        "set",
+        "The drive in the outing (start a journey"
+      ],
+      "body": "| The drive in the outing (start a journey in the car, large places found from the road, the drive in the replay by its length, hands-free capture on iOS; DO1-DO30, decision 0215) | `claude/determined-wright-yg1fq9` | specced 2026-11-18, the owner's answers in; part 1 (start in the car: \"Start now\" at every distance, a far place carried as a one-town journey) built 2026-11-18; parts 2 (the replay), 3 (places, after a measurement of where perimeters come from) and 4 (hands-free, iOS) owed; part 1 audited 2026-11-18 (4 findings: 2 fixed, 2 deferred); nothing run on a phone |\n",
+      "target": "sha256:21bf9ca031c6af1e5d4ccf3569c05acc7536747cee74ff1cba002e28de49d814"
+    }
+  ]
+}

@@ -7,12 +7,16 @@ import { PLACES_BASE } from '../discovery/archiveManifest';
 import { net } from '../net';
 import { fetchTiles } from '../discovery/tileFetch';
 import { placesFromTilePois } from '../discovery/tilePois';
-import { boundsOf } from '../geo';
+import { loadSettings } from '../explore/settings';
+import { outlines } from '../areas/outlineReader';
+import { boundsOf, withoutPauses } from '../geo';
 import { deriveSegments } from '../streets';
 import { tilesIn } from '../tileMath';
 import { ports } from '../ports';
 import { createOutingPrefs } from './prefs';
+import { readTrace } from '../rides';
 import { createOutingService } from './service';
+import { placeCandidates } from './sources';
 import { createStoresPack } from './storesPack';
 import { decodeStoresTile } from './storesRead';
 
@@ -23,12 +27,28 @@ export const outingService = createOutingService({
     const [url, build] = await Promise.all([db.getMeta('tile_url'), db.getMeta('tile_build')]);
     if (!url) return null;
     const tiles = tilesIn(boundsOf([at], radiusM + 300)!);
-    const f = await fetchTiles(url, tiles);
-    const places = placesFromTilePois(f.pois, build ?? '');
+    const [f, settings, finds, archive] = await Promise.all([fetchTiles(url, tiles), loadSettings(), db.listFinds(), placesArchive.read(tiles, at).catch(() => null)]);
+    // The tiles' own places, and the places archive's beside them (one place once, by its key).
+    const own = placesFromTilePois(f.pois, build ?? '');
+    const keys = new Set(own.map((p) => p.key));
+    const places = [...own, ...(archive?.places ?? []).filter((p) => !keys.has(p.key))];
     return {
+      // OJ38, OJ40: the attractions Explore could mark, of the kinds switched on; one not found yet keeps its name for arrival.
+      spots: placeCandidates(places, settings.hidden, new Set(finds.map((x) => x.key))),
       shops: places.map((p) => ({ name: p.name, at: p.at, classes: p.classes })),
       segments: deriveSegments(f.roads, f.names, build ?? ''),
     };
+  },
+  // OJ47: the walked fixes of an outing, read as every trace is (its start, pauses and stills), and Explore's range.
+  walked: {
+    rows: () => db.listWalkAreas(),
+    async trace(id) {
+      const walk = (await db.listWalks()).find((w) => w.id === id);
+      if (!walk) return [];
+      const [pauses, stills, points] = await Promise.all([db.getPauses(id), db.getStills(id).catch(() => []), db.getPoints(id)]);
+      return readTrace(withoutPauses(points, pauses), walk.started_at, pauses, stills).walked.map((f) => ({ lon: f.lon, lat: f.lat }));
+    },
+    rangeM: async () => (await loadSettings()).rangeM,
   },
   // QC14, QC29: the stores pack the places archive's manifest names, read by tile and only after an entry is picked; none, or a failed
   // read, leaves the tiles' shops serving the vocabulary.
@@ -37,3 +57,9 @@ export const outingService = createOutingService({
     io: { base: process.env.EXPO_PUBLIC_PLACES_BASE ?? PLACES_BASE, open: (url) => new PMTiles(net.source(url)), decode: decodeStoresTile },
   }),
 });
+
+/** OJ42: the towns of every recorded outing, so a town not among them can be looked at first. */
+export async function walkedTowns(): Promise<{ name: string; at: [number, number] }[]> {
+  const walks = await db.listWalks();
+  return outlines.townsOf(walks.map((w) => w.id));
+}
