@@ -39,3 +39,52 @@ test('tend map 17: the pin, star and "?" tap handlers are filled before paint, a
     assert.equal(fills.get(ref), 'useLayoutEffect', `${ref} is filled in a layout effect: a passive one lets a tap in the next frame reach the previous handler`);
   }
 });
+
+// tend map audit 40 (the review's F40): the test above held where the refs are filled, not that a tap reads them. A fill
+// in a cleanup or a timer inside the layout effect, a second fill in a passive effect, or a click listener calling the
+// handler it closed over all passed it. Every fill is now held to a layout effect's own body, and every marker click to
+// reading its ref, with no bare call to a handler.
+const REFS = ['latest', 'starLatest', 'markLatest'];
+const HANDLERS = new Set(['onPress', 'onStarPress', 'onDiscoveryPress', 'props.onStarPress', 'props.onDiscoveryPress', 'props.onPinPress', 'props.onMemoryPress']);
+const isFn = (n: ts.Node): n is ts.ArrowFunction | ts.FunctionExpression | ts.FunctionDeclaration =>
+  ts.isArrowFunction(n) || ts.isFunctionExpression(n) || ts.isFunctionDeclaration(n);
+function nearestFn(node: ts.Node): ts.Node | null {
+  for (let p = node.parent; p; p = p.parent) if (isFn(p)) return p;
+  return null;
+}
+
+test('tend map audit 40: every fill of a tap ref is in a layout effect\'s own body, and every marker click reads the ref', () => {
+  const sf = ts.createSourceFile(WEB, readFileSync(WEB, 'utf8'), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  const fills: ts.BinaryExpression[] = [];
+  const clicks: ts.Node[] = [];
+  walk(sf, (n) => {
+    if (ts.isBinaryExpression(n) && n.operatorToken.kind >= ts.SyntaxKind.FirstAssignment && n.operatorToken.kind <= ts.SyntaxKind.LastAssignment) {
+      if (REFS.some((r) => new RegExp(`^${r}\\.current\\b`).test(n.left.getText()))) fills.push(n);
+    }
+    if (ts.isCallExpression(n) && /\.addEventListener$/.test(n.expression.getText()) && ts.isStringLiteral(n.arguments[0]) && n.arguments[0].text === 'click') {
+      clicks.push(n.arguments[1]);
+    }
+  });
+  assert.equal(fills.length, 3, `one fill per ref (${fills.map((f) => f.getText().slice(0, 40)).join('; ')})`);
+  for (const f of fills) {
+    const fn = nearestFn(f);
+    const call = fn?.parent;
+    assert.ok(fn && call && ts.isCallExpression(call) && call.expression.getText() === 'useLayoutEffect' && call.arguments[0] === fn,
+      `${f.left.getText()} is filled directly in a useLayoutEffect's own callback, never in a nested function or a passive effect`);
+  }
+  assert.equal(clicks.length, 3, 'the pins, the stars and the "?" marks each take one click listener');
+  const read = new Set<string>();
+  for (const fn of clicks) {
+    const text = fn.getText();
+    const reads = REFS.filter((r) => new RegExp(`\\b${r}\\.current\\b`).test(text));
+    assert.equal(reads.length, 1, `a marker click reads one tap ref (${text.slice(0, 80)})`);
+    read.add(reads[0]);
+    walk(fn, (n) => {
+      if (ts.isCallExpression(n)) {
+        const callee = n.expression.getText().replace(/\?\.?$/, '');
+        assert.ok(!HANDLERS.has(callee), `a marker click calls no handler it closed over (${n.getText()})`);
+      }
+    });
+  }
+  assert.deepEqual([...read].sort(), [...REFS].sort(), 'each ref is read by its own markers\' click');
+});

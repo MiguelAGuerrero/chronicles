@@ -309,7 +309,7 @@ test('tend map audit 32: a pin\'s ago words count whole months and years elapsed
   assert.equal(agoLine(t(2026, 9, 20), t(2026, 10, 13)), 'three weeks ago');
 });
 
-// tend map 19: a memory pin of one moment said "Memory: Voice memo" (the kind's name) where one of several says
+// tend map 19 (amends RB7, MR2; the review's F43): a memory pin of one moment said "Memory: Voice memo" (the kind's name) where one of several says
 // "Memories: a photo and a note" (the kinds' clause): two tables for one thing. Both now say it from the clause's,
 // as a pin of several does; a pin of one moment of this walk keeps its name, "Photo" (T14).
 test('tend map 19: a memory pin of one moment says its kind as a memory pin of several does, "Memory: a photo"', () => {

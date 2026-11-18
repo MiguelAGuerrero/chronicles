@@ -137,6 +137,14 @@ The map component (maplibre-gl on web, MapLibre RN on native), pins and icons, t
   disabled.
 - **Pins are drawn only near the view** (tend map 16, audits 35-37; web only). `usePinMarkers` keeps a box in a ref, never as React state: the view grown by a pin's reach on screen (`PIN_REACH_PX`: 24 px either side, its 48 px height and the most `stalkLift` gives below, through `unproject`, so a turned map grows the same way), widened by `PIN_CULL_MARGIN` (half the view) on each side. It is drawn again on `move` and `moveend` only when `boxHolds` says the grown view left it or zoomed in more than a level. The focused pin and the last pressed one (its viewer gives the focus back there) are never dropped (`drawsPin`). A pin past the box has no DOM marker, so an e2e reading pins reads those near the view. A margin of 0.25 drew 10 markers to 0.5's 28 for 8 in view with none missing, but no fall in drag cost showed through the noise (Nov 17), so the margin stays at half.
 - **A screen reader reaches only the pins near the view** (the owner, Nov 17, on tend map 16's review F4: "Accept, record it"). Moving the map brings others in reach, and Chronicle's journal and Memories list every moment.
+- **Taps read their handlers from refs filled before paint** (`tend map 17`): the web's pins, stars and "?" marks read
+  `latest`, `starLatest` and `markLatest`, filled in `useLayoutEffect`s as the map's own handlers are (audit 8), so a tap
+  after a render never reaches the previous handler. The markers themselves sync in passive effects (DOM markers before
+  paint on every regroup would break the render budget), so a tap in the frame between commit and marker sync is
+  dropped, never stale (`tend map audit 41`, accepted).
+- **The selected star is told to a screen reader** (`tend map 20`; the owner, Nov 18: "Allow it"): on the web its button
+  carries `aria-current="true"` (spoken "current": a button takes no `aria-selected`), on native
+  `accessibilityState={{ selected }}`; both only on the selected star.
 
 ## Explore's dots (WT12-WT14, decision 0132)
 

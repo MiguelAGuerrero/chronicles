@@ -1135,6 +1135,9 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       const el = document.createElement('button');
       el.type = 'button';
       el.setAttribute('aria-label', starLabel(star));
+      // The selected star is told as it is drawn: "current" on the web, where a button takes no aria-selected (tend map
+      // 20, the owner's "Allow it", Nov 18).
+      if (selected) el.setAttribute('aria-current', 'true');
       el.style.cssText = 'background:none;border:0;padding:6px;cursor:pointer';
       const id = star.id;
       el.addEventListener('click', (e) => {
