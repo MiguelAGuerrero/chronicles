@@ -1,5 +1,5 @@
 // @layer shell
-// @instance: a store (lib/store) the area card sets and the tab layout reads
+// @instance: stores (lib/store) the full-screen cards and every Modal set, read by the tab layout and the recording bar
 import { createStore } from './store';
 
 /**
@@ -26,5 +26,22 @@ export function hideTabs(): () => void {
     released = true;
     holds -= 1;
     tabsHidden.set(holds > 0);
+  };
+}
+
+/**
+ * How many Modals are up (`components/Modal`, each while it shows): with any, the recording bar is out of sight beneath
+ * it, so a reminder it holds waits (tend explore 22).
+ */
+export const modalsUp = createStore(0);
+
+/** Counts a Modal up until the returned function is called, once. */
+export function holdModal(): () => void {
+  modalsUp.set((n) => n + 1);
+  let released = false;
+  return () => {
+    if (released) return;
+    released = true;
+    modalsUp.set((n) => Math.max(0, n - 1));
   };
 }

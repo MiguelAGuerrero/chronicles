@@ -151,7 +151,7 @@ export function toastText(kind: DeleteKind, what?: CaptureKind, dropped?: boolea
   if (kind === 'media') return 'Photos, videos and memos removed';
   if (kind === 'thread') return 'Thread deleted';
   if (kind === 'remove') return 'Removed from the thread';
-  if (kind === 'join') return 'Stacked with the earlier moment';
+  if (kind === 'join') return 'Joined with the earlier moment';
   if (!what) return 'Moment deleted';
   if (kind === 'split') {
     const noun = KIND_NOUN[what];
@@ -170,6 +170,6 @@ export function dismissLabel(kind: DeleteKind): string {
   if (kind === 'remove') return 'Close, it stays removed';
   if (kind === 'media') return 'Close, they stay removed';
   if (kind === 'split') return 'Close, it stays split out';
-  if (kind === 'join') return 'Close, it stays stacked';
+  if (kind === 'join') return 'Close, it stays joined';
   return 'Close, it stays deleted';
 }

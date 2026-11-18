@@ -4,7 +4,7 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import * as MAP from '../../../components/map/types';
-import { BORDER, COLORS, ENDS_PAINT, ENDS_RING_PAINT, FOG_STYLE, HOTSPOT, HOTSPOT_INK } from '../../../components/map/types';
+import { BORDER, borderFillOpacity, borderMoves, COLORS, ENDS_PAINT, ENDS_RING_PAINT, FOG_STYLE, HOTSPOT, HOTSPOT_INK } from '../../../components/map/types';
 import { KIND_COLOR } from '../../../components/atlas/kinds';
 import { contrast, deltaE, hueGap, lch, over, seen, type Sight } from './colourSight';
 
@@ -74,7 +74,9 @@ test('MP2: each map colour by its role', () => {
 test('MP3: the accent, ink, muted, route, walker, fog, hotspot, its ink, the borders, the place kinds and the danger red are unchanged', () => {
   assert.deepEqual([themeOf('accent'), themeOf('ink'), themeOf('muted'), themeOf('danger')], ['#c2410c', '#1d2430', '#596273', '#b42318']);
   assert.deepEqual([palette.route, palette.walker, palette.fog, palette.veil], ['#2563eb', '#1d3557', '#8b939e', '#d7dbe0']);
-  assert.deepEqual([HOTSPOT, HOTSPOT_INK, BORDER.color, BORDER.lined], ['#d6268c', '#86145a', '#c2410c', '#6b7280']);
+  // The town borders' own colour is cocoa, no longer the accent: the owner's answer to T33, Nov 17, "Cocoa #6e4f3f"
+  // (decision 0199; tend map T33 below).
+  assert.deepEqual([HOTSPOT, HOTSPOT_INK, BORDER.color, BORDER.lined], ['#d6268c', '#86145a', '#6e4f3f', '#6b7280']);
   assert.deepEqual(KIND_COLOR, {
     history: '#8b5e34', art: '#6d4bc4', culture: '#2f6f8f', parks: '#3f7d3a', viewpoints: '#946405', food: '#c4501f', shops: '#a33d5c', nightlife: '#3b3f8f',
   });
@@ -128,6 +130,60 @@ test('MP7: every map colour is 20 from the accent and outside its family', () =>
     assert.ok(!(chroma > 15 && h >= 5 && h <= 80), `${role} (hue ${h.toFixed(0)}, chroma ${chroma.toFixed(0)}) is in the accent's family`);
   }
   assert.ok(hueGap(lch(palette.walked).h, lch(ACCENT).h) > 90, 'the walked ink is far round the circle from the accent');
+});
+
+// The town borders (the owner's answers to T33, Nov 17; decision 0199): "Cocoa #6e4f3f", apart from the accent, and
+// "Borders above the veil" on the replay and a day, where under the veil the edge read 2.3:1 and the tint 1.10.
+test('tend map T33: the borders are cocoa, 20 from the accent and 15 from every map colour; over the veil the edge is 3.5:1 and the tint 1.15 to 1.35', () => {
+  assert.equal(BORDER.color, '#6e4f3f');
+  assert.ok(deltaE(BORDER.color, ACCENT) >= 20, `${deltaE(BORDER.color, ACCENT).toFixed(1)} from the accent`);
+  // MP6's normal-vision floor from every map colour and the hotspot. Its colour-blind floor of 9.5 is out of reach for any
+  // twelfth colour (the T33 comparison, Nov 17): cocoa is 8.6 from the video's madder with deuteranopia, which the owner chose.
+  for (const [name, c] of Object.entries({ ...palette, hotspot: HOTSPOT })) {
+    assert.ok(deltaE(BORDER.color, c) >= 15, `${name} is ${deltaE(BORDER.color, c).toFixed(1)} from the borders`);
+  }
+  // Drawn over the replay's veil (COLORS.veil at 0.45), on Positron's land and the e2e's (TB8, TB10).
+  for (const land of [LAND, '#eeeae4']) {
+    const veiled = over(palette.veil, land, 0.45);
+    const edge = contrast(over(BORDER.color, veiled, BORDER.firmOpacity), veiled);
+    const tint = contrast(over(BORDER.color, veiled, borderFillOpacity(true)), veiled);
+    assert.ok(edge >= 3.5, `edge ${edge.toFixed(2)} on ${land} veiled`);
+    assert.ok(tint >= 1.15 && tint < 1.35, `tint ${tint.toFixed(2)} on ${land} veiled`);
+  }
+});
+
+test('tend map T33, tend map audit 39: the borders draw over the veil on the replay and a day; the walk\'s unwalked veil stays over them', () => {
+  // Over the veil: the veil just under the borders' lines, the fill between them (decision 0199, the owner's "Borders
+  // above the veil", "on the replay and a day's replay").
+  assert.deepEqual(borderMoves(true, 'roads'), [['veil', 'border-lined'], ['border-fill', 'border-lined']]);
+  // Elsewhere, the walk screen's unwalked veil among them (tend map audit 39): the lines under the veil, the fill under the
+  // base map's first street (TB8), or just under the lines with no street layer, as before.
+  assert.deepEqual(borderMoves(false, 'roads'), [['border-lined', 'veil'], ['border-firm', 'veil'], ['border-fill', 'roads']]);
+  assert.equal(borderMoves(false, undefined)[2][1], 'border-lined');
+  // Web: the moves follow the veil and the screen's ask; only the replay and a day ask.
+  const web = read('components/map/WalkMap.web.tsx');
+  assert.match(web, /const overVeil = !!props\.veil && !!props\.bordersOverVeil;[\s\S]*?borderMoves\(overVeil, firstRoad\.current\)/);
+  for (const f of ['app/replay/[id].tsx', 'app/day/[key].tsx']) assert.match(read(f), /\n\s*bordersOverVeil\n/, `${f} draws the borders over its veil`);
+  assert.doesNotMatch(read('app/walk.tsx'), /bordersOverVeil/, 'the walk screen keeps its borders under the unwalked veil');
+  // Native: layer order is mount order, the borders mounted after the veil only when asked.
+  const native = read('components/map/WalkMap.native.tsx');
+  assert.match(native, /\{!bordersOver && <BordersSource[^\n]*\/>\}\s*<VeilSource[^\n]*\/>\s*\{bordersOver && <BordersSource[^\n]*\/>\}/);
+  assert.match(native, /const bordersOver = !!props\.bordersOverVeil;/);
+});
+
+// The owner's answer to the label floor, Nov 17: "Lighten the fill on veiled maps". Over the replay's and a day's veil the
+// fill is 0.11, so a base-map label on the tint keeps TB10's 4:1 (3.96 at 0.12) and the tint 1.17.
+test('tend map audit 38: over the veil the fill is 0.11, so the labels keep 4:1 and the tint 1.15; elsewhere 0.12', () => {
+  assert.equal(borderFillOpacity(true), 0.11);
+  assert.equal(borderFillOpacity(false), BORDER.fillOpacity);
+  assert.equal(BORDER.fillOpacity, 0.12);
+  const veiled = over(palette.veil, LAND, 0.45);
+  const tinted = over(BORDER.color, veiled, borderFillOpacity(true));
+  assert.ok(contrast('#666666', tinted) >= 4, `label ${contrast('#666666', tinted).toFixed(3)}`);
+  assert.ok(contrast(tinted, veiled) >= 1.15, `tint ${contrast(tinted, veiled).toFixed(3)}`);
+  // Both maps draw the fill at that opacity while the borders are over the veil.
+  assert.match(read('components/map/WalkMap.web.tsx'), /setPaintProperty\('border-fill', 'fill-opacity', borderFillOpacity\(/);
+  assert.match(read('components/map/WalkMap.native.tsx'), /'fill-opacity': borderFillOpacity\(/);
 });
 
 /** Every source file under a folder. */

@@ -17,6 +17,8 @@ import type { LngLat } from '../../types';
 // a museum by type stays Culture alone with a historic name (audit 2). One ring moved: Central Point's theme park (Rogue
 // Valley Family Fun Center) is Amusement parks, so its stored Viewpoints step, counted with every subtype left out
 // (XS15), went from 1 to 0; a reader with the row on sees it lit as before.
+// Typed bridges (MA10, contract v8, the owner, Nov 18) add `suspension_bridge` under the three names: a place of History's
+// Bridges, as `bridge` (its bar weight is 0, as a pier's, which the bars below never read); no fixture holds one, so no ring moved.
 
 type View = { category: string; kind: string | null; markable: boolean; bars: string[] } | null;
 type Golden = {

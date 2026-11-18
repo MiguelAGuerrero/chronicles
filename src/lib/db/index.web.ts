@@ -412,20 +412,23 @@ export const db: Db = {
     });
   },
   async referencesTo(id) {
-    const tx = (await conn()).transaction(['thread_member', 'moment_link', 'recall', 'find', 'reaction'], 'readonly');
+    const tx = (await conn()).transaction(['moment', 'thread_member', 'moment_link', 'recall', 'find', 'reaction'], 'readonly');
     const all = <T,>(name: string) => done(tx.objectStore(name).getAll()) as Promise<T[]>;
-    const [members, links, recall, finds, reactions] = await Promise.all([
+    const moment = (await done(tx.objectStore('moment').get(id))) as MomentRecord | undefined;
+    // A reminder or a find is kept on a piece's id, so every piece of the moment counts (stack-with-previous audit 5).
+    const ids = new Set([id, ...(moment?.pieces.map((p) => p.id) ?? [])]);
+    const [members, links, recalls, finds, reactions] = await Promise.all([
       all<{ moment_id: string }>('thread_member'),
       all<{ from_id: string; to_id: string }>('moment_link'),
-      done(tx.objectStore('recall').get(id)),
+      all<{ capture_id: string }>('recall'),
       all<{ capture_id: string }>('find'),
       all<{ moment_id: string }>('reaction'),
     ]);
     return {
       thread: members.some((m) => m.moment_id === id),
       link: links.some((l) => l.from_id === id || l.to_id === id),
-      reminder: !!recall,
-      find: finds.some((f) => f.capture_id === id),
+      reminder: recalls.some((r) => ids.has(r.capture_id)),
+      find: finds.some((f) => ids.has(f.capture_id)),
       reaction: reactions.some((r) => r.moment_id === id),
     };
   },

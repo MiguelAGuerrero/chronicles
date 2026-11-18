@@ -79,15 +79,17 @@ test('MA6: suspension bridges are Bridges, national monuments are Monuments, eve
   assert.equal(of('Morris Arboretum', 'garden')?.kind, 'gardens');
   // more-attractions audit 7: v6 brings them under those classes and no other: a contract that gave suspension bridges,
   // national monuments or a garden type a class of its own would fail here before the app left them out. Audit 18 (v7): a
-  // natural national monument has its own, under Nature.
+  // natural national monument has its own, under Nature. MA10 (v8): a suspension bridge known only by its type has its
+  // own, `suspension_bridge`, still a Bridges place; a listed one stays `bridge`.
   const sources = JSON.parse(readFileSync(join(__dirname, 'contract', 'sources.json'), 'utf8')) as { classes: string[] };
-  assert.deepEqual(sources.classes.filter((c) => /bridge|monument|garden|arboretum/.test(c)).sort(), ['bridge', 'community_garden', 'garden', 'monument', 'natural_monument']);
+  assert.deepEqual(sources.classes.filter((c) => /bridge|monument|garden|arboretum/.test(c)).sort(), ['bridge', 'community_garden', 'garden', 'monument', 'natural_monument', 'suspension_bridge']);
+  assert.equal(of('Lambertville Suspension Bridge', 'suspension_bridge')?.kind, 'bridges');
   assert.equal(of('Devils Tower National Monument', 'natural_monument')?.kind, 'natural_monuments');
 });
 
-test('MA7: the app pins chronicles-data\'s contract v6 (v7 since audit 18), its class names exactly the archive table', () => {
+test('MA7: the app pins chronicles-data\'s contract v6 (v7 since audit 18, v8 since MA10), its class names exactly the archive table', () => {
   const sources = JSON.parse(readFileSync(join(__dirname, 'contract', 'sources.json'), 'utf8'));
-  // more-attractions audit 18: v7 added `natural_monument`.
+  // more-attractions audit 18: v7 added `natural_monument`; MA10: v8 added `suspension_bridge`.
   assert.ok(sources.contractVersion >= 6);
   assert.deepEqual([...ARCHIVE_CLASS_NAMES].sort(), [...sources.classes].sort());
 });

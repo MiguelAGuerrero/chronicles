@@ -9,7 +9,7 @@ import { Pressable, StyleSheet, Text, View, type StyleProp, type TextStyle } fro
 import { ENTRY_GOES_ON, noteBlocks, sheetBlocks, sheetWords } from '../../lib/journal/blocks';
 import { dateline, entrySpoken } from '../../lib/journal/lines';
 import type { Slot, SlotId } from '../../lib/journal/actions';
-import { face as faceOf, facedAt, hasMore, kindsLine } from '../../lib/moment';
+import { face as faceOf, facedAt, hasMore, pieceWhen, stackLine } from '../../lib/moment';
 import { parseRefs, plainRefs } from '../../lib/refs';
 import type { ContextEntry } from '../../lib/resurface/shell';
 import type { MomentView } from '../../lib/resurface/types';
@@ -57,6 +57,8 @@ export function Entry(props: {
   onAction?: (id: SlotId) => void;
   /** A stack's tile opens the viewer on its piece (SW12). */
   onOpenPiece?: (pieceId: string) => void;
+  /** A stack's Take out: opens the piece's viewer on its menu, where Split out and Delete are (audit 16). */
+  onTakeOut?: (pieceId: string) => void;
 }) {
   const { moment: m, walk } = props;
   const c = m.capture;
@@ -76,6 +78,8 @@ export function Entry(props: {
   });
   const from = fromLine(walk);
   const stackedHere = hasMore(c) && openId !== c.id && !c.pieces.some((p) => p.id === props.writing);
+  // Show all is there only when a second or later photo or video is behind it (audit 13, the owner's call): a stack of words already shows them.
+  const hiddenMedia = stackedHere && c.pieces.some((p) => (p.kind === 'photo' || p.kind === 'video') && p.id !== faceOf(c).id);
   const pieces = c.pieces.filter((p) => p.id !== props.writing && (!stackedHere || spread || p.id === faceOf(c).id || p.kind === 'text' || p.kind === 'voice'));
   // The entry being written has the sign at its dateline's end (RX6); one kept today, the same sign (RX9). Its
   // reactions are spelled out under the dateline (RX14), so choosing one moves nothing.
@@ -104,22 +108,29 @@ export function Entry(props: {
       </View>
       <ReactionMarks set={reacted} style={styles.reactions} onOpen={props.onLens} />
       {stackedHere && spread ? (
-        <StackGrid moment={m} onOpenPiece={(id) => props.onOpenPiece?.(id)} />
+        <StackGrid moment={m} onOpenPiece={(id) => props.onOpenPiece?.(id)} onTakeOut={(id) => props.onTakeOut?.(id)} />
       ) : pieces.length > 0 && (
         <Pressable testID="moment-open" accessibilityRole="button" accessibilityLabel={`${entrySpoken(m.kind, m.words, line, hasMore(c))}. Open`} onPress={props.onOpen} style={styles.pieces}>
-          {pieces.map((p) => (
-            <Piece key={p.id} piece={p} moment={m} onOpenRef={props.onOpenRef} />
-          ))}
+          {pieces.map((p) => {
+            // A piece made later than its moment says so, in words and with no place (audit 10, SW10).
+            const later = pieceWhen(c, p);
+            return (
+              <View key={p.id} style={styles.pieceOne}>
+                <Piece piece={p} moment={m} onOpenRef={props.onOpenRef} />
+                {later ? <Text style={styles.app} testID="piece-later">{later}</Text> : null}
+              </View>
+            );
+          })}
         </Pressable>
       )}
       {stackedHere ? (
         <View style={styles.stackLine}>
           <StackMark />
-          <Text style={styles.app} testID="stack-kinds">{kindsLine(c)}</Text>
-          <Pressable testID="stack-toggle" accessibilityRole="button" accessibilityState={{ expanded: spread }} onPress={() => setSpread((v) => !v)} style={styles.toggle}>
+          <Text style={styles.kinds} testID="stack-kinds">{stackLine(c)}</Text>
+          {hiddenMedia ? <Pressable testID="stack-toggle" accessibilityRole="button" accessibilityState={{ expanded: spread }} onPress={() => setSpread((v) => !v)} style={styles.toggle}>
             <Text style={styles.toggleText}>{spread ? 'Show less' : 'Show all'}</Text>
             <Icon name={spread ? 'chevron-up' : 'chevron-down'} size={14} color={theme.ink} />
-          </Pressable>
+          </Pressable> : null}
         </View>
       ) : null}
       {props.actions && props.onAction && !writingHere ? <QuickActions slots={props.actions} onPress={props.onAction} /> : null}
@@ -242,6 +253,9 @@ const styles = StyleSheet.create({
   picture: { height: 200, width: '100%' },
   from: { minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' },
   reactions: { paddingBottom: 8 },
+  pieceOne: { gap: 4 },
+  // The stack's line is ink at body size, a clause (audit 9; ux review 5).
+  kinds: { color: theme.ink, fontSize: 14, lineHeight: 20, flexShrink: 1 },
   stackLine: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 },
   toggle: { flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 44, paddingHorizontal: 6, marginLeft: 'auto' },
   toggleText: { color: theme.ink, fontSize: 14, fontWeight: '600' },

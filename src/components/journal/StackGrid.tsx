@@ -14,12 +14,20 @@ const GAP = 4;
  * its own time in words, under the entry's dateline, which says where. No tile or label gives a count or a position
  * (SW13). A tile opens the viewer on that piece.
  */
-export function StackGrid(props: { moment: MomentView; onOpenPiece: (pieceId: string) => void }) {
+export function StackGrid(props: { moment: MomentView; onOpenPiece: (pieceId: string) => void; onTakeOut: (pieceId: string) => void }) {
   const m = props.moment;
   return (
     <View style={styles.grid} testID="stack-grid">
-      {m.capture.pieces.map((p) => (
-        <Tile key={p.id} piece={p} moment={m} onOpen={() => props.onOpenPiece(p.id)} />
+      {m.capture.pieces.map((p, i) => (
+        <View key={p.id} style={styles.cell}>
+          <Tile piece={p} moment={m} onOpen={() => props.onOpenPiece(p.id)} />
+          {/* A piece joined by mistake can be taken out (SW21); the first piece is the moment itself. */}
+          {i > 0 ? (
+            <Pressable testID="grid-take-out" accessibilityRole="button" accessibilityLabel={`Take out the ${KIND_NAME[p.kind].toLowerCase()} made ${pieceWhen(m, p) ?? clockOf(p.t)}`} onPress={() => props.onTakeOut(p.id)} style={styles.takeOut}>
+              <Text style={styles.takeOutText}>Take out</Text>
+            </Pressable>
+          ) : <View style={styles.takeOut} />}
+        </View>
       ))}
     </View>
   );
@@ -51,7 +59,10 @@ function Tile({ piece: p, moment: m, onOpen }: { piece: Capture; moment: MomentV
 const styles = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: GAP, marginTop: 8 },
   // Three to a row: a third of the width less the gaps, never under 88 px on a 320 px phone (SW18).
-  tile: { width: '32%', aspectRatio: 1, borderRadius: 8, overflow: 'hidden', backgroundColor: theme.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: theme.edge, minWidth: 88 },
+  cell: { width: '32%', minWidth: 88 },
+  takeOut: { minHeight: 44, alignItems: 'center', justifyContent: 'center' },
+  takeOutText: { color: theme.ink, fontSize: 12, fontWeight: '600' },
+  tile: { width: '100%', aspectRatio: 1, borderRadius: 8, overflow: 'hidden', backgroundColor: theme.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: theme.edge, minWidth: 88 },
   fill: { width: '100%', height: '100%' },
   plain: { alignItems: 'center', justifyContent: 'center', gap: 4, padding: 6 },
   note: { alignItems: 'flex-start', justifyContent: 'flex-start' },

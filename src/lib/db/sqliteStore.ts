@@ -241,8 +241,9 @@ export function makeSqliteDb(open: () => Promise<SQLiteDatabase>): Db {
       return {
         thread: await has('SELECT COUNT(*) AS n FROM thread_member WHERE moment_id = ?', id),
         link: await has('SELECT COUNT(*) AS n FROM moment_link WHERE from_id = ? OR to_id = ?', id, id),
-        reminder: await has('SELECT COUNT(*) AS n FROM recall WHERE capture_id = ?', id),
-        find: await has('SELECT COUNT(*) AS n FROM find WHERE capture_id = ?', id),
+        // A reminder or a find is kept on a piece's id, so every piece of the moment counts (stack-with-previous audit 5).
+        reminder: await has('SELECT COUNT(*) AS n FROM recall WHERE capture_id IN (SELECT id FROM capture WHERE moment_id = ?)', id),
+        find: await has('SELECT COUNT(*) AS n FROM find WHERE capture_id IN (SELECT id FROM capture WHERE moment_id = ?)', id),
         reaction: await has('SELECT COUNT(*) AS n FROM reaction WHERE moment_id = ?', id),
       };
     },
