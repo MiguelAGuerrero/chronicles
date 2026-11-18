@@ -86,6 +86,37 @@ async function run(h) {
   await pg.locator('[data-testid=quick-thread]').first().click();
   const threadOpen = await there('[data-testid=add-to-thread]', 8000);
   check(threadOpen, 'SW3: the link icon opens Add to a thread');
+  // fix picker-keyboard (the owner's iPhone, Nov 18): with the search's keyboard up, the toolbar ("What's on your mind?")
+  // rose with it over the picker, and the picker ran under the keys. A keyboard 300 px tall (the visual viewport shrinks).
+  await pg.click('[data-testid=add-new-thread]').catch(() => {});
+  await pg.click('[data-testid=add-search]').catch(() => {});
+  const kbTop = await pg.evaluate(() => {
+    const vv = window.visualViewport;
+    const top = window.innerHeight - 300;
+    Object.defineProperty(vv, 'height', { configurable: true, get: () => top });
+    vv.dispatchEvent(new Event('resize'));
+    return top;
+  });
+  await pg.waitForTimeout(400);
+  const picker = await pg.locator('[data-testid=add-to-thread]').boundingBox().catch(() => null);
+  // What a tap at the search field and at the picker's foot reaches: the picker, never the toolbar over it.
+  const reach = await pg.evaluate((top) => {
+    const card = document.querySelector('[data-testid=add-to-thread]');
+    const field = document.querySelector('[data-testid=add-search]');
+    if (!card || !field) return null;
+    const f = field.getBoundingClientRect();
+    const c = card.getBoundingClientRect();
+    const at = (x, y) => card.contains(document.elementFromPoint(x, y));
+    // Where the toolbar rose to: just above the keys.
+    return { field: at(f.x + f.width / 2, f.y + f.height / 2), foot: at(c.x + c.width / 2, c.bottom - 8), aboveKeys: at(c.x + c.width / 2, top - 40) };
+  }, kbTop);
+  await shot(pg, 'stackjoin-01b-picker-keyboard');
+  check(!!picker && picker.y + picker.height <= kbTop && !!reach && reach.field && reach.foot && reach.aboveKeys,
+    `fix picker-keyboard: with the keyboard up, Join it with another moment ends above the keys and nothing is drawn over it (${picker && Math.round(picker.y + picker.height)} <= ${kbTop}, ${JSON.stringify(reach)})`);
+  await pg.evaluate(() => {
+    delete window.visualViewport.height;
+    window.visualViewport.dispatchEvent(new Event('resize'));
+  });
   await pg.click('[data-testid=add-to-thread-close]').catch(() => {});
   await pg.waitForTimeout(500);
 
