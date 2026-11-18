@@ -1,8 +1,86 @@
 // Replay rhythm (RR6-RR16, RR19): a walk seeded with a captioned photo, a note, a memo, a 20-minute
 // gap and a long stretch, watched with no taps but the ones it checks; then its day. E2E_ONLY=replay runs it alone.
 
+const { seedReplayWalk } = require('../replayWalk');
+
+// Replay ceremony, the engine (RC1-RC3, RC7, RC9, RC10): what the page's own frames saw. `recordFrames` turns the app's
+// counters on (window.__perf) and notes, every display frame, where the map says the dot, the camera and the revealed
+// line's end are, the renders and sends counted so far, and what is on the stage.
+const recordFrames = (pg) => pg.evaluate(() => {
+  window.__perf = window.__perf || {};
+  const E = (window.__eng = { frames: [], on: true });
+  const has = (id) => !!document.querySelector(`[data-testid=${id}]`);
+  const tick = (t) => {
+    if (!E.on) return;
+    const map = [...document.querySelectorAll('[data-walker]')].filter((e) => !e.closest('[aria-hidden="true"]') && e.getBoundingClientRect().width > 0).pop();
+    const card = document.querySelector('[data-testid=replay-card]');
+    const cb = card && card.getBoundingClientRect();
+    const note = document.querySelector('[data-testid=replay-note]');
+    const p = window.__perf;
+    let sends = 0;
+    for (const k in p) if (k.startsWith('setData:')) sends += p[k];
+    E.frames.push({
+      t, busy: !!card || !!note || has('memo-bubble') || has('replay-whisper') || has('replay-later'),
+      walker: map?.getAttribute('data-walker') ?? '', centre: map?.getAttribute('data-center') ?? '', zoom: Number(map?.getAttribute('data-zoom')), end: map?.getAttribute('data-reveal-end') ?? '',
+      screen: (p['render:replay'] ?? 0) + (p['render:day'] ?? 0), map: p['render:map'] ?? 0, sends, commits: window.__commits?.[0] ?? 0, engine: p['replay:frame'] ?? 0,
+      card: cb ? `${cb.x.toFixed(1)},${cb.y.toFixed(1)},${cb.width.toFixed(1)}` : '', note: note ? getComputedStyle(note.parentElement).opacity : '',
+      clock: document.querySelector('[data-testid=replay-clock]')?.getAttribute('aria-label') ?? '', puck: !!document.querySelector('[data-testid=walker-puck]'),
+    });
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+});
+const stopFrames = (pg) => pg.evaluate(() => {
+  const E = window.__eng;
+  if (!E) return [];
+  E.on = false;
+  return E.frames;
+});
+const lonLat = (s) => (s ? s.split(',').map(Number) : null);
+/** Pixels between two places at a zoom (512 px tiles, as maplibre counts zoom). */
+const pxApart = (a, b, zoom) => Math.hypot((a[0] - b[0]) * 111320 * Math.cos((a[1] * Math.PI) / 180), (a[1] - b[1]) * 111320) * ((512 * 2 ** zoom) / (40075016.686 * Math.cos((a[1] * Math.PI) / 180)));
+/**
+ * The longest stretch in the frames: nothing arriving or leaving on the stage, from the first frame the walker moved to
+ * the last. Its rates a second, and how far apart the dot, the line's end and the camera's centre were, at the most.
+ */
+function stretchOf(frames, until = Infinity) {
+  let best = null;
+  let from = -1;
+  for (let i = 1; i <= frames.length; i++) {
+    const free = i < frames.length && frames[i].t <= until && !frames[i].busy && !!frames[i].clock && !!frames[i].walker;
+    if (free && from < 0) from = i;
+    if (free || from < 0) continue;
+    let a = from;
+    let b = i - 1;
+    while (a < b && frames[a].walker === frames[a - 1].walker) a++;
+    while (b > a && frames[b].walker === frames[b - 1].walker) b--;
+    if (!best || frames[b].t - frames[a].t > frames[best.b].t - frames[best.a].t) best = { a, b };
+    from = -1;
+  }
+  if (!best) return null;
+  const A = frames[best.a];
+  const B = frames[best.b];
+  const seconds = (B.t - A.t) / 1000;
+  const rate = (k) => (seconds > 0 ? (B[k] - A[k]) / seconds : Infinity);
+  let line = 0;
+  let centre = 0;
+  let ended = 0;
+  let followed = 0;
+  for (let i = best.a; i <= best.b; i++) {
+    const w = lonLat(frames[i].walker);
+    const e = lonLat(frames[i].end);
+    const c = lonLat(frames[i].centre);
+    if (w && e) { ended++; line = Math.max(line, pxApart(w, e, frames[i].zoom)); }
+    if (w && c) { followed++; centre = Math.max(centre, pxApart(w, c, frames[i].zoom)); }
+  }
+  const n = best.b - best.a + 1;
+  return { seconds, frames: n, screen: rate('screen'), map: rate('map'), sends: rate('sends'), commits: rate('commits'), engine: rate('engine'), line, centre, ended, followed, puck: B.puck };
+}
+const fix1 = (x) => (Number.isFinite(x) ? x.toFixed(1) : String(x));
+const stretchSaid = (s) => (s ? `a ${fix1(s.seconds)} s stretch of ${s.frames} frames: screen ${fix1(s.screen)}/s, map ${fix1(s.map)}/s, sends ${fix1(s.sends)}/s, commits ${fix1(s.commits)}/s, engine frames ${fix1(s.engine)}/s, line's end ${fix1(s.line)} px and centre ${fix1(s.centre)} px from the dot at the most, the end said in ${s.ended} frames` : 'no stretch seen');
+
 async function run(h) {
-  const { navUrl, BASE, page, start, at, check, shot, metaOf, freshPage, openWalk, errors } = h;
+  const { navUrl, BASE, at, check, shot, freshPage, openWalk, errors } = h;
     const { c, pg } = await freshPage('replay');
     // Media calls are recorded; a video's sound is refused unless a tap came just before, as iOS does.
     await c.addInitScript(() => {
@@ -33,84 +111,53 @@ async function run(h) {
         return s;
       };
       Object.defineProperty(navigator, 'wakeLock', { configurable: true, value: { request: async () => { window.__wake.held++; window.__wake.log.push('request'); return lock(); } } });
+      // React's commits, the app's root and the pins' own roots apart (replay ceremony RC7).
+      window.__commits = [0, 0];
+      window.__REACT_DEVTOOLS_GLOBAL_HOOK__ = {
+        supportsFiber: true, renderers: new Map(), isDisabled: false,
+        inject(r) { const id = this.renderers.size + 1; this.renderers.set(id, r); return id; },
+        onCommitFiberRoot(id, root) { window.__commits[root && root.containerInfo && root.containerInfo.id === 'root' ? 0 : 1]++; },
+        onPostCommitFiberRoot() {}, onCommitFiberUnmount() {}, onScheduleFiberRoot() {}, checkDCE() {}, setStrictMode() {},
+      };
+      // Every collection a map sends to its worker ('LD'), by map and source: one the same as the last, or empty after
+      // empty, is told to the journey (replay ceremony RC4). A source's first, empty, is its making.
+      const W = window.Worker;
+      const lastSent = new Map();
+      let sends = 0;
+      let told = 0;
+      window.Worker = class extends W {
+        postMessage(m, t) {
+          if (m && m.type === 'LD' && m.data && m.data.source) {
+            const d = m.data.data;
+            const body = typeof d === 'string' ? d : JSON.stringify(d ?? null);
+            const key = `${m.sourceMapId}:${m.data.source}`;
+            sends++;
+            if (lastSent.get(key) === body && told < 40) {
+              told++;
+              window.__sentAgain?.(`${m.data.source}${/"features":\[\]/.test(body) ? ' (empty)' : ''} on ${location.pathname}`);
+            }
+            lastSent.set(key, body);
+          }
+          return super.postMessage(m, t);
+        }
+      };
+      window.setInterval(() => window.__sentCount?.(sends), 1000);
     });
-    const here = at(3.0, -0.5);
-    await pg.goto(navUrl);
-    await pg.waitForSelector('[data-testid=start]');
-    await pg.click('[data-testid=start]');
-    await pg.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
-    for (let k = 0; k < 3; k++) {
-      await c.setGeolocation({ longitude: here[0], latitude: here[1] + k * 0.000001, accuracy: 6 });
-      await pg.waitForTimeout(1000);
-    }
-    for (let k = 0; k < 15 && !(await metaOf(pg, 'tile_url')); k++) await pg.waitForTimeout(1000);
-    const walk = await openWalk(pg);
-    const now = Date.now();
+    const sentAgain = [];
+    let sentInAll = 0;
+    let sentBefore = 0;
+    await c.exposeFunction('__sentAgain', (what) => { sentAgain.push(what); });
+    // Each page counts from 0 again: a count that falls back is a reload.
+    let sentHere = 0;
+    await c.exposeFunction('__sentCount', (n) => {
+      if (n < sentHere) sentBefore += sentHere;
+      sentHere = n;
+      sentInAll = sentBefore + sentHere;
+    });
+    // The walk (scripts/e2e/replayWalk.js, shared with scripts/perf-replay.js): 600 m east along Transit Street, a photo
+    // early on and a note at the end; 20 min with no fixes; 80 m more and a memo. Stopped, so its first replay opens.
+    const { here } = await seedReplayWalk(h, c, pg);
     const min = 60_000;
-    const along = (from, to, t0) => {
-      const pts = [];
-      const d = Math.hypot((to[0] - from[0]) * 100, (to[1] - from[1]) * 100);
-      const n = Math.max(1, Math.round(d / 7));
-      for (let k = 0; k <= n; k++) {
-        const p = at(from[0] + ((to[0] - from[0]) * k) / n, from[1] + ((to[1] - from[1]) * k) / n);
-        pts.push({ walk_id: walk.id, t: t0 + k * 5000, lon: p[0], lat: p[1], accuracy_m: 6, speed: 1.4, course: null });
-      }
-      return pts;
-    };
-    // 600 m east along Transit Street, a photo early on and a note at the end; 20 min with no fixes; 80 m more and a memo.
-    const first = along([-6, -0.5], [-1.2, -0.5], now - 50 * min);
-    const second = along([2.2, -0.5], [3.0, -0.5], first.at(-1).t + 20 * min);
-    const capAt = (p, o) => ({ walk_id: walk.id, t: p.t, lat: p.lat, lon: p.lon, segment_id: null, caption: null, caption_y: null, ...o });
-    const captures = [
-      capAt(first[8], { id: 'rr-photo', kind: 'photo', file_path: 'rr-photo', body: null, caption: 'Blue door', caption_y: 0.8 }),
-      capAt(first[25], { id: 'rr-photo-2', kind: 'photo', file_path: 'rr-photo', body: null, caption: 'Green gate', caption_y: 0.8 }),
-      capAt(first[45], { id: 'rr-video', kind: 'video', file_path: 'rr-video', body: '5000' }),
-      capAt(first.at(-1), { id: 'rr-note', kind: 'text', file_path: null, body: 'Bought two plums. Ate one before I paid.' }),
-      capAt(second[6], { id: 'rr-memo', kind: 'voice', file_path: 'rr-memo', body: '3000' }),
-    ];
-    await pg.evaluate(([id, startedAt, pts, caps]) => new Promise((resolve) => {
-      const cv = document.createElement('canvas');
-      cv.width = 160;
-      cv.height = 200;
-      const g = cv.getContext('2d');
-      g.fillStyle = '#2f5f8f';
-      g.fillRect(0, 0, 160, 200);
-      // A 5 s video, recorded from a canvas.
-      const rec = new MediaRecorder(cv.captureStream(10), { mimeType: 'video/webm' });
-      const parts = [];
-      let frame = 0;
-      const paint = setInterval(() => {
-        g.fillStyle = frame++ % 2 ? '#2f5f8f' : '#c0392b';
-        g.fillRect(0, 0, 160, 200);
-      }, 100);
-      rec.ondataavailable = (e) => parts.push(e.data);
-      const recorded = new Promise((r) => { rec.onstop = () => { clearInterval(paint); r(new Blob(parts, { type: 'video/webm' })); }; });
-      rec.start();
-      setTimeout(() => rec.stop(), 5200);
-      recorded.then((video) => cv.toBlob((blob) => {
-        const req = indexedDB.open('chronicles');
-        req.onsuccess = () => {
-          const tx = req.result.transaction(['walk', 'trace_point', 'moment', 'media'], 'readwrite');
-          const w = tx.objectStore('walk').get(id);
-          w.onsuccess = () => tx.objectStore('walk').put({ ...w.result, started_at: startedAt });
-          for (const p of pts) tx.objectStore('trace_point').add(p);
-          for (const cap of caps) tx.objectStore('moment').put(((c) => ({ id: c.id, walk_id: c.walk_id ?? null, t: c.t, lat: c.lat ?? null, lon: c.lon ?? null, segment_id: c.segment_id ?? null, piece_ids: [c.id], pieces: [Object.fromEntries(Object.entries({ ...c, moment_id: c.id }).filter(([k]) => !['walk_id', 'lat', 'lon', 'segment_id'].includes(k)))] }))(cap));
-          tx.objectStore('media').put({ key: 'rr-photo', blob });
-          tx.objectStore('media').put({ key: 'rr-video', blob: video });
-          tx.oncomplete = () => resolve(true);
-        };
-      }, 'image/png'));
-    }), [walk.id, first[0].t - 1000, [...first, ...second], captures]);
-    await pg.reload();
-    await pg.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
-    await c.setGeolocation({ longitude: here[0], latitude: here[1], accuracy: 6 });
-    await pg.waitForTimeout(2000);
-    const b = await pg.locator('[data-testid=stop]').boundingBox();
-    await pg.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
-    await pg.mouse.down();
-    await pg.waitForTimeout(1100);
-    await pg.mouse.up();
-    await pg.waitForURL(/replay/, { timeout: 30000 });
     // The reading beat can be shorter than a poll with the streets already read: pictured when it shows.
     if (await pg.waitForSelector('[data-testid=replay-reading]', { timeout: 3000 }).then(() => true, () => false)) await shot(pg, 'rr-reading');
     await pg.waitForSelector('[data-testid=replay-headline], [data-testid=replay-clock]', { timeout: 60000 }).catch(() => {});
@@ -579,6 +626,67 @@ async function run(h) {
     }
     await pg.setViewportSize({ width: 390, height: 844 });
 
+    {
+      // Replay ceremony, the engine (RC1-RC3, RC7; decision 0206): a re-watch with the app's counters on, read frame by
+      // frame in the page, with no tap, as far as the note at the end of the first stretch of the walk: two photos' cards,
+      // the video's, the stretches between them and the note's bubble coming in.
+      await pg.getByText('Watch again').click();
+      await pg.waitForSelector('[data-testid=replay-clock]', { timeout: 30000 });
+      await recordFrames(pg);
+      await pg.waitForSelector('[data-testid=replay-note]', { timeout: 120000 }).catch(() => {});
+      await pg.waitForTimeout(1500);
+      const watched = await stopFrames(pg);
+      await shot(pg, 'rc-engine-note');
+      await pg.click('[data-testid=skip]').catch(() => {});
+      await pg.waitForSelector('[data-testid=to-name]', { timeout: 30000 });
+      const stretch = stretchOf(watched);
+      // RC1: in every frame of the stretch the dot, the end of the walked line and the camera's centre are one place.
+      const together = !!stretch && stretch.seconds >= 1 && stretch.ended >= stretch.frames - 1 && stretch.followed >= stretch.frames - 1 && stretch.line <= 1.5 && stretch.centre <= 1.5 && stretch.puck;
+      check.todo(together, `RC1: through the path the walker's dot, the end of the walked line and the camera are drawn together in every frame (${stretchSaid(stretch)})`);
+      // RC2: nothing arriving or leaving, the screen and the map component are not rendered again as time passes.
+      const rendered = watched.length ? watched[watched.length - 1].screen : 0;
+      const quiet = !!stretch && stretch.seconds >= 1 && rendered > 0 && stretch.screen <= 2 && stretch.map <= 2;
+      check.todo(quiet, `RC2: on a stretch the replay screen and the map component render at most twice a second each (${stretchSaid(stretch)}; the screen rendered ${rendered} times in the watch)`);
+      // RC3: nor is anything sent to the map's sources.
+      const unsent = !!stretch && stretch.seconds >= 1 && stretch.engine >= 20 && stretch.sends <= 1;
+      check.todo(unsent, `RC3: on a stretch nothing is sent to the map's data sources as time passes, at most one send a second (${stretchSaid(stretch)})`);
+      // RC7: the card grew from its pin, the note's bubble came in and the clock rolled, frame by frame, with the screen
+      // rendered only for what arrived or left; on the stretch React committed next to nothing.
+      const moves = (k) => watched.filter((f, i) => i > 0 && f[k] && watched[i - 1][k] && f[k] !== watched[i - 1][k]).length;
+      const fades = new Set(watched.map((f) => f.note).filter(Boolean)).size;
+      const moved = { card: moves('card'), bubble: fades, clock: moves('clock'), frames: watched.length, screen: rendered - (watched[0]?.screen ?? 0), commits: stretch ? stretch.commits : null };
+      const offReact = !!stretch && rendered > 0 && moved.card >= 8 && moved.bubble >= 3 && moved.clock >= 2 && moved.screen < moved.frames / 20 && stretch.commits <= 4;
+      check.todo(offReact, `RC7: the card, the note's bubble and the clock move without the screen rendering again (${JSON.stringify(moved)})`);
+
+      // RC10: with reduce motion on, the timing is the same and the map stays still (RR18): the first card comes when it
+      // did with motion, the walker moving over a map that does not.
+      const untilCard = (frames) => {
+        const clocked = frames.find((f) => f.clock);
+        const carded = frames.find((f) => f.card);
+        return clocked && carded ? carded.t - clocked.t : null;
+      };
+      await pg.emulateMedia({ reducedMotion: 'reduce' });
+      await pg.waitForTimeout(300);
+      await pg.getByText('Watch again').click();
+      await pg.waitForSelector('[data-testid=replay-headline], [data-testid=replay-clock]', { timeout: 30000 });
+      await recordFrames(pg);
+      await pg.waitForSelector('[data-testid=replay-card]', { timeout: 30000 }).catch(() => {});
+      await pg.waitForTimeout(600);
+      const stillFrames = await stopFrames(pg);
+      await shot(pg, 'rc-engine-reduced');
+      await pg.click('[data-testid=skip]').catch(() => {});
+      await pg.waitForSelector('[data-testid=to-name]', { timeout: 30000 });
+      await pg.emulateMedia({ reducedMotion: 'no-preference' });
+      const onPath = stillFrames.filter((f) => f.clock);
+      const still = {
+        centres: new Set(onPath.map((f) => f.centre)).size, walkers: new Set(onPath.map((f) => f.walker).filter(Boolean)).size,
+        engine: onPath.length ? onPath[onPath.length - 1].engine - onPath[0].engine : 0, puck: onPath.some((f) => f.puck),
+        card: untilCard(stillFrames),
+      };
+      check.todo(still.centres === 1 && still.walkers >= 10 && still.engine >= 10 && still.puck && still.card != null,
+        `RC10: with reduce motion on the map stays still and the walker moves over it, on the same engine, to the first card (${JSON.stringify(still)})`);
+    }
+
     // The day (RR16): its replay reaches the day's card with no taps, the note on the way.
     const wakesBefore = (await pg.evaluate(() => window.__wake.log.length));
     // Not now with words typed asks as Back and Escape do (tend replay audit 15; the owner's "Ask there too", Nov 17);
@@ -601,12 +709,20 @@ async function run(h) {
     await pg.waitForURL(/\/day\//, { timeout: 15000 });
     let dayNote = false;
     let dayNext = null;
+    // The day's replay on the same engine (RC9): read frame by frame as the walk's was.
+    await pg.waitForSelector('[data-testid=replay-clock]', { timeout: 30000 }).catch(() => {});
+    await recordFrames(pg);
     for (let k = 0; k < 400 && !(await pg.locator('[data-testid=day-card]').count()); k++) {
       if (await pg.getByText('Bought two plums').count()) dayNote = true;
       // The day's replay has the same button, named the same (RY19).
       if (!dayNext && (await pg.locator('[data-testid=next-moment]').count())) dayNext = await pg.locator('[data-testid=next-moment]').getAttribute('aria-label').catch(() => null);
       await pg.waitForTimeout(150);
     }
+    const dayFrames = await stopFrames(pg);
+    const dayStretch = stretchOf(dayFrames);
+    const dayRendered = dayFrames.length ? dayFrames[dayFrames.length - 1].screen : 0;
+    check.todo(!!dayStretch && dayStretch.seconds >= 1 && dayStretch.puck && dayRendered > 0 && dayStretch.engine >= 20 && dayStretch.screen <= 2 && dayStretch.map <= 2 && dayStretch.sends <= 1 && dayStretch.ended >= dayStretch.frames - 1 && dayStretch.line <= 1.5 && dayStretch.centre <= 1.5,
+      `RC9: the day's replay runs on the same engine: its dot, line and camera together, nothing rendered or sent as time passes (${stretchSaid(dayStretch)}; the screen rendered ${dayRendered} times)`);
     check(dayNext === 'Next moment', `RY19: the day's replay shows the next-moment button too (${dayNext})`);
     // As in the walk's replay, no Continue ever mounts on the web (tend replay 14).
     check((await pg.locator('[data-testid=day-card]').count()) === 1 && dayNote, `RR16: the day's replay reaches its card by itself, its note on the way (${dayNote})`);
@@ -752,6 +868,10 @@ async function run(h) {
     const left320 = await pg.waitForURL((u) => u.pathname === `${BASE}/`, { timeout: 15000 }).then(() => true, () => false);
     check(asked320 && left320, `tend replay 15: at 320 px Escape twice with words typed asks, and Discard leaves for Chronicle (${asked320}, ${new URL(pg.url()).pathname})`);
     await pg.setViewportSize({ width: 390, height: 844 });
+    // RC4: through the whole journey (the walk screen, both replays, Chronicle's map, the day's replay) no map sent a
+    // collection the same as its last, or empty after empty.
+    await pg.waitForTimeout(1100);
+    check.todo(sentInAll > 20 && sentAgain.length === 0, `RC4: no map data is sent again unchanged, or empty after empty (${sentInAll} collections sent; again: ${sentAgain.length}${sentAgain.length ? `, as ${[...new Set(sentAgain)].slice(0, 6).join('; ')}` : ''})`);
     await c.close();
     // The scenario refuses a video's sound on purpose; expo-video lets that refusal go unhandled.
     for (let i = errors.length - 1; i >= 0; i--) if (/NotAllowedError: refused/.test(errors[i])) errors.splice(i, 1);
