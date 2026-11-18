@@ -13,7 +13,7 @@ import type { LngLat } from '../../lib/types';
 import { SearchSheet } from '../atlas/PlaceSearch';
 import { Icon } from '../icons';
 import { OpenInMapsButton, useOpenInMaps } from '../OpenInMapsButton';
-import { byRoadLine, roadLine } from '../../lib/roads/words';
+import { byRoadLine, LIMITS_LINE, MAPS_ROAD_LINE, roadLine } from '../../lib/roads/words';
 import { WalkMap } from '../map/WalkMap';
 import { PlannerCapture } from '../planner/PlannerCapture';
 import { Button, theme } from '../ui';
@@ -186,6 +186,8 @@ export function OutingPage(props: {
                 {/* RE11a, RE15, RE18: one line about the road: how the way is chosen once found; straight lines until then, and why when not. */}
                 {j.road === 'found' ? null : <Text style={styles.line} testID="outing-straight">{j.road && j.road !== 'reading' ? roadLine(j.road) : STRAIGHT_LINE}</Text>}
                 {j.road === 'found' || j.road === 'reading' ? <Text style={styles.line} testID="outing-road" accessibilityLiveRegion="polite">{roadLine(j.road)}</Text> : null}
+                {/* RE19 (S10), RE26: beside the road drawn, at rest: what the map cannot know, and that Maps takes its own road. */}
+                {j.road === 'found' ? <Text style={styles.line} testID="outing-road-note">{LIMITS_LINE} {MAPS_ROAD_LINE}</Text> : null}
               </>
             ) : (
               <>

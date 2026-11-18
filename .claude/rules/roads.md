@@ -7,7 +7,7 @@ paths:
 ---
 # The road engine
 
-The app's own router for a drive between towns (RE1-RE34, decisions 0203 and 0204; the spec is `specs/road-engine/spec.md`, its plan and the measurement of real tiles `plan.md`). A second `RouteSource`-shaped engine beside the one on foot, which it never touches. Steps 1 (the core) and 2 (the road on the outing page) are built; guiding and speech are steps 3 and 4.
+The app's own router for a drive between towns (RE1-RE34, decisions 0203 and 0204; the spec is `specs/road-engine/spec.md`, its plan and the measurement of real tiles `plan.md`). A second `RouteSource`-shaped engine beside the one on foot, which it never touches. Steps 1 (the core), 2 (the road on the outing page) and 3 (guiding, on the web) are built; speech and the lock screen are step 4.
 
 ## What it is
 
@@ -28,6 +28,16 @@ The app's own router for a drive between towns (RE1-RE34, decisions 0203 and 020
 - **"By road" only for a whole way** (`way.whole`): a way with a straight stretch is drawn, and its length stays "away".
 - **The map gets `thinLine(path, 400)`**, never the whole path: a map source is serialised whole on every change.
 - **Open in Maps takes a travel mode** (`nav/handoff.ts` `travelMode`, `mapsUrls(..., mode)`): driving past `GET_THERE_M`, walking otherwise and wherever no mode is passed.
+
+## Guiding (step 3)
+
+- **Turns are read from geometry** (`turns.ts`, `manoeuvres(graph, way)`): at a point of the way with another road to take, a change of heading of 40 degrees or more is Left or Right, two roads ahead are a fork ("Keep left"), a motorway begun or ended is said as that. A bend with no other road, and straight on over a crossroads, are nothing. Two same-side turns within 60 m are one (a divided road). No names, no roundabouts: the tiles give neither.
+- **`driveStep(path, turns, here, left)` is the whole decision** (`drive.ts`): the turn ahead and how far; off the way (`offM`) it gives no turn and nothing else, and `again` after `againM` driven off it. It gives the screen no flag for "off": never add one (RE22).
+- **`useDrive` asks the service** for the way from the fix it holds to the town, once, and again when `again`; a failed first ask ends the guiding with one line, a failed later one waits another `againM`. Nothing is stored; the plan keeps one flag, `driving: true` (`isJourneyPlan` accepts that key and no other).
+- **The bar while guiding** (`useJourneyBar`, `walk.tsx`): the turn over the town, End, and nothing else to tap (RE20a). From the tap until 50 m moved it says what the map cannot know, never beside a turn (RE26). Within reach of the town the flag is dropped and the bar is the ordinary "is here".
+- **`CAN_GUIDE` is the web alone** (`walk.tsx`): decision 0204 says guiding does not ship on a phone before turns are spoken. Do not widen it without step 4.
+- **The screen's position lags a drive by about 20 s**: `live.here` is the last kept fix, and fast fixes are kept only once they read as a ride (R1). The e2e drives at 12 m/s for 25 s before it expects a turn; a jump of the mocked GPS is never a fix.
+- The presence guard reads comments too: "bar" (a kind of place) cannot be written in `src/lib/roads/`.
 
 ## Traps
 

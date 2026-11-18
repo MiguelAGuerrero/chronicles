@@ -76,6 +76,7 @@ import { notifyWalkChanged } from '../lib/walkEvents';
 import { routeAhead } from '../lib/nav/navigator';
 import { shareLabel } from '../lib/atlas/mapsButton';
 import { travelMode, type TravelMode } from '../lib/nav/handoff';
+import { DRIVE_LABEL, END_LABEL, SHOWN_LINE } from '../lib/roads/words';
 import { HANDOFF_HINT, handoffHint, openInMaps } from '../lib/nav/openInMaps';
 import { useNavigation } from '../lib/nav/useNavigation';
 import { loadWayBack, saveWayBack } from '../lib/nav/store';
@@ -113,6 +114,8 @@ import { settleWithin } from '../lib/settleWithin';
 import { lostAtStop, memoLabel, stopWarning, stopWarns } from '../lib/unsaved/core';
 
 /** Streets around the walker: read from the map and shown as fog this far out. */
+/** RE25 (decision 0204): guiding does not ship on a phone before its turns can be spoken; on the web they are shown and it says so. */
+const CAN_GUIDE = Platform.OS === 'web';
 const NEAR_RADIUS_M = 1000;
 /** The streets around the walker are read again after this far. */
 const FOG_STEP_M = 100;
@@ -1354,9 +1357,23 @@ function WalkScreen(props: { onMinimize: () => void }) {
           {!navigation.nav && journey.next && (
             // On the surface's own ground, not the route's colour: this is where the outing is headed, not a way being followed.
             <View testID="journey-bar" style={styles.journeyBar}>
-              <Text testID="journey-next" style={styles.journeyText} numberOfLines={2}>{journey.next.line}</Text>
+              {/* RE20, RE26: while guiding, the turn and how far above the town; before the first turn, what the map cannot know. */}
+              {journey.next.turn ? <Text testID="journey-turn" style={styles.journeyTurn} numberOfLines={journey.next.notice ? 4 : 2}>{journey.next.turn}</Text> : null}
+              <Text testID="journey-next" style={journey.next.turn ? styles.journeyUnder : styles.journeyText} numberOfLines={2}>{journey.next.line}</Text>
+              {journey.next.note ? <Text testID="journey-note" style={styles.journeyUnder} accessibilityLiveRegion="polite">{journey.next.note}</Text> : null}
               <View style={styles.journeyActions}>
-                {journey.next.within ? (
+                {journey.next.driving ? (
+                  // RE20a: nothing else to tap while guiding; Open in Maps and Pass by return when it ends.
+                  <Pressable testID="journey-end" accessibilityRole="button" accessibilityLabel={END_LABEL} onPress={journey.end} style={({ pressed }) => [styles.journeyBtn, pressed && styles.pressed]}>
+                    <Text style={styles.journeyBtnText}>{END_LABEL}</Text>
+                  </Pressable>
+                ) : null}
+                {journey.next.driving ? null : CAN_GUIDE && !journey.next.within && journey.next.at && journey.next.town ? (
+                  <Pressable testID="journey-drive" accessibilityRole="button" accessibilityLabel={DRIVE_LABEL} accessibilityHint={SHOWN_LINE} onPress={journey.drive} style={({ pressed }) => [styles.journeyBtn, pressed && styles.pressed]}>
+                    <Text style={styles.journeyBtnText}>{DRIVE_LABEL}</Text>
+                  </Pressable>
+                ) : null}
+                {journey.next.driving ? null : journey.next.within ? (
                   <Pressable testID="journey-walk" accessibilityRole="button" accessibilityLabel={WAY_LABEL} onPress={journey.walk} style={({ pressed }) => [styles.journeyBtn, pressed && styles.pressed]}>
                     <Text style={styles.journeyBtnText}>{WAY_LABEL}</Text>
                   </Pressable>
@@ -1365,7 +1382,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
                     <Text style={styles.journeyBtnText}>Open in Maps</Text>
                   </Pressable>
                 ) : null}
-                {journey.next.undo ? (
+                {journey.next.driving ? null : journey.next.undo ? (
                   <Pressable testID="journey-undo" accessibilityRole="button" accessibilityLabel="Undo" onPress={journey.undo} style={({ pressed }) => [styles.journeyPlain, pressed && styles.pressed]}>
                     <Text style={styles.journeyBtnText}>Undo</Text>
                   </Pressable>
@@ -2033,7 +2050,9 @@ const styles = StyleSheet.create({
   navText: { flex: 1, color: '#ffffff', fontSize: 16, fontWeight: '700' },
   journeyBar: { flex: 1, minWidth: 0, gap: 4, backgroundColor: theme.surface, borderRadius: 16, borderWidth: 1, borderColor: theme.edge, paddingHorizontal: 12, paddingVertical: 8 },
   journeyText: { color: theme.ink, fontSize: 15, fontWeight: '700' },
-  journeyActions: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  journeyTurn: { color: theme.ink, fontSize: 17, fontWeight: '700' },
+  journeyUnder: { color: theme.ink, fontSize: 14 },
+  journeyActions: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 4 },
   journeyBtn: { minHeight: 44, paddingHorizontal: 12, borderRadius: 22, borderWidth: 1, borderColor: theme.edge, alignItems: 'center', justifyContent: 'center' },
   journeyPlain: { minHeight: 44, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center' },
   journeyBtnText: { color: theme.ink, fontSize: 14, fontWeight: '700' },

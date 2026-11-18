@@ -1,6 +1,7 @@
 // @layer core
 import { formatDistance } from '../format';
 import type { Units } from '../units';
+import type { TurnSay } from './types';
 
 /*
  * What the road engine says (RE13, RE32): a distance, by road. No time, no speed, no comparison.
@@ -23,3 +24,34 @@ export function roadLine(state: 'reading' | 'found' | 'failed' | 'none' | 'long'
   if (state === 'found') return 'The way keeps to the roads through the towns.';
   return `${state === 'long' ? 'Too far to find the road here.' : "Couldn't find the road."} ${STRAIGHT}`;
 }
+
+/** A distance beside a turn: whole units from ten of them on, tens of metres under a kilometre, so it does not flicker with each fix. */
+function turnDistance(m: number, units: Units): string {
+  const big = units === 'mi' ? m / MI_M : m / 1000;
+  if (big >= 10) return `${Math.round(big)} ${units}`;
+  return formatDistance(units === 'km' && m < 995 ? Math.max(10, Math.round(m / 10) * 10) : m, units);
+}
+
+const SAY: Record<TurnSay | 'on', string> = {
+  left: 'Left',
+  right: 'Right',
+  'keep-left': 'Keep left',
+  'keep-right': 'Keep right',
+  join: 'Onto the motorway',
+  leave: 'Off the motorway',
+  on: 'On this road',
+};
+
+/** RE20: the turn coming and how far to it; after the last, the road and what is left of it. Nothing else: no time, no count. */
+export const turnLine = (t: { say: TurnSay | 'on'; toM: number }, units: Units): string => `${SAY[t.say]}. ${turnDistance(t.toM, units)}.`;
+
+export const DRIVE_LABEL = 'Drive there';
+export const END_LABEL = 'End';
+/** RE25: where a turn cannot be spoken. */
+export const SHOWN_LINE = 'Turns are shown, not said.';
+/** RE26: what the engine cannot know, as a statement, at rest. */
+export const LIMITS_LINE = 'The map holds no turn restrictions and no closures.';
+/** RE19 (S10): beside the road drawn on the page. */
+export const MAPS_ROAD_LINE = 'Maps chooses its own road, which may not be this one.';
+/** RE15: said once when guiding could not begin. */
+export const NO_ROAD_LINE = "Couldn't find the road.";

@@ -1,0 +1,64 @@
+// @layer view
+import { useEffect, useRef, useState } from 'react';
+import type { LngLat } from '../types';
+import { driveStep } from './drive';
+import { roads } from './index';
+import type { Turn } from './types';
+
+/**
+ * A guided drive to one point (RE20, RE22-RE24, RE28): while `on`, the way by road from where you are is found once, each fix is
+ * placed on it, and the turn ahead comes back. Off the way no turn comes back, and after a set distance driven off it the way is
+ * found again from there, with nothing said. Nothing is stored: a reload finds the way again from the fix it then has.
+ */
+export function useDrive(o: { on: boolean; here: LngLat | null; to: LngLat | null; onFail: () => void }) {
+  const [found, setFound] = useState<{ key: string; path: LngLat[]; turns: Turn[] } | null>(null);
+  const [left, setLeft] = useState<LngLat | null>(null);
+  const key = o.on && o.to ? `${o.to[0].toFixed(5)},${o.to[1].toFixed(5)}` : null;
+  const mine = found && found.key === key ? found : null;
+  // Guiding that has ended, or that heads elsewhere now, keeps nothing.
+  if (found && !mine) setFound(null);
+  if (!key && left) setLeft(null);
+  const step = mine && o.here ? driveStep(mine.path, mine.turns, o.here, left) : null;
+  if (step && step.left !== left) setLeft(step.left);
+  const here = useRef(o.here);
+  const fail = useRef(o.onFail);
+  useEffect(() => {
+    here.current = o.here;
+    fail.current = o.onFail;
+  });
+  const hasHere = !!o.here;
+  const again = !!step?.again;
+  const need = !!key && hasHere && (!mine || again);
+  useEffect(() => {
+    let live = true;
+    const from = here.current;
+    if (!need || !key || !from || !o.to) return;
+    const first = !again;
+    void roads.way([from, o.to], () => !live).then((a) => {
+      if (!live || !a) return;
+      const leg = a.state === 'found' ? a.way.legs[0] : null;
+      if (a.state === 'found' && leg) {
+        setFound({ key, path: leg.path, turns: a.turns });
+        setLeft(null);
+      } else if (first) fail.current();
+      // Found again and no road from here: the wait by distance starts over from this fix.
+      else setLeft(here.current);
+    });
+    return () => {
+      live = false;
+    };
+    // The point is read through its key, and the fix is the one held when the way is asked for.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [need, key, again]);
+  // The graph is dropped with the guiding.
+  useEffect(() => {
+    if (!key) return;
+    return () => roads.forget();
+  }, [key]);
+  return {
+    /** The way is being found for the first time. */
+    finding: !!key && !mine,
+    /** The turn ahead and how far; null while finding, off the way, and at the road's end. */
+    turn: step?.turn ?? null,
+  };
+}

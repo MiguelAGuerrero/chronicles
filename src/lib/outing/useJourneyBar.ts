@@ -7,7 +7,11 @@ import { useUnits } from '../useUnits';
 import { chapterDest, emptyState, passBy, stepPlan, type JourneyPlan, type PlanState } from './journeyPlan';
 import { hereLine, NO_TOWN_LINE, towardLine } from './journeyWords';
 import { journeyPlans } from './plans';
+import { useDrive } from '../roads/useDrive';
+import { LIMITS_LINE, NO_ROAD_LINE, roadLine, SHOWN_LINE, turnLine } from '../roads/words';
 
+/** RE26: what the engine cannot know is said from the tap on "Drive there" until you have moved this far: at rest, never beside a turn. */
+const NOTICE_M = 50;
 /** How far you may move after "Pass by" with Undo still offered. */
 const UNDO_M = 300;
 
@@ -21,6 +25,9 @@ export function useJourneyBar(o: { walkId: string | null; here: LngLat | null; n
   const units = useUnits();
   const [held, setHeld] = useState<{ walkId: string; plan: JourneyPlan | null; st: PlanState } | null>(null);
   const [undo, setUndo] = useState<{ plan: JourneyPlan; at: LngLat | null } | null>(null);
+  // RE26: where "Drive there" was tapped; RE15: the one line said when the road could not be found.
+  const [began, setBegan] = useState<LngLat | null>(null);
+  const [note, setNote] = useState<string | null>(null);
   useEffect(() => {
     let live = true;
     if (!o.walkId) return;
@@ -50,6 +57,18 @@ export function useJourneyBar(o: { walkId: string | null; here: LngLat | null; n
   const chapter = mine?.plan?.chapters[0] ?? null;
   const undoShown = !!undo && (!undo.at || !o.here || distanceM(undo.at, o.here) <= UNDO_M);
   const town = ahead?.town ?? null;
+  // RE24: with the town at hand the guiding ends by itself, with nothing said.
+  const guided = !!mine?.plan?.driving && !!ahead && !ahead.within;
+  if (mine?.plan?.driving && ahead?.within) setHeld({ ...mine, plan: { chapters: mine.plan.chapters } });
+  const endDrive = (said: string | null) => {
+    if (mine?.plan?.driving) setHeld({ ...mine, plan: { chapters: mine.plan.chapters } });
+    setBegan(null);
+    setNote(said);
+  };
+  const drive = useDrive({ on: guided && !o.navigating, here: o.here, to: guided ? ahead.at : null, onFail: () => endDrive(NO_ROAD_LINE) });
+  const notice = guided && !!began && (!o.here || distanceM(began, o.here) < NOTICE_M);
+  // RE20, RE22: the turn and how far; nothing while off the way or at the road's end, where the town's own line stands alone.
+  const turn = !guided ? null : notice ? `${SHOWN_LINE} ${LIMITS_LINE}` : drive.finding ? roadLine('reading') : drive.turn ? turnLine(drive.turn, units) : null;
   return {
     /**
      * What the screen says of the journey, or null: with no plan, while a way is followed, or with no town ahead (then only while
@@ -59,14 +78,39 @@ export function useJourneyBar(o: { walkId: string | null; here: LngLat | null; n
       !mine || o.navigating
         ? null
         : ahead && town
-          ? { line: ahead.within ? hereLine(town) : towardLine(town, ahead.awayM, units), within: ahead.within, at: ahead.at, awayM: ahead.awayM, town, undo: undoShown }
+          ? {
+              // RE20: under a turn, the town alone; with no turn to show, the town and how far, as between towns.
+              line: ahead.within ? hereLine(town) : towardLine(town, turn ? null : ahead.awayM, units),
+              within: ahead.within,
+              at: ahead.at,
+              awayM: ahead.awayM,
+              town,
+              undo: undoShown,
+              /** RE20, RE20a: guiding: the line above the town's, and nothing to tap but End. */
+              driving: guided,
+              turn,
+              /** RE26: the line above is the one-time statement, which may take a third line. */
+              notice,
+              /** RE15: said once when the road could not be found; Open in Maps is beside it. */
+              note: guided ? null : note,
+            }
           : undoShown
-            ? { line: NO_TOWN_LINE, within: false, at: null, awayM: null, town: null, undo: true }
+            ? { line: NO_TOWN_LINE, within: false, at: null, awayM: null, town: null, undo: true, driving: false, turn: null, notice: false, note: null }
             : null,
+    /** RE19: guiding begins on this tap and no sooner. */
+    drive() {
+      if (!mine?.plan || !ahead || ahead.within) return;
+      setHeld({ ...mine, plan: { ...mine.plan, driving: true } });
+      setBegan(o.here);
+      setNote(null);
+    },
+    /** RE19: "End": guiding stops; the town stays ahead. */
+    end: () => endDrive(null),
     /** OJ31: the town ahead leaves the plan; it can be taken back until you have moved on. */
     pass() {
       if (!mine?.plan) return;
       const next = passBy(mine.plan);
+      setNote(null);
       setUndo({ plan: mine.plan, at: o.here });
       setHeld({ ...mine, plan: next, st: emptyState(next) });
     },

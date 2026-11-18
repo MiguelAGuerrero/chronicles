@@ -239,3 +239,23 @@ straight line. The graph is built on the page in turns, not in a worker. Both ar
 
 **Not tested, and why.** What is painted on the map (the e2e counts the points handed to it; the fake map shows no tiles); a
 corridor of sixty tiles; the live host; any phone.
+
+**Step 3, guiding, built 2026-11-18**: `roads/turns.ts` (turns from the road's geometry), `roads/drive.ts` (one fix: the turn
+ahead, off the way, find again), `roads/useDrive.ts`; the plan's one flag `driving`; "Drive there" and "End" on the session's bar
+(`outing/useJourneyBar.ts`, `src/app/walk.tsx`); the page's line beside the road (RE19's S10, RE26). Offered on the web only:
+decision 0204 keeps guiding off a phone until turns are spoken (step 4).
+
+**Passed.** Unit tests for RE20-RE23, RE25, RE26, RE28, RE32 (`roads/guide.test.ts`, `outing/journeyPlan.test.ts`), committed as
+todos first (`fd6c885`). The journey `journey` drives the mocked GPS along its road: "Drive there" beside Open in Maps
+and Pass by, nothing guiding before the tap (RE3, RE19); the one-time statement at the tap (RE25, RE26); End and nothing else to
+tap (RE20a); the capture stack clear of the bar (RE27); "Right. 310 m." over "Toward North Scituate." (RE20, RE21), whole at
+320 px; past the junction "On this road. 8.8 km." (RE23); off the way no turn and no word (RE22); found again after a reload, with
+only the towns' points and the flag kept (RE28); End returns the other controls (RE19).
+
+**Deferred** (in `docs/DEFERRED.md`): road names and numbers in a turn; roundabouts; finding again reads a whole corridor; the
+road is not drawn on the session's map; the 20 s before a drive's fixes move the screen's position; RE24's "how far the town
+still is" where the road ends short is the ordinary line between towns, with no check of its own.
+
+**Not tested, and why.** RE22's finding again after 400 m off the way (the unit test holds the rule; the journey only leaves and
+returns); RE24's end at the town (the plan's own rule, tested as OJ49, drops the flag; no journey drives nine kilometres); RE31
+(guiding needs an open session: the bar exists only in one, by construction); real roads, real junctions, any phone.

@@ -3,7 +3,8 @@ import type { LngLat } from '../types';
 import { tilesAlong } from './corridor';
 import { RoadGraph } from './graph';
 import { ROAD_RULES, type RoadRules } from './rules';
-import type { RoadSource, RoadWay } from './types';
+import { manoeuvres } from './turns';
+import type { RoadSource, RoadWay, Turn } from './types';
 import { findWay } from './way';
 
 /*
@@ -12,7 +13,7 @@ import { findWay } from './way';
  * corridor is kept in memory while the page or the session that asked is open, and dropped on `forget`; nothing is stored.
  */
 export type RoadAnswer =
-  | { state: 'found'; way: RoadWay }
+  | { state: 'found'; way: RoadWay; turns: Turn[] }
   /** Too long for one read (RE7). */
   | { state: 'long' }
   /** The roads could not be read. */
@@ -50,7 +51,7 @@ export function createRoads(deps: RoadsDeps) {
     const search = findWay(graph, [...points], rules);
     for (;;) {
       const step = search.next();
-      if (step.done) return step.value.legs.some((l) => l) ? { state: 'found', way: step.value } : { state: 'none' };
+      if (step.done) return step.value.legs.some((l) => l) ? { state: 'found', way: step.value, turns: manoeuvres(graph, step.value) } : { state: 'none' };
       await deps.pause();
       if (shouldStop?.()) return null;
     }

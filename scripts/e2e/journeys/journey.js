@@ -40,13 +40,32 @@ async function run(h) {
   const here = at(-248, 0);
   // The road engine (RE1, RE8): the tiles at its zoom hold one main road from here through the town to the place, bent once so it
   // is not the straight line; every request for them is kept.
-  const bend = [(here[0] + town[0]) / 2, (here[1] + town[1]) / 2 + 0.01];
-  const mainRoad = { type: 'Feature', properties: { class: 'primary' }, geometry: { type: 'LineString', coordinates: [here, bend, town, end] } };
+  // The road leaves here, meets a junction off the straight line, and turns there for the town; the road it leaves goes on (RE21).
+  const k = Math.cos((here[1] * Math.PI) / 180);
+  const d = [(town[0] - here[0]) * k, town[1] - here[1]];
+  // The junction is 600 m from here, off to one side by 50 degrees, so the fixes of a short drive reach it.
+  const len = Math.hypot(d[0], d[1]);
+  const rot = [(d[0] * Math.cos(0.87) - d[1] * Math.sin(0.87)) / len, (d[0] * Math.sin(0.87) + d[1] * Math.cos(0.87)) / len];
+  const mDeg = 600 / 111320;
+  const bend = [here[0] + (rot[0] * mDeg) / k, here[1] + rot[1] * mDeg];
+  /** Moves the mocked GPS from a to b as a drive does, a fix a second at 12 m/s: a jump is not a fix the trace keeps, and a ride is told only after 20 s of it (R1). */
+  const go = async (a, b) => {
+    const n = Math.max(1, Math.round(h.distanceM(a, b) / 12));
+    for (let i = 1; i <= n; i++) {
+      await c.setGeolocation({ longitude: a[0] + ((b[0] - a[0]) * i) / n, latitude: a[1] + ((b[1] - a[1]) * i) / n, accuracy: 6 });
+      await pg.waitForTimeout(1000);
+    }
+    return b;
+  };
+  const on = [bend[0] + (bend[0] - here[0]) * 0.4, bend[1] + (bend[1] - here[1]) * 0.4];
+  const roadOf = (coordinates) => ({ type: 'Feature', properties: { class: 'primary' }, geometry: { type: 'LineString', coordinates } });
+  const mainRoads = [roadOf([here, bend, on]), roadOf([bend, town, end])];
+  const along = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
   const roadAsked = [];
   await pg.route(/\/12\/\d+\/\d+\.pbf$/, (r) => {
     const m = /\/12\/(\d+)\/(\d+)\.pbf$/.exec(r.request().url());
     roadAsked.push(r.request().url());
-    return r.fulfill({ contentType: 'application/x-protobuf', body: Buffer.from(encodeTile([mainRoad], 12, Number(m[1]), Number(m[2]))) });
+    return r.fulfill({ contentType: 'application/x-protobuf', body: Buffer.from(encodeTile(mainRoads, 12, Number(m[1]), Number(m[2]))) });
   });
   await c.setGeolocation({ longitude: here[0], latitude: here[1], accuracy: 6 });
   await pg.goto(exploreUrl);
@@ -87,6 +106,8 @@ async function run(h) {
   await pg.waitForFunction(() => /keeps to the roads/.test(document.querySelector('[data-testid=outing-road]')?.textContent ?? ''), null, { timeout: 90000 }).catch(() => {});
   {
     const said = ((await pg.locator('[data-testid=outing-road]').innerText().catch(() => '')) ?? '').trim();
+    const noteSaid = ((await pg.locator('[data-testid=outing-road-note]').innerText().catch(() => '')) ?? '').trim();
+    check(noteSaid === 'The map holds no turn restrictions and no closures. Maps chooses its own road, which may not be this one.', `RE19, RE26: beside the road, at rest, the page says what the map cannot know and that Maps takes its own road (${noteSaid})`);
     check(said === 'The way keeps to the roads through the towns.' && (await pg.locator('[data-testid=outing-straight]').count()) === 0, `RE1, RE11a, RE18: with the road found the page says once how the way is chosen, and no longer that distances are straight lines (${said})`);
     const linkPoints = Number(await pg.locator('[data-testid=outing-map]').getAttribute('data-link-points'));
     check(linkPoints > 3 && linkPoints <= 400, `RE1, RE16: the line handed to the map is the road, not the towns joined straight (${linkPoints} points)`);
@@ -126,6 +147,65 @@ async function run(h) {
   const bar = ((await pg.locator('[data-testid=journey-next]').innerText().catch(() => '')) ?? '').trim();
   check(/^Toward North Scituate\. \d+(\.\d)? (km|mi) away\.$/.test(bar), `OJ28, OJ29: Start begins a session at once and its bar says the town it is headed toward and how far away (${bar})`);
   check((await pg.locator('[data-testid=journey-maps]').getAttribute('aria-label')) === 'Open in Maps' && (await pg.locator('[data-testid=journey-pass]').getAttribute('aria-label')) === 'Pass by' && ((await pg.locator('[data-testid=journey-pass]').innerText()) ?? '').trim() === 'Pass by' && (await pg.locator('[data-testid=nav-bar]').count()) === 0, 'OJ29-OJ31, outing-journey audit 33: the bar hands the road to Maps and lets the town be passed by, spoken as it is written; no way on foot was started for you');
+  // Guiding the drive (RE3, RE19-RE28): "Drive there" on the bar; nothing guides until it is tapped.
+  {
+    const text = async (id) => ((await pg.locator(`[data-testid=${id}]`).innerText().catch(() => '')) ?? '').replace(/\s+/g, ' ').trim();
+    const z12Before = roadAsked.length;
+    check((await pg.locator('[data-testid=journey-drive]').count()) === 1 && (await text('journey-drive')) === 'Drive there' && (await pg.locator('[data-testid=journey-turn]').count()) === 0, 'RE3, RE19: between towns the bar offers "Drive there" beside Open in Maps and Pass by, and guides nothing by itself');
+    await pg.click('[data-testid=journey-drive]');
+    await pg.waitForSelector('[data-testid=journey-turn]', { timeout: 15000 }).catch(() => {});
+    const notice = await text('journey-turn');
+    check(notice === 'Turns are shown, not said. The map holds no turn restrictions and no closures.', `RE25, RE26: at the tap, before any turn, the bar says turns are shown and what the map cannot know (${notice})`);
+    check((await pg.locator('[data-testid=journey-end]').count()) === 1 && (await pg.locator('[data-testid=journey-maps], [data-testid=journey-pass], [data-testid=journey-drive]').count()) === 0, 'RE20a: while guiding the bar holds End and nothing else to tap');
+    {
+      const b = await pg.locator('[data-testid=journey-bar]').boundingBox().catch(() => null);
+      const caps = await pg.locator('[aria-label="Take a photo or video"], [aria-label="Record a voice memo"], [aria-label="Write a note"]').evaluateAll((els) => els.map((e) => { const q = e.getBoundingClientRect(); return { x: q.x, y: q.y, w: q.width, h: q.height }; }).filter((q) => q.w > 0));
+      check(!!b && caps.length >= 3 && caps.every((q) => b.y + b.height <= q.y || q.y + q.h <= b.y || q.x >= b.x + b.width || q.x + q.w <= b.x), `RE27: the capture stack stays on the screen while guiding, never under the bar (${caps.length} controls)`);
+    }
+    // Along the road toward the junction: the turn there and how far, over the town.
+    const p1 = await go(here, along(here, bend, 0.5));
+    await pg.waitForFunction(() => /^(Left|Right)\./.test(document.querySelector('[data-testid=journey-turn]')?.textContent ?? ''), null, { timeout: 60000 }).catch(() => {});
+    const turn = await text('journey-turn');
+    const under = await text('journey-next');
+    check(/^(Left|Right)\. \d+(\.\d)? (km|mi|m|ft)\.$/.test(turn) && under === 'Toward North Scituate.', `RE20, RE21: moving, the bar says the turn coming and how far to it, and under it the town; no time, speed or count (${turn} / ${under})`);
+    check(roadAsked.length > z12Before, 'RE8: the road for the drive is read on the tap on "Drive there"');
+    await shot(pg, '03c-guiding');
+    {
+      const vp = pg.viewportSize();
+      await pg.setViewportSize({ width: 320, height: 700 });
+      await pg.waitForTimeout(400);
+      const tb = await pg.locator('[data-testid=journey-turn]').boundingBox().catch(() => null);
+      const whole = await pg.locator('[data-testid=journey-turn]').evaluate((e) => e.scrollWidth <= e.clientWidth + 1 && e.scrollHeight <= e.clientHeight + 1).catch(() => false);
+      check(!!tb && tb.height <= 50 && whole, `RE20: at 320 px the turn reads whole in at most two lines (${tb ? Math.round(tb.height) : 0} px)`);
+      if (vp) await pg.setViewportSize(vp);
+    }
+    // Past the junction on the road to the town: that turn is not said again; the road and what is left of it.
+    await go(p1, bend);
+    const p2 = await go(bend, along(bend, town, 200 / h.distanceM(bend, town)));
+    await pg.waitForFunction(() => /^On this road\./.test(document.querySelector('[data-testid=journey-turn]')?.textContent ?? ''), null, { timeout: 60000 }).catch(() => {});
+    const after = await text('journey-turn');
+    check(/^On this road\. \d+(\.\d)? (km|mi|m|ft)\.$/.test(after), `RE23: a turn passed is not said again (${after})`);
+    // Off the way: no turn is shown, and nothing says so.
+    const off = await go(p2, [p2[0] - ((d[1] / len) * (250 / 111320)) / k, p2[1] + (d[0] / len) * (250 / 111320)]);
+    await pg.waitForFunction(() => !document.querySelector('[data-testid=journey-turn]'), null, { timeout: 60000 }).catch(() => {});
+    const body = await pg.locator('body').innerText();
+    check((await pg.locator('[data-testid=journey-turn]').count()) === 0 && /^Toward North Scituate\. /.test(await text('journey-next')) && !/recalculat|off route|turn around|wrong way/i.test(body), `RE22: off the way the bar shows the town and no turn, and nothing is flagged (${await text('journey-next')})`);
+    // Back on it, a reload finds the guiding again; End stops it and the other controls return.
+    await go(off, p2);
+    await pg.waitForFunction(() => /^On this road\./.test(document.querySelector('[data-testid=journey-turn]')?.textContent ?? ''), null, { timeout: 60000 }).catch(() => {});
+    await pg.reload();
+    await pg.waitForSelector('[data-testid=journey-bar]', { timeout: 90000 }).catch(() => {});
+    await c.setGeolocation({ longitude: p2[0], latitude: p2[1], accuracy: 6 });
+    await pg.waitForFunction(() => /^On this road\./.test(document.querySelector('[data-testid=journey-turn]')?.textContent ?? ''), null, { timeout: 90000 }).catch(() => {});
+    check(/^On this road\./.test(await text('journey-turn')) && (await pg.locator('[data-testid=journey-end]').count()) === 1, `RE28: guiding rides with the open session across a reload (${await text('journey-turn')})`);
+    const kept = JSON.stringify(await h.metaOf(pg, 'outing_journey').catch(() => null));
+    check(/driving/.test(kept) && !/path|turn|Left|Right|nodes/.test(kept), `RE28: only the towns' points and that a drive is guided are kept: no way, turn or road (${String(kept).length} bytes)`);
+    await pg.click('[data-testid=journey-end]');
+    await pg.waitForSelector('[data-testid=journey-maps]', { timeout: 15000 }).catch(() => {});
+    check((await pg.locator('[data-testid=journey-turn]').count()) === 0 && (await pg.locator('[data-testid=journey-maps]').count()) === 1 && (await pg.locator('[data-testid=journey-pass]').count()) === 1 && (await pg.locator('[data-testid=journey-drive]').count()) === 1, 'RE19, RE20a: End stops the guiding; Open in Maps, Pass by and Drive there return');
+    await go(p2, bend);
+    await go(bend, here);
+  }
   const screen = await pg.locator('body').innerText();
   check(!screen.includes('Hollow Oak') && !/\b(min|minutes|ETA|next|first|last)\b/i.test(bar) && !/\bof \d|\d of\b/.test(bar), 'OJ31, OJ34, outing-journey audit 47: the bar names no stop, no time, no count and no ordinal');
   {
@@ -138,7 +218,7 @@ async function run(h) {
     check(!!b && caps.length >= 3 && caps.every((q) => b.y + b.height <= q.y || q.y + q.h <= b.y || q.x >= b.x + b.width || q.x + q.w <= b.x), `OJ33: the bar never covers the capture stack (${caps.length} controls)`);
   }
   {
-    // Audit 39: at 320 px the bar and both its controls are inside the screen, on one row.
+    // Audit 39: at 320 px the bar and its controls are inside the screen; with "Drive there" beside them they may take two rows (RE19).
     const vp = pg.viewportSize();
     await pg.setViewportSize({ width: 320, height: 700 });
     await pg.waitForTimeout(500);
@@ -146,7 +226,7 @@ async function run(h) {
     const m = await pg.locator('[data-testid=journey-maps]').boundingBox().catch(() => null);
     const ps = await pg.locator('[data-testid=journey-pass]').boundingBox().catch(() => null);
     await shot(pg, '03b-bar-320');
-    check(!!bb && !!m && !!ps && bb.x >= 0 && bb.x + bb.width <= 320 && m.x >= bb.x && ps.x + ps.width <= bb.x + bb.width + 1 && Math.abs(m.y - ps.y) < 6, `outing-journey audit 39: at 320 px the bar and its controls fit on the screen in one row (${bb ? Math.round(bb.width) : 0} px)`);
+    check(!!bb && !!m && !!ps && bb.x >= 0 && bb.x + bb.width <= 320 && m.x >= bb.x && ps.x + ps.width <= bb.x + bb.width + 1 && m.x + m.width <= bb.x + bb.width + 1 && ps.y + ps.height <= bb.y + bb.height + 1, `outing-journey audit 39: at 320 px the bar and its controls fit on the screen (${bb ? Math.round(bb.width) : 0} px)`);
     if (vp) await pg.setViewportSize(vp);
     await pg.waitForTimeout(300);
   }

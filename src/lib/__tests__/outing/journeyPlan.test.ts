@@ -78,3 +78,16 @@ test('OJ48: the plan is taken up only by the session started from the page, soon
   ports.clock.advance(PLAN_CLAIM_MS + 1000);
   assert.equal(await store.load(three), null, 'a plan offered long before is not this session\'s');
 });
+
+test('RE28: a guided drive is kept as one flag on the plan: no way, turn or road name; any other field is still not a plan', async () => {
+  const { isJourneyPlan, passBy, stepPlan, emptyState } = await import('../../outing/journeyPlan');
+  const c = (town: string, lon: number) => ({ town, at: [lon, 47.3] as [number, number], stops: [[lon, 47.3] as [number, number]], loop: false });
+  const plan = { chapters: [c('A', 8.5), c('B', 8.9)], driving: true as const };
+  assert.equal(isJourneyPlan(JSON.parse(JSON.stringify(plan))), true);
+  assert.equal(isJourneyPlan({ ...plan, driving: false }), false);
+  assert.equal(isJourneyPlan({ ...plan, way: [[8.5, 47.3]] }), false);
+  assert.equal(isJourneyPlan({ ...plan, turn: 'Left' }), false);
+  // A fix that changes nothing keeps it; a town passed by ends it.
+  assert.equal(stepPlan(plan, emptyState(plan), [8.0, 47.3]).plan?.driving, true);
+  assert.equal(passBy(plan)?.driving, undefined);
+});

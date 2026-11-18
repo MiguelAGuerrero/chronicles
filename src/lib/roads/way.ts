@@ -91,6 +91,7 @@ function* between(graph: RoadGraph, from: number, to: number, rules: Rules): Gen
   }
   if (!done[to]) return null;
   const nodes: number[] = [];
+  const each: RoadKind[] = [];
   const kinds: Partial<Record<RoadKind, number>> = {};
   let lengthM = 0;
   for (let i = to; i !== -1; i = prev[i]) {
@@ -98,12 +99,14 @@ function* between(graph: RoadGraph, from: number, to: number, rules: Rules): Gen
     if (i !== from) {
       lengthM += prevM[i];
       const k = prevKind[i]!;
+      each.push(k);
       kinds[k] = (kinds[k] ?? 0) + prevM[i];
     }
     if (i === from) break;
   }
   nodes.reverse();
-  return { leg: { path: nodes.map((i) => graph.at(i)), lengthM }, kinds };
+  each.reverse();
+  return { leg: { path: nodes.map((i) => graph.at(i)), lengthM, nodes, kinds: each }, kinds };
 }
 
 /**
@@ -120,7 +123,7 @@ export function* findWay(graph: RoadGraph, points: readonly LngLat[], rules: Rul
   for (let i = 1; i < points.length; i++) {
     const a = at[i - 1];
     const b = at[i];
-    const found = a == null || b == null ? null : a === b ? { leg: { path: [graph.at(a)], lengthM: 0 }, kinds: {} } : yield* between(graph, a, b, rules);
+    const found = a == null || b == null ? null : a === b ? { leg: { path: [graph.at(a)], lengthM: 0, nodes: [a], kinds: [] }, kinds: {} } : yield* between(graph, a, b, rules);
     if (!found) {
       legs.push(null);
       path.push(points[i - 1], points[i]);

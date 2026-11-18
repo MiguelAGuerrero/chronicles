@@ -29,6 +29,18 @@ export const memoryRoads = (roads: readonly Road[]): RoadSource => ({
 export interface RoadLeg {
   path: LngLat[];
   lengthM: number;
+  /** The graph's junctions under `path`, and the kind of road of each stretch between them (one fewer): what turns are read from. */
+  nodes: number[];
+  kinds: RoadKind[];
+}
+
+/** RE21: a turn read from the road: where along the way it is, and what is said of it. */
+export type TurnSay = 'left' | 'right' | 'keep-left' | 'keep-right' | 'join' | 'leave';
+export interface Turn {
+  at: LngLat;
+  /** Metres from the way's start, along it. */
+  alongM: number;
+  say: TurnSay;
 }
 
 /** One way through the points given, in order (RE10, RE12). */

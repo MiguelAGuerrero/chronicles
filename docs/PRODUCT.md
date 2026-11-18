@@ -118,8 +118,11 @@ recording, and a recording bar brings a minimized walk back.
   road through the journey's towns is drawn on the page's map in place of the straight line, the place and each card say their
   distance "by road" (never a time), the page says once that the way keeps to the roads through the towns, and Open in Maps asks
   for driving directions for a town a drive away. The road is read from the map's own tiles only once a place is picked; when it
-  can't be found the page says so and keeps the straight line. Owed: guiding the drive ("Drive there", turns, speech), and a
-  published stores pack.
+  can't be found the page says so and keeps the straight line. Between towns the session's bar offers "Drive there" (on the web
+  for now: a phone waits for spoken turns): on a tap it says once that turns are shown, not said, and that the map holds no turn
+  restrictions and no closures, then the turn coming and how far ("Right. 310 m.") over the town, with End and nothing else to
+  tap; off the way it shows no turn and says nothing, and finds the way again after a stretch; with the town at hand it ends by
+  itself. Owed: spoken turns and guiding on a phone, road names in a turn, and a published stores pack.
 - **Plan an outing** (decision 0196, quick circuit QC1-QC42): one control under Explore's title, "Plan an outing", opens a page of its own over
   Explore. You say what you want to see by picking from a short vocabulary (a search box over chips: Antiques, Books, Thrifting) and the page
   proposes one circuit from where you stand, a loop (the default, not remembered) or one way, within the planner's distance ceiling. Its stops are
