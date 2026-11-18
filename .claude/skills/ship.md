@@ -171,7 +171,11 @@ with the checks the calling skill names.
 
 1. The worktree holds only this run's commits.
 2. `git fetch origin main`; if `main` moved, rebase `<branch>`, run the caller's checks again, and only
-   then continue. On a conflict, stop and keep the branch. The checks include `node scripts/tend.js
+   then continue. On a conflict, stop and keep the branch, with one exception: a source conflict confined
+   to imports and comments, where the two sides mean independent things, may be resolved by the run, with
+   a test that proves the two changes independent (it fails if either side's change is lost); the run
+   reports it as a stop ruled through, with the files and the test. Anything else, or a conflict in the
+   record documents (`/tend` section 10), keeps its own rule. The checks include `node scripts/tend.js
    commits --loop-only origin/main..HEAD`, what CI runs: a commit of the branch made before the record
    gate landed and hand-editing the documents is refused there by name, with how to mend it ("The
    record documents"). A decision record of the branch, in the worktree: `npm run book:next-decision --
