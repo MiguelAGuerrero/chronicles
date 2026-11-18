@@ -12,7 +12,7 @@ The owner, Nov 16: "Separate slice, measured." Nov 18: "with reasonable defaults
 The compiler is on for every platform (`experiments.reactCompiler: true`). The functions it cannot compile today (44:
 29 behind an `eslint-disable` of a React rule, 13 of syntax it does not handle, 1 reading a ref during render) run as
 before and are listed in `src/lib/__tests__/arch/compiler.baseline.json`, which only shrinks: new code compiles
-(`arch/reactCompiler.test.ts`, RC2).
+(`arch/reactCompiler.test.ts`, CM2).
 
 ## Measured (web build, one run each, nothing else running)
 - Explore, a neighbourhood switch at 4x CPU: p95 frame 100 → 83 ms, long tasks 2.09 → 1.74 s, script 1.16 → 1.01 s.

@@ -4,13 +4,13 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { test } from 'node:test';
 
-// The React Compiler (RC1-RC2, specs/react-compiler, decision 0207). babel-preset-expo 58 runs it only when app.json asks.
+// The React Compiler (CM1-CM2, specs/react-compiler, decision 0207). babel-preset-expo 58 runs it only when app.json asks.
 // Every component and screen compiles but the functions listed when it was turned on; the list only shrinks.
 
 const ROOT = join(__dirname, '../../../..');
 const BASELINE = join(__dirname, 'compiler.baseline.json');
 
-test('RC1: app.json turns the React Compiler on', () => {
+test('CM1: app.json turns the React Compiler on', () => {
   const app = JSON.parse(readFileSync(join(ROOT, 'app.json'), 'utf8')) as { expo: { experiments?: { reactCompiler?: boolean } } };
   assert.equal(app.expo.experiments?.reactCompiler, true);
 });
@@ -47,7 +47,7 @@ export function skipped(root: string): string[] {
   return out.sort();
 }
 
-test('RC2: every component and screen compiles but those listed when the compiler came on; the list only shrinks', () => {
+test('CM2: every component and screen compiles but those listed when the compiler came on; the list only shrinks', () => {
   assert.ok(existsSync(BASELINE), 'arch/compiler.baseline.json lists the functions skipped when it came on');
   const known = JSON.parse(readFileSync(BASELINE, 'utf8')) as string[];
   const now = skipped(ROOT);

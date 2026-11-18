@@ -778,4 +778,4 @@ More attractions (decision 0198) and its audit are built and green on the web bu
 
 ## The React Compiler (RC1-RC3, decision 0206)
 
-- [ ] **Do:** on a development build, walk 10 min, open the replay, scroll Memories and the gallery, switch Explore's neighbourhoods. **Expect:** everything behaves as on the web build; no screen shows stale content after a change (a compiled component skips a render only when its inputs are the same); React DevTools shows the compiled components as "Memo ✨". (RC1, decision 0206)
+- [ ] **Do:** on a development build, walk 10 min, open the replay, scroll Memories and the gallery, switch Explore's neighbourhoods. **Expect:** everything behaves as on the web build; no screen shows stale content after a change (a compiled component skips a render only when its inputs are the same); React DevTools shows the compiled components as "Memo ✨". (CM1, decision 0207)

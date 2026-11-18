@@ -1,4 +1,4 @@
-# The React Compiler: plan (RC1-RC3)
+# The React Compiler: plan (CM1-CM3)
 
 Built on the owner's go-ahead of Nov 18: no stop at this plan. Decision 0207.
 
@@ -11,9 +11,9 @@ Built on the owner's go-ahead of Nov 18: no stop at this plan. Decision 0207.
 
 | Id | Test |
 |---|---|
-| RC1 | `arch/reactCompiler.test.ts`: `app.json` sets it; and the `launch` journey reads the exported bundle for the compiler runtime's memo-cache sentinel |
-| RC2 | `arch/reactCompiler.test.ts`: babel-plugin-react-compiler over `src/app` and `src/components`; the skipped set is within the baseline (a new skip fails; one that compiles now asks for its line to go) |
-| RC3 | the `walk` journey's render window: `render:walk` at most 2.0/s |
+| CM1 | `arch/reactCompiler.test.ts`: `app.json` sets it; and the `launch` journey reads the exported bundle for the compiler runtime's memo-cache sentinel |
+| CM2 | `arch/reactCompiler.test.ts`: babel-plugin-react-compiler over `src/app` and `src/components`; the skipped set is within the baseline (a new skip fails; one that compiles now asks for its line to go) |
+| CM3 | the `walk` journey's render window: `render:walk` at most 2.0/s |
 
 ## Cost
 

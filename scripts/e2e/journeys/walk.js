@@ -675,7 +675,7 @@ async function checks(h) {
         // 1.4 renders a second (scripts/perf-walk.js). Before the fixes it was 3.7 here.
         check(rate('render:walk') <= 2.5 && rate('setData:cone') <= 1.05 && rate('setData:trace') <= 0.6,
           `walking stays within its render budget, FC10 (walk ${rate('render:walk').toFixed(2)}/s, cone ${rate('setData:cone').toFixed(2)}/s, trace ${rate('setData:trace').toFixed(2)}/s)`);
-        check(rate('render:walk') <= 2.0, `RC3: with the React Compiler, the busy window renders the walk screen no more than before (${rate('render:walk').toFixed(2)}/s; 1.78 to 1.91 before)`);
+        check(rate('render:walk') <= 2.0, `CM3: with the React Compiler, the busy window renders the walk screen no more than before (${rate('render:walk').toFixed(2)}/s; 1.78 to 1.91 before)`);
         check(leak1.bodyDivs - leak0.bodyDivs <= 3 && leak1.listeners - leak0.listeners < 2000,
           `walking leaks no portals or listeners (body ${leak0.bodyDivs} → ${leak1.bodyDivs}, listeners ${leak0.listeners} → ${leak1.listeners}, nodes ${leak0.nodes} → ${leak1.nodes})`);
       }

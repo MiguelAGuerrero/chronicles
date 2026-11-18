@@ -1,4 +1,4 @@
-# The React Compiler (RC1-RC3)
+# The React Compiler (CM1-CM3)
 
 Last exported: not from the concept doc. The source is the performance investigation of Nov 16 (the compiler was found
 off while the docs assumed it on) and the owner's calls: "Separate slice, measured" (Nov 16), "with reasonable defaults
@@ -41,21 +41,21 @@ screen 0.97 renders/s, the map 0.77; an Explore switch p95 frame 100 ms, 2.1 s o
 
 ## Criteria
 
-1. **RC1** The app is built with the React Compiler on every platform: the web bundle carries its memo cache.
-2. **RC2** Every component and screen compiles but the functions listed today; one more skipped fails, and the list
+1. **CM1** The app is built with the React Compiler on every platform: the web bundle carries its memo cache.
+2. **CM2** Every component and screen compiles but the functions listed today; one more skipped fails, and the list
    only shrinks.
-3. **RC3** Walking renders the walk screen no more than before: in the walk journey's busy window, at most 2.0 renders
+3. **CM3** Walking renders the walk screen no more than before: in the walk journey's busy window, at most 2.0 renders
    a second (1.78 to 1.91 before).
 
 ## Record
 
 Built 2026-11-18 on `claude/bold-hawking-dx3pc8`, test-first by history (3 of 3).
 
-- **RC1** `experiments.reactCompiler` on in `app.json`; the web bundle carries 376 memo-cache sentinels (1 before);
+- **CM1** `experiments.reactCompiler` on in `app.json`; the web bundle carries 376 memo-cache sentinels (1 before);
   `launch` checks them.
-- **RC2** `arch/compiler.baseline.json` lists the 44 functions the compiler skips today; a new skip fails `npm test`.
+- **CM2** `arch/compiler.baseline.json` lists the 44 functions the compiler skips today; a new skip fails `npm test`.
   The 44 are filed in `docs/DEFERRED.md` for their areas' sweeps.
-- **RC3** the walk screen stays under 2 renders/s (`walk`).
+- **CM3** the walk screen stays under 2 renders/s (`walk`).
 
 Measured on the web build, one run each, nothing else on the cores: Explore switch p95 frame 100 → 83 ms, long
 tasks 2.09 → 1.74 s, script 1.16 → 1.01 s; Explore drag about the same; walk screen and map 0.97 / 0.77 renders/s,
