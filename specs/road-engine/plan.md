@@ -171,19 +171,11 @@ Everything, as always; and in particular: finding a way on the JS thread with no
 connection; the bar at speed; speech (which Expo module, checked from `node_modules` when step 4 starts); guiding behind the lock
 screen from the background location task, which today only caches tiles; battery over an hour's drive.
 
-## Questions for the owner before code
+## The owner's answers (Nov 18, decision 0204)
 
-1. **Spoken turns.** The steward argues the voice should come with the tap on "Drive there", with a mute on the bar: that tap is the
-   asking, and a driver should not have to read. The draft had it off until switched on. Which? And should guiding ship on a phone
-   at all before turns can be spoken (step 3 without step 4)?
-2. **The capture stack at the wheel.** One tap away as everywhere (the standing default), or voice only above a speed? The app
-   cannot tell the driver from a passenger, so a speed rule takes the camera from both.
-3. **Time.** With one way nothing is ranked, and the vision allows a time; the honest reason this engine says none is that it
-   cannot know one (no speeds, no traffic). Distance alone, or a rough duration shown at rest on the page?
-4. **How long a journey.** Sixty tiles, about 150 km of road, before it falls back to the straight line and Open in Maps. Enough?
-5. **The motorway rule.** A motorway only when the way without it is more than half as long again. Right, or stricter?
-6. **Must a guided drive be recorded?** The draft needs an open session to guide (RE31). A day's drive recorded end to end also
-   sits close to "All-day tracking".
+Turns are spoken from the tap on "Drive there", with a mute on the bar, and guiding does not ship on a phone before speech works;
+the capture stack is unchanged while guiding; distance only; about 150 km (sixty z12 tiles). The motorway rule (half as long again)
+and "guiding needs an open session" stay at the draft's defaults. Step 1 is built on this.
 
 ## The steward's findings (Nov 18), triaged
 

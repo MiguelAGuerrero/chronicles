@@ -37,8 +37,7 @@ Precedent: Apple Maps (several routes with times, spoken turns that go on when l
   Maps (turn-by-turn on OpenStreetMap on the device, no account; unverified); Google Maps (arrival time, "faster route" prompts;
   unverified, the counter-example)
 Criteria: RE1-RE34 below, with RE11a and RE20a
-Open: whether turns are spoken, and when (a driver should not have to look; a voice that speaks unasked is the nag); what a driver
-  may be shown at speed; a time beside a distance for a long drive (still D3 of the outing journey)
+Open: none after decision 0204 (turns spoken from the tap with a mute; the capture stack unchanged; distance only; about 150 km)
 ```
 
 The gate pushed back once before the owner chose: turn-by-turn while driving is the job the vision hands to the phone's maps app,
@@ -57,7 +56,8 @@ Taken as defaults, each the owner's to overrule:
 
 - **D1. One way.** No alternative is offered, drawn or compared.
 - **D2. Distance, never time** (0095, the outing journey's D3): "31 km by road"; no arrival time, no minutes to a turn, no speed.
-- **D3. Turns are shown, and spoken only if switched on** ("Say the turns", off at first): the open question above; the plan asks.
+- **D3. Turns are spoken from the tap on "Drive there", with a mute on the bar** (the owner, Nov 18, decision 0204): each turn once
+  as it nears, and nothing else ever. On a phone, guiding does not ship before speech works.
 - **D4. Leaving the way says nothing**: the way is found again after the same wait as on foot; nothing is spoken or shown about it.
 - **D5. The drive ends where the town is at hand**: the engine stops at the road nearest the town's point; from there the session
   says "<Town> is here." and offers the way on foot, as today.
@@ -158,10 +158,9 @@ Guiding a drive:
 - **RE24.** When the town is at hand the guiding ends by itself and the bar says the town is here, as today; no sound, no "arrived",
   no summary of the drive. The way ends at the main road nearest the town's point: where that is further from the point than the
   town's reach, the bar says how far the town still is and not that it is here (S3).
-- **RE25.** (D3, the owner's to settle: plan question 1) A turn is spoken once as it nears and never otherwise: nothing is spoken
-  about leaving the way, the distance left, the time or the destination. Whether the voice comes with the tap on "Drive there" (with
-  a mute on the bar: the steward's S2, since that tap is the asking and a driver should not have to read) or only once switched on
-  is the open call. Where a turn cannot be spoken, "Drive there" says in words that turns are shown, not said.
+- **RE25.** (D3, decision 0204) Tapping "Drive there" starts spoken turns; a mute is on the bar. A turn is spoken once as it nears
+  and never otherwise: nothing is spoken about leaving the way, the distance left, the time or the destination. Where a turn cannot
+  be spoken (the web without speech, a phone before step 4), "Drive there" says in words that turns are shown, not said.
 - **RE26.** (D6, S3) What the engine cannot know is said truthfully and at rest: on the page where the road is drawn, and once before
   the first turn, never beside it: the map holds no turn restrictions and no closures. A statement, with no "check" or "caution".
 - **RE27.** The capture stack stays on the session's screen while guiding, one tap each, never under the bar.
