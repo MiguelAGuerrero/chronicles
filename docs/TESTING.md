@@ -492,7 +492,7 @@ eight journeys for 27 minutes where three, about 12, proved every fix):
 
 A change that reaches every screen through the build (`app.json` experiments, Babel or Metro config) maps to no
 journey by its files: `check:affected` names only those that read it. Pick the journeys of every main screen by hand
-(decision 0206's compiler ran twenty), still once each; the full flow only when the owner asks.
+(decision 0207's compiler ran twenty), still once each; the full flow only when the owner asks.
 
 State in the report which journeys ran, which were reached and skipped, and why.
 

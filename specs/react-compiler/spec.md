@@ -2,7 +2,7 @@
 
 Last exported: not from the concept doc. The source is the performance investigation of Nov 16 (the compiler was found
 off while the docs assumed it on) and the owner's calls: "Separate slice, measured" (Nov 16), "with reasonable defaults
-forward" (Nov 18), "/deploy then /slice" (Nov 18). Decision 0206.
+forward" (Nov 18), "/deploy then /slice" (Nov 18). Decision 0207.
 
 ## Vision
 
@@ -29,7 +29,7 @@ screen 0.97 renders/s, the map 0.77; an Explore switch p95 frame 100 ms, 2.1 s o
 ## Decisions
 
 - **Its own slice, measured before and after** (the owner, Nov 16); built on the go-ahead of Nov 18 without a stop at the
-  plan. Decision 0206.
+  plan. Decision 0207.
 - **The functions the compiler skips today are listed and the list only shrinks**: new code compiles.
 
 ## How adjacent apps do it

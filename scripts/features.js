@@ -22,7 +22,7 @@ const FEATURES = [
     rule: 'functional-core',
     source: ['src/lib/types.ts', 'src/lib/{store,useStore,meta,id,focus}.ts', 'src/lib/ports/**', 'src/lib/net/**'],
     journeys: [],
-    specs: ['functional-core', 'affected-checks', 'test-organization', 'shells-saved-settings', 'test-gaps', 'device-acceptance', 'vision-gate', 'react-compiler'],
+    specs: ['functional-core', 'affected-checks', 'test-organization', 'shells-saved-settings', 'test-gaps', 'device-acceptance', 'vision-gate'],
   },
   {
     name: 'storage',
@@ -83,7 +83,7 @@ const FEATURES = [
     rule: 'replay',
     source: ['src/app/replay/**', 'src/lib/ceremony/**', 'src/components/ceremony/**', 'src/lib/{replay,quietLines,summary}.ts', 'src/components/CaptureView.tsx', 'src/lib/viewerBars.ts'],
     journeys: ['replay'],
-    specs: ['concept', 'replay-rhythm', 'replay-pace'],
+    specs: ['concept', 'replay-rhythm', 'replay-pace', 'replay-ceremony'],
   },
   {
     name: 'moments',
@@ -378,6 +378,8 @@ const FEATURES = [
 const V1_SCAN_AND_AMBIENT = ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S9', 'S10', 'S11', 'S12', 'S14', 'S15', 'S22', 'S23', ...Array.from({ length: 11 }, (_, i) => `A${i + 1}`)];
 
 const RETIRED = {
+  // Captions in the replay wait for the first phone build (the owner, Nov 18, decision 0206): they cannot be seen on the web.
+  'replay-ceremony': ['RC38', 'RC39', 'RC40', 'RC41', 'RC42', 'RC43', 'RC44'],
   // The soft cap of about 60 s and its floors went when each moment was given its own time (the owner, Nov 18, decision 0203):
   // specs/replay-pace RY10 holds that nothing shrinks to fit a total.
   'replay-rhythm': ['RR5'],
@@ -518,6 +520,8 @@ const RENAMED = {
 };
 
 const IN_PROGRESS = {
+  // Replay ceremony (RC1-RC48): the owner's go-ahead Nov 18 (decision 0206); built on the branch, shown at the preview address first.
+  'replay-ceremony': { branch: 'claude/funny-bohr-ztvwgv', since: '2026-11-18' },
 };
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));

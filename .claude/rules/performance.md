@@ -46,7 +46,7 @@ is already a recorded trade-off is reopened with a number, not rediscovered.
 
 ## Rendering
 
-- **The React Compiler is on** (decision 0206): it caches each compiled component's JSX and derived values by their
+- **The React Compiler is on** (decision 0207): it caches each compiled component's JSX and derived values by their
   inputs. It skips a function with an `eslint-disable` of a React rule, `try`/`finally`, `??=` and a ref read in
   render, and a skipped function memoizes nothing: `arch/compiler.baseline.json` lists today's, and a new one fails
   `npm test` (RC2). Write code that compiles; keep explicit `memo` where a skip or a library needs it (the native

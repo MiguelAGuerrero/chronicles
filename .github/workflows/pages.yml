@@ -98,6 +98,28 @@ jobs:
       # Pages has no fallback for app routes: serve the app for unknown paths,
       # so a reload on /chronicles/walk resumes the walk instead of a 404.
       - run: cp dist/index.html dist/404.html && touch dist/.nojekyll
+      # The preview address (decision 0206): the branch named in .github/preview-branch, built the same way and served
+      # beside the app under /chronicles/preview/, so a slice can be looked at on a phone before it replaces
+      # anything. Every step may fail without failing the deploy: the app never waits on its preview.
+      - name: Which branch the preview shows
+        id: preview
+        run: echo "branch=$(tr -d ' \n' < .github/preview-branch 2>/dev/null || true)" >> "$GITHUB_OUTPUT"
+      - name: Export the preview for /chronicles/preview
+        if: steps.preview.outputs.branch != ''
+        continue-on-error: true
+        run: |
+          git fetch --depth 1 origin "refs/heads/${PREVIEW_BRANCH}"
+          git worktree add "${RUNNER_TEMP}/preview" FETCH_HEAD
+          cd "${RUNNER_TEMP}/preview"
+          npm ci
+          npx expo export --platform web
+          n=$(find dist/_expo/static/js/web -name '*.js' ! -name 'compute-*.js' | wc -l)
+          [ "$n" -eq 1 ] || { echo "::warning::the preview wrote $n JS files besides the read's worker"; exit 1; }
+          cd "${GITHUB_WORKSPACE}"
+          node scripts/preview-pages.js dist "${RUNNER_TEMP}/preview/dist" /chronicles
+        env:
+          CHRONICLES_BASE_URL: /chronicles/preview
+          PREVIEW_BRANCH: ${{ steps.preview.outputs.branch }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
