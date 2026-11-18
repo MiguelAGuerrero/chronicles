@@ -205,6 +205,14 @@ export function useAtlas(focused: boolean, from: LngLat | null, town: AtlasArea 
           setStatus('offline');
           return again(ATLAS_RULES.retryMs);
         }
+        if (ok !== true) {
+          // tend explore 25: read but not kept (a write failed): its areas show from the read, and it is asked again after the wait.
+          const shown = [...rowsRef.current.filter((x) => !ok.unkept.some((u) => u.key === x.key)), ...ok.unkept];
+          rowsRef.current = shown;
+          setRows(shown);
+          setStatus('idle');
+          return again(ATLAS_RULES.retryMs);
+        }
         const r = await db.listAtlasAreas().catch(() => rowsRef.current);
         if (stop) return;
         rowsRef.current = r;
