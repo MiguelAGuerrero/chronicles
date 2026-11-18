@@ -13,7 +13,7 @@ Built on the owner's go-ahead of Nov 18 ("with reasonable defaults forward"): no
 - Hosts that move to it (every `<Image` on screen, EI1): `CapturePinView`, `ReminderCard`, `MemoryPreview`,
   `chronicle/MomentPicture`, `gallery/GalleryTile` (with `recyclingKey` of its piece, EI3), `gallery/PeriodBlock`,
   `ceremony/Pile`, `ceremony/Cards` (its unedited photo; an edited one is `EditedPicture`).
-- Stay as they are: `Baker.native.tsx` (off-screen bake for view-shot), `edit/EditedPhoto` (`EditedPicture` draws
+- Stay as they are: `Baker.native.tsx` (it measures with `getSize` and draws `EditedPicture`), `edit/EditedPhoto` (`EditedPicture` draws
   through react-native-svg's `SvgImage`, under the edit's matrix and colour filter, which expo-image cannot), and every
   `Image.getSize` (a measure).
 
@@ -24,7 +24,7 @@ Screens can't render under `npm test`; the hosts are held by a source scan, show
 
 | Id | Test |
 |---|---|
-| EI1 | no file under `src/components` or `src/app` draws `<Image` imported from react-native but `Baker.native.tsx`; every former host renders `<Picture` |
+| EI1 | no file under `src/components` or `src/app` draws `<Image` imported from react-native; every former host renders `<Picture` |
 | EI2 | `Picture` passes `cachePolicy="memory-disk"` to expo-image's `Image` |
 | EI3 | `GalleryTile`'s `Picture` carries a `recyclingKey` built from its piece's id |
 | EI4 | no `transition` prop on `Picture`'s image, and no host passes one |

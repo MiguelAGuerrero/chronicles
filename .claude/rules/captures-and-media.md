@@ -2,6 +2,7 @@
 paths:
   - "src/components/Capture*.tsx"
   - "src/components/{Caption,Baker}*.tsx"
+  - "src/components/Picture.tsx"
   - "src/lib/media/**"
   - "src/lib/{useCaptures,thumbPlan,useMediaUri,captureBus}.ts"
   - "src/lib/here/**"
@@ -13,6 +14,16 @@ paths:
 # Captures and media
 
 Captures (photo, video, voice memo, note), their viewer, captions and baking, thumbnails, saving keepers, the backup bundle, and the voice-memo and web-video traps. The codemap is in `docs/ARCHITECTURE.md`; the decisions and their history are in `docs/decisions/`.
+
+## Pictures (expo-image, EI1-EI6)
+
+- **Every picture on screen is a `Picture`** (`components/Picture.tsx`, over expo-image): a pin's small copy, a gallery
+  tile and a month's cover, a moment's card, a memory preview, a reminder card, the replay's cards and pile. It keeps
+  pictures decoded in memory and on disk (`cachePolicy="memory-disk"`), never fades one in (no `transition`: restraint),
+  takes `fit` as `resizeMode` was, and a list's tile passes `recyclingKey` (its piece's id). An edited photo is
+  `EditedPicture` (an SVG under its edit's matrix and filter); React Native's `Image` only measures (`getSize`).
+- **On the web it is an `<img>`** (its `object-fit` the fit), not React Native's `div` with a background: a journey
+  reads a picture's fit from either shape (`gallery` MG21, EI5). Its cache on a phone is unverified (EI6).
 
 ## The viewer (decision 0114)
 

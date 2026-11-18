@@ -21,8 +21,6 @@ const HOSTS: Record<string, 'cover' | 'contain' | 'prop'> = {
   'components/ceremony/Pile.tsx': 'cover',
   'components/ceremony/Cards.tsx': 'cover',
 };
-/** Draws through React Native on purpose: renders off screen for view-shot to bake an edit. */
-const BAKER = 'components/Baker.native.tsx';
 
 const parse = (src: string) => ts.createSourceFile('x.tsx', src, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 function walk(node: ts.Node, visit: (n: ts.Node) => void) {
@@ -65,35 +63,35 @@ function pictures(src: string): Record<string, string>[] {
 }
 const read = (rel: string) => readFileSync(join(SRC, rel), 'utf8');
 
-test('EI1: every picture on screen is drawn through Picture; only the off-screen baker draws through React Native', { todo: 'test first' }, () => {
+test('EI1: every picture on screen is drawn through Picture; React Native\'s Image is left only to measure (getSize)', () => {
   const rn = [...files(join(SRC, 'components')), ...files(join(SRC, 'app'))].map((f) => relative(SRC, f)).filter((f) => drawsRnImage(readFileSync(join(SRC, f), 'utf8')));
-  assert.deepEqual(rn, [BAKER]);
+  assert.deepEqual(rn, [], 'no screen draws React Native\'s Image (the baker measures with getSize and draws an SVG)');
   for (const host of Object.keys(HOSTS)) assert.ok(pictures(read(host)).length > 0, `${host} draws its picture through Picture`);
   // Shown to fail: a host drawing React Native's Image is caught; one drawing Picture is not.
   assert.equal(drawsRnImage("import { Image } from 'react-native';\nconst A = () => <Image source={{ uri }} />;"), true);
   assert.equal(drawsRnImage("import { Picture } from './Picture';\nconst A = () => <Picture uri={uri} fit=\"cover\" />;"), false);
 });
 
-test('EI2: a picture once drawn is kept, decoded, in memory and on disk', { todo: 'test first' }, () => {
+test('EI2: a picture once drawn is kept, decoded, in memory and on disk', () => {
   assert.ok(existsSync(PICTURE), 'components/Picture.tsx');
   const src = readFileSync(PICTURE, 'utf8');
   assert.match(src, /from 'expo-image'/, 'over expo-image');
   assert.match(src, /cachePolicy="memory-disk"/);
 });
 
-test('EI3: a gallery tile\'s picture is keyed by its piece, so a recycled cell never shows another tile\'s', { todo: 'test first' }, () => {
+test('EI3: a gallery tile\'s picture is keyed by its piece, so a recycled cell never shows another tile\'s', () => {
   const [p] = pictures(read('components/gallery/GalleryTile.tsx'));
   assert.ok(p?.recyclingKey, 'the tile passes a recyclingKey');
   assert.match(p.recyclingKey, /\.id\b|piece|ref/, 'built from what the tile shows');
   assert.match(readFileSync(PICTURE, 'utf8'), /recyclingKey/, 'and Picture hands it to expo-image');
 });
 
-test('EI4: no picture fades or animates in', { todo: 'test first' }, () => {
+test('EI4: no picture fades or animates in', () => {
   assert.doesNotMatch(readFileSync(PICTURE, 'utf8'), /\btransition=/, 'Picture sets no transition');
   for (const host of Object.keys(HOSTS)) for (const p of pictures(read(host))) assert.equal(p.transition, undefined, `${host} passes none`);
 });
 
-test('EI5: each picture keeps the fit it had', { todo: 'test first' }, () => {
+test('EI5: each picture keeps the fit it had', () => {
   for (const [host, fit] of Object.entries(HOSTS)) {
     const drawn = pictures(read(host));
     assert.ok(drawn.length > 0, `${host} draws a Picture to keep its fit on (a scan of nothing proves nothing)`);

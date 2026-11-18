@@ -257,6 +257,8 @@ const FEATURES = [
       'src/components/VideoMark.tsx',
       // Unsaved captures (UN1-UN15, decision 0196): the one holder of every capture that failed to save.
       'src/lib/unsaved/**',
+      // Pictures through expo-image (EI1-EI6): the one wrapper every picture on screen goes through.
+      'src/components/Picture.tsx',
     ],
     journeys: ['edit', 'stacks', 'stackjoin', 'voicetrim', 'videothumbs', 'unsaved'],
     specs: ['memories-on-revisit', 'media-editing', 'moment-stacks', 'stack-with-previous', 'voice-trim', 'note-types', 'video-thumbnails', 'unsaved-captures', 'expo-image'],

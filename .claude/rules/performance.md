@@ -59,6 +59,9 @@ is already a recorded trade-off is reopened with a number, not rediscovered.
   never recomputed in the body of a component that renders per frame.
 - Long lists that grow with the library are virtualized (`FlatList` with `keyExtractor` and
   `getItemLayout`, as `gallery/MediaScreen.tsx` does), not a `ScrollView` over `map()`.
+- **Every picture on screen is a `Picture`** (`components/Picture.tsx`, over expo-image: kept in memory and on disk,
+  no transition, `recyclingKey` in a list); React Native's `Image` only measures (`getSize`). `captures/pictures.test.ts`
+  fails a screen that draws React Native's `Image`.
 - A media player is created when it is played, not for every row that could be (`useAudioPlayer` per row
   holds a native player each). Timers and subscriptions on a tab stop while it is unfocused: an effect on
   `isFocused` that returns before its `setInterval` (Memories' clock rendered the whole journal twice a minute

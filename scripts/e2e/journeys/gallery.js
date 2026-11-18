@@ -250,7 +250,7 @@ async function run(h) {
   });
   await shot(pg, '98-gallery-aspect');
   check((sizes.bg === 'contain' || sizes.objectFit === 'contain') && sizes.w === sizes.h, `MG21: the photo shows whole in a cell that stays square (${JSON.stringify(sizes)})`);
-  check.todo(sizes.objectFit === 'contain' && !sizes.bg, `EI5: the tile is a picture drawn by expo-image, its fit kept: an <img> contained, no background (${JSON.stringify(sizes)})`);
+  check(sizes.objectFit === 'contain' && !sizes.bg, `EI5: the tile is a picture drawn by expo-image, its fit kept: an <img> contained, no background (${JSON.stringify(sizes)})`);
   await menu();
   await pg.click('[data-testid=gallery-menu-shape-square]');
   await done();
@@ -332,6 +332,6 @@ async function run(h) {
 
 module.exports = {
   name: 'gallery',
-  covers: ['src/components/gallery/**', 'src/lib/gallery/**', 'src/components/chronicle/SectionBar.tsx'],
+  covers: ['src/components/gallery/**', 'src/components/Picture.tsx', 'src/lib/gallery/**', 'src/components/chronicle/SectionBar.tsx'],
   run,
 };

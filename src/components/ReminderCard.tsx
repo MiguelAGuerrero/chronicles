@@ -1,5 +1,6 @@
 import type { Faced } from '../lib/moment';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Picture } from './Picture';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { reminderName, reminderText } from '../lib/discovery/recall';
 
 import { thumbShown } from '../lib/thumbPlan';
@@ -27,7 +28,7 @@ export function ReminderCard(props: { captures: Faced[]; onOpen: () => void; onD
         onPress={props.onOpen}
         style={({ pressed }) => [styles.main, pressed && { opacity: 0.8 }]}
       >
-        {uri ? <Image source={{ uri }} style={styles.thumb} accessibilityIgnoresInvertColors /> : (
+        {uri ? <Picture uri={uri} fit="cover" style={styles.thumb} accessibilityIgnoresInvertColors /> : (
           <View style={styles.icon}>
             <Icon name="time-outline" size={20} color="#ffffff" />
           </View>

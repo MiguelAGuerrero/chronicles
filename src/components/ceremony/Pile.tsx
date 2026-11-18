@@ -1,5 +1,6 @@
 import type { Faced } from '../../lib/moment';
-import { Image, Pressable, StyleSheet, View } from 'react-native';
+import { Picture } from '../Picture';
+import { Pressable, StyleSheet, View } from 'react-native';
 import type { PileOverlay } from '../../lib/ceremony/types';
 import { THUMB } from '../../lib/thumbPlan';
 
@@ -24,7 +25,7 @@ function Thumb({ capture: row }: { capture: Faced }) {
     <View style={[styles.thumb, { transform: [{ rotate: `${tiltOf(capture.id)}deg` }] }]}>
       {uri ? (
         <View style={styles.img}>
-          <Image source={{ uri }} style={StyleSheet.absoluteFill} resizeMode="cover" accessibilityIgnoresInvertColors />
+          <Picture uri={uri} style={StyleSheet.absoluteFill} fit="cover" accessibilityIgnoresInvertColors />
           {capture.kind === 'video' ? <VideoMark size={10} style={styles.mark} /> : null}
         </View>
       ) : (

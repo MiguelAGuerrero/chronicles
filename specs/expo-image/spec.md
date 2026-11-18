@@ -24,10 +24,9 @@ CSS background. `expo-image` (SDK 58's `~58.0.18`, the module Expo recommends) k
 disk, reuses a list cell's view (`recyclingKey`), and draws a real `<img>` on the web. Pictures read from the device's
 own files: nothing is fetched and nothing leaves it.
 
-Not drawn through it: `Baker.native.tsx`, which renders off screen for `react-native-view-shot` to bake an edit into a
-file (it needs the image drawn before the shot, as React Native's does); an edited photo (`EditedPicture`), drawn
-through react-native-svg under its edit's matrix and colour filter; and `Image.getSize`, which measures a photo and
-draws nothing.
+Not drawn through it: an edited photo (`EditedPicture`, which the baker uses too), drawn through react-native-svg under
+its edit's matrix and colour filter; and `Image.getSize` (the baker, the caption, the edited photo), which measures a
+photo and draws nothing. React Native's `Image` now draws nothing in the app.
 
 ## Decisions
 
@@ -45,8 +44,8 @@ draws nothing.
 
 ## Criteria
 
-1. **EI1** Every picture the app draws on screen is drawn through one wrapper over expo-image; only the off-screen
-   baker draws through React Native's `Image`.
+1. **EI1** Every picture the app draws on screen, but an edited photo's SVG, is drawn through one wrapper over
+   expo-image; React Native's `Image` is left only to measure a photo.
 2. **EI2** A picture once drawn is kept, decoded in memory and on disk, so seeing it again draws it without reading
    and decoding the file anew.
 3. **EI3** A gallery tile scrolled out and back draws its own picture, never a reused cell's last one (each tile's
