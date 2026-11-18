@@ -662,9 +662,9 @@ export function useCaptures(
       }),
     ));
 
-  /** Brings back the memo just discarded, and saves it. */
+  /** Brings back the memo just discarded, and saves it; a Stop waits for that save as for any (tend tabs audit 41). */
   const undoDiscard = (): Promise<VoiceResult> =>
-    enqueue(() =>
+    trackMemo(enqueue(() =>
       withBusy(async () => {
         const m = discarded;
         if (!m) return 'none';
@@ -672,7 +672,7 @@ export function useCaptures(
         setDiscarded(null);
         return keepMemo(m);
       }),
-    );
+    ));
 
   // Leaving the screen mid-memo (browser Back, a reload) saves it rather than
   // losing it or leaving the mic on.

@@ -438,6 +438,58 @@ async function run(h) {
   const inWalk = (await voices(savingWalk)).length;
   check(!!walkRow && walkRow.ended_at != null && inWalk === 1 && !(await there('[data-testid=held-memo]', 500)),
     `tend tabs T35: the memo saving through the stop lands once, in its ended walk (${inWalk} in walk, walk ${walkRow ? 'kept' : 'gone'})`);
+
+  // A walk opened and minimized onto Memories, for the bar's Stop; its id.
+  const walkOnMemories = async () => {
+    await pg.goto(navUrl);
+    await pg.waitForSelector('[data-testid=start]', { timeout: 30000 }).catch(() => {});
+    await pg.waitForTimeout(1500);
+    await pg.click('[data-testid=start]').catch(() => {});
+    await pg.waitForSelector('[data-testid=cap-voice]', { timeout: 30000 }).catch(() => {});
+    await pg.waitForTimeout(2500);
+    const id = await pg.evaluate(() => new Promise((resolve) => {
+      const req = indexedDB.open('chronicles');
+      req.onsuccess = () => {
+        const g = req.result.transaction('walk', 'readonly').objectStore('walk').getAll();
+        g.onsuccess = () => resolve((g.result.find((w) => w.ended_at == null) ?? {}).id ?? null);
+      };
+    }));
+    await pg.click('[data-testid=walk-minimize]', { timeout: 10000 }).catch(() => {});
+    await pg.waitForTimeout(1500);
+    await tabTo(pg, 'chronicle', 'memories').catch(() => {});
+    await pg.waitForTimeout(1500);
+    return id;
+  };
+  const walkStands = (id) => pg.evaluate((w) => new Promise((resolve) => {
+    const req = indexedDB.open('chronicles');
+    req.onsuccess = () => {
+      const g = req.result.transaction('walk', 'readonly').objectStore('walk').get(w);
+      g.onsuccess = () => resolve(!!g.result);
+    };
+  }), id);
+
+  // tend tabs audit 41: a memo kept by Undo of its discard is a save like any: the bar's Stop says it is still being
+  // saved, and the walk it lands in is kept.
+  const undoWalk = await walkOnMemories();
+  await pg.click('[data-testid=band-voice]', { timeout: 10000 }).catch(() => {});
+  await pg.waitForSelector('[data-testid=band-voice-discard]', { timeout: 10000 }).catch(() => {});
+  await pg.waitForTimeout(1300);
+  await pg.click('[data-testid=band-voice-discard]').catch(() => {});
+  await pg.waitForSelector('[data-testid=band-voice-undo]', { timeout: 5000 }).catch(() => {});
+  await pg.evaluate(() => { window.__slowBlob = 25000; });
+  await shown('[data-testid=band-voice-undo-act]').first().click({ timeout: 5000 }).catch(() => {});
+  await pg.waitForTimeout(900);
+  await hold('[data-testid=bar-stop]');
+  await pg.waitForTimeout(4500);
+  const undoSaying = await textOf('[data-testid=recording-said]');
+  check(undoSaying === 'The voice memo is still being saved. Hold Stop again in a moment.',
+    `tend tabs audit 41: a memo kept by Undo of its discard holds the bar's Stop and keeps the walk: the first hold says it is saving ("${undoSaying}")`);
+  await hold('[data-testid=bar-stop]');
+  await pg.waitForURL(/\/replay\//, { timeout: 15000 }).catch(() => {});
+  await pg.waitForTimeout(14000);
+  const undoKept = (await voices(undoWalk)).length;
+  check(!!undoWalk && /\/replay\//.test(pg.url()) && (await walkStands(undoWalk)) && undoKept === 1,
+    `tend tabs audit 41: a memo kept by Undo of its discard holds the bar's Stop and keeps the walk: the walk stands with the memo in it (${undoKept})`);
   await c.close();
 }
 

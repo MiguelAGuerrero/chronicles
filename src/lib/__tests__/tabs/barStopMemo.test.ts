@@ -99,3 +99,17 @@ test('tend tabs T35: the app drops an empty walk only with nothing under way, an
   assert.match(bar, /memoGate\.pin\(\)/, 'a stop through a save pins the walk');
   assert.match(bar, /unsaved\.ended\(walk\.id, held\.map\(/, 'the bar lets go only what it warned of');
 });
+
+test('tend tabs audit 41: every memo save is tracked: each keepMemo call sits inside trackMemo', () => {
+  const src = source('src/lib/useCaptures.ts');
+  const lines = src.split('\n');
+  const calls = lines.map((l, i) => ({ l, i })).filter(({ l }) => /\bkeepMemo\(/.test(l) && !/function keepMemo\(/.test(l));
+  assert.ok(calls.length >= 2, 'the memo is kept by its Save and by Undo of its discard');
+  for (const { i } of calls) {
+    let d = i;
+    while (d >= 0 && !/^ {2}const \w+ = /.test(lines[d])) d--;
+    assert.ok(d >= 0, `keepMemo at line ${i + 1} sits in a declared action`);
+    const head = lines.slice(d, d + 3).join('\n');
+    assert.match(head, /=>\s*\n?\s*trackMemo\(/, `the action at line ${d + 1} (${lines[d].trim()}) is tracked, so a Stop waits for its save`);
+  }
+});
