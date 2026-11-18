@@ -36,6 +36,36 @@ ux-reviewer: it changes the make-or-break screen.
 Step 0 is a measurement, as the road engine's was: for one region's large places, how many have a shape in the map's own tiles, in
 Overture and in the pack's sources, and how many shapes can be matched to the place. The owner then picks the source.
 
+### Step 0, the measurement: done for one city (Nov 18)
+
+`scripts/measure/perimeters.mjs`, over central Zurich (tileserver-gl's test tiles at z14, and Overture's base theme, release
+2026-10-21.0, read from its public bucket at z13, its highest zoom). The places are the 611 named points of large kinds in the map's
+own tiles (pitches, parks, attractions, hospitals, colleges, gardens, cemeteries, universities, zoos, stadiums, golf courses).
+
+| | The map's own tiles | Overture's base theme |
+|---|---|---|
+| Shapes in the box | 9,093 (grass, pitches, playgrounds, woods, schools, cemeteries ...) | 9,981 |
+| Shapes with a name | 7 | 1,647 |
+| Shapes with an id | none | all |
+| Places inside some shape | 606 of 611 | 611 of 611 |
+| Places inside a shape whose name matches theirs | cannot be told (no names) | 334 of 611 (55%) |
+
+By kind, inside an Overture shape of the same name: cemeteries 37 of 37, parks 91 of 99, pitches 139 of 166, gardens 29 of 41,
+zoos 3 of 6, stadiums 3 of 5; and few for what is a building or a campus more than a ground: hospitals 17 of 74, universities 5
+of 17, colleges 4 of 58, attractions 3 of 99.
+
+What it says:
+- **"Inside some shape" means nothing by itself**: grass, residential land and suburbs cover nearly every point. A place's own
+  perimeter has to be told from the shapes around it, which needs a name or an id on the shape.
+- **The map's own tiles cannot do that**: their shapes carry no names. They could draw green ground, not say whose it is.
+- **Overture can, for open grounds**: parks, cemeteries, gardens, pitches. It is the host town borders already come from.
+- **Campuses and complexes are not grounds in either**: a hospital or a college is a point inside unnamed land. Their perimeters
+  would have to come from Overture's buildings (as the complexes of CX16 already do) or from the pack.
+
+Not measured: the pack's own large kinds (nature reserves, natural monuments, amusement parks: the live pack was not read here);
+any place outside one European city; refuges and parks many kilometres across, which z13 tiles cut into many pieces; entrances,
+which neither source was asked for.
+
 ## Part 4, hands-free capture on iOS (DO24-DO30)
 
 Native, an architecture call (App Intents through a config plugin), and not finishable without a phone.
