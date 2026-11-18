@@ -15,6 +15,7 @@ import { CaptureViewer } from '../../components/CaptureView';
 import { Stage } from '../../components/ceremony/Stage';
 import { StepThrough } from '../../components/ceremony/StepThrough';
 import { useAwakeWhile } from '../../components/ceremony/useAwakeWhile';
+import { FrameMeter } from '../../components/ceremony/FrameMeter';
 import { NextMoment } from '../../components/ceremony/NextMoment';
 import { useReplay } from '../../components/ceremony/useCeremonyLoop';
 import { useRevealed } from '../../components/ceremony/useRevealed';
@@ -67,7 +68,7 @@ export default function Replay() {
   perfCount('render:replay');
   // `ceremony=0` is a re-watch (from the log, or Watch again); `style` names the ceremony that tells it (RR21, audit 25);
   // `fps` asks a ceiling on the frames drawn a second, to try one on a phone (replay ceremony RC6).
-  const { id, ceremony, style, fps } = useLocalSearchParams<{ id: string; ceremony?: string; style?: string; fps?: string }>();
+  const { id, ceremony, style, fps, meter } = useLocalSearchParams<{ id: string; ceremony?: string; style?: string; fps?: string; meter?: string }>();
   const insets = useSafeAreaInsets();
   const mapRef = useRef<WalkMapHandle>(null);
   // The name's Next goes on to the line, as in Rename (tend chronicle 5).
@@ -393,7 +394,7 @@ export default function Replay() {
   }, []);
   // The path is told by a loop outside this screen's rendering (replay ceremony RC2, decision 0206): each frame goes
   // straight to the map and the stage. The screen reads only what it shows itself: the pins, Hold, whether Next is there.
-  const play = useReplay({ epoch: phase.t0, telling, paused: viewing != null || waits.size > 0, story, showing, map: mapRef, fps, onEnd: () => go('card') });
+  const play = useReplay({ epoch: phase.t0, telling, paused: viewing != null || waits.size > 0, story, showing, map: mapRef, fps, meter, onEnd: () => go('card') });
   // The screen stays awake while the replay plays, until the card (RR24).
   useAwakeWhile(beat === 'reading' || beat === 'fog' || beat === 'path');
 
@@ -650,6 +651,8 @@ export default function Replay() {
           {telling && play.canNext && <NextMoment onPress={play.next} />}
         </View>
       )}
+      {/* The frames really drawn, at the preview address only (replay ceremony RC6, `lib/ceremony/meter`). */}
+      {telling && play.meter && <FrameMeter meter={play.meter} top={insets.top + 12 + 48 + 8} />}
       {telling && (
         <View style={[styles.hold, { top: insets.top + 12 }]}>
           <Button

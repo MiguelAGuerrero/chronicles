@@ -13,28 +13,28 @@ const { createMeter, meterOn } = meterModule as unknown as {
   meterOn(base: string, asked?: string | null): boolean;
 };
 
-test('RC6: the readout says the frames drawn a second, of those the display offered, the longest wait and the time to draw', { todo: 'test first' }, () => {
+test('RC6: the readout says the frames drawn a second, those the display offered, the longest wait and the time to draw', () => {
   const m = createMeter();
   let told = 0;
   m.subscribe(() => told++);
   assert.equal(m.line(), '', 'nothing to say before a second has passed');
-  // A second of a 60 Hz display, every other frame drawn in 4 ms, one wait of 50 ms among them.
+  // A full second of a 60 Hz display (62 frames, so the second is over), every other frame drawn in 4 ms, one slow frame of 50 ms.
   let now = 1000;
   m.note(now, true, 4);
-  for (let k = 1; k <= 60; k++) {
+  for (let k = 1; k <= 62; k++) {
     now += k === 30 ? 50 : 16;
     m.note(now, k % 2 === 0, 4);
   }
   assert.equal(told, 1, 'said once a second, not every frame');
-  assert.match(m.line(), /^\d+ of \d+ frames a second · longest wait \d+ ms · \d+(\.\d)? ms to draw$/);
-  const [, drawn, offered, wait, draw] = /^(\d+) of (\d+) frames a second · longest wait (\d+) ms · ([\d.]+) ms to draw$/.exec(m.line()) ?? [];
+  const [, drawn, offered, wait, draw] = /^(\d+) frames a second drawn, (\d+) offered · longest wait (\d+) ms · ([\d.]+) ms to draw$/.exec(m.line()) ?? [];
+  assert.ok(drawn, `the line: ${m.line()}`);
   assert.ok(Number(offered) >= 58 && Number(offered) <= 62, `offered ${offered}`);
   assert.ok(Number(drawn) >= 28 && Number(drawn) <= 31, `drawn ${drawn}`);
   assert.ok(Number(wait) >= 60 && Number(wait) <= 70, `the longest wait between two drawn frames, ${wait} ms`);
   assert.equal(Number(draw), 4);
 });
 
-test('RC6: the readout shows at the preview address or when the link asks, and nowhere else', { todo: 'test first' }, () => {
+test('RC6: the readout shows at the preview address or when the link asks, and nowhere else', () => {
   assert.equal(meterOn('/chronicles/preview'), true);
   assert.equal(meterOn('/chronicles/preview/'), true);
   assert.equal(meterOn('/chronicles'), false, 'never in the app itself');
