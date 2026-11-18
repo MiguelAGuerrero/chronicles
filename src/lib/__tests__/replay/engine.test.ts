@@ -372,10 +372,10 @@ test('RC7: every frame reaches the stage\'s leaves, and its shape changes only w
 // a render (`live.frame()`) is read once and kept, so the stage drew nothing. A render takes the frame from what the
 // store hands it (`useSyncExternalStore`), which changes when the shape does.
 
-test('RC7: the stage is handed the frame its shape came with: the same object until something arrives or leaves', { todo: 'test first' }, () => {
+test('RC7: the stage is handed the frame its shape came with: the same object until something arrives or leaves', () => {
   const story = cornerWalk();
   const plan = rhythmPlan(story, { reduceMotion: false });
-  const live = createStageLive() as ReturnType<typeof createStageLive> & { staged(): Frame | null };
+  const live = createStageLive();
   assert.equal(live.staged(), null, 'nothing staged before a frame');
   let shape = live.shape();
   let staged = live.staged();
@@ -397,7 +397,7 @@ test('RC7: the stage is handed the frame its shape came with: the same object un
   assert.equal(live.staged(), null);
 });
 
-test('RC7: what the pile holds is part of the stage\'s shape: one more tucked in, or another in its place, is another shape', { todo: 'test first' }, () => {
+test('RC7: what the pile holds is part of the stage\'s shape: one more tucked in, or another in its place, is another shape', () => {
   const cap = (id: string) => ({ id }) as unknown as Faced;
   const frame = (ids: string[]): Frame => ({ ...rhythmFrame(rhythmPlan(cornerWalk(), { reduceMotion: false }), 0), overlays: [{ kind: 'pile', key: 'pile', captures: ids.map(cap) }] });
   const live = createStageLive();
@@ -412,7 +412,7 @@ test('RC7: what the pile holds is part of the stage\'s shape: one more tucked in
   assert.notEqual(live.shape(), two, 'another in its place');
 });
 
-test('RC7: no view of the stage reads the frame in its render', { todo: 'test first' }, () => {
+test('RC7: no view of the stage reads the frame in its render', () => {
   const dir = join(SRC, 'components/ceremony');
   const found: string[] = [];
   // A read inside a callback (a selector, a pose, a medium's clock) is asked again each time; one in a render is kept.

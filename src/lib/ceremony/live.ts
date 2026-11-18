@@ -14,10 +14,16 @@ export interface StageLive {
   frame(): Frame | null;
   /**
    * The stage's shape: which overlays are on it, by kind and key, and which telling they come from. It changes only
-   * when an overlay arrives or leaves, or the telling is rebuilt (a moment deleted, a note edited: the same keys may
-   * hold other captures).
+   * when an overlay arrives or leaves, the pile holds something else, or the telling is rebuilt (a moment deleted, a
+   * note edited: the same keys may hold other captures).
    */
   shape(): string;
+  /**
+   * The frame the stage's shape came with: the same object until the shape changes. A render takes the frame from here
+   * (through `useSyncExternalStore`), never from `frame()`: the React Compiler keeps what a render read from the same
+   * inputs, and a store read is no input (decision 0207).
+   */
+  staged(): Frame | null;
   /** Puts a frame on stage, from `telling` (the ceremony's own object for the story told), and tells every listener. */
   set(frame: Frame | null, telling?: unknown): void;
   /** Told after every `set`, whatever changed. */
@@ -29,17 +35,21 @@ export function createStageLive(): StageLive {
   let told: unknown = null;
   let turn = 0;
   let shape = '';
+  let staged: Frame | null = null;
   const listeners = new Set<() => void>();
   return {
     frame: () => frame,
     shape: () => shape,
+    staged: () => staged,
     set(next, telling) {
       if (telling !== undefined && telling !== told) {
         told = telling;
         turn++;
       }
       frame = next;
-      shape = next ? shapeOf(next, turn) : '';
+      const now = next ? shapeOf(next, turn) : '';
+      if (now !== shape || !next) staged = next;
+      shape = now;
       for (const l of [...listeners]) l();
     },
     subscribe(listener) {
@@ -51,10 +61,16 @@ export function createStageLive(): StageLive {
   };
 }
 
-/** A frame's overlays by kind and key, in the frame's order, after the telling's turn. */
+/**
+ * A frame's overlays by kind and key, in the frame's order, after the telling's turn. The pile says what it holds too
+ * (how many, and its newest): it is drawn by render, a few times a replay.
+ */
 export function shapeOf(f: Frame, turn = 0): string {
   let s = String(turn);
-  for (const o of f.overlays) s += `|${o.kind}:${o.key}`;
+  for (const o of f.overlays) {
+    s += `|${o.kind}:${o.key}`;
+    if (o.kind === 'pile') s += `#${o.captures.length}:${o.captures[o.captures.length - 1]?.id ?? ''}`;
+  }
   return s;
 }
 

@@ -13,16 +13,17 @@ import { useLive, useLiveStyle } from './useLive';
  * "Held", and the overlays by kind. It knows nothing of how a ceremony decides what a frame holds.
  *
  * It reads the frame from `ctx.live`, where the replay's loop puts one every frame (replay ceremony RC7), and renders
- * only when an overlay arrives or leaves or the telling is rebuilt. What moves every frame is each leaf's own to
+ * only when an overlay arrives or leaves, the pile holds something else, or the telling is rebuilt. What moves every frame is each leaf's own to
  * write (`useLiveStyle`); what a leaf shows is its own to read (`useLive`).
  */
 export function Stage({ ctx }: { ctx: StageCtx }) {
   const { live } = ctx;
   // Counted for the e2e and the harness (only when measuring).
   perfCount('render:stage');
-  useSyncExternalStore(live.subscribe, live.shape, live.shape);
+  // The frame its shape came with, handed over by the store: a frame read here from the store would be kept by the
+  // React Compiler from the first render on (decision 0207), and the stage would stay empty.
+  const frame = useSyncExternalStore(live.subscribe, live.staged, live.staged);
   const dim = useLiveStyle(live, (f) => ({ opacity: f.dim }));
-  const frame = live.frame();
   if (!frame) return null;
   return (
     <>

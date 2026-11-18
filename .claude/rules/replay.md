@@ -171,7 +171,10 @@ A walk's replay and the day replay: the five beats, the story and its ceremonies
   screen state from a frame: `render:replay` and `render:day` (perfCount) are held to two a second on a stretch by the
   `replay` journey (RC2).
 - **The stage reads the frame from `ctx.live`, never from a prop** (RC7). `Stage` renders when the frame's shape changes
-  (an overlay arrives or leaves, the telling is rebuilt). A leaf reads the one thing it shows with `useLive(live,
+  (an overlay arrives or leaves, the pile holds something else, the telling is rebuilt) and takes the frame that shape
+  came with from the store's own hand-over (`useSyncExternalStore` over `live.staged`). **Never call `live.frame()` in a
+  render**: the React Compiler (decision 0207) keeps what a render read from the same inputs, and the stage stayed empty
+  (no clock, no card) until this was found on the merge; a read inside a callback is fine. A leaf reads the one thing it shows with `useLive(live,
   select)` (a primitive: a flag, a key, a minute) and writes what moves every frame on its own element with
   `useLiveStyle(live, pose)` (`layout.ts` holds the poses, pure: `cardPose`, `bubblePose`, `bubbleRoom`,
   `whisperPose`). An overlay's `o` prop is the overlay **as it arrived**: read it only for what never moves (its
