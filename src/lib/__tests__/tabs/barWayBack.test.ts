@@ -7,19 +7,61 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
-import { barGoesBack } from '../../recordingBar';
+import { BAR_STOP_HOLD_MS, BAR_WAIT_MS, barGoesBack, barStopping, type BarStop } from '../../recordingBar';
+import { barStop } from '../../tabsHidden';
 
 const bar = readFileSync(join(__dirname, '..', '..', '..', 'components', 'RecordingBar.tsx'), 'utf8');
 
 test('tend tabs 12: the bar\'s way back does nothing while the walk is stopping from the bar, before its wait or after it', () => {
-  assert.equal(barGoesBack({ returning: false, stopping: false }), true, 'a tap on the line goes back');
-  assert.equal(barGoesBack({ returning: true, stopping: false }), false, 'one way back at a time');
-  assert.equal(barGoesBack({ returning: false, stopping: true }), false, 'held to stop: the stop goes alone');
+  const stop: BarStop = { walkId: 'w1', since: 1000 };
+  assert.equal(barGoesBack({ returning: false, stop: null, walkId: 'w1', now: 1500 }), true, 'a tap on the line goes back');
+  assert.equal(barGoesBack({ returning: true, stop: null, walkId: 'w1', now: 1500 }), false, 'one way back at a time');
+  assert.equal(barGoesBack({ returning: false, stop, walkId: 'w1', now: 1500 }), false, 'held to stop: the stop goes alone');
   // The wiring: Stop says it is stopping before its first wait, and the way back asks before and after its own.
-  assert.match(bar, /const stop = async \(\) => \{\n\s+if \(stopping\) return;\n\s+stoppingNow\.current = true;/);
-  assert.match(bar, /if \(!barGoesBack\(\{ returning: returning\.current, stopping: stoppingNow\.current \}\)\) return;\n\s+returning\.current = true;/);
-  assert.match(bar, /await settleWithin\(keeping\.current, RETURN_WAIT_MS\);\n(\s+\/\/.*\n)*\s+if \(!barGoesBack\(\{ returning: false, stopping: stoppingNow\.current \}\)\) return;/);
-  assert.match(bar, /finally \{\n\s+stoppingNow\.current = false;\n\s+setStopping\(false\);/);
+  assert.match(bar, /const stop = async \(\) => \{\n\s+if \(barStopping\(barStop\.get\(\), walk\.id, Date\.now\(\)\)\) return;\n\s+const mine = \{ walkId: walk\.id, since: Date\.now\(\) \};\n\s+barStop\.set\(mine\);/);
+  assert.match(bar, /if \(!goesBack\(returning\.current\)\) return;\n\s+returning\.current = true;/);
+  assert.match(bar, /await settleWithin\(keeping\.current, RETURN_WAIT_MS\);\n(\s+\/\/.*\n)*\s+if \(!goesBack\(false\)\) return;/);
+  assert.match(bar, /finally \{\n\s+barStop\.set\(\(s\) => \(s === mine \? null : s\)\);/);
+});
+
+// A stop outlives the bar that began it: the tab bar unmounts the bar on blur ((tabs)/_layout.tsx, `minimized`), so a
+// bar back from a day or a replay over the tabs knew nothing of it, opened the walk under the coming replay and let a
+// second hold stop the walk again (the review's F1).
+test('tend tabs audit 26: a bar remounted while its stop is under way still refuses the way back and a second stop', () => {
+  assert.equal(barStop.get(), null, 'no stop at first');
+  const mine: BarStop = { walkId: 'w1', since: 1000 };
+  barStop.set(mine);
+  assert.equal(barStopping(barStop.get(), 'w1', 2000), true, 'the walk\'s stop is under way for any bar');
+  assert.equal(barStopping(barStop.get(), 'w2', 2000), false, 'another walk is not stopping');
+  barStop.set((s) => (s === mine ? null : s));
+  assert.equal(barStop.get(), null, 'the stop that set it clears it');
+  // The wiring: the bar reads the shared stop, never its own instance's, for its busy Stop, its way back and its Stop.
+  assert.match(bar, /const stopping = useStore\(barStop, \(s\) => s\?\.walkId === walk\.id\);/);
+  assert.match(bar, /const goesBack = \(returningNow: boolean\) => barGoesBack\(\{ returning: returningNow, stop: barStop\.get\(\), walkId: walk\.id, now: Date\.now\(\) \}\);/);
+  assert.doesNotMatch(bar, /stoppingNow|useState\(false\);\n.*setStopping/);
+});
+
+// A stop could begin while a tapped reminder's key was being written (the single native write queue), and the walk
+// screen still opened under the stop's replay (the review's F2).
+test('tend tabs audit 27: the bar\'s way back asks again after a reminder\'s write, just before it shows the walk', () => {
+  assert.match(
+    bar,
+    /if \(!goesBack\(false\)\) return;\n\s+\/\/ The walk screen opens what a tapped reminder asks for as it mounts \(R4\)\.\n\s+if \(open\) await db\.setMeta\(RECALL_OPEN_KEY, [^\n]*\n(\s+\/\/.*\n)*\s+if \(!goesBack\(false\)\) return;\n\s+feedback\('tap'\);\n\s+showWalk\(\);/,
+  );
+});
+
+// endWalk has no bound of its own: a stop that hung (a wedged store, a recorder that never stops) left the bar's ›
+// dead until the app was reopened, the owner's Nov 2 symptom (the review's F3). The way back is held only for as long
+// as a stop can rightly take: its memo wait, its keep wait and a margin.
+test('tend tabs audit 28: a stop that never settles stops refusing the bar\'s way back after its bound', () => {
+  const stop: BarStop = { walkId: 'w1', since: 1000 };
+  assert.ok(BAR_STOP_HOLD_MS > 2 * BAR_WAIT_MS, 'longer than the two waits a stop makes');
+  assert.ok(BAR_STOP_HOLD_MS <= 2 * BAR_WAIT_MS + 5000, 'but not much longer');
+  assert.equal(barGoesBack({ returning: false, stop, walkId: 'w1', now: 1000 + BAR_STOP_HOLD_MS - 1 }), false, 'within its bound');
+  assert.equal(barGoesBack({ returning: false, stop, walkId: 'w1', now: 1000 + BAR_STOP_HOLD_MS }), true, 'past it, the › works again');
+  assert.equal(barStopping(stop, 'w1', 1000 + BAR_STOP_HOLD_MS), false, 'and a second hold may stop the walk');
+  // The bar's waits are the core's.
+  assert.match(bar, /const RETURN_WAIT_MS = BAR_WAIT_MS;/);
 });
 
 test('tend tabs 13: the recording bar\'s own comment names its held Stop (decision 0048), not "no Stop"', () => {
