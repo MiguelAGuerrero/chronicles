@@ -1,6 +1,6 @@
 import 'fake-indexeddb/auto';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import { IDBFactory } from 'fake-indexeddb';
@@ -8,6 +8,7 @@ import ts from 'typescript';
 import type { Db } from '../../db/types';
 import { dbContract, type Legacy } from '../dbContract';
 import { memoryDb } from '../fakes';
+import { tmpdir } from 'node:os';
 import { nodeSqlite } from '../fakes/nodeSqlite';
 import { makeSqliteDb } from '../../db/sqliteStore';
 
@@ -91,6 +92,45 @@ dbContract('SQLite (db/sqliteStore.ts over node:sqlite)', async (legacy?: Legacy
   }
   return db;
 }, 'sqlite');
+
+// The phone's store as it runs (performance review, Nov 18): the main connection for reads, one writer connection opened
+// once for the queue, on one file. Every case of the contract, so every write goes through the writer.
+const tmp = () => join(mkdtempSync(join(tmpdir(), 'chronicles-db-')), 'chronicles.db');
+dbContract('SQLite with its writer connection (two connections, one file)', async (legacy?: Legacy) => {
+  const sql = nodeSqlite(tmp());
+  const db = makeSqliteDb(sql.open, sql.openWriter);
+  if (legacy?.marks?.length) {
+    await db.listWalks(); // migrates
+    const put = sql.raw.prepare('INSERT INTO mark (id, walk_id, key, name, category, lon, lat, generic, origin, state, created_at, resolved_at, capture_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)');
+    for (const m of legacy.marks) put.run(m.id, m.walk_id, m.key, m.name, m.category, m.at[0], m.at[1], m.generic ? 1 : 0, m.origin, m.state, m.created_at, m.resolved_at, m.capture_id);
+  }
+  return db;
+}, 'sqlite');
+
+test('the store\'s writes open one connection for all of them, never one each', async () => {
+  const sql = nodeSqlite(tmp());
+  const db = makeSqliteDb(sql.open, sql.openWriter);
+  await db.listWalks(); // migrates (its exclusive transactions are the migrations')
+  const before = sql.exclusiveTransactions();
+  for (let i = 0; i < 100; i++) await db.setMeta(`k${i}`, String(i));
+  assert.equal(sql.writersOpened(), 1, 'one writer connection, opened once');
+  assert.equal(sql.exclusiveTransactions() - before, 0, 'no write opens a transaction connection of its own');
+  assert.equal(await db.getMeta('k99'), '99', 'and the main connection reads what the writer committed');
+});
+
+test('a write that throws rolls back on the writer, and the queue goes on', async () => {
+  const sql = nodeSqlite(tmp());
+  const db = makeSqliteDb(sql.open, sql.openWriter);
+  await db.createWalk({ id: 'a', started_at: 1, ended_at: null, title: null, epilogue: null, open: true, area: null, snapped_build: null } as never);
+  // A batch whose second point breaks a NOT NULL: the first must not be kept.
+  await assert.rejects(db.appendPoints([
+    { walk_id: 'a', t: 1, lat: 41.8, lon: -71.4, accuracy: 5, speed: null, heading: null, altitude: null } as never,
+    { walk_id: 'a', t: 2, lat: null, lon: -71.4, accuracy: 5, speed: null, heading: null, altitude: null } as never,
+  ]));
+  assert.deepEqual(await db.getPoints('a'), [], 'nothing of the failed write is kept');
+  await db.setMeta('after', 'yes');
+  assert.equal(await db.getMeta('after'), 'yes', 'the next write goes through');
+});
 
 test('MT11: the native store opens over node:sqlite, from an empty database and from one at user_version 22', async () => {
   const empty = nodeSqlite();

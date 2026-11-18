@@ -49,6 +49,7 @@
         }
       ],
       "expo-sqlite",
+      "expo-image",
       [
         "expo-location",
         {

@@ -52,7 +52,8 @@ export async function ensureTileBuild(): Promise<string> {
   // next opens, keeping their old summary until then. Street pieces are kept.
   const rules = `${SNAP_RULES}/${AREA_RULES}/${BOUNDARY_PACKS_ID}`;
   if ((await db.getMeta('snap_rules')) !== rules) {
-    for (const w of await db.listWalks()) if (w.snapped_build) await db.updateWalk(w.id, { snapped_build: null });
+    // One write for every walk: a write per walk was an exclusive transaction each on SQLite, at launch.
+    await db.clearSnappedBuilds();
     await db.setMeta('snap_rules', rules);
   }
   return build;

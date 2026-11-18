@@ -7,6 +7,7 @@ import type { LngLat } from '../types';
 import { decodeTile } from './tileDecode';
 import { placesFromTilePois } from './tilePois';
 import { net } from '../net';
+import { createTileBodies } from './tileBodies';
 
 /** The z14 tiles read this session under a build, so walking around inside them fetches nothing (A11). */
 const read = new Set<string>();
@@ -17,20 +18,29 @@ const RETRY_MS = 2 * 60_000;
 const FETCH_MS = 10_000;
 let failedAt: { tile: string; at: number } | null = null;
 
-async function fetchTile(url: string, shouldStop?: () => boolean): Promise<ArrayBuffer> {
+/** One tile's bytes over the network, under its own timeout; stopped when the shared read's signal aborts. */
+async function fetchOne(url: string, signal: AbortSignal): Promise<ArrayBuffer> {
   const ctl = new AbortController();
   const t = setTimeout(() => ctl.abort(), FETCH_MS);
-  // Cancel stops the fetch itself, not just what is done with it (audit).
-  const poll = shouldStop ? setInterval(() => shouldStop() && ctl.abort(), 200) : null;
+  const stop = () => ctl.abort();
+  signal.addEventListener('abort', stop);
   try {
     const res = await net.fetch(url, { signal: ctl.signal });
     if (!res.ok) throw new Error(`${res.status}`);
     return await res.arrayBuffer();
   } finally {
     clearTimeout(t);
-    if (poll) clearInterval(poll);
+    signal.removeEventListener('abort', stop);
   }
 }
+
+/**
+ * Tile bodies shared between reads (performance review, Nov 18): one fetch for every reader of a tile at once, and the
+ * last 16 kept (about two reads' worth: iPhone Safari's memory is tight, map-reactivity.md). Cancel still stops the
+ * fetch once no reader waits on it (audit).
+ */
+const bodies = createTileBodies({ fetch: fetchOne, keep: 16 });
+const fetchTile = (url: string, shouldStop?: () => boolean): Promise<ArrayBuffer> => bodies.get(url, shouldStop);
 
 /**
  * Fetches z14 tiles' bytes, in parallel, each with its own timeout; nothing decoded (a read decodes them off the page,

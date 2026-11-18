@@ -314,6 +314,13 @@ export const db: Db = {
   async updateWalk(id, p) {
     await patch<Walk>('walk', id, p);
   },
+  async clearSnappedBuilds() {
+    // One transaction over the walks, not one per walk.
+    const tx = (await conn()).transaction('walk', 'readwrite');
+    const s = tx.objectStore('walk');
+    for (const w of (await done(s.getAll())) as Walk[]) if (w.snapped_build != null) s.put({ ...w, snapped_build: null });
+    await committed(tx);
+  },
   async getWalk(id) {
     return ((await done((await store('walk')).get(id))) as Walk | undefined) ?? null;
   },
@@ -668,6 +675,9 @@ export const db: Db = {
   },
   async listSummaries() {
     return (await done((await store('walk_summary')).getAll())) as WalkSummary[];
+  },
+  async getSummary(walkId) {
+    return ((await done((await store('walk_summary')).get(walkId))) as WalkSummary | undefined) ?? null;
   },
 
   async saveChecklists({ areas, items, read }) {

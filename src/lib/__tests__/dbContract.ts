@@ -168,6 +168,34 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.equal((await db.listSummaries())[0].distance_m, 100);
     });
 
+    test('FC7 clearSnappedBuilds: every walk is marked to snap again, nothing else changes', async () => {
+      const db = await fresh();
+      await db.createWalk({ ...walk('a', 1), snapped_build: 'b1' });
+      await db.createWalk({ ...walk('b', 2), snapped_build: null, title: 'kept' });
+      await db.createWalk({ ...walk('c', 3), snapped_build: 'b2' });
+      await db.clearSnappedBuilds();
+      const all = await db.listWalks();
+      assert.deepEqual(all.map((w) => [w.id, w.snapped_build]).sort(), [['a', null], ['b', null], ['c', null]]);
+      assert.equal((await db.getWalk('b'))?.title, 'kept', 'the rest of a walk is left as it was');
+      await db.clearSnappedBuilds();
+      assert.equal((await db.listWalks()).length, 3, 'again is harmless');
+    });
+
+    // A replay reads one walk's summary, not every walk's (performance review, Nov 18: `loadReplay` listed them all).
+    test('FC7 getSummary: one walk\'s summary, a copy, or null for a walk with none', async () => {
+      const db = await fresh();
+      await db.createWalk(walk('a', 1));
+      await db.createWalk(walk('b', 2));
+      await db.saveSnap('a', [], [visit('s1', 'a')], summary('a'));
+      await db.saveSnap('b', [], [visit('s2', 'b')], { ...summary('b'), distance_m: 250 });
+      assert.equal((await db.getSummary('a'))?.distance_m, 100);
+      assert.equal((await db.getSummary('b'))?.distance_m, 250);
+      assert.equal(await db.getSummary('none'), null);
+      (await db.getSummary('a'))!.distance_m = 0;
+      assert.equal((await db.getSummary('a'))?.distance_m, 100, 'a copy');
+      assert.deepEqual(await db.getSummary('a'), (await db.listSummaries()).find((s) => s.walk_id === 'a'), 'the same row the list holds');
+    });
+
     // ---- trace
 
     test('FC7 appendPoints, getPoints: per walk, in time order; an empty batch is a no-op', async () => {

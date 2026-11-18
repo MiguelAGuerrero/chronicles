@@ -25,7 +25,7 @@ const economy = load(join(ROOT, 'scripts', 'e2e', 'economy.js')) as {
   flakeFor(r: Flaky, journey: string, message: string): Flaky[string][number] | null;
   addFlake(r: Flaky, journey: string, e: Flaky[string][number]): Flaky;
   parseFailures(out: string): string[];
-  summarizeBaseline(runs: string[]): { runs: number; failed: { check: string; fails: string; always: boolean }[] };
+  summarizeBaseline(runs: string[], statuses?: (number | null)[]): { runs: number; failed: { check: string; fails: string; always: boolean }[] };
 };
 
 test('e2e economy 1: a change to comments or types is not a change to what the app does', () => {
@@ -105,6 +105,20 @@ test('e2e economy 5: a known flake is a label on a failure that still fails; a c
   assert.match(catchBlock, /process\.exitCode = 1/, 'and still fails the run');
   assert.ok(!/process\.exit\(0\)|exitCode = 0/.test(catchBlock), 'a known flake never turns a failure into a pass');
   assert.match(read('scripts/e2e/flaky.json'), /^\{/, 'the registry is a file the tree holds');
+});
+
+test('e2e economy 7: a baseline run that stops before its checks (a timeout, a throw) is a failure, never a pass', () => {
+  // resurface on main (Nov 18): every run timed out on a locator, failed no check, exited 1, and the summary said
+  // "passed 3/3 on main", pinning main's break on the branch.
+  const crash = 'ok - a\nlocator.boundingBox: Timeout 30000ms exceeded.\n  - waiting for locator(\'[data-testid=moment-more]\')\n';
+  const s = economy.summarizeBaseline([crash, crash, crash], [1, 1, 1]);
+  assert.equal(s.failed.length, 1, 'the stop is a failure of its own');
+  assert.match(s.failed[0].check, /^stopped: .*Timeout 30000ms exceeded/, 'named by its first error line');
+  assert.equal(s.failed[0].always, true, 'every run: main is broken there');
+  assert.deepEqual(economy.summarizeBaseline(['ok - a\n', crash], [0, 1]).failed.map((f) => f.fails), ['1/2'], 'once in two: a flake');
+  assert.deepEqual(economy.summarizeBaseline(['ok - a\n'], [0]).failed, [], 'a clean exit with no failure is a pass');
+  assert.deepEqual(economy.summarizeBaseline(['ok - a\nFAILED: x\n'], [1]).failed.map((f) => f.check), ['x'], 'a failed check is named by its check, not as a stop');
+  assert.match(read('scripts/e2e-baseline.js'), /summarizeBaseline\(outputs, statuses\)/, 'the script hands the exits over');
 });
 
 test('e2e economy 6: a baseline records the checks that failed on main and how often, and nothing when none did', () => {

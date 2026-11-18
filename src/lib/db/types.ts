@@ -24,6 +24,8 @@ export const SEGMENT_BATCH = 150;
 export interface Db {
   createWalk(walk: Walk): Promise<void>;
   updateWalk(id: string, patch: Partial<Omit<Walk, 'id'>>): Promise<void>;
+  /** Marks every walk to snap again (a rule change, `tiles.ts`): one write, never one per walk (performance review, Nov 18). */
+  clearSnappedBuilds(): Promise<void>;
   getWalk(id: string): Promise<Walk | null>;
   listWalks(): Promise<Walk[]>;
   getOpenWalk(): Promise<Walk | null>;
@@ -155,6 +157,8 @@ export interface Db {
   /** Street keys visited by walks that started before `startedAt`. */
   streetKeysBefore(startedAt: number): Promise<Set<string>>;
   listSummaries(): Promise<WalkSummary[]>;
+  /** One walk's summary, or null: a replay reads its own, never the whole table (performance review, Nov 18). */
+  getSummary(walkId: string): Promise<WalkSummary | null>;
 
   /** Caches places read from the tiles (v1 discovery); same key, newer row. */
   putPlaces(places: Place[]): Promise<void>;

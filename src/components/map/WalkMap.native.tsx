@@ -23,6 +23,7 @@ import { traceEnds } from '../../lib/traceEnds';
 import { ScaleBar, SCALE_MAX_PX } from './ScaleBar';
 import { NATIVE_FRAME_MS, useGlideFrames, useGlideShown, type GlideFrame } from '../../lib/useGlidingWalker';
 import { createStore, type Store } from '../../lib/store';
+import { perfCount } from '../../lib/perfCount';
 import { distanceM } from '../../lib/geo';
 import { releaseSwipe, SNAP } from '../../lib/atlas/snap';
 import { capFitBounds } from '../../lib/zoomOut';
@@ -94,6 +95,8 @@ function createSwiper() {
 const HIDDEN = { 'line-opacity': 0 } as const;
 
 export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(props, ref) {
+  // Counted as the web map is (nothing unless `globalThis.__perf` is set): NF7's numbers on a device.
+  perfCount('render:map');
   const mapRef = useRef<MapRef>(null);
   const cameraRef = useRef<CameraRef>(null);
   const lastBearing = useRef(0);
@@ -805,6 +808,7 @@ type GlideIn = {
 
 /** The walker's cone: renders per glide frame, alone. */
 const ConeSource = memo(function ConeSource({ frames, walker, heading, enabled, source, zoom }: GlideIn & { zoom: number }) {
+  perfCount('render:glide');
   const g = useGlideShown(frames, walker, heading, enabled, source);
   const data = useMemo(() => coneGeoJSON(g.walker, g.heading, zoom), [g.walker, g.heading, zoom]);
   return (

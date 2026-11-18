@@ -1,7 +1,8 @@
 import { useEventListener } from 'expo';
+import { Picture } from '../Picture';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useEffect, useRef, useState } from 'react';
-import { Image, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { easeInOut, easeOut } from '../../lib/ceremony/ease';
 import { gridLayout } from '../../lib/ceremony/grid';
 import type { CardOverlay } from '../../lib/ceremony/types';
@@ -205,7 +206,7 @@ function MomentCard({ o, ctx }: { o: CardOverlay; ctx: StageCtx }) {
         ) : uri && o.capture.edit && !isEmptyEdit(o.capture.edit) ? (
           <CardPhoto uri={uri} edit={o.capture.edit} width={w - 14} height={imgH} onLoad={() => setLoaded(true)} />
         ) : uri ? (
-          <Image source={{ uri }} style={styles.fill} resizeMode="cover" accessibilityIgnoresInvertColors pointerEvents="none" onLoad={() => setLoaded(true)} />
+          <Picture uri={uri} style={styles.fill} fit="cover" accessibilityIgnoresInvertColors pointerEvents="none" onLoad={() => setLoaded(true)} />
         ) : null}
         {!grid && (!uri || (o.capture.kind === 'photo' && !loaded)) && <Skeleton testID="media-skeleton" style={StyleSheet.absoluteFill} still={ctx.reduceMotion} />}
       </View>

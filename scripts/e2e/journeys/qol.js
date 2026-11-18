@@ -1992,6 +1992,7 @@ module.exports = {
   name: 'qol',
   // tend chronicle 7: Rename (QL22) and Edit note (QL24) are checked here, so a change to either names this journey.
   covers: [
+    'src/components/Picture.tsx',
     'src/components/{LocateButton,CompassButton,HomeSheet,CaptureView,CapturePinView,WalkActions,NoteMark}.tsx',
     'src/components/notePage/{NotePage,NoteTypeMenu}.tsx',
     'src/components/map/**',

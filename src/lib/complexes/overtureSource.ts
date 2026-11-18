@@ -10,6 +10,9 @@ export type TileFeatureIn = { id?: string | number; geometry: { type: string; co
 
 const text = (v: unknown): string | null => (typeof v === 'string' && v.trim() ? v.trim() : null);
 
+/** Whether a building's properties can make a piece (a name): read before its geometry is decoded (`overtureReader.ts`). */
+export const namedBuilding = (p: Record<string, unknown>): boolean => text(p['@name']) != null;
+
 /** The named buildings of one z14 `buildings` tile, as the decoder gives them (`toGeoJSON`). */
 export function piecesFromBuildingsTile(x: number, y: number, features: TileFeatureIn[]): BuildingPiece[] {
   const out: BuildingPiece[] = [];

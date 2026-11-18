@@ -1,0 +1,14 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "note",
+        "walk 10 min where the fog"
+      ],
+      "body": "Numbers without the profiler: set `globalThis.__perf = {}` from the dev build's console; `render:map` should rise about once per fix and `render:glide` at ~15 a second (Nov 18).\n",
+      "target": "sha256:5092ebc2348db5679880bcaac603fee9b57d6a8067cf867c273f844395656fda"
+    }
+  ]
+}

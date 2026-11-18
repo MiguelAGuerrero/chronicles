@@ -69,11 +69,15 @@ export function MemoriesScreen() {
   const { state, feed, now: readAt, hidden: deletedIds } = useResurface();
   // The page's own clock (audit 11): the read's `now` is set when Memories comes to the front, and a page left open
   // would date a new entry against it (no "No location" after its minute, yesterday's heading past midnight).
+  // It ticks only while Memories is in front: hidden under the walk or another tab it rendered the whole page twice
+  // a minute for no one, and the read's own `now` is renewed when Memories comes back (performance review, Nov 18).
   const [tick, setTick] = useState(0);
+  const isFocused = useIsFocused();
   useEffect(() => {
+    if (!isFocused) return;
     const t = setInterval(() => setTick(Date.now()), 30_000);
     return () => clearInterval(t);
-  }, []);
+  }, [isFocused]);
   const now = Math.max(readAt, tick);
   const index = useStore(resurface.store, stepIndex);
   const [limit, setLimit] = useState(JOURNAL_PAGE);
@@ -290,7 +294,6 @@ export function MemoriesScreen() {
   const relive = (m: MomentView) => router.push(m.walkId ? `/replay/${m.walkId}?ceremony=0` : `/day/${dayKey(m.t)}`);
   // The capture band (HC6-HC11): in front only while nothing is open over Memories, so opening a moment, a
   // menu, Relive or a replay mid-memo saves the memo first, and nothing plays over a recording.
-  const isFocused = useIsFocused();
   const bandFocused = isFocused && !viewing && !recalled && !lensAt && !menuFor && !ownMenuFor && !menuOpen;
   // A viewer opened mid-memo waits until the memo has stopped, so nothing plays over a recording (audit 8).
   const [memoOn, setMemoOn] = useState(false);

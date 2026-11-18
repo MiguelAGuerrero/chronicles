@@ -704,6 +704,7 @@ async function run(h) {
 module.exports = {
   name: 'replay',
   covers: [
+    'src/components/Picture.tsx',
     'src/app/replay/**',
     'src/app/day/**',
     'src/components/ceremony/**',

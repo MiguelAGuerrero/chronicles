@@ -1,5 +1,6 @@
 import { memo } from 'react';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Picture } from '../Picture';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { Block } from '../../lib/gallery/layout';
 import { BLOCK_TYPE } from '../../lib/gallery/layout';
 import { useMediaUri } from '../../lib/useMediaUri';
@@ -35,7 +36,7 @@ export const PeriodBlock = memo(function PeriodBlock(props: { block: Block; widt
         {block.line ? <Text testID="gallery-block-line" style={styles.line} numberOfLines={1}>{block.line}</Text> : null}
       </View>
       <View style={[styles.cover, { width: props.width, height: props.coverH }]}>
-        {uri ? <Image source={{ uri }} style={StyleSheet.absoluteFill} resizeMode={props.fit} /> : <Icon name={KIND_ICON[block.cover.kind]} size={40} color={theme.muted} />}
+        {uri ? <Picture uri={uri} style={StyleSheet.absoluteFill} fit={props.fit} /> : <Icon name={KIND_ICON[block.cover.kind]} size={40} color={theme.muted} />}
         {uri && block.cover.kind === 'video' ? <VideoMark size={16} style={styles.mark} /> : null}
       </View>
     </Pressable>
