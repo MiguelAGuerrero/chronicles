@@ -814,8 +814,10 @@ async function run(h) {
       await pg.waitForTimeout(600);
       const shownW = await compassW.count();
       await shot(pg, 'qol-02a-walk-compass');
-      // The button below the compass in this state: Walk me back while it shows, else the unwalked switch (tend map audit 7).
-      const expectW = (await pg.locator('[data-testid=walk-back]').filter({ visible: true }).count()) ? 'walk-back' : 'unwalked';
+      // The button below the compass in this state: Walk me back while it shows, else Recenter while it shows, else the map
+      // (tend map audit 7; WB3, the unwalked switch went with decision 0222).
+      const expectW = (await pg.locator('[data-testid=walk-back]').filter({ visible: true }).count()) ? 'walk-back'
+        : (await pg.locator('[data-testid=recenter]').filter({ visible: true }).count()) ? 'recenter' : 'CANVAS';
       if (shownW) {
         await compassW.first().focus();
         await pg.keyboard.press('Enter');

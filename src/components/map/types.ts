@@ -80,7 +80,23 @@ export const COLORS = {
   /** A pin of several moments' head: charcoal, under its kinds' discs. */
   several: '#31352f',
   veil: '#d7dbe0',
+  /** Where I've been (WB9): earlier walks' lines, a muted sage, 3:1 on the land and quieter than the trace (where-ive-been ui 1). */
+  past: '#588a78',
 };
+
+/**
+ * Where I've been (WB9, decision 0222): one even tone (opaque, so two walks over one street look like one), thinner than
+ * today's trace, with no white edge; drawn over the fog and under the walked streets, the route and the trace.
+ */
+export const PAST_STYLE = { opacity: 1, width: 3 } as const;
+
+/** The lines of earlier walks the map draws (WB6), with their walks' ids for the e2e; null draws none. */
+export interface PastView {
+  /** Changes only with the lines drawn: the map sends them again only when it does (WB16). */
+  key: string;
+  ids: string[];
+  runs: LngLat[][];
+}
 
 /** The trace's white edge, as a share of the trace's own opacity, on both maps. */
 export const TRACE_EDGE_OPACITY = 0.9;
@@ -214,6 +230,8 @@ export interface WalkMapProps {
   borders?: BorderView | null;
   /** The Walkability layer (UF9): areas easy on foot tinted green and built around cars warm, under the trace and fog; null or absent draws none. */
   walkability?: WalkTint | null;
+  /** Where I've been (WB6, WB9): earlier walks' walked lines, one even tone under today's trace; null draws none. */
+  past?: PastView | null;
   /** The way the walker is going (degrees from north), drawn as a soft cone; null hides it. */
   walkerHeading?: number | null;
   walker?: LngLat | null;
@@ -247,8 +265,6 @@ export interface WalkMapProps {
   veil?: boolean;
   /** The town borders over the veil, at a lighter fill (the replay and a day; decision 0199). */
   bordersOverVeil?: boolean;
-  /** Draws the fog (unwalked streets) bold, to find them at a glance. */
-  fogEmphasis?: boolean;
   /** Hides the map behind an opaque cover, e.g. while the camera steps through views. */
   covered?: boolean;
   /**
@@ -310,6 +326,8 @@ export interface WalkMapHandle {
   showPoint(at: LngLat, padding: Padding): void;
   /** Eases the bearing back to north, keeping the centre and zoom (CP4). */
   resetNorth(): void;
+  /** Gives the map keyboard focus (the web's canvas); a phone's map takes none (WB3). */
+  focus(): void;
 }
 
 /** The zoom the wide read of place points happens at: a z10 tile spans about 30 km. */
@@ -385,7 +403,7 @@ export const RIDE_DASH = [1.6, 1.4];
  */
 export const LINE_SOURCE = { tolerance: 1, buffer: 64 } as const;
 /** The sources drawn as lines, simplified by `LINE_SOURCE` on both maps (NF5). */
-export const LINE_SOURCE_IDS = ['fog', 'walked', 'alternates', 'route-grades', 'route', 'gap-links', 'faint', 'rides', 'trace-history', 'trace', 'trace-link', 'drawing'] as const;
+export const LINE_SOURCE_IDS = ['fog', 'past', 'walked', 'alternates', 'route-grades', 'route', 'gap-links', 'faint', 'rides', 'trace-history', 'trace', 'trace-link', 'drawing'] as const;
 
 export function traceGeoJSON(runs: LngLat[][]): GeoJSON.FeatureCollection {
   return {

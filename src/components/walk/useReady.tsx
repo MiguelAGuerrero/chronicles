@@ -33,6 +33,7 @@ import { useStartWalk } from '../../lib/useStartWalk';
 import { layerNotes } from '../../lib/layers/notes';
 import { useStorefrontsLayer } from '../../lib/layers/useStorefrontsLayer';
 import { useLayers } from '../../lib/layers/useLayers';
+import { usePastLines } from '../../lib/pastLines/usePastLines';
 import { useWalkability } from '../../lib/walk/useWalkability';
 import { BAR_H, CAP, raisedHeight, useStackLayout } from './layout';
 import { ReadyBar } from './ReadyBar';
@@ -211,9 +212,12 @@ export function useReady(props: {
   const layers = useLayers();
   const wk = useWalkability(fix, !!layers.on.walkability);
   const storefronts = useStorefrontsLayer(fix, !!layers.on.storefronts);
+  // Where I've been (WB6): read only while the ready screen is the one in front; the walk reads its own.
+  const past = usePastLines(fix, !!layers.on.past && active);
   /** The walk screen's one map, while no walk is open. */
   const mapProps = {
     walkability: wk.draw,
+    past: past.view,
     landing: storefronts.view,
     // DC18: names only near you.
     storefrontNamesNear: namesNearYou(fix),
@@ -291,7 +295,7 @@ export function useReady(props: {
 
       {/* Locate (QL9), in the stack's column where Recenter sits on the walk (NR9). */}
       <LocateButton ref={locateRef} busy={locating} onPress={locate} bottom={at.edgeBottom('locate')} right={at.edgeRight} />
-      <LayersControl layers={layers} notes={layerNotes({ walkability: wk.status, storefrontsReading: storefronts.reading, storefrontsFailed: storefronts.failed })} bottom={at.layers.bottom} left={at.layers.left} rightClear={at.layersRightClear} clearTop={at.insets.top + 152} />
+      <LayersControl layers={layers} notes={layerNotes({ walkability: wk.status, storefrontsReading: storefronts.reading, storefrontsFailed: storefronts.failed, past: past.status })} bottom={at.layers.bottom} left={at.layers.left} rightClear={at.layersRightClear} clearTop={at.insets.top + 152} />
       {/* The capture stack keeping moments (NR9), and its pills. */}
       <MomentBar disabled={walkStart.starting} onMoment={onMoment} onError={onMomentError} onRecording={setMemoOn} focused={focused} />
 

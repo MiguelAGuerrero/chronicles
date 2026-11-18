@@ -4,6 +4,7 @@ import type { OutlineTile } from '../areas/outlines';
 import type { WalkTile } from '../walk/types';
 import type { AtlasArea } from '../atlas/atlas';
 import type { Complex } from '../complexes/types';
+import type { WalkLine } from '../pastLines/core';
 import type { Mark, Place, Recall } from '../discovery/types';
 import type { StoredReaction } from '../reactions/core';
 import type { Transcript } from '../transcript/core';
@@ -203,6 +204,18 @@ export interface Db {
   putOutlineTiles(tiles: OutlineTile[]): Promise<void>;
   /** The tiles of these keys that were read, in key order. */
   getOutlineTiles(keys: string[]): Promise<OutlineTile[]>;
+
+  /**
+   * Where I've been (WB14): each walk's walked line, a cache of its trace keyed by walk, with the z12 tiles it crosses;
+   * the same walk replaces its line and its tiles. Not tied to the tile build, so `purgeDerived` keeps it; `deleteWalk` takes it.
+   */
+  putWalkLine(line: WalkLine): Promise<void>;
+  /** The lines crossing any of these tiles, each once, in walk order. */
+  getWalkLinesIn(tiles: string[]): Promise<WalkLine[]>;
+  /** Every kept line's walk and rule code, never its runs: what is stale is decided from this. */
+  listWalkLineCodes(): Promise<{ walk_id: string; code: string }[]>;
+  /** Removes a walk's line and its tiles; a walk with none is a no-op. */
+  deleteWalkLine(walkId: string): Promise<void>;
 
   /** Walkability (WK2): what each read z14 tile held, a cache keyed `x/y`; the same key replaces a tile. */
   putWalkTiles(tiles: WalkTile[]): Promise<void>;

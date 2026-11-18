@@ -1,6 +1,7 @@
 // @layer shell
 import { db } from './db';
 import { newId } from './id';
+import { pastLines } from './pastLines';
 import { deletions } from './deletion';
 import { dropEmpty } from './emptyWalk';
 import { clearNav, clearWayBack } from './nav/store';
@@ -70,6 +71,8 @@ export function stopWalk(walkId: string): Promise<void> {
       await clearNav().catch(() => {});
       // So does the spot chosen with Walk back here (DW7).
       await clearWayBack().catch(() => {});
+      // Its line joins Where I've been (WB8, WB14); a failure leaves it for the layer to prepare.
+      void pastLines.build(walkId).catch(() => {});
     })().finally(() => {
       stopping = null;
     });

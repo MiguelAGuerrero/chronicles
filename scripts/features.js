@@ -197,9 +197,9 @@ const FEATURES = [
     name: 'layers',
     about: 'map layers: the Layers button and panel, what is on, storefronts and town borders as layers',
     rule: 'layers',
-    source: ['src/lib/layers/**', 'src/components/LayersControl.tsx'],
-    journeys: ['layers', 'dense', 'switches'],
-    specs: ['map-layers', 'explore-dense-city', 'smooth-switches', 'storefronts'],
+    source: ['src/lib/layers/**', 'src/lib/pastLines/**', 'src/components/LayersControl.tsx'],
+    journeys: ['layers', 'dense', 'switches', 'where'],
+    specs: ['map-layers', 'explore-dense-city', 'smooth-switches', 'storefronts', 'where-ive-been'],
   },
   {
     name: 'walkability',

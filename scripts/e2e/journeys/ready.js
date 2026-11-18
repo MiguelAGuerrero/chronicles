@@ -293,12 +293,12 @@ async function run(h) {
         await sp.waitForTimeout(600);
       }
       await shot(sp, 'ready-nr11-walk');
-      const walkBad = await layout(['walk-minimize', 'unwalked', 'walk-back', 'recenter', 'cap-photo', 'cap-voice', 'cap-note', 'pause-walk']);
+      const walkBad = await layout(['walk-minimize', 'walk-back', 'recenter', 'cap-photo', 'cap-voice', 'cap-note', 'pause-walk']);
       check(walkBad.length === 0, `ready NR11: at 375×667 the walk's buttons, with every edge button up, are on screen, 44 or more, apart (${walkBad.join(', ')}; ${await stats(sp)})`);
       // Paused, Resume and Stop take Pause's place (decision 0220): the same rule holds.
       await toStop(sp);
       await shot(sp, 'ready-nr11-walk-paused');
-      const pausedBad = await layout(['walk-minimize', 'unwalked', 'walk-back', 'recenter', 'cap-photo', 'cap-voice', 'cap-note', 'resume-walk', 'stop']);
+      const pausedBad = await layout(['walk-minimize', 'walk-back', 'recenter', 'cap-photo', 'cap-voice', 'cap-note', 'resume-walk', 'stop']);
       check(pausedBad.length === 0, `ready NR11, 0220: paused, Resume and Stop are on screen, 44 or more, apart from the rest (${pausedBad.join(', ')}; ${await stats(sp)})`);
       await small.close();
     }

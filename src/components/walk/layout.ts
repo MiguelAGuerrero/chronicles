@@ -17,7 +17,7 @@ export const CAP = 56;
 export const CAP_SMALL = 48;
 /** Between the stack's buttons, and between the stack and the strip. */
 export const STACK_GAP = 12;
-/** The small round edge buttons (Locate or Recenter, unwalked streets, walk me back). */
+/** The small round edge buttons (Locate or Recenter, walk me back, the compass). */
 export const EDGE = 44;
 /** Between the captures and the first edge button above them. */
 const EDGE_LIFT = 16;

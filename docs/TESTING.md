@@ -457,10 +457,61 @@ npm run test:feature <feature>                          # the slice's feature, w
 npm run export:web && E2E_ONLY=<journey> npm run e2e:web   # the journeys chosen below, not every one it names
 ```
 
+### Size the testing to the change (the owner's call, Nov 18, decision 0223)
+
+Testing is sized by what a change can break, never by how many journeys `check:affected` names. The where-ive-been
+slice (one button removed, one layer added) ran about an hour of journeys where 15 to 20 minutes proved it: its new
+journey ran seven times for its own bugs, journeys ran for shell wiring a unit test already proved, a failure in a
+journey it did not need got a three-run baseline on `main`, and the same seven journeys ran again after a merge for
+the deploy.
+
+**Size the change first, then pick.** Before any journey, write down the change's size, the journeys it implies and
+their minutes (the table below). A set bigger than the size allows is a question for the owner, not a default.
+
+| Size | What changed | Journeys |
+|---|---|---|
+| none | logic, rules, copy or wiring a unit test proves; docs; tests | none: `npm test` is the proof |
+| small | one screen's control or look: a control added, removed, renamed or moved; a colour; a layer's row | the journey holding the change's own checks (new or edited), and each journey naming a removed or renamed test id, word or slot (`grep -ln "<testid>\|<words>" scripts/e2e/journeys/*.js`), once each |
+| flow | wiring between screens, navigation, what a screen stores and reads back, the recorder | small's set, and the journeys holding checks on that wiring (rule 2 below) |
+| build | Babel, Metro, `app.json` experiments | every main screen's journey once (below) |
+
+The full flow only when the owner asks (0074).
+
+- **A removal is found by grep, not by the file map.** Removing a control breaks only the journeys that touch it: grep
+  its test id, its words and its slot's name. `check:affected` lists every journey of every feature owning a file the
+  change edits; for a removal most of that list holds nothing the change reaches.
+- **Wiring a unit test covers adds no journey.** A shell function that now also calls another (Stop also builds a
+  cache; a decision also drops one), proven by its shell test over `fakePorts()`, needs no journey, even when its file
+  maps to one.
+- **A new journey runs alone until it is green**, and its pictures are read before it joins a batch: its own bugs (a
+  test id two elements share, a control a state hides, a fixture off the street grid) cost one journey's minutes each
+  try, not a batch's.
+- **A failure in a journey the size did not call for is not chased.** Drop the journey from the set: no rerun and no
+  baseline. `npm run e2e:baseline` is for a failing journey the change needs.
+- **A timing check that fails in a batch** (a cone, a glide, a count over seconds) is rerun alone once before
+  anything else: three journeys on four cores slow the page.
+- **After a merge from `main`, rerun only the journeys whose files or checks the merge changed** (`npm run
+  check:affected -- --since <last green commit>`), and only those the size calls for. `main`'s own changes were
+  checked on `main`.
+- **The deploy's sub-path run** (`/deploy`): the change's own journey and `launch` (the base-URL smoke) against
+  `/chronicles`. Journeys green on the root build at the same commit are not run again, unless the change touches
+  base-URL or routing code (`app.config.js`, `experiments.baseUrl`, `public/`, `lib/walkNav`, a route's path).
+- **A long journey runs once for a change.** A second run of one over five minutes is asked of the owner first.
+
+Measured minutes (the cloud container, Nov 18; alone or three in a batch), for the estimate:
+
+| Journey | Minutes |
+|---|---|
+| `qol` | 11 |
+| `palette` | 6.5 |
+| `walk` | 2 to 5 |
+| `launch`, `ready`, `where` | 2 |
+| `reload`, `layers`, `gaps` | about 1 |
+
 ### Choosing the journeys
 
 `check:affected` names every journey of every feature that owns a changed file: a list of what a change
-*reaches*, not what it must run. Choose from it (the owner's call, Nov 10, after the UI conformance audit ran
+*reaches*, not what it must run. Size the change first (above), then choose from it (the owner's call, Nov 10, after the UI conformance audit ran
 eight journeys for 27 minutes where three, about 12, proved every fix):
 
 1. **Logic a unit test proves needs no journey.** A core or shell change with its own test (the Undo window,
@@ -497,7 +548,7 @@ A change that reaches every screen through the build (`app.json` experiments, Ba
 journey by its files: `check:affected` names only those that read it. Pick the journeys of every main screen by hand
 (decision 0207's compiler ran twenty), still once each; the full flow only when the owner asks.
 
-State in the report which journeys ran, which were reached and skipped, and why.
+State in the report the change's size, which journeys ran and their minutes, which were reached and skipped, and why.
 
 A slice that changes a screen adds or extends its own journey (`/e2e`); one
 that changes no screen runs no e2e. The full flow (no `E2E_ONLY`, about 15

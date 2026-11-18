@@ -3,6 +3,7 @@ import type { Area, WalkArea } from '../../areas/types';
 import type { OutlineTile } from '../../areas/outlines';
 import type { Complex } from '../../complexes/types';
 import type { WalkTile } from '../../walk/types';
+import type { WalkLine } from '../../pastLines/core';
 import type { AtlasArea } from '../../atlas/atlas';
 import { intersects, segmentBbox, segmentTile, tileKeysFor } from '../../db/segmentBounds';
 import { DERIVED_STORES } from '../../db/stores';
@@ -23,7 +24,7 @@ export const DB_READS = [
   'getWalk', 'listWalks', 'getOpenWalk', 'getPoints', 'getMoments', 'momentsBetween', 'getMomentsByIds', 'momentsIn',
   'getPauses', 'getStills', 'getGapDecisions', 'listThreads',
   'listAreas', 'listWalkAreas', 'getSegmentsIn', 'getVisited', 'visitedSegmentIds', 'streetKeysBefore', 'listSummaries', 'getSummary',
-  'placesIn', 'listMarks', 'listRecalls', 'listTranscripts', 'listLandings', 'listAtlasAreas', 'getOutlineTiles', 'getWalkTiles', 'complexesNear',
+  'placesIn', 'listMarks', 'listRecalls', 'listTranscripts', 'listLandings', 'listAtlasAreas', 'getOutlineTiles', 'getWalkTiles', 'getWalkLinesIn', 'listWalkLineCodes', 'complexesNear',
   'listChecklistAreas', 'checklistItemsIn', 'listExploreReads', 'listFinds', 'getMeta',
 ] as const;
 
@@ -154,6 +155,7 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
   const outlineTiles = new Table<OutlineTile>((r) => r.key);
   const complexes = new Table<Complex>((r) => r.id);
   const walkTiles = new Table<WalkTile>((r) => r.key);
+  const walkLines = new Table<WalkLine>((r) => r.walk_id);
   const checklistAreas = new Table<ChecklistArea>((a) => a.key);
   const checklistItems = new Table<ChecklistItem>((i) => i.key);
   const finds = new Table<Find>((f) => f.key);
@@ -318,6 +320,7 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
       finds.dropWhere(walkOf, walkId);
       marks.dropWhere(walkOf, walkId);
       summaries.delete(walkId);
+      walkLines.delete(walkId);
       meta.delete(exploredKey(walkId));
       walks.delete(walkId);
       // Places only this walk was in go (D8).
@@ -537,6 +540,19 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
       return out([...new Set(keys)].sort().flatMap((k) => outlineTiles.all().filter((t) => t.key === k)));
     },
 
+    async putWalkLine(line) {
+      walkLines.put(line);
+    },
+    async getWalkLinesIn(tiles) {
+      const want = new Set(tiles);
+      return out(walkLines.all().filter((l) => l.tiles.some((t) => want.has(t))).sort((a, b) => a.walk_id.localeCompare(b.walk_id)));
+    },
+    async listWalkLineCodes() {
+      return walkLines.all().map((l) => ({ walk_id: l.walk_id, code: l.code })).sort((a, b) => a.walk_id.localeCompare(b.walk_id));
+    },
+    async deleteWalkLine(walkId) {
+      walkLines.delete(walkId);
+    },
     async putWalkTiles(tiles) {
       for (const t of tiles) walkTiles.put(t);
     },

@@ -6,6 +6,7 @@ import { countsOf, recountNewStreets } from '../deletion/core';
 import type { LandingRow } from '../landing/view';
 import type { OutlineTile } from '../areas/outlines';
 import type { WalkTile } from '../walk/types';
+import type { WalkLine } from '../pastLines/core';
 import type { AtlasArea } from '../atlas/atlas';
 import type { Complex } from '../complexes/types';
 import type { Mark, Place, Recall } from '../discovery/types';
@@ -22,7 +23,7 @@ import { momentOf, type Flat } from '../moment';
 
 // Same tables as the native SQLite store, as IndexedDB object stores.
 const DB_NAME = 'chronicles';
-const VERSION = 22;
+const VERSION = 23;
 
 /** Raised when another open tab holds an older version of the database. */
 export class BlockedByOtherTabError extends Error {
@@ -182,6 +183,13 @@ export function migrate(d: IDBDatabase, tx: IDBTransaction, oldVersion: number, 
       for (const r of migrateTypes((c.value as { pieces: { id: string; moment_id: string; t: number; note_type?: string | null }[] }).pieces)) reactions.put(r);
       c.continue();
     };
+  }
+  if (oldVersion < 23 && upTo >= 23) {
+    // Where I've been (WB14, decision 0222): each walk's walked line, a cache of its trace, found by the z12 tiles it crosses.
+    const lines = d.createObjectStore('walk_line', { keyPath: 'walk_id' });
+    lines.createIndex('tiles', 'tiles', { multiEntry: true });
+    // Read by key alone, so listing what is stale never loads a line's runs.
+    lines.createIndex('code', 'code');
   }
 }
 
@@ -491,7 +499,7 @@ export const db: Db = {
   },
 
   async deleteWalk(walkId) {
-    const names = ['walk', 'trace_point', 'moment', 'pause', 'still', 'gap_fill', 'visited_segment', 'walk_summary', 'walk_area', 'area', 'find', 'recall', 'mark', 'meta', 'thread', 'thread_member', 'moment_link', 'transcript', 'reaction'];
+    const names = ['walk', 'trace_point', 'moment', 'pause', 'still', 'gap_fill', 'visited_segment', 'walk_summary', 'walk_area', 'area', 'find', 'recall', 'mark', 'meta', 'thread', 'thread_member', 'moment_link', 'transcript', 'reaction', 'walk_line'];
     const tx = (await conn()).transaction(names, 'readwrite');
     const os = (n: string) => tx.objectStore(n);
     return atomically(tx, async () => {
@@ -513,6 +521,8 @@ export const db: Db = {
       await dropBy(os('mark'), 'walk_id', walkId);
       os('walk_summary').delete(walkId);
       os('meta').delete(exploredKey(walkId));
+      // Its line goes with it (WB13).
+      os('walk_line').delete(walkId);
       os('walk').delete(walkId);
       // Places only this walk was in go (D8).
       const rows = (await done(os('walk_area').getAll())) as WalkArea[];
@@ -765,6 +775,38 @@ export const db: Db = {
     const s = await store('outline_tile');
     const got = await Promise.all([...new Set(keys)].sort().map((k) => done(s.get(k)) as Promise<OutlineTile | undefined>));
     return got.filter((t): t is OutlineTile => !!t);
+  },
+  async putWalkLine(line) {
+    const tx = (await conn()).transaction('walk_line', 'readwrite');
+    tx.objectStore('walk_line').put(line);
+    await committed(tx);
+  },
+  async getWalkLinesIn(tiles) {
+    if (!tiles.length) return [];
+    const idx = (await store('walk_line')).index('tiles');
+    const byId = new Map<string, WalkLine>();
+    for (const tile of new Set(tiles)) for (const l of (await done(idx.getAll(tile))) as WalkLine[]) byId.set(l.walk_id, l);
+    return [...byId.values()].sort((a, b) => a.walk_id.localeCompare(b.walk_id));
+  },
+  async listWalkLineCodes() {
+    const idx = (await store('walk_line')).index('code');
+    const out: { walk_id: string; code: string }[] = [];
+    await new Promise<void>((resolve, reject) => {
+      const cur = idx.openKeyCursor();
+      cur.onsuccess = () => {
+        const c = cur.result;
+        if (!c) return resolve();
+        out.push({ walk_id: String(c.primaryKey), code: String(c.key) });
+        c.continue();
+      };
+      cur.onerror = () => reject(cur.error);
+    });
+    return out.sort((a, b) => a.walk_id.localeCompare(b.walk_id));
+  },
+  async deleteWalkLine(walkId) {
+    const tx = (await conn()).transaction('walk_line', 'readwrite');
+    tx.objectStore('walk_line').delete(walkId);
+    await committed(tx);
   },
   async putWalkTiles(tiles) {
     if (!tiles.length) return;

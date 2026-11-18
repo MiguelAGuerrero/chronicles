@@ -33,7 +33,7 @@ import { useReducedMotion } from '../../lib/motion';
 import { useUnits } from '../../lib/useUnits';
 import { MOTION } from '../../lib/motionTokens';
 import {
-  alternatesGeoJSON, TRACE_EDGE_OPACITY, storefrontLayerOrder, storefrontNameLayers, storefrontNameRotate, storefrontNamesGeoJSON, routeGradesGeoJSON, pinsGeoJSON, BORDER, borderFillOpacity, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, DERIVE_ZOOM, endsGeoJSON, ENDS_PAINT, ENDS_RING_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON, BASE_VECTOR_SOURCE, POI_SOURCE_LAYER,
+  alternatesGeoJSON, PAST_STYLE, type PastView, TRACE_EDGE_OPACITY, storefrontLayerOrder, storefrontNameLayers, storefrontNameRotate, storefrontNamesGeoJSON, routeGradesGeoJSON, pinsGeoJSON, BORDER, borderFillOpacity, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, DERIVE_ZOOM, endsGeoJSON, ENDS_PAINT, ENDS_RING_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON, BASE_VECTOR_SOURCE, POI_SOURCE_LAYER,
   LINE_SOURCE, type CollectedFeatures, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
@@ -346,6 +346,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       out.pois = (await source.querySourceFeatures({ sourceLayer: 'poi' })).map(toRoad);
       return out;
     },
+    // A phone's screen reader moves on by itself when the compass goes (unverified on a device).
+    focus() {},
     resetNorth() {
       void cameraRef.current?.setStop({ bearing: 0, duration: props.animate === false || reduced ? 0 : MOTION.camera });
     },
@@ -489,7 +491,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         {/* Hotspots under the streets, in the one green no other layer uses (L9). */}
         <PocketsSource data={pockets} beforeId={storefrontOrder.lines} />
         <StripsSource data={strips} beforeId={storefrontOrder.lines} />
-        <FogSource data={fog} emphasis={!!props.fogEmphasis} />
+        <FogSource data={fog} />
+        <PastSource view={props.past ?? null} />
         <WalkedSource data={walked} />
         {/* A preview's other routes, faint, under the one highlighted (SR2). */}
         <AlternatesSource data={alternates} />
@@ -654,18 +657,33 @@ const StripsSource = memo(function StripsSource({ data, beforeId }: { data: FC; 
   );
 });
 
-const FogSource = memo(function FogSource({ data, emphasis }: { data: FC; emphasis: boolean }) {
+/** The fog is always quiet (decision 0222, WB1). */
+const FogSource = memo(function FogSource({ data }: { data: FC }) {
   return (
     <GeoJSONSource id="fog" data={data} {...LINE_SOURCE}>
       <Layer id="fog" type="line" layout={ROUND}
         paint={{
-          'line-color': emphasis ? FOG_BOLD : COLORS.fog,
-          'line-opacity': emphasis ? 1 : FOG_STYLE.opacity,
-          'line-width': emphasis ? 5 : FOG_STYLE.widthMax,
+          'line-color': COLORS.fog,
+          'line-opacity': FOG_STYLE.opacity,
+          'line-width': FOG_STYLE.widthMax,
         }} />
     </GeoJSONSource>
   );
 });
+
+/** Where I've been (WB9): one even tone, no edge, over the fog and under everything walked today (unverified on a device). */
+const PastSource = memo(
+  function PastSource({ view }: { view: PastView | null }) {
+    const data = useMemo(() => traceGeoJSON(view?.runs ?? []), [view]);
+    return (
+      <GeoJSONSource id="past" data={data} {...LINE_SOURCE}>
+        <Layer id="past" type="line" layout={ROUND} paint={{ 'line-color': COLORS.past, 'line-opacity': PAST_STYLE.opacity, 'line-width': PAST_STYLE.width }} />
+      </GeoJSONSource>
+    );
+  },
+  // By the lines' key (WB16): the same lines from a new object are not sent again.
+  (a, b) => (a.view?.key ?? '') === (b.view?.key ?? ''),
+);
 
 const WalkedSource = memo(function WalkedSource({ data }: { data: FC }) {
   return (

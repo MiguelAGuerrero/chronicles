@@ -263,3 +263,46 @@ test('map-palette ui 1: each kind disc on a pin of several keeps its white edge,
     assert.ok(contrast(edge[1], palette[k]) >= 3, `the edge against the ${k} disc ${contrast(edge[1], palette[k]).toFixed(2)}`);
   }
 });
+
+// Where I've been (WB9): the earlier walks' lines, written before the code; `COLORS.past`, `PAST_STYLE` and the `past`
+// source are read through the module's names, so the typecheck holds while the test fails.
+test('WB9: one even tone, thinner than today\'s trace with no edge, between the fog and the walked streets; told apart and quieter than the trace', () => {
+  const style = named.PAST_STYLE as { opacity: number; width: number } | undefined;
+  assert.ok(style, 'PAST_STYLE');
+  assert.equal(style.opacity, 1, 'opaque, so two walks over one street look like one');
+  assert.ok(style.width < FOG_STYLE.traceWidth && style.width > 0, `thinner than the trace (${style.width})`);
+  const ids = named.LINE_SOURCE_IDS as readonly string[];
+  assert.ok(ids.indexOf('past') > ids.indexOf('fog') && ids.indexOf('past') < ids.indexOf('walked'), `over the fog, under the walked streets, the route and the trace (${ids.join(',')})`);
+  assert.ok(!ids.includes('past-edge'), 'no white edge');
+  const past = palette.past;
+  assert.match(past ?? '', /^#[0-9a-f]{6}$/);
+  for (const ground of [LAND, E2E_LAND]) {
+    assert.ok(deltaE(past, palette.trace) >= 15, `told apart from the trace (${deltaE(past, palette.trace).toFixed(1)})`);
+    assert.ok(deltaE(past, palette.walked) >= 15, `told apart from the ink (${deltaE(past, palette.walked).toFixed(1)})`);
+    assert.ok(contrast(past, ground) < contrast(palette.trace, ground), `quieter than the trace on ${ground}`);
+  }
+  // Every map hosts it the same way: the web map draws no edge layer and no transition for it.
+  const web = read('components/map/WalkMap.web.tsx');
+  assert.match(web, /id: 'past'/);
+  assert.doesNotMatch(web, /'past'[^\n]*line-opacity-transition|past-edge/);
+});
+
+test('WB1, WB9: the walk screen never asks for a bold fog or the veil: the fog is quiet on every walk', () => {
+  const walk = read('app/walk.tsx');
+  assert.doesNotMatch(walk, /fogEmphasis|veil:/, 'no bold fog and no veil from the walk screen');
+  assert.doesNotMatch(walk, /unwalked/i, 'no unwalked-streets control, count or state');
+});
+
+// The UI review of where-ive-been (U2, WCAG 1.4.11): the earlier walks' line is content someone switched on, so it holds
+// 3:1 on the land, still quieter than the trace, and keeps the palette's colour-blind floor from the trace.
+test('where-ive-been ui 1: the earlier walks\' line is 3:1 on the land, quieter than the trace, 9.5 from it with deuteranopia and protanopia', () => {
+  const past = palette.past;
+  assert.ok(contrast(past, LAND) >= 3, `3:1 on the land (${contrast(past, LAND).toFixed(2)})`);
+  assert.ok(contrast(past, LAND) < contrast(palette.trace, LAND), 'quieter than the trace');
+  for (const sight of ['deutan', 'protan'] as const) {
+    const d = deltaE(seen(past, sight), seen(palette.trace, sight));
+    assert.ok(d >= 9.5, `${d.toFixed(1)} from the trace (${sight})`);
+  }
+  const style = named.PAST_STYLE as { width: number };
+  assert.ok(style.width >= 3 && style.width < FOG_STYLE.traceWidth, `3 px or more, under the trace's (${style.width})`);
+});
