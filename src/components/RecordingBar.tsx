@@ -101,6 +101,11 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
   useEffect(() => {
     if (spoken && Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility(spoken);
   }, [spoken, offer?.id]);
+  // The bar's words (a refusal, a warning, a failure) are announced too: iOS reads no live regions, and a refused hold
+  // says why only here (tend tabs audit 45).
+  useEffect(() => {
+    if (said && Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility(said.text);
+  }, [said]);
   // A photo still being kept: Return waits for it, so the walk screen opens with it (NV9).
   const keeping = useRef<Promise<unknown> | null>(null);
   const returning = useRef(false);
