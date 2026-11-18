@@ -30,7 +30,7 @@ Verdict: aligned if reshaped
 Shape: a count decides which kinds are worth a value and never orders, weights or ranks anything a person sees; no chip says how
   many shops it holds; errands and services are out by kind, not by popularity; a chain stays behind "Include chains"
 Precedent: see "How adjacent apps do it"
-Criteria: SHF1-SHF30 below, with SHF14a and SHF21a
+Criteria: SHF1-SHF30 below, with SHF14a, SHF20a and SHF21a
 Open: the lists themselves, after the count; the composer's form
 ```
 
@@ -87,6 +87,12 @@ Every stop (the widening):
   several kinds (a gallery that sells is a gallery and a shop) and is one stop.
 - **SHF20.** The kinds are the kinds "What I'm into" already switches (57 today, in five groups), with the kinds missing from them
   added from the count: a gallery is none of them today. One list serves both screens: a kind added here is a switch there.
+- **SHF20a.** (the owner, Nov 18: "some other shops consider things like farmers markets, boutiques, gift shops, visitor centers,
+  and other I guess stops that aren't quite stores, for example, but are well-known attractions") The kinds are not held to what
+  a shop or a monument is: a farmers' market, a boutique, a gift shop, a visitor centre and a place that is simply known and
+  visited are kinds too, each under the group it sits nearest. A kind earns its place by being somewhere a person would stop on
+  an outing, shown by the count, never by being popular: no kind is "well-known" by a rating, a ranking or a number of visits;
+  it is one because a source names it as that kind of place (a market, a visitor centre, an attraction).
 - **SHF21.** A second facet says **whether a place is entered**. The owner's rule (Nov 18): "any sort of fenced off or bordered
   area that must be entered, especially with admission gating or some sort of visitation registration, should be entered. But
   things that can be appreciated from the outside, like a monument or a sculpture, would be outside." So **entered** is a
@@ -160,8 +166,10 @@ sizes are known; the owner chooses from the mocks.
 
 ## Open
 
-1. **The lists** (SHF2, SHF20): after chronicles-data's next OpenStreetMap run reports `osmKindCounts` (every value of `shop`,
-   `craft`, `tourism`, `historic`, `leisure` and `amenity` in the US).
+1. **The lists** (SHF2, SHF20, SHF20a): after chronicles-data's next OpenStreetMap run reports `osmKindCounts` (every value of
+   `shop`, `craft`, `tourism`, `historic`, `leisure`, `amenity` and `information` in the US; a farmers' market is
+   `amenity=marketplace`, a visitor centre `information=visitor_centre`). That run has to be started by the owner: this session
+   may not start a workflow there.
 2. **Whether clothes, shoes and jewellery sold new are "worth browsing"** or errands: the owner's, kind by kind, with the count.
 3. **The table of which kinds are entered** (SHF21a), by the owner's rule: drafted with the lists and shown to the owner. By that
    rule a park with no fence is arguable, as are a cemetery and a church; the draft will say which way each went and why.
@@ -174,5 +182,5 @@ sizes are known; the owner chooses from the mocks.
 ## Record
 
 Nothing is built in the app. Decision 0219, widened the same day. chronicles-data: the counts of every kind of stop are built on
-its main since Nov 18 (SK1-SK11, 127 tests: every value of six keys, the second-hand among shops, and how many of each kind
+its main since Nov 18 (SK1-SK12, 127 tests: every value of six keys, the second-hand among shops, and how many of each kind
 state opening hours); no OpenStreetMap run has reported them yet.
