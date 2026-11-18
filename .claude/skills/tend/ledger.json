@@ -150,8 +150,8 @@
     "explore": {
       "state": "rough",
       "swept": "2026-11-18",
-      "main": "c91583935de60c0433f938a35d35546dfb3469a3",
-      "note": "No sweep (lenses 1-7 not run): aimed at DEFERRED's [loop] medium of Nov 17, a reminder fired with no place in front (a replay or day over the tabs) going to a notification the web never shows. Built tend explore 24 (it waits for the next place in front of its walk, take) and the review's F1-F5 as tend explore audits 28-31 (what waits becomes a notification on background, merged per walk; moments in Undo left out; the web's hidden page in the memories journey; places.fire gone). Filed [loop] low: the memories journey's audit 23 area-card step missed 2 of 3 runs. Still [loop]: the bar's RECALL_OPEN_KEY low, readNear's write retry (medium) and the older lows."
+      "main": "252dbd43f6736f4f53bbec00d84cae4066517a51",
+      "note": "No sweep (lenses 1-7 not run): aimed at DEFERRED's [loop] medium on readNear's write failure (Explore and discovery) and the memories journey's audit 23 low. Built tend explore 25 (a near read whose write fails shows its rows, unkept, and is asked again after retryMs, not every 1.5 s; atlas/read is now a factory, readShell.ts, on fake ports) and 26 (the journey waits for Fox Point's ring), and the review's F1-F4 as tend explore audits 32-35 (an unkept near read held so the towns follow, a ring's write failure keeps its profile, failed listAtlasAreas and tile_url reads read nothing). Filed a native check (a full disk through the SQLite queue). Still [loop]: the bar's RECALL_OPEN_KEY low and the older lows."
     },
     "navigation": {
       "state": "rough",
