@@ -1654,8 +1654,6 @@ function WalkScreen(props: { onMinimize: () => void }) {
                   {live.here ? ' The ring on the map shows how far that is.' : ' The ring shows on the map once there’s a position.'}
                 </Text>
                 <RangeSlider value={settings.rangeM} onChange={(m) => changeSettings({ ...settings, rangeM: clampRange(m) })} />
-                {/* WI1: one row where the list was; the kinds and Complexes are on its page (decision 0192). */}
-                <IntoRow />
               </>
             )}
             {Object.values(layers.on).some(Boolean) && (
@@ -1706,6 +1704,15 @@ function WalkScreen(props: { onMinimize: () => void }) {
               <Icon name="share-outline" size={20} color={theme.ink} />
               <Text style={[styles.optionLabel, { flex: 1 }]}>Share GPS log</Text>
             </Pressable>
+            {exploring && (
+              // WI1, WI19: What I'm into lasts beyond this walk, so its row is a short section of its own after the walk's
+              // settings, out from under "This walk" (the owner, Nov 18); the kinds and Complexes are on its page (0192).
+              <>
+                <View style={styles.rule} />
+                <Text style={styles.spotTitle} accessibilityRole="header">Every walk</Text>
+                <IntoRow from="walk" />
+              </>
+            )}
         </View>
       </ReadyBar>
 
@@ -2023,6 +2030,7 @@ const styles = StyleSheet.create({
     shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 6,
   },
   spotTitle: { fontSize: 16, fontWeight: '700', color: theme.ink },
+  rule: { height: StyleSheet.hairlineWidth, backgroundColor: theme.edge, marginTop: 8 },
   markSub: { fontSize: 14, color: theme.muted },
   optionRow: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 48 },
   optionLabel: { fontSize: 15, fontWeight: '600', color: theme.ink },

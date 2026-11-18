@@ -8,9 +8,10 @@ import { router } from 'expo-router';
  */
 const state = { detour: false };
 
-export function openInto(): void {
+/** `from: 'walk'` when opened from the walk's drawer during a walk: its Back then names the walk (WI20). */
+export function openInto(from: 'walk' | 'ready' = 'ready'): void {
   state.detour = true;
-  router.push('/into');
+  router.push(from === 'walk' ? { pathname: '/into', params: { from: 'walk' } } : '/into');
 }
 
 /** Whether the screen is being left for the page; asked once, on that blur. */

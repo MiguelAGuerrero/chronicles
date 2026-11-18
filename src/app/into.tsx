@@ -1,7 +1,8 @@
-import { router, Stack, useIsFocused } from 'expo-router';
+import { router, Stack, useIsFocused, useLocalSearchParams } from 'expo-router';
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
 import { IntoPage, IntoTitle } from '../components/IntoPage';
+import { intoBack } from '../lib/explore/intoPage';
 
 export { ScreenError as ErrorBoundary } from '../components/ScreenError';
 
@@ -13,6 +14,9 @@ export { ScreenError as ErrorBoundary } from '../components/ScreenError';
  */
 export default function IntoRoute() {
   const focused = useIsFocused();
+  // From the walk's drawer, Back reads "Walk", the arrow and the word (WI20): the web's header shows it with the
+  // display mode `default`, iOS's own back button too; Android's shows its arrow alone, as the platform does.
+  const back = intoBack(useLocalSearchParams<{ from?: string }>().from);
   useEffect(() => {
     if (!focused || Platform.OS !== 'web' || typeof window === 'undefined') return;
     const onKey = (e: KeyboardEvent) => {
@@ -25,7 +29,7 @@ export default function IntoRoute() {
   }, [focused]);
   return (
     <>
-      <Stack.Screen options={{ headerTitle: () => <IntoTitle /> }} />
+      <Stack.Screen options={{ headerTitle: () => <IntoTitle />, ...(back ? { headerBackTitle: back.title, headerBackButtonDisplayMode: 'default' as const } : {}) }} />
       <IntoPage />
     </>
   );

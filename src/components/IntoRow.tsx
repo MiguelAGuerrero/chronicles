@@ -13,7 +13,7 @@ import { theme } from './ui';
  * whole row one target; a tap pushes the page. It carries no count or summary of what is on (WI12). Back from the page
  * puts focus on it again (WI14): the stack doesn't, on the web.
  */
-export function IntoRow() {
+export function IntoRow(props: { from?: 'walk' | 'ready' }) {
   const ref = useRef<ComponentRef<typeof Pressable>>(null);
   const opened = useRef(false);
   const focused = useIsFocused();
@@ -32,7 +32,7 @@ export function IntoRow() {
       accessibilityHint={INTO_HINT}
       onPress={() => {
         opened.current = true;
-        openInto();
+        openInto(props.from);
       }}
       style={({ pressed }) => [styles.row, pressed && styles.pressed]}
     >
