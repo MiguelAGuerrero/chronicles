@@ -951,7 +951,7 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       walk_id, code, bounds: [LON, LAT, LON + 0.001, LAT + 0.001], tiles, runs: [[[LON, LAT], [LON + 0.001, LAT + 0.001]]],
     });
 
-    test('FC7 putWalkLine, getWalkLinesIn, listWalkLineCodes, deleteWalkLine (WB14): the same walk replaces its line and its tiles; only lines crossing the tiles asked for come back, once each, in walk order; a delete takes the line', { todo: 'test first' }, async () => {
+    test('FC7 putWalkLine, getWalkLinesIn, listWalkLineCodes, deleteWalkLine (WB14): the same walk replaces its line and its tiles; only lines crossing the tiles asked for come back, once each, in walk order; a delete takes the line', async () => {
       const db = (await fresh()) as unknown as LineDb & Db;
       assert.deepEqual(await db.getWalkLinesIn(['12/1/1']), []);
       assert.deepEqual(await db.listWalkLineCodes(), []);
@@ -971,7 +971,7 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.deepEqual((await db.listWalkLineCodes()).map((r) => r.walk_id).sort(), ['a', 'c']);
     });
 
-    test('FC7 deleteWalk, purgeDerived (WB13, WB14): a deleted walk takes its line and tiles; a new tile build keeps every line (it reads no tiles)', { todo: 'test first' }, async () => {
+    test('FC7 deleteWalk, purgeDerived (WB13, WB14): a deleted walk takes its line and tiles; a new tile build keeps every line (it reads no tiles)', async () => {
       const db = (await fresh()) as unknown as LineDb & Db;
       await db.createWalk(walk('a', 1));
       await db.createWalk(walk('b', 2));

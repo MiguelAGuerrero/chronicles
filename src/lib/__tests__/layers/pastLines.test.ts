@@ -56,7 +56,7 @@ const line = (walk_id: string, runs: LngLat[][], code = 'p1'): WalkLine => {
   return { walk_id, code, bounds: [Math.min(...lons), Math.min(...lats), Math.max(...lons), Math.max(...lats)], tiles: [], runs };
 };
 
-test('WB7: only walked fixes draw; a ride, a pause and a gap left unresolved break the line', { todo: 'test first' }, async () => {
+test('WB7: only walked fixes draw; a ride, a pause and a gap left unresolved break the line', async () => {
   const { lineOf } = await core();
   // 300 m walked, a 2-minute pause, 300 m walked, a ride of 1 km at 10 m/s, 200 m walked, then 5 minutes with no fix (a gap), 200 m walked.
   const a = along('w', 0, 300, T0);
@@ -73,7 +73,7 @@ test('WB7: only walked fixes draw; a ride, a pause and a gap left unresolved bre
   for (const r of l.runs) for (const p of r) assert.ok(!(p[0] > at(650)[0] && p[0] < at(1550)[0]), 'a ridden point is never drawn');
 });
 
-test('WB7: a gap the walker kept draws; one filled by itself (an inference, never stored) does not', { todo: 'test first' }, async () => {
+test('WB7: a gap the walker kept draws; one filled by itself (an inference, never stored) does not', async () => {
   const { lineOf } = await core();
   const a = along('w', 0, 200, T0);
   const b = along('w', 400, 600, a[a.length - 1].t + 240_000);
@@ -84,7 +84,7 @@ test('WB7: a gap the walker kept draws; one filled by itself (an inference, neve
   assert.equal(lineOf('w', readTrace([...a, ...b], T0, [], [], [kept])).runs.length, 1);
 });
 
-test('WB16: a run is simplified within 5 m of the walked trace, keeping its ends', { todo: 'test first' }, async () => {
+test('WB16: a run is simplified within 5 m of the walked trace, keeping its ends', async () => {
   const { simplifyRun, SIMPLIFY_M } = await core();
   assert.equal(SIMPLIFY_M, 5);
   // A straight 500 m with 1 m wobble every 5 m, then a right angle.
@@ -109,7 +109,7 @@ test('WB16: a run is simplified within 5 m of the walked trace, keeping its ends
   }
 });
 
-test('WB6: a line that passes within 5 km of the centre draws; one further away does not', { todo: 'test first' }, async () => {
+test('WB6: a line that passes within 5 km of the centre draws; one further away does not', async () => {
   const { nearLines, PAST_REACH_M } = await core();
   assert.equal(PAST_REACH_M, 5000);
   const near = line('near', [[at(4000, 0), at(4500, 0)]]);
@@ -119,7 +119,7 @@ test('WB6: a line that passes within 5 km of the centre draws; one further away 
   assert.deepEqual(nearLines([near, corner, far], O).map((l) => l.walk_id), ['near']);
 });
 
-test('WB6: the tiles of the reach cover every point within 5 km, and are few', { todo: 'test first' }, async () => {
+test('WB6: the tiles of the reach cover every point within 5 km, and are few', async () => {
   const { reachTiles, lineOf } = await core();
   const tiles = new Set(reachTiles(O));
   assert.ok(tiles.size > 0 && tiles.size <= 9, `a handful of tiles (${tiles.size})`);
@@ -129,14 +129,14 @@ test('WB6: the tiles of the reach cover every point within 5 km, and are few', {
   }
 });
 
-test('WB8, WB13: the walk being recorded and a walk waiting to be deleted are never drawn', { todo: 'test first' }, async () => {
+test('WB8, WB13: the walk being recorded and a walk waiting to be deleted are never drawn', async () => {
   const { visibleLines } = await core();
   const rows = ['a', 'b', 'open'].map((id) => line(id, [[at(0), at(100)]]));
   assert.deepEqual(visibleLines(rows, new Set(['b']), 'open').map((l) => l.walk_id), ['a']);
   assert.deepEqual(visibleLines(rows, new Set(), null).map((l) => l.walk_id), ['a', 'b', 'open']);
 });
 
-test('WB16: the key the map is sent on changes only with the set of lines', { todo: 'test first' }, async () => {
+test('WB16: the key the map is sent on changes only with the set of lines', async () => {
   const { linesKey } = await core();
   const a = line('a', [[at(0), at(100)]]);
   const b = line('b', [[at(0), at(200)]]);
@@ -146,14 +146,14 @@ test('WB16: the key the map is sent on changes only with the set of lines', { to
   assert.notEqual(linesKey([a]), linesKey([{ ...a, code: 'p2' }]));
 });
 
-test('WB14, WB8: a closed walk with no line, or a line of another rule code, is stale; an open walk never is', { todo: 'test first' }, async () => {
+test('WB14, WB8: a closed walk with no line, or a line of another rule code, is stale; an open walk never is', async () => {
   const { staleIds, LINE_CODE } = await core();
   const walks = [{ id: 'a', open: false }, { id: 'b', open: false }, { id: 'c', open: false }, { id: 'o', open: true }];
   const codes = [{ walk_id: 'a', code: LINE_CODE }, { walk_id: 'b', code: 'old' }];
   assert.deepEqual(staleIds(walks, codes).sort(), ['b', 'c']);
 });
 
-test('WB15: older walks are prepared nearest the centre first; walks with no known place last, newest first', { todo: 'test first' }, async () => {
+test('WB15: older walks are prepared nearest the centre first; walks with no known place last, newest first', async () => {
   const { prepareOrder } = await core();
   const walks = [
     { id: 'far', at: at(9000), started_at: 3 },

@@ -6,6 +6,7 @@ import type { ReadTrace } from '../rides';
 import { deriveSegments, type RoadFeature } from '../streets';
 import { tilesIn } from '../tileMath';
 import type { GapDecision } from '../types';
+import { pastLines } from '../pastLines';
 import { decisionOf, keepAll, markAsked, wasAsked } from './keep';
 import { decisionFor, GAP_RULES, gapKey, gapsOf, inferGap, readBounds, stretchesFor, type Gap, type Inference, type Stretch } from './infer';
 
@@ -97,12 +98,18 @@ export async function readDrawTiles(tiles: [number, number][]): Promise<{ roads:
 }
 
 /** Keeps or dismisses a stretch (G10). */
-export function decide(walkId: string, s: Stretch, state: GapDecision['state'], now = Date.now()): Promise<void> {
-  return db.putGapDecision(decisionOf(walkId, s, state, now));
+export async function decide(walkId: string, s: Stretch, state: GapDecision['state'], now = Date.now()): Promise<void> {
+  await db.putGapDecision(decisionOf(walkId, s, state, now));
+  // The walk's line is built again with it (Where I've been, WB14).
+  await pastLines.drop(walkId).catch(() => {});
 }
 
 /** Keeps every offered stretch at once (G15): one stored decision each, as Keep on its card. */
-export const keepAllOffers = (walkId: string, offers: Stretch[], now = Date.now()): Promise<number> => keepAll((d) => db.putGapDecision(d), walkId, offers, now);
+export const keepAllOffers = async (walkId: string, offers: Stretch[], now = Date.now()): Promise<number> => {
+  const n = await keepAll((d) => db.putGapDecision(d), walkId, offers, now);
+  await pastLines.drop(walkId).catch(() => {});
+  return n;
+};
 export const gapsAsked = (walkId: string): Promise<boolean> => wasAsked(db, walkId);
 export const noteAsked = (walkId: string): Promise<void> => markAsked(db, walkId);
 

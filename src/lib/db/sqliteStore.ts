@@ -12,6 +12,7 @@ import type { Area, WalkArea } from '../areas/types';
 import type { LandingRow } from '../landing/view';
 import type { OutlineTile } from '../areas/outlines';
 import type { WalkTile } from '../walk/types';
+import type { WalkLine } from '../pastLines/core';
 import type { AtlasArea } from '../atlas/atlas';
 import type { Complex } from '../complexes/types';
 import type { Mark, Recall } from '../discovery/types';
@@ -357,6 +358,9 @@ export function makeSqliteDb(open: () => Promise<SQLiteDatabase>, openWriter?: (
           await t.runAsync(`DELETE FROM ${table} WHERE walk_id = ?`, walkId);
         }
         await t.runAsync('DELETE FROM meta WHERE key = ?', exploredKey(walkId));
+        // Its line goes with it (WB13).
+        await t.runAsync('DELETE FROM walk_line_tile WHERE walk_id = ?', walkId);
+        await t.runAsync('DELETE FROM walk_line WHERE walk_id = ?', walkId);
         await t.runAsync('DELETE FROM walk WHERE id = ?', walkId);
         // Places only this walk was in go (D8).
         await t.runAsync('DELETE FROM area WHERE key NOT IN (SELECT DISTINCT area_key FROM walk_area)');
@@ -654,6 +658,39 @@ export function makeSqliteDb(open: () => Promise<SQLiteDatabase>, openWriter?: (
         const shapes: OutlineTile['hoods'] = JSON.parse(hoods);
         // A tile kept before the shapes were cut has none, as IndexedDB's has no field (HB12).
         return { ...r, pieces: JSON.parse(r.pieces), points: JSON.parse(r.points), ...(shapes?.length ? { hoods: shapes } : {}) };
+      });
+    },
+    putWalkLine(line) {
+      return write(async (t) => {
+        const [west, south, east, north] = line.bounds;
+        await t.runAsync('INSERT OR REPLACE INTO walk_line (walk_id, code, west, south, east, north, runs) VALUES (?, ?, ?, ?, ?, ?, ?)',
+          line.walk_id, line.code, west, south, east, north, JSON.stringify(line.runs));
+        await t.runAsync('DELETE FROM walk_line_tile WHERE walk_id = ?', line.walk_id);
+        await eachRow(t, 'INSERT OR IGNORE INTO walk_line_tile (walk_id, tile) VALUES (?, ?)', line.tiles, (tile) => [line.walk_id, tile]);
+      });
+    },
+    async getWalkLinesIn(tiles) {
+      if (!tiles.length) return [];
+      const want = [...new Set(tiles)];
+      type Row = { walk_id: string; code: string; west: number; south: number; east: number; north: number; runs: string };
+      const db = await conn();
+      const rows = await db.getAllAsync<Row>(
+        `SELECT * FROM walk_line WHERE walk_id IN (SELECT DISTINCT walk_id FROM walk_line_tile WHERE tile IN (${want.map(() => '?').join(', ')})) ORDER BY walk_id`, ...want);
+      if (!rows.length) return [];
+      const ids = rows.map((r) => r.walk_id);
+      const tileRows = await db.getAllAsync<{ walk_id: string; tile: string }>(
+        `SELECT walk_id, tile FROM walk_line_tile WHERE walk_id IN (${ids.map(() => '?').join(', ')}) ORDER BY tile`, ...ids);
+      const tilesOf = new Map<string, string[]>();
+      for (const r of tileRows) tilesOf.set(r.walk_id, [...(tilesOf.get(r.walk_id) ?? []), r.tile]);
+      return rows.map((r) => ({ walk_id: r.walk_id, code: r.code, bounds: [r.west, r.south, r.east, r.north] as WalkLine['bounds'], tiles: tilesOf.get(r.walk_id) ?? [], runs: JSON.parse(r.runs) }));
+    },
+    async listWalkLineCodes() {
+      return (await conn()).getAllAsync<{ walk_id: string; code: string }>('SELECT walk_id, code FROM walk_line ORDER BY walk_id');
+    },
+    deleteWalkLine(walkId) {
+      return write(async (t) => {
+        await t.runAsync('DELETE FROM walk_line_tile WHERE walk_id = ?', walkId);
+        await t.runAsync('DELETE FROM walk_line WHERE walk_id = ?', walkId);
       });
     },
     putWalkTiles(tiles) {

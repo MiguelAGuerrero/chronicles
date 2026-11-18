@@ -59,7 +59,7 @@ async function seed(p: FakePorts, id: string, x0: number, x1: number, t0 = T0, o
   await p.db.appendPoints(along(id, x0, x1, t0));
 }
 
-test('WB14: a walk\'s line is built from its trace, kept with its bounds, tiles and rule code', { todo: 'test first' }, async () => {
+test('WB14: a walk\'s line is built from its trace, kept with its bounds, tiles and rule code', async () => {
   const p = fakePorts();
   await seed(p, 'a', 0, 400);
   const past = await shellOf(p);
@@ -73,7 +73,7 @@ test('WB14: a walk\'s line is built from its trace, kept with its bounds, tiles 
   assert.deepEqual(again, built);
 });
 
-test('WB14: a gap decision drops the walk\'s line, and the next build draws the kept stretch', { todo: 'test first' }, async () => {
+test('WB14: a gap decision drops the walk\'s line, and the next build draws the kept stretch', async () => {
   const p = fakePorts();
   await p.db.createWalk(walk('a', T0));
   const a = along('a', 0, 200, T0);
@@ -91,13 +91,14 @@ test('WB14: a gap decision drops the walk\'s line, and the next build draws the 
   assert.equal((await past.build('a'))?.runs.length, 2);
 });
 
-test('WB14, WB15: prepare builds the closed walks with no current line, one at a time, never the open walk', { todo: 'test first' }, async () => {
+test('WB14, WB15: prepare builds the closed walks with no current line, one at a time, never the open walk', async () => {
   const p = fakePorts();
   await seed(p, 'a', 0, 300);
   await seed(p, 'b', 1000, 1300, T0 + 10_000_000);
   await seed(p, 'open', 0, 100, T0 + 20_000_000, true);
   await lineDb(p).putWalkLine({ walk_id: 'b', code: 'an-old-rule', bounds: [0, 0, 0, 0], tiles: [], runs: [] });
   const past = await shellOf(p);
+  p.log.clear();
   await past.prepare(O);
   const codes = (await lineDb(p).listWalkLineCodes()).sort((x, y) => x.walk_id.localeCompare(y.walk_id));
   const { LINE_CODE } = (await import(CORE as string)) as { LINE_CODE: string };
@@ -107,7 +108,7 @@ test('WB14, WB15: prepare builds the closed walks with no current line, one at a
   assert.deepEqual(order, ['db.getPoints', 'db.putWalkLine', 'db.getPoints', 'db.putWalkLine']);
 });
 
-test('WB15: prepare stops when told, and a walk that fails is left for next time without stopping the others', { todo: 'test first' }, async () => {
+test('WB15: prepare stops when told, and a walk that fails is left for next time without stopping the others', async () => {
   const p = fakePorts();
   await seed(p, 'a', 0, 300);
   await seed(p, 'b', 500, 800, T0 + 10_000_000);
@@ -126,7 +127,7 @@ test('WB15: prepare stops when told, and a walk that fails is left for next time
   assert.equal((await lineDb(q).listWalkLineCodes()).length, 1, 'told to stop after one walk');
 });
 
-test('WB16: preparing tells its listeners twice, at the start and when done, never once per walk', { todo: 'test first' }, async () => {
+test('WB16: preparing tells its listeners twice, at the start and when done, never once per walk', async () => {
   const p = fakePorts();
   for (let k = 0; k < 4; k++) await seed(p, `w${k}`, k * 200, k * 200 + 150, T0 + k * 10_000_000);
   const past = await shellOf(p);
@@ -141,7 +142,7 @@ test('WB16: preparing tells its listeners twice, at the start and when done, nev
   assert.deepEqual(seen, []);
 });
 
-test('WB6: near reads the lines of the reach\'s tiles and keeps those within 5 km', { todo: 'test first' }, async () => {
+test('WB6: near reads the lines of the reach\'s tiles and keeps those within 5 km', async () => {
   const p = fakePorts();
   await seed(p, 'near', 0, 300);
   await seed(p, 'far', 20_000, 20_300, T0 + 10_000_000);
@@ -154,10 +155,11 @@ test('WB6: near reads the lines of the reach\'s tiles and keeps those within 5 k
   assert.deepEqual(p.log.calls('db.'), ['db.getWalkLinesIn'], 'one indexed read, never a list of every walk');
 });
 
-test('WB17: building and drawing read only what the device holds', { todo: 'test first' }, async () => {
+test('WB17: building and drawing read only what the device holds', async () => {
   const p = fakePorts();
   await seed(p, 'a', 0, 300);
   const past = await shellOf(p);
+  p.log.clear();
   await past.prepare(O);
   await past.near(O);
   const allowed = new Set(['db.listWalks', 'db.listWalkLineCodes', 'db.listWalkAreas', 'db.getWalk', 'db.getPoints', 'db.getPauses', 'db.getStills', 'db.getGapDecisions', 'db.putWalkLine', 'db.getWalkLinesIn']);
