@@ -7,7 +7,9 @@ paths:
 
 UI code on both platforms: React Compiler lint rules, react-native-web differences, long presses, headers, focus, layout and the Modal wrapper. The codemap is in `docs/ARCHITECTURE.md`; the decisions and their history are in `docs/decisions/`.
 
-- React Compiler lint rules (`eslint-config-expo`):
+- React Compiler lint rules (`eslint-config-expo`). The compiler itself is on (`app.json` `experiments.reactCompiler`,
+  decision 0207), so these rules decide what gets memoized; a function it skips is listed in
+  `src/lib/__tests__/arch/compiler.baseline.json`, which only shrinks (`.claude/rules/performance.md`):
   - Call `setState` from callbacks, timers or subscriptions, not synchronously in an
     effect body.
   - Use lazy initializers for `Date.now()`.

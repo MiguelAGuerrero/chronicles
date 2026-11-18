@@ -1,0 +1,75 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "The React Compiler is not on",
+        "--reason",
+        "built: decision 0206, the compiler is on (specs/react-compiler RC1-RC3, Nov 18)"
+      ],
+      "target": "sha256:0cbf47794f4c09b465b0de3a3dccffac5beffb43e5b83218321ed7b362b03011"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Native map frames"
+      ],
+      "body": "- **The functions the React Compiler skips** (decision 0206; `src/lib/__tests__/arch/compiler.baseline.json`, 44 on Nov 18): 29 behind an `eslint-disable` of a React rule (most are `exhaustive-deps` on a `useMemo` keyed by a string, as `WalkMap.native.tsx` and `explore.tsx` do), 13 of syntax the compiler does not handle (`try`/`finally`, `??=`, a `throw` inside `try`), 1 reading a ref during render. Each compiles once rewritten (a key in a ref or a memoized value, a `catch`, a plain assignment); its area's next sweep takes them, and its line leaves the baseline.\n"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "add"
+      ],
+      "body": "| The React Compiler (on for the whole app; the functions it skips listed in `arch/compiler.baseline.json` and only shrinking; Explore switch p95 100 → 83 ms on the web; RC1-RC3, decision 0206) | built 2026-11-18, test-first by history; 20 journeys green on the `/chronicles` build, and after merging main the 30 covering its changes (scenic, gaps and drive broken on main, atlas a known flake); native unverified | `claude/bold-hawking-dx3pc8` | `specs/react-compiler/spec.md` | not audited |\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "The React Compiler (RC1-RC3, decision 0206)",
+        "--new"
+      ],
+      "body": "- [ ] **Do:** on a development build, walk 10 min, open the replay, scroll Memories and the gallery, switch Explore's neighbourhoods. **Expect:** everything behaves as on the web build; no screen shows stale content after a change (a compiled component skips a render only when its inputs are the same); React DevTools shows the compiled components as \"Memo ✨\". (RC1, decision 0206)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Chronicle journal, cut 1 (`specs/chronicle-journal/spec.md`, decision 0155)",
+        "--after",
+        "The `resurface` journey stops"
+      ],
+      "body": "- [loop] **The `drive` journey stops on `main`** (found Nov 18, the React Compiler deploy's baseline: three runs on 4dc0c25, each the same): after DW3 (When I get there opens Navigate, ready) it waits 15 s for `[data-testid=atlas-card]` to show again and it never does. Whether the card should come back on the return to Explore, or the journey's way back changed with the tabs' walk gate (tend tabs 14), is not known.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Chronicle journal, cut 1 (`specs/chronicle-journal/spec.md`, decision 0155)",
+        "--after",
+        "The `resurface` journey stops"
+      ],
+      "body": "- [loop] **The `gaps` journey fails gap-drawing audit 4 on `main`** (found Nov 18, the React Compiler deploy's baseline: three runs on 4dc0c25, each the same): Done is enabled before the paths between the taps are read (\"disabled false\"). Either Done no longer waits for the paths, or the paths now arrive before the check looks; find which before changing the check.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Chronicle journal, cut 1 (`specs/chronicle-journal/spec.md`, decision 0155)",
+        "--after",
+        "The `resurface` journey stops"
+      ],
+      "body": "- [loop] **The `scenic` journey fails SR1 on `main`** (found Nov 18, the React Compiler deploy's baseline: three runs on 4dc0c25, each the same): its `switches` reads every `[data-testid^=leaning-]`, and `SwitchRow` now gives a switch's note its own id (`<testID>-note`), so it reads six items for three switches, each switch still on. Narrow the selector to the switches (`[role=switch][data-testid^=leaning-]`); the journey stops there, so nothing after SR1 has run since.\n"
+    }
+  ]
+}

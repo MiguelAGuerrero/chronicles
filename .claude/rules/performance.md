@@ -46,9 +46,11 @@ is already a recorded trade-off is reopened with a number, not rediscovered.
 
 ## Rendering
 
-- **Nothing memoizes what the code doesn't.** The React Compiler is not on (`app.json` has no
-  `experiments.reactCompiler`; only its lint rules run, DEFERRED), so an inline object, array or closure is
-  new on every render and breaks every `memo` below it, the libraries' own included.
+- **The React Compiler is on** (decision 0207): it caches each compiled component's JSX and derived values by their
+  inputs. It skips a function with an `eslint-disable` of a React rule, `try`/`finally`, `??=` and a ref read in
+  render, and a skipped function memoizes nothing: `arch/compiler.baseline.json` lists today's, and a new one fails
+  `npm test` (CM2). Write code that compiles; keep explicit `memo` where a skip or a library needs it (the native
+  map's sources).
 - **No React state at frame rate above a costly subtree.** A value that changes per frame or per fix lives
   in a ref, an `Animated.Value` (native driver for opacity and transforms) or a small leaf component that
   owns it (`Ticking`, `WalkStats`). The parent never re-renders per frame.

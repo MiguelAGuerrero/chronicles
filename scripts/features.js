@@ -22,7 +22,7 @@ const FEATURES = [
     rule: 'functional-core',
     source: ['src/lib/types.ts', 'src/lib/{store,useStore,meta,id,focus}.ts', 'src/lib/ports/**', 'src/lib/net/**'],
     journeys: [],
-    specs: ['functional-core', 'affected-checks', 'test-organization', 'shells-saved-settings', 'test-gaps', 'device-acceptance', 'vision-gate'],
+    specs: ['functional-core', 'affected-checks', 'test-organization', 'shells-saved-settings', 'test-gaps', 'device-acceptance', 'vision-gate', 'react-compiler'],
   },
   {
     name: 'storage',
@@ -517,6 +517,8 @@ const UNTESTED = {
 const RENAMED = {
   // Video thumbnails were built as VT1-VT9 beside voice trim's VT1-VT12 on main; renamed on the merge (Nov 13).
   'video-thumbnails': { VS: 'VT' },
+  // The React Compiler was built as RC1-RC3 beside the replay ceremony's RC1-RC48 on main; renamed on the merge (Nov 18).
+  'react-compiler': { CM: 'RC' },
 };
 
 const IN_PROGRESS = {

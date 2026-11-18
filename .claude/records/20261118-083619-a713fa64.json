@@ -1,0 +1,30 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "slice",
+        "row",
+        "add"
+      ],
+      "body": "| The React Compiler (on for the whole app; the functions it skips listed in `arch/compiler.baseline.json` and only shrinking; Explore switch p95 100 → 83 ms on the web; RC1-RC3, decision 0203) | built 2026-11-18, test-first by history; 20 journeys green on the `/chronicles` build; not deployed; native unverified | `claude/bold-hawking-dx3pc8` | `specs/react-compiler/spec.md` | not audited |\n"
+    },
+    {
+      "argv": [
+        "inflight",
+        "remove",
+        "The React Compiler"
+      ],
+      "target": "sha256:4b2de29df9a5223b96dfc76385b14a9fb90300bfdefb20d7dd9a2f18d5b8c882"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "The React Compiler (RC1-RC3, decision 0203)",
+        "--new"
+      ],
+      "body": "- [ ] **Do:** on a phone, a development build made after the compiler went on, open each tab, start a walk, capture a photo and a memo, Stop and open the replay; in the dev console set `globalThis.__perf = {}` before the walk. **Expect:** no screen errors or stale values (a count, a pin or a moment that does not update after a change), and `render:map` and `render:glide` no higher than before the compiler (RC1, RC3).\n"
+    }
+  ]
+}

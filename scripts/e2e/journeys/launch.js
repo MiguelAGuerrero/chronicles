@@ -220,8 +220,11 @@ async function checks(h) {
     const entry = await page.evaluate(async () => {
       const srcs = [...document.querySelectorAll('script[src]')].map((s) => s.src).filter((s) => /\/_expo\/static\/js\/web\/index-[^/]*\.js$/.test(s));
       const texts = await Promise.all(srcs.map(async (s) => (await fetch(s)).text()));
-      return { srcs, bytes: texts.map((t) => t.length), pack: texts.some((t) => t.includes('geonames-cities5000')) };
+      return { srcs, bytes: texts.map((t) => t.length), pack: texts.some((t) => t.includes('geonames-cities5000')),
+        // CM1: each component the React Compiler compiles checks its memo cache against this sentinel.
+        memo: texts.reduce((n, t) => n + t.split('react.memo_cache_sentinel').length - 1, 0) };
     });
+    check(entry.memo >= 100, `CM1: the app is built with the React Compiler: its components carry the memo cache (${entry.memo} sentinels; one before it was on)`);
     check(entry.srcs.length === 1 && !entry.pack && packAsked.length === 0,
       `gazetteer web fetch 4: the entry script holds no place-name pack, and nothing asked for it before search opened (${entry.bytes.join()} bytes, ${packAsked.length} asked)`);
     // gazetteer web fetch 5: the first search asks for it once, from the app's own site under the base path, and finds a town.
