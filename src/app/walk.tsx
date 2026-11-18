@@ -1611,7 +1611,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
         summary={<WalkStats startedAt={walk?.started_at ?? null} pauses={pauses} distanceM={live.distanceM} rideM={live.rideM} />}
         actions={
           // Pause alone while walking; Resume and a held Stop once paused, as AllTrails and Nike Run Club do (decision 0208).
-          // Bare icon and word, no box: the strip is the bar, and the hold's fill is the only ground Stop takes.
+          // Pills, no outline (the owner, Nov 18): Pause and Stop soft, Resume solid accent; Stop's hold fill sweeps across its pill.
           <View testID="walk-actions" style={styles.barActions}>
             <Pressable
               testID={paused ? 'resume-walk' : 'pause-walk'}
@@ -1620,10 +1620,10 @@ function WalkScreen(props: { onMinimize: () => void }) {
               accessibilityHint={paused ? undefined : 'Stops recording until you resume. Stop is offered while paused'}
               onPress={togglePause}
               disabled={pausing || stopping || !walk}
-              style={({ pressed }) => [styles.barBtn, pressed && styles.pressed]}
+              style={({ pressed }) => [styles.barBtn, paused && styles.resumeBtn, pressed && styles.pressed]}
             >
               {/* Resume is the strip's one primary action while paused: the accent, as 0172 allows. */}
-              <Icon name={paused ? 'play' : 'pause'} size={18} color={paused ? theme.accent : theme.ink} />
+              <Icon name={paused ? 'play' : 'pause'} size={16} color={paused ? theme.accentInk : theme.ink} />
               <Text style={[styles.barBtnText, paused && styles.resumeText]} numberOfLines={1} selectable={false}>
                 {paused ? 'Resume' : 'Pause'}
               </Text>
@@ -1640,7 +1640,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
                 style={styles.stopBtn}
               >
                 <View style={styles.stopInner}>
-                  <Icon name="stop" size={18} color={theme.ink} />
+                  <Icon name="stop" size={16} color={theme.ink} />
                   <Text style={styles.barBtnText} numberOfLines={1} selectable={false}>Stop</Text>
                 </View>
               </HoldButton>
@@ -2071,14 +2071,18 @@ const styles = StyleSheet.create({
   pressed: { opacity: 0.8 },
   stats: { color: theme.ink, fontSize: 17, fontWeight: '600', fontVariant: ['tabular-nums'], flexShrink: 1 },
   stopInner: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  barActions: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  // Icon and word side by side, no border or fill (decision 0208): 48 high to tap, the word in ink. Tight at the sides, so
-  // Resume and Stop together take less of the strip than the boxed Pause and Hold did, and the walk's numbers stay whole at 320.
-  barBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 48, paddingHorizontal: 4, borderRadius: theme.radius },
-  barBtnText: { color: theme.ink, fontSize: 15, fontWeight: '600' },
-  resumeText: { color: theme.accent },
-  // HoldButton's box taken off: only its fill shows, sweeping behind the icon and word while held.
-  stopBtn: { minHeight: 48, paddingHorizontal: 4, borderWidth: 0, backgroundColor: 'transparent' },
+  barActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  // Pills, no outline (decision 0208, the owner's "pill fills"): icon and word side by side, 48 high, soft on the strip's
+  // ground. Measured so Resume and Stop together leave the walk's numbers whole at 320.
+  barBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 48, paddingHorizontal: 8, borderRadius: 24, backgroundColor: theme.line,
+  },
+  barBtnText: { color: theme.ink, fontSize: 14, fontWeight: '600' },
+  // Resume, the one primary action while paused: solid accent, white icon and word.
+  resumeBtn: { backgroundColor: theme.accent },
+  resumeText: { color: theme.accentInk },
+  // HoldButton's outline off: a soft pill like Pause, the hold's fill sweeping across it.
+  stopBtn: { minHeight: 48, paddingHorizontal: 8, borderRadius: 24, borderWidth: 0, backgroundColor: theme.line },
   edgeBtnOn: { backgroundColor: theme.ink, borderColor: theme.ink },
   minRow: { alignSelf: 'stretch', flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
   noticeCell: { flex: 1, minWidth: 0 },

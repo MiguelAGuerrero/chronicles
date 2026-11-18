@@ -1,4 +1,4 @@
-# 0208. The walk's strip: Pause alone, then Resume or a held Stop; bare icon and word
+# 0208. The walk's strip: Pause alone, then Resume or a held Stop; pills, no outline
 
 Date: 2026-11-18 · Status: accepted · Area: walk screen, recording
 
@@ -13,9 +13,13 @@ The owner's four answers, Nov 18:
   is Pause, then hold Stop. Stop stays held (0008, 0048): "protection against accidents".
 - **The recording bar is left as it is**: its own held Stop, no Pause (0048 stands), the way out when the walk screen
   can't be reached.
-- **Icon and word side by side, no border or fill**, 48 high to tap. The hold's fill sweeps behind Stop's icon and word
-  while held, the only ground it takes.
-- **Resume in the accent** (icon and word, no fill): the strip's one primary action while paused, as 0172 allows.
+- **Icon and word side by side, no outline**, 48 high to tap. First built bare (no fill); the owner, the same day:
+  "Have them be pill fills, please." Pause and Stop are soft pills (`theme.line` on the strip's ground); the hold's fill
+  sweeps across Stop's pill while held.
+- **Resume a solid accent pill, its icon and word white** (the owner's pick over a soft pill with an orange word): the
+  strip's one primary action while paused, as 0172 allows.
+- At 320 px the pills are 8 px at the sides and the word 14 px, so Resume and Stop together take what the boxed Pause and
+  Hold did and the walk's numbers stay whole.
 
 ## Consequences
 - Amends 0009's "Pause sits beside Hold, Resume is filled orange" and O27's word under the icon (0172): the word sits

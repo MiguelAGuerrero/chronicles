@@ -48,8 +48,9 @@ The walk screen (`src/app/walk.tsx`), which is also Navigate, ready: its layout,
   and handlers: `moment-*` on the ready screen (moments, `MomentBar`), `cap-*` on the walk. Time,
   distance, Pause and hold-to-stop stay in the thin strip at the very bottom, at its right end.
 - **Pause alone, then Resume or Stop** (decision 0208, AllTrails' pattern): walking, the strip's actions
-  (`walk-actions`) are `pause-walk` alone; paused, `resume-walk` (accent icon and word) and the held `stop`. No border
-  or fill on either: icon and word side by side, 48 high; Stop's hold fill is its only ground. The recording bar keeps
+  (`walk-actions`) are `pause-walk` alone; paused, `resume-walk` (a solid accent pill, white icon and word) and the held `stop`. Pills with no outline, icon and word
+  side by side, 48 high; Pause and Stop soft (`theme.line`), Stop's hold fill sweeping across its pill. At 320 px they
+  are 8 px at the sides and the word 14 px, or the walk's numbers are cut while paused (the walk journey checks it). The recording bar keeps
   its own held Stop with no Pause (0048). The e2e reaches Stop with the harness's `toStop(pg)`, which pauses first;
   wait for `walk-actions`, never `stop`, to know the walk screen is up.
 - Why low and at the right edge: Hoober's touch research puts the most accurate taps near the centre

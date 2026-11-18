@@ -571,8 +571,9 @@ async function checks(h) {
         n12.pause = await navOn();
         n12.grewM = (await walkedM()) - n12.fromM;
         // Decision 0208 (AllTrails' pattern; amends O27 and tend walk-screen 7, audit 9): walking, the strip shows Pause alone;
-        // paused, Resume (the accent) and a held Stop. Each is its icon and word side by side, no border or fill, 48 high;
-        // the spoken names are as before. At 390 and 320 every word is whole on one line, on screen, the strip 69 high.
+        // paused, Resume and a held Stop. Each is a pill, its icon and word side by side, no outline, 48 high: Pause and Stop
+        // soft, Resume solid accent. The spoken names are as before. At 390 and 320 every word is whole on one line, on
+        // screen, the strip 69 high.
         const strip = (id) => page.evaluate((id) => {
           const b = document.querySelector(`[data-testid=${id}]`);
           const hold = document.querySelector('[data-testid=stop]');
@@ -594,22 +595,24 @@ async function checks(h) {
             const i = iconOf(root)?.getBoundingClientRect();
             return !!(w && i && w.left >= i.right - 1 && Math.abs((w.top + w.bottom) / 2 - (i.top + i.bottom) / 2) < 3);
           };
-          // No box: no border and no fill of its own (the hold's fill is an empty child at rest).
-          const bare = (el) => {
+          // A pill: no outline, its corners half its height, its own fill.
+          const pill = (el) => {
             const cs = getComputedStyle(el);
-            const clear = (c) => c === 'transparent' || /rgba\(.*,\s*0\)$/.test(c);
-            return ['Top', 'Right', 'Bottom', 'Left'].every((e) => parseFloat(cs[`border${e}Width`]) === 0) && clear(cs.backgroundColor);
+            const h = el.getBoundingClientRect().height;
+            return ['Top', 'Right', 'Bottom', 'Left'].every((e) => parseFloat(cs[`border${e}Width`]) === 0)
+              && parseFloat(cs.borderTopLeftRadius) >= h / 2 - 1 && cs.backgroundColor !== 'transparent' && !/rgba\(.*,\s*0\)$/.test(cs.backgroundColor);
           };
           const box = (el) => { const r = el.getBoundingClientRect(); return { l: r.left, r: r.right, t: r.top, b: r.bottom, w: r.width, h: r.height }; };
           return {
             said: b.getAttribute('aria-label'), word: wordOf(b)?.innerText.trim() ?? '', wordColor: wordOf(b) ? getComputedStyle(wordOf(b)).color : null,
-            beside: beside(b) && (!hold || beside(hold)), bare: bare(b) && (!hold || bare(hold)),
+            beside: beside(b) && (!hold || beside(hold)), pill: pill(b) && (!hold || pill(hold)),
+            fill: getComputedStyle(b).backgroundColor, holdFill: hold ? getComputedStyle(hold).backgroundColor : null,
             whole: leaf(b).every(oneLine) && (!hold || leaf(hold).every(oneLine)) && oneLine(stats.querySelector('div') ?? stats),
             holdWord: hold ? wordOf(hold)?.innerText.trim() : null, holdSaid: hold?.getAttribute('aria-label') ?? null,
             btn: box(b), hold: hold ? box(hold) : null, barH: bar ? Math.round(bar.getBoundingClientRect().height) : null, vw: window.innerWidth,
           };
         }, id);
-        const fits = (m) => !!m && m.whole && m.beside && m.bare && m.btn.w >= 44 && m.btn.h === 48 && m.btn.l >= 0 && m.btn.r <= m.vw && m.barH === 69
+        const fits = (m) => !!m && m.whole && m.beside && m.pill && m.btn.w >= 44 && m.btn.h === 48 && m.btn.l >= 0 && m.btn.r <= m.vw && m.barH === 69
           && (!m.hold || (m.hold.h === 48 && m.hold.r <= m.vw && m.btn.r <= m.hold.l && Math.abs(m.hold.t - m.btn.t) < 0.5 && Math.abs(m.hold.b - m.btn.b) < 0.5));
         const seenStrip = {};
         seenStrip.walking390 = await strip('pause-walk');
@@ -636,10 +639,13 @@ async function checks(h) {
         check(walking.every((m) => m?.word === 'Pause' && m.said === 'Pause the walk' && m.hold == null)
           && pausedStrip.every((m) => m?.word === 'Resume' && m.said === 'Resume the walk' && m.holdWord === 'Stop' && m.holdSaid === 'Hold to stop')
           && Object.values(seenStrip).every(fits),
-          `0208: walking, the strip shows Pause alone; paused, Resume and a held Stop; icon and word side by side, no border or fill, 48 high and level, every word whole at 390 and 320, the strip 69 high (${JSON.stringify(seenStrip)})`);
-        // Resume is the strip's one primary action while paused: its word in the accent (0172's rule), Pause's in ink.
-        check(pausedStrip.every((m) => m?.wordColor === 'rgb(194, 65, 12)') && walking.every((m) => m?.wordColor === 'rgb(29, 36, 48)'),
-          `0208: Resume's word is the accent, Pause's ink (${[...walking, ...pausedStrip].map((m) => m?.wordColor).join(', ')})`);
+          `0208: walking, the strip shows Pause alone; paused, Resume and a held Stop; pills, icon and word side by side, no outline, 48 high and level, every word whole at 390 and 320, the strip 69 high (${JSON.stringify(seenStrip)})`);
+        // Resume is the strip's one primary action while paused: a solid accent pill, its word white (0172's rule); Pause and
+        // Stop are soft pills with ink words.
+        const soft = 'rgb(227, 224, 218)';
+        check(pausedStrip.every((m) => m?.fill === 'rgb(194, 65, 12)' && m.wordColor === 'rgb(255, 255, 255)' && m.holdFill === soft)
+          && walking.every((m) => m?.fill === soft && m.wordColor === 'rgb(29, 36, 48)'),
+          `0208: Resume is a solid accent pill with a white word; Pause and Stop soft pills with ink words (${[...walking, ...pausedStrip].map((m) => m && `${m.fill}/${m.wordColor}/${m.holdFill}`).join(', ')})`);
         // One publish cycle, so a fix taken just before the pause is already counted.
         await page.waitForTimeout(2500);
         const before = await page.locator('text=/ · \\d+[ \\u00a0]m$/').first().innerText();
