@@ -915,6 +915,8 @@ const MarkMarkers = memo(function MarkMarkers({ marks, zoom, seen, pressable, ha
       id={`mark:${pin.id}:${markKey(pin)}`}
       lngLat={pin.at}
       anchor="bottom"
+      // A spread pin stands off its point, on a leg back to it (fix mark-overlap).
+      offset={pin.spread ? [pin.spread.dx, pin.spread.dy] : undefined}
       onPress={pressable && !pin.found ? () => handlers.current?.onDiscoveryPress?.(pin.id) : undefined}
     >
       <View

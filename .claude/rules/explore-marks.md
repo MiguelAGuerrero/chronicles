@@ -6,7 +6,8 @@ paths:
   - "src/lib/explore/momentFind/**"
   - "src/lib/db/{exploreRow,placeRow,stores}.ts"
   - "src/components/{MarkPinView,ExploreSettings,ReminderCard,RemindEditor}.tsx"
-  - "src/lib/__tests__/explore/{discovery,explore,exploreStore,markNames,noise,recall,reminderBell,scanAudit}.test.ts"
+  - "src/lib/__tests__/explore/{discovery,explore,exploreStore,markNames,markOverlap,noise,recall,reminderBell,scanAudit}.test.ts"
+  - "src/lib/markNames.ts"
 ---
 # Explore: places of interest, marks, finds and reminders
 
@@ -51,6 +52,15 @@ Places of interest from the tiles, marks, checklists and finds (Explore), and Re
   off z14 are dropped. Native features carry no zoom (unverified on a device).
 - **Native:** the invisible `q-pois` layer makes the poi source layer load; whether
   it's needed (or costs layout) is unverified on a device.
+
+- **Marks that share a spot stand side by side** (fix mark-overlap, Nov 18; the owner's photo of a library over a
+  ticket): `declutterMarks` (`markNames.ts`) puts non-found marks whose 48 px tap rooms would overlap at the drawn zoom
+  in one row, 48 px apart, centred on their points and 12 px above the highest, each on a thin leg to a dot on its own
+  point (`spread`, drawn by `MarkPinView`; the web marker's offset is `[dx, 6 + dy]`, native's `[dx, dy]`). A row that
+  lands on another mark takes it in. The outer marks write their names beside the head, outward; a middle one's name is
+  only spoken; names are then judged where the heads stand. Never a count on the row (nothing is a score), never one
+  hidden. A found mark stays on its point. The precedent (Leaflet's spiderfy) is in `docs/research/adjacent-apps.md`,
+  "Places that share a spot on the map".
 
 - **Explore** (slice 5, replaces scan and ambient; the spec is E1-E23 in the
   v1 tab; `explore/explore.ts` pure, `exploreRun.ts`, `useExplore.ts`,

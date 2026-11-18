@@ -288,6 +288,9 @@ const settled = (map: MapLibreMap) =>
 /** A fit as asked of maplibre, kept to ask it again (tend explore 17). */
 type FitAsk = { bounds: [[number, number], [number, number]]; options: { padding: { top: number; right: number; bottom: number; left: number }; maxZoom: number; duration: number; bearing?: number } };
 
+/** A mark's foot stands this far below its point on the web marker. */
+const MARK_BELOW = 6;
+
 export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(props, ref) {
   const container = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
@@ -1207,8 +1210,9 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         });
       const root = createRoot(el);
       perfCount('marker:mark');
-      root.render(<MarkPinView pin={pin as MarkPin} enter={enter} />);
-      const marker = new Marker({ element: el, anchor: 'bottom', offset: [0, 6] }).setLngLat(pin.at).addTo(map);
+      root.render(<MarkPinView pin={pin as MarkPin} enter={enter} below={MARK_BELOW} />);
+      // A spread pin stands off its point, on a leg back to it (fix mark-overlap).
+      const marker = new Marker({ element: el, anchor: 'bottom', offset: [pin.spread?.dx ?? 0, MARK_BELOW + (pin.spread?.dy ?? 0)] }).setLngLat(pin.at).addTo(map);
       markMarkers.current.set(pin.id, { marker, root, key, state: { revealed: pin.revealed, found: pin.found, faint: pin.faint } });
     }
     for (const [id, m] of markMarkers.current) {
