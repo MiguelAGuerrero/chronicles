@@ -396,6 +396,34 @@ layout and style time, `perfCount` rates. Look for a column that only grows.
 - It serves `dist/` from the root only (no `CHRONICLES_BASE_URL` build). Its
   scan step clicks `[data-testid=scan]`, retired with scan, and is skipped.
 
+### The replay's path beat: `scripts/perf-replay.js`
+
+```bash
+npm run export:web && node scripts/perf-replay.js
+```
+
+The owner's iPhone report of a stuttering replay (Nov 18, decision 0206; `docs/research/replay-frame-pipeline.md`). It
+seeds the `replay` journey's walk (`scripts/e2e/replayWalk.js`: two photos, a video, a note, a 20-minute gap, a memo),
+lets the first replay reach its card, then watches it again once per CPU throttle (`PERF_RATES`, default `1,4,6`) and
+reads the path beat, from the clock showing to the card. Per throttle, over the beat and over its stretches (nothing
+arriving or leaving, the walker moving): frames a second, how often the walker's place changed, React commits, renders
+of the screen and the map component (`render:replay`, `render:map`), map data sent (`setData:*`) and messages to the
+map's worker, the main thread's share in script, and how far the line's end and the dot were from the camera's centre,
+in px. It ends with one table.
+
+- `PERF_DSF` (default 1): the device scale at 390 x 844. Headless Chromium draws WebGL in software, so a phone's 3x
+  canvas binds every build to software GL and the numbers say nothing; measure on the small canvas.
+- `PERF_FPS=<n>`: the engine's ceiling on frames a second for the measured watches (the replay's `fps` link
+  parameter, RC6). `PERF_JSON=<file>` writes the numbers; `PERF_PROFILE=<file>` a CPU profile per throttle;
+  `E2E_DIST=<dir>` serves another export, to compare two builds.
+- A build that sends the line as data is read from the worker's messages (the end of the last `trace` the worker had
+  answered); one that reveals it says where it ends (`data-reveal-end`, written only when measuring).
+- **What it can't see:** as `perf-explore.js`: no WebKit, no real GPU, one fixture, and the map's worker is not
+  throttled (CDP refuses it for a worker). Frames a second here are bound by software GL at every throttle; the
+  counts (renders, sends, commits) and the px apart are what to compare. A phone's frame rate is the owner's look.
+- The `replay` journey holds the counts (RC1-RC4, RC7, RC9, RC10): it reads the page's own frames with the app's
+  counters on (`recordFrames`, `stretchOf` in `scripts/e2e/journeys/replay.js`).
+
 ### Explore in a dense city: `scripts/perf-explore.js`
 
 ```bash
