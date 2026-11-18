@@ -127,3 +127,40 @@ test('RE1, RE21: the service answers a way with its turns', async () => {
   assert.equal(got?.state, 'found');
   if (got?.state === 'found') assert.deepEqual(got.turns.map((t) => t.say), ['left']);
 });
+
+const TODO = { todo: 'test first' };
+
+test('RE25: a turn is spoken once as it nears, and never otherwise: not far off, not twice, not the road\'s last stretch, not off the way', TODO, async () => {
+  const { speakStep, DRIVE_RULES } = await import('../../roads/drive');
+  const far = speakStep({ say: 'left', toM: DRIVE_RULES.sayM + 200, id: 1000 }, null);
+  assert.deepEqual(far, { say: null, said: null });
+  const nearing = speakStep({ say: 'left', toM: DRIVE_RULES.sayM - 20, id: 1000 }, null);
+  assert.deepEqual(nearing, { say: 'left', said: 1000 });
+  assert.deepEqual(speakStep({ say: 'left', toM: 120, id: 1000 }, nearing.said), { say: null, said: 1000 });
+  assert.deepEqual(speakStep({ say: 'right', toM: 90, id: 2400 }, 1000), { say: 'right', said: 2400 });
+  assert.deepEqual(speakStep({ say: 'on', toM: 50, id: null }, 2400), { say: null, said: 2400 });
+  assert.deepEqual(speakStep(null, 2400), { say: null, said: 2400 }, 'off the way nothing is spoken');
+});
+
+test('RE25, RE32: what is spoken is the turn alone: no distance left, time, destination or rebuke', TODO, async () => {
+  const w = await import('../../roads/words');
+  assert.equal(w.spokenTurn('left'), 'Left ahead.');
+  assert.equal(w.spokenTurn('right'), 'Right ahead.');
+  assert.equal(w.spokenTurn('keep-left'), 'Keep left ahead.');
+  assert.equal(w.spokenTurn('keep-right'), 'Keep right ahead.');
+  assert.equal(w.spokenTurn('join'), 'The motorway ahead.');
+  assert.equal(w.spokenTurn('leave'), 'Off the motorway ahead.');
+  assert.equal(w.MUTE_LABEL, 'Mute turns');
+  assert.equal(w.UNMUTE_LABEL, 'Say turns');
+  for (const say of ['left', 'right', 'keep-left', 'keep-right', 'join', 'leave'] as const) assert.doesNotMatch(w.spokenTurn(say), /\d|\b(min|minutes?|km|mi|metres?|miles?|arriv\w*|recalculat\w*|toward)\b/i);
+});
+
+test('RE20: the turn ahead carries which turn it is, so it is said once; the road\'s last stretch is no turn', TODO, async () => {
+  const { driveStep } = await import('../../roads/drive');
+  const roads = [road([[0, 0], [1000, 0]]), road([[1000, 0], [2000, 0]]), road([[1000, 0], [1000, 1000]])];
+  const { way, turns } = await turnsOf(roads, [0, 0], [1000, 1000]);
+  const a = driveStep(way.path, turns, at(400, 0), null);
+  const b = driveStep(way.path, turns, at(700, 0), null);
+  assert.ok(a.turn && b.turn && a.turn.id != null && a.turn.id === b.turn.id);
+  assert.equal(driveStep(way.path, turns, at(1000, 500), null).turn?.id, null);
+});

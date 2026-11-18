@@ -91,3 +91,12 @@ test('RE28: a guided drive is kept as one flag on the plan: no way, turn or road
   assert.equal(stepPlan(plan, emptyState(plan), [8.0, 47.3]).plan?.driving, true);
   assert.equal(passBy(plan)?.driving, undefined);
 });
+
+test('RE25: the mute is kept with the guiding as one more flag, and only beside it', { todo: 'test first' }, async () => {
+  const { isJourneyPlan } = await import('../../outing/journeyPlan');
+  const c = { town: 'A', at: [8.5, 47.3], stops: [[8.5, 47.3]], loop: false };
+  assert.equal(isJourneyPlan({ chapters: [c], driving: true, muted: true }), true);
+  assert.equal(isJourneyPlan({ chapters: [c], muted: true }), true);
+  assert.equal(isJourneyPlan({ chapters: [c], muted: false }), false);
+  assert.equal(isJourneyPlan({ chapters: [c], driving: true, muted: true, voice: 'x' }), false);
+});
