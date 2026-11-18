@@ -1488,3 +1488,17 @@ test('records caps, decided: a removal or rewrite whose reason names an accepted
   assert.equal(capped.status, 1, 'a decision on the base lifts no cap');
   assert.match(capped.stderr, /at most two/);
 });
+
+test('records tags, phone: a [loop] item may move to [phone], the owner\'s device check; never [owner] or [arch] to [loop], nor [phone] back', () => {
+  const retag = (match: string, tag: string): Op => ({ argv: ['deferred', 'item', 'retag', match, tag, '--reason', 'only a device shows it'] });
+  assert.deepEqual(problems(DOCS0, [retag('Cancel pressed', 'phone')]), []);
+  assert.deepEqual(problems(DOCS0, [{ argv: ['deferred', 'item', 'set', 'Cancel pressed', '--reason', 'a device'], body: '[phone] Go here: Cancel pressed while the read returns.' }]), [], 'by a set too');
+  const remove: Op = { argv: ['deferred', 'item', 'remove', 'Cancel pressed', '--reason', 'moved'] };
+  assert.deepEqual(problems(DOCS0, [remove, { argv: ['deferred', 'item', 'add', 'Navigation and routes', '--top'], body: '[phone] Go here: Cancel pressed while the read returns.' }]), [], 'removed and put back as [phone]');
+  assert.match(problems(DOCS0, [retag('route preview', 'loop')]).join('\n'), /\[owner\] to \[loop\]/);
+  assert.match(problems(DOCS0, [retag('route preview', 'phone')]).join('\n'), /\[owner\] to \[phone\]/, 'the owner\'s item stays the owner\'s');
+  assert.match(problems(DOCS0, [retag('planner', 'phone')]).join('\n'), /\[arch\] to \[phone\]/);
+  const phoned = records.apply('deferred', 'item retag', DEFERRED, { match: 'Cancel pressed', tag: 'phone', reason: 'r' }).text;
+  assert.match(problems(withDeferred(DOCS0, phoned), [retag('Cancel pressed', 'loop')]).join('\n'), /\[phone\] to \[loop\]/);
+  assert.match(problems(DOCS0, [retag('route preview', 'loop')]).join('\n'), /toward \[owner\], \[arch\] or \[kept\], or from \[loop\] to \[phone\]/, 'the rule says so');
+});

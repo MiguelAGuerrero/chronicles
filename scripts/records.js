@@ -49,7 +49,7 @@
 // (filed: added by inbox add, open add or item add earlier in the range) needs --reason, and a commit
 // makes at most two of them per section (one whose --reason names, in four digits, an accepted decision
 // record the range adds, absent from its base, is not counted). A tag moves only toward
-// [owner], [arch] or [kept].
+// [owner], [arch] or [kept], or from [loop] to [phone].
 // Plain Node, no dependencies. CI (scripts/tend.js commits --loop-only) runs the gate on every loop commit and
 // every agent commit (a Claude-Session or Co-Authored-By: Claude trailer, the owner's rule of Nov 13);
 // the owner's own hand edits carry neither and are not gated. A refusal ends with its one-line fix.
@@ -66,7 +66,9 @@ const DOCS = { 'docs/STATUS.md': 'status', 'docs/DEFERRED.md': 'deferred', 'docs
 const FILE_OF = Object.fromEntries(Object.entries(DOCS).map(([f, k]) => [k, f]));
 const TAGS = ['loop', 'owner', 'arch', 'phone', 'kept'];
 // A tag already given changes only toward these (decision 0156): never from [owner] or [arch] to [loop].
+// Besides, [loop] may become [phone]: the owner's check on a device takes it from the loop's hands.
 const RAISED = ['owner', 'arch', 'kept'];
+const LOWERED = { loop: ['phone'] };
 // Removals and rewrites of entries the run did not file, per section per commit; one whose --reason
 // names a decision record the range itself adds (docs/decisions/NNNN-*.md: absent from the range's
 // base, accepted in the commit's tree) is not counted. A decision already on the base lifts no cap.
@@ -1025,8 +1027,8 @@ const newRangeState = () => ({ filed: new Set(), removed: new Map(), added: new 
 /** The first words of an item, as a reason must quote them to name it. */
 const nameOf = (untaggedText) => untaggedText.slice(0, 40);
 
-const tagMove = (from, to) => (from && from !== to && !RAISED.includes(to) ? `moves the tag [${from}] to ${to ? `[${to}]` : 'no tag'}` : null);
-const TAG_RULE = 'a tag moves only toward [owner], [arch] or [kept], never from [owner] or [arch] to [loop] (decision 0156)';
+const tagMove = (from, to) => (from && from !== to && !RAISED.includes(to) && !(LOWERED[from] ?? []).includes(to) ? `moves the tag [${from}] to ${to ? `[${to}]` : 'no tag'}` : null);
+const TAG_RULE = 'a tag moves only toward [owner], [arch] or [kept], or from [loop] to [phone] (the owner\'s device check), never from [owner] or [arch] to [loop] (decision 0156)';
 
 /** The four-digit decision numbers a reason names ("decision 0156", "0156's"). */
 const citedDecisions = (reason) => [...String(reason ?? '').matchAll(/(?<!\d)(\d{4})(?!\d)/g)].map((m) => m[1]);

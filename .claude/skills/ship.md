@@ -76,7 +76,8 @@ needs quoting; never edit these files with Edit, Write or sed.
 - **What the run did not file is the owner's.** Removing or rewriting an entry this run did not add
   (`inbox remove`/`set`, `open remove`/`set`, `section item remove`/`set`, `item remove`/`set`/`retag`)
   needs `--reason "<why>"`, which goes into the trailer, and a commit does it to at most two entries per
-  section. A tag moves only toward `[owner]`, `[arch]` or `[kept]`. A shipped item is removed (`item
+  section. A tag moves only toward `[owner]`, `[arch]` or `[kept]`, or from `[loop]` to `[phone]` (the
+  owner's check on a device), never from `[owner]` or `[arch]` to `[loop]`. A shipped item is removed (`item
   remove`), never struck through; a line that amends an entry is appended (`note`); a reworded one is
   `set`, with its reason. An `inbox set` keeps every line an earlier `inbox note` added to the entry, word
   for word and in order (the owner's answers): an answer is added to with `inbox note`, never rewritten.
