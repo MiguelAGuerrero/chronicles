@@ -51,13 +51,15 @@ function main(argv) {
       process.exit(1);
     }
     const outputs = [];
+    const statuses = [];
     for (let i = 1; i <= runs; i++) {
       const r = spawnSync('node', ['scripts/e2e-web.js'], { cwd: dir, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, env: { ...process.env, E2E_ONLY: journey, E2E_FORCE: '1' } });
       const out = `${r.stdout}\n${r.stderr}`;
       outputs.push(out);
+      statuses.push(r.status);
       console.log(`  run ${i}/${runs}: ${r.status === 0 ? 'passed' : `failed (${economy.parseFailures(out)[0] ?? 'see output'})`}`);
     }
-    const s = economy.summarizeBaseline(outputs);
+    const s = economy.summarizeBaseline(outputs, statuses);
     if (!s.failed.length) {
       console.log(`baseline: ${journey} passed ${s.runs}/${s.runs} on main (${base}). It did not fail there: a failure on your branch is the branch's until shown otherwise.`);
       return;

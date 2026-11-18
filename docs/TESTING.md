@@ -288,6 +288,9 @@ to it (`scripts/e2e/economy.js`; tests `arch/e2eEconomy.test.ts`):
   runner prints "known flake" under that check's failure and the run **still fails**:
   nothing is skipped, quarantined or turned green. A journey that never failed on `main`
   records nothing, so its failure on a branch is the branch's until shown otherwise.
+  A run that stops before its checks (a locator's timeout, a throw) counts as a failure named
+  `stopped: <its first error line>`, never as a pass: stopped every run means `main` is broken
+  there (resurface, Nov 18, read "passed 3/3" through three timeouts until it did).
 
 The habit it replaces: sweeping the whole named set at every checkpoint, rerunning a flaky
 check on the branch to see whether it flakes. Run each named journey once, at the end;
