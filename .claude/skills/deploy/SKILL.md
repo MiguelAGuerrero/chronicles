@@ -89,7 +89,9 @@ build never fails the deploy (the step is `continue-on-error`): read the step's 
 branch's tip by every deploy of `main`, so after pushing the preview's branch the next deploy refreshes it. A cloud session
 cannot start the run itself (`actions_run_trigger` answers 403, Nov 18): wait for the next deploy, or the owner runs the
 workflow by hand on `main` (Actions, "Deploy web build to GitHub Pages", Run workflow); nothing on `main` changes. To see
-which build is up, read the bundle's name in the preview's page.
+which build is up, read the bundle's name in the preview's page. The preview's branch must hold `main`'s latest storage
+version (`VERSION` in `db/index.web.ts`): a preview older than a migration the app has already run on the phone cannot open
+the phone's data, so merge `main` into the branch after any deploy that bumps it.
 An empty `.github/preview-branch` serves no preview.
 
 ## 4. If the export fails
