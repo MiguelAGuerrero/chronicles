@@ -57,14 +57,14 @@ test('fix trimmed-length 2: a trimmed video\'s card holds for its kept span', ()
   // Thirty seconds, trimmed to the 5 s from 0:20 to 0:25.
   const p = planOf(lone('v', 'video', '30000', trimmed(20_000, 25_000)));
   const stop = stopOf(p);
-  assert.equal(stop.t1 - stop.t0, 5000 + R.grow + R.tuck, 'the card is up for the kept part, not the last frame for 25 s more');
+  assert.equal(stop.t1 - stop.t0, R.grow + 5000 + R.mediaTail + R.tuck, 'the card is up for the kept part and its moment after (RY6), not the last frame for 25 s more');
   const mid = rhythmFrame(p, stop.t0 + R.grow + 2500).overlays.find((o) => o.kind === 'card');
   assert.ok(mid && mid.kind === 'card' && mid.playing && Math.abs(mid.progress - 0.5) < 0.01, 'half of the kept part is half of the slot');
   // A trim reaching past the stored length keeps no more than there is, and a kept part is never under the shortest slot.
   const past = stopOf(planOf(lone('v', 'video', '4000', trimmed(1000, 9000))));
-  assert.equal(past.t1 - past.t0, 3000 + R.grow + R.tuck);
+  assert.equal(past.t1 - past.t0, R.grow + 3000 + R.mediaTail + R.tuck);
   const sliver = stopOf(planOf(lone('v', 'video', '4000', trimmed(1000, 1200))));
-  assert.equal(sliver.t1 - sliver.t0, R.mediaMin + R.grow + R.tuck);
+  assert.equal(sliver.t1 - sliver.t0, R.grow + R.mediaMin + R.mediaTail + R.tuck);
 });
 
 test('fix trimmed-length 3: a stack\'s grid holds for its longest video\'s kept span, and a trimmed memo beside it for its own', () => {

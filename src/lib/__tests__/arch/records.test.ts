@@ -32,7 +32,7 @@ const records = createRequire(__filename)(join(ROOT, 'scripts', 'records.js')) a
   sidecarOf(ops: Op[]): string;
   parseTrailer(line: string): { argv: string[]; body?: string; intro?: string };
   newRangeState(): State;
-  checkCommit(c: { base: Docs; head: Docs; message: string; sidecar: string | null; ledger?: Ledger; state: State; notes?: Map<string, string[]> }): string[];
+  checkCommit(c: { base: Docs; head: Docs; message: string; sidecar: string | null; ledger?: Ledger; state: State; notes?: Map<string, string[]>; decided?: (n: string) => boolean }): string[];
   isAgent(message: string): boolean;
   gateRange(range: string, o: { cwd: string; loopOnly?: boolean; cutover?: string }): Gate & { stats: { notesReads: number } };
   opsFor(base: Docs, head: Docs): string[];
@@ -1437,4 +1437,95 @@ test('records audit 54 (F40): the notes history is read once per range', () => {
   const g = records.gateRange(`${base}..HEAD`, { cwd: r.dir, loopOnly: true });
   assert.ok(g.ok, JSON.stringify(g.results));
   assert.ok(g.stats.notesReads <= 1, `read ${g.stats.notesReads} times`);
+});
+
+test('records caps, decided: a removal or rewrite whose reason names an accepted decision the range adds does not count toward the cap; one already on the base does', () => {
+  const rm = (match: string, reason: string): Op => ({ argv: ['open', 'remove', match, '--reason', reason] });
+  const three = (reason: string) => [rm('QL8', 'shipped'), rm('The vision review', 'shipped'), rm('device milestone', reason)];
+  const check = (ops: Op[], decided?: (n: string) => boolean) => records.checkCommit({ ...made(DOCS0, ops), state: records.newRangeState(), decided });
+  const added = (n: string) => n === '0204';
+  assert.deepEqual(check(three('the owner answered it, decision 0204'), added), [], 'a third removal resting on the decision the range adds');
+  assert.match(check(three('the owner answered it, decision 0157'), added).join('\n'), /at most two/, 'a decision the range does not add');
+  assert.match(check(three('the owner answered it, decision 204'), added).join('\n'), /at most two/, 'written as four digits');
+  assert.match(check(three('the owner answered it, decision 0204')).join('\n'), /at most two/, 'with no decisions read, everything stays capped');
+  const sets: Op[] = ['QL8', 'The vision review', 'device milestone'].map((m) => ({ argv: ['open', 'set', m, '--reason', 'reworded as decision 0204 says'], body: `Reworded ${m}.` }));
+  assert.deepEqual(check(sets, added), [], 'a rewrite too');
+  assert.match(check([rm('QL8', 'decision 0204'), { argv: ['open', 'remove', 'The vision review'] }], added).join('\n'), /--reason/, 'a reason is still required');
+  // In a repository: a decision on the range's base stays capped; one the range adds, accepted, does not.
+  const r = repo('decided-cap');
+  mkdirSync(join(r.dir, 'docs', 'decisions'), { recursive: true });
+  r.write('docs/decisions/0156-the-record-documents.md', '# 0156. The record documents\n\nDate: 2026-11-12 · Status: accepted · Area: tooling\n');
+  r.write('docs/decisions/0157-the-proxy.md', '# 0157. The proxy\n\nDate: 2026-11-13 · Status: accepted · Area: tooling\n');
+  r.commit('decisions');
+  const base = r.git('rev-parse', 'HEAD').stdout.trim();
+  r.git('update-ref', 'refs/remotes/origin/main', base);
+  for (const [m, reason] of [['QL8', 'shipped'], ['The vision review', 'shipped']]) assert.equal(r.node('scripts/records.js', 'open', 'remove', m, '--reason', reason).status, 0);
+  for (const n of ['0156', '0157']) {
+    const old = r.node('scripts/records.js', 'open', 'remove', 'device milestone', '--reason', `the proxy's yes under ${n}`);
+    assert.equal(old.status, 1, `decision ${n} is on the base: still counted`);
+    assert.match(old.stderr, /at most two/);
+  }
+  r.write('docs/decisions/0158-an-old-call.md', '# 0158. An old call\n\nDate: 2026-11-18 · Status: superseded by 0156 · Area: tooling\n');
+  assert.match(r.node('scripts/records.js', 'open', 'remove', 'device milestone', '--reason', 'decision 0158 says so').stderr, /at most two/, 'one the range adds, not accepted');
+  r.write('docs/decisions/0158-the-owners-answers.md', '# 0158. The owner\'s answers of Nov 18\n\nDate: 2026-11-18 · Status: accepted · Area: tooling\n');
+  rmSync(join(r.dir, 'docs', 'decisions', '0158-an-old-call.md'));
+  const ok = r.node('scripts/records.js', 'open', 'remove', 'device milestone', '--reason', 'the owner answered it (decision 0158)');
+  assert.equal(ok.status, 0, ok.stderr);
+  assert.equal(r.node('scripts/records.js', 'verify', 'origin/main').status, 0, 'the working tree against the base');
+  assert.equal(r.commit(`tend map: the run's record\n\n${r.node('scripts/records.js', 'trailers').stdout}`).status, 0);
+  const gate = r.node('scripts/tend.js', 'commits', '--loop-only', `${base}..HEAD`);
+  assert.equal(gate.status, 0, gate.stderr);
+  // The same removals resting on 0156, committed: the gate counts them.
+  r.git('reset', '-q', '--hard', base);
+  rmSync(join(r.dir, '.claude', 'records'), { recursive: true, force: true });
+  const ops = three("the proxy's yes under 0156").map((o) => ({ ...o, argv: [...o.argv] }));
+  const m = made(DOCS0, ops);
+  r.write('docs/STATUS.md', m.head['docs/STATUS.md']);
+  mkdirSync(join(r.dir, '.claude', 'records'), { recursive: true });
+  r.write('.claude/records/20261118-000000-00000000.json', m.sidecar);
+  r.commit(m.message);
+  const capped = r.node('scripts/tend.js', 'commits', '--loop-only', `${base}..HEAD`);
+  assert.equal(capped.status, 1, 'a decision on the base lifts no cap');
+  assert.match(capped.stderr, /at most two/);
+});
+
+test('records tags, phone: a [loop] item may move to [phone], the owner\'s device check; never [owner] or [arch] to [loop], nor [phone] back', () => {
+  const retag = (match: string, tag: string): Op => ({ argv: ['deferred', 'item', 'retag', match, tag, '--reason', 'only a device shows it'] });
+  assert.deepEqual(problems(DOCS0, [retag('Cancel pressed', 'phone')]), []);
+  assert.deepEqual(problems(DOCS0, [{ argv: ['deferred', 'item', 'set', 'Cancel pressed', '--reason', 'a device'], body: '[phone] Go here: Cancel pressed while the read returns.' }]), [], 'by a set too');
+  const remove: Op = { argv: ['deferred', 'item', 'remove', 'Cancel pressed', '--reason', 'moved'] };
+  assert.deepEqual(problems(DOCS0, [remove, { argv: ['deferred', 'item', 'add', 'Navigation and routes', '--top'], body: '[phone] Go here: Cancel pressed while the read returns.' }]), [], 'removed and put back as [phone]');
+  assert.match(problems(DOCS0, [retag('route preview', 'loop')]).join('\n'), /\[owner\] to \[loop\]/);
+  assert.match(problems(DOCS0, [retag('route preview', 'phone')]).join('\n'), /\[owner\] to \[phone\]/, 'the owner\'s item stays the owner\'s');
+  assert.match(problems(DOCS0, [retag('planner', 'phone')]).join('\n'), /\[arch\] to \[phone\]/);
+  const phoned = records.apply('deferred', 'item retag', DEFERRED, { match: 'Cancel pressed', tag: 'phone', reason: 'r' }).text;
+  assert.match(problems(withDeferred(DOCS0, phoned), [retag('Cancel pressed', 'loop')]).join('\n'), /\[phone\] to \[loop\]/);
+  assert.match(problems(DOCS0, [retag('route preview', 'loop')]).join('\n'), /toward \[owner\], \[arch\] or \[kept\], or from \[loop\] to \[phone\]/, 'the rule says so');
+});
+
+test('records native: item add --after puts the new item after the matched bullet\'s indented notes, never between them', () => {
+  const doc = [
+    '# Native', '', '## A', '',
+    '- [ ] **Do:** one. **Expect:** a.', '  - Since `tend map T16` the end is filled.', '  - Since `tend map T25` a bullseye.',
+    '- [ ] **Do:** two. **Expect:** b.', '  Superseded in its names by the check below:', '  every pin says when.',
+    '- [ ] **Do:** three. **Expect:** c.', '', '  A note after a blank line.',
+    '- [ ] **Do:** four. **Expect:** d.', '',
+  ].join('\n');
+  const add = (after: string) => records.apply('native', 'item add', doc, { section: 'A', body: '- [ ] NEW', after }).text.split('\n');
+  const before = (after: string) => { const t = add(after); return t[t.indexOf('- [ ] NEW') - 1]; };
+  assert.equal(before('**Do:** one.'), '  - Since `tend map T25` a bullseye.', 'after its sub-bullets');
+  assert.equal(before('**Do:** two.'), '  every pin says when.', 'after its indented lines');
+  assert.equal(before('**Do:** three.'), '  A note after a blank line.', 'after a note past a blank line');
+  assert.equal(before('the end is filled'), '  - Since `tend map T25` a bullseye.', 'a match in a note names its bullet');
+  assert.equal(before('**Do:** four.'), '- [ ] **Do:** four. **Expect:** d.');
+});
+
+test('records help: prints the usage at the top of scripts/records.js', () => {
+  const out = spawnSync(process.execPath, [join(ROOT, 'scripts', 'records.js'), 'help'], { encoding: 'utf8' });
+  assert.equal(out.status, 0, out.stderr);
+  for (const op of ['npm run records -- inbox add', 'npm run records -- deferred|native item add <section>', 'npm run records -- trailers', 'npm run records -- redo', 'npm run records -- verify']) assert.ok(out.stdout.includes(op), op);
+  assert.doesNotMatch(out.stdout, /^\/\//m, 'the comment markers are dropped');
+  assert.doesNotMatch(out.stdout, /require\(/, 'the usage alone, no code');
+  const none = spawnSync(process.execPath, [join(ROOT, 'scripts', 'records.js')], { encoding: 'utf8' });
+  assert.match(none.stderr, /npm run records -- help/, 'the usage line names it');
 });

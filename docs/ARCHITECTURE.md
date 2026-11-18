@@ -189,7 +189,8 @@ Streets, snapping, fog
   replay.ts                  FOG_MS, groupCaptures, timedRuns, traceUntil, walkerAt: the replay's shared pieces
   ceremony/types.ts          Story (paths, moves, moments, breaks, travel, passes), Frame, Overlay kinds, Ceremony (decision 0086)
   ceremony/story.ts          walkStory, dayStory, storySteps; metresAt, timeAtMetres, pathDrawnAt: what happened, no timing or look
-  ceremony/rhythm.ts         the rhythm ceremony (RR1-RR19): rhythmPlan (legs, stops, cuts, the soft cap), rhythmFrame, laterLine, notePause
+  ceremony/rhythm.ts         the rhythm ceremony (RR1-RR19, replay pace RY1-RY22): rhythmPlan (legs at a steady pace, stops, cuts, each moment's own time, no cap; `stops`, where Next lands), rhythmFrame (given a press, it says what lay between), laterLine, notePause
+  ceremony/clock.ts          tickClock, reanchor; nextStop and seekClock (Next, RY13-RY17)
   ceremony/grid.ts           a stacked moment's grid (MS17): gridLayout (closest square up to 3×3), gridDuration
   ceremony/registry.ts       CEREMONIES, DEFAULT_CEREMONY, ceremonyFor: a new ceremony is an entry here
   backlog/                   placeBacklog: places old walks in the background, from the tiles in code (0137); shell.ts takes the snap and the reader

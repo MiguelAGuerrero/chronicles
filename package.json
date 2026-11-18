@@ -85,6 +85,7 @@
     "lint": "expo lint",
     "e2e:web": "node scripts/e2e-web.js",
     "e2e:all": "node scripts/e2e-all.js",
+    "e2e:batch": "node scripts/e2e-batch.js",
     "check:specs": "node scripts/check-specs.js",
     "check:docs": "node scripts/check-docs.js",
     "check:vision": "node scripts/check-vision.js",

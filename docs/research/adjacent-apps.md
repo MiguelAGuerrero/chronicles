@@ -133,6 +133,18 @@ source.
   https://support.apple.com/guide/iphone/view-and-search-journal-entries-iph6257be047/27/ios/27 . **Verified**.
 - **Polarsteps**: a trip drawn as a route with steps; users report photos covering the path and straight lines
   between stops. Source: from memory, unverified (teardown section 5). **Unverified**.
+- **Google Photos** (Android): a memory advances on a tap and pauses on touch-and-hold, with no visible control for either
+  (its entry under the feed job has the words). Source:
+  https://support.google.com/photos/answer/9454489?hl=en&co=GENIE.Platform%3DAndroid . **Verified**.
+- **Apple Photos** (iOS): a memory plays as a movie with music; a tap shows a pause control and a strip of its photos to scrub.
+  The music and the movie's pans are counter-examples (VISION.md, restraint; `replay-cinematography.md`). Source: from memory,
+  unverified. **Unverified**.
+- **Relive** (iOS, Android): a route replayed as a video, its photos popping up along the line, with a scrub bar. The flyover
+  camera and the scrub bar are counter-examples here (screen direction; RR19, no progress bar). Source: from memory, unverified.
+  **Unverified**.
+- **Pikmin Bloom** (iOS, Android): the day's recap draws the path walked with what was planted along it, then steps and counts.
+  The path is the model; the counts are a counter-example (Never: scores, tallies). Source: from memory, unverified.
+  **Unverified**.
 - **Strava**: a recorded activity as a map with its line, then pace, splits and kudos. The map is the model; the
   numbers and kudos are counter-examples (Never: fitness numbers, likes). Source: from memory, unverified.
   **Unverified**.
