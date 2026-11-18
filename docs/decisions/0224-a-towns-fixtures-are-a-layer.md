@@ -1,4 +1,4 @@
-# 0222. A town's fixtures are a layer of their own, known ahead and never found
+# 0224. A town's fixtures are a layer of their own, known ahead and never found
 
 Date: 2026-11-18 · Status: accepted · Area: explore, map layers, data packs, finding · Builds on [0221](0221-shops-by-two-facets.md); touches [0103](0103-places-worth-the-stop.md)
 
