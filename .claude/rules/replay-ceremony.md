@@ -111,6 +111,13 @@ Built on the branch and shown to the owner before any of it goes live.
 - **The one number for frames a second** is `REPLAY_ENGINE.frameMs` (`motionTokens.ts`; 0 is every display frame),
   honoured by `stepLoop`; a replay's link can ask for a ceiling with `fps=30` (`frameMsFor`), to try one on a phone
   without a build. A frame not taken moves no time: the next one takes all that passed (RC5, RC6).
+- **What a phone really draws is said at the preview address** (`lib/ceremony/meter`, `FrameMeter`): under Hold, once a
+  second, the frames drawn and offered, the longest wait between two drawn frames and the time to draw one. It shows
+  where the site's base path ends in `/preview`, or with `meter=1` on a replay's link, never in the app; the loop notes
+  frames only then, and the screens do not render for it. It and `fps` go once the ceiling is chosen (docs/DEFERRED.md).
+- **The walker's dot is placed to the sub-pixel** (`subpixelPositioning` on its marker): MapLibre rounds a marker to a
+  whole pixel otherwise, and a dot held at the middle of a 393 px screen sat on a half pixel, rounded one way or the
+  other from frame to frame (the owner's iPhone, Nov 18: "after images"; 46 flips measured in one replay).
 - **The walked line is sent once per run and revealed** (`lib/ceremony/reveal.ts`, core: `revealOf`): the runs behind
   the walker whole in one source, the run being walked whole in another with `lineMetrics`, shown up to the walker by
   `line-gradient` over `line-progress` (`revealGradient`). A run that ended stays whole in its source until the next
