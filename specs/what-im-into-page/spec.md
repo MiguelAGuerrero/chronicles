@@ -64,6 +64,16 @@ keep one row, and the list moves, whole, to a page reached from both.
   4. A kind's row label is weight 600, a subtype's 400, at the same size (WI7; the owner did not object).
   5. The "Add to this moment" pill stays open while the page is up on a walk; the route opts out of `momentPill.leave()`.
 - Defaults taken in the plan, for the owner to overrule: see plan.md, "Defaults to overrule".
+- **The review's four calls** (the owner, Nov 18, after the cold find and the UI review of the page's pictures):
+  1. **Pin the parent too**: while a kind's subtypes scroll, that kind's name stays pinned under the category heading,
+     so an indented row at the top always shows which kind it belongs to, on the web and on a phone (WI17).
+  2. **Words under a kind row when some of its subtypes are off**: a quiet line naming them ("Ghost towns off"), names
+     only, never a count, one line at 320 px, else "Some of these off"; none when all are on or the kind is off; spoken
+     too (WI18).
+  3. **The walk drawer's row gets its own short section** below the walk's settings, out from under "This walk" (WI19).
+  4. **Back names the walk**: opened from the walk's drawer, Back reads "Walk", the arrow and the word, with its
+     spoken name; from the ready bar it stays as it is (WI20).
+- **Not changing:** Amusement parks under Zoos and aquariums (the owner's call of Nov 18, the more-attractions audit).
 
 ## Criteria
 
@@ -110,6 +120,36 @@ The owner's task, in their words: "turn a kind on or off in What I'm into, from 
   "Complexes" with their note; the drawers keep none of them. (The owner's answer to the plan's Q1, Nov 18.)
 - **WI16** on the web, a reload on the page, or a link straight to it, shows the page with Back leading to the screen
   beneath it; with a walk open, the walk comes back as at launch (NV2).
+
+From the review of Nov 18 (the cold find and the UI review of the page's pictures; the owner's four calls and five
+local fixes):
+
+- **WI17** two levels pinned: while a kind's subtypes scroll under the pinned heading, the heading carries that kind's
+  name as a second line ("Viewpoints & oddities", then "› Zoos and aquariums"), so an indented row at the top of the
+  page always shows its kind; when the first row under the heading is a kind's own row, its name goes again. The same on
+  the web and on a phone: one pinned level is all the platforms' sticky headers carry, so the second is the heading's
+  words, changing as the page scrolls. The heading's height never changes with it, and a screen reader hears the
+  heading by its category alone. (The owner's call 1.)
+- **WI18** a kind row whose subtypes are partly off says which, on a quiet, muted line under its label: "Ghost towns
+  off", "Plaques and Small memorials off", names only and never a count; one line at 320 px at the default text size,
+  and where the names would not fit, "Some of these off". No line while all its subtypes are on, or while the kind
+  itself is off (its subtypes are hidden then). A screen reader hears it with the row. (The owner's call 2.)
+- **WI19** in the walk's drawer, the "What I'm into" row is out from under "This walk": a short section of its own,
+  below the walk's settings, after a rule and under the heading "Every walk", with Explore on. The ready bar's row stays
+  where it is, under "Walk settings", which claims no walk of its own. (The owner's call 3.)
+- **WI20** opened from the walk's drawer during a walk, the page's Back reads "Walk", its arrow and the word, and is
+  spoken as "Walk, back"; opened from the ready bar it stays as it was (the arrow, "Go back"). (The owner's call 4.)
+- **WI21** at 200% text a label wraps only between words, a wrapped row stands clear of the next, and at large text
+  sizes the subtype's indent, the icon's gutter and the page's margins shrink so the label gets the width (the page's
+  width over the text scale under 300 pt).
+- **WI22** on the web, at no scroll position does a heading show part of its words above or under another: the outgoing
+  heading is pushed out by the incoming one, as on a phone, and those it covered are hidden.
+- **WI23** Complexes' rows (Shopping, Markets, Campuses, Stations, Civic) are laid out as the other kind rows are: an
+  icon each, from installed Ionicons glyphs no other row on the page uses, and the label at the same start; a section's
+  heading is drawn larger than a kind row's label, so a heading is never taken for a row.
+- **WI24** a pinned heading has a hairline under it while rows pass under it, and none at rest.
+- **WI25** the journeys' pictures are of settled rows: each picture of the page is taken after its scroll has come to
+  rest, every row in view showing its switch; the structures picture is scrolled to Buildings and structures.
 
 ## Which existing criteria move or hold
 

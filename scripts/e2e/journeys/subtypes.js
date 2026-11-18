@@ -7,7 +7,7 @@
 const HEADINGS = ['Art', 'History', 'Parks & green spaces', 'Culture', 'Viewpoints & oddities'];
 
 async function run(h) {
-  const { navUrl, BASE, at, check, drawerTo, openInto, closeInto, freshPage, places, shot } = h;
+  const { navUrl, BASE, at, check, drawerTo, openInto, closeInto, intoScrollTo, intoSettled, freshPage, places, shot } = h;
   const { encodeTile } = await import('../../mvt-encode.mjs');
   const { encodeArchive } = await import('../../pmtiles-encode.mjs');
   const fallsAt = at(0.1, -0.48);
@@ -90,26 +90,36 @@ async function run(h) {
   check(sizes.head >= sizes.row && Number(sizes.weight) >= 600, `explore-subtypes audit 16: the heading is at least the rows' size, bold (${JSON.stringify(sizes)})`);
   await shot(pg, 'subtypes-what-im-into');
   // The middle and the end of the list, for the UI review (decision 0145).
-  await pg.locator('[data-testid=kind-bridges]').scrollIntoViewIfNeeded().catch(() => {});
-  await shot(pg, 'subtypes-what-im-into-structures');
-  await pg.locator('[data-testid=kind-ghost_towns]').scrollIntoViewIfNeeded().catch(() => {});
-  await shot(pg, 'subtypes-what-im-into-curiosities');
+  // WI25: each scrolled to its row under the pinned heading and left to settle; the structures picture once never scrolled
+  // (Bridges was already in view at the screen's foot), and the piers picture caught rows mid-scroll with no switch.
+  const unsettled = [];
+  const settledShot = async (id, name) => {
+    const found = await intoScrollTo(pg, id);
+    const left = await intoSettled(pg);
+    unsettled.push(...(found ? left : [`${id} not found`]));
+    await shot(pg, name);
+  };
+  const structuresAt = async () => pg.evaluate(() => {
+    const r = document.querySelector('[data-testid=into-page] [data-testid=kind-structures]');
+    return r ? Math.round(r.getBoundingClientRect().top) : null;
+  });
+  const structuresWas = await structuresAt();
+  await settledShot('kind-structures', 'subtypes-what-im-into-structures');
+  const structuresNow = await structuresAt();
+  check.todo(structuresWas != null && structuresNow != null && structuresNow < structuresWas && structuresNow < 200, `WI25: the structures picture is scrolled to Buildings and structures (${structuresWas} → ${structuresNow})`);
+  await settledShot('kind-curiosities', 'subtypes-what-im-into-curiosities');
   // More attractions' rows in their sections, for the UI review (decision 0198).
-  await pg.locator('[data-testid=kind-nature_reserves]').scrollIntoViewIfNeeded().catch(() => {});
-  await shot(pg, 'subtypes-what-im-into-parks');
-  await pg.locator('[data-testid=kind-attractions]').scrollIntoViewIfNeeded().catch(() => {});
-  await shot(pg, 'subtypes-what-im-into-zoos');
+  await settledShot('kind-parks', 'subtypes-what-im-into-parks');
+  await settledShot('kind-attractions', 'subtypes-what-im-into-zoos');
   // more-attractions audit 8: the cold find's gap, the Culture section with Museums and galleries, and the amusement row.
   const culture = await pg.locator('[data-testid=kind-museums]').count();
   check(culture === 1, `more-attractions audit 8: Museums and galleries is a row under Culture (${culture})`);
-  await pg.locator('[data-testid=kind-museums]').scrollIntoViewIfNeeded().catch(() => {});
-  await shot(pg, 'subtypes-what-im-into-culture');
+  await settledShot('kind-museums', 'subtypes-what-im-into-culture');
   const fun = await pg.locator('[data-testid=kind-amusement_parks]').count();
   check(fun === 1, `more-attractions audit 8: Amusement parks is a row under Zoos and aquariums (${fun})`);
-  await pg.locator('[data-testid=kind-amusement_parks]').scrollIntoViewIfNeeded().catch(() => {});
-  await shot(pg, 'subtypes-what-im-into-amusement');
-  await pg.locator('[data-testid=kind-piers]').scrollIntoViewIfNeeded().catch(() => {});
-  await shot(pg, 'subtypes-what-im-into-piers');
+  await settledShot('kind-amusement_parks', 'subtypes-what-im-into-amusement');
+  await settledShot('kind-piers', 'subtypes-what-im-into-piers');
+  check.todo(unsettled.length === 0, `WI25: every row in view shows its switch in each of the page's pictures (${JSON.stringify(unsettled)})`);
   const rows = drawer.filter((r) => !r.id.startsWith('kind-heading-')).map((r) => r.id);
   check(ready.length > 0 && JSON.stringify(ready) === JSON.stringify(drawer.map((r) => r.id)), `XS24, WI3: the page lists the same rows from the ready bar and the walk's drawer (${ready.length} vs ${drawer.length})`);
 
