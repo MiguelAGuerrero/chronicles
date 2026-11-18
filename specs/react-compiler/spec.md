@@ -49,4 +49,18 @@ screen 0.97 renders/s, the map 0.77; an Explore switch p95 frame 100 ms, 2.1 s o
 
 ## Record
 
-Not built yet.
+Built 2026-11-18 on `claude/bold-hawking-dx3pc8`, test-first by history (3 of 3).
+
+- **RC1** `experiments.reactCompiler` on in `app.json`; the web bundle carries 376 memo-cache sentinels (1 before);
+  `launch` checks them.
+- **RC2** `arch/compiler.baseline.json` lists the 44 functions the compiler skips today; a new skip fails `npm test`.
+  The 44 are filed in `docs/DEFERRED.md` for their areas' sweeps.
+- **RC3** the walk screen stays under 2 renders/s (`walk`).
+
+Measured on the web build, one run each, nothing else on the cores: Explore switch p95 frame 100 → 83 ms, long
+tasks 2.09 → 1.74 s, script 1.16 → 1.01 s; Explore drag about the same; walk screen and map 0.97 / 0.77 renders/s,
+unchanged (they count the screen's own renders); heap 25.3 → 25.9 MB; bundle 5.14 → 5.34 MB.
+
+Journeys, once each on the compiled `/chronicles` build, all green: launch walk qol replay days memories gallery
+journal tabs chronicle capturehome dense carousel freelook layers notepage reactions stacks threads edit. No audit
+(not asked). Native has never run on a device: the compiled native build is a device item.

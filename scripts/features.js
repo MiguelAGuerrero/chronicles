@@ -513,7 +513,6 @@ const RENAMED = {
 };
 
 const IN_PROGRESS = {
-  'react-compiler': { branch: 'claude/bold-hawking-dx3pc8', since: '2026-11-18' },
 };
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));
