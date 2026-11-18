@@ -398,6 +398,69 @@ async function checks(h) {
       await page.waitForSelector('[aria-label^="Fox Point,"]', { timeout: 30000 });
       await page.waitForTimeout(1000);
     }
+    {
+      // tend explore audit 32 (and tend explore 25, audit 33 at runtime): with the atlas's writes refused after a first
+      // listing (its rows and near reads cleared, then every write of them aborted, as a full disk aborts it), Explore lists
+      // again: the row shows the towns it read, their rings read too, unkept, and does not settle on "No towns are named".
+      // CDP's Storage.overrideQuotaForOrigin is ignored for a Playwright context in this headless Chromium (Nov 18: a page
+      // session, a persistent context; a browser session answers "Internal error"), so the writes are refused in the page.
+      const { c, pg } = await h.freshPage('atlas-full');
+      await c.addInitScript(() => {
+        if (localStorage.getItem('e2e_refuse_atlas') !== '1') return;
+        const refuse = (store, key) => store === 'atlas_area' || (store === 'meta' && typeof key === 'string' && key.startsWith('atlas_near:'));
+        const put = IDBObjectStore.prototype.put;
+        IDBObjectStore.prototype.put = function (value, key) {
+          const req = put.call(this, value, key);
+          if (refuse(this.name, value && value.key)) this.transaction.abort();
+          return req;
+        };
+      });
+      const errorsBefore = h.errors.length;
+      try {
+        await pg.goto(h.exploreUrl);
+        await pg.waitForSelector('[data-testid=atlas-tile][data-level="town"]', { timeout: 60000 }).catch(() => {});
+        await pg.waitForTimeout(3000);
+        const idb = (src) => pg.evaluate((body) => new Promise((resolve) => {
+          const req = indexedDB.open('chronicles');
+          req.onsuccess = () => new Function('db', 'resolve', body)(req.result, resolve);
+          req.onerror = () => resolve('open failed');
+        }), src);
+        const listed = await idb(`const g = db.transaction('atlas_area', 'readonly').objectStore('atlas_area').getAll(); g.onsuccess = () => resolve(g.result.length);`);
+        const cleared = await idb(`const tx = db.transaction(['atlas_area', 'meta'], 'readwrite');
+          tx.objectStore('atlas_area').clear(); tx.objectStore('meta').delete('atlas_near:neighborhood'); tx.objectStore('meta').delete('atlas_near:town');
+          tx.oncomplete = () => resolve(true); tx.onabort = () => resolve(String(tx.error && tx.error.name));`);
+        await pg.evaluate(() => localStorage.setItem('e2e_refuse_atlas', '1'));
+        await pg.reload();
+        const refused = await idb(`const tx = db.transaction('atlas_area', 'readwrite'); tx.objectStore('atlas_area').put({ key: 'e2e_probe' });
+          tx.oncomplete = () => resolve('written'); tx.onabort = () => resolve('aborted');`);
+        const said = [];
+        let seen = { towns: [], read: 0 };
+        const until = Date.now() + 45000;
+        while (Date.now() < until) {
+          said.push(await pg.locator('[data-testid=atlas-empty]').innerText().catch(() => ''));
+          seen = await pg.locator('[data-testid=atlas-tile][data-level="town"]').evaluateAll((els) => ({
+            towns: els.map((e) => e.getAttribute('data-name')),
+            read: els.filter((e) => e.getAttribute('data-read') === '1').length,
+          }));
+          if (seen.towns.length && seen.read) break;
+          await pg.waitForTimeout(500);
+        }
+        // A few seconds more: the row holds.
+        await pg.waitForTimeout(4000);
+        const settled = await pg.locator('[data-testid=atlas-empty]').innerText().catch(() => '');
+        const stillTowns = await pg.locator('[data-testid=atlas-tile][data-level="town"]').count();
+        const kept = await idb(`const g = db.transaction('atlas_area', 'readonly').objectStore('atlas_area').getAll(); g.onsuccess = () => resolve(g.result.length);`);
+        await shot(pg, 'tend-explore-audit-32-writes-refused');
+        const none = said.filter((t) => /No towns are named/.test(t)).length;
+        check(listed > 0 && cleared === true && refused === 'aborted' && seen.towns.length > 0 && seen.read > 0 && stillTowns > 0 && !/No towns are named/.test(settled) && kept === 0,
+          `tend explore audit 32: with the atlas's writes refused, the row lists the towns read (their rings too, unkept) and does not settle on "No towns are named" (${JSON.stringify({ listed, cleared, refused, ...seen, stillTowns, settled, kept, samplesSayingNone: `${none} of ${said.length}` })})`);
+      } finally {
+        await c.close();
+        // The writes this step refused are its own: console errors for them are expected here, and nowhere else.
+        const own = h.errors.splice(errorsBefore).filter((e) => !/^atlas-full: .*(AbortError|Transaction aborted|aborted)/i.test(e));
+        h.errors.push(...own);
+      }
+    }
 }
 
 // Alone: the walk journey first (the first walk, with its captures), then this.

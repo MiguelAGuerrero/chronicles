@@ -41,8 +41,8 @@ export interface AtlasReadIo {
   exploreBusy: () => boolean;
 }
 
-/** A near read: kept (true), not read (false), or read but not kept, its rows to show (tend explore 25). */
-export type NearOutcome = boolean | { unkept: AtlasArea[] };
+/** A near read: kept (true), not read (false), or read but not kept, its rows to show and the read to hold (tend explore 25, audit 32). */
+export type NearOutcome = boolean | { unkept: AtlasArea[]; near: NearRead };
 
 /** Neighborhood points are in the z14 place layer; towns and cities in z11's. */
 const ZOOM: Record<AtlasLevel, number> = { neighborhood: 14, town: 11 };
@@ -97,7 +97,8 @@ export function createAtlasRead(p: Pick<Ports, 'db' | 'clock'> & { io: AtlasRead
     look = false,
   ): Promise<NearOutcome | null> {
     return one(async (): Promise<NearOutcome> => {
-      const url = await db.getMeta('tile_url');
+      // Audit 35: a meta read that fails is no URL, never a throw retried every 1.5 s.
+      const url = await db.getMeta('tile_url').catch(() => null);
       if (!url || build === 'unknown' || shouldStop()) return false;
       let candidates: PlaceCandidate[] | null = null;
       if (level === 'neighborhood' && town) {
@@ -133,7 +134,11 @@ export function createAtlasRead(p: Pick<Ports, 'db' | 'clock'> & { io: AtlasRead
         }
         candidates = candidates.filter((c) => c.level === level && distanceM(c.at, at) <= reach && !(level === 'neighborhood' && isWard(c.name)));
       }
-      const rows = newRows(await db.listAtlasAreas().catch(() => []), candidates, build, p.clock.now());
+      // Audit 34: without the kept rows a read cannot tell a new area from a known one (every row would come back with
+      // no profile): it is a failed read, writing nothing.
+      const known = await db.listAtlasAreas().catch(() => null);
+      if (!known) return false;
+      const rows = newRows(known, candidates, build, p.clock.now());
       const near: NearRead = { at, build, code: ATLAS_CODE, radiusM: reach, ...(town && level === 'neighborhood' ? { town: town.key } : {}), ...(look ? { look: true } : {}) };
       try {
         await db.putAtlasAreas(rows);
@@ -141,7 +146,7 @@ export function createAtlasRead(p: Pick<Ports, 'db' | 'clock'> & { io: AtlasRead
       } catch {
         // tend explore 25: a write that fails is not a failed read. Its areas are shown from the read, the cache simply
         // isn't kept, and the read is asked for again after `retryMs`; a throw here was taken for a read still running and retried every 1.5 s.
-        return { unkept: rows };
+        return { unkept: rows, near };
       }
       return true;
     });
@@ -150,7 +155,7 @@ export function createAtlasRead(p: Pick<Ports, 'db' | 'clock'> & { io: AtlasRead
   /** AT5: reads one area's ring, keeps its profile, and caches its streets and places like any read. */
   function readRing(area: AtlasArea, shouldStop: () => boolean): Promise<AtlasArea | null> {
     return one(async () => {
-      const url = await db.getMeta('tile_url');
+      const url = await db.getMeta('tile_url').catch(() => null);
       const failed = async () => {
         const row = { ...area, failed_at: p.clock.now() };
         await db.putAtlasAreas([row]).catch(() => {});
@@ -214,10 +219,16 @@ export function createAtlasRead(p: Pick<Ports, 'db' | 'clock'> & { io: AtlasRead
         if (outlineRetry) profile.outlineRetry = true;
         // read_at moves on either way, so a ring Overture didn't answer for waits before asking again.
         const row: AtlasArea = { ...area, profile: keptProfile(area.profile, profile), read_at: p.clock.now(), failed_at: null };
-        await db.putAtlasAreas([row]);
+        try {
+          await db.putAtlasAreas([row]);
+        } catch {
+          // tend explore audit 33: a write that fails is not a failed read: the row shows its profile, unkept, and its
+          // failed_at makes it wait retryMs before it is tried again.
+          return { ...row, failed_at: p.clock.now() };
+        }
         return row;
       } catch {
-        // A profile that throws or a write that fails is a failed read: it waits retryMs (explore-atlas audit 3).
+        // A profile that throws is a failed read: it waits retryMs (explore-atlas audit 3).
         return failed();
       }
     });

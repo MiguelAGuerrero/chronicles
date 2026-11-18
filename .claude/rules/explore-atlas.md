@@ -27,6 +27,7 @@ paths:
   - `one()` keeps it to one read at a time; a second ask resolves `null` and is retried 1.5 s later.
   - A failed ring stores `failed_at` and waits `retryMs`.
   - Factory `createAtlasRead` (`readShell.ts`, tested on `fakePorts()`), instance `read.ts`. A near read whose write fails resolves `{ unkept: rows }`: `useAtlas` shows them and asks again after `retryMs`, never every 1.5 s (tend explore 25).
+  - An unkept near read is held (`heldNears`) for `retryMs` (audit 32).
 - **The loop** (`useAtlas`) runs only while the tab is focused and a position is known. It does one step per effect run and asks for the next with a timer. Moving 1 km, a new build or a new `ATLAS_CODE` lists again.
 - **Storage:** `atlas_area` is in `DERIVED_STORES` (SQLite migration 15, IndexedDB v13), so `purgeDerived` clears it.
 - **The title floats over the map** (AT15): the map starts under the status bar; the title card has a shadow. Tiles carry `characterLine` (AT16) and the densest strip. On web the map has no top inset (`lib/mapTopInset`): iOS Safari reports a status-bar inset although the tab starts below its toolbar, which pushed the chip down from the corner (Nov 4). The page has `viewport-fit=cover` since Nov 12 (fix home-indicator) and the PWA status bar style is `default`; the map still takes no top inset on web.
