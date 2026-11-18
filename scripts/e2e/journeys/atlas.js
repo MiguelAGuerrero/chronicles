@@ -78,6 +78,8 @@ async function checks(h) {
           });
           check(narrow.top === 1 && narrow.right <= narrow.edge + 0.5, `SG2: at 320 px the strip stays one row inside the tile (${JSON.stringify(narrow)})`);
           await shot(page, 'sg-tile-320');
+          // The tile itself, scrolled into the row's view, for the UI review (the page shot shows the selected town).
+          if (process.env.E2E_SHOTS) await fox.screenshot({ path: `${process.env.E2E_SHOTS}/sg-tile-fox-320.png` }).catch(() => {});
           await page.setViewportSize(vp);
           await page.waitForTimeout(600);
         }

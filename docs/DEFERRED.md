@@ -427,6 +427,8 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - An e2e for the Home Screen hand-off (`navigator.standalone` plus an iPhone UA, a `location.href` spy): `openInMaps` imports `Platform`, so no unit test reaches it (fix pwa-maps audit 1; deferred at `--tests=lean`)
 
 - **A self-referential `node_modules` symlink is tracked in git** (commit `16e54cf`, seen Nov 4 during fix busy-streets): it points at itself, so a fresh checkout has no dependencies until it is removed and `npm ci` runs. Untrack it and make sure `node_modules` is in `.gitignore`; left alone because it is not the busy-areas fix.
+- **The `drive` journey fails on `main` (8ab68d0, Nov 18)**: after DW3 it moves 11.5 km east, reloads Explore and waits 15 s for Cranston's card (`openCard`, `atlas-town-head`), which never opens; seen on main by hand and on `claude/modest-hopper-df0ev8`, the same timeout at the same step. Not this slice's: found running the journeys that cover `AtlasCard.tsx`.
+- **`npm run e2e:baseline` calls a journey that throws "passed"** (Nov 18): `summarizeBaseline` counts only `FAILED:` checks, so a run that dies on a Playwright timeout (exit 1, no failed check) is summed as a pass. `drive` on main failed 3 of 3 that way and the tool printed "passed 3/3 on main ... a failure on your branch is the branch's". A run with a non-zero exit and no parsed failure should count as failed.
 
 ## Walkability (specs/walkability, decision 0093)
 
