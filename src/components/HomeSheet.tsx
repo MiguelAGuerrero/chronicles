@@ -100,16 +100,24 @@ export function SheetFrame(props: {
   useEffect(() => {
     onHeight.current = props.onHeight;
   });
-  // Every move reports where the sheet ends, finished or cut short by a drag (audit 2).
+  // Every move reports where the sheet ends, finished or cut short by a drag (audit 2). `moving` is true while the
+  // latest move's spring runs; a spring cut short by a later move never clears the later one's (tend tabs audit 38).
+  const moving = useRef({ id: 0, on: false });
   const [moveTo] = useState(() => (to: number, snap: boolean) => {
-    const done = () => onHeight.current?.(to);
+    const id = ++moving.current.id;
+    const done = () => {
+      if (moving.current.id === id) moving.current.on = false;
+      onHeight.current?.(to);
+    };
+    moving.current.on = !snap;
     if (snap) {
       h.setValue(to);
       done();
     } else Animated.spring(h, { toValue: to, ...MOTION.spring, useNativeDriver: false }).start(done);
   });
   // A peek is set, not sprung, on the sheet's mount and on the move its screen's first read asks for (tend tabs T38);
-  // every other move springs, before the read too (audit 37). In a layout effect, so the frame that shows the first
+  // every other move springs, before the read too (audit 37), and a first read that lands on a running spring springs
+  // to its height (audit 38). In a layout effect, so the frame that shows the first
   // read shows its height and the scale bar reads it too. A change of `known` alone never restarts a running move.
   const known = props.known !== false;
   const wasKnown = useRef(known);
@@ -120,7 +128,7 @@ export function SheetFrame(props: {
     const last = lastMove.current;
     if (last && last.target === target && last.reduced === reduced) return;
     lastMove.current = { target, reduced };
-    moveTo(target, sheetMoveSnaps({ reduced, peek: size === 'peek', mount: !last, firstKnown }));
+    moveTo(target, sheetMoveSnaps({ reduced, peek: size === 'peek', mount: !last, firstKnown, moving: moving.current.on }));
   }, [moveTo, target, reduced, known, size]);
   const latest = useRef({ size, target, reduced });
   // Updated straight after each commit, so the settle check below reads the screen's answer.

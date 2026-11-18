@@ -97,11 +97,12 @@ export const durationFor = (token: MotionToken, reduced: boolean): number => (re
 /**
  * Whether a sheet's move to its height is set rather than sprung (tend tabs T38): every move with reduce motion (M2),
  * and a peek's move on the sheet's mount or on the move its screen's first read asks for (Chronicle with nothing
- * walked, 76 to 124), so nothing rises at launch. Every other move springs, before the first read too (tend tabs
- * audit 37), and half and full always: M5's spring holds for every move after the first known height (the owner, Nov 18).
+ * walked, 76 to 124), so nothing rises at launch; a first read that lands while a spring runs springs on from it,
+ * never jumps (tend tabs audit 38). Every other move springs, before the first read too (tend tabs audit 37), and
+ * half and full always: M5's spring holds for every move after the first known height (the owner, Nov 18).
  */
-export const sheetMoveSnaps = (m: { reduced: boolean; peek: boolean; mount: boolean; firstKnown: boolean }): boolean =>
-  m.reduced || (m.peek && (m.mount || m.firstKnown));
+export const sheetMoveSnaps = (m: { reduced: boolean; peek: boolean; mount: boolean; firstKnown: boolean; moving: boolean }): boolean =>
+  m.reduced || (m.peek && (m.mount || (m.firstKnown && !m.moving)));
 
 /**
  * The replay's rhythm (RR1-RR16, decision 0085) and its pace (RY1-RY22, decision 0203): the prototypes' numbers
