@@ -46,13 +46,14 @@ const SAY: Record<TurnSay | 'on', string> = {
 export const turnLine = (t: { say: TurnSay | 'on'; toM: number }, units: Units): string => `${SAY[t.say]}. ${turnDistance(t.toM, units)}.`;
 
 export const DRIVE_LABEL = 'Drive there';
-export const END_LABEL = 'End';
+/** Audit 10: it says what ends: the screen has its own Pause and Hold beside it. */
+export const END_LABEL = 'End directions';
 /** RE25: where a turn cannot be spoken. */
 export const SHOWN_LINE = 'Turns are shown, not said.';
 /** RE26: what the engine cannot know, as a statement, at rest. */
 export const LIMITS_LINE = 'The map holds no turn restrictions and no closures.';
 /** RE19 (S10): beside the road drawn on the page. */
-export const MAPS_ROAD_LINE = 'Maps chooses its own road, which may not be this one.';
+export const MAPS_ROAD_LINE = 'Your maps app chooses its own road, which may not be this one.';
 /** RE15: said once when guiding could not begin. */
 export const NO_ROAD_LINE = "Couldn't find the road.";
 

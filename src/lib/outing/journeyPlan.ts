@@ -104,7 +104,8 @@ export function stepPlan(plan: JourneyPlan, state: PlanState, here: LngLat | nul
   const same = k === 0 && closest.every((v, i) => v === state.closest[i]) && reached.every((v, i) => v === state.reached[i]);
   const c = cs[k];
   return {
-    plan: k === 0 ? plan : { chapters: cs.slice(k) },
+    // A town let go ends the guiding to it; the mute is the session's and stays (audit 3).
+    plan: k === 0 ? plan : { chapters: cs.slice(k), ...(plan.muted ? { muted: true as const } : {}) },
     state: same ? state : { closest: closest.slice(k), reached: reached.slice(k) },
     ahead: { town: c.town, at: c.at, within: off[k] <= PLAN_RULES.reachM || (reached[k] && off[k] <= PLAN_RULES.leftM), awayM: distanceM(here, c.at) },
   };
@@ -114,7 +115,7 @@ export function stepPlan(plan: JourneyPlan, state: PlanState, here: LngLat | nul
 export const placePlan = (name: string, at: LngLat): JourneyPlan => ({ chapters: [{ town: name, at, stops: [at], loop: false }] });
 
 /** OJ31: "Pass by": the town ahead leaves the plan; with none after it there is no plan. */
-export const passBy = (plan: JourneyPlan): JourneyPlan | null => (plan.chapters.length > 1 ? { chapters: plan.chapters.slice(1) } : null);
+export const passBy = (plan: JourneyPlan): JourneyPlan | null => (plan.chapters.length > 1 ? { chapters: plan.chapters.slice(1), ...(plan.muted ? { muted: true as const } : {}) } : null);
 
 /** OJ30: a chapter's way on foot, asked for on a tap: an ordinary suggested destination through its stops, routed from where you are and ending at the last of them; positions only. */
 export function chapterDest(c: PlanChapter): Waypoint {

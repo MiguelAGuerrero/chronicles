@@ -28,7 +28,7 @@ export function useJourneyBar(o: { walkId: string | null; here: LngLat | null; n
   const [undo, setUndo] = useState<{ plan: JourneyPlan; at: LngLat | null } | null>(null);
   // RE26: where "Drive there" was tapped; RE15: the one line said when the road could not be found.
   const [began, setBegan] = useState<LngLat | null>(null);
-  const [note, setNote] = useState<string | null>(null);
+  const [note, setNote] = useState<{ town: string | null; text: string } | null>(null);
   useEffect(() => {
     let live = true;
     if (!o.walkId) return;
@@ -64,7 +64,8 @@ export function useJourneyBar(o: { walkId: string | null; here: LngLat | null; n
   const endDrive = (said: string | null) => {
     if (mine?.plan?.driving) setHeld({ ...mine, plan: { chapters: mine.plan.chapters, ...(mine.plan.muted ? { muted: true as const } : {}) } });
     setBegan(null);
-    setNote(said);
+    // Audit 13: the line is about this town, and goes when another is ahead.
+    setNote(said ? { town: ahead?.town ?? null, text: said } : null);
   };
   const drive = useDrive({ on: guided && !o.navigating, here: o.here, to: guided ? ahead.at : null, muted: !!mine?.plan?.muted, onFail: () => endDrive(NO_ROAD_LINE) });
   const notice = guided && !!began && (!o.here || distanceM(began, o.here) < NOTICE_M);
@@ -81,7 +82,8 @@ export function useJourneyBar(o: { walkId: string | null; here: LngLat | null; n
         : ahead && town
           ? {
               // RE20: under a turn, the town alone; with no turn to show, the town and how far, as between towns.
-              line: ahead.within ? hereLine(town) : towardLine(town, turn ? null : ahead.awayM, units),
+              // Audit 8 (RE22): off the way the line is the town alone, as under a turn: nothing appears that marks the leaving.
+              line: ahead.within ? hereLine(town) : towardLine(town, turn || (guided && drive.off) ? null : ahead.awayM, units),
               within: ahead.within,
               at: ahead.at,
               awayM: ahead.awayM,
@@ -96,10 +98,12 @@ export function useJourneyBar(o: { walkId: string | null; here: LngLat | null; n
               /** RE26: the line above is the one-time statement, which may take a third line. */
               notice,
               /** RE15: said once when the road could not be found; Open in Maps is beside it. */
-              note: guided ? null : note,
+              note: guided || !note || note.town !== town ? null : note.text,
+              /** Audit 12: the way being driven, for the map. */
+              drivePath: guided ? drive.path : null,
             }
           : undoShown
-            ? { line: NO_TOWN_LINE, within: false, at: null, awayM: null, town: null, undo: true, driving: false, speaks: canSpeak, muted: false, turn: null, notice: false, note: null }
+            ? { line: NO_TOWN_LINE, within: false, at: null, awayM: null, town: null, undo: true, driving: false, speaks: canSpeak, muted: false, turn: null, notice: false, note: null, drivePath: null }
             : null,
     /** RE19: guiding begins on this tap and no sooner. */
     drive() {

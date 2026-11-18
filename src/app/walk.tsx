@@ -722,10 +722,12 @@ function WalkScreen(props: { onMinimize: () => void }) {
           : null,
     [navigation.nav, navigation.preview, live.here],
   );
+  const drivePath = journey.next?.drivePath ?? null;
   // The preview's other routes, faint (SR2), and the map framed around all of them.
   const alternates = useMemo(
-    () => (navigation.preview ? navigation.preview.options.filter((_, i) => i !== navigation.preview!.selected).map((o) => o.route.path) : null),
-    [navigation.preview],
+    // Audit 12: a guided drive's road is drawn the same faint way: one line, no markers (RE16).
+    () => (navigation.preview ? navigation.preview.options.filter((_, i) => i !== navigation.preview!.selected).map((o) => o.route.path) : drivePath ? [drivePath] : null),
+    [navigation.preview, drivePath],
   );
   const previewFit = useMemo(() => (navigation.preview ? boundsOf(navigation.preview.options.flatMap((o) => o.route.path), 30) : null), [navigation.preview]);
   const previewKey = previewFit ? 300000 + (Math.abs(Math.round((previewFit[0] + previewFit[1]) * 1e5)) % 99999) : 0;
@@ -1372,22 +1374,22 @@ function WalkScreen(props: { onMinimize: () => void }) {
           {/* A journey between towns (OJ29, OJ31, decision 0210): the town ahead and how far, Maps for the road, a way to pass it by. */}
           {!navigation.nav && journey.next && (
             // On the surface's own ground, not the route's colour: this is where the outing is headed, not a way being followed.
-            <View testID="journey-bar" style={styles.journeyBar}>
+            <View testID="journey-bar" style={styles.journeyBar} {...({ dataSet: { drivePoints: drivePath?.length ?? 0 } } as object)}>
               {/* RE20, RE26: while guiding, the turn and how far above the town; before the first turn, what the map cannot know. */}
               {journey.next.turn ? <Text testID="journey-turn" style={styles.journeyTurn} numberOfLines={journey.next.notice ? 4 : 2}>{journey.next.turn}</Text> : null}
               <Text testID="journey-next" style={journey.next.turn ? styles.journeyUnder : styles.journeyText} numberOfLines={2}>{journey.next.line}</Text>
               {journey.next.note ? <Text testID="journey-note" style={styles.journeyUnder} accessibilityLiveRegion="polite">{journey.next.note}</Text> : null}
               <View style={styles.journeyActions}>
+                {journey.next.driving && journey.next.speaks ? (
+                  // RE25: the mute, in words; it says what a tap does now.
+                  <Pressable testID="journey-mute" accessibilityRole="button" accessibilityLabel={journey.next.muted ? UNMUTE_LABEL : MUTE_LABEL} onPress={journey.mute} style={({ pressed }) => [styles.journeyBtn, pressed && styles.pressed]}>
+                    <Text style={styles.journeyBtnText}>{journey.next.muted ? UNMUTE_LABEL : MUTE_LABEL}</Text>
+                  </Pressable>
+                ) : null}
                 {journey.next.driving ? (
                   // RE20a: nothing else to tap while guiding; Open in Maps and Pass by return when it ends.
                   <Pressable testID="journey-end" accessibilityRole="button" accessibilityLabel={END_LABEL} onPress={journey.end} style={({ pressed }) => [styles.journeyBtn, pressed && styles.pressed]}>
                     <Text style={styles.journeyBtnText}>{END_LABEL}</Text>
-                  </Pressable>
-                ) : null}
-                {journey.next.driving && journey.next.speaks ? (
-                  // RE25: the mute, in words; it says what a tap does now.
-                  <Pressable testID="journey-mute" accessibilityRole="button" accessibilityLabel={journey.next.muted ? UNMUTE_LABEL : MUTE_LABEL} onPress={journey.mute} style={({ pressed }) => [styles.journeyPlain, pressed && styles.pressed]}>
-                    <Text style={styles.journeyBtnText}>{journey.next.muted ? UNMUTE_LABEL : MUTE_LABEL}</Text>
                   </Pressable>
                 ) : null}
                 {journey.next.driving ? null : !journey.next.within && journey.next.at && journey.next.town ? (
@@ -2080,9 +2082,11 @@ const styles = StyleSheet.create({
   navText: { flex: 1, color: '#ffffff', fontSize: 16, fontWeight: '700' },
   journeyBar: { flex: 1, minWidth: 0, gap: 4, backgroundColor: theme.surface, borderRadius: 16, borderWidth: 1, borderColor: theme.edge, paddingHorizontal: 12, paddingVertical: 8 },
   journeyText: { color: theme.ink, fontSize: 15, fontWeight: '700' },
-  journeyTurn: { color: theme.ink, fontSize: 17, fontWeight: '700' },
+  // Audit: read at a glance, moving: the largest line on the bar.
+  journeyTurn: { color: theme.ink, fontSize: 22, fontWeight: '700' },
   journeyUnder: { color: theme.ink, fontSize: 14 },
-  journeyActions: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 4 },
+  // Audit: 12 px between targets on a screen used in a car.
+  journeyActions: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 12 },
   journeyBtn: { minHeight: 44, paddingHorizontal: 12, borderRadius: 22, borderWidth: 1, borderColor: theme.edge, alignItems: 'center', justifyContent: 'center' },
   journeyPlain: { minHeight: 44, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center' },
   journeyBtnText: { color: theme.ink, fontSize: 14, fontWeight: '700' },

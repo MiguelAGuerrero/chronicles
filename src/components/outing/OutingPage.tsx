@@ -186,8 +186,6 @@ export function OutingPage(props: {
                 {/* RE11a, RE15, RE18: one line about the road: how the way is chosen once found; straight lines until then, and why when not. */}
                 {j.road === 'found' ? null : <Text style={styles.line} testID="outing-straight">{j.road && j.road !== 'reading' ? roadLine(j.road) : STRAIGHT_LINE}</Text>}
                 {j.road === 'found' || j.road === 'reading' ? <Text style={styles.line} testID="outing-road" accessibilityLiveRegion="polite">{roadLine(j.road)}</Text> : null}
-                {/* RE19 (S10), RE26: beside the road drawn, at rest: what the map cannot know, and that Maps takes its own road. */}
-                {j.road === 'found' ? <Text style={styles.line} testID="outing-road-note">{LIMITS_LINE} {MAPS_ROAD_LINE}</Text> : null}
               </>
             ) : (
               <>
@@ -276,6 +274,9 @@ export function OutingPage(props: {
                 </View>
               ) : null}
               {mapsFailed ? <Text style={styles.line} testID="outing-maps-failed" accessibilityLiveRegion="polite">{MAPS_FAILED_LINE}</Text> : null}
+              {/* RE19 (S10), RE26; audit 11: with the journey's towns and their Open in Maps, at rest: what the map cannot know, and
+                  that the maps app takes its own road. Not among the chips, where it pushed their controls under the fold. */}
+              {j.road === 'found' ? <Text style={styles.line} testID="outing-road-note">{LIMITS_LINE} {MAPS_ROAD_LINE}</Text> : null}
               {chapters.map((c) => (
                 <View key={c.ci} style={styles.chapter} testID={`outing-chapter-${c.ci}`}>
                   <Text style={styles.jname} accessibilityRole="header" testID={`outing-chapter-name-${c.ci}`}>{c.area.name ?? HERE_LABEL}</Text>

@@ -121,7 +121,7 @@ test('DO5, DO6: the question says "Start now", at every distance, never "Walk no
   assert.doesNotMatch(`${w.START_NOW_LABEL} ${w.START_FAR_HINT}`, /walk/i);
 });
 
-test('road-engine audit 3: a mute survives a town left behind and a town passed by; the guiding does not', { todo: 'audit: test first' }, async () => {
+test('road-engine audit 3: a mute survives a town left behind and a town passed by; the guiding does not', async () => {
   const { passBy, stepPlan, emptyState } = await import('../../outing/journeyPlan');
   const c = (town: string, lon: number) => ({ town, at: [lon, 47.3] as [number, number], stops: [[lon, 47.3] as [number, number]], loop: false });
   const plan = { chapters: [c('A', 8.5), c('B', 9.2)], driving: true as const, muted: true as const };

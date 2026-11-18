@@ -1,5 +1,6 @@
 import type React from 'react';
-import { START_FAR_HINT, START_NOW_LABEL } from '../../lib/outing/journeyWords';
+import { START_FAR_HINT, START_NOW_LABEL, startFarLine } from '../../lib/outing/journeyWords';
+import { travelMode } from '../../lib/nav/handoff';
 import { useEffect, useRef, useState } from 'react';
 import {
   Animated, BackHandler, PanResponder, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions,
@@ -446,6 +447,8 @@ export function AtlasCard(props: {
             // DO6 (amending DW14): too far to walk, not too far to go: the same question as any far place. Start now begins the
             // outing where you are, with the place ahead and no way on foot (DO7).
             <>
+              {/* Audit (drive-in-the-outing audit 2): what Start now does is said on the card's face, as the outing page says it. */}
+              {props.onStartFar ? <Text style={styles.via} testID="atlas-start-far-line">{startFarLine(props.walkTo.label)}</Text> : null}
               <View style={[styles.askRow, narrow && styles.askStack]}>
                 {props.onStartFar ? (
                   <Button testID="atlas-start-far" label={START_NOW_LABEL} busy={props.starting} busyLabel="Starting…" style={narrow ? null : styles.askBtn}
@@ -456,13 +459,13 @@ export function AtlasCard(props: {
                   accessibilityHint="Keeps it on Navigate. The walk starts when you tap Start."
                   onPress={() => props.walkTo && props.onLater?.(props.walkTo.at, props.walkTo.label)} />
               </View>
-              {props.onMaps && cardCanOpenInMaps({ here: !!props.here, asking: false }) ? <OpenInMapsButton testID="atlas-card-maps" variant="button" target={{ at: props.walkTo.at, label: props.walkTo.label, kind: 'area' }} onOpen={props.onMaps} style={styles.mapsFoot} /> : null}
+              {props.onMaps && cardCanOpenInMaps({ here: !!props.here, asking: false }) ? <OpenInMapsButton testID="atlas-card-maps" variant="button" target={{ at: props.walkTo.at, label: props.walkTo.label, kind: 'area', mode: travelMode(props.distanceM ?? null) }} onOpen={props.onMaps} style={styles.mapsFoot} /> : null}
             </>
           ) : props.walkTo ? (
             <>
               <Button ref={walkRef} testID="atlas-walk" label={`Walk to ${props.walkTo.label}`} onPress={() => props.walkTo && walkTo(props.walkTo.at, props.walkTo.label, props.onWalk)} busy={props.starting} busyLabel="Starting…" tall />
               {props.walkTo.via ? <Text style={styles.via} testID="atlas-walk-via">{walkViaLine(props.walkTo.via)}</Text> : null}
-              {props.onMaps && cardCanOpenInMaps({ here: !!props.here, asking: false }) ? <OpenInMapsButton testID="atlas-card-maps" variant="button" target={{ at: props.walkTo.at, label: props.walkTo.label, kind: 'area' }} onOpen={props.onMaps} style={styles.mapsFoot} /> : null}
+              {props.onMaps && cardCanOpenInMaps({ here: !!props.here, asking: false }) ? <OpenInMapsButton testID="atlas-card-maps" variant="button" target={{ at: props.walkTo.at, label: props.walkTo.label, kind: 'area', mode: travelMode(props.distanceM ?? null) }} onOpen={props.onMaps} style={styles.mapsFoot} /> : null}
             </>
           ) : (
             <Text style={[styles.muted, styles.hereLine]}>Too far to walk from here</Text>

@@ -57,9 +57,10 @@ function legTurns(graph: RoadGraph, nodes: readonly number[], kinds: readonly Ro
     const inB = bearing(along(path, i, -1, TURN_RULES.lookM), here);
     const delta = turnOf(inB, bearing(here, along(path, i, 1, TURN_RULES.lookM)));
     let say: TurnSay | null = null;
-    if (kinds[i - 1] !== 'motorway' && kinds[i] === 'motorway') say = 'join';
+    // Audit 4: a real change of heading is said by its side, a motorway begun or ended there or not.
+    if (Math.abs(delta) >= TURN_RULES.turnDeg) say = delta > 0 ? 'right' : 'left';
+    else if (kinds[i - 1] !== 'motorway' && kinds[i] === 'motorway') say = 'join';
     else if (kinds[i - 1] === 'motorway' && kinds[i] !== 'motorway') say = 'leave';
-    else if (Math.abs(delta) >= TURN_RULES.turnDeg) say = delta > 0 ? 'right' : 'left';
     else {
       // Going on ahead: a fork when another road goes ahead too, said by the side this one keeps to.
       const ahead = others.map((to) => turnOf(inB, bearing(here, graph.at(to)))).filter((d) => Math.abs(d) < TURN_RULES.turnDeg);

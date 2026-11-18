@@ -101,3 +101,5 @@ export const NEW_TOWN_LINE = 'New to you.';
 export const START_NOW_LABEL = 'Start now';
 /** DO7: what Start now does for a place past what can be reached on foot. */
 export const START_FAR_HINT = 'Records from here, the drive included, with the place ahead.';
+/** DO7 (drive-in-the-outing audit 2): the same thing on the card's face, where it can be read before the tap. */
+export const startFarLine = (place: string): string => `Start now records from here, toward ${place}.`;

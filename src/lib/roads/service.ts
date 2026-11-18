@@ -32,7 +32,10 @@ export function createRoads(deps: RoadsDeps) {
   const rules = deps.rules ?? ROAD_RULES;
   let kept: { tiles: ReadonlySet<string>; graph: RoadGraph } | null = null;
   let last: Promise<unknown> = Promise.resolve();
+  // Audit 7: a graph built for a page that has since closed is not kept.
+  let age = 0;
   async function find(points: readonly LngLat[], shouldStop?: () => boolean): Promise<RoadAnswer | null> {
+    const born = age;
     const tiles = tilesAlong(points, rules);
     if (!tiles) return { state: 'long' };
     const keys = tiles.map((t) => t.join('/'));
@@ -46,7 +49,7 @@ export function createRoads(deps: RoadsDeps) {
       if (!roads) return { state: 'failed' };
       await deps.pause();
       graph = RoadGraph.build(roads, rules.joinM);
-      kept = { tiles: new Set(keys), graph };
+      if (born === age) kept = { tiles: new Set(keys), graph };
     }
     const search = findWay(graph, [...points], rules);
     for (;;) {
@@ -66,6 +69,7 @@ export function createRoads(deps: RoadsDeps) {
     /** Drops the graph kept: the page that asked has closed. */
     forget() {
       kept = null;
+      age++;
     },
   };
 }

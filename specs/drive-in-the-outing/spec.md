@@ -28,9 +28,9 @@ Touches: Never "All-day tracking", "A capture behind a menu, a drawer or an extr
 Verdict: aligned if reshaped
 Shape: nothing starts, stops or offers itself on a car, a speed or an arrival; a place is found by a capture, never by passing or by
   minutes spent; the drive stays inside the replay's path beat; no speed anywhere; nothing new on the screen for a driver
-Precedent: Apple Voice Memos (the Action button starts one, saved with the name of your location; verified), Polarsteps (a trip as
+Precedent: Apple Voice Memos (the Action button starts one, saved with the name of your location; read by the gate's session, not re-read here), Polarsteps (a trip as
   a route with steps; straight lines between stops are the thing to avoid; unverified), Google Maps Timeline (records your day
-  unasked: the counter-example; verified), iOS Driving Focus (silences notifications while driving; unverified)
+  unasked: the counter-example; read by the gate's session, not re-read here), iOS Driving Focus (silences notifications while driving; unverified)
 Criteria: DO1-DO30 below, with DO12a
 Open: two, at the end (the owner answered the rest on Nov 18)
 ```
@@ -175,3 +175,13 @@ fails earlier at a step recorded as failing on main. **Deferred** in `docs/DEFER
 React Native and has not run on a phone.
 
 Parts 2 to 4 are not built.
+
+## Audit (2026-11-18, with the road engine's)
+
+**4 findings: 2 fixed, 2 deferred.**
+
+1. "Start now" on a far card while a session was open replaced that session's journey with a one-town plan, with nothing started: accept; with a session open the card does not offer it. `drive-in-the-outing audit 1` (journey `startfar`).
+2. The card did not say that Start now records the drive (only a screen reader's hint did): accept; "Start now records from here, toward <place>." on the card. `drive-in-the-outing audit 2` (journey `startfar`).
+3. A start held up past two minutes (a permission prompt) loses the plan: defer.
+4. A place past 10 km reached from a row of the card that is not the card's own area gets the ordinary question, and "Start now" then routes on foot to "too far": defer.
+

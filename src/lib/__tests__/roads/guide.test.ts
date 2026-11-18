@@ -90,7 +90,7 @@ test('RE22: off the way no turn is shown and nothing is flagged; the way is aske
   assert.equal(off.off, true);
   assert.equal(off.turn, null);
   assert.equal(off.again, false);
-  assert.deepEqual(Object.keys(off).sort(), ['again', 'left', 'off', 'turn'], 'nothing else comes back: no word, no flag for the screen');
+  assert.deepEqual(Object.keys(off).sort(), ['again', 'alongM', 'left', 'off', 'turn'], 'nothing else comes back: no word, no flag for the screen');
   const further = driveStep(way.path, turns, at(1000 + DRIVE_RULES.offM + 30 + DRIVE_RULES.againM + 10, 0), off.left, DRIVE_RULES);
   assert.equal(further.again, true);
   assert.ok(DRIVE_RULES.againM >= 300, 'a wait by distance, longer than a walker\'s drift');
@@ -111,10 +111,10 @@ test('RE20, RE21, RE25, RE26, RE32: the words of a drive: the turn and how far, 
   assert.equal(w.turnLine({ say: 'leave', toM: 31_000 }, 'km'), 'Off the motorway. 31\u00a0km.');
   assert.equal(w.turnLine({ say: 'on', toM: 12_000 }, 'km'), 'On this road. 12\u00a0km.');
   assert.equal(w.DRIVE_LABEL, 'Drive there');
-  assert.equal(w.END_LABEL, 'End');
+  assert.equal(w.END_LABEL, 'End directions');
   assert.equal(w.SHOWN_LINE, 'Turns are shown, not said.');
   assert.equal(w.LIMITS_LINE, 'The map holds no turn restrictions and no closures.');
-  assert.match(w.MAPS_ROAD_LINE, /Maps chooses its own road/);
+  assert.match(w.MAPS_ROAD_LINE, /maps app chooses its own road/);
   const all = [...(['left', 'right', 'keep-left', 'keep-right', 'join', 'leave', 'on'] as const).map((say) => w.turnLine({ say, toM: 1200 }, 'mi')), w.DRIVE_LABEL, w.END_LABEL, w.SHOWN_LINE, w.LIMITS_LINE, w.MAPS_ROAD_LINE, w.NO_ROAD_LINE];
   for (const s of all) assert.doesNotMatch(s, /\b(min|minutes?|hours?|mph|km\/h|fast\w*|quick\w*|short\w*|best|recalculat\w*|off route|turn around|wrong|missed|caution|check|arriv\w*|first|second|next)\b/i, s);
 });
@@ -164,9 +164,8 @@ test('RE20: the turn ahead carries which turn it is, so it is said once; the roa
 });
 
 // The third audit (Nov 18): each finding's regression test, written before its fix.
-const AUDIT = { todo: 'audit: test first' };
 
-test('road-engine audit 1: a fix that jitters across the last metres before a turn keeps that turn up and speaks each turn once', AUDIT, async () => {
+test('road-engine audit 1: a fix that jitters across the last metres before a turn keeps that turn up and speaks each turn once', async () => {
   const { driveStep, speakStep } = await import('../../roads/drive');
   // East 1000 m, right (south) for 100 m, then left (east).
   const roads = [road([[0, 0], [1000, 0]]), road([[1000, 0], [2000, 0]]), road([[1000, 0], [1000, -100]]), road([[1000, -100], [1000, -900]]), road([[1000, -100], [2000, -100]])];
@@ -195,7 +194,7 @@ test('road-engine audit 1: a fix that jitters across the last metres before a tu
   assert.deepEqual(spoken, ['right', 'left']);
 });
 
-test('road-engine audit 2: a fix between two passes of the way stays on the pass being driven', AUDIT, async () => {
+test('road-engine audit 2: a fix between two passes of the way stays on the pass being driven', async () => {
   const { driveStep } = await import('../../roads/drive');
   // Out east for 2 km, a hairpin, and back west 40 m to the north; a side road off the way back makes a turn there.
   const roads = [road([[0, 0], [2000, 0]]), road([[2000, 0], [2000, 40]]), road([[2000, 40], [1000, 40]]), road([[1000, 40], [0, 40]]), road([[1000, 40], [1000, 900]])];
@@ -211,7 +210,7 @@ test('road-engine audit 2: a fix between two passes of the way stays on the pass
   assert.ok(seen.every((m) => m > 400 && m < 600), `${seen}`);
 });
 
-test('road-engine audit 4: leaving or joining a motorway at a real turn says the side', AUDIT, async () => {
+test('road-engine audit 4: leaving or joining a motorway at a real turn says the side', async () => {
   // A motorway stretch ends at a T on a primary road: the way turns left there.
   const roads = [road([[0, 0], [1000, 0]], 'motorway'), road([[1000, -800], [1000, 0]]), road([[1000, 0], [1000, 800]])];
   assert.deepEqual((await turnsOf(roads, [0, 0], [1000, 800])).turns.map((t) => t.say), ['left']);
@@ -220,7 +219,7 @@ test('road-engine audit 4: leaving or joining a motorway at a real turn says the
   assert.deepEqual((await turnsOf(on, [0, 0], [3000, 0])).turns.map((t) => t.say), ['join']);
 });
 
-test('road-engine audit 7: a graph being built when the page closes is not kept after', AUDIT, async () => {
+test('road-engine audit 7: a graph being built when the page closes is not kept after', async () => {
   const { createRoads } = await import('../../roads/service');
   const { memoryRoads } = await import('../../roads/types');
   let reads = 0;
@@ -231,7 +230,7 @@ test('road-engine audit 7: a graph being built when the page closes is not kept 
   assert.equal(reads, 2, 'the second ask reads again: nothing was kept past forget');
 });
 
-test('road-engine audit 10, 11: "End directions" says what ends; the page\'s note names the maps app, not "Maps"', AUDIT, async () => {
+test('road-engine audit 10, 11: "End directions" says what ends; the page\'s note names the maps app, not "Maps"', async () => {
   const w = await import('../../roads/words');
   assert.equal(w.END_LABEL, 'End directions');
   assert.match(w.MAPS_ROAD_LINE, /^Your maps app chooses its own road/);

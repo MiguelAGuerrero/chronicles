@@ -36,6 +36,15 @@ async function run(h) {
       const vw = pg.viewportSize()?.width ?? 0;
       check(!!a && !!b && a.height >= 44 && b.height >= 44 && a.x >= 0 && b.x + b.width <= vw && (a.x + a.width <= b.x || a.y + a.height <= b.y), 'DO6: the two answers are full-size controls, side by side or stacked, inside the screen');
     }
+    check((await text(pg, 'atlas-start-far-line')) === 'Start now records from here, toward Cranston.', `drive-in-the-outing audit 2: the card says on its face what Start now does (${await text(pg, 'atlas-start-far-line')})`);
+    // road-engine audit 5: Open in Maps for a place a drive away asks for driving directions, here as on the bar.
+    await pg.evaluate(() => { window.__opened = []; window.open = (u) => { window.__opened.push(String(u)); return null; }; });
+    await pg.click('[data-testid=atlas-card-maps]');
+    await pg.waitForTimeout(500);
+    {
+      const opened = await pg.evaluate(() => window.__opened ?? []);
+      check(opened.length === 1 && /(travelmode=driving|dirflg=d)/.test(opened[0]), `road-engine audit 5: the far card's Open in Maps asks for driving directions (${opened[0]})`);
+    }
     await shot(pg, 'startfar-1-asks');
     await pg.click('[data-testid=atlas-start-far]');
     await pg.waitForSelector('[data-testid=journey-bar]', { timeout: 90000 }).catch(() => {});
@@ -48,6 +57,14 @@ async function run(h) {
     const caps = await pg.locator('[aria-label="Take a photo or video"], [aria-label="Record a voice memo"], [aria-label="Write a note"]').evaluateAll((els) => els.filter((e) => e.getBoundingClientRect().width > 0).length);
     check(caps >= 3, `DO8: the capture stack is on the screen as ever (${caps} controls)`);
     await shot(pg, 'startfar-2-started');
+    // drive-in-the-outing audit 1: with the session open, another far place's card offers nothing that would replace its journey.
+    await pg.click('[data-testid=walk-minimize]');
+    await pg.waitForSelector('[data-testid=tab-explore]', { timeout: 15000 }).catch(() => {});
+    await pg.click('[data-testid=tab-explore]');
+    // While a session records the row lists what is around the trace: Quiet Hollow, 13 km off, is a far place too.
+    await openCard(pg, 'Quiet Hollow');
+    check((await pg.locator('[data-testid=atlas-card]').count()) === 1 && (await pg.locator('[data-testid=atlas-walk-later]').count()) === 1 && (await pg.locator('[data-testid=atlas-start-far]').count()) === 0 && (await pg.locator('[data-testid=atlas-start-far-line]').count()) === 0, 'drive-in-the-outing audit 1: with a session open the far card does not offer Start now');
+    await shot(pg, 'startfar-3-session-open');
     await pg.close();
     await c.close();
   } finally {

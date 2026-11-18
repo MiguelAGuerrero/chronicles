@@ -242,8 +242,8 @@ corridor of sixty tiles; the live host; any phone.
 
 **Step 3, guiding, built 2026-11-18**: `roads/turns.ts` (turns from the road's geometry), `roads/drive.ts` (one fix: the turn
 ahead, off the way, find again), `roads/useDrive.ts`; the plan's one flag `driving`; "Drive there" and "End" on the session's bar
-(`outing/useJourneyBar.ts`, `src/app/walk.tsx`); the page's line beside the road (RE19's S10, RE26). Offered on the web only:
-decision 0213 keeps guiding off a phone until turns are spoken (step 4).
+(`outing/useJourneyBar.ts`, `src/app/walk.tsx`); the page's line beside the road (RE19's S10, RE26). Offered on the web only
+until step 4, which offers it everywhere.
 
 **Passed.** Unit tests for RE20-RE23, RE25, RE26, RE28, RE32 (`roads/guide.test.ts`, `outing/journeyPlan.test.ts`), committed as
 todos first (`fd6c885`). The journey `journey` drives the mocked GPS along its road: "Drive there" beside Open in Maps
@@ -272,3 +272,50 @@ it or off the way; "Mute turns" becomes "Say turns" and is kept with the session
 "a phone before step 4" clause is moot. Both in `docs/DEFERRED.md`.
 
 **Native.** Guiding and speech are now offered on phones and have never run on one.
+
+## Audit (the third of the outing's, 2026-11-18)
+
+The owner's `/audit`, over the road engine's steps 1 to 4 and the first part of the drive in the outing. A cold find (11 tasks from
+26 pictures, with no spec), the auditor (16 findings, 3 high), the steward (13, no breach) and the ux-reviewer (16). Triaged as 35
+findings here and 4 in `specs/drive-in-the-outing/spec.md`.
+
+**35 findings: 18 fixed, 11 deferred, 3 for the owner, 3 rejected.**
+
+1. A fix jittering before a junction dropped the turn not yet made and spoke two turns in alternation: accept. `road-engine audit 1`.
+2. A fix between two passes of the way (a hairpin, a divided road) jumped to the later pass: accept. `road-engine audit 2`.
+3. The mute was lost when a town was left behind or passed by: accept. `road-engine audit 3`.
+4. A motorway begun or ended at a real turn said "Off the motorway" and never the side: accept. `road-engine audit 4`.
+5. Explore's far card asked the maps app for walking directions to a town 11 km away: accept. `road-engine audit 5` (journey `startfar`).
+6. A road that failed to read was never asked for again, and "Try again" could leave "Finding the road…" up: accept; the flow and the typecheck only.
+7. A graph still being built when the page closed was kept after: accept. `road-engine audit 7`.
+8. Off the way the bar grew a straight-line distance, which marked the leaving: accept; the town alone now. `road-engine audit 8` (journey `journey`).
+9. Every landing read of a town threw away a road being found and asked again: accept in part (roads are asked for once the towns are read); the rest deferred (one synchronous graph build per corridor). The flow only.
+10. "End" beside Pause and Hold did not say what ends (the cold find was unsure): accept, "End directions". `road-engine audit 10`.
+11. Three sentences of caveat under the chips pushed "Include chains" under the fold, and "the map" beside "Maps" read as one thing: accept; one line among the chips, the rest with the journey's towns, "Your maps app". `road-engine audit 11`.
+12. Guiding showed a turn and no road ahead (the cold find could not see the road at all): accept; the way is drawn faint on the session's map. `road-engine audit 12` (journey `journey`).
+13. "Couldn't find the road." outlived the town it was about: accept; the flow only.
+14. The bar's targets 4 px apart, the mute as bare text beside a bordered End, the turn no larger than the idle line: accept (12 px, both bordered, the turn at 22 px); seen in `03c-guiding.png`.
+15. The native record said both that "Drive there" is and is not offered on a phone, and this Record said web only: accept.
+16. RE30 and the note in `net/policy.ts` said tiles are read only on a tap; a drive that leaves its way reads again: accept, both reworded (what was built is unchanged).
+17. The drive spec called two precedents verified that its own section calls unverified: accept.
+18. Six guiding states had no picture: accept; the journey now shoots the statement, the muted bar, "On this road" and off the way.
+19. The bar's actions wrap to a second row at 390 px and a third at 320: defer; a menu for "Pass by" is a change of the bar's shape, the owner's.
+20. The way starts at the nearest junction whatever the carriageway or heading: defer; it needs the fix's heading.
+21. Nothing guides while the session's screen is minimised inside the app: defer, with the lock screen (RE33).
+22. The one-time statement shows to someone already moving, and a turn can be spoken beside it: defer.
+23. The spoken turn carries no distance and nothing is spoken behind the lock screen, so guiding still needs the screen: the owner's.
+24. A ride now has a bar with controls, which DO8 and DO26 say it should not: the owner's.
+25. DO1 says nothing is offered on arrival; the bar says the town is here and offers the way: the owner's.
+26. Someone who starts from the far card never reads that the way keeps to the roads through the towns: defer.
+27. "Undo" names nothing and turns back into "Pass by" after 300 m: defer.
+28. A distance by road on every card invites comparing: reject; RE17 and the first steward's S9 settled it (never ordered, one card in view).
+29. The session's clock beside a ride's distance is a driving time: reject; the vision allows times, and the strip is not this slice's.
+30. "by road" on the page and "away" on the bar; 11.5 km and 11 km for one place; the leaves-the-app glyph missing on the bar: defer.
+31. "Pass by" on a one-town plan means "not going": defer.
+32. The mute does not show its state beyond its words; the plan's row still says a switch in options: defer.
+33. The journey's footer explains its buttons in two lines; small text controls close together on the page; the far card's Open in Maps is 42 px tall: defer.
+34. Rows clipped under the pinned card, and the sheet narrowed while recording: reject; the sheet scrolls, and the column is the second audit's fix for the capture stack.
+35. Android's `geo:` link carries no travel mode; RE29's bound is a count of junctions, not a time; no test drives muted: defer.
+
+**Journeys run.** `journey` (47 checks) three times, `startfar` (8) four times, `outing` once, on the merged tree.
+

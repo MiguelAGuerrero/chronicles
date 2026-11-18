@@ -52,3 +52,17 @@ The app's own router for a drive between towns (RE1-RE34, decisions 0212 and 021
 - A real route across nine tiles looks at fewer junctions than `yieldEvery`: a test of yielding passes its own rule.
 - The tiles hold no turn restrictions, no closures, and names for the larger roads only (the name layer is thin at z12).
 - Native: nothing here has run on a device; there is no worker there, so the search must be driven in turns.
+
+## From the audit (Nov 18)
+
+- **A turn is "ahead" until the fix is `nearM` past it**, never dropped `nearM` before it: a fix jitters at a junction, and dropping early skipped to the next turn and spoke both in alternation (audit 1). `speakStep` says turns in order only: an id at or behind the last said is never said.
+- **`driveStep` takes the last fix's place along the way** and looks there first (`backM` behind to `aheadM` ahead): a way that passes near itself (a hairpin, a divided road) is otherwise jumped across (audit 2).
+- **A change of heading wins over a change of kind** in `turns.ts`: a motorway that ends at a T is "Left", not "Off the motorway" (audit 4).
+- **The plan's `muted` is the session's**: `stepPlan` and `passBy` carry it when they drop a town; `driving` goes with the town (audit 3).
+- **Off the way the bar's line is the town alone**: a distance appearing there marked the leaving (audit 8, RE22).
+- **The road being driven is drawn** through the walk screen's `alternates` (audit 12): `useDrive` returns `path`, thinned.
+- **The page asks for roads only once its towns are read** (`reading` gates the asks), and "Try again" bumps `roadTry` so a failed road is asked for again (audits 8, 9).
+- **`forget()` ages the service**: a graph finished after it is not kept (audit 7).
+- A far card with a session open passes no `onStartFar`: Start now there would overwrite the journey the session carries (`drive-in-the-outing audit 1`).
+- While a session records, Explore's row lists what is around the trace, not around the fix: the e2e's far place then is Quiet Hollow, not Cranston.
+

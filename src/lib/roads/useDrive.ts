@@ -1,7 +1,9 @@
 // @layer view
 import { useEffect, useRef, useState } from 'react';
 import type { LngLat } from '../types';
+import { useMemo } from 'react';
 import { driveStep, speakStep } from './drive';
+import { thinLine } from './thin';
 import { roads } from './index';
 import { hush, sayTurn } from './speech';
 import type { Turn, TurnSay } from './types';
@@ -20,8 +22,12 @@ export function useDrive(o: { on: boolean; here: LngLat | null; to: LngLat | nul
   // Guiding that has ended, or that heads elsewhere now, keeps nothing.
   if (found && !mine) setFound(null);
   if (!key && left) setLeft(null);
-  const step = mine && o.here ? driveStep(mine.path, mine.turns, o.here, left) : null;
+  // Audit 2: where the last fix was along the way, so one between two passes of it stays on the pass being driven.
+  const [along, setAlong] = useState<number | null>(null);
+  const step = mine && o.here ? driveStep(mine.path, mine.turns, o.here, left, undefined, along) : null;
   if (step && step.left !== left) setLeft(step.left);
+  if (step && step.alongM != null && step.alongM !== along) setAlong(step.alongM);
+  if (!key && along != null) setAlong(null);
   // RE25: a turn is spoken once as it nears; which one was last said is kept, muted or not, so unmuting says nothing late.
   const [said, setSaid] = useState<{ id: number; say: TurnSay } | null>(null);
   const due = speakStep(step?.turn ?? null, said?.id ?? null);
@@ -31,6 +37,7 @@ export function useDrive(o: { on: boolean; here: LngLat | null; to: LngLat | nul
   useEffect(() => {
     if (said && !muted.current) sayTurn(spokenTurn(said.say));
   }, [said]);
+  const line = useMemo(() => (mine ? thinLine(mine.path, 400) : null), [mine]);
   const here = useRef(o.here);
   const fail = useRef(o.onFail);
   useEffect(() => {
@@ -52,6 +59,8 @@ export function useDrive(o: { on: boolean; here: LngLat | null; to: LngLat | nul
       if (a.state === 'found' && leg) {
         setFound({ key, path: leg.path, turns: a.turns });
         setLeft(null);
+        setAlong(null);
+        setSaid(null);
       } else if (first) fail.current();
       // Found again and no road from here: the wait by distance starts over from this fix.
       else setLeft(here.current);
@@ -75,5 +84,9 @@ export function useDrive(o: { on: boolean; here: LngLat | null; to: LngLat | nul
     finding: !!key && !mine,
     /** The turn ahead and how far; null while finding, off the way, and at the road's end. */
     turn: step?.turn ?? null,
+    /** Off the way: the screen then says the town and nothing else (RE22). */
+    off: !!step?.off,
+    /** The way being driven, thinned for the map (audit 12); null with none. */
+    path: line,
   };
 }

@@ -1039,7 +1039,8 @@ export default function Explore() {
           }}
           // DO7: a place past what can be walked, begun now: the place rides with the session as a one-town journey, offered
           // first so the session that starts takes it up, and taken back if nothing started.
-          onStartFar={(at, label) => {
+          // drive-in-the-outing audit 1: with a session open nothing is offered that would replace the journey it carries.
+          onStartFar={openInfo.walk ? undefined : (at, label) => {
             setOpen(null);
             void journeyPlans.offer(placePlan(label, at)).catch(() => {})
               .then(() => walkStart.start(null, undefined, { onError: sayQuiet }))

@@ -21,8 +21,9 @@ export interface HostPolicy {
 
 export const HOSTS: Record<string, HostPolicy> = {
   // RE30: the road engine reads this host too: a strip of z12 tiles from where you are to a place you picked. That says more than
-  // the map's own reads do (where a journey begins, ends and runs, before it is driven), so it is asked only on the person's tap,
-  // all at once and in the grid's order, never along the way.
+  // the map's own reads do (where a journey begins, ends and runs, before it is driven), so it begins only on the person's tap (a place
+  // picked, "Drive there"), all at once and in the grid's order. A guided drive that has left its way reads a strip again from
+  // where it then is, with no further tap: the guiding the person started is what asks.
   'tiles.openfreemap.org': { name: 'OpenFreeMap: the map tiles and their build' },
   'overturemaps-extras-us-west-2.s3.amazonaws.com': { name: 'Overture: places, divisions, transportation and buildings, by tile', ownBackoff: true },
   'overpass-api.de': { name: 'Overpass: the walkability fallback', ownBackoff: true },

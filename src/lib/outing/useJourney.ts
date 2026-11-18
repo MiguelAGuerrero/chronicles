@@ -122,6 +122,7 @@ export function useJourney(you: LngLat | null) {
   const fresher = useMemo(() => newTowns(areas, rows ? (rows.walked ? rows.walked.length : null) : null), [areas, rows]);
   const waiting = areas.filter((a) => !(areaKey(a) in reads));
   const hasPicks = picked.length > 0;
+  const reading = hasPicks && waiting.length > 0;
   // OJ35, OJ37: each area is read once, one after another, and a change of the areas stops the reads that no longer matter.
   useEffect(() => {
     let live = true;
@@ -158,11 +159,14 @@ export function useJourney(you: LngLat | null) {
   const first = journey?.chapters[0] ?? null;
   // RE8: roads are read only for a journey toward a place the person picked; the one in view first, then the other cards'.
   const asks = useMemo(() => {
-    if (!dest || !origin) return [];
+    // Audit 7: not while the towns are still being read: each read changes the journeys, and a road asked for then is thrown away.
+    if (!dest || !origin || reading) return [];
     const order = base ? [base, ...planned.filter((j) => j !== base)] : planned;
     return order.map((j) => roadPoints(origin, j)).filter((p) => p.length > 1);
-  }, [dest, origin, planned, base]);
+  }, [dest, origin, planned, base, reading]);
   const asksKey = asks.map(roadKey).join('|');
+  // Audit 8: "Try again" asks for a failed road again, whatever else changed.
+  const [roadTry, setRoadTry] = useState(0);
   useEffect(() => {
     let live = true;
     const todo = asks.filter((p) => !(roadKey(p) in ways));
@@ -179,7 +183,7 @@ export function useJourney(you: LngLat | null) {
     };
     // The asks are read through their key; an answer already held is not asked for again.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [asksKey]);
+  }, [asksKey, roadTry]);
   // The graph is the page's: dropped when it closes.
   useEffect(() => () => roads.forget(), []);
   const wayOf = (j: Journey | null): RoadAnswer | null => (j && dest && origin ? ways[roadKey(roadPoints(origin, j))] ?? null : null);
@@ -203,7 +207,6 @@ export function useJourney(you: LngLat | null) {
     return dest ? boundsOf([dest.at], 1200) : null;
   }, [pins, route, origin, journey, dest, road, link]);
   const steps = reachSteps(units);
-  const reading = hasPicks && waiting.length > 0;
   const failedKeys = areas.filter((a) => reads[areaKey(a)] === null).map(areaKey);
   const failed = hasPicks && !reading && failedKeys.length > 0;
   return {
@@ -234,6 +237,8 @@ export function useJourney(you: LngLat | null) {
     travel: (a: Area) => travelMode(origin ? distanceM(origin, a.at) : null),
     setDest: (d: JourneyDest | null) => {
       setDestState(d);
+      // Audit 8: a road that could not be read is asked for again when a place is picked again.
+      setWays((w) => Object.fromEntries(Object.entries(w).filter(([, a]) => a.state !== 'failed')));
       setLeft(new Set());
       fresh();
     },
@@ -255,6 +260,7 @@ export function useJourney(you: LngLat | null) {
       setTownsFailed(false);
       // A road that could not be read is asked for again with the rest.
       setWays((w) => Object.fromEntries(Object.entries(w).filter(([, a]) => a.state !== 'failed')));
+      setRoadTry((n) => n + 1);
       setReads((r) => Object.fromEntries(Object.entries(r).filter(([, s]) => s !== null)));
     },
     /** OJ41 (ui 1): with a wider reach and its reads done, the towns that were looked at, by name; null otherwise. */
