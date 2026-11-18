@@ -7,6 +7,7 @@ import { gridLayout } from '../../lib/ceremony/grid';
 import type { CardOverlay } from '../../lib/ceremony/types';
 import { editedSize, isEmptyEdit, type MediaEdit } from '../../lib/mediaEdit';
 import { useMediaUri } from '../../lib/useMediaUri';
+import { memoLengthMs } from '../../lib/voiceTrim';
 import { EditedPicture, useNaturalSize } from '../edit/EditedPhoto';
 import { seekTo, useVideoSize, VideoPicture } from '../edit/EditedVideo';
 import { Icon, KIND_LABEL } from '../icons';
@@ -83,7 +84,8 @@ function CardVideo({ o, ctx, uri, height, width }: { o: CardOverlay; ctx: StageC
   });
   const stopped = ctx.held || ctx.paused;
   const startS = (trim?.start_ms ?? 0) / 1000;
-  const lenMs = Math.max(1000, trim ? trim.end_ms - trim.start_ms : Number(o.capture.body) || 0);
+  // The kept part's length, as the plan reads it: `o.progress` is a fraction of it (fix trimmed-length 2, 4).
+  const lenMs = Math.max(1000, memoLengthMs(o.capture));
   // The stage waits while the video is behind its slot or not done at its end (audit 20); it plays on meanwhile.
   const waited = useMediaWait(o.key, ctx, {
     inSlot: o.playing, slotOver: o.progress >= 1 && !ended, started, ended, positionMs: () => (player.currentTime - startS) * 1000, planMs: o.progress * lenMs, lenMs, stopped,

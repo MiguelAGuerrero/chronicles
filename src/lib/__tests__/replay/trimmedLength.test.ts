@@ -40,7 +40,7 @@ const stopOf = (p: ReturnType<typeof planOf>) => {
   return s;
 };
 
-test('fix trimmed-length 1: a trimmed memo\'s slot is its kept span', { todo: 'test first' }, () => {
+test('fix trimmed-length 1: a trimmed memo\'s slot is its kept span', () => {
   // Two minutes, trimmed to the 20 s from 0:10 to 0:30.
   const p = planOf(lone('m', 'voice', '120000', trimmed(10_000, 30_000)));
   const stop = stopOf(p);
@@ -53,7 +53,7 @@ test('fix trimmed-length 1: a trimmed memo\'s slot is its kept span', { todo: 't
   assert.equal(whole.t1 - whole.t0, 120_000 + R.mediaTail);
 });
 
-test('fix trimmed-length 2: a trimmed video\'s card holds for its kept span', { todo: 'test first' }, () => {
+test('fix trimmed-length 2: a trimmed video\'s card holds for its kept span', () => {
   // Thirty seconds, trimmed to the 5 s from 0:20 to 0:25.
   const p = planOf(lone('v', 'video', '30000', trimmed(20_000, 25_000)));
   const stop = stopOf(p);
@@ -67,7 +67,7 @@ test('fix trimmed-length 2: a trimmed video\'s card holds for its kept span', { 
   assert.equal(sliver.t1 - sliver.t0, R.mediaMin + R.grow + R.tuck);
 });
 
-test('fix trimmed-length 3: a stack\'s grid holds for its longest video\'s kept span, and a trimmed memo beside it for its own', { todo: 'test first' }, () => {
+test('fix trimmed-length 3: a stack\'s grid holds for its longest video\'s kept span, and a trimmed memo beside it for its own', () => {
   const stack = (videoEdit: MediaEdit | null): Moment => ({
     id: 's', walk_id: 'w1', t: t0 + 60_000, ...P(at(1, 0)), segment_id: null,
     pieces: [
@@ -90,7 +90,7 @@ test('fix trimmed-length 3: a stack\'s grid holds for its longest video\'s kept 
   assert.equal(planOf(stack(null)).cards[0].len, 30_000);
 });
 
-test('fix trimmed-length 4: the ceremony and its stage read a medium\'s length as its kept span, never from the stored one', { todo: 'test first' }, () => {
+test('fix trimmed-length 4: the ceremony and its stage read a medium\'s length as its kept span, never from the stored one', () => {
   const root = join(__dirname, '..', '..', '..');
   const files = [...readdirSync(join(root, 'lib/ceremony')).map((f) => `lib/ceremony/${f}`), ...readdirSync(join(root, 'components/ceremony')).map((f) => `components/ceremony/${f}`)];
   for (const f of files) {
