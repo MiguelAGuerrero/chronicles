@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import { reanchor, tickClock } from '../../lib/ceremony/clock';
-import type { Showing } from '../../lib/ceremony/types';
+import { nextStop, reanchor, seekClock, tickClock } from '../../lib/ceremony/clock';
+import type { Jump, Showing } from '../../lib/ceremony/types';
 
 /** ~30 fps: the walker reads as a slider, not as steps. */
 const FRAME_MS = 33;
 
 /** The clock's time, read against the telling it was last read with. */
-type Clock = { epoch: number; ms: number; held: boolean; ended: boolean; showing: Showing | null };
+type Clock = { epoch: number; ms: number; held: boolean; ended: boolean; showing: Showing | null; /** The moment the last press of Next went to, and the press itself (RY13, RY21). */ aimed: number | null; jump: Jump | null };
 
 /**
  * The time into a ceremony (RR7). It starts from 0 at each new `epoch` (the
@@ -16,14 +16,17 @@ type Clock = { epoch: number; ms: number; held: boolean; ended: boolean; showing
  * shrank ends too, and a locked screen waits rather than skipping (audits 2,
  * 6). A telling rebuilt mid-path (a moment deleted, Undo, a note edited)
  * takes up from the same place, `reanchor`, already in the render that first
- * shows it, so no card unmounts for a frame (audits 22, 31, 33).
+ * shows it, so no card unmounts for a frame (audits 22, 31, 33). `next` goes to
+ * the next moment (replay pace RY13-RY17): held stays held, a wait never stops
+ * it, and the frame is given the jump so it can say what lay between (RY21).
  */
 export function useCeremonyClock(o: { epoch: number; running: boolean; paused: boolean; showing: Showing | null; onEnd: () => void }) {
-  const fresh = (epoch: number, showing: Showing | null): Clock => ({ epoch, ms: 0, held: false, ended: false, showing });
+  const fresh = (epoch: number, showing: Showing | null): Clock => ({ epoch, ms: 0, held: false, ended: false, showing, aimed: null, jump: null });
   /** The clock read against `showing`: re-anchored if the telling was rebuilt, afresh if the epoch moved on. */
   const against = (c: Clock, epoch: number, showing: Showing | null): Clock => {
     if (c.epoch !== epoch) return fresh(epoch, showing);
-    if (c.showing && showing && c.showing !== showing) return { ...c, ms: reanchor(c.showing, showing, c.ms), showing };
+    // A rebuilt telling has other times: the last press no longer says anything of it.
+    if (c.showing && showing && c.showing !== showing) return { ...c, ms: reanchor(c.showing, showing, c.ms), showing, aimed: null, jump: null };
     return c.showing === showing ? c : { ...c, showing };
   };
   const [state, setState] = useState<Clock>(() => fresh(o.epoch, o.showing));
@@ -60,9 +63,18 @@ export function useCeremonyClock(o: { epoch: number; running: boolean; paused: b
   return {
     ms: shown.ms,
     held: shown.held,
+    /** The last press of Next, for the frame (RY21). */
+    jump: shown.jump,
+    /** A moment lies ahead (RY17). */
+    canNext: !shown.ended && !!shown.showing && nextStop(shown.showing.stops, shown.ms, shown.aimed) != null,
     toggleHold: () => {
       const c = current();
       set({ ...c, held: !c.held });
+    },
+    next: () => {
+      const c = current();
+      const to = c.showing && !c.ended ? nextStop(c.showing.stops, c.ms, c.aimed) : null;
+      if (to) set({ ...c, ...seekClock(c, to.ms), aimed: to.t0, jump: { from: c.ms, at: to.ms } });
     },
   };
 }

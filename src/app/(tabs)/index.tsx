@@ -43,6 +43,7 @@ import { useTabMap, type Camera } from '../../lib/useTabMap';
 import { UndoToast } from '../../components/UndoToast';
 import { WalkActions } from '../../components/WalkActions';
 import { useOpenWalkInfo } from '../../components/OpenWalk';
+import { OpenInMapsButton, useOpenInMaps } from '../../components/OpenInMapsButton';
 
 // A tab that throws shows what broke, with the tab bar and the recording bar still there (fix ios-video audit 1).
 export { HomeScreenError as ErrorBoundary } from '../../components/ScreenError';
@@ -177,6 +178,9 @@ const ChronicleMap = forwardRef<ChronicleMapHandle, { section: 'walks' | 'days' 
   useEffect(() => {
     openRef.current = openInfo;
   });
+  // OM4: Open in Maps from a star's sheet and the long-press card: straight to the phone's maps app; a failure is said once, in Chronicle's banner.
+  const mapsFailed = useCallback(() => setLoadError({ message: 'Couldn’t open a maps app.' }), []);
+  const openMaps = useOpenInMaps(mapsFailed);
   useEffect(() => onRecallOpen((found) => {
     if (!openRef.current.known || openRef.current.walk) return false;
     setRecalled(found);
@@ -348,7 +352,7 @@ const ChronicleMap = forwardRef<ChronicleMapHandle, { section: 'walks' | 'days' 
     <View style={styles.screen}>
       <View style={[StyleSheet.absoluteFill, styles.over]} pointerEvents="box-none">
         <HomeSheet
-          // Back and Escape lower the sheet only while Chronicle is in front with nothing over it (section-bar audit 1).
+          // Back and Escape lower the sheet only while Chronicle is in front with nothing over it (section-bar audit 1)
           ownKeys={focused && !viewing && !recalled && !actionsFor}
           index={index}
           summaries={summaries}
@@ -363,6 +367,9 @@ const ChronicleMap = forwardRef<ChronicleMapHandle, { section: 'walks' | 'days' 
           placingId={placingId}
           // A one-tap start to the place (NV12): the saved choices, never the drawer.
           onGoToPlace={selected ? () => startWalk({ at: selected.at, label: selected.label, kind: 'place' }) : undefined}
+          // OM4: Open in Maps for the star, beside its Walk here.
+          mapsTarget={selected ? { at: selected.at, label: selected.label, kind: 'star' } : undefined}
+          onMaps={openMaps}
           placeExtra={placeExtra}
           days={days}
           onOpenMoments={setViewing}
@@ -409,6 +416,8 @@ const ChronicleMap = forwardRef<ChronicleMapHandle, { section: 'walks' | 'days' 
                 startWalk({ at, label: 'Your spot', kind: 'point' });
               }}
             />
+            {/* OM4: Open in Maps, an outlined button under Walk here; the stack stays above the capture band. */}
+            <OpenInMapsButton testID="spot-maps" variant="button" target={{ at: spot, label: 'Your spot', kind: 'spot' }} onOpen={openMaps} />
             <Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={() => setSpot(null)} style={styles.spotClose} hitSlop={8}>
               <Icon name="close" size={22} color={theme.ink} />
             </Pressable>

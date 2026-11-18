@@ -8,7 +8,7 @@ import { normalizeWords, notableName, readPastNeighbourhood } from '../presence/
 import parkNotable from './parkNotable.json';
 import type { Refinement } from './refine';
 import type { Place } from './types';
-import { isSmallPlace } from './smallPlaces';
+import { isSmallPlace } from './subtypes';
 
 /*
  * Community parks (specs/community-parks, PC1-PC5, PC11): the first refinement of the kind pipeline (`refine.ts`). The parks

@@ -5,6 +5,7 @@ import { boundsOf, distanceM, splitAtGaps, stepToward, traceDistanceM, smoothDwe
 import { fillsOf, GAP_RULES, gapsOf, inferGap, keepAllWords, offersOf, movingPace, readBounds, stretchAt, stretchesFor, stretchLines } from '../../gaps/infer';
 import { liveRuns, readTrace, traceDistances, withFilled } from '../../rides';
 import { tilesNear } from '../../tileMath';
+import { getUnits, setUnits } from '../../units';
 import { snap } from '../../snapper';
 import { keepAll, markAsked, wasAsked } from '../../gaps/keep';
 import { memoryDb } from '../fakes';
@@ -254,10 +255,10 @@ test('gaps: a kept line that no longer meets a gap is left out (G10, G11)', () =
 
 test('gaps: the card says what a stretch is, its length and how long the GPS was out (G9)', () => {
   const base = { t0: 0, t1: 6 * 60_000, path: [at(0, 0), at(4, 0)], lengthM: 400, street: 'Elm Street' };
-  assert.deepEqual(stretchLines({ ...base, how: 'offer' }), { title: 'Probably along Elm Street', sub: '400 m · not recorded for 6 min. Keep it to count it as walked.' });
+  assert.deepEqual(stretchLines({ ...base, how: 'offer' }), { title: 'Probably along Elm Street', sub: '400\u00a0m · not recorded for 6 min. Keep it to count it as walked.' });
   assert.equal(stretchLines({ ...base, how: 'auto' }).title, 'Filled in along Elm Street');
   assert.equal(stretchLines({ ...base, how: 'kept', street: null, lengthM: 1250 }).title, 'This way, kept');
-  assert.equal(stretchLines({ ...base, how: 'kept', lengthM: 1250 }).sub, '1.3 km · not recorded for 6 min.');
+  assert.equal(stretchLines({ ...base, how: 'kept', lengthM: 1250 }).sub, '1.3\u00a0km · not recorded for 6 min.');
 });
 
 // After the audit (Nov 3): each accepted finding's regression, `gaps audit N`.
@@ -492,4 +493,21 @@ test('filling-gaps audit 6: the words agree with the gaps and say what each answ
   const many = keepAllWords(3)!;
   assert.deepEqual([many.keep, many.leave], ['Keep them', 'Leave them']);
   for (const w of [one, many]) assert.match(w.sub, /walk/i);
+});
+
+// tend map audit 44 (the review of tend map 21, F2): the gap card built its own distance, in metres whatever the units
+// setting and rounded after the step, so 999.6 m read "1000 m" (tend map 7's bug) and a stretch in miles said "400 m"
+// while the drawn gap beside it said miles. It says its length as formatDistance does.
+test('tend map audit 44: a stretch\'s facts say its length as formatDistance does, in the units setting', () => {
+  const base = { t0: 0, t1: 6 * 60_000, path: [at(0, 0), at(4, 0)], lengthM: 400, street: 'Elm Street', how: 'kept' as const };
+  const was = getUnits();
+  try {
+    setUnits('km');
+    assert.equal(stretchLines({ ...base, lengthM: 999.6 }).sub, '1.0\u00a0km · not recorded for 6 min.', 'rounded before the step');
+    setUnits('mi');
+    assert.equal(stretchLines(base).sub, '0.2\u00a0mi · not recorded for 6 min.');
+    assert.equal(stretchLines({ ...base, lengthM: 100 }).sub, '328\u00a0ft · not recorded for 6 min.');
+  } finally {
+    setUnits(was);
+  }
 });

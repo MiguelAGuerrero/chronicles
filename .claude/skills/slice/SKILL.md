@@ -19,8 +19,8 @@ test passes with typecheck, lint, `npm test` and the e2e, and the docs say so.
   entry in `docs/STATUS.md`, "Next evolutions", is the go-ahead for its
   numbered criteria and no more. Typed by anyone else, or with an entry that
   is not there or has no numbered criteria, it is plain `/slice`. Then:
-  - step 1b: the entry's verdict, shape, Touches and criteria are the gate's
-    answer; write them as the spec's "## Vision" section (with its `Verdict:`
+  - step 1b: the entry's verdict, shape, Touches, precedent and criteria are
+    the gate's answer; write them as the spec's "## Vision" section (with its `Verdict:`
     line) and do not gate again;
   - step 2: the entry's criteria are the spec's, numbered with the slice's
     prefix. Add only the states those criteria imply (empty, failed, undone);
@@ -93,6 +93,12 @@ Run `/vision` on the slice, in the owner's words. Its block becomes the spec's
    component (`grep -rn "<Component" src`) and every route into it, and give each one a criterion or a
    line saying why the feature is not there. "A new note's page" is one host of the page; the page opened
    from a note being written, from the viewer's Edit and from Respond are three more.
+2c. **How adjacent apps do it** (decision 0193). A section of that name in the spec: 2-3 adjacent apps'
+   handling of the slice's job, the gate's `Precedent:` line its start, each entry as
+   `docs/research/adjacent-apps.md` writes them (`- **<App>**: <controls, words, flow>. Source: <URL |
+   observed <date> | from memory, unverified>. **Verified** | **Unverified**.`), counter-examples marked.
+   Record a new finding in that file too. `check:docs` fails a spec in `IN_PROGRESS`, or new, without an
+   entry naming an app and a source (`scripts/precedent.js`).
 3. Number the gate's criteria with the slice's prefix, beside the others: they
    get tests like any criterion.
 4. List the spec in `IN_PROGRESS` in `scripts/features.js` (`{ branch, since }`):
@@ -117,9 +123,12 @@ Write `specs/<slug>/plan.md`:
   a cost already in `docs/DEFERRED.md` is named there;
 - for every screen it adds or changes, one line per action: the user's goal, how
   often and in what situation, the control, and its row in the goal-to-control
-  matrix (`docs/research/ui-references.md`, section 2), with a precedent from
-  `docs/research/ui-teardown.md` where there is one. A control the matrix says
+  matrix (`docs/research/ui-references.md`, section 2), and how the spec's
+  adjacent apps do the same action ("How adjacent apps do it"). A control the matrix says
   to avoid needs a reason the owner accepts (`.claude/rules/ui-patterns.md`);
+- **against precedent** (decision 0193): where our shape departs from every app in the spec's "How
+  adjacent apps do it", and the reason (a Never line, restraint, the walker on foot, one-handed); a
+  departure with no reason is a question for the owner, not a default;
 - for every such action, **where the owner will look for it first**, and what they will see there; and
   every default you took that makes a control quieter (muted, smaller, wordless, behind a tap), named as a
   default so the owner can overrule it. Restraint is the vision's; a control that cannot be found is not
@@ -250,6 +259,10 @@ of browser, so the named ones run once, at the end, and the rest is mechanical:
   quarantined. A journey that never failed on `main` leaves the failure the slice's own.
 - The slice's report says which journeys ran, how many runs there were, and why any ran
   more than once.
+
+**One review round** (decision 0204): when the owner will want the slice audited, run this UI review, the cold find
+below and `/audit`'s steward and auditor together, once; never a review round and then an audit round. Run journeys
+three at a time with `npm run e2e:batch`.
 
 **The UI review** (decision 0145), when the slice changes a screen: run its journeys with
 `E2E_SHOTS=<scratchpad>/shots` (390 x 844), each seeding the longest text its screen can meet, and spawn the

@@ -14,8 +14,10 @@ import type { Place } from '../../lib/gazetteer/pack';
 import { searchAvailable } from '../../lib/gazetteer/words';
 import { BLOCKED_LINE, exploreBanner, findYou, refusalLifted, type PermissionSeen } from '../../lib/atlas/findYou';
 import { cancelLook, endLook, IDLE, isLive, LOOK_LABEL, runLook, startLook, type Look } from '../../lib/atlas/look';
-import { exploreSlots, SCALE_LEFT } from '../../lib/atlas/overlaySlots';
+import { exploreSlots, pressHintUp, SCALE_LEFT } from '../../lib/atlas/overlaySlots';
 import { createStore } from '../../lib/store';
+import { barOfferUp, modalsUp, tabsHidden } from '../../lib/tabsHidden';
+import { useStore } from '../../lib/useStore';
 import { KIND_COLOR, KIND_ICON_OF } from '../../components/atlas/kinds';
 import type { MarkPin } from '../../components/MarkPinView';
 import { CATEGORIES } from '../../lib/discovery/categories';
@@ -29,10 +31,14 @@ import { useStorefrontsLayer } from '../../lib/layers/useStorefrontsLayer';
 import { useLayers } from '../../lib/layers/useLayers';
 import { useWalkability } from '../../lib/walk/useWalkability';
 import { WalkMap } from '../../components/map/WalkMap';
+import { OutingDrawer } from '../../components/outing/OutingDrawer';
 import { PlannerDrawer } from '../../components/planner/PlannerDrawer';
+import { ENTRY_LABEL } from '../../lib/outing/words';
 import type { CategoryId } from '../../lib/discovery/types';
 import type { WaitingDot, WalkMapHandle } from '../../components/map/types';
 import { Icon } from '../../components/icons';
+import { OpenInMapsButton, useOpenInMaps } from '../../components/OpenInMapsButton';
+import { spotCanOpenInMaps, tileWalk } from '../../lib/atlas/mapsButton';
 import { Banner, Button, theme } from '../../components/ui';
 import {
   ATLAS_RULES, areaPins, canWalkTo, distanceWords, familiarity, findsIn, nextDoor, nextFrame, readerTook, townPicked, townReachM, storefrontsOf, waitingMarks, walkTarget,
@@ -83,11 +89,13 @@ const PRESS_HINT_KEY = 'atlas_press_seen';
 /** The Storefronts layer's street names show on the map only from this zoom, and only near the selected area (EC7, decision 0124). */
 const STOREFRONT_NAMES_ZOOM = 13;
 /** audit 11: Explore's controls over the map, whose room no storefront name takes. */
-const NAMES_CLEAR_OF = ['atlas-title-card', 'atlas-search', 'layers', 'atlas-move-map', 'atlas-show-here', 'compass', 'locate', 'atlas-back-pill'] as const;
+const NAMES_CLEAR_OF = ['atlas-title-card', 'atlas-search', 'outing-entry', 'layers', 'atlas-move-map', 'atlas-show-here', 'compass', 'locate', 'atlas-back-pill'] as const;
 /** How long the long press's hint stays up before it is marked seen (explore-carousel audit 10). */
 const HINT_MS = 5000;
 /** The long press's choices over the map's bottom (`spot`): the overlay sits above them, never over (EC19). */
 const SPOT_H = 68;
+/** The long-press card's Open in Maps button (OM4): 44 px and 8 px of room under the buttons. */
+const SPOT_GO_H = 52;
 /** From this width the area's card opens as a side panel beside the map; narrower, as a full-screen drawer. */
 const TWO_PANES = 1000;
 const fmt = (m: number) => formatDistance(m);
@@ -172,16 +180,11 @@ export default function Explore() {
   const [spot, setSpot] = useState<{ at: LngLat; zoom: number; ask?: 'ask' | 'later' } | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [pressSeen, setPressSeen] = useState(true);
-  // The hint is shown once (explore-carousel audit 10): after a few seconds on screen it is marked seen, used or not.
-  const hintShown = !pressSeen && !spot && !!from;
-  useEffect(() => {
-    if (!hintShown) return;
-    const t = setTimeout(() => {
-      setPressSeen(true);
-      db.setMeta(PRESS_HINT_KEY, '1').catch(() => {});
-    }, HINT_MS);
-    return () => clearTimeout(t);
-  }, [hintShown]);
+  // The hint steps aside while the bar's Edit pill is up (tend tabs T36), and counts no seconds under a Modal or a
+  // full-screen card (tend tabs audit 29).
+  const barOffer = useStore(barOfferUp, (x) => x);
+  const covered = useStore(modalsUp, (n) => n > 0);
+  const folded = useStore(tabsHidden, (x) => x);
   useEffect(() => {
     let live = true;
     db.getMeta(PRESS_HINT_KEY).then((v) => live && setPressSeen(v === '1'), () => {});
@@ -198,6 +201,8 @@ export default function Explore() {
   const moveMapRef = useRef<ComponentRef<typeof Pressable>>(null);
   // The walk planner's kind (WP1): a page over the card, with a map of its own, so Explore's map steps aside while it is open.
   const [plan, setPlan] = useState<CategoryId | null>(null);
+  // Plan an outing (QC1): a page of its own over Explore, with a map of its own, so Explore's map steps aside while it is open.
+  const [outingOpen, setOutingOpen] = useState(false);
   // The map's credits are open (web), and the hint steps aside for them (tend map audit 1).
   const [creditsOpen, setCreditsOpen] = useState(false);
   // A store the compass reads, so a turn re-renders the compass alone (tend map 8).
@@ -237,6 +242,11 @@ export default function Explore() {
   }, []);
   const [looking, setLooking] = useState(false);
   const [notice, setNotice] = useState<{ message: string; tone?: 'info' | 'error' } | null>(null);
+  // OM2, OM4: Open in Maps, from a tile, the card, its rows and the long-press card: straight to the phone's maps app, a failure said once.
+  const mapsFailed = useCallback(() => setNotice({ message: 'Couldn’t open a maps app.', tone: 'error' }), []);
+  const openMaps = useOpenInMaps(mapsFailed);
+  // OM7: a tile's Walk there past 2 km opens that area's card with its question showing; cleared once the card has taken it.
+  const [askKey, setAskKey] = useState<string | null>(null);
   const [locError, setLocError] = useState<LocateError | null>(null);
   // tend explore 8 (decision 0172, O6, O20): the location permission as it changes, and the count of its changes when a
   // Locate tap was refused; Find me waits until it changes from that.
@@ -624,6 +634,36 @@ export default function Explore() {
     framed.current = readerTook(framed.current, pickFrom.current.page, pickFrom.current.build);
     frame([l.area.at], ATLAS_RULES.ringM);
   }, [selected, town, selectKey, enterArea, frame]);
+  // OM7 (decision 0121): a tile's Walk there starts the walk within 2 km of a fresh fix, opens the card asking beyond it, and past 10 km
+  // saves the place as Navigate's destination; a walk open is routed, as the card's Walk to does (NV10).
+  const onTileWalk = useCallback((key: string) => {
+    const l = shownRef.current.find((x) => x.area.key === key);
+    if (!l) return;
+    const t = walkTarget(l.area);
+    const far = !l.unplaced && !canWalkTo(l.distanceM);
+    const choice = far ? 'later' : walkToChoice(you ? metresBetween(you, t.at) : null, stale ? null : fixSeen.current || null, Date.now());
+    const does = tileWalk(choice, { walkOpen: !!openInfo.walk, selected: true }).does;
+    if (does === 'start') {
+      setOpen(null);
+      startWalk({ at: t.at, label: t.label, kind: 'point' });
+    } else if (does === 'later') {
+      setOpen(null);
+      void walkStart.later({ at: t.at, label: t.label, kind: 'point' });
+    } else {
+      setAskKey(key);
+      setSpot(null);
+      if (key !== selected) selectKey(key);
+      setOpen(key);
+      framed.current = readerTook(framed.current, pickFrom.current.page, pickFrom.current.build);
+      frame([l.area.at], ATLAS_RULES.ringM);
+    }
+  }, [you, stale, openInfo.walk, selected, selectKey, frame, walkStart]); // eslint-disable-line react-hooks/exhaustive-deps
+  const onTileMaps = useCallback((key: string) => {
+    const l = shownRef.current.find((x) => x.area.key === key);
+    if (!l) return;
+    const t = walkTarget(l.area);
+    openMaps({ at: t.at, label: l.area.name, kind: 'area' });
+  }, [openMaps]);
 
   const wide = screen.w >= TWO_PANES;
   // The title names the level shown (fix explore-town-scope): the towns near you, or the town whose page is open.
@@ -645,6 +685,17 @@ export default function Explore() {
   const finding = findYou({ cardEmpty: !noteText && !shown.length && !from, refused, permission: permission ?? { state: 'unknown', changes: 0 } });
   // The card alone says location is blocked: no banner says it again (tend walk-screen audit 10, the owner, Nov 14).
   const error = exploreBanner(walkStart.error ?? locError, finding.blocked);
+  // The hint is shown once (explore-carousel audit 10): after a few seconds on screen it is marked seen, used or not. One
+  // reading draws it and runs its seconds, so they run only while it is drawn in front (tend tabs T36, audit 29).
+  const hintShown = pressHintUp({ seen: pressSeen, spot: !!spot, located: !!from, barOffer, focused, covered, folded, slotTaken: !!error || !!notice || looking || creditsOpen });
+  useEffect(() => {
+    if (!hintShown) return;
+    const t = setTimeout(() => {
+      setPressSeen(true);
+      db.setMeta(PRESS_HINT_KEY, '1').catch(() => {});
+    }, HINT_MS);
+    return () => clearTimeout(t);
+  }, [hintShown]);
   const overlay = error ? (
     <Banner
       // Location refused, by Locate (T17) or by Walk here (tend recording audit 2), is the quiet notice; anything else a fault.
@@ -678,8 +729,8 @@ export default function Explore() {
         <Text style={styles.scanCancelText}>Cancel</Text>
       </Pressable>
     </View>
-  ) : !pressSeen && !spot && from && !creditsOpen ? (
-    // Not while the map's credits are open: they grow up into the hint's row (tend map audit 1).
+  ) : hintShown ? (
+    // Not while the map's credits are open: they grow up into the hint's row (tend map audit 1; in `slotTaken`).
     <Text style={styles.hint} testID="atlas-press-hint">Press and hold the map to look anywhere.</Text>
   ) : null;
 
@@ -688,7 +739,7 @@ export default function Explore() {
   const mapPane = (
     <View style={styles.map} onLayout={(e) => onMapLayout(e.nativeEvent.layout.width, e.nativeEvent.layout.height)}>
       {/* Only while Explore is in front (NV4): one map is live at a time. */}
-      {focused && !plan && (
+      {focused && !plan && !outingOpen && (
         <WalkMap
           trace={NONE}
           walked={NONE}
@@ -762,7 +813,7 @@ export default function Explore() {
         />
       )}
       {/* WT11: the selected area's "?" and dots, said once: the area and the kinds, never how many. */}
-      {focused && !plan && !!waitingSaid && (
+      {focused && !plan && !outingOpen && !!waitingSaid && (
         // Audit 5: the one way to the selected area's card for a keyboard or a screen reader, now that the "?" are hidden.
         <Pressable accessibilityRole="button" accessibilityLabel={`${waitingSaid}. Opens its card`} onPress={openSelected} style={styles.srOnly} testID="atlas-waiting-said">
           <Text>{waitingSaid}</Text>
@@ -781,13 +832,20 @@ export default function Explore() {
           </View>
         </View>
         {/* Place search (GZ1): the magnifier beside the title, on every page of Explore but the walk planner's (GZ17). */}
-        {focused && searchAvailable({ plan: !!plan }) ? <SearchButton ref={searchRef} onPress={openSearch} /> : null}
+        {focused && searchAvailable({ plan: !!plan || outingOpen }) ? <SearchButton ref={searchRef} onPress={openSearch} /> : null}
         </View>
+        {!town && !lookOn ? (
+          <Pressable testID="outing-entry" accessibilityRole="button" accessibilityLabel={ENTRY_LABEL} onPress={() => setOutingOpen(true)} style={({ pressed }) => [styles.entry, pressed && { opacity: 0.7 }]}>
+            <Icon name="compass-outline" size={18} color={theme.ink} />
+            <Text style={styles.entryText} numberOfLines={1}>{ENTRY_LABEL}</Text>
+          </Pressable>
+        ) : null}
       </View>
-      {focused && searching && searchAvailable({ plan: !!plan }) ? <SearchSheet top={topInset + 8} origin={searching.origin} onPick={pickPlace} onClose={closeSearch} /> : null}
+      {focused && searching && searchAvailable({ plan: !!plan || outingOpen }) ? <SearchSheet top={topInset + 8} origin={searching.origin} onPick={pickPlace} onClose={closeSearch} /> : null}
       {/* The long press's choices sit over the map where it was pressed, never inside the scrolled list (round 3). */}
       {spot ? (
         <View style={styles.spot} testID="atlas-spot">
+         <View style={styles.spotRow}>
           <Button
             testID="look-here"
             label={LOOK_LABEL}
@@ -851,6 +909,11 @@ export default function Explore() {
           <Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={() => setSpot(null)} style={styles.spotClose}>
             <Icon name="close" size={22} color={theme.ink} />
           </Pressable>
+         </View>
+          {/* OM4, OM5: where Walk here is offered, Open in Maps under the row, an outlined button; not while the far question is open. */}
+          {spotCanOpenInMaps({ zoom: spot.zoom, asking: !!spot.ask }) ? (
+            <OpenInMapsButton testID="spot-maps" variant="button" target={{ at: spot.at, label: 'Your spot', kind: 'spot' }} onOpen={openMaps} style={styles.spotMaps} />
+          ) : null}
         </View>
       ) : finding.edgeLocate ? (
         <LocateButton ref={locateRef} busy={locating} onPress={locate} bottom={8} />
@@ -859,9 +922,9 @@ export default function Explore() {
       {focused && !spot && <LayersControl layers={layers} notes={layerNotes({ walkability: wk.status, storefrontsReading: storefronts.reading, storefrontsFailed: storefronts.failed })} top={insets.top + 8} right={12} paneWidth={screen.w} clearBottom={insets.bottom + 100} />}
       {focused && !spot && <CompassButton bearing={bearing} onPress={() => mapRef.current?.resetNorth()} bottom={8 + 44 + 12} focusAfter={finding.edgeLocate ? locateRef : moveMapRef} />}
       {/* Free look (FL2, FL5): Move map above the compass's slot; while it is on, the middle is marked and Show areas here loads it. */}
-      {focused && !plan && <MoveMapToggle ref={moveMapRef} on={free} onPress={() => setFree((f) => !f)} bottom={8 + 44 + 12 + 44 + 12} />}
-      {focused && !plan && free && <CentreMark />}
-      {focused && !plan && free && <ShowAreasPill onPress={showHere} bottom={slots.showBottom ?? 12} />}
+      {focused && !plan && !outingOpen && <MoveMapToggle ref={moveMapRef} on={free} onPress={() => setFree((f) => !f)} bottom={8 + 44 + 12 + 44 + 12} />}
+      {focused && !plan && !outingOpen && free && <CentreMark />}
+      {focused && !plan && !outingOpen && free && <ShowAreasPill onPress={showHere} bottom={slots.showBottom ?? 12} />}
       {toast ? <View style={styles.toast} accessibilityLiveRegion="polite"><Text style={styles.toastText}>{toast}</Text></View> : null}
       {/* DN12 on web: react-native-web's announceForAccessibility does nothing, so a hidden live region says it.
           Phones announce through the call alone (a live region too would say it twice on Android). */}
@@ -871,13 +934,14 @@ export default function Explore() {
       {overlay ? <View style={[styles.overlay, { bottom: slots.overlayBottom }]} pointerEvents="box-none">{overlay}</View> : null}
       {/* On a town's page, the way back also sits low, where a thumb reaches (round 3), over the map above the row. */}
       {town ? (
-        <Pressable testID="atlas-back-pill" accessibilityRole="button" accessibilityLabel="Back to the towns" onPress={leave} style={[styles.backPill, spot ? { bottom: 10 + SPOT_H + 8 } : null]}>
+        <Pressable testID="atlas-back-pill" accessibilityRole="button" accessibilityLabel="Back to the towns" onPress={leave} style={[styles.backPill, spot ? { bottom: 10 + SPOT_H + (spotCanOpenInMaps({ zoom: spot.zoom, asking: !!spot.ask }) ? SPOT_GO_H : 0) + 8 } : null]}>
           <Icon name="chevron-back" size={18} color={theme.ink} />
           <Text style={styles.backPillText} numberOfLines={1}>Towns</Text>
         </Pressable>
       ) : null}
     </View>
   );
+
 
   return (
     <View style={styles.screen} onLayout={(e) => setScreen({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}>
@@ -907,6 +971,9 @@ export default function Explore() {
                 wide={!!town && l.area.key === town.key}
                 fromYou={lookOn}
                 onPress={onCard}
+                walk={{ ...tileWalk(!l.unplaced && !canWalkTo(l.distanceM) ? 'later' : 'start', { walkOpen: false, selected: isSel }), starting: walkStart.starting }}
+                onWalk={onTileWalk}
+                onMaps={onTileMaps}
               />
             )}
           />
@@ -973,6 +1040,9 @@ export default function Explore() {
           }}
           onPlan={(k) => setPlan(k)}
           covered={plan != null}
+          onMaps={openMaps}
+          askOnOpen={askKey === card.area.key}
+          onAsked={() => setAskKey(null)}
           onWalk={() => {
             const t = walkTarget(card.area);
             setOpen(null);
@@ -981,6 +1051,20 @@ export default function Explore() {
           onPick={pick}
           onClose={() => setOpen(null)}
           layout={cardLayout}
+        />
+      )}
+      {outingOpen && (
+        <OutingDrawer
+          you={getLastFix()?.at ?? you}
+          lastFixAt={getLastFix()?.t ?? null}
+          fixNow={() => getLastFix()?.at ?? you}
+          starting={walkStart.starting}
+          onClose={() => setOutingOpen(false)}
+          onStart={(dest) => {
+            setOutingOpen(false);
+            setOpen(null);
+            startWalk(dest);
+          }}
         />
       )}
       {card && plan && (
@@ -1014,7 +1098,9 @@ const styles = StyleSheet.create({
   rowPane: { flexGrow: 0, flexShrink: 0, paddingBottom: 8, paddingTop: 4 },
   overlay: { position: 'absolute', left: 12, right: 64, alignItems: 'flex-start', gap: 8 },
   // Clear of the Layers button's column (free-look ui 1): the looked page's longer title never runs under it.
-  titleWrap: { position: 'absolute', right: 64, alignItems: 'flex-start' },
+  titleWrap: { position: 'absolute', right: 64, alignItems: 'flex-start', gap: 8 },
+  entry: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 44, paddingHorizontal: 14, borderRadius: 22, backgroundColor: theme.surface, shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 10, shadowOffset: { width: 0, height: 3 }, elevation: 5 },
+  entryText: { fontSize: 14, fontWeight: '700', color: theme.ink },
   titleRowWrap: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, maxWidth: '100%' },
   titleCard: {
     flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: theme.surface, borderRadius: 14, paddingVertical: 8, paddingLeft: 14, paddingRight: 14,
@@ -1028,11 +1114,13 @@ const styles = StyleSheet.create({
   empty: { marginHorizontal: 12, backgroundColor: theme.surface, borderRadius: 16, borderWidth: 1, borderColor: theme.line, padding: 16, gap: 10, alignItems: 'center' },
   emptyText: { fontSize: 15, color: theme.muted, textAlign: 'center' },
   spot: {
-    position: 'absolute', left: 12, right: 12, bottom: 10, maxWidth: 420, alignSelf: 'center', flexDirection: 'row', alignItems: 'center',
-    backgroundColor: theme.surface, borderRadius: theme.radius, padding: 8, gap: 8,
+    position: 'absolute', left: 12, right: 12, bottom: 10, maxWidth: 420, alignSelf: 'center', alignItems: 'stretch',
+    backgroundColor: theme.surface, borderRadius: theme.radius, padding: 8,
     shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 10, shadowOffset: { width: 0, height: 2 }, elevation: 6,
   },
+  spotRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   spotBtn: { flex: 1 },
+  spotMaps: { alignSelf: 'stretch', marginTop: 8 },
   spotClose: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   toast: { position: 'absolute', alignSelf: 'center', bottom: 16, backgroundColor: theme.ink, borderRadius: 999, paddingVertical: 8, paddingHorizontal: 14 },
   toastText: { color: '#ffffff', fontSize: 14, fontWeight: '600' },

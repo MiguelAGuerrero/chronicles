@@ -1,0 +1,11 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inflight",
+        "add"
+      ],
+      "body": "| Unsaved captures have one owner (an app-wide in-memory holder for every photo, video and memo that failed to save: shown on every screen with capture pills, asked by both Stops, kept into its own walk; UN1-UN15, decision 0194) | `slice/unsaved-captures-20261117-1519` | building 2026-11-17: spec and plan done, the owner's answers in; tests first next. Spec `specs/unsaved-captures/spec.md` |\n"
+    }
+  ]
+}

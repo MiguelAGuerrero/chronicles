@@ -65,6 +65,14 @@ The walk screen (`src/app/walk.tsx`), which is also Navigate, ready: its layout,
   "Too short, not kept" toast. A memo that fails to save offers Retry. Leaving the screen mid-memo
   saves it: the walk's Minimize is disabled mid-memo, the ready screen's chevron closes and the memo is
   finished as `useCaptures` unmounts.
+- **Stop asks the one holder** (unsaved captures UN5, UN13): `stop()` reads `unsaved.heldFor(walk.id)` when held,
+  never `cap.held` from a render, warns while it holds an id not warned of (`stopWarns`, `stopWarning`), and the
+  second hold calls `unsaved.letGo` (files removed, UN8) before `endWalk`. A memo lost at Stop (`lost`) is said
+  first (`lostAtStop`). The memo pill is `held-memo` / `held-memo-retry` on both states; a held capture of the
+  ready screen shows on the walk after Start and is kept as its own moment (UN4).
+- **Stop waits as the bar's does** (unsaved-captures audit 2-4): `memoGate.kept()` and `unsaved.settled()`, at most
+  `STOP_WAIT_MS`, before `heldFor`; `unsaved.ended` after `endWalk`. `memory` and `memoryView` are declared before
+  `useCaptures`, whose `sayHeld` is off behind a viewer or a memory's card (audit 9).
 - **The notice follows the walk's arrival** (capture-from-chronicle audit 1): Walk here and Start can
   show the screen before the keeper reads the new walk, so `WalkScreen` sets `arrivalNotice(params)`
   (`lib/readyNav`) when the walk first appears, not only as it mounts.
@@ -74,9 +82,16 @@ The walk screen (`src/app/walk.tsx`), which is also Navigate, ready: its layout,
   screen's (`idPrefix="walk"`: `walk-bar`, `walk-grip`, `walk-summary`), pulled up by a drag or a tap on
   the numbers, with Pause and Stop at its foot. Mid-memo it is locked. `options-card` is its content,
   and Explore's settings are in it, not in a panel of their own (the owner, Nov 4): with Explore on, the
-  "?" range (the ring on the map, fitted above the raised drawer) and what I'm into, then the pocket alert
-  and reminders; each saves as it changes. `settings` / `open-settings` / `settings-done` no longer exist;
-  raising it closes any card, and Back or Escape lowers it (ReadyBar's own handler).
+  "?" range (the ring on the map, fitted above the raised drawer), then the pocket alert and reminders; each saves as it
+  changes. Last, after a rule, a short section of its own, "Explore", with the "What I'm into ›" row to its page, shown
+  with Explore or scenic routes' Sights on (decision 0192, WI19, what-im-into-page audits 6 and 13,
+  `.claude/rules/what-im-into.md`): it lasts beyond this walk, so it is never under "This walk".
+  `settings` / `open-settings` / `settings-done` no longer exist; raising it closes any card, and Back or Escape
+  lowers it (ReadyBar's own handler, only while its screen is focused, so never under that page). **Every Back or
+  Escape handler on this screen waits for focus** (`screenFocused`: the spot card, the route preview; GapCard and
+  Chronicle's sheet too): a page pushed over it keeps it mounted (what-im-into-page audit 1). A tapped reminder opens
+  here only while it is in front (`whileFocused`, `lib/openers`); under a page it is kept and taken as the walk comes
+  back (audit 9).
 - Pills (the caption offer, voice Undo, Retry, a moment's toast) sit left of the stack, just above the
   strip (`at.pills`), right-aligned, so the stack never moves under the thumb. Zooming keeps following;
   only a pan or a turn stops it (web; native can't tell zoom from pan yet).

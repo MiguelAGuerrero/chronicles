@@ -1,5 +1,5 @@
 import type { Faced } from '../lib/moment';
-import { router } from 'expo-router';
+import { router, useIsFocused } from 'expo-router';
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import {
   Animated, BackHandler, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions,
@@ -16,6 +16,7 @@ import { dayCounts, dayLabel, daySpoken, type Day, type DayEntry } from '../lib/
 import { byMonth } from '../lib/months';
 import type { Walk, WalkSummary } from '../lib/types';
 import { Icon, KIND_ICON, KIND_LABEL } from './icons';
+import { OpenInMapsButton, type MapsTarget } from './OpenInMapsButton';
 import { theme } from './ui';
 import { plainNote } from '../lib/refs';
 
@@ -113,14 +114,17 @@ export function SheetFrame(props: {
     latest.current = { size, target, reduced };
   });
 
-  // Back on Android, and Escape on the web, lower an open sheet before anything else.
+  // Back on Android, and Escape on the web, lower an open sheet before anything else, while its screen is in front: a
+  // screen pushed over it (What I'm into's page) keeps it mounted and hidden, and Back or Escape there are the page's
+  // (what-im-into-page audit 1), as ReadyBar's are.
+  const focused = useIsFocused();
   const onSizeRef = useRef(props.onSize);
   useEffect(() => {
     onSizeRef.current = props.onSize;
   });
   const ownKeys = props.ownKeys !== false;
   useEffect(() => {
-    if (!expanded || !ownKeys) return;
+    if (!expanded || !ownKeys || !focused) return;
     const back = BackHandler.addEventListener('hardwareBackPress', () => {
       onSizeRef.current('peek');
       return true;
@@ -131,7 +135,7 @@ export function SheetFrame(props: {
       back.remove();
       if (Platform.OS === 'web' && typeof window !== 'undefined') window.removeEventListener('keydown', onKey);
     };
-  }, [expanded, ownKeys]);
+  }, [expanded, ownKeys, focused]);
 
   // Dragging the handle or header: it settles at the nearest of the three
   // heights, however the gesture ends (released, or taken by something else).
@@ -211,6 +215,9 @@ export function HomeSheet(props: {
   placingId?: string | null;
   /** Starts a walk navigating to the place shown (N11). */
   onGoToPlace?: () => void;
+  /** OM4: Open in Maps for the place, beside Walk here: outlined, wrapping to a second line when narrow. */
+  mapsTarget?: MapsTarget;
+  onMaps?: (t: MapsTarget) => void;
   /** The place's found places (E10), in the place view only. */
   placeExtra?: { found: string[] } | null;
   /** Days with something in them, newest first (M7). */
@@ -373,11 +380,12 @@ export function HomeSheet(props: {
       }
     >
       {place && props.onGoToPlace && (
-        <View style={styles.goRow}>
-          <Pressable testID="place-go" accessibilityRole="button" accessibilityLabel={`Start a walk to ${place.title}`} onPress={props.onGoToPlace} disabled={props.busy} style={({ pressed }) => [styles.go, (pressed || props.busy) && { opacity: 0.7 }]}>
+        <View style={[styles.goRow, styles.goRowPair]}>
+          <Pressable testID="place-go" accessibilityRole="button" accessibilityLabel={`Start a walk to ${place.title}`} onPress={props.onGoToPlace} disabled={props.busy} style={({ pressed }) => [styles.go, props.mapsTarget && styles.pairHalf, (pressed || props.busy) && { opacity: 0.7 }]}>
             <Icon name="navigate" size={18} color="#ffffff" />
             <Text style={styles.goText}>Walk here</Text>
           </Pressable>
+          {props.mapsTarget && props.onMaps ? <OpenInMapsButton testID="place-maps" variant="button" target={props.mapsTarget} onOpen={props.onMaps} style={styles.pairHalf} /> : null}
         </View>
       )}
       {day && (
@@ -592,6 +600,9 @@ const styles = StyleSheet.create({
   month: { gap: 10 },
   listContent: { padding: 16, gap: 10, maxWidth: 640, width: '100%', alignSelf: 'center' },
   note: { fontSize: 14, color: theme.muted, marginTop: -4 },
+  // OM4, OM9 (ui 1): Walk here and Open in Maps side by side, each half the row, so nothing wraps at 320 px.
+  pairHalf: { flex: 1, minWidth: 0, paddingHorizontal: 8 },
+  goRowPair: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   goRow: { paddingHorizontal: 16, paddingTop: 4, maxWidth: 640, width: '100%', alignSelf: 'center' },
   go: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 48, borderRadius: 24, backgroundColor: theme.accent, alignSelf: 'flex-start', paddingHorizontal: 20 },
   goText: { color: '#ffffff', fontSize: 16, fontWeight: '700' },

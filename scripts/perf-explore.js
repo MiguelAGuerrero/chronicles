@@ -185,10 +185,15 @@ function summarize(rows) {
 
     // Drags with Move map on: the map follows the finger.
     // From the keyboard: a tapped card's overlay can sit over the button.
-    await pg.locator('[data-testid=atlas-move-map]').focus();
+    const moveMap = pg.locator('[data-testid=atlas-move-map]');
+    const pressed = () => pg.waitForFunction(() => document.querySelector('[data-testid=atlas-move-map]')?.getAttribute('aria-pressed') === 'true', null, { timeout: 3000 }).then(() => true, () => false);
+    await moveMap.focus();
     await pg.keyboard.press('Enter');
-    await pg.waitForTimeout(300);
-    if ((await pg.locator('[data-testid=atlas-move-map]').getAttribute('aria-pressed')) !== 'true') throw new Error('Move map did not turn on');
+    // A switch's ease can still be settling: wait for the toggle to say so, and click it once if the key was lost.
+    if (!(await pressed())) {
+      await moveMap.click();
+      if (!(await pressed())) throw new Error('Move map did not turn on');
+    }
     await pg.waitForTimeout(800);
     if (process.env.PERF_PROFILE && PHASE === 'drag') await startProfile();
     for (let i = 0; i < DRAGS; i++) {

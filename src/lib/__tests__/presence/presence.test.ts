@@ -20,6 +20,17 @@ const CHANGED: Record<string, Omit<Row, 'cls' | 'sub'>> = {
   'viewpoint|viewpoint': { weight: 0.5, category: 'viewpoints', kind: 'viewpoints', markPlain: true, markNotable: true },
   'florist|florist': shop, 'jewelry|jewelry': shop, 'gift|gift': shop, 'toys|toys': shop, 'stationery|stationery': shop, 'books|books': shop, 'shop|books': shop,
   'marketplace|marketplace': { weight: 1, category: 'food', kind: null, markPlain: false, markNotable: false },
+  // specs/explore-subtypes XS4, XS12 (decision 0191) and audit 12: zoos and aquariums are their own kind (attractions and theme
+  // parks stay with Viewpoints); the map's ruins are Curiosities (Ruins), a place to find and no storefront (SF10).
+  'aquarium|aquarium': { weight: 1, category: 'viewpoints', kind: 'attractions', markPlain: true, markNotable: true },
+  'zoo|aviary': { weight: 1, category: 'viewpoints', kind: 'attractions', markPlain: true, markNotable: true },
+  'zoo|zoo': { weight: 1, category: 'viewpoints', kind: 'attractions', markPlain: true, markNotable: true },
+  'castle|ruins': { weight: 0, category: 'viewpoints', kind: 'curiosities', markPlain: true, markNotable: true },
+  // more-attractions audit 1 (decision 0198, the owner, Nov 18, "Own row, on"): a theme park is an amusement park, of the zoos
+  // kind (refined to Amusement parks), no longer with Viewpoints.
+  'theme_park|theme_park': { weight: 1, category: 'viewpoints', kind: 'attractions', markPlain: true, markNotable: true },
+  // Typed bridges (MA10, p10, the owner, Nov 18): contract v8's `suspension_bridge` is an archive class; no map pair moved,
+  // so nothing is added here (the readers' golden holds it, PS8).
 };
 
 /**

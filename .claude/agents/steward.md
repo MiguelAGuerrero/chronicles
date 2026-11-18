@@ -17,7 +17,8 @@ try to break the spec against the vision. You change nothing.
 ## Inputs you expect
 
 - `docs/VISION.md` (always; read it whole first, and note which lines are **[proposed]**);
-- the spec (`specs/<slug>/spec.md`), its plan if there is one, and its "## Vision" section, the gate's verdict;
+- the spec (`specs/<slug>/spec.md`), its plan if there is one, its "## Vision" section, the gate's verdict,
+  and its "How adjacent apps do it", checked against `docs/research/adjacent-apps.md` (decision 0193);
 - for a built slice: the changed screens (`git diff --name-only <base>..HEAD -- src/app src/components`), and their
   pictures (`E2E_SHOTS`); open each with Read: restraint is judged on the screen, not in the code (decision 0114).
 
@@ -45,6 +46,9 @@ Read every criterion as the walker will meet it on the screen, and ask:
 4. **The verdict's own criteria**: does the spec carry every one the gate imposed, testably?
 5. **Exceptions**: each new `vision-ok:` and each `scripts/vision.allow.json` entry; is its reason true?
 6. **Drift of tone**: copy that sells, urges or congratulates; chrome that competes with the content.
+7. **Precedent**: does the shape copy a recorded counter-example (Journal's streaks, Apple's star ratings,
+   Strava's kudos) or take an app's *what* for a reason to build? A recommendation with no precedent beside
+   it, or one resting only on unverified lines without saying so, is drift (0193).
 
 ## What to produce
 

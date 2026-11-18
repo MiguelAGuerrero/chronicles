@@ -87,7 +87,7 @@ export async function loadReplay(walkId: string, opts: { readGaps?: boolean } = 
     })
     .filter((s): s is StreetSegment & { first_t: number } => s != null)
     .sort((a, b) => a.first_t - b.first_t);
-  const summary = (await db.listSummaries()).find((s) => s.walk_id === walkId) ?? null;
+  const summary = await db.getSummary(walkId);
   // Marks found before explore stay in their walks' replays (E14).
   const marks = await db.listMarks(walkId).catch(() => [] as Mark[]);
   const finds = await db.listFinds(walkId).catch(() => []);

@@ -23,6 +23,7 @@ import { traceEnds } from '../../lib/traceEnds';
 import { ScaleBar, SCALE_MAX_PX } from './ScaleBar';
 import { NATIVE_FRAME_MS, useGlideFrames, useGlideShown, type GlideFrame } from '../../lib/useGlidingWalker';
 import { createStore, type Store } from '../../lib/store';
+import { perfCount } from '../../lib/perfCount';
 import { distanceM } from '../../lib/geo';
 import { releaseSwipe, SNAP } from '../../lib/atlas/snap';
 import { capFitBounds } from '../../lib/zoomOut';
@@ -32,7 +33,7 @@ import { useReducedMotion } from '../../lib/motion';
 import { useUnits } from '../../lib/useUnits';
 import { MOTION } from '../../lib/motionTokens';
 import {
-  alternatesGeoJSON, storefrontLayerOrder, storefrontNameLayers, storefrontNameRotate, storefrontNamesGeoJSON, routeGradesGeoJSON, pinsGeoJSON, BORDER, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, DERIVE_ZOOM, endsGeoJSON, ENDS_PAINT, ENDS_RING_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON,
+  alternatesGeoJSON, TRACE_EDGE_OPACITY, storefrontLayerOrder, storefrontNameLayers, storefrontNameRotate, storefrontNamesGeoJSON, routeGradesGeoJSON, pinsGeoJSON, BORDER, borderFillOpacity, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, DERIVE_ZOOM, endsGeoJSON, ENDS_PAINT, ENDS_RING_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON, BASE_VECTOR_SOURCE, POI_SOURCE_LAYER,
   LINE_SOURCE, type CollectedFeatures, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
@@ -94,6 +95,8 @@ function createSwiper() {
 const HIDDEN = { 'line-opacity': 0 } as const;
 
 export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(props, ref) {
+  // Counted as the web map is (nothing unless `globalThis.__perf` is set): NF7's numbers on a device.
+  perfCount('render:map');
   const mapRef = useRef<MapRef>(null);
   const cameraRef = useRef<CameraRef>(null);
   const lastBearing = useRef(0);
@@ -115,6 +118,14 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const rendered = useRef<(() => void) | null>(null);
   const size = useRef({ width: 0, height: 0 });
   const [view, setView] = useState<{ zoom: number; lat: number } | null>(null);
+  // QC24: the base style's shop and point-of-interest labels, hidden while a stop is a plain point (the outing's page, a followed
+  // outing). Native cannot read the style, so the base source's `poi` layer is hidden whole; it is the base style's own source, never
+  // the app's `omt-query` one (unverified on a device: NATIVE_UNVERIFIED). Redone when the style has finished loading.
+  const hideLabels = !!props.hideLabels;
+  useEffect(() => {
+    if (!ready) return;
+    void mapRef.current?.setSourceVisibility(!hideLabels, BASE_VECTOR_SOURCE, POI_SOURCE_LAYER).catch(() => {});
+  }, [ready, hideLabels]);
   const lastView = useRef<{ zoom: number; lat: number } | null>(null);
   // Discrete navigation (DN1, DN2): with onSwipe, a one-finger drag is a swipe, never a pan.
   const [swiper] = useState(createSwiper);
@@ -222,6 +233,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const borderKey = props.borders?.key ?? '';
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const borders = useMemo(() => bordersGeoJSON(props.borders), [borderKey]);
+  /** Over the veil (the replay and a day, decision 0199): fixed for a screen, so the mount order never changes under it. */
+  const bordersOver = !!props.bordersOverVeil;
   // Walkability (WK13): rebuilt only when the picture changes.
   const walkKey = props.walkability?.key ?? '';
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -464,10 +477,13 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
           {/* Water, so its tiles load for the blank-world look (tend map audit 14). */}
           <Layer id="q-water" type="fill" source-layer="water" paint={{ 'fill-opacity': 0 }} />
         </VectorSource>
-        {/* Town borders, the first overlay: under everything the app draws (TB8). MapLibre RN has no
+        {/* The town borders, under everything else the app draws (TB8), and under the world's veil but on the replay and
+            a day, where they mount after it, at a lighter fill (decision 0199: the town's edge and tint keep their
+            contrast). Mount order is layer order; the screen's ask never changes while it is open. MapLibre RN has no
             base road layer id to go below, so they sit over the base map's streets (unverified on a device). */}
-        <BordersSource data={borders} />
+        {!bordersOver && <BordersSource data={borders} lighter={false} />}
         <VeilSource on={!!props.veil} />
+        {bordersOver && <BordersSource data={borders} lighter={!!props.veil} />}
         {/* The Walkability layer (UF9), under the hotspots, fog and trace: soft tints, no antialiasing so no seams (unverified on a device). */}
         <WalkabilitySource data={walkability} />
         {/* Hotspots under the streets, in the one green no other layer uses (L9). */}
@@ -544,7 +560,7 @@ const TraceSource = memo(function TraceSource(props: { id: string; data: GeoJSON
   return (
     <GeoJSONSource id={props.id} data={props.data} {...LINE_SOURCE}>
       <Layer id={`${props.id}-edge`} type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }}
-        paint={{ 'line-color': '#ffffff', 'line-width': FOG_STYLE.edgeWidth, 'line-opacity': 0.9 * props.opacity }} />
+        paint={{ 'line-color': '#ffffff', 'line-width': FOG_STYLE.edgeWidth, 'line-opacity': TRACE_EDGE_OPACITY * props.opacity }} />
       {/* A ride is dashed (rides, R5). */}
       <Layer id={`${props.id}-line`} type="line" layout={{ 'line-cap': props.dashed ? 'butt' : 'round', 'line-join': 'round' }}
         paint={{ 'line-color': COLORS.trace, 'line-width': FOG_STYLE.traceWidth, 'line-opacity': props.opacity, ...(props.dashed ? { 'line-dasharray': RIDE_DASH } : {}) }} />
@@ -583,13 +599,13 @@ const markFrom = (v: string | undefined) => (v == null ? undefined : { revealed:
 type FC = GeoJSON.FeatureCollection;
 const ROUND = { 'line-cap': 'round', 'line-join': 'round' } as const;
 
-const BordersSource = memo(function BordersSource({ data }: { data: FC }) {
+const BordersSource = memo(function BordersSource({ data, lighter }: { data: FC; lighter: boolean }) {
   return (
     <GeoJSONSource id="borders" data={data}>
-      {/* Town borders, the first overlay: under everything the app draws (TB8). MapLibre RN has no
-          base road layer id to go below, so they sit over the base map's streets (unverified on a device). */}
+      {/* Town borders: under everything else the app draws (TB8). MapLibre RN has no base road layer id to go below, so
+          they sit over the base map's streets (unverified on a device). */}
       <Layer id="border-fill" type="fill" minzoom={BORDER.minZoom} filter={['==', ['get', 'role'], 'tinted']}
-        paint={{ 'fill-color': BORDER.color, 'fill-opacity': BORDER.fillOpacity }} />
+        paint={{ 'fill-color': BORDER.color, 'fill-opacity': borderFillOpacity(lighter) }} />
       <Layer id="border-lined" type="line" minzoom={BORDER.minZoom} filter={['==', ['get', 'role'], 'lined']} layout={{ 'line-join': 'round' }}
         paint={{ 'line-color': BORDER.lined, 'line-width': BORDER.linedWidth, 'line-opacity': BORDER.linedOpacity }} />
       <Layer id="border-firm" type="line" minzoom={BORDER.minZoom} filter={['!=', ['get', 'role'], 'lined']} layout={{ 'line-join': 'round' }}
@@ -697,7 +713,7 @@ const GapLinksSource = memo(function GapLinksSource({ data, opacity }: { data: F
 const DrawingSource = memo(function DrawingSource({ data }: { data: FC }) {
   return (
     <GeoJSONSource id="drawing" data={data} {...LINE_SOURCE}>
-      <Layer id="drawing-edge" type="line" layout={ROUND} paint={{ 'line-color': '#ffffff', 'line-width': FOG_STYLE.edgeWidth, 'line-opacity': 0.9 }} />
+      <Layer id="drawing-edge" type="line" layout={ROUND} paint={{ 'line-color': '#ffffff', 'line-width': FOG_STYLE.edgeWidth, 'line-opacity': TRACE_EDGE_OPACITY }} />
       <Layer id="drawing" type="line" layout={{ 'line-cap': 'butt', 'line-join': 'round' }}
         paint={{ 'line-color': COLORS.trace, 'line-width': FOG_STYLE.traceWidth, 'line-dasharray': DRAWING_DASH }} />
     </GeoJSONSource>
@@ -792,6 +808,7 @@ type GlideIn = {
 
 /** The walker's cone: renders per glide frame, alone. */
 const ConeSource = memo(function ConeSource({ frames, walker, heading, enabled, source, zoom }: GlideIn & { zoom: number }) {
+  perfCount('render:glide');
   const g = useGlideShown(frames, walker, heading, enabled, source);
   const data = useMemo(() => coneGeoJSON(g.walker, g.heading, zoom), [g.walker, g.heading, zoom]);
   return (
@@ -940,7 +957,7 @@ const StarMarkers = memo(function StarMarkers({ stars, names, selected, pressabl
       anchor="center"
       onPress={pressable ? () => handlers.current?.onStarPress?.(star) : undefined}
     >
-      <View accessible accessibilityRole="button" accessibilityLabel={starLabel(star)} style={styles.pinHit}>
+      <View accessible accessibilityRole="button" accessibilityLabel={starLabel(star)} accessibilityState={{ selected: star.id === selected }} style={styles.pinHit}>
         <StarView star={star} selected={star.id === selected} named={names.has(star.id)} />
       </View>
     </Marker>

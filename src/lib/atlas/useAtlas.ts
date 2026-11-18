@@ -10,7 +10,7 @@ import type { Find, Kind } from '../explore/explore';
 import { exploreBuild } from '../explore/exploreRun';
 import { loadSettings, onSettings } from '../explore/settings';
 import type { LngLat } from '../types';
-import { ATLAS_RULES, atlasStep, nearList, rowCurrent, townNeighborhoods, townReachM, withShownSteps, type AtlasArea, type Listed, type NearTarget } from './atlas';
+import { ATLAS_RULES, atlasStep, heldNears, heldUntil, nearList, newRows, rowCurrent, rowsShown, townNeighborhoods, townReachM, withShownSteps, type AtlasArea, type AtlasLevel, type HeldNear, type Listed, type NearTarget } from './atlas';
 import { nearReads, readNear, readRing } from './read';
 import { townsListedAfter } from './carousel';
 import { borderReach } from './hoods';
@@ -69,6 +69,8 @@ export function useAtlas(focused: boolean, from: LngLat | null, town: AtlasArea 
     fromRef.current = from;
   }, [from]);
   const failedRef = useRef<{ key: string; t: number } | null>(null);
+  // Near reads whose write failed, held per level until retryMs (tend explore audit 32); a new visit lists afresh.
+  const heldRef = useRef<Record<AtlasLevel, HeldNear[]>>({ neighborhood: [], town: [] });
   const tileKey = from ? outlineTileKey(...outlineTileOf(from)) : null;
   const townKey = town?.key ?? null;
   const townAtRef = useRef(town?.at ?? null);
@@ -89,6 +91,7 @@ export function useAtlas(focused: boolean, from: LngLat | null, town: AtlasArea 
   // Everything stored, again each time Explore comes to the front.
   useEffect(() => {
     if (!focused) return;
+    heldRef.current = { neighborhood: [], town: [] };
     let live = true;
     (async () => {
       const [r, areas, walkAreas, finds, walked, b] = await Promise.all([
@@ -171,8 +174,14 @@ export function useAtlas(focused: boolean, from: LngLat | null, town: AtlasArea 
       const latest = await exploreBuild().catch(() => 'unknown');
       // Checked at most once a day (AD6): rings measured with another release, or none, are read again.
       const release = await ensureOvertureRelease().catch(() => null);
-      const [nb, tw] = await Promise.all([nearReads('neighborhood'), nearReads('town')]);
+      const [nbKept, twKept] = await Promise.all([nearReads('neighborhood'), nearReads('town')]);
       if (stop) return;
+      const now = Date.now();
+      const held = heldRef.current;
+      // tend explore audit 32: a read held in memory stands for its level, so the other level is read meanwhile.
+      const nb = heldNears(nbKept, held.neighborhood, now);
+      const tw = heldNears(twKept, held.town, now);
+      const wake = heldUntil([...held.neighborhood, ...held.town], now);
       // Kept as it was when nothing changed: each step of the loop set a new object and rendered Explore, mid-switch too (SS9).
       setTownsKnown((k) => {
         const listed = townsListedAfter(k.build === build ? k.listed : false, { reads: tw, at: from, build });
@@ -184,7 +193,7 @@ export function useAtlas(focused: boolean, from: LngLat | null, town: AtlasArea 
           : { level: 'neighborhood', at: from, radiusM: ATLAS_RULES.nearNeighborhoodM, reads: nb },
         { level: 'town', at: from, radiusM: ATLAS_RULES.nearTownM, reads: tw },
       ];
-      const step = atlasStep({ build, latest, nears, list: queueRef.current, now: Date.now(), release, archiveAt: (at) => placesArchive.versionAt(at) });
+      const step = atlasStep({ build, latest, nears, list: queueRef.current, now, release, archiveAt: (at) => placesArchive.versionAt(at) });
       if (step.kind === 'adopt') {
         // A new map build (or the first known one): its rows are listed afresh, never chased (audit 2, 4).
         setBuild(step.build);
@@ -193,9 +202,14 @@ export function useAtlas(focused: boolean, from: LngLat | null, town: AtlasArea 
       }
       if (step.kind === 'wait') {
         if (!build) setStatus('offline');
-        return again(step.ms);
+        return again(wake != null ? Math.min(step.ms, wake) : step.ms);
       }
-      if (step.kind === 'idle') return setStatus('idle');
+      if (step.kind === 'idle') {
+        setStatus('idle');
+        // A held read is asked again when it stops standing.
+        if (wake != null) again(wake);
+        return;
+      }
       if (step.kind === 'near') {
         setStatus('listing');
         const ok = await readNear(step.at, step.level, build!, step.radiusM, () => stop, step.town && town?.key === step.town ? town : null, looking);
@@ -204,6 +218,17 @@ export function useAtlas(focused: boolean, from: LngLat | null, town: AtlasArea 
         if (!ok) {
           setStatus('offline');
           return again(ATLAS_RULES.retryMs);
+        }
+        if (ok !== true) {
+          // tend explore 25, audit 32: read but not kept (a write failed): its areas show from the read, beside those
+          // already shown (never in their place, which keeps their profiles), and the read is held until retryMs, so
+          // the other level's read follows now.
+          const shown = [...rowsRef.current, ...newRows(rowsRef.current, ok.unkept, build!, Date.now())];
+          rowsRef.current = shown;
+          setRows(shown);
+          const t = Date.now();
+          heldRef.current = { ...heldRef.current, [step.level]: [...heldRef.current[step.level].filter((h) => t - h.at < ATLAS_RULES.retryMs), { read: ok.near, at: t }] };
+          return again(0);
         }
         const r = await db.listAtlasAreas().catch(() => rowsRef.current);
         if (stop) return;
@@ -228,7 +253,7 @@ export function useAtlas(focused: boolean, from: LngLat | null, town: AtlasArea 
 
   return useMemo(
     // SP13: the bars follow the reader's switches from the stored profile, with no read.
-    () => ({ build, rows, neighborhoods: withShownSteps(neighborhoods, hidden), towns: withShownSteps(towns, hidden), home, status, townsListed: townsKnown.build === build && townsKnown.listed, hidden, outlines: borders, ...extra }),
+    () => ({ build, rows: rowsShown(rows, hidden), neighborhoods: withShownSteps(neighborhoods, hidden), towns: withShownSteps(towns, hidden), home, status, townsListed: townsKnown.build === build && townsKnown.listed, hidden, outlines: borders, ...extra }),
     [build, rows, neighborhoods, towns, home, status, townsKnown, hidden, borders, extra],
   );
 }

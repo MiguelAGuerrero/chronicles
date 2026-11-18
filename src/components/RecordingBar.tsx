@@ -1,20 +1,23 @@
 import type { Faced } from '../lib/moment';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { AccessibilityInfo, ActivityIndicator, AppState, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { router, usePathname } from 'expo-router';
 import { barCamera } from '../lib/captureBand';
 import { chronicleSection } from '../lib/resurface/sectionStore';
 import { useStore } from '../lib/useStore';
+import { useKeyboardHeight } from '../lib/threads/useKeyboardHeight';
 import { useUnits } from '../lib/useUnits';
 import { db } from '../lib/db';
 import { memoGate } from '../lib/memoGate';
-import { stopWalk } from '../lib/session';
-import { reminderHeld, reminderText } from '../lib/discovery/recall';
-import { onRecallFired, RECALL_OPEN_KEY } from '../lib/discovery/recallCheck';
+import { unsaved } from '../lib/unsaved';
+import { barWarning, stopWarns } from '../lib/unsaved/core';
+import { endWalk } from '../lib/session';
+import { barInSight, reminderHeld, reminderSeen, reminderSight, reminderText, UNSEEN, type ReminderSight } from '../lib/discovery/recall';
+import { handOnRecall, onRecallFired, RECALL_OPEN_KEY } from '../lib/discovery/recallCheck';
 import { feedback } from '../lib/motion';
 import { MOTION } from '../lib/motionTokens';
 import { perfCount } from '../lib/perfCount';
-import { barOffer, barOfferAfter, barOfferAfterHidden, barOfferShown, barOfferWords, recordingLine, type BarOffer } from '../lib/recordingBar';
+import { BAR_WAIT_MS, barGoesBack, barOffer, barOfferAfter, barOfferAfterHidden, barOfferShown, barOfferWords, barStopping, recordingLine, type BarOffer } from '../lib/recordingBar';
 import { captureBus } from '../lib/captureBus';
 import { deletions } from '../lib/deletion';
 import { useHidden } from '../lib/deletion/useDeletions';
@@ -22,6 +25,7 @@ import type { Pause, Walk } from '../lib/types';
 import type { LiveTrace } from '../lib/useLiveTrace';
 import { useCaptures } from '../lib/useCaptures';
 import { settleWithin } from '../lib/settleWithin';
+import { barOfferUp, barStop, modalsUp, tabsHidden } from '../lib/tabsHidden';
 import { showWalk } from '../lib/walkNav';
 import { Icon } from './icons';
 import { EditButton } from './edit/EditOffer';
@@ -31,7 +35,7 @@ import { Ticking } from './Ticking';
 import { HoldButton, LiftIn, theme } from './ui';
 
 /** The bar's return waits this long at most for its photo to be kept. */
-const RETURN_WAIT_MS = 5000;
+const RETURN_WAIT_MS = BAR_WAIT_MS;
 
 /** How long a word from the bar (a photo kept, a refusal) stands in for its line. */
 const SAID_MS = 3000;
@@ -39,7 +43,7 @@ const SAID_MS = 3000;
 /**
  * The recording bar (NV9): while a walk is open and minimized, just above the
  * tab bar on every tab. Elapsed time and distance (Paused when paused); a tap
- * returns to the walk; no Stop. Its camera keeps a photo or video for the open
+ * returns to the walk; a held Stop (decision 0048) ends it. Its camera keeps a photo or video for the open
  * walk, placed as the walk's own captures are (the latest fix, else at stop),
  * paused or not, without opening the walk screen.
  *
@@ -66,7 +70,8 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
     setSaid({ text: e.message, error: true });
     setOffer((o) => barOfferAfter(o, null));
   }, []);
-  const cap = useCaptures(walk.id, live.here, live.lastFixAt, onError);
+  // No Retry on the bar: a failure says where it is held (unsaved captures UN10).
+  const cap = useCaptures(walk.id, live.here, live.lastFixAt, onError, { retryShown: false, shortWords: true });
   // On Memories the band's camera files into the walk: the bar shows none there (decision 0112).
   const path = usePathname();
   const section = useStore(chronicleSection.store, (x) => x);
@@ -77,9 +82,17 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
   // Its photo deleted elsewhere (Memories, a day) ends it, Undo waiting or not (tend tabs audit 15).
   const hidden = useHidden();
   useEffect(() => deletions.subscribe(() => setOffer((o) => barOfferAfterHidden(o, deletions.hidden()))), []);
-  // Held to stop, the walk is going: the pill goes first (tend tabs audit 19).
-  const [stopping, setStopping] = useState(false);
+  // Held to stop, the walk is going: the pill goes first (tend tabs audit 19). Shared, not this bar's own: the bar
+  // unmounts as its tab loses focus while the stop goes on (tend tabs audit 26).
+  const stopping = useStore(barStop, (s) => s?.walkId === walk.id);
+  // The held captures of the walk this Stop has warned of; one held beyond them is warned of too (unsaved captures UN5).
+  const warnedHeld = useRef<string[]>([]);
   const offerUp = barOfferShown(offer, cap.captures.map((c) => c.id), hidden, stopping);
+  // Told to the tabs, so Explore's press hint steps aside while the pill lifts its map (tend tabs T36).
+  useEffect(() => {
+    barOfferUp.set(offerUp);
+    return () => barOfferUp.set(false);
+  }, [offerUp]);
   const offerWords = offer ? barOfferWords(offer.kind) : null;
   // Announced politely, without moving focus, as Undo is: iOS reads no live regions (decision 0113).
   const spoken = offerUp ? offerWords?.spoken : undefined;
@@ -103,34 +116,74 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
   useEffect(() => {
     reminderRef.current = reminder;
   }, [reminder]);
+  // How long what the bar holds has been in sight; a fire merging into it is new, unseen.
+  const seenTime = useRef<ReminderSight>(UNSEEN);
   useEffect(
     () =>
       onRecallFired((due) => {
         const all = reminderHeld(reminderRef.current, due);
         reminderRef.current = all;
+        seenTime.current = UNSEEN;
         setReminder(all);
-        AccessibilityInfo.announceForAccessibility(reminderText(all).title);
       }),
     [],
   );
+  // Going (Walk here from the area card, a replay over the tabs) with a reminder nobody has seen: it is handed on, to
+  // the walk screen's card or the bar again, whichever comes to the front next (tend explore audit 23).
+  const walkId = walk.id;
   useEffect(() => {
-    if (!reminder) return;
-    const t = setTimeout(() => setReminder(null), MOTION.reminder);
+    const held = reminderRef;
+    const seen = seenTime;
+    return () => {
+      if (held.current && !reminderSeen(seen.current, Date.now())) handOnRecall(walkId, held.current);
+    };
+  }, [walkId]);
+  // In sight only unfolded, with nothing over it, the keys down and the app in front: folded under a full-screen card
+  // (the area card, the planner, the journal's keys), under a viewer, under Explore's search keyboard or in a pocket,
+  // the bar holds a reminder, and its half-minute is time in sight (tend explore 22, audits 24, 27). It was marked
+  // fired as it came, so dropping it unseen would lose it.
+  const folded = useStore(tabsHidden, (h) => h);
+  const covered = useStore(modalsUp, (n) => n > 0);
+  const keyboard = useKeyboardHeight() > 0;
+  const [active, setActive] = useState(() => AppState.currentState === 'active');
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (s) => setActive(s === 'active'));
+    return () => sub.remove();
+  }, []);
+  const inSight = barInSight({ folded, covered, keyboard, active });
+  useEffect(() => {
+    if (!reminder) {
+      seenTime.current = UNSEEN;
+      return;
+    }
+    const was = seenTime.current;
+    const sight = reminderSight({ sight: was, inSight, now: Date.now(), showMs: MOTION.reminder });
+    // Announced as it first comes into sight, by the bar's own title (tend explore audit 6).
+    if (was.shownMs === 0 && was.since == null && sight.sight.since != null) AccessibilityInfo.announceForAccessibility(reminderText(reminder).title);
+    seenTime.current = sight.sight;
+    if (sight.goesInMs == null) return;
+    const t = setTimeout(() => setReminder(null), sight.goesInMs);
     return () => clearTimeout(t);
-  }, [reminder]);
+  }, [reminder, inSight]);
 
   const startedAt = walk.started_at;
   const distanceM = live.distanceM;
   const paused = pauses.some((p) => p.ended_at == null);
 
+  // Asked now, of the stop under way from any bar of the walk, within its bound (tend tabs 12, audits 26, 28).
+  const goesBack = (returningNow: boolean) => barGoesBack({ returning: returningNow, stop: barStop.get(), walkId: walk.id, now: Date.now() });
   const back = async (open: Faced[] | null) => {
-    if (returning.current) return;
+    if (!goesBack(returning.current)) return;
     returning.current = true;
     try {
       // The photo is kept first, so the walk screen shows it; never held for ever by a save that hangs.
       await settleWithin(keeping.current, RETURN_WAIT_MS);
+      // Held to stop meanwhile: the stop goes alone, its replay over the tabs, not over a walk screen (tend tabs 12).
+      if (!goesBack(false)) return;
       // The walk screen opens what a tapped reminder asks for as it mounts (R4).
       if (open) await db.setMeta(RECALL_OPEN_KEY, JSON.stringify(open.map((c) => c.id))).catch(() => {});
+      // And again after that write, which can wait in the device's write queue (tend tabs audit 27).
+      if (!goesBack(false)) return;
       feedback('tap');
       showWalk();
     } finally {
@@ -151,8 +204,9 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
   };
 
   const stop = async () => {
-    if (stopping) return;
-    setStopping(true);
+    if (barStopping(barStop.get(), walk.id, Date.now())) return;
+    const mine = { walkId: walk.id, since: Date.now() };
+    barStop.set(mine);
     try {
       // Never under a memo, as Start (tabs audit 3); the bar's photo is kept first, as on its return.
       const ready = await Promise.race([memoGate.readyToStart(), new Promise<boolean>((r) => setTimeout(() => r(false), RETURN_WAIT_MS))]);
@@ -161,14 +215,25 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
         return;
       }
       // The bar's photo, and one still being kept from Memories' band (capture-from-chronicle audit 6).
-      await settleWithin(Promise.all([keeping.current, memoGate.kept()]), RETURN_WAIT_MS);
-      await stopWalk(walk.id);
+      await settleWithin(Promise.all([keeping.current, memoGate.kept(), unsaved.settled()]), RETURN_WAIT_MS);
+      // Whatever of the walk is held, from any screen, read now, is said first; the bar has no Retry, so its words
+      // promise none (UN5, UN6). The next hold lets it go, files and all (UN8).
+      const held = unsaved.heldFor(walk.id);
+      if (stopWarns(held.map((x) => x.id), warnedHeld.current)) {
+        warnedHeld.current = held.map((x) => x.id);
+        setSaid({ text: barWarning(held.length > 1), error: true });
+        return;
+      }
+      const { dropped } = await endWalk(walk.id, { leaves: false });
+      // Only once the walk has ended (unsaved-captures audit 4).
+      await unsaved.ended(walk.id);
       feedback('success');
-      router.push(`/replay/${walk.id}`);
+      // A walk with nothing in it has no replay: the bar goes, and the pill offers Undo on this screen (EW1).
+      if (!dropped) router.push(`/replay/${walk.id}`);
     } catch (e) {
       setSaid({ text: `The walk could not be stopped: ${e instanceof Error ? e.message : e}`, error: true });
     } finally {
-      setStopping(false);
+      barStop.set((s) => (s === mine ? null : s));
     }
   };
 
@@ -225,7 +290,8 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
             <View style={styles.dot} />
           )}
           {said ? (
-            <Text testID="recording-said" style={[styles.text, said.error && styles.error]} numberOfLines={2} accessibilityLiveRegion="polite">
+            // A failure's words are whole at 320 px: the room line names where its Retry is (unsaved captures UN10).
+            <Text testID="recording-said" style={[styles.text, said.error && styles.error]} numberOfLines={said.error ? 4 : 2} accessibilityLiveRegion="polite">
               {said.text}
             </Text>
           ) : (

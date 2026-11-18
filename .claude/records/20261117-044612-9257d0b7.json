@@ -1,0 +1,13 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Map layers and markers"
+      ],
+      "body": "- [ ] **Do:** on a phone, finish a walk with a photo, a video, a voice memo and a note kept apart and a photo and a note where it ends, watch its replay to the card, then open Chronicle's map. **Expect:** MapLibre RN and the native pin views draw Earth and ink (decision 0187): on beat one the lit streets read slate blue under the faint green trace, never the accent's orange; the end is a blue-violet bullseye (`#5b5d9f`); the photo pin is verdigris, the video madder, the memo raw umber, the note stone, each with its white glyph; the pin at the end has a charcoal head with its kinds' discs. (MP13)\n"
+    }
+  ]
+}

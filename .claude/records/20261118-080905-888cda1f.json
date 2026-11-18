@@ -1,0 +1,31 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Quality of life"
+      ],
+      "body": "- [ ] **Do:** on iOS and Android, at 320 pt wide and the largest text size, open a place sheet whose header ends in a distance, a walk's recording bar, the \"?\" range in the walk's drawer, a gap's card and Navigate's destination line; then with VoiceOver and with TalkBack move to the recording bar, a scenic route's row and the range slider, and start a route so its \"New route\" announcement is said. **Expect:** every distance stays whole on one line, its figure never ending a line apart from its unit, and a `numberOfLines` cut ends in \"…\" with nothing else changed; every label and announcement says the distance as before (\"340 metres\", \"1.2 kilometres\"), the no-break space read as a space, never as a symbol or a pause (`withUnit` in `lib/format.ts`, U+00A0 in React Native `Text`, `accessibilityLabel`, `accessibilityValue.text` and `announceForAccessibility`; tend map 21, tend map audits 44-47, Nov 18).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "`formatDistance",
+        "--reason",
+        "built in \"tend map 21: a distance keeps its number and unit together with a no-break space\" (formatDistance and formatRange bind the figure to its unit with U+00A0; every test and journey that matched the plain space restated), and its siblings in \"tend map audit 43: the review's fixes, distances bound and in the units setting where they were built by hand\" (the gap card, the dead-zone nudge, the scenic notice; spoken distances keep the no-break space). The item: \"`formatDistance` joins a number and its unit with a plain space, so a line can break between them: the place sheet's header reads \"175\" at the end of one line and \"m\" on the next at 390 px\""
+      ],
+      "target": "sha256:aebd5241455aa4c6cd73a66bbd1d11f4ed1a25bc5c038f2182aef06cafbe00ea"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 18, `/tend map --deploy=main`, a distance's figure kept on its unit's line** (opened from `e45412a9`, rebased on `0c634475`; no sweep, lenses 1-7 not run; aimed at DEFERRED's `[loop]` \"`formatDistance` joins a number and its unit with a plain space\"; the faster lane of decision 0181).\n- `tend map 21`: `formatDistance` and `formatRange` bind the figure to its unit with a no-break space (`withUnit`, `lib/format.ts`), so no line ends on \"175\" with \"m\" on the next; what a distance says is unchanged. Unit tests that pinned an exact string say the ` `; regexes in tests and in the gaps, launch, memories, outing, planner, qol, ready, scenic and walk journeys accept `[  ]` where they matched the space, nothing else in them changed. `docs/TESTING.md`'s traps gain the line.\n- The review (one round, the `auditor`; ship, no edited check weaker; one medium, five low): `tend map audit 43` (a walk journey check that U+00A0 reaches the page), `audit 44` (the gap card says a stretch's length in `formatDistance`'s words: the units setting, rounded before the step; the medium), `audit 45` (the dead-zone nudge), `audit 46` (scenic's \"too far\" notice binds in km too), `audit 47` (spoken distances keep the no-break space; the days.ts and quietLines.ts comments say so, and `map.md` gains the line), in one commit. F6, `reachLabel`'s `.replace(/\\.0 /…)` on the Outing session's branch, was handed to that session.\n- Filed: a native check under \"Quality of life\" (U+00A0 in React Native `Text`, VoiceOver and TalkBack). Removed: the DEFERRED item built.\n- Journeys: launch, gaps, memories, outing, planner, qol, ready, scenic, walk (before the review); walk, gaps, scenic, memories, launch, planner, qol after it and the rebase, the reds rerun with `E2E_SOFT`: every changed check passed. Red on `main` too, alone on its own export: scenic's SR1 (twice) and `fix preview-clutter audit 1`, gaps' `gap-drawing audit 4`, and `heading 5` (walk, then memories; flaky: walk passed it on the rerun). Typecheck, lint, `npm test` (3177 of 3177). Not run: the sweep's lenses and the balance's evolve. Nothing here has run on a phone.\n- The balance: outgrowing its base (ten areas rough; seven `T` entries open, four of them `[phone]`; no `G`).\n"
+    }
+  ]
+}

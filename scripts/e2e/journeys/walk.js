@@ -6,7 +6,7 @@
 const path = require('path');
 
 async function checks(h) {
-  const { BASE, browser, ctx, page, start, at, dLat, dLon, names, check, shot, pressedScale, metaOf, drawerTo, tabBarShown, tiles, scriptsDir, onTab, walkMap, walkMarks, walkRoute, walkPts, routed } = h;
+  const { BASE, browser, ctx, page, start, at, dLat, dLon, names, check, shot, pressedScale, metaOf, drawerTo, openInto, closeInto, tabBarShown, tiles, scriptsDir, onTab, walkMap, walkMarks, walkRoute, walkPts, routed } = h;
     // The ready bar pulled up (NR7, NV20-NV24): the choices, each saved as it changes.
     await onTab('navigate');
     await page.waitForSelector('[data-testid=ready-bar]');
@@ -46,11 +46,11 @@ async function checks(h) {
     const ringNow = () => page.locator('[data-ring]').last().getAttribute('data-ring');
     await page.click('[data-testid=mode-explore]');
     await page.waitForTimeout(500);
-    check((await page.locator('[data-testid=kind-churches]').count()) === 1 && (await page.locator('[data-testid=range-value]').innerText()) === '100 m' && (await ringNow()) === '100',
-      'with Explore chosen, what I’m into and the range show, the range drawn as a ring on this map (NV21)');
+    check((await page.locator('[data-testid=into-row]:visible').count()) === 1 && /^100[ \u00a0]m$/.test(await page.locator('[data-testid=range-value]').innerText()) && (await ringNow()) === '100',
+      'with Explore chosen, the row to what I’m into and the range show, the range drawn as a ring on this map (NV21, WI1)');
     await page.click('[data-testid=range-plus]');
     await page.waitForTimeout(400);
-    check((await page.locator('[data-testid=range-value]').innerText()) === '120 m' && (await ringNow()) === '120' && (await metaOf(page, 'explore_range')) === '120',
+    check(/^120[ \u00a0]m$/.test(await page.locator('[data-testid=range-value]').innerText()) && (await ringNow()) === '120' && (await metaOf(page, 'explore_range')) === '120',
       'the ring redraws as the range changes, and the range is saved at once (NV22)');
     await page.click('[data-testid=range-minus]');
     await page.waitForTimeout(300);
@@ -76,11 +76,11 @@ async function checks(h) {
       await page.mouse.up();
       await page.waitForSelector('[data-testid=ready-dest]', { timeout: 5000 }).catch(() => {});
       const line = await page.locator('[data-testid=ready-dest]').innerText().catch(() => '');
-      check(/^To Your spot · \d+ m away$/.test(line), `a long press on Navigate's map sets the destination, said on the bar with its distance (NV23, NR8: ${line})`);
+      check(/^To Your spot · \d+[ \u00a0]m away$/.test(line), `a long press on Navigate's map sets the destination, said on the bar with its distance (NV23, NR8: ${line})`);
       check(JSON.parse(await metaOf(page, 'nav')).walk_id === null, 'the destination is kept in meta nav, for no walk yet (NV22)');
       await shot(page, '00b-drawer-dest');
       await drawerTo(page, 'half');
-      check(/Your spot · \d+ m away/.test(await page.locator('[data-testid=drawer-dest]').innerText()), 'pulled up, the destination with its straight-line distance and Clear (NV20)');
+      check(/Your spot · \d+[ \u00a0]m away/.test(await page.locator('[data-testid=drawer-dest]').innerText()), 'pulled up, the destination with its straight-line distance and Clear (NV20)');
       await page.click('[data-testid=dest-clear]');
       await page.click('[data-testid=mode-quiet]');
       await page.waitForTimeout(300);
@@ -138,15 +138,19 @@ async function checks(h) {
     await page.waitForSelector('[data-testid=range-slider]');
     await page.waitForTimeout(500);
     check((await page.locator('[data-testid=options-card] [data-testid=range-slider]').count()) === 1, 'the range and what I’m into are in the walk\'s drawer');
-    check((await page.locator('[data-testid=range-value]').innerText()) === '100 m' && (await ringNow()) === '100', 'the range is 100 m by default, drawn as a ring on the walk map while settings are open');
+    check(/^100[ \u00a0]m$/.test(await page.locator('[data-testid=range-value]').innerText()) && (await ringNow()) === '100', 'the range is 100 m by default, drawn as a ring on the walk map while settings are open');
+    // tend map audit 43 (the review of tend map 21, F1): the other checks accept either space; this one holds that the
+    // no-break space formatRange gives reaches the page, so the figure never ends a line apart from its unit.
+    const rangeText = await page.locator('[data-testid=range-value]').evaluate((el) => el.textContent);
+    check(rangeText === '100\u00a0m', `tend map audit 43: a distance on the page holds U+00A0 between its figure and unit (${JSON.stringify(rangeText)})`);
     await page.click('[data-testid=range-plus]');
     await page.waitForTimeout(300);
-    check((await page.locator('[data-testid=range-value]').innerText()) === '120 m' && (await ringNow()) === '120', 'the ring redraws as the range changes');
+    check(/^120[ \u00a0]m$/.test(await page.locator('[data-testid=range-value]').innerText()) && (await ringNow()) === '120', 'the ring redraws as the range changes');
     await page.click('[data-testid=range-minus]');
     for (let i = 0; i < 6; i++) await page.click('[data-testid=range-minus]');
-    check((await page.locator('[data-testid=range-value]').innerText()) === '60 m', 'the range never goes under 60 m');
+    check(/^60[ \u00a0]m$/.test(await page.locator('[data-testid=range-value]').innerText()), 'the range never goes under 60 m');
     for (let i = 0; i < 2; i++) await page.click('[data-testid=range-plus]');
-    check((await page.locator('[data-testid=kind-churches]').count()) === 1 && (await page.locator('[data-testid=pocket-alert]').count()) === (process.env.E2E_MOBILE ? 1 : 0), 'what I’m into lists the kinds; the pocket alert only on a touch screen (PA6, pocket-alert-nudge audit 4)');
+    check((await page.locator('[data-testid=options-card] [data-testid=into-row]').count()) === 1 && (await page.locator('[data-testid=pocket-alert]').count()) === (process.env.E2E_MOBILE ? 1 : 0), 'the drawer holds the row to what I’m into; the pocket alert only on a touch screen (PA6, pocket-alert-nudge audit 4, WI1)');
     await shot(page, '01a-settings');
     await page.click('[data-testid=explore-walk]');
     await page.keyboard.press('Escape');
@@ -177,7 +181,7 @@ async function checks(h) {
     const dotMoves = [];
     // N12: recording, pause, captures and the fog's streets go on while navigating to the "?" (from k 28).
     const navOn = async () => (await page.locator('[data-testid=nav-bar]').count()) === 1;
-    const walkedM = async () => Number(/ · (\d+) m$/.exec(await page.locator('text=/ · \\d+ m$/').first().innerText())?.[1]);
+    const walkedM = async () => Number(/ · (\d+)[ \u00a0]m$/.exec(await page.locator('text=/ · \\d+[ \\u00a0]m$/').first().innerText())?.[1]);
     const n12 = {};
     let dotLast = null;
     for (let k = 0; k < pts.length; k++) {
@@ -363,7 +367,8 @@ async function checks(h) {
         await page.mouse.down();
         await page.waitForTimeout(700);
         await page.mouse.up();
-        // The press sheet offers Go here, and what happened here when captures are near.
+        // The press sheet offers Route here (it was Go here), and what happened here when captures are near.
+        check(((await page.locator('[data-testid=go-here]').first().innerText().catch(() => '')).trim()) === 'Route here', 'OM13: the walk screen\'s press sheet says "Route here", not "Go here"');
         await page.click('[data-testid=here-open]');
         await page.waitForSelector('text=What happened here');
         // The note may share the spot with the video nearby: step to it.
@@ -623,14 +628,14 @@ async function checks(h) {
           `tend walk-screen audit 9: on the walk's strip Hold is 48 high, level with Pause at top and bottom, walking and paused, at 390 and 320 (${JSON.stringify(Object.values(seenStrip).map((m) => m && [m.btn.t, m.btn.b, m.hold.t, m.hold.b]))})`);
         // One publish cycle, so a fix taken just before the pause is already counted.
         await page.waitForTimeout(2500);
-        const before = await page.locator('text=/ · \\d+ m$/').first().innerText();
+        const before = await page.locator('text=/ · \\d+[ \\u00a0]m$/').first().innerText();
         // Walking on at a believable pace (4 m a second), which the speed gate would keep.
         for (let j = 1; j <= 3; j++) {
           await ctx.setGeolocation({ longitude: pts[k][0], latitude: pts[k][1] + j * 0.000036, accuracy: 6 });
           await page.waitForTimeout(1000);
         }
         await page.waitForTimeout(2200);
-        const during = await page.locator('text=/ · \\d+ m$/').first().innerText();
+        const during = await page.locator('text=/ · \\d+[ \\u00a0]m$/').first().innerText();
         check(before.split(' · ')[1] === during.split(' · ')[1], `nothing is recorded while paused (${before} → ${during})`);
         n12.held = before.split(' · ')[1] === during.split(' · ')[1];
         await page.click('[data-testid=resume-walk]');
@@ -670,6 +675,7 @@ async function checks(h) {
         // 1.4 renders a second (scripts/perf-walk.js). Before the fixes it was 3.7 here.
         check(rate('render:walk') <= 2.5 && rate('setData:cone') <= 1.05 && rate('setData:trace') <= 0.6,
           `walking stays within its render budget, FC10 (walk ${rate('render:walk').toFixed(2)}/s, cone ${rate('setData:cone').toFixed(2)}/s, trace ${rate('setData:trace').toFixed(2)}/s)`);
+        check(rate('render:walk') <= 2.0, `CM3: with the React Compiler, the busy window renders the walk screen no more than before (${rate('render:walk').toFixed(2)}/s; 1.78 to 1.91 before)`);
         check(leak1.bodyDivs - leak0.bodyDivs <= 3 && leak1.listeners - leak0.listeners < 2000,
           `walking leaks no portals or listeners (body ${leak0.bodyDivs} → ${leak1.bodyDivs}, listeners ${leak0.listeners} → ${leak1.listeners}, nodes ${leak0.nodes} → ${leak1.nodes})`);
       }
@@ -689,13 +695,16 @@ async function checks(h) {
       if (k === 54) {
         // What I'm into (E17): public art switched off hides its "?" at once; back on, it shows again.
         check((await page.locator('[aria-label="Public art, Art. Open"]').count()) === 1, 'the artwork shows, named, beside you');
-        await page.click('[data-testid=walk-summary]');
+        // Through What I'm into's page (decision 0192, WI8): the drawer's row, the switch, Back, the drawer lowered.
+        await openInto(page, 'walk');
         await page.click('[data-testid=kind-public_art]');
+        await closeInto(page);
         await page.keyboard.press('Escape');
         await page.waitForTimeout(500);
         check((await page.locator('[aria-label="Public art, Art. Open"]').count()) === 0, 'a kind switched off loses its "?" marks');
-        await page.click('[data-testid=walk-summary]');
+        await openInto(page, 'walk');
         await page.click('[data-testid=kind-public_art]');
+        await closeInto(page);
         await page.keyboard.press('Escape');
         await page.waitForTimeout(500);
         check((await page.locator('[aria-label="Public art, Art. Open"]').count()) === 1, 'switched back on, it shows at once');

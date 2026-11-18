@@ -1,5 +1,6 @@
 import { memo, useState } from 'react';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Picture } from '../Picture';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { Tile } from '../../lib/gallery/layout';
 import { lengthLabel } from '../../lib/gallery/layout';
 import { thumbShown } from '../../lib/thumbPlan';
@@ -43,11 +44,13 @@ export const GalleryTile = memo(function GalleryTile(props: {
       {...({ dataSet: { kind: tile.kind, piece: tile.key, moment: tile.momentId, ref: ref ?? '' } } as object)}
     >
       {uri && broken !== uri ? (
-        <Image
+        <Picture
           testID="gallery-img"
-          source={{ uri }}
+          uri={uri}
           style={StyleSheet.absoluteFill}
-          resizeMode={props.fit}
+          fit={props.fit}
+          // A recycled cell shows this tile's own picture, never the last one's (EI3).
+          recyclingKey={face.id}
           onError={() => (ref === face.thumb_path && ref !== face.file_path && tile.kind === 'photo' ? setCopyBroken(true) : setBroken(uri))}
         />
       ) : (

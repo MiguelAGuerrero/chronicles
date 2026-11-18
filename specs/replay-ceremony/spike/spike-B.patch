@@ -1,0 +1,585 @@
+diff --git a/src/app/replay/[id].tsx b/src/app/replay/[id].tsx
+index e63918d..89a1467 100644
+--- a/src/app/replay/[id].tsx
++++ b/src/app/replay/[id].tsx
+@@ -12,16 +12,17 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
+ import { WalkMap } from '../../components/map/WalkMap';
+ import { Icon } from '../../components/icons';
+ import { CaptureViewer } from '../../components/CaptureView';
+-import { Stage } from '../../components/ceremony/Stage';
+ import { StepThrough } from '../../components/ceremony/StepThrough';
+ import { useAwakeWhile } from '../../components/ceremony/useAwakeWhile';
+ import { NextMoment } from '../../components/ceremony/NextMoment';
+-import { useCeremonyClock } from '../../components/ceremony/useCeremonyClock';
++import { useCeremonyLoop } from '../../components/ceremony/useCeremonyLoop';
++import { createStageStore, StageLive } from '../../components/ceremony/StageLive';
++import type { Jump, Story } from '../../lib/ceremony/types';
+ import { useRevealed } from '../../components/ceremony/useRevealed';
+ import type { StageCtx } from '../../components/ceremony/layout';
+ import { ceremonyFor } from '../../lib/ceremony/registry';
+ import { chronicleSection } from '../../lib/resurface/sectionStore';
+-import { pathDrawnAt, storySteps, walkStory } from '../../lib/ceremony/story';
++import { storySteps, walkStory } from '../../lib/ceremony/story';
+ import { planViews, QUIET_TRACE_OPACITY, type WalkMapHandle } from '../../components/map/types';
+ import { Button, theme } from '../../components/ui';
+ import { db } from '../../lib/db';
+@@ -54,7 +55,62 @@ import { launchRoute } from '../../lib/launchRoute';
+ type Beat = 'reading' | 'fog' | 'path' | 'card' | 'name';
+ const FRAME_MS = 33; // ~30 fps for the fog's streets lighting up
+ /** The drawn trace is rebuilt at most this often; the walker dot moves every frame. */
+-const TRACE_STEP_MS = 66;
++const NO_LINES: { trace: LngLat[][]; rides: LngLat[][] } = { trace: [], rides: [] };
++
++/** SPIKE B: each run's length up to each of its points, in Web Mercator (as the map measures a line's progress). */
++const LENGTHS = new WeakMap<LngLat[], Float64Array>();
++function lengthsOf(run: LngLat[]): Float64Array {
++  let cum = LENGTHS.get(run);
++  if (cum) return cum;
++  cum = new Float64Array(run.length);
++  const y = (lat: number) => Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360)) * (180 / Math.PI);
++  for (let i = 1; i < run.length; i++) cum[i] = cum[i - 1] + Math.hypot(run[i][0] - run[i - 1][0], y(run[i][1]) - y(run[i - 1][1]));
++  LENGTHS.set(run, cum);
++  return cum;
++}
++
++/**
++ * SPIKE B: what of the line is drawn at a frame, without building it: the runs already walked (whole, by reference),
++ * and the run being walked with how far along its length the walker is. `traceUntil`'s rules, read as a fraction.
++ * Rides are left out (the fixture has none).
++ */
++function revealOf(story: Story, drawn: Record<string, number>): { done: LngLat[][]; doneKey: string; run: LngLat[] | null; p: number; end: LngLat | null } {
++  const done: LngLat[][] = [];
++  let doneKey = '';
++  let run: LngLat[] | null = null;
++  let p = 0;
++  let end: LngLat | null = null;
++  for (const id in drawn) {
++    const path = story.paths[id];
++    if (!path) continue;
++    const t = drawn[id];
++    for (let r = 0; r < path.walked.length; r++) {
++      const timed = path.walked[r];
++      const full = path.drawn[r];
++      if (!full || timed.length === 0 || timed[0].t > t) break;
++      if (timed[timed.length - 1].t <= t) {
++        if (full.length > 1) done.push(full);
++        end = full[full.length - 1];
++        doneKey += `${id}:${r}|`;
++        continue;
++      }
++      let lo = 0;
++      let hi = timed.length - 1;
++      while (lo < hi) {
++        const mid = (lo + hi + 1) >> 1;
++        if (timed[mid].t <= t) lo = mid; else hi = mid - 1;
++      }
++      if (lo + 1 >= timed.length || lo + 1 >= full.length) break;
++      const cum = lengthsOf(full);
++      const f = (t - timed[lo].t) / (timed[lo + 1].t - timed[lo].t || 1);
++      run = full;
++      end = [full[lo][0] + (full[lo + 1][0] - full[lo][0]) * f, full[lo][1] + (full[lo + 1][1] - full[lo][1]) * f];
++      p = (cum[lo] + (cum[lo + 1] - cum[lo]) * f) / (cum[cum.length - 1] || 1);
++      break;
++    }
++  }
++  return { done, doneKey, run, p, end };
++}
+ 
+ // A screen that throws shows what broke, with Try again, never a blank page (bug, Nov 1).
+ export { ScreenError as ErrorBoundary } from '../../components/ScreenError';
+@@ -386,8 +442,27 @@ export default function Replay() {
+       return next;
+     });
+   }, []);
+-  const play = useCeremonyClock({ epoch: phase.t0, running: telling, paused: viewing != null || waits.size > 0, showing, onEnd: () => go('card') });
++  // SPIKE B: the path beat is drawn by a frame loop outside React. Each frame the loop asks the ceremony for the frame
++  // at its time and hands it to the map (the puck, the camera, the line's reveal) and to the stage's own store; the
++  // screen renders only when the pins on the map change (or Next comes or goes, Hold, the beat).
++  const [stageStore] = useState(createStageStore);
++  const onFrame = (ms: number, jump: Jump | null) => {
++    if (!showing || !story) return '';
++    const f = showing.frame(ms, jump);
++    (mapRef.current as unknown as { replayFrame?: (f: unknown) => void } | null)?.replayFrame?.({
++      walker: f.walker, center: f.camera.center, zoom: f.camera.center ? f.camera.zoom : null, ...revealOf(story, f.drawn),
++    });
++    stageStore.set(f, showing);
++    return f.pins.join('\n');
++  };
++  const play = useCeremonyLoop({ epoch: phase.t0, running: telling, paused: viewing != null || waits.size > 0, showing, onEnd: () => go('card'), onFrame });
++  // The frame at the screen's last render: the screen reads only its pins.
+   const frame = telling ? showing.frame(play.ms, play.jump) : null;
++  useEffect(() => {
++    if (telling) return;
++    (mapRef.current as unknown as { replayFrame?: (f: unknown) => void } | null)?.replayFrame?.(null);
++    stageStore.set(null);
++  }, [telling, stageStore]);
+   // The screen stays awake while the replay plays, until the card (RR24).
+   useAwakeWhile(beat === 'reading' || beat === 'fog' || beat === 'path');
+ 
+@@ -412,32 +487,15 @@ export default function Replay() {
+     AccessibilityInfo.announceForAccessibility(words);
+   }, [beat, phase.t0, data]);
+ 
+-  // The trace as far as the ceremony has drawn each path; whole outside the path beat.
+-  const traceBucket = telling ? Math.floor(play.ms / TRACE_STEP_MS) : -1;
+-  // The trace is rebuilt on TRACE_STEP_MS buckets, not every frame: from the frame at the bucket's time.
+-  const traceFrame = useMemo(() => (telling && traceBucket >= 0 ? showing.frame(traceBucket * TRACE_STEP_MS) : null), [telling, showing, traceBucket]);
+-  const drawn = useMemo(
+-    () => {
+-      if (!data) return { trace: [], rides: [] };
+-      if (!traceFrame || !story) return { trace: data.runs, rides: data.rideRuns };
+-      const trace: LngLat[][] = [];
+-      const rides: LngLat[][] = [];
+-      for (const [pid, t] of Object.entries(traceFrame.drawn)) {
+-        const p = story.paths[pid];
+-        if (!p) continue;
+-        const d = pathDrawnAt(p, t);
+-        trace.push(...d.trace);
+-        rides.push(...d.rides);
+-      }
+-      return { trace, rides };
+-    },
+-    [data, story, traceFrame],
+-  );
++  // SPIKE B: while the path is told the map reveals the line itself (`replayFrame`); the whole trace outside it.
++  const drawn = useMemo(() => {
++    if (!data) return { trace: [], rides: [] };
++    if (telling) return NO_LINES;
++    return { trace: data.runs, rides: data.rideRuns };
++  }, [data, telling]);
+   // The camera is the ceremony's to say (audit 10).
+-  const follow = frame?.camera.center ?? null;
+-  const followZoom = follow ? frame?.camera.zoom ?? null : null;
+-  const ctx: StageCtx = {
+-    width, height, insets, center: follow, zoom: followZoom ?? 0,
++  const ctx: Omit<StageCtx, 'center' | 'zoom'> = {
++    width, height, insets,
+     held: play.held, paused: viewing != null, reduceMotion, open: setViewing, wait,
+   };
+ 
+@@ -498,7 +556,8 @@ export default function Replay() {
+   const passed = passedLine(data.passed);
+   // Streets walked and new, in words (tend replay T31), one clause when all are new (tend replay audit 14).
+   // The name typed in Name it, unsaved, until Keep it or leaving (tend replay audit 16, the owner's "Show the typed name").
+-  const shownTitle = cardTitle(data.walk, title, offered);
++  // SPIKE A: the card's title is worded only while the card is up (it formatted a date on every tick of the path).
++  const shownTitle = beat === 'card' || beat === 'name' ? cardTitle(data.walk, title, offered) : '';
+   const streetsLine = walkCardStreets(s?.streets_walked ?? 0, s?.streets_read ? data.newStreets : null);
+ 
+   const save = async () => {
+@@ -535,9 +594,10 @@ export default function Replay() {
+         faint={faint}
+         gapLinks={isDrawing ? undefined : links}
+         drawing={drawing.line}
+-        walker={frame?.walker ?? null}
+-        follow={follow}
+-        followZoom={followZoom}
++        walker={null}
++        follow={null}
++        followZoom={null}
++        {...({ replayPuck: telling } as object)}
+         fitBounds={data.bounds}
+         fitKey={fitKey}
+         fitPadding={beat === 'card' || beat === 'name' ? sheetPad : undefined}
+@@ -576,7 +636,7 @@ export default function Replay() {
+         <>
+           {/* A tap anywhere holds the replay, and another goes on (RR7). */}
+           <Pressable testID="replay-stage" style={StyleSheet.absoluteFill} onPress={play.toggleHold} accessible={false} />
+-          <Stage frame={frame} ctx={ctx} />
++          <StageLive store={stageStore} ctx={ctx} />
+         </>
+       )}
+       {beat === 'path' && srMode && (
+diff --git a/src/components/ceremony/StageLive.tsx b/src/components/ceremony/StageLive.tsx
+new file mode 100644
+index 0000000..c86aaee
+--- /dev/null
++++ b/src/components/ceremony/StageLive.tsx
+@@ -0,0 +1,62 @@
++import { useSyncExternalStore } from 'react';
++import type { Frame } from '../../lib/ceremony/types';
++import type { StageCtx } from './layout';
++import { Stage } from './Stage';
++
++/** SPIKE B: the frame on stage, kept outside the screen: the replay's loop writes it, only `StageLive` reads it. */
++export type StageStore = { get(): Frame | null; set(f: Frame | null, tag?: unknown): void; subscribe(fn: () => void): () => void };
++
++export function createStageStore(): StageStore {
++  let frame: Frame | null = null;
++  let sig = '';
++  let last: unknown = null;
++  const subs = new Set<() => void>();
++  return {
++    get: () => frame,
++    // A frame that would draw the stage as it stands is not handed on: the stage renders only when it changes.
++    set(f, tag) {
++      const s = f ? stageSig(f) : '';
++      if (s === sig && tag === last && (f == null) === (frame == null)) return;
++      sig = s;
++      last = tag;
++      frame = f;
++      for (const fn of subs) fn();
++    },
++    subscribe(fn) {
++      subs.add(fn);
++      return () => {
++        subs.delete(fn);
++      };
++    },
++  };
++}
++
++/** Everything the stage draws from, as one string: the clock by its minute, each overlay's numbers, and the camera only while an overlay is placed by it. */
++function stageSig(f: Frame): string {
++  let s = `${f.dim}|${f.clock == null ? '' : Math.floor(f.clock / 60_000)}|${f.line ?? ''}|${f.lineOpacity}`;
++  let camera = false;
++  for (const o of f.overlays) {
++    s += `|${o.kind}:${o.key}`;
++    if (o.kind === 'bubble') s += `:${o.enter}:${o.exit}:${o.playing}:${o.progress}`;
++    else if (o.kind === 'card') {
++      s += `:${o.grow}:${o.tuck}:${o.playing}:${o.progress}:${o.fade}:${o.scroll ?? ''}:${o.shown ? o.shown.join(',') : ''}`;
++      // A card is placed from its pin only while it grows.
++      if (o.from && o.grow < 1) camera = true;
++    } else if (o.kind === 'pile') s += `:${o.captures.length}:${o.captures[o.captures.length - 1]?.id ?? ''}`;
++    else {
++      s += `:${o.opacity}:${o.text}`;
++      camera = true;
++    }
++  }
++  const c = f.camera.center;
++  if (camera && c) s += `|${c[0]},${c[1]},${f.camera.zoom}`;
++  return s;
++}
++
++/** The stage, rendered from the store at its own leaf: the screen above it does not render per frame. */
++export function StageLive({ store, ctx }: { store: StageStore; ctx: Omit<StageCtx, 'center' | 'zoom'> }) {
++  const frame = useSyncExternalStore(store.subscribe, store.get);
++  if (!frame) return null;
++  const center = frame.camera.center;
++  return <Stage frame={frame} ctx={{ ...ctx, center, zoom: center ? frame.camera.zoom ?? 0 : 0 }} />;
++}
+diff --git a/src/components/ceremony/layout.ts b/src/components/ceremony/layout.ts
+index 7da5f0d..d3f2997 100644
+--- a/src/components/ceremony/layout.ts
++++ b/src/components/ceremony/layout.ts
+@@ -90,4 +90,15 @@ export function tiltOf(id: string): number {
+   return [-7, 5, -3, 8, -5][Math.abs(h) % 5];
+ }
+ 
+-export const timeOf = (t: number) => new Date(t).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
++// SPIKE A: a time of day is worded once per minute, not on every render.
++const TIMES = new Map<number, string>();
++export const timeOf = (t: number) => {
++  const minute = Math.floor(t / 60_000);
++  let text = TIMES.get(minute);
++  if (text == null) {
++    if (TIMES.size > 500) TIMES.clear();
++    text = new Date(t).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
++    TIMES.set(minute, text);
++  }
++  return text;
++};
+diff --git a/src/components/ceremony/useCeremonyLoop.ts b/src/components/ceremony/useCeremonyLoop.ts
+new file mode 100644
+index 0000000..cb64220
+--- /dev/null
++++ b/src/components/ceremony/useCeremonyLoop.ts
+@@ -0,0 +1,85 @@
++import { useEffect, useRef, useState } from 'react';
++import { nextStop, reanchor, seekClock, tickClock } from '../../lib/ceremony/clock';
++import type { Jump, Showing } from '../../lib/ceremony/types';
++
++/** The clock's time, read against the telling it was last read with. */
++type Clock = { epoch: number; ms: number; held: boolean; ended: boolean; showing: Showing | null; aimed: number | null; jump: Jump | null };
++
++/**
++ * SPIKE B: `useCeremonyClock` with the time kept outside React. One requestAnimationFrame loop owns the time; each
++ * frame it ticks (`tickClock`, as before) and hands the time to `onFrame`, which draws it (the map, the stage) and
++ * answers with a key of what the screen itself shows. React state is set, so the screen renders, only when that key
++ * changes, or on a press (Hold, Next) or the end. Everything else is the hook it replaces.
++ */
++export function useCeremonyLoop(o: { epoch: number; running: boolean; paused: boolean; showing: Showing | null; onEnd: () => void; onFrame: (ms: number, jump: Jump | null) => string }) {
++  const fresh = (epoch: number, showing: Showing | null): Clock => ({ epoch, ms: 0, held: false, ended: false, showing, aimed: null, jump: null });
++  const against = (c: Clock, epoch: number, showing: Showing | null): Clock => {
++    if (c.epoch !== epoch) return fresh(epoch, showing);
++    if (c.showing && showing && c.showing !== showing) return { ...c, ms: reanchor(c.showing, showing, c.ms), showing, aimed: null, jump: null };
++    return c.showing === showing ? c : { ...c, showing };
++  };
++  const [state, setState] = useState<Clock>(() => fresh(o.epoch, o.showing));
++  const now = useRef<Clock>(fresh(o.epoch, o.showing));
++  const last = useRef(0);
++  const live = useRef({ epoch: o.epoch, paused: o.paused, showing: o.showing, onEnd: o.onEnd, onFrame: o.onFrame });
++  useEffect(() => {
++    live.current = { epoch: o.epoch, paused: o.paused, showing: o.showing, onEnd: o.onEnd, onFrame: o.onFrame };
++  });
++  /** What was last drawn, and the screen's key for it. */
++  const drawn = useRef<{ ms: number; showing: Showing | null; jump: Jump | null; key: string } | null>(null);
++  const current = (): Clock => against(now.current, live.current.epoch, live.current.showing);
++  const canNextAt = (c: Clock) => !c.ended && !!c.showing && nextStop(c.showing.stops, c.ms, c.aimed) != null;
++  /** Draws the clock's time if it moved, and renders the screen if what it shows changed (or `render`). */
++  const show = (c: Clock, render: boolean) => {
++    now.current = c;
++    const d = drawn.current;
++    let key = d?.key ?? null;
++    if (!d || d.ms !== c.ms || d.showing !== c.showing || d.jump !== c.jump) {
++      key = `${live.current.onFrame(c.ms, c.jump)}|${canNextAt(c)}`;
++      drawn.current = { ms: c.ms, showing: c.showing, jump: c.jump, key };
++    }
++    if (render || key !== (d?.key ?? null)) setState(c);
++  };
++  useEffect(() => {
++    if (!o.running) return;
++    last.current = Date.now();
++    let raf = 0;
++    const loop = () => {
++      raf = requestAnimationFrame(loop);
++      (globalThis as { __perf?: Record<string, number> }).__perf && ((globalThis as unknown as { __perf: Record<string, number> }).__perf['replay:loop'] = ((globalThis as unknown as { __perf: Record<string, number> }).__perf['replay:loop'] ?? 0) + 1);
++      const t = Date.now();
++      const dt = t - last.current;
++      last.current = t;
++      const c = current();
++      const { paused, showing, onEnd } = live.current;
++      const { clock, end } = tickClock(c, dt, { paused, total: showing?.total ?? 0 });
++      const next = { ...c, ...clock, ended: c.ended || end };
++      show(next, next.ended !== c.ended || c !== now.current);
++      if (end && !c.ended) onEnd();
++    };
++    raf = requestAnimationFrame(loop);
++    return () => {
++      cancelAnimationFrame(raf);
++      drawn.current = null;
++    };
++    // The loop reads the rest through refs; only starting and stopping it matters here.
++    // eslint-disable-next-line react-hooks/exhaustive-deps
++  }, [o.running]);
++  const shown = against(state, o.epoch, o.showing);
++  return {
++    /** The time at the screen's last render: only what the screen itself shows may be read from it. */
++    ms: shown.ms,
++    held: shown.held,
++    jump: shown.jump,
++    canNext: canNextAt(shown),
++    toggleHold: () => {
++      const c = current();
++      show({ ...c, held: !c.held }, true);
++    },
++    next: () => {
++      const c = current();
++      const to = c.showing && !c.ended ? nextStop(c.showing.stops, c.ms, c.aimed) : null;
++      if (to) show({ ...c, ...seekClock(c, to.ms), aimed: to.t0, jump: { from: c.ms, at: to.ms } }, true);
++    },
++  };
++}
+diff --git a/src/components/map/WalkMap.web.tsx b/src/components/map/WalkMap.web.tsx
+index 7933877..e726a3f 100644
+--- a/src/components/map/WalkMap.web.tsx
++++ b/src/components/map/WalkMap.web.tsx
+@@ -118,6 +118,14 @@ function addOverlay(map: MapLibreMap): string | undefined {
+     map.addLayer({ id, type: 'line', source, layout: lineLayout, paint: { 'line-color': '#ffffff', 'line-width': FOG_STYLE.edgeWidth, 'line-opacity': TRACE_EDGE_OPACITY } });
+   for (const [id, source] of [['trace-history-line', 'trace-history'], ['trace', 'trace'], ['trace-link-line', 'trace-link']])
+     map.addLayer({ id, type: 'line', source, layout: lineLayout, paint: { 'line-color': COLORS.trace, 'line-width': FOG_STYLE.traceWidth } });
++  // SPIKE B: the replay's line. Runs already walked are whole (`replay-done`); the run being walked is sent whole once
++  // (`replay-run`, with line metrics) and revealed by its gradient: the trace up to the walker, nothing after.
++  map.addSource('replay-done', lineSource);
++  map.addSource('replay-run', { ...lineSource, lineMetrics: true });
++  map.addLayer({ id: 'replay-done-edge', type: 'line', source: 'replay-done', layout: lineLayout, paint: { 'line-color': '#ffffff', 'line-width': FOG_STYLE.edgeWidth, 'line-opacity': TRACE_EDGE_OPACITY } });
++  map.addLayer({ id: 'replay-run-edge', type: 'line', source: 'replay-run', layout: lineLayout, paint: { 'line-gradient': revealGradient('#ffffff', 0), 'line-width': FOG_STYLE.edgeWidth, 'line-opacity': TRACE_EDGE_OPACITY } });
++  map.addLayer({ id: 'replay-done-line', type: 'line', source: 'replay-done', layout: lineLayout, paint: { 'line-color': COLORS.trace, 'line-width': FOG_STYLE.traceWidth } });
++  map.addLayer({ id: 'replay-run-line', type: 'line', source: 'replay-run', layout: lineLayout, paint: { 'line-gradient': revealGradient(COLORS.trace, 0), 'line-width': FOG_STYLE.traceWidth } });
+   // A gap's way being drawn: over the trace, dashed on its white edge (GW3).
+   map.addLayer({ id: 'drawing-edge', type: 'line', source: 'drawing', layout: lineLayout, paint: { 'line-color': '#ffffff', 'line-width': FOG_STYLE.edgeWidth, 'line-opacity': TRACE_EDGE_OPACITY } });
+   map.addLayer({ id: 'drawing', type: 'line', source: 'drawing', layout: { 'line-cap': 'butt', 'line-join': 'round' },
+@@ -339,18 +347,37 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
+   // GeoJSON layers starved the page at 30 fps). The replay, on its own clock,
+   // keeps the layers.
+   const glideOn = props.glideWalker === true;
++  // SPIKE B: the replay's walker is the same DOM puck, moved by the replay's own frame loop (`replayFrame`).
++  const replayPuck = (props as { replayPuck?: boolean }).replayPuck === true;
++  const replay = useRef<{ doneKey: string; run: LngLat[] | null; p: number; at: string }>({ doneKey: '', run: null, p: -1, at: '' });
+   const puck = useRef<{ marker: Marker; el: HTMLElement; cone: HTMLElement } | null>(null);
+   const lastFrame = useRef<GlideFrame>({ walker: null, heading: null });
+   const followRef = useRef(props.follow);
+   // The trace's newest point. The link to the dot is drawn once per fix, to where the dot is
+   // heading, never per frame: each draw re-tiles the source in the worker (motion audit 5).
+   const linkFrom = useRef<LngLat | null>(null);
++  // SPIKE A: a source is sent only when its collection changed: the same object, empty after empty, or the same shape
++  // (each feature's kind, its number of points, its first and last point and its properties) is not sent again.
++  const sentData = useRef(new Map<string, { data: GeoJSON.FeatureCollection; sig: string }>());
++  const sendData = (id: string, data: GeoJSON.FeatureCollection) => {
++    const map = mapRef.current;
++    const src = map?.getSource(id) as { setData(d: GeoJSON.FeatureCollection): void } | undefined;
++    if (!src) return;
++    const last = sentData.current.get(id);
++    if (last && last.data === data) return;
++    const sig = dataSig(data);
++    if (last ? last.sig === sig : sig === '0') {
++      sentData.current.set(id, { data, sig });
++      return;
++    }
++    sentData.current.set(id, { data, sig });
++    perfCount(`setData:${id}`);
++    src.setData(data);
++  };
+   const drawLink = (walker: LngLat | null) => {
+     const end = linkFrom.current;
+-    perfCount('setData:trace-link');
+-    const src = mapRef.current?.getSource('trace-link') as { setData(d: GeoJSON.FeatureCollection): void } | undefined;
+     // Never across a pause or a gap: a link that long isn't the line catching up.
+-    src?.setData(traceGeoJSON(end && walker && distanceM(end, walker) <= LINK_MAX_M ? [[end, walker]] : []));
++    sendData('trace-link', traceGeoJSON(end && walker && distanceM(end, walker) <= LINK_MAX_M ? [[end, walker]] : []));
+   };
+   const applyFrame = (f: GlideFrame) => {
+     lastFrame.current = f;
+@@ -750,10 +777,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
+     // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, []);
+ 
+-  const setData = (id: string, data: GeoJSON.FeatureCollection) => {
+-    perfCount(`setData:${id}`);
+-    (mapRef.current?.getSource(id) as { setData(d: GeoJSON.FeatureCollection): void } | undefined)?.setData(data);
+-  };
++  const setData = (id: string, data: GeoJSON.FeatureCollection) => sendData(id, data);
+ 
+   // Free look (FL3): one finger pans while it is on. maplibre's own handlers take over and ours stand down;
+   // the inline touch-action goes back to its class, which leaves the pan to the map (the swipe sets `none`).
+@@ -805,11 +829,15 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
+   useEffect(() => { if (ready) setData('route-grades', routeGradesGeoJSON(props.routeGrades)); }, [ready, props.routeGrades]);
+   useEffect(() => { if (ready) setData('found-pins', pinsGeoJSON(props.foundPins)); }, [ready, props.foundPins]);
+   const hasLanding = !!props.landing;
++  // SPIKE A: the alternates are sent when they change, never because the trace did.
+   useEffect(() => {
+     if (!ready) return;
+     setData('alternates', alternatesGeoJSON(props.alternates));
+     // The e2e reads how many faint routes are drawn (only when it is measuring: window.__perf).
+     if ((window as { __perf?: unknown }).__perf && container.current) container.current.dataset.alternates = String(props.alternates?.length ?? 0);
++  }, [ready, props.alternates]);
++  useEffect(() => {
++    if (!ready) return;
+     // The e2e reads which of the trace-like layers carry anything (only when it is measuring): none while a preview is up.
+     if ((window as { __perf?: unknown }).__perf && container.current) {
+       container.current.dataset.drawn = [['trace', props.trace?.length], ['walked', props.walked?.length], ['fog', props.fog?.length], ['faint', props.faint?.length], ['landing', hasLanding ? 1 : 0], ['borders', props.borders ? 1 : 0], ['walkability', props.walkability ? 1 : 0]].filter(([, n]) => n).map(([k]) => k).join(',');
+@@ -1060,7 +1088,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
+   // The live walk's dot and cone: one marker, drawn at the same size as the layers.
+   useEffect(() => {
+     const map = mapRef.current;
+-    if (!ready || !map || !glideOn) return;
++    if (!ready || !map || !(glideOn || replayPuck)) return;
+     const el = document.createElement('div');
+     el.dataset.testid = 'walker-puck';
+     el.setAttribute('aria-hidden', 'true');
+@@ -1079,7 +1107,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
+       puck.current = null;
+     };
+     // applyFrame only reads refs.
+-  }, [ready, glideOn]);
++  }, [ready, glideOn, replayPuck]);
+ 
+   // Capture pins are DOM markers rendered with the same view as on native,
+   // grouped for the current zoom. Clicks look the pin up by id, so a pin
+@@ -1418,6 +1446,65 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
+   }, [ready, props.fitKey]);
+ 
+   useImperativeHandle(ref, () => ({
++    // SPIKE B: one frame of a replay, applied outside React: the puck, the line's reveal, the camera, then one draw.
++    replayFrame(f: ReplayMapFrame | null) {
++      const map = mapRef.current;
++      if (!map || !map.getSource('replay-run')) return;
++      const st = replay.current;
++      const p = puck.current;
++      if (!f) {
++        sendData('replay-done', EMPTY_DATA);
++        sendData('replay-run', EMPTY_DATA);
++        replay.current = { doneKey: '', run: null, p: -1, at: '' };
++        if (p) p.el.style.display = 'none';
++        return;
++      }
++      let changed = false;
++      if (f.doneKey !== st.doneKey) {
++        st.doneKey = f.doneKey;
++        sendData('replay-done', traceGeoJSON(f.done));
++        changed = true;
++      }
++      // A run that ended stays in its source, whole, until the next one begins: it is in `replay-done` by then.
++      if (f.run && f.run !== st.run) {
++        st.run = f.run;
++        st.p = -1;
++        sendData('replay-run', traceGeoJSON([f.run]));
++        changed = true;
++      }
++      const stop = f.run ? Math.min(1, Math.max(0, f.p)) : st.run ? 1.001 : -1;
++      if (stop >= 0 && stop !== st.p) {
++        st.p = stop;
++        perfCount('reveal');
++        map.setPaintProperty('replay-run-edge', 'line-gradient', revealGradient('#ffffff', stop), { validate: false });
++        map.setPaintProperty('replay-run-line', 'line-gradient', revealGradient(COLORS.trace, stop), { validate: false });
++        changed = true;
++      }
++      const at = `${p ? 1 : 0}|${f.walker ? `${f.walker[0]},${f.walker[1]}` : ''}|${f.center ? `${f.center[0]},${f.center[1]},${f.zoom}` : ''}`;
++      if (at !== st.at) {
++        st.at = at;
++        changed = true;
++        if (p) {
++          p.el.style.display = f.walker ? '' : 'none';
++          p.cone.style.display = 'none';
++          if (f.walker) p.marker.setLngLat(f.walker);
++        }
++        if (f.center && followMoves({ following: true, handOnMap: pointerDown.current, northEasing: northAsked.current })) {
++          perfCount('camera');
++          map.jumpTo(f.zoom == null ? { center: f.center } : { center: f.center, zoom: f.zoom });
++        }
++        // The e2e and the harness read where the dot is and where the line ends (only when measuring).
++        if ((window as { __perf?: unknown }).__perf && container.current) {
++          container.current.setAttribute('data-walker', fmt(f.walker));
++          container.current.setAttribute('data-trace-end', fmt(f.end));
++        }
++      }
++      // Drawn now, in this frame, so the canvas and the DOM puck never part by a frame.
++      if (changed && !(window as { __replayNoRedraw?: boolean }).__replayNoRedraw) {
++        perfCount('redraw');
++        map.redraw();
++      }
++    },
+     size() {
+       const c = mapRef.current?.getCanvas();
+       return { width: c?.clientWidth ?? 0, height: c?.clientHeight ?? 0 };
+@@ -1710,3 +1797,40 @@ function traceEnd(trace: LngLat[][] | undefined): string {
+ 
+ /** A point as "lon,lat" to 6 decimals, for the e2e's data attributes; empty for none. */
+ const fmt = (p: LngLat | null | undefined) => (p ? `${p[0].toFixed(6)},${p[1].toFixed(6)}` : '');
++
++/** SPIKE A: a cheap fingerprint of a collection; '0' is the empty one. */
++function dataSig(data: GeoJSON.FeatureCollection): string {
++  const fs = data.features;
++  if (!fs.length) return '0';
++  let out = String(fs.length);
++  const ends = (c: unknown): string => {
++    if (!Array.isArray(c)) return '';
++    if (typeof c[0] === 'number') return c.join(',');
++    return `${c.length}[${ends(c[0])};${ends(c[c.length - 1])}]`;
++  };
++  for (const f of fs) {
++    const g = f.geometry as { type: string; coordinates?: unknown } | null;
++    out += `|${g?.type ?? ''}:${ends(g?.coordinates)}`;
++    const props = f.properties;
++    if (props) for (const k in props) out += `;${k}=${typeof props[k] === 'object' ? JSON.stringify(props[k]) : props[k]}`;
++  }
++  return out;
++}
++
++/** SPIKE B: what the replay's loop hands the map each frame. */
++type ReplayMapFrame = {
++  walker: LngLat | null;
++  center: LngLat | null;
++  zoom: number | null;
++  /** The runs already walked, whole, and a key that changes when the list does. */
++  done: LngLat[][];
++  doneKey: string;
++  /** The run being walked, whole, and how far along it the walker is (0 to 1 of its length). */
++  run: LngLat[] | null;
++  p: number;
++  /** Where the line ends (for the harness). */
++  end: LngLat | null;
++};
++const EMPTY_DATA: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: [] };
++/** SPIKE B: the line's colour up to `p` of its length, nothing after. */
++const revealGradient = (color: string, p: number) => ['step', ['line-progress'], color, p, 'rgba(0,0,0,0)'] as unknown as NonNullable<NonNullable<import('maplibre-gl').LineLayerSpecification['paint']>['line-gradient']>;

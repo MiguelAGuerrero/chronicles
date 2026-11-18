@@ -23,6 +23,15 @@ Two facts shape everything here:
 - **The reviewers are read-only** (decision 0133). They cannot save a file or run a script beyond
   tests; you save their reports, and anything to be run for them, the run writes.
 
+A question of colour or look goes to the owner as candidates side by side (whole palettes, measured
+on what a person sees, the blend included), never one swatch.
+
+**Every question you put to the owner** has its recommended option first, and that option cites its
+precedent (decision 0193): for what a person sees or does, how 2-3 adjacent apps do the job (the entry's
+`Precedent:` line, from `docs/research/adjacent-apps.md`, verified or not), so the owner has a model to
+judge the shape against; for the loop itself (section 0), the decision it rests on. An entry filed without
+a `Precedent:` line gets one from that file before it is asked, or "none found" said in the option.
+
 ## 0. Open: the grant, the stop rule, the authority
 
 Typing this skill grants nothing yet. Ask once, with AskUserQuestion, recommended option first, and
@@ -39,7 +48,10 @@ write the answers at the top of the notes (section 1):
    only, every `G` to me"). Read 0157 aloud in the question: yes only; `/vision` again first; the
    classes always the owner's.
 4. **The skills.** Recommended: changes to `/tend`, its scripts and this skill are proposed in the
-   closing insights file, never made by the runs (`check:tend` refuses them).
+   closing insights file, never made by the runs (`check:tend` refuses them). When the owner asks
+   for them to be made first (from the last insights file), make them before the first run: the
+   skill files yourself in a worktree of your own, the scripts by a non-loop subagent test-first on
+   a local branch, every diff read by you, one decision record, landed on `main` by you.
 
 ## 1. Notes, from the first turn
 
@@ -58,11 +70,30 @@ commit there. The script needs only node, git and curl: no `npm ci`, no `node_mo
 `node <main-tools>/scripts/bookkeeping.js <command>`; at the close, `git -C <primary> worktree remove
 <main-tools>`.
 
+**Read every skill, rule, brief and script from `<main-tools>`**, never from the primary checkout: a
+stale primary once sent a run a template three decisions old. This file and `briefs.md` included: if
+`<main-tools>` holds a newer copy than the one you were loaded from, follow it.
+
+**The owner's answers** given during the session go in `owner-answers.md` beside the notes, verbatim,
+with the entry and date. The next run in the answers' area writes them into one decision record (the
+loop cannot edit an existing decision); name the file in its brief.
+
 Before the first run, from `origin/main` (`git fetch origin main`): the inbox, "Next evolutions" and
 "In flight" in `docs/STATUS.md`; the ledger. Write nothing to the primary checkout (git's record of
 `<main-tools>` aside). List the remote
 `tend/*` and `slice/*` branches: a `-parked` branch an open entry names is live state; the rest are
 dead runs' leftovers, reported, never removed by you.
+
+Also before the first run:
+
+- **Other sessions.** `list_sessions` (mine) for live sessions; for each whose title or "In flight" row
+  overlaps an area you plan to run, `send_message` it what you will touch and ask what it touches.
+  Never publish into a session's files without its answer; send it each landing's sha.
+- **Reds on `main`.** The last "Last tend" and the weekly pass name the checks red on `main`. A red
+  new since the last phase is diagnosed (a run of its own, or a known constraint in every brief)
+  before new work in its area. Confirm red at rest, k of n, before calling it anything: a red that
+  comes and goes with load is a check race until shown otherwise, and a bisect needs both ends
+  confirmed.
 
 ## 2. Choose the next run
 
@@ -74,13 +105,16 @@ dead runs' leftovers, reported, never removed by you.
    give the run every yes so its record carries them; it builds the first.
 2. **Everything else in the inbox goes to the owner**: every no, reshape or hold you would give (as
    a recommendation), every class 0157 keeps for the owner, and whatever `/vision` did not clear.
-   One AskUserQuestion, the entry's recommended shape first, four entries at most, asked after the
+   One AskUserQuestion, the entry's recommended shape first with its precedent, four entries at most, asked after the
    next independent run has been launched so the owner's time to answer is not idle time. Read the
    entries with `node <main-tools>/scripts/bookkeeping.js items inbox` (and `open`, `deferred --tag
    owner`): number, tag and title as `main` holds them.
-3. **A sweep**: brief `/tend` with no area; the run asks `node scripts/tend.js next` itself. When
+3. **An owner's yes the loop cannot build** (a rule file to split, a rule line to reword, a VISION
+   edit, a decision to supersede): a non-loop run, briefed from `briefs.md` "The non-loop run", one
+   job, its own decision record when the owner's answer is a call, reviewed by you before it lands.
+4. **A sweep**: brief `/tend` with no area; the run asks `node scripts/tend.js next` itself. When
    `next` names none, the run is `/tend evolve` (`/tend`'s table), which files and builds nothing.
-4. **Stop** by section 0's rule.
+5. **Stop** by section 0's rule.
 
 Before a `G` build (a slice), look at what is moving on `main` ("In flight", the day's
 `git log origin/main`): a slice that refactors modules another session is changing will be parked
@@ -149,11 +183,22 @@ classification; these are what the session learned:
 - **Keep the inbox for real questions:** an oddity of existing behaviour mentioned in passing goes to
   `docs/DEFERRED.md`, tagged.
 - **Medium and above are fixed in the run; a low is deferred**, filed `[loop]` in its area's section
-  of `docs/DEFERRED.md` for the area's next sweep (0181).
+  of `docs/DEFERRED.md` for the area's next sweep (0181). **Except what the run's own change broke:**
+  a regression the change caused is fixed in the run, low or not, and a high in the run's own change
+  lifts the size tripwire rather than shipping and filing it.
 - **Say which constraint wins** when two of yours could collide.
 - **Give tripwires**: "if any golden or differential result moves, stop and tell me"; "if the fix
   grows beyond these files, drop the commit and file the finding". A conditional ruling ("if
   `tend.js` allows it, else file it") is fine; the run checks.
+- **When reviewers disagree**, rule the fix both can accept inside the answer; when none exists, the
+  question goes to the owner with both views quoted. A reviewer's dissent from a pick the owner made
+  on your recommendation is shown to the owner, not argued away.
+- **A source conflict ship.md stops on** is yours to rule: one confined to imports and comments
+  (independent meaning) is ruled through with a test proving the two changes independent and a
+  tripwire for a behavioural clash, and reported to the owner as a stop ruled through; anything
+  else stops.
+- **Owner questions are folded**: related findings become one entry, and the owner's answer may
+  widen it ("for all moment captures"): rule the pattern, not the one case.
 - **A wrong loop commit on the unpushed run branch is dropped**, not patched in the one round:
   rebuild the branch without it (cherry-pick), correct every record line that claims it shipped,
   file the finding with the reviewer's analysis.
@@ -164,6 +209,10 @@ In a build of an approved entry only:
   criteria**; if one exists and what a person sees still matches the entry, rule it; else escalate.
 - **When a reviewer patches one example of a class, rule the fix for the class** if it stays inside
   the entry; a change to what a person sees is gated again (0157).
+- **Say less inside the answer**: when a shape needs words the entry did not approve, drop the
+  words (a time, a count) rather than invent them, and send the new words to the owner.
+- **Keep to the owner's scope**: an answer that named some screens covers those; the others keep
+  their behaviour without asking again.
 - **Settle by honest wording of the record** (the decision, the rule line the run added) when the
   behaviour is acceptable and no screen's words change; list every record narrowed this way in the
   closing report. New words on a screen go to `/vision`.
@@ -175,6 +224,10 @@ What to ask reviewers for:
   runs and reviews; the run keeps it for the next build.
 - **A timed thing made persistent**: every way its subject can disappear (deleted, failed, stopped,
   navigated away).
+- **Every surface that shows it**: a change to a message, a notice or a type is pictured and judged
+  wherever it appears (grep the source and every consumer); a fix to one of three left two red.
+- **The degenerate geometries** for a change to a marker or a line: coincident, overlapping, a loop
+  walk's start on its end, off-screen.
 - **The tests that cannot fail** (from the auditor): green checks hid a high and three mediums in one
   sweep, where a test asserted a helper's return and not the end effect.
 
@@ -189,6 +242,8 @@ says so); STATUS, DEFERRED and the ledger follow `/tend` section 10.3.
   ledger are shared; a conflict there resolves with `npm run records -- redo` (`/tend` section
   10.3). Never two `G` builds, and never a second run late in a usage window.
 - When one lands, send the other one line: "main moved to <sha>; lastT is now N".
+- **Two runs in one area** clash on finding numbers (`tend <area> N`, `audit N`): give each a range in
+  its brief, or the second to publish renumbers at its rebase.
 - **The weekly full pass** is a run's (`/tend` section 10, recorded in the run log as
   `"e2e":"full"`): when `node <main-tools>/scripts/tend.js e2e-due` says it is due (no such line
   in seven days of `main`'s log), say so in the next code run's brief. The pass is `npm run e2e:all`;
@@ -210,6 +265,12 @@ says so); STATUS, DEFERRED and the ledger follow `/tend` section 10.3.
 4. Choose the next run (section 2).
 
 ## 8. When a run stops early
+
+**After a container or worker restart**, before resuming anything: fetch `main`, read Pages, and list
+the worktrees with each one's `git status --short -uall` and `git log --oneline origin/main..HEAD`.
+Background journeys and exports are gone; a hand-back lost in the restart is in the agent's transcript
+(its `SubagentHandback` call), recovered with a short script, never read whole. A run that finished
+before the restart may have left its last steps (Pages, the live check, cleanup) undone: they are yours.
 
 - **A usage limit or an API error** ends a run mid-step; its worktree and commits survive. After the
   reset, resume **the same agent** (its id is in the notes) with the resume text from `briefs.md`.

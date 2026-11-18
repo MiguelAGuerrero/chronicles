@@ -22,7 +22,7 @@ const FEATURES = [
     rule: 'functional-core',
     source: ['src/lib/types.ts', 'src/lib/{store,useStore,meta,id,focus}.ts', 'src/lib/ports/**', 'src/lib/net/**'],
     journeys: [],
-    specs: ['functional-core', 'affected-checks', 'test-organization', 'shells-saved-settings', 'test-gaps', 'device-acceptance', 'vision-gate'],
+    specs: ['functional-core', 'affected-checks', 'test-organization', 'shells-saved-settings', 'test-gaps', 'device-acceptance', 'vision-gate', 'react-compiler'],
   },
   {
     name: 'storage',
@@ -83,7 +83,7 @@ const FEATURES = [
     rule: 'replay',
     source: ['src/app/replay/**', 'src/lib/ceremony/**', 'src/components/ceremony/**', 'src/lib/{replay,quietLines,summary}.ts', 'src/components/CaptureView.tsx', 'src/lib/viewerBars.ts'],
     journeys: ['replay'],
-    specs: ['concept', 'replay-rhythm'],
+    specs: ['concept', 'replay-rhythm', 'replay-pace', 'replay-ceremony'],
   },
   {
     name: 'moments',
@@ -154,10 +154,11 @@ const FEATURES = [
       'src/app/(tabs)/explore.tsx',
       'src/components/atlas/**',
       'src/lib/gazetteer/**',
-      'src/components/{MarkPinView,ExploreSettings,ReminderCard,RemindEditor}.tsx',
+      'src/components/{MarkPinView,ExploreSettings,ReminderCard,RemindEditor,OpenInMapsButton,IntoPage,IntoRow}.tsx',
+      'src/app/into.tsx', 'src/lib/intoNav.ts', 'src/lib/intoGate.ts', 'src/lib/walkName.ts',
     ],
-    journeys: ['marks', 'atlas', 'grading', 'snap', 'carousel', 'curiosities', 'freelook', 'small-places', 'placesearch'],
-    specs: ['v1-discovery', 'explore-atlas', 'pocket-alert-nudge', 'reminder-bell', 'atlas-grading', 'town-presence', 'discrete-navigation', 'explore-carousel', 'places-worth-the-stop', 'places-pipeline', 'remarkable-and-public', 'places-out-of-town', 'presence-and-kinds', 'whole-towns', 'community-parks', 'free-look', 'small-places', 'place-search'],
+    journeys: ['marks', 'atlas', 'grading', 'snap', 'carousel', 'curiosities', 'freelook', 'small-places', 'placesearch', 'subtypes', 'openmaps', 'openmaps-chronicle', 'into'],
+    specs: ['v1-discovery', 'explore-atlas', 'pocket-alert-nudge', 'reminder-bell', 'atlas-grading', 'town-presence', 'discrete-navigation', 'explore-carousel', 'places-worth-the-stop', 'places-pipeline', 'remarkable-and-public', 'places-out-of-town', 'presence-and-kinds', 'whole-towns', 'community-parks', 'free-look', 'small-places', 'place-search', 'explore-go-here', 'go-here-everywhere', 'explore-subtypes', 'more-attractions', 'open-in-maps-here', 'what-im-into-page', 'sights-and-local-life'],
   },
   {
     name: 'kind-walk',
@@ -174,6 +175,14 @@ const FEATURES = [
     source: ['src/lib/walkPlanner/**', 'src/components/planner/**'],
     journeys: ['planner'],
     specs: ['walk-planner', 'presence-and-kinds'],
+  },
+  {
+    name: 'outing',
+    about: 'plan an outing: describe what you want to see from a vocabulary, get one proposed circuit over candidates with facets; stops named on a tap or on arrival',
+    rule: 'outing',
+    source: ['src/lib/outing/**', 'src/components/outing/**'],
+    journeys: ['outing'],
+    specs: ['quick-circuit'],
   },
   {
     name: 'layers',
@@ -217,8 +226,8 @@ const FEATURES = [
       'src/lib/{pins,scaleBar,perfCount,mapReads,useTabMap,traceEnds,useLocate,units,useUnits,format,compass,mapTopInset}.ts',
       'src/lib/unitsStore/**',
     ],
-    journeys: ['qol'],
-    specs: ['quality-of-life', 'compass', 'native-map-frames'],
+    journeys: ['qol', 'palette'],
+    specs: ['quality-of-life', 'compass', 'native-map-frames', 'map-palette'],
   },
   {
     name: 'captures',
@@ -230,6 +239,9 @@ const FEATURES = [
       'src/lib/media/**',
       'src/lib/{useCaptures,thumbPlan,thumbJob,useMediaUri,captureBus,pieceStamp,openMoment,splitPlace}.ts',
       'src/lib/split/**',
+      // Stack with previous (SW1-SW18, decision 0197): the join, its Undo window and the quick-action row's rule.
+      'src/lib/join/**',
+      'src/components/journal/{QuickActions,StackGrid}.tsx',
       // Moment stacks (MS1-MS21): the open moment's store, the pill and the stacked mark.
       'src/lib/momentPill/**',
       'src/components/StackMark.tsx',
@@ -244,9 +256,13 @@ const FEATURES = [
       // Video thumbnails (VS1-VS9): every preview's small copies and stills, and the play mark.
       'src/lib/thumbs/**',
       'src/components/VideoMark.tsx',
+      // Unsaved captures (UN1-UN15, decision 0196): the one holder of every capture that failed to save.
+      'src/lib/unsaved/**',
+      // Pictures through expo-image (EI1-EI6): the one wrapper every picture on screen goes through.
+      'src/components/Picture.tsx',
     ],
-    journeys: ['edit', 'stacks', 'voicetrim', 'videothumbs'],
-    specs: ['memories-on-revisit', 'media-editing', 'moment-stacks', 'voice-trim', 'note-types', 'video-thumbnails'],
+    journeys: ['edit', 'stacks', 'stackjoin', 'voicetrim', 'videothumbs', 'unsaved'],
+    specs: ['memories-on-revisit', 'media-editing', 'moment-stacks', 'stack-with-previous', 'voice-trim', 'note-types', 'video-thumbnails', 'unsaved-captures', 'expo-image'],
   },
   {
     name: 'chronicle',
@@ -332,9 +348,9 @@ const FEATURES = [
     name: 'deletion',
     about: 'clearing walks and moments, with undo',
     rule: 'deletion',
-    source: ['src/lib/deletion/**', 'src/components/{WalkActions,UndoToast}.tsx'],
+    source: ['src/lib/deletion/**', 'src/lib/emptyWalk/**', 'src/components/{WalkActions,UndoToast}.tsx'],
     journeys: ['deletion'],
-    specs: ['clearing-walks-and-moments', 'ui-conformance'],
+    specs: ['clearing-walks-and-moments', 'ui-conformance', 'empty-walk'],
   },
   {
     name: 'memories',
@@ -362,6 +378,15 @@ const FEATURES = [
 const V1_SCAN_AND_AMBIENT = ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S9', 'S10', 'S11', 'S12', 'S14', 'S15', 'S22', 'S23', ...Array.from({ length: 11 }, (_, i) => `A${i + 1}`)];
 
 const RETIRED = {
+  // Captions in the replay wait for the first phone build (the owner, Nov 18, decision 0206): they cannot be seen on the web.
+  'replay-ceremony': ['RC38', 'RC39', 'RC40', 'RC41', 'RC42', 'RC43', 'RC44'],
+  // The soft cap of about 60 s and its floors went when each moment was given its own time (the owner, Nov 18, decision 0203):
+  // specs/replay-pace RY10 holds that nothing shrinks to fit a total.
+  'replay-rhythm': ['RR5'],
+  // Go here and its sheet were replaced by two outcome-named controls, Walk and "Open in Maps" (the owner, Nov 17, decision 0195):
+  // specs/open-in-maps-here (OM1-OM14) carries what stands of them.
+  'explore-go-here': Array.from({ length: 15 }, (_, i) => `GH${i + 1}`),
+  'go-here-everywhere': Array.from({ length: 13 }, (_, i) => `GE${i + 1}`),
   // A no-regression promise that could never fail first (the owner, Nov 17, at the deploy): NF8 took its place.
   'native-map-frames': ['NF6'],
   // The row under the line (decision 0175) was replaced by a toolbar at the foot the same day (decision 0178, the owner).
@@ -422,6 +447,15 @@ const RETIRED = {
  * make (the web build can't reach it), `deferred: <why>` for the owner's call to wait. Keyed by spec.
  */
 const UNTESTED = {
+  // Pictures through expo-image: the cache and the recycling are a phone's to see under memory pressure.
+  'expo-image': { EI6: 'device: memory and recycling over a few hundred photos on a phone; the web build has no native image cache' },
+  // Plan an outing (decision 0196): criteria with no test of their own, each with where it is held instead.
+  'quick-circuit': {
+    QC32: 'deferred: a review criterion, the ux-reviewer\'s cold find (Nov 17, in the spec\'s Record), not a unit test',
+    QC34: 'deferred: by construction: `HOURS_LINE` is one constant the page renders once under the slots, and no pack field holds hours; the journey `outing` checks the line (QC20)',
+    QC35: 'deferred: by construction: the page computes from the picks alone, and QC7\'s test plans with a second entry that wins no stop and says nothing of it',
+    QC36: 'deferred: Start is disabled with nothing to start; the reason is the line QC2 and QC30 test (nothing picked, no position); no test of its own for the disabled state',
+  },
   // Native map frames: the source scans hold the shape; the frame rate is a profiler's on a phone.
   'native-map-frames': { NF7: 'device: React DevTools on a development build during a walk; npm test cannot render MapLibre RN' },
   // Free look: the out-of-town stars (decision 0115) are queued, not built; FL19 is the call their slice carries.
@@ -467,6 +501,9 @@ const UNTESTED = {
   // The replay on the web refuses sound without a tap, so a trimmed memo's advance past its end handle is tried on a phone.
   'voice-trim': { VT7: 'device: a replay moves on at a trimmed memo\'s end handle, tried on a phone (the logic is VT8, the one path VT12)' },
   'replay-rhythm': { RR17: 'device: both replays step through the moments with a screen reader on, native only' },
+  'replay-pace': { RY20: 'device: the screen reader\'s steps are unchanged and show no Next, native only (react-native-web never takes that path)' },
+  // The map's palette on a phone: the native layers and pin views take the same constants, never run on a device.
+  'map-palette': { MP13: 'device: the native map\'s layers and pin views in Earth and ink, seen on a phone (docs/NATIVE_UNVERIFIED.md)' },
 };
 
 /**
@@ -480,9 +517,14 @@ const UNTESTED = {
 const RENAMED = {
   // Video thumbnails were built as VT1-VT9 beside voice trim's VT1-VT12 on main; renamed on the merge (Nov 13).
   'video-thumbnails': { VS: 'VT' },
+  // The React Compiler was built as RC1-RC3 beside the replay ceremony's RC1-RC48 on main; renamed on the merge (Nov 18).
+  'react-compiler': { CM: 'RC' },
 };
 
-const IN_PROGRESS = {};
+const IN_PROGRESS = {
+  // Replay ceremony (RC1-RC48): the owner's go-ahead Nov 18 (decision 0206); built on the branch, shown at the preview address first.
+  'replay-ceremony': { branch: 'claude/funny-bohr-ztvwgv', since: '2026-11-18' },
+};
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));
 

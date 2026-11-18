@@ -34,11 +34,12 @@ split (see Invariants).
 
 ```
 index.js                     entry: imports lib/recorder (defines the background location task) before expo-router/entry
-src/app/_layout.tsx          root stack: the tabs first, then walk and replay over them; opens the open walk at launch under a cover (lib/launchWalk), then reconciles the recorder; sets the audio mode; notes the launch path (lib/launchRoute)
+src/app/_layout.tsx          root stack: the tabs first, then walk, What I'm into's page and replay over them; opens the open walk at launch under a cover (lib/launchWalk), then reconciles the recorder; sets the audio mode; notes the launch path (lib/launchRoute)
 src/app/(tabs)/_layout.tsx   the three tabs, Explore · Navigate · Chronicle; Explore opens first, at / (NV2); Navigate's press opens the walk screen (NR1)
 src/app/(tabs)/navigate.tsx  Navigate's entry route (/navigate): Explore beneath, then the walk screen, ready (NR1, NR3)
 src/app/(tabs)/index.tsx     Chronicle (/), where the app opens (0112): Memories as a journal with its open line (0155); Walks, Days and Map (stars by area at the level for the zoom, moment pins from z11, the HomeSheet, old-walk placement)
 src/app/(tabs)/explore.tsx   Explore (/explore): the atlas of the areas near you (tiles, the area card; 0066, 0067); long press = What's good here / Walk here
+src/app/into.tsx             What I'm into's page (/into, decision 0192): pushed over the walk screen and the tabs from both drawers' row (lib/intoNav), the stack's Back, Escape on the web; components/IntoPage
 src/app/chronicle.tsx        the old /chronicle path: dismissTo("/") down to Chronicle (HC5, 0112)
 src/app/walk.tsx             the walk screen, and Navigate: one screen and one map, ready with no walk open (`useReady`), else live trace and dot, fog, captures, navigation bar, Explore marks, memories, reminders, options, hold-to-stop
 src/app/replay/[id].tsx      a walk's replay: the five beats; the path beat is a ceremony told over the map (lib/ceremony, components/ceremony), or the screen reader's steps; the card, naming
@@ -85,6 +86,8 @@ Chronicle's Memories (decision 0098)
   resurface/useResurface.ts  the view hook (reads on focus and after a delete)
   chronicle/                 SectionBar (Memories, Walks, Days, Map, Media), MemoriesScreen (the journal's page and its screens), MemoriesMenu (the contents), ThreadsRail, ThreadScreen, MomentCard (a thread's cards), MomentPicture, MemoryMenu
 The journal (specs/chronicle-journal, JN1-JN24, decision 0155): Memories as one sheet in book order, ending in an open line
+  join/{rules,shell}.ts      Stack with previous (decision 0197): which moment is previous, and the join through the Undo window; `join/index.ts` the app's instance
+  emptyWalk/{core,shell}.ts  Empty walk (decision 0187): a walk with nothing in it is dropped at Stop, with Undo; `emptyWalk/index.ts` the app's instance
   journal/page.ts            journalMoments (the feed's and an open walk's, oldest first), journalPage (rows: day headings, the slip, entries; the latest page)
   journal/lines.ts           dayHeading, clockTime, dateline (time, then place and walk once read; No location), entrySpoken, the open line's labels
   journal/pen.ts             the open line's reducer: begin on the first character, save as typed, drop when emptied, Done, a kept capture, a failed save
@@ -123,7 +126,9 @@ Home / tabs
   StackMark.tsx              the two-card mark of a moment holding more than one piece (MS8)
   GapCard.tsx                a filled or offered stretch: Keep, Not this way
   KeepGapsCard.tsx           the first replay's one question: keep every offered way (G15)
-  ExploreSettings.tsx        the shared pieces of the drawers' settings: `KindSwitches`, `RangeSlider`, `walkNote`
+  ExploreSettings.tsx        the shared pieces of the drawers' settings: `RangeSlider`, `walkNote`
+  IntoRow.tsx                the drawers' "What I'm into ›" row, opening its page (decision 0192)
+  IntoPage.tsx               What I'm into's page: the kinds and Complexes' switches, headings pinned (`stickyHeaderIndices`), from lib/explore/intoPage
   NotificationSettings.tsx   the kind switches, permission state, the test notification
 Captures
   CaptureView.tsx            CaptureViewer (full-screen photos and videos over a strip; a note as its page, a card for memos; More menu) and CaptureContent (plays memos and videos)
@@ -184,7 +189,8 @@ Streets, snapping, fog
   replay.ts                  FOG_MS, groupCaptures, timedRuns, traceUntil, walkerAt: the replay's shared pieces
   ceremony/types.ts          Story (paths, moves, moments, breaks, travel, passes), Frame, Overlay kinds, Ceremony (decision 0086)
   ceremony/story.ts          walkStory, dayStory, storySteps; metresAt, timeAtMetres, pathDrawnAt: what happened, no timing or look
-  ceremony/rhythm.ts         the rhythm ceremony (RR1-RR19): rhythmPlan (legs, stops, cuts, the soft cap), rhythmFrame, laterLine, notePause
+  ceremony/rhythm.ts         the rhythm ceremony (RR1-RR19, replay pace RY1-RY22): rhythmPlan (legs at a steady pace, stops, cuts, each moment's own time, no cap; `stops`, where Next lands), rhythmFrame (given a press, it says what lay between), laterLine, notePause
+  ceremony/clock.ts          tickClock, reanchor; nextStop and seekClock (Next, RY13-RY17)
   ceremony/grid.ts           a stacked moment's grid (MS17): gridLayout (closest square up to 3×3), gridDuration
   ceremony/registry.ts       CEREMONIES, DEFAULT_CEREMONY, ceremonyFor: a new ceremony is an entry here
   backlog/                   placeBacklog: places old walks in the background, from the tiles in code (0137); shell.ts takes the snap and the reader
@@ -226,6 +232,7 @@ Navigation (inside a walk)
   nav/scenicRead/            the corridor's tiles and Overture places for a scenic route (shell.ts, index.ts)
   routeLeanings/             the "Scenic routes" switches in meta `route_leanings` (`lib/routeLeanings`: shell.ts, index.ts)
   kindWalk/                  a suggested walk where a kind is dense (`lib/kindWalk`: density, plan, words, its settings and prefs)
+  outing/                    plan an outing (decision 0196, specs/quick-circuit): candidates.ts (Candidate, Want, matches over facets by dimension), wants.ts (the vocabulary), stores.ts and storesRead.ts (the stores pack's record and its only reader), storesMerge.ts (the pack and the tiles' shops as candidates, chains by setting), pick.ts, plan.ts (over the walk planner's fitOrder), swap.ts, words.ts, dest.ts, arrival.ts (core); service.ts, prefs.ts (meta `outing_chains`), storesPack.ts (the pack's tile read over the places archive's manifest and `net/tileReader`), app.ts (shell); useOuting.ts, useArrival.ts (view); components/outing/OutingDrawer.tsx
   walkPlanner/               the walk planner's page (`lib/walkPlanner`: planner, presets, exposure, words; app.ts the instance)
 Filling gaps
   gaps/rules.ts              GAP_RULES: what counts as a gap, the paces, the budgets
@@ -243,7 +250,7 @@ Discovery and Explore (v1)
   discovery/archiveMerge.ts  mergePlaces (one mark per place, PW8), keepFindKeys (a find keeps its key); the owner's edits are applied in chronicles-data (decision 0108)
   discovery/refine.ts        the kind pipeline's engine: Refinement, refine() (pure, in order; PC18-PC19, decision 0144)
   discovery/refinements.ts   REFINEMENTS (the registry), refineRead, kindParent/kindChain, isKindHidden, kindSwitch, kindRows (PC20-PC23)
-  discovery/smallPlaces.ts   small places (SP3-SP22, decision 0183): SMALL_SUBSETS (rows, plurals, defaults), DEFAULT_OFF, SMALL_REFINEMENTS (a subset by presence's `subset`), isSmallPlace, passedNames, keepTheLows, foundRows
+  discovery/subtypes.ts      subtypes and small places (XS1-XS28, decision 0191; SP3-SP22, 0183): SUBTYPES (rows, plurals, defaults, small), DEFAULT_OFF, SUBTYPE_REFINEMENTS (a subtype by presence's `subset`), isSmallPlace (small only), passedNames, keepTheLows, foundRows
   discovery/parkKind.ts      communityParks: the first refinement, Parks into Community parks by name and what is near (PC1-PC5; its curation in communityWords.json, parkNotable.json; notable names are presence's notableName, PS3)
   discovery/green.ts         the tiles' park outlines, from presence's classesOfLandcover (PS4): GreenArea, greenFromTiles, outlinesOf; scenic routes re-export it
   discovery/archiveManifest.ts the manifest (PW2): parse, pickRegion, manifestDue, z12 tiles for a read, PLACES_BASE (the chronicles-data Pages site, PW16)
@@ -260,16 +267,18 @@ Discovery and Explore (v1)
   complexes/rule.ts          which named buildings are complexes, and of what kind: pieces joined by building id, judged once every tile holding a vertex is read (CX1-CX3, CX14)
   complexes/{types,geom,place,lines,kinds,mapLayer,extent}.ts   the complex type, the card's words and order, the kind switches, the map layer's style and data, the tile budget, a fix's complex (CX4-CX11, CX16)
   complexes/{shell,overtureReader,overtureSource,index,settings,useComplexes}.ts   the read and the derived `complex` store (shell), Overture's `buildings` and `places` tiles (adapter), the app's instance, the saved switches, the screens' hook (CX12-CX16)
-  atlas/atlas.ts             the Explore atlas: near list, presence steps (findable kinds count markable places, AG1), thin rings (AG3), sketch, familiarity, labels
+  atlas/atlas.ts             the Explore atlas: near list, presence steps (findable kinds count markable places, AG1), thin rings (AG3), sketch, familiarity, labels; Sights and Local life (`KIND_GROUPS`, `groupsPresent`, `STRIP`, the tally keeping Sights by kind; SG1-SG14, decisions 0200-0202)
   atlas/extent.ts            a town's whole-outline extent and the z14 tiles a read takes, capped (TP1-TP3)
   atlas/hoods.ts             a town's page: every neighborhood inside its border, hamlets in, wards out (WT1-WT6, 0132)
   atlas/pockets.ts           a town's pockets of activity: peak picking on a smoothed 400 m grid (TP4)
-  atlas/read.ts              the atlas's reads: areas near you, one ring or one whole town at a time (decoder)
+  atlas/{readShell,read}.ts  the atlas's reads: areas near you, one ring or one whole town at a time (decoder); the factory on fake ports, the app's instance
   atlas/waitingPins.ts       the selected area's places on the map: a "?" where it has room, a dot where not (WT7, WT12-WT14)
   atlas/useAtlas.ts          the atlas's data and its read loop, while Explore is in front
   atlas/snap.ts              discrete navigation (DN1, DN10-DN13): what a drag or an arrow key means; one finger never pans Explore's map
   atlas/carousel.ts          Explore's row of area cards (EC1-EC15): the row's order, the selection, a swipe as a row step, the card a scroll settled on, the Storefront names kept near the selection
   explore/settings.ts        what I'm into, range, pocket alert (meta)
+  explore/intoPage.ts        What I'm into's page, pure: its sections, rows (heavy, hint) and pinned indices (WI5-WI7, WI15)
+  explore/settingsChange.ts  a kind switched on the page: the next settings, null before they are read (WI9)
   explore/momentFind/        a loose moment finds a place (shell.ts, index.ts)
   explore/reach/             a street or path close by, said on a place's card (rule.ts core, shell.ts, index.ts; RP20)
 Activity density (AD1-AD16)
@@ -384,6 +393,7 @@ Session, screens and small helpers
   useStartWalk.ts, startPlan.ts         Start and Walk here: the plan's meta, then the walk screen
   useTabMap.ts               a tab's map taken down while the tab isn't in front
   memoGate.ts                a memo recording anywhere blocks a start
+  unsaved/                   the one holder of every capture that failed to save (core words, in-memory shell; UN1-UN15, 0196)
   settleWithin.ts            await a promise, but never longer than ms
   recordingBar.ts, quietLines.ts, format.ts, scaleBar.ts         the bar's line and its waiting Edit offer, counts as words, distances and times, the scale bar's length
   audioMode(.native|.web).ts setAudioMode: expo-audio on native, navigator.audioSession on web
@@ -401,6 +411,7 @@ Layers (functional core, imperative shell)
   (scripts/layers.js)        reads the layer tags and core's imports for layers.test.ts and eslint.config.js
   (scripts/affected.js)      what a change can break: changed files, the import graph, the tests (by feature) and e2e journeys to run, what nothing covers
   (scripts/features.js)      the feature map: each feature's sources, journeys, specs and rule; test:feature, check:specs and the rules read it
+  (scripts/preview-pages.js) the preview address (decision 0206): a second build under /chronicles/preview/, its routes kept across a reload
 ```
 
 ## Invariants and boundaries

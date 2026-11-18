@@ -1,48 +1,21 @@
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View, type LayoutChangeEvent, type StyleProp, type TextStyle } from 'react-native';
-import { COMPLEX_NOTE, switchLabel } from '../lib/complexes/kinds';
-import { useHiddenKinds } from '../lib/complexes/useComplexes';
-import { COMPLEX_KINDS } from '../lib/complexes/types';
-import { kindRows, kindSwitch } from '../lib/discovery/refinements';
-import { EXPLORE_RULES, kindHint, KINDS, type Kind } from '../lib/explore/explore';
+import { Pressable, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
+import { EXPLORE_RULES } from '../lib/explore/explore';
 import { formatRange } from '../lib/format';
 import { useUnits } from '../lib/useUnits';
-import { Icon, type IconName } from './icons';
-import { SwitchRow } from './SwitchRow';
+import { Icon } from './icons';
 import { theme } from './ui';
+
+/*
+ * Explore's settings that stay in the drawers (the range; WI11). What I'm into and Complexes' switches are on their own
+ * page (`IntoPage`, decision 0192).
+ */
 
 /** About how long the range takes to walk, at 1.3 m/s. */
 export const walkNote = (m: number) => {
   const min = Math.max(1, Math.round(m / 1.3 / 60));
   return `about ${min} min walk`;
 };
-
-/** What I'm into (E16): a switch per kind, on unless hidden. Shared with Navigate's drawer (NV21). */
-export function KindSwitches({ hidden, onToggle }: { hidden: Set<Kind>; onToggle: (k: Kind, on: boolean) => void }) {
-  return (
-    <>
-      {kindRows(KINDS, hidden).map(({ kind: k, depth }) => {
-        // PC23: a subset shows, indented under its parent, only while the parent is on.
-        const sw = kindSwitch(hidden, k.id);
-        return <SwitchRow key={k.id} testID={`kind-${k.id}`} icon={k.icon as IconName} label={k.label} hint={kindHint(k.id)} value={sw.on} disabled={sw.locked} indent={depth} onChange={(v) => onToggle(k.id, v)} />;
-      })}
-    </>
-  );
-}
-
-/** Complexes (CX10): a switch per kind beside What I'm into, on unless hidden, saved as it changes. A kind off leaves the card and the map, never the data. */
-export function ComplexKindSwitches({ sectionStyle }: { sectionStyle: StyleProp<TextStyle> }) {
-  const { hidden, set } = useHiddenKinds();
-  return (
-    <>
-      <Text style={sectionStyle} accessibilityRole="header">Complexes</Text>
-      <Text style={styles.complexNote}>{COMPLEX_NOTE}</Text>
-      {COMPLEX_KINDS.map((k) => (
-        <SwitchRow key={k} testID={`complex-kind-${k}`} label={switchLabel(k)} value={!hidden.includes(k)} onChange={(on) => set(on ? hidden.filter((x) => x !== k) : [...hidden, k])} />
-      ))}
-    </>
-  );
-}
 
 const STEPS = (EXPLORE_RULES.rangeMax - EXPLORE_RULES.rangeMin) / EXPLORE_RULES.rangeStep;
 
@@ -97,7 +70,6 @@ export function RangeSlider({ value, onChange }: { value: number; onChange: (m: 
 }
 
 const styles = StyleSheet.create({
-  complexNote: { fontSize: 13, color: theme.muted, marginBottom: 4 },
   sliderRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   // 44 pt, not hit slop: react-native-web has none (U4).
   stepBtn: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: theme.edge, alignItems: 'center', justifyContent: 'center' },

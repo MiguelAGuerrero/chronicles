@@ -172,7 +172,7 @@ test('AT11, AT13: a tile says each kind present in words, and no number but how 
   const [l] = nearList([area], O, 'neighborhood', 'b1');
   l.here = false;
   const label = tileLabel(l, { walks: 0, last: null }, fmt);
-  assert.equal(label, 'Fox Point. 6 min walk. New to you. History: lots, Art: some, Green: plenty, Food: plenty. Storefronts along Wickenden Street.');
+  assert.equal(label, 'Fox Point. 6 min walk. New to you. Sights: History: lots, Art: some, Green: plenty. Local life: Food: plenty. Storefronts along Wickenden Street.');
   assert.ok(!/\d+\s*of\s*\d+/.test(label));
   assert.equal(label.replace('6 min', '').match(/\d/), null, 'how far is the only number here');
   assert.match(tileLabel({ ...l, area: { ...area, profile: null } }, { walks: 2, last: 1 }, fmt), /Walked 2 times\. Being read\.$/);
@@ -307,7 +307,8 @@ test('AT2: the step lists the view’s neighborhoods first, then the towns aroun
 test('AT16: an area’s character in words, never a count', async () => {
   const { characterLine } = await import('../../atlas/atlas');
   const z = { history: 0, art: 0, culture: 0, parks: 0, viewpoints: 0, food: 0, shops: 0, nightlife: 0 } as const;
-  assert.equal(characterLine({ ...z, history: 3, food: 3, art: 1 }), 'Lots of history and food');
+  // SG13 (decision 0201): the line leads with the Sights, so history before food.
+  assert.equal(characterLine({ ...z, history: 3, food: 3, art: 1 }), 'Lots of history');
   assert.equal(characterLine({ ...z, parks: 2, food: 1 }), 'Plenty of green space');
   assert.equal(characterLine({ ...z, history: 1, art: 1, culture: 1, parks: 1, food: 1 }), 'A little of everything');
   assert.equal(characterLine({ ...z, parks: 1 }), 'A little green space');
@@ -457,8 +458,15 @@ test('TP9: fewer than 3 mapped places in the whole outline is thin', () => {
 });
 
 test('TP10: a town row from the older rules is stale; since a8 a neighborhood row from them is too (PK7); a9 carries none of a8 (PC13)', () => {
-  assert.equal(ATLAS_CODE, 'a14.p5', 'a14.p5: a neighbourhood\'s "Old Town" read past after normalizeWords, in presence and community parks alike, none carried (decision 0172, tend presence 1); a14.p4: small places, the bars kept as counts and shares (specs/small-places SP12, SP13); a13.p3: storefronts, each street\'s point kept and only storefronts weighed (specs/storefronts SF3, SF11), none carried; a12: a small park with nothing notable is a community park (fix community-park); a11: a neighborhood with a real shape is counted across it (neighborhood boundaries HB11); a10: community parks reads a name as presence does (tend explore T9); a9: community parks (PC13); a8: presence by bars (PK1-PK7), at every level, so no older a-code is carried; .p2: presence\'s classes (specs/presence PR6, specs/presence-readers PS9, which carries the atlas\'s own part over p1)');
+  assert.equal(ATLAS_CODE, 'a15.p10', 'a15.p10: Sights follow the switches, every Sights place kept under its kind in the tally, none carried (specs/sights-and-local-life SG12, decision 0201); a14.p10: typed bridges, contract v8\'s suspension bridge by type a Bridges place that lights no History, none carried (MA10, the owner, Nov 18); a14.p9: the more-attractions audit, every amusement, theme or water park its own row under Zoos and aquariums, a museum by type never History, a pier no bar, none carried (more-attractions audits 1-3); a14.p8: more attractions, museums by type, nature reserves, amusement parks and piers, none carried (more-attractions, decision 0198); a14.p7: the antiques, books and second_hand classes beside boutique, none moved a bar, weight or mark, p6 carried (decision 0194, QC14, QC16, QC42); a14.p6: explore subtypes, every subtype its kind\'s with a bar weight, the map\'s ruins Ruins and its attractions their own kind, none carried (explore-subtypes XS15, decision 0191); a14.p5: a neighbourhood\'s "Old Town" read past after normalizeWords, in presence and community parks alike, none carried (decision 0172, tend presence 1); a14.p4: small places, the bars kept as counts and shares (specs/small-places SP12, SP13); a13.p3: storefronts, each street\'s point kept and only storefronts weighed (specs/storefronts SF3, SF11), none carried; a12: a small park with nothing notable is a community park (fix community-park); a11: a neighborhood with a real shape is counted across it (neighborhood boundaries HB11); a10: community parks reads a name as presence does (tend explore T9); a9: community parks (PC13); a8: presence by bars (PK1-PK7), at every level, so no older a-code is carried; .p2: presence\'s classes (specs/presence PR6, specs/presence-readers PS9, which carries the atlas\'s own part over p1)');
+  assert.equal(rowCurrent(row('Fox Point', O, { level: 'neighborhood', code: 'a14.p5' }), 'b1'), false, 'XS15: a14.p5 rows, from before subtypes, are read again');
+  assert.equal(rowCurrent(row('Fox Point', O, { level: 'neighborhood', code: 'a14.p6' }), 'b1'), false, 'QC16 carried a14.p6 under a14.p7; p8 carries nothing (decision 0198)');
+  assert.equal(rowCurrent(row('Fox Point', O, { level: 'neighborhood', code: 'a14.p7' }), 'b1'), false, 'MA: a14.p7 rows, from before more attractions, are read again');
+  assert.equal(rowCurrent(row('Fox Point', O, { level: 'neighborhood', code: 'a14.p8' }), 'b1'), false, 'more-attractions audits 1-3: a14.p8 rows are read again');
+  assert.equal(rowCurrent(row('Fox Point', O, { level: 'neighborhood', code: 'a14.p9' }), 'b1'), false, 'MA10: a14.p9 rows, from before typed bridges, are read again');
+  assert.equal(rowCurrent(row('Fox Point', O, { level: 'neighborhood', code: 'a14.p10' }), 'b1'), false, 'SG12: a14 rows, with no Sights by kind, are read again');
   for (const code of ['a12.p2', 'a13.p2', 'a12.p3', 'a13.p3']) assert.equal(rowCurrent(row('Fox Point', O, { level: 'neighborhood', code }), 'b1'), false, `SF11: ${code} rows are read again`);
+  assert.equal(rowCurrent(row('Fox Point', O, { level: 'neighborhood', code: 'a14.p4' }), 'b1'), false, 'only the code just before is carried');
   for (const code of ['a9.p2', 'a9.p1']) assert.equal(rowCurrent(row('Fox Point', O, { level: 'neighborhood', code }), 'b1'), false, `tend explore T9: ${code} rows, from before T9's park kinds, are read again`);
   assert.equal(rowCurrent(row('Fox Point', O, { level: 'neighborhood', code: 'a8.p1' }), 'b1'), false, 'PC13: a8 rows, from before community parks, are read again');
   assert.equal(rowCurrent(row('Fox Point', O, { level: 'neighborhood', code: 'a5' }), 'b1'), false, 'PK7: a5 neighborhoods are read again');

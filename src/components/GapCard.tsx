@@ -1,3 +1,4 @@
+import { useIsFocused } from 'expo-router';
 import { useEffect, useRef } from 'react';
 import { BackHandler, Platform, Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import { gapLines, stretchLines, type Stretch } from '../lib/gaps/infer';
@@ -29,7 +30,10 @@ export function GapCard(props: {
   useEffect(() => {
     close.current = props.onClose;
   }, [props.onClose]);
+  // Only while its screen is in front: a page pushed over it keeps it mounted (what-im-into-page audit 1).
+  const focused = useIsFocused();
   useEffect(() => {
+    if (!focused) return;
     const back = BackHandler.addEventListener('hardwareBackPress', () => {
       close.current();
       return true;
@@ -40,7 +44,7 @@ export function GapCard(props: {
       back.remove();
       if (Platform.OS === 'web' && typeof window !== 'undefined') window.removeEventListener('keydown', onKey);
     };
-  }, []);
+  }, [focused]);
   const offered = props.stretch?.how === 'offer';
   return (
     <View style={[styles.row, props.style]} pointerEvents="box-none">

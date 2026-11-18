@@ -1,0 +1,13 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore and discovery"
+      ],
+      "body": "- [loop] The `drive` journey's reopening of a town's card after \"When I get there\" (`openCard(pg, 'Cranston', { town: true })`, `scripts/e2e/journeys/drive.js` ~l.75) times out waiting for `atlas-card` on `origin/main` and on branches alike: `e2e:baseline -- drive` on main (edf96c57) exited non-zero 3 runs of 3, each a thrown `waitForSelector` timeout and no failed check, which `summarizeBaseline` reads as \"passed\"; on `claude/focused-brahmagupta-eajl5h` it failed 2 of 3 and passed once (the race `drive.js` documents at that helper, Nov 12). Fix: wait for the town page's own heading before the card, and make `e2e-baseline` count a non-zero exit with no parsed check as a failure (go-here-everywhere audit, Nov 16)\n"
+    }
+  ]
+}

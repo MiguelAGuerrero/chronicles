@@ -22,3 +22,15 @@ export function createOpeners<T>() {
     size: () => stack.length,
   };
 }
+
+/**
+ * An opener that opens only while its screen is in front (what-im-into-page audit 9): under a page pushed over it, it
+ * declines, so the caller keeps the thing for later, and the screen takes it once it is in front again.
+ */
+export function whileFocused<T>(focused: () => boolean, open: (x: T) => void): (x: T) => boolean {
+  return (x) => {
+    if (!focused()) return false;
+    open(x);
+    return true;
+  };
+}

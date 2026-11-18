@@ -554,6 +554,61 @@ async function wholeTowns(h) {
   }
 }
 
+// Where focus goes as a card closes on the web (tend explore 27; WCAG 2.2, 2.4.3 Focus Order), in the snap world's row of
+// neighborhoods (the atlas journey's town has one).
+async function focusBack(h) {
+  const { exploreUrl, check, freshPage, areaTile, snapWorld } = h;
+  const focused = (pg) => pg.evaluate(() => {
+    const a = document.activeElement;
+    return a ? { id: a.getAttribute('data-testid') || a.tagName.toLowerCase(), name: a.getAttribute('data-name') } : null;
+  });
+  const openFox = async (pg) => {
+    const fox = await areaTile(pg, 'Fox Point');
+    await fox.click().catch(() => {});
+    if (!(await pg.waitForSelector('[data-testid=atlas-card]', { timeout: 3000 }).catch(() => null))) await fox.click().catch(() => {});
+    return pg.waitForSelector('[data-testid=atlas-card]', { timeout: 15000 }).then(() => true, () => false);
+  };
+  snapWorld.serve = true;
+  const { c, pg } = await freshPage('carousel-focus');
+  try {
+    // tend explore audit 37: at 1280 the card is a side panel beside the row; choosing another tile closes it, and focus
+    // stays on the tile chosen, never taken back to the one that opened the card (the HTML dialog element gives focus back
+    // only from inside itself).
+    await pg.setViewportSize({ width: 1280, height: 844 });
+    await pg.goto(exploreUrl);
+    const up = await openFox(pg);
+    await pg.waitForTimeout(700);
+    const other = pg.locator('[data-testid=atlas-tile][data-level="neighborhood"]:not([data-name="Fox Point"])').first();
+    const otherName = await other.getAttribute('data-name', { timeout: 5000 }).catch(() => null);
+    if (otherName) await other.click().catch(() => {});
+    await pg.waitForTimeout(900);
+    const now = await focused(pg);
+    check(up && !!otherName && (await pg.locator('[data-testid=atlas-card]').count()) === 0 && now && now.id === 'atlas-tile' && now.name === otherName,
+      `tend explore audit 37: at 1280, choosing ${otherName} while Fox Point's side card is open closes it and leaves focus on ${otherName} (${JSON.stringify(now)})`);
+    // tend explore audit 40 (WCAG 2.2, 2.4.3; Material: focus returns to what initiated the action): at 390, a card opened
+    // through Next door gives focus back to that area's tile as it closes, the one selected, and the selection stays.
+    await pg.setViewportSize({ width: 390, height: 844 });
+    await pg.waitForTimeout(800);
+    const up2 = await openFox(pg);
+    await pg.waitForTimeout(700);
+    const chip = pg.locator('[data-testid=atlas-next-door]').first();
+    const hasChip = (await chip.count()) > 0;
+    if (hasChip) await chip.click().catch(() => {});
+    await pg.waitForTimeout(1200);
+    const shown = await pg.locator('[data-testid=atlas-card-name]').innerText().catch(() => null);
+    await pg.keyboard.press('Escape');
+    await pg.waitForTimeout(400);
+    const back = await focused(pg);
+    await pg.waitForTimeout(1500);
+    const sel = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=atlas-tile][data-selected="1"]')].map((e) => e.dataset.name));
+    check(up2 && hasChip && !!shown && shown !== 'Fox Point' && back && back.id === 'atlas-tile' && back.name === shown && sel.length === 1 && sel[0] === shown,
+      `tend explore audit 40: closing a card opened through Next door gives focus to ${shown}'s tile, and ${shown} stays selected (${JSON.stringify({ back, sel })})`);
+  } finally {
+    await c.close();
+    snapWorld.serve = false;
+  }
+}
+
 // The area card's footer at 390 and 320 (decision 0172): where you are, it is a status line in ink (tend explore 10); a far
 // town's question has a quiet "Not now" and no name line (tend explore 11).
 async function cardFooter(h) {
@@ -597,8 +652,20 @@ async function cardFooter(h) {
       if (!(await pg2.locator('[data-testid=atlas-card]').count())) await pg2.click('[data-testid=atlas-town-head]', { timeout: 30000 }).catch(() => {});
       await pg2.waitForSelector('[data-testid=atlas-card]', { timeout: 15000 }).catch(() => {});
       await pg2.waitForTimeout(700);
-      await pg2.click('[data-testid=atlas-walk]').catch(() => {});
+      // tend explore audit 41: pressed from the keyboard (Enter), so the ring a keyboard user sees is in the picture below.
+      await pg2.focus('[data-testid=atlas-walk]').catch(() => {});
+      await pg2.keyboard.press('Enter');
       await pg2.waitForTimeout(900);
+      // tend explore 27 (WCAG 2.2, 2.4.3 Focus Order): the question takes focus as it replaces the Walk to button pressed.
+      const askFocus = await pg2.evaluate(() => document.activeElement?.getAttribute('data-testid') ?? document.activeElement?.tagName ?? null);
+      check(askFocus === 'atlas-walk-now', `tend explore 27: at ${w}, the question takes focus, on Walk now, as it replaces the button (${askFocus})`);
+      // tend explore audit 41 (WCAG 2.2, 2.4.7 Focus Visible): from the keyboard, Walk now shows the focus ring.
+      const ring41 = await pg2.evaluate(() => {
+        const a = document.activeElement;
+        return a ? { visible: a.matches(':focus-visible'), outline: getComputedStyle(a).outlineStyle } : null;
+      });
+      check(askFocus === 'atlas-walk-now' && ring41 && ring41.visible && ring41.outline !== 'none',
+        `tend explore audit 41: at ${w}, the question opened by Enter shows the ring on Walk now (${JSON.stringify(ring41)})`);
       const asked = await pg2.evaluate(() => {
         const footer = document.querySelector('[data-testid=atlas-footer]');
         const cancel = document.querySelector('[data-testid=atlas-walk-cancel]');
@@ -645,6 +712,9 @@ async function cardFooter(h) {
       await pg2.waitForTimeout(500);
       check((await pg2.locator('[data-testid=atlas-walk]').count()) === 1 && (await pg2.locator('[data-testid=atlas-walk-now]').count()) === 0,
         `tend explore 11: at ${w}, Not now closes the question and leaves the card`);
+      // tend explore 27: Not now gives focus back to the Walk to button the question replaced.
+      const backFocus = await pg2.evaluate(() => document.activeElement?.getAttribute('data-testid') ?? document.activeElement?.tagName ?? null);
+      check(backFocus === 'atlas-walk', `tend explore 27: at ${w}, Not now gives focus back to Walk to (${backFocus})`);
     } finally {
       await c2.close();
       snapWorld.serve = false;
@@ -708,6 +778,7 @@ module.exports = {
     await townFramedOnce(h);
     await wholeTowns(h);
     await cardFooter(h);
+    await focusBack(h);
     await toastDwell(h);
   },
 };

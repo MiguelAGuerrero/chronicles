@@ -1,0 +1,69 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Stack with previous (SW1-SW22, decision 0197)",
+        "--new"
+      ],
+      "body": "- The mention scan for Stack with previous reads only the loaded feed (`MemoriesScreen`): before the page's read finishes it sees this sitting's entries alone, so a mention in an older note is unseen and Join may be offered. Fix: scan every note's body through one narrow `Db` read (stack-with-previous audit 7, low).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Stack with previous (SW1-SW22, decision 0197)"
+      ],
+      "body": "- An entry with no place yet counts as near for `previousFor` and `canJoin`: during a walk an unplaced entry can join a far moment and the stack's one place is then wrong. SW6 says so; the owner may want the place held on a walk, which waits for the entry's fix (stack-with-previous audit 8, low).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Stack with previous (SW1-SW22, decision 0197)"
+      ],
+      "body": "- The row's captions (11 px) and the grid's tile time bars (white on a 60% black ground) have not had their contrast measured against WCAG 1.4.3 (stack-with-previous audit 15, low); the cold finds placed Join at about 55% and the underlined map date at about 40%, both the owner's recorded defaults (audit 19).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Stack with previous (SW1-SW22, decision 0197)"
+      ],
+      "body": "- A notes-only stack has no Show all (the owner, Nov 18) and so no Take out on the page: its pieces can only be taken out through the viewer's More (Split out, Delete this piece). Delete for an entry is likewise only in the viewer's More. The cold find could not find either (stack-with-previous audit 16); revisit with a visible control if it hurts.\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Capture from Chronicle and the journal (HC1-HC15, decision 0112; JN1-JN24, decision 0155)"
+      ],
+      "body": "- [ ] **Do:** on a phone, tap Respond or Edit under an entry, and \"Take out\" under a piece of an expanded stack. **Expect:** the viewer opens on that action (Respond's kinds menu, the piece's editor, or the piece's More with Split out) inside the native Modal, via `CaptureViewer.intent` firing from a timer after mount, and a tile opens the viewer on its own piece (`startAt`) (SW2, SW4, SW12, SW21).\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Capture from Chronicle and the journal (HC1-HC15, decision 0112; JN1-JN24, decision 0155)"
+      ],
+      "body": "- [ ] **Do:** on a phone, Join an entry, force-quit the app inside the Undo window, then relaunch. **Expect:** the saved join runs once: the stack shows its pieces and the emptied entry is gone; and with a reaction added to the entry between the Join and the relaunch the join is skipped and the reaction stays (SW9, stack-with-previous audit 4). On SQLite `referencesTo` counts a reminder or find kept on a later piece (audit 5).\n"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "set",
+        "Stack with previous"
+      ],
+      "body": "| Stack with previous (a row of five captioned actions under every Chronicle entry: Reaction, Respond, Thread, Edit, Join; Join, \"Join with previous\", moves the entry just kept into the previous moment of the same day, same walk, within 100 m, with Undo and only while nothing points at it, re-checked when it is stored; a stack shown as a collapsible grid, Show all only with media behind it, Take out per piece; no More or reaction sign on entries; SW1-SW22, decision 0197) | built 2026-11-17, test-first by history (22 of 22); journeys green on the headless web build; the grid only on Chronicle's page; native unverified | `claude/jolly-faraday-8kcyum` | `specs/stack-with-previous/spec.md` | audited (Nov 17): 20 findings, 10 accepted and fixed (`stack-with-previous audit 1-5, 9-11, 13, 16, 17`), 4 deferred low, 4 rejected; two cold finds |\n",
+      "target": "sha256:b481a34b34b7e115b7eccf2b3e58e8e20da2a4967eccb2d44084f55c52e36bb3"
+    }
+  ]
+}

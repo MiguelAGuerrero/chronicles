@@ -76,7 +76,8 @@ needs quoting; never edit these files with Edit, Write or sed.
 - **What the run did not file is the owner's.** Removing or rewriting an entry this run did not add
   (`inbox remove`/`set`, `open remove`/`set`, `section item remove`/`set`, `item remove`/`set`/`retag`)
   needs `--reason "<why>"`, which goes into the trailer, and a commit does it to at most two entries per
-  section. A tag moves only toward `[owner]`, `[arch]` or `[kept]`. A shipped item is removed (`item
+  section. A tag moves only toward `[owner]`, `[arch]` or `[kept]`, or from `[loop]` to `[phone]` (the
+  owner's check on a device), never from `[owner]` or `[arch]` to `[loop]`. A shipped item is removed (`item
   remove`), never struck through; a line that amends an entry is appended (`note`); a reworded one is
   `set`, with its reason. An `inbox set` keeps every line an earlier `inbox note` added to the entry, word
   for word and in order (the owner's answers): an answer is added to with `inbox note`, never rewritten.
@@ -88,8 +89,10 @@ needs quoting; never edit these files with Edit, Write or sed.
 - **Before the commit:** `npm run check:records -- origin/main` (the commits since `main` and the
   working tree with its pending operations). It names each change no operation makes. A commit that
   fails and is not pushed yet is made again: `git reset --soft HEAD~1` (the last commit), `git checkout
-  HEAD -- <the documents>`, the operations, the commit. A commit already on `main` stays (`main` is never
-  rewritten); the next push carries the record through operations.
+  HEAD -- <the documents>`, `git rm -q --cached <its sidecar>` and remove the file (else it reads as
+  pending, and the operations made again are refused or stack on it), the operations, the commit. A
+  commit already on `main` stays (`main` is never rewritten); the next push carries the record through
+  operations.
 - **On a rebase conflict** in them, in the commit being replayed (its sidecar is pending again), take
   `main`'s side of the three documents and the ledger and run `npm run records -- redo`: it runs the
   commit's operations again on `HEAD`'s documents, an inbox entry numbering on from `main`'s ledger
@@ -170,7 +173,12 @@ with the checks the calling skill names.
 
 1. The worktree holds only this run's commits.
 2. `git fetch origin main`; if `main` moved, rebase `<branch>`, run the caller's checks again, and only
-   then continue. On a conflict, stop and keep the branch. The checks include `node scripts/tend.js
+   then continue. On a conflict, stop: push `<branch>` and keep it for the owner ("Clean up", pushed
+   for review), with one exception: a source conflict confined
+   to imports and comments, where the two sides mean independent things, may be resolved by the run, with
+   a test that proves the two changes independent (it fails if either side's change is lost); the run
+   reports it as a stop ruled through, with the files and the test. Anything else, or a conflict in the
+   record documents (`/tend` section 10), keeps its own rule. The checks include `node scripts/tend.js
    commits --loop-only origin/main..HEAD`, what CI runs: a commit of the branch made before the record
    gate landed and hand-editing the documents is refused there by name, with how to mend it ("The
    record documents"). A decision record of the branch, in the worktree: `npm run book:next-decision --
@@ -205,9 +213,11 @@ reverts, and your trailers: the record gate accepts it when its documents are ex
 undone and their sidecars deleted, nothing else. A fix-forward that takes a slice's row back out uses
 `npm run records -- slice row remove <match>`, which undoes only a row the same range added.
 
-After a revert, diagnose: reproduce the failure locally with the job's own command, name the cause,
-and put a corrected change on `<branch>-retry` with the failing check passing. Push that branch, not
-`main`; the grant is spent. Report the cause, the branch, and what you would change.
+After a revert, diagnose: reproduce the failure locally with the job's own command, red at rest, k of n
+runs on both ends (the base and the head), before naming a cause or bisecting (a load-dependent red is
+a check race until shown otherwise); name the cause, and put a corrected change on `<branch>-retry`
+with the failing check passing. Push that branch, not `main`; the grant is spent. Report the cause,
+the branch, and what you would change.
 
 ## Clean up
 
@@ -229,11 +239,14 @@ Every run ends here, whatever happened. Remove only the worktree and branches th
 
 | Outcome | Local branch | Remote branch |
 |---|---|---|
-| Pushed for review (no grant to publish, or parked by an open finding) | delete (`git fetch origin <branch>` brings it back) | keep: it is what the owner reviews |
+| Pushed for review (no grant to publish, parked by an open finding, or stopped on a conflict) | delete (`git fetch origin <branch>` brings it back) | keep: it is what the owner reviews |
 | Published, Pages green, live check done | delete | delete (`git push origin --delete <branch>`): it is merged and carries nothing |
 | Reverted, diagnosis pushed | delete | keep `<branch>-retry`; delete `<branch>` |
-| Scrapped (cannot reproduce, hard stop declined, three failures, conflict) | delete | delete if you had pushed it, after saving any patch |
+| Scrapped (cannot reproduce, hard stop declined, three failures) | delete | delete if you had pushed it, after saving any patch |
 | Nothing pushed by choice | delete after the patch is saved | none |
+
+   A remote deletion the session's proxy refuses is reported to the owner (the branch and the refusal),
+   never retried.
 
 5. `git worktree prune`, then confirm nothing of this run remains. The worktree is gone and the primary
    checkout may predate the script, so read `main`'s scripts into `<main-scripts>` (a scratchpad folder;

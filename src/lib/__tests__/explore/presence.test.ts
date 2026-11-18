@@ -124,10 +124,14 @@ test('PK14: MARKABLE_CLASSES re-pinned with the community centre by name', () =>
     [
       // specs/presence PR5 (decision 0140): arts and community centres, memorials, nature reserves and viewpoints by their own class.
       'aquarium:viewpoints', 'art_gallery:art', 'art_gallery:culture', 'arts_centre:culture', 'attraction:viewpoints', 'castle:history',
+      // explore-subtypes XS12 (decision 0191): the map's ruins are Ruins, under Viewpoints & oddities.
+      'castle:viewpoints',
       'cemetery:history (by name)', 'community_centre:culture (by name)', 'garden:parks', 'library:culture (by name)',
       'memorial:history (by name)', 'monument:history', 'museum:culture', 'nature_reserve:parks (by name)',
       'park:parks', 'park:parks (by name)', 'place_of_worship:history (by name)', 'theatre:culture', 'theme_park:viewpoints', 'town_hall:culture (by name)',
-      'town_hall:history (by name)', 'viewpoint:viewpoints', 'zoo:viewpoints',
+      'town_hall:history (by name)', 'viewpoint:viewpoints',
+      // more-attractions audit 1 (the owner, Nov 18): a water park is an amusement park, a place to find as a theme park is.
+      'water_park:viewpoints', 'zoo:viewpoints',
     ],
   );
 });

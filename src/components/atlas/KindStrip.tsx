@@ -1,5 +1,6 @@
+import { Fragment } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { ATLAS_LABEL, ATLAS_ORDER, STEP_WORDS, type Step, type Steps } from '../../lib/atlas/atlas';
+import { ATLAS_LABEL, groupsPresent, STEP_WORDS, STRIP, type Step, type Steps } from '../../lib/atlas/atlas';
 import type { CategoryId } from '../../lib/discovery/types';
 import { Icon } from '../icons';
 import { theme } from '../ui';
@@ -28,21 +29,29 @@ export function Dots(props: { step: Step; color: string; size?: number }) {
 }
 
 /**
- * A tile's kinds (AT3, atlas round 3): only the kinds present, each an icon
- * with its dots, in the fixed order; all eight are on the area's card.
+ * A tile's kinds (AT3, atlas round 3): only the kinds present, each an icon with its dots, in the fixed order; all eight
+ * are on the area's card. SG2 (decisions 0200, 0201): Sights, then Local life, set apart by space alone, never a word.
  */
 export function KindStrip(props: { steps: Steps | null; testID?: string; /** One line, never two: a card's height must not follow its kinds. */ nowrap?: boolean }) {
-  const present = ATLAS_ORDER.filter((c) => (props.steps?.[c] ?? 0) > 0);
   if (!props.steps) {
     return <View style={styles.row} testID={props.testID}><View style={styles.placeholder} /></View>;
   }
+  const steps = props.steps;
   return (
-    <View style={[styles.row, props.nowrap && styles.nowrap]} testID={props.testID} accessible={false} importantForAccessibility="no-hide-descendants">
-      {present.map((c) => (
-        <View key={c} style={styles.chip} {...{ dataSet: { kind: c, step: String(props.steps![c]) } }}>
-          <Icon name={KIND_ICON_OF[c]} size={18} color={KIND_COLOR[c]} />
-          <Dots step={props.steps![c]} color={KIND_COLOR[c]} size={5} />
+    <View style={[styles.row, styles.groups, props.nowrap && styles.nowrap]} testID={props.testID} accessible={false} importantForAccessibility="no-hide-descendants">
+      {groupsPresent(steps).map((g, i) => (
+        <Fragment key={g.id}>
+        {/* SG14 (decision 0202): a hairline in the space between the groups, only when both are present. */}
+        {i > 0 && <View style={styles.line} testID="atlas-strip-line" />}
+        <View style={[styles.group, props.nowrap && styles.nowrap]} testID={`atlas-strip-${g.id}`}>
+          {g.kinds.map((c) => (
+            <View key={c} style={styles.chip} {...{ dataSet: { kind: c, step: String(steps[c]) } }}>
+              <Icon name={KIND_ICON_OF[c]} size={18} color={KIND_COLOR[c]} />
+              <Dots step={steps[c]} color={KIND_COLOR[c]} size={5} />
+            </View>
+          ))}
         </View>
+        </Fragment>
       ))}
     </View>
   );
@@ -93,9 +102,13 @@ export function KindRow(props: { kind: CategoryId; step: Step; testID?: string; 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, minHeight: 30 },
   placeholder: { height: 30 },
-  // Eight kinds at 22 + 6 apart fit a 320 px phone's card (218 of 224 px).
-  nowrap: { flexWrap: 'nowrap', gap: 6 },
-  chip: { alignItems: 'center', gap: 3, minWidth: 22 },
+  // SG2: eight kinds, 4 apart within a group and 16 between the groups, fit a selected tile on a 320 px phone (216 of 222 px).
+  // The groups' space is the line's margins, so the line stands in its middle (SG14).
+  groups: { gap: 0 },
+  line: { width: STRIP.line, alignSelf: 'stretch', marginVertical: 2, marginHorizontal: (STRIP.groupGap - STRIP.line) / 2, backgroundColor: theme.edge },
+  group: { flexDirection: 'row', flexWrap: 'wrap', gap: STRIP.gap },
+  nowrap: { flexWrap: 'nowrap' },
+  chip: { alignItems: 'center', gap: 3, minWidth: STRIP.chip },
   dots: { flexDirection: 'row', gap: 2, alignItems: 'center' },
   kindRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6 },
   kindLine: { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'stretch' },

@@ -1,0 +1,39 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "set",
+        "Plan an outing's cold find and UI review ran",
+        "--reason",
+        "The journey outing now has the Books, Thrifting, Include chains across a reload and second Swap steps (QC21, QC41, QC42)"
+      ],
+      "body": "- Plan an outing's cold find and UI review ran (Nov 17; findings U1-U10 triaged in `specs/quick-circuit/spec.md`, Record): four fixed behind `quick-circuit ui 1-4`; left: the stop dots wear the planner's magenta pin colour, which may read as \"found\" (the owner's call on a different colour), the empty page's map is blank in the e2e's fake basemap, a hint beside the search box, and the order of the controls (Start now pinned). The journey now covers Books from a served stores pack, Thrifting, Include chains across a reload and a second Swap (QC32)\n",
+      "target": "sha256:54a6253be2e426d6d3873ca4668507f4cabbb92d8e3796525c09f1892d7bc217"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "set",
+        "no basemap label near a stop names the shop",
+        "--reason",
+        "The basemap filter is built (hideLabels); the item now asks for the device look at it (QC24)"
+      ],
+      "body": "- [ ] **Do:** on a phone, on the outing page, look at the map around the proposed route and its stop points, in a street with shops; then press Start and walk the proposal, looking at the walk's map the same way. **Expect:** no basemap shop or point-of-interest label is drawn on either map (`WalkMap` hides the base source's `poi` layer with `setSourceVisibility(false, 'openmaptiles', 'poi')`, assuming Positron's source is named `openmaptiles`, which the web build confirms); street names stay; a stop is a plain unlabelled point; Explore's and the walk's ordinary maps still draw their shop labels again after the page closes or the walk ends; and the walk still reads its marks and streets (the app's own `omt-query` source is not hidden). A printed shop name, or a missing street name, is a finding. (QC24)\n",
+      "target": "sha256:dc8429dac17bc0588f13381d1411a6841b416e968ded7ceef064521bd20a0aa2"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Plan an outing",
+        "--after",
+        "basemap shop or point-of-interest label"
+      ],
+      "body": "- [ ] **Do:** on a phone, once chronicles-data has published a stores pack and its manifest lists it, open the outing page near it with data on, pick Books (or any entry the pack carries); then repeat in airplane mode and with the pack's host blocked. **Expect:** a proposal whose stops come from the pack (a tap names a shop the tiles do not hold), after one manifest read and byte-range reads of the one stores file (`net/tileReader`, `PMTiles` over `net.source`), made only after the pick, never on opening the page or on Explore; with no network, a missing file or an older manifest the page still proposes from the tiles' shops (Antiques, Books and Thrifting's charity shops have tile fallbacks) and says nothing of the failed read. Not yet run against any real pack: the web build was checked over the contract's example pack and a served one. (QC14, QC29)\n"
+    }
+  ]
+}

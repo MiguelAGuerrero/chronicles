@@ -1,0 +1,20 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "slice",
+        "row",
+        "add"
+      ],
+      "body": "| The map's palette, Earth and ink (walked streets and the end marker in a blue-violet ink `#5b5d9f`, apart from the accent; the trace green as before; photo verdigris, video madder, voice memo raw umber, note stone, a pin of several charcoal; the replay's stage follows; the magenta's rule narrowed to lines, fills and labels; T22 answered; MP1-MP14, decision 0188) | built 2026-11-17 on the owner's answers in person (Nov 17), test-first by history (13 of 13; MP13 device-only): unit tests (2762), typecheck, lint, docs, vision and records checks; e2e `palette` (new), `qol`, `replay` and `launch` on the rebased export; steward lens triaged in the plan (S1-S4, three to the owner); UI review one round, cold read every pin a pin (the stone note late): 1 accepted (`map-palette ui 1`, a test), 3 deferred (U1, U3, U4, the owner's \"Ship as picked, file them\"), 0 rejected; the borders filed as T33; native unverified (MP13); published to main on the owner's go-ahead | `slice/map-palette-20261117-0409` | `specs/map-palette/spec.md` (repo first) | no (UI review only) |\n"
+    },
+    {
+      "argv": [
+        "inflight",
+        "remove",
+        "Earth and ink"
+      ],
+      "target": "sha256:2689273c80c823f7a6e55948be34f37c56abb12309c5e8c6c95ea1008e19bf20"
+    }
+  ]
+}

@@ -15,12 +15,10 @@ export function gridLayout(n: number): { cols: number; rows: number; shown: numb
 }
 
 /**
- * How long a grid is up: each piece swipes in a beat after the one before, then the grid holds one photo slot (or a
- * muted video's kept length, if longer), and a grid past nine scrolls on top. Grow and tuck are inside the photo
- * slot, as a lone photo's are.
+ * How long a grid is up (RY4): it grows, each piece swipes in a beat after the one before, then it stays `gridHold`
+ * (or a muted video's kept length, if longer), a grid past nine scrolls on top, and it tucks away.
  */
 export function gridDuration(n: number, longestVideoMs: number): number {
-  const swipe = Math.max(0, Math.min(n, GRID_MAX) - 1) * R.gridStagger;
-  const hold = Math.max(R.photo, longestVideoMs + R.grow + R.tuck);
-  return swipe + hold + (n > GRID_MAX ? R.gridScroll : 0);
+  const swipe = Math.max(0, Math.min(n, GRID_MAX) - 1) * R.gridStagger + R.bubbleIn;
+  return R.grow + swipe + Math.max(R.gridHold, longestVideoMs) + (n > GRID_MAX ? R.gridScroll : 0) + R.tuck;
 }

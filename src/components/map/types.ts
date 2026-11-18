@@ -55,20 +55,37 @@ export const HOTSPOT_INK = '#86145a';
  */
 export const FOG_STYLE = { opacity: 0.5, widthMin: 1, widthMax: 2.5, traceWidth: 4.5, edgeWidth: 7.5 } as const;
 
+/**
+ * The map's palette, "Earth and ink" (the owner's pick, Nov 17, decision 0188; map-palette MP2): the walked streets
+ * and the end in a blue-violet ink, apart from the accent (decision 0153); the kinds in earth pigments; a pin of
+ * several on charcoal. `map/palette.test.ts` holds the contrasts, the colour-blind floor and the accent's distance.
+ */
 export const COLORS = {
   fog: '#8b939e',
-  walked: '#c2410c',
+  /** The walked streets on the replay, and the end marker: ink. */
+  walked: '#5b5d9f',
   /** Where you walked: green (the owner's call), on a white edge. */
   trace: '#15803d',
   /** A route being navigated: map-navigation blue, with a white edge (N6). */
   route: '#2563eb',
   walker: '#1d3557',
-  photo: '#0f766e',
-  video: '#b42318',
-  voice: '#7b2cbf',
-  text: '#a16207',
+  /** A photo, and a moment of several pieces: verdigris. */
+  photo: '#286766',
+  /** Madder: a dark disc, 15 or more from the hotspot magenta (MP8). */
+  video: '#87244e',
+  /** Raw umber. */
+  voice: '#544516',
+  /** Stone. */
+  text: '#7b7469',
+  /** A pin of several moments' head: charcoal, under its kinds' discs. */
+  several: '#31352f',
   veil: '#d7dbe0',
 };
+
+/** The trace's white edge, as a share of the trace's own opacity, on both maps. */
+export const TRACE_EDGE_OPACITY = 0.9;
+/** The trace on the replay's first beats (the fog and the reading), faint under the lit streets. */
+export const QUIET_TRACE_OPACITY = 0.3;
 
 export interface Padding {
   top: number;
@@ -225,10 +242,17 @@ export interface WalkMapProps {
   initialZoom?: number;
   /** Greys the base map so walked streets stand out. */
   veil?: boolean;
+  /** The town borders over the veil, at a lighter fill (the replay and a day; decision 0199). */
+  bordersOverVeil?: boolean;
   /** Draws the fog (unwalked streets) bold, to find them at a glance. */
   fogEmphasis?: boolean;
   /** Hides the map behind an opaque cover, e.g. while the camera steps through views. */
   covered?: boolean;
+  /**
+   * The base map draws no shop or place-of-interest labels (QC24: the outing's page and a walk following an outing, where a stop is a
+   * plain point and nothing near it says what is there). Street, water and place-name labels stay.
+   */
+  hideLabels?: boolean;
   /** A press on the map, with how far around it counts as "here" at the current zoom. */
   onPress?: (lngLat: LngLat, radiusM: number) => void;
   /** A long press on the map (about half a second), with the same reach as onPress. */
@@ -499,6 +523,19 @@ export const STOREFRONT_NAME_FONT = ['Noto Sans Bold'];
 export const BASE_FIRST_LABEL = 'waterway_line_label';
 
 /**
+ * QC24: the base style's vector source and the source layer its shop and point-of-interest labels are drawn from. The web hides the
+ * style's symbol layers of that source layer (`poiLabelLayers`); native, which cannot read the style, hides the source layer itself
+ * (`setSourceVisibility`, unverified on a device). The app's own query source (`omt-query`) is another source and is left alone.
+ */
+export const BASE_VECTOR_SOURCE = 'openmaptiles';
+export const POI_SOURCE_LAYER = 'poi';
+
+/** QC24: the ids of a style's symbol layers that draw points of interest (shops among them), whatever the style names them. */
+export function poiLabelLayers(layers: readonly { id: string; type: string; 'source-layer'?: string }[]): string[] {
+  return layers.filter((l) => l.type === 'symbol' && l['source-layer'] === POI_SOURCE_LAYER).map((l) => l.id);
+}
+
+/**
  * A stale area's names (DC6, explore-dense-city ui 1): a greyer ink at full opacity, 5.4:1 on the halo and 4.5:1 on the
  * bare base map. Dimming the text would dim its halo too, under 3:1.
  */
@@ -673,10 +710,11 @@ export const RING_COLOR = '#1a73e8';
  * Town borders (TB1-TB10): the town you're in (or a walk's towns) tinted with a firm edge, the
  * others in a grey line. The fill is under the streets, so the map reads through it; the lines are
  * over the streets, under the labels, since a border often runs along a road (TB10, Nov 4: at 7%
- * under the streets, the owner saw nothing on a phone).
+ * under the streets, the owner saw nothing on a phone). On the replay and a day both draw over the world's veil
+ * (`borderMoves`, `borderFillOpacity`). Cocoa, apart from the accent (the owner's answer to T33, Nov 17; decision 0199).
  */
 export const BORDER = {
-  color: '#c2410c',
+  color: '#6e4f3f',
   fillOpacity: 0.12,
   firmWidth: 3,
   firmOpacity: 0.9,
@@ -686,6 +724,24 @@ export const BORDER = {
   /** Borders show from this zoom: below it a town is too small to read as a region (TB3). */
   minZoom: 8,
 } as const;
+
+/**
+ * How the web moves the borders' layers against the world's veil (decision 0199), as `[layer, before]` pairs. Over it on
+ * the replay and a day while the veil is on (the owner's "Borders above the veil"): the veil just under the borders'
+ * lines and the fill between them, so the edge and the tint keep TB8's and TB10's contrast. Elsewhere, the walk screen's
+ * unwalked veil among them (tend map audit 39), as before: the lines under the veil and the fill under the base map's
+ * first street (TB8), or just under the lines with no street layer.
+ */
+export function borderMoves(overVeil: boolean, firstRoad: string | undefined): [string, string][] {
+  return overVeil
+    ? [['veil', 'border-lined'], ['border-fill', 'border-lined']]
+    : [['border-lined', 'veil'], ['border-firm', 'veil'], ['border-fill', firstRoad ?? 'border-lined']];
+}
+
+/** The fill's opacity: lighter over the veil, so a label on the tint keeps 4:1 (the owner, Nov 17: "Lighten the fill on veiled maps"). */
+export function borderFillOpacity(overVeil: boolean): number {
+  return overVeil ? 0.11 : BORDER.fillOpacity;
+}
 
 /** The borders a map draws (TB1-TB5), one feature per town with its role, id and name only (TB3). */
 export function bordersGeoJSON(view: BorderView | null | undefined): GeoJSON.FeatureCollection {
@@ -753,7 +809,7 @@ export function marksGeoJSON(marks: LngLat[] | undefined): GeoJSON.FeatureCollec
  * the first layer (`ends-ring`), draws the start and the end's walked outer ring with a thin white edge that keeps it
  * off the walked streets and the trace it stands on; the start comes first in `endsGeoJSON`, so a walk that ends on
  * its start keeps the end's ring over it (tend map audit 25). One width across, 22 px, the start's and the end's. No
- * new hue: the end takes the walked streets' colour (T22, a walked colour apart from the accent, is open).
+ * new hue: the end takes the walked streets' colour, apart from the accent since T22 (decision 0188).
  */
 export const ENDS_RING_PAINT = {
   'circle-color': ['match', ['get', 'kind'], 'start', '#ffffff', COLORS.walked],

@@ -1,0 +1,124 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Replay pace (RY1-RY22, decision 0203)",
+        "--new"
+      ],
+      "body": "- The numbers are the second prototype's \"Proposed\" settings (https://claude.ai/artifact/7oLxtuZMhpvXd18H4BLR5P) until the owner sends tuned ones; only `REPLAY_RHYTHM` changes\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Replay pace (RY1-RY22",
+        "--end"
+      ],
+      "body": "- [owner] The owner's leanings for the rework's later slices (Nov 18; `specs/replay-pace/spec.md`, Decisions), none built and each to go through `/vision` before its own spec: a break as a pull-back and a slide across a dotted hop with no dim; a wider walking zoom with a camera that holds then re-frames (it first needs the owner's call on how the map is driven, `docs/research/replay-ceremony-direction-audit.md`, the auditor's F1); the replay flowing in from the whole walk and closing on it; a photo staying on its pin and in a stack at the edge, one entry a moment, the oldest dropping off (amends RR11); a moment's videos and memos one after another, not in the grid (amends MS17); captions in the replay under memos and videos (extends 0169)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Replay pace (RY1-RY22",
+        "--end"
+      ],
+      "body": "- Left out on purpose: the map dimming under a photo and a held photo's slow drift (two reviewers disagreed; the owner's to see in the prototype); going back a moment (a press of Next mid-memo cuts it, as Skip does); taking a replay up again after a reload; a ceiling on length (the owner chose Next instead); sound that leads or trails its picture (it needs a player made before its slot)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Replay pace (RY1-RY22",
+        "--end"
+      ],
+      "body": "- [owner] The cold finds (Nov 18, two passes, pictures only) could not tell what Skip skips: \"skip this stretch\" was the first reading, and a wrong tap ends the replay with no way back; \"Hold\" was found only by elimination (\"press and hold\", or \"keep this\"). Next now says its word beside it, which is what the owner's \"a chevron, tested\" asked for; whether Skip should say where it goes (\"To the end\") and Hold say Pause is a wording call across both replays\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Replay pace (RY1-RY22",
+        "--end"
+      ],
+      "body": "- [loop] From the UI review (Nov 18, low): Next sits 8 px under Skip (Material's 8 dp; the HIG asks about 12 for bezelled buttons), and its foot (y 116) is 2 px above a card's highest top (`STACK_TOP` 118) on a 320 to 375 px phone, so more gap means raising `STACK_TOP`; no journey pictures the long line under the clock (\"Passed … without stopping\", RY21) at 320 px, held or not: the room is arithmetic (`STAGE_SIDE`, `replay-pace ui 2`, `ui 3`), and a 360 x 640 picture was asked for too\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Replay pace (RY1-RY22",
+        "--end"
+      ],
+      "body": "- A press that jumps several passed places says each for its 2.6 s, one after another, under the clock, so three places are almost 8 s of lines; nothing shortens that (RY21). On one walk more than two are already one line (RP19); a day of several walks can still say several\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "The 60 s cap shrinks a grid below its video",
+        "--reason",
+        "the cap and fitCap are gone (replay pace RY10, decision 0203): a grid keeps its video's length (pace.test.ts RY4)"
+      ],
+      "target": "sha256:0df61727e5abb6488d9352a46a2d82af3cecd68b1c2445a015a270b383bc1f80"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Replay pace (RY1-RY22)",
+        "--new"
+      ],
+      "body": "- [ ] **Do:** replay a walk with three or more moments; press Next during a stretch, then again while a voice memo plays, then with the replay held. **Expect:** each press shows the next moment within a second; the memo's sound stops at once; held, it stays held (Hold reads Play) and Play goes on from there; after the last moment Next is gone and Skip remains. (RY13, RY14, RY15, RY16, RY17)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Replay pace (RY1-RY22)",
+        "--end"
+      ],
+      "body": "- [ ] **Do:** with VoiceOver or TalkBack on, open a walk's replay and a day's. **Expect:** the steps with Continue, one moment at a time, as before; no Next button anywhere. (RY20)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Replay pace (RY1-RY22)",
+        "--end"
+      ],
+      "body": "- [ ] **Do:** replay a walk with a photo on its own, a 10 s voice memo and a video, with no touch. **Expect:** the photo stays fully shown about 4.5 s (the first one about 5.4 s); the walker stands about a second after the memo's last word; the video's card stands about a second after it ends; the screen stays awake through the whole replay, minutes long (expo-keep-awake). (RY1, RY2, RY6)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Replay pace (RY1-RY22)",
+        "--end"
+      ],
+      "body": "- [ ] **Do:** on an iPhone SE or mini (375 pt wide), replay a walk past a place it passed and across a break, pressing Next over both. **Expect:** \"N min later\", then \"Passed … without stopping\", show under the clock between Hold and the Skip and Next column, wrapped, over no button and no card. (RY21)\n"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "add",
+        "--top"
+      ],
+      "body": "| Replay pace (the first slice of the replay's rework: a photo on its own fully shown 4.5 s, the first and one after 550 m a fifth longer, photos at one stop tightening with the last whole again; a moment's grid held 5 s; a note's wait by the word and its bubble never taken before it could be read; a second of quiet after a memo or video; a steady walker; no 60 s cap; a Next button under Skip, on both replays, that goes to the next moment, counts nothing and never edits out the lows; decision 0203) | built 2026-11-18 on `claude/funny-bohr-ztvwgv`, test-first in the history's order (see the spec's record on `check:test-first`), steward on the plan, a cold find twice and a UI review on the pictures; native not run on a device | the slice's commits on `claude/funny-bohr-ztvwgv`, 2026-11-18 | `specs/replay-pace/spec.md` (RY1-RY22) | no (the direction was audited before the spec: `docs/research/replay-ceremony-direction-audit.md`) |\n"
+    }
+  ]
+}

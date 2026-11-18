@@ -1,0 +1,64 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "A memo that fails to save as the screen unmounts",
+        "--reason",
+        "shipped as unsaved-captures UN1, UN9, UN13: one app-wide holder keeps it and the next screen in front says it"
+      ],
+      "target": "sha256:f63e20b22beeeb5cafb44957096da65bc10ffde1c035f089c9c796d7aa7bd32d"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "The recording bar's Stop ends the walk without a photo the bar holds",
+        "--reason",
+        "shipped as unsaved-captures UN5-UN8: the bar's Stop warns of every held capture of the walk, in words that fit and promise no Retry on the bar"
+      ],
+      "target": "sha256:ccff8141f12bbfe26867c75be2ed645de0df0b7ed67bcc75003eb9415f6bbdc9"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "Held captures live in memory"
+      ],
+      "body": "  Unsaved captures (UN1-UN15, decision 0194): leaving a screen no longer drops a held capture; one app-wide holder keeps it while the app is open. A reload or a closed app still does.\n",
+      "target": "sha256:6ef4442133c7b63cc6f9f62312ad3dc9ea5d32c2f0ca0b467265baf178a871de"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "Retry on the recording bar's camera"
+      ],
+      "body": "  Unsaved captures (UN10): the bar's camera now says where its Retry is (\"… held for Retry on the walk screen.\"), and the held photo shows on Memories' open line and the walk screen with Retry.\n",
+      "target": "sha256:b744e0886784c0e33e73866f2c483799f39348185477b5f2367a77622aeef88f"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Media and capture"
+      ],
+      "body": "- [ ] **Do:** on an iPhone and an Android phone with the storage nearly full, take a photo and record a memo on Navigate's ready screen so both fail to save; tap the chevron, open Memories, then Navigate again, then Start; free some room and tap Retry on the walk screen; then record a memo on the walk that fails, Minimize, open the app's other tabs, return and Retry. **Expect:** both pills (\"Photo not saved\", \"Voice memo not saved\") on Memories, Navigate, ready and the walk screen until Retry; the picker's and the recorder's files outlive the screen that took them and the next memo's prepare (expo-audio 58 names a new file per prepare and deletes none on release); Retry keeps the ready screen's two as moments of their own and the walk's memo in the walk, each plays back. Never run on a phone. (UN1, UN2, UN4)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Media and capture"
+      ],
+      "body": "- [ ] **Do:** on an iPhone, on a walk with a photo held (storage full), minimize and hold the recording bar's Stop, then hold it again; on another walk, hold the walk screen's Stop twice with a memo held; then force-quit the app with a capture held outside a walk and reopen it. **Expect:** the first hold says \"Not saved yet. Hold Stop again to end without it.\" whole in the bar and the walk goes on, the Stop's fill empty; the second hold ends the walk and the held files are gone from the app's documents and caches; after the force-quit nothing is held or shown, and no file of it is left in the documents folder (the cache is the system's to clear). Never run on a phone. (UN5, UN6, UN7, UN8, UN15)\n"
+    }
+  ]
+}

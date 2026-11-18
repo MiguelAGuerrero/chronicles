@@ -1,0 +1,40 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "With no place in front while a walk is minimized",
+        "--reason",
+        "built: tend explore 24 (4eab2965, a fire no place takes with the app in front waits for the next place in front) and tend explore audits 28-31 (956fe52c, what waits becomes a notification as the app goes behind; moments in Undo left out), in this run"
+      ],
+      "target": "sha256:2b8e20b92fb5aa0b9dba24324062594138e14dc445f3621d6b0fa13981dc6a8f"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Reminders and notifications"
+      ],
+      "body": "- [loop] The memories journey's `tend explore audit 23` step (the bars folded under an area's card, then Walk to) missed the card in 2 of 3 runs on Nov 18: the atlas row held only \"Fox Point\" when read, and four taps on its tile opened no card (\"area\":null), so no fire and no hand-on were checked; the third run passed. Wait for the row to settle (more than one tile, or a fixed area with a Walk to) before reading it, or retry the tile with a longer wait (`scripts/e2e/journeys/memories.js`; seen by `/tend explore`, Nov 18, in the run of `tend explore 24`; low)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Notifications"
+      ],
+      "body": "- [ ] **Do:** since `tend explore 24` and `tend explore audits 28-31` (Nov 18), set Remind me here (\"Once\") on two moments at one spot. On a later walk, minimize it, open an older walk's replay from Chronicle's Walks, pass the spot, then close the replay; again with a day open in place of the replay; again pressing Home a few seconds after passing the spot with the replay still up; again pulling down Control Center (iOS) or the shade (Android) with the replay up, letting it go, then closing the replay; again force-quitting from the app switcher with the replay up a few seconds after passing the spot, then relaunching; again with the app killed by the system and the location task relaunching it headless (iOS relaunch, Android headless JS) before the spot. **Expect:** with the replay or the day up nothing goes to the notification list, and the bar shows \"Two memories here\" once it closes (`take`); Home brings one notification \"Two memories here\" at once, and nothing shows on the bar on return (`drain` on 'background'); Control Center or the shade ('inactive' only) brings no notification, and the bar shows it once the replay closes; force-quit with the replay up: the reminder is lost (kept in memory only, recorded in `.claude/rules/explore-marks.md`), but force-quit after Home keeps the notification; relaunched headless, AppState reads other than 'active' and the fire is a notification. (R3, NV8)\n"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 18, `/tend explore --deploy=main`, a reminder fired with no place in front** (opened from `c9158393`, rebased on `cddeca40`; no sweep, lenses 1-7 not run; aimed at DEFERRED's `[loop]` medium of Nov 17 in \"Reminders and notifications\"; the faster lane of decision 0181).\n- The item: with a walk minimized and an older walk's replay or a day over the tabs, a Remind me here fired went to a notification, which the web does not show with the page in front (a phone only lists it), and was marked fired all the same. When a reminder counts as fired is unchanged.\n- `tend explore 24`: a fire no place in front takes with the app in front waits, as a handed-on one does, for the next place in front of its walk (`take` in `createRecallPlaces`); the memories journey closes a replay over the tabs and the bar says \"Two memories here\".\n- The review (one round, the `auditor`; one high, one medium, three low; five accepted, none deferred or rejected): `tend explore audit 28` (high: what waits becomes a notification as the app goes to 'background', merged with what was notified of the walk since it was last in front: `drain`, `front`), `audit 29` (what waits leaves out moments gone into Undo), `audit 30` (the web's hidden page, in the memories journey), `audit 31` (`places.fire` gone; the tests hold `take`), and the launch cover struck from `take`'s words, in one commit. Lines added to `explore-marks.md`; the second supersedes the first.\n- Filed: `[loop]` low, the memories journey's `tend explore audit 23` step missing the area card in 2 of 3 runs; a native check under Notifications (a replay, a day, Home, Control Center, a force-quit, a headless relaunch). The item built left DEFERRED.\n- Journeys: `memories` (24 and audit 30 ok; audit 23's area-card step missed twice, before them in the first run), `launch`; typecheck, lint, `npm test`. Not run: the sweep's lenses and the balance's evolve. Nothing here has run on a phone: AppState's 'background', the notification list and the location task's relaunch are native.\n"
+    }
+  ]
+}

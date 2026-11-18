@@ -284,6 +284,11 @@ async function run(h) {
       await pg.waitForTimeout(400);
       await shot(pg, '44-viewer-more-go');
       check(await pg.locator('[data-testid=viewer-menu] [data-testid=viewer-go]').isVisible().catch(() => false), 'ui-conformance audit 26: Go here is an item in More, not a button over the moment');
+      {
+        // The menu item draws its icon's glyph beside the words, so read the words, not the whole item.
+        const goText = await pg.locator('[data-testid=viewer-menu] [data-testid=viewer-go]').innerText().catch(() => '');
+        check(/Route here/.test(goText) && !/Go here/.test(goText), `OM13: the pin viewer's menu item says "Route here", not "Go here" (${JSON.stringify(goText)})`);
+      }
       // A tap outside the menu closes it, as a menu does.
       await pg.mouse.click(20, 420);
       await pg.waitForSelector('[data-testid=viewer-menu]', { state: 'detached', timeout: 5000 });

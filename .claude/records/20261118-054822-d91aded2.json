@@ -1,0 +1,50 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "A pin of one memory says",
+        "--reason",
+        "built in \"tend map 19: a memory pin of one moment says \"Memory: a photo\", from the table a pin of several says its kinds from\""
+      ],
+      "target": "sha256:d0b4d15375dbc62608fe73e294b7d8e2f6a06b397152d31308cba15427bbd8f5"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "`tend map 10`'s unit test",
+        "--reason",
+        "built in \"tend map 17, 18: the pin, star and \"?\" taps read handlers filled before paint; the worker test reaches its call\" (the test reads the one setWorkerUrl call), its names held by tend map audit 42"
+      ],
+      "target": "sha256:9141adc40d45fee63e7acb85f3dc76cbc22b0ec7acdf5cc9ac3b2b7396937fa8"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Map layers and markers"
+      ],
+      "body": "- [ ] **Do:** since `tend map 19` and `tend map 20` (the owner, Nov 18: \"Allow it\"), with VoiceOver, then TalkBack: on a later walk past a spot where an earlier walk kept one voice memo, touch its memory pin; on Chronicle's map tap one star, touch it, then touch another star, then tap that one. **Expect:** the memory pin says \"Memory: a voice memo, <the part of the day>. Open\" as one label; the selected star says its name and \"selected\" (`accessibilityState={{ selected }}` on the star's `pinHit` View, which re-renders inside its Marker with no new key), the other says no state, and selecting it moves \"selected\" to it. (tend map 19, 20)\n"
+    },
+    {
+      "argv": [
+        "inbox",
+        "add"
+      ],
+      "body": "- **T? [owner] `.claude/rules/map.md` is past the 20,000-character warning: split it by topic** (2026-11-18)\n  Area: map. Seen: `npm run check:docs` after `tend map 20`: \"`.claude/rules/map.md` is 20570 characters, past the 20000 warning (it fails at 40000)\"; it was 19,752 on `main` before this run's two lines (the tap refs and audit 41, the selected star). Rests on: decision 0173, \"past the warning a file is split before more is added; the loop files a split as `T [owner]`\"; the loop only adds to rule files (0135), so it cannot split one.\n  Recommended: move \"Icons and pins\" (with the run's two new bullets) and \"Map staples\" into a new `.claude/rules/pins.md` whose `paths:` name `components/map/`, `CapturePinView.tsx`, `StarView.tsx` and `lib/pins.ts`, leaving `map.md` the map component, its budget, the compass, swipes and borders; no app surface, so no `/vision` verdict.\n  Precedent: none (a repository document, not a job a person does in the app).\n  Otherwise: let `map.md` run toward the 40,000-character limit and split it then.\n",
+      "number": "T34"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 18, `/tend map --deploy=main`, four of the map's low `[loop]` items** (opened from `17bcbccb`, rebased on `ea3bba09`; no sweep, lenses 1-7 not run; aimed at DEFERRED's `[loop]` lows in \"Map, walk screen and motion polish\"; the faster lane of decision 0181).\n- `tend map 17`: the web map's pin, star and \"?\" taps read their handlers from refs filled in `useLayoutEffect`, as the map's own are (audit 8), so a tap right after a render never reaches the previous handler.\n- `tend map 18`: the worker test reaches the web map's one `setWorkerUrl(mapWorkerUrl(…, getVersion()))` call; it fails with the call back on the old address.\n- `tend map 19`: a memory pin of one moment says \"Memory: a voice memo\", from the table a pin of several says \"Memories: a photo and a note\" from (amends RB7, MR2). Spoken words only.\n- `tend map 20`: the selected star is told to a screen reader, on the owner's answer in person (Nov 18): \"Allow it\". On the web its button carries `aria-current=\"true\"` (spoken \"current\"), on native `accessibilityState={{ selected }}`.\n- The review (one round, the `auditor`; four low, all accepted), in the 20 commit: `tend map audit 40` (every fill of a tap ref sits in a layout effect's own body; every marker click reads its ref), `audit 41` (accepted as is: a tap in the frame between commit and marker sync is dropped, never stale; recorded in `map.md`), `audit 42` (the worker call's names are maplibre-gl's and the types' own; one call), and F43 (the 19 test names what it amends). Lines added to `map.md` and `memories.md`.\n- Filed: T34 [owner] (`map.md` passed `check:docs`'s 20,000-character warning with this run's lines: a split by topic is yours, decision 0173); a native check under \"Map layers and markers\" (the memory pin's words and the star's \"selected\" with VoiceOver and TalkBack). Noted, not built: `formatDistance`'s no-break space. A change in the function itself breaks literal checks in 8 unit-test files and 9 journeys, the planner's among them, which a parallel run held.\n- Journeys: `launch`. Typecheck, lint, `npm test` (MT7's timing missed once under a concurrent e2e and passed alone). Not run: the sweep's lenses and the balance's evolve. Nothing here has run on a phone: the native star's state and the memory pin's label are native.\n"
+    }
+  ]
+}

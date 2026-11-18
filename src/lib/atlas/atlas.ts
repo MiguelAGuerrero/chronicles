@@ -1,6 +1,6 @@
 // @layer core
 import { barWeight, PRESENCE_CARRIED, PRESENCE_CODE, subsetOf, type PresenceClass } from '../presence/presence';
-import { SMALL_SUBSETS } from '../discovery/smallPlaces';
+import { SUBTYPES } from '../discovery/subtypes';
 import { countsToward } from '../discovery/curation';
 import { coveredBy, townAt, withOutlines, type OutlineSet } from '../areas/outlines';
 import { AREA_REACH_M } from '../areas/rules';
@@ -8,7 +8,7 @@ import type { Area, PlaceCandidate, WalkArea } from '../areas/types';
 import type { RoadFeature } from '../streets';
 import { keepFindKeys, mergePlaces } from '../discovery/archiveMerge';
 import { isKindHidden, refineRead } from '../discovery/refinements';
-import { isMarkable } from '../discovery/noise';
+import { isMarkable, MARK_CATEGORIES } from '../discovery/noise';
 import { barsOf } from '../discovery/bars';
 import type { CategoryId, Kind, Place } from '../discovery/types';
 import { boundsOf, distanceM, projector, type Bounds } from '../geo';
@@ -39,7 +39,9 @@ import type { Pocket } from './pockets';
 /** a13: a profile keeps each storefront street's point, so the card lists them nearest first (specs/storefronts SF3); none carried. */
 /** The atlas's own part of a row's code (a13). */
 // a14: small places (specs/small-places SP12, SP13): the bars keep counts and each small subset's share apart.
-const ATLAS_OWN = 'a14';
+// a15: Sights follow the switches (specs/sights-and-local-life SG12, decision 0201): the tally keeps every Sights place
+// under its kind, so a profile of a14 has none to drop; none carried.
+const ATLAS_OWN = 'a15';
 /** A row's code: the atlas's own (a13) and presence's (PR6), so a reclassification re-reads every row. */
 export const ATLAS_CODE = `${ATLAS_OWN}.${PRESENCE_CODE}`;
 
@@ -88,6 +90,32 @@ export const ATLAS_LABEL: Record<CategoryId, string> = {
   history: 'History', art: 'Art', culture: 'Culture', parks: 'Green', viewpoints: 'Views', food: 'Food', shops: 'Shops', nightlife: 'Nightlife',
 };
 export const STEP_WORDS = ['none', 'some', 'plenty', 'lots'] as const;
+
+/**
+ * Sights and Local life (specs/sights-and-local-life SG1, SG10, decision 0200): the kinds in two groups, in `ATLAS_ORDER`.
+ * Sights are what can turn up as a "?"; Local life counts every place you go into and never does. Culture stays a Sight
+ * until phase 2 moves it (it still counts only places that can be found).
+ */
+export type KindGroupId = 'sights' | 'life';
+export const KIND_GROUPS: readonly { id: KindGroupId; label: string; kinds: readonly CategoryId[] }[] = [
+  { id: 'sights', label: 'Sights', kinds: ['history', 'art', 'culture', 'parks', 'viewpoints'] },
+  { id: 'life', label: 'Local life', kinds: ['food', 'shops', 'nightlife'] },
+];
+const SIGHT_KINDS = KIND_GROUPS[0].kinds;
+const LIFE_KINDS = KIND_GROUPS[1].kinds;
+
+/** SG1: the one muted line under "Sights" on the card, tying the heading to the map's "?". */
+export const SIGHTS_LINE = 'Places that can turn up as a “?” on the map.';
+
+/**
+ * SG2, SG14: a tile's strip in px: a kind's slot, the space between kinds of a group, the space between the groups (216 of
+ * 222 px at 320) and the hairline standing in its middle (decision 0202).
+ */
+export const STRIP = { chip: 22, gap: 4, groupGap: 16, line: 1 } as const;
+
+/** SG2, SG9: each group's present kinds, in order; a group with none is left out (so a tile with one group has no space). */
+export const groupsPresent = (steps: Steps): { id: KindGroupId; label: string; kinds: CategoryId[] }[] =>
+  KIND_GROUPS.map((g) => ({ id: g.id, label: g.label, kinds: g.kinds.filter((c) => steps[c] > 0) })).filter((g) => g.kinds.length > 0);
 
 /**
  * Fixed steps per kind (AT4): places inside the ring for one, two and three
@@ -241,7 +269,9 @@ export function presenceTally(places: AtlasPlace[], centre: LngLat, within: With
     if (seen.has(p.key) || !within(p.at)) continue;
     seen.add(p.key);
     const w = barWeight(p.classes);
-    const subset = p.classes ? subsetOf(p.classes) : null;
+    // SG12 (decision 0201): a Sights place goes to its kind's share, so a switched-off kind leaves its bars; Local life,
+    // which has no switches, stays in the counts.
+    const subset = (p.classes ? subsetOf(p.classes) : null) ?? (p.kind && MARK_CATEGORIES.includes(p.category) ? p.kind : null);
     // PK1-PK4: a place lights each of its bars once (a museum the data calls historic, History and Culture).
     for (const bar of barsOf(p)) {
       if (subset) {
@@ -254,7 +284,7 @@ export function presenceTally(places: AtlasPlace[], centre: LngLat, within: With
 }
 
 /** Every small subset off: what a stored `steps` is counted with. */
-const ALL_SMALL_OFF: ReadonlySet<Kind> = new Set(SMALL_SUBSETS.map((s) => s.kind));
+const ALL_SMALL_OFF: ReadonlySet<Kind> = new Set(SUBTYPES.map((s) => s.kind));
 
 /** SP12, SP13: the bars from a tally, adding the shares of the subsets the reader has on (a parent off hides its subsets). */
 export function stepsFrom(t: Tally, hidden: ReadonlySet<Kind>): Steps {
@@ -273,6 +303,11 @@ export function withShownSteps<T extends { area: AtlasArea }>(list: readonly T[]
 
 /** SP13: the bars a reader sees for a profile: from its tally and their switches, or its stored steps before a14. */
 export const stepsShown = (p: Pick<AtlasProfile, 'steps' | 'tally'>, hidden: ReadonlySet<Kind>): Steps => (p.tally ? stepsFrom(p.tally, hidden) : p.steps);
+
+/** explore-subtypes audit 7: area rows (not listed ones) with the bars of the subtypes switched on, for a reader of `rows`. */
+export function rowsShown<T extends { profile?: Pick<AtlasProfile, 'steps' | 'tally'> | null }>(rows: readonly T[], hidden: ReadonlySet<Kind>): T[] {
+  return rows.map((r) => (r.profile?.tally ? { ...r, profile: { ...r.profile, steps: stepsShown(r.profile, hidden) } } : r));
+}
 
 /** AG3: the map knows almost nothing about this ring: fewer than `thinPlaces` places of the eight kinds, ordinary ones included. */
 export const thinRing = (places: AtlasPlace[], centre: LngLat, within: Within = ringWithin(centre)): boolean =>
@@ -394,6 +429,27 @@ export function needsNear(reads: NearRead[] | NearRead | null, at: LngLat, build
   if (town) return !list.some((r) => r.build === build && codeCurrent(r.code) && r.town === town);
   // Whole-towns audit 8: a town's read wrote only what is inside its border; it never stands for the read around you.
   return !list.some((r) => !r.town && r.build === build && codeCurrent(r.code) && distanceM(r.at, at) <= ATLAS_RULES.renearM && (radiusM == null || (r.radiusM ?? radiusM) >= radiusM));
+}
+
+/**
+ * A near read held in memory (tend explore audit 32): its write failed, so it is not kept, but it stands for its level
+ * beside the kept ones until `retryMs` has passed since `at`, so the other level is read meanwhile and then it is read again.
+ */
+export interface HeldNear {
+  read: NearRead;
+  at: number;
+}
+
+/** The kept near reads of a level, with those held in memory that still stand (tend explore audit 32). */
+export function heldNears(reads: NearRead[], held: HeldNear[], now: number): NearRead[] {
+  const standing = held.filter((h) => now - h.at < ATLAS_RULES.retryMs).map((h) => h.read);
+  return standing.length ? [...reads, ...standing] : reads;
+}
+
+/** How long until the first held read stops standing, or null with none (tend explore audit 32). */
+export function heldUntil(held: HeldNear[], now: number): number | null {
+  const left = held.map((h) => h.at + ATLAS_RULES.retryMs - now).filter((ms) => ms > 0);
+  return left.length ? Math.min(...left) : null;
 }
 
 /** FL15: reads made for looks kept apart from the reads around you, so looking about never pushes them out. */
@@ -530,11 +586,15 @@ const NOUN: Record<CategoryId, string> = {
 export function characterLine(steps: Steps, thin = false): string {
   // AG3: where the map knows almost nothing, say nothing rather than "not much".
   if (thin) return '';
-  const top = Math.max(...ATLAS_ORDER.map((c) => steps[c]));
+  const all = Math.max(...ATLAS_ORDER.map((c) => steps[c]));
   // Never "Quiet": that is the walk mode's name on Navigate (atlas round 3).
-  if (top === 0) return 'Not much on the map here';
-  const kinds = ATLAS_ORDER.filter((c) => steps[c] === top);
-  if (top === 1) return kinds.length >= 5 ? 'A little of everything' : `A little ${NOUN[kinds[0]]}`;
+  if (all === 0) return 'Not much on the map here';
+  if (all === 1 && ATLAS_ORDER.filter((c) => steps[c] === 1).length >= 5) return 'A little of everything';
+  // SG13 (decision 0201): the line leads with the Sights; Local life only where there is no Sight.
+  const group = SIGHT_KINDS.some((c) => steps[c] > 0) ? SIGHT_KINDS : LIFE_KINDS;
+  const top = Math.max(...group.map((c) => steps[c]));
+  const kinds = group.filter((c) => steps[c] === top);
+  if (top === 1) return `A little ${NOUN[kinds[0]]}`;
   const named = kinds.slice(0, 2).map((c) => NOUN[c]);
   return `${top === 3 ? 'Lots' : 'Plenty'} of ${named.join(' and ')}`;
 }
@@ -704,9 +764,11 @@ export function areaPins(listed: Listed[], selected: string | null, inTown: bool
  * places, the same everywhere, and what each kind counts.
  */
 export const MARKS_EXPLAINED: readonly string[] = [
-  'Marks say how much of each kind is around an area, never how good it is.',
-  'History, art, culture, green and views count only places worth finding, the ones that can turn up as a “?”; one place can count toward two, as some museums count toward history and culture. Food, shops and nightlife count every place.',
-  'One mark: a place or two of the kind. Two: a handful. Three: a street’s worth.',
+  'Marks say which kinds of places are around an area and how much of each, never how good it is or how many people go there.',
+  'Sights (history, art, culture, green and views) count only places worth finding, the ones that can turn up as a “?”.',
+  'They count only the kinds you have on in “What I’m into”. Some museums count toward two kinds, history and culture.',
+  'Local life (food, shops and nightlife) counts every place of its kind, and never turns up as a “?”.',
+  'One mark: a little of the kind. Two: a handful. Three: a street’s worth.',
   'Every area is judged the same way, within about a ten-minute walk of its point, so the same marks mean the same anywhere.',
 ];
 
@@ -753,8 +815,9 @@ export function tileLabel(l: Listed, fam: Familiarity, fmt: (m: number) => strin
   if (!a.profile) return `${head} Being read.`;
   if (a.profile.thin) return head;
   const part = a.profile.partial ? ' Covers part of the town.' : '';
-  const kinds = ATLAS_ORDER.filter((c) => a.profile!.steps[c]).map((c) => `${ATLAS_LABEL[c]}: ${STEP_WORDS[a.profile!.steps[c]]}`);
-  return [head, kinds.length ? `${kinds.join(', ')}.` : 'Quiet: little of any kind.', a.profile.strips[0] ? `Storefronts along ${a.profile.strips[0]}.` : '', part.trim()]
+  // SG5: the groups present, each named before its kinds.
+  const groups = groupsPresent(a.profile.steps).map((g) => `${g.label}: ${g.kinds.map((c) => `${ATLAS_LABEL[c]}: ${STEP_WORDS[a.profile!.steps[c]]}`).join(', ')}.`);
+  return [head, groups.length ? groups.join(' ') : 'Quiet: little of any kind.', a.profile.strips[0] ? `Storefronts along ${a.profile.strips[0]}.` : '', part.trim()]
     .filter(Boolean).join(' ');
 }
 

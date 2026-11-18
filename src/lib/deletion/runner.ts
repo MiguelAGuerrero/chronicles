@@ -1,4 +1,5 @@
 // @layer shell
+import { canJoin } from '../join/rules';
 import type { Db } from '../db/types';
 import { withoutPiece } from '../moment';
 import { filesOf, filesOfMoments } from './core';
@@ -11,7 +12,7 @@ import type { DeleteSpec } from './pending';
  * does nothing.
  */
 export function createDeleteRunner(p: {
-  db: Pick<Db, 'getMoments' | 'getMomentsByIds' | 'deleteWalk' | 'deleteMoments' | 'deletePieces' | 'splitPiece' | 'applyThreads'>;
+  db: Pick<Db, 'getMoments' | 'getMomentsByIds' | 'deleteWalk' | 'deleteMoments' | 'deletePieces' | 'splitPiece' | 'joinMoment' | 'referencesTo' | 'applyThreads'>;
   removeMedia: (refs: string[], folders?: string[]) => Promise<unknown>;
   /** Drops the in-memory reminders of what went (the recall check's copy). */
   forgetRecalls: () => void;
@@ -55,6 +56,16 @@ export function createDeleteRunner(p: {
         // Already its own moment (a relaunch after it was stored): nothing to do.
         if (moment) return;
         await p.db.splitPiece(spec.pieceId, spec.moment);
+        return;
+      }
+      case 'join': {
+        const [entry] = await p.db.getMomentsByIds([spec.fromId]);
+        // Already stacked (a relaunch after it was stored): nothing to do.
+        if (!entry) return;
+        // The bounds hold here as when it was offered: nothing points at the entry now, and the day, walk and place agree (audit 4).
+        const [into] = await p.db.getMomentsByIds([spec.intoId]);
+        if (!into || !canJoin(entry, into) || Object.values(await p.db.referencesTo(spec.fromId)).some(Boolean)) return;
+        await p.db.joinMoment(spec.fromId, spec.intoId);
         return;
       }
       case 'thread':

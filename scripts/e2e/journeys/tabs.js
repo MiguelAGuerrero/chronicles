@@ -2,7 +2,7 @@
 // fresh browser. E2E_ONLY=tabs runs it alone.
 
 async function run(h) {
-  const { url, navUrl, BASE, page, start, at, dLat, dLon, check, glyph, iconOf, metaOf, drawerTo, tabTo, shownCount, tabBarShown, freshPage, openWalk } = h;
+  const { url, navUrl, BASE, page, start, at, dLat, dLon, check, glyph, iconOf, metaOf, drawerTo, openInto, closeInto, tabTo, shownCount, tabBarShown, freshPage, openWalk } = h;
     const { c, pg } = await freshPage('tabs-audit');
     await c.addInitScript(() => {
       window.__perf = {};
@@ -103,13 +103,16 @@ async function run(h) {
         const m = await pg.locator('[data-testid=range-minus]').boundingBox();
         const p = await pg.locator('[data-testid=range-plus]').boundingBox();
         check(m.width >= 44 && m.height >= 44 && p.width >= 44 && p.height >= 44, `tabs audit U4: the range's − and + are at least 44 pt (${m.width}×${m.height}, ${p.width}×${p.height})`);
-        const kindRow = pg.locator('[data-testid=kind-public_art]');
+        // On What I'm into's page since decision 0192: its row, then the kind's row there, then Back.
+        await openInto(pg, 'ready');
+        const kindRow = pg.locator('[data-testid=into-page] [data-testid=kind-public_art]');
         const was = await kindRow.locator('input').isChecked();
         await kindRow.getByText('Public art', { exact: true }).click();
         await pg.waitForTimeout(300);
         const now = await kindRow.locator('input').isChecked();
         await kindRow.getByText('Public art', { exact: true }).click();
         await pg.waitForTimeout(300);
+        await closeInto(pg);
         check(was !== now, 'tabs audit U4: a kind’s row flips its switch, tapped on its name');
       }
       await pg.locator('[data-testid=mode-quiet]').scrollIntoViewIfNeeded();
@@ -570,7 +573,7 @@ async function run(h) {
       await pg.waitForURL(/\/walk/, { timeout: 15000 });
       await pg.waitForSelector('[data-testid=stop]');
       const second = await openWalk(pg);
-      await north(0.5, 0.6);
+      await north(0.5, 0.8);
       await holdStop();
       await pg.click('[data-testid=not-now]');
       await pg.waitForURL((u) => u.pathname === `${BASE}/`, { timeout: 5000 }).catch(() => {});

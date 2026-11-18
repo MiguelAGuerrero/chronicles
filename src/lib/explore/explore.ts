@@ -7,7 +7,7 @@ import { isMarkable } from '../discovery/noise';
 import { keepFindKeys } from '../discovery/archiveMerge';
 import { isOffered } from '../discovery/places';
 import { isKindHidden, kindParent } from '../discovery/refinements';
-import { DEFAULT_OFF, keepTheLows, passedNames, SMALL_SUBSETS } from '../discovery/smallPlaces';
+import { DEFAULT_OFF, foundRows, keepTheLows, passedNames, SUBTYPES } from '../discovery/subtypes';
 import type { CategoryId, Kind, Place } from '../discovery/types';
 import { distanceM, nearPoints, projector } from '../geo';
 import type { LngLat } from '../types';
@@ -52,42 +52,67 @@ export interface KindInfo {
   label: string;
   /** Ionicons name. */
   icon: string;
+  /** XS2: the heading it sits under in "What I'm into". */
+  category: CategoryId;
 }
 
-/** SP3: the small subsets of a parent, as rows of "What I'm into", with their own icons. */
-function small(parent: Kind): KindInfo[] {
-  const ICON: Partial<Record<Kind, string>> = {
-    // small-places ui 1: an easel read as art; a sheet with lines reads as a sign with words on it.
-    plaques: 'document-text-outline', small_memorials: 'flower-outline', old_stones: 'trail-sign-outline',
-    wayside_shrines: 'flame-outline', time_capsules: 'hourglass-outline', little_libraries: 'bookmarks-outline',
-  };
-  return SMALL_SUBSETS.filter((s) => s.parent === parent).map((s) => ({ id: s.kind, label: s.label, icon: ICON[s.kind] ?? 'ellipse-outline' }));
+/** SP3, XS3: each subtype's icon (small-places ui 1: an easel reads as art; a sheet with lines as a sign with words). */
+const SUBTYPE_ICON: Partial<Record<Kind, string>> = {
+  statues: 'body-outline', murals: 'brush-outline', fountains: 'water-outline', signs: 'megaphone-outline',
+  markers: 'trail-sign-outline', plaques: 'document-text-outline', war_memorials: 'ribbon-outline', small_memorials: 'flower-outline',
+  battlefields: 'shield-outline', archaeological_sites: 'hammer-outline',
+  bridges: 'git-commit-outline', mills: 'aperture-outline', stations: 'train-outline', lighthouses: 'bulb-outline', civic_buildings: 'library-outline',
+  forts: 'shield-half-outline', towers: 'time-outline', old_machines: 'construct-outline', taverns: 'beer-outline', old_stones: 'pin-outline',
+  wayside_shrines: 'flame-outline', mausoleums: 'cube-outline',
+  gardens: 'sunny-outline', community_gardens: 'nutrition-outline', waterfalls: 'rainy-outline', caves: 'triangle-outline', hot_springs: 'thermometer-outline',
+  old_trees: 'git-network-outline', nature_reserves: 'binoculars-outline', piers: 'boat-outline', natural_monuments: 'prism-outline',
+  observatories: 'planet-outline', concert_halls: 'musical-notes-outline', little_libraries: 'bookmarks-outline', carousels: 'sync-circle-outline',
+  fire_towers: 'bonfire-outline', amusement_parks: 'rocket-outline', old_ruins: 'grid-outline', ghost_towns: 'moon-outline', natural_oddities: 'earth-outline', roadside_giants: 'balloon-outline',
+  survey_marks: 'locate-outline', time_capsules: 'hourglass-outline',
+};
+
+/** SP3, XS5: the subtypes of a kind, as rows of "What I'm into", each with its own icon, under its parent's heading. */
+function small(parent: Kind, category: CategoryId): KindInfo[] {
+  return SUBTYPES.filter((s) => s.parent === parent).map((s) => ({ id: s.kind, label: s.label, icon: SUBTYPE_ICON[s.kind] ?? 'ellipse-outline', category }));
 }
 
-/** The "What I'm into" switches, in their order (E16). */
+/** The "What I'm into" switches, in their order under the five headings (E16, XS2). */
 export const KINDS: readonly KindInfo[] = [
-  { id: 'public_art', label: 'Public art', icon: 'color-palette-outline' },
-  { id: 'museums', label: 'Museums and galleries', icon: 'images-outline' },
-  { id: 'theatres', label: 'Theatres', icon: 'ticket-outline' },
-  // PK11-PK13: community centres (by a notable name), arts centres and libraries, in Culture (the owner, Nov 10).
-  { id: 'community', label: 'Community spaces', icon: 'reader-outline' },
-  ...small('community'),
-  { id: 'monuments', label: 'Monuments and memorials', icon: 'flag-outline' },
-  // SP2, SP3, SP10 (decision 0183): small places, each a subset after its parent; the History ones start off (SP7).
-  ...small('monuments'),
+  { id: 'public_art', label: 'Public art', icon: 'color-palette-outline', category: 'art' },
+  ...small('public_art', 'art'),
+  { id: 'monuments', label: 'Monuments and memorials', icon: 'flag-outline', category: 'history' },
+  // SP2, SP3, SP10 (decision 0183): small places, each a subset after its parent; XS3 (decision 0191): every subtype so.
+  ...small('monuments', 'history'),
   // RP8, RP18: the archive's listed buildings and structures, named for what they are, never their listing (decision 0109).
-  { id: 'structures', label: 'Buildings and structures', icon: 'home-outline' },
-  ...small('structures'),
-  { id: 'churches', label: 'Places of worship', icon: 'business-outline' },
-  ...small('churches'),
-  { id: 'cemeteries', label: 'Cemeteries', icon: 'rose-outline' },
-  { id: 'parks', label: 'Parks and gardens', icon: 'leaf-outline' },
+  { id: 'structures', label: 'Buildings and structures', icon: 'home-outline', category: 'history' },
+  ...small('structures', 'history'),
+  { id: 'churches', label: 'Places of worship', icon: 'business-outline', category: 'history' },
+  ...small('churches', 'history'),
+  { id: 'cemeteries', label: 'Cemeteries', icon: 'rose-outline', category: 'history' },
+  ...small('cemeteries', 'history'),
+  { id: 'parks', label: 'Parks and gardens', icon: 'leaf-outline', category: 'parks' },
   // PC6: a subset of Parks the reader can switch off; the rest stay. Named only here and on a found place (PC16).
-  { id: 'community_parks', label: 'Community parks', icon: 'people-outline' },
-  { id: 'viewpoints', label: 'Viewpoints and attractions', icon: 'eye-outline' },
+  { id: 'community_parks', label: 'Community parks', icon: 'people-outline', category: 'parks' },
+  ...small('parks', 'parks'),
+  // XS4 (decision 0191): waterfalls, caves, hot springs and old trees; named for what they are, never "wonders" (XS25).
+  { id: 'nature', label: 'Nature', icon: 'partly-sunny-outline', category: 'parks' },
+  ...small('nature', 'parks'),
+  { id: 'museums', label: 'Museums and galleries', icon: 'images-outline', category: 'culture' },
+  ...small('museums', 'culture'),
+  { id: 'theatres', label: 'Theatres', icon: 'ticket-outline', category: 'culture' },
+  ...small('theatres', 'culture'),
+  // PK11-PK13: community centres (by a notable name), arts centres and libraries, in Culture (the owner, Nov 10).
+  { id: 'community', label: 'Community spaces', icon: 'reader-outline', category: 'culture' },
+  ...small('community', 'culture'),
+  { id: 'viewpoints', label: 'Viewpoints and attractions', icon: 'eye-outline', category: 'viewpoints' },
+  ...small('viewpoints', 'viewpoints'),
+  // XS4, explore-subtypes audit 12: zoos and aquariums, named for what they are; the map's other attractions stay with
+  // Viewpoints. more-attractions audit 1 (the owner, Nov 18): amusement, theme and water parks are its own row under it.
+  { id: 'attractions', label: 'Zoos and aquariums', icon: 'paw-outline', category: 'viewpoints' },
+  ...small('attractions', 'viewpoints'),
   // PW4: follies, roadside giants, natural oddities and the like, from the places archive (decision 0103).
-  { id: 'curiosities', label: 'Curiosities', icon: 'telescope-outline' },
-  ...small('curiosities'),
+  { id: 'curiosities', label: 'Curiosities', icon: 'telescope-outline', category: 'viewpoints' },
+  ...small('curiosities', 'viewpoints'),
 ];
 
 /** small-places ui 2: what a subset row tells a screen reader of its parent ("Part of Monuments and memorials"); none for a kind of its own. */
@@ -530,6 +555,9 @@ type Found = { name: string; category: CategoryId; generic: boolean; kind?: Kind
 export const foundLine = (f: Found): string =>
   f.generic ? `Found: ${f.name}` : `Found: ${f.name} · ${f.kind ? kindOf(f.kind).label : categoryOf(f.category).label}`;
 
+/** explore-subtypes audit 10: the replay's finds, unnamed ones of one type folded into their plural (SP21), as the card's list. */
+export const replayFound = (found: readonly { name: string; generic: boolean }[]): string | null => foundList(foundRows(found).map((f) => f.name));
+
 /**
  * The card's finds by name (E11): "Found RISD Museum · Old North Church", three at most, then how many more, in words,
  * "and two more" (tend replay T31).
@@ -596,6 +624,14 @@ export function parseHidden(raw: string | null, known: string | null = null): Se
   const out = new Set(kindsIn(raw));
   const knew = kindsIn(known);
   if (out.has('museums') && !knew.includes('community')) out.add('community');
+  // XS7: zoos and attractions were under "Viewpoints and attractions": off there keeps them off in their own kind.
+  if (out.has('viewpoints') && !knew.includes('attractions')) out.add('attractions');
+  // more-attractions audit 1: the map's theme parks were under Viewpoints and the archive's amusement parks under the zoos
+  // kind: either off before keeps every such park off in its own row.
+  if ((out.has('viewpoints') || out.has('attractions')) && !knew.includes('amusement_parks')) out.add('amusement_parks');
+  // explore-subtypes audit 5: statues were Monuments, markers "Plaques and markers": a switch off before keeps them off.
+  if (out.has('monuments') && !knew.includes('statues')) out.add('statues');
+  if ((out.has('monuments') || out.has('plaques')) && knew.includes('plaques') && !knew.includes('markers')) out.add('markers');
   // SP7, SP8: a subset that starts off is off until the reader has seen it (a save writes every kind as known), fresh or updated.
   for (const k of DEFAULT_OFF) if (!knew.includes(k)) out.add(k);
   return out;

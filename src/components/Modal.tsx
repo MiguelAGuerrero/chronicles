@@ -1,4 +1,6 @@
+import { useEffect } from 'react';
 import { Modal as RNModal, type ModalProps } from 'react-native';
+import { holdModal } from '../lib/tabsHidden';
 
 /**
  * A Modal that is only in the tree while it shows. react-native-web's Modal
@@ -11,6 +13,9 @@ import { Modal as RNModal, type ModalProps } from 'react-native';
  * Nov 1). Never import Modal from react-native directly; use this.
  */
 export function Modal(props: ModalProps) {
-  if (props.visible === false) return null;
+  const up = props.visible !== false;
+  // While it shows, whatever is beneath is out of sight: the recording bar's reminder waits (tend explore 22).
+  useEffect(() => (up ? holdModal() : undefined), [up]);
+  if (!up) return null;
   return <RNModal {...props} />;
 }

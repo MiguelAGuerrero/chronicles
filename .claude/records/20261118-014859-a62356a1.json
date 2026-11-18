@@ -1,0 +1,40 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "slice",
+        "row",
+        "set",
+        "More attractions (every museum by its type",
+        "--reason",
+        "the amusement row reads Amusement parks: the asked label wraps at 320 px"
+      ],
+      "body": "| More attractions (every museum by its type, Culture alone unless listed; nature reserves and wildlife refuges; every garden type; amusement, theme and water parks, their own row \"Amusement parks\" under \"Zoos and aquariums\"; piers and boardwalks; suspension bridges and national monuments, natural ones under Nature; from Wikidata, contract v7; MA1-MA9, decision 0198) | shipped 2026-11-17 (Pages); the audit's fixes on `claude/more-attractions-audit`, not deployed; contract v6/v7 (chronicles-data's `claude/more-attractions`, `claude/more-attractions-audit-data`) publishes after; native unverified | `claude/more-attractions-audit` | `specs/more-attractions/spec.md` | audited 2026-11-18: 18 findings, 9 fixed in the app (`more-attractions audit 1-5, 7, 8, 18`; 6 in the docs) plus 3 on the data side, 4 deferred, 2 rejected |\n",
+      "target": "sha256:a9df3df876f1739c9968c40a0e40eb9968c9538b8efe093c3b5a9693a2ec2fca"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "set",
+        "a theme park shows under Amusement and theme parks",
+        "--reason",
+        "the row reads Amusement parks (320 px)"
+      ],
+      "body": "- [ ] **Do:** on a phone that last opened the app before the more-attractions update (SQLite, atlas rows at `a14.p7` or `a14.p8`), open Explore and the walk's ready screen, then walk (Explore on) an area that was read before. **Expect:** every `atlas_area` and landing row is derived again once (p8, then p9 after the audit) with no stall or empty bars; a theme park shows under Amusement parks; a reader who had Viewpoints or Zoos and aquariums off keeps Amusement parks off (MA4, more-attractions audit 1).\n",
+      "target": "sha256:fa7d221e19a5d5332299f4bda81884cf8315c72b3e27094b7a04ff88de3d5ca9"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "set",
+        "Amusement and theme parks (rocket)",
+        "--reason",
+        "the row reads Amusement parks (320 px)"
+      ],
+      "body": "- [ ] **Do:** on a phone, open \"What I'm into\" in the walk's drawer and in the ready bar and scroll to Parks and gardens, Nature and Zoos and aquariums. **Expect:** Nature reserves (binoculars), Natural monuments (prism), Amusement parks (rocket) and Piers and boardwalks (boat) draw their icons in the KindSwitches, each label on one line at 320 px, and a switch keeps its state after scrolling away and back (MA3, MA5, MA9, more-attractions audits 1, 4, 5, 18).\n",
+      "target": "sha256:3c521633da053f9f49e4babdf237d8880fa5d637d68bc98ae28cd85e8b99c585"
+    }
+  ]
+}

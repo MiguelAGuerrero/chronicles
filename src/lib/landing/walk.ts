@@ -1,4 +1,5 @@
 // @layer core
+import { formatDistance } from '../format';
 import { bearingDeg, distanceM, distanceToLinesM } from '../geo';
 import type { LngLat } from '../types';
 
@@ -49,7 +50,8 @@ export function deadZoneNudge(o: {
   if (d <= LANDING_WALK.deadM || d > LANDING_WALK.nudgeM) return null;
   const dir = COMPASS[Math.round(((bearingDeg(o.here, best.centre) + 360) % 360) / 45) % 8];
   const metres = Math.round(d / 50) * 50;
-  return { text: `${best.name}${best.strip ? ' strip' : ''}, ${metres} m ${dir}`, at: best.centre, name: best.name };
+  // Said as every distance is: the units setting, the figure bound to its unit (tend map audit 45).
+  return { text: `${best.name}${best.strip ? ' strip' : ''}, ${formatDistance(metres)} ${dir}`, at: best.centre, name: best.name };
 }
 
 /** Whether the walker is in a dead zone now: further than 400 m from every pocket. */

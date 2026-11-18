@@ -7,7 +7,7 @@ import { metersPerPixel, PIN_GROUP_PX, pinsFor } from '../../pins';
 
 import { at, O } from '../foxPoint';
 
-// Capture pins on the map, grouped by screen distance (.claude/rules/map.md).
+// Capture pins on the map, grouped by screen distance (.claude/rules/pins.md).
 
 test('pins: grouped by screen distance at the zoom, joining the nearest pin', () => {
   const cap = (id: string, x: number, kind: Faced['kind'], t = 0): Faced => facedOf({

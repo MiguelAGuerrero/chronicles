@@ -34,8 +34,8 @@ paths:
     read only by `ConeSource`, `PointsSource` and `GlideFollow`, three leaves
     because layer order is mount order; pins are memo lists that read presses
     from a handlers ref. `mapFrames.test.ts` reads the source for this shape.
-    The React Compiler is **not** on (DEFERRED): nothing memoizes what the code
-    doesn't.
+    The React Compiler is on (decision 0207), but `WalkMap` itself is one of the
+    functions it skips (its `eslint-disable` lines): the explicit memo stays.
   - Line sources use `LINE_SOURCE` (`tolerance: 1, buffer: 64`) on both maps, the ids in `LINE_SOURCE_IDS`
     (`map/types.ts`, NF5).
   - Profiling shows the app's own JavaScript under 2% of a desktop core; the

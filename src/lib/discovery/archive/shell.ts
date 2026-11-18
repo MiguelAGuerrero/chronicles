@@ -69,7 +69,28 @@ export function createPlacesArchive(p: Pick<Ports, 'db' | 'clock'> & { io: Archi
     return manifest;
   }
 
+  /** Passes a file over for the version before it, and reads the manifest again once for it, never on every read (audit 4). */
+  function passOver(file: string) {
+    missing.add(file);
+    if (!rechecked.has(file)) {
+      rechecked.add(file);
+      recheck = true;
+    }
+  }
+
   return {
+    /**
+     * QC14, QC29: the stores pack's file for a point (the region's, by its manifest), or null: no manifest, no region, an older manifest
+     * with no `stores`. Called only after the walker picks an entry; the manifest is the one the places archive keeps.
+     */
+    async storesFileAt(at: LngLat): Promise<ArchiveFile | null> {
+      if (!p.io.base) return null;
+      const m = await ensureManifest().catch(() => null);
+      const region = m ? pickRegion(m, at) : null;
+      return region?.stores ? [region.stores.current, ...region.stores.previous].find((f) => !missing.has(f.file)) ?? null : null;
+    },
+    /** QC14: a stores file the manifest lists answered 403/404: pass it over, as a places file is. */
+    storesMissing: passOver,
     /** Loads the manifest when it is due (at most daily), so the version is known before any read (places-worth-the-stop audit 3). */
     async refresh(): Promise<void> {
       if (p.io.base) await ensureManifest().catch(() => null);
@@ -92,13 +113,7 @@ export function createPlacesArchive(p: Pick<Ports, 'db' | 'clock'> & { io: Archi
       if (!r.ok) {
         // Listed but missing (Pages lagging, or a newer version replaced it): pass it over for the previous one, and
         // read the manifest again once for it, never on every read (audit 4).
-        if (r.missing) {
-          missing.add(file.file);
-          if (!rechecked.has(file.file)) {
-            rechecked.add(file.file);
-            recheck = true;
-          }
-        }
+        if (r.missing) passOver(file.file);
         return null;
       }
       const version = file.version;

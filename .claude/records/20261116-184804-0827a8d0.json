@@ -1,0 +1,58 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore and discovery"
+      ],
+      "body": "- [loop] Chronicle's Go here maps-failure notice (`onFail` → `setLoadError`, `index.tsx`) is cleared only by its banner's dismiss, so a later Walk here error replaces it and it can return; Explore's `notice` has the same shape. On web `openInMaps` always resolves true, so only a phone can reach it. Fix: the notice gets its own state, cleared on the next ask (go-here-everywhere audit 7, Nov 16; auditor, low; native unverified)\n- [loop] Chronicle's Go here takes `walkOpen` from `openInfo.walk` alone while its home sheet's peek also reads the stored walks (`readOpen`), so for a moment after a walk is stopped the two disagree about whether a walk is open; the Chronicles row then saves for later, which is right for a stopped walk. A narrow window (go-here-everywhere audit 8, Nov 16; auditor, low)\n- [loop] The Go here sheet and the long-press card were never pictured or box-tested with a walk open on Chronicle (the recording bar up): the top anchor was chosen with that state in mind. Fix: a journey that starts a walk, opens Chronicle's map, and boxes the card, the sheet and the bar's camera at 320 px (go-here-everywhere audit 11, Nov 16; steward, drift)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Explore carousel (EC1-EC20, decision 0124; discrete navigation DN1, DN10, DN12, DN13)"
+      ],
+      "body": "- [ ] **Do:** on an Android phone, with a star's title as its name, tap Go here on the star's sheet, then Maps; then tap Open in Maps on the walk screen's navigation bar toward that star. **Expect:** neither link shows the star's title in the maps app: the label is \"Destination\" (audit 2, GE13)\n- [ ] **Do:** on a phone, open Go here's sheet over Explore's area card, then press Back; then open it on a town's page and press Back. **Expect:** Back closes the sheet alone each time; the card and the page stay (audit 1, audit 6)\n- [ ] **Do:** on a notched iPhone, open Go here's sheet over Explore's area card (the card hides the tabs), and on Chronicle's Map. **Expect:** the sheet clears the home indicator at the foot, and on Chronicle sits just under the section bar (audit 5, GE9)\n"
+    },
+    {
+      "argv": [
+        "section",
+        "add",
+        "From the go-here-everywhere audit (2026-11-16)"
+      ],
+      "intro": "Two questions the go-here-everywhere audit left for the owner.\n"
+    },
+    {
+      "argv": [
+        "section",
+        "item",
+        "add",
+        "From the go-here-everywhere audit (2026-11-16)"
+      ],
+      "body": "- Chronicle's Map section has no capture of any kind while no walk is open (the journal's camera and mic are in Memories). Is \"Capture is one tap away on every screen you walk or capture from\" meant to stop at Memories there? If so, the Chronicle capture-band boxes in `gohere-chronicle` hold by construction and only a walk-open picture would test them (steward, silent 1). Recommended: yes, as built\n"
+    },
+    {
+      "argv": [
+        "section",
+        "item",
+        "add",
+        "From the go-here-everywhere audit (2026-11-16)"
+      ],
+      "body": "- Should a place's Go here say once, in the sheet, that only the point is sent to the maps app? 0058 allows it and the external-link glyph hints at it; today the sheet names the app but not what it receives (steward, silent 2). Recommended: no, the maps row naming the app is enough\n"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "set",
+        "Go here on the rest of the surfaces"
+      ],
+      "body": "| Go here on the rest of the surfaces (Explore's area card footer, its complex and busy-area rows, its long-press card; Chronicle's star sheet and long-press card: the same two-choice sheet, at the top on Chronicle; only coordinates and a neutral label leave; GE1-GE13, decision 0182) | built 2026-11-16 on `claude/focused-brahmagupta-eajl5h`; not deployed; native unverified | `claude/focused-brahmagupta-eajl5h` | `specs/go-here-everywhere/spec.md` | plan audited by the steward (1 breach, 1 breach in the criteria, 5 drifts, 1 tone: all accepted); cold find and UI review run; audited Nov 16 (19 findings: 6 fixed, 3 deferred, 10 rejected) |\n",
+      "target": "sha256:ce0a92d4c855da33aac9626b035ac8be1b664be6579951d66d4d5ac1cdb27d6a"
+    }
+  ]
+}

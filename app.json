@@ -49,6 +49,7 @@
         }
       ],
       "expo-sqlite",
+      "expo-image",
       [
         "expo-location",
         {
@@ -108,7 +109,8 @@
       ]
     ],
     "experiments": {
-      "typedRoutes": false
+      "typedRoutes": false,
+      "reactCompiler": true
     }
   }
 }

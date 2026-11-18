@@ -15,10 +15,11 @@ import { plainNote } from '../refs';
 import { REPLAY_RHYTHM as R } from '../motionTokens';
 import { GAP_MS } from '../replay';
 import type { LngLat } from '../types';
-import { easeInOut, easeOut } from './ease';
+import { memoLengthMs } from '../voiceTrim';
+import { easeInOut, easeOut, steady } from './ease';
 import { positionAt, timeAtMetres } from './story';
 import type {
-  Ceremony, CeremonyOptions, Frame, Overlay, Story, StoryBreak, StoryMoment, StoryMove, StoryTravel,
+  Ceremony, CeremonyOptions, Frame, Jump, Landing, Overlay, Story, StoryBreak, StoryMoment, StoryMove, StoryTravel,
 } from './types';
 
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
@@ -34,7 +35,7 @@ export interface Slot {
   kind: SlotKind;
   t0: number;
   t1: number;
-  /** A memo's or video's play time; a grid's longest video. */
+  /** A memo's or video's play time (its kept part); a grid's longest video. */
   len: number;
   /** A stack's grid (MS17): its photos and videos, each the moment at that piece. */
   pieces?: Faced[];
@@ -50,7 +51,7 @@ interface Span {
 }
 export type Seg =
   | (Span & { k: 'intro'; clock: number })
-  | (Span & { k: 'leg'; len: number; p: number; kz: number; peak: number; move?: StoryMove; travel?: StoryTravel })
+  | (Span & { k: 'leg'; len: number; ra: number; rb: number; kz: number; peak: number; move?: StoryMove; travel?: StoryTravel })
   | (Span & { k: 'stop'; moment: StoryMoment; slots: Slot[] })
   | (Span & { k: 'cut'; brk: StoryBreak })
   | (Span & { k: 'rest'; clock: number });
@@ -67,6 +68,8 @@ export interface RhythmPlan {
   lines: { t0: number; t1: number; text: string }[];
   /** For each path, the index of its last segment: past it, the path is drawn whole. */
   lastSeg: Record<string, number>;
+  /** When each moment begins, and where a press of Next lands for it (RY13, RY14). */
+  stops: Landing[];
 }
 
 /** "43 min later", "2 h later", "1 h 20 min later" (RR4, RR16). */
@@ -79,12 +82,17 @@ export function laterLine(ms: number): string {
   return r ? `${h} h ${r} min later` : `${h} h later`;
 }
 
-/** A note's pause grows with its words (RR9). */
+const wordsIn = (text: string | null) => (text ?? '').trim().split(/\s+/).filter(Boolean).length;
+
+/** The walker's wait at a note grows with its words (RR9, RY5). */
 export function notePause(text: string | null): number {
-  const words = (text ?? '').trim().split(/\s+/).filter(Boolean).length;
+  const words = wordsIn(text);
   if (words <= R.noteWords) return R.note;
-  return Math.min(R.noteMax, R.note + Math.ceil((words - R.noteWords) / 5) * R.notePerFive);
+  return Math.min(R.noteMax, R.note + (words - R.noteWords) * R.notePerWord);
 }
+
+/** How long a note's bubble stays at the least once it is fully shown, so it can be read (RY7); never past a bubble's life. */
+const noteRead = (c: Pick<Faced, 'body' | 'body_format'>) => R.bubbleIn + Math.min(R.bubbleLife - R.bubbleIn, R.noteRead + R.readPerWord * wordsIn(plainNote(c.body, c.body_format)));
 
 /** A note's pause by its words as shown (NP10). */
 export const noteSlotPause = (c: Pick<Faced, 'body' | 'body_format'>): number => notePause(plainNote(c.body, c.body_format));
@@ -129,40 +137,47 @@ function gridFrame(pieces: Faced[], v: number, dur: number): { pieces: Faced[]; 
   return { pieces, shown, scroll: pieces.length > GRID_MAX ? easeInOut(clamp01((since - swipes) / span), 2) : 0 };
 }
 
-/** A stop's length: its slots one after another, a grid's beside slots running alongside it. */
-function stopLength(slots: Slot[]): number {
-  let t = 0;
-  let side = 0;
-  for (const s of slots) {
-    if (s.beside) {
-      side += s.t1;
-      continue;
-    }
-    t = Math.max(t, side) + s.t1;
-    side = s.kind === 'grid' ? t - s.t1 : 0;
-  }
-  return Math.max(t, side);
-}
-const mediaLen = (c: Faced) => Math.max(R.mediaMin, Number(c.body) || 0);
+/**
+ * A memo's or video's play time: its kept part (`edit.trim`, the same on both; VT7, ME15), where the players stop, never
+ * the stored whole length, or the walker stands through the cut part with nothing playing (fix trimmed-length 1-3).
+ */
+const mediaLen = (c: Faced) => Math.max(R.mediaMin, memoLengthMs(c));
 function slotDur(c: Faced): number {
   switch (slotKind(c)) {
     case 'note': return noteSlotPause(c);
     case 'memo': return mediaLen(c) + R.mediaTail;
-    case 'photo': return R.photo;
-    case 'video': return mediaLen(c) + R.grow + R.tuck;
+    case 'photo': return R.grow + R.photoHold + R.tuck;
+    // The card stands a moment after the video ends (RY6).
+    case 'video': return R.grow + mediaLen(c) + R.mediaTail + R.tuck;
     // A capture alone is never a grid; a grid's length is `gridDuration`.
-    case 'grid': return R.photo;
+    case 'grid': return R.grow + R.photoHold + R.tuck;
   }
 }
 
-/** A stretch's time from its length alone (RR1), and how it eases and pulls back (RR2, RR3). */
+/**
+ * How long each photo on its own at a stop is fully shown (RY1-RY3): the first of the replay, and one reached after a
+ * long stretch with nothing kept, a fifth longer; photos after the first at one stop tighten, the last whole again. A
+ * photo walked to is never shortened: where it stands in the walk says nothing of its worth.
+ */
+function holdPhotos(slots: Slot[], long: boolean) {
+  const photos = slots.filter((s) => s.kind === 'photo');
+  photos.forEach((s, k) => {
+    const last = photos.length > 1 && k === photos.length - 1;
+    const share = k === 0 ? (long ? R.photoFirst : 1) : last ? 1 : Math.max(R.stopFloor, (1 - R.stopTighten) ** k);
+    s.t1 = R.grow + R.photoHold * share + R.tuck;
+  });
+  return photos.length > 0;
+}
+
+/** A stretch's time from its length alone (RR1, RY9), the walker's steady pace along it (RY8) and how the camera pulls back (RR3). */
 function legShape(len: number, travel: boolean) {
   const long = len >= R.zipAtM;
   const dur = long ? R.glide + R.zip * Math.max(0.35, Math.min(1, (len - R.zipAtM) / R.zipFullM)) : R.glide * Math.max(0.45, len / R.zipAtM);
-  const p = long ? 2 + 2.5 * clamp01((len - R.zipAtM) / 1000) : 2;
+  const ra = Math.min(R.paceInMax, R.paceIn / dur);
+  const rb = Math.min(R.paceOutMax, R.paceOut / dur);
   const kz = clamp01((len - R.zipAtM) / 900);
   const peak = travel ? Math.max(R.zoomOut, len / R.travelZoomM) : R.zoomOut;
-  return { dur, p, kz, peak };
+  return { dur, ra, rb, kz, peak };
 }
 
 type Draft = (Seg extends infer S ? (S extends Seg ? Omit<S, 't0' | 't1'> : never) : never) & { dur: number };
@@ -176,31 +191,12 @@ function firstPosition(story: Story): LngLat | null {
   return null;
 }
 
-/** Shrinks glides, zips, cuts, photos, notes, the intro and the rest together toward their floors until the path fits the cap (RR5, audit 11). */
-function fitCap(draft: Draft[]) {
-  const items: { get: () => number; set: (v: number) => void; floor: number }[] = [];
-  for (const d of draft) {
-    if (d.k === 'leg') items.push({ get: () => d.dur, set: (v) => (d.dur = v), floor: R.floors.leg });
-    if (d.k === 'cut' || d.k === 'intro' || d.k === 'rest') items.push({ get: () => d.dur, set: (v) => (d.dur = v), floor: R.floors[d.k] });
-    if (d.k === 'stop')
-      for (const s of d.slots) {
-        if (s.kind === 'photo') items.push({ get: () => s.t1, set: (v) => (s.t1 = v), floor: R.floors.photo });
-        if (s.kind === 'grid') items.push({ get: () => s.t1, set: (v) => (s.t1 = v), floor: gridDuration(s.pieces?.length ?? 2, 0) - R.photo + R.floors.photo });
-        if (s.kind === 'note') items.push({ get: () => s.t1, set: (v) => (s.t1 = v), floor: R.floors.note });
-      }
-  }
-  const total = () => draft.reduce((n, d) => n + (d.k === 'stop' ? stopLength(d.slots) : d.dur), 0);
-  const need = total() - R.cap;
-  if (need <= 0) return;
-  const slack = items.reduce((n, it) => n + Math.max(0, it.get() - it.floor), 0);
-  if (slack <= 0) return;
-  const f = Math.min(1, need / slack);
-  for (const it of items) if (it.get() > it.floor) it.set(it.get() - (it.get() - it.floor) * f);
-}
-
 export function rhythmPlan(story: Story, opts: CeremonyOptions): RhythmPlan {
   const draft: Draft[] = [];
   let pos = firstPosition(story);
+  // Metres since the last moment with nothing kept, and whether a photo on its own has been shown yet (RY2).
+  let stretch = 0;
+  let photoSeen = false;
   // With reduce motion the intro holds still for its time, so the timing is the same (RR18, audit 12).
   if (story.events.length) draft.push({ k: 'intro', dur: R.intro, from: pos, to: pos, clock: story.start });
   for (const e of story.events) {
@@ -210,15 +206,17 @@ export function rhythmPlan(story: Story, opts: CeremonyOptions): RhythmPlan {
       const len = e.m1 - e.m0;
       if (len >= R.minLegM) {
         const s = legShape(len, false);
-        draft.push({ k: 'leg', dur: s.dur, len, p: s.p, kz: s.kz, peak: s.peak, move: e, from: positionAt(path, e.t0) ?? pos, to });
+        draft.push({ k: 'leg', dur: s.dur, len, ra: s.ra, rb: s.rb, kz: s.kz, peak: s.peak, move: e, from: positionAt(path, e.t0) ?? pos, to });
       }
+      stretch += Math.max(0, len);
       pos = to;
     } else if (e.kind === 'travel') {
       const to = e.to ?? pos;
       if (e.m >= R.minLegM || e.t1 - e.t0 >= R.laterAfterMs) {
         const s = legShape(e.m, true);
-        draft.push({ k: 'leg', dur: s.dur, len: e.m, p: s.p, kz: s.kz, peak: s.peak, travel: e, from: e.from ?? pos, to });
+        draft.push({ k: 'leg', dur: s.dur, len: e.m, ra: s.ra, rb: s.rb, kz: s.kz, peak: s.peak, travel: e, from: e.from ?? pos, to });
       }
+      stretch += Math.max(0, e.m);
       pos = to;
     } else if (e.kind === 'break') {
       // Under a minute, and no way to speak of (a moment in a gap, next to where the trace picks up): a step, not a cut (audit 30).
@@ -233,12 +231,14 @@ export function rhythmPlan(story: Story, opts: CeremonyOptions): RhythmPlan {
       const leave = (path ? positionAt(path, e.leave) : null) ?? at;
       // A slot's t1 holds its duration until the times are laid out.
       const slots = stopSlots(e.captures);
+      if (holdPhotos(slots, !photoSeen || stretch >= R.longM)) photoSeen = true;
+      stretch = 0;
       draft.push({ k: 'stop', dur: 0, moment: e, slots, from: at, to: leave });
       pos = leave;
     }
   }
   if (story.events.length) draft.push({ k: 'rest', dur: R.rest, clock: story.end, from: pos, to: pos });
-  fitCap(draft);
+  // Nothing shrinks to fit a total (RY10): each part keeps its time.
 
   // Lay out the times.
   const segs: Seg[] = [];
@@ -288,14 +288,25 @@ export function rhythmPlan(story: Story, opts: CeremonyOptions): RhythmPlan {
     if (s.k === 'cut') lines.push({ t0: s.t0, t1: s.t1 + R.lineAfter, text: laterLine(s.brk.t1 - s.brk.t0) });
     if (s.k === 'leg' && s.travel && s.travel.t1 - s.travel.t0 >= R.laterAfterMs) lines.push({ t0: s.t0, t1: s.t1 + R.lineAfter, text: laterLine(s.travel.t1 - s.travel.t0) });
   });
-  // A bubble leaves after its life, or when the one `bubbles` later arrives (RR9).
+  // A bubble leaves after its life, when the one `bubbles` later arrives (RR9), or when the next card opens or a
+  // break begins (RY7); but a note is never taken away before it could be read, and a memo stays until it has
+  // played (audit 1).
+  const cuts = segs.filter((s) => s.k === 'cut').map((s) => s.t0);
   bubbles.forEach((b, i) => {
     const pushed = bubbles[i + R.bubbles];
-    // A memo stays until it has played (audit 1).
-    b.exitAt = Math.max(Math.min(b.ta + R.bubbleLife, pushed ? pushed.ta : Infinity), b.ta + b.len);
+    const card = cards.find((c) => c.t0 > b.ta);
+    const cut = cuts.find((c) => c >= b.ta);
+    const beat = Math.min(card ? card.t0 : Infinity, cut ?? Infinity);
+    const read = b.len > 0 ? 0 : b.ta + noteRead(b.capture);
+    b.exitAt = Math.max(Math.min(b.ta + R.bubbleLife, pushed ? pushed.ta : Infinity, Math.max(beat, read)), b.ta + b.len);
   });
+  // Where a press of Next lands for each moment (RY13): a little before it begins, and never inside the moment
+  // before it, so never inside a memo or a video (RY14).
+  const stops: Landing[] = segs.flatMap((s, i) =>
+    s.k === 'stop' ? [{ t0: s.t0, land: Math.max(0, s.t0 - R.nextLead, i > 0 && segs[i - 1].k !== 'stop' ? segs[i - 1].t0 : s.t0) }] : [],
+  );
 
-  const plan: RhythmPlan = { story, total: t, segs, reduceMotion: opts.reduceMotion, bubbles, cards, whispers: [], lines, lastSeg };
+  const plan: RhythmPlan = { story, total: t, segs, reduceMotion: opts.reduceMotion, bubbles, cards, whispers: [], lines, lastSeg, stops };
   // A passed place whispers as the walker reaches it (RR15): the first segment that reaches its time. More than two
   // on one walk whisper once, as that walk's card says them ("Passed a few places without stopping", RP19, the owner,
   // Nov 9), at the last, when it is true (audit 14); a day bounds each walk by its own card (audit 9).
@@ -318,6 +329,8 @@ export function rhythmPlan(story: Story, opts: CeremonyOptions): RhythmPlan {
       }
       tw = s.t0 + hi * (s.t1 - s.t0);
     }
+    // Never under a card: it waits until the card has shrunk (RY22); the cards are in order.
+    for (const c of cards) if (tw >= c.t0 && tw < c.t1) tw = c.t1;
     plan.whispers.push({ key: `${p.name}@${p.t}`, text: passedLine(p.all) ?? p.name, at: p.at, tw });
   }
   return plan;
@@ -337,7 +350,7 @@ function walkEnd(s: Seg, story: Story): number {
 /** Walk time u of the way through a leg along a path. */
 function legWalkTime(plan: RhythmPlan, s: Extract<Seg, { k: 'leg' }>, u: number): number {
   const m = s.move!;
-  return timeAtMetres(plan.story.paths[m.pathId], m.m0 + (m.m1 - m.m0) * easeInOut(u, s.p), m.t0, m.t1);
+  return timeAtMetres(plan.story.paths[m.pathId], m.m0 + (m.m1 - m.m0) * steady(u, s.ra, s.rb), m.t0, m.t1);
 }
 
 function findSeg(segs: Seg[], ms: number): number {
@@ -349,7 +362,30 @@ function findSeg(segs: Seg[], ms: number): number {
   return ans;
 }
 
-export function rhythmFrame(plan: RhythmPlan, ms: number): Frame {
+/**
+ * What a press of Next says on landing (RY21): how much later it is, when a break (or a day's long travel) lay
+ * between; then each place passed without stopping that it jumped over, one after another. Never edited out.
+ */
+function jumpLines(plan: RhythmPlan, jump: Jump): { t0: number; t1: number; text: string }[] {
+  const out: { t0: number; t1: number; text: string }[] = [];
+  let t = jump.at;
+  if (plan.lines.some((l) => l.t0 >= jump.from && l.t0 < jump.at)) {
+    const a = rhythmFrame(plan, jump.from).clock;
+    const b = rhythmFrame(plan, jump.at).clock;
+    if (a != null && b != null && b - a >= 60_000) {
+      out.push({ t0: t, t1: t + R.jumpLine, text: laterLine(b - a) });
+      t += R.jumpLine;
+    }
+  }
+  for (const w of plan.whispers) {
+    if (w.tw <= jump.from || w.tw > jump.at) continue;
+    out.push({ t0: t, t1: t + R.whisper, text: w.text });
+    t += R.whisper;
+  }
+  return out;
+}
+
+export function rhythmFrame(plan: RhythmPlan, ms: number, jump?: Jump | null): Frame {
   const { segs, story } = plan;
   if (ms >= plan.total || !segs.length) {
     const drawn: Record<string, number> = {};
@@ -378,7 +414,7 @@ export function rhythmFrame(plan: RhythmPlan, ms: number): Frame {
       walker = s.to;
       break;
     case 'leg': {
-      const e = easeInOut(u, s.p);
+      const e = steady(u, s.ra, s.rb);
       if (s.move) {
         here = legWalkTime(plan, s, u);
         walker = positionAt(story.paths[s.move.pathId], here) ?? s.from;
@@ -425,8 +461,12 @@ export function rhythmFrame(plan: RhythmPlan, ms: number): Frame {
   }
 
   const overlays: Overlay[] = [];
+  // After a press, what it jumped over is said under the clock (RY21) and a memo that began before it is gone, so
+  // nothing plays from its middle (RY14).
+  const landed = jump && ms >= jump.at ? jump : null;
   for (const b of plan.bubbles) {
     if (ms < b.ta || ms >= b.exitAt + R.bubbleOut) continue;
+    if (landed && b.len > 0 && b.ta < landed.at) continue;
     overlays.push({
       kind: 'bubble',
       key: b.capture.id,
@@ -464,9 +504,11 @@ export function rhythmFrame(plan: RhythmPlan, ms: number): Frame {
   for (const w of plan.whispers) {
     const age = ms - w.tw;
     if (age < 0 || age >= R.whisper) continue;
+    if (landed && w.tw > landed.from && w.tw <= landed.at) continue;
     overlays.push({ kind: 'whisper', key: w.key, text: w.text, at: w.at, opacity: clamp01(Math.min(age / 250, (R.whisper - age) / 500)) });
   }
-  const line = plan.lines.find((l) => ms >= l.t0 && ms < l.t1) ?? null;
+  const said = landed && ms - landed.at < R.jumpLine + plan.whispers.length * R.whisper ? jumpLines(plan, landed).find((l) => ms >= l.t0 && ms < l.t1) : null;
+  const line = said ?? plan.lines.find((l) => ms >= l.t0 && ms < l.t1) ?? null;
   return {
     done: false,
     walker,
@@ -487,6 +529,6 @@ export const rhythm: Ceremony = {
   overlays: ['bubble', 'card', 'pile', 'whisper'],
   show(story, opts) {
     const plan = rhythmPlan(story, opts);
-    return { total: plan.total, frame: (ms) => rhythmFrame(plan, ms) };
+    return { total: plan.total, stops: plan.stops, frame: (ms, jump) => rhythmFrame(plan, ms, jump) };
   },
 };

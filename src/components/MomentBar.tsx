@@ -10,6 +10,7 @@ import { momentPill } from '../lib/momentPill';
 import { useStore } from '../lib/useStore';
 import { space } from '../lib/space';
 import { heldLabel } from '../lib/space/core';
+import { memoLabel } from '../lib/unsaved/core';
 import type { Capture } from '../lib/types';
 import { useCaptures, type MomentState } from '../lib/useCaptures';
 import { Modal } from './Modal';
@@ -42,6 +43,8 @@ export function MomentBar(props: {
   const { onMoment } = props;
   const cap = useCaptures(null, null, null, props.onError, {
     loose: true,
+    // In front, its pills say why for a capture that failed on a screen gone (unsaved captures UN9).
+    sayHeld: props.focused !== false,
     // The pill (moment stacks, MS2, MS5): a new moment opens it; a piece keeps it.
     onKept: (id, piece) => (piece ? momentPill.piece(id) : momentPill.kept(id, false)),
     onMoment: (c, state) => {
@@ -197,9 +200,9 @@ export function CaptureRow(props: {
           </View>
         )}
         {cap.unsaved && (
-          <View style={styles.pill}>
-            <Text style={styles.pillText}>Voice memo not saved</Text>
-            <Pressable accessibilityRole="button" onPress={() => cap.retrySave()} hitSlop={10} style={styles.pillBtn}>
+          <View testID="held-memo" style={styles.pill}>
+            <Text style={styles.pillText}>{memoLabel(cap.memosHeld, 'Voice memo')}</Text>
+            <Pressable testID="held-memo-retry" accessibilityRole="button" onPress={() => cap.retrySave()} hitSlop={10} style={styles.pillBtn}>
               <Text style={styles.pillBtnText}>Retry</Text>
             </Pressable>
           </View>

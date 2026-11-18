@@ -2,6 +2,7 @@
 paths:
   - "src/components/Capture*.tsx"
   - "src/components/{Caption,Baker}*.tsx"
+  - "src/components/Picture.tsx"
   - "src/lib/media/**"
   - "src/lib/{useCaptures,thumbPlan,useMediaUri,captureBus}.ts"
   - "src/lib/here/**"
@@ -14,9 +15,19 @@ paths:
 
 Captures (photo, video, voice memo, note), their viewer, captions and baking, thumbnails, saving keepers, the backup bundle, and the voice-memo and web-video traps. The codemap is in `docs/ARCHITECTURE.md`; the decisions and their history are in `docs/decisions/`.
 
+## Pictures (expo-image, EI1-EI6)
+
+- **Every picture on screen is a `Picture`** (`components/Picture.tsx`, over expo-image): a pin's small copy, a gallery
+  tile and a month's cover, a moment's card, a memory preview, a reminder card, the replay's cards and pile. It keeps
+  pictures decoded in memory and on disk (`cachePolicy="memory-disk"`), never fades one in (no `transition`: restraint),
+  takes `fit` as `resizeMode` was, and a list's tile passes `recyclingKey` (its piece's id). An edited photo is
+  `EditedPicture` (an SVG under its edit's matrix and filter); React Native's `Image` only measures (`getSize`).
+- **On the web it is an `<img>`** (its `object-fit` the fit), not React Native's `div` with a background: a journey
+  reads a picture's fit from either shape (`gallery` MG21, EI5). Its cache on a phone is unverified (EI6).
+
 ## The viewer (decision 0114)
 
-- **Top bar, toolbar, menu; nothing over the moment.** `CaptureViewer` draws its top bar (More, Close; Remind me here and Go here are More's items since UC9, and a set reminder says so in the info line, UC12), hides its bars on a tap on a photo (`chrome`, UC7; never with a screen reader, UC8), says a kept reply or an added thread in the info line rather than a pill (`statusOf`, UC10), and `ReplyDock` docks a toolbar under the moment (Respond, and Edit for a photo or video with `onSaveEdit`, or a note with `onSaveNote`). `CaptureContent` takes `dock` and leaves that room clear: the strip and the note card sit above it, and a photo or video starts under the top bar (`TOP_BAR_H`). More holds Remind me here, Go here, Save, Open in Maps, Responses (when it has any, decision 0131), Add to a thread, Open its thread and Delete (no confirm; Undo on the pill, UC4).
+- **Top bar, toolbar, menu; nothing over the moment.** `CaptureViewer` draws its top bar (More, Close; Remind me here and Route here are More's items since UC9, and a set reminder says so in the info line, UC12), hides its bars on a tap on a photo (`chrome`, UC7; never with a screen reader, UC8), says a kept reply or an added thread in the info line rather than a pill (`statusOf`, UC10), and `ReplyDock` docks a toolbar under the moment (Respond, and Edit for a photo or video with `onSaveEdit`, or a note with `onSaveNote`). `CaptureContent` takes `dock` and leaves that room clear: the strip and the note card sit above it, and a photo or video starts under the top bar (`TOP_BAR_H`). More holds Remind me here, Route here, Save, Open in Maps, Responses (when it has any, decision 0131), Add to a thread, Open its thread and Delete (no confirm; Undo on the pill, UC4).
 - **Screenshots are taken after the Modal's fade** (`waitForTimeout(800)`): a picture taken during it shows the screen beneath through the viewer.
 
 ## Video
@@ -114,6 +125,11 @@ expo-image-manipulator; `lib/thumbPlan.ts` pure, `media/thumb.ts`).
     `blob:` URL the moment a preview's file changed left a picture still loading it to fail, logged by the browser.
   - **Trap (e2e): `waitForFunction` with an async predicate** resolves at once with its pending promise; poll a stored
     row from the test side instead (the videothumbs journey).
+  - **The same trap, said exactly** (tend captures 2, audit 6): `waitForFunction` takes an async predicate's pending
+    promise as its first truthy result and resolves with the one read's value; it never polls. The wait cannot time out
+    and `.then(() => true)` is always true. `arch/e2eWaits.test.ts` fails on such a wait in a journey.
+  - **Trap (e2e): a mocked walk's steps go at a walker's pace** (tend captures audit 2): a step over `MAX_WALK_SPEED_MS`
+    (7 m/s, `lib/geo`) is dropped as a jump, so the walk keeps none of them and nothing is placed where it was taken.
 - Previews show the copy, the icon while it is being made, and the photo
   when the copy's file is gone (`thumbShown`). The reminder card uses it
   too. The backup bundle leaves `thumb_path` out.
@@ -146,11 +162,31 @@ expo-image-manipulator; `lib/thumbPlan.ts` pure, `media/thumb.ts`).
   (`heldLabel`), Retry saves each with its stamp, and Stop warns once before ending without them. Every
   save failure is worded by `saveFailLine` (lack of room told apart by `isOutOfSpace`), never the raw error.
 
+- **Unsaved captures have one owner** (UN1-UN15, decision 0196): every photo, video and memo whose save fails goes to
+  the app-wide holder `lib/unsaved` (in memory, while the app is open), never to a path's own state. `useCaptures`
+  keeps every capture through `keepCapture` (the file once, then the row; `path` kept for every later Retry, UN12;
+  an `into` moment gone makes it its own, UN11) and files it by `Stamp.walk`, never the hook's `walkId`, so any
+  screen's Retry keeps a held capture in its own walk (UN4). The pills read the holder (`heldKey` in a selector, a
+  string); a path with no pill passes `retryShown: false` and its words say where the Retry is (`heldWhere`, UN10);
+  a path in front passes `sayHeld` and says, once, what failed on a screen gone (UN9) and a memo lost as it went
+  (UN13). The e2e refuses the moment store too (`__failMoment`, `scripts/e2e/failStorage.js`).
+- **The review's rules for the holder** (unsaved-captures audit 1-9): a Retry opens Add to this moment only on its
+  own walk's path (`ours(stamp.walk)`); once a row is written the capture is kept whatever fails after
+  (`keepInOrder`, and `add`'s steps after the write never throw); a Retry is `unsaved.track`ed and both Stops wait
+  for `settled()`; the walk's held captures go by `unsaved.ended(walkId)`, only after `endWalk` resolves, and a
+  capture failing after that is held loose (`looseAfterEnd`, the owner: "Keep it as its own moment"); "said" and
+  "lost" follow `sayHeld` (in front), never `alive`; `takeUnsaid` marks them in one change. The bar passes
+  `shortWords` ("No room left. Retry on the walk screen.", the owner).
 - All voice actions (start, save, discard, undo, retry) run on one promise queue in
   `useCaptures`, so taps never interleave. Stop waits for that queue.
 - Never call `stop()` on a recorder that already stopped by itself: on web it waits
   forever for `dataavailable`. `stopRecorder` checks `isRecording` and races a 3 s
   timeout.
+- **A stopped memo's file is the recorder's uri only when this memo set it** (`memoFile`, `media/memoSave.ts`;
+  tend captures 1). The web recorder (expo-audio 58) writes `uri` only when its stop answers and never clears it at
+  prepare, so a stop given up on leaves null or the last memo's blob URL (already revoked by `keepFile`). Read the
+  uri before `prepareToRecordAsync` and compare. A failed memo with no file is said and let go (`failedMemo`, the
+  `lost` result, which Stop does not wait on), never held for a Retry. Phones name a new file per prepare (unverified).
 - `getStatus().durationMillis` is 0 once a native recorder has stopped. Judge
   "accidental tap" by wall-clock time, never by that number.
 - The web image picker reports video `duration` in seconds; native reports

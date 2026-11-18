@@ -105,7 +105,7 @@ interface Fit {
 }
 
 /** A fitted order over `set` (indices into pts, 0 the walker): its path, and the way back for a loop. */
-function fitOrder(set: number[], pts: readonly LngLat[], leg: (i: number, j: number) => Route | null, back: Leg, loop: boolean): Fit | null {
+export function fitOrder(set: number[], pts: readonly LngLat[], leg: (i: number, j: number) => Route | null, back: Leg, loop: boolean): Fit | null {
   const outbound: { order: number[]; path: LngLat[]; len: number; cost: number; startM: number }[] = [];
   const orders = set.length <= ORDER_CELLS ? [...permutations(set)] : [nearestFirst(set, pts)];
   for (const order of orders) {

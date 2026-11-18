@@ -1,7 +1,8 @@
 import { useState } from 'react';
+import { Picture } from './Picture';
 import { hasMore } from '../lib/moment';
 import { StackMark, STACK_SPOKEN } from './StackMark';
-import { Image, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { pinHeadKinds, pinSpoken, pinThumb, reactionSpots, type CapturePin, type WalkClock } from '../lib/pins';
 import type { ReactionInfo } from '../lib/reactions/core';
 import { VideoMark } from './VideoMark';
@@ -13,8 +14,8 @@ import { Enter } from './Enter';
 import { captureIcon, Icon, KIND_ICON, type IconName } from './icons';
 import { theme } from './ui';
 
-/** A neutral for pins holding several kinds, distinct from the trace's navy. */
-const MIXED = '#3f3f46';
+/** A neutral for pins holding several kinds, distinct from the walker's navy (map-palette MP2). */
+const MIXED = COLORS.several;
 
 const PIN_COLOR: Record<CapturePin['kind'], string> = {
   photo: COLORS.photo,
@@ -70,11 +71,11 @@ export function CapturePinView({ pin, faint = false, drop: dropNow = false, remi
         <View testID="pin-head" style={[styles.head, { backgroundColor: color }]}>
           {!fan && !painted && <Icon name={n === 1 ? captureIcon(pin.captures[0]) : KIND_ICON[pin.kind]} size={18} color="#ffffff" />}
           {picture && (
-            <Image
+            <Picture
               testID="pin-thumb"
-              source={{ uri: picture }}
+              uri={picture}
               style={styles.thumb}
-              resizeMode="cover"
+              fit="cover"
               accessibilityIgnoresInvertColors
               onLoad={() => setLoaded(picture)}
               onError={() => setFailed(picture)}

@@ -9,7 +9,7 @@ paths:
 ---
 # Tabs and home
 
-The three tabs (Chronicle, Explore, Navigate), the home sheet, the recording bar, the way to the walk screen, and the home map's lifecycle. The codemap is in `docs/ARCHITECTURE.md`; the decisions and their history are in `docs/decisions/`.
+The three tabs (Chronicle, Explore, Navigate), the home sheet and the home map's lifecycle. The recording bar and the way to the walk screen (its ›, Edit offer, reminder and Stop) are in `.claude/rules/recording-bar.md`. The codemap is in `docs/ARCHITECTURE.md`; the decisions and their history are in `docs/decisions/`.
 
 ## The opening tab (the owner's call, Nov 9: 0112, superseding 0070's Explore)
 
@@ -81,32 +81,6 @@ The three tabs (Chronicle, Explore, Navigate), the home sheet, the recording bar
   Navigate tab is never the focused tab, so its icon is never tinted.
 - **The launch** (the owner, Nov 9, 0112): with no walk open the app opens on Chronicle's Memories at `/`;
   with one, the root layout's launch cover brings the walk screen straight up (NV2 launch 1-5, HC2).
-- **Going to the walk screen is `showWalk()`** (`lib/walkNav`, gate in
-  `lib/walkGate`), never `router.push('/walk')`: a second ask while one is on
-  its way or the screen is up does nothing, and the root stack's `walk` is
-  `dangerouslySingular` (tabs audit 1).
-  - The gate holds only while the walk screen is in front (`useFocusEffect`),
-    never merely mounted, and the bar's return waits at most 5 s for its
-    photo (`settleWithin`). Nov 2: minimized on the owner's iPhone, the bar's
-    › did nothing, even after closing and reopening, while the tabs worked.
-    Never reproduced (desktop, phone emulation, `/chronicles`, reloads,
-    browser Back: `E2E_ONLY=reload`, `E2E_MOBILE=1`); these are the only two
-    ways the › can do nothing.
-  - **The bar's Edit offer waits** (T12, decision 0149; ME23's six seconds stay on the walk screen and Navigate's ready
-    screen): after the bar's photo, a pill above the bar (`bar-edit-offer`, the Undo pill's look on the page's ground,
-    in flow so it covers no screen's controls) says "Photo saved to your walk" with Edit (`capture-edit`) and ✕
-    (`bar-edit-offer-close`), until Edit, ✕ or the next capture of the walk from any path (`captureBus`; Memories'
-    band too); its photo deleted or waiting on Undo (`deletions`), a failed bar photo and the walk stopping end it
-    too. Paused, the line reads "0:05 · 18 m · Paused" (numbers first, so a cut at 320 px takes the word). The line keeps its time and distance; the words, the spoken line and the rule are `barOffer*` in
-    `lib/recordingBar`. The offer is the bar's own state, and the bar unmounts whenever the tabs lose focus, so
-    returning to the walk or opening any screen over the tabs (a day, a replay) ends it too; Edit stays in the
-    photo's viewer. No store keeps it (the coordinator's ruling on the review's F2). At 320 px the
-    pill fits one line with 8 px to spare in the e2e's font: its measures are tighter than Undo's at the sides.
-  - **The bar has its own Stop** (`bar-stop`, held as on the walk screen; a
-    tap says to hold), beside its camera: a way out even when the walk screen
-    can't be reached (the owner's quick fix, Nov 2). It refuses under a memo
-    (`memoGate`), waits at most 5 s for the bar's photo, then `stopWalk` and
-    the replay.
 - **A notification opener decides at tap time** from the keeper
   (`useOpenWalkInfo` in a ref), never from what its tab read on focus: a JS
   tab stays mounted, stale, under the others (tabs audit 2).
@@ -200,7 +174,7 @@ The three tabs (Chronicle, Explore, Navigate), the home sheet, the recording bar
 
 - The Start dialog (0056) is gone: its body is `StartSettings` (`components/StartSettings.tsx`),
   shown in the ready bar pulled up (see `.claude/rules/walk-screen.md`): mode, destination, "?"
-  range and what I'm into (Explore only), pocket alert, reminders and alerts, distances. Every choice
+  range and the row to What I'm into's page (Explore only; decision 0192), pocket alert, reminders and alerts, distances. Every choice
   saves as it changes. Start just starts. Nothing raises the bar mid-memo.
 - `drawerTo(pg, 'half' | 'full')` in the e2e pulls the ready bar up by its grip; `'peek'` lowers it
   with Escape and waits for the settings to unmount. `tabTo(pg, id)` reaches a tab from wherever the

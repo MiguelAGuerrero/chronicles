@@ -1,0 +1,11 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inflight",
+        "add"
+      ],
+      "body": "| Sights and Local life, phase 1 (Explore's bars under two headings, Sights and Local life; the Sights bars follow \"What I'm into\"; a tile's line leads with Sights; SG1-SG13, decisions 0197, 0198) | `claude/modest-hopper-df0ev8` | started 2026-11-18: spec and plan reviewed (steward, auditor, UX reviewer) and approved; tests first next |\n"
+    }
+  ]
+}

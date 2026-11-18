@@ -35,6 +35,16 @@ export const STAGE_TOP = 64;
  * each), 8 apart and 8 to spare. A card stands under it, so neither pill draws over a card, on a landscape phone too.
  */
 export const STACK_TOP = 12 + 36 + 8 + 23 + 8 + 23 + 8;
+/**
+ * The room each side of the top column keeps for Hold, and for Skip with Next under it (replay pace RY12): the edge, a
+ * worded button and a gap. The line under the clock wraps inside what is left (`replay-pace ui 3`).
+ */
+export const STAGE_SIDE = 90;
+/**
+ * Whether "Held" is drawn (`replay-pace ui 2`): not under a long line. A passed place's sentence (RY21) wraps to two
+ * or three lines, and "Held" under it would reach a card standing at STACK_TOP; Hold already reads Play.
+ */
+export const heldShown = (held: boolean, line: string | null) => held && (line?.length ?? 0) <= 20;
 /** A card's caption strip and frame under its picture. */
 const CARD_EXTRA = 48;
 /** The room between the top row and the bottom corner, where a card stands (audit 13: a landscape phone). */

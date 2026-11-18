@@ -4,7 +4,7 @@
 // on, the plaque is drawn. E2E_ONLY=small-places runs it alone.
 
 async function run(h) {
-  const { navUrl, BASE, at, check, freshPage, places, shot } = h;
+  const { navUrl, BASE, at, check, freshPage, places, shot, openInto, closeInto } = h;
   const { encodeTile } = await import('../../mvt-encode.mjs');
   const { encodeArchive } = await import('../../pmtiles-encode.mjs');
   // Beside the first leg of the walk below (the curiosities journey's route), in the archive only.
@@ -17,7 +17,7 @@ async function run(h) {
   };
   const [x, y] = tileOf(capsuleAt);
   const feat = (p, name, cls, id) => ({ type: 'Feature', geometry: { type: 'Point', coordinates: p }, properties: { name, class: cls, src: 'osm', id } });
-  const archive = encodeArchive([{ z, x, y, data: encodeTile([feat(capsuleAt, '', 'time_capsule', 'p_0000000000a00001'), feat(plaqueAt, 'Founders Plaque', 'marker', 'p_0000000000a00002')], z, x, y, () => ['places']) }], [-125, 24, -66.9, 49.4]);
+  const archive = encodeArchive([{ z, x, y, data: encodeTile([feat(capsuleAt, '', 'time_capsule', 'p_0000000000a00001'), feat(plaqueAt, 'Founders Plaque', 'plaque', 'p_0000000000a00002')], z, x, y, () => ['places']) }], [-125, 24, -66.9, 49.4]);
   const file = 'places-us-20261116.pmtiles';
   places.files[file] = archive;
   places.manifest = JSON.stringify({
@@ -57,23 +57,24 @@ async function run(h) {
   check(first.some((l) => /A time capsule/.test(String(l))), `SP1: an exploring walk names the archive's unnamed time capsule "A time capsule" (${JSON.stringify([...new Set(first)])})`);
   check(first.every((l) => !/Founders Plaque/.test(String(l))), `SP7, SP11: no plaque is drawn while Plaques and markers is off by default (${JSON.stringify([...new Set(first)])})`);
 
-  // SP2: the walk's options; the row sits under Monuments and memorials, indented, off.
-  await pg.click('[data-testid=walk-summary]');
-  await pg.waitForSelector('[data-testid=options-card]', { timeout: 10000 }).catch(() => {});
+  // SP2: What I'm into's page, from the walk's drawer (decision 0192); the row sits under Monuments and memorials, indented, off.
+  await openInto(pg, 'walk');
   await pg.locator('[data-testid=kind-plaques]').scrollIntoViewIfNeeded().catch(() => {});
   const mon = await pg.locator('[data-testid=kind-monuments]').boundingBox().catch(() => null);
   const row = await pg.locator('[data-testid=kind-plaques]').boundingBox().catch(() => null);
   const on = await pg.locator('[data-testid=kind-plaques]').getAttribute('aria-checked').catch(() => null);
   const label = await pg.locator('[data-testid=kind-plaques]').innerText().catch(() => '');
   await shot(pg, 'small-places-what-im-into');
-  check(!!mon && !!row && row.y > mon.y && on === 'false' && /Plaques and markers/.test(label),
-    `SP2: "What I'm into" lists Plaques and markers under Monuments and memorials, off (${JSON.stringify({ mon: mon?.y, at: row?.y, on, label })})`);
+  check(!!mon && !!row && row.y > mon.y && on === 'false' && /Plaques/.test(label) && !/markers/.test(label),
+    `SP2, XS10: "What I'm into" lists Plaques under Monuments and memorials, off (${JSON.stringify({ mon: mon?.y, at: row?.y, on, label })})`);
   const monText = await pg.locator('[data-testid=kind-monuments]').evaluate((e) => e.getBoundingClientRect().left + parseFloat(getComputedStyle(e).paddingLeft || '0')).catch(() => null);
   const rowText = await pg.locator('[data-testid=kind-plaques]').evaluate((e) => e.getBoundingClientRect().left + parseFloat(getComputedStyle(e).paddingLeft || '0')).catch(() => null);
   check(monText != null && rowText != null && rowText > monText, `SP2: the row is indented under its parent (${monText} < ${rowText})`);
 
   // SP11: switched on, the plaque is drawn on the way back.
   await pg.locator('[data-testid=kind-plaques]').click();
+  // Back from the page to the drawer, then the drawer lowered, before the walk goes on.
+  await closeInto(pg);
   await pg.keyboard.press('Escape');
   await pg.waitForTimeout(500);
   const back = await walkLeg(0, 23);
@@ -88,7 +89,7 @@ module.exports = {
   covers: [
     'src/lib/discovery/smallPlaces.ts',
     'src/lib/discovery/refinements.ts',
-    'src/components/ExploreSettings.tsx',
+    'src/components/IntoPage.tsx',
   ],
   run,
 };

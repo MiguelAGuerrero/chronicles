@@ -31,8 +31,9 @@ const testsDir = path.join(root, 'src', 'lib', '__tests__');
 const e2eDir = path.join(root, 'scripts', 'e2e');
 
 const DEFINITION = [
-  // **QL1**, **M1 ·, **N1.**, **D1 ·
-  /\*\*([A-Z]{1,3})(\d+)(?=[\s.*·])/g,
+  // **QL1**, **M1 ·, **N1.**, **D1 ·, **QL1 Title; not prose that opens bold with an id, as an audit
+  // finding does ("**F3 is settled …**"): an id and a lowercase word is a mention, never a definition
+  /\*\*([A-Z]{1,3})(\d+)(?=[.*·]|\s(?![a-z]))/g,
   // - D1. text   or   1. D1. text
   /^\s*(?:-|\d+\.)\s+([A-Z]{1,3})(\d+)\.\s/gm,
   // inline after a sentence: "… instead. S18. Only these …"

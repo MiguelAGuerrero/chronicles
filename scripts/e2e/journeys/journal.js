@@ -187,13 +187,16 @@ async function run(h) {
   // JN12, JN13: the first character begins an entry with one fix; it is kept as it is written; no walk starts.
   let lineAtRest = null; // the bar's box above the tab bar, read once the page is pulled back (JN37)
   await type('A heron');
-  const begun = await pg.waitForFunction(() => new Promise((resolve) => {
-    const req = indexedDB.open('chronicles');
-    req.onsuccess = () => { const g = req.result.transaction('moment').objectStore('moment').getAll(); g.onsuccess = () => resolve(g.result.some((m) => /A heron/.test(m.pieces?.[0]?.body ?? ''))); };
-  }), null, { timeout: 6000 }).then(() => true, () => false);
+  // tend captures audit 4: polled from here, since an async predicate in waitForFunction is read once and its wait
+  // resolves with that read's value: `begun` was true whatever the store held.
+  let begun = false;
+  for (let i = 0; i < 24 && !begun; i++) {
+    begun = (await stored(pg).catch(() => ({ moments: [] }))).moments.some((m) => /A heron/.test(m.pieces?.[0]?.body ?? ''));
+    if (!begun) await pg.waitForTimeout(250);
+  }
   const status = (await pg.locator('[data-testid=line-status]').filter({ visible: true }).first().innerText().catch(() => '')).trim();
   check(begun && status === 'Kept as you write' && (await shown('[data-testid=line-done]')),
-    `JN13 (with JN48): what is typed is stored with no Save, and the composer says "Kept as you write" beside Done (${JSON.stringify({ begun, status })})`);
+    `JN13 (with JN48; tend captures audit 4): what is typed is stored with no Save, polled from the test side, and the composer says "Kept as you write" beside Done (${JSON.stringify({ begun, status })})`);
   await pg.keyboard.type(' on the old pier.', { delay: 15 });
   await pg.waitForTimeout(1500);
   await pg.reload();
@@ -240,14 +243,9 @@ async function run(h) {
   const afterQuick = (await stored(pg)).moments;
   check(afterQuick.length === beforeQuick + 1 && afterQuick.some((m) => m.pieces.length === 1 && m.pieces[0].body === 'Quick again.') && quickStatus === 'Kept as you write',
     `chronicle-journal audit 3: words typed right after emptying the line are kept, in one new entry (${afterQuick.length - beforeQuick} new, "${quickStatus}")`);
-  // ui 4: an entry's More sits on its dateline's row, trailing.
-  const headRow = await pg.locator(entries).last().evaluate((e) => {
-    const d = e.querySelector('[data-testid=entry-dateline]').getBoundingClientRect();
-    const m = e.querySelector('[data-testid=moment-more]').getBoundingClientRect();
-    return { dateline: Math.round(d.y + d.height / 2), more: Math.round(m.y + m.height / 2), right: Math.round(m.right), w: Math.round(m.width), h: Math.round(m.height) };
-  }).catch(() => null);
-  check(!!headRow && Math.abs(headRow.dateline - headRow.more) <= 22 && headRow.w >= 44 && headRow.h >= 44,
-    `chronicle-journal ui 4: More trails the dateline on the entry's first row, a thumb's target (${JSON.stringify(headRow)})`);
+  // SW19 (decision 0197): an entry's top line has no More and no sign of its own; Reaction is in the row under it.
+  const topLine = await pg.locator(entries).last().evaluate((e) => ({ more: e.querySelectorAll('[data-testid=moment-more]').length, row: !!e.querySelector('[data-testid=quick-actions]'), react: !!e.querySelector('[data-testid=quick-react]') }));
+  check(topLine.more === 0 && topLine.row && topLine.react, `SW19: an entry has no More; its row has Reaction (${JSON.stringify(topLine)})`);
 
   // JN28-JN30 are retired by the composer (decision 0179): their checks are JN47-JN51's.
 
@@ -300,20 +298,7 @@ async function run(h) {
 
   // Reactions on the journal (RX6-RX10, RX14) are the `reactions` journey's; what stays here is how the sheet and the
   // panel behave around the rest of the page (note-types audit 56, 63, carried to reactions).
-  // note-types audit 63: More opens on its list again after the eight were shown and the sheet was closed by another item.
-  const lastMore = () => pg.locator('[data-testid=journal-page] [data-testid=moment-card]').last().locator('[data-testid=moment-more]');
-  await lastMore().click();
-  await pg.waitForTimeout(700);
-  await pg.click('[data-testid=menu-reaction]', { timeout: 3000 }).catch(() => {});
-  await pg.waitForTimeout(400);
-  await pg.click('[data-testid=reaction-done]');
-  await pg.waitForTimeout(700);
-  await lastMore().click();
-  await pg.waitForTimeout(700);
-  const list63 = { type: await pg.locator('[data-testid=memory-menu] [data-testid=menu-reaction]').count(), grid: await pg.locator('[data-testid=memory-menu] [data-testid=reaction-panel]').count() };
-  check(list63.type === 1 && list63.grid === 0, `note-types audit 63: More reopens on its list (${JSON.stringify(list63)})`);
-  await pg.click('[data-testid=menu-cancel]');
-  await pg.waitForTimeout(700);
+  // note-types audit 63 (More reopens on its list) went with More on entries (SW19, decision 0197).
   // note-types audit 56: the reactions go when Memories is no longer in front (a menu opens), and the bar is whole.
   await toLine();
   await pg.keyboard.type('Let go.', { delay: 10 });
@@ -401,11 +386,14 @@ async function run(h) {
   const lastEntry = await pg.locator(entries).last().evaluate((e) => ({
     datelines: e.querySelectorAll('[data-testid=entry-dateline]').length,
     pieces: [...e.querySelectorAll('[data-testid^=entry-piece-]')].map((p) => p.dataset.testid.replace('entry-piece-', '')),
-    digits: [...e.querySelectorAll('[data-testid=stack-mark]')].length,
+    marks: e.querySelectorAll('[data-testid=stack-mark]').length,
+    kinds: (e.querySelector('[data-testid=stack-kinds]')?.textContent ?? '').trim(),
   })).catch(() => null);
-  check(s3.moments.length === before3 + 1 && kinds === 'photo,text,voice' && !!lastEntry && lastEntry.datelines === 1 && lastEntry.pieces.join(',') === 'photo,text,voice' && lastEntry.digits === 0,
-    `JN15: a photo, the line under it and a voice note are one entry under one dateline, every piece shown, no count (${JSON.stringify({ kinds, lastEntry, moments: s3.moments.length - before3 })})`);
-  check(!!lastEntry && lastEntry.pieces.length === 3, `JN3: a moment with several pieces is one entry with every piece shown (${JSON.stringify(lastEntry)})`);
+  // Amended by decision 0197 (SW11): a stack shows its face, its words and voice note, the mark and a clause naming its kinds; Show all is only for media behind it, and there is none here.
+  const toggles15 = await pg.locator(entries).last().locator('[data-testid=stack-toggle]').count();
+  check(s3.moments.length === before3 + 1 && kinds === 'photo,text,voice' && !!lastEntry && lastEntry.datelines === 1 && lastEntry.pieces.join(',') === 'photo,text,voice' && lastEntry.marks === 1 && lastEntry.kinds === 'Holds a photo, a note and a voice note' && toggles15 === 0,
+    `JN15: a photo, the line under it and a voice note are one entry under one dateline: its face, the mark and its kinds in words, and no Show all with no media behind it, no count (${JSON.stringify({ kinds, lastEntry, toggles15, moments: s3.moments.length - before3 })})`);
+  check(!!lastEntry && lastEntry.pieces.length === 3, `JN3: a moment with several pieces is one entry with its words and voice notes shown, extra photos and videos behind Show all (${JSON.stringify(lastEntry)})`);
   // A voice note plays in line (the owner's call, Nov 13): a play button and a bar on the page, never the viewer.
   const memoRow = pg.locator(entries).last().locator('[data-testid=entry-piece-voice]');
   const hasPlay = await memoRow.locator('[data-testid=entry-voice-play]').count().then((n) => n === 1, () => false);
@@ -654,6 +642,69 @@ async function run(h) {
   await pg.waitForTimeout(900);
   const INK = 'rgb(29, 36, 48)';
   const inBarNow = (id) => pg.evaluate((id) => !!document.querySelector(`[data-testid=open-line] [data-testid=${id}]`), id);
+  // tend chronicle 14: where the field sits in the bar (a thread, a lens), its hint holds one line beside the camera and
+  // the mic, at the web's 16 px minimum and in the typed words' serif (ui-patterns, "Nothing wraps on a 320 px phone").
+  // The placeholder is measured in the field's own font against the room the field leaves for words.
+  const barHint = () => pg.evaluate(() => {
+    const bar = document.querySelector('[data-testid=open-line]');
+    const f = bar?.querySelector('[data-testid=line-input]');
+    if (!f) return null;
+    const cs = getComputedStyle(f);
+    const ctx = document.createElement('canvas').getContext('2d');
+    ctx.font = `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+    const r = (e) => { const b = e?.getBoundingClientRect(); return b && b.width ? { x: Math.round(b.x), y: Math.round(b.y), w: Math.round(b.width), h: Math.round(b.height) } : null; };
+    const room = f.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    return {
+      hint: f.getAttribute('placeholder'), empty: f.value === '', size: parseFloat(cs.fontSize), font: cs.fontFamily,
+      words: Math.ceil(ctx.measureText(f.getAttribute('placeholder') ?? '').width), room: Math.floor(room),
+      field: r(f), photo: r(bar.querySelector('[data-testid=band-photo]')), voice: r(bar.querySelector('[data-testid=band-voice]')),
+      over: bar.scrollWidth > bar.clientWidth + 1, vw: window.innerWidth,
+    };
+  });
+  // The room is held to the widest phone serif too, not only this browser's: Android's Noto Serif sets the hint 168 px
+  // wide at 16 px (Georgia's metrics, about 156), so at 320 px the field leaves at least 170.
+  const hintHolds = (t) => !!t && t.hint === 'What’s on your mind?' && t.empty && t.size >= 16 && /serif/.test(t.font) && t.words <= t.room && t.room >= 170 && !t.over
+    && !!t.photo && !!t.voice && t.field.x + t.field.w <= t.photo.x && t.voice.x + t.voice.w <= t.vw
+    && [t.photo, t.voice].every((b) => Math.abs(b.y + b.h / 2 - (t.field.y + t.field.h / 2)) <= 4);
+  // At 320 and 390 px, a picture of each (the after pictures for the review).
+  const hintAt = async (name) => {
+    const vp = pg.viewportSize();
+    const out = {};
+    await pg.evaluate(() => document.activeElement?.blur?.());
+    for (const width of [320, 390]) {
+      await pg.setViewportSize({ width, height: width === 320 ? 640 : 844 });
+      await pg.waitForTimeout(800);
+      out[width] = await barHint();
+      await shot(pg, `tend-chronicle-14-${name}-${width}`);
+    }
+    await pg.setViewportSize(vp);
+    await pg.waitForTimeout(600);
+    return out;
+  };
+  // tend chronicle audit 8: the bar while typing in it (a thread, the threads), at 320 and 390 px: the walk's mark, the
+  // field, Open as a page, the camera, the mic and Done in one row, none over another, Done a 44 pt target.
+  const typingRow = () => pg.evaluate(() => {
+    const bar = document.querySelector('[data-testid=open-line]');
+    const r = (id) => { const e = bar?.querySelector(`[data-testid=${id}]`); const b = e?.getBoundingClientRect(); return b && b.width ? { x: Math.round(b.x * 2) / 2, y: Math.round(b.y), w: Math.round(b.width * 2) / 2, h: Math.round(b.height) } : null; };
+    const parts = { dot: r('line-recording'), field: r('line-input'), page: r('line-page'), photo: r('band-photo'), voice: r('band-voice'), done: r('line-done') };
+    const row = Object.values(parts).filter(Boolean).sort((a, b) => a.x - b.x);
+    return { ...parts, overlap: row.some((b, i) => i > 0 && row[i - 1].x + row[i - 1].w > b.x + 0.5), over: !!bar && bar.scrollWidth > bar.clientWidth + 1, vw: window.innerWidth };
+  });
+  const rowHolds = (t, { dot = false, tall = false } = {}) => !!t && !!t.field && !!t.page && !!t.photo && !!t.voice && !!t.done && !t.overlap && !t.over
+    && t.done.w >= 44 && t.done.h >= 44 && t.done.x + t.done.w <= t.vw && (!dot || !!t.dot) && (!tall || t.field.h >= 120);
+  const typingAt = async (name) => {
+    const vp = pg.viewportSize();
+    const out = {};
+    for (const width of [320, 390]) {
+      await pg.setViewportSize({ width, height: width === 320 ? 640 : 844 });
+      await pg.waitForTimeout(800);
+      out[width] = await typingRow();
+      await shot(pg, `tend-chronicle-audit-8-${name}-${width}`);
+    }
+    await pg.setViewportSize(vp);
+    await pg.waitForTimeout(600);
+    return out;
+  };
   const tool = () => pg.evaluate((ink) => {
     const bar = document.querySelector('[data-testid=open-line]');
     const r = (id) => { const e = bar?.querySelector(`[data-testid=${id}]`); const b = e?.getBoundingClientRect(); return b && b.width ? { x: Math.round(b.x), y: Math.round(b.y), w: Math.round(b.width), h: Math.round(b.height), label: e.getAttribute('aria-label'), ink: [e, ...e.querySelectorAll('*')].some((x) => getComputedStyle(x).color === ink) } : null; };
@@ -847,17 +898,7 @@ async function run(h) {
   const placedEntry = pg.locator(entries).filter({ hasText: 'Second entry of the day.' });
   // ui 3: the map is also in the entry's More, and a placed dateline wears a pin.
   const pinGlyph = await placedEntry.locator('[data-testid=entry-map]').innerText().then((t) => iconOf(t.trim()[0] ?? ''), () => '');
-  await placedEntry.locator('[data-testid=moment-more]').click().catch(() => {});
-  await there('[data-testid=memory-menu]', 4000);
-  const mapInMore = await pg.locator('[data-testid=menu-map]').count();
-  await pg.locator('[data-testid=menu-cancel]').click().catch(() => {});
-  await pg.locator(entries).filter({ hasText: 'A long entry' }).locator('[data-testid=moment-more]').click().catch(() => {});
-  await there('[data-testid=memory-menu]', 4000);
-  const mapForUnplaced = await pg.locator('[data-testid=menu-map]').count();
-  await pg.locator('[data-testid=menu-cancel]').click().catch(() => {});
-  await pg.waitForTimeout(400);
-  check(mapInMore === 1 && mapForUnplaced === 0 && /location/.test(pinGlyph),
-    `chronicle-journal ui 3: Show on the map is in a placed entry's More, and its dateline wears a pin (${JSON.stringify({ mapInMore, mapForUnplaced, pinGlyph })})`);
+  check(/location/.test(pinGlyph), `chronicle-journal ui 3: a placed entry's dateline wears a pin and is the way to the map (${pinGlyph})`);
   await placedEntry.locator('[data-testid=entry-map]').click().catch(() => {});
   const onMap = await pg.waitForSelector('[data-testid=section-map][aria-selected=true]', { timeout: 6000 }).then(() => true, () => false);
   await pg.waitForTimeout(2500);
@@ -914,9 +955,19 @@ async function run(h) {
   await pg.locator('[data-testid=menu-cancel]').click().catch(() => {});
   await pg.waitForTimeout(400);
   check(inThread && anotherInThread === 0, `chronicle-journal audit 8: a thread moment's menu has no Another or Relive it (${anotherInThread})`);
+  const hintInThread = await hintAt('thread');
+  check(hintHolds(hintInThread[320]) && hintHolds(hintInThread[390]), `tend chronicle 14: in a thread the toolbar's "What’s on your mind?" holds one line beside the camera and the mic, at 320 and 390 px (${JSON.stringify(hintInThread)})`);
   // audit 15: writing from inside a thread goes back to the page at its foot, where the entry is seen.
   await pg.click(input).catch(() => {});
   await pg.keyboard.type('Written from inside a thread.', { delay: 10 });
+  await pg.waitForTimeout(1200);
+  const typing8 = await typingAt('thread-typing');
+  check(rowHolds(typing8[320]) && rowHolds(typing8[390]), `tend chronicle audit 8: typing in a thread, the bar's field, Open as a page, camera, mic and Done hold one row with Done a 44 pt target, at 320 and 390 px (${JSON.stringify(typing8)})`);
+  await pg.keyboard.type(' And a long line after it, to grow the field in the bar to its tallest: the harbor, the lights, the bakery two blocks off, the bridge and the walk home in the rain.', { delay: 2 });
+  await pg.waitForTimeout(1200);
+  const tall8 = await typingAt('thread-long');
+  check(rowHolds(tall8[320], { tall: true }) && rowHolds(tall8[390], { tall: true }) && tall8[320].field.h <= 132, `tend chronicle audit 8: a long line in the bar grows to its tallest and nothing in the row moves over another, at 320 and 390 px (${JSON.stringify(tall8)})`);
+  await pg.fill(input, 'Written from inside a thread.').catch(() => {});
   await pg.waitForTimeout(1200);
   await done();
   await pg.waitForTimeout(1000);
@@ -928,6 +979,20 @@ async function run(h) {
   check(/Threads/.test(contents) && /Hidden/.test(contents) && !/[0-9]/.test(contents) && threadsUp && rail && mine && inThread && backOnPage,
     `JN21: the contents lists Threads and Hidden with no count; Threads holds the Chronicle's and yours, and Back returns to the page (${JSON.stringify({ contents, threadsUp, rail, mine, inThread, backOnPage })})`);
   check(lineInThreads && lineInThread, `JN9: the open line stays, unmoved, in the threads and in a thread (${JSON.stringify({ lineInThreads, lineInThread })})`);
+  // tend chronicle 14: in a lens (the seed's Ideas) the same.
+  await pg.click('[data-testid=memories-menu]').catch(() => {});
+  await there('[data-testid=memories-menu-sheet]', 4000);
+  await pg.waitForTimeout(800);
+  await pg.click('[data-testid=menu-reactions]', { timeout: 3000 }).catch(() => {});
+  await there('[data-testid=reactions-screen]', 5000);
+  await pg.click('[data-testid=lens-row-idea]', { timeout: 3000 }).catch(() => {});
+  const inLens = await there('[data-testid=lens-screen]', 5000);
+  const hintInLens = await hintAt('lens');
+  check(inLens && hintHolds(hintInLens[320]) && hintHolds(hintInLens[390]), `tend chronicle 14: in a lens the toolbar's "What’s on your mind?" holds one line beside the camera and the mic, at 320 and 390 px (${JSON.stringify({ inLens, hintInLens })})`);
+  await pg.click('[data-testid=lens-back]').catch(() => {});
+  await there('[data-testid=reactions-screen]', 4000);
+  await pg.click('[data-testid=reactions-back]').catch(() => {});
+  await there('[data-testid=journal-page]', 5000);
 
   // JN17: nothing inserts on a past page; a response lands at the end and says what it answers.
   // The one field on the page is its last line, after every entry (JN28): nothing writes into a past page.
@@ -970,11 +1035,7 @@ async function run(h) {
     navigator.permissions.query = window.__pq;
   });
   await pg.waitForTimeout(6500);
-  await pg.locator(entries).last().locator('[data-testid=moment-more]').click().catch(() => {});
-  await pg.locator('[data-testid=menu-hide]').first().click({ timeout: 3000 }).catch(() => {});
-  const undoBox = await pg.waitForSelector('[data-testid=memories-toast]', { timeout: 5000 }).then(() => box(pg, '[data-testid=memories-toast]'), () => null);
-  check(!!undoBox && undoBox.y + undoBox.h <= lineAtRest.y && same(await box(pg, line), lineAtRest), `JN18: Undo for a hide sits above the toolbar (${JSON.stringify({ undoBox, lineAtRest })})`);
-  await pg.locator('[data-testid=memories-undo]').click({ timeout: 3000 }).catch(() => {});
+  // JN18's Undo for a hide went with Not this one on entries (SW19, decision 0197).
 
   // JN22: no texture, no accent, and outside the owner's words only dates, times and a memo's length are digits.
   const restraint = await pg.evaluate(({ accent }) => {
@@ -1091,6 +1152,17 @@ async function run(h) {
   await shot(pg, 'journal-21-writing-on-a-walk');
   await done();
   await pg.waitForTimeout(900);
+  // tend chronicle audit 8: on a walk, the bar's field in the threads shows the walk's mark while it has the caret.
+  await h.toThreads(pg);
+  await there('[data-testid=threads-screen]', 5000);
+  await pg.click(input).catch(() => {});
+  await pg.waitForTimeout(800);
+  const walk8 = await typingAt('walk-typing');
+  check(rowHolds(walk8[320], { dot: true }) && rowHolds(walk8[390], { dot: true }), `tend chronicle audit 8: on a walk the bar keeps the walk's mark beside the field, and the row holds, at 320 and 390 px (${JSON.stringify(walk8)})`);
+  await pg.evaluate(() => document.activeElement?.blur?.());
+  await pg.waitForTimeout(600);
+  await h.toJournal(pg);
+  await there('[data-testid=journal-page]', 5000);
   await pg.click('[data-testid=recording-return]').catch(() => {});
   await pg.waitForSelector('[data-testid=stop]', { timeout: 10000 }).catch(() => {});
   await pg.waitForTimeout(1200);

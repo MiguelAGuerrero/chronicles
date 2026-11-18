@@ -37,6 +37,7 @@
 //                                                           during a merge, main's side of the documents, and
 //                                                           the branch's record commits to file again after it;
 //                                                           with nothing pending, the commits that hand-edit
+//   npm run records -- help                                 this usage
 //   npm run records -- verify [<base>..<head> | <rev>]      (npm run check:records) each commit of the range
 //                                                           replayed; with one rev, the commits since its merge
 //                                                           base with HEAD and the working tree against HEAD
@@ -47,7 +48,9 @@
 // handle (@1 for the first operation's), which redo renumbers with it. Each operation records the entry it
 // acted on, and replay refuses another. A remove, set or retag of an entry the run did not file
 // (filed: added by inbox add, open add or item add earlier in the range) needs --reason, and a commit
-// makes at most two of them per section. A tag moves only toward [owner], [arch] or [kept].
+// makes at most two of them per section (one whose --reason names, in four digits, an accepted decision
+// record the range adds, absent from its base, is not counted). A tag moves only toward
+// [owner], [arch] or [kept], or from [loop] to [phone].
 // Plain Node, no dependencies. CI (scripts/tend.js commits --loop-only) runs the gate on every loop commit and
 // every agent commit (a Claude-Session or Co-Authored-By: Claude trailer, the owner's rule of Nov 13);
 // the owner's own hand edits carry neither and are not gated. A refusal ends with its one-line fix.
@@ -64,9 +67,15 @@ const DOCS = { 'docs/STATUS.md': 'status', 'docs/DEFERRED.md': 'deferred', 'docs
 const FILE_OF = Object.fromEntries(Object.entries(DOCS).map(([f, k]) => [k, f]));
 const TAGS = ['loop', 'owner', 'arch', 'phone', 'kept'];
 // A tag already given changes only toward these (decision 0156): never from [owner] or [arch] to [loop].
+// Besides, [loop] may become [phone]: the owner's check on a device takes it from the loop's hands.
 const RAISED = ['owner', 'arch', 'kept'];
-// Removals and rewrites of entries the run did not file, per section per commit.
+const LOWERED = { loop: ['phone'] };
+// Removals and rewrites of entries the run did not file, per section per commit; one whose --reason
+// names a decision record the range itself adds (docs/decisions/NNNN-*.md: absent from the range's
+// base, accepted in the commit's tree) is not counted. A decision already on the base lifts no cap.
 const CAP = 2;
+const DECISIONS_DIR = 'docs/decisions';
+const DECISION_FILE = /^(\d{4})-[^/]*\.md$/;
 // The commits the loop makes.
 const LOOP = /^(tend |Revert "tend )/;
 // An agent's commit (the owner's rule, Nov 13): a message line `Claude-Session: <url>` or
@@ -1019,11 +1028,40 @@ const newRangeState = () => ({ filed: new Set(), removed: new Map(), added: new 
 /** The first words of an item, as a reason must quote them to name it. */
 const nameOf = (untaggedText) => untaggedText.slice(0, 40);
 
-const tagMove = (from, to) => (from && from !== to && !RAISED.includes(to) ? `moves the tag [${from}] to ${to ? `[${to}]` : 'no tag'}` : null);
-const TAG_RULE = 'a tag moves only toward [owner], [arch] or [kept], never from [owner] or [arch] to [loop] (decision 0156)';
+const tagMove = (from, to) => (from && from !== to && !RAISED.includes(to) && !(LOWERED[from] ?? []).includes(to) ? `moves the tag [${from}] to ${to ? `[${to}]` : 'no tag'}` : null);
+const TAG_RULE = 'a tag moves only toward [owner], [arch] or [kept], or from [loop] to [phone] (the owner\'s device check), never from [owner] or [arch] to [loop] (decision 0156)';
 
-/** The problems of one commit's steps; `state` carries the range's earlier commits and is updated. */
-function judge(steps, state) {
+/** The four-digit decision numbers a reason names ("decision 0156", "0156's"). */
+const citedDecisions = (reason) => [...String(reason ?? '').matchAll(/(?<!\d)(\d{4})(?!\d)/g)].map((m) => m[1]);
+
+/**
+ * Whether a decision number is an accepted record in a tree: `names` the files of docs/decisions/,
+ * `read(name)` one's text. A record whose Status is anything but accepted (superseded) is not.
+ * With `onBase` (the numbers the range's base holds, any status), only a record the range adds: one
+ * whose number the base lacks. `onBase` null (no base found): none, so everything stays capped.
+ */
+function decisionsIn(names, read, onBase) {
+  if (!onBase) return () => false;
+  const byNumber = new Map();
+  for (const n of names) {
+    const m = DECISION_FILE.exec(n);
+    if (m && !byNumber.has(m[1])) byNumber.set(m[1], n);
+  }
+  const seen = new Map();
+  return (num) => {
+    if (!seen.has(num)) {
+      const file = byNumber.get(num);
+      seen.set(num, !onBase.has(num) && Boolean(file) && /\bStatus:[ \t]*accepted\b/i.test(read(file) ?? ''));
+    }
+    return seen.get(num);
+  };
+}
+
+/**
+ * The problems of one commit's steps; `state` carries the range's earlier commits and is updated.
+ * `decided(number)`: whether that decision is an accepted record the range adds (absent from its base).
+ */
+function judge(steps, state, decided = () => false) {
   const problems = [];
   const counts = new Map();
   for (const s of steps) {
@@ -1049,7 +1087,7 @@ function judge(steps, state) {
     if (s.onlyOwn && !own) problems.push(`${s.label} removes "${s.what}", which this range did not add: \`slice row remove\` only undoes a row the range added (a fix-forward); every other row is the owner's record (decision 0156)`);
     if (['remove', 'set', 'retag'].includes(s.kind) && !own) {
       const where = s.file === 'docs/STATUS.md' ? s.section : `${s.file} › ${s.section}`;
-      counts.set(where, (counts.get(where) ?? 0) + 1);
+      if (!citedDecisions(s.reason).some(decided)) counts.set(where, (counts.get(where) ?? 0) + 1);
       if (!s.reason || !s.reason.trim()) problems.push(`${s.label} changes an entry this run did not file ("${s.what}") with no --reason: give one, and it is recorded in the trailer (decision 0156)`);
     }
     if (s.kind === 'set' || s.kind === 'retag') {
@@ -1083,7 +1121,7 @@ function judge(steps, state) {
     }
   }
   for (const [where, n] of counts) {
-    if (n > CAP) problems.push(`at most ${['no', 'one', 'two', 'three'][CAP] ?? CAP} entries this run did not file are removed or rewritten per section per commit (decision 0156); this commit does ${n} in "${where}". Entries leave one at a time, each when it ships or the owner answers it: the rest wait for a later commit or for the owner`);
+    if (n > CAP) problems.push(`at most ${['no', 'one', 'two', 'three'][CAP] ?? CAP} entries this run did not file are removed or rewritten per section per commit (decision 0156); this commit does ${n} in "${where}". Entries leave one at a time, each when it ships or the owner answers it: the rest wait for a later commit or for the owner, or each names in its --reason the accepted decision record this range adds (docs/decisions/, four digits) that settles them; a decision already on main lifts no cap`);
   }
   return problems;
 }
@@ -1224,7 +1262,7 @@ const fixLine = (ops) =>
  * parent's, `notes` the lines earlier commits' `inbox note`s added, by entry (F9; else the range's,
  * `state.notes`), `sha` the commit, for the refusal.
  */
-function checkCommit({ base, head, message, sidecar, ledger, state, notes, sha }) {
+function checkCommit({ base, head, message, sidecar, ledger, state, notes, sha, decided }) {
   const changed = Object.keys(DOCS).filter((f) => (base[f] ?? '') !== (head[f] ?? ''));
   const lines = trailerLines(message);
   if (!lines.length) {
@@ -1256,7 +1294,7 @@ function checkCommit({ base, head, message, sidecar, ledger, state, notes, sha }
     if (want === got) continue;
     problems.push(`${file} does not match its declared operations replayed on the parent: ${firstDifference(want, got)}. Any change but the operations' fails. ${fixLine(opsFor(r.docs, head))}`);
   }
-  problems.push(...judge(r.steps, state));
+  problems.push(...judge(r.steps, state, decided));
   return problems;
 }
 
@@ -1386,6 +1424,8 @@ function exactRevert(git, sha, parent, message, files, ancestor) {
 function gateRange(range, { cwd = ROOT, loopOnly = false, cutover = CUTOVER, state = newRangeState() } = {}) {
   const git = gitIn(cwd);
   const shas = git('rev-list', '--reverse', '--topo-order', range).split('\n').filter(Boolean);
+  // A decision the range adds (absent from this base) may lift the cap; one on the base never does.
+  const baseRev = rangeBase(git, range, shas);
   const messages = new Map();
   for (const rec of (shas.length ? git('log', '--no-walk=unsorted', '--format=%H%x1f%B%x1e', ...shas) : '').split('\x1e')) {
     const [h, body] = rec.replace(/^\n/, '').split('\x1f');
@@ -1466,7 +1506,7 @@ function gateRange(range, { cwd = ROOT, loopOnly = false, cutover = CUTOVER, sta
         state.notes = notesAt(git, parent, cutover);
         stats.notesReads++;
       }
-      return checkCommit({ base: docsAt(git, parent), head: docsAt(git, sha), message, sidecar: added.map((x) => showIn(git)(sha, x.file)), ledger: ledgerAt(git, parent), state, sha });
+      return checkCommit({ base: docsAt(git, parent), head: docsAt(git, sha), message, sidecar: added.map((x) => showIn(git)(sha, x.file)), ledger: ledgerAt(git, parent), state, sha, decided: decidedAt(git, sha, baseRev) });
     };
     if (loopOnly && !LOOP.test(subj) && !isAgent(message)) {
       // The owner's own commit: not gated; but what it filed is the run's, as the CLI reads it.
@@ -1480,6 +1520,39 @@ function gateRange(range, { cwd = ROOT, loopOnly = false, cutover = CUTOVER, sta
     results.push(res);
   }
   return { results, ok: results.every((r) => !r.problems.length), state, stats };
+}
+
+/** The decision numbers a revision's tree holds, any status; null when there is no revision. */
+function decisionNumbersAt(git, rev) {
+  if (!rev) return null;
+  const names = (tryGit(git, 'ls-tree', '--name-only', `${rev}:${DECISIONS_DIR}`) ?? '').split('\n');
+  return new Set(names.map((n) => DECISION_FILE.exec(n)?.[1]).filter(Boolean));
+}
+
+/** The range's base: `a..b`'s merge base, else the first commit's parent; null when none is found. */
+function rangeBase(git, range, shas) {
+  const ends = /^([^.]+)\.\.([^.]*)$/.exec(range);
+  const base = ends ? tryGit(git, 'merge-base', ends[1], ends[2] || 'HEAD') : shas.length ? tryGit(git, 'rev-parse', '-q', '--verify', `${shas[0]}^`) : null;
+  return base ? base.trim() : null;
+}
+
+/** The accepted decisions a commit's tree holds that `baseRev` does not, read only when a reason names one. */
+function decidedAt(git, rev, baseRev) {
+  let reader;
+  return (num) => {
+    reader ??= decisionsIn((tryGit(git, 'ls-tree', '--name-only', `${rev}:${DECISIONS_DIR}`) ?? '').split('\n').filter(Boolean), (name) => tryGit(git, 'show', `${rev}:${DECISIONS_DIR}/${name}`), decisionNumbersAt(git, baseRev));
+    return reader(num);
+  };
+}
+
+/** The accepted decisions the working tree holds (what the commit being made will) that `baseRev` does not. */
+function decidedHere(baseRev) {
+  const dir = path.join(ROOT, DECISIONS_DIR);
+  let reader;
+  return (num) => {
+    reader ??= decisionsIn(fs.existsSync(dir) ? fs.readdirSync(dir) : [], (name) => fs.readFileSync(path.join(dir, name), 'utf8'), decisionNumbersAt(gitIn(ROOT), baseRev));
+    return reader(num);
+  };
 }
 
 /** The pending sidecar: the one file under .claude/records/ that HEAD does not hold. */
@@ -1577,7 +1650,7 @@ function runOperation(argv) {
   const step = next.steps[next.steps.length - 1];
   if (step.target) op.target = step.target;
   if (step.id) op.number = step.id;
-  const problems = judge(next.steps, state);
+  const problems = judge(next.steps, state, decidedHere(tryGit(gitIn(ROOT), 'merge-base', 'origin/main', 'HEAD')?.trim() ?? null));
   if (problems.length) fail(`refused, nothing was written:\n${problems.map((p) => `  - ${p}`).join('\n')}`);
   const file = FILE_OF[kind];
   fs.writeFileSync(path.join(ROOT, file), next.docs[file]);
@@ -1697,7 +1770,7 @@ function verify(argv) {
   let bad = report(g.results);
   const pend = pendingSidecar();
   const ops = pend?.ops ?? [];
-  const problems = checkCommit({ base: docsAt(git, 'HEAD'), head: workingDocs(), message: trailersOf(ops).join('\n'), sidecar: pend ? sidecarOf(ops) : null, ledger: headLedger(), state: g.state });
+  const problems = checkCommit({ base: docsAt(git, 'HEAD'), head: workingDocs(), message: trailersOf(ops).join('\n'), sidecar: pend ? sidecarOf(ops) : null, ledger: headLedger(), state: g.state, decided: decidedHere(base) });
   for (const p of problems) {
     bad++;
     console.error(`the working tree${pend ? ` (pending: ${pend.rel})` : ''}\n  ${p}`);
@@ -1710,7 +1783,19 @@ function verify(argv) {
   return 0;
 }
 
-const USAGE = "usage: npm run records -- <operation> | trailers | redo (scripts/records.js's header lists them), or npm run check:records -- <range>";
+const USAGE = "usage: npm run records -- <operation> | trailers | redo (npm run records -- help lists them), or npm run check:records -- <range>";
+
+/** The comment at the top of this file, its markers dropped: the usage. */
+function help() {
+  const lines = fs.readFileSync(__filename, 'utf8').split('\n');
+  const out = [];
+  for (const l of lines.slice(lines[0].startsWith('#!') ? 1 : 0)) {
+    if (!l.startsWith('//')) break;
+    out.push(l.replace(/^\/\/ ?/, ''));
+  }
+  console.log(out.join('\n'));
+  return 0;
+}
 
 function main(argv) {
   const [group] = argv;
@@ -1718,6 +1803,7 @@ function main(argv) {
     console.error(USAGE);
     return 2;
   }
+  if (group === 'help' || group === '--help' || group === '-h') return help();
   if (group === 'verify') return verify(argv.slice(1));
   if (group === 'trailers') return trailers();
   if (group === 'redo') return redo();

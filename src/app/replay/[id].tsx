@@ -1,7 +1,7 @@
 import type { Faced } from '../../lib/moment';
 import { notePatch } from '../../lib/noteEdit';
 import { useUnits } from '../../lib/useUnits';
-import { foundLine, foundList, passedLine } from '../../lib/explore/explore';
+import { foundLine, passedLine, replayFound } from '../../lib/explore/explore';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useWalkBorders } from '../../lib/areas/useOutlineSet';
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
@@ -15,13 +15,14 @@ import { CaptureViewer } from '../../components/CaptureView';
 import { Stage } from '../../components/ceremony/Stage';
 import { StepThrough } from '../../components/ceremony/StepThrough';
 import { useAwakeWhile } from '../../components/ceremony/useAwakeWhile';
+import { NextMoment } from '../../components/ceremony/NextMoment';
 import { useCeremonyClock } from '../../components/ceremony/useCeremonyClock';
 import { useRevealed } from '../../components/ceremony/useRevealed';
 import type { StageCtx } from '../../components/ceremony/layout';
 import { ceremonyFor } from '../../lib/ceremony/registry';
 import { chronicleSection } from '../../lib/resurface/sectionStore';
 import { pathDrawnAt, storySteps, walkStory } from '../../lib/ceremony/story';
-import { planViews, type WalkMapHandle } from '../../components/map/types';
+import { planViews, QUIET_TRACE_OPACITY, type WalkMapHandle } from '../../components/map/types';
 import { Button, theme } from '../../components/ui';
 import { db } from '../../lib/db';
 import { applyPatch, captureBus } from '../../lib/captureBus';
@@ -386,7 +387,7 @@ export default function Replay() {
     });
   }, []);
   const play = useCeremonyClock({ epoch: phase.t0, running: telling, paused: viewing != null || waits.size > 0, showing, onEnd: () => go('card') });
-  const frame = telling ? showing.frame(play.ms) : null;
+  const frame = telling ? showing.frame(play.ms, play.jump) : null;
   // The screen stays awake while the replay plays, until the card (RR24).
   useAwakeWhile(beat === 'reading' || beat === 'fog' || beat === 'path');
 
@@ -493,7 +494,7 @@ export default function Replay() {
   // Ridden distance (R6): the summary's, else the trace's for a summary written before rides.
   const rideM = s?.ride_m ?? data.rideM;
   const head = headline(s, data);
-  const finds = foundList(data.found.map((f) => f.name));
+  const finds = replayFound(data.found);
   const passed = passedLine(data.passed);
   // Streets walked and new, in words (tend replay T31), one clause when all are new (tend replay audit 14).
   // The name typed in Name it, unsaved, until Keep it or leaving (tend replay audit 16, the owner's "Show the typed name").
@@ -523,7 +524,7 @@ export default function Replay() {
         borders={borders}
         trace={drawn.trace}
         rides={drawn.rides}
-        traceOpacity={beat === 'fog' || beat === 'reading' ? 0.3 : 1}
+        traceOpacity={beat === 'fog' || beat === 'reading' ? QUIET_TRACE_OPACITY : 1}
         walked={shownWalked}
         fog={fog}
         captures={pinned}
@@ -544,6 +545,8 @@ export default function Replay() {
         initialCenter={data.fixes[0] ? [data.fixes[0].lon, data.fixes[0].lat] : undefined}
         covered={beat === 'reading'}
         veil
+        // The town borders over the veil, at a lighter fill (decision 0199).
+        bordersOverVeil
         // The walk has ended: its last point is marked (QL2), where the whole trace ends in every beat, never at
         // the tip of the path being told (tend replay 2).
         ended={data.runs}
@@ -661,6 +664,8 @@ export default function Replay() {
       {(beat === 'fog' || beat === 'path') && (
         <View style={[styles.skip, { top: insets.top + 12 }]}>
           <Button testID="skip" variant="secondary" label="Skip" onPress={() => go('card')} />
+          {/* Under Skip, at the same edge: the clock sits between Hold and Skip, and the three do not fit one row on a 375 px phone (RY12). */}
+          {frame && play.canNext && <NextMoment onPress={play.next} />}
         </View>
       )}
       {frame && (
@@ -876,7 +881,7 @@ const styles = StyleSheet.create({
   },
   headlineLabel: { fontSize: 17, color: theme.ink, fontWeight: '600', textAlign: 'center' },
   headlineNote: { fontSize: 14, color: theme.muted, textAlign: 'center', marginTop: 6 },
-  skip: { position: 'absolute', right: 12 },
+  skip: { position: 'absolute', right: 12, alignItems: 'flex-end', gap: 8 },
   hold: { position: 'absolute', left: 12 },
   sheetWrap: { position: 'absolute', left: 0, right: 0, bottom: 0, maxHeight: '70%' },
   sheet: { backgroundColor: theme.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20 },

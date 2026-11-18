@@ -1,0 +1,22 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "The `capturehome` journey's HC10 is red on main",
+        "--reason",
+        "fixed by tend captures 2 (HC10's placed-at-stop check polls the stored note instead of reading it once) and tend captures audit 2 (HC10 tests both its paths at a walker's pace; no journey waits on an async predicate)"
+      ],
+      "target": "sha256:9a7755a1259afe893d1f9982ad01343fb5711819182e4a950e54a3fa24feb026"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 17, `/tend captures --deploy=main`, the `capturehome` journey's red HC10 on main** (opened from `972c3860`; no sweep, lenses 1-7 not run; the faster lane of decision 0181).\n- Filed first as a `[loop]` medium in \"Captures, media and export\" with its failing line, `FAILED: HC10: the stopped walk placed the note as its own capture (null)`; the unsaved-captures slice had reported it as \"HC10: a note from Memories with a walk minimized belongs to the walk\", which passed in every run here.\n- No commit made it red: it failed alone at `acb18b06` (3 of 3) and `972c3860` (2 of 2) while the machine was busy and passed at rest at `b8126140` and `972c3860`, so no bisect was run. The cause was the check: `waitForFunction` takes an async predicate's pending promise as its first truthy result and resolves with that one read's value, so it read the note once as the replay opened, before a slow snap had placed it.\n- `tend captures 2`: HC10's placed-at-stop check polls the stored note from the test side (old: 0 of 3 under an induced load; new: 3 of 3).\n- The review (one round, the `auditor`; one medium, three low; five accepted, as `tend captures audit 2-6` in one commit): HC10's note begins with the walk's fix over 15 s old and is checked kept unplaced, and a second note checks \"the latest fix\" (audit 2; the journey's steps were 12 m a second, every one dropped as a jump, and now go at 1.5); the placed note sits on the trace at its time and no location is read for it (audit 3); JN13's `begun`, which could not fail, is polled (audit 4); `stored()` fails in bounded time (audit 5); `arch/e2eWaits.test.ts` fails on any journey's async `waitForFunction` (audit 6). Two lines added to `captures-and-media.md`.\n- The item left DEFERRED with the fix. Nothing else filed.\n- Journeys on the final export: `capturehome` (twice), `journal`, `launch`; `unsaved` on `tend captures 2`; typecheck, lint, `npm test`. Not run: the sweep's lenses and the balance's evolve. Nothing here touches native code.\n"
+    }
+  ]
+}

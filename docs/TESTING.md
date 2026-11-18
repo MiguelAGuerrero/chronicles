@@ -230,7 +230,7 @@ npm run export:web && npm run e2e:web
 | `replay` | replay rhythm (RR6-RR16, RR19): a seeded walk with a captioned photo, a note, a memo, a 20-minute gap and a long stretch, watched with no taps but the ones it checks; then its day. Video sound is refused as iOS does, so the journey drops that one expected console error |
 | `edit` | media editing (ME1-ME23): the Edit offer on all three capture places, every tool on a photo and a video, what is stored, what the viewer shows, and what Download saves |
 | `snap` | discrete navigation (DN1-DN13): four more neighborhoods around Fox Point and Cranston west of Providence (`serveSnap`); swipes by mouse drag select the area that way (`data-selected` on the area points), centre it under the title card (`window.__project`), scroll its tile into view, return on the opposite swipe; arrow keys and `+`; the wheel and the long press still work; a tap clears; a town's page swipes to Cranston and back; Navigate's map still pans; then the audit's checks (`discrete-navigation audit 1, 4-7, 10, 11`), audit 1 at 1200 px wide. `window.__unproject` (with `__perf`) gives the centre areas are framed at |
-| `scenic` | scenic routes (SR1-SR14): India Point Park and a footway a block north of Transit Street (`scenicWorld`); the leanings' defaults, Go here with nothing scenic (the notice), the preview's two rows in words, the faint alternate (`data-alternates` on the map, with `__perf`), a row highlighted (`data-selected`), Cancel and Escape, Go on Through green and the leaning kept in meta `nav`, a reload resuming it with no preview; all three off, kept across a reload, Go here going direct. Other journeys reach a route through the harness's `routed`, which takes Direct when a preview shows |
+| `scenic` | scenic routes (SR1-SR14): India Point Park and a footway a block north of Transit Street (`scenicWorld`); the leanings' defaults, Route here with nothing scenic (the notice), the preview's two rows in words, the faint alternate (`data-alternates` on the map, with `__perf`), a row highlighted (`data-selected`), Cancel and Escape, Go on Through green and the leaning kept in meta `nav`, a reload resuming it with no preview; all three off, kept across a reload, Route here going direct. Other journeys reach a route through the harness's `routed`, which takes Direct when a preview shows |
 | `journal` | the journal (JN1-JN18, JN20-JN24, decision 0155), in its own browser: an empty journal, then writing (stored from the first character, kept across a reload, one fix, an emptied entry not kept), a photo with a line and a voice note as one entry, @ a moment, sixty seeded entries (opens at the foot, older ones load above, the slip, a dateline to the Map, the contents and the threads, a response at the end, a refused microphone, the failed page), then a walk minimized under Memories and its replay |
 | `reload` | a reload with a walk minimized keeps it reachable: the bar's ›, its Stop, the tabs |
 | `walkability` | walkability (WK1-WK4, WK13, WK14, WK17, WK20-WK22): the switch on the Explore and Navigate maps, what it draws from Overture's tile, the fallback to Overpass, the band icons and their tooltips |
@@ -288,6 +288,17 @@ to it (`scripts/e2e/economy.js`; tests `arch/e2eEconomy.test.ts`):
   runner prints "known flake" under that check's failure and the run **still fails**:
   nothing is skipped, quarantined or turned green. A journey that never failed on `main`
   records nothing, so its failure on a branch is the branch's until shown otherwise.
+  A run that stops before its checks (a locator's timeout, a throw) counts as a failure named
+  `stopped: <its first error line>`, never as a pass: stopped every run means `main` is broken
+  there (resurface, Nov 18, read "passed 3/3" through three timeouts until it did).
+
+- **Side by side** (decision 0204): `npm run e2e:batch -- <journey> ...` runs the named journeys three at a time
+  (`-j N` for another width) against the `dist/` already exported, each on a port of its own, one line per journey
+  and the logs in a folder; the green cache holds as for one run (it is written whole, so runs side by side never
+  lose each other's passes). Three journeys took the time of the slowest alone (87 s, Nov 18).
+- **Trust the cache, verify once** (decision 0204): `E2E_FORCE=1` only for a reason you can name; after a merge, the
+  journeys `check:affected -- --since <the last green commit>` names, never the whole set again; a journey an agent
+  ran green on a commit is not run again on that commit by the session that asked for it.
 
 The habit it replaces: sweeping the whole named set at every checkpoint, rerunning a flaky
 check on the branch to see whether it flakes. Run each named journey once, at the end;
@@ -351,12 +362,22 @@ Re-export without the variable afterwards for the plain e2e.
   bar is gone after the first push), so that regression is a unit test.
 - Each capture adds a replay stop: loop on Continue. Captions are checked
   through their aria-label after the photo's size loaded.
+- A storage write that fails: CDP's `Storage.overrideQuotaForOrigin` is
+  ignored for a Playwright context in this headless Chromium (a page session
+  and a persistent context write on; a browser session answers "Internal
+  error"; Nov 18). The `atlas` journey's `tend explore audit 32` step refuses
+  the writes in the page instead: an init script, behind a `localStorage`
+  flag, aborts the transaction of each put it names, as a full disk aborts it.
 
 - `data-center` is the canvas's middle, not the middle of what you see: a
   screen that fits with uneven padding (Explore: 84 px under its title, 24 px
   at the bottom) frames the fix (top - bottom) / 2 px below it. Measure a
   framing in pixels against the padding (`qol QL10`), not in metres from
   `data-center`.
+- A distance the app says holds a no-break space between its number and its
+  unit (`formatDistance`, `formatRange`; tend map 21, Nov 18), so `/\d+ m/`
+  never matches it. A check on one matches `[ \u00a0]`, not `\s` (which
+  takes a line break too); an exact string says the `\u00a0` outright.
 ## 4. The long walk: `scripts/perf-walk.js`
 
 ```bash
@@ -468,6 +489,10 @@ eight journeys for 27 minutes where three, about 12, proved every fix):
    flow), `--no-export` keeps `dist/`, `--out <dir>` keeps each run's output there. A red check is
    triaged as a finding; a pass made on its own writes only its log line and the records of what it
    found.
+
+A change that reaches every screen through the build (`app.json` experiments, Babel or Metro config) maps to no
+journey by its files: `check:affected` names only those that read it. Pick the journeys of every main screen by hand
+(decision 0207's compiler ran twenty), still once each; the full flow only when the owner asks.
 
 State in the report which journeys ran, which were reached and skipped, and why.
 

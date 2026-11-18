@@ -1,0 +1,160 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "What I'm into page (WI1-WI25, decision 0192)",
+        "--new",
+        "--reason",
+        "the page's own audit, after the slice answered \"What I'm into\" has about 58 rows and a heading scrolls away (removed in this range): this item is new, not that one moved"
+      ],
+      "body": "- [loop] At 390 x 844 the Complexes heading on What I'm into's page never pins: the page ends before its rows can scroll under it, so it never shows the pinned state (what-im-into-page audit 17, low)\n",
+      "intro": "What the What I'm into page's audit left (`specs/what-im-into-page`, decision 0192; Nov 18).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "What I'm into page",
+        "--reason",
+        "the page's own audit, after the slice answered \"What I'm into\" has about 58 rows and a heading scrolls away (removed in this range): this item is new, not that one moved"
+      ],
+      "body": "- [loop] The walk drawer's \"What I'm into\" row sits far down, below Motion and Share GPS log, in its own \"Explore\" section; moving it up is a question of the drawer's own order, not of the page (what-im-into-page audit 18, low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "What I'm into page",
+        "--reason",
+        "the page's own audit, after the slice answered \"What I'm into\" has about 58 rows and a heading scrolls away (removed in this range): this item is new, not that one moved"
+      ],
+      "body": "- [loop] WI1 and WI19's unit tests read the source with regexes (`<IntoRow` in `StartSettings.tsx` and `walk.tsx`, the header before it); replace them with a render-level check when the repo has one (what-im-into-page audit 19, low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Map, walk screen and motion polish",
+        "--reason",
+        "filed by the What I'm into page's audit (audit 22, out of that slice), new, not \"What I'm into\" has about 58 rows and a heading scrolls away (removed in this range) moved"
+      ],
+      "body": "- [loop] The walk's unwalked-streets pill says \"4 unwalked nearby\" in digits; counts are words (VISION.md Always; `numberWord`): \"Four unwalked nearby\" (picture `03c-unwalked.png`; what-im-into-page audit 22, the cold find, out of that slice)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore atlas",
+        "--reason",
+        "filed by the What I'm into page's audit (audit 22, out of that slice), new, not \"What I'm into\" has about 58 rows and a heading scrolls away (removed in this range) moved"
+      ],
+      "body": "- [loop] The area card's kind rows draw three presence dots beside \"some\"/\"none\" (`KindRow`, decision 0067); the cold find read them as a rating; whether words alone carry it is a question for the card (picture `complexes-card.png`; what-im-into-page audit 22, out of that slice)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Navigation and routes",
+        "--reason",
+        "filed by the What I'm into page's audit (audit 22, out of that slice), new, not \"What I'm into\" has about 58 rows and a heading scrolls away (removed in this range) moved"
+      ],
+      "body": "- [loop] At 320 px the navigation bar's line truncates mid-word, \"105 m · < 1 m…\" (picture `03f-strip-walking-320.png`; ui-patterns, nothing wraps or is cut at 320 at the default size; what-im-into-page audit 22, out of that slice)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Map, walk screen and motion polish",
+        "--reason",
+        "filed by the What I'm into page's audit (audit 22, out of that slice), new, not \"What I'm into\" has about 58 rows and a heading scrolls away (removed in this range) moved"
+      ],
+      "body": "- [loop] On the walk, the \"Add to this moment\" offer, a \"Video saved here\" pill with Edit and an error banner can all show at once, stacked above the captures (picture `03h-found-pin-390-screen.png`; ui-patterns, one transient at a time; what-im-into-page audit 22, out of that slice)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Navigation and tabs",
+        "--after",
+        "under \"Every walk\", look at Back"
+      ],
+      "body": "- [ ] **Do:** on Android, open Chronicle's map and raise its sheet to half, tap Navigate, pull up the ready bar, tap \"What I’m into ›\", then press the system Back; go back to Chronicle. **Expect:** Back pops the page alone, the ready bar still raised; Chronicle's sheet is still at half: its Back handler waits for focus (`SheetFrame`, what-im-into-page audit 1).\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Navigation and tabs",
+        "--after",
+        "under \"Every walk\", look at Back"
+      ],
+      "body": "- [ ] **Do:** on an iPhone and on Android, set the largest accessibility text size, open What I'm into's page and scroll it slowly. **Expect:** each heading's category and kind lines sit whole in the heading's fixed height (`intoHeadingH`, `lineHeight` 22 and 20 at the font scale), none clipped; \"Art\" has no blank band above it at rest (what-im-into-page audit 12).\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Navigation and tabs",
+        "--after",
+        "under \"Every walk\", look at Back"
+      ],
+      "body": "- [ ] **Do:** on a 320 pt-wide phone (an iPhone SE of the first generation, or Android at 320 dp) at the default text size, switch subtypes against their defaults until a kind's line reaches its longest named form (\"Plaques and small memorials off\"). **Expect:** the line stays one line in SF and in Roboto; `OFF_LINE_MAX` (31) was measured in Chromium's font only (what-im-into-page audit 7).\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Navigation and tabs",
+        "--after",
+        "under \"Every walk\", look at Back"
+      ],
+      "body": "- [ ] **Do:** on an iPhone, on an exploring walk, open What I'm into's page from the drawer, then tap a reminder's notification so the walk beneath would present its viewer (a Modal) while the page is up. **Expect:** nothing is presented from the unfocused walk under the card; the viewer opens once Back returns to the walk (`whileFocused`, what-im-into-page audit 9).\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Navigation and tabs",
+        "--after",
+        "under \"Every walk\", look at Back"
+      ],
+      "body": "- [ ] **Do:** on Android with TalkBack, on an exploring walk, pull up the drawer, tap \"What I’m into ›\" and focus Back; then press the system Back. **Expect:** Back is the route's own arrow (`into-back`), read \"Walk, back\"; the system Back still pops the page. On an iPhone with VoiceOver the native back button reads \"Walk, Back button\" (`intoHeader`, what-im-into-page audit 8).\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "set",
+        "under \"Every walk\", look at Back",
+        "--reason",
+        "what-im-into-page audits 8 and 13: the section reads \"Explore\" and Android's Back is the route's own arrow, read \"Walk, back\""
+      ],
+      "body": "- [ ] **Do:** on an iPhone, on an exploring walk, pull up the drawer, tap \"What I’m into ›\" under \"Explore\", look at Back, then with VoiceOver on, focus it; repeat from the ready bar; then set the largest accessibility text size and open it from the walk again. **Expect:** from the walk Back reads \"‹ Walk\" and VoiceOver says \"Walk, Back button\"; from the ready bar it is as before; at the largest text size the arrow alone, still read as \"Walk\"; on Android the route's own arrow, read \"Walk, back\" (`intoHeader`; What I'm into page review, audit 8). (WI20)\n",
+      "target": "sha256:07beabf16b4e133060fcfbc635c6456d9dfead8293f3d7829bc48f775ff50744"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "set",
+        "What I'm into page (the kind switches"
+      ],
+      "body": "| What I'm into page (the kind switches leave the drawers: one row \"What I’m into ›\" in the ready bar's settings and in the walk's drawer, with Explore or scenic routes' Sights on, there in a short section of its own, \"Explore\", pushes a page of its own with Back (\"‹ Walk\" from the walk), the same from both; the five categories' headings and Complexes' pinned while their rows scroll, the kind whose subtypes pass under a heading named as its second line; a kind's label heavier than its subtypes', a muted line naming only the subtypes switched from their default; every switch saves as it changes; the walk goes on under it; WI1-WI25, decision 0192) | built 2026-11-18, test-first by history; the review's fixes and the audit's built 2026-11-18; not deployed; native unverified | `claude/what-im-into-page-audit` | `specs/what-im-into-page/spec.md` | audited 2026-11-18: 22 findings, 16 fixed, 3 deferred, 3 rejected (`what-im-into-page audit 1-16`); cold find and UI review run Nov 18: four owner's calls and five local fixes, all fixed (WI17-WI25) |\n",
+      "target": "sha256:8c44cab8439044ef7b9ada52ff6a2867e50d9d2467bdcd13cb0103eae1bfc6d4"
+    }
+  ]
+}

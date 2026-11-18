@@ -20,7 +20,7 @@ const arch = (cls: string, n: number, name = '') => Array.from({ length: n }, (_
 
 test('SP12: four plaques light History\'s first dot with plaques on, none with them off; weights by the size of the stop', async () => {
   const { presenceTally, stepsShown } = await atlas();
-  const ring = ringOf(arch('marker', 4, 'Plaque'), null, O).ring;
+  const ring = ringOf(arch('plaque', 4, 'Plaque'), null, O).ring;
   const tally = presenceTally(ring, O);
   assert.equal(tally.counts.history ?? 0, 0, 'plaques are never in the base count');
   assert.equal(tally.shares.plaques?.history, 1, 'four quarters');
@@ -28,18 +28,19 @@ test('SP12: four plaques light History\'s first dot with plaques on, none with t
   assert.equal(stepsShown(profile, new Set()).history, 1, 'plaques on');
   assert.equal(stepsShown(profile, parseHidden(null, null)).history, 0, 'plaques off by default');
   // One plaque is a quarter: no dot even with plaques on.
-  assert.equal(stepsShown({ steps: { history: 0 }, tally: presenceTally(ringOf(arch('marker', 1, 'Lone'), null, O).ring, O) } as never, new Set()).history, 0);
+  assert.equal(stepsShown({ steps: { history: 0 }, tally: presenceTally(ringOf(arch('plaque', 1, 'Lone'), null, O).ring, O) } as never, new Set()).history, 0);
   // Little libraries weigh a half; two light Culture's first dot.
   assert.equal(presenceTally(ringOf(arch('public_bookcase', 2), null, O).ring, O).shares.little_libraries?.culture, 1);
-  // A community garden counts a half toward Parks always; a mural a whole toward Art always (no switch of their own).
+  // A community garden counts a half toward Parks, a mural a whole toward Art: since XS3 (decision 0191) each is a subtype
+  // with a switch of its own, so they are shares, lit while on (both on by default).
   const fixed = presenceTally(ringOf([...arch('community_garden', 2, 'Garden'), ...arch('mural', 1, 'Mural')], null, O).ring, O);
-  assert.equal(fixed.counts.parks, 1);
-  assert.equal(fixed.counts.art, 1);
+  assert.equal(fixed.shares.community_gardens?.parks, 1);
+  assert.equal(fixed.shares.murals?.art, 1);
 });
 
 test('SP13: flipping a switch changes the dots and the character line from the stored profile alone', async () => {
   const { presenceTally, stepsShown } = await atlas();
-  const ring = ringOf(arch('marker', 16, 'Plaque'), null, O).ring;
+  const ring = ringOf(arch('plaque', 16, 'Plaque'), null, O).ring;
   const profile = { steps: { history: 0, art: 0, food: 0, shops: 0, parks: 0, culture: 0, viewpoints: 0, nightlife: 0 }, tally: presenceTally(ring, O) } as never;
   const on = stepsShown(profile, new Set());
   const off = stepsShown(profile, new Set(['plaques' as Kind]));
