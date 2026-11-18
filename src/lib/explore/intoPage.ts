@@ -83,9 +83,11 @@ export function intoChildren(sections: readonly IntoSection[], complexes: readon
 
 /**
  * WI18: the longest off line, in characters, that stays one line at 320 px at the default text size under a kind's
- * label (measured by the `into` journey); past it the line says "Some of these off".
+ * label: the column is 208 px there and the e2e's 13 px font runs about 6.6 px a character ("Plaques and Small memorials
+ * off", 31, is 200 px; "Ghost towns and Survey marks off", 32, wrapped). Past it the line says "Some of these off". The
+ * `into` journey checks every line drawn at 320 px.
  */
-export const OFF_LINE_MAX = 34;
+export const OFF_LINE_MAX = 31;
 const SOME_OFF = 'Some of these off';
 
 /**
@@ -102,6 +104,9 @@ export function offLine(kind: Kind, hidden: ReadonlySet<Kind>, kinds: readonly K
   const line = `${names} off`;
   return line.length <= OFF_LINE_MAX ? line : SOME_OFF;
 }
+
+/** WI17: how much of a row must show under the pinned heading before it counts as the first row there. */
+export const PIN_SLACK = 12;
 
 /** Where the page's pinned heading stands at a scroll position (WI17, WI22, WI24). */
 export interface IntoPin {
@@ -137,7 +142,9 @@ export function intoPin(children: readonly IntoChild[], heights: readonly number
   const push = next == null ? 0 : Math.min(0, tops[next] - scrollY - headingH);
   const stuck = scrollY > 0 && heads.length > 0 && scrollY >= tops[heads[at]] - 0.5;
   const line = scrollY + headingH;
-  const i = tops.findIndex((t, k) => t <= line && line < t + heights[k]);
+  // The first row showing at least PIN_SLACK under the heading: a sliver of the row before it doesn't count.
+  const probe = line + PIN_SLACK;
+  const i = tops.findIndex((t, k) => t <= probe && probe < t + heights[k]);
   const c = i < 0 ? null : children[i];
   let kind: string | null = null;
   if (c && c.type === 'row') {
