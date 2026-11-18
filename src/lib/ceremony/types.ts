@@ -154,6 +154,24 @@ export interface WhisperOverlay {
 
 export type Overlay = BubbleOverlay | CardOverlay | PileOverlay | WhisperOverlay;
 
+/**
+ * A break crossed (replay ceremony RC18, RC21): the straight way from where a trace stops to where it picks up, drawn
+ * in a gap's dots as far as `p` (0 to 1) of the way. Drawn by the map, in the layer a gap's link already uses.
+ */
+export interface Hop {
+  from: LngLat;
+  to: LngLat;
+  p: number;
+}
+
+/** A hop of a telling, whole: its two ends, and the walk's times it crosses (the break's own). */
+export interface HopSpan {
+  from: LngLat;
+  to: LngLat;
+  t0: number;
+  t1: number;
+}
+
 /** What is on screen at one time into the ceremony. A function of that time alone. */
 export interface Frame {
   /** The ceremony has ended: the card comes next. */
@@ -165,10 +183,12 @@ export interface Frame {
   drawn: Record<string, number>;
   /** The captures whose pins are on the map, by id, in any order the ceremony likes. */
   pins: string[];
-  /** 0 to 1: the map dims across a cut. */
-  dim: number;
+  /** Every break crossed so far, the one being crossed as far as it is drawn (RC21); they stay to the end. */
+  hops: Hop[];
   /** The time of day where the walker is (epoch ms), or null for no clock. */
   clock: number | null;
+  /** 0 to 1: the clock dissolves from one time to the other across a break; it does not roll through it (RC19). */
+  clockFade: number;
   /** A line under the clock ("43 min later"), with its opacity. */
   line: string | null;
   lineOpacity: number;
@@ -201,6 +221,8 @@ export interface Showing {
   total: number;
   /** In order; empty when nothing was kept. */
   stops: Landing[];
+  /** Every hop the telling draws, whole, each from where a trace stops to where it picks up: they stay on the map through the card (RC21). */
+  hops: HopSpan[];
   frame(ms: number, jump?: Jump | null): Frame;
 }
 

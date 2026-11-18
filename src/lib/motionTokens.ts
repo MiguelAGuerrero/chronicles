@@ -132,9 +132,10 @@ export const REPLAY_RHYTHM = {
   maxCross: 0.35,
   riseSoft: 4,
   risen: 0.02,
-  /** Risen, the camera goes after where the walker will be `followLead` on, `followEase` behind it. */
+  /** Risen, the camera goes after where the walker will be `followLead` on, `followEase` behind it, and never more than a `followLand`th of the time the stretch has left, so it lands with the walker. */
   followLead: 900,
   followEase: 450,
+  followLand: 3,
   /** Arriving at a card (RC14): the camera starts to settle this long before the walker stops, takes at least `settleMin`, and `settle` when no stretch leads there; from a risen stretch it closes in with `settleEase`. */
   settleLead: 900,
   settleMin: 300,
@@ -147,8 +148,31 @@ export const REPLAY_RHYTHM = {
   camStep: 50,
   /** Stretches shorter than this (metres) are not played: the walker steps across them. */
   minLegM: 10,
-  /** A cut across a break in the trace. */
-  cut: 1400,
+  /**
+   * A break in the trace (replay ceremony RC17-RC22): the camera pulls back until both ends fit, a dotted line draws
+   * across, the walker slides along it and the camera closes in. A far one (`breakFarM` metres or more) takes
+   * `breakFar`; a nearer one less, never under `breakNear` of that. One whose ends are under `standPx` px apart at the
+   * walking zoom is a stand of `stand` ms: no hop, no camera move.
+   */
+  breakFar: 4200,
+  breakNear: 0.58,
+  breakFarM: 250,
+  standPx: 26,
+  stand: 1300,
+  /** A hop's parts, as shares of its time: the camera has pulled back by `hopPull`; the dots draw from `hopDraw` to `hopDrawn`; the walker slides from there to `hopLand`; the camera closes in from `hopClose`; the clock changes at `hopSwitch`. */
+  hopPull: 0.3,
+  hopDraw: 0.22,
+  hopDrawn: 0.4,
+  hopLand: 0.66,
+  hopClose: 0.72,
+  hopSwitch: 0.53,
+  /** Pulled back, a hop's two ends fit in this share of the screen's width and of its height. */
+  hopFitW: 0.56,
+  hopFitH: 0.3,
+  /** "N min later" (RC19): at a stand it comes `standLineIn` after the stand begins; it stays `breakLineAfter` after a break ends. The clock dissolves from one time to the other over `clockDissolve` each way. */
+  standLineIn: 150,
+  breakLineAfter: 600,
+  clockDissolve: 220,
   /** The walker's wait at a note (RY5): this for up to noteWords words, plus notePerWord for each more, at most noteMax. */
   note: 1200,
   noteWords: 6,
@@ -190,7 +214,7 @@ export const REPLAY_RHYTHM = {
   whisper: 2600,
   /** Travel this much later says so under the clock. */
   laterAfterMs: 15 * 60_000,
-  /** How long "N min later" stays after its cut or travel. */
+  /** How long "N min later" stays after a day's long travel. */
   lineAfter: 1500,
   /** Zooming in to the walker at the start, and standing at the end before the card. */
   intro: 900,

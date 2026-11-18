@@ -176,6 +176,8 @@ export default function DayReplay() {
   );
   const showing = useMemo(() => (story ? ceremonyFor(style).show(story, { reduceMotion, screen }) : null), [story, reduceMotion, style, screen]);
   const onCard = phase.beat === 'card';
+  // The hops the path drew across its walks' breaks, as the card's dotted links (replay ceremony RC21).
+  const hopLinks = useMemo(() => showing?.hops.map((h) => [h.from, h.to]) ?? NO_RUNS, [showing]);
   const toCard = () => {
     setPhase({ beat: 'card', t0: Date.now() });
     // Reaching the card frames the whole day above it.
@@ -260,6 +262,9 @@ export default function DayReplay() {
         borders={borders}
         trace={drawnWhole ? whole : NO_RUNS}
         rides={drawnWhole ? wholeRides : NO_RUNS}
+        // The hops the path drew across its walks' breaks stay on the map through the card (replay ceremony RC21);
+        // while the path is told the replay's own frames draw them.
+        gapLinks={onCard ? hopLinks : NO_RUNS}
         replay={telling}
         walked={NO_STREETS}
         fog={NO_STREETS}

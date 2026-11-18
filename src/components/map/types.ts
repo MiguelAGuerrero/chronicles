@@ -1,4 +1,5 @@
 import type { LineReveal } from '../../lib/ceremony/reveal';
+import type { Hop } from '../../lib/ceremony/types';
 import type { Faced } from '../../lib/moment';
 import type { BorderView } from '../../lib/areas/borders';
 import type { WalkTint } from '../../lib/walk/tint';
@@ -338,6 +339,8 @@ export interface ReplayMapFrame {
   /** The walked line and the rides: the runs drawn whole, and how far the run being walked shows. */
   walked: LineReveal;
   rides: LineReveal;
+  /** The breaks crossed so far, each as far as it is drawn (replay ceremony RC21): the map draws them in its `gap-links` layer, a gap's own dots. */
+  hops: Hop[];
 }
 
 /**

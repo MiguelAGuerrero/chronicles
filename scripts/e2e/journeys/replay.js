@@ -1,5 +1,6 @@
 // Replay rhythm (RR6-RR16, RR19): a walk seeded with a captioned photo, a note, a memo, a 20-minute
-// gap and a long stretch, watched with no taps but the ones it checks; then its day. E2E_ONLY=replay runs it alone.
+// gap and a 4-minute one too small to see, watched with no taps but the ones it checks; then its day. E2E_ONLY=replay
+// runs it alone.
 
 const { seedReplayWalk } = require('../replayWalk');
 
@@ -197,7 +198,8 @@ function breaksOf(frames) {
       slid: new Set(sliding.map((f) => f.walker)).size, onLine: sliding.every((f) => Math.abs(lonLat(f.walker)[1] - hop.from[1]) < 2e-6), drawnFirst: sliding.every((f) => hopOf(f)?.p === 1),
       pulledBack: Math.min(...drawing.concat(sliding).map((f) => lonLat(f.cam)?.[2] ?? 99)), undrawnAfter: after, stays: hopOf(last)?.p === 1,
       landed: landedAt ? landedAt.map(Math.round) : null, focus: landed ? [Math.round(landed.w / 2), Math.round(landed.h * 0.42)] : null,
-      saidS: Math.round(passed(said) / 10) / 100, clocks: [...new Set(said.map((f) => f.clock))], faded: Math.min(1, ...said.map((f) => f.clockFade ?? 1)),
+      // The clock's times while the walker is on the hop: the line stays a little longer, into the stretch after it.
+      saidS: Math.round(passed(said) / 10) / 100, clocks: [...new Set(said.filter((f) => lon(f) != null && lon(f) <= hop.to[0] + 2e-6).map((f) => f.clock))], faded: Math.min(1, ...said.map((f) => f.clockFade ?? 1)),
     };
   }
   const stood = told.filter((f) => /^4 min later$/.test(f.later));
@@ -283,7 +285,8 @@ async function run(h) {
       sentInAll = sentBefore + sentHere;
     });
     // The walk (scripts/e2e/replayWalk.js, shared with scripts/perf-replay.js): 600 m east along Transit Street, a photo
-    // early on and a note at the end; 20 min with no fixes; 80 m more and a memo. Stopped, so its first replay opens.
+    // early on and a note at the end; 20 min with no fixes; 40 m more and a memo; 4 min with no fixes and 38 m on, a
+    // break too small to see. Stopped, so its first replay opens.
     const { here, places } = await seedReplayWalk(h, c, pg);
     const min = 60_000;
     // The reading beat can be shorter than a poll with the streets already read: pictured when it shows.
@@ -429,7 +432,8 @@ async function run(h) {
     check(seen.note, 'RR9: the note shows in a bubble');
     check(seen.card, `RR11: the photo grows into a card with its caption (${rec.cards.join(' | ')})`);
     check(pileChecked, 'RR11: the photo tucks into the pile');
-    check(/^20 min later$/.test(seen.later), `RR4: the gap is a cut, "20 min later" ("${seen.later}")`);
+    // The cut went with replay ceremony RC17-RC20: the gap is crossed by a hop and the small one is a stand, each said.
+    check(/^20 min later \| 4 min later$/.test(seen.later), `RR4: each break is said under the clock, "20 min later" and "4 min later" ("${seen.later}")`);
     check(!seen.counted, `RR19: nothing during the path counts ("${seen.counted}")`);
     check(soundChecked, 'replay-rhythm audit 3: the video came up muted with Tap for sound');
     check(rec.videoEndedInCard, 'replay-rhythm audit 20: the card\u2019s video plays to its end before it tucks away');
@@ -847,7 +851,7 @@ async function run(h) {
         veiled: reduced.filter((f) => f.veil).length,
       };
       const stillOk = one.frames > 100 && one.centres === 1 && one.hopFrames >= 30 && one.partial === 0 && one.between === 0 && one.saidS >= 3.0 && one.saidS <= 4.1 && one.veiled === 0;
-      check.todo(stillOk, `RC22: with reduce motion a break is one still view, the hop drawn whole, the walker at one end and then the other, and it lasts as long (${JSON.stringify(one)})`);
+      check(stillOk, `RC22: with reduce motion a break is one still view, the hop drawn whole, the walker at one end and then the other, and it lasts as long (${JSON.stringify(one)})`);
     }
 
     // Replay ceremony, the camera and the breaks (RC11, RC12, RC14, RC17-RC21; decision 0206): a re-watch at 390 and at
@@ -895,7 +899,8 @@ async function run(h) {
       await pg.click('[data-testid=skip]').catch(() => {});
       await pg.waitForSelector('[data-testid=to-name]', { timeout: 30000 });
       await pg.waitForTimeout(600);
-      const linksOnCard = Number(await pg.locator('[data-gaplinks]').last().getAttribute('data-gaplinks').catch(() => -1));
+      // On the card the far break is a gap with a way offered: the card draws it its own way, faint (G6), or by its dots.
+      const onCardMap = await pg.locator('[data-gaplinks]').last().evaluate((e) => ({ links: Number(e.dataset.gaplinks ?? -1), faint: Number(e.dataset.faint ?? -1) })).catch(() => ({ links: -1, faint: -1 }));
       const cam = cameraOf(seenFrames, places);
       const said = JSON.stringify({ ...cam, longest: Math.round(cam.longest * 100) / 100, still: Math.round(cam.still * 100) / 100 });
       // RC12: the camera moves in a few short runs (a card's pin settling, a re-frame as the walker leaves the middle)
@@ -910,22 +915,23 @@ async function run(h) {
       const br = breaksOf(seenFrames);
       const brSaid = JSON.stringify(br);
       // RC17: nothing is laid over the map in any frame of the watch, the two breaks' among them.
-      check.todo(br.frames > 400 && br.laters.length === 2 && br.veiled === 0, `RC17: at ${w} px a break never dims the map: nothing is laid over it in any frame (${br.frames} frames, ${br.veiled} with something over the map${br.veil ? `: ${br.veil}` : ''}; said: ${br.laters.join(' | ')})`);
+      check(br.frames > 400 && br.laters.length === 2 && br.veiled === 0, `RC17: at ${w} px a break never dims the map: nothing is laid over it in any frame (${br.frames} frames, ${br.veiled} with something over the map${br.veil ? `: ${br.veil}` : ''}; said: ${br.laters.join(' | ')})`);
       // RC18: across the far break the camera is pulled back with both ends in view while a dotted line draws from where
       // the trace stops, step by step; the walker then slides along it, on the line; and the camera closes in at the far
       // end, the walker in the middle of the screen. A 340 m break is far: its line shows for 0.7 of 4.2 s and 0.6 s more.
       const far = br.far;
       const hopOk = !!far && far.steps >= 3 && far.endsInView && far.slid >= 8 && far.onLine && far.drawnFirst && far.undrawnAfter === 0 && !!far.landed && Math.abs(far.landed[0] - far.focus[0]) <= 2 && Math.abs(far.landed[1] - far.focus[1]) <= 2 && far.saidS >= 3.0 && far.saidS <= 4.1;
-      check.todo(hopOk, `RC18: at ${w} px the camera holds both ends in view while a dotted line draws and the walker slides along it, and closes in at the far end (${brSaid})`);
+      check(hopOk, `RC18: at ${w} px the camera holds both ends in view while a dotted line draws and the walker slides along it, and closes in at the far end (${brSaid})`);
       // RC19: the clock is one time, then the other, and fades out between them.
-      check.todo(!!far && far.clocks.length === 2 && far.faded < 0.35, `RC19: at ${w} px across the break the clock changes from one time to the other in a dissolve (${JSON.stringify(far && { clocks: far.clocks, faded: far.faded })})`);
+      check(!!far && far.clocks.length === 2 && far.faded < 0.35, `RC19: at ${w} px across the break the clock changes from one time to the other in a dissolve (${JSON.stringify(far && { clocks: far.clocks, faded: far.faded })})`);
       // RC20: the small break is a stand: its line and the clock's change, the camera where it was, no hop drawn for it
       // (the far break's stays as it is), the walker on one side and then the other.
       const stand = br.stand;
       const standOk = !!stand && stand.frames >= 20 && stand.cams === 1 && stand.hops === 1 && stand.clocks.length === 2 && stand.walkers <= 2 && stand.saidS >= 1.3 && stand.saidS <= 2.3;
-      check.todo(standOk, `RC20: at ${w} px a break too small to see is a stand: the line and the clock's change, no hop, no camera move (${JSON.stringify(stand)})`);
-      // RC21: the hop stays to the end of the path, and on the card it is among the map's dotted links.
-      check.todo(!!far && far.stays && linksOnCard >= 1, `RC21: at ${w} px the hop stays on the map through the card (whole in the path's last frame: ${far && far.stays}; dotted links on the card: ${linksOnCard})`);
+      check(standOk, `RC20: at ${w} px a break too small to see is a stand: the line and the clock's change, no hop, no camera move (${JSON.stringify(stand)})`);
+      // RC21: the hop stays whole to the end of the path; on the card that break, a gap, is drawn the card's own way
+      // (its offered way, faint, or its dots), never left bare. (A hop across a pause stays as dots: breaks.test.ts.)
+      check(!!far && far.stays && onCardMap.links + onCardMap.faint >= 1, `RC21: at ${w} px the hop stays on the map through the path, and the card draws that break (whole in the path's last frame: ${far && far.stays}; on the card: ${JSON.stringify(onCardMap)})`);
     }
     await pg.setViewportSize({ width: 390, height: 844 });
 

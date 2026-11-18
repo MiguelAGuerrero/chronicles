@@ -24,7 +24,7 @@ import { ScaleBar, SCALE_MAX_PX } from './ScaleBar';
 import { NATIVE_FRAME_MS, useGlideFrames, useGlideShown, type GlideFrame } from '../../lib/useGlidingWalker';
 import { createStore, type Store } from '../../lib/store';
 import { useStore } from '../../lib/useStore';
-import { revealedRuns } from '../../lib/ceremony/reveal';
+import { hopLines, hopsKey, revealedRuns } from '../../lib/ceremony/reveal';
 import { perfCount } from '../../lib/perfCount';
 import { distanceM } from '../../lib/geo';
 import { releaseSwipe, SNAP } from '../../lib/atlas/snap';
@@ -285,10 +285,10 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   // line by a gradient is untried, so the run being walked is sent again at most every `REPLAY_ENGINE.resendMs` of the
   // telling's time (ten times a second) and may trail the dot by that much. Unverified on a device.
   const [replayShown] = useState(() => createStore<ReplayShown>(NO_REPLAY));
-  const replaySent = useRef<{ camera: string; walked: string; rides: string }>({ camera: '', walked: '', rides: '' });
+  const replaySent = useRef<{ camera: string; walked: string; rides: string; hops: string }>({ camera: '', walked: '', rides: '', hops: '' });
   const applyReplay = useCallback((f: ReplayMapFrame | null) => {
     if (!f) {
-      replaySent.current = { camera: '', walked: '', rides: '' };
+      replaySent.current = { camera: '', walked: '', rides: '', hops: '' };
       replayShown.set(NO_REPLAY);
       return;
     }
@@ -299,13 +299,17 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     const was = replayShown.get();
     const walked = resendKey(f.walked, f.ms, REPLAY_ENGINE.resendMs);
     const rides = resendKey(f.rides, f.ms, REPLAY_ENGINE.resendMs);
+    // A break's hop, in the dots of a gap's link (RC21): sent again as it draws, by the telling's time.
+    const hops = hopsKey(f.hops, f.ms, REPLAY_ENGINE.resendMs);
     replayShown.set({
       walker: f.walker,
       trace: walked === replaySent.current.walked ? was.trace : traceGeoJSON(revealedRuns(f.walked)),
       rides: rides === replaySent.current.rides ? was.rides : traceGeoJSON(revealedRuns(f.rides)),
+      hops: hops === replaySent.current.hops ? was.hops : hops ? traceGeoJSON(hopLines(f.hops)) : null,
     });
     replaySent.current.walked = walked;
     replaySent.current.rides = rides;
+    replaySent.current.hops = hops;
   }, [replayShown]);
   // The pins' presses, read when pressed: a screen's new closure each render never re-renders a pin list (NF4).
   // Filled in a layout effect, before the commit can take a tap: a pin made pressable in the same render as its
@@ -531,7 +535,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
             the history (memoized, so it isn't serialized again each render) and the live tail. */}
         {/* Offered stretches across gaps: the trace, see-through (Filling gaps, G6). */}
         {/* A gap with no line: grey dots between its ends (GW2). */}
-        <GapLinksSource data={gapLinks} opacity={props.traceOpacity ?? 1} />
+        <GapLinksSource store={replayShown} data={gapLinks} opacity={props.traceOpacity ?? 1} />
         <TraceSource id="faint" data={faint} opacity={FAINT_OPACITY * (props.traceOpacity ?? 1)} />
         <TraceSource id="rides" data={rides} opacity={props.traceOpacity ?? 1} dashed />
         <TraceSource id="trace-history" data={traceHistory} opacity={props.traceOpacity ?? 1} />
@@ -604,9 +608,10 @@ const TraceSource = memo(function TraceSource(props: { id: string; data: GeoJSON
 });
 
 /** What a replay's frames have put on the map: the walker, and its lines as data (the same objects until sent again). */
-type ReplayShown = { walker: LngLat | null; trace: GeoJSON.FeatureCollection; rides: GeoJSON.FeatureCollection };
+type ReplayShown = { walker: LngLat | null; trace: GeoJSON.FeatureCollection; rides: GeoJSON.FeatureCollection; hops: GeoJSON.FeatureCollection | null };
 const NO_LINES: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: [] };
-const NO_REPLAY: ReplayShown = { walker: null, trace: NO_LINES, rides: NO_LINES };
+const NO_REPLAY: ReplayShown = { walker: null, trace: NO_LINES, rides: NO_LINES, hops: null };
+const replayHops = (s: ReplayShown) => s.hops;
 const replayTrace = (s: ReplayShown) => s.trace;
 const replayRides = (s: ReplayShown) => s.rides;
 const replayWalker = (s: ReplayShown) => s.walker;
@@ -766,9 +771,14 @@ const RouteSource = memo(function RouteSource({ data }: { data: FC }) {
   );
 });
 
-const GapLinksSource = memo(function GapLinksSource({ data, opacity }: { data: FC; opacity: number }) {
+/**
+ * The dotted links: a replay's hops while its path is told (replay ceremony RC21), else the links the screen gives.
+ * It renders when a hop is sent again, alone. Unverified on a device.
+ */
+const GapLinksSource = memo(function GapLinksSource({ store, data, opacity }: { store: Store<ReplayShown>; data: FC; opacity: number }) {
+  const hops = useStore(store, replayHops);
   return (
-    <GeoJSONSource id="gap-links" data={data} {...LINE_SOURCE}>
+    <GeoJSONSource id="gap-links" data={hops ?? data} {...LINE_SOURCE}>
       <Layer id="gap-links" type="line" layout={ROUND}
         paint={{ 'line-color': FOG_BOLD, 'line-width': 3, 'line-opacity': 0.8 * opacity, 'line-dasharray': GAP_LINK_DASH }} />
     </GeoJSONSource>

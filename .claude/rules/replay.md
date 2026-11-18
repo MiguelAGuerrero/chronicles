@@ -25,7 +25,7 @@ A walk's replay and the day replay: the five beats, the story and its ceremonies
   frame. A new ceremony is an entry in `CEREMONIES` and a view per new overlay kind.
 - **The rhythm** (decision 0085, RR1-RR19, `lib/ceremony/rhythm.ts`): a stretch's
   time follows its length, not the minutes walked (a glide, longer past `zipAtM`;
-  the camera is "The camera" below); a break is a cut with "N min later"; notes and memos
+  the camera and how a break is crossed are in `replay-ceremony.md`); a break is said as "N min later"; notes and memos
   are bubbles, photos and videos cards that tuck into the pile; passed places
   whisper by (one or two by name, more than two as one "Passed a few places without stopping", RP19); a clock rolls with the walker. Every number is in `REPLAY_RHYTHM`
   (`motionTokens.ts`). Nothing shrinks to fit a total: the 60 s cap went with replay pace (RY10, decision 0203).
@@ -37,7 +37,7 @@ A walk's replay and the day replay: the five beats, the story and its ceremonies
     `mediaTail` stands after a memo and inside a video's card.
   - **The walker keeps a steady pace** (`ease.ts` `steady`, the leg's `ra`, `rb`): the same curve gives the walker,
     the clock (audit 24) and a whisper's timing (`legWalkTime`); change one and the others drift.
-  - **A bubble leaves at the next card or cut, never before a note could be read** (`noteRead`), and a memo never
+  - **A bubble leaves at the next card or break, never before a note could be read** (`noteRead`), and a memo never
     before it has played. **A whisper never starts under a card** (RY22): its `tw` moves to the card's end.
   - **Next** (`clock.ts` `nextStop`, `nextLoop`; `useCeremonyLoop` `next`, `canNext`): a ceremony says when
     its moments begin and where a press lands (`Showing.stops`: 0.45 s before, never inside the stop before, so never
@@ -87,7 +87,7 @@ A walk's replay and the day replay: the five beats, the story and its ceremonies
   the story was rebuilt (a moment deleted from the viewer).
 - A trace's standstill is kept as its two end fixes (`smoothDwells`), minutes apart:
   `ReplayData.stays` says which holes are stands, so the story joins them rather than
-  playing a cut (`joinStills`). A pause is a break however short, and a stop's arriving
+  crossing a break (`joinStills`). A pause is a break however short, and a stop's arriving
   and leaving never cross a run's edge (audit 21). Through a stretch the clock rolls
   with the stretch's time, eased, so a stand inside it never leaps (audit 24).
 - **Media lead, the clock waits** (audits 20, 23): a memo or video asks the stage to
@@ -110,8 +110,8 @@ A walk's replay and the day replay: the five beats, the story and its ceremonies
   and draws it in a layout effect, before the render that brought it is painted: the same time of
   day, and where the clock stands still (a stop, a loose moment) as long before it moves on as there was.
 - **A moment the trace doesn't cover** (in a gap or a pause, `onTrace: false`) is where
-  it was taken: the cut lands there; a break of under a minute next to it is a step,
-  not a second cut (audit 30). A memo paused with its own button lets the stage go on;
+  it was taken: the break lands there; a break of under a minute next to it is a step,
+  not a second break (audit 30). A memo paused with its own button lets the stage go on;
   the stall count resets once a player moves (`trackWait`, audit 32).
 - **Loading and waking** (RR23, RR24, decision 0087): while the stage waits for a medium
   that hasn't started, a `Skeleton` stands where it will be (a photo's card too, until
@@ -164,4 +164,4 @@ A walk's replay and the day replay: the five beats, the story and its ceremonies
 ## The engine, the camera and the breaks
 
 The replay ceremony's rework (RC1-RC48, decision 0206) has its own file: `.claude/rules/replay-ceremony.md` (the frame
-loop outside the screens' rendering, the camera as plan data, how a break is crossed).
+loop outside the screens' rendering, the camera as plan data, how a break is crossed: a hop or a stand, never a dim).

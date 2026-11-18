@@ -21,6 +21,7 @@ import { useReplay } from '../../components/ceremony/useCeremonyLoop';
 import { useRevealed } from '../../components/ceremony/useRevealed';
 import type { StageCtx } from '../../components/ceremony/layout';
 import { ceremonyFor } from '../../lib/ceremony/registry';
+import { linksWithHops } from '../../lib/ceremony/reveal';
 import { chronicleSection } from '../../lib/resurface/sectionStore';
 import { storySteps, walkStory } from '../../lib/ceremony/story';
 import { planViews, QUIET_TRACE_OPACITY, type WalkMapHandle } from '../../components/map/types';
@@ -458,10 +459,14 @@ export default function Replay() {
   useEffect(() => {
     if (keepShown) void noteAsked(id);
   }, [keepShown, id]);
-  // Gaps with no line across them, joined by grey dots on the card beats (GW2).
+  // Gaps with no line across them, joined by grey dots on the card beats (GW2), and with them the hops the path drew
+  // across its other breaks (a pause, a break too long to be a gap), which stay on the map through the card (replay
+  // ceremony RC21). A gap keeps the card's own way of drawing it. While the path is told the replay's own frames draw
+  // the hops in that layer.
+  const hops = showing?.hops;
   const links = useMemo(
-    () => (data && (beat === 'card' || beat === 'name') ? emptyGaps(data.gaps, data.stretches).map((g) => [g.from, g.to]) : []),
-    [data, beat],
+    () => (data && (beat === 'card' || beat === 'name') ? linksWithHops(emptyGaps(data.gaps, data.stretches), data.gaps, hops ?? []) : []),
+    [data, beat, hops],
   );
   // The walk's clock, so a pin of several says how far in it was (tend map T14).
   const clocks = useMemo(() => (data ? [{ id: data.walk.id, started_at: data.walk.started_at, pauses: data.pauses }] : undefined), [data]);

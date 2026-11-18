@@ -1902,7 +1902,8 @@ async function run(h) {
         const nearWalked = (cc) => Math.abs(cc[0] - walkedRgb[0]) + Math.abs(cc[1] - walkedRgb[1]) + Math.abs(cc[2] - walkedRgb[2]) <= 60;
         const hideMarkers = (hidden) => pg9.evaluate((v) => document.querySelectorAll('.maplibregl-marker').forEach((m) => { m.style.visibility = v ? 'hidden' : ''; }), hidden);
 
-        // tend map audit 26: Hold once the dot has gone 40 px from the end along the loop, then read where both are.
+        // tend map audit 26: Hold once the dot has gone 24 px from the end along the loop, then read where both are. (It
+        // was 40 px, and 20 apart, at the walking zoom of 16: at 15, replay ceremony RC11, the loop's 60 m sides are 34 px.)
         // tend map 12: the loop's path beat runs the whole loop in about a second, so the hold is timed in the page and
         // tapped where the button is. A poll of three round trips and a click that waits for the button to hold still
         // took 140 to 784 ms, and the check lost the race now and then from the start (2 of 5 scratch runs on 6c5174cd,
@@ -1921,7 +1922,7 @@ async function run(h) {
             const walkerAt = el && ll(el.getAttribute('data-walker'));
             if (!endAt || !walkerAt || typeof window.__project !== 'function') return false;
             const [a, b] = [window.__project(endAt), window.__project(walkerAt)];
-            if (Math.hypot(a[0] - b[0], a[1] - b[1]) < 40) return false;
+            if (Math.hypot(a[0] - b[0], a[1] - b[1]) < 24) return false;
             return { onHold: !!document.elementFromPoint(x, y)?.closest('[data-testid=hold]') };
           }, tap, { polling: 'raf', timeout: 30000 }).then((hd) => hd.jsonValue(), () => null);
           await pg9.mouse.click(tap[0], tap[1]);
@@ -1941,7 +1942,7 @@ async function run(h) {
           const inside = (q) => !!q && !!canvas && q[0] >= canvas.x + 11 && q[0] <= canvas.x + canvas.width - 11 && q[1] >= canvas.y + 11 && q[1] <= canvas.y + canvas.height - 11;
           const apartPx = a && b ? Math.hypot(a[0] - b[0], a[1] - b[1]) : null;
           const held = await pg9.locator('[data-testid=replay-held]').count();
-          check(held > 0 && inside(a) && inside(b) && apartPx >= 20,
+          check(held > 0 && inside(a) && inside(b) && apartPx >= 12,
             `tend map audit 26: at Hold at ${w}, with motion, the walker's dot and the end are both on the map and apart (held ${held}, end ${JSON.stringify(a && a.map(Math.round))}, dot ${JSON.stringify(b && b.map(Math.round))}, ${apartPx && Math.round(apartPx)} px apart, canvas ${JSON.stringify(canvas && [canvas.x, canvas.y, canvas.width, canvas.height].map(Math.round))})`);
           await shot(pg9, `qol-20-loop-held-${w}`);
           await pg9.click('[data-testid=hold]');

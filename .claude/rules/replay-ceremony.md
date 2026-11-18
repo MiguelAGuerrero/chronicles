@@ -9,11 +9,11 @@ paths:
   - "scripts/e2e/replayWalk.js"
   - "scripts/e2e/journeys/replay.js"
 ---
-# Replay ceremony: the engine and the camera
+# Replay ceremony: the engine, the camera and the breaks
 
 The replay's rework (`specs/replay-ceremony`, RC1-RC48, decision 0206), split from `replay.md` (the five beats, the story,
-the rhythm's timings, the card): what drives a telling frame by frame, and where its camera is. Built on the branch and
-shown to the owner before any of it goes live.
+the rhythm's timings, the card): what drives a telling frame by frame, where its camera is, and how a break is crossed.
+Built on the branch and shown to the owner before any of it goes live.
 
 ## The camera (replay ceremony RC11-RC16; decision 0206)
 
@@ -45,9 +45,41 @@ shown to the owner before any of it goes live.
   `components/ceremony/layout.ts`: the camera settles the pin with the same arithmetic the card is drawn with. Change a
   card's frame or caption strip there, never in `Cards.tsx`. The stage's `project` is the camera's (Web Mercator, as
   the map lays places out), so a card's origin is on its pin at any zoom.
-- **Tests**: `camera.test.ts` (RC13 on a 20 km ride and a day's travel: the walker inside the frame in every frame);
-  the `replay` journey reads `data-cam` (where a frame put the camera, written only when measuring) against the map's
-  own centre and each card's box (`cameraOf`).
+- **Tests**: `camera.test.ts` (RC13 on a 20 km ride and a day's travel: the walker inside the frame in every frame)
+  and `breaks.test.ts`; the `replay` journey reads `data-cam` (where a frame put the camera) and `data-hops` (written
+  only when measuring) against the map's own centre, each card's box (`cameraOf`) and each break (`breaksOf`), and
+  fails a frame with anything laid over the map (RC17). Its seeded walk has a far break and one too small to see.
+
+## Breaks (replay ceremony RC17-RC22; decision 0206)
+
+- **A break is a hop or a stand, never a dim** (`rhythm.ts`, the `break` segment: `hop`, `tSwitch`). `Frame.dim` is
+  gone and the stage has no veil; RC17's test scans for the word. A hop takes `breakFar` (4.2 s) from `breakFarM`
+  (250 m) up, less when nearer, never under `breakNear` of it. Ends under `standPx` (26 px, about 46 m) apart at the
+  walking zoom are a stand of `stand` ms: the line and the clock's change, nothing else.
+- **A hop's parts are shares of its time** (`hopPull`, `hopDraw`, `hopDrawn`, `hopLand`, `hopClose`, `hopSwitch`): the
+  camera pulls back until both ends fit (`camera.ts` `hopZoom`: inside `hopFitW` by `hopFitH` of the screen, their
+  middle at the focus; never closer than the walking zoom, so a break the screen already shows only re-centres),
+  the dots draw, the walker slides along the straight way (`between`, as the map draws a line), the camera closes in
+  at the far end. The trace picks up when the walker lands (`here`), never before.
+- **The hop is the map's, in the `gap-links` layer** (RC21: a gap's own dots, one mark for one thing). `Frame.hops`
+  lists every hop made so far and the one being drawn (`p`); `reveal.ts` `hopLines` and `hopsKey` turn them into that
+  source's data. **Trap: a dotted line cannot be revealed by a paint property** (the same as a ride's dashes): a hop is
+  data while it draws, sent at most every `REPLAY_ENGINE.resendMs` (about eight sends over a far hop), and never again
+  once whole. That is a break, not a stretch: RC3's count is unaffected.
+- **Through the card**: `Showing.hops` says a telling's hops whole, with the walk's times each crosses. On the walk's
+  card a gap keeps the card's own way of drawing it (`linksWithHops`, matched by time, since a gap's ends are the
+  recorded fixes' and a hop's the story's, a few metres apart): its dotted link if empty (GW2: the same dots, drawn
+  once), its offered way, faint, if one is offered (G6: the hop gives way to the offer). A hop across anything else (a
+  pause, a break too long to be a gap) is added to the card's links. The day's card shows its walks' hops. While the
+  path is told the screens give no links and the frames own the source. A gap whose way was kept or filled is trace,
+  so the story has no break there and no hop.
+- **"N min later" and the clock** (RC19): the line shows from `hopPull` of the break (both ends in view; a stand:
+  `standLineIn`) until `breakLineAfter` after it. The clock is one time, then the other, at `tSwitch`
+  (`Frame.clockFade` dips to 0 there over `clockDissolve` each way; the stage writes it on the clock's wrapper and
+  stills the reels while it is under 1, so nothing rolls through the break). `msAtClock` and `reanchor` need a clock
+  that never runs back: a step is fine, a dip would not be.
+- **Reduce motion** (RC22): the same times; the hop whole from the break's first frame, the walker at one end and then
+  the other, no dissolve. The map is not moved (RC10), so the still view is the first beat's own: the walk whole.
 
 ## The engine (replay ceremony RC1-RC10, RC48; decision 0206)
 
@@ -73,8 +105,8 @@ shown to the owner before any of it goes live.
   frame per view. So what moves every frame is written with `writeStyle` (`liveStyle.web.ts`: the element's own style;
   `liveStyle.ts`: `setNativeProps`, untried on a phone), and the clock's reels roll by a CSS transition on the web.
   The loading skeleton still pulses through `Animated` (about sixty small commits a second while one is up; deferred).
-- **Those properties are left out of the element's `style`**, but for a resting default (a card where it rests, the
-  dim at 0): `useLiveStyle` writes them before the first paint and again after every render, so a render never undoes
+- **Those properties are left out of the element's `style`**, but for a resting default (a card where it rests):
+  `useLiveStyle` writes them before the first paint and again after every render, so a render never undoes
   a write and the two never disagree.
 - **The one number for frames a second** is `REPLAY_ENGINE.frameMs` (`motionTokens.ts`; 0 is every display frame),
   honoured by `stepLoop`; a replay's link can ask for a ceiling with `fps=30` (`frameMsFor`), to try one on a phone

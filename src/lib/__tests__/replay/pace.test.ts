@@ -167,7 +167,7 @@ test('RY7: a bubble leaves when the next card opens or a break begins, but a not
   // A break: the bubble leaves as the cut begins.
   const fixes = [...line(O, east(300), 0), ...line(east(700), east(1000), when(300) + 20 * 60_000)];
   const cutPlan = plan(walkStory(input(fixes, [cap('text', when(250), 250, 'x'), cap('text', when(300) + 20 * 60_000 + when(280), 980, 'y')])));
-  const cut = cutPlan.segs.find((s) => s.k === 'cut')!;
+  const cut = cutPlan.segs.find((s) => s.k === 'break')!;
   assert.ok(cut && near(cutPlan.bubbles[0].exitAt, Math.max(cut.t0, cutPlan.bubbles[0].ta + R.bubbleIn + 1500 + 300)), 'leaves at the cut, once readable');
   // A memo's bubble stays until it has played, whatever opens.
   const memoPlan = plan(walk(500, [cap('voice', when(300), 300, '8000'), cap('photo', when(300) + 5000, 300)]));

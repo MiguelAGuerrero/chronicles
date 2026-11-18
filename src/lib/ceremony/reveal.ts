@@ -8,7 +8,8 @@
  */
 import type { TimedRun } from '../replay';
 import type { LngLat } from '../types';
-import type { Story } from './types';
+import { between } from './camera';
+import type { Hop, HopSpan, Story } from './types';
 
 /** One kind of line at one time: the runs wholly drawn, and the run being drawn with how far along it is. */
 export interface LineReveal {
@@ -114,4 +115,33 @@ export function cutRun(run: LngLat[], p: number): LngLat[] {
 /** A reveal as the runs it draws: the whole ones, then the run being drawn, cut where it ends. */
 export function revealedRuns(l: LineReveal): LngLat[][] {
   return l.run ? [...l.done, cutRun(l.run, l.p)] : l.done;
+}
+
+/**
+ * A frame's hops as the lines a map draws (replay ceremony RC18, RC21): each from where its trace stops, as far as it
+ * is drawn, straight as a map draws a line. They go to the layer a gap's link already uses, so they are a gap's dots.
+ */
+export function hopLines(hops: Hop[]): LngLat[][] {
+  return hops.map((h) => [h.from, h.p >= 1 ? h.to : between(h.from, h.to, h.p)]);
+}
+
+/**
+ * What decides a frame's hops are sent to the map again: how many there are, and the one being drawn by the telling's
+ * bucket of time, never by the frame. A dotted line cannot be revealed by a paint property (see `REPLAY_LINES`), so a
+ * hop is data while it draws: a few sends over its fifth of a break, at most one every `everyMs`, and none after.
+ */
+export function hopsKey(hops: Hop[], ms: number, everyMs: number): string {
+  const last = hops[hops.length - 1];
+  return hops.length ? `${hops.length}:${last.p >= 1 ? 'whole' : Math.floor(ms / everyMs)}` : '';
+}
+
+/**
+ * A card's dotted links with a telling's hops among them (RC21: a hop stays on the map through the card). `empty` are
+ * the gaps the card joins by dots already (GW2), `gaps` every gap of the walk: across a gap the card keeps its own way
+ * of drawing it (its dots, or its offered way, faint), and a hop that crossed one is that gap's, by the time it spans.
+ * A hop across anything else (a pause, a break too long to be a gap) is added, as it was drawn.
+ */
+export function linksWithHops(empty: { from: LngLat; to: LngLat }[], gaps: { t0: number; t1: number }[], hops: HopSpan[]): LngLat[][] {
+  const more = hops.filter((h) => !gaps.some((g) => g.t0 < h.t1 && h.t0 < g.t1));
+  return [...empty.map((g): LngLat[] => [g.from, g.to]), ...more.map((h): LngLat[] => [h.from, h.to])];
 }

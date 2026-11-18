@@ -13,7 +13,8 @@
  *   would leave it (RC12);
  * - on a stretch the walker crosses faster than `maxCross` of the screen's width a second, it rises just enough to
  *   keep it to that, follows the walker meanwhile, and is back down when the stretch ends (RC13);
- * - arriving at a moment with a card, it settles the moment's pin just under where the card rests (RC14).
+ * - arriving at a moment with a card, it settles the moment's pin just under where the card rests (RC14);
+ * - across a break it pulls back until both ends fit, and closes in at the far end (RC18).
  *
  * Places are worked in Web Mercator, as a map lays them out (512 px tiles, as MapLibre counts zoom), so a place put on
  * screen here is where the map draws it, at any zoom.
@@ -59,14 +60,15 @@ export function between(a: LngLat, b: LngLat, u: number): LngLat {
  * One part of a telling, as its camera needs to know it. `hold`: nothing is asked of the camera (the walker stands, or
  * a move begun goes on). `intro`: the telling opens closing in on the walker. `leg`: the walker moves, at `speed`
  * metres a second along the ground at its steady pace, getting there over the first `ra` of the part and slowing over
- * the last `rb`, at latitude `lat` (where it is farthest from the equator). `card`: a moment with a card, its pin at `at`, the card `pieces` pictures in a grid (0: one picture).
- * `cut`: the walker is at `to` from the part's middle on.
+ * the last `rb`, at latitude `lat` (where it is farthest from the equator). `card`: a moment with a card, its pin at
+ * `at`, the card `pieces` pictures in a grid (0: one picture). `hop`: a break crossed from `from` to `to` (replay ceremony RC18): the camera pulls back until both fit, and closes
+ * in at the far end.
  */
 export type CameraPart =
   | { k: 'hold' | 'intro'; t0: number; t1: number }
   | { k: 'leg'; t0: number; t1: number; speed: number; ra: number; rb: number; lat: number }
   | { k: 'card'; t0: number; t1: number; at: LngLat; pieces: number }
-  | { k: 'cut'; t0: number; t1: number; to: LngLat | null };
+  | { k: 'hop'; t0: number; t1: number; from: LngLat; to: LngLat };
 
 /** A telling as its camera reads it: its parts in order, end to end, and where the walker is at a time into it. */
 export interface CameraScene {
@@ -78,7 +80,9 @@ export interface CameraScene {
 /**
  * One move of the camera: the place it keeps at its focus (`focusOf`) goes from `a` at `t0` to `b` at `t1`, eased or
  * straight, cut short at `end` when another move began. The zoom is apart (`zoomOf`), and turns about that place: what
- * the camera follows stays where it is on the screen while it rises and comes down.
+ * the camera follows stays where it is on the screen while it rises and comes down. A move that changes the zoom on
+ * its way (`za` to `zb`: a hop's pull-back and its closing in) keeps the nearer-in view's place moving in a straight
+ * line on the screen, as the prototype does.
  */
 interface Move {
   t0: number;
@@ -87,6 +91,8 @@ interface Move {
   a: World;
   b: World;
   eased: boolean;
+  za?: number;
+  zb?: number;
 }
 
 /** A telling's camera, worked out: read it with `cameraAt`. */
@@ -113,9 +119,25 @@ function lastAt(list: { t0: number }[], ms: number): number {
 
 const moveAt = (m: Move, ms: number): World => {
   const u = clamp01((Math.min(ms, m.end) - m.t0) / (m.t1 - m.t0 || 1));
-  const e = m.eased ? easeInOut(u) : u;
+  let e = m.eased ? easeInOut(u) : u;
+  if (m.za != null && m.zb != null) {
+    // Closing in, the far view is reached as the scale grows; pulling back, the near view is left as it shrinks.
+    const z = lerp(m.za, m.zb, e);
+    e = m.zb >= m.za ? 1 - 2 ** (m.za - z) * (1 - e) : 2 ** (m.zb - z) * e;
+  }
   return [lerp(m.a[0], m.b[0], e), lerp(m.a[1], m.b[1], e)];
 };
+
+/**
+ * The zoom at which a hop's two ends fit (RC18): inside `hopFitW` of the screen's width and `hopFitH` of its height,
+ * and never closer than the walking zoom.
+ */
+export function hopZoom(screen: Pick<StageRoom, 'width' | 'height'>, from: LngLat, to: LngLat): number {
+  const a = toWorld(from);
+  const b = toWorld(to);
+  const px = Math.min((screen.width * R.hopFitW) / Math.max(1e-12, Math.abs(b[0] - a[0])), (screen.height * R.hopFitH) / Math.max(1e-12, Math.abs(b[1] - a[1])));
+  return Math.min(R.baseZoom, Math.log2(px / 512));
+}
 
 /** The walker's ground speed `u` of the way through a stretch, as a share of its steady pace (`ease.ts` `steady`'s own slope). */
 const paceAt = (u: number, ra: number, rb: number) => Math.max(0, Math.min(1, ra > 0 ? u / ra : 1, rb > 0 ? (1 - u) / rb : 1));
@@ -140,6 +162,12 @@ function zoomOf(track: CameraTrack, part: CameraPart | undefined, ms: number): n
   if (!part) return R.baseZoom;
   const u = clamp01((ms - part.t0) / (part.t1 - part.t0 || 1));
   if (part.k === 'intro') return R.baseZoom - Math.log2(R.introZoomOut) * (1 - easeInOut(u));
+  if (part.k === 'hop') {
+    // Pulled back by `hopPull`, held, and closing in from `hopClose`: the same easing as the hop's two moves.
+    const fit = hopZoom(track.screen, part.from, part.to);
+    if (u < R.hopPull) return lerp(R.baseZoom, fit, easeInOut(u / R.hopPull));
+    return u < R.hopClose ? fit : lerp(fit, R.baseZoom, easeInOut((u - R.hopClose) / (1 - R.hopClose)));
+  }
   if (part.k === 'leg') {
     const limit = crossLimit(track.screen.width, part.lat);
     if (part.speed > limit) return R.baseZoom - riseFor(part.speed * paceAt(u, part.ra, part.rb), part.speed, limit);
@@ -192,11 +220,11 @@ export function cameraTrack(scene: CameraScene, screen: StageRoom, foot: (pieces
     const m = active();
     return m ? moveAt(m, ms) : track.start;
   };
-  const begin = (t0: number, dur: number, to: World, eased: boolean) => {
+  const begin = (t0: number, dur: number, to: World, eased: boolean, zooms?: { za: number; zb: number }) => {
     const from = centreAt(t0);
     const was = active();
     if (was) was.end = Math.min(was.end, t0);
-    moves.push({ t0, t1: t0 + dur, end: t0 + dur, a: from, b: to, eased });
+    moves.push({ t0, t1: t0 + dur, end: t0 + dur, a: from, b: to, eased, ...zooms });
   };
   const walker = (ms: number): World | null => {
     const p = scene.walker(Math.min(ms, Math.max(0, scene.total - 1)));
@@ -240,10 +268,15 @@ export function cameraTrack(scene: CameraScene, screen: StageRoom, foot: (pieces
         if (follow) follow.aim = cardCentre(p);
         else begin(p.t0, R.settle, cardCentre(p), true);
       }
-      // Across a cut the walker is elsewhere: so is the camera, at once.
-      if (p.k === 'cut' && p.to) {
+      // A break crossed (RC18): back until both ends fit, their middle at the focus; then in again at the far end.
+      if (p.k === 'hop') {
         follow = null;
-        begin((p.t0 + p.t1) / 2, 0, toWorld(p.to), true);
+        const dur = p.t1 - p.t0;
+        const fit = hopZoom(screen, p.from, p.to);
+        const a = toWorld(p.from);
+        const b = toWorld(p.to);
+        begin(p.t0, dur * R.hopPull, [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], true, { za: R.baseZoom, zb: fit });
+        begin(p.t0 + dur * R.hopClose, dur * (1 - R.hopClose), b, true, { za: fit, zb: R.baseZoom });
       }
     }
     const part = parts[pi];
@@ -274,10 +307,13 @@ export function cameraTrack(scene: CameraScene, screen: StageRoom, foot: (pieces
       const ahead = part.k === 'leg' && !follow.aim ? walker(t + R.followLead) : null;
       if (ahead) follow.to = ahead;
       const to = follow.aim ?? follow.to;
-      // A critically damped spring towards it: `followEase` behind what it goes after, and quicker on to a card. As
+      // A critically damped spring towards it: `followEase` behind what it goes after, and quicker on to a card. It
+      // tightens as the stretch runs out, so the camera is at rest when the walker stops, not a moment after. And as
       // the camera comes back down, the distance left grows on the screen as fast as the zoom closes in: it is closed
       // that much faster, so the walker never slides off the screen.
-      const w = 2 / ((follow.aim ? R.settleEase : R.followEase) / 1000) + (Math.max(0, z1 - zoom) * Math.LN2) / secs;
+      const ease = follow.aim ? R.settleEase : R.followEase;
+      const left = part.k === 'leg' ? Math.max(dt / 2, (part.t1 - t) / R.followLand) : ease;
+      const w = 2 / (Math.min(ease, left) / 1000) + (Math.max(0, z1 - zoom) * Math.LN2) / secs;
       const decay = Math.exp(-w * secs);
       const step = (x: number, v: number): [number, number] => {
         const k = (v + w * x) * secs;
@@ -289,7 +325,14 @@ export function cameraTrack(scene: CameraScene, screen: StageRoom, foot: (pieces
       follow.vy = vy;
       const s = worldPx(z1);
       const at = walker(t + dt);
-      // There, and still: the camera holds again (at a card, exactly where its pin belongs).
+      // The stretch's last step: the spring has all but closed, and the camera is there as the walker stops, to the
+      // moment (at a card, exactly where its pin belongs; before a stand, still).
+      if (part.k === 'leg' && t + dt >= part.t1) {
+        begin(t, Math.max(1, part.t1 - t), to, false);
+        follow = null;
+        continue;
+      }
+      // There, and still (a spring carried past its stretch): the camera holds again.
       const there = Math.hypot(x, y) * s < 0.5 && Math.hypot(vx, vy) * s < 2 && (!!follow.aim || !risen);
       begin(t, dt, there ? to : at ? keep(at, [to[0] + x, to[1] + y], z1) : [to[0] + x, to[1] + y], false);
       if (there) follow = null;

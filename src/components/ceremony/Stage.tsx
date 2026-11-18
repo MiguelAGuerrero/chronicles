@@ -9,8 +9,9 @@ import { RollingClock } from './RollingClock';
 import { useLive, useLiveStyle } from './useLive';
 
 /**
- * Draws the frame on stage, of any ceremony, over the map (RR21): the dim of a cut, the clock and the line under it,
- * "Held", and the overlays by kind. It knows nothing of how a ceremony decides what a frame holds.
+ * Draws the frame on stage, of any ceremony, over the map (RR21): the clock and the line under it, "Held", and the
+ * overlays by kind. It knows nothing of how a ceremony decides what a frame holds. Nothing here dims the map: a break
+ * is crossed on the map itself (replay ceremony RC17).
  *
  * It reads the frame from `ctx.live`, where the replay's loop puts one every frame (replay ceremony RC7), and renders
  * only when an overlay arrives or leaves, the pile holds something else, or the telling is rebuilt. What moves every frame is each leaf's own to
@@ -23,11 +24,9 @@ export function Stage({ ctx }: { ctx: StageCtx }) {
   // The frame its shape came with, handed over by the store: a frame read here from the store would be kept by the
   // React Compiler from the first render on (decision 0207), and the stage would stay empty.
   const frame = useSyncExternalStore(live.subscribe, live.staged, live.staged);
-  const dim = useLiveStyle(live, (f) => ({ opacity: f.dim }));
   if (!frame) return null;
   return (
     <>
-      <View ref={dim} pointerEvents="none" style={[StyleSheet.absoluteFill, styles.dim]} />
       {OVERLAY_ORDER.map((kind) => {
         const items = frame.overlays.filter((o: Overlay) => o.kind === kind);
         if (!items.length) return null;
@@ -42,10 +41,20 @@ export function Stage({ ctx }: { ctx: StageCtx }) {
   );
 }
 
-/** The clock, by the minute it shows: it renders when the minute changes, and its digits roll by themselves. */
+/**
+ * The clock, by the minute it shows: it renders when the minute changes, and its digits roll by themselves. Across a
+ * break it dissolves from one time to the other (replay ceremony RC19): its fade is written frame by frame, and while
+ * it is faded the digits change in place, so nothing rolls through the break.
+ */
 function Clock({ ctx }: { ctx: StageCtx }) {
   const minute = useLive(ctx.live, (f) => (f?.clock == null ? null : Math.floor(f.clock / 60_000)));
-  return minute == null ? null : <RollingClock time={minute * 60_000} still={ctx.reduceMotion} />;
+  const dissolving = useLive(ctx.live, (f) => (f?.clockFade ?? 1) < 1);
+  const fade = useLiveStyle(ctx.live, (f) => ({ opacity: f.clockFade }));
+  return minute == null ? null : (
+    <View ref={fade} testID="replay-clock-fade">
+      <RollingClock time={minute * 60_000} still={ctx.reduceMotion || dissolving} />
+    </View>
+  );
 }
 
 /** The line under the clock ("43 min later", a passed place) and "Held": the words by render, the line's fade by itself. */
@@ -66,7 +75,6 @@ function Lines({ ctx }: { ctx: StageCtx }) {
 }
 
 const styles = StyleSheet.create({
-  dim: { backgroundColor: theme.ink },
   top: { position: 'absolute', left: 0, right: 0, alignItems: 'center', gap: 8 },
   line: { backgroundColor: theme.ink, color: theme.surface, fontSize: 12, fontWeight: '600', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 14, overflow: 'hidden', textAlign: 'center' },
   held: { backgroundColor: theme.glass, color: theme.ink, fontSize: 12, fontWeight: '600', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, overflow: 'hidden' },

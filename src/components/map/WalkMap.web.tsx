@@ -39,7 +39,7 @@ import {
   FLAT_NORTH_UP, LINE_SOURCE, LINE_SOURCE_IDS, REPLAY_LINES, resendKey, revealGradient, revealStop, type CollectedFeatures, mapWorkerUrl, type ReplayMapFrame, type WalkMapHandle, type WalkMapProps,
 } from './types';
 import { nextSend, type Sent } from './sent';
-import { revealedRuns, type LineReveal } from '../../lib/ceremony/reveal';
+import { hopLines, hopsKey, revealedRuns, type LineReveal } from '../../lib/ceremony/reveal';
 
 const VECTOR_SOURCE = BASE_VECTOR_SOURCE;
 /** Tiles that never arrive must not hang the stop. */
@@ -401,7 +401,10 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         container.current?.setAttribute('data-walker', '');
         container.current?.removeAttribute('data-reveal-end');
         container.current?.removeAttribute('data-cam');
+        container.current?.removeAttribute('data-hops');
       }
+      // The hops stay where they are: the screen's own links take their source over with the card (RC21).
+      st.hops = '';
       // The line stays until the map has drawn the whole trace it is now given as a prop, so the card's first frames
       // show a line and not a gap; a telling begun again meanwhile takes it over.
       if (!st.clearing && (st.walked.doneKey || st.walked.run || st.rides)) {
@@ -421,6 +424,13 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     if (rides !== st.rides) {
       st.rides = rides;
       sendData(map, sent.current, REPLAY_LINES.rides, traceGeoJSON(revealedRuns(f.rides)));
+      changed = true;
+    }
+    // A break's hop, in the dots of a gap's link (RC21): data while it draws, a few sends, and none once it is whole.
+    const hops = hopsKey(f.hops, f.ms, REPLAY_ENGINE.resendMs);
+    if (hops !== st.hops) {
+      st.hops = hops;
+      sendData(map, sent.current, 'gap-links', traceGeoJSON(hopLines(f.hops)));
       changed = true;
     }
     const { center, zoom } = f.camera;
@@ -445,6 +455,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     if ((window as { __perf?: unknown }).__perf) {
       container.current?.setAttribute('data-reveal-end', fmt(f.walked.end));
       container.current?.setAttribute('data-cam', center ? `${center[0]},${center[1]},${zoom ?? ''}` : '');
+      // The hops drawn, each "from lon,lat>to lon,lat@how far".
+      container.current?.setAttribute('data-hops', f.hops.map((h) => `${fmt(h.from)}>${fmt(h.to)}@${h.p.toFixed(3)}`).join('|'));
     }
     // Drawn now, in this frame: the canvas and the dot, which is an element over it, never part by a frame (RC1).
     if (changed) {
@@ -1903,8 +1915,8 @@ function revealLine(map: MapLibreMap, sent: Map<string, Sent>, drawn: RevealDraw
 
 /** What of a replay's line a source holds: the whole runs by their key, the run in the revealed source and how far it shows. */
 type RevealDrawn = { doneKey: string; run: LngLat[] | null; p: number };
-const freshReplayDrawn = (): { walked: RevealDrawn; rides: string; at: string; clearing: boolean } => ({
-  walked: { doneKey: '', run: null, p: -1 }, rides: '', at: '', clearing: false,
+const freshReplayDrawn = (): { walked: RevealDrawn; rides: string; hops: string; at: string; clearing: boolean } => ({
+  walked: { doneKey: '', run: null, p: -1 }, rides: '', hops: '', at: '', clearing: false,
 });
 type GradientSpec = NonNullable<NonNullable<import('maplibre-gl').LineLayerSpecification['paint']>['line-gradient']>;
 /** The layers a reveal paints, each with its colour: the white edge, then the line. */

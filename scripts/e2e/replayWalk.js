@@ -1,5 +1,7 @@
-// The replay journey's walk, written into storage and stopped: 600 m east along Transit Street with two photos, a
-// video and a note at its end, 20 minutes with no fixes, then 80 m more and a memo. Shared by the `replay` journey
+// The replay journey's walk, written into storage and stopped: 480 m east along Transit Street with two photos, a
+// video and a note at its end; 20 minutes with no fixes and the trace picking up 340 m on (a break crossed by a hop);
+// 40 m more and a memo; 4 minutes with no fixes and the trace picking up 38 m on (a break too small to see at the
+// walking zoom: a stand, replay ceremony RC20). Shared by the `replay` journey
 // (scripts/e2e/journeys/replay.js) and the replay's measurement harness (scripts/perf-replay.js), so both watch
 // the same walk. Leaves the page on the walk's first replay (/replay/<id>), its reading beat or later.
 
@@ -28,9 +30,11 @@ async function seedReplayWalk(h, c, pg) {
     }
     return pts;
   };
-  // 600 m east along Transit Street, a photo early on and a note at the end; 20 min with no fixes; 80 m more and a memo.
+  // 480 m east along Transit Street, a photo early on and a note at the end; 20 min with no fixes; 40 m more and a
+  // memo; 4 min with no fixes; the last 2 m, ending where the walk is stopped.
   const first = along([-6, -0.5], [-1.2, -0.5], now - 50 * min);
-  const second = along([2.2, -0.5], [3.0, -0.5], first.at(-1).t + 20 * min);
+  const second = along([2.2, -0.5], [2.6, -0.5], first.at(-1).t + 20 * min);
+  const third = along([2.98, -0.5], [3.0, -0.5], second.at(-1).t + 4 * min);
   const capAt = (p, o) => ({ walk_id: walk.id, t: p.t, lat: p.lat, lon: p.lon, segment_id: null, caption: null, caption_y: null, ...o });
   const captures = [
     capAt(first[8], { id: 'rr-photo', kind: 'photo', file_path: 'rr-photo', body: null, caption: 'Blue door', caption_y: 0.8 }),
@@ -39,7 +43,7 @@ async function seedReplayWalk(h, c, pg) {
     // the walker leaves the video's card (replay ceremony RC12).
     capAt(first[54], { id: 'rr-video', kind: 'video', file_path: 'rr-video', body: '5000' }),
     capAt(first.at(-1), { id: 'rr-note', kind: 'text', file_path: null, body: 'Bought two plums. Ate one before I paid.' }),
-    capAt(second[6], { id: 'rr-memo', kind: 'voice', file_path: 'rr-memo', body: '3000' }),
+    capAt(second[5], { id: 'rr-memo', kind: 'voice', file_path: 'rr-memo', body: '3000' }),
   ];
   await pg.evaluate(([id, startedAt, pts, caps]) => new Promise((resolve) => {
     const cv = document.createElement('canvas');
@@ -73,7 +77,7 @@ async function seedReplayWalk(h, c, pg) {
         tx.oncomplete = () => resolve(true);
       };
     }, 'image/png'));
-  }), [walk.id, first[0].t - 1000, [...first, ...second], captures]);
+  }), [walk.id, first[0].t - 1000, [...first, ...second, ...third], captures]);
   await pg.reload();
   await pg.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
   await c.setGeolocation({ longitude: here[0], latitude: here[1], accuracy: 6 });

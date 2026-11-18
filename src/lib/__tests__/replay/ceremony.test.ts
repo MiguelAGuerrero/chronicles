@@ -211,19 +211,21 @@ test('RR3: the camera is pulled back through a long stretch and not between near
   assert.equal(pull(rhythmFrame(near, (nl.t0 + nl.t1) / 2)), 1);
 });
 
-test('RR4: a break in the trace is a cut with "N min later"; the walker never crosses it', () => {
+// RR4's cut (the map dimmed, the walker on one side and then the other, 1.4 s) went with replay ceremony RC17-RC20
+// (decision 0206, which amends RR4): a break is now a hop the walker slides along, with no dim. breaks.test.ts holds the
+// hop; this keeps RR4's own promise: a break is said as "N min later", and its minutes are never walked through.
+test('RR4: a break in the trace is crossed with "N min later", in a few seconds however long it lasted', () => {
   const { story, bc, dd } = sampleWalk();
   const p = plan(story);
-  const cut = p.segs.find((s) => s.k === 'cut')!;
-  assert.equal(cut.t1 - cut.t0, R.cut);
+  const brk = p.segs.find((s) => s.k === 'break')!;
+  assert.ok(brk.k === 'break' && brk.t1 - brk.t0 <= R.breakFar + 1e-6, `it takes ${brk.t1 - brk.t0} ms`);
   const ends = [bc[bc.length - 1], dd[0]].map((f): LngLat => [f.lon, f.lat]);
-  for (let ms = cut.t0; ms < cut.t1; ms += 20) {
-    const f = rhythmFrame(p, ms);
-    assert.ok(f.walker && Math.min(distanceM(f.walker, ends[0]), distanceM(f.walker, ends[1])) < 1, 'only ever at one side or the other');
-    assert.equal(f.line, '20 min later');
-  }
-  assert.ok(rhythmFrame(p, (cut.t0 + cut.t1) / 2).dim > 0.5, 'the map dims across it');
-  assert.equal(rhythmFrame(p, cut.t1 + R.lineAfter + 50).lineOpacity, 0);
+  const from = rhythmFrame(p, brk.t0 + 10);
+  const to = rhythmFrame(p, brk.t1 - 10);
+  assert.ok(distanceM(from.walker!, ends[0]) < 1 && distanceM(to.walker!, ends[1]) < 1, 'from where the trace stops to where it picks up');
+  assert.equal(rhythmFrame(p, (brk.t0 + brk.t1) / 2).line, '20 min later');
+  assert.equal(rhythmFrame(p, brk.t1 + R.breakLineAfter + 50).lineOpacity, 0);
+  assert.ok(!('dim' in rhythmFrame(p, (brk.t0 + brk.t1) / 2)), 'nothing dims the map');
 });
 
 test('RR4: laterLine says minutes and hours', () => {
@@ -260,10 +262,11 @@ test('RR8: the clock runs from arrival to leaving at a moment, with the walker b
     assert.ok(f.clock != null && f.clock >= prev - 1, 'the clock never runs back');
     prev = f.clock;
   }
-  const cut = p.segs.find((s) => s.k === 'cut')!;
-  const c0 = rhythmFrame(p, cut.t0 + 10).clock!;
-  const c1 = rhythmFrame(p, cut.t1 - 10).clock!;
-  assert.ok(c1 - c0 > 18 * MIN, 'it rolls through the gap');
+  // Across a break it is one time and then the other (replay ceremony RC19): it no longer rolls through the gap.
+  const brk = p.segs.find((s) => s.k === 'break')!;
+  const c0 = rhythmFrame(p, brk.t0 + 10).clock!;
+  const c1 = rhythmFrame(p, brk.t1 - 10).clock!;
+  assert.ok(c1 - c0 > 18 * MIN, 'it is past the gap on the far side');
   assert.equal(rhythmFrame(p, p.total).clock, null, 'gone at the card');
 });
 
@@ -466,11 +469,12 @@ test('RR21: the registry gives the rhythm by default, and any ceremony honouring
       return {
         total: steps.length * 1000,
         stops: [],
+        hops: [],
         frame: (ms) => {
           const c = steps[Math.floor(ms / 1000)];
           return {
             done: ms >= steps.length * 1000, walker: null, camera: { center: null, zoom: null }, drawn: {}, pins: c ? [c.id] : [],
-            dim: 0, clock: c?.t ?? null, line: null, lineOpacity: 0,
+            hops: [], clock: c?.t ?? null, clockFade: 1, line: null, lineOpacity: 0,
             overlays: c ? [{ kind: 'card', key: c.id, capture: c, from: null, grow: 1, tuck: 0, playing: false, progress: 0, fade: true }] : [],
           };
         },
@@ -603,9 +607,9 @@ test('replay-rhythm audit 15: a stretch the walker crosses slowly does not pull 
 test('replay-rhythm audit 17: a place passed just after a gap whispers once the far side is up', () => {
   const { fixes, photo, note, dd } = sampleWalk();
   const p = plan(walkStory(input(fixes, [photo, note], { passed: [{ name: 'X', generic: false, at: at(920, 1220), t: dd[1].t }] })));
-  const cut = p.segs.find((s) => s.k === 'cut')!;
+  const brk = p.segs.find((s) => s.k === 'break')!;
   const first = frames(p, 10).findIndex((f) => f.overlays.some((o) => o.kind === 'whisper'));
-  assert.ok(first * 10 >= cut.t1 - 10, `whispered at ${first * 10} ms, the cut ends at ${cut.t1}`);
+  assert.ok(first * 10 >= brk.t1 - 10, `whispered at ${first * 10} ms, the break ends at ${brk.t1}`);
 });
 
 test('replay-rhythm audit 18: the screen reader\'s steps skip a moment gone and end when none is left', () => {
@@ -754,9 +758,9 @@ test('replay-rhythm audit 30: a capture inside a gap plays at its own place afte
   const stop = p.segs.find((s) => s.k === 'stop')!;
   const f = rhythmFrame(p, stop.t0 + 100);
   assert.ok(f.walker && distanceM(f.walker, B2) < 5, `the walker is where the photo was taken (${f.walker && distanceM(f.walker, B2).toFixed(0)} m off)`);
-  assert.equal(p.segs.filter((s) => s.k === 'cut').length, 1, 'one cut, not "Moments later" after it');
-  const cut = p.segs.find((s) => s.k === 'cut')!;
-  assert.ok(cut.k === 'cut' && cut.to && distanceM(cut.to, B2) < 5, 'the cut lands at the photo');
+  assert.equal(p.segs.filter((s) => s.k === 'break').length, 1, 'one break, not "Moments later" after it');
+  const brk = p.segs.find((s) => s.k === 'break')!;
+  assert.ok(brk.k === 'break' && brk.to && distanceM(brk.to, B2) < 5, 'the break lands at the photo');
 });
 
 test('replay-rhythm audit 31: a rebuilt day telling keeps its place inside a loose moment', () => {

@@ -162,12 +162,14 @@ async function run(h) {
       const stored = await rows();
       check(stored.includes('dismissed:Thayer Street'), `gaps: Not this way is stored too (G10: ${JSON.stringify(stored)})`);
       // A dismissed gap is joined by a dotted line; tapping it opens its card, and its way can be drawn (GW1-GW5, GW7).
+      // The card has one dotted line already: the hop the replay drew across the walk's 35-minute break between its two
+      // streets, too long to be a gap, which stays on the map through the card (replay ceremony RC21). So two.
       let dotted = await mapState();
-      for (let k = 0; k < 10 && dotted.links !== 1; k++) {
+      for (let k = 0; k < 10 && dotted.links !== 2; k++) {
         await pg.waitForTimeout(500);
         dotted = await mapState();
       }
-      check(dotted.links === 1, `GW2: a dismissed gap is joined by a dotted line (${JSON.stringify(dotted)})`);
+      check(dotted.links === 2, `GW2: a dismissed gap is joined by a dotted line, beside the long break's hop (${JSON.stringify(dotted)})`);
       await tap(at(11, 0.6));
       const empty = await pg.locator('[data-testid=gap-title]').innerText().catch(() => '');
       check(/^Not recorded for \d+ min$/.test(empty) && (await pg.locator('[data-testid=gap-draw]').count()) === 1 && (await pg.locator('[data-testid=gap-keep]').count()) === 0,
@@ -201,8 +203,9 @@ async function run(h) {
         drawn = await mapState();
       }
       const keptNow = await rows();
-      check(drawn.runs === onCard.runs && drawn.links === 0 && drawn.drawing === 0 && keptNow.filter((x) => x.startsWith('kept')).length === 2,
-        `GW5: Done keeps the drawn way: one line again, no dotted join (${JSON.stringify(drawn)}, ${JSON.stringify(keptNow)})`);
+      // The gap's dotted join is gone; the long break's hop is the one dotted line left (replay ceremony RC21).
+      check(drawn.runs === onCard.runs && drawn.links === 1 && drawn.drawing === 0 && keptNow.filter((x) => x.startsWith('kept')).length === 2,
+        `GW5: Done keeps the drawn way: one line again, no dotted join across the gap (${JSON.stringify(drawn)}, ${JSON.stringify(keptNow)})`);
     }
     await c.close();
 

@@ -31,6 +31,7 @@ type StepOpts = { paused: boolean; total: number; frameMs: number };
 const telling = (total: number, stops: Landing[] = [], clockAt: (ms: number) => number = (ms) => ms * 60): Showing => ({
   total,
   stops,
+  hops: [],
   frame: (ms: number) => ({ clock: clockAt(ms) }) as Frame,
 });
 /** Runs the loop over display frames `every` ms apart for `ms` of real time, and counts the frames it took. */

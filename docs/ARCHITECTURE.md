@@ -59,7 +59,7 @@ Screens' building blocks
   webStyles(.web).ts         web-only page fixes: pinned viewport, long-press guards (nothing on native)
   pwa(.web).ts               web manifest and Apple home-screen tags, under the base path
 Replay ceremonies (decisions 0085, 0086)
-  ceremony/Stage.tsx         draws the frame on stage over the map: the cut's dim, the clock and the line under it, Held, the overlays by kind; renders when an overlay arrives or leaves
+  ceremony/Stage.tsx         draws the frame on stage over the map: the clock (dissolving across a break) and the line under it, Held, the overlays by kind; no dim; renders when an overlay arrives or leaves
   ceremony/overlays.tsx      OVERLAYS: one view per overlay kind (the type fails the build until every kind has one); OVERLAY_ORDER
   ceremony/Bubbles.tsx       notes and memos stacking in the bottom-left corner; a memo plays while its bubble says, pauses when held
   ceremony/Cards.tsx         a photo or video card that grows from the pin and tucks into the pile; the video plays in it
@@ -192,11 +192,11 @@ Streets, snapping, fog
   replay.ts                  FOG_MS, groupCaptures, timedRuns, traceUntil, walkerAt: the replay's shared pieces
   ceremony/types.ts          Story (paths, moves, moments, breaks, travel, passes), Frame, Overlay kinds, Ceremony (decision 0086)
   ceremony/story.ts          walkStory, dayStory, storySteps; metresAt, timeAtMetres, pathDrawnAt: what happened, no timing or look
-  ceremony/rhythm.ts         the rhythm ceremony (RR1-RR19, replay pace RY1-RY22): rhythmPlan (legs at a steady pace, stops, cuts, each moment's own time, no cap; `stops`, where Next lands; the camera, worked out once), rhythmFrame (given a press, it says what lay between), laterLine, notePause
-  ceremony/camera.ts         a ceremony's camera as plan data (replay ceremony RC11-RC16): cameraTrack walks a telling's time once and writes down the camera's moves (hold and re-frame, rise by the walker's speed across the screen, a card's pin settled under it); cameraAt reads it per frame; project() (Web Mercator, as the map)
+  ceremony/rhythm.ts         the rhythm ceremony (RR1-RR19, replay pace RY1-RY22): rhythmPlan (legs at a steady pace, stops, breaks as a hop or a stand, each moment's own time, no cap; `stops`, where Next lands; the camera, worked out once), rhythmFrame (given a press, it says what lay between), laterLine, notePause
+  ceremony/camera.ts         a ceremony's camera as plan data (replay ceremony RC11-RC16): cameraTrack walks a telling's time once and writes down the camera's moves (hold and re-frame, rise by the walker's speed across the screen, a card's pin settled under it, a break's pull-back and closing in); cameraAt reads it per frame; project() (Web Mercator, as the map)
   ceremony/room.ts           the stage's room, pure: the screen as a ceremony is told it (StageRoom), the top row and bottom corner, cardWidth, cardSize, restCenter, cardFoot: shared by the stage's views and the camera
   ceremony/clock.ts          tickClock, reanchor; nextStop and seekClock (Next, RY13-RY17); the frame loop's stepper (stepLoop, loopAgainst, nextLoop, holdLoop, frameMsFor: replay ceremony RC5-RC8)
-  ceremony/reveal.ts         the walked line read as a reveal (revealOf: whole runs, the run being walked and the share of it shown), cutRun for a map that draws it as data
+  ceremony/reveal.ts         the walked line read as a reveal (revealOf: whole runs, the run being walked and the share of it shown), cutRun for a map that draws it as data; a frame's hops as the gap-links layer's data (hopLines, hopsKey), linksWithHops for the card
   ceremony/live.ts           the frame on stage, kept outside the screen (createStageLive): the loop writes it, the stage's leaves read it
   ceremony/grid.ts           a stacked moment's grid (MS17): gridLayout (closest square up to 3×3), gridDuration
   ceremony/registry.ts       CEREMONIES, DEFAULT_CEREMONY, ceremonyFor: a new ceremony is an entry here

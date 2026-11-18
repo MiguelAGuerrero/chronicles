@@ -47,7 +47,8 @@ const project = (c: Cam, at: LngLat) => built<(s: Screen, c: Cam, at: LngLat) =>
 const pxPerMetre = (zoom: number, lat: number) => built<(z: number, lat: number) => number>(cameraMod, 'pxPerMetre')(zoom, lat);
 const hopLines = (hops: Hop[]) => built<(h: Hop[]) => LngLat[][]>(revealMod, 'hopLines')(hops);
 const hopsKey = (hops: Hop[], ms: number, every: number) => built<(h: Hop[], ms: number, every: number) => string>(revealMod, 'hopsKey')(hops, ms, every);
-const linksWithHops = (links: LngLat[][], hops: LngLat[][]) => built<(l: LngLat[][], h: LngLat[][]) => LngLat[][]>(revealMod, 'linksWithHops')(links, hops);
+type Span = { from: LngLat; to: LngLat; t0: number; t1: number };
+const linksWithHops = (empty: Span[], gaps: Span[], hops: Span[]) => built<(e: Span[], g: Span[], h: Span[]) => LngLat[][]>(revealMod, 'linksWithHops')(empty, gaps, hops);
 
 const O: LngLat = [-71.4, 41.812];
 const mLat = 1 / 111320;
@@ -125,7 +126,7 @@ function offLine(p: LngLat, a: LngLat, b: LngLat): number {
 
 // ---------------------------------------------------------------- no dim (RC17)
 
-test('RC17: a break never dims the map', { todo: 'test first' }, () => {
+test('RC17: a break never dims the map', () => {
   for (const apart of [2000, 300, 30]) {
     const p = plan(brokenWalk(apart).story);
     const b = theBreak(p);
@@ -139,7 +140,7 @@ test('RC17: a break never dims the map', { todo: 'test first' }, () => {
 
 // ---------------------------------------------------------------- the hop (RC18)
 
-test('RC18: a far break takes 4.2 s, a nearer one less, never under 58% of that', { todo: 'test first' }, () => {
+test('RC18: a far break takes 4.2 s, a nearer one less, never under 58% of that', () => {
   assert.equal(token('breakFar'), 4200);
   assert.equal(token('breakNear'), 0.58);
   assert.equal(token('breakFarM'), 250);
@@ -155,7 +156,7 @@ test('RC18: a far break takes 4.2 s, a nearer one less, never under 58% of that'
   assert.ok(took(50) >= 4200 * 0.58 - 1, `never under 58%: ${took(50)} ms`);
 });
 
-test('RC18: the camera pulls back until both ends fit, a dotted line draws across, the walker slides along it, and the camera closes in at the far end', { todo: 'test first' }, () => {
+test('RC18: the camera pulls back until both ends fit, a dotted line draws across, the walker slides along it, and the camera closes in at the far end', () => {
   // 2 km apart, to the north-east: far more than the screen shows at the walking zoom.
   const { story, from, to, t0, t1 } = brokenWalk(1600, 20, 1200);
   const p = plan(story);
@@ -210,7 +211,7 @@ test('RC18: the camera pulls back until both ends fit, a dotted line draws acros
 
 // ---------------------------------------------------------------- "N min later" and the clock (RC19)
 
-test('RC19: "N min later" shows from when both ends are in view until a little after the walker lands; the clock dissolves from one time to the other', { todo: 'test first' }, () => {
+test('RC19: "N min later" shows from when both ends are in view until a little after the walker lands; the clock dissolves from one time to the other', () => {
   const { story, t0, t1 } = brokenWalk(400, 43);
   const p = plan(story);
   const b = theBreak(p);
@@ -252,7 +253,7 @@ test('RC19: "N min later" shows from when both ends are in view until a little a
 
 // ---------------------------------------------------------------- the stand (RC20)
 
-test('RC20: a break whose ends are under 26 px apart at the walking zoom is a stand: 1.3 s, the line and the clock\'s change, no hop, no camera move', { todo: 'test first' }, () => {
+test('RC20: a break whose ends are under 26 px apart at the walking zoom is a stand: 1.3 s, the line and the clock\'s change, no hop, no camera move', () => {
   assert.equal(token('standPx'), 26);
   assert.equal(token('stand'), 1300);
   // 26 px at the walking zoom is about 46 m here.
@@ -288,8 +289,8 @@ test('RC20: a break whose ends are under 26 px apart at the walking zoom is a st
 
 // ---------------------------------------------------------------- the dots, and what stays (RC21)
 
-test('RC21: the hop is a gap\'s dotted link, drawn by the map in that layer, and stays on the map through the card', { todo: 'test first' }, () => {
-  const { story, from, to } = brokenWalk(400);
+test('RC21: the hop is a gap\'s dotted link, drawn by the map in that layer, and stays on the map through the card', () => {
+  const { story, from, to, t0, t1 } = brokenWalk(400);
   const p = plan(story);
   const b = theBreak(p);
   // Once made it stays: every later frame carries it whole, the last one too.
@@ -298,9 +299,10 @@ test('RC21: the hop is a gap\'s dotted link, drawn by the map in that layer, and
     assert.ok(hops.length === 1 && hops[0].p === 1 && distanceM(hops[0].from, from) < 1 && distanceM(hops[0].to, to) < 1, `at ${ms.toFixed(0)} ms`);
   }
   assert.equal(rhythmFrame(p, p.total).done, true);
-  // The telling says its hops whole, for the card.
-  const showing = rhythm.show(story, opts()) as unknown as { hops?: LngLat[][] };
-  assert.ok(showing.hops?.length === 1 && distanceM(showing.hops[0][0], from) < 1 && distanceM(showing.hops[0][1], to) < 1);
+  // The telling says its hops whole, for the card: their ends, and the walk's times they cross.
+  const showing = rhythm.show(story, opts()) as unknown as { hops?: Span[] };
+  assert.ok(showing.hops?.length === 1 && distanceM(showing.hops[0].from, from) < 1 && distanceM(showing.hops[0].to, to) < 1);
+  assert.deepEqual([showing.hops[0].t0, showing.hops[0].t1], [t0, t1]);
   // As the lines a map draws: from where the trace stops, as far as it is drawn, straight.
   assert.deepEqual(hopLines([{ from, to, p: 1 }]), [[from, to]]);
   const [part] = hopLines([{ from, to, p: 0.5 }]);
@@ -321,18 +323,22 @@ test('RC21: the hop is a gap\'s dotted link, drawn by the map in that layer, and
   const native = readFileSync(join(SRC, 'components/map/WalkMap.native.tsx'), 'utf8');
   assert.match(native, /<GeoJSONSource id="gap-links" data=\{hops \?\? data\}/);
   // On the card the screens keep them: among the walk's own dotted links, and on the day's map.
-  assert.match(readFileSync(join(SRC, 'app/replay/[id].tsx'), 'utf8'), /linksWithHops\(emptyGaps\(/);
-  assert.match(readFileSync(join(SRC, 'app/day/[key].tsx'), 'utf8'), /gapLinks=\{onCard \? showing\?\.hops/);
-  // A hop across a gap is that gap's own link (drawn once); a hop across a pause is added to them.
-  const gap: LngLat[] = [from, to];
-  const links = [gap];
-  assert.equal(linksWithHops(links, [[from, to]]), links, 'the same list: nothing to add');
-  const pause: LngLat[] = [at(900), at(1400)];
-  assert.deepEqual(linksWithHops(links, [[from, to], pause]), [gap, pause]);
-  assert.deepEqual(linksWithHops([], []), []);
+  assert.match(readFileSync(join(SRC, 'app/replay/[id].tsx'), 'utf8'), /linksWithHops\(emptyGaps\(data\.gaps, data\.stretches\), data\.gaps, hops/);
+  assert.match(readFileSync(join(SRC, 'app/day/[key].tsx'), 'utf8'), /gapLinks=\{onCard \? hopLinks : NO_RUNS\}/);
+  // On the walk's card a gap keeps the card's own way of drawing it: a hop across an empty gap is that gap's dotted
+  // link, drawn once (its ends are the recorded fixes', a few metres from the hop's); a hop across a gap with a way
+  // offered gives way to the offer, as today; a hop across a pause or a break too long to be a gap is added.
+  const gap: Span = { from: at(301), to: at(699), t0, t1 };
+  const hop: Span = { from, to, t0: t0 + 1000, t1 };
+  assert.deepEqual(linksWithHops([gap], [gap], [hop]), [[gap.from, gap.to]], 'the gap\'s own link, once');
+  assert.deepEqual(linksWithHops([], [gap], [hop]), [], 'a gap with a way offered: the card draws the offer');
+  const pause: Span = { from: at(900), to: at(1400), t0: t1 + 60_000, t1: t1 + 600_000 };
+  assert.deepEqual(linksWithHops([gap], [gap], [hop, pause]), [[gap.from, gap.to], [pause.from, pause.to]]);
+  assert.deepEqual(linksWithHops([], [], [hop]), [[from, to]], 'no gap there: the hop, as it was drawn');
+  assert.deepEqual(linksWithHops([], [], []), []);
 });
 
-test('RC21: a gap whose way was kept or filled draws that way, as today, and no hop', { todo: 'test first' }, () => {
+test('RC21: a gap whose way was kept or filled draws that way, as today, and no hop', () => {
   // The same hole, with the way across it filled in: the trace is read with the fill's points, so no break is left.
   const a = line(O, at(300), 0);
   const b = line(at(700), at(1000), endT(a) + 20 * MIN);
@@ -344,7 +350,7 @@ test('RC21: a gap whose way was kept or filled draws that way, as today, and no 
   const p = plan(story);
   assert.equal(breaksOf(p).length, 0, 'no break to cross');
   for (let ms = 0; ms <= p.total; ms += 100) assert.deepEqual(hopsIn(rhythmFrame(p, ms)), []);
-  assert.deepEqual((rhythm.show(story, opts()) as unknown as { hops?: LngLat[][] }).hops, []);
+  assert.deepEqual((rhythm.show(story, opts()) as unknown as { hops?: unknown[] }).hops, []);
   // The walker goes the way that was kept: it passes through the middle of it.
   const mid = at(500);
   let nearest = Infinity;
@@ -354,7 +360,7 @@ test('RC21: a gap whose way was kept or filled draws that way, as today, and no 
 
 // ---------------------------------------------------------------- reduce motion (RC22)
 
-test('RC22: with reduce motion a break is one still view with both ends and the hop drawn, and lasts as long', { todo: 'test first' }, () => {
+test('RC22: with reduce motion a break is one still view with both ends and the hop drawn, and lasts as long', () => {
   const { story, from, to, t0, t1 } = brokenWalk(1600, 20, 1200);
   const moving = plan(story);
   const p = plan(story, true);

@@ -160,7 +160,7 @@ export function useReplay(o: {
     meter: counted ? meter : null,
     onFrame: (showing, ms, jump) => {
       const f = showing.frame(ms, jump);
-      if (story) map.current?.replayFrame({ ms, walker: f.walker, camera: f.camera, ...revealOf(story, f.drawn, lengths) });
+      if (story) map.current?.replayFrame({ ms, walker: f.walker, camera: f.camera, hops: f.hops, ...revealOf(story, f.drawn, lengths) });
       live.set(f, showing);
       return f.pins;
     },

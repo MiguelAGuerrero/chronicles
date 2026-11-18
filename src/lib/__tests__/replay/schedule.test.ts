@@ -35,8 +35,8 @@ test('replay: gaps collapse, so a resumed walk does not crawl across the night (
   const morning = walkAlong([at(0, 0), at(1, 0)]);
   const evening = walkAlong([at(1, 0), at(2, 0)], 'w1', morning.at(-1)!.t + 12 * 3600_000);
   const p = rhythmPlan(walkStory(storyOf([...morning, ...evening], [])), { reduceMotion: false, screen: SCREEN });
-  const cut = p.segs.find((s) => s.k === 'cut');
-  assert.ok(cut, 'the night is a cut');
+  const cut = p.segs.find((s) => s.k === 'break');
+  assert.ok(cut, 'the night is a break');
   assert.equal(rhythmFrame(p, (cut.t0 + cut.t1) / 2).line, '12 h later');
   assert.ok(p.total < 10_000, `plays in ${p.total} ms`);
 });

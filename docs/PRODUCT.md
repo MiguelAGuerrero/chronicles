@@ -512,8 +512,9 @@ recording, and a recording bar brings a minimized walk back.
 - **A walk with nothing in it is dropped** (decision 0187): stopping a walk with no moment, pause, still or gap and no movement past 15 m skips the replay and says "Walk not kept." with Undo; a killed app restores it.
 - **The replay** (the make-or-break): reading the streets, the fog clearing,
   the path, the card, then naming. The path has a rhythm (decision 0085): the
-  walker keeps a steady pace, slowing into each moment, crosses long empty stretches with
-  the camera pulled back, and cuts across a gap with "20 min later". A clock
+  walker keeps a steady pace, slowing into each moment; the camera holds still and re-frames, rises on a
+  stretch the walker crosses fast, and settles each photo's pin under its card (replay ceremony, decision 0206, on its
+  branch); a gap is crossed by a dotted hop under "20 min later", with no dim. A clock
   rolls through the time of day. Notes and memos stack as speech bubbles in a
   corner; photos and videos grow from their pin into a card and tuck into a
   pile, which opens them full screen; places passed without stopping whisper
