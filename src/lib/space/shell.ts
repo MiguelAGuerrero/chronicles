@@ -2,6 +2,7 @@
 import type { Ports } from '../ports/types';
 import { createStore } from '../store';
 import { persistLine, shouldSay, spaceLevel, spaceLine, type SpaceLevel, type SpaceProbe } from './core';
+import type { Sight } from './sight';
 
 /** Meta: the level last said beside the captures (SA4); cleared when the room is back above low. */
 export const SAID_KEY = 'space_said';
@@ -20,14 +21,28 @@ export interface Where {
   recording: boolean;
 }
 
+/** A line is always seen: nothing stands in its way. */
+const IN_SIGHT: Sight = { clear: () => true, aside: () => false, subscribe: () => () => {} };
+
 /**
  * Storage awareness (SA1-SA10, decision 0107): reads the room left through the probe, decides with
  * `core`, keeps what was said in meta so a reload doesn't say it again, and holds the one line the
  * pills show. Calls run one at a time, so two looks at once never ask the browser twice.
+ *
+ * A line is said, and marked said, only while it can be seen (`sight.clear()`, tend tabs audit 32); otherwise it is
+ * owed, neither said nor marked, and looked at again as the sight changes. The storage notice waits while any dark pill
+ * stands in Memories' column, the bar's Edit pill offered (mounted, folded or not) among them (`sight.aside()`): a line
+ * already up steps aside and comes back as they go (tend tabs T37, the proxy's yes under 0157, 2026-11-18; audit 33,
+ * the owner's answers of Nov 18, decision 0208).
  */
-export function createSpace(p: Pick<Ports, 'db'>, probe: SpaceProbe) {
+export function createSpace(p: Pick<Ports, 'db'>, probe: SpaceProbe, sight: Sight = IN_SIGHT) {
   const store = createStore<SpaceState>({ line: null });
   let shown: 'space' | 'persist' | null = null;
+  // The line said; the store shows it unless a pill stands beside it.
+  let current: string | null = null;
+  // A look that came due while the line could not be seen: looked at again as the sight changes. A refusal is never
+  // owed: it stays `refused` in meta for the next look off the walk, where SA10 says it (tend tabs audit 31).
+  let owed = false;
   // undefined: not read from meta yet.
   let said: SpaceLevel | null | undefined;
   let persist: Persist | null | undefined;
@@ -40,7 +55,8 @@ export function createSpace(p: Pick<Ports, 'db'>, probe: SpaceProbe) {
 
   const show = (line: string | null, kind: typeof shown) => {
     shown = line ? kind : null;
-    store.set({ line });
+    current = line;
+    store.set({ line: sight.aside() ? null : line });
   };
   // Meta read once, then kept here; an unreadable or failed read is nothing said, nothing asked.
   const loadSaid = async () => {
@@ -88,10 +104,15 @@ export function createSpace(p: Pick<Ports, 'db'>, probe: SpaceProbe) {
       return null;
     }
     if (!shouldSay(last, level)) return null;
+    if (!sight.clear()) {
+      owed = true;
+      return null;
+    }
+    // Said in the same turn as the sight was read, then written: nothing can rise between (tend tabs audit 32).
     said = level;
-    await p.db.setMeta(SAID_KEY, level).catch(() => {});
     const line = spaceLine(level);
     show(line, 'space');
+    await p.db.setMeta(SAID_KEY, level).catch(() => {});
     return line;
   }
 
@@ -105,11 +126,18 @@ export function createSpace(p: Pick<Ports, 'db'>, probe: SpaceProbe) {
   /** Off the walk: a due request is asked, and a refusal is said when the pills are free (SA10). */
   async function settle() {
     if ((await loadPersist()) === 'due') await ask();
-    if (persist === 'refused' && store.get().line == null) {
+    if (persist === 'refused' && current == null && sight.clear()) {
       show(persistLine(probe.homeScreen()), 'persist');
       await setPersist('asked');
     }
   }
+
+  sight.subscribe(() => {
+    store.set({ line: sight.aside() ? null : current });
+    if (!owed || !sight.clear()) return;
+    owed = false;
+    void serial(look);
+  });
 
   return {
     store,

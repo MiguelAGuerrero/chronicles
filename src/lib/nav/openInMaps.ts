@@ -1,7 +1,7 @@
 // @layer adapter
 import { Linking, Platform } from 'react-native';
 import type { LngLat } from '../types';
-import { mapsName, mapsTarget, mapsUrls } from './handoff';
+import { mapsName, mapsTarget, mapsUrls, type TravelMode } from './handoff';
 
 /**
  * What a screen reader hears on every Open in Maps button. A browser takes no
@@ -11,6 +11,9 @@ export const HANDOFF_HINT =
   Platform.OS === 'web'
     ? 'Opens your maps app with walking directions. Recording pauses while Chronicles is hidden.'
     : 'Opens your maps app with walking directions. Chronicles keeps recording.';
+
+/** RE19: the hint for a hand-off: driving directions for a town a drive away, walking as ever otherwise. */
+export const handoffHint = (mode: TravelMode = 'walk'): string => (mode === 'drive' ? HANDOFF_HINT.replace('walking', 'driving') : HANDOFF_HINT);
 
 /** The environment's maps target, read in one place for `openInMaps` and for the name a row shows. */
 function targetNow() {
@@ -28,9 +31,9 @@ export const mapsAppName = (): string => mapsName(targetNow());
  * Resolves false when nothing could open it (NH8); a browser never says, so
  * on the web it is always true.
  */
-export async function openInMaps(at: LngLat, label: string): Promise<boolean> {
+export async function openInMaps(at: LngLat, label: string, mode: TravelMode = 'walk'): Promise<boolean> {
   const target = targetNow();
-  for (const url of mapsUrls(at, label, target)) {
+  for (const url of mapsUrls(at, label, target, mode)) {
     try {
       // Never canOpenURL first: Android 11+ answers false for schemes not declared in <queries>.
       // A scheme link opens the app without unloading the page; window.open would leave a blank window.

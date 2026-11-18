@@ -132,7 +132,7 @@ owner's call) is reported only with what reopens it ("on record at DEFERRED:<lin
 Ask of every change: what happens on a reload, in the background, with no
 fix yet, with a 50 m accuracy fix, during a pause, on a ride, with the
 store empty, twice at once, and on the web as a fallback. And at scale: a
-4-hour walk, a library of a few thousand moments, a dense downtown, two
+4-hour outing (on foot, or a drive with far more ground per fix), a library of a few thousand moments, a dense downtown, two
 hundred pins.
 
 ## Output format

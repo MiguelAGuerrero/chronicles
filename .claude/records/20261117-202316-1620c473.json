@@ -1,0 +1,11 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inflight",
+        "add"
+      ],
+      "body": "| Outing journey (Plan an outing, destination first: a full-map page, a destination from the search, chips for attractions and shops in one pool, up to three journeys by leaning, town by town; OJ1-OJ40, decisions 0197 and 0198) | `claude/determined-wright-yg1fq9` | spec, plan and a draft of the screens written 2026-11-17, the steward triaged; step 1 (the page) in progress; steps 2 and 3 and the road engine slice owed; native unverified |\n"
+    }
+  ]
+}

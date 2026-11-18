@@ -1,0 +1,13 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Navigation and tabs"
+      ],
+      "body": "- [ ] **Do:** with a library of a few hundred moments, open Chronicle's Map, then Walks, then Days; open a replay while the map is still loading and come back. **Expect:** each section shows its walks, finds and pins; the view you left is kept on the way back; the three reads (`listChecklistAreas`, `listFinds`, `momentsBetween`), now run together on the one SQLite connection, all answer (fix chronicle-focus-reload).\n"
+    }
+  ]
+}

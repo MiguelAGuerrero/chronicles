@@ -4,9 +4,12 @@ import { declutterMarks } from '../../markNames';
 
 const mark = (id: string, at: [number, number], name: string) => ({ id, at, name, revealed: true });
 
+// 60 px apart at z18: the heads stand clear of each other (fix mark-overlap), the names below would stack.
+const BESIDE = -75.4 + 60 / ((512 * 2 ** 18) / 360);
+
 test('fix mark-names: two names that would stack show one; apart, both', () => {
   const a = mark('a', [-75.4, 40.6], 'Da Vinci Science Center');
-  const b = mark('b', [-75.39995, 40.60003], 'Cetronia PPL Pavilion');
+  const b = mark('b', [BESIDE, 40.6], 'Cetronia PPL Pavilion');
   const far = mark('c', [-75.39, 40.6], 'Far Place');
   const out = declutterMarks([a, b, far], 18);
   assert.deepEqual(out.map((m) => !!m.nameHidden), [false, true, false]);
@@ -15,7 +18,7 @@ test('fix mark-names: two names that would stack show one; apart, both', () => {
 
 test('fix mark-names audit 1: the order the marks arrive in never changes which name hides', () => {
   const a = mark('a', [-75.4, 40.6], 'Da Vinci Science Center');
-  const b = mark('b', [-75.39995, 40.60003], 'Cetronia PPL Pavilion');
+  const b = mark('b', [BESIDE, 40.6], 'Cetronia PPL Pavilion');
   const hid = (l: ReturnType<typeof mark>[]) => declutterMarks(l, 18).filter((m) => m.nameHidden).map((m) => m.id);
   assert.deepEqual(hid([a, b]), ['b']);
   assert.deepEqual(hid([b, a]), ['b']);

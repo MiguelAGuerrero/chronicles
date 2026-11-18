@@ -1,0 +1,14 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "Visited from the trace (OJ47"
+      ],
+      "body": "the stores pack was merged to chronicles-data's main on Nov 17 (the owner's go-ahead, efa45d9); its first build has to finish the OpenStreetMap download, which no run there has yet done, before a pack is published\n",
+      "target": "sha256:ade86b25dc7f762585f026267fcefe57e14674d563d0e62563506e34290c920f"
+    }
+  ]
+}

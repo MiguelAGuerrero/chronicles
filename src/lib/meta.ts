@@ -143,6 +143,8 @@ export const META = {
   kindwalk_pref: { owner: 'kindwalk', codec: oneOf<'warn' | 'skip'>('warn', 'skip') },
   // Plan an outing (lib/outing): whether a chain may be a stop, off by default (QC41, decision 0194)
   outing_chains: { owner: 'outing', codec: onOff },
+  /** The plan of the open session (OJ48): town names and positions, cleared when it stops. */
+  outing_journey: { owner: 'outing', codec: json<{ walk_id: string | null; at: number; plan: unknown }>((v) => isObject(v) && (v.walk_id === null || typeof v.walk_id === 'string') && typeof v.at === 'number' && isObject(v.plan)) },
   // Chronicle's Memories (lib/resurface): what the user chose to see less of, renamed or removed (RM21)
   resurface_prefs: { owner: 'resurface', codec: json<Prefs>((v) => parsePrefs(v) !== null) },
   // Media gallery (MG22): Sort, tile size and grid shape, kept as they change.

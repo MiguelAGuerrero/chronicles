@@ -1,0 +1,22 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Plan an outing"
+      ],
+      "body": "- The one machine (decision 0199, OJ41-OJ46) left for later: the session carrying a journey from town to town (step 3; Start begins the first town's chapter); \"Leave this town out\" (OJ26); the atlas's own words and street names in a town's line (OJ23: the chips' words today); the setting for how many towns one look reads (eight, `AREA_RULES.readMax`; decision 0198); marks per kind and town outlines on the page's map (the map component, two platforms); the camera's fit under the sheet; what makes a shop \"been there\" (the owner's call; shops are not told new from known); a second cold find and the UI review of the page (decisions 0167, 0145); C5 of the first cold find (which row a swap changed); a journey toward a far place run against real towns (the test world's hold nothing)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Plan an outing"
+      ],
+      "body": "- [ ] **Do:** on a phone with data on, open \"Plan an outing\" somewhere with shops and sights about; read the journeys it proposes at once; switch on chips of two kinds (say Thrifting and History); tap \"5 km\", then \"15 km\"; open a journey, tap \"Another like this\" twice, tap a town's \"Open in Maps\"; fold the sheet with \"Show the map\"; then pick a town an hour away in \"Where to?\". **Expect:** journeys appear without a destination; a mixed \"A bit of each\" leads when the chips span kinds; a wider reach says it is reading the towns, then lists a chapter for each town that has something, towns you have not walked in first; Another like this changes the stops, then says there are no others; Maps opens at the town; the folded sheet shows the map; toward a far town the towns between are chapters in order; nothing stalls the page while towns are read (OJ20, OJ41-OJ46)\n"
+    }
+  ]
+}

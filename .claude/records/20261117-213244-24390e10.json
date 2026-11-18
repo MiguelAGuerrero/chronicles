@@ -1,0 +1,22 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Plan an outing"
+      ],
+      "body": "- Visited from the trace (OJ47, decision 0200) reads the walked fixes of the newest thirty outings near an area each time the area is read (n: up to 30 outings of 1k-30k fixes, once per area read, off the frame; not measured): an older visit is missed, gap fills and driven stops are not read, and a kept index of where traces have been would be a cache with its own slice; the stores pack is merged onto chronicles-data's main on a branch and waits on the owner to merge and publish, after which the app takes the contract's pinned copy again (v5)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Plan an outing"
+      ],
+      "body": "- [ ] **Do:** on a phone with a few recorded outings in one town, open \"Plan an outing\" there with Thrifting or Antiques on, and note the stops; walk up to one of the shops on a recorded outing, stop it, and open the page again from the same spot. **Expect:** the shop you walked up to is no longer among the first stops offered while others remain; a shop you only drove past still is; the page opens without a pause you can feel (OJ42, OJ47)\n"
+    }
+  ]
+}

@@ -14,7 +14,7 @@ import { namedStars, StarView, starLabel } from '../StarView';
 import type { RoadFeature } from '../../lib/streets';
 import type { LngLat } from '../../lib/types';
 import { TILEJSON_URL } from '../../lib/tiles';
-import { declutterMarks, markListKey } from '../../lib/markNames';
+import { declutterMarks, markListKey, spreadKey } from '../../lib/markNames';
 import { metersPerPixel, pinKey, pinReactions, pinReminded, pinThumb, stalkLift } from '../../lib/pins';
 import { useReactionSets } from '../../lib/reactions/useReactions';
 import { useReminded } from '../../lib/useReminded';
@@ -567,7 +567,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
           seen={seenCaptures} pressable={!!props.onPinPress} handlers={handlers} standOn={standOn} zoom={view?.zoom ?? props.initialZoom ?? 16} bearing={namesBearing}
         />
         <MarkMarkers
-          marks={shownMarks} zoom={view?.zoom ?? props.initialZoom ?? 16} seen={seenMarks}
+          marks={shownMarks} zoom={view?.zoom ?? props.initialZoom ?? 16} bearing={namesBearing} spread={!!props.spreadMarks} seen={seenMarks}
           pressable={!!props.onDiscoveryPress} handlers={handlers}
         />
         <ComplexLabelMarkers labels={props.complexes?.labels ?? NO_LABELS} />
@@ -972,14 +972,17 @@ const PinMarkers = memo(function PinMarkers({ pins, sets, reminded, clocks, now,
   });
 });
 
-const MarkMarkers = memo(function MarkMarkers({ marks, zoom, seen, pressable, handlers }: { marks: NonNullable<WalkMapProps['discoveries']>; zoom: number; seen: ReadonlyMap<string, string>; pressable: boolean; handlers: RefObject<PinHandlers> }) {
-  const shown = useMemo(() => declutterMarks(marks, zoom), [marks, zoom]);
+const MarkMarkers = memo(function MarkMarkers({ marks, zoom, bearing, spread, seen, pressable, handlers }: { marks: NonNullable<WalkMapProps['discoveries']>; zoom: number; bearing: number; spread: boolean; seen: ReadonlyMap<string, string>; pressable: boolean; handlers: RefObject<PinHandlers> }) {
+  const shown = useMemo(() => declutterMarks(marks, zoom, { bearing, spread }), [marks, zoom, bearing, spread]);
+  // The spread is in the key: whether a Marker's children redraw without a new key is unverified on a device (pins.md).
   return shown.map((pin) => (
     <Marker
-      key={`mark:${pin.id}:${markKey(pin)}`}
-      id={`mark:${pin.id}:${markKey(pin)}`}
+      key={`mark:${pin.id}:${markKey(pin)}:${spreadKey(pin.spread)}`}
+      id={`mark:${pin.id}:${markKey(pin)}:${spreadKey(pin.spread)}`}
       lngLat={pin.at}
       anchor="bottom"
+      // A spread pin stands off its point, on a leg back to it (fix mark-overlap).
+      offset={pin.spread ? [pin.spread.dx, pin.spread.dy] : undefined}
       onPress={pressable && !pin.found ? () => handlers.current?.onDiscoveryPress?.(pin.id) : undefined}
     >
       <View

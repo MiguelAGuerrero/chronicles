@@ -1,7 +1,7 @@
 /// <reference types="node" />
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { mapsTarget, mapsUrls } from '../../nav/handoff';
+import { mapsTarget, mapsUrls, travelMode } from '../../nav/handoff';
 import type { LngLat } from '../../types';
 
 // Bridges and Open in Maps (the concept doc's tab, NH1-NH2), written before the code.
@@ -39,4 +39,17 @@ test('handoff: an iPhone Home Screen app opens the maps: scheme, not a window (f
   assert.equal(mapsTarget({ os: 'web', ua: IPHONE, touchPoints: 5, standalone: false }), 'apple', 'a Safari tab');
   assert.equal(mapsTarget({ os: 'web', ua: DESKTOP, touchPoints: 0, standalone: true }), 'google');
   assert.deepEqual(mapsUrls(DEST, 'Your spot', 'appleApp'), ['maps://?daddr=40.619512,-75.378457&dirflg=w']);
+});
+
+test('RE19: a town a drive away is handed over for driving directions; a place at hand for walking, as before', () => {
+  assert.equal(travelMode(900), 'walk');
+  assert.equal(travelMode(2000), 'walk');
+  assert.equal(travelMode(2001), 'drive');
+  assert.equal(travelMode(null), 'walk', 'with no position it is as before');
+  assert.deepEqual(mapsUrls(DEST, 'Emmaus', 'apple', 'drive'), ['https://maps.apple.com/?daddr=40.619512,-75.378457&dirflg=d']);
+  assert.deepEqual(mapsUrls(DEST, 'Emmaus', 'appleApp', 'drive'), ['maps://?daddr=40.619512,-75.378457&dirflg=d']);
+  assert.deepEqual(mapsUrls(DEST, 'Emmaus', 'google', 'drive'), ['https://www.google.com/maps/dir/?api=1&destination=40.619512,-75.378457&travelmode=driving']);
+  assert.deepEqual(mapsUrls(DEST, 'Emmaus', 'geo', 'drive'), ['geo:40.619512,-75.378457?q=40.619512,-75.378457(Emmaus)', 'https://www.google.com/maps/dir/?api=1&destination=40.619512,-75.378457&travelmode=driving']);
+  // Left out, it is walking: every other host is unchanged.
+  assert.deepEqual(mapsUrls(DEST, 'Your spot', 'apple'), mapsUrls(DEST, 'Your spot', 'apple', 'walk'));
 });

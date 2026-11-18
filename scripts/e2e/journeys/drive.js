@@ -1,5 +1,5 @@
-// Drive there, walk back (specs/drive-then-walk, DW1-DW14): on Explore's area card a far place asks "Walk now" or
-// "When I get there", and too far to walk offers When I get there alone; the walk starts only on Start, never on
+// Drive there, walk back (specs/drive-then-walk, DW1-DW14): on Explore's area card a far place asks "Start now" or
+// "When I get there", past what can be walked too (DO6); the walk starts only on Start, never on
 // arriving; Walk me back leads to where the last ride ended, or to a spot chosen with "Walk back here".
 // Rides are driven with mocked GPS: 15 m/s for 30 s is a ride (RIDE_RULES), 5 m/s is walking. E2E_ONLY=drive runs it.
 
@@ -77,8 +77,8 @@ async function run(h) {
       await openCard(pg, 'Cranston', { town: true });
       const far = await footerIds(pg);
       const card = await pg.locator('[data-testid=atlas-card]').innerText().catch(() => '');
-      check(far.length === 1 && far[0] === 'atlas-walk-later' && !/Too far to walk/.test(card),
-        `DW14: past 10 km the card offers When I get there alone (${far.join(', ')})`);
+      check(far.length === 1 && far[0] === 'atlas-walk-later' && (await pg.locator('[data-testid=atlas-start-far]').count()) === 1 && !/Too far to walk/.test(card),
+        `DW14, DO6: past 10 km the card asks Start now or When I get there (${far.join(', ')})`);
       await pg.keyboard.press('Escape');
 
       // Drive to Cranston with the destination saved, and park there a minute: nothing starts (DW4).
