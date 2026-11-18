@@ -368,6 +368,67 @@ test('RC7: every frame reaches the stage\'s leaves, and its shape changes only w
   assert.equal(live.shape(), '');
 });
 
+// The React Compiler (decision 0207) keeps what a render computed from the same inputs: a frame read from the store in
+// a render (`live.frame()`) is read once and kept, so the stage drew nothing. A render takes the frame from what the
+// store hands it (`useSyncExternalStore`), which changes when the shape does.
+
+test('RC7: the stage is handed the frame its shape came with: the same object until something arrives or leaves', { todo: 'test first' }, () => {
+  const story = cornerWalk();
+  const plan = rhythmPlan(story, { reduceMotion: false });
+  const live = createStageLive() as ReturnType<typeof createStageLive> & { staged(): Frame | null };
+  assert.equal(live.staged(), null, 'nothing staged before a frame');
+  let shape = live.shape();
+  let staged = live.staged();
+  let changes = 0;
+  for (let ms = 0; ms < plan.total; ms += 16) {
+    live.set(rhythmFrame(plan, ms), plan);
+    if (live.shape() === shape) {
+      assert.equal(live.staged(), staged, 'the same shape hands the render the same object');
+    } else {
+      assert.equal(live.staged(), live.frame(), 'a new shape hands the render the frame it came with');
+      assert.notEqual(live.staged(), staged);
+      changes++;
+    }
+    shape = live.shape();
+    staged = live.staged();
+  }
+  assert.ok(changes >= 3, `${changes} shapes`);
+  live.set(null);
+  assert.equal(live.staged(), null);
+});
+
+test('RC7: what the pile holds is part of the stage\'s shape: one more tucked in, or another in its place, is another shape', { todo: 'test first' }, () => {
+  const cap = (id: string) => ({ id }) as unknown as Faced;
+  const frame = (ids: string[]): Frame => ({ ...rhythmFrame(rhythmPlan(cornerWalk(), { reduceMotion: false }), 0), overlays: [{ kind: 'pile', key: 'pile', captures: ids.map(cap) }] });
+  const live = createStageLive();
+  live.set(frame(['a']), 1);
+  const one = live.shape();
+  live.set(frame(['a']), 1);
+  assert.equal(live.shape(), one, 'the same pile is the same shape');
+  live.set(frame(['a', 'b']), 1);
+  const two = live.shape();
+  assert.notEqual(two, one, 'one more tucked in');
+  live.set(frame(['a', 'c']), 1);
+  assert.notEqual(live.shape(), two, 'another in its place');
+});
+
+test('RC7: no view of the stage reads the frame in its render', { todo: 'test first' }, () => {
+  const dir = join(SRC, 'components/ceremony');
+  const found: string[] = [];
+  // A read inside a callback (a selector, a pose, a medium's clock) is asked again each time; one in a render is kept.
+  const inRender = (line: string) => /\.frame\(\)/.test(line) && !/=>[^;]*\.frame\(\)/.test(line);
+  for (const f of readdirSync(dir).filter((n) => /\.tsx$/.test(n))) {
+    readFileSync(join(dir, f), 'utf8').split('\n').forEach((line, i) => {
+      if (inRender(line)) found.push(`${f}:${i + 1}`);
+    });
+  }
+  assert.deepEqual(found, []);
+  // Shown to fail: the two reads this test exists for, and one written another way.
+  assert.ok(inRender('  const frame = live.frame();'));
+  assert.ok(inRender("  const captures = (overlayOf(ctx.live.frame(), 'pile', 'pile') ?? items[0])?.captures ?? [];"));
+  assert.ok(!inRender("    planMs: () => (overlayOf(live.frame(), 'card', key)?.progress ?? 0) * lenMs,"));
+});
+
 // ---------------------------------------------------------------- the same collection (RC4)
 
 const lines = (...runs: LngLat[][]) => ({ type: 'FeatureCollection', features: runs.map((r) => ({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: r } })) });
