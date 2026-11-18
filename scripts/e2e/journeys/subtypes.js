@@ -93,6 +93,13 @@ async function run(h) {
   await shot(pg, 'subtypes-what-im-into-structures');
   await pg.locator('[data-testid=kind-ghost_towns]').scrollIntoViewIfNeeded().catch(() => {});
   await shot(pg, 'subtypes-what-im-into-curiosities');
+  // More attractions' rows in their sections, for the UI review (decision 0198).
+  await pg.locator('[data-testid=kind-nature_reserves]').scrollIntoViewIfNeeded().catch(() => {});
+  await shot(pg, 'subtypes-what-im-into-parks');
+  await pg.locator('[data-testid=kind-attractions]').scrollIntoViewIfNeeded().catch(() => {});
+  await shot(pg, 'subtypes-what-im-into-zoos');
+  await pg.locator('[data-testid=kind-piers]').scrollIntoViewIfNeeded().catch(() => {});
+  await shot(pg, 'subtypes-what-im-into-piers');
   const rows = drawer.filter((r) => !r.id.startsWith('kind-heading-')).map((r) => r.id);
   check(ready.length > 0 && JSON.stringify(ready) === JSON.stringify(drawer.map((r) => r.id)), `XS24: the ready bar and the walk's drawer list the same rows (${ready.length} vs ${drawer.length})`);
 
