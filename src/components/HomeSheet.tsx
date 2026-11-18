@@ -6,7 +6,7 @@ import {
   type GestureResponderEvent,
 } from 'react-native';
 import { useReducedMotion } from '../lib/motion';
-import { MOTION } from '../lib/motionTokens';
+import { MOTION, sheetMoveSnaps } from '../lib/motionTokens';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { placeWalks, type PlacesIndex } from '../lib/places';
 import { formatDistance, suggestTitle } from '../lib/summary';
@@ -70,6 +70,9 @@ export function SheetFrame(props: {
   /** The sheet's live height, owned by the screen so what floats above it moves with it
    *  frame by frame, never from a height reported when a move ends. Read once, at mount. */
   height?: Animated.Value;
+  /** False until the screen knows what its peek holds (Chronicle's first read): the peek is set, not sprung, until
+   *  then and on the move that knowing asks for, so nothing rises at launch (tend tabs T38). Read live. */
+  known?: boolean;
   testID?: string;
   dragTestID?: string;
   /** False when a Modal around the sheet already lowers it on Back and Escape (a responses sheet in the viewer), so
@@ -105,9 +108,20 @@ export function SheetFrame(props: {
       done();
     } else Animated.spring(h, { toValue: to, ...MOTION.spring, useNativeDriver: false }).start(done);
   });
-  useEffect(() => {
-    moveTo(target, reduced);
-  }, [moveTo, target, reduced]);
+  // A peek is set, not sprung, until its screen knows its state and on the move that knowing asks for (tend tabs T38):
+  // in a layout effect, so the frame that shows the first read shows its height, and the map's fits read it too. A
+  // change of `known` alone never restarts a move that is running.
+  const known = props.known !== false;
+  const wasKnown = useRef(known);
+  const lastMove = useRef<{ target: number; reduced: boolean } | null>(null);
+  useLayoutEffect(() => {
+    const firstKnown = known && !wasKnown.current;
+    wasKnown.current = known;
+    const last = lastMove.current;
+    if (last && last.target === target && last.reduced === reduced) return;
+    lastMove.current = { target, reduced };
+    moveTo(target, sheetMoveSnaps({ reduced, peek: size === 'peek', known, firstKnown }));
+  }, [moveTo, target, reduced, known, size]);
   const latest = useRef({ size, target, reduced });
   // Updated straight after each commit, so the settle check below reads the screen's answer.
   useLayoutEffect(() => {
@@ -284,6 +298,8 @@ export function HomeSheet(props: {
       onSize={setSize}
       onHeight={props.onHeight}
       height={props.height}
+      // Until the first read the peek's state is not known: its first height is set, never sprung (tend tabs T38).
+      known={props.read !== false}
       bottomInset={props.bottomInset}
       areaHeight={props.areaHeight}
       peek={peekNavigate ? SHEET_PEEK + STACKED_EXTRA : undefined}

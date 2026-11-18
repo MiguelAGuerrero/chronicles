@@ -95,6 +95,14 @@ export const NOTE_SAVE_PAUSE = 1000;
 export const durationFor = (token: MotionToken, reduced: boolean): number => (reduced ? 0 : MOTION[token]);
 
 /**
+ * Whether a sheet's move to its height is set rather than sprung (tend tabs T38): every move with reduce motion (M2),
+ * and a peek while its screen does not yet know its state or on the move its first read asks for (Chronicle with
+ * nothing walked, 76 to 124), so nothing rises at launch. Every later change of state springs, and half and full always.
+ */
+export const sheetMoveSnaps = (m: { reduced: boolean; peek: boolean; known: boolean; firstKnown: boolean }): boolean =>
+  m.reduced || (m.peek && (!m.known || m.firstKnown));
+
+/**
  * The replay's rhythm (RR1-RR16, decision 0085) and its pace (RY1-RY22, decision 0203): the prototypes' numbers
  * (https://claude.ai/artifact/XouW4WPy8e2yPQWYsYDUNc, https://claude.ai/artifact/7oLxtuZMhpvXd18H4BLR5P), in
  * milliseconds unless named in metres or as a share. The owner's tuned settings change only this object. Nothing
