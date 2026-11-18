@@ -938,6 +938,52 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.deepEqual(await db.complexesNear([-76.88, 40.26], 0.01), []);
     });
 
+    // Where I've been (WB13, WB14): each walk's line, a cache of its trace. Written before the code: the methods are reached
+    // through a cast, so the typecheck holds while the cases fail.
+    type WalkLine = { walk_id: string; code: string; bounds: [number, number, number, number]; tiles: string[]; runs: [number, number][][] };
+    type LineDb = {
+      putWalkLine(l: WalkLine): Promise<void>;
+      getWalkLinesIn(tiles: string[]): Promise<WalkLine[]>;
+      listWalkLineCodes(): Promise<{ walk_id: string; code: string }[]>;
+      deleteWalkLine(walkId: string): Promise<void>;
+    };
+    const walkLine = (walk_id: string, tiles: string[], code = 'p1'): WalkLine => ({
+      walk_id, code, bounds: [LON, LAT, LON + 0.001, LAT + 0.001], tiles, runs: [[[LON, LAT], [LON + 0.001, LAT + 0.001]]],
+    });
+
+    test('FC7 putWalkLine, getWalkLinesIn, listWalkLineCodes, deleteWalkLine (WB14): the same walk replaces its line and its tiles; only lines crossing the tiles asked for come back, once each, in walk order; a delete takes the line', { todo: 'test first' }, async () => {
+      const db = (await fresh()) as unknown as LineDb & Db;
+      assert.deepEqual(await db.getWalkLinesIn(['12/1/1']), []);
+      assert.deepEqual(await db.listWalkLineCodes(), []);
+      await db.putWalkLine(walkLine('b', ['12/1/1', '12/1/2']));
+      await db.putWalkLine(walkLine('a', ['12/1/2'], 'old'));
+      await db.putWalkLine(walkLine('a', ['12/5/5']));
+      await db.putWalkLine(walkLine('c', []));
+      assert.deepEqual(await db.getWalkLinesIn([]), []);
+      assert.deepEqual((await db.getWalkLinesIn(['12/1/1', '12/1/2'])).map((l) => l.walk_id), ['b'], 'once each, and a replaced line left its old tiles');
+      assert.deepEqual(await db.getWalkLinesIn(['12/5/5', '12/1/1']), [walkLine('a', ['12/5/5']), walkLine('b', ['12/1/1', '12/1/2'])]);
+      assert.deepEqual((await db.listWalkLineCodes()).sort((x, y) => x.walk_id.localeCompare(y.walk_id)), [
+        { walk_id: 'a', code: 'p1' }, { walk_id: 'b', code: 'p1' }, { walk_id: 'c', code: 'p1' },
+      ]);
+      await db.deleteWalkLine('b');
+      await db.deleteWalkLine('missing');
+      assert.deepEqual(await db.getWalkLinesIn(['12/1/1']), []);
+      assert.deepEqual((await db.listWalkLineCodes()).map((r) => r.walk_id).sort(), ['a', 'c']);
+    });
+
+    test('FC7 deleteWalk, purgeDerived (WB13, WB14): a deleted walk takes its line and tiles; a new tile build keeps every line (it reads no tiles)', { todo: 'test first' }, async () => {
+      const db = (await fresh()) as unknown as LineDb & Db;
+      await db.createWalk(walk('a', 1));
+      await db.createWalk(walk('b', 2));
+      await db.putWalkLine(walkLine('a', ['12/1/1']));
+      await db.putWalkLine(walkLine('b', ['12/1/1']));
+      await db.purgeDerived();
+      assert.deepEqual((await db.getWalkLinesIn(['12/1/1'])).map((l) => l.walk_id), ['a', 'b']);
+      await db.deleteWalk('a');
+      assert.deepEqual((await db.getWalkLinesIn(['12/1/1'])).map((l) => l.walk_id), ['b']);
+      assert.deepEqual((await db.listWalkLineCodes()).map((r) => r.walk_id), ['b']);
+    });
+
     test('WK19 purgeDerived clears the walk tiles', async () => {
       const db = await fresh();
       await db.putWalkTiles([walkTile('1/2', 1)]);

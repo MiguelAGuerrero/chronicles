@@ -5,6 +5,7 @@ import type { LngLat } from '../../types';
 import { LAYERS, type LayerDef } from '../../layers/registry';
 import { STOREFRONTS_READ_M, decodeLayers, encodeLayers, layerDefaults, needsStorefrontsRead } from '../../layers/state';
 import { createLayers } from '../../layers/shell';
+import { layerNotes } from '../../layers/notes';
 import { fakePorts } from '../fakes';
 
 // Map layers (ML1, ML2, ML5, ML6, ML7, ML9), written from specs/map-layers/spec.md before the code.
@@ -100,4 +101,45 @@ test('ML4: the panel opens and closes on the button, and a tap on the map closes
   l.togglePanel();
   l.togglePanel();
   assert.equal(l.store.get().open, false);
+});
+
+// Where I've been (specs/where-ive-been WB4, WB10-WB12), written before the code: the layer is found by its id and the
+// notes' new field reached through a cast, so the typecheck holds while the tests fail.
+const pastLayer = () => LAYERS.find((l) => l.id === 'past');
+type PastStatus = 'off' | 'waiting' | 'preparing' | 'none' | 'ready';
+const notesWith = (past: PastStatus) =>
+  (layerNotes as unknown as (s: Record<string, unknown>) => Record<string, string | null>)({ walkability: 'off', storefrontsReading: false, storefrontsFailed: false, past });
+
+test('WB4: the panel lists "Where I\'ve been", off by default, after the three before it', { todo: 'test first' }, () => {
+  const l = pastLayer();
+  assert.ok(l, 'a layer with the id past');
+  assert.equal(l.name, 'Where I\'ve been');
+  assert.equal(l.defaultOn, false);
+  assert.equal(layerDefaults().past, false);
+  assert.deepEqual(LAYERS.map((x) => x.id), ['walkability', 'storefronts', 'borders', 'past']);
+  assert.ok(l.icon.length > 0);
+});
+
+test('WB10: nothing in its name, legend or notes is a number, a percentage, a date or a tally of coverage', { todo: 'test first' }, () => {
+  const l = pastLayer();
+  assert.ok(l);
+  const words = [l.name, l.note ?? '', ...l.legend.flatMap((r) => [r.text, r.tip ?? '']), ...(['waiting', 'preparing', 'none'] as const).map((s) => notesWith(s).past ?? '')];
+  for (const w of words) {
+    assert.doesNotMatch(w, /\d|%/, `no number (${w})`);
+    assert.doesNotMatch(w, /\b(explored|covered|coverage|complete|of all|january|february|march|april|may|june|july|august|september|october|november|december|yesterday|today|ago)\b/i, `no tally or date (${w})`);
+  }
+});
+
+test('WB11: its legend is one row in words, "Your earlier walks", on its own swatch', { todo: 'test first' }, () => {
+  const l = pastLayer();
+  assert.ok(l);
+  assert.deepEqual(l.legend.map((r) => [r.text, r.swatch]), [['Your earlier walks', 'past']]);
+});
+
+test('WB12: on but with nothing to draw, it says why in words; off or drawing, nothing', { todo: 'test first' }, () => {
+  assert.equal(notesWith('waiting').past, 'Waiting for your position');
+  assert.equal(notesWith('preparing').past, 'Getting your walks ready…');
+  assert.equal(notesWith('none').past, 'None of your walks pass here');
+  assert.equal(notesWith('off').past, null);
+  assert.equal(notesWith('ready').past, null);
 });

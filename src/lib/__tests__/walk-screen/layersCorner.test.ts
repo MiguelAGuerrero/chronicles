@@ -46,3 +46,10 @@ test('fix layers-corner audit 1, 2: in the corner the Layers button is under the
   const drawer = z(/overflow: 'hidden', zIndex: (\d+)/, src('components/walk/ReadyBar.tsx'));
   assert.ok(corner < card && card < drawer, `corner ${corner}, cards ${card}, drawer ${drawer}`);
 });
+
+// Where I've been (WB2): the unwalked-streets button's slot goes, and the column closes up. Written before the code.
+test('WB2: the column has no unwalked slot and no gap: Walk me back sits right above Locate\'s place, the compass on top', { todo: 'test first' }, () => {
+  const slots = EDGE_INDEX as unknown as Record<string, number>;
+  assert.equal('unwalked' in slots, false);
+  assert.deepEqual(slots, { locate: 0, back: 1, compass: 2 });
+});
