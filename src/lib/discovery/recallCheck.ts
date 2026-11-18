@@ -81,8 +81,9 @@ export function handOnRecall(walkId: string, captures: Faced[]) {
 AppState.addEventListener('change', (s) => {
   if (s === 'active') offerHeld();
 });
+// With the app in front and no place in front (a replay over the tabs), it waits for the next place (tend explore 24).
 async function deliver(walkId: string, captures: Faced[]) {
-  if (!places.fire(captures, active())) await notifier.recall(reminderText(captures), captures.map((c) => c.id), walkId).catch(() => {});
+  if (!places.take(walkId, captures, active())) await notifier.recall(reminderText(captures), captures.map((c) => c.id), walkId).catch(() => {});
 }
 
 // What waits in Undo, told by the Undo window (lib/deletion), which imports this module: so it is set, not imported.

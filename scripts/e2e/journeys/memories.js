@@ -503,6 +503,49 @@ async function checks(h) {
       await page.waitForSelector('[data-testid=stop]', { timeout: 15000 });
       // The walk goes on without the way Walk to set, as the steps after this one expect.
       if (await page.waitForSelector('[data-testid=nav-end]', { timeout: 5000 }).then(() => true, () => false)) await page.click('[data-testid=nav-end]');
+
+      // tend explore 24: the same two with the walk minimized and an older walk's replay over the tabs, so no place is in
+      // front (the bar is down, the walk screen kept behind): the fire waits, and the bar shows it once the replay closes.
+      // It went to a notification before, which the web does not show with the page in front, marked fired all the same.
+      await outOfReach();
+      await flags(true);
+      await page.goto(url);
+      await page.waitForSelector('[data-testid=recording-return], [data-testid=walk-minimize]', { timeout: 20000 });
+      if (!(await page.locator('[data-testid=recording-return]').count())) await page.click('[data-testid=walk-minimize]');
+      await page.waitForSelector('[data-testid=recording-return]', { timeout: 10000 });
+      await page.click('[data-testid=tab-chronicle]');
+      await page.click('[data-testid=section-walks]').catch(() => {});
+      await page.waitForSelector('[data-testid=walk-row] >> visible=true', { timeout: 10000 }).catch(() => {});
+      await page.locator('[data-testid=walk-row] >> visible=true').first().click().catch(() => {});
+      const replayUp = await page.waitForURL(/replay/, { timeout: 15000 }).then(() => true, () => false);
+      await page.waitForTimeout(800);
+      const overReplay = { replayUp, path: new URL(page.url()).pathname, bar: await page.locator('[data-testid=recording-return]').count(), flagged: await stillFlagged() };
+      const replayFrom = north;
+      for (let j = north - 1; j >= -4 && replayUp && (await stillFlagged()) > 0; j--) {
+        north = j;
+        await ctx.setGeolocation({ longitude: spot[0], latitude: spot[1] + j * 0.00005, accuracy: 6 });
+        await page.waitForTimeout(1000);
+      }
+      overReplay.fired = (await stillFlagged()) === 0;
+      await page.waitForTimeout(1500);
+      // Nothing took it out of sight meanwhile: no bar line, no card on the walk screen behind.
+      overReplay.taken = await page.locator('[data-testid=recording-reminder], [data-testid=reminder]').count();
+      await page.keyboard.press('Escape');
+      overReplay.closed = await page.waitForURL((u) => !/replay/.test(u.pathname), { timeout: 10000 }).then(() => true, () => false);
+      const shownAfter = await page.waitForSelector('[data-testid=recording-reminder], [data-testid=reminder]', { timeout: 10000 }).then(() => true, () => false);
+      const afterSel = (await page.locator('[data-testid=recording-reminder]').count()) ? '[data-testid=recording-reminder]' : '[data-testid=reminder]';
+      const afterSaid = shownAfter ? await settled(afterSel) : '';
+      check(overReplay.replayUp && overReplay.bar === 0 && overReplay.flagged === 2 && overReplay.fired && overReplay.taken === 0 && overReplay.closed
+        && shownAfter && /Two memories here/.test(afterSaid),
+        `tend explore 24: a reminder fired with an older walk's replay over the tabs waits, and the bar or the walk screen shows it once the replay closes (${JSON.stringify({ ...overReplay, afterSel, afterSaid, steps: `${replayFrom} to ${north}` })})`);
+      if (shownAfter) {
+        await shot(page, '16g-reminder-after-replay');
+        await page.setViewportSize({ width: 320, height: 844 });
+        await page.waitForTimeout(400);
+        await shot(page, '16h-reminder-after-replay-320');
+        await page.setViewportSize({ width: 390, height: 844 });
+        await page.waitForTimeout(400);
+      }
     } finally {
       await flags(false);
       // Back to the spot at a walking pace, from wherever the step stopped, north or south of it.

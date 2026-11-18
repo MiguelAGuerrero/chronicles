@@ -32,7 +32,8 @@ test('tend explore 21: a fire goes to the newest place listening that is in fron
   // The wiring: every place listens, none replaces another, and each says whether it is in front.
   const check = read('discovery', 'recallCheck.ts');
   assert.doesNotMatch(check, /let screen\b/, 'no single slot that the last listener takes');
-  assert.match(check, /if \(!places\.fire\(captures, active\(\)\)\) await notifier\.recall\(/, 'deliver gives it to a place in front, else a notification');
+  // A place in front, else (tend explore 24) kept for the next one with the app in front, else a notification.
+  assert.match(check, /if \(!places\.take\(walkId, captures, active\(\)\)\) await notifier\.recall\(/, 'deliver gives it to a place in front, else a notification');
   const walk = readFileSync(join(lib, '..', 'app', 'walk.tsx'), 'utf8');
   assert.match(walk, /onRecallFired\(\s*\(due\) => \{[\s\S]*?\},\s*(\/\/[^\n]*\n\s*)*\(\) => routeNav\.isFocused\(\),?\s*\)/, 'the walk screen takes a fire only while it is in front');
   const bar = read('..', 'components', 'RecordingBar.tsx');
@@ -120,6 +121,51 @@ test('tend explore audit 23: a reminder a place goes with unseen is taken by the
   assert.match(walk2, /useFocusEffect\(useCallback\(\(\) => recallPlaceShown\(\), \[\]\)\)/, 'the walk screen takes it as it comes to the front');
   const check = read('discovery', 'recallCheck.ts');
   assert.match(check, /places\.offer\(active\(\), w\?\.id \?\? null\)/, 'offered against the walk still open');
+});
+
+// With a walk minimized and no place in front (an older walk's replay or a day over the tabs, the launch cover over the
+// walk screen as a reload opens), a fire went to a notification, which the web does not show with the page in front
+// and a phone puts only in its list, and it was marked fired all the same: never seen (docs/DEFERRED.md, "Reminders
+// and notifications"). explore-marks: "a place must never take one it cannot show". Kept, it waits for the next place.
+test('tend explore 24: a fire no place takes with the app in front waits for the next place in front of its walk', () => {
+  // A replay over the tabs: the bar is down, the walk screen kept behind them.
+  const places = createRecallPlaces();
+  let front = false;
+  const walk: string[][] = [];
+  places.listen((c) => walk.push(ids(c)), () => front);
+  assert.equal(places.take('w1', [said('a')], true), true, 'kept, not notified');
+  assert.equal(places.take('w1', [said('b'), said('a')], true), true, 'a later fire merges into what waits');
+  assert.deepEqual(walk, []);
+  // The replay closes: the bar mounts over the tabs and listens, and takes both.
+  const bar: string[][] = [];
+  places.listen((c) => bar.push(ids(c)), () => true);
+  assert.equal(places.offer(true, 'w1'), true);
+  assert.deepEqual(bar, [['a', 'b']]);
+  assert.deepEqual(walk, []);
+  assert.equal(places.offer(true, 'w1'), false, 'once');
+  // A place in front takes a fire at once, as before.
+  assert.equal(places.take('w1', [said('c')], true), true);
+  assert.deepEqual(bar, [['a', 'b'], ['c']]);
+
+  // The app behind: not kept; the caller notifies, as before.
+  const p2 = createRecallPlaces();
+  const none: string[][] = [];
+  p2.listen((c) => none.push(ids(c)), () => true);
+  assert.equal(p2.take('w1', [said('d')], false), false);
+  assert.equal(p2.offer(true, 'w1'), false, 'nothing waits');
+  assert.deepEqual(none, []);
+
+  // The walk it fired on ended before a place came to the front: dropped, never shown on the next walk.
+  const p3 = createRecallPlaces();
+  assert.equal(p3.take('w1', [said('e')], true), true);
+  const late: string[][] = [];
+  p3.listen((c) => late.push(ids(c)), () => true);
+  assert.equal(p3.offer(true, 'w2'), false);
+  assert.deepEqual(late, []);
+
+  // The wiring: a fire goes to `take`, and only what it refuses becomes a notification.
+  const check = read('discovery', 'recallCheck.ts');
+  assert.match(check, /if \(!places\.take\(walkId, captures, active\(\)\)\) await notifier\.recall\(/, 'deliver keeps what no place takes with the app in front');
 });
 
 // The walk screen said whether it was in front from a ref copied in an effect: a frame behind the navigator as it

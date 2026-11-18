@@ -149,6 +149,10 @@ Places of interest from the tiles, marks, checklists and finds (Explore), and Re
     - **Trap:** a fire is marked fired (a "once" flag cleared) before it is shown, so a place must never take one it
       cannot show, and a place that goes must hand on what it did not show. With no place in front (a replay or a day
       over the tabs, the launch cover) the web's notification shows nothing in front: filed in docs/DEFERRED.md.
+    - **Since tend explore 24** (Nov 18; this holds over the line above): a fire no place in front takes with the app in
+      front (a replay or a day over the tabs, the launch cover) waits as a handed-on one does (`take`), for the next place
+      in front of its walk; only with the app behind is it a notification. It is still marked fired as it comes, so the
+      walk ended before a place came to the front drops it unseen, as a handed-on one is dropped.
   - A flag set during a walk counts as fired in it (`newRecall`). An edit
     keeps what firing wrote (`editedRecall`).
   - A tapped notification stores its ids in meta `recall_open`. The next

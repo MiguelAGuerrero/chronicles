@@ -225,7 +225,8 @@ export function reminderName(captures: Faced[]): string {
  * A fire goes to the newest in front (`firePlace`); with none, `fire` says so and the caller notifies. A place that goes
  * with a reminder nobody has seen (the recording bar, folded under the area card, when Walk here leaves the tabs)
  * hands it on: it waits, merged with any handed on after it, for the next place in front of the same walk, offered as a
- * place listens or comes to the front. The walk it came on over, it is dropped. Pure: it calls what it is given.
+ * place listens or comes to the front; so does a fire none in front takes with the app in front (`take`, tend explore
+ * 24). The walk it came on over, it is dropped. Pure: it calls what it is given.
  */
 export function createRecallPlaces() {
   const places: { show: (captures: Faced[]) => void; inFront: () => boolean }[] = [];
@@ -259,6 +260,21 @@ export function createRecallPlaces() {
       const i = newest(active);
       if (i == null) return false;
       places[i].show(captures);
+      return true;
+    },
+    /**
+     * A fire of a walk (tend explore 24): shown by the newest place in front; with none in front and the app in front (a
+     * replay or a day over the tabs, the launch cover), a notification would show nothing (the web) or only in the list
+     * (a phone), so it waits as one handed on does. False only with the app behind: the caller notifies.
+     */
+    take(walkId: string, captures: Faced[], active: boolean): boolean {
+      const i = newest(active);
+      if (i != null) {
+        places[i].show(captures);
+        return true;
+      }
+      if (!active) return false;
+      unseen = { walkId, captures: reminderHeld(unseen?.walkId === walkId ? unseen.captures : null, captures) };
       return true;
     },
     /** A place goes with a reminder nobody has seen: the next place in front of its walk takes it. */
