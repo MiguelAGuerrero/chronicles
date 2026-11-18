@@ -186,6 +186,10 @@ entry per finding, written so a yes or no is enough:
 - `[phone]` entries carry **Do** and **Expect** in place of a recommendation.
 - An addition too large for one commit is not a `T` entry: shape it as a `G`
   entry with criteria (section 9's form), so a yes has something to hold it to.
+  While the balance reads **outgrowing its base** no `G` is filed (section 8):
+  file it as an `[owner]` `T` entry that says it is slice-sized and held while
+  the balance reads outgrowing, its criteria in it; a yes builds it as a slice
+  (section 7), as T11 was.
 - A rule file past the warning size (`check:docs` warns at 20,000 characters) is
   never a `[loop]` item: the loop only adds to rule files (0135), so it cannot split
   one. File it as a `T [owner]` entry asking to split it by topic, so it is asked,
@@ -228,6 +232,9 @@ entry that is gone, or whose title the owner's words plainly do not fit, is
 not acted on. One build per run: with several yeses, build the first and say
 which wait for the next `/tend inbox`. Every no is recorded in the same run.
 
+- **Yes to a slice-sized `[owner]` `T` entry** (filed so while the balance read
+  outgrowing, section 5): one slice, the `slice` skill with the entry's criteria
+  as its start; not `--from`, which only a `G` entry takes (decision 0130).
 - **Yes to an `[owner]` `T` entry** (one commit's worth, by section 5): build
   its recommended shape as section 4 does, one commit, subject
   `tend <area> T<n>: …`, its test named the same, `Source:` naming the entry
@@ -302,7 +309,7 @@ window is the one sign it cannot see, and reads as outgrowing its base.
 | Reading | Means | The run ends by |
 |---|---|---|
 | **settling** | No slice grew in 14 days | Section 9 for the app (not only this area), said first in the report. Proposals may sit on a rough area then, each saying what must be tended first. |
-| **outgrowing its base** | More than three `rough` areas, more than ten unanswered `[owner]` and `[arch]` entries, or a red `main` | Filing no new `G` entry; the report names the areas to tend and the entries to answer first |
+| **outgrowing its base** | More than three `rough` areas, more than ten unanswered `[owner]` and `[arch]` entries, or a red `main` | Filing no new `G` entry (a slice-sized addition is a held `[owner]` `T` entry, section 5); the report names the areas to tend and the entries to answer first |
 | **in step** | Otherwise | Section 9 only if this area is polished. `/tend evolve`, typed by the owner, proposes for polished areas whatever the reading, and names the area to tend first when there is none. |
 
 ## 9. Evolve: propose the next iteration
