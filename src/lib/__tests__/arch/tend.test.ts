@@ -26,6 +26,7 @@ const tend = createRequire(__filename)(join(ROOT, 'scripts', 'tend.js')) as {
   testName(subject: string): string | null;
   tendCommitProblems(c: { subject: string; body: string; files: File[]; added?: string; rewritesLog?: boolean; rewritesRules?: string[] }): string[];
   citedOwnEdits(commits: { subject: string; body: string; files: File[] }[]): { subject: string; problem: string }[];
+  rewritesBaseLines(removed: string[], base: string): boolean;
   logProblems(given: unknown): string[];
   runLine(r: { date: string; subjects: string[]; given: Record<string, unknown> }): Record<string, unknown>;
   fullPassDue(lines: string[], today: string, days?: number): { due: boolean; last: { date: string; base: string | null } | null; dueFrom: string | null };
@@ -336,6 +337,16 @@ test('tend rule lines: a commit rests only on rule lines written before it; a tr
   const after = tend.citedOwnEdits([fix(1, 'memories.md, Hidden'), note, fix(2, 'memories.md, Hidden')]);
   assert.deepEqual(after.map((p) => p.subject), ['tend memories 2: a thing'], 'a line written before it in the same push is still the loop\'s own');
   assert.equal(tend.citedOwnEdits([fix(3, 'memories.md, Hidden', [M('src/app/a.tsx'), M('scripts/e2e/journeys/memories.js'), M(rule)])]).length, 1, 'itself included');
+});
+
+test('tend rule lines, reworded: a later commit of the push may reword a rule line an earlier one added; a line the base holds stays add-only', () => {
+  const base = '# Memories\n\n- Hidden moments stay hidden in the replay.\n- Undo names what it restores.\n';
+  assert.equal(tend.rewritesBaseLines(['- The run\'s own trap, first worded.'], base), false, 'a line absent from the push\'s base is the run\'s to reword');
+  assert.equal(tend.rewritesBaseLines(['- Undo names what it restores.'], base), true, 'a line on main stays add-only');
+  assert.equal(tend.rewritesBaseLines(['- The run\'s own trap.', '- Hidden moments stay hidden in the replay.'], base), true);
+  assert.equal(tend.rewritesBaseLines(['- Undo names what it'], base), false, 'a whole line is matched, not a part');
+  assert.equal(tend.rewritesBaseLines(['- a line'], ''), false, 'a rule file new in the push');
+  assert.equal(tend.rewritesBaseLines([], base), false);
 });
 
 const pass = {

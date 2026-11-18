@@ -187,7 +187,7 @@ function tendCommitProblems({ subject, body, files, added = '', rewritesLog = fa
   const problems = [];
   if (!/^tend /.test(subject)) return ['not a loop commit: the loop ships only `tend <area> …` commits'];
   if (rewritesLog) problems.push('rewrites the run log: a run adds its line and changes no other');
-  for (const f of rewritesRules) problems.push(`changes or removes a line of ${f}: the loop may add a trap to a rule file, never reword a rule (the owner's, through the inbox)`);
+  for (const f of rewritesRules) problems.push(`changes or removes a line of ${f} that the push's base holds: the loop may add a trap to a rule file, and reword a line its own push added, never reword a rule (the owner's, through the inbox)`);
   for (const f of files) {
     if (RULE_FILE.test(f.path) && citesRule(body, f.path)) problems.push(`cites ${f.path} as its source and edits it in the same commit`);
   }
@@ -211,6 +211,16 @@ function tendCommitProblems({ subject, body, files, added = '', rewritesLog = fa
 }
 
 const RULE_FILE = /^\.claude\/rules\/[^/]+\.md$/;
+
+/**
+ * Whether lines a commit removes from a rule file include one the push's base holds: those stay
+ * add-only. A line absent from the base was added by an earlier commit of the same push, and a later
+ * commit may reword or drop it (a review fix to the run's own trap line).
+ */
+function rewritesBaseLines(removed, base) {
+  const lines = new Set(String(base).split('\n'));
+  return removed.some((l) => lines.has(l));
+}
 const ruleName = (p) => p.replace(/^\.claude\/rules\//, '');
 /** Whether a commit's Source line names a rule file, by its path or its bare name ("tabs-and-home.md"). */
 function citesRule(body, rulePath) {
@@ -468,6 +478,16 @@ function commits(argv) {
   // Oldest first: citedOwnEdits reads the push in commit order.
   const all = git('rev-list', '--reverse', '--no-merges', range).split('\n').filter(Boolean);
   const shas = loopOnly ? all.filter((sha) => /^tend /.test(git('show', '-s', '--format=%s', sha))) : all;
+  // The push's base: a rule line it holds is add-only; one an earlier commit of the push added is not.
+  const ends = range.split('..');
+  const baseRev = ends.length === 2 && ends[0] ? git('merge-base', ends[0], ends[1] || 'HEAD').trim() : all.length ? `${all[0]}^` : 'HEAD';
+  const atBase = (file) => {
+    try {
+      return execFileSync('git', ['show', `${baseRev}:${file}`], { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], maxBuffer: 64 * 1024 * 1024 });
+    } catch {
+      return '';
+    }
+  };
   let bad = 0;
   const read = [];
   // The record documents (decision 0156): each commit that touches them is its declared operations,
@@ -485,9 +505,9 @@ function commits(argv) {
     const added = tests.length
       ? git('show', '--format=', '-U0', sha, '--', ...tests).split('\n').filter((l) => /^\+(?!\+\+)/.test(l)).join('\n')
       : '';
-    const removes = (file) => git('show', '--format=', '-U0', sha, '--', file).split('\n').some((l) => /^-(?!--)/.test(l));
-    const rewritesLog = files.some((f) => f.path === RUNS_REL) && removes(RUNS_REL);
-    const rewritesRules = files.filter((f) => RULE_FILE.test(f.path) && f.status === 'M' && removes(f.path)).map((f) => f.path);
+    const removed = (file) => git('show', '--format=', '-U0', sha, '--', file).split('\n').filter((l) => /^-(?!--)/.test(l)).map((l) => l.slice(1));
+    const rewritesLog = files.some((f) => f.path === RUNS_REL) && removed(RUNS_REL).length > 0;
+    const rewritesRules = files.filter((f) => RULE_FILE.test(f.path) && f.status === 'M' && rewritesBaseLines(removed(f.path), atBase(f.path))).map((f) => f.path);
     read.push({ subject, body: rest.join('\n'), files });
     const problems = tendCommitProblems({ subject, body: rest.join('\n'), files, added, rewritesLog, rewritesRules });
     problems.push(...(recordIssues.get(sha) ?? []));
@@ -526,4 +546,4 @@ if (require.main === module) {
   }
 }
 
-module.exports = { FORBIDDEN, LIMITS, STATES, classify, criteriaPrefixes, tally, areasByState, readStatus, reading, nextArea, isLoops, dropBoundary, testName, tendCommitProblems, citedOwnEdits, logProblems, runLine, fullPassDue };
+module.exports = { FORBIDDEN, LIMITS, STATES, classify, criteriaPrefixes, tally, areasByState, readStatus, reading, nextArea, isLoops, dropBoundary, testName, tendCommitProblems, citedOwnEdits, rewritesBaseLines, logProblems, runLine, fullPassDue };
