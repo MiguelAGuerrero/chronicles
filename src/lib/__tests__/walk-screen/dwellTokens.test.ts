@@ -42,5 +42,7 @@ test('tend walk-screen 8: no dwell is a number written in the walk screen, its m
   assert.match(walk, /setTimeout\(\(\) => setNotice\(null\), MOTION\.walkNotice\)/);
   assert.match(walk, /reminder\.shownAt \+ MOTION\.reminder - Date\.now\(\)/);
   assert.match(bar, /setTimeout\(\(\) => setToast\(null\), MOTION\.momentToast\)/);
-  assert.match(recording, /setTimeout\(\(\) => setReminder\(null\), MOTION\.reminder\)/);
+  // Since tend explore 22 the bar's half-minute is time in sight, still the reminder's own token.
+  assert.match(recording, /reminderSight\(\{ sight: [^}]*showMs: MOTION\.reminder \}\)/);
+  assert.match(recording, /setTimeout\(\(\) => setReminder\(null\), sight\.goesInMs\)/);
 });

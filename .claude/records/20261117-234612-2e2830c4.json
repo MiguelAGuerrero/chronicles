@@ -1,0 +1,81 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "After a reload",
+        "--reason",
+        "built: tend explore 21 (every place listens, the newest in front takes a fire) and tend explore audit 26, in this run"
+      ],
+      "target": "sha256:589b2c694e971c6e648d440f1fb078d230f7e9c46f79e5fbad24f03ae7055e4a"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "A note's reminder",
+        "--reason",
+        "built: tend explore 23 (reminderName), in this run"
+      ],
+      "target": "sha256:fde2a84339aae802fc3274819567138de1979330047625fa557d4eb5c6a4b48c"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "A Remind",
+        "--reason",
+        "built: tend explore 22 (the bar holds a fire out of sight) and tend explore audits 23-25, 27, in this run"
+      ],
+      "target": "sha256:70afcf90cf27d46d67989dcea474cd2725b276868ff7eb78ffd318bcdf5ccae5"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Reminders and notifications"
+      ],
+      "body": "- [loop] With no place in front while a walk is minimized (an older walk's replay or a day, `fullScreenModal` over the tabs; the launch cover over the walk screen as a reload opens), a Remind me here fired goes to a notification, which the web does not show with the page in front (`transport.web.ts`, `show` returns false while visible), and is marked fired all the same (a \"once\" flag cleared): never seen. The likely shape: `createRecallPlaces` keeps a fire no place took, with the page in front, for the next place in front, as `handOn` does for the bar (`discovery/recallCheck.ts` `deliver`); keeping a fire unmarked until it is shown would change when a reminder counts as fired, which is the owner's (found by `/tend explore`, Nov 17, and confirmed by the review of `tend explore 21-23`; medium)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Reminders and notifications"
+      ],
+      "body": "- [owner] A reminder the recording bar held out of sight for minutes (under the area card, a viewer) still says \"Two memories here\" once seen, though the walker may be hundreds of metres on: the walk screen's card goes after 100 m (`REMINDER_AWAY_M`), the bar keeps no place. Keep the fire's place and change the words past 100 m (\"back there\"), or leave it; dropping it would lose it unseen again, and the words are the owner's (`RecordingBar.tsx`; the review of `tend explore 22`, F6, low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "A tapped reminder on the bar"
+      ],
+      "body": "  - Not fixed in `/tend explore` (Nov 17): the clean fix (write the key only when `showWalk()` goes ahead, through `openRecall`, which tells a walk screen mounting meanwhile) removes the bar's only `db` import, which leaves its `no-restricted-syntax` count in `eslint-suppressions.json` stale, and a baseline is not the loop's to prune (`scripts/tend.js` FORBIDDEN): the owner's, or a `/fix`.\n",
+      "target": "sha256:fd541cdfc060dbc251f92f4b0d5ede1c90997dc01b7df1374e86d8f6e2cc50d8"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Notifications"
+      ],
+      "body": "- [ ] **Do:** since `tend explore 21-23` and their review (Nov 17), set Remind me here (\"Once\") on two moments at one spot. On a later walk, minimize it, open an area's card on Explore (the tabs fold), pass the spot, then tap the card's Walk to; again with Explore's search keyboard up as you pass; again under a moment's viewer, closed by Android Back; again locking the phone a second after the bar shows the line; again after a force-quit and relaunch with the walk open, minimized at once. **Expect:** under the card nothing shows, and Walk to brings the walk screen up with its card \"Two memories here\" (`handOnRecall`); under the keyboard or the viewer the bar's line waits and shows once they go, then stays its half-minute (`barInSight`, `modalsUp`); locked, the line is there on return with what was left of its half-minute (`reminderSight`); after the relaunch the line is on the bar, never on the walk screen kept behind the tabs (`useNavigation().isFocused()` on the native stack). (R7, NV8)\n"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 17, `/tend explore --deploy=main`, the reminders a person never saw** (opened from `f293e9db`, rebased on `84b47e2a`; no sweep, lenses 1-7 not run; aimed at DEFERRED's reminder items, mediums first; the faster lane of decision 0181).\n- The rule both mediums broke: a fire is marked fired (a \"once\" flag cleared) as it is delivered, so it must never go where no person can see it. `docs/research/adjacent-apps.md` records no location reminder; the shape follows the phones' own (a notification that arrives while the person is busy waits in the Notification Center or the shade until it is seen; from memory, not yet recorded).\n- `tend explore 21`: every place listens and says whether it is in front (`firePlace`): after a reload, the walk screen kept behind the tabs no longer takes a fire out of sight; the memories journey checks the bar has it every time.\n- `tend explore 22`: the recording bar holds a fire while it is out of sight (folded under a full-screen card, a Modal up: `modalsUp`), its half-minute counted from when it is seen (`reminderSight`).\n- `tend explore 23`: the note's reminder card names itself with one full stop (\"… cardamom. Open\", `reminderName`).\n- The review (one round, the `auditor`; one high, two medium, four low; five accepted, one deferred, none rejected, and the rule lines): `tend explore audit 23` (high: a bar that goes with a fire seen for under 2 s hands it on to the next place in front of the walk, so Walk to from the area card shows it on the walk screen's card; `createRecallPlaces`), `audit 24` (the keyboard counts as out of sight), `audit 26` (the walk screen asks its navigator at fire time), `audit 27` (the app behind is out of sight; the half-minute is time in sight) in one commit; `audit 25` (`holdModal` tested, a step under a viewer) in another. F6 filed `[owner]` low (the bar's \"here\" once the walker has moved on). Lines added to `explore-marks.md` and `tabs-and-home.md`.\n- Filed: `[loop]` medium, a fire with no place in front (a replay or day over the tabs, the launch cover) goes to a web notification that does not show; `[owner]` low, F6; a note on the `RECALL_OPEN_KEY` low (its fix needs a lint baseline pruned, not the loop's); a native check under Notifications. The three items built left DEFERRED.\n- Journeys on the final export: `memories` (its reminder steps: 21, 22, 23, audits 23 and 25), `walk`, `launch`; typecheck, lint, `npm test`. Not run: the sweep's lenses and the balance's evolve. Nothing here has run on a phone: the listeners, the Modal count, the keyboard and AppState reads are native code too.\n"
+    }
+  ]
+}
