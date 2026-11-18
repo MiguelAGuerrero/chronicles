@@ -520,10 +520,49 @@ async function createHarness() {
   };
   const closeInto = async (pg, how = 'back') => {
     if (how === 'escape') await pg.keyboard.press('Escape');
-    else await pg.locator('[aria-label="Go back"]:visible').first().click().catch(() => {});
+    // From the walk's drawer, Back names the walk (WI20).
+    else await pg.locator('[aria-label="Go back"]:visible, [aria-label="Walk, back"]:visible').first().click().catch(() => {});
     const gone = await pg.waitForSelector('[data-testid=into-page]', { state: 'hidden', timeout: 8000 }).then(() => true, () => false);
     await pg.waitForTimeout(500);
     return gone;
+  };
+  // The page scrolled so a row sits just under the pinned heading, then left to settle: the scroll comes to rest and two
+  // frames are drawn, so a picture never catches rows mid-scroll (WI25). Returns whether the row was found.
+  const intoScrollTo = async (pg, id) => {
+    const found = await pg.evaluate((tid) => {
+      const page = document.querySelector('[data-testid=into-page]');
+      const row = page && page.querySelector(`[data-testid=${tid}]`);
+      let sc = row && row.parentElement;
+      while (sc && !(sc.scrollHeight > sc.clientHeight + 4 && /(auto|scroll)/.test(getComputedStyle(sc).overflowY))) sc = sc.parentElement;
+      if (!row || !sc) return false;
+      const head = [...page.querySelectorAll('[data-testid^=kind-heading-]')][0];
+      const headH = head ? head.getBoundingClientRect().height : 52;
+      sc.scrollTop += row.getBoundingClientRect().top - sc.getBoundingClientRect().top - headH - 4;
+      return true;
+    }, id);
+    await intoSettled(pg);
+    return found;
+  };
+  // Waits for the page's scroll to rest and two frames to draw; then every row in view must show its switch (WI25).
+  const intoSettled = async (pg) => {
+    await pg.waitForTimeout(350);
+    await pg.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+    return pg.evaluate(() => {
+      const page = document.querySelector('[data-testid=into-page]');
+      if (!page) return ['no page'];
+      const box = page.getBoundingClientRect();
+      return [...page.querySelectorAll('[role=switch]')]
+        .filter((r) => {
+          const b = r.getBoundingClientRect();
+          return b.height > 0 && b.top > box.top + 60 && b.bottom < box.bottom;
+        })
+        .filter((r) => {
+          const sw = r.querySelector('input') || [...r.querySelectorAll('div')].at(-1);
+          const b = sw && sw.parentElement.getBoundingClientRect();
+          return !b || b.width < 20 || b.height < 10;
+        })
+        .map((r) => r.getAttribute('data-testid'));
+    });
   };
   // A tab, from wherever the test is (NR1-NR4): the ready screen covers the tabs, so its chevron goes back
   // to them first; Navigate opens the walk screen (ready or walking) and is left alone if it is up.
@@ -825,7 +864,7 @@ async function createHarness() {
     return { x: m.x + m.width / 2, y: m.y + m.height / 2 };
   });
   return {
-    url, navUrl, exploreUrl, BASE, browser, ctx, page, errors, hosts, start, at, distanceM, dLat, dLon, features, names, overtureFeatures, OVERTURE_HOST, OVERTURE_RELEASE, overtureAsked, style, check, shot, glyph, iconOf, metricRegion, pressedScale, metaOf, drawerTo, openInto, closeInto, tabTo, toThreads, toJournal, mapUp, shownCount, tabBarShown, tileRoute, overtureRoute, freshPage, openWalk, tiles, scriptsDir,
+    url, navUrl, exploreUrl, BASE, browser, ctx, page, errors, hosts, start, at, distanceM, dLat, dLon, features, names, overtureFeatures, OVERTURE_HOST, OVERTURE_RELEASE, overtureAsked, style, check, shot, glyph, iconOf, metricRegion, pressedScale, metaOf, drawerTo, openInto, closeInto, intoScrollTo, intoSettled, tabTo, toThreads, toJournal, mapUp, shownCount, tabBarShown, tileRoute, overtureRoute, freshPage, openWalk, tiles, scriptsDir,
     onTab, walkMap, walkMarks, walkRoute, walkPts, nothingLeaves, noConsoleErrors, close, divisions, snapWorld, wholeWorld, walkability, overpassAsked, OVERPASS_HOST, scenicWorld, routed, switchLayer, places, areaTile, hollowWorld, complexWorld, bareMapPoint, denseWorld, DENSE_HOODS, smallWorld, SMALL_TOWN, SMALL_HOODS,
   };
 }
