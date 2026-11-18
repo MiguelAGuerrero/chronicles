@@ -1,0 +1,122 @@
+diff --git a/src/app/replay/[id].tsx b/src/app/replay/[id].tsx
+index e63918d..cc6e6b9 100644
+--- a/src/app/replay/[id].tsx
++++ b/src/app/replay/[id].tsx
+@@ -498,7 +498,8 @@ export default function Replay() {
+   const passed = passedLine(data.passed);
+   // Streets walked and new, in words (tend replay T31), one clause when all are new (tend replay audit 14).
+   // The name typed in Name it, unsaved, until Keep it or leaving (tend replay audit 16, the owner's "Show the typed name").
+-  const shownTitle = cardTitle(data.walk, title, offered);
++  // SPIKE A: the card's title is worded only while the card is up (it formatted a date on every tick of the path).
++  const shownTitle = beat === 'card' || beat === 'name' ? cardTitle(data.walk, title, offered) : '';
+   const streetsLine = walkCardStreets(s?.streets_walked ?? 0, s?.streets_read ? data.newStreets : null);
+ 
+   const save = async () => {
+diff --git a/src/components/ceremony/layout.ts b/src/components/ceremony/layout.ts
+index 7da5f0d..d3f2997 100644
+--- a/src/components/ceremony/layout.ts
++++ b/src/components/ceremony/layout.ts
+@@ -90,4 +90,15 @@ export function tiltOf(id: string): number {
+   return [-7, 5, -3, 8, -5][Math.abs(h) % 5];
+ }
+ 
+-export const timeOf = (t: number) => new Date(t).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
++// SPIKE A: a time of day is worded once per minute, not on every render.
++const TIMES = new Map<number, string>();
++export const timeOf = (t: number) => {
++  const minute = Math.floor(t / 60_000);
++  let text = TIMES.get(minute);
++  if (text == null) {
++    if (TIMES.size > 500) TIMES.clear();
++    text = new Date(t).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
++    TIMES.set(minute, text);
++  }
++  return text;
++};
+diff --git a/src/components/map/WalkMap.web.tsx b/src/components/map/WalkMap.web.tsx
+index 7933877..3048220 100644
+--- a/src/components/map/WalkMap.web.tsx
++++ b/src/components/map/WalkMap.web.tsx
+@@ -345,12 +345,28 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
+   // The trace's newest point. The link to the dot is drawn once per fix, to where the dot is
+   // heading, never per frame: each draw re-tiles the source in the worker (motion audit 5).
+   const linkFrom = useRef<LngLat | null>(null);
++  // SPIKE A: a source is sent only when its collection changed: the same object, empty after empty, or the same shape
++  // (each feature's kind, its number of points, its first and last point and its properties) is not sent again.
++  const sentData = useRef(new Map<string, { data: GeoJSON.FeatureCollection; sig: string }>());
++  const sendData = (id: string, data: GeoJSON.FeatureCollection) => {
++    const map = mapRef.current;
++    const src = map?.getSource(id) as { setData(d: GeoJSON.FeatureCollection): void } | undefined;
++    if (!src) return;
++    const last = sentData.current.get(id);
++    if (last && last.data === data) return;
++    const sig = dataSig(data);
++    if (last ? last.sig === sig : sig === '0') {
++      sentData.current.set(id, { data, sig });
++      return;
++    }
++    sentData.current.set(id, { data, sig });
++    perfCount(`setData:${id}`);
++    src.setData(data);
++  };
+   const drawLink = (walker: LngLat | null) => {
+     const end = linkFrom.current;
+-    perfCount('setData:trace-link');
+-    const src = mapRef.current?.getSource('trace-link') as { setData(d: GeoJSON.FeatureCollection): void } | undefined;
+     // Never across a pause or a gap: a link that long isn't the line catching up.
+-    src?.setData(traceGeoJSON(end && walker && distanceM(end, walker) <= LINK_MAX_M ? [[end, walker]] : []));
++    sendData('trace-link', traceGeoJSON(end && walker && distanceM(end, walker) <= LINK_MAX_M ? [[end, walker]] : []));
+   };
+   const applyFrame = (f: GlideFrame) => {
+     lastFrame.current = f;
+@@ -750,10 +766,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
+     // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, []);
+ 
+-  const setData = (id: string, data: GeoJSON.FeatureCollection) => {
+-    perfCount(`setData:${id}`);
+-    (mapRef.current?.getSource(id) as { setData(d: GeoJSON.FeatureCollection): void } | undefined)?.setData(data);
+-  };
++  const setData = (id: string, data: GeoJSON.FeatureCollection) => sendData(id, data);
+ 
+   // Free look (FL3): one finger pans while it is on. maplibre's own handlers take over and ours stand down;
+   // the inline touch-action goes back to its class, which leaves the pan to the map (the swipe sets `none`).
+@@ -805,11 +818,15 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
+   useEffect(() => { if (ready) setData('route-grades', routeGradesGeoJSON(props.routeGrades)); }, [ready, props.routeGrades]);
+   useEffect(() => { if (ready) setData('found-pins', pinsGeoJSON(props.foundPins)); }, [ready, props.foundPins]);
+   const hasLanding = !!props.landing;
++  // SPIKE A: the alternates are sent when they change, never because the trace did.
+   useEffect(() => {
+     if (!ready) return;
+     setData('alternates', alternatesGeoJSON(props.alternates));
+     // The e2e reads how many faint routes are drawn (only when it is measuring: window.__perf).
+     if ((window as { __perf?: unknown }).__perf && container.current) container.current.dataset.alternates = String(props.alternates?.length ?? 0);
++  }, [ready, props.alternates]);
++  useEffect(() => {
++    if (!ready) return;
+     // The e2e reads which of the trace-like layers carry anything (only when it is measuring): none while a preview is up.
+     if ((window as { __perf?: unknown }).__perf && container.current) {
+       container.current.dataset.drawn = [['trace', props.trace?.length], ['walked', props.walked?.length], ['fog', props.fog?.length], ['faint', props.faint?.length], ['landing', hasLanding ? 1 : 0], ['borders', props.borders ? 1 : 0], ['walkability', props.walkability ? 1 : 0]].filter(([, n]) => n).map(([k]) => k).join(',');
+@@ -1710,3 +1727,22 @@ function traceEnd(trace: LngLat[][] | undefined): string {
+ 
+ /** A point as "lon,lat" to 6 decimals, for the e2e's data attributes; empty for none. */
+ const fmt = (p: LngLat | null | undefined) => (p ? `${p[0].toFixed(6)},${p[1].toFixed(6)}` : '');
++
++/** SPIKE A: a cheap fingerprint of a collection; '0' is the empty one. */
++function dataSig(data: GeoJSON.FeatureCollection): string {
++  const fs = data.features;
++  if (!fs.length) return '0';
++  let out = String(fs.length);
++  const ends = (c: unknown): string => {
++    if (!Array.isArray(c)) return '';
++    if (typeof c[0] === 'number') return c.join(',');
++    return `${c.length}[${ends(c[0])};${ends(c[c.length - 1])}]`;
++  };
++  for (const f of fs) {
++    const g = f.geometry as { type: string; coordinates?: unknown } | null;
++    out += `|${g?.type ?? ''}:${ends(g?.coordinates)}`;
++    const props = f.properties;
++    if (props) for (const k in props) out += `;${k}=${typeof props[k] === 'object' ? JSON.stringify(props[k]) : props[k]}`;
++  }
++  return out;
++}

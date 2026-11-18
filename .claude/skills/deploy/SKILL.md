@@ -79,6 +79,16 @@ show the owner the divergence before merging.
    check: it says the code shipped, not that anyone can use it. A step you cannot do is a failed deploy
    check; say so and fix forward. Send the pictures to the owner with where each control is.
 
+## The preview address (decision 0206)
+
+The same run also builds the branch named in `.github/preview-branch` and serves it at
+https://miguelaguerrero.github.io/chronicles/preview/ (`scripts/preview-pages.js` puts it under `dist/preview` and makes
+its routes survive a reload). It is for the owner to look at a slice on a phone before it replaces anything; it is the same
+site, so it reads the phone's own walks, and a slice that changes stored data must not go there. A preview that fails to
+build never fails the deploy (the step is `continue-on-error`): read the step's log. To refresh it after pushing the
+preview's branch, run the workflow by hand on `main` (`actions_run_trigger`, `workflow_dispatch`); nothing on `main` changes.
+An empty `.github/preview-branch` serves no preview.
+
 ## 4. If the export fails
 
 1. Read the job log: the failing step is typecheck, test or export.

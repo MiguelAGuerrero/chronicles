@@ -412,6 +412,7 @@ Layers (functional core, imperative shell)
   (scripts/layers.js)        reads the layer tags and core's imports for layers.test.ts and eslint.config.js
   (scripts/affected.js)      what a change can break: changed files, the import graph, the tests (by feature) and e2e journeys to run, what nothing covers
   (scripts/features.js)      the feature map: each feature's sources, journeys, specs and rule; test:feature, check:specs and the rules read it
+  (scripts/preview-pages.js) the preview address (decision 0206): a second build under /chronicles/preview/, its routes kept across a reload
 ```
 
 ## Invariants and boundaries
