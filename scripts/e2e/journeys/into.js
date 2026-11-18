@@ -484,10 +484,14 @@ async function run(h) {
   const offCount = await pg.locator('[data-testid=into-page] [data-testid$=-note]').count();
   check.todo(offCount > 2 && offWrapped.length === 0, `WI18: at 320 px each kind's off line is one line (${offCount}; ${JSON.stringify(offWrapped)})`);
   await shot(pg, 'into-page-320');
+  await closeInto(pg);
   await pg.setViewportSize({ width: 390, height: 844 });
-  // 200% text: every label still all there, never cut off at the edge.
+  // 200% text: every label still all there, never cut off at the edge. The page is opened at 200%, as a reader whose
+  // browser is zoomed opens it: a CSS zoom set on an open page halves its box (195 px) without a resize, which
+  // react-native-web's onLayout never hears; a real zoom changes the window's width and is heard.
   await pg.evaluate(() => { document.documentElement.style.zoom = '2'; });
   await pg.waitForTimeout(500);
+  await openInto(pg, 'walk');
   const lost = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=into-page] [data-testid^=kind-], [data-testid=into-page] [data-testid^=complex-kind-]')]
     .filter((e) => e.getBoundingClientRect().height > 0)
     .flatMap((e) => [...e.querySelectorAll('*'), e].filter((x) => x.childElementCount === 0 && /[A-Za-z]{3}/.test(x.textContent || ''))
@@ -525,7 +529,8 @@ async function run(h) {
       const r = document.querySelector(`[data-testid=into-page] [data-testid=${id}]`);
       return r ? r.getBoundingClientRect().left : 0;
     };
-    return { split: split.slice(0, 8), close: close.slice(0, 8), indent: indent('kind-statues') - indent('kind-public_art') };
+    // Boxes are read zoomed: the indent in CSS px is half.
+    return { split: split.slice(0, 8), close: close.slice(0, 8), indent: (indent('kind-statues') - indent('kind-public_art')) / 2 };
   });
   check.todo(big.split.length === 0 && big.close.length === 0 && big.indent > 0 && big.indent < 28, `WI21: at 200% labels break only between words, rows stand apart, the indent is smaller (${JSON.stringify(big)})`);
   await shot(pg, 'into-page-200');
