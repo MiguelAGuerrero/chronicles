@@ -111,6 +111,7 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] **Do:** with a reminder set near a bus stop, ride a bus past it with the screen off. **Expect:** the task's two-minute `tail` reads the bus's fixes as a ride, not jumps, so the reminder fires from the ride (Rides).
 - [ ] **Do:** start an exploring walk on a quiet street, lock the screen and walk into a new area for 10 minutes. **Expect:** Explore's background read (`exploreRun.ts`) builds the area's checklist with the screen off: "?" marks show at once when you unlock (v1 Explore).
 - [ ] **Do:** after a drive with no walk, park and make a note on Navigate's ready screen; then make one indoors with a weak signal. **Expect:** one fix per moment (`locate/index.native.ts`): the note is placed where you are, never at a cached fix older than 15 s from before the drive; with no fresh fix in 10 s, it is kept with no place (Moments and days). (M2)
+- [ ] **Do:** walk 15 min with the screen locked part of the time, keeping a photo, a note and a voice memo on the way; then kill the app mid-walk and reopen it. **Expect:** the trace is whole with no gap at the lock, the captures are kept, the walk reopens; nothing in the logs says `database is locked`: every write goes through the one writer connection (`BEGIN IMMEDIATE` on it, `synchronous = NORMAL`), and the background task's writes wait for it rather than fail (performance review, Nov 18).
 
 ## Media and capture
 

@@ -92,13 +92,21 @@ function setClause(patch: Record<string, unknown>, allowed: readonly string[]) {
   return { sql: keys.map((k) => `${k} = ?`).join(', '), values };
 }
 
-export function makeSqliteDb(open: () => Promise<SQLiteDatabase>): Db {
+/**
+ * The native store. `open` is the main connection (reads, migrations); `openWriter`, when given, a second connection to
+ * the same file that the write queue holds for the app's life (performance review, Nov 18): an exclusive transaction
+ * per write (`withExclusiveTransactionAsync`) opened, initialized and closed a native connection each time, about once
+ * a second while walking, and that connection never had the main one's `busy_timeout`. Without it, writes go as before.
+ */
+export function makeSqliteDb(open: () => Promise<SQLiteDatabase>, openWriter?: () => Promise<SQLiteDatabase>): Db {
   let dbPromise: Promise<SQLiteDatabase> | null = null;
   function conn() {
     if (!dbPromise) {
       dbPromise = (async () => {
         const d = await open();
-        await d.execAsync('PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000;');
+        // WAL with synchronous NORMAL: a commit no longer waits on an fsync (the owner's default, Nov 18); a power cut
+        // can lose the last commits, never corrupt the file.
+        await d.execAsync('PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000; PRAGMA synchronous = NORMAL;');
         const row = await d.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
         for (let v = row?.user_version ?? 0; v < MIGRATIONS.length; v++) {
           await d.withExclusiveTransactionAsync(async (txn) => {
@@ -115,11 +123,41 @@ export function makeSqliteDb(open: () => Promise<SQLiteDatabase>): Db {
     return dbPromise;
   }
 
-  // Every write goes through one queue and one exclusive transaction, so the
-  // background location task and the UI never collide on the connection.
+  // The writer connection, opened once after the main one has migrated, with its own busy timeout: another context's
+  // writer (a background task run apart) is waited for, never failed at once.
+  let writerPromise: Promise<SQLiteDatabase> | null = null;
+  function writer() {
+    if (!writerPromise) {
+      writerPromise = (async () => {
+        await conn();
+        const w = await openWriter!();
+        await w.execAsync('PRAGMA busy_timeout = 5000; PRAGMA synchronous = NORMAL;');
+        return w;
+      })().catch((e) => {
+        writerPromise = null;
+        throw e;
+      });
+    }
+    return writerPromise;
+  }
+
+  // Every write goes through one queue, one at a time, so the background location task and the UI never collide.
+  // With a writer: BEGIN IMMEDIATE on it takes the write lock at once (as the exclusive transaction did) and the
+  // main connection's reads see only what was committed (WAL).
   let queue: Promise<unknown> = Promise.resolve();
   function write(task: (txn: SQLiteDatabase) => Promise<void>): Promise<void> {
-    const run = queue.then(async () => (await conn()).withExclusiveTransactionAsync(task));
+    const run = queue.then(async () => {
+      if (!openWriter) return (await conn()).withExclusiveTransactionAsync(task);
+      const w = await writer();
+      await w.execAsync('BEGIN IMMEDIATE');
+      try {
+        await task(w);
+        await w.execAsync('COMMIT');
+      } catch (e) {
+        await w.execAsync('ROLLBACK').catch(() => {});
+        throw e;
+      }
+    });
     queue = run.catch(() => {});
     return run;
   }
