@@ -1,0 +1,16 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "set",
+        "Pause, then hold Stop; on another",
+        "--reason",
+        "the owner's AllTrails size and place (fix walk-strip-buttons, decision 0220)"
+      ],
+      "body": "- [ ] **Do:** on a walk, tap …, then Pause, then hold Stop; on another, Pause, then Resume and walk on. **Expect:** walking, the strip shows the numbers, … (it opens the walk's options) and a wide Pause, no Stop; paused, a wide orange Resume and a round Stop, no …, the numbers whole on a small phone; held, an orange fill sweeps across Stop and the replay opens; Resume records again (decision 0220).\n",
+      "target": "sha256:ce428d17eb72a62cc742081122c08b969ec6d7b74597be10abc07179aa30be7c"
+    }
+  ]
+}
