@@ -195,11 +195,5 @@ export function intoMeasures(width: number, fontScale: number): IntoMeasures {
   return { indent: 28, gap: 10, pad: 16, icon: 20, headingH: Math.ceil(42 * scale) + 10, headingLines: 1 };
 }
 
-/** WI23: Complexes' rows wear an icon each, as the kind rows do, from glyphs no kind's row uses. */
-export const COMPLEX_ICON: Record<ComplexKind, string> = {
-  shopping: 'cart-outline',
-  markets: 'basket-outline',
-  campuses: 'school-outline',
-  stations: 'bus-outline',
-  civic: 'podium-outline',
-};
+/** WI23: Complexes' rows wear an icon each (`complexes/kinds`, where a complex's kinds are named). */
+export { COMPLEX_ICON } from '../complexes/kinds';
