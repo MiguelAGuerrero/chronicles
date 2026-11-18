@@ -10,8 +10,9 @@ run's specifics. A change every run needs is made here, by the owner's yes, not 
 ```
 You are running one execution of this repository's `/tend` skill on behalf of the repository
 owner, in <repo path>. Read `AGENTS.md`, `.claude/skills/tend/SKILL.md` and
-`.claude/skills/ship.md` first and follow them exactly. The skills disable model invocation:
-carry them out yourself (and `slice`, `vision`, where they are called).
+`.claude/skills/ship.md` first, from your worktree (cut from origin/main; the primary checkout may
+be stale), and follow them exactly. The skills disable model invocation: carry them out yourself
+(and `slice`, `vision`, where they are called).
 
 The run: `/tend <mode and answers>` --deploy=<main|branch>.
 [The answers are the proxy's under the owner's delegation (decision 0157), <date>: write them so in
@@ -30,18 +31,23 @@ worktree, `npm run book:files -- HEAD --max-src 8`), a dependency or a change el
 
 Review handoff. You have no Agent tool and never review your own work in place of a reviewer.
 Review points: <a sweep: after the lenses, then after the diff | a T build: after the diff |
-a G build: after the plan (steward), then after the diff>. At each, write each reviewer's complete,
+a G build: after the plan (steward), then after the diff>. At each, fetch and rebase first, then
+write each reviewer's complete,
 self-contained prompt (absolute paths that exist; at the diff pause the after pictures for every
 reviewer of a screen, each changed state at 320 px and at 390 where width matters, a before picture
 only when the change cannot be judged without one; your own judgment calls for it to rule on) to
 SCRATCH/reviews/<your branch>-<pause>-<agent>-prompt.md. Then give your hand-back (your final
 report, through the hand-back tool you have) as `REVIEW REQUEST:` (agent type and prompt path, one
-per line) and `RESUME WITH: …`. Leave the worktree in place; I resume you with the findings.
+per line) and `RESUME WITH: …`, and end your turn: never wait on a file, never ask me mid-run.
+Leave the worktree in place; I resume you with the findings. In each prompt name every surface that
+shows what you changed (grep the source and every consumer), and for a marker or a line the
+degenerate geometries (coincident, overlapping, a loop's start on its end, off-screen), pictured.
 Reviewers by risk (ship.md, "The faster lane"): words or style only, one (the `ux-reviewer`, or the
 `steward` for the replay's or a VISION line's words); behaviour that touches recording, storage,
 navigation, timing or data, the `auditor` always, with the `ux-reviewer` when a screen changed;
 records only, none[, and a `steward`: this yes was the proxy's (0157)]. One review round for the
-diff; medium and above are fixed, lows filed `[loop]` in their area's DEFERRED section. For "nothing
+diff; medium and above are fixed, lows filed `[loop]` in their area's DEFERRED section, except a
+regression your own change caused, fixed in the run at any severity. For "nothing
 a person sees changes", write the old/new differential as a `*.test.ts` in SCRATCH for the auditor to
 run (it cannot run scripts).
 
@@ -89,8 +95,12 @@ Main moves under you: fetch at each pause and before publishing; if it moved, re
 journeys only if the new commits touch files they cover, else typecheck, lint and npm test, and
 say which. A source conflict is ship.md's stop; STATUS, DEFERRED and the ledger follow 10.3.
 
+A red check: confirm it red at rest, k of n, on main's own export before calling it yours or main's;
+a red that comes and goes with load is a check race until shown otherwise; bisect only with both ends
+confirmed.[ The owner's answers to record in this run's decision: SCRATCH/owner-answers.md, <entries>.]
+
 Economy: commit as soon as each piece works; export once per pause after the last code change.
-A usage limit saves your work; you will be resumed.
+A usage limit or a restart saves your work: stop, say so in one line, and you will be resumed.
 
 Never use AskUserQuestion. Commit trailers: <the session's attribution lines>. No model name
 anywhere else in the repo. Temp files in SCRATCH. node_modules: `cp -al` from the primary if it
@@ -108,8 +118,8 @@ pushed, Pages and the live check; 3. every entry filed, in full, its `Precedent:
 ```
 Read <prompt path> and do exactly what it asks, report-only: edit nothing. You cannot write files,
 so return the full report as your answer. [Also judge <the orchestrator's own question>.]
-Every finding with a failing input or a file and line, its severity, the fix and a test name
-`<scope> audit N`[ (auditor: also the tests that cannot fail) | (steward: each finding with the lines
+Every finding titled "<agent> N" (auditor 1, ux 1, steward 1: the run numbers the audits) with a
+failing input or a file and line, its severity, the fix and a test name[ (auditor: also the tests that cannot fail) | (steward: each finding with the lines
 it quotes, and your Silent questions verbatim)]; the commands you ran with their counts; a verdict.
 ```
 
@@ -133,6 +143,27 @@ the live check, cleanup, and the final report in the shape I asked for.
 ```
 You were stopped by <a usage limit | an API error>; it has reset. Your worktree is intact
 (HEAD <sha>, <uncommitted state>). Your last step was "<step>". The worker restarted, so background
-processes and exports are gone: check `git status` and `git log --oneline origin/main..HEAD`, then
+processes and exports are gone: check `git status --short -uall` and `git log --oneline
+origin/main..HEAD`, then
 carry on from there with the rulings you have.
+```
+
+## The non-loop run
+
+For an owner's yes the loop cannot build (orchestrator section 2.3): a rule file split, a rule line
+reworded, a VISION edit, a decision superseded.
+
+```
+You make one change to this repository at the owner's request, in <repo path>; you are not a /tend
+run, and check:tend does not apply to your commits. Read `AGENTS.md` and, from your worktree (cut
+from origin/main), the files you change, whole.
+The owner's answer, verbatim, <date>: "<answer>" to <entry>, as STATUS holds it: "<title>".
+The job: <the shape, exactly>. Nothing else: no rewording beyond it, no fix on the way (file it).
+[A decision record for the call: number it in your worktree with `npm run book:next-decision -- --check <NNNN>
+<file>` after the last fetch.] The entry leaves the inbox with `npm run records -- inbox remove <id> --reason
+"the owner's yes, <date>"`; ship.md "The record documents" holds.
+Checks: `npm run check:docs`[, typecheck, lint, npm test when a test or code moves]. Commit on your
+branch and push nothing: I read the diff and land it. Commit trailers: <the session's attribution
+lines>. Never use AskUserQuestion. Return: the commits, the checks with their counts, and anything
+you were unsure of.
 ```

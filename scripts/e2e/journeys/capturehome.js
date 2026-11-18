@@ -68,6 +68,8 @@ async function run(h) {
   const { url, BASE, check, shot, tabTo } = h;
   const { c, pg } = await h.freshPage('capturehome', { permissions: ['geolocation', 'microphone'] });
   await c.addInitScript(COUNT_GEO);
+  // The map's projection for the e2e (`window.__project`, WalkMap.web.tsx), to find the walker on Explore (tend tabs audit 30).
+  await c.addInitScript(() => { window.__perf = {}; });
   const shown = async (sel) => (await pg.locator(sel).filter({ visible: true }).count()) > 0;
   const there = (sel, timeout = 10000) => pg.waitForSelector(sel, { timeout }).then(() => true, () => false);
   // The journal's toolbar at the foot (JN41, decision 0178).
@@ -117,6 +119,76 @@ async function run(h) {
   await pg.waitForTimeout(1500);
   await pg.click('[data-testid=walk-minimize]');
   await pg.waitForSelector('[data-testid=recording-bar]', { timeout: 10000 });
+  // A photo from the bar on Explore, which leaves its Edit pill up (T12).
+  const barPhoto = async () => {
+    await tabTo(pg, 'explore');
+    await pg.waitForSelector('[data-testid=bar-photo]', { timeout: 10000 }).catch(() => {});
+    const [chooser] = await Promise.all([pg.waitForEvent('filechooser', { timeout: 10000 }).catch(() => null), pg.click('[data-testid=bar-photo]').catch(() => {})]);
+    await chooser?.setFiles(require('path').join(h.scriptsDir, 'fixtures', 'photo.jpg'));
+    return pg.waitForSelector('[data-testid=bar-edit-offer]', { timeout: 10000 }).then(() => true, () => false);
+  };
+  // tend tabs T36 (the proxy's yes under 0157, 2026-11-18): with the bar's Edit pill up, its room lifts Explore's map, so
+  // the press hint steps aside and at 320 x 700 the walker is under no words; it shows again as the pill goes, none of its
+  // five seconds (EC14's "after a few seconds on screen it is marked seen") having run while it stood aside. Before the
+  // steps: its half minute between steps 5 and 6 left the stop unable to place HC10's note on the trace.
+  {
+    const hint = '[data-testid=atlas-press-hint]';
+    // tend tabs audit 30 (the review's ux 1, steward 1): measured, not counted. Explore draws the walker in the map's
+    // canvas (its 'points' layer, radius 7 and a 2 px ring), at the map's `data-walker`; a hint that is not drawn has no box.
+    const rect = (sel) => pg.evaluate((q) => {
+      const r = document.querySelector(q)?.getBoundingClientRect();
+      return r && r.width > 0 ? { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height) } : null;
+    }, sel);
+    const walkerBox = () => pg.evaluate(() => {
+      const maps = [...document.querySelectorAll('[data-walker]')].filter((e) => e.getAttribute('data-walker') && e.getBoundingClientRect().width > 0);
+      if (!maps.length || !window.__project) return null;
+      const [x, y] = window.__project(maps[maps.length - 1].getAttribute('data-walker').split(',').map(Number));
+      return { x: Math.round(x - 9), y: Math.round(y - 9), w: 18, h: 18 };
+    });
+    const walkerClear = async () => {
+      const walker = await walkerBox();
+      const words = await rect(hint);
+      return { walker, words, clear: !!walker && !overlap(walker, words) };
+    };
+    await tabTo(pg, 'explore');
+    const hintBefore = await pg.waitForSelector(hint, { timeout: 10000 }).then(() => true, () => false);
+    const up = await barPhoto();
+    await pg.waitForTimeout(400);
+    const withPill = await walkerClear();
+    await shot(pg, 'tabs-T36-pill-on-explore');
+    await pg.setViewportSize({ width: 320, height: 700 });
+    await pg.waitForTimeout(500);
+    const withPill320 = await walkerClear();
+    await shot(pg, 'tabs-T36-pill-on-explore-320');
+    await pg.setViewportSize({ width: 390, height: 844 });
+    await pg.waitForTimeout(400);
+    // tend tabs audit 29: the pill's Edit opens the editor (a Modal); the hint counts none of its seconds beneath it.
+    await pg.click('[data-testid=bar-edit-offer] [data-testid=capture-edit]').catch(() => {});
+    const editor = await pg.waitForSelector('[data-testid=media-editor]', { timeout: 10000 }).then(() => true, () => false);
+    await pg.waitForTimeout(6000);
+    await pg.click('[data-testid=edit-close]').catch(() => {});
+    const afterEditor = await pg.waitForSelector(hint, { timeout: 5000 }).then(() => true, () => false);
+    check(editor && afterEditor,
+      `tend tabs audit 29: six seconds in the media editor, opened from the pill's Edit, leave the press hint unseen: it shows once the editor closes (${JSON.stringify({ editor, afterEditor })})`);
+    // The pill again, up past the hint's five seconds, then closed.
+    const upAgain = await barPhoto();
+    await pg.waitForTimeout(6000);
+    await pg.click('[data-testid=bar-edit-offer-close]').catch(() => {});
+    const back = await pg.waitForSelector(hint, { timeout: 5000 }).then(() => true, () => false);
+    await shot(pg, 'tabs-T36-hint-back');
+    await pg.setViewportSize({ width: 320, height: 700 });
+    await pg.waitForTimeout(500);
+    const back320 = await walkerClear();
+    await shot(pg, 'tabs-T36-hint-back-320');
+    await pg.setViewportSize({ width: 390, height: 844 });
+    // Shown again, it is marked seen after its own few seconds on screen, and goes.
+    await pg.waitForTimeout(6000);
+    const after = await pg.locator(hint).count();
+    // back320, the pill gone at 320 x 700, is measured and not held: the two-line hint can reach the walker with no pill
+    // (filed for the owner with tend tabs audit 30).
+    check(hintBefore && up && upAgain && withPill.clear && withPill320.clear && back && after === 0,
+      `tend tabs T36, tend tabs audit 30: while the bar's Edit pill is up the walker stands clear of Explore's press hint (390 and 320 x 700); the hint shows again as the pill goes, and is marked seen only after its few seconds on screen (${JSON.stringify({ hintBefore, up, upAgain, withPill, withPill320, back, after, back320 })})`);
+  }
   // A few steps along Wickenden Street, so the walk has a trace and a fresh fix to place by. At a walker's pace
   // (1.5 m a second): 12 m a second was over MAX_WALK_SPEED_MS (lib/geo), so every step was dropped as a jump and the
   // walk kept only its first fix (tend captures audit 2).
@@ -128,14 +200,6 @@ async function run(h) {
   for (let i = 0; i < 6; i++) await step(i);
   // The walk's last fix: the context sends no new one until the next step, so it ages from here.
   const fixAt = Date.now();
-  // A photo from the bar on Explore, which leaves its Edit pill up (T12).
-  const barPhoto = async () => {
-    await tabTo(pg, 'explore');
-    await pg.waitForSelector('[data-testid=bar-photo]', { timeout: 10000 }).catch(() => {});
-    const [chooser] = await Promise.all([pg.waitForEvent('filechooser', { timeout: 10000 }).catch(() => null), pg.click('[data-testid=bar-photo]').catch(() => {})]);
-    await chooser?.setFiles(require('path').join(h.scriptsDir, 'fixtures', 'photo.jpg'));
-    return pg.waitForSelector('[data-testid=bar-edit-offer]', { timeout: 10000 }).then(() => true, () => false);
-  };
   // tend tabs audit 16: the offer lives with the bar, so a screen opened over the tabs (a day's replay) ends it, as
   // decision 0149 says; back on the tabs the bar is whole and nothing breaks.
   {

@@ -132,7 +132,12 @@ function markGreen(greens, name, k, now) {
 }
 
 function writeGreen(root, greens) {
-  fs.writeFileSync(path.join(root, GREEN_FILE), `${JSON.stringify(greens, null, 2)}\n`);
+  // Written whole and renamed into place: journeys run side by side (e2e:batch), and a reader that met a half-written
+  // file would read it as empty and write the others' passes away.
+  const file = path.join(root, GREEN_FILE);
+  const tmp = `${file}.${process.pid}.tmp`;
+  fs.writeFileSync(tmp, `${JSON.stringify(greens, null, 2)}\n`);
+  fs.renameSync(tmp, file);
 }
 
 // ---------------------------------------------------------------------------------------------------------------------

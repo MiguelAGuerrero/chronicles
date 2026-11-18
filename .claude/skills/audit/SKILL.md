@@ -30,6 +30,9 @@ swept later. The map of the skills is `.claude/skills/README.md`.
 
 ## 2. Spawn the auditor
 
+If the slice's own UI review and cold find have not run yet, they run in this round, beside the auditor and the
+steward, never as a round of their own before it (decision 0204).
+
 Run the `auditor` subagent (`.claude/agents/auditor.md`) with the Agent tool.
 Give it the three inputs above and ask for a report-only pass that:
 

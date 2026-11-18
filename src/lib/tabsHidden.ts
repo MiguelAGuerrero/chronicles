@@ -1,5 +1,5 @@
 // @layer shell
-// @instance: stores (lib/store) the full-screen cards, every Modal and the bar's stop set, read by the tab layout and the recording bar
+// @instance: stores (lib/store) the full-screen cards, every Modal, the bar's stop and its Edit pill set, read by the tab layout, the recording bar and Explore
 import type { BarStop } from './recordingBar';
 import { createStore } from './store';
 
@@ -53,3 +53,9 @@ export function holdModal(): () => void {
  * back and a second Stop (tend tabs audit 26).
  */
 export const barStop = createStore<BarStop | null>(null);
+
+/**
+ * True while the recording bar's Edit pill stands above it (`lib/recordingBar`, `barOfferShown`): set by the bar, cleared as
+ * it goes, so Explore's press hint steps aside meanwhile (tend tabs T36).
+ */
+export const barOfferUp = createStore(false);
