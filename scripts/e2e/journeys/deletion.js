@@ -164,8 +164,24 @@ async function checks(h) {
         // tend deletion T30: the walk's moments and streets in words, whole at 320 px too.
         if (!deleteFirst.seen) {
           deleteFirst.seen = true;
-          await page.setViewportSize({ width: 320, height: 844 });
-          await page.waitForTimeout(400);
+          // tend deletion 1: "Delete walk" on one line and both actions at least 44 px, side by side at 390 and
+          // stacked at 320, the confirm on top and Cancel beneath (HIG Alerts; Material dialogs).
+          const actions = () => page.evaluate(() => {
+            const box = (id) => document.querySelector(`[data-testid=${id}]`).getBoundingClientRect();
+            const label = [...document.querySelectorAll('[data-testid=confirm-delete] *')].find((e) => e.childElementCount === 0 && e.textContent.trim());
+            const range = document.createRange();
+            range.selectNodeContents(label);
+            const lines = new Set([...range.getClientRects()].filter((r) => r.width > 0).map((r) => Math.round(r.top))).size;
+            const [d, c] = [box('confirm-delete'), box('confirm-cancel')];
+            return { lines, text: label.textContent, del: [Math.round(d.width), Math.round(d.height)], cancel: [Math.round(c.width), Math.round(c.height)], stacked: d.bottom <= c.top, side: Math.abs(d.top - c.top) < 1 && c.right <= d.left };
+          });
+          for (const w of [390, 320]) {
+            await page.setViewportSize({ width: w, height: 844 });
+            await page.waitForTimeout(400);
+            const a = await actions();
+            check(a.text === 'Delete walk' && a.lines === 1 && [...a.del, ...a.cancel].every((n) => n >= 44) && (w === 320 ? a.stacked : a.side),
+              `tend deletion 1: at ${w} px a walk delete's "Delete walk" is one line, both actions at least 44 px, ${w === 320 ? 'stacked, the confirm on top' : 'side by side, Cancel leading'} (${JSON.stringify(a)})`);
+          }
           await shot(page, '27-walk-confirm-320');
           const narrow = await page.evaluate(() => {
             const c = document.querySelector('[data-testid=confirm]');

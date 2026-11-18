@@ -110,6 +110,18 @@ export interface ConfirmText {
   confirm: string;
 }
 
+/** Below this window width a confirm's two actions no longer fit side by side ("Delete walk" wrapped at 320 px). */
+export const CONFIRM_STACK_BELOW = 340;
+
+/**
+ * A confirm's two actions, in reading order (tend deletion 1): a row, Cancel leading and the confirm trailing, where
+ * both fit; below `CONFIRM_STACK_BELOW` a stack, the confirm on top and Cancel at the bottom, as both platforms'
+ * alerts stack theirs (HIG Alerts; Material dialogs, "Confirming actions appear above dismissive actions").
+ */
+export function confirmActions(windowWidth: number): { stacked: boolean; order: ['cancel', 'confirm'] | ['confirm', 'cancel'] } {
+  return windowWidth < CONFIRM_STACK_BELOW ? { stacked: true, order: ['confirm', 'cancel'] } : { stacked: false, order: ['cancel', 'confirm'] };
+}
+
 /** D4: what deleting a walk takes, its counts in words: "Its trace, three moments and twelve streets walked go." (tend deletion T30). */
 export function walkDeleteText(o: { moments: number; streets: number; bytes: number }): ConfirmText {
   const parts = ['Its trace'];
