@@ -1,0 +1,23 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "slice",
+        "row",
+        "add",
+        "--top"
+      ],
+      "body": "| More attractions (every museum by its type, Culture alone unless listed; nature reserves and wildlife refuges; every garden type; amusement and water parks with zoos and aquariums, \"Zoos and amusement parks\"; piers and boardwalks; suspension bridges and national monuments; from Wikidata, contract v6; MA1-MA9, decision 0197) | built 2026-11-17 on `claude/explorer-refinements-categories-audit-nhalt4`; deploying; contract v6 (chronicles-data's `claude/more-attractions`) merges after; native unverified | `claude/explorer-refinements-categories-audit-nhalt4` | `specs/more-attractions/spec.md` | not audited; the steward not run (usage limit) |\n"
+    },
+    {
+      "argv": [
+        "inflight",
+        "remove",
+        "More attractions (every museum by type",
+        "--reason",
+        "moved to Slices as it ships"
+      ],
+      "target": "sha256:d606b16259fc8774960c5bce4a0390058694142a8a7dc2386eea56fdd8503029"
+    }
+  ]
+}

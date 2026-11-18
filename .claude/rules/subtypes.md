@@ -41,3 +41,8 @@ come from chronicles-data's contract v4 (its ST1-ST10); OpenStreetMap locates a 
   (`SAME_UNNAMED_M`, XS14); named ones keep 0103's rule, indexed by name (never a scan inside a loop).
 - **"What I'm into"** draws a heading per category (`kind-heading-<category>`, a header, ink) before its first row; a
   heading is a label only, never a count (XS19).
+- **More attractions (MA1-MA9, decision 0198; contract v6):** museums by type (`museum_by_type`, presence `museum` with no
+  `recorded`, so Culture alone; a listed museum stays `museum` and lights History too, PK1), nature reserves (subtype
+  Nature reserves under Parks and gardens), amusement and water parks (presence `amusement`, the kind "Zoos, aquariums and
+  amusement parks"), piers and boardwalks (subtype under Buildings and structures). `PRESENCE_CODE` p8, nothing carried.
+  The data ships after the app (the app leaves out a class it does not know).

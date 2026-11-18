@@ -544,6 +544,8 @@ export default function Replay() {
         initialCenter={data.fixes[0] ? [data.fixes[0].lon, data.fixes[0].lat] : undefined}
         covered={beat === 'reading'}
         veil
+        // The town borders over the veil, at a lighter fill (decision 0199).
+        bordersOverVeil
         // The walk has ended: its last point is marked (QL2), where the whole trace ends in every beat, never at
         // the tip of the path being told (tend replay 2).
         ended={data.runs}

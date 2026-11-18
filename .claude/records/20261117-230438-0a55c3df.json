@@ -1,0 +1,22 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inflight",
+        "add"
+      ],
+      "body": "| More attractions (every museum by type, nature reserves, every garden type, amusement and water parks, piers and boardwalks, suspension bridges and national monuments, from Wikidata; MA1-MA9, decision 0197; the data side is chronicles-data's AT1-AT6, contract v6) | `claude/explorer-refinements-categories-audit-nhalt4` | in progress 2026-11-17: spec, decision and tests first committed; unit tests green; contract v6 on chronicles-data's `claude/more-attractions`, merged only after this ships; native unverified; spec `specs/more-attractions/spec.md` |\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "More attractions",
+        "--new"
+      ],
+      "body": "- [owner] Outside sources wait until each licence is confirmed at its source (the owner, Nov 17): the Smithsonian's outdoor sculpture survey (about 32,000; CC0 and coordinates unconfirmed), the National Register's map layer and NPS National Natural Landmarks (likely public domain), state historical-marker programs (Texas, Virginia, Pennsylvania; attribution likely), city public-art inventories (New York, San Francisco, Buffalo; open terms, a schema each), the Forest Service's recreation sites (CC BY 4.0). The research notes: research_notes/Chronicles attraction data sources/ in the session's workspace.\n",
+      "intro": "What the more-attractions slice left out (`specs/more-attractions`, decision 0197).\n"
+    }
+  ]
+}

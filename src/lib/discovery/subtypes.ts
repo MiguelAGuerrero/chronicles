@@ -54,6 +54,7 @@ export const SUBTYPES: readonly Subtype[] = [
   { kind: 'forts', parent: 'structures', label: 'Forts and armories', plural: 'Forts', single: null, on: true, small: false },
   { kind: 'towers', parent: 'structures', label: 'Water and clock towers', plural: 'Towers', single: null, on: true, small: false },
   { kind: 'old_machines', parent: 'structures', label: 'Old machines', plural: 'Old machines', single: 'An old machine', on: true, small: false },
+  { kind: 'piers', parent: 'structures', label: 'Piers and boardwalks', plural: 'Piers', single: null, on: true, small: false },
   { kind: 'taverns', parent: 'structures', label: 'Old taverns and inns', plural: 'Old taverns', single: null, on: true, small: false },
   { kind: 'old_stones', parent: 'structures', label: 'Old stones', plural: 'Old stones', single: 'An old stone', on: false, small: true },
   // History: Places of worship, Cemeteries.
@@ -61,6 +62,7 @@ export const SUBTYPES: readonly Subtype[] = [
   { kind: 'mausoleums', parent: 'cemeteries', label: 'Mausoleums and tombs', plural: 'Mausoleums', single: null, on: true, small: false },
   // Parks & green spaces.
   { kind: 'gardens', parent: 'parks', label: 'Gardens', plural: 'Gardens', single: null, on: true, small: false },
+  { kind: 'nature_reserves', parent: 'parks', label: 'Nature reserves', plural: 'Nature reserves', single: null, on: true, small: false },
   { kind: 'community_gardens', parent: 'parks', label: 'Community gardens', plural: 'Community gardens', single: 'A community garden', on: true, small: false },
   { kind: 'waterfalls', parent: 'nature', label: 'Waterfalls', plural: 'Waterfalls', single: 'A waterfall', on: true, small: false },
   { kind: 'caves', parent: 'nature', label: 'Caves', plural: 'Caves', single: null, on: true, small: false },
