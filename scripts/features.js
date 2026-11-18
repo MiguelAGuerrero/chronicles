@@ -157,7 +157,7 @@ const FEATURES = [
       'src/components/{MarkPinView,ExploreSettings,ReminderCard,RemindEditor,OpenInMapsButton}.tsx',
     ],
     journeys: ['marks', 'atlas', 'grading', 'snap', 'carousel', 'curiosities', 'freelook', 'small-places', 'placesearch', 'subtypes', 'openmaps', 'openmaps-chronicle'],
-    specs: ['v1-discovery', 'explore-atlas', 'pocket-alert-nudge', 'reminder-bell', 'atlas-grading', 'town-presence', 'discrete-navigation', 'explore-carousel', 'places-worth-the-stop', 'places-pipeline', 'remarkable-and-public', 'places-out-of-town', 'presence-and-kinds', 'whole-towns', 'community-parks', 'free-look', 'small-places', 'place-search', 'explore-go-here', 'go-here-everywhere', 'explore-subtypes', 'more-attractions', 'open-in-maps-here'],
+    specs: ['v1-discovery', 'explore-atlas', 'pocket-alert-nudge', 'reminder-bell', 'atlas-grading', 'town-presence', 'discrete-navigation', 'explore-carousel', 'places-worth-the-stop', 'places-pipeline', 'remarkable-and-public', 'places-out-of-town', 'presence-and-kinds', 'whole-towns', 'community-parks', 'free-look', 'small-places', 'place-search', 'explore-go-here', 'go-here-everywhere', 'explore-subtypes', 'more-attractions', 'open-in-maps-here', 'what-im-into-page'],
   },
   {
     name: 'kind-walk',
@@ -508,7 +508,9 @@ const RENAMED = {
   'video-thumbnails': { VS: 'VT' },
 };
 
-const IN_PROGRESS = {};
+const IN_PROGRESS = {
+  'what-im-into-page': { branch: 'claude/what-im-into-page-spec', since: '2026-11-18' },
+};
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));
 

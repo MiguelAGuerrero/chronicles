@@ -188,3 +188,24 @@ source.
   unverified. **Unverified**.
 - **Swarm**: a check-in marks a place with an optional note and photo; a history map of places checked into, with
   streaks and stickers (counter-examples). Source: from memory, unverified. **Unverified**.
+
+### Choose what you are shown: a long list of switches (Earn)
+
+Recorded for the What I'm into page (decision 0192, `specs/what-im-into-page`).
+
+- **iOS Settings, Notifications** (iOS): the Notifications page lists the apps under "Notification Style"; a tap on
+  one opens that app's own page of switches (Allow Notifications, Time Sensitive Notifications, Badges), with "Customize
+  Notifications" a further row for the app's types; each switch acts at once, there is no Save, and Back returns.
+  Source: https://support.apple.com/guide/iphone/change-notification-settings-iph7c3d96bab/ios , read Nov 18, 2026.
+  **Verified**.
+- **Android system settings, an app's notification categories** (Android 8 and later): each app's notification
+  settings are a page of their own listing its categories, each a switch, which the app may gather under group
+  headings ("Notification channel settings with groups for personal and work accounts"). Source:
+  https://developer.android.com/develop/ui/views/notifications/channels , read Nov 18, 2026. **Verified**.
+- **Google Maps** (iOS, Android): Settings, then Notifications, opens a page of its own whose switches sit under
+  plain section headings; the headings scroll away with their rows. Source: from memory, unverified. **Unverified**.
+- **AllTrails** (iOS): Filters opens a full-screen page of sections (activities, difficulty, length, attractions), a
+  heading over each block of chips; a filter for one search, not a lasting preference. Source: from memory,
+  unverified. **Unverified**.
+- **iOS Contacts** (iOS): a plain list whose letter headings stay pinned at the top while their names scroll under
+  them, the next heading pushing the last one out. Source: from memory, unverified. **Unverified**.
