@@ -188,7 +188,7 @@ async function run(h) {
     while (sc && !(sc.scrollHeight > sc.clientHeight + 4 && /(auto|scroll)/.test(getComputedStyle(sc).overflowY))) sc = sc.parentElement;
     if (!sc) return { bad: ['no scroller'] };
     const box = sc.getBoundingClientRect();
-    const rows = [...page.querySelectorAll('[role=switch]')];
+    const rows = [...page.querySelectorAll('[role=switch][data-testid]')];
     const heads = [...page.querySelectorAll('[data-testid^=kind-heading-]')];
     const leftOf = (r) => r.getBoundingClientRect().left;
     const parentOf = (row) => {
@@ -221,8 +221,9 @@ async function run(h) {
       checked++;
       const hb = head.getBoundingClientRect();
       heights.add(Math.round(hb.height));
-      const under = document.elementFromPoint(box.x + box.width - 60, hb.bottom + 8);
-      const row = under && under.closest('[role=switch]');
+      // The first row showing 12 px under the heading (PIN_SLACK): a sliver of the row before it doesn't count.
+      const under = document.elementFromPoint(box.x + 30, hb.bottom + 12);
+      const row = under && under.closest('[role=switch][data-testid]');
       if (row && row.getBoundingClientRect().top >= hb.bottom - 2) {
         const parent = leftOf(row) > box.x + 20 ? parentOf(row) : null;
         const said = kindLine(head);
@@ -406,7 +407,18 @@ async function run(h) {
   // WI20: from the walk's drawer, Back reads "Walk", the arrow and the word, and is heard as "Walk, back".
   const backLook = await pg.evaluate(() => {
     const b = [...document.querySelectorAll('[aria-label="Walk, back"], [aria-label="Go back"]')].find((e) => e.getBoundingClientRect().width > 0);
-    return b ? { label: b.getAttribute('aria-label'), text: b.innerText.replace(/[^A-Za-z ]/g, '').trim(), w: b.getBoundingClientRect().width } : null;
+    // The header keeps hidden copies of its labels for measuring: read the words drawn.
+    const drawn = (e) => {
+      const r = e.getBoundingClientRect();
+      if (r.width === 0 || r.height === 0) return false;
+      for (let x = e; x && x !== b.parentElement; x = x.parentElement) {
+        const cs = getComputedStyle(x);
+        if (cs.opacity === '0' || cs.visibility === 'hidden' || cs.position === 'absolute') return false;
+      }
+      return true;
+    };
+    const words = b ? [...b.querySelectorAll('*')].filter((x) => x.childElementCount === 0 && /[A-Za-z]/.test(x.textContent || '') && drawn(x)).map((x) => x.textContent.trim()) : [];
+    return b ? { label: b.getAttribute('aria-label'), text: words.join(' '), w: b.getBoundingClientRect().width } : null;
   });
   check.todo(!!backLook && backLook.label === 'Walk, back' && backLook.text === 'Walk', `WI20: opened from the walk, Back reads "Walk" and is heard as "Walk, back" (${JSON.stringify(backLook)})`);
   await shot(pg, 'into-page-from-walk');

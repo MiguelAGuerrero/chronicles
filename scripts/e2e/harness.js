@@ -551,15 +551,16 @@ async function createHarness() {
       const page = document.querySelector('[data-testid=into-page]');
       if (!page) return ['no page'];
       const box = page.getBoundingClientRect();
-      return [...page.querySelectorAll('[role=switch]')]
+      // A row is the role=switch with a testID; the Switch drawn inside it is a role=switch of its own.
+      return [...page.querySelectorAll('[role=switch][data-testid]')]
         .filter((r) => {
           const b = r.getBoundingClientRect();
           return b.height > 0 && b.top > box.top + 60 && b.bottom < box.bottom;
         })
         .filter((r) => {
-          const sw = r.querySelector('input') || [...r.querySelectorAll('div')].at(-1);
-          const b = sw && sw.parentElement.getBoundingClientRect();
-          return !b || b.width < 20 || b.height < 10;
+          const sw = r.querySelector('[role=switch]');
+          const b = sw && sw.getBoundingClientRect();
+          return !b || b.width < 20 || b.height < 10 || getComputedStyle(sw).visibility === 'hidden';
         })
         .map((r) => r.getAttribute('data-testid'));
     });
