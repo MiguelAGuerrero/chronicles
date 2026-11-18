@@ -291,7 +291,9 @@ the loop built included), counts as `rough` whoever landed the change.
 (`scripts/tend.js`). Over the last 14 days of `origin/main` it names the
 slices that grew (commits carrying a spec's criteria and changing the app's
 source), counts refinement beside them, groups the areas by state, counts the
-open `T` and `G` entries, and writes its reading to the ledger. The reading is the script's; a red `main` in the
+open `T` and `G` entries, and writes its reading to the ledger. It reads the
+ledger and the inbox as `origin/main` holds them: this run's unpushed record
+is not counted. The reading is the script's; a red `main` in the
 window is the one sign it cannot see, and reads as outgrowing its base.
 
 | Reading | Means | The run ends by |

@@ -5,9 +5,12 @@
 //                                                       refinement beside them, the areas by state (an
 //                                                       area changed since its sweep is rough), the
 //                                                       open entries, and a reading (shallow-clone
-//                                                       boundary commits are left out)
+//                                                       boundary commits are left out); the ledger and
+//                                                       the inbox as origin/main holds them, not the
+//                                                       branch's unpushed record
 //   node scripts/tend.js log <range> '<json>'          append this run's line to the run log: what the
-//                                                       range holds (shipped, audit fixes, reverts) with
+//                                                       range holds (every finding a subject names:
+//                                                       shipped, audit fixes, builds, reverts) with
 //                                                       what only the run knows (found, filed, answers)
 //   node scripts/tend.js next                           the area to sweep when the owner names none
 //   node scripts/tend.js e2e-due [--days N] [--json]    whether the weekly full pass is due: no line of main's run
@@ -34,6 +37,7 @@ const ROOT = process.env.TEND_ROOT ? path.resolve(process.env.TEND_ROOT) : path.
 const LEDGER = path.join(ROOT, '.claude', 'skills', 'tend', 'ledger.json');
 const RUNS = path.join(ROOT, '.claude', 'skills', 'tend', 'runs.jsonl');
 const RUNS_REL = '.claude/skills/tend/runs.jsonl';
+const LEDGER_REL = '.claude/skills/tend/ledger.json';
 const STATES = ['rough', 'settling', 'polished', 'resting'];
 const LIMITS = { days: 14, rough: 3, inbox: 10, proposals: 3 };
 
@@ -310,15 +314,43 @@ function fullPassDue(lines, today, days = 7) {
  * verdict on the run: reading them is `/tend reflect`'s job and the owner's (decision 0139).
  */
 function runLine({ date, subjects, given }) {
-  const ids = (re) => subjects.map((s) => re.exec(s)?.[1]).filter(Boolean);
+  const found = subjects.map(findingsOf);
+  const all = (key) => found.flatMap((f) => f[key]);
   return {
     date,
     ...given,
-    shipped: ids(/^tend \S+ (\d+)\b/).map(Number).sort((a, b) => a - b),
-    auditFixes: ids(/^tend \S+ audit (\d+)\b/).map(Number).sort((a, b) => a - b),
-    built: ids(/^tend \S+ (T\d+)\b/),
+    shipped: all('shipped').sort((a, b) => a - b),
+    auditFixes: all('audit').sort((a, b) => a - b),
+    built: all('built'),
     reverted: subjects.filter((s) => /^Revert "tend /.test(s)).map((s) => testName(s.replace(/^Revert "/, '')) ?? s),
   };
+}
+
+const FINDING = String.raw`(?:audit \d+(?:-\d+)?|\d+(?:-\d+)?|T\d+)`;
+const FINDINGS = new RegExp(`^tend \\S+ (${FINDING}(?:, ${FINDING})*)(?![\\w-])`);
+
+/**
+ * The findings a loop commit's subject names, every one: a clause per finding or a list ("tend tabs
+ * 12: …; tend tabs 13: …", "tend map 17, 18: …", "tend explore audit 42, audit 43: …", "tend tabs
+ * audit 26-28: …"). A number after "audit" in a list is an audit fix too; a number in the words is none.
+ */
+function findingsOf(subject) {
+  const out = { shipped: [], audit: [], built: [] };
+  for (const clause of subject.split(/;\s+(?=tend \S+ )/)) {
+    const m = FINDINGS.exec(clause.trim());
+    if (!m) continue;
+    let audit = false;
+    for (const token of m[1].split(', ')) {
+      if (/^T\d+$/.test(token)) {
+        out.built.push(token);
+        continue;
+      }
+      if (token.startsWith('audit ')) audit = true;
+      const [a, b = a] = token.replace(/^audit /, '').split('-').map(Number);
+      for (let n = a; n <= b && n - a < 100; n++) (audit ? out.audit : out.shipped).push(n);
+    }
+  }
+  return out;
 }
 
 function git(...args) {
@@ -384,16 +416,35 @@ function sweptAt(ledger) {
   };
 }
 
+/** A file as origin/main holds it (`show`), or this checkout's (`here`) where main's cannot be read. */
+function mainOrHere(rel, show, here) {
+  const text = show(rel);
+  return text === null || text === undefined ? here(rel) : text;
+}
+
+const showMain = (rel) => {
+  try {
+    return execFileSync('git', ['show', `origin/main:${rel}`], { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], maxBuffer: 64 * 1024 * 1024 });
+  } catch {
+    return null;
+  }
+};
+const readHere = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
+
+/**
+ * The balance reads origin/main alone: its commits, its ledger's areas and its open entries. The
+ * run's own unpushed record (an area's new state, the entries it filed) is not main's yet.
+ */
 function balance(argv) {
   const at = argv.indexOf('--days');
   const days = at >= 0 ? Number(argv[at + 1]) : LIMITS.days;
   const known = knownPrefixes();
   const t = tally(log(`--since=${days} days ago`, 'origin/main'), known);
-  const ledger = readLedger();
+  const ledger = JSON.parse(mainOrHere(LEDGER_REL, showMain, readHere));
   const counts = changesByArea(sweptAt(ledger));
   const changed = Object.fromEntries(Object.keys(ledger.areas ?? {}).map((a) => [a, counts[a] > 0]));
   const by = areasByState(ledger.areas, changed);
-  const status = readStatus(fs.readFileSync(path.join(ROOT, 'docs', 'STATUS.md'), 'utf8'));
+  const status = readStatus(mainOrHere('docs/STATUS.md', showMain, readHere));
   const r = reading({ slices: t.slices.length, rough: by.rough.length, ...status });
   const out = {
     date: new Date().toISOString().slice(0, 10),
@@ -407,8 +458,10 @@ function balance(argv) {
   };
   console.log(JSON.stringify(out, null, 2));
   if (argv.includes('--write')) {
-    ledger.balance = out;
-    fs.writeFileSync(LEDGER, JSON.stringify(ledger, null, 2) + '\n');
+    // Into this checkout's ledger, beside the run's own record.
+    const mine = readLedger();
+    mine.balance = out;
+    fs.writeFileSync(LEDGER, JSON.stringify(mine, null, 2) + '\n');
   }
 }
 
@@ -546,4 +599,4 @@ if (require.main === module) {
   }
 }
 
-module.exports = { FORBIDDEN, LIMITS, STATES, classify, criteriaPrefixes, tally, areasByState, readStatus, reading, nextArea, isLoops, dropBoundary, testName, tendCommitProblems, citedOwnEdits, rewritesBaseLines, logProblems, runLine, fullPassDue };
+module.exports = { FORBIDDEN, LIMITS, STATES, classify, criteriaPrefixes, tally, areasByState, readStatus, reading, nextArea, isLoops, dropBoundary, testName, tendCommitProblems, citedOwnEdits, rewritesBaseLines, mainOrHere, findingsOf, logProblems, runLine, fullPassDue };

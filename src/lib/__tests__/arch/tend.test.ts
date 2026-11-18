@@ -27,6 +27,7 @@ const tend = createRequire(__filename)(join(ROOT, 'scripts', 'tend.js')) as {
   tendCommitProblems(c: { subject: string; body: string; files: File[]; added?: string; rewritesLog?: boolean; rewritesRules?: string[] }): string[];
   citedOwnEdits(commits: { subject: string; body: string; files: File[] }[]): { subject: string; problem: string }[];
   rewritesBaseLines(removed: string[], base: string): boolean;
+  mainOrHere(rel: string, show: (rel: string) => string | null, here: (rel: string) => string): string;
   logProblems(given: unknown): string[];
   runLine(r: { date: string; subjects: string[]; given: Record<string, unknown> }): Record<string, unknown>;
   fullPassDue(lines: string[], today: string, days?: number): { due: boolean; last: { date: string; base: string | null } | null; dueFrom: string | null };
@@ -385,4 +386,34 @@ test('tend 0181: the full pass is due when no line of the run log says "e2e":"fu
   assert.deepEqual(tend.fullPassDue([], '2026-11-16'), { due: true, last: null, dueFrom: null });
   const runs = read('.claude/skills/tend/runs.jsonl').split('\n').filter(Boolean);
   assert.equal(typeof tend.fullPassDue(runs, '2026-11-16').due, 'boolean', 'the log as it is reads');
+});
+
+test('tend run log: the run log counts every finding a grouped subject names, not only the first', () => {
+  const line = tend.runLine({
+    date: '2026-11-18', given: sweep,
+    subjects: [
+      "tend tabs 12: the bar's way back does nothing while the walk is stopping; tend tabs 13: its comment names its held Stop",
+      'tend map 17, 18: the pin, star and "?" taps read handlers filled before paint',
+      "tend tabs audit 26-28: the bar's stop is shared by any bar of the walk",
+      'tend explore audit 42, audit 43, audit 44: dividers at 3:1',
+      "tend chronicle audit 7, 8, 9: the thread's rename state",
+      'tend chronicle 2: Escape closes 3 pickers in 10 ms', 'tend chronicle T1: a kept suggestion; tend chronicle T4: its twin',
+      "tend chronicle: the run's record",
+    ],
+  });
+  assert.deepEqual(line.shipped, [2, 12, 13, 17, 18], 'a number in the words is not a finding');
+  assert.deepEqual(line.auditFixes, [7, 8, 9, 26, 27, 28, 42, 43, 44]);
+  assert.deepEqual(line.built, ['T1', 'T4']);
+});
+
+test('tend balance: the balance reads the documents as origin/main holds them, not the branch\'s unpushed record', () => {
+  const show = (rel: string) => (rel === 'docs/STATUS.md' ? 'main' : null);
+  assert.equal(tend.mainOrHere('docs/STATUS.md', show, () => 'branch'), 'main');
+  assert.equal(tend.mainOrHere('.claude/skills/tend/ledger.json', show, () => 'branch'), 'branch', 'only where origin/main cannot be read');
+  const src = read('scripts/tend.js');
+  const balance = src.slice(src.indexOf('function balance('), src.indexOf('\n}\n', src.indexOf('function balance(')));
+  assert.match(balance, /mainOrHere\('docs\/STATUS\.md'/, 'the open entries are main\'s');
+  assert.match(balance, /mainOrHere\(LEDGER_REL/, 'the areas\' states are main\'s');
+  assert.doesNotMatch(balance, /readFileSync\(path\.join\(ROOT, 'docs', 'STATUS\.md'\)/);
+  assert.match(balance, /log\(`--since=\$\{days\} days ago`, 'origin\/main'\)/, 'the commits are main\'s');
 });
