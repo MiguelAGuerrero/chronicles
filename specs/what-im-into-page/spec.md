@@ -13,7 +13,7 @@ Verdict: aligned
 Shape: as asked: one row, the words "What I'm into" and a chevron, where the list was (the ready bar's settings with Explore chosen, the walk's drawer with Explore on); a pushed page with the standard Back, titled "What I'm into", its five sections' headings pinned on their own ground; every switch saves as it changes, with no Save; the row and the page carry no number; the drawer keeps the range and the pocket alert.
 Precedent: iOS Settings, Notifications (a row per app opens that app's page of switches, no Save, Back returns; support.apple.com, verified); Android's notification categories (a page of switches under group headings; developer.android.com, verified); Google Maps' Settings, Notifications (a page of switches under headings that scroll away; from memory, unverified). Pinned headings depart from both settings pages; iOS Contacts pins its letters (from memory, unverified): the owner's call, for a list of sixty rows.
 Criteria: WI1-WI16 (WI12 carries the Never lines on counts; WI10 the walk going on under the page).
-Open: none for the gate; the plan's questions (Complexes, how the page is presented, a kind row's weight) are the owner's.
+Open: none for the gate; the plan's questions (Complexes, how the page is presented, a kind row's weight) were answered by the owner on Nov 18.
 
 ## How adjacent apps do it
 
@@ -55,7 +55,15 @@ keep one row, and the list moves, whole, to a page reached from both.
   journeys that open the switches in the drawer move to the page: subtypes, small-places, marks, nudge)." "XS2, XS5,
   XS22-XS24 hold on the page; the drawer keeps the range and the pocket alert." "docs/DEFERRED.md's 'Explore subtypes'
   items on headings scrolling away (ui 2, ui 3) are answered by this slice."
-- Defaults taken in the plan, for the owner to overrule: see plan.md, "Open questions" and "Defaults to overrule".
+- **The plan's five questions** (the owner, Nov 18, 2026), each the recommended option:
+  1. Complexes' five switches move to the page, after the five categories, under their own pinned heading "Complexes"
+     (WI15).
+  2. The page is a pushed page with Back (`presentation: 'card'`), not a modal.
+  3. The "What I'm into" row shows only where the list showed: with Explore chosen in the ready bar, and with Explore on
+     in the walk's drawer.
+  4. A kind's row label is weight 600, a subtype's 400, at the same size (WI7; the owner did not object).
+  5. The "Add to this moment" pill stays open while the page is up on a walk; the route opts out of `momentPill.leave()`.
+- Defaults taken in the plan, for the owner to overrule: see plan.md, "Defaults to overrule".
 
 ## Criteria
 
@@ -99,7 +107,7 @@ The owner's task, in their words: "turn a kind on or off in What I'm into, from 
 - **WI14** a screen reader hears the row as a button named "What I'm into" that opens a page; on the page, its title
   and the five headings as headers (XS23 holds); focus starts at the page's title, and Back returns it to the row.
 - **WI15** Complexes' five switches (CX10) are on the page, after the five categories, under their own pinned heading
-  "Complexes" with their note; the drawers keep none of them. (The recommended answer to the plan's Q1; the owner's.)
+  "Complexes" with their note; the drawers keep none of them. (The owner's answer to the plan's Q1, Nov 18.)
 - **WI16** on the web, a reload on the page, or a link straight to it, shows the page with Back leading to the screen
   beneath it; with a walk open, the walk comes back as at launch (NV2).
 
@@ -117,7 +125,7 @@ The owner's task, in their words: "turn a kind on or off in What I'm into, from 
 | NV21 (at full: what I'm into and the range, with Explore chosen) | the list in the ready bar | the row in the ready bar; the range stays (WI1, WI11) |
 | NV22, E16, E17 (saves as it changes; a kind off hides its "?") | the drawers | the page (WI8) |
 | PA5, PA6 (the pocket alert, its note, touch screens only) | the drawers | holds in the drawers (WI11; `nudge`) |
-| CX10 (Complexes' five switches beside What I'm into) | the drawers | the page, if the owner takes Q1 (WI15) |
+| CX10 (Complexes' five switches beside What I'm into) | the drawers | the page (WI15; Q1, Nov 18) |
 | walk-drawer-settings audits 1, 2 (one instance; nothing saved before loaded) | the walk's drawer | hold on the page (WI8, WI9) |
 | NR7 (the ready bar pulls up to its settings) | holds | holds; the settings are shorter |
 

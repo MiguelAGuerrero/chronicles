@@ -202,19 +202,25 @@ Not run in this session: it had no subagent tool. To run on this spec and plan b
 
 ## Open questions for the owner
 
-1. **Complexes' five switches** (CX10), drawn today right after What I'm into in both drawers: (a) **move to the page,
-   after the five categories, under their own pinned heading "Complexes"** (recommended: they are the same lasting
-   "what I'm shown" choice U4 found misplaced under "This walk", and the drawers keep only the walk's own); (b) stay in
-   the drawers under the row. Precedent: iOS Settings keeps every switch of one job on its page.
-2. **How the page is presented**: (a) **a pushed page with Back** (`presentation: 'card'`; recommended: matrix 11 and
-   23, iOS Settings and Android do so, and it presents nothing modally, so it cannot meet iOS's Modal-over-Modal); (b) a
-   full-screen modal with Done, as the replay (`fullScreenModal`; a UIKit presentation that fails while any
-   `components/Modal` is up, and Done where nothing needs confirming).
-3. **Where the row shows**: (a) **only where the list showed, with Explore chosen in the ready bar and Explore on in
-   the walk's drawer** (recommended: NV21's rule, and a quiet walk's drawer stays short); (b) always, since the choice
-   also filters Explore's tab.
-4. **A kind's row heavier than its subtypes'** (WI7, for ui 3): (a) **its label at 600, a subtype's at 400, the same
-   size** (recommended: the cold find could not tell them apart by indent alone); (b) indent only, as today.
-5. **The "Add to this moment" pill when the page opens on a walk**: (a) **kept open**: the page is a detour inside the
-   walk, and the pill's 100 m still counts (recommended; the route opts out of `momentPill.leave()`); (b) closed, as on
-   leaving for a tab (MS4), with no code.
+All five answered by the owner on Nov 18, 2026; each took the recommended option.
+
+1. **Complexes' five switches** (CX10): **answered (a)**: they move to the page, after the five categories, under their
+   own pinned heading "Complexes" (WI15). The drawers keep none of them.
+2. **How the page is presented**: **answered (a)**: a pushed page with Back (`presentation: 'card'`), not a modal.
+3. **Where the row shows**: **answered (a)**: only where the list showed, with Explore chosen in the ready bar and with
+   Explore on in the walk's drawer.
+4. **A kind's row heavier than its subtypes'** (WI7): **answered (a)**: a kind's label at weight 600, a subtype's at
+   400, at the same size (the owner did not object to the recommended option).
+5. **The "Add to this moment" pill when the page opens on a walk**: **answered (a)**: it stays open while the page is
+   up on a walk; the route opts out of `momentPill.leave()`.
+
+## Since the plan (more-attractions audit, Nov 18)
+
+The more-attractions audit changed the rows after this plan was written: "Zoos and aquariums" has a subtype, Amusement
+parks; Nature reserves sits after Community gardens; Natural monuments is a new subtype under Nature; the subtypes
+journey has new pictures. The spec holds as written (it names no count of rows: 57 today, read from `KINDS`). The tests
+derive every count from `KINDS` and `COMPLEX_KINDS`, never a written number. WI5's journey check reads the pinned heading
+at every scroll position rather than at one named row (the plan's "Fountains" sits under Art, not Parks).
+
+The page's core module is `src/lib/explore/intoPage.ts` (beside `explore.ts`, whose `kindHint` it reads), not
+`discovery/intoSections.ts`: `intoSections` and `intoChildren` (the page's children and their sticky indices).
