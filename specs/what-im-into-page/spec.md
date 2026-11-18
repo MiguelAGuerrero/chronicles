@@ -137,3 +137,21 @@ The owner's task, in their words: "turn a kind on or off in What I'm into, from 
 - An entry on the Explore tab: 0192 names two entries.
 - The shared `SwitchRow`'s off contrast (explore-subtypes audit 19) and the drawer's section style (U2's deferred half):
   unchanged here.
+
+## Record (Nov 18)
+
+- **Passed:** WI1-WI16, by `src/lib/__tests__/explore/intoPage.test.ts` (WI1, WI5, WI6, WI7, WI12, WI15),
+  `src/lib/__tests__/explore/settingsChange.test.ts` (WI9) and the `into` journey (every criterion: the row in both
+  drawers, the page over the screen, focus on the title and back on the row, the pinned heading checked at every scroll
+  position, weights, a kind's subtypes going and coming back, saving with the range and pocket alert untouched, nothing
+  drawn while the settings are held back, the walk's trace growing under the page, a waterfall gone from the walk's map
+  and back, 320 px and 200%, a link and a reload on `/into`). Test-first by history (`check:test-first`, 16 of 16).
+- **Moved journeys:** subtypes (XS24 is WI3 now), small-places, marks, walk (E17 through the page), tabs (U4), complexes
+  (CX10 with WI15) open the page; nudge checks WI11. `complexes audit 13` and `25` read `IntoPage.tsx`.
+- **Not run:** the cold find (WI2's reviewer half) and the UI review: the session had no subagent tool. The pictures are
+  the `into` journey's `into-*` shots; WI2's own check (ink, words, chevron, 48 pt; the page's rows findable) passes.
+- **Known:** a reminder that fires while the page is up on a walk finds no place in front (the walk screen is not
+  focused and the recording bar is over the tabs only), so on the web it goes to a notification, as under a replay or a
+  day over the tabs (`.claude/rules/explore-marks.md`, "Remind me here"). Left for the owner; not filed.
+- **Not audited** (`/audit` is the owner's to ask). Native has never run on a device: five items in
+  `docs/NATIVE_UNVERIFIED.md`, "Navigation and tabs".
