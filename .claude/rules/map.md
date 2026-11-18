@@ -9,9 +9,7 @@ paths:
 ---
 # Map
 
-The map component (maplibre-gl on web, MapLibre RN on native), pins and icons, the reactivity budget and web memory. The codemap is in `docs/ARCHITECTURE.md`; the decisions and their history are in `docs/decisions/`.
-
-Icons and pins (a pin's head, bell and words, the map's palette, the pins near the view, taps, the selected star) are in `.claude/rules/pins.md`.
+The map component (maplibre-gl on web, MapLibre RN on native), the reactivity budget and web memory. Icons and pins (a pin's head, bell and words, the map's palette, the pins near the view, taps, the selected star) are in `.claude/rules/pins.md`. The codemap is in `docs/ARCHITECTURE.md`; the decisions and their history are in `docs/decisions/`.
 
 ## maplibre-gl on web, MapLibre RN v11 on native
 
