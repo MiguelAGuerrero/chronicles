@@ -186,4 +186,6 @@ held by `STRIP`'s widths (unit) and the journey at 320 on a tile with five kinds
 plan review's A2 fixture was not built). SG12 is a unit test over `presenceTally`/`stepsFrom`; the screens read it
 through `withShownSteps`, as the small subsets' switches already do. Native unverified (one check in
 `docs/NATIVE_UNVERIFIED.md`). UI review and cold find: 8 findings,
-3 fixed (`sights-and-local-life ui 1-3`), 2 deferred, 2 rejected, 1 put to the owner.
+3 fixed (`sights-and-local-life ui 1-3`), 2 deferred, 2 rejected, 1 put to the owner, who chose a line
+between the tile's groups (SG14, decision 0199: tests first, then the line; the atlas journey ran once more, and
+grading, marks and planner, which cover the strip).

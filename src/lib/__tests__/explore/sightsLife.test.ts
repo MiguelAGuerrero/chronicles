@@ -158,7 +158,7 @@ test('sights-and-local-life ui 2: the line under Sights is a plain sentence, not
   assert.equal(A.SIGHTS_LINE, 'Places that can turn up as a “?” on the map.');
 });
 
-test('SG14: the line between a tile\'s groups stands inside the space between them', { todo: 'test first' }, () => {
+test('SG14: the line between a tile\'s groups stands inside the space between them', () => {
   const s = A.STRIP as { chip: number; gap: number; groupGap: number; line: number };
   assert.equal(s.line, 1, 'a hairline');
   assert.ok(s.line < s.groupGap, 'inside the space');

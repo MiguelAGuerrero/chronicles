@@ -107,8 +107,11 @@ const LIFE_KINDS = KIND_GROUPS[1].kinds;
 /** SG1: the one muted line under "Sights" on the card, tying the heading to the map's "?". */
 export const SIGHTS_LINE = 'Places that can turn up as a “?” on the map.';
 
-/** SG2: a tile's strip in px: a kind's slot, the space between kinds of a group and between the groups (216 of 222 px at 320). */
-export const STRIP = { chip: 22, gap: 4, groupGap: 16 } as const;
+/**
+ * SG2, SG14: a tile's strip in px: a kind's slot, the space between kinds of a group, the space between the groups (216 of
+ * 222 px at 320) and the hairline standing in its middle (decision 0199).
+ */
+export const STRIP = { chip: 22, gap: 4, groupGap: 16, line: 1 } as const;
 
 /** SG2, SG9: each group's present kinds, in order; a group with none is left out (so a tile with one group has no space). */
 export const groupsPresent = (steps: Steps): { id: KindGroupId; label: string; kinds: CategoryId[] }[] =>

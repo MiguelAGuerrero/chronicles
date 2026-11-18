@@ -75,7 +75,7 @@ async function checks(h) {
             const r = d[0]?.getBoundingClientRect();
             return { n: d.length, both: !!sights && !!life, w: r ? r.width : 0, between: !!r && !!sights && !!life && r.left >= sights.right && r.right <= life.left };
           });
-          check.todo(line.both ? line.n === 1 && line.w <= 1.5 && line.w > 0 && line.between : line.n === 0,
+          check(line.both ? line.n === 1 && line.w <= 1.5 && line.w > 0 && line.between : line.n === 0,
             `SG14: a hairline between the tile's groups, only with both (${JSON.stringify(line)})`);
         }
         {

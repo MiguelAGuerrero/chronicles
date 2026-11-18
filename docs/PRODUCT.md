@@ -74,7 +74,7 @@ recording, and a recording bar brings a minimized walk back.
 - **Sights and Local life** (decisions 0197, 0198; SG1-SG13): the card lists the kinds under two headings, **Sights**
   (history, art, culture, green, views: what can turn up as a "?", said in a line under the heading) and **Local life**
   (food, shops, nightlife: every place of its kind, never a "?"); a tile keeps one row with the two groups set apart by
-  space alone, says them aloud by name, and its line leads with the Sights ("Plenty of history and green space"), Local
+  a hairline (decision 0199), says them aloud by name, and its line leads with the Sights ("Plenty of history and green space"), Local
   life only where there is no Sight. The Sights bars follow "What I'm into": a kind switched off leaves its bar at once.
   Culture moves to Local life in phase 2, once the places data covers National Park Service sites.
 - A place may light two bars (presence and kinds, decision 0127): a museum or

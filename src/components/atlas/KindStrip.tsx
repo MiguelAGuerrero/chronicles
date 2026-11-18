@@ -1,3 +1,4 @@
+import { Fragment } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { ATLAS_LABEL, groupsPresent, STEP_WORDS, STRIP, type Step, type Steps } from '../../lib/atlas/atlas';
 import type { CategoryId } from '../../lib/discovery/types';
@@ -38,8 +39,11 @@ export function KindStrip(props: { steps: Steps | null; testID?: string; /** One
   const steps = props.steps;
   return (
     <View style={[styles.row, styles.groups, props.nowrap && styles.nowrap]} testID={props.testID} accessible={false} importantForAccessibility="no-hide-descendants">
-      {groupsPresent(steps).map((g) => (
-        <View key={g.id} style={[styles.group, props.nowrap && styles.nowrap]} testID={`atlas-strip-${g.id}`}>
+      {groupsPresent(steps).map((g, i) => (
+        <Fragment key={g.id}>
+        {/* SG14 (decision 0199): a hairline in the space between the groups, only when both are present. */}
+        {i > 0 && <View style={styles.line} testID="atlas-strip-line" />}
+        <View style={[styles.group, props.nowrap && styles.nowrap]} testID={`atlas-strip-${g.id}`}>
           {g.kinds.map((c) => (
             <View key={c} style={styles.chip} {...{ dataSet: { kind: c, step: String(steps[c]) } }}>
               <Icon name={KIND_ICON_OF[c]} size={18} color={KIND_COLOR[c]} />
@@ -47,6 +51,7 @@ export function KindStrip(props: { steps: Steps | null; testID?: string; /** One
             </View>
           ))}
         </View>
+        </Fragment>
       ))}
     </View>
   );
@@ -98,7 +103,9 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, minHeight: 30 },
   placeholder: { height: 30 },
   // SG2: eight kinds, 4 apart within a group and 16 between the groups, fit a selected tile on a 320 px phone (216 of 222 px).
-  groups: { gap: STRIP.groupGap },
+  // The groups' space is the line's margins, so the line stands in its middle (SG14).
+  groups: { gap: 0 },
+  line: { width: STRIP.line, alignSelf: 'stretch', marginVertical: 2, marginHorizontal: (STRIP.groupGap - STRIP.line) / 2, backgroundColor: theme.edge },
   group: { flexDirection: 'row', flexWrap: 'wrap', gap: STRIP.gap },
   nowrap: { flexWrap: 'nowrap' },
   chip: { alignItems: 'center', gap: 3, minWidth: STRIP.chip },
