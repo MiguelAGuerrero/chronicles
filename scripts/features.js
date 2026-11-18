@@ -191,7 +191,7 @@ const FEATURES = [
     rule: 'outing',
     source: ['src/lib/outing/**', 'src/components/outing/**'],
     journeys: ['outing', 'journey', 'startfar'],
-    specs: ['quick-circuit', 'outing-journey', 'drive-in-the-outing', 'shop-facets'],
+    specs: ['quick-circuit', 'outing-journey', 'drive-in-the-outing', 'shop-facets', 'town-fixtures'],
   },
   {
     name: 'layers',
@@ -558,6 +558,7 @@ const IN_PROGRESS = {
   'replay-ceremony': { branch: 'claude/funny-bohr-ztvwgv', since: '2026-11-18' },
   'drive-in-the-outing': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-18' },
   'shop-facets': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-18' },
+  'town-fixtures': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-18' },
 };
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));
