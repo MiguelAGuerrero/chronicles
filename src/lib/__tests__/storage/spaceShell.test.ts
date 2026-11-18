@@ -215,7 +215,10 @@ test('tend tabs T37: a line already up steps aside while the pill is up and come
   assert.equal(s.store.get().line, null, 'a dismissed line stays dismissed');
 });
 
-test('tend tabs T37: the browser\'s refusal waits for the pill unmarked, then is said once (SA10 kept)', async () => {
+// tend tabs audit 31 (the T37 review's steward 3, the coordinator's ruling): the T37 build said the refusal as the pill
+// went, so with a walk open and never on Navigate, ready; this test asserted that bend and is corrected. SA10: "If the
+// browser refuses, Navigate, ready says once". Only the look is owed; `refused` stays in meta for the next look off the walk.
+test('tend tabs audit 31: a refusal due while the pill is up is not said as the pill goes; the next look off the walk says it once (SA10)', async () => {
   const { createSpace, PERSIST_KEY } = await shell();
   const p = fakePorts();
   const pill = createStore(true);
@@ -227,7 +230,10 @@ test('tend tabs T37: the browser\'s refusal waits for the pill unmarked, then is
   assert.equal(await p.db.getMeta(PERSIST_KEY), 'refused', 'and not marked asked meanwhile');
   pill.set(false);
   await s.check(walking);
-  assert.equal(s.store.get().line, REFUSED, 'said once the pill goes');
+  assert.equal(s.store.get().line, null, 'not said as the pill goes, with a walk open');
+  assert.equal(await p.db.getMeta(PERSIST_KEY), 'refused', 'kept for the next look off the walk');
+  await s.check(ready);
+  assert.equal(s.store.get().line, REFUSED, 'said on the next look off the walk');
   assert.equal(await p.db.getMeta(PERSIST_KEY), 'asked');
   s.dismiss();
   pill.set(true);

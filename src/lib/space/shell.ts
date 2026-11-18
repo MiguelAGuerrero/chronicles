@@ -37,8 +37,9 @@ export function createSpace(p: Pick<Ports, 'db'>, probe: SpaceProbe, pill: Pick<
   let shown: 'space' | 'persist' | null = null;
   // The line said; the store shows it unless the pill is up.
   let current: string | null = null;
-  // What came due while the pill was up: looked at again as it goes, the refusal too when a look off the walk waited.
-  let owed: { settle: boolean } | null = null;
+  // A look that came due while the pill was up: looked at again as it goes. A refusal is never owed: it stays `refused`
+  // in meta for the next look off the walk, where SA10 says it (tend tabs audit 31).
+  let owed = false;
   // undefined: not read from meta yet.
   let said: SpaceLevel | null | undefined;
   let persist: Persist | null | undefined;
@@ -53,9 +54,6 @@ export function createSpace(p: Pick<Ports, 'db'>, probe: SpaceProbe, pill: Pick<
     shown = line ? kind : null;
     current = line;
     store.set({ line: pill.get() ? null : line });
-  };
-  const owe = (settle: boolean) => {
-    owed = { settle: settle || !!owed?.settle };
   };
   // Meta read once, then kept here; an unreadable or failed read is nothing said, nothing asked.
   const loadSaid = async () => {
@@ -104,7 +102,7 @@ export function createSpace(p: Pick<Ports, 'db'>, probe: SpaceProbe, pill: Pick<
     }
     if (!shouldSay(last, level)) return null;
     if (pill.get()) {
-      owe(false);
+      owed = true;
       return null;
     }
     said = level;
@@ -124,11 +122,7 @@ export function createSpace(p: Pick<Ports, 'db'>, probe: SpaceProbe, pill: Pick<
   /** Off the walk: a due request is asked, and a refusal is said when the pills are free (SA10). */
   async function settle() {
     if ((await loadPersist()) === 'due') await ask();
-    if (persist === 'refused' && current == null) {
-      if (pill.get()) {
-        owe(true);
-        return;
-      }
+    if (persist === 'refused' && current == null && !pill.get()) {
       show(persistLine(probe.homeScreen()), 'persist');
       await setPersist('asked');
     }
@@ -140,13 +134,9 @@ export function createSpace(p: Pick<Ports, 'db'>, probe: SpaceProbe, pill: Pick<
       return;
     }
     store.set({ line: current });
-    const due = owed;
-    owed = null;
-    if (due)
-      void serial(async () => {
-        await look();
-        if (due.settle) await settle();
-      });
+    if (!owed) return;
+    owed = false;
+    void serial(look);
   });
 
   return {
