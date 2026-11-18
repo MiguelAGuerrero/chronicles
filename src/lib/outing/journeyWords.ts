@@ -48,7 +48,7 @@ export function chapterLine(c: { stops: number; lengthM: number; loop: boolean }
 }
 
 /** OJ41: a step of the reach: the nearest is "Close by" (what a walk reaches), the others a distance. */
-export const reachLabel = (m: number, units: Units): string => (m <= 0 ? 'Close by' : formatDistance(m, units).replace(/\.0 /, ' '));
+export const reachLabel = (m: number, units: Units): string => (m <= 0 ? 'Close by' : formatDistance(m, units).replace(/\.0(?=[ \u00a0])/, ''));
 
 /** OJ41: the steps of the reach beyond close by, in the units setting. */
 export const reachSteps = (units: Units): number[] => (units === 'mi' ? [3, 10, 25].map((x) => Math.round(x * MI_M)) : [5000, 15000, 40000]);
