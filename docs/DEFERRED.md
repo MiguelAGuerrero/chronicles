@@ -36,6 +36,7 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - Walk me back ignores filled stretches (Filling gaps)
 - Finding, fix remove-which-place: a moment with two or more unfound places within 60 m is tagged to none, on any walk; the "Which place is this moment about?" chip is gone (the owner, Nov 12), and a moment cannot be tagged to a place afterwards (Explore, E8). `specs/v1-discovery/spec.md` E8 still says "until the reader picks": the owner's doc wins, so it is theirs to edit
 - [loop] Navigate announces a route preview's count in digits, "3 routes to Fox Point" (`lib/nav/useNavigation.ts` l.209, `announceForAccessibility`), spoken only; `numberWord` says it "Three routes to Fox Point", as the cards and rows now say their counts (VISION.md Always, "Counts are words"; the T19 and T30 review's steward 8, Nov 14, low)
+- [loop] At 320 px the navigation bar's line truncates mid-word, "105 m · < 1 m…" (picture `03f-strip-walking-320.png`; ui-patterns, nothing wraps or is cut at 320 at the default size; what-im-into-page audit 22, out of that slice)
 
 ## Streets and snapping
 
@@ -225,6 +226,8 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - [loop] (low) The stone note pin reads late beside the coloured pins: the one neutral disc among Earth and ink's kinds looks muted for a moment before its pencil glyph says "note" (map-palette UI review U1, Nov 17, opinion; pictures `palette-02-card-390`, `palette-01-walk-390`). The owner, Nov 17: "Ship as picked, file them". To try: `COLORS.text` one step darker, its white glyph 5.5:1 or more (4.62 now), its warmth kept; fresh pictures of the card and the walk at 390 and 320, and `map/palette.test.ts` MP6 (the colour-blind floor against umber and charcoal) and MP7 (the accent's distance) measured again (decision 0188).
 - [loop] (low) With deuteranopia and protanopia the photo and video discs are two near-identical dark discs, told apart only by their 12 px glyphs (map-palette UI review U3, Nov 17, opinion; WCAG 1.4.1 met by the glyph; sims of `palette-02-card-390` and `palette-03-card-320`). The owner, Nov 17: "Ship as picked, file them". To try: widen their lightness gap, verdigris (`COLORS.photo`, glyph 6.52:1) a step lighter; fresh pictures with their sims, and MP6 and MP7 measured again (decision 0188).
 - [loop] (low) On the replay's path beat the walked ink ahead of the walker, from the navy dot to the bullseye, can read as a route still to walk, since Navigate draws its route in blue `#2563eb` (map-palette UI review U4, Nov 17, inference under NN/g H4; pictures `palette-06`, `palette-07`; ink and route blue are 12.4 apart in normal vision, never on one map). The owner, Nov 17: "Ship as picked, file them". To try: hold the ink against `COLORS.route` as a measured pair in `map/palette.test.ts` at the normal-vision floor (15), and if it fails turn the ink further toward violet within MP6 and MP7; fresh pictures of the path beat (decision 0188).
+- [loop] The walk's unwalked-streets pill says "4 unwalked nearby" in digits; counts are words (VISION.md Always; `numberWord`): "Four unwalked nearby" (picture `03c-unwalked.png`; what-im-into-page audit 22, the cold find, out of that slice)
+- [loop] On the walk, the "Add to this moment" offer, a "Video saved here" pill with Edit and an error banner can all show at once, stacked above the captures (picture `03h-found-pin-390-screen.png`; ui-patterns, one transient at a time; what-im-into-page audit 22, out of that slice)
 
 ## Quality of life (in the owner's order, decisions 0063-0065; rounds 1-3 shipped)
 
@@ -305,6 +308,7 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - [loop] A fit that started no move can still be recorded as the one flying: when `cameraForBounds` finds no room (map.md's no-room trap), `fitBounds` does nothing, yet `map.isMoving()` reads another move under way (a `showPoint` ease, a gesture), so `fitStep` records the refused bounds and a resize during that move refits them, cutting the ease or the reader's gesture (`WalkMap.web.tsx`, the fit effect). Record only when the fit itself started a move: `cameraForBounds` defined, or a `movestart` fired inside the call (the review of tend explore 17, auditor F3, Nov 16, low)
 - [loop] `atlas/fitFlight.ts` (`fitStep`, `refitOnResize`) is owned by explore, though its one consumer is the shared web map: a change to it alone names explore's journeys, never `qol`, and its test runs under `test:feature explore`. It sits there because the loop may not edit `scripts/features.js`; move it to the map feature (with its test) when the owner next edits that file (the review of tend explore 17, auditor F5, Nov 16, low)
 - [ ] **fix carousel-flick (low, deferred):** a desktop mouse wheel or trackpad swipe on the row that stops under half a card away still eases back to the card it began on (the flick bias reads touch events only). Wants its own failing test before a fix.
+- [loop] The area card's kind rows draw three presence dots beside "some"/"none" (`KindRow`, decision 0067); the cold find read them as a rating; whether words alone carry it is a question for the card (picture `complexes-card.png`; what-im-into-page audit 22, out of that slice)
 
 ## Navigate, ready
 
@@ -893,3 +897,11 @@ What the more-attractions slice left out (`specs/more-attractions`, decision 019
 - An entry with no place yet counts as near for `previousFor` and `canJoin`: during a walk an unplaced entry can join a far moment and the stack's one place is then wrong. SW6 says so; the owner may want the place held on a walk, which waits for the entry's fix (stack-with-previous audit 8, low).
 - The row's captions (11 px) and the grid's tile time bars (white on a 60% black ground) have not had their contrast measured against WCAG 1.4.3 (stack-with-previous audit 15, low); the cold finds placed Join at about 55% and the underlined map date at about 40%, both the owner's recorded defaults (audit 19).
 - A notes-only stack has no Show all (the owner, Nov 18) and so no Take out on the page: its pieces can only be taken out through the viewer's More (Split out, Delete this piece). Delete for an entry is likewise only in the viewer's More. The cold find could not find either (stack-with-previous audit 16); revisit with a visible control if it hurts.
+
+## What I'm into page (WI1-WI25, decision 0192)
+
+What the What I'm into page's audit left (`specs/what-im-into-page`, decision 0192; Nov 18).
+
+- [loop] At 390 x 844 the Complexes heading on What I'm into's page never pins: the page ends before its rows can scroll under it, so it never shows the pinned state (what-im-into-page audit 17, low)
+- [loop] The walk drawer's "What I'm into" row sits far down, below Motion and Share GPS log, in its own "Explore" section; moving it up is a question of the drawer's own order, not of the page (what-im-into-page audit 18, low)
+- [loop] WI1 and WI19's unit tests read the source with regexes (`<IntoRow` in `StartSettings.tsx` and `walk.tsx`, the header before it); replace them with a render-level check when the repo has one (what-im-into-page audit 19, low)
