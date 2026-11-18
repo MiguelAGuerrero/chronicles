@@ -71,7 +71,10 @@ export function IntoPage() {
     heights.current.set(key, e.nativeEvent.layout.height);
     repin();
   };
-  if (!settings || !built) return <View testID="into-page" style={styles.page} />;
+  // The page's own width, from its first draw (WI21): React reuses this View for the full page, and a reused View never
+  // reports onLayout on the web, so the placeholder measures too.
+  const sized = (e: LayoutChangeEvent) => setWidth(e.nativeEvent.layout.width);
+  if (!settings || !built) return <View testID="into-page" style={styles.page} onLayout={sized} />;
   const { children, sticky } = built;
   const cell = { paddingHorizontal: m.pad };
   const draw = (c: IntoChild) => {
@@ -117,7 +120,7 @@ export function IntoPage() {
     }
   };
   return (
-    <View testID="into-page" style={styles.page} onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
+    <View testID="into-page" style={styles.page} onLayout={sized}>
       <ScrollView
         stickyHeaderIndices={sticky}
         scrollEventThrottle={16}
