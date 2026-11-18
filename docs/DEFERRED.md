@@ -858,10 +858,10 @@ Small places (decision 0183): what the slice left for later.
 
 What the native map frames slice (NF1-NF7, specs/native-map-frames) left out, from the performance investigation of Nov 16.
 
-- **The React Compiler is not on** (the owner, Nov 16: its own slice, measured before and after, with a decision record). `app.json` has no `experiments.reactCompiler`, and babel-preset-expo 58 turns it on only from that flag, so only its lint rules run; `docs/research-reactivity.md` assumed it was on. It would still skip `WalkMap.native.tsx`'s main component (its `eslint-disable` lines) and all of `explore.tsx` (a `try` without `catch`).
 - **The replay screen still renders at the clock's 30 fps** (`useCeremonyClock` sets state on the screen): since native map frames it no longer reaches the map's sources or pins; the stage and its overlays are the ceremony's own, left for a measurement on a device.
 - **The hidden `omt-query` source is mounted on every native map** (the replay, a day, the planner drawer, Chronicle), five invisible layers on the base tiles again, though only the maps that read tiles or hide the scale over a blank world need it: mount it only there (performance investigation, Nov 16).
 - **A native follow camera** (`Camera` `trackUserLocation`): it would move without JS per fix, but follows the OS fix, not the filtered one (`docs/research-reactivity.md`); the follow stays `GlideFollow`'s `jumpTo`.
+- **The functions the React Compiler skips** (decision 0203; `src/lib/__tests__/arch/compiler.baseline.json`, 44 on Nov 18): 29 behind an `eslint-disable` of a React rule (most are `exhaustive-deps` on a `useMemo` keyed by a string, as `WalkMap.native.tsx` and `explore.tsx` do), 13 of syntax the compiler does not handle (`try`/`finally`, `??=`, a `throw` inside `try`), 1 reading a ref during render. Each compiles once rewritten (a key in a ref or a memoized value, a `catch`, a plain assignment); its area's next sweep takes them, and its line leaves the baseline.
 
 ## Explore subtypes
 

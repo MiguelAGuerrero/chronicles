@@ -224,7 +224,7 @@ async function checks(h) {
         // RC1: each component the React Compiler compiles checks its memo cache against this sentinel.
         memo: texts.reduce((n, t) => n + t.split('react.memo_cache_sentinel').length - 1, 0) };
     });
-    check.todo(entry.memo >= 100, `RC1: the app is built with the React Compiler: its components carry the memo cache (${entry.memo} sentinels; one before it was on)`);
+    check(entry.memo >= 100, `RC1: the app is built with the React Compiler: its components carry the memo cache (${entry.memo} sentinels; one before it was on)`);
     check(entry.srcs.length === 1 && !entry.pack && packAsked.length === 0,
       `gazetteer web fetch 4: the entry script holds no place-name pack, and nothing asked for it before search opened (${entry.bytes.join()} bytes, ${packAsked.length} asked)`);
     // gazetteer web fetch 5: the first search asks for it once, from the app's own site under the base path, and finds a town.

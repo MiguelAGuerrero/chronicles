@@ -735,6 +735,7 @@ The phone's map no longer renders every source and pin on each glide frame or re
 - [ ] **Do:** zoom from 12 to 17 along a walked trace, a route and the fog. **Expect:** the lines look as before, with no gap or break at tile edges (`LINE_SOURCE`: tolerance 1, buffer 64, new on the phone). (NF5)
 - [ ] **Do:** watch a walk's replay to the card and tap a pin the instant the card comes up; on Chronicle, tap a star as the tab opens. **Expect:** the viewer (or the star's card) opens on the first tap, never a tap that does nothing: the press handlers are filled in a layout effect (native-map-frames audit 4).
 - [ ] **Do:** on an exploring walk with "?" marks in range, profile a minute of walking with nothing revealed, then walk up to one. **Expect:** `MarkMarkers` does not render on a fix that changes no mark, and renders once when the mark is revealed; the marks look as before. (NF8)
+- [ ] **Do:** on a development build, walk 10 min, open the replay, scroll Memories and the gallery, switch Explore's neighbourhoods. **Expect:** everything behaves as on the web build; no screen shows stale content after a change (a compiled component skips a render only when its inputs are the same); React DevTools shows the compiled components as "Memo ✨". (RC1, decision 0203)
 
 ## Plan an outing (QC1-QC42, decision 0194)
 

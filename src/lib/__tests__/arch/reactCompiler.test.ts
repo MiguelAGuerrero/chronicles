@@ -10,7 +10,7 @@ import { test } from 'node:test';
 const ROOT = join(__dirname, '../../../..');
 const BASELINE = join(__dirname, 'compiler.baseline.json');
 
-test('RC1: app.json turns the React Compiler on', { todo: 'test first' }, () => {
+test('RC1: app.json turns the React Compiler on', () => {
   const app = JSON.parse(readFileSync(join(ROOT, 'app.json'), 'utf8')) as { expo: { experiments?: { reactCompiler?: boolean } } };
   assert.equal(app.expo.experiments?.reactCompiler, true);
 });
@@ -18,7 +18,7 @@ test('RC1: app.json turns the React Compiler on', { todo: 'test first' }, () => 
 /** Every function the compiler skips under src/app and src/components, as `file:function: reason`. */
 export function skipped(root: string): string[] {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const babel = require('@babel/core') as typeof import('@babel/core');
+  const babel = require('@babel/core') as { transformSync(code: string, opts: Record<string, unknown>): unknown };
   const files: string[] = [];
   const walk = (d: string) => {
     for (const f of readdirSync(d)) {
@@ -47,13 +47,17 @@ export function skipped(root: string): string[] {
   return out.sort();
 }
 
-test('RC2: every component and screen compiles but those listed when the compiler came on; the list only shrinks', { todo: 'test first' }, () => {
+test('RC2: every component and screen compiles but those listed when the compiler came on; the list only shrinks', () => {
   assert.ok(existsSync(BASELINE), 'arch/compiler.baseline.json lists the functions skipped when it came on');
-  const known = new Set(JSON.parse(readFileSync(BASELINE, 'utf8')) as string[]);
+  const known = JSON.parse(readFileSync(BASELINE, 'utf8')) as string[];
   const now = skipped(ROOT);
-  assert.ok(now.length > 0 || known.size === 0, 'the scan reads the app');
-  const added = now.filter((s) => !known.has(s));
+  assert.ok(now.length > 0 || known.length === 0, 'the scan reads the app');
+  // Counted, not as a set: a function the compiler cannot name is '?', and a second one in the same file is a new skip.
+  const count = (xs: string[]) => xs.reduce((m, x) => m.set(x, (m.get(x) ?? 0) + 1), new Map<string, number>());
+  const was = count(known);
+  const is = count(now);
+  const added = [...is].filter(([k, n]) => n > (was.get(k) ?? 0)).map(([k]) => k);
   assert.deepEqual(added, [], 'a new function the compiler cannot compile: fix it (no eslint-disable of a React rule, no try/finally in a component) rather than list it');
-  const gone = [...known].filter((s) => !now.includes(s));
+  const gone = [...was].filter(([k, n]) => n > (is.get(k) ?? 0)).map(([k]) => k);
   assert.deepEqual(gone, [], 'these compile now: take their lines out of compiler.baseline.json');
 });

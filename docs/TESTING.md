@@ -478,6 +478,10 @@ eight journeys for 27 minutes where three, about 12, proved every fix):
    triaged as a finding; a pass made on its own writes only its log line and the records of what it
    found.
 
+A change that reaches every screen through the build (`app.json` experiments, Babel or Metro config) maps to no
+journey by its files: `check:affected` names only those that read it. Pick the journeys of every main screen by hand
+(decision 0203's compiler ran twenty), still once each; the full flow only when the owner asks.
+
 State in the report which journeys ran, which were reached and skipped, and why.
 
 A slice that changes a screen adds or extends its own journey (`/e2e`); one
