@@ -210,11 +210,6 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
 - **T27 [owner] VISION.md's "Never likes" line disagrees with note types** (2026-11-13)
   Area: captures, vision. Seen: the steward's second pass on `specs/note-types` (audit 18): the app ships a Like and a Dislike on a note (decision 0161), while VISION.md's Never table still reads "A feed, followers, likes, public profiles". Rests on: your call in 0161; the gate may not edit the Never list.
   Recommended: in that row's "nearest thing that fits" column add "a mark on your own note, shown to no one and read by no feature about a place, a route or a recommendation (0161)". The page is at its size budget (12,000 bytes): shorten another row to fit.
-- **T34 [owner] `.claude/rules/map.md` is past the 20,000-character warning: split it by topic** (2026-11-18)
-  Area: map. Seen: `npm run check:docs` after `tend map 20`: "`.claude/rules/map.md` is 20570 characters, past the 20000 warning (it fails at 40000)"; it was 19,752 on `main` before this run's two lines (the tap refs and audit 41, the selected star). Rests on: decision 0173, "past the warning a file is split before more is added; the loop files a split as `T [owner]`"; the loop only adds to rule files (0135), so it cannot split one.
-  Recommended: move "Icons and pins" (with the run's two new bullets) and "Map staples" into a new `.claude/rules/pins.md` whose `paths:` name `components/map/`, `CapturePinView.tsx`, `StarView.tsx` and `lib/pins.ts`, leaving `map.md` the map component, its budget, the compass, swipes and borders; no app surface, so no `/vision` verdict.
-  Precedent: none (a repository document, not a job a person does in the app).
-  Otherwise: let `map.md` run toward the 40,000-character limit and split it then.
 
 ### From the more-attractions audit (Nov 18)
 
