@@ -51,10 +51,11 @@ export function useJourneyBar(o: { walkId: string | null; here: LngLat | null; n
     // The chapter is read through its index.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [index, within, o.navigating]);
-  const shown = !!chapter && !!chapter.town && !within && !away && !o.navigating && !!o.here;
+  // With no position yet (a weak signal in a car) the town ahead is still said, without a distance.
+  const shown = !!chapter && !!chapter.town && !within && !away && !o.navigating;
   return {
     /** What the screen says between towns, or null: with no plan, within a town, while a way is followed, or put away. */
-    next: shown && ahead ? { line: nextTownLine(chapter!.town!, ahead.awayM, units), at: chapter!.at, town: chapter!.town! } : null,
+    next: shown && ahead ? { line: nextTownLine(chapter!.town!, o.here ? ahead.awayM : null, units), at: chapter!.at, town: chapter!.town! } : null,
     pass: () => index != null && setPassed(new Set([...passed, index])),
     putAway: () => setAway(true),
   };

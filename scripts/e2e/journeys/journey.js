@@ -60,6 +60,9 @@ async function run(h) {
   await shot(pg, '02-town');
   await pg.click('[data-testid=outing-start]');
   await pg.waitForSelector('[data-testid=journey-bar]', { timeout: 90000 }).catch(() => {});
+  // The town is said as soon as the session opens; its distance follows the first fix, asked for again here as the walk journeys do.
+  await c.setGeolocation({ longitude: here[0], latitude: here[1], accuracy: 6 });
+  await pg.waitForFunction(() => /away\.$/.test(document.querySelector('[data-testid=journey-next]')?.textContent ?? ''), null, { timeout: 60000 }).catch(() => {});
   const bar = ((await pg.locator('[data-testid=journey-next]').innerText().catch(() => '')) ?? '').trim();
   check(/^North Scituate next\. \d+(\.\d)? (km|mi) away\.$/.test(bar), `OJ28, OJ29: Start begins a session at once and its bar names the town ahead and how far away (${bar})`);
   check((await pg.locator('[data-testid=journey-maps]').getAttribute('aria-label')) === 'Open in Maps' && (await pg.locator('[data-testid=journey-pass]').getAttribute('aria-label')) === 'Pass this town by', 'OJ29, OJ31: the bar hands the road to Maps and lets the town be passed by');

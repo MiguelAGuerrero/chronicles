@@ -77,6 +77,7 @@ test('OJ26: a town left out is gone from the look, never the destination\'s town
 test('OJ29, OJ31, OJ50: the bar\'s and the page\'s words: a distance, no time, no count, nothing done', async () => {
   const w = await import('../../outing/journeyWords');
   assert.equal(w.nextTownLine('Emmaus', 8200, 'km'), 'Emmaus next. 8.2 km away.');
+  assert.equal(w.nextTownLine('Emmaus', null, 'km'), 'Emmaus next.', 'with no position yet the town is still said');
   assert.equal(w.PASS_LABEL, 'Pass this town by');
   assert.equal(w.LEAVE_OUT_LABEL, 'Leave this town out');
   assert.equal(w.NEW_TOWN_LINE, 'New to you.');

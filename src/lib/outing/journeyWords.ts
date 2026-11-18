@@ -79,8 +79,8 @@ export const ANOTHER_LINE = 'Planned again from other places.';
 /** OJ41 (ui 1): what a wider reach looked at, said under it once the towns are read: their names, or that there was none. */
 export const lookedLine = (names: readonly string[]): string => (names.length ? `Looked in ${list(names)}.` : 'No town within that reach: this is around here.');
 
-/** OJ29: the session's bar between towns: the town ahead and how far away, in a straight line. */
-export const nextTownLine = (town: string, m: number, units: Units): string => `${town} next. ${awayLine(m, units)}.`;
+/** OJ29: the session's bar between towns: the town ahead and how far away, in a straight line; with no position yet, the town alone. */
+export const nextTownLine = (town: string, m: number | null, units: Units): string => (m == null ? `${town} next.` : `${town} next. ${awayLine(m, units)}.`);
 export const PASS_LABEL = 'Pass this town by';
 export const PUT_AWAY_LABEL = 'Put the plan away';
 export const LEAVE_OUT_LABEL = 'Leave this town out';
