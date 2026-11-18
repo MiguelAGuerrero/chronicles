@@ -160,8 +160,54 @@ async function run(h) {
     await pg.setViewportSize(vp);
     await pg.waitForTimeout(500);
   }
+  {
+    // tend explore audit 42, 43, 44: density's column at 320 px reads as one choice: a smaller corner than the row pills, a
+    // divider a person can see (WCAG 2.2, 1.4.11 Non-text Contrast), and none drawn across or beside the chosen row's fill.
+    const vp = pg.viewportSize();
+    await pg.setViewportSize({ width: 320, height: 844 });
+    await pg.waitForTimeout(500);
+    const groupsOf = () => pg.evaluate(() => {
+      const lum = (c) => {
+        const [r, g, b] = (c.match(/[\d.]+/g) ?? ['0', '0', '0']).slice(0, 3).map((v) => {
+          const s = Number(v) / 255;
+          return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+        });
+        return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+      };
+      return [...document.querySelectorAll('[data-testid=plan-settings] [role=radiogroup]')].map((g) => ({
+        id: g.firstElementChild?.getAttribute('data-testid'),
+        radius: parseFloat(getComputedStyle(g).borderTopLeftRadius),
+        rows: [...g.children].map((c) => {
+          const cs = getComputedStyle(c);
+          return { on: c.getAttribute('aria-checked') === 'true', top: parseFloat(cs.borderTopWidth), contrast: 1.05 / (lum(cs.borderTopColor) + 0.05) };
+        }),
+      }));
+    });
+    const g1 = await groupsOf();
+    const density = g1.find((g) => g.id === 'plan-density-anywhere');
+    const pills = g1.filter((g) => g !== density);
+    check(!!density && density.radius <= 12 && pills.length === 2 && pills.every((g) => g.radius === 22),
+      `tend explore audit 42: at 320 px density's column has a corner of 12 or less, the row pills keep 22 (${g1.map((g) => `${g.id}:${g.radius}`).join(', ')})`);
+    const dividers = (density?.rows ?? []).filter((r) => r.top > 0);
+    check(dividers.length >= 1 && dividers.every((r) => r.contrast >= 3),
+      `tend explore audit 43: at 320 px each divider in density's column is at least 3:1 against white (${dividers.map((r) => r.contrast.toFixed(2)).join(', ') || 'none'})`);
+    await pg.click('[data-testid=plan-density-some]');
+    await pg.waitForTimeout(800);
+    const d2 = (await groupsOf()).find((g) => g.id === 'plan-density-anywhere');
+    const i = d2?.rows.findIndex((r) => r.on) ?? -1;
+    await pg.locator('[data-testid=plan-different]').evaluate((el) => el.scrollIntoView({ block: 'start' }));
+    await pg.waitForTimeout(300);
+    await shot(pg, 'tend-explore-28-planner-density-some-320');
+    check(i === 1 && d2.rows[1].top === 0 && d2.rows[2].top === 0,
+      `tend explore audit 44: at 320 px with "Where there is some" chosen, no divider crosses or touches its fill (${JSON.stringify(d2?.rows.map((r) => [r.on, r.top]))})`);
+    await pg.click('[data-testid=plan-density-anywhere]');
+    await pg.waitForSelector('[data-testid=plan-row-0]', { timeout: 60000 }).catch(() => {});
+    await pg.locator('[data-testid=plan-title]').evaluate((el) => el.scrollIntoView({ block: 'start' }));
+    await pg.setViewportSize(vp);
+    await pg.waitForTimeout(500);
+  }
 
-  const last =pg.locator('[data-testid^="plan-row-"][data-preset]').last();
+  const last = pg.locator('[data-testid^="plan-row-"][data-preset]').last();
   await last.click();
   await pg.waitForTimeout(300);
   check(n === 1 || ((await last.getAttribute('data-selected')) === '1' && (await first.getAttribute('data-selected')) === '0'), 'WP18: tapping another row selects it, and Start can go');

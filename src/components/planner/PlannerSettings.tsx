@@ -64,7 +64,7 @@ function Segment(props: { id: string; items: { id: string; label: string; on: bo
           accessibilityState={{ checked: it.on }}
           aria-checked={it.on}
           onPress={it.onPress}
-          style={[styles.segBtn, props.column && i > 0 && styles.divided, it.on && styles.segOn]}
+          style={[styles.segBtn, props.column && i > 0 && !it.on && !props.items[i - 1].on && styles.divided, it.on && styles.segOn]}
         >
           <Text style={[styles.segText, it.on && styles.segTextOn]}>{it.label}</Text>
         </Pressable>
@@ -84,9 +84,11 @@ const styles = StyleSheet.create({
   // The padding lets "Loop, back where you start" and "One way" share a row at 320 px; at a large text size a label wraps in
   // its own choice, the row whole (tend explore 28).
   segment: { flexDirection: 'row', maxWidth: '100%', borderRadius: 22, borderWidth: 1, borderColor: theme.edge, overflow: 'hidden', alignSelf: 'flex-start' },
-  column: { flexDirection: 'column' },
+  // A grouped list's corner, not a capsule's; the dividers at 3:1 like the outline, none beside the chosen fill (tend explore
+  // audit 42, 43, 44; WCAG 2.2, 1.4.11).
+  column: { flexDirection: 'column', borderRadius: 12 },
   segBtn: { flexShrink: 1, minHeight: 44, paddingHorizontal: 10, justifyContent: 'center', backgroundColor: theme.surface },
-  divided: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.line },
+  divided: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.edge },
   segOn: { backgroundColor: theme.ink },
   segText: { fontSize: 14, fontWeight: '600', color: theme.ink },
   segTextOn: { color: '#ffffff' },
