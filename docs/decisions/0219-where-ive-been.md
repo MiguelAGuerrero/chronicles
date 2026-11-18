@@ -17,8 +17,10 @@ The owner's calls, Nov 18:
   always drawn.
 - **A fourth layer, "Where I've been"**, in the one Layers panel the walk screen (ready and live) and Explore share (0097: one
   setting per layer for every map with the panel), off by default.
-- **Faded green, thinner**: today's green made pale (`COLORS.past`, `#7fbf8f`), 2.5 px, no white edge, under today's trace, the
-  route and the ink, over the fog.
+- **Faded green, thinner**: a muted sage (`COLORS.past`, `#588a78`), 3 px, no white edge, under today's trace, the route and the
+  ink, over the fog. The first pale green (`#7fbf8f`, 1.9:1) failed WCAG 1.4.11 in the UI review (`where-ive-been ui 1`): the
+  sage holds 3:1 on the land and stays quieter than the trace's 4.5:1. The row reuses the removed button's footsteps glyph; its
+  word carries the meaning (the review's U4).
 - **Every earlier walk in the area shown**: within 5 km of the screen's layer centre; no date window, no picker, nothing counted.
 - **One even tone**: opaque, so two walks over one street look the same as one. The layer says where, never how often (the
   owner chose this over a Strava-style heatmap of their own walks).

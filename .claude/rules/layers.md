@@ -30,7 +30,7 @@ A layer puts graphics on the base map; one Layers button opens a panel with a sw
   screen's Start never blinks them off. The map sends them only when `PastView.key` changes (`perfCount` `past:send`).
 - **Only the Navigate map (ready and live) and Explore's main map draw it** (steward S1): never a tile, a card's ring, Chronicle,
   the replay or a day. The ready screen reads only while `active`, the live walk only while a walk is open.
-- **One even tone** (`COLORS.past`, `PAST_STYLE`: opaque, 2.5 px, no edge), between `fog` and `walked` in `LINE_SOURCE_IDS`. Its
+- **One even tone** (`COLORS.past` `#588a78`, 3:1 on the land and under the trace's 4.5:1, `where-ive-been ui 1`; `PAST_STYLE`: opaque, 3 px, no edge), between `fog` and `walked` in `LINE_SOURCE_IDS`. Its
   legend row's key is `earlier`, not `past`: `LayersKey` already gives the layer's block `layer-legend-past`.
 - The e2e (`where`) reads `data-past` (the walks drawn), `data-fog-paint` and `data-veil` on the map's container.
 

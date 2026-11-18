@@ -38,7 +38,8 @@ async function run(h) {
     return pts;
   };
   const seeds = [
-    { id: 'past-near', t0: now - 50 * 3600_000, pts: along('past-near', [-2, -1], [1, -1], now - 50 * 3600_000) },
+    // Along the street a block south of the start (the grid's streets lie on the half units: ui review U1).
+    { id: 'past-near', t0: now - 50 * 3600_000, pts: along('past-near', [-2.5, -1.5], [0.5, -1.5], now - 50 * 3600_000) },
     { id: 'past-far', t0: now - 26 * 3600_000, pts: along('past-far', [80, 0], [82, 0], now - 26 * 3600_000) },
   ];
   await pg.evaluate((walks) => new Promise((resolve) => {
@@ -85,6 +86,9 @@ async function run(h) {
 
   // WB11: the legend in the ready bar's settings, in words.
   await drawerTo(pg, 'half');
+  // The legend sits under "On the map", below the fold: scrolled into view for the picture (ui review U3).
+  await pg.locator('[data-testid=layer-legend-past]').scrollIntoViewIfNeeded().catch(() => {});
+  await pg.waitForTimeout(400);
   const legend = (await pg.locator('[data-testid=layer-legend-past]').innerText().catch(() => '')) ?? '';
   check(/Your earlier walks/.test(legend), `WB11: "On the map" names the layer's line in words (${legend})`);
   await shot(pg, 'where-02b-legend');

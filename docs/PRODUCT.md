@@ -352,7 +352,7 @@ recording, and a recording bar brings a minimized walk back.
 - **Layers.** One Layers button on the Explore map and the Navigate map opens a small panel of switches: Walkability, Storefronts, Town
   borders and Where I've been. Each draws something over the base map and shows its own legend while on. All start off, so a fresh map is clear; the button is outlined, and its glyph
   and a firmer edge say a layer is on. One setting for every map, kept across launches.
-- **Where I've been** (decision 0219) draws your earlier walks near the map, each its walked line in one pale green under today's
+- **Where I've been** (decision 0219) draws your earlier walks near the map, each its walked line in one muted sage green under today's
   trace: the same tone however often a street was walked, with no date and no count. Rides and gaps you didn't keep stay breaks.
   The walk being recorded joins once stopped. Only the Navigate map and Explore's main map draw it; turning it on the first time
   prepares older walks quietly ("Getting your walks ready…"), and the lines appear together.

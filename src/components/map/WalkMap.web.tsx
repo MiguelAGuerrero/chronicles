@@ -93,7 +93,7 @@ function addOverlay(map: MapLibreMap): string | undefined {
       'line-width': ['interpolate', ['linear'], ['zoom'], 13, FOG_STYLE.widthMin, 17, FOG_STYLE.widthMax] } }, firstSymbol);
   // Where I've been (WB9): earlier walks, one even tone, no edge, over the fog and under everything walked today.
   map.addLayer({ id: 'past', type: 'line', source: 'past', layout: lineLayout,
-    paint: { 'line-color': COLORS.past, 'line-opacity': PAST_STYLE.opacity, 'line-width': ['interpolate', ['linear'], ['zoom'], 13, PAST_STYLE.width * 0.6, 17, PAST_STYLE.width] } }, firstSymbol);
+    paint: { 'line-color': COLORS.past, 'line-opacity': PAST_STYLE.opacity, 'line-width': ['interpolate', ['linear'], ['zoom'], 13, PAST_STYLE.width * 0.7, 17, PAST_STYLE.width] } }, firstSymbol);
   map.addLayer({ id: 'walked', type: 'line', source: 'walked', layout: lineLayout,
     paint: { 'line-color': COLORS.walked, 'line-width': ['interpolate', ['linear'], ['zoom'], 13, 3, 17, 8] } }, firstSymbol);
   // A preview's other routes, faint, under the one highlighted (SR2).

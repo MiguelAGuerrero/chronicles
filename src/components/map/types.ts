@@ -80,15 +80,15 @@ export const COLORS = {
   /** A pin of several moments' head: charcoal, under its kinds' discs. */
   several: '#31352f',
   veil: '#d7dbe0',
-  /** Where I've been (WB9): earlier walks' lines, the trace's green made pale, quieter on the land than the trace. */
-  past: '#7fbf8f',
+  /** Where I've been (WB9): earlier walks' lines, a muted sage, 3:1 on the land and quieter than the trace (where-ive-been ui 1). */
+  past: '#588a78',
 };
 
 /**
  * Where I've been (WB9, decision 0208): one even tone (opaque, so two walks over one street look like one), thinner than
  * today's trace, with no white edge; drawn over the fog and under the walked streets, the route and the trace.
  */
-export const PAST_STYLE = { opacity: 1, width: 2.5 } as const;
+export const PAST_STYLE = { opacity: 1, width: 3 } as const;
 
 /** The lines of earlier walks the map draws (WB6), with their walks' ids for the e2e; null draws none. */
 export interface PastView {

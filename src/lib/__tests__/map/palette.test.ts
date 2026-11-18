@@ -292,3 +292,17 @@ test('WB1, WB9: the walk screen never asks for a bold fog or the veil: the fog i
   assert.doesNotMatch(walk, /fogEmphasis|veil:/, 'no bold fog and no veil from the walk screen');
   assert.doesNotMatch(walk, /unwalked/i, 'no unwalked-streets control, count or state');
 });
+
+// The UI review of where-ive-been (U2, WCAG 1.4.11): the earlier walks' line is content someone switched on, so it holds
+// 3:1 on the land, still quieter than the trace, and keeps the palette's colour-blind floor from the trace.
+test('where-ive-been ui 1: the earlier walks\' line is 3:1 on the land, quieter than the trace, 9.5 from it with deuteranopia and protanopia', () => {
+  const past = palette.past;
+  assert.ok(contrast(past, LAND) >= 3, `3:1 on the land (${contrast(past, LAND).toFixed(2)})`);
+  assert.ok(contrast(past, LAND) < contrast(palette.trace, LAND), 'quieter than the trace');
+  for (const sight of ['deutan', 'protan'] as const) {
+    const d = deltaE(seen(past, sight), seen(palette.trace, sight));
+    assert.ok(d >= 9.5, `${d.toFixed(1)} from the trace (${sight})`);
+  }
+  const style = named.PAST_STYLE as { width: number };
+  assert.ok(style.width >= 3 && style.width < FOG_STYLE.traceWidth, `3 px or more, under the trace's (${style.width})`);
+});
