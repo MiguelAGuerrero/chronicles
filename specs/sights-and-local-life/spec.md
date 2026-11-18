@@ -10,9 +10,10 @@ Nightlife count every place and never do. In downtown Stroudsburg the second kin
 find behind it; over the 152-area presence sample, 145 of 421 lit bars have no "?" behind them, 140 of them Food, Shops
 or Nightlife. Decision 0197 splits the bars into **Sights** (the findables) and **Local life** (the places you go into).
 
-This is **phase 1: view only.** It groups today's bars under the two headings. What each bar counts does not change, so
-Culture stays under Sights until phase 2 moves museums, galleries, theaters and community spaces into Local life (held
-until chronicles-data covers National Park Service sites, decision 0197). No cache, no code bump, no data.
+This is **phase 1.** It groups today's bars under the two headings, makes the Sights bars follow "What I'm into", and
+leads a tile's line with Sights (the owner's answers to the plan, decision 0198). Culture stays under Sights until phase 2 moves museums, galleries, theaters and community spaces into Local life (held
+until chronicles-data covers National Park Service sites, decision 0197). The only data change is the cached tally,
+which keeps the Sights places by kind (`ATLAS_OWN` a15: every area is read once more).
 
 ## Vision
 
@@ -23,7 +24,7 @@ Touches: Always "Guidance is structural… never whether it is good"; Always "Co
 Verdict: aligned if reshaped
 Shape: the card's kinds under two quiet headings, Sights then Local life, each in a fixed order; tiles keep one row, the groups apart; dots and step words as today; Local life never yields a "?", a find, a name or a ranking, and "Local life" means what is there, never how busy it is.
 Precedent: Atlas Obscura lists only curiosities, never businesses (a Sights-only list); Google Maps' nearby search splits "Things to do" from Restaurants, Coffee and Shopping chips (a type split); Walk Score groups amenities by type with a score (a counter-example). All from memory, unverified.
-Criteria: SG1-SG11.
+Criteria: SG1-SG13.
 Open: none for phase 1 (phase 2's two are in decision 0197).
 ```
 
@@ -35,7 +36,9 @@ Open: none for phase 1 (phase 2's two are in decision 0197).
 - **Culture and Community become Local life bars in phase 2** (Nov 18); phase 1 leaves Culture under Sights, because
   until then it still counts only places that can be a "?".
 - **Culture stays a Sight in phase 1** (the plan's reading of 0197, Nov 18): it still counts only places that can be a "?", so filing it under Local life before phase 2 would be untrue.
-- **Phase 1 is view only; phase 2 waits** on chronicles-data's National Park Service sites (Nov 18, decision 0197).
+- **The tile sets the groups apart by space alone, no word; a tile's line leads with Sights; the Sights bars follow the
+  switches** (Nov 18, the owner's answers to the plan's three questions, decision 0198).
+- **Phase 2 waits** on chronicles-data's National Park Service sites (Nov 18, decision 0197).
 
 ## How adjacent apps do it
 
@@ -60,7 +63,7 @@ Open: none for phase 1 (phase 2's two are in decision 0197).
 2. **SG2 · The tile keeps its one row, in two groups.** An area tile's kinds stay one row on a 320 px wide phone with all
    eight present, on a tile at rest and on the selected tile (its 2 px border): the last kind ends inside the strip.
    The Sights kinds come first, then a wider space, then the Local life kinds; with kinds of one group only there is no
-   wider space. The tile shows no heading words (pending the owner's answer, plan "Open" 1).
+   wider space. The tile shows no heading words (decision 0198).
 3. **SG3 · The headings are headers, one level under "What's here".** A screen reader hears "What's here", then
    "Sights", its line and its rows, then "Local life" and its rows; on the web the two are headings one level below
    "What's here" (`aria-level`), never peers of it or of the card's name.
@@ -78,7 +81,7 @@ Open: none for phase 1 (phase 2's two are in decision 0197).
 
 7. **SG7 · The explanation names the two groups.** "How the marks work" says, in words: the marks say which kinds of
    places are around and how much of each, never how good, how busy or how lively; Sights count only places worth
-   finding; Local life counts every place of its kind and never turns up as a "?"; one mark is a little of the kind, two
+   finding, of the kinds you have on in "What I'm into"; Local life counts every place of its kind and never turns up as a "?"; one mark is a little of the kind, two
    a handful, three a street's worth (true for every kind, whatever its steps). Its last line stays the ring's, or a
    town's or shape's own (TP8). It holds no digit. While Culture is a Sight it keeps saying a museum can count toward
    history and culture (phase 2 removes that).
@@ -87,9 +90,9 @@ Open: none for phase 1 (phase 2's two are in decision 0197).
 
 8. **SG8 · A thin area says nothing.** An area whose ring the map knows almost nothing about shows neither heading, no
    kinds and no character line, on its tile and its card (AG3).
-9. **SG9 · What each bar counts is unchanged.** Each kind's step, each mark and the map's "?" pins and dots are what they
-   were: held by PS8 over the presence sample, unedited; and for every area of the sample the groups' kinds, laid end
-   to end, are the area's present kinds in `ATLAS_ORDER`.
+9. **SG9 · With the switches as they start, nothing a bar counts changes.** With "What I'm into" at its defaults, each
+   kind's step, each mark and the map's "?" pins and dots are what they were: held by PS8 over the presence sample; and
+   for every area of the sample the groups' kinds, laid end to end, are the area's present kinds in `ATLAS_ORDER`.
 10. **SG10 · One order everywhere.** Sights and Local life together hold every kind exactly once, in `ATLAS_ORDER`, and
     every list of kinds the screens draw or say (the card's rows, the tile's strip, the tile's spoken line, the waiting
     line) follows it.
@@ -97,13 +100,25 @@ Open: none for phase 1 (phase 2's two are in decision 0197).
     group, a rank, or a word for busyness or popularity ("busy", "popular", "trending", "lively", "alive", "buzzing",
     "vibrant").
 
+### The owner's answers to the plan (decision 0198)
+
+12. **SG12 · The Sights bars follow the switches.** A kind switched off in "What I'm into" no longer counts toward its
+    Sights bar, on the card, the tile and the spoken line, at once and without a read: switch off every History kind and
+    History reads "none". Switching it back on restores the bar. Local life's bars have no switches and never change with
+    them. A place that lights two Sights bars (a historic museum: History and Culture) counts toward neither while its
+    kind is off.
+13. **SG13 · A tile's line leads with Sights.** A tile's line names the strongest Sights kinds when any Sight is present
+    ("Plenty of history and green space"), and the strongest Local life kinds only when there is no Sight ("Lots of
+    food and shops"). "A little of everything", "Not much on the map here" and a thin area's silence are as before.
+
 ## Hosts (every place the bars are drawn or said, from the code)
 
 - `KindRow`, in `AtlasCard` only (the area's card, phone drawer and wide side panel): SG1, SG3, SG4, SG6.
 - `KindStrip`, in `AtlasTile` only (the row's cards, a neighborhood's and a town's): SG2.
 - `tileLabel` (`atlas.ts`), what a screen reader hears for a tile: SG5 (the auditor's finding 5).
 - `waitingLabel` and `waitingKinds` (`atlas/waitingPins.ts`, `atlas.ts`): findable kinds only, so Sights alone already: SG10.
-- `characterLine`, the tile's line above the strip: unchanged in phase 1, pending the owner (plan "Open" 2).
+- `characterLine`, the tile's line above the strip: SG13.
+- `stepsFrom` / `withShownSteps` / `rowsShown` (`atlas.ts`, read by `useAtlas`): every view of the bars follows the switches through them: SG12.
 - Not a host: "What I'm into" (`ExploreSettings`) lists switches for the findable kinds only; every one is a Sight in
   phase 1, so it gains the two headings in phase 2, when Culture and Community move. The walk planner names one kind and
   draws no bars.
@@ -113,8 +128,8 @@ Open: none for phase 1 (phase 2's two are in decision 0197).
 Steward (S), auditor (A) and UX reviewer (U) read the spec and plan; no screens existed. Triage:
 
 - S1 "Local life" pitched as liveliness: accept, "alive" gone from the plan; SG7, SG11.
-- S2 "Life" dropped on the tile without saying so: accept, SG2 says it is pending the owner.
-- S3, U4, A5 the tile cannot tell the groups apart, and its spoken line is flat: accept, SG5; `characterLine` put to the owner.
+- S2 "Life" dropped on the tile without saying so: accept; the owner chose space alone (0198), SG2.
+- S3, U4, A5 the tile cannot tell the groups apart, and its spoken line is flat: accept, SG5; the owner: the line leads with Sights, SG13.
 - S4 Culture under Sights needs its reason: accept, SG7 and the spec's opening.
 - S5 Storefronts read as Local life naming places: accept, SG6.
 - S6 restraint defaults bind nothing: accept, SG6.
@@ -123,14 +138,14 @@ Steward (S), auditor (A) and UX reviewer (U) read the spec and plan; no screens 
 - U2 nothing ties "Sights" to the "?": accept, SG1's muted line; the cold find runs on the built card.
 - U3, A9 every heading an `h1` on the web: accept, SG3.
 - U5 the gap too small to see: accept with A1's numbers.
-- U6 `characterLine` repeats Stroudsburg's "plenty": put to the owner (plan "Open" 2).
+- U6 `characterLine` repeats Stroudsburg's "plenty": the owner: lead with Sights, SG13.
 - U7 Suggest a walk on Local life rows: reject, the planner routes through where a kind is dense, not to finds; SG4 says so.
 - A1 the gap overflows the selected tile by 2 px: accept, no spacer; chips 4 px apart within a group, 16 px between (216 of 222 px); SG2.
 - A2 SG2's e2e cannot run (no area lights all eight): accept, a gated fixture area that does; the check is the last chip's edge.
 - A3 SG5 (now SG7) fails as planned (AG4's words, the swapped last line, line 3 false for Food): accept, lines 1-3 rewritten, AG4 updated in the slice.
 - A4 the golden is the wrong oracle: accept, SG9 rests on PS8 plus the order test.
 - A6 headings with no rows while reading or thin: accept, SG4 and SG8; the grading check extended.
-- A7 switches off still light a Sights bar with no "?": put to the owner (plan "Open" 3); 0127 makes the bars ignore the switches.
+- A7 switches off still light a Sights bar with no "?": the owner: the Sights bars follow the switches now, SG12.
 - A8 a digit check on the whole card fails on "12 min walk": accept, SG11 scoped to the section, strip and panel.
 - A10 SG4's test area does not make a group all none: accept, Green Row.
 
