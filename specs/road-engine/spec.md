@@ -36,7 +36,7 @@ Shape: one way, never several and never set against another; no minutes, no arri
 Precedent: Apple Maps (several routes with times, spoken turns that go on when locked, an Avoid section; partly verified); Organic
   Maps (turn-by-turn on OpenStreetMap on the device, no account; unverified); Google Maps (arrival time, "faster route" prompts;
   unverified, the counter-example)
-Criteria: RE1-RE34 below
+Criteria: RE1-RE34 below, with RE11a and RE20a
 Open: whether turns are spoken, and when (a driver should not have to look; a voice that speaks unasked is the nag); what a driver
   may be shown at speed; a time beside a distance for a long drive (still D3 of the outing journey)
 ```
@@ -101,8 +101,10 @@ The road graph:
 - **RE4.** Roads reach the engine through an adapter (`RoadSource`), with an in-memory source for tests; no dataset is hard-coded.
   The first source is the map's own tiles at a low zoom.
 - **RE5.** The roads read are motorways, trunk, primary, secondary and tertiary roads and their links, and nothing smaller (D7). A
-  one-way road is driven only its own way.
-- **RE6.** Roads cut at a tile's edge are one road again in the graph: a route never ends at a tile edge that the road crosses.
+  one-way road is driven only its own way. They are read at the lowest zoom whose tiles carry a road's direction (z12 in the tiles
+  measured: below it no road says it is one-way).
+- **RE6.** Roads cut at a tile's edge are one road again in the graph: a route never ends at a tile edge that the road crosses. In
+  the tiles measured the two halves lie up to about 10 m apart, and joined at that the roads are one part but for a fiftieth of them.
 - **RE7.** Reading is bounded and can be stopped: a corridor about the way, a set number of tiles, one read at a time; a journey too
   long for the bound says so in one plain line and keeps the straight line and Open in Maps.
 - **RE8.** Roads are read only for a journey the person asked for (a destination picked on the page, "Drive there" in a session),
@@ -114,6 +116,7 @@ The way:
 
 - **RE10.** One way is found, never several; nothing is labelled, ranked or compared, and the same roads and points always give the
   same way.
+- **RE11a.** (the steward's S8) The page says once, in words and with no figure, that the way keeps to the roads through the towns.
 - **RE11.** The way favours the roads through the towns: a motorway is taken only where the way without it is longer by more than a
   set share; the rule is a fixed cost by kind of road, never a speed or a time.
 - **RE12.** The way passes through a journey's towns in their order and ends at the road nearest each town's point; where no road
@@ -128,28 +131,39 @@ On the page:
 
 - **RE16.** The road is drawn as one line through the towns, with no markers for turns, no numbers and no arrows; the walk in the
   town at hand is drawn as today.
-- **RE17.** A journey's card says its distance by road beside its distance on foot, each in words with its unit, and compares neither
-  with another card's.
-- **RE18.** While the road is read, the page says so once in words; the journeys are offered without waiting for it.
+- **RE17.** A journey's card says its distance by road beside its distance on foot, each in words with its unit, last on the card;
+  cards are never ordered by a distance and none is compared with another's (S9).
+- **RE18.** While the road is read, the page says so once in words; the journeys are offered without waiting for it. A card on
+  screen keeps its towns: a journey whose towns come from the road is added, never swapped in under the reader (S9).
 
 Guiding a drive:
 
 - **RE19.** "Drive there" is on the session's bar between towns, beside Open in Maps and Pass by; nothing guides until it is tapped,
-  and "End" stops it. Open in Maps asks the phone's maps app for driving directions, never walking, for a town a drive away.
+  and "End" stops it. Open in Maps asks the phone's maps app for driving directions, never walking, for a town a drive away; one
+  line on the page says the maps app chooses its own road, which may not be the one drawn (S10).
+- **RE20a.** (S4) While guiding, the bar holds the turn, the town and End, and nothing else to tap: Open in Maps and Pass by return
+  when guiding ends.
 - **RE20.** While guiding, the bar says the turn coming and how far to it ("Left onto Route 6. 2.4 km."), in at most two lines at
   320 px, with the road's name or number where the map has one; under it, the town it is headed toward. Nothing else is shown: no
   time, no speed, no limit, no lane, no count of turns.
 - **RE21.** A turn is read from the road: a change of road at a junction, a fork, a roundabout, joining or leaving a motorway.
-  Staying on the same road around a bend is not a turn.
-- **RE22.** Leaving the way is never flagged: no sound, word, banner or colour; the way is found again from where you are after the
-  same wait as on foot, and the bar then says the turn coming. Nothing says "recalculating", "off route" or "turn around".
+  Staying on the same road around a bend is not a turn. A roundabout's exit is said by its road where the map names it, and
+  otherwise by its place in order ("the third exit"): the one ordinal the engine may say (S5). A road's name or number is said only
+  where the tiles carry one, which at this zoom is the larger roads.
+- **RE22.** Leaving the way is never flagged: no sound, word, banner or colour, and nothing says "recalculating", "off route" or
+  "turn around". But a turn that is no longer true does not stay up (S1): off the way, the bar shows the town and no turn until a
+  new way is found, and then the turn coming. The wait before finding again is a driving rule of its own, by distance, not the one
+  on foot; finding again reads only the tiles the graph lacks.
 - **RE23.** A turn passed is not said again and nothing marks it done; no list of turns is shown while moving.
 - **RE24.** When the town is at hand the guiding ends by itself and the bar says the town is here, as today; no sound, no "arrived",
-  no summary of the drive.
-- **RE25.** (D3) "Say the turns" is a switch, off at first; on, a turn is spoken once as it nears and never otherwise: nothing is
-  spoken about leaving the way, the distance left, the time or the destination.
-- **RE26.** (D6) When guiding begins, the bar says once that the map does not know every turn restriction; it is a statement, with
-  no "check" or "caution".
+  no summary of the drive. The way ends at the main road nearest the town's point: where that is further from the point than the
+  town's reach, the bar says how far the town still is and not that it is here (S3).
+- **RE25.** (D3, the owner's to settle: plan question 1) A turn is spoken once as it nears and never otherwise: nothing is spoken
+  about leaving the way, the distance left, the time or the destination. Whether the voice comes with the tap on "Drive there" (with
+  a mute on the bar: the steward's S2, since that tap is the asking and a driver should not have to read) or only once switched on
+  is the open call. Where a turn cannot be spoken, "Drive there" says in words that turns are shown, not said.
+- **RE26.** (D6, S3) What the engine cannot know is said truthfully and at rest: on the page where the road is drawn, and once before
+  the first turn, never beside it: the map holds no turn restrictions and no closures. A statement, with no "check" or "caution".
 - **RE27.** The capture stack stays on the session's screen while guiding, one tap each, never under the bar.
 - **RE28.** Guiding rides with the open session: a reload or a return to the screen finds it again, Stop ends it, and nothing of it
   is kept after. Only the towns' points are kept, as the journey's plan is (OJ48); no way, turn or road name is stored.
@@ -158,13 +172,15 @@ What it costs, and what it never does:
 
 - **RE29.** Finding a way never holds the screen: it runs in steps that yield (a worker on the web), can be stopped, and a way not
   found within a set time is a failure said once (RE15).
-- **RE30.** Nothing leaves the device but the tile reads the map already makes, to the map's own host; no destination, position or
-  way is sent anywhere, and Open in Maps stays the one hand-off, on a tap.
+- **RE30.** (S6) Nothing is sent but tile reads to the map's own host, and Open in Maps on a tap. Those reads are new and say more
+  than today's: a strip of tiles from here to there tells the host where a journey begins, ends and runs, before it is driven. They
+  are made only on the person's tap (RE8), in no order along the way, and this is said in `net/policy.ts` beside the host.
 - **RE31.** No drive is recorded that the person did not start: guiding needs an open session, and starts none.
 - **RE32.** Words: no sentence of the engine holds a time, a speed, a count of turns, an ordinal, "fastest", "shorter", "quicker",
   "best", "recalculating" or an imperative beyond the turn itself; held by the banned-word grep, whole words.
-- **RE33.** With the phone locked or the app behind another, guiding goes on if "Say the turns" is on (native only); with it off,
-  the bar is right when the screen is next seen. A criterion only a phone can check.
+- **RE33.** With the phone locked or the app behind another, guiding goes on where turns are spoken (native only); otherwise the bar
+  is right when the screen is next seen. Guiding posts and updates no notification of its own, and its background work ends with
+  End, the town at hand or Stop (S7). A criterion only a phone can check.
 - **RE34.** The road pack: the adapter's contract is the pack's (a road with its kind, its direction and its points); the pack
   itself is not in this slice.
 

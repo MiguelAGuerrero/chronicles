@@ -17,7 +17,7 @@ consume it; the foot router is not touched.
 
 | Step | What it gives | Criteria |
 |---|---|---|
-| 0. Measure | A script over real tiles (not in the app): at z10, z11 and z12, are the roads connected across tile edges, how many nodes, does a way come out between two towns, how long does it take. It picks the zoom and the tile bound, or says the tiles cannot carry this and the pack must come first | none (it decides RE5-RE7's numbers) |
+| 0. Measure (done, below) | A script over real tiles (not in the app): at z10, z11 and z12, are the roads connected across tile edges, how many nodes, does a way come out between two towns, how long does it take. It picks the zoom and the tile bound, or says the tiles cannot carry this and the pack must come first | none (it decides RE5-RE7's numbers) |
 | 1. The engine | `roads/`: the adapter, the graph, the way, its length; unit tests over an in-memory source and a pinned real tile set | RE4-RE7, RE9-RE13, RE29, RE32, RE34 |
 | 2. On the page | The road drawn, distances by road, towns chosen by the road, Open in Maps for driving | RE1, RE2, RE8, RE14-RE18, RE30 |
 | 3. Guiding | Manoeuvres, "Drive there", the bar's turn, finding the way again, the end at the town | RE3, RE19-RE24, RE26-RE28, RE31 |
@@ -26,15 +26,35 @@ consume it; the foot router is not touched.
 Step 0 can end the plan: if the low-zoom tiles are not connected enough, steps 1 to 4 wait for a road pack, and the owner is asked.
 Step 4 is the only one that cannot be finished without a phone.
 
-## Step 0, the measurement
+## Step 0, the measurement: done (Nov 18)
 
-- Data: tileserver-gl's `test_data.zip` (Zurich, the OpenMapTiles schema, every zoom), fetched from GitHub as the repo's tests do;
-  `tiles.openfreemap.org` is blocked from cloud sessions, so the live host is checked by the owner's phone or not at all.
-- Questions it answers, each with a number in the report: which classes are present at each zoom; whether `oneway`, `ramp`, `ref`
-  and a name are carried; the gap between a road's two halves at a tile edge (the tolerance RE6 needs); the size of the largest
-  connected part as a share of all nodes; nodes and edges per tile; the time to build and to route across the set.
-- What it cannot answer: a 300 km corridor (Zurich's set is a city and its surroundings), and the live host's tiles today. Both are
-  said in the spec's record.
+`scripts/measure/roads-in-tiles.js` over tileserver-gl's `test_data.zip` (Zurich and about 40 km around it, a planetiler build of
+the OpenMapTiles schema; `tiles.openfreemap.org` is blocked from cloud sessions, so the live host's tiles were not read). Roads kept:
+motorway to tertiary and their links, each clipped to its own tile.
+
+| Zoom | Tiles for the area | Tertiary roads | A road's direction (`oneway`) | Joined at 3 m | Joined at 10 m | Nodes |
+|---|---|---|---|---|---|---|
+| z10 | 9 | no | **absent** | 62% | 94% | about 7,000 |
+| z11 | 16 | yes | **absent** | 75% | 96% | about 7,500 |
+| z12 | 42 | yes | present (9 in 10 kept roads) | 84% | 98% | about 10,000 |
+| z13 | 143 | yes | present | 93% | 98% | about 9,600 |
+| z14 | 550 | yes | present | 99% | 99.6% | about 10,000 |
+
+("Joined" is the share of road length in the largest connected part when piece ends within that distance are one junction.)
+
+What it settles:
+
+- **z12 is the zoom.** Below it no road carries its direction, so a dual carriageway cannot be told from a two-way road and a turn
+  onto or off a motorway cannot be read. z12 has tertiary roads too, at a thirteenth of z14's tiles.
+- **The tiles can carry it**: joined at 10 m, 98% of the road length is one part, in about ten thousand nodes for a city and its
+  surroundings. Step 1 goes ahead on tiles; the pack is not needed first.
+- **A z12 tile is about 7 km across**, so a way of 100 km is roughly 30 to 45 tiles and one of 300 km over a hundred. The bound
+  (RE7) is drawn at 60 tiles, about 150 km of road, until a real phone says what a connection bears; longer journeys keep the
+  straight line and Open in Maps, and say so.
+- **Names are thin.** No road feature carries a name or number at any zoom; they are in the name layer, which at z12 holds a few
+  hundred labels for this area against forty-six thousand at z14. A turn will often be "Left." with no road named (RE21).
+- **Not settled:** the direction of travel was not routed (the share joined is of an undirected graph); the last 2% is unexamined
+  (it may be roads cut by the area's own edge); the live host's build may differ; nothing was timed on a phone.
 
 ## Files
 
@@ -43,7 +63,7 @@ New, `src/lib/roads/` (each starts with `// @layer`):
 | File | Layer | Holds |
 |---|---|---|
 | `types.ts` | core | `Road` (points, kind, oneWay, name, ref, link), `RoadSource` (`read(tiles, shouldStop)`), `RoadWay` (path, lengthM, legs) |
-| `rules.ts` | core | `ROAD_RULES`: the zoom, the kinds read, the cost by kind (RE11), the tile bound and the corridor (RE7), the edge tolerance (RE6), the time allowed (RE29) |
+| `rules.ts` | core | `ROAD_RULES`: the zoom (12, from step 0), the kinds read, the cost by kind (RE11), the tile bound and the corridor (RE7), the edge tolerance (RE6), the time allowed (RE29) |
 | `fromTiles.ts` | core | `roadsFromTile(features, z, x, y)`: the `transportation` features of one tile as `Road`s; reads `class`, `oneway`, `ramp`, `brunnel`, `name`, `ref` |
 | `graph.ts` | core | `RoadGraph`: nodes and directed edges in typed arrays, numeric cell keys (`Buckets`), ends joined across tile edges within the tolerance, degree-two chains kept as one edge; `nearest(p, withinM)` |
 | `way.ts` | core | `findWay(graph, from, via, to, rules)`: A* over the directed graph with the cost by kind, as a generator that yields every so many nodes (RE29); deterministic ties (RE10) |
@@ -98,8 +118,8 @@ Touched:
 
 ## Cost
 
-- **Reading:** a corridor of low-zoom tiles. At z11 a tile is about 15 km across at this latitude, so 100 km of road is about 15 to
-  30 tiles, each a request of `FETCH_MS` 10 s at most, all or nothing as the fetcher is; the bound (RE7) is set from step 0. Once
+- **Reading:** a corridor of z12 tiles, each about 7 km across: 100 km of road is 30 to 45 tiles, each a request of `FETCH_MS` 10 s
+  at most, all or nothing as the fetcher is; the bound (RE7) is 60 tiles. Once
   per destination, and once more when a session asks to be guided from somewhere the graph does not hold.
 - **Building:** nodes and edges per tile from step 0 (unknown today); typed arrays, numeric keys, no per-vertex objects.
 - **Finding:** A* over the corridor's graph, in a generator that yields; a worker on the web, turns on native (no worker there).
@@ -153,16 +173,34 @@ screen from the background location task, which today only caches tiles; battery
 
 ## Questions for the owner before code
 
-1. **Spoken turns.** Off unless switched on (the draft: a voice that speaks unasked is the nag), on by default while guiding (a
-   driver should not have to look), or no voice at all in this slice?
-2. **What a driver may do while moving.** The capture stack stays as it is (the standing default), or voice only above a speed?
-   This was left open in decision 0197 and matters more once the app guides a drive.
-3. **Time.** Still distance alone, for a drive of an hour?
-4. **If step 0 says the tiles cannot carry it**: build the road pack first (a pipeline slice in chronicles-data, and an
-   OpenStreetMap run), or ship the road line and distance where the tiles do work and leave guiding for the pack?
-5. **The motorway rule.** The draft takes a motorway only when the way without it is more than half as long again. Right, or
-   stricter?
+1. **Spoken turns.** The steward argues the voice should come with the tap on "Drive there", with a mute on the bar: that tap is the
+   asking, and a driver should not have to read. The draft had it off until switched on. Which? And should guiding ship on a phone
+   at all before turns can be spoken (step 3 without step 4)?
+2. **The capture stack at the wheel.** One tap away as everywhere (the standing default), or voice only above a speed? The app
+   cannot tell the driver from a passenger, so a speed rule takes the camera from both.
+3. **Time.** With one way nothing is ranked, and the vision allows a time; the honest reason this engine says none is that it
+   cannot know one (no speeds, no traffic). Distance alone, or a rough duration shown at rest on the page?
+4. **How long a journey.** Sixty tiles, about 150 km of road, before it falls back to the straight line and Open in Maps. Enough?
+5. **The motorway rule.** A motorway only when the way without it is more than half as long again. Right, or stricter?
+6. **Must a guided drive be recorded?** The draft needs an open session to guide (RE31). A day's drive recorded end to end also
+   sits close to "All-day tracking".
 
-## The steward's findings
+## The steward's findings (Nov 18), triaged
 
-To be filled from the steward's read of this plan and the spec.
+Ten drifts, no breach; the gate's verdict stands. All ten are taken into the spec.
+
+| # | Finding | Triage |
+|---|---|---|
+| S1 | A turn that is no longer true stays on the bar after a missed turn, for the walking wait and a read | **Accepted**: RE22 (the turn line empties; a driving wait by distance) |
+| S2 | Guidance ships as something to read at the wheel; "off unless switched on" misreads the Never line | **To the owner** (question 1), with the steward's shape written into RE25 as the alternative |
+| S3 | "Not every turn restriction" understates (the tiles hold none) and arrives beside the first turn; "is here" may be untrue where the way ends short | **Accepted**: RE26, RE24 |
+| S4 | The guiding bar contradicts itself and invites a mis-tap at speed | **Accepted**: RE20a |
+| S5 | A roundabout with no named exit has nothing sayable under the ban on ordinals | **Accepted**: RE21 (the one ordinal) |
+| S6 | "The tile reads the map already makes" is untrue: a corridor discloses a journey in advance | **Accepted**: RE30 reworded, and said in `net/policy.ts` |
+| S7 | What the lock screen carries is unspecified | **Accepted**: RE33 (no notification of its own; background work ends with the guiding) |
+| S8 | The long way is taken without a word that the app chose it | **Accepted**: RE11a |
+| S9 | Cards change under the reader, and a distance by road on each invites comparing | **Accepted**: RE17, RE18 |
+| S10 | The road drawn is not the one Maps will take | **Accepted**: RE19 |
+
+The steward's silences are the questions above, and two more for the vision page itself: it has no line on sound or on safety, and
+0203 amends its shape "Several routes to one point" without the page yet saying so. Both are the owner's edits.
