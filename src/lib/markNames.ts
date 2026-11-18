@@ -22,6 +22,11 @@ const PAD = 6;
 /** A pin's tap room (`pinHit`, and the web button's padding): the head and 6 px either side, 4 above. */
 const HIT_W = HEAD_W + 12;
 const HIT_H = HEAD_H + 4;
+/** A spread row's pitch: tap rooms with 8 px between them (Material's spacing between targets; fix mark-overlap audit 5). */
+const PITCH = HIT_W + 8;
+/** A row takes in at most this many marks, each point within a tap room of the row's middle (audit 2): a chain along a
+ * street pairs off instead of growing one row of any length. */
+const ROW_MAX = 4;
 /** How far a spread row stands above the highest of its points, so every leg runs down to its own point. */
 const LIFT = 12;
 /** A name beside a head keeps this far from it. */
@@ -31,11 +36,18 @@ interface Box { x0: number; y0: number; x1: number; y1: number }
 
 const hit = (a: Box, b: Box) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
 
-/** Web-mercator pixels at a zoom (512 px tiles, as MapLibre). */
-function px([lng, lat]: LngLat, zoom: number): [number, number] {
+/**
+ * Screen pixels at a zoom (512 px tiles, as MapLibre), turned as the map is: `bearing` degrees is up. A marker's
+ * offset is in screen pixels, so a row is laid out on the turned screen (fix mark-overlap audit 1).
+ */
+function px([lng, lat]: LngLat, zoom: number, bearing = 0): [number, number] {
   const s = 512 * 2 ** zoom;
   const y = Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360));
-  return [(lng / 360) * s, (0.5 - y / (2 * Math.PI)) * s];
+  const wx = (lng / 360) * s;
+  const wy = (0.5 - y / (2 * Math.PI)) * s;
+  if (!bearing) return [wx, wy];
+  const t = (-bearing * Math.PI) / 180;
+  return [wx * Math.cos(t) - wy * Math.sin(t), wx * Math.sin(t) + wy * Math.cos(t)];
 }
 
 /**
@@ -49,29 +61,41 @@ export interface MarkSpread {
   side: 'left' | 'right' | null;
 }
 
+/** What a spread changes on screen, for redrawing a mark in place when only its place in a row moves. */
+export const spreadKey = (s?: MarkSpread): string => (s ? `${s.dx},${s.dy},${s.side ?? ''}` : '');
+
 const byId = <T extends { id: string }>(a: T, b: T) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
 
 /**
  * Marks whose tap rooms would overlap at this zoom stand side by side in one row instead, as Leaflet's spiderfy fans a
  * pile on legs to its point (never a count, nothing hidden): the row centred on its points, a little above the highest,
- * in the order the points run left to right. A row that would land on another mark takes it in, until none overlap.
- * Tens of marks at most (`visibleMarks`: 8 near, 20 on a route), so the pairwise passes stay cheap.
+ * in the order the points run left to right. A row that would land on another mark takes it in, while the row stays
+ * short (`ROW_MAX`, every point within a tap room of its middle); past that the overlap is left as the points have it.
+ * Grouped in id order, so the order the marks arrive in never changes the layout (audit 3). Tens of marks at most
+ * (`visibleMarks`: 8 near, 20 on a route), so the pairwise passes stay cheap.
  */
-function spreadRows(pts: readonly { id: string; x: number; y: number }[]): Map<string, MarkSpread> {
-  let groups = pts.map((p) => [p]);
+function spreadRows(input: readonly { id: string; x: number; y: number }[]): Map<string, MarkSpread> {
+  let groups = [...input].sort(byId).map((p) => [p]);
   const place = (g: typeof groups[number]) => {
     if (g.length === 1) return [{ p: g[0], x: g[0].x, y: g[0].y, i: 0 }];
     const row = [...g].sort((a, b) => a.x - b.x || byId(a, b));
     const cx = row.reduce((t, p) => t + p.x, 0) / row.length;
     const y = Math.min(...row.map((p) => p.y)) - LIFT;
-    return row.map((p, i) => ({ p, x: cx + (i - (row.length - 1) / 2) * HIT_W, y, i }));
+    return row.map((p, i) => ({ p, x: cx + (i - (row.length - 1) / 2) * PITCH, y, i }));
+  };
+  const short = (g: typeof groups[number]) => {
+    if (g.length > ROW_MAX) return false;
+    const cx = g.reduce((t, p) => t + p.x, 0) / g.length;
+    const cy = g.reduce((t, p) => t + p.y, 0) / g.length;
+    return g.every((p) => Math.abs(p.x - cx) <= HIT_W && Math.abs(p.y - cy) <= HIT_W);
   };
   for (;;) {
     const placed = groups.map(place);
     let merge: [number, number] | null = null;
     for (let g = 0; g < placed.length && !merge; g++)
       for (let h = g + 1; h < placed.length && !merge; h++)
-        if (placed[g].some((a) => placed[h].some((b) => Math.abs(a.x - b.x) < HIT_W && Math.abs(a.y - b.y) < HIT_H))) merge = [g, h];
+        if (placed[g].some((a) => placed[h].some((b) => Math.abs(a.x - b.x) < HIT_W && Math.abs(a.y - b.y) < HIT_H)) && short([...groups[g], ...groups[h]]))
+          merge = [g, h];
     if (!merge) {
       const out = new Map<string, MarkSpread>();
       for (const row of placed) {
@@ -105,9 +129,9 @@ function nameBox(x: number, y: number, name: string, side: 'left' | 'right' | 'b
  * pin's spoken label, and zooming in brings it back as the marks part. Heads and names are judged where they stand,
  * a spread mark's moved off its point.
  */
-function hiddenNames(marks: readonly NamedMark[], zoom: number, spread: ReadonlyMap<string, MarkSpread>): Set<string> {
+function hiddenNames(marks: readonly NamedMark[], zoom: number, bearing: number, spread: ReadonlyMap<string, MarkSpread>): Set<string> {
   const placed = [...marks].sort(byId).map((m) => {
-    const [px0, py0] = px(m.at, zoom);
+    const [px0, py0] = px(m.at, zoom, bearing);
     const s = spread.get(m.id);
     const x = px0 + (s?.dx ?? 0);
     const y = py0 + (s?.dy ?? 0);
@@ -127,21 +151,26 @@ function hiddenNames(marks: readonly NamedMark[], zoom: number, spread: Readonly
 }
 
 /**
- * The marks as drawn at this zoom: `spread` where their heads would cover each other (fix mark-overlap), `nameHidden`
- * where their names would stack. The same objects when neither happens.
+ * The marks as drawn at this zoom and bearing: `spread` where their heads would cover each other (fix mark-overlap),
+ * `nameHidden` where their names would stack. The same objects when neither happens. `spread: false` for a map that
+ * lays its pins out itself (Explore's "?" by `halfZoom`, WT12; audit 4).
  */
 export function declutterMarks<T extends { id: string; at: LngLat; name: string; revealed: boolean; found?: boolean; faint?: boolean }>(
   marks: readonly T[],
   zoom: number,
+  { bearing = 0, spread: spreading = true }: { bearing?: number; spread?: boolean } = {},
 ): (T & { nameHidden?: boolean; spread?: MarkSpread })[] {
   // A found mark is small and lets taps through to the moment beside it: it stays on its point.
-  const spread = spreadRows(marks.filter((m) => !m.found).map((m) => {
-    const [x, y] = px(m.at, zoom);
-    return { id: m.id, x, y };
-  }));
+  const spread = spreading
+    ? spreadRows(marks.filter((m) => !m.found).map((m) => {
+        const [x, y] = px(m.at, zoom, bearing);
+        return { id: m.id, x, y };
+      }))
+    : new Map<string, MarkSpread>();
   const hidden = hiddenNames(
     marks.map((m) => ({ id: m.id, at: m.at, name: m.name, named: m.revealed && !m.faint && !m.found })),
     zoom,
+    bearing,
     spread,
   );
   if (!hidden.size && !spread.size) return [...marks];

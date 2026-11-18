@@ -1300,6 +1300,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
           void openMemory(group, at);
         }}
         discoveries={explore.pins}
+        spreadMarks
         onDiscoveryPress={recordingVoice || stopping || isDrawing ? undefined : (id) => {
           // A found place is shown, not a card to open: its capture's pin is the thing to tap (audit, UI).
           if (explore.found.has(id)) return;

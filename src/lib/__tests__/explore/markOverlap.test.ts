@@ -57,3 +57,55 @@ test('fix mark-overlap 6: a found mark is never moved (it lets taps through to t
   const out = declutterMarks([mark('a', 0, 'A'), mark('f', 2, 'F', { found: true })], Z);
   assert.ok(out.every((m) => !m.spread));
 });
+
+/** Screen px of a mark's point at a bearing (the map turned so `bearing` is up), plus its spread. */
+function onScreen(m: { at: [number, number]; spread?: { dx: number; dy: number } }, bearing: number): [number, number] {
+  const s = 512 * 2 ** Z;
+  const wx = (m.at[0] / 360) * s;
+  const wy = (0.5 - Math.log(Math.tan(Math.PI / 4 + (m.at[1] * Math.PI) / 360)) / (2 * Math.PI)) * s;
+  const t = (-bearing * Math.PI) / 180;
+  return [wx * Math.cos(t) - wy * Math.sin(t) + (m.spread?.dx ?? 0), wx * Math.sin(t) + wy * Math.cos(t) + (m.spread?.dy ?? 0)];
+}
+const clearOf = (a: [number, number], b: [number, number]) => Math.abs(a[0] - b[0]) >= HIT_W || Math.abs(a[1] - b[1]) >= HIT_W;
+const PX_PER_DEG_LAT = PX_PER_DEG / Math.cos((40.6 * Math.PI) / 180);
+const at2 = (id: string, x: number, y: number, name = id) => ({ id, at: [lng(x), 40.6 - y / PX_PER_DEG_LAT] as [number, number], name, revealed: true });
+
+test('fix mark-overlap audit 1: on a turned map no two spread heads stand in each other\'s tap room', () => {
+  for (const bearing of [90, 180, 270, 33]) {
+    for (const marks of [[at2('a', 0, 0), at2('b', 20, 0)], [at2('a', 0, 0), at2('b', 0, 30)]]) {
+      const out = declutterMarks(marks, Z, { bearing });
+      const [p, q] = out.map((m) => onScreen(m, bearing));
+      assert.ok(clearOf(p, q), `bearing ${bearing}: heads at ${p.map(Math.round)} and ${q.map(Math.round)}`);
+    }
+  }
+});
+
+test('fix mark-overlap audit 2: a chain of marks never makes one long row: every leg under 60 px', () => {
+  // Eight along a street, 30 px apart: each overlaps the next, so one row would take them all (the auditor's F2).
+  const line = [0, 1, 2, 3, 4, 5, 6, 7].map((k) => at2(`m${k}`, k * 30, 0));
+  // And six down a street, 40 px apart.
+  const column = [0, 1, 2, 3, 4, 5].map((k) => at2(`n${k}`, 0, k * 40));
+  for (const marks of [line, column]) {
+    const out = declutterMarks(marks, Z);
+    for (const m of out) assert.ok(Math.hypot(m.spread?.dx ?? 0, m.spread?.dy ?? 0) <= 60, `${m.id} moved ${JSON.stringify(m.spread)}`);
+  }
+});
+
+test('fix mark-overlap audit 3: every order of an L of three gives the same spreads and hidden names', () => {
+  const a = at2('a', -40, 0, 'Alpha');
+  const b = at2('b', 0, 0, 'Beta');
+  const c = at2('c', 20, 47, 'Gamma');
+  const shape = (l: typeof a[]) => JSON.stringify(declutterMarks(l, Z).map((m) => [m.id, m.spread ?? null, !!m.nameHidden]).sort());
+  const want = shape([a, b, c]);
+  for (const l of [[a, c, b], [b, a, c], [b, c, a], [c, a, b], [c, b, a]]) assert.equal(shape(l), want);
+});
+
+test('fix mark-overlap audit 4: a map that asks for no spread (Explore lays its own pins out) gets none', () => {
+  const out = declutterMarks([mark('a', 0, 'A'), mark('b', 4, 'B')], Z, { spread: false });
+  assert.ok(out.every((m) => !m.spread));
+});
+
+test('fix mark-overlap audit 5: a row leaves 8 px between its tap rooms', () => {
+  const out = declutterMarks([mark('a', 0, 'A'), mark('b', 0, 'B')], Z);
+  assert.ok(Math.abs(headX(out[0]) - headX(out[1])) >= HIT_W + 8);
+});
