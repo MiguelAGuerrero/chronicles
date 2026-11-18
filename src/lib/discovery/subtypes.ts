@@ -54,6 +54,7 @@ export const SUBTYPES: readonly Subtype[] = [
   { kind: 'forts', parent: 'structures', label: 'Forts and armories', plural: 'Forts', single: null, on: true, small: false },
   { kind: 'towers', parent: 'structures', label: 'Water and clock towers', plural: 'Towers', single: null, on: true, small: false },
   { kind: 'old_machines', parent: 'structures', label: 'Old machines', plural: 'Old machines', single: 'An old machine', on: true, small: false },
+  { kind: 'piers', parent: 'structures', label: 'Piers and boardwalks', plural: 'Piers', single: null, on: true, small: false },
   { kind: 'taverns', parent: 'structures', label: 'Old taverns and inns', plural: 'Old taverns', single: null, on: true, small: false },
   { kind: 'old_stones', parent: 'structures', label: 'Old stones', plural: 'Old stones', single: 'An old stone', on: false, small: true },
   // History: Places of worship, Cemeteries.
@@ -62,9 +63,13 @@ export const SUBTYPES: readonly Subtype[] = [
   // Parks & green spaces.
   { kind: 'gardens', parent: 'parks', label: 'Gardens', plural: 'Gardens', single: null, on: true, small: false },
   { kind: 'community_gardens', parent: 'parks', label: 'Community gardens', plural: 'Community gardens', single: 'A community garden', on: true, small: false },
+  // more-attractions audit 4: after Community gardens.
+  { kind: 'nature_reserves', parent: 'parks', label: 'Nature reserves', plural: 'Nature reserves', single: null, on: true, small: false },
   { kind: 'waterfalls', parent: 'nature', label: 'Waterfalls', plural: 'Waterfalls', single: 'A waterfall', on: true, small: false },
   { kind: 'caves', parent: 'nature', label: 'Caves', plural: 'Caves', single: null, on: true, small: false },
   { kind: 'hot_springs', parent: 'nature', label: 'Hot springs and geysers', plural: 'Hot springs', single: 'A hot spring', on: true, small: false },
+  // more-attractions audit 18 (the owner, Nov 18, "Own subtype under Nature"): natural national monuments.
+  { kind: 'natural_monuments', parent: 'nature', label: 'Natural monuments', plural: 'Natural monuments', single: null, on: true, small: false },
   { kind: 'old_trees', parent: 'nature', label: 'Old trees', plural: 'Old trees', single: 'An old tree', on: false, small: true },
   // Culture.
   { kind: 'observatories', parent: 'museums', label: 'Observatories', plural: 'Observatories', single: null, on: true, small: false },
@@ -73,6 +78,8 @@ export const SUBTYPES: readonly Subtype[] = [
   { kind: 'carousels', parent: 'community', label: 'Carousels', plural: 'Carousels', single: 'A carousel', on: true, small: false },
   // Viewpoints & oddities.
   { kind: 'fire_towers', parent: 'viewpoints', label: 'Fire lookout towers', plural: 'Fire towers', single: null, on: true, small: false },
+  // more-attractions audit 1 (the owner, Nov 18, "Own row, on"): every amusement, theme or water park, whatever its source.
+  { kind: 'amusement_parks', parent: 'attractions', label: 'Amusement parks', plural: 'Amusement parks', single: null, on: true, small: false },
   { kind: 'old_ruins', parent: 'curiosities', label: 'Ruins', plural: 'Ruins', single: null, on: true, small: false },
   { kind: 'ghost_towns', parent: 'curiosities', label: 'Ghost towns', plural: 'Ghost towns', single: null, on: false, small: false },
   { kind: 'natural_oddities', parent: 'curiosities', label: 'Natural arches and rocks', plural: 'Natural arches', single: null, on: true, small: false },

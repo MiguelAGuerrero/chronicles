@@ -1,6 +1,6 @@
 # Plan: Sights and Local life, phase 1 (SG1-SG13)
 
-For the owner's review before any code. Decision 0197; spec `specs/sights-and-local-life/spec.md`. Revised after the
+For the owner's review before any code. Decision 0200; spec `specs/sights-and-local-life/spec.md`. Revised after the
 plan review (the spec's "Plan review" section: steward, auditor, UX reviewer, Nov 18).
 
 ## Files
@@ -45,8 +45,8 @@ New test file `src/lib/__tests__/explore/sightsLife.test.ts` in the existing `ex
 
 ## Deferred
 
-- Everything of phase 2 (decision 0197), held until chronicles-data covers National Park Service sites.
-- Local life's line in words and any map layer for it (0197).
+- Everything of phase 2 (decision 0200), held until chronicles-data covers National Park Service sites.
+- Local life's line in words and any map layer for it (0200).
 - Whatever the owner answers to "Open" 2 and 3, if not now.
 
 ## Native
@@ -77,18 +77,18 @@ above its group's first row. On a tile, the strip under the name, where the icon
 **Defaults that make a control quieter** (the owner may overrule):
 - The headings are sentence case, about 14 px, semibold, in ink: below the card's name and apart from the uppercase,
   muted section titles (the UX review's U1).
-- **The tile has no words**, only 16 px between groups: "Life" does not fit at 320 px (0197 named it; dropped here,
-  decision 0198).
+- **The tile has no words**, only 16 px between groups: "Life" does not fit at 320 px (0200 named it; dropped here,
+  decision 0201).
 - No colour, icon or total per group; each kind keeps its own colour.
 
 ## Against precedent
 
 - **No chips to filter by type** (Google): Explore shows presence, not a search; the map is filtered by "What I'm into".
 - **No score per group** (Walk Score): Never "Scores".
-- **Local life is on the card at all** (Atlas Obscura shows none): the owner's call (0197); it says which kinds of places
+- **Local life is on the card at all** (Atlas Obscura shows none): the owner's call (0200); it says which kinds of places
   are there, in dots and words.
 
-## The owner's answers (Nov 18, decision 0198)
+## The owner's answers (Nov 18, decision 0201)
 
 1. The tile: space alone, no word.
 2. The tile's line leads with the Sights kinds, Local life only when there is no Sight (SG13).

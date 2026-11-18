@@ -1,6 +1,6 @@
 {
   "$comment": "Generated from src/schema.ts by `npm run contract`; a test fails when they differ (PP5).",
-  "contractVersion": 4,
+  "contractVersion": 8,
   "candidate": {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "type": "object",
@@ -92,7 +92,13 @@
           "carousel",
           "zoo",
           "fire_tower",
-          "ghost_town"
+          "ghost_town",
+          "museum_by_type",
+          "nature_reserve",
+          "amusement_park",
+          "pier",
+          "natural_monument",
+          "suspension_bridge"
         ]
       },
       "signals": {
@@ -279,7 +285,13 @@
           "carousel",
           "zoo",
           "fire_tower",
-          "ghost_town"
+          "ghost_town",
+          "museum_by_type",
+          "nature_reserve",
+          "amusement_park",
+          "pier",
+          "natural_monument",
+          "suspension_bridge"
         ]
       },
       "gone": {
@@ -428,7 +440,13 @@
           "carousel",
           "zoo",
           "fire_tower",
-          "ghost_town"
+          "ghost_town",
+          "museum_by_type",
+          "nature_reserve",
+          "amusement_park",
+          "pier",
+          "natural_monument",
+          "suspension_bridge"
         ]
       },
       "src": {

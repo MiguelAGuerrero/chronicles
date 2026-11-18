@@ -2,7 +2,11 @@ import { reactions } from '../../lib/reactions';
 import { useReactions } from '../../lib/reactions/useReactions';
 import { infoOf, type ReactionId } from '../../lib/reactions/core';
 import type { LensGroup } from '../../lib/reactions/lens';
-import { faced } from '../../lib/moment';
+import { faced, facedAt, momentOf } from '../../lib/moment';
+import { join } from '../../lib/join';
+import { joinable, previousFor, type Refs } from '../../lib/join/rules';
+import { quickActions, type SlotId } from '../../lib/journal/actions';
+import { AddToThread } from '../threads/AddToThread';
 import { ReactionsScreen } from '../reactions/ReactionsScreen';
 import { LensScreen } from '../reactions/LensScreen';
 import type { Faced } from '../../lib/moment';
@@ -85,6 +89,11 @@ export function MemoriesScreen() {
   // so they are drawn while the page is loading or could not be read (JN9).
   const [reasons, setReasons] = useState<Record<string, NoFix>>({});
   const [session, setSession] = useState<MomentView[]>([]);
+  // The quick-action row (decision 0197): what Respond and Edit ask the viewer for, the entry Add to a thread is for, and what points at the last kept entry.
+  const [intent, setIntent] = useState<'respond' | 'edit' | 'more' | undefined>(undefined);
+  const [threading, setThreading] = useState<Faced | null>(null);
+  const [pointed, setPointed] = useState<{ id: string; refs: Refs } | null>(null);
+  const joins = useStore(join.store, (j) => j.pending);
   const pageRef = useRef<JournalPageHandle>(null);
   const [threadTerm, setThreadTerm] = useState<string | null>(null);
   const [menuFor, setMenuFor] = useState<string | null>(null);
@@ -253,8 +262,10 @@ export function MemoriesScreen() {
   // failed, what was kept in this sitting.
   const ready = state.status === 'ready';
   const moments = useMemo(
-    () => (ready ? journalMoments(feed.moments, state.inOpenWalk, deletedIds) : journalMoments(session, [], deletedIds)),
-    [ready, feed.moments, state.inOpenWalk, deletedIds, session],
+    () => join.mergedViews(ready ? journalMoments(feed.moments, state.inOpenWalk, deletedIds) : journalMoments(session, [], deletedIds), deletedIds),
+    // `joins` is read so a stack shows at once, before the Undo window passes (SW9).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [ready, feed.moments, state.inOpenWalk, deletedIds, session, joins],
   );
   const page = useMemo(() => journalPage(moments, now, limit, { slip: ready && !!pick }), [moments, now, limit, ready, pick]);
   // The context of the entries drawn, read once each (MC6); a failed read is asked again when the moments are.
@@ -271,7 +282,8 @@ export function MemoriesScreen() {
   };
   // The slip's moment was brought back by the app: its viewer's reactions stay plain words (RL4, steward 2).
   const [viewingSlip, setViewingSlip] = useState(false);
-  const open = (m: MomentView, fromSlip = false) => {
+  const open = (m: MomentView, fromSlip = false, ask?: 'respond' | 'edit' | 'more') => {
+    setIntent(ask);
     setViewingSlip(fromSlip);
     setViewing([m.capture]);
   };
@@ -329,19 +341,21 @@ export function MemoriesScreen() {
   const undoToast = toast ? (
     <View style={styles.toast} accessibilityLiveRegion="polite" testID="memories-toast">
           <Text style={styles.toastText}>{toast.msg}</Text>
-          <Pressable
-            testID="memories-undo"
-            accessibilityRole="button"
-            accessibilityLabel="Undo"
-            style={styles.undoHit}
-            onPress={() => {
-              const change = toast.change;
-              setToast(null);
-              void resurface.undo(change);
-            }}
-          >
-            <Text style={styles.undo}>Undo</Text>
-          </Pressable>
+          {toast.change ? (
+            <Pressable
+              testID="memories-undo"
+              accessibilityRole="button"
+              accessibilityLabel="Undo"
+              style={styles.undoHit}
+              onPress={() => {
+                const change = toast.change;
+                setToast(null);
+                void resurface.undo(change);
+              }}
+            >
+              <Text style={styles.undo}>Undo</Text>
+            </Pressable>
+          ) : null}
         </View>
   ) : null;
   const menuMoment = menuFor ? inThreadById.get(menuFor) ?? null : null;
@@ -354,6 +368,39 @@ export function MemoriesScreen() {
     const to = answeredBy(m.id, mine.links);
     const parent = to ? inThreadById.get(to) : undefined;
     return parent ? answeringLine({ place: parent.place, t: parent.t, walkLine: fromLine(walkOf(parent)) }, now) : null;
+  };
+  // What the row offers (decision 0197): Stack with previous only on the last entry kept in this sitting, while nothing
+  // points at it and a moment from the same day, walk and place precedes it (SW5-SW8).
+  const lastKept = useMemo(() => session.reduce<MomentView | null>((a, v) => (!a || v.t > a.t ? v : a), null), [session]);
+  const lastKeptId = lastKept?.id ?? null;
+  const writingEntry = writing ? moments.find((v) => v.capture.pieces.some((p) => p.id === writing))?.id ?? null : null;
+  const pickedId = pick?.moment.id ?? null;
+  const hiddenIds = hidden.moments;
+  useEffect(() => {
+    if (!lastKeptId) return;
+    let alive = true;
+    const mention = moments.some((v) => v.id !== lastKeptId && v.capture.pieces.some((p) => p.kind === 'text' && !!p.body && p.body.includes(lastKeptId)));
+    void join.refs(lastKeptId, { hidden: hiddenIds.some((h) => h.id === lastKeptId), pick: pickedId === lastKeptId, mention }).then((refs) => {
+      if (alive) setPointed({ id: lastKeptId, refs });
+    }, () => {});
+    return () => { alive = false; };
+    // A reaction or a thread added since it was offered changes what points at it (audit 1): the menu and the sheet closing re-read it.
+  }, [lastKeptId, moments, hiddenIds, pickedId, menuFor, threading]);
+  const previousOf = (m: MomentView) => previousFor(moments.map((v) => momentOf(v.capture)), momentOf(m.capture));
+  const actionsFor = (m: MomentView) => {
+    const prev = m.id === lastKeptId && pointed?.id === m.id ? previousOf(m) : null;
+    const ok = !!prev && joinable(momentOf(m.capture), { refs: pointed?.refs ?? {}, lastKept: lastKeptId, writing: writingEntry });
+    return quickActions({ pieces: m.capture.pieces.length }, { joinable: ok });
+  };
+  const act = (m: MomentView, id: SlotId) => {
+    if (id === 'react') { setMenuFromSlip(false); setTypeOnly(true); setMenuFor(m.id); }
+    else if (id === 'respond') open(m, false, 'respond');
+    else if (id === 'edit') open(m, false, 'edit');
+    else if (id === 'thread') setThreading(m.capture);
+    else {
+      const prev = previousOf(m);
+      if (prev) void join.join(momentOf(m.capture), prev).catch(() => {});
+    }
   };
   const entry = (m: MomentView) => {
     const c = m.capture;
@@ -369,12 +416,14 @@ export function MemoriesScreen() {
         onOpen={() => open(m)}
         onMap={c.lat != null && c.lon != null ? () => chronicleSection.showMoment([c.lon as number, c.lat as number]) : undefined}
         onWalk={(id) => router.push(`/replay/${id}?ceremony=0`)}
-        onMore={() => { setMenuFromSlip(false); setTypeOnly(false); setMenuFor(m.id); }}
         onSign={() => lineRef.current?.react({ moment: c.id })}
         signOpen={typeOpen}
-        onReact={dayKey(m.t) === dayKey(now) ? () => { setMenuFromSlip(false); setTypeOnly(true); setMenuFor(m.id); } : undefined}
         onOpenRef={open}
         onLens={(id) => openLens(id)}
+        actions={actionsFor(m)}
+        onAction={(id) => act(m, id)}
+        onOpenPiece={(pieceId) => open({ ...m, capture: facedAt(m.capture, pieceId) })}
+        onTakeOut={(pieceId) => open({ ...m, capture: facedAt(m.capture, pieceId) }, false, 'more')}
       />
     );
   };
@@ -652,9 +701,24 @@ export function MemoriesScreen() {
           threads.removeFromThread(own.id, m.id);
         }}
       />
+      {threading ? (
+        <AddToThread
+          moment={threading}
+          onClose={() => setThreading(null)}
+          onDone={(text, ok) => {
+            setThreading(null);
+            if (ok) threads.load().catch(() => {});
+            setToast({ msg: ok ? 'Added to a thread' : text, change: null as never });
+            timer.current = setTimeout(() => setToast(null), TOAST_MS);
+          }}
+        />
+      ) : null}
       <CaptureViewer
         key={`memory:${viewing?.[0]?.id ?? 'none'}`}
-        captures={!memoOn && viewing ? viewing.map((v) => inThreadById.get(v.id)?.capture ?? v) : null}
+        intent={intent}
+        // A stack's tile opens the viewer on its own piece (decision 0197, SW12, SW21).
+        startAt={viewing?.[0] ? { id: viewing[0].id, piece: viewing[0].piece_id } : null}
+        captures={!memoOn && viewing ? viewing.map((v) => (v.piece_id ? v : inThreadById.get(v.id)?.capture ?? v)) : null}
         // From an entry, a thread or Hidden a reaction opens its lens (RL3); from the slip it is plain words (RL4).
         onLens={viewingSlip ? undefined : (id) => openLens(id)}
         onClose={() => {

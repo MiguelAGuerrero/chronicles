@@ -1,9 +1,11 @@
+import type React from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { BackHandler, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { AtlasArea } from '../../lib/atlas/atlas';
 import type { CategoryId } from '../../lib/discovery/types';
 import type { Waypoint } from '../../lib/nav/types';
+import { focusOn, useFocusReturn, useFocusTrap } from '../../lib/focus';
 import { hideTabs } from '../../lib/tabsHidden';
 import type { LngLat } from '../../lib/types';
 import { useUnits } from '../../lib/useUnits';
@@ -38,6 +40,13 @@ export function PlannerDrawer(props: {
   const units = useUnits();
   const p = usePlanner(props.kind, { at: props.area.at, reachM: props.area.reachM }, props.you, true);
   const [busy, setBusy] = useState(false);
+  // tend explore 27: focus moves into the planner as it opens, at its title, as the card's does at its name, and goes back
+  // to the kind's button as it closes. tend explore 27: and Tab stays inside it on the web.
+  useFocusReturn();
+  const titleRef = useRef<React.ComponentRef<typeof Text>>(null);
+  useEffect(() => focusOn(titleRef), []);
+  const rootRef = useRef<React.ComponentRef<typeof View>>(null);
+  useFocusTrap(rootRef, true);
   // The tabs fold away while the planner is up, and go back as they were when it goes: the area card under it may still be open (audit 12).
   useEffect(() => hideTabs(), []);
   // Back (Android) and Escape (web) close it: the card is as it was.
@@ -82,9 +91,9 @@ export function PlannerDrawer(props: {
     }
   }
   return (
-    <View style={[StyleSheet.absoluteFill, styles.over, { paddingTop: insets.top }]} testID="planner" accessibilityViewIsModal>
+    <View ref={rootRef} style={[StyleSheet.absoluteFill, styles.over, { paddingTop: insets.top }]} testID="planner" accessibilityViewIsModal>
       <View style={styles.head}>
-        <Text style={styles.title} accessibilityRole="header" testID="plan-title">{title(props.kind)}</Text>
+        <Text ref={titleRef} style={styles.title} accessibilityRole="header" testID="plan-title" {...{ tabIndex: -1 }}>{title(props.kind)}</Text>
         <Pressable testID="plan-close" accessibilityRole="button" accessibilityLabel={closeLabel} onPress={props.onClose} style={styles.close}>
           <Icon name="close" size={22} color={theme.ink} />
         </Pressable>

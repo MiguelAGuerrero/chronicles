@@ -71,10 +71,10 @@ recording, and a recording bar brings a minimized walk back.
   turn up as a "?"), so a plain parish church counts toward nothing; food, shops
   and nightlife count every place. A ring with fewer than three mapped places
   says nothing about its kinds (atlas grading, decision 0084).
-- **Sights and Local life** (decisions 0197, 0198; SG1-SG13): the card lists the kinds under two headings, **Sights**
+- **Sights and Local life** (decisions 0200, 0201; SG1-SG13): the card lists the kinds under two headings, **Sights**
   (history, art, culture, green, views: what can turn up as a "?", said in a line under the heading) and **Local life**
   (food, shops, nightlife: every place of its kind, never a "?"); a tile keeps one row with the two groups set apart by
-  a hairline (decision 0199), says them aloud by name, and its line leads with the Sights ("Plenty of history and green space"), Local
+  a hairline (decision 0202), says them aloud by name, and its line leads with the Sights ("Plenty of history and green space"), Local
   life only where there is no Sight. The Sights bars follow "What I'm into": a kind switched off leaves its bar at once.
   Culture moves to Local life in phase 2, once the places data covers National Park Service sites.
 - A place may light two bars (presence and kinds, decision 0127): a museum or
@@ -187,12 +187,18 @@ recording, and a recording bar brings a minimized walk back.
   sculptures and statues, and community gardens, join their kinds. An unnamed one is named by its type ("A time
   capsule"). **Subtypes** (decision 0191, contract v4): every kind may have subtypes, each a switch under it, and the
   archive adds what the app could not show before: waterfalls, caves, hot springs and old trees (a new kind, Nature),
-  botanical gardens, zoos and aquariums (with the map's attractions, a kind of their own), fountains, concert halls,
+  botanical gardens, zoos and aquariums (a kind of their own), fountains, concert halls,
   observatories and carousels; listed buildings split into bridges, mills, stations, lighthouses, courthouses, forts,
   towers, old machines and old taverns; ghost towns (off by default) apart from ruins; markers apart from plaques.
-  Small things start off unless they are art. An area's bars count them by the size of the stop (a plaque a quarter, a little library a half) only for a
-  reader who has them on; they never keep a park a park, never lean a route, and a museum passed is never lost among
-  plaques. `npm run places:coverage` measures what
+  Small things start off unless they are art. An area's bars count the subtypes by the size of the stop (a plaque a
+  quarter, a little library a half) only for a reader who has them on; small places never keep a park a park, never lean a
+  route, and a museum passed is never lost among plaques.
+  **More attractions** (decision 0198): every museum by its type, not only listed ones (Culture alone unless listed,
+  whatever its name), nature reserves and wildlife refuges, every kind of garden, amusement, theme and water parks (their
+  own row, Amusement parks, under Zoos and aquariums, on by default, from the archive and the map alike), piers
+  and boardwalks (no History unless listed), suspension bridges (Bridges; a bridge known only by its type, with no
+  listing, adds nothing to History), national monuments, and natural national monuments such as
+  Devils Tower (Natural monuments, under Nature). `npm run places:coverage` measures what
   the app keeps of a town's destinations, for the owner.
 - **Complexes** (CX1-CX16, decision 0147). A named place made of other places (Strawberry Square,
   the Lehigh Valley Mall; a market, a campus, a station, a civic centre) is a subdivision of the area
@@ -376,6 +382,16 @@ recording, and a recording bar brings a minimized walk back.
     in the app's voice ("8:15 this morning · Elm Street, Fox Point"; on a walk, "Forty minutes in, just after a photo"),
     then every piece in the order captured. Your words are in a serif, everything the app says in its sans. A tap on a
     placed entry's dateline shows it on Chronicle's Map; a tap on the entry opens it; "From …" opens its walk's replay.
+  - **Quick actions under every entry** (decision 0197, SW1-SW20): a row of five icons, each with a one-word caption:
+    **Reaction** (the reactions, any day), **Respond** (a new linked moment), **Thread** (Add to a thread), **Edit** and
+    **Stack** (Stack with previous). A slot that does not apply is empty and moves no other; the entry being written has no row.
+    An entry has no More and no reaction sign: Show less like this and Not this one are gone from entries (the slip keeps its own More).
+  - **Stack with previous**: on the entry just kept in this sitting, while nothing points at it, one tap moves its pieces into
+    the previous moment of the same day, same walk and within 100 m, with Undo ("Stacked with the earlier moment"). Each piece
+    keeps its own time; one that was made later says "Added later, 4:12 pm" and names no place.
+  - **A stack as a gallery**: a moment with several pieces shows its first photo or video, your words and voice notes as before,
+    a quiet mark and its kinds in words ("a photo, a note and a voice note"); **Show all** opens a grid of every piece, three to a
+    row, each tile with its own time, and **Show less** closes it. No count anywhere.
   - **When it opens** the page is aligned to the top: today's date, the last entry under it, and the empty page below,
     down to the toolbar. Pull down to read back; each day's date holds at the top while its entries pass.
   - **A toolbar at the foot** (decisions 0178, 0179): above the tab bar, wherever the page is scrolled, a soft grey

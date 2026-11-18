@@ -243,14 +243,9 @@ async function run(h) {
   const afterQuick = (await stored(pg)).moments;
   check(afterQuick.length === beforeQuick + 1 && afterQuick.some((m) => m.pieces.length === 1 && m.pieces[0].body === 'Quick again.') && quickStatus === 'Kept as you write',
     `chronicle-journal audit 3: words typed right after emptying the line are kept, in one new entry (${afterQuick.length - beforeQuick} new, "${quickStatus}")`);
-  // ui 4: an entry's More sits on its dateline's row, trailing.
-  const headRow = await pg.locator(entries).last().evaluate((e) => {
-    const d = e.querySelector('[data-testid=entry-dateline]').getBoundingClientRect();
-    const m = e.querySelector('[data-testid=moment-more]').getBoundingClientRect();
-    return { dateline: Math.round(d.y + d.height / 2), more: Math.round(m.y + m.height / 2), right: Math.round(m.right), w: Math.round(m.width), h: Math.round(m.height) };
-  }).catch(() => null);
-  check(!!headRow && Math.abs(headRow.dateline - headRow.more) <= 22 && headRow.w >= 44 && headRow.h >= 44,
-    `chronicle-journal ui 4: More trails the dateline on the entry's first row, a thumb's target (${JSON.stringify(headRow)})`);
+  // SW19 (decision 0197): an entry's top line has no More and no sign of its own; Reaction is in the row under it.
+  const topLine = await pg.locator(entries).last().evaluate((e) => ({ more: e.querySelectorAll('[data-testid=moment-more]').length, row: !!e.querySelector('[data-testid=quick-actions]'), react: !!e.querySelector('[data-testid=quick-react]') }));
+  check(topLine.more === 0 && topLine.row && topLine.react, `SW19: an entry has no More; its row has Reaction (${JSON.stringify(topLine)})`);
 
   // JN28-JN30 are retired by the composer (decision 0179): their checks are JN47-JN51's.
 
@@ -303,20 +298,7 @@ async function run(h) {
 
   // Reactions on the journal (RX6-RX10, RX14) are the `reactions` journey's; what stays here is how the sheet and the
   // panel behave around the rest of the page (note-types audit 56, 63, carried to reactions).
-  // note-types audit 63: More opens on its list again after the eight were shown and the sheet was closed by another item.
-  const lastMore = () => pg.locator('[data-testid=journal-page] [data-testid=moment-card]').last().locator('[data-testid=moment-more]');
-  await lastMore().click();
-  await pg.waitForTimeout(700);
-  await pg.click('[data-testid=menu-reaction]', { timeout: 3000 }).catch(() => {});
-  await pg.waitForTimeout(400);
-  await pg.click('[data-testid=reaction-done]');
-  await pg.waitForTimeout(700);
-  await lastMore().click();
-  await pg.waitForTimeout(700);
-  const list63 = { type: await pg.locator('[data-testid=memory-menu] [data-testid=menu-reaction]').count(), grid: await pg.locator('[data-testid=memory-menu] [data-testid=reaction-panel]').count() };
-  check(list63.type === 1 && list63.grid === 0, `note-types audit 63: More reopens on its list (${JSON.stringify(list63)})`);
-  await pg.click('[data-testid=menu-cancel]');
-  await pg.waitForTimeout(700);
+  // note-types audit 63 (More reopens on its list) went with More on entries (SW19, decision 0197).
   // note-types audit 56: the reactions go when Memories is no longer in front (a menu opens), and the bar is whole.
   await toLine();
   await pg.keyboard.type('Let go.', { delay: 10 });
@@ -404,11 +386,14 @@ async function run(h) {
   const lastEntry = await pg.locator(entries).last().evaluate((e) => ({
     datelines: e.querySelectorAll('[data-testid=entry-dateline]').length,
     pieces: [...e.querySelectorAll('[data-testid^=entry-piece-]')].map((p) => p.dataset.testid.replace('entry-piece-', '')),
-    digits: [...e.querySelectorAll('[data-testid=stack-mark]')].length,
+    marks: e.querySelectorAll('[data-testid=stack-mark]').length,
+    kinds: (e.querySelector('[data-testid=stack-kinds]')?.textContent ?? '').trim(),
   })).catch(() => null);
-  check(s3.moments.length === before3 + 1 && kinds === 'photo,text,voice' && !!lastEntry && lastEntry.datelines === 1 && lastEntry.pieces.join(',') === 'photo,text,voice' && lastEntry.digits === 0,
-    `JN15: a photo, the line under it and a voice note are one entry under one dateline, every piece shown, no count (${JSON.stringify({ kinds, lastEntry, moments: s3.moments.length - before3 })})`);
-  check(!!lastEntry && lastEntry.pieces.length === 3, `JN3: a moment with several pieces is one entry with every piece shown (${JSON.stringify(lastEntry)})`);
+  // Amended by decision 0197 (SW11): a stack shows its face, its words and voice note, the mark and a clause naming its kinds; Show all is only for media behind it, and there is none here.
+  const toggles15 = await pg.locator(entries).last().locator('[data-testid=stack-toggle]').count();
+  check(s3.moments.length === before3 + 1 && kinds === 'photo,text,voice' && !!lastEntry && lastEntry.datelines === 1 && lastEntry.pieces.join(',') === 'photo,text,voice' && lastEntry.marks === 1 && lastEntry.kinds === 'Holds a photo, a note and a voice note' && toggles15 === 0,
+    `JN15: a photo, the line under it and a voice note are one entry under one dateline: its face, the mark and its kinds in words, and no Show all with no media behind it, no count (${JSON.stringify({ kinds, lastEntry, toggles15, moments: s3.moments.length - before3 })})`);
+  check(!!lastEntry && lastEntry.pieces.length === 3, `JN3: a moment with several pieces is one entry with its words and voice notes shown, extra photos and videos behind Show all (${JSON.stringify(lastEntry)})`);
   // A voice note plays in line (the owner's call, Nov 13): a play button and a bar on the page, never the viewer.
   const memoRow = pg.locator(entries).last().locator('[data-testid=entry-piece-voice]');
   const hasPlay = await memoRow.locator('[data-testid=entry-voice-play]').count().then((n) => n === 1, () => false);
@@ -913,17 +898,7 @@ async function run(h) {
   const placedEntry = pg.locator(entries).filter({ hasText: 'Second entry of the day.' });
   // ui 3: the map is also in the entry's More, and a placed dateline wears a pin.
   const pinGlyph = await placedEntry.locator('[data-testid=entry-map]').innerText().then((t) => iconOf(t.trim()[0] ?? ''), () => '');
-  await placedEntry.locator('[data-testid=moment-more]').click().catch(() => {});
-  await there('[data-testid=memory-menu]', 4000);
-  const mapInMore = await pg.locator('[data-testid=menu-map]').count();
-  await pg.locator('[data-testid=menu-cancel]').click().catch(() => {});
-  await pg.locator(entries).filter({ hasText: 'A long entry' }).locator('[data-testid=moment-more]').click().catch(() => {});
-  await there('[data-testid=memory-menu]', 4000);
-  const mapForUnplaced = await pg.locator('[data-testid=menu-map]').count();
-  await pg.locator('[data-testid=menu-cancel]').click().catch(() => {});
-  await pg.waitForTimeout(400);
-  check(mapInMore === 1 && mapForUnplaced === 0 && /location/.test(pinGlyph),
-    `chronicle-journal ui 3: Show on the map is in a placed entry's More, and its dateline wears a pin (${JSON.stringify({ mapInMore, mapForUnplaced, pinGlyph })})`);
+  check(/location/.test(pinGlyph), `chronicle-journal ui 3: a placed entry's dateline wears a pin and is the way to the map (${pinGlyph})`);
   await placedEntry.locator('[data-testid=entry-map]').click().catch(() => {});
   const onMap = await pg.waitForSelector('[data-testid=section-map][aria-selected=true]', { timeout: 6000 }).then(() => true, () => false);
   await pg.waitForTimeout(2500);
@@ -1060,11 +1035,7 @@ async function run(h) {
     navigator.permissions.query = window.__pq;
   });
   await pg.waitForTimeout(6500);
-  await pg.locator(entries).last().locator('[data-testid=moment-more]').click().catch(() => {});
-  await pg.locator('[data-testid=menu-hide]').first().click({ timeout: 3000 }).catch(() => {});
-  const undoBox = await pg.waitForSelector('[data-testid=memories-toast]', { timeout: 5000 }).then(() => box(pg, '[data-testid=memories-toast]'), () => null);
-  check(!!undoBox && undoBox.y + undoBox.h <= lineAtRest.y && same(await box(pg, line), lineAtRest), `JN18: Undo for a hide sits above the toolbar (${JSON.stringify({ undoBox, lineAtRest })})`);
-  await pg.locator('[data-testid=memories-undo]').click({ timeout: 3000 }).catch(() => {});
+  // JN18's Undo for a hide went with Not this one on entries (SW19, decision 0197).
 
   // JN22: no texture, no accent, and outside the owner's words only dates, times and a memo's length are digits.
   const restraint = await pg.evaluate(({ accent }) => {

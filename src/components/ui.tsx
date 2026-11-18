@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { forwardRef, useEffect, useRef, useState, type ComponentRef, type ReactNode } from 'react';
 import {
   ActivityIndicator, Animated, Easing, Platform, Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle,
 } from 'react-native';
@@ -30,7 +30,11 @@ export const theme = {
 
 type Variant = 'primary' | 'secondary' | 'danger' | 'ghost';
 
-export function Button(props: {
+/**
+ * The ref is the pressable's, so a screen can move focus to a button (`focusOn`, lib/focus): the area card's question
+ * takes focus on Walk now and gives it back to Walk to (tend explore 27).
+ */
+export const Button = forwardRef<ComponentRef<typeof Pressable>, {
   label: string;
   onPress: () => void;
   variant?: Variant;
@@ -45,7 +49,7 @@ export function Button(props: {
   /** What a screen reader says when the visible word alone is not unique in its list; it starts with the label (WCAG 2.5.3). */
   spokenLabel?: string;
   children?: ReactNode;
-}) {
+}>(function Button(props, ref) {
   const v = props.variant ?? 'primary';
   const fg = v === 'primary' || v === 'danger' ? theme.accentInk : theme.ink;
   // Pressed down slightly while held, sprung back on release (M4). The dimming stays as the press's
@@ -55,6 +59,7 @@ export function Button(props: {
   const [pressed, setPressed] = useState(false);
   return (
     <PressableAnim
+      ref={ref}
       testID={props.testID}
       accessibilityRole="button"
       accessibilityLabel={props.busy && props.busyLabel ? props.busyLabel : props.spokenLabel ?? props.label}
@@ -91,7 +96,7 @@ export function Button(props: {
       )}
     </PressableAnim>
   );
-}
+});
 
 /**
  * A long press would otherwise select the label as text (iOS Safari), which

@@ -35,7 +35,7 @@ import { MOTION } from '../../lib/motionTokens';
 import { followMoves } from '../../lib/compass';
 import { groundGeoJSON, groundStyle } from '../../lib/areas/groundDraw';
 import {
-  alternatesGeoJSON, TRACE_EDGE_OPACITY, storefrontNameLayers, storefrontNameRotate, storefrontNamesGeoJSON, roomCells, routeGradesGeoJSON, pinsGeoJSON, BORDER, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, OVERTURE_CREDIT, GAZETTEER_CREDIT, DERIVE_ZOOM, endsGeoJSON, ENDS_PAINT, ENDS_RING_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON, BASE_VECTOR_SOURCE, poiLabelLayers,
+  alternatesGeoJSON, TRACE_EDGE_OPACITY, storefrontNameLayers, storefrontNameRotate, storefrontNamesGeoJSON, roomCells, routeGradesGeoJSON, pinsGeoJSON, BORDER, borderFillOpacity, borderMoves, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, OVERTURE_CREDIT, GAZETTEER_CREDIT, DERIVE_ZOOM, endsGeoJSON, ENDS_PAINT, ENDS_RING_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON, BASE_VECTOR_SOURCE, poiLabelLayers,
   LINE_SOURCE, LINE_SOURCE_IDS, type CollectedFeatures, mapWorkerUrl, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
@@ -50,7 +50,8 @@ setWorkerUrl(mapWorkerUrl(process.env.EXPO_BASE_URL ?? '', getVersion()));
 /** The trace's end joins the live dot only this close; farther, it's a pause or gap, not lag. */
 const LINK_MAX_M = 60;
 
-function addOverlay(map: MapLibreMap) {
+/** The layers the app adds over the base map; returns the base map's first street layer, which the borders' fill goes under. */
+function addOverlay(map: MapLibreMap): string | undefined {
   const empty: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: [] };
   // The veil goes under the first label layer, so names stay readable.
   const firstSymbol = map.getStyle().layers.find((l: { type: string; id: string }) => l.type === 'symbol')?.id;
@@ -61,13 +62,15 @@ function addOverlay(map: MapLibreMap) {
   map.addSource('borders', { type: 'geojson', data: empty, tolerance: 1 });
   map.addLayer({ id: 'border-fill', type: 'fill', source: 'borders', minzoom: BORDER.minZoom, filter: ['==', ['get', 'role'], 'tinted'],
     paint: { 'fill-color': BORDER.color, 'fill-opacity': BORDER.fillOpacity } }, firstRoad);
+  // The veil, then the borders' lines: on the replay and a day the town's edge stays firm over it (decision 0199); the veil
+  // effect (`borderMoves`) puts it back over them on every other map.
+  map.addSource('veil', { type: 'geojson', data: WORLD_VEIL });
+  map.addLayer({ id: 'veil', type: 'fill', source: 'veil', paint: { 'fill-color': COLORS.veil, 'fill-opacity': 0 } }, firstSymbol);
   // The lines over the streets, under the labels (TB10): a border often runs along a road.
   map.addLayer({ id: 'border-lined', type: 'line', source: 'borders', minzoom: BORDER.minZoom, filter: ['==', ['get', 'role'], 'lined'],
     layout: { 'line-join': 'round' }, paint: { 'line-color': BORDER.lined, 'line-width': BORDER.linedWidth, 'line-opacity': BORDER.linedOpacity } }, firstSymbol);
   map.addLayer({ id: 'border-firm', type: 'line', source: 'borders', minzoom: BORDER.minZoom, filter: ['!=', ['get', 'role'], 'lined'],
     layout: { 'line-join': 'round' }, paint: { 'line-color': BORDER.color, 'line-width': BORDER.firmWidth, 'line-opacity': BORDER.firmOpacity } }, firstSymbol);
-  map.addSource('veil', { type: 'geojson', data: WORLD_VEIL });
-  map.addLayer({ id: 'veil', type: 'fill', source: 'veil', paint: { 'fill-color': COLORS.veil, 'fill-opacity': 0 } }, firstSymbol);
   // The Walkability layer (UF9), under the hotspots, fog and trace: a soft green over ground easy on foot, a warm tint over
   // ground built around cars. No antialiasing, so shapes of one reading side by side show no seam.
   map.addSource('walkability', { type: 'geojson', data: empty, tolerance: 0 });
@@ -159,6 +162,7 @@ function addOverlay(map: MapLibreMap) {
   map.addLayer({ id: 'storefront-names-turned', type: 'symbol', source: 'storefront-names', minzoom: names.minzoom, filter: names.turned.filter, layout: names.turned.layout, paint: names.turned.paint } as unknown as SymbolLayerSpecification);
   // The room the selected area's name and each "?" pin keep (DC14, DC17): above the names, so it is placed first.
   map.addLayer({ id: 'storefront-names-room', type: 'symbol', source: 'storefront-names', minzoom: names.minzoom, filter: names.room.filter, layout: names.room.layout, paint: names.room.paint } as unknown as SymbolLayerSpecification);
+  return firstRoad;
 }
 
 /** A second tap within this long makes a double-tap zoom, not a press. */
@@ -289,6 +293,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const mapRef = useRef<MapLibreMap | null>(null);
   const [ready, setReady] = useState(false);
   const baseLayers = useRef<string[]>([]);
+  /** The base map's first street layer, which the borders' fill goes under while the veil is off (TB8). */
+  const firstRoad = useRef<string | undefined>(undefined);
   const readyPromise = useRef<{ promise: Promise<void>; resolve: () => void } | null>(null);
   if (readyPromise.current == null) {
     let resolve!: () => void;
@@ -405,7 +411,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     map.on('load', () => {
       // The base map's own layers, before the app adds its overlay (T17: whether the tiles drew anything).
       baseLayers.current = blankLookLayers(map.getStyle().layers as { id: string; type: string; 'source-layer'?: string }[]);
-      addOverlay(map);
+      firstRoad.current = addOverlay(map);
       setReady(true);
       readyPromise.current!.resolve();
       // The e2e taps a spot on the newest map (a stretch across a gap), only when it is measuring.
@@ -1305,8 +1311,15 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     areaMarkers.current = [];
   }, []);
   useEffect(() => {
-    if (ready) mapRef.current?.setPaintProperty('veil', 'fill-opacity', props.veil ? 0.45 : 0);
-  }, [ready, props.veil]);
+    const map = mapRef.current;
+    if (!ready || !map) return;
+    map.setPaintProperty('veil', 'fill-opacity', props.veil ? 0.45 : 0);
+    // The borders over the veil on the replay and a day, at a lighter fill, so a walk's town still reads as a region and
+    // its labels keep 4:1 (decision 0199); the walk's unwalked veil stays over them (tend map audit 39).
+    const overVeil = !!props.veil && !!props.bordersOverVeil;
+    for (const [id, before] of borderMoves(overVeil, firstRoad.current)) map.moveLayer(id, before);
+    map.setPaintProperty('border-fill', 'fill-opacity', borderFillOpacity(overVeil));
+  }, [ready, props.veil, props.bordersOverVeil]);
   // QC24: the base map's shop and point-of-interest labels, hidden while a stop is a plain point (the outing's page, a followed outing).
   useEffect(() => {
     const map = mapRef.current;

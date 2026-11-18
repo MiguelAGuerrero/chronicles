@@ -1,0 +1,53 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "A near read whose write fails is retried every 1.5 s",
+        "--reason",
+        "built in tend explore 25 (f74c8c92): the write's failure resolves the read's rows unkept, shown, and asked again after retryMs; the review's audit 32 (7ab75533) holds the read so the other level follows"
+      ],
+      "target": "sha256:cd8eae9168b2a1e145827e05354e2c99e88580c1e0eee009a8ae32c8c6c03611"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "A failed `listAtlasAreas` in `readNear`",
+        "--reason",
+        "built in tend explore audit 34 (7ab75533): a failed listAtlasAreas resolves false and writes nothing"
+      ],
+      "target": "sha256:0191e2cc825b084d9c7d6717a99afc2d44d72f9ea15fbdd2bddd0bbe16a127c9"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "The memories journey's `tend explore audit 23` step",
+        "--reason",
+        "built in tend explore 26 (16b22f33): the step waits for Fox Point's ring read and the card's Walk to; three runs in a row, ok in each"
+      ],
+      "target": "sha256:8dc8ec06793cb44c8ed51cc718dfd8cdbdeaf9e4e456e1d4d854607bed25783d"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Explore atlas"
+      ],
+      "body": "- [ ] **Do:** since `tend explore 25` and `tend explore audits 32-35` (Nov 18), fill a test phone's storage until a write fails (or run a build whose `putAtlasAreas` throws `SQLITE_FULL`), open Explore where it has never listed, then start a walk and stop it. **Expect:** Explore lists the towns around you and reads their rings from what it read, never \"No towns are named on the map here.\", and asks again after two minutes, not every 1.5 s; the failed write rejects to its caller through the single write queue (`db/sqliteStore.ts`), so `readShell.ts`'s catch runs, and leaves the queue usable: the walk's own writes (its trace, its stop) still go through once room is made. (AT1, AT5, AT14)\n"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 18, `/tend explore --deploy=main`, a near read whose write fails** (opened from `252dbd43`, rebased on `8ab68d05`; no sweep, lenses 1-7 not run; aimed at DEFERRED's `[loop]` medium in \"Explore and discovery\" and the memories journey's `[loop]` low of Nov 18; the faster lane of decision 0181).\n- `tend explore 25`: a near read whose write fails (`putAtlasAreas` or `setMeta`) resolves its rows unkept instead of throwing into `useAtlas`'s catch, which read the tiles again every 1.5 s for as long as Explore was in front. For the person: the read worked, so its areas show; the cache simply isn't kept, and it is asked again after `retryMs`. The atlas's reads became a shell factory (`createAtlasRead`, `atlas/readShell.ts`) tested on fake ports; `atlas/read.ts` is the app's instance.\n- `tend explore 26`: the memories journey's `tend explore audit 23` step waits for Fox Point's ring read (`data-read`) and the card's Walk to before reading the row; three runs in a row, the step ok in each.\n- The review (one round, the `auditor`; one medium, three low; four accepted, none deferred or rejected), in one commit: `tend explore audit 32` (medium: an unkept neighborhood read held up the town read and the row said \"No towns are named on the map here.\" for 2 min; now held in memory, `heldNears`, until `retryMs`, so the towns follow; the atlas journey refuses the atlas's writes and checks the row), `audit 33` (a ring whose write fails keeps its profile, unkept), `audit 34` (a failed `listAtlasAreas` reads nothing), `audit 35` (a failed `tile_url` read is no URL). Lines added to `explore-atlas.md`; a trap added to `docs/TESTING.md` (CDP's quota override is ignored for a Playwright context).\n- Filed: a native check under \"Explore atlas\" (a full disk: the write rejects through the single queue, and the queue stays usable). Left DEFERRED: the two items built and the `listAtlasAreas` low closed by audit 34.\n- Journeys: `memories` (×3 for 26, then once), `atlas` (audit 32's step also seen failing with `useAtlas`'s wiring reverted), `launch`; typecheck, lint, `npm test`. Not run: the sweep's lenses and the balance's evolve. Nothing here has run on a phone: SQLite's write failure through the queue is native.\n"
+    }
+  ]
+}

@@ -11,7 +11,7 @@ import { placesFromTilePois } from '../../discovery/tilePois';
 import { parseHidden } from '../../explore/explore';
 import type { LngLat } from '../../types';
 
-// Sights and Local life, phase 1 (specs/sights-and-local-life, decisions 0197, 0198). Written before the code: the module's
+// Sights and Local life, phase 1 (specs/sights-and-local-life, decisions 0200, 0201). Written before the code: the module's
 // new exports are read through `any` until they exist.
 
 const A = atlasModule as any;

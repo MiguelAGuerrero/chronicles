@@ -1,4 +1,4 @@
-<!-- Repo first: written from the owner's request in a session (Nov 17-18, 2026), after the owner stood in downtown Stroudsburg, PA, saw the card's dots say "plenty" and found one "?" on the map. Not a tab of the concept doc (https://claude.ai/artifact/6P9aUdZJAdReBi6yFVtwa7). Decision 0197. -->
+<!-- Repo first: written from the owner's request in a session (Nov 17-18, 2026), after the owner stood in downtown Stroudsburg, PA, saw the card's dots say "plenty" and found one "?" on the map. Not a tab of the concept doc (https://claude.ai/artifact/6P9aUdZJAdReBi6yFVtwa7). Decision 0200. -->
 
 # Sights and Local life, phase 1: the bars in two groups (SG)
 
@@ -8,11 +8,11 @@ Explore's card and tiles show presence for eight kinds with one look and one voc
 promises: History, Art, Culture, Green and Views count only places that can turn up as a "?", while Food, Shops and
 Nightlife count every place and never do. In downtown Stroudsburg the second kind of bar read "plenty" with nothing to
 find behind it; over the 152-area presence sample, 145 of 421 lit bars have no "?" behind them, 140 of them Food, Shops
-or Nightlife. Decision 0197 splits the bars into **Sights** (the findables) and **Local life** (the places you go into).
+or Nightlife. Decision 0200 splits the bars into **Sights** (the findables) and **Local life** (the places you go into).
 
 This is **phase 1.** It groups today's bars under the two headings, makes the Sights bars follow "What I'm into", and
-leads a tile's line with Sights (the owner's answers to the plan, decision 0198). Culture stays under Sights until phase 2 moves museums, galleries, theaters and community spaces into Local life (held
-until chronicles-data covers National Park Service sites, decision 0197). The only data change is the cached tally,
+leads a tile's line with Sights (the owner's answers to the plan, decision 0201). Culture stays under Sights until phase 2 moves museums, galleries, theaters and community spaces into Local life (held
+until chronicles-data covers National Park Service sites, decision 0200). The only data change is the cached tally,
 which keeps the Sights places by kind (`ATLAS_OWN` a15: every area is read once more).
 
 ## Vision
@@ -20,12 +20,12 @@ which keeps the Sights places by kind (`ATLAS_OWN` a15: every area is read once 
 ```
 Idea: "Two separate indicators: one for the points of interest, the findables, and one for the types of amenities, storefronts and other services that are there" (the owner, Nov 17); headings "Sights" and "Local life" (Nov 18).
 Verb: earn (Explore: "where there is a lot, what makes a place itself"; the card stops promising "?" pins it cannot show).
-Touches: Always "Guidance is structural… never whether it is good"; Always "Counts are words"; Never "Tallies…"; Never "Popularity, trending, foot traffic, other people's activity" (nearest fit: "Presence of places from open data (0080, 0084)"); Always "Restraint"; decisions 0067 (presence as dots; the card shows every kind), 0084 (what each bar counts), 0127 (no two bars redundant), 0194 (shops are presence, not points of interest), 0197.
+Touches: Always "Guidance is structural… never whether it is good"; Always "Counts are words"; Never "Tallies…"; Never "Popularity, trending, foot traffic, other people's activity" (nearest fit: "Presence of places from open data (0080, 0084)"); Always "Restraint"; decisions 0067 (presence as dots; the card shows every kind), 0084 (what each bar counts), 0127 (no two bars redundant), 0194 (shops are presence, not points of interest), 0200.
 Verdict: aligned if reshaped
 Shape: the card's kinds under two quiet headings, Sights then Local life, each in a fixed order; tiles keep one row, the groups apart; dots and step words as today; Local life never yields a "?", a find, a name or a ranking, and "Local life" means what is there, never how busy it is.
 Precedent: Atlas Obscura lists only curiosities, never businesses (a Sights-only list); Google Maps' nearby search splits "Things to do" from Restaurants, Coffee and Shopping chips (a type split); Walk Score groups amenities by type with a score (a counter-example). All from memory, unverified.
 Criteria: SG1-SG14.
-Open: none for phase 1 (phase 2's two are in decision 0197).
+Open: none for phase 1 (phase 2's two are in decision 0200).
 ```
 
 ## Decisions (the owner's calls)
@@ -35,11 +35,11 @@ Open: none for phase 1 (phase 2's two are in decision 0197).
   "Finds / Storefronts".
 - **Culture and Community become Local life bars in phase 2** (Nov 18); phase 1 leaves Culture under Sights, because
   until then it still counts only places that can be a "?".
-- **Culture stays a Sight in phase 1** (the plan's reading of 0197, Nov 18): it still counts only places that can be a "?", so filing it under Local life before phase 2 would be untrue.
+- **Culture stays a Sight in phase 1** (the plan's reading of 0200, Nov 18): it still counts only places that can be a "?", so filing it under Local life before phase 2 would be untrue.
 - **The tile sets the groups apart by space alone, no word; a tile's line leads with Sights; the Sights bars follow the
-  switches** (Nov 18, the owner's answers to the plan's three questions, decision 0198).
-- **A hairline between the tile's groups** (Nov 18, after the cold find: "Add the line.", decision 0199).
-- **Phase 2 waits** on chronicles-data's National Park Service sites (Nov 18, decision 0197).
+  switches** (Nov 18, the owner's answers to the plan's three questions, decision 0201).
+- **A hairline between the tile's groups** (Nov 18, after the cold find: "Add the line.", decision 0202).
+- **Phase 2 waits** on chronicles-data's National Park Service sites (Nov 18, decision 0200).
 
 ## How adjacent apps do it
 
@@ -64,7 +64,7 @@ Open: none for phase 1 (phase 2's two are in decision 0197).
 2. **SG2 · The tile keeps its one row, in two groups.** An area tile's kinds stay one row on a 320 px wide phone with all
    eight present, on a tile at rest and on the selected tile (its 2 px border): the last kind ends inside the strip.
    The Sights kinds come first, then a wider space, then the Local life kinds; with kinds of one group only there is no
-   wider space. The tile shows no heading words (decision 0198).
+   wider space. The tile shows no heading words (decision 0201).
 3. **SG3 · The headings are headers, one level under "What's here".** A screen reader hears "What's here", then
    "Sights", its line and its rows, then "Local life" and its rows; on the web the two are headings one level below
    "What's here" (`aria-level`), never peers of it or of the card's name.
@@ -101,7 +101,7 @@ Open: none for phase 1 (phase 2's two are in decision 0197).
     group, a rank, or a word for busyness or popularity ("busy", "popular", "trending", "lively", "alive", "buzzing",
     "vibrant").
 
-### The owner's answers to the plan (decision 0198)
+### The owner's answers to the plan (decision 0201)
 
 12. **SG12 · The Sights bars follow the switches.** A kind switched off in "What I'm into" no longer counts toward its
     Sights bar, on the card, the tile and the spoken line, at once and without a read: switch off every History kind and
@@ -112,7 +112,7 @@ Open: none for phase 1 (phase 2's two are in decision 0197).
     ("Plenty of history and green space"), and the strongest Local life kinds only when there is no Sight ("Lots of
     food and shops"). "A little of everything", "Not much on the map here" and a thin area's silence are as before.
 
-### The owner's answer to the cold find (decision 0199)
+### The owner's answer to the cold find (decision 0202)
 
 14. **SG14 · A line between a tile's groups.** Where a tile has kinds of both groups, a 1 px vertical line in the
     hairline ink stands in the space between the last Sight and the first Local life kind; with one group there is no
@@ -135,7 +135,7 @@ Open: none for phase 1 (phase 2's two are in decision 0197).
 Steward (S), auditor (A) and UX reviewer (U) read the spec and plan; no screens existed. Triage:
 
 - S1 "Local life" pitched as liveliness: accept, "alive" gone from the plan; SG7, SG11.
-- S2 "Life" dropped on the tile without saying so: accept; the owner chose space alone (0198), SG2.
+- S2 "Life" dropped on the tile without saying so: accept; the owner chose space alone (0201), SG2.
 - S3, U4, A5 the tile cannot tell the groups apart, and its spoken line is flat: accept, SG5; the owner: the line leads with Sights, SG13.
 - S4 Culture under Sights needs its reason: accept, SG7 and the spec's opening.
 - S5 Storefronts read as Local life naming places: accept, SG6.
@@ -164,7 +164,7 @@ Pictures `sg-card-kinds`, `sg-card-life`, `sg-tile-fox-320`, `11c-atlas-card` (3
 - C task 1, which kinds are findables: found, sure.
 - C task 3, what Food's dots promise: found after one tap on "How the marks work", sure.
 - C task 2 and U5, from the tile alone, things to find or only places to go into: found late, guessing; the 16 px
-  between the groups reads as faint, or as a missing kind. Put back to the owner, who chose a line (0199, SG14).
+  between the groups reads as faint, or as a missing kind. Put back to the owner, who chose a line (0202, SG14).
 - C, no line under "Local life": reject, the owner took the recommendation of one line under Sights only (plan review U2).
 - U1 no picture showed Local life: accept, `sights-and-local-life ui 3` (the e2e scrolls its last row into view first).
 - U2 a kind's dots move between rows: defer, before this slice (DEFERRED).
@@ -187,5 +187,5 @@ plan review's A2 fixture was not built). SG12 is a unit test over `presenceTally
 through `withShownSteps`, as the small subsets' switches already do. Native unverified (one check in
 `docs/NATIVE_UNVERIFIED.md`). UI review and cold find: 8 findings,
 3 fixed (`sights-and-local-life ui 1-3`), 2 deferred, 2 rejected, 1 put to the owner, who chose a line
-between the tile's groups (SG14, decision 0199: tests first, then the line; the atlas journey ran once more, and
+between the tile's groups (SG14, decision 0202: tests first, then the line; the atlas journey ran once more, and
 grading, marks and planner, which cover the strip).

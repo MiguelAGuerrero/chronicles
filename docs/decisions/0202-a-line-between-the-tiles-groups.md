@@ -1,6 +1,6 @@
-# 0199. A hairline between a tile's two groups
+# 0202. A hairline between a tile's two groups
 
-Date: 2026-11-18 · Status: accepted · Area: explore, atlas · Amends: decision 0198 ("space alone")
+Date: 2026-11-18 · Status: accepted · Area: explore, atlas · Amends: decision 0201 ("space alone")
 
 ## Context
 After Sights and Local life, phase 1 was built, the cold find (pictures and the owner's tasks only) could tell a tile's

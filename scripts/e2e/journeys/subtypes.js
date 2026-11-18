@@ -93,6 +93,22 @@ async function run(h) {
   await shot(pg, 'subtypes-what-im-into-structures');
   await pg.locator('[data-testid=kind-ghost_towns]').scrollIntoViewIfNeeded().catch(() => {});
   await shot(pg, 'subtypes-what-im-into-curiosities');
+  // More attractions' rows in their sections, for the UI review (decision 0198).
+  await pg.locator('[data-testid=kind-nature_reserves]').scrollIntoViewIfNeeded().catch(() => {});
+  await shot(pg, 'subtypes-what-im-into-parks');
+  await pg.locator('[data-testid=kind-attractions]').scrollIntoViewIfNeeded().catch(() => {});
+  await shot(pg, 'subtypes-what-im-into-zoos');
+  // more-attractions audit 8: the cold find's gap, the Culture section with Museums and galleries, and the amusement row.
+  const culture = await pg.locator('[data-testid=kind-museums]').count();
+  check(culture === 1, `more-attractions audit 8: Museums and galleries is a row under Culture (${culture})`);
+  await pg.locator('[data-testid=kind-museums]').scrollIntoViewIfNeeded().catch(() => {});
+  await shot(pg, 'subtypes-what-im-into-culture');
+  const fun = await pg.locator('[data-testid=kind-amusement_parks]').count();
+  check(fun === 1, `more-attractions audit 8: Amusement parks is a row under Zoos and aquariums (${fun})`);
+  await pg.locator('[data-testid=kind-amusement_parks]').scrollIntoViewIfNeeded().catch(() => {});
+  await shot(pg, 'subtypes-what-im-into-amusement');
+  await pg.locator('[data-testid=kind-piers]').scrollIntoViewIfNeeded().catch(() => {});
+  await shot(pg, 'subtypes-what-im-into-piers');
   const rows = drawer.filter((r) => !r.id.startsWith('kind-heading-')).map((r) => r.id);
   check(ready.length > 0 && JSON.stringify(ready) === JSON.stringify(drawer.map((r) => r.id)), `XS24: the ready bar and the walk's drawer list the same rows (${ready.length} vs ${drawer.length})`);
 
@@ -113,6 +129,10 @@ async function run(h) {
     })
     .filter(Boolean));
   check(rows.length > 40 && wrapped.length === 0, `XS22, explore-subtypes audit 2: at 320 px every row's label is one line (${JSON.stringify(wrapped)})`);
+  // More attractions (decision 0198): the new rows among them; since its audit (1, 18) Amusement parks and
+  // Natural monuments too.
+  const newRows = ['kind-nature_reserves', 'kind-piers', 'kind-attractions', 'kind-amusement_parks', 'kind-natural_monuments'];
+  check(newRows.every((id) => rows.includes(id)) && !wrapped.some((w) => newRows.some((id) => w.startsWith(id))), `MA9: the new rows fit one line at 320 px (${JSON.stringify(wrapped)})`);
   await shot(pg, 'subtypes-what-im-into-320');
   await c.close();
   places.files = {};

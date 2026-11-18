@@ -1,4 +1,4 @@
-import { type Faced, faced, facedAt, hasMore, pieceKey } from '../lib/moment';
+import { type Faced, faced, facedAt, hasMore, pieceKey, pieceWhen } from '../lib/moment';
 import { split } from '../lib/split';
 import { momentPill } from '../lib/momentPill';
 import { useStore } from '../lib/useStore';
@@ -396,6 +396,8 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
 export function CaptureViewer(props: {
   captures: Faced[] | null;
   onClose: () => void;
+  /** Opened from an entry's quick-action row (decision 0197): go straight to Respond's menu or to the piece's editor, once. */
+  intent?: 'respond' | 'edit' | 'more';
   /** A reaction under the info line opens its lens (RL3): the viewer closes first. Memories' viewers alone pass it (RL4). */
   onLens?: (id: ReactionId) => void;
   /** Extra words per capture, e.g. which walk it came from. */
@@ -694,6 +696,20 @@ export function CaptureViewer(props: {
       : current && current.kind === 'text' && props.onSaveNote
         ? { label: 'Edit', testID: 'viewer-edit-note', onPress: () => setNoting(current) }
         : null;
+  // Once, when the viewer shows what an entry's row asked for (decision 0197, SW2, SW4): from a timer, not the effect body.
+  const intentDone = useRef(false);
+  const intentRef = useRef({ respond: () => setReplyStage('sheet'), edit: editAction?.onPress, more: () => setMenu(true) });
+  useEffect(() => {
+    intentRef.current = { respond: () => setReplyStage('sheet'), edit: editAction?.onPress, more: () => setMenu(true) };
+  });
+  const shown = !!current;
+  useEffect(() => {
+    if (!props.intent || intentDone.current || !shown) return;
+    intentDone.current = true;
+    const ask = props.intent;
+    const t = setTimeout(() => intentRef.current[ask]?.(), 0);
+    return () => clearTimeout(t);
+  }, [props.intent, shown]);
   return (
     <Modal
       visible={list.length > 0}
@@ -744,6 +760,8 @@ export function CaptureViewer(props: {
               props.remind && recalls.has(current.id) ? 'Reminder set' : null,
               // One phrase: its spaces do not break, so "of 0:04" never sits alone on a line (voice-trim ui 3).
               current.kind === 'voice' ? trimmedLine(current)?.replace(/ /g, '\u00a0') : null,
+              // A piece made later than its moment says when, never where (stack-with-previous audit 10).
+              moment && pieces[pi] ? pieceWhen(moment, pieces[pi]) : null,
               statusOf.get(current.id),
             ]}
             pieces={stacked ? { onPrev: pi > 0 ? () => stepPiece(-1) : undefined, onNext: pi < pieces.length - 1 ? () => stepPiece(1) : undefined } : undefined}

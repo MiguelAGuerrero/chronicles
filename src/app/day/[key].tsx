@@ -279,6 +279,8 @@ export default function DayReplay() {
         initialCenter={data.bounds ? [(data.bounds[0] + data.bounds[2]) / 2, (data.bounds[1] + data.bounds[3]) / 2] : undefined}
         initialZoom={data.bounds ? undefined : 2}
         veil
+        // The town borders over the veil, at a lighter fill (decision 0199).
+        bordersOverVeil
         // The day's walks have ended: the day's first start and its last end are marked (QL2), from the whole traces.
         ended={whole}
         // Above the card once it is up; before that nothing sits at the bottom (Skip is at the top) (QL8).

@@ -2,6 +2,7 @@ import { memo } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { ATLAS_ORDER, characterLine, distanceWords, familiarityWords, tileLabel, type Familiarity, type Listed, type Steps } from '../../lib/atlas/atlas';
 import { cardFooter } from '../../lib/atlas/carousel';
+import { atlasTileId } from '../../lib/atlas/focusOrder';
 import { canOpenInMaps, walkThereName, type TileWalk } from '../../lib/atlas/mapsButton';
 import { formatDistance } from '../../lib/format';
 import { COLORS, HOTSPOT, HOTSPOT_INK } from '../map/types';
@@ -50,6 +51,8 @@ export const AtlasTile = memo(function AtlasTile(props: {
     <View style={[styles.outer, props.drill && styles.stack]}>
       <Pressable
         testID={props.wide ? 'atlas-town-head' : 'atlas-tile'}
+        // The area's card gives focus back here as it closes, whichever way it opened (tend explore audit 40).
+        nativeID={atlasTileId(a.key)}
         accessibilityRole="button"
         accessibilityLabel={label}
         accessibilityState={{ selected: props.selected }}

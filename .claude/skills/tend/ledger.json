@@ -2,12 +2,10 @@
   "lastT": 33,
   "lastG": 4,
   "balance": {
-    "date": "2026-11-17",
+    "date": "2026-11-18",
     "days": 14,
     "slicesGrown": [
-      "AD",
       "AG",
-      "AT",
       "CP",
       "CX",
       "DC",
@@ -15,11 +13,11 @@
       "DW",
       "E",
       "EC",
-      "FC",
+      "EW",
       "FL",
       "G",
-      "GT",
-      "GW",
+      "GE",
+      "GH",
       "GZ",
       "H",
       "HB",
@@ -27,33 +25,33 @@
       "JN",
       "KW",
       "L",
-      "M",
+      "MA",
       "MC",
       "ME",
       "MG",
       "ML",
       "MO",
+      "MP",
       "MR",
       "MS",
       "MT",
       "N",
+      "NF",
       "NH",
       "NI",
       "NP",
-      "NR",
       "NV",
       "NY",
+      "OM",
       "OT",
-      "PA",
       "PC",
       "PK",
       "PP",
       "PR",
       "PS",
       "PW",
-      "QL",
+      "QC",
       "R",
-      "RB",
       "RF",
       "RL",
       "RM",
@@ -68,6 +66,7 @@
       "SP",
       "SR",
       "SS",
+      "SW",
       "TB",
       "TD",
       "TO",
@@ -75,20 +74,24 @@
       "TX",
       "UC",
       "UF",
+      "UN",
       "VT",
       "WH",
       "WK",
       "WP",
-      "WT"
+      "WT",
+      "XS"
     ],
     "commits": {
       "growth": 180,
-      "refinement": 520,
-      "other": 594
+      "refinement": 584,
+      "other": 643
     },
     "areas": {
       "rough": [
+        "captures",
         "chronicle",
+        "deletion",
         "explore",
         "map",
         "navigation",
@@ -102,9 +105,7 @@
       "resting": []
     },
     "neverSwept": [
-      "captures",
       "complexes",
-      "deletion",
       "gallery",
       "gaps",
       "journal",
@@ -116,6 +117,7 @@
       "motion",
       "notes",
       "notify",
+      "outing",
       "places",
       "reactions",
       "recording",
@@ -130,13 +132,13 @@
       "web"
     ],
     "open": {
-      "openT": 3,
+      "openT": 2,
       "phoneT": 4,
       "openG": 0
     },
     "reading": "outgrowing its base",
     "propose": false,
-    "why": "eight areas are rough"
+    "why": "ten areas are rough"
   },
   "areas": {
     "chronicle": {
@@ -147,9 +149,9 @@
     },
     "explore": {
       "state": "rough",
-      "swept": "2026-11-17",
-      "main": "28daf0a16d8c2f81f522c7379494d2df7a171f2d",
-      "note": "No sweep (lenses 1-7 not run): the accent at rest (decision 0172) across Explore and Chronicle. Built tend explore 19 (How the marks work in ink) and 20 (the selected area's name and ring on the map in ink), and the review's U7 as tend explore audit 22 (Cancel while looking and the search's close in ink). The area card's status lines stay coloured, the owner's \"Leave them coloured\" (decision 0186). Filed [loop] low U1 (the selected ring under a pin's stalk) and U5 (the meta line's leading separator). Still [loop]: readNear's write retry (medium) and the older lows."
+      "swept": "2026-11-18",
+      "main": "9992f1df3a41cbe2b21f207bf180e5c321bb2c44",
+      "note": "No sweep (lenses 1-7 not run): aimed at DEFERRED's [loop] medium \"Focus on the web\". Built tend explore 27 (focus into the area card and the planner, a Tab trap while the card is full screen, focus back to the opener; the far question takes focus on Walk now and gives it back to Walk to) and the review's U1-U6 as tend explore audits 36-41 (the trap stands aside for a modal above it, wraps only at its ends, focus given back only from the page and to a drawn element, the closing card prefers its own area's tile, the keyboard ring pictured). Filed [loop]: the planner wrapping at 390 and 320 (medium), the siblings with no focus handling (low), Escape in the note page over the planner (low, to verify); [owner] low: Walk now's spoken hint with the distance."
     },
     "navigation": {
       "state": "rough",
@@ -192,6 +194,12 @@
       "swept": "2026-11-17",
       "main": "972c386009771fa942d94b44bb4048c2009a67d2",
       "note": "No sweep (lenses 1-7 not run): a run on the capturehome journey's red HC10 on main, filed [loop] medium and closed. No commit made it red (it failed at acb18b06 and 972c3860 under load, passed at rest); the check read the stored note once (waitForFunction on an async predicate). Built tend captures 2 (the placed-at-stop check polls) and the review's five as tend captures audit 2-6 (both HC10 paths at a walker's pace, the note on its trace with no read, JN13 polled, stored() bounded, arch/e2eWaits.test.ts guards the trap). Nothing filed."
+    },
+    "deletion": {
+      "state": "rough",
+      "swept": "2026-11-18",
+      "main": "c91583935de60c0433f938a35d35546dfb3469a3",
+      "note": "No sweep (lenses 1-7 not run): aimed at the Deletion section's one [loop] item, \"Delete walk\" wrapping in the walk delete confirm's row at 320 px. Built tend deletion 1 (below 340 px the confirm stacks its actions, the confirm on top and Cancel beneath, as HIG Alerts and Material dialogs stack theirs; no words changed) and the review's U1 and U2 as tend deletion audit 3 (the row measured at 340 and 352 px; the threshold stays 340) and audit 4 (stacked, 12 px apart). Filed [owner] low: the destructive button's filled red in every confirm (U3). The HIG Alerts quote (U4) is in Last tend for docs/research."
     }
   },
   "declined": []

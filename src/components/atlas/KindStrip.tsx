@@ -30,7 +30,7 @@ export function Dots(props: { step: Step; color: string; size?: number }) {
 
 /**
  * A tile's kinds (AT3, atlas round 3): only the kinds present, each an icon with its dots, in the fixed order; all eight
- * are on the area's card. SG2 (decisions 0197, 0198): Sights, then Local life, set apart by space alone, never a word.
+ * are on the area's card. SG2 (decisions 0200, 0201): Sights, then Local life, set apart by space alone, never a word.
  */
 export function KindStrip(props: { steps: Steps | null; testID?: string; /** One line, never two: a card's height must not follow its kinds. */ nowrap?: boolean }) {
   if (!props.steps) {
@@ -41,7 +41,7 @@ export function KindStrip(props: { steps: Steps | null; testID?: string; /** One
     <View style={[styles.row, styles.groups, props.nowrap && styles.nowrap]} testID={props.testID} accessible={false} importantForAccessibility="no-hide-descendants">
       {groupsPresent(steps).map((g, i) => (
         <Fragment key={g.id}>
-        {/* SG14 (decision 0199): a hairline in the space between the groups, only when both are present. */}
+        {/* SG14 (decision 0202): a hairline in the space between the groups, only when both are present. */}
         {i > 0 && <View style={styles.line} testID="atlas-strip-line" />}
         <View style={[styles.group, props.nowrap && styles.nowrap]} testID={`atlas-strip-${g.id}`}>
           {g.kinds.map((c) => (

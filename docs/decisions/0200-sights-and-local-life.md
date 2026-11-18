@@ -1,4 +1,4 @@
-# 0197. Sights and Local life: the presence bars in two groups, by whether you go in
+# 0200. Sights and Local life: the presence bars in two groups, by whether you go in
 
 Date: 2026-11-18 · Status: accepted · Area: explore, atlas, presence, discovery, vision · Amends: decisions 0084 (what Culture counts), 0127 (a museum lighting History and Culture; Community spaces in Culture), 0067 (the card's eight kinds), 0115 (museums among the out-of-town stars)
 

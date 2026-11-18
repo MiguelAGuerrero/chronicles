@@ -39,7 +39,7 @@ import type { Pocket } from './pockets';
 /** a13: a profile keeps each storefront street's point, so the card lists them nearest first (specs/storefronts SF3); none carried. */
 /** The atlas's own part of a row's code (a13). */
 // a14: small places (specs/small-places SP12, SP13): the bars keep counts and each small subset's share apart.
-// a15: Sights follow the switches (specs/sights-and-local-life SG12, decision 0198): the tally keeps every Sights place
+// a15: Sights follow the switches (specs/sights-and-local-life SG12, decision 0201): the tally keeps every Sights place
 // under its kind, so a profile of a14 has none to drop; none carried.
 const ATLAS_OWN = 'a15';
 /** A row's code: the atlas's own (a13) and presence's (PR6), so a reclassification re-reads every row. */
@@ -92,7 +92,7 @@ export const ATLAS_LABEL: Record<CategoryId, string> = {
 export const STEP_WORDS = ['none', 'some', 'plenty', 'lots'] as const;
 
 /**
- * Sights and Local life (specs/sights-and-local-life SG1, SG10, decision 0197): the kinds in two groups, in `ATLAS_ORDER`.
+ * Sights and Local life (specs/sights-and-local-life SG1, SG10, decision 0200): the kinds in two groups, in `ATLAS_ORDER`.
  * Sights are what can turn up as a "?"; Local life counts every place you go into and never does. Culture stays a Sight
  * until phase 2 moves it (it still counts only places that can be found).
  */
@@ -109,7 +109,7 @@ export const SIGHTS_LINE = 'Places that can turn up as a “?” on the map.';
 
 /**
  * SG2, SG14: a tile's strip in px: a kind's slot, the space between kinds of a group, the space between the groups (216 of
- * 222 px at 320) and the hairline standing in its middle (decision 0199).
+ * 222 px at 320) and the hairline standing in its middle (decision 0202).
  */
 export const STRIP = { chip: 22, gap: 4, groupGap: 16, line: 1 } as const;
 
@@ -269,7 +269,7 @@ export function presenceTally(places: AtlasPlace[], centre: LngLat, within: With
     if (seen.has(p.key) || !within(p.at)) continue;
     seen.add(p.key);
     const w = barWeight(p.classes);
-    // SG12 (decision 0198): a Sights place goes to its kind's share, so a switched-off kind leaves its bars; Local life,
+    // SG12 (decision 0201): a Sights place goes to its kind's share, so a switched-off kind leaves its bars; Local life,
     // which has no switches, stays in the counts.
     const subset = (p.classes ? subsetOf(p.classes) : null) ?? (p.kind && MARK_CATEGORIES.includes(p.category) ? p.kind : null);
     // PK1-PK4: a place lights each of its bars once (a museum the data calls historic, History and Culture).
@@ -431,6 +431,27 @@ export function needsNear(reads: NearRead[] | NearRead | null, at: LngLat, build
   return !list.some((r) => !r.town && r.build === build && codeCurrent(r.code) && distanceM(r.at, at) <= ATLAS_RULES.renearM && (radiusM == null || (r.radiusM ?? radiusM) >= radiusM));
 }
 
+/**
+ * A near read held in memory (tend explore audit 32): its write failed, so it is not kept, but it stands for its level
+ * beside the kept ones until `retryMs` has passed since `at`, so the other level is read meanwhile and then it is read again.
+ */
+export interface HeldNear {
+  read: NearRead;
+  at: number;
+}
+
+/** The kept near reads of a level, with those held in memory that still stand (tend explore audit 32). */
+export function heldNears(reads: NearRead[], held: HeldNear[], now: number): NearRead[] {
+  const standing = held.filter((h) => now - h.at < ATLAS_RULES.retryMs).map((h) => h.read);
+  return standing.length ? [...reads, ...standing] : reads;
+}
+
+/** How long until the first held read stops standing, or null with none (tend explore audit 32). */
+export function heldUntil(held: HeldNear[], now: number): number | null {
+  const left = held.map((h) => h.at + ATLAS_RULES.retryMs - now).filter((ms) => ms > 0);
+  return left.length ? Math.min(...left) : null;
+}
+
 /** FL15: reads made for looks kept apart from the reads around you, so looking about never pushes them out. */
 export const LOOK_KEPT = 6;
 
@@ -569,7 +590,7 @@ export function characterLine(steps: Steps, thin = false): string {
   // Never "Quiet": that is the walk mode's name on Navigate (atlas round 3).
   if (all === 0) return 'Not much on the map here';
   if (all === 1 && ATLAS_ORDER.filter((c) => steps[c] === 1).length >= 5) return 'A little of everything';
-  // SG13 (decision 0198): the line leads with the Sights; Local life only where there is no Sight.
+  // SG13 (decision 0201): the line leads with the Sights; Local life only where there is no Sight.
   const group = SIGHT_KINDS.some((c) => steps[c] > 0) ? SIGHT_KINDS : LIFE_KINDS;
   const top = Math.max(...group.map((c) => steps[c]));
   const kinds = group.filter((c) => steps[c] === top);

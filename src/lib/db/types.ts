@@ -57,6 +57,18 @@ export interface Db {
    * other pieces, threads, links, reminder and find. Rejects, changing nothing, for a missing piece or a moment's last.
    */
   splitPiece(pieceId: string, moment: Omit<Moment, 'pieces'>): Promise<void>;
+  /**
+   * Stack with previous (decision 0197): the entry's pieces move into the previous moment, each keeping its own time
+   * and media, and the emptied entry's moment row goes, in one transaction. The previous moment's own row (place, time,
+   * threads, links, reminder, find) is never edited. Rejects, changing nothing, for a missing moment or two on different
+   * walks, so a walk's counts never move. The caller offers it only for an entry nothing points at (`referencesTo`).
+   */
+  joinMoment(fromId: string, intoId: string): Promise<void>;
+  /**
+   * Whether a thread, a reply or link, a reminder, a find or a reaction points at a moment by its id (SW8). One entry
+   * for every table that holds a moment id; a new table is added here with a decision, and the contract lists them.
+   */
+  referencesTo(id: string): Promise<{ thread: boolean; link: boolean; reminder: boolean; find: boolean; reaction: boolean }>;
   /** A walk's moments, with their pieces, in time order. */
   getMoments(walkId: string): Promise<Moment[]>;
   /** Every moment, loose or in a walk, with from <= t < to, in time order (days, M6). */
