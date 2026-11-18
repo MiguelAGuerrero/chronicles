@@ -190,7 +190,7 @@ const FEATURES = [
     rule: 'outing',
     source: ['src/lib/outing/**', 'src/components/outing/**'],
     journeys: ['outing', 'journey'],
-    specs: ['quick-circuit', 'outing-journey'],
+    specs: ['quick-circuit', 'outing-journey', 'drive-in-the-outing'],
   },
   {
     name: 'layers',
