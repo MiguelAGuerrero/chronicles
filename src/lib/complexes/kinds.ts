@@ -3,6 +3,18 @@ import { COMPLEX_KINDS, type Complex, type ComplexKind } from './types';
 
 const LABELS: Record<ComplexKind, string> = { shopping: 'Shopping', markets: 'Markets', campuses: 'Campuses', stations: 'Stations', civic: 'Civic' };
 
+/**
+ * WI23 (What I'm into's page, the review of Nov 18): each kind's icon on its switch row, as the kind rows wear theirs,
+ * from installed Ionicons glyphs no kind's row uses.
+ */
+export const COMPLEX_ICON: Record<ComplexKind, string> = {
+  shopping: 'cart-outline',
+  markets: 'basket-outline',
+  campuses: 'school-outline',
+  stations: 'bus-outline',
+  civic: 'podium-outline',
+};
+
 /** The switches' label for a kind (plural). */
 export const switchLabel = (kind: ComplexKind): string => LABELS[kind];
 
