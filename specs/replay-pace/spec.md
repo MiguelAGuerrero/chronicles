@@ -184,7 +184,9 @@ trimmed-length 2`); RR5 and `replay-rhythm audit 11` are retired with the cap. T
 taken or put to the owner (plan.md). Deferred: `docs/DEFERRED.md`, "Replay pace". Native has not run on a device:
 `docs/NATIVE_UNVERIFIED.md`, "Replay pace".
 
-**On `check:test-first`.** The failing tests were committed alone before any code (`234673a`, "tests first"), and each ran as
-`not ok ... # TODO`. But the unit tests marked themselves with a shared `todo` constant, not the literal
-`{ todo: 'test first' }` the check reads from the history, so `npm run check:test-first replay-pace` reports them as never
-todos. The order is in the history; its form is not what the check reads. Said to the owner before the deploy.
+**On `check:test-first`.** The failing tests were committed alone before any code ("tests first"), and each ran as
+`not ok ... # TODO`. As first committed, the unit tests marked themselves with a shared `todo` constant and the journey's RY12
+check kept its id two lines under its call, forms the check does not read from the history, so it reported them as never todos.
+With the owner's go-ahead (Nov 18, "Rewrite the branch"), that one commit was restated with the literal `{ todo: 'test first' }`
+and the id beside its call: the same tests, the same order, every later commit's tree byte for byte as it was, and this session's
+branch force-pushed once. `npm run check:test-first replay-pace` then passes, 21 of 21.
