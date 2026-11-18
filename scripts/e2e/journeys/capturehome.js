@@ -471,6 +471,47 @@ async function run(h) {
     await c5.close();
   }
 
+  // tend tabs audit 34 (the T37 review's ux 1, auditor 3, steward 5; the owner's answer of Nov 18, decision 0208): the
+  // page keeps room at its foot for the toolbar and the messages above it, both, so at 320 x 700 the storage notice
+  // with its longest words (the refusal on an iPhone's browser, four lines) covers none of the newest entry's actions.
+  {
+    const { c: c6, pg: p6 } = await h.freshPage('capturehome-foot', { permissions: ['geolocation'] });
+    await c6.addInitScript(() => {
+      Object.defineProperty(Navigator.prototype, 'userAgent', { get: () => 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1' });
+      const quota = 1e12;
+      const sm = StorageManager.prototype;
+      sm.estimate = async () => ({ quota, usage: quota - 4000 * 1024 * 1024 });
+      sm.persisted = async () => false;
+      sm.persist = async () => false;
+    });
+    await p6.setViewportSize({ width: 320, height: 700 });
+    await p6.goto(url);
+    await p6.waitForSelector('[data-testid=band-photo]', { timeout: 30000 });
+    await p6.waitForTimeout(1500);
+    // A photo kept outside a walk asks the browser, which refuses; its Edit offer holds the words back.
+    const [chooser] = await Promise.all([p6.waitForEvent('filechooser', { timeout: 10000 }).catch(() => null), p6.click('[data-testid=band-photo]').catch(() => {})]);
+    await chooser?.setFiles(require('path').join(h.scriptsDir, 'fixtures', 'photo.jpg'));
+    await p6.waitForSelector('[data-testid=capture-offer]', { timeout: 10000 }).catch(() => {});
+    await p6.waitForSelector('[data-testid=capture-offer]', { state: 'detached', timeout: 12000 }).catch(() => {});
+    // The next look off the walk says it (SA10): Memories in front again.
+    await tabTo(p6, 'explore');
+    await p6.waitForTimeout(800);
+    await tabTo(p6, 'chronicle', 'memories');
+    const said = await p6.waitForSelector('[data-testid=space-line]', { timeout: 10000 }).then((e) => e.innerText(), () => '');
+    await p6.waitForTimeout(1200);
+    const notice = await box(p6, '[data-testid=space-line]');
+    const actions = await p6.locator('[data-testid=quick-actions]').filter({ visible: true }).evaluateAll((els) => els.map((e) => {
+      const r = e.getBoundingClientRect();
+      return { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height) };
+    }));
+    const newest = actions[actions.length - 1] ?? null;
+    await shot(p6, 'tabs-audit34-notice-clear-320');
+    check(said.replace(/\s+/g, ' ').trim() === 'This browser may clear Chronicles’ moments when it needs room. The Home Screen app is less likely to. OK'
+      && !!notice && !!newest && !actions.some((a) => overlap(a, notice)),
+      `tend tabs audit 34: at 320 x 700 the storage notice, in its longest words, covers none of the newest entry's actions (${JSON.stringify({ said, notice, newest })})`);
+    await c6.close();
+  }
+
   // HC14: Explore reads its one fix the first time it comes to the front.
   await pg.click('[data-testid=walk-minimize]').catch(() => {});
   const { c: c2, pg: p2 } = await h.freshPage('capturehome-explore');
