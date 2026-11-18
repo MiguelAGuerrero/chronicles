@@ -426,3 +426,18 @@ test('RC16: the screens hand the ceremony their size and work out no camera them
   assert.match(camera, /^\/\/ @layer core/);
   assert.doesNotMatch(camera, /Date\.now|Math\.random|^let |^var /m, 'the camera has a hidden input');
 });
+
+// The web map waits to follow the live walk while a hand is on it or north is easing back (`followMoves`). A replay's
+// camera is plan data: nothing a hand left behind before the telling began (a touch whose end never arrived) may
+// drop its frames, or the map stands still and the dot crosses it alone.
+test('RC16: a replay\'s camera frames reach the web map whatever a hand left behind: no follow gate stands before them', { todo: 'test first' }, () => {
+  const src = readFileSync(join(__dirname, '..', '..', '..', 'components/map/WalkMap.web.tsx'), 'utf8');
+  const from = src.indexOf('const applyReplay = ');
+  assert.ok(from > 0, 'the replay\'s frames have one way in');
+  const body = src.slice(from, src.indexOf('\n  };\n', from));
+  assert.match(body, /map\.jumpTo\(/, 'it moves the camera');
+  const gated = (code: string) => /followMoves\(|pointerDown\.current|northAsked\.current/.test(code);
+  assert.ok(!gated(body), 'no follow gate in the replay\'s frames');
+  // Shown to fail: the write as it was.
+  assert.ok(gated('if (center && followMoves({ following: true, handOnMap: pointerDown.current, northEasing: northAsked.current })) {'));
+});
