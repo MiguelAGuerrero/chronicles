@@ -97,7 +97,9 @@ is already a recorded trade-off is reopened with a number, not rediscovered.
 - **A tile is fetched once for every reader of it.** In-code reads go through `fetchTileBodies`/`fetchTiles`
   (`discovery/tileFetch.ts`), which share a fetch in flight and keep the last 16 bodies (`createTileBodies`,
   `discovery/tileBodies.ts`); a new reader of tiles uses them, never its own `fetch`. A reader's cancel stops
-  the download only once no other reader waits on it.
+  the download only once no other reader waits on it. **Trap for the e2e:** a journey that slows tiles (`tiles.delayMs`) slows only the network, so a read of
+  tiles the session read moments ago returns at once; to show a slow read, read tiles no one has read since the
+  page loaded (a reload clears them; fix gaps-done-wait).
 - **Filter a tile's features before decoding their geometry.** A vector tile gives a feature's properties
   without decoding its shape (`toGeoJSON` is the cost): read what decides whether it is kept first, as the
   complexes reader keeps only named buildings of thousands (`namedBuilding`, performance review, Nov 18).

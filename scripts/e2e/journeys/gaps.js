@@ -173,7 +173,19 @@ async function run(h) {
       const empty = await pg.locator('[data-testid=gap-title]').innerText().catch(() => '');
       check(/^Not recorded for \d+ min$/.test(empty) && (await pg.locator('[data-testid=gap-draw]').count()) === 1 && (await pg.locator('[data-testid=gap-keep]').count()) === 0,
         `GW1, GW2: tapping the dotted line opens its card, with Draw my way ("${empty}")`);
-      // Paths slow to come: Done waits for them, and says so (gap-drawing audit 4).
+      // Paths slow to come: Done waits for them, and says so (gap-drawing audit 4). The tiles the replay read moments ago
+      // are kept for the session (createTileBodies), so a draw now would never wait: a reload holds none, and a dismissed
+      // gap is never read again, so the draw's own read is the one slowed (fix gaps-done-wait).
+      await pg.reload();
+      await pg.waitForSelector('[data-testid=skip], [data-testid=to-name], [data-testid=done]', { timeout: 60000 });
+      if (await pg.locator('[data-testid=skip]').count()) await pg.click('[data-testid=skip]');
+      await pg.waitForSelector('[data-testid=to-name], [data-testid=done]', { timeout: 30000 });
+      await pg.waitForFunction(() => typeof window.__project === 'function');
+      for (let k = 0; k < 20 && (await mapState()).links !== 1; k++) await pg.waitForTimeout(500);
+      await tap(at(11, 0.6));
+      // The card is open again before the paths are slowed, so a missed reopen is never read as audit 4 (fix gaps-done-wait audit 1).
+      const reopened = (await pg.locator('[data-testid=gap-draw]').count()) === 1;
+      check(reopened, 'fix gaps-done-wait audit 1: after a reload the dotted line\'s card opens again, with Draw my way');
       tiles.delayMs = 4000;
       await pg.click('[data-testid=gap-draw]').catch(() => {});
       await pg.waitForSelector('[data-testid=gap-draw-bar]', { timeout: 5000 }).catch(() => {});
