@@ -123,7 +123,7 @@ const DEFS = {
   // More attractions (specs/more-attractions, decision 0198): contract v6's conventional attractions.
   nature_reserve: { weight: HALF, category: 'parks', kind: 'parks', subset: 'nature_reserves' },
   // more-attractions audit 1 (the owner, Nov 18, "Own row, on"): every amusement, theme or water park, from the archive or
-  // the map, is Amusement and theme parks under Zoos and aquariums.
+  // the map, is Amusement parks under Zoos and aquariums.
   amusement: { weight: FULL, storefront: true, category: 'viewpoints', kind: 'attractions', subset: 'amusement_parks' },
   // more-attractions audit 3 (the owner, Nov 18, "Only when listed"): a pier enters by its type (a listed one is the archive's
   // `building_structure`), so it keeps its row but weighs nothing in the History bar.

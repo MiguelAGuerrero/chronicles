@@ -13,9 +13,9 @@ import type { LngLat } from '../../types';
 // (0111, "Science" in South End). The listed changes before it (T9, fix community-park) were already in what was captured.
 // Re-captured again after the audit (explore-subtypes audit 12): the map's attractions and theme parks are Viewpoints again.
 // Re-captured Nov 18 for the more-attractions audit (decision 0198, audits 1-3): the map's theme parks and water parks are of
-// the zoos kind (refined to Amusement and theme parks), and contract v6's four classes are pinned under the three names, so
+// the zoos kind (refined to Amusement parks), and contract v6's four classes are pinned under the three names, so
 // a museum by type stays Culture alone with a historic name (audit 2). One ring moved: Central Point's theme park (Rogue
-// Valley Family Fun Center) is Amusement and theme parks, so its stored Viewpoints step, counted with every subtype left out
+// Valley Family Fun Center) is Amusement parks, so its stored Viewpoints step, counted with every subtype left out
 // (XS15), went from 1 to 0; a reader with the row on sees it lit as before.
 
 type View = { category: string; kind: string | null; markable: boolean; bars: string[] } | null;

@@ -370,7 +370,7 @@ test('explore-subtypes audit 11: unnamed murals and sculptures fold into one "Pu
 
 test('explore-subtypes audit 12: zoos and aquariums are a kind named for what they are; the map\'s attractions stay with Viewpoints', () => {
   // Decision 0198 (the owner, Nov 18, "Own row, on"; more-attractions audit 1): the kind reads "Zoos and aquariums" again,
-  // and the map's theme parks left Viewpoints for the zoos kind, where refinement makes them Amusement and theme parks.
+  // and the map's theme parks left Viewpoints for the zoos kind, where refinement makes them Amusement parks.
   assert.equal(KINDS.find((k) => k.id === 'attractions')?.label, 'Zoos and aquariums');
   assert.equal(tile('zoo', 'zoo', 'City Zoo')[0]?.kind, 'attractions');
   assert.equal(tile('attraction', 'attraction', 'SteelStacks')[0]?.kind, 'viewpoints');

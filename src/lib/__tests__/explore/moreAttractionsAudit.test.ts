@@ -25,11 +25,11 @@ const tile = (cls: string, subclass: string, name: string, p: LngLat = O) =>
   read(placesFromTilePois([{ geometry: { type: 'Point', coordinates: p }, properties: { class: cls, subclass, name }, zoom: 14 }] as never, 'b'));
 const label = (id: string) => KINDS.find((k) => k.id === id)?.label;
 
-test('more-attractions audit 1: every amusement, theme or water park is one row, "Amusement and theme parks", under "Zoos and aquariums"', () => {
+test('more-attractions audit 1: every amusement, theme or water park is one row, "Amusement parks", under "Zoos and aquariums"', () => {
   assert.equal(label('attractions'), 'Zoos and aquariums', 'the zoos kind is named for zoos and aquariums again');
   const row = SUBTYPES.find((s) => s.parent === 'attractions');
   assert.ok(row, 'a subtype under the zoos kind');
-  assert.equal(row?.label, 'Amusement and theme parks');
+  assert.equal(row?.label, 'Amusement parks');
   assert.equal(row?.on, true, 'on by default (the owner, Nov 18: "Own row, on")');
   assert.equal(row?.small, false);
   assert.equal(kindRows(KINDS, new Set()).find((r) => r.kind.id === row?.kind)?.depth, 1);

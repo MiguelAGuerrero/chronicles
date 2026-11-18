@@ -29,8 +29,9 @@ Open: none; outside sources (Smithsonian sculptures, state markers, city public 
   amusement parks"; it reads "Zoos and amusement parks", since the longer label wraps at 320 px (MA9); aquariums stay in
   it (amends `explore-subtypes audit 12`'s "Zoos and aquariums"). Superseded on Nov 18, below.
 - **Amusement parks, their own row, on** (the owner, Nov 18, "Own row, on"): the kind reads "Zoos and aquariums" again, and
-  every amusement, theme or water park, from the archive or the map, is its subtype "Amusement and theme parks", on by
-  default (more-attractions audit 1; the map's theme parks leave Viewpoints, amending `explore-subtypes audit 12`).
+  every amusement, theme or water park, from the archive or the map, is its subtype "Amusement parks" (asked as
+  "Amusement and theme parks", which wraps at 320 px under its indent: XS22, MA9), on by default (more-attractions audit 1;
+  the map's theme parks leave Viewpoints, amending `explore-subtypes audit 12`).
 - **A museum by type, Culture only** (the owner, Nov 18): never History, whatever its name (audit 2).
 - **A pier or a suspension bridge, "Only when listed"** (the owner, Nov 18): an unlisted pier keeps its row and adds nothing
   to History (audit 3). The app cannot tell a listed `bridge` from a typed one (the feature carries no listing), so bridges
@@ -45,7 +46,7 @@ Open: none; outside sources (Smithsonian sculptures, state markers, city public 
 - **MA2** a museum by type (`museum_by_type`) is a museum of Culture, under Museums and galleries, and lights Culture alone; a
   listed museum (`museum`) still lights Culture and History.
 - **MA3** a nature reserve is under Parks and gardens, in its own subtype "Nature reserves", on by default.
-- **MA4** an amusement, theme or water park, from the archive or the map, is under "Amusement and theme parks", a row of
+- **MA4** an amusement, theme or water park, from the archive or the map, is under "Amusement parks", a row of
   its own under "Zoos and aquariums", on by default; a reader with zoos or Viewpoints off before keeps it off (amended by
   more-attractions audit 1, the owner, Nov 18).
 - **MA5** a pier or boardwalk is under Buildings and structures, in "Piers and boardwalks", on by default.
@@ -53,7 +54,7 @@ Open: none; outside sources (Smithsonian sculptures, state markers, city public 
   Tower) is under Natural monuments in Nature (audit 18); every new garden type is a Garden.
 - **MA7** the app pins chronicles-data's contract v6; its class names are exactly the archive table.
 - **MA8** none of the new classes is named or labelled for significance, and none carries a number (XS19, XS25 hold).
-- **MA9** every new label fits one line at 320 px (XS22 holds), Amusement and theme parks and Natural monuments among them.
+- **MA9** every new label fits one line at 320 px (XS22 holds), Amusement parks and Natural monuments among them.
 
 ## Record (Nov 17)
 
@@ -69,7 +70,7 @@ Open: none; outside sources (Smithsonian sculptures, state markers, city public 
 The auditor, the steward (S1-S6) and the UX reviewer's cold find; triaged in one numbering:
 
 1. The theme-park split (the map's theme parks under Viewpoints, the archive's under the zoos kind): accept, the owner's
-   "Own row, on": Amusement and theme parks under Zoos and aquariums, every source; `more-attractions audit 1`.
+   "Own row, on": Amusement parks under Zoos and aquariums, every source; `more-attractions audit 1`.
 2. A museum by type lights History by its name ("Historical Museum", "Old Jail Museum"): accept, the owner's Culture only;
    presence's `by_type`; `more-attractions audit 2`.
 3. An unlisted pier or suspension bridge lights History: accept for piers (`bar: 0`), the owner's "Only when listed";
@@ -102,4 +103,4 @@ The auditor, the steward (S1-S6) and the UX reviewer's cold find; triaged in one
 audit 1`, `2`, `3`, `4`, `5`, `7`, `18` (`src/lib/__tests__/explore/moreAttractionsAudit.test.ts`, with MA1, MA4 and MA6
 in `moreAttractions.test.ts`), `more-attractions audit 8` in the `subtypes` journey; audit 6 in the docs. `PRESENCE_CODE`
 p9, `ATLAS_CODE` a14.p9, nothing carried; the readers' golden re-captured (theme_park, water_park, the five new classes;
-Central Point's theme park now Amusement and theme parks).
+Central Point's theme park now Amusement parks).

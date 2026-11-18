@@ -104,7 +104,7 @@ async function run(h) {
   await pg.locator('[data-testid=kind-museums]').scrollIntoViewIfNeeded().catch(() => {});
   await shot(pg, 'subtypes-what-im-into-culture');
   const fun = await pg.locator('[data-testid=kind-amusement_parks]').count();
-  check(fun === 1, `more-attractions audit 8: Amusement and theme parks is a row under Zoos and aquariums (${fun})`);
+  check(fun === 1, `more-attractions audit 8: Amusement parks is a row under Zoos and aquariums (${fun})`);
   await pg.locator('[data-testid=kind-amusement_parks]').scrollIntoViewIfNeeded().catch(() => {});
   await shot(pg, 'subtypes-what-im-into-amusement');
   await pg.locator('[data-testid=kind-piers]').scrollIntoViewIfNeeded().catch(() => {});
@@ -129,7 +129,7 @@ async function run(h) {
     })
     .filter(Boolean));
   check(rows.length > 40 && wrapped.length === 0, `XS22, explore-subtypes audit 2: at 320 px every row's label is one line (${JSON.stringify(wrapped)})`);
-  // More attractions (decision 0198): the new rows among them; since its audit (1, 18) Amusement and theme parks and
+  // More attractions (decision 0198): the new rows among them; since its audit (1, 18) Amusement parks and
   // Natural monuments too.
   const newRows = ['kind-nature_reserves', 'kind-piers', 'kind-attractions', 'kind-amusement_parks', 'kind-natural_monuments'];
   check(newRows.every((id) => rows.includes(id)) && !wrapped.some((w) => newRows.some((id) => w.startsWith(id))), `MA9: the new rows fit one line at 320 px (${JSON.stringify(wrapped)})`);

@@ -21,7 +21,8 @@ The owner's calls, Nov 17:
 
 The owner's calls on the audit, Nov 18:
 - **Amusement parks, "Own row, on"**: the kind reads "Zoos and aquariums" again; amusement, theme and water parks are its
-  subtype "Amusement and theme parks", on by default and not small, whichever source holds them (the archive's
+  subtype "Amusement parks" (asked as "Amusement and theme parks", which wraps at 320 px under its indent, XS22),
+  on by default and not small, whichever source holds them (the archive's
   `amusement_park`, the map's `theme_park`, until then under Viewpoints, and a water park). One switch hides every such park,
   and a park both sources hold is one place of one kind (more-attractions audit 1). A reader who had Viewpoints or the zoos
   kind off keeps the new row off: each held some of these parks before.

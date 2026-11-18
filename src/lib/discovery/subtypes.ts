@@ -79,7 +79,7 @@ export const SUBTYPES: readonly Subtype[] = [
   // Viewpoints & oddities.
   { kind: 'fire_towers', parent: 'viewpoints', label: 'Fire lookout towers', plural: 'Fire towers', single: null, on: true, small: false },
   // more-attractions audit 1 (the owner, Nov 18, "Own row, on"): every amusement, theme or water park, whatever its source.
-  { kind: 'amusement_parks', parent: 'attractions', label: 'Amusement and theme parks', plural: 'Amusement parks', single: null, on: true, small: false },
+  { kind: 'amusement_parks', parent: 'attractions', label: 'Amusement parks', plural: 'Amusement parks', single: null, on: true, small: false },
   { kind: 'old_ruins', parent: 'curiosities', label: 'Ruins', plural: 'Ruins', single: null, on: true, small: false },
   { kind: 'ghost_towns', parent: 'curiosities', label: 'Ghost towns', plural: 'Ghost towns', single: null, on: false, small: false },
   { kind: 'natural_oddities', parent: 'curiosities', label: 'Natural arches and rocks', plural: 'Natural arches', single: null, on: true, small: false },

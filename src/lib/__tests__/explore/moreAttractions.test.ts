@@ -50,11 +50,11 @@ test('MA3: a nature reserve is under Parks and gardens, in Nature reserves, on b
   assert.ok(!parseHidden(null, null).has(K('nature_reserves')));
 });
 
-test('MA4: amusement and water parks are under "Amusement and theme parks", in Zoos and aquariums, kept off for a reader who had zoos off', () => {
+test('MA4: amusement and water parks are under "Amusement parks", in Zoos and aquariums, kept off for a reader who had zoos off', () => {
   // more-attractions audit 1 (the owner, Nov 18, "Own row, on"): their own row under the zoos kind.
   assert.equal(one('amusement_park', 'Dorney Park')?.kind, 'amusement_parks');
   assert.equal(label('attractions'), 'Zoos and aquariums');
-  assert.equal(label('amusement_parks'), 'Amusement and theme parks');
+  assert.equal(label('amusement_parks'), 'Amusement parks');
   // more-attractions audit 7: a reader whose choice was saved before the row existed, with zoos off: the row starts off
   // (the raw choice does not hold it, so only parseHidden can).
   const before = JSON.stringify(KINDS.map((k) => k.id).filter((k) => k !== 'amusement_parks'));

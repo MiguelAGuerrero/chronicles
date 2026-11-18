@@ -30,7 +30,7 @@ come from chronicles-data's contract (v4 brought the subtypes, its ST1-ST10; v6 
 - **Defaults:** `DEFAULT_OFF` (the small things and ghost towns, XS6) is added by `parseHidden` for every kind missing
   from `explore_kinds_known`; a save writes every kind as known, so a switch the reader turned on stays on. A reader
   with Viewpoints off before keeps Zoos and aquariums off (XS7); one with Viewpoints or Zoos and aquariums off before
-  keeps Amusement and theme parks off (more-attractions audit 1: the map's theme parks were under Viewpoints).
+  keeps Amusement parks off (more-attractions audit 1: the map's theme parks were under Viewpoints).
 - **Bars (trap):** a profile's `steps` is counted with every subtype left out; `tally` keeps the weighted counts and
   each subtype's share. **Every reader of an area's bars reads `stepsShown(profile, hidden)`** (or the lists through
   `withShownSteps`), or an off subtype lights a bar, or an on one never does.
@@ -46,7 +46,7 @@ come from chronicles-data's contract (v4 brought the subtypes, its ST1-ST10; v6 
   `by_type`, never `recorded`, so Culture alone whatever its name, audit 2; a listed museum stays `museum` and lights
   History too, PK1; a map museum keeps PK2's name rule), nature reserves (subtype Nature reserves under Parks and gardens,
   after Community gardens), amusement, theme and water parks from either source (presence `amusement`, the subtype
-  Amusement and theme parks under the kind "Zoos and aquariums", audit 1), piers and boardwalks (subtype under Buildings and
+  Amusement parks under the kind "Zoos and aquariums", audit 1), piers and boardwalks (subtype under Buildings and
   structures, `bar: 0`: a typed pier lights no History, audit 3; a listed one is `building_structure`). The archive's
   `bridge` cannot say listed from typed (the feature carries no listing), so bridges stay as they were. Natural national
   monuments (contract v7's `natural_monument`, `by_type`) are the subtype Natural monuments under Nature, never History
