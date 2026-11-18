@@ -96,3 +96,8 @@ export const FOLLOW_LABEL = 'Follow this';
 export const LEAVE_OUT_LABEL = 'Leave this town out';
 /** OJ50: said of a town you have not been in on a recorded outing; never of a place, and nothing is said of the others. */
 export const NEW_TOWN_LINE = 'New to you.';
+
+/** DO5, DO6: the far question's first answer, at every distance. */
+export const START_NOW_LABEL = 'Start now';
+/** DO7: what Start now does for a place past what can be reached on foot. */
+export const START_FAR_HINT = 'Records from here, the drive included, with the place ahead.';

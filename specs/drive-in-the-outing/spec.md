@@ -159,4 +159,19 @@ a train from a car; fog and streets from a driven trace and driven gap inference
 
 ## Record
 
-Nothing is built. Written 2026-11-18 from the gate's output; no plan yet: the owner reviews the criteria first.
+Written 2026-11-18 from the gate's output; the owner's answers the same day; the plan is `plan.md`.
+
+**Part 1, start in the car, built 2026-11-18** on `claude/determined-wright-yg1fq9`: `walkToChoice` answers `far` past what can be
+walked (it was `later`: When I get there alone, DW14); the area card then asks "Start now" or "When I get there"; "Start now"
+offers the place as a one-town plan (`placePlan`) and starts the session with no way on foot, so the bar says "Toward <place>"
+with Open in Maps, Drive there and Pass by. "Walk now" reads "Start now" on the card and for a pressed spot.
+
+**Passed.** Unit tests for DO5-DO7 (`navigation/wayBack.test.ts`, `outing/journeyPlan.test.ts`), failing first (`378bc44`). The
+new journey `startfar` (5 checks: the question past 10 km, both answers full-size, Start now begins the outing toward the place,
+nothing routed on foot, the capture stack as ever); `openmaps` and `carousel`, which use the same card, still pass.
+
+**Not tested, and why.** DO9 and DO10 (held by rides R8 and by construction); the `drive` journey, whose DW14 check is updated,
+fails earlier at a step recorded as failing on main. **Deferred** in `docs/DEFERRED.md`. **Native:** the card's change is plain
+React Native and has not run on a phone.
+
+Parts 2 to 4 are not built.

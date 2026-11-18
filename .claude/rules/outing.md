@@ -64,3 +64,10 @@ One page from Explore: pick what you want to see from a vocabulary, get one prop
 - Presence's guard (`presence-readers audit 1`) forbids spelling a poi tag outside presence; `antiques` and `books` are values of the pack's `what` dimension and are allowed under `outing/` only (`PLAIN_IN`).
 - `fitOrder` is exported from `walkPlanner/planner.ts` for the outing's ordering; nothing else of the planner changes.
 - Native, unverified: the page over Explore's map, the arrival chip on a followed route, the basemap's labels near a stop, the pack's tile read on a device.
+
+## Start in the car (specs/drive-in-the-outing part 1, DO5-DO8)
+
+- `walkToChoice` answers `far` past `NAV.maxM`, never `later`: a far place is still asked. The card's far footer is "Start now" (`atlas-start-far`) beside "When I get there"; Start now offers `placePlan(label, at)` (a one-town journey plan) and starts with no destination, so nothing is routed on foot and the session's bar carries the place. A start that did not happen withdraws the plan, as the outing page's does.
+- A tile and a pressed spot treat `far` as `later` did. Do not start a far spot with a plan: it has no name for the bar.
+- The e2e is `startfar` (the snap world's Cranston from 11.5 km east).
+

@@ -110,6 +110,9 @@ export function stepPlan(plan: JourneyPlan, state: PlanState, here: LngLat | nul
   };
 }
 
+/** DO7: a far place begun now: carried as a journey of one town, its name and its point alone. */
+export const placePlan = (name: string, at: LngLat): JourneyPlan => ({ chapters: [{ town: name, at, stops: [at], loop: false }] });
+
 /** OJ31: "Pass by": the town ahead leaves the plan; with none after it there is no plan. */
 export const passBy = (plan: JourneyPlan): JourneyPlan | null => (plan.chapters.length > 1 ? { chapters: plan.chapters.slice(1) } : null);
 

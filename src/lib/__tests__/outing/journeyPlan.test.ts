@@ -101,7 +101,7 @@ test('RE25: the mute is kept with the guiding as one more flag, and only beside 
   assert.equal(isJourneyPlan({ chapters: [c], driving: true, muted: true, voice: 'x' }), false);
 });
 
-test('DO7: a far place begun now is carried as a one-town plan: its name and its point, nothing else', { todo: 'test first' }, async () => {
+test('DO7: a far place begun now is carried as a one-town plan: its name and its point, nothing else', async () => {
   const { placePlan, isJourneyPlan, stepPlan, emptyState, PLAN_RULES } = await import('../../outing/journeyPlan');
   const plan = placePlan('Cranston', [-71.44, 41.78]);
   assert.equal(isJourneyPlan(JSON.parse(JSON.stringify(plan))), true);
@@ -114,7 +114,7 @@ test('DO7: a far place begun now is carried as a one-town plan: its name and its
   assert.equal(stepPlan(plan, emptyState(plan), [-71.441, 41.78]).ahead?.within, true);
 });
 
-test('DO5, DO6: the question says "Start now", at every distance, never "Walk now"', { todo: 'test first' }, async () => {
+test('DO5, DO6: the question says "Start now", at every distance, never "Walk now"', async () => {
   const w = await import('../../outing/journeyWords');
   assert.equal(w.START_NOW_LABEL, 'Start now');
   assert.match(w.START_FAR_HINT, /records from here/i);

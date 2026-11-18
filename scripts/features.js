@@ -190,7 +190,7 @@ const FEATURES = [
     about: 'plan an outing: describe what you want to see from a vocabulary, get one proposed circuit over candidates with facets; stops named on a tap or on arrival',
     rule: 'outing',
     source: ['src/lib/outing/**', 'src/components/outing/**'],
-    journeys: ['outing', 'journey'],
+    journeys: ['outing', 'journey', 'startfar'],
     specs: ['quick-circuit', 'outing-journey', 'drive-in-the-outing'],
   },
   {

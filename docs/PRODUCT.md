@@ -129,6 +129,9 @@ recording, and a recording bar brings a minimized walk back.
   (decision 0211; where there is no voice it says turns are shown, not said), then the turn coming and how far ("Right. 310 m.") over the town, with End and nothing else to
   tap; off the way it shows no turn and says nothing, and finds the way again after a stretch; with the town at hand it ends by
   itself. Owed: speech with the phone locked, road names in a turn, and a published stores pack. None of it has run on a phone.
+  A place too far to walk to no longer offers "When I get there" alone (decision 0212, DO6): Explore's card asks "Start now" or
+  "When I get there" at every distance, and Start now begins the outing where you are, the drive included, with the place ahead
+  on the session's bar as a journey's town is.
 - **Plan an outing** (decision 0196, quick circuit QC1-QC42): one control under Explore's title, "Plan an outing", opens a page of its own over
   Explore. You say what you want to see by picking from a short vocabulary (a search box over chips: Antiques, Books, Thrifting) and the page
   proposes one circuit from where you stand, a loop (the default, not remembered) or one way, within the planner's distance ceiling. Its stops are

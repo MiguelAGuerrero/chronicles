@@ -80,7 +80,7 @@ test('DW5: no position, or a fix over 30 minutes old, asks', async () => {
   assert.equal(walkToChoice(300, now - 30 * 60_000, now), 'start', 'exactly 30 min is fresh');
 });
 
-test('DW14: too far to walk offers When I get there alone', async () => {
+test('DW14, DO6: too far to walk is still asked: never When I get there alone', async () => {
   const { walkToChoice } = await startPlan();
   const now = 10 * 3600_000;
   assert.equal(walkToChoice(10_001, now, now), 'far');

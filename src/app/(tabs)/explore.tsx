@@ -31,6 +31,8 @@ import { useWalkability } from '../../lib/walk/useWalkability';
 import { WalkMap } from '../../components/map/WalkMap';
 import { OutingPage } from '../../components/outing/OutingPage';
 import { journeyPlans } from '../../lib/outing/plans';
+import { placePlan } from '../../lib/outing/journeyPlan';
+import { START_NOW_LABEL } from '../../lib/outing/journeyWords';
 import { PlannerDrawer } from '../../components/planner/PlannerDrawer';
 import { ENTRY_LABEL } from '../../lib/outing/words';
 import type { CategoryId } from '../../lib/discovery/types';
@@ -855,7 +857,7 @@ export default function Explore() {
               {spot.ask === 'ask' && (
                 <Button
                   testID="spot-walk-now"
-                  label="Walk now"
+                  label={START_NOW_LABEL}
                   disabled={looking}
                   busy={walkStart.starting}
                   busyLabel="Starting…"
@@ -895,7 +897,8 @@ export default function Explore() {
                 if (openInfo.walk || choice === 'start') {
                   setSpot(null);
                   startWalk({ at, label: 'Your spot', kind: 'point' });
-                } else setSpot({ ...spot, ask: choice });
+                // A pressed spot past what can be walked has no name to head toward: When I get there alone, as before.
+                } else setSpot({ ...spot, ask: choice === 'far' ? 'later' : choice });
               }}
             />
           )}
@@ -1025,6 +1028,14 @@ export default function Explore() {
           onLater={(at, label) => {
             setOpen(null);
             void walkStart.later({ at, label, kind: 'point' });
+          }}
+          // DO7: a place past what can be walked, begun now: the place rides with the session as a one-town journey, offered
+          // first so the session that starts takes it up, and taken back if nothing started.
+          onStartFar={(at, label) => {
+            setOpen(null);
+            void journeyPlans.offer(placePlan(label, at)).catch(() => {})
+              .then(() => walkStart.start(null, undefined, { onError: sayQuiet }))
+              .then((started) => (started === null ? journeyPlans.withdraw().catch(() => {}) : undefined));
           }}
           starting={walkStart.starting}
           onWalkAt={(at, label) => {
