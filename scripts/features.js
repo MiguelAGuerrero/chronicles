@@ -83,7 +83,7 @@ const FEATURES = [
     rule: 'replay',
     source: ['src/app/replay/**', 'src/lib/ceremony/**', 'src/components/ceremony/**', 'src/lib/{replay,quietLines,summary}.ts', 'src/components/CaptureView.tsx', 'src/lib/viewerBars.ts'],
     journeys: ['replay'],
-    specs: ['concept', 'replay-rhythm'],
+    specs: ['concept', 'replay-rhythm', 'replay-pace'],
   },
   {
     name: 'moments',
@@ -508,7 +508,10 @@ const RENAMED = {
   'video-thumbnails': { VS: 'VT' },
 };
 
-const IN_PROGRESS = {};
+const IN_PROGRESS = {
+  // Replay pace (RY1-RY20): the spec and plan are with the owner; tests first follow the go-ahead (Nov 18).
+  'replay-pace': { branch: 'claude/funny-bohr-ztvwgv', since: '2026-11-18' },
+};
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));
 
