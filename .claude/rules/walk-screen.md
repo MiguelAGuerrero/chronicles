@@ -82,9 +82,10 @@ The walk screen (`src/app/walk.tsx`), which is also Navigate, ready: its layout,
   screen's (`idPrefix="walk"`: `walk-bar`, `walk-grip`, `walk-summary`), pulled up by a drag or a tap on
   the numbers, with Pause and Stop at its foot. Mid-memo it is locked. `options-card` is its content,
   and Explore's settings are in it, not in a panel of their own (the owner, Nov 4): with Explore on, the
-  "?" range (the ring on the map, fitted above the raised drawer) and what I'm into, then the pocket alert
-  and reminders; each saves as it changes. `settings` / `open-settings` / `settings-done` no longer exist;
-  raising it closes any card, and Back or Escape lowers it (ReadyBar's own handler).
+  "?" range (the ring on the map, fitted above the raised drawer) and the "What I'm into ›" row to its page
+  (decision 0192, `.claude/rules/what-im-into.md`), then the pocket alert and reminders; each saves as it changes.
+  `settings` / `open-settings` / `settings-done` no longer exist; raising it closes any card, and Back or Escape
+  lowers it (ReadyBar's own handler, only while its screen is focused, so never under that page).
 - Pills (the caption offer, voice Undo, Retry, a moment's toast) sit left of the stack, just above the
   strip (`at.pills`), right-aligned, so the stack never moves under the thumb. Zooming keeps following;
   only a pan or a turn stops it (web; native can't tell zoom from pan yet).

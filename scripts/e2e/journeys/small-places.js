@@ -4,7 +4,7 @@
 // on, the plaque is drawn. E2E_ONLY=small-places runs it alone.
 
 async function run(h) {
-  const { navUrl, BASE, at, check, freshPage, places, shot } = h;
+  const { navUrl, BASE, at, check, freshPage, places, shot, openInto, closeInto } = h;
   const { encodeTile } = await import('../../mvt-encode.mjs');
   const { encodeArchive } = await import('../../pmtiles-encode.mjs');
   // Beside the first leg of the walk below (the curiosities journey's route), in the archive only.
@@ -57,9 +57,8 @@ async function run(h) {
   check(first.some((l) => /A time capsule/.test(String(l))), `SP1: an exploring walk names the archive's unnamed time capsule "A time capsule" (${JSON.stringify([...new Set(first)])})`);
   check(first.every((l) => !/Founders Plaque/.test(String(l))), `SP7, SP11: no plaque is drawn while Plaques and markers is off by default (${JSON.stringify([...new Set(first)])})`);
 
-  // SP2: the walk's options; the row sits under Monuments and memorials, indented, off.
-  await pg.click('[data-testid=walk-summary]');
-  await pg.waitForSelector('[data-testid=options-card]', { timeout: 10000 }).catch(() => {});
+  // SP2: What I'm into's page, from the walk's drawer (decision 0192); the row sits under Monuments and memorials, indented, off.
+  await openInto(pg, 'walk');
   await pg.locator('[data-testid=kind-plaques]').scrollIntoViewIfNeeded().catch(() => {});
   const mon = await pg.locator('[data-testid=kind-monuments]').boundingBox().catch(() => null);
   const row = await pg.locator('[data-testid=kind-plaques]').boundingBox().catch(() => null);
@@ -74,6 +73,8 @@ async function run(h) {
 
   // SP11: switched on, the plaque is drawn on the way back.
   await pg.locator('[data-testid=kind-plaques]').click();
+  // Back from the page to the drawer, then the drawer lowered, before the walk goes on.
+  await closeInto(pg);
   await pg.keyboard.press('Escape');
   await pg.waitForTimeout(500);
   const back = await walkLeg(0, 23);
@@ -88,7 +89,7 @@ module.exports = {
   covers: [
     'src/lib/discovery/smallPlaces.ts',
     'src/lib/discovery/refinements.ts',
-    'src/components/ExploreSettings.tsx',
+    'src/components/IntoPage.tsx',
   ],
   run,
 };

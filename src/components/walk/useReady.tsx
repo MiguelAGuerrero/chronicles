@@ -16,7 +16,6 @@ import { applyPatch, captureBus, LOOSE_MOMENTS } from '../../lib/captureBus';
 import { captureEdits } from '../../lib/captureEdits';
 import { MOMENT_PIN_ZOOM, placedMoments, upsertMoment } from '../../lib/momentPins';
 import { useVisible } from '../../lib/deletion/useDeletions';
-import { type Kind } from '../../lib/explore/explore';
 import { findForMoment } from '../../lib/explore/momentFind';
 import { DEFAULT_SETTINGS, loadSettings, saveSettings, type ExploreSettings } from '../../lib/explore/settings';
 import { boundsOf, type Bounds } from '../../lib/geo';
@@ -134,12 +133,6 @@ export function useReady(props: {
   const changeSettings = (next: ExploreSettings) => {
     setSettings(next);
     saveSettings(next).catch(() => {});
-  };
-  const toggleKind = (k: Kind, on: boolean) => {
-    const hidden = new Set(settings.hidden);
-    if (on) hidden.delete(k);
-    else hidden.add(k);
-    changeSettings({ ...settings, hidden });
   };
   const chooseDest = (d: Waypoint | null) => {
     setDest(d);
@@ -331,7 +324,6 @@ export function useReady(props: {
           onMode={pickMode}
           onClearDest={() => chooseDest(null)}
           onSettings={changeSettings}
-          onToggleKind={toggleKind}
           layers={layers}
         />
       </ReadyBar>

@@ -12,7 +12,6 @@ import { KINDS, kindOf, type KindInfo } from '../../explore/explore';
 import { DEFAULT_OFF } from '../../discovery/subtypes';
 
 // What I'm into, its own page (specs/what-im-into-page, WI1-WI16; decision 0192), written from the spec before the code.
-// The page's module loads by a path TypeScript doesn't resolve, so a todo runs before it exists.
 
 type Row = { id: Kind; label: string; icon: string; depth: number; on: boolean; locked: boolean; heavy: boolean; hint?: string };
 type Section = { category: CategoryId; label: string; rows: Row[] };
@@ -24,7 +23,7 @@ type IntoPage = {
   intoSections: (kinds: readonly KindInfo[], hidden: ReadonlySet<Kind>) => Section[];
   intoChildren: (sections: Section[], complexes: readonly ComplexKind[]) => { children: Child[]; sticky: number[] };
 };
-const page = async () => (await import(String('../../explore/intoPage'))) as IntoPage;
+const page = async () => (await import('../../explore/intoPage')) as IntoPage;
 
 const SRC = join(__dirname, '../../..');
 const source = (file: string) => readFileSync(join(SRC, file), 'utf8');
@@ -34,7 +33,7 @@ const CATEGORY_ORDER = KINDS.map((k) => k.category).filter((c, i, all) => all.in
 const PARENTS = KINDS.filter((k) => KINDS.some((s) => kindParent(s.id) === k.id));
 const SUBTYPES = KINDS.filter((k) => kindParent(k.id));
 
-test('WI1: neither the ready bar\'s settings nor the walk\'s drawer draws a kind\'s switch; both draw the one row', { todo: 'test first' }, () => {
+test('WI1: neither the ready bar\'s settings nor the walk\'s drawer draws a kind\'s switch; both draw the one row', () => {
   for (const file of ['components/StartSettings.tsx', 'app/walk.tsx']) {
     const text = source(file);
     assert.ok(!/<KindSwitches\b/.test(text) && !/<ComplexKindSwitches\b/.test(text), `${file} draws no kind switches`);
@@ -42,7 +41,7 @@ test('WI1: neither the ready bar\'s settings nor the walk\'s drawer draws a kind
   }
 });
 
-test('WI5: the sections follow the categories in order, each heading pinned before its rows', { todo: 'test first' }, async () => {
+test('WI5: the sections follow the categories in order, each heading pinned before its rows', async () => {
   const { intoSections, intoChildren } = await page();
   const sections = intoSections(KINDS, new Set());
   assert.deepEqual(sections.map((s) => s.category), CATEGORY_ORDER);
@@ -62,7 +61,7 @@ test('WI5: the sections follow the categories in order, each heading pinned befo
   });
 });
 
-test('WI6: a kind off takes its subtypes\' rows away; switched back on they return as they were', { todo: 'test first' }, async () => {
+test('WI6: a kind off takes its subtypes\' rows away; switched back on they return as they were', async () => {
   const { intoSections } = await page();
   const rowsOf = (hidden: ReadonlySet<Kind>) => intoSections(KINDS, hidden).flatMap((s) => s.rows);
   for (const parent of PARENTS) {
@@ -79,7 +78,7 @@ test('WI6: a kind off takes its subtypes\' rows away; switched back on they retu
   }
 });
 
-test('WI7: a kind\'s row is heavier than its subtypes\', and a subtype says its kind', { todo: 'test first' }, async () => {
+test('WI7: a kind\'s row is heavier than its subtypes\', and a subtype says its kind', async () => {
   const { intoSections } = await page();
   const rows = intoSections(KINDS, new Set()).flatMap((s) => s.rows);
   for (const r of rows) {
@@ -92,7 +91,7 @@ test('WI7: a kind\'s row is heavier than its subtypes\', and a subtype says its 
   assert.ok(SUBTYPES.length > 0 && rows.some((r) => r.heavy) && rows.some((r) => !r.heavy));
 });
 
-test('WI12: no heading, row, the page\'s title or the row\'s words carry a number, whatever is on or off', { todo: 'test first' }, async () => {
+test('WI12: no heading, row, the page\'s title or the row\'s words carry a number, whatever is on or off', async () => {
   const { intoSections, intoChildren, INTO_TITLE, INTO_HINT, COMPLEXES_HEADING } = await page();
   const states: ReadonlySet<Kind>[] = [new Set(), new Set(KINDS.map((k) => k.id)), new Set(DEFAULT_OFF), new Set(PARENTS.map((k) => k.id))];
   for (const hidden of states) {
@@ -107,7 +106,7 @@ test('WI12: no heading, row, the page\'s title or the row\'s words carry a numbe
   }
 });
 
-test('WI15: Complexes\' switches follow the five sections, under their own pinned heading and note', { todo: 'test first' }, async () => {
+test('WI15: Complexes\' switches follow the five sections, under their own pinned heading and note', async () => {
   const { intoSections, intoChildren, COMPLEXES_HEADING } = await page();
   const sections = intoSections(KINDS, new Set());
   const { children, sticky } = intoChildren(sections, COMPLEX_KINDS);

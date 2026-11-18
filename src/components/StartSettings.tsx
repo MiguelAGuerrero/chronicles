@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { canBuzz } from '../lib/canBuzz';
-import { clampRange, POCKET_ALERT_NOTE, type Kind } from '../lib/explore/explore';
+import { clampRange, POCKET_ALERT_NOTE } from '../lib/explore/explore';
 import type { ExploreSettings as Settings } from '../lib/explore/settings';
 import type { Waypoint } from '../lib/nav/types';
 import { formatRange } from '../lib/format';
@@ -8,7 +8,8 @@ import { destLine, type StartMode } from '../lib/startPlan';
 import { saveUnits } from '../lib/unitsStore';
 import { useUnits } from '../lib/useUnits';
 import type { LngLat } from '../lib/types';
-import { ComplexKindSwitches, KindSwitches, RangeSlider, walkNote } from './ExploreSettings';
+import { RangeSlider, walkNote } from './ExploreSettings';
+import { IntoRow } from './IntoRow';
 import { Icon } from './icons';
 import { LayersKey } from './LayersControl';
 import type { useLayers } from '../lib/layers/useLayers';
@@ -26,8 +27,8 @@ const GROUP_NOTE = 'Captures join the moment just made; a separate moment takes 
 /**
  * The walk's settings, inside the ready bar pulled up (NR7; the owner, Nov 3:
  * "You pull up the drawer. The bar should be a quick start"). Mode and
- * destination first; Explore's range and what I'm into only with Explore
- * chosen; then reminders and alerts, and distances. Each choice saves as it
+ * destination first; Explore's range and the row to What I'm into's page
+ * (decision 0192) only with Explore chosen; then reminders and alerts, and distances. Each choice saves as it
  * changes (NV22); Start stays at the bar's foot below.
  */
 export function StartSettings(props: {
@@ -38,7 +39,6 @@ export function StartSettings(props: {
   onMode: (m: StartMode) => void;
   onClearDest: () => void;
   onSettings: (s: Settings) => void;
-  onToggleKind: (k: Kind, on: boolean) => void;
   /** The map's layers: what each one that is on shows, here and not over the map. */
   layers?: ReturnType<typeof useLayers>;
 }) {
@@ -91,9 +91,8 @@ export function StartSettings(props: {
             {fix ? ' The ring on the map shows how far that is.' : ' The ring shows on the map once there’s a position.'}
           </Text>
           <RangeSlider value={settings.rangeM} onChange={(m) => props.onSettings({ ...settings, rangeM: clampRange(m) })} />
-          <Text style={styles.section} accessibilityRole="header">What I’m into</Text>
-          <KindSwitches hidden={settings.hidden} onToggle={props.onToggleKind} />
-          <ComplexKindSwitches sectionStyle={styles.section} />
+          {/* WI1: one row where the list was; the kinds and Complexes are on its page (decision 0192). */}
+          <IntoRow />
         </>
       )}
 

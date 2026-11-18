@@ -1,12 +1,13 @@
 // Explore subtypes (specs/explore-subtypes XS1, XS2, XS6, XS22-XS24; decision 0191): the places archive brings a waterfall
 // beside the walk; an exploring walk names it. "What I'm into" shows five category headings, each over its kinds, with the
-// subtypes indented under them; Ghost towns sits under Curiosities, off; the ready bar's settings list the same rows as the
-// walk's drawer. E2E_ONLY=subtypes runs it alone.
+// subtypes indented under them; Ghost towns sits under Curiosities, off; the page opened from the ready bar's settings
+// lists the same rows as the one opened from the walk's drawer (since decision 0192, its own page: specs/what-im-into-page).
+// E2E_ONLY=subtypes runs it alone.
 
 const HEADINGS = ['Art', 'History', 'Parks & green spaces', 'Culture', 'Viewpoints & oddities'];
 
 async function run(h) {
-  const { navUrl, BASE, at, check, drawerTo, freshPage, places, shot } = h;
+  const { navUrl, BASE, at, check, drawerTo, openInto, closeInto, freshPage, places, shot } = h;
   const { encodeTile } = await import('../../mvt-encode.mjs');
   const { encodeArchive } = await import('../../pmtiles-encode.mjs');
   const fallsAt = at(0.1, -0.48);
@@ -47,11 +48,11 @@ async function run(h) {
   await pg.reload();
   await pg.waitForSelector('[data-testid=start]');
 
-  // XS24: the ready bar's settings (Explore mode shows "What I'm into") list the same rows as the walk's drawer (compared below).
-  await drawerTo(pg, 'half');
-  await pg.waitForSelector('[data-testid=start-settings]');
-  await pg.waitForTimeout(800);
+  // XS24 (WI3): the page from the ready bar's settings (Explore mode shows "What I'm into") lists the same rows as the one
+  // from the walk's drawer (compared below).
+  await openInto(pg, 'ready');
   const ready = (await listOrder()).map((r) => r.id);
+  await closeInto(pg);
   await drawerTo(pg, 'peek');
   await pg.click('[data-testid=start]');
   await pg.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
@@ -64,11 +65,10 @@ async function run(h) {
   }
   check(seen.some((l) => /Bushkill Falls/.test(String(l))), `XS1: an exploring walk names the archive's waterfall within 60 m (${JSON.stringify([...new Set(seen)])})`);
 
-  await pg.click('[data-testid=walk-summary]');
-  await pg.waitForSelector('[data-testid=options-card]', { timeout: 10000 }).catch(() => {});
-  await pg.waitForTimeout(800);
+  await openInto(pg, 'walk');
   const drawer = await listOrder();
-  const heads = drawer.filter((r) => r.id.startsWith('kind-heading-'));
+  // The five categories; Complexes' heading follows them on the page (WI15).
+  const heads = drawer.filter((r) => r.id.startsWith('kind-heading-') && r.id !== 'kind-heading-complexes');
   check(JSON.stringify(heads.map((r) => r.text)) === JSON.stringify(HEADINGS), `XS2: five headings in order (${JSON.stringify(heads.map((r) => r.text))})`);
   check(heads.length === 5 && heads.every((r) => r.role === 'heading'), 'XS23: each heading is announced as a header');
   const idx = (id) => drawer.findIndex((r) => r.id === id);
@@ -82,7 +82,8 @@ async function run(h) {
   // explore-subtypes audit 16: a category heading is no smaller than the rows it heads, and bold.
   const sizes = await pg.evaluate(() => {
     const px = (el) => (el ? parseFloat(getComputedStyle(el).fontSize) : 0);
-    const head = document.querySelector('[data-testid=kind-heading-art]');
+    const box = document.querySelector('[data-testid=kind-heading-art]');
+    const head = box && [...box.querySelectorAll('*'), box].find((e) => e.childElementCount === 0 && /Art/.test(e.textContent || ''));
     const row = [...document.querySelectorAll('[data-testid=kind-public_art] *')].find((e) => e.childElementCount === 0 && /Public art/.test(e.textContent || ''));
     return { head: px(head), row: px(row), weight: head ? getComputedStyle(head).fontWeight : '' };
   });
@@ -110,7 +111,7 @@ async function run(h) {
   await pg.locator('[data-testid=kind-piers]').scrollIntoViewIfNeeded().catch(() => {});
   await shot(pg, 'subtypes-what-im-into-piers');
   const rows = drawer.filter((r) => !r.id.startsWith('kind-heading-')).map((r) => r.id);
-  check(ready.length > 0 && JSON.stringify(ready) === JSON.stringify(drawer.map((r) => r.id)), `XS24: the ready bar and the walk's drawer list the same rows (${ready.length} vs ${drawer.length})`);
+  check(ready.length > 0 && JSON.stringify(ready) === JSON.stringify(drawer.map((r) => r.id)), `XS24, WI3: the page lists the same rows from the ready bar and the walk's drawer (${ready.length} vs ${drawer.length})`);
 
   // XS22: at 320 px no row's label wraps (one line each).
   await pg.setViewportSize({ width: 320, height: 700 });
@@ -144,7 +145,7 @@ module.exports = {
   covers: [
     'src/lib/discovery/subtypes.ts',
     'src/lib/explore/explore.ts',
-    'src/components/ExploreSettings.tsx',
+    'src/components/IntoPage.tsx',
   ],
   run,
 };

@@ -131,7 +131,8 @@ test('complexes audit 11: the outline\'s data does not change with zoom, so the 
 
 test('complexes audit 13: no grid surface of the gallery names a complex, and no view outside the card, the map and the settings reaches them', () => {
   assert.equal(/complexes\//.test(read('lib/gallery/shell.ts')), false, 'the gallery\'s street map is street names only');
-  const allowed = new Set(['components/atlas/AtlasCard.tsx', 'components/ExploreSettings.tsx', 'components/ComplexLabel.tsx', 'components/map/WalkMap.web.tsx', 'components/map/WalkMap.native.tsx', 'components/map/types.ts', 'app/(tabs)/explore.tsx']);
+  // The settings' switches moved to What I'm into's page (IntoPage, decision 0192, WI15).
+  const allowed = new Set(['components/atlas/AtlasCard.tsx', 'components/IntoPage.tsx', 'components/ComplexLabel.tsx', 'components/map/WalkMap.web.tsx', 'components/map/WalkMap.native.tsx', 'components/map/types.ts', 'app/(tabs)/explore.tsx']);
   const walk = (dir: string, out: string[] = []): string[] => {
     for (const f of readdirSync(dir)) {
       const p = join(dir, f);
@@ -183,7 +184,8 @@ test('complexes audit 24: the outline\'s hue is far from every kind\'s and every
 test('complexes audit 25: the settings note says what the switches are, in words and no number', () => {
   assert.equal(/\d|\b(one|two|three|four|five|six|seven|eight|nine|ten|dozen|several|few|many|couple)\b/i.test(COMPLEX_NOTE), false);
   assert.ok(/cards/.test(COMPLEX_NOTE) && /map/.test(COMPLEX_NOTE));
-  assert.ok(/COMPLEX_NOTE/.test(read('components/ExploreSettings.tsx')));
+  // On What I'm into's page since decision 0192 (WI15).
+  assert.ok(/COMPLEX_NOTE/.test(read('components/IntoPage.tsx')));
 });
 
 test('complexes audit 28: the card\'s controls are 48 points, as on Android', () => {

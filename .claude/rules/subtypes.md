@@ -40,8 +40,11 @@ come from chronicles-data's contract (v4 brought the subtypes, its ST1-ST10; v6 
   significance ("Old trees", "Old taverns and inns", "Nature"; XS25, 0110).
 - **Merge:** an unnamed map place and an unnamed archive place of one category within 20 m are one place, the archive's
   (`SAME_UNNAMED_M`, XS14); named ones keep 0103's rule, indexed by name (never a scan inside a loop).
-- **"What I'm into"** draws a heading per category (`kind-heading-<category>`, a header, ink) before its first row; a
-  heading is a label only, never a count (XS19).
+- **"What I'm into"** is its own page since decision 0192 (`.claude/rules/what-im-into.md`): a heading per category
+  (`kind-heading-<category>`, a header, ink, pinned while its rows scroll) before its first row, then Complexes'; a
+  heading is a label only, never a count (XS19). A kind's row is drawn heavier (600) than its subtypes' (400). The rows
+  come from `intoSections` (`explore/intoPage.ts`), so a new subtype in `KINDS` reaches the page with no view change;
+  the drawers hold only the row to it.
 - **More attractions (MA1-MA9, decision 0198; contract v6):** museums by type (`museum_by_type`, presence `museum` and
   `by_type`, never `recorded`, so Culture alone whatever its name, audit 2; a listed museum stays `museum` and lights
   History too, PK1; a map museum keeps PK2's name rule), nature reserves (subtype Nature reserves under Parks and gardens,

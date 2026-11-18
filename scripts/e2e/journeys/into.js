@@ -81,7 +81,7 @@ async function run(h) {
   const linked = await pg.waitForSelector('[data-testid=into-page]', { state: 'visible', timeout: 15000 }).then(() => true, () => false);
   await pg.waitForTimeout(800);
   const linkedBack = await closeInto(pg);
-  check.todo(linked && linkedBack && new URL(pg.url()).pathname !== `${BASE}/into`, `WI16: a link straight to the page shows it, and Back leads to the screen beneath (${pg.url()})`);
+  check(linked && linkedBack && new URL(pg.url()).pathname !== `${BASE}/into`, `WI16: a link straight to the page shows it, and Back leads to the screen beneath (${pg.url()})`);
 
   await pg.goto(navUrl);
   await pg.waitForSelector('[data-testid=start]');
@@ -105,11 +105,11 @@ async function run(h) {
   });
   const inReady = await pg.locator('[data-testid=start-settings] [data-testid^=kind-], [data-testid=start-settings] [data-testid^=complex-kind-]').count();
   const ok1 = !!rowLook && inReady === 0 && (await pg.locator('[data-testid=start-settings] [data-testid=range-slider]').count()) === 1;
-  check.todo(ok1, `WI1, WI11: the ready bar's settings hold the row and the range, and no kind's switch (${JSON.stringify({ rowLook, inReady })})`);
+  check(ok1, `WI1, WI11: the ready bar's settings hold the row and the range, and no kind's switch (${JSON.stringify({ rowLook, inReady })})`);
   const ok2 = !!rowLook && rowLook.h >= 44 && rowLook.text.startsWith(INTO) && rowLook.color === 'rgb(29, 36, 48)' && rowLook.glyphs > 0;
-  check.todo(ok2, `WI2: the row is found: ink, its words, a chevron, at least 44 pt (${JSON.stringify(rowLook)})`);
-  check.todo(!!rowLook && rowLook.role === 'button' && rowLook.label === INTO, `WI14: the row is a button named "${INTO}" (${JSON.stringify(rowLook)})`);
-  check.todo(!!rowLook && !/\d/.test(rowLook.text), `WI12: the row says no count (${rowLook && rowLook.text})`);
+  check(ok2, `WI2: the row is found: ink, its words, a chevron, at least 44 pt (${JSON.stringify(rowLook)})`);
+  check(!!rowLook && rowLook.role === 'button' && rowLook.label === INTO, `WI14: the row is a button named "${INTO}" (${JSON.stringify(rowLook)})`);
+  check(!!rowLook && !/\d/.test(rowLook.text), `WI12: the row says no count (${rowLook && rowLook.text})`);
   await shot(pg, 'into-ready-row');
 
   // WI4, WI14: the page covers the screen, its title at the top, Back at the leading edge; focus starts at the title.
@@ -124,16 +124,16 @@ async function run(h) {
     return { page: b && { x: b.x, w: b.width }, back: bb && { x: bb.x, y: bb.y }, title: tb && { y: tb.y }, focus: (document.activeElement && document.activeElement.textContent || '').trim(), vw: innerWidth };
   });
   const ok3 = fromReady && !!cover.page && cover.page.x === 0 && cover.page.w === cover.vw && !!cover.title && cover.title.y < 80 && !!cover.back && cover.back.x < 40 && !(await tabBarShown(pg));
-  check.todo(ok3, `WI4: the page covers the screen edge to edge, titled, with Back at its top leading edge, over the tab bar (${JSON.stringify(cover)})`);
-  check.todo(cover.focus === INTO, `WI14: focus starts at the page's title (${JSON.stringify(cover.focus)})`);
+  check(ok3, `WI4: the page covers the screen edge to edge, titled, with Back at its top leading edge, over the tab bar (${JSON.stringify(cover)})`);
+  check(cover.focus === INTO, `WI14: focus starts at the page's title (${JSON.stringify(cover.focus)})`);
   const top = await pageOrder();
   const heads = top.filter((r) => r.id.startsWith('kind-heading-'));
   const ok4 = heads.length > 5 && heads.every((r) => r.role === 'heading') && heads[heads.length - 1].text === 'Complexes';
-  check.todo(ok4, `WI5, WI14: the five sections' headings and Complexes', each a header (${JSON.stringify(heads.map((r) => r.text))})`);
+  check(ok4, `WI5, WI14: the five sections' headings and Complexes', each a header (${JSON.stringify(heads.map((r) => r.text))})`);
   const complexAt = top.findIndex((r) => r.id === 'kind-heading-complexes');
   const ok5 = complexAt > 0 && top.slice(complexAt + 1).length > 0 && top.slice(complexAt + 1).every((r) => r.id.startsWith('complex-kind-')) && top.slice(0, complexAt).every((r) => !r.id.startsWith('complex-kind-'));
-  check.todo(ok5, `WI15: Complexes' switches follow the five sections, under their own heading (${complexAt})`);
-  check.todo(top.every((r) => !/\d/.test(r.text)) && !/\d/.test(await pg.locator('[data-testid=into-page]').innerText().catch(() => '0')), 'WI12: no heading, row or the page carries a number');
+  check(ok5, `WI15: Complexes' switches follow the five sections, under their own heading (${complexAt})`);
+  check(top.every((r) => !/\d/.test(r.text)) && !/\d/.test(await pg.locator('[data-testid=into-page]').innerText().catch(() => '0')), 'WI12: no heading, row or the page carries a number');
   await shot(pg, 'into-page-top');
 
   // WI5: at every scroll position, the heading at the page's top is the section of the first row shown under it, on its
@@ -174,7 +174,7 @@ async function run(h) {
     sc.scrollTop = 0;
     return { bad, checked };
   });
-  check.todo(pinned.checked > 3 && pinned.bad.length === 0, `WI5: at every scroll position the pinned heading on its own ground is the section of the rows under it (${JSON.stringify(pinned)})`);
+  check(pinned.checked > 3 && pinned.bad.length === 0, `WI5: at every scroll position the pinned heading on its own ground is the section of the rows under it (${JSON.stringify(pinned)})`);
   // The middle of the page, pinned, for the cold find (WI2: "turn on waterfalls") and the UI review.
   await pg.locator('[data-testid=into-page] [data-testid=kind-waterfalls]').scrollIntoViewIfNeeded().catch(() => {});
   await pg.waitForTimeout(300);
@@ -190,7 +190,7 @@ async function run(h) {
   const kindLabel = await labelOf('kind-nature');
   const subLabel = await labelOf('kind-waterfalls');
   const ok6 = !!kindLabel && !!subLabel && kindLabel.weight >= 600 && subLabel.weight <= 400 && kindLabel.size === subLabel.size;
-  check.todo(ok6, `WI7: a kind's label is heavier than its subtype's, at the same size (${JSON.stringify({ kindLabel, subLabel })})`);
+  check(ok6, `WI7: a kind's label is heavier than its subtype's, at the same size (${JSON.stringify({ kindLabel, subLabel })})`);
 
   // WI6: Nature off takes Waterfalls away at once; back on, it returns as it was.
   const fallsWas = await pg.locator('[data-testid=into-page] [data-testid=kind-waterfalls]').getAttribute('aria-checked').catch(() => null);
@@ -200,7 +200,7 @@ async function run(h) {
   await pg.locator('[data-testid=into-page] [data-testid=kind-nature]').click().catch(() => {});
   await pg.waitForTimeout(300);
   const fallsBack = await pg.locator('[data-testid=into-page] [data-testid=kind-waterfalls]').getAttribute('aria-checked').catch(() => null);
-  check.todo(fallsWas != null && fallsGone === 0 && fallsBack === fallsWas, `WI6: Nature off takes Waterfalls' row away; on, it returns as it was (${JSON.stringify({ fallsWas, fallsGone, fallsBack })})`);
+  check(fallsWas != null && fallsGone === 0 && fallsBack === fallsWas, `WI6: Nature off takes Waterfalls' row away; on, it returns as it was (${JSON.stringify({ fallsWas, fallsGone, fallsBack })})`);
   // WI9: a switch never touches the range or the pocket alert.
   const rangeWas = await metaOf('explore_range');
   const hapticWas = await metaOf('explore_haptic');
@@ -210,7 +210,7 @@ async function run(h) {
   await pg.locator('[data-testid=into-page] [data-testid=kind-churches]').click().catch(() => {});
   await pg.waitForTimeout(300);
   const ok7 = churchesOff && rangeWas === '140' && (await metaOf('explore_range')) === '140' && (await metaOf('explore_haptic')) === hapticWas;
-  check.todo(ok7, `WI8, WI9: a switch saves as it changes, and never changes the range or the pocket alert (${JSON.stringify({ churchesOff, rangeWas, hapticWas })})`);
+  check(ok7, `WI8, WI9: a switch saves as it changes, and never changes the range or the pocket alert (${JSON.stringify({ churchesOff, rangeWas, hapticWas })})`);
   const readyOrder = (await pageOrder()).map((r) => r.id);
 
   // WI4, WI14: Back returns to the raised settings, the row in view, focus on it.
@@ -221,12 +221,12 @@ async function run(h) {
     return { row: !!b && b.height > 0 && b.top >= 0 && b.bottom <= innerHeight, focus: document.activeElement === r };
   });
   const ok8 = backed && (await pg.locator('[data-testid=start-settings]:visible').count()) === 1 && after.row;
-  check.todo(ok8, `WI4: Back returns to the ready bar still raised, the row in view (${JSON.stringify(after)})`);
-  check.todo(after.focus, 'WI14: Back returns focus to the row');
+  check(ok8, `WI4: Back returns to the ready bar still raised, the row in view (${JSON.stringify(after)})`);
+  check(after.focus, 'WI14: Back returns focus to the row');
   // Escape on the web, the same; and only the page goes, the bar stays raised.
   await openInto(pg, 'ready');
   const escaped = await closeInto(pg, 'escape');
-  check.todo(escaped && (await pg.locator('[data-testid=start-settings]:visible').count()) === 1, 'WI4: Escape returns to the ready bar still raised');
+  check(escaped && (await pg.locator('[data-testid=start-settings]:visible').count()) === 1, 'WI4: Escape returns to the ready bar still raised');
 
   // WI9: while the settings are being read the page draws no switch, and nothing is written.
   const hiddenWas = await metaOf('explore_hidden');
@@ -246,10 +246,11 @@ async function run(h) {
   await pg.waitForTimeout(100);
   await pg.locator('[data-testid=start-settings] [data-testid=into-row]').click().catch(() => {});
   await pg.waitForSelector('[data-testid=into-page]', { state: 'visible', timeout: 2000 }).catch(() => {});
+  const earlyShown = await pageShown();
   const early = await pg.locator('[data-testid=into-page] [data-testid^=kind-]').count();
   await pg.waitForSelector('[data-testid=into-page] [data-testid^=kind-]', { timeout: 8000 }).catch(() => {});
   const later = await pg.locator('[data-testid=into-page] [data-testid^=kind-]').count();
-  check.todo(early === 0 && later > 0 && (await metaOf('explore_hidden')) === hiddenWas, `WI9: no switch is drawn before the settings are read, and nothing is written (${early} then ${later})`);
+  check(earlyShown && early === 0 && later > 0 && (await metaOf('explore_hidden')) === hiddenWas, `WI9: no switch is drawn before the settings are read, and nothing is written (${early} then ${later})`);
   await closeInto(pg);
 
   // A walk, exploring, to the waterfall.
@@ -270,15 +271,15 @@ async function run(h) {
   await pg.waitForTimeout(700);
   const inDrawer = await pg.locator('[data-testid=options-card] [data-testid^=kind-], [data-testid=options-card] [data-testid^=complex-kind-]').count();
   const ok9 = (await pg.locator('[data-testid=options-card] [data-testid=into-row]').count()) === 1 && inDrawer === 0 && (await pg.locator('[data-testid=options-card] [data-testid=explore-walk]').count()) === 1 && (await pg.locator('[data-testid=options-card] [data-testid=range-slider]').count()) === 1;
-  check.todo(ok9, `WI1, WI11: the walk's drawer holds the row, the Explore switch and the range, and no kind's switch (${inDrawer})`);
+  check(ok9, `WI1, WI11: the walk's drawer holds the row, the Explore switch and the range, and no kind's switch (${inDrawer})`);
   await pg.locator('[data-testid=options-card] [data-testid=into-row]').scrollIntoViewIfNeeded().catch(() => {});
   await shot(pg, 'into-walk-row');
 
   // WI3: the same page from the walk's drawer, the same rows in the same order.
   const fromWalk = await openInto(pg, 'walk');
   const walkOrder = (await pageOrder()).map((r) => r.id);
-  check.todo(fromWalk && readyOrder.length > 0 && JSON.stringify(walkOrder) === JSON.stringify(readyOrder), `WI3: the walk's row opens the same page, the same rows in order (${readyOrder.length} vs ${walkOrder.length})`);
-  check.todo((await pg.locator('[data-testid=into-page] [data-testid=pocket-alert], [data-testid=into-page] [data-testid=range-slider]').count()) === 0, 'WI11: the range and the pocket alert are not on the page');
+  check(fromWalk && readyOrder.length > 0 && JSON.stringify(walkOrder) === JSON.stringify(readyOrder), `WI3: the walk's row opens the same page, the same rows in order (${readyOrder.length} vs ${walkOrder.length})`);
+  check((await pg.locator('[data-testid=into-page] [data-testid=pocket-alert], [data-testid=into-page] [data-testid=range-slider]').count()) === 0, 'WI11: the range and the pocket alert are not on the page');
 
   // WI10: the walk goes on under the page: fixes sent while it is up are in the trace after Back, and one walk screen.
   const pointsBefore = await tracePoints();
@@ -294,7 +295,7 @@ async function run(h) {
   await closeInto(pg);
   const pointsAfter = await tracePoints();
   const ok10 = pointsAfter >= pointsBefore + 4 && (await pg.locator('[data-testid=stop]').count()) === 1 && new URL(pg.url()).pathname === `${BASE}/walk`;
-  check.todo(ok10, `WI10: the fixes that came while the page was up are in the trace, on the one walk screen (${pointsBefore} → ${pointsAfter})`);
+  check(ok10, `WI10: the fixes that came while the page was up are in the trace, on the one walk screen (${pointsBefore} → ${pointsAfter})`);
   await pg.keyboard.press('Escape');
   await pg.waitForTimeout(1500);
   const fallsOff = await falls();
@@ -305,7 +306,7 @@ async function run(h) {
   await pg.keyboard.press('Escape');
   await pg.waitForTimeout(1500);
   const fallsOn = await falls();
-  check.todo(fallsBefore && savedOff && !fallsOff && fallsOn, `WI8: Waterfalls off on the page takes the falls off the walk's map; on, they show (${JSON.stringify({ fallsBefore, savedOff, fallsOff, fallsOn })})`);
+  check(fallsBefore && savedOff && !fallsOff && fallsOn, `WI8: Waterfalls off on the page takes the falls off the walk's map; on, they show (${JSON.stringify({ fallsBefore, savedOff, fallsOff, fallsOn })})`);
 
   // WI13: at 320 px the row is one line, words and chevron; on the page no label wraps; at 200% nothing is lost.
   await pg.setViewportSize({ width: 320, height: 700 });
@@ -326,10 +327,10 @@ async function run(h) {
     return { lines: word ? new Set([...range.getClientRects()].map((x) => Math.round(x.top))).size : 0, centres: [...tops], leaves: leaves.length };
   });
   const ok11 = !!rowNarrow && rowNarrow.lines === 1 && rowNarrow.leaves >= 2 && Math.max(...rowNarrow.centres) - Math.min(...rowNarrow.centres) < 12;
-  check.todo(ok11, `WI13: at 320 px the row's words and chevron are on one line (${JSON.stringify(rowNarrow)})`);
+  check(ok11, `WI13: at 320 px the row's words and chevron are on one line (${JSON.stringify(rowNarrow)})`);
   await openInto(pg, 'walk');
   const wrapped = await wrappedIn('[data-testid=into-page] [data-testid^=kind-], [data-testid=into-page] [data-testid^=complex-kind-]');
-  check.todo((await pageShown()) && wrapped.length === 0, `WI13: at 320 px no heading or row's label wraps on the page (${JSON.stringify(wrapped)})`);
+  check((await pageShown()) && wrapped.length === 0, `WI13: at 320 px no heading or row's label wraps on the page (${JSON.stringify(wrapped)})`);
   await shot(pg, 'into-page-320');
   await pg.setViewportSize({ width: 390, height: 844 });
   // 200% text: every label still all there, never cut off at the edge.
@@ -340,7 +341,7 @@ async function run(h) {
     .flatMap((e) => [...e.querySelectorAll('*'), e].filter((x) => x.childElementCount === 0 && /[A-Za-z]{3}/.test(x.textContent || ''))
       .filter((x) => x.scrollWidth > x.clientWidth + 1 || x.getBoundingClientRect().right > document.documentElement.clientWidth + 1)
       .map((x) => x.textContent)));
-  check.todo(lost.length === 0, `WI13: at 200% every heading and label is whole (${JSON.stringify(lost)})`);
+  check(lost.length === 0, `WI13: at 200% every heading and label is whole (${JSON.stringify(lost)})`);
   await shot(pg, 'into-page-200');
   await pg.evaluate(() => { document.documentElement.style.zoom = ''; });
   await closeInto(pg);
@@ -350,7 +351,7 @@ async function run(h) {
   await pg.reload();
   await pg.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 }).catch(() => {});
   await pg.waitForSelector('[data-testid=stop]', { timeout: 15000 }).catch(() => {});
-  check.todo(new URL(pg.url()).pathname === `${BASE}/walk` && !(await pageShown()), `WI16: a reload on the page with a walk open comes back to the walk (${pg.url()})`);
+  check(new URL(pg.url()).pathname === `${BASE}/walk` && !(await pageShown()), `WI16: a reload on the page with a walk open comes back to the walk (${pg.url()})`);
 
   await c.close();
   places.files = {};

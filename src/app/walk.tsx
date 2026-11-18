@@ -27,7 +27,9 @@ import { emptyGapAt, gapKey, stretchAt, type Gap } from '../lib/gaps/infer';
 import type { DrawnLine } from '../lib/gaps/draw';
 import { useGapDraw } from '../lib/gaps/useGapDraw';
 import { GapDraw } from '../components/GapDraw';
-import { ComplexKindSwitches, KindSwitches, RangeSlider, walkNote } from '../components/ExploreSettings';
+import { RangeSlider, walkNote } from '../components/ExploreSettings';
+import { IntoRow } from '../components/IntoRow';
+import { tookDetour } from '../lib/intoNav';
 import { NotificationSettings } from '../components/NotificationSettings';
 import { RouteLeaningSettings } from '../components/RouteLeaningSettings';
 import { RoutePreview } from '../components/RoutePreview';
@@ -41,7 +43,7 @@ import { deadZoneDue, deadZoneNudge, inDeadZone, stripAt } from '../lib/landing/
 import { rulesCurrent, type LandingRow } from '../lib/landing/view';
 import { placesFromTilePois } from '../lib/discovery/tilePois';
 import { canBuzz } from '../lib/canBuzz';
-import { clampRange, EXPLORE_KEY, exploredKey, kindOf, POCKET_ALERT_NOTE, type Kind } from '../lib/explore/explore';
+import { clampRange, EXPLORE_KEY, exploredKey, kindOf, POCKET_ALERT_NOTE } from '../lib/explore/explore';
 import { DEFAULT_SETTINGS, loadSettings, onSettings, saveSettings, type ExploreSettings } from '../lib/explore/settings';
 import { useExplore } from '../lib/explore/useExplore';
 import { reach } from '../lib/explore/reach';
@@ -181,8 +183,11 @@ export default function WalkRoute() {
   // In front: another ask to show the walk does nothing (tabs audit 1). Only while in front, not
   // while mounted: a walk screen left mounted behind the tabs once left the bar's › dead (Nov 2).
   useFocusEffect(useCallback(() => walkScreenShown(), []));
-  // Leaving the walk screen (a tab, minimize) closes the Add to this moment pill (MS4).
-  useFocusEffect(useCallback(() => () => momentPill.leave(), []));
+  // Leaving the walk screen (a tab, minimize) closes the Add to this moment pill (MS4); What I'm into's page, a detour
+  // inside the walk, leaves it open (the owner, Nov 18; specs/what-im-into-page Q5).
+  useFocusEffect(useCallback(() => () => {
+    if (!tookDetour()) momentPill.leave();
+  }, []));
   const info = useOpenWalkInfo();
   const close = useCallback(() => {
     feedback('tap');
@@ -556,12 +561,6 @@ function WalkScreen(props: { onMinimize: () => void }) {
     if (!loaded) return;
     setLoaded(next);
     saveSettings(next).catch(() => {});
-  };
-  const toggleKind = (k: Kind, on: boolean) => {
-    const hidden = new Set(settings.hidden);
-    if (on) hidden.delete(k);
-    else hidden.add(k);
-    changeSettings({ ...settings, hidden });
   };
   async function pressMap(at: LngLat, radiusM?: number) {
     if (cap.voiceStartedAt != null || stopping || viewing || here) return;
@@ -1647,9 +1646,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
                   {live.here ? ' The ring on the map shows how far that is.' : ' The ring shows on the map once there’s a position.'}
                 </Text>
                 <RangeSlider value={settings.rangeM} onChange={(m) => changeSettings({ ...settings, rangeM: clampRange(m) })} />
-                <Text style={styles.optionSection} accessibilityRole="header">What I’m into</Text>
-                <KindSwitches hidden={settings.hidden} onToggle={toggleKind} />
-                <ComplexKindSwitches sectionStyle={styles.optionSection} />
+                {/* WI1: one row where the list was; the kinds and Complexes are on its page (decision 0192). */}
+                <IntoRow />
               </>
             )}
             {Object.values(layers.on).some(Boolean) && (

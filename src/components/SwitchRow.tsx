@@ -18,6 +18,8 @@ export function SwitchRow(props: {
   disabled?: boolean;
   /** Steps in from the left: a subset sits under its parent (PC23). */
   indent?: number;
+  /** A kind of its own over its subtypes: its label heavier, at the same size (WI7). */
+  heavy?: boolean;
   onChange: (on: boolean) => void;
 }) {
   return (
@@ -34,7 +36,7 @@ export function SwitchRow(props: {
     >
       {props.icon && <Icon name={props.icon} size={20} color={theme.ink} />}
       <View style={styles.rowText} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
-        <Text style={styles.rowLabel}>{props.label}</Text>
+        <Text style={[styles.rowLabel, props.heavy && styles.rowLabelHeavy]}>{props.label}</Text>
         {props.note ? <Text style={styles.sub}>{props.note}</Text> : null}
       </View>
       <View pointerEvents="none" importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
@@ -49,6 +51,7 @@ const styles = StyleSheet.create({
   rowPressed: { opacity: 0.7 },
   rowDisabled: { opacity: 0.45 },
   rowText: { flex: 1, gap: 2 },
-  rowLabel: { fontSize: 15, color: theme.ink },
+  rowLabel: { fontSize: 15, fontWeight: '400', color: theme.ink },
+  rowLabelHeavy: { fontWeight: '600' },
   sub: { fontSize: 13, color: theme.muted },
 });

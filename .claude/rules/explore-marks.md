@@ -105,8 +105,8 @@ Places of interest from the tiles, marks, checklists and finds (Explore), and Re
     until stop); a place moved by a new build can be found twice; the pocket
     alert likely needs the screen on (native); the home preview ignores the
     kind switches and doesn't restore the view after.
-  - **Settings** (no panel of their own: inline in the walk's drawer, `walk.tsx`, and the ready bar's, `StartSettings`; pieces in `ExploreSettings.tsx`, saved as they change, the ring shown while the drawer is up on an exploring walk): what I'm into (11
-    kinds, meta `explore_hidden`), the range (`explore_range`), the pocket alert
+  - **Settings** (inline in the walk's drawer, `walk.tsx`, and the ready bar's, `StartSettings`; pieces in `ExploreSettings.tsx`, saved as they change, the ring shown while the drawer is up on an exploring walk): what I'm into (its own page since decision 0192, reached by one row in each drawer;
+    meta `explore_hidden`), the range (`explore_range`), the pocket alert
     (`explore_haptic`, a double-tap once per place per walk, one for places
     coming into range together; `pocketAlert` decides, `feedback('nudge')`
     plays; on phones and on a touch-screen browser, `canBuzz()`, 0079). Every

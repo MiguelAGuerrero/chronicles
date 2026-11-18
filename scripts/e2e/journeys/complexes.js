@@ -4,7 +4,7 @@
 // switching Shopping off in the settings takes it off the card. E2E_ONLY=complexes runs it alone.
 
 async function run(h) {
-  const { exploreUrl, navUrl, at, check, shot, freshPage, areaTile, complexWorld, drawerTo, overtureAsked, OVERTURE_RELEASE } = h;
+  const { exploreUrl, navUrl, at, check, shot, freshPage, areaTile, complexWorld, drawerTo, openInto, closeInto, overtureAsked, OVERTURE_RELEASE } = h;
   complexWorld.serve = true;
   const { c, pg } = await freshPage('complexes');
   const setMeta = (k, v) => pg.evaluate(([key, value]) => new Promise((resolve) => {
@@ -51,16 +51,21 @@ async function run(h) {
     await setMeta('start_mode', 'explore');
     await pg.reload();
     await pg.waitForSelector('[data-testid=start]');
+    // On What I'm into's page, after the five categories under their own heading (WI15; the owner, Nov 18).
     await drawerTo(pg, 'half');
-    const row = pg.locator('[data-testid=complex-kind-shopping]');
+    const inDrawer = await pg.locator('[data-testid=start-settings] [data-testid^=complex-kind-]').count();
+    await openInto(pg, 'ready');
+    const row = pg.locator('[data-testid=into-page] [data-testid=complex-kind-shopping]');
     await row.scrollIntoViewIfNeeded().catch(() => {});
-    check((await pg.locator('[data-testid^=complex-kind-]').count()) === 5 && (await row.count()) === 1, 'CX10: five switches for the kinds of complex, beside What I’m into');
+    const onPage = await pg.locator('[data-testid=into-page] [data-testid^=complex-kind-]').count();
+    check(inDrawer === 0 && onPage === 5 && (await row.count()) === 1, `CX10, WI15: five switches for the kinds of complex, on What I’m into's page and not in the drawer (${inDrawer}, ${onPage})`);
     await row.click();
     await pg.waitForTimeout(500);
     await shot(pg, 'complexes-settings');
-    await pg.locator('[data-testid=complex-kind-civic]').scrollIntoViewIfNeeded().catch(() => {});
+    await pg.locator('[data-testid=into-page] [data-testid=complex-kind-civic]').scrollIntoViewIfNeeded().catch(() => {});
     await pg.waitForTimeout(300);
     await shot(pg, 'complexes-settings-all');
+    await closeInto(pg);
     await openFoxPoint();
     await pg.waitForTimeout(8000);
     check((await pg.locator('[data-testid=atlas-complexes]').count()) === 0 && (await pg.locator('[data-testid=atlas-card]').count()) === 1,
@@ -76,7 +81,7 @@ module.exports = {
   covers: [
     'src/lib/complexes/**',
     'src/components/ComplexLabel.tsx',
-    'src/components/ExploreSettings.tsx',
+    'src/components/IntoPage.tsx',
     'src/components/atlas/AtlasCard.tsx',
   ],
   run,
