@@ -387,6 +387,8 @@ Session, screens and small helpers
   useTabMap.ts               a tab's map taken down while the tab isn't in front
   memoGate.ts                a memo recording anywhere blocks a start
   unsaved/                   the one holder of every capture that failed to save (core words, in-memory shell; UN1-UN15, 0196)
+  emptyWalk/                 a walk with nothing in it is dropped at Stop: core.ts (the strict test, 15 m spread), shell.ts, index.ts (EW1-EW12, 0187)
+  join/                      Stack with previous: rules.ts (when an entry may join the one before), shell.ts, index.ts on the one Undo window (0197)
   settleWithin.ts            await a promise, but never longer than ms
   recordingBar.ts, quietLines.ts, format.ts, scaleBar.ts         the bar's line and its waiting Edit offer, counts as words, distances and times, the scale bar's length
   audioMode(.native|.web).ts setAudioMode: expo-audio on native, navigator.audioSession on web
