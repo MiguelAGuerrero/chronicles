@@ -68,6 +68,8 @@ async function run(h) {
   const { url, BASE, check, shot, tabTo } = h;
   const { c, pg } = await h.freshPage('capturehome', { permissions: ['geolocation', 'microphone'] });
   await c.addInitScript(COUNT_GEO);
+  // The map's projection for the e2e (`window.__project`, WalkMap.web.tsx), to find the walker on Explore (tend tabs audit 30).
+  await c.addInitScript(() => { window.__perf = {}; });
   const shown = async (sel) => (await pg.locator(sel).filter({ visible: true }).count()) > 0;
   const there = (sel, timeout = 10000) => pg.waitForSelector(sel, { timeout }).then(() => true, () => false);
   // The journal's toolbar at the foot (JN41, decision 0178).
@@ -131,15 +133,32 @@ async function run(h) {
   // steps: its half minute between steps 5 and 6 left the stop unable to place HC10's note on the trace.
   {
     const hint = '[data-testid=atlas-press-hint]';
+    // tend tabs audit 30 (the review's ux 1, steward 1): measured, not counted. Explore draws the walker in the map's
+    // canvas (its 'points' layer, radius 7 and a 2 px ring), at the map's `data-walker`; a hint that is not drawn has no box.
+    const rect = (sel) => pg.evaluate((q) => {
+      const r = document.querySelector(q)?.getBoundingClientRect();
+      return r && r.width > 0 ? { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height) } : null;
+    }, sel);
+    const walkerBox = () => pg.evaluate(() => {
+      const maps = [...document.querySelectorAll('[data-walker]')].filter((e) => e.getAttribute('data-walker') && e.getBoundingClientRect().width > 0);
+      if (!maps.length || !window.__project) return null;
+      const [x, y] = window.__project(maps[maps.length - 1].getAttribute('data-walker').split(',').map(Number));
+      return { x: Math.round(x - 9), y: Math.round(y - 9), w: 18, h: 18 };
+    });
+    const walkerClear = async () => {
+      const walker = await walkerBox();
+      const words = await rect(hint);
+      return { walker, words, clear: !!walker && !overlap(walker, words) };
+    };
     await tabTo(pg, 'explore');
     const hintBefore = await pg.waitForSelector(hint, { timeout: 10000 }).then(() => true, () => false);
     const up = await barPhoto();
     await pg.waitForTimeout(400);
-    const withPill = await pg.locator(hint).count();
+    const withPill = await walkerClear();
     await shot(pg, 'tabs-T36-pill-on-explore');
     await pg.setViewportSize({ width: 320, height: 700 });
     await pg.waitForTimeout(500);
-    const withPill320 = await pg.locator(hint).count();
+    const withPill320 = await walkerClear();
     await shot(pg, 'tabs-T36-pill-on-explore-320');
     await pg.setViewportSize({ width: 390, height: 844 });
     await pg.waitForTimeout(400);
@@ -157,11 +176,18 @@ async function run(h) {
     await pg.click('[data-testid=bar-edit-offer-close]').catch(() => {});
     const back = await pg.waitForSelector(hint, { timeout: 5000 }).then(() => true, () => false);
     await shot(pg, 'tabs-T36-hint-back');
+    await pg.setViewportSize({ width: 320, height: 700 });
+    await pg.waitForTimeout(500);
+    const back320 = await walkerClear();
+    await shot(pg, 'tabs-T36-hint-back-320');
+    await pg.setViewportSize({ width: 390, height: 844 });
     // Shown again, it is marked seen after its own few seconds on screen, and goes.
     await pg.waitForTimeout(6000);
     const after = await pg.locator(hint).count();
-    check(hintBefore && up && upAgain && withPill === 0 && withPill320 === 0 && back && after === 0,
-      `tend tabs T36: while the bar's Edit pill is up Explore's press hint steps aside (390 and 320 x 700), shows again as the pill goes, and is marked seen only after its few seconds on screen (${JSON.stringify({ hintBefore, up, upAgain, withPill, withPill320, back, after })})`);
+    // back320, the pill gone at 320 x 700, is measured and not held: the two-line hint can reach the walker with no pill
+    // (filed for the owner with tend tabs audit 30).
+    check(hintBefore && up && upAgain && withPill.clear && withPill320.clear && back && after === 0,
+      `tend tabs T36, tend tabs audit 30: while the bar's Edit pill is up the walker stands clear of Explore's press hint (390 and 320 x 700); the hint shows again as the pill goes, and is marked seen only after its few seconds on screen (${JSON.stringify({ hintBefore, up, upAgain, withPill, withPill320, back, after, back320 })})`);
   }
   // A few steps along Wickenden Street, so the walk has a trace and a fresh fix to place by. At a walker's pace
   // (1.5 m a second): 12 m a second was over MAX_WALK_SPEED_MS (lib/geo), so every step was dropped as a jump and the
