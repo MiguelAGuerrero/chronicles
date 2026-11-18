@@ -48,13 +48,15 @@ The walk screen (`src/app/walk.tsx`), which is also Navigate, ready: its layout,
   and handlers: `moment-*` on the ready screen (moments, `MomentBar`), `cap-*` on the walk. Time,
   distance, Pause and hold-to-stop stay in the thin strip at the very bottom, at its right end.
 - **Pause alone, then Resume or Stop** (decision 0220, AllTrails' pattern; fix walk-strip-buttons): the strip's actions
-  (`walk-actions`, `flex: 1`) fill what the numbers leave. Walking: `walk-more` (a round 48 "…", Walk options, which
-  calls `raiseOptions` as the drag and a tap on the numbers do) and a wide `pause-walk`; paused: a wide `resume-walk`
-  (solid accent pill, white icon and word) and the held `stop`, round 48, its glyph alone (spoken "Hold to stop"). No …
-  while paused: at 320 px the four do not fit beside the numbers. Pills with no outline, 48 high (taller would move the
-  row's middle off Start's, NR5); soft ones `theme.line`. The recording bar keeps its own held Stop with no Pause (0048).
-  The e2e reaches Stop with the harness's `toStop(pg)`, which pauses first; wait for `walk-actions`, never `stop`, to
-  know the walk screen is up.
+  (`walk-actions`, `flex: 1`) fill what the numbers leave. Walking: `strip-more` (a round 48 "…", "Walk settings" /
+  "Lower the walk settings", `aria-expanded` for the web, which calls `raiseOptions` as the drag and a tap on the numbers
+  do; never `walk-more`, a finished walk's More in Chronicle's list) and a wide `pause-walk`; paused: `resume-walk` (solid
+  accent) and the held `stop`, half each, words only, Resume on the left. No … while paused (it does not fit at 320).
+  Pills with no outline, 48 high (taller would move the row's middle off Start's, NR5), 4 px at the sides; below 360 the
+  words are 14 px (`narrow`) and Stop's busy state is the spinner alone (`busyQuiet`). The walk journey measures an
+  hour-long walk's numbers at 320 by writing them into the page and putting them back in the same task (React would not
+  redraw them while paused). The recording bar keeps its own held Stop with no Pause (0048). The e2e reaches Stop with
+  the harness's `toStop(pg)`, which pauses first; wait for `walk-actions`, never `stop`, to know the walk screen is up.
 - Why low and at the right edge: Hoober's touch research puts the most accurate taps near the centre
   and the least at the edges and corners, which is why the row was centred (0008). The owner chose
   AllTrails' look instead (Nov 3, 0076): AllTrails floats its map controls at the right edge, as Google
@@ -86,7 +88,7 @@ The walk screen (`src/app/walk.tsx`), which is also Navigate, ready: its layout,
   (`lib/readyNav`) when the walk first appears, not only as it mounts.
 - A quick tap on Stop shows "Hold to stop the walk". Its word is "Stop"; its spoken name "Hold to stop".
 - Walk options (the Explore switch, its range and kinds, motion, Share GPS log) are the strip's
-  drawer, not a button (the owner, Nov 4): the walk's strip is the same `ReadyBar` as the ready
+  drawer (the owner, Nov 4), raised also by the strip's … since 0220: the walk's strip is the same `ReadyBar` as the ready
   screen's (`idPrefix="walk"`: `walk-bar`, `walk-grip`, `walk-summary`), pulled up by a drag or a tap on
   the numbers, with Pause (or Resume and Stop) at its foot. Mid-memo it is locked. `options-card` is its content,
   and Explore's settings are in it, not in a panel of their own (the owner, Nov 4): with Explore on, the

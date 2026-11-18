@@ -4,8 +4,9 @@ Date: 2026-11-18 · Status: accepted · Area: walk screen, recording
 
 ## Context
 The owner, Nov 18: the strip's buttons looked unpolished, outlined boxes beside the walk's numbers. AllTrails' are
-text, not boxes, and it shows no Stop while recording: Pause, then Resume and Stop. Nike Run Club does the same, and
-holds to end (`docs/research/adjacent-apps.md`, "Record a walk": Honour).
+text, not boxes, and it shows no Stop while recording: Pause, then Resume and Stop (`docs/research/adjacent-apps.md`,
+"Record a walk": Honour; AllTrails' entry there is unverified). The hold to end is this app's own (0008, 0048); no adjacent
+app's hold is recorded there.
 
 ## Decision
 The owner's four answers, Nov 18:
@@ -26,14 +27,22 @@ The owner: "The button size seems a little bit small and position is awkward. I'
 (a wide Pause pill with a round "…" beside it). Their answers:
 - **One row still** (the strip's 69 shared with the ready screen, NR5/NR6), not AllTrails' two rows: the numbers keep
   their width and the buttons fill the rest of it.
-- **A round "…"** opens the walk's options, beside the drag and a tap on the numbers (a control drawn to be found, 0167).
-  It shows only while walking: at 320 px the numbers, …, Resume and Stop do not fit in one row while paused.
-- **Paused: Resume wide, Stop round** (held, its glyph alone; its spoken name "Hold to stop" and a tap's "Hold to stop the
-  walk" unchanged). Pause and Resume are wide pills, … and Stop 48 round, all 48 high, no outline.
+- **A round "…"** opens the walk's settings, beside the drag and a tap on the numbers (a control drawn to be found,
+  0167), named as the numbers name them ("Walk settings", "Lower the walk settings"). It shows only while walking: at
+  320 px it does not fit beside the paused pair.
+- **Paused: Resume and Stop half and half, words only** (the owner, after a mock of three ways: Resume on the left, Stop
+  on the right, no icons on either at any width). A round Stop was built first and dropped: its "Stopping…" did not fit
+  48 px. Stop stays held (spoken "Hold to stop"; a tap says "Hold to stop the walk").
+- Pause, Resume and Stop are pills thin at the sides (4 px) with their words centred, 48 high; below 360 px the words are
+  14 px and Pause's icon sits closer, so an hour-long walk's numbers ("1:05:12 · 12.4 km") still leave every word whole.
+- **Departures on the owner's call, for later reviews:** `ui-patterns.md` T5 (the walking row mixes the icon-only … with
+  the labelled Pause); a tap where Pause was lands on Stop while paused, harmless since Stop needs a hold; the soft pills'
+  edges are about 1.2:1 on the strip's ground (their words and glyphs identify them, WCAG 1.4.11).
 
 ## Consequences
-- Amends 0009's "Pause sits beside Hold, Resume is filled orange" and O27's word under the icon (0172): the word sits
-  beside it. Stop's word is "Stop"; its spoken name stays "Hold to stop", and a tap says "Hold to stop the walk".
+- Amends 0009's "Pause sits beside Hold, Resume is filled orange" and O27's word under the icon (0172): Pause's word sits
+  beside its icon; Resume and Stop are words alone. Stop's spoken name stays "Hold to stop", and a tap says "Hold to stop
+  the walk".
 - `stopWalk` already ends an open pause at the stop time, so a paused walk stops as any walk does.
 - **Amends EW5** (empty walk, the owner's answer, Nov 18: "Ignore the final pause"): every walk stopped from the walk
   screen now has a pause, which EW5 counted as evidence of a walk, so none would be dropped. The pause still open at Stop
