@@ -441,8 +441,10 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     if (at !== st.at) {
       st.at = at;
       changed = true;
-      // The camera first, then the dot on it: the map's markers are placed as the camera moves.
-      if (center && followMoves({ following: true, handOnMap: pointerDown.current, northEasing: northAsked.current })) {
+      // The camera first, then the dot on it: the map's markers are placed as the camera moves. A replay's camera is the
+      // ceremony's to say (RC16) and the stage covers the map while it is told, so it never waits on a hand as the
+      // live walk's follow does: a touch from before the telling whose end never came would stop it for good.
+      if (center) {
         perfCount('camera');
         map.jumpTo(zoom == null ? { center, ...FLAT_NORTH_UP } : { center, zoom, ...FLAT_NORTH_UP });
       }
