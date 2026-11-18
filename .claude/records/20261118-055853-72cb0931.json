@@ -1,0 +1,76 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "note",
+        "walk 10 min where the fog"
+      ],
+      "body": "Numbers without the profiler: set `globalThis.__perf = {}` from the dev build's console; `render:map` should rise about once per fix and `render:glide` at ~15 a second (Nov 18).\n",
+      "target": "sha256:5092ebc2348db5679880bcaac603fee9b57d6a8067cf867c273f844395656fda"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Deletion"
+      ],
+      "body": "- **Deleting a walk reads every walk's visited streets and summaries inside its write** (performance review, Nov 18): `deleteWalk` (`db/sqliteStore.ts`) recounts later walks' new streets (D7) from `SELECT` over all of `walk`, `visited_segment` and `walk_summary`, inside the exclusive transaction, so the write queue (and a walk's fix batches) waits on a read that grows with the library. Read only the walks after the deleted one and the visited rows of the walks before them by `street_key`, or recount in one `UPDATE … FROM`; its updates are now one prepared statement.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore in a dense city (decision 0156)"
+      ],
+      "body": "- **On a phone, deriving streets and analysing an area run as one block on the JS thread** (performance review, Nov 18): native has no worker (`landing/runOffPage.ts`), and `computeReadPaced` yields only between tiles and stages, so `deriveSegments`' junction and pair loops and the sidewalk merge (`streets.ts`), and `analyzeArea`, each run whole: about 1.7 s of deriving at 4x CPU on a dense read (landing.md). Yield every ~16 ms inside those loops with the same output (no `STREET_CODE` bump); measure on a device. A slice, not a fix.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Streets and snapping"
+      ],
+      "body": "- **`snapWalk` samples every cached piece in the walk's box, not only those near the trace** (performance review, Nov 18): `getSegmentsIn(walkBounds)` then every 5 m of each piece (`snapper.ts`); a long or diagonal walk pulls in tens of thousands of pieces whose cells the trace never touches. Skip a piece whose box meets no trace cell, provided the credits come out the same (else it is a snapping rule: `SNAP_RULES`).\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Recording and the background task"
+      ],
+      "body": "- [ ] **Do:** walk 15 min with the screen locked part of the time, keeping a photo, a note and a voice memo on the way; then kill the app mid-walk and reopen it. **Expect:** the trace is whole with no gap at the lock, the captures are kept, the walk reopens; nothing in the logs says `database is locked`: every write goes through the one writer connection (`BEGIN IMMEDIATE` on it, `synchronous = NORMAL`), and the background task's writes wait for it rather than fail (performance review, Nov 18).\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Media and capture"
+      ],
+      "body": "- [ ] **Do:** on a phone with a few hundred photos, scroll the Media gallery to the bottom and back fast, open a moment and come back, then watch a replay with photos to its pile. **Expect:** every tile and card shows its own picture (never another tile's after a fast scroll back), pictures already seen show at once without a flash, nothing fades in, and the app's memory settles once the scroll stops (expo-image's memory and disk cache). (EI6)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Chronicle journal, cut 1 (`specs/chronicle-journal/spec.md`, decision 0155)"
+      ],
+      "body": "- [loop] **The `resurface` journey stops on `main`** (found Nov 18, by the performance review's baseline: three runs on 17bcbcc, each the same): after RM17 it waits 30 s for `[data-testid=moment-card]:has-text(\"quiet quiet\") [data-testid=moment-more]`, a More that quick actions took off entries (SW19, decision 0197); the journey reaches the moment's actions another way now (its quick-action row), then RM8 onward run again.\n"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "add"
+      ],
+      "body": "| Pictures through expo-image (every picture on screen through one `Picture` over expo-image: kept in memory and on disk, recycled in the gallery, no fade; EI1-EI6, after the performance review of Nov 18) | built 2026-11-18 on the owner's go-ahead, test-first by history 5 of 5: unit tests (3111), typecheck, lint, docs and records; nine journeys green on the /chronicles build, `walkability` already green, `resurface` stopped on `main` too (filed); UI review: no finding; EI6 device-only; native never run on a device; not audited; not merged | `claude/bold-hawking-dx3pc8` | `specs/expo-image/spec.md` | no |\n"
+    }
+  ]
+}
