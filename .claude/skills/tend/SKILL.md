@@ -148,7 +148,8 @@ The shared steps are in `.claude/skills/ship.md`; they are named by heading.
    (the finding's source files, untracked included; past it, "Hard stops"). For storage, the
    recorder, the walk screen, the replay, and any change to what a screen
    shows: `npm test` and the journey holding the commit's new or changed
-   check, once, with an after picture at 320 px kept for the report (a
+   check, once (and each journey naming a control the commit removed or renamed, found by grep:
+   `docs/TESTING.md`, "Size the testing to the change", decision 0223), with an after picture at 320 px kept for the report (a
    before picture only as `ship.md`, "The faster lane", allows).
 3. **A hard stop** (`.claude/skills/ship.md`, "Hard stops") reclassifies the
    finding and drops the half-made change.

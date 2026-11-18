@@ -1,0 +1,25 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Map, walk screen and motion polish"
+      ],
+      "body": "- **The strip's numbers say nothing of the settings being up on the web** (`ReadyBar`'s summary, the ready screen's and the walk's; found by fix walk-strip-buttons audit 4, Nov 18): it sets `accessibilityState.expanded`, which react-native-web does not turn into `aria-expanded` (it reads `aria-expanded` or `accessibilityExpanded`). The walk strip's … sets `aria-expanded`; the numbers do not yet. A screen reader on a phone hears the state (unverified). [loop]\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "set",
+        "Pause, then hold Stop; on another",
+        "--reason",
+        "the owner's half and half for Resume and Stop (fix walk-strip-buttons, decision 0220)"
+      ],
+      "body": "- [ ] **Do:** on a walk, tap …, lower the settings, tap Pause, then hold Stop; on another, Pause, then Resume and walk on; with VoiceOver or TalkBack on, move to … and to Stop. **Expect:** walking, the strip shows the numbers, … and a wide Pause, no Stop; … opens the walk's settings and is read \"Walk settings\", expanded or collapsed; paused, Resume (orange) and Stop half each, no …, every word whole on a small phone; Stop is read \"Hold to stop\", its activate action stops at once; held, an orange fill sweeps across Stop and the replay opens; Resume records again (decision 0220).\n",
+      "target": "sha256:cbb0638f3cd63fb0af430e35e21b5a050ef030a6288ad329888dbd7a133fa21e"
+    }
+  ]
+}

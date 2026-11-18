@@ -9,7 +9,7 @@
 - `src/app/walk.tsx`: "Capture here" on the `mark-card` (testID `mark-capture`), a quiet armed line (`armed-line`, with Cancel), the `find-choice` chip removed.
 - `src/components/ExploreSettings.tsx`: the pass-by distance row (a stepper like the range), copy in words.
 - Callers of `passedPlaces`/`passedAlong`: `src/lib/ceremony/rhythm.ts` and the walk card, pass `passM`.
-- Docs: `.claude/rules/explore-and-discovery.md` (Finding, Settings), `docs/PRODUCT.md` (Explore mode), `docs/DEFERRED.md`, a decision `0223`, `docs/STATUS.md`, `docs/NATIVE_UNVERIFIED.md`.
+- Docs: `.claude/rules/explore-and-discovery.md` (Finding, Settings), `docs/PRODUCT.md` (Explore mode), `docs/DEFERRED.md`, a decision `0224`, `docs/STATUS.md`, `docs/NATIVE_UNVERIFIED.md`.
 
 ## Data
 

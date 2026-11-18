@@ -1,4 +1,4 @@
-# 0223. Tap to capture a place, and a quiet pass-by
+# 0224. Tap to capture a place, and a quiet pass-by
 
 Date: 2026-11-12 · Status: accepted · Area: explore, captures · Amends: E8, E18 (a capture finds the one place within 60 m), E11 (what a walk passed), 0031, SH4 (retired) · From: `/fix`, then `/slice tap-to-capture-places`
 

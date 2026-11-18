@@ -24,7 +24,7 @@ swept later. The map of the skills is `.claude/skills/README.md`.
 - the changed files: `git diff --name-only <base>..HEAD` for the slice's
   commits, or the plan's file list (`specs/<slug>/plan.md`);
 - **the screens as a person sees them** (decision 0114): run the journeys
-  that show the changed screens (`docs/TESTING.md`, "Choosing the journeys") with `E2E_SHOTS=<scratchpad>/shots` (390 x 844), so
+  that show the changed screens (`docs/TESTING.md`, "Size the testing to the change" and "Choosing the journeys") with `E2E_SHOTS=<scratchpad>/shots` (390 x 844), so
   every changed screen state is a PNG. A changed screen with no `shot()` in its
   journey gets one first (after the Modal's fade). List the pictures by screen.
 
@@ -120,7 +120,7 @@ Findings covered only by the e2e's flow and typecheck are said so in the record.
 ```bash
 npm run typecheck && npm run lint && npm test
 npm run check:affected -- --since <slice's last green commit>   # names the e2e journeys for the files the audit changed
-npm run export:web && E2E_ONLY=<journey> npm run e2e:web         # those chosen as in docs/TESTING.md, "Choosing the journeys"
+npm run export:web && E2E_ONLY=<journey> npm run e2e:web         # those the fixes' size calls for (docs/TESTING.md, "Size the testing to the change")
 ```
 
 Only the journeys the audit's fixes touch: `--since` is the commit the slice last ran

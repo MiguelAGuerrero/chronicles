@@ -407,7 +407,7 @@ const RETIRED = {
   // Note types became reactions on any moment (the owner, Nov 14, decision 0176): one per family, their own records,
   // the head always the kind, Type now Reaction. specs/reactions (RX1-RX36) carries what stands of them.
   'note-types': Array.from({ length: 27 }, (_, i) => `NY${i + 1}`),
-  // A moment no longer finds a place by itself (the owner, Nov 12, decision 0223): only a tap on the place does (TC1-TC4).
+  // A moment no longer finds a place by itself (the owner, Nov 12, decision 0224): only a tap on the place does (TC1-TC4).
   'shells-saved-settings': ['SH4'],
   // Moved to chronicles-data with the pipeline (the owner, Nov 9, decision 0108): that repo owns the build, its
   // schemas and their tests (its docs/spec.md). PP1-PP12, PP14, PP15 were built here first; the build-side criteria

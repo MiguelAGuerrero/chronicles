@@ -29,7 +29,9 @@ CHRONICLES_BASE_URL=/chronicles npm run export:web && E2E_BASE=/chronicles npm r
 
 Re-export after every code change; the script reads `dist/` as it is.
 
-**Which journeys:** not every one `check:affected` names. Unit-proven logic runs none; run only journeys
+**Which journeys:** size the change first (none, small, flow, build; `docs/TESTING.md`, "Size the testing to the
+change", decision 0223): a removed or renamed control is found by grep in `scripts/e2e/journeys/`, a new journey runs
+alone until green, a failure in a journey the size did not call for is dropped, not chased. Not every one `check:affected` names. Unit-proven logic runs none; run only journeys
 holding a check on what changed; count prerequisites (`chronicle`, `memories`, `deletion` replay `walk`);
 run a new check's journey alone first. `docs/TESTING.md`, "Choosing the journeys".
 A run exits non-zero on the first failed check and prints `ok - ...` lines.
