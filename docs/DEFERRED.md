@@ -900,3 +900,11 @@ What the more-attractions slice left out (`specs/more-attractions`, decision 019
 - An entry with no place yet counts as near for `previousFor` and `canJoin`: during a walk an unplaced entry can join a far moment and the stack's one place is then wrong. SW6 says so; the owner may want the place held on a walk, which waits for the entry's fix (stack-with-previous audit 8, low).
 - The row's captions (11 px) and the grid's tile time bars (white on a 60% black ground) have not had their contrast measured against WCAG 1.4.3 (stack-with-previous audit 15, low); the cold finds placed Join at about 55% and the underlined map date at about 40%, both the owner's recorded defaults (audit 19).
 - A notes-only stack has no Show all (the owner, Nov 18) and so no Take out on the page: its pieces can only be taken out through the viewer's More (Split out, Delete this piece). Delete for an entry is likewise only in the viewer's More. The cold find could not find either (stack-with-previous audit 16); revisit with a visible control if it hurts.
+
+## Sights and Local life (SG1-SG14, decisions 0200-0202)
+
+The first phase was built Nov 18 (SG1-SG14); what it left and what it found.
+
+- **Phase 2 of Sights and Local life** (decision 0200): Culture and Community into Local life, museums, galleries, theaters, cinemas and community spaces out of the marks (an archive-recorded building or a "memorial"/"monument" name stays a Sight under History), "What I'm into" under the two headings, the out-of-town stars by the same rule, `PRESENCE_CODE` bumped and the goldens re-captured. Held until chronicles-data covers National Park Service sites or carries a listing flag, or Independence Hall, Congress Hall and the Betsy Ross House leave the marks.
+- **A kind's dots move between rows** (sights-and-local-life UI review, U2, before this slice): on a row with something the dots sit beside Suggest a walk, on a "none" row at the right edge, so a column of dots does not line up (M3 lists: "Don't vary the position of elements within a list"). Keeping the button's slot empty on a "none" row would align them.
+- **"How the marks work" looks the same open and closed** (UI review U4, before this slice): no chevron that turns; `accessibilityState.expanded` is set, so only sight lacks it. The card also says "marks" where a reader says "dots" (the cold find).
