@@ -5,6 +5,12 @@
       "fails": "2/3",
       "base": "2e47bf94",
       "seen": "2026-11-12"
+    },
+    {
+      "check": "stopped: page.click: Timeout 30000ms exceeded.",
+      "fails": "2/3",
+      "base": "4dc0c25",
+      "seen": "2026-11-18"
     }
   ],
   "notepage": [
