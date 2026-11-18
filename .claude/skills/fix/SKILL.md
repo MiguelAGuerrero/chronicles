@@ -45,12 +45,13 @@ and lint before Pages deploys.
 | `none` | nothing beyond the hook's gates; the owner verifies by hand | none |
 | `lean` | `npm run typecheck`, `npm run lint:affected` | only if the bug is in a core module (cheap, pure) |
 | `scoped` | `npm run check:affected` (layers, affected tests, typecheck, lint) | a failing-first regression test, in the feature's folder (`src/lib/__tests__/<feature>/`) |
-| `e2e` | `scoped`, then `npm test`, then each journey `check:affected` names, against the sub-path build as in `/deploy` | regression test, plus a journey step if a screen changed |
+| `e2e` | `scoped`, then `npm test`, then the journeys the fix's size calls for (`docs/TESTING.md`, "Size the testing to the change"; never every one `check:affected` names), against the sub-path build as in `/deploy` | regression test, plus a journey step if a screen changed |
 | `full` | `e2e`, then the full e2e flow (no `E2E_ONLY`) | as `e2e` |
 
 If the owner gave no `--tests` and the fix touches storage, the recorder,
 the walk screen or the replay, say that `scoped` is a thin bar there and
-raise the level to `e2e`. An explicit `--tests` always wins.
+raise the level to `e2e`. An explicit `--tests` always wins. At `e2e` a small fix (one control, one look) runs the
+journey holding its check and those naming what it removed or renamed, once each (decision 0223).
 
 ## 0. Open the worktree
 

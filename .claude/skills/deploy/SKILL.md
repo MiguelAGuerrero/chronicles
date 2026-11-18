@@ -36,7 +36,10 @@ npm run check:affected                   # names the e2e journeys for what ships
 CHRONICLES_BASE_URL=/chronicles npm run export:web && E2E_BASE=/chronicles E2E_ONLY=<journey> npm run e2e:web   # those chosen as in docs/TESTING.md, "Choosing the journeys"
 ```
 
-- The journeys run against the sub-path build, as Pages serves it. The full
+- The journeys run against the sub-path build, as Pages serves it: the change's own journey and `launch` (the
+  base-URL smoke). Journeys already green on the root build at the same commit are not run again unless the change
+  touches base-URL or routing code; after a merge from `main`, only the journeys whose files or checks the merge
+  changed, and only those the change's size calls for (`docs/TESTING.md`, "Size the testing to the change", decision 0223). The full
   flow (no `E2E_ONLY`) only when the owner asks for it.
 - `npm run check:test-first <slug>` passes for each slice that ships (its
   tests were committed as todos before its code), and no shipped slice's spec

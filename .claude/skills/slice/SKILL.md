@@ -115,6 +115,8 @@ Write `specs/<slug>/plan.md`:
 - tests per criterion: the test file in its feature folder
   (`src/lib/__tests__/<feature>/`) and the name for each id; a new feature (a
   folder and a row in `scripts/features.js`) or a new journey, if the slice needs one;
+- **the testing's size** (none, small, flow or build; `docs/TESTING.md`, "Size the testing to the change", decision 0223): the journeys it
+  implies, found by grep for what is removed or renamed, and their minutes from that section's table;
 - what is deferred, and why;
 - native paths that will not run on a device;
 - **cost** (`.claude/rules/performance.md`): what the slice reads and writes and its n at scale (a
@@ -237,11 +239,16 @@ npm run typecheck && npm run lint && npm test
 npm run check:affected                                  # names the e2e journeys for the slice's files
 npm run test:feature <feature>                          # the slice's feature, whole
 npm run check:test-first <slug>                         # each criterion's todo came before its real test
-npm run export:web && E2E_ONLY=<journey> npm run e2e:web   # the slice's own and those chosen as in docs/TESTING.md, "Choosing the journeys"
+npm run export:web && E2E_ONLY=<journey> npm run e2e:web   # the slice's own and those its size calls for (docs/TESTING.md, "Size the testing to the change")
 ```
 
 A slice whose plan named a harness under **cost** runs it before its first code commit and again here,
 and the report gives both numbers; a native cost is an item in `docs/NATIVE_UNVERIFIED.md`.
+
+**Size first** (`docs/TESTING.md`, "Size the testing to the change", decision 0223). `check:affected`'s list is what the slice reaches, not what it runs: a
+removed or renamed control is found by grep in the journeys, wiring a shell test proves runs no journey, the slice's new
+journey runs alone until green before any batch, a failure in a journey the size did not call for is dropped, not
+chased, and a long journey runs once. The report gives the size, the journeys and their minutes.
 
 **The e2e's economy (docs/TESTING.md, `scripts/e2e/economy.js`).** Each journey is minutes
 of browser, so the named ones run once, at the end, and the rest is mechanical:
@@ -262,7 +269,7 @@ of browser, so the named ones run once, at the end, and the rest is mechanical:
 
 **One review round** (decision 0204): when the owner will want the slice audited, run this UI review, the cold find
 below and `/audit`'s steward and auditor together, once; never a review round and then an audit round. Run journeys
-three at a time with `npm run e2e:batch`.
+three at a time with `npm run e2e:batch`; a timing check that fails in a batch is rerun alone once before anything else.
 
 **The UI review** (decision 0145), when the slice changes a screen: run its journeys with
 `E2E_SHOTS=<scratchpad>/shots` (390 x 844), each seeding the longest text its screen can meet, and spawn the
