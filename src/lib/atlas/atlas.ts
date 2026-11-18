@@ -401,6 +401,27 @@ export function needsNear(reads: NearRead[] | NearRead | null, at: LngLat, build
   return !list.some((r) => !r.town && r.build === build && codeCurrent(r.code) && distanceM(r.at, at) <= ATLAS_RULES.renearM && (radiusM == null || (r.radiusM ?? radiusM) >= radiusM));
 }
 
+/**
+ * A near read held in memory (tend explore audit 32): its write failed, so it is not kept, but it stands for its level
+ * beside the kept ones until `retryMs` has passed since `at`, so the other level is read meanwhile and then it is read again.
+ */
+export interface HeldNear {
+  read: NearRead;
+  at: number;
+}
+
+/** The kept near reads of a level, with those held in memory that still stand (tend explore audit 32). */
+export function heldNears(reads: NearRead[], held: HeldNear[], now: number): NearRead[] {
+  const standing = held.filter((h) => now - h.at < ATLAS_RULES.retryMs).map((h) => h.read);
+  return standing.length ? [...reads, ...standing] : reads;
+}
+
+/** How long until the first held read stops standing, or null with none (tend explore audit 32). */
+export function heldUntil(held: HeldNear[], now: number): number | null {
+  const left = held.map((h) => h.at + ATLAS_RULES.retryMs - now).filter((ms) => ms > 0);
+  return left.length ? Math.min(...left) : null;
+}
+
 /** FL15: reads made for looks kept apart from the reads around you, so looking about never pushes them out. */
 export const LOOK_KEPT = 6;
 

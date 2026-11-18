@@ -79,6 +79,7 @@ Deleting a walk, its media, or a moment (`lib/deletion`): what goes, Undo, and w
   iOS alerts ("Cancel buttons are typically on the leading side of a row or at the bottom of a stack") and Material
   dialogs ("Confirming actions appear above dismissive actions") stack theirs. The `deletion` journey checks it at 390
   and 320.
+- The stacked order's sources, both read: `docs/research/ui-references.md` A2 (HIG Alerts, read Nov 18; Material dialogs).
 - **Native** (unverified on a device): the SQLite deletes, file and folder
   removal, `Directory.size`, the Undo pill over the viewer's Modal, the
   background commit, and `router.dismissTo` right after the actions Modal

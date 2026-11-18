@@ -159,6 +159,8 @@ Places of interest from the tiles, marks, checklists and finds (Explore), and Re
       merged with what was notified of the walk since the app was last in front, as a fire with the app behind is: the
       notification's id is one a walk, so a lone later one would replace it. What waits leaves out moments gone into
       Undo meanwhile (`offer`'s `hidden`). Kept in memory only: a kill while in front with one waiting still loses it.
+    - The precedent (iPhone Notification Center, Android notifications, read Nov 18) is recorded in
+      `docs/research/adjacent-apps.md`, "A reminder that arrives while you are busy".
   - A flag set during a walk counts as fired in it (`newRecall`). An edit
     keeps what firing wrote (`editedRecall`).
   - A tapped notification stores its ids in meta `recall_open`. The next

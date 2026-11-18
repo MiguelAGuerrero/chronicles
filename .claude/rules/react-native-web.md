@@ -83,3 +83,20 @@ UI code on both platforms: React Compiler lint rules, react-native-web differenc
   unmounts at once, and react-native-web's focus trap gives focus back to what opened the sheet in a passive cleanup,
   after the new field's `autoFocus`. Focus the field again in an effect keyed on the state that shows it (`focusOn`),
   which runs after that cleanup, as `ThreadScreen`'s Rename does.
+
+- **A full-screen surface that is not a `Modal` traps nothing on the web** (tend explore 27): `accessibilityViewIsModal` is
+  native only, so Tab walks out to the map and row beneath, and nothing gives focus back when it closes. The area card and
+  the walk planner use `lib/focus`'s hooks, as react-native-web's Modal does for itself: `useFocusReturn()` (read before the
+  surface moves focus into itself, given back on unmount; an effect, so a card keyed by its area hands the first opener on),
+  `useFocusTrap(ref, active)` (off while another surface covers it), and `useFocusSwap` for a part that replaces the button
+  pressed (the far question). A `Button` takes a ref for `focusOn`.
+- **`useFocusTrap` wraps only at the two ends** (tend explore audits 36-39): between them the browser's own Tab holds (a
+  `<summary>`, MapLibre's credits, is a stop no `[tabindex]` names), a move from the page (after a click on text) goes on
+  from the click, and a `focusin` outside brings a stray back. It stands aside while an `aria-modal` element outside its
+  box is open: react-native-web's Modal (the note page over the planner) traps for itself, with focus brackets outside its
+  content. Focus is given back on close only when it fell to the page and the candidate is still drawn: a tile chosen
+  while a side card closes keeps it.
+- **An area's card gives focus back to its area's tile first** (tend explore audit 40): `useFocusReturn(atlasTileId(key))`
+  looks up the tile's `nativeID` (react-native-web's `id`) as it closes, then the opener. A card opened through Next door
+  is keyed by the new area, so its opener was the first area's tile: focusing that scrolled the row back to it while the
+  new area stayed selected.

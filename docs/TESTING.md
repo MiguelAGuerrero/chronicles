@@ -354,6 +354,12 @@ Re-export without the variable afterwards for the plain e2e.
   bar is gone after the first push), so that regression is a unit test.
 - Each capture adds a replay stop: loop on Continue. Captions are checked
   through their aria-label after the photo's size loaded.
+- A storage write that fails: CDP's `Storage.overrideQuotaForOrigin` is
+  ignored for a Playwright context in this headless Chromium (a page session
+  and a persistent context write on; a browser session answers "Internal
+  error"; Nov 18). The `atlas` journey's `tend explore audit 32` step refuses
+  the writes in the page instead: an init script, behind a `localStorage`
+  flag, aborts the transaction of each put it names, as a full disk aborts it.
 
 - `data-center` is the canvas's middle, not the middle of what you see: a
   screen that fits with uneven padding (Explore: 84 px under its title, 24 px

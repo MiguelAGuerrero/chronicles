@@ -51,6 +51,9 @@ source.
 | Strava | walking and outdoor | Recording a walk; the social and score shapes we refuse (a counter-example) | Honour |
 | Fog of World | walking and outdoor; location history | Revealing the map where you have been: the shape our fog and familiarity must not become a score | Earn |
 | Swarm (Foursquare) | location check-ins | Marking that you were at a place, and a history of them | Honour, Return |
+| OpenStreetMap Carto | maps and navigation | osm.org's standard style, drawn from the data our maps use: how it draws borders and places | Earn |
+| Positron (OpenMapTiles) | maps and navigation | Our own base map's style: what our borders and marks sit on | Earn, Return |
+| iPhone Notification Center, Android notifications | the phone's own | Where a notification waits when the person is busy: the model for a reminder that is never lost | Return |
 
 ## Implementations, by job
 
@@ -188,3 +191,61 @@ source.
   unverified. **Unverified**.
 - **Swarm**: a check-in marks a place with an optional note and photo; a history map of places checked into, with
   streaks and stickers (counter-examples). Source: from memory, unverified. **Unverified**.
+
+### Bring the map back to north while following (Earn)
+
+- **Apple Maps** (iOS 27): "Tap [the Tracking Off button]. Your position is marked in the middle of the map. The top
+  of the map is north." Then "Show your heading instead of north at the top: Tap [the Tracking On button]." and
+  "Resume showing north at the top: Tap [the Tracking On With Heading button] or [the Compass button]." (the buttons
+  are icons; the bracketed names are the page's own alt text). The page does not say whether the map keeps following
+  once the compass is tapped. Source: https://support.apple.com/guide/iphone/set-up-maps-iph10d7bdf26/ios , read
+  Nov 18, 2026. **Verified**.
+- **Apple Maps in CarPlay** (iOS 27): when not following directions, "Show your current location: Tap [the Tracking
+  Off button]. Your position is marked in the middle of the map." and "Show your heading at the top of the screen: Tap
+  [the Tracking On button]. To resume showing north at the top, tap [the Tracking On Heading button]." Source:
+  https://support.apple.com/guide/iphone/change-the-map-view-iph93c7df449/ios , read Nov 18, 2026. **Verified**.
+
+Both make heading or north a state of the location button, and back to north one tap, with the walker's position the
+centre of the map. `tend map 15` (CP4) cited the CarPlay page; that the position stays in the middle "throughout", so
+back to north keeps following, is that run's reading: neither page says it in words.
+
+### Draw a town's border on the map (Earn, Return)
+
+- **OpenStreetMap Carto** (osm.org's standard style): borders are lines only, in a muted purple
+  (`@admin-boundaries: #8d618b; // Lch(47,30,327)`); a town's (admin level 8) from zoom 12 is a 1.4 px line dashed
+  `8,2,2,2,2.5,2,2,2` over a white 1.4 px backing line, 1.6 px from zoom 14; no fill. Source:
+  https://raw.githubusercontent.com/gravitystorm/openstreetmap-carto/master/style/admin.mss , read Nov 17, 2026 (the
+  T33 comparison) and again Nov 18, 2026. **Verified**.
+- **Positron** (our base map, OpenMapTiles): only state (dashed) and country borders, both `rgb(230, 204, 207)`, a
+  pale pink; no town borders, no fill. Source: https://raw.githubusercontent.com/openmaptiles/positron-gl-style/master/style.json ,
+  read Nov 17 and Nov 18, 2026 (its `boundary_state` and `boundary_country_*` layers). **Verified**.
+- **Organic Maps**: country and region borders only, in warm greys (`@border_country: #63635C`,
+  `@border_region: #73726B`) at 0.7 opacity, regions dashed; no town borders, no fill. Source:
+  https://raw.githubusercontent.com/organicmaps/organicmaps/master/data/styles/default/include/Basemap.mapcss and
+  https://raw.githubusercontent.com/organicmaps/organicmaps/master/data/styles/default/light/colors.mapcss , read
+  Nov 17 and Nov 18, 2026. **Verified**.
+- **Google Maps**: a searched town is outlined with a red or pink dashed line, no fill, nothing dimmed outside it.
+  Source: from memory, unverified (its help pages read for T33 do not describe it). **Unverified**.
+
+A border is a quiet line in a hue the map's other layers do not use, and none tints the region. Our tinted,
+firm-edged town (TB10) is our own; decision 0199 chose cocoa `#6e4f3f`, beside Organic Maps' warm greys, from this
+comparison.
+
+### A reminder that arrives while you are busy (Return)
+
+- **iPhone Notification Center** (iOS 27): "Unless you have notifications silenced with a Focus, iPhone displays them
+  as they arrive"; Notification Center keeps them ("Swipe down from the top-left corner. Then you can scroll up to see
+  older notifications, if there are any"); one leaves when the person clears it ("Swipe left on the notification or
+  group of notifications, then tap Clear or Clear All"), and a muted app's go "directly to Notification Center".
+  Source: https://support.apple.com/guide/iphone/view-and-respond-to-notifications-iph6534c01bc/ios , read Nov 18,
+  2026. **Verified**.
+- **Android notifications** (Android Help; "Some of these steps may vary based on your device"): "At the top of your
+  screen, notifications show when you swipe down"; one is dismissed by the person ("To dismiss one notification, swipe
+  it left or right"); notification history, where the device has it, keeps "Snoozed notifications", "Recently
+  dismissed notifications" and "A history of the day’s notifications". Source:
+  https://support.google.com/android/answer/9079661?hl=en , read Nov 18, 2026. **Verified**.
+
+On both pages a notification leaves the list when the person clears it, and neither describes one dropped unseen
+(an inference from what the pages say, not their words). That is the model `tend explore 21-24` followed (a fire
+waits until a place in front can show it). Those runs wrote "until it is seen", from memory; the pages say it stays
+until it is cleared.

@@ -41,6 +41,7 @@ The map component (maplibre-gl on web, MapLibre RN on native), pins and icons, t
 - `fitBounds` keeps the current bearing in maplibre; never pass a bearing to a follow or a fit.
 - The e2e turns the newest web map through `window.__turn(deg)`, defined only when `window.__perf` is (a two-finger gesture can't be made headless). The `ready` scenario sets `__perf` itself.
 - **Trap: a follow jump cuts an ease** (tend map 15). maplibre's `jumpTo` starts with `stop()`, so the live walk's follow (each glide frame's `jumpTo({ center })`, and the recenter on a fix) cut the compass's ease to north after one frame. Both ask `followMoves` (`lib/compass.ts`), which waits while `northAsked` holds; a new camera move made in code while following gets the same gate. The `qol` step turns the walk's map with two real fingers (`twoFingerTurn`: `__turn` has no `originalEvent`, so following never stops) and taps the compass with fixes still coming. Native's follow has no such gate yet (`docs/NATIVE_UNVERIFIED.md`, Compass).
+- tend map 15's precedent is recorded in `docs/research/adjacent-apps.md`, "Bring the map back to north while following" (Apple Maps, read Nov 18).
 
 ## Swipes instead of pans (DN1-DN13, decision 0092)
 
@@ -59,6 +60,7 @@ The map component (maplibre-gl on web, MapLibre RN on native), pins and icons, t
 - Screens: Explore (`index.tsx`, yours tinted by `outlineIdHere`, the open town's by `outlineOf`), Chronicle (walked towns, `lined: false`), the walk screen (`firm` by `outlineIdAt`, no fill), the replay and a day (`useWalkBorders`). `BORDER` colours are held by `colors.test.ts` (TB8).
 - The world's veil sits under the borders (decision 0199, the owner's answer to T33): on the web the veil is added before the lines, and `borderFillBefore` moves the fill over the veil while it is on (the replay, a day, unwalked streets) and back under the first street when it is off; on native the veil mounts before `BordersSource`. Under the veil the edge read 2.2:1 and the tint 1.09 whatever the colour. `BORDER.color` is cocoa `#6e4f3f`, never the accent (0153).
 - The borders go over the veil only where the screen asks (`bordersOverVeil`: the replay and a day, decision 0199), through `borderMoves` on the web (the veil under the lines, the fill between, at `borderFillOpacity`'s 0.11, the owner's "Lighten the fill on veiled maps") and mount order on native. The walk screen's unwalked veil stays over its firm edge: over that veil a solid dark edge matched an unwalked street's line (tend map audit 39). The line above that names `borderFillBefore` and the unwalked streets is superseded by this one.
+- The borders' precedent (OpenStreetMap Carto, Positron, Organic Maps; decision 0199) is recorded in `docs/research/adjacent-apps.md`, "Draw a town's border on the map".
 
 ## Icons and pins
 
@@ -135,6 +137,14 @@ The map component (maplibre-gl on web, MapLibre RN on native), pins and icons, t
   disabled.
 - **Pins are drawn only near the view** (tend map 16, audits 35-37; web only). `usePinMarkers` keeps a box in a ref, never as React state: the view grown by a pin's reach on screen (`PIN_REACH_PX`: 24 px either side, its 48 px height and the most `stalkLift` gives below, through `unproject`, so a turned map grows the same way), widened by `PIN_CULL_MARGIN` (half the view) on each side. It is drawn again on `move` and `moveend` only when `boxHolds` says the grown view left it or zoomed in more than a level. The focused pin and the last pressed one (its viewer gives the focus back there) are never dropped (`drawsPin`). A pin past the box has no DOM marker, so an e2e reading pins reads those near the view. A margin of 0.25 drew 10 markers to 0.5's 28 for 8 in view with none missing, but no fall in drag cost showed through the noise (Nov 17), so the margin stays at half.
 - **A screen reader reaches only the pins near the view** (the owner, Nov 17, on tend map 16's review F4: "Accept, record it"). Moving the map brings others in reach, and Chronicle's journal and Memories list every moment.
+- **Taps read their handlers from refs filled before paint** (`tend map 17`): the web's pins, stars and "?" marks read
+  `latest`, `starLatest` and `markLatest`, filled in `useLayoutEffect`s as the map's own handlers are (audit 8), so a tap
+  after a render never reaches the previous handler. The markers themselves sync in passive effects (DOM markers before
+  paint on every regroup would break the render budget), so a tap in the frame between commit and marker sync is
+  dropped, never stale (`tend map audit 41`, accepted).
+- **The selected star is told to a screen reader** (`tend map 20`; the owner, Nov 18: "Allow it"): on the web its button
+  carries `aria-current="true"` (spoken "current": a button takes no `aria-selected`), on native
+  `accessibilityState={{ selected }}`; both only on the selected star.
 
 ## Explore's dots (WT12-WT14, decision 0132)
 
