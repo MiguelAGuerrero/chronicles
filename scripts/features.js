@@ -509,9 +509,7 @@ const RENAMED = {
   'video-thumbnails': { VS: 'VT' },
 };
 
-const IN_PROGRESS = {
-  'what-im-into-page': { branch: 'claude/what-im-into-page', since: '2026-11-18' },
-};
+const IN_PROGRESS = {};
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));
 
