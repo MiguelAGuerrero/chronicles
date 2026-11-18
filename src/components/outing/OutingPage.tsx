@@ -80,7 +80,8 @@ export function OutingPage(props: {
   const chapters = useMemo(() => {
     if (!j.journey) return [];
     const wants = j.journey.wants;
-    let n = 0;
+    // Each stop's place among all the journey's stops: the stops of the chapters before it, then its own.
+    const before = j.journey.chapters.map((_, ci) => j.journey!.chapters.slice(0, ci).reduce((sum, c) => sum + c.outing.stops.length, 0));
     return j.journey.chapters.map((c, ci) => {
       const o = c.outing;
       const labels: string[] = [];
@@ -88,7 +89,7 @@ export function OutingPage(props: {
         const want = wants.find((w) => matches(w.match, s)) ?? wants[0];
         if (want && !labels.includes(want.label)) labels.push(want.label);
         const m = o.stops.length < 2 ? 0 : distanceM(i === 0 ? o.path[0] : o.stops[i - 1].at, s.at);
-        return { n: n++, i, id: s.id, name: s.unfound ? null : s.name, word: want?.slotWord ?? 'a place', line: o.stops.length < 2 ? cap(want?.slotWord ?? 'a place') : slotLine(want?.slotWord ?? 'a place', m), m };
+        return { n: before[ci] + i, i, id: s.id, name: s.unfound ? null : s.name, word: want?.slotWord ?? 'a place', line: o.stops.length < 2 ? cap(want?.slotWord ?? 'a place') : slotLine(want?.slotWord ?? 'a place', m), m };
       });
       return { ci, area: c.area, labels, slots, stops: o.stops.length, lengthM: o.lengthM, loop: o.loop };
     });
@@ -107,18 +108,13 @@ export function OutingPage(props: {
     if (starting.current) return;
     starting.current = true;
     setBusy(true);
-    try {
-      if (later) {
-        const dest = j.later();
-        if (dest) props.onLater(dest);
-      } else {
-        const s = j.start(props.fixNow());
-        if (s) props.onStart(s.dest, s.plan);
-      }
-    } finally {
-      starting.current = false;
-      setBusy(false);
-    }
+    // No try/finally here (the compiler cannot take one): what is asked is read first, then the guard is let go, then it is handed on.
+    const dest = later ? j.later() : null;
+    const s = later ? null : j.start(props.fixNow());
+    starting.current = false;
+    setBusy(false);
+    if (dest) props.onLater(dest);
+    if (s) props.onStart(s.dest, s.plan);
   }
   const place = j.dest?.name ?? null;
   const reasons = [...new Set(j.reasons)];
