@@ -217,7 +217,6 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
 
 The steward's questions from the second audit that only the owner answers; nothing here is built or decided.
 
-- A moment captured on the drive between towns: what is its place and its "what came just before"? A road has no street walked and no town, and the plan is never stored, so its context cannot say "on the way to Providence" after the session stops. The vision says a moment never arrives bare. (the steward)
 - The second audit changed three things the plan had decided, each within the vision's own lines but yours to overrule: the way on foot in a town is offered ("Show the way") and no longer begins by itself; the bar's close is gone, and "Pass by" on the last town puts the plan away; a town you drift well away from is let go without a tap. (audits 33, 45, 46)
 
 ### From the outing journey's audit (2026-11-17)

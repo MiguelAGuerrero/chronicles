@@ -37,6 +37,36 @@ export function streetAt(fix: LngLat | null, segments: StreetSegment[], snappedI
   return best && name ? { name, near: !snapped } : null;
 }
 
+const SMALLEST_FIRST = ['neighborhood', 'town', 'state'] as const;
+
+/**
+ * MC18 (the owner, Nov 18, decision 0202): where a moment was when it was made. An outing may pass through several towns, by any
+ * means of travel, and its areas say when it was in each (ridden stretches count, R8): the moment's place is the smallest area its
+ * outing was in at that time, a neighborhood before its town, and between towns whatever larger place is known. Two areas of one
+ * size that both span the moment (a town left and come back to) give the narrower stay. Outside every stay nothing is said, never a
+ * town the moment was not in; only an outing with no areas at all keeps its own one name (`fallback`).
+ */
+export function placeAt(
+  rows: readonly { walk_id: string; area_key: string; first_t: number; last_t: number }[],
+  areas: readonly { key: string; level: string; name: string }[],
+  walkId: string,
+  t: number,
+  fallback: string | null,
+): string | null {
+  const mine = rows.filter((r) => r.walk_id === walkId);
+  // An outing not placed yet (still open, or from before areas were kept) has only its own name.
+  if (!mine.length) return fallback;
+  const byKey = new Map(areas.map((a) => [a.key, a]));
+  for (const level of SMALLEST_FIRST) {
+    const spans = mine
+      .filter((r) => byKey.get(r.area_key)?.level === level && r.first_t <= t && t <= r.last_t)
+      .sort((a, b) => a.last_t - a.first_t - (b.last_t - b.first_t) || b.first_t - a.first_t || (a.area_key < b.area_key ? -1 : 1));
+    const name = spans.length ? byKey.get(spans[0].area_key)?.name.trim() : null;
+    if (name) return name;
+  }
+  return null;
+}
+
 /** The place line (MC1): only what is known. */
 export function placeLine(o: { street: string | null; near?: boolean; town: string | null; complex?: { name: string; near: boolean } | null }): string {
   // CX11: a complex leads and the street stays, with its own "Near" when it was found only by nearness (complexes audit 14).

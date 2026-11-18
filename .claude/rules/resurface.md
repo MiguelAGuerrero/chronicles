@@ -32,3 +32,5 @@ Chronicle opens on Memories, a journal since decision 0155 (`.claude/rules/journ
 - **The street is worded by how it was found** (audit 17): `streetAt` says whether the street is the snapped one (bare) or found within 40 m (`Near ...`); the longitude window is divided by cos(latitude).
 - **"just after" is two walked minutes, "after" ten** (audit 20); the small hours belong to the evening before (audit 10); the foot line "From ..." never names the town (audit 3).
 - **A softened word is shown as written** (audit 7): `prefs.shown` keeps the owner's form beside the stored term; Undo and Forget treat it like the lists (`revertChange`).
+
+- **A moment's place is where it was then** (MC18, decision 0202): `placeAt` in `context.ts` reads the outing's areas (`listWalkAreas`, `listAreas`, once per `contextFor` batch) and takes the smallest one that spans the moment's time; `walk.area` is the outing's title name and a moment's place only when the outing has no areas yet. Never fill a moment's place from where the outing ended or was headed.
