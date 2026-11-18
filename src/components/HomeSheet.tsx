@@ -108,9 +108,9 @@ export function SheetFrame(props: {
       done();
     } else Animated.spring(h, { toValue: to, ...MOTION.spring, useNativeDriver: false }).start(done);
   });
-  // A peek is set, not sprung, until its screen knows its state and on the move that knowing asks for (tend tabs T38):
-  // in a layout effect, so the frame that shows the first read shows its height, and the map's fits read it too. A
-  // change of `known` alone never restarts a move that is running.
+  // A peek is set, not sprung, on the sheet's mount and on the move its screen's first read asks for (tend tabs T38);
+  // every other move springs, before the read too (audit 37). In a layout effect, so the frame that shows the first
+  // read shows its height and the scale bar reads it too. A change of `known` alone never restarts a running move.
   const known = props.known !== false;
   const wasKnown = useRef(known);
   const lastMove = useRef<{ target: number; reduced: boolean } | null>(null);
@@ -120,7 +120,7 @@ export function SheetFrame(props: {
     const last = lastMove.current;
     if (last && last.target === target && last.reduced === reduced) return;
     lastMove.current = { target, reduced };
-    moveTo(target, sheetMoveSnaps({ reduced, peek: size === 'peek', known, firstKnown }));
+    moveTo(target, sheetMoveSnaps({ reduced, peek: size === 'peek', mount: !last, firstKnown }));
   }, [moveTo, target, reduced, known, size]);
   const latest = useRef({ size, target, reduced });
   // Updated straight after each commit, so the settle check below reads the screen's answer.
