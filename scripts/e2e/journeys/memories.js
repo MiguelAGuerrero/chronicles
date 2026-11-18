@@ -6,7 +6,7 @@
 // Chronicle with its star, as the chronicle journey does. In the full flow the page is already there, so
 // this does nothing.
 async function arrive(h) {
-  const { page, routed } = h;
+  const { page, routed, toStop } = h;
   if (await page.locator('[data-testid=to-name]').count()) {
     await page.click('[data-testid=to-name]');
     await page.click('[data-testid=save]');
@@ -17,7 +17,7 @@ async function arrive(h) {
 }
 
 async function checks(h) {
-  const { url, ctx, page, at, check, shot, glyph, walkMap, walkMarks, walkRoute, walkPts, routed } = h;
+  const { url, ctx, page, at, check, shot, glyph, walkMap, walkMarks, walkRoute, walkPts, routed, toStop } = h;
   await arrive(h);
     // The first walk's route, from the harness (the walk journey walked it).
     const route = walkRoute;
@@ -296,9 +296,9 @@ async function checks(h) {
     try {
       await flags(true);
       await page.goto(url);
-      await page.waitForSelector('[data-testid=recording-return], [data-testid=stop]', { timeout: 20000 });
+      await page.waitForSelector('[data-testid=recording-return], [data-testid=walk-actions]', { timeout: 20000 });
       if (await page.locator('[data-testid=recording-return]').count()) await page.click('[data-testid=recording-return]');
-      await page.waitForSelector('[data-testid=stop]', { timeout: 15000 });
+      await page.waitForSelector('[data-testid=walk-actions]', { timeout: 15000 });
       for (let j = 1; j <= 6 && !(await page.locator('[data-testid=reminder]').count()); j++) {
         north = j;
         await ctx.setGeolocation({ longitude: spot[0], latitude: spot[1] + j * 0.00005, accuracy: 6 });
@@ -497,14 +497,14 @@ async function checks(h) {
         await page.locator(walkSel).first().click();
         if (await page.waitForSelector('[data-testid=atlas-walk-now]', { timeout: 1500 }).then(() => true, () => false)) await page.click('[data-testid=atlas-walk-now]');
       }
-      await page.waitForSelector('[data-testid=stop]', { timeout: 15000 }).catch(() => {});
+      await page.waitForSelector('[data-testid=walk-actions]', { timeout: 15000 }).catch(() => {});
       const handed = await page.waitForSelector('[data-testid=reminder]', { timeout: 8000 }).then(() => true, () => false);
       const handedSaid = handed ? await settled('[data-testid=reminder]') : '';
       check(!!walkTo && cardFold.wrapH === 0 && cardFold.flagged === 2 && firedUnderCard && handed && /Two memories here/.test(handedSaid),
         `tend explore audit 23: a reminder fired under an area's card reaches the walk screen's card when Walk to leaves the tabs (${JSON.stringify({ ...cardFold, firedUnderCard, handed, handedSaid, steps: `${handFrom} to ${north}` })})`);
       if (handed) await shot(page, '16e-reminder-handed-on');
-      if (!(await page.locator('[data-testid=stop]').count())) await page.click('[data-testid=recording-return]');
-      await page.waitForSelector('[data-testid=stop]', { timeout: 15000 });
+      if (!(await page.locator('[data-testid=walk-actions]').count())) await page.click('[data-testid=recording-return]');
+      await page.waitForSelector('[data-testid=walk-actions]', { timeout: 15000 });
       // The walk goes on without the way Walk to set, as the steps after this one expect.
       if (await page.waitForSelector('[data-testid=nav-end]', { timeout: 5000 }).then(() => true, () => false)) await page.click('[data-testid=nav-end]');
 
@@ -662,9 +662,9 @@ async function checks(h) {
       await seedMany(true);
       await flagMany(true);
       await page.goto(url);
-      await page.waitForSelector('[data-testid=recording-return], [data-testid=stop]', { timeout: 20000 });
+      await page.waitForSelector('[data-testid=recording-return], [data-testid=walk-actions]', { timeout: 20000 });
       if (await page.locator('[data-testid=recording-return]').count()) await page.click('[data-testid=recording-return]');
-      await page.waitForSelector('[data-testid=stop]', { timeout: 15000 });
+      await page.waitForSelector('[data-testid=walk-actions]', { timeout: 15000 });
       for (let j = 1; j <= 6 && !(await page.locator('[data-testid=reminder]').count()); j++) {
         north = j;
         await ctx.setGeolocation({ longitude: spot[0], latitude: spot[1] + j * 0.00005, accuracy: 6 });
@@ -723,6 +723,7 @@ async function checks(h) {
     check(Number(rides?.split(':')[0]) === 1 && Number(rides?.split(':')[1]) > 30, `the ride is drawn as its own dashed line (R5: ${rides})`);
     const stats = await page.locator('[data-testid=walk-stats]').innerText();
     check(/^\d+:\d\d · \d+[ \u00a0]m\n\+ \d+[ \u00a0]m ride$/.test(stats), `the walk's distance shows the ride apart, on its own line (R6: "${stats}")`);
+    await toStop(page);
     const holdBox = await page.locator('[data-testid=stop]').boundingBox();
     await page.mouse.move(holdBox.x + holdBox.width / 2, holdBox.y + holdBox.height / 2);
     await page.mouse.down();

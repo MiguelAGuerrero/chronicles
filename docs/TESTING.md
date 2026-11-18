@@ -327,6 +327,9 @@ Re-export without the variable afterwards for the plain e2e.
 
 ### Traps
 
+- `tiles.delayMs` slows only the network. Tiles the page read moments ago are kept in memory
+  (`createTileBodies`, the last 16), so a check that a read waits must read tiles nothing has read since the
+  page loaded: reload first, as gaps audit 4 does (fix gaps-done-wait).
 - Run journeys one at a time. Two at once on one machine failed timing checks
   that pass alone (the first walk's video pin label, a walk started from the
   home saying it is recording; Nov 4 deploy).

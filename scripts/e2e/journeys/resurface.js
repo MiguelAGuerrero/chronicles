@@ -164,22 +164,31 @@ async function contextRun(h) {
   });
   check(toastOk, 'MC14: the toast states a fact, Hidden. It stays in your journal and in its walk.');
   // Audit 7: the toast names the word as the owner wrote it, and Undo takes it back.
+  // Entries have no More since SW19 (decision 0197): Show less like this is the resurfaced card's (fix resurface-journey).
+  let slipSaid = '';
   const fewerOk = await attempt(async () => {
-    await cardOf('harbor bench').locator('[data-testid=moment-more]').click();
+    slipSaid = (await pg.locator('[data-testid=resurfaced]').innerText()).replace(/\s+/g, ' ');
+    await pg.click('[data-testid=resurfaced-more]');
     await pg.click('[data-testid=menu-less]');
     // The earlier toast may still be up: wait for this one.
     await pg.waitForFunction(() => /Fewer like this/.test(document.querySelector('[data-testid=memories-toast]')?.textContent ?? ''), null, { timeout: 5000 });
     const said = await pg.locator('[data-testid=memories-toast]').innerText();
     await pg.click('[data-testid=memories-undo]');
-    return /Fewer like this: harbor/.test(said);
+    // A word that stands whole in the moment the card shows. No seeded word here stems differently, so this cannot
+    // catch a stem shown for the written word ("cooky"); the unit test does (fix resurface-journey audit 1, filed).
+    const word = /Fewer like this: (\S+)/.exec(said)?.[1] ?? '';
+    return word.length > 0 && new RegExp(`\\b${word}\\b`).test(slipSaid);
   });
-  check(fewerOk, 'memories-context audit 7: Show less like this names the word as written');
+  check(fewerOk, `memories-context audit 7: Show less like this names the word as written (${slipSaid.slice(0, 80)})`);
   // Audit 5: Forget leaves a toast with Undo that brings back what it cleared.
   const forgetUndoOk = await attempt(async () => {
-    await cardOf('loose near hope').locator('[data-testid=moment-more]').click();
+    const hiddenEarlier = (await prefsOf(pg)).hidden.length;
+    await pg.click('[data-testid=resurfaced-more]');
     await pg.click('[data-testid=menu-hide]');
     await pg.waitForTimeout(400);
     const hiddenBefore = (await prefsOf(pg)).hidden.length;
+    // Its own hide counts: one more than before it (fix resurface-journey audit 4).
+    if (hiddenBefore !== hiddenEarlier + 1) return false;
     await menu('menu-forget');
     await pg.click('[data-testid=forget-confirm]');
     await pg.waitForFunction(() => /Choices forgotten/.test(document.querySelector('[data-testid=memories-toast]')?.textContent ?? ''), null, { timeout: 5000 });
@@ -270,8 +279,11 @@ async function run(h) {
   const longCard = pg.locator('[data-testid=moment-card]:has-text("quiet quiet")').first();
   await longCard.scrollIntoViewIfNeeded();
   const lb = await longCard.boundingBox();
-  const mb = await longCard.locator('[data-testid=moment-more]').boundingBox();
-  check(lb && mb && lb.height < 800 && mb.x + mb.width <= 390 && mb.y + mb.height <= lb.y + lb.height + 1, `audit 12: a 4,000-character note keeps its card short and its More button in view (${Math.round(lb?.height ?? 0)} px)`);
+  // Its actions are the quick-action row since SW19 took More off entries (decision 0197; fix resurface-journey).
+  const mb = await longCard.locator('[data-testid=quick-actions]').boundingBox({ timeout: 10000 }).catch(() => null);
+  // Each condition said apart, so a missing row is never read as a tall card (fix resurface-journey audit 2).
+  const rowIn = !!(lb && mb && mb.x >= 0 && mb.x + mb.width <= 390 && mb.y + mb.height <= lb.y + lb.height + 1);
+  check(lb && mb && lb.height < 800 && rowIn, `audit 12: a 4,000-character note keeps its card short and its actions in view (card ${Math.round(lb?.height ?? 0)} px; row ${mb ? `${Math.round(mb.x)},${Math.round(mb.y)} ${Math.round(mb.width)}x${Math.round(mb.height)}` : 'not drawn'}, inside the card ${rowIn})`);
   const sb = await pg.locator('[data-testid=section-memories]').boundingBox();
   await toThreads(pg);
   check((await pg.locator('[data-testid=threads-rail] [role=listitem]').count()) === 1 && sb && sb.height >= 44, 'audit 13: the threads rail is a list, and the section tabs are 44 px tall');

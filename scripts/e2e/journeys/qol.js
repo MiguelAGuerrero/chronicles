@@ -115,7 +115,7 @@ function creditsChecks({ check, shot }) {
 // 320 (two photos, three notes, a voice memo and a video, a photo and a note), the same faint as memories, and a bell
 // on each. A walk of its own in a fresh page, so the steps before it change nothing here.
 async function pinsOfSeveral(h, pg8, c8, { check, shot }) {
-  const { navUrl, at, scriptsDir } = h;
+  const { navUrl, at, scriptsDir, toStop } = h;
   const go = async (x, y) => {
     const p = at(x, y);
     await c8.setGeolocation({ longitude: p[0], latitude: p[1], accuracy: 6 });
@@ -167,7 +167,7 @@ async function pinsOfSeveral(h, pg8, c8, { check, shot }) {
   await pg8.waitForTimeout(1500);
   await go(-0.5, -0.5);
   await pg8.click('[data-testid=start]');
-  await pg8.waitForSelector('[data-testid=stop]');
+  await pg8.waitForSelector('[data-testid=walk-actions]');
   for (let i = 1; i <= 5; i++) await go(-0.5, -0.5 + i * 0.04);
   // Two photos; 140 m on, three notes; 140 m on, a voice memo and a video; 140 m on, a photo and a note, reminded.
   await take('photo.jpg', 'Photo saved here');
@@ -220,6 +220,7 @@ async function pinsOfSeveral(h, pg8, c8, { check, shot }) {
   await shot(pg8, 'qol-16-pin-several-bell');
 
   // Stop; then a second walk past the first one's pins brings them back as memories.
+  await toStop(pg8);
   const b = await pg8.locator('[data-testid=stop]').boundingBox();
   await pg8.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
   await pg8.mouse.down();
@@ -236,7 +237,7 @@ async function pinsOfSeveral(h, pg8, c8, { check, shot }) {
   await pg8.waitForTimeout(1500);
   await go(-0.5, -0.5);
   await pg8.click('[data-testid=start]');
-  await pg8.waitForSelector('[data-testid=stop]');
+  await pg8.waitForSelector('[data-testid=walk-actions]');
   for (let i = 1; i <= 5; i++) await go(-0.5, -0.5 + i * 0.04);
   for (let i = 1; i <= 20; i++) await go(-0.5 + i * 0.04, -0.3);
   await pg8.waitForSelector('[data-testid=memory-pin][data-ids*=","]', { timeout: 15000 }).catch(() => null);
@@ -273,7 +274,7 @@ async function pinsOfSeveral(h, pg8, c8, { check, shot }) {
 }
 
 async function run(h) {
-  const { navUrl, exploreUrl, BASE, browser, start, at, style, check, shot, drawerTo, tabTo, freshPage, scriptsDir } = h;
+  const { navUrl, exploreUrl, BASE, browser, start, at, style, check, shot, drawerTo, tabTo, freshPage, scriptsDir, toStop } = h;
     const creditsCheck = creditsChecks(h);
     const { c, pg } = await freshPage('qol');
     await c.addInitScript(() => {
@@ -343,6 +344,7 @@ async function run(h) {
       return [z0, Number(await attr('data-zoom'))];
     };
     const holdStop = async () => {
+      await toStop(pg);
       const b = await pg.locator('[data-testid=stop]').boundingBox();
       await pg.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
       await pg.mouse.down();
@@ -798,6 +800,7 @@ async function run(h) {
       check(qlNav && qlNav.opacity === '0' && qlNav.px.green <= 3 && px && px.white && px.green >= 30,
         `qol QL3: the start marker sits above the trace and goes with it while navigating (navigating: ${JSON.stringify(qlNav && { opacity: qlNav.opacity, ...qlNav.px })}; after End: ${JSON.stringify(px)})`);
       const s5 = await scaleBar();
+      await toStop(pg);
       const stop = await pg.locator('[data-testid=stop]').boundingBox();
       check(round(s5) && fits(s5) && s5.box && stop && s5.box.y + s5.box.height <= stop.y + 0.5,
         `qol QL8: the walk screen's scale bar sits clear of its bottom strip (bar bottom ${s5 && s5.box && Math.round(s5.box.y + s5.box.height)}, strip from ${stop && Math.round(stop.y)}; ${describe(s5)})`);
@@ -1407,6 +1410,7 @@ async function run(h) {
       }
       await p3.waitForTimeout(1500);
       await creditsCheck(p3, 'the walk screen at 320', 'qol-09-walk-credits-open-320');
+      await toStop(p3);
       const sb = await p3.locator('[data-testid=stop]').boundingBox();
       await p3.mouse.move(sb.x + sb.width / 2, sb.y + sb.height / 2);
       await p3.mouse.down();
@@ -1875,7 +1879,7 @@ async function run(h) {
         await pg9.waitForSelector('[data-testid=start]');
         await go(-0.5, -0.5);
         await pg9.click('[data-testid=start]');
-        await pg9.waitForSelector('[data-testid=stop]');
+        await pg9.waitForSelector('[data-testid=walk-actions]');
         // A square of about 60 m, walked round 4 m at a time (as the pins' walk is), ending 3 m short of where it began.
         const corners = [[-0.5, -0.5], [0.1, -0.5], [0.1, 0.1], [-0.5, 0.1], [-0.5, -0.47]];
         for (let k = 1; k < corners.length; k++) {
@@ -1884,6 +1888,7 @@ async function run(h) {
           for (let i = 1; i <= n; i++) await go(x0 + ((x1 - x0) * i) / n, y0 + ((y1 - y0) * i) / n);
         }
         await pg9.waitForTimeout(1500);
+        await toStop(pg9);
         const stopBox = await pg9.locator('[data-testid=stop]').boundingBox();
         await pg9.mouse.move(stopBox.x + stopBox.width / 2, stopBox.y + stopBox.height / 2);
         await pg9.mouse.down();

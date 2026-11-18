@@ -2,7 +2,7 @@
 // fresh browser. E2E_ONLY=tabs runs it alone.
 
 async function run(h) {
-  const { url, navUrl, BASE, page, start, at, dLat, dLon, check, glyph, iconOf, metaOf, drawerTo, openInto, closeInto, tabTo, shownCount, tabBarShown, freshPage, openWalk } = h;
+  const { url, navUrl, BASE, page, start, at, dLat, dLon, check, glyph, iconOf, metaOf, drawerTo, openInto, closeInto, tabTo, shownCount, tabBarShown, freshPage, openWalk, toStop } = h;
     const { c, pg } = await freshPage('tabs-audit');
     await c.addInitScript(() => {
       window.__perf = {};
@@ -142,6 +142,41 @@ async function run(h) {
       window.__peekStop?.();
       return window.__peekSeen;
     });
+    // tend tabs T38: every frame's sheet height, whether the empty line is drawn, and the gap from the sheet's top down
+    // to the scale bar's bottom (the bar's inset rides on the height the sheet reports), until `sheetSeen()`.
+    const watchSheet = () => pg.evaluate(() => {
+      const seen = [];
+      let on = true;
+      const look = () => {
+        if (!on) return;
+        const s = [...document.querySelectorAll('[data-testid=home-sheet]')].find((e) => !e.closest('[aria-hidden=true]'))?.getBoundingClientRect();
+        if (s && s.height) {
+          const bar = document.querySelector('[data-testid=scale-bar]')?.getBoundingClientRect();
+          seen.push({ h: Math.round(s.height), empty: !!document.querySelector('[data-testid=sheet-empty]'), gap: bar && bar.height ? Math.round(s.top - bar.bottom) : null });
+        }
+        requestAnimationFrame(look);
+      };
+      window.__sheetStop = () => { on = false; return seen; };
+      requestAnimationFrame(look);
+    });
+    const sheetSeen = () => pg.evaluate(() => window.__sheetStop?.() ?? []);
+    // tend tabs T38: the peek never springs as the map mounts: it takes only the heights it rests at, each frame that
+    // draws the empty line is its own height, and the scale bar keeps one gap above the sheet from the first frame.
+    const steadyMount = (seen, when, rest) => {
+      const heights = [...new Set(seen.map((f) => f.h))];
+      const gaps = seen.map((f) => f.gap).filter((g) => g != null);
+      const between = seen.filter((f) => !rest.some((r) => Math.abs(f.h - r) <= 1));
+      check(seen.length > 0 && !between.length && seen.filter((f) => f.empty).every((f) => Math.abs(f.h - rest[rest.length - 1]) <= 1)
+        && Math.abs(seen[seen.length - 1].h - rest[rest.length - 1]) <= 1,
+        `tend tabs T38: ${when}, the peek takes ${rest.join(' then ')} px and never a height between as the map mounts (${heights.join(', ')}; ${seen.length} frames)`);
+      check(gaps.length > 0 && Math.max(...gaps) - Math.min(...gaps) <= 1,
+        `tend tabs T38: ${when}, the scale bar sits one gap above the sheet in every frame (${[...new Set(gaps)].join(', ')})`);
+      if (rest.length > 1) {
+        // tend tabs audit 39 (the T38 review's ux 1): the plain peek is a placeholder for the first read, a moment at most.
+        const plain = seen.findIndex((f) => Math.abs(f.h - rest[rest.length - 1]) <= 1);
+        check(plain >= 0 && plain <= 6, `tend tabs audit 39: ${when}, the plain peek gives way to ${rest[rest.length - 1]} within 6 frames of the map's mount (${rest[0]} x ${plain}, then ${rest[rest.length - 1]})`);
+      }
+    };
     // tend tabs audit 4: the empty line's top under the grabber, the same in both states.
     let lineTopNothingOpen = null;
     const emptyPeek = async (when, open) => {
@@ -190,17 +225,20 @@ async function run(h) {
       else await tabTo(pg, 'navigate');
       await pg.waitForTimeout(1000);
       // Navigate is the walk screen (NR1, NR2): ready with no walk open, the walk with one.
-      check(new URL(pg.url()).pathname === `${BASE}/walk` && (await pg.locator('[data-testid=ready-bar], [data-testid=stop]').count()) === 1,
+      check(new URL(pg.url()).pathname === `${BASE}/walk` && (await pg.locator('[data-testid=ready-bar], [data-testid=walk-actions]').count()) === 1,
         `tabs audit U7, tend tabs T10: ${when}, the peek's Navigate, or the recording bar's › with a walk open, opens the walk screen (${new URL(pg.url()).pathname})`);
     };
     await step('tabs audit Chronicle read before the walk', async () => {
       // Chronicle is opened once before any walk: its last read says no walk is open (tabs audit 2).
       await pg.click('[data-testid=ready-close]');
       await pg.waitForTimeout(600);
+      await watchSheet();
       await tabTo(pg, 'chronicle');
       await h.mapUp(pg);
       await pg.waitForSelector('[data-testid=home-sheet]');
       await pg.waitForTimeout(800);
+      // tend tabs T38 (criterion 1): nothing walked and nothing open, the plain peek until the first read, then 124, set.
+      steadyMount(await sheetSeen(), 'with nothing walked and nothing open', [76, 124]);
       await emptyPeek('with nothing walked', false);
 
     });
@@ -235,7 +273,7 @@ async function run(h) {
       }
       await pg.click('[data-testid=walk-here]');
       await pg.waitForURL(/\/walk/, { timeout: 15000 });
-      await pg.waitForSelector('[data-testid=stop]');
+      await pg.waitForSelector('[data-testid=walk-actions]');
       w = await openWalk(pg);
       const memos = await rows(pg, 'voice');
       check(memos.length === 1 && memos[0].walk_id == null && memos[0].file_path && w,
@@ -266,7 +304,7 @@ async function run(h) {
           await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
         }
       }
-      await pg.waitForSelector('[data-testid=stop]');
+      await pg.waitForSelector('[data-testid=walk-actions]');
       await pg.waitForTimeout(1500);
       const canvases = await pg.locator('canvas.maplibregl-canvas').count();
       await pg.click('[data-testid=walk-minimize]');
@@ -390,7 +428,7 @@ async function run(h) {
       await pg.waitForSelector('[data-testid=recording-bar]', { timeout: 10000 });
       const watches0 = await pg.evaluate(() => window.__watchCalls);
       await tabTo(pg, 'navigate');
-      await pg.waitForSelector('[data-testid=stop]', { timeout: 10000 });
+      await pg.waitForSelector('[data-testid=walk-actions]', { timeout: 10000 });
       await pg.waitForTimeout(1200);
       check((await pg.evaluate(() => window.__watchCalls)) === watches0 && new URL(pg.url()).pathname === `${BASE}/walk` && (await pg.locator('[data-testid=ready-bar]').count()) === 0
         && (await pg.locator('canvas.maplibregl-canvas').count()) === 1,
@@ -404,6 +442,17 @@ async function run(h) {
       await h.mapUp(pg);
       await pg.waitForSelector('[data-testid=home-sheet]');
       await pg.waitForTimeout(1000);
+      // tend tabs T38 (criterion 2): the map mounted again with a walk open and none finished: 76 from its first frame.
+      if (await pg.locator('[data-testid=section-memories]').count()) {
+        await pg.click('[data-testid=section-memories]');
+        await pg.waitForSelector('[data-testid=home-sheet]', { state: 'detached', timeout: 10000 }).catch(() => {});
+        await pg.waitForTimeout(800);
+        await watchSheet();
+        await pg.click('[data-testid=section-map]');
+        await pg.waitForSelector('[data-testid=sheet-empty]', { timeout: 15000 });
+        await pg.waitForTimeout(1000);
+        steadyMount(await sheetSeen(), 'with a walk minimized and none finished', [76]);
+      } else check(false, 'tend tabs T38: the section bar has Memories');
       await emptyPeek('with a walk minimized and none finished', true);
     });
     await step('NR2: following the walk', async () => {
@@ -418,7 +467,7 @@ async function run(h) {
       const last = at(-0.5, 0.25);
       const end = ((await pg.locator('[data-trace-end]').last().getAttribute('data-trace-end')) || '0,0').split(',').map(Number);
       const off = Math.hypot((end[0] - last[0]) / dLon, (end[1] - last[1]) / dLat) * 100;
-      check(off < 20 && (await pg.locator('[data-testid=stop]').count()) === 1 && (await pg.locator('canvas.maplibregl-canvas').count()) === 1,
+      check(off < 20 && (await pg.locator('[data-testid=walk-actions]').count()) === 1 && (await pg.locator('canvas.maplibregl-canvas').count()) === 1,
         `NR2: Navigate's walk shows its growing trace to the walker, on one live map (${off.toFixed(0)} m off)`);
     });
     await step('tabs audit U10: the bar when paused', async () => {
@@ -442,6 +491,7 @@ async function run(h) {
       await pg.waitForTimeout(600);
     });
     const holdStop = async () => {
+      await toStop(pg);
       const b = await pg.locator('[data-testid=stop]').boundingBox();
       await pg.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
       await pg.mouse.down();
@@ -523,8 +573,12 @@ async function run(h) {
         await pg.waitForSelector('[data-testid=home-sheet]', { state: 'detached', timeout: 10000 }).catch(() => {});
         await pg.waitForTimeout(800);
         await watchPeek(null);
+        await watchSheet();
         await pg.click('[data-testid=section-map]');
         await pg.waitForSelector('[data-testid=sheet-walks]', { timeout: 15000 });
+        await pg.waitForTimeout(1500);
+        // tend tabs T38 (criterion 3): with a walk finished, the plain peek's 76 from the first frame, as before.
+        steadyMount(await sheetSeen(), 'with a walk finished', [76]);
         const mountSeen = await peekSeen();
         check(mountSeen && mountSeen.nav === 0 && mountSeen.lines.length === 0,
           `tend tabs audit 1: opening Chronicle's Map with a walk kept never shows the empty peek or its Navigate (${JSON.stringify(mountSeen)})`);
@@ -562,6 +616,18 @@ async function run(h) {
         check((await pg.locator('[data-testid=day-row]').count()) >= 1 && (await pg.locator('[data-testid=sheet-walks]').count()) === 1,
           'tabs audit U8: the switch flips the open sheet between walks and days');
       }
+      // tend tabs T38 (criterion 3): a later change of state still springs: Escape lowers the open sheet through the
+      // heights between, never set at once.
+      {
+        const from = Math.round((await pg.locator('[data-testid=home-sheet]').boundingBox())?.height ?? 0);
+        await watchSheet();
+        await pg.keyboard.press('Escape');
+        await pg.waitForTimeout(1000);
+        const seen = await sheetSeen();
+        const mid = seen.filter((f) => f.h > 78 && f.h < from - 2).length;
+        check(from > 200 && mid >= 3 && Math.abs(seen[seen.length - 1].h - 76) <= 1,
+          `tend tabs T38: lowered by Escape after the first read, the sheet springs from ${from} to 76 px through the heights between (${mid} frames between)`);
+      }
       await drawerTo(pg, 'peek');
     });
     await step('tabs audit U14: Not now', async () => {
@@ -571,7 +637,7 @@ async function run(h) {
       await pg.waitForTimeout(800);
       await pg.click('[data-testid=start]');
       await pg.waitForURL(/\/walk/, { timeout: 15000 });
-      await pg.waitForSelector('[data-testid=stop]');
+      await pg.waitForSelector('[data-testid=walk-actions]');
       const second = await openWalk(pg);
       await north(0.5, 0.8);
       await holdStop();

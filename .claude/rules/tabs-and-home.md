@@ -169,6 +169,7 @@ The three tabs (Chronicle, Explore, Navigate), the home sheet and the home map's
     `onRequestClose` lowers it, and a key read twice would close the Modal too.
   - A screen may refuse a height (`onSize`). A drag let go then settles back where the screen holds it;
     it was once left tall and empty where the finger let go (Nov 2).
+  - **Trap (tend tabs T38, audits 37-38):** `SheetFrame` takes `known` (Chronicle passes its first read): the mount's move and the move the first read asks for are set, every other move springs (`sheetMoveSnaps`, decision 0219). The move runs in a `useLayoutEffect` so the frame that first draws the read's peek also carries its height to `onHeight` (the scale bar); back in a `useEffect` it would rise again, with only the tabs journey's `steadyMount` to notice.
 
 ## Navigate's settings are in the ready bar (the owner's call, Nov 3, 0076)
 

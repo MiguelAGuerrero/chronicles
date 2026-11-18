@@ -2,7 +2,7 @@
 // with nothing kept yet. Self-contained: the context is created here.
 
 async function checks(h) {
-  const { navUrl, BASE, browser, errors, hosts, start, at, dLon, OVERTURE_HOST, check, shot, metricRegion, tabTo, tileRoute, overtureRoute, tiles } = h;
+  const { navUrl, BASE, browser, errors, hosts, start, at, dLon, OVERTURE_HOST, check, shot, metricRegion, tabTo, tileRoute, overtureRoute, tiles, toStop } = h;
     // Moments and days (the concept doc's "Moments and days" tab, M1-M17), in a fresh browser: nothing kept yet.
     {
       const ctx2 = await browser.newContext({
@@ -105,6 +105,7 @@ async function checks(h) {
           await p2.waitForSelector('text=Note saved here');
         }
       }
+      await toStop(p2);
       const stopBox = await p2.locator('[data-testid=stop]').boundingBox();
       await p2.mouse.move(stopBox.x + stopBox.width / 2, stopBox.y + stopBox.height / 2);
       await p2.mouse.down();

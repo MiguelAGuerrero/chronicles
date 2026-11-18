@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 
 async function run(h) {
-  const { navUrl, BASE, page, start, at, check, shot, freshPage, scriptsDir } = h;
+  const { navUrl, BASE, page, start, at, check, shot, freshPage, scriptsDir, toStop } = h;
     const { c, pg } = await freshPage('edit');
     const fixtures = path.join(scriptsDir, 'fixtures');
     const step = async (name, fn) => {
@@ -418,6 +418,7 @@ async function run(h) {
       await pg.click('[data-testid=recording-return]');
       await pg.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
       await pg.waitForTimeout(1000);
+      await toStop(pg);
       const b = await pg.locator('[data-testid=stop]').boundingBox();
       await pg.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
       await pg.mouse.down();
