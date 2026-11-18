@@ -114,5 +114,8 @@ What it never does:
 
 ## Record
 
+**Deferred by the owner, 2026-11-18**, with the stop facets. The hand-off for both is `specs/shop-facets/handoff.md`: the draft
+list of fixtures shown to the owner (proposed in, arguable, proposed out) is there. Ask the owner before building.
+
 Nothing is built. Decision 0222. chronicles-data's kind counts now also count `place` (a plaza is `place=square`) and `railway`
 (SK13), on its main; no run has reported yet.

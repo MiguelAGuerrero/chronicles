@@ -181,6 +181,10 @@ sizes are known; the owner chooses from the mocks.
 
 ## Record
 
+**Deferred by the owner, 2026-11-18** ("Defer for now and keep references of your work and insight so that a future agent may
+review and pick up when I'm ready"). Everything a later session needs is in `handoff.md` beside this file: the decisions, the
+draft lists shown to the owner, what was measured, what waits on the count, and how to pick it up. Ask the owner before building.
+
 Nothing is built in the app. Decision 0221, widened the same day. chronicles-data: the counts of every kind of stop are built on
 its main since Nov 18 (SK1-SK12, 127 tests: every value of six keys, the second-hand among shops, and how many of each kind
 state opening hours); no OpenStreetMap run has reported them yet.

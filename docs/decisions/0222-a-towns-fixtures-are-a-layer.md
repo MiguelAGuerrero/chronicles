@@ -24,6 +24,9 @@ The owner's answers, Nov 18:
 - **A stop, never a find.** A journey may begin at or pass a fixture and a moment can be made there; it is never marked found
   and is not among the discoveries.
 
+## Deferred (Nov 18)
+Deferred by the owner with 0221; the draft list of fixtures and how to resume are in `specs/shop-facets/handoff.md`.
+
 ## Consequences
 - A third pack in chronicles-data, beside places and stores, read through an adapter; a contract version.
 - A new map layer with its own switch, drawn over what the map shows now, for any area, been to or not.
