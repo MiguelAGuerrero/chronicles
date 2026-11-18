@@ -174,6 +174,9 @@ export interface WalkMapProps {
   foundPins?: LngLat[] | null;
   /** Explore's marks, as "?" pins until revealed (E6-E8, E22). */
   discoveries?: MarkPin[];
+  /** Marks whose heads would cover each other stand side by side, on legs to their points (fix mark-overlap). Off where
+   * the screen lays its pins out itself (Explore's "?" by `halfZoom`, WT12). */
+  spreadMarks?: boolean;
   onDiscoveryPress?: (id: string) => void;
   /** Explore's places still to find where a "?" would crowd (WT12, WT14): small dots in the kind's colour, no name. */
   waitingDots?: WaitingDot[];
