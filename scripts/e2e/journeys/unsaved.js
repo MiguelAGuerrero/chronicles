@@ -467,6 +467,9 @@ async function run(h) {
   await hold('[data-testid=bar-stop]');
   await pg.waitForURL(/\/replay\//, { timeout: 15000 }).catch(() => {});
   const through = /\/replay\//.test(pg.url());
+  // tend tabs audit 47: the replay opened through a save, pictured before and after the memo lands.
+  await pg.waitForTimeout(1500);
+  await shot(pg, 'unsaved-bar-saving-replay-open');
   const inWalk0 = (await voices(savingWalk)).length;
   check(!!savingWalk && through && inWalk0 === 0,
     `tend tabs T35: the second hold ends the walk while the memo is still saving, and the walk is kept for its replay (${pg.url().slice(-20)}, ${inWalk0} kept yet)`);
@@ -481,6 +484,8 @@ async function run(h) {
   const inWalk = (await voices(savingWalk)).length;
   check(!!walkRow && walkRow.ended_at != null && inWalk === 1 && !(await there('[data-testid=held-memo]', 500)),
     `tend tabs T35: the memo saving through the stop lands once, in its ended walk (${inWalk} in walk, walk ${walkRow ? 'kept' : 'gone'})`);
+  await shot(pg, 'unsaved-bar-saving-replay-landed');
+  check(/\/replay\//.test(pg.url()), `tend tabs audit 47: the replay opened through a save is pictured before and after the memo lands (${pg.url().slice(-20)})`);
 
   // A walk opened and minimized onto Memories, for the bar's Stop; its id.
   const walkOnMemories = async () => {
