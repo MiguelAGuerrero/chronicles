@@ -99,8 +99,69 @@ async function run(h) {
   check((await pg.locator('[data-testid=plan-strip-0]').count()) === 1 && /^Green along this route/.test((await pg.locator('[data-testid=plan-strip-0]').getAttribute('aria-label')) ?? ''), 'WP15: each row has a strip with a text equivalent');
   check(/^(Easy on foot|Part of it|It is not known)/.test(await pg.locator('[data-testid=plan-reach-0]').innerText().catch(() => '')), 'KW10, WP20: each row says whether it can be walked the whole way');
   await shot(pg, 'planner-open');
+  {
+    // tend explore 28 (ui-patterns, "Nothing wraps on a 320 px phone at the default text size"): at 320 and 390 px each of the
+    // planner's controls is one line, none overlaps or clips another, a choice's fills reach its group's edge, and Start
+    // stays beside "Suggest different routes", to its right.
+    const vp = pg.viewportSize();
+    for (const w of [320, 390]) {
+      await pg.setViewportSize({ width: w, height: 844 });
+      await pg.waitForTimeout(500);
+      const m = await pg.evaluate(() => {
+        const box = (el) => { const r = el.getBoundingClientRect(); return { x: r.left, y: r.top, r: r.right, b: r.bottom, w: r.width, h: r.height }; };
+        const controls = [...document.querySelectorAll('[data-testid=planner] [role=radio], [data-testid=plan-different], [data-testid=plan-start], [data-testid=plan-ceiling-down], [data-testid=plan-ceiling-up]')]
+          .map((el) => {
+            // The lines a control's words take: the distinct tops of the rectangles its text is drawn in.
+            const tops = new Set();
+            const walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+            for (let t = walk.nextNode(); t; t = walk.nextNode()) {
+              if (!t.textContent.trim()) continue;
+              const range = document.createRange();
+              range.selectNodeContents(t);
+              for (const q of range.getClientRects()) if (q.width > 0) tops.add(Math.round(q.top));
+            }
+            const texts = [...el.querySelectorAll('*')].filter((t) => t.childElementCount === 0 && t.textContent.trim());
+            return { id: el.getAttribute('data-testid'), lines: tops.size, clipped: texts.some((t) => t.scrollWidth > t.clientWidth + 1), ...box(el) };
+          });
+        const groups = [...document.querySelectorAll('[data-testid=plan-settings] [role=radiogroup]')].map((g) => {
+          const r = g.getBoundingClientRect();
+          const cs = getComputedStyle(g);
+          const inner = (r.width - parseFloat(cs.borderLeftWidth) - parseFloat(cs.borderRightWidth)) * (r.height - parseFloat(cs.borderTopWidth) - parseFloat(cs.borderBottomWidth));
+          const filled = [...g.children].reduce((s, c) => { const q = c.getBoundingClientRect(); return s + q.width * q.height; }, 0);
+          // A row (every choice at one top) or a column (every choice at one left and width), never a row broken in two.
+          const qs = [...g.children].map((c) => c.getBoundingClientRect());
+          const same = (f) => qs.every((q) => Math.abs(f(q) - f(qs[0])) <= 1);
+          const shape = same((q) => q.top) ? 'row' : same((q) => q.left) && same((q) => q.width) ? 'column' : 'broken';
+          return { id: g.firstElementChild?.getAttribute('data-testid'), fill: filled / inner, shape, x: r.left, r: r.right };
+        });
+        return { controls, groups, width: window.innerWidth };
+      });
+      const overlaps = [];
+      for (let i = 0; i < m.controls.length; i++) for (let j = i + 1; j < m.controls.length; j++) {
+        const a = m.controls[i], b = m.controls[j];
+        if (Math.min(a.r, b.r) - Math.max(a.x, b.x) > 1 && Math.min(a.b, b.b) - Math.max(a.y, b.y) > 1) overlaps.push(`${a.id}/${b.id}`);
+      }
+      const twoLines = m.controls.filter((c) => c.lines !== 1).map((c) => `${c.id}:${c.lines}`)
+        .concat(m.groups.filter((g) => g.shape === 'broken').map((g) => `${g.id}'s group`));
+      const outside = m.controls.filter((c) => c.clipped || c.x < -0.5 || c.r > m.width + 0.5).map((c) => c.id);
+      const gaps = m.groups.filter((g) => Math.abs(g.fill - 1) > 0.02 || g.x < -0.5 || g.r > m.width + 0.5).map((g) => `${g.id}:${g.fill.toFixed(2)}`);
+      const diff = m.controls.find((c) => c.id === 'plan-different'), start = m.controls.find((c) => c.id === 'plan-start');
+      check(m.controls.length >= 11 && m.groups.length === 3 && !twoLines.length,
+        `tend explore 28: at ${w} px each of the planner's controls is one line, and each choice's group one row or one column (${m.controls.length} controls; ${twoLines.join(', ') || 'none wraps'})`);
+      check(!overlaps.length && !outside.length && !gaps.length,
+        `tend explore 28: at ${w} px no control overlaps or clips another, and each choice's fills reach its group's edge (overlap ${overlaps.join(', ') || 'none'}; clipped ${outside.join(', ') || 'none'}; fills ${gaps.join(', ') || 'whole'})`);
+      check(!!diff && !!start && Math.abs(start.y - diff.y) <= 1 && start.x >= diff.r,
+        `tend explore 28: at ${w} px Start stays beside "Suggest different routes", to its right (${diff && start ? `${Math.round(diff.x)},${Math.round(diff.y)} / ${Math.round(start.x)},${Math.round(start.y)}` : 'missing'})`);
+      await pg.locator('[data-testid=plan-different]').evaluate((el) => el.scrollIntoView({ block: 'start' }));
+      await pg.waitForTimeout(300);
+      await shot(pg, `tend-explore-28-planner-settings-${w}`);
+      await pg.locator('[data-testid=plan-title]').evaluate((el) => el.scrollIntoView({ block: 'start' }));
+    }
+    await pg.setViewportSize(vp);
+    await pg.waitForTimeout(500);
+  }
 
-  const last = pg.locator('[data-testid^="plan-row-"][data-preset]').last();
+  const last =pg.locator('[data-testid^="plan-row-"][data-preset]').last();
   await last.click();
   await pg.waitForTimeout(300);
   check(n === 1 || ((await last.getAttribute('data-selected')) === '1' && (await first.getAttribute('data-selected')) === '0'), 'WP18: tapping another row selects it, and Start can go');
