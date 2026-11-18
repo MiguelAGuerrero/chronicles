@@ -1,0 +1,16 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "set",
+        "The destructive button is a filled red slab in every confirm",
+        "--reason",
+        "its precedent recorded in docs/research/ui-references.md A5 outside the loop (the research record of Nov 18); only the marker's words change"
+      ],
+      "body": "- [owner] The destructive button is a filled red slab in every confirm (a walk's \"Delete walk\" and \"Remove\", `ConfirmCard`) and in the three \"Discard these edits?\" asks (`WalkActions.tsx`, `replay/[id].tsx`, `edit/MediaEditor.tsx`), heavier than either platform draws it: iOS gives the destructive item red text on a plain row with Cancel in bold, Material two text buttons of equal weight that let the words do the work (the reviewer's precedent, recorded in `docs/research/ui-references.md` A5 on Nov 18: the system red verified, the bold Cancel and Material's equal weight unverified). Rests on `docs/research/ui-references.md` B3 (\"Don't assign the primary role to a button that performs a destructive action\") and its goal-to-control matrix, row 8 (Avoid: \"a destructive default or primary button\"). Stacked at 320 px since `tend deletion 1` it is the first and most saturated thing in the card. A cross-screen call: red text with a red outline and Cancel the stronger style, in every confirm at once so they stay alike (the `tend deletion 1` review's ux U3, Nov 18, low; there before this run)\n",
+      "target": "sha256:8550235f518f9a49434639d2ea4f66c0a732511bd42a47f0235cfef80e740b84"
+    }
+  ]
+}

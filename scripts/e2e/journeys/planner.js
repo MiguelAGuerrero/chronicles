@@ -170,6 +170,19 @@ async function run(h) {
   const plannerPage = await pg.waitForSelector('[data-testid=note-page] [data-testid=note-input]', { timeout: 8000 }).then(() => true, () => false);
   check(plannerPage && (await pg.locator('[data-testid=plan-note]').count()) === 0, 'note-pages audit 13: the planner\'s pencil opens the note\'s page');
   await pg.fill('[data-testid=note-page] [data-testid=note-input]', 'A note from the planner');
+  {
+    // tend explore audit 36 (WCAG 2.2, 2.1.1 Keyboard and 2.4.3 Focus Order): the planner's Tab trap stands aside for the
+    // note page's Modal over it, so Tab from the note reaches its Save, never pulled back to the page's first control.
+    await pg.focus('[data-testid=note-page] [data-testid=note-input]');
+    const ids = [];
+    for (let i = 0; i < 8; i++) {
+      await pg.keyboard.press('Tab');
+      ids.push(await pg.evaluate(() => document.activeElement?.getAttribute('data-testid') || document.activeElement?.tagName.toLowerCase() || null));
+    }
+    // Pulled back each time, every Tab lands on the page's first control; walking its own order, Tab meets several.
+    check(ids.includes('note-done') && new Set(ids).size >= 3 && !ids.some((id) => /^plan-/.test(id ?? '')),
+      `tend explore audit 36: with a walk recording, Tab in the planner's note page reaches its Save, never the planner beneath (${ids.join(' > ')})`);
+  }
   await pg.click('[data-testid=note-done]');
   await pg.waitForTimeout(1500);
   const saved = await pg.evaluate((id) => new Promise((resolve) => {

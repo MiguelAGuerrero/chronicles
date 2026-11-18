@@ -1,8 +1,10 @@
 import type { Faced } from '../../lib/moment';
-import { useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { type ComponentRef, useEffect, useMemo, useRef, useState } from 'react';
+import { Dimensions, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useHidden } from '../../lib/deletion/useDeletions';
+import { accessoryRoom, floatsAccessory, lineLift, overlayTop } from '../../lib/journal/keyboard';
+import { useKeyboardHeight } from '../../lib/threads/useKeyboardHeight';
 import { threads } from '../../lib/threads';
 import { filterPicker } from '../../lib/threads/picker';
 import { contextLine, headingOf, threadLine } from '../../lib/threads/lines';
@@ -32,6 +34,35 @@ function rowOf(m: MomentView, walks: Map<string, Walk>, now: number) {
  */
 export function AddToThread(props: { moment: Faced; onClose: () => void; onDone: (message: string, ok: boolean) => void }) {
   const insets = useSafeAreaInsets();
+  // The search's keyboard (fix picker-keyboard, the owner's iPhone, Nov 18): the card ends above the keys, and above the
+  // row an iPhone's browser floats over them (`accessoryRoom`), so its last rows stay reachable. It rises by what the
+  // keyboard covers above whatever lies under it (Memories' tab bar), measured while the keyboard is down, as the line does.
+  const keyboard = useKeyboardHeight();
+  const { height: windowH } = useWindowDimensions();
+  const back = useRef<ComponentRef<typeof View>>(null);
+  const [below, setBelow] = useState(0);
+  // Where the backdrop starts in the window: the top inset is counted only where the host has not cleared it (audit 4).
+  const [at, setAt] = useState(0);
+  // The window's height is read when the measure answers, not when it was asked: one asked before a turn can answer after
+  // it (audit 2).
+  const take = () => back.current?.measureInWindow((_x: number, y: number, _w: number, h: number) => {
+    setAt(Math.round(y));
+    setBelow(Math.max(0, Math.round(Dimensions.get('window').height - (y + h))));
+  });
+  const measure = () => {
+    if (keyboard === 0) take();
+  };
+  // Again once the window has turned, and once the keys are down (audit 2): the backdrop's box changes with neither.
+  const down = keyboard === 0;
+  useEffect(() => {
+    if (down) take();
+  }, [down, windowH]);
+  const [floating] = useState(
+    () => Platform.OS === 'web' && typeof navigator !== 'undefined' && typeof CSS !== 'undefined'
+      && floatsAccessory({ ua: navigator.userAgent, touchPoints: navigator.maxTouchPoints, supports: (q) => CSS.supports(q) }),
+  );
+  const lift = lineLift(keyboard, below);
+  const foot = Math.max(insets.bottom, lift > 0 ? lift + accessoryRoom({ keyboard, floating }) : 0) + 12;
   const { data } = useThreads();
   const [pool, setPool] = useState<{ views: MomentView[]; walks: Map<string, Walk> } | null>(null);
   const [step, setStep] = useState<'threads' | 'moment'>('threads');
@@ -80,7 +111,8 @@ export function AddToThread(props: { moment: Faced; onClose: () => void; onDone:
     props.onDone(id ? 'Connected' : 'Could not connect', !!id);
   };
   return (
-    <View style={[StyleSheet.absoluteFill, styles.back, { paddingTop: insets.top + 56, paddingBottom: insets.bottom + 12 }]}>
+    // With the keys up the card gives its top margin to the rows (audit 1).
+    <View ref={back} onLayout={measure} style={[StyleSheet.absoluteFill, styles.back, { paddingTop: overlayTop({ inset: insets.top, at, keys: keyboard > 0 }), paddingBottom: foot }]}>
       <View style={styles.card} testID="add-to-thread" accessibilityViewIsModal>
         <View style={styles.head}>
           <Text style={styles.title} accessibilityRole="header">{step === 'threads' ? 'Add to a thread' : 'Join it with another moment'}</Text>
@@ -151,7 +183,8 @@ export function AddToThread(props: { moment: Faced; onClose: () => void; onDone:
 }
 
 const styles = StyleSheet.create({
-  back: { backgroundColor: 'rgba(20,24,32,0.7)', paddingHorizontal: 12, alignItems: 'center' },
+  // Over the journal's open line (its layer is `zIndex: 2`), which rises with any keyboard (fix picker-keyboard).
+  back: { backgroundColor: 'rgba(20,24,32,0.7)', paddingHorizontal: 12, alignItems: 'center', zIndex: 3 },
   card: { width: '100%', maxWidth: 520, flex: 1, backgroundColor: theme.surface, borderRadius: 18, padding: 12, gap: 8 },
   head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   title: { color: theme.ink, fontSize: 17, fontWeight: '700', flex: 1 },

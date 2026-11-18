@@ -73,6 +73,57 @@ async function run(h) {
   // SW18: at 320 px the row's four slots fit and a tile is at least 88 px (the page is 390 wide here; slots are 44 pt).
   const slots = await pg.locator('[data-testid=quick-actions] > *').first().boundingBox().catch(() => null);
   check(!!slots && slots.width >= 44 && slots.height >= 44, `SW18: a row slot is a 44 pt target (${JSON.stringify(slots)})`);
+  // fix quick-actions-leading (the owner, Nov 18): the row sits at the entry's leading edge, its slots a fixed width, so the
+  // first caption starts where the entry's words do and an empty slot is only room at the end, never a fifth of the row.
+  const lead = await pg.evaluate(() => {
+    const entry = [...document.querySelectorAll('[data-testid=journal-page] [data-testid=moment-card]')].find((e) => e.querySelector('[data-testid=quick-actions]'));
+    if (!entry) return null;
+    const row = entry.querySelector('[data-testid=quick-actions]');
+    // fix quick-actions-leading audit 3: the first slot's caption, whatever its word.
+    // The slot's last text is its caption (the icon is a font glyph before it).
+    const caption = [...(row.querySelector('[role=button]')?.querySelectorAll('*') ?? [])].filter((n) => n.children.length === 0 && n.textContent).at(-1);
+    if (!caption) return null;
+    // The entry's leading edge, where its words start.
+    const text = entry.getBoundingClientRect();
+    const range = document.createRange();
+    range.selectNodeContents(caption);
+    const words = range.getBoundingClientRect();
+    const slotsW = [...row.children].map((c) => Math.round(c.getBoundingClientRect().width));
+    return { captionX: Math.round(words.left), textX: Math.round(text.left), slotsW, rowW: Math.round(row.getBoundingClientRect().width) };
+  });
+  check(!!lead && Math.abs(lead.captionX - lead.textX) <= 3 && lead.slotsW.every((w) => w >= 44 && w <= 64),
+    `fix quick-actions-leading: the first caption starts at the entry's edge and each slot is a fixed width, at most 64 (${JSON.stringify(lead)})`);
+  await shot(pg, 'stackjoin-01c-row-leading');
+  // fix quick-actions-leading, SW18: at 320 px the row with all five (Join on the entry just kept) still fits, each slot a target.
+  await pg.setViewportSize({ width: 320, height: 844 });
+  await pg.waitForTimeout(500);
+  const fiveRow = () => pg.evaluate(() => {
+    const row = document.querySelector('[data-testid=quick-stack]')?.closest('[data-testid=quick-actions]');
+    const entry = row?.closest('[data-testid=moment-card]');
+    if (!row || !entry) return null;
+    const slots = [...row.children].map((c) => c.getBoundingClientRect());
+    const leaves = (el) => [...el.querySelectorAll('*')].filter((n) => n.children.length === 0 && n.textContent);
+    const cut = leaves(row).filter((n) => n.scrollWidth > n.clientWidth + 1).map((n) => n.textContent);
+    const first = leaves(row.querySelector('[role=button]')).at(-1);
+    const range = document.createRange();
+    if (first) range.selectNodeContents(first);
+    const e = entry.getBoundingClientRect();
+    return { n: slots.length, widths: slots.map((r) => Math.round(r.width)), right: Math.round(slots[slots.length - 1].right), edge: Math.round(e.right), captionX: first ? Math.round(range.getBoundingClientRect().left) : null, textX: Math.round(e.left), cut };
+  });
+  const five = await fiveRow();
+  await shot(pg, 'stackjoin-01d-row-320');
+  // fix quick-actions-leading audit 4: on a narrower page (a zoomed phone) the five still stay inside the entry.
+  await pg.setViewportSize({ width: 270, height: 844 });
+  await pg.waitForTimeout(500);
+  const narrow = await fiveRow();
+  await pg.setViewportSize({ width: 390, height: 844 });
+  await pg.waitForTimeout(500);
+  check(!!five && five.n === 5 && five.widths.every((w) => w >= 44) && five.right <= five.edge && five.cut.length === 0,
+    `fix quick-actions-leading, SW18: at 320 px the five slots fit the entry, each a target, no caption cut (${JSON.stringify(five)})`);
+  check(!!five && five.captionX != null && Math.abs(five.captionX - five.textX) <= 3,
+    `fix quick-actions-leading audit 2: at 320 px the first caption still starts at the entry's edge (${five && five.captionX} vs ${five && five.textX})`);
+  check(!!narrow && narrow.n === 5 && narrow.widths.every((w) => w >= 44) && narrow.right <= narrow.edge,
+    `fix quick-actions-leading audit 4: at 270 px the five slots stay inside the entry, each a target (${JSON.stringify(narrow)})`);
 
   // SW2: Respond opens the viewer on its kinds menu, then back.
   await pg.locator('[data-testid=quick-respond]').first().click();
@@ -86,6 +137,60 @@ async function run(h) {
   await pg.locator('[data-testid=quick-thread]').first().click();
   const threadOpen = await there('[data-testid=add-to-thread]', 8000);
   check(threadOpen, 'SW3: the link icon opens Add to a thread');
+  // fix picker-keyboard (the owner's iPhone, Nov 18): with the search's keyboard up, the toolbar ("What's on your mind?")
+  // rose with it over the picker, and the picker ran under the keys. A keyboard 300 px tall (the visual viewport shrinks).
+  await pg.click('[data-testid=add-new-thread]').catch(() => {});
+  await pg.click('[data-testid=add-search]').catch(() => {});
+  const kbTop = await pg.evaluate(() => {
+    const vv = window.visualViewport;
+    const top = window.innerHeight - 300;
+    Object.defineProperty(vv, 'height', { configurable: true, get: () => top });
+    vv.dispatchEvent(new Event('resize'));
+    return top;
+  });
+  await pg.waitForTimeout(400);
+  const picker = await pg.locator('[data-testid=add-to-thread]').boundingBox().catch(() => null);
+  // What a tap at the search field and at the picker's foot reaches: the picker, never the toolbar over it.
+  const reach = await pg.evaluate((top) => {
+    const card = document.querySelector('[data-testid=add-to-thread]');
+    const field = document.querySelector('[data-testid=add-search]');
+    if (!card || !field) return null;
+    const f = field.getBoundingClientRect();
+    const c = card.getBoundingClientRect();
+    const at = (x, y) => card.contains(document.elementFromPoint(x, y));
+    // Where the toolbar rose to: just above the keys.
+    return { field: at(f.x + f.width / 2, f.y + f.height / 2), foot: at(c.x + c.width / 2, c.bottom - 8), aboveKeys: at(c.x + c.width / 2, top - 40) };
+  }, kbTop);
+  await shot(pg, 'stackjoin-01b-picker-keyboard');
+  check(!!picker && picker.y + picker.height <= kbTop && !!reach && reach.field && reach.foot && reach.aboveKeys,
+    `fix picker-keyboard: with the keyboard up, Join it with another moment ends above the keys and nothing is drawn over it (${picker && Math.round(picker.y + picker.height)} <= ${kbTop}, ${JSON.stringify(reach)})`);
+  // fix picker-keyboard audit 1: with the keys up the card gives its top margin to the rows (the screen's top is Memories' own).
+  const screenTop = await pg.locator('[data-testid=memories]').boundingBox().then((b) => b && b.y).catch(() => null);
+  check(!!picker && screenTop != null && picker.y - screenTop <= 12,
+    `fix picker-keyboard audit 1: with the keyboard up, the picker rises to the screen's top to show more rows (${picker && Math.round(picker.y)} - ${screenTop})`);
+  const keysDown = () => pg.evaluate(() => {
+    delete window.visualViewport.height;
+    window.visualViewport.dispatchEvent(new Event('resize'));
+  });
+  await keysDown();
+  // fix picker-keyboard audit 2: what lies under the picker is measured again when the window changes (a turn to landscape
+  // and back), so the card still ends above the keys.
+  await pg.setViewportSize({ width: 844, height: 390 });
+  await pg.waitForTimeout(500);
+  await pg.setViewportSize({ width: 390, height: 844 });
+  await pg.waitForTimeout(500);
+  const kbTop2 = await pg.evaluate(() => {
+    const vv = window.visualViewport;
+    const top = window.innerHeight - 300;
+    Object.defineProperty(vv, 'height', { configurable: true, get: () => top });
+    vv.dispatchEvent(new Event('resize'));
+    return top;
+  });
+  await pg.waitForTimeout(400);
+  const turned = await pg.locator('[data-testid=add-to-thread]').boundingBox().catch(() => null);
+  await keysDown();
+  check(!!turned && turned.y + turned.height <= kbTop2 && turned.y + turned.height >= kbTop2 - 24,
+    `fix picker-keyboard audit 2: after a turn to landscape and back, the picker ends just above the keys (${turned && Math.round(turned.y + turned.height)} in ${kbTop2 - 24}..${kbTop2})`);
   await pg.click('[data-testid=add-to-thread-close]').catch(() => {});
   await pg.waitForTimeout(500);
 

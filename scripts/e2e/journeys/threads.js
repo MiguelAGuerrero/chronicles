@@ -281,7 +281,14 @@ async function run(h) {
   });
   // The web's viewer takes no Escape; native's Back goes through the same composeFor first (NATIVE_UNVERIFIED).
   // A page left empty keeps nothing (note pages NP9): its words cleared, Back leaves no reply behind.
-  await pg.fill('[data-testid=note-input]', '');
+  // fill('') on the editor (TipTap, a contenteditable) can miss right after the keyboard stub's relayout, leaving the
+  // words in: a page that still has words is rightly kept (fix picker-keyboard). Empty it until it reads empty.
+  const pageText = () => pg.locator('[data-testid=note-input]').innerText().then((t) => t.trim(), () => '?');
+  for (let i = 0; i < 3 && (await pageText()) !== ''; i++) {
+    await pg.fill('[data-testid=note-input]', '');
+    await pg.waitForTimeout(150);
+  }
+  check((await pageText()) === '', 'NP9: the reply\'s page reads empty before it is left');
   await pg.click('[data-testid=note-done]');
   await pg.waitForTimeout(300);
   check(!(await has('[data-testid=note-input]')) && (await has('[data-testid=viewer-close]')) && (await has('[data-testid=viewer-respond]')), 'owner-threads audit 9: Back closes the note being written, leaves the viewer open and Respond ready');
