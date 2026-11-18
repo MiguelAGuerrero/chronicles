@@ -1,8 +1,8 @@
 import { router, Stack, useIsFocused, useLocalSearchParams } from 'expo-router';
-import { useEffect } from 'react';
-import { Platform } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Platform, useWindowDimensions } from 'react-native';
 import { IntoPage, IntoTitle } from '../components/IntoPage';
-import { intoBack } from '../lib/explore/intoPage';
+import { intoBack, intoMeasures } from '../lib/explore/intoPage';
 
 export { ScreenError as ErrorBoundary } from '../components/ScreenError';
 
@@ -17,6 +17,11 @@ export default function IntoRoute() {
   // From the walk's drawer, Back reads "Walk", the arrow and the word (WI20): the web's header shows it with the
   // display mode `default`, iOS's own back button too; Android's shows its arrow alone, as the platform does.
   const back = intoBack(useLocalSearchParams<{ from?: string }>().from);
+  // At large text the word would squeeze the title to nothing: Back keeps its arrow alone there, still heard as "Walk,
+  // back" (WI21), as iOS drops a back title that has no room.
+  const win = useWindowDimensions();
+  const [width, setWidth] = useState<number | null>(null);
+  const roomy = intoMeasures(width ?? win.width, win.fontScale).icon > 0;
   useEffect(() => {
     if (!focused || Platform.OS !== 'web' || typeof window === 'undefined') return;
     const onKey = (e: KeyboardEvent) => {
@@ -29,8 +34,8 @@ export default function IntoRoute() {
   }, [focused]);
   return (
     <>
-      <Stack.Screen options={{ headerTitle: () => <IntoTitle />, ...(back ? { headerBackTitle: back.title, headerBackButtonDisplayMode: 'default' as const } : {}) }} />
-      <IntoPage />
+      <Stack.Screen options={{ headerTitle: () => <IntoTitle />, ...(back ? { headerBackTitle: back.title, headerBackButtonDisplayMode: roomy ? ('default' as const) : ('minimal' as const) } : {}) }} />
+      <IntoPage onWidth={setWidth} />
     </>
   );
 }

@@ -43,7 +43,8 @@ export function IntoTitle() {
  * box, so they stack: the outgoing one is pushed up by the incoming one and those under it are hidden (WI22), as a phone
  * does by itself. The scroll position reaches only the headings (a small store), never the rows.
  */
-export function IntoPage() {
+/** `onWidth`: the page's own width, so the route can fit its header to it (WI21). */
+export function IntoPage(props: { onWidth?: (width: number) => void }) {
   const { settings, setKind } = useExploreSettings();
   const complexes = useHiddenKinds();
   const insets = useSafeAreaInsets();
@@ -73,7 +74,10 @@ export function IntoPage() {
   };
   // The page's own width, from its first draw (WI21): React reuses this View for the full page, and a reused View never
   // reports onLayout on the web, so the placeholder measures too.
-  const sized = (e: LayoutChangeEvent) => setWidth(e.nativeEvent.layout.width);
+  const sized = (e: LayoutChangeEvent) => {
+    setWidth(e.nativeEvent.layout.width);
+    props.onWidth?.(e.nativeEvent.layout.width);
+  };
   if (!settings || !built) return <View testID="into-page" style={styles.page} onLayout={sized} />;
   const { children, sticky } = built;
   const cell = { paddingHorizontal: m.pad };
@@ -87,7 +91,7 @@ export function IntoPage() {
           <View key={key} style={cell} onLayout={measured(key)}>
             <SwitchRow
               testID={`kind-${c.row.id}`}
-              icon={c.row.icon as IconName}
+              icon={m.icon ? (c.row.icon as IconName) : undefined}
               label={c.row.label}
               note={c.row.note}
               hint={c.row.hint}
@@ -113,7 +117,7 @@ export function IntoPage() {
         // WI23: laid out as a kind row is, an icon and the label at the same start.
         return (
           <View key={key} style={cell} onLayout={measured(key)}>
-            <SwitchRow testID={`complex-kind-${k}`} icon={COMPLEX_ICON[k] as IconName} label={switchLabel(k)} value={!hidden.includes(k)} heavy gap={m.gap} onChange={(on) => set(on ? hidden.filter((x) => x !== k) : [...hidden, k])} />
+            <SwitchRow testID={`complex-kind-${k}`} icon={m.icon ? (COMPLEX_ICON[k] as IconName) : undefined} label={switchLabel(k)} value={!hidden.includes(k)} heavy gap={m.gap} onChange={(on) => set(on ? hidden.filter((x) => x !== k) : [...hidden, k])} />
           </View>
         );
       }

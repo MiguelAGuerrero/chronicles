@@ -138,10 +138,12 @@ local fixes):
   below the walk's settings, after a rule and under the heading "Every walk", with Explore on. The ready bar's row stays
   where it is, under "Walk settings", which claims no walk of its own. (The owner's call 3.)
 - **WI20** opened from the walk's drawer during a walk, the page's Back reads "Walk", its arrow and the word, and is
-  spoken as "Walk, back"; opened from the ready bar it stays as it was (the arrow, "Go back"). (The owner's call 4.)
+  spoken as "Walk, back"; opened from the ready bar it stays as it was (the arrow, "Go back"). At large text, where the
+  word would squeeze the title to nothing, the arrow shows alone, still spoken "Walk, back", as iOS drops a back title
+  with no room. (The owner's call 4.)
 - **WI21** at 200% text a label wraps only between words, a wrapped row stands clear of the next, and at large text
-  sizes the subtype's indent, the icon's gutter and the page's margins shrink so the label gets the width (the page's
-  width over the text scale under 300 pt).
+  sizes (the page's width over the text scale under 300 pt) the subtype's indent and the page's margins shrink and the
+  rows drop their icons, so the label gets the width; a heading's category may take two lines there.
 - **WI22** on the web, at no scroll position does a heading show part of its words above or under another: the outgoing
   heading is pushed out by the incoming one, as on a phone, and those it covered are hidden.
 - **WI23** Complexes' rows (Shopping, Markets, Campuses, Stations, Civic) are laid out as the other kind rows are: an

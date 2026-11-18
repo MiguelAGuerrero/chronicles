@@ -175,6 +175,7 @@ export interface IntoMeasures {
   indent: number;
   gap: number;
   pad: number;
+  /** The icon's gutter: none at large text. */
   icon: number;
   headingH: number;
   /** How many lines the category's name may take: two at large text, where it would not fit one (WI21). */
@@ -183,14 +184,14 @@ export interface IntoMeasures {
 
 /**
  * WI21: at large text (the page's width over the text scale under 300 pt, as 200% on a phone, or 200% zoom in a
- * browser) the indent, the gutters and the margins shrink so a label gets the width, and the category's name may wrap to
- * two lines. WI17: the heading holds its lines and the kind's at any scale, so the kind's line coming and going never
+ * browser) the indent, the gutters and the margins shrink and the rows drop their icons (`icon` 0), so a label gets the
+ * width ("Archaeological" whole at 195 px), and the category's name may wrap to two lines. WI17: the heading holds its lines and the kind's at any scale, so the kind's line coming and going never
  * changes its height.
  */
 export function intoMeasures(width: number, fontScale: number): IntoMeasures {
   const scale = fontScale > 0 ? fontScale : 1;
   // The category (22 a line) and the kind (20), at the scale; at large text the category may take two lines.
-  if (width / scale < 300) return { indent: 12, gap: 6, pad: 12, icon: 20, headingH: Math.ceil(64 * scale) + 10, headingLines: 2 };
+  if (width / scale < 300) return { indent: 12, gap: 6, pad: 12, icon: 0, headingH: Math.ceil(64 * scale) + 10, headingLines: 2 };
   return { indent: 28, gap: 10, pad: 16, icon: 20, headingH: Math.ceil(42 * scale) + 10, headingLines: 1 };
 }
 
