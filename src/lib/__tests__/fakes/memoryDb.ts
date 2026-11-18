@@ -201,6 +201,9 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
     async updateWalk(id, p) {
       patch(walks, id, p);
     },
+    async clearSnappedBuilds() {
+      for (const w of walks.all()) if (w.snapped_build != null) patch(walks, w.id, { snapped_build: null });
+    },
     async getWalk(id) {
       const w = walks.get(id);
       return w ? copy(w) : null;

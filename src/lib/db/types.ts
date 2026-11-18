@@ -24,6 +24,8 @@ export const SEGMENT_BATCH = 150;
 export interface Db {
   createWalk(walk: Walk): Promise<void>;
   updateWalk(id: string, patch: Partial<Omit<Walk, 'id'>>): Promise<void>;
+  /** Marks every walk to snap again (a rule change, `tiles.ts`): one write, never one per walk (performance review, Nov 18). */
+  clearSnappedBuilds(): Promise<void>;
   getWalk(id: string): Promise<Walk | null>;
   listWalks(): Promise<Walk[]>;
   getOpenWalk(): Promise<Walk | null>;

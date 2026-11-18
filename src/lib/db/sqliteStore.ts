@@ -123,6 +123,9 @@ export function makeSqliteDb(open: () => Promise<SQLiteDatabase>): Db {
       if (!sql) return Promise.resolve();
       return write((t) => t.runAsync(`UPDATE walk SET ${sql} WHERE id = ?`, ...values, id).then(() => {}));
     },
+    clearSnappedBuilds() {
+      return write((t) => t.runAsync('UPDATE walk SET snapped_build = NULL WHERE snapped_build IS NOT NULL').then(() => {}));
+    },
     async getWalk(id) {
       const r = await (await conn()).getFirstAsync<WalkRow>('SELECT * FROM walk WHERE id = ?', id);
       return r ? toWalk(r) : null;
