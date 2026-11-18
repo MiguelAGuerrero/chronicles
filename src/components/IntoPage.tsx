@@ -161,7 +161,7 @@ function Heading(props: { id: string; label: string; ord: number; pin: Store<Int
         web && covered && styles.hidden,
       ]}
     >
-      <Text testID="heading-label" style={styles.headingText} numberOfLines={1}>{props.label}</Text>
+      <Text testID="heading-label" style={styles.headingText} numberOfLines={m.headingLines}>{props.label}</Text>
       {kind ? (
         <Text testID="heading-kind" style={styles.headingKind} numberOfLines={1}>
           › {kind}

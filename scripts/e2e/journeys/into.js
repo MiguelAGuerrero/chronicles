@@ -222,7 +222,7 @@ async function run(h) {
       const hb = head.getBoundingClientRect();
       heights.add(Math.round(hb.height));
       // The first row showing 12 px under the heading (PIN_SLACK): a sliver of the row before it doesn't count.
-      const under = document.elementFromPoint(box.x + 30, hb.bottom + 12);
+      const under = document.elementFromPoint(box.x + box.width - 60, hb.bottom + 12);
       const row = under && under.closest('[role=switch][data-testid]');
       if (row && row.getBoundingClientRect().top >= hb.bottom - 2) {
         const parent = leftOf(row) > box.x + 20 ? parentOf(row) : null;
@@ -282,15 +282,15 @@ async function run(h) {
   check.todo(complexLook.rows.every((r) => r.left === complexLook.kindLeft && r.glyph) && new Set(glyphs).size === glyphs.length && complexLook.headSize > complexLook.kindSize, `WI23: Complexes' rows have an icon each and the kind rows' text start; a heading is larger than a kind's label (${JSON.stringify(complexLook)})`);
   // WI18: a kind with some subtypes off says which, muted, in words, and it is part of what the row is heard as.
   const offLook = await pg.evaluate(() => {
-    const row = document.querySelector('[data-testid=into-page] [data-testid=kind-curiosities]');
-    const note = document.querySelector('[data-testid=into-page] [data-testid=kind-curiosities-note]');
+    const row = document.querySelector('[data-testid=into-page] [data-testid=kind-monuments]');
+    const note = document.querySelector('[data-testid=into-page] [data-testid=kind-monuments-note]');
     const desc = row && row.getAttribute('aria-describedby');
     const described = desc ? desc.split(' ').map((id) => (document.getElementById(id) || {}).textContent || '').join(' ') : '';
     const allOn = document.querySelector('[data-testid=into-page] [data-testid=kind-attractions-note]');
     return { note: note ? note.textContent : null, color: note ? getComputedStyle(note).color : '', described, allOn: !!allOn };
   });
-  check.todo(!!offLook.note && /^[A-Z][A-Za-z ,]+ off$/.test(offLook.note) && /Ghost towns/.test(offLook.note) && offLook.color === 'rgb(89, 98, 115)' && offLook.described.includes(offLook.note) && !offLook.allOn,
-    `WI18: Curiosities says which of its subtypes are off, muted, in words, heard with the row; a kind with all on says nothing (${JSON.stringify(offLook)})`);
+  check.todo(offLook.note === 'Plaques and Small memorials off' && offLook.color === 'rgb(89, 98, 115)' && offLook.described.includes(offLook.note) && !offLook.allOn,
+    `WI18: Monuments and memorials says which of its subtypes are off, muted, in words, heard with the row; a kind with all on says nothing (${JSON.stringify(offLook)})`);
   // The middle of the page, pinned, for the cold find (WI2: "turn on waterfalls") and the UI review.
   // WI25: each picture after its scroll has come to rest, every row in view showing its switch.
   const unsettled = [];
