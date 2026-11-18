@@ -63,7 +63,7 @@ async function run(h) {
     // joined straight (every break is a gap, Nov 3), and Transit's is faint.
     check(st.runs === 3, `gaps: a gap along a street with nowhere else to go fills by itself, one line (G5: ${JSON.stringify(st)})`);
     check(st.faint === 1, `gaps: a gap with time to go round a block is offered faint (G6: ${JSON.stringify(st)})`);
-    const km = (t) => { const m = /([\d.]+) (k?m)\b/.exec(t); return m ? Number(m[1]) * (m[2] === 'km' ? 1000 : 1) : NaN; };
+    const km = (t) => { const m = /([\d.]+)[ \u00a0](k?m)\b/.exec(t); return m ? Number(m[1]) * (m[2] === 'km' ? 1000 : 1) : NaN; };
     const before = km(await pg.locator('[data-testid=walk-stats]').innerText());
     // A tap on the faint stretch opens its card (G9).
     await pg.waitForFunction(() => typeof window.__project === 'function');

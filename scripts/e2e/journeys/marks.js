@@ -2,7 +2,7 @@
 // marks that an exploring walk passing them never drew. E2E_ONLY=marks runs it alone.
 
 async function run(h) {
-  const { navUrl, BASE, start, at, check, freshPage, shot } = h;
+  const { navUrl, BASE, start, at, check, freshPage, shot, openInto, closeInto } = h;
     const { c, pg } = await freshPage('marks');
     await c.addInitScript(() => { window.__perf = {}; });
     const setMeta = (k, v) => pg.evaluate(([key, value]) => new Promise((resolve) => {
@@ -76,8 +76,8 @@ async function run(h) {
     check(second.some((l) => /Hessian Memorial/.test(l)), `marks: a later exploring walk through an area read before draws the memorial it passes (${JSON.stringify(second)})`);
     // RP18, RP8 (Remarkable and public): "What I'm into" lists Buildings and structures after Monuments and memorials, on by default.
     {
-      await pg.click('[data-testid=walk-summary]');
-      await pg.waitForSelector('[data-testid=options-card]', { timeout: 10000 }).catch(() => {});
+      // What I'm into's page, through the walk's drawer's row (decision 0192).
+      await openInto(pg, 'walk');
       await pg.locator('[data-testid=kind-structures]').scrollIntoViewIfNeeded().catch(() => {});
       const mon = await pg.locator('[data-testid=kind-monuments]').boundingBox().catch(() => null);
       const box = await pg.locator('[data-testid=kind-structures]').boundingBox().catch(() => null);
@@ -115,6 +115,7 @@ async function run(h) {
       const backCount = await pg.locator('[data-testid=kind-community_parks]').count();
       check(pkX != null && cpX != null && cpX > pkX + 10 && hiddenCount === 0 && backCount === 1,
         `PC23: Community parks is indented under Parks and shown only while Parks is on (${JSON.stringify({ pkX, cpX, hiddenCount, backCount })})`);
+      await closeInto(pg);
       await pg.keyboard.press('Escape');
       await pg.waitForTimeout(800);
     }

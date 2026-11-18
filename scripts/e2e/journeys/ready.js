@@ -42,7 +42,7 @@ async function run(h) {
       `ready NR1: Navigate opens the ready walk screen, with no tab bar (${pathOf(pg)})`);
     const s0 = await stats(pg);
     await pg.waitForTimeout(2500);
-    check(/^0:00 · 0(\.0+)? ?(m|km|mi|ft)$/.test(s0) && (await stats(pg)) === s0 && (await pg.locator('[data-testid=stop]').count()) === 0,
+    check(/^0:00 · 0(\.0+)?[ \u00a0]?(m|km|mi|ft)$/.test(s0) && (await stats(pg)) === s0 && (await pg.locator('[data-testid=stop]').count()) === 0,
       `ready NR1, NR5: at rest the bar reads 0:00 and no distance, and nothing ticks (${s0})`);
     check((await pg.locator('canvas.maplibregl-canvas').count()) === 1 && (await boxOf(pg, 'locate')) !== null,
       'ready NR1, NR12: one map, and Locate');
@@ -114,7 +114,7 @@ async function run(h) {
       await pg.waitForSelector('[data-testid=ready-dest]', { timeout: 5000 }).catch(() => {});
     }
     const destText = await pg.locator('[data-testid=ready-dest]').innerText().catch(() => '');
-    check(/^To Your spot · \d+ m away$/.test(destText), `ready NR8: a long press puts the destination on the resting bar (${destText})`);
+    check(/^To Your spot · \d+[ \u00a0]m away$/.test(destText), `ready NR8: a long press puts the destination on the resting bar (${destText})`);
 
     // NR7: pull the bar up for the settings; Start stays at its foot.
     const startRest = await boxOf(pg, 'start');
@@ -448,7 +448,7 @@ async function run(h) {
       await pg.click('[data-testid=explore-walk]');
       await pg.waitForSelector('[data-testid=range-slider]');
       const shown = await pg.locator('[data-testid=range-value]').innerText();
-      check(shown === '120 m', `fix walk-drawer-settings audit 1: the range set on the ready bar (120 m) is the walk drawer's (${shown})`);
+      check(/^120[ \u00a0]m$/.test(shown), `fix walk-drawer-settings audit 1: the range set on the ready bar (120 m) is the walk drawer's (${shown})`);
       await pg.click('[data-testid=range-minus]');
       await pg.waitForTimeout(300);
       await pg.click('[data-testid=explore-walk]');

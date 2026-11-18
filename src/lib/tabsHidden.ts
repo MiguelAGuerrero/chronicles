@@ -1,5 +1,6 @@
 // @layer shell
-// @instance: stores (lib/store) the full-screen cards and every Modal set, read by the tab layout and the recording bar
+// @instance: stores (lib/store) the full-screen cards, every Modal and the bar's stop set, read by the tab layout and the recording bar
+import type { BarStop } from './recordingBar';
 import { createStore } from './store';
 
 /**
@@ -45,3 +46,10 @@ export function holdModal(): () => void {
     modalsUp.set((n) => Math.max(0, n - 1));
   };
 }
+
+/**
+ * A stop from the recording bar under way (`lib/recordingBar`, `BarStop`): set by the bar's Stop as it begins and
+ * cleared by that same stop as it ends, so a bar mounted again meanwhile (its tab back in front) still refuses its way
+ * back and a second Stop (tend tabs audit 26).
+ */
+export const barStop = createStore<BarStop | null>(null);

@@ -6,22 +6,46 @@ import { ensureOvertureRelease } from '../activity/overture';
 import type { LngLat } from '../types';
 import { retryIn } from './extent';
 import { complexes } from './index';
+import { createKindSwitches } from './kindSwitches';
 import { loadHiddenKinds, onHiddenKinds, saveHiddenKinds } from './settings';
 import type { Complex, ComplexKind } from './types';
 
-/** CX10: the kinds switched off, saved as they change. */
-export function useHiddenKinds(): { hidden: ComplexKind[]; set: (next: ComplexKind[]) => void } {
-  const [hidden, setHidden] = useState<ComplexKind[]>([]);
+/**
+ * CX10: the kinds switched off, saved as they change. `loaded` is false until the setting is read: What I'm into's page
+ * draws no switch before (what-im-into-page audit 2). `toggle` builds on the latest list (`createKindSwitches`), so two
+ * quick taps both stay; `hidden` is empty before the read.
+ */
+export function useHiddenKinds(): { hidden: ComplexKind[]; loaded: boolean; toggle: (kind: ComplexKind, on: boolean) => void } {
+  const [hidden, setHidden] = useState<ComplexKind[] | null>(null);
+  const [switches] = useState(() => createKindSwitches((next) => void saveHiddenKinds(next).catch(() => undefined)));
   useEffect(() => {
     let live = true;
-    void loadHiddenKinds().then((h) => live && setHidden(h), () => undefined);
-    const off = onHiddenKinds((h) => live && setHidden(h));
+    void loadHiddenKinds().then(
+      (h) => {
+        if (!live) return;
+        switches.loaded(h);
+        setHidden(switches.get());
+      },
+      () => undefined,
+    );
+    const off = onHiddenKinds((h) => {
+      if (!live) return;
+      switches.heard(h);
+      setHidden(switches.get());
+    });
     return () => {
       live = false;
       off();
     };
-  }, []);
-  return { hidden, set: (next) => void saveHiddenKinds(next) };
+  }, [switches]);
+  return {
+    hidden: hidden ?? [],
+    loaded: hidden != null,
+    toggle: (kind, on) => {
+      const next = switches.toggle(kind, on);
+      if (next) setHidden(next);
+    },
+  };
 }
 
 /**

@@ -1,0 +1,60 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Navigation and tabs"
+      ],
+      "body": "- [ ] **Do:** on an iPhone, choose Explore in the ready bar, pull it up, tap \"What I’m into ›\", then swipe from the left edge. **Expect:** the page slides in over the screen and the tab bar, titled \"What I’m into\" with Back; the swipe pops it back to the ready bar still raised, the row in view (a `card` push on the root stack; What I'm into page). (WI4)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Navigation and tabs"
+      ],
+      "body": "- [ ] **Do:** on Android, on an exploring walk, pull up the drawer, tap \"What I’m into ›\", then press the system Back, then Back again. **Expect:** the first Back pops the page to the drawer, still raised (the drawer's own Back handler is off while the page is in front); the second lowers the drawer (What I'm into page). (WI4)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Navigation and tabs"
+      ],
+      "body": "- [ ] **Do:** on an iPhone and on Android, open What I'm into's page and scroll it slowly to its end. **Expect:** each section's heading stays pinned at the page's top on its own ground while its rows pass under it, and the next section's heading pushes it out (`ScrollView` `stickyHeaderIndices`; on the web it is CSS sticky); nothing flickers (What I'm into page). (WI5)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Navigation and tabs"
+      ],
+      "body": "- [ ] **Do:** on an exploring walk, open What I'm into's page from the drawer and keep walking for a minute with it up, then switch a kind off and go Back. **Expect:** the trace grew while the page was up, the time and distance went on, there is one walk screen, an open \"Add to this moment\" pill is still there, and the kind's \"?\" are gone from the map (What I'm into page). (WI8, WI10)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Navigation and tabs"
+      ],
+      "body": "- [ ] **Do:** with VoiceOver, then TalkBack, on, open What I'm into's page from its row, swipe through it, then go Back. **Expect:** the row is read as a button \"What I’m into\" that opens its page; focus starts on the title; the six headings are read as headings and a subtype as \"Part of\" its kind; Back puts focus on the row again (What I'm into page). (WI14)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "could not place Fountains or Waterfalls",
+        "--reason",
+        "Answered by What I'm into's page (decision 0192, specs/what-im-into-page): the headings stay pinned while their rows scroll (WI5) and a kind's row is drawn heavier than its subtypes' (WI7); ui 2 and ui 3 closed"
+      ],
+      "target": "sha256:8f7adb7ee47bc65926ab66f073b952213be15f4b801a7ce091704c1f322f3e29"
+    }
+  ]
+}

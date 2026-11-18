@@ -17,7 +17,7 @@ import { handOnRecall, onRecallFired, RECALL_OPEN_KEY } from '../lib/discovery/r
 import { feedback } from '../lib/motion';
 import { MOTION } from '../lib/motionTokens';
 import { perfCount } from '../lib/perfCount';
-import { barOffer, barOfferAfter, barOfferAfterHidden, barOfferShown, barOfferWords, recordingLine, type BarOffer } from '../lib/recordingBar';
+import { BAR_WAIT_MS, barGoesBack, barOffer, barOfferAfter, barOfferAfterHidden, barOfferShown, barOfferWords, barStopping, recordingLine, type BarOffer } from '../lib/recordingBar';
 import { captureBus } from '../lib/captureBus';
 import { deletions } from '../lib/deletion';
 import { useHidden } from '../lib/deletion/useDeletions';
@@ -25,7 +25,7 @@ import type { Pause, Walk } from '../lib/types';
 import type { LiveTrace } from '../lib/useLiveTrace';
 import { useCaptures } from '../lib/useCaptures';
 import { settleWithin } from '../lib/settleWithin';
-import { modalsUp, tabsHidden } from '../lib/tabsHidden';
+import { barStop, modalsUp, tabsHidden } from '../lib/tabsHidden';
 import { showWalk } from '../lib/walkNav';
 import { Icon } from './icons';
 import { EditButton } from './edit/EditOffer';
@@ -35,7 +35,7 @@ import { Ticking } from './Ticking';
 import { HoldButton, LiftIn, theme } from './ui';
 
 /** The bar's return waits this long at most for its photo to be kept. */
-const RETURN_WAIT_MS = 5000;
+const RETURN_WAIT_MS = BAR_WAIT_MS;
 
 /** How long a word from the bar (a photo kept, a refusal) stands in for its line. */
 const SAID_MS = 3000;
@@ -43,7 +43,7 @@ const SAID_MS = 3000;
 /**
  * The recording bar (NV9): while a walk is open and minimized, just above the
  * tab bar on every tab. Elapsed time and distance (Paused when paused); a tap
- * returns to the walk; no Stop. Its camera keeps a photo or video for the open
+ * returns to the walk; a held Stop (decision 0048) ends it. Its camera keeps a photo or video for the open
  * walk, placed as the walk's own captures are (the latest fix, else at stop),
  * paused or not, without opening the walk screen.
  *
@@ -82,8 +82,9 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
   // Its photo deleted elsewhere (Memories, a day) ends it, Undo waiting or not (tend tabs audit 15).
   const hidden = useHidden();
   useEffect(() => deletions.subscribe(() => setOffer((o) => barOfferAfterHidden(o, deletions.hidden()))), []);
-  // Held to stop, the walk is going: the pill goes first (tend tabs audit 19).
-  const [stopping, setStopping] = useState(false);
+  // Held to stop, the walk is going: the pill goes first (tend tabs audit 19). Shared, not this bar's own: the bar
+  // unmounts as its tab loses focus while the stop goes on (tend tabs audit 26).
+  const stopping = useStore(barStop, (s) => s?.walkId === walk.id);
   // The held captures of the walk this Stop has warned of; one held beyond them is warned of too (unsaved captures UN5).
   const warnedHeld = useRef<string[]>([]);
   const offerUp = barOfferShown(offer, cap.captures.map((c) => c.id), hidden, stopping);
@@ -164,14 +165,20 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
   const distanceM = live.distanceM;
   const paused = pauses.some((p) => p.ended_at == null);
 
+  // Asked now, of the stop under way from any bar of the walk, within its bound (tend tabs 12, audits 26, 28).
+  const goesBack = (returningNow: boolean) => barGoesBack({ returning: returningNow, stop: barStop.get(), walkId: walk.id, now: Date.now() });
   const back = async (open: Faced[] | null) => {
-    if (returning.current) return;
+    if (!goesBack(returning.current)) return;
     returning.current = true;
     try {
       // The photo is kept first, so the walk screen shows it; never held for ever by a save that hangs.
       await settleWithin(keeping.current, RETURN_WAIT_MS);
+      // Held to stop meanwhile: the stop goes alone, its replay over the tabs, not over a walk screen (tend tabs 12).
+      if (!goesBack(false)) return;
       // The walk screen opens what a tapped reminder asks for as it mounts (R4).
       if (open) await db.setMeta(RECALL_OPEN_KEY, JSON.stringify(open.map((c) => c.id))).catch(() => {});
+      // And again after that write, which can wait in the device's write queue (tend tabs audit 27).
+      if (!goesBack(false)) return;
       feedback('tap');
       showWalk();
     } finally {
@@ -192,8 +199,9 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
   };
 
   const stop = async () => {
-    if (stopping) return;
-    setStopping(true);
+    if (barStopping(barStop.get(), walk.id, Date.now())) return;
+    const mine = { walkId: walk.id, since: Date.now() };
+    barStop.set(mine);
     try {
       // Never under a memo, as Start (tabs audit 3); the bar's photo is kept first, as on its return.
       const ready = await Promise.race([memoGate.readyToStart(), new Promise<boolean>((r) => setTimeout(() => r(false), RETURN_WAIT_MS))]);
@@ -220,7 +228,7 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
     } catch (e) {
       setSaid({ text: `The walk could not be stopped: ${e instanceof Error ? e.message : e}`, error: true });
     } finally {
-      setStopping(false);
+      barStop.set((s) => (s === mine ? null : s));
     }
   };
 

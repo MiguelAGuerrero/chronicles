@@ -1,3 +1,4 @@
+import { useIsFocused } from 'expo-router';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Animated, BackHandler, Platform, ScrollView, StyleSheet, View, type GestureResponderEvent } from 'react-native';
 import { MOTION } from '../../lib/motionTokens';
@@ -59,13 +60,15 @@ export function ReadyBar(props: {
     Animated.spring(h, { toValue: target, ...SPRING }).start(({ finished }) => finished && setShown(up));
   }, [h, target, reduced, up]);
 
-  // Back on Android, and Escape on the web, lower the bar before anything else.
+  // Back on Android, and Escape on the web, lower the bar before anything else, while its screen is in front: under
+  // What I'm into's page (WI4) they are the page's, or Back would lower the hidden bar and the page never pop.
   const onUpRef = useRef(props.onUp);
   useEffect(() => {
     onUpRef.current = props.onUp;
   });
+  const focused = useIsFocused();
   useEffect(() => {
-    if (!up) return;
+    if (!up || !focused) return;
     const back = BackHandler.addEventListener('hardwareBackPress', () => {
       onUpRef.current(false);
       return true;
@@ -76,7 +79,7 @@ export function ReadyBar(props: {
       back.remove();
       if (Platform.OS === 'web' && typeof window !== 'undefined') window.removeEventListener('keydown', onKey);
     };
-  }, [up]);
+  }, [up, focused]);
 
   // A drag settles up or at rest, whichever is nearer, however it ends; a tap toggles.
   const drag = useRef({ y: 0, from: 0, moved: false });

@@ -534,7 +534,7 @@ async function run(h) {
       await pg.waitForTimeout(1100);
       await drawerTo(pg, 'full');
       const destText = await pg.locator('[data-testid=drawer-dest]').innerText().catch(() => '');
-      check(/\d+(\.\d+)? (m|km|ft|mi)\b/.test(destText), `qol QL14: the destination line carries a distance (${JSON.stringify(destText)})`);
+      check(/\d+(\.\d+)?[ \u00a0](m|km|ft|mi)\b/.test(destText), `qol QL14: the destination line carries a distance (${JSON.stringify(destText)})`);
       await drawerTo(pg, 'peek');
     }
 

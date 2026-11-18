@@ -29,3 +29,16 @@ test('NV16: Explore asks for one fix per launch, and none once a fix is known', 
   assert.equal(b.take(true), false, 'Navigate already read one: nothing to ask');
   assert.equal(b.take(false), false, 'and the launch has had its chance');
 });
+
+// `lib/launchRoute` kept the app's instance beside its factory while tagged core (the /tend tabs review's F8): a file that
+// keeps state is a shell (.claude/rules/functional-core.md, "Which layer?"; `memoGate` is the same shape). Its comment
+// said a stale launch goes to Explore; since decision 0112 it goes to Chronicle.
+test('tend tabs 15: lib/launchRoute, which keeps the app\'s launch path, is a shell, and says a stale launch goes to Chronicle', () => {
+  const { readFileSync } = require('node:fs') as typeof import('node:fs');
+  const { join } = require('node:path') as typeof import('node:path');
+  const text = readFileSync(join(__dirname, '..', '..', 'launchRoute.ts'), 'utf8');
+  assert.match(text, /^\/\/ @layer shell\n/);
+  assert.match(text, /^export const launchRoute = createLaunchRoute\(\);$/m);
+  assert.doesNotMatch(text, /goes to Explore/);
+  assert.match(text, /goes to Chronicle/);
+});

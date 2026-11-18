@@ -8,6 +8,9 @@ const MI_M = 1609.344;
 /** Whole feet up to here; a tenth of a mile. */
 const MI_FROM_FT = 528;
 
+/** A number and its unit held together by a no-break space, so no line ends on "175" with "m" on the next (tend map 21). */
+const withUnit = (figure: number | string, unit: string) => `${figure}\u00a0${unit}`;
+
 /**
  * "450 m" and "1.2 km", or in miles (QL14) whole feet under 0.1 mi ("450 ft")
  * and miles with one decimal from there ("0.1 mi", "1.2 mi"). Reads the
@@ -16,10 +19,10 @@ const MI_FROM_FT = 528;
 export function formatDistance(m: number, units: Units = getUnits()): string {
   if (units === 'mi') {
     const ft = Math.round(m / FT_M);
-    return ft < MI_FROM_FT ? `${ft} ft` : `${(m / MI_M).toFixed(1)} mi`;
+    return ft < MI_FROM_FT ? withUnit(ft, 'ft') : withUnit((m / MI_M).toFixed(1), 'mi');
   }
   // Rounded before the step, as the miles are: 999.6 m is "1.0 km", never "1000 m" (tend map 7).
-  return Math.round(m) < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(1)} km`;
+  return Math.round(m) < 1000 ? withUnit(Math.round(m), 'm') : withUnit((m / 1000).toFixed(1), 'km');
 }
 
 /**
@@ -36,7 +39,7 @@ export function formatDistanceNear(m: number, units: Units = getUnits()): string
  * step, so each step reads a value of its own (tend tabs audit 6). `formatDistance` would say 0.1 mi for four of them.
  */
 export function formatRange(m: number, units: Units = getUnits()): string {
-  return units === 'mi' ? `${Math.round(m / FT_M)} ft` : `${Math.round(m)} m`;
+  return units === 'mi' ? withUnit(Math.round(m / FT_M), 'ft') : withUnit(Math.round(m), 'm');
 }
 
 /** m:ss under ten minutes, so a just-started walk visibly counts; minutes after. */

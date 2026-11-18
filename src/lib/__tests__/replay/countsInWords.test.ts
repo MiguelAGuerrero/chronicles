@@ -123,7 +123,7 @@ test('tend replay audit 13: the day\'s card reads its places from what the day s
   const [day] = buildDays([w], [cap('a', at(3, 10, 10), 'w'), cap('b', at(3, 10, 20), 'w')]);
   const card = dayCard(day, at(20, 9), loaded);
   assert.equal(card.line, 'Two moments, around Wickenden Street');
-  assert.equal(card.walked, '2.1 km walked');
+  assert.equal(card.walked, '2.1\u00a0km walked');
 });
 
 // The walk's card and the fog beat say their last counts in words, through numberWord (tend replay T31, the owner's

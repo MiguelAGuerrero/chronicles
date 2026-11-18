@@ -393,7 +393,7 @@ async function fresh(h) {
       const barText = () => pg.locator('[data-testid=recording-stats]').innerText();
       const barBox = await pg.locator('[data-testid=recording-bar]').boundingBox();
       const tabBox = await pg.locator('[data-testid=tab-navigate]').boundingBox();
-      check(!/\/walk/.test(new URL(pg.url()).pathname) && (await tabBarShown(pg)) && /^\d+:\d\d · \d+ m · Paused$/.test(await barText())
+      check(!/\/walk/.test(new URL(pg.url()).pathname) && (await tabBarShown(pg)) && /^\d+:\d\d · \d+[ \u00a0]m · Paused$/.test(await barText())
         && Math.abs(barBox.y + barBox.height - tabBox.y) < 6 && (await pg.locator('[data-testid=recording-bar] [data-testid=stop]').count()) === 0,
         `minimized, a recording bar sits just above the tab bar: time, distance, Paused, and no Stop (NV9: "${await barText()}")`);
       // Minimized to the tab beneath: Chronicle's Memories since 0112, which has no map. Never two.
@@ -459,7 +459,7 @@ async function fresh(h) {
           };
         });
         const fine = (m) => !!(m && m.above && m.oneLine && m.whole && m.inPill && m.apart >= 4 && m.close === 'Close, the photo stays as it is'
-          && m.live === 'polite' && /^\d+:\d\d · \d+ m · Paused$/.test(m.stats ?? '') && m.numbers && !m.said && m.wide);
+          && m.live === 'polite' && /^\d+:\d\d · \d+[ \u00a0]m · Paused$/.test(m.stats ?? '') && m.numbers && !m.said && m.wide);
         const at390 = await pill();
         await h.shot(pg, 'tabs-9-bar-edit-offer');
         let at320 = null;
@@ -481,7 +481,7 @@ async function fresh(h) {
         await pg.waitForTimeout(400);
         const closed = await pg.locator('[data-testid=bar-edit-offer]').count();
         const stats = await pg.locator('[data-testid=recording-stats]').innerText().catch(() => '');
-        check(fine(waited) && closed === 0 && /^\d+:\d\d · \d+ m · Paused$/.test(stats),
+        check(fine(waited) && closed === 0 && /^\d+:\d\d · \d+[ \u00a0]m · Paused$/.test(stats),
           `tend tabs T12: the pill is still up after 6 s and goes with its Close, the line still its time and distance (${!!waited}, ${closed}, "${stats}")`);
       }
       // A tap on the bar returns to the walk, where the photo is pinned (NV9).
@@ -498,7 +498,7 @@ async function fresh(h) {
       await pg.waitForSelector('[data-testid=recording-stats]', { timeout: 10000 });
       await pg.waitForTimeout(2200);
       const m = (t) => {
-        const r = /([\d.]+) (km|m)$/.exec(t);
+        const r = /([\d.]+)[ \u00a0](km|m)$/.exec(t);
         return r ? parseFloat(r[1]) * (r[2] === 'km' ? 1000 : 1) : NaN;
       };
       const d0 = m(await barText());
@@ -526,7 +526,7 @@ async function fresh(h) {
       }
       const d1 = m(await barText());
       check(onTabs.join(',') === 'chronicle:1:0,explore:1:1,chronicle:1:0', `the bar is on every tab, with one live map where there is a map; Chronicle's Memories has none (NV4, NV9, RM1: ${onTabs.join(', ')})`);
-      check(d1 > d0 + 100 && /^\d+:\d\d · \d+ m$/.test(await barText()), `minimized, the walk keeps recording: the bar's distance grows (NV8: ${d0} → ${d1} m)`);
+      check(d1 > d0 + 100 && /^\d+:\d\d · \d+[ \u00a0]m$/.test(await barText()), `minimized, the walk keeps recording: the bar's distance grows (NV8: ${d0} → ${d1} m)`);
       // Remind me here keeps firing while minimized (NV8): checked outside the walk screen, shown on the bar.
       const fired = await pg.evaluate(() => new Promise((resolve) => {
         const req = indexedDB.open('chronicles');
