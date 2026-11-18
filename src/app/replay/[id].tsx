@@ -15,6 +15,7 @@ import { CaptureViewer } from '../../components/CaptureView';
 import { Stage } from '../../components/ceremony/Stage';
 import { StepThrough } from '../../components/ceremony/StepThrough';
 import { useAwakeWhile } from '../../components/ceremony/useAwakeWhile';
+import { NextMoment } from '../../components/ceremony/NextMoment';
 import { useCeremonyClock } from '../../components/ceremony/useCeremonyClock';
 import { useRevealed } from '../../components/ceremony/useRevealed';
 import type { StageCtx } from '../../components/ceremony/layout';
@@ -386,7 +387,7 @@ export default function Replay() {
     });
   }, []);
   const play = useCeremonyClock({ epoch: phase.t0, running: telling, paused: viewing != null || waits.size > 0, showing, onEnd: () => go('card') });
-  const frame = telling ? showing.frame(play.ms) : null;
+  const frame = telling ? showing.frame(play.ms, play.jump) : null;
   // The screen stays awake while the replay plays, until the card (RR24).
   useAwakeWhile(beat === 'reading' || beat === 'fog' || beat === 'path');
 
@@ -663,6 +664,8 @@ export default function Replay() {
       {(beat === 'fog' || beat === 'path') && (
         <View style={[styles.skip, { top: insets.top + 12 }]}>
           <Button testID="skip" variant="secondary" label="Skip" onPress={() => go('card')} />
+          {/* Under Skip, at the same edge: the clock sits between Hold and Skip, and the three do not fit one row on a 375 px phone (RY12). */}
+          {frame && play.canNext && <NextMoment onPress={play.next} />}
         </View>
       )}
       {frame && (
@@ -878,7 +881,7 @@ const styles = StyleSheet.create({
   },
   headlineLabel: { fontSize: 17, color: theme.ink, fontWeight: '600', textAlign: 'center' },
   headlineNote: { fontSize: 14, color: theme.muted, textAlign: 'center', marginTop: 6 },
-  skip: { position: 'absolute', right: 12 },
+  skip: { position: 'absolute', right: 12, alignItems: 'flex-end', gap: 8 },
   hold: { position: 'absolute', left: 12 },
   sheetWrap: { position: 'absolute', left: 0, right: 0, bottom: 0, maxHeight: '70%' },
   sheet: { backgroundColor: theme.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20 },

@@ -375,6 +375,9 @@ const FEATURES = [
 const V1_SCAN_AND_AMBIENT = ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S9', 'S10', 'S11', 'S12', 'S14', 'S15', 'S22', 'S23', ...Array.from({ length: 11 }, (_, i) => `A${i + 1}`)];
 
 const RETIRED = {
+  // The soft cap of about 60 s and its floors went when each moment was given its own time (the owner, Nov 18, decision 0200):
+  // specs/replay-pace RY10 holds that nothing shrinks to fit a total.
+  'replay-rhythm': ['RR5'],
   // Go here and its sheet were replaced by two outcome-named controls, Walk and "Open in Maps" (the owner, Nov 17, decision 0195):
   // specs/open-in-maps-here (OM1-OM14) carries what stands of them.
   'explore-go-here': Array.from({ length: 15 }, (_, i) => `GH${i + 1}`),

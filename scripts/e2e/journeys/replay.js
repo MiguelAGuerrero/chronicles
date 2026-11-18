@@ -545,9 +545,10 @@ async function run(h) {
       const row = await controls();
       const nb = row.next;
       const sb = row.skip;
-      const found = !!nb && !!sb && nb.w >= 44 && nb.h >= 44 && nb.x + nb.w <= sb.x && sb.x - (nb.x + nb.w) <= 16 && Math.abs(nb.y + nb.h / 2 - (sb.y + sb.h / 2)) <= 2
-        && nb.name === 'Next moment' && nb.text === '' && nb.edge === sb.edge && nb.ground === sb.ground && !!row.hold && row.hold.x + row.hold.w <= nb.x;
-      check.todo(found, `RY12: at ${w} px the replay's row has a next-moment button beside Skip, 44 px, in Skip's outline, named for a screen reader (${JSON.stringify(row)})`);
+      // Under Skip, at the same edge: the clock sits between Hold and Skip, and the three do not fit one row on a 375 px phone.
+      check(!!nb && !!sb && nb.w >= 44 && nb.h >= 44 && nb.y >= sb.y + sb.h && nb.y - (sb.y + sb.h) <= 16 && Math.abs(nb.x + nb.w - (sb.x + sb.w)) <= 2 && nb.x >= 0 && nb.x + nb.w <= w
+        && nb.name === 'Next moment' && !/[A-Za-z0-9]/.test(nb.text) && nb.edge === sb.edge && nb.ground === sb.ground && !!row.hold && row.hold.x + row.hold.w <= nb.x,
+        `RY12: at ${w} px the replay's controls have a next-moment button with Skip, right under it, 44 px, in Skip's outline, named for a screen reader (${JSON.stringify(row)})`);
       await shot(pg, `ry-next-${w}`);
       // A press: the walker is at the next moment and its first piece comes (RY13); nothing counts (RY18).
       const walkerAt = () => pg.locator('[data-walker]').first().getAttribute('data-walker').catch(() => null);
@@ -555,11 +556,11 @@ async function run(h) {
       const pressed = nb ? await pg.click('[data-testid=next-moment]', { timeout: 2000 }).then(() => true, () => false) : false;
       const came = pressed && (await pg.waitForSelector('[data-testid=replay-card], [data-testid=replay-note], [data-testid=memo-bubble]', { timeout: 2500 }).then(() => true, () => false));
       const after = await walkerAt();
-      check.todo(pressed && came && before !== after, `RY13: at ${w} px a press goes to the next moment, which then plays (pressed ${pressed}, its piece came ${came}, walker ${before} → ${after})`);
+      check(pressed && came && before !== after, `RY13: at ${w} px a press goes to the next moment, which then plays (pressed ${pressed}, its piece came ${came}, walker ${before} → ${after})`);
       await shot(pg, `ry-next-landed-${w}`);
       const then = await controls();
-      const words = [then.next, then.skip, then.hold].map((b) => (b ? b.text : '')).join(' ');
-      check.todo(pressed && then.bars === 0 && !then.counted && !/\d/.test(words), `RY18: at ${w} px nothing counts with the button, before or after a press (bars ${then.bars}, "${then.counted}", "${words}")`);
+      const words = [then.next, then.skip, then.hold].map((b) => (b ? b.text : '')).join(' ').replace(/[^\x20-\x7e]/g, '');
+      check(pressed && then.bars === 0 && !then.counted && !/\d/.test(words), `RY18: at ${w} px nothing counts with the button, before or after a press (bars ${then.bars}, "${then.counted}", "${words}")`);
       // Pressed on until nothing lies ahead: the button goes, and Skip is still the way to the card (RY17).
       let presses = 0;
       while (presses < 8 && (await pg.locator('[data-testid=next-moment]').count())) {
@@ -569,7 +570,7 @@ async function run(h) {
       }
       const gone = (await pg.locator('[data-testid=next-moment]').count()) === 0;
       const skipStays = (await pg.locator('[data-testid=skip]').count()) === 1;
-      check.todo(pressed && gone && skipStays && presses >= 1 && presses <= 5, `RY17: at ${w} px with no moment ahead the button is not shown and Skip stays (${presses} more presses, gone ${gone}, Skip ${skipStays})`);
+      check(pressed && gone && skipStays && presses >= 1 && presses <= 5, `RY17: at ${w} px with no moment ahead the button is not shown and Skip stays (${presses} more presses, gone ${gone}, Skip ${skipStays})`);
       await shot(pg, `ry-next-none-${w}`);
       await pg.click('[data-testid=skip]').catch(() => {});
       await pg.waitForSelector('[data-testid=to-name]', { timeout: 30000 });
@@ -604,7 +605,7 @@ async function run(h) {
       if (!dayNext && (await pg.locator('[data-testid=next-moment]').count())) dayNext = await pg.locator('[data-testid=next-moment]').getAttribute('aria-label').catch(() => null);
       await pg.waitForTimeout(150);
     }
-    check.todo(dayNext === 'Next moment', `RY19: the day's replay shows the next-moment button too (${dayNext})`);
+    check(dayNext === 'Next moment', `RY19: the day's replay shows the next-moment button too (${dayNext})`);
     // As in the walk's replay, no Continue ever mounts on the web (tend replay 14).
     check((await pg.locator('[data-testid=day-card]').count()) === 1 && dayNote, `RR16: the day's replay reaches its card by itself, its note on the way (${dayNote})`);
     const dayWake = await pg.evaluate(() => window.__wake);

@@ -178,10 +178,24 @@ export interface CeremonyOptions {
   reduceMotion: boolean;
 }
 
-/** A story as one ceremony tells it: how long, and the frame at any time. */
+/** When a moment begins in a telling, and where a press of Next lands for it: a little before, never inside the moment before (RY13, RY14). */
+export interface Landing {
+  t0: number;
+  land: number;
+}
+
+/** A press of Next: where the telling was, and where it landed. A frame after it says what lay between (RY21). */
+export interface Jump {
+  from: number;
+  at: number;
+}
+
+/** A story as one ceremony tells it: how long, when its moments begin, and the frame at any time. */
 export interface Showing {
   total: number;
-  frame(ms: number): Frame;
+  /** In order; empty when nothing was kept. */
+  stops: Landing[];
+  frame(ms: number, jump?: Jump | null): Frame;
 }
 
 export interface Ceremony {

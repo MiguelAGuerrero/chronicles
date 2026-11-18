@@ -24,7 +24,8 @@ export function Stage({ frame, ctx }: { frame: Frame; ctx: StageCtx }) {
       <View pointerEvents="none" style={[styles.top, { top: ctx.insets.top + 12 }]}>
         {frame.clock != null && <RollingClock time={frame.clock} still={ctx.reduceMotion} />}
         {frame.line ? (
-          <Text testID="replay-later" style={[styles.line, { opacity: frame.lineOpacity }]}>{frame.line}</Text>
+          // Between Hold and the controls under Skip: a passed place's line can be long (RY21).
+          <Text testID="replay-later" style={[styles.line, { opacity: frame.lineOpacity, maxWidth: Math.max(120, ctx.width - 2 * SIDE) }]}>{frame.line}</Text>
         ) : null}
         {ctx.held ? (
           <Text testID="replay-held" accessibilityLiveRegion="polite" style={styles.held}>Held · tap to go on</Text>
@@ -34,9 +35,12 @@ export function Stage({ frame, ctx }: { frame: Frame; ctx: StageCtx }) {
   );
 }
 
+/** The room each side of the top column keeps for Hold, and for Skip with the next-moment button under it. */
+const SIDE = 76;
+
 const styles = StyleSheet.create({
   dim: { backgroundColor: theme.ink },
   top: { position: 'absolute', left: 0, right: 0, alignItems: 'center', gap: 8 },
-  line: { backgroundColor: theme.ink, color: theme.surface, fontSize: 12, fontWeight: '600', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, overflow: 'hidden' },
+  line: { backgroundColor: theme.ink, color: theme.surface, fontSize: 12, fontWeight: '600', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 14, overflow: 'hidden', textAlign: 'center' },
   held: { backgroundColor: theme.glass, color: theme.ink, fontSize: 12, fontWeight: '600', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, overflow: 'hidden' },
 });

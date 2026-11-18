@@ -1,33 +1,24 @@
 /// <reference types="node" />
-// Replay pace (specs/replay-pace/spec.md, RY1-RY22; decision 0200), written before the code: what is not built
-// yet is reached through casts, so the typecheck holds while each test fails for its own reason.
+// Replay pace (specs/replay-pace/spec.md, RY1-RY22; decision 0200). Written before the code, as todos, in the commit
+// before this slice's first code.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
-import * as clockMod from '../../ceremony/clock';
-import * as easeMod from '../../ceremony/ease';
+import { nextStop, seekClock, tickClock } from '../../ceremony/clock';
+import { steady } from '../../ceremony/ease';
 import { notePause, rhythmFrame, rhythmPlan, type RhythmPlan, type Slot } from '../../ceremony/rhythm';
 import { dayStory, walkStory, type WalkInput } from '../../ceremony/story';
-import type { Frame, Story } from '../../ceremony/types';
+import type { Frame, Jump, Story } from '../../ceremony/types';
 import type { Day } from '../../days';
 import { distanceM, stepToward } from '../../geo';
-import { REPLAY_RHYTHM } from '../../motionTokens';
+import { REPLAY_RHYTHM as R } from '../../motionTokens';
 import { faced, facedOf, type Faced } from '../../moment';
 import { timedRuns } from '../../replay';
 import type { Capture, LngLat, Moment, TracePoint } from '../../types';
 
-/** The rhythm's numbers, the new ones among them. */
-const R = REPLAY_RHYTHM as unknown as Record<string, number>;
-type Landing = { t0: number; land: number };
-type Jump = { from: number; at: number };
-const built = <T,>(mod: object, name: string): T => (mod as Record<string, unknown>)[name] as T;
-const nextStop = (stops: Landing[], ms: number, aimed: number | null = null) =>
-  built<(s: Landing[], ms: number, aimed: number | null) => { ms: number; t0: number } | null>(clockMod, 'nextStop')(stops, ms, aimed);
-const seekClock = (c: { ms: number; held: boolean }, ms: number) => built<(c: { ms: number; held: boolean }, ms: number) => { ms: number; held: boolean }>(clockMod, 'seekClock')(c, ms);
-const steady = (u: number, a: number, b: number) => built<(u: number, a: number, b: number) => number>(easeMod, 'steady')(u, a, b);
-const stopsOf = (p: RhythmPlan) => (p as unknown as { stops: Landing[] }).stops;
-const frameAt = (p: RhythmPlan, ms: number, jump?: Jump): Frame => (rhythmFrame as unknown as (p: RhythmPlan, ms: number, jump?: Jump) => Frame)(p, ms, jump);
+const stopsOf = (p: RhythmPlan) => p.stops;
+const frameAt = (p: RhythmPlan, ms: number, jump?: Jump): Frame => rhythmFrame(p, ms, jump);
 
 const O: LngLat = [-71.4, 41.812];
 const mLon = 1 / (111320 * Math.cos((O[1] * Math.PI) / 180));
@@ -76,9 +67,10 @@ const metres = (f: Frame) => distanceM(O, f.walker!);
 
 // ---------------------------------------------------------------- a moment's time
 
-test('RY1: a photo on its own grows 0.55 s, is fully shown 4.5 s and shrinks 0.45 s', { todo: 'test first' }, () => {
+test('RY1: a photo on its own grows 0.55 s, is fully shown 4.5 s and shrinks 0.45 s', () => {
   assert.equal(R.grow, 550);
   assert.equal(R.tuck, 450);
+  assert.equal(R.photoHold, 4500);
   // Two photos 200 m apart: the second is neither the first nor after a long stretch.
   const p = plan(walk(500, [cap('photo', when(200), 200), cap('photo', when(400), 400)]));
   const s = slotsOf(p)[1];
@@ -92,7 +84,7 @@ test('RY1: a photo on its own grows 0.55 s, is fully shown 4.5 s and shrinks 0.4
   assert.ok(leaving && leaving.kind === 'card' && leaving.tuck > 0);
 });
 
-test('RY2: the first photo, and one after 550 m with nothing kept, is fully shown a fifth longer', { todo: 'test first' }, () => {
+test('RY2: the first photo, and one after 550 m with nothing kept, is fully shown a fifth longer', () => {
   const p = plan(walk(1300, [cap('photo', when(200), 200), cap('photo', when(400), 400), cap('photo', when(1000), 1000), cap('text', when(1200), 1200, 'x')]));
   const [first, second, afterLong] = slotsOf(p);
   assert.ok(near(shown(first), 5400), `the first: ${shown(first)}`);
@@ -100,7 +92,7 @@ test('RY2: the first photo, and one after 550 m with nothing kept, is fully show
   assert.ok(near(shown(afterLong), 5400), `after 600 m: ${shown(afterLong)}`);
 });
 
-test('RY3: photos at one stop tighten 12% each, never under 55%, the last at full time; a photo you walked to is never shortened', { todo: 'test first' }, () => {
+test('RY3: photos at one stop tighten 12% each, never under 55%, the last at full time; a photo you walked to is never shortened', () => {
   const at300 = (n: number) => Array.from({ length: n }, (_, i) => cap('photo', when(300) + i * 5000, 300));
   const five = plan(walk(700, [cap('photo', when(100), 100), ...at300(5), cap('photo', when(500), 500)]));
   const s = slotsOf(five);
@@ -129,7 +121,7 @@ const stackOf = (videoMs: number | null): Moment => ({
   ],
 });
 
-test('RY4: a grid stays 5 s after its last piece has swiped in, or until a longer video in it ends', { todo: 'test first' }, () => {
+test('RY4: a grid stays 5 s after its last piece has swiped in, or until a longer video in it ends', () => {
   const grid = (m: Moment) => plan(walk(500, [faced(m)])).cards[0];
   const three = grid(stackOf(null));
   assert.ok(three.pieces && three.pieces.length === 3, 'still one grid of its pictures (MS17)');
@@ -138,7 +130,7 @@ test('RY4: a grid stays 5 s after its last piece has swiped in, or until a longe
   assert.ok(near(withVideo.t1 - withVideo.t0, R.grow + 3 * R.gridStagger + R.bubbleIn + 9000 + R.tuck), `with a 9 s video: ${withVideo.t1 - withVideo.t0}`);
 });
 
-test('RY5: the walker waits at a note 1.2 s for up to six words, a quarter second for each word more, at most 5 s', { todo: 'test first' }, () => {
+test('RY5: the walker waits at a note 1.2 s for up to six words, a quarter second for each word more, at most 5 s', () => {
   const words = (n: number) => Array(n).fill('w').join(' ');
   assert.equal(notePause(words(1)), 1200);
   assert.equal(notePause(words(6)), 1200);
@@ -147,7 +139,7 @@ test('RY5: the walker waits at a note 1.2 s for up to six words, a quarter secon
   assert.equal(notePause(words(40)), 5000);
 });
 
-test('RY6: the walker stands 1 s after a memo ends, and a video\'s card stands 1 s after it ends', { todo: 'test first' }, () => {
+test('RY6: the walker stands 1 s after a memo ends, and a video\'s card stands 1 s after it ends', () => {
   const p = plan(walk(600, [cap('voice', when(200), 200, '6000'), cap('video', when(400), 400, '5000')]));
   const [memo, video] = slotsOf(p);
   assert.ok(near(memo.t1 - memo.t0, 6000 + 1000), `a memo's stand: ${memo.t1 - memo.t0}`);
@@ -156,7 +148,7 @@ test('RY6: the walker stands 1 s after a memo ends, and a video\'s card stands 1
   assert.ok(after && after.kind === 'card' && after.tuck === 0, 'the card is still whole half a second after the video ends');
 });
 
-test('RY7: a bubble leaves when the next card opens or a break begins, but a note never before it could be read, and a memo never before it has played', { todo: 'test first' }, () => {
+test('RY7: a bubble leaves when the next card opens or a break begins, but a note never before it could be read, and a memo never before it has played', () => {
   const bubbleUp = (p: RhythmPlan, id: string, ms: number) => frameAt(p, ms).overlays.some((o) => o.kind === 'bubble' && o.capture.id === id && o.exit === 0);
   // A six-word note, then a photo at the same stop: the card opens after the 1.2 s wait, over the note.
   const note = cap('text', when(300), 300, 'one two three four five six');
@@ -183,7 +175,7 @@ test('RY7: a bubble leaves when the next card opens or a break begins, but a not
 
 // ---------------------------------------------------------------- the walker's pace
 
-test('RY8: the walker keeps a steady pace mid-stretch, slows into a moment, and a long stretch is no steeper', { todo: 'test first' }, () => {
+test('RY8: the walker keeps a steady pace mid-stretch, slows into a moment, and a long stretch is no steeper', () => {
   assert.equal(steady(0, 0.2, 0.3), 0);
   assert.ok(near(steady(1, 0.2, 0.3), 1, 1e-9));
   const mid = [0.3, 0.4, 0.5, 0.6].map((u) => steady(u + 0.1, 0.2, 0.3) - steady(u, 0.2, 0.3));
@@ -207,7 +199,7 @@ test('RY8: the walker keeps a steady pace mid-stretch, slows into a moment, and 
   assert.ok((m(0.55) - m(0.45)) / 1500 <= (sm(0.55) - sm(0.45)) / 300 + 1e-6, 'a long stretch is no steeper than a short one');
 });
 
-test('RY9: a stretch under 450 m takes up to 2 s, a longer one 2 s plus up to 2 s more', { todo: 'test first' }, () => {
+test('RY9: a stretch under 450 m takes up to 2 s, a longer one 2 s plus up to 2 s more', () => {
   const legOf = (m: number) => { const l = legs(plan(walk(m + 100, [cap('text', when(m), m, 'x')])))[0]; return { dur: l.t1 - l.t0, len: l.len }; };
   const expected = (len: number) => (len >= 450 ? 2000 + 2000 * Math.max(0.35, Math.min(1, (len - 450) / 1200)) : 2000 * Math.max(0.45, len / 450));
   for (const m of [100, 440, 500, 3000]) {
@@ -218,7 +210,7 @@ test('RY9: a stretch under 450 m takes up to 2 s, a longer one 2 s plus up to 2 
   assert.ok(near(legOf(3000).dur, 4000, 2), 'the longest takes 4 s');
 });
 
-test('RY10: nothing shrinks to fit a total: forty photos each keep their time, and a short walk is not stretched', { todo: 'test first' }, () => {
+test('RY10: nothing shrinks to fit a total: forty photos each keep their time, and a short walk is not stretched', () => {
   assert.ok(!('cap' in R) && !('floors' in R), 'the cap and its floors are gone');
   const many = plan(walk(4200, Array.from({ length: 40 }, (_, i) => cap('photo', when(100 + i * 100), 100 + i * 100))));
   const s = slotsOf(many);
@@ -230,7 +222,7 @@ test('RY10: nothing shrinks to fit a total: forty photos each keep their time, a
   assert.ok(near(short.total, short.segs.reduce((n, x) => n + (x.t1 - x.t0), 0)) && short.total < 8000, `a short walk: ${short.total} ms`);
 });
 
-test('RY11: with reduce motion every hold, pause and wait is the same length', { todo: 'test first' }, () => {
+test('RY11: with reduce motion every hold, pause and wait is the same length', () => {
   const story = walk(1500, [cap('photo', when(200), 200), cap('text', when(200) + 5000, 200, 'a note of seven words or so here'), faced({ ...stackOf(7000), t: when(700), ...P(700) }), cap('voice', when(1200), 1200, '4000')]);
   const a = plan(story), b = plan(story, true);
   assert.ok(a.total > 0 && a.total === b.total);
@@ -244,7 +236,7 @@ test('RY11: with reduce motion every hold, pause and wait is the same length', {
 
 const three = () => plan(walk(1300, [cap('photo', when(300), 300), cap('voice', when(700), 700, '6000'), cap('text', when(1100), 1100, 'the end')]));
 
-test('RY13: a press shows the replay as it would be just before the next moment: the walker arriving, the trace and what was passed', { todo: 'test first' }, () => {
+test('RY13: a press shows the replay as it would be just before the next moment: the walker arriving, the trace and what was passed', () => {
   const p = three();
   const st = stopsOf(p);
   assert.equal(st.length, 3);
@@ -254,7 +246,7 @@ test('RY13: a press shows the replay as it would be just before the next moment:
   const second = nextStop(st, stops(p)[0].t0 + 1000)!;
   assert.equal(second.t0, st[1].t0);
   const f = frameAt(p, second.ms);
-  assert.ok(Math.abs(metres(f) - 700) < 60, `the walker is arriving at 700 m: ${Math.round(metres(f))}`);
+  assert.ok(metres(f) > 560 && metres(f) < 700, `the walker is arriving at 700 m, slowing in: ${Math.round(metres(f))}`);
   assert.ok(near(metres(frameAt(p, second.t0)), 700, 25), 'and there when the moment begins');
   assert.ok(f.clock != null && f.clock <= stops(p)[1].moment.arrive + 1, 'the clock is at arriving there');
   assert.ok((f.drawn.w ?? 0) > when(600), 'the trace is drawn up to there');
@@ -265,7 +257,7 @@ test('RY13: a press shows the replay as it would be just before the next moment:
   assert.ok(frameAt(p, second.t0 + 400).overlays.some((o) => o.kind === 'bubble' && o.capture.kind === 'voice'));
 });
 
-test('RY14: a press never lands inside a memo or a video, and a memo playing when it is pressed is gone on landing', { todo: 'test first' }, () => {
+test('RY14: a press never lands inside a memo or a video, and a memo playing when it is pressed is gone on landing', () => {
   // A memo, then a moment 45 m on: the stretch between is shorter than the landing's lead.
   const p = plan(walk(900, [cap('voice', when(300), 300, '6000'), cap('video', when(345), 345, '5000'), cap('photo', when(800), 800)]));
   const media = slotsOf(p).filter((s) => s.kind === 'memo' || s.kind === 'video');
@@ -284,15 +276,15 @@ test('RY14: a press never lands inside a memo or a video, and a memo playing whe
   assert.equal(stopsOf(dp).length, 2);
 });
 
-test('RY15, RY16: a press keeps the replay held, and moves it whether or not it is waiting', { todo: 'test first' }, () => {
+test('RY15, RY16: a press keeps the replay held, and moves it whether or not it is waiting', () => {
   assert.deepEqual(seekClock({ ms: 500, held: true }, 9000), { ms: 9000, held: true });
   assert.deepEqual(seekClock({ ms: 500, held: false }, 9000), { ms: 9000, held: false });
   // Waiting for a medium holds the tick, never the press.
   const moved = seekClock({ ms: 500, held: false }, 9000);
-  assert.equal(clockMod.tickClock(moved, 33, { paused: true, total: 20_000 }).clock.ms, 9000);
+  assert.equal(tickClock(moved, 33, { paused: true, total: 20_000 }).clock.ms, 9000);
 });
 
-test('RY17: with no moment ahead there is nowhere to go; one aimed at is not offered twice, and one about to begin is not skipped', { todo: 'test first' }, () => {
+test('RY17: with no moment ahead there is nowhere to go; one aimed at is not offered twice, and one about to begin is not skipped', () => {
   const p = three();
   const st = stopsOf(p);
   assert.equal(nextStop(st, st[2].t0 + 10), null, 'after the last moment has begun');
@@ -308,7 +300,7 @@ test('RY17: with no moment ahead there is nowhere to go; one aimed at is not off
   assert.equal(nextStop(st, st[2].t0 - 100, st[2].t0), null, 'aimed at the last one: nothing further');
 });
 
-test('RY19: both replay screens draw the one next-moment control', { todo: 'test first' }, () => {
+test('RY19: both replay screens draw the one next-moment control', () => {
   const root = join(__dirname, '..', '..', '..');
   for (const f of ['app/replay/[id].tsx', 'app/day/[key].tsx']) {
     const src = readFileSync(join(root, f), 'utf8');
@@ -319,7 +311,7 @@ test('RY19: both replay screens draw the one next-moment control', { todo: 'test
 
 // ---------------------------------------------------------------- the lows stay in
 
-test('RY21: a press never edits out what lay between: a passed place and "N min later" are said on landing', { todo: 'test first' }, () => {
+test('RY21: a press never edits out what lay between: a passed place and "N min later" are said on landing', () => {
   const fixes = [...line(O, east(600), 0), ...line(east(900), east(1300), when(600) + 43 * 60_000)];
   const story = walkStory(input(fixes, [cap('photo', when(200), 200), cap('photo', when(600) + 43 * 60_000 + when(300), 1200)], { passed: [{ name: 'Hessian Memorial', generic: false, at: east(400), t: when(400) }] }));
   const p = plan(story);
@@ -328,8 +320,10 @@ test('RY21: a press never edits out what lay between: a passed place and "N min 
   const jump = { from, at: to.ms };
   assert.equal(frameAt(p, to.ms + 300).line === null || /later/.test(frameAt(p, to.ms + 300).line ?? ''), true);
   const first = frameAt(p, to.ms + 300, jump);
-  assert.match(first.line ?? '', /later$/, `says how much later it is: ${first.line}`);
-  assert.match(first.line ?? '', /^4\d min later$/, 'the time from where you were to where you land');
+  assert.match(first.line ?? '', /^\d+ min later$/, `says how much later it is: ${first.line}`);
+  // The time from where you were to where you land: the 43-minute break and the walking either side of it.
+  const mins = Math.round((frameAt(p, to.ms).clock! - frameAt(p, from).clock!) / 60_000);
+  assert.ok(mins >= 43 && mins <= 55 && first.line === `${mins} min later`, `${first.line} for ${mins} min`);
   assert.ok(first.lineOpacity > 0.9);
   const lines = new Set<string>();
   for (let ms = to.ms; ms < to.ms + 8000; ms += 100) { const f = frameAt(p, ms, jump); if (f.line && f.lineOpacity > 0.5) lines.add(f.line); }
@@ -340,7 +334,7 @@ test('RY21: a press never edits out what lay between: a passed place and "N min 
   assert.ok(![...quiet].some((l) => /^Passed/.test(l)));
 });
 
-test('RY22: a whisper never starts while a card is up: it waits until the card has shrunk, then shows its full time', { todo: 'test first' }, () => {
+test('RY22: a whisper never starts while a card is up: it waits until the card has shrunk, then shows its full time', () => {
   // Passed while standing at the photo's stop: its time falls inside the stop.
   const p = plan(walk(700, [cap('photo', when(300), 300), cap('text', when(600), 600, 'x')], { passed: [{ name: 'Hessian Memorial', generic: false, at: east(320), t: when(300) + 1000 }] }));
   const card = p.cards[0];

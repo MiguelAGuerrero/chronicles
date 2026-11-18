@@ -109,13 +109,14 @@ Open: the owner's leanings for later slices (Decisions) have not been through th
 
 ### The next moment
 
-12. **RY12** The owner's task, "skip ahead to the next moment". Finding criterion: while the path plays, the replay's row of controls
-    has a third button, beside Skip, in the same ink and shape as Skip and Hold, showing a chevron that points forward. It is at least
+12. **RY12** The owner's task, "skip ahead to the next moment". Finding criterion: while the path plays, the replay's controls have
+    a third button, with Skip: right under it at the same edge (the clock sits between Hold and Skip, and the three do not fit one
+    row on a 375 px phone), in the same ink and outline as Skip and Hold, showing a chevron that points forward. It is at least
     44 pt wide and tall, and a screen reader calls it "Next moment". Someone who was not told where it is finds it there, and does
     not take it for Skip: in the cold find, "go to the next moment" lands on the chevron and "leave for the card" on Skip. If either
-    fails, the button says the word "Next" in the same pill. (The steward's S5.)
-13. **RY13** Pressing it shows the replay as it would be just before the next moment begins (0.45 s before): the walker at that
-    moment's place, the clock at the time you arrived there, the trace drawn up to there, and every moment passed over in its place
+    fails, the button says the word "Next" in the same outline. (The steward's S5.)
+13. **RY13** Pressing it shows the replay as it would be just before the next moment begins (0.45 s before): the walker arriving at
+    that moment's place, the clock at the time you arrived there, the trace drawn up to there, and every moment passed over in its place
     on the map and in the pile. The moment then plays as it would have.
 14. **RY14** It never lands inside a voice memo or a video, and whatever was playing when it was pressed stops, as with Skip.
 15. **RY15** Pressed while held, it moves to the next moment and stays held; Play goes on from there.

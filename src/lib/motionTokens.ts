@@ -95,15 +95,21 @@ export const NOTE_SAVE_PAUSE = 1000;
 export const durationFor = (token: MotionToken, reduced: boolean): number => (reduced ? 0 : MOTION[token]);
 
 /**
- * The replay's rhythm (RR1-RR16, decision 0085): the prototype's numbers
- * (https://claude.ai/artifact/XouW4WPy8e2yPQWYsYDUNc), in milliseconds unless
- * named in metres. The owner's tuned settings change only this object.
+ * The replay's rhythm (RR1-RR16, decision 0085) and its pace (RY1-RY22, decision 0200): the prototypes' numbers
+ * (https://claude.ai/artifact/XouW4WPy8e2yPQWYsYDUNc, https://claude.ai/artifact/7oLxtuZMhpvXd18H4BLR5P), in
+ * milliseconds unless named in metres or as a share. The owner's tuned settings change only this object. Nothing
+ * shrinks to fit a total: there is no cap (RY10).
  */
 export const REPLAY_RHYTHM = {
-  /** A stretch between nearby moments. */
-  glide: 1800,
-  /** Added to a glide for a long, empty stretch, however long. */
-  zip: 900,
+  /** A stretch between nearby moments (RY9). */
+  glide: 2000,
+  /** Added to a glide for a long, empty stretch, however long (RY9). */
+  zip: 2000,
+  /** The walker's pace along a stretch (RY8): it reaches a steady pace in `paceIn` (at most this share of the stretch) and slows over `paceOut`. */
+  paceIn: 350,
+  paceInMax: 0.35,
+  paceOut: 550,
+  paceOutMax: 0.4,
   /** A stretch is long from here (metres), and gets its full zip at zipAtM + zipFullM. */
   zipAtM: 450,
   zipFullM: 1200,
@@ -117,21 +123,32 @@ export const REPLAY_RHYTHM = {
   minLegM: 10,
   /** A cut across a break in the trace. */
   cut: 1400,
-  /** A note's pause: this for up to noteWords words, plus notePerFive per five more, at most noteMax. */
-  note: 800,
-  noteWords: 12,
-  notePerFive: 200,
-  noteMax: 3000,
-  /** A photo's card on screen, from growing to tucked away. */
-  photo: 2400,
-  /** A card growing from its pin, and tucking into the pile. */
-  grow: 380,
-  tuck: 480,
+  /** The walker's wait at a note (RY5): this for up to noteWords words, plus notePerWord for each more, at most noteMax. */
+  note: 1200,
+  noteWords: 6,
+  notePerWord: 250,
+  noteMax: 5000,
+  /** How long a note's bubble stays at the least once fully shown, so it can be read (RY7): this plus readPerWord a word, never past its life. */
+  noteRead: 1500,
+  readPerWord: 300,
+  /** A photo on its own, fully shown (RY1), between growing and tucking. */
+  photoHold: 4500,
+  /** The first photo, and one after `longM` metres with nothing kept, is shown this much longer (RY2). */
+  photoFirst: 1.2,
+  longM: 550,
+  /** Photos at one stop tighten by this share each, never under `stopFloor` of photoHold; the last is whole again (RY3). */
+  stopTighten: 0.12,
+  stopFloor: 0.55,
+  /** A stack's grid stays this long after its last piece has swiped in (RY4). */
+  gridHold: 5000,
+  /** A card growing from its pin, and tucking into the pile (RY1). */
+  grow: 550,
+  tuck: 450,
   /** A stack's grid (moment stacks MS17): each piece swipes in this long after the one before, and one past nine scrolls the grid this long. */
   gridStagger: 180,
   gridScroll: 2400,
-  /** After a memo, before the walker moves on. */
-  mediaTail: 400,
+  /** After a memo ends, before the walker moves on; and a video's card standing after its video ends (RY6). */
+  mediaTail: 1000,
   /** Shortest a memo or video slot is, whatever its stored length. */
   mediaMin: 1000,
   /** Waiting for a medium (audit 20): one that never starts, how far behind counts as late, and the most for one that plays (the camera's cap). */
@@ -154,7 +171,8 @@ export const REPLAY_RHYTHM = {
   /** How far out the camera starts before zooming in to the walker. */
   introZoomOut: 2.2,
   rest: 800,
-  /** The soft cap on the path (RR5), and the floors nothing shrinks below. */
-  cap: 60_000,
-  floors: { leg: 600, photo: 1200, note: 300, cut: 600, intro: 300, rest: 300 },
+  /** A press of Next lands this long before the next moment begins (RY13). */
+  nextLead: 450,
+  /** After a press, "N min later" stays this long under the clock before any passed place is said (RY21). */
+  jumpLine: 2000,
 } as const;
