@@ -1,0 +1,32 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inbox",
+        "remove",
+        "T38",
+        "--reason",
+        "the proxy's yes under 0157, 2026-11-18, built in tend tabs T38 to corrected criteria: the 76-to-124 rise is the nothing-walked, no-walk-open state (the entry's 'with a walk open' was misnamed at filing); 0148's walk-open 76 kept"
+      ],
+      "target": "sha256:cc312758ab927311c5ee5515fd5ec03e41d46a5fad51b11d232f7947c3641c25"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "Chronicle's stacked",
+        "--reason",
+        "built in tend tabs T38 (the proxy's yes under 0157, 2026-11-18, to T38, which rested on this item)"
+      ],
+      "target": "sha256:e1ec4ed3f603b0697dfda6d02654ffddfd0ffc072215b8f3bae80a06070b827c"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 18, `/tend inbox T38 yes, T35 yes, T40 yes --deploy=main`, Chronicle's empty peek no longer rises at launch** (opened from `9dfd547e`; no sweep, lenses 1-7 not run; T38 is the proxy's yes under 0157, 2026-11-18; T35 and T40 the owner's yes, in person, 2026-11-18).\n- The entries, as main held them: T38 \"Chronicle's stacked empty peek springs from 76 to 124 px as the map mounts\" (built); T35 \"The bar's Stop calls a memo still being saved \"recording\"\" (the owner's \"Yes, as recommended\") and T40 \"At 320 x 700 the two-line press hint can reach the walker…\" (the owner's \"Pad the map camera\"): both wait for the next `/tend inbox`, one build per run.\n- T38's state was misnamed at filing: its Seen line, its Recommended and the proxy's first /vision criterion said \"with a walk open and none finished\", but the 76-to-124 rise is the nothing-walked, no-walk-open state (`HomeSheet.tsx`: only Navigate makes the peek taller, decision 0148; the tabs journey's `tend tabs audit 3`). The run stopped before building; the proxy's ruling under 0157, 2026-11-18, corrected the criteria (\"from the first frame\" became \"from Chronicle's first read\"; /vision again: no surface, Restraint).\n- `tend tabs T38`: with nothing walked and no walk open, the sheet takes the stacked peek's 124 with no spring as soon as Chronicle's first read lands, and the scale bar and the fits use 124 from that frame; with a walk open and none finished the peek is 76 from the first frame; a walk finished, half and full unchanged, and a later change of state still springs.\n- Removed: the DEFERRED item built (Chronicle's stacked empty peek springs up from 76 to 124 px).\n- Journeys: tabs (holding the new checks; the two criterion-1 checks red on main's own build 9dfd547e, green on this one) and launch, green.\n- The balance: outgrowing its base, as main's ledger reads it; no `G` entry filed.\n"
+    }
+  ]
+}
