@@ -171,7 +171,8 @@ with the checks the calling skill names.
 
 1. The worktree holds only this run's commits.
 2. `git fetch origin main`; if `main` moved, rebase `<branch>`, run the caller's checks again, and only
-   then continue. On a conflict, stop and keep the branch, with one exception: a source conflict confined
+   then continue. On a conflict, stop: push `<branch>` and keep it for the owner ("Clean up", pushed
+   for review), with one exception: a source conflict confined
    to imports and comments, where the two sides mean independent things, may be resolved by the run, with
    a test that proves the two changes independent (it fails if either side's change is lost); the run
    reports it as a stop ruled through, with the files and the test. Anything else, or a conflict in the
@@ -234,11 +235,14 @@ Every run ends here, whatever happened. Remove only the worktree and branches th
 
 | Outcome | Local branch | Remote branch |
 |---|---|---|
-| Pushed for review (no grant to publish, or parked by an open finding) | delete (`git fetch origin <branch>` brings it back) | keep: it is what the owner reviews |
+| Pushed for review (no grant to publish, parked by an open finding, or stopped on a conflict) | delete (`git fetch origin <branch>` brings it back) | keep: it is what the owner reviews |
 | Published, Pages green, live check done | delete | delete (`git push origin --delete <branch>`): it is merged and carries nothing |
 | Reverted, diagnosis pushed | delete | keep `<branch>-retry`; delete `<branch>` |
-| Scrapped (cannot reproduce, hard stop declined, three failures, conflict) | delete | delete if you had pushed it, after saving any patch |
+| Scrapped (cannot reproduce, hard stop declined, three failures) | delete | delete if you had pushed it, after saving any patch |
 | Nothing pushed by choice | delete after the patch is saved | none |
+
+   A remote deletion the session's proxy refuses is reported to the owner (the branch and the refusal),
+   never retried.
 
 5. `git worktree prune`, then confirm nothing of this run remains. The worktree is gone and the primary
    checkout may predate the script, so read `main`'s scripts into `<main-scripts>` (a scratchpad folder;
