@@ -69,7 +69,7 @@ test('SR2: scenic applies to Go here within 5 km with a leaning on; SR9 says why
   assert.deepEqual(scenicPlan(dest('point', at(10, 0)), from, []), { scenic: false, notice: null }, 'all off: as before, no notice');
   const tooFar = at(SCENIC.maxM / 100 + 1, 0);
   assert.ok(distanceM(from, tooFar) > SCENIC.maxM);
-  assert.deepEqual(scenicPlan(dest('place', tooFar), from, ['green']), { scenic: false, notice: 'Scenic routes reach 5 km' });
+  assert.deepEqual(scenicPlan(dest('place', tooFar), from, ['green']), { scenic: false, notice: 'Scenic routes reach 5\u00a0km' });
 });
 
 test('SR12: Walk me back gets no options and no notice', () => {
@@ -81,18 +81,18 @@ test('SR3: every row says its own distance in the chosen units, never a time or 
   assert.equal(o.length, 2);
   const direct = rowWords(o[0], 'km');
   assert.equal(direct.title, 'Direct');
-  assert.match(direct.distance, /^(999 m|1\.0 km)$/, 'the ladder is 1 km to a metre');
+  assert.match(direct.distance, /^(999[ \u00a0]m|1\.0[ \u00a0]km)$/, 'the ladder is 1 km to a metre');
   const green = rowWords(o[1], 'km');
   assert.equal(green.title, 'Through green');
-  assert.equal(green.distance, '1.2 km', 'the whole route\'s distance');
+  assert.equal(green.distance, '1.2\u00a0km', 'the whole route\'s distance');
   // In miles, as the units setting says (QL13): 1220 m is 0.8 mi, 999 m is 0.6 mi.
-  assert.equal(rowWords(o[1], 'mi').distance, '0.8 mi');
-  assert.equal(rowWords(o[0], 'mi').distance, '0.6 mi');
+  assert.equal(rowWords(o[1], 'mi').distance, '0.8\u00a0mi');
+  assert.equal(rowWords(o[0], 'mi').distance, '0.6\u00a0mi');
   for (const w of [direct, green, rowWords(o[1], 'mi')]) {
     const all = Object.values(w).join(' ');
     assert.doesNotMatch(all, /%|score|rank|points|\bmins?\b|minutes?|hours?|fast|quick|sooner|detour|longer|more/i, 'a distance only: no time, no difference said (VISION.md, Never; the owner, Nov 5)');
   }
-  assert.equal(green.label, 'Through green, 1.2 km, through Prospect Park');
+  assert.equal(green.label, 'Through green, 1.2\u00a0km, through Prospect Park');
   assert.equal(rowWords({ ...o[1], leanings: ['storefronts'] }, 'km').title, 'Along storefronts');
   assert.equal(rowWords({ ...o[1], leanings: ['sights'] }, 'km').title, 'Past the sights');
 });
@@ -236,4 +236,12 @@ test('SF8: a storefronts route names its streets in the order you pass them, nev
   const row = o.find((x) => (x.leanings as string[]).includes('storefronts'));
   assert.ok(row, 'a storefronts route');
   assert.deepEqual(row.passes.streets, ['Near Lane', 'Far Lane']);
+});
+
+// tend map audit 46 (the review of tend map 21, F4): the "too far" notice bound its distance in miles (formatDistance)
+// but built "5 km" itself with a plain space. Both units now keep the figure on its unit's line.
+test('tend map audit 46: the scenic notice binds its distance in both units', () => {
+  const tooFar: Waypoint = { at: at(SCENIC.maxM / 100 + 1, 0), label: 'Your spot', kind: 'place' };
+  assert.deepEqual(scenicPlan(tooFar, from, ['green'], 'km'), { scenic: false, notice: 'Scenic routes reach 5\u00a0km' });
+  assert.deepEqual(scenicPlan(tooFar, from, ['green'], 'mi'), { scenic: false, notice: 'Scenic routes reach 3.1\u00a0mi' });
 });

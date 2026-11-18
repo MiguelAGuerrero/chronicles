@@ -92,6 +92,8 @@ The three tabs (Chronicle, Explore, Navigate), the home sheet, the recording bar
     Never reproduced (desktop, phone emulation, `/chronicles`, reloads,
     browser Back: `E2E_ONLY=reload`, `E2E_MOBILE=1`); these are the only two
     ways the › can do nothing.
+  - A third, since `tend tabs 12`: a stop from the bar under way (`barStop`, any bar of the walk), at most `BAR_STOP_HOLD_MS`
+    (audits 26, 28). A tap refused by a stop that is itself refused is dropped, no word; a second tap works (audit F4).
   - **The bar's Edit offer waits** (T12, decision 0149; ME23's six seconds stay on the walk screen and Navigate's ready
     screen): after the bar's photo, a pill above the bar (`bar-edit-offer`, the Undo pill's look on the page's ground,
     in flow so it covers no screen's controls) says "Photo saved to your walk" with Edit (`capture-edit`) and ✕

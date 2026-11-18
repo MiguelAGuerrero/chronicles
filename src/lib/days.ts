@@ -118,7 +118,10 @@ export function dayCounts(day: Day, o: { bind?: boolean } = {}): string {
   return capWord(countWords(day, o.bind ? '\u00a0' : ' ').join(' · '));
 }
 
-/** A day's row as a screen reader says it: "Today, three moments, one walk" (tend tabs T32), plain spaces. */
+/**
+ * A day's row as a screen reader says it: "Today, three moments, one walk" (tend tabs T32), plain spaces. Speech is no
+ * reason for them: a no-break space is said as a space, and spoken distances keep theirs (tend map audit 47).
+ */
 export function daySpoken(label: string, day: Day): string {
   return [label, ...countWords(day, ' ')].join(', ');
 }

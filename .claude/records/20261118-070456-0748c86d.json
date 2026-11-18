@@ -1,0 +1,122 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "`lib/launchRoute",
+        "--reason",
+        "built in tend tabs 15 (c91acc0c): lib/launchRoute, which keeps the app's instance, is tagged a shell as memoGate is, and its comment says a stale launch goes to Chronicle (decision 0112)"
+      ],
+      "target": "sha256:fe8f76b00164914e10faa734a78c53bffc920863bf684e20a98907aa76962507"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "The launch's"
+      ],
+      "body": "- The gate's half fixed in `tend tabs 14` (`/tend tabs`, Nov 18): `walkGate` counts the walk screens up, so one going down leaves the other's hold. The launch's `router.replace('/walk')` still skips the gate, on purpose: asked through `showWalk({ launch: true })`, a second launch ask refused while the first push was lost before the router was ready (NR3) would leave no walk screen. Whether the replace remounts the walk screen is still unconfirmed.\n",
+      "target": "sha256:393446713604fb594a15958b6a7e4bd93e95b009370dc856766ea93c7efc44fc"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "A memo save"
+      ],
+      "body": "- In the inbox for the owner, with a recommended shape (`/tend tabs`, Nov 18): its fix changes what a person sees or reads, so it is not the loop's until answered.\n",
+      "target": "sha256:867b554438a2f2314f916eb4076a10b84f2d0fd75bc8bc12271161ea22b295a0"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "With the bar"
+      ],
+      "body": "- In the inbox for the owner, with a recommended shape (`/tend tabs`, Nov 18): its fix changes what a person sees or reads, so it is not the loop's until answered.\n",
+      "target": "sha256:ba45de40a41f57d759df7c80f3b003574909dbe8e85a99e92e08b152aefb2124"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "Two dark"
+      ],
+      "body": "- In the inbox for the owner, with a recommended shape (`/tend tabs`, Nov 18): its fix changes what a person sees or reads, so it is not the loop's until answered.\n",
+      "target": "sha256:6a63fbf276cf0b6b7ba3df91c0405a8ddd4507157759b57f9e64c0f607eb6d4c"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "Chronicle's stacked"
+      ],
+      "body": "- In the inbox for the owner, with a recommended shape (`/tend tabs`, Nov 18): its fix changes what a person sees or reads, so it is not the loop's until answered.\n",
+      "target": "sha256:2822ccd7b57d047e2d3833e25b26f2abd645d1496176d68b8ff9fc897e86f7b6"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "Dead code"
+      ],
+      "body": "- Recommended shape (`/tend tabs`, Nov 18; not built, since it removes tests that pin NR1 and NR2 in `walk-screen/navigateReady.test.ts`): `navigatePress()` and `entryPlan()` go, their callers acting directly (the tab press prevented and the walk shown; `/` replaced then the walk shown) and their tests asking the callers' wiring in their place; `tabFor` goes with its test-only uses; the bar reads `recordingLine().paused` for its glyph; `walkInFront` is cleared once `openWalkAtLaunch`'s cap passes. One commit, `src/lib/readyNav.ts`, `startPlan.ts`, `(tabs)/_layout.tsx`, `navigate.tsx`, `_layout.tsx`, `RecordingBar.tsx`, with the walk-screen and tabs journeys.\n",
+      "target": "sha256:7a7fedbd01c7f647a06d7ff0aa2bf5106e1432d11212f240f666e527bdae3b47"
+    },
+    {
+      "argv": [
+        "inbox",
+        "add"
+      ],
+      "body": "- **T? [owner] The bar's Stop calls a memo still being saved \"recording\"** (2026-11-18)\n  Area: tabs. Seen: `RecordingBar.tsx` `stop()`: a memo save that outlasts the 5 s wait reads \"A voice memo is recording. Save it first.\" (the race on `memoGate.readyToStart`), and a save that never settles refuses the bar's Stop until a reload (DEFERRED, \"Tabs and the recording bar\", auditor F5). Rests on: decision 0048 (the bar's Stop is the way out when the walk screen can't be reached); NN/g heuristic 1, \"keep users informed about what is going on\" (docs/research/ui-references.md, 1.9 F2). Telling the two apart needs words no screen says yet, so it is yours.\n  Recommended: `memoGate` tells \"recording\" from \"saving\"; past the 5 s wait a save still running reads \"The voice memo is still being saved. Hold Stop again in a moment.\" in the bar's line, and a save still running after a second hold's wait no longer blocks the stop (the memo keeps saving into the ended walk, as a photo being kept does). /vision: aligned (honour: nothing kept is lost; no count, no accent).\n  Precedent: none recorded in docs/research/adjacent-apps.md; Apple's Voice Memos shows its recording saving in place before it lists it (from memory, not yet recorded).\n  Otherwise: keep the one line and only drop the block after a second hold; or leave it.\n",
+      "number": "T35"
+    },
+    {
+      "argv": [
+        "inbox",
+        "add"
+      ],
+      "body": "- **T? [owner] On Explore at 320 x 700 the bar's Edit pill lifts the map so the walker sits under the press hint** (2026-11-18)\n  Area: tabs. Seen: `tend tabs T12`'s review F6: with the pill up, its 64 px in flow above the bar lift the map, and the walker's dot sits at y ~271, inside \"Press and hold the map to look anywhere.\" (`atlas-press-hint`, 258-298) (DEFERRED, \"Tabs and the recording bar\"). Rests on: the review's F6 alone (opinion: no rule names words over the walker); `tend tabs T12`'s own promise that the pill \"never covers a screen's controls\" (`RecordingBar.tsx`). Moving the hint or the map is a visual change, so it is yours.\n  Recommended: while the bar's Edit pill is up, Explore's press hint steps aside (it shows again as the pill goes), so the walker is never under words; nothing else moves. /vision: no surface (a placement, no new words).\n  Precedent: Google Maps hides its tips while a snackbar stands at the foot (from memory, not yet recorded); none in docs/research/adjacent-apps.md.\n  Otherwise: pad Explore's map by the pill's height so the walker stays centred in what is seen; or accept it (the pill waits for a tap) and record it in the tabs rule.\n",
+      "number": "T36"
+    },
+    {
+      "argv": [
+        "inbox",
+        "add"
+      ],
+      "body": "- **T? [owner] Two dark pills at once on Memories: the bar's Edit pill and the storage notice** (2026-11-18)\n  Area: tabs. Seen: `tabs-T12-pill-on-memories-320` (the capturehome journey): with a walk minimized, the bar's Edit pill stands above the bar while \"This browser may clear Chronicles' moments when it needs room. OK\" stands over the list (DEFERRED, \"Tabs and the recording bar\", `tend tabs T12`'s review). Rests on: Material, \"Only one snackbar may be displayed at a time.\" (docs/research/ui-references.md, 1.9 F1). Which waits is a call on what a person sees first, so it is yours.\n  Recommended: the storage notice waits while the bar's Edit pill is up and shows once it goes (Edit, its ✕ or the next capture); the pill, answering what the person just did, comes first. /vision: aligned (no words change, no count).\n  Precedent: Material's snackbar queue, one at a time, the newer after the older (m3.material.io/components/snackbar/guidelines); iOS has no snackbar (ui-references 1.9).\n  Otherwise: the notice moves into Memories' list as a quiet line, not a pill; or leave it.\n",
+      "number": "T37"
+    },
+    {
+      "argv": [
+        "inbox",
+        "add"
+      ],
+      "body": "- **T? [owner] Chronicle's stacked empty peek springs from 76 to 124 px as the map mounts** (2026-11-18)\n  Area: tabs. Seen: `(tabs)/index.tsx` l.117-119: `sheetH` and `sheetAnim` start at `SHEET_PEEK` (76) and read it until the spring reports, so on a launch with a walk open and none finished the peek rises 48 px and the scale bar and the map's fits sit 48 px low meanwhile (DEFERRED, \"Tabs and the recording bar\", `/tend tabs`'s review F10). Rests on: `.claude/rules/motion-polish.md`, \"Restraint holds: effects are short and physical (a press, a settle, a lift)\": a rise nobody asked for at launch is none of these. Removing a motion people see is a visual change, so it is yours.\n  Recommended: the sheet starts at the peek its state asks for (the stacked empty peek's 124 when a walk is open and none finished), so nothing moves at launch and the fits are right from the first frame; the spring stays for a change of state. /vision: no surface.\n  Precedent: Apple Maps' and Google Maps' sheets open at their resting height with no rise at launch (from memory, not yet recorded).\n  Otherwise: keep the spring and hold the fits and scale bar until it settles; or leave it.\n",
+      "number": "T38"
+    },
+    {
+      "argv": [
+        "inbox",
+        "add"
+      ],
+      "body": "- **T? [owner] `.claude/rules/tabs-and-home.md` is past the 20,000-character warning: split it by topic** (2026-11-18)\n  Area: tabs. Seen: `npm run check:docs` after `tend tabs audit 26-28`: \"`.claude/rules/tabs-and-home.md` is 20154 characters, past the 20000 warning (it fails at 40000)\"; it was 19,925 on `main` before this run's one line (the bar's third way the › does nothing, audit F4). Rests on: decision 0173, \"past the warning a file is split before more is added; the loop files a split as `T [owner]`\"; the loop only adds to rule files (0135), so it cannot split one.\n  Recommended: move the recording bar's bullets of \"After the audit\" (the walk gate and the bar's ›, its Edit offer, its reminder hold, its Stop) into a new `.claude/rules/recording-bar.md` whose `paths:` name `components/RecordingBar.tsx`, `lib/recordingBar.ts`, `lib/walkGate.ts`, `lib/walkNav.ts`, `lib/tabsHidden.ts` and `lib/memoGate.ts`, leaving `tabs-and-home.md` the opening tab, the home map, the sheet and Navigate's settings; no app surface, so no `/vision` verdict.\n  Precedent: none (a repository document, not a job a person does in the app); the same split as T34's for `map.md`.\n  Otherwise: let `tabs-and-home.md` run toward the 40,000-character limit and split it then.\n",
+      "number": "T39"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 18, `/tend tabs --deploy=main`, the `[loop]` items of \"Tabs and the recording bar\"** (opened from `e45412a9`, rebased on `44da1ec2`; no sweep, lenses 1-6 not run; lens 7 alone, ten lows, five taken; the faster lane of decision 0181).\n- `tend tabs 12`: the bar's way back (its line, a tapped reminder) does nothing while the walk is stopping from the bar, before its wait for a photo or after it, so a stop under way goes alone and its replay never lands over a walk screen (NV27; auditor F4).\n- `tend tabs 13`: the bar's comment names its held Stop (decision 0048), not \"no Stop\".\n- `tend tabs 14`: the walk gate counts the walk screens up, so one going down leaves the other's hold (auditor F7, the gate's half; the launch's replace still skips the gate, on purpose, noted on the item).\n- `tend tabs 15`: `lib/launchRoute`, which keeps the app's instance, is a shell, as `memoGate` is, and says a stale launch goes to Chronicle (auditor F8).\n- The review (one round, the `auditor`; ship, four low, all accepted): `tend tabs audit 26` (the stop under way is `barStop`, shared by any bar of the walk, since the bar unmounts as its tab loses focus), `audit 27` (the way back asks again after a reminder's write, just before it shows the walk), `audit 28` (a stop holds the way back only for `BAR_STOP_HOLD_MS`, so a hung stop never leaves the › dead), in one commit; F4 (a tap refused by a stop that is itself refused is dropped with no word) a line in `tabs-and-home.md`, which took it past the 20,000-character warning.\n- Filed: T35-T38 [owner] for the four items whose fix changes what a person sees or reads (a memo save told as recording; the walker under Explore's press hint with the Edit pill up; two dark pills on Memories; Chronicle's peek springing at launch), each noted on its DEFERRED item; T39 [owner], split `tabs-and-home.md` (decision 0173); the dead-code item's shape noted on it. Removed: the three DEFERRED items built. Left: the reminder's stale key (`RECALL_OPEN_KEY`), whose fix prunes a baseline the loop may not touch.\n- Journeys: `tabs`, `ready`, `memories`, `launch`, after the last rebase. Typecheck, lint, `npm test`. Not run: lenses 1-6, the balance's evolve. Nothing here has run on a phone: the bar's stop, the walk gate's focus order on the native stack and a hung `recorder.stop()` are unverified there.\n"
+    }
+  ]
+}
