@@ -74,9 +74,10 @@ async function run(h) {
   // reactions audit 3, carried to the row (SW20, decision 0197): nothing lies over the first Reaction slot.
   const ui3a = await pg.evaluate(() => {
     const foot = document.querySelector('[data-testid=open-line]')?.getBoundingClientRect().top ?? window.innerHeight;
-    const under = Math.max(0, ...[...document.querySelectorAll('[data-testid=day-edge]')].map((e) => e.getBoundingClientRect().bottom));
+    const heldEdge = [...document.querySelectorAll('[data-testid=day-edge]')].map((e) => e.getBoundingClientRect()).filter((r) => r.top >= 0).sort((x, y) => x.top - y.top)[0];
+    const under = heldEdge ? heldEdge.bottom : 0;
     const slot = [...document.querySelectorAll('[data-testid=quick-react]')].find((e) => { const r = e.getBoundingClientRect(); return r.top >= under && r.bottom < foot; });
-    if (!slot) return null;
+    if (!slot) return { top: false, none: true, under: Math.round(under), foot: Math.round(foot), all: [...document.querySelectorAll('[data-testid=quick-react]')].map((e) => { const q = e.getBoundingClientRect(); return [Math.round(q.top), Math.round(q.bottom)]; }) };
     const r = slot.getBoundingClientRect();
     const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
     const all = [...document.querySelectorAll('[data-testid=quick-react]')].map((e) => { const q = e.getBoundingClientRect(); const h = document.elementFromPoint(q.left + q.width / 2, q.top + q.height / 2); return [Math.round(q.top), Math.round(q.height), h?.closest('[data-testid]')?.getAttribute('data-testid')]; });
@@ -97,9 +98,20 @@ async function run(h) {
     const marks = ['entry-dateline'].map((id) => card.querySelector(`[data-testid=${id}]`)).filter(Boolean);
     return marks.map((m) => { const t = Math.round(m.getBoundingClientRect().top); return t >= Math.round(edge.bottom) || `${m.getAttribute('data-testid') ?? m.textContent.trim()}@${t}<${Math.round(edge.bottom)}`; });
   });
+  // With the row under every entry the page is taller than a 320 px phone: measure with the page at its top, the first entry right under its date.
+  const toTop = async () => {
+    await pg.evaluate(() => {
+      const root = document.querySelector('[data-testid=journal-page]');
+      const sc = root && [root, ...root.querySelectorAll('*')].find((x) => x.scrollHeight > x.clientHeight + 4 && /(auto|scroll)/.test(getComputedStyle(x).overflowY));
+      if (sc) sc.scrollTop = 0;
+    });
+    await pg.waitForTimeout(500);
+  };
+  await toTop();
   const rl8 = { at390: await clearOf() };
   await pg.setViewportSize({ width: 320, height: 720 });
   await pg.waitForTimeout(900);
+  await toTop();
   rl8.at320 = await clearOf();
   await pg.setViewportSize({ width: 390, height: 844 });
   await pg.waitForTimeout(700);

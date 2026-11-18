@@ -16,17 +16,22 @@ export type Refs = Partial<Record<'thread' | 'link' | 'reminder' | 'find' | 'rea
 
 const placed = (m: Pick<Moment, 'lat' | 'lon'>): m is { lat: number; lon: number } => m.lat != null && m.lon != null;
 
+/** Whether two moments may be stacked: the same local day, the same walk (or both off any), within `JOIN_NEAR_M` (a moment with no place counts as near). Held where the join is stored too (stack-with-previous audit 4). */
+export function canJoin(entry: Moment, into: Moment): boolean {
+  if (dayKey(into.t) !== dayKey(entry.t)) return false;
+  if ((into.walk_id ?? null) !== (entry.walk_id ?? null)) return false;
+  if (placed(into) && placed(entry) && distanceM([into.lon, into.lat], [entry.lon, entry.lat]) > JOIN_NEAR_M) return false;
+  return true;
+}
+
 /**
  * The latest moment made before the entry on the same local day, on the same walk or both off any walk, and within
  * `JOIN_NEAR_M` of the entry's own place (a moment or entry with no place counts as near); else null (SW6).
  */
 export function previousFor(moments: readonly Moment[], entry: Moment): Moment | null {
-  const day = dayKey(entry.t);
   let best: Moment | null = null;
   for (const m of moments) {
-    if (m.id === entry.id || m.t >= entry.t || dayKey(m.t) !== day) continue;
-    if ((m.walk_id ?? null) !== (entry.walk_id ?? null)) continue;
-    if (placed(m) && placed(entry) && distanceM([m.lon, m.lat], [entry.lon, entry.lat]) > JOIN_NEAR_M) continue;
+    if (m.id === entry.id || m.t >= entry.t || !canJoin(entry, m)) continue;
     if (!best || m.t > best.t) best = m;
   }
   return best;

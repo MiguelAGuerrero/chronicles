@@ -7,6 +7,7 @@ import type { Capture, Moment } from '../../types';
 // reached by name, so each fails until `lib/join.ts` exists.
 type Refs = Partial<Record<'thread' | 'link' | 'reminder' | 'find' | 'reaction' | 'hidden' | 'pick' | 'mention', boolean>>;
 type Join = {
+  canJoin(entry: Moment, into: Moment): boolean;
   previousFor(moments: Moment[], entry: Moment): Moment | null;
   joinable(entry: Moment, ctx: { refs: Refs; lastKept: string | null; writing: string | null }): boolean;
 };
@@ -53,4 +54,13 @@ test('SW8: only the last entry kept, and not one being written, is joinable', as
   assert.equal(joinable(e, { refs: {}, lastKept: 'other', writing: null }), false, 'not the last kept: the slot empties at the next capture');
   assert.equal(joinable(e, { refs: {}, lastKept: null, writing: null }), false, 'not kept in this sitting');
   assert.equal(joinable(e, { refs: {}, lastKept: 'e', writing: 'e' }), false, 'being written');
+});
+
+test('stack-with-previous audit 4: canJoin holds the day, walk and 100 m rule where the join is stored', async () => {
+  const { canJoin } = await mod();
+  const e = mk('e', at(17, 8, 21));
+  assert.equal(canJoin(e, mk('p', at(17, 8, 0))), true);
+  assert.equal(canJoin(e, mk('p', at(16, 8, 0))), false, 'another day');
+  assert.equal(canJoin(e, mk('p', at(17, 8, 0), { lat: LAT + 0.0027 })), false, 'too far');
+  assert.equal(canJoin(e, mk('p', at(17, 8, 0), { walk_id: 'w' })), false, 'another walk');
 });

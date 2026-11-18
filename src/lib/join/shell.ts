@@ -13,7 +13,7 @@ import type { Capture, Moment } from '../types';
  * moment (`merged`, read by the journal page and the viewer); `db.joinMoment` stores the join once the window has
  * passed, so Undo never leaves a half-joined moment. A killed app finishes it from the saved spec (0113).
  */
-export function createJoin(p: Pick<Ports, 'db'>, deps: { schedule: (job: Pick<PendingJob, 'kind' | 'what' | 'ids' | 'spec'>) => void }) {
+export function createJoin(p: Pick<Ports, 'db'>, deps: { schedule: (job: Pick<PendingJob, 'kind' | 'what' | 'ids' | 'spec'>) => void; /** Closes the open moment (the Add to this moment pill's), so the next capture is its own (audit 3). */ closeOpen?: () => void }) {
   /** Each join waiting or done in this run of the app: the entry that went, the moment it joined and the pieces it brought. */
   const store: Store<{ pending: { from: string; into: string; pieces: Capture[] }[] }> = createStore<{ pending: { from: string; into: string; pieces: Capture[] }[] }>({ pending: [] });
   return {
@@ -27,7 +27,8 @@ export function createJoin(p: Pick<Ports, 'db'>, deps: { schedule: (job: Pick<Pe
       for (const j of store.get().pending) {
         if (hidden && !hidden.has(j.from)) continue;
         const into = out.find((m) => m.id === j.into);
-        if (!into) continue;
+        // Stored already (the live moment holds a piece it brought): the live pieces rule, so an edit or a delete shows (audit 2).
+        if (!into || into.pieces.some((x) => j.pieces.some((y) => y.id === x.id))) continue;
         out = out.filter((m) => m.id !== j.from).map((m) => (m.id === j.into ? j.pieces.reduce((acc, piece) => withPiece(acc, piece), m) : m));
       }
       return out;
@@ -37,7 +38,8 @@ export function createJoin(p: Pick<Ports, 'db'>, deps: { schedule: (job: Pick<Pe
       let out = [...views];
       for (const j of store.get().pending) {
         if (hidden && !hidden.has(j.from)) continue;
-        if (!out.some((v) => v.id === j.into)) continue;
+        const live = out.find((v) => v.id === j.into);
+        if (!live || live.capture.pieces.some((x) => j.pieces.some((y) => y.id === x.id))) continue;
         out = out.filter((v) => v.id !== j.from).map((v) => (v.id === j.into ? { ...v, capture: { ...v.capture, pieces: [...v.capture.pieces.filter((x) => !j.pieces.some((y) => y.id === x.id)), ...j.pieces.map((x) => ({ ...x, moment_id: j.into }))].sort((a, b) => a.t - b.t) } } : v));
       }
       return out;
@@ -51,8 +53,11 @@ export function createJoin(p: Pick<Ports, 'db'>, deps: { schedule: (job: Pick<Pe
       if ((entry.walk_id ?? null) !== (into.walk_id ?? null)) throw new Error('Moments on different walks are never stacked.');
       const [stored] = await p.db.getMomentsByIds([into.id]);
       if (!stored) throw new Error('That moment is gone.');
+      // Something that came to point at it since it was offered (a reaction, a thread) makes it not joinable (audit 1).
+      if (Object.values(await p.db.referencesTo(entry.id)).some(Boolean)) throw new Error('Something points at that entry.');
       store.set({ pending: [...store.get().pending.filter((x) => x.from !== entry.id), { from: entry.id, into: into.id, pieces: entry.pieces }] });
       // The join as data, so a killed app stores it at the next launch (decision 0113).
+      deps.closeOpen?.();
       deps.schedule({ kind: 'join', what: entry.pieces[0]?.kind, ids: [entry.id], spec: { type: 'join', fromId: entry.id, intoId: into.id } });
     },
   };

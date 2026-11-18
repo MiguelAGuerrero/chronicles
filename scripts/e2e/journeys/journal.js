@@ -389,13 +389,10 @@ async function run(h) {
     marks: e.querySelectorAll('[data-testid=stack-mark]').length,
     kinds: (e.querySelector('[data-testid=stack-kinds]')?.textContent ?? '').trim(),
   })).catch(() => null);
-  // Amended by decision 0197 (SW11): a closed stack shows its face, the mark and its kinds in words; Show all opens a grid of every piece.
-  await pg.locator(entries).last().locator('[data-testid=stack-toggle]').click().catch(() => {});
-  await pg.waitForTimeout(500);
-  const tiles15 = await pg.locator(entries).last().locator('[data-testid=grid-tile]').count();
-  check(s3.moments.length === before3 + 1 && kinds === 'photo,text,voice' && !!lastEntry && lastEntry.datelines === 1 && lastEntry.pieces.join(',') === 'photo,text,voice' && lastEntry.marks === 1 && lastEntry.kinds === 'a photo, a note and a voice note' && tiles15 === 3,
-    `JN15: a photo, the line under it and a voice note are one entry under one dateline: its face, the mark and its kinds in words, and Show all opens every piece, no count (${JSON.stringify({ kinds, lastEntry, tiles15, moments: s3.moments.length - before3 })})`);
-  await pg.locator(entries).last().locator('[data-testid=stack-toggle]').click().catch(() => {});
+  // Amended by decision 0197 (SW11): a stack shows its face, its words and voice note, the mark and a clause naming its kinds; Show all is only for media behind it, and there is none here.
+  const toggles15 = await pg.locator(entries).last().locator('[data-testid=stack-toggle]').count();
+  check(s3.moments.length === before3 + 1 && kinds === 'photo,text,voice' && !!lastEntry && lastEntry.datelines === 1 && lastEntry.pieces.join(',') === 'photo,text,voice' && lastEntry.marks === 1 && lastEntry.kinds === 'Holds a photo, a note and a voice note' && toggles15 === 0,
+    `JN15: a photo, the line under it and a voice note are one entry under one dateline: its face, the mark and its kinds in words, and no Show all with no media behind it, no count (${JSON.stringify({ kinds, lastEntry, toggles15, moments: s3.moments.length - before3 })})`);
   check(!!lastEntry && lastEntry.pieces.length === 3, `JN3: a moment with several pieces is one entry with its words and voice notes shown, extra photos and videos behind Show all (${JSON.stringify(lastEntry)})`);
   // A voice note plays in line (the owner's call, Nov 13): a play button and a bar on the page, never the viewer.
   const memoRow = pg.locator(entries).last().locator('[data-testid=entry-piece-voice]');

@@ -138,6 +138,17 @@ Places of interest from the tiles, marks, checklists and finds (Explore), and Re
   - Where a fire goes is decided when it is shown (`deliver`): the walk
     screen's card if it is in front and listening, else a notification with a
     fixed `recall-<walk>` identifier.
+  - **Where a fire goes, since tend explore 21-23 and their review** (Nov 17; where it differs, this line holds): every
+    place listens (`createRecallPlaces`, `discovery/recall.ts`), each saying whether it is in front now (the walk screen
+    asks its navigator at fire time; the recording bar is mounted only over the focused tabs), and the newest in front
+    shows it (`firePlace`), else a notification. A walk screen kept behind the tabs after a reload never takes one. The
+    bar holds a fire out of sight (folded under a full-screen card, a Modal up, the keyboard up, the app behind:
+    `barInSight`); its half-minute is time in sight (`reminderSight`). A bar that goes with one in sight for under
+    `RECALL_RULES.glanceMs` hands it on (`handOnRecall`): the next place in front of the same walk takes it as it listens
+    or comes to the front, the walk screen merging it into its card; the walk ended, it is dropped.
+    - **Trap:** a fire is marked fired (a "once" flag cleared) before it is shown, so a place must never take one it
+      cannot show, and a place that goes must hand on what it did not show. With no place in front (a replay or a day
+      over the tabs, the launch cover) the web's notification shows nothing in front: filed in docs/DEFERRED.md.
   - A flag set during a walk counts as fired in it (`newRecall`). An edit
     keeps what firing wrote (`editedRecall`).
   - A tapped notification stores its ids in meta `recall_open`. The next

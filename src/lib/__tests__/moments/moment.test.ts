@@ -110,3 +110,11 @@ test('SW11: the collapsed face names its kinds in words, never a number', async 
   assert.ok(!/\d|\b(two|three|four|five|six|seven|eight|nine|ten)\b/i.test(many), `no number in "${many}"`);
   assert.match(many, /photos/);
 });
+
+// stack-with-previous audit 9, 11 (the audit of Nov 17). Test first.
+const audit = () => import('../../moment' + '') as Promise<{ stackLine(m: Pick<Moment, 'pieces'>): string }>;
+test('stack-with-previous audit 9: the stack\'s line is a clause, never a bare plural or a number', async () => {
+  const { stackLine } = await audit();
+  assert.equal(stackLine(moment('m', [piece('a', 'm', 1, 'text'), piece('b', 'm', 2, 'text')])), 'Holds notes');
+  assert.equal(stackLine(moment('m', [piece('a', 'm', 1, 'photo'), piece('b', 'm', 2, 'text')])), 'Holds a photo and a note');
+});

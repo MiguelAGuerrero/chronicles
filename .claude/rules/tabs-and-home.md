@@ -107,6 +107,7 @@ The three tabs (Chronicle, Explore, Navigate), the home sheet, the recording bar
     can't be reached (the owner's quick fix, Nov 2). It refuses under a memo
     (`memoGate`), waits at most 5 s for the bar's photo, then `stopWalk` and
     the replay.
+  - **The bar's reminder is never lost with the bar** (audits 23-27): `.claude/rules/explore-marks.md`, "Remind me here".
 - **The bar's Stop warns of what is held** (unsaved captures UN5-UN8): after waiting for the memo and the photo,
   it reads `unsaved.heldFor(walk.id)`, says `barWarning` in its line (no Retry on the bar; two lines at most at
   320 px, nothing cut) and goes on; the second hold lets the walk's held captures go. Its camera's failure says its

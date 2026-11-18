@@ -1,8 +1,10 @@
 /// <reference types="node" />
 import { type Faced, facedOf } from '../../moment';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { test } from 'node:test';
-import { RECALL_RULES, afterFire, dueRecalls, editedRecall, isExpired, newRecall, remindChoices, remindMenuLabel, reminderHeld, reminderText } from '../../discovery/recall';
+import { RECALL_RULES, afterFire, dueRecalls, editedRecall, isExpired, newRecall, remindChoices, remindMenuLabel, reminderHeld, reminderName, reminderText } from '../../discovery/recall';
 import { pinKindsWords } from '../../pins';
 import { moreHere, previewSpoken } from '../../memories';
 import type { Recall } from '../../discovery/types';
@@ -197,4 +199,19 @@ test('tend explore 18: the reminder editor\'s two menus offer the chips\' choice
   assert.equal(remindMenuLabel('until', fresh.until, 'none'), 'Until: No end');
   assert.equal(remindMenuLabel('until', kept.until, 'kept'), 'Until: Ends Nov 2');
   assert.equal(remindMenuLabel('until', kept.until, 'year'), 'Until: 1 year');
+});
+
+// tend explore 23: a note's reminder card named itself "A note from here: The bakery smelled of cardamom.. Open"
+// (ReminderCard put ". Open" after a body that ends its own sentence). One full stop, as every other name reads
+// (the T29 review's ux 5; WCAG 2.2, 4.1.2 Name, Role, Value: the name is what is read).
+test('tend explore 23: a reminder card\'s name puts one full stop before Open, never two', () => {
+  assert.equal(reminderName([capture('n')]), 'A note from here: The bakery smelled of cardamom. Open');
+  assert.equal(reminderName([capture('q', { body: 'Was it the bakery?' })]), 'A note from here: Was it the bakery? Open');
+  assert.equal(reminderName([capture('l', { body: 'x'.repeat(RECALL_RULES.noteChars + 5) })]), `A note from here: ${'x'.repeat(RECALL_RULES.noteChars)}… Open`);
+  assert.equal(reminderName([capture('p', { kind: 'photo', body: null, caption: 'The mural' })]), 'A memory from here: The mural. Open');
+  assert.equal(reminderName([capture('v', { kind: 'voice', body: null })]), 'A memory from here: Voice memo, Oct 20. Open');
+  assert.equal(reminderName([capture('e', { body: '   ' })]), 'A note from here. Open');
+  // The card says the name it is given.
+  const card = readFileSync(join(__dirname, '..', '..', '..', 'components', 'ReminderCard.tsx'), 'utf8');
+  assert.match(card, /accessibilityLabel=\{reminderName\(props\.captures\)\}/);
 });

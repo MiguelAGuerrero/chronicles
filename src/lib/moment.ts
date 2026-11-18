@@ -180,3 +180,8 @@ export function kindsLine(m: Pick<Moment, 'pieces'>): string {
   const parts = order.map((k) => ((seen.get(k) ?? 0) > 1 ? KIND_MANY[k] : KIND_ONE[k]));
   return parts.length < 2 ? (parts[0] ?? '') : `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}`;
 }
+
+/** The stack's line on the page: a clause that names the kinds, never a bare plural or a number (stack-with-previous audit 9). */
+export function stackLine(m: Pick<Moment, 'pieces'>): string {
+  return `Holds ${kindsLine(m)}`;
+}
