@@ -520,6 +520,7 @@ const RENAMED = {
 const IN_PROGRESS = {
   'outing-journey': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-17' },
   'road-engine': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-18' },
+  'drive-in-the-outing': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-18' },
 };
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));

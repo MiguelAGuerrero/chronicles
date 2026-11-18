@@ -192,3 +192,13 @@ source.
 - **Google Maps**: a route with its arrival time, spoken turns, "faster route available" prompts and rerouting said aloud. Source:
   from memory, unverified. **Unverified**. A counter-example: the prompt to change route is the nag this product leaves out.
 
+### Keep a drive as part of the day (Honour, Return)
+
+- **Apple Voice Memos**: the Action button can start a recording, saved with the name of your location. Source: support.apple.com,
+  as read by the session that ran the gate for decision 0206 (Nov 18, 2026). **Verified there, not re-read here**. The model for a
+  capture without the screen.
+- **Polarsteps**: a trip as a route with steps; users report straight lines between stops. Source: from memory. **Unverified**. The
+  model for the road in a replay, and the straight lines are what to avoid.
+- **Google Maps Timeline**: kept on the device, and it records your day unasked. Source: as read by the same session. **Verified
+  there, not re-read here**. A counter-example: nothing here is started for you.
+- **iOS Driving Focus**: silences notifications while driving. Source: from memory. **Unverified**.
