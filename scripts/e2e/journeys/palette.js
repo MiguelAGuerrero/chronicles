@@ -334,24 +334,11 @@ async function townBorders(h) {
   await pg.waitForSelector('[data-testid=stop]');
   await walkTo(-0.5, 0.8);
   await walkTo(0.85, 0.8);
-  // tend map audit 39: the walk with Unwalked streets on keeps the town's edge under its veil, as before T33 (the owner's
-  // answer was the replay's and a day's), so the edge never matches an unwalked street's dark line.
-  await pg.click('[data-testid=unwalked]');
+  // tend map audit 39 measured the town's edge under the walk's unwalked veil; the veil went with the unwalked-streets
+  // button (decision 0208, WB1), so the walk draws its firm edge on the plain map. The replay and a day keep theirs below.
   await pg.waitForFunction(() => [...document.querySelectorAll('[data-borders]')].some((e) => /firm:Pawtucket/.test(e.getAttribute('data-borders') ?? '')), null, { timeout: 45000 }).catch(() => {});
-  await pg.waitForTimeout(2500);
   const walkDrawn = await pg.$$eval('[data-borders]', (es) => es.map((e) => e.getAttribute('data-borders')).join(' '));
-  await shot(pg, 'palette-16-borders-walk-unwalked-390');
-  // A block's middle 20 m north of you, the edge and the ground east of it, clear of the screen's controls.
-  await hidePins(true);
-  const walkAcross = await row(at(1, 1), 6);
-  const walkGround = (await row(at(1.25, 1), 0))[0];
-  await hidePins(false);
-  const walkEdge = darkest(walkAcross);
-  const walkMeasured = `edge ${JSON.stringify(walkEdge)} ${contrastOf(walkEdge, walkGround).toFixed(2)}:1 on ${JSON.stringify(walkGround)}; ${walkDrawn}`;
-  console.log(`tend map audit 39 measured on the walk with Unwalked streets on: ${walkMeasured}`);
-  check(/firm:Pawtucket/.test(walkDrawn) && contrastOf(walkEdge, walkGround) > 1.5 && contrastOf(walkEdge, walkGround) < 3,
-    `tend map audit 39: on the walk with Unwalked streets on, the town's edge is drawn and stays under the veil, as before (${walkMeasured})`);
-  await pg.click('[data-testid=unwalked]');
+  check(/firm:Pawtucket/.test(walkDrawn), `the walk draws the town's firm edge (${walkDrawn})`);
   await walkTo(0.85, -0.5);
   await walkTo(0.1, -0.5);
   await pg.waitForTimeout(1500);

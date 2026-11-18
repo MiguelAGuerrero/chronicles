@@ -15,8 +15,7 @@ const some = (): ClutterLayers => ({
   landing: { pockets: [], strips: [] } as unknown as ClutterLayers['landing'],
   borders: { yours: [], others: [] } as unknown as ClutterLayers['borders'],
   walkability: { foot: [], car: [] } as unknown as ClutterLayers['walkability'],
-  veil: true,
-  fogEmphasis: true,
+  past: { key: 'w', ids: ['w'], runs: [[[1, 1], [2, 2]]] },
 });
 
 test('fix preview-clutter 1: with a preview open, no trace, ride, gap stretch, fog, walked street, hotspot, border or walkability tint is drawn', () => {
@@ -37,10 +36,10 @@ test('fix preview-clutter 2: without a preview, every layer is drawn as it was',
   assert.equal(forPreview(false, layers), layers, 'the same layers, untouched');
 });
 
-test('fix preview-clutter audit 3: the "unwalked" veil and the bold fog are off while previewing, and back after', () => {
+test('fix preview-clutter audit 3: the earlier walks\' lines are off while previewing, and back after (the unwalked veil and bold fog went with decision 0208)', () => {
   const r = forPreview(true, some());
-  assert.equal(r.veil, false);
-  assert.equal(r.fogEmphasis, false);
+  assert.equal(r.past, null);
+  assert.equal('veil' in r || 'fogEmphasis' in r, false);
   const layers = some();
-  assert.equal(forPreview(false, layers).veil, true);
+  assert.deepEqual(forPreview(false, layers).past, { key: 'w', ids: ['w'], runs: [[[1, 1], [2, 2]]] });
 });

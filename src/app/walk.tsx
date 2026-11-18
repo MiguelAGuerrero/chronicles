@@ -54,7 +54,7 @@ import { boundsOf, distanceM, distanceToLinesM, nearPoints, pausedMs } from '../
 import { capturesHere, type HereResult } from '../lib/here';
 import { groupFirst, groupRadiusM, MEMORY_RULES, memoriesNear, memoryReader } from '../lib/memories';
 import { MemoryPreview } from '../components/MemoryPreview';
-import { deriveSegments, streetKey } from '../lib/streets';
+import { deriveSegments } from '../lib/streets';
 import { feedback } from '../lib/motion';
 import { MOTION } from '../lib/motionTokens';
 import { recorder } from '../lib/recorder';
@@ -85,6 +85,7 @@ import { loadWayBack, saveWayBack } from '../lib/nav/store';
 import { CHOSEN_NOTICE, showsWayBack, wayBackTarget } from '../lib/nav/wayBack';
 import { layerNotes } from '../lib/layers/notes';
 import { useStorefrontsLayer } from '../lib/layers/useStorefrontsLayer';
+import { usePastLines } from '../lib/pastLines/usePastLines';
 import { useLayers } from '../lib/layers/useLayers';
 import { useRouteWarning } from '../lib/walk/useRouteWarning';
 import { useWalkability } from '../lib/walk/useWalkability';
@@ -95,7 +96,7 @@ import { useStopArrival } from '../lib/outing/useArrival';
 import { CaptureStack } from '../components/walk/CaptureStack';
 import { ReadyBar } from '../components/walk/ReadyBar';
 import { scaleInsetBottom } from '../lib/stackSlots';
-import { BAR_H, CAP, EDGE, GUTTER, raisedHeight, SCALE_BOTTOM, STACK_GAP, useStackLayout } from '../components/walk/layout';
+import { BAR_H, CAP, GUTTER, raisedHeight, SCALE_BOTTOM, STACK_GAP, useStackLayout } from '../components/walk/layout';
 import { useReady } from '../components/walk/useReady';
 import { aboutTimeLeft, formatTimeLeft, paceMps, timeLeftMs } from '../lib/nav/eta';
 import { optionAt } from '../lib/nav/scenic';
@@ -339,10 +340,16 @@ function WalkScreen(props: { onMinimize: () => void }) {
 
   // The ready state (NR1, NR5-NR13): with no walk open, the map and the overlay are its.
   // The buttons the compass hands the focus to as it leaves (tend map 6): Locate on the ready screen; on the walk,
-  // the one below it in the column, Walk me back while that shows, else the unwalked streets.
+  // the one below it in the column, Walk me back while that shows, else Recenter while it shows, else the map (WB3).
   const readyLocateRef = useRef<PressableRef>(null);
   const backRef = useRef<PressableRef>(null);
-  const unwalkedRef = useRef<PressableRef>(null);
+  const recenterRef = useRef<PressableRef>(null);
+  // Resolved as the compass is pressed, never in render: whichever is drawn then.
+  const [compassNext] = useState(() =>
+    Object.defineProperty({} as { current: unknown }, 'current', {
+      get: (): unknown => backRef.current ?? recenterRef.current ?? { focus: () => mapRef.current?.focus() },
+    }),
+  );
   const ready = useReady({
     locateRef: readyLocateRef,
     active: !walk,
@@ -536,10 +543,6 @@ function WalkScreen(props: { onMinimize: () => void }) {
         run.busy = false;
       });
   }, [live.here, live.riding, build]);
-  // Unwalked streets near me: a count, and the fog drawn boldly over a veiled map.
-  const [showUnwalked, setShowUnwalked] = useState(false);
-  // Named streets only (the owner's call): unnamed paths are fog, not a count.
-  const unwalkedCount = useMemo(() => new Set(fog.filter((x) => x.name).map(streetKey)).size, [fog]);
 
   // A long press on the map opens a small sheet for that spot: Go here, and
   // what happened here (every capture near it, on any walk) when there is any.
@@ -727,6 +730,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const layers = useLayers();
   const wk = useWalkability(live.here, !!layers.on.walkability);
   const storefronts = useStorefrontsLayer(live.here, !!layers.on.storefronts);
+  // Where I've been (WB6, WB8): earlier walks near you, never this one; read only while a walk is open (the ready screen reads its own).
+  const past = usePastLines(live.here, !!layers.on.past && !!walk, walk?.id ?? null);
   // While choosing among a preview's routes only the routes are drawn, in blue; the trace, the fog, the storefront streets' shading and the rest
   // come back as it closes (fix preview-clutter).
   const drawn = forPreview(!!navigation.preview, {
@@ -739,8 +744,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
     landing: storefronts.view,
     borders: layers.on.borders ? borders : null,
     walkability: wk.draw,
-    veil: showUnwalked,
-    fogEmphasis: showUnwalked,
+    past: past.view,
   });
   const aheadLine = useRouteWarning(navigation.nav?.route.path ?? null, live.here, !!layers.on.walkability);
   // Explore (v1 slice 5): checklists are built quietly on every walk (E2); the layers show only
@@ -1340,7 +1344,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
         <>
           {ready.overlay}
           {/* The compass over Locate while the map is turned (CP2); the live walk has its own, below. */}
-          <CompassButton bearing={bearing} onPress={() => mapRef.current?.resetNorth()} bottom={at.edgeBottom('unwalked')} right={at.edgeRight} focusAfter={readyLocateRef} />
+          <CompassButton bearing={bearing} onPress={() => mapRef.current?.resetNorth()} bottom={at.edgeBottom('back')} right={at.edgeRight} focusAfter={readyLocateRef} />
         </>
       ) : (
       <>
@@ -1731,28 +1735,6 @@ function WalkScreen(props: { onMinimize: () => void }) {
 
       {/* Small round controls in the stack's column, above the captures (as in AllTrails), inside the
           640 column on wide screens: Recenter where Locate sits on the ready screen (NR9). */}
-      <Pressable
-        ref={unwalkedRef}
-        testID="unwalked"
-        accessibilityRole="switch"
-        accessibilityState={{ checked: showUnwalked }}
-        aria-checked={showUnwalked}
-        accessibilityLabel="Show unwalked streets near me"
-        onPress={() => setShowUnwalked((v) => !v)}
-        style={({ pressed }) => [styles.edgeBtn, { right: at.edgeRight, bottom: at.edgeBottom('unwalked') }, showUnwalked && styles.edgeBtnOn, pressed && styles.pressed]}
-      >
-        <Icon name="footsteps-outline" size={22} color={showUnwalked ? '#ffffff' : theme.ink} />
-      </Pressable>
-      {showUnwalked && (
-        <View
-          style={[styles.unwalked, { right: at.edgeRight + EDGE + 8, bottom: at.edgeBottom('unwalked') + 7 }]}
-          accessibilityLiveRegion="polite"
-          pointerEvents="none"
-        >
-          <Text style={styles.unwalkedText}>{unwalkedCount} unwalked nearby</Text>
-        </View>
-      )}
-
       {/* The compass (CP2): the column's top, so no other button moves; it takes Walk me back's
           place while that is away, and sits above Locate on the ready screen. */}
       <CompassButton
@@ -1760,10 +1742,10 @@ function WalkScreen(props: { onMinimize: () => void }) {
         onPress={() => mapRef.current?.resetNorth()}
         bottom={at.edgeBottom(awayFromStart && !navigation.nav ? 'compass' : 'back')}
         right={at.edgeRight}
-        focusAfter={awayFromStart && wayBack && !navigation.nav ? backRef : unwalkedRef}
+        focusAfter={compassNext}
       />
       {/* Layers (ML3): the bottom-left corner above the scale bar, clear of the navigation bar. */}
-      <LayersControl layers={layers} notes={layerNotes({ walkability: wk.status, storefrontsReading: storefronts.reading, storefrontsFailed: storefronts.failed })} bottom={at.layers.bottom} left={at.layers.left} rightClear={at.layersRightClear} clearTop={at.insets.top + 152} />
+      <LayersControl layers={layers} notes={layerNotes({ walkability: wk.status, storefrontsReading: storefronts.reading, storefrontsFailed: storefronts.failed, past: past.status })} bottom={at.layers.bottom} left={at.layers.left} rightClear={at.layersRightClear} clearTop={at.insets.top + 152} />
 
       {awayFromStart && wayBack && !navigation.nav && (
         // Walk me back: the way back to where this walk began, where the last ride ended, or the spot chosen (N1, N11, DW6-DW8).
@@ -1783,6 +1765,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
       {!following && live.here && (
         // Back to following the walker, after looking around the map.
         <Pressable
+          ref={recenterRef}
           testID="recenter"
           accessibilityRole="button"
           accessibilityLabel="Recenter on your position"
@@ -2080,7 +2063,6 @@ const styles = StyleSheet.create({
   // As high as Pause beside it, so the two share a top and a bottom (tend walk-screen audit 9); the walk's strip only.
   stopBtn: { minHeight: 48 },
   pauseTextOn: { color: '#ffffff' },
-  edgeBtnOn: { backgroundColor: theme.ink, borderColor: theme.ink },
   minRow: { alignSelf: 'stretch', flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
   noticeCell: { flex: 1, minWidth: 0 },
   noticeBelow: { alignSelf: 'stretch' },
@@ -2088,8 +2070,6 @@ const styles = StyleSheet.create({
   chipCell: { position: 'absolute', left: 0, right: 0, top: 0, height: 44, alignItems: 'center', justifyContent: 'center' },
   ahead: { flexDirection: 'row', alignItems: 'center', gap: 8, maxWidth: 360, backgroundColor: theme.glass, borderRadius: 999, paddingVertical: 8, paddingHorizontal: 12, borderWidth: 1, borderColor: theme.line },
   aheadText: { color: theme.ink, fontSize: 14, flexShrink: 1 },
-  unwalked: { position: 'absolute', backgroundColor: theme.ink, borderRadius: 999, paddingVertical: 8, paddingHorizontal: 12 },
-  unwalkedText: { color: '#ffffff', fontSize: 14, fontWeight: '600' },
   // Small round controls at the map's edges, as in AllTrails.
   edgeBtn: {
     position: 'absolute', width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center',

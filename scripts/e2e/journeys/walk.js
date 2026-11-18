@@ -653,15 +653,10 @@ async function checks(h) {
         await page.click('[data-testid=recenter]');
         await page.waitForSelector('[data-testid=recenter]', { state: 'detached' });
         check(true, 'after looking around, Recenter brings the map back');
-        // Unwalked streets near me.
+        // The fog of unwalked streets still draws, quietly (the unwalked-streets button went with decision 0208).
         n12.fog = await navOn();
-        await page.click('[data-testid=unwalked]');
-        await page.waitForSelector('text=/unwalked nearby/');
-        n12.unwalked = await page.locator('text=/unwalked nearby/').first().innerText();
-        check(n12.photo && n12.photoKept && n12.pause && n12.grewM > 0 && n12.held && n12.fog && /^[1-9]\d* unwalked nearby$/.test(n12.unwalked),
-          `N12: while navigating, the walk records, a photo is kept, Pause holds the bar's distance, and the fog counts its streets (${JSON.stringify(n12)})`);
-        await shot(page, '03c-unwalked');
-        await page.click('[data-testid=unwalked]');
+        check(n12.photo && n12.photoKept && n12.pause && n12.grewM > 0 && n12.held && n12.fog,
+          `N12: while navigating, the walk records, a photo is kept, Pause holds the bar's distance, and the fog draws (${JSON.stringify(n12)})`);
       }
       if (k === 39) {
         // 40 s of walking with captures, an explore read and a route: the page stays the same size (leak regression).

@@ -60,9 +60,9 @@ async function run(h) {
   // WB4: the Layers panel lists "Where I've been", off; nothing drawn yet.
   await panelOpen();
   const row = pg.locator('[data-testid=layer-past]');
-  check.todo((await row.count()) === 1 && /Where I.ve been/.test((await pg.locator('[data-testid=layers-panel]').innerText()) ?? '') && !(await isOn()),
+  check((await row.count()) === 1 && /Where I.ve been/.test((await pg.locator('[data-testid=layers-panel]').innerText()) ?? '') && !(await isOn()),
     'WB4: the walk\'s Layers panel lists "Where I\'ve been", a switch, off');
-  check.todo((await past()).length === 0, `WB6: off, no earlier walk is drawn (${await past()})`);
+  check((await past()).length === 0, `WB6: off, no earlier walk is drawn (${await past()})`);
   await shot(pg, 'where-01-panel');
 
   // WB6, WB12, WB16: on, the near walk draws and the far one does not; the panel says what it is doing in words.
@@ -75,18 +75,18 @@ async function run(h) {
     await pg.waitForTimeout(200);
   }
   const drawn = await waitPast((p) => p.includes('past-near'));
-  check.todo(JSON.stringify(drawn) === '["past-near"]', `WB6: on, the walk within 5 km draws and the one 8 km away does not (${drawn})`);
-  check.todo(notes.every((n) => n === 'Getting your walks ready…'), `WB12: while older walks are prepared the panel says so in words (${notes.join(', ')})`);
-  check.todo(!/\d|%/.test(await pg.locator('[data-testid=layers-panel]').innerText().catch(() => '')), 'WB10: no number in the panel with the layer on');
+  check(JSON.stringify(drawn) === '["past-near"]', `WB6: on, the walk within 5 km draws and the one 8 km away does not (${drawn})`);
+  check(notes.every((n) => n === 'Getting your walks ready…'), `WB12: while older walks are prepared the panel says so in words (${notes.join(', ')})`);
+  check(!/\d|%/.test(await pg.locator('[data-testid=layers-panel]').innerText().catch(() => '')), 'WB10: no number in the panel with the layer on');
   const settledSends = await sends();
-  check.todo(settledSends >= 1 && settledSends <= 2, `WB16: preparing sent the lines at most twice, never once a walk (${settledSends})`);
+  check(settledSends >= 1 && settledSends <= 2, `WB16: preparing sent the lines at most twice, never once a walk (${settledSends})`);
   await shot(pg, 'where-02-on');
   await closePanel();
 
   // WB11: the legend in the ready bar's settings, in words.
   await drawerTo(pg, 'half');
   const legend = (await pg.locator('[data-testid=layer-legend-past]').innerText().catch(() => '')) ?? '';
-  check.todo(/Your earlier walks/.test(legend), `WB11: "On the map" names the layer's line in words (${legend})`);
+  check(/Your earlier walks/.test(legend), `WB11: "On the map" names the layer's line in words (${legend})`);
   await shot(pg, 'where-02b-legend');
   await drawerTo(pg, 'peek');
 
@@ -96,7 +96,7 @@ async function run(h) {
   const fogOff = await attr('data-fog-paint');
   await switchLayer(pg, 'past', true);
   await waitPast((p) => p.includes('past-near'));
-  check.todo(!!fogOn && fogOn === fogOff, `WB9: the fog is painted the same with the layer on and off (${fogOn} / ${fogOff})`);
+  check(!!fogOn && fogOn === fogOff, `WB9: the fog is painted the same with the layer on and off (${fogOn} / ${fogOff})`);
 
   // WB8, WB16: Start; the walk being recorded is never in the layer, and a minute of fixes resends nothing.
   await pg.click('[data-testid=start]');
@@ -111,13 +111,13 @@ async function run(h) {
   }
   const walk = await openWalk(pg);
   const during = await past();
-  check.todo(!!walk && !during.includes(walk.id) && during.includes('past-near'), `WB8: the walk being recorded is not part of the layer (${during})`);
-  check.todo((await sends()) === before, `WB16: thirty fixes sent the lines no more (${before} -> ${await sends()})`);
+  check(!!walk && !during.includes(walk.id) && during.includes('past-near'), `WB8: the walk being recorded is not part of the layer (${during})`);
+  check((await sends()) === before, `WB16: thirty fixes sent the lines no more (${before} -> ${await sends()})`);
 
   // WB1: no unwalked-streets control, line or veil on the live walk; the fog still draws, quietly.
-  check.todo((await pg.locator('[data-testid=unwalked]').count()) === 0 && (await pg.locator('text=/unwalked nearby/').count()) === 0,
+  check((await pg.locator('[data-testid=unwalked]').count()) === 0 && (await pg.locator('text=/unwalked nearby/').count()) === 0,
     'WB1: the live walk has no unwalked-streets button and no "unwalked nearby" line');
-  check.todo((await attr('data-veil')) === '0' && (await attr('data-fog-paint')) === fogOff, `WB1: no veil and the fog quiet (${await attr('data-veil')}, ${await attr('data-fog-paint')})`);
+  check((await attr('data-veil')) === '0' && (await attr('data-fog-paint')) === fogOff, `WB1: no veil and the fog quiet (${await attr('data-veil')}, ${await attr('data-fog-paint')})`);
 
   // WB2: the column closes up: Walk me back sits right above Recenter, nothing between.
   const box = await pg.locator('canvas.maplibregl-canvas').last().boundingBox();
@@ -130,7 +130,7 @@ async function run(h) {
   const back = await pg.locator('[data-testid=walk-back]').boundingBox().catch(() => null);
   const rec = await pg.locator('[data-testid=recenter]').boundingBox().catch(() => null);
   const gap = back && rec ? rec.y - (back.y + back.height) : null;
-  check.todo(!!back && !!rec && Math.abs(back.x - rec.x) < 1 && gap >= 0 && gap < 20, `WB2: Walk me back sits right above Recenter, no slot between (gap ${gap})`);
+  check(!!back && !!rec && Math.abs(back.x - rec.x) < 1 && gap >= 0 && gap < 20, `WB2: Walk me back sits right above Recenter, no slot between (gap ${gap})`);
   await shot(pg, 'where-03-walk');
 
   // WB3: the compass hands focus to Walk me back while it shows.
@@ -139,27 +139,30 @@ async function run(h) {
   await pg.click('[data-testid=compass]').catch(() => {});
   await pg.waitForTimeout(900);
   const focused = await pg.evaluate(() => document.activeElement?.getAttribute('data-testid') ?? '');
-  check.todo(focused === 'walk-back', `WB3: leaving the compass, focus goes to Walk me back (${focused})`);
+  check(focused === 'walk-back', `WB3: leaving the compass, focus goes to Walk me back (${focused})`);
   await pg.click('[data-testid=recenter]').catch(() => {});
 
   // WB5, WB6: Explore has the switch on too; only its main map draws the lines; a reload keeps it.
+  await pg.click('[data-testid=walk-minimize]');
+  await pg.waitForTimeout(800);
   await tabTo(pg, 'explore');
   await pg.waitForSelector('[data-testid=layers]', { timeout: 30000 });
   await panelOpen();
-  check.todo(await isOn(), 'WB5: on in the walk, on in Explore');
+  check(await isOn(), 'WB5: on in the walk, on in Explore');
   await closePanel();
   await waitPast((p) => p.includes('past-near'));
   const hosts = await pg.evaluate(() => [...document.querySelectorAll('[data-past]')].filter((e) => e.getAttribute('data-past')).length);
-  check.todo(hosts === 1 && (await past()).includes('past-near'), `WB6: on Explore the main map draws the lines and nothing else does (${hosts})`);
+  check(hosts === 1 && (await past()).includes('past-near'), `WB6: on Explore the main map draws the lines and nothing else does (${hosts})`);
   await shot(pg, 'where-04-explore');
   await pg.reload();
   await pg.waitForSelector('[data-testid=layers]', { timeout: 30000 });
   await panelOpen();
-  check.todo(await isOn(), 'WB5: still on after a reload');
+  check(await isOn(), 'WB5: still on after a reload');
   await closePanel();
 
   // WB8: once stopped, the walk joins the layer.
-  await pg.goto(`${h.url}walk`);
+  // An open walk comes straight up at launch.
+  await pg.goto(h.url);
   await pg.waitForSelector('[data-testid=stop]', { timeout: 30000 });
   const s = await pg.locator('[data-testid=stop]').boundingBox();
   await pg.mouse.move(s.x + s.width / 2, s.y + s.height / 2);
@@ -170,7 +173,7 @@ async function run(h) {
   await pg.goto(navUrl);
   await pg.waitForSelector('[data-testid=start]', { timeout: 30000 });
   const after = await waitPast((p) => !!walk && p.includes(walk.id));
-  check.todo(!!walk && after.includes(walk.id), `WB8: once stopped, the walk joins the layer (${after})`);
+  check(!!walk && after.includes(walk.id), `WB8: once stopped, the walk joins the layer (${after})`);
 
   // WB17: nothing new left the device.
   nothingLeaves();

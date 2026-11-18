@@ -176,7 +176,7 @@ test('NF5: the phone simplifies the line sources the web does, from one definiti
   const t = mapTypes as unknown as { LINE_SOURCE?: unknown; LINE_SOURCE_IDS?: readonly string[] };
   assert.deepEqual(t.LINE_SOURCE, { tolerance: 1, buffer: 64 });
   const ids = t.LINE_SOURCE_IDS ?? [];
-  assert.deepEqual([...ids].sort(), ['alternates', 'drawing', 'faint', 'fog', 'gap-links', 'rides', 'route', 'route-grades', 'trace', 'trace-history', 'trace-link', 'walked']);
+  assert.deepEqual([...ids].sort(), ['alternates', 'drawing', 'faint', 'fog', 'gap-links', 'past', 'rides', 'route', 'route-grades', 'trace', 'trace-history', 'trace-link', 'walked']);
   const sf = read(NATIVE);
   const spreads = (e: Jsx) => opening(e).attributes.properties.some((p) => ts.isJsxSpreadAttribute(p) && p.expression.getText() === 'LINE_SOURCE');
   // A component drawing a line source (TraceSource and its kin) spreads LINE_SOURCE into its own GeoJSONSource.

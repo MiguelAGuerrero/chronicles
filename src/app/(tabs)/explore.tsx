@@ -28,6 +28,7 @@ import { layerNotes } from '../../lib/layers/notes';
 import { createMotion } from '../../lib/layers/motion';
 import { storefrontsHold } from '../../lib/layers/state';
 import { useStorefrontsLayer } from '../../lib/layers/useStorefrontsLayer';
+import { usePastLines } from '../../lib/pastLines/usePastLines';
 import { useLayers } from '../../lib/layers/useLayers';
 import { useWalkability } from '../../lib/walk/useWalkability';
 import { WalkMap } from '../../components/map/WalkMap';
@@ -420,6 +421,8 @@ export default function Explore() {
     [townSeen, hoodsAtKey],
   );
   const storefronts = useStorefrontsLayer(layersAt, !!layers.on.storefronts, stillness, hold);
+  // Where I've been (WB6): earlier walks around the layers' centre, on this main map only, never a tile's or a card's (S1).
+  const past = usePastLines(layersAt, !!layers.on.past);
   // The Storefronts layer's lines draw at any zoom; its street names only near the selected area and zoomed in (EC7).
   // On or off by one boolean, never the zoom itself, so a camera move does not send the map a new view (audit 3); a
   // neighborhood's names reach its ring, a town's its own reach (audit 16).
@@ -763,6 +766,7 @@ export default function Explore() {
           // Town borders are a layer (ML12); a town's own page keeps the border it frames (TB2).
           borders={layers.on.borders || town ? borders : null}
           walkability={wk.draw}
+          past={past.view}
           landing={storefrontView}
           storefrontNamesOver
           storefrontNamesReserve={storefrontReserve}
@@ -919,7 +923,7 @@ export default function Explore() {
         <LocateButton ref={locateRef} busy={locating} onPress={locate} bottom={8} />
       ) : null}
       {/* The compass (CP2): above Locate, only while the map is turned and on screen. */}
-      {focused && !spot && <LayersControl layers={layers} notes={layerNotes({ walkability: wk.status, storefrontsReading: storefronts.reading, storefrontsFailed: storefronts.failed })} top={insets.top + 8} right={12} paneWidth={screen.w} clearBottom={insets.bottom + 100} />}
+      {focused && !spot && <LayersControl layers={layers} notes={layerNotes({ walkability: wk.status, storefrontsReading: storefronts.reading, storefrontsFailed: storefronts.failed, past: past.status })} top={insets.top + 8} right={12} paneWidth={screen.w} clearBottom={insets.bottom + 100} />}
       {focused && !spot && <CompassButton bearing={bearing} onPress={() => mapRef.current?.resetNorth()} bottom={8 + 44 + 12} focusAfter={finding.edgeLocate ? locateRef : moveMapRef} />}
       {/* Free look (FL2, FL5): Move map above the compass's slot; while it is on, the middle is marked and Show areas here loads it. */}
       {focused && !plan && !outingOpen && <MoveMapToggle ref={moveMapRef} on={free} onPress={() => setFree((f) => !f)} bottom={8 + 44 + 12 + 44 + 12} />}

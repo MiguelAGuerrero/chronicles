@@ -266,7 +266,7 @@ test('map-palette ui 1: each kind disc on a pin of several keeps its white edge,
 
 // Where I've been (WB9): the earlier walks' lines, written before the code; `COLORS.past`, `PAST_STYLE` and the `past`
 // source are read through the module's names, so the typecheck holds while the test fails.
-test('WB9: one even tone, thinner than today\'s trace with no edge, between the fog and the walked streets; told apart and quieter than the trace', { todo: 'test first' }, () => {
+test('WB9: one even tone, thinner than today\'s trace with no edge, between the fog and the walked streets; told apart and quieter than the trace', () => {
   const style = named.PAST_STYLE as { opacity: number; width: number } | undefined;
   assert.ok(style, 'PAST_STYLE');
   assert.equal(style.opacity, 1, 'opaque, so two walks over one street look like one');
@@ -287,7 +287,7 @@ test('WB9: one even tone, thinner than today\'s trace with no edge, between the 
   assert.doesNotMatch(web, /'past'[^\n]*line-opacity-transition|past-edge/);
 });
 
-test('WB1, WB9: the walk screen never asks for a bold fog or the veil: the fog is quiet on every walk', { todo: 'test first' }, () => {
+test('WB1, WB9: the walk screen never asks for a bold fog or the veil: the fog is quiet on every walk', () => {
   const walk = read('app/walk.tsx');
   assert.doesNotMatch(walk, /fogEmphasis|veil:/, 'no bold fog and no veil from the walk screen');
   assert.doesNotMatch(walk, /unwalked/i, 'no unwalked-streets control, count or state');

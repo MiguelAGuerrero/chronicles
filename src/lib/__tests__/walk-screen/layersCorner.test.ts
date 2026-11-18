@@ -8,8 +8,8 @@ import { EDGE_INDEX, layersCorner, pillsBottom } from '../../stackSlots';
 
 const C = { barTop: 100, sideInset: 16, scaleBottom: 12, scaleH: 32, edge: 44 };
 
-test('fix layers-corner 1: the right column has four edge slots, and the compass is its top', () => {
-  assert.deepEqual(Object.values(EDGE_INDEX).sort(), [0, 1, 2, 3]);
+test('fix layers-corner 1: the right column has three edge slots since the unwalked button went (WB2), and the compass is its top', () => {
+  assert.deepEqual(Object.values(EDGE_INDEX).sort(), [0, 1, 2]);
   assert.equal(Math.max(...Object.values(EDGE_INDEX)), EDGE_INDEX.compass);
 });
 
@@ -48,7 +48,7 @@ test('fix layers-corner audit 1, 2: in the corner the Layers button is under the
 });
 
 // Where I've been (WB2): the unwalked-streets button's slot goes, and the column closes up. Written before the code.
-test('WB2: the column has no unwalked slot and no gap: Walk me back sits right above Locate\'s place, the compass on top', { todo: 'test first' }, () => {
+test('WB2: the column has no unwalked slot and no gap: Walk me back sits right above Locate\'s place, the compass on top', () => {
   const slots = EDGE_INDEX as unknown as Record<string, number>;
   assert.equal('unwalked' in slots, false);
   assert.deepEqual(slots, { locate: 0, back: 1, compass: 2 });

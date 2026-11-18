@@ -36,7 +36,7 @@ import { followMoves } from '../../lib/compass';
 import { groundGeoJSON, groundStyle } from '../../lib/areas/groundDraw';
 import {
   alternatesGeoJSON, TRACE_EDGE_OPACITY, storefrontNameLayers, storefrontNameRotate, storefrontNamesGeoJSON, roomCells, routeGradesGeoJSON, pinsGeoJSON, BORDER, borderFillOpacity, borderMoves, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, OVERTURE_CREDIT, GAZETTEER_CREDIT, DERIVE_ZOOM, endsGeoJSON, ENDS_PAINT, ENDS_RING_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON, BASE_VECTOR_SOURCE, poiLabelLayers,
-  LINE_SOURCE, LINE_SOURCE_IDS, type CollectedFeatures, mapWorkerUrl, type WalkMapHandle, type WalkMapProps,
+  LINE_SOURCE, LINE_SOURCE_IDS, PAST_STYLE, type CollectedFeatures, mapWorkerUrl, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
 const VECTOR_SOURCE = BASE_VECTOR_SOURCE;
@@ -91,6 +91,9 @@ function addOverlay(map: MapLibreMap): string | undefined {
   map.addLayer({ id: 'fog', type: 'line', source: 'fog', layout: lineLayout,
     paint: { 'line-color': COLORS.fog, 'line-opacity': FOG_STYLE.opacity,
       'line-width': ['interpolate', ['linear'], ['zoom'], 13, FOG_STYLE.widthMin, 17, FOG_STYLE.widthMax] } }, firstSymbol);
+  // Where I've been (WB9): earlier walks, one even tone, no edge, over the fog and under everything walked today.
+  map.addLayer({ id: 'past', type: 'line', source: 'past', layout: lineLayout,
+    paint: { 'line-color': COLORS.past, 'line-opacity': PAST_STYLE.opacity, 'line-width': ['interpolate', ['linear'], ['zoom'], 13, PAST_STYLE.width * 0.6, 17, PAST_STYLE.width] } }, firstSymbol);
   map.addLayer({ id: 'walked', type: 'line', source: 'walked', layout: lineLayout,
     paint: { 'line-color': COLORS.walked, 'line-width': ['interpolate', ['linear'], ['zoom'], 13, 3, 17, 8] } }, firstSymbol);
   // A preview's other routes, faint, under the one highlighted (SR2).
@@ -777,6 +780,23 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
 
   useEffect(() => { if (ready) setData('fog', segmentsGeoJSON(props.fog)); }, [ready, props.fog]);
   useEffect(() => { if (ready) setData('walked', segmentsGeoJSON(props.walked)); }, [ready, props.walked]);
+  // Sent only when the screen's lines change (WB16): the screen keeps the same object while they don't.
+  // Sent only when the lines drawn change (WB16), by their key, never because a screen made a new object: the walk screen's
+  // ready and live states hand the same lines over at Start. A map that never had lines sends none.
+  const pastSent = useRef('');
+  const pastNow = useRef(props.past);
+  useEffect(() => {
+    pastNow.current = props.past;
+  });
+  const pastKey = props.past?.key ?? '';
+  useEffect(() => {
+    if (!ready || pastKey === pastSent.current) return;
+    pastSent.current = pastKey;
+    const past = pastNow.current;
+    setData('past', traceGeoJSON(past?.runs ?? []));
+    perfCount('past:send');
+    container.current?.setAttribute('data-past', (past?.ids ?? []).slice().sort().join('|'));
+  }, [ready, pastKey]);
   const split = useMemo(() => splitTrace(props.trace), [props.trace]);
   const history = useRef(split.history);
   useEffect(() => {
@@ -1331,15 +1351,13 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     if (!ready || !map) return;
     for (const id of poiLabelLayers(map.getStyle().layers as { id: string; type: string; 'source-layer'?: string }[])) map.setLayoutProperty(id, 'visibility', props.hideLabels ? 'none' : 'visible');
   }, [ready, props.hideLabels]);
+  // The fog is always quiet (decision 0208, WB1): its paint is set once with the layer. The e2e reads it, and the veil, here.
   useEffect(() => {
     const map = mapRef.current;
-    if (!ready || !map) return;
-    map.setPaintProperty('fog', 'line-color', props.fogEmphasis ? FOG_BOLD : COLORS.fog);
-    map.setPaintProperty('fog', 'line-opacity', props.fogEmphasis ? 1 : FOG_STYLE.opacity);
-    map.setPaintProperty('fog', 'line-width', props.fogEmphasis
-      ? ['interpolate', ['linear'], ['zoom'], 13, 2.5, 17, 7]
-      : ['interpolate', ['linear'], ['zoom'], 13, FOG_STYLE.widthMin, 17, FOG_STYLE.widthMax]);
-  }, [ready, props.fogEmphasis]);
+    if (!ready || !map || !container.current) return;
+    container.current.setAttribute('data-fog-paint', `${map.getPaintProperty('fog', 'line-color')}|${map.getPaintProperty('fog', 'line-opacity')}`);
+    container.current.setAttribute('data-veil', props.veil ? '1' : '0');
+  }, [ready, props.veil]);
   useEffect(() => {
     const map = mapRef.current;
     if (!ready || !map || !props.follow || !followMoves({ following: !!props.follow, handOnMap: pointerDown.current, northEasing: northAsked.current })) return;
@@ -1451,6 +1469,9 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       // fix 2, the owner's iPhone, Nov 4). The point lands in the middle of the padding all the same.
       const offset: [number, number] = [(padding.left - padding.right) / 2, (padding.top - padding.bottom) / 2];
       mapRef.current?.easeTo({ center: at, offset, duration: animateRef.current ? MOTION.ease : 0 });
+    },
+    focus() {
+      mapRef.current?.getCanvas().focus();
     },
     resetNorth() {
       const map = mapRef.current;

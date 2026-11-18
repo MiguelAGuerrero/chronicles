@@ -293,7 +293,7 @@ async function run(h) {
         await sp.waitForTimeout(600);
       }
       await shot(sp, 'ready-nr11-walk');
-      const walkBad = await layout(['walk-minimize', 'unwalked', 'walk-back', 'recenter', 'cap-photo', 'cap-voice', 'cap-note', 'pause-walk', 'stop']);
+      const walkBad = await layout(['walk-minimize', 'walk-back', 'recenter', 'cap-photo', 'cap-voice', 'cap-note', 'pause-walk', 'stop']);
       check(walkBad.length === 0, `ready NR11: at 375×667 the walk's buttons, with every edge button up, are on screen, 44 or more, apart (${walkBad.join(', ')}; ${await stats(sp)})`);
       await small.close();
     }
