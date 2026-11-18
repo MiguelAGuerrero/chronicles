@@ -17,10 +17,24 @@ export const walkNote = (m: number) => {
   return `about ${min} min walk`;
 };
 
-const STEPS = (EXPLORE_RULES.rangeMax - EXPLORE_RULES.rangeMin) / EXPLORE_RULES.rangeStep;
+/** What passing means (TC7): in words, with no count of places. */
+export const passNote = (m: number) => `A place is passed when you come within ${formatRange(m)} of it. It is said in words, never counted.`;
+
+export interface SliderScale {
+  min: number;
+  max: number;
+  step: number;
+  /** The test ids' prefix and the screen reader's name. */
+  id: string;
+  name: string;
+}
+const RANGE_SCALE: SliderScale = { min: EXPLORE_RULES.rangeMin, max: EXPLORE_RULES.rangeMax, step: EXPLORE_RULES.rangeStep, id: 'range', name: 'Question mark range' };
+/** The pass-by distance (TC7): how close counts as passing a place. */
+export const PASS_SCALE: SliderScale = { min: EXPLORE_RULES.passMin, max: EXPLORE_RULES.passMax, step: EXPLORE_RULES.passStep, id: 'pass', name: 'Pass-by distance' };
 
 /** A stepped slider for the range (E20): drag, tap the track, or use − and +; adjustable for screen readers. */
-export function RangeSlider({ value, onChange }: { value: number; onChange: (m: number) => void }) {
+export function RangeSlider({ value, onChange, scale = RANGE_SCALE }: { value: number; onChange: (m: number) => void; scale?: SliderScale }) {
+  const STEPS = (scale.max - scale.min) / scale.step;
   // The range in the units setting's terms (QL14); redrawn when it changes.
   useUnits();
   const [width, setWidth] = useState(0);
@@ -32,17 +46,17 @@ export function RangeSlider({ value, onChange }: { value: number; onChange: (m: 
     const w = latest.current.width;
     if (!w) return;
     const f = Math.max(0, Math.min(1, x / w));
-    latest.current.onChange(EXPLORE_RULES.rangeMin + Math.round(f * STEPS) * EXPLORE_RULES.rangeStep);
+    latest.current.onChange(scale.min + Math.round(f * STEPS) * scale.step);
   };
-  const f = (value - EXPLORE_RULES.rangeMin) / (EXPLORE_RULES.rangeMax - EXPLORE_RULES.rangeMin);
-  const step = EXPLORE_RULES.rangeStep;
+  const f = (value - scale.min) / (scale.max - scale.min);
+  const step = scale.step;
   return (
     <View style={styles.sliderRow}>
-      <Pressable testID="range-minus" accessibilityRole="button" accessibilityLabel="Smaller range" onPress={() => onChange(value - step)} style={styles.stepBtn} hitSlop={6}>
+      <Pressable testID={`${scale.id}-minus`} accessibilityRole="button" accessibilityLabel={`Smaller ${scale.name.toLowerCase()}`} onPress={() => onChange(value - step)} style={styles.stepBtn} hitSlop={6}>
         <Icon name="remove" size={20} color={theme.ink} />
       </Pressable>
       <View
-        testID="range-slider"
+        testID={`${scale.id}-slider`}
         style={styles.track}
         onLayout={(e: LayoutChangeEvent) => setWidth(e.nativeEvent.layout.width)}
         onStartShouldSetResponder={() => true}
@@ -52,8 +66,8 @@ export function RangeSlider({ value, onChange }: { value: number; onChange: (m: 
         onResponderMove={(e) => at(e.nativeEvent.locationX)}
         accessible
         accessibilityRole="adjustable"
-        accessibilityLabel="Question mark range"
-        accessibilityValue={{ min: EXPLORE_RULES.rangeMin, max: EXPLORE_RULES.rangeMax, now: value, text: formatRange(value) }}
+        accessibilityLabel={scale.name}
+        accessibilityValue={{ min: scale.min, max: scale.max, now: value, text: formatRange(value) }}
         accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
         onAccessibilityAction={(e) => onChange(value + (e.nativeEvent.actionName === 'increment' ? step : -step))}
       >
@@ -61,10 +75,10 @@ export function RangeSlider({ value, onChange }: { value: number; onChange: (m: 
         <View style={[styles.fill, { width: `${f * 100}%` }]} pointerEvents="none" />
         <View style={[styles.thumb, { left: `${f * 100}%` }]} pointerEvents="none" />
       </View>
-      <Pressable testID="range-plus" accessibilityRole="button" accessibilityLabel="Larger range" onPress={() => onChange(value + step)} style={styles.stepBtn} hitSlop={6}>
+      <Pressable testID={`${scale.id}-plus`} accessibilityRole="button" accessibilityLabel={`Larger ${scale.name.toLowerCase()}`} onPress={() => onChange(value + step)} style={styles.stepBtn} hitSlop={6}>
         <Icon name="add" size={20} color={theme.ink} />
       </Pressable>
-      <Text testID="range-value" style={styles.value}>{formatRange(value)}</Text>
+      <Text testID={`${scale.id}-value`} style={styles.value}>{formatRange(value)}</Text>
     </View>
   );
 }

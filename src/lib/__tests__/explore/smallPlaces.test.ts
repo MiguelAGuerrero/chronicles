@@ -175,10 +175,10 @@ test('SP20: a museum and three plaques passed say the museum; small places only 
   ]);
   const items = places.map(item);
   const fixes = [{ at: O, t: 1 }];
-  const passed = passedPlaces({ items, fixes, since: 0, hidden: new Set(), foundHere: new Set() });
+  const passed = passedPlaces({ items, fixes, since: 0, hidden: new Set(), foundHere: new Set(), passM: 20 });
   assert.deepEqual(passed.map((p) => p.name), ['Museum of the Revolution']);
   assert.equal(passedLine(passed), 'Passed Museum of the Revolution without stopping');
-  const onlySmall = passedPlaces({ items: items.slice(1, 2), fixes, since: 0, hidden: new Set(), foundHere: new Set() });
+  const onlySmall = passedPlaces({ items: items.slice(1, 2), fixes, since: 0, hidden: new Set(), foundHere: new Set(), passM: 20 });
   assert.deepEqual(onlySmall.map((p) => p.name), ['A']);
 });
 

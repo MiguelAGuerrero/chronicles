@@ -13,7 +13,7 @@ const change = async () => (await import('../../explore/settingsChange')) as Cha
 test('WI9: before the settings are read a switch saves nothing; after, it keeps the range and the pocket alert', async () => {
   const { withKind } = await change();
   assert.equal(withKind(null, 'churches', false), null, 'nothing to save before the settings are loaded');
-  const loaded: ExploreSettings = { hidden: new Set<Kind>(['ghost_towns']), rangeM: 180, haptic: true };
+  const loaded: ExploreSettings = { hidden: new Set<Kind>(['ghost_towns']), rangeM: 180, passM: 8, haptic: true };
   const off = withKind(loaded, 'churches', false)!;
   assert.deepEqual([...off.hidden].sort(), ['churches', 'ghost_towns']);
   assert.equal(off.rangeM, 180);

@@ -442,6 +442,8 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] **Do:** on Navigate in a dense downtown with the Busy layer on, look at the magenta lines and their names; walk 1 km. **Expect:** the names sit over the magenta lines (the lines under the base labels, `busyLayerOrder`, audit 6), only within about 800 m of you (DC18), a north-south name centred on its street, never slid across it (audit 1); switching tabs mid-swipe on Explore never leaves the Busy read waiting (audit 7, the native unmount's settle).
 - [ ] **Do:** after that read, force-quit, reopen in airplane mode and turn the Busy layer on there. **Expect:** the area's busy streets are drawn from what was stored; no error (DC10: street pieces written in batches of 150 through the SQLite queue).
 - [ ] **Do:** watch busy names appear and go as the map zooms, with Reduce Motion on. **Expect:** note how they fade: MapLibre Native has no setting for symbol fades (only `rasterFadeDuration`), so they fade on the library's timing whatever the setting (DEFERRED).
+- [ ] **Do:** on a phone, start an exploring walk, tap a place's "?" or name, tap Capture here, then take a photo (or a memo or note). **Expect:** the card closes and a plain line says "The next moment is about <place>" with Cancel; the photo then shows "Found: <place>" once and the line goes; a photo taken near a place without arming finds nothing. (TC3, TC4, tap-to-capture-places)
+- [ ] **Do:** on a phone, set Passing a place to 4 m in the walk's options, walk past a marked place at about 10 m and then at about 3 m. **Expect:** the first passes nothing; the second shows "Passed <place> without stopping" in the replay, never a count. (TC6, TC7, TC9, tap-to-capture-places)
 
 ## The web e2e's stand-ins
 

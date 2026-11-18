@@ -230,7 +230,7 @@ test('SH6 an instance of a tested shell is not a hole; one of an untested shell 
     rmSync(root, { recursive: true, force: true });
   }
   // This repo's instances are marked.
-  for (const rel of ['src/lib/ports/index.ts', 'src/lib/ready/index.ts', 'src/lib/tabsHidden.ts', 'src/lib/notify/index.ts', 'src/lib/unitsStore/index.ts', 'src/lib/nav/store/index.ts', 'src/lib/explore/momentFind/index.ts']) {
+  for (const rel of ['src/lib/ports/index.ts', 'src/lib/ready/index.ts', 'src/lib/tabsHidden.ts', 'src/lib/notify/index.ts', 'src/lib/unitsStore/index.ts', 'src/lib/nav/store/index.ts']) {
     assert.match(readFileSync(join(ROOT, rel), 'utf8').split('\n')[1] ?? '', /^\/\/ @instance: /, rel);
   }
   assert.deepEqual(affected.coverage(ROOT, ['src/lib/ports/index.ts', 'src/lib/ready/index.ts', 'src/lib/tabsHidden.ts']).holes, []);

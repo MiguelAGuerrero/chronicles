@@ -1,0 +1,28 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "set",
+        "Tap to capture a place (decision 0223",
+        "--reason",
+        "the slice's decision is 0224 (main took 0223 for size-the-testing)"
+      ],
+      "body": "- Tap to capture a place (decision 0224; audit 2026-11-13): a place can be armed only from the walk screen's card (not the Explore tab's cards or a pin's viewer); passing does not weigh fix accuracy, so a 4 m setting is as sharp as the phone's GPS; arming is the screen's state, so a reload clears it; imperial steps of 2 m read as uneven feet; `findFor` and `findCandidates` remain for tests only\n",
+      "target": "sha256:616c7e9d600b9b91b35dd3138cdd8ce21daca0b7120161df10585075e30df541"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "set",
+        "Tap to capture a place, and a quiet pass-by",
+        "--reason",
+        "the slice's decision is 0224 (main took 0223 for size-the-testing)"
+      ],
+      "body": "| Tap to capture a place, and a quiet pass-by (a capture finds a place only after Capture here; passing within a setting, 4-20 m, kept per walk; decision 0224) | built; web only | tests first, then the code, 2026-11-12 | `specs/tap-to-capture-places/spec.md` | no |\n",
+      "target": "sha256:1c8b75d2a1c7a42e3e1b14c4729a77c6f8479634041a78bbbf4fdcf1a09e0add"
+    }
+  ]
+}

@@ -379,3 +379,9 @@ What they share: steps are used where an answer changes what the next question i
 made rarely (a road trip of days); filters that are independent of each other sit together, on the page or in one sheet, with what
 is applied left in view.
 
+
+### Tying a moment to a place (Honour)
+
+- **Swarm (Foursquare)**: the person picks the venue from the places near them and checks in; the nearest is never assumed. Source: from memory, unverified.
+- **Day One**: an entry's place is offered from nearby places; the writer picks one or none. Source: from memory, unverified.
+- **Apple Journal**: a place is a suggestion the person attaches or leaves; nothing is attached unseen. Source: from memory, unverified. Used by `specs/tap-to-capture-places`.

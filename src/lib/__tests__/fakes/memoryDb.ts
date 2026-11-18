@@ -12,7 +12,7 @@ import { countsOf, recountNewStreets } from '../../deletion/core';
 import type { Mark, Place, Recall } from '../../discovery/types';
 import type { StoredReaction } from '../../reactions/core';
 import type { Transcript } from '../../transcript/core';
-import { exploredKey, type ChecklistArea, type ChecklistItem, type ExploreRead, type Find } from '../../explore/explore';
+import { exploredKey, walkPassKey, type ChecklistArea, type ChecklistItem, type ExploreRead, type Find } from '../../explore/explore';
 import type { LandingRow } from '../../landing/view';
 import { parseEdit } from '../../mediaEdit';
 import { thinThreads } from '../../threads/rules';
@@ -322,6 +322,7 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
       summaries.delete(walkId);
       walkLines.delete(walkId);
       meta.delete(exploredKey(walkId));
+      meta.delete(walkPassKey(walkId));
       walks.delete(walkId);
       // Places only this walk was in go (D8).
       for (const key of staleAreas(areas.keys() as string[], walkAreas.all())) areas.delete(key);
