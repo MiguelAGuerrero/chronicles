@@ -90,7 +90,7 @@ export function MemoriesScreen() {
   const [reasons, setReasons] = useState<Record<string, NoFix>>({});
   const [session, setSession] = useState<MomentView[]>([]);
   // The quick-action row (decision 0197): what Respond and Edit ask the viewer for, the entry Add to a thread is for, and what points at the last kept entry.
-  const [intent, setIntent] = useState<'respond' | 'edit' | undefined>(undefined);
+  const [intent, setIntent] = useState<'respond' | 'edit' | 'more' | undefined>(undefined);
   const [threading, setThreading] = useState<Faced | null>(null);
   const [pointed, setPointed] = useState<{ id: string; refs: Refs } | null>(null);
   const joins = useStore(join.store, (j) => j.pending);
@@ -282,7 +282,7 @@ export function MemoriesScreen() {
   };
   // The slip's moment was brought back by the app: its viewer's reactions stay plain words (RL4, steward 2).
   const [viewingSlip, setViewingSlip] = useState(false);
-  const open = (m: MomentView, fromSlip = false, ask?: 'respond' | 'edit') => {
+  const open = (m: MomentView, fromSlip = false, ask?: 'respond' | 'edit' | 'more') => {
     setIntent(ask);
     setViewingSlip(fromSlip);
     setViewing([m.capture]);
@@ -423,6 +423,7 @@ export function MemoriesScreen() {
         actions={actionsFor(m)}
         onAction={(id) => act(m, id)}
         onOpenPiece={(pieceId) => open({ ...m, capture: facedAt(m.capture, pieceId) })}
+        onTakeOut={(pieceId) => open({ ...m, capture: facedAt(m.capture, pieceId) }, false, 'more')}
       />
     );
   };

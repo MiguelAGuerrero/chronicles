@@ -57,6 +57,8 @@ export function Entry(props: {
   onAction?: (id: SlotId) => void;
   /** A stack's tile opens the viewer on its piece (SW12). */
   onOpenPiece?: (pieceId: string) => void;
+  /** A stack's Take out: opens the piece's viewer on its menu, where Split out and Delete are (audit 16). */
+  onTakeOut?: (pieceId: string) => void;
 }) {
   const { moment: m, walk } = props;
   const c = m.capture;
@@ -76,6 +78,8 @@ export function Entry(props: {
   });
   const from = fromLine(walk);
   const stackedHere = hasMore(c) && openId !== c.id && !c.pieces.some((p) => p.id === props.writing);
+  // Show all is there only when a second or later photo or video is behind it (audit 13, the owner's call): a stack of words already shows them.
+  const hiddenMedia = stackedHere && c.pieces.some((p) => (p.kind === 'photo' || p.kind === 'video') && p.id !== faceOf(c).id);
   const pieces = c.pieces.filter((p) => p.id !== props.writing && (!stackedHere || spread || p.id === faceOf(c).id || p.kind === 'text' || p.kind === 'voice'));
   // The entry being written has the sign at its dateline's end (RX6); one kept today, the same sign (RX9). Its
   // reactions are spelled out under the dateline (RX14), so choosing one moves nothing.
@@ -104,7 +108,7 @@ export function Entry(props: {
       </View>
       <ReactionMarks set={reacted} style={styles.reactions} onOpen={props.onLens} />
       {stackedHere && spread ? (
-        <StackGrid moment={m} onOpenPiece={(id) => props.onOpenPiece?.(id)} />
+        <StackGrid moment={m} onOpenPiece={(id) => props.onOpenPiece?.(id)} onTakeOut={(id) => props.onTakeOut?.(id)} />
       ) : pieces.length > 0 && (
         <Pressable testID="moment-open" accessibilityRole="button" accessibilityLabel={`${entrySpoken(m.kind, m.words, line, hasMore(c))}. Open`} onPress={props.onOpen} style={styles.pieces}>
           {pieces.map((p) => {
@@ -123,10 +127,10 @@ export function Entry(props: {
         <View style={styles.stackLine}>
           <StackMark />
           <Text style={styles.kinds} testID="stack-kinds">{stackLine(c)}</Text>
-          <Pressable testID="stack-toggle" accessibilityRole="button" accessibilityState={{ expanded: spread }} onPress={() => setSpread((v) => !v)} style={styles.toggle}>
+          {hiddenMedia ? <Pressable testID="stack-toggle" accessibilityRole="button" accessibilityState={{ expanded: spread }} onPress={() => setSpread((v) => !v)} style={styles.toggle}>
             <Text style={styles.toggleText}>{spread ? 'Show less' : 'Show all'}</Text>
             <Icon name={spread ? 'chevron-up' : 'chevron-down'} size={14} color={theme.ink} />
-          </Pressable>
+          </Pressable> : null}
         </View>
       ) : null}
       {props.actions && props.onAction && !writingHere ? <QuickActions slots={props.actions} onPress={props.onAction} /> : null}
