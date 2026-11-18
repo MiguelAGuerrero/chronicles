@@ -298,7 +298,7 @@ async function run(h) {
       // Paused, Resume and Stop take Pause's place (decision 0220): the same rule holds.
       await toStop(sp);
       await shot(sp, 'ready-nr11-walk-paused');
-      const pausedBad = await layout(['walk-minimize', 'unwalked', 'walk-back', 'recenter', 'cap-photo', 'cap-voice', 'cap-note', 'resume-walk', 'stop']);
+      const pausedBad = await layout(['walk-minimize', 'walk-back', 'recenter', 'cap-photo', 'cap-voice', 'cap-note', 'resume-walk', 'stop']);
       check(pausedBad.length === 0, `ready NR11, 0220: paused, Resume and Stop are on screen, 44 or more, apart from the rest (${pausedBad.join(', ')}; ${await stats(sp)})`);
       await small.close();
     }

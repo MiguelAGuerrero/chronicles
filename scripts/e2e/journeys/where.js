@@ -4,7 +4,7 @@
 // and something to leave out. E2E_ONLY=where runs it alone.
 
 async function run(h) {
-  const { navUrl, BASE, at, check, shot, freshPage, openWalk, tabTo, drawerTo, switchLayer, nothingLeaves } = h;
+  const { navUrl, BASE, at, check, shot, freshPage, openWalk, tabTo, drawerTo, switchLayer, nothingLeaves, toStop } = h;
   const { c, pg } = await freshPage('where');
   await c.addInitScript(() => { window.__perf = {}; });
   const attr = (name) => pg.locator(`[${name}]`).last().getAttribute(name).catch(() => null);
@@ -105,7 +105,8 @@ async function run(h) {
   // WB8, WB16: Start; the walk being recorded is never in the layer, and a minute of fixes resends nothing.
   await pg.click('[data-testid=start]');
   await pg.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 }).catch(() => {});
-  await pg.waitForSelector('[data-testid=stop]', { timeout: 15000 });
+  // Walking, the strip shows Pause alone (decision 0220).
+  await pg.waitForSelector('[data-testid=pause-walk]', { timeout: 15000 });
   const before = await sends();
   const route = [];
   for (let k = 0; k <= 30; k++) route.push(at(-0.5 + k * 0.03, -0.5));
@@ -167,7 +168,7 @@ async function run(h) {
   // WB8: once stopped, the walk joins the layer.
   // An open walk comes straight up at launch.
   await pg.goto(h.url);
-  await pg.waitForSelector('[data-testid=stop]', { timeout: 30000 });
+  await toStop(pg, 30000);
   const s = await pg.locator('[data-testid=stop]').boundingBox();
   await pg.mouse.move(s.x + s.width / 2, s.y + s.height / 2);
   await pg.mouse.down();
