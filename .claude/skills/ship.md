@@ -213,9 +213,11 @@ reverts, and your trailers: the record gate accepts it when its documents are ex
 undone and their sidecars deleted, nothing else. A fix-forward that takes a slice's row back out uses
 `npm run records -- slice row remove <match>`, which undoes only a row the same range added.
 
-After a revert, diagnose: reproduce the failure locally with the job's own command, name the cause,
-and put a corrected change on `<branch>-retry` with the failing check passing. Push that branch, not
-`main`; the grant is spent. Report the cause, the branch, and what you would change.
+After a revert, diagnose: reproduce the failure locally with the job's own command, red at rest, k of n
+runs on both ends (the base and the head), before naming a cause or bisecting (a load-dependent red is
+a check race until shown otherwise); name the cause, and put a corrected change on `<branch>-retry`
+with the failing check passing. Push that branch, not `main`; the grant is spent. Report the cause,
+the branch, and what you would change.
 
 ## Clean up
 

@@ -450,7 +450,10 @@ The owner picks; the loop never starts a `G` entry unasked.
    run that changed code runs every journey once with `npm run e2e:all` before
    publishing (the full flow and each journey it does not hold, a failing one
    rerun alone; it prints red and flaky checks and the log line), and a red
-   check is triaged as a finding of the run.
+   check is triaged as a finding of the run. Before diagnosing or bisecting a red
+   check, confirm it red at rest: the check alone, k of n runs, on both ends (the
+   base and the head). A red that comes and goes with load is a check race until
+   shown otherwise, not a regression of whatever landed last.
 3. **Publish**, by `--deploy`:
    - `main`: `.claude/skills/ship.md`, "Publish to main", once (a decision
      record the run wrote: `npm run book:next-decision -- --check <NNNN> <file>`
