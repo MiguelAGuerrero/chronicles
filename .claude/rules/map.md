@@ -41,6 +41,7 @@ The map component (maplibre-gl on web, MapLibre RN on native), pins and icons, t
 - `fitBounds` keeps the current bearing in maplibre; never pass a bearing to a follow or a fit.
 - The e2e turns the newest web map through `window.__turn(deg)`, defined only when `window.__perf` is (a two-finger gesture can't be made headless). The `ready` scenario sets `__perf` itself.
 - **Trap: a follow jump cuts an ease** (tend map 15). maplibre's `jumpTo` starts with `stop()`, so the live walk's follow (each glide frame's `jumpTo({ center })`, and the recenter on a fix) cut the compass's ease to north after one frame. Both ask `followMoves` (`lib/compass.ts`), which waits while `northAsked` holds; a new camera move made in code while following gets the same gate. The `qol` step turns the walk's map with two real fingers (`twoFingerTurn`: `__turn` has no `originalEvent`, so following never stops) and taps the compass with fixes still coming. Native's follow has no such gate yet (`docs/NATIVE_UNVERIFIED.md`, Compass).
+- tend map 15's precedent is recorded in `docs/research/adjacent-apps.md`, "Bring the map back to north while following" (Apple Maps, read Nov 18).
 
 ## Swipes instead of pans (DN1-DN13, decision 0092)
 
@@ -59,6 +60,7 @@ The map component (maplibre-gl on web, MapLibre RN on native), pins and icons, t
 - Screens: Explore (`index.tsx`, yours tinted by `outlineIdHere`, the open town's by `outlineOf`), Chronicle (walked towns, `lined: false`), the walk screen (`firm` by `outlineIdAt`, no fill), the replay and a day (`useWalkBorders`). `BORDER` colours are held by `colors.test.ts` (TB8).
 - The world's veil sits under the borders (decision 0199, the owner's answer to T33): on the web the veil is added before the lines, and `borderFillBefore` moves the fill over the veil while it is on (the replay, a day, unwalked streets) and back under the first street when it is off; on native the veil mounts before `BordersSource`. Under the veil the edge read 2.2:1 and the tint 1.09 whatever the colour. `BORDER.color` is cocoa `#6e4f3f`, never the accent (0153).
 - The borders go over the veil only where the screen asks (`bordersOverVeil`: the replay and a day, decision 0199), through `borderMoves` on the web (the veil under the lines, the fill between, at `borderFillOpacity`'s 0.11, the owner's "Lighten the fill on veiled maps") and mount order on native. The walk screen's unwalked veil stays over its firm edge: over that veil a solid dark edge matched an unwalked street's line (tend map audit 39). The line above that names `borderFillBefore` and the unwalked streets is superseded by this one.
+- The borders' precedent (OpenStreetMap Carto, Positron, Organic Maps; decision 0199) is recorded in `docs/research/adjacent-apps.md`, "Draw a town's border on the map".
 
 ## Icons and pins
 
