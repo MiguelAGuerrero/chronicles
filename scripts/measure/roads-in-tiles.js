@@ -1,5 +1,6 @@
 // Step 0 of the road engine's plan: what do real OpenMapTiles tiles hold for roads at low zooms? Reads an .mbtiles given as argv[2].
 const path = require('path');
+const { Buffer } = require('node:buffer');
 const zlib = require('zlib');
 const { DatabaseSync } = require('node:sqlite');
 const root = process.argv[3];
@@ -31,7 +32,7 @@ for (const z of [9, 10, 11, 12, 13, 14]) {
   const rows = db.prepare('select tile_column x, tile_row y, tile_data d from tiles where zoom_level = ?').all(z);
   if (!rows.length) { console.log(`z${z}: no tiles`); continue; }
   const t0 = Date.now();
-  const cls = {}, props = { oneway: 0, ramp: 0, ref: 0, name: 0 }; let feats = 0, kept = 0, verts = 0, km = 0; const roads = []; let named = 0, nameLayer = 0;
+  const cls = {}, props = { oneway: 0, ramp: 0, ref: 0, name: 0 }; let feats = 0, kept = 0, verts = 0, km = 0; const roads = []; let nameLayer = 0;
   for (const r of rows) {
     const y = 2 ** z - 1 - r.y; let buf = Buffer.from(r.d); if (buf[0] === 0x1f && buf[1] === 0x8b) buf = zlib.gunzipSync(buf);
     const vt = new VectorTile(new Pbf(buf)); const layer = vt.layers.transportation; const rect = tileRect(z, r.x, y);
