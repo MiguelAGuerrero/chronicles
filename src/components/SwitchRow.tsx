@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 import { Icon, type IconName } from './icons';
 import { theme } from './ui';
 
@@ -20,8 +20,14 @@ export function SwitchRow(props: {
   indent?: number;
   /** A kind of its own over its subtypes: its label heavier, at the same size (WI7). */
   heavy?: boolean;
+  /** One indent step and the gaps beside the icon and the switch: smaller at large text (WI21). */
+  indentStep?: number;
+  gap?: number;
   onChange: (on: boolean) => void;
 }) {
+  // The note is heard with the row: the hint on a phone, a description on the web, which has no hint (WI18).
+  const noteId = props.note && props.testID ? `${props.testID}-note` : undefined;
+  const described = Platform.OS === 'web' && noteId ? ({ 'aria-describedby': noteId } as object) : {};
   return (
     <Pressable
       testID={props.testID}
@@ -31,13 +37,14 @@ export function SwitchRow(props: {
       accessibilityState={{ checked: props.value, disabled: !!props.disabled }}
       aria-checked={props.value}
       disabled={props.disabled}
+      {...described}
       onPress={() => !props.disabled && props.onChange(!props.value)}
-      style={({ pressed }) => [styles.row, pressed && !props.disabled && styles.rowPressed, props.disabled && styles.rowDisabled, !!props.indent && { marginLeft: props.indent * 28 }]}
+      style={({ pressed }) => [styles.row, pressed && !props.disabled && styles.rowPressed, props.disabled && styles.rowDisabled, !!props.indent && { marginLeft: props.indent * (props.indentStep ?? 28) }, props.gap != null && { gap: props.gap }]}
     >
       {props.icon && <Icon name={props.icon} size={20} color={theme.ink} />}
       <View style={styles.rowText} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
         <Text style={[styles.rowLabel, props.heavy && styles.rowLabelHeavy]}>{props.label}</Text>
-        {props.note ? <Text style={styles.sub}>{props.note}</Text> : null}
+        {props.note ? <Text testID={noteId} nativeID={noteId} style={styles.sub}>{props.note}</Text> : null}
       </View>
       <View pointerEvents="none" importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
         <Switch value={props.value} tabIndex={-1} />
@@ -47,7 +54,8 @@ export function SwitchRow(props: {
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 48 },
+  // Padded so a label wrapped at large text stands clear of the next row's (WI21).
+  row: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 48, paddingVertical: 4 },
   rowPressed: { opacity: 0.7 },
   rowDisabled: { opacity: 0.45 },
   rowText: { flex: 1, gap: 2 },

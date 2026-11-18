@@ -60,7 +60,7 @@ test('WI17: while a kind\'s subtypes scroll under the pinned heading, the headin
       assert.equal(pin.kind, c.row.label, `${c.row.id} half under the heading: its own name pinned`);
     } else assert.equal(pin.kind, null, `${c.row.id}, a kind with nothing under it: no second line`);
     // A kind row's top just under the heading: its own label shows, so nothing is added.
-    if (!parent) assert.equal(intoPin(children, heights, tops[i] - H - 2, H).kind, null, `${c.row.id} in full: no second line`);
+    if (!parent) assert.equal(intoPin(children, heights, tops[i] - H + 2, H).kind, null, `${c.row.id} in full: no second line`);
   });
   assert.ok(named > 10, 'every subtype was read at the top');
   // On a heading, or at rest at the top, nothing is added; nothing is stuck at rest.
@@ -102,8 +102,8 @@ test('WI18: a kind with some subtypes off names them, in words, on one short lin
       if (line !== 'Some of these off') for (const k of kids.slice(0, n)) assert.ok(line.includes(kindOf(k).label), `${line} names ${k}`);
     }
   }
-  // A kind with no subtypes says nothing.
-  assert.equal(offLine(KINDS.find((k) => !kidsOf(k.id).length && !kindParent(k.id))!.id, new Set(DEFAULT_OFF)), null);
+  // A row with no subtypes of its own (a subtype) says nothing.
+  for (const k of KINDS.filter((k) => !kidsOf(k.id).length)) assert.equal(offLine(k.id, new Set(DEFAULT_OFF)), null, `${k.id} has no subtypes`);
   // The row carries it, as its note and in what a screen reader hears.
   const curio = intoSections(KINDS, new Set<Kind>(['ghost_towns'])).flatMap((s) => s.rows).find((r) => r.id === 'curiosities')!;
   assert.equal(curio.note, 'Ghost towns off');
