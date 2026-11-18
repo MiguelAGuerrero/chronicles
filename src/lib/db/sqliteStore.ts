@@ -123,7 +123,7 @@ export function makeSqliteDb(open: () => Promise<SQLiteDatabase>, openWriter?: (
     return dbPromise;
   }
 
-  // The writer connection, opened once after the main one has migrated, with its own busy timeout: another context's
+  // The writer connection, opened once after the main one has migrated, with its own `busy_timeout`: another context's
   // writer (a background task run apart) is waited for, never failed at once.
   let writerPromise: Promise<SQLiteDatabase> | null = null;
   function writer() {
