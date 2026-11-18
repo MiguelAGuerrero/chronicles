@@ -599,6 +599,9 @@ async function cardFooter(h) {
       await pg2.waitForTimeout(700);
       await pg2.click('[data-testid=atlas-walk]').catch(() => {});
       await pg2.waitForTimeout(900);
+      // tend explore 27 (WCAG 2.2, 2.4.3 Focus Order): the question takes focus as it replaces the Walk to button pressed.
+      const askFocus = await pg2.evaluate(() => document.activeElement?.getAttribute('data-testid') ?? document.activeElement?.tagName ?? null);
+      check(askFocus === 'atlas-walk-now', `tend explore 27: at ${w}, the question takes focus, on Walk now, as it replaces the button (${askFocus})`);
       const asked = await pg2.evaluate(() => {
         const footer = document.querySelector('[data-testid=atlas-footer]');
         const cancel = document.querySelector('[data-testid=atlas-walk-cancel]');
@@ -645,6 +648,9 @@ async function cardFooter(h) {
       await pg2.waitForTimeout(500);
       check((await pg2.locator('[data-testid=atlas-walk]').count()) === 1 && (await pg2.locator('[data-testid=atlas-walk-now]').count()) === 0,
         `tend explore 11: at ${w}, Not now closes the question and leaves the card`);
+      // tend explore 27: Not now gives focus back to the Walk to button the question replaced.
+      const backFocus = await pg2.evaluate(() => document.activeElement?.getAttribute('data-testid') ?? document.activeElement?.tagName ?? null);
+      check(backFocus === 'atlas-walk', `tend explore 27: at ${w}, Not now gives focus back to Walk to (${backFocus})`);
     } finally {
       await c2.close();
       snapWorld.serve = false;

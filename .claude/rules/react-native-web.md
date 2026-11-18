@@ -83,3 +83,10 @@ UI code on both platforms: React Compiler lint rules, react-native-web differenc
   unmounts at once, and react-native-web's focus trap gives focus back to what opened the sheet in a passive cleanup,
   after the new field's `autoFocus`. Focus the field again in an effect keyed on the state that shows it (`focusOn`),
   which runs after that cleanup, as `ThreadScreen`'s Rename does.
+
+- **A full-screen surface that is not a `Modal` traps nothing on the web** (tend explore 27): `accessibilityViewIsModal` is
+  native only, so Tab walks out to the map and row beneath, and nothing gives focus back when it closes. The area card and
+  the walk planner use `lib/focus`'s hooks, as react-native-web's Modal does for itself: `useFocusReturn()` (read before the
+  surface moves focus into itself, given back on unmount; an effect, so a card keyed by its area hands the first opener on),
+  `useFocusTrap(ref, active)` (off while another surface covers it), and `useFocusSwap` for a part that replaces the button
+  pressed (the far question). A `Button` takes a ref for `focusOn`.
