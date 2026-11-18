@@ -9,7 +9,7 @@ paths:
 ---
 # Tabs and home
 
-The three tabs (Chronicle, Explore, Navigate), the home sheet, the recording bar, the way to the walk screen, and the home map's lifecycle. The codemap is in `docs/ARCHITECTURE.md`; the decisions and their history are in `docs/decisions/`.
+The three tabs (Chronicle, Explore, Navigate), the home sheet and the home map's lifecycle. The recording bar and the way to the walk screen (its ›, Edit offer, reminder and Stop) are in `.claude/rules/recording-bar.md`. The codemap is in `docs/ARCHITECTURE.md`; the decisions and their history are in `docs/decisions/`.
 
 ## The opening tab (the owner's call, Nov 9: 0112, superseding 0070's Explore)
 
