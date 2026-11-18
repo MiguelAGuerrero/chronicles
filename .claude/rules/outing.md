@@ -16,7 +16,7 @@ One page from Explore: pick what you want to see from a vocabulary, get one prop
 - **Stops are never named before a tap or arrival** (QC17, QC24): a slot says its entry's word and a distance in words (`words.ts`); the destination holds positions only (`outingDest`); a name is resolved from the data at that moment and is never stored. Swap is the nearest other of the picked entries to the stop it replaces, not held, not offered for that slot before, no wrap (QC21).
 - **Words** are held to the planner's banned-word grep, whole words, and no digit, ordinal or "of N" (QC25, QC28, QC33).
 
-## The page, destination first (OJ1-OJ40, decisions 0208 and 0209; `specs/outing-journey/`; step 1 of three built)
+## The page, destination first (OJ1-OJ40, decisions 0209 and 0210; `specs/outing-journey/`; step 1 of three built)
 
 - **The page is the map** (`components/outing/OutingPage.tsx`, `useJourney.ts`): a field over it opens Explore's `SearchSheet`; a pick, or "Nowhere in particular", is the place the one read is made around (`outingService.open(place, picked)`), and nothing is read before that tap (OJ35). The first page's search over chips and its Loop / One way switch are gone (QC3 retired): a journey is a loop when one can be made, else one way (`planJourneys`).
 - **Chips are one list** (`chips.ts`): `wants.ts`'s shop rows (its tests pin those three) beside the attraction rows, whose match is over `kind`, the atlas's eight kinds. **Each chip on widens** (`matchesAny`, OJ14): never `mergeFacets` across chips, which narrows across dimensions and would ask for a shop that is also a monument. The planners take an `Accept` (facets or a rule).
@@ -25,16 +25,16 @@ One page from Explore: pick what you want to see from a vocabulary, get one prop
 - **A chip's aliases pass presence's guard**: `sculpture` and `historic` are presence's words and fail it; pick another word.
 - Far places: `startChoice` mirrors `walkToChoice` (0121): "When I get there" beside Start past 2 km, alone past 10 km. Step 3 replaces this with a session that records the drive.
 
-## One machine (decision 0210)
+## One machine (decision 0211)
 
 - **Every outing is a journey of chapters over areas** (`areas.ts`, `journeys.ts`): where you stand, the towns within the reach (`areasAround`) or toward a place (`areasToward`), each read once by `outingService.open` and planned by `planChapter` (three, else two, of the offered places, a loop else one way, else one place alone). `planJourneys` is not told whether there was a destination; never add a second planner for a new way of choosing areas. Around here is the list of one area.
 - **Offered order** is by chip in turn, unfound first, then nearest (`ranked`); `POOL` is how far "Another like this" (`salts`) moves on. A mixed journey leads only when its stops span leanings.
 - **Reads are bounded by `AREA_RULES.readMax`** (eight areas, new towns first), sequential, and stopped when the areas change; the gazetteer is loaded only when a reach beyond close by or a destination asks (`useJourney`'s `towns()`), never on opening the page (5.6 MB on the web).
 - **The page's position is the one it first had** (`origin`): the reads are not made again at every fix.
-- **Visited is read from the trace, never stored** (`visited.ts`, decision 0211): `walkedNear` gives the walked fixes of the newest thirty outings near an area (found through `listWalkAreas`, read with `readTrace` and their pauses and stills), and a candidate within Explore's range of one is `seen`, offered after the new ones. Do not add a visited table without a slice of its own: it would be a cache of the trace.
+- **Visited is read from the trace, never stored** (`visited.ts`, decision 0212): `walkedNear` gives the walked fixes of the newest thirty outings near an area (found through `listWalkAreas`, read with `readTrace` and their pauses and stills), and a candidate within Explore's range of one is `seen`, offered after the new ones. Do not add a visited table without a slice of its own: it would be a cache of the trace.
 - Start takes the first chapter only; carrying a journey through the session is step 3.
 
-## The plan a session carries (decision 0212)
+## The plan a session carries (decision 0213)
 
 - **`journeyPlan.ts`** (core): towns, points, stops' positions, loop; `isJourneyPlan` refuses a field more. `stepPlan` says which town is ahead and prunes the ones behind; **nothing stores reached, passed or done**. A done mark, a count of towns or an ordinal anywhere here is the trip planner's progress bar the vision forbids.
 - **`planStore.ts` / `plans.ts`**: meta `outing_journey`, offered by Explore at Start, taken up by the session that starts within two minutes, cleared in `session.ts` at Stop. `navigation` forgets a destination it cannot route ("Too far to walk"), which is why the plan is not in `nav`.

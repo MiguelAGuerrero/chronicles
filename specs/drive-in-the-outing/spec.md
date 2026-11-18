@@ -9,10 +9,10 @@ Nov 18, 2026 · @Miguel Guerrero
 The owner, Nov 18: "The goal is not to compete with Apple Maps, Waze, or any of the big scale navigation apps. It's just enough
 support so that if the user wants to capture their drive as part of the journey itself, they can." Asked which gaps they meant, they
 chose all four: starting a journey in the car, places found from the road, the drive in the replay, and captures while driving; and
-"Spec all four now". Asked whether that withdraws the road engine: "Keep 0214".
+"Spec all four now". Asked whether that withdraws the road engine: "Keep 0215".
 
 The owner's words reached this spec through the session that ran the gate, not from the owner in this one. They are quoted as that
-session gave them, and decision 0217 says so.
+session gave them, and decision 0218 says so.
 
 ## Vision
 
@@ -23,7 +23,7 @@ Verb: honour (the drive is what came before a moment), return (the road in the r
 Touches: Never "All-day tracking", "A capture behind a menu, a drawer or an extra tap", "Nagging", "Celebration", "Fitness numbers",
   "Tallies", "Several ways ranked by minutes"; Always "Capture is one tap away", "Restraint", "A route is a suggestion"; 0001 (five
   beats in a fixed order), 0085 (the soft cap), 0040 and rides R1-R14 (R9 captures on a ride, R10 the squeeze, R12 Explore silent
-  while moving), 0115 (places reached by car), 0121 (nothing starts on arrival), 0208 (the session is an outing), 0214-0205 (the
+  while moving), 0115 (places reached by car), 0121 (nothing starts on arrival), 0209 (the session is an outing), 0215-0205 (the
   road engine), main's deferred "Places you can't walk to"
 Verdict: aligned if reshaped
 Shape: nothing starts, stops or offers itself on a car, a speed or an arrival; a place is found by a capture, never by passing or by
@@ -35,8 +35,8 @@ Criteria: DO1-DO30 below, with DO12a
 Open: two, at the end (the owner answered the rest on Nov 18)
 ```
 
-The gate ran before it knew of decisions 0208 and 0214. Two of its eleven criteria are re-gated here: its third ("no route, turn or
-re-route for the road") is withdrawn by "Keep 0214", and its fifth ("nothing new is caused by a ride") is kept with the road
+The gate ran before it knew of decisions 0209 and 0215. Two of its eleven criteria are re-gated here: its third ("no route, turn or
+re-route for the road") is withdrawn by "Keep 0215", and its fifth ("nothing new is caused by a ride") is kept with the road
 engine's spoken turn as the one named exception, which is the first open question.
 
 ## How adjacent apps do it
@@ -53,12 +53,12 @@ Everywhere:
   notifies anything.
 - **DO2.** (the owner's safety rule) Nothing on a ride asks for a look or a tap: a ride causes no prompt, banner, sheet, sound,
   haptic or notification of its own. The one exception is a turn spoken by guiding the person started ("Drive there", decision
-  0216; the owner, Nov 18: "A spoken turn is an acceptable exception"). Reminders the person set still fire; the phone's own
+  0217; the owner, Nov 18: "A spoken turn is an acceptable exception"). Reminders the person set still fire; the phone's own
   driving mode quiets them.
 - **DO3.** No speed, average, maximum, driving time or ranking is shown or stored as a figure, anywhere. A drive's distance is said
   in words with its unit.
 - **DO4.** Nothing leaves the device and no new host is used.
-- **DO5.** The words are the session's, as 0208 names it: the app says "outing" where this spec's surfaces say what is recorded;
+- **DO5.** The words are the session's, as 0209 names it: the app says "outing" where this spec's surfaces say what is recorded;
   "ride" stays the word for a stretch not on foot.
 
 Start a journey in the car:
@@ -85,7 +85,7 @@ Places found from the road:
   in the replay, on Explore, on a place's sheet and on the card.
 - **DO14.** Being inside a large place's perimeter during an outing, off a ride, with no capture, names the place in the replay's
   words and does not find it. It is named by where you were, never by how you moved ("At Muir Woods", not "Walked at"): walking is
-  no longer a named idea in the app (0208; the owner, Nov 18). A stretch is said to be on foot only where the trace makes that
+  no longer a named idea in the app (0209; the owner, Nov 18). A stretch is said to be on foot only where the trace makes that
   plain. How long counts is a rule in the code, said nowhere as a figure.
 - **DO15.** Perimeters and entrances reach the app through an adapter, with an in-memory source for tests; none is hard-coded. A
   place with neither is judged as today. Where they come from is measured before this part is planned (open question 1).
@@ -134,7 +134,7 @@ Captures while driving:
    these kinds as points only).
 4. Hands-free capture (iOS only, every kind of capture; native; an architecture call; cannot be finished without a phone).
 
-## Answered by the owner (Nov 18, in this session; decision 0217)
+## Answered by the owner (Nov 18, in this session; decision 0218)
 
 - The safety rule: "A spoken turn is an acceptable exception." DO2 stands as written; "End" and the mute stay.
 - Perimeters: the owner does not know where they come from; "any complexes or large open spaces should ideally have their
@@ -155,7 +155,7 @@ Captures while driving:
 ## Not in this spec
 
 Detecting a car; a passenger mode; CarPlay or Android Auto; a dashboard of drives; fuel, tolls or stops suggested; telling a bus or
-a train from a car; fog and streets from a driven trace and driven gap inference (0208's own slices).
+a train from a car; fog and streets from a driven trace and driven gap inference (0209's own slices).
 
 ## Record
 

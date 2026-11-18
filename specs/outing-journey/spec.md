@@ -18,7 +18,7 @@ interest and storefronts."
 The page becomes the map. You name a destination (or none), pick chips that say the character of what you'd like on the way, and swipe
 up to three journeys, each leaning a different way. A journey is the towns between here and there, in order, each with a line on what to
 expect and a chapter: a walk among a few stops, or one stop by the road. Start begins an outing that records the whole way (decision
-0208); between towns the phone's maps app does the driving.
+0209); between towns the phone's maps app does the driving.
 
 A draft of the screens: `mock.html` beside this file (https://claude.ai/artifact/DZH98CQkpUuVmy2WnrinKj).
 
@@ -35,7 +35,7 @@ Touches: Never "Several ways ranked by minutes; 'fastest' as a label", "Ratings,
   tap", "A capture behind a menu, a drawer or an extra tap"; Always "A route is a suggestion; drifting is never nagged", "Guidance is
   structural", "Counts are words"; Who it is for "not tourists working through a list"; Shapes "Several routes to one point, Apple Maps
   style: out" (answered by 0095: a row per leaning, no minutes compared); 0194 (shops are presence, never points of interest; stops said
-  by kind); 0121 (nothing watches for arrival before Start); 0127 (by kind, never named); 0195 (Open in Maps); 0208 (the session is an
+  by kind); 0121 (nothing watches for arrival before Start); 0127 (by kind, never named); 0195 (Open in Maps); 0209 (the session is an
   outing; a drive is part of it)
 Verdict: aligned if reshaped
 Shape: up to three journeys that differ by leaning, in a fixed order, never by time, length or rank; the app proposes the towns and the
@@ -44,7 +44,7 @@ Shape: up to three journeys that differ by leaning, in a fixed order, never by t
   is read about your position before you open the page and nothing is recorded before Start
 Precedent: Apple Maps (a destination, then routes and avoid options; verified); Google Maps (stops added along a route; unverified);
   Roadtrippers (places along a drive by category; unverified); Komoot (a planned tour between points you pick; unverified)
-Added after the verdict, by the owner's calls 0210 and 0211, and argued here at the audit (the steward's S7): a reach with no destination
+Added after the verdict, by the owner's calls 0211 and 0212, and argued here at the audit (the steward's S7): a reach with no destination
   (earn: the same look ahead, without a place to aim at; Touches "not tourists working through a list": the towns are looked at, never
   listed to be done); "Another like this" (a re-roll: Touches "A route is a suggestion"; nothing is kept of what was passed over);
   places new to you first, read from found states and the trace (Touches Shapes "Badges for neighbourhoods explored: out, the atlas's
@@ -69,18 +69,18 @@ The owner's, Nov 17:
 - **Chips define character, not an exhaustive form**: the app fits a comfortable number of stops that match, and reports what each
   journey includes and what each town offers.
 - **Points of interest and shops are one pool for an outing** ("unify these two ideas"): thrifting across towns is the motivating case.
-- **The session is an outing; a drive inside it is recorded** (decision 0208).
+- **The session is an outing; a drive inside it is recorded** (decision 0209).
 
-Taken as defaults on the owner's "for the rest, proceed with reasonable defaults" (Nov 17, decision 0209), each theirs to overrule:
+Taken as defaults on the owner's "for the rest, proceed with reasonable defaults" (Nov 17, decision 0210), each theirs to overrule:
 
-- **D1. The phone's maps app does the driving, for now.** The owner called for a road engine of the app's own as its own slice (0209);
+- **D1. The phone's maps app does the driving, for now.** The owner called for a road engine of the app's own as its own slice (0210);
   until it lands a town's distance is a straight line, said as "away".
 - **D2. A town may be a single stop by the road** as well as a walk, because thrift shops often stand alone.
 - **D3. Distance in words, never a time** (WP19, 0102, 0095 hold).
 - **D4. Shops and attractions merge inside the outing only**; 0194 holds everywhere else (no shop becomes a mark or a find).
 - **D5. Picking chips widens**: every chip adds to what a stop may be. This replaces QC38's "across dimensions narrows" between chips; a
   chip may still be a combination inside itself.
-- **D6. The capture stack stays as it is while driving** until the owner decides otherwise (0208, open).
+- **D6. The capture stack stays as it is while driving** until the owner decides otherwise (0209, open).
 
 ## How adjacent apps do it
 
@@ -159,7 +159,7 @@ The journeys:
   rank, a number, "best", "fastest", "shorter", "recommended" or a badge, and no two cards are compared.
 - **OJ19.** The same position, destination, chips and data always give the same journeys in the same order: no randomness.
 - **OJ20.** A journey holds the destination's town and the towns between, near the straight line from here to there, that each add a
-  kind of place the journey does not yet hold: chosen for variety of kinds, never to a fixed number (the owner, Nov 17, decision 0209).
+  kind of place the journey does not yet hold: chosen for variety of kinds, never to a fixed number (the owner, Nov 17, decision 0210).
   How many towns a journey may take is a setting. No sentence says how many as a digit. A destination within the walking ceiling gives journeys of one chapter.
 - **OJ21.** A card's summary is words: the towns in order by name, what it includes by kind, as the chips' own words ("second-hand
   shops, storefronts, old places"), and the distance on foot in all (the owner's "overall travel commitment"; the steward's S7 would
@@ -188,7 +188,7 @@ A journey, town by town:
 Starting, and the way:
 
 - **OJ28.** "Start the outing" begins a recorded session at once, wherever you are, with the journey as its plan; nothing is recorded
-  before that tap (0208, 0036).
+  before that tap (0209, 0036).
 - **OJ29.** Between towns the session's bar names the next town and how far away it is, with "Open in Maps", which hands the town's own point to the phone's maps app, never a stop's position, so Maps names no stop (0195;
   the steward's S8; a lone stop by the road is the owner's call, D2). The app draws no road route and gives no turn. The bar can be put
   away for the session, names no town within reach of a chapter's stops, and goes with no line at the destination's town.
@@ -206,16 +206,16 @@ What never leaks:
   name, chip, leaning or path. It is cleared at Stop, is never on the stored session, in a share or handed to Maps, and no stored field
   says a town or a stop was reached or passed: what is behind you is read from the trace (QC24, QC25, QC29; the steward's S2). The one
   setting stays `outing_chains`.
-- **OJ35.** (rewritten, decision 0210) Opening the page is the tap that asks: it reads the map and the stores pack around where you
+- **OJ35.** (rewritten, decision 0211) Opening the page is the tap that asks: it reads the map and the stores pack around where you
   stand, for the chips that are on. A town further off is read only once the reach is widened or a destination is picked, one town
   after another, and a change of either stops the reads that no longer matter. Reads carry nothing but the tile path (QC29).
 - **OJ36.** A shop met through a journey is never a mark, a find, a landing item or part of the atlas (QC31, D4).
-- **OJ37.** Reading is bounded per town (a set number of tiles) and can be stopped, never by a count of towns (0209); while a town is being read its line says so,
+- **OJ37.** Reading is bounded per town (a set number of tiles) and can be stopped, never by a count of towns (0210); while a town is being read its line says so,
   and a read that fails leaves the town out and says one plain line, never an error code.
 - **OJ38.** The planner's core still holds no word of a kind of place (QC37): attractions enter as a second source of candidates through
   the same types, proved by a test that plans a journey from a fixture of both.
 
-One machine, with or without a destination (the owner, Nov 17, decision 0210):
+One machine, with or without a destination (the owner, Nov 17, decision 0211):
 
 - **OJ41.** "An antique run within a certain radius": with no destination the page has a reach, worded "How far to look": "Close by"
   (what a walk reaches) and three steps further out, in the units setting; one is chosen, "Close by" at first, and it is not
@@ -223,7 +223,7 @@ One machine, with or without a destination (the owner, Nov 17, decision 0210):
   the page says how they would look for thrift shops within a drive.
 - **OJ42.** New places first: a town you have not been in on a recorded outing is looked at before one you have, and an attraction you
   have not found is offered before one you have. Nothing says so on the page.
-- **OJ47.** (the owner, Nov 17, decision 0211) A shop or an attraction that a recorded outing came within range of, on foot, has been
+- **OJ47.** (the owner, Nov 17, decision 0212) A shop or an attraction that a recorded outing came within range of, on foot, has been
   visited: it is offered after the ones that have not. The range is Explore's own setting. It is read from the trace each time an area
   is read and never stored; no trace is read before a chip is on, and nothing on the page says a place was visited.
 - **OJ43.** When the chips that are on span leanings, a journey that draws on them all is offered ahead of the others, named in words
@@ -240,7 +240,7 @@ One machine, with or without a destination (the owner, Nov 17, decision 0210):
 - **OJ40.** An attraction reached through a journey is found by Explore's existing rules and no others; the arrival chip reads the same
   for a shop and an attraction and says nothing of finding (QC19; the steward's S9).
 
-Carried like a trip plan (the owner, Nov 17, decision 0212):
+Carried like a trip plan (the owner, Nov 17, decision 0213):
 
 - **OJ48.** The plan a session carries holds each chapter's town name, its point, its stops' positions and whether it is a loop, and
   nothing else: no stop's name, no chip, no path. It is kept under one key for the open session, taken up only by the session started
@@ -267,12 +267,12 @@ Carried like a trip plan (the owner, Nov 17, decision 0212):
 ## Not in this slice
 
 A road route or road distance of the app's own; opening hours; a time beside a distance; streets and fog from a driven trace, driven gap
-inference and the session's name in the app's words (each its own slice, decision 0208); a journey kept for later or shared; a second
+inference and the session's name in the app's words (each its own slice, decision 0209); a journey kept for later or shared; a second
 dimension of shop (vintage against thrift); more than one destination.
 
 ## Record
 
-**Step 1 built 2026-11-17** on `claude/determined-wright-yg1fq9` (the owner's go-ahead, decision 0209). Steps 2 and 3 are not started.
+**Step 1 built 2026-11-17** on `claude/determined-wright-yg1fq9` (the owner's go-ahead, decision 0210). Steps 2 and 3 are not started.
 
 **Passed.** Unit tests for OJ7, OJ9, OJ11-OJ15, OJ17-OJ19, OJ21, OJ22, OJ25, OJ27, OJ35, OJ36, OJ38, OJ40 (`src/lib/__tests__/outing/`: `chips`,
 `sources`, `journeys`, `journeyWords`, `service`); the journey `outing`, rewritten for the page (OJ1, OJ2, OJ7, OJ9, OJ11, OJ12, OJ14, OJ15,
@@ -292,7 +292,7 @@ sits under the chips); the attractions of the places archive (the tiles' own onl
 shown while a session records); the cold find and the UI review (decisions 0167, 0145) have not run. The opened journey's sheet covers
 part of its route on a small screen.
 
-**The one machine built 2026-11-17** (decision 0210), over step 1: journeys of chapters over areas (`areas.ts`, `journeys.ts`); the reach
+**The one machine built 2026-11-17** (decision 0211), over step 1: journeys of chapters over areas (`areas.ts`, `journeys.ts`); the reach
 (OJ41); the towns toward a destination (OJ20, the first eight looked at, new ones first); new places first (OJ42); the mixed journey
 (OJ43); "Another like this" (OJ45); a town's line and a chapter's line (OJ23, OJ24, in the chips' own words, not yet the atlas's); a
 place standing alone as a chapter of one stop (OJ24); Open in Maps on each town, handing the town's point (OJ29's half); the places
@@ -303,7 +303,7 @@ like this and a wider reach; `npm test` (2,964), typecheck, lint, `check:docs`, 
 journeys pictured and checked), C2 ("Back"), C3 (the next move), C4 (the field keeps "Where to?"), C6 ("the way back is yours") are
 answered; C5 (which row a swap changed) is open. No second cold find and no UI review have run on this page.
 
-**Visited from the trace built 2026-11-17** (OJ47, decision 0211): `visited.ts`, `walkedNear`; unit tests committed failing first
+**Visited from the trace built 2026-11-17** (OJ47, decision 0212): `visited.ts`, `walkedNear`; unit tests committed failing first
 (`e232412`); the journey `outing` green again at 54 checks (its world holds no recorded outing, so visited is unit-tested only).
 
 **Second cold find and the UI review** (the `ux-reviewer`, Nov 17, pictures of the page as built): all ten tasks in the owner's words
@@ -370,7 +370,7 @@ The other journeys covering Explore were not rerun: `explore.tsx` did not change
 
 ## Second audit (2026-11-18, the owner's ask): the carried journey
 
-The part built after the first audit (decision 0212). Pictures first: the journey was made a two-town trip so every state had one,
+The part built after the first audit (decision 0213). Pictures first: the journey was made a two-town trip so every state had one,
 and the first picture of the page while a session records showed the capture stack over the journey card (32, below). Cold find (the
 `ux-reviewer`, pictures only, ten tasks): all found but one state of one task (a photo while planning with no session: 59). Then the
 `auditor` (F1-F18), the `steward` (S1-S8) and the `ux-reviewer` (U1-U10): **29 findings, 21 fixed, 5 deferred, 3 rejected.** Unit
@@ -409,14 +409,14 @@ destination's included, and "Pass by" on the last town is how the plan is put aw
 57. A long journey in a short sheet (U9): defer.
 58. The sheet narrowed for its whole height beside the capture stack (U10, opinion): defer.
 59. No photo while planning with no session (the cold find): reject, by QC30 and WP23 (a moment on a planning page belongs to a session; with none, Start begins one).
-60. Start does not say what it starts, and the walk screen's glyph is footprints for a drive (the cold find): defer to the session's name in the app (decision 0208's first slice); the line beside Start is 47's.
+60. Start does not say what it starts, and the walk screen's glyph is footprints for a drive (the cold find): defer to the session's name in the app (decision 0209's first slice); the line beside Start is 47's.
 
 Journeys run once after the fixes (Nov 18, in the foreground): `journey` (24 checks; an earlier failure was the test's own chip
 helper, since made to wait for the chips to settle), `outing` (66), `capturehome`, `carousel`, `dense`, `edit`, `freelook`, `gaps`,
 `headsup`, `hidden`, `layers`, `marks`, `openmaps`, `placesearch`, `ready`, `reload`, `snap`, `space`, `switches`, `tabs`, `unsaved`,
 `walkability`: all green. `drive` fails where `docs/DEFERRED.md` records it failing on `main`; not rerun and not baselined here.
 
-**A journey carried by the session, built 2026-11-17** (step 3, decision 0212; the owner's "proceed with reasonable defaults ...
+**A journey carried by the session, built 2026-11-17** (step 3, decision 0213; the owner's "proceed with reasonable defaults ...
 alignment with traditional trip planners", whose features and how each is said here are the table in that record). Start begins a
 session wherever you are and offers the plan (`journeyPlan.ts`, `planStore.ts`, meta `outing_journey`); the walk screen's bar names
 the town ahead with Open in Maps, "Pass by" and a way to put the plan away (`useJourneyBar.ts`); within reach of a town the way on
@@ -437,8 +437,8 @@ this town out" and the line between towns (OJ26, OJ51) have no check in a browse
 it, so no journey there has two. The plan's clearing at Stop is by the stop's code, with a unit test of `clear` only.
 
 **Not built.** A journey resumed in a later session, kept or shared; the atlas's own words and street names in a town's line (OJ23);
-the setting for how many towns are looked at (0209; eight today); marks per kind and town outlines on the page's map; the stores pack
-published (merged on chronicles-data's main, no OpenStreetMap run yet); the road engine (0209).
+the setting for how many towns are looked at (0210; eight today); marks per kind and town outlines on the page's map; the stores pack
+published (merged on chronicles-data's main, no OpenStreetMap run yet); the road engine (0210).
 
 **Cold find** (the `ux-reviewer`, pictures only, Nov 17, nine tasks in the owner's words): eight found (where to, nowhere in mind,
 thrifting, the commitment, which shop, a different stop, Go, changing the place, the last one late). **Not found: "see another

@@ -119,7 +119,7 @@ Built on `claude/memories-context`; not audited (decision 0074). Unit tests (`sr
 
 Deferred: the capture's own time zone (a stored zone, a migration); Android's hardware Back from Hidden closes the tab instead of Hidden (native, `docs/NATIVE_UNVERIFIED.md`).
 
-### Amended (the owner, Nov 18, decision 0213)
+### Amended (the owner, Nov 18, decision 0214)
 
 - **MC18** A moment's place in its context line is where it was when it was made: the smallest area its outing was in at that time
   (a neighborhood before its town), and between towns the larger place that is known. An outing through several towns, on foot or

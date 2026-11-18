@@ -83,7 +83,7 @@ test('outing-journey audit 9: with no position a named place offers no Start; fa
   assert.equal(startChoice({ origin: null, first: at(500, 0), named: true }), 'later');
   assert.equal(startChoice({ origin: FROM, first: at(500, 0), named: true }), 'start');
   assert.equal(startChoice({ origin: FROM, first: at(5000, 0), named: true }), 'ask');
-  assert.equal(startChoice({ origin: FROM, first: at(50000, 0), named: true }), 'ask', 'a session may begin wherever you are (OJ28, decision 0212)');
+  assert.equal(startChoice({ origin: FROM, first: at(50000, 0), named: true }), 'ask', 'a session may begin wherever you are (OJ28, decision 0213)');
   assert.equal(startChoice({ origin: FROM, first: FROM, named: false }), 'start');
 });
 

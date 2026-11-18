@@ -18,7 +18,7 @@ working through a list.
 
 ## What it is
 
-An instrument for making memories while out, **Chronicle first** (the owner, Nov 5; 0208). It brings together
+An instrument for making memories while out, **Chronicle first** (the owner, Nov 5; 0209). It brings together
 what other apps do apart (a way, a camera and notes, a replay, a journal) under one philosophy: **every
 moment captured is worth remembering**. Exploration and navigation exist to feed the corpus of moments;
 the walks are one way into it; the map is one view of it, not its home. Later, recall and search make the

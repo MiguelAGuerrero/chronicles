@@ -7,7 +7,7 @@ import { matches, type Candidate, type Want } from './candidates';
 import { planStops, type Outing, type OutingReason } from './plan';
 
 /*
- * The one machine (OJ17-OJ19, OJ22, OJ24, OJ42-OJ45; decision 0210): every outing is a journey of chapters over areas. Around where
+ * The one machine (OJ17-OJ19, OJ22, OJ24, OJ42-OJ45; decision 0211): every outing is a journey of chapters over areas. Around where
  * you stand is one area; a reach or a destination gives several, and this file is not told which. A journey is made per leaning the
  * picked chips reach, in the leanings' given order, with a mixed one ahead when the chips span leanings; nothing ranks them, and two
  * that hold the same stops are one. In each area a chapter is a walk among two or three places, or one place standing alone. Places

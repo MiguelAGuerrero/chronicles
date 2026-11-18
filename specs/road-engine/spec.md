@@ -19,14 +19,14 @@ coming and how far to it, quietly.
 ```
 Idea: The app routes a drive itself: a road graph from the map's tiles, one way between a journey's towns that favours the roads
   through them, its road distance, and turn-by-turn directions while driving, on the device
-Verb: earn (the way to where there is something to notice, and the towns the road really passes; the drive is part of the outing, 0208)
+Verb: earn (the way to where there is something to notice, and the towns the road really passes; the drive is part of the outing, 0209)
 Touches: Never "Several ways ranked by minutes; 'fastest' as a label", "Nagging: off-route alarms, 'time for a walk', re-engagement
   pushes", "Fitness numbers: pace charts" (a speed is one), "Data leaving the device without a tap", "All-day tracking", "A capture
   behind a menu, a drawer or an extra tap"; Always "A route is a suggestion; drifting is never nagged", "Guidance is structural",
   "Restraint in motion, colour and copy"; Shapes "Several routes to one point, Apple Maps style: out (Open in Maps hands that job to
   the phone's maps app)" and "Suggested routes: one way ... no 'fastest' and no minutes compared; drifting never nagged";
   "Offline maps: not now" (0020); 0017 (routes are computed on the device behind RouteSource), 0029, 0058 and 0195 (Open in Maps),
-  0095 (no minutes compared), 0121 (nothing starts on arrival), 0208, 0209, 0212
+  0095 (no minutes compared), 0121 (nothing starts on arrival), 0209, 0210, 0213
 Verdict: aligned if reshaped
 Shape: one way, never several and never set against another; no minutes, no arrival time, no speed, nothing called fastest; what is
   said is a turn and a distance, at most once as it nears, and nothing when you leave the way (it is found again quietly, as on foot);
@@ -37,16 +37,16 @@ Precedent: Apple Maps (several routes with times, spoken turns that go on when l
   Maps (turn-by-turn on OpenStreetMap on the device, no account; unverified); Google Maps (arrival time, "faster route" prompts;
   unverified, the counter-example)
 Criteria: RE1-RE34 below, with RE11a and RE20a
-Open: none after decision 0215 (turns spoken from the tap with a mute; the capture stack unchanged; distance only; about 150 km)
+Open: none after decision 0216 (turns spoken from the tap with a mute; the capture stack unchanged; distance only; about 150 km)
 ```
 
 The gate pushed back once before the owner chose: turn-by-turn while driving is the job the vision hands to the phone's maps app,
-and it brings a driver's safety and "never nag" into the app. The owner chose it (decision 0214); the Shape above is what keeps it
+and it brings a driver's safety and "never nag" into the app. The owner chose it (decision 0215); the Shape above is what keeps it
 this product's.
 
 ## Decisions
 
-The owner's, Nov 18 (decision 0214):
+The owner's, Nov 18 (decision 0215):
 
 - **Full driving directions**, on the device.
 - **Tiles first, a pack later**: the engine reads roads through an adapter; the first is the map's own tiles at low zoom.
@@ -56,7 +56,7 @@ Taken as defaults, each the owner's to overrule:
 
 - **D1. One way.** No alternative is offered, drawn or compared.
 - **D2. Distance, never time** (0095, the outing journey's D3): "31 km by road"; no arrival time, no minutes to a turn, no speed.
-- **D3. Turns are spoken from the tap on "Drive there", with a mute on the bar** (the owner, Nov 18, decision 0215): each turn once
+- **D3. Turns are spoken from the tap on "Drive there", with a mute on the bar** (the owner, Nov 18, decision 0216): each turn once
   as it nears, and nothing else ever. On a phone, guiding does not ship before speech works.
 - **D4. Leaving the way says nothing**: the way is found again after the same wait as on foot; nothing is spoken or shown about it.
 - **D5. The drive ends where the town is at hand**: the engine stops at the road nearest the town's point; from there the session
@@ -158,7 +158,7 @@ Guiding a drive:
 - **RE24.** When the town is at hand the guiding ends by itself and the bar says the town is here, as today; no sound, no "arrived",
   no summary of the drive. The way ends at the main road nearest the town's point: where that is further from the point than the
   town's reach, the bar says how far the town still is and not that it is here (S3).
-- **RE25.** (D3, decision 0215) Tapping "Drive there" starts spoken turns; a mute is on the bar. A turn is spoken once as it nears
+- **RE25.** (D3, decision 0216) Tapping "Drive there" starts spoken turns; a mute is on the bar. A turn is spoken once as it nears
   and never otherwise: nothing is spoken about leaving the way, the distance left, the time or the destination. Where a turn cannot
   be spoken (the web without speech, a phone before step 4), "Drive there" says in words that turns are shown, not said.
 - **RE26.** (D6, S3) What the engine cannot know is said truthfully and at rest: on the page where the road is drawn, and once before
@@ -199,13 +199,13 @@ What it costs, and what it never does:
 The road pack (chronicles-data) and any routing without a connection (0020); several routes, avoid options or a setting for
 motorways; traffic, closures, tolls, lanes, speed limits; turn restrictions (the tiles have none); a time or an arrival; driving a
 town's small streets to a door; guidance for transit or cycling; telling a car from a bus in the trace; streets and fog from a
-driven trace and the session's name (decision 0208's own slices).
+driven trace and the session's name (decision 0209's own slices).
 
 ## Record
 
 **Step 0, the measurement, 2026-11-18**: in `plan.md`. z12 is the zoom; the tiles can carry a road graph.
 
-**Step 1, the engine's core, built 2026-11-18** on `claude/determined-wright-yg1fq9` (the owner's answers, decision 0215): `src/lib/roads/`
+**Step 1, the engine's core, built 2026-11-18** on `claude/determined-wright-yg1fq9` (the owner's answers, decision 0216): `src/lib/roads/`
 (`types`, `rules`, `fromTiles`, `graph`, `way`, `corridor`, `words`). Nothing a person sees changes yet.
 
 **Passed.** Unit tests for RE4-RE7, RE9-RE13, RE29, RE32, RE34 (`src/lib/__tests__/roads/roads.test.ts`), over hand-made roads and
@@ -260,7 +260,7 @@ still is" where the road ends short is the ordinary line between towns, with no 
 returns); RE24's end at the town (the plan's own rule, tested as OJ49, drops the flag; no journey drives nine kilometres); RE31
 (guiding needs an open session: the bar exists only in one, by construction); real roads, real junctions, any phone.
 
-**Step 4, spoken turns, built 2026-11-18** (decision 0216, the owner's "Proceed"): `expo-speech` behind `roads/speech.ts`;
+**Step 4, spoken turns, built 2026-11-18** (decision 0217, the owner's "Proceed"): `expo-speech` behind `roads/speech.ts`;
 `speakStep` (once per turn, within 400 m); the mute in words on the bar, kept as the plan's `muted`; "Drive there" on every
 platform.
 
