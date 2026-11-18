@@ -316,7 +316,9 @@ recording, and a recording bar brings a minimized walk back.
   screen's, the recording bar's) say what is held before the walk ends without it; the second hold lets it go, and one
   that fails after the walk has ended is kept as a moment of its own. Held while the app is open (unsaved captures UN1-UN15, decision 0196). On the web the app asks the browser once to keep its data, never mid-walk, and says once on
   Navigate, ready if it was refused. There is no Storage screen (0041). Storage awareness, decision 0107.
-- The bottom strip has time, distance, Pause, walk options and hold-to-stop.
+- The bottom strip has time, distance and walk options, with Pause alone while walking; paused, Resume (a solid
+  orange pill) and hold-to-stop (a soft pill), as AllTrails has it (decision 0220). The recording bar keeps its own
+  held Stop.
   A status chip shows only when something is wrong (waiting for GPS, weak GPS,
   not recording) or on a ride. "Not recording" is a button: it says why, with
   Open Settings on a phone, and the walk picks recording back up when you
@@ -509,7 +511,7 @@ recording, and a recording bar brings a minimized walk back.
   an empty line and a Navigate button; with a walk open, "This walk is starred
   here when it ends" and no button, the recording bar's › being the way back
   (decision 0148).
-- **A walk with nothing in it is dropped** (decision 0187): stopping a walk with no moment, pause, still or gap and no movement past 15 m skips the replay and says "Walk not kept." with Undo; a killed app restores it.
+- **A walk with nothing in it is dropped** (decision 0187): stopping a walk with no moment, pause (the one still open at Stop aside, decision 0220), still or gap and no movement past 15 m skips the replay and says "Walk not kept." with Undo; a killed app restores it.
 - **The replay** (the make-or-break): reading the streets, the fog clearing,
   the path, the card, then naming. The path has a rhythm (decision 0085): the
   walker keeps a steady pace, slowing into each moment, crosses long empty stretches with
