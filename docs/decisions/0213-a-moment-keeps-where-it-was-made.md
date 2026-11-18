@@ -1,6 +1,6 @@
-# 0212. A moment keeps where it was made, whatever the outing was doing
+# 0213. A moment keeps where it was made, whatever the outing was doing
 
-Date: 2026-11-18 · Status: accepted · Area: moments, memories, outing · Follows [0207](0207-the-session-is-an-outing.md) and [0211](0211-a-journey-is-carried-like-a-trip-plan.md)
+Date: 2026-11-18 · Status: accepted · Area: moments, memories, outing · Follows [0208](0208-the-session-is-an-outing.md) and [0212](0212-a-journey-is-carried-like-a-trip-plan.md)
 
 ## Context
 The second audit of the outing journey asked what a moment captured on the drive between towns carries as its context: the plan is

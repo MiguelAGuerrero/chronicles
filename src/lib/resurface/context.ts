@@ -40,7 +40,7 @@ export function streetAt(fix: LngLat | null, segments: StreetSegment[], snappedI
 const SMALLEST_FIRST = ['neighborhood', 'town', 'state'] as const;
 
 /**
- * MC18 (the owner, Nov 18, decision 0212): where a moment was when it was made. An outing may pass through several towns, by any
+ * MC18 (the owner, Nov 18, decision 0213): where a moment was when it was made. An outing may pass through several towns, by any
  * means of travel, and its areas say when it was in each (ridden stretches count, R8): the moment's place is the smallest area its
  * outing was in at that time, a neighborhood before its town, and between towns whatever larger place is known. Two areas of one
  * size that both span the moment (a town left and come back to) give the narrower stay. Outside every stay nothing is said, never a

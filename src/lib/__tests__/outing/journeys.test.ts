@@ -4,7 +4,7 @@ import type { Candidate } from '../../outing/candidates';
 import { at, segs } from '../walk-planner/grid';
 import { FROM, SHOPS } from './fixtures';
 
-// The one machine (OJ17-OJ19, OJ22, OJ24, OJ43-OJ45, decision 0209): journeys of chapters over areas, with or without a destination.
+// The one machine (OJ17-OJ19, OJ22, OJ24, OJ43-OJ45, decision 0210): journeys of chapters over areas, with or without a destination.
 
 const BANNED = /\b(best|top|most|popular|rated|fast(er|est)?|short(er|est)?|long(er|est)?|recommended|quick(er|est)?|first|second|third)\b|\d/i;
 const spot = (id: string, e: number, n: number, kind: string, unfound = false): Candidate => ({ id, at: at(e, n), facets: { kind: [kind] }, name: id, ...(unfound ? { unfound } : { seen: true }) });

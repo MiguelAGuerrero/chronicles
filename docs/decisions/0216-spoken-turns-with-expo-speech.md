@@ -1,9 +1,9 @@
-# 0215. Turns are spoken with expo-speech, and guiding is offered wherever they can be
+# 0216. Turns are spoken with expo-speech, and guiding is offered wherever they can be
 
-Date: 2026-11-18 · Status: accepted · Area: roads, navigation, sound, dependencies · Builds on [0213](0213-the-road-engine.md) and [0214](0214-the-road-engine-the-owners-answers.md)
+Date: 2026-11-18 · Status: accepted · Area: roads, navigation, sound, dependencies · Builds on [0214](0214-the-road-engine.md) and [0215](0215-the-road-engine-the-owners-answers.md)
 
 ## Context
-0214 said turns are spoken from the tap on "Drive there", with a mute on the bar, and that guiding does not ship on a phone before
+0215 said turns are spoken from the tap on "Drive there", with a mute on the bar, and that guiding does not ship on a phone before
 speech works. Step 3 of the road engine built guiding with the turn shown, on the web only. Asked whether to add `expo-speech` (Expo's
 own module, with a web implementation over the browser's speech synthesis), to switch guiding on for phones with it, and told that
 speech and the lock screen would ship unverified until run on a device, the owner answered "Proceed" (Nov 18). Another session relayed

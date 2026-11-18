@@ -392,7 +392,7 @@ const RETIRED = {
   // The soft cap of about 60 s and its floors went when each moment was given its own time (the owner, Nov 18, decision 0203):
   // specs/replay-pace RY10 holds that nothing shrinks to fit a total.
   'replay-rhythm': ['RR5'],
-  // The Loop / One way switch went with the page rebuilt as a map (outing-journey, decision 0208, a default taken on the owner's "proceed
+  // The Loop / One way switch went with the page rebuilt as a map (outing-journey, decision 0209, a default taken on the owner's "proceed
   // with reasonable defaults", theirs to overrule): a journey is a loop when one can be made, else one way, and says which (OJ7).
   'quick-circuit': ['QC3'],
   // Go here and its sheet were replaced by two outcome-named controls, Walk and "Open in Maps" (the owner, Nov 17, decision 0195):
@@ -459,7 +459,7 @@ const RETIRED = {
  * make (the web build can't reach it), `deferred: <why>` for the owner's call to wait. Keyed by spec.
  */
 const UNTESTED = {
-  // Outing journey (decisions 0208-0210): criteria with no test of their own, each with where it is held instead. Recorded as the slice
+  // Outing journey (decisions 0209-0210): criteria with no test of their own, each with where it is held instead. Recorded as the slice
   // leaves IN_PROGRESS to ship (the owner's /deploy, Nov 18).
   'outing-journey': {
     D6: 'deferred: a decision, not a criterion: the capture stack is unchanged while driving, held by OJ33, OJ39 and RE27\'s checks in the journey `journey`',
@@ -471,7 +471,7 @@ const UNTESTED = {
     OJ32: 'deferred: unchanged from QC19 and QC26, whose tests hold the chip; no journey of this slice walks to a stop',
     OJ51: 'deferred: superseded in part by RE1 (the road in place of the straight line); the straight line that remains is checked by the journey `journey` as the count of points handed to the map',
   },
-  // The road engine (decisions 0213-0214).
+  // The road engine (decisions 0214-0214).
   'road-engine': {
     D6: 'deferred: a decision; held by RE26\'s checks (the one-time statement at the tap, and with the journey\'s towns on the page)',
     RE14: 'deferred: not built: towns are still chosen by the straight line (docs/DEFERRED.md, the road engine step 2)',

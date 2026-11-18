@@ -21,7 +21,7 @@ Tests: `navigation/wayBack.test.ts` (the choice at every distance), `outing/jour
 holds a point and a name alone), a new journey `startfar` (the card past 10 km, Start now, the bar, nothing on foot routed).
 
 Not in this part: a pressed spot past 10 km still offers "When I get there" alone (it has no name to head toward); the tiles' own
-buttons; the wider renaming of "walk" in the app's words (0207's own slice). DO9 (the title) and DO10 are held by rides R8 and by
+buttons; the wider renaming of "walk" in the app's words (0208's own slice). DO9 (the title) and DO10 are held by rides R8 and by
 construction; no new test.
 
 Against precedent: Apple Maps asks nothing before Go; here the question stays because "Start now" begins a recording.

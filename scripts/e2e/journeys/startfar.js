@@ -1,4 +1,4 @@
-// Start in the car (specs/drive-in-the-outing, DO5-DO8; decision 0216): a place past what can be walked still asks, "Start now" or
+// Start in the car (specs/drive-in-the-outing, DO5-DO8; decision 0217): a place past what can be walked still asks, "Start now" or
 // "When I get there"; Start now begins the outing where you are with the place ahead, as a planned journey's town is, and routes
 // nothing on foot. E2E_ONLY=startfar runs it.
 
