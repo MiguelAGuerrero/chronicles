@@ -43,10 +43,13 @@ paths:
   saved still refuses ("A voice memo is recording. Save it first."); a save still running reads "The voice memo is still
   being saved. Hold Stop again in a moment." once, its numbers kept in `warnedSaves`, and the next hold whose wait ends
   with only those still running goes through them: the memo saves into the ended walk. A save begun since is said
-  first. While anything is under way (`memoGate.underWay`: a memo recording or saving, a photo being kept) the stop
-  pins it (`memoGate.pin`) until `endWalk` has decided the drop, so the walk is never dropped mid-save (0187 amended),
-  and `unsaved.ended(walk.id, held ids)` lets go only what this Stop warned of: a save failing as the walk ends stays
-  held for Retry. The pin is taken in the same tick as the `heldFor` read, nothing awaited between.
+  first. A memo recording on a path with no save of its own refuses on any hold (`stopUnderOf`, `lib/stopEnd/core`;
+  each save carries its path, `track(p, owner)`; tend tabs audit 44). Undo of a discarded memo is a tracked save too
+  (audit 41). Once its waits are over the bar ends through `stopEnd` (`lib/stopEnd`), as the walk screen's Stop does
+  (audit 42): the held captures read and warned of; else, in the same tick, nothing awaited between, a pin
+  (`memoGate.pin`) while anything is under way until `endWalk` has decided the drop, so the walk is never dropped
+  mid-save (0187 amended), and `unsaved.ended(walkId, held ids)` lets go only what was warned of: a save failing as the
+  walk ends stays held for Retry. The bar's words are announced on iOS when said (audit 45).
 - **The bar's Stop warns of what is held** (unsaved captures UN5-UN8): after waiting for the memo and the photo,
   it reads `unsaved.heldFor(walk.id)`, says `barWarning` in its line (no Retry on the bar; two lines at most at
   320 px, nothing cut) and goes on; the second hold lets the walk's held captures go. Its camera's failure says its
