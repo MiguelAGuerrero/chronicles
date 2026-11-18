@@ -55,3 +55,18 @@ test('OJ47: the service marks what the trace has been near, and reads no trace w
   const seen = service.candidates(session!, true).filter((c) => c.seen).map((c) => c.name);
   assert.deepEqual(seen, [SHOPS[0].name]);
 });
+
+test('outing-journey audit 61: one far place at the front of a town\'s places does not leave the town a single stop: the places that do join into a walk are taken', { todo: 'audit: test first' }, async () => {
+  const { planChapter } = await import('../../outing/journeys');
+  const { CHIPS } = await import('../../outing/chips');
+  const { distanceM } = await import('../../geo');
+  const wants = CHIPS.filter((c) => c.id === 'antiques' || c.id === 'books');
+  const shop = (id: string, what: string, e: number, n: number) => ({ id, name: id, at: at(e, n), facets: { what: [what] } });
+  // The only antiques shop is 850 m west; three bookshops stand together just east. No walk within 900 m holds the antiques shop and a bookshop.
+  const cands = [shop('far', 'antiques', -850, 0), shop('b1', 'books', 100, 0), shop('b2', 'books', 0, 150), shop('b3', 'books', 150, 150)];
+  const leg = (a: [number, number], b: [number, number]) => ({ path: [a, b], lengthM: distanceM(a, b), source: 'test' });
+  const c = planChapter({ area: { name: 'Town', at: FROM }, from: FROM, cands, leg }, wants, 900);
+  const got = c!.outing.stops.map((s) => s.id).sort();
+  assert.deepEqual(got, ['b1', 'b2', 'b3'], got.join(','));
+  assert.ok(c!.outing.lengthM > 0 && c!.outing.lengthM <= 900);
+});
