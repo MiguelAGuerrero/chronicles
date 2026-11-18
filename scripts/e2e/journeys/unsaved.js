@@ -580,7 +580,6 @@ module.exports = {
   name: 'unsaved',
   covers: [
     'src/lib/unsaved/**',
-    'src/lib/stopEnd/**',
     'src/lib/useCaptures.ts',
     'src/lib/media/memoSave.ts',
     'src/components/RecordingBar.tsx',

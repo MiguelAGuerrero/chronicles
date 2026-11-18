@@ -65,7 +65,7 @@ import { raisedAfter, retryRecorder } from '../lib/recorderRetry';
 import { useUnits } from '../lib/useUnits';
 import { formatRange } from '../lib/format';
 import { pauseWalk, restartRecording, resumeWalk } from '../lib/session';
-import { stopEnd } from '../lib/stopEnd';
+import { stopEnd } from '../lib/unsaved/stopEnd';
 import { formatDistance, formatDuration, formatElapsed } from '../lib/summary';
 import type { LngLat, Pause, StreetSegment, Walk } from '../lib/types';
 import { useCaptures } from '../lib/useCaptures';

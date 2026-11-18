@@ -1,5 +1,5 @@
 // @layer shell
-import { stopWarns, type Unsaved } from '../unsaved/core';
+import { stopWarns, type Unsaved } from '../core';
 
 export interface StopEndDeps {
   /** What is under way (`memoGate`): a memo recording or saving, a photo being kept. */

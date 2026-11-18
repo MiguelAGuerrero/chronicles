@@ -11,7 +11,7 @@ import { db } from '../lib/db';
 import { memoGate } from '../lib/memoGate';
 import { unsaved } from '../lib/unsaved';
 import { barWarning } from '../lib/unsaved/core';
-import { stopEnd } from '../lib/stopEnd';
+import { stopEnd } from '../lib/unsaved/stopEnd';
 import { barInSight, reminderHeld, reminderSeen, reminderSight, reminderText, UNSEEN, type ReminderSight } from '../lib/discovery/recall';
 import { handOnRecall, onRecallFired, RECALL_OPEN_KEY } from '../lib/discovery/recallCheck';
 import { feedback } from '../lib/motion';

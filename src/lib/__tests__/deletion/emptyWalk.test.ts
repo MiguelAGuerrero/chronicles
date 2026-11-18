@@ -189,8 +189,8 @@ test('EW8: the notice says "Walk not kept." and no judgement, count or digit', (
 test('EW7: both stop paths reach one decision through endWalk; neither view holds the rule', () => {
   const read = (f: string) => readFileSync(join(__dirname, '..', '..', '..', '..', f), 'utf8');
   // Through the end both Stops share, which ends the walk with endWalk (tend tabs audit 42).
-  assert.match(read('src/lib/stopEnd/index.ts'), /createStopEnd\(\{[^}]*\bendWalk\b/);
-  assert.match(read('src/lib/stopEnd/shell.ts'), /await d\.endWalk\(/);
+  assert.match(read('src/lib/unsaved/stopEnd/index.ts'), /createStopEnd\(\{[^}]*\bendWalk\b/);
+  assert.match(read('src/lib/unsaved/stopEnd/shell.ts'), /await d\.endWalk\(/);
   for (const f of ['src/app/walk.tsx', 'src/components/RecordingBar.tsx']) {
     const src = read(f);
     assert.match(src, /stopEnd\(/, `${f} stops through the shared end, and so through endWalk`);

@@ -3,13 +3,14 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createDropEmpty } from '../../emptyWalk/shell';
 import { createMemoGate } from '../../memoGate';
-import { createStopEnd } from '../../stopEnd/shell';
+import { createStopEnd } from '../../unsaved/stopEnd/shell';
 import { createUnsaved } from '../../unsaved/shell';
 import type { PendingJob } from '../../deletion/pending';
 import type { TracePoint } from '../../types';
 import { fakePorts } from '../fakes';
 
-// Both Stops end the same way once their waits are over (tend tabs audit 42, decision 0227): the held captures read, in
+// Both Stops end the same way once their waits are over (tend tabs audit 42, decision 0227; `lib/unsaved/stopEnd`, in the
+// captures feature's own folder): the held captures read, in
 // the same tick anything under way pins the walk against the empty drop, then the walk ends and only what was warned
 // of is let go.
 

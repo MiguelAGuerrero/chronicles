@@ -1,7 +1,7 @@
 /// <reference types="node" />
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { stopUnderOf } from '../../stopEnd/core';
+import { stopUnderOf } from '../../unsaved/stopEnd/core';
 
 // What a Stop meets once its wait is over (T35, decision 0227), decided in core from the gate's state (tend tabs audit 43).
 
