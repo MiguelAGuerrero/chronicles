@@ -480,7 +480,7 @@ async function run(h) {
   await pg.locator('[data-testid=options-card] [data-testid=into-row]').scrollIntoViewIfNeeded().catch(() => {});
   await pg.waitForTimeout(300);
   await shot(pg, 'into-walk-row');
-  // WI19: the row's section is its own, after the walk's settings: the header above it is "Every walk", not "This walk".
+  // WI19: the row's section is its own, after the walk's settings: the header above it is "Explore" (audit 13), not "This walk".
   const section = await pg.evaluate(() => {
     const card = document.querySelector('[data-testid=options-card]');
     const row = card && card.querySelector('[data-testid=into-row]');
