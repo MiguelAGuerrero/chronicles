@@ -4,7 +4,7 @@ The owner: "Defer for now and keep references of your work and insight so that a
 ready." This file is that reference. It covers two specs that were written together and wait on the same measurement:
 
 - `specs/shop-facets/spec.md` (SHF1-SHF30, decision 0221): every stop of an outing described by the same facets.
-- `specs/town-fixtures/spec.md` (TF1-TF24, decision 0224): a settlement's staples as a layer of their own, never finds.
+- `specs/town-fixtures/spec.md` (TF1-TF24, decision 0225): a settlement's staples as a layer of their own, never finds.
 
 **Nothing of either is built in the app.** Do not start building on the strength of this file: ask the owner first. When they
 are ready, begin at "How to pick this up".
@@ -167,7 +167,7 @@ skill). Two things to know:
 
 ## How to pick this up
 
-1. Ask the owner whether they are ready, and whether the count has run. Read both specs and decisions 0221 and 0224.
+1. Ask the owner whether they are ready, and whether the count has run. Read both specs and decisions 0221 and 0225.
 2. Read `osmKindCounts` from the latest OpenStreetMap run's `report` artifact (`actions_list` then
    `list_workflow_run_artifacts`). If there is none, the count has not run: say so, do not estimate.
 3. From the counts, redraw the lists above: which kinds exist in numbers, which proposed values are empty, how far second-hand

@@ -9,7 +9,7 @@ The owner: "there has to be some delineation between municipalities' fixtures. S
 is not necessarily a point to find ... every area might have a visitor center or a plaza or something, right? These sort of things
 that are staples in any developed community, town, or city. And I would want that to be known ahead of time. And the things to
 discover within those is a separate ... Think of it like a separate pack or bundle that can be layered." Asked four things, they
-chose: **describe and anchor**; **words only, no level**; **civic and gathering places**; **a stop, never a find** (decision 0224).
+chose: **describe and anchor**; **words only, no level**; **civic and gathering places**; **a stop, never a find** (decision 0225).
 
 ## Vision
 
@@ -117,5 +117,5 @@ What it never does:
 **Deferred by the owner, 2026-11-18**, with the stop facets. The hand-off for both is `specs/shop-facets/handoff.md`: the draft
 list of fixtures shown to the owner (proposed in, arguable, proposed out) is there. Ask the owner before building.
 
-Nothing is built. Decision 0224. chronicles-data's kind counts now also count `place` (a plaza is `place=square`) and `railway`
+Nothing is built. Decision 0225. chronicles-data's kind counts now also count `place` (a plaza is `place=square`) and `railway`
 (SK13), on its main; no run has reported yet.
