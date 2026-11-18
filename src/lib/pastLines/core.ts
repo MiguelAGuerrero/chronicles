@@ -5,7 +5,7 @@ import { tilesIn } from '../tileMath';
 import type { LngLat } from '../types';
 
 /*
- * Where I've been (specs/where-ive-been, decision 0221): each earlier walk's walked line, simplified, kept beside the walk as a
+ * Where I've been (specs/where-ive-been, decision 0222): each earlier walk's walked line, simplified, kept beside the walk as a
  * cache of its trace (WB14) and drawn by the "Where I've been" layer near the map (WB6). Pure: the shell reads and writes.
  */
 

@@ -71,3 +71,11 @@ One page from Explore: pick what you want to see from a vocabulary, get one prop
 - A tile and a pressed spot treat `far` as `later` did. Do not start a far spot with a plan: it has no name for the bar.
 - The e2e is `startfar` (the snap world's Cranston from 11.5 km east).
 
+## From the live build (Nov 18, audits 61 and 62)
+
+- **`planChapter` tries every way of taking three of its pool, then two** (`subsets`), not only the first three and the first two; a combination whose straight lines already pass the ceiling (`straightM`) is skipped without asking for a street.
+- **A place joins the pool only when a street reaches it from the town's point** (a one-stop `planStops` with no ceiling), up to `REACH_TRIES` beyond the pool's size. Real towns have shops inside malls and campuses that the street graph never reaches; one of them in a combination fails it.
+- **One `LegCache` per chapter**, passed to every `planStops`: a pair of places is routed once. A loop's way back (asked with `avoid`) is a different question and is not cached.
+- **A route on real streets costs 40 to 80 ms on a desktop** (27,000 segments about a city centre), and a failed one costs most. A chapter is 15 to 17 of them. Do not add routing per candidate without measuring on real tiles (the e2e's grid hides this).
+- To reproduce a live result off the page: the stores pack is a plain file (`curl` the Pages site), and the street tiles can be fetched inside Playwright from the live origin; `decodeTile`, `deriveSegments`, `legOver` and `planChapter` then run under `tsx`.
+

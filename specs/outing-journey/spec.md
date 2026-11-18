@@ -450,3 +450,20 @@ could be read as clearing it; C5 after a swap the rows read alike and nothing sa
 the way back is yours. The plan's UI review has not run.
 
 **Native.** Nothing here has run on a device.
+
+## After the deploy: what the live build showed (2026-11-18)
+
+Tried on the live build toward Providence once chronicles-data published its first stores pack (24,326 shops in the US, from
+OpenStreetMap). The pack holds four bookshops within 500 m of Providence's point; the page offered one antiques shop and no
+bookshop. Reproduced off the page over the real street tiles and the live pack. Two more findings, both fixed:
+
+61. A town's chapter tried only its first three places, then its first two, and otherwise kept one stop: one place too far to
+    join the others, at the front, left a town of bookshops a single stop. Accept: every way of taking three of the pool, then
+    two, is tried, skipping those that straight lines already put past the ceiling. `outing-journey audit 61`.
+62. A place no street reaches (inside a mall, on a campus: two of Providence's nearest four) took room in the pool and spoiled
+    every walk it was tried in. Accept: a place is taken into the pool only when a street reaches it from the town's point, a
+    set number looked at; each pair of places is routed once for the whole chapter. `outing-journey audit 62`.
+
+Measured on those real tiles, a desktop: bookshops alone went from one stop to a walk of three (1.7 km, one way); with antiques
+and thrifting on, from two stops to three at a 3 km ceiling. A chapter asks for 15 to 17 routes where it asked for 20 to 24.
+

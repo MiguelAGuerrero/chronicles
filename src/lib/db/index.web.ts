@@ -185,7 +185,7 @@ export function migrate(d: IDBDatabase, tx: IDBTransaction, oldVersion: number, 
     };
   }
   if (oldVersion < 23 && upTo >= 23) {
-    // Where I've been (WB14, decision 0221): each walk's walked line, a cache of its trace, found by the z12 tiles it crosses.
+    // Where I've been (WB14, decision 0222): each walk's walked line, a cache of its trace, found by the z12 tiles it crosses.
     const lines = d.createObjectStore('walk_line', { keyPath: 'walk_id' });
     lines.createIndex('tiles', 'tiles', { multiEntry: true });
     // Read by key alone, so listing what is stale never loads a line's runs.

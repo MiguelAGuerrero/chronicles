@@ -235,7 +235,7 @@ source.
   streaks and stickers (counter-examples). Source: from memory, unverified. **Unverified**.
 - **Strava personal heatmap**: every recorded activity's line overlaid on one map, brighter where you have gone more often,
   filtered by sport and date; a subscriber feature. Counter-example for the brightness (frequency drawn as intensity; the
-  owner chose one even tone, decision 0221); the overlay of your own lines turned on and off is the job of Where I've been.
+  owner chose one even tone, decision 0222); the overlay of your own lines turned on and off is the job of Where I've been.
   Source: from memory, unverified (recorded for `specs/where-ive-been`, Nov 18). **Unverified**.
 
 ### Choose what you are shown: a long list of switches (Earn)
@@ -347,3 +347,35 @@ until it is cleared.
 - **Google Maps Timeline**: kept on the device, and it records your day unasked. Source: as read by the same session. **Verified
   there, not re-read here**. A counter-example: nothing here is started for you.
 - **iOS Driving Focus**: silences notifications while driving. Source: from memory. **Unverified**.
+
+### Compose a plan from several choices: one page, a filter sheet, or steps (Earn)
+
+Looked up Nov 18, 2026, for the owner's question on shop facets ("we might opt to using a step form like a wizard, but that decision
+depends on how other apps handle this"). Every line here is from a web search's summary of the page named, not from the page read in
+full: **partly verified** at best.
+
+- **Roadtrippers Autopilot**: a short run of steps. A start and a destination first, then "a few simple questions" (who is
+  travelling, where to eat and stay, interests, the vehicle); the plan it returns is a starting point that can be edited, and a
+  suggestion can be asked for one stop at a time. Source: https://support.roadtrippers.com/hc/en-us/articles/24995143275412 and
+  https://roadtrippers.com/autopilot , by search summary. **Partly verified**. The nearest precedent for a wizard: used once per
+  trip, for a plan of days.
+- **Komoot**: steps, because order matters. Plan, then the sport and the fitness level, then the destination: the sport changes
+  which paths can be routed, so it is asked first. Source: third-party how-to guides (mantel.com, cyclingweekly.com), by search
+  summary. **Partly verified**.
+- **Airbnb**: the constraints are a place, dates and guests, each its own small step in one search panel; since 2022 the first
+  screen leads with categories to pick from, not the question "where". Source: https://www.airbnb.com/2022-summer and a design
+  critique (ixd.prattsi.org), by search summary. **Partly verified**.
+- **Ecommerce filtering on a phone (Baymard)**: facets live in a separate layer (a full-screen sheet) with a sticky Apply, and the
+  filters applied stay visible outside it so they can be removed without reopening it. Source:
+  https://baymard.com/guidelines/1125-apply-buttons-in-mobile-filtering-interfaces and
+  https://baymard.com/blog/how-to-design-applied-filters , by search summary. **Partly verified**. Its counts beside each value
+  are what this product leaves out.
+- **NN/g on wizards**: a wizard is steps in a set order where later steps can depend on earlier answers; it suits novices and
+  processes done rarely (setup, configuration). Source: https://www.nngroup.com/articles/wizards/ , by search summary (the article's
+  full list was not retrieved). **Partly verified**. Other pattern libraries (PatternFly, Visa) say never to use one where a single
+  page would do; that is theirs, not NN/g's.
+
+What they share: steps are used where an answer changes what the next question is (Komoot's sport), or where the plan is large and
+made rarely (a road trip of days); filters that are independent of each other sit together, on the page or in one sheet, with what
+is applied left in view.
+

@@ -1,0 +1,20 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Plan an outing (QC1-QC42, decision 0194)"
+      ],
+      "body": "- Planning a journey on real streets (measured Nov 18 over Providence's real tiles and the live stores pack, on a desktop): a route between two places costs 40 to 80 ms over the 27,000 street segments about a city centre, a failed one most; a town's chapter asks for 15 to 17, so 0.6 to 1.0 s, and a journey plans up to eight towns for up to four cards, all on the page's own thread with no worker. Unmeasured on a phone, where it will be several times slower. The street router also finds no route to a shop inside a mall or on a campus within half a kilometre (two of Providence's nearest four bookshops): such a shop is now kept out of a walk (outing-journey audit 62) but could be a stop reached to its nearest street.\n"
+    },
+    {
+      "argv": [
+        "inflight",
+        "add"
+      ],
+      "body": "| Shop facets (widened to every stop of an outing by the same facets: the kind of place, whether it is entered or had from outside, and for shops what is sold and how; picks across facets narrowing; the lists drawn from a count of every OpenStreetMap kind in the US; SHF1-SHF30, decision 0221) | `claude/determined-wright-yg1fq9` | specced 2026-11-18, nothing built in the app; chronicles-data counts every kind, and its stated hours, on its main; an OpenStreetMap run has yet to report them; the composer's form waits for mocks |\n"
+    }
+  ]
+}
