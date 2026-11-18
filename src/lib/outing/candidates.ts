@@ -15,7 +15,14 @@ export interface Candidate {
   facets: Facets;
   /** Held for a tap and for arrival only: never in a slot, a destination or a map layer (QC17, QC24). */
   name: string;
+  /** OJ25, OJ40: a place the person has not found yet: its name waits for arrival and is not said on a tap. */
+  unfound?: boolean;
+  /** OJ42, OJ47: a place you have found, or that a recorded outing came within range of: offered after the ones that are new. */
+  seen?: boolean;
 }
+
+/** What a planner is told to accept: one match over facets, or a rule of the caller's (several picks that each widen, OJ14). */
+export type Accept = Facets | ((c: Candidate) => boolean);
 
 export interface Want {
   id: string;
@@ -45,6 +52,13 @@ export function matches(match: Facets, c: Pick<Candidate, 'facets'>): boolean {
   if (!dims.length) return false;
   return dims.every((d) => (c.facets[d] ?? []).some((v) => match[d].includes(v)));
 }
+
+/** OJ14: each pick widens: a candidate is wanted when any one pick's own match holds, whatever dimensions the others use. */
+export function matchesAny(wants: readonly Want[], c: Pick<Candidate, 'facets'>): boolean {
+  return wants.some((w) => matches(w.match, c));
+}
+
+export const accepts = (accept: Accept, c: Candidate): boolean => (typeof accept === 'function' ? accept(c) : matches(accept, c));
 
 /** QC40: the facets of a raw record kept to the dimensions and values `dims` knows; anything else is ignored, never an error. */
 export function knownFacets(raw: unknown, dims: Readonly<Record<string, readonly string[]>>): Facets {

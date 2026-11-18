@@ -828,7 +828,7 @@ async function createHarness() {
     await browser.close();
     server.close();
   };
-  // The walk screen's Stop shows only while paused (decision 0208): taps Pause first, unless already paused, and waits
+  // The walk screen's Stop shows only while paused (decision 0220): taps Pause first, unless already paused, and waits
   // for Stop. A journey reads Stop's box after this, never before.
   const toStop = async (pg, timeout = 15000) => {
     await pg.waitForSelector('[data-testid=pause-walk], [data-testid=resume-walk]', { timeout });

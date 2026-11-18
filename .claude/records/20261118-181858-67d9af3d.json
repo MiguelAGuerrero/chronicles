@@ -1,0 +1,57 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "The road engine"
+      ],
+      "body": "- [ ] **Do:** on a phone, start an outing toward a town a drive away, tap \"Drive there\", then lock the phone (and, on another drive, switch to another app) and drive through two turns. **Expect:** each turn is spoken once as it nears; no notification of the app's own appears; nothing more is spoken after \"End directions\", at the town, or after Stop. Today nothing is spoken once the phone is locked: the position is read only while the app is in front (RE33).\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "set",
+        "lock the phone (and, on another drive"
+      ],
+      "body": "- [ ] **Do:** on a phone, start an outing toward a town a drive away, tap \"Drive there\", then lock the phone (and, on another drive, switch to another app) and drive through two turns. **Expect:** each turn is spoken once as it nears; no notification of the app's own appears; nothing more is spoken after \"End directions\", at the town, or after Stop. Today nothing is spoken once the phone is locked: the position is read only while the app is in front (RE33)\n",
+      "target": "sha256:2380929cdf945fe32269dddcba4b45765b2e410e2ec0e389c1d9ff0803274e33"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "add",
+        "--top"
+      ],
+      "body": "| Outing journey (Plan an outing as a page over a map, destination first or a reach with none: chips for attractions and shops in one pool, up to three journeys of different character, town by town, places new to you first; the journey carried by the session's bar with Open in Maps, Pass by and \"Show the way\"; decisions 0206-0210) | built 2026-11-17 and 18; the tests-first commits used a todo the history check does not read (said to the owner at deploy); native unverified | `claude/determined-wright-yg1fq9` | `specs/outing-journey/spec.md` | audited twice: 2026-11-17, 31 findings, 21 fixed, 7 deferred, 3 rejected (`outing-journey audit 1-31`); 2026-11-18, 29 findings, 21 fixed, 5 deferred, 3 rejected (`outing-journey audit 32-60`) |\n"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "add",
+        "--top"
+      ],
+      "body": "| The road engine (the app finds the road between towns from the map's z12 tiles: the road drawn on the outing page, distances by road, \"Drive there\" on the session's bar with the turn ahead, turns spoken once with a mute, the road drawn ahead; decisions 0212-0214) | built 2026-11-18, steps 0 to 4; RE14 (towns by the road) and RE33 (speech behind the lock screen) not met; the tests-first commits used a todo the history check does not read; nothing run on a phone | `claude/determined-wright-yg1fq9` | `specs/road-engine/spec.md` | audited 2026-11-18: 35 findings, 18 fixed, 11 deferred, 3 for the owner, 3 rejected (`road-engine audit 1-18`) |\n"
+    },
+    {
+      "argv": [
+        "inflight",
+        "remove",
+        "Outing journey (Plan an outing"
+      ],
+      "target": "sha256:28c0c3a497463f662f36fffa997bbfb9c02dc688a97158b7a755b12b70def694"
+    },
+    {
+      "argv": [
+        "inflight",
+        "remove",
+        "The road engine (the app finds"
+      ],
+      "target": "sha256:f5810431a17247b34c06f60a788d4f753d32fbbeeed4ae007627b98741331b0d"
+    }
+  ]
+}

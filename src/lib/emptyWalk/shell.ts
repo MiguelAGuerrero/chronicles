@@ -26,7 +26,7 @@ export function createDropEmpty(p: Pick<Ports, 'db'>, deps: DropEmptyDeps) {
         p.db.getGapDecisions(walkId),
       ]);
       const trace = readTrace(points, walk.started_at, pauses, stills);
-      // A closed walk has its end; a pause open at Stop is not counted (EW5, decision 0208).
+      // A closed walk has its end; a pause open at Stop is not counted (EW5, decision 0220).
       const kept = pausesKept(pauses, walk.ended_at ?? Number.POSITIVE_INFINITY);
       if (!isEmptyWalk({ moments: moments.length, pauses: kept, stills: stills.length, fills: gaps.length, trace })) return false;
       deps.schedule({ kind: 'walk', ids: [walkId], spec: { type: 'walk', walkId }, volatile: true });

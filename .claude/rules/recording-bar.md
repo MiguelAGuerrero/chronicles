@@ -30,7 +30,7 @@ paths:
     `lib/recordingBar`. The offer is the bar's own state, and the bar unmounts whenever the tabs lose focus, so
     returning to the walk or opening any screen over the tabs (a day, a replay) ends it too; Edit stays in the
     photo's viewer. No store keeps the offer (the coordinator's ruling on the review's F2); `tabsHidden`'s `barOfferUp` only
-    mirrors whether the pill is drawn, cleared on unmount, for what must step aside for it (Explore's press hint, `tend tabs T36`). At 320 px the
+    mirrors whether the pill is offered (mounted, folded or not), cleared on unmount, for what must step aside for it (Explore's press hint, `tend tabs T36`). At 320 px the
     pill fits one line with 8 px to spare in the e2e's font: its measures are tighter than Undo's at the sides.
   - **The bar has its own Stop** (`bar-stop`, held as on the walk screen; a
     tap says to hold), beside its camera: a way out even when the walk screen

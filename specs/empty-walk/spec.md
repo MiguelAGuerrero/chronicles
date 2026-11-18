@@ -52,7 +52,7 @@ Open: none (the owner's calls are in Decisions)
 - **EW3.** Any moment (photo, video, memo, note, text) keeps the walk, however short. One test per kind.
 - **EW4.** Movement past the threshold, or a street derived from the trace, keeps the walk and plays the replay. A courtyard stroll of
   about 40 m is kept.
-- **EW5.** A walk with a pause, a still or a gap fill is never empty. The pause still open at Stop is not counted: the walk screen shows Stop only while paused, so that pause is the way to Stop (the owner, Nov 18, decision 0208); a pause resumed from still keeps the walk.
+- **EW5.** A walk with a pause, a still or a gap fill is never empty. The pause still open at Stop is not counted: the walk screen shows Stop only while paused, so that pause is the way to Stop (the owner, Nov 18, decision 0220); a pause resumed from still keeps the walk.
 - **EW6.** A walk with no read fixes (none stored, or all gated out by `readTrace` for accuracy or staleness) is kept and replays,
   moments or not.
 - **EW7.** Both stop paths (walk screen hold-to-stop, recording bar Stop) reach the same decision in core; neither view duplicates it.

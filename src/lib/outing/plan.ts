@@ -4,7 +4,7 @@ import { MAX_RETRACE, retracedM } from '../kindWalk/plan';
 import type { Route } from '../nav/types';
 import type { LngLat } from '../types';
 import { fitOrder, type Leg } from '../walkPlanner/planner';
-import type { Candidate, Facets } from './candidates';
+import type { Accept, Candidate } from './candidates';
 import { MAX_STOPS, MIN_STOPS, pickStops } from './pick';
 
 export type OutingReason = 'noPosition' | 'few' | 'noRoute' | 'noLoop';
@@ -19,7 +19,7 @@ export interface Outing {
 
 export interface OutingInput {
   cands: readonly Candidate[];
-  match: Facets;
+  match: Accept;
   from: LngLat | null;
   mode: 'loop' | 'oneway';
   ceilingM: number;

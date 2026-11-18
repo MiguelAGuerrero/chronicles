@@ -59,7 +59,7 @@ test('EW5: a pause, a still or a gap decision keeps the walk, even with no movem
   for (const over of [{ pauses: 1 }, { stills: 1 }, { fills: 1 }]) assert.equal(empty(standing(60), over), false);
 });
 
-test('EW5 (decision 0208): the pause still open at Stop is the way to Stop, not evidence; a pause resumed from is', () => {
+test('EW5 (decision 0220): the pause still open at Stop is the way to Stop, not evidence; a pause resumed from is', () => {
   const end = T0 + 60_000;
   // stopWalk ends the open pause at the walk's end: that one is not counted.
   assert.equal(pausesKept([{ walk_id: 'w', started_at: T0 + 50_000, ended_at: end }], end), 0);
@@ -114,7 +114,7 @@ test('EW1: a walk with a moment is not dropped and nothing is scheduled', async 
   assert.equal(scheduled.length, 0);
 });
 
-test('EW5 (decision 0208): a walk paused only to reach Stop, standing still, is dropped; one resumed from a pause is kept', async () => {
+test('EW5 (decision 0220): a walk paused only to reach Stop, standing still, is dropped; one resumed from a pause is kept', async () => {
   const end = T0 + 60_000;
   const paused = await setup(standing(50));
   await paused.p.db.startPause('w', T0 + 55_000);

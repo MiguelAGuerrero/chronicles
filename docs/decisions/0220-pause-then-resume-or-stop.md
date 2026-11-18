@@ -1,4 +1,4 @@
-# 0208. The walk's strip: Pause alone, then Resume or a held Stop; pills, no outline
+# 0220. The walk's strip: Pause alone, then Resume or a held Stop; pills, no outline
 
 Date: 2026-11-18 · Status: accepted · Area: walk screen, recording
 

@@ -13,7 +13,7 @@ export const WANTS: readonly Want[] = [
     label: 'Thrifting',
     aliases: ['thrift', 'thrift stores', 'second-hand', 'second hand', 'secondhand', 'goodwill', 'charity shops', 'vintage', 'resale'],
     match: { what: ['second_hand', 'antiques', 'vintage'] },
-    slotWord: 'a thrift or antiques shop',
+    slotWord: 'a thrift shop',
   },
 ];
 

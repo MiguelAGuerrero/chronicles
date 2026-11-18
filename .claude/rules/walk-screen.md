@@ -47,7 +47,7 @@ The walk screen (`src/app/walk.tsx`), which is also Navigate, ready: its layout,
 - Capture controls are one component, `CaptureStack` (`components/walk/CaptureStack.tsx`), given ids
   and handlers: `moment-*` on the ready screen (moments, `MomentBar`), `cap-*` on the walk. Time,
   distance, Pause and hold-to-stop stay in the thin strip at the very bottom, at its right end.
-- **Pause alone, then Resume or Stop** (decision 0208, AllTrails' pattern): walking, the strip's actions
+- **Pause alone, then Resume or Stop** (decision 0220, AllTrails' pattern): walking, the strip's actions
   (`walk-actions`) are `pause-walk` alone; paused, `resume-walk` (a solid accent pill, white icon and word) and the held `stop`. Pills with no outline, icon and word
   side by side, 48 high; Pause and Stop soft (`theme.line`), Stop's hold fill sweeping across its pill. At 320 px they
   are 8 px at the sides and the word 14 px, or the walk's numbers are cut while paused (the walk journey checks it). The recording bar keeps

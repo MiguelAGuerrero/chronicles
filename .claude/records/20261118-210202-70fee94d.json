@@ -1,0 +1,36 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "`E2E_ONLY=scenic` fails `fix preview-clutter audit 1`"
+      ],
+      "body": "  - Reached again Nov 18 once fix scenic-switches mended SR1 (the journey had stopped there since `e51f4e9` gave a SwitchRow's note its own id): still `( -> )` on the `/chronicles` build, with every later check green under `E2E_SOFT` (fix scenic-switches audit F2).\n",
+      "target": "sha256:a5a0d797ff9c081e6d6d0853e1db749e066cce63d979069f5a9f8aaf2377eb7e"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "The `scenic` journey fails SR1 on `main`",
+        "--reason",
+        "fixed: fix scenic-switches narrows the selector to [role=switch] (Nov 18)"
+      ],
+      "target": "sha256:ae976456b899905b90d30fef92853a52a5598764005266ba99db3d93c99ae6a2"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Navigation and routes",
+        "--after",
+        "`E2E_ONLY=scenic` fails `fix preview-clutter audit 1`"
+      ],
+      "body": "- [loop] The `into` and `subtypes` journeys read `kind-` rows by prefix, which also matches a SwitchRow's note line (`kind-<id>-note`, since `e51f4e9`; WI18 shows a note once a kind's subtypes differ from their defaults): `into.js` `pageOrder` (l.55, read at l.135, 373, 530), `sectionOf`'s `all` (l.173), the counts at l.455-457, l.585, l.601, and `subtypes.js` `listOrder` (l.40) and `wrapped` (l.131). Neither has failed from it; an order compared across a toggle, or a wrapped note read as a wrapped row, would. Narrow each to `[role=switch][data-testid^=kind-]` or exclude `-note` where headings are meant (fix scenic-switches audit F3, Nov 18).\n"
+    }
+  ]
+}

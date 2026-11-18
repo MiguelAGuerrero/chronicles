@@ -1,0 +1,11 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inflight",
+        "add"
+      ],
+      "body": "| The drive in the outing (start a journey in the car, large places found from the road, the drive in the replay by its length, hands-free capture; DO1-DO30, decision 0206) | `claude/determined-wright-yg1fq9` | specced 2026-11-18 from another session's vision gate; nothing built; waits on the owner's review and four open questions (the safety rule against spoken turns, outlines in the pack, time on foot, hands-free scope) |\n"
+    }
+  ]
+}

@@ -55,11 +55,13 @@ export const FRESH_FIX_MS = 30 * 60_000;
 
 /**
  * What Walk to does on Explore's area card (DW1, DW2, DW5, DW14): start at once when near and the fix is
- * fresh; ask when far, or with no fresh fix; past what can be walked (N5), only When I get there.
+ * fresh; ask when far, or with no fresh fix; past what can be walked (N5), `far`: the same question, where Start now
+ * begins the outing with no way on foot (DO6, decision 0218, amending DW14).
  * `distanceM` is from where you are, or where the atlas last listed areas; `fixT` the fix's time, null with none.
  */
-export function walkToChoice(distanceM: number | null, fixT: number | null, now: number): 'start' | 'ask' | 'later' {
-  if (distanceM != null && distanceM > NAV.maxM) return 'later';
+export function walkToChoice(distanceM: number | null, fixT: number | null, now: number): 'start' | 'ask' | 'far' {
+  // DO6: past what can be walked the question is still asked; "Start now" then begins the outing with the place ahead, the drive included.
+  if (distanceM != null && distanceM > NAV.maxM) return 'far';
   if (distanceM == null || fixT == null || now - fixT > FRESH_FIX_MS) return 'ask';
   return distanceM > GET_THERE_M ? 'ask' : 'start';
 }

@@ -1,0 +1,84 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inbox",
+        "remove",
+        "T37",
+        "--reason",
+        "the proxy's yes under 0157, 2026-11-18, built in tend tabs T37 (with tend tabs audits 31-36); its review's questions answered by the owner in person, 2026-11-18: \"The whole column\", \"Very low waits too\", \"Fix it in this run\" (decision 0208)"
+      ],
+      "target": "sha256:b415056275e4dac0fae6b304c40c3ccdca99837e21898b45d3cdd4ac598bc473"
+    },
+    {
+      "argv": [
+        "inbox",
+        "note",
+        "T38"
+      ],
+      "body": "  Nov 18: the proxy's yes under 0157, 2026-11-18, again. Waits for the next `/tend inbox`: one build per run, T37 built first (`tend tabs T37`).\n",
+      "target": "sha256:530bc2fa8cc263e660d48000f61ba3ce8553cbed33892c69b2a8904c2f03673c"
+    },
+    {
+      "argv": [
+        "inbox",
+        "note",
+        "T35"
+      ],
+      "body": "  Nov 18: the owner's yes, in person, 2026-11-18: \"Yes, as recommended\". Waits for the next `/tend inbox`: one build per run, T37 built first (`tend tabs T37`).\n",
+      "target": "sha256:c1d77b989bd06feeff7c7183316cce012a84403d02279539984ca8bebd0c2646"
+    },
+    {
+      "argv": [
+        "inbox",
+        "note",
+        "T40"
+      ],
+      "body": "  Nov 18: the owner's yes, in person, 2026-11-18: \"Pad the map camera\" (its recommended shape). Waits for the next `/tend inbox`: one build per run, T37 built first (`tend tabs T37`).\n",
+      "target": "sha256:24df794d8e52902881fe9b34bfcf16df890be87981b829af5335e7f4cedec163"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "Two dark",
+        "--reason",
+        "built in tend tabs T37 (inbox T37, the proxy's yes under 0157, 2026-11-18) and tend tabs audit 33 (the owner's \"The whole column\", decision 0208)"
+      ],
+      "target": "sha256:ee09edf068da41d92e0425ac41205652aec587e1f31036b3fc0c6b04acdb64e7"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Tabs and the recording bar"
+      ],
+      "body": "- [loop] The storage notice is not spoken as it appears: on iOS no live region is read and `SpaceLine` calls no `announceForAccessibility` (the bar's Edit pill and `UndoToast` do), and on the web `SpaceLine` returns null without a line, so its polite live region is inserted already full, which screen readers may not announce. Since `tend tabs T37` and audits 32-33 it steps aside and comes back more often. Fix: announce it on iOS as the pill does, and keep the region mounted, empty, on the web. Low (the T37 review's ux 3; Material, \"announce the message but don't move focus\"; HIG VoiceOver, \"Inform VoiceOver when visible content or layout changes occur.\"). Test: `tend tabs audit N: the storage notice is announced on iOS as the bar's pill is`.\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Capture from Chronicle and the journal (HC1-HC15, decision 0112; JN1-JN24, decision 0155)"
+      ],
+      "body": "- [ ] **Do:** since `tend tabs T37` and `tend tabs audits 31-34` (Nov 18), on an iPhone with little room left, start a walk, minimize it, take a photo from the recording bar on Explore, open Memories, then tap the pill's Edit and close the editor; on another walk tap the pill's ✕ on Explore and force-quit the app before opening Memories; then, with no walk, take a photo from Memories' toolbar and delete an entry. **Expect:** the storage notice never stands beside the bar's Edit pill, the band's Edit offer or Undo; it shows once they go, in its own words, above the newest entry's actions, never under the editor; after the force-quit it is said on the next screen that shows it, never lost. Never run on a phone. (SA3, SA4, SA10; decision 0208)\n"
+    },
+    {
+      "argv": [
+        "open",
+        "add"
+      ],
+      "body": "- **`.claude/rules/journal-rest.md`'s footRoom line after `tend tabs audit 34`** (Nov 18; the owner's answer in person, \"Fix it in this run\", decision 0208). What ships: `footRoom` (`lib/journal/bar.ts`) is `barH + aboveH`, the toolbar and the messages above it, both. Still to say by hand: the line \"The row under the line is gone\" says `footRoom` \"is `max(barH, aboveH)`\" (audit 62), and `specs/chronicle-journal/plan.md` l.221 says the same; the loop adds rule lines only (0135), so it added the new one beside it.\n"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 18, `/tend inbox T37 yes, T38 yes, T35 yes, T40 yes --deploy=main`, the storage notice waits for the dark pills in Memories' column** (opened from `7df6d1f7`; no sweep, lenses 1-7 not run; T37 and T38 are the proxy's yes under 0157, 2026-11-18; T35 and T40 the owner's yes, in person, 2026-11-18).\n- The entries, as main held them: T37 \"Two dark pills at once on Memories: the bar's Edit pill and the storage notice\" (built; the proxy's /vision on main db8e8e37: aligned (honour)); T38 \"Chronicle's stacked empty peek springs from 76 to 124 px as the map mounts\" (the proxy's yes under 0157, 2026-11-18); T35 \"The bar's Stop calls a memo still being saved \"recording\"\" (the owner's \"Yes, as recommended\") and T40 \"At 320 x 700 the two-line press hint can reach the walker…\" (the owner's \"Pad the map camera\"): T38, T35 and T40 noted, waiting for the next `/tend inbox`, one build per run.\n- `tend tabs T37`: the storage notice waits while the bar's Edit pill is offered and shows once it goes, its words unchanged, still once (SA4, SA10).\n- The review (one round: the `auditor`, the `ux-reviewer` and the `steward`; accepted 11, deferred 1, rejected 0). Its questions went to the owner, who answered in person, 2026-11-18: \"The whole column\", \"Very low waits too\", \"Fix it in this run\" (decision 0208, the owner's). `tend tabs audit 31`: a refusal is never owed; it waits for the next look off the walk, where SA10 says it. `audit 32`: a line is said and marked only where a `SpaceLine` shows it, with no Modal over it, so waiting never loses it (the older loss on Explore closed too). `audit 33`: every dark pill in Memories' column holds it back (the open line's pills, Memories' toast, Undo). `audit 34`: the journal's foot keeps room for the toolbar and its messages, both (`barH + aboveH`, in place of chronicle-journal audit 62's taller of the two). `audit 35`: the storage rule's lines reworded and attributed. `audit 36`: the journey puts the browser's `estimate` back in a `finally`.\n- Filed: a `[loop]` low under \"Tabs and the recording bar\" (the notice is not spoken on iOS, nor reliably on the web: ux 3); a phone item under \"Capture from Chronicle and the journal\"; an \"Open before the loop\" item (journal-rest.md's footRoom line and the chronicle-journal plan say `max`). Removed: the DEFERRED item built (two dark pills on Memories).\n- Journeys: capturehome (holding the changed checks), space, launch, journal, stackjoin and reactions green on the final build; memories red only at `heading 5` (known flaky); resurface red at its audit 12 step (`moment-more` in the long card), red the same on main's own build f05802ae, 2 of 2 each.\n- The balance: outgrowing its base, as main's ledger reads it; no `G` entry filed.\n"
+    }
+  ]
+}

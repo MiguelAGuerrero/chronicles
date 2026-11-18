@@ -4,6 +4,7 @@ import { newId } from './id';
 import { deletions } from './deletion';
 import { dropEmpty } from './emptyWalk';
 import { clearNav, clearWayBack } from './nav/store';
+import { journeyPlans } from './outing/plans';
 import { notifier } from './notify';
 import { recorder } from './recorder';
 import type { Walk } from './types';
@@ -59,6 +60,8 @@ export function stopWalk(walkId: string): Promise<void> {
       const at = Date.now();
       await db.updateWalk(walkId, { ended_at: at, open: false });
       await db.endPause(walkId, at);
+      // The plan of a journey it carried goes first (OJ48), so a recorder that fails to stop leaves no town's name behind.
+      await journeyPlans.clear().catch(() => {});
       await recorder.stop();
       void notifyWalkChanged();
       void notifier.pauseEnded(walkId);

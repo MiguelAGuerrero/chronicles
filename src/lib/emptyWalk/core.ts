@@ -22,7 +22,7 @@ export interface EmptyWalkInput {
 
 /**
  * The pauses that keep a walk (EW5): those resumed from. The pause still open at Stop is the way to Stop, which the walk
- * screen shows only while paused (decision 0208), so it is no evidence of a walk: `stopWalk` ends it at the walk's end.
+ * screen shows only while paused (decision 0220), so it is no evidence of a walk: `stopWalk` ends it at the walk's end.
  */
 export function pausesKept(pauses: readonly Pause[], endedAt: number): number {
   return pauses.filter((p) => p.ended_at != null && p.ended_at < endedAt).length;

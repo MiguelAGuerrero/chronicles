@@ -209,9 +209,9 @@ async function checks(h) {
         await page.click('[data-testid=voice-save]');
         await page.waitForSelector('text=Too short, not kept');
         check(true, 'a memo under a second is not kept, and the walker is told');
-        // Walking, there is no Stop to tap by accident (decision 0208): Pause comes first.
+        // Walking, there is no Stop to tap by accident (decision 0220): Pause comes first.
         check((await page.locator('[data-testid=stop]').count()) === 0 && (await page.locator('[data-testid=pause-walk]').count()) === 1,
-          '0208: while walking the strip has Pause and no Stop');
+          '0220: while walking the strip has Pause and no Stop');
       }
       if (k === 6) {
         // Explore on, for this walk (E1): the busy streets show, as information (E2, S21).
@@ -570,7 +570,7 @@ async function checks(h) {
         // Pause: positions sent while paused are not recorded, and the clock stops.
         n12.pause = await navOn();
         n12.grewM = (await walkedM()) - n12.fromM;
-        // Decision 0208 (AllTrails' pattern; amends O27 and tend walk-screen 7, audit 9): walking, the strip shows Pause alone;
+        // Decision 0220 (AllTrails' pattern; amends O27 and tend walk-screen 7, audit 9): walking, the strip shows Pause alone;
         // paused, Resume and a held Stop. Each is a pill, its icon and word side by side, no outline, 48 high: Pause and Stop
         // soft, Resume solid accent. The spoken names are as before. At 390 and 320 every word is whole on one line, on
         // screen, the strip 69 high.
@@ -639,13 +639,13 @@ async function checks(h) {
         check(walking.every((m) => m?.word === 'Pause' && m.said === 'Pause the walk' && m.hold == null)
           && pausedStrip.every((m) => m?.word === 'Resume' && m.said === 'Resume the walk' && m.holdWord === 'Stop' && m.holdSaid === 'Hold to stop')
           && Object.values(seenStrip).every(fits),
-          `0208: walking, the strip shows Pause alone; paused, Resume and a held Stop; pills, icon and word side by side, no outline, 48 high and level, every word whole at 390 and 320, the strip 69 high (${JSON.stringify(seenStrip)})`);
+          `0220: walking, the strip shows Pause alone; paused, Resume and a held Stop; pills, icon and word side by side, no outline, 48 high and level, every word whole at 390 and 320, the strip 69 high (${JSON.stringify(seenStrip)})`);
         // Resume is the strip's one primary action while paused: a solid accent pill, its word white (0172's rule); Pause and
         // Stop are soft pills with ink words.
         const soft = 'rgb(227, 224, 218)';
         check(pausedStrip.every((m) => m?.fill === 'rgb(194, 65, 12)' && m.wordColor === 'rgb(255, 255, 255)' && m.holdFill === soft)
           && walking.every((m) => m?.fill === soft && m.wordColor === 'rgb(29, 36, 48)'),
-          `0208: Resume is a solid accent pill with a white word; Pause and Stop soft pills with ink words (${[...walking, ...pausedStrip].map((m) => m && `${m.fill}/${m.wordColor}/${m.holdFill}`).join(', ')})`);
+          `0220: Resume is a solid accent pill with a white word; Pause and Stop soft pills with ink words (${[...walking, ...pausedStrip].map((m) => m && `${m.fill}/${m.wordColor}/${m.holdFill}`).join(', ')})`);
         // One publish cycle, so a fix taken just before the pause is already counted.
         await page.waitForTimeout(2500);
         const before = await page.locator('text=/ · \\d+[ \\u00a0]m$/').first().innerText();

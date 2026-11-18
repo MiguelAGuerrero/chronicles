@@ -1,0 +1,66 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Plan an outing"
+      ],
+      "body": "- Outing journey audit (Nov 17), deferred: reads that no longer matter run to their end, since a read takes no stop signal (audit 12: at most one extra area read after a change of reach or destination); planning runs in render over each read's street graph, now built once per read but still routed on the JS thread at every chip (audit 5's remainder; n: up to 8 areas of about 15k segments, 4 journeys; not measured); new-first misses a town whose name differs between the gazetteer and the area's row, and the outing being recorded now has no rows yet (audit 19); a journey across the antimeridian drops the towns between (audit 20); `listFinds` and the settings are read for each area of a look and again at each arrival (audit 21: at most eight a look); the capture stack on the page while a session records has no picture or check (audit 24, OJ39); \"Include chains\" is a checkbox, not a switch (audit 30)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Plan an outing"
+      ],
+      "body": "- [ ] **Do:** on a phone, open \"Plan an outing\" with a session recording and with none; swipe the journey cards; press the hardware Back with the search open, with a journey opened, and on the list; turn the network off and tap a wider reach, then \"Try again\" with it back on; tap a town's \"Open in Maps\" with no maps app able to open it; start a journey whose first chapter is one stop, both with Start and with \"When I get there\". **Expect:** the capture stack is on the page, one tap each, never under the sheet or its pinned cards; the cards snap one at a time and the dots follow; Back closes the search, then the journey, then the page; a failed read says so and Try again reads it; Maps failing says a line; a single stop is an ordinary destination with no path, and the walk screen names it once on arrival (OJ24, OJ37, OJ39, audit 7, 8, 13-16)\n"
+    },
+    {
+      "argv": [
+        "section",
+        "add",
+        "From the outing journey's audit (2026-11-17)"
+      ],
+      "intro": "The steward's and the reviewers' questions that only the owner answers; nothing here is built or decided.\n"
+    },
+    {
+      "argv": [
+        "section",
+        "item",
+        "add",
+        "From the outing journey's audit (2026-11-17)"
+      ],
+      "body": "- Places new to you are offered first and the page says nothing of it: silence avoids a done mark, but the order then follows an inference you cannot see or correct (the newest thirty outings, on foot only). The vision's own shape is \"New to you\" in words. Say it, or keep it silent? (the steward)\n"
+    },
+    {
+      "argv": [
+        "section",
+        "item",
+        "add",
+        "From the outing journey's audit (2026-11-17)"
+      ],
+      "body": "- Three stops of one kind read alike (\"An antiques shop, a little way on\"), so you cannot tell which you are swapping without opening each. A row may hold only its kind and a distance in words, and numbering is the checklist the vision forbids (audit 27, rejected). Loosen one of the two, or leave it? (the ux-reviewer)\n"
+    },
+    {
+      "argv": [
+        "section",
+        "item",
+        "add",
+        "From the outing journey's audit (2026-11-17)"
+      ],
+      "body": "- After the first town of a journey, opening the page again plans afresh and puts that town's places last, as visited: is that order a done mark? And \"Open in Maps\" sits above Start, so leaving by it is an unrecorded drive: should the page say so? (the steward)\n"
+    },
+    {
+      "argv": [
+        "inflight",
+        "set",
+        "Outing journey"
+      ],
+      "body": "| Outing journey (Plan an outing, destination first: a full-map page, a destination from the search or a reach with none, chips for attractions and shops in one pool, journeys by leaning with a mixed one, town by town, places new to you first; OJ1-OJ47, decisions 0197-0200) | `claude/determined-wright-yg1fq9` | the page and the one machine built 2026-11-17; audited the same day: 31 findings, 21 fixed, 7 deferred, 3 rejected (`outing-journey audit 1-29`); the session carrying a journey (step 3), the road engine slice and the stores pack published are owed; native unverified |\n",
+      "target": "sha256:6e7a2ea3f843183053e11004d402d0f64eea8734ca1a5b58451830d9d7dade9c"
+    }
+  ]
+}

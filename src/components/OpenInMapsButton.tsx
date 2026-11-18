@@ -2,7 +2,8 @@ import { useCallback } from 'react';
 import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import { openInMapsName, OPEN_IN_MAPS, shareLabel } from '../lib/atlas/mapsButton';
 import { feedback } from '../lib/motion';
-import { HANDOFF_HINT, openInMaps } from '../lib/nav/openInMaps';
+import type { TravelMode } from '../lib/nav/handoff';
+import { handoffHint, openInMaps } from '../lib/nav/openInMaps';
 import type { LngLat } from '../lib/types';
 import { Icon } from './icons';
 import { theme } from './ui';
@@ -12,6 +13,8 @@ export interface MapsTarget {
   at: LngLat;
   label: string;
   kind: 'area' | 'star' | 'spot';
+  /** RE19: driving directions for a town a drive away; walking when left out. */
+  mode?: TravelMode;
 }
 
 /**
@@ -23,7 +26,7 @@ export function useOpenInMaps(onFail: () => void): (t: MapsTarget) => void {
   return useCallback(
     (t: MapsTarget) => {
       feedback('tap');
-      openInMaps(t.at, shareLabel(t.kind, t.label)).then((ok) => ok || onFail(), onFail);
+      openInMaps(t.at, shareLabel(t.kind, t.label), t.mode).then((ok) => ok || onFail(), onFail);
     },
     [onFail],
   );
@@ -46,7 +49,7 @@ export function OpenInMapsButton(props: {
       testID={props.testID}
       accessibilityRole="button"
       accessibilityLabel={openInMapsName(props.target.label)}
-      accessibilityHint={HANDOFF_HINT}
+      accessibilityHint={handoffHint(props.target.mode)}
       onPress={() => props.onOpen(props.target)}
       style={({ pressed }) => [styles.base, v === 'half' && styles.half, v === 'button' && styles.button, v === 'link' && styles.link, props.style, pressed && styles.pressed]}
     >

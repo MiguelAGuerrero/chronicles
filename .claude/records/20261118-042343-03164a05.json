@@ -1,0 +1,32 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "The road engine"
+      ],
+      "body": "- The road engine, step 2 (RE1, RE2, RE8, RE15-RE19, RE30), left for later: the towns a journey may take are still those near the straight line, not near the road found (RE14, and with it RE18's \"a journey whose towns come from the road is added\"): it needs a second set of areas read and planned beside the first, and a card added under the reader's eye; the graph is built and the tiles decoded on the page in turns, not in a worker (a corridor of sixty tiles is unmeasured: nine built in 76 ms on a desktop); a journey with no named place (a reach) draws its towns joined straight and says nothing by road, since RE8 reads roads only for a place picked; a road answer is held per page and found again each time the page opens; the session's bar still says a town is \"away\" in a straight line (step 3); a way that is road for some stretches and straight for others is drawn but its length is not said \"by road\"; the e2e checks the line handed to the map by its count of points, not by what is painted.\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "The road engine",
+        "--new"
+      ],
+      "body": "- The road on the outing page (RE1, RE2, RE15-RE19; `roads/tilesSource.ts`, `roads/service.ts`, `outing/useJourney.ts`): reading a strip of z12 tiles, decoding them and building the graph on the JS thread in turns (no worker on native) has never run on a phone: how long sixty tiles hold the screen is unknown; the road drawn through the `alternates` layer; Open in Maps asking for driving directions (`dirflg=d`, Android's `geo:` chooser first and Google's driving link after).\n"
+    },
+    {
+      "argv": [
+        "inflight",
+        "set",
+        "The road engine (the app finds"
+      ],
+      "body": "| The road engine (the app finds the road between towns and guides the drive: a road graph from the map's z12 tiles, one way through the journey's towns, distance by road, spoken turns; RE1-RE34, decisions 0203 and 0204) | `claude/determined-wright-yg1fq9` | step 0 (real tiles measured), step 1 (the engine's core, unit-tested on nine real tiles) and step 2 (the road drawn on the outing page, distances by road, Open in Maps for driving; RE14 deferred) done 2026-11-18; step 3 (guiding) and 4 (speech, the lock screen) owed; native unverified |\n",
+      "target": "sha256:3059781aac1c71a17c6d35477d68c77d7f17d691aa3f5acb6c43f2aed43adcdf"
+    }
+  ]
+}

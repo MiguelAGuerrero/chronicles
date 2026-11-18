@@ -1,0 +1,11 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inflight",
+        "add"
+      ],
+      "body": "| The road engine (the app finds the road between towns and guides the drive: a road graph from the map's z12 tiles, one way through the journey's towns, distance by road, spoken turns; RE1-RE34, decisions 0203 and 0204) | `claude/determined-wright-yg1fq9` | spec, plan and the measurement of real tiles done 2026-11-18, the steward triaged, the owner's answers in; step 1 (the engine's core) in progress; steps 2 to 4 owed; native unverified |\n"
+    }
+  ]
+}

@@ -17,7 +17,8 @@ async function run(h) {
       await pg.waitForTimeout(1500);
       return { c, pg };
     };
-    const switches = (pg) => pg.locator('[data-testid^=leaning-]').evaluateAll((els) => els.map((e) => [e.dataset.testid, e.getAttribute('aria-checked')]));
+    // The switches only: a SwitchRow's note carries its own id, `<testID>-note` (WI18; fix scenic-switches).
+    const switches = (pg) => pg.locator('[role=switch][data-testid^=leaning-]').evaluateAll((els) => els.map((e) => [e.dataset.testid, e.getAttribute('aria-checked')]));
     const startWalk = async (pg) => {
       await pg.click('[data-testid=start]');
       await pg.waitForSelector('[data-testid=walk-actions]', { timeout: 15000 });
@@ -223,8 +224,9 @@ async function run(h) {
     await b.pg.waitForTimeout(1500);
     await drawerTo(b.pg, 'half');
     const after = await switches(b.pg);
-    check(off.every(([, v]) => v === 'false') && after.every(([, v]) => v === 'false') && (await metaOf(b.pg, 'route_leanings')) === '[]',
-      `scenic SR1: switched off, the leanings stay off after a reload (${JSON.stringify(after)})`);
+    // Exactly the three switches, before and after: an empty read would pass `every` (fix scenic-switches audit 1).
+    check(off.length === 3 && after.length === 3 && off.every(([, v]) => v === 'false') && after.every(([, v]) => v === 'false') && (await metaOf(b.pg, 'route_leanings')) === '[]',
+      `scenic SR1: switched off, the leanings stay off after a reload (fix scenic-switches audit 1: three read each time) (${JSON.stringify([off, after])})`);
     await drawerTo(b.pg, 'peek');
     await startWalk(b.pg);
     await goHere(b.pg, east);

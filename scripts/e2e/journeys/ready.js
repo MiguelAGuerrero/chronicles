@@ -197,7 +197,7 @@ async function run(h) {
     // fix minimize-top-align: 4 pt under the safe area top edge (0 in the headless browser), not the old 12.
     check(Math.abs(before.chev.y - 4) <= 1 && Math.abs(after.chev.y - 4) <= 1, `ready fix minimize-top-align: the chevron and Minimize sit 4 pt below the top (${before.chev.y}, ${after.chev.y})`);
     check(Math.abs(before.start.x + before.start.w - (after.stop.x + after.stop.w)) <= 2 && Math.abs(before.start.y + before.start.h / 2 - (after.stop.y + after.stop.h / 2)) <= 2,
-      `ready NR5: Start sits in the strip where the walk's actions end (Pause, then Resume and Stop; 0208) (${JSON.stringify({ start: before.start, stop: after.stop })})`);
+      `ready NR5: Start sits in the strip where the walk's actions end (Pause, then Resume and Stop; 0220) (${JSON.stringify({ start: before.start, stop: after.stop })})`);
     check(/Walk started · recording/.test(notice), `ready NR6: the notice says the walk is recording (${notice})`);
     {
       // banner-spacing: the notice banner, the chevron and the capture stack keep a 16 pt gutter from the screen's edge.
@@ -295,11 +295,11 @@ async function run(h) {
       await shot(sp, 'ready-nr11-walk');
       const walkBad = await layout(['walk-minimize', 'unwalked', 'walk-back', 'recenter', 'cap-photo', 'cap-voice', 'cap-note', 'pause-walk']);
       check(walkBad.length === 0, `ready NR11: at 375×667 the walk's buttons, with every edge button up, are on screen, 44 or more, apart (${walkBad.join(', ')}; ${await stats(sp)})`);
-      // Paused, Resume and Stop take Pause's place (decision 0208): the same rule holds.
+      // Paused, Resume and Stop take Pause's place (decision 0220): the same rule holds.
       await toStop(sp);
       await shot(sp, 'ready-nr11-walk-paused');
       const pausedBad = await layout(['walk-minimize', 'unwalked', 'walk-back', 'recenter', 'cap-photo', 'cap-voice', 'cap-note', 'resume-walk', 'stop']);
-      check(pausedBad.length === 0, `ready NR11, 0208: paused, Resume and Stop are on screen, 44 or more, apart from the rest (${pausedBad.join(', ')}; ${await stats(sp)})`);
+      check(pausedBad.length === 0, `ready NR11, 0220: paused, Resume and Stop are on screen, 44 or more, apart from the rest (${pausedBad.join(', ')}; ${await stats(sp)})`);
       await small.close();
     }
 

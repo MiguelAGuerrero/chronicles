@@ -41,6 +41,5 @@
  "src/components/map/WalkMap.web.tsx:?: React Compiler has skipped optimizing this component because",
  "src/components/map/WalkMap.web.tsx:?: React Compiler has skipped optimizing this component because",
  "src/components/notePage/NewNotePage.tsx:?: Cannot access refs during render",
- "src/components/outing/OutingDrawer.tsx:?: React Compiler has skipped optimizing this component because",
  "src/components/planner/PlannerDrawer.tsx:?: React Compiler has skipped optimizing this component because"
 ]

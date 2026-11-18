@@ -1,0 +1,22 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Tabs and the recording bar (`/tend tabs`, Nov 11)"
+      ],
+      "body": "- [loop] **Chronicle shows two controls for the same choice** (the UX review of fix chronicle-focus-reload, U3, Nov 17, medium, older): the top section row (Memories, Walks, Days, Map, Media) and the sheet's own Walks/Days switch with its Map button change the same views, both on screen at once (pictures `10-home-walks`, `chronicle-t6-bar-walks-framed`). ui-references 1.12 (one segmented control for two to five related views), NN/g H4. Check against the section bar's decisions (0148, SB1-SB4) before changing either.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Tabs and the recording bar (`/tend tabs`, Nov 11)"
+      ],
+      "body": "- [loop] **Chronicle's map \"i\" button looks under the 44 pt target** (the UX review of fix chronicle-focus-reload, U4, Nov 17, low, older): filled, so allowed over the map (V2), but about 24 px across in every Chronicle picture (X0).\n"
+    }
+  ]
+}
