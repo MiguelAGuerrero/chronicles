@@ -53,7 +53,8 @@ The walk screen (`src/app/walk.tsx`), which is also Navigate, ready: its layout,
   do; never `walk-more`, a finished walk's More in Chronicle's list) and a wide `pause-walk`; paused: `resume-walk` (solid
   accent) and the held `stop`, half each, words only, Resume on the left. No … while paused (it does not fit at 320).
   Pills with no outline, 48 high (taller would move the row's middle off Start's, NR5), 4 px at the sides; below 360 the
-  words are 14 px (`narrow`) and Stop's busy state is the spinner alone (`busyQuiet`). The walk journey measures an
+  words are 14 px (`narrow`). Stop's busy state is the spinner alone (`busyQuiet`, at every width; the recording bar's
+  Stop too), "Stopping…" its spoken name. The walk journey measures an
   hour-long walk's numbers at 320 by writing them into the page and putting them back in the same task (React would not
   redraw them while paused). The recording bar keeps its own held Stop with no Pause (0048). The e2e reaches Stop with
   the harness's `toStop(pg)`, which pauses first; wait for `walk-actions`, never `stop`, to know the walk screen is up.

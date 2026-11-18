@@ -575,7 +575,7 @@ async function checks(h) {
         // each, words only, no …. Pills with no outline, 48 high. At 390 and 320 every word whole, on screen, strip 69 high;
         // with an hour-long walk's numbers too (fix walk-strip-buttons audit 1: the numbers set in the page, then measured
         // in the same task, before the clock's next tick writes them back).
-        const strip = (longStats = null) => page.evaluate((longStats) => {
+        const strip = (longStats = null, keep = false) => page.evaluate(([longStats, keep]) => {
           const q = (id) => document.querySelector(`[data-testid=${id}]`);
           const main = q('pause-walk') ?? q('resume-walk');
           const more = q('strip-more');
@@ -595,8 +595,18 @@ async function checks(h) {
           };
           const leaf = (root) => [...root.querySelectorAll('div')].filter((d) => !d.querySelector('div') && d.innerText.trim());
           const wordOf = (root) => leaf(root).find((d) => /[A-Za-z]/.test(d.innerText));
-          // Whole: the word on one line and inside its pill.
-          const inside = (root) => { const w = wordOf(root)?.getBoundingClientRect(); const b = root.getBoundingClientRect(); return !!w && w.left >= b.left - 0.5 && w.right <= b.right + 0.5; };
+          // Whole: the word's full text (a range over it, not clipped by an ellipsis) fits the box it is drawn in, and that box
+          // sits inside its pill. scrollWidth missed a cut "Resu…" here (fix walk-strip-buttons audit 7's picture).
+          const inside = (root) => {
+            const el = wordOf(root);
+            if (!el) return false;
+            const r = document.createRange();
+            r.selectNodeContents(el);
+            const text = r.getBoundingClientRect().width;
+            const w = el.getBoundingClientRect();
+            const b = root.getBoundingClientRect();
+            return text <= w.width + 0.5 && w.left >= b.left - 0.5 && w.right <= b.right + 0.5;
+          };
           const pill = (el) => {
             const cs = getComputedStyle(el);
             const h = el.getBoundingClientRect().height;
@@ -615,9 +625,17 @@ async function checks(h) {
             hold: hold ? { said: hold.getAttribute('aria-label'), word: wordOf(hold)?.innerText.trim() ?? '', fill: getComputedStyle(hold).backgroundColor, ...box(hold) } : null,
             btn: box(main), statsR: sb.right, statsText: statsText.textContent, barH: bar ? Math.round(bar.getBoundingClientRect().height) : null, vw: window.innerWidth,
           };
-          statsText.textContent = was;
+          // Put back now, unless kept for a picture (restoreStats then puts them back).
+          if (!keep) statsText.textContent = was;
+          else window.__statsWas = was;
           return seen;
-        }, longStats);
+        }, [longStats, keep]);
+        const restoreStats = () => page.evaluate(() => {
+          const q = document.querySelector('[data-testid=walk-stats]');
+          const t = q?.querySelector('div') ?? q;
+          if (t && window.__statsWas != null) t.textContent = window.__statsWas;
+          window.__statsWas = null;
+        });
         const soft = 'rgb(227, 224, 218)';
         const LONG = '1:05:12 · 12.4 km';
         const fills = (m) => !!m && m.whole && m.pill && m.btn.h === 48 && m.barH === 69 && m.btn.l > m.statsR;
@@ -637,7 +655,10 @@ async function checks(h) {
         await page.waitForTimeout(600);
         seenStrip.walking320 = await strip();
         await shot(page, '03f-strip-walking-320');
-        seenStrip.walking320long = await strip(LONG);
+        // A picture of it too (fix walk-strip-buttons audit 7): walking, the clock's next tick may redraw them first.
+        seenStrip.walking320long = await strip(LONG, true);
+        await shot(page, '03f-strip-walking-320-long');
+        await restoreStats();
         await page.setViewportSize({ width: 390, height: 844 });
         await page.waitForTimeout(600);
         // … raises the walk's settings, as the drag and a tap on the numbers do, and says so (fix walk-strip-buttons audit 4).
@@ -661,7 +682,9 @@ async function checks(h) {
         await page.waitForTimeout(600);
         seenStrip.paused320 = await strip();
         await shot(page, '03g-strip-paused-320');
-        seenStrip.paused320long = await strip(LONG);
+        seenStrip.paused320long = await strip(LONG, true);
+        await shot(page, '03g-strip-paused-320-long');
+        await restoreStats();
         await page.setViewportSize({ width: 390, height: 844 });
         await page.waitForTimeout(600);
         check(walkingOk(seenStrip.walking390) && walkingOk(seenStrip.walking320),
@@ -919,9 +942,17 @@ async function checks(h) {
     tiles.stall = new Promise((res) => { releaseTilejson = res; });
     await page.mouse.down();
     await page.waitForTimeout(1100);
+    // Caught while the stop is under way, if it lasts long enough to be seen: the spinner alone, the words its spoken name
+    // (fix walk-strip-buttons audit 5).
+    const busyStop = await page.evaluate(() => {
+      const b = document.querySelector('[data-testid=stop]');
+      return b ? { label: b.getAttribute('aria-label'), words: b.innerText.trim() } : null;
+    });
     await page.mouse.up();
     await page.waitForURL(/replay/, { timeout: 30000 });
     check(true, 'holding Stop opens the replay');
+    check(!busyStop || busyStop.label !== 'Stopping…' || busyStop.words === '',
+      `fix walk-strip-buttons audit 5: a busy Stop draws the spinner alone, "Stopping…" its spoken name (${JSON.stringify(busyStop)})`);
     // The walk opens from the device, whatever the network does (bug, Nov 1: blank until a reload).
     let opened = false;
     for (let k = 0; k < 40 && !opened; k++) {

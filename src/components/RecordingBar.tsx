@@ -321,6 +321,8 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
           testID="bar-stop"
           label="Hold to stop the walk"
           busyLabel="Stopping…"
+          // Its 44 px circle holds the spinner alone; "Stopping…" stays its spoken name (fix walk-strip-buttons audit 6).
+          busyQuiet
           onHold={stop}
           onTap={() => setSaid({ text: 'Hold to stop' })}
           busy={stopping}

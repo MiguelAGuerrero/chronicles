@@ -1716,13 +1716,14 @@ function WalkScreen(props: { onMinimize: () => void }) {
                 testID="stop"
                 label="Hold to stop"
                 busyLabel="Stopping…"
-                // Below 360 the busy words do not fit the half: the spinner alone (fix walk-strip-buttons audit 2).
-                busyQuiet={narrow}
+                // The spinner alone while stopping: "Stopping…" does not fit a half on most phones, and stays the spoken
+                // name (fix walk-strip-buttons audits 2, 5).
+                busyQuiet
                 onHold={stop}
                 onTap={() => setToast('Hold to stop the walk')}
                 busy={stopping}
                 disabled={!walk || pausing}
-                style={styles.stopBtn}
+                style={[styles.stopBtn, narrow && styles.barBtnNarrow]}
               >
                 <Text style={[styles.barBtnText, narrow && styles.barBtnTextNarrow]} numberOfLines={1} selectable={false}>Stop</Text>
               </HoldButton>
@@ -2151,8 +2152,9 @@ const styles = StyleSheet.create({
   },
   barBtnText: { color: theme.ink, fontSize: 16, fontWeight: '600' },
   barBtnTextNarrow: { fontSize: 14 },
-  // Pause's icon closer to its word below 360, so an hour-long walk's numbers leave it whole (fix walk-strip-buttons audit 1).
-  barBtnNarrow: { gap: 4 },
+  // Below 360, Pause's icon closer to its word and no side padding (the words are centred, so it shows only when tight), so
+  // an hour-long walk's numbers leave every word whole (fix walk-strip-buttons audits 1, 7).
+  barBtnNarrow: { gap: 4, paddingHorizontal: 0 },
   // Resume, the one primary action while paused: solid accent, white word.
   resumeBtn: { backgroundColor: theme.accent },
   resumeText: { color: theme.accentInk },
