@@ -1190,7 +1190,10 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       `<path d="M50 50 L30 15.36 A40 40 0 0 1 70 15.36 Z" fill="${COLORS.walker}" fill-opacity="0.25"/></svg>` +
       `<svg viewBox="0 0 100 100" style="${fill('')}"><circle cx="50" cy="50" r="7" fill="${COLORS.walker}" stroke="#ffffff" stroke-width="2"/></svg>`;
     const cone = el.querySelector('[data-cone]') as HTMLElement;
-    const marker = new Marker({ element: el, anchor: 'center' }).setLngLat([0, 0]).addTo(map);
+    // Placed to the sub-pixel: MapLibre rounds a marker to a whole pixel otherwise, and a camera that follows the walker
+    // puts the dot at the screen's middle, a half pixel on a screen of an odd width, rounded one way or the other from
+    // frame to frame (the owner's iPhone, Nov 18: "after images"). A dot crossing a still map moves evenly too.
+    const marker = new Marker({ element: el, anchor: 'center', subpixelPositioning: true }).setLngLat([0, 0]).addTo(map);
     puck.current = { marker, el, cone };
     if (replayOn) applyReplay(replayLast.current);
     else applyFrame(lastFrame.current);

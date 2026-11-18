@@ -433,7 +433,7 @@ test('RC7: no view of the stage reads the frame in its render', () => {
 // not to, and a camera that follows the walker puts the dot at the screen's middle: on a screen of an odd width
 // (393 px) that is a half pixel, rounded one way or the other from frame to frame. Measured: 46 flips in one replay.
 
-test('RC1: the walker\'s dot is placed to the sub-pixel, never rounded to a whole one', { todo: 'test first' }, () => {
+test('RC1: the walker\'s dot is placed to the sub-pixel, never rounded to a whole one', () => {
   const src = readFileSync(join(SRC, 'components/map/WalkMap.web.tsx'), 'utf8');
   const puck = /el\.dataset\.testid = 'walker-puck'[\s\S]*?new Marker\(\{([^}]*)\}\)/.exec(src);
   assert.ok(puck, 'the walker\'s marker is made where its element is');
