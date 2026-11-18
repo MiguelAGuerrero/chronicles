@@ -127,7 +127,7 @@ async function run(h) {
   check(ok3, `WI4: the page covers the screen edge to edge, titled, with Back at its top leading edge, over the tab bar (${JSON.stringify(cover)})`);
   check(cover.focus === INTO, `WI14: focus starts at the page's title (${JSON.stringify(cover.focus)})`);
   const readyBack = await pg.locator('[aria-label="Go back"]:visible').count();
-  check.todo(readyBack === 1 && (await pg.locator('[aria-label="Walk, back"]:visible').count()) === 0, `WI20: opened from the ready bar, Back stays as it was ("Go back") (${readyBack})`);
+  check(readyBack === 1 && (await pg.locator('[aria-label="Walk, back"]:visible').count()) === 0, `WI20: opened from the ready bar, Back stays as it was ("Go back") (${readyBack})`);
   const top = await pageOrder();
   const heads = top.filter((r) => r.id.startsWith('kind-heading-'));
   const ok4 = heads.length > 5 && heads.every((r) => r.role === 'heading') && heads[heads.length - 1].text === 'Complexes';
@@ -254,9 +254,9 @@ async function run(h) {
     sc.scrollTop = 0;
     return { two: two.slice(0, 6), named, partly: partly.slice(0, 6), lines: lines.slice(0, 6), heights: [...heights], checked };
   });
-  check.todo(levels.checked > 20 && levels.named > 10 && levels.two.length === 0 && levels.heights.length === 1, `WI17: an indented row under the pinned heading has its kind named there, a kind's own row none, at one height (${JSON.stringify(levels)})`);
-  check.todo(levels.checked > 20 && levels.partly.length === 0, `WI22: no heading's words show partly over or under another (${JSON.stringify(levels.partly)})`);
-  check.todo(levels.checked > 20 && levels.lines.length === 0, `WI24: a hairline under the pinned heading while rows pass under it, none at rest or in the flow (${JSON.stringify(levels.lines)})`);
+  check(levels.checked > 20 && levels.named > 10 && levels.two.length === 0 && levels.heights.length === 1, `WI17: an indented row under the pinned heading has its kind named there, a kind's own row none, at one height (${JSON.stringify(levels)})`);
+  check(levels.checked > 20 && levels.partly.length === 0, `WI22: no heading's words show partly over or under another (${JSON.stringify(levels.partly)})`);
+  check(levels.checked > 20 && levels.lines.length === 0, `WI24: a hairline under the pinned heading while rows pass under it, none at rest or in the flow (${JSON.stringify(levels.lines)})`);
   // WI23: Complexes' rows laid out as the kind rows: an icon, the label at the same start; a heading larger than a kind's label.
   const complexLook = await pg.evaluate(() => {
     const leaf = (sel, re) => {
@@ -279,7 +279,7 @@ async function run(h) {
     };
   });
   const glyphs = complexLook.rows.map((r) => r.glyph);
-  check.todo(complexLook.rows.every((r) => r.left === complexLook.kindLeft && r.glyph) && new Set(glyphs).size === glyphs.length && complexLook.headSize > complexLook.kindSize, `WI23: Complexes' rows have an icon each and the kind rows' text start; a heading is larger than a kind's label (${JSON.stringify(complexLook)})`);
+  check(complexLook.rows.every((r) => r.left === complexLook.kindLeft && r.glyph) && new Set(glyphs).size === glyphs.length && complexLook.headSize > complexLook.kindSize, `WI23: Complexes' rows have an icon each and the kind rows' text start; a heading is larger than a kind's label (${JSON.stringify(complexLook)})`);
   // WI18: a kind with some subtypes off says which, muted, in words, and it is part of what the row is heard as.
   const offLook = await pg.evaluate(() => {
     const row = document.querySelector('[data-testid=into-page] [data-testid=kind-monuments]');
@@ -289,7 +289,7 @@ async function run(h) {
     const allOn = document.querySelector('[data-testid=into-page] [data-testid=kind-attractions-note]');
     return { note: note ? note.textContent : null, color: note ? getComputedStyle(note).color : '', described, allOn: !!allOn };
   });
-  check.todo(offLook.note === 'Plaques and Small memorials off' && offLook.color === 'rgb(89, 98, 115)' && offLook.described.includes(offLook.note) && !offLook.allOn,
+  check(offLook.note === 'Plaques and Small memorials off' && offLook.color === 'rgb(89, 98, 115)' && offLook.described.includes(offLook.note) && !offLook.allOn,
     `WI18: Monuments and memorials says which of its subtypes are off, muted, in words, heard with the row; a kind with all on says nothing (${JSON.stringify(offLook)})`);
   // The middle of the page, pinned, for the cold find (WI2: "turn on waterfalls") and the UI review.
   // WI25: each picture after its scroll has come to rest, every row in view showing its switch.
@@ -299,7 +299,7 @@ async function run(h) {
     unsettled.push(...(await intoSettled(pg)));
     await shot(pg, name);
   }
-  check.todo(unsettled.length === 0, `WI25: every row in view shows its switch in each picture (${JSON.stringify(unsettled)})`);
+  check(unsettled.length === 0, `WI25: every row in view shows its switch in each picture (${JSON.stringify(unsettled)})`);
 
   // WI7: a kind's label heavier than its subtypes', at the same size.
   const kindLabel = await labelOf('kind-nature');
@@ -400,7 +400,7 @@ async function run(h) {
     const head = before.filter((e) => e.getAttribute('role') === 'heading').at(-1);
     return { head: head ? head.textContent.trim() : null, afterShare: before.some((e) => e.getAttribute('data-testid') === 'share-gps-log') };
   });
-  check.todo(!!section && section.head === 'Every walk' && section.afterShare, `WI19: the walk's row sits in a section of its own, "Every walk", after the walk's settings (${JSON.stringify(section)})`);
+  check(!!section && section.head === 'Every walk' && section.afterShare, `WI19: the walk's row sits in a section of its own, "Every walk", after the walk's settings (${JSON.stringify(section)})`);
 
   // WI3: the same page from the walk's drawer, the same rows in the same order.
   const fromWalk = await openInto(pg, 'walk');
@@ -420,7 +420,7 @@ async function run(h) {
     const words = b ? [...b.querySelectorAll('*')].filter((x) => x.childElementCount === 0 && /[A-Za-z]/.test(x.textContent || '') && drawn(x)).map((x) => x.textContent.trim()) : [];
     return b ? { label: b.getAttribute('aria-label'), text: words.join(' '), w: b.getBoundingClientRect().width } : null;
   });
-  check.todo(!!backLook && backLook.label === 'Walk, back' && backLook.text === 'Walk', `WI20: opened from the walk, Back reads "Walk" and is heard as "Walk, back" (${JSON.stringify(backLook)})`);
+  check(!!backLook && backLook.label === 'Walk, back' && backLook.text === 'Walk', `WI20: opened from the walk, Back reads "Walk" and is heard as "Walk, back" (${JSON.stringify(backLook)})`);
   await shot(pg, 'into-page-from-walk');
   const walkOrder = (await pageOrder()).map((r) => r.id);
   check(fromWalk && readyOrder.length > 0 && JSON.stringify(walkOrder) === JSON.stringify(readyOrder), `WI3: the walk's row opens the same page, the same rows in order (${readyOrder.length} vs ${walkOrder.length})`);
@@ -479,7 +479,7 @@ async function run(h) {
   // WI18: at 320 px each off line is one line.
   const offWrapped = await wrappedIn('[data-testid=into-page] [data-testid$=-note]');
   const offCount = await pg.locator('[data-testid=into-page] [data-testid$=-note]').count();
-  check.todo(offCount > 2 && offWrapped.length === 0, `WI18: at 320 px each kind's off line is one line (${offCount}; ${JSON.stringify(offWrapped)})`);
+  check(offCount > 2 && offWrapped.length === 0, `WI18: at 320 px each kind's off line is one line (${offCount}; ${JSON.stringify(offWrapped)})`);
   await shot(pg, 'into-page-320');
   await closeInto(pg);
   await pg.setViewportSize({ width: 390, height: 844 });
@@ -528,7 +528,7 @@ async function run(h) {
     // Boxes are read zoomed: the indent in CSS px is half.
     return { split: split.slice(0, 8), close: close.slice(0, 8), indent: (indent('kind-statues') - indent('kind-public_art')) / 2 };
   });
-  check.todo(big.split.length === 0 && big.close.length === 0 && big.indent > 0 && big.indent < 28, `WI21: at 200% labels break only between words, rows stand apart, the indent is smaller (${JSON.stringify(big)})`);
+  check(big.split.length === 0 && big.close.length === 0 && big.indent > 0 && big.indent < 28, `WI21: at 200% labels break only between words, rows stand apart, the indent is smaller (${JSON.stringify(big)})`);
   await shot(pg, 'into-page-200');
   await pg.evaluate(() => { document.documentElement.style.zoom = ''; });
   await closeInto(pg);
