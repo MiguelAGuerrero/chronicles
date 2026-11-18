@@ -181,15 +181,17 @@ recording, and a recording bar brings a minimized walk back.
   sculptures and statues, and community gardens, join their kinds. An unnamed one is named by its type ("A time
   capsule"). **Subtypes** (decision 0191, contract v4): every kind may have subtypes, each a switch under it, and the
   archive adds what the app could not show before: waterfalls, caves, hot springs and old trees (a new kind, Nature),
-  botanical gardens, zoos and aquariums (with the map's attractions, a kind of their own), fountains, concert halls,
+  botanical gardens, zoos and aquariums (a kind of their own), fountains, concert halls,
   observatories and carousels; listed buildings split into bridges, mills, stations, lighthouses, courthouses, forts,
   towers, old machines and old taverns; ghost towns (off by default) apart from ruins; markers apart from plaques.
-  Small things start off unless they are art.
-  **More attractions** (decision 0198): every museum by its type, not only listed ones (Culture alone unless listed), nature
-  reserves and wildlife refuges, every kind of garden, amusement and water parks (with zoos and aquariums), piers and
-  boardwalks, suspension bridges and national monuments. An area's bars count them by the size of the stop (a plaque a quarter, a little library a half) only for a
-  reader who has them on; they never keep a park a park, never lean a route, and a museum passed is never lost among
-  plaques. `npm run places:coverage` measures what
+  Small things start off unless they are art. An area's bars count the subtypes by the size of the stop (a plaque a
+  quarter, a little library a half) only for a reader who has them on; small places never keep a park a park, never lean a
+  route, and a museum passed is never lost among plaques.
+  **More attractions** (decision 0198): every museum by its type, not only listed ones (Culture alone unless listed,
+  whatever its name), nature reserves and wildlife refuges, every kind of garden, amusement, theme and water parks (their
+  own row, Amusement and theme parks, under Zoos and aquariums, on by default, from the archive and the map alike), piers
+  and boardwalks (no History unless listed), suspension bridges, national monuments, and natural national monuments such as
+  Devils Tower (Natural monuments, under Nature). `npm run places:coverage` measures what
   the app keeps of a town's destinations, for the owner.
 - **Complexes** (CX1-CX16, decision 0147). A named place made of other places (Strawberry Square,
   the Lehigh Valley Mall; a market, a campus, a station, a civic centre) is a subdivision of the area
