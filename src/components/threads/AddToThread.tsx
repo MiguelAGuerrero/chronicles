@@ -1,6 +1,6 @@
 import type { Faced } from '../../lib/moment';
 import { type ComponentRef, useEffect, useMemo, useRef, useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
+import { Dimensions, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useHidden } from '../../lib/deletion/useDeletions';
 import { accessoryRoom, floatsAccessory, lineLift } from '../../lib/journal/keyboard';
@@ -41,10 +41,17 @@ export function AddToThread(props: { moment: Faced; onClose: () => void; onDone:
   const { height: windowH } = useWindowDimensions();
   const back = useRef<ComponentRef<typeof View>>(null);
   const [below, setBelow] = useState(0);
+  // The window's height is read when the measure answers, not when it was asked: one asked before a turn can answer after
+  // it (audit 2).
+  const take = () => back.current?.measureInWindow((_x: number, y: number, _w: number, h: number) => setBelow(Math.max(0, Math.round(Dimensions.get('window').height - (y + h)))));
   const measure = () => {
-    if (keyboard > 0) return;
-    back.current?.measureInWindow((_x: number, y: number, _w: number, h: number) => setBelow(Math.max(0, Math.round(windowH - (y + h)))));
+    if (keyboard === 0) take();
   };
+  // Again once the window has turned, and once the keys are down (audit 2): the backdrop's box changes with neither.
+  const down = keyboard === 0;
+  useEffect(() => {
+    if (down) take();
+  }, [down, windowH]);
   const [floating] = useState(
     () => Platform.OS === 'web' && typeof navigator !== 'undefined' && typeof CSS !== 'undefined'
       && floatsAccessory({ ua: navigator.userAgent, touchPoints: navigator.maxTouchPoints, supports: (q) => CSS.supports(q) }),
@@ -99,7 +106,8 @@ export function AddToThread(props: { moment: Faced; onClose: () => void; onDone:
     props.onDone(id ? 'Connected' : 'Could not connect', !!id);
   };
   return (
-    <View ref={back} onLayout={measure} style={[StyleSheet.absoluteFill, styles.back, { paddingTop: insets.top + 56, paddingBottom: foot }]}>
+    // With the keys up the card gives its top margin to the rows (audit 1).
+    <View ref={back} onLayout={measure} style={[StyleSheet.absoluteFill, styles.back, { paddingTop: insets.top + (keyboard > 0 ? 8 : 56), paddingBottom: foot }]}>
       <View style={styles.card} testID="add-to-thread" accessibilityViewIsModal>
         <View style={styles.head}>
           <Text style={styles.title} accessibilityRole="header">{step === 'threads' ? 'Add to a thread' : 'Join it with another moment'}</Text>
