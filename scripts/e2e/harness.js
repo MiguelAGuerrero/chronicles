@@ -500,6 +500,8 @@ async function createHarness() {
   // `from` 'ready') or in the walk's drawer (`walk-summary` first, 'walk'), then the page pushed over the screen. False
   // when the row or the page never came. `closeInto` is the stack's Back (or Escape), and waits for the page to go.
   const openInto = async (pg, from = 'ready') => {
+    // A drawer just lowered keeps its settings mounted until its spring settles: wait, or the row is seen and then gone.
+    await pg.waitForTimeout(800);
     if (from === 'ready' && (await pg.locator('[data-testid=start-settings]:visible').count()) === 0) await drawerTo(pg, 'half');
     if (from === 'walk' && (await pg.locator('[data-testid=options-card]:visible').count()) === 0) {
       await pg.click('[data-testid=walk-summary]');
