@@ -40,9 +40,14 @@ SQLite (native) and IndexedDB (web) behind the shared `Db` interface, migrations
   web exception. Never a gauge, a number or a limit on capturing; no Storage screen (0041).
   - The browser's request is never made while a walk records (a Firefox prompt mid-capture): it waits for
     Navigate, ready (`check({ recording: false })`) or a moment kept outside a walk.
-  - One dark pill at a time (tend tabs T37): while the recording bar's Edit pill is up (`tabsHidden.barOfferUp`, given
-    to the shell by `index.ts`) a line already up steps aside, and a line that comes due is neither said nor marked
-    (`space_said`, `space_persist`) until the pill goes; then it is looked at again and said once.
+  - The storage notice waits while any dark pill stands in Memories' column (tend tabs T37; the owner's answers of
+    Nov 18, decision 0208): the open line's pills, Memories' toast and its Undo pill count themselves in
+    `space/sight`'s `columnPills` while Memories is in front, and the bar's Edit pill counts while it is offered
+    (`tabsHidden.barOfferUp`: mounted, folded or not; not whether it is drawn). A line already up steps aside meanwhile.
+  - A line is said and marked (`space_said`, `space_persist`) only where it can be seen: a `SpaceLine` mounted (each
+    counts itself in `spaceLines`), no Modal up (`modalsUp`), no dark pill beside it (tend tabs audit 32). Otherwise
+    the look is owed and runs again when any of those changes. A refusal is never owed: it stays `refused` for the next
+    look off the walk, where SA10 says it (audit 31).
   - The e2e (`space`) patches `StorageManager.prototype`'s three methods only; replacing
     `navigator.storage` whole hides what other code needs.
   - The meta key scan (FC8) reads only `getMeta` / `setMeta` calls, so the shell calls those, not `metaStore`.
