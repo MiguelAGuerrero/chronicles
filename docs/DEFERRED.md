@@ -392,6 +392,9 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
   the oldest leaving from the top (`Bubbles.tsx` `maxHeight: cornerHeight(ctx)`; the UX review's U13, low)
 - [loop] The day's map leaves out the faint stretch the walk's card draws across a gap (`rr-day-card` against `rr-card`,
   from before the sweep; `day/[key].tsx` draws only `pathDrawnAt`'s trace and rides; the UX review's U14, low)
+- **A video in a stack's grid is not turned or cropped** (found by fix trimmed-length, Nov 18): `Grid.tsx` `CellVideo` draws a plain `VideoView`, so an edited video shows its trim there (fix trimmed-length 3) but not its rotation, crop or lines, which its own card draws through `VideoPicture`. Its tag has no `playsInline` either, which iPhone Safari asks of a video that plays by itself (`captures-and-media.md`); untried on an iPhone
+- **The 60 s cap shrinks a grid below its video** (found by fix trimmed-length, Nov 18): `rhythm.ts` `fitCap` takes a grid's floor from `gridDuration(n, 0)`, so in a plan over the cap a stack's grid holding a 20 s video is up 1.4 s (measured: a photo and a 20 s video stacked, with a 90 s memo later on the walk), though RR5 keeps a memo's and a lone video's length. Whether a grid's muted video keeps its kept length under the cap is a call on the rhythm
+- **A trimmed video with no stored length gets the shortest slot** (found by fix trimmed-length, Nov 18): a clip the picker gave no duration for has `body` 0, its trim is then made against the player's duration, and `memoLengthMs` clamps a trim inside the stored length, so the plan gives it 1 s (`mediaMin`) and the stage waits for the player to reach the trim's end, as it did before the fix for any video with no length on record
 
 ## Town presence (TP, decision 0089)
 
