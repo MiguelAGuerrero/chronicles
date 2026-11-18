@@ -1,6 +1,6 @@
 {
  "captured": "2026-11-18",
- "from": "explore-subtypes (decision 0187), re-captured for XS3, XS4, XS12, XS15; the more-attractions audit (decision 0198, audits 1-3) re-captured theme_park, added water_park and contract v6's four classes",
+ "from": "explore-subtypes (decision 0187), re-captured for XS3, XS4, XS12, XS15; the more-attractions audit (decision 0198, audits 1-3) re-captured theme_park, added water_park and contract v6's four classes and v7's natural_monument (audit 18)",
  "names": {
   "plain": "Corner Spot",
   "notable": "Old Corner Spot",
@@ -385,6 +385,33 @@
     "markable": true,
     "bars": [
      "culture"
+    ]
+   }
+  },
+  {
+   "cls": "natural_monument",
+   "plain": {
+    "category": "parks",
+    "kind": "nature",
+    "markable": true,
+    "bars": [
+     "parks"
+    ]
+   },
+   "notable": {
+    "category": "parks",
+    "kind": "nature",
+    "markable": true,
+    "bars": [
+     "parks"
+    ]
+   },
+   "hood": {
+    "category": "parks",
+    "kind": "nature",
+    "markable": true,
+    "bars": [
+     "parks"
     ]
    }
   },

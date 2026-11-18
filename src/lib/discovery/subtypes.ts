@@ -68,6 +68,8 @@ export const SUBTYPES: readonly Subtype[] = [
   { kind: 'waterfalls', parent: 'nature', label: 'Waterfalls', plural: 'Waterfalls', single: 'A waterfall', on: true, small: false },
   { kind: 'caves', parent: 'nature', label: 'Caves', plural: 'Caves', single: null, on: true, small: false },
   { kind: 'hot_springs', parent: 'nature', label: 'Hot springs and geysers', plural: 'Hot springs', single: 'A hot spring', on: true, small: false },
+  // more-attractions audit 18 (the owner, Nov 18, "Own subtype under Nature"): natural national monuments.
+  { kind: 'natural_monuments', parent: 'nature', label: 'Natural monuments', plural: 'Natural monuments', single: null, on: true, small: false },
   { kind: 'old_trees', parent: 'nature', label: 'Old trees', plural: 'Old trees', single: 'An old tree', on: false, small: true },
   // Culture.
   { kind: 'observatories', parent: 'museums', label: 'Observatories', plural: 'Observatories', single: null, on: true, small: false },

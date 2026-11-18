@@ -19,8 +19,9 @@ const ROOT = join(__dirname, '../../../..');
 const C = join(__dirname, 'contract');
 const read = (p: string) => JSON.parse(readFileSync(join(C, p), 'utf8'));
 // Contract v4 since Explore subtypes (XS3, decision 0191).
-// v6 since more attractions (MA7, decision 0198); v5 was the stores pack, a layer this app does not read.
-const PINNED_VERSION = 6;
+// v6 since more attractions (MA7, decision 0198); v5 was the stores pack, a layer this app does not read; v7 the natural
+// national monuments (more-attractions audit 18).
+const PINNED_VERSION = 7;
 
 const memory = (buf: Uint8Array): Source => ({
   getKey: () => 'memory',

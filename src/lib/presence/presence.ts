@@ -28,7 +28,8 @@ import { notableBeyondNeighbourhood, notableName } from './notable';
  *     parks and piers; new classes and weights move bars and marks, so nothing is carried.
  * p9: the more-attractions audit (the owner's calls, Nov 18): every amusement, theme or water park is the subtype Amusement
  *     and theme parks under Zoos and aquariums, the map's theme parks moved from Viewpoints (audit 1); a museum by type never
- *     lights History by its name (audit 2); a pier adds nothing to a bar (audit 3). Bars and kinds move, so nothing is carried.
+ *     lights History by its name (audit 2); a pier adds nothing to a bar (audit 3); contract v7's natural national monuments
+ *     are Natural monuments under Nature (audit 18). Bars and kinds move, so nothing is carried.
  */
 export const PRESENCE_CODE = 'p9';
 
@@ -107,6 +108,8 @@ const DEFS = {
   cave: { weight: FULL, category: 'parks', kind: 'nature', subset: 'caves' },
   hot_spring: { weight: FULL, category: 'parks', kind: 'nature', subset: 'hot_springs' },
   old_tree: { weight: QUARTER, bar: QUARTER, category: 'parks', kind: 'nature', subset: 'old_trees' },
+  // more-attractions audit 18 (the owner, Nov 18, "Own subtype under Nature"): Devils Tower, Muir Woods, Jewel Cave.
+  natural_monument: { weight: FULL, category: 'parks', kind: 'nature', subset: 'natural_monuments' },
   observatory: { weight: FULL, storefront: true, category: 'culture', kind: 'museums', subset: 'observatories' },
   concert_hall: { weight: FULL, storefront: true, category: 'culture', kind: 'theatres', subset: 'concert_halls' },
   carousel: { weight: HALF, bar: HALF, category: 'culture', kind: 'community', subset: 'carousels' },
@@ -157,8 +160,9 @@ const DEFS = {
   /** The places archive holds it: it admits only Wikidata items of fixed types and heritage listings. */
   recorded: { weight: 0 },
   /**
-   * more-attractions audit 2: the archive holds it for its type alone, never a listing (contract v6's `museum_by_type`): it
-   * is not `recorded`, and its name never makes it `historic` (the owner, Nov 18: Culture only).
+   * more-attractions audits 2 and 18: the archive holds it for its type alone, never a listing (contract v6's
+   * `museum_by_type`, v7's `natural_monument`): it is not `recorded`, and its name never makes it `historic` (the owner,
+   * Nov 18: Culture only for a museum).
    */
   by_type: { weight: 0 },
   /** Its name holds a word of `notable.json`. */
@@ -343,9 +347,10 @@ export function classesOfOverture(hierarchy: readonly string[]): PresenceClass[]
 }
 
 /**
- * PS1: the places archive's classes (chronicles-data's contract v6, decision 0108; the pinned copy in
+ * PS1: the places archive's classes (chronicles-data's contract v7, decision 0108; the pinned copy in
  * `__tests__/explore/contract`), each to the class it is. Every archive place is `recorded` too (PS6), but a museum by type,
- * which the archive holds for its type and never a listing: it is `by_type` instead (MA2, more-attractions audit 2). A class
+ * and a natural monument, which the archive holds for their type and never a listing: they are `by_type` instead (MA2,
+ * more-attractions audits 2 and 18). A class
  * not here is no place, never guessed.
  */
 const ARCHIVE: Record<string, PresenceClass> = {
@@ -370,6 +375,9 @@ const ARCHIVE: Record<string, PresenceClass> = {
   // Contract v6 (specs/more-attractions MA2-MA5, decision 0198); a museum by type is held for its type alone, never a
   // listing, so it is `by_type`, not `recorded` (classesOfArchive), and lights Culture alone whatever its name (MA2, audit 2).
   museum_by_type: 'museum', nature_reserve: 'nature_reserve', amusement_park: 'amusement', pier: 'pier',
+  // Contract v7 (more-attractions audit 18): a national monument Wikidata types only so, that is a natural place; held for
+  // its type, so never `recorded` and never History (a listed one keeps its listing's class on the data side).
+  natural_monument: 'natural_monument',
 };
 
 /** The archive's class names, in the contract's order (PW5's listing, `archivePois.ts`). */
@@ -390,7 +398,7 @@ export function classesOfArchive(cls: string): PresenceClass[] {
   const c = own(ARCHIVE, cls);
   if (!c) return [];
   // MA2: a museum by type is held for its type, not its listing: no `recorded`, so no History from the record (PK1).
-  return cls === 'museum_by_type' ? [c, 'by_type'] : [c, 'recorded'];
+  return cls === 'museum_by_type' || cls === 'natural_monument' ? [c, 'by_type'] : [c, 'recorded'];
 }
 
 /** OpenMapTiles' landcover classes and subclasses that are green to a scenic route (SR15): parks and gardens, and woods. */

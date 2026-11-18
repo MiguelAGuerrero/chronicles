@@ -104,7 +104,8 @@ test('PW5: each archive class maps to one category and kind; the table is pinned
     concert_hall: ['culture', 'theatres'], observatory: ['culture', 'museums'], carousel: ['culture', 'community'],
     zoo: ['viewpoints', 'attractions'], fire_tower: ['viewpoints', 'viewpoints'], ghost_town: ['viewpoints', 'curiosities'],
     museum_by_type: ['culture', 'museums'], nature_reserve: ['parks', 'parks'], amusement_park: ['viewpoints', 'attractions'], pier: ['history', 'structures'],
-  }, 'a new class is a deliberate change to this table (as AG5); contract v2 re-pinned it (RP8, decisions 0109, 0111), v3 too (SP3), v4 too (XS3), v6 too (MA3-MA5)');
+    natural_monument: ['parks', 'nature'],
+  }, 'a new class is a deliberate change to this table (as AG5); contract v2 re-pinned it (RP8, decisions 0109, 0111), v3 too (SP3), v4 too (XS3), v6 too (MA3-MA5), v7 too (more-attractions audit 18)');
   const got = placesFromArchive([pt(-75.19, 40.69, { name: 'Bushkill Park Folly', class: 'folly', src: 'wd', id: 'Q1' }), pt(-75.19, 40.691, { name: 'A shop', class: 'shop', src: 'osm', id: 'n2' })], 'v20261108');
   assert.equal(got.length, 1, 'the shop\'s class is not in the table: left out, never guessed');
   assert.deepEqual([got[0].category, got[0].kind, got[0].markable, got[0].build], ['viewpoints', 'curiosities', true, 'v20261108']);

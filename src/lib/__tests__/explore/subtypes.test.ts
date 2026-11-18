@@ -57,6 +57,8 @@ const TREE: [string, string, string][] = [
   ['marks_a_fact', 'viewpoints', 'survey_marks'], ['time_capsule', 'viewpoints', 'time_capsules'],
   // More attractions (decision 0198).
   ['nature_reserve', 'parks', 'nature_reserves'], ['pier', 'history', 'piers'], ['amusement_park', 'viewpoints', 'amusement_parks'], ['museum_by_type', 'culture', 'museums'],
+  // more-attractions audit 18 (contract v7).
+  ['natural_monument', 'parks', 'natural_monuments'],
 ];
 
 test('XS1: a waterfall, a covered bridge, a fountain and a carousel from the archive show within range and a capture beside each finds it', async () => {
