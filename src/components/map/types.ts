@@ -325,6 +325,9 @@ export interface WalkMapHandle {
   replayFrame(frame: ReplayMapFrame | null): void;
 }
 
+/** A replay's camera is flat and north-up (replay ceremony RC15): each of its frames tells the map so, whatever a hand left it at. */
+export const FLAT_NORTH_UP = { bearing: 0, pitch: 0 } as const;
+
 /** A frame of a replay as a map takes it (`WalkMapHandle.replayFrame`). */
 export interface ReplayMapFrame {
   /** The time into the telling: a line a map draws as data is sent again by it, at most every `REPLAY_ENGINE.resendMs`. */

@@ -3,7 +3,6 @@ import { Picture } from '../Picture';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useEffect, useRef, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
-import { gridLayout } from '../../lib/ceremony/grid';
 import { overlayOf } from '../../lib/ceremony/live';
 import type { CardOverlay } from '../../lib/ceremony/types';
 import { editedSize, isEmptyEdit, type MediaEdit } from '../../lib/mediaEdit';
@@ -13,19 +12,12 @@ import { EditedPicture, useNaturalSize } from '../edit/EditedPhoto';
 import { seekTo, useVideoSize, VideoPicture } from '../edit/EditedVideo';
 import { Icon, KIND_LABEL } from '../icons';
 import { theme } from '../ui';
-import { cardPose, cardWidth, restCenter, timeOf, type StageCtx } from './layout';
+import { cardPose, cardSize, restCenter, timeOf, type StageCtx } from './layout';
 import { Skeleton } from './Skeleton';
 import { StackGrid } from './Grid';
 
 import { useLive, useLiveStyle } from './useLive';
 import { useMediaWait } from './useMediaWait';
-
-/** A grid's height for its width: its rows of square cells (MS17). */
-function gridHeight(n: number, width: number): number {
-  const g = gridLayout(n);
-  const cell = (width - 4 * (g.cols - 1)) / g.cols;
-  return g.rows * cell + 4 * (g.rows - 1);
-}
 
 /** How long a video may take to start before it is treated as refused sound (as the viewer's player). */
 const AUTOPLAY_CHECK_MS = 800;
@@ -173,11 +165,10 @@ function MomentCard({ o, ctx }: { o: CardOverlay; ctx: StageCtx }) {
   const uri = useMediaUri(o.capture);
   // A photo's picture, once it has loaded: a skeleton stands in until then (RR23).
   const [loaded, setLoaded] = useState(false);
-  const w = cardWidth(ctx);
-  // A stack's grid sits in a square of the card's width (MS17).
+  // A stack's grid sits in a square of the card's width (MS17). The size is the room's to say (`lib/ceremony/room`):
+  // the camera settles the pin under this card from the same numbers (replay ceremony RC14).
   const grid = !!o.pieces?.length;
-  const imgH = grid ? gridHeight(o.pieces!.length, w - 14) : w * 1.15;
-  const h = imgH + 7 + 34;
+  const { w, h, imgH } = cardSize(ctx, o.pieces?.length ?? 0);
   const rest = restCenter(ctx, h);
   const key = o.key;
   // It grows from its pin, where the frame says the pin is (audit 10).

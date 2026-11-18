@@ -18,7 +18,8 @@
 // What it prints, per throttle, over the beat and over its stretches (nothing arriving or leaving, the walker moving):
 // frames a second, how often the walker's place changed, React commits, renders of the screen and of the map component,
 // map data sent (`setData`) and messages to the map's worker, camera moves, the share of the main thread in script, and
-// how far the line's end and the dot were from the camera's centre, in px. A build that sends the line as data is read
+// how far the line's end was from the dot and the map's centre from where its frame put the camera, in px (a build
+// whose camera rides the walker: how far the line's end and the dot were from the map's centre). A build that sends the line as data is read
 // from the worker's messages (the end of the last `trace` its worker had answered); one that reveals it says where it
 // ends (`data-reveal-end`). **Not an iPhone**: no WebKit, no real GPU, one fixture. The numbers say where the cost is.
 const fs = require('fs');
@@ -38,10 +39,11 @@ function instrument() {
   const now = () => performance.now();
   let map = null;
   const attr = (name) => (map ? map.getAttribute(name) ?? '' : '');
-  // Every display frame: when it ran, and where the dot, the camera and the revealed line's end are said to be.
+  // Every display frame: when it ran, and where the dot, the camera, the revealed line's end and the camera its frame
+  // asked for (`data-cam`; a build whose camera rides the walker says none) are said to be.
   const frame = (t) => {
     if (!map || !map.isConnected) map = [...document.querySelectorAll('[data-walker]')].pop() ?? null;
-    P.frames.push([t, attr('data-walker'), attr('data-center'), attr('data-zoom'), attr('data-reveal-end')]);
+    P.frames.push([t, attr('data-walker'), attr('data-center'), attr('data-zoom'), attr('data-reveal-end'), attr('data-cam')]);
     requestAnimationFrame(frame);
   };
   requestAnimationFrame(frame);
@@ -146,6 +148,15 @@ function summarise(P, rate, main) {
     const k = pxPerMetre(zoom, centre[1]);
     const end = reveals ? lngLat(f[4]) : lastBefore(traces, f[0]);
     const dot = reveals ? lngLat(f[1]) : lastBefore(points, f[0]);
+    // The camera its frame asked for, where the build says it (replay ceremony RC12: the camera holds and re-frames, so
+    // it is no longer at the dot): the line's end is measured from the dot, and the map's centre from that camera. A
+    // build whose camera rides the walker is measured as before, both from the map's centre.
+    const cam = lngLat(f[5]);
+    if (cam && cam.length === 3) {
+      if (end && dot) lineLag.push(metres(end, dot) * k);
+      dotLag.push(metres(cam, centre) * pxPerMetre(cam[2], cam[1]));
+      continue;
+    }
     if (end) lineLag.push(metres(end, centre) * k);
     if (dot) dotLag.push(metres(dot, centre) * k);
   }
@@ -168,7 +179,7 @@ function summarise(P, rate, main) {
 
 /** The runs as one table, a row per throttle. */
 function table(runs) {
-  const head = ['slowdown', 'frames/s', 'walker updates/s', 'React commits/s (stretch)', 'screen renders/s (stretch)', 'map renders/s (stretch)', 'setData/s (stretch)', 'worker msgs/s', 'script %', 'line / dot from the centre, px (p50; p90)'];
+  const head = ['slowdown', 'frames/s', 'walker updates/s', 'React commits/s (stretch)', 'screen renders/s (stretch)', 'map renders/s (stretch)', 'setData/s (stretch)', 'worker msgs/s', 'script %', 'line\'s end from the dot / the camera from where its frame put it, px (p50; p90)'];
   const dash = (x) => (x == null ? '-' : String(x));
   const rows = runs.map((r) => (r.error ? [`${r.rate}x`, r.error] : [
     r.rate === 1 ? 'none' : `${r.rate}x`, r.fps, `${dash(r.updates.beat)} (${dash(r.updates.stretch)})`, `${dash(r.commits.app.beat)} (${dash(r.commits.app.stretch)})`,

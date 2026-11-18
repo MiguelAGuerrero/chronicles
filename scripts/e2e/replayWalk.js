@@ -35,7 +35,9 @@ async function seedReplayWalk(h, c, pg) {
   const captures = [
     capAt(first[8], { id: 'rr-photo', kind: 'photo', file_path: 'rr-photo', body: null, caption: 'Blue door', caption_y: 0.8 }),
     capAt(first[25], { id: 'rr-photo-2', kind: 'photo', file_path: 'rr-photo', body: null, caption: 'Green gate', caption_y: 0.8 }),
-    capAt(first[45], { id: 'rr-video', kind: 'video', file_path: 'rr-video', body: '5000' }),
+    // The video 100 m short of the note: a stretch that short is told at the walking zoom, so the camera re-frames as
+    // the walker leaves the video's card (replay ceremony RC12).
+    capAt(first[54], { id: 'rr-video', kind: 'video', file_path: 'rr-video', body: '5000' }),
     capAt(first.at(-1), { id: 'rr-note', kind: 'text', file_path: null, body: 'Bought two plums. Ate one before I paid.' }),
     capAt(second[6], { id: 'rr-memo', kind: 'voice', file_path: 'rr-memo', body: '3000' }),
   ];
@@ -83,7 +85,7 @@ async function seedReplayWalk(h, c, pg) {
   await pg.mouse.up();
   await pg.waitForURL(/replay/, { timeout: 30000 });
   // Where each card's moment was made, by the card's name: the journey reads its pin against its card (replay ceremony RC14).
-  const places = { 'Blue door': [first[8].lon, first[8].lat], 'Green gate': [first[25].lon, first[25].lat], Video: [first[45].lon, first[45].lat] };
+  const places = { 'Blue door': [first[8].lon, first[8].lat], 'Green gate': [first[25].lon, first[25].lat], Video: [first[54].lon, first[54].lat] };
   return { walk, here, places };
 }
 

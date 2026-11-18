@@ -36,7 +36,7 @@ import { useUnits } from '../../lib/useUnits';
 import { MOTION, REPLAY_ENGINE } from '../../lib/motionTokens';
 import {
   alternatesGeoJSON, TRACE_EDGE_OPACITY, storefrontLayerOrder, storefrontNameLayers, storefrontNameRotate, storefrontNamesGeoJSON, routeGradesGeoJSON, pinsGeoJSON, BORDER, borderFillOpacity, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, DERIVE_ZOOM, endsGeoJSON, ENDS_PAINT, ENDS_RING_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON, BASE_VECTOR_SOURCE, POI_SOURCE_LAYER,
-  LINE_SOURCE, type CollectedFeatures, resendKey, type ReplayMapFrame, type WalkMapHandle, type WalkMapProps,
+  FLAT_NORTH_UP, LINE_SOURCE, type CollectedFeatures, resendKey, type ReplayMapFrame, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
 const VIEW_TIMEOUT_MS = 4000;
@@ -294,7 +294,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     }
     const { center, zoom } = f.camera;
     const camera = center ? `${center[0]},${center[1]},${zoom}` : '';
-    if (center && camera !== replaySent.current.camera) cameraRef.current?.jumpTo(zoom == null ? { center } : { center, zoom });
+    if (center && camera !== replaySent.current.camera) cameraRef.current?.jumpTo(zoom == null ? { center, ...FLAT_NORTH_UP } : { center, zoom, ...FLAT_NORTH_UP });
     replaySent.current.camera = camera;
     const was = replayShown.get();
     const walked = resendKey(f.walked, f.ms, REPLAY_ENGINE.resendMs);

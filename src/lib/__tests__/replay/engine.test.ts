@@ -18,6 +18,7 @@ import { REPLAY_ENGINE } from '../../motionTokens';
 import { facedOf, type Faced } from '../../moment';
 import { timedRuns, type TimedRun } from '../../replay';
 import type { LngLat, TracePoint } from '../../types';
+import { SCREEN } from './screen';
 
 const SRC = join(__dirname, '..', '..', '..');
 
@@ -222,7 +223,7 @@ function mercatorShare(runLine: LngLat[], end: LngLat): number {
 
 test('RC1: in every frame the revealed line ends where the walker stands, and is the line the data drew', () => {
   const story = cornerWalk();
-  const plan = rhythmPlan(story, { reduceMotion: false });
+  const plan = rhythmPlan(story, { reduceMotion: false, screen: SCREEN });
   let moving = 0;
   for (let ms = 0; ms < plan.total; ms += 16) {
     const f = rhythmFrame(plan, ms);
@@ -245,7 +246,7 @@ test('RC1: in every frame the revealed line ends where the walker stands, and is
 
 test('RC1: a run\'s lengths are asked of the caller, so one that keeps them measures a run once however many frames pass', () => {
   const story = cornerWalk();
-  const plan = rhythmPlan(story, { reduceMotion: false });
+  const plan = rhythmPlan(story, { reduceMotion: false, screen: SCREEN });
   const kept = new Map<LngLat[], Float64Array>();
   let measured = 0;
   const lengths = (r: LngLat[]) => {
@@ -315,7 +316,7 @@ test('RC3: a line drawn as data (a ride; a phone\'s line) is sent again by the t
 
 test('RC3: as time passes on a stretch the line is the same data: it changes only when a run begins or ends', () => {
   const story = cornerWalk();
-  const plan = rhythmPlan(story, { reduceMotion: false });
+  const plan = rhythmPlan(story, { reduceMotion: false, screen: SCREEN });
   let sends = 0;
   let last: { doneKey: string; run: LngLat[] | null } = { doneKey: '', run: null };
   for (let ms = 0; ms < plan.total; ms += 16) {
@@ -333,7 +334,7 @@ test('RC3: as time passes on a stretch the line is the same data: it changes onl
 
 test('RC7: every frame reaches the stage\'s leaves, and its shape changes only when something arrives or leaves', () => {
   const story = cornerWalk();
-  const plan = rhythmPlan(story, { reduceMotion: false });
+  const plan = rhythmPlan(story, { reduceMotion: false, screen: SCREEN });
   const live = createStageLive();
   let told = 0;
   const off = live.subscribe(() => told++);
@@ -374,7 +375,7 @@ test('RC7: every frame reaches the stage\'s leaves, and its shape changes only w
 
 test('RC7: the stage is handed the frame its shape came with: the same object until something arrives or leaves', () => {
   const story = cornerWalk();
-  const plan = rhythmPlan(story, { reduceMotion: false });
+  const plan = rhythmPlan(story, { reduceMotion: false, screen: SCREEN });
   const live = createStageLive();
   assert.equal(live.staged(), null, 'nothing staged before a frame');
   let shape = live.shape();
@@ -399,7 +400,7 @@ test('RC7: the stage is handed the frame its shape came with: the same object un
 
 test('RC7: what the pile holds is part of the stage\'s shape: one more tucked in, or another in its place, is another shape', () => {
   const cap = (id: string) => ({ id }) as unknown as Faced;
-  const frame = (ids: string[]): Frame => ({ ...rhythmFrame(rhythmPlan(cornerWalk(), { reduceMotion: false }), 0), overlays: [{ kind: 'pile', key: 'pile', captures: ids.map(cap) }] });
+  const frame = (ids: string[]): Frame => ({ ...rhythmFrame(rhythmPlan(cornerWalk(), { reduceMotion: false, screen: SCREEN }), 0), overlays: [{ kind: 'pile', key: 'pile', captures: ids.map(cap) }] });
   const live = createStageLive();
   live.set(frame(['a']), 1);
   const one = live.shape();

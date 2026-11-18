@@ -2,10 +2,11 @@
 /**
  * The rhythm (RR1-RR19, decision 0085): the first ceremony. The path's time
  * goes to the stretches between moments, not the minutes walked: a glide
- * between nearby moments, a zip with the camera pulled back through a long
- * empty one, a cut across a break. Notes and memos are bubbles in a corner,
- * photos and videos cards that tuck into a pile, passed places whisper by,
- * and a clock rolls with the walker. Every number is in REPLAY_RHYTHM.
+ * between nearby moments, a longer one through a long empty stretch, a cut
+ * across a break. Notes and memos are bubbles in a corner, photos and videos
+ * cards that tuck into a pile, passed places whisper by, and a clock rolls
+ * with the walker. The camera is worked out when the telling is planned
+ * (`camera.ts`, replay ceremony RC11-RC16). Every number is in REPLAY_RHYTHM.
  */
 import { facedAt, hasMore, type Faced } from '../moment';
 import { gridDuration, GRID_MAX } from './grid';
@@ -16,7 +17,9 @@ import { REPLAY_RHYTHM as R } from '../motionTokens';
 import { GAP_MS } from '../replay';
 import type { LngLat } from '../types';
 import { memoLengthMs } from '../voiceTrim';
+import { cameraAt, cameraTrack, type CameraPart, type CameraTrack } from './camera';
 import { easeInOut, easeOut, steady } from './ease';
+import { cardFoot } from './room';
 import { positionAt, timeAtMetres } from './story';
 import type {
   Ceremony, CeremonyOptions, Frame, Jump, Landing, Overlay, Story, StoryBreak, StoryMoment, StoryMove, StoryTravel,
@@ -51,7 +54,7 @@ interface Span {
 }
 export type Seg =
   | (Span & { k: 'intro'; clock: number })
-  | (Span & { k: 'leg'; len: number; ra: number; rb: number; kz: number; peak: number; move?: StoryMove; travel?: StoryTravel })
+  | (Span & { k: 'leg'; len: number; ra: number; rb: number; move?: StoryMove; travel?: StoryTravel })
   | (Span & { k: 'stop'; moment: StoryMoment; slots: Slot[] })
   | (Span & { k: 'cut'; brk: StoryBreak })
   | (Span & { k: 'rest'; clock: number });
@@ -70,6 +73,8 @@ export interface RhythmPlan {
   lastSeg: Record<string, number>;
   /** When each moment begins, and where a press of Next lands for it (RY13, RY14). */
   stops: Landing[];
+  /** The camera, worked out for the screen the telling is shown on (RC11-RC16); null with reduce motion (the map stays still, RR18) or with no place to look at. */
+  camera: CameraTrack | null;
 }
 
 /** "43 min later", "2 h later", "1 h 20 min later" (RR4, RR16). */
@@ -169,15 +174,13 @@ function holdPhotos(slots: Slot[], long: boolean) {
   return photos.length > 0;
 }
 
-/** A stretch's time from its length alone (RR1, RY9), the walker's steady pace along it (RY8) and how the camera pulls back (RR3). */
-function legShape(len: number, travel: boolean) {
+/** A stretch's time from its length alone (RR1, RY9), and the walker's steady pace along it (RY8). */
+function legShape(len: number) {
   const long = len >= R.zipAtM;
   const dur = long ? R.glide + R.zip * Math.max(0.35, Math.min(1, (len - R.zipAtM) / R.zipFullM)) : R.glide * Math.max(0.45, len / R.zipAtM);
   const ra = Math.min(R.paceInMax, R.paceIn / dur);
   const rb = Math.min(R.paceOutMax, R.paceOut / dur);
-  const kz = clamp01((len - R.zipAtM) / 900);
-  const peak = travel ? Math.max(R.zoomOut, len / R.travelZoomM) : R.zoomOut;
-  return { dur, ra, rb, kz, peak };
+  return { dur, ra, rb };
 }
 
 type Draft = (Seg extends infer S ? (S extends Seg ? Omit<S, 't0' | 't1'> : never) : never) & { dur: number };
@@ -205,16 +208,16 @@ export function rhythmPlan(story: Story, opts: CeremonyOptions): RhythmPlan {
       const to = positionAt(path, e.t1) ?? pos;
       const len = e.m1 - e.m0;
       if (len >= R.minLegM) {
-        const s = legShape(len, false);
-        draft.push({ k: 'leg', dur: s.dur, len, ra: s.ra, rb: s.rb, kz: s.kz, peak: s.peak, move: e, from: positionAt(path, e.t0) ?? pos, to });
+        const s = legShape(len);
+        draft.push({ k: 'leg', dur: s.dur, len, ra: s.ra, rb: s.rb, move: e, from: positionAt(path, e.t0) ?? pos, to });
       }
       stretch += Math.max(0, len);
       pos = to;
     } else if (e.kind === 'travel') {
       const to = e.to ?? pos;
       if (e.m >= R.minLegM || e.t1 - e.t0 >= R.laterAfterMs) {
-        const s = legShape(e.m, true);
-        draft.push({ k: 'leg', dur: s.dur, len: e.m, ra: s.ra, rb: s.rb, kz: s.kz, peak: s.peak, travel: e, from: e.from ?? pos, to });
+        const s = legShape(e.m);
+        draft.push({ k: 'leg', dur: s.dur, len: e.m, ra: s.ra, rb: s.rb, travel: e, from: e.from ?? pos, to });
       }
       stretch += Math.max(0, e.m);
       pos = to;
@@ -306,7 +309,10 @@ export function rhythmPlan(story: Story, opts: CeremonyOptions): RhythmPlan {
     s.k === 'stop' ? [{ t0: s.t0, land: Math.max(0, s.t0 - R.nextLead, i > 0 && segs[i - 1].k !== 'stop' ? segs[i - 1].t0 : s.t0) }] : [],
   );
 
-  const plan: RhythmPlan = { story, total: t, segs, reduceMotion: opts.reduceMotion, bubbles, cards, whispers: [], lines, lastSeg, stops };
+  const plan: RhythmPlan = { story, total: t, segs, reduceMotion: opts.reduceMotion, bubbles, cards, whispers: [], lines, lastSeg, stops, camera: null };
+  // The camera, worked out once for this telling on this screen (RC16); with reduce motion the map stays still (RR18).
+  if (!opts.reduceMotion && segs.length)
+    plan.camera = cameraTrack({ total: t, parts: segs.map(cameraPart), walker: (ms) => walkerAt(plan, ms) }, opts.screen, (pieces) => cardFoot(opts.screen, pieces));
   // A passed place whispers as the walker reaches it (RR15): the first segment that reaches its time. More than two
   // on one walk whisper once, as that walk's card says them ("Passed a few places without stopping", RP19, the owner,
   // Nov 9), at the last, when it is true (audit 14); a day bounds each walk by its own card (audit 9).
@@ -334,6 +340,60 @@ export function rhythmPlan(story: Story, opts: CeremonyOptions): RhythmPlan {
     plan.whispers.push({ key: `${p.name}@${p.t}`, text: passedLine(p.all) ?? p.name, at: p.at, tw });
   }
   return plan;
+}
+
+/**
+ * A segment as the camera needs to know it (`camera.ts`): a stretch with the walker's steady pace over the ground, a
+ * moment with a card and where its pin is, a cut and where it lands; nothing is asked of the camera for the rest.
+ */
+function cameraPart(s: Seg): CameraPart {
+  const { t0, t1 } = s;
+  if (s.k === 'intro') return { k: 'intro', t0, t1 };
+  if (s.k === 'leg') {
+    const lat = Math.max(Math.abs(s.from?.[1] ?? 0), Math.abs(s.to?.[1] ?? 0));
+    return { k: 'leg', t0, t1, speed: s.len / ((t1 - t0) / 1000) / (1 - (s.ra + s.rb) / 2), ra: s.ra, rb: s.rb, lat };
+  }
+  if (s.k === 'cut') return { k: 'cut', t0, t1, to: s.to };
+  if (s.k === 'stop') {
+    // The stop's cards share one place: the pin is settled under the one that reaches lowest.
+    const cards = s.slots.filter((sl) => sl.kind === 'photo' || sl.kind === 'video' || sl.kind === 'grid');
+    const at = s.moment.at ?? s.from;
+    if (cards.length && at) return { k: 'card', t0, t1, at, pieces: Math.max(...cards.map((sl) => sl.pieces?.length ?? 0)) };
+  }
+  return { k: 'hold', t0, t1 };
+}
+
+/** Where the walker is at a time into the telling, and the walk's time there. */
+function whereAt(plan: RhythmPlan, s: Seg, u: number): { walker: LngLat | null; clock: number; here: number } {
+  const { story } = plan;
+  switch (s.k) {
+    case 'intro':
+      return { walker: s.from, clock: s.clock, here: 0 };
+    case 'rest':
+      return { walker: s.to, clock: s.clock, here: 0 };
+    case 'leg': {
+      const e = steady(u, s.ra, s.rb);
+      if (!s.move) return { walker: lerpAt(s.from, s.to, e), clock: lerp(s.travel!.t0, s.travel!.t1, e), here: 0 };
+      const here = legWalkTime(plan, s, u);
+      // The clock rolls with the stretch's time, eased as the walker is: a stand inside it rolls by, never leaps (audit 24).
+      return { walker: positionAt(story.paths[s.move.pathId], here) ?? s.from, clock: lerp(s.move.t0, s.move.t1, e), here };
+    }
+    case 'stop': {
+      const clock = lerp(s.moment.arrive, s.moment.leave, u);
+      const path = s.moment.pathId && s.moment.onTrace ? story.paths[s.moment.pathId] : null;
+      return { walker: (path ? positionAt(path, clock) : null) ?? s.from, clock, here: clock };
+    }
+    case 'cut':
+      return { walker: u < 0.5 ? s.from : s.to, clock: lerp(s.brk.t0, s.brk.t1, easeInOut(u)), here: u < 0.5 ? s.brk.t0 : s.brk.t1 };
+  }
+}
+
+/** Where the walker is at a time into the telling: what the camera is worked out from. */
+function walkerAt(plan: RhythmPlan, ms: number): LngLat | null {
+  const { segs } = plan;
+  if (!segs.length) return null;
+  const s = segs[findSeg(segs, Math.max(0, ms))];
+  return whereAt(plan, s, clamp01((ms - s.t0) / (s.t1 - s.t0 || 1))).walker;
 }
 
 /** The walk time a segment reaches by its end. */
@@ -399,49 +459,9 @@ export function rhythmFrame(plan: RhythmPlan, ms: number, jump?: Jump | null): F
   const s = segs[i];
   const u = clamp01((ms - s.t0) / (s.t1 - s.t0 || 1));
   const still = plan.reduceMotion;
-  let walker: LngLat | null = s.from;
-  let clock = story.start;
-  let zoomOut = 1;
-  let dim = 0;
-  let here = 0;
-  switch (s.k) {
-    case 'intro':
-      clock = s.clock;
-      if (!still) zoomOut = 1 + (R.introZoomOut - 1) * (1 - easeInOut(u));
-      break;
-    case 'rest':
-      clock = s.clock;
-      walker = s.to;
-      break;
-    case 'leg': {
-      const e = steady(u, s.ra, s.rb);
-      if (s.move) {
-        here = legWalkTime(plan, s, u);
-        walker = positionAt(story.paths[s.move.pathId], here) ?? s.from;
-        // The clock rolls with the stretch's time, eased as the walker is: a stand inside it rolls by, never leaps (audit 24).
-        clock = lerp(s.move.t0, s.move.t1, e);
-      } else {
-        walker = lerpAt(s.from, s.to, e);
-        clock = lerp(s.travel!.t0, s.travel!.t1, e);
-      }
-      if (!still) zoomOut = 1 + (s.peak - 1) * Math.sin(Math.PI * u) * s.kz;
-      break;
-    }
-    case 'stop': {
-      clock = lerp(s.moment.arrive, s.moment.leave, u);
-      here = clock;
-      const path = s.moment.pathId && s.moment.onTrace ? story.paths[s.moment.pathId] : null;
-      walker = (path ? positionAt(path, clock) : null) ?? s.from;
-      if (!still) zoomOut = 1 - 0.04 * easeOut(u);
-      break;
-    }
-    case 'cut':
-      walker = u < 0.5 ? s.from : s.to;
-      clock = lerp(s.brk.t0, s.brk.t1, easeInOut(u));
-      here = u < 0.5 ? s.brk.t0 : s.brk.t1;
-      dim = Math.sin(Math.PI * u) * 0.85;
-      break;
-  }
+  const { walker, clock, here } = whereAt(plan, s, u);
+  // The map dims across a cut.
+  const dim = s.k === 'cut' ? Math.sin(Math.PI * u) * 0.85 : 0;
 
   // Paths: whole once their last segment is behind; the current one up to the walker.
   const drawn: Record<string, number> = {};
@@ -512,8 +532,8 @@ export function rhythmFrame(plan: RhythmPlan, ms: number, jump?: Jump | null): F
   return {
     done: false,
     walker,
-    // The rhythm follows the walker at the walking zoom, pulled back on a long stretch; with reduce motion, the map stays put.
-    camera: still || !walker ? { center: null, zoom: null } : { center: walker, zoom: R.baseZoom - Math.log2(zoomOut) },
+    // Where the camera was worked out to be at this time (RC16); with reduce motion, the map stays put.
+    camera: plan.camera ? cameraAt(plan.camera, ms) : { center: null, zoom: null },
     drawn,
     pins,
     dim,

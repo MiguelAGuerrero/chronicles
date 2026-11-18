@@ -12,6 +12,7 @@ import { faced, type Faced } from '../../moment';
 import { timedRuns } from '../../replay';
 import type { Capture, LngLat, Moment, TracePoint } from '../../types';
 import { at, walkAlong } from '../foxPoint';
+import { SCREEN } from './screen';
 
 // fix trimmed-length (Nov 18): a trim is data on the untouched file (`edit.trim`), and the players stop at its end
 // (VT7, ME15). The replay's plan read the stored whole length (`body`), so a two-minute memo trimmed to 20 s left the
@@ -33,7 +34,7 @@ const piece = (id: string, mid: string, t: number, kind: Capture['kind'], body: 
 const lone = (id: string, kind: Capture['kind'], body: string, edit: MediaEdit | null): Moment => ({
   id, walk_id: 'w1', t: t0 + 60_000, ...P(at(1, 0)), segment_id: null, pieces: [piece(id, id, t0 + 60_000, kind, body, edit)],
 });
-const planOf = (...moments: Moment[]) => rhythmPlan(walkStory(storyOf(trace, moments.map(faced))), { reduceMotion: false });
+const planOf = (...moments: Moment[]) => rhythmPlan(walkStory(storyOf(trace, moments.map(faced))), { reduceMotion: false, screen: SCREEN });
 const stopOf = (p: ReturnType<typeof planOf>) => {
   const s = p.segs.find((x) => x.k === 'stop');
   assert.ok(s && s.k === 'stop');

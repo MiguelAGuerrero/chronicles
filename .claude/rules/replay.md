@@ -24,8 +24,8 @@ A walk's replay and the day replay: the five beats, the story and its ceremonies
   `replay-rhythm audit 10`): the camera, the pins and a card's origin come in the
   frame. A new ceremony is an entry in `CEREMONIES` and a view per new overlay kind.
 - **The rhythm** (decision 0085, RR1-RR19, `lib/ceremony/rhythm.ts`): a stretch's
-  time follows its length, not the minutes walked (a glide, or a zip with the camera
-  pulled back past `zipAtM`); a break is a cut with "N min later"; notes and memos
+  time follows its length, not the minutes walked (a glide, longer past `zipAtM`;
+  the camera is "The camera" below); a break is a cut with "N min later"; notes and memos
   are bubbles, photos and videos cards that tuck into the pile; passed places
   whisper by (one or two by name, more than two as one "Passed a few places without stopping", RP19); a clock rolls with the walker. Every number is in `REPLAY_RHYTHM`
   (`motionTokens.ts`). Nothing shrinks to fit a total: the 60 s cap went with replay pace (RY10, decision 0203).
@@ -120,7 +120,7 @@ A walk's replay and the day replay: the five beats, the story and its ceremonies
   `active`: the web's wake lock is let go whenever the page is hidden.
 - **Picking a ceremony**: the route parameter `style` (`ceremonyFor(style)`); the walk
   replay's `ceremony=0` means a re-watch, not a ceremony (audit 25).
-- The walked line is revealed, never rebuilt (replay ceremony RC1): see "The engine" below. A ride's dashed line is
+- The walked line is revealed, never rebuilt (replay ceremony RC1): see "The engine" in `replay-ceremony.md`. A ride's dashed line is
   still data, sent again at most ten times a second, so on a ride it can trail the dot by a tenth of a second.
 - `CaptureContent` plays a voice memo or video itself and is keyed by capture id, so
   moving on or skipping unmounts the player and stops the sound (the steps).
@@ -134,7 +134,7 @@ A walk's replay and the day replay: the five beats, the story and its ceremonies
   react-native-web's TextInput stops a key's propagation; a held key's repeats are ignored (`tend replay audit 4`); and
   not at all while a viewer, the walk's menu, a gap's card or a gap's way being drawn is open (the web's viewer takes no
   Escape itself).
-- **A card's room** (`components/ceremony/layout.ts`): under `STACK_TOP` (the clock, "N min later" and "Held",
+- **A card's room** (`lib/ceremony/room.ts`, re-exported by `components/ceremony/layout.ts`): under `STACK_TOP` (the clock, "N min later" and "Held",
   `tend replay 11`), and above a six-line note's bubble wherever a card of `MIN_CARD` (80 px) still fits: the card
   shrinks before the bubbles lose their room, a status bar included (`cardFloor`, `tend replay 7`, `audit 3`);
   `restCenter(ctx, h)` raises a card only as far as it must. Fog's headline: 8 px under Skip's foot (`audit 6`).
@@ -161,44 +161,7 @@ A walk's replay and the day replay: the five beats, the story and its ceremonies
   stage's memo (its play disc and waveform), a note's bubble edge and the pile's video tile take the kinds' colours from
   `COLORS` (the owner's "Follow the palette"); `replay-rhythm audit 19` keeps every hex out of the stage.
 
-## The engine (replay ceremony RC1-RC10, RC48; decision 0206)
+## The engine, the camera and the breaks
 
-- **One frame loop owns the replay's time, outside the screens' rendering** (`components/ceremony/useCeremonyLoop.ts`:
-  `useCeremonyLoop`, and `useReplay`, which both screens call). Each display frame it asks `stepLoop` (core: the time is
-  an argument) and hands a time that moved to the ceremony's `frame(ms, jump)`; the frame goes straight to the map
-  (`WalkMapHandle.replayFrame`) and to the stage's store (`lib/ceremony/live.ts`). The screens render only when the pins
-  on the map change, Next comes or goes, or Hold is pressed. **Never read a frame in a screen's render**, and never set
-  screen state from a frame: `render:replay` and `render:day` (perfCount) are held to two a second on a stretch by the
-  `replay` journey (RC2).
-- **The stage reads the frame from `ctx.live`, never from a prop** (RC7). `Stage` renders when the frame's shape changes
-  (an overlay arrives or leaves, the pile holds something else, the telling is rebuilt) and takes the frame that shape
-  came with from the store's own hand-over (`useSyncExternalStore` over `live.staged`). **Never call `live.frame()` in a
-  render**: the React Compiler (decision 0207) keeps what a render read from the same inputs, and the stage stayed empty
-  (no clock, no card) until this was found on the merge; a read inside a callback is fine. A leaf reads the one thing it shows with `useLive(live,
-  select)` (a primitive: a flag, a key, a minute) and writes what moves every frame on its own element with
-  `useLiveStyle(live, pose)` (`layout.ts` holds the poses, pure: `cardPose`, `bubblePose`, `bubbleRoom`,
-  `whisperPose`). An overlay's `o` prop is the overlay **as it arrived**: read it only for what never moves (its
-  capture, its pieces); `grow`, `tuck`, `enter`, `exit`, `progress`, `playing` and the camera are read from the live
-  frame (`overlayOf`). A media wait's `planMs` is a function for the same reason.
-- **Trap: react-native-web's `Animated` renders.** An `Animated.Value` changed from JavaScript re-renders its animated
-  view on the web (`useAnimatedProps` calls `scheduleUpdate`; its views have no `setNativeProps`), a React commit per
-  frame per view. So what moves every frame is written with `writeStyle` (`liveStyle.web.ts`: the element's own style;
-  `liveStyle.ts`: `setNativeProps`, untried on a phone), and the clock's reels roll by a CSS transition on the web.
-  The loading skeleton still pulses through `Animated` (about sixty small commits a second while one is up; deferred).
-- **Those properties are left out of the element's `style`**, but for a resting default (a card where it rests, the
-  dim at 0): `useLiveStyle` writes them before the first paint and again after every render, so a render never undoes
-  a write and the two never disagree.
-- **The one number for frames a second** is `REPLAY_ENGINE.frameMs` (`motionTokens.ts`; 0 is every display frame),
-  honoured by `stepLoop`; a replay's link can ask for a ceiling with `fps=30` (`frameMsFor`), to try one on a phone
-  without a build. A frame not taken moves no time: the next one takes all that passed (RC5, RC6).
-- **The walked line is sent once per run and revealed** (`lib/ceremony/reveal.ts`, core: `revealOf`): the runs behind
-  the walker whole in one source, the run being walked whole in another with `lineMetrics`, shown up to the walker by
-  `line-gradient` over `line-progress` (`revealGradient`). A run that ended stays whole in its source until the next
-  begins (`revealStop`), so nothing blinks while the whole runs' send is in the worker. When the path ends the line
-  stays until the map is next idle, by when the trace given as a prop has drawn.
-- **Trap: a dashed line cannot be revealed that way.** maplibre-gl 6.16 does draw `line-dasharray` with
-  `line-gradient`, but over line metrics the dash's scale follows the line's length, not the screen: a ride's dashes
-  came out as fine dots. Rides are one plain source, sent as data by the telling's time (`resendKey`,
-  `REPLAY_ENGINE.resendMs`). The phone's map takes both lines that way (`lineGradient` on MapLibre RN is untried).
-- **The harness**: `scripts/perf-replay.js` (docs/TESTING.md). Run it before and after a change to the engine, the
-  stage or the map's replay path.
+The replay ceremony's rework (RC1-RC48, decision 0206) has its own file: `.claude/rules/replay-ceremony.md` (the frame
+loop outside the screens' rendering, the camera as plan data, how a break is crossed).

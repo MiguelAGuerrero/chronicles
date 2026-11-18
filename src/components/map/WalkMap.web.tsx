@@ -36,7 +36,7 @@ import { followMoves } from '../../lib/compass';
 import { groundGeoJSON, groundStyle } from '../../lib/areas/groundDraw';
 import {
   alternatesGeoJSON, TRACE_EDGE_OPACITY, storefrontNameLayers, storefrontNameRotate, storefrontNamesGeoJSON, roomCells, routeGradesGeoJSON, pinsGeoJSON, BORDER, borderFillOpacity, borderMoves, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, OVERTURE_CREDIT, GAZETTEER_CREDIT, DERIVE_ZOOM, endsGeoJSON, ENDS_PAINT, ENDS_RING_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON, BASE_VECTOR_SOURCE, poiLabelLayers,
-  LINE_SOURCE, LINE_SOURCE_IDS, REPLAY_LINES, resendKey, revealGradient, revealStop, type CollectedFeatures, mapWorkerUrl, type ReplayMapFrame, type WalkMapHandle, type WalkMapProps,
+  FLAT_NORTH_UP, LINE_SOURCE, LINE_SOURCE_IDS, REPLAY_LINES, resendKey, revealGradient, revealStop, type CollectedFeatures, mapWorkerUrl, type ReplayMapFrame, type WalkMapHandle, type WalkMapProps,
 } from './types';
 import { nextSend, type Sent } from './sent';
 import { revealedRuns, type LineReveal } from '../../lib/ceremony/reveal';
@@ -400,6 +400,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         st.at = '';
         container.current?.setAttribute('data-walker', '');
         container.current?.removeAttribute('data-reveal-end');
+        container.current?.removeAttribute('data-cam');
       }
       // The line stays until the map has drawn the whole trace it is now given as a prop, so the card's first frames
       // show a line and not a gap; a telling begun again meanwhile takes it over.
@@ -430,7 +431,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       // The camera first, then the dot on it: the map's markers are placed as the camera moves.
       if (center && followMoves({ following: true, handOnMap: pointerDown.current, northEasing: northAsked.current })) {
         perfCount('camera');
-        map.jumpTo(zoom == null ? { center } : { center, zoom });
+        map.jumpTo(zoom == null ? { center, ...FLAT_NORTH_UP } : { center, zoom, ...FLAT_NORTH_UP });
       }
       if (p) {
         p.el.style.display = f.walker ? '' : 'none';
@@ -440,8 +441,11 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       // Where the dot is drawn (QL12), for the e2e.
       container.current?.setAttribute('data-walker', fmt(f.walker));
     }
-    // Where the line ends, for the e2e and the harness (only when measuring).
-    if ((window as { __perf?: unknown }).__perf) container.current?.setAttribute('data-reveal-end', fmt(f.walked.end));
+    // Where the line ends and where the frame put the camera, for the e2e and the harness (only when measuring).
+    if ((window as { __perf?: unknown }).__perf) {
+      container.current?.setAttribute('data-reveal-end', fmt(f.walked.end));
+      container.current?.setAttribute('data-cam', center ? `${center[0]},${center[1]},${zoom ?? ''}` : '');
+    }
     // Drawn now, in this frame: the canvas and the dot, which is an element over it, never part by a frame (RC1).
     if (changed) {
       perfCount('redraw');

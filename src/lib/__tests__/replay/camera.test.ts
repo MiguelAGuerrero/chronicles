@@ -122,7 +122,7 @@ const photoWalk = () => {
 
 // ---------------------------------------------------------------- the walking zoom (RC11)
 
-test('RC11: the walking zoom is 15, showing twice the ground of 16', { todo: 'test first' }, () => {
+test('RC11: the walking zoom is 15, showing twice the ground of 16', () => {
   assert.equal(token('baseZoom'), 15);
   const p = plan(photoWalk().story);
   const stop = stops(p)[0];
@@ -135,7 +135,7 @@ test('RC11: the walking zoom is 15, showing twice the ground of 16', { todo: 'te
 
 // ---------------------------------------------------------------- holding and re-framing (RC12)
 
-test('RC12: the camera holds still while the walker is in the middle of the screen', { todo: 'test first' }, () => {
+test('RC12: the camera holds still while the walker is in the middle of the screen', () => {
   // 100 m east: 56 px at the walking zoom, well inside the middle (0.27 of the width each side).
   const p = plan(stretch(100));
   const leg = legs(p)[0];
@@ -150,7 +150,7 @@ test('RC12: the camera holds still while the walker is in the middle of the scre
   assert.ok(walked > 90, `the walker went ${walked.toFixed(0)} m meanwhile`);
 });
 
-test('RC12: when the walker would leave the middle the camera re-frames in 1.2 s with room ahead, and does not move between re-frames', { todo: 'test first' }, () => {
+test('RC12: when the walker would leave the middle the camera re-frames in 1.2 s with room ahead, and does not move between re-frames', () => {
   assert.equal(token('reframe'), 1200);
   // Leaving a photo: its pin was settled low on the screen, so the walker sets off outside the middle, going north.
   const p = plan(photoWalk().story);
@@ -184,7 +184,7 @@ test('RC12: when the walker would leave the middle the camera re-frames in 1.2 s
   for (let ms = re.t0; ms <= re.t1; ms += 20) assert.ok(inside(PHONE, onScreen(PHONE, rhythmFrame(p, ms), rhythmFrame(p, ms).walker!)));
 });
 
-test('RC12: a re-frame leaves room ahead of the walker: on a wide screen a long stretch is a hold, a re-frame, a hold', { todo: 'test first' }, () => {
+test('RC12: a re-frame leaves room ahead of the walker: on a wide screen a long stretch is a hold, a re-frame, a hold', () => {
   // A tablet shows 1.4 km across at the walking zoom: 1200 m east crosses it slowly enough that the camera never rises.
   const tablet = screenOf(820, 1180);
   const p = plan(stretch(1200), tablet);
@@ -231,7 +231,7 @@ function watched(p: RhythmPlan, screen: Screen, step = 20) {
   return { fastest, lowest };
 }
 
-test('RC13: on a long stretch the camera rises just enough that the walker crosses 0.35 of the width a second, and is back down before the next moment', { todo: 'test first' }, () => {
+test('RC13: on a long stretch the camera rises just enough that the walker crosses 0.35 of the width a second, and is back down before the next moment', () => {
   assert.equal(token('maxCross'), 0.35);
   // 2 km with nothing kept, then a photo.
   const fixes = line(O, at(2000), 0);
@@ -255,7 +255,7 @@ test('RC13: on a long stretch the camera rises just enough that the walker cross
   for (let ms = legs(short)[0].t0; ms < short.total; ms += 20) assert.equal(cam(rhythmFrame(short, ms)).zoom, 15);
 });
 
-test('RC13: on a 20 km ride the walker stays inside the frame and crosses no more than 0.35 of the width a second', { todo: 'test first' }, () => {
+test('RC13: on a 20 km ride the walker stays inside the frame and crosses no more than 0.35 of the width a second', () => {
   // 200 m on foot, 20 km at 12 m/s, 200 m on foot and a note: the story's one stretch, told in four seconds.
   const a = line(O, at(200), 0);
   const ride = line(at(200), at(20_200, 3000), endT(a), 12).slice(1);
@@ -278,7 +278,7 @@ test('RC13: on a 20 km ride the walker stays inside the frame and crosses no mor
   }
 });
 
-test('RC13: on a day\'s travel between its entries the walker stays inside the frame', { todo: 'test first' }, () => {
+test('RC13: on a day\'s travel between its entries the walker stays inside the frame', () => {
   // A photo in the morning 80 km away to the north-west, a walk, a note that evening 6 km east.
   const morning = cap('photo', 9 * 60 * MIN, at(-60_000, 52_000), null, null);
   const ab = line(O, at(600), 11 * 60 * MIN);
@@ -312,7 +312,7 @@ function cardFootOf(screen: Screen, pieces = 0): number {
   return pose.top! + h;
 }
 
-test('RC14: arriving at a photo the camera settles so that its pin shows just under where the card rests, and stays there while the card is up', { todo: 'test first' }, () => {
+test('RC14: arriving at a photo the camera settles so that its pin shows just under where the card rests, and stays there while the card is up', () => {
   for (const screen of [PHONE, screenOf(320, 568), screenOf(375, 667, 20)]) {
     const { story, photo } = photoWalk();
     const p = plan(story, screen);
@@ -333,7 +333,7 @@ test('RC14: arriving at a photo the camera settles so that its pin shows just un
   }
 });
 
-test('RC14: a grid\'s pin, a video\'s, and a moment reached with no stretch before it are settled the same way', { todo: 'test first' }, () => {
+test('RC14: a grid\'s pin, a video\'s, and a moment reached with no stretch before it are settled the same way', () => {
   type Part = { k: string; t0: number; t1: number; at?: LngLat; pieces?: number };
   const cameraTrack = built<(scene: { total: number; parts: Part[]; walker(ms: number): LngLat | null }, screen: Screen, foot: (pieces: number) => number) => unknown>(cameraMod, 'cameraTrack');
   const cameraAt = built<(track: unknown, ms: number) => { center: LngLat; zoom: number }>(cameraMod, 'cameraAt');
@@ -363,7 +363,7 @@ test('RC14: a grid\'s pin, a video\'s, and a moment reached with no stretch befo
 
 // ---------------------------------------------------------------- flat and north-up (RC15)
 
-test('RC15: the camera is a centre and a zoom, nothing else: flat and north-up throughout', { todo: 'test first' }, () => {
+test('RC15: the camera is a centre and a zoom, nothing else: flat and north-up throughout', () => {
   const p = plan(photoWalk().story);
   for (let ms = 0; ms <= p.total; ms += 100) assert.deepEqual(Object.keys(rhythmFrame(p, ms).camera).sort(), ['center', 'zoom']);
   // North is up: a place due north of the camera's centre is straight above the middle of the screen.
@@ -383,7 +383,7 @@ test('RC15: the camera is a centre and a zoom, nothing else: flat and north-up t
 
 // ---------------------------------------------------------------- the ceremony's to say (RC16)
 
-test('RC16: where the camera is comes from the story, the time and the screen\'s size alone', { todo: 'test first' }, () => {
+test('RC16: where the camera is comes from the story, the time and the screen\'s size alone', () => {
   const { story } = photoWalk();
   const p = plan(story);
   // Held: the same time is the same camera, whatever was asked in between and in whatever order.
@@ -411,7 +411,7 @@ test('RC16: where the camera is comes from the story, the time and the screen\'s
   for (let ms = 0; ms < still.total; ms += 200) assert.deepEqual(rhythmFrame(still, ms).camera, { center: null, zoom: null });
 });
 
-test('RC16: the screens hand the ceremony their size and work out no camera themselves', { todo: 'test first' }, () => {
+test('RC16: the screens hand the ceremony their size and work out no camera themselves', () => {
   for (const f of ['app/replay/[id].tsx', 'app/day/[key].tsx']) {
     const src = readFileSync(join(SRC, f), 'utf8');
     assert.match(src, /\.show\(story, \{ reduceMotion, screen \}\)/, `${f} tells the ceremony its screen`);

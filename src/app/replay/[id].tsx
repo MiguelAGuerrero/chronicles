@@ -379,7 +379,14 @@ export default function Replay() {
 
   // What happened, read once; the ceremony tells it (RR20, RR21, decision 0086).
   const story = useMemo(() => (data ? walkStory(data) : null), [data]);
-  const showing = useMemo(() => (story ? ceremonyFor(style).show(story, { reduceMotion }) : null), [story, reduceMotion, style]);
+  // The screen's size is the ceremony's to know (replay ceremony RC11-RC16): its camera is worked out for this screen,
+  // once per telling. By its numbers, so the safe-area object's identity never rebuilds a telling.
+  const { top: insetTop, bottom: insetBottom, left: insetLeft, right: insetRight } = insets;
+  const screen = useMemo(
+    () => ({ width, height, insets: { top: insetTop, bottom: insetBottom, left: insetLeft, right: insetRight } }),
+    [width, height, insetTop, insetBottom, insetLeft, insetRight],
+  );
+  const showing = useMemo(() => (story ? ceremonyFor(style).show(story, { reduceMotion, screen }) : null), [story, reduceMotion, style, screen]);
   const telling = beat === 'path' && !srMode && showing != null;
   // A memo or video catching up holds the clock (not the medium itself, audit 20).
   const [waits, setWaits] = useState<ReadonlySet<string>>(() => new Set());

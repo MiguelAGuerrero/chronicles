@@ -17,6 +17,7 @@
 import type { Faced } from '../moment';
 import type { TimedRun } from '../replay';
 import type { LngLat } from '../types';
+import type { StageRoom } from './room';
 
 /** One walk's trace, as the story knows it. */
 export interface StoryPath {
@@ -176,6 +177,11 @@ export interface Frame {
 
 export interface CeremonyOptions {
   reduceMotion: boolean;
+  /**
+   * The screen the telling is shown on (replay ceremony RC11-RC16): the camera is the ceremony's to say, and where it
+   * holds the map depends on how much of it the screen shows and on where a card rests on it.
+   */
+  screen: StageRoom;
 }
 
 /** When a moment begins in a telling, and where a press of Next lands for it: a little before, never inside the moment before (RY13, RY14). */

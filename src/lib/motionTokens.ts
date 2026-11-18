@@ -113,12 +113,38 @@ export const REPLAY_RHYTHM = {
   /** A stretch is long from here (metres), and gets its full zip at zipAtM + zipFullM. */
   zipAtM: 450,
   zipFullM: 1200,
-  /** The camera's pull-back at the middle of a long stretch (1 is the walking zoom). */
-  zoomOut: 1.7,
-  /** Travel between a day's entries pulls back to show this many metres per unit of zoom-out, at least `zoomOut`. */
-  travelZoomM: 1500,
-  /** The walking zoom, where the camera follows the walker. */
-  baseZoom: 16,
+  /** The walking zoom (replay ceremony RC11): it was 16, and each step down shows twice the ground. */
+  baseZoom: 15,
+  /**
+   * The camera (replay ceremony RC12-RC14; `lib/ceremony/camera.ts`). It keeps what it follows `focusY` of the way down
+   * the screen. The middle of the screen, where the walker moves and the camera holds still: `holdX` of the width each
+   * side of that point, `holdUp` of the height above it and `holdDown` below.
+   */
+  focusY: 0.42,
+  holdX: 0.27,
+  holdUp: 0.2,
+  holdDown: 0.13,
+  /** A re-frame (RC12): how long it takes, and where it ends: `reframeAhead` of the way from where the walker will be then to where it will be `reframeLook` later. */
+  reframe: 1200,
+  reframeLook: 700,
+  reframeAhead: 0.6,
+  /** The most of the screen's width the walker crosses a second (RC13): past it the camera rises. `riseSoft` rounds the rise's start and end (higher is sharper); under `risen` zoom levels it counts as not risen. */
+  maxCross: 0.35,
+  riseSoft: 4,
+  risen: 0.02,
+  /** Risen, the camera goes after where the walker will be `followLead` on, `followEase` behind it. */
+  followLead: 900,
+  followEase: 450,
+  /** Arriving at a card (RC14): the camera starts to settle this long before the walker stops, takes at least `settleMin`, and `settle` when no stretch leads there; from a risen stretch it closes in with `settleEase`. */
+  settleLead: 900,
+  settleMin: 300,
+  settle: 700,
+  settleEase: 250,
+  /** A card's pin stands on its place this far under the card's lower edge (px: the pin's own 44 and 8 to spare), never nearer the screen's foot than `edge`. */
+  pinUnder: 52,
+  edge: 24,
+  /** The camera's moves are worked out ahead in steps of this long (never per frame). */
+  camStep: 50,
   /** Stretches shorter than this (metres) are not played: the walker steps across them. */
   minLegM: 10,
   /** A cut across a break in the trace. */

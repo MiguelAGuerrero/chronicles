@@ -3,9 +3,10 @@
 
 const { seedReplayWalk } = require('../replayWalk');
 
-// Replay ceremony, the engine (RC1-RC3, RC7, RC9, RC10): what the page's own frames saw. `recordFrames` turns the app's
-// counters on (window.__perf) and notes, every display frame, where the map says the dot, the camera and the revealed
-// line's end are, the renders and sends counted so far, and what is on the stage.
+// Replay ceremony, the engine and the camera (RC1-RC3, RC7, RC9, RC10, RC12, RC14): what the page's own frames saw.
+// `recordFrames` turns the app's counters on (window.__perf) and notes, every display frame, where the map says the
+// dot, the camera (where it is, `centre`, and where its frame put it, `cam`) and the revealed line's end are, the
+// renders and sends counted so far, and what is on the stage.
 const recordFrames = (pg) => pg.evaluate(() => {
   window.__perf = window.__perf || {};
   const E = (window.__eng = { frames: [], on: true });
@@ -50,7 +51,9 @@ function screenAt(cam, p, w, h) {
 }
 /**
  * The longest stretch in the frames: nothing arriving or leaving on the stage, from the first frame the walker moved to
- * the last. Its rates a second, and how far apart the dot, the line's end and the camera's centre were, at the most.
+ * the last. Its rates a second, how far apart the dot and the line's end were, how far the map's centre was from
+ * where its frame put the camera, and how far off the screen the dot was, at the most. The camera no longer rides the
+ * walker (replay ceremony RC12): it is where the ceremony says, and the dot is somewhere on the screen.
  * Only stretches after the first card: the telling's first frames are its making (the map's first sends, the walk's
  * first run beginning), not time passing.
  */
@@ -82,19 +85,28 @@ function stretchOf(frames) {
   let centre = 0;
   let ended = 0;
   let followed = 0;
+  let off = 0;
   for (let i = best.a; i <= best.b; i++) {
     const w = lonLat(frames[i].walker);
     const e = lonLat(frames[i].end);
     const c = lonLat(frames[i].centre);
+    const cam = lonLat(frames[i].cam);
     if (w && e) { ended++; line = Math.max(line, pxApart(w, e, frames[i].zoom)); }
-    if (w && c) { followed++; centre = Math.max(centre, pxApart(w, c, frames[i].zoom)); }
+    if (c && cam && cam.length === 3) {
+      followed++;
+      centre = Math.max(centre, pxApart(c, cam, cam[2]));
+      if (w) {
+        const at = screenAt(cam, w, frames[i].w, frames[i].h);
+        off = Math.max(off, -at[0], at[0] - frames[i].w, -at[1], at[1] - frames[i].h);
+      }
+    }
   }
   const n = best.b - best.a + 1;
   // "At most two a second" over a stretch of about a second is a count: two renders half a second apart are within it,
   // though the stretch's own length would call them 2.3 a second.
   const within = (k, aSecond) => B[k] - A[k] <= Math.ceil(aSecond * seconds);
   return {
-    seconds, frames: n, screen: rate('screen'), map: rate('map'), sends: rate('sends'), commits, engine: rate('engine'), line, centre, ended, followed, puck: B.puck,
+    seconds, frames: n, screen: rate('screen'), map: rate('map'), sends: rate('sends'), commits, engine: rate('engine'), line, centre, off, ended, followed, puck: B.puck,
     fewRenders: within('screen', 2) && within('map', 2), fewSends: within('sends', 1),
   };
 }
@@ -103,7 +115,7 @@ const STRETCH_S = 0.7;
 /** How often the screen rendered while the frames were recorded. */
 const rendersIn = (frames) => (frames.length ? frames[frames.length - 1].screen - frames[0].screen : 0);
 const fix1 = (x) => (Number.isFinite(x) ? x.toFixed(1) : String(x));
-const stretchSaid = (s) => (s ? `a ${fix1(s.seconds)} s stretch of ${s.frames} frames: screen ${fix1(s.screen)}/s, map ${fix1(s.map)}/s, sends ${fix1(s.sends)}/s, commits ${fix1(s.commits)}/s, engine frames ${fix1(s.engine)}/s, line's end ${fix1(s.line)} px and centre ${fix1(s.centre)} px from the dot at the most, the end said in ${s.ended} frames` : 'no stretch seen');
+const stretchSaid = (s) => (s ? `a ${fix1(s.seconds)} s stretch of ${s.frames} frames: screen ${fix1(s.screen)}/s, map ${fix1(s.map)}/s, sends ${fix1(s.sends)}/s, commits ${fix1(s.commits)}/s, engine frames ${fix1(s.engine)}/s, line's end ${fix1(s.line)} px from the dot and the map's centre ${fix1(s.centre)} px from where its frame put the camera at the most, the dot ${s.off <= 0 ? 'on the screen' : `${fix1(s.off)} px off the screen`}, the end said in ${s.ended} frames` : 'no stretch seen');
 
 /**
  * The camera through a watch (replay ceremony RC12, RC14), from the frames recorded: the runs of frames in which it
@@ -702,8 +714,10 @@ async function run(h) {
       await pg.click('[data-testid=skip]').catch(() => {});
       await pg.waitForSelector('[data-testid=to-name]', { timeout: 30000 });
       const stretch = stretchOf(watched);
-      // RC1: in every frame of the stretch the dot, the end of the walked line and the camera's centre are one place.
-      const together = !!stretch && stretch.seconds >= STRETCH_S && stretch.ended >= stretch.frames - 1 && stretch.followed >= stretch.frames - 1 && stretch.line <= 1.5 && stretch.centre <= 1.5 && stretch.puck;
+      // RC1: in every frame of the stretch the dot and the end of the walked line are one place, and the map's camera is
+      // where that frame put it, the dot on the screen: none of the three a frame behind another. (The camera holds and
+      // re-frames now, RC12: it is no longer at the dot.)
+      const together = !!stretch && stretch.seconds >= STRETCH_S && stretch.ended >= stretch.frames - 1 && stretch.followed >= stretch.frames - 1 && stretch.line <= 1.5 && stretch.centre <= 1.5 && stretch.off <= 0 && stretch.puck;
       check(together, `RC1: through the path the walker's dot, the end of the walked line and the camera are drawn together in every frame (${stretchSaid(stretch)})`);
       // RC2: nothing arriving or leaving, the screen and the map component are not rendered again as time passes.
       // The counter must be there to be read: the screen rendered at least once in the watch (a pin arriving).
@@ -777,10 +791,10 @@ async function run(h) {
       await pg.waitForSelector('[data-testid=replay-card]', { timeout: 30000 }).catch(() => {});
       await pg.waitForTimeout(1100);
       await pictured('rc-card-pin');
-      // The video's card gone, the walker setting off for the note: the camera re-framing.
+      // The video's card gone, the walker setting off for the note 100 m on: the camera re-framing.
       await pg.waitForSelector('[data-testid=replay-card][aria-label^=Video]', { timeout: 60000 }).catch(() => {});
       await pg.waitForSelector('[data-testid=replay-card]', { state: 'detached', timeout: 60000 }).catch(() => {});
-      await pg.waitForTimeout(500);
+      await pg.waitForTimeout(150);
       await pictured('rc-reframe');
       await pg.waitForSelector('[data-testid=replay-note]', { timeout: 120000 }).catch(() => {});
       await pg.waitForTimeout(1500);
@@ -791,13 +805,13 @@ async function run(h) {
       const said = JSON.stringify({ ...cam, longest: Math.round(cam.longest * 100) / 100, still: Math.round(cam.still * 100) / 100 });
       // RC12: the camera moves in a few short runs (a card's pin settling, a re-frame as the walker leaves the middle)
       // and is exactly still between them: more of the watch than not, and the walker goes on meanwhile.
-      check.todo(cam.frames > 200 && cam.runs >= 3 && cam.runs <= 12 && cam.longest <= 2.6 && cam.still >= 0.6 && cam.walkedStill >= 20, `RC12: at ${w} px the camera holds still between its re-frames, the walker going on meanwhile (${said})`);
+      check(cam.frames > 200 && cam.runs >= 3 && cam.runs <= 12 && cam.longest <= 2.6 && cam.still >= 0.6 && cam.walkedStill >= 20, `RC12: at ${w} px the camera holds still between its re-frames, the walker going on meanwhile (${said})`);
       // RC14: with a photo's or the video's card at rest, its pin stands on the screen just under the card, in line with
       // its middle, and the camera does not move while the card is up.
       const pins = Object.values(cam.pins);
-      check.todo(pins.length === 3 && pins.every((p) => Math.abs(p.dx) <= 2 && p.under >= 44 && p.under <= 60 && p.y < p.h) && cam.underCard === 0, `RC14: at ${w} px each card's pin shows just under where the card rests, the camera still while it is up (${said})`);
+      check(pins.length === 3 && pins.every((p) => Math.abs(p.dx) <= 2 && p.under >= 44 && p.under <= 60 && p.y < p.h) && cam.underCard === 0, `RC14: at ${w} px each card's pin shows just under where the card rests, the camera still while it is up (${said})`);
       // RC11: the walking zoom is 15: every frame of the watch but the opening and a stretch's rise.
-      check.todo(cam.zooms.includes('15.00') && cam.zooms.every((z) => Number(z) <= 15) && !cam.zooms.includes('16.00'), `RC11: at ${w} px the replay walks at zoom 15 (${cam.zooms.slice(0, 8).join(', ')}${cam.zooms.length > 8 ? ', …' : ''})`);
+      check(cam.zooms.includes('15.00') && cam.zooms.every((z) => Number(z) <= 15) && !cam.zooms.includes('16.00'), `RC11: at ${w} px the replay walks at zoom 15 (${cam.zooms.slice(0, 8).join(', ')}${cam.zooms.length > 8 ? ', …' : ''})`);
     }
     await pg.setViewportSize({ width: 390, height: 844 });
 
@@ -835,7 +849,7 @@ async function run(h) {
     const dayFrames = await stopFrames(pg);
     const dayStretch = stretchOf(dayFrames);
     const dayRendered = rendersIn(dayFrames);
-    check(!!dayStretch && dayStretch.seconds >= STRETCH_S && dayStretch.puck && dayRendered > 0 && dayStretch.engine >= 10 && dayStretch.fewRenders && dayStretch.fewSends && dayStretch.ended >= dayStretch.frames - 1 && dayStretch.line <= 1.5 && dayStretch.centre <= 1.5,
+    check(!!dayStretch && dayStretch.seconds >= STRETCH_S && dayStretch.puck && dayRendered > 0 && dayStretch.engine >= 10 && dayStretch.fewRenders && dayStretch.fewSends && dayStretch.ended >= dayStretch.frames - 1 && dayStretch.line <= 1.5 && dayStretch.centre <= 1.5 && dayStretch.off <= 0,
       `RC9: the day's replay runs on the same engine: its dot, line and camera together, nothing rendered or sent as time passes (${stretchSaid(dayStretch)}; the screen rendered ${dayRendered} times)`);
     check(dayNext === 'Next moment', `RY19: the day's replay shows the next-moment button too (${dayNext})`);
     // As in the walk's replay, no Continue ever mounts on the web (tend replay 14).

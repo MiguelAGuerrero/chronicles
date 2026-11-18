@@ -16,6 +16,7 @@ import { REPLAY_RHYTHM as R } from '../../motionTokens';
 import { faced, facedOf, type Faced } from '../../moment';
 import { timedRuns } from '../../replay';
 import type { Capture, LngLat, Moment, TracePoint } from '../../types';
+import { SCREEN } from './screen';
 
 const stopsOf = (p: RhythmPlan) => p.stops;
 const frameAt = (p: RhythmPlan, ms: number, jump?: Jump): Frame => rhythmFrame(p, ms, jump);
@@ -56,7 +57,7 @@ function input(fixes: TracePoint[], captures: Faced[], o: { passed?: WalkInput['
 }
 /** A walk east from O for `lengthM`, with what was kept along it. */
 const walk = (lengthM: number, captures: Faced[], o: Parameters<typeof input>[2] = {}): Story => walkStory(input(line(O, east(lengthM), 0), captures, o));
-const plan = (s: Story, reduceMotion = false) => rhythmPlan(s, { reduceMotion });
+const plan = (s: Story, reduceMotion = false) => rhythmPlan(s, { reduceMotion, screen: SCREEN });
 const stops = (p: RhythmPlan) => p.segs.filter((s): s is Extract<RhythmPlan['segs'][number], { k: 'stop' }> => s.k === 'stop');
 const legs = (p: RhythmPlan) => p.segs.filter((s): s is Extract<RhythmPlan['segs'][number], { k: 'leg' }> => s.k === 'leg');
 const slotsOf = (p: RhythmPlan): Slot[] => stops(p).flatMap((s) => s.slots);

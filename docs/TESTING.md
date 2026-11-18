@@ -408,8 +408,10 @@ lets the first replay reach its card, then watches it again once per CPU throttl
 reads the path beat, from the clock showing to the card. Per throttle, over the beat and over its stretches (nothing
 arriving or leaving, the walker moving): frames a second, how often the walker's place changed, React commits, renders
 of the screen and the map component (`render:replay`, `render:map`), map data sent (`setData:*`) and messages to the
-map's worker, the main thread's share in script, and how far the line's end and the dot were from the camera's centre,
-in px. It ends with one table.
+map's worker, the main thread's share in script, and how far the line's end was from the dot and the map's centre
+from where its frame put the camera (`data-cam`), in px. It ends with one table. (The camera holds and re-frames since
+replay ceremony RC12, so it is no longer at the dot; a build that says no `data-cam` is measured the old way, the
+line's end and the dot from the map's centre.)
 
 - `PERF_DSF` (default 1): the device scale at 390 x 844. Headless Chromium draws WebGL in software, so a phone's 3x
   canvas binds every build to software GL and the numbers say nothing; measure on the small canvas.
@@ -422,7 +424,9 @@ in px. It ends with one table.
   throttled (CDP refuses it for a worker). Frames a second here are bound by software GL at every throttle; the
   counts (renders, sends, commits) and the px apart are what to compare. A phone's frame rate is the owner's look.
 - The `replay` journey holds the counts (RC1-RC4, RC7, RC9, RC10): it reads the page's own frames with the app's
-  counters on (`recordFrames`, `stretchOf` in `scripts/e2e/journeys/replay.js`).
+  counters on (`recordFrames`, `stretchOf` in `scripts/e2e/journeys/replay.js`). The camera (RC11, RC12, RC14) is read
+  from the same frames (`cameraOf`): a re-watch at 390 and at 320 px, with `rc-*` pictures of each state under
+  `E2E_SHOTS` (Hold stands the replay still for each).
 
 ### Explore in a dense city: `scripts/perf-explore.js`
 

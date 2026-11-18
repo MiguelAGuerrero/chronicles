@@ -167,7 +167,14 @@ export default function DayReplay() {
     const walks = new Map([...data.walks].map(([id, r]) => [id, { ...r, captures: r.captures.filter((c) => !hidden.has(c.id)) }]));
     return dayStory(day, walks);
   }, [data, day, hidden]);
-  const showing = useMemo(() => (story ? ceremonyFor(style).show(story, { reduceMotion }) : null), [story, reduceMotion, style]);
+  // The screen's size is the ceremony's to know (replay ceremony RC11-RC16): its camera is worked out for this screen,
+  // once per telling. By its numbers, so the safe-area object's identity never rebuilds a telling.
+  const { top: insetTop, bottom: insetBottom, left: insetLeft, right: insetRight } = insets;
+  const screen = useMemo(
+    () => ({ width, height, insets: { top: insetTop, bottom: insetBottom, left: insetLeft, right: insetRight } }),
+    [width, height, insetTop, insetBottom, insetLeft, insetRight],
+  );
+  const showing = useMemo(() => (story ? ceremonyFor(style).show(story, { reduceMotion, screen }) : null), [story, reduceMotion, style, screen]);
   const onCard = phase.beat === 'card';
   const toCard = () => {
     setPhase({ beat: 'card', t0: Date.now() });
