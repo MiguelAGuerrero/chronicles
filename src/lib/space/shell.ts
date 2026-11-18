@@ -30,8 +30,10 @@ const IN_SIGHT: Sight = { clear: () => true, aside: () => false, subscribe: () =
  * pills show. Calls run one at a time, so two looks at once never ask the browser twice.
  *
  * A line is said, and marked said, only while it can be seen (`sight.clear()`, tend tabs audit 32); otherwise it is
- * owed, neither said nor marked, and looked at again as the sight changes. While a dark pill stands beside it
- * (`sight.aside()`) a line already up steps aside and comes back as the pill goes (tend tabs T37).
+ * owed, neither said nor marked, and looked at again as the sight changes. The storage notice waits while any dark pill
+ * stands in Memories' column, the bar's Edit pill offered (mounted, folded or not) among them (`sight.aside()`): a line
+ * already up steps aside and comes back as they go (tend tabs T37, the proxy's yes under 0157, 2026-11-18; audit 33,
+ * the owner's answers of Nov 18, decision 0208).
  */
 export function createSpace(p: Pick<Ports, 'db'>, probe: SpaceProbe, sight: Sight = IN_SIGHT) {
   const store = createStore<SpaceState>({ line: null });

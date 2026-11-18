@@ -1,5 +1,5 @@
 // @layer shell
-// @instance: stores (lib/store) of the storage notice's SpaceLines mounted, held by SpaceLine and read by the space instance
+// @instance: stores (lib/store) of the storage notice's SpaceLines mounted and of the dark pills in Memories' column, held by SpaceLine and Memories' column, read by the space instance
 import { createStore, type Store } from '../store';
 
 /**
@@ -17,6 +17,13 @@ export interface Sight {
 /** How many SpaceLines are mounted (Memories' open line, Navigate, ready, the walk screen), each while it is. */
 export const spaceLines = createStore(0);
 
+/**
+ * How many dark pills stand in Memories' column while it is in front (the open line's error, Edit offer, toast and
+ * Retry pills, Memories' toast, its Undo pill): the notice waits while any stands (tend tabs audit 33; the owner's
+ * answer of Nov 18, "The whole column").
+ */
+export const columnPills = createStore(0);
+
 /** Counts one up until the returned function is called, once (as `holdModal`). */
 export function holdCount(s: Store<number>): () => void {
   s.set((n) => n + 1);
@@ -32,15 +39,16 @@ type Readable<T> = Pick<Store<T>, 'get' | 'subscribe'>;
 
 /**
  * The sight from its parts: `pill`, the recording bar's Edit pill offered (`tabsHidden.barOfferUp`: mounted, folded or
- * not); `lines`, the SpaceLines mounted; `modals`, the Modals up (`tabsHidden.modalsUp`).
+ * not); `column`, the dark pills standing in Memories' column; `lines`, the SpaceLines mounted; `modals`, the Modals up
+ * (`tabsHidden.modalsUp`).
  */
-export function sightOf(o: { pill: Readable<boolean>; lines: Readable<number>; modals: Readable<number> }): Sight {
-  const aside = () => o.pill.get();
+export function sightOf(o: { pill: Readable<boolean>; column: Readable<number>; lines: Readable<number>; modals: Readable<number> }): Sight {
+  const aside = () => o.pill.get() || o.column.get() > 0;
   return {
     aside,
     clear: () => o.lines.get() > 0 && o.modals.get() === 0 && !aside(),
     subscribe(listener) {
-      const offs = [o.pill.subscribe(listener), o.lines.subscribe(listener), o.modals.subscribe(listener)];
+      const offs = [o.pill.subscribe(listener), o.column.subscribe(listener), o.lines.subscribe(listener), o.modals.subscribe(listener)];
       return () => offs.forEach((off) => off());
     },
   };

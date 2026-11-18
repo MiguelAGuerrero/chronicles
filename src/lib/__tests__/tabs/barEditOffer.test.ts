@@ -111,7 +111,7 @@ test('tend tabs T37: the app\'s storage awareness waits on the bar\'s Edit pill,
   const index = readFileSync(join(__dirname, '../../space/index.ts'), 'utf8');
   // tend tabs audit 32: the pill is one part of where the line can be seen.
   assert.match(index, /import \{ barOfferUp, modalsUp \} from '\.\.\/tabsHidden';/);
-  assert.match(index, /createSpace\(ports, probe, sightOf\(\{ pill: barOfferUp, lines: spaceLines, modals: modalsUp \}\)\)/, 'the instance is given the pill');
+  assert.match(index, /createSpace\(ports, probe, sightOf\(\{ pill: barOfferUp, column: columnPills, lines: spaceLines, modals: modalsUp \}\)\)/, 'the instance is given the pill');
 });
 
 // tend tabs audit 32 (the T37 review's auditor 1, ux 2, steward 2): a line is said and marked only where it can be seen, so
@@ -120,4 +120,20 @@ test('tend tabs audit 32: each SpaceLine counts itself mounted, and the instance
   const line = readFileSync(join(__dirname, '../../../components/SpaceLine.tsx'), 'utf8');
   assert.match(line, /useEffect\(\(\) => holdCount\(spaceLines\), \[\]\);\s*const line = useStore\(space\.store/, 'held in an effect, before the line is read');
   assert.match(line, /import \{ holdCount, spaceLines \} from '\.\.\/lib\/space\/sight';/);
+});
+
+// tend tabs audit 33 (the T37 review's auditor 2, steward 1; the owner's "The whole column", Nov 18): each dark pill of
+// Memories' column counts itself while it stands and Memories is in front, and only there: the walk screen and Navigate,
+// ready keep their own pills out of the count.
+test('tend tabs audit 33: Memories\' column counts its dark pills while it is in front', () => {
+  const read = (f: string) => readFileSync(join(__dirname, '../../../components', f), 'utf8');
+  const line = read('journal/OpenLine.tsx');
+  const memories = read('chronicle/MemoriesScreen.tsx');
+  const undo = read('UndoToast.tsx');
+  assert.match(line, /const pillsStand = !!errorPill \|\| \(!!editOffer\.offer && !recording\) \|\| !!toast \|\| \(cap\.discarded && !recording\) \|\| cap\.unsaved \|\| cap\.held\.length > 0;/);
+  assert.match(line, /useEffect\(\(\) => \(focused && pillsStand \? holdCount\(columnPills\) : undefined\), \[focused, pillsStand\]\);/);
+  assert.match(memories, /useEffect\(\(\) => \(bandFocused && toastUp \? holdCount\(columnPills\) : undefined\), \[bandFocused, toastUp\]\);/);
+  assert.match(memories, /<UndoToast style=\{styles\.undoInColumn\} column=\{bandFocused\} \/>/);
+  assert.match(undo, /useEffect\(\(\) => \(props\.column && drawn \? holdCount\(columnPills\) : undefined\), \[props\.column, drawn\]\);/);
+  for (const other of ['MomentBar.tsx', 'edit/EditOffer.tsx']) assert.doesNotMatch(read(other), /columnPills/, `${other} keeps out of the count`);
 });

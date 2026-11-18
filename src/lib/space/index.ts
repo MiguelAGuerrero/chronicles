@@ -4,10 +4,11 @@ import { ports } from '../ports';
 import { barOfferUp, modalsUp } from '../tabsHidden';
 import { probe } from './probe';
 import { createSpace } from './shell';
-import { sightOf, spaceLines } from './sight';
+import { columnPills, sightOf, spaceLines } from './sight';
 
 /**
  * The app's storage awareness (SA1-SA10): screens call it and read its store. A line is said only where it can be seen:
- * a SpaceLine mounted, no Modal up, and not while the bar's Edit pill is offered (tend tabs T37, audit 32).
+ * a SpaceLine mounted, no Modal up, and not while the bar's Edit pill is offered or a dark pill stands in Memories'
+ * column (tend tabs T37, audit 32, audit 33).
  */
-export const space = createSpace(ports, probe, sightOf({ pill: barOfferUp, lines: spaceLines, modals: modalsUp }));
+export const space = createSpace(ports, probe, sightOf({ pill: barOfferUp, column: columnPills, lines: spaceLines, modals: modalsUp }));

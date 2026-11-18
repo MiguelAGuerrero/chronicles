@@ -16,7 +16,7 @@ const walking = { recording: true };
 // Where the line can be seen (tend tabs audit 32): loaded inside a test's body, as the shell is.
 const sightMod = (): Promise<any> => import(`../../space/${'sight'}`);
 /** The bar's pill as a sight with one SpaceLine mounted and no Modal, as Memories has it. */
-const onMemories = async (pill: ReturnType<typeof createStore<boolean>>) => (await sightMod()).sightOf({ pill, lines: createStore(1), modals: createStore(0) });
+const onMemories = async (pill: ReturnType<typeof createStore<boolean>>) => (await sightMod()).sightOf({ pill, column: createStore(0), lines: createStore(1), modals: createStore(0) });
 const ready = { recording: false };
 
 /** A probe whose free space and persistence answer are set by the test; counts the asks. */
@@ -251,11 +251,12 @@ test('tend tabs audit 31: a refusal due while the pill is up is not said as the 
 // line as the pill went wherever that was (Explore's ✕, under the media editor Edit opens, under a day or a replay), with
 // nothing drawing it, so a reload then lost it. A line is said and marked only when it can be seen: a SpaceLine mounted,
 // no dark pill beside it, no Modal over it. Otherwise it is owed, and looked at again when any of the three changes.
-const view = async (o: { pill?: boolean; lines?: number; modals?: number } = {}) => {
+const view = async (o: { pill?: boolean; column?: number; lines?: number; modals?: number } = {}) => {
   const pill = createStore(o.pill ?? false);
+  const column = createStore(o.column ?? 0);
   const lines = createStore(o.lines ?? 1);
   const modals = createStore(o.modals ?? 0);
-  return { pill, lines, modals, sight: (await sightMod()).sightOf({ pill, lines, modals }) };
+  return { pill, column, lines, modals, sight: (await sightMod()).sightOf({ pill, column, lines, modals }) };
 };
 
 test('tend tabs audit 32: the sight is clear only with a SpaceLine mounted, no pill and no Modal; the pill alone sets a line aside', async () => {
@@ -355,4 +356,28 @@ test('tend tabs audit 32: a pill raised during an awaited look owes the line rat
   v.pill.set(false);
   assert.equal(await s.check(walking), null);
   assert.equal(s.store.get().line, LOW, 'said once the pill goes');
+});
+
+// tend tabs audit 33 (the T37 review's auditor 2, steward 1; the owner's answer of Nov 18, "The whole column"): the notice
+// waits while any dark pill stands in Memories' column (Undo, the band's Edit offer, its toast, error and Retry pills),
+// not only the bar's, and shows once they go.
+test('tend tabs audit 33: a dark pill in Memories\' column sets the line aside and owes it, as the bar\'s pill does', async () => {
+  const { createSpace, SAID_KEY } = await shell();
+  const p = fakePorts();
+  const v = await view({ column: 1 });
+  assert.deepEqual([v.sight.clear(), v.sight.aside()], [false, true]);
+  const s = createSpace(p, probe(300 * MB), v.sight);
+  assert.equal(await s.check(walking), null, 'owed beside the band\'s Edit offer');
+  // The bar's pill ends (the band's photo is the next capture) while the band's own offer stands.
+  v.pill.set(true);
+  v.pill.set(false);
+  assert.equal(await s.check(walking), null);
+  assert.ok(!(await p.db.getMeta(SAID_KEY)), 'unmarked while the column holds a pill');
+  v.column.set(0);
+  assert.equal(await s.check(walking), null);
+  assert.equal(s.store.get().line, LOW, 'said once the column is clear');
+  v.column.set(1); // Undo rises after it
+  assert.equal(s.store.get().line, null, 'a line already up steps aside');
+  v.column.set(0);
+  assert.equal(s.store.get().line, LOW, 'and comes back');
 });

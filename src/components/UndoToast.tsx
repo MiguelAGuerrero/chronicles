@@ -3,6 +3,7 @@ import { AccessibilityInfo, Platform, Pressable, StyleSheet, Text, View, type St
 import { dismissLabel, toastText } from '../lib/deletion/core';
 import { deletions } from '../lib/deletion';
 import { usePendingState } from '../lib/deletion/useDeletions';
+import { columnPills, holdCount } from '../lib/space/sight';
 import { Icon } from './icons';
 import { LiftIn, theme } from './ui';
 
@@ -27,7 +28,8 @@ const setHosts = (next: number[]) => {
  * "Walk deleted · Undo · Close" until the owner taps one (UC1), or "Couldn't delete" after a failure
  * (D6). Every screen that can delete renders one; only the newest shows.
  */
-export function UndoToast(props: { style?: StyleProp<ViewStyle> }) {
+/** `column`: this host is Memories' column, in front; while it draws the pill, the pill counts there (tend tabs audit 33). */
+export function UndoToast(props: { style?: StyleProp<ViewStyle>; column?: boolean }) {
   const [id] = useState(() => nextHost++);
   useEffect(() => {
     setHosts([...hosts, id]);
@@ -43,6 +45,8 @@ export function UndoToast(props: { style?: StyleProp<ViewStyle> }) {
     if (!mine || !text || Platform.OS !== 'ios') return;
     AccessibilityInfo.announceForAccessibility(st.pending && !st.error ? `${text}. Undo is available.` : text);
   }, [mine, text, st.pending, st.error]);
+  const drawn = mine && !!text;
+  useEffect(() => (props.column && drawn ? holdCount(columnPills) : undefined), [props.column, drawn]);
   if (!mine || !text) return null;
   return (
     <View style={[styles.wrap, props.style]} pointerEvents="box-none">

@@ -410,6 +410,67 @@ async function run(h) {
     await c4.close();
   }
 
+  // tend tabs audit 33 (the T37 review's auditor 2, steward 1; the owner's answer of Nov 18, "The whole column"): the
+  // storage notice waits while any dark pill stands in Memories' column, not only the bar's Edit pill: an empty walk's
+  // Undo ("Walk not kept.") and the band's own Edit offer after a photo. The room is read from `estimate` alone, as the
+  // space journey patches it, on a page of its own.
+  {
+    const { c: c5, pg: p5 } = await h.freshPage('capturehome-column', { permissions: ['geolocation'] });
+    await c5.addInitScript(() => {
+      window.__free = 4000 * 1024 * 1024;
+      const quota = 1e12;
+      const sm = StorageManager.prototype;
+      sm.estimate = async () => ({ quota, usage: quota - window.__free });
+      sm.persisted = async () => true;
+    });
+    const vis = async (sel) => (await p5.locator(sel).filter({ visible: true }).count()) > 0;
+    const words = () => p5.locator('[data-testid=space-line]').filter({ visible: true }).innerText({ timeout: 4000 }).then((t) => t.replace(/\s+/g, ' ').trim(), () => '');
+    const setFree = (mb) => p5.evaluate((n) => { window.__free = n * 1024 * 1024; }, mb);
+    await p5.goto(url);
+    await tabTo(p5, 'navigate');
+    await p5.waitForSelector('[data-testid=start]', { timeout: 30000 });
+    await p5.click('[data-testid=start]');
+    await p5.waitForSelector('[data-testid=stop]', { timeout: 15000 });
+    for (let i = 0; i < 3; i++) {
+      await c5.setGeolocation({ longitude: h.start[0], latitude: h.start[1], accuracy: 6 });
+      await p5.waitForTimeout(1300);
+    }
+    await setFree(300);
+    await p5.click('[data-testid=walk-minimize]');
+    await p5.waitForSelector('[data-testid=bar-stop]', { timeout: 10000 });
+    const lowUp = await p5.waitForSelector('[data-testid=space-line]', { timeout: 8000 }).then(() => true, () => false);
+    // An empty walk stopped from the bar: its Undo pill rises in the column, and the notice steps aside.
+    const sb = await p5.locator('[data-testid=bar-stop]').boundingBox();
+    await p5.mouse.move(sb.x + sb.width / 2, sb.y + sb.height / 2);
+    await p5.mouse.down();
+    await p5.waitForTimeout(1100);
+    await p5.mouse.up();
+    const undoUp = await p5.waitForSelector('[data-testid=undo-toast]', { timeout: 15000 }).then(() => true, () => false);
+    await p5.waitForTimeout(400);
+    const withUndo = { undo: await vis('[data-testid=undo-toast]'), line: await vis('[data-testid=space-line]') };
+    await p5.setViewportSize({ width: 320, height: 700 });
+    await p5.waitForTimeout(400);
+    await shot(p5, 'tabs-audit33-undo-alone-320');
+    await p5.setViewportSize({ width: 390, height: 844 });
+    await p5.click('[data-testid=undo-dismiss]').catch(() => {});
+    await p5.waitForSelector('[data-testid=undo-toast]', { state: 'detached', timeout: 5000 }).catch(() => {});
+    const backLow = await words();
+    check(lowUp && undoUp && withUndo.undo && !withUndo.line && backLow === 'Room for new photos and videos is running low. OK',
+      `tend tabs audit 33: with Undo in Memories' column the storage notice steps aside, and comes back in its own words as Undo goes (${JSON.stringify({ lowUp, undoUp, withUndo, backLow })})`);
+    // A photo from the band with the room now very low: the band's Edit offer stands, and the notice waits for it.
+    await setFree(50);
+    const [chooser] = await Promise.all([p5.waitForEvent('filechooser', { timeout: 10000 }).catch(() => null), p5.click('[data-testid=band-photo]').catch(() => {})]);
+    await chooser?.setFiles(require('path').join(h.scriptsDir, 'fixtures', 'photo.jpg'));
+    const offerUp = await p5.waitForSelector('[data-testid=capture-offer]', { timeout: 10000 }).then(() => true, () => false);
+    await p5.waitForTimeout(600);
+    const withOffer = { offer: await vis('[data-testid=capture-offer]'), line: await vis('[data-testid=space-line]') };
+    await p5.waitForSelector('[data-testid=capture-offer]', { state: 'detached', timeout: 12000 }).catch(() => {});
+    const veryLow = await words();
+    check(offerUp && withOffer.offer && !withOffer.line && veryLow === 'There is almost no room left for new photos, videos and memos. OK',
+      `tend tabs audit 33: the band's Edit offer after a photo holds the storage notice back, which shows in its own words once the offer goes (${JSON.stringify({ offerUp, withOffer, veryLow })})`);
+    await c5.close();
+  }
+
   // HC14: Explore reads its one fix the first time it comes to the front.
   await pg.click('[data-testid=walk-minimize]').catch(() => {});
   const { c: c2, pg: p2 } = await h.freshPage('capturehome-explore');
