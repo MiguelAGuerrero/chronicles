@@ -1,0 +1,80 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inbox",
+        "remove",
+        "T36",
+        "--reason",
+        "the proxy's yes under 0157, 2026-11-18 (aligned (earn)), built in tend tabs T36"
+      ],
+      "target": "sha256:626162a48cf7ce69d97936258cb1bfe7236cb09081f4f794e806f2906d05b5e2"
+    },
+    {
+      "argv": [
+        "inbox",
+        "note",
+        "T37"
+      ],
+      "body": "  Nov 18: the proxy's yes under 0157, 2026-11-18 (/vision on main db8e8e37: aligned (honour); criteria: never two dark pills at once; the storage notice still shows once, words unchanged, after the pill goes; 0107/SA10 kept). Waits for the next `/tend inbox`: one build per run, T36 built first (`tend tabs T36`).\n",
+      "target": "sha256:c4fae5fc0f36ef3c73df36a5a7ca1bce9e6bb64db027b553f863bc42f4520634"
+    },
+    {
+      "argv": [
+        "inbox",
+        "note",
+        "T38"
+      ],
+      "body": "  Nov 18: the proxy's yes under 0157, 2026-11-18 (/vision on main db8e8e37: no surface (Restraint); criteria: at launch with a walk open and none finished the peek is 124 from the first frame, the fits and the scale bar right from the first frame). Waits for the next `/tend inbox`: one build per run, T36 built first (`tend tabs T36`).\n",
+      "target": "sha256:16369a1ab777575555ba9ccc4649b5d8ed00b90414c678237bc3f16de85ecff4"
+    },
+    {
+      "argv": [
+        "inbox",
+        "add"
+      ],
+      "body": "- **T? [owner] At 320 x 700 the two-line press hint can reach the walker whenever the bar stands taller than its line, or with no pill** (2026-11-18)\n  Area: tabs, explore. Seen: `tend tabs audit 30` (capturehome, `tabs-T36-hint-back-320`): with the bar's Edit pill gone at 320 x 700, Explore's press hint wraps to two lines (\"Press and hold the map to look / anywhere.\") at x 12-256, y 187-231, and the walker's dot (radius 7 and its 2 px ring) at y 178-196 sits 9 px under its top edge. With the pill up the hint steps aside (`tend tabs T36`) and the walker at y 146-164 is clear; at 390 x 844 it is clear either way. Not measured: the bar's reminder card (`recording-reminder`, about 50 px) or a said error of several lines lift the map almost as far as the pill (the T36 review's auditor 2, an estimate), and the hint does not step aside for them. Rests on: the T36 review (ux 1, steward 1, auditor 2, ux 3); the cleared T36 shape, \"so the walker is never under words\"; VISION.md Always, \"Restraint in motion, colour and copy: the content is the novelty, not the chrome.\" Opinion beyond that: no rule names words over the walker.\n  Recommended: bottom padding on Explore's map camera sized to the overlay (the hint's slot over the scale bar), so the walker centres in what nothing covers, with the pill, the reminder card or neither; the hint keeps its words and place. /vision: aligned (earn: the walker's own place on the map comes before the chrome over it; Restraint; no new words, no control, no count, no accent).\n  Precedent: none found (docs/research/adjacent-apps.md, docs/research/ui-teardown.md).\n  Otherwise: one-line hint words at 320 px (EC14's words, so yours, the T36 review's ux 3); or leave it.\n",
+      "number": "T40"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "the walker's dot sits under \"Press and hold the map",
+        "--reason",
+        "built in tend tabs T36 (inbox T36, the proxy's yes under 0157, 2026-11-18, aligned (earn))"
+      ],
+      "target": "sha256:3724e92318ff31dc3f765e52b0bd5f3820cb280586f5b78bb055aa201646ac2d"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "The press hint is marked seen after 5 s on screen even while an error",
+        "--reason",
+        "built in tend tabs audit 29"
+      ],
+      "target": "sha256:5aaca75a3952612d1c818478fdc397d59927b93fe5c17bfa1d9b3a2f4f1d9dec"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Tabs and the recording bar",
+        "--after",
+        "Chronicle's stacked empty peek springs up"
+      ],
+      "body": "- [loop] With the bar's Edit pill up at 320 x 700 on Explore, Move map (`atlas-move-map`, y 49-93) runs 3 px into Layers (`layers`, y 8-52): Move map is placed from the map's foot (`bottom` 8 + 44 + 12 + 44 + 12 = 120, `(tabs)/explore.tsx`, the `MoveMapToggle` line) and the pill leaves a map about 213 px tall; at 390 x 844 (Move map at y 193) and without the pill they clear. The column (Layers, 8, Move map, 12, the compass's slot, 12, Locate, 8) needs 224 px, so clamping Move map to 8 px under Layers would leave it 1 px from the compass's slot while the map is turned: the column wants a placement rule for a short map, not a clamp. Material, \"targets separated by 8dp of space or more\" (`tend tabs T36`'s review, ux 4, medium)\n"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 18, `/tend inbox T36 yes, T37 yes, T38 yes --deploy=main`, the press hint steps aside for the bar's Edit pill** (opened from `db8e8e37`; no sweep, lenses 1-7 not run; the answers are the proxy's yes under 0157, 2026-11-18).\n- The entries, as main held them: T36 \"On Explore at 320 x 700 the bar's Edit pill lifts the map so the walker sits under the press hint\" (built; /vision on main: aligned (earn)); T37 \"Two dark pills at once on Memories\" and T38 \"Chronicle's stacked empty peek springs from 76 to 124 px as the map mounts\" (each the proxy's yes under 0157, 2026-11-18; noted, waiting for the next `/tend inbox`, one build per run).\n- `tend tabs T36`: while the bar's Edit pill is up, Explore's press hint steps aside and shows again as the pill goes; the bar tells the tabs through `barOfferUp` (`lib/tabsHidden.ts`), and the hint's five seconds do not run meanwhile, so EC14's \"shown once\" holds. Its words and place are unchanged.\n- The review (one round: the `auditor`, the `ux-reviewer` and the `steward`; accepted 7, deferred 2, rejected 0): `tend tabs audit 29` (the hint's seconds run only while it is drawn in front: not under a Modal such as the media editor the pill's Edit opens, a full-screen card, another tab, or an error, a notice, \"Looking around…\" or the credits in its place; the source scan tightened); `audit 30` (the journey measures the walker's dot against the hint with the pill up at 390 and 320 x 700, and pictures the hint's return at 320).\n- Filed: T40 [owner] (with the pill gone at 320 x 700 the two-line hint stands 9 px over the walker; with the bar's reminder card, likely too); a `[loop]` medium under \"Tabs and the recording bar\" (Layers and Move map 3 px into each other at 320 x 700 with the pill up). Removed: the DEFERRED items built (the pill over the walker; the hint marked seen while another overlay held its place).\n- Journeys: capturehome (holding the changed checks) and launch, green on the final build; capturehome failed on `main`'s build at the T36 check before the fix.\n- The balance: outgrowing its base, as main's ledger reads it; no `G` entry filed.\n"
+    }
+  ]
+}

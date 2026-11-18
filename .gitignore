@@ -47,3 +47,4 @@ yarn-error.*
 
 # the e2e runner's record of journeys that passed (scripts/e2e/economy.js)
 /.e2e-green.json
+/.e2e-green.json.*.tmp

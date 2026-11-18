@@ -214,3 +214,15 @@ test('TG24 test-first: a renamed prefix keeps the order its history holds, and o
   assert.equal(tf.testFirst(['ZZ1'], real1, { ZZ: 'YY' })[0].ok, false, 'an old name made real before any todo still fails');
 });
 
+
+test('TG20 an audit finding: a bold audit finding id in a spec\'s prose ("**F3 is settled") is not read as a criterion', () => {
+  const { idsOf } = load(join(ROOT, 'scripts', 'check-specs.js')) as { idsOf(text: string): { ids: string[]; prefixes: string[] } };
+  const spec = [
+    '## Criteria', '',
+    '1. **PS1** A plain one.', '2. **PS2 · A titled one.**', '- **PS3.** A dotted one.', '4. **PS4 Capitalised title** with prose.', '',
+    '## Open', '',
+    "- **F3 is settled by keeping the difference** (PS6; the steward's S2): a plain-named memorial is a mark.",
+    '- **PS2 amended** on Nov 12: the owner\'s words.',
+  ].join('\n');
+  assert.deepEqual(idsOf(spec), { ids: ['PS1', 'PS2', 'PS3', 'PS4'], prefixes: ['PS'] });
+});

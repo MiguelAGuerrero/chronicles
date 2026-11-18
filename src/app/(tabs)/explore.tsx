@@ -14,8 +14,10 @@ import type { Place } from '../../lib/gazetteer/pack';
 import { searchAvailable } from '../../lib/gazetteer/words';
 import { BLOCKED_LINE, exploreBanner, findYou, refusalLifted, type PermissionSeen } from '../../lib/atlas/findYou';
 import { cancelLook, endLook, IDLE, isLive, LOOK_LABEL, runLook, startLook, type Look } from '../../lib/atlas/look';
-import { exploreSlots, SCALE_LEFT } from '../../lib/atlas/overlaySlots';
+import { exploreSlots, pressHintUp, SCALE_LEFT } from '../../lib/atlas/overlaySlots';
 import { createStore } from '../../lib/store';
+import { barOfferUp, modalsUp, tabsHidden } from '../../lib/tabsHidden';
+import { useStore } from '../../lib/useStore';
 import { KIND_COLOR, KIND_ICON_OF } from '../../components/atlas/kinds';
 import type { MarkPin } from '../../components/MarkPinView';
 import { CATEGORIES } from '../../lib/discovery/categories';
@@ -181,16 +183,11 @@ export default function Explore() {
   const [spot, setSpot] = useState<{ at: LngLat; zoom: number; ask?: 'ask' | 'later' } | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [pressSeen, setPressSeen] = useState(true);
-  // The hint is shown once (explore-carousel audit 10): after a few seconds on screen it is marked seen, used or not.
-  const hintShown = !pressSeen && !spot && !!from;
-  useEffect(() => {
-    if (!hintShown) return;
-    const t = setTimeout(() => {
-      setPressSeen(true);
-      db.setMeta(PRESS_HINT_KEY, '1').catch(() => {});
-    }, HINT_MS);
-    return () => clearTimeout(t);
-  }, [hintShown]);
+  // The hint steps aside while the bar's Edit pill is up (tend tabs T36), and counts no seconds under a Modal or a
+  // full-screen card (tend tabs audit 29).
+  const barOffer = useStore(barOfferUp, (x) => x);
+  const covered = useStore(modalsUp, (n) => n > 0);
+  const folded = useStore(tabsHidden, (x) => x);
   useEffect(() => {
     let live = true;
     db.getMeta(PRESS_HINT_KEY).then((v) => live && setPressSeen(v === '1'), () => {});
@@ -691,6 +688,17 @@ export default function Explore() {
   const finding = findYou({ cardEmpty: !noteText && !shown.length && !from, refused, permission: permission ?? { state: 'unknown', changes: 0 } });
   // The card alone says location is blocked: no banner says it again (tend walk-screen audit 10, the owner, Nov 14).
   const error = exploreBanner(walkStart.error ?? locError, finding.blocked);
+  // The hint is shown once (explore-carousel audit 10): after a few seconds on screen it is marked seen, used or not. One
+  // reading draws it and runs its seconds, so they run only while it is drawn in front (tend tabs T36, audit 29).
+  const hintShown = pressHintUp({ seen: pressSeen, spot: !!spot, located: !!from, barOffer, focused, covered, folded, slotTaken: !!error || !!notice || looking || creditsOpen });
+  useEffect(() => {
+    if (!hintShown) return;
+    const t = setTimeout(() => {
+      setPressSeen(true);
+      db.setMeta(PRESS_HINT_KEY, '1').catch(() => {});
+    }, HINT_MS);
+    return () => clearTimeout(t);
+  }, [hintShown]);
   const overlay = error ? (
     <Banner
       // Location refused, by Locate (T17) or by Walk here (tend recording audit 2), is the quiet notice; anything else a fault.
@@ -724,8 +732,8 @@ export default function Explore() {
         <Text style={styles.scanCancelText}>Cancel</Text>
       </Pressable>
     </View>
-  ) : !pressSeen && !spot && from && !creditsOpen ? (
-    // Not while the map's credits are open: they grow up into the hint's row (tend map audit 1).
+  ) : hintShown ? (
+    // Not while the map's credits are open: they grow up into the hint's row (tend map audit 1; in `slotTaken`).
     <Text style={styles.hint} testID="atlas-press-hint">Press and hold the map to look anywhere.</Text>
   ) : null;
 

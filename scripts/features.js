@@ -83,7 +83,7 @@ const FEATURES = [
     rule: 'replay',
     source: ['src/app/replay/**', 'src/lib/ceremony/**', 'src/components/ceremony/**', 'src/lib/{replay,quietLines,summary}.ts', 'src/components/CaptureView.tsx', 'src/lib/viewerBars.ts'],
     journeys: ['replay'],
-    specs: ['concept', 'replay-rhythm'],
+    specs: ['concept', 'replay-rhythm', 'replay-pace'],
   },
   {
     name: 'moments',
@@ -387,6 +387,9 @@ const FEATURES = [
 const V1_SCAN_AND_AMBIENT = ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S9', 'S10', 'S11', 'S12', 'S14', 'S15', 'S22', 'S23', ...Array.from({ length: 11 }, (_, i) => `A${i + 1}`)];
 
 const RETIRED = {
+  // The soft cap of about 60 s and its floors went when each moment was given its own time (the owner, Nov 18, decision 0203):
+  // specs/replay-pace RY10 holds that nothing shrinks to fit a total.
+  'replay-rhythm': ['RR5'],
   // The Loop / One way switch went with the page rebuilt as a map (outing-journey, decision 0207, a default taken on the owner's "proceed
   // with reasonable defaults", theirs to overrule): a journey is a loop when one can be made, else one way, and says which (OJ7).
   'quick-circuit': ['QC3'],
@@ -508,6 +511,7 @@ const UNTESTED = {
   // The replay on the web refuses sound without a tap, so a trimmed memo's advance past its end handle is tried on a phone.
   'voice-trim': { VT7: 'device: a replay moves on at a trimmed memo\'s end handle, tried on a phone (the logic is VT8, the one path VT12)' },
   'replay-rhythm': { RR17: 'device: both replays step through the moments with a screen reader on, native only' },
+  'replay-pace': { RY20: 'device: the screen reader\'s steps are unchanged and show no Next, native only (react-native-web never takes that path)' },
   // The map's palette on a phone: the native layers and pin views take the same constants, never run on a device.
   'map-palette': { MP13: 'device: the native map\'s layers and pin views in Earth and ink, seen on a phone (docs/NATIVE_UNVERIFIED.md)' },
 };

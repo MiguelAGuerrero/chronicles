@@ -5,9 +5,12 @@
 //                                                       refinement beside them, the areas by state (an
 //                                                       area changed since its sweep is rough), the
 //                                                       open entries, and a reading (shallow-clone
-//                                                       boundary commits are left out)
+//                                                       boundary commits are left out); the ledger and
+//                                                       the inbox as origin/main holds them, not the
+//                                                       branch's unpushed record
 //   node scripts/tend.js log <range> '<json>'          append this run's line to the run log: what the
-//                                                       range holds (shipped, audit fixes, reverts) with
+//                                                       range holds (every finding a subject names:
+//                                                       shipped, audit fixes, builds, reverts) with
 //                                                       what only the run knows (found, filed, answers)
 //   node scripts/tend.js next                           the area to sweep when the owner names none
 //   node scripts/tend.js e2e-due [--days N] [--json]    whether the weekly full pass is due: no line of main's run
@@ -34,6 +37,7 @@ const ROOT = process.env.TEND_ROOT ? path.resolve(process.env.TEND_ROOT) : path.
 const LEDGER = path.join(ROOT, '.claude', 'skills', 'tend', 'ledger.json');
 const RUNS = path.join(ROOT, '.claude', 'skills', 'tend', 'runs.jsonl');
 const RUNS_REL = '.claude/skills/tend/runs.jsonl';
+const LEDGER_REL = '.claude/skills/tend/ledger.json';
 const STATES = ['rough', 'settling', 'polished', 'resting'];
 const LIMITS = { days: 14, rough: 3, inbox: 10, proposals: 3 };
 
@@ -187,7 +191,7 @@ function tendCommitProblems({ subject, body, files, added = '', rewritesLog = fa
   const problems = [];
   if (!/^tend /.test(subject)) return ['not a loop commit: the loop ships only `tend <area> …` commits'];
   if (rewritesLog) problems.push('rewrites the run log: a run adds its line and changes no other');
-  for (const f of rewritesRules) problems.push(`changes or removes a line of ${f}: the loop may add a trap to a rule file, never reword a rule (the owner's, through the inbox)`);
+  for (const f of rewritesRules) problems.push(`changes or removes a line of ${f} that the push's base holds: the loop may add a trap to a rule file, and reword a line its own push added, never reword a rule (the owner's, through the inbox)`);
   for (const f of files) {
     if (RULE_FILE.test(f.path) && citesRule(body, f.path)) problems.push(`cites ${f.path} as its source and edits it in the same commit`);
   }
@@ -211,6 +215,16 @@ function tendCommitProblems({ subject, body, files, added = '', rewritesLog = fa
 }
 
 const RULE_FILE = /^\.claude\/rules\/[^/]+\.md$/;
+
+/**
+ * Whether lines a commit removes from a rule file include one the push's base holds: those stay
+ * add-only. A line absent from the base was added by an earlier commit of the same push, and a later
+ * commit may reword or drop it (a review fix to the run's own trap line).
+ */
+function rewritesBaseLines(removed, base) {
+  const lines = new Set(String(base).split('\n'));
+  return removed.some((l) => lines.has(l));
+}
 const ruleName = (p) => p.replace(/^\.claude\/rules\//, '');
 /** Whether a commit's Source line names a rule file, by its path or its bare name ("tabs-and-home.md"). */
 function citesRule(body, rulePath) {
@@ -219,14 +233,18 @@ function citesRule(body, rulePath) {
 }
 
 /**
- * Across one push: a loop commit may not rest on a rule file that a loop commit of the same push
- * touched, so a rule cannot be written in one commit and cited as the source in the next.
+ * Across one push, `commits` in commit order (oldest first): a loop commit may not rest on a rule file
+ * that a loop commit at or before it in the push touched, so a rule cannot be written in one commit and
+ * cited as the source in the next. A line a later commit adds (the run's trap, in its record) is not
+ * what an earlier commit rested on.
  */
 function citedOwnEdits(commits) {
-  const loops = commits.filter((c) => /^tend /.test(c.subject));
-  const touched = new Set(loops.flatMap((c) => c.files.map((f) => f.path).filter((p) => RULE_FILE.test(p))));
+  const touched = new Set();
   const problems = [];
-  for (const c of loops) for (const rule of touched) if (citesRule(c.body, rule)) problems.push({ subject: c.subject, problem: `cites ${rule}, which this run's commits edit: a rule the loop wrote is not a source` });
+  for (const c of commits.filter((x) => /^tend /.test(x.subject))) {
+    for (const p of c.files.map((f) => f.path)) if (RULE_FILE.test(p)) touched.add(p);
+    for (const rule of touched) if (citesRule(c.body, rule)) problems.push({ subject: c.subject, problem: `cites ${rule}, which this run's commits edit at or before it: a rule the loop wrote is not a source` });
+  }
   return problems;
 }
 
@@ -296,15 +314,43 @@ function fullPassDue(lines, today, days = 7) {
  * verdict on the run: reading them is `/tend reflect`'s job and the owner's (decision 0139).
  */
 function runLine({ date, subjects, given }) {
-  const ids = (re) => subjects.map((s) => re.exec(s)?.[1]).filter(Boolean);
+  const found = subjects.map(findingsOf);
+  const all = (key) => found.flatMap((f) => f[key]);
   return {
     date,
     ...given,
-    shipped: ids(/^tend \S+ (\d+)\b/).map(Number).sort((a, b) => a - b),
-    auditFixes: ids(/^tend \S+ audit (\d+)\b/).map(Number).sort((a, b) => a - b),
-    built: ids(/^tend \S+ (T\d+)\b/),
+    shipped: all('shipped').sort((a, b) => a - b),
+    auditFixes: all('audit').sort((a, b) => a - b),
+    built: all('built'),
     reverted: subjects.filter((s) => /^Revert "tend /.test(s)).map((s) => testName(s.replace(/^Revert "/, '')) ?? s),
   };
+}
+
+const FINDING = String.raw`(?:audit \d+(?:-\d+)?|\d+(?:-\d+)?|T\d+)`;
+const FINDINGS = new RegExp(`^tend \\S+ (${FINDING}(?:, ${FINDING})*)(?![\\w-])`);
+
+/**
+ * The findings a loop commit's subject names, every one: a clause per finding or a list ("tend tabs
+ * 12: …; tend tabs 13: …", "tend map 17, 18: …", "tend explore audit 42, audit 43: …", "tend tabs
+ * audit 26-28: …"). A number after "audit" in a list is an audit fix too; a number in the words is none.
+ */
+function findingsOf(subject) {
+  const out = { shipped: [], audit: [], built: [] };
+  for (const clause of subject.split(/;\s+(?=tend \S+ )/)) {
+    const m = FINDINGS.exec(clause.trim());
+    if (!m) continue;
+    let audit = false;
+    for (const token of m[1].split(', ')) {
+      if (/^T\d+$/.test(token)) {
+        out.built.push(token);
+        continue;
+      }
+      if (token.startsWith('audit ')) audit = true;
+      const [a, b = a] = token.replace(/^audit /, '').split('-').map(Number);
+      for (let n = a; n <= b && n - a < 100; n++) (audit ? out.audit : out.shipped).push(n);
+    }
+  }
+  return out;
 }
 
 function git(...args) {
@@ -370,16 +416,35 @@ function sweptAt(ledger) {
   };
 }
 
+/** A file as origin/main holds it (`show`), or this checkout's (`here`) where main's cannot be read. */
+function mainOrHere(rel, show, here) {
+  const text = show(rel);
+  return text === null || text === undefined ? here(rel) : text;
+}
+
+const showMain = (rel) => {
+  try {
+    return execFileSync('git', ['show', `origin/main:${rel}`], { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], maxBuffer: 64 * 1024 * 1024 });
+  } catch {
+    return null;
+  }
+};
+const readHere = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
+
+/**
+ * The balance reads origin/main alone: its commits, its ledger's areas and its open entries. The
+ * run's own unpushed record (an area's new state, the entries it filed) is not main's yet.
+ */
 function balance(argv) {
   const at = argv.indexOf('--days');
   const days = at >= 0 ? Number(argv[at + 1]) : LIMITS.days;
   const known = knownPrefixes();
   const t = tally(log(`--since=${days} days ago`, 'origin/main'), known);
-  const ledger = readLedger();
+  const ledger = JSON.parse(mainOrHere(LEDGER_REL, showMain, readHere));
   const counts = changesByArea(sweptAt(ledger));
   const changed = Object.fromEntries(Object.keys(ledger.areas ?? {}).map((a) => [a, counts[a] > 0]));
   const by = areasByState(ledger.areas, changed);
-  const status = readStatus(fs.readFileSync(path.join(ROOT, 'docs', 'STATUS.md'), 'utf8'));
+  const status = readStatus(mainOrHere('docs/STATUS.md', showMain, readHere));
   const r = reading({ slices: t.slices.length, rough: by.rough.length, ...status });
   const out = {
     date: new Date().toISOString().slice(0, 10),
@@ -393,8 +458,10 @@ function balance(argv) {
   };
   console.log(JSON.stringify(out, null, 2));
   if (argv.includes('--write')) {
-    ledger.balance = out;
-    fs.writeFileSync(LEDGER, JSON.stringify(ledger, null, 2) + '\n');
+    // Into this checkout's ledger, beside the run's own record.
+    const mine = readLedger();
+    mine.balance = out;
+    fs.writeFileSync(LEDGER, JSON.stringify(mine, null, 2) + '\n');
   }
 }
 
@@ -461,8 +528,19 @@ function commits(argv) {
     console.error('usage: node scripts/tend.js commits [--loop-only] <range>, e.g. origin/main..HEAD');
     process.exit(2);
   }
-  const all = git('rev-list', '--no-merges', range).split('\n').filter(Boolean);
+  // Oldest first: citedOwnEdits reads the push in commit order.
+  const all = git('rev-list', '--reverse', '--no-merges', range).split('\n').filter(Boolean);
   const shas = loopOnly ? all.filter((sha) => /^tend /.test(git('show', '-s', '--format=%s', sha))) : all;
+  // The push's base: a rule line it holds is add-only; one an earlier commit of the push added is not.
+  const ends = range.split('..');
+  const baseRev = ends.length === 2 && ends[0] ? git('merge-base', ends[0], ends[1] || 'HEAD').trim() : all.length ? `${all[0]}^` : 'HEAD';
+  const atBase = (file) => {
+    try {
+      return execFileSync('git', ['show', `${baseRev}:${file}`], { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], maxBuffer: 64 * 1024 * 1024 });
+    } catch {
+      return '';
+    }
+  };
   let bad = 0;
   const read = [];
   // The record documents (decision 0156): each commit that touches them is its declared operations,
@@ -480,9 +558,9 @@ function commits(argv) {
     const added = tests.length
       ? git('show', '--format=', '-U0', sha, '--', ...tests).split('\n').filter((l) => /^\+(?!\+\+)/.test(l)).join('\n')
       : '';
-    const removes = (file) => git('show', '--format=', '-U0', sha, '--', file).split('\n').some((l) => /^-(?!--)/.test(l));
-    const rewritesLog = files.some((f) => f.path === RUNS_REL) && removes(RUNS_REL);
-    const rewritesRules = files.filter((f) => RULE_FILE.test(f.path) && f.status === 'M' && removes(f.path)).map((f) => f.path);
+    const removed = (file) => git('show', '--format=', '-U0', sha, '--', file).split('\n').filter((l) => /^-(?!--)/.test(l)).map((l) => l.slice(1));
+    const rewritesLog = files.some((f) => f.path === RUNS_REL) && removed(RUNS_REL).length > 0;
+    const rewritesRules = files.filter((f) => RULE_FILE.test(f.path) && f.status === 'M' && rewritesBaseLines(removed(f.path), atBase(f.path))).map((f) => f.path);
     read.push({ subject, body: rest.join('\n'), files });
     const problems = tendCommitProblems({ subject, body: rest.join('\n'), files, added, rewritesLog, rewritesRules });
     problems.push(...(recordIssues.get(sha) ?? []));
@@ -521,4 +599,4 @@ if (require.main === module) {
   }
 }
 
-module.exports = { FORBIDDEN, LIMITS, STATES, classify, criteriaPrefixes, tally, areasByState, readStatus, reading, nextArea, isLoops, dropBoundary, testName, tendCommitProblems, citedOwnEdits, logProblems, runLine, fullPassDue };
+module.exports = { FORBIDDEN, LIMITS, STATES, classify, criteriaPrefixes, tally, areasByState, readStatus, reading, nextArea, isLoops, dropBoundary, testName, tendCommitProblems, citedOwnEdits, rewritesBaseLines, mainOrHere, findingsOf, logProblems, runLine, fullPassDue };

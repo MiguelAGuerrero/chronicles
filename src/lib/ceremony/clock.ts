@@ -6,7 +6,7 @@
  * than skipping to the card. A clock at or past the total ends the ceremony,
  * even a total of 0, or one that shrank under it when the story was rebuilt.
  */
-import type { Showing } from './types';
+import type { Landing, Showing } from './types';
 
 export const MAX_TICK_MS = 250;
 
@@ -20,6 +20,22 @@ export function tickClock(c: CeremonyClockState, dt: number, o: { paused: boolea
   if (c.ms >= o.total) return { clock: c, end: true };
   const ms = Math.min(o.total, c.ms + Math.min(MAX_TICK_MS, Math.max(0, dt)));
   return { clock: { ...c, ms }, end: ms >= o.total };
+}
+
+/** A press of Next moves the time and nothing else: a held replay stays held (RY15), and a wait never stops it (RY16). */
+export function seekClock(c: CeremonyClockState, ms: number): CeremonyClockState {
+  return { ...c, ms: Math.max(0, ms) };
+}
+
+/**
+ * Where a press of Next goes (RY13, RY17): the landing of the first moment that has not begun, never back in time.
+ * `aimed` is the moment the last press went to: until it has begun, the next press goes to the one after, so two
+ * presses are two moments. Null when no moment lies ahead.
+ */
+export function nextStop(stops: Landing[], ms: number, aimed: number | null = null): { ms: number; t0: number } | null {
+  const from = aimed != null && aimed > ms ? aimed : ms;
+  const s = stops.find((x) => x.t0 > from);
+  return s ? { ms: Math.max(ms, s.land), t0: s.t0 } : null;
 }
 
 /**
