@@ -44,6 +44,9 @@ is already a recorded trade-off is reopened with a number, not rediscovered.
 
 ## Rendering
 
+- **Nothing memoizes what the code doesn't.** The React Compiler is not on (`app.json` has no
+  `experiments.reactCompiler`; only its lint rules run, DEFERRED), so an inline object, array or closure is
+  new on every render and breaks every `memo` below it, the libraries' own included.
 - **No React state at frame rate above a costly subtree.** A value that changes per frame or per fix lives
   in a ref, an `Animated.Value` (native driver for opacity and transforms) or a small leaf component that
   owns it (`Ticking`, `WalkStats`). The parent never re-renders per frame.
@@ -56,6 +59,27 @@ is already a recorded trade-off is reopened with a number, not rediscovered.
   `getItemLayout`, as `gallery/MediaScreen.tsx` does), not a `ScrollView` over `map()`.
 - A media player is created when it is played, not for every row that could be (`useAudioPlayer` per row
   holds a native player each). Timers and subscriptions on a tab stop while it is unfocused.
+
+## Async loads
+
+- **Find the path before tuning it.** Measure where the work really runs: a focus effect inside a component
+  that mounts per section runs on that mount and on returns over it, not on every tab focus (Chronicle's map;
+  fix chronicle-focus-reload). Check the instrument moves on a control path first (`render:explore` did,
+  `render:home` stayed 0 until the right section was open).
+- **Batching keeps what the load did.** Moving reads into one `Promise.all` changes when state is set, never
+  whether: don't add a guard (`live`, `cancelled`) the load didn't have. Chronicle's map goes on to the end
+  while a replay is open over it, so its places count as framed and a taken recall is shown; a tidy-looking
+  `if (!live) return` after the reads lost both (fix chronicle-focus-reload audit 1, 2).
+
+## Testing a cost
+
+- A screen or native file can't run under `npm test`, so its cost is held by a source scan (TypeScript's
+  syntax tree, as `mapFrames.test.ts` and `chronicleLoad.test.ts` do). A scan is **shown to fail**: run it on
+  hand-written snippets of each regression it exists for (moved, added, written another way) or on a
+  mutation of the file, not only on today's file, which it passes by construction. Never skip a match by its
+  position ("allow the first check"): name what is allowed by its place in the syntax (fix
+  chronicle-focus-reload audit 4, native-map-frames audit 1).
+- A scan also fails when it finds nothing to check: a load that sets no state, a file with no sources.
 
 ## Algorithms
 
