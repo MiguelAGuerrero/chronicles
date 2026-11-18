@@ -1,0 +1,14 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inbox",
+        "remove",
+        "T39",
+        "--reason",
+        "the owner's yes, 2026-11-18, split in a non-loop run (decision 0173)"
+      ],
+      "target": "sha256:06e14a6ab21270e8970e18b7a48361641f67bec06b5c4a86a88712454c3390db"
+    }
+  ]
+}
