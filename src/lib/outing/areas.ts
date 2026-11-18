@@ -106,3 +106,12 @@ export const areaKey = (a: Pick<Area, 'at'>): string => `${a.at[0].toFixed(5)},$
 export function withoutAreas(areas: readonly Area[], left: ReadonlySet<string>, destKey: string | null): Area[] {
   return areas.filter((a) => a.name === null || areaKey(a) === destKey || !left.has(areaKey(a)));
 }
+
+/**
+ * OJ50 (audit 49): the towns that may say "New to you.": those not in any recorded outing, and only when there are recorded outings
+ * to read that from (`walked` is how many towns they hold; null when that could not be read). With none, every town would read as
+ * new, which says nothing.
+ */
+export function newTowns(areas: readonly Area[], walked: number | null): Set<string> {
+  return new Set(walked ? areas.flatMap((a) => (a.name && a.isNew ? [a.name] : [])) : []);
+}

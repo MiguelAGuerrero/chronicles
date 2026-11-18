@@ -1057,7 +1057,10 @@ export default function Explore() {
             setOutingOpen(false);
             setOpen(null);
             // OJ48: the plan is offered first, so the session that starts now takes it up.
-            void (plan ? journeyPlans.offer(plan).catch(() => {}) : Promise.resolve()).then(() => walkStart.start(dest, undefined, { onError: sayQuiet }));
+            void (plan ? journeyPlans.offer(plan).catch(() => {}) : Promise.resolve())
+              .then(() => walkStart.start(dest, undefined, { onError: sayQuiet }))
+              // A Start that did not happen takes its plan back, so no later session finds it (audit 44).
+              .then((started) => (started === null && plan ? journeyPlans.withdraw().catch(() => {}) : undefined));
           }}
           onLater={(dest) => {
             setOutingOpen(false);

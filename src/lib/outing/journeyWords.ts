@@ -63,8 +63,6 @@ export const FURTHER_LABEL = 'Look further';
 /** OJ22 (audit 17): the next move names only a control that is on the page. */
 export const nextMoveLine = (canLookFurther: boolean): string => (canLookFurther ? 'Switch on another chip, or look further.' : 'Switch on another chip.');
 export const TOWNS_LINE = 'Reading the towns…';
-/** Audit 10: what Start does with a journey of several towns, and nothing the page does not keep. */
-export const firstLine = (town: string | null): string => (town ? `Start begins in ${town}.` : 'Start begins around here.');
 /** OJ27 (audit 22): said once with a destination. */
 export const STRAIGHT_LINE = 'Distances to towns are straight lines; Maps knows the road.';
 export const RETRY_LABEL = 'Try again';
@@ -79,10 +77,20 @@ export const ANOTHER_LINE = 'Planned again from other places.';
 /** OJ41 (ui 1): what a wider reach looked at, said under it once the towns are read: their names, or that there was none. */
 export const lookedLine = (names: readonly string[]): string => (names.length ? `Looked in ${list(names)}.` : 'No town within that reach: this is around here.');
 
-/** OJ29: the session's bar between towns: the town ahead and how far away, in a straight line; with no position yet, the town alone. */
-export const nextTownLine = (town: string, m: number | null, units: Units): string => (m == null ? `${town} next.` : `${town} next. ${awayLine(m, units)}.`);
-export const PASS_LABEL = 'Pass this town by';
-export const PUT_AWAY_LABEL = 'Put the plan away';
+/** OJ29: the session between towns: the town it is headed toward and how far, in a straight line; with no position yet, the town alone. No ordinal word. */
+export const towardLine = (town: string, m: number | null, units: Units): string => (m == null ? `Toward ${town}.` : `Toward ${town}. ${awayLine(m, units)}.`);
+/** OJ30: within reach of a town: said, and the way through its stops offered, never begun for you. */
+export const hereLine = (town: string): string => `${town} is here.`;
+export const WAY_LABEL = 'Show the way';
+export const PASS_LABEL = 'Pass by';
+export const PASS_HINT = 'Lets this town go';
+export const NO_TOWN_LINE = 'No town ahead.';
+/** Beside Start for a journey that names a town: where recording begins, which is here (audit 47). */
+export const startLine = (town: string): string => `Start records from here, toward ${town}.`;
+/** Beside "When I get there" for a journey of several towns: what it keeps (audit 48). */
+export const laterLine = (town: string): string => `"When I get there" keeps ${town} only.`;
+export const leftOutLine = (town: string): string => `Left ${town} out.`;
+export const FOLLOW_LABEL = 'Follow this';
 export const LEAVE_OUT_LABEL = 'Leave this town out';
 /** OJ50: said of a town you have not been in on a recorded outing; never of a place, and nothing is said of the others. */
 export const NEW_TOWN_LINE = 'New to you.';

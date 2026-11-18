@@ -36,10 +36,20 @@ One page from Explore: pick what you want to see from a vocabulary, get one prop
 
 ## The plan a session carries (decision 0201)
 
-- **`journeyPlan.ts`** (core): towns, points, stops' positions, loop; `isJourneyPlan` refuses a field more. `chapterAhead` reads which town is ahead from where the session has been; **nothing stores reached, passed or done**, and "Pass by" lives only as long as the walk screen does. A done mark, a count of towns or an ordinal anywhere here is the trip planner's progress bar the vision forbids.
+- **`journeyPlan.ts`** (core): towns, points, stops' positions, loop; `isJourneyPlan` refuses a field more. `stepPlan` says which town is ahead and prunes the ones behind; **nothing stores reached, passed or done**. A done mark, a count of towns or an ordinal anywhere here is the trip planner's progress bar the vision forbids.
 - **`planStore.ts` / `plans.ts`**: meta `outing_journey`, offered by Explore at Start, taken up by the session that starts within two minutes, cleared in `session.ts` at Stop. `navigation` forgets a destination it cannot route ("Too far to walk"), which is why the plan is not in `nav`.
-- **`useJourneyBar.ts`** (the walk screen): between towns it gives the line and the point for Maps; within reach it calls `goTo(chapterDest(...))` once per town. The word "bar" is presence's in `src/lib`: the hook's field is `next`.
+- **`useJourneyBar.ts`** (the walk screen): between towns it gives the line and the point for Maps; within reach it offers the way (`walk()`), never begins it. The word "bar" is presence's in `src/lib`: the hook's field is `next`.
 - Start with a far first town passes `dest: null`: the session records and the bar leads; "When I get there" keeps only the first chapter.
+
+## From the second audit (Nov 18)
+
+- **Nothing is routed for you.** `useJourneyBar` never calls `goTo` by itself: within reach it shows "<Town> is here." and "Show the way"; a route that starts on arrival is the nag 0121 ruled out, and it fought the page's own Start (audit 33).
+- **The kept plan is only what is ahead** (`stepPlan`, `passBy`, `planStore.keep`): do not read the trace to learn where a session has been, and do not add a `passed`, `reached` or `away` field: a town that is behind leaves the plan, and nothing says why (audit 36-38, 46).
+- **`stepPlan`'s order of rules matters**: a town within `leftM` is never behind, whatever else is true (two towns within reach of each other, audit 34); "past it toward the next" needs you to be moving away from it (audit 42); drifting lets even the last town go (audit 45).
+- A plan offered for a Start that did not happen is withdrawn (`explore.tsx`), and `load` takes up nothing from the future (audit 44).
+- The bar is on the surface's ground with ink, never the route's colour, and holds no ordinal ("next", "first"); its spacing is on the 4 px grid the floating UI is held to (`spacingGrid.test.ts`).
+- The plan's key is read with `db.getMeta` directly, as `nav` is: FC8's scan reads those calls, and `metaStore.get` would leave the key "unused".
+- While a session records, everything in the page's sheet stays left of the capture stack (`styles.beside`, the cards' width): a new pinned row must too (audit 32).
 
 ## From the audit (Nov 17)
 

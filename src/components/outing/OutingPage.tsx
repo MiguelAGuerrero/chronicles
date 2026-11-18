@@ -5,7 +5,7 @@ import { matches } from '../../lib/outing/candidates';
 import { distanceM } from '../../lib/geo';
 import type { Waypoint } from '../../lib/nav/types';
 import type { JourneyPlan } from '../../lib/outing/journeyPlan';
-import { ANOTHER_LABEL, BACK_LABEL, CHANGE_LABEL, CHIPS_LINE, DISMISS_LABEL, FURTHER_LABEL, HERE_LABEL, LATER_LABEL, LEAVE_OUT_LABEL, NEW_TOWN_LINE, MAPS_FAILED_LINE, NOWHERE_LABEL, RETRY_LABEL, STRAIGHT_LINE, TOWNS_FAILED_LINE, PEEK_LABEL, READ_FAILED_LINE, REACH_LINE, SEE_LABEL, TOO_FAR_LINE, TOWNS_LINE, UNDO_LABEL, UNFOUND_LINE, UNPEEK_LABEL, WHERE_LABEL, awayLine, cardSummary, chapterLine, firstLine, lookedLine, nextMoveLine, nothingLine, reachLabel, townLine } from '../../lib/outing/journeyWords';
+import { ANOTHER_LABEL, BACK_LABEL, CHANGE_LABEL, CHIPS_LINE, DISMISS_LABEL, FOLLOW_LABEL, FURTHER_LABEL, HERE_LABEL, LATER_LABEL, LEAVE_OUT_LABEL, NEW_TOWN_LINE, MAPS_FAILED_LINE, NOWHERE_LABEL, RETRY_LABEL, STRAIGHT_LINE, TOWNS_FAILED_LINE, PEEK_LABEL, READ_FAILED_LINE, REACH_LINE, SEE_LABEL, TOO_FAR_LINE, TOWNS_LINE, UNDO_LABEL, UNFOUND_LINE, UNPEEK_LABEL, WHERE_LABEL, awayLine, cardSummary, chapterLine, laterLine, lookedLine, startLine, nextMoveLine, nothingLine, reachLabel, townLine } from '../../lib/outing/journeyWords';
 import { useJourney } from '../../lib/outing/useJourney';
 import { CHAINS_LABEL, CLOSE_LABEL, HOURS_LINE, NO_PICK_LINE, READING_LINE, SLOT_HINT, START_LABEL, SWAP_LABEL, TITLE, cardLine, reasonLine, slotLine } from '../../lib/outing/words';
 import { hideTabs } from '../../lib/tabsHidden';
@@ -270,13 +270,17 @@ export function OutingPage(props: {
               {chapters.map((c) => (
                 <View key={c.ci} style={styles.chapter} testID={`outing-chapter-${c.ci}`}>
                   <Text style={styles.jname} accessibilityRole="header" testID={`outing-chapter-name-${c.ci}`}>{c.area.name ?? HERE_LABEL}</Text>
-                  <Text style={styles.line} testID={`outing-chapter-line-${c.ci}`}>{c.area.isNew ? `${NEW_TOWN_LINE} ` : ''}{townLine(c.labels)} {chapterLine(c, j.units)}</Text>
-                  {c.area.name ? <OpenInMapsButton testID={`outing-maps-${c.ci}`} variant="link" target={{ at: c.area.at, label: c.area.name, kind: 'area' }} onOpen={openMaps} /> : null}
-                  {j.canLeaveOut(c.area) ? (
-                    <Pressable testID={`outing-leave-${c.ci}`} accessibilityRole="button" accessibilityLabel={`${LEAVE_OUT_LABEL}: ${c.area.name}`} onPress={() => j.leaveOut(c.area)} style={styles.back}>
-                      <Icon name="remove-circle-outline" size={18} color={theme.ink} />
-                      <Text style={styles.swapText}>{LEAVE_OUT_LABEL}</Text>
-                    </Pressable>
+                  <Text style={styles.line} testID={`outing-chapter-line-${c.ci}`}>{townLine(c.labels)} {chapterLine(c, j.units)}{j.isNewTown(c.area) ? ` ${NEW_TOWN_LINE}` : ''}</Text>
+                  {c.area.name ? (
+                    <View style={styles.townRow}>
+                      <OpenInMapsButton testID={`outing-maps-${c.ci}`} variant="link" target={{ at: c.area.at, label: c.area.name, kind: 'area' }} onOpen={openMaps} />
+                      {j.canLeaveOut(c.area) ? (
+                        <Pressable testID={`outing-leave-${c.ci}`} accessibilityRole="button" accessibilityLabel={`${LEAVE_OUT_LABEL}: ${c.area.name}`} onPress={() => j.leaveOut(c.area)} style={styles.back}>
+                          <Icon name="remove-circle-outline" size={18} color={theme.ink} />
+                          <Text style={styles.swapText}>{LEAVE_OUT_LABEL}</Text>
+                        </Pressable>
+                      ) : null}
+                    </View>
                   ) : null}
                   {c.slots.map((s) => {
                     const key = `${c.ci}:${s.i}`;
@@ -304,11 +308,13 @@ export function OutingPage(props: {
                 </View>
               ))}
               <Text style={styles.line} testID="outing-hours">{HOURS_LINE}</Text>
-              {chapters.length > 1 ? <Text style={styles.line} testID="outing-first">{firstLine(chapters[0].area.name)}</Text> : null}
               {j.startChoice === 'later' ? <Text style={styles.line} testID="outing-too-far">{TOO_FAR_LINE}</Text> : null}
             </ScrollView>
             <View style={styles.footer}>
-              {j.startChoice !== 'later' ? <Button testID="outing-start" label={START_LABEL} disabled={busy || props.starting} onPress={() => go(false)} /> : null}
+              {/* The second audit: beside Start, where recording begins; beside "When I get there", what it keeps. */}
+              {chapters[0]?.area.name && j.startChoice !== 'later' && !j.walkId ? <Text style={styles.line} testID="outing-start-line">{startLine(chapters[0].area.name)}</Text> : null}
+              {chapters[0]?.area.name && j.startChoice !== 'start' && chapters.length > 1 ? <Text style={styles.line} testID="outing-later-line">{laterLine(chapters[0].area.name)}</Text> : null}
+              {j.startChoice !== 'later' ? <Button testID="outing-start" label={j.walkId ? FOLLOW_LABEL : START_LABEL} disabled={busy || props.starting} onPress={() => go(false)} /> : null}
               {j.startChoice !== 'start' ? <Button testID="outing-later" label={LATER_LABEL} variant={j.startChoice === 'later' ? 'primary' : 'secondary'} disabled={busy || props.starting} onPress={() => go(true)} /> : null}
             </View>
           </>
@@ -352,6 +358,7 @@ const styles = StyleSheet.create({
   pad: { padding: 16, paddingTop: 4, gap: 12 },
   peek: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderBottomWidth: 1, borderColor: theme.line, marginBottom: 8 },
   self: { alignSelf: 'flex-start' },
+  townRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 16 },
   // OJ39 (outing-journey audit 32): while a session records, everything in the sheet stays left of the capture stack.
   beside: { paddingRight: 76 },
   dots: { flexDirection: 'row', justifyContent: 'center', gap: 8 },

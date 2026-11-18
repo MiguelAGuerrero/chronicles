@@ -15,14 +15,14 @@ import { useUnits } from '../useUnits';
 import { openWalkId } from '../walkPlanner/app';
 import { ceilingFor } from '../walkPlanner/settings';
 import { outingPrefs, outingService, walkedTowns } from './app';
-import { areaKey, areasAround, areasToward, withoutAreas, type Area, type TownRow } from './areas';
+import { areaKey, areasAround, areasToward, newTowns, withoutAreas, type Area, type TownRow } from './areas';
 import { journeyPlan, type JourneyPlan } from './journeyPlan';
 import { CHIPS, defaultChips } from './chips';
 import { outingDest } from './dest';
 import type { Chapter, Journey } from './journeys';
 import type { Outing } from './plan';
 import type { Session } from './service';
-import { ANOTHER_LINE, NO_OTHER_LINE, reachSteps } from './journeyWords';
+import { ANOTHER_LINE, leftOutLine, NO_OTHER_LINE, reachSteps } from './journeyWords';
 import { NO_SWAP_LINE, SWAPPED_LINE } from './words';
 
 /** A named place the outing heads toward; with none, the outing stays within a reach of where you stand. */
@@ -60,14 +60,15 @@ export function useJourney(you: LngLat | null) {
   const [origin, setOrigin] = useState<LngLat | null>(you);
   // Where you stood when the page had a position first: the reads are made around it, not around every later fix.
   if (!origin && you) setOrigin(you);
-  const [rows, setRows] = useState<{ towns: TownRow[]; walked: TownRow[] } | null>(null);
+  // `walked` is null when the towns of the recorded outings could not be read: then nothing is said to be new (audit 49).
+  const [rows, setRows] = useState<{ towns: TownRow[]; walked: TownRow[] | null } | null>(null);
   const [reads, setReads] = useState<Record<string, Session | null>>({});
   const [walkId, setWalkId] = useState<string | null>(null);
   const [ui, setUi] = useState<{ leaning: string | null; opened: boolean; open: string | null; said: string | null }>({ leaning: null, opened: false, open: null, said: null });
   const [salts, setSalts] = useState<Record<string, number>>({});
   const [swaps, setSwaps] = useState<Record<string, Swap>>({});
   // The last swap or "Another like this", so it can be taken back (ui 3).
-  const [undo, setUndo] = useState<{ swaps: Record<string, Swap>; salts: Record<string, number>; line: string } | null>(null);
+  const [undo, setUndo] = useState<{ swaps: Record<string, Swap>; salts: Record<string, number>; left: ReadonlySet<string>; line: string } | null>(null);
   const [townsFailed, setTownsFailed] = useState(false);
   // OJ26: the towns left out of this look, by the page's own memory.
   const [left, setLeft] = useState<ReadonlySet<string>>(new Set());
@@ -77,7 +78,6 @@ export function useJourney(you: LngLat | null) {
     setSalts({});
     setSwaps({});
     setUndo(null);
-    setLeft(new Set());
   };
   useEffect(() => {
     if (!loaded) {
@@ -95,7 +95,7 @@ export function useJourney(you: LngLat | null) {
     let live = true;
     if (!needTowns || rows || townsFailed) return;
     // Audit 8: a list of towns that cannot be read says so and can be asked again.
-    void Promise.all([towns(), walkedTowns().catch(() => [])]).then(([t, w]) => live && setRows({ towns: t, walked: w }), () => live && setTownsFailed(true));
+    void Promise.all([towns(), walkedTowns().then((w) => w as TownRow[] | null, () => null)]).then(([t, w]) => live && setRows({ towns: t, walked: w }), () => live && setTownsFailed(true));
     return () => {
       live = false;
     };
@@ -103,11 +103,12 @@ export function useJourney(you: LngLat | null) {
   const picked = useMemo(() => CHIPS.filter((c) => (pickedIds ?? []).includes(c.id)), [pickedIds]);
   const areas: Area[] = useMemo(() => {
     const all: Area[] = dest
-      ? origin && rows ? areasToward(rows.towns, origin, dest, rows.walked) : [{ name: dest.name, at: dest.at }]
-      : !origin ? [] : reachM > 0 && rows ? areasAround(rows.towns, origin, reachM, rows.walked) : [{ name: null, at: origin }];
+      ? origin && rows ? areasToward(rows.towns, origin, dest, rows.walked ?? []) : [{ name: dest.name, at: dest.at }]
+      : !origin ? [] : reachM > 0 && rows ? areasAround(rows.towns, origin, reachM, rows.walked ?? []) : [{ name: null, at: origin }];
     return withoutAreas(all, left, dest ? areaKey(dest) : null);
   }, [dest, origin, reachM, rows, left]);
   const areasKey = areas.map(areaKey).join(';');
+  const fresher = useMemo(() => newTowns(areas, rows ? (rows.walked ? rows.walked.length : null) : null), [areas, rows]);
   const waiting = areas.filter((a) => !(areaKey(a) in reads));
   const hasPicks = picked.length > 0;
   // OJ35, OJ37: each area is read once, one after another, and a change of the areas stops the reads that no longer matter.
@@ -179,6 +180,7 @@ export function useJourney(you: LngLat | null) {
     awayM: origin && dest ? distanceM(origin, dest.at) : null,
     setDest: (d: JourneyDest | null) => {
       setDestState(d);
+      setLeft(new Set());
       fresh();
     },
     /** OJ41: the reach: 0 is close by (what a walk reaches), then the steps of `reachSteps`. */
@@ -186,6 +188,7 @@ export function useJourney(you: LngLat | null) {
     reachSteps: [0, ...steps],
     setReach: (m: number) => {
       setReachState(m);
+      setLeft(new Set());
       fresh();
     },
     /** The next step out, or null at the last. */
@@ -211,9 +214,13 @@ export function useJourney(you: LngLat | null) {
     map: { route, pins, fit, link },
     /** OJ26: leaves a town out of this look; never the destination's, never where you stand. */
     leaveOut: (a: Area) => {
+      // It acts at once and can be taken back (the second audit); it holds across a change of chips, and goes with the place or the reach.
+      setUndo({ swaps, salts, left, line: leftOutLine(a.name ?? '') });
       setLeft(new Set([...left, areaKey(a)]));
-      setUi({ ...ui, open: null, said: null });
+      setUi({ ...ui, open: null, said: leftOutLine(a.name ?? '') });
     },
+    /** OJ50: a town that may say "New to you.". */
+    isNewTown: (a: Area) => !!a.name && fresher.has(a.name),
     canLeaveOut: (a: Area) => !!a.name && (!dest || areaKey(a) !== areaKey(dest)) && (journey?.chapters.length ?? 0) > 1,
     walkId,
     open: ui.open,
@@ -231,7 +238,7 @@ export function useJourney(you: LngLat | null) {
       const r = outingService.swap({ session, picked: journey.wants, mode, ceilingM, chains, outing: c.outing, cands: outingService.candidates(session, chains), index: i, offered: new Set(offered[i] ?? []) });
       setUi({ ...ui, open: null, said: r.outing ? SWAPPED_LINE : NO_SWAP_LINE });
       // Audit 13: an earlier change stays undoable when this one changed nothing.
-      if (r.outing) setUndo({ swaps, salts, line: SWAPPED_LINE });
+      if (r.outing) setUndo({ swaps, salts, left, line: SWAPPED_LINE });
       setSwaps({ ...swaps, [key]: { base: baseKey, outing: r.outing ?? c.outing, offered: { ...offered, [i]: [...(offered[i] ?? []), ...r.offered] } } });
     },
     /** OJ45: the journey in view planned again from other places; with none it says so and stays as it is. */
@@ -240,7 +247,7 @@ export function useJourney(you: LngLat | null) {
       const next = { ...salts, [journey.leaning]: (salts[journey.leaning] ?? 0) + 1 };
       const found = outingService.journeys({ ...request, salts: next }).journeys.some((j) => j.leaning === journey.leaning);
       if (found) setSalts(next);
-      if (found) setUndo({ swaps, salts, line: ANOTHER_LINE });
+      if (found) setUndo({ swaps, salts, left, line: ANOTHER_LINE });
       setUi({ ...ui, leaning: journey.leaning, open: null, said: found ? ANOTHER_LINE : NO_OTHER_LINE });
     },
     /** ui 3: takes back the last swap or "Another like this"; offered only right after one. */
@@ -255,6 +262,7 @@ export function useJourney(you: LngLat | null) {
       if (!undo) return;
       setSwaps(undo.swaps);
       setSalts(undo.salts);
+      setLeft(undo.left);
       setUndo(null);
       setUi({ ...ui, open: null, said: null });
     },

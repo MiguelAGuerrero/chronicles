@@ -245,9 +245,12 @@ Carried like a trip plan (the owner, Nov 17, decision 0201):
 - **OJ48.** The plan a session carries holds each chapter's town name, its point, its stops' positions and whether it is a loop, and
   nothing else: no stop's name, no chip, no path. It is kept under one key for the open session, taken up only by the session started
   from the page within two minutes, and cleared when the session stops. (Rewrites OJ34's "saved destination" and QC29's one key.)
-- **OJ49.** The chapter ahead is read from where you have been: a town is behind you once you came within reach of it and left, once
-  a later town was reached, or once you are clearly past it toward the next. Nothing stores that a town was reached or passed.
-- **OJ50.** A town new to you says "New to you." in its chapter on the page; no place says so, and nothing is said of a town you have been in.
+- **OJ49.** (amended at the second audit) The plan the session keeps holds only the towns still ahead. A town leaves it once you came
+  within reach of it and left, once a later town was reached, once you are clearly past it toward the next, once you have drifted away
+  from it, or on "Pass by"; nothing says which, and nothing marks a town done. Within reach of a town, the session says it is here
+  and offers the way on foot, which begins only on a tap.
+- **OJ50.** A town new to you says "New to you." after what its chapter holds, and only when there are recorded outings to read that
+  from; no place says so, and nothing is said of a town you have been in.
 - **OJ51.** The page's map joins the journey's towns with one faint straight line from where you stand, beside the walk in the first.
 
 ## Surfaces (from the code)
@@ -364,6 +367,51 @@ with theirs. The journey `outing` ran once after the fixes: 66 checks, green; `n
 
 Journeys run for the audit: `outing`, three times (once for the two new pictures, once that failed nothing, once after the fixes).
 The other journeys covering Explore were not rerun: `explore.tsx` did not change in the audit.
+
+## Second audit (2026-11-18, the owner's ask): the carried journey
+
+The part built after the first audit (decision 0201). Pictures first: the journey was made a two-town trip so every state had one,
+and the first picture of the page while a session records showed the capture stack over the journey card (32, below). Cold find (the
+`ux-reviewer`, pictures only, ten tasks): all found but one state of one task (a photo while planning with no session: 59). Then the
+`auditor` (F1-F18), the `steward` (S1-S8) and the `ux-reviewer` (U1-U10): **29 findings, 21 fixed, 5 deferred, 3 rejected.** Unit
+tests failed before their fixes (`audit2.test.ts`); the journey's checks were written with theirs.
+
+The reshaping the findings asked for, in three lines: **the way on foot is offered and begins only on a tap** (OJ30 as amended: "the
+session offers the way"); **the plan kept for the session holds only the towns still ahead**, so nothing is read from the trace and
+nothing says what became of a town that is gone (OJ49 as amended); **a town you drift away from is let go by itself**, the
+destination's included, and "Pass by" on the last town is how the plan is put away (OJ29's close is gone).
+
+32. The capture stack sat over the page's pinned card and primary while a session records (the audit's own picture; OJ39): accept (`outing-journey audit 32`, journey).
+33. A Start that carried its own way was routed again by the plan, or the plan's way replaced it (F1): accept, nothing is routed without a tap (`audit 33`, journey).
+34. In a town within reach of the next, the earlier town was dropped for good (F2): accept (`audit 34`, unit).
+35. Each return to the walk screen asked again for a way ended by hand (F3): accept, by 33.
+36. The bar named a town behind you, or missed one reached only by a stop (F4): accept (`audit 36`, unit).
+37. A plan started during a recording was read against the whole session's trace (F5): accept, the trace is no longer read. Held by the design and typecheck.
+38. The trace was read raw, not through `readTrace` (F6): accept, that read is gone.
+39. The bar could not fit at 320 px (F7, U3): accept (`audit 39`, journey, with a picture at 320).
+40. A stop's position reaches Maps through a failed route's banner, or "When I get there" (F8): defer.
+41. The way on foot was asked for from a moving car (F9): accept, by 33.
+42. A town off to one side was dropped before you moved (F10): accept (`audit 42`, unit).
+43. "Leave this town out" had no Undo, and a change of chips brought the town back (F11, S8, U2): accept (`audit 43`, journey). That it applies to every journey of the look stands: the town is out.
+44. A Start that was refused left its plan for a later session to find (F12): accept (`audit 44`, unit).
+45. The bar never let go of someone drifting (S2): accept (`audit 45`, unit).
+46. Putting the plan away did not last, a town passed by was named again after a reload, and neither could be undone (S1, F13, U1): accept (`audit 46`, unit and journey).
+47. The bar was the route's blue and said "next"; "Start begins in <town>" was no longer true; labelled and icon-only controls shared a bar; two equal actions (S7, S4, U4, U5, F17): accept (`audit 47`, unit and journey).
+48. "When I get there" dropped the rest of the journey in silence (S5): accept, it says which town it keeps (`audit 47, 48`).
+49. "New to you." led every town, and showed for all on a fresh device or a failed read (S6, F14): accept (`audit 49`, unit and journey).
+50. The page read the same while a session records (U6): accept in part, the primary says "Follow this" (`audit 50`, journey); no status line.
+51. A journey's way, once tapped, can still say "Off your route" (S3, unconfirmed): defer.
+52. The plan's key is read without `metaStore` (F15): reject, as the navigation's own key is; FC8 holds the declaration.
+53. The plan stayed when the recorder failed to stop (F16): accept, it is cleared first. Held by typecheck only.
+54. The chapter ahead was worked out over the whole trace at every render (F18): accept, a step is over the chapters alone.
+55. "Pass by" on the destination's town (U7): reject, it is now how the plan is put away.
+56. "Leave this town out" read as acting on the stop (U8, opinion): accept, it shares a row with the town's Open in Maps.
+57. A long journey in a short sheet (U9): defer.
+58. The sheet narrowed for its whole height beside the capture stack (U10, opinion): defer.
+59. No photo while planning with no session (the cold find): reject, by QC30 and WP23 (a moment on a planning page belongs to a session; with none, Start begins one).
+60. Start does not say what it starts, and the walk screen's glyph is footprints for a drive (the cold find): defer to the session's name in the app (decision 0197's first slice); the line beside Start is 47's.
+
+Journeys: `journey` (24 checks; three runs green after the fixes, one earlier failure being the test's own chip helper).
 
 **A journey carried by the session, built 2026-11-17** (step 3, decision 0201; the owner's "proceed with reasonable defaults ...
 alignment with traditional trip planners", whose features and how each is said here are the table in that record). Start begins a

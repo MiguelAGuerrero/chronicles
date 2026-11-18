@@ -1,62 +1,83 @@
 // @layer view
 import { useEffect, useRef, useState } from 'react';
+import { distanceM } from '../geo';
 import type { Waypoint } from '../nav/types';
 import type { LngLat } from '../types';
 import { useUnits } from '../useUnits';
-import { chapterAhead, chapterDest, PLAN_RULES, type JourneyPlan } from './journeyPlan';
-import { nextTownLine } from './journeyWords';
-import { journeyPlans, sessionTrace } from './plans';
-import { distanceM } from '../geo';
+import { chapterDest, emptyState, passBy, stepPlan, type JourneyPlan, type PlanState } from './journeyPlan';
+import { hereLine, NO_TOWN_LINE, towardLine } from './journeyWords';
+import { journeyPlans } from './plans';
+
+/** How far you may move after "Pass by" with Undo still offered. */
+const UNDO_M = 300;
 
 /**
- * The session's part of a journey (OJ28-OJ31, OJ49; decision 0201). Between towns it gives the screen its line (the town ahead and how
- * far away) and the point to hand to Maps; within reach of a town it asks once for the way on foot through that town's stops. A
- * town left behind is let go with nothing said. Which towns were reached is read from the session's own trace when the screen
- * opens and from each fix after; "Pass this town by" and putting the plan away last only while the screen does. Nothing is stored.
+ * The session's part of a journey (OJ28-OJ31, OJ48, OJ49; decision 0201, the second audit). Between towns it gives the screen its
+ * line (the town it is headed toward and how far) and the point to hand to Maps. Within reach of a town it says the town is here and
+ * offers the way on foot through its stops: nothing is routed until that is tapped. The plan kept for the session holds only the
+ * towns still ahead: a town left, driven past, drifted from or passed by leaves it, with nothing said and nothing recorded of why.
  */
 export function useJourneyBar(o: { walkId: string | null; here: LngLat | null; navigating: boolean; goTo: (dest: Waypoint) => void }) {
   const units = useUnits();
-  const [plan, setPlan] = useState<{ walkId: string; plan: JourneyPlan; seen: LngLat[] } | null>(null);
-  const [passed, setPassed] = useState<ReadonlySet<number>>(new Set());
-  const [away, setAway] = useState(false);
-  const routed = useRef<number | null>(null);
+  const [held, setHeld] = useState<{ walkId: string; plan: JourneyPlan | null; st: PlanState } | null>(null);
+  const [undo, setUndo] = useState<{ plan: JourneyPlan; at: LngLat | null } | null>(null);
   useEffect(() => {
     let live = true;
     if (!o.walkId) return;
     const walkId = o.walkId;
-    void Promise.all([journeyPlans.load(walkId), sessionTrace(walkId)]).then(([p, trace]) => live && p && setPlan({ walkId, plan: p, seen: trace }), () => {});
+    void journeyPlans.load(walkId).then((p) => live && p && setHeld({ walkId, plan: p, st: emptyState(p) }), () => {});
     return () => {
       live = false;
     };
   }, [o.walkId]);
-  const mine = plan && plan.walkId === o.walkId ? plan : null;
-  // A town come within reach of is remembered for the screen's life by one point of it, so it stays reached after you leave.
-  if (mine && o.here) {
-    const fresh = mine.plan.chapters.filter((c) => distanceM(c.at, o.here!) <= PLAN_RULES.reachM && !mine.seen.some((p) => distanceM(p, c.at) < 1));
-    if (fresh.length) setPlan({ ...mine, seen: [...mine.seen, ...fresh.map((c) => c.at)] });
-  }
-  const ahead = mine ? chapterAhead(mine.plan, mine.seen, o.here, passed) : null;
-  const chapter = mine && ahead ? mine.plan.chapters[ahead.index] : null;
-  const within = !!ahead?.within;
-  const index = ahead?.index ?? null;
-  const goToRef = useRef(o.goTo);
+  const mine = held && held.walkId === o.walkId ? held : null;
+  const r = mine?.plan ? stepPlan(mine.plan, mine.st, o.here) : null;
+  // Each fix's step is kept: the towns still ahead, and what the screen has seen of them.
+  if (mine && r && (r.plan !== mine.plan || r.state !== mine.st)) setHeld({ ...mine, plan: r.plan, st: r.state });
+  // The plan the session keeps follows: only what is ahead, and nothing once no town is.
+  const kept = useRef<JourneyPlan | null | undefined>(undefined);
+  const plan = mine ? mine.plan : undefined;
+  const walkId = mine?.walkId ?? null;
   useEffect(() => {
-    goToRef.current = o.goTo;
-  });
-  // OJ30: within reach of the town ahead, the way on foot is asked for once; ended by hand, it is not asked for again.
-  useEffect(() => {
-    if (!chapter || !within || index == null || o.navigating || routed.current === index) return;
-    routed.current = index;
-    goToRef.current(chapterDest(chapter));
-    // The chapter is read through its index.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [index, within, o.navigating]);
-  // With no position yet (a weak signal in a car) the town ahead is still said, without a distance.
-  const shown = !!chapter && !!chapter.town && !within && !away && !o.navigating;
+    if (plan === undefined || !walkId) return;
+    if (kept.current === undefined) kept.current = plan;
+    else if (kept.current !== plan) {
+      kept.current = plan;
+      void journeyPlans.keep(walkId, plan).catch(() => {});
+    }
+  }, [plan, walkId]);
+  const ahead = r?.ahead ?? null;
+  const chapter = mine?.plan?.chapters[0] ?? null;
+  const undoShown = !!undo && (!undo.at || !o.here || distanceM(undo.at, o.here) <= UNDO_M);
+  const town = ahead?.town ?? null;
   return {
-    /** What the screen says between towns, or null: with no plan, within a town, while a way is followed, or put away. */
-    next: shown && ahead ? { line: nextTownLine(chapter!.town!, o.here ? ahead.awayM : null, units), at: chapter!.at, town: chapter!.town! } : null,
-    pass: () => index != null && setPassed(new Set([...passed, index])),
-    putAway: () => setAway(true),
+    /**
+     * What the screen says of the journey, or null: with no plan, while a way is followed, or with no town ahead (then only while
+     * a pass can still be taken back).
+     */
+    next:
+      !mine || o.navigating
+        ? null
+        : ahead && town
+          ? { line: ahead.within ? hereLine(town) : towardLine(town, ahead.awayM, units), within: ahead.within, at: ahead.at, town, undo: undoShown }
+          : undoShown
+            ? { line: NO_TOWN_LINE, within: false, at: null, town: null, undo: true }
+            : null,
+    /** OJ31: the town ahead leaves the plan; it can be taken back until you have moved on. */
+    pass() {
+      if (!mine?.plan) return;
+      const next = passBy(mine.plan);
+      setUndo({ plan: mine.plan, at: o.here });
+      setHeld({ ...mine, plan: next, st: emptyState(next) });
+    },
+    undo() {
+      if (!mine || !undo) return;
+      setHeld({ ...mine, plan: undo.plan, st: emptyState(undo.plan) });
+      setUndo(null);
+    },
+    /** OJ30: the way on foot through the town at hand, on a tap. */
+    walk() {
+      if (chapter) o.goTo(chapterDest(chapter));
+    },
   };
 }

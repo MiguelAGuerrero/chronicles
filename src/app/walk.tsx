@@ -88,7 +88,7 @@ import { arrivalNotice, exitPlan, screenState, startNotice } from '../lib/readyN
 import { noticeShown } from '../lib/pauseReminder';
 import { getLastFix } from '../lib/lastFix';
 import { useStopArrival } from '../lib/outing/useArrival';
-import { PASS_LABEL, PUT_AWAY_LABEL } from '../lib/outing/journeyWords';
+import { PASS_HINT, PASS_LABEL, WAY_LABEL } from '../lib/outing/journeyWords';
 import { useJourneyBar } from '../lib/outing/useJourneyBar';
 import { CaptureStack } from '../components/walk/CaptureStack';
 import { ReadyBar } from '../components/walk/ReadyBar';
@@ -1351,19 +1351,28 @@ function WalkScreen(props: { onMinimize: () => void }) {
               drifting down; supersedes Nov 5's "Minimize above the bar"). */}
           {/* A journey between towns (OJ29, OJ31, decision 0201): the town ahead and how far, Maps for the road, a way to pass it by. */}
           {!navigation.nav && journey.next && (
-            // Two rows, so the town and its distance are never cut short by the controls beside them.
-            <View testID="journey-bar" style={[styles.navBar, styles.journeyBar]}>
-              <Text testID="journey-next" style={styles.navText} numberOfLines={2}>{journey.next.line}</Text>
+            // On the surface's own ground, not the route's colour: this is where the outing is headed, not a way being followed.
+            <View testID="journey-bar" style={styles.journeyBar}>
+              <Text testID="journey-next" style={styles.journeyText} numberOfLines={2}>{journey.next.line}</Text>
               <View style={styles.journeyActions}>
-                <Pressable testID="journey-maps" accessibilityRole="button" accessibilityLabel="Open in Maps" accessibilityHint={HANDOFF_HINT} onPress={() => journey.next && handOff(journey.next.at, journey.next.town)} style={styles.navEnd} hitSlop={4}>
-                  <Text style={styles.navEndText}>Open in Maps</Text>
-                </Pressable>
-                <Pressable testID="journey-pass" accessibilityRole="button" accessibilityLabel={PASS_LABEL} onPress={journey.pass} style={styles.navEnd} hitSlop={4}>
-                  <Text style={styles.navEndText}>Pass by</Text>
-                </Pressable>
-                <Pressable testID="journey-away" accessibilityRole="button" accessibilityLabel={PUT_AWAY_LABEL} onPress={journey.putAway} style={({ pressed }) => [styles.navHandoff, styles.journeyClose, pressed && styles.pressed]}>
-                  <Icon name="close" size={22} color="#ffffff" />
-                </Pressable>
+                {journey.next.within ? (
+                  <Pressable testID="journey-walk" accessibilityRole="button" accessibilityLabel={WAY_LABEL} onPress={journey.walk} style={({ pressed }) => [styles.journeyBtn, pressed && styles.pressed]}>
+                    <Text style={styles.journeyBtnText}>{WAY_LABEL}</Text>
+                  </Pressable>
+                ) : journey.next.at && journey.next.town ? (
+                  <Pressable testID="journey-maps" accessibilityRole="button" accessibilityLabel="Open in Maps" accessibilityHint={HANDOFF_HINT} onPress={() => journey.next?.at && journey.next.town && handOff(journey.next.at, journey.next.town)} style={({ pressed }) => [styles.journeyBtn, pressed && styles.pressed]}>
+                    <Text style={styles.journeyBtnText}>Open in Maps</Text>
+                  </Pressable>
+                ) : null}
+                {journey.next.undo ? (
+                  <Pressable testID="journey-undo" accessibilityRole="button" accessibilityLabel="Undo" onPress={journey.undo} style={({ pressed }) => [styles.journeyPlain, pressed && styles.pressed]}>
+                    <Text style={styles.journeyBtnText}>Undo</Text>
+                  </Pressable>
+                ) : (
+                  <Pressable testID="journey-pass" accessibilityRole="button" accessibilityLabel={PASS_LABEL} accessibilityHint={PASS_HINT} onPress={journey.pass} style={({ pressed }) => [styles.journeyPlain, pressed && styles.pressed]}>
+                    <Text style={styles.journeyBtnText}>{PASS_LABEL}</Text>
+                  </Pressable>
+                )}
               </View>
             </View>
           )}
@@ -2021,9 +2030,12 @@ const styles = StyleSheet.create({
     paddingLeft: 16, paddingRight: 8, minHeight: 56,
   },
   navText: { flex: 1, color: '#ffffff', fontSize: 16, fontWeight: '700' },
-  journeyBar: { flexDirection: 'column', alignItems: 'stretch', gap: 8, paddingVertical: 10, paddingRight: 16 },
-  journeyActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  journeyClose: { marginLeft: 'auto' },
+  journeyBar: { flex: 1, minWidth: 0, gap: 4, backgroundColor: theme.surface, borderRadius: 16, borderWidth: 1, borderColor: theme.edge, paddingHorizontal: 12, paddingVertical: 8 },
+  journeyText: { color: theme.ink, fontSize: 15, fontWeight: '700' },
+  journeyActions: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  journeyBtn: { minHeight: 44, paddingHorizontal: 12, borderRadius: 22, borderWidth: 1, borderColor: theme.edge, alignItems: 'center', justifyContent: 'center' },
+  journeyPlain: { minHeight: 44, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center' },
+  journeyBtnText: { color: theme.ink, fontSize: 14, fontWeight: '700' },
   // A white pill: 5.2:1 for its blue text.
   navEnd: { minHeight: 44, minWidth: 64, paddingHorizontal: 16, borderRadius: 22, backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center' },
   navEndText: { color: COLORS.route, fontSize: 16, fontWeight: '700' },

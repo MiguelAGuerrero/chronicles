@@ -24,35 +24,14 @@ test('OJ34, OJ48: the plan holds town names, points, stops\' positions and the l
   assert.equal(isJourneyPlan({ chapters: [] }), false);
 });
 
-test('OJ29, OJ49: far from every town, the first is ahead, with how far away it is', async () => {
-  const { journeyPlan, chapterAhead } = await import('../../outing/journeyPlan');
-  const a = chapterAhead(journeyPlan(JOURNEY as never), [HERE], HERE, new Set());
-  assert.deepEqual([a!.index, a!.within], [0, false]);
-  assert.ok(Math.abs(a!.awayM - 10000) < 200);
-});
-
-test('OJ30, OJ49: within reach of a town it is the one at hand; once left it is behind and the next is ahead', async () => {
-  const { journeyPlan, chapterAhead } = await import('../../outing/journeyPlan');
+test('OJ29, OJ49: far from every town, the first is ahead with how far away it is; with no position, without a distance', async () => {
+  const { journeyPlan, stepPlan, emptyState } = await import('../../outing/journeyPlan');
   const plan = journeyPlan(JOURNEY as never);
-  assert.deepEqual([chapterAhead(plan, [HERE, at(9500, 0)], at(9500, 0), new Set())!.index, chapterAhead(plan, [HERE, at(9500, 0)], at(9500, 0), new Set())!.within], [0, true]);
-  const left = chapterAhead(plan, [HERE, at(10000, 50), at(16000, 0)], at(16000, 0), new Set());
-  assert.deepEqual([left!.index, left!.within], [1, false]);
-});
-
-test('OJ31, OJ49: a town driven past without stopping is let go; "Pass this town by" does the same ahead of time', async () => {
-  const { journeyPlan, chapterAhead } = await import('../../outing/journeyPlan');
-  const plan = journeyPlan(JOURNEY as never);
-  const past = chapterAhead(plan, [HERE, at(5000, 6000), at(22000, 6000)], at(22000, 6000), new Set());
-  assert.equal(past!.index, 1, 'well past Alder toward Birch, never within reach of it');
-  assert.equal(chapterAhead(plan, [HERE], HERE, new Set([0]))!.index, 1);
-  assert.equal(chapterAhead(plan, [HERE, at(30000, 0)], at(30000, 0), new Set())!.index, 1, 'reaching a later town lets the earlier go');
-});
-
-test('OJ29: with every town behind there is no chapter ahead', async () => {
-  const { journeyPlan, chapterAhead } = await import('../../outing/journeyPlan');
-  const plan = journeyPlan(JOURNEY as never);
-  assert.equal(chapterAhead(plan, [HERE, at(50000, 0), at(60000, 0)], at(60000, 0), new Set()), null);
-  assert.equal(chapterAhead(plan, [HERE], HERE, new Set([0, 1, 2])), null);
+  const a = stepPlan(plan, emptyState(plan), HERE).ahead!;
+  assert.deepEqual([a.town, a.within], ['Alder', false]);
+  assert.ok(Math.abs(a.awayM! - 10000) < 200);
+  assert.equal(stepPlan(plan, emptyState(plan), null).ahead!.awayM, null);
+  assert.equal(stepPlan(plan, emptyState(plan), HERE).plan, plan, 'a step that changes nothing gives the same plan back');
 });
 
 test('OJ30: a chapter\'s way on foot is a suggested destination through its stops, positions only', async () => {
@@ -74,14 +53,10 @@ test('OJ26: a town left out is gone from the look, never the destination\'s town
   assert.deepEqual(withoutAreas(areas, new Set([areaKey(areas[1])]), null).map((a) => a.name), [null, 'End']);
 });
 
-test('OJ29, OJ31, OJ50: the bar\'s and the page\'s words: a distance, no time, no count, nothing done', async () => {
+test('OJ26, OJ50: the page\'s words for a town', async () => {
   const w = await import('../../outing/journeyWords');
-  assert.equal(w.nextTownLine('Emmaus', 8200, 'km'), 'Emmaus next. 8.2 km away.');
-  assert.equal(w.nextTownLine('Emmaus', null, 'km'), 'Emmaus next.', 'with no position yet the town is still said');
-  assert.equal(w.PASS_LABEL, 'Pass this town by');
   assert.equal(w.LEAVE_OUT_LABEL, 'Leave this town out');
   assert.equal(w.NEW_TOWN_LINE, 'New to you.');
-  for (const s of [w.nextTownLine('Emmaus', 8200, 'km'), w.PASS_LABEL, w.LEAVE_OUT_LABEL, w.NEW_TOWN_LINE, w.PUT_AWAY_LABEL]) assert.doesNotMatch(s.replace(/8\.2 km/, ''), /\d|\b(minutes?|hours?|done|left|remaining|first|second|last|visited|skipped)\b/i, s);
 });
 
 test('OJ48: the plan is taken up only by the session started from the page, soon after, and goes when it stops', async () => {

@@ -60,6 +60,8 @@ export function stopWalk(walkId: string): Promise<void> {
       const at = Date.now();
       await db.updateWalk(walkId, { ended_at: at, open: false });
       await db.endPause(walkId, at);
+      // The plan of a journey it carried goes first (OJ48), so a recorder that fails to stop leaves no town's name behind.
+      await journeyPlans.clear().catch(() => {});
       await recorder.stop();
       void notifyWalkChanged();
       void notifier.pauseEnded(walkId);
@@ -68,8 +70,6 @@ export function stopWalk(walkId: string): Promise<void> {
       await clearNav().catch(() => {});
       // So does the spot chosen with Walk back here (DW7).
       await clearWayBack().catch(() => {});
-      // And the plan of a journey it carried (OJ48).
-      await journeyPlans.clear().catch(() => {});
     })().finally(() => {
       stopping = null;
     });

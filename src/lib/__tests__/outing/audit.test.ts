@@ -87,10 +87,10 @@ test('outing-journey audit 9: with no position a named place offers no Start; fa
   assert.equal(startChoice({ origin: FROM, first: FROM, named: false }), 'start');
 });
 
-test('outing-journey audit 10: the line under a journey of several towns promises nothing the page does not keep', async () => {
+test('outing-journey audit 10: the line beside Start promises nothing the page does not keep', async () => {
   const w = await import('../../outing/journeyWords');
-  assert.equal(w.firstLine('Emmaus'), 'Start begins in Emmaus.');
-  assert.doesNotMatch(w.firstLine('Emmaus'), /wait|keep|later|page/i);
+  assert.equal(w.startLine('Emmaus'), 'Start records from here, toward Emmaus.');
+  assert.doesNotMatch(w.startLine('Emmaus'), /wait|keep|later|page|begins in/i);
 });
 
 test('outing-journey audit 11: another like this keeps a town that has no other places, and ends when no town has any', async () => {
