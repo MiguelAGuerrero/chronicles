@@ -1113,7 +1113,7 @@ async function run(h) {
   await tabTo(pg, 'navigate');
   await pg.waitForSelector('[data-testid=start]', { timeout: 15000 });
   await pg.click('[data-testid=start]');
-  await pg.waitForSelector('[data-testid=stop]', { timeout: 15000 });
+  await pg.waitForSelector('[data-testid=walk-actions]', { timeout: 15000 });
   await pg.waitForTimeout(1500);
   await pg.click('[data-testid=walk-minimize]').catch(() => {});
   await there('[data-testid=recording-bar]', 10000);
@@ -1164,7 +1164,7 @@ async function run(h) {
   await h.toJournal(pg);
   await there('[data-testid=journal-page]', 5000);
   await pg.click('[data-testid=recording-return]').catch(() => {});
-  await pg.waitForSelector('[data-testid=stop]', { timeout: 10000 }).catch(() => {});
+  await pg.waitForSelector('[data-testid=walk-actions]', { timeout: 10000 }).catch(() => {});
   await pg.waitForTimeout(1200);
   // A capture's pin on the walk's map is labelled "... Open".
   const onWalkScreen = await pg.locator('[aria-label$=". Open"]').count();

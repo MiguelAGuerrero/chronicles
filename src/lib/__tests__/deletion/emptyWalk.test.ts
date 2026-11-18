@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { test } from 'node:test';
 import { distanceM } from '../../geo';
 import { readTrace } from '../../rides';
-import { EMPTY_WALK_M, isEmptyWalk } from '../../emptyWalk/core';
+import { EMPTY_WALK_M, isEmptyWalk, pausesKept } from '../../emptyWalk/core';
 import { createDropEmpty, type DropEmptyDeps } from '../../emptyWalk/shell';
 import { toastText } from '../../deletion/core';
 import { createPending, type PendingJob } from '../../deletion/pending';
@@ -59,6 +59,15 @@ test('EW5: a pause, a still or a gap decision keeps the walk, even with no movem
   for (const over of [{ pauses: 1 }, { stills: 1 }, { fills: 1 }]) assert.equal(empty(standing(60), over), false);
 });
 
+test('EW5 (decision 0208): the pause still open at Stop is the way to Stop, not evidence; a pause resumed from is', () => {
+  const end = T0 + 60_000;
+  // stopWalk ends the open pause at the walk's end: that one is not counted.
+  assert.equal(pausesKept([{ walk_id: 'w', started_at: T0 + 50_000, ended_at: end }], end), 0);
+  assert.equal(pausesKept([{ walk_id: 'w', started_at: T0 + 10_000, ended_at: T0 + 20_000 }, { walk_id: 'w', started_at: T0 + 50_000, ended_at: end }], end), 1);
+  // A pause with no end, read before the stop closed it, is open at Stop too.
+  assert.equal(pausesKept([{ walk_id: 'w', started_at: T0 + 50_000, ended_at: null }], end), 0);
+});
+
 test('EW6: a walk with no read fixes, none stored or all gated out for accuracy, is kept', () => {
   assert.equal(empty([]), false);
   assert.equal(empty(standing(60, 200)), false);
@@ -103,6 +112,20 @@ test('EW1: a walk with a moment is not dropped and nothing is scheduled', async 
   const { drop, scheduled } = await setup(standing(60), { moments: 1 });
   assert.equal(await drop('w'), false);
   assert.equal(scheduled.length, 0);
+});
+
+test('EW5 (decision 0208): a walk paused only to reach Stop, standing still, is dropped; one resumed from a pause is kept', async () => {
+  const end = T0 + 60_000;
+  const paused = await setup(standing(50));
+  await paused.p.db.startPause('w', T0 + 55_000);
+  await paused.p.db.endPause('w', end);
+  assert.equal(await paused.drop('w'), true);
+  const resumed = await setup(standing(50));
+  await resumed.p.db.startPause('w', T0 + 10_000);
+  await resumed.p.db.endPause('w', T0 + 20_000);
+  await resumed.p.db.startPause('w', T0 + 55_000);
+  await resumed.p.db.endPause('w', end);
+  assert.equal(await resumed.drop('w'), false);
 });
 
 test('EW10: a failure to read the walk keeps it and plays the replay', async () => {

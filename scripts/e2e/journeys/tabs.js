@@ -2,7 +2,7 @@
 // fresh browser. E2E_ONLY=tabs runs it alone.
 
 async function run(h) {
-  const { url, navUrl, BASE, page, start, at, dLat, dLon, check, glyph, iconOf, metaOf, drawerTo, openInto, closeInto, tabTo, shownCount, tabBarShown, freshPage, openWalk } = h;
+  const { url, navUrl, BASE, page, start, at, dLat, dLon, check, glyph, iconOf, metaOf, drawerTo, openInto, closeInto, tabTo, shownCount, tabBarShown, freshPage, openWalk, toStop } = h;
     const { c, pg } = await freshPage('tabs-audit');
     await c.addInitScript(() => {
       window.__perf = {};
@@ -190,7 +190,7 @@ async function run(h) {
       else await tabTo(pg, 'navigate');
       await pg.waitForTimeout(1000);
       // Navigate is the walk screen (NR1, NR2): ready with no walk open, the walk with one.
-      check(new URL(pg.url()).pathname === `${BASE}/walk` && (await pg.locator('[data-testid=ready-bar], [data-testid=stop]').count()) === 1,
+      check(new URL(pg.url()).pathname === `${BASE}/walk` && (await pg.locator('[data-testid=ready-bar], [data-testid=walk-actions]').count()) === 1,
         `tabs audit U7, tend tabs T10: ${when}, the peek's Navigate, or the recording bar's › with a walk open, opens the walk screen (${new URL(pg.url()).pathname})`);
     };
     await step('tabs audit Chronicle read before the walk', async () => {
@@ -235,7 +235,7 @@ async function run(h) {
       }
       await pg.click('[data-testid=walk-here]');
       await pg.waitForURL(/\/walk/, { timeout: 15000 });
-      await pg.waitForSelector('[data-testid=stop]');
+      await pg.waitForSelector('[data-testid=walk-actions]');
       w = await openWalk(pg);
       const memos = await rows(pg, 'voice');
       check(memos.length === 1 && memos[0].walk_id == null && memos[0].file_path && w,
@@ -266,7 +266,7 @@ async function run(h) {
           await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
         }
       }
-      await pg.waitForSelector('[data-testid=stop]');
+      await pg.waitForSelector('[data-testid=walk-actions]');
       await pg.waitForTimeout(1500);
       const canvases = await pg.locator('canvas.maplibregl-canvas').count();
       await pg.click('[data-testid=walk-minimize]');
@@ -390,7 +390,7 @@ async function run(h) {
       await pg.waitForSelector('[data-testid=recording-bar]', { timeout: 10000 });
       const watches0 = await pg.evaluate(() => window.__watchCalls);
       await tabTo(pg, 'navigate');
-      await pg.waitForSelector('[data-testid=stop]', { timeout: 10000 });
+      await pg.waitForSelector('[data-testid=walk-actions]', { timeout: 10000 });
       await pg.waitForTimeout(1200);
       check((await pg.evaluate(() => window.__watchCalls)) === watches0 && new URL(pg.url()).pathname === `${BASE}/walk` && (await pg.locator('[data-testid=ready-bar]').count()) === 0
         && (await pg.locator('canvas.maplibregl-canvas').count()) === 1,
@@ -418,7 +418,7 @@ async function run(h) {
       const last = at(-0.5, 0.25);
       const end = ((await pg.locator('[data-trace-end]').last().getAttribute('data-trace-end')) || '0,0').split(',').map(Number);
       const off = Math.hypot((end[0] - last[0]) / dLon, (end[1] - last[1]) / dLat) * 100;
-      check(off < 20 && (await pg.locator('[data-testid=stop]').count()) === 1 && (await pg.locator('canvas.maplibregl-canvas').count()) === 1,
+      check(off < 20 && (await pg.locator('[data-testid=walk-actions]').count()) === 1 && (await pg.locator('canvas.maplibregl-canvas').count()) === 1,
         `NR2: Navigate's walk shows its growing trace to the walker, on one live map (${off.toFixed(0)} m off)`);
     });
     await step('tabs audit U10: the bar when paused', async () => {
@@ -442,6 +442,7 @@ async function run(h) {
       await pg.waitForTimeout(600);
     });
     const holdStop = async () => {
+      await toStop(pg);
       const b = await pg.locator('[data-testid=stop]').boundingBox();
       await pg.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
       await pg.mouse.down();
@@ -571,7 +572,7 @@ async function run(h) {
       await pg.waitForTimeout(800);
       await pg.click('[data-testid=start]');
       await pg.waitForURL(/\/walk/, { timeout: 15000 });
-      await pg.waitForSelector('[data-testid=stop]');
+      await pg.waitForSelector('[data-testid=walk-actions]');
       const second = await openWalk(pg);
       await north(0.5, 0.8);
       await holdStop();

@@ -65,7 +65,7 @@ const box = async (pg, sel) => {
 const overlap = (a, b) => !!a && !!b && a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
 
 async function run(h) {
-  const { url, BASE, check, shot, tabTo } = h;
+  const { url, BASE, check, shot, tabTo, toStop } = h;
   const { c, pg } = await h.freshPage('capturehome', { permissions: ['geolocation', 'microphone'] });
   await c.addInitScript(COUNT_GEO);
   // The map's projection for the e2e (`window.__project`, WalkMap.web.tsx), to find the walker on Explore (tend tabs audit 30).
@@ -115,7 +115,7 @@ async function run(h) {
   await tabTo(pg, 'navigate');
   await pg.waitForSelector('[data-testid=start]', { timeout: 15000 });
   await pg.click('[data-testid=start]');
-  await pg.waitForSelector('[data-testid=stop]', { timeout: 15000 });
+  await pg.waitForSelector('[data-testid=walk-actions]', { timeout: 15000 });
   await pg.waitForTimeout(1500);
   await pg.click('[data-testid=walk-minimize]');
   await pg.waitForSelector('[data-testid=recording-bar]', { timeout: 10000 });
@@ -272,7 +272,7 @@ async function run(h) {
   check(!!atFix && atFix.walk_id === open?.id && fixOff != null && fixOff <= 5,
     `HC10 (tend captures audit 2): a note begun with a fresh fix on the walk is placed at that fix when kept (${JSON.stringify({ walk: atFix && atFix.walk_id, fixOff })})`);
   await pg.click('[data-testid=recording-return]');
-  await pg.waitForSelector('[data-testid=stop]', { timeout: 10000 });
+  await pg.waitForSelector('[data-testid=walk-actions]', { timeout: 10000 });
   await pg.waitForTimeout(1200);
   await shot(pg, '92-capturehome-walk');
   // Stopped from the bar, the walk places the note as it places its own captures (here, at stop), and its
@@ -351,7 +351,7 @@ async function run(h) {
     };
     const begin = async (minimize = true) => {
       await p4.click('[data-testid=start]');
-      await p4.waitForSelector('[data-testid=stop]', { timeout: 15000 });
+      await p4.waitForSelector('[data-testid=walk-actions]', { timeout: 15000 });
       // Standing still, the phone keeps reporting the same place; the context's one fix is stale once a walk starts later (a phone's are fresh).
       for (let i = 0; i < 3; i++) {
         await c4.setGeolocation({ longitude: h.start[0], latitude: h.start[1], accuracy: 6 });
@@ -382,6 +382,7 @@ async function run(h) {
     await tabTo(p4, 'navigate');
     await p4.waitForSelector('[data-testid=start]', { timeout: 15000 });
     await begin(false);
+    await toStop(p4);
     await holdStop('stop');
     const onScreen = await p4.waitForSelector('[data-testid=undo-toast]', { timeout: 15000 }).then(() => true, () => false);
     check(onScreen && !/\/walk|replay/.test(p4.url()) && /Walk not kept\./.test(await p4.locator('[data-testid=undo-toast]').innerText()),

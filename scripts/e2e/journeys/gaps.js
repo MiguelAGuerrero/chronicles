@@ -4,7 +4,7 @@
 // it is offered faint until kept. E2E_ONLY=gaps runs it alone.
 
 async function run(h) {
-  const { navUrl, BASE, start, at, check, metaOf, freshPage, openWalk, tiles, shot } = h;
+  const { navUrl, BASE, start, at, check, metaOf, freshPage, openWalk, tiles, shot, toStop } = h;
     const { c, pg } = await freshPage('gaps');
     await c.addInitScript(() => { window.__perf = {}; });
     const here = at(3.0, -0.5);
@@ -122,6 +122,7 @@ async function run(h) {
     }));
     check(JSON.stringify(await rows()) === '["kept:Transit Street"]', `gaps: Keep is stored with the walk (G10: ${JSON.stringify(await rows())})`);
     // On the replay, the filled stretch along Thayer has its own card; Not this way breaks the line again (G9, G10, G12).
+    await toStop(pg);
     const b = await pg.locator('[data-testid=stop]').boundingBox();
     await pg.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
     await pg.mouse.down();
@@ -252,6 +253,7 @@ async function run(h) {
         await p2.waitForTimeout(1000);
         s2 = await state2();
       }
+      await toStop(p2);
       const stop2 = await p2.locator('[data-testid=stop]').boundingBox();
       await p2.mouse.move(stop2.x + stop2.width / 2, stop2.y + stop2.height / 2);
       await p2.mouse.down();

@@ -7,7 +7,7 @@ async function run(h) {
     const state = async (label) => {
       const s = await pg.evaluate(() => {
         const at = (q) => { const e = document.querySelector(q); if (!e) return null; const b = e.getBoundingClientRect(); if (!b.width) return 'hidden'; const top = document.elementFromPoint(b.x + b.width / 2, b.y + b.height / 2); return top?.closest(q) ? 'top' : `under:${top?.closest('[data-testid]')?.getAttribute('data-testid') ?? top?.tagName}`; };
-        return { path: location.pathname, bar: at('[data-testid=recording-return]'), stop: at('[data-testid=stop]'), minimize: at('[data-testid=walk-minimize]'), tabNav: at('[data-testid=tab-navigate]'), drawer: document.querySelector('[data-testid=ready-bar]')?.getBoundingClientRect().height ?? null };
+        return { path: location.pathname, bar: at('[data-testid=recording-return]'), stop: at('[data-testid=walk-actions]'), minimize: at('[data-testid=walk-minimize]'), tabNav: at('[data-testid=tab-navigate]'), drawer: document.querySelector('[data-testid=ready-bar]')?.getBoundingClientRect().height ?? null };
       });
       console.log(`# ${label}: ${JSON.stringify(s)}`);
       return s;
@@ -92,13 +92,13 @@ async function run(h) {
       await pg.addInitScript(() => {
         window.__launchFrames = [];
         const tick = () => {
-          window.__launchFrames.push({ path: location.pathname, covered: !!document.querySelector('[data-testid=launch-cover]'), walk: !!document.querySelector('[data-testid=stop]'), tabs: !!document.querySelector('[data-testid=tab-explore]'), memories: !!document.querySelector('[data-testid=memories]') });
+          window.__launchFrames.push({ path: location.pathname, covered: !!document.querySelector('[data-testid=launch-cover]'), walk: !!document.querySelector('[data-testid=walk-actions]'), tabs: !!document.querySelector('[data-testid=tab-explore]'), memories: !!document.querySelector('[data-testid=memories]') });
           if (window.__launchFrames.length < 600) requestAnimationFrame(tick);
         };
         requestAnimationFrame(tick);
       });
       await pg.goto(url);
-      await pg.waitForSelector('[data-testid=stop]', { timeout: 5000 }).catch(() => {});
+      await pg.waitForSelector('[data-testid=walk-actions]', { timeout: 5000 }).catch(() => {});
       const s = await state('opened at / with a walk open');
       const frames = await pg.evaluate(() => window.__launchFrames);
       // Frames before the app's first paint are the empty page, not a screen.

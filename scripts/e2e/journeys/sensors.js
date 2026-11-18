@@ -2,7 +2,7 @@
 // browser of its own. Self-contained: the context is created here.
 
 async function checks(h) {
-  const { navUrl, browser, errors, start, at, dLat, dLon, OVERTURE_HOST, check, metricRegion, tileRoute, overtureRoute, tiles } = h;
+  const { navUrl, browser, errors, start, at, dLat, dLon, OVERTURE_HOST, check, metricRegion, tileRoute, overtureRoute, tiles, toStop } = h;
     // Motion (MO1, MO5, MO8): the phone's sensors say standing still while the GPS wanders indoors.
     {
       const ctx3 = await browser.newContext({
@@ -58,7 +58,7 @@ async function checks(h) {
       await p3.waitForTimeout(800);
       const ready = await listening();
       await p3.click('[data-testid=start]');
-      await p3.waitForSelector('[data-testid=stop]');
+      await p3.waitForSelector('[data-testid=walk-actions]');
       check((await p3.evaluate(() => window.__motionAsked)) === 1, 'Start asks for motion, from its own tap (MO1)');
       // A few calm fixes, then the sensors have had time to say still.
       for (let k = 0; k < 6; k++) {
@@ -130,6 +130,7 @@ async function checks(h) {
       await setVis('visible');
       await p3.waitForTimeout(800);
       const back = await listening();
+      await toStop(p3);
       const hold = await p3.locator('[data-testid=stop]').boundingBox();
       await p3.mouse.move(hold.x + hold.width / 2, hold.y + hold.height / 2);
       await p3.mouse.down();

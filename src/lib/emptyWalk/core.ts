@@ -1,6 +1,7 @@
 // @layer core
 import { distanceM } from '../geo';
 import { keptFixes, type ReadTrace } from '../rides';
+import type { Pause } from '../types';
 
 /**
  * Empty walk (EW2, the owner's call, Nov 16): the farthest the read fixes of an empty walk may spread, in metres. The
@@ -17,6 +18,14 @@ export interface EmptyWalkInput {
   fills: number;
   /** The walk's fixes as `readTrace` reads them, with its pauses, stills and fills passed. */
   trace: ReadTrace;
+}
+
+/**
+ * The pauses that keep a walk (EW5): those resumed from. The pause still open at Stop is the way to Stop, which the walk
+ * screen shows only while paused (decision 0208), so it is no evidence of a walk: `stopWalk` ends it at the walk's end.
+ */
+export function pausesKept(pauses: readonly Pause[], endedAt: number): number {
+  return pauses.filter((p) => p.ended_at != null && p.ended_at < endedAt).length;
 }
 
 /**

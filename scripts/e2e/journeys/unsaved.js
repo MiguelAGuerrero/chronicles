@@ -12,7 +12,7 @@ const OUT_BAR = 'No room left. Retry on the walk screen.';
 const MEMO = /Voice (memo|note)s? not saved/;
 
 async function run(h) {
-  const { navUrl, check, freshPage, scriptsDir, shot, tabTo } = h;
+  const { navUrl, check, freshPage, scriptsDir, shot, tabTo, toStop } = h;
   const fixtures = path.join(scriptsDir, 'fixtures');
   const { c, pg } = await freshPage('unsaved');
   await failStorage(c);
@@ -166,7 +166,8 @@ async function run(h) {
     `UN3: Retry keeps both memos in the walk, in the order taken (${kept.length})`);
 
   // unsaved-captures audit 3: a photo still being kept when the walk screen's Stop is held fails while Stop waits: it is
-  // warned of, and the walk goes on.
+  // warned of, and the walk goes on. Stop shows only while paused (decision 0208); captures still work paused (0009).
+  await toStop(pg);
   await pg.evaluate(() => { window.__slowBlob = 2500; window.__failMedia = 1; });
   const picked = await Promise.all([pg.waitForEvent('filechooser', { timeout: 10000 }), pg.click('[data-testid=cap-photo]', { timeout: 10000 })]).catch(() => null);
   if (picked) await picked[0].setFiles(path.join(fixtures, 'photo.jpg'));
@@ -363,6 +364,8 @@ async function run(h) {
   await pg.click('[data-testid=start]').catch(() => {});
   await pg.waitForSelector('[data-testid=cap-voice]', { timeout: 30000 }).catch(() => {});
   await pg.waitForTimeout(2500);
+  // Paused first (decision 0208): a memo recorded while paused is the one Stop can still lose (0009).
+  await toStop(pg).catch(() => {});
   await pg.click('[data-testid=cap-voice]', { timeout: 10000 }).catch(() => {});
   await pg.waitForSelector('[data-testid=voice-save]', { timeout: 10000 }).catch(() => {});
   await pg.waitForTimeout(1300);

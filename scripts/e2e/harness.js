@@ -570,7 +570,7 @@ async function createHarness() {
   const tabTo = async (pg, id, section = 'map') => {
     const shown = async (sel) => (await pg.locator(sel).filter({ visible: true }).count()) > 0;
     if (id === 'navigate') {
-      if ((await shown('[data-testid=ready-bar]')) || (await shown('[data-testid=stop]'))) return;
+      if ((await shown('[data-testid=ready-bar]')) || (await shown('[data-testid=walk-actions]'))) return;
     } else if (await shown('[data-testid=ready-close]')) {
       await pg.click('[data-testid=ready-close]');
       await pg.waitForTimeout(600);
@@ -828,6 +828,16 @@ async function createHarness() {
     await browser.close();
     server.close();
   };
+  // The walk screen's Stop shows only while paused (decision 0208): taps Pause first, unless already paused, and waits
+  // for Stop. A journey reads Stop's box after this, never before.
+  const toStop = async (pg, timeout = 15000) => {
+    await pg.waitForSelector('[data-testid=pause-walk], [data-testid=resume-walk]', { timeout });
+    if (!(await pg.locator('[data-testid=stop]').count())) {
+      await pg.click('[data-testid=pause-walk]');
+      await pg.waitForSelector('[data-testid=resume-walk]', { timeout });
+    }
+    await pg.waitForSelector('[data-testid=stop]', { timeout });
+  };
   // Switches a map layer on (or off) through the Layers panel and closes the panel (specs/map-layers ML3-ML5): the layers all
   // start off, so a journey that looks at one turns it on first.
   const switchLayer = async (pg, id, wantOn = true) => {
@@ -865,7 +875,7 @@ async function createHarness() {
     return { x: m.x + m.width / 2, y: m.y + m.height / 2 };
   });
   return {
-    url, navUrl, exploreUrl, BASE, browser, ctx, page, errors, hosts, start, at, distanceM, dLat, dLon, features, names, overtureFeatures, OVERTURE_HOST, OVERTURE_RELEASE, overtureAsked, style, check, shot, glyph, iconOf, metricRegion, pressedScale, metaOf, drawerTo, openInto, closeInto, intoScrollTo, intoSettled, tabTo, toThreads, toJournal, mapUp, shownCount, tabBarShown, tileRoute, overtureRoute, freshPage, openWalk, tiles, scriptsDir,
+    url, navUrl, exploreUrl, BASE, browser, ctx, page, errors, hosts, start, at, distanceM, dLat, dLon, features, names, overtureFeatures, OVERTURE_HOST, OVERTURE_RELEASE, overtureAsked, style, check, shot, glyph, toStop, iconOf, metricRegion, pressedScale, metaOf, drawerTo, openInto, closeInto, intoScrollTo, intoSettled, tabTo, toThreads, toJournal, mapUp, shownCount, tabBarShown, tileRoute, overtureRoute, freshPage, openWalk, tiles, scriptsDir,
     onTab, walkMap, walkMarks, walkRoute, walkPts, nothingLeaves, noConsoleErrors, close, divisions, snapWorld, wholeWorld, walkability, overpassAsked, OVERPASS_HOST, scenicWorld, routed, switchLayer, places, areaTile, hollowWorld, complexWorld, bareMapPoint, denseWorld, DENSE_HOODS, smallWorld, SMALL_TOWN, SMALL_HOODS,
   };
 }
