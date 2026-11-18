@@ -54,14 +54,18 @@ Places of interest from the tiles, marks, checklists and finds (Explore), and Re
   it's needed (or costs layout) is unverified on a device.
 
 - **Marks that share a spot stand side by side** (fix mark-overlap, Nov 18; the owner's photo of a library over a
-  ticket): `declutterMarks` (`markNames.ts`) puts non-found marks whose 48 px tap rooms would overlap at the drawn zoom
-  in one row, 48 px apart, centred on their points and 12 px above the highest, each on a thin leg to a dot on its own
-  point (`spread`, drawn by `MarkPinView`; the web marker's offset is `[dx, 6 + dy]`, native's `[dx, dy]`). A row that
-  lands on another mark takes it in. The outer marks write their names beside the head, outward; a middle one's name is
-  only spoken; names are then judged where the heads stand. Never a count on the row (nothing is a score), never one
-  hidden. A found mark stays on its point. The precedent (Leaflet's spiderfy) is in `docs/research/adjacent-apps.md`,
-  "Places that share a spot on the map".
-
+  ticket), on the walk screen only (`spreadMarks`; Explore lays its "?" out itself by `halfZoom`, WT12, audit 4):
+  `declutterMarks` (`markNames.ts`) puts non-found marks whose 48 px tap rooms would overlap at the drawn zoom and
+  bearing (a turned map's screen, audit 1) in one row, 56 px apart (8 px between tap rooms, ux U2), centred on their
+  points and 12 px above the highest, each on a thin leg to a small square on its own point (`spread`, drawn by
+  `MarkPinView`; a square, never the walker's round dot, ux U1; the web marker's offset is `[dx, 6 + dy]`, native's
+  `[dx, dy]`). A row that lands on another mark takes it in while it stays short (`ROW_MAX` 4, every point within a
+  tap room of its middle, audit 2); past that the overlap is left as the points have it. Grouped in id order, so the
+  marks' order never changes it (audit 3). The outer marks write their names beside the head, outward; a middle one's
+  name is only spoken; names are then judged where the heads stand. Never a count on the row (nothing is a score),
+  never one hidden. A found mark stays on its point. The web moves a marker in place when only its spread changes
+  (audit 6); native keys it. The precedent (Leaflet's spiderfy) is in `docs/research/adjacent-apps.md`, "Places that
+  share a spot on the map".
 - **Explore** (slice 5, replaces scan and ambient; the spec is E1-E23 in the
   v1 tab; `explore/explore.ts` pure, `exploreRun.ts`, `useExplore.ts`,
   `settings.ts`).

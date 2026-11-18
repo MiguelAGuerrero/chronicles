@@ -61,7 +61,8 @@ export function MarkPinView({ pin, enter, below = 0 }: { pin: MarkPin; enter?: E
 /** The pin's foot: the bottom of its 36 x 44 box, where it stands. */
 const FOOT = { x: 18, y: 44 };
 const LEG_W = 1.5;
-const DOT = 7;
+/** The point's mark: a small rounded square, a mark's own shape, never the walker's round dot (fix mark-overlap ux U1). */
+const DOT = 6;
 
 /** A spread pin's leg from its foot back to its point, and the dot on the point (fix mark-overlap). */
 function Leg({ spread, below }: { spread: MarkSpread; below: number }) {
@@ -120,7 +121,7 @@ export function markLabel(pin: MarkPin): string {
 
 /** What changes a pin's look, for re-rendering a marker only when it changes. */
 export const markKey = (pin: MarkPin) =>
-  `${pin.revealed ? 'r' : ''}${pin.found ? 'f' : ''}${pin.faint ? 'w' : ''}${pin.nameHidden ? 'n' : ''}${pin.foundKind ?? ''}${pin.spread ? `|${pin.spread.dx},${pin.spread.dy},${pin.spread.side ?? ''}` : ''}`;
+  `${pin.revealed ? 'r' : ''}${pin.found ? 'f' : ''}${pin.faint ? 'w' : ''}${pin.nameHidden ? 'n' : ''}${pin.foundKind ?? ''}`;
 
 /** Found places: the trace's green family, so a find reads as walked, not as a capture. */
 export const FOUND_COLOR = '#1f7a4d';
@@ -177,5 +178,5 @@ const styles = StyleSheet.create({
   nameBeside: { position: 'relative', top: 0 },
   // The leg and the dot are the mark's ink, thin and small: they say where the place is, the head says what.
   leg: { position: 'absolute', width: LEG_W, backgroundColor: MARK_COLOR, opacity: 0.7 },
-  dot: { position: 'absolute', width: DOT, height: DOT, borderRadius: DOT / 2, backgroundColor: MARK_COLOR, borderWidth: 1.5, borderColor: '#ffffff' },
+  dot: { position: 'absolute', width: DOT, height: DOT, borderRadius: 1.5, backgroundColor: MARK_COLOR },
 });
