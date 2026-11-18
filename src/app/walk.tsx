@@ -234,6 +234,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
   useUnits();
   const insets = useSafeAreaInsets();
   const { width, height: screenH } = useWindowDimensions();
+  // The strip's words step down a size below 360, so long numbers still leave them whole (fix walk-strip-buttons audit 1).
+  const narrow = width < 360;
   /** The top column's side margin: centered in 640 on wide screens, like the rest. */
   const sideInset = Math.max(GUTTER, (width - 640) / 2);
   const params = useLocalSearchParams<{ warning?: string; started?: string; recall?: string }>();
@@ -1093,6 +1095,19 @@ function WalkScreen(props: { onMinimize: () => void }) {
     props.onMinimize();
   }
 
+  // The walk's options, raised or lowered by the strip's drag, a tap on its numbers or its … (decision 0220).
+  function raiseOptions(u: boolean) {
+    if (u) {
+      setSpot(null);
+      setMarkOpen(null);
+      setMemory(null);
+      setGapOpen(null);
+    }
+    setOptions(u && !recordingVoice);
+    // Lowered with the ring up: back to following you, out of the ring's zoom (audit, UI); a pan stays otherwise.
+    if (!u && preview != null) setFollowing(true);
+  }
+
   async function togglePause() {
     if (!walk || pausing) return;
     setPausing(true);
@@ -1649,30 +1664,38 @@ function WalkScreen(props: { onMinimize: () => void }) {
         }}
       />
 
-      {/* The walk's strip is the ready bar's twin (NR7): pull it up for the walk's options, which are
-          no button of their own. Pause and Stop stay at its foot at every height. */}
+      {/* The walk's strip is the ready bar's twin (NR7): pull it up, tap the numbers, or (walking) tap … for the
+          walk's options (decision 0220). Its buttons stay at its foot at every height. */}
       <ReadyBar
         idPrefix="walk"
         up={options}
-        onUp={(u) => {
-          if (u) {
-            setSpot(null);
-            setMarkOpen(null);
-            setMemory(null);
-            setGapOpen(null);
-          }
-          setOptions(u && !recordingVoice);
-          // Lowered with the ring up: back to following you, out of the ring's zoom (audit, UI); a pan stays otherwise.
-          if (!u && preview != null) setFollowing(true);
-        }}
+        onUp={raiseOptions}
         areaHeight={screenH}
         locked={recordingVoice}
         summaryLabel={exploring ? 'The walk, exploring' : 'The walk'}
         summary={<WalkStats startedAt={walk?.started_at ?? null} pauses={pauses} distanceM={live.distanceM} rideM={live.rideM} />}
         actions={
-          // Pause alone while walking; Resume and a held Stop once paused, as AllTrails and Nike Run Club do (decision 0220).
-          // Pills, no outline (the owner, Nov 18): Pause and Stop soft, Resume solid accent; Stop's hold fill sweeps across its pill.
+          // Pause alone while walking; Resume and a held Stop once paused, as AllTrails does (decision 0220). The owner's
+          // AllTrails look (Nov 18): the buttons fill what the numbers leave. Walking: … (the walk's settings) and a wide
+          // Pause; paused: Resume and Stop, half each, words only (the owner's picks), and no …: at 320 px it does not fit
+          // beside them, and the numbers still open the settings.
           <View testID="walk-actions" style={styles.barActions}>
+            {!paused && (
+              <Pressable
+                testID="strip-more"
+                accessibilityRole="button"
+                // Named as the numbers name the same drawer (fix walk-strip-buttons audit 4).
+                accessibilityLabel={options ? 'Lower the walk settings' : 'Walk settings'}
+                accessibilityState={{ expanded: options, disabled: recordingVoice || stopping || !walk }}
+                // react-native-web reads aria-expanded, not accessibilityState's (fix walk-strip-buttons audit 4).
+                aria-expanded={options}
+                onPress={() => raiseOptions(!options)}
+                disabled={recordingVoice || stopping || !walk}
+                style={({ pressed }) => [styles.roundBtn, (recordingVoice || stopping || !walk) && styles.disabled, pressed && styles.pressed]}
+              >
+                <Icon name="ellipsis-horizontal" size={22} color={theme.ink} />
+              </Pressable>
+            )}
             <Pressable
               testID={paused ? 'resume-walk' : 'pause-walk'}
               accessibilityRole="button"
@@ -1680,11 +1703,11 @@ function WalkScreen(props: { onMinimize: () => void }) {
               accessibilityHint={paused ? undefined : 'Stops recording until you resume. Stop is offered while paused'}
               onPress={togglePause}
               disabled={pausing || stopping || !walk}
-              style={({ pressed }) => [styles.barBtn, paused && styles.resumeBtn, pressed && styles.pressed]}
+              style={({ pressed }) => [styles.barBtn, narrow && styles.barBtnNarrow, paused && styles.resumeBtn, pressed && styles.pressed]}
             >
               {/* Resume is the strip's one primary action while paused: the accent, as 0172 allows. */}
-              <Icon name={paused ? 'play' : 'pause'} size={16} color={paused ? theme.accentInk : theme.ink} />
-              <Text style={[styles.barBtnText, paused && styles.resumeText]} numberOfLines={1} selectable={false}>
+              {!paused && <Icon name="pause" size={narrow ? 16 : 18} color={theme.ink} />}
+              <Text style={[styles.barBtnText, narrow && styles.barBtnTextNarrow, paused && styles.resumeText]} numberOfLines={1} selectable={false}>
                 {paused ? 'Resume' : 'Pause'}
               </Text>
             </Pressable>
@@ -1693,16 +1716,16 @@ function WalkScreen(props: { onMinimize: () => void }) {
                 testID="stop"
                 label="Hold to stop"
                 busyLabel="Stopping…"
+                // The spinner alone while stopping: "Stopping…" does not fit a half on most phones, and stays the spoken
+                // name (fix walk-strip-buttons audits 2, 5).
+                busyQuiet
                 onHold={stop}
                 onTap={() => setToast('Hold to stop the walk')}
                 busy={stopping}
                 disabled={!walk || pausing}
-                style={styles.stopBtn}
+                style={[styles.stopBtn, narrow && styles.barBtnNarrow]}
               >
-                <View style={styles.stopInner}>
-                  <Icon name="stop" size={16} color={theme.ink} />
-                  <Text style={styles.barBtnText} numberOfLines={1} selectable={false}>Stop</Text>
-                </View>
+                <Text style={[styles.barBtnText, narrow && styles.barBtnTextNarrow]} numberOfLines={1} selectable={false}>Stop</Text>
               </HoldButton>
             )}
           </View>
@@ -2119,19 +2142,26 @@ const styles = StyleSheet.create({
   disabled: { opacity: 0.5 },
   pressed: { opacity: 0.8 },
   stats: { color: theme.ink, fontSize: 17, fontWeight: '600', fontVariant: ['tabular-nums'], flexShrink: 1 },
-  stopInner: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  barActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  // Pills, no outline (decision 0220, the owner's "pill fills"): icon and word side by side, 48 high, soft on the strip's
-  // ground. Measured so Resume and Stop together leave the walk's numbers whole at 320.
+  // The buttons fill what the numbers leave (the owner's AllTrails look, decision 0220): the numbers keep their width.
+  barActions: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 8 },
+  // Pause, Resume and Stop: wide pills sharing the row, no outline, words centred, 48 high. Thin at the sides, so an
+  // hour-long walk's numbers at 320 still leave the words whole (fix walk-strip-buttons audit 1).
   barBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 48, paddingHorizontal: 8, borderRadius: 24, backgroundColor: theme.line,
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 48, paddingHorizontal: 4,
+    borderRadius: 24, backgroundColor: theme.line,
   },
-  barBtnText: { color: theme.ink, fontSize: 14, fontWeight: '600' },
-  // Resume, the one primary action while paused: solid accent, white icon and word.
+  barBtnText: { color: theme.ink, fontSize: 16, fontWeight: '600' },
+  barBtnTextNarrow: { fontSize: 14 },
+  // Below 360, Pause's icon closer to its word and no side padding (the words are centred, so it shows only when tight), so
+  // an hour-long walk's numbers leave every word whole (fix walk-strip-buttons audits 1, 7).
+  barBtnNarrow: { gap: 4, paddingHorizontal: 0 },
+  // Resume, the one primary action while paused: solid accent, white word.
   resumeBtn: { backgroundColor: theme.accent },
   resumeText: { color: theme.accentInk },
-  // HoldButton's outline off: a soft pill like Pause, the hold's fill sweeping across it.
-  stopBtn: { minHeight: 48, paddingHorizontal: 8, borderRadius: 24, borderWidth: 0, backgroundColor: theme.line },
+  // …: round, 48, soft like Pause.
+  roundBtn: { width: 48, height: 48, borderRadius: 24, backgroundColor: theme.line, alignItems: 'center', justifyContent: 'center' },
+  // Stop: HoldButton with its outline off, half the row beside Resume, the hold's fill sweeping across it.
+  stopBtn: { flex: 1, minHeight: 48, paddingHorizontal: 4, borderRadius: 24, borderWidth: 0, backgroundColor: theme.line },
   minRow: { alignSelf: 'stretch', flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
   noticeCell: { flex: 1, minWidth: 0 },
   noticeBelow: { alignSelf: 'stretch' },
