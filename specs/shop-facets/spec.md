@@ -32,6 +32,9 @@ Open: the two lists themselves, after the count
 
 - **Apple Maps**: a search within "Shopping" offers categories as chips (clothing, books, and so on); one is picked at a time and nothing combines. Source: from memory, unverified.
 - **Etsy**: results are narrowed by independent facets in a filter panel (item type, vintage or handmade), each a closed list, combining across facets. Source: from memory, unverified. The model for two facets that narrow; its counts beside each facet value are what this product leaves out.
+- **Roadtrippers Autopilot**: a start and a destination, then a few questions in steps (who travels, interests, the vehicle), and a plan that can be edited after. Source: support.roadtrippers.com and roadtrippers.com/autopilot, by search summary, Nov 18, 2026 (partly verified). The precedent for steps: a plan of days, made rarely.
+- **Komoot**: the sport is asked before the destination because it changes which paths can be routed. Source: third-party guides, by search summary (partly verified). Steps where one answer changes the next question.
+- **Baymard's mobile filtering guidance**: independent facets in one sheet with a sticky Apply, the applied ones left visible outside it. Source: baymard.com, by search summary (partly verified).
 - **Google Maps**: category chips with "Open now" and a rating filter beside them. Source: from memory, unverified. The counter-example: a rating as a filter.
 
 ## Criteria
@@ -65,6 +68,11 @@ On the page:
 - **SHF12.** "Thrifting" is no longer a chip of its own: it is Second-hand in `how`. Typing it in the search still finds it.
 - **SHF13.** A stop's own line names it by both facets where both are known ("A used bookshop"), and by the one known otherwise.
 - **SHF14.** The chips fit a phone: two rows at most before the sheet scrolls, at 320 px, with nothing clipped.
+- **SHF14a.** (the owner, Nov 18: "If the composer gets a bit too detailed, we might opt to using a step form like a wizard, but
+  that decision depends on how other apps handle this") The form of the composer is decided from precedent, with a mock of each
+  candidate, before the chips are built: one page as today, a sheet for refining with what is applied left in view on the page, or
+  steps. Whichever is chosen, the journeys stay in view or one tap away while choosing, and no step is added before a first
+  proposal: the page still proposes as it opens.
 
 The data:
 
@@ -90,6 +98,18 @@ One city's map tiles (Zurich, the test set) hold about 11,400 shops in well over
 (convenience, beauty, kiosk, optician, travel agency), which SHF3 leaves out; among shops worth browsing it holds florists,
 jewellery, shoes, furniture, interior decoration, second-hand (269), books (256), gifts, art (150), stationery, toys, and antiques
 (64). That is a European city and a map's own selection, so it shows the shape of the list, not its numbers.
+
+## The composer's form: what precedent says (for SHF14a)
+
+Recorded in `docs/research/adjacent-apps.md`, "Compose a plan from several choices". Steps are used where one answer changes the
+next question (Komoot asks the sport first because it changes the routing) or where the plan is large and made rarely (a road
+trip of days). Independent filters sit together, on the page or in one sheet, with what is applied left in view.
+
+Read against this product: a destination, what is sold and how it is sold do not depend on each other, an outing is planned often
+and in a minute, and the page's strength is that journeys appear as it opens and change as a chip is tapped. So the draft's
+recommendation is **not a wizard**: keep the page, and when the chips pass two rows move refinement into one sheet ("Refine"),
+with the picks left on the page as removable chips. A wizard would fit a different job, a first-time setup of what you are into,
+which the app already has as its own page. This is a recommendation for the owner's call with mocks, not a decision.
 
 ## Open
 
