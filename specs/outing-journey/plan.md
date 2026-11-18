@@ -20,7 +20,7 @@ town by town with Open in Maps between. No road routing, no new store, no new de
 | 2. The towns between | Journeys hold several towns; each has its line and its chapter (a walk, or one stop); Leave this town out | OJ5, OJ20, OJ23, OJ24, OJ26, OJ27 (straight lines), OJ37 |
 | 3. The session carries it | Start records from where you are; the bar names the next town, Open in Maps, Skip; the way on foot within reach | OJ28-OJ33 |
 
-Each step ends shippable. Step 3 is the one that depends on decision 0203's reading of a recorded drive; steps 1 and 2 do not.
+Each step ends shippable. Step 3 is the one that depends on decision 0206's reading of a recorded drive; steps 1 and 2 do not.
 
 ## Files
 
@@ -86,7 +86,7 @@ Unit tests in `src/lib/__tests__/outing/`, named by id; shell tests over `fakePo
 - **Towns between:** the gazetteer index (about 50,000 rows, already built once per source, about 0.7 s) scanned once per destination:
   a point-to-segment distance per row. Once per pick, off the frame.
 - **Per town read:** the existing outing read, 2.6 km around a centre: about 16 to 25 z14 tiles, one z12 stores tile, one archive tile.
-  Bounded per town, not by a count of towns (0204): each town read is about 25 tiles, read in order of the line, cancellable, each town filling its line as it lands. Towns shared by two
+  Bounded per town, not by a count of towns (0207): each town read is about 25 tiles, read in order of the line, cancellable, each town filling its line as it lands. Towns shared by two
   journeys are read once. Nothing is read per frame or per fix.
 - **Step 3:** `nextChapter` per fix is constant time (a handful of chapters).
 - **Harness:** `scripts/perf-explore.js` for the page's reads on the web; a long driven recording is device only
@@ -121,14 +121,14 @@ edge is the main cue); "Include chains" moves behind the sheet's pull-up; stops 
 
 A road graph of the app's own (D1); opening hours (no data); places in the search, not only towns (the gazetteer holds towns); a kept
 or shared journey (OJ34); streets and fog from a driven trace, driven gap inference, the session's name in the app (their own slices,
-0203). Each goes to `docs/DEFERRED.md` when the slice is tracked.
+0206). Each goes to `docs/DEFERRED.md` when the slice is tracked.
 
 ## Native, never run on a device
 
 The page over Explore's map; the card row's swipe; a session started far from its first stop; the bar's Open in Maps mid-recording; a
 recording that spans a drive of an hour. Each becomes a `Do / Expect` item.
 
-## The owner's answers (Nov 17, decision 0204)
+## The owner's answers (Nov 17, decision 0207)
 
 - No cap on a journey's towns: they are chosen for the variety of kinds they add; how many is a setting (step 2; OJ20, OJ37).
 - A road engine of the app's own is its own slice, owed after the page: gate, spec and plan first.

@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import { fakePorts } from '../fakes';
 import { at } from '../walk-planner/grid';
 
-// The plan a session carries (OJ26, OJ28-OJ31, OJ34, OJ48-OJ50; decision 0207): towns and positions only, the chapter ahead read
+// The plan a session carries (OJ26, OJ28-OJ31, OJ34, OJ48-OJ50; decision 0210): towns and positions only, the chapter ahead read
 // from where you have been, nothing marked done.
 
 const stop = (id: string, e: number, n: number) => ({ id, at: at(e, n), facets: { what: ['antiques'] }, name: `Secret ${id}` });

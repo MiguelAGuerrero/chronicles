@@ -1,4 +1,4 @@
-# 0203. The session is an outing; walking is one way to spend it
+# 0206. The session is an outing; walking is one way to spend it
 
 Date: 2026-11-17 · Status: accepted · Area: product, vision, recording, trace, fog, navigation · Amends [0020](0020-positioning.md) ("on foot"), [0040](0040-rides.md) (a ride never counts for streets) and [0121](0121-drive-there-walk-back.md) (the drive kept out of the record)
 

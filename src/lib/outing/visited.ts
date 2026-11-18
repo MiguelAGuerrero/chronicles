@@ -3,7 +3,7 @@ import { distanceM, projector } from '../geo';
 import type { LngLat } from '../types';
 
 /*
- * Visited is read from the trace (OJ47; the owner, Nov 17, decision 0206): a place a recorded outing came within range of, on foot,
+ * Visited is read from the trace (OJ47; the owner, Nov 17, decision 0209): a place a recorded outing came within range of, on foot,
  * has been visited. The range is Explore's own, the one within which a place can be found. Nothing is stored: it is worked out from
  * the fixes each time an area is read, so a change of the range or of how a trace is read moves it with them.
  */

@@ -17,7 +17,7 @@ const NOTICE_M = 50;
 const UNDO_M = 300;
 
 /**
- * The session's part of a journey (OJ28-OJ31, OJ48, OJ49; decision 0207, the second audit). Between towns it gives the screen its
+ * The session's part of a journey (OJ28-OJ31, OJ48, OJ49; decision 0210, the second audit). Between towns it gives the screen its
  * line (the town it is headed toward and how far) and the point to hand to Maps. Within reach of a town it says the town is here and
  * offers the way on foot through its stops: nothing is routed until that is tapped. The plan kept for the session holds only the
  * towns still ahead: a town left, driven past, drifted from or passed by leaves it, with nothing said and nothing recorded of why.
