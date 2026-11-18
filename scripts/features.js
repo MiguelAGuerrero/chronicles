@@ -457,6 +457,26 @@ const RETIRED = {
  * make (the web build can't reach it), `deferred: <why>` for the owner's call to wait. Keyed by spec.
  */
 const UNTESTED = {
+  // Outing journey (decisions 0207-0210): criteria with no test of their own, each with where it is held instead. Recorded as the slice
+  // leaves IN_PROGRESS to ship (the owner's /deploy, Nov 18).
+  'outing-journey': {
+    D6: 'deferred: a decision, not a criterion: the capture stack is unchanged while driving, held by OJ33, OJ39 and RE27\'s checks in the journey `journey`',
+    OJ4: 'deferred: held in parts by other ids: the card\'s words by OJ21 and RE17, the map\'s line by RE1 and RE16 (the journey `journey`); the finding criterion is the ux-reviewer\'s cold find (Nov 18, in specs/road-engine\'s Audit)',
+    OJ6: 'deferred: by construction: the page hosts Explore\'s own search component (GZ9-GZ13 hold that nothing of a query is stored or sent); the journeys `outing` and `journey` pick a destination through it',
+    OJ8: 'deferred: not built: the towns near you as shortcuts (docs/DEFERRED.md, outing journey step 1)',
+    OJ10: 'deferred: no journey opens the page with no position; the line is the one QC30 tests in words, and the hook proposes nothing without an origin',
+    OJ16: 'deferred: held by QC41\'s tests (the switch, off by default, kept) and the journey `outing`, which toggles `outing-chains`',
+    OJ32: 'deferred: unchanged from QC19 and QC26, whose tests hold the chip; no journey of this slice walks to a stop',
+    OJ51: 'deferred: superseded in part by RE1 (the road in place of the straight line); the straight line that remains is checked by the journey `journey` as the count of points handed to the map',
+  },
+  // The road engine (decisions 0212-0214).
+  'road-engine': {
+    D6: 'deferred: a decision; held by RE26\'s checks (the one-time statement at the tap, and with the journey\'s towns on the page)',
+    RE14: 'deferred: not built: towns are still chosen by the straight line (docs/DEFERRED.md, the road engine step 2)',
+    RE24: 'deferred: the end at the town is the plan\'s own rule (OJ49\'s tests: within reach the town is at hand) dropping the `driving` flag; no journey drives nine kilometres to a town',
+    RE31: 'deferred: by construction: the bar exists only inside an open session\'s screen, and Drive there starts none',
+    RE33: 'device: speech and guiding with the phone locked or the app behind another; not met today (docs/DEFERRED.md, the road engine step 4)',
+  },
   // Pictures through expo-image: the cache and the recycling are a phone's to see under memory pressure.
   'expo-image': { EI6: 'device: memory and recycling over a few hundred photos on a phone; the web build has no native image cache' },
   // Plan an outing (decision 0196): criteria with no test of their own, each with where it is held instead.
@@ -530,8 +550,6 @@ const RENAMED = {
 };
 
 const IN_PROGRESS = {
-  'outing-journey': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-17' },
-  'road-engine': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-18' },
   'drive-in-the-outing': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-18' },
 };
 
