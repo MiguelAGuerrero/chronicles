@@ -11,7 +11,7 @@ Verb: earn ("what makes a place itself": a town's small museum, a wildlife refug
 Touches: VISION.md Never, "Popularity, trending, foot traffic" and "Ratings, reviews" (a type is the gate, never a measure: no source's popularity, rating or visitor count is read); Always, "Guidance is structural"; decisions 0103 (type decides), 0109 (remarkable and public), 0117 (nothing fetched only to sort), 0191 (an inclusive bar), PK1/PK19 (a museum lights History by its listing: amended here, a museum by type lights Culture alone).
 Verdict: aligned
 Shape: as asked: Wikidata types only, the same source and licence; every museum by type, Culture only unless listed; reserves and gardens but no parks (the map carries parks); amusement parks with zoos and aquariums.
-Criteria: MA1-MA9.
+Criteria: MA1-MA10.
 Open: none; outside sources (Smithsonian sculptures, state markers, city public art) wait until each licence is confirmed at its source (the owner, Nov 17).
 
 ## How adjacent apps do it
@@ -36,6 +36,11 @@ Open: none; outside sources (Smithsonian sculptures, state markers, city public 
 - **A pier or a suspension bridge, "Only when listed"** (the owner, Nov 18): an unlisted pier keeps its row and adds nothing
   to History (audit 3). The app cannot tell a listed `bridge` from a typed one (the feature carries no listing), so bridges
   stay as they were until a contract change.
+- **Typed bridges, a class of their own** (the owner, Nov 18): contract v8 of chronicles-data adds `suspension_bridge`, a
+  suspension bridge known only by its Wikidata type, with no National Register listing (80 in the US); listed and covered
+  bridges stay `bridge`. In the app it is a place of the Bridges row under Buildings and structures (the kind and subset
+  of `bridge`), held for its type (`by_type`, never `recorded`) and weighing nothing in the History bar (`bar: 0`, as a
+  pier), and never unnamed (MA10; amends audit 3's "bridges stay as they were").
 - **Natural national monuments, "Own subtype under Nature"** (the owner, Nov 18): "Natural monuments" under Nature, on,
   never History (audit 18; contract v7's `natural_monument`).
 
@@ -55,6 +60,8 @@ Open: none; outside sources (Smithsonian sculptures, state markers, city public 
 - **MA7** the app pins chronicles-data's contract v6; its class names are exactly the archive table.
 - **MA8** none of the new classes is named or labelled for significance, and none carries a number (XS19, XS25 hold).
 - **MA9** every new label fits one line at 320 px (XS22 holds), Amusement parks and Natural monuments among them.
+- **MA10** a typed suspension bridge (contract v8's `suspension_bridge`) is a Bridges place under Buildings and structures
+  that lights no History, and is never unnamed; a listed bridge (`bridge`) lights History as before (the owner, Nov 18).
 
 ## Record (Nov 17)
 
