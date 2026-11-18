@@ -73,6 +73,40 @@ async function run(h) {
   // SW18: at 320 px the row's four slots fit and a tile is at least 88 px (the page is 390 wide here; slots are 44 pt).
   const slots = await pg.locator('[data-testid=quick-actions] > *').first().boundingBox().catch(() => null);
   check(!!slots && slots.width >= 44 && slots.height >= 44, `SW18: a row slot is a 44 pt target (${JSON.stringify(slots)})`);
+  // fix quick-actions-leading (the owner, Nov 18): the row sits at the entry's leading edge, its slots a fixed width, so the
+  // first caption starts where the entry's words do and an empty slot is only room at the end, never a fifth of the row.
+  const lead = await pg.evaluate(() => {
+    const entry = [...document.querySelectorAll('[data-testid=journal-page] [data-testid=moment-card]')].find((e) => e.querySelector('[data-testid=quick-actions]'));
+    if (!entry) return null;
+    const row = entry.querySelector('[data-testid=quick-actions]');
+    const caption = [...row.querySelectorAll('[role=button] *')].find((n) => n.textContent === 'Reaction' && n.children.length === 0);
+    // The entry's leading edge, where its words start.
+    const text = entry.getBoundingClientRect();
+    const range = document.createRange();
+    range.selectNodeContents(caption);
+    const words = range.getBoundingClientRect();
+    const slotsW = [...row.children].map((c) => Math.round(c.getBoundingClientRect().width));
+    return { captionX: Math.round(words.left), textX: Math.round(text.left), slotsW, rowW: Math.round(row.getBoundingClientRect().width) };
+  });
+  check(!!lead && Math.abs(lead.captionX - lead.textX) <= 3 && lead.slotsW.every((w) => w >= 44 && w <= 64),
+    `fix quick-actions-leading: the first caption starts at the entry's edge and each slot is a fixed width, at most 64 (${JSON.stringify(lead)})`);
+  await shot(pg, 'stackjoin-01c-row-leading');
+  // fix quick-actions-leading, SW18: at 320 px the row with all five (Join on the entry just kept) still fits, each slot a target.
+  await pg.setViewportSize({ width: 320, height: 844 });
+  await pg.waitForTimeout(500);
+  const five = await pg.evaluate(() => {
+    const row = document.querySelector('[data-testid=quick-stack]')?.closest('[data-testid=quick-actions]');
+    const entry = row?.closest('[data-testid=moment-card]');
+    if (!row || !entry) return null;
+    const slots = [...row.children].map((c) => c.getBoundingClientRect());
+    const cut = [...row.querySelectorAll('[role=button] *')].filter((n) => n.children.length === 0 && n.textContent && n.scrollWidth > n.clientWidth + 1).map((n) => n.textContent);
+    return { n: slots.length, widths: slots.map((r) => Math.round(r.width)), right: Math.round(slots[slots.length - 1].right), edge: Math.round(entry.getBoundingClientRect().right), cut };
+  });
+  await shot(pg, 'stackjoin-01d-row-320');
+  await pg.setViewportSize({ width: 390, height: 844 });
+  await pg.waitForTimeout(500);
+  check(!!five && five.n === 5 && five.widths.every((w) => w >= 44) && five.right <= five.edge && five.cut.length === 0,
+    `fix quick-actions-leading, SW18: at 320 px the five slots fit the entry, each a target, no caption cut (${JSON.stringify(five)})`);
 
   // SW2: Respond opens the viewer on its kinds menu, then back.
   await pg.locator('[data-testid=quick-respond]').first().click();

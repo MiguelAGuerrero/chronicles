@@ -13,7 +13,7 @@ const GLYPH: Record<SlotId, IconName> = {
 };
 
 /**
- * The quick-action row under an entry (decision 0197, SW1): five fixed slots in ink, 44 pt each, an icon with a one-word caption and a spoken name. A slot that does not apply is empty and moves no other. It decides nothing: `slots` comes from core.
+ * The quick-action row under an entry (decision 0197, SW1): five fixed slots in ink from the entry's leading edge, 48 to 64 pt each, an icon with a one-word caption and a spoken name. A slot that does not apply is empty and moves no other. It decides nothing: `slots` comes from core.
  */
 export function QuickActions(props: { slots: Slot[]; onPress: (id: SlotId) => void }) {
   return (
@@ -32,10 +32,18 @@ export function QuickActions(props: { slots: Slot[]; onPress: (id: SlotId) => vo
   );
 }
 
+/**
+ * Each slot's width (fix quick-actions-leading, the owner's call, Nov 18): the row sits at the entry's leading edge in
+ * slots of one width, so an empty slot is room at the end, not a fifth of the row. Five shrink to fit 320 px (SW18).
+ */
+const SLOT = 64;
+/** How far the row reaches left: a slot centres a caption about 44 px wide, so the first caption starts at the entry's edge. */
+const LEAD = (SLOT - 44) / 2;
+
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row' },
-  // A slot is 44 pt at the least; five captions fit in 320 px (SW18).
-  slot: { flex: 1, minWidth: 44, height: 52, alignItems: 'center', justifyContent: 'center', gap: 2 },
+  row: { flexDirection: 'row', marginLeft: -LEAD },
+  // A slot is 48 pt at the least, over the 44 pt target (SW18).
+  slot: { width: SLOT, flexShrink: 1, minWidth: 48, height: 52, alignItems: 'center', justifyContent: 'center', gap: 2 },
   caption: { color: theme.ink, fontSize: 11, lineHeight: 14 },
   dim: { opacity: 0.5 },
 });
