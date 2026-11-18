@@ -62,10 +62,13 @@ The loop never edits `docs/VISION.md`, a spec, a `vision-ok:` or
 same check on every `tend …` commit pushed to `main` (decision 0133).
 
 A rule file (`.claude/rules/`) is where a fix notes the trap it settled, so
-the loop may **add** lines to one. It never changes or removes a line
-already there (a reworded rule is the owner's, filed as a `T` entry), and no
-commit of a run names as its `Source:` a rule file the run edited (decision
-0135): a rule the loop wrote is not a source.
+the loop may **add** lines to one. It never changes or removes a line `main`
+already holds (a reworded rule is the owner's, filed as a `T` entry); a later
+commit of the same unpushed run may reword or drop a line the run itself
+added, so a review fix needs no rewritten history. A trap line goes in the
+commit that needs it or a later one, and no commit names as its `Source:` a
+rule file that it or an earlier commit of the run edited (decision 0135): a
+rule the loop wrote is not a source.
 
 ## 2. Sweep: deduce, do not wait to be told
 
