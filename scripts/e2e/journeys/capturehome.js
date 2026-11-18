@@ -266,15 +266,21 @@ async function run(h) {
     `HC10 (tend captures audit 2, audit 3): a note from Memories with a walk minimized belongs to the walk, kept unplaced with a stale fix and no location read (${JSON.stringify({ walk: kept && kept.walk_id, open: open && open.id, lat: kept && kept.lat, fixAge, reads: [readsBefore, readsAfter] })})`);
   const pillAfterNote = await pg.locator('[data-testid=bar-edit-offer]').count();
   // tend tabs T37: the pill gone (the next capture, a note), the notice shows, in its own words, once.
-  const noticeAfter = await pg.locator('[data-testid=space-line]').filter({ visible: true }).innerText({ timeout: 3000 }).catch(() => '');
-  await pg.setViewportSize({ width: 320, height: 700 });
-  await pg.waitForTimeout(500);
-  await shot(pg, 'tabs-T37-notice-after-pill-320');
-  await pg.setViewportSize({ width: 390, height: 844 });
-  await pg.click('[data-testid=space-dismiss]').catch(() => {});
-  await pg.evaluate(() => {
-    StorageManager.prototype.estimate = window.__estimate;
-  });
+  // tend tabs audit 36 (the T37 review's auditor 4): the browser's own `estimate` is put back whatever happens here, and
+  // the notice is dismissed once it shows, so neither lingers into the checks after this one.
+  let noticeAfter = '';
+  try {
+    noticeAfter = await pg.locator('[data-testid=space-line]').filter({ visible: true }).innerText({ timeout: 5000 }).catch(() => '');
+    await pg.setViewportSize({ width: 320, height: 700 });
+    await pg.waitForTimeout(500);
+    await shot(pg, 'tabs-T37-notice-after-pill-320');
+    await pg.setViewportSize({ width: 390, height: 844 });
+    await pg.locator('[data-testid=space-dismiss]').click({ timeout: 5000 }).catch(() => {});
+  } finally {
+    await pg.evaluate(() => {
+      if (window.__estimate) StorageManager.prototype.estimate = window.__estimate;
+    });
+  }
   check(pillOnMemories && !noticeWithPill && pillAfterNote === 0 && noticeAfter.replace(/\s+/g, ' ').trim() === 'Room for new photos and videos is running low. OK',
     `tend tabs T37: on Memories the storage notice waits while the bar's Edit pill is up, and shows in its own words once the pill goes (${JSON.stringify({ pillOnMemories, noticeWithPill, pillAfterNote, noticeAfter })})`);
   check(pillUp && pillOnMemories && pillAfterNote === 0,
