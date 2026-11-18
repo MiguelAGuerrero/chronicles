@@ -190,10 +190,34 @@ local fixes):
   and back, 320 px and 200%, a link and a reload on `/into`). Test-first by history (`check:test-first`, 16 of 16).
 - **Moved journeys:** subtypes (XS24 is WI3 now), small-places, marks, walk (E17 through the page), tabs (U4), complexes
   (CX10 with WI15) open the page; nudge checks WI11. `complexes audit 13` and `25` read `IntoPage.tsx`.
-- **Not run:** the cold find (WI2's reviewer half) and the UI review: the session had no subagent tool. The pictures are
+- **Not run (then):** the cold find (WI2's reviewer half) and the UI review: the session had no subagent tool; both ran
+  on Nov 18, below. The pictures are
   the `into` journey's `into-*` shots; WI2's own check (ink, words, chevron, 48 pt; the page's rows findable) passes.
 - **Known:** a reminder that fires while the page is up on a walk finds no place in front (the walk screen is not
   focused and the recording bar is over the tabs only), so on the web it goes to a notification, as under a replay or a
   day over the tabs (`.claude/rules/explore-marks.md`, "Remind me here"). Left for the owner; not filed.
 - **Not audited** (`/audit` is the owner's to ask). Native has never run on a device: five items in
   `docs/NATIVE_UNVERIFIED.md`, "Navigation and tabs".
+
+## Record: the review (Nov 18)
+
+- **Ran:** the cold find (WI2's reviewer half: someone told only "turn off ghost towns" and "turn on waterfalls", from
+  the pictures alone) and the UI review of the page's pictures (`into-*`, `subtypes-what-im-into*`). Nine findings; the
+  owner's four calls and five local fixes, each a criterion (WI17-WI25), each test committed failing first.
+- **Fixed, the owner's calls:** 1. an indented row at the top showed no kind (Amusement parks in `into-page-end`):
+  the pinned heading names the kind as its second line (WI17); 2. a kind row did not say which subtypes were off: a
+  muted line names them (WI18); 3. the walk drawer's row sat under "This walk": its own section, "Every walk", after the
+  walk's settings (WI19; the ready bar's stays under "Walk settings", which claims no walk); 4. Back did not say where it
+  went from the walk: "‹ Walk" (WI20).
+- **Fixed, local:** 5. at 200% labels broke mid-word ("mosaic / s", "Fountai / ns") and wrapped rows ran together: rows
+  padded, and at large text a smaller indent and margins and no icons (WI21; the shot is a CSS zoom of 2 on 390 px, 195
+  CSS px wide); 6. a sliver of the outgoing heading ("Histo…", "Cultu…") above the pinned one on the web: pushed out,
+  those under it hidden (WI22); 7. Complexes' rows looked like headings: an icon each and the kind rows' text start, and
+  headings at 17 px (WI23); 8. rows passing under a pinned heading looked cut off: a hairline under it while stuck
+  (WI24); 9. the structures picture never scrolled and the piers picture caught rows with no switch: every picture is
+  taken after the scroll settles, each row in view checked for its switch; the switch-less rows were mid-scroll paint,
+  never seen settled (WI25).
+- **Left:** none. Not changing: Amusement parks under Zoos and aquariums (the owner's call of Nov 18).
+- **Passed:** WI17-WI25 by `src/lib/__tests__/explore/intoReview.test.ts` (WI17-WI23) and the `into` journey (WI17-WI25),
+  `subtypes` (WI25). Native has never run on a device: two more items in `docs/NATIVE_UNVERIFIED.md`, "Navigation and
+  tabs" (the heading's second line, Back's "Walk").
