@@ -96,3 +96,7 @@ UI code on both platforms: React Compiler lint rules, react-native-web differenc
   box is open: react-native-web's Modal (the note page over the planner) traps for itself, with focus brackets outside its
   content. Focus is given back on close only when it fell to the page and the candidate is still drawn: a tile chosen
   while a side card closes keeps it.
+- **An area's card gives focus back to its area's tile first** (tend explore audit 40): `useFocusReturn(atlasTileId(key))`
+  looks up the tile's `nativeID` (react-native-web's `id`) as it closes, then the opener. A card opened through Next door
+  is keyed by the new area, so its opener was the first area's tile: focusing that scrolled the row back to it while the
+  new area stayed selected.

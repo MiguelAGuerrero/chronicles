@@ -45,3 +45,6 @@ export function trapStep(from: TrapFrom, count: number, back: boolean): number |
   if (back && from.before <= 0) return count - 1;
   return null;
 }
+
+/** The `nativeID` of an area's tile in the row, where its card gives focus back as it closes (tend explore audit 40). */
+export const atlasTileId = (key: string) => `atlas-tile-${key}`;

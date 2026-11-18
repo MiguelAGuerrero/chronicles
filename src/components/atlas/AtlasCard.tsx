@@ -10,6 +10,7 @@ import {
   type AtlasArea, type Familiarity,
 } from '../../lib/atlas/atlas';
 import type { CategoryId } from '../../lib/discovery/types';
+import { atlasTileId } from '../../lib/atlas/focusOrder';
 import { focusOn, useFocusReturn, useFocusSwap, useFocusTrap } from '../../lib/focus';
 import { formatDistance } from '../../lib/format';
 import { useReducedMotion } from '../../lib/motion';
@@ -145,7 +146,9 @@ export function AtlasCard(props: {
     };
   }, []);
   // Closing the card gives focus back to what opened it, the row's tile (tend explore 27): read before it moves into the card.
-  useFocusReturn();
+  // The tile of the area it shows comes first: a card opened through Next door gives it to that area's tile, the one
+  // selected, never the first area's (tend explore audit 40).
+  useFocusReturn(atlasTileId(area.key));
   // Focus moves into the card as it opens, so a screen reader and a keyboard start at its name.
   const nameRef = useRef<React.ComponentRef<typeof Text>>(null);
   useEffect(() => {

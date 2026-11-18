@@ -50,12 +50,18 @@ function giveBack(candidates: unknown[]) {
 /**
  * A surface over the page (the area card, the walk planner) gives focus back to what opened it as it closes, as
  * react-native-web's Modal and the HTML dialog element do (tend explore 27). What had focus as it mounted is the opener:
- * call this before the surface moves focus into itself. On the web only; a phone has no focused element to read.
+ * call this before the surface moves focus into itself. `preferId`, an element's `nativeID`, comes before the opener when
+ * it is drawn (the tile of the area a card shows, tend explore audit 40). On the web only; a phone has no focused element
+ * to read.
  */
-export function useFocusReturn() {
+export function useFocusReturn(preferId?: string) {
+  const prefer = useRef(preferId);
+  useEffect(() => {
+    prefer.current = preferId;
+  }, [preferId]);
   useEffect(() => {
     const opener = focusedNow();
-    return () => giveBack([opener]);
+    return () => giveBack([prefer.current && web() ? document.getElementById(prefer.current) : null, opener]);
   }, []);
 }
 

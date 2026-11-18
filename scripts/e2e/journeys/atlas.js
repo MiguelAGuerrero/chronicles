@@ -292,14 +292,22 @@ async function checks(h) {
         let into = null;
         let kept = null;
         const planStops = [];
+        let ring41 = null;
         let back = null;
         const opener = has ? await plan.getAttribute('data-testid') : null;
         if (has) {
-          await plan.click();
+          // tend explore audit 41: opened from the keyboard (Enter), so the planner's picture shows the ring on its title.
+          await plan.focus();
+          await page.keyboard.press('Enter');
           await page.waitForSelector('[data-testid=planner]', { timeout: 10000 });
           // tend explore 27: the planner moves focus into itself as it opens, as the card does.
           await page.waitForTimeout(400);
           into = await focused(page);
+          // tend explore audit 41 (WCAG 2.2, 2.4.7 Focus Visible): from the keyboard the title shows the focus ring.
+          ring41 = await page.evaluate(() => {
+            const a = document.activeElement;
+            return a ? { visible: a.matches(':focus-visible'), outline: getComputedStyle(a).outlineStyle } : null;
+          });
           await shot27(page, shot, 'tend-explore-27-planner-open');
           // tend explore 27: and Tab and Shift+Tab stay inside it.
           kept = true;
@@ -320,6 +328,8 @@ async function checks(h) {
         check(into && into.id === 'plan-title' && back && back.id === opener,
           `tend explore 27: the planner takes focus as it opens, at its title, and gives it back to ${opener} as it closes (${JSON.stringify({ into, back })})`);
         check(kept === true, `tend explore 27: Tab and Shift+Tab stay inside the planner (${kept})`);
+        check(into && into.id === 'plan-title' && ring41 && ring41.visible && ring41.outline !== 'none',
+          `tend explore audit 41: the planner opened by Enter shows the ring on its title (${JSON.stringify(ring41)})`);
         // tend explore audit 38 (WCAG 2.2, 2.1.1 Keyboard): the trap keeps every stop the browser has, the map's credits (a <summary>) too.
         check(planStops.includes('summary'), `tend explore audit 38: Tab inside the planner reaches the map's credits (${[...new Set(planStops)].join(' > ')})`);
       }
