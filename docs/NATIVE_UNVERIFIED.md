@@ -514,6 +514,7 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 - [ ] **Do:** walk a loop and wander 80 m off it, then return. **Expect:** the quiet re-route rejoins the planned loop and its way back; it does not take the streets the way out used. (WP9, WP20, audit 1)
 - [ ] **Do:** open an area card, open the planner over it, close the planner. **Expect:** the tabs stay hidden under the card, and come back when the card closes; the Back button closes the planner first. (audit 12)
 - [ ] **Do:** with a walk already recording and a destination set, Start a route from the planner. **Expect:** that walk is routed (no second walk starts) and the earlier destination is replaced. (WP19)
+- [ ] **Do:** on a 320-pt-wide phone (an iPhone SE in Zoom display, or a small Android) at the default text size, open the planner and look at its actions and settings; choose "Where there is some"; then raise the text size to the largest. **Expect:** "Suggest different routes" and Start share one row, Start on the right; "Loop, back where you start" and "One way" share one pill; density's three choices stand as one column with a 12 corner, the chosen fill clipped clean at the corners and no line across or beside it; at the largest size a label wraps inside its own choice or button and nothing is lost (`tend explore 28`, audits 42-44; measured only in the web e2e, in Inter).
 
 ## Places worth the stop (PW1-PW19, decision 0103)
 

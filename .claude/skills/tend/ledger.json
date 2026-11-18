@@ -69,7 +69,6 @@
       "SW",
       "TB",
       "TD",
-      "TO",
       "TP",
       "TX",
       "UC",
@@ -83,9 +82,9 @@
       "XS"
     ],
     "commits": {
-      "growth": 180,
-      "refinement": 584,
-      "other": 643
+      "growth": 178,
+      "refinement": 596,
+      "other": 636
     },
     "areas": {
       "rough": [
@@ -132,7 +131,7 @@
       "web"
     ],
     "open": {
-      "openT": 2,
+      "openT": 3,
       "phoneT": 4,
       "openG": 0
     },
@@ -150,8 +149,8 @@
     "explore": {
       "state": "rough",
       "swept": "2026-11-18",
-      "main": "9992f1df3a41cbe2b21f207bf180e5c321bb2c44",
-      "note": "No sweep (lenses 1-7 not run): aimed at DEFERRED's [loop] medium \"Focus on the web\". Built tend explore 27 (focus into the area card and the planner, a Tab trap while the card is full screen, focus back to the opener; the far question takes focus on Walk now and gives it back to Walk to) and the review's U1-U6 as tend explore audits 36-41 (the trap stands aside for a modal above it, wraps only at its ends, focus given back only from the page and to a drawn element, the closing card prefers its own area's tile, the keyboard ring pictured). Filed [loop]: the planner wrapping at 390 and 320 (medium), the siblings with no focus handling (low), Escape in the note page over the planner (low, to verify); [owner] low: Walk now's spoken hint with the distance."
+      "main": "ea3bba0987dc9c387930c669c5e8478cb56d6faf",
+      "note": "No sweep (lenses 1-7 not run): aimed at DEFERRED's [loop] medium \"At 390 and 320 px the walk planner's settings wrap\". Built tend explore 28 (density's three choices a column in the same pill, the mode and cars pills and the actions row unwrapped, Start kept on the right) and the ux-reviewer's U1-U3 as tend explore audits 42-44 (the column's corner 12, dividers at 3:1, none beside the chosen fill). U4 a line in walk-planner.md; filed [loop] low: the Outing page's loop or one-way choice wraps at 320 (U5, handed to the Outing session)."
     },
     "navigation": {
       "state": "rough",

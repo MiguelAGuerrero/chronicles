@@ -1,0 +1,40 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "At 390 and 320",
+        "--reason",
+        "built in tend explore 28: the walk planner fits a 320 px phone: each choice one row or one column, Start beside Suggest different routes (and its review, tend explore audit 42-44)"
+      ],
+      "target": "sha256:1bee6b73b675fe09bfac15369122e956c3a684b7a9b30a5e0a6f66e6c2b6c7be"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 18, `/tend explore --deploy=main`, the walk planner at 320 and 390 px** (opened from `ea3bba09`, rebased on `6f9cc821`; no sweep, lenses 1-7 not run; aimed at DEFERRED's `[loop]` medium \"At 390 and 320 px the walk planner's settings wrap\"; the faster lane of decision 0181).\n- `tend explore 28`: nothing on the planner wraps at 320 px at the default text size. Density's three choices, too long for one row at any padding, stand as one column in the same pill, one choice a line; \"Loop, back where you start\" and \"One way\" keep one pill (padding 10, no wrap); \"Suggest different routes\" and Start keep one row, Start the one primary action on the right (padding 12, the long one gives way first). No words changed, no control removed. A column over matrix 15's menu: the choices stay in view with no second tap and no Modal whose Escape the planner also hears. Precedent: Google Maps' route options one switch a row (support.google.com/maps/answer/144339, verified); Komoot's and AllTrails' type lists from memory, unverified.\n- The review (one round, the `ux-reviewer`; pass, five low): `tend explore audit 42` (the column's corner 12, the row pills 22), `audit 43` (dividers in the outline's colour, 3.7:1, WCAG 1.4.11), `audit 44` (no divider beside the chosen fill; \"Where there is some\" chosen pictured at 320), in one commit; U4 (200% text not pictured; the web stand-in is a 160 px viewport) a line in `walk-planner.md`; U5 (the Outing page's same choice wraps at 320) handed to the Outing session and filed `[loop]` low under \"Plan an outing\".\n- Filed: that `[loop]` item; a native check under \"Walk planner\" (the layout at 320 pt and the largest text). Removed: the DEFERRED item built.\n- Journeys: `planner` (the new checks, seen failing first), `launch`. Typecheck, lint, `npm test` (MT7's timing missed once under a concurrent e2e and passed alone). Not run: the sweep's lenses and the balance's evolve. Nothing here has run on a phone: the layout is shared by native and measured only on the web.\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Walk planner"
+      ],
+      "body": "- [ ] **Do:** on a 320-pt-wide phone (an iPhone SE in Zoom display, or a small Android) at the default text size, open the planner and look at its actions and settings; choose \"Where there is some\"; then raise the text size to the largest. **Expect:** \"Suggest different routes\" and Start share one row, Start on the right; \"Loop, back where you start\" and \"One way\" share one pill; density's three choices stand as one column with a 12 corner, the chosen fill clipped clean at the corners and no line across or beside it; at the largest size a label wraps inside its own choice or button and nothing is lost (`tend explore 28`, audits 42-44; measured only in the web e2e, in Inter).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Plan an outing"
+      ],
+      "body": "- [loop] The Outing page's \"Loop, back where you start / One way\" choice (`outing-mode`, `src/components/outing/OutingDrawer.tsx` ~l.135-146 and its `segment`/`segBtn` styles, shown on the Outing page) disagrees with the walk planner's same words: equal halves (`flex: 1`, padding 8) wrap the long label to two lines at 320 px (about 128 px of text width against about 190 needed), and its outline is `theme.line`, about 1.3:1 (WCAG 2.2, 1.4.11). The planner's `Segment` (content-sized, padding 10, a `theme.edge` outline, radius 22) is the model, ideally one shared component; no words change. Handed to the Outing session (branch `claude/determined-wright-yg1fq9`), which is changing that file; filed in case it does not take it (ui-patterns, \"Nothing wraps on a 320 px phone at the default text size\"; H4; the ux-reviewer of `tend explore 28`, U5, Nov 18, low)\n"
+    }
+  ]
+}
