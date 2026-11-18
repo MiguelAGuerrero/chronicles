@@ -109,3 +109,36 @@ test('fix mark-overlap audit 5: a row leaves 8 px between its tap rooms', () => 
   const out = declutterMarks([mark('a', 0, 'A'), mark('b', 0, 'B')], Z);
   assert.ok(Math.abs(headX(out[0]) - headX(out[1])) >= HIT_W + 8);
 });
+
+/** The closest two heads stand, on screen, by the larger of their two gaps (they clear on either axis). */
+const closest = (heads: [number, number][]) => {
+  let best = Infinity;
+  for (let i = 0; i < heads.length; i++)
+    for (let j = i + 1; j < heads.length; j++) best = Math.min(best, Math.max(Math.abs(heads[i][0] - heads[j][0]), Math.abs(heads[i][1] - heads[j][1])));
+  return best;
+};
+
+test('fix mark-overlap audit 7: a chain never leaves two heads closer than their points were', () => {
+  for (const gap of [20, 30, 40]) {
+    const line = [0, 1, 2, 3, 4, 5, 6, 7].map((k) => at2(`m${k}`, k * gap, 0));
+    const out = declutterMarks(line, Z);
+    assert.ok(closest(out.map((m) => onScreen(m, 0))) >= Math.min(gap, HIT_W), `gap ${gap}: ${JSON.stringify(out.map((m) => m.spread?.dx ?? 0))}`);
+  }
+});
+
+test('fix mark-overlap audit 8: a row never stands in the tap room of a mark it could not take in', () => {
+  const cases = [
+    [at2('a', 0, 0), at2('b', 0, 0), at2('c', 0, 0), at2('d', 0, 0), at2('e', 90, 0)],
+    [at2('a', 0, 0), at2('b', 4, 0), at2('c', 76, 0)],
+  ];
+  for (const marks of cases) {
+    const out = declutterMarks(marks, Z);
+    const heads = out.map((m) => onScreen(m, 0));
+    for (let i = 0; i < out.length; i++)
+      for (let j = i + 1; j < out.length; j++) {
+        if (!out[i].spread && !out[j].spread) continue;
+        // Two of one row stand 56 apart; a row and a mark beside it must clear too.
+        assert.ok(clearOf(heads[i], heads[j]), `${out[i].id} and ${out[j].id}: ${JSON.stringify(out.map((m) => m.spread ?? null))}`);
+      }
+  }
+});

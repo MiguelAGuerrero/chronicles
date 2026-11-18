@@ -60,7 +60,8 @@ Places of interest from the tiles, marks, checklists and finds (Explore), and Re
   points and 12 px above the highest, each on a thin leg to a small square on its own point (`spread`, drawn by
   `MarkPinView`; a square, never the walker's round dot, ux U1; the web marker's offset is `[dx, 6 + dy]`, native's
   `[dx, dy]`). A row that lands on another mark takes it in while it stays short (`ROW_MAX` 4, every point within a
-  tap room of its middle, audit 2); past that the overlap is left as the points have it. Grouped in id order, so the
+  pitch of its middle, audit 2); a row that still lands on a mark it could not take in goes back to its points, so a
+  spread is never worse than the points (audits 7, 8: two full rows of a chain interleaved). Grouped in id order, so the
   marks' order never changes it (audit 3). The outer marks write their names beside the head, outward; a middle one's
   name is only spoken; names are then judged where the heads stand. Never a count on the row (nothing is a score),
   never one hidden. A found mark stays on its point. The web moves a marker in place when only its spread changes

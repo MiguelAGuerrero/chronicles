@@ -70,7 +70,8 @@ const byId = <T extends { id: string }>(a: T, b: T) => (a.id < b.id ? -1 : a.id 
  * Marks whose tap rooms would overlap at this zoom stand side by side in one row instead, as Leaflet's spiderfy fans a
  * pile on legs to its point (never a count, nothing hidden): the row centred on its points, a little above the highest,
  * in the order the points run left to right. A row that would land on another mark takes it in, while the row stays
- * short (`ROW_MAX`, every point within a tap room of its middle); past that the overlap is left as the points have it.
+ * short (`ROW_MAX`, every point within a pitch of its middle); a row that still lands on a mark it could not take in
+ * goes back to its points, so the overlap is left as the points have it.
  * Grouped in id order, so the order the marks arrive in never changes the layout (audit 3). Tens of marks at most
  * (`visibleMarks`: 8 near, 20 on a route), so the pairwise passes stay cheap.
  */
@@ -87,16 +88,24 @@ function spreadRows(input: readonly { id: string; x: number; y: number }[]): Map
     if (g.length > ROW_MAX) return false;
     const cx = g.reduce((t, p) => t + p.x, 0) / g.length;
     const cy = g.reduce((t, p) => t + p.y, 0) / g.length;
-    return g.every((p) => Math.abs(p.x - cx) <= HIT_W && Math.abs(p.y - cy) <= HIT_W);
+    return g.every((p) => Math.abs(p.x - cx) <= PITCH && Math.abs(p.y - cy) <= PITCH);
   };
+  const clash = (a: { x: number; y: number }, b: { x: number; y: number }) => Math.abs(a.x - b.x) < HIT_W && Math.abs(a.y - b.y) < HIT_H;
   for (;;) {
     const placed = groups.map(place);
     let merge: [number, number] | null = null;
     for (let g = 0; g < placed.length && !merge; g++)
       for (let h = g + 1; h < placed.length && !merge; h++)
-        if (placed[g].some((a) => placed[h].some((b) => Math.abs(a.x - b.x) < HIT_W && Math.abs(a.y - b.y) < HIT_H)) && short([...groups[g], ...groups[h]]))
-          merge = [g, h];
+        if (placed[g].some((a) => placed[h].some((b) => clash(a, b))) && short([...groups[g], ...groups[h]])) merge = [g, h];
     if (!merge) {
+      // A row still standing in the tap room of a mark it could not take in goes back to its points, the last first, until
+      // none does: a spread is never worse than the points (fix mark-overlap audits 7, 8).
+      const lands = (g: number) => placed[g].length > 1 && placed.some((other, h) => h !== g && placed[g].some((a) => other.some((b) => clash(a, b))));
+      for (let g = placed.length - 1; g >= 0; g--) {
+        if (!lands(g)) continue;
+        placed.splice(g, 1, ...placed[g].map((s) => [{ ...s, x: s.p.x, y: s.p.y, i: 0 }]));
+        g = placed.length;
+      }
       const out = new Map<string, MarkSpread>();
       for (const row of placed) {
         if (row.length < 2) continue;
