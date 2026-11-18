@@ -35,8 +35,8 @@ Shape: longer holds and a steady walker, with no new motion; the new control is 
   never by a count or a bar
 Precedent: Google Photos memories advance on a tap and pause on touch-and-hold (verified); Apple Photos memories and Relive show a
   timeline to scrub (from memory, unverified), which here would be a progress bar (RR19)
-Criteria: RY1-RY20 below; RY18 is the gate's
-Open: none (the owner's calls are in Decisions)
+Criteria: RY1-RY22 below; RY18 is the gate's, RY21 and RY22 the steward's
+Open: the owner's leanings for later slices (Decisions) have not been through the gate: each is gated before its own spec
 ```
 
 ## Decisions
@@ -46,11 +46,12 @@ Open: none (the owner's calls are in Decisions)
 - Nov 18, the owner: **a skip ahead**: "a chevron that goes to the next moment where the controls for the replay exist".
 - Nov 18, the owner: **the grid is kept** for a moment of several pictures (0123, MS17): "a stack is supposed to represent a
   multifaceted capture of a singular moment", shown as a grid "to exemplify that"; it holds longer.
-- Nov 18, the owner, for later slices (recorded here so they are not lost; each gets its own spec and decision record):
+- Nov 18, the owner's leanings for later slices, recorded here so they are not lost. None is settled by this spec: each goes
+  through `/vision` before its own spec, and none amends RR11, RR19, MS17 or 0169 until its own decision record (the steward's S7):
   - a break is a pull-back and a slide across a dotted hop, with no dim;
   - a photo or video stays behind both on its pin and in a stack at the edge, one entry for each moment, which grows, the oldest
     dropping off when it would leave the screen (amends RR11's "the last three");
-  - the replay flows in from the whole walk and closes on it, with what was kept on it;
+  - the replay flows in from the whole walk and closes on it, with what was kept on it and what was passed;
   - a moment's videos and voice memos play one after another, not in the grid, and tapping into a stack is a slideshow;
   - captions of what the phone read, in the replay, under memos and under videos (extends 0169, which covers memos only).
 - Audit of the direction, Nov 18 (`docs/research/replay-ceremony-direction-audit.md`), accepted into this slice: notes were still
@@ -65,6 +66,10 @@ Open: none (the owner's calls are in Decisions)
   **Unverified**.
 - **Relive** (iOS, Android): a route replayed as a video with photos popping up along it, and a scrub bar under it. The scrub bar
   is a counter-example here (RR19: no progress bar). Source: from memory, unverified. **Unverified**.
+- **Story players** (Instagram and others): a tap on the right goes to the next story, under a bar of segments that fill. The
+  segments are a counter-example (RY18: they count). Source: from memory, unverified. **Unverified**.
+- How long a photo should stay has no verified precedent: people complain that Apple's memories give each photo "only a few seconds"
+  with no way to lengthen it (seen through search only, `docs/research/replay-cinematography.md`).
 
 ## Criteria
 
@@ -84,7 +89,9 @@ Open: none (the owner's calls are in Decisions)
 6. **RY6** After a voice memo ends the walker stands 1 s before moving on. After a video ends its card stands 1 s before it shrinks.
    (Today 0.4 s and none.)
 7. **RY7** A note's or memo's bubble leaves when the next photo, grid or video card opens, or when a break begins, if that comes
-   before RR9's 9 s or a fourth bubble. A memo's bubble never leaves before the memo has played (audit 1).
+   before RR9's 9 s or a fourth bubble; but a note's bubble is never taken away before it could be read: it stays at least 1.5 s
+   plus 0.3 s a word (of the lines it shows) after it is fully shown, over the card if one has opened. A memo's bubble never leaves
+   before the memo has played (audit 1). (The steward's S1.)
 
 ### The walker's pace
 
@@ -101,7 +108,9 @@ Open: none (the owner's calls are in Decisions)
 
 12. **RY12** The owner's task, "skip ahead to the next moment". Finding criterion: while the path plays, the replay's row of controls
     has a third button, beside Skip, in the same ink and shape as Skip and Hold, showing a chevron that points forward. It is at least
-    44 pt wide and tall, and a screen reader calls it "Next moment". Someone who was not told where it is finds it there.
+    44 pt wide and tall, and a screen reader calls it "Next moment". Someone who was not told where it is finds it there, and does
+    not take it for Skip: in the cold find, "go to the next moment" lands on the chevron and "leave for the card" on Skip. If either
+    fails, the button says the word "Next" in the same pill. (The steward's S5.)
 13. **RY13** Pressing it shows the replay as it would be just before the next moment begins (0.45 s before): the walker at that
     moment's place, the clock at the time you arrived there, the trace drawn up to there, and every moment passed over in its place
     on the map and in the pile. The moment then plays as it would have.
@@ -111,11 +120,20 @@ Open: none (the owner's calls are in Decisions)
 17. **RY17** When no moment lies ahead (after the last one, or on a walk with none), the button is not shown. Skip is the way to the
     card.
 18. **RY18** Restraint (the gate's): nothing comes with the button that counts or measures: no number of moments, no "N of M", no
-    progress bar or dots, during the path or after a press (RR19 stands).
+    progress bar or dots, during the path or after a press, and nothing a screen reader is told after a press counts either (RR19
+    stands).
 19. **RY19** Every way into a replay plays by these rules and shows the button the same way: a walk's first replay (from the walk
     screen and from the recording bar), a re-watch (Chronicle's walks and Memories' "Relive"), a link reopened, and the day's replay,
     where a moment is each of the day's moments, on a walk or not.
 20. **RY20** The screen reader's path (RR17) is as it was: it steps through the moments with Continue and has no such button.
+
+### The lows stay in (the steward's S2, S3)
+
+21. **RY21** A press never edits out what lay between. A place passed without stopping that the press jumps over whispers on
+    landing, beside the place, for its usual time (more than two on one walk as the one line, RP19). When a break lies between where
+    you were and where you land, "N min later" shows under the clock on landing, N the time from one to the other.
+22. **RY22** A whisper never starts while a photo, grid or video card is up: it waits until the card has shrunk and then shows for
+    its full time. (A card now stands longer than a whisper lasts.)
 
 ## Every surface
 
@@ -127,7 +145,7 @@ control. `StepThrough` (a screen reader on, native only) draws no stage: RY20. T
 
 ## Later slices
 
-In the order the audit proposed: breaks without the dim; the camera (a wider walking zoom, holding then re-framing, a steady speed
+The owner's leanings, in the order the audit proposed, each to be gated first: breaks without the dim; the camera (a wider walking zoom, holding then re-framing, a steady speed
 on screen), which first needs the owner's call on how the map is driven; opening from and closing on the whole walk; what stays
 behind (the growing stack, then pictures on pins); captions in the replay, memos then videos; a moment's videos and memos in turn.
 Left out of this slice on purpose: the map dimming under a photo and the slow drift of a held photo, which two reviewers disagreed

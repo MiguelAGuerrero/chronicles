@@ -115,6 +115,30 @@ The button's press and the seek in `useCeremonyClock` on iOS and Android; the lo
 (a memo's 1 s stand, a video card's 1 s stand); the screen kept awake for minutes; the screen reader's steps unchanged (RY20). Each
 becomes a `**Do:** … **Expect:** …` item. Native has never run on a device.
 
-## The steward's findings
+## The steward's findings (Nov 18), triaged
 
-(Triage follows the steward's pass, below.)
+Report-only, on the spec and this plan: eight drifts, two of tone, no breach.
+
+- **S1 a note taken away before it can be read: accepted.** RY7 now keeps a note's bubble at least 1.5 s plus 0.3 s a word after
+  it is fully shown, over a card if one has opened (cards already rest above the bubbles' room). The walker's wait (RY5) stays brisk.
+- **S2 a press jumps silently over the lows and the breaks: accepted.** RY21. The frame takes where a press came from, so a passed
+  place whispers on landing and a break between shows "N min later"; still a pure function of the time and the jump.
+- **S3 a whisper lives and dies under a longer card: accepted.** RY22.
+- **S4 a run of photos ranks photos by their order: the owner's call.** As written (RY3), every photo from the sixth on in a town
+  walk stands at 55%. The steward's shape: tighten only photos at one stop (12% each, the last at full time), and a photo reached
+  after any stretch gets its full 4.5 s. Recommended: the steward's. Asked below.
+- **S5 a wordless chevron beside a near-synonym: accepted into RY12** as a second cold-find task, with the word "Next" as the
+  fallback. The glyph itself is the owner's call, asked below.
+- **S6 on a walk with one moment or none the button never appears: accepted.** The deploy's live task and the owner's pictures use
+  a walk with three or more moments, and "Where to find it" says it shows only while a moment lies ahead.
+- **S7 "Later slices" recorded calls the gate has not seen: accepted.** They are now headed as leanings, each gated before its spec.
+- **S8 the cap's record put off: accepted.** Decision 0200 is written with this plan.
+- **S9 precedent: accepted.** Story players' segments are recorded as a counter-example; the hold lengths are said to have no
+  verified precedent.
+- **Silent, kept as they are and said here:** no ceiling on length (the owner's call; memos and videos were never capped); no "back
+  a moment" (a press mid-memo cuts it, as Skip does; deferred); the jump is not animated even when the clock leaps hours (RY21 says
+  how much later it is). **Accepted:** RY18 covers what a screen reader is told.
+
+Tests added for them, in `pace.test.ts`: RY7 (a six-word note before a card stays its reading time), RY21 (a press over a passed
+place and over a break: the frame on landing has the whisper and the line), RY22 (a whisper due under a card starts when the card
+has gone). `Showing.frame(ms, from?)` takes where a press came from; the clock hook keeps it until its lines have run.

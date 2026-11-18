@@ -509,7 +509,7 @@ const RENAMED = {
 };
 
 const IN_PROGRESS = {
-  // Replay pace (RY1-RY20): the spec and plan are with the owner; tests first follow the go-ahead (Nov 18).
+  // Replay pace (RY1-RY22): the spec and plan are with the owner; tests first follow the go-ahead (Nov 18).
   'replay-pace': { branch: 'claude/funny-bohr-ztvwgv', since: '2026-11-18' },
 };
 
