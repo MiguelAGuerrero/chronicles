@@ -22,6 +22,16 @@ The owner's answers, Nov 18:
 - **Measure the data first.** The closed lists of both facets are drawn from a count of every `shop` and `craft` value in the
   US, and brought to the owner before the contract changes.
 
+## Widened the same day
+The owner: "shops are one type of store, but attractions and galleries and other sorts of stops, museums, things you can enter are
+also under consideration." Their answers:
+- **One model for every stop.** A single "kind of place" facet covers shops, galleries, museums, gardens, monuments and the rest;
+  what a shop sells and how it sells it appear once shops are picked; today's five attraction chips are replaced by it.
+- **"Go inside" is its own facet**: gone inside, looked at, or out in the open, assigned to each kind by rule.
+- **Widen the count** to every OpenStreetMap value of `tourism`, `historic`, `leisure` and `amenity`.
+- The composer's form (the owner: "we might opt to using a step form like a wizard, but that decision depends on how other apps
+  handle this") is decided from precedent with mocks, once the lists' sizes are known.
+
 ## Consequences
 - chronicles-data counts every `shop` and `craft` value, and the second-hand among each, in its OpenStreetMap run (its
   `docs/shop-counts/spec.md`, SK1-SK8, on the branch `claude/determined-wright-yg1fq9` there). OpenStreetMap cannot be read from a

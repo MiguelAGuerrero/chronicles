@@ -2,7 +2,7 @@
      concept doc yet, and the doc wins once it exists. Nothing here is built. It amends specs/quick-circuit (QC2, QC4, QC14) and
      specs/outing-journey (OJ11-OJ15) when it lands, and needs a new version of chronicles-data's stores contract. -->
 
-# Shop facets: the shops worth browsing, by what they sell and how they sell it (SHF)
+# Stop facets: every stop of an outing by the same facets; shops by what they sell and how (SHF)
 
 Nov 18, 2026 · @Miguel Guerrero
 
@@ -10,6 +10,12 @@ The owner: "I want to ensure that we're comprehensive in our shop listing, becau
 specific. And so we need to ensure that refinement makes sense there rather than it being ad hoc, because each thing you would like
 to see is a facet of our data." Asked three things, they chose: **shops worth browsing**; **two facets that narrow**; and **measure
 the data first** (decision 0219).
+
+**Widened the same day.** The owner: "shops are one type of store, but attractions and galleries and other sorts of stops,
+museums, things you can enter are also under consideration." Asked three more things, they chose: **one model for every stop**
+(a single "kind of place" facet; shop-only refinements appear once shops are picked; today's five attraction chips are replaced);
+**"go inside" as its own facet**; and **widen the count** to every kind of stop. The slug stays `shop-facets`; SHF19 on are the
+widening.
 
 ## Vision
 
@@ -24,8 +30,8 @@ Verdict: aligned if reshaped
 Shape: a count decides which kinds are worth a value and never orders, weights or ranks anything a person sees; no chip says how
   many shops it holds; errands and services are out by kind, not by popularity; a chain stays behind "Include chains"
 Precedent: see "How adjacent apps do it"
-Criteria: SHF1-SHF18 below
-Open: the two lists themselves, after the count
+Criteria: SHF1-SHF28 below, with SHF14a
+Open: the lists themselves, after the count; the composer's form
 ```
 
 ## How adjacent apps do it
@@ -74,6 +80,31 @@ On the page:
   steps. Whichever is chosen, the journeys stay in view or one tap away while choosing, and no step is added before a first
   proposal: the page still proposes as it opens.
 
+Every stop (the widening):
+
+- **SHF19.** Every stop of an outing, a shop, a gallery, a museum, a garden, a monument, a view, is described by one facet, the
+  **kind of place**, a closed list shared by the places pack, the stores pack and the map's own places. One place may hold
+  several kinds (a gallery that sells is a gallery and a shop) and is one stop.
+- **SHF20.** The kinds are the kinds "What I'm into" already switches (57 today, in five groups), with the kinds missing from them
+  added from the count: a gallery is none of them today. One list serves both screens: a kind added here is a switch there.
+- **SHF21.** A second facet says **how a place is visited**: gone inside (a museum, a gallery, a shop, a church), looked at (a
+  statue, a mural, a marker, a view), or out in the open (a park, a garden, a reserve). Each kind is assigned one by a table in
+  the code, recorded kind by kind; a place is never assigned by its name or by anything a crowd says.
+- **SHF22.** The page offers that facet as its own choice of three, beside the kinds: with "Inside" picked, every stop proposed
+  is a place you go into, whatever else is picked. With none picked it does not narrow.
+- **SHF23.** `what` and `how` (SHF1-SHF5) belong to shops alone: their chips appear when Shops is among the kinds picked, or when
+  no kind is picked, and are gone otherwise; a pick made in them is kept if Shops is picked again.
+- **SHF24.** Today's five attraction chips (Art, Culture, Green, History, Views) become the groups the kinds sit under, not
+  values of their own: picking a group picks its kinds, and its kinds can be opened and picked one by one.
+- **SHF25.** Across facets picks narrow, within a facet they widen, for every stop (SHF8 and SHF9 are restated: a bookshop and a
+  garden in one journey are two kinds, so they widen; "Inside" with Green narrows to nothing and says so, SHF11).
+- **SHF26.** The page's first proposal still follows "What I'm into" (OJ12): the kinds switched on there are the kinds picked as
+  it opens, and no step stands before it.
+- **SHF27.** The journeys' leanings ("Among the shops", "Past old places", "Through green", "A bit of each") are drawn from the
+  groups of kinds, by the same table, not from a list of chips kept beside it.
+- **SHF28.** Whether a place can be entered now is never said or implied: no source holds opening hours ("Opening hours aren't
+  known here." stays).
+
 The data:
 
 - **SHF15.** The shops of the map's own tiles serve both facets where their classes say (the fallback, QC14), by one table shared
@@ -105,19 +136,26 @@ Recorded in `docs/research/adjacent-apps.md`, "Compose a plan from several choic
 next question (Komoot asks the sport first because it changes the routing) or where the plan is large and made rarely (a road
 trip of days). Independent filters sit together, on the page or in one sheet, with what is applied left in view.
 
-Read against this product: a destination, what is sold and how it is sold do not depend on each other, an outing is planned often
-and in a minute, and the page's strength is that journeys appear as it opens and change as a chip is tapped. So the draft's
-recommendation is **not a wizard**: keep the page, and when the chips pass two rows move refinement into one sheet ("Refine"),
-with the picks left on the page as removable chips. A wizard would fit a different job, a first-time setup of what you are into,
-which the app already has as its own page. This is a recommendation for the owner's call with mocks, not a decision.
+Read against this product, after the widening: the facets now depend on one another (what a shop sells is asked only once
+shops are among the kinds, SHF23), which is the case where the recorded apps use steps or reveal the next choice only when it
+applies. Against steps: an outing is planned often and in a minute, and the page's strength is that journeys appear as it opens
+(SHF26) and change as a chip is tapped. So three candidates are mocked with the real lists before any is built: the page as it
+is with the dependent chips appearing in place; the page with one "Refine" sheet holding the facets, the picks left on the page
+as removable chips; and two stages (the kind of place, then what applies to it). No recommendation is made until the lists'
+sizes are known; the owner chooses from the mocks.
 
 ## Open
 
-1. **The two lists** (SHF2): after chronicles-data's next OpenStreetMap run reports `osmShopCounts`.
+1. **The lists** (SHF2, SHF20): after chronicles-data's next OpenStreetMap run reports `osmKindCounts` (every value of `shop`,
+   `craft`, `tourism`, `historic`, `leisure` and `amenity` in the US).
 2. **Whether clothes, shoes and jewellery sold new are "worth browsing"** or errands: the owner's, kind by kind, with the count.
-3. **Whether attractions become a facet of the same kind** ("what kind of place") so that the whole page is facets.
+3. **The table of how each kind is visited** (SHF21): a church, a lighthouse, a fort and a cemetery are each arguable; drafted
+   with the lists and shown to the owner.
+4. **The composer's form** (SHF14a), now with facets that depend on one another.
+5. **Where galleries and other new kinds come from**: the places pack is Wikidata alone today, and OpenStreetMap's own galleries
+   and museums are not in it. A contract change in chronicles-data, after the count.
 
 ## Record
 
-Nothing is built in the app. Decision 0219. chronicles-data: shop counts built on its branch `claude/determined-wright-yg1fq9`
-(SK1-SK8, 124 tests), not on its main, so no run has reported yet.
+Nothing is built in the app. Decision 0219, widened the same day. chronicles-data: the counts of every kind of stop are built on
+its branch `claude/determined-wright-yg1fq9` (SK1-SK9, 125 tests), not on its main, so no run has reported yet.
