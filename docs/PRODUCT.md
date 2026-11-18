@@ -190,7 +190,8 @@ recording, and a recording bar brings a minimized walk back.
   **More attractions** (decision 0198): every museum by its type, not only listed ones (Culture alone unless listed,
   whatever its name), nature reserves and wildlife refuges, every kind of garden, amusement, theme and water parks (their
   own row, Amusement parks, under Zoos and aquariums, on by default, from the archive and the map alike), piers
-  and boardwalks (no History unless listed), suspension bridges, national monuments, and natural national monuments such as
+  and boardwalks (no History unless listed), suspension bridges (Bridges; a bridge known only by its type, with no
+  listing, adds nothing to History), national monuments, and natural national monuments such as
   Devils Tower (Natural monuments, under Nature). `npm run places:coverage` measures what
   the app keeps of a town's destinations, for the owner.
 - **Complexes** (CX1-CX16, decision 0147). A named place made of other places (Strawberry Square,

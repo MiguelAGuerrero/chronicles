@@ -1,6 +1,6 @@
 {
  "captured": "2026-11-18",
- "from": "explore-subtypes (decision 0187), re-captured for XS3, XS4, XS12, XS15; the more-attractions audit (decision 0198, audits 1-3) re-captured theme_park, added water_park and contract v6's four classes and v7's natural_monument (audit 18)",
+ "from": "explore-subtypes (decision 0187), re-captured for XS3, XS4, XS12, XS15; the more-attractions audit (decision 0198, audits 1-3) re-captured theme_park, added water_park and contract v6's four classes and v7's natural_monument (audit 18); typed bridges (MA10, contract v8) added suspension_bridge",
  "names": {
   "plain": "Corner Spot",
   "notable": "Old Corner Spot",
@@ -682,6 +682,33 @@
     "markable": true,
     "bars": [
      "art"
+    ]
+   }
+  },
+  {
+   "cls": "suspension_bridge",
+   "plain": {
+    "category": "history",
+    "kind": "structures",
+    "markable": true,
+    "bars": [
+     "history"
+    ]
+   },
+   "notable": {
+    "category": "history",
+    "kind": "structures",
+    "markable": true,
+    "bars": [
+     "history"
+    ]
+   },
+   "hood": {
+    "category": "history",
+    "kind": "structures",
+    "markable": true,
+    "bars": [
+     "history"
     ]
    }
   },

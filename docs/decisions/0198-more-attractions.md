@@ -30,8 +30,13 @@ The owner's calls on the audit, Nov 18:
   a map museum keeps PK2's name rule (audit 2).
 - **A pier or a suspension bridge, "Only when listed"**: a pier the archive holds by its type keeps its row, Piers and
   boardwalks, and adds nothing to the History bar (audit 3); a listed one keeps its listing's class on the data side. The
-  archive's `bridge` mixes listed covered bridges with typed suspension bridges and its feature carries no listing, so
-  bridges stay as they were until a contract change lets the app tell them apart.
+  archive's `bridge` mixed listed covered bridges with typed suspension bridges and its feature carries no listing, so
+  bridges stayed as they were until a contract change let the app tell them apart; contract v8 is that change (below).
+- **Typed bridges, a class of their own** (the owner, Nov 18): contract v8 adds `suspension_bridge`, a suspension bridge
+  known only by its Wikidata type, with no National Register listing (80 in the US); listed and covered bridges stay
+  `bridge`. The app keeps it in the Bridges row under Buildings and structures (the kind and subset of `bridge`), holds it
+  `by_type` (never `recorded`) and gives it no weight in the History bar (`bar: 0`, as a pier), and never takes one
+  unnamed (MA10).
 - **Natural national monuments, "Own subtype under Nature"**: Devils Tower, Muir Woods, Jewel Cave and the like are
   "Natural monuments" under Nature, on, never History (audit 18; contract v7's `natural_monument`).
 - **Places you can't walk to** (a refuge, an amusement park, a national monument as one point deep inside it): "Large open
@@ -42,7 +47,7 @@ The owner's calls on the audit, Nov 18:
 
 ## Consequences
 - chronicles-data contract v6 (its docs/attractions, AT1-AT6): `museum_by_type`, `nature_reserve`, `amusement_park`, `pier`;
-  v5 went to the stores pack; v7 (the audit) adds `natural_monument`. The app ships before the data merges (the rule
+  v5 went to the stores pack; v7 (the audit) adds `natural_monument`; v8 adds `suspension_bridge` (MA10). The app ships before the data merges (the rule
   learned on Nov 17).
 - `PRESENCE_CODE` p8: every area is derived again; p9 for the audit's calls (theme parks, a museum by type's History, a
-  pier's bar, natural monuments), nothing carried.
+  pier's bar, natural monuments), nothing carried; p10 for typed bridges (MA10, `ATLAS_CODE` a14.p10), nothing carried.

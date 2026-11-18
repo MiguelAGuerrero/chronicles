@@ -30,8 +30,11 @@ import { notableBeyondNeighbourhood, notableName } from './notable';
  *     and theme parks under Zoos and aquariums, the map's theme parks moved from Viewpoints (audit 1); a museum by type never
  *     lights History by its name (audit 2); a pier adds nothing to a bar (audit 3); contract v7's natural national monuments
  *     are Natural monuments under Nature (audit 18). Bars and kinds move, so nothing is carried.
+ * p10: typed bridges (specs/more-attractions MA10, the owner's call of Nov 18): contract v8's `suspension_bridge`, a
+ *     suspension bridge known only by its type, is a Bridges place held `by_type` that adds nothing to the History bar; a
+ *     bar moves, so nothing is carried.
  */
-export const PRESENCE_CODE = 'p9';
+export const PRESENCE_CODE = 'p10';
 
 /**
  * PS9, presence-readers audit 2: the codes whose rows stand under this one, read by the atlas (`CARRIED`, `atlas.ts`) and the
@@ -128,6 +131,9 @@ const DEFS = {
   // more-attractions audit 3 (the owner, Nov 18, "Only when listed"): a pier enters by its type (a listed one is the archive's
   // `building_structure`), so it keeps its row but weighs nothing in the History bar.
   pier: { weight: HALF, bar: 0, category: 'history', kind: 'structures', subset: 'piers' },
+  // MA10 (the owner, Nov 18): contract v8's suspension bridge known only by its type, never a listing: the Bridges row of a
+  // listed `bridge`, but it weighs nothing in the History bar, as a pier.
+  typed_bridge: { weight: FULL, bar: 0, category: 'history', kind: 'structures', subset: 'bridges' },
   small_memorial: { weight: QUARTER, bar: QUARTER, category: 'history', kind: 'monuments', subset: 'small_memorials' },
   old_stone: { weight: QUARTER, bar: QUARTER, category: 'history', kind: 'structures', subset: 'old_stones' },
   wayside_shrine: { weight: QUARTER, bar: QUARTER, category: 'history', kind: 'churches', subset: 'wayside_shrines' },
@@ -160,8 +166,8 @@ const DEFS = {
   /** The places archive holds it: it admits only Wikidata items of fixed types and heritage listings. */
   recorded: { weight: 0 },
   /**
-   * more-attractions audits 2 and 18: the archive holds it for its type alone, never a listing (contract v6's
-   * `museum_by_type`, v7's `natural_monument`): it is not `recorded`, and its name never makes it `historic` (the owner,
+   * more-attractions audits 2 and 18, MA10: the archive holds it for its type alone, never a listing (contract v6's
+   * `museum_by_type`, v7's `natural_monument`, v8's `suspension_bridge`): it is not `recorded`, and its name never makes it `historic` (the owner,
    * Nov 18: Culture only for a museum).
    */
   by_type: { weight: 0 },
@@ -347,10 +353,10 @@ export function classesOfOverture(hierarchy: readonly string[]): PresenceClass[]
 }
 
 /**
- * PS1: the places archive's classes (chronicles-data's contract v7, decision 0108; the pinned copy in
+ * PS1: the places archive's classes (chronicles-data's contract v8, decision 0108; the pinned copy in
  * `__tests__/explore/contract`), each to the class it is. Every archive place is `recorded` too (PS6), but a museum by type,
- * and a natural monument, which the archive holds for their type and never a listing: they are `by_type` instead (MA2,
- * more-attractions audits 2 and 18). A class
+ * a natural monument and a suspension bridge by type, which the archive holds for their type and never a listing: they are
+ * `by_type` instead (MA2, more-attractions audits 2 and 18, MA10). A class
  * not here is no place, never guessed.
  */
 const ARCHIVE: Record<string, PresenceClass> = {
@@ -378,7 +384,13 @@ const ARCHIVE: Record<string, PresenceClass> = {
   // Contract v7 (more-attractions audit 18): a national monument Wikidata types only so, that is a natural place; held for
   // its type, so never `recorded` and never History (a listed one keeps its listing's class on the data side).
   natural_monument: 'natural_monument',
+  // Contract v8 (MA10, the owner, Nov 18): a suspension bridge Wikidata types only so, with no National Register listing;
+  // listed and covered bridges stay `bridge`. Held for its type, so never `recorded`, and it lights no History. Never unnamed.
+  suspension_bridge: 'typed_bridge',
 };
+
+/** The archive's classes held for their type alone, never a listing: `by_type`, never `recorded` (MA2, audit 18, MA10). */
+const BY_TYPE: ReadonlySet<string> = new Set(['museum_by_type', 'natural_monument', 'suspension_bridge']);
 
 /** The archive's class names, in the contract's order (PW5's listing, `archivePois.ts`). */
 export const ARCHIVE_CLASS_NAMES: readonly string[] = Object.keys(ARCHIVE);
@@ -398,7 +410,7 @@ export function classesOfArchive(cls: string): PresenceClass[] {
   const c = own(ARCHIVE, cls);
   if (!c) return [];
   // MA2: a museum by type is held for its type, not its listing: no `recorded`, so no History from the record (PK1).
-  return cls === 'museum_by_type' || cls === 'natural_monument' ? [c, 'by_type'] : [c, 'recorded'];
+  return BY_TYPE.has(cls) ? [c, 'by_type'] : [c, 'recorded'];
 }
 
 /** OpenMapTiles' landcover classes and subclasses that are green to a scenic route (SR15): parks and gardens, and woods. */

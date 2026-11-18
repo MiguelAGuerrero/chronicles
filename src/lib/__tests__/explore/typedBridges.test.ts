@@ -23,7 +23,7 @@ const history = (cls: string, names: string[]) => {
   return stepsShown({ steps: {} as never, tally: presenceTally(ringOf(places, null, O).ring, O) } as never, new Set()).history;
 };
 
-test('typed bridges: a suspension bridge by type is a Bridges place that lights no History (MA10)', { todo: 'test first' }, () => {
+test('typed bridges: a suspension bridge by type is a Bridges place that lights no History (MA10)', () => {
   const p = one('suspension_bridge', 'Lambertville Suspension Bridge', at(0, 40));
   assert.ok(p, 'a place: the app knows the class');
   assert.equal(p?.category, 'history', 'the category of a bridge');

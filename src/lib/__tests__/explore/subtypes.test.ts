@@ -59,6 +59,8 @@ const TREE: [string, string, string][] = [
   ['nature_reserve', 'parks', 'nature_reserves'], ['pier', 'history', 'piers'], ['amusement_park', 'viewpoints', 'amusement_parks'], ['museum_by_type', 'culture', 'museums'],
   // more-attractions audit 18 (contract v7).
   ['natural_monument', 'parks', 'natural_monuments'],
+  // Typed bridges (MA10, contract v8): a suspension bridge by type is a Bridges place, as a listed bridge.
+  ['suspension_bridge', 'history', 'bridges'],
 ];
 
 test('XS1: a waterfall, a covered bridge, a fountain and a carousel from the archive show within range and a capture beside each finds it', async () => {
@@ -83,7 +85,7 @@ test('XS3: each archive class of contract v4 maps to one category, kind and subt
     assert.equal(p?.markable, true, `${cls} is a place to find`);
   }
   const sources = JSON.parse(readFileSync(join(__dirname, 'contract', 'sources.json'), 'utf8'));
-  assert.ok(sources.contractVersion >= 4, 'v4 or later (v6 since more attractions)');
+  assert.ok(sources.contractVersion >= 4, 'v4 or later (v6 since more attractions, v8 since typed bridges)');
   assert.deepEqual([...ARCHIVE_CLASS_NAMES].sort(), [...sources.classes].sort());
 });
 

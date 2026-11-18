@@ -104,8 +104,8 @@ test('PW5: each archive class maps to one category and kind; the table is pinned
     concert_hall: ['culture', 'theatres'], observatory: ['culture', 'museums'], carousel: ['culture', 'community'],
     zoo: ['viewpoints', 'attractions'], fire_tower: ['viewpoints', 'viewpoints'], ghost_town: ['viewpoints', 'curiosities'],
     museum_by_type: ['culture', 'museums'], nature_reserve: ['parks', 'parks'], amusement_park: ['viewpoints', 'attractions'], pier: ['history', 'structures'],
-    natural_monument: ['parks', 'nature'],
-  }, 'a new class is a deliberate change to this table (as AG5); contract v2 re-pinned it (RP8, decisions 0109, 0111), v3 too (SP3), v4 too (XS3), v6 too (MA3-MA5), v7 too (more-attractions audit 18)');
+    natural_monument: ['parks', 'nature'], suspension_bridge: ['history', 'structures'],
+  }, 'a new class is a deliberate change to this table (as AG5); contract v2 re-pinned it (RP8, decisions 0109, 0111), v3 too (SP3), v4 too (XS3), v6 too (MA3-MA5), v7 too (more-attractions audit 18), v8 too (MA10, typed bridges)');
   const got = placesFromArchive([pt(-75.19, 40.69, { name: 'Bushkill Park Folly', class: 'folly', src: 'wd', id: 'Q1' }), pt(-75.19, 40.691, { name: 'A shop', class: 'shop', src: 'osm', id: 'n2' })], 'v20261108');
   assert.equal(got.length, 1, 'the shop\'s class is not in the table: left out, never guessed');
   assert.deepEqual([got[0].category, got[0].kind, got[0].markable, got[0].build], ['viewpoints', 'curiosities', true, 'v20261108']);
@@ -252,7 +252,7 @@ test('PW10: a read without the archive never replaces one measured with it; a ri
 });
 
 test('PW10: ATLAS_CODE is bumped past a7; since a8 rows from a6 are read again too (PK7: the bars changed at every level); a9 too (PC13)', () => {
-  assert.equal(ATLAS_CODE, 'a14.p9', 'a14.p9 (the more-attractions audit, theme parks their own row, a museum by type never History, a pier no bar, none carried), a14.p8 (more attractions, decision 0198, none carried), a14.p7 (the antiques, books and second_hand classes beside boutique, carrying p6, decision 0194), a14.p6 (explore subtypes, XS15, decision 0191), a14.p5 (the neighbourhood read-past after normalizeWords, decision 0172, tend presence 1), a14.p4 (small places, SP12, SP13), a13.p3 (storefronts, SF3, SF11), a12 (fix community-park), a11 (neighborhood shapes, HB11), a10 (community parks reads a name as presence does, tend explore T9; a9: community parks), then presence\'s code (specs/presence PR6, specs/presence-readers PS9)');
+  assert.equal(ATLAS_CODE, 'a14.p10', 'a14.p10 (typed bridges, a suspension bridge by type lights no History, none carried, MA10), a14.p9 (the more-attractions audit, theme parks their own row, a museum by type never History, a pier no bar, none carried), a14.p8 (more attractions, decision 0198, none carried), a14.p7 (the antiques, books and second_hand classes beside boutique, carrying p6, decision 0194), a14.p6 (explore subtypes, XS15, decision 0191), a14.p5 (the neighbourhood read-past after normalizeWords, decision 0172, tend presence 1), a14.p4 (small places, SP12, SP13), a13.p3 (storefronts, SF3, SF11), a12 (fix community-park), a11 (neighborhood shapes, HB11), a10 (community parks reads a name as presence does, tend explore T9; a9: community parks), then presence\'s code (specs/presence PR6, specs/presence-readers PS9)');
   for (const level of ['neighborhood', 'town'] as const)
     assert.equal(rowCurrent({ build: 'b1', code: 'a6', level }, 'b1'), false, `${level} rows from a6 are read again`);
 });

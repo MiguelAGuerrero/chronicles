@@ -10,7 +10,7 @@ paths:
 
 Every kind of "What I'm into" may have subtypes, each a switch of its own under it: bridges and mills under Buildings
 and structures, waterfalls under Nature, plaques and time capsules (the small places) and the rest. The archive's classes
-come from chronicles-data's contract (v4 brought the subtypes, its ST1-ST10; v6 more attractions; v7 natural monuments); OpenStreetMap locates a pinned table of them (SL1-SL11, ST4).
+come from chronicles-data's contract (v4 brought the subtypes, its ST1-ST10; v6 more attractions; v7 natural monuments; v8 typed bridges); OpenStreetMap locates a pinned table of them (SL1-SL11, ST4).
 
 - **What a place is stays presence's.** A class carries its parent `kind`, its `subset` (the switch) and its `bar`
   weight (`presence.ts`); `subsetOf(classes)` and `barWeight(classes)` read them; nothing outside presence spells an
@@ -47,7 +47,9 @@ come from chronicles-data's contract (v4 brought the subtypes, its ST1-ST10; v6 
   History too, PK1; a map museum keeps PK2's name rule), nature reserves (subtype Nature reserves under Parks and gardens,
   after Community gardens), amusement, theme and water parks from either source (presence `amusement`, the subtype
   Amusement parks under the kind "Zoos and aquariums", audit 1), piers and boardwalks (subtype under Buildings and
-  structures, `bar: 0`: a typed pier lights no History, audit 3; a listed one is `building_structure`). The archive's
-  `bridge` cannot say listed from typed (the feature carries no listing), so bridges stay as they were. Natural national
+  structures, `bar: 0`: a typed pier lights no History, audit 3; a listed one is `building_structure`). Bridges tell listed
+  from typed by the class (MA10, contract v8, the owner, Nov 18): a listed or covered bridge is `bridge` and lights History;
+  a suspension bridge known only by its type is `suspension_bridge`, presence's `typed_bridge` (`by_type`, `bar: 0`), in
+  the same Bridges row and never unnamed. Natural national
   monuments (contract v7's `natural_monument`, `by_type`) are the subtype Natural monuments under Nature, never History
-  (audit 18). `PRESENCE_CODE` p9, nothing carried. The data ships after the app (the app leaves out a class it does not know).
+  (audit 18). `PRESENCE_CODE` p10 (typed bridges), nothing carried. The data ships after the app (the app leaves out a class it does not know).
