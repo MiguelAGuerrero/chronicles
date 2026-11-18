@@ -570,82 +570,87 @@ async function checks(h) {
         // Pause: positions sent while paused are not recorded, and the clock stops.
         n12.pause = await navOn();
         n12.grewM = (await walkedM()) - n12.fromM;
-        // Decision 0220 (AllTrails' pattern; amends O27 and tend walk-screen 7, audit 9): walking, the strip shows Pause alone;
-        // paused, Resume and a held Stop. Each is a pill, its icon and word side by side, no outline, 48 high: Pause and Stop
-        // soft, Resume solid accent. The spoken names are as before. At 390 and 320 every word is whole on one line, on
-        // screen, the strip 69 high.
-        const strip = (id) => page.evaluate((id) => {
-          const b = document.querySelector(`[data-testid=${id}]`);
-          const hold = document.querySelector('[data-testid=stop]');
-          const stats = document.querySelector('[data-testid=walk-stats]');
-          const bar = document.querySelector('[data-testid=walk-bar]');
-          if (!b || !stats) return null;
+        // Decision 0220 (AllTrails' pattern; amends O27 and tend walk-screen 7, audit 9; the owner's AllTrails look, fix
+        // walk-strip-buttons): walking, … and a wide Pause fill what the numbers leave; paused, a wide Resume (solid accent)
+        // and a round held Stop, no …. Pills with no outline, 48 high. At 390 and 320 every word whole, on screen, strip 69 high.
+        const strip = () => page.evaluate(() => {
+          const q = (id) => document.querySelector(`[data-testid=${id}]`);
+          const main = q('pause-walk') ?? q('resume-walk');
+          const more = q('walk-more');
+          const hold = q('stop');
+          const stats = q('walk-stats');
+          const bar = q('walk-bar');
+          if (!main || !stats) return null;
           const oneLine = (el) => {
             const r = document.createRange();
             r.selectNodeContents(el);
-            const lines = new Set([...r.getClientRects()].filter((q) => q.width > 0).map((q) => Math.round(q.top)));
+            const lines = new Set([...r.getClientRects()].filter((x) => x.width > 0).map((x) => Math.round(x.top)));
             return lines.size === 1 && el.scrollWidth <= el.clientWidth + 1;
           };
           const leaf = (root) => [...root.querySelectorAll('div')].filter((d) => !d.querySelector('div') && d.innerText.trim());
           const wordOf = (root) => leaf(root).find((d) => /[A-Za-z]/.test(d.innerText));
-          const iconOf = (root) => [...root.querySelectorAll('div')].find((d) => d.innerText.trim() && !/[A-Za-z]/.test(d.innerText));
-          // Beside: the word starts right of the icon, their middles level.
-          const beside = (root) => {
-            const w = wordOf(root)?.getBoundingClientRect();
-            const i = iconOf(root)?.getBoundingClientRect();
-            return !!(w && i && w.left >= i.right - 1 && Math.abs((w.top + w.bottom) / 2 - (i.top + i.bottom) / 2) < 3);
-          };
-          // A pill: no outline, its corners half its height, its own fill.
           const pill = (el) => {
             const cs = getComputedStyle(el);
             const h = el.getBoundingClientRect().height;
             return ['Top', 'Right', 'Bottom', 'Left'].every((e) => parseFloat(cs[`border${e}Width`]) === 0)
-              && parseFloat(cs.borderTopLeftRadius) >= h / 2 - 1 && cs.backgroundColor !== 'transparent' && !/rgba\(.*,\s*0\)$/.test(cs.backgroundColor);
+              && parseFloat(cs.borderTopLeftRadius) >= h / 2 - 1 && !/rgba\(.*,\s*0\)$|transparent/.test(cs.backgroundColor);
           };
           const box = (el) => { const r = el.getBoundingClientRect(); return { l: r.left, r: r.right, t: r.top, b: r.bottom, w: r.width, h: r.height }; };
+          const sb = (stats.querySelector('div') ?? stats).getBoundingClientRect();
           return {
-            said: b.getAttribute('aria-label'), word: wordOf(b)?.innerText.trim() ?? '', wordColor: wordOf(b) ? getComputedStyle(wordOf(b)).color : null,
-            beside: beside(b) && (!hold || beside(hold)), pill: pill(b) && (!hold || pill(hold)),
-            fill: getComputedStyle(b).backgroundColor, holdFill: hold ? getComputedStyle(hold).backgroundColor : null,
-            whole: leaf(b).every(oneLine) && (!hold || leaf(hold).every(oneLine)) && oneLine(stats.querySelector('div') ?? stats),
-            holdWord: hold ? wordOf(hold)?.innerText.trim() : null, holdSaid: hold?.getAttribute('aria-label') ?? null,
-            btn: box(b), hold: hold ? box(hold) : null, barH: bar ? Math.round(bar.getBoundingClientRect().height) : null, vw: window.innerWidth,
+            id: main.getAttribute('data-testid'), said: main.getAttribute('aria-label'), word: wordOf(main)?.innerText.trim() ?? '',
+            wordColor: wordOf(main) ? getComputedStyle(wordOf(main)).color : null, fill: getComputedStyle(main).backgroundColor,
+            pill: pill(main) && (!more || pill(more)) && (!hold || pill(hold)),
+            whole: leaf(main).every(oneLine) && oneLine(stats.querySelector('div') ?? stats),
+            more: more ? { said: more.getAttribute('aria-label'), ...box(more) } : null,
+            hold: hold ? { said: hold.getAttribute('aria-label'), word: wordOf(hold)?.innerText.trim() ?? '', fill: getComputedStyle(hold).backgroundColor, ...box(hold) } : null,
+            btn: box(main), statsR: sb.right, barH: bar ? Math.round(bar.getBoundingClientRect().height) : null, vw: window.innerWidth,
           };
-        }, id);
-        const fits = (m) => !!m && m.whole && m.beside && m.pill && m.btn.w >= 44 && m.btn.h === 48 && m.btn.l >= 0 && m.btn.r <= m.vw && m.barH === 69
-          && (!m.hold || (m.hold.h === 48 && m.hold.r <= m.vw && m.btn.r <= m.hold.l && Math.abs(m.hold.t - m.btn.t) < 0.5 && Math.abs(m.hold.b - m.btn.b) < 0.5));
+        });
+        const soft = 'rgb(227, 224, 218)';
+        // The main button fills the row: from past the numbers (and …) to the strip's right edge, 16 in.
+        const fills = (m) => !!m && m.whole && m.pill && m.btn.h === 48 && m.barH === 69 && m.btn.l > m.statsR && m.btn.r <= m.vw - 16 + 0.5
+          && m.btn.w >= 90 && (m.vw < 360 || m.btn.w >= 150);
+        const walkingOk = (m) => fills(m) && m.id === 'pause-walk' && m.word === 'Pause' && m.said === 'Pause the walk' && m.hold == null
+          && m.fill === soft && m.wordColor === 'rgb(29, 36, 48)'
+          && !!m.more && m.more.said === 'Walk options' && m.more.w === 48 && m.more.h === 48 && m.more.r <= m.btn.l && m.more.l > m.statsR
+          && Math.abs(m.btn.r - (m.vw - 16)) < 1;
+        const pausedOk = (m) => fills(m) && m.id === 'resume-walk' && m.word === 'Resume' && m.said === 'Resume the walk' && m.more == null
+          && m.fill === 'rgb(194, 65, 12)' && m.wordColor === 'rgb(255, 255, 255)'
+          && !!m.hold && m.hold.said === 'Hold to stop' && m.hold.word === '' && m.hold.w === 48 && m.hold.h === 48 && m.hold.fill === soft
+          && m.btn.r <= m.hold.l && Math.abs(m.hold.r - (m.vw - 16)) < 1 && Math.abs(m.hold.t - m.btn.t) < 0.5;
         const seenStrip = {};
-        seenStrip.walking390 = await strip('pause-walk');
+        seenStrip.walking390 = await strip();
         await shot(page, '03f-strip-walking-390');
         await page.setViewportSize({ width: 320, height: 700 });
         await page.waitForTimeout(600);
-        seenStrip.walking320 = await strip('pause-walk');
+        seenStrip.walking320 = await strip();
         await shot(page, '03f-strip-walking-320');
         await page.setViewportSize({ width: 390, height: 844 });
         await page.waitForTimeout(600);
+        // … raises the walk's options, as the drag and a tap on the numbers do; Escape lowers them.
+        await page.click('[data-testid=walk-more]');
+        const optionsUp = await page.waitForSelector('[data-testid=options-card]', { state: 'visible', timeout: 5000 }).then(() => true, () => false);
+        await shot(page, '03f-strip-more-options');
+        await page.keyboard.press('Escape');
+        await page.waitForSelector('[data-testid=options-card]', { state: 'detached', timeout: 5000 }).catch(() => {});
+        await page.waitForTimeout(600);
+        check(optionsUp, 'fix walk-strip-buttons: … on the strip opens the walk\'s options');
         await page.click('[data-testid=pause-walk]');
         await page.waitForSelector('text=Paused');
         await page.waitForTimeout(400);
-        seenStrip.paused390 = await strip('resume-walk');
+        seenStrip.paused390 = await strip();
         await shot(page, '03g-strip-paused-390');
         await page.setViewportSize({ width: 320, height: 700 });
         await page.waitForTimeout(600);
-        seenStrip.paused320 = await strip('resume-walk');
+        seenStrip.paused320 = await strip();
         await shot(page, '03g-strip-paused-320');
         await page.setViewportSize({ width: 390, height: 844 });
         await page.waitForTimeout(600);
-        const walking = [seenStrip.walking390, seenStrip.walking320];
-        const pausedStrip = [seenStrip.paused390, seenStrip.paused320];
-        check(walking.every((m) => m?.word === 'Pause' && m.said === 'Pause the walk' && m.hold == null)
-          && pausedStrip.every((m) => m?.word === 'Resume' && m.said === 'Resume the walk' && m.holdWord === 'Stop' && m.holdSaid === 'Hold to stop')
-          && Object.values(seenStrip).every(fits),
-          `0220: walking, the strip shows Pause alone; paused, Resume and a held Stop; pills, icon and word side by side, no outline, 48 high and level, every word whole at 390 and 320, the strip 69 high (${JSON.stringify(seenStrip)})`);
-        // Resume is the strip's one primary action while paused: a solid accent pill, its word white (0172's rule); Pause and
-        // Stop are soft pills with ink words.
-        const soft = 'rgb(227, 224, 218)';
-        check(pausedStrip.every((m) => m?.fill === 'rgb(194, 65, 12)' && m.wordColor === 'rgb(255, 255, 255)' && m.holdFill === soft)
-          && walking.every((m) => m?.fill === soft && m.wordColor === 'rgb(29, 36, 48)'),
-          `0220: Resume is a solid accent pill with a white word; Pause and Stop soft pills with ink words (${[...walking, ...pausedStrip].map((m) => m && `${m.fill}/${m.wordColor}/${m.holdFill}`).join(', ')})`);
+        check(walkingOk(seenStrip.walking390) && walkingOk(seenStrip.walking320),
+          `0220, fix walk-strip-buttons: walking, … and a wide soft Pause fill the row after the numbers, no Stop, words whole at 390 and 320 (${JSON.stringify([seenStrip.walking390, seenStrip.walking320])})`);
+        check(pausedOk(seenStrip.paused390) && pausedOk(seenStrip.paused320),
+          `0220, fix walk-strip-buttons: paused, a wide solid-accent Resume and a round held Stop (no …), words whole at 390 and 320 (${JSON.stringify([seenStrip.paused390, seenStrip.paused320])})`);
         // One publish cycle, so a fix taken just before the pause is already counted.
         await page.waitForTimeout(2500);
         const before = await page.locator('text=/ · \\d+[ \\u00a0]m$/').first().innerText();

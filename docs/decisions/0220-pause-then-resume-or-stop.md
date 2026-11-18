@@ -21,6 +21,16 @@ The owner's four answers, Nov 18:
 - At 320 px the pills are 8 px at the sides and the word 14 px, so Resume and Stop together take what the boxed Pause and
   Hold did and the walk's numbers stay whole.
 
+## Later the same day: AllTrails' size and place (fix walk-strip-buttons)
+The owner: "The button size seems a little bit small and position is awkward. I'm leaning towards how AllTrails had it"
+(a wide Pause pill with a round "…" beside it). Their answers:
+- **One row still** (the strip's 69 shared with the ready screen, NR5/NR6), not AllTrails' two rows: the numbers keep
+  their width and the buttons fill the rest of it.
+- **A round "…"** opens the walk's options, beside the drag and a tap on the numbers (a control drawn to be found, 0167).
+  It shows only while walking: at 320 px the numbers, …, Resume and Stop do not fit in one row while paused.
+- **Paused: Resume wide, Stop round** (held, its glyph alone; its spoken name "Hold to stop" and a tap's "Hold to stop the
+  walk" unchanged). Pause and Resume are wide pills, … and Stop 48 round, all 48 high, no outline.
+
 ## Consequences
 - Amends 0009's "Pause sits beside Hold, Resume is filled orange" and O27's word under the icon (0172): the word sits
   beside it. Stop's word is "Stop"; its spoken name stays "Hold to stop", and a tap says "Hold to stop the walk".
