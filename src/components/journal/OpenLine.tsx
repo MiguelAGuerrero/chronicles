@@ -19,6 +19,7 @@ import { hideTabs } from '../../lib/tabsHidden';
 import { NOTE_MAX } from '../../lib/noteEdit';
 import { editRefs, type EditorRef, fromEditor, insertRef, typedAt } from '../../lib/refs';
 import { space } from '../../lib/space';
+import { columnPills, holdCount } from '../../lib/space/sight';
 import { heldLabel } from '../../lib/space/core';
 import { memoLabel } from '../../lib/unsaved/core';
 import { formatElapsed } from '../../lib/summary';
@@ -536,6 +537,10 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
       )}
     </View>
   );
+  // Its dark pills count while Memories is in front, so the storage notice waits for them (tend tabs audit 33; the
+  // owner's answer of Nov 18, "The whole column"). The same pills as the column below draws.
+  const pillsStand = !!errorPill || (!!editOffer.offer && !recording) || !!toast || (cap.discarded && !recording) || cap.unsaved || cap.held.length > 0;
+  useEffect(() => (focused && pillsStand ? holdCount(columnPills) : undefined), [focused, pillsStand]);
   const retryPill = (id: string, words: string, onPress: () => void, label = 'Retry') => (
     <View style={styles.pill} accessibilityLiveRegion="polite" testID={id}>
       <Text style={styles.pillText}>{words}</Text>
