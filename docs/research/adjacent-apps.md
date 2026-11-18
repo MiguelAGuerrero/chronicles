@@ -179,3 +179,16 @@ source.
   unverified. **Unverified**.
 - **Swarm**: a check-in marks a place with an optional note and photo; a history map of places checked into, with
   streaks and stickers (counter-examples). Source: from memory, unverified. **Unverified**.
+
+### Guide a drive (Earn)
+
+- **Apple Maps** (iOS 27): directions from a search or a press on the map, then Go or Steps; the route card lists several driving
+  routes, each with its time and distance; spoken directions go on with the phone locked or another app open; Options, below
+  Directions, has an Avoid section. Source: https://support.apple.com/guide/iphone/get-driving-directions-ipha84a94043/ios , read
+  Nov 18, 2026 through a fetcher that summarised the article's body (not verbatim). **Partly verified**. A counter-example in part:
+  several routes ranked by time.
+- **Organic Maps**: turn-by-turn driving on OpenStreetMap, on the device, with no account; voice guidance optional. Source: from
+  memory, unverified (organicmaps.app unreachable from cloud sessions). **Unverified**.
+- **Google Maps**: a route with its arrival time, spoken turns, "faster route available" prompts and rerouting said aloud. Source:
+  from memory, unverified. **Unverified**. A counter-example: the prompt to change route is the nag this product leaves out.
+
