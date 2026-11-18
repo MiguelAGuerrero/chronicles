@@ -56,7 +56,7 @@ test('OJ47: the service marks what the trace has been near, and reads no trace w
   assert.deepEqual(seen, [SHOPS[0].name]);
 });
 
-test('outing-journey audit 61: one far place at the front of a town\'s places does not leave the town a single stop: the places that do join into a walk are taken', { todo: 'audit: test first' }, async () => {
+test('outing-journey audit 61: one far place at the front of a town\'s places does not leave the town a single stop: the places that do join into a walk are taken', async () => {
   const { planChapter } = await import('../../outing/journeys');
   const { CHIPS } = await import('../../outing/chips');
   const { distanceM } = await import('../../geo');
@@ -69,4 +69,23 @@ test('outing-journey audit 61: one far place at the front of a town\'s places do
   const got = c!.outing.stops.map((s) => s.id).sort();
   assert.deepEqual(got, ['b1', 'b2', 'b3'], got.join(','));
   assert.ok(c!.outing.lengthM > 0 && c!.outing.lengthM <= 900);
+});
+
+test('outing-journey audit 62: a place no street reaches takes no room among a town\'s places, and each pair of places is routed once', { todo: 'audit: test first' }, async () => {
+  const { planChapter } = await import('../../outing/journeys');
+  const { CHIPS } = await import('../../outing/chips');
+  const { distanceM } = await import('../../geo');
+  const wants = CHIPS.filter((c) => c.id === 'books');
+  const shop = (id: string, e: number, n: number) => ({ id, name: id, at: at(e, n), facets: { what: ['books'] } });
+  // The two nearest stand where no street goes (inside a mall, on a campus); three more are a little further on.
+  const cands = [shop('mall', 40, 0), shop('campus', 0, 60), shop('b1', 150, 0), shop('b2', 150, 150), shop('b3', 0, 200)];
+  const off = new Set(['mall', 'campus'].map((id) => cands.find((c) => c.id === id)!.at.join()));
+  const asked: string[] = [];
+  const leg = (a: [number, number], b: [number, number]) => {
+    asked.push(`${a.join()}>${b.join()}`);
+    return off.has(a.join()) || off.has(b.join()) ? null : { path: [a, b], lengthM: distanceM(a, b), source: 'test' };
+  };
+  const c = planChapter({ area: { name: 'Town', at: FROM }, from: FROM, cands, leg }, wants, 2000);
+  assert.deepEqual(c!.outing.stops.map((s) => s.id).sort(), ['b1', 'b2', 'b3']);
+  assert.equal(new Set(asked).size, asked.length, 'no pair of places is routed twice');
 });
