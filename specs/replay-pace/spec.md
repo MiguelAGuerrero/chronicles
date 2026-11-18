@@ -44,6 +44,8 @@ Open: the owner's leanings for later slices (Decisions) have not been through th
 - Nov 18, the owner: the path stays brisk and **each moment adds its own time on top**. A walk with many moments is simply longer.
   Lifts 0085's soft cap of about 60 s (RR5), to be recorded as a decision amending 0085 when this slice ships.
 - Nov 18, the owner: **a skip ahead**: "a chevron that goes to the next moment where the controls for the replay exist".
+- Nov 18, the owner, on the plan: **photos tighten only at one stop** (RY3), and the button is **a chevron, tested**: if the cold
+  find misreads it or Skip, it becomes the word "Next" (RY12). Go-ahead to build, then deploy.
 - Nov 18, the owner: **the grid is kept** for a moment of several pictures (0123, MS17): "a stack is supposed to represent a
   multifaceted capture of a singular moment", shown as a grid "to exemplify that"; it holds longer.
 - Nov 18, the owner's leanings for later slices, recorded here so they are not lost. None is settled by this spec: each goes
@@ -79,9 +81,10 @@ Open: the owner's leanings for later slices (Decisions) have not been through th
    stands 4.5 s, and shrinks to the pile in 0.45 s. (Amends RR11's 2.4 s in all.)
 2. **RY2** The first photo of a replay, and a photo reached after a stretch of 550 m or more with nothing kept along it, is fully
    shown a fifth longer: 5.4 s.
-3. **RY3** In a run of photos, each next one is fully shown 12% shorter than the one before, never under 55% of RY1's time. A run is
-   photos on their own one after another; a stretch of 550 m or more, a break, a voice memo, a video or a moment of several pictures
-   starts it again.
+3. **RY3** Photos taken at one stop (RR14: one after another at one place, each on its own) tighten: each next one is fully shown
+   12% shorter than the one before, never under 55% of RY1's time, and the last one at RY1's full time again. A note or memo between
+   them does not start the tightening again. A photo you walked to is never shortened: it gets RY1's time (or RY2's). (The owner,
+   Nov 18, on the steward's S4: later moments are not worth less; a long replay is answered by the next-moment button.)
 4. **RY4** A moment of several pictures keeps its grid (MS17). The grid stays 5 s after its last piece has swiped in; one holding a
    video longer than that stays until the video ends, as today. (Amends MS17's "one photo slot".)
 5. **RY5** The walker waits at a note 1.2 s for a note of up to six words, plus a quarter of a second for each word more, at most
@@ -129,9 +132,10 @@ Open: the owner's leanings for later slices (Decisions) have not been through th
 
 ### The lows stay in (the steward's S2, S3)
 
-21. **RY21** A press never edits out what lay between. A place passed without stopping that the press jumps over whispers on
-    landing, beside the place, for its usual time (more than two on one walk as the one line, RP19). When a break lies between where
-    you were and where you land, "N min later" shows under the clock on landing, N the time from one to the other.
+21. **RY21** A press never edits out what lay between. When a break lies between where you were and where you land, "N min later"
+    shows under the clock on landing, N the time from one to the other. A place passed without stopping that the press jumped over
+    is then said in the same line under the clock, where it is always in view, for its usual time (more than two on one walk as
+    the one line, RP19).
 22. **RY22** A whisper never starts while a photo, grid or video card is up: it waits until the card has shrunk and then shows for
     its full time. (A card now stands longer than a whisper lasts.)
 

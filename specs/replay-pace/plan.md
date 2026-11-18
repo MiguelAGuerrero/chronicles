@@ -44,8 +44,7 @@ architecture; say if you see it otherwise.
 ## Tests per criterion
 
 New file `src/lib/__tests__/replay/pace.test.ts` (core, no fakes), one test each, named by id:
-RY1 (a lone photo's card: 550, 4500, 450), RY2 (first, and after 550 m), RY3 (a run of five: each 12% shorter, the floor, the
-resets), RY4 (a grid's time; a grid with a longer video), RY5 (6, 7, 14 and 40 words), RY6 (a memo's stand, a video card's stand),
+RY1 (a lone photo's card: 550, 4500, 450), RY2 (first, and after 550 m), RY3 (five at one stop: each 12% shorter, the floor, the last at full time; one walked to is not shortened), RY4 (a grid's time; a grid with a longer video), RY5 (6, 7, 14 and 40 words), RY6 (a memo's stand, a video card's stand),
 RY7 (a bubble leaves at the next card and at a cut; a memo not before it has played), RY8 (speed is flat mid-stretch, the ramps, a
 long stretch no steeper, the clock in step), RY9 (100 m, 449 m, 450 m, 3 km), RY10 (forty photos: nothing shrinks; a short walk not
 stretched), RY11 (the plan's times equal with and without reduce motion), RY13 (the frame at `nextStop`: walker, clock, drawn trace,
@@ -57,7 +56,7 @@ Journeys:
   Skip, at 390 and at 320 px), RY13 (a press: the walker is at the next pin and its card or bubble comes), RY14 (a memo playing is
   stopped by a press), RY17 (gone after the last moment), RY18 (no digit in the controls' row, no progress bar or dots on the stage,
   before and after a press), and a picture of each state for the UI review.
-- `scripts/e2e/journeys/days.js`: RY19 (the day's replay shows the button and a press reaches the day's next moment).
+- RY19 in the same journey, which already plays the day's replay: the day shows the button, named the same.
 - RY19's other half, a source scan in `pace.test.ts`: both screens draw `NextMoment` and no other next control.
 - RY20: a device check (`UNTESTED` as `device:`, with an item in `docs/NATIVE_UNVERIFIED.md`): react-native-web always reports a
   screen reader off this path, so only a phone can show the steps unchanged.
@@ -124,11 +123,10 @@ Report-only, on the spec and this plan: eight drifts, two of tone, no breach.
 - **S2 a press jumps silently over the lows and the breaks: accepted.** RY21. The frame takes where a press came from, so a passed
   place whispers on landing and a break between shows "N min later"; still a pure function of the time and the jump.
 - **S3 a whisper lives and dies under a longer card: accepted.** RY22.
-- **S4 a run of photos ranks photos by their order: the owner's call.** As written (RY3), every photo from the sixth on in a town
-  walk stands at 55%. The steward's shape: tighten only photos at one stop (12% each, the last at full time), and a photo reached
-  after any stretch gets its full 4.5 s. Recommended: the steward's. Asked below.
+- **S4 a run of photos ranks photos by their order: the owner chose the steward's shape** (Nov 18). RY3 tightens only photos at one
+  stop, the last at full time; a photo walked to is never shortened.
 - **S5 a wordless chevron beside a near-synonym: accepted into RY12** as a second cold-find task, with the word "Next" as the
-  fallback. The glyph itself is the owner's call, asked below.
+  fallback. The owner chose "a chevron, tested" (Nov 18).
 - **S6 on a walk with one moment or none the button never appears: accepted.** The deploy's live task and the owner's pictures use
   a walk with three or more moments, and "Where to find it" says it shows only while a moment lies ahead.
 - **S7 "Later slices" recorded calls the gate has not seen: accepted.** They are now headed as leanings, each gated before its spec.

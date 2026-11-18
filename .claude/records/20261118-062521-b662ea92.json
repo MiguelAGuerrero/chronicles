@@ -1,0 +1,11 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inflight",
+        "add"
+      ],
+      "body": "| Replay pace (the first slice of the replay's rework: a photo fully shown 4.5 s, tightening only at one stop; a grid held 5 s; a steady walker; no 60 s cap; a chevron beside Skip to the next moment, which never edits out the lows; RY1-RY22, decision 0200) | `claude/funny-bohr-ztvwgv` | spec, plan and steward 2026-11-18; the owner's go-ahead to build, then deploy; tests first |\n"
+    }
+  ]
+}
