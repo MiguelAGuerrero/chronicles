@@ -24,6 +24,13 @@ export function recordingLine(o: { startedAt: number | null; pauses: PauseSpan[]
 }
 
 /**
+ * Whether the bar's way back (its line, a tapped reminder) opens the walk screen: one at a time, and never once the walk
+ * is stopping from the bar, before the way back's wait for a photo or after it, since the stop's replay would land over
+ * the walk screen it opened (NV27; tend tabs 12).
+ */
+export const barGoesBack = (o: { returning: boolean; stopping: boolean }): boolean => !o.returning && !o.stopping;
+
+/**
  * The bar's Edit offer after its photo (T12, decision 0149; amends ME23 on the bar alone): a pill above the bar that
  * waits, as Undo does (decision 0113). It has no end of its own: Edit, its Close or the next capture ends it, and the
  * line keeps its time and distance throughout. ME23's other places keep their six seconds (`lib/editOffer`).
