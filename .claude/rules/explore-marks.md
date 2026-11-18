@@ -153,6 +153,12 @@ Places of interest from the tiles, marks, checklists and finds (Explore), and Re
       front (a replay or a day over the tabs, the launch cover) waits as a handed-on one does (`take`), for the next place
       in front of its walk; only with the app behind is it a notification. It is still marked fired as it comes, so the
       walk ended before a place came to the front drops it unseen, as a handed-on one is dropped.
+    - **Since tend explore audits 28-31** (Nov 18; this holds over the line above, which wrongly names the launch cover:
+      the walk screen under it is focused and takes the fire): what waits (`take`'s or a hand-on's) becomes a
+      notification as the app goes to 'background' (`drain`; not iOS's passing 'inactive'; the web's hidden page too),
+      merged with what was notified of the walk since the app was last in front, as a fire with the app behind is: the
+      notification's id is one a walk, so a lone later one would replace it. What waits leaves out moments gone into
+      Undo meanwhile (`offer`'s `hidden`). Kept in memory only: a kill while in front with one waiting still loses it.
   - A flag set during a walk counts as fired in it (`newRecall`). An edit
     keeps what firing wrote (`editedRecall`).
   - A tapped notification stores its ids in meta `recall_open`. The next

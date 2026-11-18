@@ -504,9 +504,19 @@ async function checks(h) {
       // The walk goes on without the way Walk to set, as the steps after this one expect.
       if (await page.waitForSelector('[data-testid=nav-end]', { timeout: 5000 }).then(() => true, () => false)) await page.click('[data-testid=nav-end]');
 
-      // tend explore 24: the same two with the walk minimized and an older walk's replay over the tabs, so no place is in
-      // front (the bar is down, the walk screen kept behind): the fire waits, and the bar shows it once the replay closes.
-      // It went to a notification before, which the web does not show with the page in front, marked fired all the same.
+    } finally {
+      await flags(false);
+      // Back to the spot at a walking pace, from wherever the step stopped, north or south of it.
+      while (north !== 0) {
+        north += north > 0 ? -1 : 1;
+        await ctx.setGeolocation({ longitude: spot[0], latitude: spot[1] + north * 0.00005, accuracy: 6 });
+        await page.waitForTimeout(1000);
+      }
+    }
+
+    // tend explore 24 and audit 30, in a try of their own so a miss in the area-card step above cannot skip them: the
+    // same two flagged once more, with an older walk's replay over the tabs and no place in front.
+    const replayOverTabs = async () => {
       await outOfReach();
       await flags(true);
       await page.goto(url);
@@ -517,15 +527,24 @@ async function checks(h) {
       await page.click('[data-testid=section-walks]').catch(() => {});
       await page.waitForSelector('[data-testid=walk-row] >> visible=true', { timeout: 10000 }).catch(() => {});
       await page.locator('[data-testid=walk-row] >> visible=true').first().click().catch(() => {});
-      const replayUp = await page.waitForURL(/replay/, { timeout: 15000 }).then(() => true, () => false);
+      const up = await page.waitForURL(/replay/, { timeout: 15000 }).then(() => true, () => false);
       await page.waitForTimeout(800);
-      const overReplay = { replayUp, path: new URL(page.url()).pathname, bar: await page.locator('[data-testid=recording-return]').count(), flagged: await stillFlagged() };
-      const replayFrom = north;
-      for (let j = north - 1; j >= -4 && replayUp && (await stillFlagged()) > 0; j--) {
+      return { replayUp: up, path: new URL(page.url()).pathname, bar: await page.locator('[data-testid=recording-return]').count(), flagged: await stillFlagged() };
+    };
+    const walkIntoReach = async (go) => {
+      for (let j = north - 1; j >= -4 && go && (await stillFlagged()) > 0; j--) {
         north = j;
         await ctx.setGeolocation({ longitude: spot[0], latitude: spot[1] + j * 0.00005, accuracy: 6 });
         await page.waitForTimeout(1000);
       }
+    };
+    try {
+      // tend explore 24: the same two with the walk minimized and an older walk's replay over the tabs, so no place is in
+      // front (the bar is down, the walk screen kept behind): the fire waits, and the bar shows it once the replay closes.
+      // It went to a notification before, which the web does not show with the page in front, marked fired all the same.
+      const overReplay = await replayOverTabs();
+      const replayFrom = north;
+      await walkIntoReach(overReplay.replayUp);
       overReplay.fired = (await stillFlagged()) === 0;
       await page.waitForTimeout(1500);
       // Nothing took it out of sight meanwhile: no bar line, no card on the walk screen behind.
@@ -546,9 +565,56 @@ async function checks(h) {
         await page.setViewportSize({ width: 390, height: 844 });
         await page.waitForTimeout(400);
       }
+
+      // tend explore audit 30: the same, but the page goes hidden while the fire waits (another tab, the phone locked): it
+      // becomes a notification at once, and the bar does not show it again once the page and the tabs are back. It
+      // waited in memory only before, lost if the browser discarded the page (the review's F1, F3).
+      const hiding = await replayOverTabs();
+      // Spied once the page is read again: what the service worker is asked to show.
+      await page.evaluate(() => {
+        window.__shown = [];
+        const proto = ServiceWorkerRegistration.prototype;
+        if (!proto.__spied) {
+          const real = proto.showNotification;
+          proto.showNotification = function (title, opts) {
+            window.__shown.push(title);
+            return real.call(this, title, opts);
+          };
+          proto.__spied = true;
+        }
+      });
+      const hideFrom = north;
+      await walkIntoReach(hiding.replayUp);
+      hiding.fired = (await stillFlagged()) === 0;
+      await page.waitForTimeout(1500);
+      hiding.before = await page.evaluate(() => window.__shown.length);
+      const setHidden = (on) => page.evaluate((hide) => {
+        for (const k of ['visibilityState', 'hidden']) {
+          if (hide) Object.defineProperty(document, k, { configurable: true, get: () => (k === 'hidden' ? true : 'hidden') });
+          else delete document[k];
+        }
+        document.dispatchEvent(new Event('visibilitychange'));
+      }, on);
+      await setHidden(true);
+      hiding.shown = await page.waitForFunction(() => window.__shown.length > 0, null, { timeout: 8000 }).then(() => true, () => false);
+      hiding.titles = await page.evaluate(() => window.__shown);
+      await setHidden(false);
+      await page.waitForTimeout(600);
+      await page.keyboard.press('Escape');
+      hiding.closed = await page.waitForURL((u) => !/replay/.test(u.pathname), { timeout: 10000 }).then(() => true, () => false);
+      await page.waitForSelector('[data-testid=recording-return]', { timeout: 10000 }).catch(() => {});
+      await page.waitForTimeout(2000);
+      hiding.after = await page.locator('[data-testid=recording-reminder], [data-testid=reminder]').count();
+      check(hiding.replayUp && hiding.flagged === 2 && hiding.fired && hiding.before === 0 && hiding.shown && hiding.titles.length === 1
+        && hiding.titles[0] === 'Two memories here' && hiding.closed && hiding.after === 0,
+        `tend explore audit 30: a reminder waiting over a replay becomes a notification as the page goes hidden, and is not shown again on return (${JSON.stringify({ ...hiding, steps: `${hideFrom} to ${north}` })})`);
+      // The notification goes, so no later step reads it.
+      await page.evaluate(async () => {
+        const reg = await navigator.serviceWorker?.getRegistration?.().catch(() => null);
+        for (const n of (await reg?.getNotifications().catch(() => [])) ?? []) n.close();
+      });
     } finally {
       await flags(false);
-      // Back to the spot at a walking pace, from wherever the step stopped, north or south of it.
       while (north !== 0) {
         north += north > 0 ? -1 : 1;
         await ctx.setGeolocation({ longitude: spot[0], latitude: spot[1] + north * 0.00005, accuracy: 6 });

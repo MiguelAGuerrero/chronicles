@@ -33,7 +33,7 @@ test('tend explore 21: a fire goes to the newest place listening that is in fron
   const check = read('discovery', 'recallCheck.ts');
   assert.doesNotMatch(check, /let screen\b/, 'no single slot that the last listener takes');
   // A place in front, else (tend explore 24) kept for the next one with the app in front, else a notification.
-  assert.match(check, /if \(!places\.take\(walkId, captures, active\(\)\)\) await notifier\.recall\(/, 'deliver gives it to a place in front, else a notification');
+  assert.match(check, /const behind = places\.take\(walkId, captures, active\(\)\);\s*if \(behind\) await notify\(walkId, behind\);/, 'deliver gives it to a place in front, else a notification');
   const walk = readFileSync(join(lib, '..', 'app', 'walk.tsx'), 'utf8');
   assert.match(walk, /onRecallFired\(\s*\(due\) => \{[\s\S]*?\},\s*(\/\/[^\n]*\n\s*)*\(\) => routeNav\.isFocused\(\),?\s*\)/, 'the walk screen takes a fire only while it is in front');
   const bar = read('..', 'components', 'RecordingBar.tsx');
@@ -73,7 +73,7 @@ test('tend explore audit 23: a reminder a place goes with unseen is taken by the
   const places = createRecallPlaces();
   const bar: string[][] = [];
   const offBar = places.listen((c) => bar.push(ids(c)), () => true);
-  assert.equal(places.fire([said('a')], true), true);
+  assert.equal(places.take('w1', [said('a')], true), null);
   assert.deepEqual(bar, [['a']]);
   // Walk here: the bar goes with it unseen, before the walk screen listens.
   offBar();
@@ -106,8 +106,8 @@ test('tend explore audit 23: a reminder a place goes with unseen is taken by the
   assert.equal(p3.offer(true, 'w2'), false);
   assert.equal(p3.offer(true, 'w1'), false, 'dropped, not kept for its walk');
   assert.deepEqual(late, []);
-  // With none in front a fire is not taken: the caller notifies.
-  assert.equal(createRecallPlaces().fire([said('e')], true), false);
+  // With none in front and the app behind a fire is not taken: the caller notifies it (tend explore audit 31).
+  assert.deepEqual(ids(createRecallPlaces().take('w1', [said('e')], false)), ['e']);
 
   // The wiring: the bar hands on what it goes with unseen; the walk screen asks for it as it comes to the front.
   const bar2 = read('..', 'components', 'RecordingBar.tsx');
@@ -120,7 +120,7 @@ test('tend explore audit 23: a reminder a place goes with unseen is taken by the
   const walk2 = readFileSync(join(lib, '..', 'app', 'walk.tsx'), 'utf8');
   assert.match(walk2, /useFocusEffect\(useCallback\(\(\) => recallPlaceShown\(\), \[\]\)\)/, 'the walk screen takes it as it comes to the front');
   const check = read('discovery', 'recallCheck.ts');
-  assert.match(check, /places\.offer\(active\(\), w\?\.id \?\? null\)/, 'offered against the walk still open');
+  assert.match(check, /places\.offer\(active\(\), w\?\.id \?\? null, hiddenNow\(\)\)/, 'offered against the walk still open (and, since tend explore audit 29, without what went into Undo)');
 });
 
 // With a walk minimized and no place in front (an older walk's replay or a day over the tabs, the launch cover over the
@@ -133,8 +133,8 @@ test('tend explore 24: a fire no place takes with the app in front waits for the
   let front = false;
   const walk: string[][] = [];
   places.listen((c) => walk.push(ids(c)), () => front);
-  assert.equal(places.take('w1', [said('a')], true), true, 'kept, not notified');
-  assert.equal(places.take('w1', [said('b'), said('a')], true), true, 'a later fire merges into what waits');
+  assert.equal(places.take('w1', [said('a')], true), null, 'kept, not notified');
+  assert.equal(places.take('w1', [said('b'), said('a')], true), null, 'a later fire merges into what waits');
   assert.deepEqual(walk, []);
   // The replay closes: the bar mounts over the tabs and listens, and takes both.
   const bar: string[][] = [];
@@ -144,20 +144,20 @@ test('tend explore 24: a fire no place takes with the app in front waits for the
   assert.deepEqual(walk, []);
   assert.equal(places.offer(true, 'w1'), false, 'once');
   // A place in front takes a fire at once, as before.
-  assert.equal(places.take('w1', [said('c')], true), true);
+  assert.equal(places.take('w1', [said('c')], true), null);
   assert.deepEqual(bar, [['a', 'b'], ['c']]);
 
   // The app behind: not kept; the caller notifies, as before.
   const p2 = createRecallPlaces();
   const none: string[][] = [];
   p2.listen((c) => none.push(ids(c)), () => true);
-  assert.equal(p2.take('w1', [said('d')], false), false);
+  assert.deepEqual(ids(p2.take('w1', [said('d')], false)), ['d']);
   assert.equal(p2.offer(true, 'w1'), false, 'nothing waits');
   assert.deepEqual(none, []);
 
   // The walk it fired on ended before a place came to the front: dropped, never shown on the next walk.
   const p3 = createRecallPlaces();
-  assert.equal(p3.take('w1', [said('e')], true), true);
+  assert.equal(p3.take('w1', [said('e')], true), null);
   const late: string[][] = [];
   p3.listen((c) => late.push(ids(c)), () => true);
   assert.equal(p3.offer(true, 'w2'), false);
@@ -165,7 +165,88 @@ test('tend explore 24: a fire no place takes with the app in front waits for the
 
   // The wiring: a fire goes to `take`, and only what it refuses becomes a notification.
   const check = read('discovery', 'recallCheck.ts');
-  assert.match(check, /if \(!places\.take\(walkId, captures, active\(\)\)\) await notifier\.recall\(/, 'deliver keeps what no place takes with the app in front');
+  assert.match(check, /const behind = places\.take\(walkId, captures, active\(\)\);\s*if \(behind\) await notify\(walkId, behind\);/, 'deliver keeps what no place takes with the app in front');
+});
+
+// A reminder waiting for a place (tend explore 24) lived only in memory: the app going behind left it there, and a phone
+// that killed the app later (a force-quit, memory pressure) lost it, its "once" flag spent, where the notification list
+// had kept it before (the review's F1, high). R3: "with the app in the background it is a notification". The same on the
+// web when the page goes hidden and the browser discards it (F3).
+test('tend explore audit 28: a reminder waiting when the app goes behind becomes a notification, and is not kept as well', () => {
+  const places = createRecallPlaces();
+  const bar: string[][] = [];
+  places.take('w1', [said('a')], true);
+  // Behind: what waits, to notify; nothing waits after.
+  assert.deepEqual(places.drain('w1'), { walkId: 'w1', captures: [said('a')] });
+  assert.equal(places.drain('w1'), null, 'once');
+  places.listen((c) => bar.push(ids(c)), () => true);
+  assert.equal(places.offer(true, 'w1'), false, 'not kept as well');
+  assert.deepEqual(bar, []);
+  // A fire behind after it notifies both: one notification a walk, so none replaces another.
+  assert.deepEqual(ids(createRecallPlaces().take('w1', [said('x')], false)), ['x']);
+  const p2 = createRecallPlaces();
+  p2.take('w1', [said('a')], true);
+  p2.drain('w1');
+  assert.deepEqual(ids(p2.take('w1', [said('b')], false)), ['a', 'b']);
+  // A fire behind before it (iOS's 'inactive'), then the app goes behind with one waiting: both again.
+  const p3 = createRecallPlaces();
+  p3.take('w1', [said('c')], true);
+  assert.deepEqual(ids(p3.take('w1', [said('d')], false)), ['d']);
+  assert.deepEqual(ids(p3.drain('w1')?.captures ?? null), ['d', 'c']);
+  // In front again, the next notification starts afresh.
+  p3.front();
+  assert.deepEqual(ids(p3.take('w1', [said('e')], false)), ['e']);
+  // Nothing waits, or its walk ended: nothing to notify.
+  assert.equal(createRecallPlaces().drain('w1'), null);
+  const p4 = createRecallPlaces();
+  p4.take('w1', [said('f')], true);
+  assert.equal(p4.drain(null), null);
+  assert.equal(p4.drain('w1'), null, 'dropped with its walk');
+
+  // The wiring: 'background' (not iOS's passing 'inactive') notifies what waits; 'active' starts afresh.
+  const check = read('discovery', 'recallCheck.ts');
+  assert.match(check, /const held = places\.drain\(w\?\.id \?\? null, hiddenNow\(\)\);\s*if \(held\) return notify\(held\.walkId, held\.captures\);/, 'what waits becomes a notification');
+  assert.match(check, /if \(s === 'active'\) \{\s*places\.front\(\);\s*offerHeld\(\);\s*\} else if \(s === 'background'\) notifyHeld\(\);/, 'as the app goes behind');
+});
+
+// A reminder waiting over a replay brought back a moment deleted from that replay meanwhile, waiting in Undo or gone
+// (the review's F2, medium): "A reminder never brings back a moment waiting in Undo" (lib/deletion, ui-conformance audit 7).
+test('tend explore audit 29: a reminder waiting while its moment goes into Undo leaves it out when a place comes to the front', () => {
+  const places = createRecallPlaces();
+  const bar: string[][] = [];
+  places.take('w1', [said('a'), said('b')], true);
+  places.listen((c) => bar.push(ids(c)), () => true);
+  assert.equal(places.offer(true, 'w1', new Set(['a'])), true);
+  assert.deepEqual(bar, [['b']]);
+  // Every one of it gone: dropped, not shown empty, and not kept.
+  const p2 = createRecallPlaces();
+  const got: string[][] = [];
+  p2.take('w1', [said('a')], true);
+  p2.listen((c) => got.push(ids(c)), () => true);
+  assert.equal(p2.offer(true, 'w1', new Set(['a'])), false);
+  assert.equal(p2.offer(true, 'w1'), false, 'dropped');
+  assert.deepEqual(got, []);
+  // Nor in the notification it becomes as the app goes behind.
+  const p3 = createRecallPlaces();
+  p3.take('w1', [said('a'), said('b')], true);
+  assert.deepEqual(ids(p3.drain('w1', new Set(['b']))?.captures ?? null), ['a']);
+  // The wiring: what waits is offered with the moments in Undo now.
+  const check = read('discovery', 'recallCheck.ts');
+  assert.match(check, /places\.offer\(active\(\), w\?\.id \?\? null, hiddenNow\(\)\)/, 'offered with the hidden set');
+});
+
+// `places.fire` had no caller left after tend explore 24, and the tests still held it to "with none in front the caller
+// notifies", which the app no longer did with the app in front (the review's F4). It is gone; `take` is held instead.
+test('tend explore audit 31: with none in front and the app behind, take refuses it to the caller; fire is gone', () => {
+  const places = createRecallPlaces();
+  const walk: string[][] = [];
+  places.listen((c) => walk.push(ids(c)), () => true);
+  // In front, but the app behind: a notification, and the place never takes it.
+  assert.deepEqual(ids(places.take('w1', [said('a')], false)), ['a']);
+  assert.deepEqual(walk, []);
+  assert.equal(places.offer(true, 'w1'), false, 'nothing kept');
+  assert.equal('fire' in places, false);
+  assert.doesNotMatch(read('discovery', 'recallCheck.ts'), /places\.fire\(/);
 });
 
 // The walk screen said whether it was in front from a ref copied in an effect: a frame behind the navigator as it
