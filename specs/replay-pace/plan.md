@@ -87,8 +87,9 @@ One new action, on both replay screens.
   replay, sitting or standing still (a replay is watched, not walked with). Control: a symbol button in the replay's top row, to the
   left of Skip, with Hold at the far left, as today. Matrix: no row covers stepping through a playback; the nearest guidance is
   1.6 (media viewing: keep essential controls reachable) and X0 (44 pt).
-- **Where the owner will look first:** the top right, beside Skip. They will see `[ › ] [ Skip ]`, the chevron in a pill of Skip's
-  outline and ink.
+- **Where the owner will look first:** the top right, with Skip. As built: `Skip`, and right under it `Next`, in Skip's outline
+  and ink. Under, not beside: with the clock between Hold and Skip the three do not fit one row on a 375 px phone. The word, not
+  the chevron: the cold find took the bare chevron for something else and tapped Skip first.
 - **Defaults I took that make it quieter, each yours to overrule:**
   - a chevron with no word, as you asked for a chevron; the cold find at the end tests whether a stranger reads it as "next". If it
     fails, the fallback is the word "Next" in the same pill;

@@ -494,6 +494,7 @@ const UNTESTED = {
   // The replay on the web refuses sound without a tap, so a trimmed memo's advance past its end handle is tried on a phone.
   'voice-trim': { VT7: 'device: a replay moves on at a trimmed memo\'s end handle, tried on a phone (the logic is VT8, the one path VT12)' },
   'replay-rhythm': { RR17: 'device: both replays step through the moments with a screen reader on, native only' },
+  'replay-pace': { RY20: 'device: the screen reader\'s steps are unchanged and show no Next, native only (react-native-web never takes that path)' },
   // The map's palette on a phone: the native layers and pin views take the same constants, never run on a device.
   'map-palette': { MP13: 'device: the native map\'s layers and pin views in Earth and ink, seen on a phone (docs/NATIVE_UNVERIFIED.md)' },
 };
@@ -511,10 +512,7 @@ const RENAMED = {
   'video-thumbnails': { VS: 'VT' },
 };
 
-const IN_PROGRESS = {
-  // Replay pace (RY1-RY22): the spec and plan are with the owner; tests first follow the go-ahead (Nov 18).
-  'replay-pace': { branch: 'claude/funny-bohr-ztvwgv', since: '2026-11-18' },
-};
+const IN_PROGRESS = {};
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));
 

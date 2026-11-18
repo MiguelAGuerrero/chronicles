@@ -156,6 +156,35 @@ behind (the growing stack, then pictures on pins); captions in the replay, memos
 Left out of this slice on purpose: the map dimming under a photo and the slow drift of a held photo, which two reviewers disagreed
 on and the owner has not called.
 
+## The UI review and the cold finds (2026-11-18)
+
+- **Cold find 1** (pictures only, the bare chevron): "go to the next thing I kept" was tapped on Skip first, the chevron second
+  ("next", "forward" or "open a panel"); the costly mistake was the likelier one. A `high` finding by RY12's own terms: the
+  button says **Next**. `replay-pace ui 1` (the `replay` journey).
+- **Cold find 2** (the word): Next was the first tap for the next moment; Skip was found for leaving, late, by elimination; Hold
+  for stopping. Both still warn that Skip does not say what it skips, with a wrong tap ending the replay: filed for the owner
+  (`docs/DEFERRED.md`, Replay pace), since Skip and Hold are older than this slice.
+- **UI review** (`ux-reviewer`, 19 pictures): 6 findings.
+  1. U1 a wordless chevron with two worded buttons (T5): accept, the word. `replay-pace ui 1`.
+  2. U2 a wrapped line with "Held" under it reaches a card at 320 px: accept. "Held" is not drawn under a long line
+     (`heldShown`). `replay-pace ui 2`.
+  3. U3 the long line nearly touches Hold and Skip at 320 px: accept, and needed once Next took Skip's width: 90 px a side
+     (`STAGE_SIDE`). `replay-pace ui 3`.
+  4. U4 8 px between Next and Skip (the HIG asks about 12): defer, low; more gap means raising `STACK_TOP`.
+  5. U5 Next's foot is 2 px above a card's highest top: defer, low, with U4.
+  6. U6 the memo's bubble cut at the bottom in `rr-memo-320`: reject, the picture is taken mid-entrance (`tend replay 8`'s
+     checks pass on the resting bubble).
+
 ## Record
 
-(Filled in as the slice is built.)
+2026-11-18, branch `claude/funny-bohr-ztvwgv`. RY1-RY19, RY21 and RY22 built and passing: `pace.test.ts` (18 tests), the
+`replay` journey's RY12, RY13, RY17, RY18, RY19 checks and `replay-pace ui 1`, `stage.test.ts`'s `ui 2` and `ui 3`; RY20 is a
+device check. Older tests that pinned what changed were rewritten with their code (RR2, RR9, RR11, RR12, MS17, `fix
+trimmed-length 2`); RR5 and `replay-rhythm audit 11` are retired with the cap. The steward on the plan: 9 findings, all
+taken or put to the owner (plan.md). Deferred: `docs/DEFERRED.md`, "Replay pace". Native has not run on a device:
+`docs/NATIVE_UNVERIFIED.md`, "Replay pace".
+
+**On `check:test-first`.** The failing tests were committed alone before any code (`234673a`, "tests first"), and each ran as
+`not ok ... # TODO`. But the unit tests marked themselves with a shared `todo` constant, not the literal
+`{ todo: 'test first' }` the check reads from the history, so `npm run check:test-first replay-pace` reports them as never
+todos. The order is in the history; its form is not what the check reads. Said to the owner before the deploy.
