@@ -1,0 +1,23 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Threads the owner makes (decision 0104)"
+      ],
+      "body": "- [loop] A pinch-zoom with Add to a thread's keys up lifts the card too far. `keyboardLift` reads 0 while the page is zoomed, so the picker measures what lies under it with the keys still up (`Dimensions` then follows the zoomed visual viewport) and takes 0 for the tab bar; its top margin also jumps from 8 to 56 while zoomed. Back at scale 1 the card ends a tab bar's height above the keys until they go down; it never goes under them (`AddToThread.tsx`, `take` and its effect). Fix: measure only while the page is at scale 1 and the keys are truly down. Test: `fix picker-keyboard audit 5: a zoom with the keys up does not change what lies under the picker` (e2e, `vv.scale` stubbed) (fix picker-keyboard, round 2 auditor F2, Nov 18, low)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "note",
+        "fix picker-keyboard)"
+      ],
+      "body": "Android, from the second review: with the default adjustResize the window may shrink with the keys while the picker also lifts by `keyboard`, so check the lift is not counted twice; in the viewer's Modal (no `statusBarTranslucent`) check `below` does not read the status bar's height. On iOS check that in Memories the card sits 56 pt under the \"Contents\" row at rest, not an extra status bar lower (audit 4).\n",
+      "target": "sha256:67ac83fd5e2b27907d2441f0309bdbc040f6ef582873b5513000b84805378d95"
+    }
+  ]
+}

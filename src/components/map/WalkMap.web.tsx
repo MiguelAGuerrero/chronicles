@@ -1107,7 +1107,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     if (view) onViewChange.current?.(view);
   }, [view]);
   const starLatest = useRef({ stars: new Map<string, Star>(), onStarPress: props.onStarPress });
-  useEffect(() => {
+  // Before paint, as the pins' (tend map 17).
+  useLayoutEffect(() => {
     starLatest.current = { stars: new Map((props.stars ?? []).map((st) => [st.id, st])), onStarPress: props.onStarPress };
   });
   const starMarkers = useRef(new Map<string, { marker: Marker; root: Root; key: string; selected: boolean }>());
@@ -1134,6 +1135,9 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       const el = document.createElement('button');
       el.type = 'button';
       el.setAttribute('aria-label', starLabel(star));
+      // The selected star is told as it is drawn: "current" on the web, where a button takes no aria-selected (tend map
+      // 20, the owner's "Allow it", Nov 18).
+      if (selected) el.setAttribute('aria-current', 'true');
       el.style.cssText = 'background:none;border:0;padding:6px;cursor:pointer';
       const id = star.id;
       el.addEventListener('click', (e) => {
@@ -1161,7 +1165,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   }, []);
   // Explore's "?" marks, as DOM markers like the stars; clicks look the mark up by id.
   const markLatest = useRef(props.onDiscoveryPress);
-  useEffect(() => {
+  // Before paint, as the pins' (tend map 17).
+  useLayoutEffect(() => {
     markLatest.current = props.onDiscoveryPress;
   });
   const viewZoom = view?.zoom ?? 16;
@@ -1556,7 +1561,8 @@ function usePinMarkers(
   standOn: readonly (LngLat | null)[] = NO_ENDS,
 ) {
   const latest = useRef({ pins: new Map<string, CapturePin>(), onPress });
-  useEffect(() => {
+  // Before paint, so a tap right after a render never reaches the previous handler (audit 8, tend map 17).
+  useLayoutEffect(() => {
     latest.current = { pins: new Map(pins.map((p) => [p.id, p])), onPress };
   });
   const markers = useRef(new Map<string, { marker: Marker; root: Root; key: string; bell: boolean; rx: string; drops: boolean; lift: number }>());

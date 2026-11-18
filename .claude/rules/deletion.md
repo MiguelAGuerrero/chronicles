@@ -74,6 +74,12 @@ Deleting a walk, its media, or a moment (`lib/deletion`): what goes, Undo, and w
     media deletes (a walk delete removes its folder).
   - The home's reload after a delete reruns its whole load.
   - A notification already shown for a deleted moment opens nothing.
+- **The confirm's two actions stack below 340 px** (tend deletion 1, `confirmActions` in `deletion/core.ts`): a row
+  holds "Delete walk" on one line only from about 340 px, so narrower the confirm goes on top and Cancel beneath, as
+  iOS alerts ("Cancel buttons are typically on the leading side of a row or at the bottom of a stack") and Material
+  dialogs ("Confirming actions appear above dismissive actions") stack theirs. The `deletion` journey checks it at 390
+  and 320.
+- The stacked order's sources, both read: `docs/research/ui-references.md` A2 (HIG Alerts, read Nov 18; Material dialogs).
 - **Native** (unverified on a device): the SQLite deletes, file and folder
   removal, `Directory.size`, the Undo pill over the viewer's Modal, the
   background commit, and `router.dismissTo` right after the actions Modal

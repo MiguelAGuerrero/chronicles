@@ -458,6 +458,9 @@ async function checks(h) {
       await page.waitForSelector('[data-testid=recording-return]', { timeout: 10000 });
       await page.click('[data-testid=tab-explore]');
       await h.areaTile(page, 'Fox Point', 40000);
+      // tend explore 26: the row settles before it is read: Fox Point's ring read (data-read), which brings its card's
+      // storefront and complex Walk to; read before it, the card had none in 2 of 3 runs (Nov 18), and no area was found.
+      await page.waitForSelector('[data-testid=atlas-tile][data-name="Fox Point"][data-read="1"]', { timeout: 60000 }).catch(() => {});
       const hoods = await page.locator('[data-testid=atlas-tile]').evaluateAll((els) => els.map((e) => e.getAttribute('data-name')));
       // An area whose card offers a Walk to (the area's own, a storefront street's or a complex's: the one the walker is in
       // has none of its own).
@@ -473,14 +476,15 @@ async function checks(h) {
           opened = await page.waitForSelector('[data-testid=atlas-card]', { timeout: 4000 }).then(() => true, () => false);
         }
         if (!opened) continue;
-        if (await page.locator(walkSel).count()) {
+        // tend explore 26: the card's footer comes a moment after the card.
+        if (await page.waitForSelector(walkSel, { timeout: 5000 }).then(() => true, () => false)) {
           walkTo = name;
           break;
         }
         await page.keyboard.press('Escape');
         await page.waitForTimeout(800);
       }
-      const cardFold = { area: walkTo, hoods, wrapH: await wrapH(), flagged: await stillFlagged() };
+      const cardFold = { area: walkTo, hoods, read: await page.locator('[data-testid=atlas-tile][data-name="Fox Point"]').first().getAttribute('data-read', { timeout: 2000 }).catch(() => null), wrapH: await wrapH(), flagged: await stillFlagged() };
       const handFrom = north;
       for (let j = north - 1; j >= -4 && walkTo && (await stillFlagged()) > 0; j--) {
         north = j;

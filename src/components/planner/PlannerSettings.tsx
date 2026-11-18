@@ -34,7 +34,12 @@ export function PlannerSettings(props: { prefs: KindWalkPrefs; units: Units; kin
       </View>
       <Text style={styles.note}>{CEILING_NOTE}</Text>
       <Text style={styles.sub}>{densityHeading(props.kind)}</Text>
-      <Segment items={DENSITIES.map((d) => ({ id: d, label: DENSITY_LABEL[d], on: prefs.density === d, onPress: () => void kindWalkPrefs.setDensity(d) }))} id="plan-density" />
+      {/* Three choices too long for one row at 320 px: a column, one choice a line (tend explore 28). */}
+      <Segment
+        items={DENSITIES.map((d) => ({ id: d, label: DENSITY_LABEL[d], on: prefs.density === d, onPress: () => void kindWalkPrefs.setDensity(d) }))}
+        id="plan-density"
+        column
+      />
       <Text style={styles.sub}>A stretch built around cars</Text>
       <Segment
         items={(['warn', 'skip'] as WalkabilityPref[]).map((p) => ({ id: p, label: prefLabel(p), on: prefs.pref === p, onPress: () => void kindWalkPrefs.setPref(p) }))}
@@ -44,10 +49,14 @@ export function PlannerSettings(props: { prefs: KindWalkPrefs; units: Units; kin
   );
 }
 
-function Segment(props: { id: string; items: { id: string; label: string; on: boolean; onPress: () => void }[] }) {
+/**
+ * One choice of two or three, joined in a pill: a row, or a column when the choices are too long for one row on a 320 px phone,
+ * never a row broken in two (tend explore 28; ui-patterns, "Nothing wraps on a 320 px phone at the default text size").
+ */
+function Segment(props: { id: string; items: { id: string; label: string; on: boolean; onPress: () => void }[]; column?: boolean }) {
   return (
-    <View style={styles.segment} accessibilityRole="radiogroup">
-      {props.items.map((it) => (
+    <View style={[styles.segment, props.column && styles.column]} accessibilityRole="radiogroup">
+      {props.items.map((it, i) => (
         <Pressable
           key={it.id}
           testID={`${props.id}-${it.id}`}
@@ -55,7 +64,7 @@ function Segment(props: { id: string; items: { id: string; label: string; on: bo
           accessibilityState={{ checked: it.on }}
           aria-checked={it.on}
           onPress={it.onPress}
-          style={[styles.segBtn, it.on && styles.segOn]}
+          style={[styles.segBtn, props.column && i > 0 && !it.on && !props.items[i - 1].on && styles.divided, it.on && styles.segOn]}
         >
           <Text style={[styles.segText, it.on && styles.segTextOn]}>{it.label}</Text>
         </Pressable>
@@ -72,8 +81,14 @@ const styles = StyleSheet.create({
   step: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   stepBtn: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: theme.edge, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.surface },
   value: { fontSize: 16, fontWeight: '600', color: theme.ink, minWidth: 70, textAlign: 'center' },
-  segment: { flexDirection: 'row', flexWrap: 'wrap', borderRadius: 22, borderWidth: 1, borderColor: theme.edge, overflow: 'hidden', alignSelf: 'flex-start' },
-  segBtn: { minHeight: 44, paddingHorizontal: 14, justifyContent: 'center', backgroundColor: theme.surface },
+  // The padding lets "Loop, back where you start" and "One way" share a row at 320 px; at a large text size a label wraps in
+  // its own choice, the row whole (tend explore 28).
+  segment: { flexDirection: 'row', maxWidth: '100%', borderRadius: 22, borderWidth: 1, borderColor: theme.edge, overflow: 'hidden', alignSelf: 'flex-start' },
+  // A grouped list's corner, not a capsule's; the dividers at 3:1 like the outline, none beside the chosen fill (tend explore
+  // audit 42, 43, 44; WCAG 2.2, 1.4.11).
+  column: { flexDirection: 'column', borderRadius: 12 },
+  segBtn: { flexShrink: 1, minHeight: 44, paddingHorizontal: 10, justifyContent: 'center', backgroundColor: theme.surface },
+  divided: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.edge },
   segOn: { backgroundColor: theme.ink },
   segText: { fontSize: 14, fontWeight: '600', color: theme.ink },
   segTextOn: { color: '#ffffff' },

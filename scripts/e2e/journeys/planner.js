@@ -99,6 +99,113 @@ async function run(h) {
   check((await pg.locator('[data-testid=plan-strip-0]').count()) === 1 && /^Green along this route/.test((await pg.locator('[data-testid=plan-strip-0]').getAttribute('aria-label')) ?? ''), 'WP15: each row has a strip with a text equivalent');
   check(/^(Easy on foot|Part of it|It is not known)/.test(await pg.locator('[data-testid=plan-reach-0]').innerText().catch(() => '')), 'KW10, WP20: each row says whether it can be walked the whole way');
   await shot(pg, 'planner-open');
+  {
+    // tend explore 28 (ui-patterns, "Nothing wraps on a 320 px phone at the default text size"): at 320 and 390 px each of the
+    // planner's controls is one line, none overlaps or clips another, a choice's fills reach its group's edge, and Start
+    // stays beside "Suggest different routes", to its right.
+    const vp = pg.viewportSize();
+    for (const w of [320, 390]) {
+      await pg.setViewportSize({ width: w, height: 844 });
+      await pg.waitForTimeout(500);
+      const m = await pg.evaluate(() => {
+        const box = (el) => { const r = el.getBoundingClientRect(); return { x: r.left, y: r.top, r: r.right, b: r.bottom, w: r.width, h: r.height }; };
+        const controls = [...document.querySelectorAll('[data-testid=planner] [role=radio], [data-testid=plan-different], [data-testid=plan-start], [data-testid=plan-ceiling-down], [data-testid=plan-ceiling-up]')]
+          .map((el) => {
+            // The lines a control's words take: the distinct tops of the rectangles its text is drawn in.
+            const tops = new Set();
+            const walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+            for (let t = walk.nextNode(); t; t = walk.nextNode()) {
+              if (!t.textContent.trim()) continue;
+              const range = document.createRange();
+              range.selectNodeContents(t);
+              for (const q of range.getClientRects()) if (q.width > 0) tops.add(Math.round(q.top));
+            }
+            const texts = [...el.querySelectorAll('*')].filter((t) => t.childElementCount === 0 && t.textContent.trim());
+            return { id: el.getAttribute('data-testid'), lines: tops.size, clipped: texts.some((t) => t.scrollWidth > t.clientWidth + 1), ...box(el) };
+          });
+        const groups = [...document.querySelectorAll('[data-testid=plan-settings] [role=radiogroup]')].map((g) => {
+          const r = g.getBoundingClientRect();
+          const cs = getComputedStyle(g);
+          const inner = (r.width - parseFloat(cs.borderLeftWidth) - parseFloat(cs.borderRightWidth)) * (r.height - parseFloat(cs.borderTopWidth) - parseFloat(cs.borderBottomWidth));
+          const filled = [...g.children].reduce((s, c) => { const q = c.getBoundingClientRect(); return s + q.width * q.height; }, 0);
+          // A row (every choice at one top) or a column (every choice at one left and width), never a row broken in two.
+          const qs = [...g.children].map((c) => c.getBoundingClientRect());
+          const same = (f) => qs.every((q) => Math.abs(f(q) - f(qs[0])) <= 1);
+          const shape = same((q) => q.top) ? 'row' : same((q) => q.left) && same((q) => q.width) ? 'column' : 'broken';
+          return { id: g.firstElementChild?.getAttribute('data-testid'), fill: filled / inner, shape, x: r.left, r: r.right };
+        });
+        return { controls, groups, width: window.innerWidth };
+      });
+      const overlaps = [];
+      for (let i = 0; i < m.controls.length; i++) for (let j = i + 1; j < m.controls.length; j++) {
+        const a = m.controls[i], b = m.controls[j];
+        if (Math.min(a.r, b.r) - Math.max(a.x, b.x) > 1 && Math.min(a.b, b.b) - Math.max(a.y, b.y) > 1) overlaps.push(`${a.id}/${b.id}`);
+      }
+      const twoLines = m.controls.filter((c) => c.lines !== 1).map((c) => `${c.id}:${c.lines}`)
+        .concat(m.groups.filter((g) => g.shape === 'broken').map((g) => `${g.id}'s group`));
+      const outside = m.controls.filter((c) => c.clipped || c.x < -0.5 || c.r > m.width + 0.5).map((c) => c.id);
+      const gaps = m.groups.filter((g) => Math.abs(g.fill - 1) > 0.02 || g.x < -0.5 || g.r > m.width + 0.5).map((g) => `${g.id}:${g.fill.toFixed(2)}`);
+      const diff = m.controls.find((c) => c.id === 'plan-different'), start = m.controls.find((c) => c.id === 'plan-start');
+      check(m.controls.length >= 11 && m.groups.length === 3 && !twoLines.length,
+        `tend explore 28: at ${w} px each of the planner's controls is one line, and each choice's group one row or one column (${m.controls.length} controls; ${twoLines.join(', ') || 'none wraps'})`);
+      check(!overlaps.length && !outside.length && !gaps.length,
+        `tend explore 28: at ${w} px no control overlaps or clips another, and each choice's fills reach its group's edge (overlap ${overlaps.join(', ') || 'none'}; clipped ${outside.join(', ') || 'none'}; fills ${gaps.join(', ') || 'whole'})`);
+      check(!!diff && !!start && Math.abs(start.y - diff.y) <= 1 && start.x >= diff.r,
+        `tend explore 28: at ${w} px Start stays beside "Suggest different routes", to its right (${diff && start ? `${Math.round(diff.x)},${Math.round(diff.y)} / ${Math.round(start.x)},${Math.round(start.y)}` : 'missing'})`);
+      await pg.locator('[data-testid=plan-different]').evaluate((el) => el.scrollIntoView({ block: 'start' }));
+      await pg.waitForTimeout(300);
+      await shot(pg, `tend-explore-28-planner-settings-${w}`);
+      await pg.locator('[data-testid=plan-title]').evaluate((el) => el.scrollIntoView({ block: 'start' }));
+    }
+    await pg.setViewportSize(vp);
+    await pg.waitForTimeout(500);
+  }
+  {
+    // tend explore audit 42, 43, 44: density's column at 320 px reads as one choice: a smaller corner than the row pills, a
+    // divider a person can see (WCAG 2.2, 1.4.11 Non-text Contrast), and none drawn across or beside the chosen row's fill.
+    const vp = pg.viewportSize();
+    await pg.setViewportSize({ width: 320, height: 844 });
+    await pg.waitForTimeout(500);
+    const groupsOf = () => pg.evaluate(() => {
+      const lum = (c) => {
+        const [r, g, b] = (c.match(/[\d.]+/g) ?? ['0', '0', '0']).slice(0, 3).map((v) => {
+          const s = Number(v) / 255;
+          return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+        });
+        return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+      };
+      return [...document.querySelectorAll('[data-testid=plan-settings] [role=radiogroup]')].map((g) => ({
+        id: g.firstElementChild?.getAttribute('data-testid'),
+        radius: parseFloat(getComputedStyle(g).borderTopLeftRadius),
+        rows: [...g.children].map((c) => {
+          const cs = getComputedStyle(c);
+          return { on: c.getAttribute('aria-checked') === 'true', top: parseFloat(cs.borderTopWidth), contrast: 1.05 / (lum(cs.borderTopColor) + 0.05) };
+        }),
+      }));
+    });
+    const g1 = await groupsOf();
+    const density = g1.find((g) => g.id === 'plan-density-anywhere');
+    const pills = g1.filter((g) => g !== density);
+    check(!!density && density.radius <= 12 && pills.length === 2 && pills.every((g) => g.radius === 22),
+      `tend explore audit 42: at 320 px density's column has a corner of 12 or less, the row pills keep 22 (${g1.map((g) => `${g.id}:${g.radius}`).join(', ')})`);
+    const dividers = (density?.rows ?? []).filter((r) => r.top > 0);
+    check(dividers.length >= 1 && dividers.every((r) => r.contrast >= 3),
+      `tend explore audit 43: at 320 px each divider in density's column is at least 3:1 against white (${dividers.map((r) => r.contrast.toFixed(2)).join(', ') || 'none'})`);
+    await pg.click('[data-testid=plan-density-some]');
+    await pg.waitForTimeout(800);
+    const d2 = (await groupsOf()).find((g) => g.id === 'plan-density-anywhere');
+    const i = d2?.rows.findIndex((r) => r.on) ?? -1;
+    await pg.locator('[data-testid=plan-different]').evaluate((el) => el.scrollIntoView({ block: 'start' }));
+    await pg.waitForTimeout(300);
+    await shot(pg, 'tend-explore-28-planner-density-some-320');
+    check(i === 1 && d2.rows[1].top === 0 && d2.rows[2].top === 0,
+      `tend explore audit 44: at 320 px with "Where there is some" chosen, no divider crosses or touches its fill (${JSON.stringify(d2?.rows.map((r) => [r.on, r.top]))})`);
+    await pg.click('[data-testid=plan-density-anywhere]');
+    await pg.waitForSelector('[data-testid=plan-row-0]', { timeout: 60000 }).catch(() => {});
+    await pg.locator('[data-testid=plan-title]').evaluate((el) => el.scrollIntoView({ block: 'start' }));
+    await pg.setViewportSize(vp);
+    await pg.waitForTimeout(500);
+  }
 
   const last = pg.locator('[data-testid^="plan-row-"][data-preset]').last();
   await last.click();
@@ -170,6 +277,19 @@ async function run(h) {
   const plannerPage = await pg.waitForSelector('[data-testid=note-page] [data-testid=note-input]', { timeout: 8000 }).then(() => true, () => false);
   check(plannerPage && (await pg.locator('[data-testid=plan-note]').count()) === 0, 'note-pages audit 13: the planner\'s pencil opens the note\'s page');
   await pg.fill('[data-testid=note-page] [data-testid=note-input]', 'A note from the planner');
+  {
+    // tend explore audit 36 (WCAG 2.2, 2.1.1 Keyboard and 2.4.3 Focus Order): the planner's Tab trap stands aside for the
+    // note page's Modal over it, so Tab from the note reaches its Save, never pulled back to the page's first control.
+    await pg.focus('[data-testid=note-page] [data-testid=note-input]');
+    const ids = [];
+    for (let i = 0; i < 8; i++) {
+      await pg.keyboard.press('Tab');
+      ids.push(await pg.evaluate(() => document.activeElement?.getAttribute('data-testid') || document.activeElement?.tagName.toLowerCase() || null));
+    }
+    // Pulled back each time, every Tab lands on the page's first control; walking its own order, Tab meets several.
+    check(ids.includes('note-done') && new Set(ids).size >= 3 && !ids.some((id) => /^plan-/.test(id ?? '')),
+      `tend explore audit 36: with a walk recording, Tab in the planner's note page reaches its Save, never the planner beneath (${ids.join(' > ')})`);
+  }
   await pg.click('[data-testid=note-done]');
   await pg.waitForTimeout(1500);
   const saved = await pg.evaluate((id) => new Promise((resolve) => {

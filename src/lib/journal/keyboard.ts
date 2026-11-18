@@ -38,3 +38,12 @@ export function floatsAccessory(o: { ua: string; touchPoints: number; supports: 
 export function accessoryRoom(o: { keyboard: number; floating: boolean }): number {
   return o.floating && o.keyboard > 0 ? ACCESSORY_ROOM : 0;
 }
+
+/**
+ * The room above a card drawn over a screen (Add to a thread; fix picker-keyboard audit 1, 4): what is left of the top
+ * safe-area inset once the host's own top (`at`, in the window) has cleared it, then a margin, smaller while the keys are
+ * up so the rows get the room. Chronicle's section bar already clears the inset in Memories; the viewer's Modal does not.
+ */
+export function overlayTop(o: { inset: number; at: number; keys: boolean }): number {
+  return Math.max(0, o.inset - o.at) + (o.keys ? 8 : 56);
+}

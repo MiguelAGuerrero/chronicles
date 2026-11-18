@@ -1,0 +1,34 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "set",
+        "fix quick-actions-leading, audit 1",
+        "--reason",
+        "round 2 auditor F3: the reach is measured now, not a fixed 10 pt"
+      ],
+      "body": "- [ ] **Do:** on an iPhone SE (320 pt) and a Pro Max (430 pt), look at the quick-action row under a photo entry, a note entry and the entry just kept (with Join); tap 2 pt left of \"Reaction\"; then set the largest Dynamic Type (and Android's largest font scale) and look again. **Expect:** the row starts at the entry's leading edge, \"Reaction\" in line with the entry's words, slots of one width with any empty slot as room at the end; the tap at the left opens the reactions (the slot reaches past its parent by the first caption's inset: about 11 pt at 390 pt, about 7 on an SE, toward 0 at the largest text); at the largest text the captions grow only to 1.3x and stay whole, five fitting at 320 pt. (fix quick-actions-leading, audit 1)\n",
+      "target": "sha256:80590e04df115827217b4ba97a4fae4a85edcfaacf477e78e26b4f16732b4cb0"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Chronicle journal, cut 1 (`specs/chronicle-journal/spec.md`, decision 0155)"
+      ],
+      "body": "- [loop] A quick-action row first draws at a guessed reach, then moves 1-3 px. The row reaches left by its first caption's inset, measured from the slot's and the caption's widths after mount (react-native-web reports layout a `setTimeout` later), so it paints with the 64/44 guess and settles a frame later: about 1 px at 390, 3 at 320, under a just-kept entry too (`QuickActions.tsx`, `lead`). Fix: one measurement for the page, taken before the sheet opens (it waits for its rows already). Test: `fix quick-actions-leading audit 5: the first caption's x is the same 0 ms and 400 ms after a row mounts at 320 px` (fix quick-actions-leading, round 2 auditor F1, Nov 18, low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Chronicle journal, cut 1 (`specs/chronicle-journal/spec.md`, decision 0155)"
+      ],
+      "body": "- [loop] Every quick-action row measures the same two widths. Each row observes its first slot and caption (two ResizeObservers, two measures on mount and on every resize), though every row's word and slot are the same; n is 30 a batch, a few hundred after reading back, all mounted (`QuickActions.tsx`, `keep`). Inferred, not measured; it reopens at medium if a trace of reading back a few hundred entries shows forced layouts over a frame. Fix: measure once for the page and pass the reach down. Test: `fix quick-actions-leading audit 6: reading back 120 entries runs no more than one quick-row measure per batch` (e2e, a perf mark) (fix quick-actions-leading, round 2 auditor F2, Nov 18, low)\n"
+    }
+  ]
+}

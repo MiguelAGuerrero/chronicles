@@ -193,7 +193,10 @@ Conventions: "HIG:", "Material:", "NN/g:" and "WCAG" mark what each source says.
   - https://m3.material.io/components/dialogs/guidelines
 - NN/g: "Should the OK button come before or after the Cancel button? Following platform conventions is more important than optimizing an individual dialog box."
   - https://www.nngroup.com/articles/ok-cancel-or-cancel-ok/
-- The platforms differ; follow each.
+- HIG (alert; added Nov 18, after the second pass): "Place buttons where people expect. In general, place the button people are most likely to choose on the trailing side in a row of buttons or at the top in a stack of buttons. Always place the default button on the trailing side of a row or at the top of a stack. Cancel buttons are typically on the leading side of a row or at the bottom of a stack."
+  - https://developer.apple.com/design/human-interface-guidelines/alerts
+  - Verified (read Nov 18, 2026, through the page's data endpoint; the quote the `tend deletion 1` run gave matches word for word).
+- The platforms differ on action sheets; for two actions that no longer fit a row they agree: the confirm on top, Cancel beneath (HIG Alerts' stack, Material's "Confirming actions appear above dismissive actions"). In a row both put the confirm trailing **(inference)**. Followed by `tend deletion 1`'s stacked confirm below 340 px (`.claude/rules/deletion.md`).
 
 **A3. Don't confirm common deletes that can be undone. Do confirm uncommon, irreversible ones.**
 - Why: a confirmation on every routine delete teaches people to tap through it. Then it fails to catch the one delete that matters.
@@ -223,6 +226,10 @@ Conventions: "HIG:", "Material:", "NN/g:" and "WCAG" mark what each source says.
 - HIG: "Avoid using OK as the default button title unless the alert is purely informational." Also: "Always use 'Cancel' to title a button that cancels the alert's action." Also "Avoid using an alert merely to provide information." And "Avoid showing an alert when your app starts." A destructive style marks only a destructive action "people didn't deliberately choose". From the buttons page: "Don't assign the primary role to a button that performs a destructive action, even if that action is the most likely choice."
   - https://developer.apple.com/design/human-interface-guidelines/alerts
   - https://developer.apple.com/design/human-interface-guidelines/buttons
+- HIG (buttons; added Nov 18): "A button’s role can have additional effects on its appearance. For example, a primary button uses an app’s accent color, whereas a destructive button uses the system red color."
+  - https://developer.apple.com/design/human-interface-guidelines/buttons
+  - Verified (read Nov 18, 2026, through the page's data endpoint).
+- Unverified (from memory; the `tend deletion 1` review's U3, filed in `docs/DEFERRED.md` under Deletion): an iOS alert draws its destructive action as red text on a plain row and its Cancel in bold, and Material's dialog actions are text buttons of equal weight that let the words do the work. The HIG Alerts, Action sheets and Buttons pages read Nov 18 say nothing of bold or of the button's fill; Material's dialog page could not be read as text on Nov 18 (its content endpoint for the current version was not found).
 - Material: headlines should "Contain a brief, clear statement or question" and "Avoid apologies (“Sorry for the interruption”), alarm (“Warning!”), or ambiguity (“Are you sure?”)". "If a single action is provided, it must be an acknowledgement action. If two actions are provided, one must be a confirming action, and the other a dismissing action". And "Dialogs are purposefully interruptive, so they should be used sparingly."
   - https://m3.material.io/components/dialogs/guidelines
 - NN/g: "Be specific and inform users about the consequence of their action. Do not ask Are you sure you want to do this?" And "Instead of Yes/No answers, provide response options that summarize what will happen for each possible response. For example, in the case of file deletion, use buttons labeled Delete file and Keep file." And "Avoid giving confirmation dialogs a default Yes answer."
@@ -632,6 +639,18 @@ Conventions: "HIG:", "Material:", "NN/g:" and "WCAG" mark what each source says.
   - https://m3.material.io/foundations/designing/flow
 - Floating bars and snackbars must not cover the focused item (F6; inference for floating bars).
 
+**X5b. (new, Nov 18) A modal surface keeps Tab inside it, only the topmost one acts, and its close gives focus back to what opened it.**
+- Why: a keyboard or screen-reader user who leaves a card must land where they were, and two traps that both act fight over the same Tab (the `tend explore` focus run's review, Nov 18, U1 and U2).
+- WAI-ARIA APG, Dialog (Modal) Pattern: "A dialog is a window overlaid on either the primary window or another dialog window. Windows under a modal dialog are inert." Also "modal dialogs contain their tab sequence. That is, Tab and Shift + Tab do not move focus outside the dialog." Tab: "If focus is on the last tabbable element inside the dialog, moves focus to the first tabbable element inside the dialog." Escape: "Closes the dialog." On close: "When a dialog closes, focus returns to the element that invoked the dialog unless either: The invoking element no longer exists. Then, focus is set on another element that provides logical work flow." Also "It is strongly recommended that the tab sequence of all dialogs include a visible element with role button that closes the dialog".
+  - https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/
+  - Verified (read Nov 18, 2026). Its own example "Demonstrates multiple layers of modal dialogs": a dialog over a dialog makes the one beneath inert, so only the topmost traps **(inference from "Windows under a modal dialog are inert")**.
+- HTML `<dialog>`, "close the dialog": the element remembers its "previously focused element" when opened, and on close "If subject's node document's focused area of the document's DOM anchor is a shadow-including inclusive descendant of subject, or wasModal is true, then run the focusing steps for element". So a dialog opened with `showModal()` always gives focus back; a non-modal one only when focus was still inside it.
+  - https://html.spec.whatwg.org/multipage/interactive-elements.html#close-the-dialog
+  - Verified (read Nov 18, 2026, from the spec's source, https://raw.githubusercontent.com/whatwg/html/main/source; html.spec.whatwg.org itself was refused from the cloud session).
+- react-native-web 0.21.4's `Modal` (the app's web Modal; read in `node_modules/react-native-web/dist/exports/Modal/`): an `activeModalStack` marks only the newest open Modal active, and only the active one's `ModalFocusTrap` pulls focus back in; on unmount the trap focuses the element that had focus when it opened, if it is still in the document.
+  - Verified (read Nov 18, 2026, in the installed package).
+- The two sources differ on the return: the APG returns focus on every close unless the opener is gone or the flow says otherwise; the HTML element, for a non-modal dialog, only when focus was still inside. The `tend explore` focus review's "return focus only when it was inside the closing dialog" is the HTML non-modal rule, not the APG's **(inference)**. Agree on the trap: Tab stays inside the topmost modal.
+
 **X6. Gestures always have an on-screen alternative.**
 - WCAG 2.5.1 (A): "All functionality that uses multipoint or path-based gestures for operation can be operated with a single pointer without a path-based gesture, unless a multipoint or path-based gesture is essential." Its note says it "applies to web content that interprets pointer actions".
   - https://www.w3.org/TR/WCAG22/#pointer-gestures
@@ -892,6 +911,18 @@ Loaded (HTTP 200):
 - https://www.w3.org/WAI/WCAG22/Understanding/focus-not-obscured-minimum.html (loaded, not quoted)
 
 Result of the check: every first-pass quote matched the Recommendation. Changes made: quotes lengthened where the first pass paraphrased (1.4.1, 1.4.10, 2.4.7, 2.5.5, 2.5.7, 4.1.2); 1.4.10's "toolbars in view" wording is now attributed to Note 2, not called an exception; 2.4.11 Note 2 and 2.5.1's web-content note added. The first pass's source, the W3C repository `github.com/w3c/wcag` (main branch), is no longer cited.
+
+### Added Nov 18, 2026 (precedents the `/tend` runs left unrecorded)
+
+Loaded (HTTP 200) and cited:
+
+- https://developer.apple.com/tutorials/data/design/human-interface-guidelines/alerts.json (A2)
+- https://developer.apple.com/tutorials/data/design/human-interface-guidelines/buttons.json (A5)
+- https://developer.apple.com/tutorials/data/design/human-interface-guidelines/action-sheets.json (A5: checked for a bold Cancel; none)
+- https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/ (X5b)
+- https://raw.githubusercontent.com/whatwg/html/main/source (X5b, the `dialog` element's close steps)
+
+Refused (HTTP 403 at the proxy): https://html.spec.whatwg.org/multipage/interactive-elements.html and https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/dialog. Not found: m3.material.io's content for the current version (`2026-11-17_08-50-14`); the page ids were not in the bundle's route table.
 
 ### Nielsen Norman Group (second pass)
 
