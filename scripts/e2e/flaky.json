@@ -7,15 +7,9 @@
       "seen": "2026-11-12"
     },
     {
-      "check": "heading 5: the cone points north as the walk goes (hidden)",
-      "fails": "1/2",
-      "base": "7df6d1f",
-      "seen": "2026-11-18"
-    },
-    {
       "check": "stopped: page.click: Timeout 30000ms exceeded.",
-      "fails": "1/2",
-      "base": "7df6d1f",
+      "fails": "2/3",
+      "base": "4dc0c25",
       "seen": "2026-11-18"
     }
   ],

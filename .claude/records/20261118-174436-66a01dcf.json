@@ -1,0 +1,37 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Chronicle journal, cut 1 (`specs/chronicle-journal/spec.md`, decision 0155)",
+        "--after",
+        "The `resurface` journey stops"
+      ],
+      "body": "- [loop] **The `drive` journey stops on `main`** (found Nov 18, the React Compiler deploy's baseline: three runs on 4dc0c25, each the same): after DW3 (When I get there opens Navigate, ready) it waits 15 s for `[data-testid=atlas-card]` to show again and it never does. Whether the card should come back on the return to Explore, or the journey's way back changed with the tabs' walk gate (tend tabs 14), is not known.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Chronicle journal, cut 1 (`specs/chronicle-journal/spec.md`, decision 0155)",
+        "--after",
+        "The `resurface` journey stops"
+      ],
+      "body": "- [loop] **The `gaps` journey fails gap-drawing audit 4 on `main`** (found Nov 18, the React Compiler deploy's baseline: three runs on 4dc0c25, each the same): Done is enabled before the paths between the taps are read (\"disabled false\"). Either Done no longer waits for the paths, or the paths now arrive before the check looks; find which before changing the check.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Chronicle journal, cut 1 (`specs/chronicle-journal/spec.md`, decision 0155)",
+        "--after",
+        "The `resurface` journey stops"
+      ],
+      "body": "- [loop] **The `scenic` journey fails SR1 on `main`** (found Nov 18, the React Compiler deploy's baseline: three runs on 4dc0c25, each the same): its `switches` reads every `[data-testid^=leaning-]`, and `SwitchRow` now gives a switch's note its own id (`<testID>-note`), so it reads six items for three switches, each switch still on. Narrow the selector to the switches (`[role=switch][data-testid^=leaning-]`); the journey stops there, so nothing after SR1 has run since.\n"
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inflight",
+        "add"
+      ],
+      "body": "| The React Compiler (on for the whole app, measured before and after; the functions it skips listed and only shrinking; RC1-RC3, decision 0203) | `claude/bold-hawking-dx3pc8` | started 2026-11-18 on the owner's go-ahead; measured before (walk 0.97 renders/s; Explore switch p95 100 ms); tests first next. Spec `specs/react-compiler/spec.md` |\n"
+    }
+  ]
+}
