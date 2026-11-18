@@ -140,3 +140,12 @@ test('e2e all 5: the summary is in a fixed order, matches flaky.json without val
   assert.deepEqual(tend.logProblems(some.given), []);
   assert.deepEqual(all.summarize({ base: 'acb18b06', full: true, journeys: ['atlas', 'launch'], first, rerun, registry, minutes: 99 }), s, 'the same runs, the same summary');
 });
+
+test('e2e all (decision 0226): the known-red list keeps journeys the pass did not run and replaces those it did', () => {
+  const all = load(join(ROOT, 'scripts', 'e2e-all.js')) as {
+    redRegistry(prev: Record<string, unknown[]>, red: { journey: string; check: string }[], run: string[], base: string, seen: string): Record<string, { check: string }[]>;
+  };
+  const next = all.redRegistry({ atlas: [{ check: 'AT9' }], upgrade: [{ check: 'old' }] }, [{ journey: 'upgrade', check: 'MT9' }], ['upgrade', 'walk'], 'b1', '2026-11-18');
+  assert.deepEqual(next, { atlas: [{ check: 'AT9' }], upgrade: [{ check: 'MT9', base: 'b1', seen: '2026-11-18' }] });
+  assert.deepEqual(all.redRegistry({ walk: [{ check: 'gone' }] }, [], ['walk'], 'b1', 'd'), {}, 'a journey green now leaves the list');
+});

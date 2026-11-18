@@ -89,7 +89,7 @@ const FEATURES = [
     name: 'moments',
     about: 'moments and days: the day screen, moment pins, the moment bar',
     rule: 'moments-and-days',
-    source: ['src/lib/{days,useLocate,momentPins,moment}.ts', 'src/lib/locate/**', 'src/app/day/**', 'src/components/MomentBar.tsx', 'src/lib/explore/momentFind/**'],
+    source: ['src/lib/{days,useLocate,momentPins,moment}.ts', 'src/lib/locate/**', 'src/app/day/**', 'src/components/MomentBar.tsx'],
     journeys: ['days'],
     specs: ['moments-and-days'],
   },
@@ -158,7 +158,7 @@ const FEATURES = [
       'src/app/into.tsx', 'src/lib/intoNav.ts', 'src/lib/intoGate.ts', 'src/lib/walkName.ts',
     ],
     journeys: ['marks', 'atlas', 'grading', 'snap', 'carousel', 'curiosities', 'freelook', 'small-places', 'placesearch', 'subtypes', 'openmaps', 'openmaps-chronicle', 'into'],
-    specs: ['v1-discovery', 'explore-atlas', 'pocket-alert-nudge', 'reminder-bell', 'atlas-grading', 'town-presence', 'discrete-navigation', 'explore-carousel', 'places-worth-the-stop', 'places-pipeline', 'remarkable-and-public', 'places-out-of-town', 'presence-and-kinds', 'whole-towns', 'community-parks', 'free-look', 'small-places', 'place-search', 'explore-go-here', 'go-here-everywhere', 'explore-subtypes', 'more-attractions', 'open-in-maps-here', 'what-im-into-page', 'sights-and-local-life'],
+    specs: ['v1-discovery', 'explore-atlas', 'pocket-alert-nudge', 'reminder-bell', 'atlas-grading', 'town-presence', 'discrete-navigation', 'explore-carousel', 'places-worth-the-stop', 'places-pipeline', 'remarkable-and-public', 'places-out-of-town', 'presence-and-kinds', 'whole-towns', 'community-parks', 'free-look', 'small-places', 'place-search', 'explore-go-here', 'go-here-everywhere', 'explore-subtypes', 'more-attractions', 'open-in-maps-here', 'what-im-into-page', 'sights-and-local-life', 'tap-to-capture-places'],
   },
   {
     name: 'kind-walk',
@@ -191,7 +191,7 @@ const FEATURES = [
     rule: 'outing',
     source: ['src/lib/outing/**', 'src/components/outing/**'],
     journeys: ['outing', 'journey', 'startfar'],
-    specs: ['quick-circuit', 'outing-journey', 'drive-in-the-outing', 'shop-facets'],
+    specs: ['quick-circuit', 'outing-journey', 'drive-in-the-outing', 'shop-facets', 'town-fixtures'],
   },
   {
     name: 'layers',
@@ -407,6 +407,8 @@ const RETIRED = {
   // Note types became reactions on any moment (the owner, Nov 14, decision 0176): one per family, their own records,
   // the head always the kind, Type now Reaction. specs/reactions (RX1-RX36) carries what stands of them.
   'note-types': Array.from({ length: 27 }, (_, i) => `NY${i + 1}`),
+  // A moment no longer finds a place by itself (the owner, Nov 12, decision 0224): only a tap on the place does (TC1-TC4).
+  'shells-saved-settings': ['SH4'],
   // Moved to chronicles-data with the pipeline (the owner, Nov 9, decision 0108): that repo owns the build, its
   // schemas and their tests (its docs/spec.md). PP1-PP12, PP14, PP15 were built here first; the build-side criteria
   // of Places worth the stop went with them.
@@ -558,6 +560,7 @@ const IN_PROGRESS = {
   'replay-ceremony': { branch: 'claude/funny-bohr-ztvwgv', since: '2026-11-18' },
   'drive-in-the-outing': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-18' },
   'shop-facets': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-18' },
+  'town-fixtures': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-18' },
 };
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));

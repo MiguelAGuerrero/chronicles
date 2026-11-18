@@ -1,0 +1,11 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inflight",
+        "add"
+      ],
+      "body": "| Town fixtures (the staples of a settlement, a visitor centre, a plaza, a town hall, a library, a market, a station, told apart from the things to discover: said in words on a town's card and marked on the map as a layer of their own, from a third pack; a stop, never a find; TF1-TF24, decision 0222) | `claude/determined-wright-yg1fq9` | specced 2026-11-18, nothing built; the list waits for chronicles-data's kind counts, which the owner has to start |\n"
+    }
+  ]
+}

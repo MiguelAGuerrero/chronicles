@@ -231,7 +231,7 @@ test('XS17: the planner and scenic routes treat a new subtype as its kind; small
 test('XS18: a museum and three historical markers passed say the museum', async () => {
   await sub();
   const places = read([archivePlace('Museum of the Revolution', 'museum', at(0, 10), V), archivePlace('A Marker', 'marker', at(5, 10), V), archivePlace('B Marker', 'marker', at(10, 10), V), archivePlace('C Marker', 'marker', at(15, 10), V)]);
-  const passed = passedPlaces({ items: places.map(item), fixes: [{ at: O, t: 1 }], since: 0, hidden: new Set(), foundHere: new Set() });
+  const passed = passedPlaces({ items: places.map(item), fixes: [{ at: O, t: 1 }], since: 0, hidden: new Set(), foundHere: new Set(), passM: 20 });
   assert.equal(passedLine(passed), 'Passed Museum of the Revolution without stopping');
 });
 

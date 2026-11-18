@@ -15,6 +15,9 @@ import {
   alertedFor,
   alertKeys,
   EXPLORE_RULES,
+  armedFind,
+  armedStill,
+  type Armed,
   readCentre,
   retryAllowed,
   revealedKeys,
@@ -26,8 +29,7 @@ import {
   type ExploreRead,
 } from './explore';
 import { placesArchive } from '../discovery/archive';
-import { exploreBuild, exploreBusy, exploreHold, explorePending, exploreRead, itemBounds } from './exploreRun';
-import { createCaptureFinds } from './exploreQueue';
+import { exploreBuild, exploreBusy, exploreHold, exploreRead, itemBounds } from './exploreRun';
 import { facesToRead, foundFaces } from './foundFace';
 import { DEFAULT_SETTINGS, loadSettings, onSettings, type ExploreSettings } from './settings';
 
@@ -40,7 +42,7 @@ const CHECK_M = 25;
  * Explore on the walk screen (E2-E9, E17-E23): checklists built quietly in
  * the background on every walk; on an exploring walk, the "?" marks within
  * your range, faint ones along a route, the pocket alert; and on any walk, a
- * capture finding the one place within 60 m.
+ * capture finding the place the reader armed (TC4).
  */
 /** The places each walk has alerted (audit 3): outlives the walk screen, not a reload. */
 const alertedByWalk = new Map<string, Set<string>>();
@@ -86,7 +88,8 @@ export function useExplore(opts: {
     };
   }, []);
 
-  // Captures finding places (E8, E9): `finder` (exploreQueue.ts) records each find through `record`.
+  // A capture's find, recorded through `record` (E8, E9) once the reader armed its place (TC4).
+  const handled = useRef(new Set<string>());
   const record = useCallback(async (item: ChecklistItem, captureId: string) => {
     const walkId = latest.current.walkId;
     if (!walkId) return;
@@ -96,7 +99,6 @@ export function useExplore(opts: {
     setFinds((fs) => [...fs.filter((x) => x.key !== item.key), { key: item.key, capture_id: captureId }]);
     latest.current.onFound(item);
   }, []);
-  const [finder] = useState(() => createCaptureFinds({ pending: explorePending }));
 
   useEffect(() => {
     let alive = true;
@@ -106,7 +108,7 @@ export function useExplore(opts: {
       db.listFinds().then((f) => {
         if (!alive) return;
         // Captures that already found a place are handled: a reload never lets them find a second (audit 4).
-        finder.seen(f.map((x) => x.capture_id));
+        for (const x of f) handled.current.add(x.capture_id);
         setFound(new Set(f.map((x) => x.key)));
         setFinds(f.map((x) => ({ key: x.key, capture_id: x.capture_id })));
       }, () => alive && setFound((was) => was ?? new Set()));
@@ -118,7 +120,7 @@ export function useExplore(opts: {
       off();
       offDeleted();
     };
-  }, [finder]);
+  }, []);
 
   // What is known: checklists and reads, kept in memory and refreshed after each read.
   const known = useRef<{ areas: ChecklistArea[]; reads: ExploreRead[] } | null>(null);
@@ -245,18 +247,37 @@ export function useExplore(opts: {
     return () => clearTimeout(t);
   }, [exploring, here, riding, items, revealed]);
 
-  // A capture within 60 m finds the one place in reach, on any walk, whatever its kind (E8, E9, E18).
-  // With two or more in reach nothing is found: the walker taps a mark to make a moment about it, never a guess.
-  // Each capture is handled once; an unstamped one has no place until stop. `finder` (exploreQueue.ts) keeps which are
-  // handled, holds one with nothing in reach while a read is pending (tend explore 14, audit 11) and a place being
-  // recorded as taken (audit 12).
+  // A capture finds a place only when the reader tapped "Capture here" on it (TC1, TC4): the next capture of this
+  // walk finds the armed place. Each capture is handled once, so one made before arming never counts.
+  const [armed, setArmed] = useState<Armed | null>(null);
+  const armedNow = useMemo(() => armedStill(armed, here, opts.walkId, { exploring, found: found ?? undefined }), [armed, here, opts.walkId, exploring, found]);
+  // Arming that no longer holds (the walker moved off, the walk ended) is let go.
+  useEffect(() => {
+    if (armed && !armedNow) {
+      const t = setTimeout(() => setArmed(null), 0);
+      return () => clearTimeout(t);
+    }
+  }, [armed, armedNow]);
+  const armedRef = useRef<Armed | null>(null);
+  useEffect(() => {
+    armedRef.current = armedNow;
+  });
   useEffect(() => {
     // Not before the finds are known: they say which captures already found something (audit 4).
-    if (!found || !opts.walkId || !items.length) return;
-    const fresh = opts.captures.filter((c) => !finder.isHandled(c.id) && c.lat != null && c.lon != null);
+    if (!found) return;
+    const fresh = opts.captures.filter((c) => !handled.current.has(c.id)).map((c) => ({ id: c.id, t: c.t }));
     if (!fresh.length) return;
-    void finder.look(fresh.map((c) => ({ id: c.id, at: [c.lon!, c.lat!] as LngLat })), [...items, ...routeItems], found, record, () => mounted.current);
-  }, [opts.captures, opts.walkId, items, routeItems, found, finder, record]);
+    for (const c of fresh) handled.current.add(c.id);
+    const hit = armedFind(armedRef.current, fresh);
+    if (!hit || found.has(hit.item.key)) return;
+    setArmed(null);
+    record(hit.item, hit.captureId).catch(() => {});
+  }, [opts.captures, found, record]);
+  const arm = useCallback((item: ChecklistItem) => {
+    const walkId = latest.current.walkId;
+    if (walkId) setArmed({ item, walkId, at: Date.now() });
+  }, []);
+  const disarm = useCallback(() => setArmed(null), []);
 
   const rangeM = opts.previewRangeM ?? settings.rangeM;
   const foundSet = useMemo(() => found ?? new Set<string>(), [found]);
@@ -309,5 +330,5 @@ export function useExplore(opts: {
   const byKey = useMemo(() => new Map([...routeItems, ...items].map((i) => [i.key, i])), [items, routeItems]);
   const itemOf = useCallback((key: string) => byKey.get(key) ?? null, [byKey]);
 
-  return { pins, settings, revealed, found: foundSet, itemOf };
+  return { pins, settings, revealed, found: foundSet, itemOf, armed: armedNow, arm, disarm };
 }

@@ -79,3 +79,7 @@ One page from Explore: pick what you want to see from a vocabulary, get one prop
 - **A route on real streets costs 40 to 80 ms on a desktop** (27,000 segments about a city centre), and a failed one costs most. A chapter is 15 to 17 of them. Do not add routing per candidate without measuring on real tiles (the e2e's grid hides this).
 - To reproduce a live result off the page: the stores pack is a plain file (`curl` the Pages site), and the street tiles can be fetched inside Playwright from the live origin; `decodeTile`, `deriveSegments`, `legOver` and `planChapter` then run under `tsx`.
 
+## Deferred: stop facets and town fixtures (Nov 18)
+
+Two specs are written and not built, deferred by the owner: `specs/shop-facets/` (the outing's chips as facets of every stop) and `specs/town-fixtures/` (a settlement's staples as a layer, never finds). Before touching the chips, the vocabulary (`wants.ts`, `chips.ts`, `leanings.ts`) or the stores contract, read `specs/shop-facets/handoff.md`: it holds the owner's decisions, the draft lists, what was measured and the order to resume in. Ask the owner before building any of it.
+

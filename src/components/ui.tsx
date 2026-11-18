@@ -119,7 +119,7 @@ export function HoldButton(props: {
   /** Replaces the label text, e.g. with an icon; the label stays the spoken name. */
   children?: ReactNode;
   /** While busy, the spinner alone where the busy words would not fit; `busyLabel` stays the spoken name. */
-  busyQuiet?: boolean;
+  quietWhilePending?: boolean;
 }) {
   const [fill] = useState(() => new Animated.Value(0));
   const fired = useRef(false);
@@ -172,7 +172,7 @@ export function HoldButton(props: {
       {props.busy ? (
         <View style={styles.busyRow}>
           <ActivityIndicator color={theme.ink} />
-          {props.busyLabel && !props.busyQuiet ? <Text style={styles.label} numberOfLines={1}>{props.busyLabel}</Text> : null}
+          {props.busyLabel && !props.quietWhilePending ? <Text style={styles.label} numberOfLines={1}>{props.busyLabel}</Text> : null}
         </View>
       ) : (
         props.children ?? <Text style={styles.label}>{props.label}</Text>

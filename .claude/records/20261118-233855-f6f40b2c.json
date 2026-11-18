@@ -1,0 +1,29 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Plan an outing (QC1-QC42, decision 0194)"
+      ],
+      "body": "- Stop facets and town fixtures (SHF1-SHF30, TF1-TF24; decisions 0221 and 0225), deferred by the owner on Nov 18 (\"Defer for now and keep references of your work and insight so that a future agent may review and pick up when I'm ready\"): nothing is built in the app. The hand-off is `specs/shop-facets/handoff.md` (the owner's decisions, the draft lists of kinds, shop facets and fixtures with the rows still theirs to call, the measurements of the live packs, and how to resume). It waits on chronicles-data's kind counts (`osmKindCounts`, its SK1-SK13 on main), which no run has reported: a cloud session may not start that workflow, so the owner starts \"Manual places build\" with OpenStreetMap ticked, or Monday's build produces them.\n"
+    },
+    {
+      "argv": [
+        "inflight",
+        "add"
+      ],
+      "body": "| Town fixtures (the staples of a settlement, a visitor centre, a plaza, a town hall, a library, a market, a station, told apart from the things to discover: said in words on a town's card and marked on the map as a layer of their own, from a third pack; a stop, never a find; TF1-TF24, decision 0225) | `claude/determined-wright-yg1fq9` | specced 2026-11-18 and deferred by the owner the same day; nothing built; the hand-off is `specs/shop-facets/handoff.md` |\n"
+    },
+    {
+      "argv": [
+        "inflight",
+        "set",
+        "Shop facets ("
+      ],
+      "body": "| Shop facets (widened to every stop of an outing by the same facets: the kind of place, whether it is entered or had from outside, and for shops what is sold and how; picks across facets narrowing; the lists drawn from a count of every OpenStreetMap kind in the US; SHF1-SHF30, decision 0221) | `claude/determined-wright-yg1fq9` | specced 2026-11-18 and deferred by the owner the same day; nothing built; the hand-off is `specs/shop-facets/handoff.md`; waits on chronicles-data's kind counts, which the owner has to start |\n",
+      "target": "sha256:a01d8e9097c570c5a88240df61139515f1d86ab42ce3a3ce9b27f73cbc16c967"
+    }
+  ]
+}

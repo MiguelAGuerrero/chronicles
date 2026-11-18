@@ -41,6 +41,11 @@ also under consideration." Their answers:
 - **"There has to be some consideration on operational hours as well."** Hours are carried where a source states them; what the
   page does with them waits for their measured coverage.
 
+## Deferred (Nov 18)
+The owner, after the draft lists were shown: "Defer for now and keep references of your work and insight so that a future agent
+may review and pick up when I'm ready." Nothing is built; `specs/shop-facets/handoff.md` holds the lists, the measurements and how
+to resume.
+
 ## Consequences
 - chronicles-data counts every `shop` and `craft` value, and the second-hand among each, in its OpenStreetMap run (its
   `docs/shop-counts/spec.md`, SK1-SK8, on the branch `claude/determined-wright-yg1fq9` there). OpenStreetMap cannot be read from a

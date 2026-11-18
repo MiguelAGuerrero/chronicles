@@ -275,7 +275,9 @@ to it (`scripts/e2e/economy.js`; tests `arch/e2eEconomy.test.ts`):
   and the flags (`E2E_MOBILE`, `E2E_MILES`, `E2E_BASE`, `E2E_SOFT`). The same inputs
   again print "already green" and exit 0; `E2E_FORCE=1` runs it anyway. A failed or
   `E2E_SOFT` run is never recorded, so a failure and its reruns always run.
-- **The plan** (`npm run check:e2e`, and the end of `check:affected`): a source change
+- **The plan** (`npm run check:e2e`, and the end of `check:affected`; decision 0226): it names to run only the
+  change's own journeys, one whose file changed or whose checks name a criterion id in the branch's commit
+  subjects (`TC1-TC9`), and lists the rest it reaches as "Reached, not run"; `--reach` names them all. A source change
   that is only comments or types does not name a journey (the file is compared as
   TypeScript's transpile: comments and types gone, code, strings and JSX text kept; a file
   that does not parse is never taken for a comment); a journey whose own file changed is
@@ -292,6 +294,10 @@ to it (`scripts/e2e/economy.js`; tests `arch/e2eEconomy.test.ts`):
   `stopped: <its first error line>`, never as a pass: stopped every run means `main` is broken
   there (resurface, Nov 18, read "passed 3/3" through three timeouts until it did).
 
+- **Known red, and timing under load** (decision 0226): a clean full `e2e:all` pass writes `scripts/e2e/red.json`, the
+  checks red on `main` per journey; `e2e:batch` labels a failure of one of them "red on main, not this change" and
+  does not count it. A timing failure in a batch (a budget in ms, a long task) runs again alone, once, and a pass alone
+  counts.
 - **Side by side** (decision 0204): `npm run e2e:batch -- <journey> ...` runs the named journeys three at a time
   (`-j N` for another width) against the `dist/` already exported, each on a port of its own, one line per journey
   and the logs in a folder; the green cache holds as for one run (it is written whole, so runs side by side never
@@ -544,8 +550,8 @@ Measured minutes (the cloud container, Nov 18; alone or three in a batch), for t
 
 ### Choosing the journeys
 
-`check:affected` names every journey of every feature that owns a changed file: a list of what a change
-*reaches*, not what it must run. Size the change first (above), then choose from it (the owner's call, Nov 10, after the UI conformance audit ran
+`check:e2e` names the change's own journeys and lists the rest it *reaches* apart (decision 0226); `--reach` is
+the whole list, not what a change must run. Size the change first (above), then choose from it (the owner's call, Nov 10, after the UI conformance audit ran
 eight journeys for 27 minutes where three, about 12, proved every fix):
 
 1. **Logic a unit test proves needs no journey.** A core or shell change with its own test (the Undo window,

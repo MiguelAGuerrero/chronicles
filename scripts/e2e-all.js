@@ -136,6 +136,17 @@ function classify(first, rerun) {
   return { red, flaky };
 }
 
+/**
+ * The known-red list (decision 0226): the checks red on `main` in a full pass, per journey, for `e2e:batch` to label
+ * "red on main" instead of a failure of the change. Journeys this pass ran are replaced by what it found; others are kept.
+ */
+function redRegistry(prev, red, journeysRun, base, seen) {
+  const next = {};
+  for (const [j, entries] of Object.entries(prev ?? {})) if (!journeysRun.includes(j)) next[j] = entries;
+  for (const e of red) (next[e.journey] ??= []).push({ check: e.check, base, seen });
+  return Object.fromEntries(Object.entries(next).sort(([a], [b]) => a.localeCompare(b)));
+}
+
 /** The flaky.json entry a check matches, by key: the same check failed on main. */
 function knownFlake(registry, journey, text) {
   return (registry[journey] ?? []).find((e) => checkKey(e.check) === checkKey(text)) ?? null;
@@ -251,9 +262,17 @@ function main(argv) {
   const s = summarize({ base, full: p.full && !onlyArg, journeys, first, rerun, registry: economy.readFlaky(ROOT), minutes: Math.round((Date.now() - started) / 60000), dirty });
   console.log('');
   for (const l of s.lines) console.log(l);
+  // A clean full pass records what is red on main (decision 0226); a partial or dirty one leaves the list as it is.
+  if (p.full && !onlyArg && !dirty) {
+    const file = path.join(ROOT, 'scripts', 'e2e', 'red.json');
+    const prev = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : {};
+    const seen = new Date().toISOString().slice(0, 10);
+    fs.writeFileSync(file, `${JSON.stringify(redRegistry(prev, s.red, journeys, base, seen), null, 2)}\n`);
+    console.log(`e2e:all: scripts/e2e/red.json written (${s.red.length} red); commit it with the run's record.`);
+  }
   return s.red.length ? 1 : 0;
 }
 
 if (require.main === module) process.exitCode = main(process.argv.slice(2));
 
-module.exports = { STOPPED, checkKey, checkId, parseRun, plan, unreached, failures, classify, knownFlake, summarize };
+module.exports = { STOPPED, checkKey, checkId, parseRun, plan, unreached, failures, classify, knownFlake, redRegistry, summarize };

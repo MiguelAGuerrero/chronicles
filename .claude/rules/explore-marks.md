@@ -3,7 +3,6 @@ paths:
   - "src/lib/discovery/{tilePois,curation,noise,categories,places,tileDecode,tileFetch,types,recall,recallCheck}.ts"
   - "src/lib/discovery/chains.json"
   - "src/lib/explore/*.ts"
-  - "src/lib/explore/momentFind/**"
   - "src/lib/db/{exploreRow,placeRow,stores}.ts"
   - "src/components/{MarkPinView,ExploreSettings,ReminderCard,RemindEditor}.tsx"
   - "src/lib/__tests__/explore/{discovery,explore,exploreStore,markNames,markOverlap,noise,recall,reminderBell,scanAudit}.test.ts"
@@ -106,18 +105,17 @@ Places of interest from the tiles, marks, checklists and finds (Explore), and Re
     within 60 m or once revealed this walk. On a route, `routeMarks` adds up to
     20 faint ones within range of the route ahead; the route's areas are read
     first (`routeProbes`, every 500 m).
-  - **Finding:** a capture with exactly one unfound place within 60 m, any kind, any walk,
-    finds it (`findFor`); with two or more in reach nothing is found: no
-    "Which place?" question (removed Nov 12, the owner; the walker taps a mark to make a moment about it, so nothing is guessed). A loose moment with two in
-    reach finds nothing yet (DEFERRED). The first find of a place stands. Walking past only names it.
-    Captures that already found a place are handled before any other is
-    looked at, so a reload never finds a second place for them. A found pin is
-    small, nameless and lets taps through to the capture beside it.
-    A capture with nothing in reach is not handled while a read runs or is on its way (`maybeRead` and the route loop hold the queue while they decide, `exploreHold`, `explorePending`): the items that read loads look at it again (`capturesToFind`, `createCaptureFinds`; tend explore 14, audits 11, 12). A place being recorded counts as taken until the finds hold it, so it is never reported twice.
+  - **Finding** (0155, TC1-TC4): a capture never finds a place by itself. "Capture here" (`mark-capture`, hidden past 60 m by
+    `canArm`) on a named, unfound place's card arms it (`useExplore().arm`/`disarm`/`armed`; `armed-line` with Cancel); the next
+    capture made after arming finds it (`armedFind`, `Armed.at`). `armedStill` clears it past 60 m, on another walk, with
+    Explore off or the place found; one capture clears it. No chip, no loose-moment find, no inference from nearness
+    (`capturesToFind` and `createCaptureFinds` are gone). A found pin is small, nameless, and lets taps through.
+  - **Passing** (TC6-TC9): `passedPlaces`/`passedAlong` take `passM` (`explore_pass`, 4-20 m by 2, 8 default), judged along the
+    line between fixes under 15 s apart; naming on the map stays at 60 m. `walk_pass:<id>` is written when exploring begins
+    and by the drawer's slider, read by the replay (`passFor`); a walk without it keeps 60 m. `passNote` says no number.
   - **Web reads by latitude** (`checklist_item` index `lat`), never `getAll()`
     over the kept store.
-  - **Deferred:** an unstamped capture can't find a place (it has no position
-    until stop); a place moved by a new build can be found twice; the pocket
+  - **Deferred:** a place moved by a new build can be found twice; the pocket
     alert likely needs the screen on (native); the home preview ignores the
     kind switches and doesn't restore the view after.
   - **Settings** (inline in the walk's drawer, `walk.tsx`, and the ready bar's, `StartSettings`; pieces in `ExploreSettings.tsx`, saved as they change, the ring shown while the drawer is up on an exploring walk): what I'm into (its own page since decision 0192, reached by one row in each drawer;

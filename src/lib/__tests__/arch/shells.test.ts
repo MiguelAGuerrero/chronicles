@@ -13,7 +13,7 @@ const load = createRequire(__filename);
 const layers = load(join(ROOT, 'scripts', 'layers.js')) as Layers;
 const read = (rel: string) => readFileSync(join(ROOT, rel), 'utf8');
 
-const SHELLS = ['src/lib/unitsStore/shell.ts', 'src/lib/nav/store/shell.ts', 'src/lib/notify/prefs.ts', 'src/lib/explore/momentFind/shell.ts'];
+const SHELLS = ['src/lib/unitsStore/shell.ts', 'src/lib/nav/store/shell.ts', 'src/lib/notify/prefs.ts'];
 
 test('SH5 the four shells import no singletons and no ports', () => {
   for (const rel of SHELLS) {
@@ -29,7 +29,6 @@ test('SH5 each instance exports the names its module did', () => {
   const names: Record<string, string[]> = {
     'src/lib/unitsStore/index.ts': ['UNITS_KEY', 'loadUnits', 'saveUnits'],
     'src/lib/nav/store/index.ts': ['saveNav', 'loadNav', 'clearNav', 'loadPendingDest', 'savePendingDest'],
-    'src/lib/explore/momentFind/index.ts': ['findForMoment'],
     'src/lib/notify/index.ts': ['NOTIFY_OFF_KEY', 'loadNoticePrefs', 'saveNoticePrefs', 'notifier'],
   };
   for (const [rel, want] of Object.entries(names)) {
@@ -43,7 +42,6 @@ test('SH9 a journey still covers each moved module, so a change to one names the
   const { e2eFor } = load(join(ROOT, 'scripts', 'affected.js')) as { e2eFor(changed: string[]): { scenarios: { name: string }[] } };
   const want: Record<string, string> = {
     'src/lib/unitsStore/shell.ts': 'qol',
-    'src/lib/explore/momentFind/shell.ts': 'days',
     'src/lib/notify/prefs.ts': 'notifications',
     'src/lib/nav/store/shell.ts': 'walk',
   };

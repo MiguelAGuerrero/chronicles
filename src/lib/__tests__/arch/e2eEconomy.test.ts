@@ -141,19 +141,47 @@ test('e2e economy 6: a baseline records the checks that failed on main and how o
 test('e2e economy 7: the plan names a journey whose own file changed, lists the green ones apart, and says what it left out', () => {
   const affected = load(join(ROOT, 'scripts', 'affected.js')) as {
     e2eFor(changed: string[], s: { name: string; covers: string[]; file?: string }[]): { scenarios: { name: string }[] };
-    e2eHint(changed: string[], all: boolean, status: (n: string) => string | null, comment: string[]): string;
+    e2eHint(changed: string[], all: boolean, status: (n: string) => string | null, comment: string[], opts?: { reach?: boolean }): string;
   };
   const table = [{ name: 'atlas', covers: ['src/atlas/**'], file: 'scripts/e2e/journeys/atlas.js' }, { name: 'snap', covers: ['src/snap/**'], file: 'scripts/e2e/journeys/snap.js' }];
   assert.deepEqual(affected.e2eFor(['scripts/e2e/journeys/snap.js'], table).scenarios.map((s) => s.name), ['snap'], 'editing a journey names it');
   // Over the real journeys: a change AtlasTile makes names several; one of them already green is listed apart, not named to run.
   const real = ['src/components/atlas/AtlasTile.tsx'];
-  const hint = affected.e2eHint(real, false, (n) => (n === 'atlas' ? 'green' : null), ['src/map/types.ts']);
+  const hint = affected.e2eHint(real, false, (n) => (n === 'atlas' ? 'green' : null), ['src/map/types.ts'], { reach: true });
   assert.match(hint, /E2E_ONLY=carousel npm run e2e:web/, 'a journey not yet green is named');
   assert.ok(!/E2E_ONLY=atlas npm run e2e:web/.test(hint), 'one already green is not');
   assert.match(hint, /Already green, with their files unchanged since \(not run again\): atlas\./);
   assert.match(hint, /Left out as comment-only.*src\/map\/types\.ts/);
-  assert.match(affected.e2eHint(real, false, () => 'green', []), /every journey that covers what changed is already green/);
+  assert.match(affected.e2eHint(real, false, () => 'green', [], { reach: true }), /every journey that covers what changed is already green/);
   assert.match(hint, /once, at the end/);
+});
+
+test('e2e economy 9 (decision 0226): by default only the change\'s own journeys run; the rest are reached, not run', () => {
+  type Scenario = { name: string; covers: string[]; file?: string };
+  const affected = load(join(ROOT, 'scripts', 'affected.js')) as {
+    criterionIds(subjects: string[]): string[];
+    e2eHint(changed: string[], all: boolean, status: (n: string) => string | null, comment: string[], opts?: { reach?: boolean; ids?: string[]; scenarios?: Scenario[]; read?: (f: string) => string | null }): string;
+  };
+  assert.deepEqual(affected.criterionIds(['Capture here (TC1-TC3)', 'fix (SF13), decision 0220', 'E2E batch']), ['TC1', 'TC2', 'TC3', 'SF13'], 'ranges expand; a decision number or E2E is no id');
+  // A hub file reached by three journeys; only `walk` holds the change's criteria (the tap-to-capture slice's case).
+  const scenarios: Scenario[] = ['walk', 'edit', 'gaps'].map((name) => ({ name, covers: ['src/app/walk.tsx'], file: `scripts/e2e/journeys/${name}.js` }));
+  const texts: Record<string, string> = { 'scripts/e2e/journeys/walk.js': "check(x, 'TC3: armed')", 'scripts/e2e/journeys/edit.js': "check(x, 'TC30: other')", 'scripts/e2e/journeys/gaps.js': '' };
+  const read = (f: string) => texts[f] ?? null;
+  const hint = affected.e2eHint(['src/app/walk.tsx'], false, () => null, [], { ids: ['TC3'], scenarios, read });
+  assert.match(hint, /E2E_ONLY=walk npm run e2e:web/, 'the journey holding TC3 runs');
+  assert.match(hint, /walk: holds TC3/);
+  assert.ok(!/E2E_ONLY=(edit|gaps)/.test(hint), 'a journey that only reaches the file is not named to run (TC30 is not TC3)');
+  assert.match(hint, /Reached, not run \(0223\): edit, gaps\./);
+  // A changed journey file is its own; two own journeys run as one batch.
+  const two = affected.e2eHint(['src/app/walk.tsx', 'scripts/e2e/journeys/gaps.js'], false, () => null, [], { ids: ['TC3'], scenarios, read });
+  assert.match(two, /npm run e2e:batch -- walk gaps/);
+  assert.match(two, /gaps: its file changed/);
+  // No own journey: the unit tests prove it, and nothing is named to run.
+  const none = affected.e2eHint(['src/app/walk.tsx'], false, () => null, [], { ids: [], scenarios, read });
+  assert.match(none, /no journey holds this change's checks/);
+  assert.ok(!/E2E_ONLY=/.test(none));
+  // --reach lists every covering journey to run, as before.
+  assert.match(affected.e2eHint(['src/app/walk.tsx'], false, () => null, [], { reach: true, scenarios, read }), /E2E_ONLY=edit npm run e2e:web/);
 });
 
 test('e2e economy 8: /slice, /audit and the testing reference tell a session the same economy', () => {
