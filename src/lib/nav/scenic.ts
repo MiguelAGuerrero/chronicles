@@ -58,7 +58,7 @@ export interface RouteOption {
 export function scenicPlan(dest: Waypoint, from: LngLat, leanings: readonly Leaning[], units: Units = 'km'): { scenic: true } | { scenic: false; notice: string | null } {
   if (dest.kind === 'start' || !leanings.length) return { scenic: false, notice: null };
   if (distanceM(from, dest.at) > SCENIC.maxM) {
-    const reach = units === 'mi' ? formatDistance(SCENIC.maxM, units) : `${SCENIC.maxM / 1000} km`;
+    const reach = units === 'mi' ? formatDistance(SCENIC.maxM, units) : `${SCENIC.maxM / 1000}\u00a0km`; // bound, as formatDistance binds (tend map audit 46)
     return { scenic: false, notice: `Scenic routes reach ${reach}` };
   }
   return { scenic: true };

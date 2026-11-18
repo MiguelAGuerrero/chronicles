@@ -722,7 +722,7 @@ async function checks(h) {
     const rides = await page.locator('[data-rides]').last().getAttribute('data-rides');
     check(Number(rides?.split(':')[0]) === 1 && Number(rides?.split(':')[1]) > 30, `the ride is drawn as its own dashed line (R5: ${rides})`);
     const stats = await page.locator('[data-testid=walk-stats]').innerText();
-    check(/^\d+:\d\d · \d+ m\n\+ \d+ m ride$/.test(stats), `the walk's distance shows the ride apart, on its own line (R6: "${stats}")`);
+    check(/^\d+:\d\d · \d+[ \u00a0]m\n\+ \d+[ \u00a0]m ride$/.test(stats), `the walk's distance shows the ride apart, on its own line (R6: "${stats}")`);
     const holdBox = await page.locator('[data-testid=stop]').boundingBox();
     await page.mouse.move(holdBox.x + holdBox.width / 2, holdBox.y + holdBox.height / 2);
     await page.mouse.down();
@@ -736,8 +736,8 @@ async function checks(h) {
     const cardRide = await page.locator('[data-testid=card-ride]').innerText();
     await shot(page, '14b-ride-card');
     // The bus leg is 45 s at 12 m/s: about 540 m, with no jog from the stop (the audit's run-up, Nov 1).
-    const rideMetres = Number(/\+ (\d+) m by ride/.exec(cardRide)?.[1]);
-    check(/^\d+ m$/.test(cardDistance) && rideMetres > 480 && rideMetres < 600, `the card shows walked, and the ride on its own line (R6: "${cardDistance}", "${cardRide}")`);
+    const rideMetres = Number(/\+ (\d+)[ \u00a0]m by ride/.exec(cardRide)?.[1]);
+    check(/^\d+[ \u00a0]m$/.test(cardDistance) && rideMetres > 480 && rideMetres < 600, `the card shows walked, and the ride on its own line (R6: "${cardDistance}", "${cardRide}")`);
 }
 
 // Alone: the walk journey first (the first walk, with its captures), then this.

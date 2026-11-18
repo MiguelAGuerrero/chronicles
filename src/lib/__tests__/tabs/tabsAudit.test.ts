@@ -168,3 +168,22 @@ test('the gate follows the walk screen being in front: hidden behind the tabs, t
   blur();
   assert.equal(gate.ask(5100), true, 'out of sight (still mounted or not): the bar brings it forward');
 });
+
+// A second walk screen's unmount cleared the first's hold: `shown` was one boolean (the /tend tabs review's F7). A
+// launch's replace that remounts the walk screen, or a focus that comes before the old one's blur, is two screens
+// shown for a moment.
+test('tend tabs 14: the walk gate counts each walk screen shown, so one going down leaves the other\'s hold', () => {
+  const gate = createWalkGate(2000);
+  const first = gate.shown();
+  const second = gate.shown();
+  first();
+  assert.equal(gate.ask(5000), false, 'a walk screen is still up');
+  first();
+  assert.equal(gate.ask(5000), false, 'an unmount called twice counts once');
+  second();
+  assert.equal(gate.ask(5100), true, 'both down: the bar shows it again');
+  second();
+  const again = gate.shown();
+  assert.equal(gate.ask(9000), false, 'never below zero: a screen shown after is still held');
+  again();
+});

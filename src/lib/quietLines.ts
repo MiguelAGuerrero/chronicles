@@ -14,7 +14,8 @@ const bound = (figure: string) => figure.replace(/ /g, '\u00a0');
 /**
  * "your first time down Elm Street", or past two "three streets new to you", in words (tend replay T31, the owner's yes,
  * Nov 14); null when none were new. `bind`, for the card's line, keeps the count on its noun's line; the fog beat's
- * headline is also said, so it keeps plain spaces.
+ * headline is also said, so it keeps plain spaces. Being said is no reason for them, though: a screen reader says a
+ * no-break space as a space, and a spoken distance keeps the one formatDistance gives (tend map audit 47).
  */
 export function newStreetsLine(names: string[], o: { bind?: boolean } = {}): string | null {
   if (!names.length) return null;
