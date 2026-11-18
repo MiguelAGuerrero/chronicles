@@ -554,6 +554,43 @@ async function wholeTowns(h) {
   }
 }
 
+// Where focus goes as a card closes on the web (tend explore 27; WCAG 2.2, 2.4.3 Focus Order), in the snap world's row of
+// neighborhoods (the atlas journey's town has one).
+async function focusBack(h) {
+  const { exploreUrl, check, freshPage, areaTile, snapWorld } = h;
+  const focused = (pg) => pg.evaluate(() => {
+    const a = document.activeElement;
+    return a ? { id: a.getAttribute('data-testid') || a.tagName.toLowerCase(), name: a.getAttribute('data-name') } : null;
+  });
+  const openFox = async (pg) => {
+    const fox = await areaTile(pg, 'Fox Point');
+    await fox.click().catch(() => {});
+    if (!(await pg.waitForSelector('[data-testid=atlas-card]', { timeout: 3000 }).catch(() => null))) await fox.click().catch(() => {});
+    return pg.waitForSelector('[data-testid=atlas-card]', { timeout: 15000 }).then(() => true, () => false);
+  };
+  snapWorld.serve = true;
+  const { c, pg } = await freshPage('carousel-focus');
+  try {
+    // tend explore audit 37: at 1280 the card is a side panel beside the row; choosing another tile closes it, and focus
+    // stays on the tile chosen, never taken back to the one that opened the card (the HTML dialog element gives focus back
+    // only from inside itself).
+    await pg.setViewportSize({ width: 1280, height: 844 });
+    await pg.goto(exploreUrl);
+    const up = await openFox(pg);
+    await pg.waitForTimeout(700);
+    const other = pg.locator('[data-testid=atlas-tile][data-level="neighborhood"]:not([data-name="Fox Point"])').first();
+    const otherName = await other.getAttribute('data-name', { timeout: 5000 }).catch(() => null);
+    if (otherName) await other.click().catch(() => {});
+    await pg.waitForTimeout(900);
+    const now = await focused(pg);
+    check(up && !!otherName && (await pg.locator('[data-testid=atlas-card]').count()) === 0 && now && now.id === 'atlas-tile' && now.name === otherName,
+      `tend explore audit 37: at 1280, choosing ${otherName} while Fox Point's side card is open closes it and leaves focus on ${otherName} (${JSON.stringify(now)})`);
+  } finally {
+    await c.close();
+    snapWorld.serve = false;
+  }
+}
+
 // The area card's footer at 390 and 320 (decision 0172): where you are, it is a status line in ink (tend explore 10); a far
 // town's question has a quiet "Not now" and no name line (tend explore 11).
 async function cardFooter(h) {
@@ -714,6 +751,7 @@ module.exports = {
     await townFramedOnce(h);
     await wholeTowns(h);
     await cardFooter(h);
+    await focusBack(h);
     await toastDwell(h);
   },
 };

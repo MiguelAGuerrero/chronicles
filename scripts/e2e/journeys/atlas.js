@@ -25,7 +25,7 @@ const focused = (page) => page.evaluate(() => {
 const focusIn = (page, id) => page.evaluate((id) => !!document.activeElement?.closest(`[data-testid=${id}]`), id);
 
 /** A picture at 390 and at 320 px, the focus where it is (tend explore 27). */
-async function shot26(page, shot, name) {
+async function shot27(page, shot, name) {
   const vp = page.viewportSize();
   await shot(page, `${name}-${vp.width}`);
   await page.setViewportSize({ width: 320, height: vp.height });
@@ -236,13 +236,32 @@ async function checks(h) {
         let out = null;
         await page.keyboard.press('Shift+Tab');
         if (!(await focusIn(page, 'atlas-card'))) out = `Shift+Tab: ${JSON.stringify(await focused(page))}`;
-        await shot26(page, shot, 'tend-explore-26-card-shift-tab');
+        await shot27(page, shot, 'tend-explore-27-card-shift-tab');
         for (let i = 0; i < 60 && !out; i++) {
           await page.keyboard.press('Tab');
           if (!(await focusIn(page, 'atlas-card'))) out = `Tab ${i + 1}: ${JSON.stringify(await focused(page))}`;
           else seen.push((await focused(page)).id);
         }
         const cycle = seen.indexOf(seen[0], 1);
+        {
+          // tend explore audit 39 (WCAG 2.2, 2.4.3): after a click on the card's text (focus on the page, the browser's starting
+          // point there), Tab goes on from where the click was, the Storefronts list, never back to the card's first stop.
+          const at = await page.evaluate(() => {
+            const t = [...document.querySelectorAll('[data-testid=atlas-card] *')].find((d) => d.childElementCount === 0 && d.textContent === 'Storefronts');
+            if (!t) return null;
+            t.scrollIntoView({ block: 'center' });
+            const r = t.getBoundingClientRect();
+            return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+          });
+          await page.waitForTimeout(300);
+          const hit = at ? await page.evaluate(({ x, y }) => { const e = document.elementFromPoint(x, y); return e ? `${e.tagName}:${e.textContent?.slice(0, 20)}` : null; }, at) : null;
+          if (at) await page.mouse.click(at.x, at.y);
+          const clicked = await focused(page);
+          await page.keyboard.press('Tab');
+          const after = await focused(page);
+          check(!!at && after && after.id === 'atlas-storefront-walk',
+            `tend explore audit 39: Tab after a click on the card's Storefronts heading goes on to its first street (${JSON.stringify({ hit, clicked, after })})`);
+        }
         check(start && start.id === 'atlas-card-name' && !out && cycle > 0,
           `tend explore 27: the card opens at its name, and Tab and Shift+Tab stay inside the full-screen card, wrapping (${out ?? `from ${start && start.id}, Shift+Tab then Tab: ${seen.slice(0, cycle + 1).join(' > ')}`})`);
       }
@@ -272,6 +291,7 @@ async function checks(h) {
         const has = (await plan.count()) === 1;
         let into = null;
         let kept = null;
+        const planStops = [];
         let back = null;
         const opener = has ? await plan.getAttribute('data-testid') : null;
         if (has) {
@@ -280,7 +300,7 @@ async function checks(h) {
           // tend explore 27: the planner moves focus into itself as it opens, as the card does.
           await page.waitForTimeout(400);
           into = await focused(page);
-          await shot26(page, shot, 'tend-explore-26-planner-open');
+          await shot27(page, shot, 'tend-explore-27-planner-open');
           // tend explore 27: and Tab and Shift+Tab stay inside it.
           kept = true;
           await page.keyboard.press('Shift+Tab');
@@ -288,6 +308,7 @@ async function checks(h) {
           for (let i = 0; i < 30 && kept; i++) {
             await page.keyboard.press('Tab');
             kept = await focusIn(page, 'planner');
+            planStops.push((await focused(page)).id);
           }
           await page.keyboard.press('Escape');
           await page.waitForTimeout(400);
@@ -299,6 +320,8 @@ async function checks(h) {
         check(into && into.id === 'plan-title' && back && back.id === opener,
           `tend explore 27: the planner takes focus as it opens, at its title, and gives it back to ${opener} as it closes (${JSON.stringify({ into, back })})`);
         check(kept === true, `tend explore 27: Tab and Shift+Tab stay inside the planner (${kept})`);
+        // tend explore audit 38 (WCAG 2.2, 2.1.1 Keyboard): the trap keeps every stop the browser has, the map's credits (a <summary>) too.
+        check(planStops.includes('summary'), `tend explore audit 38: Tab inside the planner reaches the map's credits (${[...new Set(planStops)].join(' > ')})`);
       }
       await page.keyboard.press('Escape');
       await page.waitForTimeout(300);
@@ -307,7 +330,7 @@ async function checks(h) {
         // tend explore 27 (WCAG 2.2, 2.4.3 Focus Order; Material: on close "focus returns to the interactive element that
         // initiated the action"): closing the card gives focus back to the tile that opened it.
         const back = await focused(page);
-        await shot26(page, shot, 'tend-explore-26-card-closed');
+        await shot27(page, shot, 'tend-explore-27-card-closed');
         check(back && back.id === 'atlas-tile' && back.name === 'Fox Point', `tend explore 27: closing the card gives focus back to the tile that opened it (${JSON.stringify(back)})`);
       }
       // explore-atlas audit 8: a card left open closes when another tab comes to the front, so it never keeps

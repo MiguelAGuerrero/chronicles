@@ -90,3 +90,9 @@ UI code on both platforms: React Compiler lint rules, react-native-web differenc
   surface moves focus into itself, given back on unmount; an effect, so a card keyed by its area hands the first opener on),
   `useFocusTrap(ref, active)` (off while another surface covers it), and `useFocusSwap` for a part that replaces the button
   pressed (the far question). A `Button` takes a ref for `focusOn`.
+- **`useFocusTrap` wraps only at the two ends** (tend explore audits 36-39): between them the browser's own Tab holds (a
+  `<summary>`, MapLibre's credits, is a stop no `[tabindex]` names), a move from the page (after a click on text) goes on
+  from the click, and a `focusin` outside brings a stray back. It stands aside while an `aria-modal` element outside its
+  box is open: react-native-web's Modal (the note page over the planner) traps for itself, with focus brackets outside its
+  content. Focus is given back on close only when it fell to the page and the candidate is still drawn: a tile chosen
+  while a side card closes keeps it.
