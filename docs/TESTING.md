@@ -292,11 +292,11 @@ to it (`scripts/e2e/economy.js`; tests `arch/e2eEconomy.test.ts`):
   `stopped: <its first error line>`, never as a pass: stopped every run means `main` is broken
   there (resurface, Nov 18, read "passed 3/3" through three timeouts until it did).
 
-- **Side by side** (decision 0203): `npm run e2e:batch -- <journey> ...` runs the named journeys three at a time
+- **Side by side** (decision 0204): `npm run e2e:batch -- <journey> ...` runs the named journeys three at a time
   (`-j N` for another width) against the `dist/` already exported, each on a port of its own, one line per journey
   and the logs in a folder; the green cache holds as for one run (it is written whole, so runs side by side never
   lose each other's passes). Three journeys took the time of the slowest alone (87 s, Nov 18).
-- **Trust the cache, verify once** (decision 0203): `E2E_FORCE=1` only for a reason you can name; after a merge, the
+- **Trust the cache, verify once** (decision 0204): `E2E_FORCE=1` only for a reason you can name; after a merge, the
   journeys `check:affected -- --since <the last green commit>` names, never the whole set again; a journey an agent
   ran green on a commit is not run again on that commit by the session that asked for it.
 

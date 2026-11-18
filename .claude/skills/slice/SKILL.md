@@ -260,7 +260,7 @@ of browser, so the named ones run once, at the end, and the rest is mechanical:
 - The slice's report says which journeys ran, how many runs there were, and why any ran
   more than once.
 
-**One review round** (decision 0203): when the owner will want the slice audited, run this UI review, the cold find
+**One review round** (decision 0204): when the owner will want the slice audited, run this UI review, the cold find
 below and `/audit`'s steward and auditor together, once; never a review round and then an audit round. Run journeys
 three at a time with `npm run e2e:batch`.
 

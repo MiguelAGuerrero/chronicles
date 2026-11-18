@@ -9,6 +9,7 @@ import { CaptureViewer } from '../../components/CaptureView';
 import { Stage } from '../../components/ceremony/Stage';
 import { StepThrough } from '../../components/ceremony/StepThrough';
 import { useAwakeWhile } from '../../components/ceremony/useAwakeWhile';
+import { NextMoment } from '../../components/ceremony/NextMoment';
 import { useCeremonyClock } from '../../components/ceremony/useCeremonyClock';
 import { useRevealed } from '../../components/ceremony/useRevealed';
 import type { StageCtx } from '../../components/ceremony/layout';
@@ -180,7 +181,7 @@ export default function DayReplay() {
     });
   }, []);
   const play = useCeremonyClock({ epoch: phase.t0, running: telling, paused: viewing != null || waits.size > 0, showing, onEnd: toCard });
-  const frame = telling ? showing.frame(play.ms) : null;
+  const frame = telling ? showing.frame(play.ms, play.jump) : null;
   // The screen stays awake while the replay plays, until the card (RR24).
   useAwakeWhile(phase.beat === 'path');
 
@@ -318,6 +319,8 @@ export default function DayReplay() {
               toCard();
             }}
           />
+          {/* Under Skip, at the same edge: the clock sits between Hold and Skip, and the three do not fit one row on a 375 px phone (RY12). */}
+          {frame && play.canNext && <NextMoment onPress={play.next} />}
         </View>
       )}
       {frame && (
@@ -403,7 +406,7 @@ const styles = StyleSheet.create({
   center: { alignItems: 'center', justifyContent: 'center', gap: 16 },
   muted: { color: theme.muted, fontSize: 16 },
   missing: { color: theme.ink, fontSize: 18, fontWeight: '600', textAlign: 'center' },
-  skip: { position: 'absolute', right: 12 },
+  skip: { position: 'absolute', right: 12, alignItems: 'flex-end', gap: 8 },
   hold: { position: 'absolute', left: 12 },
   sheet: {
     position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: theme.surface,

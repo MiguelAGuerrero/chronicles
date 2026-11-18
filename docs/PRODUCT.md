@@ -243,7 +243,7 @@ recording, and a recording bar brings a minimized walk back.
   kept once its Undo has passed. Walk settings offer **Group captures into one moment**, off by default: with it on,
   the stack's own buttons add to the open moment, and "Adding to this moment · New moment" shows where the pill was.
   In the replay a stacked moment is one beat: its photos and videos come up together as a grid (up to 3×3, scrolling
-  past nine, videos muted), its memos and notes as bubbles beside it.
+  past nine, videos muted), held five seconds, its memos and notes as bubbles beside it.
 - A Locate button sits above the stack (also on Explore): it reads one fresh
   fix, shows the dot there and frames 250 m around you. Nothing tracks after.
 
@@ -482,14 +482,18 @@ recording, and a recording bar brings a minimized walk back.
   (decision 0148).
 - **A walk with nothing in it is dropped** (decision 0187): stopping a walk with no moment, pause, still or gap and no movement past 15 m skips the replay and says "Walk not kept." with Undo; a killed app restores it.
 - **The replay** (the make-or-break): reading the streets, the fog clearing,
-  the path, the card, then naming. The path has a rhythm (decision 0085): it
-  glides into each moment and away, zips through long empty stretches with
+  the path, the card, then naming. The path has a rhythm (decision 0085): the
+  walker keeps a steady pace, slowing into each moment, crosses long empty stretches with
   the camera pulled back, and cuts across a gap with "20 min later". A clock
   rolls through the time of day. Notes and memos stack as speech bubbles in a
   corner; photos and videos grow from their pin into a card and tuck into a
   pile, which opens them full screen; places passed without stopping whisper
-  by. Nothing waits for a tap: a tap (or Hold) holds it, Skip goes to the card;
-  about a minute at most, memos and videos always in full (a soft skeleton
+  by. Each moment takes its time (decision 0203): a photo is fully shown about four and a half seconds
+  (several at one stop tighten, the last whole again), a moment's grid five, a note long enough to read, and a second
+  of quiet follows a memo or video. Nothing shrinks to fit a length: a walk with many moments is simply longer.
+  Nothing waits for a tap: a tap (or Hold) holds it, Skip goes to the card, and **Next**, under Skip, goes to the
+  next moment, saying how much later it is and any place passed on the way; it counts nothing and goes when no
+  moment is left. Memos and videos always in full (a soft skeleton
   stands in while one loads), and the screen stays awake while it plays. With a screen
   reader, the moments one at a time instead. The card says distance, time,
   captures, new streets in words ("your first time down Elm Street"), finds by

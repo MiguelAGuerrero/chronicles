@@ -1,4 +1,4 @@
-# 0203. Faster verification: journeys side by side, the green cache trusted, one review round
+# 0204. Faster verification: journeys side by side, the green cache trusted, one review round
 
 Date: 2026-11-18 · Status: accepted · Area: testing, process · Amends [0074](0074-fast-iteration-scoped-checks.md)'s practice, not its rule
 

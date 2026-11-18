@@ -186,16 +186,13 @@ function metresOf(p: RhythmPlan, f: Frame): number {
   return best;
 }
 
-test('RR2: the walker slows into a moment and away from it; a long stretch covers most ground mid-way', () => {
+test('RR2, RY8: the walker slows into a moment and away from it', () => {
+  // The long stretch's steeper ease went with replay pace (RY8, decision 0203): pace.test.ts holds the steady pace.
   const short = plan(walkStory(input(line(A, at(300, 0), 0), [cap('text', 215_000, at(300, 0), 'x')])));
   const sl = legs(short)[0];
   const f = (p: RhythmPlan, l: { t0: number; t1: number }, u: number) => metresOf(p, rhythmFrame(p, l.t0 + u * (l.t1 - l.t0)));
   assert.ok(f(short, sl, 0.1) < 0.1 * 300, 'slow away from the start');
   assert.ok(f(short, sl, 0.9) > 0.85 * 300, 'slow into the moment');
-  const long = plan(walkStory(input(line(A, at(1500, 0), 0), [cap('text', 1_075_000, at(1500, 0), 'x')])));
-  const ll = legs(long)[0];
-  assert.ok(f(long, ll, 0.25) / 1500 < f(short, sl, 0.25) / 300, 'a long stretch eases more steeply');
-  assert.ok(f(long, ll, 0.75) / 1500 > f(short, sl, 0.75) / 300 - 0.01);
 });
 
 test('RR3: the camera pulls back mid-way through a long stretch and not between nearby moments', () => {
@@ -232,46 +229,7 @@ test('RR4: laterLine says minutes and hours', () => {
   assert.equal(laterLine(20_000), 'Moments later');
 });
 
-test('RR5: a plan over 60 s shrinks to fit, above its floors; memos and videos keep their length', () => {
-  const pts: TracePoint[] = [];
-  const caps: Faced[] = [];
-  let t = 0;
-  let x = 0;
-  for (let i = 0; i < 40; i++) {
-    const seg = line(at(x, 0), at(x + 300, 0), t);
-    pts.push(...(i ? seg.slice(1) : seg));
-    t = endT(seg);
-    x += 300;
-    caps.push(cap(i === 20 ? 'voice' : 'photo', t, at(x, 0), i === 20 ? '12000' : null));
-    const st = stand(at(x, 0), t, 3 * MIN);
-    pts.push(...st);
-    t = endT(st);
-  }
-  const p = plan(walkStory(input(pts, caps)));
-  const memoSlot = p.segs.flatMap((s) => (s.k === 'stop' ? s.slots : [])).find((s) => s.capture.kind === 'voice')!;
-  assert.equal(memoSlot.t1 - memoSlot.t0, 12000 + R.mediaTail, 'the memo plays in full');
-  for (const s of p.segs.flatMap((x) => (x.k === 'stop' ? x.slots : []))) if (s.capture.kind === 'photo') assert.ok(s.t1 - s.t0 >= R.floors.photo - 1);
-  for (const l of legs(p)) assert.ok(l.t1 - l.t0 >= R.floors.leg - 1);
-  assert.ok(p.total <= R.cap + 12000 + R.mediaTail + 1 || legs(p).every((l) => l.t1 - l.t0 <= R.floors.leg + 1), `plays in ${p.total}`);
-  // A short walk is not stretched to fill the cap.
-  assert.ok(plan(sampleWalk().story).total < R.cap / 2);
-  // A walk that can fit is shrunk to fit, with room left above the floors (audit: the test above can't fit).
-  const pts2: TracePoint[] = [];
-  const caps2: Faced[] = [];
-  let t2 = 0;
-  for (let i = 0; i < 20; i++) {
-    const seg = line(at(i * 300, 0), at(i * 300 + 300, 0), t2);
-    pts2.push(...(i ? seg.slice(1) : seg));
-    t2 = endT(seg);
-    caps2.push(cap('photo', t2, at(i * 300 + 300, 0)));
-    const st = stand(at(i * 300 + 300, 0), t2, 3 * MIN);
-    pts2.push(...st);
-    t2 = endT(st);
-  }
-  const fit = plan(walkStory(input(pts2, caps2)));
-  assert.ok(fit.total <= R.cap + 1 && fit.total > R.cap - 1000, `fits the cap: ${fit.total} ms`);
-  for (const s of fit.segs.flatMap((x) => (x.k === 'stop' ? x.slots : []))) assert.ok(s.t1 - s.t0 > R.floors.photo && s.t1 - s.t0 < R.photo, 'photos shrunk, above their floor');
-});
+// RR5 (the 60 s cap and its floors) was retired by replay pace (RY10, decision 0203): pace.test.ts holds that nothing shrinks.
 
 test('RR7: a frame is a function of the time alone, so holding the time holds everything', () => {
   const p = plan(sampleWalk().story);
@@ -329,23 +287,26 @@ test('RR9: notes enter as the walker arrives, at most three, each out after 9 s 
   // It must still be there, leaving (tend replay 14: `!fourth ||` passed with no bubble at all).
   assert.ok(fourth && fourth.kind === 'bubble' && fourth.exit > 0, 'the first note is on its way out');
   // A lone note leaves after its life.
-  // The walk goes on past it, with photos further on, so the plan outlasts the note's life (tend replay 14: the `if` never ran).
+  // The walk goes on past it, with notes further on, so the plan outlasts the note's life (tend replay 14: the `if` never ran).
   const ab = line(A, B, 0);
   const bc = line(B, C, endT(ab)).slice(1);
   const cd = line(C, D, endT(bc)).slice(1);
   const dd2 = line(D, D2, endT(cd)).slice(1);
-  const later = [cap('photo', endT(bc), C), cap('photo', endT(cd), D), cap('photo', endT(dd2), D2)];
-  const lone = plan(walkStory(input([...ab, ...bc, ...cd, ...dd2], [cap('text', endT(ab), B, 'Alone'), ...later])));
+  // Notes, not photos: a card opening would take the note with it (RY7), and the fourth bubble comes after its life.
+  const later = [cap('text', endT(bc), C, 'b'), cap('text', endT(cd), D, 'c'), cap('text', endT(dd2), D2, 'd')];
+  const alone = cap('text', endT(ab), B, 'Alone');
+  const lone = plan(walkStory(input([...ab, ...bc, ...cd, ...dd2], [alone, ...later])));
+  const up = (ms: number) => rhythmFrame(lone, ms).overlays.some((o) => o.kind === 'bubble' && o.capture.id === alone.id);
   const st = lone.segs.find((s) => s.k === 'stop')!;
   const until = st.t0 + R.bubbleLife + R.bubbleOut + 10;
   assert.ok(until < lone.total, `the walk outlasts the note (${until} of ${lone.total} ms)`);
-  assert.ok(rhythmFrame(lone, st.t0 + R.bubbleLife - 10).overlays.some((o) => o.kind === 'bubble'), 'there through its life');
-  assert.ok(!rhythmFrame(lone, until).overlays.some((o) => o.kind === 'bubble'), 'gone after it');
+  assert.ok(up(st.t0 + R.bubbleLife - 10), 'there through its life');
+  assert.ok(!up(until), 'gone after it');
 });
 
-test('RR9: a note\'s pause grows with its words, at most 3 s', () => {
+test('RR9, RY5: a note\'s pause grows with its words, up to its most', () => {
   assert.equal(notePause('Five words in this note'), R.note);
-  assert.equal(notePause(Array(22).fill('w').join(' ')), R.note + 2 * R.notePerFive);
+  assert.equal(notePause(Array(10).fill('w').join(' ')), R.note + 4 * R.notePerWord);
   assert.equal(notePause(Array(400).fill('w').join(' ')), R.noteMax);
   assert.equal(notePause(null), R.note);
 });
@@ -360,15 +321,17 @@ test('RR10: a memo holds the walker for its length, in a bubble', () => {
   assert.ok(!rhythmFrame(p, stop.t0 + 3000).overlays.some((o) => o.kind === 'card'));
 });
 
-test('RR11: a photo grows, holds 2.4 s, tucks, and stays in the pile', () => {
+test('RR11, RY1: a photo grows, holds, tucks, and stays in the pile', () => {
   const { story, photo } = sampleWalk();
   const p = plan(story);
   const stop = p.segs.find((s) => s.k === 'stop')!;
-  assert.equal(stop.t1 - stop.t0, R.photo);
+  // The first photo of a replay is fully shown a fifth longer (RY2).
+  const whole = R.grow + R.photoHold * R.photoFirst + R.tuck;
+  assert.equal(stop.t1 - stop.t0, whole);
   const card = (ms: number) => rhythmFrame(p, ms).overlays.find((o) => o.kind === 'card');
   const g = card(stop.t0 + R.grow / 2);
   assert.ok(g && g.kind === 'card' && g.grow > 0 && g.grow < 1 && g.tuck === 0);
-  const h = card(stop.t0 + R.photo / 2);
+  const h = card(stop.t0 + whole / 2);
   assert.ok(h && h.kind === 'card' && h.grow === 1 && h.tuck === 0);
   const k = card(stop.t1 - R.tuck / 2);
   assert.ok(k && k.kind === 'card' && k.tuck > 0);
@@ -378,11 +341,11 @@ test('RR11: a photo grows, holds 2.4 s, tucks, and stays in the pile', () => {
   assert.ok(!rhythmFrame(p, stop.t0 + 10).overlays.some((o) => o.kind === 'pile'), 'no pile before anything is in it');
 });
 
-test('RR12: a video holds for its length plus the grow and the tuck', () => {
+test('RR12, RY6: a video holds for its length, a moment after it, plus the grow and the tuck', () => {
   const video = cap('video', 430_000, B, '5000');
   const p = plan(walkStory(input(line(A, B, 0), [video])));
   const stop = p.segs.find((s) => s.k === 'stop')!;
-  assert.equal(stop.t1 - stop.t0, 5000 + R.grow + R.tuck);
+  assert.equal(stop.t1 - stop.t0, R.grow + 5000 + R.mediaTail + R.tuck);
   const mid = rhythmFrame(p, stop.t0 + R.grow + 2500).overlays.find((o) => o.kind === 'card');
   assert.ok(mid && mid.kind === 'card' && mid.playing && Math.abs(mid.progress - 0.5) < 0.01);
 });
@@ -498,6 +461,7 @@ test('RR21: the registry gives the rhythm by default, and any ceremony honouring
       const steps = storySteps(story).flat();
       return {
         total: steps.length * 1000,
+        stops: [],
         frame: (ms) => {
           const c = steps[Math.floor(ms / 1000)];
           return {
@@ -608,18 +572,7 @@ test('replay-rhythm audit 10: the screens and the stage know no ceremony but thr
   }
 });
 
-test('replay-rhythm audit 11: many cuts still fit the cap', () => {
-  const pts: TracePoint[] = [];
-  let t = 0;
-  for (let i = 0; i < 40; i++) {
-    const seg = line(at(i * 400, 0), at(i * 400 + 100, 0), t);
-    pts.push(...seg);
-    t = endT(seg) + 10 * MIN; // pocketed: the next fixes come 10 min and 300 m on
-  }
-  const p = plan(walkStory(input(pts, [])));
-  assert.ok(p.segs.filter((s) => s.k === 'cut').length >= 39);
-  assert.ok(p.total <= R.cap + 1, `plays in ${p.total} ms`);
-});
+// replay-rhythm audit 11 (cuts shrink under the cap) went with RR5 (RY10, decision 0203).
 
 test('replay-rhythm audit 12: reduce motion keeps the timing and holds the camera', () => {
   const { story } = sampleWalk();
