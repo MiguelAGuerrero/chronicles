@@ -54,16 +54,33 @@ async function checks(h) {
         // SG2, SG5: the strip in two groups, one row, the last kind inside it; the spoken line names the groups present.
         const strip = await fox.evaluate((el) => {
           const kinds = [...el.querySelectorAll('[data-kind]')];
-          const row = kinds[0]?.parentElement?.closest('[data-testid^=atlas-strip]') ?? kinds[0]?.parentElement;
+          // The whole strip (the groups' parent), never one group, and never past the tile itself.
+          const row = el.querySelector('[data-testid^=atlas-strip-]')?.parentElement;
           const r = row?.getBoundingClientRect();
+          const tile = el.getBoundingClientRect();
           const last = kinds[kinds.length - 1]?.getBoundingClientRect();
-          return { n: kinds.length, top: new Set(kinds.map((k) => Math.round(k.getBoundingClientRect().top))).size, right: last?.right ?? 0, edge: r ? r.right : 0,
+          return { n: kinds.length, top: new Set(kinds.map((k) => Math.round(k.getBoundingClientRect().top))).size, right: last?.right ?? 0, edge: r ? Math.min(r.right, tile.right) : 0,
             life: !!el.querySelector('[data-testid=atlas-strip-life]'), sights: !!el.querySelector('[data-testid=atlas-strip-sights]') };
         });
         check(strip.n > 0 && strip.top === 1 && strip.right <= strip.edge + 0.5 && (strip.sights || strip.life),
           `SG2: the tile's kinds stay one row inside the strip, in their groups (${JSON.stringify(strip)})`);
         check(/Sights: History: (some|plenty|lots)/.test(label) && (!strip.life || /Local life: /.test(label)),
           `SG5: the tile's spoken line names its groups (${label})`);
+        {
+          const vp = page.viewportSize();
+          await page.setViewportSize({ width: 320, height: vp.height });
+          await page.waitForTimeout(600);
+          const narrow = await fox.evaluate((el) => {
+            const kinds = [...el.querySelectorAll('[data-kind]')];
+            const last = kinds[kinds.length - 1]?.getBoundingClientRect();
+            const t = el.getBoundingClientRect();
+            return { n: kinds.length, top: new Set(kinds.map((k) => Math.round(k.getBoundingClientRect().top))).size, right: last?.right ?? 0, edge: t.right - 12 };
+          });
+          check(narrow.top === 1 && narrow.right <= narrow.edge + 0.5, `SG2: at 320 px the strip stays one row inside the tile (${JSON.stringify(narrow)})`);
+          await shot(page, 'sg-tile-320');
+          await page.setViewportSize(vp);
+          await page.waitForTimeout(600);
+        }
       }
       const atlasRows = await page.evaluate(() => new Promise((resolve) => {
         const req = indexedDB.open('chronicles');
@@ -266,6 +283,16 @@ async function checks(h) {
         const text = `${await sec.innerText()} ${how}`;
         check(/Sights/.test(how) && /Local life/.test(how) && !/\d/.test(text) && !/\b(busy|popular|trending|lively|alive|buzzing|vibrant)\b/i.test(text),
           `SG7, SG11: the explanation names both groups; no digit or busy word in the section (${how.replace(/\s+/g, ' ').slice(0, 120)})`);
+        // The UI review's pictures (decision 0145): the rows under their headings, the explanation closed, then open again as it was.
+        await page.click('[data-testid=atlas-how]');
+        await page.locator('[data-testid=atlas-group-sights]').scrollIntoViewIfNeeded();
+        await page.waitForTimeout(300);
+        await shot(page, 'sg-card-kinds');
+        await page.locator('[data-testid=atlas-group-life]').scrollIntoViewIfNeeded();
+        await page.waitForTimeout(300);
+        await shot(page, 'sg-card-life');
+        await page.click('[data-testid=atlas-how]');
+        await page.locator('[data-testid=atlas-how]').scrollIntoViewIfNeeded();
       }
       await shot(page, '11c-atlas-card');
       {
