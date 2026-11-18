@@ -79,7 +79,10 @@ async function run(h) {
     const entry = [...document.querySelectorAll('[data-testid=journal-page] [data-testid=moment-card]')].find((e) => e.querySelector('[data-testid=quick-actions]'));
     if (!entry) return null;
     const row = entry.querySelector('[data-testid=quick-actions]');
-    const caption = [...row.querySelectorAll('[role=button] *')].find((n) => n.textContent === 'Reaction' && n.children.length === 0);
+    // fix quick-actions-leading audit 3: the first slot's caption, whatever its word.
+    // The slot's last text is its caption (the icon is a font glyph before it).
+    const caption = [...(row.querySelector('[role=button]')?.querySelectorAll('*') ?? [])].filter((n) => n.children.length === 0 && n.textContent).at(-1);
+    if (!caption) return null;
     // The entry's leading edge, where its words start.
     const text = entry.getBoundingClientRect();
     const range = document.createRange();
@@ -94,19 +97,33 @@ async function run(h) {
   // fix quick-actions-leading, SW18: at 320 px the row with all five (Join on the entry just kept) still fits, each slot a target.
   await pg.setViewportSize({ width: 320, height: 844 });
   await pg.waitForTimeout(500);
-  const five = await pg.evaluate(() => {
+  const fiveRow = () => pg.evaluate(() => {
     const row = document.querySelector('[data-testid=quick-stack]')?.closest('[data-testid=quick-actions]');
     const entry = row?.closest('[data-testid=moment-card]');
     if (!row || !entry) return null;
     const slots = [...row.children].map((c) => c.getBoundingClientRect());
-    const cut = [...row.querySelectorAll('[role=button] *')].filter((n) => n.children.length === 0 && n.textContent && n.scrollWidth > n.clientWidth + 1).map((n) => n.textContent);
-    return { n: slots.length, widths: slots.map((r) => Math.round(r.width)), right: Math.round(slots[slots.length - 1].right), edge: Math.round(entry.getBoundingClientRect().right), cut };
+    const leaves = (el) => [...el.querySelectorAll('*')].filter((n) => n.children.length === 0 && n.textContent);
+    const cut = leaves(row).filter((n) => n.scrollWidth > n.clientWidth + 1).map((n) => n.textContent);
+    const first = leaves(row.querySelector('[role=button]')).at(-1);
+    const range = document.createRange();
+    if (first) range.selectNodeContents(first);
+    const e = entry.getBoundingClientRect();
+    return { n: slots.length, widths: slots.map((r) => Math.round(r.width)), right: Math.round(slots[slots.length - 1].right), edge: Math.round(e.right), captionX: first ? Math.round(range.getBoundingClientRect().left) : null, textX: Math.round(e.left), cut };
   });
+  const five = await fiveRow();
   await shot(pg, 'stackjoin-01d-row-320');
+  // fix quick-actions-leading audit 4: on a narrower page (a zoomed phone) the five still stay inside the entry.
+  await pg.setViewportSize({ width: 270, height: 844 });
+  await pg.waitForTimeout(500);
+  const narrow = await fiveRow();
   await pg.setViewportSize({ width: 390, height: 844 });
   await pg.waitForTimeout(500);
   check(!!five && five.n === 5 && five.widths.every((w) => w >= 44) && five.right <= five.edge && five.cut.length === 0,
     `fix quick-actions-leading, SW18: at 320 px the five slots fit the entry, each a target, no caption cut (${JSON.stringify(five)})`);
+  check(!!five && five.captionX != null && Math.abs(five.captionX - five.textX) <= 3,
+    `fix quick-actions-leading audit 2: at 320 px the first caption still starts at the entry's edge (${five && five.captionX} vs ${five && five.textX})`);
+  check(!!narrow && narrow.n === 5 && narrow.widths.every((w) => w >= 44) && narrow.right <= narrow.edge,
+    `fix quick-actions-leading audit 4: at 270 px the five slots stay inside the entry, each a target (${JSON.stringify(narrow)})`);
 
   // SW2: Respond opens the viewer on its kinds menu, then back.
   await pg.locator('[data-testid=quick-respond]').first().click();

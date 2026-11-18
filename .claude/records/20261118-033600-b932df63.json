@@ -1,0 +1,15 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Capture from Chronicle and the journal (HC1-HC15, decision 0112; JN1-JN24, decision 0155)",
+        "--after",
+        "three square tiles to a row"
+      ],
+      "body": "- [ ] **Do:** on an iPhone SE (320 pt) and a Pro Max (430 pt), look at the quick-action row under a photo entry, a note entry and the entry just kept (with Join); tap 2 pt left of \"Reaction\"; then set the largest Dynamic Type (and Android's largest font scale) and look again. **Expect:** the row starts at the entry's leading edge, \"Reaction\" in line with the entry's words, slots of one width with any empty slot as room at the end; the tap at the left opens the reactions (the slot reaches 10 pt past its parent); at the largest text the captions grow only to 1.3x and stay whole, five fitting at 320 pt. (fix quick-actions-leading, audit 1)\n"
+    }
+  ]
+}
