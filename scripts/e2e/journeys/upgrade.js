@@ -2,7 +2,12 @@
 // them as before. The database is seeded at version 17 from the frozen schema (fixtures/web17.js) before the app's
 // code first runs, then the app opens it at its own version and folds every capture into a moment. E2E_ONLY=upgrade.
 
+const fs = require('fs');
+const path = require('path');
 const { migrate17 } = require('../fixtures/web17');
+
+// The app's IndexedDB version, read from the store itself (fix upgrade-version): a version bump never leaves this check stale.
+const STORE_VERSION = Number(/^const VERSION = (\d+);/m.exec(fs.readFileSync(path.join(__dirname, '../../../src/lib/db/index.web.ts'), 'utf8'))?.[1]);
 
 // Runs in the page, before any of the app's code, once per browser: the old schema, then the old rows.
 const SEED = ({ migrate, now }) => {
@@ -49,7 +54,7 @@ async function run(h) {
   await pg.goto(url);
   await pg.waitForSelector('[data-testid=tab-chronicle]', { timeout: 30000 });
   const db = await version(pg);
-  check(db.v === 22 && db.stores.includes('moment') && !db.stores.includes('capture'), `MT9: the app opened a version-17 database and upgraded it (${JSON.stringify(db)})`);
+  check(Number.isInteger(STORE_VERSION) && db.v === STORE_VERSION && db.stores.includes('moment') && !db.stores.includes('capture'), `MT9: the app opened a version-17 database and upgraded it (${JSON.stringify(db)})`);
 
   await tabTo(pg, 'chronicle', 'memories');
   await toThreads(pg);

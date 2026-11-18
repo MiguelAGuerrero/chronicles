@@ -44,3 +44,19 @@ test('e2e batch: the green cache is written whole, so a run beside it never read
   assert.deepEqual(economy.readGreen(root), {}, 'a torn file reads as empty, which is why a write is never torn');
   assert.ok(readFileSync(join(root, '.e2e-green.json'), 'utf8').length > 0);
 });
+
+test('e2e batch (decision 0226): a check red on main is labelled so, and a timing failure is marked for a rerun alone', () => {
+  const batch = load(join(ROOT, 'scripts', 'e2e-batch.js')) as {
+    summarize(name: string, out: string, code: number, red?: Record<string, { check: string; base: string; seen: string }[]>): { state: string; line: string; timing?: boolean };
+    isTiming(why: string): boolean;
+  };
+  const red = { upgrade: [{ check: 'MT9: the app opened a version-17 database and upgraded it ({"v":22})', base: 'abc12345', seen: '2026-11-18' }] };
+  const known = batch.summarize('upgrade', 'not ok - MT9: the app opened a version-17 database and upgraded it ({"v":23})', 1, red);
+  assert.equal(known.state, 'red', 'the same check, its measured values aside, is the known red one');
+  assert.match(known.line, /red on main, not this change/);
+  assert.equal(batch.summarize('upgrade', 'not ok - MT10: another check', 1, red).state, 'fail', 'another check of the journey is a failure');
+  const slow = batch.summarize('dense', 'not ok - the first switch-on holds no task past 250 ms (longest 272 ms)', 1, {});
+  assert.equal(slow.state, 'fail');
+  assert.equal(slow.timing, true, 'a budget in ms is a timing check');
+  assert.equal(batch.isTiming('MT9: upgraded (v 23)'), false);
+});

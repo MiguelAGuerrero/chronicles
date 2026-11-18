@@ -294,6 +294,10 @@ to it (`scripts/e2e/economy.js`; tests `arch/e2eEconomy.test.ts`):
   `stopped: <its first error line>`, never as a pass: stopped every run means `main` is broken
   there (resurface, Nov 18, read "passed 3/3" through three timeouts until it did).
 
+- **Known red, and timing under load** (decision 0226): a clean full `e2e:all` pass writes `scripts/e2e/red.json`, the
+  checks red on `main` per journey; `e2e:batch` labels a failure of one of them "red on main, not this change" and
+  does not count it. A timing failure in a batch (a budget in ms, a long task) runs again alone, once, and a pass alone
+  counts.
 - **Side by side** (decision 0204): `npm run e2e:batch -- <journey> ...` runs the named journeys three at a time
   (`-j N` for another width) against the `dist/` already exported, each on a port of its own, one line per journey
   and the logs in a folder; the green cache holds as for one run (it is written whole, so runs side by side never
