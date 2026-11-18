@@ -83,7 +83,7 @@ const FEATURES = [
     rule: 'replay',
     source: ['src/app/replay/**', 'src/lib/ceremony/**', 'src/components/ceremony/**', 'src/lib/{replay,quietLines,summary}.ts', 'src/components/CaptureView.tsx', 'src/lib/viewerBars.ts'],
     journeys: ['replay'],
-    specs: ['concept', 'replay-rhythm', 'replay-pace'],
+    specs: ['concept', 'replay-rhythm', 'replay-pace', 'replay-ceremony'],
   },
   {
     name: 'moments',
@@ -517,7 +517,10 @@ const RENAMED = {
   'video-thumbnails': { VS: 'VT' },
 };
 
-const IN_PROGRESS = {};
+const IN_PROGRESS = {
+  // Replay ceremony (RC1-RC48): the spec and plan are with the owner; nothing is built (Nov 18).
+  'replay-ceremony': { branch: 'claude/funny-bohr-ztvwgv', since: '2026-11-18' },
+};
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));
 
