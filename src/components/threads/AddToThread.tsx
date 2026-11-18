@@ -3,7 +3,7 @@ import { type ComponentRef, useEffect, useMemo, useRef, useState } from 'react';
 import { Dimensions, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useHidden } from '../../lib/deletion/useDeletions';
-import { accessoryRoom, floatsAccessory, lineLift } from '../../lib/journal/keyboard';
+import { accessoryRoom, floatsAccessory, lineLift, overlayTop } from '../../lib/journal/keyboard';
 import { useKeyboardHeight } from '../../lib/threads/useKeyboardHeight';
 import { threads } from '../../lib/threads';
 import { filterPicker } from '../../lib/threads/picker';
@@ -41,9 +41,14 @@ export function AddToThread(props: { moment: Faced; onClose: () => void; onDone:
   const { height: windowH } = useWindowDimensions();
   const back = useRef<ComponentRef<typeof View>>(null);
   const [below, setBelow] = useState(0);
+  // Where the backdrop starts in the window: the top inset is counted only where the host has not cleared it (audit 4).
+  const [at, setAt] = useState(0);
   // The window's height is read when the measure answers, not when it was asked: one asked before a turn can answer after
   // it (audit 2).
-  const take = () => back.current?.measureInWindow((_x: number, y: number, _w: number, h: number) => setBelow(Math.max(0, Math.round(Dimensions.get('window').height - (y + h)))));
+  const take = () => back.current?.measureInWindow((_x: number, y: number, _w: number, h: number) => {
+    setAt(Math.round(y));
+    setBelow(Math.max(0, Math.round(Dimensions.get('window').height - (y + h))));
+  });
   const measure = () => {
     if (keyboard === 0) take();
   };
@@ -107,7 +112,7 @@ export function AddToThread(props: { moment: Faced; onClose: () => void; onDone:
   };
   return (
     // With the keys up the card gives its top margin to the rows (audit 1).
-    <View ref={back} onLayout={measure} style={[StyleSheet.absoluteFill, styles.back, { paddingTop: insets.top + (keyboard > 0 ? 8 : 56), paddingBottom: foot }]}>
+    <View ref={back} onLayout={measure} style={[StyleSheet.absoluteFill, styles.back, { paddingTop: overlayTop({ inset: insets.top, at, keys: keyboard > 0 }), paddingBottom: foot }]}>
       <View style={styles.card} testID="add-to-thread" accessibilityViewIsModal>
         <View style={styles.head}>
           <Text style={styles.title} accessibilityRole="header">{step === 'threads' ? 'Add to a thread' : 'Join it with another moment'}</Text>

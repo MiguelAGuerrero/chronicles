@@ -151,6 +151,20 @@ test('chronicle-journal audit 1: the line lifts by what the keyboard covers abov
   assert.equal(lineLift(60, 82), 0);
 });
 
+test('fix picker-keyboard audit 4: an overlay counts the top inset only where its host has not already cleared it', () => {
+  const k = keyboardRules as unknown as { overlayTop?: (o: { inset: number; at: number; keys: boolean }) => number };
+  assert.equal(typeof k.overlayTop, 'function');
+  const top = k.overlayTop!;
+  // In Chronicle's Memories the screen starts below the section bar, which already padded the 59 px inset.
+  assert.equal(top({ inset: 59, at: 119, keys: false }), 56);
+  assert.equal(top({ inset: 59, at: 119, keys: true }), 8);
+  // In the viewer's full-screen Modal the overlay starts at the top of the window: the inset is its own to clear.
+  assert.equal(top({ inset: 59, at: 0, keys: false }), 115);
+  assert.equal(top({ inset: 59, at: 0, keys: true }), 67);
+  // Partly cleared: only what is left of the inset.
+  assert.equal(top({ inset: 59, at: 20, keys: true }), 47);
+});
+
 test('fix journal-note-pages audit 4: a save that fails after the line gave its entry to a page is not said on the empty line', () => {
   // The line handed its entry to the page and reset; a write begun before that fails late.
   const late = run([{ k: 'saveFailed' }]);
