@@ -411,7 +411,10 @@ destination's included, and "Pass by" on the last town is how the plan is put aw
 59. No photo while planning with no session (the cold find): reject, by QC30 and WP23 (a moment on a planning page belongs to a session; with none, Start begins one).
 60. Start does not say what it starts, and the walk screen's glyph is footprints for a drive (the cold find): defer to the session's name in the app (decision 0197's first slice); the line beside Start is 47's.
 
-Journeys: `journey` (24 checks; three runs green after the fixes, one earlier failure being the test's own chip helper).
+Journeys run once after the fixes (Nov 18, in the foreground): `journey` (24 checks; an earlier failure was the test's own chip
+helper, since made to wait for the chips to settle), `outing` (66), `capturehome`, `carousel`, `dense`, `edit`, `freelook`, `gaps`,
+`headsup`, `hidden`, `layers`, `marks`, `openmaps`, `placesearch`, `ready`, `reload`, `snap`, `space`, `switches`, `tabs`, `unsaved`,
+`walkability`: all green. `drive` fails where `docs/DEFERRED.md` records it failing on `main`; not rerun and not baselined here.
 
 **A journey carried by the session, built 2026-11-17** (step 3, decision 0201; the owner's "proceed with reasonable defaults ...
 alignment with traditional trip planners", whose features and how each is said here are the table in that record). Start begins a
