@@ -43,6 +43,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 18, fontWeight: '700', color: theme.ink },
   body: { fontSize: 15, lineHeight: 21, color: theme.ink },
   row: { flexDirection: 'row', gap: 8, marginTop: 8 },
-  stack: { gap: 8, marginTop: 8 },
+  // Stacked, the destructive action keeps iOS's 12 pt from Cancel; the row keeps 8 (tend deletion audit 4).
+  stack: { gap: 12, marginTop: 8 },
   flex: { flex: 1 },
 });
