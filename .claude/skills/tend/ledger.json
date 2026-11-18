@@ -1,5 +1,5 @@
 {
-  "lastT": 33,
+  "lastT": 34,
   "lastG": 4,
   "balance": {
     "date": "2026-11-18",
@@ -173,9 +173,9 @@
     },
     "map": {
       "state": "rough",
-      "swept": "2026-11-17",
-      "main": "b812614044bf45fe3f12f2adba39c4958ce9155a",
-      "note": "No sweep (lenses 1-7 not run): a run on two DEFERRED [loop] items. tend map 15 (following, the compass brings the map north: the follow waits while the ease runs) and 16 (only the pins near the view are drawn on the web map; Chronicle with 500 placed moments, 500 markers to 28). Review (auditor, one round): audit 35 (a pin's reach grows the view), 36 (the box follows a move as it goes), 37 (the focused or pressed pin stays) shipped; F4 the owner's call (a screen reader reaches the pins near the view, recorded in map.md); F2 low filed [loop]; the native follow race filed in NATIVE_UNVERIFIED; F7 measured, the margin kept at 0.5."
+      "swept": "2026-11-18",
+      "main": "17bcbccb28e1a864c58dee985354219255f42e69",
+      "note": "No sweep (lenses 1-7 not run): a run on DEFERRED's [loop] lows. tend map 17 (the pin, star and \"?\" tap refs filled in layout effects), 18 (the worker test reaches its setWorkerUrl call), 19 (a memory pin of one moment says \"Memory: a voice memo\", one table with several), 20 (the selected star told to a screen reader: aria-current on the web, accessibilityState selected on native; the owner's \"Allow it\", Nov 18). Review (auditor, one round, four low, all accepted): audit 40 and 42 (the source-reading tests hold their wiring), 41 (a tap between commit and marker sync is dropped, never stale; recorded in map.md), F43 (the 19 test names what it amends). map.md passed the 20,000-character warning: T34 [owner] asks to split it. formatDistance's no-break space noted, not built (the planner journey was held by a parallel run)."
     },
     "replay": {
       "state": "rough",
