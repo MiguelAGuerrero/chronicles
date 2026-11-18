@@ -13,6 +13,7 @@
       "DW",
       "E",
       "EC",
+      "EI",
       "EW",
       "FL",
       "G",
@@ -62,6 +63,7 @@
       "SA",
       "SB",
       "SF",
+      "SG",
       "SH",
       "SP",
       "SR",
@@ -76,15 +78,16 @@
       "UN",
       "VT",
       "WH",
+      "WI",
       "WK",
       "WP",
       "WT",
       "XS"
     ],
     "commits": {
-      "growth": 178,
-      "refinement": 596,
-      "other": 636
+      "growth": 189,
+      "refinement": 604,
+      "other": 672
     },
     "areas": {
       "rough": [
@@ -131,7 +134,7 @@
       "web"
     ],
     "open": {
-      "openT": 3,
+      "openT": 7,
       "phoneT": 4,
       "openG": 0
     },
@@ -173,8 +176,8 @@
     "map": {
       "state": "rough",
       "swept": "2026-11-18",
-      "main": "17bcbccb28e1a864c58dee985354219255f42e69",
-      "note": "No sweep (lenses 1-7 not run): a run on DEFERRED's [loop] lows. tend map 17 (the pin, star and \"?\" tap refs filled in layout effects), 18 (the worker test reaches its setWorkerUrl call), 19 (a memory pin of one moment says \"Memory: a voice memo\", one table with several), 20 (the selected star told to a screen reader: aria-current on the web, accessibilityState selected on native; the owner's \"Allow it\", Nov 18). Review (auditor, one round, four low, all accepted): audit 40 and 42 (the source-reading tests hold their wiring), 41 (a tap between commit and marker sync is dropped, never stale; recorded in map.md), F43 (the 19 test names what it amends). map.md passed the 20,000-character warning: T34 [owner] asks to split it. formatDistance's no-break space noted, not built (the planner journey was held by a parallel run)."
+      "main": "e45412a940a7b1b87429a4d70029784cac345763",
+      "note": "No sweep (lenses 1-7 not run): a run on DEFERRED's [loop] formatDistance item. tend map 21 (formatDistance and formatRange bind the figure to its unit with a no-break space; 20-odd unit tests and the gaps, launch, memories, outing, planner, qol, ready, scenic and walk journeys restated to accept [ \\u00a0], exact strings pinning it). Review (auditor, one round, no check weaker; one medium, five low): F1-F5 accepted as tend map audit 43 (a journey check that U+00A0 reaches the page), 44 (the gap card in formatDistance's words, the medium), 45 (the dead-zone nudge), 46 (scenic's notice in km), 47 (spoken distances keep the no-break space; map.md gains the line); F6 (reachLabel's \".0 \" replace) is the Outing session's branch. A native check filed for U+00A0 in Text and screen readers."
     },
     "replay": {
       "state": "rough",
