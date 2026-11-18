@@ -191,7 +191,7 @@ paths right.
    changed, the typecheck and lint of the changed files, and the e2e
    scenarios that cover them. The whole suite is for step 9. Between criteria
    run only the journeys you edited, rewrote or added (`npm run check:e2e`
-   lists them): each named journey runs once, at the end, not at every
+   names them, by file and criterion id, decision 0226): each named journey runs once, at the end, not at every
    checkpoint. A journey already green on these inputs is not run again
    (`E2E_FORCE=1` overrides, for a reason you can name).
 2. Keep truth vs cache: never patch derived data, recompute from the trace.

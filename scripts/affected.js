@@ -454,20 +454,75 @@ function typecheckStep() {
 }
 
 /**
- * The e2e plan (explore-carousel's lesson, Nov 10): the journeys that cover what changed, minus the changes that cannot alter
- * behaviour, and each one's state: to run, or already green with its files as they are. `status(name)` is 'green' or null.
+ * The criterion ids a change names (decision 0226): `TC1-TC9`, `TC3, TC4`, `SF13` in its commit subjects, ranges expanded.
+ * `walk audit 3`-style ids are left out: they name a slice's audit, which its own journey file already holds.
  */
-function e2eHint(changed, all, status = () => null, comment = []) {
-  const r = e2eFor(changed);
+function criterionIds(subjects) {
+  const ids = new Set();
+  for (const s of subjects) {
+    for (const m of s.matchAll(/\b([A-Z]{1,4})(\d+)[a-z]?(?:\s*-\s*(?:\1)?(\d+))?\b/g)) {
+      const lo = Number(m[2]);
+      const hi = m[3] ? Number(m[3]) : lo;
+      for (let n = lo; n <= Math.min(hi, lo + 60); n++) ids.add(`${m[1]}${n}`);
+    }
+  }
+  return [...ids];
+}
+
+/**
+ * The change's own journeys (decision 0226; 0223, "Choosing the journeys" 2): a journey whose file changed, or one whose
+ * checks name a criterion id the change names. `read(file)` returns a journey file's text.
+ */
+function ownJourneys(changed, ids, scenarios, read) {
+  const own = [];
+  for (const s of scenarios) {
+    if (s.file && changed.includes(s.file)) {
+      own.push({ name: s.name, why: 'its file changed' });
+      continue;
+    }
+    if (!ids.length || !s.file) continue;
+    const text = read(s.file) ?? '';
+    const held = ids.filter((id) => new RegExp(`\\b${id}\\b`).test(text));
+    if (held.length) own.push({ name: s.name, why: `holds ${held.slice(0, 6).join(', ')}${held.length > 6 ? ', …' : ''}` });
+  }
+  return own;
+}
+
+/**
+ * The e2e plan. By default (decision 0226) the change's own journeys only: those whose file changed or whose checks name
+ * the change's criterion ids, minus the green ones; every other journey that covers a changed file is listed as reached,
+ * not to run (0223). `opts.reach` lists every covering journey to run, as before (explore-carousel's lesson, Nov 10).
+ * `status(name)` is 'green' or null.
+ */
+function e2eHint(changed, all, status = () => null, comment = [], opts = {}) {
+  const scenarios = opts.scenarios ?? require('./e2e-scenarios').SCENARIOS;
+  const read = opts.read ?? ((f) => (fs.existsSync(path.join(ROOT, f)) ? fs.readFileSync(path.join(ROOT, f), 'utf8') : null));
+  const r = e2eFor(changed, scenarios);
   const lines = [];
-  const need = r.scenarios.filter((s) => status(s.name) !== 'green');
-  const done = r.scenarios.filter((s) => status(s.name) === 'green');
-  if (need.length) {
-    lines.push('E2E journeys that cover what changed (npm run export:web, then):');
-    for (const s of need) lines.push(`  E2E_ONLY=${s.name} npm run e2e:web    (${features.featureOfJourney(s.name)?.name ?? 'no feature'}: ${s.files.join(', ')})`);
-  } else if (r.scenarios.length) lines.push('E2E: every journey that covers what changed is already green with its files as they are.');
-  else lines.push('E2E: no journey covers what changed.');
-  if (done.length) lines.push(`  Already green, with their files unchanged since (not run again): ${done.map((s) => s.name).join(', ')}. E2E_FORCE=1 runs one anyway.`);
+  if (opts.reach) {
+    const need = r.scenarios.filter((s) => status(s.name) !== 'green');
+    const done = r.scenarios.filter((s) => status(s.name) === 'green');
+    if (need.length) {
+      lines.push('E2E journeys that reach what changed, all of them (--reach; npm run export:web, then):');
+      for (const s of need) lines.push(`  E2E_ONLY=${s.name} npm run e2e:web    (${features.featureOfJourney(s.name)?.name ?? 'no feature'}: ${s.files.join(', ')})`);
+    } else if (r.scenarios.length) lines.push('E2E: every journey that covers what changed is already green with its files as they are.');
+    else lines.push('E2E: no journey covers what changed.');
+    if (done.length) lines.push(`  Already green, with their files unchanged since (not run again): ${done.map((s) => s.name).join(', ')}. E2E_FORCE=1 runs one anyway.`);
+  } else {
+    const own = ownJourneys(changed, opts.ids ?? [], scenarios, read);
+    const ownNames = new Set(own.map((o) => o.name));
+    const need = own.filter((o) => status(o.name) !== 'green');
+    const done = own.filter((o) => status(o.name) === 'green');
+    if (need.length) {
+      lines.push("E2E: this change's own journeys (decision 0226; npm run export:web, then):");
+      lines.push(`  ${need.length === 1 ? `E2E_ONLY=${need[0].name} npm run e2e:web` : `npm run e2e:batch -- ${need.map((o) => o.name).join(' ')}`}`);
+      for (const o of need) lines.push(`    ${o.name}: ${o.why}`);
+    } else if (own.length) lines.push("E2E: this change's own journeys are already green with their files as they are.");
+    else lines.push('E2E: no journey holds this change\'s checks; its unit tests prove it (0223). A change to what a screen shows adds a check to the journey of that screen.');
+    if (done.length) lines.push(`  Already green, with their files unchanged since (not run again): ${done.map((o) => o.name).join(', ')}. E2E_FORCE=1 runs one anyway.`);
+    const reached = r.scenarios.map((s) => s.name).filter((n) => !ownNames.has(n));
+    if (reached.length) lines.push(`  Reached, not run (0223): ${reached.join(', ')}. \`--reach\` lists them to run; a failure there is dropped, not chased.`);
+  }
   if (comment.length) lines.push(`  Left out as comment-only, no behaviour changed: ${comment.join(', ')}.`);
   if (r.uncovered.length) {
     lines.push(`  No journey covers ${r.uncovered.join(', ')}: if this slice changes what a screen shows, add a journey for it (/e2e, scripts/e2e-scenarios.js).`);
@@ -475,6 +530,16 @@ function e2eHint(changed, all, status = () => null, comment = []) {
   lines.push('  Run each named journey once, at the end; rerun only one you changed or that failed. The full flow (npm run e2e:web with no E2E_ONLY) runs only when the owner asks (decision 0074).');
   if (all) lines.unshift('No main branch to compare with: every file counts as changed.');
   return lines.join('\n');
+}
+
+/** The commit subjects since `base` on this branch (its own commits, not main's). */
+function subjectsSince(root, base) {
+  if (!base) return [];
+  try {
+    return execFileSync('git', ['log', '--format=%s', `${base}..HEAD`], { cwd: root, encoding: 'utf8' }).split('\n').filter(Boolean);
+  } catch {
+    return [];
+  }
 }
 
 /** The changed paths that can change behaviour, and the source ones that could not (comments or types only). */
@@ -530,10 +595,11 @@ async function main(cmd) {
     steps = [step('layers', layersStep), step('tests', () => testsStep(changed, all)), step('typecheck', typecheckStep), step('lint', () => lintStep(changed, all))];
   } else if (cmd === 'e2e') {
     const { real, comment } = splitComment(ROOT, base, changed);
-    console.log(e2eHint(real, all, greenStatus(ROOT), comment));
+    const reach = process.argv.includes('--reach');
+    console.log(e2eHint(real, all, greenStatus(ROOT), comment, { reach, ids: criterionIds(subjectsSince(ROOT, base)) }));
     return;
   } else {
-    console.error('usage: node scripts/affected.js test | lint | check | hook | e2e | feature <name...> | coverage [<name...>]  (check, e2e: [--since <sha>])');
+    console.error('usage: node scripts/affected.js test | lint | check | hook | e2e | feature <name...> | coverage [<name...>]  (check, e2e: [--since <sha>]; e2e: [--reach])');
     process.exit(64);
   }
   const r = await runSteps(steps);
@@ -545,10 +611,10 @@ async function main(cmd) {
   }
   if (cmd === 'check') {
     const { real, comment } = splitComment(ROOT, base, changed);
-    console.log(`\n${e2eHint(real, all, greenStatus(ROOT), comment)}`);
+    console.log(`\n${e2eHint(real, all, greenStatus(ROOT), comment, { ids: criterionIds(subjectsSince(ROOT, base)) })}`);
   }
 }
 
 if (require.main === module) main(process.argv[2]);
 
-module.exports = { HARNESS, e2eHint, splitComment, changedFiles, changedPaths, importGraph, affectedTests, describeTests, lintTargets, e2eFor, runSteps, hookPlan, globToRegExp, coverage, describeCoverage, featureFolders, featureOfTest, allTests, coverageArgs };
+module.exports = { HARNESS, e2eHint, criterionIds, ownJourneys, splitComment, changedFiles, changedPaths, importGraph, affectedTests, describeTests, lintTargets, e2eFor, runSteps, hookPlan, globToRegExp, coverage, describeCoverage, featureFolders, featureOfTest, allTests, coverageArgs };
