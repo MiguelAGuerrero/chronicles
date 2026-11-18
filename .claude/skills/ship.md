@@ -89,8 +89,10 @@ needs quoting; never edit these files with Edit, Write or sed.
 - **Before the commit:** `npm run check:records -- origin/main` (the commits since `main` and the
   working tree with its pending operations). It names each change no operation makes. A commit that
   fails and is not pushed yet is made again: `git reset --soft HEAD~1` (the last commit), `git checkout
-  HEAD -- <the documents>`, the operations, the commit. A commit already on `main` stays (`main` is never
-  rewritten); the next push carries the record through operations.
+  HEAD -- <the documents>`, `git rm -q --cached <its sidecar>` and remove the file (else it reads as
+  pending, and the operations made again are refused or stack on it), the operations, the commit. A
+  commit already on `main` stays (`main` is never rewritten); the next push carries the record through
+  operations.
 - **On a rebase conflict** in them, in the commit being replayed (its sidecar is pending again), take
   `main`'s side of the three documents and the ledger and run `npm run records -- redo`: it runs the
   commit's operations again on `HEAD`'s documents, an inbox entry numbering on from `main`'s ledger
