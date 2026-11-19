@@ -156,6 +156,15 @@ function WalkStats(props: { startedAt: number | null; pauses: Pause[]; distanceM
   );
 }
 
+/**
+ * A ref whose `current` is `get()` at each read, made once as the screen mounts: `get` should read only refs. A hook, so
+ * the React Compiler does not take the getter for a ref read during render, as it did built inline (walk-screen compiler).
+ */
+function useLazyRef<T>(get: () => T): { readonly current: T } {
+  const [ref] = useState(() => Object.defineProperty({} as { current: T }, 'current', { get }));
+  return ref;
+}
+
 /** The walk that has had its dead-zone nudge (L15): once a walk. */
 const NUDGED_KEY = 'deadzone_walk';
 
@@ -354,11 +363,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const backRef = useRef<PressableRef>(null);
   const recenterRef = useRef<PressableRef>(null);
   // Resolved as the compass is pressed, never in render: whichever is drawn then.
-  const [compassNext] = useState(() =>
-    Object.defineProperty({} as { current: unknown }, 'current', {
-      get: (): unknown => backRef.current ?? recenterRef.current ?? { focus: () => mapRef.current?.focus() },
-    }),
-  );
+  const compassNext = useLazyRef((): unknown => backRef.current ?? recenterRef.current ?? { focus: () => mapRef.current?.focus() });
   const ready = useReady({
     locateRef: readyLocateRef,
     active: !walk,
@@ -459,6 +464,25 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const asked = useStore(momentPill.store, (st) => st.ask?.seq ?? 0);
   // Scenic routes' Sights read What I'm into's kinds too: its row shows with Sights on (what-im-into-page audit 6).
   const sightsOn = useStore(routeLeanings.store, (s) => s.includes('sights'));
+  // After a photo or video, Edit is offered for a few seconds (ME23); it is opt-in.
+  const editOffer = useEditOffer();
+
+  // Declared before the effect below that calls them: the React Compiler skips a component that uses a function above its
+  // declaration (walk-screen compiler).
+  /** With `into`, the photo joins that open moment (MS2); Edit is offered for a new moment's photo only. */
+  async function photo(into: string | null = null) {
+    const kept = await cap.takePhoto(into);
+    if (!kept) return;
+    feedback('tap');
+    if (kept.id === kept.momentId) editOffer.show(kept);
+  }
+
+  async function startVoice(into: string | null = null) {
+    if (await cap.startVoice(into)) {
+      feedback('tap');
+      AccessibilityInfo.announceForAccessibility('Recording voice memo');
+    }
+  }
   const onAsk = useRef<(kind: 'photo' | 'voice' | 'text') => void>(() => {});
   useEffect(() => {
     onAsk.current = (kind) => {
@@ -536,7 +560,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
         (x) => distanceToLinesM(now, x.geometry) <= NEAR_RADIUS_M,
       );
       // Credited streets change only at a stop: read once per walk screen.
-      visitedRef.current ??= await db.visitedSegmentIds();
+      // Not `??=`: the React Compiler skips a component that holds one (walk-screen compiler).
+      if (visitedRef.current == null) visitedRef.current = await db.visitedSegmentIds();
       const visited = visitedRef.current;
       // The screen may have gone; a newer fix never cancels a run already under way (perf: a slow
       // read on a phone was always thrown away by the next fix, 2 s later).
@@ -983,12 +1008,12 @@ function WalkScreen(props: { onMinimize: () => void }) {
       farSince.current = null;
       return;
     }
-    farSince.current ??= now;
+    if (farSince.current == null) farSince.current = now;
     const far = now - farSince.current;
     if (nudgedRef.current || !deadZoneDue({ here: at, pockets: hotPockets, farSinceMs: far })) return;
     let alive = true;
     (async () => {
-      nudgedRef.current ??= (await db.getMeta(NUDGED_KEY)) === walk.id;
+      if (nudgedRef.current == null) nudgedRef.current = (await db.getMeta(NUDGED_KEY)) === walk.id;
       const got = deadZoneNudge({ here: at, pockets: hotPockets, farSinceMs: far, quiet: !storefrontsOn, nudged: nudgedRef.current });
       if (alive && got) setNudge(got);
     })().catch(() => {});
@@ -1049,41 +1074,53 @@ function WalkScreen(props: { onMinimize: () => void }) {
   async function stop() {
     if (!walk || stopping) return;
     setStopping(true);
-    try {
-      // Waits for any voice action in flight (a start, a save) before ending.
-      const r = await cap.finishVoice();
-      // A memo with nothing to keep is said while the walker is still here; the next hold ends the walk (UN13).
-      if (r === 'lost') {
-        setNotice({ message: lostAtStop(saveFailLine('voice', false)), tone: 'error', sticky: true });
-        return;
-      }
-      // A photo or video still being kept from any screen (Memories' band, the bar), and a Retry under way, land first,
-      // as the bar's Stop waits: one that fails meanwhile is warned of (unsaved-captures audit 2, 3).
-      await settleWithin(Promise.all([memoGate.kept(), unsaved.settled()]), STOP_WAIT_MS);
-      // Whatever of the walk is held, from any screen, read now (not from a render's closure), is said before the walk
-      // ends without it (SA8, UN5); the next hold lets go what it warned of, files and all, once the walk has ended (UN8;
-      // audit 4). A save still under way keeps the walk from the empty drop: the end both Stops share (tend tabs audit
-      // 42, decision 0227). The walk stays on screen until the replay replaces it (the keeper hears it ended first).
-      const end = await stopEnd(walk.id, { leaves: true, warned: warnedHeld.current, going: () => setEnded(walk) });
-      if ('warn' in end) {
-        warnedHeld.current = end.warn.map((x) => x.id);
-        setNotice({ message: stopWarning(end.warn.map((x) => x.kind)), tone: 'error', sticky: true });
-        return;
-      }
-      const { dropped } = end;
-      feedback('success');
-      if (dropped) {
-        // A walk with nothing in it has no replay: back to where the walker was, with the pill's Undo (EW1).
-        const to = exitPlan(router.canGoBack());
-        if (to.kind === 'back') router.back();
-        else router.replace(to.to);
-      } else router.replace(`/replay/${walk.id}`);
-    } catch (e) {
-      // The walk stays on screen with the error, even if storage already closed it (audit 3).
+    // The walk stays on screen with the error, even if storage already closed it (audit 3).
+    const couldNotStop = (e: unknown) =>
       setNotice({ message: `The walk could not be stopped: ${e instanceof Error ? e.message : e}`, tone: 'error', sticky: true });
-    } finally {
-      setStopping(false);
+    // A try/finally, written so the React Compiler keeps WalkScreen (it skips a component holding a `finally`, or a `? :`,
+    // `&&` or `?.` inside a try, hence the catch's words above): every way out, a throw from the catch included, reaches
+    // `setStopping(false)` once, and that throw goes on after it.
+    let failed = false;
+    let failure: unknown;
+    try {
+      try {
+        // Waits for any voice action in flight (a start, a save) before ending.
+        const r = await cap.finishVoice();
+        if (r === 'lost') {
+          // A memo with nothing to keep is said while the walker is still here; the next hold ends the walk (UN13).
+          setNotice({ message: lostAtStop(saveFailLine('voice', false)), tone: 'error', sticky: true });
+        } else {
+          // A photo or video still being kept from any screen (Memories' band, the bar), and a Retry under way, land first,
+          // as the bar's Stop waits: one that fails meanwhile is warned of (unsaved-captures audit 2, 3).
+          await settleWithin(Promise.all([memoGate.kept(), unsaved.settled()]), STOP_WAIT_MS);
+          // Whatever of the walk is held, from any screen, read now (not from a render's closure), is said before the walk
+          // ends without it (SA8, UN5); the next hold lets go what it warned of, files and all, once the walk has ended (UN8;
+          // audit 4). A save still under way keeps the walk from the empty drop: the end both Stops share (tend tabs audit
+          // 42, decision 0227). The walk stays on screen until the replay replaces it (the keeper hears it ended first).
+          const end = await stopEnd(walk.id, { leaves: true, warned: warnedHeld.current, going: () => setEnded(walk) });
+          if ('warn' in end) {
+            warnedHeld.current = end.warn.map((x) => x.id);
+            setNotice({ message: stopWarning(end.warn.map((x) => x.kind)), tone: 'error', sticky: true });
+          } else {
+            const { dropped } = end;
+            feedback('success');
+            if (dropped) {
+              // A walk with nothing in it has no replay: back to where the walker was, with the pill's Undo (EW1).
+              const to = exitPlan(router.canGoBack());
+              if (to.kind === 'back') router.back();
+              else router.replace(to.to);
+            } else router.replace(`/replay/${walk.id}`);
+          }
+        }
+      } catch (e) {
+        couldNotStop(e);
+      }
+    } catch (e) {
+      failed = true;
+      failure = e;
     }
+    setStopping(false);
+    if (failed) throw failure;
   }
 
   // The walk goes on beneath the tabs: the recorder, the trace and the reminders are kept above
@@ -1111,20 +1148,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
   async function togglePause() {
     if (!walk || pausing) return;
     setPausing(true);
-    try {
-      if (paused) {
-        void askMotion();
-        await resumeWalk(walk.id);
-        setNotice((n) => noticeShown(n, null)); // the paused reminder ends with the pause
-        AccessibilityInfo.announceForAccessibility('Walk resumed');
-      } else {
-        // A memo in progress is saved first; a paused walk records nothing.
-        await cap.finishVoice();
-        await pauseWalk(walk.id);
-        AccessibilityInfo.announceForAccessibility('Walk paused. Nothing is recorded until you resume.');
-      }
-      feedback('tap');
-    } catch (e) {
+    const failedWith = (e: unknown) => {
       const fail = startErrorFrom(e);
       if (paused && fail.tone === 'info') {
         // Resume refused is the refusal's quiet notice, said, as Start's (tend recording audit 1). On the web the recorder's
@@ -1136,32 +1160,41 @@ function WalkScreen(props: { onMinimize: () => void }) {
           AccessibilityInfo.announceForAccessibility(fail.message);
         }
       } else setNotice({ message: `Could not ${paused ? 'resume' : 'pause'}: ${fail.message}`, tone: 'error', sticky: true });
-    } finally {
-      // The screen shows whatever the database holds, even after a failure.
-      await notifyWalkChanged();
-      setPausing(false);
+    };
+    // A try/finally the React Compiler keeps (as Stop's): the cleanup below runs on every way out, then a throw goes on.
+    let failed = false;
+    let failure: unknown;
+    try {
+      try {
+        if (paused) {
+          void askMotion();
+          await resumeWalk(walk.id);
+          setNotice((n) => noticeShown(n, null)); // the paused reminder ends with the pause
+          AccessibilityInfo.announceForAccessibility('Walk resumed');
+        } else {
+          // A memo in progress is saved first; a paused walk records nothing.
+          await cap.finishVoice();
+          await pauseWalk(walk.id);
+          AccessibilityInfo.announceForAccessibility('Walk paused. Nothing is recorded until you resume.');
+        }
+        feedback('tap');
+      } catch (e) {
+        failedWith(e);
+      }
+    } catch (e) {
+      failed = true;
+      failure = e;
     }
+    // The screen shows whatever the database holds, even after a failure. A throw here goes on in place of the one held,
+    // and leaves pausing set, as a `finally` did.
+    await notifyWalkChanged();
+    setPausing(false);
+    if (failed) throw failure;
   }
 
 
-  // After a photo or video, Edit is offered for a few seconds (ME23); it is opt-in.
-  const editOffer = useEditOffer();
+  // The photo the Edit offer is for (ME23).
   const [editingKept, setEditingKept] = useState<Faced | null>(null);
-
-  /** With `into`, the photo joins that open moment (MS2); Edit is offered for a new moment's photo only. */
-  async function photo(into: string | null = null) {
-    const kept = await cap.takePhoto(into);
-    if (!kept) return;
-    feedback('tap');
-    if (kept.id === kept.momentId) editOffer.show(kept);
-  }
-
-  async function startVoice(into: string | null = null) {
-    if (await cap.startVoice(into)) {
-      feedback('tap');
-      AccessibilityInfo.announceForAccessibility('Recording voice memo');
-    }
-  }
 
   async function saveVoice() {
     const r = await cap.finishVoice();
@@ -1239,14 +1272,22 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const decideGap = async (state: 'kept' | 'dismissed') => {
     if (!openGap) return;
     setGapBusy(true);
+    // A try/finally the React Compiler keeps (as Stop's).
+    let failed = false;
+    let failure: unknown;
     try {
-      await gapView.decide(openGap, state);
-      setGapOpen(null);
-    } catch {
-      setNotice({ message: 'Couldn’t save that. Try again.', tone: 'error' });
-    } finally {
-      setGapBusy(false);
+      try {
+        await gapView.decide(openGap, state);
+        setGapOpen(null);
+      } catch {
+        setNotice({ message: 'Couldn’t save that. Try again.', tone: 'error' });
+      }
+    } catch (e) {
+      failed = true;
+      failure = e;
     }
+    setGapBusy(false);
+    if (failed) throw failure;
   };
 
   // The walk's notice, in the minimize row or just under the navigation bar when one holds the row.
