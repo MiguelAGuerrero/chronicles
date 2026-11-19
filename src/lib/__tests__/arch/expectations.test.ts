@@ -267,6 +267,22 @@ test('expectations audit 9: due tells a feature to draft from one awaiting the o
   assert.doesNotMatch(read('.claude/skills/tend/expectations.md'), /exists and passed in this run|exist and pass/, 'the script checks that a check exists and is not todo');
 });
 
+test('expectations audit 14: check:affected checks the store when a journey, a test or the store changed', () => {
+  const affected = createRequire(__filename)(join(ROOT, 'scripts', 'affected.js')) as {
+    needsExpectations(changed: string[]): boolean;
+    expectationsStep(root?: string): { ok: boolean; output: string };
+    checkSteps(changed: string[], all: boolean): string[];
+  };
+  for (const f of ['scripts/e2e/journeys/memories.js', 'src/lib/__tests__/memories/memories.test.ts', 'docs/expectations/memories.md']) assert.equal(affected.needsExpectations([f]), true, f);
+  assert.equal(affected.needsExpectations(['src/lib/geo.ts', 'docs/STATUS.md']), false);
+  assert.deepEqual(affected.checkSteps(['scripts/e2e/journeys/memories.js'], false), ['layers', 'tests', 'typecheck', 'lint', 'expectations']);
+  assert.deepEqual(affected.checkSteps(['src/lib/geo.ts'], false), ['layers', 'tests', 'typecheck', 'lint']);
+  const broken = affected.expectationsStep(tempRoot({ 'memories.md': STORE.replace('a later walk passing a flagged capture brings it back"', 'a renamed check"') }));
+  assert.equal(broken.ok, false);
+  assert.match(broken.output, /E-memories-1 names memories:"a renamed check"/);
+  assert.equal(affected.expectationsStep(tempRoot({ 'memories.md': STORE })).ok, true);
+});
+
 test('expectations 0234: a store file reads into lines with their status, check and grounds, and writes back the same', () => {
   const s = store();
   assert.deepEqual(s.problems, []);
