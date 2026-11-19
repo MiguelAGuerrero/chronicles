@@ -463,6 +463,21 @@ test('expectations audit 24: a check counts as vanished only if it is missing at
   assert.equal(g.gate(pending).status, 0, 'removed before this push: vanished');
 });
 
+test('expectations audit 25: a template named only by its id is refused; twelve letters of words after the id', () => {
+  const journey = [
+    'check(a, `tend tabs audit 3: ${x}`);',
+    'check(b, `tend replay T20: ${x}`);',
+    'check(c, `tend tabs 10: at ${x}`);',
+    'check(d, `SF2, SF4, SF9: ${x}`);',
+    'check(e, `MR3: a later walk brings back ${n} moments`);',
+  ].join('\n');
+  const i = ex.indexOf({ journeys: { memories: journey }, tests: {}, features: { memories: ['memories'] } });
+  for (const text of ['tend tabs audit 3: ', 'tend replay T20: ', 'tend tabs 10: at ', 'SF2, SF4, SF9: ']) assert.equal(ex.resolveCheck(`memories:"${text}"`, i), 'missing', text);
+  assert.equal(ex.resolveCheck('memories:"MR3: a later walk brings back "', i), 'ok', 'an id, then words');
+  const named = ex.checkProblems([ex.parseStore(STORE.replace('memories:"a later walk passing a flagged capture brings it back"', 'memories:"tend tabs audit 3: "').replace(/test:"[^"]*"/, 'pending "x"'), 'memories')], i, ['memories']);
+  assert.ok(named.some((p) => /a template message: name it by its fixed text, which must be unique/.test(p.message)), named.map((p) => p.message).join('\n'));
+});
+
 test('expectations 0236: a store file reads into lines with their status, check and grounds, and writes back the same', () => {
   const s = store();
   assert.deepEqual(s.problems, []);
