@@ -471,6 +471,7 @@ async function wholeTowns(h) {
     await pg.keyboard.press('Enter');
     await pg.waitForTimeout(1500);
     const cardOpen = (await pg.locator('[data-testid=atlas-card]').count()) > 0;
+    if (!cardOpen) console.log('# audit 5:', JSON.stringify(await pg.evaluate(() => ({ active: document.activeElement?.getAttribute('data-testid') ?? document.activeElement?.tagName, said: document.querySelectorAll('[data-testid=atlas-waiting-said]').length, panel: document.querySelectorAll('[data-testid=layers-panel]').length, cards: document.querySelectorAll('[data-testid=atlas-card]').length, title: document.querySelector('[data-testid=atlas-title]')?.textContent }))));
     check(cardOpen, 'whole-towns audit 5: the spoken line opens the selected area\'s card by keyboard');
     if (cardOpen) {
       // PL7, PL6: the card says only the kinds: no "Waiting to be found", and a kind row reads the same whatever the layer says.
