@@ -31,8 +31,11 @@ export function ReadyBar(props: {
   areaHeight: number;
   /** The numbers at the foot's left; they take hold of the bar too. */
   summary: ReactNode;
-  /** What assistive tech hears for the summary, without the "Walk settings" tail. */
-  summaryLabel: string;
+  /**
+   * What assistive tech hears for the summary, without the "Walk settings" tail: a string, or, for numbers that tick (the
+   * walk's time), a function of the clock, read each second as the strip's own text is (tend walk-screen audit 12).
+   */
+  summaryLabel: string | ((now: number) => string);
   /** The foot's right end: Start, or Pause and Stop. */
   actions: ReactNode;
   /** Prefix of the test ids: `ready-bar`, `ready-grip`, `ready-summary`. */
@@ -117,7 +120,7 @@ export function ReadyBar(props: {
   // its name says the numbers and the destination, which its children would otherwise hide.
   const toggle = () => !locked && props.onUp(!up);
   const id = props.idPrefix ?? 'ready';
-  const summaryLabel = `${props.summaryLabel}. ${up ? 'Lower the walk settings' : 'Walk settings'}`;
+  const tail = up ? 'Lower the walk settings' : 'Walk settings';
   const keys = Platform.OS === 'web'
     ? ({ onKeyDown: (e: { key: string; preventDefault: () => void }) => {
         if (e.key !== 'Enter' && e.key !== ' ') return;
@@ -152,25 +155,54 @@ export function ReadyBar(props: {
       <View pointerEvents="box-none" style={[styles.foot, { paddingBottom: 10 + at.insets.bottom }]}>
         <View pointerEvents="box-none" style={styles.footInner}>
           {/* The numbers take hold of the bar too: a bigger target than the handle. */}
-          <View
-            testID={`${id}-summary`}
-            {...dragProps}
-            {...keys}
-            focusable
-            style={styles.summary}
-            accessible
-            accessibilityRole="button"
-            accessibilityLabel={summaryLabel}
-            accessibilityState={{ expanded: up, disabled: locked }}
-            accessibilityActions={[{ name: 'activate' }]}
-            onAccessibilityAction={(e) => e.nativeEvent.actionName === 'activate' && toggle()}
-          >
+          <Summary testID={`${id}-summary`} touch={{ ...dragProps, ...keys }} label={props.summaryLabel} tail={tail} up={up} locked={locked} toggle={toggle}>
             {props.summary}
-          </View>
+          </Summary>
           {props.actions}
         </View>
       </View>
     </Animated.View>
+  );
+}
+
+/**
+ * The numbers' one button (audit 6). A label given as a function of the clock is read again each second, here alone, so
+ * the name keeps step with the ticking text under it and the screen above is not re-rendered for it.
+ */
+function Summary(props: {
+  testID: string;
+  touch: object;
+  label: string | ((now: number) => string);
+  tail: string;
+  up: boolean;
+  locked: boolean;
+  toggle: () => void;
+  children: ReactNode;
+}) {
+  const ticks = typeof props.label === 'function';
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!ticks) return;
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [ticks]);
+  const said = typeof props.label === 'function' ? props.label(now) : props.label;
+  const { toggle } = props;
+  return (
+    <View
+      testID={props.testID}
+      {...props.touch}
+      focusable
+      style={styles.summary}
+      accessible
+      accessibilityRole="button"
+      accessibilityLabel={`${said}. ${props.tail}`}
+      accessibilityState={{ expanded: props.up, disabled: props.locked }}
+      accessibilityActions={[{ name: 'activate' }]}
+      onAccessibilityAction={(e) => e.nativeEvent.actionName === 'activate' && toggle()}
+    >
+      {props.children}
+    </View>
   );
 }
 

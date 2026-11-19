@@ -44,18 +44,32 @@ test('tend walk-screen 11: the ready screen\'s Back does nothing while Start is 
 
 // tend walk-screen 12 (the sweep's ux 3, auditor 4): the walk's strip of numbers is one button for a screen reader, and was
 // named "The walk", which hid the time and distance under it; the ready bar's twin is named with its numbers (navigate-ready
-// audit 6). It is named with what it shows, coarsely (minutes, tens of metres), so the name changes about once a minute,
-// and says ", exploring" on an exploring walk. No live region: it is read when reached, never pushed.
-test('tend walk-screen 12: the walk\'s strip is named with its distance and time, coarsely', async () => {
-  const { walkSummaryLabel } = await import('../../readyNav');
-  assert.equal(walkSummaryLabel({ elapsedMs: 26_000, distanceM: 55, rideM: 0, exploring: false, units: 'km' }), '60 m walked in 26 s');
-  assert.equal(walkSummaryLabel({ elapsedMs: 754_000, distanceM: 1234, rideM: 0, exploring: true, units: 'km' }), '1.2 km walked in 13 min, exploring');
-  assert.equal(walkSummaryLabel({ elapsedMs: 600_000, distanceM: 452, rideM: 1800, exploring: false, units: 'km' }), '450 m walked in 10 min, plus 1.8 km by ride');
-  assert.equal(walkSummaryLabel({ elapsedMs: 120_000, distanceM: 100, rideM: 0, exploring: false, units: 'mi' }), '328 ft walked in 2 min');
-  // The walk's screen names its strip with it, never the bare "The walk".
+// audit 6). It is named with what it shows, and says ", exploring" on an exploring walk. No live region.
+test('tend walk-screen 12: the walk\'s strip is named with its distance and time', () => {
+  // The walk's screen names its strip from its numbers, never the bare "The walk".
   const walk = read('app/walk.tsx');
-  assert.match(walk, /summaryLabel=\{walkSummaryLabel\(\{/);
+  assert.match(walk, /summaryLabel=\{\(t\) => walkSummaryLabel\(\{/);
   assert.doesNotMatch(walk, /summaryLabel=\{exploring \? 'The walk, exploring' : 'The walk'\}/);
+});
+
+// tend walk-screen audit 12 (the diff review's auditor 1, ux 2; a regression of tend walk-screen 12): the name was coarse
+// ("130 m walked in 2 min" while the strip drew "1:31 · 127 m"), so a person who sees the strip and hears it got two
+// figures, and it named neither drawn string (WCAG 2.5.3). It says what the strip draws, word for word, as the ready bar's
+// twin does ("0:00 · 0 m"), the ride's line after it, then ", exploring"; it ticks with the strip.
+test('tend walk-screen audit 12: the strip\'s spoken name holds the text it draws', async () => {
+  const { walkStripText, walkSummaryLabel } = await import('../../readyNav');
+  const drawn = walkStripText({ elapsedMs: 91_000, distanceM: 127, units: 'km' });
+  assert.equal(drawn, '1:31 · 127\u00a0m');
+  const said = walkSummaryLabel({ elapsedMs: 91_000, distanceM: 127, rideM: 0, exploring: false, units: 'km' });
+  assert.ok(said.includes(drawn), said);
+  assert.equal(said, '1:31 · 127\u00a0m');
+  assert.equal(walkSummaryLabel({ elapsedMs: 754_000, distanceM: 1234, rideM: 0, exploring: true, units: 'km' }), '13 min · 1.2\u00a0km, exploring');
+  assert.equal(walkSummaryLabel({ elapsedMs: 600_000, distanceM: 452, rideM: 1800, exploring: false, units: 'km' }), '10 min · 452\u00a0m, + 1.8\u00a0km ride');
+  assert.equal(walkSummaryLabel({ elapsedMs: 120_000, distanceM: 100, rideM: 0, exploring: false, units: 'mi' }), '2:00 · 328\u00a0ft');
+  // The strip draws the same text: WalkStats' first line is walkStripText.
+  assert.match(read('app/walk.tsx'), /text=\{\(now\) => `\$\{walkStripText\(\{/);
+  // It ticks with the strip: the bar takes the name as a function of the clock (ReadyBar's own one-second tick).
+  assert.match(read('components/walk/ReadyBar.tsx'), /summaryLabel: string \| \(\(now: number\) => string\)/);
 });
 
 // tend walk-screen 13 (the sweep's ux 4): with a place armed ("The next moment is about …", Capture here), the Add to this

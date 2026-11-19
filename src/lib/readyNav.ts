@@ -4,7 +4,7 @@
  * screen when Navigate is the walk screen itself. Pure, so `npm test` covers
  * them; the tabs layout, the Navigate route and the walk screen follow them.
  */
-import { formatDistance, formatDistanceNear, formatDuration } from './format';
+import { formatDistance, formatElapsed } from './format';
 import type { Units } from './units';
 
 /** The tab beneath the walk screen when nothing else is (Chronicle, at `/` since HC1, decision 0112; a bare reload of `/walk`). */
@@ -62,12 +62,17 @@ export function walkErrorLine(open: { known: boolean; walk: { id: string } | nul
   return open.pauses.some((p) => p.ended_at == null) ? 'Your walk is saved.' : 'Your walk is still recording.';
 }
 
+/** The walk's strip as it is drawn: the time walked and the distance, "1:31 · 127 m" (WalkStats' first line). */
+export function walkStripText(o: { elapsedMs: number; distanceM: number; units: Units }): string {
+  return `${formatElapsed(o.elapsedMs)} · ${formatDistance(o.distanceM, o.units)}`;
+}
+
 /**
- * What a screen reader hears for the walk's strip of numbers, its one button (tend walk-screen 12; navigate-ready audit 6
- * names the ready bar's twin with its numbers): the distance to ten metres and the time as `formatDuration` says it, so the
- * name moves about once a minute, a ride after it (R6), and ", exploring" on an exploring walk. " Walk settings" follows.
+ * What a screen reader hears for the walk's strip of numbers, its one button: what the strip draws, word for word, as the
+ * ready bar's twin is named "0:00 · 0 m" (navigate-ready audit 6; tend walk-screen 12, audit 12), the ride's line after it
+ * (R6), and ", exploring" on an exploring walk. " Walk settings" follows.
  */
 export function walkSummaryLabel(o: { elapsedMs: number; distanceM: number; rideM: number; exploring: boolean; units: Units }): string {
-  const ride = o.rideM >= 1 ? `, plus ${formatDistance(o.rideM, o.units)} by ride` : '';
-  return `${formatDistanceNear(o.distanceM, o.units)} walked in ${formatDuration(o.elapsedMs)}${ride}${o.exploring ? ', exploring' : ''}`;
+  const ride = o.rideM >= 1 ? `, + ${formatDistance(o.rideM, o.units)} ride` : '';
+  return `${walkStripText(o)}${ride}${o.exploring ? ', exploring' : ''}`;
 }

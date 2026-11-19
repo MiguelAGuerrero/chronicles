@@ -63,10 +63,11 @@ import { ensureTileBuild } from '../lib/tiles';
 import { startErrorFrom, type RecorderStatus } from '../lib/recorder/types';
 import { raisedAfter, retryRecorder } from '../lib/recorderRetry';
 import { useUnits } from '../lib/useUnits';
+import type { Units } from '../lib/units';
 import { formatRange } from '../lib/format';
 import { pauseWalk, restartRecording, resumeWalk } from '../lib/session';
 import { stopEnd } from '../lib/unsaved/stopEnd';
-import { formatDistance, formatDuration, formatElapsed } from '../lib/summary';
+import { formatDistance, formatDuration } from '../lib/summary';
 import type { LngLat, Pause, StreetSegment, Walk } from '../lib/types';
 import { useCaptures } from '../lib/useCaptures';
 import { momentPill } from '../lib/momentPill';
@@ -92,7 +93,7 @@ import { usePastLines } from '../lib/pastLines/usePastLines';
 import { useLayers } from '../lib/layers/useLayers';
 import { useRouteWarning } from '../lib/walk/useRouteWarning';
 import { useWalkability } from '../lib/walk/useWalkability';
-import { arrivalNotice, exitPlan, screenState, startNotice, walkSummaryLabel } from '../lib/readyNav';
+import { arrivalNotice, exitPlan, screenState, startNotice, walkStripText, walkSummaryLabel } from '../lib/readyNav';
 import { noticeShown } from '../lib/pauseReminder';
 import { getLastFix } from '../lib/lastFix';
 import { useStopArrival } from '../lib/outing/useArrival';
@@ -138,8 +139,8 @@ const SLOW_TICK_MS = 5000;
 const STOP_WAIT_MS = 5000;
 
 /** Time walked (paused time left out) and distance, in the bottom strip; a ride's distance after it (R6). */
-function WalkStats(props: { startedAt: number | null; pauses: Pause[]; distanceM: number; rideM: number }) {
-  const { startedAt, pauses, distanceM, rideM } = props;
+function WalkStats(props: { startedAt: number | null; pauses: Pause[]; distanceM: number; rideM: number; units: Units }) {
+  const { startedAt, pauses, distanceM, rideM, units } = props;
   const elapsed = (now: number) => (startedAt == null ? 0 : now - startedAt - pausedMs(pauses, startedAt, now));
   // The ride on a second, smaller line, so the strip keeps its width at 390 px (rides audit, UI).
   const ride = rideM >= 1 ? `\n+ ${formatDistance(rideM)} ride` : '';
@@ -148,7 +149,8 @@ function WalkStats(props: { startedAt: number | null; pauses: Pause[]; distanceM
       testID="walk-stats"
       style={styles.stats}
       numberOfLines={ride ? 2 : 1}
-      text={(now) => `${formatElapsed(elapsed(now))} · ${formatDistance(distanceM)}${ride}`}
+      // The same words the strip's spoken name holds (tend walk-screen audit 12).
+      text={(now) => `${walkStripText({ elapsedMs: elapsed(now), distanceM, units })}${ride}`}
       label={(now) => `${formatDistance(distanceM)} walked in ${formatDuration(elapsed(now))}${rideM >= 1 ? `, plus ${formatDistance(rideM)} by ride` : ''}`}
     />
   );
@@ -1687,10 +1689,10 @@ function WalkScreen(props: { onMinimize: () => void }) {
         onUp={raiseOptions}
         areaHeight={screenH}
         locked={recordingVoice}
-        // Named with what it shows, as the ready bar's twin is (tend walk-screen 12, navigate-ready audit 6): coarse, refreshed by
-        // the screen's 5 s clock and each fix, never a live region.
-        summaryLabel={walkSummaryLabel({ elapsedMs: walk ? now - walk.started_at - pausedMs(pauses, walk.started_at, now) : 0, distanceM: live.distanceM, rideM: live.rideM, exploring, units })}
-        summary={<WalkStats startedAt={walk?.started_at ?? null} pauses={pauses} distanceM={live.distanceM} rideM={live.rideM} />}
+        // Named with what it draws, word for word, as the ready bar's twin is (tend walk-screen 12, audit 12): read each second
+        // by the bar's own summary, never a live region.
+        summaryLabel={(t) => walkSummaryLabel({ elapsedMs: walk ? t - walk.started_at - pausedMs(pauses, walk.started_at, t) : 0, distanceM: live.distanceM, rideM: live.rideM, exploring, units })}
+        summary={<WalkStats startedAt={walk?.started_at ?? null} pauses={pauses} distanceM={live.distanceM} rideM={live.rideM} units={units} />}
         actions={
           // Pause alone while walking; Resume and a held Stop once paused, as AllTrails does (decision 0220). The owner's
           // AllTrails look (Nov 18): the buttons fill what the numbers leave. Walking: … (the walk's settings) and a wide
