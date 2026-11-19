@@ -155,7 +155,8 @@ test('sights-and-local-life ui 1: the explanation names the setting in quotes, e
 });
 
 test('sights-and-local-life ui 2: the line under Sights is a plain sentence, not a fragment leaning on the heading', () => {
-  assert.equal(A.SIGHTS_LINE, 'Places that can turn up as a “?” on the map.');
+  // places-layer ui 1: no "on the map": with Places off the line must not promise a mark that is not there.
+  assert.equal(A.SIGHTS_LINE, 'Places that can turn up as a “?”.');
 });
 
 test('SG14: the line between a tile\'s groups stands inside the space between them', () => {

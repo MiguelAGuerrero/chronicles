@@ -59,3 +59,8 @@ test('PL13: the layer sits above the kinds: a switched-off kind still hides its 
   assert.equal(waitingMarks(marks, new Set(), at, new Set(['public_art' as never]), { all: true }).length, 1);
   assert.ok(/layers\.on\.places/.test(src('src/app/(tabs)/explore.tsx')), 'the screen reads the layer in front of the kinds');
 });
+
+test('places-layer ui 1: the card\'s Sights line never says the "?" is on the map, since Places can be off', async () => {
+  const { SIGHTS_LINE } = await import('../../atlas/atlas');
+  assert.ok(!/on the map/i.test(SIGHTS_LINE), SIGHTS_LINE);
+});

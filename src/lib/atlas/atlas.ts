@@ -105,7 +105,7 @@ const SIGHT_KINDS = KIND_GROUPS[0].kinds;
 const LIFE_KINDS = KIND_GROUPS[1].kinds;
 
 /** SG1: the one muted line under "Sights" on the card, tying the heading to the map's "?". */
-export const SIGHTS_LINE = 'Places that can turn up as a “?” on the map.';
+export const SIGHTS_LINE = 'Places that can turn up as a “?”.';
 
 /**
  * SG2, SG14: a tile's strip in px: a kind's slot, the space between kinds of a group, the space between the groups (216 of

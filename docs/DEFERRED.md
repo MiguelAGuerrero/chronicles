@@ -485,6 +485,7 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - **The unwalked-streets toggle, fog, "?" marks and routes are not layers yet** (the owner chose only walkability, busy streets and town borders).
 - **Layer options** (a busy-grade slider, a tint choice), **ordering and opacity** are not built.
 - **The long press on a drawn stretch (specs/walkability WK14) is retired**: the layer draws areas, not stretches. A long press on a tint is its own call.
+- The Layers panel is translucent (the area title and search show through its first rows) and a switch's on track is pale against the panel (places-layer UX review U3, U4, Nov 19): both are the panel's and `SwitchRow`'s own, there before the Places layer. A solid panel surface and a track at 3:1 would fix both; screenshots are the check.
 
 
 ## Vision gate (specs/vision-gate, decision 0094)
