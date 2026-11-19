@@ -502,13 +502,18 @@ function editProblems(before, after, feature) {
 const VERDICTS = ['met', 'failed', 'lacking'];
 
 /**
- * What is wrong with a run log's references to the store: each names a line in force; a proposed line is
- * provisional and a ratified one is not; met names the line's own check when it exists, else a picture.
+ * What is wrong with a run log's references to the store: each names a line in force, once, of the run's area; a
+ * proposed line is provisional and a ratified one is not; met names the line's own check, found and not todo, or
+ * while it is pending a picture: a shot of the feature's journeys, or a .png under the run's `shots` folder.
  */
-function logRefProblems(lines, stores, index, { exists = fs.existsSync, shots } = {}) {
+function logRefProblems(lines, stores, index, { exists = fs.existsSync, shots, area } = {}) {
   const out = [];
   const all = stores.flatMap((s) => s.entries);
+  const seen = new Set();
   for (const l of lines ?? []) {
+    if (seen.has(l?.id)) out.push(`${l?.id} is logged twice: once a line`);
+    seen.add(l?.id);
+    if (area && featureOfId(l?.id) !== area) out.push(`${l?.id} is a line of ${featureOfId(l?.id) ?? 'no feature'}, not of the run's area, ${area}`);
     const e = all.find((x) => x.id === l?.id);
     if (!e) {
       out.push(`${l?.id} is no line of ${DIR}/`);
