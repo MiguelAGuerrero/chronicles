@@ -448,6 +448,19 @@ test('expectations 0234: the docs check holds the store, and the script prints t
   assert.equal(run('set-check', 'E-memories-3', '--check', 'pending "a word typed finds it"').status, 1, 'a checkable line never goes back to pending');
   assert.equal(run('set-check', 'E-memories-3', '--check', 'test:"memories MR8: the walker\'s area is read again"').status, 0);
   assert.equal(run('check').stdout, 'expectations check: 3 lines, 3 checks found, 0 pending, 0 missing\n');
-  assert.equal(run('list', 'memories').stdout, run('list', 'memories').stdout);
+  const listing = [
+    'memories',
+    `  E-memories-1 ratified 2026-11-21  ${person} a capture to come back when they pass its place again.`,
+    '    check ok: memories:"a later walk passing a flagged capture brings it back"',
+    `  E-memories-2 ratified 2026-11-21  ${person} each memory pin to say it is a memory.`,
+    '    check ok: test:"memories MR7: a capture whose reminder card is showing has no memory pin"',
+    `  E-memories-3 proposed  ${person} to find a memory again by a word in it.`,
+    '    check ok: test:"memories MR8: the walker\'s area is read again"',
+    '',
+  ].join('\n');
+  const [first, second] = [run('list', 'memories'), run('list', 'memories')];
+  assert.notEqual(first.pid, second.pid, 'two processes');
+  assert.equal(first.stdout, listing);
+  assert.equal(second.stdout, listing, 'each prints the store the same');
   assert.match(read('.claude/skills/tend/expectations.md'), /npm run expectations/);
 });
