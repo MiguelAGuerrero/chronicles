@@ -1,0 +1,11 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inflight",
+        "add"
+      ],
+      "body": "| Walk drawer sections (`specs/walk-drawer-sections/spec.md`, WD1-WD18) | `claude/serene-sagan-lz8nzp` | started 2026-11-19: pulled up, This walk's details in words; the … a menu of four sections, each inside the drawer; the capture stack rides on the drawer. Spec and plan approved; tests first |\n"
+    }
+  ]
+}

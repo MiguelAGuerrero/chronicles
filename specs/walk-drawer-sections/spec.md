@@ -13,7 +13,7 @@ Verdict: aligned if reshaped
 Shape: pulled up, "This walk": a few plain lines at the drawer's body size: when it started, how far walked in how long, by ride if any, paused if any, the street you are on, where you are heading and how far, what you have kept in a clause ("two photos and a voice memo"). No pace, speed, elevation, calories, splits, percentages, goals, tiles or big figures. The … raises the same drawer on "Walk settings", four rows; a row shows that section alone, with Back.
 Precedent: AllTrails (from memory, unverified): while recording, the bottom sheet pulled up shows the recording's stats in large figures, with options behind a …: the model for "pull up for this walk, … for its options", a counter-example for the figures. Google Maps' navigation (from memory, unverified): the bottom card swiped up offers options, Settings among them, which opens a page of its own. iOS Settings, Notifications (support.apple.com, verified Nov 18): a list of rows, each opening its own page of switches, no Save, Back returns.
 Criteria: WD5-WD8 carry the reshaping (WD7 the Never lines over every view, the steward's S2-S4); WD13 holds capture one tap away; WD16 nothing leaves.
-Open: whether the capture stack stays above the raised drawer now that This walk is read mid-walk (the steward's S1; the plan's P7).
+Open: none. The owner, Nov 19: the capture stack rides on the drawer (the steward's S1, WD17); the menu says each section's state (WD1); This walk says the lows (WD18).
 
 ## How adjacent apps do it
 
@@ -53,6 +53,8 @@ The ready screen's bar, its twin, is unchanged: pulled up it still shows the sta
 - Nov 19 (the owner): pulled up, the drawer shows this walk's details in words; no pace, elevation or calories.
 - Nov 19 (the owner): the … opens a menu of sections; a section opens inside the drawer with a back arrow to the menu,
   so the map, and the range ring, stay in view above it.
+- Nov 19 (the owner, on the plan): the capture stack rides on the drawer's top edge on every view (WD17); the menu's
+  lines say each section's state (WD1); This walk says the walk's lows, its signal gaps and recorder trouble (WD18).
 - Nov 19 (the owner): the sections are Explore (the Explore switch, "?" range, Passing a place, Pocket alert, What I'm
   into), Map & routes (On the map, Route leaning), Reminders (the notification settings), Location & motion (motion,
   Share GPS log).
@@ -63,8 +65,10 @@ The owner's tasks, in their words: "adjust a specific section of the walk's sett
 drawer for detailed information about the walk".
 
 - **WD1** (the task): while walking, a tap on the strip's … raises the drawer on "Walk settings": four rows in this
-  order, Explore, Map & routes, Reminders, Location & motion, each its name in ink, a muted line saying what is in it,
-  and a chevron; a tap anywhere on a row shows that section alone in the drawer. The long list is gone: no view of the
+  order, Explore, Map & routes, Reminders, Location & motion, each its name in ink, a muted line saying how the section
+  is set now, in words (Explore: "Off", or "On, “?” within 400 m"; Map & routes: "The direct way", or the leanings
+  that are on, "Leaning to green and sights"; Reminders: "Off", "On", or the one that is on; Location & motion:
+  "Motion on", "Motion off", "Motion blocked" or "No motion here"), and a chevron; a tap anywhere on a row shows that section alone in the drawer. The long list is gone: no view of the
   drawer shows two sections' controls at once.
 - **WD2** (finding): someone told only "during a walk, change how far away a “?” shows", shown the walk screen at rest,
   taps the … (or pulls the drawer up and takes "Walk settings"), then Explore, and finds the “?” range; the same told
@@ -101,7 +105,7 @@ drawer for detailed information about the walk".
   the menu or a section shows; the back control is a button named "Back to walk settings"; each view's title is a
   heading.
 - **WD13** unchanged around it: mid-memo neither the … nor a pull raises the drawer (NR7 audit 4); the raised drawer
-  is the height it was (`raisedHeight`) and covers nothing it did not, so the capture stack is one tap away as before;
+  is no taller than it was (`raisedHeight`), lowered only as far as WD17 needs;
   What I'm into's page still opens from the Explore section's row and its Back returns to that section, raised (WI4).
 - **WD14** the ready screen's twin is unchanged: its bar, pulled up, shows the start settings, with no menu and no
   This walk.
@@ -109,6 +113,14 @@ drawer for detailed information about the walk".
   no heading wraps.
 - **WD16** nothing leaves: while any view of the drawer is up, the page makes no network request it would not make
   with the drawer down, and nothing is written.
+- **WD17** capture one tap away: with the drawer up on any view, and while it moves, the camera, mic and note ride on
+  its top edge in their column, each visible whole and one tap from capturing; the raised height leaves them clear of
+  the top row (the minimize button, the navigation bar) on a 667 pt tall screen; the edge buttons above them (Recenter,
+  Walk me back, the compass) are hidden while the drawer is up, as they were covered before; a memo started with the
+  drawer up keeps Save in the mic's place and the timer beside it until it is saved.
+- **WD18** the lows stay in: This walk says, in words, when the signal was lost on this walk ("No signal for 6 min, at
+  2:31 pm"; several, "No signal three times, 14 min in all") and while the walk is not recording ("Not recording
+  now"); nothing when neither happened. Counts in words; never a share of the walk.
 
 ## Record
 

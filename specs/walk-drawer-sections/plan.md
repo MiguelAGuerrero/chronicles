@@ -19,7 +19,7 @@ above (Nov 19), so the … raises the drawer on the menu rather than a floating 
 
 **Defaults that make a control quieter, for the owner to overrule:**
 
-- **P1** the menu's rows say what is in each section in a muted line ("“?” range, passing a place, pocket alert, What
+- **P1** (overruled by the owner, Nov 19: the lines say each section's state, WD1) the menu's rows said what is in each section in a muted line ("“?” range, passing a place, pocket alert, What
   I'm into"), not the section's current state ("On, within 400 m"). Quieter, and true for every state; iOS shows state
   there. Say if you want the state.
 - **P2** This walk ends with a "Walk settings ›" row, so the sections are reachable while paused (no … then, 0220) and
@@ -34,7 +34,7 @@ above (Nov 19), so the … raises the drawer on the menu rather than a floating 
   before Start, not a walk's settings. Moving it to the same shape would be a slice of its own.
 - **P6** (dropped on the steward's S5) Location & motion says only what it says today: the motion line when motion is
   off, blocked or unavailable, and Share GPS log; with motion on, Share GPS log alone.
-- **P7** (the steward's S1, for the owner) the raised drawer covers the capture stack, as today. Today it holds rare
+- **P7** (the owner chose the recommendation, Nov 19: WD17) (the steward's S1) the raised drawer covers the capture stack, as today. Today it holds rare
   settings; This walk will be read mid-walk, and while it is up there is no camera, mic or note on screen (Never, "A
   capture behind a menu, a drawer or an extra tap"). Recommended: the capture stack rides on the drawer's top edge as
   it rises (Google Maps and AllTrails float their map buttons on the sheet; from memory, unverified), so it stays one
@@ -58,6 +58,8 @@ Source (5, under the fix size's 8; this is a slice):
   `pull`; the drawer's children chosen by view, each section the same controls and test ids as today, moved; the ring
   shown only on the Explore section (WD11); `strip-more`'s `aria-expanded` from the view (WD12).
 - `src/lib/quietLines.ts`: the clause, if no helper fits.
+- `src/components/walk/CaptureStack.tsx`: a `lift` (an Animated value) that moves the stack with the drawer (WD17).
+- `src/components/walk/layout.ts`: the walk's raised height capped so the lifted stack clears the top row (WD17).
 
 Data: none. No truth, no cache, no migration, no IndexedDB version. Nothing stored, nothing sent.
 
@@ -82,6 +84,8 @@ Feature folder `walk-screen` (`src/lib/__tests__/walk-screen/`).
 | WD13 | `WD13: mid-memo nothing raises; the drawer's height is unchanged; What I'm into's Back returns to the Explore section` | journey (`walkdrawer`, and `into`'s audit 1 check moved) |
 | WD14 | `WD14: the ready bar pulled up shows the start settings` | journey `ready` (its check holds; one line added) |
 | WD16 | `WD16: no request or write while the drawer is up` | journey (the page's request log, up against down) |
+| WD17 | `WD17: the captures ride on the drawer, visible and tappable on every view; edge buttons hidden` | journey (elementFromPoint at each button's centre, per view; a 375x667 viewport) + unit (the capped height) |
+| WD18 | `WD18: the gaps and recorder trouble in words` | unit (`walkDetailLines`) |
 | WD15 | `WD15: at 320 px no row name, back control or heading wraps` | journey (320 px viewport, one line each) |
 
 A new journey `scripts/e2e/journeys/walkdrawer.js` (screen change, `/slice` asks for one), and a harness helper
@@ -109,7 +113,6 @@ and after.
 
 - The ready bar in the same shape (P5).
 - A list of this walk's moments in This walk, each with its place and time (P4).
-- State in the menu's lines (P1), unless the owner asks now.
 
 ## Native, never run on a device
 
@@ -130,8 +133,7 @@ Three drifts, two tone findings, no breaches.
   **accepted**: WD7 over every view, P4 cites 0052, WD16 added.
 - **S5** [tone] P6's line was copy for layout: **accepted**: P6 dropped.
 - Silent 1 (the settings' verb): no change; Explore and Route leaning earn, the rest are the walk's plumbing, as today.
-- Silent 2 (the lows: GPS gaps, "Not recording" in This walk): **to the owner**, recommended deferred: the strip's
-  status chip says them today.
+- Silent 2 (the lows: GPS gaps, "Not recording" in This walk): **the owner, Nov 19: yes** (WD18).
 - Silent 3 ("moving time" is a fitness idea): **accepted**: WD5 says "the time walked with pauses left out, as the
   strip counts it", which is what the strip does (stops are not left out).
 - Silent 4 (Pocket alert under Explore, not Reminders): no change: the owner placed it (Nov 19); WD2's cold find will
