@@ -496,8 +496,9 @@ async function wholeTowns(h) {
       const artRowOff = await pg.locator('[data-testid=atlas-kind-art]').innerText().catch(() => '');
       check(artRowOff === artRowOn && artRowOff.length > 0, `PL6: a kind row reads the same with Places on and off ("${artRowOn}" / "${artRowOff}")`);
       check((await pg.locator('[data-testid=atlas-card] [data-testid=mini-waiting]').count()) === 0, 'PL4: the card\'s picture draws no "?" with Places off');
-      await pg.keyboard.press('Escape');
-      await pg.waitForTimeout(800);
+      // The open panel took the first Escape; the card's own close button ends it, so the map and its Layers button are free again.
+      await pg.locator('[data-testid=atlas-card-close]').click({ timeout: 5000 }).catch(() => {});
+      await pg.waitForTimeout(1000);
       // The card and a tap on the map closed the panel: open it again to switch Places on.
       if (!(await pg.getByRole('switch', { name: /^Places$/ }).count())) await pg.locator('[data-testid=layers]').click({ timeout: 5000 }).catch((e) => console.log('layers button:', String(e).slice(0, 120)));
       await pg.waitForSelector('[data-testid=layers-panel]', { timeout: 5000 }).catch(() => {});
