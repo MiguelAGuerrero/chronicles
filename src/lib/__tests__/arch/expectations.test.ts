@@ -225,7 +225,8 @@ function gitRoot() {
     git('commit', '-q', '--allow-empty', '-m', message);
     return git('rev-parse', 'HEAD');
   };
-  const gate = (sha: string) => spawnSync(process.execPath, [join(ROOT, 'scripts', 'tend.js'), 'commits', '--loop-only', `${sha}^..${sha}`], { cwd: root, env: { ...process.env, TEND_ROOT: root }, encoding: 'utf8' });
+  const gateRange = (range: string) => spawnSync(process.execPath, [join(ROOT, 'scripts', 'tend.js'), 'commits', '--loop-only', range], { cwd: root, env: { ...process.env, TEND_ROOT: root }, encoding: 'utf8' });
+  const gate = (sha: string) => gateRange(`${sha}^..${sha}`);
   /** A revert as ship.md makes it: git's own `This reverts commit <sha>.` lines, and the agent's trailers. */
   const revert = (...shas: string[]) => {
     for (const sha of [...shas].reverse()) git('revert', '--no-commit', sha);
@@ -233,7 +234,7 @@ function gitRoot() {
     return git('rev-parse', 'HEAD');
   };
   const file = (rel: string, text: string) => writeFileSync(join(root, rel), text);
-  return { root, commit, gate, git, revert, file };
+  return { root, commit, gate, gateRange, git, revert, file };
 }
 
 test('expectations audit 2: only the owner\'s answer commit changes a line\'s status, on its date; every agent commit is read, a loop commit or not', () => {
@@ -447,6 +448,19 @@ test('expectations audit 23c: an agent never reverts the owner\'s answer commit'
   const r = g.gate(g.revert(answer));
   assert.equal(r.status, 1, 'un-ratifying is the owner\'s');
   assert.match(r.stderr, /owner's answer/);
+});
+
+test('expectations audit 24: a check counts as vanished only if it is missing at the push\'s base', () => {
+  const g = gitRoot();
+  g.file('scripts/e2e/journeys/memories.js', JOURNEY.replace("check(reminded, 'a later walk passing a flagged capture brings it back');\n", ''));
+  g.git('add', '-A');
+  g.git('commit', '-q', '-m', `fix memories: the journey${TRAILERS}`);
+  const removed = g.git('rev-parse', 'HEAD');
+  const pending = g.commit(STORE.replace('Check: memories:"a later walk passing a flagged capture brings it back"', 'Check: pending "a capture comes back"'), `fix memories: the store${TRAILERS}`);
+  const push = g.gateRange(`${removed}^..${pending}`);
+  assert.equal(push.status, 1, 'removed earlier in the same push');
+  assert.match(push.stderr, /E-memories-1's check .* back to pending/);
+  assert.equal(g.gate(pending).status, 0, 'removed before this push: vanished');
 });
 
 test('expectations 0236: a store file reads into lines with their status, check and grounds, and writes back the same', () => {
