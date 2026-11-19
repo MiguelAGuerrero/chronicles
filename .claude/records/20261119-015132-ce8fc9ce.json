@@ -1,0 +1,83 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inbox",
+        "remove",
+        "T35",
+        "--reason",
+        "the owner's yes, built in tend tabs T35 (decision 0227)"
+      ],
+      "target": "sha256:14d62298f0dbcc23851252e01549fbf924d60695db2b4ee022a489efdcf6cd49"
+    },
+    {
+      "argv": [
+        "inbox",
+        "add"
+      ],
+      "body": "- **T? [owner] A replay opened while a memo is still being saved never shows it** (2026-11-18)\n  Area: replay, tabs. Seen: `unsaved-bar-saving-replay-open` and `unsaved-bar-saving-replay-landed` (the unsaved journey, `tend tabs audit 47`): when the bar's second hold goes through a memo still being saved (T35, decision 0223), the replay opens with no moment; 12 s later the memo is in the walk (the journey's check), yet the open replay's card still reads \"0 m · 24 s\" with no moment, since `src/app/replay/[id].tsx` reads the walk's captures once and hears none after. Rests on: VISION.md, Return: \"Does it bring a moment back worth having, at the right time, truthfully?\"; the T35 review's ux 3. What a replay shows is yours.\n  Recommended: the open replay takes in a capture of its walk that lands after it opened (`captureBus`): placed on its map and played in its next Watch again, with no new words, no indicator, and the beats and their order unchanged. /vision: aligned (Return, \"truthfully\"; Honour, the moment arrives whole with its walk; no word, control or count added).\n  Precedent: none found (docs/research/adjacent-apps.md, \"Replay a walk; moments on a map\" and \"Record a walk: start, pause, stop\"); Google Photos shows an item still uploading in place and fills it in when it lands (from memory, not yet recorded).\n  Otherwise: leave it (the memo shows the next time the walk's replay is opened); or the second hold waits longer before it goes through.\n",
+      "number": "T41"
+    },
+    {
+      "argv": [
+        "open",
+        "add"
+      ],
+      "body": "- **The bar's Stop under a memo, and the empty-walk drop, after `tend tabs T35`** (Nov 18; the owner's answers in person, \"Yes, as recommended\", \"Shape + never drop mid-save\", \"Keep the words\" and \"Becomes a loose moment\", decision 0227, amending 0048 and 0187). What ships: past the bar's 5 s wait a memo save still running reads \"The voice memo is still being saved. Hold Stop again in a moment.\"; a second hold whose wait ends with only that save running ends the walk, the memo saving into it; a memo recording on a path with no save of its own still refuses; no walk is dropped as empty while a save is under way, from either Stop (`lib/unsaved/stopEnd`); a Stop's second hold lets go only the held captures it warned of; a walk's delete waits up to 10 s for its saves, and one landing after is a loose moment. Still to say by hand: `.claude/rules/recording-bar.md` l.37-38 (\"It refuses under a memo (`memoGate`), waits at most 5 s for the bar's photo, then `stopWalk` and the replay\") and l.55-57 (\"after waiting for the memo and the photo\"; \"the second hold lets the walk's held captures go\"); `.claude/rules/deletion.md` l.44 (\"An empty walk is dropped at Stop\"); `specs/empty-walk/spec.md` l.47, EW1 (a walk with nothing in it is dropped at Stop, with no word of a save under way). The loop added its lines beside them only (recording-bar.md l.41, deletion.md l.45).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Tabs and the recording bar"
+      ],
+      "body": "- [loop] A memo save that never settles holds Start and Walk here for good: `useStartWalk.ts` l.43 awaits `memoGate.readyToStart()` with no bound, so a wedged save leaves the start waiting until a reload (the bar's Stop now goes through it on a second hold, T35; its pins are released in `.finally`). Fix: bound the wait as the bar's Stop does and say the saving words. Test: `tend tabs audit N: a hung memo save never holds Start past its wait` (unit) (the review of tend tabs T35, auditor 4, Nov 18, low, from before the run)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Unsaved captures"
+      ],
+      "body": "- [loop] A Retry still running at a Stop's second hold is let go under itself: with its kept file present (the row's write failed) and the Retry past the Stop's 5 s `settleWithin`, `ended(walk, only)` removes the file (`letGo` → `removeMedia`, `unsaved/shell.ts` l.107-115) and the Retry's row then lands in the kept walk pointing at a removed file; a Retry with no kept file succeeds with a fresh copy, keeping a capture the Stop said would go. Fix: skip `retrying` entries in `letGo`, or let go after `settled()`. Test: `tend tabs audit N: a Retry let go mid-write leaves no row without its file` (unit) (the review of tend tabs T35, auditor 6, Nov 18, low, from before the run)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "A memo save that outlasts the bar Stop's 5 s wait",
+        "--reason",
+        "built in tend tabs T35 (decision 0227)"
+      ],
+      "target": "sha256:521c8965aa79220ef2d7f3844dd71b083502b196cbb66ca75c443754b4d02d88"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Navigation and tabs"
+      ],
+      "body": "- [ ] **Do:** on an iPhone, minimize a walk, record a memo on Memories' open line long enough that its save outlasts 5 s (a long memo, a nearly full disk), and hold the recording bar's Stop twice. **Expect:** the first hold says \"The voice memo is still being saved. Hold Stop again in a moment.\" and VoiceOver announces it (`AccessibilityInfo.announceForAccessibility`); the second ends the walk, the replay plays (no \"Walk not kept.\"), and the memo lands in that walk once (decision 0227). Unchecked: whether a native file copy and SQLite write can outlast 10 s, and the walk's end written while the memo's row waits in `db/sqliteStore.ts`'s one write queue. On Android with TalkBack, the same words are read from the line (a `Text` live region inside an accessible `Pressable`, unchecked).\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Deletion ("
+      ],
+      "body": "- [ ] **Do:** stop a walk from the recording bar while a long memo is still being saved, delete the walk from its replay at once and leave the replay, then (a) wait, (b) kill the app in the moment the memo lands. **Expect:** (a) a memo landing within 10 s goes with the walk; one landing later shows as a loose moment on Memories (`WALK_SAVES_WAIT_MS`, `deletion/runner.ts`; decision 0227); (b) a kill between the late row and its move to a loose moment leaves a moment of a deleted walk, the owner's accepted gap: note whether it shows anywhere.\n"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 18, `/tend inbox T35 yes, T40 yes --deploy=main`, the bar's Stop through a memo being saved; no walk dropped mid-save** (opened from `bf266ed3`, published on `cba11508`; no sweep, lenses 1-7 not run; T35 and T40 the owner's yes, in person, 2026-11-18).\n- The entries, as main held them: T35 \"The bar's Stop calls a memo still being saved \"recording\"\" (the owner's \"Yes, as recommended\"; built) and T40 \"At 320 x 700 the two-line press hint can reach the walker…\" (the owner's \"Pad the map camera\"): it waits for the next `/tend inbox`, one build per run. T35's Seen line matched the code.\n- Before building, the run stopped: built alone, the shape let a memo saving through the stop land in a walk the empty drop deletes, or in no walk. The owner, in person: \"Shape + never drop mid-save\" (every stop), then on the review \"Keep the words\" and \"Becomes a loose moment\" (decision 0227, amending 0048 and 0187).\n- `tend tabs T35`: `memoGate` tells a memo recording from one being saved; past the bar's 5 s wait a running save reads \"The voice memo is still being saved. Hold Stop again in a moment.\", and the next hold goes through it; no walk is dropped as empty while a save is under way; a Stop lets go only what it warned of.\n- The review (one round: the `auditor` and the `ux-reviewer`; accepted 11, deferred 2, rejected 1), ruled by the coordinator under the owner's answers: `tend tabs audit 41` (Undo of a discarded memo is a tracked save), `42` (both Stops end through `lib/unsaved/stopEnd`: held read, pin, end, let go only what was warned of), `43` (`stopUnderOf` in core), `44` (a memo recording on another path refuses on any hold), `45` (the bar's words announced on iOS), `46` (the said line unclamped: whole at 320 px beside the camera, five lines on Explore), `47` (the replay pictured at open and after the memo lands), `48` (three lines at most on Memories at 320 px), `49` (a walk's delete waits up to 10 s for its saves; one landing after is a loose moment; the kill gap the owner accepted). Rejected: two lines at 320 px (the owner kept the words twice). Records: auditor F5's DEFERRED item removed (built).\n- Filed: T41 [owner] (the open replay never shows a memo that lands after it opened); two `[loop]` lows (a hung save holds Start and Walk here, under \"Tabs and the recording bar\"; a Retry let go mid-write, under \"Unsaved captures\"); two phone items (\"Navigation and tabs\", \"Deletion\"); an \"Open before the loop\" item (recording-bar.md l.37-38 and l.55-57, deletion.md l.44, EW1).\n- Journeys on the final build: unsaved, deletion, walk, capturehome and launch. SF13 (`busyQuiet`) was red on main `3065daec`, 2 of 2, main's own; green after the rebase.\n- The balance: outgrowing its base, as main's ledger reads it; no `G` entry filed.\n"
+    }
+  ]
+}
