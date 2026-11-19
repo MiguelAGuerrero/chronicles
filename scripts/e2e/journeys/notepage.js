@@ -444,7 +444,15 @@ async function run(h) {
   await pg.click('[data-testid=reaction-pick-emphasis]', { timeout: 3000 }).catch(() => {});
   await pg.click('[data-testid=reaction-pick-like]', { timeout: 3000 }).catch(() => {});
   await pg.waitForTimeout(400);
+  const panelOpen = await pg.locator('[data-testid=note-page] [data-testid=reaction-panel]').count();
+  await shot(pg, 'np-06-reactions-open');
   await pg.click('[data-testid=note-page] [data-testid=note-input]');
+  await pg.waitForTimeout(300);
+  const panelAfterTap = await pg.locator('[data-testid=note-page] [data-testid=reaction-panel]').count();
+  const caretIn = await pg.evaluate(() => !!document.activeElement?.closest('[data-testid=note-input]'));
+  await shot(pg, 'np-07-reactions-tap-words');
+  check(panelOpen === 1 && panelAfterTap === 0 && caretIn,
+    `fix reaction-panel-focus: a tap on the words closes the reactions and the caret is in the words (${JSON.stringify({ panelOpen, panelAfterTap, caretIn })})`);
   await pg.keyboard.type('A page reacted to before its words.');
   await pg.waitForTimeout(2500);
   await pg.click('[data-testid=note-done]');
