@@ -399,6 +399,7 @@ function literal(src) {
 /** A journey's checks by message: the last argument of each check( or check.todo( call, when it is a plain string. */
 function checkMessages(text) {
   const out = {};
+  const templates = [];
   for (const m of text.matchAll(/(?<![.\w$])check(\.todo)?\(/g)) {
     const from = m.index + m[0].length;
     const call = scan(text, from, ')');
@@ -406,11 +407,33 @@ function checkMessages(text) {
     const bounds = [from - 1, ...call.commas, call.at];
     const args = bounds.slice(1).map((b, k) => text.slice(bounds[k] + 1, b));
     if (args.length > 1 && !args[args.length - 1].trim()) args.pop();
-    const message = literal(args[args.length - 1] ?? '');
-    if (message === null) continue;
-    if (out[message] !== 'ok') out[message] = m[1] ? 'todo' : 'ok';
+    const last = (args[args.length - 1] ?? '').trim();
+    const message = literal(last);
+    const status = m[1] ? 'todo' : 'ok';
+    if (message !== null) {
+      if (out[message] !== 'ok') out[message] = status;
+    } else if (/^`/.test(last) && last.includes('${')) {
+      templates.push({ fixed: unescape(last.slice(1, last.indexOf('${'))), status });
+    }
   }
-  return out;
+  return { messages: out, templates };
+}
+
+// A template message (audit 18) is named by its fixed text before the first ${, when that text is this long at least
+// and no other check of the journey (a message, or another template's fixed text) starts with it or is started by it.
+const TEMPLATE_MIN = 12;
+const TEMPLATE_WHY = 'a template message: name it by its fixed text, which must be unique';
+
+/** A journey check's state: ok or todo, missing, or 'template' when it names a template message no way it can be named. */
+function journeyCheck(entry, text) {
+  if (!entry) return 'missing';
+  if (entry.messages[text]) return entry.messages[text];
+  const near = entry.templates.filter((t) => t.fixed.startsWith(text) || text.startsWith(t.fixed));
+  if (!near.length) return 'missing';
+  const exact = entry.templates.filter((t) => t.fixed === text);
+  const others = [...Object.keys(entry.messages), ...entry.templates.map((t) => t.fixed)].filter((m) => (m.startsWith(text) || text.startsWith(m)));
+  if (exact.length === 1 && text.length >= TEMPLATE_MIN && others.length === 1) return exact[0].status;
+  return 'template';
 }
 
 /**
@@ -446,7 +469,15 @@ function resolveCheck(check, index, feature) {
   if (c.kind === 'pending') return 'pending';
   if (c.kind === 'test') return index.tests[c.name] ?? 'missing';
   if (c.kind === 'picture') return (index.features?.[feature] ?? []).some((j) => (index.shots?.[j] ?? []).includes(c.name)) ? 'ok' : 'missing';
-  return index.journeys[c.journey]?.[c.text] ?? 'missing';
+  const state = journeyCheck(index.journeys[c.journey], c.text);
+  return state === 'template' ? 'missing' : state;
+}
+
+/** Why a line's check is missing, said so the fix is plain. */
+function missingWhy(id, check, index) {
+  const c = parseCheck(check);
+  if (c?.kind === 'journey' && journeyCheck(index.journeys[c.journey], c.text) === 'template') return `${id} names ${check}: ${TEMPLATE_WHY}`;
+  return `${id} names ${check}, which no ${c ? NOUN[c.kind] : 'check'} holds: fix the check (npm run expectations -- set-check) or add it`;
 }
 
 const NOUN = { journey: 'journey check', test: 'test', picture: 'journey shot()' };
@@ -458,8 +489,7 @@ function checkProblems(stores, index, features) {
     for (const p of s.problems) out.push({ message: `${fileOf(s.feature)}: ${p}` });
     for (const e of s.entries.filter((x) => ACTIVE.includes(x.status))) {
       if (resolveCheck(e.check, index, s.feature) !== 'missing') continue;
-      const c = parseCheck(e.check);
-      out.push({ message: `${e.id} names ${e.check}, which no ${c ? NOUN[c.kind] : 'check'} holds: fix the check (npm run expectations -- set-check) or add it` });
+      out.push({ message: missingWhy(e.id, e.check, index) });
     }
   }
   return out;

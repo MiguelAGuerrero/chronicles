@@ -353,7 +353,7 @@ test('expectations audit 18: a template message is named by its fixed text befor
     'check(y, `the camera stays put: ${b} again`);',
     'check.todo(z, `the search box finds ${w} moments`);',
   ].join('\n');
-  const i = ex.indexOf({ journeys: { memories: journey }, tests: {}, features: { memories: ['memories'] } });
+  const i = ex.indexOf({ journeys: { memories: journey }, tests: { 'a.test.ts': TESTS }, features: { memories: ['memories'] } });
   assert.equal(ex.resolveCheck('memories:"a later walk brings back "', i), 'ok');
   assert.equal(ex.resolveCheck('memories:"the search box finds "', i), 'todo');
   for (const text of ['a later walk brings back 3 moments', 'walker at ', 'the camera stays put: ']) assert.equal(ex.resolveCheck(`memories:"${text}"`, i), 'missing', text);

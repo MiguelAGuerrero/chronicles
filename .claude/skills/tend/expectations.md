@@ -18,7 +18,8 @@ the operations are in `scripts/expectations.js`'s header). A line, its text on o
 ```
 
 - **Observable.** A line says what the person sees or does, and its `Check:` names what shows it: a journey check, by
-  the whole message of a `check(` call when that message is a plain string (`<journey>:"<message>"`); a unit test, by
+  the whole message of a `check(` call (`<journey>:"<message>"`), or for a template message its fixed text before the
+  first `${`, when that is 12 characters at least and starts no other check of the journey; a unit test, by
   its whole title (`test:"<title>"`); a shot one of the feature's own journeys takes (`picture:<shot name>`); or
   `pending "<what it will show>"` while none exists. `npm run expectations -- check`, run by `check:docs`, and by
   `check:affected` when a journey or a test changed, fails a named check it cannot find. A check moves to another
