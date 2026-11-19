@@ -338,6 +338,17 @@ async function replayGrid(h, check) {
     } else {
       await pg.waitForTimeout(1500);
       await shot(pg, `rc-moment-grid-${w}`);
+      // replay-ceremony ui 4 (the UI review's U5): a grid of three leaves no empty cell, its third picture spanning the
+      // row, and the card's strip names a grid in the plural, a word and no count.
+      const grid = await pg.evaluate(() => {
+        const g = document.querySelector('[data-testid=replay-grid]');
+        if (!g) return null;
+        const gb = g.getBoundingClientRect();
+        const cells = [...g.querySelectorAll('[data-testid=grid-cell]')].map((e) => { const b = e.getBoundingClientRect(); return [Math.round(b.left - gb.left), Math.round(b.top - gb.top), Math.round(b.width), Math.round(b.height)]; });
+        return { w: Math.round(gb.width), h: Math.round(gb.height), cells, name: g.closest('[data-testid=replay-card]')?.getAttribute('aria-label') ?? '' };
+      });
+      const third = grid && grid.cells[2];
+      check.todo(!!grid && grid.cells.length === 3 && Math.abs(third[2] - grid.w) <= 1 && third[0] <= 1 && Math.abs(third[1] + third[3] - grid.h) <= 1 && /^Photos, /.test(grid.name) && !/\d/.test(grid.name.split(',')[0]), `replay-ceremony ui 4: at ${w} px a grid of three fills its last row, and its strip says "Photos" (${JSON.stringify(grid)})`);
     }
     const turned = await pg.waitForFunction(() => { const v = document.querySelector('[data-testid=replay-card] video'); return !!v && !v.paused && v.currentTime > 0.6; }, null, { timeout: 30000 }).then(() => true, () => false);
     if (!first) await shot(pg, `rc-moment-video-${w}`);

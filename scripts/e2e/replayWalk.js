@@ -105,9 +105,11 @@ async function seedReplayWalk(h, c, pg) {
 /**
  * A walk of `n` photos, each a stop of its own 50 m on from the last, written into storage and stopped: more moments
  * with a picture than a small phone's stack holds (replay ceremony RC30). Uses the `rr-photo` picture the walk above
- * stored, so it follows it in the same browser. Leaves the page on the walk's first replay.
+ * stored, so it follows it in the same browser. `passedAt` (a share of the way along) adds one place passed without
+ * stopping there, 5 m off the way, so the last view names it (replay ceremony RC25). Leaves the page on the walk's
+ * first replay.
  */
-async function seedPhotoWalk(h, c, pg, n) {
+async function seedPhotoWalk(h, c, pg, n, { passedAt = null } = {}) {
   const { navUrl, BASE, at, openWalk, toStop } = h;
   const here = at(-4 + n * 0.5 + 0.2, 1.5);
   await pg.goto(navUrl);
@@ -130,17 +132,23 @@ async function seedPhotoWalk(h, c, pg, n) {
     const p = pts[Math.min(pts.length - 1, Math.round(((k + 0.4) * 50) / 7))];
     return { id, walk_id: walk.id, t: p.t, lat: p.lat, lon: p.lon, segment_id: null, piece_ids: [id], pieces: [{ id, moment_id: id, t: p.t, kind: 'photo', file_path: 'rr-photo', body: null, caption: null, caption_y: null }] };
   });
-  await pg.evaluate(([id, startedAt, points, moments]) => new Promise((resolve) => {
+  const near = passedAt == null ? null : pts[Math.round(passedAt * steps)];
+  const passedPlace = near && { key: 'ph-passed', area_key: null, name: 'Old Mill', category: 'history', kind: 'monuments', at: [near.lon, near.lat + 5 / 111320], generic: false, lat: near.lat + 5 / 111320 };
+  await pg.evaluate(([id, startedAt, points, moments, place]) => new Promise((resolve) => {
     const req = indexedDB.open('chronicles');
     req.onsuccess = () => {
-      const tx = req.result.transaction(['walk', 'trace_point', 'moment'], 'readwrite');
+      const tx = req.result.transaction(['walk', 'trace_point', 'moment', 'meta', 'checklist_item'], 'readwrite');
+      if (place) {
+        tx.objectStore('meta').put({ key: `explored:${id}`, value: '1' });
+        tx.objectStore('checklist_item').put(place);
+      }
       const w = tx.objectStore('walk').get(id);
       w.onsuccess = () => tx.objectStore('walk').put({ ...w.result, started_at: startedAt });
       for (const p of points) tx.objectStore('trace_point').add(p);
       for (const m of moments) tx.objectStore('moment').put(m);
       tx.oncomplete = () => resolve(true);
     };
-  }), [walk.id, pts[0].t - 1000, pts, caps]);
+  }), [walk.id, pts[0].t - 1000, pts, caps, passedPlace]);
   await pg.reload();
   await pg.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
   await c.setGeolocation({ longitude: here[0], latitude: here[1], accuracy: 6 });
