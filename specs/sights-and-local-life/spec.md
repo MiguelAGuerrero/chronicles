@@ -58,7 +58,7 @@ Open: none for phase 1 (phase 2's two are in decision 0200).
 
 1. **SG1 · Tell what can be found from what is around.** On an area's card, "What's here" shows its kinds under two
    headings, **Sights** (History, Art, Culture, Green, Views) and then **Local life** (Food, Shops, Nightlife), each kind
-   once, in that order. Under "Sights" one muted line says they are the places that can turn up as a "?" on the map;
+   once, in that order. Under "Sights" one muted line says they are the places that can turn up as a "?" (amended by places-layer ui 1: without "on the map", which is false while the Places layer is off);
    "Local life" has none. Finding criterion: someone shown the card and not told how it works can say which kinds can
    turn up as a "?", from what the section shows without opening "How the marks work" (the cold find, decision 0167).
 2. **SG2 · The tile keeps its one row, in two groups.** An area tile's kinds stay one row on a 320 px wide phone with all

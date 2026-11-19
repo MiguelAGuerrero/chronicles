@@ -11,8 +11,8 @@ import { fakePorts } from '../fakes';
 // Map layers (ML1, ML2, ML5, ML6, ML7, ML9), written from specs/map-layers/spec.md before the code.
 
 test('ML1, ML2: a layer is data, the layers have their defaults (Where I\'ve been joined them, WB4)', () => {
-  assert.deepEqual(LAYERS.map((l) => l.id), ['walkability', 'storefronts', 'borders', 'past']);
-  assert.deepEqual(layerDefaults(), { walkability: false, storefronts: false, borders: false, past: false });
+  assert.deepEqual(LAYERS.map((l) => l.id), ['walkability', 'storefronts', 'borders', 'past', 'places']);
+  assert.deepEqual(layerDefaults(), { walkability: false, storefronts: false, borders: false, past: false, places: true });
   for (const l of LAYERS) {
     assert.ok(l.name.length > 0 && l.icon.length > 0, l.id);
     assert.ok(l.legend.length > 0, `${l.id} has legend rows`);
@@ -24,19 +24,19 @@ test('ML1: the state is built from the list, so a layer added later gets its def
   const extra: LayerDef[] = [...LAYERS, { id: 'transit', name: 'Transit', icon: 'bus-outline', defaultOn: true, legend: [{ key: 't', text: 'Stops', swatch: 'hotspot' }] }];
   assert.equal(layerDefaults(extra).transit, true);
   const stored = decodeLayers(JSON.stringify({ walkability: true, storefronts: false, borders: true }), null, extra);
-  assert.deepEqual(stored, { walkability: true, storefronts: false, borders: true, past: false, transit: true });
+  assert.deepEqual(stored, { walkability: true, storefronts: false, borders: true, past: false, places: true, transit: true });
 });
 
 test('ML7: one stored setting; junk, missing parts and unknown layers read as defaults; the old walkability switch is read in once', () => {
   assert.deepEqual(decodeLayers(null, null), layerDefaults());
   assert.deepEqual(decodeLayers('{not json', null), layerDefaults());
   assert.deepEqual(decodeLayers('[1,2]', null), layerDefaults());
-  assert.deepEqual(decodeLayers(JSON.stringify({ storefronts: true, nope: true, borders: 'yes' }), null), { walkability: false, storefronts: true, borders: false, past: false });
+  assert.deepEqual(decodeLayers(JSON.stringify({ storefronts: true, nope: true, borders: 'yes' }), null), { walkability: false, storefronts: true, borders: false, past: false, places: true });
   // Someone who turned walkability on before layers existed keeps it on; a stored setting wins over the old one.
   assert.equal(decodeLayers(null, '1').walkability, true);
   assert.equal(decodeLayers(null, '0').walkability, false);
   assert.equal(decodeLayers(JSON.stringify({ walkability: false }), '1').walkability, false);
-  assert.deepEqual(decodeLayers(encodeLayers({ walkability: true, storefronts: true, borders: true, past: true }), null), { walkability: true, storefronts: true, borders: true, past: true });
+  assert.deepEqual(decodeLayers(encodeLayers({ walkability: true, storefronts: true, borders: true, past: true, places: true }), null), { walkability: true, storefronts: true, borders: true, past: true, places: true });
 });
 
 test('ML5, ML7: switching a layer changes the store at once, is kept, survives a reload, and moves no other layer', async () => {
@@ -52,11 +52,11 @@ test('ML5, ML7: switching a layer changes the store at once, is kept, survives a
   assert.equal(a.store.get().on.borders, false);
   const b = createLayers(p);
   await b.load();
-  assert.deepEqual(b.store.get().on, { walkability: false, storefronts: true, borders: false, past: false });
+  assert.deepEqual(b.store.get().on, { walkability: false, storefronts: true, borders: false, past: false, places: true });
   await b.set('borders', true);
   const c = createLayers(p);
   await c.load();
-  assert.deepEqual(c.store.get().on, { walkability: false, storefronts: true, borders: true, past: false });
+  assert.deepEqual(c.store.get().on, { walkability: false, storefronts: true, borders: true, past: false, places: true });
 });
 
 test('ML7: the old walkability switch is read in on load, so nobody who turned it on has it turned off', async () => {
@@ -116,7 +116,7 @@ test('WB4: the panel lists "Where I\'ve been", off by default, after the three b
   assert.match(l.name, /^Where I[’']ve been$/);
   assert.equal(l.defaultOn, false);
   assert.equal(layerDefaults().past, false);
-  assert.deepEqual(LAYERS.map((x) => x.id), ['walkability', 'storefronts', 'borders', 'past']);
+  assert.deepEqual(LAYERS.map((x) => x.id), ['walkability', 'storefronts', 'borders', 'past', 'places']);
   assert.ok(l.icon.length > 0);
 });
 

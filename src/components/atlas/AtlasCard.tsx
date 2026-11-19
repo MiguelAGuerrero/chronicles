@@ -57,8 +57,7 @@ type Pan = ReturnType<typeof PanResponder.create>;
 
 /**
  * An area's card (AT8, atlas round 3): the larger picture, the eight kinds in
- * words and dots, how the marks work, storefront streets, what is waiting (kinds
- * only, AT7), what you found, the areas next door, and Walk to, always in
+ * words and dots, how the marks work, storefront streets, what you found, the areas next door, and Walk to, always in
  * sight in a footer. On a phone it is a full-screen drawer over the tabs, which
  * fold away while it is open; on a wide screen a panel beside the map. ✕, Back
  * and Escape close it, and so does a pull down: from the handle or header at any
@@ -77,6 +76,7 @@ export function AtlasCard(props: {
   here: boolean;
   fam: Familiarity;
   walked: Set<string>;
+  /** The card's picture draws these as "?"; empty while Places is off (PL4). The card lists none (decision 0230). */
   waiting: { category: CategoryId; at: LngLat }[];
   finds: { name: string; category: CategoryId; at: LngLat; generic?: boolean }[];
   you: LngLat | null;
@@ -363,20 +363,6 @@ export function AtlasCard(props: {
             );
           })()}
 
-          {props.waiting.length > 0 && (
-            <View style={styles.sec}>
-              <Text style={styles.secTitle} accessibilityRole="header">Waiting to be found</Text>
-              <View style={styles.chips} testID="atlas-waiting">
-                {props.waiting.map((m) => (
-                  <View key={m.category} style={[styles.q, { borderColor: KIND_COLOR[m.category] }]} accessible accessibilityLabel={`A place not found yet: ${m.category}`}>
-                    <Icon name={KIND_ICON_OF[m.category]} size={18} color={KIND_COLOR[m.category]} />
-                    <Text style={styles.qMark}>?</Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-          )}
-
           {props.finds.length > 0 && (
             <View style={styles.sec}>
               <Text style={styles.secTitle} accessibilityRole="header">Found</Text>
@@ -590,8 +576,6 @@ const styles = StyleSheet.create({
   pocketName: { flexShrink: 1, fontSize: 15, fontWeight: '600', color: theme.ink },
   storefrontName: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 },
   storefrontLine: { width: 10, height: 3, borderRadius: 2, backgroundColor: HOTSPOT },
-  q: { width: 44, height: 44, borderRadius: 22, borderWidth: 1.6, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center' },
-  qMark: { position: 'absolute', top: -4, right: -4, fontSize: 11, fontWeight: '800', color: theme.ink, backgroundColor: theme.surface, borderRadius: 8, paddingHorizontal: 3, overflow: 'hidden' },
   found: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 5 },
   foundName: { fontSize: 15, color: theme.ink, fontWeight: '500' },
   nb: { backgroundColor: theme.bg, borderRadius: 999, paddingVertical: 8, paddingHorizontal: 13, flexDirection: 'row', gap: 6, alignItems: 'center', minHeight: 44 },

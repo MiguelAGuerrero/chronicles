@@ -105,7 +105,7 @@ export function StartSettings(props: {
       {props.layers && Object.values(props.layers.on).some(Boolean) ? (
         <>
           <Text style={styles.section} accessibilityRole="header">On the map</Text>
-          <LayersKey layers={props.layers} />
+          <LayersKey map="walk" layers={props.layers} />
         </>
       ) : null}
 

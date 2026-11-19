@@ -75,8 +75,9 @@ test('layers audit 13: the settings load once; a switch made before the load fin
 });
 
 test('the owner\'s call (2026-11-05): Walkability, Busy streets and Town borders all start off', () => {
-  assert.deepEqual(layerDefaults(), { walkability: false, storefronts: false, borders: false, past: false });
-  assert.ok(LAYERS.every((l) => l.defaultOn === false));
+  assert.deepEqual(layerDefaults(), { walkability: false, storefronts: false, borders: false, past: false, places: true });
+  // Places (decision 0230, the owner, Nov 19) is the one layer on from the start: the "?" are the invitation to explore.
+  assert.deepEqual(LAYERS.filter((l) => l.defaultOn).map((l) => l.id), ['places']);
 });
 
 // --- the palette (the steward's S1, the auditor's F6, F11) ---

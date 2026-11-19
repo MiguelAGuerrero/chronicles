@@ -1,0 +1,11 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inflight",
+        "add"
+      ],
+      "body": "| Places layer (the \"?\" for places worth the stop become a \"Places\" switch in Explore's Layers panel, on by default; the area card drops \"Waiting to be found\" and says only the kinds; PL1-PL13, decision 0230) | `claude/presence-things-found-discrepancy-1kmhu5` | spec and plan reviewed with the steward, the owner's answers in; building test first |\n"
+    }
+  ]
+}

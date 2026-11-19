@@ -340,18 +340,22 @@ export default function Explore() {
     for (const l of shown) m.set(l.area.key, familiarity(l.area, fresh.areas, fresh.walkAreas));
     return m;
   }, [shown, fresh.areas, fresh.walkAreas]);
+  // Map layers (ML3-ML9): what is drawn over the base map; read first, since Places (PL3) gates every "?" below.
+  const layers = useLayers();
+  const placesOn = !!layers.on.places;
   const found = useMemo(() => new Set(fresh.finds.map((f) => f.key)), [fresh.finds]);
   const ringOf = useMemo(() => {
     const m = new Map<string, { waiting: ReturnType<typeof waitingMarks>; finds: Find[] }>();
     for (const l of shown) {
       const a = l.area;
       m.set(a.key, {
-        waiting: a.profile ? waitingMarks(a.profile.marks, found, a.profile.sketchAt ?? a.at, fresh.hidden) : [],
+        // PL4: the card's picture follows the Places switch; the card itself lists nothing waiting (decision 0230).
+        waiting: placesOn && a.profile ? waitingMarks(a.profile.marks, found, a.profile.sketchAt ?? a.at, fresh.hidden) : [],
         finds: findsIn(fresh.finds, a.profile?.sketchAt ?? a.at),
       });
     }
     return m;
-  }, [shown, fresh.finds, fresh.hidden, found]);
+  }, [shown, fresh.finds, fresh.hidden, found, placesOn]);
 
   // The map's areas: the page's neighborhoods (and the town), dots, the selected one named, in ink at rest (round 3; tend explore 20, decision 0172).
   const pointsOf = useMemo(() => (town ? [{ area: town, distanceM: 0, here: false }, ...neighborhoods] : neighborhoods), [town, neighborhoods]);
@@ -389,10 +393,11 @@ export default function Explore() {
   const inViewBox = useMemo(() => (cam && mapSize ? viewOf(cam.center, halfZoom(cam.zoom), mapSize) : null), [cam, mapSize]);
   const split = useMemo(() => {
     const p = sel?.area.profile;
-    if (!sel || !p) return { pins: [], dots: [] };
+    // PL3, PL11: Places off, no pin or dot is worked out.
+    if (!placesOn || !sel || !p) return { pins: [], dots: [] };
     const centre = p.sketchAt ?? sel.area.at;
     return areaMapMarks(sel.area.level, p.marks, found, fresh.hidden, centre, zoomHalf, centre[1], inViewBox);
-  }, [sel, found, fresh.hidden, zoomHalf, inViewBox]);
+  }, [placesOn, sel, found, fresh.hidden, zoomHalf, inViewBox]);
   const areaMarks = useMemo<MarkPin[]>(() => {
     if (!split.pins.length) return NONE;
     const label = (c: CategoryId) => CATEGORIES.find((x) => x.id === c)?.label ?? '';
@@ -400,7 +405,7 @@ export default function Explore() {
   }, [split]);
   const waitingDots = useMemo<WaitingDot[]>(() => split.dots.map((m) => ({ id: m.key, at: m.at, color: KIND_COLOR[m.category] })), [split]);
   // WT11, audit 15: the "?" and dots are one thing to a screen reader: the area and the kinds, never how many.
-  const waitingSaid = sel ? waitingLabel(sel.area.name, [...split.pins, ...split.dots], found) : '';
+  const waitingSaid = placesOn && sel ? waitingLabel(sel.area.name, [...split.pins, ...split.dots], found) : '';
   // Town borders (TB1, TB2): whole, from the z10 tile around you (or the open or selected town); yours tinted, the rest lined.
   // A town selected in the row is the one tinted (EC5).
   const litKey = town ? town.key : sel?.area.level === 'town' ? sel.area.key : null;
@@ -415,7 +420,6 @@ export default function Explore() {
   // TB11: the whole of the tinted town (yours, or a page's) once its border is known; the page frames it below.
   const townBox = useMemo(() => townFrame(drawn, tintedId), [drawn, tintedId]);
   // Map layers (ML3-ML9): what is drawn over the base map, one setting for every map, around the selected area else around you.
-  const layers = useLayers();
   const { open: layersOpen, closePanel: closeLayers } = layers;
   const layersAt = layerCentre(sel, from, !town);
   const wk = useWalkability(layersAt, !!layers.on.walkability);
@@ -822,7 +826,7 @@ export default function Explore() {
         />
       )}
       {/* WT11: the selected area's "?" and dots, said once: the area and the kinds, never how many. */}
-      {focused && !plan && !outingOpen && !!waitingSaid && (
+      {focused && !plan && !outingOpen && placesOn && !!waitingSaid && (
         // Audit 5: the one way to the selected area's card for a keyboard or a screen reader, now that the "?" are hidden.
         <Pressable accessibilityRole="button" accessibilityLabel={`${waitingSaid}. Opens its card`} onPress={openSelected} style={styles.srOnly} testID="atlas-waiting-said">
           <Text>{waitingSaid}</Text>
@@ -929,7 +933,7 @@ export default function Explore() {
         <LocateButton ref={locateRef} busy={locating} onPress={locate} bottom={8} />
       ) : null}
       {/* The compass (CP2): above Locate, only while the map is turned and on screen. */}
-      {focused && !spot && <LayersControl layers={layers} notes={layerNotes({ walkability: wk.status, storefrontsReading: storefronts.reading, storefrontsFailed: storefronts.failed, past: past.status })} top={insets.top + 8} right={12} paneWidth={screen.w} clearBottom={insets.bottom + 100} />}
+      {focused && !spot && <LayersControl map="explore" layers={layers} notes={layerNotes({ walkability: wk.status, storefrontsReading: storefronts.reading, storefrontsFailed: storefronts.failed, past: past.status })} top={insets.top + 8} right={12} paneWidth={screen.w} clearBottom={insets.bottom + 100} />}
       {focused && !spot && <CompassButton bearing={bearing} onPress={() => mapRef.current?.resetNorth()} bottom={8 + 44 + 12} focusAfter={finding.edgeLocate ? locateRef : moveMapRef} />}
       {/* Free look (FL2, FL5): Move map above the compass's slot; while it is on, the middle is marked and Show areas here loads it. */}
       {focused && !plan && !outingOpen && <MoveMapToggle ref={moveMapRef} on={free} onPress={() => setFree((f) => !f)} bottom={8 + 44 + 12 + 44 + 12} />}

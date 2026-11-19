@@ -105,7 +105,7 @@ const SIGHT_KINDS = KIND_GROUPS[0].kinds;
 const LIFE_KINDS = KIND_GROUPS[1].kinds;
 
 /** SG1: the one muted line under "Sights" on the card, tying the heading to the map's "?". */
-export const SIGHTS_LINE = 'Places that can turn up as a “?” on the map.';
+export const SIGHTS_LINE = 'Places that can turn up as a “?”.';
 
 /**
  * SG2, SG14: a tile's strip in px: a kind's slot, the space between kinds of a group, the space between the groups (216 of
@@ -768,6 +768,7 @@ export const MARKS_EXPLAINED: readonly string[] = [
   'Sights (history, art, culture, green and views) count only places worth finding, the ones that can turn up as a “?”.',
   'They count only the kinds you have on in “What I’m into”. Some museums count toward two kinds, history and culture.',
   'Local life (food, shops and nightlife) counts every place of its kind, and never turns up as a “?”.',
+  'A place too small to light a dot can still turn up as a “?” on the map, where its kind reads none.',
   'One mark: a little of the kind. Two: a handful. Three: a street’s worth.',
   'Every area is judged the same way, within about a ten-minute walk of its point, so the same marks mean the same anywhere.',
 ];

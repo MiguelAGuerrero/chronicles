@@ -473,8 +473,55 @@ async function wholeTowns(h) {
     const cardOpen = (await pg.locator('[data-testid=atlas-card]').count()) > 0;
     check(cardOpen, 'whole-towns audit 5: the spoken line opens the selected area\'s card by keyboard');
     if (cardOpen) {
+      // PL7, PL6: the card says only the kinds: no "Waiting to be found", and a kind row reads the same whatever the layer says.
+      const cardText = await pg.locator('[data-testid=atlas-card]').innerText().catch(() => '');
+      check(!/Waiting to be found/i.test(cardText) && (await pg.locator('[data-testid=atlas-waiting]').count()) === 0, 'PL7: the area card has no "Waiting to be found" section');
+      await pg.waitForTimeout(800);
+      await shot(pg, 'places-layer-0-card-on');
+      const artRowOn = await pg.locator('[data-testid=atlas-kind-art]').innerText().catch(() => '');
       await pg.keyboard.press('Escape');
       await pg.waitForTimeout(1200);
+      // PL1: found from the map: the Layers button, the panel, a switch named Places, in words (never by a test id alone).
+      await pg.getByRole('button', { name: 'Layers' }).click().catch(() => {});
+      const row = pg.getByRole('switch', { name: /^Places$/ });
+      check((await row.count()) === 1, 'PL1: the Layers panel on Explore has a switch named "Places"');
+      check((await row.getAttribute('aria-checked').catch(() => null)) === 'true', 'PL1: Places is on by default');
+      await pg.waitForTimeout(800);
+      await shot(pg, 'places-layer-1-panel-on');
+      // PL3, PL5: switched off, the map draws no "?" or dot and the screen reader's button is gone.
+      await row.click().catch(() => {});
+      await pg.waitForTimeout(1200);
+      await shot(pg, 'places-layer-2-off');
+      const gone = await drawn();
+      check(gone.pins.length === 0 && gone.dots.length === 0 && (await pg.locator('[data-testid=atlas-waiting-said]').count()) === 0,
+        `PL3, PL5: with Places off, no "?", dot or spoken line (${gone.pins.length} "?", ${gone.dots.length} dots)`);
+      // PL4, PL6: the card's picture draws no "?", and a kind row reads the same with the switch off.
+      await pg.locator('[data-testid=atlas-tile][data-selected="1"]').click().catch(() => {});
+      await pg.waitForTimeout(1200);
+      await pg.waitForTimeout(800);
+      await shot(pg, 'places-layer-3-card-off');
+      const artRowOff = await pg.locator('[data-testid=atlas-kind-art]').innerText().catch(() => '');
+      check(artRowOff === artRowOn && artRowOff.length > 0, `PL6: a kind row reads the same with Places on and off ("${artRowOn}" / "${artRowOff}")`);
+      check((await pg.locator('[data-testid=atlas-card] [data-testid=mini-waiting]').count()) === 0, 'PL4: the card\'s picture draws no "?" with Places off');
+      // The open panel took the first Escape; the card's own close button ends it, so the map and its Layers button are free again.
+      await pg.locator('[data-testid=atlas-card-close]').click({ timeout: 5000 }).catch(() => {});
+      await pg.waitForTimeout(1000);
+      // The card and a tap on the map closed the panel: open it again to switch Places on.
+      if (!(await pg.getByRole('switch', { name: /^Places$/ }).count())) await pg.locator('[data-testid=layers]').click({ timeout: 5000 }).catch((e) => console.log('layers button:', String(e).slice(0, 120)));
+      await pg.waitForSelector('[data-testid=layers-panel]', { timeout: 5000 }).catch(() => {});
+      const sw = pg.getByRole('switch', { name: /^Places$/ });
+      const before = await sw.getAttribute('aria-checked').catch(() => 'none');
+      await sw.click().catch(() => {});
+      const after = await sw.getAttribute('aria-checked').catch(() => 'none');
+      await pg.waitForFunction(() => document.querySelectorAll('[data-testid=mark-pin]').length > 0 || JSON.parse(document.querySelector('[data-waiting-dots]')?.getAttribute('data-waiting-dots') ?? '[]').length > 0, null, { timeout: 15000 }).catch(() => {});
+      const back = await drawn();
+      check(back.pins.length + back.dots.length >= 6, `PL2: switched on again, the places are back (${back.pins.length} "?", ${back.dots.length} dots; switch ${before} -> ${after})`);
+      await shot(pg, 'places-layer-4-on-again');
+      const panel = await pg.locator('[data-testid=layers-panel]').innerText().catch(() => '');
+      check(!/find|left|remaining|unfound/i.test(panel), 'PL7: nothing in the panel says what is left to find');
+      // Leave the map as it was found: a panel left open would take the next map tap (tapDoes closes it first).
+      await pg.keyboard.press('Escape');
+      await pg.waitForTimeout(600);
     }
 
     // WT13: a tap on a dot eases the map in around it until it is a "?". Zoomed out the murals lie under their "?" (a tap

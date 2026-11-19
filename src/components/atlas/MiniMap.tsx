@@ -65,7 +65,7 @@ export const MiniMap = memo(function MiniMap(props: {
         const [x, y] = to(m.at);
         const c = KIND_COLOR[m.category];
         return (
-          <G key={`q-${m.category}`}>
+          <G key={`q-${m.category}`} testID="mini-waiting">
             <Circle cx={x} cy={y} r={6} fill="#ffffff" stroke={c} strokeWidth={1.6} strokeDasharray="2 1.5" />
             <SvgText x={x} y={y + 3} fontSize={8} fontWeight="700" fill={c} textAnchor="middle">?</SvgText>
           </G>
