@@ -1,13 +1,12 @@
 # Chronicles: the vision
 
-The identity every feature answers to. The `/vision` skill argues from this page before a spec is
-written, the `steward` subagent attacks a spec against it, and `npm run check:vision` blocks what can be
-caught mechanically (decision 0094). Agents propose changes to this page; only the owner makes them, each
-with a decision record.
+The identity every feature answers to. `/vision` argues from it before a spec, the `steward` attacks a
+spec against it, and `npm run check:vision` blocks what a script can catch (0094). Agents propose
+changes here; only the owner makes them, each with a decision record.
 
 - **Draft 1, 2026-11-05.** Lines marked **[proposed]** are recommendations not yet confirmed by the
   owner. The gate may cite them as reasons, never as rules, and says which is which.
-- **Last reviewed:** 2026-11-10 at `b7b28c2` (`/vision review` moves this line).
+- **Last reviewed:** 2026-11-10 at `b7b28c2` (`/vision review` moves it).
 
 ## Who it is for
 
@@ -22,13 +21,13 @@ An instrument for making memories while out, **Chronicle first** (the owner, Nov
 what other apps do apart (a way, a camera and notes, a replay, a journal) under one philosophy: **every
 moment captured is worth remembering**. Exploration and navigation exist to feed the corpus of moments;
 the walks are one way into it; the map is one view of it, not its home. Later, recall and search make the
-corpus a second mind (the owner, Nov 5). The overlap with adjacent apps is incidental: they each do one
+corpus a second mind (the owner, Nov 5). The overlap with adjacent apps is incidental: each does one
 verb for everyone; Chronicles does all three for a few.
 
 ## The three verbs
 
-Every user-visible feature serves at least one. A feature that serves none is another app's feature that
-wandered in.
+Every user-visible feature serves at least one. A feature that serves none is another app's that wandered
+in.
 
 | Verb | Where | It means | The question to ask |
 |---|---|---|---|
@@ -46,7 +45,7 @@ Against the identity. The gate says **out**, then offers the nearest thing that 
 | Scores, streaks, completion, coverage, levels, badges, leaderboards | Nothing is a score (0020) | A clause in words (0052); faint fog; "New to you", "you walked there often" |
 | Tallies such as "12 of 87" or "40%" of places, streets or finds | No counts on Explore (NV14); counts are words (0052) | The finds named; "what's waiting" as kinds only |
 | Popularity, trending, foot traffic, other people's activity | Worth the stop, not the most popular (Nov 1) | Presence of places from open data (0080, 0084) |
-| A feed, followers, likes, public profiles | A personal memory tool, not social (Nov 1) | A whole outing sent as a reel through the share sheet, with no server |
+| A feed, followers, likes, public profiles | A personal memory tool, not social (Nov 1) | A whole outing sent as a reel through the share sheet, with no server; a mark on your own note, shown to no one and read by no feature about a place, a route or a recommendation (0161) |
 | Several ways ranked by minutes; "fastest" as a label | The interesting way, not only the fastest (0020) | One suggested way; only Walk me back is the shortest (0029) |
 | Nagging: off-route alarms, "time for a walk", re-engagement pushes | Follow the wind (0020) | A quiet re-route; Remind me here, opt-in per capture (0032) |
 | Celebration: confetti, fanfare, big numbers, accent-coloured wins | Restraint (0001, 0052) | The card's line in words |
@@ -73,8 +72,8 @@ Against the identity. The gate says **out**, then offers the nearest thing that 
 
 ## Shapes: how ideas fit
 
-Verdicts: **aligned**, **aligned if reshaped**, **not now** (out of scope by a decision, may return),
-**out** (against the identity), **no surface** (engineering with nothing a user sees).
+Verdicts: **aligned**, **aligned if reshaped**, **not now** (out of scope by decision, may return),
+**out** (against the identity), **no surface** (engineering a user never sees).
 
 | Idea | Verdict | The shape that fits |
 |---|---|---|
@@ -116,15 +115,15 @@ Verdicts: **aligned**, **aligned if reshaped**, **not now** (out of scope by a d
 
 ## Precedents
 
-An owner's call that overrules the gate, or accepts a reshaping, is a decision record listed here, so the
-same argument is not had twice.
+An owner's call that overrules the gate or accepts a reshaping is a decision listed here, so it is
+not argued twice.
 
 | Decision | The call |
 |---|---|
 | 0020 | Positioning: nothing is a score; the interesting way; follow the wind |
 | 0034 | Busy areas are information only |
 | 0052 | Counts are words |
-| 0094 | The vision gate: the gate advises and the owner decides; the mechanical check blocks |
+| 0094 | The vision gate: it advises and the owner decides; the mechanical check blocks |
 | 0095 | Scenic routes: a row per leaning beside Direct, kept over the page's "one way"; no minutes compared, the detour in words (reshaped at the gate, Nov 5) |
 | 0099 | The found tally is removed: a place's sheet names its finds and never counts them (answers open question 6, Nov 5) |
 | 0103 | A static places archive (chronicles-data) read by tile; significance a gate, never a measure; Curiosities in "Viewpoints & oddities"; reverses 0084's "no host" (reshaped at the gate, Nov 5) |
