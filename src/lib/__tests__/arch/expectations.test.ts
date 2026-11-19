@@ -24,8 +24,8 @@ type Expectations = {
   parseStore(text: string, feature: string): Store;
   formatStore(store: Store): string;
   parseDraft(text: string): { lines: Draft[]; problems: string[] };
-  draft(store: Store, lines: Draft[]): Op;
-  amend(store: Store, id: string, line: Draft): Op;
+  draft(store: Store, lines: Draft[], index?: Index): Op;
+  amend(store: Store, id: string, line: Draft, index?: Index): Op;
   answer(store: Store, ids: string[], o: { as: 'ratified' | 'declined'; by: string; date: string; answer: string }): Op;
   setCheck(store: Store, id: string, check: string, index?: Index): Op;
   parseCheck(check: string): { kind: string; journey?: string; text?: string; name?: string } | null;
@@ -371,6 +371,15 @@ test('expectations audit 19: the check command counts a feature\'s own picture a
   assert.equal(r.stdout, 'expectations check: 3 lines, 2 checks found, 1 pending, 0 missing\n');
 });
 
+test('expectations audit 21: draft and set-check refuse a check they cannot find; pending is allowed', () => {
+  const i = index();
+  assert.ok(ex.draft(store(), [line('a day of walks in order.', 'memories:"page"')], i).problems.some((p) => /memories:"page", which no journey check holds/.test(p)));
+  assert.deepEqual(ex.draft(store(), [line('a day of walks in order.', 'pending "days in order"')], i).problems, []);
+  assert.deepEqual(ex.draft(store(), [line('a day of walks in order.', 'memories:"a later walk passing a flagged capture brings it back"')], i).problems, []);
+  assert.ok(ex.setCheck(store(), 'E-memories-3', 'test:"memories MR99: no such test"', i).problems.some((p) => /no test holds/.test(p)));
+  assert.ok(ex.amend(store(), 'E-memories-1', line('x.', 'picture:14-nothing'), i).problems.length > 0, 'an amendment too');
+});
+
 test('expectations 0236: a store file reads into lines with their status, check and grounds, and writes back the same', () => {
   const s = store();
   assert.deepEqual(s.problems, []);
@@ -522,18 +531,25 @@ test('expectations 0236: the docs check holds the store, and the script prints t
     '',
   ].join('\n'));
   const run = (...args: string[]) => spawnSync(process.execPath, [join(ROOT, 'scripts', 'expectations.js'), ...args], { cwd: root, env: { ...process.env, EXPECTATIONS_ROOT: root }, encoding: 'utf8' });
+  const refused = run('draft', 'memories', '--file', join(root, 'lines.md'));
+  assert.equal(refused.status, 1, 'a check it cannot find is refused at the draft');
+  assert.match(refused.stderr, /memories:"a word nobody checks", which no journey check holds/);
+  writeFileSync(join(root, 'lines.md'), readFileSync(join(root, 'lines.md'), 'utf8').replace('memories:"a word nobody checks"', 'pending "a word typed finds it"'));
   const drafted = run('draft', 'memories', '--file', join(root, 'lines.md'));
   assert.equal(drafted.status, 0, drafted.stderr);
   assert.equal(drafted.stdout, 'draft memories: E-memories-1, E-memories-2, E-memories-3 proposed in docs/expectations/memories.md\n');
   assert.equal(run('draft', 'memories', '--file', join(root, 'lines.md')).status, 1, 'the same lines twice');
+  writeFileSync(join(root, 'scripts/e2e/journeys/memories.js'), JOURNEY.replace('a later walk passing a flagged capture brings it back', 'a later walk brings it back'));
   const checked = run('check');
-  assert.equal(checked.status, 1);
-  assert.equal(checked.stderr, 'expectations check: E-memories-3 names memories:"a word nobody checks", which no journey check holds: fix the check (npm run expectations -- set-check) or add it\n');
+  assert.equal(checked.status, 1, 'a check renamed in its journey');
+  assert.equal(checked.stderr, 'expectations check: E-memories-1 names memories:"a later walk passing a flagged capture brings it back", which no journey check holds: fix the check (npm run expectations -- set-check) or add it\n');
+  writeFileSync(join(root, 'scripts/e2e/journeys/memories.js'), JOURNEY);
   assert.equal(run('ratify', 'E-memories-1', '--by', 'proxy', '--date', '2026-11-21', '--answer', 'yes').status, 1, 'never the proxy');
   const ratified = run('ratify', 'E-memories-1', 'E-memories-2', '--by', 'owner', '--date', '2026-11-21', '--answer', 'Ratify as drafted');
   assert.equal(ratified.stdout, 'ratify: E-memories-1, E-memories-2 ratified 2026-11-21 ("Ratify as drafted")\n');
   assert.equal(run('due', 'memories', 'threads').stdout, 'threads\n', 'no line at all: draft');
-  assert.equal(run('set-check', 'E-memories-3', '--check', 'pending "a word typed finds it"').status, 0, 'a check that is nowhere may go back to pending');
+  assert.equal(run('set-check', 'E-memories-3', '--check', 'memories:"a word nobody checks"').status, 1, 'set-check refuses a check it cannot find');
+  assert.equal(run('set-check', 'E-memories-3', '--check', 'pending "a word typed finds the moment"').status, 0, 'pending stays pending');
   assert.equal(run('set-check', 'E-memories-1', '--check', 'pending "it comes back"').status, 1, 'a check that is there never does');
   assert.equal(run('set-check', 'E-memories-3', '--check', 'test:"memories MR8: the walker\'s area is read again"').status, 0);
   assert.equal(run('check').stdout, 'expectations check: 3 lines, 3 checks found, 0 pending, 0 missing\n');
