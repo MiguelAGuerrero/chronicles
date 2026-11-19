@@ -198,6 +198,16 @@ test('expectations audit 3: met rests on a check that tests the line: a whole ch
   assert.ok(refs([{ id: 'E-memories-3', is: 'met', evidence: 'picture:threads-01', provisional: true }], [store()]).length > 0, 'not another feature\'s');
 });
 
+test('expectations audit 12: a run log names each line once, and only lines of its own area', () => {
+  const o = { exists: () => true, shots: '/tmp/shots', area: 'memories' };
+  const lacking = { id: 'E-memories-3', is: 'lacking', provisional: true };
+  assert.deepEqual(ex.logRefProblems([lacking], [store()], index(), o), []);
+  assert.ok(ex.logRefProblems([lacking, { ...lacking, is: 'failed' }], [store()], index(), o).some((p) => /twice/.test(p)));
+  const threads = ex.parseStore(STORE.replace(/memories/g, 'threads'), 'threads');
+  assert.ok(ex.logRefProblems([{ id: 'E-threads-3', is: 'lacking', provisional: true }], [store(), threads], index(), o).some((p) => /memories/.test(p)), 'another feature\'s line');
+  assert.deepEqual(ex.logRefProblems([{ id: 'E-threads-3', is: 'lacking', provisional: true }], [store(), threads], index(), { ...o, area: undefined }), [], 'a run of no area');
+});
+
 test('expectations 0234: a store file reads into lines with their status, check and grounds, and writes back the same', () => {
   const s = store();
   assert.deepEqual(s.problems, []);
