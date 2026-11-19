@@ -13,14 +13,10 @@ const ROOT = join(__dirname, '../../../..');
 const src = (p: string) => readFileSync(join(ROOT, p), 'utf8');
 const registry = async () => (await import('../../layers/registry')) as typeof import('../../layers/registry') & { layersFor?: (map: string) => readonly { id: string }[] };
 
-test('PL1, PL9: "Places" is a layer of Explore\'s panel only; the other layers stay on every map', async () => {
+test('PL1, PL9 (amended by MD13): "Places" is a layer of every map\'s panel since decision 0234', async () => {
   const { layersFor } = await registry();
   assert.ok(layersFor, 'layersFor(map) exists');
-  assert.ok(layersFor('explore').some((l) => l.id === 'places'));
-  for (const map of ['navigate', 'walk']) {
-    assert.ok(!layersFor(map).some((l) => l.id === 'places'), `${map} lists no Places`);
-    assert.deepEqual(layersFor(map).map((l) => l.id), ['walkability', 'storefronts', 'borders', 'past']);
-  }
+  for (const map of ['explore', 'navigate', 'walk']) assert.ok(layersFor(map).some((l) => l.id === 'places'), `${map} lists Places`);
   const places = LAYERS.find((l) => l.id === 'places');
   assert.equal(places?.name, 'Places');
   assert.equal(places?.defaultOn, true);
@@ -42,7 +38,7 @@ test('PL10, PL7: the legend is a "?" and "A place worth the stop": words, no dig
   assert.ok(!/\d|find|found|left|remaining|unfound/i.test(words), words);
 });
 
-test('PL12: the panel and its key take their map; Explore lists Places, Navigate and the walk do not', () => {
+test('PL12: the panel and its key take their map (every map lists Places since MD13)', () => {
   const control = src('src/components/LayersControl.tsx');
   assert.ok(/layersFor\(/.test(control), 'LayersControl and LayersKey list layersFor(map)');
   assert.ok(!/LAYERS\.(filter|map|some)\(/.test(control), 'no host reads the whole list any more');

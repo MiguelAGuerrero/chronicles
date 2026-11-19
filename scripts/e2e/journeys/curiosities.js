@@ -4,7 +4,7 @@
 // E2E_ONLY=curiosities runs it alone.
 
 async function run(h) {
-  const { navUrl, BASE, at, check, freshPage, places } = h;
+  const { navUrl, BASE, at, check, freshPage, places, switchLayer } = h;
   // The archive is built in chronicles-data (decision 0108); here the e2e's own encoders write one of the same shape
   // (z12 tiles, layer `places`, name, class, src and id), as the contract's example pack has.
   const { encodeTile } = await import('../../mvt-encode.mjs');
@@ -38,11 +38,9 @@ async function run(h) {
 
   await pg.goto(navUrl);
   await pg.waitForSelector('[data-testid=start]');
-  await setMeta('start_mode', 'explore');
-  await pg.reload();
-  await pg.waitForSelector('[data-testid=start]');
   await pg.click('[data-testid=start]');
   await pg.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
+  await switchLayer(pg, 'places');
   const seen = [];
   for (let k = 0; k <= 23; k++) {
     const p = at(-0.5 + k * 0.05, -0.5);

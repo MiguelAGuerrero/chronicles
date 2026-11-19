@@ -65,9 +65,10 @@ async function run(h) {
       // NR7: the bar pulls up to every setting in one scroll, and Escape lowers it as it was.
       const restBox = await pg.locator('[data-testid=ready-bar]').boundingBox();
       await drawerTo(pg, 'half');
-      check((await pg.locator('[data-testid=start-settings]').count()) === 1 && (await pg.locator('[data-testid=mode-quiet]').isVisible())
+      check((await pg.locator('[data-testid=start-settings]').count()) === 1
+        && (await pg.locator('[data-testid=mode-quiet], [data-testid=mode-explore]').count()) === 0
         && (await pg.locator('[data-testid=notify-settings]').count()) === 1 && (await pg.locator('[data-testid=kind-churches]').count()) === 0,
-        'NR7: the bar pulled up: the mode, the destination, reminders and alerts (no kinds with Quiet)');
+        'NR7: the bar pulled up: no mode (decision 0234), the destination, reminders and alerts (no kinds in the drawer)');
       await drawerTo(pg, 'peek');
       check((await pg.locator('[data-testid=start-settings]').count()) === 0 && Math.round((await pg.locator('[data-testid=ready-bar]').boundingBox()).height) === Math.round(restBox.height),
         'NR7: Escape lowers the bar, as it was');
@@ -96,8 +97,7 @@ async function run(h) {
           `tabs audit U4: tapping a switch row's words flips its switch (${before} → ${after})`);
       }
       // tabs audit U4: the range's − and + are 44 pt.
-      await pg.locator('[data-testid=mode-explore]').scrollIntoViewIfNeeded();
-      await pg.click('[data-testid=mode-explore]');
+      await pg.locator('[data-testid=range-minus]').scrollIntoViewIfNeeded();
       await pg.waitForTimeout(400);
       {
         const m = await pg.locator('[data-testid=range-minus]').boundingBox();
@@ -115,10 +115,8 @@ async function run(h) {
         await closeInto(pg);
         check(was !== now, 'tabs audit U4: a kind’s row flips its switch, tapped on its name');
       }
-      await pg.locator('[data-testid=mode-quiet]').scrollIntoViewIfNeeded();
-      await pg.click('[data-testid=mode-quiet]');
       await drawerTo(pg, 'peek');
-      check((await metaOf(pg, 'start_mode')) === 'quiet', 'NV22: back to Quiet, saved as it changed');
+      check(!(await metaOf(pg, 'start_mode')), 'NV22 (decision 0234): no mode is saved');
 
     });
     // Chronicle with no walks (tabs audit U7, amended by T10, decision 0148): with nothing open, the empty line and

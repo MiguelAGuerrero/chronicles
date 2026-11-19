@@ -226,7 +226,6 @@ test('functional-core audit 12: metaStore.get reads a stored value of the wrong 
     ['nav', '{"walk_id":null,"dest":{}}'],
     ['nav', '{"walk_id":3,"dest":{"at":[1,2],"label":"x","kind":"pin"}}'],
     ['units', 'yards'],
-    ['start_mode', 'run'],
     ['notify_off', '{"a":1}'],
     ['explore_hidden', '[1]'],
     ['recall_open', '"c1"'],

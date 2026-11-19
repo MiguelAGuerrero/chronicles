@@ -2,7 +2,6 @@
 import type { NearRead } from './atlas/atlas';
 import type { Db } from './db/types';
 import type { Waypoint } from './nav/types';
-import type { StartMode } from './startPlan';
 import { parsePrefs } from './resurface/prefs';
 import type { Prefs } from './resurface/types';
 import type { Units } from './units';
@@ -112,13 +111,12 @@ export const META = {
   // Drive there, walk back (DW7, lib/nav/store): the spot chosen with Walk back here, for the open walk only.
   way_back: { owner: 'nav', codec: json<{ walk_id: string; at: [number, number] }>(isWayBack) },
   // Navigate tab (lib/startPlan, the Start dialog)
-  start_mode: { owner: 'navigate', codec: oneOf<StartMode>('quiet', 'explore') },
+  // `start_mode` and `explore_walk` (the Quiet / Explore mode) are retired by decision 0234: their rows are left unread.
   web_note_dismissed: { owner: 'navigate', codec: flag },
   // Walk screen, once per walk or once ever
   deadzone_walk: { owner: 'walk', codec: walkId },
   hint_go: { owner: 'walk', codec: flag },
-  // Explore (lib/explore): the walk exploring, and what I'm into
-  explore_walk: { owner: 'explore', codec: walkId },
+  // Explore (lib/explore): what I'm into
   explore_hidden: { owner: 'explore', codec: json<string[]>(isStrings) },
   explore_kinds_known: { owner: 'explore', codec: json<string[]>(isStrings) },
   explore_range: { owner: 'explore', codec: number },
@@ -167,8 +165,12 @@ export const META = {
  * prefix and the value's encoding are fixed here.
  */
 export const META_FAMILIES = {
-  // When Explore was first switched on for a walk (ms): its replay counts finds from then.
+  // When Explore was first switched on for a walk recorded before decision 0234 (ms): its replay counts passes from then.
   explored: { owner: 'explore', codec: number },
+  // A live walk's own layers (JSON of booleans), every layer off at its start, removed with the walk (specs/modes-to-layers MD10).
+  walk_layers: { owner: 'map', codec: json<Record<string, boolean>>(isLayerState) },
+  // The spans Places was on during a walk, [on, off|null] pairs as JSON: its replay counts passes only inside them (MD9).
+  places_spans: { owner: 'explore', codec: json<unknown[]>((v): v is unknown[] => Array.isArray(v)) },
   // The pass-by distance (m) a walk was walked with, so a later setting never rewrites its replay (TC9).
   walk_pass: { owner: 'explore', codec: number },
   // A day's replay was watched (ms), so it advances by itself next time.

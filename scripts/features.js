@@ -158,7 +158,7 @@ const FEATURES = [
       'src/app/into.tsx', 'src/lib/intoNav.ts', 'src/lib/intoGate.ts', 'src/lib/walkName.ts',
     ],
     journeys: ['marks', 'atlas', 'grading', 'snap', 'carousel', 'curiosities', 'freelook', 'small-places', 'placesearch', 'subtypes', 'openmaps', 'openmaps-chronicle', 'into'],
-    specs: ['v1-discovery', 'explore-atlas', 'pocket-alert-nudge', 'reminder-bell', 'atlas-grading', 'town-presence', 'discrete-navigation', 'explore-carousel', 'places-worth-the-stop', 'places-pipeline', 'remarkable-and-public', 'places-out-of-town', 'presence-and-kinds', 'whole-towns', 'community-parks', 'free-look', 'small-places', 'place-search', 'explore-go-here', 'go-here-everywhere', 'explore-subtypes', 'more-attractions', 'open-in-maps-here', 'what-im-into-page', 'sights-and-local-life', 'tap-to-capture-places', 'places-layer'],
+    specs: ['v1-discovery', 'explore-atlas', 'pocket-alert-nudge', 'reminder-bell', 'atlas-grading', 'town-presence', 'discrete-navigation', 'explore-carousel', 'places-worth-the-stop', 'places-pipeline', 'remarkable-and-public', 'places-out-of-town', 'presence-and-kinds', 'whole-towns', 'community-parks', 'free-look', 'small-places', 'place-search', 'explore-go-here', 'go-here-everywhere', 'explore-subtypes', 'more-attractions', 'open-in-maps-here', 'what-im-into-page', 'sights-and-local-life', 'tap-to-capture-places', 'places-layer', 'modes-to-layers'],
   },
   {
     name: 'kind-walk',
@@ -342,7 +342,7 @@ const FEATURES = [
     about: 'motion polish: timings, presses, entrances, haptics, the pocket alert',
     rule: 'motion-polish',
     source: ['src/lib/{motionTokens,motion,enter,zoomOut,haptics,canBuzz,canBuzz.web}.ts', 'src/components/{Enter,HomeSheet,ui}.tsx'],
-    journeys: ['nudge'],
+    journeys: ['nudge', 'modes'],
     specs: ['polish-motion', 'pocket-alert-nudge'],
   },
   {
@@ -420,7 +420,8 @@ const RETIRED = {
   // As the spec says (its "Retired by this slice" line, Explore, v1 slice 5, Nov 1): S1-S6, S9-S12, S14, S15,
   // S22 and S23 of the scan, and all of slice 3's ambient hints (A1-A11). S7, S8, S13, S16 and S17 are live.
   // E14 (the test trim, Nov 5, at the owner's ask): the one-time upgrade off scan and ambient marks ran Nov 1; nothing is left to read.
-  'v1-discovery': [...V1_SCAN_AND_AMBIENT, 'E14'],
+  // E1 (a walk starts quiet; Explore is a switch): the Explore mode went (the owner, Nov 19, decision 0234); specs/modes-to-layers carries what stands.
+  'v1-discovery': [...V1_SCAN_AND_AMBIENT, 'E14', 'E1'],
   // Retired by Explore (docs/STATUS.md). L17 (the test trim, Nov 5): it fed the scan and ambient, both retired above.
   'v1.5-landing': ['L10', 'L13', 'L16', 'L17'],
   // The test trim (Nov 5, at the owner's ask): the home became the tabs (navigation-and-tabs) and Start moved to the
@@ -432,7 +433,8 @@ const RETIRED = {
   'v0.5-places': ['H2', 'H3', 'H10', 'N6'],
   // The test trim (Nov 5): Explore became an atlas (decision 0066); the tab's drawer of busy areas, places to find
   // and finds, and its "?" marks, are gone (the atlas's AT1-AT16 hold the tab now). `exploreTab.ts` went with it.
-  'navigation-and-tabs': ['NV14'],
+  // NV26 (the options card keeps the Explore switch): the same decision, 0234.
+  'navigation-and-tabs': ['NV14', 'NV26'],
   // No Open in Maps on "Off your route" (decision 0059). NH8 (the test trim, Nov 5, the owner's call): no
   // "Couldn't open a maps app." banner was built.
   'bridges-and-open-in-maps': ['NH4', 'NH8'],

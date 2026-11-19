@@ -5,7 +5,7 @@ import { router, useFocusEffect, useIsFocused, useLocalSearchParams, useNavigati
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
 import { walkClocks } from '../lib/pins';
 import { nextDayPartBoundary } from '../lib/resurface/context';
-import { AccessibilityInfo, ActivityIndicator, AppState, BackHandler, Switch, Linking, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { AccessibilityInfo, ActivityIndicator, AppState, BackHandler, Linking, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { Modal } from '../components/Modal';
 import { onWalkGap, useOpenWalk, useOpenWalkInfo } from '../components/OpenWalk';
 import { Ticking } from '../components/Ticking';
@@ -43,7 +43,7 @@ import { deadZoneDue, deadZoneNudge, inDeadZone, stripAt } from '../lib/landing/
 import { rulesCurrent, type LandingRow } from '../lib/landing/view';
 import { placesFromTilePois } from '../lib/discovery/tilePois';
 import { canBuzz } from '../lib/canBuzz';
-import { armedLine, canArm, walkPassKey, clampPass, clampRange, EXPLORE_KEY, exploredKey, kindOf, POCKET_ALERT_NOTE } from '../lib/explore/explore';
+import { armedLine, canArm, walkPassKey, clampPass, clampRange, intoRowShown, kindOf, POCKET_ALERT_NOTE } from '../lib/explore/explore';
 import { DEFAULT_SETTINGS, loadSettings, onSettings, saveSettings, type ExploreSettings } from '../lib/explore/settings';
 import { useExplore } from '../lib/explore/useExplore';
 import { reach } from '../lib/explore/reach';
@@ -90,7 +90,7 @@ import { CHOSEN_NOTICE, showsWayBack, wayBackTarget } from '../lib/nav/wayBack';
 import { layerNotes } from '../lib/layers/notes';
 import { useStorefrontsLayer } from '../lib/layers/useStorefrontsLayer';
 import { usePastLines } from '../lib/pastLines/usePastLines';
-import { useLayers } from '../lib/layers/useLayers';
+import { useWalkLayers } from '../lib/layers/useWalkLayers';
 import { useRouteWarning } from '../lib/walk/useRouteWarning';
 import { useWalkability } from '../lib/walk/useWalkability';
 import { arrivalNotice, exitPlan, screenState, startNotice, walkStripText, walkSummaryLabel } from '../lib/readyNav';
@@ -154,6 +154,15 @@ function WalkStats(props: { startedAt: number | null; pauses: Pause[]; distanceM
       label={(now) => `${formatDistance(distanceM)} walked in ${formatDuration(elapsed(now))}${rideM >= 1 ? `, plus ${formatDistance(rideM)} by ride` : ''}`}
     />
   );
+}
+
+/**
+ * A ref whose `current` is `get()` at each read, made once as the screen mounts: `get` should read only refs. A hook, so
+ * the React Compiler does not take the getter for a ref read during render, as it did built inline (walk-screen compiler).
+ */
+function useLazyRef<T>(get: () => T): { readonly current: T } {
+  const [ref] = useState(() => Object.defineProperty({} as { current: T }, 'current', { get }));
+  return ref;
 }
 
 /** The walk that has had its dead-zone nudge (L15): once a walk. */
@@ -354,11 +363,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const backRef = useRef<PressableRef>(null);
   const recenterRef = useRef<PressableRef>(null);
   // Resolved as the compass is pressed, never in render: whichever is drawn then.
-  const [compassNext] = useState(() =>
-    Object.defineProperty({} as { current: unknown }, 'current', {
-      get: (): unknown => backRef.current ?? recenterRef.current ?? { focus: () => mapRef.current?.focus() },
-    }),
-  );
+  const compassNext = useLazyRef((): unknown => backRef.current ?? recenterRef.current ?? { focus: () => mapRef.current?.focus() });
   const ready = useReady({
     locateRef: readyLocateRef,
     active: !walk,
@@ -459,6 +464,25 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const asked = useStore(momentPill.store, (st) => st.ask?.seq ?? 0);
   // Scenic routes' Sights read What I'm into's kinds too: its row shows with Sights on (what-im-into-page audit 6).
   const sightsOn = useStore(routeLeanings.store, (s) => s.includes('sights'));
+  // After a photo or video, Edit is offered for a few seconds (ME23); it is opt-in.
+  const editOffer = useEditOffer();
+
+  // Declared before the effect below that calls them: the React Compiler skips a component that uses a function above its
+  // declaration (walk-screen compiler).
+  /** With `into`, the photo joins that open moment (MS2); Edit is offered for a new moment's photo only. */
+  async function photo(into: string | null = null) {
+    const kept = await cap.takePhoto(into);
+    if (!kept) return;
+    feedback('tap');
+    if (kept.id === kept.momentId) editOffer.show(kept);
+  }
+
+  async function startVoice(into: string | null = null) {
+    if (await cap.startVoice(into)) {
+      feedback('tap');
+      AccessibilityInfo.announceForAccessibility('Recording voice memo');
+    }
+  }
   const onAsk = useRef<(kind: 'photo' | 'voice' | 'text') => void>(() => {});
   useEffect(() => {
     onAsk.current = (kind) => {
@@ -536,7 +560,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
         (x) => distanceToLinesM(now, x.geometry) <= NEAR_RADIUS_M,
       );
       // Credited streets change only at a stop: read once per walk screen.
-      visitedRef.current ??= await db.visitedSegmentIds();
+      // Not `??=`: the React Compiler skips a component that holds one (walk-screen compiler).
+      if (visitedRef.current == null) visitedRef.current = await db.visitedSegmentIds();
       const visited = visitedRef.current;
       // The screen may have gone; a newer fix never cancels a run already under way (perf: a slow
       // read on a phone was always thrown away by the next fix, 2 s later).
@@ -578,7 +603,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
     setLoaded(next);
     saveSettings(next).catch(() => {});
     // The open walk's replay reads its own distance, so the slider moves it too (audit 1).
-    if (walk && exploring && next.passM !== loaded.passM) {
+    if (walk && layers.on.places && next.passM !== loaded.passM) {
       db.setMeta(walkPassKey(walk.id), String(clampPass(next.passM))).catch(() => {});
     }
   };
@@ -744,7 +769,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const previewFit = useMemo(() => (navigation.preview ? boundsOf(navigation.preview.options.flatMap((o) => o.route.path), 30) : null), [navigation.preview]);
   const previewKey = previewFit ? 300000 + (Math.abs(Math.round((previewFit[0] + previewFit[1]) * 1e5)) % 99999) : 0;
   // Walkability (WK13, WK15): the layer around you, and a quiet line before a stretch built around cars on the route.
-  const layers = useLayers();
+  // The walk's own layers (specs/modes-to-layers MD3, MD10): every one off at the start of every walk.
+  const layers = useWalkLayers(walk?.id ?? null);
   const wk = useWalkability(live.here, !!layers.on.walkability);
   const storefronts = useStorefrontsLayer(live.here, !!layers.on.storefronts);
   // Where I've been (WB6, WB8): earlier walks near you, never this one; read only while a walk is open (the ready screen reads its own).
@@ -771,16 +797,18 @@ function WalkScreen(props: { onMinimize: () => void }) {
   // RP20: whether the open place has a street or path close by, from the cached streets; said, never filtered.
   const [markReach, setMarkReach] = useState<{ key: string; near: boolean | null } | null>(null);
   const [landings, setLandings] = useState<LandingRow[]>([]);
-  const [exploring, setExploring] = useState(false);
-  const quiet = !exploring;
+  // Places and Storefronts are the walk's layers (decision 0231), not a mode: what Explore mode drew follows them.
+  const placesOn = !!layers.on.places;
+  const storefrontsOn = !!layers.on.storefronts;
   const reloadLandings = useCallback(() => {
     db.listLandings().then((r) => setLandings(r.filter((x) => rulesCurrent(x.rules))), () => {});
   }, []);
   // The range preview (E21): a ring around you while the drawer is up on an exploring walk, as on the ready screen.
-  const preview = options && exploring && loaded ? loaded.rangeM : null;
+  const preview = options && placesOn && loaded ? loaded.rangeM : null;
   const explore = useExplore({
     walkId: walk?.id ?? null,
-    exploring,
+    places: placesOn,
+    storefronts: storefrontsOn,
     here: live.here,
     riding: live.riding,
     fixes,
@@ -793,8 +821,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
       storefronts.reload();
     },
     onFound: (item) => {
-      // Quietly on a quiet walk (E9): kept, shown in the replay, nothing on screen.
-      if (!exploring) return;
+      // A find needs Places on (Capture here starts from a "?"); the line says so as it happens (MD8).
+      if (!placesOn) return;
       feedback('success');
       setArrived(`Found: ${item.name}`);
       AccessibilityInfo.announceForAccessibility(`Found: ${item.name}, ${categoryOf(item.category).label}`);
@@ -936,26 +964,17 @@ function WalkScreen(props: { onMinimize: () => void }) {
       offWaiting();
     };
   }, [walk, params.recall, resumed, screenFocused, routeNav]);
-  // This walk explores only once switched on (E1); otherwise it is quiet: navigation and captures (E9).
+  // Places turned on for this walk: its pass distance is kept once, so a later setting never rewrites its replay (TC9); off, a
+  // place card that was open closes. (The spans it was on are kept by `walkLayers.set`, MD9.)
   useEffect(() => {
     if (!walk) return;
-    let alive = true;
-    db.getMeta(EXPLORE_KEY).then((v) => alive && setExploring(v === walk.id), () => {});
-    return () => {
-      alive = false;
-    };
-  }, [walk]);
-  const setExplore = (on: boolean) => {
-    if (!walk) return;
-    setExploring(on);
-    if (!on) setMarkOpen(null);
-    db.setMeta(EXPLORE_KEY, on ? walk.id : '').catch(() => {});
-    // Its replay counts what it passed from here on (E11, audit 9): the first time it was switched on.
-    if (on) {
-      const key = exploredKey(walk.id);
-      db.getMeta(key).then((v) => (v ? undefined : db.setMeta(key, String(Date.now())).then(() => loadSettings()).then((s) => db.setMeta(walkPassKey(walk.id), String(clampPass(s.passM))))), () => {}).catch(() => {});
+    if (!placesOn) {
+      setMarkOpen(null);
+      return;
     }
-  };
+    const key = walkPassKey(walk.id);
+    db.getMeta(key).then((v) => (v ? undefined : loadSettings().then((s) => db.setMeta(key, String(clampPass(s.passM))))), () => {}).catch(() => {});
+  }, [walk, placesOn]);
   // Hotspots on the walk (v1.5 slice 3): the remembered areas' strips and pockets, current rules
   // only, read again on returning to the front (an area looked at meanwhile, audit).
   useEffect(() => {
@@ -971,9 +990,9 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const [onStrip, setOnStrip] = useState<string | null>(null);
   useEffect(() => {
     const at = live.here;
-    const t = setTimeout(() => setOnStrip((cur) => (at && hotStrips.length && exploring ? stripAt(at, hotStrips, cur) : null)), 0);
+    const t = setTimeout(() => setOnStrip((cur) => (at && hotStrips.length && storefrontsOn ? stripAt(at, hotStrips, cur) : null)), 0);
     return () => clearTimeout(t);
-  }, [live.here, hotStrips, exploring]);
+  }, [live.here, hotStrips, storefrontsOn]);
   // A dead zone, 10 min (walking, not paused) from every pocket: once a walk, a pill toward the
   // nearest (L15). Nothing is read from storage until it could fire (audit).
   const farSince = useRef<number | null>(null);
@@ -989,21 +1008,21 @@ function WalkScreen(props: { onMinimize: () => void }) {
       farSince.current = null;
       return;
     }
-    farSince.current ??= now;
+    if (farSince.current == null) farSince.current = now;
     const far = now - farSince.current;
     if (nudgedRef.current || !deadZoneDue({ here: at, pockets: hotPockets, farSinceMs: far })) return;
     let alive = true;
     (async () => {
-      nudgedRef.current ??= (await db.getMeta(NUDGED_KEY)) === walk.id;
-      const got = deadZoneNudge({ here: at, pockets: hotPockets, farSinceMs: far, quiet, nudged: nudgedRef.current });
+      if (nudgedRef.current == null) nudgedRef.current = (await db.getMeta(NUDGED_KEY)) === walk.id;
+      const got = deadZoneNudge({ here: at, pockets: hotPockets, farSinceMs: far, quiet: !storefrontsOn, nudged: nudgedRef.current });
       if (alive && got) setNudge(got);
     })().catch(() => {});
     return () => {
       alive = false;
     };
-  }, [walk, live.here, live.riding, hotPockets, quiet, pausedNow]);
-  // Spent only once it has been seen: not under a card, a route or settings, never on a quiet walk (audit).
-  const nudgeShown = !!nudge && !quiet && !spot && !openMark && !options && !memory && !navigation.nav && !navigation.finding;
+  }, [walk, live.here, live.riding, hotPockets, storefrontsOn, pausedNow]);
+  // Spent only once it has been seen: not under a card, a route or settings, never without Storefronts on (audit).
+  const nudgeShown = !!nudge && storefrontsOn && !spot && !openMark && !options && !memory && !navigation.nav && !navigation.finding;
   useEffect(() => {
     if (!nudgeShown || !walk) return;
     if (!nudgedRef.current) {
@@ -1055,41 +1074,53 @@ function WalkScreen(props: { onMinimize: () => void }) {
   async function stop() {
     if (!walk || stopping) return;
     setStopping(true);
-    try {
-      // Waits for any voice action in flight (a start, a save) before ending.
-      const r = await cap.finishVoice();
-      // A memo with nothing to keep is said while the walker is still here; the next hold ends the walk (UN13).
-      if (r === 'lost') {
-        setNotice({ message: lostAtStop(saveFailLine('voice', false)), tone: 'error', sticky: true });
-        return;
-      }
-      // A photo or video still being kept from any screen (Memories' band, the bar), and a Retry under way, land first,
-      // as the bar's Stop waits: one that fails meanwhile is warned of (unsaved-captures audit 2, 3).
-      await settleWithin(Promise.all([memoGate.kept(), unsaved.settled()]), STOP_WAIT_MS);
-      // Whatever of the walk is held, from any screen, read now (not from a render's closure), is said before the walk
-      // ends without it (SA8, UN5); the next hold lets go what it warned of, files and all, once the walk has ended (UN8;
-      // audit 4). A save still under way keeps the walk from the empty drop: the end both Stops share (tend tabs audit
-      // 42, decision 0227). The walk stays on screen until the replay replaces it (the keeper hears it ended first).
-      const end = await stopEnd(walk.id, { leaves: true, warned: warnedHeld.current, going: () => setEnded(walk) });
-      if ('warn' in end) {
-        warnedHeld.current = end.warn.map((x) => x.id);
-        setNotice({ message: stopWarning(end.warn.map((x) => x.kind)), tone: 'error', sticky: true });
-        return;
-      }
-      const { dropped } = end;
-      feedback('success');
-      if (dropped) {
-        // A walk with nothing in it has no replay: back to where the walker was, with the pill's Undo (EW1).
-        const to = exitPlan(router.canGoBack());
-        if (to.kind === 'back') router.back();
-        else router.replace(to.to);
-      } else router.replace(`/replay/${walk.id}`);
-    } catch (e) {
-      // The walk stays on screen with the error, even if storage already closed it (audit 3).
+    // The walk stays on screen with the error, even if storage already closed it (audit 3).
+    const couldNotStop = (e: unknown) =>
       setNotice({ message: `The walk could not be stopped: ${e instanceof Error ? e.message : e}`, tone: 'error', sticky: true });
-    } finally {
-      setStopping(false);
+    // A try/finally, written so the React Compiler keeps WalkScreen (it skips a component holding a `finally`, or a `? :`,
+    // `&&` or `?.` inside a try, hence the catch's words above): every way out, a throw from the catch included, reaches
+    // `setStopping(false)` once, and that throw goes on after it.
+    let failed = false;
+    let failure: unknown;
+    try {
+      try {
+        // Waits for any voice action in flight (a start, a save) before ending.
+        const r = await cap.finishVoice();
+        if (r === 'lost') {
+          // A memo with nothing to keep is said while the walker is still here; the next hold ends the walk (UN13).
+          setNotice({ message: lostAtStop(saveFailLine('voice', false)), tone: 'error', sticky: true });
+        } else {
+          // A photo or video still being kept from any screen (Memories' band, the bar), and a Retry under way, land first,
+          // as the bar's Stop waits: one that fails meanwhile is warned of (unsaved-captures audit 2, 3).
+          await settleWithin(Promise.all([memoGate.kept(), unsaved.settled()]), STOP_WAIT_MS);
+          // Whatever of the walk is held, from any screen, read now (not from a render's closure), is said before the walk
+          // ends without it (SA8, UN5); the next hold lets go what it warned of, files and all, once the walk has ended (UN8;
+          // audit 4). A save still under way keeps the walk from the empty drop: the end both Stops share (tend tabs audit
+          // 42, decision 0227). The walk stays on screen until the replay replaces it (the keeper hears it ended first).
+          const end = await stopEnd(walk.id, { leaves: true, warned: warnedHeld.current, going: () => setEnded(walk) });
+          if ('warn' in end) {
+            warnedHeld.current = end.warn.map((x) => x.id);
+            setNotice({ message: stopWarning(end.warn.map((x) => x.kind)), tone: 'error', sticky: true });
+          } else {
+            const { dropped } = end;
+            feedback('success');
+            if (dropped) {
+              // A walk with nothing in it has no replay: back to where the walker was, with the pill's Undo (EW1).
+              const to = exitPlan(router.canGoBack());
+              if (to.kind === 'back') router.back();
+              else router.replace(to.to);
+            } else router.replace(`/replay/${walk.id}`);
+          }
+        }
+      } catch (e) {
+        couldNotStop(e);
+      }
+    } catch (e) {
+      failed = true;
+      failure = e;
     }
+    setStopping(false);
+    if (failed) throw failure;
   }
 
   // The walk goes on beneath the tabs: the recorder, the trace and the reminders are kept above
@@ -1117,20 +1148,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
   async function togglePause() {
     if (!walk || pausing) return;
     setPausing(true);
-    try {
-      if (paused) {
-        void askMotion();
-        await resumeWalk(walk.id);
-        setNotice((n) => noticeShown(n, null)); // the paused reminder ends with the pause
-        AccessibilityInfo.announceForAccessibility('Walk resumed');
-      } else {
-        // A memo in progress is saved first; a paused walk records nothing.
-        await cap.finishVoice();
-        await pauseWalk(walk.id);
-        AccessibilityInfo.announceForAccessibility('Walk paused. Nothing is recorded until you resume.');
-      }
-      feedback('tap');
-    } catch (e) {
+    const failedWith = (e: unknown) => {
       const fail = startErrorFrom(e);
       if (paused && fail.tone === 'info') {
         // Resume refused is the refusal's quiet notice, said, as Start's (tend recording audit 1). On the web the recorder's
@@ -1142,32 +1160,41 @@ function WalkScreen(props: { onMinimize: () => void }) {
           AccessibilityInfo.announceForAccessibility(fail.message);
         }
       } else setNotice({ message: `Could not ${paused ? 'resume' : 'pause'}: ${fail.message}`, tone: 'error', sticky: true });
-    } finally {
-      // The screen shows whatever the database holds, even after a failure.
-      await notifyWalkChanged();
-      setPausing(false);
+    };
+    // A try/finally the React Compiler keeps (as Stop's): the cleanup below runs on every way out, then a throw goes on.
+    let failed = false;
+    let failure: unknown;
+    try {
+      try {
+        if (paused) {
+          void askMotion();
+          await resumeWalk(walk.id);
+          setNotice((n) => noticeShown(n, null)); // the paused reminder ends with the pause
+          AccessibilityInfo.announceForAccessibility('Walk resumed');
+        } else {
+          // A memo in progress is saved first; a paused walk records nothing.
+          await cap.finishVoice();
+          await pauseWalk(walk.id);
+          AccessibilityInfo.announceForAccessibility('Walk paused. Nothing is recorded until you resume.');
+        }
+        feedback('tap');
+      } catch (e) {
+        failedWith(e);
+      }
+    } catch (e) {
+      failed = true;
+      failure = e;
     }
+    // The screen shows whatever the database holds, even after a failure. A throw here goes on in place of the one held,
+    // and leaves pausing set, as a `finally` did.
+    await notifyWalkChanged();
+    setPausing(false);
+    if (failed) throw failure;
   }
 
 
-  // After a photo or video, Edit is offered for a few seconds (ME23); it is opt-in.
-  const editOffer = useEditOffer();
+  // The photo the Edit offer is for (ME23).
   const [editingKept, setEditingKept] = useState<Faced | null>(null);
-
-  /** With `into`, the photo joins that open moment (MS2); Edit is offered for a new moment's photo only. */
-  async function photo(into: string | null = null) {
-    const kept = await cap.takePhoto(into);
-    if (!kept) return;
-    feedback('tap');
-    if (kept.id === kept.momentId) editOffer.show(kept);
-  }
-
-  async function startVoice(into: string | null = null) {
-    if (await cap.startVoice(into)) {
-      feedback('tap');
-      AccessibilityInfo.announceForAccessibility('Recording voice memo');
-    }
-  }
 
   async function saveVoice() {
     const r = await cap.finishVoice();
@@ -1245,14 +1272,22 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const decideGap = async (state: 'kept' | 'dismissed') => {
     if (!openGap) return;
     setGapBusy(true);
+    // A try/finally the React Compiler keeps (as Stop's).
+    let failed = false;
+    let failure: unknown;
     try {
-      await gapView.decide(openGap, state);
-      setGapOpen(null);
-    } catch {
-      setNotice({ message: 'Couldn’t save that. Try again.', tone: 'error' });
-    } finally {
-      setGapBusy(false);
+      try {
+        await gapView.decide(openGap, state);
+        setGapOpen(null);
+      } catch {
+        setNotice({ message: 'Couldn’t save that. Try again.', tone: 'error' });
+      }
+    } catch (e) {
+      failed = true;
+      failure = e;
     }
+    setGapBusy(false);
+    if (failed) throw failure;
   };
 
   // The walk's notice, in the minimize row or just under the navigation bar when one holds the row.
@@ -1521,7 +1556,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
             </Pressable>
           </View>
         )}
-        {exploring && explore.armed && (
+        {placesOn && explore.armed && (
           // The armed place (TC3): plain words, above the capture stack, never moving it.
           <LiftIn testID="armed-line" style={styles.findChoice} accessibilityLiveRegion="polite">
             <Text style={styles.findChoiceTitle} numberOfLines={2} accessibilityLabel={armedLine(explore.armed.item)}>{armedLine(explore.armed.item)}</Text>
@@ -1692,7 +1727,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
         locked={recordingVoice}
         // Named with what it draws, word for word, as the ready bar's twin is (tend walk-screen 12, audit 12): read each second
         // by the bar's own summary, never a live region.
-        summaryLabel={(t) => walkSummaryLabel({ elapsedMs: walk ? t - walk.started_at - pausedMs(pauses, walk.started_at, t) : 0, distanceM: live.distanceM, rideM: live.rideM, exploring, units })}
+        summaryLabel={(t) => walkSummaryLabel({ elapsedMs: walk ? t - walk.started_at - pausedMs(pauses, walk.started_at, t) : 0, distanceM: live.distanceM, rideM: live.rideM, units })}
         summary={<WalkStats startedAt={walk?.started_at ?? null} pauses={pauses} distanceM={live.distanceM} rideM={live.rideM} units={units} />}
         actions={
           // Pause alone while walking; Resume and a held Stop once paused, as AllTrails does (decision 0220). The owner's
@@ -1753,22 +1788,11 @@ function WalkScreen(props: { onMinimize: () => void }) {
       >
         <View testID="options-card" style={styles.drawer}>
           <Text style={styles.spotTitle} accessibilityRole="header">This walk</Text>
-            <View style={styles.optionRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.optionLabel}>Explore</Text>
-                <Text style={styles.markSub}>
-                  {exploring
-                    ? 'Places to find show as “?” when they’re close, a chip names the storefront street you’re on, and reminders are on.'
-                    : 'Off: a quiet walk, just navigation and your captures. Captures still find places.'}
-                </Text>
-              </View>
-              <Switch testID="explore-walk" accessibilityLabel="Explore" value={exploring} onValueChange={setExplore} />
-            </View>
-            {exploring && loaded && (
+            {loaded && (
               <>
                 <Text style={styles.optionSection} accessibilityRole="header">“?” range</Text>
                 <Text style={styles.markSub}>
-                  A “?” shows for places within {formatRange(settings.rangeM)} of you, {walkNote(settings.rangeM)}.
+                  With Places on, a “?” shows for places within {formatRange(settings.rangeM)} of you, {walkNote(settings.rangeM)}.
                   {live.here ? ' The ring on the map shows how far that is.' : ' The ring shows on the map once there’s a position.'}
                 </Text>
                 <RangeSlider value={settings.rangeM} onChange={(m) => changeSettings({ ...settings, rangeM: clampRange(m) })} />
@@ -1820,7 +1844,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
               <Icon name="share-outline" size={20} color={theme.ink} />
               <Text style={[styles.optionLabel, { flex: 1 }]}>Share GPS log</Text>
             </Pressable>
-            {(exploring || sightsOn) && (
+            {intoRowShown({ places: placesOn, sights: sightsOn }) && (
               // WI1, WI19: What I'm into lasts beyond this walk, so its row is a short section of its own after the walk's
               // settings, out from under "This walk" (the owner, Nov 18), headed "Explore" (audit 13); the kinds and
               // Complexes are on its page (0192). Scenic routes' Sights read the kinds too, so it shows with either on
@@ -1846,7 +1870,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
         focusAfter={compassNext}
       />
       {/* Layers (ML3): the bottom-left corner above the scale bar, clear of the navigation bar. */}
-      <LayersControl map="walk" layers={layers} notes={layerNotes({ walkability: wk.status, storefrontsReading: storefronts.reading, storefrontsFailed: storefronts.failed, past: past.status })} bottom={at.layers.bottom} left={at.layers.left} rightClear={at.layersRightClear} clearTop={at.insets.top + 152} />
+      <LayersControl map="walk" layers={layers} notes={layerNotes({ walkability: wk.status, storefrontsReading: storefronts.reading, storefrontsFailed: storefronts.failed, past: past.status, placesRange: formatRange(settings.rangeM) })} bottom={at.layers.bottom} left={at.layers.left} rightClear={at.layersRightClear} clearTop={at.insets.top + 152} />
 
       {awayFromStart && wayBack && !navigation.nav && (
         // Walk me back: the way back to where this walk began, where the last ride ended, or the spot chosen (N1, N11, DW6-DW8).
@@ -1877,7 +1901,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
         </Pressable>
       )}
 
-      {openMark && !spot && !quiet && (
+      {openMark && !spot && placesOn && (
         // A place's card, in the spot card's place (E7, E8, E12).
         <View style={[styles.spotRow, cardAt]} pointerEvents="box-none">
           <View testID="mark-card" style={styles.spot} accessibilityViewIsModal>

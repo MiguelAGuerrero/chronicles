@@ -1,0 +1,22 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inbox",
+        "note",
+        "G6"
+      ],
+      "body": "  Build beside decision 0236 (the expectation lens, on main at bfb60fd): `tend.js compass` already writes a refinement share to the ledger (shipped against filed-low, over the last 12 runs); criterion 3's shares read beside it, never a second copy of it. The run log carries `lens`, `expectations`, `compass` and `grew`: criteria 1 and 4 read those, not new fields of their own.\n",
+      "target": "sha256:7a318553c26cec3c83ba68f0843ed4edbccc9bfc286110f3b487c4442674d615"
+    },
+    {
+      "argv": [
+        "inbox",
+        "note",
+        "G7"
+      ],
+      "body": "  Build beside decision 0236 (on main at bfb60fd): `npm run expectations -- ratify|decline --by owner` already records who answered for the owner's ratifications and refuses the proxy; criterion 3's `by` and `pick` cover the run log's other answers and share that vocabulary. Criterion 1's count reads commits as `commits --loop-only` now does, every agent commit by its trailers, revert-aware.\n",
+      "target": "sha256:a0545a8527eb0e6434cbbf48e4f1d124abba3c5ff010441ea4ebec8044a42c81"
+    }
+  ]
+}

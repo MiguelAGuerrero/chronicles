@@ -167,7 +167,7 @@ export default function Explore() {
     AccessibilityInfo.announceForAccessibility(e.message);
   };
   // Every walk asked for here: a refusal is the quiet notice, said (tend recording audit 2).
-  const startWalk = (dest: Waypoint) => walkStart.start(dest, undefined, { onError: sayQuiet });
+  const startWalk = (dest: Waypoint) => walkStart.start(dest, { onError: sayQuiet });
   const [open, setOpen] = useState<string | null>(null);
   // The town whose page is open (AT2); null is the page of the areas near you.
   const [townSeen, setTownSeen] = useState<AtlasArea | null>(null);
@@ -1053,7 +1053,7 @@ export default function Explore() {
           onStartFar={openInfo.walk ? undefined : (at, label) => {
             setOpen(null);
             void journeyPlans.offer(placePlan(label, at)).catch(() => {})
-              .then(() => walkStart.start(null, undefined, { onError: sayQuiet }))
+              .then(() => walkStart.start(null, { onError: sayQuiet }))
               .then((started) => (started === null ? journeyPlans.withdraw().catch(() => {}) : undefined));
           }}
           starting={walkStart.starting}
@@ -1088,7 +1088,7 @@ export default function Explore() {
             setOpen(null);
             // OJ48: the plan is offered first, so the session that starts now takes it up.
             void (plan ? journeyPlans.offer(plan).catch(() => {}) : Promise.resolve())
-              .then(() => walkStart.start(dest, undefined, { onError: sayQuiet }))
+              .then(() => walkStart.start(dest, { onError: sayQuiet }))
               // A Start that did not happen takes its plan back, so no later session finds it (audit 44).
               .then((started) => (started === null && plan ? journeyPlans.withdraw().catch(() => {}) : undefined));
           }}

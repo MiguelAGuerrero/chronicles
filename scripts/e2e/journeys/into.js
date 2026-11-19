@@ -7,7 +7,7 @@
 const INTO = 'What I’m into';
 
 async function run(h) {
-  const { url, navUrl, BASE, at, check, drawerTo, openInto, closeInto, intoScrollTo, intoSettled, freshPage, places, shot, tabBarShown } = h;
+  const { url, navUrl, BASE, at, check, drawerTo, openInto, closeInto, intoScrollTo, intoSettled, freshPage, places, shot, tabBarShown, switchLayer } = h;
   const { encodeTile } = await import('../../mvt-encode.mjs');
   const { encodeArchive } = await import('../../pmtiles-encode.mjs');
   const fallsAt = at(0.1, -0.48);
@@ -85,7 +85,6 @@ async function run(h) {
 
   await pg.goto(navUrl);
   await pg.waitForSelector('[data-testid=start]');
-  await setMeta('start_mode', 'explore');
   await setMeta('explore_range', '140');
   await pg.reload();
   await pg.waitForSelector('[data-testid=start]');
@@ -419,18 +418,33 @@ async function run(h) {
     await closeInto(pg);
   }
 
-  // what-im-into-page audit 6: in the ready bar too, Quiet with Sights on keeps the row; with Sights off it goes.
+  // what-im-into-page audit 6: in the ready bar too, with Places off and Sights on the row stays; with Sights off it goes.
   {
-    await pg.click('[data-testid=start-settings] [data-testid=mode-quiet]');
+    // Raised again after the Layers button: the drag can miss once, so it is tried until the settings show.
+    const raiseBar = async () => {
+      for (let i = 0; i < 4; i++) {
+        await drawerTo(pg, 'half');
+        await pg.waitForTimeout(700);
+        if (await pg.locator('[data-testid=start-settings]').isVisible().catch(() => false)) return;
+      }
+    };
+    // The raised bar covers the Layers button: lower it, switch, raise it again.
+    await pg.keyboard.press('Escape');
+    await pg.waitForTimeout(500);
+    await switchLayer(pg, 'places', false);
+    await raiseBar();
     await pg.waitForTimeout(400);
     const quietSights = await pg.locator('[data-testid=start-settings] [data-testid=into-row]').count();
     await pg.click('[data-testid=start-settings] [data-testid=leaning-sights]');
     await pg.waitForTimeout(400);
     const quietNone = await pg.locator('[data-testid=start-settings] [data-testid=into-row]').count();
     await pg.click('[data-testid=start-settings] [data-testid=leaning-sights]');
-    await pg.click('[data-testid=start-settings] [data-testid=mode-explore]');
+    await pg.keyboard.press('Escape');
+    await pg.waitForTimeout(500);
+    await switchLayer(pg, 'places', true);
+    await raiseBar();
     await pg.waitForTimeout(400);
-    check(quietSights === 1 && quietNone === 0, `what-im-into-page audit 6: the ready bar's row shows with Quiet and Sights on, and not with Sights off too (${quietSights}, ${quietNone})`);
+    check(quietSights === 1 && quietNone === 0, `what-im-into-page audit 6: the ready bar's row shows with Places off and Sights on, and not with Sights off too (${quietSights}, ${quietNone})`);
   }
 
   // WI9: while the settings are being read the page draws no switch, and nothing is written.
@@ -449,19 +463,21 @@ async function run(h) {
     };
   });
   await pg.waitForTimeout(100);
-  await pg.locator('[data-testid=start-settings] [data-testid=into-row]').click().catch(() => {});
+  await pg.locator('[data-testid=start-settings] [data-testid=into-row]').click({ timeout: 5000 }).catch(async (e) => console.log('# into-row click:', String(e).split('\n')[0].slice(0, 120), JSON.stringify({ settings: await pg.locator('[data-testid=start-settings]').count(), visible: await pg.locator('[data-testid=start-settings]').isVisible().catch(() => null), row: await pg.locator('[data-testid=into-row]').count(), rowVisible: await pg.locator('[data-testid=into-row]').first().isVisible().catch(() => null), bar: await pg.locator('[data-testid=ready-bar]').boundingBox().catch(() => null), panel: await pg.locator('[data-testid=layers-panel]').count() })));
   await pg.waitForSelector('[data-testid=into-page]', { state: 'visible', timeout: 2000 }).catch(() => {});
   const earlyShown = await pageShown();
   const early = await pg.locator('[data-testid=into-page] [data-testid^=kind-]').count();
   await pg.waitForSelector('[data-testid=into-page] [data-testid^=kind-]', { timeout: 8000 }).catch(() => {});
   const later = await pg.locator('[data-testid=into-page] [data-testid^=kind-]').count();
-  check(earlyShown && early === 0 && later > 0 && (await metaOf('explore_hidden')) === hiddenWas, `WI9: no switch is drawn before the settings are read, and nothing is written (${early} then ${later})`);
+  const pageText = (await pg.locator('[data-testid=into-page]').innerText().catch(() => '')).replace(/\s+/g, ' ').slice(0, 120);
+  check(earlyShown && early === 0 && later > 0 && (await metaOf('explore_hidden')) === hiddenWas, `WI9: no switch is drawn before the settings are read, and nothing is written (${early} then ${later}; shown ${earlyShown}; hidden ${(await metaOf('explore_hidden')) === hiddenWas}; page: ${pageText})`);
   await closeInto(pg);
 
   // A walk, exploring, to the waterfall.
   await drawerTo(pg, 'peek');
   await pg.click('[data-testid=start]');
   await pg.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
+  await switchLayer(pg, 'places');
   for (let k = 0; k <= 12; k++) {
     const p = at(-0.5 + k * 0.05, -0.5);
     await c.setGeolocation({ longitude: p[0], latitude: p[1], accuracy: 6 });
@@ -470,13 +486,13 @@ async function run(h) {
   const falls = async () => (await marksNow()).some((l) => /Bushkill Falls/.test(String(l)));
   const fallsBefore = await falls();
 
-  // WI1, WI11: the walk's drawer with Explore on: the row, the Explore switch, the range; no kind's switch.
+  // WI1, WI11: the walk's drawer with Places on: the row, Places in the key, the range; no kind's switch.
   await pg.click('[data-testid=walk-summary]');
   await pg.waitForSelector('[data-testid=options-card]', { timeout: 10000 }).catch(() => {});
   await pg.waitForTimeout(700);
   const inDrawer = await pg.locator('[data-testid=options-card] [data-testid^=kind-], [data-testid=options-card] [data-testid^=complex-kind-]').count();
-  const ok9 = (await pg.locator('[data-testid=options-card] [data-testid=into-row]').count()) === 1 && inDrawer === 0 && (await pg.locator('[data-testid=options-card] [data-testid=explore-walk]').count()) === 1 && (await pg.locator('[data-testid=options-card] [data-testid=range-slider]').count()) === 1;
-  check(ok9, `WI1, WI11: the walk's drawer holds the row, the Explore switch and the range, and no kind's switch (${inDrawer})`);
+  const ok9 = (await pg.locator('[data-testid=options-card] [data-testid=into-row]').count()) === 1 && inDrawer === 0 && (await pg.locator('[data-testid=options-card] [data-testid=layer-legend-places]').count()) === 1 && (await pg.locator('[data-testid=options-card] [data-testid=range-slider]').count()) === 1;
+  check(ok9, `WI1, WI11: the walk's drawer holds the row, Places in the layers key and the range, and no kind's switch (${inDrawer})`);
   await pg.locator('[data-testid=options-card] [data-testid=into-row]').scrollIntoViewIfNeeded().catch(() => {});
   await pg.waitForTimeout(300);
   await shot(pg, 'into-walk-row');
@@ -492,19 +508,27 @@ async function run(h) {
   });
   check(!!section && section.head === 'Explore' && section.afterShare, `WI19, what-im-into-page audit 13: the walk's row sits in a section of its own, "Explore", after the walk's settings (${JSON.stringify(section)})`);
 
-  // what-im-into-page audit 6: Sights (scenic routes) reads the kinds too: with Explore off and Sights on the row stays;
+  // what-im-into-page audit 6: Sights (scenic routes) reads the kinds too: with Places off and Sights on the row stays;
   // with both off it goes.
   {
-    await pg.click('[data-testid=options-card] [data-testid=explore-walk]');
+    await pg.click('[data-testid=walk-summary]');
+    await pg.waitForTimeout(500);
+    await switchLayer(pg, 'places', false);
+    await pg.click('[data-testid=walk-summary]');
+    await pg.waitForSelector('[data-testid=options-card]');
     await pg.waitForTimeout(400);
     const withSights = await pg.locator('[data-testid=options-card] [data-testid=into-row]').count();
     await pg.click('[data-testid=options-card] [data-testid=leaning-sights]');
     await pg.waitForTimeout(400);
     const neither = await pg.locator('[data-testid=options-card] [data-testid=into-row]').count();
     await pg.click('[data-testid=options-card] [data-testid=leaning-sights]');
-    await pg.click('[data-testid=options-card] [data-testid=explore-walk]');
+    await pg.click('[data-testid=walk-summary]');
+    await pg.waitForTimeout(500);
+    await switchLayer(pg, 'places', true);
+    await pg.click('[data-testid=walk-summary]');
+    await pg.waitForSelector('[data-testid=options-card]');
     await pg.waitForTimeout(400);
-    check(withSights === 1 && neither === 0, `what-im-into-page audit 6: the walk's row shows with Sights on and Explore off, and not with both off (${withSights}, ${neither})`);
+    check(withSights === 1 && neither === 0, `what-im-into-page audit 6: the walk's row shows with Sights on and Places off, and not with both off (${withSights}, ${neither})`);
   }
 
   // WI3: the same page from the walk's drawer, the same rows in the same order.

@@ -31,9 +31,13 @@ test('SF1: the Layers panel lists Storefronts, with the storefront icon and a ti
   assert.doesNotMatch(l.legend[0].tip ?? '', /\d/);
 });
 
-test('SF7: the walk\'s Explore help line says storefronts', () => {
+test('SF7 (amended by modes-to-layers MD5, decision 0234): the walk\'s strip chip follows the Storefronts layer, whose own legend says what a storefront is', async () => {
   const walk = readFileSync(join(ROOT, 'src/app/walk.tsx'), 'utf8');
-  assert.ok(walk.includes('storefront street you’re on'), 'the line says storefronts (storefronts ui 1 says what Explore does with them)');
+  assert.ok(/storefrontsOn/.test(walk) && /hotStrips/.test(walk), 'the chip is behind Storefronts');
+  assert.ok(!/Off: a quiet walk/.test(walk), 'the Explore help line is gone with the mode');
+  const reg = await import('../../layers/registry');
+  assert.match(LAYERS.find((x) => x.id === 'storefronts')?.legend[0].tip ?? '', /shops, food, drink/);
+  assert.ok(reg.STOREFRONTS_WHAT);
 });
 
 /** A string literal's text, from quotes or backticks on one line. */
@@ -98,9 +102,10 @@ test('SF14: decisions 0080 and 0127 and the shipped specs that pin the old words
   }
 });
 
-test('storefronts ui 1: the walk\'s Explore line says what Explore does with storefronts: a chip names the street you\'re on', () => {
+test('storefronts ui 1 (amended by MD5): the walk says what the chip names through the Storefronts layer\'s key, not an Explore line', () => {
   const walk = readFileSync(join(ROOT, 'src/app/walk.tsx'), 'utf8');
-  assert.ok(walk.includes('a chip names the storefront street you’re on'));
+  assert.ok(/<LayersKey map="walk"/.test(walk), 'the walk\'s settings show the key of the layers that are on, the legend with the tip');
+  assert.ok(!walk.includes('a chip names the storefront street you’re on'), 'no mode line');
 });
 
 test('storefronts ui 2: the card says what counts under its Storefronts heading, in the layer tip\'s own words', async () => {

@@ -1,0 +1,39 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "slice",
+        "row",
+        "add",
+        "--top"
+      ],
+      "body": "| Modes to layers (no Explore mode: the walk's own layers, Places and Storefronts, replace it; a walk starts with every layer off, layers per walk, the ready bar's range and settings without a mode, passes counted within the spans Places was on; MD1-MD19, decision 0231) | built; web only | tests first, then the code, 2026-11-19 | `specs/modes-to-layers/spec.md` |  |\n"
+    },
+    {
+      "argv": [
+        "inflight",
+        "remove",
+        "Modes to layers"
+      ],
+      "target": "sha256:fc51b2cb526ed544c9aeb051bb1964e339609bd0c9d9a923c2443e82e4f7e0ff"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Explore carousel (EC1-EC20, decision 0124; discrete navigation DN1, DN10, DN12, DN13)"
+      ],
+      "body": "- [ ] **Do:** start a walk on a phone; open its Layers panel, switch Places on, walk toward a place, then switch Places off and on again. **Expect:** a fresh walk draws no \"?\"; with Places on the \"?\" and the range ring (while the settings are up) draw and a pocket alert buzzes if set; off, they go; the walk's panel and options card list Places, and no Quiet / Explore choice exists on the start drawer or the walk. (MD1-MD4, MD7, MD13)\n- [ ] **Do:** turn Places on and off during a walk past two places, then watch its replay. **Expect:** the replay names \"Passed X without stopping\" only for a place passed while Places was on; a walk that never had it on names none. (MD9)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore and discovery"
+      ],
+      "body": "- The replay reads the current \"What I'm into\" kinds when it names what a walk passed, so a later change of kinds rewrites an old replay; only the pass distance is frozen per walk (`walk_pass:<walk>`, decision 0224). Surfaced by the modes-to-layers steward (S2, Nov 19) and left as it was: freezing the kinds per walk would be a new stored value.\n"
+    }
+  ]
+}

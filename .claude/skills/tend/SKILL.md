@@ -24,8 +24,8 @@ Echo the resolved mode, area and flags in your first line.
 | none | a sweep of the area `node scripts/tend.js next` names (the one a change reset most often since it was swept (decision 0229), else one left rough or settling); if it names none, the run is `evolve` | 0-5, 8-10 |
 | an area (a name in `scripts/features.js`; say so and stop on any other word) | a sweep of that area | 0-5, 8-10 |
 | `triage [<section>]` | tag `docs/DEFERRED.md` | 0, 6 (with 5's entry form), 10 |
-| `evolve [<area>]` | the balance, then proposals for that area, or for the app if none is named | 0, 8, 9, 10 |
-| `inbox <answers>` | act on the owner's answers ("T3 yes, G2 yes, T4 no: too busy a screen") | 0, 7, 10 |
+| `evolve [<area>]` | the balance, then proposals for that area, or for the app if none is named | 0, 2 (lens 0), 8, 9, 10 |
+| `inbox <answers>` | act on the owner's answers ("T3 yes, G2 yes, T4 no: too busy a screen") | 0, 2 (lens 0, for a build), 7, 10 |
 | `--cap=N` | ship at most N commits; the rest are filed `[loop]` in `docs/DEFERRED.md`. A capped sweep never moves an area to polished. | |
 | `--deploy` | `main` (default); `branch`: push the run's branch for review and stop; `none`: commit locally and save a patch. Only `main` moves an area's state. | |
 
@@ -77,6 +77,8 @@ so nothing known is found twice. Then look through each lens; a finding names
 its lens, its evidence (a picture, a file and line, a failing input) and its
 source.
 
+0. **The expectation** (decision 0236), first in each `/tend` run (one iteration) but a triage: the lines of the run's area (a sweep's area,
+   or the area of the entry a build builds), each met with evidence, failed (section 3) or lacking (section 9); `expectations.md`.
 1. **The screens as a person sees them.** In the worktree, run the area's
    journeys (`docs/TESTING.md`, "Choosing the journeys") with
    `E2E_SHOTS=<scratchpad>/tend-shots`. A screen of the area with no journey
@@ -108,18 +110,18 @@ source.
 7. **The ledger.** `[loop]` items of the area in `docs/DEFERRED.md`, in the worktree:
    `npm run book:items -- deferred --tag loop --section "<area's section>"`.
 
-Run the subagents in one message. An empty lens is a result: say "nothing
-found" and move on. Never invent a finding to fill a run, and never turn a
-missing feature into a "gap": restraint is part of the product
-(`docs/VISION.md`, Always). A sweep that ran every lens is a **whole sweep**;
-say which lenses did not run and why.
+Run the subagents in one message. An empty lens is a result: say "nothing found" and move on. Never invent a finding to
+fill a run, and never turn a missing feature into a "gap": restraint is part of the product (`docs/VISION.md`, Always).
+A sweep that ran every lens (0-7) is a **whole sweep**; say which lenses did not run and why.
 
 ## 3. Triage
 
 One line per finding, with a severity (high, medium, low, as the `ux-reviewer`
 defines them), in the report and nowhere else until it ships or is filed:
-`N. [loop|owner|arch|phone] <severity> <title>: <evidence>; <source>; <the change>`.
+`N. [loop|owner|arch|phone] <severity> <title>: <evidence>; <source>; <what it serves>; <the change>`.
 
+- **The compass** (0236): a finding names what it serves, a lens 0 line (its id) or a rule. A refinement that serves no expectation
+  and breaks no rule or shipped criterion is filed `[loop]` low, not shipped; a defect against one is triaged as any other.
 - Drop what the ledger lists under `declined`, and what the inbox or
   `docs/DEFERRED.md` already holds (tag it there instead).
 - Order the loop findings by severity, then by how many screens share the cause.
@@ -185,12 +187,10 @@ entry per finding, written so a yes or no is enough:
   precedent the file lacks goes in the entry with its source, marked "not yet
   recorded", for the slice that builds it to record.
 - `[phone]` entries carry **Do** and **Expect** in place of a recommendation.
-- An addition too large for one commit is not a `T` entry: shape it as a `G`
-  entry with criteria (section 9's form), so a yes has something to hold it to.
-  While the balance reads **outgrowing its base** no `G` is filed (section 8):
-  file it as an `[owner]` `T` entry that says it is slice-sized and held while
-  the balance reads outgrowing, its criteria in it; a yes builds it as a slice
-  (section 7), as T11 was.
+- An addition too large for one commit is not a `T` entry: shape it as a `G` entry with criteria (section 9's form), so a
+  yes has something to hold it to. A `G` from lens 0 (section 9, source 6) is filed as a `G` whatever the balance reads.
+  While the balance reads **outgrowing its base** no other `G` is filed (section 8): file it as an `[owner]` `T` entry that
+  says it is slice-sized and held while the balance reads outgrowing, its criteria in it; a yes builds it as a slice (section 7), as T11 was.
 - A rule file past the warning size (`check:docs` warns at 20,000 characters) is
   never a `[loop]` item: the loop only adds to rule files (0135), so it cannot split
   one. File it as a `T [owner]` entry asking to split it by topic, so it is asked,
@@ -301,7 +301,7 @@ route file under `src/app/`, or more `onPress=`, `<Pressable`, `<Switch`,
 
 | State | It means | What the loop does there |
 |---|---|---|
-| `rough` | The last sweep **found** loop findings of high or medium severity, the sweep was not whole or was capped, or a change since added a screen or a control to it (decision 0229) | Tend it. No evolution is proposed on a rough base; `evolve <area>` says so and stops. |
+| `rough` | The last sweep **found** loop findings of high or medium severity, the sweep was not whole or was capped, or a change since added a screen or a control to it (decision 0229) | Tend it. No evolution is proposed on a rough base but one from lens 0 (section 9, source 6); `evolve <area>` says so and files only those. |
 | `settling` | A whole sweep found only low findings, or `[owner]` or `[arch]` entries of the area are unanswered | Tend once more, or wait for the owner's answers |
 | `polished` | A whole, uncapped sweep found nothing above low, every screen of the area has a journey, and no `[owner]` or `[arch]` entry of the area is open (`[phone]` entries do not count: no device has run this) | **Owes an evolution:** section 9, in the same run |
 | `resting` | Polished, and the owner said no to its evolutions (the ledger says when and why) | Left alone until a change resets it (decision 0229) |
@@ -318,16 +318,15 @@ window is the one sign it cannot see, and reads as outgrowing its base.
 | Reading | Means | The run ends by |
 |---|---|---|
 | **settling** | No slice grew in 14 days | Section 9 for the app (not only this area), said first in the report. Proposals may sit on a rough area then, each saying what must be tended first. |
-| **outgrowing its base** | More than three `rough` areas, more than ten unanswered `[owner]` and `[arch]` entries, or a red `main` | Filing no new `G` entry (a slice-sized addition is a held `[owner]` `T` entry, section 5); the report names the areas to tend and the entries to answer first |
+| **outgrowing its base** | More than three `rough` areas, more than ten unanswered `[owner]` and `[arch]` entries, or a red `main` | Filing no new `G` entry but one from lens 0 (section 9, source 6; a slice-sized addition from elsewhere is a held `[owner]` `T` entry, section 5); the report names the areas to tend and the entries to answer first |
 | **in step** | Otherwise | Section 9 only if this area is polished. `/tend evolve`, typed by the owner, proposes for polished areas whatever the reading, and names the area to tend first when there is none. |
 
 ## 9. Evolve: propose the next iteration
 
-For a polished area, or for the whole app when it is settling. At most
-**three** open `G` entries exist at once; a better proposal replaces the
-weakest, with a line in the report saying why. An entry whose `From:` line
-names `/investigate` is the owner's own ask (decision 0231): it counts toward
-none of the three, no proposal replaces it, and the balance does not hold it.
+For a polished area, or for the whole app when it is settling; in every run, for an expectation lens 0 found lacking. At
+most **three** open `G` entries exist at once; a better proposal replaces the weakest, with a line in the report saying
+why. An entry whose `From:` line names `/investigate` is the owner's own ask (decision 0231): it counts toward none of the
+three, no proposal replaces it, and the balance does not hold it.
 
 **Where an evolution comes from.** Each proposal names its source; one that
 has none is not made.
@@ -343,9 +342,10 @@ has none is not made.
    a kind that could drive a route, a context line another screen could carry.
 5. Repeated loop findings with one cause: three patches to the same screen
    say the screen wants a redesign, which is an evolution, not a fix.
+6. **An unmet expectation** (lens 0) of a feature in scope by VISION, whatever the balance and state, with its `Workflows:`.
 
 Never from: what other apps have (`docs/research/adjacent-apps.md` informs how,
-never what), a Never row, or the wish to have something to propose. But every
+never what; a lens 0 line rests on "Who it is for" as well), a Never row, or the wish to have something to propose. But every
 proposal is grounded in how they do its job (decision 0193): the precedent is the
 model the owner evaluates the shape against. "This
 area is whole; nothing to add" is an answer, and makes it `resting`.
@@ -398,7 +398,7 @@ The owner picks; the loop never starts a `G` entry unasked.
    date, a note, and `main`: the `origin/main` commit this worktree was
    opened from, never a later one, so that anything landing during the run
    reads as a change since the sweep; `lastT`, `lastG`; anything declined;
-   valid JSON, only those fields, the balance left to the script) and
+   valid JSON, only those fields, the balance and the compass left to the script) and
    `docs/STATUS.md`, "Last tend", replaced with this run's digest by every
    mode, an inbox run and a triage included (area or mode, commits with one
    line each, entries filed or answered, the balance in a sentence, lenses not
@@ -432,7 +432,7 @@ The owner picks; the loop never starts a `G` entry unasked.
    review's fixes, entries built, reverts) and refuses a line that leaves a
    count out. `found` counts everything the sweep found, shipped or not,
    zeros included; `answers` is each entry the owner answered this run, as
-   `yes`, `no` or `reshape`; `review` is the review's findings
+   `yes`, `no` or `reshape`; `expectations` and `compass` are lens 0's (`expectations.md`), required of a sweep and a build; `review` is the review's findings
    (`accepted`, `rejected`, `deferred`, a filed low counted deferred); `e2e`
    is the journeys run, or `"full"` for the full pass. The line is written once. A
    run makes one record commit, or two around the review of step 2 (one before
@@ -446,8 +446,8 @@ The owner picks; the loop never starts a `G` entry unasked.
    (CI replays the trailers of every `tend …` commit and every agent commit; a later record commit of the run may
    set or remove what an earlier one filed without a reason or a cap). A run that changed code (a sweep, a `T`
    build) also runs `npm run check:tend -- origin/main..HEAD` (every commit is
-   a loop commit with its own named, real test and its source, and none
-   touches what the loop may not), `npm run typecheck && npm run lint &&
+   a loop commit with its own named, real test and its source, and none touches what the loop may not or answers an
+   expectation line: the owner's answer is its own commit, never a run's, `expectations.md`), `npm run typecheck && npm run lint &&
    npm test`, then `.claude/skills/ship.md`, "Review", in its faster lane: the
    reviewers by risk over the run's whole diff (the `auditor` on any behaviour
    change; one reviewer for words or style; none for records only), one round,
@@ -475,22 +475,22 @@ The owner picks; the loop never starts a `G` entry unasked.
      `main`'s side of all four and run `npm run records -- redo` in the
      conflicted commit (it runs its recorded operations again; the inbox
      numbers on from `main`'s ledger and the trailers stay), then
-     `check:records` again. A record commit whose inbox numbers would move
-     but whose rebase does not conflict cannot be redone (it is committed, and
-     a record commit is never amended): stop and report, the branch pushed
-     for the owner, rather than publish a record the gate fails. Any other conflict is `ship.md`'s stop. A red run is handled
-     by `ship.md`, "A red run".
-   - `branch`: push the run's branch and stop; `none`: save a patch. Neither
-     moves an area's state, the entry numbers are provisional, and step 5 is
-     skipped: say the record is not on `main`.
+     `check:records` again. A record commit whose inbox numbers would move but whose rebase does not conflict cannot be
+     redone (it is committed, and a record commit is never amended): stop and report, the branch pushed for the owner,
+     rather than publish a record the gate fails. Any other conflict is `ship.md`'s stop. A red run is handled by
+     `ship.md`, "A red run".
+   - `branch`: push the run's branch and stop; `none`: save a patch. Neither moves an area's state, the entry numbers
+     are provisional, and step 5 is skipped: say the record is not on `main`.
 4. `.claude/skills/ship.md`, "Clean up".
-5. **Then ask the owner** about this run's new entries with AskUserQuestion
-   (the recommended shape first, four entries per call). Their answers are a
-   new run: `/tend inbox …`, section 7, never work added to this one.
+5. **Then ask the owner** about this run's new entries with AskUserQuestion (the recommended shape first, four entries
+   per call). Their answers are a new run: `/tend inbox …`, section 7, never work added to this one. But a drafted line
+   is answered by the answer commit, never `/tend inbox`: the session that asked the owner makes the answer commit,
+   outside any run and after its run has landed; a plain `/tend` session asks at its step 5 and then commits the answer
+   the same way, never inside the run's own commits, always in a commit of its own (`expectations.md`).
 
 ## Report
 
-Mode, area and flags; each lens and what it found or "nothing found"; every
+Mode, area and flags; lens 0's lines by id, each met (its evidence), failed, lacking, provisional or dropped, and the compass's reading; each lens and what it found or "nothing found"; every
 finding's triage line; per shipped commit its hash, source, test and
 pictures; the Pages run and the live check; the entries filed, with their
 numbers; the balance (the slices that grew, the areas by state, the reading)

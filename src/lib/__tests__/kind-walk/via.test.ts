@@ -37,7 +37,7 @@ test('KW13: after a re-route only the stops not yet passed are kept', () => {
 
 test('KW12: a walk started from a kind is an ordinary one: only the navigation destination says it was suggested', () => {
   const dest = { at: p(900), label: 'Through green', kind: 'point' as const, via: [p(400)], suggested: true };
-  const plan = startPlan({ walkId: 'w1', now: 1, mode: 'quiet', dest });
+  const plan = startPlan({ walkId: 'w1', dest });
   assert.deepEqual(plan.meta.map(([k]) => k), [NAV_KEY], 'nothing but the destination is written for the walk');
   assert.ok(JSON.parse(plan.meta[0][1]).dest.suggested, 'the destination carries it');
   assert.deepEqual(plan.params, { started: '1' }, 'the walk opens as any walk started to somewhere');

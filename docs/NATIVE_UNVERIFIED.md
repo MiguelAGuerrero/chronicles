@@ -318,6 +318,8 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] **Do:** on an iPhone, on Chronicle's Map, select a place and tap Open in Maps beside Walk here; then long-press the map at street zoom and tap Open in Maps on the card. **Expect:** Apple Maps opens each time, and the place stays selected (OM2, OM4)
 - [ ] **Do:** on an Android phone, with a place whose title is your own words, tap Open in Maps on its sheet, then on the walk screen's navigation bar. **Expect:** the maps chooser shows "Destination" or the area's name, never the title (OM10, 0058)
 - [ ] **Do:** on a phone within 2 km of a neighborhood tap Walk there on its tile; then on a town 4 km away; then on a town past 10 km. **Expect:** the first starts a guided, recorded walk at once; the second opens the card asking Walk now / When I get there and starts nothing; the third says "Set as destination", saves it in Navigate and starts nothing (OM7, 0121)
+- [ ] **Do:** start a walk on a phone; open its Layers panel, switch Places on, walk toward a place, then switch Places off and on again. **Expect:** a fresh walk draws no "?"; with Places on the "?" and the range ring (while the settings are up) draw and a pocket alert buzzes if set; off, they go; the walk's panel and options card list Places, and no Quiet / Explore choice exists on the start drawer or the walk. (MD1-MD4, MD7, MD13)
+  - [ ] **Do:** turn Places on and off during a walk past two places, then watch its replay. **Expect:** the replay names "Passed X without stopping" only for a place passed while Places was on; a walk that never had it on names none. (MD9)
 
 ## Explore atlas
 
@@ -736,6 +738,7 @@ What the reactions slice wrote and has not run on a phone (`specs/reactions`, de
 - [ ] **Do:** on a phone, open an entry's More, then Reaction, choose two reactions and tap Done; open a note's page with the keyboard up and open its Reaction tool. **Expect:** the reactions take the native sheet (one Modal) with Done at its top right; on the page the rows sit above the keyboard over the editor's web view, and a choice never moves the caret or the words (RX10, RX12)
 - [ ] **Do:** on a phone, in Memories, tap "Idea" under an entry with VoiceOver or TalkBack off and then on; open the entry, tap "Happy" under the viewer's info line. **Expect:** "Idea" is its own target inside the entry's button, said as a link named "Ideas", and opens the Ideas lens; Back returns to the journal; in the viewer, the native Modal closes first and the Happy moments lens opens with no flash of the journal (RL1-RL5, decision 0177)
 - [ ] **Do:** on a phone, react to a moment with two families at once from a new note's page (Happy, then Idea, before any words), keep the note, and quit the app while it saves; also react to a video and look at its pin. **Expect:** the moment has both reactions or neither, never one (`setReactions` in one SQLite transaction through the write queue, RL10, RL11); the video pin's bubbles sit in an L at its left, the third above the first, none over the play mark nor clipped by the Marker on Android (RL12)
+- [ ] **Do:** on an iPhone, open a note's page with the keyboard up, tap Reaction and choose Like; tap the words. Open Reaction again, choose Idea and, without a tap, type a letter. **Expect:** each time the rows close and the bar settles back on the keyboard with the caret in the words where it was tapped or typed; nothing else on the page moves (fix reaction-panel-focus: a tap in the editor's web view reaches `onPictureTap`, a character `onChange`; never run on a device)
 
 ## Small places (SP1-SP22, decision 0183)
 
@@ -801,6 +804,7 @@ More attractions (decision 0198) and its audit are built and green on the web bu
 ## The React Compiler (RC1-RC3, decision 0206)
 
 - [ ] **Do:** on a development build, walk 10 min, open the replay, scroll Memories and the gallery, switch Explore's neighbourhoods. **Expect:** everything behaves as on the web build; no screen shows stale content after a change (a compiled component skips a render only when its inputs are the same); React DevTools shows the compiled components as "Memo ✨". (CM1, decision 0207)
+  Since Nov 19 (the owner's one-off run, walk-screen compiler) the walk screen's `WalkScreen` compiles too: on a development build, also start a walk in place, pause and resume, open a gap's card, turn the map and tap the compass (the focus goes to Walk me back or Recenter), and hold Stop. **Expect:** each behaves as before, and the screen no longer re-renders whole with each fix.
 
 ## The road engine
 

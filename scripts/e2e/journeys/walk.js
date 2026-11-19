@@ -16,10 +16,10 @@ async function checks(h) {
     const busyLines = async () => Number(/strips:(\d+)/.exec((await walkMap().getAttribute('data-storefronts').catch(() => null)) ?? '')?.[1] ?? 0);
     const peekH = await barH();
     await drawerTo(page, 'half');
-    check((await page.locator('[data-testid=mode-quiet][aria-checked=true]').count()) === 1 && (await page.locator('[data-testid=mode-explore]').count()) === 1
+    check((await page.locator('[data-testid=mode-quiet]').count()) === 0 && (await page.locator('[data-testid=mode-explore]').count()) === 0
       && /Long-press the map/.test(await page.locator('[data-testid=start-settings]').innerText()) && (await page.locator('[data-testid=kind-churches]').count()) === 0
       && (await page.locator('[data-testid=notify-settings]').count()) === 1,
-      'pulled up: the mode, Quiet | Explore (Quiet the first time), the destination with its hint, reminders and alerts; no kinds with Quiet (NV20-NV22, NR7)');
+      'pulled up: no mode (decision 0234, MD2), the destination with its hint, reminders and alerts; no kinds in the drawer (NV20, NV21, NR7)');
     // The bar opens at rest each time Navigate opens (NR5).
     await onTab('chronicle');
     await onTab('navigate');
@@ -42,28 +42,27 @@ async function checks(h) {
     await drawerTo(page, 'full');
     check((await isOn('notify-recall')) && !(await isOn('notify-pause')), 'a notification kind switched off stays off');
     await page.click('[data-testid=notify-pause]');
-    // Explore: what I'm into and the range appear, with the ring on this map (NV21); saved as they change (NV22).
+    // Places is on by default on the ready map: what I'm into and the range show, with the ring on this map (NV21, MD11); saved as they change (NV22).
     const ringNow = () => page.locator('[data-ring]').last().getAttribute('data-ring');
-    await page.click('[data-testid=mode-explore]');
     await page.waitForTimeout(500);
     check((await page.locator('[data-testid=into-row]:visible').count()) === 1 && /^100[ \u00a0]m$/.test(await page.locator('[data-testid=range-value]').innerText()) && (await ringNow()) === '100',
-      'with Explore chosen, the row to what I’m into and the range show, the range drawn as a ring on this map (NV21, WI1)');
+      'with Places on (its default here), the row to what I’m into and the range show, the range drawn as a ring on this map (NV21, WI1, MD11)');
     await page.click('[data-testid=range-plus]');
     await page.waitForTimeout(400);
     check(/^120[ \u00a0]m$/.test(await page.locator('[data-testid=range-value]').innerText()) && (await ringNow()) === '120' && (await metaOf(page, 'explore_range')) === '120',
       'the ring redraws as the range changes, and the range is saved at once (NV22)');
     await page.click('[data-testid=range-minus]');
     await page.waitForTimeout(300);
-    check((await metaOf(page, 'start_mode')) === 'explore' && (await metaOf(page, 'explore_range')) === '100', 'the mode and the range are saved as they change (NV22)');
+    check((await metaOf(page, 'explore_range')) === '100', 'the range is saved as it changes (NV22)');
     await drawerTo(page, 'peek');
     await page.waitForTimeout(300);
     check((await ringNow()) === '', 'the ring goes with the bar down (NR7)');
-    // The mode opens on the last one picked (NV22).
+    // There is no mode to open on (MD12).
     await page.reload();
     await page.waitForSelector('[data-testid=ready-bar]');
     await page.waitForTimeout(800);
     await drawerTo(page, 'half');
-    check((await page.locator('[data-testid=mode-explore][aria-checked=true]').count()) === 1, 'after a reload the settings open on the last mode picked (NV22)');
+    check((await page.locator('[data-testid=mode-explore]').count()) === 0 && (await page.locator('[data-testid=into-row]:visible').count()) === 1, 'after a reload there is still no mode, and Places (on) shows the row (MD2, MD12)');
     await drawerTo(page, 'peek');
     // A long press on Navigate's map sets the destination, with its ring (NV23); Clear takes it away.
     {
@@ -82,9 +81,8 @@ async function checks(h) {
       await drawerTo(page, 'half');
       check(/Your spot · \d+[ \u00a0]m away/.test(await page.locator('[data-testid=drawer-dest]').innerText()), 'pulled up, the destination with its straight-line distance and Clear (NV20)');
       await page.click('[data-testid=dest-clear]');
-      await page.click('[data-testid=mode-quiet]');
       await page.waitForTimeout(300);
-      check((await page.locator('[data-testid=drawer-dest]').count()) === 0 && !(await metaOf(page, 'nav')) && (await metaOf(page, 'start_mode')) === 'quiet', 'Clear takes the destination away; back to Quiet');
+      check((await page.locator('[data-testid=drawer-dest]').count()) === 0 && !(await metaOf(page, 'nav')) && !(await metaOf(page, 'start_mode')), 'Clear takes the destination away; no mode is kept');
       await drawerTo(page, 'peek');
     }
     await shot(page, '00-home-empty');
@@ -131,10 +129,13 @@ async function checks(h) {
     // Settings, from the walk's options: the range previewed as a ring around you (E16, E20, E21).
     await page.click('[data-testid=walk-summary]');
     await page.waitForSelector('[data-testid=options-card]');
-    check((await page.locator('[data-testid=explore-walk][aria-checked=false], [data-testid=explore-walk]:not([aria-checked=true])').count()) === 1, 'Explore starts off on a new walk (E1)');
-    // Explore is off on this walk, so its range and kinds are not in the drawer; turn it on to find them there, in no panel of their own.
-    check((await page.locator('[data-testid=range-slider]').count()) === 0, 'an explore-off walk\'s drawer has no range');
-    await page.click('[data-testid=explore-walk]');
+    check((await page.locator('[data-testid=explore-walk]').count()) === 0 && (await page.locator('[data-testid=options-card] [data-testid=layer-legend-places]').count()) === 0, 'Places starts off on a new walk, and there is no Explore switch (MD2, MD3)');
+    // The range and what I’m into are in the drawer with Places off too (MD6); with Places on the ring shows while the drawer is up.
+    check((await page.locator('[data-testid=range-slider]').count()) === 1, 'the drawer holds the range with Places off (MD6)');
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(400);
+    await h.switchLayer(page, 'places');
+    await page.click('[data-testid=walk-summary]');
     await page.waitForSelector('[data-testid=range-slider]');
     await page.waitForTimeout(500);
     check((await page.locator('[data-testid=options-card] [data-testid=range-slider]').count()) === 1, 'the range and what I’m into are in the walk\'s drawer');
@@ -158,14 +159,14 @@ async function checks(h) {
       const turnOn = await page.locator('[data-testid=motion-on]').boundingBox().catch(() => null);
       check(!!turnOn && turnOn.height >= 44, `tend walk-screen audit 16: the drawer's "Turn on" is 44 pt high (${JSON.stringify(turnOn)})`);
     }
-    // tend walk-screen 10 (the sweep's auditor 1, ux 1): only "Places" is on (by default; Explore's map only, PL9), so the
-    // walk's drawer heads no empty "On the map" (PL12; WCAG 2.4.6).
+    // tend walk-screen 10 (the sweep's auditor 1, ux 1; PL12, WCAG 2.4.6), kept as it still holds: the drawer's "On the map" heading
+    // is only ever over its rows. Places is on for this walk here (switched on above), listed on every map since MD13.
     {
       const drawerText = await page.locator('[data-testid=options-card]').innerText();
-      check(!/On the map/.test(drawerText) && (await page.locator('[data-testid=options-card] [data-testid=layers-key]').count()) === 0,
-        `tend walk-screen 10: no layer of the walk's map is on, so its drawer has no "On the map" heading (${/On the map/.test(drawerText)})`);
+      const heading = /On the map/.test(drawerText);
+      const rows = await page.locator('[data-testid=options-card] [data-testid=layers-key]').count();
+      check(heading && rows === 1, `tend walk-screen 10, MD13: the walk's "On the map" heads the key that lists Places, never an empty one (${JSON.stringify({ heading, rows })})`);
     }
-    await page.click('[data-testid=explore-walk]');
     await page.keyboard.press('Escape');
     await page.waitForTimeout(600);
     check((await ringNow()) === '', 'the ring is never on the walk map outside the drawer');
@@ -227,10 +228,9 @@ async function checks(h) {
           '0220: while walking the strip has Pause and no Stop');
       }
       if (k === 6) {
-        // Explore on, for this walk (E1): the busy streets show, as information (E2, S21).
+        // Places on, for this walk (decision 0234): the busy streets are the Storefronts layer's, as information (E2, S21).
         await page.click('[data-testid=walk-summary]');
         await page.waitForSelector('[data-testid=options-card]');
-        await page.click('[data-testid=explore-walk]');
         await shot(page, '01c-options');
         // Without motion (headless Chromium sends no samples), the walk goes on and says so (MO2).
         check((await page.locator('[data-testid=motion-off]').count()) === 1, 'without motion, the walk\u2019s options say standing still may drift (MO2)');
@@ -244,7 +244,7 @@ async function checks(h) {
         await page.click('[data-testid=walk-summary]');
         // The quiet read kept no busy streets (the owner's call); switching Explore on reads them at once. They are drawn only when
         // the Busy streets layer is on, on any walk (specs/map-layers ML8, ML10): Explore mode no longer draws them by itself.
-        check((await busyLines()) === 0, 'ML10: switching Explore on does not draw the busy streets by itself');
+        check((await busyLines()) === 0, 'ML10: Places on does not draw the busy streets by itself');
         await h.switchLayer(page, 'storefronts');
         await page.waitForFunction(() => [...document.querySelectorAll('.maplibregl-map')].some((m) => /strips:[1-9]/.test(m.dataset.storefronts ?? '')), null, { timeout: 15000 }).catch(() => {});
         check((await busyLines()) >= 1, 'ML8: with the Busy streets layer on, the busy streets around are drawn');

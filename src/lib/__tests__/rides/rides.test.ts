@@ -237,7 +237,7 @@ test('R12: on a ride, and at a stop on it, Explore waits: no pocket alert, and n
   const place = (key: string, x: number): ChecklistItem => ({ key, area_key: null, name: key, category: 'history', kind: 'monuments', at: at(x, 5), generic: false });
   // One beside the bus's line, halfway along it; one beside the walk off, 100 m on.
   const items = [place('Bus-side Memorial', 60 * WALK + 60 * BUS), place('Walk-side Memorial', busEnd + 100)];
-  const alert = (riding: boolean) => pocketAlert({ exploring: true, haptic: true, riding, previewing: false, nearKeys: ['Bus-side Memorial'], alerted: new Set() });
+  const alert = (riding: boolean) => pocketAlert({ places: true, haptic: true, riding, previewing: false, nearKeys: ['Bus-side Memorial'], alerted: new Set() });
   const fixAt = (pts: TracePoint[]): LngLat => [pts.at(-1)!.lon, pts.at(-1)!.lat];
 
   // Mid-ride and at the stop: riding, so the screens' gates (the pocket alert, the read, the naming,

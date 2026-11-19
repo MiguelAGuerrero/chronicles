@@ -2,6 +2,8 @@
 import { staleAreas } from '../areas/assign';
 import type { Area, WalkArea } from '../areas/types';
 import { exploredKey, walkPassKey, type ChecklistArea, type ChecklistItem, type ExploreRead, type Find } from '../explore/explore';
+import { placesSpansKey } from '../explore/placesSpans';
+import { walkLayersKey } from '../layers/state';
 import { countsOf, recountNewStreets } from '../deletion/core';
 import type { LandingRow } from '../landing/view';
 import type { OutlineTile } from '../areas/outlines';
@@ -522,6 +524,8 @@ export const db: Db = {
       os('walk_summary').delete(walkId);
       os('meta').delete(exploredKey(walkId));
       os('meta').delete(walkPassKey(walkId));
+      os('meta').delete(walkLayersKey(walkId));
+      os('meta').delete(placesSpansKey(walkId));
       // Its line goes with it (WB13).
       os('walk_line').delete(walkId);
       os('walk').delete(walkId);

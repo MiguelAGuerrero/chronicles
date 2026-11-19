@@ -103,7 +103,7 @@ const ChronicleMap = forwardRef<ChronicleMapHandle, { section: 'walks' | 'days' 
   // on web and the call on a phone (tend recording audit 3, as tend map audit 12); `n` makes a repeat a change.
   const [said, setSaid] = useState({ text: '', n: 0 });
   const startWalk = (dest: Waypoint) =>
-    walkStart.start(dest, undefined, {
+    walkStart.start(dest, {
       onError: (e) => {
         if (e.tone !== 'info') return;
         setSaid((s) => ({ text: e.message, n: s.n + 1 }));

@@ -12,8 +12,12 @@
 //   node scripts/tend.js log <range> '<json>'          append this run's line to the run log: what the
 //                                                       range holds (every finding a subject names:
 //                                                       shipped, audit fixes, builds, reverts) with
-//                                                       what only the run knows (found, filed, answers)
+//                                                       what only the run knows (found, filed, answers,
+//                                                       expectations and compass: decision 0236)
 //   node scripts/tend.js next                           the area to sweep when the owner names none
+//   node scripts/tend.js compass [--runs N]             the compass (decision 0236), from the run log: per run and in
+//                                                       sum, refinement shipped against filed low, lens-0 G entries,
+//                                                       lines met, failed, lacking and provisional; whether it bites
 //   node scripts/tend.js e2e-due [--days N] [--json]    whether the weekly full pass is due: no line of main's run
 //                                                       log says "e2e":"full" in seven days (decision 0181)
 //   node scripts/tend.js commits <range>                a sweep's commits: each is a loop commit with a
@@ -213,7 +217,7 @@ const FORBIDDEN = [
   // and never the script or the tests that hold it (the line above covers the script; it is named here
   // so that loosening that line does not free the gate).
   /^scripts\/records\.js$/,
-  /^src\/lib\/__tests__\/arch\/(records|tend)\.test\.ts$/,
+  /^src\/lib\/__tests__\/arch\/(records|tend|expectations)\.test\.ts$/,
   /^\.claude\/(hooks|agents)\//,
   /^\.claude\/settings/,
   /^\.claude\/skills\/(?!tend\/(ledger\.json|runs\.jsonl)$)/,
@@ -240,10 +244,12 @@ function testName(subject) {
  * What a commit in a loop's range lacks. `files` are `{ status, path, from? }` (git's A, M, D, R;
  * `from` is a rename's old path); `added` is the text of the lines the commit adds to its test files.
  */
-function tendCommitProblems({ subject, body, files, added = '', rewritesLog = false, rewritesRules = [] }) {
+function tendCommitProblems({ subject, body, files, added = '', rewritesLog = false, rewritesRules = [], expectationEdits = [] }) {
   const problems = [];
   if (!/^tend /.test(subject)) return ['not a loop commit: the loop ships only `tend <area> …` commits'];
   if (rewritesLog) problems.push('rewrites the run log: a run adds its line and changes no other');
+  // The expectation store (decision 0236): what scripts/expectations.js editProblems found in the commit's store files.
+  problems.push(...expectationEdits);
   for (const f of rewritesRules) problems.push(`changes or removes a line of ${f} that the push's base holds: the loop may add a trap to a rule file, and reword a line its own push added, never reword a rule (the owner's, through the inbox)`);
   for (const f of files) {
     if (RULE_FILE.test(f.path) && citesRule(body, f.path)) problems.push(`cites ${f.path} as its source and edits it in the same commit`);
@@ -268,6 +274,25 @@ function tendCommitProblems({ subject, body, files, added = '', rewritesLog = fa
 }
 
 const RULE_FILE = /^\.claude\/rules\/[^/]+\.md$/;
+const STORE_FILE = /^docs\/expectations\/(?!README\.md$)([^/]+)\.md$/;
+
+/** The store files a commit touches, from `git show --name-status`: both paths of a rename or a copy. */
+function storeFilesOf(nameStatus) {
+  return nameStatus
+    .split('\n')
+    .filter(Boolean)
+    .flatMap((l) => l.split('\t').slice(1))
+    .filter((p) => STORE_FILE.test(p));
+}
+
+/** A revision's full sha, or null when it names no commit here. */
+function tryRev(rev) {
+  try {
+    return execFileSync('git', ['rev-parse', '--verify', '--quiet', `${rev}^{commit}`], { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim() || null;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Whether lines a commit removes from a rule file include one the push's base holds: those stay
@@ -306,6 +331,43 @@ const MODES = ['sweep', 'triage', 'evolve', 'inbox', 'e2e'];
 const DEPLOYS = ['main', 'branch', 'none'];
 const ANSWERS = ['yes', 'no', 'reshape'];
 const count = (v) => Number.isInteger(v) && v >= 0;
+// The expectation lens (decision 0236): a sweep, and an inbox run that builds a yes, logs `expectations` (the
+// store's lines it tested, by id, each met, failed or lacking; a proposed line provisional; met naming its evidence;
+// the drafted lines the steward dropped, with the Never row each breaks) and `compass` (refinement shipped, filed
+// low by the compass for serving no expectation or rule, the G entries lens 0 filed). Only a line this script wrote
+// carries the marker LENS, and only such a line is held to them: an older script's line reads as it was, whatever
+// its date. tend:log also reads the lines against the store (scripts/expectations.js, logRefProblems).
+const LENS = '0236';
+const VERDICTS = ['met', 'failed', 'lacking'];
+const LENS_LINE = /^A person\b.*\bwould reasonably expect\b/;
+const EXPECTATION_ID = /^E-[a-z][a-z0-9-]*-\d+$/;
+const EVIDENCE = /^(?:test:".+"|picture:\S+|[a-z][a-z0-9-]*:".+")$/;
+
+function expectationProblems(e) {
+  if (typeof e !== 'object' || e === null || Array.isArray(e)) return ['expectations is { lines: [{ id, is, evidence?, provisional? }], dropped: [{ line, never }] }'];
+  const p = [];
+  if (!Array.isArray(e.lines) || !e.lines.length) p.push('expectations.lines names each store line the run tested, by id (E-<feature>-<n>)');
+  for (const l of Array.isArray(e.lines) ? e.lines : []) {
+    if (!EXPECTATION_ID.test(l?.id ?? '')) p.push(`"${l?.id}" is no line's id: E-<feature>-<n> (npm run expectations -- list)`);
+    if (!VERDICTS.includes(l?.is)) p.push(`${l?.id}: is is ${VERDICTS.join(', ')}`);
+    if (l?.provisional !== undefined && typeof l.provisional !== 'boolean') p.push(`${l?.id}: provisional is true or left out`);
+    if (l?.is === 'met' && !EVIDENCE.test(l?.evidence ?? '')) p.push(`${l?.id} is met: its evidence is its check (<journey>:"…", test:"…") or picture:<path or shot>`);
+  }
+  if (e.dropped !== undefined && !Array.isArray(e.dropped)) p.push('expectations.dropped is a list');
+  for (const d of Array.isArray(e.dropped) ? e.dropped : []) {
+    if (typeof d?.line !== 'string' || !LENS_LINE.test(d.line)) p.push('a dropped line reads "A person … would reasonably expect …"');
+    if (typeof d?.never !== 'string' || !d.never.trim()) p.push('a dropped line names the Never line it breaks');
+  }
+  return p;
+}
+
+function compassProblems(c, filedG) {
+  if (typeof c !== 'object' || c === null) return ['compass is { shipped, filedLow, lensG }'];
+  const p = [];
+  if (![c.shipped, c.filedLow].every(count)) p.push('compass counts the refinement shipped and the refinement the compass filed low (filedLow), zeros included');
+  if (!Array.isArray(c.lensG) || !c.lensG.every((g) => filedG.includes(g))) p.push('compass.lensG lists the G entries lens 0 filed, each one of filed.G');
+  return p;
+}
 
 /** What is wrong with the half of a run's line only the run knows. A backfilled line may leave `found` out. */
 function logProblems(given) {
@@ -322,6 +384,14 @@ function logProblems(given) {
     if (typeof g.lenses?.whole !== 'boolean' || !Array.isArray(g.lenses?.skipped)) p.push('lenses says whether the sweep was whole and which lenses were skipped');
     if (g.lenses?.whole === true && g.lenses.skipped?.length) p.push('a whole sweep skipped no lens');
   }
+  // A build is what the range built (a T entry's commit, or a slice's criteria), not a yes it was given (decision 0236).
+  const builds = (g.built ?? []).length > 0 || (g.grew ?? []).length > 0;
+  const held = g.lens === LENS && (g.mode === 'sweep' || builds);
+  if (g.expectations !== undefined) p.push(...expectationProblems(g.expectations));
+  else if (held) p.push('a sweep or a build logs its expectations (decision 0236)');
+  if (g.compass !== undefined) p.push(...compassProblems(g.compass, g.filed?.G ?? []));
+  else if (held) p.push('a sweep or a build logs the compass\'s counts (decision 0236)');
+  if (g.shots !== undefined && (typeof g.shots !== 'string' || !g.shots.trim())) p.push("shots is the run's shots folder, a path");
   for (const e of [...(g.filed?.T ?? []), ...(g.filed?.G ?? [])]) if (!/^[TG]\d+$/.test(e)) p.push(`filed entry "${e}" is a T or G number`);
   for (const a of g.answers ?? []) if (!/^[TG]\d+$/.test(a?.entry ?? '') || !ANSWERS.includes(a?.answer)) p.push(`an answer is { entry: "T3", answer: ${ANSWERS.join(' | ')} }`);
   if (g.review && ![g.review.accepted, g.review.rejected, g.review.deferred].every(count)) p.push('review counts the auditor\'s findings: accepted, rejected, deferred');
@@ -361,6 +431,84 @@ function fullPassDue(lines, today, days = 7) {
   return { due: today >= dueFrom, last, dueFrom };
 }
 
+const COMPASS_WINDOW = 12;
+// A half's shipped share must move by this much at least, and by this many findings at least (the move times the later
+// half's findings), to read as falling or rising; each half must hold COMPASS_MIN refinement findings (shipped and
+// filed low) before any trend is read.
+const COMPASS_STEP = 0.1;
+const COMPASS_MOVE = 2;
+const COMPASS_MIN = 3;
+
+/**
+ * The compass (decision 0236), read from the run log: per run that carries `compass` and in sum, the refinement
+ * shipped against the refinement the compass filed low, the G entries lens 0 filed, and the store lines met, failed
+ * and lacking (ratified) or provisional. Until `window` runs carry it, "too early to say". Then, over the last `window`,
+ * with at least COMPASS_MIN refinement findings in each half: the later half's shipped share falling, or nothing
+ * shipped in it, is "the compass is biting"; flat or rising is "not biting: tighten it"; too few findings says so.
+ * No checkpoint: it is read at every landing.
+ */
+function compassReading(runs, window = COMPASS_WINDOW) {
+  const rows = runs
+    .filter((r) => r && typeof r.compass === 'object' && r.compass !== null)
+    .map((r) => {
+      const lines = Array.isArray(r.expectations?.lines) ? r.expectations.lines : [];
+      const ratified = (is) => lines.filter((l) => !l.provisional && l.is === is).length;
+      return {
+        date: r.date ?? null,
+        mode: r.mode,
+        area: r.area ?? null,
+        shipped: r.compass.shipped ?? 0,
+        filedLow: r.compass.filedLow ?? 0,
+        lensG: (r.compass.lensG ?? []).length,
+        met: ratified('met'),
+        failed: ratified('failed'),
+        lacking: ratified('lacking'),
+        provisional: lines.filter((l) => l.provisional).length,
+      };
+    });
+  const add = (xs) => {
+    const s = { runs: xs.length, shipped: 0, filedLow: 0, lensG: 0, met: 0, failed: 0, lacking: 0, provisional: 0 };
+    for (const x of xs) for (const k of Object.keys(s)) if (k !== 'runs') s[k] += x[k];
+    return s;
+  };
+  const last = rows.slice(-window);
+  const half = Math.floor(last.length / 2);
+  const [early, late] = [add(last.slice(0, half)), add(last.slice(half))];
+  const found = (h) => h.shipped + h.filedLow;
+  const share = (h) => (found(h) ? Math.round((h.shipped / found(h)) * 100) / 100 : null);
+  const shares = { first: last.length >= 2 ? share(early) : null, second: last.length >= 2 ? share(late) : null };
+  // A trend is read only from enough refinement in each half: a null share, or fewer than three findings, is none.
+  const enough = last.length >= 2 && found(early) >= COMPASS_MIN && found(late) >= COMPASS_MIN;
+  const move = enough ? shares.second - shares.first : 0;
+  const moved = Math.abs(move) >= COMPASS_STEP - 1e-9 && Math.abs(move) * found(late) >= COMPASS_MOVE - 1e-9;
+  const trend = !enough ? 'none' : !moved ? 'flat' : move < 0 ? 'falling' : 'rising';
+  // Nothing shipped in either half, with refinement in both: everything the loop found waited for a reason.
+  const quiet = enough && late.shipped === 0 && early.shipped === 0;
+  const verdict =
+    last.length < window
+      ? `too early to say: ${last.length} of ${window} runs carry the compass`
+      : trend === 'falling' || quiet
+        ? 'the compass is biting'
+        : trend === 'none'
+          ? `too few refinement findings to say: ${found(early)} and ${found(late)} in the halves, ${COMPASS_MIN} each at least`
+          : 'the compass is not biting: tighten it';
+  const date = rows.length ? rows[rows.length - 1].date : null;
+  return { rows, sum: add(rows), shares, trend, verdict, ledger: { date, runs: last.length, shares, trend, verdict } };
+}
+
+function compassText(r) {
+  const row = (x) => `shipped ${x.shipped}, filed low ${x.filedLow}, lens-0 G ${x.lensG}; met ${x.met}, failed ${x.failed}, lacking ${x.lacking}, provisional ${x.provisional}`;
+  const pct = (v) => (v === null ? 'none' : v.toFixed(2));
+  return [
+    `compass: ${r.rows.length} runs carry it`,
+    ...r.rows.map((x) => `${x.date} ${x.mode}${x.area ? ` ${x.area}` : ''}: ${row(x)}`),
+    `in sum: ${row(r.sum)}`,
+    `last ${r.ledger.runs}: shipped share ${pct(r.shares.first)} then ${pct(r.shares.second)}, ${r.trend}`,
+    r.verdict,
+    '',
+  ].join('\n');
+}
+
 /**
  * One run's line: what its commits say (which findings shipped, which were the review's, which were
  * builds of an answered entry, which were reverted) with what only the run knows. Facts, never a
@@ -370,11 +518,13 @@ function runLine({ date, subjects, given }) {
   const found = subjects.map(findingsOf);
   const all = (key) => found.flatMap((f) => f[key]);
   return {
-    date,
     ...given,
+    date,
+    lens: LENS,
     shipped: all('shipped').sort((a, b) => a - b),
     auditFixes: all('audit').sort((a, b) => a - b),
     built: all('built'),
+    grew: tally(subjects.map((subject) => ({ subject }))).slices,
     reverted: subjects.filter((s) => /^Revert "tend /.test(s)).map((s) => testName(s.replace(/^Revert "/, '')) ?? s),
   };
 }
@@ -528,6 +678,7 @@ function balance(argv) {
     // Into this checkout's ledger, beside the run's own record.
     const mine = readLedger();
     mine.balance = out;
+    mine.compass = compassReading(readRuns()).ledger;
     fs.writeFileSync(LEDGER, JSON.stringify(mine, null, 2) + '\n');
   }
 }
@@ -550,13 +701,26 @@ function appendLog(argv) {
     console.error("usage: node scripts/tend.js log <range> '<json>'; the json is the run's own half (see .claude/skills/tend/SKILL.md, section 10)");
     process.exit(2);
   }
-  const problems = logProblems(given);
-  if (problems.length) {
-    console.error(`tend log: ${problems.join('; ')}`);
+  // The script writes the date and the marker; a run's JSON dates nothing and backfills nothing (decision 0236).
+  const owned = ['date', 'backfilled', 'lens'].filter((k) => given && Object.prototype.hasOwnProperty.call(given, k));
+  if (owned.length) {
+    console.error(`tend log: ${owned.join(', ')} ${owned.length > 1 ? 'are' : 'is'} the script's to write, not the run's: leave ${owned.length > 1 ? 'them' : 'it'} out`);
     process.exit(1);
   }
   const subjects = range ? git('log', '--no-merges', '--reverse', '--format=%s', range).split('\n').filter(Boolean) : [];
   const line = runLine({ date: new Date().toISOString().slice(0, 10), subjects, given });
+  // The line as it will be written is what is held (decision 0236): runLine marks it with the lens.
+  const problems = logProblems(line);
+  if (!problems.length && line.expectations?.lines) {
+    const ex = require('./expectations');
+    problems.push(...ex.logRefProblems(line.expectations.lines, ex.readStores(ROOT), ex.readIndex(ROOT), { shots: line.shots, area: line.area }));
+  }
+  if (problems.length) {
+    console.error(`tend log: ${problems.join('; ')}`);
+    process.exit(1);
+  }
+  // The shots folder is the run's scratchpad: it checks the pictures and is not the log's to keep.
+  delete line.shots;
   fs.appendFileSync(RUNS, JSON.stringify(line) + '\n');
   console.log(JSON.stringify(line));
 }
@@ -568,6 +732,20 @@ function mainRuns() {
   } catch {
     return fs.existsSync(RUNS) ? fs.readFileSync(RUNS, 'utf8') : '';
   }
+}
+
+/** The run log's lines, as mainRuns reads them; a line that does not parse is skipped. */
+function readRuns() {
+  return mainRuns()
+    .split('\n')
+    .filter(Boolean)
+    .flatMap((l) => {
+      try {
+        return [JSON.parse(l)];
+      } catch {
+        return [];
+      }
+    });
 }
 
 function e2eDue(argv) {
@@ -610,6 +788,75 @@ function commits(argv) {
   };
   let bad = 0;
   const read = [];
+  const storesRead = new Set();
+  const at = (rev, file) => {
+    try {
+      return execFileSync('git', ['show', `${rev}:${file}`], { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], maxBuffer: 64 * 1024 * 1024 });
+    } catch {
+      return '';
+    }
+  };
+  // What a commit did to the expectation store files it changed (scripts/expectations.js, editProblems).
+  // A revert (ship.md, "A red run"), read by its `This reverts commit <sha>.` lines as the records gate reads them, is
+  // taken for a store file only when it is one (audit 23): of the commits it names, those that touched the file are
+  // ancestors of it and agent commits; every commit that touched the file since the oldest of them is named; and the
+  // file is as it stood before that oldest. A revert of the owner's answer commit, or of a commit the owner made by
+  // hand, is refused outright: un-ratifying, and undoing the owner's own edit, are the owner's.
+  const reverted = (message) => [...new Set([...message.matchAll(/^This reverts commit ([0-9a-f]{7,40})\b/gm)].map((m) => tryRev(m[1])).filter(Boolean))];
+  const ancestor = (a, b) => {
+    try {
+      execFileSync('git', ['merge-base', '--is-ancestor', a, b], { cwd: ROOT, stdio: 'ignore' });
+      return true;
+    } catch {
+      return false;
+    }
+  };
+  const touches = (c, p) => storeFilesOf(git('show', '--name-status', '--format=', c)).includes(p);
+  /** true when the commit reverts `p`, a problem when it reverts the owner's answer, false when it is no revert of it. */
+  const revertOf = (sha, p, named) => {
+    if (!named.length || named.some((n) => n === sha || !ancestor(n, sha))) return false;
+    const touching = named.filter((n) => touches(n, p));
+    if (!touching.length) return false;
+    const answer = touching.find((n) => require('./expectations').ANSWER_COMMIT.test(git('show', '-s', '--format=%s', n).trim()));
+    if (answer) return `reverts ${answer.slice(0, 7)}, the owner's answer commit, in ${p}: un-ratifying is the owner's (decision 0236)`;
+    const owners = touching.find((n) => !require('./records').isAgent(git('show', '-s', '--format=%B', n)));
+    if (owners) return `reverts ${owners.slice(0, 7)}, the owner's own commit, in ${p}: it is the owner's to revert (decision 0236)`;
+    const oldest = touching.sort((a, b) => Number(git('rev-list', '--count', a)) - Number(git('rev-list', '--count', b)))[0];
+    const since = git('rev-list', tryRev(`${oldest}^`) ? `${oldest}^..${sha}^` : `${sha}^`, '--', p).split('\n').filter(Boolean);
+    if (since.some((c) => !touching.includes(c))) return false;
+    return at(sha, p) === at(`${oldest}^`, p);
+  };
+  // Whether a check had vanished at a revision (audits 17, 24): the journeys, tests and feature map as it held them.
+  const indexes = new Map();
+  const missingAt = (rev, check, feature) => {
+    if (!indexes.has(rev)) {
+      const dir = fs.mkdtempSync(path.join(require('os').tmpdir(), 'tend-index-'));
+      const paths = git('ls-tree', '--name-only', rev, '--', 'scripts/e2e/journeys', 'src/lib/__tests__', 'scripts/features.js').split('\n').filter(Boolean);
+      if (paths.length) execFileSync('tar', ['-x', '-C', dir], { input: execFileSync('git', ['archive', rev, '--', ...paths], { cwd: ROOT, maxBuffer: 256 * 1024 * 1024 }) });
+      if (!fs.existsSync(path.join(dir, 'scripts', 'features.js'))) {
+        fs.mkdirSync(path.join(dir, 'scripts'), { recursive: true });
+        fs.writeFileSync(path.join(dir, 'scripts', 'features.js'), 'module.exports = { FEATURES: [] };\n');
+      }
+      indexes.set(rev, require('./expectations').readIndex(dir));
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+    return require('./expectations').resolveCheck(check, indexes.get(rev), feature) === 'missing';
+  };
+  // A check counts as vanished only when the push's base lacks it (audit 24), so no commit of the same push removes a
+  // check and then lets its line go back to pending; with no base to the range, the commit's parent.
+  const vanishedAt = (sha) => (ends.length === 2 && ends[0] ? baseRev : `${sha}^`);
+  const storeEdits = (sha) => {
+    const message = git('show', '-s', '--format=%B', sha);
+    const subject = message.split('\n')[0].trim();
+    const changed = [...new Set(storeFilesOf(git('show', '--name-status', '--format=', sha)))];
+    const named = reverted(message);
+    return changed.flatMap((p) => {
+      const revert = revertOf(sha, p, named);
+      if (revert === true) return [];
+      if (typeof revert === 'string') return [revert];
+      return require('./expectations').editProblems(at(`${sha}^`, p), at(sha, p), STORE_FILE.exec(p)[1], subject, { missing: (check, feature) => missingAt(vanishedAt(sha), check, feature) });
+    });
+  };
   // The record documents (decision 0156): each commit that touches them is its declared operations,
   // replayed on its parent's; a merge that touches them fails in a push that holds loop commits.
   const records = require('./records').gateRange(range, { cwd: ROOT, loopOnly });
@@ -628,13 +875,24 @@ function commits(argv) {
     const removed = (file) => git('show', '--format=', '-U0', sha, '--', file).split('\n').filter((l) => /^-(?!--)/.test(l)).map((l) => l.slice(1));
     const rewritesLog = files.some((f) => f.path === RUNS_REL) && removed(RUNS_REL).length > 0;
     const rewritesRules = files.filter((f) => RULE_FILE.test(f.path) && f.status === 'M' && rewritesBaseLines(removed(f.path), atBase(f.path))).map((f) => f.path);
+    const expectationEdits = storeEdits(sha);
+    storesRead.add(sha);
     read.push({ subject, body: rest.join('\n'), files });
-    const problems = tendCommitProblems({ subject, body: rest.join('\n'), files, added, rewritesLog, rewritesRules });
+    const problems = tendCommitProblems({ subject, body: rest.join('\n'), files, added, rewritesLog, rewritesRules, expectationEdits });
     problems.push(...(recordIssues.get(sha) ?? []));
     recordIssues.delete(sha);
     for (const p of problems) {
       bad += 1;
       console.error(`${sha.slice(0, 7)} ${subject}\n  ${p}`);
+    }
+  }
+  // The expectation store (decision 0236): every agent commit of the range is held to it, a loop commit or not.
+  for (const sha of all.filter((x) => !storesRead.has(x))) {
+    const message = git('show', '-s', '--format=%B', sha);
+    if (!require('./records').isAgent(message)) continue;
+    for (const p of storeEdits(sha)) {
+      bad += 1;
+      console.error(`${sha.slice(0, 7)} ${message.split('\n')[0].trim()}\n  ${p}`);
     }
   }
   // What the record gate found in commits this loop does not read itself: agent commits, merges, reverts.
@@ -659,11 +917,20 @@ if (require.main === module) {
   else if (cmd === 'log') appendLog(argv);
   else if (cmd === 'commits') commits(argv);
   else if (cmd === 'e2e-due') e2eDue(argv);
+  else if (cmd === 'compass') {
+    const at = argv.indexOf('--runs');
+    const n = at >= 0 ? Number(argv[at + 1]) : COMPASS_WINDOW;
+    if (!Number.isInteger(n) || n < 2) {
+      console.error('usage: node scripts/tend.js compass [--runs N], N a whole number, 2 at least');
+      process.exit(2);
+    }
+    process.stdout.write(compassText(compassReading(readRuns(), n)));
+  }
   else if (require('./bookkeeping').COMMANDS[cmd]) process.exitCode = require('./bookkeeping').main([cmd, ...argv]);
   else {
-    console.error('usage: node scripts/tend.js balance [--days N] [--write] | next | log <range> "<json>" | commits [--loop-only] <range> | e2e-due [--days N] [--json] | next-decision | next-audit | files | landed | review-paths | items (scripts/bookkeeping.js)');
+    console.error('usage: node scripts/tend.js balance [--days N] [--write] | next | log <range> "<json>" | commits [--loop-only] <range> | e2e-due [--days N] [--json] | compass [--runs N] | next-decision | next-audit | files | landed | review-paths | items (scripts/bookkeeping.js)');
     process.exit(2);
   }
 }
 
-module.exports = { FORBIDDEN, LIMITS, STATES, classify, criteriaPrefixes, tally, areasByState, readStatus, reading, nextArea, isLoops, dropBoundary, testName, tendCommitProblems, citedOwnEdits, rewritesBaseLines, mainOrHere, findingsOf, logProblems, runLine, fullPassDue, controlsIn, isRoute, resetsArea, readPatches };
+module.exports = { compassReading, compassText, FORBIDDEN, LIMITS, STATES, classify, criteriaPrefixes, tally, areasByState, readStatus, reading, nextArea, isLoops, dropBoundary, testName, tendCommitProblems, citedOwnEdits, rewritesBaseLines, mainOrHere, findingsOf, logProblems, runLine, fullPassDue, controlsIn, isRoute, resetsArea, readPatches };

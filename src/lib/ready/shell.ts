@@ -2,7 +2,6 @@
 import { notePatch } from '../noteEdit';
 import { type Faced, facedAll } from '../moment';
 import type { Ports } from '../ports/types';
-import { parseStartMode, START_MODE_KEY, type StartMode } from '../startPlan';
 import type { Walk } from '../types';
 
 /** Meta: the web's "keep this page open" note was dismissed (U9). */
@@ -10,7 +9,6 @@ const WEB_NOTE_KEY = 'web_note_dismissed';
 
 /** What the ready screen reads as it comes to the front (NR1, NR7, NR13). */
 export type ReadyChoices = {
-  mode: StartMode;
   /** No walk kept yet: the web's one-time note may show (U9). */
   firstWalk: boolean;
   webNoteOff: boolean;
@@ -26,15 +24,13 @@ export type ReadyChoices = {
 export function createReady(p: Pick<Ports, 'db' | 'recorder'>) {
   return {
     async load(): Promise<ReadyChoices> {
-      const [mode, walks, note, captures] = await Promise.all([
-        p.db.getMeta(START_MODE_KEY).catch(() => null),
+      const [walks, note, captures] = await Promise.all([
         p.db.listWalks().catch(() => [] as Walk[]),
         p.db.getMeta(WEB_NOTE_KEY).catch(() => null),
         p.db.momentsBetween(0, Number.MAX_SAFE_INTEGER).then(facedAll).catch(() => null),
       ]);
-      return { mode: parseStartMode(mode), firstWalk: walks.length === 0, webNoteOff: !!note, captures };
+      return { firstWalk: walks.length === 0, webNoteOff: !!note, captures };
     },
-    setMode: (m: StartMode) => p.db.setMeta(START_MODE_KEY, m),
     dismissWebNote: () => p.db.setMeta(WEB_NOTE_KEY, '1'),
     /** Whether the recorder keeps tracing in the background (a phone), or only while the page is open (web). */
     background: () => p.recorder.capabilities.background,

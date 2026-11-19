@@ -50,7 +50,10 @@ is already a recorded trade-off is reopened with a number, not rediscovered.
   inputs. It skips a function with an `eslint-disable` of a React rule, `try`/`finally`, `??=` and a ref read in
   render, and a skipped function memoizes nothing: `arch/compiler.baseline.json` lists today's, and a new one fails
   `npm test` (CM2). Write code that compiles; keep explicit `memo` where a skip or a library needs it (the native
-  map's sources).
+  map's sources). A skip's baseline line names only its first stage's errors: past them, `? :`, `&&` or `?.` inside a
+  `try` block, a name used above its declaration (a hoisted `function`, a `const` read in an earlier closure) and a
+  ref-reading getter passed to a function in render skip it too. WalkScreen's `try`/`finally` is a try/catch that holds
+  the throw, the cleanup, then the throw again, its catch's words in a closure (walk-screen compiler, `stopCleanup.test.ts`).
 - **No React state at frame rate above a costly subtree.** A value that changes per frame or per fix lives
   in a ref, an `Animated.Value` (native driver for opacity and transforms) or a small leaf component that
   owns it (`Ticking`, `WalkStats`). The parent never re-renders per frame.

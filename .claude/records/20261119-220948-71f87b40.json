@@ -1,0 +1,31 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Reactions"
+      ],
+      "body": "- [ ] **Do:** on an iPhone, open a note's page with the keyboard up, tap Reaction and choose Like; tap the words. Open Reaction again, choose Idea and, without a tap, type a letter. **Expect:** each time the rows close and the bar settles back on the keyboard with the caret in the words where it was tapped or typed; nothing else on the page moves (fix reaction-panel-focus: a tap in the editor's web view reaches `onPictureTap`, a character `onChange`; never run on a device)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Reactions"
+      ],
+      "body": "- [loop] **Reactions** (fix reaction-panel-focus audit F2, RL9): a choice whose write fails after its panel has closed (chosen, then a tap on the words or the tool within the write's time) says nothing then, and the next opening of the panel on that moment shows a stale \"Not kept yet\". `ReactionPanel`'s unmount clears only a `notKept` already set; the shell's `write` sets it whether or not a panel is open. Older than the fix (the tool closed it the same way); the fix makes the path common.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Reactions"
+      ],
+      "body": "- [loop] **Reactions** (fix reaction-panel-focus audit F4, S2): on a note's page, the Format and Reaction tools close each other but not the picture menu, so a picture tapped and then Reaction or Aa draws the menu stacked on the panel. A tap on a picture with a panel open closes the reactions since the fix; the tools' side is left.\n"
+    }
+  ]
+}

@@ -55,17 +55,17 @@ test('tend walk-screen 12: the walk\'s strip is named with its distance and time
 // tend walk-screen audit 12 (the diff review's auditor 1, ux 2; a regression of tend walk-screen 12): the name was coarse
 // ("130 m walked in 2 min" while the strip drew "1:31 · 127 m"), so a person who sees the strip and hears it got two
 // figures, and it named neither drawn string (WCAG 2.5.3). It says what the strip draws, word for word, as the ready bar's
-// twin does ("0:00 · 0 m"), the ride's line after it, then ", exploring"; it ticks with the strip.
+// twin does ("0:00 · 0 m"), the ride's line after it (it said ", exploring" on an exploring walk until the mode went, decision 0234); it ticks with the strip.
 test('tend walk-screen audit 12: the strip\'s spoken name holds the text it draws', async () => {
   const { walkStripText, walkSummaryLabel } = await import('../../readyNav');
   const drawn = walkStripText({ elapsedMs: 91_000, distanceM: 127, units: 'km' });
   assert.equal(drawn, '1:31 · 127\u00a0m');
-  const said = walkSummaryLabel({ elapsedMs: 91_000, distanceM: 127, rideM: 0, exploring: false, units: 'km' });
+  const said = walkSummaryLabel({ elapsedMs: 91_000, distanceM: 127, rideM: 0, units: 'km' });
   assert.ok(said.includes(drawn), said);
   assert.equal(said, '1:31 · 127\u00a0m');
-  assert.equal(walkSummaryLabel({ elapsedMs: 754_000, distanceM: 1234, rideM: 0, exploring: true, units: 'km' }), '13 min · 1.2\u00a0km, exploring');
-  assert.equal(walkSummaryLabel({ elapsedMs: 600_000, distanceM: 452, rideM: 1800, exploring: false, units: 'km' }), '10 min · 452\u00a0m, + 1.8\u00a0km ride');
-  assert.equal(walkSummaryLabel({ elapsedMs: 120_000, distanceM: 100, rideM: 0, exploring: false, units: 'mi' }), '2:00 · 328\u00a0ft');
+  assert.equal(walkSummaryLabel({ elapsedMs: 754_000, distanceM: 1234, rideM: 0, units: 'km' }), '13 min · 1.2\u00a0km');
+  assert.equal(walkSummaryLabel({ elapsedMs: 600_000, distanceM: 452, rideM: 1800, units: 'km' }), '10 min · 452\u00a0m, + 1.8\u00a0km ride');
+  assert.equal(walkSummaryLabel({ elapsedMs: 120_000, distanceM: 100, rideM: 0, units: 'mi' }), '2:00 · 328\u00a0ft');
   // The strip draws the same text: WalkStats' first line is walkStripText.
   assert.match(read('app/walk.tsx'), /text=\{\(now\) => `\$\{walkStripText\(\{/);
   // It ticks with the strip: the bar takes the name as a function of the clock (ReadyBar's own one-second tick).

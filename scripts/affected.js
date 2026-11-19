@@ -5,7 +5,8 @@
 //
 //   node scripts/affected.js test     the unit tests that import a changed file
 //   node scripts/affected.js lint     lint the changed files
-//   node scripts/affected.js check    layers, tests, typecheck, lint, then the e2e scenarios to run
+//   node scripts/affected.js check    layers, tests, typecheck, lint, the expectation store's checks when a journey,
+//                                     a test or the store changed (decision 0236), then the e2e scenarios to run
 //   node scripts/affected.js hook     what the Stop hook runs (layers and tests, when TypeScript changed)
 //   node scripts/affected.js e2e      only the e2e plan: the journeys to run, and which are already green
 //
@@ -448,6 +449,21 @@ function lintStep(changed, all) {
   return { ok: r.ok, output: r.ok ? 'Lint: ok' : r.output };
 }
 
+/** Whether a change can move a check the expectation store names (decision 0236): a journey, a test, or the store. */
+function needsExpectations(changed) {
+  return changed.some((c) => /^scripts\/e2e\/journeys\//.test(c) || isTest(c) || /^docs\/expectations\//.test(c));
+}
+
+function expectationsStep(root = ROOT) {
+  const problems = require('./expectations').check(root);
+  return { ok: !problems.length, output: problems.length ? `Expectation store (npm run expectations -- check):\n${problems.map((p) => p.message).join('\n')}` : 'Expectations: ok' };
+}
+
+/** The steps of `check`, by name: the store's checks join when the change can move one. */
+function checkSteps(changed, all) {
+  return ['layers', 'tests', 'typecheck', 'lint', ...(all || needsExpectations(changed) ? ['expectations'] : [])];
+}
+
 function typecheckStep() {
   const r = sh('npx', ['tsc', '--noEmit']);
   return { ok: r.ok, output: r.ok ? 'Typecheck: ok' : r.output.split('\n').slice(0, 30).join('\n') };
@@ -592,7 +608,8 @@ async function main(cmd) {
     const plan = all ? ['layers', 'tests'] : hookPlan(changed);
     steps = plan.map((p) => (p === 'layers' ? step('layers', layersStep) : step('tests', () => testsStep(changed, all))));
   } else if (cmd === 'check') {
-    steps = [step('layers', layersStep), step('tests', () => testsStep(changed, all)), step('typecheck', typecheckStep), step('lint', () => lintStep(changed, all))];
+    const named = { layers: layersStep, tests: () => testsStep(changed, all), typecheck: typecheckStep, lint: () => lintStep(changed, all), expectations: () => expectationsStep() };
+    steps = checkSteps(changed, all).map((n) => step(n, named[n]));
   } else if (cmd === 'e2e') {
     const { real, comment } = splitComment(ROOT, base, changed);
     const reach = process.argv.includes('--reach');
@@ -617,4 +634,4 @@ async function main(cmd) {
 
 if (require.main === module) main(process.argv[2]);
 
-module.exports = { HARNESS, e2eHint, criterionIds, ownJourneys, splitComment, changedFiles, changedPaths, importGraph, affectedTests, describeTests, lintTargets, e2eFor, runSteps, hookPlan, globToRegExp, coverage, describeCoverage, featureFolders, featureOfTest, allTests, coverageArgs };
+module.exports = { needsExpectations, expectationsStep, checkSteps, HARNESS, e2eHint, criterionIds, ownJourneys, splitComment, changedFiles, changedPaths, importGraph, affectedTests, describeTests, lintTargets, e2eFor, runSteps, hookPlan, globToRegExp, coverage, describeCoverage, featureFolders, featureOfTest, allTests, coverageArgs };

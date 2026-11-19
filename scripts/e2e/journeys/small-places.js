@@ -4,7 +4,7 @@
 // on, the plaque is drawn. E2E_ONLY=small-places runs it alone.
 
 async function run(h) {
-  const { navUrl, BASE, at, check, freshPage, places, shot, openInto, closeInto } = h;
+  const { navUrl, BASE, at, check, freshPage, places, shot, openInto, closeInto, switchLayer } = h;
   const { encodeTile } = await import('../../mvt-encode.mjs');
   const { encodeArchive } = await import('../../pmtiles-encode.mjs');
   // Beside the first leg of the walk below (the curiosities journey's route), in the archive only.
@@ -48,11 +48,9 @@ async function run(h) {
 
   await pg.goto(navUrl);
   await pg.waitForSelector('[data-testid=start]');
-  await setMeta('start_mode', 'explore');
-  await pg.reload();
-  await pg.waitForSelector('[data-testid=start]');
   await pg.click('[data-testid=start]');
   await pg.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
+  await switchLayer(pg, 'places');
   const first = await walkLeg(0, 23);
   check(first.some((l) => /A time capsule/.test(String(l))), `SP1: an exploring walk names the archive's unnamed time capsule "A time capsule" (${JSON.stringify([...new Set(first)])})`);
   check(first.every((l) => !/Founders Plaque/.test(String(l))), `SP7, SP11: no plaque is drawn while Plaques and markers is off by default (${JSON.stringify([...new Set(first)])})`);

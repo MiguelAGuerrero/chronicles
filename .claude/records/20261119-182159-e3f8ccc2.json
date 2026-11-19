@@ -1,0 +1,11 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inflight",
+        "add"
+      ],
+      "body": "| Modes to layers (no Explore mode: each piece a layer or a setting, a walk starts with every layer off, layers saved per kind of map; MD1-MD16, decision 0231) | `claude/presence-things-found-discrepancy-1kmhu5` | spec and plan written, waiting on the owner's review |\n"
+    }
+  ]
+}

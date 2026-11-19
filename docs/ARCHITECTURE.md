@@ -655,7 +655,7 @@ never stored. Navigation (`nav/types.ts`): `Waypoint`, `Route`,
 `RouteSource`; the destination is meta `nav`.
 
 Meta is a key/value table (`getMeta` / `setMeta`): `tile_build`, `tile_url`,
-`snap_rules`, `overture_release`, `overture_checked_at`, `nav`, `start_mode`, `explore_walk`, `explored:<walk>`,
+`snap_rules`, `overture_release`, `overture_checked_at`, `nav`, `explored:<walk>` (walks before decision 0234), `walk_layers:<walk>`, `places_spans:<walk>`,
 `explore_hidden`, `explore_range`, `explore_haptic`, `notify_off`,
 `recall_open`, `day_watched:<key>`.
 

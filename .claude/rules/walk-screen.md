@@ -18,8 +18,7 @@ The walk screen (`src/app/walk.tsx`), which is also Navigate, ready: its layout,
   its props and draws the ready overlay (chevron, banners, Locate, the moment stack, the ready bar). The
   map sits at one place in the tree in both states, so Start never remounts it (the e2e marks the canvas
   and finds the same one after Start). Start records in place: `useStartWalk().start(..., { inPlace:
-  true })` writes the plan's meta while the screen holds the ready state (`holding`; the walk reads
-  `explore_walk` as it shows), then the walk's overlay takes over and the notice says it is recording.
+  true })` writes the plan's meta while the screen holds the ready state (`holding`), then the walk's overlay takes over and the notice says it is recording.
   Stopped, the walk stays on screen (`ended`) until the replay replaces it. The chevron, Minimize and
   Back go through `exitPlan` (back to the tab beneath, Explore when there is none). `walkScreenShown()`
   is the route's, so the gate holds in both states. `useReady` reads its choices and one fix only while

@@ -250,9 +250,9 @@ recording, and a recording bar brings a minimized walk back.
   the strip becomes the walk's controls, and nothing else moves. A chevron at the
   top-left goes back to the tab you came from. With a walk open, Navigate opens
   that walk.
-- The bar pulls up (a drag on it, or a tap) into the **walk settings**: quiet or
-  Explore mode, the destination (a long press on the map), the "?" range and the
-  "What I'm into ›" row to its page (Explore only), reminders and alerts, distances. Start stays at its
+- The bar pulls up (a drag on it, or a tap) into the **walk settings**: the
+  destination (a long press on the map), the "?" range and the
+  "What I'm into ›" row to its page (with Places or Sights on), reminders and alerts, distances. Start stays at its
   foot. A destination shows on the resting bar in one line ("To Your spot · 120 m
   away").
 - The camera, mic and note are stacked at the right edge, above the bar, in the
@@ -355,12 +355,13 @@ recording, and a recording bar brings a minimized walk back.
   directions, when Chronicles' route is wrong: in the blue bar, on a route
   that can't be found, beside Route here on the long-press
   card and in a pin's viewer. Navigation and the walk go on.
-- **Explore mode** (off by default, the walk starts quiet): "?" marks within
-  range (60-300 m), a chip when on a storefront strip, an optional pocket alert
-  (a double-tap once per place, on phones and browsers that can buzz), and a nudge when an area is a dead zone.
-  A place's card offers **Capture here**: the next capture finds that place, and one taken near a place without it finds
-  nothing. A place you pass within a few metres (4-20 m, 8 by default, a setting in the walk's options) is named in the
-  replay as passed without stopping, never counted (decision 0224).
+- **No Explore mode** (decision 0234; a walk starts with every layer off, quiet as before). The walk's Layers panel lists **Places**: "?" marks
+  within range (60-300 m), with the range ring while the settings are up, an optional pocket alert (a double-tap once per place, on phones and
+  browsers that can buzz; its row says it needs Places on), and **Capture here** on a place's card (the next capture finds that place, and
+  one taken near a place without it finds nothing, so a find needs Places on). **Storefronts** gives the chip that names the storefront street
+  you are on and the dead-zone pill. The layers are the walk's own, off at every walk's start. A place you pass within a few metres (4-20 m, 8 by
+  default, a setting in the walk's options, always there) is named in the replay as passed without stopping, never counted (decision 0224), and
+  only within the spans Places was on.
 - **Remind me here**: flag a capture, and the next walk that passes within
   75 m of it shows its card, or a notification when the app is behind.
   Its pin wears a small bell on every map while the reminder is set.
@@ -628,7 +629,7 @@ recording, and a recording bar brings a minimized walk back.
 |---|---|
 | v0: record, capture, stop, replay, storage | Shipped |
 | v0.5: places (stars by area), navigate (walk me back, go here) | Shipped, audited |
-| v1: discovery (Explore mode, "?" marks, finds, Remind me here, notifications) | Shipped, audited |
+| v1: discovery ("?" marks as the Places layer, finds, Remind me here, notifications) | Shipped, audited |
 | Complexes (a named place made of other places on Explore's card and map and in a moment's line, CX1-CX16) | Built; web verified by the e2e `complexes`; native unverified |
 | Reminder bell (a pin with a reminder wears a bell) | Shipped, audited (web verified by the e2e; native unverified) |
 | v1.5: landing (busy areas on the Explore tab, strip chip, dead-zone nudge) | Shipped |

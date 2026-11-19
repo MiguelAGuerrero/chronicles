@@ -101,7 +101,8 @@ Also before the first run:
    dependencies state. For each: run `/vision` on it as `main` holds it (`.claude/skills/vision/SKILL.md`,
    called, returning its block), and say yes only to **aligned** or **no surface** with `Open:` and
    `Touches:` none. A slice-sized entry while the balance reads "outgrowing its base" is held this
-   session, and the hold goes to the owner as a recommendation. One build per run (`/tend` section 7):
+   session, and the hold goes to the owner as a recommendation; a `G` from `/tend`'s lens 0 is not
+   held (decision 0236). One build per run (`/tend` section 7):
    give the run every yes so its record carries them; it builds the first.
 2. **Everything else in the inbox goes to the owner**: every no, reshape or hold you would give (as
    a recommendation), every class 0157 keeps for the owner, and whatever `/vision` did not clear.
@@ -109,6 +110,16 @@ Also before the first run:
    next independent run has been launched so the owner's time to answer is not idle time. Read the
    entries with `node <main-tools>/scripts/bookkeeping.js items inbox` (and `open`, `deferred --tag
    owner`): number, tag and title as `main` holds them.
+   **Proposed expectation lines** (`/tend` lens 0, decision 0236; `node <main-tools>/scripts/expectations.js
+   list`, the `proposed` ones) go in the same batch: one AskUserQuestion per feature, its lines grouped,
+   "Ratify as drafted" first. They are identity, never the proxy's (0157), and a drafted line is answered by
+   the answer commit, never `/tend inbox`, and the session that asked the owner makes the answer commit, outside
+   any run and after its run has landed (here, you; a plain `/tend` session asks at its step 5 and then commits
+   the answer the same way, never inside the run's own commits). On the answer, run
+   `npm run expectations -- ratify|decline <ids> --by owner --date <date> --answer "<verbatim>"` yourself,
+   in a worktree of your own from `origin/main`, as one commit,
+   `expectations <feature>: the owner's answer, <date>`, with your trailers, and push it to `main` before or
+   between runs, never inside one (a non-loop write; `check:tend` lets only that commit change a line's status: `/tend`'s `expectations.md`).
 3. **An owner's yes the loop cannot build** (a rule file to split, a rule line to reword, a VISION
    edit, a decision to supersede): a non-loop run, briefed from `briefs.md` "The non-loop run", one
    job, its own decision record when the owner's answer is a call, reviewed by you before it lands.
@@ -146,6 +157,11 @@ prompt the run wrote. The pauses are:
 | a sweep | after the lenses (`ux-reviewer` and `steward` on the pictures, `auditor` on the area's code); after the diff |
 | a `T` build | after the diff |
 | a `G` build | after the plan (`steward`, slice step 3); after the diff |
+| `evolve` | before it files (`steward`, on its expectation lines) |
+
+At a run's first pause the `steward` also checks the run's drafted expectation lines and amendments
+(`/tend` lens 0) against VISION's Never lines and the persona, whoever else the pause calls for; at the
+diff pause the `auditor` checks each `met` line's evidence (decision 0236).
 
 At the diff pause the reviewers are chosen by risk (`ship.md`, "The faster lane"; decision 0181):
 words or style only, one (the `ux-reviewer`, or the `steward` for the replay's or a VISION line's
@@ -258,7 +274,8 @@ says so); STATUS, DEFERRED and the ledger follow `/tend` section 10.3.
    `<main-tools>` has no export). Pages with the GitHub tools. Take commit hashes from `origin/main`, not
    the run's report (a rebase or amend renames them).
 2. Update the notes.
-3. Tell the owner in a few lines: what landed and its Pages run, what you answered (as the proxy) and
+3. Tell the owner in a few lines: what landed and its Pages run, the compass's reading (`node
+   <main-tools>/scripts/tend.js compass`, its last line; decision 0236), what you answered (as the proxy) and
    why, what needs them, with the one action named. An item that blocks the loop and waits only on
    the owner (a rule file to split, a rule line to reword) is put to them as a question with
    AskUserQuestion at this report, not merely listed (decision 0173).

@@ -3,6 +3,7 @@ import { type Faced, facedAll } from './moment';
 import type { CategoryId, Mark } from './discovery/types';
 import { db } from './db';
 import { exploredKey, passedAlong, passFor, walkPassKey, type Kind } from './explore/explore';
+import { decodeSpans, placesSpansKey } from './explore/placesSpans';
 import { isNamedStreet } from './deletion/core';
 import { loadSettings } from './explore/settings';
 import { dwellsOf, splitAtGaps, type Bounds, smoothDwells, type PauseSpan } from './geo';
@@ -98,14 +99,17 @@ export async function loadReplay(walkId: string, opts: { readGaps?: boolean } = 
   // What it passed without stopping (E11, audit 9): only once it was exploring, only kinds shown, minus its own finds.
   let passed: ReplayData['passed'] = [];
   const explored = await db.getMeta(exploredKey(walkId)).catch(() => null);
-  if (streetBounds && explored) {
+  // A walk since decision 0234 counts passes only within the spans Places was on (MD9); one before it, from `explored:` on.
+  const spansRaw = await db.getMeta(placesSpansKey(walkId)).catch(() => null);
+  const spans = spansRaw ? decodeSpans(spansRaw) : undefined;
+  if (streetBounds && (explored || spans)) {
     // '1' from before the audit: count from the start.
     const since = Number(explored) > 1 ? Number(explored) : 0;
     const hidden = (await loadSettings().catch(() => null))?.hidden ?? new Set<Kind>();
     const items = await db.checklistItemsIn(streetBounds).catch(() => []);
     const passM = passFor(await db.getMeta(walkPassKey(walkId)).catch(() => null));
     passed = passedAlong({
-      items, since, hidden, passM,
+      items, since, spans, hidden, passM,
       // Riding past names nothing (R12).
       fixes: walkedFixes.map((p) => ({ at: [p.lon, p.lat] as LngLat, t: p.t })),
       foundHere: new Set(finds.map((f) => f.key)),

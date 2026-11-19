@@ -2,7 +2,7 @@
 // expo-haptics' web build, which calls navigator.vibrate; recorded here. E2E_ONLY=nudge runs it alone.
 
 async function run(h) {
-  const { navUrl, BASE, start, at, check, drawerTo, openInto, closeInto, freshPage, toStop } = h;
+  const { navUrl, BASE, start, at, check, drawerTo, openInto, closeInto, freshPage, toStop, switchLayer } = h;
     // A touch screen, so the switch is offered (PA6); taps still come as clicks.
     const { c, pg } = await freshPage('nudge', { touch: true });
     await c.addInitScript(() => {
@@ -19,10 +19,11 @@ async function run(h) {
     }), [k, v]);
     const buzzes = () => pg.evaluate(() => window.__buzz.slice());
     const marksNow = () => pg.locator('.maplibregl-map').last().locator('[data-testid=mark-pin]').count();
-    const startWalk = async () => {
+    const startWalk = async (places = true) => {
       await pg.waitForSelector('[data-testid=start]');
       await pg.click('[data-testid=start]');
       await pg.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
+      if (places) await switchLayer(pg, 'places');
       const s0 = at(-0.5, -0.5);
       await c.setGeolocation({ longitude: s0[0], latitude: s0[1] + 0.000002, accuracy: 6 });
       await pg.waitForTimeout(2500);
@@ -64,12 +65,11 @@ async function run(h) {
       await pg.waitForTimeout(400);
     }
     await setMeta('explore_haptic', '1');
-    // An exploring walk: one double-tap as the places come into range, never one per button press (PA2, PA6).
+    // A walk with Places on: one double-tap as the places come into range, never one per button press (PA2, PA6).
     // It goes first: a walk that starts where the last one ended near the memorial would find it already named.
-    await setMeta('start_mode', 'explore');
     await pg.reload();
     {
-      // WI11 (specs/what-im-into-page): with Explore chosen the pocket alert stays in the settings beside What I'm into's
+      // WI11 (specs/what-im-into-page): with Places on (its default on the ready map) the pocket alert stays in the settings beside What I'm into's
       // row, and is not on its page.
       await pg.waitForSelector('[data-testid=start]');
       await drawerTo(pg, 'half');
@@ -93,15 +93,15 @@ async function run(h) {
     // Fox Point holds four attractions; at most one pair each, never more.
     check(got.length / 2 <= 4, `PA2: each place alerts at most once a walk (${got.length / 2} nudges)`);
     await holdStop();
-    // A quiet walk with the switch on: the "?" places are never shown, so nothing buzzes (PA3).
+    // A walk with the pocket alert on and Places off: the "?" places are never shown, so nothing buzzes (PA3, MD7).
     await pg.goto(navUrl);
-    await setMeta('start_mode', 'quiet');
     await pg.reload();
     const before = (await buzzes()).length;
-    await startWalk();
+    await startWalk(false);
     await walkPast();
     const quiet = (await buzzes()).slice(before);
-    check(quiet.length === 0, `PA3: a quiet walk with the pocket alert on never buzzes (${JSON.stringify(quiet)})`);
+    check(quiet.length === 0, `PA3, MD7: a walk with the pocket alert on and Places off never buzzes (${JSON.stringify(quiet)})`);
+    await holdStop();
     await c.close();
     {
       // iPhone Safari: a touch screen with no navigator.vibrate is not offered the switch (decision 0138).
