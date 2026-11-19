@@ -1575,7 +1575,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
             >
               <Text style={styles.undoBtnText}>Route here</Text>
             </Pressable>
-            <Pressable accessibilityRole="button" accessibilityLabel="Dismiss" onPress={() => setNudge(null)} hitSlop={10}>
+            {/* 44 pt itself: react-native-web has no hitSlop (tend walk-screen 14). */}
+            <Pressable testID="dead-zone-dismiss" accessibilityRole="button" accessibilityLabel="Dismiss" onPress={() => setNudge(null)} style={styles.nudgeClose}>
               <Icon name="close" size={18} color="#ffffff" />
             </Pressable>
           </View>
@@ -1800,7 +1801,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
                       : 'Motion off: standing still may drift.'}
                 </Text>
                 {(motionAccess === 'off' || motionAccess === 'denied') && (
-                  <Pressable testID="motion-on" accessibilityRole="button" accessibilityLabel="Turn on motion" onPress={() => void askMotion()} hitSlop={8}>
+                  <Pressable testID="motion-on" accessibilityRole="button" accessibilityLabel="Turn on motion" onPress={() => void askMotion()} style={styles.motionOn}>
                     <Text style={styles.optionLabel}>Turn on</Text>
                   </Pressable>
                 )}
@@ -2169,6 +2170,9 @@ const styles = StyleSheet.create({
   undoText: { color: '#ffffff', fontSize: 15, fontWeight: '600', flexShrink: 1 },
   undoBtn: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 16, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.15)' },
   undoBtnText: { color: '#ffffff', fontSize: 15, fontWeight: '700' },
+  // 44 pt themselves, not by hit slop, which react-native-web lacks (tend walk-screen 14).
+  nudgeClose: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', marginVertical: -8 },
+  motionOn: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 8 },
   disabled: { opacity: 0.5 },
   pressed: { opacity: 0.8 },
   stats: { color: theme.ink, fontSize: 17, fontWeight: '600', fontVariant: ['tabular-nums'], flexShrink: 1 },

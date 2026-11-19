@@ -65,3 +65,19 @@ test('tend walk-screen 13: the walk\'s Add to this moment offer hides while a pl
   const pill = /<AddToMomentPill[\s\S]*?hidden=\{([^}]*)\}/.exec(read('app/walk.tsx'))?.[1] ?? '';
   assert.match(pill, /!!explore\.armed/);
 });
+
+// tend walk-screen 14 (the sweep's ux 5, auditor 5): three targets leaned on hitSlop, which react-native-web does not have
+// (.claude/rules/tabs-and-home.md: "Small buttons are 44 pt themselves"): the dead-zone nudge's Dismiss, a bare 18 px
+// icon; the motion row's "Turn on", bare text; the ready screen's pill buttons (Undo, Retry), 40 high where the walk's
+// are 44. Each is 44 itself now; the journey `ready` measures the ready screen's Undo, the rest are read here.
+test('tend walk-screen 14: the walk screen\'s small targets are 44 pt themselves', () => {
+  const walk = read('app/walk.tsx');
+  const style = (src: string, name: string) => new RegExp(`\\n  ${name}: \\{([^}]*)\\}`).exec(src)?.[1] ?? '';
+  const dismiss = /<Pressable testID="dead-zone-dismiss"[^\n]*?style=\{styles\.(\w+)\}/.exec(walk);
+  assert.ok(dismiss, 'the nudge\'s Dismiss has a test id and a style of its own');
+  assert.match(style(walk, dismiss[1]), /width: 44, height: 44/);
+  const motion = /<Pressable testID="motion-on"[^\n]*?style=\{styles\.(\w+)\}/.exec(walk);
+  assert.ok(motion, 'Turn on has a style of its own');
+  assert.match(style(walk, motion[1]), /minHeight: 44/);
+  assert.match(style(read('components/MomentBar.tsx'), 'pillBtn'), /minHeight: 44/);
+});

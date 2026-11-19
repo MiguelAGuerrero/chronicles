@@ -182,6 +182,19 @@ async function run(h) {
     await tabTo(pg, 'navigate');
     await pg.waitForSelector('[data-testid=ready-bar]');
     await pg.waitForTimeout(1200);
+    // tend walk-screen 14 (the sweep's ux 5, auditor 5): the ready screen's pill buttons are 44 pt themselves, as the
+    // walk's are; react-native-web has no hitSlop (.claude/rules/tabs-and-home.md). A memo discarded shows Undo.
+    {
+      await pg.click('[data-testid=moment-voice]');
+      await pg.waitForSelector('[data-testid=moment-voice-discard]', { timeout: 10000 });
+      await pg.waitForTimeout(1400);
+      await pg.click('[data-testid=moment-voice-discard]');
+      await pg.waitForSelector('[data-testid=moment-voice-undo]', { timeout: 5000 }).catch(() => {});
+      const undo = await boxOf(pg, 'moment-voice-undo');
+      check(!!undo && undo.h >= 44, `tend walk-screen 14: the ready screen's Undo is 44 pt high itself (${JSON.stringify(undo)})`);
+      // Let it go: the discarded memo leaves with its Undo, so the steps below meet the screen as before.
+      await pg.waitForSelector('[data-testid=moment-voice-undo]', { state: 'detached', timeout: 12000 }).catch(() => {});
+    }
 
     // A moment before Start (NR9).
     await pg.click('[data-testid=moment-note]');
