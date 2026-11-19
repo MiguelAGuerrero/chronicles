@@ -14,6 +14,7 @@ type Reading = { reading: string; propose: boolean; why: string };
 type File = { status: string; path: string; from?: string };
 const tend = createRequire(__filename)(join(ROOT, 'scripts', 'tend.js')) as {
   STATES: string[];
+  FORBIDDEN: RegExp[];
   classify(subject: string, o?: { files?: string[]; known?: Set<string> }): 'growth' | 'refinement' | 'other';
   criteriaPrefixes(subject: string, known?: Set<string>): string[];
   tally(commits: { subject: string; files?: string[] }[], known?: Set<string>): { growth: number; refinement: number; other: number; slices: string[] };
@@ -24,11 +25,13 @@ const tend = createRequire(__filename)(join(ROOT, 'scripts', 'tend.js')) as {
   isLoops(subject: string): boolean;
   dropBoundary<T extends { sha: string }>(commits: T[], boundary: Set<string>): T[];
   testName(subject: string): string | null;
-  tendCommitProblems(c: { subject: string; body: string; files: File[]; added?: string; rewritesLog?: boolean; rewritesRules?: string[] }): string[];
+  tendCommitProblems(c: { subject: string; body: string; files: File[]; added?: string; rewritesLog?: boolean; rewritesRules?: string[]; expectationEdits?: string[] }): string[];
   citedOwnEdits(commits: { subject: string; body: string; files: File[] }[]): { subject: string; problem: string }[];
   rewritesBaseLines(removed: string[], base: string): boolean;
   mainOrHere(rel: string, show: (rel: string) => string | null, here: (rel: string) => string): string;
   logProblems(given: unknown): string[];
+  compassReading(runs: Record<string, unknown>[], window?: number): { rows: Record<string, unknown>[]; sum: Record<string, number>; shares: { first: number | null; second: number | null }; trend: string; verdict: string; ledger: Record<string, unknown> };
+  compassText(r: ReturnType<typeof tend.compassReading>): string;
   runLine(r: { date: string; subjects: string[]; given: Record<string, unknown> }): Record<string, unknown>;
   fullPassDue(lines: string[], today: string, days?: number): { due: boolean; last: { date: string; base: string | null } | null; dueFrom: string | null };
   controlsIn(text: string): number;
@@ -246,23 +249,23 @@ test('tend 0133: the reviewers are read-only by their definitions, and CI holds 
   assert.ok(ci.indexOf('tend.js commits') < ci.indexOf('expo export'), 'before the build');
 });
 
-const person = 'A person who wanders a town to notice, using Memories, would reasonably expect';
-const expectations = [{
-  feature: 'memories',
+const person = 'A person who wanders a town to notice, using memories, would reasonably expect';
+const expectations = {
   lines: [
-    { line: `${person} each moment to say where and when it was kept`, is: 'met' },
-    { line: `${person} a deleted moment to come back with Undo`, is: 'failed' },
-    { line: `${person} to find a moment again by a word in it`, is: 'lacking' },
+    { id: 'E-memories-1', is: 'met', evidence: 'memories:"a later walk passing a flagged capture brings it back"' },
+    { id: 'E-memories-2', is: 'failed' },
+    { id: 'E-memories-3', is: 'lacking', provisional: true },
   ],
   dropped: [{ line: `${person} to see how many moments they kept this week`, never: 'Scores, streaks, completion, coverage, levels, badges, leaderboards' }],
-}];
+};
+const compass = { shipped: 2, filedLow: 1, lensG: [] as string[] };
 
 const sweep = {
   mode: 'sweep', area: 'chronicle', deploy: 'main', base: '83a3f257b6c6',
   lenses: { whole: false, skipped: ['2: 320 px and 200% text not pictured'] },
   found: { loop: { high: 0, medium: 2, low: 9 }, owner: 2, arch: 1, phone: 0, out: 0 },
   filed: { T: ['T1', 'T2', 'T3'], G: [] }, review: { accepted: 1, rejected: 1, deferred: 0 }, state: { from: null, to: 'rough' },
-  expectations,
+  expectations, compass,
 };
 
 test('tend 0134: a run\'s line joins what its commits say with what only the run knows', () => {
@@ -303,30 +306,82 @@ test('tend 0134: a line that does not say what the run found, or how it was run,
   assert.ok(bad({ ...sweep, state: { from: 'rough', to: 'done' } }));
 });
 
-test('tend 0231: a sweep or a build logs what a person would reasonably expect, and which the feature meets, fails or lacks', () => {
+test('tend 0234: a sweep or a build logs its expectations by id, met naming its evidence, and the compass\'s counts', () => {
   const base = { deploy: 'main', base: 'abc1234' };
-  const build = { ...base, mode: 'inbox', answers: [{ entry: 'T3', answer: 'yes' }], expectations };
+  const build = { ...base, mode: 'inbox', answers: [{ entry: 'T3', answer: 'yes' }], expectations, compass };
   assert.deepEqual(tend.logProblems(sweep), []);
   assert.deepEqual(tend.logProblems(build), []);
   assert.deepEqual(tend.logProblems({ ...base, mode: 'evolve', expectations }), [], 'an evolve run may log them');
   assert.deepEqual(tend.logProblems({ ...base, mode: 'evolve' }), [], 'only sweeps and builds are held to them');
   assert.deepEqual(tend.logProblems({ ...base, mode: 'inbox', answers: [{ entry: 'T3', answer: 'no' }] }), [], 'an inbox run that builds nothing');
-  assert.deepEqual(tend.logProblems({ ...sweep, expectations: undefined, date: '2026-11-19' }), [], 'a line logged before the lens reads as it was');
-  assert.deepEqual(tend.logProblems({ ...sweep, expectations: undefined, backfilled: true }), [], 'a backfilled line says only what the record says');
-  const [feature] = expectations;
-  assert.deepEqual(tend.logProblems({ ...sweep, expectations: [{ ...feature, lines: feature.lines.slice(0, 2) }] }), [], 'a line the steward dropped still counts among the three to five written');
+  assert.deepEqual(tend.logProblems({ ...sweep, expectations: undefined, compass: undefined, date: '2026-11-19' }), [], 'a line logged before the lens reads as it was');
+  assert.deepEqual(tend.logProblems({ ...sweep, expectations: undefined, compass: undefined, backfilled: true }), [], 'a backfilled line says only what the record says');
+  assert.deepEqual(tend.logProblems({ ...sweep, filed: { T: [], G: ['G7'] }, compass: { ...compass, lensG: ['G7'] } }), [], 'a G from lens 0 is one the run filed');
   const bad = (g: unknown) => tend.logProblems(g).length > 0;
+  const [met, failed, lacking] = expectations.lines;
+  const lines = (...l: unknown[]) => ({ ...sweep, expectations: { ...expectations, lines: l } });
   assert.ok(bad({ ...sweep, expectations: undefined }), 'a sweep says its expectations');
   assert.ok(bad({ ...build, expectations: undefined }), 'a build says its expectations');
   assert.ok(bad({ ...sweep, expectations: undefined, date: '2026-11-20' }), 'a line logged once the lens holds says them');
+  assert.ok(bad({ ...sweep, compass: undefined }), 'a sweep says the compass\'s counts');
+  assert.ok(bad({ ...build, compass: undefined }), 'a build says the compass\'s counts');
   assert.ok(bad({ ...sweep, expectations: [] }));
   assert.ok(bad({ ...sweep, expectations: 'met' }));
-  assert.ok(bad({ ...sweep, expectations: [{ ...feature, feature: '' }] }), 'each names its feature');
-  assert.ok(bad({ ...sweep, expectations: [{ ...feature, lines: feature.lines.slice(0, 2), dropped: [] }] }), 'three lines at least');
-  assert.ok(bad({ ...sweep, expectations: [{ ...feature, lines: [...feature.lines, ...feature.lines] }] }), 'five lines at most');
-  assert.ok(bad({ ...sweep, expectations: [{ ...feature, lines: [{ ...feature.lines[0], is: 'partly' }, ...feature.lines.slice(1)] }] }), 'met, failed or lacking');
-  assert.ok(bad({ ...sweep, expectations: [{ ...feature, lines: [{ line: 'Undo after a delete', is: 'failed' }, ...feature.lines.slice(1)] }] }), 'a line in the lens\'s form');
-  assert.ok(bad({ ...sweep, expectations: [{ ...feature, dropped: [{ line: feature.dropped[0].line }] }] }), 'a dropped line names the Never line it breaks');
+  assert.ok(bad(lines()), 'one line at least');
+  assert.ok(bad(lines({ ...failed, id: 'memories-2' })), 'a line by its id');
+  assert.ok(bad(lines({ ...failed, is: 'partly' })), 'met, failed or lacking');
+  assert.ok(bad(lines({ ...met, evidence: undefined })), 'met names its evidence');
+  assert.ok(bad(lines({ ...met, evidence: 'pending "it shows"' })), 'a pending check is no evidence');
+  assert.ok(bad(lines({ ...lacking, provisional: 'yes' })));
+  assert.ok(bad({ ...sweep, expectations: { ...expectations, dropped: [{ line: expectations.dropped[0].line }] } }), 'a dropped line names the Never line it breaks');
+  assert.ok(bad({ ...sweep, expectations: { ...expectations, dropped: [{ line: 'counts', never: 'Scores' }] } }), 'a dropped line in the lens\'s form');
+  assert.ok(bad({ ...sweep, compass: { ...compass, shipped: -1 } }));
+  assert.ok(bad({ ...sweep, compass: { shipped: 1, lensG: [] } }), 'filed low counted, zero included');
+  assert.ok(bad({ ...sweep, compass: { ...compass, lensG: ['G9'] } }), 'a lens-0 G is one the run filed');
+  assert.match(read('scripts/tend.js'), /logRefProblems\(/, 'tend:log reads the lines against the store');
+});
+
+const run = (date: string, shipped: number, filedLow: number, extra: Record<string, unknown> = {}) => ({
+  ...sweep, date, compass: { shipped, filedLow, lensG: [] }, ...extra,
+});
+
+test('tend 0234: the compass reads the run log: refinement shipped against filed, lens-0 growth and the lines met, and whether it bites', () => {
+  const twelve = (a: [number, number], b: [number, number]) => [
+    ...Array.from({ length: 6 }, (_, i) => run(`2026-11-2${i}`, ...a)),
+    ...Array.from({ length: 6 }, (_, i) => run(`2026-12-0${i + 1}`, ...b)),
+  ];
+  const biting = tend.compassReading([{ mode: 'sweep', date: '2026-11-18' }, ...twelve([4, 0], [1, 3])]);
+  assert.equal(biting.rows.length, 12, 'only runs that carry the compass');
+  assert.deepEqual(biting.shares, { first: 1, second: 0.25 });
+  assert.equal(biting.trend, 'falling');
+  assert.equal(biting.verdict, 'the compass is biting');
+  assert.deepEqual(biting.sum, { runs: 12, shipped: 30, filedLow: 18, lensG: 0, met: 12, failed: 12, lacking: 0, provisional: 12 });
+  const flat = tend.compassReading(twelve([2, 2], [2, 2]));
+  assert.equal(flat.trend, 'flat');
+  assert.equal(flat.verdict, 'the compass is not biting: tighten it');
+  assert.equal(tend.compassReading(twelve([1, 3], [3, 1])).verdict, 'the compass is not biting: tighten it', 'a rising share');
+  assert.equal(tend.compassReading(twelve([2, 2], [0, 3])).verdict, 'the compass is biting', 'nothing shipped without a reason');
+  assert.equal(tend.compassReading(twelve([2, 2], [2, 2]).slice(0, 5)).verdict, 'too early to say: 5 of 12 runs carry the compass');
+  assert.equal(tend.compassReading([...Array.from({ length: 20 }, (_, i) => run(`2026-10-${10 + i}`, 0, 5)), ...twelve([2, 2], [2, 2])]).verdict, 'the compass is not biting: tighten it', 'the last twelve runs');
+  assert.equal(tend.compassReading([run('2026-11-21', 1, 1, { filed: { T: [], G: ['G8'] }, compass: { shipped: 1, filedLow: 1, lensG: ['G8'] } })]).sum.lensG, 1);
+  const text = tend.compassText(biting);
+  assert.equal(text, tend.compassText(tend.compassReading([{ mode: 'sweep', date: '2026-11-18' }, ...twelve([4, 0], [1, 3])])), 'the same log prints the same');
+  assert.match(text, /\nthe compass is biting\n$/);
+  assert.match(text, /^2026-11-20 sweep chronicle: shipped 4, filed low 0, lens-0 G 0; met 1, failed 1, lacking 0, provisional 1$/m);
+  assert.deepEqual(Object.keys(biting.ledger), ['date', 'runs', 'shares', 'trend', 'verdict']);
+  assert.match(read('scripts/tend.js'), /mine\.compass = /, 'tend:balance --write keeps the reading in the ledger');
+  const runs = read('.claude/skills/tend/runs.jsonl').split('\n').filter(Boolean).map((l) => JSON.parse(l) as Record<string, unknown>);
+  assert.equal(typeof tend.compassReading(runs).verdict, 'string', 'the log as it is reads');
+});
+
+test('tend 0234: a loop commit adds proposed expectation lines and fills checks; it changes, removes or ratifies none', () => {
+  const store = () => ({ subject: "tend memories: the run's record", body: '', files: [M('docs/expectations/memories.md'), M('.claude/skills/tend/runs.jsonl')], expectationEdits: [] as string[] });
+  assert.deepEqual(tend.tendCommitProblems(store()), [], 'a store file is a record: no test asked');
+  const edits = ['changes E-memories-1 in docs/expectations/memories.md: …'];
+  assert.deepEqual(tend.tendCommitProblems({ ...store(), expectationEdits: edits }), edits);
+  assert.ok(tend.FORBIDDEN.some((re) => re.test('src/lib/__tests__/arch/expectations.test.ts')), 'the store\'s test is not the loop\'s');
+  assert.ok(tend.FORBIDDEN.some((re) => re.test('scripts/expectations.js')));
+  assert.match(read('scripts/tend.js'), /editProblems\(/, 'check:tend reads each store file the commit changes');
 });
 
 test('tend 0134: the run log is the loop\'s to add to and nobody\'s to rewrite; every line of it reads', () => {
