@@ -8,12 +8,13 @@ import { formatCaptures, formatDistance, formatRange } from '../../format';
 
 type SectionId = 'explore' | 'map' | 'reminders' | 'motion';
 type DrawerState = 'down' | 'details' | 'menu' | SectionId;
-type DrawerEvent = { type: 'pull' } | { type: 'more' } | { type: 'settings' } | { type: 'pick'; id: SectionId } | { type: 'back' } | { type: 'lower' };
+type DrawerEvent = { type: 'pull' } | { type: 'more' } | { type: 'settings' } | { type: 'details' } | { type: 'pick'; id: SectionId } | { type: 'back' } | { type: 'lower' };
 type SectionInput = {
   exploring: boolean;
   rangeM: number;
   leanings: readonly ('green' | 'sights' | 'storefronts')[];
   notices: { recall: boolean; pause: boolean } | null;
+  permission?: 'granted' | 'denied' | 'default' | 'unsupported' | null;
   motion: 'on' | 'off' | 'denied' | 'unavailable';
   units: 'km' | 'mi';
 };
@@ -39,6 +40,7 @@ type Mod = {
   numbersTail: (s: DrawerState) => string;
   ringShown: (s: DrawerState, exploring: boolean) => boolean;
   liftedHeight: (o: { areaH: number; rest: number; top: number; stack: number }) => number;
+  thisWalkLine?: (o: { startedAt: number; distanceM: number; units: 'km' | 'mi' }) => string;
 };
 // Through a variable, so the typecheck passes before the module exists.
 const PATH: string = '../../walkDrawer';
@@ -199,4 +201,22 @@ test('WD18: the lows stay in, in words', async () => {
   assert.ok(two.includes('No signal twice, 7 min in all'), two.join(' | '));
   assert.ok(textOf(walkDetailLines({ ...base, notRecording: true })).includes('Not recording now'));
   assert.ok(!textOf(walkDetailLines(base)).some((t) => /signal|recording/i.test(t)), 'nothing when neither happened');
+});
+
+test('walk-drawer-sections ui 1: the menu\'s first row is This walk, saying when it started and how far; it shows This walk', { todo: 'test first' }, async () => {
+  // The cold find (Nov 19): the … was the one door anyone saw; This walk had none. The owner's call: a row atop the menu.
+  const { stepDrawer, thisWalkLine } = await mod();
+  assert.equal(stepDrawer('menu', { type: 'details' }), 'details');
+  assert.equal(stepDrawer('explore', { type: 'details' }), 'explore', 'only from the menu');
+  assert.ok(thisWalkLine, 'thisWalkLine exists');
+  assert.equal(thisWalkLine!({ startedAt: at(14, 14), distanceM: 1234, units: 'km' }), `Started at 2:14 pm, ${formatDistance(1234, 'km')} walked`);
+});
+
+test('walk-drawer-sections ui 3: Reminders says it is blocked when notifications are, never "On"', { todo: 'test first' }, async () => {
+  const { sectionLine } = await mod();
+  assert.equal(sectionLine('reminders', { ...settings, permission: 'denied' }), 'Blocked');
+  assert.equal(sectionLine('reminders', { ...settings, permission: 'unsupported' }), 'Not available here');
+  assert.equal(sectionLine('reminders', { ...settings, permission: 'granted' }), 'On');
+  assert.equal(sectionLine('reminders', { ...settings, permission: 'default' }), 'On', 'not asked yet: asked from a tap');
+  assert.equal(sectionLine('reminders', { ...settings, notices: { recall: false, pause: false }, permission: 'denied' }), 'Off', 'switched off is off');
 });

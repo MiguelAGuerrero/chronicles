@@ -95,6 +95,17 @@ async function run(h) {
   check(!banned.test(menuWords) && !/\b\d+\s+(of|kinds|on)\b/i.test(menuWords), `WD7: the menu's lines carry no figure or count (${menuWords.replace(/\n/g, ' | ')})`);
   check(await ride(), 'WD17: on the menu the captures ride above the drawer');
   await shot(pg, 'walkdrawer-02-menu');
+  // walk-drawer-sections ui 1 (the cold find, the owner's call): This walk is the menu's first row, and opens it.
+  {
+    const first = await pg.locator('[data-testid=walk-menu] [role=button]').first().evaluate((e) => [e.getAttribute('data-testid'), e.innerText]).catch(() => []);
+    await pg.locator('[data-testid=menu-this-walk]').click({ timeout: 3000 }).catch(() => {});
+    const opened = await pg.waitForSelector('[data-testid=walk-details]', { state: 'visible', timeout: 3000 }).then(() => true, () => false);
+    check.todo(first[0] === 'menu-this-walk' && /This walk\s*\n\s*Started at \d{1,2}:\d{2} [ap]m, .+ walked/.test(first[1] ?? '') && opened,
+      `walk-drawer-sections ui 1: the menu's first row is This walk, with when it started and how far, and opens it (${JSON.stringify(first)})`);
+    await pg.locator('[data-testid=details-settings]').click({ timeout: 3000 }).catch(() => {});
+    await pg.waitForSelector('[data-testid=walk-menu]', { state: 'visible', timeout: 3000 }).catch(() => {});
+    await settle();
+  }
 
   // WD3, WD11: Explore alone: "‹ Walk settings", its heading, its controls only; switched on, the ring shows here only.
   await pg.locator('[data-testid=section-row-explore]').click({ timeout: 3000 }).catch(() => {});
@@ -110,6 +121,15 @@ async function run(h) {
   const ringOnExplore = await ring();
   check((await visible('range-slider')) === 1 && !!ringOnExplore, `WD3, WD11: Explore on shows the range, and the ring on the map (${ringOnExplore})`);
   await shot(pg, 'walkdrawer-03-explore');
+  // walk-drawer-sections ui 4: a section's title is a size above the headings inside it.
+  {
+    const sizes = await pg.evaluate(() => {
+      const sec = document.querySelector('[data-testid=walk-section-explore]');
+      const heads = sec ? [...sec.querySelectorAll('[role=heading]')] : [];
+      return heads.map((h) => parseFloat(getComputedStyle(h).fontSize));
+    });
+    check.todo(sizes.length >= 2 && sizes.slice(1).every((x) => sizes[0] > x), `walk-drawer-sections ui 4: Explore's title is larger than its sub-headings (${sizes})`);
+  }
   // WD13: What I'm into's page returns to this section.
   await pg.locator('[data-testid=into-row]:visible').click({ timeout: 3000 }).catch(() => {});
   const into = await pg.waitForSelector('[data-testid=into-page]', { state: 'visible', timeout: 8000 }).then(() => true, () => false);
@@ -205,6 +225,13 @@ async function run(h) {
         return top && note ? note.top >= top.bottom : false;
       });
       check(clear, 'WD17: on a 667 pt phone the riding captures stay clear of the top row');
+      // walk-drawer-sections ui 2: on a 667 pt phone every row of the menu is whole above the strip.
+      const whole = await p2.evaluate(() => {
+        const foot = document.querySelector('[data-testid=walk-summary]')?.getBoundingClientRect();
+        const rows = [...document.querySelectorAll('[data-testid=walk-menu] [role=button]')].map((e) => e.getBoundingClientRect());
+        return foot ? { n: rows.length, ok: rows.every((r) => r.bottom <= foot.top - 4) } : null;
+      });
+      check.todo(!!whole && whole.n === 5 && whole.ok, `walk-drawer-sections ui 2: on a 667 pt phone the menu's five rows are whole above the strip (${JSON.stringify(whole)})`);
       await shot(p2, 'walkdrawer-06-menu-667');
     }
     await c2.close();
