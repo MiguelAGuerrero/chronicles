@@ -309,6 +309,21 @@ test('expectations audit 15: a revert as ship.md makes it puts the store back as
   assert.match(fake.stderr, /removes E-memories-3/);
 });
 
+test('expectations audit 16: a store file renamed away, or renamed in, is read on both sides', () => {
+  const g = gitRoot();
+  g.git('mv', 'docs/expectations/memories.md', 'docs/memories-was.md');
+  g.git('commit', '-q', '-m', `fix memories: a tidy${TRAILERS}`);
+  const away = g.gate(g.git('rev-parse', 'HEAD'));
+  assert.equal(away.status, 1, 'the store moved out of docs/expectations/');
+  assert.match(away.stderr, /removes E-memories-1/);
+  const h = gitRoot();
+  h.git('mv', 'docs/expectations/memories.md', 'docs/expectations/threads.md');
+  h.git('commit', '-q', '-m', `fix memories: a tidy${TRAILERS}`);
+  const across = h.gate(h.git('rev-parse', 'HEAD'));
+  assert.equal(across.status, 1, 'the store renamed to another feature');
+  assert.match(across.stderr, /removes E-memories-1 from docs\/expectations\/memories\.md/);
+});
+
 test('expectations 0236: a store file reads into lines with their status, check and grounds, and writes back the same', () => {
   const s = store();
   assert.deepEqual(s.problems, []);
