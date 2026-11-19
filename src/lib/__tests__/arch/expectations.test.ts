@@ -360,8 +360,9 @@ test('expectations 0234: the docs check holds the store, and the script prints t
   const ratified = run('ratify', 'E-memories-1', 'E-memories-2', '--by', 'owner', '--date', '2026-11-21', '--answer', 'Ratify as drafted');
   assert.equal(ratified.stdout, 'ratify: E-memories-1, E-memories-2 ratified 2026-11-21 ("Ratify as drafted")\n');
   assert.equal(run('due', 'memories', 'threads').stdout, 'threads\n');
-  assert.equal(run('set-check', 'E-memories-3', '--check', 'pending "a word typed finds it"').status, 0);
-  assert.equal(run('check').stdout, 'expectations check: 3 lines, 2 checks found, 1 pending, 0 missing\n');
+  assert.equal(run('set-check', 'E-memories-3', '--check', 'pending "a word typed finds it"').status, 1, 'a checkable line never goes back to pending');
+  assert.equal(run('set-check', 'E-memories-3', '--check', 'test:"memories MR8: the walker\'s area is read again"').status, 0);
+  assert.equal(run('check').stdout, 'expectations check: 3 lines, 3 checks found, 0 pending, 0 missing\n');
   assert.equal(run('list', 'memories').stdout, run('list', 'memories').stdout);
   assert.match(read('.claude/skills/tend/expectations.md'), /npm run expectations/);
 });

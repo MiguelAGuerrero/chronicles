@@ -310,44 +310,139 @@ function setCheckOf(store, id, check) {
   const e = store.entries.find((x) => x.id === id);
   if (!e) return { store, ids: [], problems: [`${id} is no line of ${fileOf(store.feature)}`] };
   if (!parseCheck(check)) return { store, ids: [], problems: [`${check} is in no form: <journey>:"<check text>", test:"<test name>", picture:<shot name> or pending "<what it will show>"`] };
+  if (parseCheck(e.check)?.kind !== 'pending' && parseCheck(check).kind === 'pending') return { store, ids: [], problems: [`${id} is checkable (${e.check}): its check moves to another check, never back to pending`] };
   return { store: { ...store, entries: store.entries.map((x) => (x.id === id ? { ...x, check } : x)) }, ids: [id], problems: [] };
 }
 
 const unescape = (s) => s.replace(/\\u([0-9a-fA-F]{4})/g, (_, h) => String.fromCharCode(parseInt(h, 16))).replace(/\\(['"`\\])/g, '$1');
 
-/** What the checks can name: each journey's text, every test title (ok, or todo when only skipped or todo), the shots. */
-function indexOf({ journeys, tests }) {
-  const index = { journeys: {}, tests: {}, shots: new Set() };
+// A small scanner over a journey's source, enough to find a call's arguments: strings, templates (with their ${}),
+// regular expressions and comments are stepped over, so a comma or a bracket inside them is not read as code.
+const REGEX_AFTER = /[(,=:[!&|?{};+\-*%<>~^]/;
+
+function skipQuoted(text, i) {
+  const q = text[i];
+  for (let j = i + 1; j < text.length; j++) {
+    if (text[j] === '\\') j++;
+    else if (text[j] === q) return j;
+    else if (text[j] === '\n') return -1;
+  }
+  return -1;
+}
+
+function skipTemplate(text, i) {
+  for (let j = i + 1; j < text.length; j++) {
+    if (text[j] === '\\') j++;
+    else if (text[j] === '`') return j;
+    else if (text[j] === '$' && text[j + 1] === '{') {
+      const end = scan(text, j + 2, '}');
+      if (!end) return -1;
+      j = end.at;
+    }
+  }
+  return -1;
+}
+
+function skipRegex(text, i) {
+  let inClass = false;
+  for (let j = i + 1; j < text.length; j++) {
+    const c = text[j];
+    if (c === '\\') j++;
+    else if (c === '\n') return -1;
+    else if (c === '[') inClass = true;
+    else if (c === ']') inClass = false;
+    else if (c === '/' && !inClass) return j;
+  }
+  return -1;
+}
+
+/** From `i`, the index of the `close` that ends the open bracket, and the top-level commas before it; null if none. */
+function scan(text, i, close) {
+  let depth = 0;
+  let prev = '(';
+  const commas = [];
+  for (let j = i; j < text.length; j++) {
+    const c = text[j];
+    let to = j;
+    if (c === '/' && text[j + 1] === '/') to = text.indexOf('\n', j);
+    else if (c === '/' && text[j + 1] === '*') to = text.indexOf('*/', j + 2) + 1;
+    else if (c === '"' || c === "'") to = skipQuoted(text, j);
+    else if (c === '`') to = skipTemplate(text, j);
+    else if (c === '/' && REGEX_AFTER.test(prev)) to = skipRegex(text, j);
+    else if ('([{'.includes(c)) depth++;
+    else if (')]}'.includes(c)) {
+      if (depth === 0) return c === close ? { at: j, commas } : null;
+      depth--;
+    } else if (c === ',' && depth === 0) commas.push(j);
+    if (to < 0 || (to === 0 && c === '/')) return null;
+    if (to !== j) {
+      prev = c === '/' && text[j + 1] !== '/' && text[j + 1] !== '*' ? '/' : prev;
+      if (c === '"' || c === "'" || c === '`') prev = c;
+      j = to;
+      continue;
+    }
+    if (!/\s/.test(c)) prev = c;
+  }
+  return null;
+}
+
+/** A string literal's value, or null when `src` is anything else (a template with ${}, a concatenation, a name). */
+function literal(src) {
+  const m = /^(?:'((?:\\.|[^'\\\n])*)'|"((?:\\.|[^"\\\n])*)"|`((?:\\.|[^`\\$]|\$(?!\{))*)`)$/s.exec(src.trim());
+  return m ? unescape(m[1] ?? m[2] ?? m[3]) : null;
+}
+
+/** A journey's checks by message: the last argument of each check( or check.todo( call, when it is a plain string. */
+function checkMessages(text) {
+  const out = {};
+  for (const m of text.matchAll(/(?<![.\w$])check(\.todo)?\(/g)) {
+    const from = m.index + m[0].length;
+    const call = scan(text, from, ')');
+    if (!call) continue;
+    const bounds = [from - 1, ...call.commas, call.at];
+    const args = bounds.slice(1).map((b, k) => text.slice(bounds[k] + 1, b));
+    if (args.length > 1 && !args[args.length - 1].trim()) args.pop();
+    const message = literal(args[args.length - 1] ?? '');
+    if (message === null) continue;
+    if (out[message] !== 'ok') out[message] = m[1] ? 'todo' : 'ok';
+  }
+  return out;
+}
+
+/**
+ * What the checks can name: each journey's check messages and shots, every test title (ok, or todo when it is
+ * test.todo, test.skip, or given { todo } or { skip }), and each feature's journeys (scripts/features.js).
+ */
+function indexOf({ journeys, tests, features = {} }) {
+  const index = { journeys: {}, shots: {}, tests: {}, features };
   for (const [name, text] of Object.entries(journeys)) {
-    index.journeys[name] = unescape(text);
-    for (const m of text.matchAll(/\bshot\(\s*[^,()]+,\s*(['"`])([^'"`$]+)\1/g)) index.shots.add(m[2]);
+    index.journeys[name] = checkMessages(text);
+    index.shots[name] = [...text.matchAll(/(?<![.\w$])shot\(\s*[^,()]+,\s*(['"`])([^'"`$\n]+)\1\s*\)/g)].map((m) => m[2]);
   }
   for (const text of Object.values(tests)) {
-    for (const m of text.matchAll(/\b(?:test|it)(\.todo|\.skip|\.only)?\(\s*(['"`])((?:\\.|(?!\2)[^\\])*)\2/g)) {
+    const titles = /(?<![.\w$])(?:test|it)(\.todo|\.skip|\.only)?\(\s*(['"`])((?:\\.|(?!\2)[^\\])*)\2(\s*,\s*\{[^{}]*\b(?:todo|skip)\b)?/g;
+    for (const m of text.matchAll(titles)) {
       const title = unescape(m[3]);
-      const status = m[1] === '.todo' || m[1] === '.skip' ? 'todo' : 'ok';
+      const status = m[1] === '.todo' || m[1] === '.skip' || m[4] ? 'todo' : 'ok';
       if (index.tests[title] !== 'ok') index.tests[title] = status;
     }
   }
   return index;
 }
 
-/** Whether a check exists: ok, todo (only a check.todo or test.todo holds it), pending (none yet, said so) or missing. */
-function resolveCheck(check, index) {
+const featureOfId = (id) => ID.exec(id ?? '')?.[1];
+
+/**
+ * Whether a check exists: ok, todo (only a check.todo or a test marked todo or skip holds it), pending (none yet, said
+ * so) or missing. A journey check is a check's whole message in that journey; a picture, a shot of the feature's own.
+ */
+function resolveCheck(check, index, feature) {
   const c = parseCheck(check);
   if (!c) return 'missing';
   if (c.kind === 'pending') return 'pending';
   if (c.kind === 'test') return index.tests[c.name] ?? 'missing';
-  if (c.kind === 'picture') return index.shots.has(c.name) ? 'ok' : 'missing';
-  const text = index.journeys[c.journey];
-  if (text === undefined) return 'missing';
-  let found = 'missing';
-  for (let at = text.indexOf(c.text); at >= 0; at = text.indexOf(c.text, at + 1)) {
-    const calls = [...text.slice(0, at).matchAll(/\bcheck(\.todo)?\(/g)];
-    if (calls.length && calls[calls.length - 1][1]) found = 'todo';
-    else return 'ok';
-  }
-  return found;
+  if (c.kind === 'picture') return (index.features?.[feature] ?? []).some((j) => (index.shots?.[j] ?? []).includes(c.name)) ? 'ok' : 'missing';
+  return index.journeys[c.journey]?.[c.text] ?? 'missing';
 }
 
 const NOUN = { journey: 'journey check', test: 'test', picture: 'journey shot()' };
@@ -358,7 +453,7 @@ function checkProblems(stores, index, features) {
     if (!features.includes(s.feature)) out.push({ message: `${fileOf(s.feature)} is no feature of scripts/features.js (${s.feature}): rename it to a feature's name` });
     for (const p of s.problems) out.push({ message: `${fileOf(s.feature)}: ${p}` });
     for (const e of s.entries.filter((x) => ACTIVE.includes(x.status))) {
-      if (resolveCheck(e.check, index) !== 'missing') continue;
+      if (resolveCheck(e.check, index, s.feature) !== 'missing') continue;
       const c = parseCheck(e.check);
       out.push({ message: `${e.id} names ${e.check}, which no ${c ? NOUN[c.kind] : 'check'} holds: fix the check (npm run expectations -- set-check) or add it` });
     }
@@ -373,7 +468,7 @@ function due(stores, features) {
 
 function listText(stores, index) {
   return stores
-    .map((s) => [`${s.feature}`, ...s.entries.flatMap((e) => [`  ${e.id} ${statusText(e)}  ${e.text}`, `    check ${resolveCheck(e.check, index)}: ${e.check}`]), ''].join('\n'))
+    .map((s) => [`${s.feature}`, ...s.entries.flatMap((e) => [`  ${e.id} ${statusText(e)}  ${e.text}`, `    check ${resolveCheck(e.check, index, s.feature)}: ${e.check}`]), ''].join('\n'))
     .join('');
 }
 
@@ -410,7 +505,7 @@ const VERDICTS = ['met', 'failed', 'lacking'];
  * What is wrong with a run log's references to the store: each names a line in force; a proposed line is
  * provisional and a ratified one is not; met names the line's own check when it exists, else a picture.
  */
-function logRefProblems(lines, stores, index, exists = fs.existsSync) {
+function logRefProblems(lines, stores, index, { exists = fs.existsSync, shots } = {}) {
   const out = [];
   const all = stores.flatMap((s) => s.entries);
   for (const l of lines ?? []) {
@@ -428,14 +523,24 @@ function logRefProblems(lines, stores, index, exists = fs.existsSync) {
       out.push(`${e.id} is met: name its evidence, its check or a picture`);
       continue;
     }
-    const own = resolveCheck(e.check, index);
-    if (own === 'ok') {
-      if (l.evidence !== e.check) out.push(`${e.id} is met by its own check, ${e.check}, not ${l.evidence}`);
+    const feature = featureOfId(e.id);
+    if (parseCheck(e.check)?.kind !== 'pending') {
+      const own = resolveCheck(e.check, index, feature);
+      if (own !== 'ok') out.push(`${e.id}'s check is ${own} (${e.check}): a line whose check is ${own} is failed or lacking, never met`);
+      else if (l.evidence !== e.check) out.push(`${e.id} is met by its own check, ${e.check}, not ${l.evidence}`);
       continue;
     }
-    const pic = /^picture:(\S+)$/.exec(l.evidence);
-    const shown = pic && (pic[1].includes('/') ? exists(pic[1]) : index.shots.has(pic[1]));
-    if (!shown) out.push(`${e.id}'s check is ${own}: met names a picture that exists (picture:<path or shot name>)`);
+    const pic = /^picture:(\S+)$/.exec(l.evidence)?.[1];
+    if (!pic) {
+      out.push(`${e.id}'s check is pending: met names a picture (picture:<shot of ${feature}'s journeys> or picture:<a .png under the run's shots>)`);
+      continue;
+    }
+    if (!pic.includes('/')) {
+      if (resolveCheck(`picture:${pic}`, index, feature) !== 'ok') out.push(`${e.id}: ${pic} is no shot of ${feature}'s own journeys (scripts/features.js)`);
+      continue;
+    }
+    const under = shots && path.resolve(pic).startsWith(path.resolve(shots) + path.sep);
+    if (!pic.endsWith('.png') || !under || !exists(pic)) out.push(`${e.id}: ${pic} is no .png under the run's shots${shots ? ` (${shots})` : ' (the log names none: "shots")'}`);
   }
   return out;
 }
@@ -459,13 +564,14 @@ function walk(dir, keep) {
 }
 
 function readIndex(root) {
+  const features = Object.fromEntries(require(path.resolve(root, 'scripts', 'features.js')).FEATURES.map((f) => [f.name, f.journeys ?? []]));
   const journeys = Object.fromEntries(walk(path.join(root, 'scripts/e2e/journeys'), (n) => n.endsWith('.js')).map((f) => [path.basename(f, '.js'), fs.readFileSync(f, 'utf8')]));
   const tests = Object.fromEntries(walk(path.join(root, 'src/lib/__tests__'), (n) => /\.test\.tsx?$/.test(n)).map((f) => [f, fs.readFileSync(f, 'utf8')]));
-  return indexOf({ journeys, tests });
+  return indexOf({ journeys, tests, features });
 }
 
 function featureNames(root) {
-  return require(path.join(root, 'scripts', 'features.js')).FEATURES.map((f) => f.name);
+  return require(path.resolve(root, 'scripts', 'features.js')).FEATURES.map((f) => f.name);
 }
 
 /** For check:docs: every store reads, names a feature, and every line's check exists. */
@@ -492,7 +598,6 @@ function main(argv) {
     fs.mkdirSync(path.join(ROOT, DIR), { recursive: true });
     fs.writeFileSync(path.join(ROOT, fileOf(store.feature)), formatStore(store));
   };
-  const featureOfId = (id) => ID.exec(id ?? '')?.[1];
   const body = () => (flags.file ? fs.readFileSync(flags.file, 'utf8') : fs.readFileSync(0, 'utf8'));
 
   if (op === 'list') {
