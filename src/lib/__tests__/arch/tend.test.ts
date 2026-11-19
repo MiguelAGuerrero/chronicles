@@ -388,6 +388,19 @@ test('tend audit 8: a run is held to the lens by what its range built, not by th
   assert.ok(tend.logProblems({ ...inbox, grew: ['SR'] }).some((p) => /expectations/.test(p)), 'a slice built');
 });
 
+test('tend audit 20: the run\'s shots folder is a string, used to check its pictures, and kept out of the committed log', () => {
+  assert.ok(tend.logProblems({ ...sweep, shots: 5 }).some((p) => /shots/.test(p)));
+  const r = repo();
+  const json = { ...sweep, area: 'memories', expectations: { lines: [{ id: 'E-memories-1', is: 'lacking' }] }, compass };
+  const bad = r.tendJs('log', 'HEAD..HEAD', JSON.stringify({ ...json, shots: ['/tmp/shots'] }));
+  assert.equal(bad.status, 1);
+  assert.match(bad.stderr, /shots/);
+  const ok = r.tendJs('log', 'HEAD..HEAD', JSON.stringify({ ...json, shots: '/tmp/claude-shots' }));
+  assert.equal(ok.status, 0, ok.stderr);
+  const written = JSON.parse(readFileSync(join(r.root, '.claude/skills/tend/runs.jsonl'), 'utf8').trim()) as Record<string, unknown>;
+  assert.equal('shots' in written, false, 'a scratchpad path is not the log\'s');
+});
+
 const run = (date: string, shipped: number, filedLow: number, extra: Record<string, unknown> = {}) => ({
   ...sweep, date, compass: { shipped, filedLow, lensG: [] }, ...extra,
 });
