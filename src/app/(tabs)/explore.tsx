@@ -737,7 +737,7 @@ export default function Explore() {
     </View>
   ) : hintShown ? (
     // Not while the map's credits are open: they grow up into the hint's row (tend map audit 1; in `slotTaken`).
-    <Text style={styles.hint} testID="atlas-press-hint">Press and hold the map to look anywhere.</Text>
+    <Text style={styles.hint} testID="atlas-press-hint">Hold the map to look anywhere.</Text>
   ) : null;
 
   // tend explore 1: the scale bar clears the Towns pill, and the overlay clears the scale bar.

@@ -135,20 +135,47 @@ async function run(h) {
     const hint = '[data-testid=atlas-press-hint]';
     // tend tabs audit 30 (the review's ux 1, steward 1): measured, not counted. Explore draws the walker in the map's
     // canvas (its 'points' layer, radius 7 and a 2 px ring), at the map's `data-walker`; a hint that is not drawn has no box.
-    const rect = (sel) => pg.evaluate((q) => {
+    const rect = (sel, p = pg) => p.evaluate((q) => {
       const r = document.querySelector(q)?.getBoundingClientRect();
       return r && r.width > 0 ? { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height) } : null;
     }, sel);
-    const walkerBox = () => pg.evaluate(() => {
+    const walkerBox = (p = pg) => p.evaluate(() => {
       const maps = [...document.querySelectorAll('[data-walker]')].filter((e) => e.getAttribute('data-walker') && e.getBoundingClientRect().width > 0);
       if (!maps.length || !window.__project) return null;
       const [x, y] = window.__project(maps[maps.length - 1].getAttribute('data-walker').split(',').map(Number));
       return { x: Math.round(x - 9), y: Math.round(y - 9), w: 18, h: 18 };
     });
-    const walkerClear = async () => {
-      const walker = await walkerBox();
-      const words = await rect(hint);
+    const walkerClear = async (p = pg) => {
+      const walker = await walkerBox(p);
+      const words = await rect(hint, p);
       return { walker, words, clear: !!walker && !overlap(walker, words) };
+    };
+    // tend tabs T40: the walker clear of the hint's one line by 4 px at least, so the two-line hint's 3 px overlap fails
+    // here. Measured at 320 x 700: 7 px in A and back (the walker as framed on main), 13 px in C.
+    const hintClear = async (p = pg) => {
+      const m = await walkerClear(p);
+      const w = m.walker;
+      const clear4 = !!w && !!m.words && !overlap({ x: w.x - 4, y: w.y - 4, w: w.w + 8, h: w.h + 8 }, m.words);
+      return { ...m, oneLine: !!m.words && m.words.h <= 30, clear4 };
+    };
+    // A fresh app on Explore with a walk minimized, at `size`: Navigate's walk minimized, then Explore's first focus.
+    const freshExplore = async (label, size) => {
+      const f = await h.freshPage(label, { permissions: ['geolocation', 'microphone'] });
+      await f.c.addInitScript(() => { window.__perf = {}; });
+      await f.pg.setViewportSize(size);
+      await f.pg.goto(url);
+      await f.pg.waitForSelector('[data-testid=tab-chronicle]', { timeout: 30000 });
+      await tabTo(f.pg, 'navigate');
+      await f.pg.waitForSelector('[data-testid=start]', { timeout: 15000 });
+      await f.pg.click('[data-testid=start]');
+      await f.pg.waitForSelector('[data-testid=walk-actions]', { timeout: 15000 });
+      await f.pg.waitForTimeout(1500);
+      await f.pg.click('[data-testid=walk-minimize]');
+      await f.pg.waitForSelector('[data-testid=recording-bar]', { timeout: 10000 });
+      await tabTo(f.pg, 'explore');
+      const shownUp = await f.pg.waitForSelector(hint, { timeout: 10000 }).then(() => true, () => false);
+      await f.pg.waitForTimeout(1500);
+      return { ...f, shownUp };
     };
     await tabTo(pg, 'explore');
     const hintBefore = await pg.waitForSelector(hint, { timeout: 10000 }).then(() => true, () => false);
@@ -178,16 +205,31 @@ async function run(h) {
     await shot(pg, 'tabs-T36-hint-back');
     await pg.setViewportSize({ width: 320, height: 700 });
     await pg.waitForTimeout(500);
-    const back320 = await walkerClear();
+    const back320 = await hintClear();
     await shot(pg, 'tabs-T36-hint-back-320');
     await pg.setViewportSize({ width: 390, height: 844 });
     // Shown again, it is marked seen after its own few seconds on screen, and goes.
     await pg.waitForTimeout(6000);
     const after = await pg.locator(hint).count();
-    // back320, the pill gone at 320 x 700, is measured and not held: the two-line hint can reach the walker with no pill
-    // (filed for the owner with tend tabs audit 30).
     check(hintBefore && up && upAgain && withPill.clear && withPill320.clear && back && after === 0,
-      `tend tabs T36, tend tabs audit 30: while the bar's Edit pill is up the walker stands clear of Explore's press hint (390 and 320 x 700); the hint shows again as the pill goes, and is marked seen only after its few seconds on screen (${JSON.stringify({ hintBefore, up, upAgain, withPill, withPill320, back, after, back320 })})`);
+      `tend tabs T36, tend tabs audit 30: while the bar's Edit pill is up the walker stands clear of Explore's press hint (390 and 320 x 700); the hint shows again as the pill goes, and is marked seen only after its few seconds on screen (${JSON.stringify({ hintBefore, up, upAgain, withPill, withPill320, back, after })})`);
+    // tend tabs T40 (the owner's "Shorter one-line words", 2026-11-19): at 320 x 700 the hint is one line and the walker
+    // stands clear of it: after the pill went (audit 30's back320, held now), framed at 390 x 844 on arrival in a fresh
+    // app (A; its own context, so its waits take none of this hint's seconds: the T40 review's F5), and framed at
+    // 320 x 700 from the start (C).
+    const a = await freshExplore('capturehome-a', { width: 390, height: 844 });
+    await a.pg.setViewportSize({ width: 320, height: 700 });
+    await a.pg.waitForTimeout(600);
+    const arrive320 = await hintClear(a.pg);
+    await shot(a.pg, 'tabs-T40-arrive-320');
+    await a.c.close();
+    const cc = await freshExplore('capturehome-320', { width: 320, height: 700 });
+    const fresh320 = await hintClear(cc.pg);
+    await shot(cc.pg, 'tabs-T40-fresh-320');
+    await cc.c.close();
+    const t40 = [arrive320, back320, fresh320];
+    check(a.shownUp && cc.shownUp && t40.every((m) => m.oneLine && m.clear4),
+      `tend tabs T40: at 320 x 700 "Hold the map to look anywhere." is one line and the walker stands 4 px clear of it or more, framed at 390 x 844 (on arrival and after the pill) and at 320 x 700 from the start (${JSON.stringify({ arrive320, back320, fresh320, shown: [a.shownUp, cc.shownUp] })})`);
   }
   // A few steps along Wickenden Street, so the walk has a trace and a fresh fix to place by. At a walker's pace
   // (1.5 m a second): 12 m a second was over MAX_WALK_SPEED_MS (lib/geo), so every step was dropped as a jump and the

@@ -105,6 +105,14 @@ test('tend tabs T36: the bar tells the tabs whether its Edit pill is up, and Exp
   assert.match(explore, /\) : hintShown \? \(/);
 });
 
+// /tend inbox T40 (the owner's answer in person, 2026-11-19: "Shorter one-line words"): at 320 x 700 the two-line hint
+// reached the walker; its words are one line at 320 px now, and the map's camera keeps today's padding.
+test('tend tabs T40: Explore\'s press hint reads "Hold the map to look anywhere."', () => {
+  const explore = readFileSync(join(__dirname, '../../../app/(tabs)/explore.tsx'), 'utf8');
+  assert.match(explore, /<Text style=\{styles\.hint\} testID="atlas-press-hint">Hold the map to look anywhere\.<\/Text>/);
+  assert.doesNotMatch(explore, /Press and hold the map to look anywhere/);
+});
+
 // /tend inbox T37 (the proxy's yes under 0157, 2026-11-18): the storage notice on Memories waits for the bar's Edit pill
 // (the shell's half is in storage/spaceShell.test.ts); the app's instance reads the same store the bar sets.
 test('tend tabs T37: the app\'s storage awareness waits on the bar\'s Edit pill, the store the bar publishes', () => {
