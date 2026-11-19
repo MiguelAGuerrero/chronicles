@@ -429,6 +429,7 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] **Do:** with every layer on, open the walk's settings (the ready bar pulled up, then the live walk's options). **Expect:** the legend of each layer that is on shows under "On the map" with its swatches; a row's tap shows its line and a second tap closes it (`onHoverIn` is web only); nothing floats over the map. (ML6, WK22)
 - [ ] **Do:** with VoiceOver and then TalkBack, open the Layers panel and flip a switch. **Expect:** `accessibilityState` and `accessibilityLabel` carry what `aria-expanded`, `aria-checked` and `role="group"` carry on the web. (ML5)
 - [ ] **Do:** look at the Layers button with a layer on and off, and at the panel's shadow over the map. **Expect:** the outlined button and the panel's `elevation` read clearly over the native map. (ML3)
+- [ ] **Do:** open Layers on Explore's map on a phone, switch Places off, then on, with a neighborhood selected; open its card in both states. **Expect:** "Places" is in the panel and Navigate's and the walk's panels do not list it; off, every "?" and dot leaves the map and the card's picture, and the card has no "Waiting to be found"; on, they return. (PL1-PL5, PL9)
 
 ## Scenic routes (SR1-SR15, decision 0095)
 

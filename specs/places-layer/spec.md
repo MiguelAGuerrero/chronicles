@@ -68,4 +68,6 @@ By the owner's reshaping (a layer, not a card section), named so none drifts sil
 
 ## Record
 
-(To be written after the build.)
+- **Built** on `claude/presence-things-found-discrepancy-1kmhu5`: PL1-PL13, test first (`850c070`). Unit tests: `src/lib/__tests__/layers/placesLayer.test.ts` (PL1, PL8-PL10, PL12, PL13) and `explore/placesLayerGate.test.ts` (PL2-PL7, PL11, source scans shown to fail on a snippet); the `carousel` journey's `wholeTowns` checks PL1-PL7 on the web build (the panel, off and on again, the card, the picture).
+- **Changed from the plan:** the row phrase and `smallFinds` were dropped (the steward's S1, S2); the layer is last in the registry (not first) so existing tests' indexes held; out-of-town stars are not built yet, so PL3 covers the selected area's "?" and dots only; nine source files, three of them one-line `map=` props.
+- **Not run:** the layers journey ran green before the final carousel edits (journey-only changes). Native has never run on a device: one item in `docs/NATIVE_UNVERIFIED.md`.

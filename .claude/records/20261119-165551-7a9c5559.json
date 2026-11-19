@@ -1,0 +1,30 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Map layers and walkability by urban form (ML1-ML13, UF1-UF20, decisions 0096, 0097)"
+      ],
+      "body": "- [ ] **Do:** open Layers on Explore's map on a phone, switch Places off, then on, with a neighborhood selected; open its card in both states. **Expect:** \"Places\" is in the panel and Navigate's and the walk's panels do not list it; off, every \"?\" and dot leaves the map and the card's picture, and the card has no \"Waiting to be found\"; on, they return. (PL1-PL5, PL9)\n"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "add",
+        "--top"
+      ],
+      "body": "| Places layer (the \"?\" for places worth the stop are a \"Places\" switch in Explore's Layers panel, on by default, listed on Explore's map only; the area card drops \"Waiting to be found\" and says only the kinds; the card's picture follows the switch; a kind switched off still hides its \"?\"; PL1-PL13, decision 0230) | built; web only | tests first, then the code, 2026-11-19 | `specs/places-layer/spec.md` |  |\n"
+    },
+    {
+      "argv": [
+        "inflight",
+        "remove",
+        "Places layer"
+      ],
+      "target": "sha256:cebc3b1f5c0e1d9bd684eacf1e44f3b8aa9f96c3baf90b51801a4efa2e804ccb"
+    }
+  ]
+}
