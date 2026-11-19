@@ -55,7 +55,6 @@ import { launchRoute } from '../../lib/launchRoute';
 
 type Beat = 'reading' | 'fog' | 'path' | 'card' | 'name';
 /** While the path is told the map is given no trace: the replay's frames reveal the line on it (replay ceremony RC3). */
-const NO_RUNS: LngLat[][] = [];
 
 // A screen that throws shows what broke, with Try again, never a blank page (bug, Nov 1).
 export { ScreenError as ErrorBoundary } from '../../components/ScreenError';
@@ -591,10 +590,13 @@ export default function Replay() {
       <WalkMap
         ref={mapRef}
         borders={borders}
-        trace={telling || !data ? NO_RUNS : data.runs}
-        rides={telling || !data ? NO_RUNS : data.rideRuns}
+        // The whole trace in every beat. Through the path the map draws it only as far as the frames say: faint as
+        // the first beat left it, fading out as the path opens (replay-ceremony ui 7), while the map reveals the
+        // walked line itself, frame by frame.
+        trace={data.runs}
+        rides={data.rideRuns}
         replay={telling}
-        traceOpacity={beat === 'fog' || beat === 'reading' ? QUIET_TRACE_OPACITY : 1}
+        traceOpacity={beat === 'fog' || beat === 'reading' || telling ? QUIET_TRACE_OPACITY : 1}
         walked={data.walked}
         fog={data.fog}
         lightUp={lightUp}
@@ -608,6 +610,8 @@ export default function Replay() {
         drawing={drawing.line}
         fitBounds={data.bounds}
         fitKey={fitKey}
+        // The first beat's fit turns a map turned by hand north-up: the path is told so (RC15; replay-ceremony ui 8).
+        fitNorth={beat === 'reading' || beat === 'fog'}
         fitPadding={beat === 'card' || beat === 'name' ? sheetPad : undefined}
         animate={!reduceMotion}
         initialCenter={data.fixes[0] ? [data.fixes[0].lon, data.fixes[0].lat] : undefined}

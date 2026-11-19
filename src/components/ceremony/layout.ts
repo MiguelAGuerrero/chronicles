@@ -9,12 +9,12 @@
 import { project, type Camera } from '../../lib/ceremony/camera';
 import { easeInOut, easeOut } from '../../lib/ceremony/ease';
 import type { StageLive } from '../../lib/ceremony/live';
-import { PICTURE, restCenter, STACK, STAGE_BOTTOM, STAGE_TOP, type StageRoom } from '../../lib/ceremony/room';
-import type { BubbleOverlay, CardOverlay, PassedOverlay, PictureOverlay, StackEntry, WhisperOverlay } from '../../lib/ceremony/types';
+import { cardSize, PICTURE, restCenter, STACK, stackEdge, STAGE_BOTTOM, STAGE_TOP, type StageRoom } from '../../lib/ceremony/room';
+import type { BubbleOverlay, CardOverlay, Frame, PassedOverlay, PictureOverlay, StackEntry, WhisperOverlay } from '../../lib/ceremony/types';
 import type { Faced } from '../../lib/moment';
 
 export { project };
-export { cardSize, cardWidth, PICTURE, pictureHeight, restCenter, STACK, STACK_TOP, STAGE_BOTTOM, STAGE_TOP } from '../../lib/ceremony/room';
+export { cardSize, cardWidth, PICTURE, pictureHeight, restCenter, STACK, stackSlop, STACK_TOP, STAGE_BOTTOM, STAGE_TOP } from '../../lib/ceremony/room';
 
 export interface StageCtx extends StageRoom {
   /**
@@ -85,7 +85,6 @@ export interface LiveStyle {
   translateY?: number;
   rotate?: number;
   scale?: number;
-  textAlign?: 'left' | 'right' | 'center';
 }
 
 const lerp = (a: number, b: number, u: number) => a + (b - a) * u;
@@ -136,6 +135,29 @@ export function picturePose(o: PictureOverlay, c: StageCtx, camera: StageCamera)
 }
 
 /**
+ * Whether a standing picture takes a tap, which opens its moment (`replay-ceremony ui 1`): it shows (one under a
+ * later picture takes none: the one showing does), something places it, and no card lies over it (a tap on a card
+ * holds the replay; it never opens a picture nobody can see under it). Cards come after the pictures in a frame, so
+ * they are read from its end, never past a picture.
+ */
+export function pictureTaps(f: Frame, p: PictureOverlay, c: StageCtx): boolean {
+  if (!p.shown) return false;
+  const at = standsAt(c, f.camera.center ? f.camera : f.still ?? f.camera, p.at);
+  if (!at) return false;
+  const half = PICTURE.hit / 2;
+  for (let i = f.overlays.length - 1; i >= 0; i--) {
+    const o = f.overlays[i];
+    if (o.kind === 'picture') break;
+    if (o.kind !== 'card') continue;
+    const { w, h } = cardSize(c, o.videos?.length ? 0 : o.pieces?.length ?? 0);
+    const pose = cardPose(o, c, f.camera, w, h);
+    const scale = pose.scale ?? 1;
+    if (Math.abs(at[0] - ((pose.left ?? 0) + w / 2)) < (w * scale) / 2 + half && Math.abs(at[1] - ((pose.top ?? 0) + h / 2)) < (h * scale) / 2 + half) return false;
+  }
+  return true;
+}
+
+/**
  * Where a stack's entry stands in its control (RC29, RC30, RC32): `base` is the lowest place's top. Each stands
  * `STACK.pitch` over the one before; one landing is still above its place by `rise`, one under a newer one gives, and
  * the oldest sinks away under the lowest place as it drops off.
@@ -155,22 +177,33 @@ export function bubblePose(o: BubbleOverlay, reduceMotion: boolean): LiveStyle {
   return reduceMotion ? { opacity, translateY: 0, scale: 1 } : { opacity, translateY: (1 - o.enter) * 10 - o.exit * 12, scale: 0.96 + 0.04 * o.enter };
 }
 
+/**
+ * The room across the screen for what is said over the map (a whisper, the last view's names): 8 px in from each edge,
+ * and short of the stack's column while the stack is up (`replay-ceremony ui 3`), as a card and the bubbles' corner are.
+ */
+const saidRoom = (c: StageRoom, stack: boolean) => ({ left: 8, right: stack ? Math.min(c.width - 8, stackEdge(c)) : c.width - 8 });
+
 /** The room a passed place's name has on the last view (RC25): its box (three lines of body text at the most), the name at the edge nearer its place. */
 export const PASSED = { width: 260, height: 72, gap: 9, dot: 10 } as const;
-/** As wide as the screen lets it be: 8 px in from each edge on a narrow phone. */
-export const passedWidth = (c: Pick<StageCtx, 'width'>) => Math.min(PASSED.width, c.width - 16);
+/** As wide as the screen lets it be: 8 px in from each edge on a narrow phone, less the stack's column while it is up. */
+export const passedWidth = (c: StageRoom, stack = false) => {
+  const room = saidRoom(c, stack);
+  return Math.min(PASSED.width, room.right - room.left);
+};
 
 /**
  * Where a passed place's name stands on the last view (replay ceremony RC25): centred under its place, or over it
- * (`above`: the more northern of two, so two close together never share their room), kept on the screen. With no place
- * (the one line for more than two) or nothing to place it by, under the top row, the `index`th down.
+ * (`above`: the more northern of two, so two close together never share their room), kept on the screen and short of
+ * the stack while that is up (`stack`). With no place (the one line for more than two) or nothing to place it by,
+ * under the top row, the `index`th down.
  */
-export function passedPose(o: PassedOverlay, c: StageCtx, camera: StageCamera, above: boolean, index: number): LiveStyle {
+export function passedPose(o: PassedOverlay, c: StageCtx, camera: StageCamera, above: boolean, index: number, stack = false): LiveStyle {
   const p = o.at ? project(c, camera, o.at) : null;
-  const width = passedWidth(c);
-  if (!p) return { left: (c.width - width) / 2, top: c.insets.top + 12 + 48 + 8 + index * (PASSED.height + 4), opacity: o.opacity };
+  const room = saidRoom(c, stack);
+  const width = passedWidth(c, stack);
+  if (!p) return { left: room.left + (room.right - room.left - width) / 2, top: c.insets.top + 12 + 48 + 8 + index * (PASSED.height + 4), opacity: o.opacity };
   return {
-    left: Math.max(8, Math.min(c.width - width - 8, p[0] - width / 2)),
+    left: Math.max(room.left, Math.min(room.right - width, p[0] - width / 2)),
     top: above ? p[1] - PASSED.gap - PASSED.height : p[1] + PASSED.gap,
     opacity: o.opacity,
   };
@@ -182,17 +215,25 @@ export function passedDot(o: PassedOverlay, c: StageCtx, camera: StageCamera): L
   return p ? { left: p[0] - PASSED.dot / 2, top: p[1] - PASSED.dot / 2, opacity: o.opacity } : { left: 0, top: 0, opacity: 0 };
 }
 
-/** A whisper's width. */
-export const WHISPER_WIDTH = 180;
+/**
+ * A whisper's room (`replay-ceremony ui 5`): its box (three lines at the most, its words at the edge nearer its place)
+ * and how far it keeps from its place, clear of the walker's dot and the line passing there.
+ */
+export const WHISPER = { width: 190, height: 60, gap: 14 } as const;
 
-/** A passed place's line beside it, on the side with more room (RR15); without a following map, under the clock. */
-export function whisperPose(w: WhisperOverlay, c: StageCtx, camera: StageCamera): LiveStyle {
+/**
+ * A passed place's line as the walker goes by (RR15; `replay-ceremony ui 5`): centred over its place or under it, the
+ * side the telling says (`above`: away from the walker), a gap clear of the place, kept on the screen and short of
+ * the stack while that is up (`stack`, ui 3). Without a following map, under the clock.
+ */
+export function whisperPose(w: WhisperOverlay, c: StageCtx, camera: StageCamera, stack = false): LiveStyle {
   const p = project(c, camera, w.at);
-  const right = !p || p[0] < c.width / 2;
+  if (!p) return { left: (c.width - WHISPER.width) / 2, top: c.insets.top + 100, opacity: w.opacity };
+  const room = saidRoom(c, stack);
+  const top = w.above ? p[1] - WHISPER.gap - WHISPER.height : p[1] + WHISPER.gap;
   return {
-    left: p ? Math.min(c.width - WHISPER_WIDTH - 8, Math.max(8, right ? p[0] + 10 : p[0] - 10 - WHISPER_WIDTH)) : (c.width - WHISPER_WIDTH) / 2,
-    top: p ? Math.min(c.height - 120, Math.max(c.insets.top + 100, p[1] - 30)) : c.insets.top + 100,
+    left: Math.max(room.left, Math.min(room.right - WHISPER.width, p[0] - WHISPER.width / 2)),
+    top: Math.min(c.height - 120 - WHISPER.height, Math.max(c.insets.top + 100, top)),
     opacity: w.opacity,
-    textAlign: p ? (right ? 'left' : 'right') : 'center',
   };
 }

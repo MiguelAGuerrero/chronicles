@@ -1,5 +1,5 @@
 import { StyleSheet, View } from 'react-native';
-import { gridLayout } from '../../lib/ceremony/grid';
+import { gridLayout, rowShare } from '../../lib/ceremony/grid';
 import { overlayOf, type StageLive } from '../../lib/ceremony/live';
 import type { CardOverlay } from '../../lib/ceremony/types';
 import { MomentPicture } from '../chronicle/MomentPicture';
@@ -28,8 +28,9 @@ function GridCell({ live, card, index, still, width, height, children }: { live:
  * each picture cropped to fill its cell, each swiping in a beat after the one before, the grid held, and past nine it
  * scrolls slowly through the hold (the frame's `shown` and `scroll`). Its cells are square, but in a moment with
  * videos, where `height` gives it the room of the pictures that play in turn after it and its cells fill that
- * (replay ceremony RC37). No video plays in a cell. No dots, numbers, position or progress bar: the pieces are the
- * content.
+ * (replay ceremony RC37), and in a last row with fewer pieces than columns, where those pieces span the row between
+ * them: a grid of three shows no empty cell (`replay-ceremony ui 4`). No video plays in a cell. No dots, numbers,
+ * position or progress bar: the pieces are the content.
  */
 export function StackGrid({ o, ctx, width, height }: { o: CardOverlay; ctx: StageCtx; width: number; height?: number }) {
   const pieces = o.pieces ?? [];
@@ -51,11 +52,16 @@ export function StackGrid({ o, ctx, width, height }: { o: CardOverlay; ctx: Stag
   return (
     <View testID="replay-grid" style={{ width, height: windowH, overflow: 'hidden' }} pointerEvents="none" accessible={false}>
       <View ref={scroll} style={[styles.wrap, { width }]}>
-        {pieces.map((p, i) => (
-          <GridCell key={p.piece_id} live={live} card={key} index={i} still={ctx.reduceMotion} width={cell} height={tall}>
-            <MomentPicture capture={p} style={{ width: cell, height: tall }} />
-          </GridCell>
-        ))}
+        {pieces.map((p, i) => {
+          // As wide as its row gives it: a last row of fewer pieces is shared out between them.
+          const share = rowShare(pieces.length, i);
+          const wide = share === g.cols ? cell : (width - GAP * (share - 1)) / share;
+          return (
+            <GridCell key={p.piece_id} live={live} card={key} index={i} still={ctx.reduceMotion} width={wide} height={tall}>
+              <MomentPicture capture={p} style={{ width: wide, height: tall }} />
+            </GridCell>
+          );
+        })}
       </View>
     </View>
   );

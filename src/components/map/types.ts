@@ -262,12 +262,19 @@ export interface WalkMapProps {
   /**
    * A replay's path is being told on this map (replay ceremony RC1-RC3, decision 0206): its walker, camera and walked
    * line come frame by frame through the handle's `replayFrame`, outside React, never as props. The screen passes no
-   * `walker`, no `follow` and an empty `trace` meanwhile.
+   * `walker` and no `follow` meanwhile. A `trace` it goes on giving (the one its first beat showed, at that beat's
+   * `traceOpacity`) is drawn only as far as the frames say (`ReplayMapFrame.wholeTrace`, `traceShown`): it fades out
+   * as the path opens and is not drawn after (`replay-ceremony ui 7`).
    */
   replay?: boolean;
   /** Fits the camera to these bounds whenever `fitKey` changes. */
   fitBounds?: Bounds | null;
   fitKey?: number;
+  /**
+   * The fit turns the map north-up (`replay-ceremony ui 8`): the replay's first beat, so a map turned by hand on the
+   * card is north-up before the path, which is told so (RC15), begins. Any other fit keeps the map's bearing (CP1).
+   */
+  fitNorth?: boolean;
   /** Called with a fit's key once its camera move has ended, so a map taken down mid-move can redo it. */
   onFitSettled?: (fitKey: number) => void;
   /**
@@ -366,6 +373,10 @@ export interface ReplayMapFrame {
   /** The time into the telling: a line a map draws as data is sent again by it, at most every `REPLAY_ENGINE.resendMs`. */
   ms: number;
   walker: LngLat | null;
+  /** How strongly the walker's dot shows, 0 to 1: it fades in as the opening's dive ends (`replay-ceremony ui 7`). */
+  walkerFade: number;
+  /** How much of the whole trace the beat before left on the map still shows, 1 to 0: it fades out through the dive. */
+  wholeTrace: number;
   /** Where the camera holds the map; a null centre leaves the map where it is (reduce motion). */
   camera: { center: LngLat | null; zoom: number | null };
   /** The walked line and the rides: the runs drawn whole, and how far the run being walked shows. */
@@ -457,6 +468,36 @@ export const FAINT_OPACITY = 0.4;
 
 /** A gap with no line: grey dots, quiet like the fog (GW2). */
 export const GAP_LINK_DASH = [0.1, 2.2];
+/** The dots' width: a dash is counted in it, so a dot comes every 3 x 2.3 px along the line. */
+export const GAP_LINK_WIDTH = 3;
+/** The white edge lines stand on, so they read over fog, walked streets and the base map alike. */
+export const LINE_EDGE = '#ffffff';
+const HOP_EDGE_WIDTH = 6;
+/**
+ * The edge a replay's hop stands on (`replay-ceremony ui 6`): a white disc under each of the gap link's dots, drawn
+ * from the dots' own source just under them. The dots are grey on the land; over a walked street lit in its ink they
+ * vanished (1.5:1), and the white reads on both (6:1 on the street, the dot 9:1 on the white). The dash is counted in
+ * the line's own width, so the wider edge takes a shorter one to keep the dots' spacing: one disc a dot.
+ */
+export const HOP_EDGE = {
+  color: LINE_EDGE,
+  width: HOP_EDGE_WIDTH,
+  dash: [0.05, (GAP_LINK_WIDTH * (GAP_LINK_DASH[0] + GAP_LINK_DASH[1])) / HOP_EDGE_WIDTH - 0.05],
+  opacity: 0.9,
+} as const;
+/** The edge shows only while a replay is told: every other map's gap links are as they were, with none. */
+export const hopEdgeOpacity = (told: boolean): number => (told ? HOP_EDGE.opacity : 0);
+
+/**
+ * How strongly a map draws the trace it is given, its end markers and its dotted links, from the screen's
+ * `traceOpacity`. While a replay is told (`replay-ceremony ui 7`) the frames say how much of the whole trace still
+ * shows (`whole`, 1 to 0 through the opening's dive): the lines fade out from the first beat's faint trace, the end
+ * markers come up to full as they do, and the links, which are then the replay's own hops, are whole.
+ */
+export function traceShown(opacity: number, told: boolean, whole: number): { line: number; marks: number; links: number } {
+  if (!told) return { line: opacity, marks: opacity, links: opacity };
+  return { line: opacity * whole, marks: opacity + (1 - opacity) * (1 - whole), links: 1 };
+}
 /** A way being drawn: short dashes, so it reads as not kept yet (GW3). */
 export const DRAWING_DASH = [1, 1];
 

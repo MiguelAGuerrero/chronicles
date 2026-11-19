@@ -61,7 +61,7 @@ A walk's replay and the day replay: the five beats, the story and its ceremonies
   re-watches play the same. Only the screen reader's steps (`StepThrough`) wait for
   Continue, and move on by themselves on a re-watch, as before (RR17).
 - **Photos and videos are full screen in the viewer** (0003), opened from the stack
-  (newest first); in the path they are cards.
+  (newest first) or from a picture standing on the map (that moment; `replay-stage.md`); in the path they are cards.
 - **Video** comes from the camera button (the system camera's own video mode),
   capped at 30 s on phones and 15 s on web. The mic stays the separate pocket
   recorder.

@@ -348,7 +348,7 @@ async function replayGrid(h, check) {
         return { w: Math.round(gb.width), h: Math.round(gb.height), cells, name: g.closest('[data-testid=replay-card]')?.getAttribute('aria-label') ?? '' };
       });
       const third = grid && grid.cells[2];
-      check.todo(!!grid && grid.cells.length === 3 && Math.abs(third[2] - grid.w) <= 1 && third[0] <= 1 && Math.abs(third[1] + third[3] - grid.h) <= 1 && /^Photos, /.test(grid.name) && !/\d/.test(grid.name.split(',')[0]), `replay-ceremony ui 4: at ${w} px a grid of three fills its last row, and its strip says "Photos" (${JSON.stringify(grid)})`);
+      check(!!grid && grid.cells.length === 3 && Math.abs(third[2] - grid.w) <= 1 && third[0] <= 1 && Math.abs(third[1] + third[3] - grid.h) <= 1 && /^Photos, /.test(grid.name) && !/\d/.test(grid.name.split(',')[0]), `replay-ceremony ui 4: at ${w} px a grid of three fills its last row, and its strip says "Photos" (${JSON.stringify(grid)})`);
     }
     const turned = await pg.waitForFunction(() => { const v = document.querySelector('[data-testid=replay-card] video'); return !!v && !v.paused && v.currentTime > 0.6; }, null, { timeout: 30000 }).then(() => true, () => false);
     if (!first) await shot(pg, `rc-moment-video-${w}`);

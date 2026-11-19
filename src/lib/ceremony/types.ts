@@ -194,6 +194,11 @@ export interface WhisperOverlay {
   text: string;
   at: LngLat;
   opacity: number;
+  /**
+   * It stands over its place, not under it (`replay-ceremony ui 5`): the side away from the walker as the place is
+   * passed, so it lies on neither the dot nor the line. Said once; it never changes sides while it is up.
+   */
+  above: boolean;
 }
 
 /**
@@ -233,6 +238,16 @@ export interface Frame {
   /** The ceremony has ended: the card comes next. */
   done: boolean;
   walker: LngLat | null;
+  /**
+   * How strongly the walker's dot shows, 0 to 1 (`replay-ceremony ui 7`): it comes in as the opening's dive ends, and
+   * is whole from then on. A step with reduce motion.
+   */
+  walkerFade: number;
+  /**
+   * How much of the whole trace the beat before the path left on the map, faint, still shows, 1 to 0: it fades out
+   * through the opening's dive, so nothing cuts as the path begins. 0 where no beat came before (a day's telling).
+   */
+  wholeTrace: number;
   /** Where the camera holds the map, and at what zoom; a null centre leaves the map where it is (no following). */
   camera: { center: LngLat | null; zoom: number | null };
   /**

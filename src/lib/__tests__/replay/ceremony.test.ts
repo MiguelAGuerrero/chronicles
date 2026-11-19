@@ -479,7 +479,7 @@ test('RR21: the registry gives the rhythm by default, and any ceremony honouring
         frame: (ms) => {
           const c = steps[Math.floor(ms / 1000)];
           return {
-            done: ms >= steps.length * 1000, walker: null, camera: { center: null, zoom: null }, drawn: {}, pins: c ? [c.id] : [],
+            done: ms >= steps.length * 1000, walker: null, walkerFade: 1, wholeTrace: 0, camera: { center: null, zoom: null }, drawn: {}, pins: c ? [c.id] : [],
             hops: [], clock: c?.t ?? null, clockFade: 1, line: null, lineOpacity: 0, date: null, dateOpacity: 0, still: null, scrim: 0,
             overlays: c ? [{ kind: 'card', key: c.id, capture: c, from: null, grow: 1, tuck: 0, playing: false, progress: 0, fade: true }] : [],
           };

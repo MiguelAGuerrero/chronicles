@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import type { CircleLayerSpecification } from 'maplibre-gl';
-import { COLORS, ENDS_PAINT, ENDS_RING_PAINT, endsGeoJSON } from '../../../components/map/types';
+import { COLORS, ENDS_PAINT, ENDS_RING_PAINT, endsGeoJSON, traceShown } from '../../../components/map/types';
 
 // tend map T16 (the owner's yes, Nov 12): a walk's start and end differed by colour alone, two white discs
 // ringed one green and one orange (WCAG 2.2, 1.4.1 Use of Color). The start stays hollow; the end is solid,
@@ -163,8 +163,12 @@ test('tend map T25: both maps draw the outer ring first, on the ends source, the
   const webCentre = new RegExp(String.raw`id: 'ends', type: 'circle', source: 'ends', filter: ${endOnly},\s*paint: ENDS_PAINT \}\);`);
   assert.match(web, webCentre);
   assert.ok(web.search(webRing) < web.search(webCentre), 'the outer ring is drawn first');
-  assert.match(web, /for \(const id of \['ends-ring', 'ends'\]\) \{\s*mapRef\.current\?\.setPaintProperty\(id, 'circle-opacity', props\.traceOpacity \?\? 1\);\s*mapRef\.current\?\.setPaintProperty\(id, 'circle-stroke-opacity', props\.traceOpacity \?\? 1\);/,
+  // (Since replay-ceremony ui 7 the trace's look is `traceShown` of the screen's opacity: the same number on every
+  // map but a replay's path, where the frames say how much of the first beat's trace still shows.)
+  assert.match(web, /for \(const id of \['ends-ring', 'ends'\]\) \{\s*map\.setPaintProperty\(id, 'circle-opacity', look\.marks\);\s*map\.setPaintProperty\(id, 'circle-stroke-opacity', look\.marks\);/,
     'both layers of the ends go with the trace');
+  assert.match(web, /paintTrace\(traceShown\(props\.traceOpacity \?\? 1, replayOn, whole\)\);/);
+  for (const o of [0, 0.3, 1]) assert.equal(traceShown(o, false, 1).marks, o, 'with no replay told, the trace\'s own opacity');
   // Native: in the one ends source, ends-ring before ends, spreading its paint and adding only the trace's opacity.
   const source = /<GeoJSONSource id="ends" data=\{(?:ends|data)\}>([\s\S]*?)<\/GeoJSONSource>/.exec(native)?.[1] ?? '';
   const ringLayer = /<Layer id="ends-ring" type="circle" paint=\{\{([\s\S]*?)\}\} \/>/.exec(source);

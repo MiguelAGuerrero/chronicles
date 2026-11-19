@@ -14,7 +14,6 @@ export function writeStyle(node: unknown, s: LiveStyle): void {
   if (s.left !== undefined) style.left = `${s.left}px`;
   if (s.top !== undefined) style.top = `${s.top}px`;
   if (s.maxHeight !== undefined) style.maxHeight = s.maxHeight == null ? '' : `${s.maxHeight}px`;
-  if (s.textAlign !== undefined) style.textAlign = s.textAlign;
   let transform = '';
   if (s.translateX !== undefined) transform += `translateX(${s.translateX}px) `;
   if (s.translateY !== undefined) transform += `translateY(${s.translateY}px) `;

@@ -56,7 +56,9 @@ paths:
   - **A replay's frames reach the map through its handle, never as props** (`replayFrame`, RC1-RC3): the walker is
     the live walk's DOM puck, the camera a `jumpTo` every frame, the line revealed by a paint property, and one
     `map.redraw()` draws them in the frame they were set (a marker moves at once, the canvas a frame later otherwise).
-    The screen passes `replay` and no `walker`, `follow` or `trace` meanwhile. Native takes the same frames into a
+    The screen passes `replay` and no `walker` or `follow` meanwhile; a `trace` it goes on giving (the walk's
+    replay: its first beat's, faint) is drawn only as far as the frames say (`traceShown`, replay-ceremony ui 7), by
+    a paint property and never a send. Native takes the same frames into a
     store its own dot and lines read (unverified on a device).
   - **Nothing reads layout per camera move.** The canvas's size is measured on `load` and `resize` (`canvasSize`):
     the pins' move listener (`pinViewOf`) and the view's `track` work from it. A read of `clientWidth` between two

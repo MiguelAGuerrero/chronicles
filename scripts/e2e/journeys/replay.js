@@ -1129,7 +1129,7 @@ async function run(h) {
       await pictured('rc-stack-three');
       // The place passed without stopping, said as the walker goes by (replay-ceremony ui 5): its words on a ground of
       // their own, clear of the walker's dot, ending short of the stack (ui 3).
-      const whispered = await pg.waitForFunction(() => { const e = document.querySelector('[data-testid=replay-whisper]'); return !!e && Number((e.closest('[data-whisper]') ?? e).style.opacity || 1) > 0.9; }, null, { timeout: 20000, polling: 'raf' }).then(() => true, () => false);
+      const whispered = await pg.waitForFunction(() => { const e = document.querySelector('[data-testid=replay-whisper]'); return !!e && Number(e.parentElement.style.opacity || 0) > 0.9; }, null, { timeout: 20000, polling: 'raf' }).then(() => true, () => false);
       await pg.click('[data-testid=hold]').catch(() => {});
       await pg.waitForTimeout(250);
       const whisper = await pg.evaluate(() => {
@@ -1150,8 +1150,8 @@ async function run(h) {
       await shot(pg, `rc-whisper-${w}`);
       await pg.click('[data-testid=hold]').catch(() => {});
       const offDot = !!whisper && !!whisper.dot && (whisper.dot[0] < whisper.box[0] - 9 || whisper.dot[0] > whisper.box[2] + 9 || whisper.dot[1] < whisper.box[1] - 9 || whisper.dot[1] > whisper.box[3] + 9);
-      check.todo(whispered && !!whisper && whisper.text === 'Passed Hessian Memorial without stopping' && whisper.solid && whisper.halo === 'none' && whisper.weight < 600 && whisper.size >= 13 && offDot, `replay-ceremony ui 5: at ${w} px a whisper stands on a solid ground, lighter than the last view's name, clear of the walker's dot (${JSON.stringify(whisper)})`);
-      check.todo(!!whisper && !!whisper.stack && whisper.box[2] <= whisper.stack[0] - 6 && whisper.box[0] >= 8, `replay-ceremony ui 3: at ${w} px a whisper ends short of the stack (${JSON.stringify(whisper && { box: whisper.box, stack: whisper.stack })})`);
+      check(whispered && !!whisper && whisper.text === 'Passed Hessian Memorial without stopping' && whisper.solid && whisper.halo === 'none' && whisper.weight < 600 && whisper.size >= 13 && offDot, `replay-ceremony ui 5: at ${w} px a whisper stands on a solid ground, lighter than the last view's name, clear of the walker's dot (${JSON.stringify(whisper)})`);
+      check(!!whisper && !!whisper.stack && whisper.box[2] <= whisper.stack[0] - 6 && whisper.box[0] >= 8, `replay-ceremony ui 3: at ${w} px a whisper ends short of the stack (${JSON.stringify(whisper && { box: whisper.box, stack: whisper.stack })})`);
       // The 20-minute gap: its line under the clock once both ends are in view, the walker part of the way across.
       await pg.waitForFunction(() => document.querySelector('[data-testid=replay-later]')?.textContent === '20 min later', null, { timeout: 120000 }).catch(() => {});
       await pg.waitForTimeout(650);
@@ -1175,14 +1175,14 @@ async function run(h) {
       // The opening does not cut (replay-ceremony ui 7): the path's first frame draws the whole trace as faint as the
       // first beat left it, it fades from there and is gone before the dive is over, and the walker's dot fades in.
       const fades = fadesOf(seenFrames);
-      check.todo(!!fades && fades.before === 0.3 && fades.first === 0.3 && fades.rose === 0 && fades.fall <= 0.1 && fades.goneS != null && fades.goneS >= 1.2 && fades.goneS <= 2.4 && (fades.firstMark == null || fades.firstMark === 0) && fades.between >= 2 && fades.wholeS != null && fades.wholeS >= 1.9 && fades.wholeS <= 3.0, `replay-ceremony ui 7: at ${w} px through the dive the first beat's faint trace fades out and the walker fades in, neither cutting (${JSON.stringify(fades)})`);
+      check(!!fades && fades.before === 0.3 && fades.first === 0.3 && fades.rose === 0 && fades.fall <= 0.1 && fades.goneS != null && fades.goneS >= 1.2 && fades.goneS <= 2.4 && (fades.firstMark == null || fades.firstMark === 0) && fades.between >= 2 && fades.wholeS != null && fades.wholeS >= 1.9 && fades.wholeS <= 3.0, `replay-ceremony ui 7: at ${w} px through the dive the first beat's faint trace fades out and the walker fades in, neither cutting (${JSON.stringify(fades)})`);
       // A hop's dots stand on a white edge while the path is told, and on the card the links are as they were (ui 6).
       const hopEdge = hopEdgeOf(seenFrames);
-      check.todo(!!hopEdge && hopEdge.told.length === 1 && Number(hopEdge.told[0]) >= 0.5 && Number(hopEdge.after) === 0, `replay-ceremony ui 6: at ${w} px a hop's dots have their white edge through the path and none on the card (${JSON.stringify(hopEdge)})`);
+      check(!!hopEdge && hopEdge.told.length === 1 && Number(hopEdge.told[0]) >= 0.5 && Number(hopEdge.after) === 0, `replay-ceremony ui 6: at ${w} px a hop's dots have their white edge through the path and none on the card (${JSON.stringify(hopEdge)})`);
       // On the last view the earlier of the two photos is under the later: it takes no tap, the one showing does (ui 1).
       const lastTaps = lastView.taps ?? [];
       const tapOf = (k) => lastTaps.find((x) => x.key === k);
-      check.todo(lastTaps.length === 3 && !!tapOf('rr-photo') && !tapOf('rr-photo').shown && !tapOf('rr-photo').takes && tapOf('rr-photo-2').shown && tapOf('rr-photo-2').takes && tapOf('rr-video').takes && lastTaps.every((x) => x.w >= 44 && x.h >= 44 && x.role === 'button' && x.name === 'Open this moment'), `replay-ceremony ui 1: at ${w} px each standing picture is a 44 px control named in plain words, and one under a later picture takes no tap (${JSON.stringify(lastTaps)})`);
+      check(lastTaps.length === 3 && !!tapOf('rr-photo') && !tapOf('rr-photo').shown && !tapOf('rr-photo').takes && tapOf('rr-photo-2').shown && tapOf('rr-photo-2').takes && tapOf('rr-video').takes && lastTaps.every((x) => x.w >= 44 && x.h >= 44 && x.role === 'button' && x.name === 'Open this moment'), `replay-ceremony ui 1: at ${w} px each standing picture is a 44 px control named in plain words, and one under a later picture takes no tap (${JSON.stringify(lastTaps)})`);
       // What stays behind and a moment on screen (RC28-RC30, RC34-RC36), from the same frames.
       const stays = staysOf(seenFrames, places, ['rr-photo', 'rr-photo-2', 'rr-video']);
       const landed = Object.values(stays.landed);
@@ -1284,7 +1284,7 @@ async function run(h) {
       if (await pg.locator('[data-testid=replay-held]').count()) await pg.click('[data-testid=hold]').catch(() => {});
       await pg.waitForTimeout(1500);
       const after = await now();
-      check.todo(!!target && target.width >= 44 && target.height >= 44 && opened && itsOwn && a === b && heldPill === 0 && after !== b, `replay-ceremony ui 1: at ${w} px a tap on a standing picture opens its moment, the replay holding until the viewer closes and going on after (target ${JSON.stringify(target && [Math.round(target.width), Math.round(target.height)])}, opened ${opened} on its photo ${itsOwn}; ${a} → ${b} while open, ${after} after)`);
+      check(!!target && target.width >= 44 && target.height >= 44 && opened && itsOwn && a === b && heldPill === 0 && after !== b, `replay-ceremony ui 1: at ${w} px a tap on a standing picture opens its moment, the replay holding until the viewer closes and going on after (target ${JSON.stringify(target && [Math.round(target.width), Math.round(target.height)])}, opened ${opened} on its photo ${itsOwn}; ${a} → ${b} while open, ${after} after)`);
       // A tap elsewhere on the stage still holds, and another goes on (RR7).
       await pg.mouse.click(40, Math.round(ht * 0.72));
       await pg.waitForTimeout(300);
@@ -1292,7 +1292,7 @@ async function run(h) {
       const viewer = await pg.locator('[data-testid=viewer-close]').count();
       await pg.mouse.click(40, Math.round(ht * 0.72));
       await pg.waitForTimeout(300);
-      check.todo(held === 1 && viewer === 0 && (await pg.locator('[data-testid=replay-held]').count()) === 0, `replay-ceremony ui 1: at ${w} px a tap beside a picture still only holds the replay (held ${held}, viewer ${viewer})`);
+      check(held === 1 && viewer === 0 && (await pg.locator('[data-testid=replay-held]').count()) === 0, `replay-ceremony ui 1: at ${w} px a tap beside a picture still only holds the replay (held ${held}, viewer ${viewer})`);
       await pg.click('[data-testid=skip]').catch(() => {});
       await pg.waitForSelector('[data-testid=to-name]', { timeout: 30000 });
     }
@@ -1341,7 +1341,7 @@ async function run(h) {
       const settled = bearings.findIndex((x) => Math.abs(x) < 0.5);
       const inBeat = atClock != null && settled >= 0 && settled < atClock - 5;
       const stays = settled >= 0 && bearings.slice(settled).every((x) => Math.abs(x) < 0.5);
-      check.todo(Math.abs(turned) > 5 && inBeat && stays, `replay-ceremony ui 8: a card's map turned by hand opens north-up in the first beat, with no snap as the path begins (turned ${turned}; then ${bearings.slice(0, 6).join(', ')} … north from reading ${settled}, the path at ${atClock})`);
+      check(Math.abs(turned) > 5 && inBeat && stays, `replay-ceremony ui 8: a card's map turned by hand opens north-up in the first beat, with no snap as the path begins (turned ${turned}; then ${bearings.slice(0, 6).join(', ')} … north from reading ${settled}, the path at ${atClock})`);
       await pg.click('[data-testid=skip]').catch(() => {});
       await pg.waitForSelector('[data-testid=to-name]', { timeout: 30000 });
     }
@@ -1592,7 +1592,7 @@ async function run(h) {
       check(n >= 8 && n < 18 && most <= n && full.keys.join(',') === ids.slice(-n).join(',') && full.top >= controls && highest >= controls && !/[\d\p{L}]/u.test(full.text) && opens === 18, `RC30: at 320 px eighteen photos fill the stack to what the screen holds and no further, the oldest dropping off the bottom, every one still opened by it (${JSON.stringify({ shown: n, most, first: full.keys[0], last: full.keys[n - 1], top: full.top, highest, controls, text: full.text, opens, sixIn: half && half.keys.length })})`);
       // The stack keeps clear of Next (replay-ceremony ui 2, the UI review's U3): its highest entry at rest is 12 px
       // or more under Next's foot.
-      check.todo(full.top != null && controls > 0 && full.top - controls >= 12, `replay-ceremony ui 2: at 320 px the stack at its bound stands 12 px or more under Next (its top ${full.top}, Next's foot ${controls})`);
+      check(full.top != null && controls > 0 && full.top - controls >= 12, `replay-ceremony ui 2: at 320 px the stack at its bound stands 12 px or more under Next (its top ${full.top}, Next's foot ${controls})`);
       await pg.click('[data-testid=skip]').catch(() => {});
       await pg.waitForSelector('[data-testid=to-name]', { timeout: 30000 }).catch(() => {});
       // The last view at 320 px with the stack at its bound (replay-ceremony ui 3, the UI review's U4): watched again,
@@ -1612,7 +1612,7 @@ async function run(h) {
         return { name: name ? box(name) : null, text: name ? name.textContent.trim() : null, cut: name ? name.scrollWidth > name.clientWidth + 1 : null, stack: stack ? box(stack) : null, entries };
       });
       await shot(pg, 'rc-passed-stack-320');
-      check.todo(named && !!beside.name && !!beside.stack && beside.entries >= 8 && beside.name[2] <= beside.stack[0] - 6 && beside.name[0] >= 8 && !beside.cut, `replay-ceremony ui 3: at 320 px, the stack at its bound, the last view's passed-place name ends short of it (${JSON.stringify(beside)})`);
+      check(named && !!beside.name && !!beside.stack && beside.entries >= 8 && beside.name[2] <= beside.stack[0] - 6 && beside.name[0] >= 8 && !beside.cut, `replay-ceremony ui 3: at 320 px, the stack at its bound, the last view's passed-place name ends short of it (${JSON.stringify(beside)})`);
       await pg.click('[data-testid=skip]').catch(() => {});
       await pg.waitForSelector('[data-testid=to-name], [data-testid=done]', { timeout: 30000 }).catch(() => {});
     }

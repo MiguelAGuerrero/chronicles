@@ -1,9 +1,8 @@
 /// <reference types="node" />
 // Replay ceremony, the UI review's findings (specs/replay-ceremony/spec.md, "The UI review and the cold find", U1 and
 // U3-U6) and three things the owner's looks left, accepted on Nov 19 ("Proceed with your work"). Each is a regression
-// test named `replay-ceremony ui N`, written before its fix: what is not built yet is reached through casts and a
-// guarded load (`walks.ts`), so each fails for its own reason. What the screen shows of them is the `replay` and
-// `stacks` journeys' too.
+// test named `replay-ceremony ui N`, written before its fix (a todo at 41039e08): what was not built then is reached
+// through casts and a guarded load (`walks.ts`). What the screen shows of them is the `replay` and `stacks` journeys' too.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -43,7 +42,7 @@ function contrast(a: string, b: string): number {
 
 // ---------------------------------------------------------------- ui 1 (U1): a standing picture opens its moment
 
-test('replay-ceremony ui 1: a picture standing on the map opens its moment, a 44 pt control; one under a later picture or under a card takes no tap', { todo: 'test first' }, () => {
+test('replay-ceremony ui 1: a picture standing on the map opens its moment, a 44 pt control; one under a later picture or under a card takes no tap', () => {
   const P = PICTURE();
   assert.ok((P.hit ?? 0) >= 44, `its hit area is ${P.hit} px around the ${P.size} px tile`);
   const view = read('components/ceremony/Pictures.tsx');
@@ -79,7 +78,7 @@ test('replay-ceremony ui 1: a picture standing on the map opens its moment, a 44
 
 // ---------------------------------------------------------------- ui 2 (U3): the stack, Next and Android
 
-test('replay-ceremony ui 2: the stack starts 12 px under Next\'s foot, and its hit width is 48 on Android with the drawing unchanged', { todo: 'test first' }, () => {
+test('replay-ceremony ui 2: the stack starts 12 px under Next\'s foot, and its hit width is 48 on Android with the drawing unchanged', () => {
   const S = STACK();
   // Skip, 12 in and 48 tall; Next under it, 8 apart and 48 tall; then 12 to spare.
   assert.equal(S.top, 12 + 48 + 8 + 48 + 12, `the stack's top bound is ${S.top - (12 + 48 + 8 + 48)} px under Next`);
@@ -103,7 +102,7 @@ test('replay-ceremony ui 2: the stack starts 12 px under Next\'s foot, and its h
 
 // ---------------------------------------------------------------- ui 3 (U4): words end short of the stack
 
-test('replay-ceremony ui 3: a whisper and the last view\'s passed-place name end short of the stack\'s column while the stack is up, at 320 px too', { todo: 'test first' }, () => {
+test('replay-ceremony ui 3: a whisper and the last view\'s passed-place name end short of the stack\'s column while the stack is up, at 320 px too', () => {
   const S = STACK();
   const stackEdge = built<(s: Screen) => number>(roomMod, 'stackEdge');
   const stackUp = built<(f: Frame | null) => boolean>(liveMod, 'stackUp');
@@ -159,7 +158,7 @@ test('replay-ceremony ui 3: a whisper and the last view\'s passed-place name end
 
 // ---------------------------------------------------------------- ui 4 (U5): a grid's last row, and its word
 
-test('replay-ceremony ui 4: a grid\'s last row fills, its pieces spanning the row, and the card\'s strip names a grid in the plural', { todo: 'test first' }, () => {
+test('replay-ceremony ui 4: a grid\'s last row fills, its pieces spanning the row, and the card\'s strip names a grid in the plural', () => {
   const rowShare = built<(n: number, index: number) => number>(gridMod, 'rowShare');
   const shares = (n: number) => Array.from({ length: n }, (_, i) => rowShare(n, i));
   assert.deepEqual(shares(1), [1]);
@@ -197,7 +196,7 @@ test('replay-ceremony ui 4: a grid\'s last row fills, its pieces spanning the ro
 
 // ---------------------------------------------------------------- ui 5 (U6): a whisper's ground and side
 
-test('replay-ceremony ui 5: a whisper stands on a solid ground, lighter than the last view\'s name, over or under its place and clear of the walker', { todo: 'test first' }, () => {
+test('replay-ceremony ui 5: a whisper stands on a solid ground, lighter than the last view\'s name, over or under its place and clear of the walker', () => {
   const view = read('components/ceremony/Whispers.tsx');
   const style = (name: string) => new RegExp(`\\b${name}: \\{([^}]*)\\}`).exec(view.slice(view.indexOf('StyleSheet.create')))?.[1] ?? '';
   const whisper = style('whisper');
@@ -248,7 +247,7 @@ test('replay-ceremony ui 5: a whisper stands on a solid ground, lighter than the
 
 // ---------------------------------------------------------------- ui 6: a hop's dots over a walked street
 
-test('replay-ceremony ui 6: while a replay is told a hop\'s dots stand on a white edge, each dot in its own disc, so they read on the land and on a lit street; other maps\' gap links are as they were', { todo: 'test first' }, () => {
+test('replay-ceremony ui 6: while a replay is told a hop\'s dots stand on a white edge, each dot in its own disc, so they read on the land and on a lit street; other maps\' gap links are as they were', () => {
   const T = mapTypes as unknown as Record<string, unknown>;
   const edge = built<{ color: string; width: number; dash: number[]; opacity: number }>(T, 'HOP_EDGE');
   const dash = mapTypes.GAP_LINK_DASH;
@@ -277,7 +276,7 @@ test('replay-ceremony ui 6: while a replay is told a hop\'s dots stand on a whit
 
 // ---------------------------------------------------------------- ui 7: the opening does not cut
 
-test('replay-ceremony ui 7: through the dive the first beat\'s faint trace fades out and the walker fades in; with reduce motion each is a step', { todo: 'test first' }, () => {
+test('replay-ceremony ui 7: through the dive the first beat\'s faint trace fades out and the walker fades in; with reduce motion each is a step', () => {
   const { story, bounds } = walkOf();
   const whole = wholeOf(bounds);
   const dive = token('dive');
@@ -324,6 +323,17 @@ test('replay-ceremony ui 7: through the dive the first beat\'s faint trace fades
   for (let ms = 0; ms < hold + dive; ms += 100) assert.equal(field<number>(frameAt(d, ms), 'wholeTrace'), 0, `a day's opening at ${ms} ms`);
   assert.equal(field<number>(frameAt(d, hold + token('diveMark')), 'walkerFade'), 0);
   assert.ok(Math.abs(field<number>(frameAt(d, hold + token('diveMark') + markIn / 2), 'walkerFade') - 0.5) < 0.02);
+  // How a map draws the trace it is given: as the screen says, and while a replay is told only as far as the frames
+  // say: the lines fade from the first beat's faint trace to nothing, the end markers come up to full, the links (the
+  // replay's own hops then) are whole.
+  const shown = built<(opacity: number, told: boolean, whole: number) => { line: number; marks: number; links: number }>(mapTypes as unknown as Record<string, unknown>, 'traceShown');
+  const quiet = mapTypes.QUIET_TRACE_OPACITY;
+  assert.deepEqual(shown(quiet, false, 0), { line: quiet, marks: quiet, links: quiet }, 'the first beat: faint, as the screen says');
+  assert.deepEqual(shown(quiet, true, 1), { line: quiet, marks: quiet, links: 1 }, 'the path\'s first frame: the same trace, no cut');
+  assert.deepEqual(shown(quiet, true, 0), { line: 0, marks: 1, links: 1 }, 'past the dive: the trace is the replay\'s own line');
+  assert.ok(shown(quiet, true, 0.5).line === quiet / 2 && shown(quiet, true, 0.5).marks > quiet && shown(quiet, true, 0.5).marks < 1);
+  assert.deepEqual(shown(1, false, 0), { line: 1, marks: 1, links: 1 }, 'the card, and every other map');
+  assert.deepEqual(shown(0, false, 1), { line: 0, marks: 0, links: 0 }, 'hidden while navigating, as before');
   // The frame hands both to the map, which writes them with no render; the screen keeps giving the map the trace it
   // showed in the first beat, so there is something to fade.
   assert.match(read('components/ceremony/useCeremonyLoop.ts'), /wholeTrace: f\.wholeTrace, walkerFade: f\.walkerFade/);
@@ -333,11 +343,14 @@ test('replay-ceremony ui 7: through the dive the first beat\'s faint trace fades
   assert.match(read('components/map/WalkMap.native.tsx'), /walkerFade/);
   const screen = read('app/replay/[id].tsx');
   assert.doesNotMatch(screen, /trace=\{telling \|\|/, 'the walk\'s replay takes the trace off the map as the path begins');
+  assert.match(screen, /traceOpacity=\{beat === 'fog' \|\| beat === 'reading' \|\| telling \? QUIET_TRACE_OPACITY : 1\}/, 'through the path the trace is the first beat\'s, for the frames to fade');
+  assert.match(web, /paintTrace\(traceShown\(traceOpacity\.current, true, f\.wholeTrace\)\)/);
+  assert.match(web, /p\.el\.style\.opacity = /, 'the dot\'s fade is written on its own element');
 });
 
 // ---------------------------------------------------------------- ui 8: north-up from the first beat
 
-test('replay-ceremony ui 8: the first beat\'s fit turns a map turned by hand north-up, so the path never snaps it', { todo: 'test first' }, () => {
+test('replay-ceremony ui 8: the first beat\'s fit turns a map turned by hand north-up, so the path never snaps it', () => {
   const fitBearing = built<(o: { north: boolean; northEasing: boolean; bearing: number }) => number>(compass, 'fitBearing');
   // A fit keeps the bearing the map has (CP1), unless it is asked north-up, or the compass is easing it there.
   assert.equal(fitBearing({ north: false, northEasing: false, bearing: 40 }), 40);

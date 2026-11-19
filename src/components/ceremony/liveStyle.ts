@@ -13,7 +13,6 @@ export function writeStyle(node: unknown, s: LiveStyle): void {
   if (s.left !== undefined) style.left = s.left;
   if (s.top !== undefined) style.top = s.top;
   if (s.maxHeight !== undefined) style.maxHeight = s.maxHeight ?? undefined;
-  if (s.textAlign !== undefined) style.textAlign = s.textAlign;
   const transform: Record<string, unknown>[] = [];
   if (s.translateX !== undefined) transform.push({ translateX: s.translateX });
   if (s.translateY !== undefined) transform.push({ translateY: s.translateY });

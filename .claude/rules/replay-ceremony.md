@@ -67,6 +67,10 @@ how a telling opens and closes on the whole of what it tells; what stays behind 
   source's data. **Trap: a dotted line cannot be revealed by a paint property** (the same as a ride's dashes): a hop is
   data while it draws, sent at most every `REPLAY_ENGINE.resendMs` (about eight sends over a far hop), and never again
   once whole. That is a break, not a stretch: RC3's count is unaffected.
+- **A hop stands on a white edge while a replay is told** (`replay-ceremony ui 6`): `gap-links-edge`, just under the
+  dots and on their source, a disc a dot (`map/types.ts` `HOP_EDGE`: the wider line takes a shorter dash, so the
+  spacing is the dots' own). Grey dots over a street lit in the walked ink read 1.5:1; the white reads 6:1 there.
+  Its opacity is `hopEdgeOpacity(replayOn)`: none on any other map, nor on the card, where a gap's links are as they were.
 - **Through the card**: `Showing.hops` says a telling's hops whole, with the walk's times each crosses. On the walk's
   card a gap keeps the card's own way of drawing it (`linksWithHops`, matched by time, since a gap's ends are the
   recorded fixes' and a hop's the story's, a few metres apart): its dotted link if empty (GW2: the same dots, drawn
@@ -93,9 +97,19 @@ how a telling opens and closes on the whole of what it tells; what stays behind 
   standing picture's height (`layout.ts` `WHOLE_TOP`), so no control sits on the walk and the card's map is that same view. Change a fit's padding in one place
   and the other jumps: the `replay` journey reads the cut (`bookendsOf`: `cutPx`, `movedPx`).
 - **The opening** is the `intro` segment: the dive, `dive` ms from the whole to the walker's start (a `Move` with zooms,
-  as a hop's: the start goes straight to the focus on the screen), the walker shown from `diveMark`, the clock in from
+  as a hop's: the start goes straight to the focus on the screen), the walker's dot coming in from `diveMark` over
+  `diveMarkIn` (`Frame.walkerFade`, written on the dot's own element), the clock in from
   `diveClockIn`. A telling with no beat before it (the day's, `holdOpen`) shows the whole `openHold` first. **A walk
   shorter than the walking zoom shows is fitted closer than zoom 15** (the fit's cap is 17): its dive pulls back. Left.
+- **Nothing cuts as the path opens** (`replay-ceremony ui 7`): the walk's screen gives the map the whole trace in
+  every beat, at the first beat's `QUIET_TRACE_OPACITY` through the path, and while a replay is told the map draws it
+  only as far as the frames say (`Frame.wholeTrace`, 1 to 0 over `diveTraceOut`; `map/types.ts` `traceShown`: the
+  lines fade out, the end markers come up to full, the links are the replay's own hops). A paint property written by
+  `paintTrace`, no data sent. A day's telling left no trace to fade (`wholeTrace` 0; its screen gives none). On a
+  phone the fade is ten steps, since each renders the trace's sources (untried).
+- **The first beat's fit is north-up** (`replay-ceremony ui 8`): `fitNorth` on the map through the reading and fog
+  beats (`lib/compass` `fitBearing`; any other fit keeps the bearing, CP1), so a card's map turned by hand eases north
+  with that fit and the path's first `jumpTo` snaps nothing. A day's card, with no beat before its path, still snaps.
 - **The close** is `rest` (the walker stands, `rest` ms) and `close` (the pull-back over `close` ms to the card's view,
   held `closeHold`). The clock through both is where the walker stopped (never the walk's end time, which can be long
   after the last fix), fades over `closeClock` and is not drawn while its fade is 0 (`Stage` keeps its room): the last

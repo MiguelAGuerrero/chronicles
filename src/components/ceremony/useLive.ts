@@ -14,7 +14,7 @@ export function useLive<T extends string | number | boolean | null>(live: StageL
   return useSyncExternalStore(live.subscribe, read, read);
 }
 
-const KEYS: (keyof LiveStyle)[] = ['opacity', 'left', 'top', 'maxHeight', 'translateX', 'translateY', 'rotate', 'scale', 'textAlign'];
+const KEYS: (keyof LiveStyle)[] = ['opacity', 'left', 'top', 'maxHeight', 'translateX', 'translateY', 'rotate', 'scale'];
 const same = (a: LiveStyle | null, b: LiveStyle) => !!a && KEYS.every((k) => a[k] === b[k]);
 
 /**

@@ -38,14 +38,27 @@ const MIN_CARD = 80;
 /**
  * The stack at the right edge (replay ceremony RC29-RC31): an entry's size (one control, 44 pt at the least), how far
  * each stands over the one before, how far in from the edge, the top row it stays under (Skip, 12 in and 48 tall, and
- * Next under it, 8 apart and 8 to spare), and the gap a card keeps from it.
+ * Next under it, 8 apart, then 12 to spare: `replay-ceremony ui 2`), the gap a card keeps from it, and how wide it is
+ * to a finger on Android (48 dp, X0).
  */
-export const STACK = { w: 44, h: 50, pitch: 25, right: 8, top: 12 + 48 + 8 + 48 + 8, gap: 6 } as const;
+export const STACK = { w: 44, h: 50, pitch: 25, right: 8, top: 12 + 48 + 8 + 48 + 12, gap: 6, hit: 48 } as const;
+/**
+ * The room a finger gets beyond the stack's drawing (`replay-ceremony ui 2`): on Android, half of what its 44 px lacks
+ * of 48 dp each side; nowhere else (44 pt is an iPhone's target, and a slop does nothing on the web).
+ */
+export const stackSlop = (os: string): { left: number; right: number } | undefined =>
+  os === 'android' ? { left: (STACK.hit - STACK.w) / 2, right: (STACK.hit - STACK.w) / 2 } : undefined;
+/**
+ * Where the stack's column begins, its gap included (`replay-ceremony ui 3`): what is said over the map while the
+ * stack is up (a whisper, the last view's names) ends short of it, as a card and the bubbles' corner do.
+ */
+export const stackEdge = (c: StageRoom): number => c.width - c.insets.right - STACK.right - STACK.w - STACK.gap;
 /**
  * A picture standing on the map (RC28, RC34): its frame's size, how far over its place its middle is (a short stalk
- * joins the two), and how near two places are, on the screen, for the later picture to cover the earlier.
+ * joins the two), how near two places are, on the screen, for the later picture to cover the earlier, and the size of
+ * the control around it that opens its moment (44 pt, `replay-ceremony ui 1`).
  */
-export const PICTURE = { size: 36, lift: 30, apart: 34 } as const;
+export const PICTURE = { size: 36, lift: 30, apart: 34, hit: 44 } as const;
 
 /** The room between the top row and the bottom corner, where a card stands (audit 13: a landscape phone). */
 const cardRoom = (c: StageRoom) => ({ top: c.insets.top + STACK_TOP, bottom: c.height - c.insets.bottom - STAGE_BOTTOM });

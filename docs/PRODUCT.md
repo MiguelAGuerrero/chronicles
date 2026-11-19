@@ -524,12 +524,14 @@ recording, and a recording bar brings a minimized walk back.
   walker keeps a steady pace, slowing into each moment; the camera holds still and re-frames, rises on a
   stretch the walker crosses fast, and settles each photo's pin under its card (replay ceremony, decision 0206, on its
   branch); a gap is crossed by a dotted hop under "20 min later", with no dim. The path opens from the whole walk as
-  the fog beat left it, diving to where the walk began, and closes the same way: the walker stands, the camera pulls
+  the fog beat left it, north-up, diving to where the walk began while the faint trace fades out and the walker's dot
+  fades in, and closes the same way: the walker stands, the camera pulls
   back to the whole walk above where the card will sit, and that last view shows the date and names each place
   passed without stopping before the card comes (a day's replay shows the whole day first, and names none). A clock
   rolls through the time of day. Notes and memos stack as speech bubbles in a
   corner; photos and videos grow from their place into a card, the map dimming a little under it, and shrink
-  back onto that place, where the picture then stands (the later of two close together over the earlier). Each
+  back onto that place, where the picture then stands (the later of two close together over the earlier); a tap
+  on a standing picture opens that moment full screen, the replay holding until it is closed. Each
   such moment also joins a stack at the right edge, which grows upward, drops its oldest when it would reach the
   controls, never shows a number, and opens them all full screen. A moment of several pieces arrives whole: its
   pictures as a grid, then its videos in turn in the same card, its memos after. Places passed without stopping

@@ -256,12 +256,15 @@ export const REPLAY_RHYTHM = {
   lineAfter: 1500,
   /**
    * The opening (replay ceremony RC23): the camera dives from the whole of what is told to the walker's start in `dive`;
-   * the walker shows from `diveMark` into it, and the clock comes in from `diveClockIn` over `diveClock`. A telling with
-   * no beat before it (a day's) shows the whole for `openHold` first.
+   * the walker comes in from `diveMark` into it over `diveMarkIn`, the clock from `diveClockIn` over `diveClock`, and
+   * the whole trace the first beat left, faint, fades out over `diveTraceOut` (`replay-ceremony ui 7`: nothing cuts).
+   * A telling with no beat before it (a day's) shows the whole for `openHold` first.
    */
   dive: 2200,
   openHold: 2000,
   diveMark: 1900,
+  diveMarkIn: 300,
+  diveTraceOut: 1650,
   diveClockIn: 1700,
   diveClock: 400,
   /**

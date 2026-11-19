@@ -67,6 +67,12 @@ export function timelineWalkLine(distance: string | null, moments: number): stri
 /** A walk's More, named by the title it shows wherever that title is known: its row, its timeline entry, its card (tend tabs 11). */
 export const moreFor = (title: string): string => `More for ${title}`;
 
+/**
+ * What a replay card's strip calls a moment's pictures shown as a grid (`replay-ceremony ui 4`): the kind in the
+ * plural for two or more, a word and never a count.
+ */
+export const gridLabel = (pieces: number): string => (pieces > 1 ? 'Photos' : 'Photo');
+
 /** A day's timeline entry for a walk as a screen reader says it (tend chronicle 3): its time, the title it shows, its line. */
 export function timelineWalkSpoken(clock: string, title: string, line: string): string {
   return `${[clock, title, ...line.split(' · ')].join(', ')}. Replay it`;

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { bubblePose, bubbleRoom, cardPose, cardWidth, heldShown, PICTURE, project, restCenter, STACK_TOP, STAGE_BOTTOM, STAGE_SIDE, STAGE_TOP, WHISPER_WIDTH, whisperPose, type LiveStyle, type StageCtx } from '../../../components/ceremony/layout';
+import { bubblePose, bubbleRoom, cardPose, cardWidth, heldShown, PICTURE, project, restCenter, STACK_TOP, STAGE_BOTTOM, STAGE_SIDE, STAGE_TOP, WHISPER, whisperPose, type LiveStyle, type StageCtx } from '../../../components/ceremony/layout';
 import type { BubbleOverlay, CardOverlay, WhisperOverlay } from '../../ceremony/types';
 import { createStageLive } from '../../ceremony/live';
 
@@ -116,7 +116,7 @@ test('RC7: a card\'s place, size and fade are its frame\'s: from its pin, to res
   assert.deepEqual(at(cardPose(card({ grow: 0 }), c, { center: null, zoom: null }, w, h)), rest);
 });
 
-test('RC7: a bubble\'s room and fade, and a whisper\'s side, are their frame\'s (RR9, RR15, RR18)', () => {
+test('RC7: a bubble\'s room and fade, and a whisper\'s place, are their frame\'s (RR9, RR15, RR18)', () => {
   const c = stage(390, 844);
   const bubble = (enter: number, exit: number): BubbleOverlay => ({ kind: 'bubble', key: 'b', capture: { id: 'b' } as BubbleOverlay['capture'], enter, exit, playing: false, progress: 0 });
   assert.deepEqual(bubbleRoom(bubble(0.5, 0), false), { maxHeight: 85 });
@@ -125,14 +125,18 @@ test('RC7: a bubble\'s room and fade, and a whisper\'s side, are their frame\'s 
   assert.deepEqual(bubblePose(bubble(0.5, 0), false), { opacity: 0.5, translateY: 5, scale: 0.98 });
   assert.deepEqual(bubblePose(bubble(1, 0.5), false), { opacity: 0.5, translateY: -6, scale: 1 });
   assert.deepEqual(bubblePose(bubble(0.5, 0), true), { opacity: 0.5, translateY: 0, scale: 1 });
-  const whisper = (m: number): WhisperOverlay => ({ kind: 'whisper', key: 'w', text: 'Passed', at: eastOf(m), opacity: 0.6 });
+  // A whisper stands over its place or under it, as its frame says, centred on it (replay-ceremony ui 5; it stood
+  // beside its place until then, across the pin and the line).
+  const whisper = (m: number, above: boolean): WhisperOverlay => ({ kind: 'whisper', key: 'w', text: 'Passed', at: eastOf(m), opacity: 0.6, above });
   const camera = { center: O, zoom: 16 };
-  const west = whisperPose(whisper(-80), c, camera);
-  const east = whisperPose(whisper(80), c, camera);
-  assert.equal(west.textAlign, 'left', 'a place left of the middle is said to its right');
-  assert.equal(east.textAlign, 'right');
-  assert.ok(west.left! > project(c, camera, eastOf(-80))![0] && east.left! + WHISPER_WIDTH < project(c, camera, eastOf(80))![0]);
-  assert.equal(west.opacity, 0.6);
+  const over = whisperPose(whisper(-80, true), c, camera);
+  const under = whisperPose(whisper(80, false), c, camera);
+  const [wx, wy] = project(c, camera, eastOf(-80))!;
+  const [ex, ey] = project(c, camera, eastOf(80))!;
+  assert.ok(Math.abs(over.left! + WHISPER.width / 2 - wx) < 1e-6 && Math.abs(under.left! + WHISPER.width / 2 - ex) < 1e-6, 'centred on its place');
+  assert.equal(over.top! + WHISPER.height, wy - WHISPER.gap, 'over its place, a gap clear of it');
+  assert.equal(under.top, ey + WHISPER.gap, 'or under it');
+  assert.equal(over.opacity, 0.6);
   // Without a following map, under the clock, centred.
-  assert.deepEqual(whisperPose(whisper(80), c, { center: null, zoom: null }), { left: (390 - WHISPER_WIDTH) / 2, top: 100, opacity: 0.6, textAlign: 'center' });
+  assert.deepEqual(whisperPose(whisper(80, true), c, { center: null, zoom: null }), { left: (390 - WHISPER.width) / 2, top: 100, opacity: 0.6 });
 });
