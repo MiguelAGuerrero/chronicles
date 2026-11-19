@@ -438,6 +438,7 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - An e2e for the Home Screen hand-off (`navigator.standalone` plus an iPhone UA, a `location.href` spy): `openInMaps` imports `Platform`, so no unit test reaches it (fix pwa-maps audit 1; deferred at `--tests=lean`)
 
 - **A self-referential `node_modules` symlink is tracked in git** (commit `16e54cf`, seen Nov 4 during fix busy-streets): it points at itself, so a fresh checkout has no dependencies until it is removed and `npm ci` runs. Untrack it and make sure `node_modules` is in `.gitignore`; left alone because it is not the busy-areas fix.
+- [loop] `layers/storefronts.test.ts` (SF13: no name under src/ says busy) scans every file under src/ but is not marked `// @tree-wide`, so the Stop hook skips it on a change that does not import it; `3065dae` passed the hook and turned `main` red on it. Mark it (and audit the other source scans the same way: `grep -L '^// @tree-wide' $(grep -l 'readdirSync' src/lib/__tests__ -r)`), each one shown to run from an unrelated change (fix fix-lean-npm-test, Nov 19)
 
 ## Walkability (specs/walkability, decision 0093)
 

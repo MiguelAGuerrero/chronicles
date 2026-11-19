@@ -481,7 +481,8 @@ their minutes (the table below). A set bigger than the size allows is a question
 | flow | wiring between screens, navigation, what a screen stores and reads back, the recorder | small's set, and the journeys holding checks on that wiring (rule 2 below) |
 | build | Babel, Metro, `app.json` experiments | every main screen's journey once (below) |
 
-The full flow only when the owner asks (0074).
+The full flow only when the owner asks (0074). **`npm test` runs at every size, `none` included** (about 13 s; 0223's
+addendum): sizing cuts journeys, never the unit suite, which CI fails a deploy on.
 
 - **A removal is found by grep, not by the file map.** Removing a control breaks only the journeys that touch it: grep
   its test id, its words and its slot's name. `check:affected` lists every journey of every feature owning a file the

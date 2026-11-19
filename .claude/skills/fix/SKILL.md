@@ -40,11 +40,17 @@ less work from you, not fewer gates: the hook runs typecheck, the layer check,
 the affected unit tests and `check:docs`; CI runs docs, typecheck, `npm test`
 and lint before Pages deploys.
 
+**`npm test` runs at every level, `none` included** (about 13 s; the owner's call, Nov 19, decision 0223's
+addendum): CI fails the deploy on it, and the hook runs only the tests a change's imports reach and those marked
+`// @tree-wide`, so an unmarked source scan (a banned name, a baseline) passes the hook and fails on `main`.
+`3065dae` (fix walk-strip-buttons, `--tests=lean`) pushed `main` red that way: a prop named `busyQuiet` failed SF13,
+whose file (`layers/storefronts.test.ts`) is not marked.
+
 | Level | You run | New test |
 |---|---|---|
-| `none` | nothing beyond the hook's gates; the owner verifies by hand | none |
-| `lean` | `npm run typecheck`, `npm run lint:affected` | only if the bug is in a core module (cheap, pure) |
-| `scoped` | `npm run check:affected` (layers, affected tests, typecheck, lint) | a failing-first regression test, in the feature's folder (`src/lib/__tests__/<feature>/`) |
+| `none` | `npm test`, and nothing else beyond the hook's gates; the owner verifies by hand | none |
+| `lean` | `npm run typecheck`, `npm run lint:affected`, `npm test` | only if the bug is in a core module (cheap, pure) |
+| `scoped` | `npm run check:affected` (layers, affected tests, typecheck, lint), then `npm test` | a failing-first regression test, in the feature's folder (`src/lib/__tests__/<feature>/`) |
 | `e2e` | `scoped`, then `npm test`, then the journeys the fix's size calls for (`docs/TESTING.md`, "Size the testing to the change"; never every one `check:affected` names), against the sub-path build as in `/deploy` | regression test, plus a journey step if a screen changed |
 | `full` | `e2e`, then the full e2e flow (no `E2E_ONLY`) | as `e2e` |
 

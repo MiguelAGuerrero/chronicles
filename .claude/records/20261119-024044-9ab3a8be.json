@@ -1,0 +1,13 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Test organization"
+      ],
+      "body": "- [loop] `layers/storefronts.test.ts` (SF13: no name under src/ says busy) scans every file under src/ but is not marked `// @tree-wide`, so the Stop hook skips it on a change that does not import it; `3065dae` passed the hook and turned `main` red on it. Mark it (and audit the other source scans the same way: `grep -L '^// @tree-wide' $(grep -l 'readdirSync' src/lib/__tests__ -r)`), each one shown to run from an unrelated change (fix fix-lean-npm-test, Nov 19)\n"
+    }
+  ]
+}

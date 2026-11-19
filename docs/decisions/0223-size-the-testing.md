@@ -30,3 +30,9 @@ rules in `docs/TESTING.md` and in every skill where testing is a step.
 - `/slice` (the plan states the size; step 9 sizes before running), `/fix` (the `e2e` level), `/deploy` (the sub-path
   run), `/audit`, `/e2e`, `/tend` (the removed-control grep) and `ship.md` (the review's pictures) point to it.
 - The measured times are a cloud container's on Nov 18; a later slice that measures differently updates the table.
+
+## Addendum (the owner, Nov 19)
+**`npm test` runs at every `/fix` level, `none` and `lean` included.** It takes about 13 seconds and is what CI fails a
+deploy on; the Stop hook runs only the tests a change's imports reach and those marked `// @tree-wide`. `3065dae` (fix
+walk-strip-buttons, `--tests=lean`) pushed `main` red on SF13, an unmarked source scan, and every push failed until it
+was renamed. Sizing cuts journeys, never the unit suite.
