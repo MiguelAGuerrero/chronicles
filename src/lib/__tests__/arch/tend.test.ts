@@ -416,9 +416,36 @@ test('tend 0234: the compass reads the run log: refinement shipped against filed
   assert.match(text, /\nthe compass is biting\n$/);
   assert.match(text, /^2026-11-20 sweep chronicle: shipped 4, filed low 0, lens-0 G 0; met 1, failed 1, lacking 0, provisional 1$/m);
   assert.deepEqual(Object.keys(biting.ledger), ['date', 'runs', 'shares', 'trend', 'verdict']);
-  assert.match(read('scripts/tend.js'), /mine\.compass = /, 'tend:balance --write keeps the reading in the ledger');
-  const runs = read('.claude/skills/tend/runs.jsonl').split('\n').filter(Boolean).map((l) => JSON.parse(l) as Record<string, unknown>);
-  assert.equal(typeof tend.compassReading(runs).verdict, 'string', 'the log as it is reads');
+});
+
+test('tend audit 7: the compass says nothing before twelve runs, and reads a trend only from enough refinement in each half', () => {
+  const half = (pairs: [number, number][], month: string) => pairs.map(([a, b], i) => run(`2026-${month}-${10 + i}`, a, b));
+  const six = (p: [number, number]) => Array.from({ length: 6 }, () => p);
+  assert.equal(tend.compassReading([...half(six([4, 0]), '11'), ...half(six([1, 3]), '12')].slice(0, 11)).verdict, 'too early to say: 11 of 12 runs carry the compass', 'a falling share, but eleven runs');
+  assert.equal(tend.compassReading([]).verdict, 'too early to say: 0 of 12 runs carry the compass');
+  const none = tend.compassReading([...half(six([0, 0]), '11'), ...half(six([0, 0]), '12')]);
+  assert.equal(none.trend, 'none', 'no refinement at all');
+  assert.match(none.verdict, /^too few refinement findings to say/);
+  const few = tend.compassReading([...half([[1, 0], [1, 0], [0, 0], [0, 0], [0, 0], [0, 0]], '11'), ...half([[0, 2], ...six([0, 0]).slice(1)], '12')]);
+  assert.equal(few.trend, 'none', 'two findings in a half are too few');
+  assert.match(few.verdict, /^too few refinement findings to say/, 'nothing shipped later, but too little before it');
+  const nullFirst = tend.compassReading([...half(six([0, 0]), '11'), ...half(six([1, 3]), '12')]);
+  assert.equal(nullFirst.trend, 'none', 'a half with no refinement has no share, and reads no rise');
+  assert.equal(tend.compassReading([...half(six([0, 1]), '11'), ...half(six([0, 1]), '12')]).verdict, 'the compass is biting', 'nothing shipped later, with refinement in both halves');
+  const r = repo();
+  for (const runs of ['1', '0', '-3', 'x', '2.5']) assert.equal(r.tendJs('compass', '--runs', runs).status, 2, `--runs ${runs}`);
+  assert.equal(r.tendJs('compass', '--runs', '2').status, 0);
+  const lines = [...half(six([4, 0]), '11'), ...half(six([1, 3]), '12')].map((l) => JSON.stringify(l)).join('\n');
+  r.commit({ '.claude/skills/tend/runs.jsonl': `${lines}\n`, '.claude/skills/tend/ledger.json': '{"lastT":0,"lastG":0,"areas":{},"declined":[]}\n', 'docs/STATUS.md': '# Status\n' }, 'a log of twelve runs, by hand');
+  r.git('update-ref', 'refs/remotes/origin/main', 'HEAD');
+  assert.equal(r.tendJs('balance', '--write').status, 0);
+  const ledger = JSON.parse(readFileSync(join(r.root, '.claude/skills/tend/ledger.json'), 'utf8')) as { compass: { verdict: string; trend: string; runs: number } };
+  assert.deepEqual([ledger.compass.verdict, ledger.compass.trend, ledger.compass.runs], ['the compass is biting', 'falling', 12], 'tend:balance --write keeps the reading in the ledger');
+  assert.match(r.tendJs('compass').stdout, /\nthe compass is biting\n$/);
+  const main = read('.claude/skills/tend/runs.jsonl').split('\n').filter(Boolean).map((l) => JSON.parse(l) as Record<string, unknown>);
+  const carrying = main.filter((l) => typeof l.compass === 'object' && l.compass !== null).length;
+  if (carrying < 12) assert.equal(tend.compassReading(main).verdict, `too early to say: ${carrying} of 12 runs carry the compass`, 'the log as it is');
+  else assert.match(tend.compassReading(main).verdict, /^(the compass is biting|the compass is not biting: tighten it|too few refinement findings to say)/);
 });
 
 const STORE = [
