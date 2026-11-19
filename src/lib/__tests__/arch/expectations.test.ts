@@ -34,7 +34,7 @@ type Expectations = {
   checkProblems(stores: Store[], index: Index, features: string[]): { message: string }[];
   due(stores: Store[], features: string[]): string[];
   listText(stores: Store[], index: Index): string;
-  editProblems(before: string, after: string, feature: string): string[];
+  editProblems(before: string, after: string, feature: string, subject?: string): string[];
   logRefProblems(lines: { id: string; is: string; evidence?: string; provisional?: boolean }[], stores: Store[], index: Index, o?: RefOptions): string[];
   check(root: string): { message: string }[];
   writeProblems(store: Store): string[];
@@ -206,6 +206,52 @@ test('expectations audit 12: a run log names each line once, and only lines of i
   const threads = ex.parseStore(STORE.replace(/memories/g, 'threads'), 'threads');
   assert.ok(ex.logRefProblems([{ id: 'E-threads-3', is: 'lacking', provisional: true }], [store(), threads], index(), o).some((p) => /memories/.test(p)), 'another feature\'s line');
   assert.deepEqual(ex.logRefProblems([{ id: 'E-threads-3', is: 'lacking', provisional: true }], [store(), threads], index(), { ...o, area: undefined }), [], 'a run of no area');
+});
+
+const TRAILERS = '\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_test';
+
+/** A git checkout whose commits the gate reads: the store as each commit leaves it. */
+function gitRoot() {
+  const root = tempRoot({ 'memories.md': STORE });
+  const git = (...a: string[]) => spawnSync('git', a, { cwd: root, encoding: 'utf8' }).stdout.trim();
+  git('init', '-q');
+  git('config', 'user.email', 'test@example.com');
+  git('config', 'user.name', 'test');
+  git('add', '-A');
+  git('commit', '-q', '-m', 'the store, by hand');
+  const commit = (text: string, message: string) => {
+    writeFileSync(join(root, 'docs/expectations/memories.md'), text);
+    git('add', '-A');
+    git('commit', '-q', '--allow-empty', '-m', message);
+    return git('rev-parse', 'HEAD');
+  };
+  const gate = (sha: string) => spawnSync(process.execPath, [join(ROOT, 'scripts', 'tend.js'), 'commits', '--loop-only', `${sha}^..${sha}`], { cwd: root, env: { ...process.env, TEND_ROOT: root }, encoding: 'utf8' });
+  return { root, commit, gate, git };
+}
+
+test('expectations audit 2: only the owner\'s answer commit changes a line\'s status, on its date; every agent commit is read, a loop commit or not', () => {
+  const answered = (date = '2026-11-21') => ex.formatStore(ex.answer(store(), ['E-memories-2'], { as: 'ratified', by: 'owner', date, answer: 'Ratify as drafted' }).store);
+  const subject = "expectations memories: the owner's answer, 2026-11-21";
+  assert.deepEqual(ex.editProblems(STORE, answered(), 'memories', subject), []);
+  assert.ok(ex.editProblems(STORE, answered(), 'memories', 'fix memories: a tidy').some((p) => /E-memories-2/.test(p)), 'any other commit');
+  assert.ok(ex.editProblems(STORE, answered('2026-11-20'), 'memories', subject).some((p) => /2026-11-21/.test(p)), 'the answer is dated as the commit says');
+  assert.ok(ex.editProblems(STORE, answered(), 'threads', subject.replace('memories', 'threads')).length > 0);
+  assert.ok(ex.editProblems(STORE, answered().replace('its place again', 'its street again'), 'memories', subject).some((p) => /E-memories-1/.test(p)), 'an answer commit rewords nothing');
+  assert.ok(ex.editProblems(STORE, ex.formatStore(ex.draft(store(), [line('a day in order.')]).store), 'memories', subject).some((p) => /E-memories-4/.test(p)), 'nor adds a line');
+  const amended = ex.amend(store(), 'E-memories-1', line('a capture to come back within 100 m.'));
+  const superseded = ex.answer(amended.store, ['E-memories-4'], { as: 'ratified', by: 'owner', date: '2026-11-21', answer: 'yes' });
+  assert.deepEqual(ex.editProblems(ex.formatStore(amended.store), ex.formatStore(superseded.store), 'memories', subject), [], 'the line an amendment replaces is superseded with it');
+  const g = gitRoot();
+  const ok = g.commit(answered(), `${subject}${TRAILERS}`);
+  assert.equal(g.gate(ok).status, 0, g.gate(ok).stderr);
+  const reworded = g.commit(answered().replace('its place again', 'its street again'), `fix memories: a tidy${TRAILERS}`);
+  const r = g.gate(reworded);
+  assert.equal(r.status, 1, 'an agent commit that is no loop commit is read too');
+  assert.match(r.stderr, /changes E-memories-1/);
+  const byHand = g.commit(answered().replace('its street again', 'its lane again'), 'the owner, by hand');
+  assert.equal(g.gate(byHand).status, 0, 'the owner\'s own edit is not gated');
+  const loop = g.commit(answered().replace('[proposed]', '[ratified 2026-11-21]'), `tend memories: the run's record${TRAILERS}`);
+  assert.match(g.gate(loop).stderr, /E-memories-3/, 'a loop commit never answers');
 });
 
 test('expectations 0234: a store file reads into lines with their status, check and grounds, and writes back the same', () => {
