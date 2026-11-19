@@ -19,7 +19,7 @@
  *   6. A spec in IN_PROGRESS, or written after decision 0193, has a "How adjacent
  *      apps do it" section with an entry naming an app and a source (scripts/precedent.js).
  *   7. Every docs/expectations/<feature>.md store reads, names a feature, and each
- *      line's check exists (scripts/expectations.js, decision 0234).
+ *      line's check exists (scripts/expectations.js, decision 0235).
  *
  * Exit 1 with a list of problems, each saying how to fix it; exit 0 when clean.
  */
@@ -235,7 +235,7 @@ for (const p of require('./criteria').check(ROOT)) fail(p.message);
 for (const p of require('./device').check(ROOT)) fail(p.message);
 // 6. A spec in progress, or written after the gate, says how adjacent apps do its job (decision 0193).
 for (const p of require('./precedent').check(ROOT)) fail(p.message);
-// 7. Every expectation store reads, names a feature, and every line's check exists (decision 0234).
+// 7. Every expectation store reads, names a feature, and every line's check exists (decision 0235).
 for (const p of require('./expectations').check(ROOT)) fail(p.message);
 
 // Warnings never fail the check: they say what to do before it would.

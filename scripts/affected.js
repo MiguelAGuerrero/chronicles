@@ -6,7 +6,7 @@
 //   node scripts/affected.js test     the unit tests that import a changed file
 //   node scripts/affected.js lint     lint the changed files
 //   node scripts/affected.js check    layers, tests, typecheck, lint, the expectation store's checks when a journey,
-//                                     a test or the store changed (decision 0234), then the e2e scenarios to run
+//                                     a test or the store changed (decision 0235), then the e2e scenarios to run
 //   node scripts/affected.js hook     what the Stop hook runs (layers and tests, when TypeScript changed)
 //   node scripts/affected.js e2e      only the e2e plan: the journeys to run, and which are already green
 //
@@ -449,7 +449,7 @@ function lintStep(changed, all) {
   return { ok: r.ok, output: r.ok ? 'Lint: ok' : r.output };
 }
 
-/** Whether a change can move a check the expectation store names (decision 0234): a journey, a test, or the store. */
+/** Whether a change can move a check the expectation store names (decision 0235): a journey, a test, or the store. */
 function needsExpectations(changed) {
   return changed.some((c) => /^scripts\/e2e\/journeys\//.test(c) || isTest(c) || /^docs\/expectations\//.test(c));
 }

@@ -77,7 +77,7 @@ so nothing known is found twice. Then look through each lens; a finding names
 its lens, its evidence (a picture, a file and line, a failing input) and its
 source.
 
-0. **The expectation** (decision 0234), first in each `/tend` run (one iteration) but a triage: the feature's lines in
+0. **The expectation** (decision 0235), first in each `/tend` run (one iteration) but a triage: the feature's lines in
    `docs/expectations/<feature>.md`, each met with evidence, failed (section 3) or lacking (section 9); `expectations.md`.
 1. **The screens as a person sees them.** In the worktree, run the area's
    journeys (`docs/TESTING.md`, "Choosing the journeys") with
@@ -120,7 +120,7 @@ One line per finding, with a severity (high, medium, low, as the `ux-reviewer`
 defines them), in the report and nowhere else until it ships or is filed:
 `N. [loop|owner|arch|phone] <severity> <title>: <evidence>; <source>; <what it serves>; <the change>`.
 
-- **The compass** (0234): a finding names what it serves, a lens 0 line (its id) or a rule. A refinement that serves no expectation
+- **The compass** (0235): a finding names what it serves, a lens 0 line (its id) or a rule. A refinement that serves no expectation
   and breaks no rule or shipped criterion is filed `[loop]` low, not shipped; a defect against one is triaged as any other.
 - Drop what the ledger lists under `declined`, and what the inbox or
   `docs/DEFERRED.md` already holds (tag it there instead).

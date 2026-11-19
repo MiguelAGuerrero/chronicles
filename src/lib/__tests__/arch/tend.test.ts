@@ -307,10 +307,10 @@ test('tend 0134: a line that does not say what the run found, or how it was run,
   assert.ok(bad({ ...sweep, state: { from: 'rough', to: 'done' } }));
 });
 
-test('tend 0234: a sweep or a build logs its expectations by id, met naming its evidence, and the compass\'s counts', () => {
+test('tend 0235: a sweep or a build logs its expectations by id, met naming its evidence, and the compass\'s counts', () => {
   const base = { deploy: 'main', base: 'abc1234' };
-  const build = { ...base, mode: 'inbox', answers: [{ entry: 'T3', answer: 'yes' }], built: ['T3'], lens: '0234', expectations, compass };
-  const held = { ...sweep, lens: '0234' };
+  const build = { ...base, mode: 'inbox', answers: [{ entry: 'T3', answer: 'yes' }], built: ['T3'], lens: '0235', expectations, compass };
+  const held = { ...sweep, lens: '0235' };
   assert.deepEqual(tend.logProblems(sweep), []);
   assert.deepEqual(tend.logProblems(build), []);
   assert.deepEqual(tend.logProblems({ ...base, mode: 'evolve', expectations }), [], 'an evolve run may log them');
@@ -342,7 +342,7 @@ test('tend 0234: a sweep or a build logs its expectations by id, met naming its 
 
 test('tend audit 1: only a line the lens\'s script wrote is held to the lens, whatever its date', () => {
   const line = tend.runLine({ date: '2026-12-01', subjects: [], given: { ...sweep, expectations: undefined, compass: undefined } });
-  assert.equal(line.lens, '0234', 'tend:log marks its lines');
+  assert.equal(line.lens, '0235', 'tend:log marks its lines');
   assert.ok(tend.logProblems(line).some((p) => /expectations/.test(p)));
   const old = { ...line, lens: undefined };
   assert.deepEqual(tend.logProblems(old), [], 'an older script\'s line logged on any date reads as it was');
@@ -355,7 +355,7 @@ test('tend audit 1: only a line the lens\'s script wrote is held to the lens, wh
   const ok = r.tendJs('log', 'HEAD..HEAD', JSON.stringify({ ...sweep, area: 'memories', expectations: lines, compass }));
   assert.equal(ok.status, 0, ok.stderr);
   const written = JSON.parse(readFileSync(join(r.root, '.claude/skills/tend/runs.jsonl'), 'utf8').trim()) as Record<string, unknown>;
-  assert.equal(written.lens, '0234');
+  assert.equal(written.lens, '0235');
   assert.deepEqual(tend.logProblems(written), []);
   const unknown = r.tendJs('log', 'HEAD..HEAD', JSON.stringify({ ...sweep, area: 'memories', expectations: { lines: [{ id: 'E-memories-9', is: 'lacking' }] }, compass }));
   assert.equal(unknown.status, 1, 'the lines are read against the store');
@@ -367,7 +367,7 @@ test('tend audit 1: only a line the lens\'s script wrote is held to the lens, wh
 test('tend audit 6: a run cannot date its own line or call it backfilled', () => {
   const line = tend.runLine({ date: '2026-11-21', subjects: [], given: { ...sweep, date: '2020-01-01', lens: 'none' } });
   assert.equal(line.date, '2026-11-21', 'the script writes the date');
-  assert.equal(line.lens, '0234');
+  assert.equal(line.lens, '0235');
   const r = repo();
   const json = { ...sweep, area: 'memories', expectations: { lines: [{ id: 'E-memories-1', is: 'lacking' }] }, compass };
   for (const extra of [{ date: '2020-01-01' }, { backfilled: true }]) {
@@ -382,7 +382,7 @@ test('tend audit 8: a run is held to the lens by what its range built, not by th
   const line = tend.runLine({ date: '2026-11-21', subjects: ['Search over moments: the box (SR1-SR4)', 'tend memories T3: a word', 'fix memories audit 2: x'], given: { mode: 'inbox', deploy: 'main', base: 'abc1234' } });
   assert.deepEqual(line.built, ['T3']);
   assert.deepEqual(line.grew, ['SR'], 'a G build is a slice: its criteria');
-  const inbox = { mode: 'inbox', deploy: 'main', base: 'abc1234', lens: '0234', built: [], grew: [] };
+  const inbox = { mode: 'inbox', deploy: 'main', base: 'abc1234', lens: '0235', built: [], grew: [] };
   assert.deepEqual(tend.logProblems({ ...inbox, answers: [{ entry: 'G5', answer: 'yes' }] }), [], 'a yes that built nothing (an Open: line, a phone check)');
   assert.ok(tend.logProblems({ ...inbox, built: ['T3'] }).some((p) => /expectations/.test(p)), 'a T built');
   assert.ok(tend.logProblems({ ...inbox, grew: ['SR'] }).some((p) => /expectations/.test(p)), 'a slice built');
@@ -392,7 +392,7 @@ const run = (date: string, shipped: number, filedLow: number, extra: Record<stri
   ...sweep, date, compass: { shipped, filedLow, lensG: [] }, ...extra,
 });
 
-test('tend 0234: the compass reads the run log: refinement shipped against filed, lens-0 growth and the lines met, and whether it bites', () => {
+test('tend 0235: the compass reads the run log: refinement shipped against filed, lens-0 growth and the lines met, and whether it bites', () => {
   const twelve = (a: [number, number], b: [number, number]) => [
     ...Array.from({ length: 6 }, (_, i) => run(`2026-11-2${i}`, ...a)),
     ...Array.from({ length: 6 }, (_, i) => run(`2026-12-0${i + 1}`, ...b)),
@@ -486,7 +486,7 @@ function repo() {
   return { root, git, commit, tendJs };
 }
 
-test('tend 0234: a loop commit adds proposed expectation lines and fills checks; it changes, removes or ratifies none', () => {
+test('tend 0235: a loop commit adds proposed expectation lines and fills checks; it changes, removes or ratifies none', () => {
   const r = repo();
   const base = r.git('rev-parse', 'HEAD');
   r.commit({ 'docs/expectations/memories.md': STORE + PROPOSED }, `tend memories: the run's record${AGENT}`);
