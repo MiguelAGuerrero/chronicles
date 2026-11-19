@@ -422,9 +422,13 @@ function checkMessages(text) {
   return { messages: out, templates };
 }
 
-// A template message (audit 18) is named by its fixed text before the first ${, when that text is this long at least
-// and no other check of the journey (a message, or another template's fixed text) starts with it or is started by it.
+// A template message (audit 18) is named by its fixed text before the first ${, when that text holds this many letters
+// of words after a leading criterion id or audit name (audit 25: "tend tabs audit 3: " names nothing), and no other
+// check of the journey (a message, or another template's fixed text) starts with it or is started by it.
 const TEMPLATE_MIN = 12;
+const ID_TOKEN = String.raw`(?:audit \d+(?:-\d+)?|[TG]\d+|\d+(?:-\d+)?|[A-Z]{1,4}\d+[a-z]?(?:-[A-Z]{0,4}\d+)?)`;
+const LEADING_ID = new RegExp(String.raw`^(?:(?:tend|fix)\s+[\w-]+\s+|[a-z][\w-]*\s+(?=audit\b))?${ID_TOKEN}(?:\s*[,&]\s*(?:audit\s+)?${ID_TOKEN})*\s*:\s*`);
+const wordsAfterId = (text) => (text.replace(LEADING_ID, '').match(/\p{L}/gu) ?? []).length;
 const TEMPLATE_WHY = 'a template message: name it by its fixed text, which must be unique';
 
 /** A journey check's state: ok or todo, missing, or 'template' when it names a template message no way it can be named. */
@@ -435,7 +439,7 @@ function journeyCheck(entry, text) {
   if (!near.length) return 'missing';
   const exact = entry.templates.filter((t) => t.fixed === text);
   const others = [...Object.keys(entry.messages), ...entry.templates.map((t) => t.fixed)].filter((m) => (m.startsWith(text) || text.startsWith(m)));
-  if (exact.length === 1 && text.length >= TEMPLATE_MIN && others.length === 1) return exact[0].status;
+  if (exact.length === 1 && wordsAfterId(text) >= TEMPLATE_MIN && others.length === 1) return exact[0].status;
   return 'template';
 }
 
