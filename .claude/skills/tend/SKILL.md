@@ -250,6 +250,10 @@ which wait for the next `/tend inbox`. Every no is recorded in the same run.
   criteria (section 9's form) for a yes of its own.
 - **A `[phone]` entry** is answered with what the owner saw on the device:
   as expected, and it leaves; otherwise it becomes a `/fix` the owner types.
+- **Yes to a `G` entry that still has an `Open:` line** (filed by
+  `/investigate`, decision 0231): not built. Note the yes on it
+  (`inbox note G<n>`) and put the open call to the owner in the report,
+  recommended answer first; the next `/tend inbox` with the answer builds it.
 - **Yes to a `G` entry**, of any size: one slice (decision 0130). Run the
   `slice` skill with `<slug> --from=G<n>` **in this run's worktree**: the
   entry's criteria and verdict are its start, its plan is written and read by
@@ -321,7 +325,9 @@ window is the one sign it cannot see, and reads as outgrowing its base.
 
 For a polished area, or for the whole app when it is settling. At most
 **three** open `G` entries exist at once; a better proposal replaces the
-weakest, with a line in the report saying why.
+weakest, with a line in the report saying why. An entry whose `From:` line
+names `/investigate` is the owner's own ask (decision 0231): it counts toward
+none of the three, no proposal replaces it, and the balance does not hold it.
 
 **Where an evolution comes from.** Each proposal names its source; one that
 has none is not made.
