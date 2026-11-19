@@ -7,6 +7,7 @@ import { timedRuns } from '../../replay';
 import { dayStory, pathDrawnAt, positionAt, walkStory, type WalkInput } from '../../ceremony/story';
 import { rhythmFrame, rhythmPlan } from '../../ceremony/rhythm';
 import type { TracePoint, Walk } from '../../types';
+import { SCREEN } from '../replay/screen';
 
 // Moments and days (the concept doc's "Moments and days" tab), written from
 // its criteria before the code. Times are built from local dates, so the
@@ -112,7 +113,7 @@ test('M11 (RR16): a walk plays its path with its moments, then the day carries o
   assert.deepEqual(kinds(s), ['moment', 'travel', 'move', 'moment', 'move', 'travel', 'moment']);
   const m = s.events[3];
   assert.ok(m.kind === 'moment' && m.pathId === 'w' && m.captures[0].id === 'in');
-  const p = rhythmPlan(s, { reduceMotion: false });
+  const p = rhythmPlan(s, { reduceMotion: false, screen: SCREEN });
   assert.ok(p.segs.some((x) => x.k === 'leg' && x.move?.pathId === 'w'), 'its own path, followed');
 });
 
@@ -183,7 +184,7 @@ test('audit (moments 5): a day is read from its midnight to the next, whatever t
 
 test('audit (moments 7, RR16): a long way between entries pulls the camera back to show it', () => {
   const [day] = buildDays([], [cap('a', at(2, 9), null, -71.4), cap('b', at(2, 11), null, -71.34)]);
-  const p = rhythmPlan(dayStory(day, new Map()), { reduceMotion: false });
+  const p = rhythmPlan(dayStory(day, new Map()), { reduceMotion: false, screen: SCREEN });
   const leg = p.segs.find((s) => s.k === 'leg')!;
   const z = rhythmFrame(p, (leg.t0 + leg.t1) / 2).camera.zoom!;
   assert.ok(z < 16 - Math.log2(2.5), `about 5 km: pulled well back (zoom ${z.toFixed(2)})`);

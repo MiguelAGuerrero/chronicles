@@ -3,7 +3,7 @@
 // E2E_ONLY=videothumbs runs it alone. VS2, VS5, VS7 and VS9 are unit tests (captures/, deletion/, map/).
 
 // Records the clip and seeds: a loose video at the start point (no still yet), a video-only month last year (its
-// still seeded), and a finished walk with a video moment (its still seeded) for the replay's pile.
+// still seeded), and a finished walk with a video moment (its still seeded) for the replay's stack.
 const SEED = async ([lon, lat]) => {
   const canvas = document.createElement('canvas');
   canvas.width = 160;
@@ -229,15 +229,15 @@ async function run(h) {
   check(memoryPin && previewMark, `VS3, VS4: a walk's memory preview shows the video's still under its play mark (${memoryPin}, ${previewMark})`);
   await c.close();
 
-  // VS3, VS4: the replay's pile shows the walk's video as its still, marked.
+  // VS3, VS4: the replay's stack shows the walk's video as its still, marked (the pile's place, replay ceremony RC29).
   const { c: c2, pg: rp } = await freshPage('videothumbs-replay');
   await rp.goto(url);
   await rp.waitForSelector('[data-testid=tab-chronicle]', { timeout: 30000 });
   await rp.evaluate(SEED, start);
   await rp.goto(`${url}replay/w-rep?ceremony=0`);
-  const pileMark = await rp.waitForSelector('[data-testid=replay-pile] [data-testid=video-mark]', { timeout: 90000 }).then(() => true, () => false);
-  await shot(rp, 'vt-06-pile');
-  check(pileMark, "VS3, VS4: the replay's pile shows a video as its still under the play mark");
+  const stackMark = await rp.waitForSelector('[data-testid=replay-stack] [data-testid=video-mark]', { timeout: 90000 }).then(() => true, () => false);
+  await shot(rp, 'vt-06-stack');
+  check(stackMark, "VS3, VS4: the replay's stack shows a video as its still under the play mark");
   await c2.close();
 }
 
@@ -246,7 +246,7 @@ module.exports = {
   covers: [
     'src/lib/thumbPlan.ts', 'src/lib/thumbJob.ts', 'src/lib/media/thumb.ts', 'src/lib/media/index.web.ts', 'src/lib/thumbs/**',
     'src/components/VideoMark.tsx', 'src/components/gallery/{GalleryTile,PeriodBlock}.tsx', 'src/components/chronicle/MomentPicture.tsx',
-    'src/components/MemoryPreview.tsx', 'src/components/ceremony/Pile.tsx', 'src/components/CapturePinView.tsx',
+    'src/components/MemoryPreview.tsx', 'src/components/ceremony/{Still,Stack}.tsx', 'src/components/CapturePinView.tsx',
   ],
   run,
 };

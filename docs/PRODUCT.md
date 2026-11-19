@@ -355,7 +355,7 @@ recording, and a recording bar brings a minimized walk back.
   directions, when Chronicles' route is wrong: in the blue bar, on a route
   that can't be found, beside Route here on the long-press
   card and in a pin's viewer. Navigation and the walk go on.
-- **No Explore mode** (decision 0231; a walk starts with every layer off, quiet as before). The walk's Layers panel lists **Places**: "?" marks
+- **No Explore mode** (decision 0234; a walk starts with every layer off, quiet as before). The walk's Layers panel lists **Places**: "?" marks
   within range (60-300 m), with the range ring while the settings are up, an optional pocket alert (a double-tap once per place, on phones and
   browsers that can buzz; its row says it needs Places on), and **Capture here** on a place's card (the next capture finds that place, and
   one taken near a place without it finds nothing, so a find needs Places on). **Storefronts** gives the chip that names the storefront street
@@ -522,12 +522,19 @@ recording, and a recording bar brings a minimized walk back.
 - **A walk with nothing in it is dropped** (decision 0187): stopping a walk with no moment, pause (the one still open at Stop aside, decision 0220), still or gap and no movement past 15 m skips the replay and says "Walk not kept." with Undo; a killed app restores it.
 - **The replay** (the make-or-break): reading the streets, the fog clearing,
   the path, the card, then naming. The path has a rhythm (decision 0085): the
-  walker keeps a steady pace, slowing into each moment, crosses long empty stretches with
-  the camera pulled back, and cuts across a gap with "20 min later". A clock
+  walker keeps a steady pace, slowing into each moment; the camera holds still and re-frames, rises on a
+  stretch the walker crosses fast, and settles each photo's pin under its card (replay ceremony, decision 0206, on its
+  branch); a gap is crossed by a dotted hop under "20 min later", with no dim. The path opens from the whole walk as
+  the fog beat left it, diving to where the walk began, and closes the same way: the walker stands, the camera pulls
+  back to the whole walk above where the card will sit, and that last view shows the date and names each place
+  passed without stopping before the card comes (a day's replay shows the whole day first, and names none). A clock
   rolls through the time of day. Notes and memos stack as speech bubbles in a
-  corner; photos and videos grow from their pin into a card and tuck into a
-  pile, which opens them full screen; places passed without stopping whisper
-  by. Each moment takes its time (decision 0203): a photo is fully shown about four and a half seconds
+  corner; photos and videos grow from their place into a card, the map dimming a little under it, and shrink
+  back onto that place, where the picture then stands (the later of two close together over the earlier). Each
+  such moment also joins a stack at the right edge, which grows upward, drops its oldest when it would reach the
+  controls, never shows a number, and opens them all full screen. A moment of several pieces arrives whole: its
+  pictures as a grid, then its videos in turn in the same card, its memos after. Places passed without stopping
+  whisper by. Each moment takes its time (decision 0203): a photo is fully shown about four and a half seconds
   (several at one stop tighten, the last whole again), a moment's grid five, a note long enough to read, and a second
   of quiet follows a memo or video. Nothing shrinks to fit a length: a walk with many moments is simply longer.
   Nothing waits for a tap: a tap (or Hold) holds it, Skip goes to the card, and **Next**, under Skip, goes to the

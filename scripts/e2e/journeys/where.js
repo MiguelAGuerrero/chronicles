@@ -91,6 +91,14 @@ async function run(h) {
   await pg.waitForTimeout(400);
   const legend = (await pg.locator('[data-testid=layer-legend-past]').innerText().catch(() => '')) ?? '';
   check(/Your earlier walks/.test(legend), `WB11: "On the map" names the layer's line in words (${legend})`);
+  // tend walk-screen audit 14 (the diff review's auditor 4): with a layer of Navigate's map on, the key heads itself,
+  // "On the map" just above it (tend walk-screen 10 drew it only over rows).
+  const heading = await pg.evaluate(() => {
+    const key = [...document.querySelectorAll('[data-testid=layers-key]')].find((k) => k.querySelector('[data-testid=layer-legend-past]'));
+    const h = key?.previousElementSibling;
+    return h ? { text: h.textContent, role: h.getAttribute('role') } : null;
+  });
+  check(heading?.text === 'On the map' && heading?.role === 'heading', `tend walk-screen audit 14: "On the map" heads the key with Where I've been on (${JSON.stringify(heading)})`);
   await shot(pg, 'where-02b-legend');
   await drawerTo(pg, 'peek');
 

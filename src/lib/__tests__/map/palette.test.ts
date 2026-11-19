@@ -211,7 +211,7 @@ test('MP9: no file keeps a kind\'s old map hex; the pins and the replay\'s stage
   const bubbles = read('components/ceremony/Bubbles.tsx');
   assert.match(bubbles, /backgroundColor: COLORS\.voice/, 'a memo\'s play disc and waveform');
   assert.match(bubbles, /borderLeftColor: memo \? COLORS\.voice : COLORS\.text/, 'a bubble\'s edge');
-  assert.match(read('components/ceremony/Pile.tsx'), /backgroundColor: COLORS\.video/, 'the pile\'s video tile');
+  assert.match(read('components/ceremony/Still.tsx'), /backgroundColor: COLORS\.video/, 'the stack\'s video tile');
 });
 
 test('MP10: only the replay and a day draw walked streets or an end; every other map passes none', () => {
@@ -224,7 +224,8 @@ test('MP10: only the replay and a day draw walked streets or an end; every other
     const walked = maps.flatMap((m) => [...m.matchAll(/\bwalked=\{([^}]*)\}/g)].map((x) => x[1]));
     const ended = maps.some((m) => /\bended=\{/.test(m));
     if (r === 'app/replay/[id].tsx') {
-      assert.ok(walked.some((w) => w === 'shownWalked') && ended, 'the replay draws the walked streets and the end');
+      // Given whole; the map lights them itself through the first beat (replay ceremony RC23).
+      assert.ok(walked.some((w) => w === 'data.walked') && ended, 'the replay draws the walked streets and the end');
     } else if (r === 'app/day/[key].tsx') {
       assert.deepEqual(walked, ['NO_STREETS'], 'a day draws no walked streets');
       assert.ok(ended, 'a day draws the end');

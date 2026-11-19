@@ -14,7 +14,8 @@ const CHECK_MS = 33;
 export function useMediaWait(
   key: string,
   ctx: StageCtx,
-  o: { inSlot: boolean; slotOver: boolean; started: boolean; ended: boolean; positionMs: () => number; planMs: number; lenMs: number; stopped: boolean },
+  /** `planMs` is asked when it is checked, never handed down: where the slot says the medium should be moves every frame (replay ceremony RC7). */
+  o: { inSlot: boolean; slotOver: boolean; started: boolean; ended: boolean; positionMs: () => number; planMs: () => number; lenMs: number; stopped: boolean },
 ): boolean {
   const [waiting, setWaiting] = useState(false);
   const live = useRef(o);
@@ -28,7 +29,7 @@ export function useMediaWait(
     let book: WaitBook = { waited: 0, stalled: 0, lastPos: -1, last: Date.now() };
     const id = setInterval(() => {
       const c = live.current;
-      const r = trackWait(book, { ...c, t: Date.now(), pos: c.positionMs() });
+      const r = trackWait(book, { ...c, planMs: c.planMs(), t: Date.now(), pos: c.positionMs() });
       book = r.book;
       setWaiting(r.wait);
     }, CHECK_MS);

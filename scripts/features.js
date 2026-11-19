@@ -420,7 +420,7 @@ const RETIRED = {
   // As the spec says (its "Retired by this slice" line, Explore, v1 slice 5, Nov 1): S1-S6, S9-S12, S14, S15,
   // S22 and S23 of the scan, and all of slice 3's ambient hints (A1-A11). S7, S8, S13, S16 and S17 are live.
   // E14 (the test trim, Nov 5, at the owner's ask): the one-time upgrade off scan and ambient marks ran Nov 1; nothing is left to read.
-  // E1 (a walk starts quiet; Explore is a switch): the Explore mode went (the owner, Nov 19, decision 0231); specs/modes-to-layers carries what stands.
+  // E1 (a walk starts quiet; Explore is a switch): the Explore mode went (the owner, Nov 19, decision 0234); specs/modes-to-layers carries what stands.
   'v1-discovery': [...V1_SCAN_AND_AMBIENT, 'E14', 'E1'],
   // Retired by Explore (docs/STATUS.md). L17 (the test trim, Nov 5): it fed the scan and ambient, both retired above.
   'v1.5-landing': ['L10', 'L13', 'L16', 'L17'],
@@ -433,7 +433,7 @@ const RETIRED = {
   'v0.5-places': ['H2', 'H3', 'H10', 'N6'],
   // The test trim (Nov 5): Explore became an atlas (decision 0066); the tab's drawer of busy areas, places to find
   // and finds, and its "?" marks, are gone (the atlas's AT1-AT16 hold the tab now). `exploreTab.ts` went with it.
-  // NV26 (the options card keeps the Explore switch): the same decision, 0231.
+  // NV26 (the options card keeps the Explore switch): the same decision, 0234.
   'navigation-and-tabs': ['NV14', 'NV26'],
   // No Open in Maps on "Off your route" (decision 0059). NH8 (the test trim, Nov 5, the owner's call): no
   // "Couldn't open a maps app." banner was built.
@@ -558,8 +558,6 @@ const RENAMED = {
 };
 
 const IN_PROGRESS = {
-  // Replay ceremony (RC1-RC48): the owner's go-ahead Nov 18 (decision 0206); built on the branch, shown at the preview address first.
-  'replay-ceremony': { branch: 'claude/funny-bohr-ztvwgv', since: '2026-11-18' },
   'drive-in-the-outing': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-18' },
   'shop-facets': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-18' },
   'town-fixtures': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-18' },

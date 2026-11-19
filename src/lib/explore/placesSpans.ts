@@ -1,6 +1,6 @@
 // @layer core
 /*
- * The times Places was on during a walk (specs/modes-to-layers MD9, decision 0231): a walk's replay names what it passed
+ * The times Places was on during a walk (specs/modes-to-layers MD9, decision 0234): a walk's replay names what it passed
  * only within these spans, so a stretch with Places off stays quiet. A span is [on, off]; `off` is null while it is open
  * (the walk ended with it on). Kept as JSON in meta `places_spans:<walk>`.
  */

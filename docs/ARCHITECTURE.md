@@ -59,18 +59,22 @@ Screens' building blocks
   webStyles(.web).ts         web-only page fixes: pinned viewport, long-press guards (nothing on native)
   pwa(.web).ts               web manifest and Apple home-screen tags, under the base path
 Replay ceremonies (decisions 0085, 0086)
-  ceremony/Stage.tsx         draws any ceremony's frame over the map: the cut's dim, the clock and the line under it, Held, the overlays by kind
+  ceremony/Stage.tsx         draws the frame on stage over the map: the clock (dissolving across a break, not drawn while faded out) and the line under it, Held, the last view's date, the scrim under a card, the overlays by kind (the pictures on the map under the scrim); renders when an overlay arrives or leaves
   ceremony/overlays.tsx      OVERLAYS: one view per overlay kind (the type fails the build until every kind has one); OVERLAY_ORDER
   ceremony/Bubbles.tsx       notes and memos stacking in the bottom-left corner; a memo plays while its bubble says, pauses when held
-  ceremony/Cards.tsx         a photo or video card that grows from the pin and tucks into the pile; the video plays in it
-  ceremony/Pile.tsx          the photos and videos so far, the last three, no count; opens them in the viewer
-  ceremony/Grid.tsx          a stacked moment's grid in its card (MS17): square cells, swiping in, muted videos, the scroll past nine
-  ceremony/Whispers.tsx      a passed place said beside it (projected from the map's centre and zoom)
+  ceremony/Cards.tsx         a photo or video card that grows from the pin and shrinks back onto its place; the video plays in it; a moment's videos in turn (Turns, replay ceremony RC37); a held photo's drift
+  ceremony/Stack.tsx         the stack at the edge (RC29-RC33): one entry a moment with a picture or a video, growing to the screen's bound, no number; one control that opens them in the viewer
+  ceremony/Pictures.tsx      the pictures the replay leaves standing on the map (RC28, RC34), placed by the frame's camera; the map's pins are not touched
+  ceremony/Still.tsx         a moment's small picture for the stack and the map: a small copy, a video's still, never a player
+  ceremony/Grid.tsx          a stacked moment's grid in its card (MS17): its photos, swiping in, the scroll past nine; no video in a cell
+  ceremony/Whispers.tsx      a passed place said beside it (projected from the map's centre and zoom); PassedNames: the passed places named on the last view, in body ink (replay ceremony RC25)
   ceremony/RollingClock.tsx  the time of day, its digits on reels
   ceremony/StepThrough.tsx   the screen reader's way: the story's moments one at a time with Continue
-  ceremony/useCeremonyClock.ts  the time into a ceremony: an epoch, hold, a pause while a viewer is open, onEnd once
+  ceremony/useCeremonyLoop.ts  the replay's engine (decision 0206): one frame loop outside the screens' rendering (useCeremonyLoop), and useReplay, which draws each frame on the map and the stage
+  ceremony/useLive.ts        how a leaf of the stage reads the frame: useLive (one thing it shows) and useLiveStyle (what moves every frame, written on its element)
+  ceremony/liveStyle(.web).ts  writeStyle: a style written on a view with no render (setNativeProps; the element's own style on web)
   ceremony/useRevealed.ts    the captures whose pins are up, one list per count
-  ceremony/layout.ts         where the stage puts things (pile, card, bottom margin), project(), tiltOf
+  ceremony/layout.ts         where the stage puts things, and the overlays' poses by frame (cardPose, picturePose, stackPose, bubblePose, whisperPose, passedPose), dateOf; the room and project() are core's (lib/ceremony/room, camera), re-exported
 Chronicle's Memories (decision 0098)
   resurface/types.ts         MomentView, Signal, SignalExtractor (the extension point), Thread, Prefs, Pick
   resurface/terms.ts         the user's words folded into terms (case, accents, plurals, common words, aliases)
@@ -152,7 +156,8 @@ Captures
   Enter.tsx                  plays one of the four entrances once at mount (lib/enter decides which)
 Map
   map/types.ts               the shared WalkMap contract: props, handle, colours (FOG_STYLE, HOTSPOT, COLORS), GeoJSON builders, planViews, useZoomPins, pressRadiusM
-  map/WalkMap.web.tsx        maplibre-gl: sources and layers, DOM Markers for pins, collect/collectView, data-* attributes for the e2e
+  map/WalkMap.web.tsx        maplibre-gl: sources and layers, DOM Markers for pins, collect/collectView, a replay's frames (replayFrame), data-* attributes for the e2e
+  map/sent.ts                nextSend: whether a collection is worth sending to a source (never the same again, never empty after empty)
   map/WalkMap.native.tsx     MapLibre RN v11: the same props; Markers; querySourceFeatures through invisible layers
   map/ScaleBar.tsx           the scale bar (lib/scaleBar decides its length)
 ```
@@ -186,12 +191,18 @@ Streets, snapping, fog
   tileMath.ts                z14 tile rectangles and edges
   db/segmentBounds.ts a piece's bbox and the z14 tile it is filed under
   summary.ts                 loadReplay (ReplayData for the replay, with where and when each passed place was passed) and suggestTitle
-  replay.ts                  FOG_MS, groupCaptures, timedRuns, traceUntil, walkerAt: the replay's shared pieces
-  ceremony/types.ts          Story (paths, moves, moments, breaks, travel, passes), Frame, Overlay kinds, Ceremony (decision 0086)
+  replay.ts                  FOG_MS, litStreets (the first beat's streets, lit by the map as time passes), groupCaptures, timedRuns, traceUntil, walkerAt: the replay's shared pieces
+  ceremony/types.ts          Story (paths, moves, moments, breaks, travel, passes), Frame, Overlay kinds, CeremonyOptions (the screen, the whole and its room), Ceremony (decision 0086)
   ceremony/story.ts          walkStory, dayStory, storySteps; metresAt, timeAtMetres, pathDrawnAt: what happened, no timing or look
-  ceremony/rhythm.ts         the rhythm ceremony (RR1-RR19, replay pace RY1-RY22): rhythmPlan (legs at a steady pace, stops, cuts, each moment's own time, no cap; `stops`, where Next lands), rhythmFrame (given a press, it says what lay between), laterLine, notePause
-  ceremony/clock.ts          tickClock, reanchor; nextStop and seekClock (Next, RY13-RY17)
-  ceremony/grid.ts           a stacked moment's grid (MS17): gridLayout (closest square up to 3×3), gridDuration
+  ceremony/rhythm.ts         the rhythm ceremony (RR1-RR19, replay pace RY1-RY22): rhythmPlan (the opening's dive, legs at a steady pace, stops, breaks as a hop or a stand, each moment's own time, a moment of several pieces whole with its videos in turn, no cap, the close: the walker standing, the pull-back, the last view's date and passed places; `stops`, where Next lands; the camera, worked out once; what stays behind), rhythmFrame (given a press, it says what lay between; the pictures standing, the stack, the scrim), laterLine, notePause
+  ceremony/camera.ts         a ceremony's camera as plan data (replay ceremony RC11-RC16): cameraTrack walks a telling's time once and writes down the camera's moves (hold and re-frame, rise by the walker's speed across the screen, a card's pin settled under it, a break's pull-back and closing in, the dive from the whole and the pull-back to the card's view); cameraAt reads it per frame; fitCamera (a map's own fit of bounds in a room, RC23); project() (Web Mercator, as the map)
+  ceremony/room.ts           the stage's room, pure: the screen as a ceremony is told it (StageRoom), the top row and bottom corner, cardWidth, cardSize, restCenter, cardFoot, the stack's and a standing picture's sizes (STACK, PICTURE): shared by the stage's views and the camera
+  ceremony/stack.ts          the stack's bound for a screen and where each entry stands at a time (stackBound, stackSlots: landing, giving, first in first out; replay ceremony RC29-RC32)
+  ceremony/pictures.ts       which pictures stand on the map at a zoom (standing: the later of two close together shows, with a layered edge; RC34)
+  ceremony/clock.ts          tickClock, reanchor; nextStop and seekClock (Next, RY13-RY17); the frame loop's stepper (stepLoop, loopAgainst, nextLoop, holdLoop, frameMsFor: replay ceremony RC5-RC8)
+  ceremony/reveal.ts         the walked line read as a reveal (revealOf: whole runs, the run being walked and the share of it shown), cutRun for a map that draws it as data; a frame's hops as the gap-links layer's data (hopLines, hopsKey), linksWithHops for the card
+  ceremony/live.ts           the frame on stage, kept outside the screen (createStageLive): the loop writes it, the stage's leaves read it
+  ceremony/grid.ts           a stacked moment's grid (MS17): gridLayout (closest square up to 3×3), gridShown, gridDuration
   ceremony/registry.ts       CEREMONIES, DEFAULT_CEREMONY, ceremonyFor: a new ceremony is an entry here
   backlog/                   placeBacklog: places old walks in the background, from the tiles in code (0137); shell.ts takes the snap and the reader
   mapReads.ts                one camera read at a time (mapReadLock)
@@ -522,6 +533,11 @@ own code only where no Expo module covers the feature on web:
 - **Announcing a swipe's area** (DN12): a visually hidden `accessibilityLiveRegion` Text on Explore (`atlas-snap-said`, web only).
   react-native-web's `AccessibilityInfo.announceForAccessibility` is an empty function; phones announce through
   that call alone, since a live region as well would say it twice on Android.
+- **The replay's per-frame styles** (replay ceremony RC7, decision 0206): `ceremony/liveStyle.web.ts` writes a card's
+  place or a bubble's fade on the element's own style, and `ceremony/RollingClock.tsx` rolls its reels by a CSS
+  transition. React Native's `Animated` is the module for this, but react-native-web's renders the animated view again on
+  every value changed from JavaScript (it has no native driver and its views no `setNativeProps`): a React commit per
+  frame per view, which is what the engine exists to stop. Phones use `setNativeProps` and the native driver.
 - **Storage:** IndexedDB (`db/index.web.ts`, `media/index.web.ts`).
   expo-sqlite's web build needs `SharedArrayBuffer`, which needs cross-origin
   isolation headers GitHub Pages can't send; expo-file-system has no web build.
@@ -639,7 +655,7 @@ never stored. Navigation (`nav/types.ts`): `Waypoint`, `Route`,
 `RouteSource`; the destination is meta `nav`.
 
 Meta is a key/value table (`getMeta` / `setMeta`): `tile_build`, `tile_url`,
-`snap_rules`, `overture_release`, `overture_checked_at`, `nav`, `explored:<walk>` (walks before decision 0231), `walk_layers:<walk>`, `places_spans:<walk>`,
+`snap_rules`, `overture_release`, `overture_checked_at`, `nav`, `explored:<walk>` (walks before decision 0234), `walk_layers:<walk>`, `places_spans:<walk>`,
 `explore_hidden`, `explore_range`, `explore_haptic`, `notify_off`,
 `recall_open`, `day_watched:<key>`.
 

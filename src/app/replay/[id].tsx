@@ -15,14 +15,16 @@ import { CaptureViewer } from '../../components/CaptureView';
 import { Stage } from '../../components/ceremony/Stage';
 import { StepThrough } from '../../components/ceremony/StepThrough';
 import { useAwakeWhile } from '../../components/ceremony/useAwakeWhile';
+import { FrameMeter } from '../../components/ceremony/FrameMeter';
 import { NextMoment } from '../../components/ceremony/NextMoment';
-import { useCeremonyClock } from '../../components/ceremony/useCeremonyClock';
+import { useReplay } from '../../components/ceremony/useCeremonyLoop';
 import { useRevealed } from '../../components/ceremony/useRevealed';
-import type { StageCtx } from '../../components/ceremony/layout';
+import { WHOLE_TOP, type StageCtx } from '../../components/ceremony/layout';
 import { ceremonyFor } from '../../lib/ceremony/registry';
+import { linksWithHops } from '../../lib/ceremony/reveal';
 import { chronicleSection } from '../../lib/resurface/sectionStore';
-import { pathDrawnAt, storySteps, walkStory } from '../../lib/ceremony/story';
-import { planViews, QUIET_TRACE_OPACITY, type WalkMapHandle } from '../../components/map/types';
+import { storySteps, walkStory } from '../../lib/ceremony/story';
+import { FIT_MAX_ZOOM, FIT_PADDING, planViews, QUIET_TRACE_OPACITY, type WalkMapHandle } from '../../components/map/types';
 import { Button, theme } from '../../components/ui';
 import { db } from '../../lib/db';
 import { applyPatch, captureBus } from '../../lib/captureBus';
@@ -38,10 +40,11 @@ import { GapCard } from '../../components/GapCard';
 import { KeepGapsCard } from '../../components/KeepGapsCard';
 import { ensureTileBuild } from '../../lib/tiles';
 import { setAudioMode } from '../../lib/audioMode';
-import { backFrom, beatWords, cardTitle, fieldsAfterRename, FOG_MS, pinHint, wordsTyped } from '../../lib/replay';
+import { backFrom, beatWords, cardTitle, fieldsAfterRename, FOG_LIT_MS, FOG_MS, pinHint, wordsTyped } from '../../lib/replay';
 import { formatCaptures, formatDistance, formatDuration, loadReplay, suggestTitle, type ReplayData } from '../../lib/summary';
 import { renamePatch } from '../../lib/rename';
 import type { LngLat } from '../../lib/types';
+import { perfCount } from '../../lib/perfCount';
 import { summaryLess } from '../../lib/deletion/core';
 import { useHidden } from '../../lib/deletion/useDeletions';
 import { UndoToast } from '../../components/UndoToast';
@@ -52,17 +55,20 @@ import { capturesHere, type HereResult } from '../../lib/here';
 import { launchRoute } from '../../lib/launchRoute';
 
 type Beat = 'reading' | 'fog' | 'path' | 'card' | 'name';
-const FRAME_MS = 33; // ~30 fps for the fog's streets lighting up
-/** The drawn trace is rebuilt at most this often; the walker dot moves every frame. */
-const TRACE_STEP_MS = 66;
+/** While the path is told the map is given no trace: the replay's frames reveal the line on it (replay ceremony RC3). */
+const NO_RUNS: LngLat[][] = [];
 
 // A screen that throws shows what broke, with Try again, never a blank page (bug, Nov 1).
 export { ScreenError as ErrorBoundary } from '../../components/ScreenError';
 
 export default function Replay() {
   useUnits();
-  // `ceremony=0` is a re-watch (from the log, or Watch again); `style` names the ceremony that tells it (RR21, audit 25).
-  const { id, ceremony, style } = useLocalSearchParams<{ id: string; ceremony?: string; style?: string }>();
+  // Counted for the e2e and the harness (only when measuring): the path renders it for what arrives or leaves, never
+  // because time passed (replay ceremony RC2).
+  perfCount('render:replay');
+  // `ceremony=0` is a re-watch (from the log, or Watch again); `style` names the ceremony that tells it (RR21, audit 25);
+  // `fps` asks a ceiling on the frames drawn a second, to try one on a phone (replay ceremony RC6).
+  const { id, ceremony, style, fps, meter } = useLocalSearchParams<{ id: string; ceremony?: string; style?: string; fps?: string; meter?: string }>();
   const insets = useSafeAreaInsets();
   const mapRef = useRef<WalkMapHandle>(null);
   // The name's Next goes on to the line, as in Rename (tend chronicle 5).
@@ -88,7 +94,6 @@ export default function Replay() {
   // The beat and its start time change together, so no render ever sees one
   // beat with another beat's clock.
   const [phase, setPhase] = useState<{ beat: Beat; t0: number }>(() => ({ beat: 'reading', t0: Date.now() }));
-  const [now, setNow] = useState(() => Date.now());
   const [fitKey, setFitKey] = useState(0);
   const [sheetH, setSheetH] = useState(0);
   const [title, setTitle] = useState('');
@@ -203,12 +208,9 @@ export default function Replay() {
   // A screen reader hears the captures, not the animation: no fog, no path.
   const [srMode, setSrMode] = useState(false);
   const beat = phase.beat;
-  const clock = now - phase.t0;
 
-  const go = useCallback((b: Beat, skipPathMs = 0) => {
-    const t = Date.now();
-    setPhase({ beat: b, t0: t - skipPathMs });
-    setNow(t);
+  const go = useCallback((b: Beat) => {
+    setPhase({ beat: b, t0: Date.now() });
     if (b === 'fog' || b === 'card') setFitKey((k) => k + 1);
   }, []);
 
@@ -373,7 +375,21 @@ export default function Replay() {
 
   // What happened, read once; the ceremony tells it (RR20, RR21, decision 0086).
   const story = useMemo(() => (data ? walkStory(data) : null), [data]);
-  const showing = useMemo(() => (story ? ceremonyFor(style).show(story, { reduceMotion }) : null), [story, reduceMotion, style]);
+  // The screen's size is the ceremony's to know (replay ceremony RC11-RC16): its camera is worked out for this screen,
+  // once per telling. By its numbers, so the safe-area object's identity never rebuilds a telling.
+  const { top: insetTop, bottom: insetBottom, left: insetLeft, right: insetRight } = insets;
+  const screen = useMemo(
+    () => ({ width, height, insets: { top: insetTop, bottom: insetBottom, left: insetLeft, right: insetRight } }),
+    [width, height, insetTop, insetBottom, insetLeft, insetRight],
+  );
+  // The whole walk and its room (RC23, RC24): the path opens from the first beat's own view (the map's fit, with the
+  // map's own room) and closes on the view the card's fit asks for, above the card's sheet. The sheet's height is
+  // learnt ahead (the card is laid out unseen below), so the card then arrives on a map that does not move.
+  // (Under the top row and a picture's height, so no control sits on the walk or on what stands on it: `WHOLE_TOP`.)
+  const sheetPad = useMemo(() => ({ top: insetTop + WHOLE_TOP, right: 32, bottom: sheetH + 24, left: 32 }), [insetTop, sheetH]);
+  const bounds = data?.bounds ?? null;
+  const whole = useMemo(() => (bounds ? { bounds, open: FIT_PADDING, close: sheetPad, maxZoom: FIT_MAX_ZOOM } : null), [bounds, sheetPad]);
+  const showing = useMemo(() => (story ? ceremonyFor(style).show(story, { reduceMotion, screen, whole, namePassed: true }) : null), [story, reduceMotion, style, screen, whole]);
   const telling = beat === 'path' && !srMode && showing != null;
   // A memo or video catching up holds the clock (not the medium itself, audit 20).
   const [waits, setWaits] = useState<ReadonlySet<string>>(() => new Set());
@@ -386,20 +402,18 @@ export default function Replay() {
       return next;
     });
   }, []);
-  const play = useCeremonyClock({ epoch: phase.t0, running: telling, paused: viewing != null || waits.size > 0, showing, onEnd: () => go('card') });
-  const frame = telling ? showing.frame(play.ms, play.jump) : null;
+  // The path is told by a loop outside this screen's rendering (replay ceremony RC2, decision 0206): each frame goes
+  // straight to the map and the stage. The screen reads only what it shows itself: the pins, Hold, whether Next is there.
+  const play = useReplay({ epoch: phase.t0, telling, paused: viewing != null || waits.size > 0, story, showing, map: mapRef, fps, meter, onEnd: () => go('card') });
   // The screen stays awake while the replay plays, until the card (RR24).
   useAwakeWhile(beat === 'reading' || beat === 'fog' || beat === 'path');
 
-  // The fog beat lights the streets, then the path begins.
+  // The first beat: the map lights the walked streets itself (`lightUp`, replay ceremony RC23); when its time is up
+  // the path begins. Nothing here renders as that time passes.
   useEffect(() => {
     if (beat !== 'fog') return;
-    const timer = setInterval(() => {
-      const t = Date.now();
-      if (t - phase.t0 >= FOG_MS) go('path');
-      else setNow(t);
-    }, FRAME_MS);
-    return () => clearInterval(timer);
+    const timer = setTimeout(() => go('path'), Math.max(0, phase.t0 + FOG_MS - Date.now()));
+    return () => clearTimeout(timer);
   }, [beat, phase.t0, go]);
 
   // Words for screen readers at each beat, once as it begins, not again when the walk is read anew (tend replay 9).
@@ -412,46 +426,20 @@ export default function Replay() {
     AccessibilityInfo.announceForAccessibility(words);
   }, [beat, phase.t0, data]);
 
-  // The trace as far as the ceremony has drawn each path; whole outside the path beat.
-  const traceBucket = telling ? Math.floor(play.ms / TRACE_STEP_MS) : -1;
-  // The trace is rebuilt on TRACE_STEP_MS buckets, not every frame: from the frame at the bucket's time.
-  const traceFrame = useMemo(() => (telling && traceBucket >= 0 ? showing.frame(traceBucket * TRACE_STEP_MS) : null), [telling, showing, traceBucket]);
-  const drawn = useMemo(
-    () => {
-      if (!data) return { trace: [], rides: [] };
-      if (!traceFrame || !story) return { trace: data.runs, rides: data.rideRuns };
-      const trace: LngLat[][] = [];
-      const rides: LngLat[][] = [];
-      for (const [pid, t] of Object.entries(traceFrame.drawn)) {
-        const p = story.paths[pid];
-        if (!p) continue;
-        const d = pathDrawnAt(p, t);
-        trace.push(...d.trace);
-        rides.push(...d.rides);
-      }
-      return { trace, rides };
-    },
-    [data, story, traceFrame],
-  );
-  // The camera is the ceremony's to say (audit 10).
-  const follow = frame?.camera.center ?? null;
-  const followZoom = follow ? frame?.camera.zoom ?? null : null;
+  // The whole trace outside the path beat; while the path is told the map reveals the line itself, frame by frame, as
+  // far as the ceremony has drawn each path. The camera is the ceremony's to say too (audit 10), in each frame.
   const ctx: StageCtx = {
-    width, height, insets, center: follow, zoom: followZoom ?? 0,
+    width, height, insets, live: play.live,
     held: play.held, paused: viewing != null, reduceMotion, open: setViewing, wait,
   };
 
-  // Beat one: the walked streets light up out of the grey, in the order walked.
-  const lit = !data ? 0 : beat !== 'fog' || reduceMotion ? data.walked.length : Math.ceil(data.walked.length * Math.min(1, clock / (FOG_MS * 0.8)));
-  const shownWalked = useMemo(() => (data ? (beat === 'reading' ? [] : data.walked.slice(0, lit)) : []), [data, beat, lit]);
-  const fog = useMemo(() => {
-    if (!data) return [];
-    if (beat !== 'fog' && beat !== 'reading') return data.fog;
-    return [...data.fog, ...data.walked.slice(lit)];
-  }, [data, beat, lit]);
+  // Beat one: the walked streets light up out of the grey, in the order walked. The map is given them whole and lights
+  // them as the beat's time passes (replay ceremony RC23); while the streets are read they are all fog.
+  const lightKey = phase.t0;
+  const lightUp = useMemo(() => (beat === 'reading' ? ('dark' as const) : beat === 'fog' && !reduceMotion ? { key: lightKey, over: FOG_LIT_MS } : undefined), [beat, reduceMotion, lightKey]);
 
   // Captures are pinned as the ceremony reaches them; on the card every pin opens its captures.
-  const pinned = useRevealed(story, frame ? frame.pins : beat === 'card' || beat === 'name' || srMode ? 'all' : 'none');
+  const pinned = useRevealed(story, telling ? play.pins : beat === 'card' || beat === 'name' || srMode ? 'all' : 'none');
 
   // Stretches across gaps (Filling gaps, G6, G9): offered ones faint on the card, a tapped one's card.
   const faint = useMemo(() => (data && (beat === 'card' || beat === 'name') ? data.stretches.filter((x) => x.how === 'offer').map((x) => x.path) : []), [data, beat]);
@@ -466,10 +454,14 @@ export default function Replay() {
   useEffect(() => {
     if (keepShown) void noteAsked(id);
   }, [keepShown, id]);
-  // Gaps with no line across them, joined by grey dots on the card beats (GW2).
+  // Gaps with no line across them, joined by grey dots on the card beats (GW2), and with them the hops the path drew
+  // across its other breaks (a pause, a break too long to be a gap), which stay on the map through the card (replay
+  // ceremony RC21). A gap keeps the card's own way of drawing it. While the path is told the replay's own frames draw
+  // the hops in that layer.
+  const hops = showing?.hops;
   const links = useMemo(
-    () => (data && (beat === 'card' || beat === 'name') ? emptyGaps(data.gaps, data.stretches).map((g) => [g.from, g.to]) : []),
-    [data, beat],
+    () => (data && (beat === 'card' || beat === 'name') ? linksWithHops(emptyGaps(data.gaps, data.stretches), data.gaps, hops ?? []) : []),
+    [data, beat, hops],
   );
   // The walk's clock, so a pin of several says how far in it was (tend map T14).
   const clocks = useMemo(() => (data ? [{ id: data.walk.id, started_at: data.walk.started_at, pauses: data.pauses }] : undefined), [data]);
@@ -515,18 +507,99 @@ export default function Replay() {
     }
   };
   const close = () => (router.canGoBack() ? router.back() : router.dismissTo('/'));
-  const sheetPad = { top: 48 + insets.top, right: 32, bottom: sheetH + 24, left: 32 };
+  /**
+   * The walk's card. `measure` lays it out unseen, its controls as room of their size that no hand, key or test can
+   * reach: the sheet's height is known before the path ends, so the close can frame the walk above it (RC24).
+   */
+  const cardBody = (measure: boolean) => {
+    const id = (name: string) => (measure ? undefined : name);
+    const hint = pinHint(measure ? story.captures : pinned);
+    return (
+      <>
+        <View style={styles.titleRow}>
+          <Text style={[styles.cardTitle, styles.flex]} accessibilityRole={measure ? undefined : 'header'}>{shownTitle}</Text>
+          {!data.walk.open && (measure ? (
+            <View style={styles.more} />
+          ) : (
+            <Pressable
+              testID="card-more"
+              accessibilityRole="button"
+              // Named by the title the card shows, as the walk's row names it (tend tabs 11).
+              accessibilityLabel={moreFor(shownTitle)}
+              onPress={() => setActionsOpen(true)}
+              style={({ pressed }) => [styles.more, pressed && { opacity: 0.6 }]}
+              hitSlop={4}
+            >
+              <Icon name="ellipsis-horizontal" size={22} color={theme.ink} />
+            </Pressable>
+          ))}
+        </View>
+        {/* New streets are a clause in the line, never a big orange number (tabs audit U13). */}
+        <Text testID={id('card-line')} style={styles.cardLine}>
+          <Text testID={id('card-distance')}>{formatDistance(s?.distance_m ?? 0)}</Text> · {formatDuration(s?.duration_ms ?? Math.max(0, (data.walk.ended_at ?? data.walk.started_at) - data.walk.started_at - pausedMs(data.pauses, data.walk.started_at, data.walk.ended_at ?? data.walk.started_at)))}
+          {streetsLine ? ` · ${streetsLine}` : ''}
+        </Text>
+        {/* A ride on its own line, so the card's line doesn't say "walked" twice (rides audit, UI). */}
+        {rideM >= 1 ? <Text testID={id('card-ride')} style={styles.cardMuted}>+ {formatDistance(rideM)} by ride</Text> : null}
+        {/* What was kept, a clause (tend replay T19). */}
+        {s && formatCaptures(s) ? <Text testID={id('card-kept')} style={styles.cardMuted}>{formatCaptures(s)}</Text> : null}
+        {finds ? <Text testID={id('card-finds')} style={styles.cardMuted}>{finds}</Text> : null}
+        {/* The lows stay in (E11): what came within view and wasn't stopped for. */}
+        {passed ? <Text testID={id('card-low')} style={styles.cardMuted}>{passed}</Text> : null}
+        {data.walk.epilogue ? <Text style={styles.epilogue}>“{data.walk.epilogue}”</Text> : null}
+        {/* The one hint, the card's last line before its buttons, as on the day's card (tend replay T19, audit 10);
+            no pin, no hint (audit 11). */}
+        {hint ? <Text style={styles.cardMuted}>{hint}</Text> : null}
+        {measure ? (
+          <View style={[styles.row, styles.buttonRoom]} />
+        ) : (
+          <View style={styles.row}>
+            <Button
+              variant="secondary"
+              style={styles.flex}
+              label="Watch again"
+              onPress={() => {
+                setWatched(true);
+                go(srMode ? 'path' : 'fog');
+              }}
+            />
+            {rewatch ? (
+              <Button testID="done" style={styles.flex} label="Done" onPress={close} />
+            ) : (
+              <Button testID="to-name" style={styles.flex} label="Name it" onPress={() => go('name')} />
+            )}
+          </View>
+        )}
+        {!rewatch && (measure ? (
+          <View style={styles.notNow} />
+        ) : (
+          // A quiet way out (tabs audit U14): the walk stays unnamed, and Chronicle comes up.
+          <Pressable
+            testID="not-now"
+            accessibilityRole="button"
+            accessibilityHint="Keeps the walk without a name and goes to Chronicle"
+            onPress={leaveCard}
+            style={({ pressed }) => [styles.notNow, pressed && { opacity: 0.6 }]}
+          >
+            <Text style={styles.notNowText}>Not now</Text>
+          </Pressable>
+        ))}
+      </>
+    );
+  };
 
   return (
     <View style={styles.screen}>
       <WalkMap
         ref={mapRef}
         borders={borders}
-        trace={drawn.trace}
-        rides={drawn.rides}
+        trace={telling || !data ? NO_RUNS : data.runs}
+        rides={telling || !data ? NO_RUNS : data.rideRuns}
+        replay={telling}
         traceOpacity={beat === 'fog' || beat === 'reading' ? QUIET_TRACE_OPACITY : 1}
-        walked={shownWalked}
-        fog={fog}
+        walked={data.walked}
+        fog={data.fog}
+        lightUp={lightUp}
         captures={pinned}
         clocks={clocks}
         // While drawing, a tap on a pin is a point along the way like any other (gap-drawing audit 8).
@@ -535,9 +608,6 @@ export default function Replay() {
         faint={faint}
         gapLinks={isDrawing ? undefined : links}
         drawing={drawing.line}
-        walker={frame?.walker ?? null}
-        follow={follow}
-        followZoom={followZoom}
         fitBounds={data.bounds}
         fitKey={fitKey}
         fitPadding={beat === 'card' || beat === 'name' ? sheetPad : undefined}
@@ -572,11 +642,11 @@ export default function Replay() {
         </View>
       )}
 
-      {frame && (
+      {telling && (
         <>
           {/* A tap anywhere holds the replay, and another goes on (RR7). */}
           <Pressable testID="replay-stage" style={StyleSheet.absoluteFill} onPress={play.toggleHold} accessible={false} />
-          <Stage frame={frame} ctx={ctx} />
+          <Stage ctx={ctx} />
         </>
       )}
       {beat === 'path' && srMode && (
@@ -665,10 +735,12 @@ export default function Replay() {
         <View style={[styles.skip, { top: insets.top + 12 }]}>
           <Button testID="skip" variant="secondary" label="Skip" onPress={() => go('card')} />
           {/* Under Skip, at the same edge: the clock sits between Hold and Skip, and the three do not fit one row on a 375 px phone (RY12). */}
-          {frame && play.canNext && <NextMoment onPress={play.next} />}
+          {telling && play.canNext && <NextMoment onPress={play.next} />}
         </View>
       )}
-      {frame && (
+      {/* The frames really drawn, at the preview address only (replay ceremony RC6, `lib/ceremony/meter`). */}
+      {telling && play.meter && <FrameMeter meter={play.meter} top={insets.top + 12 + 48 + 8} />}
+      {telling && (
         <View style={[styles.hold, { top: insets.top + 12 }]}>
           <Button
             testID="hold"
@@ -677,6 +749,26 @@ export default function Replay() {
             accessibilityHint={play.held ? 'Goes on with the replay' : 'Holds the replay where it is'}
             onPress={play.toggleHold}
           />
+        </View>
+      )}
+
+      {/* The card's sheet, laid out unseen before the path ends: its height is the room the close leaves under the walk,
+          so the card then arrives on a map that does not move (replay ceremony RC24). */}
+      {(beat === 'reading' || beat === 'fog' || beat === 'path') && (
+        <View
+          style={[styles.sheetWrap, UNSEEN]}
+          pointerEvents="none"
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          aria-hidden
+          onLayout={(e) => {
+            const h = e.nativeEvent.layout.height;
+            if (Math.abs(h - sheetH) > 8) setSheetH(h);
+          }}
+        >
+          <View style={styles.sheet}>
+            <View style={[styles.sheetContent, { paddingBottom: 16 + insets.bottom }]}>{cardBody(true)}</View>
+          </View>
         </View>
       )}
 
@@ -703,68 +795,7 @@ export default function Replay() {
             keyboardShouldPersistTaps="handled"
           >
             {beat === 'card' ? (
-              <>
-                <View style={styles.titleRow}>
-                  <Text style={[styles.cardTitle, styles.flex]} accessibilityRole="header">{shownTitle}</Text>
-                  {!data.walk.open && (
-                    <Pressable
-                      testID="card-more"
-                      accessibilityRole="button"
-                      // Named by the title the card shows, as the walk's row names it (tend tabs 11).
-                      accessibilityLabel={moreFor(shownTitle)}
-                      onPress={() => setActionsOpen(true)}
-                      style={({ pressed }) => [styles.more, pressed && { opacity: 0.6 }]}
-                      hitSlop={4}
-                    >
-                      <Icon name="ellipsis-horizontal" size={22} color={theme.ink} />
-                    </Pressable>
-                  )}
-                </View>
-                {/* New streets are a clause in the line, never a big orange number (tabs audit U13). */}
-                <Text testID="card-line" style={styles.cardLine}>
-                  <Text testID="card-distance">{formatDistance(s?.distance_m ?? 0)}</Text> · {formatDuration(s?.duration_ms ?? Math.max(0, (data.walk.ended_at ?? data.walk.started_at) - data.walk.started_at - pausedMs(data.pauses, data.walk.started_at, data.walk.ended_at ?? data.walk.started_at)))}
-                  {streetsLine ? ` · ${streetsLine}` : ''}
-                </Text>
-                {/* A ride on its own line, so the card's line doesn't say "walked" twice (rides audit, UI). */}
-                {rideM >= 1 ? <Text testID="card-ride" style={styles.cardMuted}>+ {formatDistance(rideM)} by ride</Text> : null}
-                {/* What was kept, a clause (tend replay T19). */}
-                {s && formatCaptures(s) ? <Text testID="card-kept" style={styles.cardMuted}>{formatCaptures(s)}</Text> : null}
-                {finds ? <Text testID="card-finds" style={styles.cardMuted}>{finds}</Text> : null}
-                {/* The lows stay in (E11): what came within view and wasn't stopped for. */}
-                {passed ? <Text testID="card-low" style={styles.cardMuted}>{passed}</Text> : null}
-                {data.walk.epilogue ? <Text style={styles.epilogue}>“{data.walk.epilogue}”</Text> : null}
-                {/* The one hint, the card's last line before its buttons, as on the day's card (tend replay T19, audit 10);
-                    no pin, no hint (audit 11). */}
-                {pinHint(pinned) ? <Text style={styles.cardMuted}>{pinHint(pinned)}</Text> : null}
-                <View style={styles.row}>
-                  <Button
-                    variant="secondary"
-                    style={styles.flex}
-                    label="Watch again"
-                    onPress={() => {
-                      setWatched(true);
-                      go(srMode ? 'path' : 'fog');
-                    }}
-                  />
-                  {rewatch ? (
-                    <Button testID="done" style={styles.flex} label="Done" onPress={close} />
-                  ) : (
-                    <Button testID="to-name" style={styles.flex} label="Name it" onPress={() => go('name')} />
-                  )}
-                </View>
-                {!rewatch && (
-                  // A quiet way out (tabs audit U14): the walk stays unnamed, and Chronicle comes up.
-                  <Pressable
-                    testID="not-now"
-                    accessibilityRole="button"
-                    accessibilityHint="Keeps the walk without a name and goes to Chronicle"
-                    onPress={leaveCard}
-                    style={({ pressed }) => [styles.notNow, pressed && { opacity: 0.6 }]}
-                  >
-                    <Text style={styles.notNowText}>Not now</Text>
-                  </Pressable>
-                )}
-              </>
+              cardBody(false)
             ) : (
               <>
                 {/* A quiet way back to the card, the words kept, where Back and Escape go (tend replay T21, decision 0165):
@@ -853,6 +884,9 @@ export default function Replay() {
  * The fog beat's headline, honest about walks whose streets could not be read.
  * Words, not a big number (tabs audit U13): the streets new to you, or familiar ground.
  */
+/** Laid out and never seen: out of what a browser reads as the page's text, too. */
+const UNSEEN = Platform.OS === 'web' ? ({ visibility: 'hidden' } as object) : { opacity: 0 };
+
 function headline(s: ReplayData['summary'], d: ReplayData) {
   const distance = formatDistance(s?.distance_m ?? 0);
   if (!s || !s.streets_read) {
@@ -893,6 +927,8 @@ const styles = StyleSheet.create({
   cardMuted: { fontSize: 15, color: theme.muted },
   epilogue: { fontSize: 15, fontStyle: 'italic', color: theme.ink },
   row: { flexDirection: 'row', gap: 10, marginTop: 6 },
+  // A button's height (`components/ui` `btn`), where the card is laid out unseen.
+  buttonRoom: { height: 48 },
   notNow: { minHeight: 44, alignSelf: 'center', justifyContent: 'center', paddingHorizontal: 16 },
   notNowText: { fontSize: 15, fontWeight: '600', color: theme.muted },
   // Not now's quiet text, at the name sheet's leading edge, its words in line with the labels below.

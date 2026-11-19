@@ -1,4 +1,4 @@
-// Modes to layers (MD1-MD8, MD11, MD16, MD19; decision 0231): no Explore mode. A walk starts with every layer off; the walk's
+// Modes to layers (MD1-MD8, MD11, MD16, MD19; decision 0234): no Explore mode. A walk starts with every layer off; the walk's
 // Layers panel lists Places; turning it on draws the "?", turning it off takes them away; nothing covers the capture stack.
 // Written first, as todos (check.todo), each failing until its code. E2E_ONLY=modes runs it alone.
 

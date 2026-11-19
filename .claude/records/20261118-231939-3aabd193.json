@@ -1,0 +1,14 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "The ceiling on frames a second"
+      ],
+      "body": "The owner's first look (iPhone, Nov 18): \"smoother, but the reticle has after images and doesn't glide\". One cause found and fixed: the dot rounded to a whole pixel at a half-pixel centre (393 px wide). For the rest the preview says what the phone draws: a readout under Hold (frames drawn and offered a second, the longest wait, the time to draw; `lib/ceremony/meter`, `FrameMeter`), shown only at the preview address or with `meter=1` on a replay's link. It goes with `fps` once the ceiling is chosen.\n",
+      "target": "sha256:d300f287ae79bc1598664c2eb8d0c8240f1240f5c08f08073e700877bd5cf0a8"
+    }
+  ]
+}

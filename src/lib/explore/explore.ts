@@ -23,7 +23,7 @@ export type { Kind } from '../discovery/types';
  * screens call in.
  */
 
-/** Meta, per walk recorded before decision 0231: it explored at some point, so its replay counts what it passed from then (E11). A newer walk's passes are read from `places_spans:<walk>`. */
+/** Meta, per walk recorded before decision 0234: it explored at some point, so its replay counts what it passed from then (E11). A newer walk's passes are read from `places_spans:<walk>`. */
 export const exploredKey = (walkId: string) => `explored:${walkId}`;
 /** The pass-by distance a walk was walked with (TC9), kept beside `explored:<walk>`. */
 export const walkPassKey = (walkId: string) => `walk_pass:${walkId}`;
@@ -642,7 +642,7 @@ export interface PassedInput {
   foundHere: Set<string>;
   /** How close counts as passing (TC6); the default when absent. */
   passM?: number;
-  /** Modes to layers MD9: the spans Places was on; a pass counts only inside one. Absent, `since` decides (a walk before decision 0231). */
+  /** Modes to layers MD9: the spans Places was on; a pass counts only inside one. Absent, `since` decides (a walk before decision 0234). */
   spans?: Spans;
 }
 export function passedPlaces(o: PassedInput): ChecklistItem[] {

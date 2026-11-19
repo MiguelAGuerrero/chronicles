@@ -6,7 +6,7 @@
  * than skipping to the card. A clock at or past the total ends the ceremony,
  * even a total of 0, or one that shrank under it when the story was rebuilt.
  */
-import type { Landing, Showing } from './types';
+import type { Jump, Landing, Showing } from './types';
 
 export const MAX_TICK_MS = 250;
 
@@ -60,7 +60,7 @@ export function msAtClock(s: Showing, clock: number): number {
  * Where a rebuilt telling (`next`) takes up from `ms` into the old one
  * (audits 22, 31, 33): the same time of day; where the clock stands still (a
  * stop, a loose moment), as long before it moves on again as there was. A
- * moment deleted from the pile was already shown, so counting from the end of
+ * moment deleted from the stack's viewer was already shown, so counting from the end of
  * the standing still keeps the place even when an earlier one in it goes.
  */
 export function reanchor(old: Showing, next: Showing, ms: number): number {
@@ -72,4 +72,72 @@ export function reanchor(old: Showing, next: Showing, ms: number): number {
   const start = msAtClock(next, clock);
   const end = msAtClock(next, clock + 1);
   return Math.min(last, Math.max(start, Math.min(end - left, Math.max(start, end - 1))));
+}
+
+/**
+ * The replay's time as its frame loop keeps it (replay ceremony RC5-RC8, decision 0206): the time into the telling it
+ * was last read against, held or not, ended or not, the last press of Next, and when its last frame was taken on the
+ * caller's own clock (`at`; null before the first). One `requestAnimationFrame` loop owns it, outside the screen's
+ * rendering (`components/ceremony/useCeremonyLoop`); every decision about it is here, with the time as an argument.
+ */
+export interface LoopState {
+  epoch: number;
+  ms: number;
+  held: boolean;
+  ended: boolean;
+  showing: Showing | null;
+  /** The moment the last press of Next went to, and the press itself (RY13, RY21). */
+  aimed: number | null;
+  jump: Jump | null;
+  at: number | null;
+}
+
+/** A display frame may come this much early and still be drawn: a 60 Hz screen's frames are 16 to 17 ms apart, never exactly a sixtieth. */
+const FRAME_SLACK_MS = 4;
+
+/** A beat from its start: the time restarts at each new epoch (the beat's start), not held. */
+export const freshLoop = (epoch: number, showing: Showing | null): LoopState => ({ epoch, ms: 0, held: false, ended: false, showing, aimed: null, jump: null, at: null });
+
+/**
+ * The loop read against the telling on screen: afresh when the epoch moved on (Watch again, the path after the fog);
+ * re-anchored when the telling was rebuilt mid-path (a moment deleted, Undo, a note edited: the same time of day,
+ * `reanchor`), its last press forgotten, since it said nothing of the new times; itself otherwise.
+ */
+export function loopAgainst(c: LoopState, epoch: number, showing: Showing | null): LoopState {
+  if (c.epoch !== epoch) return freshLoop(epoch, showing);
+  if (c.showing && showing && c.showing !== showing) return { ...c, ms: reanchor(c.showing, showing, c.ms), showing, aimed: null, jump: null };
+  return c.showing === showing ? c : { ...c, showing };
+}
+
+/**
+ * One display frame at `now` (the caller's clock, ms). The same state back means the frame is not taken: it came
+ * sooner than `frameMs` after the last one (the engine's ceiling on frames a second, RC6; 0 takes every frame).
+ * A frame that is taken moves the time by what really passed since the last (RC5), as `tickClock` counts it: nothing
+ * while held or paused, a quarter second at most, never past the total. `end` is said once, the frame the time is up.
+ */
+export function stepLoop(c: LoopState, now: number, o: { paused: boolean; total: number; frameMs: number }): { state: LoopState; end: boolean } {
+  if (c.at != null && o.frameMs > 0 && now >= c.at && now - c.at < o.frameMs - FRAME_SLACK_MS) return { state: c, end: false };
+  const { clock, end } = tickClock(c, c.at == null ? 0 : now - c.at, o);
+  return { state: { ...c, ms: clock.ms, at: now, ended: c.ended || end }, end: end && !c.ended };
+}
+
+/** Hold, or go on (RR7). */
+export const holdLoop = (c: LoopState): LoopState => ({ ...c, held: !c.held });
+
+/** A moment lies ahead (RY17). */
+export const loopCanNext = (c: LoopState): boolean => !c.ended && !!c.showing && nextStop(c.showing.stops, c.ms, c.aimed) != null;
+
+/** A press of Next (RY13-RY17): to the next moment's landing, held staying held; the same state when none lies ahead. */
+export function nextLoop(c: LoopState): LoopState {
+  const to = c.showing && !c.ended ? nextStop(c.showing.stops, c.ms, c.aimed) : null;
+  return to ? { ...c, ...seekClock(c, to.ms), aimed: to.t0, jump: { from: c.ms, at: to.ms } } : c;
+}
+
+/**
+ * The least time between two frames the replay draws (RC6): the engine's own number (`REPLAY_ENGINE.frameMs`), or what
+ * a replay's link asks as whole frames a second (`fps`, 5 to 120), so a ceiling can be tried on a phone without a build.
+ */
+export function frameMsFor(token: number, asked?: string | null): number {
+  const fps = asked == null || !/^\d{1,3}$/.test(asked) ? NaN : Number(asked);
+  return fps >= 5 && fps <= 120 ? 1000 / fps : token;
 }

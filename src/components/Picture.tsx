@@ -3,7 +3,7 @@ import type { StyleProp, ViewStyle, ImageStyle } from 'react-native';
 
 /**
  * Every picture the app shows on screen (pictures through expo-image, EI1-EI5): a moment's photo or a video's still,
- * a pin's small copy, a gallery tile, the replay's cards and pile, a memory preview, a reminder card.
+ * a pin's small copy, a gallery tile, the replay's cards, stack and pictures on its map, a memory preview, a reminder card.
  *
  * - Kept, decoded, in memory and on disk once drawn (EI2): React Native's `Image` decoded the file again on every mount.
  * - No transition (EI4): a picture appears as it always did (VISION, Always: restraint in motion).

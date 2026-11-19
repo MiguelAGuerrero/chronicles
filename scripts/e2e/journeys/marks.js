@@ -42,7 +42,7 @@ async function run(h) {
       await pg.waitForSelector('[data-testid=start]');
       await pg.click('[data-testid=start]');
       await pg.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
-      // No Explore mode (decision 0231): the "?" are the walk's Places layer, turned on from its panel.
+      // No Explore mode (decision 0234): the "?" are the walk's Places layer, turned on from its panel.
       await switchLayer(pg, 'places');
       const s0 = at(-0.5, -0.5);
       await c.setGeolocation({ longitude: s0[0], latitude: s0[1] + 0.000002, accuracy: 6 });

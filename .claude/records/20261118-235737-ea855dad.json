@@ -1,0 +1,14 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "The harness's frames a second fell with the camera and breaks"
+      ],
+      "body": "Measured again on a quiet machine (Nov 18, the merged branch, one run): 30.1 frames a second unthrottled and 20.2 at 4x, against 29.4 and 18.1 for the engine alone measured the same way. So the fall above was the machine being busy with journeys, not the camera; the zoom changing every frame is still unprofiled, and the iPhone's own numbers are what the preview's readout is for.\n",
+      "target": "sha256:34e1f1f45237dbdcf01d15e59b382546bd0b6d962c6d4800616a248f1cec83a1"
+    }
+  ]
+}

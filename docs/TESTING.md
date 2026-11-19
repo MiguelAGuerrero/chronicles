@@ -227,7 +227,7 @@ npm run export:web && npm run e2e:web
 | `marks` | an exploring walk through an area read before draws the marks it passes (Nov 2 repro) |
 | `outlines` | town outlines and borders (TO3, TO10, TO12, TB1, TB2): a fake divisions archive (z12 and z10) with Pawtucket's outline around the start and Central Falls beside it; the Explore title names Pawtucket, and Providence (the nearest point) when no outline holds you; the map's `data-borders` says Pawtucket tinted and Central Falls lined, on Explore and the town page. Elsewhere the archive holds no towns, so a 404 never counts as a console error |
 | `grading` | atlas grading (AG3): a thin ring 6 km west (Quiet Hollow, one café) shows no kinds and no character line on its tile, and no kind rows on its card |
-| `replay` | replay rhythm (RR6-RR16, RR19): a seeded walk with a captioned photo, a note, a memo, a 20-minute gap and a long stretch, watched with no taps but the ones it checks; then its day. Video sound is refused as iOS does, so the journey drops that one expected console error |
+| `replay` | replay rhythm (RR6-RR16, RR19) and the replay's engine (RC1-RC4, RC7, RC9, RC10: a re-watch, one with reduce motion and the day read frame by frame with the app's counters on): a seeded walk with a captioned photo, a note, a memo, a 20-minute gap crossed by a hop and a 4-minute one too small to see (a stand), watched with no taps but the ones it checks; the camera and the breaks read frame by frame at 390 and 320 px (RC11, RC12, RC14, RC17-RC22), from the first beat to past the card, so the opening and the close are read too (RC23-RC26: `bookendsOf`, `lastViewOf`, the seeded walk's one passed place named on its last view; Skip pressed on the last view, RC27); what stays behind and a moment on screen from the same frames (RC28-RC30, RC34-RC36: `staysOf`; the stack as the one control, RC31, RC45); then its day, read the same way (RC23-RC26, RC46); then a third walk of eighteen photos that fills the stack past a 320 px phone's bound (RC30, `seedPhotoWalk`). Video sound is refused as iOS does, so the journey drops that one expected console error |
 | `edit` | media editing (ME1-ME23): the Edit offer on all three capture places, every tool on a photo and a video, what is stored, what the viewer shows, and what Download saves |
 | `snap` | discrete navigation (DN1-DN13): four more neighborhoods around Fox Point and Cranston west of Providence (`serveSnap`); swipes by mouse drag select the area that way (`data-selected` on the area points), centre it under the title card (`window.__project`), scroll its tile into view, return on the opposite swipe; arrow keys and `+`; the wheel and the long press still work; a tap clears; a town's page swipes to Cranston and back; Navigate's map still pans; then the audit's checks (`discrete-navigation audit 1, 4-7, 10, 11`), audit 1 at 1200 px wide. `window.__unproject` (with `__perf`) gives the centre areas are framed at |
 | `scenic` | scenic routes (SR1-SR14): India Point Park and a footway a block north of Transit Street (`scenicWorld`); the leanings' defaults, Route here with nothing scenic (the notice), the preview's two rows in words, the faint alternate (`data-alternates` on the map, with `__perf`), a row highlighted (`data-selected`), Cancel and Escape, Go on Through green and the leaning kept in meta `nav`, a reload resuming it with no preview; all three off, kept across a reload, Route here going direct. Other journeys reach a route through the harness's `routed`, which takes Direct when a preview shows |
@@ -404,6 +404,40 @@ layout and style time, `perfCount` rates. Look for a column that only grows.
   functions printed (export with `--no-minify` for readable names).
 - It serves `dist/` from the root only (no `CHRONICLES_BASE_URL` build). Its
   scan step clicks `[data-testid=scan]`, retired with scan, and is skipped.
+
+### The replay's path beat: `scripts/perf-replay.js`
+
+```bash
+npm run export:web && node scripts/perf-replay.js
+```
+
+The owner's iPhone report of a stuttering replay (Nov 18, decision 0206; `docs/research/replay-frame-pipeline.md`). It
+seeds the `replay` journey's walk (`scripts/e2e/replayWalk.js`: two photos, a video, a note, a 20-minute gap, a memo,
+a 4-minute gap too small to see, one place passed without stopping),
+lets the first replay reach its card, then watches it again once per CPU throttle (`PERF_RATES`, default `1,4,6`) and
+reads the path beat, from its first frame (the opening's dive) to the card. Per throttle, over the beat and over its stretches (nothing
+arriving or leaving, the walker moving): frames a second, how often the walker's place changed, React commits, renders
+of the screen and the map component (`render:replay`, `render:map`), map data sent (`setData:*`) and messages to the
+map's worker, the main thread's share in script, and how far the line's end was from the dot and the map's centre
+from where its frame put the camera (`data-cam`), in px. It ends with one table. (The camera holds and re-frames since
+replay ceremony RC12, so it is no longer at the dot; a build that says no `data-cam` is measured the old way, the
+line's end and the dot from the map's centre.)
+
+- `PERF_DSF` (default 1): the device scale at 390 x 844. Headless Chromium draws WebGL in software, so a phone's 3x
+  canvas binds every build to software GL and the numbers say nothing; measure on the small canvas.
+- `PERF_FPS=<n>`: the engine's ceiling on frames a second for the measured watches (the replay's `fps` link
+  parameter, RC6). `PERF_JSON=<file>` writes the numbers; `PERF_PROFILE=<file>` a CPU profile per throttle;
+  `E2E_DIST=<dir>` serves another export, to compare two builds.
+- A build that sends the line as data is read from the worker's messages (the end of the last `trace` the worker had
+  answered); one that reveals it says where it ends (`data-reveal-end`, written only when measuring).
+- **What it can't see:** as `perf-explore.js`: no WebKit, no real GPU, one fixture, and the map's worker is not
+  throttled (CDP refuses it for a worker). Frames a second here are bound by software GL at every throttle; the
+  counts (renders, sends, commits) and the px apart are what to compare. A phone's frame rate is the owner's look.
+- The `replay` journey holds the counts (RC1-RC4, RC7, RC9, RC10): it reads the page's own frames with the app's
+  counters on (`recordFrames`, `stretchOf` in `scripts/e2e/journeys/replay.js`). The camera (RC11, RC12, RC14) and the
+  breaks (RC17-RC21; RC22 with reduce motion emulated) are read from the same frames (`cameraOf`, `breaksOf`): a
+  re-watch at 390 and at 320 px, with `rc-*` pictures of each state under `E2E_SHOTS` (Hold stands the replay still
+  for each).
 
 ### Explore in a dense city: `scripts/perf-explore.js`
 

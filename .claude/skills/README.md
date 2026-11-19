@@ -12,6 +12,7 @@ stops for the owner, and what it may push. This page is the map; a skill's own f
              ├─ addition / opinion ─► /vision ─► inbox T<n> ─► owner ─► one commit ► main
              ├─ phone-only ─────────────────► inbox T<n> [phone]   (larger additions are filed as G)
              └─ area polished ─► evolve ─► /vision ─► inbox G<n> ─► owner ─► /slice --from=G<n> ► main
+owner's ask ─► /investigate ─► /vision ─► owner's calls, asked now ─► inbox G<n> (brief in docs/research/) ─► owner ─► /slice --from=G<n> ► main
 a slice lands ─► its area is rough ─► the next /tend sweeps it
 ```
 
@@ -21,6 +22,7 @@ a slice lands ─► its area is rough ─► the next /tend sweeps it
 |---|---|---|---|---|---|
 | `/vision` | the owner; `/slice` 1b; `/fix`; `/tend` | an idea in one sentence | the Vision block (verdict, shape, precedent, criteria); a decision record only when the owner overrules | only when the owner is the caller and the verdict is out, not now or silent; called by a skill it returns the block and the caller decides | nothing; it reads and judges |
 | `/slice` | the owner; `/tend inbox G<n> yes` | a slug; with `--from=G<n>` the approved entry (criteria, verdict) | spec, plan, tests-first commit, code, docs, the STATUS row | the plan, unless `--from` (decision 0130); architecture always | nothing, ever; under `--from` the `/tend` run that called it publishes |
+| `/investigate` | the owner only | what they saw or want (a screenshot helps) | `docs/research/<slug>.md` (the brief), precedent lines in `adjacent-apps.md`, a decision record when an answer amends a call, one inbox entry (`G`, or `T` when one commit's worth) with `From:` and `Brief:` lines | in the run: the owner's calls, asked at once (decision 0231); an unanswered one stays on the entry as `Open:` | `main`: the brief, the decision and the entry, never app code |
 | `/fix` | the owner only | one issue and its flags | one commit with its regression test; DEFERRED for anything else found | hard stops (`ship.md`) | `main` by default (0081) |
 | `/audit` | the owner only (0074) | a built slice's slug | the spec's audit record, regression tests named `<slug> audit N`, fixes | architectural findings | nothing; `/deploy` follows |
 | `/tend` | the owner; `/tend-orchestrator`'s runs (0157) | an area, `triage`, `evolve` or `inbox <answers>` | loop commits, inbox entries, DEFERRED tags, the ledger | never mid-run; it files and goes on, and asks about its entries after it has published | `main`: loop findings and its record (0128); an approved entry (0130) |

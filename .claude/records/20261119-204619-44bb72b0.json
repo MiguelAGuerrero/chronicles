@@ -1,0 +1,150 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inbox",
+        "add"
+      ],
+      "body": "- **T? [owner] A discarded memo's Undo goes after 5 s and has no Close** (2026-11-19)\n  Area: walk-screen. Seen: `ws14-ready-undo-390.png` (the run's after pictures): \"Voice memo discarded\" with Undo, on the ready screen and on the walk, goes by itself after five seconds (`src/lib/useCaptures.ts`, `UNDO_MS`; `components/MomentBar.tsx` and `app/walk.tsx`, the discard pill) and offers no Close (the diff review's ux 1, medium, there before the run). Rests on: `.claude/rules/ui-patterns.md`, \"Undo stays until it is used or dismissed (F3; M3: \"Snackbars with actions shouldn't auto-dismiss\"; NN/g faults a few-second Undo): the pill has Undo and Close\" (decision 0113). It challenges decision 0008 (\"undoable for 5 s\"), which predates 0113.\n  Recommended: the pill has Undo and Close and stays until it is used, closed, or replaced by the next capture; a memo set aside is let go then. /vision: aligned (Honour: a memo discarded by a slip is not lost to a timer; no word beyond Close).\n  Precedent: Gmail's and Google Photos' Undo snackbars stay until acted on or replaced (from memory, not yet recorded); Apple Voice Memos keeps a deleted recording in Recently Deleted (from memory, not yet recorded); docs/research/adjacent-apps.md, \"A capture that could not be saved\", records none on a discard's Undo.\n  Otherwise: keep 0008's 5 s.\n",
+      "number": "T48"
+    },
+    {
+      "argv": [
+        "inbox",
+        "note",
+        "T42"
+      ],
+      "body": "  Nov 19: the owner's yes, in person, 2026-11-19: \"Two rows inside (Recommended)\" (decision 0233). Waits for a build.\n",
+      "target": "sha256:aee1ad65e05cd405658f17ea097cf58dfea92bc2d7f49cd849b25bd146882df3"
+    },
+    {
+      "argv": [
+        "inbox",
+        "note",
+        "T43"
+      ],
+      "body": "  Nov 19: the owner's yes, in person, 2026-11-19: \"Keep it whole (Recommended)\": the full clip stored as a moment with its place and time, its length said, no trimming (decision 0233). Waits for a build.\n",
+      "target": "sha256:89907ffc418180756cfe7a6b9ecef1f43b681902114e16a39dd93b3b018de69b"
+    },
+    {
+      "argv": [
+        "inbox",
+        "note",
+        "T44"
+      ],
+      "body": "  Nov 19: the owner's yes, in person, 2026-11-19: \"Camera stays (Recommended)\", amending NR10 (decision 0233). Waits for a build.\n",
+      "target": "sha256:aab7d478ef2ccaa4245b5c72ba9abbb2cde5f540d18fbdff5de426d29d52a7f5"
+    },
+    {
+      "argv": [
+        "inbox",
+        "note",
+        "T45"
+      ],
+      "body": "  Nov 19: the owner's yes, in person, 2026-11-19: \"Done + map tap (Recommended)\" (decision 0233). Waits for a build.\n",
+      "target": "sha256:bd9e4c0987af0fad0336c1841d7662e5db449905f23391f0c8e78d3f68d36a25"
+    },
+    {
+      "argv": [
+        "inbox",
+        "note",
+        "@1"
+      ],
+      "body": "  Nov 19: the owner's yes, in person, 2026-11-19: \"Undo + Close, stays (Recommended)\": Undo and Close, the pill staying until it is used, closed, or replaced by the next capture; it amends 0008 (decision 0233). Waits for a build.\n",
+      "target": "sha256:8cd425a7932f8e3c46b8e7b0162d8dcb34394bab76930a67cd2032d28547dee7"
+    },
+    {
+      "argv": [
+        "inbox",
+        "remove",
+        "T46",
+        "--reason",
+        "the owner, in person, 2026-11-19: \"Keep the blue (Recommended)\"; navigation keeps its own colour (decision 0233)"
+      ],
+      "target": "sha256:a9dcb49dd3c8586b8b9004aabd2eee01a9ee8fc1608e5582da14904bdbf1c653"
+    },
+    {
+      "argv": [
+        "inbox",
+        "remove",
+        "T47",
+        "--reason",
+        "the owner, in person, 2026-11-19: \"Keep it on (Recommended)\"; the pause reminder stays on by default (decision 0233)"
+      ],
+      "target": "sha256:bcb0b72d0869f0db52c27d0db97dbeaf6c64bb7feaf8dc9a1cb8abf8ef6bb555"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Navigate, ready"
+      ],
+      "body": "- [loop] On the web, the browser's Back while Start is on its way (\"Starting…\") leaves the walk screen: the walk is written (`components/walk/useReady.tsx`, `start`) and records minimized, and its \"Walk started · recording\" notice is never said; `tend walk-screen 11` holds Android's Back only, since a `BackHandler` does nothing on the web and the browser's back can't be stopped cheaply (`.claude/rules/tabs-and-home.md`). The tab beneath could say the walk started (`/tend walk-screen`'s diff review, auditor 3, Nov 19, low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Navigate, ready"
+      ],
+      "body": "- [loop] The drawer's motion row ends in a bare word, \"Turn on\", where the settings' other trailing actions are outlined buttons (the destination's Clear, Send a test notification): give it the same outlined pill (`app/walk.tsx`, `motion-on`, `styles.motionOn`; H4; `/tend walk-screen`'s diff review, ux 3, Nov 19, low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Navigate, ready"
+      ],
+      "body": "- [loop] \"Passing a place\" says what passing is, not what follows from it (the walk's replay names the places passed, `docs/PRODUCT.md`): a line that says so would be new words, so it goes to `/vision` first (`components/ExploreSettings.tsx`, `passNote`; H2, H10; `/tend walk-screen`'s diff review, ux 4, Nov 19, low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Navigate, ready"
+      ],
+      "body": "- [loop] The walk's spot card and a place's card lay their actions in a wrapping row, so at 390 four buttons take three lines and the × rides the last one (`ws15-spot-card-390`): a column of full-width buttons with the × in the title row would read in one pass (ui-patterns, **[app]** nothing wraps at 320; `/tend walk-screen`'s diff review, ux 5, Nov 19, low, opinion)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Navigate, ready"
+      ],
+      "body": "- [loop] No journey raises the dead-zone nudge (ten minutes walking far from every busy area), so its 44 pt Dismiss and its wrapped text below 360 (`tend walk-screen 14`, `audit 13`) are held by source tests only: a harness hook that makes the nudge due at once (beside `deadZoneDue`), and a 320 check with its picture, would hold them (`/tend walk-screen`'s diff review, auditor 2, Nov 19, low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "set",
+        "Pulled up, the ready bar",
+        "--reason",
+        "the diff review's ux: the grip draws over the text on both hosts, the walk's drawer too"
+      ],
+      "body": "- [loop] Pulled up, the bar's grip band is clear, so its handle draws over the settings' text as they scroll under it, on both hosts: the ready bar's settings and the walk's drawer (`components/walk/ReadyBar.tsx`, `grip`; picture `ws10-drawer-390-end`): give the band the bar's ground while up (`/tend walk-screen`'s review, ux 8, Nov 19, low)\n",
+      "target": "sha256:60fc7da9b826b71216bc0b5febb3d2f098baee9bb638bdf5341cd726f73b52e8"
+    },
+    {
+      "argv": [
+        "open",
+        "note",
+        "**The walk screen"
+      ],
+      "body": "  Nov 19: the owner allowed, in person, a one-off non-loop run for the walk screen's compiler skips after `/tend walk-screen` lands; that run takes their lines out of `compiler.baseline.json`.\n",
+      "target": "sha256:330b892205d3763029b35ba4aa63f2f2e7a38228612d4dcf66ec7883807b37c0"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 19, `/tend walk-screen --deploy=main`, a whole, uncapped sweep** (opened from `1fcf0f0d`, rebuilt on `777d0617`; lenses 1-7 all run; the first of decision 0229's whole sweeps).\n- Lenses: 1, the `ready` and `walk` journeys' pictures (ux-reviewer and steward); 2-4 read from the code and the specs; 5, the auditor, with `perf-walk` 4 min; 6, `check:vision --list` clean; 7, the area's `[loop]` items.\n- Shipped: `tend walk-screen 10` the layers key heads itself, only over rows (\"On the map\" over nothing since the Places layer); `11` Back does nothing while Start is on its way, and waits for focus; `12` the walk's strip of numbers is named for a screen reader; `13` the Add to this moment offer steps aside while a place is armed; `14` small targets 44 pt themselves (no hitSlop on the web); `15` \"What happened here\", no count; `16` \"Passing a place\" in one sentence.\n- The review (one round; the auditor and the ux-reviewer; accepted 5, deferred 4, to the owner 1, rejected 0): `audit 12` the strip's name says what it draws, word for word, ticking with it (a regression of 12); `audit 13` below 360 the dead-zone nudge's text has its own line (a regression of 14); `audit 14`, `15`, `16` journey checks (the viewer after What happened here, \"On the map\" with a layer on, the offer back after Cancel, \"Turn on\" measured).\n- Not shipped: WalkScreen's React Compiler skips (auditor 2, medium): CM2 wants their lines out of `compiler.baseline.json`, which the loop may not edit. In \"Open before the loop\"; the owner allowed a one-off non-loop run after this lands.\n- The owner's answers, in person (decision 0233): T42 \"Two rows inside\", T43 \"Keep it whole\", T44 \"Camera stays\", T45 \"Done + map tap\", T48 \"Undo + Close, stays\": yeses, each noted and waiting for a build; T46 \"Keep the blue\" and T47 \"Keep it on\": removed, today's behaviour stands.\n- Filed besides: lows `[loop]` in \"Navigate, ready\", one in the map's section, one in \"Vision gate\"; two `[owner]` lows; five phone checks; the N11 mirror in \"Open before the loop\".\n- The area stays `rough`: this sweep found mediums (section 8).\n- Journeys on the final build: walk, ready, where, layers, launch.\n"
+    }
+  ]
+}

@@ -111,7 +111,7 @@ export const META = {
   // Drive there, walk back (DW7, lib/nav/store): the spot chosen with Walk back here, for the open walk only.
   way_back: { owner: 'nav', codec: json<{ walk_id: string; at: [number, number] }>(isWayBack) },
   // Navigate tab (lib/startPlan, the Start dialog)
-  // `start_mode` and `explore_walk` (the Quiet / Explore mode) are retired by decision 0231: their rows are left unread.
+  // `start_mode` and `explore_walk` (the Quiet / Explore mode) are retired by decision 0234: their rows are left unread.
   web_note_dismissed: { owner: 'navigate', codec: flag },
   // Walk screen, once per walk or once ever
   deadzone_walk: { owner: 'walk', codec: walkId },
@@ -165,7 +165,7 @@ export const META = {
  * prefix and the value's encoding are fixed here.
  */
 export const META_FAMILIES = {
-  // When Explore was first switched on for a walk recorded before decision 0231 (ms): its replay counts passes from then.
+  // When Explore was first switched on for a walk recorded before decision 0234 (ms): its replay counts passes from then.
   explored: { owner: 'explore', codec: number },
   // A live walk's own layers (JSON of booleans), every layer off at its start, removed with the walk (specs/modes-to-layers MD10).
   walk_layers: { owner: 'map', codec: json<Record<string, boolean>>(isLayerState) },

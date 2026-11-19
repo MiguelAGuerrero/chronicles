@@ -1,31 +1,57 @@
 import { useEffect, useState } from 'react';
-import { Animated, Platform, StyleSheet, Text, View } from 'react-native';
+import { Animated, Platform, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { MOTION } from '../../lib/motionTokens';
 import { theme } from '../ui';
 import { timeOf } from './layout';
 
 const LINE = 24;
 const DIGITS = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+/**
+ * The web rolls a reel with the browser's own transition (replay ceremony RC7): react-native-web's `Animated` renders
+ * the animated view again on every frame of a roll, which the replay's clock does a few times a second.
+ */
+const WEB_ROLL = { transitionProperty: 'transform', transitionDuration: `${MOTION.fast}ms`, transitionTimingFunction: 'ease-in-out' } as unknown as ViewStyle;
 
-/** One digit on a reel: it rolls to its new value, or jumps with reduce motion (RR8, RR18). */
-function Digit({ n, still }: { n: number; still: boolean }) {
+function Reel() {
+  return (
+    <>
+      {DIGITS.map((d) => (
+        <Text key={d} style={styles.digit}>{d}</Text>
+      ))}
+    </>
+  );
+}
+
+/** One digit on a reel, on a phone: it rolls to its new value on the native driver, or jumps with reduce motion (RR8, RR18). */
+function NativeDigit({ n, still }: { n: number; still: boolean }) {
   const [y] = useState(() => new Animated.Value(-n * LINE));
   useEffect(() => {
     if (still) {
       y.setValue(-n * LINE);
       return;
     }
-    const a = Animated.timing(y, { toValue: -n * LINE, duration: MOTION.fast, useNativeDriver: Platform.OS !== 'web' });
+    const a = Animated.timing(y, { toValue: -n * LINE, duration: MOTION.fast, useNativeDriver: true });
     a.start();
     return () => a.stop();
   }, [n, still, y]);
   return (
+    <Animated.View style={{ transform: [{ translateY: y }] }}>
+      <Reel />
+    </Animated.View>
+  );
+}
+
+/** One digit on a reel: it rolls to its new value, or jumps with reduce motion (RR8, RR18). */
+function Digit({ n, still }: { n: number; still: boolean }) {
+  return (
     <View style={styles.slot}>
-      <Animated.View style={{ transform: [{ translateY: y }] }}>
-        {DIGITS.map((d) => (
-          <Text key={d} style={styles.digit}>{d}</Text>
-        ))}
-      </Animated.View>
+      {Platform.OS === 'web' ? (
+        <View style={[{ transform: [{ translateY: -n * LINE }] }, !still && WEB_ROLL]}>
+          <Reel />
+        </View>
+      ) : (
+        <NativeDigit n={n} still={still} />
+      )}
     </View>
   );
 }

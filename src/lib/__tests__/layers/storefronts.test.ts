@@ -31,7 +31,7 @@ test('SF1: the Layers panel lists Storefronts, with the storefront icon and a ti
   assert.doesNotMatch(l.legend[0].tip ?? '', /\d/);
 });
 
-test('SF7 (amended by modes-to-layers MD5, decision 0231): the walk\'s strip chip follows the Storefronts layer, whose own legend says what a storefront is', async () => {
+test('SF7 (amended by modes-to-layers MD5, decision 0234): the walk\'s strip chip follows the Storefronts layer, whose own legend says what a storefront is', async () => {
   const walk = readFileSync(join(ROOT, 'src/app/walk.tsx'), 'utf8');
   assert.ok(/storefrontsOn/.test(walk) && /hotStrips/.test(walk), 'the chip is behind Storefronts');
   assert.ok(!/Off: a quiet walk/.test(walk), 'the Explore help line is gone with the mode');

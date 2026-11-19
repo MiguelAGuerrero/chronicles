@@ -585,7 +585,7 @@ async function fresh(h) {
     }
 
     {
-      // Start with a destination: the walk opens heading there with every layer off, Places turned on from its panel (NV25, decision 0231).
+      // Start with a destination: the walk opens heading there with every layer off, Places turned on from its panel (NV25, decision 0234).
       const { c, pg } = await freshPage('start-explore');
       await pg.goto(navUrl);
       await pg.waitForSelector('[data-testid=start]');

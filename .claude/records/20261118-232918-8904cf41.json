@@ -1,0 +1,244 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Replay ceremony (RC1-RC48, decision 0206)",
+        "--new"
+      ],
+      "body": "- A ride's dashed line is sent as data while it is ridden, at most ten times a second (`REPLAY_ENGINE.resendMs`), so its tip can trail the dot by a tenth of a second and RC3's \"nothing sent as time passes\" does not hold during a ride: maplibre-gl 6.16 draws a dash over line metrics at a scale that follows the line's length, so a revealed ride came out as fine dots. A phone's lines are data too (`lineGradient` on MapLibre RN untried)\n",
+      "intro": "The replay's rework, built whole on its branch and shown at the preview address before any of it is deployed (the owner's \"Build it whole, show me first\", Nov 18). Built: the engine (RC1-RC10, RC48's engine part), the camera (RC11-RC16) and the breaks (RC17-RC22). Not built: the opening and closing, what stays behind, a moment on screen. Measured in headless Chromium with software GL, never on an iPhone (`docs/research/replay-frame-pipeline.md`, `scripts/perf-replay.js`).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Replay ceremony (RC1-RC48, decision 0206)",
+        "--end"
+      ],
+      "body": "- MapLibre covers the tiles of about thirty mostly empty sources every frame: 4.7% of the main thread in a 4x profile of the path beat. Hiding the layers of an empty source would skip it; left because it changes every map, not only the replay's\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Replay ceremony (RC1-RC48, decision 0206)",
+        "--end"
+      ],
+      "body": "- On a stretch React still commits three to five times a second (it was about 22): the clock's leaf at each new minute, and the map's view, which reaches React at most twice a second during the path, so the scale bar and the pins' grouping can follow a zoom half a second late. A clock whose digits are written with no render would remove the first\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Replay ceremony (RC1-RC48, decision 0206)",
+        "--end"
+      ],
+      "body": "- The loading skeleton still pulses through `Animated`, which renders on the web: about sixty small commits a second while a memo or video loads. The fog beat still runs on a 33 ms interval that renders the screen; RC23 reworks the opening\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Replay ceremony (RC1-RC48, decision 0206)",
+        "--end"
+      ],
+      "body": "- [owner] The ceiling on frames a second (`REPLAY_ENGINE.frameMs`, 0: every display frame) is the owner's to choose on the iPhone at the first look: a replay's link takes `?fps=30` (or any number) to try one without a build. The link parameter was not asked for and goes once the number is chosen. The test machine never exceeds 30 frames a second, so RC6 is held by the stepper's unit test alone\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Replay ceremony (RC1-RC48, decision 0206)",
+        "--end"
+      ],
+      "body": "- Thin in the tests: RC1 is read from what the map is told (the dot, the line's end and the camera's centre written in one call before one redraw), not from pixels; RC8's rebuilt telling (a moment deleted from the viewer mid-path) is unit-tested only; RC7's journey checks cover a card, a bubble and the clock, grids and whispers only by unit tests of their poses; the seeded walk's stretches last about 0.9 s, so RC2 and RC3 are counts over that window\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Replay ceremony (RC1-RC48, decision 0206)",
+        "--end"
+      ],
+      "body": "- The React Compiler (decision 0207) came on with a merge of `main` after the engine was built, and the stage stayed empty (no clock, no card): it read the frame from its store in a render and the compiler kept the first read. Fixed (`live.staged`, three tests under RC7). What it showed: `arch/reactCompiler.test.ts` (CM2) scans `.tsx` files only, so a hook in a `.ts` file that the compiler skips (`useCeremonyLoop.ts` disables `react-hooks/exhaustive-deps` once) or miscompiles is in no list, and only a journey caught this one\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Replay ceremony (RC1-RC48, decision 0206)",
+        "--end"
+      ],
+      "body": "- The `walk` journey stopped once at the found place's pin (a 30 s wait after 47 checks, on the walk screen before any replay) on the engine's build and was green on its rerun; cause not found, and `WalkMap.web.tsx` is among the engine's files\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Replay ceremony (RC1-RC48, decision 0206)",
+        "--end"
+      ],
+      "body": "- [owner] At zoom 15 most stretches on a phone rise and follow rather than hold and re-frame: a 390 px screen shows about 700 m, the limit of 0.35 of a width a second is 243 m of ground, and replay pace's timings make any stretch over about 140 m faster than that. So \"between re-frames it does not move\" (RC12) is what short stretches and wide screens get. `maxCross` and `baseZoom` are the two numbers; the rise follows the walker's speed at once (the prototype lagged it by 320 ms), so a ride's zoom changes fast\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Replay ceremony (RC1-RC48, decision 0206)",
+        "--end"
+      ],
+      "body": "- The harness's frames a second fell with the camera and breaks (4x CPU: 17.8 to 13.7; unthrottled 28.3 to 25.2, which the wider view at zoom 15 accounts for), cause not pinned down: single runs on software GL with the seeded walk changed between them. The guess is a zoom that changes every frame on a rise and a hop (labels placed again, other tiles covered). Profile it (`PERF_PROFILE`) and consider stepping the zoom; the preview's readout says what the iPhone does\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Replay ceremony (RC1-RC48, decision 0206)",
+        "--end"
+      ],
+      "body": "- [owner] On the walk's card a hop across a gap whose way is offered gives way to the offer (dots and a faint line on one gap would be two drawings); a hop across a pause or a break too long to be a gap stays as dots but cannot be tapped to draw. The day's card shows its walks' hops. \"N min later\" stays 0.6 s past the break's end, about 2 s after the walker lands (RC19 says \"a little after\")\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Replay ceremony (RC1-RC48, decision 0206)",
+        "--end"
+      ],
+      "body": "- A hop's dots are hard to see where they lie over the walked-street line (the journey's picture); in landscape there is no room under a card, so its pin sits partly under it (RC14); the clock jumps to the walk's end time at the last view (for RC24); a change of the screen's size mid-replay (rotation, Safari's bar) rebuilds the telling, untested; the camera's arithmetic does not wrap at the antimeridian; `ceremony/room.ts` assumes a 34 px caption strip where the web's is about 32\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Replay ceremony (RC1-RC48, decision 0206)",
+        "--end"
+      ],
+      "body": "- The seam of decision 0086 is wider by three frame fields: `Frame.hops` and `Showing.hops` (a hop is drawn by the map in its `gap-links` layer, so it is no overlay, where the plan said one) and `Frame.clockFade`; `Frame.dim` is gone, so the scrim under a card (RC35) needs its own field. A dotted line cannot be revealed by paint (a ride's dashes again), so a hop is sent as data while it draws, at most every 100 ms and only during the break\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Replay ceremony (RC1-RC48, decision 0206)",
+        "--end"
+      ],
+      "body": "- Thin in the camera's and breaks' tests: the journeys were not run at the two tests-first commits; the `gaps` journey stops at its failure on `main` before the link count this slice changed (GW5); RC12's 1.2 s re-frame with room ahead is unit-tested at a tablet's width and seen in the journey only as the video's card leaves; `carousel`, `dense`, `freelook`, `placesearch`, `snap`, `switches` and `walkability` were not rerun for the map's files after these slices\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "The ceiling on frames a second"
+      ],
+      "body": "The owner's first look (iPhone, Nov 18): \"smoother, but the reticle has after images and doesn't glide\". One cause found and fixed: the dot rounded to a whole pixel at a half-pixel centre (393 px wide). For the rest the preview says what the phone draws: a readout under Hold (frames drawn and offered a second, the longest wait, the time to draw; `lib/ceremony/meter`, `FrameMeter`), shown only at the preview address or with `meter=1` on a replay's link. It goes with `fps` once the ceiling is chosen.\n",
+      "target": "sha256:d300f287ae79bc1598664c2eb8d0c8240f1240f5c08f08073e700877bd5cf0a8"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "The replay screen still renders at the clock's 30 fps",
+        "--reason",
+        "replay ceremony RC2 (decision 0206): the screen no longer renders per frame; what is left for a device is filed under the replay ceremony in docs/NATIVE_UNVERIFIED.md"
+      ],
+      "target": "sha256:234221f5f84462b86ecdda170b54869116cf55ecae7889b8ce0c8d17fa2d5518"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Replay ceremony (RC1-RC22, decision 0206)",
+        "--new"
+      ],
+      "body": "- [ ] **Do:** watch a walk's replay (photos, a note, a memo, a video, a gap) and a day's replay to their cards. **Expect:** the walker's dot and the camera move together and smoothly; the walked line follows, its end at most a tenth of a second behind the dot; nothing else on the map flickers as it plays; at the card the whole trace is drawn with no gap or blink. (RC1, RC3, RC9)\n",
+      "intro": "The engine, the camera and the breaks (RC1-RC22). On a phone the walker is a `ReplayDot`, the camera a flat, north-up `Camera.jumpTo` each frame, both lines and a hop's dots data sent at most ten times a second, and the overlays' motion `setNativeProps` (`liveStyle.ts`). None of it has run on a device.\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Replay ceremony (RC1-RC22, decision 0206)",
+        "--end"
+      ],
+      "body": "- [ ] **Do:** in the same replays watch a card grow from its pin and tuck into the pile, a grid's cells swipe in, a note's bubble come and go, a passed place's whisper, the dim across a gap and \"N min later\". **Expect:** each moves smoothly and ends where it did before; none sticks at the start of its move, jumps when another overlay arrives, or appears at rest without having grown; the clock's digits roll a minute at a time with no stutter of the map under them. (RC7)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Replay ceremony (RC1-RC22, decision 0206)",
+        "--end"
+      ],
+      "body": "- [ ] **Do:** during a replay press Hold, tap the map, press Next twice quickly, open the pile, lock the phone for a minute and unlock, then delete a photo from the viewer. **Expect:** held, everything stands still; Next lands on the next moment and then the one after; the viewer holds the replay; a locked screen never skips to the card; after the delete the replay goes on from the same place. (RC5, RC8)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Replay ceremony (RC1-RC22, decision 0206)",
+        "--end"
+      ],
+      "body": "- [ ] **Do:** with Reduce Motion on, watch a replay; then watch the replay of a walk with a bus ride. **Expect:** with Reduce Motion the map stays still, the walker moves over it, cards fade in place, and it lasts as long as without it; the ride is dashed, under the walked line, and grows with the dot. (RC1, RC3, RC10)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Replay ceremony (RC1-RC22, decision 0206)",
+        "--end"
+      ],
+      "body": "- [ ] **Do:** on a development build set `globalThis.__perf = {}` in the console, watch a replay and read `__perf`. **Expect:** `render:replay` (or `render:day`) and `render:map` rise only when a moment arrives or leaves; note the frames a second, and whether a ceiling (`REPLAY_ENGINE.frameMs`) looks better. (RC2, RC6)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Replay ceremony (RC1-RC22, decision 0206)",
+        "--end"
+      ],
+      "body": "- [ ] **Do:** watch a walk's replay with photos and a stretch of a kilometre or more, after turning and tilting the map on another screen. **Expect:** the map flat and north-up at zoom 15; still while the dot walks in the middle; one slide of about a second when it would leave; the map pulling back on the long stretch and in again before the next photo, with no stutter (a zoom every frame through MapLibre RN's `jumpTo` is untried); each photo's pin just under its card for as long as the card is up. (RC11, RC12, RC13, RC14, RC15)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Replay ceremony (RC1-RC22, decision 0206)",
+        "--end"
+      ],
+      "body": "- [ ] **Do:** replay a walk with a gap of a few hundred metres and a pause where you stood; then the same with Reduce Motion on. **Expect:** no dimming; the map pulls back, a dotted line draws across, the dot slides along it, \"N min later\" shows and the clock fades from one time to the other without rolling; at the pause only the line and the clock change; the dots stay on the map. With Reduce Motion the map does not move, the dotted line is there whole at once, and the dot is at one end, then the other. (RC17, RC18, RC19, RC20, RC21, RC22)\n"
+    },
+    {
+      "argv": [
+        "inflight",
+        "add"
+      ],
+      "body": "| Replay ceremony (the replay's rework, built whole on its branch and shown at the preview address before any of it is deployed: an engine that draws each frame outside the screens' rendering, then the camera, the breaks, the opening and closing, what stays behind; RC1-RC48, decision 0206) | `claude/funny-bohr-ztvwgv` | built 2026-11-18, each tested first: the engine (RC1-RC10, RC48's engine part), the camera (RC11-RC16) and the breaks (RC17-RC22), at https://miguelaguerrero.github.io/chronicles/preview/ for the owner's looks on the iPhone (the first, of the engine alone: \"smoother\", the dot's half-pixel flicker found and fixed, a frame readout added); the opening and closing, what stays behind and a moment on screen (RC23-RC37, RC45-RC47) not started; captures' captions (RC38-RC44) wait for the first phone build; nothing of it is on `main` but the spec, the decision and the preview's deploy step |\n"
+    }
+  ]
+}

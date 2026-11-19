@@ -131,8 +131,22 @@ async function run(h) {
     const barUp = await boxOf(pg, 'ready-bar');
     check((await pg.locator('[data-testid=start-settings]').isVisible()) && same(startRest, startUp) && barUp.h > barRest.h + 300,
       `ready NR7: a pull on the grip raises the settings, Start where it was (${JSON.stringify({ startRest, startUp, barRest: barRest.h, barUp: barUp.h })})`);
-    // Places is on by default on the ready map (decision 0231): the ring shows with no mode to pick.
+    // Places is on by default on the ready map (decision 0234): the ring shows with no mode to pick.
+    // tend walk-screen 10 (the sweep's auditor 1, ux 1; PL12, WCAG 2.4.6), kept as it still holds: the settings' "On the map"
+    // heading is only ever over its rows. With Places on (listed on every map since MD13) the key is there, under the heading.
+    {
+      const settingsText = await pg.locator('[data-testid=start-settings]').innerText();
+      const heading = /On the map/.test(settingsText);
+      const rows = await pg.locator('[data-testid=start-settings] [data-testid=layers-key]').count();
+      check(heading === (rows === 1) && rows === 1,
+        `tend walk-screen 10, MD13: the ready bar's "On the map" heads the key that lists Places, never an empty one (${JSON.stringify({ heading, rows })})`);
+    }
     await pg.waitForTimeout(600);
+    // tend walk-screen audit 15 (the diff review's ux 6): Explore's block of the settings pictured, the range and "Passing a
+    // place" in view.
+    await pg.locator('[data-testid=start-settings] [data-testid=range-slider]').last().scrollIntoViewIfNeeded().catch(() => {});
+    await pg.waitForTimeout(300);
+    await shot(pg, 'ready-settings-explore');
     const ring = await pg.locator('[data-ring]').last().getAttribute('data-ring').catch(() => null);
     check(!!ring && ring !== '', `ready NR7: with Places on, the range ring shows while the settings are up (${ring})`);
     await pg.click('[data-testid=dest-clear]');
@@ -144,7 +158,7 @@ async function run(h) {
       check(left.settings === 0 && left.dest === 0 && same(left.bar, barRest),
         `ready NR7, NR8: Escape lowers the bar; Clear took the destination line with it (${JSON.stringify(left)})`);
     }
-    check(!(await metaOf(pg, 'start_mode')), 'ready NR7: no mode is kept (decision 0231)');
+    check(!(await metaOf(pg, 'start_mode')), 'ready NR7: no mode is kept (decision 0234)');
     // A tap on the numbers raises it too.
     await pg.click('[data-testid=walk-stats]');
     await pg.waitForTimeout(1200);
@@ -174,6 +188,19 @@ async function run(h) {
     await tabTo(pg, 'navigate');
     await pg.waitForSelector('[data-testid=ready-bar]');
     await pg.waitForTimeout(1200);
+    // tend walk-screen 14 (the sweep's ux 5, auditor 5): the ready screen's pill buttons are 44 pt themselves, as the
+    // walk's are; react-native-web has no hitSlop (.claude/rules/tabs-and-home.md). A memo discarded shows Undo.
+    {
+      await pg.click('[data-testid=moment-voice]');
+      await pg.waitForSelector('[data-testid=moment-voice-discard]', { timeout: 10000 });
+      await pg.waitForTimeout(1400);
+      await pg.click('[data-testid=moment-voice-discard]');
+      await pg.waitForSelector('[data-testid=moment-voice-undo]', { timeout: 5000 }).catch(() => {});
+      const undo = await boxOf(pg, 'moment-voice-undo');
+      check(!!undo && undo.h >= 44, `tend walk-screen 14: the ready screen's Undo is 44 pt high itself (${JSON.stringify(undo)})`);
+      // Let it go: the discarded memo leaves with its Undo, so the steps below meet the screen as before.
+      await pg.waitForSelector('[data-testid=moment-voice-undo]', { state: 'detached', timeout: 12000 }).catch(() => {});
+    }
 
     // A moment before Start (NR9).
     await pg.click('[data-testid=moment-note]');

@@ -8,9 +8,10 @@ import { faced, type Faced } from '../../moment';
 import { timedRuns } from '../../replay';
 import type { Capture, LngLat, Moment, TracePoint } from '../../types';
 import { at, walkAlong } from '../foxPoint';
+import { SCREEN } from './screen';
 
 // Moment stacks MS17 (decision 0123): a stacked moment is one beat in the replay: one grid of its photos and videos,
-// its memos and notes as bubbles, one pile card. Test first: the new fields are reached through casts.
+// its memos and notes as bubbles, one stack entry. Test first: the new fields are reached through casts.
 
 function storyOf(fixes: TracePoint[], captures: Faced[], passed: WalkInput['passed'] = []): WalkInput {
   return {
@@ -32,8 +33,8 @@ const stack: Moment = {
 const lone: Moment = { id: 'l', walk_id: 'w1', t: t0 + 400_000, ...P(at(3, 0)), segment_id: null, pieces: [piece('l', 'l', t0 + 400_000, 'photo')] };
 type Card = { capture: Faced; t0: number; t1: number; pieces?: Faced[] };
 
-test('MS17, RY4: a stacked moment is one stop with one grid of its photos, held after its swipe-ins; memos one after another beside it; one pile card per moment', () => {
-  const plan = rhythmPlan(walkStory(storyOf(trace, [faced(stack), faced(lone)])), { reduceMotion: false });
+test('MS17, RY4: a stacked moment is one stop with one grid of its photos, held after its swipe-ins; memos one after another beside it; one stack entry per moment', () => {
+  const plan = rhythmPlan(walkStory(storyOf(trace, [faced(stack), faced(lone)])), { reduceMotion: false, screen: SCREEN });
   const cards = plan.cards as Card[];
   assert.equal(cards.length, 2, 'one card per moment');
   assert.deepEqual(cards[0].pieces?.map((c) => c.piece_id), ['s', 's2', 's3'], 'the grid holds its photos and videos');
@@ -55,8 +56,8 @@ test('MS17: built through walkStory, a stack and the same pieces apart give the 
   // Both passed inside the trace (tend replay 14: Green Gate at 450 s lay past its end, 285 s, and whispered in neither plan).
   const passed: WalkInput['passed'] = [{ name: 'Old Mill', generic: false, at: at(2, 0), t: t0 + 200_000 }, { name: 'Green Gate', generic: false, at: at(3.5, 0), t: t0 + 260_000 }];
   const apart = stack.pieces.map((p): Moment => ({ ...stack, id: p.id, t: p.t, pieces: [{ ...p, moment_id: p.id }] }));
-  const together = rhythmPlan(walkStory(storyOf(trace, [faced(stack), faced(lone)], passed)), { reduceMotion: false });
-  const separate = rhythmPlan(walkStory(storyOf(trace, [...apart.map(faced), faced(lone)], passed)), { reduceMotion: false });
+  const together = rhythmPlan(walkStory(storyOf(trace, [faced(stack), faced(lone)], passed)), { reduceMotion: false, screen: SCREEN });
+  const separate = rhythmPlan(walkStory(storyOf(trace, [...apart.map(faced), faced(lone)], passed)), { reduceMotion: false, screen: SCREEN });
   assert.deepEqual(together.whispers.map((w) => w.text), separate.whispers.map((w) => w.text));
   assert.equal(together.whispers.length, 2, `both places whisper (${together.whispers.map((w) => w.text).join(' | ')})`);
 });

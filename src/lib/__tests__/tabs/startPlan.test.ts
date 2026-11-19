@@ -15,7 +15,7 @@ test('NV25, MD12: a start with no destination writes nothing and opens the walk 
   assert.equal(p.params, undefined);
 });
 
-test('MD12: a start writes no mode: no explore_walk, no explored stamp, no start_mode (decision 0231)', () => {
+test('MD12: a start writes no mode: no explore_walk, no explored stamp, no start_mode (decision 0234)', () => {
   const p = startPlan({ walkId: 'w1', dest: null, warning: 'Background off' });
   assert.deepEqual(p.meta, []);
   assert.equal((p.meta as [string, string][]).some(([k]) => /explore|start_mode/.test(k)), false);

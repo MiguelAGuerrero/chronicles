@@ -266,7 +266,8 @@ const styles = StyleSheet.create({
   toastText: { color: '#ffffff', fontSize: 14, fontWeight: '600' },
   pill: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: theme.ink, borderRadius: 999, paddingVertical: 6, paddingLeft: 14, paddingRight: 6 },
   pillText: { color: '#ffffff', fontSize: 15, fontWeight: '600', flexShrink: 1 },
-  pillBtn: { minHeight: 40, justifyContent: 'center', paddingHorizontal: 12, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.15)' },
+  // 44 pt, as the walk's: react-native-web has no hitSlop (tend walk-screen 14).
+  pillBtn: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 12, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.15)' },
   pillBtnText: { color: '#ffffff', fontSize: 15, fontWeight: '700' },
   modalBack: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)' },
   modalWrap: { flex: 1, justifyContent: 'flex-start', paddingHorizontal: 16 },

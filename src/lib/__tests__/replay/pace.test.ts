@@ -16,6 +16,7 @@ import { REPLAY_RHYTHM as R } from '../../motionTokens';
 import { faced, facedOf, type Faced } from '../../moment';
 import { timedRuns } from '../../replay';
 import type { Capture, LngLat, Moment, TracePoint } from '../../types';
+import { SCREEN } from './screen';
 
 const stopsOf = (p: RhythmPlan) => p.stops;
 const frameAt = (p: RhythmPlan, ms: number, jump?: Jump): Frame => rhythmFrame(p, ms, jump);
@@ -56,7 +57,7 @@ function input(fixes: TracePoint[], captures: Faced[], o: { passed?: WalkInput['
 }
 /** A walk east from O for `lengthM`, with what was kept along it. */
 const walk = (lengthM: number, captures: Faced[], o: Parameters<typeof input>[2] = {}): Story => walkStory(input(line(O, east(lengthM), 0), captures, o));
-const plan = (s: Story, reduceMotion = false) => rhythmPlan(s, { reduceMotion });
+const plan = (s: Story, reduceMotion = false) => rhythmPlan(s, { reduceMotion, screen: SCREEN });
 const stops = (p: RhythmPlan) => p.segs.filter((s): s is Extract<RhythmPlan['segs'][number], { k: 'stop' }> => s.k === 'stop');
 const legs = (p: RhythmPlan) => p.segs.filter((s): s is Extract<RhythmPlan['segs'][number], { k: 'leg' }> => s.k === 'leg');
 const slotsOf = (p: RhythmPlan): Slot[] => stops(p).flatMap((s) => s.slots);
@@ -121,13 +122,15 @@ const stackOf = (videoMs: number | null): Moment => ({
   ],
 });
 
-test('RY4: a grid stays 5 s after its last piece has swiped in, or until a longer video in it ends', () => {
+test('RY4: a grid stays 5 s after its last piece has swiped in; a video in the moment plays in its turn after that (RC37)', () => {
   const grid = (m: Moment) => plan(walk(500, [faced(m)])).cards[0];
   const three = grid(stackOf(null));
   assert.ok(three.pieces && three.pieces.length === 3, 'still one grid of its pictures (MS17)');
   assert.ok(near(three.t1 - three.t0, R.grow + 2 * R.gridStagger + R.bubbleIn + 5000 + R.tuck), `three pictures: ${three.t1 - three.t0}`);
+  // A video is not in a cell: the pictures keep their 5 s, then it plays in the same card, with its second of quiet after.
   const withVideo = grid(stackOf(9000));
-  assert.ok(near(withVideo.t1 - withVideo.t0, R.grow + 3 * R.gridStagger + R.bubbleIn + 9000 + R.tuck), `with a 9 s video: ${withVideo.t1 - withVideo.t0}`);
+  assert.ok(withVideo.pieces?.length === 3 && withVideo.videos?.length === 1);
+  assert.ok(near(withVideo.t1 - withVideo.t0, R.grow + 2 * R.gridStagger + R.bubbleIn + 5000 + R.turn + 9000 + R.mediaTail + R.tuck), `with a 9 s video: ${withVideo.t1 - withVideo.t0}`);
 });
 
 test('RY5: the walker waits at a note 1.2 s for up to six words, a quarter second for each word more, at most 5 s', () => {
@@ -166,7 +169,7 @@ test('RY7: a bubble leaves when the next card opens or a break begins, but a not
   // A break: the bubble leaves as the cut begins.
   const fixes = [...line(O, east(300), 0), ...line(east(700), east(1000), when(300) + 20 * 60_000)];
   const cutPlan = plan(walkStory(input(fixes, [cap('text', when(250), 250, 'x'), cap('text', when(300) + 20 * 60_000 + when(280), 980, 'y')])));
-  const cut = cutPlan.segs.find((s) => s.k === 'cut')!;
+  const cut = cutPlan.segs.find((s) => s.k === 'break')!;
   assert.ok(cut && near(cutPlan.bubbles[0].exitAt, Math.max(cut.t0, cutPlan.bubbles[0].ta + R.bubbleIn + 1500 + 300)), 'leaves at the cut, once readable');
   // A memo's bubble stays until it has played, whatever opens.
   const memoPlan = plan(walk(500, [cap('voice', when(300), 300, '8000'), cap('photo', when(300) + 5000, 300)]));
@@ -219,7 +222,8 @@ test('RY10: nothing shrinks to fit a total: forty photos each keep their time, a
   assert.ok(many.total > 200_000, `plays in ${Math.round(many.total / 1000)} s`);
   assert.ok(legs(many).every((l) => near(l.t1 - l.t0, 900, 60)), 'no stretch is squeezed');
   const short = plan(walk(300, [cap('text', when(200), 200, 'x')]));
-  assert.ok(near(short.total, short.segs.reduce((n, x) => n + (x.t1 - x.t0), 0)) && short.total < 8000, `a short walk: ${short.total} ms`);
+  // Its opening (2.2 s) and its close (1.6 s, 3 s and 2 s) are every walk's, long or short (replay ceremony RC23, RC24).
+  assert.ok(near(short.total, short.segs.reduce((n, x) => n + (x.t1 - x.t0), 0)) && short.total < 8000 + 7100, `a short walk: ${short.total} ms`);
 });
 
 test('RY11: with reduce motion every hold, pause and wait is the same length', () => {
@@ -250,9 +254,10 @@ test('RY13: a press shows the replay as it would be just before the next moment:
   assert.ok(near(metres(frameAt(p, second.t0)), 700, 25), 'and there when the moment begins');
   assert.ok(f.clock != null && f.clock <= stops(p)[1].moment.arrive + 1, 'the clock is at arriving there');
   assert.ok((f.drawn.w ?? 0) > when(600), 'the trace is drawn up to there');
-  assert.ok(f.pins.includes(p.cards[0].capture.id), 'the moment passed over has its pin');
-  const pile = f.overlays.find((o) => o.kind === 'pile');
-  assert.ok(pile && pile.kind === 'pile' && pile.captures.length === 1, 'and its photo is in the pile');
+  // The moment passed over stands as its picture on the map (its own pin waits for the card, replay ceremony RC34).
+  assert.ok(f.overlays.some((o) => o.kind === 'picture' && o.key === p.cards[0].capture.id) && !f.pins.includes(p.cards[0].capture.id), 'the moment passed over stands as its picture');
+  const stack = f.overlays.find((o) => o.kind === 'stack');
+  assert.ok(stack && stack.kind === 'stack' && stack.captures.length === 1, 'and its photo is in the stack');
   // Then it plays as it would have.
   assert.ok(frameAt(p, second.t0 + 400).overlays.some((o) => o.kind === 'bubble' && o.capture.kind === 'voice'));
 });

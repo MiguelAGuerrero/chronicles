@@ -8,6 +8,7 @@ import { distanceM } from '../../geo';
 import { backFrom, beatWords, groupCaptures, timedRuns } from '../../replay';
 import type { LngLat, TracePoint } from '../../types';
 import { at, walkAlong } from '../foxPoint';
+import { SCREEN } from './screen';
 
 // The replay's stops and its rhythm over a walk: nearby captures share a stop, gaps collapse, every
 // capture keeps its stop (.claude/rules/replay.md; replay rhythm RR4).
@@ -33,11 +34,12 @@ test('replay: nearby captures share one stop, in order', () => {
 test('replay: gaps collapse, so a resumed walk does not crawl across the night (RR4)', () => {
   const morning = walkAlong([at(0, 0), at(1, 0)]);
   const evening = walkAlong([at(1, 0), at(2, 0)], 'w1', morning.at(-1)!.t + 12 * 3600_000);
-  const p = rhythmPlan(walkStory(storyOf([...morning, ...evening], [])), { reduceMotion: false });
-  const cut = p.segs.find((s) => s.k === 'cut');
-  assert.ok(cut, 'the night is a cut');
+  const p = rhythmPlan(walkStory(storyOf([...morning, ...evening], [])), { reduceMotion: false, screen: SCREEN });
+  const cut = p.segs.find((s) => s.k === 'break');
+  assert.ok(cut, 'the night is a break');
   assert.equal(rhythmFrame(p, (cut.t0 + cut.t1) / 2).line, '12 h later');
-  assert.ok(p.total < 10_000, `plays in ${p.total} ms`);
+  // The break itself is 4.2 s at the most; the rest is the two stretches, the opening and the close (RC23, RC24).
+  assert.ok(cut.t1 - cut.t0 <= 4200 && p.total < 10_000 + 7100, `plays in ${p.total} ms`);
 });
 
 test('replay: every capture keeps its stop, and an empty walk has nothing to play', () => {
@@ -45,9 +47,9 @@ test('replay: every capture keeps its stop, and an empty walk has nothing to pla
   const many: Faced[] = Array.from({ length: 300 }, (_, i) => facedOf({
     id: String(i), walk_id: 'w1', t: i * 150, lat: null, lon: null, kind: 'photo', file_path: 'x', body: null, segment_id: null,
   }));
-  const p = rhythmPlan(walkStory(storyOf(trace, many)), { reduceMotion: false });
+  const p = rhythmPlan(walkStory(storyOf(trace, many)), { reduceMotion: false, screen: SCREEN });
   assert.equal(p.segs.reduce((n, s) => n + (s.k === 'stop' ? s.slots.length : 0), 0), 300, 'nothing dropped');
-  assert.equal(rhythmPlan(walkStory(storyOf([], [])), { reduceMotion: false }).total, 0);
+  assert.equal(rhythmPlan(walkStory(storyOf([], [])), { reduceMotion: false, screen: SCREEN }).total, 0);
 });
 
 test('replay: a capture after the trace ends stops the path at its end, not after a long stand', () => {
@@ -56,7 +58,7 @@ test('replay: a capture after the trace ends stops the path at its end, not afte
   const late: Faced = facedOf({
     id: 'late', walk_id: 'w1', t: last + 40 * 60_000, lat: null, lon: null, kind: 'photo', file_path: 'x', body: null, segment_id: null,
   });
-  const p = rhythmPlan(walkStory(storyOf(trace, [late])), { reduceMotion: false });
+  const p = rhythmPlan(walkStory(storyOf(trace, [late])), { reduceMotion: false, screen: SCREEN });
   const stop = p.segs.find((s) => s.k === 'stop')!;
   const end: LngLat = [trace.at(-1)!.lon, trace.at(-1)!.lat];
   const f = rhythmFrame(p, stop.t0 + 10);

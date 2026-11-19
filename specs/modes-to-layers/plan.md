@@ -1,6 +1,6 @@
 # Modes to layers: plan
 
-For the owner's review before any code (spec: `specs/modes-to-layers/spec.md`, MD1-MD19; decision 0231). Nothing is built yet. This is a flow-sized change on the walk screen, so it is larger than a fix: roughly 14 source files.
+For the owner's review before any code (spec: `specs/modes-to-layers/spec.md`, MD1-MD19; decision 0234). Nothing is built yet. This is a flow-sized change on the walk screen, so it is larger than a fix: roughly 14 source files.
 
 ## What changes, in one paragraph
 
@@ -23,7 +23,7 @@ A walk is no longer quiet or exploring. `exploring` on the walk screen becomes "
 | `src/lib/db/sqliteStore.ts`, `src/lib/db/index.web.ts` | `deleteWalk` removes the two new families (MD10) |
 | `src/app/(tabs)/explore.tsx` | `useLayers('map')` (MD10) |
 
-More than the usual eight: the owner's own call to take the mode out of the walk (decision 0231), so this is a slice, with this plan as its review.
+More than the usual eight: the owner's own call to take the mode out of the walk (decision 0234), so this is a slice, with this plan as its review.
 
 ## Data
 

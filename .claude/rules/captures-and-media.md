@@ -18,7 +18,7 @@ Captures (photo, video, voice memo, note), their viewer, captions and baking, th
 ## Pictures (expo-image, EI1-EI6)
 
 - **Every picture on screen is a `Picture`** (`components/Picture.tsx`, over expo-image): a pin's small copy, a gallery
-  tile and a month's cover, a moment's card, a memory preview, a reminder card, the replay's cards and pile. It keeps
+  tile and a month's cover, a moment's card, a memory preview, a reminder card, the replay's cards, stack and pictures on its map. It keeps
   pictures decoded in memory and on disk (`cachePolicy="memory-disk"`), never fades one in (no `transition`: restraint),
   takes `fit` as `resizeMode` was, and a list's tile passes `recyclingKey` (its piece's id). An edited photo is
   `EditedPicture` (an SVG under its edit's matrix and filter); React Native's `Image` only measures (`getSize`).
@@ -117,7 +117,7 @@ expo-image-manipulator; `lib/thumbPlan.ts` pure, `media/thumb.ts`).
   - **One shell, one queue, one hook** (video-thumbnails audit 2-6, 9): `lib/thumbs` makes every preview's copy or
     still (`ask`, read fresh, written only if the piece is as it was read) and an edit's still (`remake`, which
     replaces the still stored now and, with none made, drops it); a preview reads its piece through `useStill`, which
-    shows a still made or replaced since its row was read (`shownStill`) and asks for one it lacks (a pin and the pile
+    shows a still made or replaced since its row was read (`shownStill`) and asks for one it lacks (a pin and the replay's stack
     never ask). An edit remakes the still only when its trim, crop or turn moved (`stillChanged`), after Done closes.
   - **A timeout is transient** (audit 1): `videoFrame` rejects with `transient: true` and `thumbJob` returns null (asked
     again later); only a file that will not decode is `THUMB.none`.

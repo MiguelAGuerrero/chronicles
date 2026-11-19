@@ -5,7 +5,7 @@ import { createStore, type Store } from '../store';
 import { decodeWalkLayers, encodeLayers, walkLayerDefaults, walkLayersKey, type LayerState } from './state';
 
 /*
- * The live walk's layers (specs/modes-to-layers MD3, MD10, decision 0231): every layer off at the start of every walk, kept
+ * The live walk's layers (specs/modes-to-layers MD3, MD10, decision 0234): every layer off at the start of every walk, kept
  * for that walk only (meta `walk_layers:<walk>`, so a resumed walk finds its own), never the setting of the maps. Turning
  * Places on or off also keeps the spans it was on (`places_spans:<walk>`), which the replay counts passes within (MD9).
  * The factory takes its ports so a Node test runs it with fakes; the app's instance is `./walkIndex`.

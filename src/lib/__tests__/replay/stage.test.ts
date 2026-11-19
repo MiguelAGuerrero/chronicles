@@ -2,11 +2,13 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { cardWidth, heldShown, restCenter, STACK_TOP, STAGE_BOTTOM, STAGE_SIDE, STAGE_TOP, type StageCtx } from '../../../components/ceremony/layout';
+import { bubblePose, bubbleRoom, cardPose, cardWidth, heldShown, PICTURE, project, restCenter, STACK_TOP, STAGE_BOTTOM, STAGE_SIDE, STAGE_TOP, WHISPER_WIDTH, whisperPose, type LiveStyle, type StageCtx } from '../../../components/ceremony/layout';
+import type { BubbleOverlay, CardOverlay, WhisperOverlay } from '../../ceremony/types';
+import { createStageLive } from '../../ceremony/live';
 
 /** The stage of a phone this size, portrait or landscape, with no insets. */
 const stage = (width: number, height: number): StageCtx => ({
-  width, height, insets: { top: 0, bottom: 0, left: 0, right: 0 }, center: null, zoom: null,
+  width, height, insets: { top: 0, bottom: 0, left: 0, right: 0 }, live: createStageLive(),
   held: false, paused: false, reduceMotion: false, open: () => {}, wait: () => {},
 });
 /** A photo card's height for its width, as Cards draws it (the picture at 1.15, its frame and caption strip). */
@@ -77,4 +79,60 @@ test('replay-pace ui 3: the line keeps clear of Hold and of Skip with Next under
   // The edge, a worded button's width (Skip, Next: 70 px) and 8 px between.
   assert.ok(STAGE_SIDE >= 12 + 70 + 8, `each side keeps ${STAGE_SIDE} px`);
   assert.ok(320 - 2 * STAGE_SIDE >= 120, 'and the line still has room to say a place on a 320 px phone');
+});
+
+// Replay ceremony, the engine (RC7): what moves every frame is worked out from the frame alone, by the leaf that draws it.
+const O: [number, number] = [-71.4, 41.812];
+const eastOf = (m: number): [number, number] => [O[0] + m / (111_320 * Math.cos((O[1] * Math.PI) / 180)), O[1]];
+const card = (o: Partial<CardOverlay>): CardOverlay => ({ kind: 'card', key: 'c', capture: { id: 'c' } as CardOverlay['capture'], from: eastOf(60), grow: 1, tuck: 0, playing: false, progress: 0, fade: false, ...o });
+
+test('RC7: a card\'s place, size and fade are its frame\'s: from its pin, to rest, back onto its place (RR11, audit 10; RC28)', () => {
+  const c = stage(390, 844);
+  const w = cardWidth(c);
+  const h = w * 1.15 + 41;
+  const camera = { center: O, zoom: 16 };
+  const rest = restCenter(c, h);
+  const pin = project(c, camera, eastOf(60))!;
+  const at = (p: LiveStyle): [number, number] => [p.left! + w / 2, p.top! + h / 2];
+  const born = cardPose(card({ grow: 0 }), c, camera, w, h);
+  assert.deepEqual(at(born).map(Math.round), pin.map(Math.round), 'it starts on its pin, where the camera puts it');
+  assert.ok(Math.abs(born.scale! - 0.08) < 1e-9 && born.opacity === 0);
+  // The camera moved: the same card starts where its pin now is.
+  assert.notDeepEqual(at(cardPose(card({ grow: 0 }), c, { center: eastOf(30), zoom: 16 }, w, h)).map(Math.round), pin.map(Math.round));
+  const held = cardPose(card({}), c, camera, w, h);
+  assert.deepEqual(at(held), rest);
+  assert.deepEqual({ scale: held.scale, opacity: held.opacity, rotate: held.rotate }, { scale: 1, opacity: 1, rotate: 0 });
+  const tucked = cardPose(card({ tuck: 1 }), c, camera, w, h);
+  // It ends over its own place, the size of the picture that then stands there, upright (replay ceremony RC28).
+  assert.deepEqual(at(tucked).map(Math.round), [pin[0], pin[1] - PICTURE.lift].map(Math.round), 'it ends on its place');
+  assert.ok(Math.abs(tucked.scale! - PICTURE.size / w) < 1e-9 && tucked.rotate === 0);
+  // One with no place fades where it rests.
+  const placeless = cardPose(card({ tuck: 0.5, from: null }), c, camera, w, h);
+  assert.deepEqual([at(placeless), placeless.opacity, placeless.scale], [rest, 0.5, 1]);
+  // With reduce motion it stays where it rests and only fades (RR18); with no camera (the map not held) it grows in place.
+  const fading = cardPose(card({ fade: true, grow: 0.5 }), c, camera, w, h);
+  assert.deepEqual([at(fading), fading.opacity, fading.scale], [rest, 0.5, 1]);
+  assert.equal(cardPose(card({ fade: true, tuck: 0.25 }), c, camera, w, h).opacity, 0.75);
+  assert.deepEqual(at(cardPose(card({ grow: 0 }), c, { center: null, zoom: null }, w, h)), rest);
+});
+
+test('RC7: a bubble\'s room and fade, and a whisper\'s side, are their frame\'s (RR9, RR15, RR18)', () => {
+  const c = stage(390, 844);
+  const bubble = (enter: number, exit: number): BubbleOverlay => ({ kind: 'bubble', key: 'b', capture: { id: 'b' } as BubbleOverlay['capture'], enter, exit, playing: false, progress: 0 });
+  assert.deepEqual(bubbleRoom(bubble(0.5, 0), false), { maxHeight: 85 });
+  assert.deepEqual(bubbleRoom(bubble(1, 0.25), false), { maxHeight: 127.5 });
+  assert.deepEqual(bubbleRoom(bubble(0.5, 0), true), { maxHeight: null }, 'no height easing with reduce motion (audit 12)');
+  assert.deepEqual(bubblePose(bubble(0.5, 0), false), { opacity: 0.5, translateY: 5, scale: 0.98 });
+  assert.deepEqual(bubblePose(bubble(1, 0.5), false), { opacity: 0.5, translateY: -6, scale: 1 });
+  assert.deepEqual(bubblePose(bubble(0.5, 0), true), { opacity: 0.5, translateY: 0, scale: 1 });
+  const whisper = (m: number): WhisperOverlay => ({ kind: 'whisper', key: 'w', text: 'Passed', at: eastOf(m), opacity: 0.6 });
+  const camera = { center: O, zoom: 16 };
+  const west = whisperPose(whisper(-80), c, camera);
+  const east = whisperPose(whisper(80), c, camera);
+  assert.equal(west.textAlign, 'left', 'a place left of the middle is said to its right');
+  assert.equal(east.textAlign, 'right');
+  assert.ok(west.left! > project(c, camera, eastOf(-80))![0] && east.left! + WHISPER_WIDTH < project(c, camera, eastOf(80))![0]);
+  assert.equal(west.opacity, 0.6);
+  // Without a following map, under the clock, centred.
+  assert.deepEqual(whisperPose(whisper(80), c, { center: null, zoom: null }), { left: (390 - WHISPER_WIDTH) / 2, top: 100, opacity: 0.6, textAlign: 'center' });
 });

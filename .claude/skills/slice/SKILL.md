@@ -18,7 +18,11 @@ test passes with typecheck, lint, `npm test` and the e2e, and the docs say so.
   (decision 0130), in the worktree `/tend` opened: the owner's yes to that
   entry in `docs/STATUS.md`, "Next evolutions", is the go-ahead for its
   numbered criteria and no more. Typed by anyone else, or with an entry that
-  is not there or has no numbered criteria, it is plain `/slice`. Then:
+  is not there or has no numbered criteria, it is plain `/slice`. An entry with a
+  `Brief:` line (filed by `/investigate`, decision 0231): read that brief whole
+  first. Its decoded screen, ranked causes, `file:line` references and the owner's
+  calls are the plan's starting point; do not investigate again what it settled,
+  and set its `Status:` line to "built in <slug>" with the slice's docs. Then:
   - step 1b: the entry's verdict, shape, Touches, precedent and criteria are
     the gate's answer; write them as the spec's "## Vision" section (with its `Verdict:`
     line) and do not gate again;

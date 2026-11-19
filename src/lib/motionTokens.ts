@@ -123,16 +123,66 @@ export const REPLAY_RHYTHM = {
   /** A stretch is long from here (metres), and gets its full zip at zipAtM + zipFullM. */
   zipAtM: 450,
   zipFullM: 1200,
-  /** The camera's pull-back at the middle of a long stretch (1 is the walking zoom). */
-  zoomOut: 1.7,
-  /** Travel between a day's entries pulls back to show this many metres per unit of zoom-out, at least `zoomOut`. */
-  travelZoomM: 1500,
-  /** The walking zoom, where the camera follows the walker. */
-  baseZoom: 16,
+  /** The walking zoom (replay ceremony RC11): it was 16, and each step down shows twice the ground. */
+  baseZoom: 15,
+  /**
+   * The camera (replay ceremony RC12-RC14; `lib/ceremony/camera.ts`). It keeps what it follows `focusY` of the way down
+   * the screen. The middle of the screen, where the walker moves and the camera holds still: `holdX` of the width each
+   * side of that point, `holdUp` of the height above it and `holdDown` below.
+   */
+  focusY: 0.42,
+  holdX: 0.27,
+  holdUp: 0.2,
+  holdDown: 0.13,
+  /** A re-frame (RC12): how long it takes, and where it ends: `reframeAhead` of the way from where the walker will be then to where it will be `reframeLook` later. */
+  reframe: 1200,
+  reframeLook: 700,
+  reframeAhead: 0.6,
+  /** The most of the screen's width the walker crosses a second (RC13): past it the camera rises. `riseSoft` rounds the rise's start and end (higher is sharper); under `risen` zoom levels it counts as not risen. */
+  maxCross: 0.35,
+  riseSoft: 4,
+  risen: 0.02,
+  /** Risen, the camera goes after where the walker will be `followLead` on, `followEase` behind it, and never more than a `followLand`th of the time the stretch has left, so it lands with the walker. */
+  followLead: 900,
+  followEase: 450,
+  followLand: 3,
+  /** Arriving at a card (RC14): the camera starts to settle this long before the walker stops, takes at least `settleMin`, and `settle` when no stretch leads there; from a risen stretch it closes in with `settleEase`. */
+  settleLead: 900,
+  settleMin: 300,
+  settle: 700,
+  settleEase: 250,
+  /** A card's pin stands on its place this far under the card's lower edge (px: the pin's own 44 and 8 to spare), never nearer the screen's foot than `edge`. */
+  pinUnder: 52,
+  edge: 24,
+  /** The camera's moves are worked out ahead in steps of this long (never per frame). */
+  camStep: 50,
   /** Stretches shorter than this (metres) are not played: the walker steps across them. */
   minLegM: 10,
-  /** A cut across a break in the trace. */
-  cut: 1400,
+  /**
+   * A break in the trace (replay ceremony RC17-RC22): the camera pulls back until both ends fit, a dotted line draws
+   * across, the walker slides along it and the camera closes in. A far one (`breakFarM` metres or more) takes
+   * `breakFar`; a nearer one less, never under `breakNear` of that. One whose ends are under `standPx` px apart at the
+   * walking zoom is a stand of `stand` ms: no hop, no camera move.
+   */
+  breakFar: 4200,
+  breakNear: 0.58,
+  breakFarM: 250,
+  standPx: 26,
+  stand: 1300,
+  /** A hop's parts, as shares of its time: the camera has pulled back by `hopPull`; the dots draw from `hopDraw` to `hopDrawn`; the walker slides from there to `hopLand`; the camera closes in from `hopClose`; the clock changes at `hopSwitch`. */
+  hopPull: 0.3,
+  hopDraw: 0.22,
+  hopDrawn: 0.4,
+  hopLand: 0.66,
+  hopClose: 0.72,
+  hopSwitch: 0.53,
+  /** Pulled back, a hop's two ends fit in this share of the screen's width and of its height. */
+  hopFitW: 0.56,
+  hopFitH: 0.3,
+  /** "N min later" (RC19): at a stand it comes `standLineIn` after the stand begins; it stays `breakLineAfter` after a break ends. The clock dissolves from one time to the other over `clockDissolve` each way. */
+  standLineIn: 150,
+  breakLineAfter: 600,
+  clockDissolve: 220,
   /** The walker's wait at a note (RY5): this for up to noteWords words, plus notePerWord for each more, at most noteMax. */
   note: 1200,
   noteWords: 6,
@@ -151,9 +201,35 @@ export const REPLAY_RHYTHM = {
   stopFloor: 0.55,
   /** A stack's grid stays this long after its last piece has swiped in (RY4). */
   gridHold: 5000,
-  /** A card growing from its pin, and tucking into the pile (RY1). */
+  /** A card growing from its pin, and shrinking back onto its place, where its picture then stands (RY1; replay ceremony RC28). */
   grow: 550,
   tuck: 450,
+  /**
+   * A moment on screen (replay ceremony RC35-RC37). The map under a card dims by `scrim`, down over `scrimIn` as the
+   * card comes and up as it shrinks away; a photo held in its card drifts `drift` closer over its time up (0 turns
+   * either off). A moment's videos play in turn in its card, each coming in over `turn` after what was up before.
+   */
+  scrim: 0.2,
+  scrimIn: 300,
+  drift: 0.03,
+  turn: 300,
+  /**
+   * The stack at the edge (RC29-RC32; `lib/ceremony/stack.ts`). An entry lands `stackLand` after its card has reached
+   * its place: it fades in over `stackIn`, comes down `stackDrop` px onto the stack on a spring (`stackSpring`, a ms),
+   * passing its place by `stackOver` of the way; the ones under it give `stackGive` px, from `stackGiveIn` after it
+   * lands, for `stackGiveFor`. One past the screen's bound drops the oldest off the bottom over `stackPop`. Once
+   * `stackRest` has passed since the last landing nothing in it moves.
+   */
+  stackLand: 60,
+  stackIn: 160,
+  stackDrop: 16,
+  stackSpring: 0.016,
+  stackOver: 0.015,
+  stackGive: 3,
+  stackGiveIn: 120,
+  stackGiveFor: 320,
+  stackPop: 320,
+  stackRest: 1500,
   /** A stack's grid (moment stacks MS17): each piece swipes in this long after the one before, and one past nine scrolls the grid this long. */
   gridStagger: 180,
   gridScroll: 2400,
@@ -163,6 +239,8 @@ export const REPLAY_RHYTHM = {
   mediaMin: 1000,
   /** Waiting for a medium (audit 20): one that never starts, how far behind counts as late, and the most for one that plays (the camera's cap). */
   mediaStartWait: 2000,
+  /** An edited video is given this long to say its size before it is played as it is (its view changes when the size comes). */
+  mediaSizeWait: 700,
   mediaLag: 400,
   mediaMaxWait: 30_000,
   /** Bubbles: how long one stays, how many at once, coming in and going. */
@@ -174,15 +252,45 @@ export const REPLAY_RHYTHM = {
   whisper: 2600,
   /** Travel this much later says so under the clock. */
   laterAfterMs: 15 * 60_000,
-  /** How long "N min later" stays after its cut or travel. */
+  /** How long "N min later" stays after a day's long travel. */
   lineAfter: 1500,
-  /** Zooming in to the walker at the start, and standing at the end before the card. */
-  intro: 900,
-  /** How far out the camera starts before zooming in to the walker. */
-  introZoomOut: 2.2,
-  rest: 800,
+  /**
+   * The opening (replay ceremony RC23): the camera dives from the whole of what is told to the walker's start in `dive`;
+   * the walker shows from `diveMark` into it, and the clock comes in from `diveClockIn` over `diveClock`. A telling with
+   * no beat before it (a day's) shows the whole for `openHold` first.
+   */
+  dive: 2200,
+  openHold: 2000,
+  diveMark: 1900,
+  diveClockIn: 1700,
+  diveClock: 400,
+  /**
+   * The close (RC24-RC26): the walker stands `rest`, the camera pulls back over `close` to the view the card uses and
+   * holds it `closeHold`. The clock fades over `closeClock`; the date and the places passed come in from `closeSay`
+   * into the pull-back, over `closeSayIn`; a note's bubble is gone `closeClear` into it, if it has been read.
+   */
+  rest: 1600,
+  close: 3000,
+  closeHold: 2000,
+  closeClock: 400,
+  closeSay: 2200,
+  closeSayIn: 600,
+  closeClear: 300,
   /** A press of Next lands this long before the next moment begins (RY13). */
   nextLead: 450,
   /** After a press, "N min later" stays this long under the clock before any passed place is said (RY21). */
   jumpLine: 2000,
+} as const;
+
+/**
+ * The replay's engine (replay ceremony RC6, decision 0206), apart from any ceremony: a ceremony says what a time shows,
+ * the engine how often it is drawn. `frameMs` is the least time between two frames the replay draws: 0 draws every
+ * display frame (60 a second on an iPhone); 1000 / 30 draws 30. It is the one number to set after watching on a phone
+ * whose map cannot be drawn every frame (a replay's link can ask for one with `fps`, to try it without a build).
+ * `resendMs` is for a map that cannot reveal a line and is sent it as data instead (the phone's, untried): at most
+ * ten times a second.
+ */
+export const REPLAY_ENGINE = {
+  frameMs: 0,
+  resendMs: 100,
 } as const;

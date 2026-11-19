@@ -19,7 +19,7 @@ async function checks(h) {
     check((await page.locator('[data-testid=mode-quiet]').count()) === 0 && (await page.locator('[data-testid=mode-explore]').count()) === 0
       && /Long-press the map/.test(await page.locator('[data-testid=start-settings]').innerText()) && (await page.locator('[data-testid=kind-churches]').count()) === 0
       && (await page.locator('[data-testid=notify-settings]').count()) === 1,
-      'pulled up: no mode (decision 0231, MD2), the destination with its hint, reminders and alerts; no kinds in the drawer (NV20, NV21, NR7)');
+      'pulled up: no mode (decision 0234, MD2), the destination with its hint, reminders and alerts; no kinds in the drawer (NV20, NV21, NR7)');
     // The bar opens at rest each time Navigate opens (NR5).
     await onTab('chronicle');
     await onTab('navigate');
@@ -153,6 +153,20 @@ async function checks(h) {
     for (let i = 0; i < 2; i++) await page.click('[data-testid=range-plus]');
     check((await page.locator('[data-testid=options-card] [data-testid=into-row]').count()) === 1 && (await page.locator('[data-testid=pocket-alert]').count()) === (process.env.E2E_MOBILE ? 1 : 0), 'the drawer holds the row to what I’m into; the pocket alert only on a touch screen (PA6, pocket-alert-nudge audit 4, WI1)');
     await shot(page, '01a-settings');
+    // tend walk-screen audit 16 (the diff review's auditor, its call on 14): the motion row's "Turn on" is 44 pt itself; the
+    // harness's motion is blocked, so the row is there.
+    {
+      const turnOn = await page.locator('[data-testid=motion-on]').boundingBox().catch(() => null);
+      check(!!turnOn && turnOn.height >= 44, `tend walk-screen audit 16: the drawer's "Turn on" is 44 pt high (${JSON.stringify(turnOn)})`);
+    }
+    // tend walk-screen 10 (the sweep's auditor 1, ux 1; PL12, WCAG 2.4.6), kept as it still holds: the drawer's "On the map" heading
+    // is only ever over its rows. Places is on for this walk here (switched on above), listed on every map since MD13.
+    {
+      const drawerText = await page.locator('[data-testid=options-card]').innerText();
+      const heading = /On the map/.test(drawerText);
+      const rows = await page.locator('[data-testid=options-card] [data-testid=layers-key]').count();
+      check(heading && rows === 1, `tend walk-screen 10, MD13: the walk's "On the map" heads the key that lists Places, never an empty one (${JSON.stringify({ heading, rows })})`);
+    }
     await page.keyboard.press('Escape');
     await page.waitForTimeout(600);
     check((await ringNow()) === '', 'the ring is never on the walk map outside the drawer');
@@ -214,7 +228,7 @@ async function checks(h) {
           '0220: while walking the strip has Pause and no Stop');
       }
       if (k === 6) {
-        // Places on, for this walk (decision 0231): the busy streets are the Storefronts layer's, as information (E2, S21).
+        // Places on, for this walk (decision 0234): the busy streets are the Storefronts layer's, as information (E2, S21).
         await page.click('[data-testid=walk-summary]');
         await page.waitForSelector('[data-testid=options-card]');
         await shot(page, '01c-options');
@@ -276,6 +290,8 @@ async function checks(h) {
         check(true, 'a video over the web limit is turned away');
         // TC3: a capture near a place finds nothing by itself; tapping the place and "Capture here" arms it.
         check((await page.locator('[aria-label="Found: Hessian Memorial, History"]').count()) === 0, 'TC1: nothing is found by being near a place');
+        // tend walk-screen audit 15 (the diff review's ux 6): whether the offer stands before the place is armed, for after Cancel.
+        const offerBefore = (await page.locator('[data-testid=add-to-moment]').filter({ visible: true }).count()) > 0;
         await page.locator('[aria-label="Hessian Memorial, History. Open"]').first().click();
         await page.waitForSelector('[data-testid=mark-capture]', { timeout: 5000 });
         await shot(page, '02a-place-card');
@@ -284,10 +300,23 @@ async function checks(h) {
         const armedSaid = await page.locator('[data-testid=armed-line]').innerText();
         await page.waitForTimeout(800);
         await shot(page, '02b-armed');
+        // tend walk-screen 13 (the sweep's ux 4): while a place is armed its line speaks for the next capture, so the
+        // Add to this moment offer, which would join the open moment instead, steps aside (one transient at a time; H4).
+        check((await page.locator('[data-testid=add-to-moment]').filter({ visible: true }).count()) === 0,
+          'tend walk-screen 13: the Add to this moment offer is hidden while a place is armed');
         const lineBox = await page.locator('[data-testid=armed-line]').boundingBox();
         const cancelBox = await page.locator('[data-testid=armed-cancel]').boundingBox();
         check(!!lineBox && !!cancelBox && cancelBox.width < lineBox.width - 60 && cancelBox.height >= 44, `tap-to-capture-places ui 1: Cancel is a button at its own width, not the whole line (${Math.round(cancelBox?.width ?? 0)} of ${Math.round(lineBox?.width ?? 0)})`);
         check(/The next moment is about Hessian Memorial/.test(armedSaid) && (await page.locator('[data-testid=mark-card]').count()) === 0, `TC3: Capture here closes the card and says whom the next moment is about (${armedSaid.replace(/\n/g, ' ')})`);
+        // tend walk-screen audit 15: Cancel gives the offer back as it stood, then the place is armed again for the capture below.
+        await page.click('[data-testid=armed-cancel]');
+        await page.waitForSelector('[data-testid=armed-line]', { state: 'detached', timeout: 5000 }).catch(() => {});
+        const offerAfter = await page.locator('[data-testid=add-to-moment]').filter({ visible: true }).first().waitFor({ timeout: 4000 }).then(() => true, () => false);
+        check(offerBefore && offerAfter, `tend walk-screen audit 15: after Cancel the Add to this moment offer is back (${JSON.stringify({ offerBefore, offerAfter })})`);
+        await page.locator('[aria-label="Hessian Memorial, History. Open"]').first().click();
+        await page.waitForSelector('[data-testid=mark-capture]', { timeout: 5000 });
+        await page.click('[data-testid=mark-capture]');
+        await page.waitForSelector('[data-testid=armed-line]', { timeout: 5000 });
         [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.click('[data-testid=cap-photo]')]);
         await chooser.setFiles(path.join(fixtures, 'clip-4s.webm'));
         await page.waitForSelector('text=Video saved here');
@@ -357,6 +386,9 @@ async function checks(h) {
         check(seenEnters.some((e) => e.kind === 'pulse' && e.animated && /^Found( with a \w+)?: Hessian/.test(e.label)), 'a find pulses once from its pin (M12)');
         check(seenEnters.some((e) => e.kind === 'flip' && e.animated), 'a revealed "?" turns into its place, on its way to being found (M11)');
         check((await page.locator('[data-testid=armed-line]').count()) === 0, 'TC4: arming clears after the capture');
+        // tend walk-screen 13: with the arming spent, the offer is back for the moment the video began.
+        check(await page.locator('[data-testid=add-to-moment]').filter({ visible: true }).first().waitFor({ timeout: 4000 }).then(() => true, () => false),
+          'tend walk-screen 13: the Add to this moment offer returns once the arming clears');
       }
       if (k === 25) {
         await page.click('[data-testid=cap-note]');
@@ -382,8 +414,14 @@ async function checks(h) {
         await page.mouse.up();
         // The press sheet offers Route here (it was Go here), and what happened here when captures are near.
         check(((await page.locator('[data-testid=go-here]').first().innerText().catch(() => '')).trim()) === 'Route here', 'OM13: the walk screen\'s press sheet says "Route here", not "Go here"');
+        // tend walk-screen 15 (the sweep's steward 1): the button says what it opens, never how many (counts are words, 0052).
+        const hereSaid = (await page.locator('[data-testid=here-open]').first().innerText().catch(() => '')).trim();
+        check(hereSaid === 'What happened here' && !/\d/.test(hereSaid), `tend walk-screen 15: the spot card's button reads "What happened here", with no count (${hereSaid})`);
         await page.click('[data-testid=here-open]');
-        await page.waitForSelector('text=What happened here');
+        // tend walk-screen audit 14 (the diff review's auditor 4): the viewer's own control, not the words the button shares.
+        const viewerOpen = await page.locator('[data-testid=viewer-close]').filter({ visible: true }).first().waitFor({ timeout: 5000 }).then(() => true, () => false);
+        check(viewerOpen && (await page.locator('[data-testid=here-open]').filter({ visible: true }).count()) === 0,
+          'tend walk-screen audit 14: What happened here opens the viewer, and the spot card is gone');
         // The note may share the spot with the video nearby: step to it.
         for (let i = 0; i < 4 && !(await page.getByText('The bakery smelled of cardamom.').count()); i++) {
           if (!(await page.locator('[aria-label="Next moment"]').count())) break;
@@ -674,6 +712,25 @@ async function checks(h) {
         await shot(page, '03f-strip-walking-320-long');
         await restoreStats();
         await page.setViewportSize({ width: 390, height: 844 });
+        // tend walk-screen 12 (the sweep's ux 3, auditor 4): the strip's numbers, one button for a screen reader, say the
+        // walk's distance and time as the ready bar's twin says its numbers (navigate-ready audit 6; WCAG 2.5.3).
+        // tend walk-screen audit 12: word for word what the strip draws (its first line), read in one task; a second's tick
+        // between the two reads is tried again.
+        const summarySaid = async () => {
+          let seen = null;
+          for (let i = 0; i < 4; i++) {
+            seen = await page.evaluate(() => ({
+              said: document.querySelector('[data-testid=walk-summary]')?.getAttribute('aria-label') ?? '',
+              drawn: (document.querySelector('[data-testid=walk-stats]')?.textContent ?? '').split('\n')[0],
+            }));
+            if (seen.drawn && seen.said.startsWith(seen.drawn)) break;
+            await page.waitForTimeout(300);
+          }
+          return seen;
+        };
+        const saidWalking = await summarySaid();
+        check(!!saidWalking.drawn && saidWalking.said.startsWith(saidWalking.drawn) && /\. Walk settings$/.test(saidWalking.said),
+          `tend walk-screen 12, audit 12: walking, the strip's name holds what it draws (${JSON.stringify(saidWalking)})`);
         await page.waitForTimeout(600);
         // … raises the walk's settings, as the drag and a tap on the numbers do, and says so (fix walk-strip-buttons audit 4).
         await page.click('[data-testid=strip-more]');
@@ -701,6 +758,9 @@ async function checks(h) {
         await restoreStats();
         await page.setViewportSize({ width: 390, height: 844 });
         await page.waitForTimeout(600);
+        const saidPaused = await summarySaid();
+        check(!!saidPaused.drawn && saidPaused.said.startsWith(saidPaused.drawn) && /\. Walk settings$/.test(saidPaused.said),
+          `tend walk-screen 12, audit 12: paused, the strip's name still holds what it draws (${JSON.stringify(saidPaused)})`);
         check(walkingOk(seenStrip.walking390) && walkingOk(seenStrip.walking320),
           `0220, fix walk-strip-buttons audit 3: walking, one … (a unique id, Walk settings) and a wide soft Pause fill the row after the numbers, no Stop, words whole at 390 and 320 (${JSON.stringify([seenStrip.walking390, seenStrip.walking320])})`);
         check(pausedOk(seenStrip.paused390) && pausedOk(seenStrip.paused320),

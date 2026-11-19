@@ -4,9 +4,10 @@ paths:
   - "src/components/map/types.ts"
   - "src/lib/perfCount.ts"
   - "src/lib/{useGlidingWalker,useLiveTrace,liveDot,markNames}.ts"
-  - "src/components/ceremony/useCeremonyClock.ts"
+  - "src/components/ceremony/useCeremonyLoop.ts"
+  - "src/components/map/sent.ts"
   - "src/app/replay/*.tsx"
-  - "scripts/{perf-walk,perf-explore}.js"
+  - "scripts/{perf-walk,perf-explore,perf-replay}.js"
   - "src/lib/__tests__/map/{storefrontNames,storefrontNamesAudit,storefrontNamesUi,perfCount}.test.ts"
 ---
 # Map: the reactivity budget, web memory and Explore's storefront names
@@ -46,6 +47,22 @@ paths:
     hook's empty result, each cost Explore a render per switch (fix DC12). Set
     state only when it changed; `scripts/perf-explore.js` and the `dense`
     journey count `render:explore`.
+  - **No source is sent what it already holds** (replay ceremony RC4): every `setData` on the web map goes through
+    one gate (`sendData`, asking `nextSend` in `map/sent.ts`): not the same object, not another object of the same
+    content (read in full: a line's middle counts), not empty when it is empty. A send is a worker round trip and a
+    reload of that source's tiles; the replay sent four empty collections thirty times a second. `perfCount`
+    `setData:<id>` counts sends that happened. A new source's data goes through `setData(id, data)` like the rest;
+    `engine.test.ts` fails a second `.setData(` in the file.
+  - **A replay's frames reach the map through its handle, never as props** (`replayFrame`, RC1-RC3): the walker is
+    the live walk's DOM puck, the camera a `jumpTo` every frame, the line revealed by a paint property, and one
+    `map.redraw()` draws them in the frame they were set (a marker moves at once, the canvas a frame later otherwise).
+    The screen passes `replay` and no `walker`, `follow` or `trace` meanwhile. Native takes the same frames into a
+    store its own dot and lines read (unverified on a device).
+  - **Nothing reads layout per camera move.** The canvas's size is measured on `load` and `resize` (`canvasSize`):
+    the pins' move listener (`pinViewOf`) and the view's `track` work from it. A read of `clientWidth` between two
+    frames' style writes lays the page out twice a frame once the camera moves every frame.
+  - While a replay drives the camera, the view (`setView`: the scale bar, the pins' grouping) reaches React at most
+    twice a second (`REPLAY_VIEW_MS`); the zoom changes nearly every frame there.
 - **Explore in a dense city** (decision 0160, `scripts/perf-explore.js`,
   `docs/TESTING.md`): measure on the dense downtown before tuning.
   - **Storefront names are the map's own text** (DC1-DC6): one `storefront-names` symbol

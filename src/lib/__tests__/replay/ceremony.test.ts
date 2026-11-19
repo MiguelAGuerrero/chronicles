@@ -22,6 +22,7 @@ import { join } from 'node:path';
 import { OVERLAY_KINDS, type Ceremony, type Frame, type Story } from '../../ceremony/types';
 import type { Day } from '../../days';
 import type { LngLat, TracePoint } from '../../types';
+import { SCREEN } from './screen';
 
 const O: LngLat = [-71.4, 41.812];
 const mLat = 1 / 111320;
@@ -92,7 +93,7 @@ function sampleWalk(extra: Faced[] = [], passed: WalkInput['passed'] = []) {
   return { fixes, photo, note, ab, still, bc, dd, story: walkStory(input(fixes, [photo, note, ...extra], { passed })) };
 }
 
-const plan = (s: Story, reduceMotion = false) => rhythmPlan(s, { reduceMotion });
+const plan = (s: Story, reduceMotion = false) => rhythmPlan(s, { reduceMotion, screen: SCREEN });
 const legs = (p: RhythmPlan) => p.segs.filter((s) => s.k === 'leg');
 const frames = (p: RhythmPlan, step = 50): Frame[] => {
   const out: Frame[] = [];
@@ -195,31 +196,36 @@ test('RR2, RY8: the walker slows into a moment and away from it', () => {
   assert.ok(f(short, sl, 0.9) > 0.85 * 300, 'slow into the moment');
 });
 
-test('RR3: the camera pulls back mid-way through a long stretch and not between nearby moments', () => {
+// RR3's pull-back at the middle of a long stretch (a sine, to 1.7 times out past 450 m) went with replay ceremony RC13
+// (decision 0206, which amends RR3): the camera now rises by the walker's speed across the screen. camera.test.ts
+// holds the rule; this keeps RR3's own promise.
+test('RR3: the camera is pulled back through a long stretch and not between nearby moments', () => {
   const { story } = sampleWalk();
   const p = plan(story);
   const long = legs(p).find((l) => l.len > 1000)!;
   const mid = rhythmFrame(p, (long.t0 + long.t1) / 2);
-  assert.ok(pull(mid) > 1.5 && pull(mid) <= R.zoomOut + 1e-6, `pulled back ${pull(mid)}`);
+  assert.ok(pull(mid) > 1.5 && pull(mid) < 4, `pulled back ${pull(mid)}`);
   assert.ok(pull(rhythmFrame(p, long.t1 - 1)) < 1.05, 'close again at the moment');
   const near = plan(walkStory(input(line(A, at(100, 0), 0), [cap('text', 72_000, at(100, 0), 'x')])));
   const nl = legs(near)[0];
   assert.equal(pull(rhythmFrame(near, (nl.t0 + nl.t1) / 2)), 1);
 });
 
-test('RR4: a break in the trace is a cut with "N min later"; the walker never crosses it', () => {
+// RR4's cut (the map dimmed, the walker on one side and then the other, 1.4 s) went with replay ceremony RC17-RC20
+// (decision 0206, which amends RR4): a break is now a hop the walker slides along, with no dim. breaks.test.ts holds the
+// hop; this keeps RR4's own promise: a break is said as "N min later", and its minutes are never walked through.
+test('RR4: a break in the trace is crossed with "N min later", in a few seconds however long it lasted', () => {
   const { story, bc, dd } = sampleWalk();
   const p = plan(story);
-  const cut = p.segs.find((s) => s.k === 'cut')!;
-  assert.equal(cut.t1 - cut.t0, R.cut);
+  const brk = p.segs.find((s) => s.k === 'break')!;
+  assert.ok(brk.k === 'break' && brk.t1 - brk.t0 <= R.breakFar + 1e-6, `it takes ${brk.t1 - brk.t0} ms`);
   const ends = [bc[bc.length - 1], dd[0]].map((f): LngLat => [f.lon, f.lat]);
-  for (let ms = cut.t0; ms < cut.t1; ms += 20) {
-    const f = rhythmFrame(p, ms);
-    assert.ok(f.walker && Math.min(distanceM(f.walker, ends[0]), distanceM(f.walker, ends[1])) < 1, 'only ever at one side or the other');
-    assert.equal(f.line, '20 min later');
-  }
-  assert.ok(rhythmFrame(p, (cut.t0 + cut.t1) / 2).dim > 0.5, 'the map dims across it');
-  assert.equal(rhythmFrame(p, cut.t1 + R.lineAfter + 50).lineOpacity, 0);
+  const from = rhythmFrame(p, brk.t0 + 10);
+  const to = rhythmFrame(p, brk.t1 - 10);
+  assert.ok(distanceM(from.walker!, ends[0]) < 1 && distanceM(to.walker!, ends[1]) < 1, 'from where the trace stops to where it picks up');
+  assert.equal(rhythmFrame(p, (brk.t0 + brk.t1) / 2).line, '20 min later');
+  assert.equal(rhythmFrame(p, brk.t1 + R.breakLineAfter + 50).lineOpacity, 0);
+  assert.ok(!('dim' in rhythmFrame(p, (brk.t0 + brk.t1) / 2)), 'nothing dims the map');
 });
 
 test('RR4: laterLine says minutes and hours', () => {
@@ -256,10 +262,11 @@ test('RR8: the clock runs from arrival to leaving at a moment, with the walker b
     assert.ok(f.clock != null && f.clock >= prev - 1, 'the clock never runs back');
     prev = f.clock;
   }
-  const cut = p.segs.find((s) => s.k === 'cut')!;
-  const c0 = rhythmFrame(p, cut.t0 + 10).clock!;
-  const c1 = rhythmFrame(p, cut.t1 - 10).clock!;
-  assert.ok(c1 - c0 > 18 * MIN, 'it rolls through the gap');
+  // Across a break it is one time and then the other (replay ceremony RC19): it no longer rolls through the gap.
+  const brk = p.segs.find((s) => s.k === 'break')!;
+  const c0 = rhythmFrame(p, brk.t0 + 10).clock!;
+  const c1 = rhythmFrame(p, brk.t1 - 10).clock!;
+  assert.ok(c1 - c0 > 18 * MIN, 'it is past the gap on the far side');
   assert.equal(rhythmFrame(p, p.total).clock, null, 'gone at the card');
 });
 
@@ -321,7 +328,7 @@ test('RR10: a memo holds the walker for its length, in a bubble', () => {
   assert.ok(!rhythmFrame(p, stop.t0 + 3000).overlays.some((o) => o.kind === 'card'));
 });
 
-test('RR11, RY1: a photo grows, holds, tucks, and stays in the pile', () => {
+test('RR11, RY1: a photo grows, holds, shrinks away, and stays in the stack (replay ceremony RC29)', () => {
   const { story, photo } = sampleWalk();
   const p = plan(story);
   const stop = p.segs.find((s) => s.k === 'stop')!;
@@ -336,9 +343,10 @@ test('RR11, RY1: a photo grows, holds, tucks, and stays in the pile', () => {
   const k = card(stop.t1 - R.tuck / 2);
   assert.ok(k && k.kind === 'card' && k.tuck > 0);
   assert.ok(!card(stop.t1 + 10));
-  const pile = rhythmFrame(p, stop.t1 + 10).overlays.find((o) => o.kind === 'pile');
-  assert.ok(pile && pile.kind === 'pile' && pile.captures[0].id === photo.id);
-  assert.ok(!rhythmFrame(p, stop.t0 + 10).overlays.some((o) => o.kind === 'pile'), 'no pile before anything is in it');
+  // The pile it tucked into is the stack now (RC29, RC31): its entry lands a beat after the card has reached its place.
+  const stack = rhythmFrame(p, stop.t1 + R.stackLand + 10).overlays.find((o) => o.kind === 'stack');
+  assert.ok(stack && stack.kind === 'stack' && stack.captures[0].id === photo.id && stack.entries[0].key === photo.id);
+  assert.ok(!rhythmFrame(p, stop.t0 + 10).overlays.some((o) => o.kind === 'stack'), 'no stack before anything is in it');
 });
 
 test('RR12, RY6: a video holds for its length, a moment after it, plus the grow and the tuck', () => {
@@ -350,7 +358,7 @@ test('RR12, RY6: a video holds for its length, a moment after it, plus the grow 
   assert.ok(mid && mid.kind === 'card' && mid.playing && Math.abs(mid.progress - 0.5) < 0.01);
 });
 
-test('RR14: moments taken together play in time order at one stop; a pin appears as the walker arrives', () => {
+test('RR14: moments taken together play in time order at one stop; a pin appears as the walker arrives, a photo\'s own at the card (RC34)', () => {
   const ab = line(A, B, 0);
   const photo = cap('photo', endT(ab) + 1000, B);
   const note = cap('text', endT(ab) + 30_000, B, 'Plums');
@@ -360,7 +368,12 @@ test('RR14: moments taken together play in time order at one stop; a pin appears
   assert.ok(stops[0].k === 'stop');
   assert.deepEqual(stops[0].slots.map((s) => s.capture.id), [photo.id, note.id]);
   assert.deepEqual(rhythmFrame(p, stops[0].t0 - 1).pins, []);
-  assert.deepEqual(rhythmFrame(p, stops[0].t0).pins, [photo.id, note.id]);
+  // The note's pin comes as the walker arrives; the photo stands as its picture, and its pin waits for the card
+  // (replay ceremony RC34).
+  assert.deepEqual(rhythmFrame(p, stops[0].t0).pins, [note.id]);
+  const after = rhythmFrame(p, stops[0].t1 + 1);
+  assert.ok(after.overlays.some((o) => o.kind === 'picture' && o.key === photo.id) && !after.pins.includes(photo.id));
+  assert.deepEqual([...rhythmFrame(p, p.total).pins].sort(), [photo.id, note.id].sort());
 });
 
 test('RR15: a passed place whispers as the walker reaches it, without slowing it', () => {
@@ -427,9 +440,9 @@ test('RR16: a day glides between its entries, says how much later, and plays eac
   const mid = rhythmFrame(p, (ls[0].t0 + ls[0].t1) / 2);
   assert.equal(mid.line, '2 h later');
   assert.ok(ls[1].move, 'then the walk\'s own path');
-  // One pile and one clock for the whole day.
+  // One stack and one clock for the whole day.
   const end = rhythmFrame(p, p.total - 1);
-  assert.ok(end.overlays.some((o) => o.kind === 'pile' && o.captures[0].id === morning.id));
+  assert.ok(end.overlays.some((o) => o.kind === 'stack' && o.captures[0].id === morning.id));
   // A placeless moment is shown where the map is.
   const nowhere = cap('text', 12 * 60 * MIN, null, 'Somewhere', null);
   const p2 = plan(dayStory({ ...day, entries: [...day.entries, { kind: 'moment', t: nowhere.t, capture: nowhere }] }, new Map([['w', walk]])));
@@ -462,11 +475,12 @@ test('RR21: the registry gives the rhythm by default, and any ceremony honouring
       return {
         total: steps.length * 1000,
         stops: [],
+        hops: [],
         frame: (ms) => {
           const c = steps[Math.floor(ms / 1000)];
           return {
             done: ms >= steps.length * 1000, walker: null, camera: { center: null, zoom: null }, drawn: {}, pins: c ? [c.id] : [],
-            dim: 0, clock: c?.t ?? null, line: null, lineOpacity: 0,
+            hops: [], clock: c?.t ?? null, clockFade: 1, line: null, lineOpacity: 0, date: null, dateOpacity: 0, still: null, scrim: 0,
             overlays: c ? [{ kind: 'card', key: c.id, capture: c, from: null, grow: 1, tuck: 0, playing: false, progress: 0, fade: true }] : [],
           };
         },
@@ -474,7 +488,7 @@ test('RR21: the registry gives the rhythm by default, and any ceremony honouring
     },
   };
   const sw = sampleWalk();
-  const showing = still.show(sw.story, { reduceMotion: false });
+  const showing = still.show(sw.story, { reduceMotion: false, screen: SCREEN });
   assert.equal(showing.total, 2000);
   assert.equal(showing.frame(1500).overlays[0].kind, 'card');
   // What it shows comes from the app's story, in the walk's order: the photo, then the note (tend replay 14: the
@@ -488,7 +502,7 @@ test('RR21: every overlay kind a ceremony draws is one the stage knows', () => {
   for (const c of Object.values(CEREMONIES)) {
     for (const k of c.overlays) assert.ok((OVERLAY_KINDS as readonly string[]).includes(k), `${c.id}: ${k}`);
     const { story } = sampleWalk([cap('voice', 430_000, B, '3000'), cap('video', 431_000, B, '3000')], [{ name: 'X', generic: false, at: at(300, 30), t: 200_000 }]);
-    const s = c.show(story, { reduceMotion: false });
+    const s = c.show(story, { reduceMotion: false, screen: SCREEN });
     for (let ms = 0; ms < s.total; ms += 50) for (const o of s.frame(ms).overlays) assert.ok(c.overlays.includes(o.kind), `${c.id} drew ${o.kind}`);
   }
 });
@@ -557,8 +571,14 @@ test('replay-rhythm audit 10: the frame carries the camera, the pins by id and a
   const p = plan(story);
   const stop = p.segs.find((s) => s.k === 'stop')!;
   const f = rhythmFrame(p, stop.t0 + R.grow / 2);
-  assert.ok(f.camera.center && f.camera.zoom != null && distanceM(f.camera.center, f.walker!) < 1, 'the rhythm follows the walker');
-  assert.deepEqual(f.pins, [photo.id]);
+  // The camera is the ceremony's own (replay ceremony RC12, RC14): it no longer rides the walker, it holds the photo's
+  // pin under its card, the walker on the screen beside it.
+  assert.ok(f.camera.center && f.camera.zoom != null, 'the frame says where the camera is');
+  const walkerAt = project(SCREEN, f.camera, f.walker!)!;
+  assert.ok(walkerAt[0] > 0 && walkerAt[0] < SCREEN.width && walkerAt[1] > 0 && walkerAt[1] < SCREEN.height, `the walker is on the screen (${walkerAt.map(Math.round)})`);
+  // The photo's own pin waits for the card: it will stand as its picture (replay ceremony RC34).
+  assert.deepEqual(f.pins, []);
+  assert.ok(rhythmFrame(p, p.total).pins.includes(photo.id));
   const card = f.overlays.find((o) => o.kind === 'card');
   assert.ok(card && card.kind === 'card' && card.from && distanceM(card.from, B) < 1, 'the card grows from its pin');
 });
@@ -582,19 +602,22 @@ test('replay-rhythm audit 12: reduce motion keeps the timing and holds the camer
   for (const f of frames(b, 100)) assert.equal(pull(f), 1);
 });
 
-test('replay-rhythm audit 15: a stretch short of long does not pull the camera back', () => {
-  const p = plan(walkStory(input(line(A, at(470, 0), 0), [cap('text', 340_000, at(470, 0), 'x')])));
+// Audit 15 held the old pull-back to stretches of 450 m and more. The camera's rise now follows the walker's speed
+// across the screen (replay ceremony RC13), so a stretch's length alone no longer says: what stays is that a stretch
+// the walker crosses slowly is told at the walking zoom, from end to end.
+test('replay-rhythm audit 15: a stretch the walker crosses slowly does not pull the camera back', () => {
+  const p = plan(walkStory(input(line(A, at(130, 0), 0), [cap('text', 95_000, at(130, 0), 'x')])));
   const l = legs(p)[0];
   assert.ok(l.len < R.zipAtM, `a ${l.len.toFixed(0)} m stretch`);
-  assert.equal(pull(rhythmFrame(p, (l.t0 + l.t1) / 2)), 1);
+  for (let ms = l.t0; ms <= l.t1; ms += 20) assert.equal(pull(rhythmFrame(p, ms)), 1);
 });
 
 test('replay-rhythm audit 17: a place passed just after a gap whispers once the far side is up', () => {
   const { fixes, photo, note, dd } = sampleWalk();
   const p = plan(walkStory(input(fixes, [photo, note], { passed: [{ name: 'X', generic: false, at: at(920, 1220), t: dd[1].t }] })));
-  const cut = p.segs.find((s) => s.k === 'cut')!;
+  const brk = p.segs.find((s) => s.k === 'break')!;
   const first = frames(p, 10).findIndex((f) => f.overlays.some((o) => o.kind === 'whisper'));
-  assert.ok(first * 10 >= cut.t1 - 10, `whispered at ${first * 10} ms, the cut ends at ${cut.t1}`);
+  assert.ok(first * 10 >= brk.t1 - 10, `whispered at ${first * 10} ms, the break ends at ${brk.t1}`);
 });
 
 test('replay-rhythm audit 18: the screen reader\'s steps skip a moment gone and end when none is left', () => {
@@ -669,13 +692,13 @@ test('replay-rhythm audit 22: deleting a moment behind the walker skips none ahe
   const c1 = cap('photo', ab[20].t, null);
   const c2 = cap('photo', ab[50].t, null);
   const c3 = cap('photo', ab[80].t, null);
-  const before = rhythm.show(walkStory(input(ab, [c1, c2, c3])), { reduceMotion: false });
+  const before = rhythm.show(walkStory(input(ab, [c1, c2, c3])), { reduceMotion: false, screen: SCREEN });
   // Mid-way through the second photo's card.
   let ms = 0;
   while (!before.frame(ms).overlays.some((o) => o.kind === 'card' && o.capture.id === c2.id)) ms += 20;
   ms += 600;
   const clock = before.frame(ms).clock!;
-  const after = rhythm.show(walkStory(input(ab, [c2, c3])), { reduceMotion: false });
+  const after = rhythm.show(walkStory(input(ab, [c2, c3])), { reduceMotion: false, screen: SCREEN });
   const ms2 = msAtClock(after, clock);
   const f = after.frame(ms2);
   assert.ok(Math.abs(f.clock! - clock) < 2000, `the same time of day (${f.clock! - clock} ms off)`);
@@ -699,12 +722,14 @@ test('replay-rhythm audit 24: a stand with no moment rolls the clock, never leap
 });
 
 test('replay-rhythm audit 25: a frame\'s camera, with or without a zoom, is where the stage projects', () => {
-  const ctx: StageCtx = { width: 400, height: 800, insets: { top: 0, bottom: 0, left: 0, right: 0 }, center: A, zoom: 16, held: false, paused: false, reduceMotion: false, open: () => {}, wait: () => {} };
-  assert.deepEqual(project(ctx, A)?.map(Math.round), [200, 400], 'the centre is the middle');
-  const east = project(ctx, at(100, 0));
+  // The camera is each frame's own (replay ceremony RC7): the stage is handed its size, and reads where the map is held from the frame.
+  const ctx: Pick<StageCtx, 'width' | 'height'> = { width: 400, height: 800 };
+  const camera = { center: A, zoom: 16 };
+  assert.deepEqual(project(ctx, camera, A)?.map(Math.round), [200, 400], 'the centre is the middle');
+  const east = project(ctx, camera, at(100, 0));
   assert.ok(east && east[0] > 240 && Math.abs(east[1] - 400) < 1, '100 m east is to the right');
-  assert.equal(project({ ...ctx, zoom: null }, at(100, 0)), null, 'no zoom: nothing is projected, never all to the middle');
-  assert.equal(project({ ...ctx, center: null }, at(100, 0)), null);
+  assert.equal(project(ctx, { ...camera, zoom: null }, at(100, 0)), null, 'no zoom: nothing is projected, never all to the middle');
+  assert.equal(project(ctx, { ...camera, center: null }, at(100, 0)), null);
 });
 
 test('replay-rhythm audit 25: both screens name the ceremony they tell with', () => {
@@ -741,9 +766,9 @@ test('replay-rhythm audit 30: a capture inside a gap plays at its own place afte
   const stop = p.segs.find((s) => s.k === 'stop')!;
   const f = rhythmFrame(p, stop.t0 + 100);
   assert.ok(f.walker && distanceM(f.walker, B2) < 5, `the walker is where the photo was taken (${f.walker && distanceM(f.walker, B2).toFixed(0)} m off)`);
-  assert.equal(p.segs.filter((s) => s.k === 'cut').length, 1, 'one cut, not "Moments later" after it');
-  const cut = p.segs.find((s) => s.k === 'cut')!;
-  assert.ok(cut.k === 'cut' && cut.to && distanceM(cut.to, B2) < 5, 'the cut lands at the photo');
+  assert.equal(p.segs.filter((s) => s.k === 'break').length, 1, 'one break, not "Moments later" after it');
+  const brk = p.segs.find((s) => s.k === 'break')!;
+  assert.ok(brk.k === 'break' && brk.to && distanceM(brk.to, B2) < 5, 'the break lands at the photo');
 });
 
 test('replay-rhythm audit 31: a rebuilt day telling keeps its place inside a loose moment', () => {
@@ -751,18 +776,18 @@ test('replay-rhythm audit 31: a rebuilt day telling keeps its place inside a loo
   const memo = cap('voice', 12 * 60 * MIN, A, '20000', null);
   const note = cap('text', 15 * 60 * MIN, B, 'Late', null);
   const day = (caps: Faced[]): Day => ({ key: '2026-11-04', entries: caps.map((c) => ({ kind: 'moment', t: c.t, capture: c })), moments: caps.length, walks: 0 });
-  const before = rhythm.show(dayStory(day([photo, memo, note]), new Map()), { reduceMotion: false });
+  const before = rhythm.show(dayStory(day([photo, memo, note]), new Map()), { reduceMotion: false, screen: SCREEN });
   let ms = 0;
   while (!before.frame(ms).overlays.some((o) => o.kind === 'bubble' && o.capture.id === memo.id)) ms += 20;
   ms += 12_000;
-  const after = rhythm.show(dayStory(day([memo, note]), new Map()), { reduceMotion: false });
+  const after = rhythm.show(dayStory(day([memo, note]), new Map()), { reduceMotion: false, screen: SCREEN });
   const b = after.frame(reanchor(before, after, ms)).overlays.find((o) => o.kind === 'bubble' && o.capture.id === memo.id);
   assert.ok(b && b.kind === 'bubble' && Math.abs(b.progress - 0.6) < 0.05, `still 12 s into the memo (${b && b.kind === 'bubble' ? b.progress.toFixed(2) : 'gone'})`);
   // The day's first entry, 1.5 s into its card: a rebuild keeps it there, never back to the intro.
   let m2 = 0;
   while (!before.frame(m2).overlays.some((o) => o.kind === 'card' && o.capture.id === photo.id)) m2 += 20;
   m2 += 1500;
-  const less = rhythm.show(dayStory(day([photo, memo]), new Map()), { reduceMotion: false });
+  const less = rhythm.show(dayStory(day([photo, memo]), new Map()), { reduceMotion: false, screen: SCREEN });
   assert.ok(Math.abs(reanchor(before, less, m2) - m2) < 100, 'the same place in the first card');
 });
 
@@ -784,11 +809,11 @@ test('replay-rhythm audit 33: a rebuilt telling is re-anchored before its first 
   const ab = line(A, B, 0);
   const old = cap('photo', ab[10].t, null);
   const video = cap('video', ab[60].t, null, '5000');
-  const before = rhythm.show(walkStory(input(ab, [old, video])), { reduceMotion: false });
+  const before = rhythm.show(walkStory(input(ab, [old, video])), { reduceMotion: false, screen: SCREEN });
   let ms = 0;
   while (!before.frame(ms).overlays.some((o) => o.kind === 'card' && o.capture.id === video.id)) ms += 20;
   ms += 3500;
-  const after = rhythm.show(walkStory(input(ab, [video])), { reduceMotion: false });
+  const after = rhythm.show(walkStory(input(ab, [video])), { reduceMotion: false, screen: SCREEN });
   const card = after.frame(reanchor(before, after, ms)).overlays.find((o) => o.kind === 'card' && o.capture.id === video.id);
   assert.ok(card && card.kind === 'card' && card.playing && card.progress > 0.5, 'the same video, still playing, past half way');
 });

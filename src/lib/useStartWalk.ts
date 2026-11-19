@@ -14,7 +14,7 @@ export type { StartError };
 
 /**
  * Starts a walk at once (NV19, NV12, NV25): Navigate's Start, and Walk here on
- * Explore and Chronicle. There is no mode (decision 0231); the plan's meta (the
+ * Explore and Chronicle. There is no mode (decision 0234); the plan's meta (the
  * destination) is written before the walk screen opens, so it starts with it. Never waits for a fix: the walk's recorder takes over (NV28).
  *
  * With a walk already open (minimized), Walk here routes that walk there, as

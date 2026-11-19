@@ -18,7 +18,7 @@ export const walkNote = (m: number) => {
 };
 
 /** What passing means (TC7): in words, with no count of places. */
-export const passNote = (m: number) => `A place is passed when you come within ${formatRange(m)} of it. It is said in words, never counted.`;
+export const passNote = (m: number) => `A place is passed when you come within ${formatRange(m)} of it.`;
 
 export interface SliderScale {
   min: number;

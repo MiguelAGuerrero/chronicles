@@ -78,7 +78,7 @@ export const LAYERS: readonly LayerDef[] = [
     legend: [{ key: 'earlier', text: 'Your earlier walks', swatch: 'past' }],
   },
   {
-    // Places layer (specs/places-layer PL1, decision 0230; every map since decision 0231): the "?" and dots for places worth the
+    // Places layer (specs/places-layer PL1, decision 0230; every map since decision 0234): the "?" and dots for places worth the
     // stop, local information over the map, on by default on Explore and the ready map, off on a live walk (walkLayerDefaults).
     // Named for what it draws, never a task.
     id: 'places',

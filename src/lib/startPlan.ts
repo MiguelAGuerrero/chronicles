@@ -65,7 +65,7 @@ export interface StartPlan {
 }
 
 /**
- * What starting a walk writes (NV25): the destination for the new walk, and nothing else. There is no mode (decision 0231):
+ * What starting a walk writes (NV25): the destination for the new walk, and nothing else. There is no mode (decision 0234):
  * every walk starts with every layer off, and Places, when turned on, keeps its own spans and pass distance.
  */
 export function startPlan(input: { walkId: string; dest: Waypoint | null; warning?: string }): StartPlan {

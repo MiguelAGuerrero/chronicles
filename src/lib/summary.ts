@@ -99,7 +99,7 @@ export async function loadReplay(walkId: string, opts: { readGaps?: boolean } = 
   // What it passed without stopping (E11, audit 9): only once it was exploring, only kinds shown, minus its own finds.
   let passed: ReplayData['passed'] = [];
   const explored = await db.getMeta(exploredKey(walkId)).catch(() => null);
-  // A walk since decision 0231 counts passes only within the spans Places was on (MD9); one before it, from `explored:` on.
+  // A walk since decision 0234 counts passes only within the spans Places was on (MD9); one before it, from `explored:` on.
   const spansRaw = await db.getMeta(placesSpansKey(walkId)).catch(() => null);
   const spans = spansRaw ? decodeSpans(spansRaw) : undefined;
   if (streetBounds && (explored || spans)) {

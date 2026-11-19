@@ -16,7 +16,7 @@ export function layerDefaults(layers: readonly LayerDef[] = LAYERS): LayerState 
 }
 
 /**
- * A live walk's layers (specs/modes-to-layers MD3, MD10, decision 0231): every layer off at the start of every walk, whatever
+ * A live walk's layers (specs/modes-to-layers MD3, MD10, decision 0234): every layer off at the start of every walk, whatever
  * its default on the other maps, kept per walk (meta `walk_layers:<walk>`) and never carried to the next.
  */
 export const walkLayerDefaults = (layers: readonly LayerDef[] = LAYERS): LayerState => Object.fromEntries(layers.map((l) => [l.id, false]));

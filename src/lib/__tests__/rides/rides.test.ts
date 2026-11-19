@@ -15,6 +15,7 @@ import { REPLAY_RHYTHM } from '../../motionTokens';
 import { keptFixes, readTrace, rideRuns, ridingAt, smoothKept, timedRideRuns, traceDistances } from '../../rides';
 import { snap } from '../../snapper';
 import type { LngLat, StreetSegment, TracePoint } from '../../types';
+import { SCREEN } from '../replay/screen';
 
 // Rides (the concept doc's "Rides" tab, R1-R14), written before the code.
 // A walk can include a trolley, bus or train: drawn dashed, counted for
@@ -464,7 +465,7 @@ function rhythmOf(fixes: TracePoint[], captures: Faced[] = [], tr?: ReturnType<t
     fixes, walkedFixes: fixes, breaks: [], pauses: [], runs: timedRuns(fixes).map((r) => r.map((x) => x.p)),
     // The trace's own rides, drawn dashed (R5), when the test read one.
     rideRuns: tr ? rideRuns(tr) : [], rideTimed: tr ? timedRideRuns(tr) : [], captures, passed: [],
-  }), { reduceMotion: false });
+  }), { reduceMotion: false, screen: SCREEN });
 }
 /** Replay time spent on stretches that overlap walk times t0 to t1. */
 const legMsOver = (p: RhythmPlan, t0: number, t1: number) =>

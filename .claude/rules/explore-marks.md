@@ -69,13 +69,13 @@ Places of interest from the tiles, marks, checklists and finds (Explore), and Re
 - **Explore** (slice 5, replaces scan and ambient; the spec is E1-E23 in the
   v1 tab; `explore/explore.ts` pure, `exploreRun.ts`, `useExplore.ts`,
   `settings.ts`).
-  - **A walk starts with every layer off, and there is no Explore mode** (decision 0231, modes-to-layers MD1-MD19; it
+  - **A walk starts with every layer off, and there is no Explore mode** (decision 0234, modes-to-layers MD1-MD19; it
     replaces 0031's mode and `explore_walk`, `start_mode`, which are retired and left unread). The walk's own layers
     (`layers/walkShell.ts`, meta `walk_layers:<walk>`) start off every walk and are never carried to the next; the "?" marks, the range
     ring, the armed place and the pocket alert follow **Places**, the strip chip and the dead-zone pill follow **Storefronts**
     (`walk.tsx`: `placesOn`, `storefrontsOn`; `useExplore` takes `places` and `storefronts`). A find needs Places on, since
     Capture here starts from a "?" card (MD8). Turning Places on or off keeps its spans (`places_spans:<walk>`, `explore/placesSpans.ts`),
-    and the replay names what the walk passed only within them (`passedAlong` `spans`); a walk recorded before 0231 reads
+    and the replay names what the walk passed only within them (`passedAlong` `spans`); a walk recorded before 0234 reads
     `explored:<walk>` as it did. The old rule, kept for what it still says: quiet is navigation plus captures: no "?" marks, magenta, strip chip or
     dead-zone pill. Reminders fire on every walk (the owner's call, after the
     audit: a reminder is set on purpose). Explore starts from the home's

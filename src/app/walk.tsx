@@ -63,10 +63,11 @@ import { ensureTileBuild } from '../lib/tiles';
 import { startErrorFrom, type RecorderStatus } from '../lib/recorder/types';
 import { raisedAfter, retryRecorder } from '../lib/recorderRetry';
 import { useUnits } from '../lib/useUnits';
+import type { Units } from '../lib/units';
 import { formatRange } from '../lib/format';
 import { pauseWalk, restartRecording, resumeWalk } from '../lib/session';
 import { stopEnd } from '../lib/unsaved/stopEnd';
-import { formatDistance, formatDuration, formatElapsed } from '../lib/summary';
+import { formatDistance, formatDuration } from '../lib/summary';
 import type { LngLat, Pause, StreetSegment, Walk } from '../lib/types';
 import { useCaptures } from '../lib/useCaptures';
 import { momentPill } from '../lib/momentPill';
@@ -92,7 +93,7 @@ import { usePastLines } from '../lib/pastLines/usePastLines';
 import { useWalkLayers } from '../lib/layers/useWalkLayers';
 import { useRouteWarning } from '../lib/walk/useRouteWarning';
 import { useWalkability } from '../lib/walk/useWalkability';
-import { arrivalNotice, exitPlan, screenState, startNotice } from '../lib/readyNav';
+import { arrivalNotice, exitPlan, screenState, startNotice, walkStripText, walkSummaryLabel } from '../lib/readyNav';
 import { noticeShown } from '../lib/pauseReminder';
 import { getLastFix } from '../lib/lastFix';
 import { useStopArrival } from '../lib/outing/useArrival';
@@ -138,8 +139,8 @@ const SLOW_TICK_MS = 5000;
 const STOP_WAIT_MS = 5000;
 
 /** Time walked (paused time left out) and distance, in the bottom strip; a ride's distance after it (R6). */
-function WalkStats(props: { startedAt: number | null; pauses: Pause[]; distanceM: number; rideM: number }) {
-  const { startedAt, pauses, distanceM, rideM } = props;
+function WalkStats(props: { startedAt: number | null; pauses: Pause[]; distanceM: number; rideM: number; units: Units }) {
+  const { startedAt, pauses, distanceM, rideM, units } = props;
   const elapsed = (now: number) => (startedAt == null ? 0 : now - startedAt - pausedMs(pauses, startedAt, now));
   // The ride on a second, smaller line, so the strip keeps its width at 390 px (rides audit, UI).
   const ride = rideM >= 1 ? `\n+ ${formatDistance(rideM)} ride` : '';
@@ -148,7 +149,8 @@ function WalkStats(props: { startedAt: number | null; pauses: Pause[]; distanceM
       testID="walk-stats"
       style={styles.stats}
       numberOfLines={ride ? 2 : 1}
-      text={(now) => `${formatElapsed(elapsed(now))} · ${formatDistance(distanceM)}${ride}`}
+      // The same words the strip's spoken name holds (tend walk-screen audit 12).
+      text={(now) => `${walkStripText({ elapsedMs: elapsed(now), distanceM, units })}${ride}`}
       label={(now) => `${formatDistance(distanceM)} walked in ${formatDuration(elapsed(now))}${rideM >= 1 ? `, plus ${formatDistance(rideM)} by ride` : ''}`}
     />
   );
@@ -232,7 +234,7 @@ function WalkLoading(props: { onClose: () => void }) {
 function WalkScreen(props: { onMinimize: () => void }) {
   perfCount('render:walk');
   // Every distance on this screen follows the units setting (QL16).
-  useUnits();
+  const units = useUnits();
   const insets = useSafeAreaInsets();
   const { width, height: screenH } = useWindowDimensions();
   // The strip's words step down a size below 360, so long numbers still leave them whole (fix walk-strip-buttons audit 1).
@@ -1554,8 +1556,9 @@ function WalkScreen(props: { onMinimize: () => void }) {
           </View>
         ) : null}
         {nudgeShown && nudge && (
-          <View testID="dead-zone" style={styles.undo}>
-            <Text style={[styles.undoText, { flexShrink: 1 }]} numberOfLines={2}>{nudge.text}</Text>
+          // Below 360 its text takes a line of its own above Route here and Dismiss (tend walk-screen audit 13).
+          <View testID="dead-zone" style={[styles.undo, narrow && styles.nudgeNarrow]}>
+            <Text style={[styles.undoText, narrow ? styles.nudgeTextNarrow : { flexShrink: 1 }]} numberOfLines={2}>{nudge.text}</Text>
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={`Go to ${nudge.name}`}
@@ -1569,7 +1572,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
             >
               <Text style={styles.undoBtnText}>Route here</Text>
             </Pressable>
-            <Pressable accessibilityRole="button" accessibilityLabel="Dismiss" onPress={() => setNudge(null)} hitSlop={10}>
+            {/* 44 pt itself: react-native-web has no hitSlop (tend walk-screen 14). */}
+            <Pressable testID="dead-zone-dismiss" accessibilityRole="button" accessibilityLabel="Dismiss" onPress={() => setNudge(null)} style={styles.nudgeClose}>
               <Icon name="close" size={18} color="#ffffff" />
             </Pressable>
           </View>
@@ -1597,7 +1601,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
       <View style={[styles.pills, at.pills]} pointerEvents="box-none">
         {walk && (
           <AddToMomentPill
-            hidden={recordingVoice || noteOpen || !!spot || !!openMark || !!options || !!memory}
+            // Not while a place is armed: its line says where the next capture goes (tend walk-screen 13).
+            hidden={recordingVoice || noteOpen || !!spot || !!openMark || !!options || !!memory || !!explore.armed}
             onPhoto={() => void photo(momentPill.target())}
             onVoice={() => void startVoice(momentPill.target())}
             onNote={() => {
@@ -1679,8 +1684,10 @@ function WalkScreen(props: { onMinimize: () => void }) {
         onUp={raiseOptions}
         areaHeight={screenH}
         locked={recordingVoice}
-        summaryLabel="The walk"
-        summary={<WalkStats startedAt={walk?.started_at ?? null} pauses={pauses} distanceM={live.distanceM} rideM={live.rideM} />}
+        // Named with what it draws, word for word, as the ready bar's twin is (tend walk-screen 12, audit 12): read each second
+        // by the bar's own summary, never a live region.
+        summaryLabel={(t) => walkSummaryLabel({ elapsedMs: walk ? t - walk.started_at - pausedMs(pauses, walk.started_at, t) : 0, distanceM: live.distanceM, rideM: live.rideM, units })}
+        summary={<WalkStats startedAt={walk?.started_at ?? null} pauses={pauses} distanceM={live.distanceM} rideM={live.rideM} units={units} />}
         actions={
           // Pause alone while walking; Resume and a held Stop once paused, as AllTrails does (decision 0220). The owner's
           // AllTrails look (Nov 18): the buttons fill what the numbers leave. Walking: … (the walk's settings) and a wide
@@ -1753,12 +1760,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
                 <RangeSlider scale={PASS_SCALE} value={settings.passM} onChange={(m) => changeSettings({ ...settings, passM: clampPass(m) })} />
               </>
             )}
-            {Object.values(layers.on).some(Boolean) && (
-              <>
-                <Text style={styles.optionSection} accessibilityRole="header">On the map</Text>
-                <LayersKey map="walk" layers={layers} />
-              </>
-            )}
+            <LayersKey map="walk" layers={layers} heading="On the map" headingStyle={styles.optionSection} />
             {/* The pocket alert is a nudge you feel: on every phone, and on a touch-screen browser that can vibrate (E19, PA6). */}
             {canBuzz() && loaded && (
               <SwitchRow
@@ -1785,7 +1787,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
                       : 'Motion off: standing still may drift.'}
                 </Text>
                 {(motionAccess === 'off' || motionAccess === 'denied') && (
-                  <Pressable testID="motion-on" accessibilityRole="button" accessibilityLabel="Turn on motion" onPress={() => void askMotion()} hitSlop={8}>
+                  <Pressable testID="motion-on" accessibilityRole="button" accessibilityLabel="Turn on motion" onPress={() => void askMotion()} style={styles.motionOn}>
                     <Text style={styles.optionLabel}>Turn on</Text>
                   </Pressable>
                 )}
@@ -2020,7 +2022,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
                 <Button
                   testID="here-open"
                   variant="secondary"
-                  label={`What happened here (${spot.here.captures.length})`}
+                  // What it opens, never how many (counts are words, 0052; tend walk-screen 15).
+                  label="What happened here"
                   onPress={() => {
                     const r = spot.here!;
                     setSpot(null);
@@ -2154,6 +2157,12 @@ const styles = StyleSheet.create({
   undoText: { color: '#ffffff', fontSize: 15, fontWeight: '600', flexShrink: 1 },
   undoBtn: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 16, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.15)' },
   undoBtnText: { color: '#ffffff', fontSize: 15, fontWeight: '700' },
+  // 44 pt themselves, not by hit slop, which react-native-web lacks (tend walk-screen 14).
+  nudgeClose: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', marginVertical: -8 },
+  motionOn: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 8 },
+  // The nudge below 360: wrapped, its text a full line above its two buttons (tend walk-screen audit 13).
+  nudgeNarrow: { flexWrap: 'wrap', justifyContent: 'flex-end', rowGap: 4, borderRadius: 20 },
+  nudgeTextNarrow: { flexBasis: '100%', paddingTop: 4 },
   disabled: { opacity: 0.5 },
   pressed: { opacity: 0.8 },
   stats: { color: theme.ink, fontSize: 17, fontWeight: '600', fontVariant: ['tabular-nums'], flexShrink: 1 },

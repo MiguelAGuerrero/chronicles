@@ -179,6 +179,24 @@ source.
 - **Roadtrippers**: a start and an end, then categories of place shown within a distance of the route, added one by one
   to an itinerary. Source: from memory, unverified. **Unverified**. A counter-example in part: an itinerary is a list.
 
+### Mark ground that is hard on foot (Earn)
+
+None of these pages could be fetched from the cloud session (Nov 19, DNS refused); each line comes from a search result's summary of
+the page, so all are leads. Recorded by `/investigate` (`docs/research/walkability-car-ground.md`).
+
+- **Google Maps**: walking directions carry a caution in words, "Use caution – walking directions may not always reflect real-world
+  conditions"; nothing marks the ground on the map. Source: quoted at https://walksydney.org/2018/12/10/pedestrians-left-at-the-kerb-by-google-maps/
+  (search summary, page not read). **Unverified**.
+- **Komoot**: route warnings (off-grid sections, steps, steep or dangerous terrain) add information the map does not show; the
+  distance indicator shows which section a warning applies to. Source: https://www.komoot.com/help/warnings (search summary, page
+  unreachable Nov 19). **Unverified**.
+- **AccessMap** (Seattle, web): footways coloured by how their incline affects pace, an inaccessible one as a dotted red line, with a
+  legend. Source: https://taskarcenteratuw.github.io/tcat-wiki/accessmap/user-manual/interface (search summary, page unreachable
+  Nov 19). **Unverified**. A counter-example in part: red as a verdict.
+- **Aviation charts** (Esri's charting conventions): restricted airspace drawn with a hatched band along the inside of its boundary,
+  not a filled interior. Source: https://desktop.arcgis.com/en/arcmap/latest/extensions/aviation-charting/symbolizing-restricted-airspace.htm
+  (search summary, page unreachable Nov 19). **Unverified**.
+
 ### Say what an area holds: findable places apart from the places you go into (Earn)
 
 - **Atlas Obscura** (web and app): lists only curiosities and odd places, each a page; restaurants and shops are not in

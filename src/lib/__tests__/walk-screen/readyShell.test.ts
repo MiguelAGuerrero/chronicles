@@ -3,7 +3,7 @@ import test from 'node:test';
 import { createReady } from '../../ready/shell';
 import { fakePorts } from '../fakes';
 
-test('NR7, NR13: the ready shell reads the saved choices (no mode, decision 0231) and saves each as it changes', async () => {
+test('NR7, NR13: the ready shell reads the saved choices (no mode, decision 0234) and saves each as it changes', async () => {
   const p = fakePorts({ background: false });
   const ready = createReady(p);
   const first = await ready.load();

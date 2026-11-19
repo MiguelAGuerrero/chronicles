@@ -109,7 +109,14 @@ test('tend map audit 35, 36, 37: the web map grows the view by a pin\'s reach, r
   const reach = /const pinViewOf = [\s\S]*?\n};/.exec(src)?.[0] ?? '';
   assert.match(reach, /PIN_REACH_PX/, 'pinViewOf grows the canvas by a pin\'s reach');
   assert.match(reach, /map\.unproject\(/, 'pinViewOf reads the grown corners through the map');
-  assert.match(hook, /boxHolds\(drawn\.current, pinViewOf\(map\)\)/, 'the box is judged against the grown view');
+  assert.match(hook, /const view = \(\) => \{[\s\S]*?return pinViewOf\(map, canvasSize\.current\);\s*\};/, 'the view is the grown one, from the canvas as last measured');
+  assert.match(hook, /boxHolds\(drawn\.current, view\(\)\)/, 'the box is judged against the grown view');
+  // Replay ceremony (the engine): a replay moves the camera every frame, so the view is worked out on a move with no
+  // read of layout; the canvas's size is measured when the map resizes.
+  assert.doesNotMatch(reach, /clientWidth|clientHeight|getBoundingClientRect|offsetWidth/, 'pinViewOf reads no layout');
+  const movedFn = /const moved = \(\) => \{[\s\S]*?\n    \};/.exec(hook)?.[0] ?? '';
+  assert.match(movedFn, /boxHolds\(drawn\.current, view\(\)\)/);
+  assert.match(src, /map\.on\('resize', measure\)/, 'the canvas is measured as it resizes');
   // audit 36: during a move, not only at its end.
   assert.match(hook, /map\.on\('move', moved\)/, 'a move redraws as it goes when it leaves the box');
   // audit 37: the focused pin, and the last pressed, are never dropped.

@@ -1,13 +1,15 @@
 import { useAudioPlayer, useAudioPlayerStatus, type AudioPlayer } from 'expo-audio';
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { overlayOf, type StageLive } from '../../lib/ceremony/live';
 import type { BubbleOverlay } from '../../lib/ceremony/types';
 import { useMediaUri } from '../../lib/useMediaUri';
 import { COLORS } from '../map/types';
 import { Icon } from '../icons';
 import { theme } from '../ui';
-import { cornerHeight, STAGE_BOTTOM, timeOf, type StageCtx } from './layout';
+import { bubblePose, bubbleRoom, cornerHeight, STAGE_BOTTOM, timeOf, type StageCtx } from './layout';
 import { Skeleton } from './Skeleton';
+import { useLive, useLiveStyle } from './useLive';
 import { useMediaWait } from './useMediaWait';
 import { plainNote } from '../../lib/refs';
 import { memoLengthMs, memoLengthText, voiceClock, voiceSpan, voiceState, wholeMs } from '../../lib/voiceTrim';
@@ -29,6 +31,18 @@ function seekMemo(player: AudioPlayer, s: number) {
   void player.seekTo(s);
 }
 
+/** A memo's waveform, lit as far as it has played: it renders as a bar lights, alone (replay ceremony RC7). */
+function Wave({ live, bubble, id }: { live: StageLive; bubble: string; id: string }) {
+  const lit = useLive(live, (f) => Math.round((overlayOf(f, 'bubble', bubble)?.progress ?? 0) * BARS));
+  return (
+    <View style={styles.wave}>
+      {bars(id).map((h, i) => (
+        <View key={i} style={[styles.bar, { height: h, backgroundColor: COLORS.voice, opacity: i < lit ? 1 : 0.3 }]} />
+      ))}
+    </View>
+  );
+}
+
 /** A memo plays while its bubble says so, and stops when held (RR10, RR7). A refused start leaves the play button to tap. */
 function MemoBubble({ o, ctx }: { o: BubbleOverlay; ctx: StageCtx }) {
   const uri = useMediaUri(o.capture);
@@ -46,12 +60,18 @@ function MemoBubble({ o, ctx }: { o: BubbleOverlay; ctx: StageCtx }) {
   const ended = status.didJustFinish || (trim ? voiceState(status.currentTime, span) === 'end' : status.duration > 0 && status.currentTime >= status.duration - 0.05);
   // Started once it has moved: a file that won't play can still say it is playing.
   const started = trim ? status.currentTime * 1000 > span.startMs : status.currentTime > 0;
+  // Whether its slot says it plays, and whether the slot is over: read from the frame on stage, so the bubble renders
+  // when one changes and not as the slot's time passes (replay ceremony RC7).
+  const { live } = ctx;
+  const key = o.key;
+  const playing = useLive(live, (f) => overlayOf(f, 'bubble', key)?.playing ?? false);
+  const over = useLive(live, (f) => (overlayOf(f, 'bubble', key)?.progress ?? 0) >= 1);
   const waited = useMediaWait(o.key, ctx, {
-    inSlot: o.playing && !handPaused, slotOver: (o.progress >= 1 || byHand) && !ended && !handPaused, started, ended,
-    positionMs: () => voiceClock(status.currentTime, span).atMs, planMs: o.progress * Math.max(1000, len), lenMs: Math.max(1000, len), stopped,
+    inSlot: playing && !handPaused, slotOver: (over || byHand) && !ended && !handPaused, started, ended,
+    positionMs: () => voiceClock(status.currentTime, span).atMs, planMs: () => (overlayOf(live.frame(), 'bubble', key)?.progress ?? 0) * Math.max(1000, len), lenMs: Math.max(1000, len), stopped,
   });
   // Plays in its slot, while the stage waits for it, and after Hold if it was started by hand.
-  const want = (o.playing || waited || byHand) && !ended && !stopped && !handPaused;
+  const want = (playing || waited || byHand) && !ended && !stopped && !handPaused;
   useEffect(() => {
     if (!status.isLoaded) return;
     if (want) player.play();
@@ -63,7 +83,6 @@ function MemoBubble({ o, ctx }: { o: BubbleOverlay; ctx: StageCtx }) {
     if (strayed) seekMemo(player, span.startMs / 1000);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [strayed, player]);
-  const lit = Math.round(o.progress * BARS);
   return (
     <View testID="memo-bubble" style={styles.memo}>
       <Pressable
@@ -88,11 +107,7 @@ function MemoBubble({ o, ctx }: { o: BubbleOverlay; ctx: StageCtx }) {
         {!started && !ended && waited ? (
           <Skeleton testID="memo-skeleton" style={styles.waveSkeleton} still={ctx.reduceMotion} />
         ) : (
-          <View style={styles.wave}>
-            {bars(o.capture.id).map((h, i) => (
-              <View key={i} style={[styles.bar, { height: h, backgroundColor: COLORS.voice, opacity: i < lit ? 1 : 0.3 }]} />
-            ))}
-          </View>
+          <Wave live={live} bubble={key} id={o.capture.id} />
         )}
         {/* The time stays whole on a 320 px phone; the label gives way first (tend replay 8). */}
         <View style={styles.meta}>
@@ -104,19 +119,26 @@ function MemoBubble({ o, ctx }: { o: BubbleOverlay; ctx: StageCtx }) {
   );
 }
 
+/**
+ * A note's or memo's bubble. How far it has come in or gone is written on it frame by frame (`bubbleRoom`,
+ * `bubblePose`, replay ceremony RC7): `o` is the bubble as it arrived, read here only for its capture.
+ */
 function Bubble({ o, ctx }: { o: BubbleOverlay; ctx: StageCtx }) {
-  const shown = o.exit > 0 ? 1 - o.exit : o.enter;
   const memo = o.capture.kind === 'voice';
+  const key = o.key;
+  const still = ctx.reduceMotion;
+  // With reduce motion a bubble appears and leaves in place: no height easing in or out (RR18, audit 12).
+  const room = useLiveStyle(ctx.live, (f) => {
+    const now = overlayOf(f, 'bubble', key);
+    return now ? bubbleRoom(now, still) : null;
+  });
+  const pose = useLiveStyle(ctx.live, (f) => {
+    const now = overlayOf(f, 'bubble', key);
+    return now ? bubblePose(now, still) : null;
+  });
   return (
-    // With reduce motion a bubble appears and leaves in place: no height easing in or out (RR18, audit 12).
-    <View style={[styles.wrap, !ctx.reduceMotion && { maxHeight: shown * 170 }]} pointerEvents="box-none">
-      <View
-        style={[
-          styles.bubble,
-          { borderLeftColor: memo ? COLORS.voice : COLORS.text, opacity: o.enter * (1 - o.exit) },
-          !ctx.reduceMotion && { transform: [{ translateY: (1 - o.enter) * 10 - o.exit * 12 }, { scale: 0.96 + 0.04 * o.enter }] },
-        ]}
-      >
+    <View ref={room} style={styles.wrap} pointerEvents="box-none">
+      <View ref={pose} style={[styles.bubble, { borderLeftColor: memo ? COLORS.voice : COLORS.text }]}>
         {memo ? (
           <MemoBubble o={o} ctx={ctx} />
         ) : (

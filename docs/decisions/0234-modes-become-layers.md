@@ -1,4 +1,4 @@
-# 0231. Modes become layers: no Explore mode; each piece is a layer or a setting; a walk's default view is quiet
+# 0234. Modes become layers: no Explore mode; each piece is a layer or a setting; a walk's default view is quiet
 
 Date: 2026-11-19 · Status: accepted (direction; the slice's spec makes it concrete) · Area: explore, walk, layers · Supersedes in part: 0031 (a walk starts quiet; Explore is a mode) · Amends: 0230 (Places on Explore only), ML7 (one setting for every map)
 

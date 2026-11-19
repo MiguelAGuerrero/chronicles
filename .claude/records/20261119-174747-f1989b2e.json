@@ -1,0 +1,64 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "set",
+        "in the same replays watch a card grow from its pin and tuck into the pile",
+        "--reason",
+        "the pile is the stack and a break no longer dims (RC17, RC28, RC29)"
+      ],
+      "body": "- [ ] **Do:** in the same replays watch a card grow from its pin and shrink back onto its place as its entry joins the stack, a grid's cells swipe in, a note's bubble come and go, a passed place's whisper and \"N min later\" at a break. **Expect:** each moves smoothly and ends where it should; none sticks at the start of its move, jumps when another overlay arrives, or appears at rest without having grown; the clock's digits roll a minute at a time with no stutter of the map under them. (RC7)\n",
+      "target": "sha256:9f27cbf83769ab4e3e72e0357ba7e0cf6f5bc8e6fd2a60552d69d0cfe137f2d4"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "set",
+        "press Next twice quickly, open the pile",
+        "--reason",
+        "the pile is the stack (RC29)"
+      ],
+      "body": "- [ ] **Do:** during a replay press Hold, tap the map, press Next twice quickly, open the stack, lock the phone for a minute and unlock, then delete a photo from the viewer. **Expect:** held, everything stands still; Next lands on the next moment and then the one after; the viewer holds the replay; a locked screen never skips to the card; after the delete the replay goes on from the same place. (RC5, RC8)\n",
+      "target": "sha256:c05a727fe3b7f7eb7ce2b92f8b710b732f8d4ce9dbcb8d30723ad7e7d9392a0a"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "set",
+        "the card flies from its pin and back to the pile",
+        "--reason",
+        "replay ceremony RC7, RC28 (decision 0206): the card shrinks onto its place; the overlays are written with setNativeProps"
+      ],
+      "body": "- [ ] **Do:** play a replay with notes, photos and a memo. **Expect:** the overlays' motion with per-frame styles written on the views (`setNativeProps`, since the replay ceremony's engine; the clock's reels through `Animated`) is smooth: the rolling clock's reels roll, the card grows from its pin and shrinks back onto its place, the bubbles come and go. (RR8, RR9, RR11)\n",
+      "target": "sha256:566a1a2acb23817a80c0ec3b316c45e2b29ee1317666cfaa1e47ab5a641e69f3"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "set",
+        "open the pile's viewer while it plays",
+        "--reason",
+        "replay ceremony RC29 (decision 0206): the stack replaced the pile"
+      ],
+      "body": "- [ ] **Do:** in a replay, start a memo by hand, tap Hold and then go on; open the stack's viewer while it plays. **Expect:** a memo started by hand resumes after Hold, and pauses under the native viewer Modal. (RR7, RR13)\n",
+      "target": "sha256:03e39941b87ed010fda13bcdccf3c3620cab4c7e2825993f2cea49ebec171c4b"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "set",
+        "then watch a replay with photos to its pile",
+        "--reason",
+        "replay ceremony RC29 (decision 0206): the stack replaced the pile"
+      ],
+      "body": "- [ ] **Do:** on a phone with a few hundred photos, scroll the Media gallery to the bottom and back fast, open a moment and come back, then watch a replay with photos to its end. **Expect:** every tile and card shows its own picture (never another tile's after a fast scroll back), pictures already seen show at once without a flash, nothing fades in, and the app's memory settles once the scroll stops (expo-image's memory and disk cache). (EI6)\n",
+      "target": "sha256:0de4cda58b4647038b6b157abfb9d4251767da72aa815ab8b20d42d558058338"
+    }
+  ]
+}

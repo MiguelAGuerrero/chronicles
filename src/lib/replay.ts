@@ -14,6 +14,19 @@ import { suggestTitle } from './walkTitle';
  */
 
 export const FOG_MS = 4000;
+/** The first beat's streets are all lit this far into it: the rest of the beat looks at the walk whole. */
+export const FOG_LIT_MS = FOG_MS * 0.8;
+
+/**
+ * How many of a walk's `n` walked streets are lit `elapsed` ms into the first beat's lighting, which takes `over` ms
+ * (replay ceremony RC23): in the order walked, none before it starts, all of them once it is over (or at once when it
+ * takes no time). A map asks this as time passes; no screen renders for it.
+ */
+export function litStreets(n: number, elapsed: number, over: number): number {
+  if (n <= 0) return 0;
+  if (!(over > 0)) return n;
+  return Math.max(0, Math.min(n, Math.ceil(n * Math.min(1, elapsed / over))));
+}
 const GROUP_M = 40;
 const GROUP_GAP_MS = 120_000;
 export const GAP_MS = 60_000;

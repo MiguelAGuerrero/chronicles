@@ -15,10 +15,15 @@ export function gridLayout(n: number): { cols: number; rows: number; shown: numb
 }
 
 /**
- * How long a grid is up (RY4): it grows, each piece swipes in a beat after the one before, then it stays `gridHold`
- * (or a muted video's kept length, if longer), a grid past nine scrolls on top, and it tucks away.
+ * How long a grid's pictures are shown once their card has grown (RY4): each piece swipes in a beat after the one
+ * before, then they stay `gridHold`, and a grid past nine scrolls on top. A moment's videos are not in its cells
+ * (replay ceremony RC37): they play in turn after this.
  */
-export function gridDuration(n: number, longestVideoMs: number): number {
+export function gridShown(n: number): number {
+  if (n <= 0) return 0;
   const swipe = Math.max(0, Math.min(n, GRID_MAX) - 1) * R.gridStagger + R.bubbleIn;
-  return R.grow + swipe + Math.max(R.gridHold, longestVideoMs) + (n > GRID_MAX ? R.gridScroll : 0) + R.tuck;
+  return swipe + R.gridHold + (n > GRID_MAX ? R.gridScroll : 0);
 }
+
+/** How long a grid is up (RY4): it grows, its pictures are shown, and it shrinks away. */
+export const gridDuration = (n: number): number => R.grow + gridShown(n) + R.tuck;

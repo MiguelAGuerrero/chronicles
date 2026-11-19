@@ -330,7 +330,7 @@ test('PA3: no nudge with the switch off, on a quiet walk or on a ride', () => {
   }
 });
 
-test('PA5 (amended by MD7, decision 0231): the pocket alert note says two soft taps, and that it needs Places on', () => {
+test('PA5 (amended by MD7, decision 0234): the pocket alert note says two soft taps, and that it needs Places on', () => {
   assert.equal(POCKET_ALERT_NOTE, 'Two soft taps when a “?” comes into range. Needs Places on.');
 });
 

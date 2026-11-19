@@ -50,7 +50,7 @@ const alertedByWalk = new Map<string, Set<string>>();
 
 export function useExplore(opts: {
   walkId: string | null;
-  /** Places is on for this walk (decision 0231): the "?" within range, the pocket alert, the armed place. */
+  /** Places is on for this walk (decision 0234): the "?" within range, the pocket alert, the armed place. */
   places: boolean;
   /** Storefronts is on for this walk: storefront streets are remembered (MD17). */
   storefronts: boolean;

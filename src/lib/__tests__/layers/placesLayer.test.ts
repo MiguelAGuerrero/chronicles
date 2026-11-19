@@ -13,7 +13,7 @@ const ROOT = join(__dirname, '../../../..');
 const src = (p: string) => readFileSync(join(ROOT, p), 'utf8');
 const registry = async () => (await import('../../layers/registry')) as typeof import('../../layers/registry') & { layersFor?: (map: string) => readonly { id: string }[] };
 
-test('PL1, PL9 (amended by MD13): "Places" is a layer of every map\'s panel since decision 0231', async () => {
+test('PL1, PL9 (amended by MD13): "Places" is a layer of every map\'s panel since decision 0234', async () => {
   const { layersFor } = await registry();
   assert.ok(layersFor, 'layersFor(map) exists');
   for (const map of ['explore', 'navigate', 'walk']) assert.ok(layersFor(map).some((l) => l.id === 'places'), `${map} lists Places`);

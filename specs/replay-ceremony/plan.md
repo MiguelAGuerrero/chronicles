@@ -154,7 +154,7 @@ scans gain the new files).
 ## Screen actions
 
 - **Open the photos so far.** Goal: look again at something that went by. Now and then, mid-replay. Control: the stack at the
-  right edge, one control. Where the owner looks first: where the photo went, the right edge. Default taken: no label on it, as
+  right edge, one control. Where the owner looks first: where the photo went. As planned that was the right edge; since RC28 the card shrinks onto its place on the map, so the first look is the picture standing there, which is not a control (the UI review's U1, Nov 19, filed for the owner: `docs/DEFERRED.md`). Default taken: no label on it, as
   the pile has none today; it is named for a screen reader. Adjacent apps: none shows a stack beside a map (a departure by the
   owner's call; reason: the owner asked for it by name).
 - Next, Hold and Skip are as replay pace left them. The cold finds said Skip does not say what it skips: filed for the owner

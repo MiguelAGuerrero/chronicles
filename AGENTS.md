@@ -47,7 +47,7 @@ The app is a companion for wandering towns on foot: Explore before (busy areas, 
 
 Each area's rules are in `.claude/rules/<area>.md` and load by themselves when you read or edit that area's files; `ls .claude/rules/` lists them.
 
-Procedures are skills: `/vision` (the gate before any spec; `review` for drift; the `steward` subagent), `/slice` (spec-first, test-first), `/audit` (the adversarial pass, with the `auditor`, `steward` and `ux-reviewer` subagents and screenshots, when the owner asks), `/e2e`, `/deploy`, `/docs-gc` (end-of-slice drift check), `/data-build` (start a chronicles-data build by hand, sources ticked), `/fix` (one issue end to end in a worktree, deployed by default; 0081), `/tend` (loop: ships what conforms, files the rest; 0128).
+Procedures are skills: `/vision` (the gate before any spec; `review` for drift; the `steward` subagent), `/slice` (spec-first, test-first), `/audit` (the adversarial pass, with the `auditor`, `steward` and `ux-reviewer` subagents and screenshots, when the owner asks), `/e2e`, `/deploy`, `/docs-gc` (end-of-slice drift check), `/data-build` (start a chronicles-data build by hand, sources ticked), `/fix` (one issue end to end in a worktree, deployed by default; 0081), `/investigate` (to queue; 0231), `/tend` (loop: ships what conforms, files the rest; 0128).
 
 ## Rules that hold everywhere
 

@@ -9,18 +9,19 @@ import { CaptureViewer } from '../../components/CaptureView';
 import { Stage } from '../../components/ceremony/Stage';
 import { StepThrough } from '../../components/ceremony/StepThrough';
 import { useAwakeWhile } from '../../components/ceremony/useAwakeWhile';
+import { FrameMeter } from '../../components/ceremony/FrameMeter';
 import { NextMoment } from '../../components/ceremony/NextMoment';
-import { useCeremonyClock } from '../../components/ceremony/useCeremonyClock';
+import { useReplay } from '../../components/ceremony/useCeremonyLoop';
 import { useRevealed } from '../../components/ceremony/useRevealed';
-import type { StageCtx } from '../../components/ceremony/layout';
+import { WHOLE_TOP, type StageCtx } from '../../components/ceremony/layout';
 import { WalkMap } from '../../components/map/WalkMap';
-import type { WalkMapProps } from '../../components/map/types';
+import { FIT_MAX_ZOOM, FIT_PADDING, type WalkMapHandle, type WalkMapProps } from '../../components/map/types';
 import { Button, theme } from '../../components/ui';
 import { setAudioMode } from '../../lib/audioMode';
 import { db } from '../../lib/db';
 import { applyPatch, captureBus } from '../../lib/captureBus';
 import { ceremonyFor } from '../../lib/ceremony/registry';
-import { dayStory, pathDrawnAt, storySteps } from '../../lib/ceremony/story';
+import { dayStory, storySteps } from '../../lib/ceremony/story';
 import { buildDays, dayCaptures, dayCard, dayFrame, dayStart, dayWithout, nextDayStart, watchedKey, type Day } from '../../lib/days';
 import { launchRoute } from '../../lib/launchRoute';
 import type { Bounds } from '../../lib/geo';
@@ -28,11 +29,12 @@ import { beatWords } from '../../lib/replay';
 import { loadReplay, type ReplayData } from '../../lib/summary';
 import { useHidden } from '../../lib/deletion/useDeletions';
 import { useUnits } from '../../lib/useUnits';
+import { perfCount } from '../../lib/perfCount';
 import { UndoToast } from '../../components/UndoToast';
 import type { LngLat } from '../../lib/types';
 
-/** The drawn trace is rebuilt at most this often; the walker moves every frame. */
-const TRACE_STEP_MS = 66;
+/** While the path is told the map is given no trace: the replay's frames reveal the line on it (replay ceremony RC3, RC9). */
+const NO_RUNS: LngLat[][] = [];
 /** A day draws no fog and no walked streets; one empty list, so the map isn't handed a new one each tick (NF2). */
 const NO_STREETS: WalkMapProps['walked'] = [];
 
@@ -53,9 +55,13 @@ interface Loaded {
  * quiet card (M13). With a screen reader, its moments one at a time (RR17).
  */
 export default function DayReplay() {
-  // `style` names the ceremony that tells it (RR21, audit 25).
-  const { key, style } = useLocalSearchParams<{ key: string; style?: string }>();
+  // Counted for the e2e (only when measuring): the path renders it for what arrives or leaves, never because time
+  // passed (replay ceremony RC2, RC9).
+  perfCount('render:day');
+  // `style` names the ceremony that tells it (RR21, audit 25); `fps` asks a ceiling on the frames drawn a second (RC6).
+  const { key, style, fps, meter } = useLocalSearchParams<{ key: string; style?: string; fps?: string; meter?: string }>();
   const insets = useSafeAreaInsets();
+  const mapRef = useRef<WalkMapHandle>(null);
   const { width, height } = useWindowDimensions();
   const [data, setData] = useState<Loaded | null>(null);
   const [status, setStatus] = useState<'loading' | 'missing' | 'ready'>('loading');
@@ -161,8 +167,24 @@ export default function DayReplay() {
     const walks = new Map([...data.walks].map(([id, r]) => [id, { ...r, captures: r.captures.filter((c) => !hidden.has(c.id)) }]));
     return dayStory(day, walks);
   }, [data, day, hidden]);
-  const showing = useMemo(() => (story ? ceremonyFor(style).show(story, { reduceMotion }) : null), [story, reduceMotion, style]);
+  // The screen's size is the ceremony's to know (replay ceremony RC11-RC16): its camera is worked out for this screen,
+  // once per telling. By its numbers, so the safe-area object's identity never rebuilds a telling.
+  const { top: insetTop, bottom: insetBottom, left: insetLeft, right: insetRight } = insets;
+  const screen = useMemo(
+    () => ({ width, height, insets: { top: insetTop, bottom: insetBottom, left: insetLeft, right: insetRight } }),
+    [width, height, insetTop, insetBottom, insetLeft, insetRight],
+  );
+  // The whole day and its room (replay ceremony RC23, RC24): the day has no beat before its path, so its telling shows
+  // the whole day itself first, in the room the map's own fit leaves, and closes on the view the card's fit asks for,
+  // above the card's sheet. The sheet's height is learnt ahead (the card is laid out unseen below).
+  // (Under the top row and a picture's height, so no control sits on the walk or on what stands on it: `WHOLE_TOP`.)
+  const sheetPad = useMemo(() => ({ top: insetTop + WHOLE_TOP, right: 32, bottom: sheetH + 24, left: 32 }), [insetTop, sheetH]);
+  const bounds = data?.bounds ?? null;
+  const framed = useMemo(() => (bounds ? { bounds, open: FIT_PADDING, close: sheetPad, maxZoom: FIT_MAX_ZOOM } : null), [bounds, sheetPad]);
+  const showing = useMemo(() => (story ? ceremonyFor(style).show(story, { reduceMotion, screen, whole: framed, holdOpen: true }) : null), [story, reduceMotion, style, screen, framed]);
   const onCard = phase.beat === 'card';
+  // The hops the path drew across its walks' breaks, as the card's dotted links (replay ceremony RC21).
+  const hopLinks = useMemo(() => showing?.hops.map((h) => [h.from, h.to]) ?? NO_RUNS, [showing]);
   const toCard = () => {
     setPhase({ beat: 'card', t0: Date.now() });
     // Reaching the card frames the whole day above it.
@@ -180,8 +202,9 @@ export default function DayReplay() {
       return next;
     });
   }, []);
-  const play = useCeremonyClock({ epoch: phase.t0, running: telling, paused: viewing != null || waits.size > 0, showing, onEnd: toCard });
-  const frame = telling ? showing.frame(play.ms, play.jump) : null;
+  // The path is told by a loop outside this screen's rendering, the same as a walk's replay (replay ceremony RC9):
+  // each frame goes straight to the map and the stage; the screen reads only the pins, Hold and whether Next is there.
+  const play = useReplay({ epoch: phase.t0, telling, paused: viewing != null || waits.size > 0, story, showing, map: mapRef, fps, meter, onEnd: toCard });
   // The screen stays awake while the replay plays, until the card (RR24).
   useAwakeWhile(phase.beat === 'path');
 
@@ -197,44 +220,25 @@ export default function DayReplay() {
     if (!skipped) db.setMeta(watchedKey(data.day.key), String(Date.now())).catch(() => {});
   }, [onCard, data, skipped, phase.t0]);
 
-  // Each walk's trace as far as the ceremony has drawn it; every walk whole on the card.
-  const bucket = telling ? Math.floor(play.ms / TRACE_STEP_MS) : -1;
-  // The trace is rebuilt on TRACE_STEP_MS buckets, not every frame: from the frame at the bucket's time.
-  const traceFrame = useMemo(() => (telling && bucket >= 0 ? showing.frame(bucket * TRACE_STEP_MS) : null), [telling, showing, bucket]);
-  const drawn = useMemo(
-    () => {
-      const trace: LngLat[][] = [];
-      const rides: LngLat[][] = [];
-      if (!story) return { trace, rides };
-      const upTo: Record<string, number> = traceFrame ? traceFrame.drawn : onCard || srMode ? Object.fromEntries(Object.keys(story.paths).map((id) => [id, Infinity])) : {};
-      for (const [id, t] of Object.entries(upTo)) {
-        const p = story.paths[id];
-        if (!p) continue;
-        const d = pathDrawnAt(p, t);
-        trace.push(...d.trace);
-        rides.push(...d.rides);
-      }
-      return { trace, rides };
-    },
-    [story, traceFrame, onCard, srMode],
-  );
-
-  // Every walk of the day whole: where the end marker sits in every beat, never at the tip being told (tend replay 2).
-  const whole = useMemo(() => (story ? Object.values(story.paths).flatMap((p) => pathDrawnAt(p, Infinity).trace) : []), [story]);
+  // Every walk of the day whole: on the card (and under a screen reader's steps), and where the end marker sits in
+  // every beat, never at the tip being told (tend replay 2). While the path is told the map reveals each walk's line
+  // itself, frame by frame, as far as the ceremony has drawn it.
+  const whole = useMemo(() => (story ? Object.values(story.paths).flatMap((p) => p.drawn) : NO_RUNS), [story]);
+  const wholeRides = useMemo(() => (story ? Object.values(story.paths).flatMap((p) => p.rideRuns) : NO_RUNS), [story]);
+  const drawnWhole = onCard || srMode;
 
   // Pins appear as their moments are reached; on the card every pin opens its moments.
   // The story already leaves out a moment deleted from its viewer (D3).
-  const pinned = useRevealed(story, frame ? frame.pins : onCard || srMode ? 'all' : 'none');
+  const pinned = useRevealed(story, telling ? play.pins : onCard || srMode ? 'all' : 'none');
 
-  // The camera is the ceremony's to say (audit 10).
-  const follow = frame?.camera.center ?? null;
-  const followZoom = follow ? frame?.camera.zoom ?? null : null;
+  // The camera is the ceremony's to say (audit 10), in each frame.
   const ctx: StageCtx = {
-    width, height, insets, center: follow, zoom: followZoom ?? 0,
+    width, height, insets, live: play.live,
     held: play.held, paused: viewing != null, reduceMotion, open: setViewing, wait,
   };
-  // The card is computed once it is reached, not every frame (audit).
-  const cardAt = onCard ? phase.t0 : 0;
+  // The card is computed once per beat, not every frame (audit): when it is reached, and when the path begins, where
+  // it is laid out unseen to learn its sheet's height (replay ceremony RC24).
+  const cardAt = phase.beat === 'loading' ? 0 : phase.t0;
   // In the units setting, redrawn when it changes (tend replay 3).
   const units = useUnits();
   const card = useMemo(() => (data && day && cardAt ? dayCard(day, cardAt, data, units) : null), [data, day, cardAt, units]);
@@ -258,24 +262,36 @@ export default function DayReplay() {
   }
 
   const close = () => (router.canGoBack() ? router.back() : router.dismissTo('/'));
+  /** The day card's words. `measure` lays them out unseen, to learn the sheet's height before the path ends (RC24). */
+  const cardLines = (measure: boolean) => card && (
+    <>
+      <Text style={styles.cardTitle} accessibilityRole={measure ? undefined : 'header'}>{card.title}</Text>
+      {card.line ? <Text testID={measure ? undefined : 'day-card-line'} style={styles.cardLine}>{card.line}</Text> : null}
+      {card.walked ? <Text style={styles.cardMuted}>{card.walked}</Text> : null}
+      {/* The one hint, as the walk's card words it (tend replay T19); no pin, no hint (audit 11). */}
+      {card.hint ? <Text style={styles.cardMuted}>{card.hint}</Text> : null}
+    </>
+  );
 
   return (
     <View style={styles.screen}>
       <WalkMap
+        ref={mapRef}
         borders={borders}
-        trace={drawn.trace}
-        rides={drawn.rides}
+        trace={drawnWhole ? whole : NO_RUNS}
+        rides={drawnWhole ? wholeRides : NO_RUNS}
+        // The hops the path drew across its walks' breaks stay on the map through the card (replay ceremony RC21);
+        // while the path is told the replay's own frames draw them.
+        gapLinks={onCard ? hopLinks : NO_RUNS}
+        replay={telling}
         walked={NO_STREETS}
         fog={NO_STREETS}
         captures={pinned}
         clocks={clocks}
         onPinPress={onCard ? setViewing : undefined}
-        walker={frame?.walker ?? null}
-        follow={follow}
-        followZoom={followZoom}
         fitBounds={data.bounds}
         fitKey={fitKey}
-        fitPadding={onCard ? { top: 48 + insets.top, right: 32, bottom: sheetH + 24, left: 32 } : undefined}
+        fitPadding={onCard ? sheetPad : undefined}
         animate={!reduceMotion}
         initialCenter={data.bounds ? [(data.bounds[0] + data.bounds[2]) / 2, (data.bounds[1] + data.bounds[3]) / 2] : undefined}
         initialZoom={data.bounds ? undefined : 2}
@@ -288,11 +304,11 @@ export default function DayReplay() {
         scaleInset={onCard ? { bottom: sheetH + 12, left: 12 } : { bottom: insets.bottom + 12, left: 12 }}
       />
 
-      {frame && (
+      {telling && (
         <>
           {/* A tap anywhere holds the replay, and another goes on (RR7). */}
           <Pressable testID="replay-stage" style={StyleSheet.absoluteFill} onPress={play.toggleHold} accessible={false} />
-          <Stage frame={frame} ctx={ctx} />
+          <Stage ctx={ctx} />
         </>
       )}
       {phase.beat === 'path' && srMode && (
@@ -320,10 +336,12 @@ export default function DayReplay() {
             }}
           />
           {/* Under Skip, at the same edge: the clock sits between Hold and Skip, and the three do not fit one row on a 375 px phone (RY12). */}
-          {frame && play.canNext && <NextMoment onPress={play.next} />}
+          {telling && play.canNext && <NextMoment onPress={play.next} />}
         </View>
       )}
-      {frame && (
+      {/* The frames really drawn, at the preview address only (replay ceremony RC6, `lib/ceremony/meter`). */}
+      {telling && play.meter && <FrameMeter meter={play.meter} top={insets.top + 12 + 48 + 8} />}
+      {telling && (
         <View style={[styles.hold, { top: insets.top + 12 }]}>
           <Button
             testID="hold"
@@ -349,6 +367,27 @@ export default function DayReplay() {
         }}
       />
 
+      {/* The card's sheet, laid out unseen while the path is told: its height is the room the close leaves under the day,
+          so the card then arrives on a map that does not move (replay ceremony RC24). */}
+      {phase.beat === 'path' && card && (
+        <View
+          style={[styles.sheet, UNSEEN, { paddingBottom: 16 + insets.bottom }]}
+          pointerEvents="none"
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          aria-hidden
+          onLayout={(e) => {
+            const h = e.nativeEvent.layout.height;
+            if (Math.abs(h - sheetH) > 8) setSheetH(h);
+          }}
+        >
+          <View style={styles.sheetContent}>
+            {cardLines(true)}
+            <View style={[styles.row, styles.buttonRoom]} />
+          </View>
+        </View>
+      )}
+
       {onCard && card && (
         // Quiet (M13): the day, its moments and named places in a clause (tend replay T19), and any distance walked. No streaks or badges.
         <View
@@ -363,11 +402,7 @@ export default function DayReplay() {
           }}
         >
           <View style={styles.sheetContent}>
-            <Text style={styles.cardTitle} accessibilityRole="header">{card.title}</Text>
-            {card.line ? <Text testID="day-card-line" style={styles.cardLine}>{card.line}</Text> : null}
-            {card.walked ? <Text style={styles.cardMuted}>{card.walked}</Text> : null}
-            {/* The one hint, as the walk's card words it (tend replay T19); no pin, no hint (audit 11). */}
-            {card.hint ? <Text style={styles.cardMuted}>{card.hint}</Text> : null}
+            {cardLines(false)}
             <View style={styles.row}>
               <Button
                 testID="day-again"
@@ -389,6 +424,9 @@ export default function DayReplay() {
     </View>
   );
 }
+
+/** Laid out and never seen: out of what a browser reads as the page's text, too. */
+const UNSEEN = Platform.OS === 'web' ? ({ visibility: 'hidden' } as object) : { opacity: 0 };
 
 /** The day with one note's new text, in its loose moments and its walks' captures (QL25). */
 function withNote(d: Loaded, id: string, change: ReturnType<typeof notePatch>, pieceId: string): Loaded {
@@ -418,5 +456,7 @@ const styles = StyleSheet.create({
   cardLine: { fontSize: 16, color: theme.ink },
   cardMuted: { fontSize: 15, color: theme.muted },
   row: { flexDirection: 'row', gap: 10, marginTop: 6 },
+  // A button's height (`components/ui` `btn`), where the card is laid out unseen.
+  buttonRoom: { height: 48 },
   flex: { flex: 1 },
 });
