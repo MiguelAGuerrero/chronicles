@@ -226,7 +226,14 @@ function gitRoot() {
     return git('rev-parse', 'HEAD');
   };
   const gate = (sha: string) => spawnSync(process.execPath, [join(ROOT, 'scripts', 'tend.js'), 'commits', '--loop-only', `${sha}^..${sha}`], { cwd: root, env: { ...process.env, TEND_ROOT: root }, encoding: 'utf8' });
-  return { root, commit, gate, git };
+  /** A revert as ship.md makes it: git's own `This reverts commit <sha>.` lines, and the agent's trailers. */
+  const revert = (...shas: string[]) => {
+    for (const sha of [...shas].reverse()) git('revert', '--no-commit', sha);
+    git('commit', '-q', '-m', `Revert the run\n\n${shas.map((x) => `This reverts commit ${x}.`).join('\n')}${TRAILERS}`);
+    return git('rev-parse', 'HEAD');
+  };
+  const file = (rel: string, text: string) => writeFileSync(join(root, rel), text);
+  return { root, commit, gate, git, revert, file };
 }
 
 test('expectations audit 2: only the owner\'s answer commit changes a line\'s status, on its date; every agent commit is read, a loop commit or not', () => {
@@ -281,6 +288,25 @@ test('expectations audit 14: check:affected checks the store when a journey, a t
   assert.equal(broken.ok, false);
   assert.match(broken.output, /E-memories-1 names memories:"a renamed check"/);
   assert.equal(affected.expectationsStep(tempRoot({ 'memories.md': STORE })).ok, true);
+});
+
+test('expectations audit 15: a revert as ship.md makes it puts the store back as it was, and the gate takes it', () => {
+  const g = gitRoot();
+  const drafted = g.commit(ex.formatStore(ex.draft(store(), [line('a day of walks in order.')]).store), `tend memories: the run's record${TRAILERS}`);
+  const filled = g.commit(ex.formatStore(ex.setCheck(ex.parseStore(readFileSync(join(g.root, 'docs/expectations/memories.md'), 'utf8'), 'memories'), 'E-memories-3', 'picture:13-reminder').store), `tend memories: the run's record${TRAILERS}`);
+  const back = g.revert(drafted, filled);
+  assert.equal(readFileSync(join(g.root, 'docs/expectations/memories.md'), 'utf8'), STORE);
+  const r = g.gate(back);
+  assert.equal(r.status, 0, r.stderr);
+  const one = g.commit(ex.formatStore(ex.draft(store(), [line('a week of walks in words.')]).store), `fix memories: a line${TRAILERS}`);
+  assert.equal(g.gate(g.revert(one)).status, 0, 'one commit reverted');
+  const again = g.commit(ex.formatStore(ex.draft(store(), [line('a month of walks in words.')]).store), `fix memories: a line${TRAILERS}`);
+  g.file('docs/expectations/memories.md', STORE.replace(/- E-memories-3[\s\S]*$/, ''));
+  g.git('add', '-A');
+  g.git('commit', '-q', '-m', `Revert "fix memories: a line"\n\nThis reverts commit ${again}.${TRAILERS}`);
+  const fake = g.gate(g.git('rev-parse', 'HEAD'));
+  assert.equal(fake.status, 1, 'a revert that leaves the store otherwise than it was');
+  assert.match(fake.stderr, /removes E-memories-3/);
 });
 
 test('expectations 0236: a store file reads into lines with their status, check and grounds, and writes back the same', () => {
