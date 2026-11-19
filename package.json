@@ -95,6 +95,7 @@
     "check:records": "node scripts/records.js verify",
     "tend:balance": "node scripts/tend.js balance",
     "tend:log": "node scripts/tend.js log",
+    "expectations": "node scripts/expectations.js",
     "book:next-decision": "node scripts/bookkeeping.js next-decision",
     "book:next-audit": "node scripts/bookkeeping.js next-audit",
     "book:files": "node scripts/bookkeeping.js files",
