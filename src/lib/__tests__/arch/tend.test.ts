@@ -246,11 +246,23 @@ test('tend 0133: the reviewers are read-only by their definitions, and CI holds 
   assert.ok(ci.indexOf('tend.js commits') < ci.indexOf('expo export'), 'before the build');
 });
 
+const person = 'A person who wanders a town to notice, using Memories, would reasonably expect';
+const expectations = [{
+  feature: 'memories',
+  lines: [
+    { line: `${person} each moment to say where and when it was kept`, is: 'met' },
+    { line: `${person} a deleted moment to come back with Undo`, is: 'failed' },
+    { line: `${person} to find a moment again by a word in it`, is: 'lacking' },
+  ],
+  dropped: [{ line: `${person} to see how many moments they kept this week`, never: 'Scores, streaks, completion, coverage, levels, badges, leaderboards' }],
+}];
+
 const sweep = {
   mode: 'sweep', area: 'chronicle', deploy: 'main', base: '83a3f257b6c6',
   lenses: { whole: false, skipped: ['2: 320 px and 200% text not pictured'] },
   found: { loop: { high: 0, medium: 2, low: 9 }, owner: 2, arch: 1, phone: 0, out: 0 },
   filed: { T: ['T1', 'T2', 'T3'], G: [] }, review: { accepted: 1, rejected: 1, deferred: 0 }, state: { from: null, to: 'rough' },
+  expectations,
 };
 
 test('tend 0134: a run\'s line joins what its commits say with what only the run knows', () => {
@@ -289,6 +301,32 @@ test('tend 0134: a line that does not say what the run found, or how it was run,
   assert.ok(bad({ ...sweep, answers: [{ entry: 'T3', answer: 'maybe' }] }));
   assert.ok(bad({ ...sweep, review: { accepted: 1 } }));
   assert.ok(bad({ ...sweep, state: { from: 'rough', to: 'done' } }));
+});
+
+test('tend 0231: a sweep or a build logs what a person would reasonably expect, and which the feature meets, fails or lacks', () => {
+  const base = { deploy: 'main', base: 'abc1234' };
+  const build = { ...base, mode: 'inbox', answers: [{ entry: 'T3', answer: 'yes' }], expectations };
+  assert.deepEqual(tend.logProblems(sweep), []);
+  assert.deepEqual(tend.logProblems(build), []);
+  assert.deepEqual(tend.logProblems({ ...base, mode: 'evolve', expectations }), [], 'an evolve run may log them');
+  assert.deepEqual(tend.logProblems({ ...base, mode: 'evolve' }), [], 'only sweeps and builds are held to them');
+  assert.deepEqual(tend.logProblems({ ...base, mode: 'inbox', answers: [{ entry: 'T3', answer: 'no' }] }), [], 'an inbox run that builds nothing');
+  assert.deepEqual(tend.logProblems({ ...sweep, expectations: undefined, date: '2026-11-19' }), [], 'a line logged before the lens reads as it was');
+  assert.deepEqual(tend.logProblems({ ...sweep, expectations: undefined, backfilled: true }), [], 'a backfilled line says only what the record says');
+  const [feature] = expectations;
+  assert.deepEqual(tend.logProblems({ ...sweep, expectations: [{ ...feature, lines: feature.lines.slice(0, 2) }] }), [], 'a line the steward dropped still counts among the three to five written');
+  const bad = (g: unknown) => tend.logProblems(g).length > 0;
+  assert.ok(bad({ ...sweep, expectations: undefined }), 'a sweep says its expectations');
+  assert.ok(bad({ ...build, expectations: undefined }), 'a build says its expectations');
+  assert.ok(bad({ ...sweep, expectations: undefined, date: '2026-11-20' }), 'a line logged once the lens holds says them');
+  assert.ok(bad({ ...sweep, expectations: [] }));
+  assert.ok(bad({ ...sweep, expectations: 'met' }));
+  assert.ok(bad({ ...sweep, expectations: [{ ...feature, feature: '' }] }), 'each names its feature');
+  assert.ok(bad({ ...sweep, expectations: [{ ...feature, lines: feature.lines.slice(0, 2), dropped: [] }] }), 'three lines at least');
+  assert.ok(bad({ ...sweep, expectations: [{ ...feature, lines: [...feature.lines, ...feature.lines] }] }), 'five lines at most');
+  assert.ok(bad({ ...sweep, expectations: [{ ...feature, lines: [{ ...feature.lines[0], is: 'partly' }, ...feature.lines.slice(1)] }] }), 'met, failed or lacking');
+  assert.ok(bad({ ...sweep, expectations: [{ ...feature, lines: [{ line: 'Undo after a delete', is: 'failed' }, ...feature.lines.slice(1)] }] }), 'a line in the lens\'s form');
+  assert.ok(bad({ ...sweep, expectations: [{ ...feature, dropped: [{ line: feature.dropped[0].line }] }] }), 'a dropped line names the Never line it breaks');
 });
 
 test('tend 0134: the run log is the loop\'s to add to and nobody\'s to rewrite; every line of it reads', () => {
