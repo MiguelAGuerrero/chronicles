@@ -582,7 +582,7 @@ test('records audit 13: an unbalanced fence is refused up front, and a CRLF docu
 });
 
 test('records audit 14: every skill that writes the record documents names the operations and the check', () => {
-  const writers = ['tend/SKILL.md', 'ship.md', 'slice/SKILL.md', 'fix/SKILL.md', 'tend-orchestrator/briefs.md', 'README.md', 'audit/SKILL.md', 'docs-gc/SKILL.md', 'deploy/SKILL.md'];
+  const writers = ['tend/SKILL.md', 'ship.md', 'slice/SKILL.md', 'fix/SKILL.md', 'tend-orchestrator/briefs.md', 'README.md', 'audit/SKILL.md', 'docs-gc/SKILL.md', 'deploy/SKILL.md', 'investigate/SKILL.md'];
   // Skills that name the documents but only read them (or leave writing to a skill they run).
   const readers: Record<string, string> = { 'vision/SKILL.md': 'reads DEFERRED for precedent', 'tend-orchestrator/SKILL.md': 'its runs write, through briefs.md' };
   const all: string[] = [];
