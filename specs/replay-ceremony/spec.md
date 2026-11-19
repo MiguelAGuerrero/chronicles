@@ -220,6 +220,62 @@ intent; nothing else here changes them, and pins are left as they are (RC34) bec
 3. Captions: with the first phone build.
 4. Pictures on the map: the replay draws them.
 
+## The UI review and the cold find (2026-11-19)
+
+One round, from the journeys' pictures at 390 and 320 px (the web build; fake tiles and flat test photos), by the
+`ux-reviewer`, the cold find first and apart.
+
+**The cold find** (nine tasks in the owner's words, pictures only): every task was placed, none wrongly. The photos so far
+and "all the photos and videos" both land on the stack; Next, Hold and Skip as replay pace left them (Skip's and Hold's
+wording stays the owner's open call, `docs/DEFERRED.md`, Replay pace); the date, the passed place, "N min later" and a
+photo's place are read without a tap. First misreadings: the stack's single entry as a second pin, the video's tile in the
+corner as a record button, the last view's date as today's.
+
+**The UI review**: no high finding. Triage:
+
+| Finding | Severity | Verdict |
+|---|---|---|
+| U1 A picture standing on the map looks like the thing to tap; a tap only holds | medium | deferred to the owner: a tap that opens the viewer there is a new control this spec did not decide |
+| U2 At 320 by 568 the gap question and the card leave no map; "Tap a pin to open it" points at nothing | medium, one size | deferred to the owner: the question's card is older than this slice |
+| U3 The stack's target is 44 wide and 8 px under Next | low | deferred |
+| U4 A tall stack against a whisper or the last view's name at 320 (not pictured) | low | deferred |
+| U5 A grid of three leaves an empty cell; its strip says "Photo" | low, opinion | deferred (the grid's shape is moment stacks') |
+| U6 A whisper has a halo, not a ground | low | deferred (the whisper is replay rhythm's) |
+
+No finding was accepted, so there is no `replay-ceremony ui N` test. All six are in `docs/DEFERRED.md`, "Replay ceremony".
+
 ## Record
 
-(Filled in as the slices are built.)
+2026-11-18 and 19, branch `claude/funny-bohr-ztvwgv`. RC1-RC37 and RC45-RC48 built and passing; RC38-RC44 (captions) are
+retired until the first phone build, by the owner's answer. Built in five slices, each with its failing tests committed
+before its code: the engine (RC1-RC10, RC48's engine part), the camera (RC11-RC16), the breaks (RC17-RC22), the opening and
+closing (RC23-RC27), what stays behind and a moment on screen (RC28-RC37, RC45-RC48). `npm run check:test-first
+replay-ceremony`: 41 of 41.
+
+**Tests.** Unit, in `src/lib/__tests__/replay/`: `engine.test.ts`, `meter.test.ts`, `camera.test.ts`, `breaks.test.ts`,
+`close.test.ts`, `stack.test.ts`, `pictures.test.ts`, `moment.test.ts`, `restraint.test.ts`, with `stage.test.ts`. The
+`replay` journey (147 checks) holds RC1-RC4, RC7, RC9, RC10, RC12, RC14, RC17-RC20, RC22, RC24-RC31, RC35, RC36 and RC45;
+`stacks` holds RC37; `days` the day's replay. Older tests that pinned what changed were rewritten with their code (RR3, RR4,
+RR8, RR11, RR13, RR14, RR19, replay-rhythm audits 4, 7, 10 and 15, RY4, RY10, RY13, MS17, `fix trimmed-length 3`, MP10,
+`gaps` GW2 and GW5, `qol`'s loop-walk hold). On the final build merged with `main`: typecheck, lint, 3,533 unit tests, and
+eleven journeys (`replay`, `days`, `stacks`, `walk`, `gaps`, `qol`, `videothumbs`, `palette`, `edit`, `voicetrim` green;
+`tabs` green on its one rerun, a known flake recorded on `main`).
+
+**The owner's looks** (the preview address, an iPhone in the browser). The first, of the engine alone: "It's smoother but the
+reticle has after images and doesn't glide across the screens it's very discrete in jumps". Found and fixed: the dot was
+rounded to a whole pixel at a half-pixel centre (393 px wide; 46 flips in one replay, none after). Not found: why it moved
+in steps; a simulation of noisy walks through `readTrace` ruled out the trace, a gate that could have dropped the camera's
+frames was removed, and the preview carries a readout of the frames the phone draws (`lib/ceremony/meter`). The second, of
+everything built: "Looks good so far. Continue the rest of the work and /deploy" (Nov 19).
+
+**Found on the way.** The React Compiler came on with a merge of `main` and the stage stayed empty: it read the frame from
+its store in a render. Fixed (`live.staged`, three tests under RC7); the rule is in `.claude/rules/replay-ceremony.md`.
+
+**Measured** (`scripts/perf-replay.js`, headless Chromium with software GL, never an iPhone): before the rework about 15
+walker updates a second at 4x CPU with the line 20 px behind; after, the line's end and the camera 0 px from where the
+frame put them, the screen rendering 0 times on a stretch, 22 frames a second at 4x and 33 unthrottled (the machine's own
+ceiling is about 30).
+
+**Deferred and for the owner**: `docs/DEFERRED.md`, "Replay ceremony". **Native has never run on a device**:
+`docs/NATIVE_UNVERIFIED.md`, "Replay ceremony". The spec was written in the repo and is not yet a tab of the concept doc.
+The steward on the plan: ten findings, triaged in `plan.md`.
