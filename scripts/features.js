@@ -556,6 +556,7 @@ const RENAMED = {
 };
 
 const IN_PROGRESS = {
+  'walk-drawer-sections': { branch: 'claude/serene-sagan-lz8nzp', since: '2026-11-19' },
   'drive-in-the-outing': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-18' },
   'shop-facets': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-18' },
   'town-fixtures': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-18' },

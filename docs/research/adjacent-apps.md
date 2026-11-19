@@ -285,6 +285,18 @@ Recorded for the What I'm into page (decision 0192, `specs/what-im-into-page`).
   chevron alone. The precedent for Back reading "Walk" from the walk (WI20, audits 8, 10, 14). Source: from memory,
   unverified. **Unverified**.
 
+### A walk's details and its settings mid-walk: one drawer (Honour, Earn)
+
+Recorded for the walk's drawer (`specs/walk-drawer-sections`, Nov 19).
+
+- **AllTrails** (iOS): while recording, the map with a bottom sheet; pulled up, the sheet shows the recording's
+  numbers in large figures (distance, elevation gain, moving time, pace); a … button holds the recording's options.
+  Source: from memory, unverified (support.alltrails.com unreachable from cloud sessions, Nov 17). **Unverified**.
+  A counter-example for the figures (VISION.md, Never: fitness numbers, big numbers).
+- **Google Maps** (iOS, Android): during navigation the bottom card swiped up shows the trip and options ("Search
+  along route", "Share trip progress", "Settings"); Settings opens a page of its own with Back; the map's buttons float
+  above the card. Source: from memory, unverified. **Unverified**.
+
 ### Bring the map back to north while following (Earn)
 
 - **Apple Maps** (iOS 27): "Tap [the Tracking Off button]. Your position is marked in the middle of the map. The top

@@ -1,0 +1,115 @@
+<!-- Repo first: from the owner's issue of Nov 19 (typed as /fix, routed to /slice at the hard stop) and their answers the same day. Not a tab of the concept doc (https://claude.ai/artifact/6P9aUdZJAdReBi6yFVtwa7). -->
+
+# The walk's drawer: details up, settings by section
+
+Nov 19, 2026 · @Miguel Guerrero
+
+## Vision
+
+Idea: "currently we have an ellipses button that's supposed to operate as a settings for the navigation drawer itself, but my expectation was that those settings were accessible by pulling up the drawer. And instead of having a long list of user settings, those settings will have a menu item that directly targets a specific section that you want to adjust. This is in style of All Trails, which provides detailed information about the walk currently, which we might want to move towards. And the settings can be compacted or at least polished underneath a dedicated view per section, which is accessible with the ellipses." (the owner, Nov 19). Their answers the same day: pulled up, the drawer shows this walk's details in words; the … opens a menu of four sections; a section opens inside the drawer with a back arrow.
+Verb: honour (the walk: the details say where and when this walk is, what came before, in the screen you walk from: "Does the moment arrive whole: place, time, the walk, what came before?"); earn for the settings, which only become easier to reach.
+Touches: Never, "Fitness numbers: pace charts, calories, heart rate" (Not fitness tracking, 0020; Shapes: "Pace, calories, heart rate: out; Distance and time"): AllTrails' pull-up panel is a stat sheet (distance, elevation gain, moving time, pace) and is the part reshaped. Never, "Celebration: … big numbers" and Always, "Restraint in motion, colour and copy": no stat tiles, no large figures. Always, "Counts are words, in a clause. Distances and times are fine." (0052): what was captured is a clause, never a digit. Never, "Scores, streaks, completion, coverage": no share of a route done, no new streets counted. Never, "A capture behind a menu, a drawer or an extra tap" and Always, "Capture is one tap away": the capture stack is not moved into the drawer and is as reachable as today (the raised drawer covers what it covered before). Never, "Data leaving the device": nothing new is read from or sent anywhere; the details read what the screen already holds. Decisions 0220 (Pause, then Resume or Stop; the … while walking only), 0192 (What I'm into its own page), 0167 (found before quiet), 0193 (precedent).
+Verdict: aligned if reshaped
+Shape: pulled up, "This walk": a few plain lines at the drawer's body size: when it started, how far walked in how long, by ride if any, paused if any, the street you are on, where you are heading and how far, what you have kept in a clause ("two photos and a voice memo"). No pace, speed, elevation, calories, splits, percentages, goals, tiles or big figures. The … raises the same drawer on "Walk settings", four rows; a row shows that section alone, with Back.
+Precedent: AllTrails (from memory, unverified): while recording, the bottom sheet pulled up shows the recording's stats in large figures, with options behind a …: the model for "pull up for this walk, … for its options", a counter-example for the figures. Google Maps' navigation (from memory, unverified): the bottom card swiped up offers options, Settings among them, which opens a page of its own. iOS Settings, Notifications (support.apple.com, verified Nov 18): a list of rows, each opening its own page of switches, no Save, Back returns.
+Criteria: WD5-WD8 carry the reshaping (WD7 the Never lines over every view, the steward's S2-S4); WD13 holds capture one tap away; WD16 nothing leaves.
+Open: whether the capture stack stays above the raised drawer now that This walk is read mid-walk (the steward's S1; the plan's P7).
+
+## How adjacent apps do it
+
+- **AllTrails** (iOS): while recording, the map with a bottom sheet; pulled up, the sheet shows the recording's
+  numbers in large figures (distance, elevation gain, moving time, pace); a … button holds the recording's options.
+  Source: from memory, unverified (support.alltrails.com unreachable from cloud sessions, Nov 17). **Unverified**. The
+  model for the two routes into one drawer; a counter-example for the figures (VISION.md, Never: fitness numbers, big
+  numbers).
+- **Google Maps** (iOS, Android): during navigation the bottom card swiped up shows the trip and a list of options
+  ("Search along route", "Share trip progress", "Settings"); Settings opens a page of its own with Back. Source: from
+  memory, unverified. **Unverified**. The model for settings reached from the pulled-up card (WD9).
+- **iOS Settings, Notifications** (iOS): the Notifications page lists the apps; a tap on one opens that app's own page
+  of switches; each switch acts at once, there is no Save, and Back returns. Source:
+  https://support.apple.com/guide/iphone/change-notification-settings-iph7c3d96bab/ios , read Nov 18, 2026.
+  **Verified**. The model for the menu's rows and a section with Back (WD1, WD3, WD4).
+- **iOS navigation bar, the back button's title** (iOS): a pushed page's back carries the previous screen's title
+  ("‹ Settings"). Source: from memory, unverified. **Unverified**. The model for "‹ Walk settings" (WD3).
+
+## What it is
+
+Today the walk's drawer (`options-card`, under the strip's `ReadyBar`) is one long list: the Explore switch, the "?"
+range, Passing a place, On the map, Pocket alert, Route leaning, the notification settings, motion, Share GPS log and
+What I'm into. A pull, a tap on the numbers and the strip's … all raise it. The owner expected the pull to tell them
+about the walk, as AllTrails does, and the … to lead to the settings one section at a time.
+
+After this slice the drawer has three views, inside the same raised drawer:
+
+- **This walk** (pulled up, or a tap on the numbers): the walk's details in words, and a last row, "Walk settings ›".
+- **Walk settings** (the …, or that row): four rows, Explore, Map & routes, Reminders, Location & motion.
+- **A section** (a row): that section's controls alone, under "‹ Walk settings" and the section's name.
+
+The ready screen's bar, its twin, is unchanged: pulled up it still shows the start settings.
+
+## Decisions
+
+- Nov 19 (the owner): run as a slice, the vision gate first.
+- Nov 19 (the owner): pulled up, the drawer shows this walk's details in words; no pace, elevation or calories.
+- Nov 19 (the owner): the … opens a menu of sections; a section opens inside the drawer with a back arrow to the menu,
+  so the map, and the range ring, stay in view above it.
+- Nov 19 (the owner): the sections are Explore (the Explore switch, "?" range, Passing a place, Pocket alert, What I'm
+  into), Map & routes (On the map, Route leaning), Reminders (the notification settings), Location & motion (motion,
+  Share GPS log).
+
+## Criteria
+
+The owner's tasks, in their words: "adjust a specific section of the walk's settings from the …" and "pull up the
+drawer for detailed information about the walk".
+
+- **WD1** (the task): while walking, a tap on the strip's … raises the drawer on "Walk settings": four rows in this
+  order, Explore, Map & routes, Reminders, Location & motion, each its name in ink, a muted line saying what is in it,
+  and a chevron; a tap anywhere on a row shows that section alone in the drawer. The long list is gone: no view of the
+  drawer shows two sections' controls at once.
+- **WD2** (finding): someone told only "during a walk, change how far away a “?” shows", shown the walk screen at rest,
+  taps the … (or pulls the drawer up and takes "Walk settings"), then Explore, and finds the “?” range; the same told
+  "turn off reminders during a walk" finds Reminders (the cold find, decision 0167).
+- **WD3** a section: at its top a back control in ink, "‹ Walk settings", and the section's name as a heading; under
+  them exactly that section's controls, as listed in the Decisions, each saving as it changes as before (E16-E21, PA6,
+  the leanings, the notification settings, MO2): no Save or Done.
+- **WD4** going back: in a section, the back control, Android's Back and Escape on the web show the menu, the drawer
+  still raised; on the menu or This walk, Back and Escape lower the drawer; a drag down lowers it from any view; with
+  the drawer up on the menu or a section, the … lowers it.
+- **WD5** (the task): a drag up on the strip, or a tap on its numbers, raises the drawer on "This walk", the walk's
+  details in words, each line shown only when it has something to say: when it started ("Started at 2:14 pm"); how far
+  walked in how long, the time walked with pauses left out, as the strip counts it; how far by ride, with any ride; how long paused, with
+  any pause; the street you are on, when one is known within reach; where you are heading and how far, while a way is
+  shown, as "Heading for <place>, 1.2 km away"; what has been kept on this walk, in a clause ("Two photos and a voice
+  memo"), and no line while nothing is.
+- **WD6** (finding): someone told only "during a walk, see when it started", shown the walk screen at rest, pulls the
+  strip up or taps its numbers (the cold find).
+- **WD7** (the gate) no fitness, no figures, no countdown: no view of the drawer (This walk, the menu, a section)
+  shows pace, speed, elevation, calories, heart rate, splits, a percentage, a goal or a target, a count in digits, or
+  "to go", "left", "remaining" or "of" beside a distance; the heading line keeps its words and colour when you
+  drift from the way; every line is at the drawer's body size in ink or muted, with no tile, ring, chart or figure
+  larger than the text around it.
+- **WD8** live: while This walk is up, its time moves each second with the strip's, its distance as fixes arrive, and
+  its clause as a moment is kept; its distance and time are the strip's, word for word.
+- **WD9** the settings from This walk: its last row is "Walk settings" with a chevron, showing the menu; so the
+  sections are reached while paused, when the strip has no … (decision 0220).
+- **WD10** fresh each time: lowered and raised again, the drawer opens on This walk after a pull or a tap on the
+  numbers, and on the menu after the …, never on a section left open before.
+- **WD11** the range ring: with Explore on, the ring around you shows while the Explore section is open, fitted into
+  the map above the raised drawer (E21 holds), and not on This walk or the menu.
+- **WD12** spoken: the numbers' button is named with its numbers and "Walk details" ("Lower the walk details" while
+  up); the … keeps "Walk settings" ("Lower the walk settings" while up on the menu or a section), expanded only while
+  the menu or a section shows; the back control is a button named "Back to walk settings"; each view's title is a
+  heading.
+- **WD13** unchanged around it: mid-memo neither the … nor a pull raises the drawer (NR7 audit 4); the raised drawer
+  is the height it was (`raisedHeight`) and covers nothing it did not, so the capture stack is one tap away as before;
+  What I'm into's page still opens from the Explore section's row and its Back returns to that section, raised (WI4).
+- **WD14** the ready screen's twin is unchanged: its bar, pulled up, shows the start settings, with no menu and no
+  This walk.
+- **WD15** 320 px: on a 320 px wide screen at the default text size, no menu row's name, no section's back control and
+  no heading wraps.
+- **WD16** nothing leaves: while any view of the drawer is up, the page makes no network request it would not make
+  with the drawer down, and nothing is written.
+
+## Record
+
+Not built yet.
