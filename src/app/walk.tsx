@@ -2036,7 +2036,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
                 <Button
                   testID="here-open"
                   variant="secondary"
-                  label={`What happened here (${spot.here.captures.length})`}
+                  // What it opens, never how many (counts are words, 0052; tend walk-screen 15).
+                  label="What happened here"
                   onPress={() => {
                     const r = spot.here!;
                     setSpot(null);

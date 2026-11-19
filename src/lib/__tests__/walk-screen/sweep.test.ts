@@ -81,3 +81,13 @@ test('tend walk-screen 14: the walk screen\'s small targets are 44 pt themselves
   assert.match(style(walk, motion[1]), /minHeight: 44/);
   assert.match(style(read('components/MomentBar.tsx'), 'pillBtn'), /minHeight: 44/);
 });
+
+// tend walk-screen 15 (the sweep's steward 1): the long press's spot card offered `What happened here (${n})`, a bare
+// count of pieces from any walk, against "Counts are words" (decision 0052) and AGENTS.md ("counts are said in words").
+// The button says what it opens; the viewer it opens shows them. The journey `walk` reads the button's words.
+test('tend walk-screen 15: the spot card\'s button reads "What happened here", with no count', () => {
+  const walk = read('app/walk.tsx');
+  const label = /testID="here-open"[\s\S]*?label=\{?([^\n]*)/.exec(walk)?.[1] ?? '';
+  assert.match(label, /^"What happened here"$/);
+  assert.doesNotMatch(walk, /What happened here \(\$\{/);
+});

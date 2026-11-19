@@ -397,6 +397,9 @@ async function checks(h) {
         await page.mouse.up();
         // The press sheet offers Route here (it was Go here), and what happened here when captures are near.
         check(((await page.locator('[data-testid=go-here]').first().innerText().catch(() => '')).trim()) === 'Route here', 'OM13: the walk screen\'s press sheet says "Route here", not "Go here"');
+        // tend walk-screen 15 (the sweep's steward 1): the button says what it opens, never how many (counts are words, 0052).
+        const hereSaid = (await page.locator('[data-testid=here-open]').first().innerText().catch(() => '')).trim();
+        check(hereSaid === 'What happened here' && !/\d/.test(hereSaid), `tend walk-screen 15: the spot card's button reads "What happened here", with no count (${hereSaid})`);
         await page.click('[data-testid=here-open]');
         await page.waitForSelector('text=What happened here');
         // The note may share the spot with the video nearby: step to it.
