@@ -1,0 +1,14 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inbox",
+        "remove",
+        "T27",
+        "--reason",
+        "the owner's yes, 2026-11-18"
+      ],
+      "target": "sha256:14e0504d29ecd7a3c6115d7d6dc6c53783c58ea66514fdbdeed34d42cc2ad36f"
+    }
+  ]
+}
