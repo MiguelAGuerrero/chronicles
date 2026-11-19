@@ -826,7 +826,7 @@ function commits(argv) {
     if (since.some((c) => !touching.includes(c))) return false;
     return at(sha, p) === at(`${oldest}^`, p);
   };
-  // Whether a check had vanished at a revision (audit 17): the journeys, tests and feature map as that revision held them.
+  // Whether a check had vanished at a revision (audits 17, 24): the journeys, tests and feature map as it held them.
   const indexes = new Map();
   const missingAt = (rev, check, feature) => {
     if (!indexes.has(rev)) {
@@ -842,6 +842,9 @@ function commits(argv) {
     }
     return require('./expectations').resolveCheck(check, indexes.get(rev), feature) === 'missing';
   };
+  // A check counts as vanished only when the push's base lacks it (audit 24), so no commit of the same push removes a
+  // check and then lets its line go back to pending; with no base to the range, the commit's parent.
+  const vanishedAt = (sha) => (ends.length === 2 && ends[0] ? baseRev : `${sha}^`);
   const storeEdits = (sha) => {
     const message = git('show', '-s', '--format=%B', sha);
     const subject = message.split('\n')[0].trim();
@@ -851,7 +854,7 @@ function commits(argv) {
       const revert = revertOf(sha, p, named);
       if (revert === true) return [];
       if (typeof revert === 'string') return [revert];
-      return require('./expectations').editProblems(at(`${sha}^`, p), at(sha, p), STORE_FILE.exec(p)[1], subject, { missing: (check, feature) => missingAt(`${sha}^`, check, feature) });
+      return require('./expectations').editProblems(at(`${sha}^`, p), at(sha, p), STORE_FILE.exec(p)[1], subject, { missing: (check, feature) => missingAt(vanishedAt(sha), check, feature) });
     });
   };
   // The record documents (decision 0156): each commit that touches them is its declared operations,
