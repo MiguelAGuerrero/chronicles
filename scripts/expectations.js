@@ -185,6 +185,22 @@ function formatStore(store) {
   return (store.head || defaultHead(store.feature)) + store.entries.map(entry).join('');
 }
 
+/** What would be wrong with writing `store`: it must read back with no problem, and as the same lines. */
+function writeProblems(store) {
+  const text = formatStore(store);
+  const back = parseStore(text, store.feature);
+  if (back.problems.length) return back.problems;
+  const same = formatStore(back) === text && JSON.stringify(back.entries) === JSON.stringify(store.entries.map(ordered));
+  return same ? [] : [`${fileOf(store.feature)} would read back otherwise than it was written`];
+}
+
+/** An operation's result, refused whole when the store it leaves would not read back as written. */
+function settle(before, r) {
+  if (r.problems.length) return r;
+  const w = writeProblems(r.store);
+  return w.length ? { store: before, ids: [], problems: w.map((p) => `the write is refused: ${p}`) } : r;
+}
+
 /** A --file of lines: `- A person …` and its Check and Grounds (an Amends is the amend operation's). */
 function parseDraft(text) {
   const read = readEntries(linesOf(text), (h) => ({ text: h }));
@@ -223,6 +239,10 @@ function newLines(store, lines, amends) {
 
 /** Proposed lines, numbered on from the file's highest; a first draft has three to five, and five at most stand. */
 function draft(store, lines) {
+  return settle(store, draftOf(store, lines));
+}
+
+function draftOf(store, lines) {
   const now = inForce(store);
   if (now === 0 && lines.length < FIRST) return { store, ids: [], problems: [`a first draft of ${store.feature} has three lines at least, five at most`] };
   if (now + lines.length > MOST) return { store, ids: [], problems: [`${store.feature} has ${now} lines in force and five at most stand: amend one (npm run expectations -- amend <id>) instead`] };
@@ -231,6 +251,10 @@ function draft(store, lines) {
 
 /** A proposed amendment of a ratified line; the line stands as it is until the owner ratifies the amendment. */
 function amend(store, id, line) {
+  return settle(store, amendOf(store, id, line));
+}
+
+function amendOf(store, id, line) {
   const target = store.entries.find((e) => e.id === id);
   if (!target) return { store, ids: [], problems: [`${id} is no line of ${fileOf(store.feature)}`] };
   if (target.status !== 'ratified') return { store, ids: [], problems: [`${id} is ${target.status}: only a ratified line is amended (a proposed one waits for the owner's answer)`] };
@@ -238,11 +262,16 @@ function amend(store, id, line) {
 }
 
 /** The owner's answer to proposed lines: ratified (a ratified amendment supersedes the line it amends) or declined. */
-function answer(store, ids, { as, by, date, answer: words }) {
+function answer(store, ids, how) {
+  return settle(store, answerOf(store, ids, how));
+}
+
+function answerOf(store, ids, { as, by, date, answer: words }) {
   const problems = [];
   if (by !== 'owner') problems.push(`--by ${by || '(none)'}: only the owner ratifies or declines a line, never the proxy (decisions 0157, 0234)`);
   if (!DATE.test(date ?? '')) problems.push(`--date ${date || '(none)'} is not YYYY-MM-DD`);
   if (!String(words ?? '').trim()) problems.push('--answer is the owner\'s words, verbatim');
+  if (/[\r\n]/.test(String(words ?? ''))) problems.push('--answer is one line: put the owner\'s words on one line, verbatim');
   if (!['ratified', 'declined'].includes(as)) problems.push(`${as} is no answer`);
   for (const id of ids) {
     const e = store.entries.find((x) => x.id === id);
@@ -267,6 +296,10 @@ function ordered(e) {
 
 /** The evidence a line names, filled in or moved: never its words, status or answer. */
 function setCheck(store, id, check) {
+  return settle(store, setCheckOf(store, id, check));
+}
+
+function setCheckOf(store, id, check) {
   const e = store.entries.find((x) => x.id === id);
   if (!e) return { store, ids: [], problems: [`${id} is no line of ${fileOf(store.feature)}`] };
   if (!parseCheck(check)) return { store, ids: [], problems: [`${check} is in no form: <journey>:"<check text>", test:"<test name>", picture:<shot name> or pending "<what it will show>"`] };
@@ -529,6 +562,6 @@ function main(argv) {
   return op === 'help' ? 0 : 2;
 }
 
-module.exports = { ID, DIR, LENS_LINE, parseStore, formatStore, parseDraft, draft, amend, answer, setCheck, parseCheck, indexOf, resolveCheck, checkProblems, due, listText, editProblems, logRefProblems, readStores, readIndex, check };
+module.exports = { writeProblems, ID, DIR, LENS_LINE, parseStore, formatStore, parseDraft, draft, amend, answer, setCheck, parseCheck, indexOf, resolveCheck, checkProblems, due, listText, editProblems, logRefProblems, readStores, readIndex, check };
 
 if (require.main === module) process.exitCode = main(process.argv.slice(2));
