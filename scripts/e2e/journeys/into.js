@@ -455,7 +455,7 @@ async function run(h) {
     };
   });
   await pg.waitForTimeout(100);
-  await pg.locator('[data-testid=start-settings] [data-testid=into-row]').click().catch(() => {});
+  await pg.locator('[data-testid=start-settings] [data-testid=into-row]').click({ timeout: 5000 }).catch((e) => console.log('# into-row click:', String(e).split('\n')[0].slice(0, 160), '| rows', 0));
   await pg.waitForSelector('[data-testid=into-page]', { state: 'visible', timeout: 2000 }).catch(() => {});
   const earlyShown = await pageShown();
   const early = await pg.locator('[data-testid=into-page] [data-testid^=kind-]').count();
