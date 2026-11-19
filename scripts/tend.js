@@ -276,6 +276,15 @@ function tendCommitProblems({ subject, body, files, added = '', rewritesLog = fa
 const RULE_FILE = /^\.claude\/rules\/[^/]+\.md$/;
 const STORE_FILE = /^docs\/expectations\/(?!README\.md$)([^/]+)\.md$/;
 
+/** A revision's full sha, or null when it names no commit here. */
+function tryRev(rev) {
+  try {
+    return execFileSync('git', ['rev-parse', '--verify', '--quiet', `${rev}^{commit}`], { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim() || null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Whether lines a commit removes from a rule file include one the push's base holds: those stay
  * add-only. A line absent from the base was added by an earlier commit of the same push, and a later
@@ -771,9 +780,22 @@ function commits(argv) {
     }
   };
   // What a commit did to the expectation store files it changed (scripts/expectations.js, editProblems).
-  const storeEdits = (sha, subject) => {
+  // A revert (ship.md, "A red run") is taken when each store file it touches is as it stood at the parent of the
+  // oldest commit it reverts, its `This reverts commit <sha>.` lines read as the records gate reads them.
+  const revertedFrom = (message) => {
+    const shas = [...message.matchAll(/^This reverts commit ([0-9a-f]{7,40})\.?\s*$/gm)].map((m) => tryRev(m[1])).filter(Boolean);
+    if (!shas.length) return null;
+    return shas.sort((a, b) => Number(git('rev-list', '--count', a)) - Number(git('rev-list', '--count', b)))[0];
+  };
+  const storeEdits = (sha) => {
+    const message = git('show', '-s', '--format=%B', sha);
+    const subject = message.split('\n')[0].trim();
     const changed = git('show', '--name-only', '--format=', sha).split('\n').filter((p) => STORE_FILE.test(p));
-    return changed.flatMap((p) => require('./expectations').editProblems(at(`${sha}^`, p), at(sha, p), STORE_FILE.exec(p)[1], subject));
+    const oldest = revertedFrom(message);
+    return changed.flatMap((p) => {
+      if (oldest && at(sha, p) === at(`${oldest}^`, p)) return [];
+      return require('./expectations').editProblems(at(`${sha}^`, p), at(sha, p), STORE_FILE.exec(p)[1], subject);
+    });
   };
   // The record documents (decision 0156): each commit that touches them is its declared operations,
   // replayed on its parent's; a merge that touches them fails in a push that holds loop commits.
@@ -793,7 +815,7 @@ function commits(argv) {
     const removed = (file) => git('show', '--format=', '-U0', sha, '--', file).split('\n').filter((l) => /^-(?!--)/.test(l)).map((l) => l.slice(1));
     const rewritesLog = files.some((f) => f.path === RUNS_REL) && removed(RUNS_REL).length > 0;
     const rewritesRules = files.filter((f) => RULE_FILE.test(f.path) && f.status === 'M' && rewritesBaseLines(removed(f.path), atBase(f.path))).map((f) => f.path);
-    const expectationEdits = storeEdits(sha, subject);
+    const expectationEdits = storeEdits(sha);
     storesRead.add(sha);
     read.push({ subject, body: rest.join('\n'), files });
     const problems = tendCommitProblems({ subject, body: rest.join('\n'), files, added, rewritesLog, rewritesRules, expectationEdits });
@@ -808,7 +830,7 @@ function commits(argv) {
   for (const sha of all.filter((x) => !storesRead.has(x))) {
     const message = git('show', '-s', '--format=%B', sha);
     if (!require('./records').isAgent(message)) continue;
-    for (const p of storeEdits(sha, message.split('\n')[0].trim())) {
+    for (const p of storeEdits(sha)) {
       bad += 1;
       console.error(`${sha.slice(0, 7)} ${message.split('\n')[0].trim()}\n  ${p}`);
     }
