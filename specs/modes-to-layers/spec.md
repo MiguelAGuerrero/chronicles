@@ -67,4 +67,8 @@ This slice removes the mode. Each piece becomes a layer or a setting the person 
 
 ## Record
 
-(To be written after the build.)
+- **Built** on `claude/presence-things-found-discrepancy-1kmhu5`: MD1-MD19, tests first in `56360a1` (the failing todos), then the code. Unit tests: `src/lib/__tests__/layers/modesToLayers.test.ts` (MD1, MD2, MD10, MD12-MD15), `explore/passedByLayer.test.ts` (MD9), `explore/placesOnWalk.test.ts` (MD3-MD8, MD11, MD17-MD19); the new `modes` journey (MD1-MD4, MD16, MD19) and the reworked `walk`, `ready`, `tabs`, `launch`, `into`, `nudge`, `marks`, `complexes`, `curiosities`, `small-places`, `subtypes` and `days` journeys on the web build.
+- **Changed from the plan:** the dead-zone pill follows Storefronts (it speaks of storefront pockets), not Places; the legend row's key is `worth` (a `places` row key collides with the block's test id); no `maps` field on a layer any more (every map lists Places, MD13).
+- **Retired by decision 0231:** v1-discovery E1 and navigation-and-tabs NV26 (the Explore switch and mode), in `scripts/features.js`; old tests of the mode's copy (SF7, storefronts ui 1, PA5, NV22, NV25) were rewritten to what now carries the meaning, none deleted.
+- **A gap in the test-first record, mine:** the failing todos were committed first (`56360a1`), but I marked them with a shared constant (`T`), which `npm run check:test-first modes-to-layers` cannot read (it looks for a literal `{ todo: ... }`), so it reports 18 of 19 as never todo first; MD14 and MD15 were written with their code. The history is true; the checker's pattern is what it cannot see. Not rewritten without the owner's say.
+- **Not run:** `scripts/perf-walk.js` never turns Explore on (its default walk is the quiet case, unchanged), so there is no Places-on number; the cost is one boolean gating existing work, and with Places off the marks are not computed. Native has never run on a device: two items in `docs/NATIVE_UNVERIFIED.md`.

@@ -55,7 +55,7 @@ test('MD11: the ready map draws the ring while Places is on', () => {
   assert.ok(/layers\.on\.places/.test(r) && !/mode === 'explore'/.test(r));
 });
 
-test('MD19: no copy on the walk or the ready map says what is left, how many or "nearby to find"', () => {
+test('MD19: (also MD15) no copy on the walk or the ready map says what is left, how many or "nearby to find"', () => {
   const copy = ['src/app/walk.tsx', 'src/components/walk/useReady.tsx', 'src/components/StartSettings.tsx'].map(src).join('\n');
   assert.ok(!/left to find|still to find|nearby to find|remaining/i.test(copy.replace(/\/\/.*$/gm, '')), 'no left-to-find copy');
 });

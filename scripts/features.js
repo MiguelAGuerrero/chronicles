@@ -558,8 +558,6 @@ const RENAMED = {
 };
 
 const IN_PROGRESS = {
-  // Modes to layers (MD1-MD16, decision 0231): spec and plan written, waiting on the owner's review (Nov 19).
-  'modes-to-layers': { branch: 'claude/presence-things-found-discrepancy-1kmhu5', since: '2026-11-19' },
   // Replay ceremony (RC1-RC48): the owner's go-ahead Nov 18 (decision 0206); built on the branch, shown at the preview address first.
   'replay-ceremony': { branch: 'claude/funny-bohr-ztvwgv', since: '2026-11-18' },
   'drive-in-the-outing': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-18' },

@@ -61,3 +61,22 @@ test('MD2, MD12: no mode control, no Explore switch, no mode meta in the views, 
   const words = ['src/components/StartSettings.tsx', 'src/app/walk.tsx'].map(src).join('\n');
   assert.ok(!/The walk, exploring|Quiet: the way|a quiet walk|Off: a quiet walk/i.test(words), 'no copy says quiet or exploring');
 });
+
+test('MD14: the layers write only meta: no walk, trace point, capture or find is touched, and a walk\'s layers go only with the walk', async () => {
+  const { createWalkLayers } = await import('../../layers/walkShell');
+  const p = fakePorts();
+  const w = createWalkLayers(p);
+  await w.begin('w1');
+  await w.set('places', true);
+  await w.set('places', false);
+  const calls = p.log.calls('db.');
+  assert.ok(calls.length > 0, 'the shell wrote something');
+  assert.ok(calls.every((c: string) => /^db\.(getMeta|setMeta)\b/.test(c)), `only meta is read or written (${[...new Set(calls)].join(', ')})`);
+});
+
+test('MD15: nothing on the walk, the ready map or the settings counts places or says what is left, and the "?" are never named', () => {
+  const copy = ['src/app/walk.tsx', 'src/components/walk/useReady.tsx', 'src/components/StartSettings.tsx', 'src/components/LayersControl.tsx'].map(src).join('\n').replace(/\/\/.*$/gm, '');
+  assert.ok(!/left to find|still to find|nearby to find|remaining|\d+ (places|waiting)/i.test(copy));
+  const reg = src('src/lib/layers/registry.ts');
+  assert.ok(!/waiting to be found|to find|\bleft\b/i.test(reg.slice(reg.indexOf("id: 'places'"))), 'the Places layer\'s name and legend say nothing of what is left');
+});
