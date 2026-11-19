@@ -85,7 +85,7 @@ export const LAYERS: readonly LayerDef[] = [
     name: 'Places',
     icon: 'help-circle-outline',
     defaultOn: true,
-    legend: [{ key: 'places', text: 'A place worth the stop', swatch: 'mark' }],
+    legend: [{ key: 'worth', text: 'A place worth the stop', swatch: 'mark' }],
   },
 ];
 
