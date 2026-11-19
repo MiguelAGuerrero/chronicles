@@ -140,6 +140,11 @@ async function run(h) {
     }
     await pg.click('[data-testid=mode-explore]');
     await pg.waitForTimeout(600);
+    // tend walk-screen audit 15 (the diff review's ux 6): Explore's block of the settings pictured, the range and "Passing a
+    // place" in view.
+    await pg.locator('[data-testid=start-settings] [data-testid=range-slider]').last().scrollIntoViewIfNeeded().catch(() => {});
+    await pg.waitForTimeout(300);
+    await shot(pg, 'ready-settings-explore');
     const ring = await pg.locator('[data-ring]').last().getAttribute('data-ring').catch(() => null);
     check(!!ring && ring !== '', `ready NR7: in Explore, the range ring shows while the settings are up (${ring})`);
     await pg.click('[data-testid=dest-clear]');

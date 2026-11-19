@@ -284,6 +284,8 @@ async function checks(h) {
         check(true, 'a video over the web limit is turned away');
         // TC3: a capture near a place finds nothing by itself; tapping the place and "Capture here" arms it.
         check((await page.locator('[aria-label="Found: Hessian Memorial, History"]').count()) === 0, 'TC1: nothing is found by being near a place');
+        // tend walk-screen audit 15 (the diff review's ux 6): whether the offer stands before the place is armed, for after Cancel.
+        const offerBefore = (await page.locator('[data-testid=add-to-moment]').filter({ visible: true }).count()) > 0;
         await page.locator('[aria-label="Hessian Memorial, History. Open"]').first().click();
         await page.waitForSelector('[data-testid=mark-capture]', { timeout: 5000 });
         await shot(page, '02a-place-card');
@@ -300,6 +302,15 @@ async function checks(h) {
         const cancelBox = await page.locator('[data-testid=armed-cancel]').boundingBox();
         check(!!lineBox && !!cancelBox && cancelBox.width < lineBox.width - 60 && cancelBox.height >= 44, `tap-to-capture-places ui 1: Cancel is a button at its own width, not the whole line (${Math.round(cancelBox?.width ?? 0)} of ${Math.round(lineBox?.width ?? 0)})`);
         check(/The next moment is about Hessian Memorial/.test(armedSaid) && (await page.locator('[data-testid=mark-card]').count()) === 0, `TC3: Capture here closes the card and says whom the next moment is about (${armedSaid.replace(/\n/g, ' ')})`);
+        // tend walk-screen audit 15: Cancel gives the offer back as it stood, then the place is armed again for the capture below.
+        await page.click('[data-testid=armed-cancel]');
+        await page.waitForSelector('[data-testid=armed-line]', { state: 'detached', timeout: 5000 }).catch(() => {});
+        const offerAfter = await page.locator('[data-testid=add-to-moment]').filter({ visible: true }).first().waitFor({ timeout: 4000 }).then(() => true, () => false);
+        check(offerBefore && offerAfter, `tend walk-screen audit 15: after Cancel the Add to this moment offer is back (${JSON.stringify({ offerBefore, offerAfter })})`);
+        await page.locator('[aria-label="Hessian Memorial, History. Open"]').first().click();
+        await page.waitForSelector('[data-testid=mark-capture]', { timeout: 5000 });
+        await page.click('[data-testid=mark-capture]');
+        await page.waitForSelector('[data-testid=armed-line]', { timeout: 5000 });
         [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.click('[data-testid=cap-photo]')]);
         await chooser.setFiles(path.join(fixtures, 'clip-4s.webm'));
         await page.waitForSelector('text=Video saved here');
