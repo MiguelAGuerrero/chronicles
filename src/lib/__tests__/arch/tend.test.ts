@@ -31,7 +31,12 @@ const tend = createRequire(__filename)(join(ROOT, 'scripts', 'tend.js')) as {
   logProblems(given: unknown): string[];
   runLine(r: { date: string; subjects: string[]; given: Record<string, unknown> }): Record<string, unknown>;
   fullPassDue(lines: string[], today: string, days?: number): { due: boolean; last: { date: string; base: string | null } | null; dueFrom: string | null };
+  controlsIn(text: string): number;
+  isRoute(path: string): boolean;
+  resetsArea(commit: { subject: string; files: Diffed[] }, owns: (path: string) => boolean): boolean;
+  readPatches(out: string): { sha: string; subject: string; files: Diffed[] }[];
 };
+type Diffed = { status: string; path: string; from?: string; plus?: string; minus?: string };
 const known = new Set(['PK', 'RF', 'PW', 'OT', 'MS', 'MT', 'QL', 'OP', 'EC']);
 
 test('tend: a subject is growth by its criteria, refinement by fix, tend, audit or revert, else other', () => {
@@ -96,7 +101,7 @@ test('tend round 1: STATUS.md gives the open entries; a phone entry is not one t
   assert.equal(typeof tend.readStatus(read('docs/STATUS.md')).openT, 'number');
 });
 
-test('tend round 1: an area changed since its sweep is rough whatever the ledger says', () => {
+test('tend round 1: an area a change reset since its sweep (decision 0229) is rough whatever the ledger says', () => {
   assert.deepEqual(tend.STATES, ['rough', 'settling', 'polished', 'resting']);
   const areas = { replay: { state: 'polished' }, map: { state: 'rough' }, memories: { state: 'resting' } };
   assert.deepEqual(tend.areasByState(areas), { rough: ['map'], settling: [], polished: ['replay'], resting: ['memories'] });
@@ -416,4 +421,94 @@ test('tend balance: the balance reads the documents as origin/main holds them, n
   assert.match(balance, /mainOrHere\(LEDGER_REL/, 'the areas\' states are main\'s');
   assert.doesNotMatch(balance, /readFileSync\(path\.join\(ROOT, 'docs', 'STATUS\.md'\)/);
   assert.match(balance, /log\(`--since=\$\{days\} days ago`, 'origin\/main'\)/, 'the commits are main\'s');
+});
+
+// Decision 0229: a change resets an area only when it adds a screen or a control in files the area owns.
+const owns = (p: string) => p === 'src/app/walk.tsx' || p.startsWith('src/app/walk/') || p.startsWith('src/components/walk/');
+const change = (subject: string, files: Diffed[]) => tend.resetsArea({ subject, files }, owns);
+const edit = (path: string, plus = '', minus = ''): Diffed => ({ status: 'M', path, plus, minus });
+
+test('tend 0229: a control is an onPress=, <Pressable, <Switch, <TextInput or accessibilityRole="button" a line holds, each counted', () => {
+  assert.equal(tend.controlsIn('<Pressable onPress={go} accessibilityRole="button">'), 3);
+  assert.equal(tend.controlsIn('<Switch value={on} />\n<TextInput value={t} />'), 2);
+  assert.equal(tend.controlsIn('<Text onPressIn={x}>a Pressable, a Switch</Text>'), 0, 'onPressIn= and the words are not a control');
+  assert.equal(tend.controlsIn(''), 0);
+});
+
+test('tend 0229: a screen is a route file under src/app/, not a navigator (_layout) or a router file (+html)', () => {
+  for (const p of ['src/app/walk.tsx', 'src/app/(tabs)/explore.tsx', 'src/app/day/[key].tsx', 'src/app/into.ts']) assert.equal(tend.isRoute(p), true, p);
+  for (const p of ['src/app/_layout.tsx', 'src/app/(tabs)/_layout.tsx', 'src/app/+html.tsx', 'src/app/+not-found.tsx', 'src/components/walk/Bar.tsx', 'src/app/walk.md']) assert.equal(tend.isRoute(p), false, p);
+});
+
+test('tend 0229: a change resets an area when it adds a route file under src/app/ that the area owns', () => {
+  assert.equal(change('Walk: a page of its own (WK1)', [{ status: 'A', path: 'src/app/walk/page.tsx', plus: 'export default function P() {}' }]), true);
+  assert.equal(change('Walk: a layout (WK1)', [{ status: 'A', path: 'src/app/walk/_layout.tsx', plus: '' }]), false, 'a navigator is no screen');
+  assert.equal(change('Into: a page (WI1)', [{ status: 'A', path: 'src/app/into.tsx', plus: '' }]), false, 'a screen another area owns');
+  assert.equal(change('Walk: the route renamed', [{ status: 'R', from: 'src/app/walk.tsx', path: 'src/app/walk/index.tsx' }]), false, 'a moved route is no new screen');
+  assert.equal(change('fix walk: the route reads the walk once', [edit('src/app/walk.tsx', 'const w = read();', 'const w = read(); read();')]), false, 'an edited route is no new screen');
+});
+
+test('tend 0229: a change resets an area when the added minus removed controls across the .tsx files it owns is more than none', () => {
+  assert.equal(change('Walk: a Pause button (WK2)', [edit('src/components/walk/Bar.tsx', '<Pressable onPress={pause} accessibilityRole="button">')]), true);
+  assert.equal(change('fix walk: Pause reads its walk', [edit('src/components/walk/Bar.tsx', '<Pressable onPress={pauseWalk}>', '<Pressable onPress={pause}>')]), false, 'a control edited is not a control added');
+  assert.equal(change('Walk: the bar split in two', [edit('src/components/walk/Bar.tsx', '', '<Switch value={on} />'), { status: 'A', path: 'src/components/walk/Toggle.tsx', plus: '<Switch value={on} />' }]), false, 'a control moved within the area');
+  assert.equal(change('Walk: one Pause, not two', [edit('src/components/walk/Bar.tsx', '', '<Pressable onPress={pause}>')]), false, 'a control removed');
+  assert.equal(change('Into: a button (WI2)', [edit('src/components/IntoRow.tsx', '<Pressable onPress={go}>')]), false, 'a control in a file the area does not own');
+  assert.equal(change('Walk: a handler (WK3)', [edit('src/components/walk/useBar.ts', 'onPress={go}')]), false, 'only a .tsx file holds a control');
+  assert.equal(change('docs: the walk', [edit('docs/PRODUCT.md', 'onPress=')]), false);
+});
+
+test('tend 0229: the loop\'s own commits never reset an area, by a commit or by its revert', () => {
+  const files = [{ status: 'A', path: 'src/app/walk/page.tsx', plus: '<Pressable onPress={go}>' }];
+  assert.equal(change('Walk: a page (WK1)', files), true);
+  assert.equal(change('tend walk-screen 3: the page', files), false);
+  assert.equal(change('Revert "tend walk-screen 3: the page"', files), false);
+});
+
+test('tend 0229: any other change leaves the ledger\'s state as it stands; a reset one makes its area rough', () => {
+  const areas = { 'walk-screen': { state: 'polished' }, replay: { state: 'settling' } };
+  const commits = [
+    { subject: 'fix walk: a copy change', files: [edit('src/components/walk/Bar.tsx', '<Text>Paused</Text>', '<Text>Pause</Text>')] },
+    { subject: 'Walk: a new route file (WK9)', files: [{ status: 'A', path: 'src/app/replay/all.tsx', plus: '' }] },
+  ];
+  const changed = { 'walk-screen': commits.some((c) => tend.resetsArea(c, owns)) };
+  assert.deepEqual(tend.areasByState(areas, changed), { rough: [], settling: ['replay'], polished: ['walk-screen'], resting: [] });
+  const more = [...commits, { subject: 'Walk: a Stop (WK10)', files: [edit('src/components/walk/Bar.tsx', '<Pressable onPress={stop}>')] }];
+  assert.deepEqual(tend.areasByState(areas, { 'walk-screen': more.some((c) => tend.resetsArea(c, owns)) }).rough, ['walk-screen']);
+});
+
+test('tend 0229: git\'s raw and -U0 patch output reads as each commit\'s files, their status and their added and removed lines', () => {
+  const out = [
+    '\0aaa1111\x01Walk: a page (WK1)', '',
+    ':000000 100644 00000000 1f6f5429 A\tsrc/app/walk/page.tsx',
+    ':100644 100644 0a1e6211 db67ae18 M\tsrc/components/walk/Bar.tsx',
+    ':100644 100644 49efec7e fcbf6fbc R100\tsrc/components/atlas/Sheet.tsx\tsrc/components/Sheet.tsx',
+    ':100644 000000 ea33e64a 00000000 D\tsrc/components/walk/Old.tsx', '',
+    'diff --git a/src/app/walk/page.tsx b/src/app/walk/page.tsx', 'new file mode 100644', 'index 00000000..1f6f5429', '--- /dev/null', '+++ b/src/app/walk/page.tsx',
+    '@@ -0,0 +1,2 @@', '+export default function P() {', '+  return <Pressable onPress={go} />;',
+    'diff --git a/src/components/walk/Bar.tsx b/src/components/walk/Bar.tsx', 'index 0a1e6211..db67ae18 100644', '--- a/src/components/walk/Bar.tsx', '+++ b/src/components/walk/Bar.tsx',
+    '@@ -3 +3 @@ export function Bar() {', '-  <Text>--- a rule</Text>', '+  <Text>+++ a rule</Text>', '\\ No newline at end of file',
+    'diff --git a/src/components/atlas/Sheet.tsx b/src/components/Sheet.tsx', 'similarity index 100%', 'rename from src/components/atlas/Sheet.tsx', 'rename to src/components/Sheet.tsx',
+    'diff --git a/src/components/walk/Old.tsx b/src/components/walk/Old.tsx', 'deleted file mode 100644', 'index ea33e64a..00000000', '--- a/src/components/walk/Old.tsx', '+++ /dev/null',
+    '@@ -1 +0,0 @@', '-<Switch value={on} />',
+    '\0bbb2222\x01docs: nothing in src', '',
+  ].join('\n');
+  const commits = tend.readPatches(out);
+  assert.deepEqual(commits.map((c) => [c.sha, c.subject]), [['aaa1111', 'Walk: a page (WK1)'], ['bbb2222', 'docs: nothing in src']]);
+  assert.deepEqual(commits[0].files, [
+    { status: 'A', path: 'src/app/walk/page.tsx', plus: 'export default function P() {\n  return <Pressable onPress={go} />;', minus: '' },
+    { status: 'M', path: 'src/components/walk/Bar.tsx', plus: '  <Text>+++ a rule</Text>', minus: '  <Text>--- a rule</Text>' },
+    { status: 'R', path: 'src/components/Sheet.tsx', from: 'src/components/atlas/Sheet.tsx', plus: '', minus: '' },
+    { status: 'D', path: 'src/components/walk/Old.tsx', plus: '', minus: '<Switch value={on} />' },
+  ]);
+  assert.deepEqual(commits[1].files, []);
+});
+
+test('tend 0229: next and the balance count an area as changed only by a commit that resets it, read from one batched patch', () => {
+  const src = read('scripts/tend.js');
+  const body = src.slice(src.indexOf('function changesByArea('), src.indexOf('\n}\n', src.indexOf('function changesByArea(')));
+  assert.match(body, /resetsArea\(/, 'the count is of commits that reset the area');
+  assert.doesNotMatch(body, /c\.files\.some\(\(p\) => isAppSource\(p\)/, 'not of every commit that touched its source');
+  assert.match(src, /function next\(\) \{[^}]*changesByArea\(/, 'next ranks by it');
+  assert.match(src.slice(src.indexOf('function balance(')), /changesByArea\(sweptAt\(ledger\)\)/, 'the balance reads it');
 });
