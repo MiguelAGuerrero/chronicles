@@ -1,6 +1,6 @@
 // @layer view
 import { useEffect } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions, type StyleProp, type TextStyle } from 'react-native';
 import { cornerPanelBox, panelBox } from '../lib/layers/layout';
 import { layersFor, type LayerMap, type LegendRow, type SwatchKey } from '../lib/layers/registry';
 import type { useLayers } from '../lib/layers/useLayers';
@@ -61,10 +61,19 @@ function Legend(props: { row: LegendRow }) {
  * What each layer that is on shows, with a line per row when pressed: lives in the walk's settings drawers, never over the map
  * (the owner, Nov 5: "The tooltip is intrusive"). Nothing renders while every layer is off.
  */
-export function LayersKey(props: { layers: ReturnType<typeof useLayers>; map: LayerMap }) {
+export function LayersKey(props: {
+  layers: ReturnType<typeof useLayers>;
+  map: LayerMap;
+  /** The section's heading in its host ("On the map"), drawn only above rows: a layer on that this map does not draw
+   * ("Places" on Navigate's and the walk's) leaves no heading over nothing (tend walk-screen 10; PL12, WCAG 2.4.6). */
+  heading?: string;
+  headingStyle?: StyleProp<TextStyle>;
+}) {
   const on = layersFor(props.map).filter((l) => props.layers.on[l.id]);
   if (!on.length) return null;
   return (
+    <>
+    {props.heading ? <Text style={props.headingStyle} accessibilityRole="header">{props.heading}</Text> : null}
     <View testID="layers-key" style={styles.key}>
       {on.map((l) => (
         <View key={l.id} testID={`layer-legend-${l.id}`}>
@@ -76,6 +85,7 @@ export function LayersKey(props: { layers: ReturnType<typeof useLayers>; map: La
         </View>
       ))}
     </View>
+    </>
   );
 }
 

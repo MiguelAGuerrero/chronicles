@@ -131,6 +131,13 @@ async function run(h) {
     const barUp = await boxOf(pg, 'ready-bar');
     check((await pg.locator('[data-testid=start-settings]').isVisible()) && (await pg.locator('[data-testid=mode-quiet]').isVisible()) && same(startRest, startUp) && barUp.h > barRest.h + 300,
       `ready NR7: a pull on the grip raises the settings, Start where it was (${JSON.stringify({ startRest, startUp, barRest: barRest.h, barUp: barUp.h })})`);
+    // tend walk-screen 10 (the sweep's auditor 1, ux 1): with only "Places" on (by default; Explore's map only, PL9), the
+    // ready bar's settings carry no "On the map" heading with nothing under it (PL12; WCAG 2.4.6).
+    {
+      const settingsText = await pg.locator('[data-testid=start-settings]').innerText();
+      check(!/On the map/.test(settingsText) && (await pg.locator('[data-testid=start-settings] [data-testid=layers-key]').count()) === 0,
+        `tend walk-screen 10: no layer of Navigate's map is on, so its settings have no "On the map" heading (${/On the map/.test(settingsText)})`);
+    }
     await pg.click('[data-testid=mode-explore]');
     await pg.waitForTimeout(600);
     const ring = await pg.locator('[data-ring]').last().getAttribute('data-ring').catch(() => null);

@@ -1770,12 +1770,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
                 <RangeSlider scale={PASS_SCALE} value={settings.passM} onChange={(m) => changeSettings({ ...settings, passM: clampPass(m) })} />
               </>
             )}
-            {Object.values(layers.on).some(Boolean) && (
-              <>
-                <Text style={styles.optionSection} accessibilityRole="header">On the map</Text>
-                <LayersKey map="walk" layers={layers} />
-              </>
-            )}
+            <LayersKey map="walk" layers={layers} heading="On the map" headingStyle={styles.optionSection} />
             {/* The pocket alert is a nudge you feel: on every phone, and on a touch-screen browser that can vibrate (E19, PA6). */}
             {canBuzz() && loaded && (
               <SwitchRow

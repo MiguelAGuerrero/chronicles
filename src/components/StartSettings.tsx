@@ -102,12 +102,7 @@ export function StartSettings(props: {
           read the kinds too, so it shows with Explore or Sights on (what-im-into-page audit 6, the owner, Nov 18). */}
       {(mode === 'explore' || sightsOn) && <IntoRow />}
 
-      {props.layers && Object.values(props.layers.on).some(Boolean) ? (
-        <>
-          <Text style={styles.section} accessibilityRole="header">On the map</Text>
-          <LayersKey map="walk" layers={props.layers} />
-        </>
-      ) : null}
+      {props.layers ? <LayersKey map="navigate" layers={props.layers} heading="On the map" headingStyle={styles.section} /> : null}
 
       <View style={styles.rule} />
       <Text style={styles.title} accessibilityRole="header">Reminders and alerts</Text>

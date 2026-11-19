@@ -152,6 +152,13 @@ async function checks(h) {
     for (let i = 0; i < 2; i++) await page.click('[data-testid=range-plus]');
     check((await page.locator('[data-testid=options-card] [data-testid=into-row]').count()) === 1 && (await page.locator('[data-testid=pocket-alert]').count()) === (process.env.E2E_MOBILE ? 1 : 0), 'the drawer holds the row to what I’m into; the pocket alert only on a touch screen (PA6, pocket-alert-nudge audit 4, WI1)');
     await shot(page, '01a-settings');
+    // tend walk-screen 10 (the sweep's auditor 1, ux 1): only "Places" is on (by default; Explore's map only, PL9), so the
+    // walk's drawer heads no empty "On the map" (PL12; WCAG 2.4.6).
+    {
+      const drawerText = await page.locator('[data-testid=options-card]').innerText();
+      check(!/On the map/.test(drawerText) && (await page.locator('[data-testid=options-card] [data-testid=layers-key]').count()) === 0,
+        `tend walk-screen 10: no layer of the walk's map is on, so its drawer has no "On the map" heading (${/On the map/.test(drawerText)})`);
+    }
     await page.click('[data-testid=explore-walk]');
     await page.keyboard.press('Escape');
     await page.waitForTimeout(600);
