@@ -336,6 +336,7 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
   Precedent: SRE error budgets judge what is open, not what was found; Shape Up's appetite caps a pass; docs/research/agentic-process-framework.md 2.4-2.5 (sources there, most unverified).
   Payoff: the loop can propose again, and its states start to mean something; the owner's slices see the base they land on. Cost: M; scripts/tend.js, its tests, three skills. Reopens: tend. After it: G7.
   Instead: only criteria 1, 3 and 6 (the state from what is open, shares, the shallow guard).
+  Build beside decision 0236 (the expectation lens, on main at bfb60fd): `tend.js compass` already writes a refinement share to the ledger (shipped against filed-low, over the last 12 runs); criterion 3's shares read beside it, never a second copy of it. The run log carries `lens`, `expectations`, `compass` and `grew`: criteria 1 and 4 read those, not new fields of their own.
 - **G7 [M] Tend: a budget for review, rotation onto unseen areas, an answer log, and no racing** (2026-11-19) · no surface · the owner's calls
   Area: process (tend). From: /investigate, the owner's ask (2026-11-19). Brief: docs/research/tend-process-review.md. After: G6 (rotation only raises the alarm until areas can leave rough).
   Calls: one review fix per fix; the whole inbox counted, the oldest asked first, 30-day expiry; a lease on process files and decision numbers at publish; no process stop share. Decision 0235.
@@ -344,6 +345,7 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
   Precedent: Shape Up lets an unchosen pitch lapse; Linear's triage; docs/research/agentic-process-framework.md 2.4, 2.7 (most sources unverified).
   Payoff: review stops outrunning the work it reviews; the unseen half of the app is swept; the owner's answers become data. Cost: M; scripts/tend.js, scripts/records.js, scripts/bookkeeping.js, four skill files. Reopens: tend, records. After it: walk notes, if the owner wants them (the brief's "Left out").
   Instead: only criteria 1, 3 and 7.
+  Build beside decision 0236 (on main at bfb60fd): `npm run expectations -- ratify|decline --by owner` already records who answered for the owner's ratifications and refuses the proxy; criterion 3's `by` and `pick` cover the run log's other answers and share that vocabulary. Criterion 1's count reads commits as `commits --loop-only` now does, every agent commit by its trailers, revert-aware.
 
 ### Last tend
 
