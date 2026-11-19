@@ -7,7 +7,7 @@
 import { formatCaptures, formatDistance, formatDuration, formatElapsed, formatRange } from './format';
 import { clockTime } from './journal/lines';
 import { LEANING_WORDS, type Leaning } from './nav/scenic';
-import { NOTICE_KINDS, type NoticePrefs } from './notify/core';
+import { NOTICE_KINDS, type NoticePrefs, type Permission } from './notify/core';
 import { numberWord } from './resurface/lines';
 import type { Units } from './units';
 import type { MotionAccess } from './walkMotion';
@@ -32,6 +32,8 @@ export type DrawerEvent =
   | { type: 'more' }
   /** This walk's "Walk settings" row (WD9). */
   | { type: 'settings' }
+  /** The menu's "This walk" row (walk-drawer-sections ui 1: the cold find, the owner's call). */
+  | { type: 'details' }
   | { type: 'pick'; id: SectionId }
   /** The section's back control, Android's Back, Escape. */
   | { type: 'back' }
@@ -49,6 +51,8 @@ export function stepDrawer(s: DrawerState, e: DrawerEvent): DrawerState {
       return s === 'down' || s === 'details' ? 'menu' : 'down';
     case 'settings':
       return s === 'details' ? 'menu' : s;
+    case 'details':
+      return s === 'menu' ? 'details' : s;
     case 'pick':
       return s === 'menu' ? e.id : s;
     case 'back':
@@ -73,6 +77,8 @@ export type SectionInput = {
   leanings: readonly Leaning[];
   /** Null until read. */
   notices: NoticePrefs | null;
+  /** Whether notifications may show at all; null or absent until read. */
+  permission?: Permission | null;
   motion: MotionAccess;
   units: Units;
 };
@@ -91,13 +97,21 @@ export function sectionLine(id: SectionId, i: SectionInput): string {
     case 'reminders': {
       if (!i.notices) return '';
       const on = NOTICE_KINDS.filter((k) => i.notices![k.id]);
-      if (on.length === NOTICE_KINDS.length) return 'On';
       if (!on.length) return 'Off';
+      // Switched on but unable to arrive: never "On" (ui 3), as Location & motion says "Motion blocked".
+      if (i.permission === 'denied') return 'Blocked';
+      if (i.permission === 'unsupported') return 'Not available here';
+      if (on.length === NOTICE_KINDS.length) return 'On';
       return `${listed(on.map((k) => k.label))} on`;
     }
     case 'motion':
       return { on: 'Motion on', off: 'Motion off', denied: 'Motion blocked', unavailable: 'No motion here' }[i.motion];
   }
+}
+
+/** The menu's This walk row's line (ui 1): when it started and how far, as This walk itself says them. */
+export function thisWalkLine(o: { startedAt: number; distanceM: number; units: Units }): string {
+  return `Started at ${clockTime(o.startedAt)}, ${formatDistance(o.distanceM, o.units)} walked`;
 }
 
 export type DetailsInput = {

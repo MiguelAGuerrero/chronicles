@@ -1,7 +1,7 @@
 // @layer shell
 // @instance: the app's notifier and its switches; its own composition root (`ports` imports the notifier, so this builds from `db`)
 import { db } from '../db';
-import { createNotifier } from './core';
+import { createNotifier, type Permission } from './core';
 import { createNoticePrefs } from './prefs';
 import { transport } from './transport';
 
@@ -40,3 +40,6 @@ export const notifier = createNotifier({
     import('../discovery/recallCheck').then(({ stopRecall }) => Promise.all(ids.map(stopRecall))).catch(() => {});
   },
 });
+
+/** Whether notifications may show (for a view's words, walk-drawer-sections ui 3): the notifier's, so views never import it. */
+export const notifyPermission = (): Promise<Permission> => notifier.permission();

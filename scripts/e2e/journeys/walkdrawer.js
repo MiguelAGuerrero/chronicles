@@ -12,7 +12,8 @@ async function run(h) {
     const root = document.querySelector(q);
     if (!root) return [];
     // Words only: an icon is a glyph of the icon font, not text.
-    return [...new Set([...root.querySelectorAll('div[dir], span')].filter((e) => e.childElementCount === 0 && e.textContent.trim() && !/ionicons/i.test(getComputedStyle(e).fontFamily))
+    // A view's title is a heading, a size above (ui 4), not a figure.
+    return [...new Set([...root.querySelectorAll('div[dir], span')].filter((e) => e.childElementCount === 0 && e.textContent.trim() && !/ionicons/i.test(getComputedStyle(e).fontFamily) && e.getAttribute('role') !== 'heading')
       .map((e) => parseFloat(getComputedStyle(e).fontSize)))];
   }, sel);
   // Is the element's middle the element itself (or inside it), not something drawn over it?
@@ -100,7 +101,7 @@ async function run(h) {
     const first = await pg.locator('[data-testid=walk-menu] [role=button]').first().evaluate((e) => [e.getAttribute('data-testid'), e.innerText]).catch(() => []);
     await pg.locator('[data-testid=menu-this-walk]').click({ timeout: 3000 }).catch(() => {});
     const opened = await pg.waitForSelector('[data-testid=walk-details]', { state: 'visible', timeout: 3000 }).then(() => true, () => false);
-    check.todo(first[0] === 'menu-this-walk' && /This walk\s*\n\s*Started at \d{1,2}:\d{2} [ap]m, .+ walked/.test(first[1] ?? '') && opened,
+    check(first[0] === 'menu-this-walk' && /This walk\s*\n\s*Started at \d{1,2}:\d{2} [ap]m, .+ walked/.test(first[1] ?? '') && opened,
       `walk-drawer-sections ui 1: the menu's first row is This walk, with when it started and how far, and opens it (${JSON.stringify(first)})`);
     await pg.locator('[data-testid=details-settings]').click({ timeout: 3000 }).catch(() => {});
     await pg.waitForSelector('[data-testid=walk-menu]', { state: 'visible', timeout: 3000 }).catch(() => {});
@@ -128,7 +129,7 @@ async function run(h) {
       const heads = sec ? [...sec.querySelectorAll('[role=heading]')] : [];
       return heads.map((h) => parseFloat(getComputedStyle(h).fontSize));
     });
-    check.todo(sizes.length >= 2 && sizes.slice(1).every((x) => sizes[0] > x), `walk-drawer-sections ui 4: Explore's title is larger than its sub-headings (${sizes})`);
+    check(sizes.length >= 2 && sizes.slice(1).every((x) => sizes[0] > x), `walk-drawer-sections ui 4: Explore's title is larger than its sub-headings (${sizes})`);
   }
   // WD13: What I'm into's page returns to this section.
   await pg.locator('[data-testid=into-row]:visible').click({ timeout: 3000 }).catch(() => {});
@@ -231,7 +232,7 @@ async function run(h) {
         const rows = [...document.querySelectorAll('[data-testid=walk-menu] [role=button]')].map((e) => e.getBoundingClientRect());
         return foot ? { n: rows.length, ok: rows.every((r) => r.bottom <= foot.top - 4) } : null;
       });
-      check.todo(!!whole && whole.n === 5 && whole.ok, `walk-drawer-sections ui 2: on a 667 pt phone the menu's five rows are whole above the strip (${JSON.stringify(whole)})`);
+      check(!!whole && whole.n === 5 && whole.ok, `walk-drawer-sections ui 2: on a 667 pt phone the menu's five rows are whole above the strip (${JSON.stringify(whole)})`);
       await shot(p2, 'walkdrawer-06-menu-667');
     }
     await c2.close();

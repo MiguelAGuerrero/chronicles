@@ -36,10 +36,19 @@ export function WalkDetails(props: { linesAt: (now: number) => { key: DetailKey;
 }
 
 /** WD1: the menu, a row per section: its name in ink, how it is set now in a muted line, a chevron. */
-export function WalkSettingsMenu(props: { lines: Record<SectionId, string>; onPick: (id: SectionId) => void }) {
+export function WalkSettingsMenu(props: { lines: Record<SectionId, string>; onPick: (id: SectionId) => void; thisWalk?: { line: string; onPress: () => void } }) {
   return (
     <View testID="walk-menu">
       <Text style={styles.title} accessibilityRole="header">Walk settings</Text>
+      {props.thisWalk && (
+        // ui 1 (the cold find, the owner's call): the … is the door people see, so This walk is its first row.
+        <Row testID="menu-this-walk" label="This walk" said={`This walk, ${props.thisWalk.line}`} onPress={props.thisWalk.onPress}>
+          <View style={styles.rowWords}>
+            <Text style={styles.name} numberOfLines={1}>This walk</Text>
+            <Text style={styles.state}>{props.thisWalk.line}</Text>
+          </View>
+        </Row>
+      )}
       {SECTIONS.map((s) => (
         <Row
           key={s.id}
@@ -96,14 +105,16 @@ function Row(props: { testID: string; label: string; said: string; onPress: () =
 }
 
 const styles = StyleSheet.create({
-  title: { fontSize: 16, fontWeight: '700', color: theme.ink, marginBottom: 4 },
+  // A size above the headings inside a section (ui 4); a heading, not a figure (WD7).
+  title: { fontSize: 18, fontWeight: '700', color: theme.ink, marginBottom: 2 },
   lines: { gap: 6, paddingVertical: 4 },
   // The drawer's body size: no figure larger than the words around it (WD7).
   line: { fontSize: 15, color: theme.ink },
   low: { color: theme.muted },
   rule: { height: StyleSheet.hairlineWidth, backgroundColor: theme.edge, marginTop: 8 },
-  // 48 pt, the switch rows' height (X0); the chevron in ink (Found before quiet, decision 0167).
-  row: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 56, paddingVertical: 4 },
+  // The chevron in ink (Found before quiet, decision 0167).
+  // 48 pt, the switch rows' height (X0), so the menu is whole on a 667 pt phone (ui 2).
+  row: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 48, paddingVertical: 4 },
   rowWords: { flex: 1, gap: 2 },
   name: { flexShrink: 1, fontSize: 15, fontWeight: '600', color: theme.ink },
   state: { fontSize: 14, color: theme.muted },

@@ -58,8 +58,8 @@ import { deriveSegments } from '../lib/streets';
 import { feedback } from '../lib/motion';
 import { MOTION } from '../lib/motionTokens';
 import { recorder } from '../lib/recorder';
-import { loadNoticePrefs, PAUSE_REMIND_MS } from '../lib/notify';
-import type { NoticePrefs } from '../lib/notify/core';
+import { loadNoticePrefs, notifyPermission, PAUSE_REMIND_MS } from '../lib/notify';
+import type { NoticePrefs, Permission } from '../lib/notify/core';
 import { ensureTileBuild } from '../lib/tiles';
 import { startErrorFrom, type RecorderStatus } from '../lib/recorder/types';
 import { raisedAfter, retryRecorder } from '../lib/recorderRetry';
@@ -103,7 +103,7 @@ import { useJourneyBar } from '../lib/outing/useJourneyBar';
 import { CaptureStack } from '../components/walk/CaptureStack';
 import { ReadyBar } from '../components/walk/ReadyBar';
 import { SectionHeader, WalkDetails, WalkSettingsMenu } from '../components/walk/WalkDrawer';
-import { liftedHeight, moreExpanded, numbersTail, ringShown, SECTIONS, sectionLine, stepDrawer, walkDetailLines, type DrawerEvent, type DrawerState, type SectionId } from '../lib/walkDrawer';
+import { liftedHeight, moreExpanded, numbersTail, ringShown, SECTIONS, sectionLine, stepDrawer, thisWalkLine, walkDetailLines, type DrawerEvent, type DrawerState, type SectionId } from '../lib/walkDrawer';
 import { scaleInsetBottom } from '../lib/stackSlots';
 import { BAR_H, CAP, GUTTER, SCALE_BOTTOM, STACK_GAP, useStackLayout } from '../components/walk/layout';
 import { useReady } from '../components/walk/useReady';
@@ -828,11 +828,12 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const [lift] = useState(() => Animated.subtract(BAR_H + insets.bottom, barH));
   // The menu's lines, how each section is set now, in words (WD1): the reminders are read as the menu shows.
   const leaningsOn = useStore(routeLeanings.store, (l) => l.join(','));
-  const [notices, setNotices] = useState<NoticePrefs | null>(null);
+  const [notices, setNotices] = useState<{ prefs: NoticePrefs; permission: Permission | null } | null>(null);
   useEffect(() => {
     if (drawer !== 'menu') return;
     let alive = true;
-    loadNoticePrefs().then((n) => alive && setNotices(n), () => {});
+    // One state update for both reads (performance.md); a permission that fails to read says nothing of it.
+    Promise.all([loadNoticePrefs(), notifyPermission().catch(() => null)]).then(([prefs, permission]) => alive && setNotices({ prefs, permission }), () => {});
     return () => {
       alive = false;
     };
@@ -840,7 +841,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const sectionLines = Object.fromEntries(
     SECTIONS.map((x) => [
       x.id,
-      sectionLine(x.id, { exploring, rangeM: settings.rangeM, leanings: (leaningsOn ? leaningsOn.split(',') : []) as never, notices, motion: motionAccess, units }),
+      sectionLine(x.id, { exploring, rangeM: settings.rangeM, leanings: (leaningsOn ? leaningsOn.split(',') : []) as never, notices: notices?.prefs ?? null, permission: notices?.permission, motion: motionAccess, units }),
     ]),
   ) as Record<SectionId, string>;
   // Read per fix only while This walk shows: the streets near you, a few thousand on a long walk (the plan's cost).
@@ -1823,7 +1824,14 @@ function WalkScreen(props: { onMinimize: () => void }) {
             // WD5: This walk, in words; "Walk settings ›" at its foot (WD9).
             <WalkDetails linesAt={detailLinesAt} onSettings={() => moveDrawer({ type: 'settings' })} />
           )}
-          {drawer === 'menu' && <WalkSettingsMenu lines={sectionLines} onPick={(id) => moveDrawer({ type: 'pick', id })} />}
+          {drawer === 'menu' && (
+            <WalkSettingsMenu
+              lines={sectionLines}
+              onPick={(id) => moveDrawer({ type: 'pick', id })}
+              // ui 1: This walk is reached from the … too.
+              thisWalk={walk ? { line: thisWalkLine({ startedAt: walk.started_at, distanceM: live.distanceM, units }), onPress: () => moveDrawer({ type: 'details' }) } : undefined}
+            />
+          )}
           {drawer === 'explore' && (
             <View testID="walk-section-explore">
               <SectionHeader id="explore" onBack={() => moveDrawer({ type: 'back' })} />
