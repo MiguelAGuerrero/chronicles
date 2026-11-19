@@ -77,8 +77,8 @@ so nothing known is found twice. Then look through each lens; a finding names
 its lens, its evidence (a picture, a file and line, a failing input) and its
 source.
 
-0. **The expectation** (decision 0236), first in each `/tend` run (one iteration) but a triage: the feature's lines in
-   `docs/expectations/<feature>.md`, each met with evidence, failed (section 3) or lacking (section 9); `expectations.md`.
+0. **The expectation** (decision 0236), first in each `/tend` run (one iteration) but a triage: the lines of the run's area (a sweep's area,
+   or the area of the entry a build builds), each met with evidence, failed (section 3) or lacking (section 9); `expectations.md`.
 1. **The screens as a person sees them.** In the worktree, run the area's
    journeys (`docs/TESTING.md`, "Choosing the journeys") with
    `E2E_SHOTS=<scratchpad>/tend-shots`. A screen of the area with no journey
@@ -485,8 +485,8 @@ The owner picks; the loop never starts a `G` entry unasked.
      skipped: say the record is not on `main`.
 4. `.claude/skills/ship.md`, "Clean up".
 5. **Then ask the owner** about this run's new entries with AskUserQuestion
-   (the recommended shape first, four entries per call), and its drafted expectation lines (`expectations.md`, step 2). Their answers are a
-   new run: `/tend inbox …`, section 7, never work added to this one.
+   (the recommended shape first, four entries per call). Their answers are a new run: `/tend inbox …`, section 7, never work added to this
+   one; but its drafted expectation lines are answered by the answer commit the orchestrator makes before the next run, never `/tend inbox`.
 
 ## Report
 

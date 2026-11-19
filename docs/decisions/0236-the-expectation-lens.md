@@ -46,8 +46,9 @@ and briefs, the `steward` and the `auditor`, and the scripts:
 2. **Checkable expectations.** Each line says what a person sees or does and names its check: a journey check, a
    unit test, a picture a journey takes, or "pending" while none exists. `met` needs that check to exist and pass,
    or a picture while it is pending. The `auditor` checks each `met`'s evidence exists and really tests the line.
-3. **The lens, every run.** Each `/tend` run (one iteration) but a triage applies lens 0 first to each feature it
-   touches: which lines the feature meets, fails (a defect) and lacks (growth).
+3. **The lens, every run.** Each `/tend` run (one iteration) but a triage applies lens 0 first to the lines of the
+   run's area (a sweep's area, or the area of the entry a build builds): which it meets, fails (a defect) and lacks
+   (growth). A drafted line is answered by the orchestrator's answer commit before the next run, never `/tend inbox`.
 4. **The compass in triage.** Every finding names the expectation or the rule it serves. A refinement that serves
    no expectation and breaks no rule or shipped criterion is filed `[loop]` low, not shipped. A defect against an
    expectation is triaged as any other finding.

@@ -1,9 +1,9 @@
 # Lens 0: the expectation (decision 0236)
 
 `/tend` section 2's first lens, in full. The owner's test: "given this feature, what would I, a user, expect reasonably
-to be provided?" Each `/tend` run (one iteration) but a triage applies it before the other lenses, to each feature the
-run touches (`scripts/features.js` names): a sweep to its area, an inbox build to the feature it builds, `evolve` to the
-features it proposes for. A run touches the lines of its own area only.
+to be provided?" Each `/tend` run (one iteration) but a triage applies it before the other lenses, to the lines of the
+run's area (a sweep's area, or the area of the entry a build builds), or for an `evolve` run of the area it proposes
+for. An area is a feature of `scripts/features.js`, and `tend:log` takes no other area's lines.
 
 ## The store
 
@@ -38,7 +38,8 @@ the operations are in `scripts/expectations.js`'s header). A line, its text on o
    first review pause (an `evolve` run, before it files) against VISION's Never lines and the persona; a line it flags
    is dropped and named. Then `npm run expectations -- draft <feature> --file <lines>` with the rest. They are
    proposed: used provisionally in this run, and put to the owner (section 10, step 5: one question per feature, its
-   lines grouped, "Ratify as drafted" first; under the orchestrator, its batch).
+   lines grouped, "Ratify as drafted" first; under the orchestrator, its batch), whose answer is recorded as "The
+   owner's answer: one flow" says.
 3. **Awaiting the owner:** test against the proposed lines, provisionally; draft nothing more.
 4. **Ratified lines: test against them.** A line the run finds wrong or thin is answered with
    `npm run expectations -- amend <id> --file <line>`, checked by the steward the same way; never an edit.
@@ -60,6 +61,8 @@ the operations are in `scripts/expectations.js`'s header). A line, its text on o
    "compass":{"shipped":2,"filedLow":3,"lensG":["G9"]},"shots":"<the run's shots folder>"
    ```
 
+   `shots` is a path: `tend:log` checks the pictures under it and leaves it out of the line it writes.
+
    `npm run tend:log` marks the line `"lens":"0236"` and refuses a sweep, or a run whose range built an entry, without
    them; an id the store does not hold, of another area, or named twice; a proposed line not marked provisional; a
    `met` whose evidence is not its own found check (or, while that is pending, such a picture). The run's JSON never
@@ -67,17 +70,18 @@ the operations are in `scripts/expectations.js`'s header). A line, its text on o
 
 ## The owner's answer: one flow
 
-A `/tend` run never records an answer to an expectation line. The owner answers the proposed lines the run put to
-them, and whoever asked records it, verbatim, in a commit of its own, made in a worktree of its own from `origin/main`
-and landed on `main` before or between runs, never inside one:
+A `/tend` run never records an answer to an expectation line: a drafted line is answered by the answer commit the
+orchestrator makes before the next run, never `/tend inbox`. The owner answers the proposed lines the run put to them,
+and the orchestrator records it, verbatim, in a commit of its own, made in a worktree of its own from `origin/main` and
+landed on `main` before or between runs, never inside one:
 
 ```
 npm run expectations -- ratify|decline <ids> --by owner --date <date> --answer "<the owner's words>"
 git commit -m "expectations <feature>: the owner's answer, <date>" (with the session's trailers)
 ```
 
-Under the orchestrator it is the orchestrator's (its section 2); when the owner answers a run's question directly,
-the next session records it the same way before its run. `check:tend`, which CI runs on every push, reads every agent
+It is the orchestrator's (its section 2); when the owner answers a run's question outside an orchestrated session, the
+next session's orchestrator records it the same way before its first run. `check:tend`, which CI runs on every push, reads every agent
 commit (by its trailers), a loop commit or not: only that answer commit changes a line's status, and only from
 proposed to ratified or declined, dated as its subject says, with the line a ratified amendment replaces superseded;
 any other agent commit keeps every line's words, status, grounds and answer. The scripts cannot tell the owner from an

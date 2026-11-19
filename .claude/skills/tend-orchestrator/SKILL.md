@@ -112,7 +112,8 @@ Also before the first run:
    owner`): number, tag and title as `main` holds them.
    **Proposed expectation lines** (`/tend` lens 0, decision 0236; `node <main-tools>/scripts/expectations.js
    list`, the `proposed` ones) go in the same batch: one AskUserQuestion per feature, its lines grouped,
-   "Ratify as drafted" first. They are identity, never the proxy's (0157). On the answer, run
+   "Ratify as drafted" first. They are identity, never the proxy's (0157). A drafted line is answered by
+   the answer commit the orchestrator makes before the next run, never `/tend inbox`: on the answer, run
    `npm run expectations -- ratify|decline <ids> --by owner --date <date> --answer "<verbatim>"` yourself,
    in a worktree of your own from `origin/main`, as one commit,
    `expectations <feature>: the owner's answer, <date>`, with your trailers, and push it to `main` before or
