@@ -455,7 +455,7 @@ async function run(h) {
     };
   });
   await pg.waitForTimeout(100);
-  await pg.locator('[data-testid=start-settings] [data-testid=into-row]').click({ timeout: 5000 }).catch((e) => console.log('# into-row click:', String(e).split('\n')[0].slice(0, 160), '| rows', 0));
+  await pg.locator('[data-testid=start-settings] [data-testid=into-row]').click({ timeout: 5000 }).catch(async (e) => console.log('# into-row click:', String(e).split('\n')[0].slice(0, 120), JSON.stringify({ settings: await pg.locator('[data-testid=start-settings]').count(), visible: await pg.locator('[data-testid=start-settings]').isVisible().catch(() => null), row: await pg.locator('[data-testid=into-row]').count(), rowVisible: await pg.locator('[data-testid=into-row]').first().isVisible().catch(() => null), bar: await pg.locator('[data-testid=ready-bar]').boundingBox().catch(() => null), panel: await pg.locator('[data-testid=layers-panel]').count() })));
   await pg.waitForSelector('[data-testid=into-page]', { state: 'visible', timeout: 2000 }).catch(() => {});
   const earlyShown = await pageShown();
   const early = await pg.locator('[data-testid=into-page] [data-testid^=kind-]').count();
