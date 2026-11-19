@@ -432,9 +432,11 @@ function fullPassDue(lines, today, days = 7) {
 }
 
 const COMPASS_WINDOW = 12;
-// A half's shipped share must move by more than this to read as falling or rising, and each half must hold this
-// many refinement findings (shipped and filed low) before any trend is read.
-const COMPASS_STEP = 0.05;
+// A half's shipped share must move by this much at least, and by this many findings at least (the move times the later
+// half's findings), to read as falling or rising; each half must hold COMPASS_MIN refinement findings (shipped and
+// filed low) before any trend is read.
+const COMPASS_STEP = 0.1;
+const COMPASS_MOVE = 2;
 const COMPASS_MIN = 3;
 
 /**
@@ -477,8 +479,11 @@ function compassReading(runs, window = COMPASS_WINDOW) {
   const shares = { first: last.length >= 2 ? share(early) : null, second: last.length >= 2 ? share(late) : null };
   // A trend is read only from enough refinement in each half: a null share, or fewer than three findings, is none.
   const enough = last.length >= 2 && found(early) >= COMPASS_MIN && found(late) >= COMPASS_MIN;
-  const trend = !enough ? 'none' : shares.second < shares.first - COMPASS_STEP ? 'falling' : shares.second > shares.first + COMPASS_STEP ? 'rising' : 'flat';
-  const quiet = enough && late.shipped === 0;
+  const move = enough ? shares.second - shares.first : 0;
+  const moved = Math.abs(move) >= COMPASS_STEP - 1e-9 && Math.abs(move) * found(late) >= COMPASS_MOVE - 1e-9;
+  const trend = !enough ? 'none' : !moved ? 'flat' : move < 0 ? 'falling' : 'rising';
+  // Nothing shipped in either half, with refinement in both: everything the loop found waited for a reason.
+  const quiet = enough && late.shipped === 0 && early.shipped === 0;
   const verdict =
     last.length < window
       ? `too early to say: ${last.length} of ${window} runs carry the compass`

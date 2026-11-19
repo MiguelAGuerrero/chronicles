@@ -62,7 +62,8 @@ and briefs, the `steward` and the `auditor`, and the scripts:
    by the compass, the `G` entries lens 0 filed). `node scripts/tend.js compass` reads them: per run and in sum, and,
    once twelve runs carry them ("too early to say" before), whether the share of refinement shipped over the last
    twelve is falling ("the compass is biting") or not ("the compass is not biting: tighten it"), read only when each
-   half holds three refinement findings at least ("too few refinement findings to say" otherwise). It is read at
+   half holds three refinement findings at least ("too few refinement findings to say" otherwise), and a move counts
+   only at a tenth of the share and two findings at least. It is read at
    every landing and kept in the ledger by `tend:balance --write`.
 7. **Scripts decide what they can.** `npm run expectations` (`scripts/expectations.js`) is the only way the store
    changes: `draft` refuses a duplicate, a line not in the form, fewer than three in a first draft or more than five

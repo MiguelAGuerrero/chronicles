@@ -89,7 +89,7 @@ question, and the proxy never ratifies.
 `node scripts/tend.js compass [--runs N]` (N a whole number, 2 at least) reads the run log: per run and in sum,
 refinement shipped against filed low, lens-0 `G` entries, and lines met, failed, lacking (ratified) or provisional.
 Until twelve runs carry it, it says "too early to say". Then, over the last twelve, a trend is read only when each half
-holds three refinement findings at least: a falling share of refinement shipped, or none shipped in the later half, is
-"the compass is biting"; flat or rising is "the compass is not biting: tighten it"; fewer findings say "too few
-refinement findings to say". `npm run tend:balance -- --write` keeps the reading in the ledger as `compass`. There is
+holds three refinement findings at least, and a move counts only when the share of refinement shipped changes by a
+tenth and by two findings at least: falling, or nothing shipped in either half, is "the compass is biting"; flat or
+rising is "the compass is not biting: tighten it"; fewer findings say "too few refinement findings to say". `npm run tend:balance -- --write` keeps the reading in the ledger as `compass`. There is
 no ten-run checkpoint (the owner): it is read at every landing.
