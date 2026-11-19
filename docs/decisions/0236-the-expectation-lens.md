@@ -78,7 +78,11 @@ and briefs, the `steward` and the `auditor`, and the scripts:
    which CI runs on every push, reads every agent commit by its trailers: only the owner's answer commit,
    `expectations <feature>: the owner's answer, <date>`, changes a line's status (proposed to ratified or declined,
    dated as its subject says, and the line a ratified amendment replaces superseded), made outside any `/tend` run;
-   no other agent commit changes a line's words, status, grounds or answer.
+   no other agent commit changes a line's words, status, grounds or answer. Both paths of a renamed store file are
+   read; a revert is taken when it puts each store file back as it stood before the commits it reverts (ship.md, "A
+   red run"); a line whose check vanished may go back to pending. `draft`, `amend` and `set-check` refuse a check
+   they cannot find, and a template message is named by its fixed text before the first `${`, when that is 12
+   characters at least and unique in its journey.
 8. **What the scripts cannot know.** They cannot tell the owner from an agent: `--by owner` and the answer commit's
    subject are written by whoever records the answer. An answer is trusted as every recorded answer is under 0157:
    the orchestrator writes the owner's words verbatim from the question it asked, and the proxy never ratifies.
