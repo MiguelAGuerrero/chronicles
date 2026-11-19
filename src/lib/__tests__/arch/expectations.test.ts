@@ -383,7 +383,7 @@ test('expectations audit 21: draft and set-check refuse a check they cannot find
 
 test('expectations audit 9: a drafted line\'s answer goes to the orchestrator\'s answer commit, and every document says the same lines', () => {
   const flat = (f: string) => read(f).replace(/\s+/g, ' ');
-  const answer = 'the answer commit the orchestrator makes before the next run, never `/tend inbox`';
+  const answer = 'a drafted line is answered by the answer commit, never `/tend inbox`';
   for (const f of ['.claude/skills/tend/SKILL.md', '.claude/skills/tend/expectations.md', '.claude/skills/tend-orchestrator/SKILL.md']) assert.ok(flat(f).includes(answer), f);
   const area = "the lines of the run's area (a sweep's area, or the area of the entry a build builds)";
   for (const f of ['.claude/skills/tend/SKILL.md', '.claude/skills/tend/expectations.md', 'docs/decisions/0236-the-expectation-lens.md']) {
@@ -476,6 +476,17 @@ test('expectations audit 25: a template named only by its id is refused; twelve 
   assert.equal(ex.resolveCheck('memories:"MR3: a later walk brings back "', i), 'ok', 'an id, then words');
   const named = ex.checkProblems([ex.parseStore(STORE.replace('memories:"a later walk passing a flagged capture brings it back"', 'memories:"tend tabs audit 3: "').replace(/test:"[^"]*"/, 'pending "x"'), 'memories')], i, ['memories']);
   assert.ok(named.some((p) => /a template message: name it by its fixed text, which must be unique/.test(p.message)), named.map((p) => p.message).join('\n'));
+});
+
+test('expectations audit 26: the session that asked the owner makes the answer commit, outside any run, after its run has landed', () => {
+  const flat = (f: string) => read(f).replace(/\s+/g, ' ');
+  const who = 'the session that asked the owner makes the answer commit, outside any run and after its run has landed';
+  const plain = 'a plain `/tend` session asks at its step 5 and then commits the answer the same way, never inside the run\'s own commits';
+  for (const f of ['.claude/skills/tend/SKILL.md', '.claude/skills/tend/expectations.md', '.claude/skills/tend-orchestrator/SKILL.md']) {
+    assert.ok(flat(f).includes(who), `${f}: who records it`);
+    assert.ok(flat(f).includes(plain), `${f}: a plain /tend session too`);
+    assert.doesNotMatch(flat(f), /next session's orchestrator records it/, `${f}: no session records words it never heard`);
+  }
 });
 
 test('expectations 0236: a store file reads into lines with their status, check and grounds, and writes back the same', () => {
