@@ -511,6 +511,9 @@ async function wholeTowns(h) {
       check(back.pins.length + back.dots.length >= 6, `PL2: switched on again, the places are back (${back.pins.length} "?", ${back.dots.length} dots; switch ${before} -> ${after})`);
       const panel = await pg.locator('[data-testid=layers-panel]').innerText().catch(() => '');
       check(!/find|left|remaining|unfound/i.test(panel), 'PL7: nothing in the panel says what is left to find');
+      // Leave the map as it was found: a panel left open would take the next map tap (tapDoes closes it first).
+      await pg.keyboard.press('Escape');
+      await pg.waitForTimeout(600);
     }
 
     // WT13: a tap on a dot eases the map in around it until it is a "?". Zoomed out the murals lie under their "?" (a tap
