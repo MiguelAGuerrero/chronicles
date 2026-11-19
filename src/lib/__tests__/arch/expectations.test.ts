@@ -380,6 +380,17 @@ test('expectations audit 21: draft and set-check refuse a check they cannot find
   assert.ok(ex.amend(store(), 'E-memories-1', line('x.', 'picture:14-nothing'), i).problems.length > 0, 'an amendment too');
 });
 
+test('expectations audit 9: a drafted line\'s answer goes to the orchestrator\'s answer commit, and every document says the same lines', () => {
+  const flat = (f: string) => read(f).replace(/\s+/g, ' ');
+  const answer = 'the answer commit the orchestrator makes before the next run, never `/tend inbox`';
+  for (const f of ['.claude/skills/tend/SKILL.md', '.claude/skills/tend/expectations.md', '.claude/skills/tend-orchestrator/SKILL.md']) assert.ok(flat(f).includes(answer), f);
+  const area = "the lines of the run's area (a sweep's area, or the area of the entry a build builds)";
+  for (const f of ['.claude/skills/tend/SKILL.md', '.claude/skills/tend/expectations.md', 'docs/decisions/0236-the-expectation-lens.md']) {
+    assert.ok(flat(f).includes(area), f);
+    assert.doesNotMatch(flat(f), /(each|per) feature (it|the run) touches/, `${f}: one wording`);
+  }
+});
+
 test('expectations 0236: a store file reads into lines with their status, check and grounds, and writes back the same', () => {
   const s = store();
   assert.deepEqual(s.problems, []);
