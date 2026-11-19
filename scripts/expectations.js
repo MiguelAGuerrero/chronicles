@@ -216,11 +216,13 @@ function parseDraft(text) {
 const nextN = (store) => Math.max(0, ...store.entries.map((e) => e.n)) + 1;
 const inForce = (store) => store.entries.filter((e) => e.status === 'ratified' || (e.status === 'proposed' && e.amends === undefined)).length;
 
-function newLines(store, lines, amends) {
+function newLines(store, lines, amends, index) {
   const problems = [];
   const seen = new Map(store.entries.map((e) => [norm(e.text), e.id]));
   for (const l of lines) {
     problems.push(...lineProblems(l));
+    // A check the script cannot find is refused at the write, so no write of the loop's reddens check:docs (audit 21).
+    if (index && parseCheck(l.check) && resolveCheck(l.check, index, store.feature) === 'missing') problems.push(missingWhy(`"${String(l.text).slice(0, 60)}"`, l.check, index));
     const was = seen.get(norm(l.text ?? ''));
     if (was) problems.push(`"${String(l.text).slice(0, 60)}" is already ${was}`);
     seen.set(norm(l.text ?? ''), 'in this file');
@@ -240,29 +242,29 @@ function newLines(store, lines, amends) {
 }
 
 /** Proposed lines, numbered on from the file's highest; a first draft has three to five, and five at most stand. */
-function draft(store, lines) {
-  return settle(store, draftOf(store, lines));
+function draft(store, lines, index) {
+  return settle(store, draftOf(store, lines, index));
 }
 
-function draftOf(store, lines) {
+function draftOf(store, lines, index) {
   const now = inForce(store);
   if (now === 0 && lines.length < FIRST) return { store, ids: [], problems: [`a first draft of ${store.feature} has three lines at least, five at most`] };
   if (now + lines.length > MOST) return { store, ids: [], problems: [`${store.feature} has ${now} lines in force and five at most stand: amend one (npm run expectations -- amend <id>) instead`] };
-  return newLines(store, lines);
+  return newLines(store, lines, undefined, index);
 }
 
 /** A proposed amendment of a ratified line; the line stands as it is until the owner ratifies the amendment. */
-function amend(store, id, line) {
-  return settle(store, amendOf(store, id, line));
+function amend(store, id, line, index) {
+  return settle(store, amendOf(store, id, line, index));
 }
 
-function amendOf(store, id, line) {
+function amendOf(store, id, line, index) {
   const target = store.entries.find((e) => e.id === id);
   if (!target) return { store, ids: [], problems: [`${id} is no line of ${fileOf(store.feature)}`] };
   if (target.status !== 'ratified') return { store, ids: [], problems: [`${id} is ${target.status}: only a ratified line is amended (a proposed one waits for the owner's answer)`] };
   const open = store.entries.find((e) => e.amends === id && e.status === 'proposed');
   if (open) return { store, ids: [], problems: [`${id} already has an open amendment, ${open.id}: it waits for the owner's answer`] };
-  return newLines(store, [line], id);
+  return newLines(store, [line], id, index);
 }
 
 /** The owner's answer to proposed lines: ratified (a ratified amendment supersedes the line it amends) or declined. */
@@ -311,6 +313,7 @@ function setCheckOf(store, id, check, index) {
   const e = store.entries.find((x) => x.id === id);
   if (!e) return { store, ids: [], problems: [`${id} is no line of ${fileOf(store.feature)}`] };
   if (!parseCheck(check)) return { store, ids: [], problems: [`${check} is in no form: <journey>:"<check text>", test:"<test name>", picture:<shot name> or pending "<what it will show>"`] };
+  if (index && parseCheck(check).kind !== 'pending' && resolveCheck(check, index, store.feature) === 'missing') return { store, ids: [], problems: [missingWhy(id, check, index)] };
   const vanished = index && resolveCheck(e.check, index, store.feature) === 'missing';
   if (parseCheck(e.check)?.kind !== 'pending' && parseCheck(check).kind === 'pending' && !vanished) {
     return { store, ids: [], problems: [`${id} is checkable (${e.check}): its check moves to another check, never back to pending while it is there`] };
@@ -690,7 +693,7 @@ function main(argv) {
     if (!features.includes(feature)) return fail([`${feature || '(none)'} is no feature of scripts/features.js`]);
     const read = parseDraft(body());
     if (read.problems.length) return fail(read.problems);
-    const r = draft(storeOf(feature), read.lines);
+    const r = draft(storeOf(feature), read.lines, readIndex(ROOT));
     if (r.problems.length) return fail(r.problems);
     write(r.store);
     console.log(`draft ${feature}: ${r.ids.join(', ')} proposed in ${fileOf(feature)}`);
@@ -702,7 +705,7 @@ function main(argv) {
     const read = parseDraft(body());
     if (read.lines.length !== 1) read.problems.push('an amendment is one line');
     if (read.problems.length) return fail(read.problems);
-    const r = amend(storeOf(feature), args[0], read.lines[0]);
+    const r = amend(storeOf(feature), args[0], read.lines[0], readIndex(ROOT));
     if (r.problems.length) return fail(r.problems);
     write(r.store);
     console.log(`amend: ${r.ids[0]} proposed, amending ${args[0]}, in ${fileOf(feature)}`);
