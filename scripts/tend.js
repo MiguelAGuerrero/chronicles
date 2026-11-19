@@ -413,15 +413,18 @@ function fullPassDue(lines, today, days = 7) {
 }
 
 const COMPASS_WINDOW = 12;
-// A half's shipped share must move by more than this to read as falling or rising.
+// A half's shipped share must move by more than this to read as falling or rising, and each half must hold this
+// many refinement findings (shipped and filed low) before any trend is read.
 const COMPASS_STEP = 0.05;
+const COMPASS_MIN = 3;
 
 /**
  * The compass (decision 0234), read from the run log: per run that carries `compass` and in sum, the refinement
  * shipped against the refinement the compass filed low, the G entries lens 0 filed, and the store lines met, failed
- * and lacking (ratified) or provisional. Over the last `window` such runs, the shipped share of refinement in the
- * later half against the earlier: falling, or nothing shipped in the later half, is "the compass is biting"; after
- * `window` runs, anything else is "not biting: tighten it". No checkpoint: it is read at every landing.
+ * and lacking (ratified) or provisional. Until `window` runs carry it, "too early to say". Then, over the last `window`,
+ * with at least COMPASS_MIN refinement findings in each half: the later half's shipped share falling, or nothing
+ * shipped in it, is "the compass is biting"; flat or rising is "not biting: tighten it"; too few findings says so.
+ * No checkpoint: it is read at every landing.
  */
 function compassReading(runs, window = COMPASS_WINDOW) {
   const rows = runs
@@ -449,21 +452,22 @@ function compassReading(runs, window = COMPASS_WINDOW) {
   };
   const last = rows.slice(-window);
   const half = Math.floor(last.length / 2);
-  const share = (xs) => {
-    const s = add(xs);
-    return s.shipped + s.filedLow ? Math.round((s.shipped / (s.shipped + s.filedLow)) * 100) / 100 : null;
-  };
-  const shares = { first: last.length >= 2 ? share(last.slice(0, half)) : null, second: last.length >= 2 ? share(last.slice(half)) : null };
-  const a = shares.first ?? 0;
-  const b = shares.second ?? 0;
-  const trend = last.length < 2 ? 'none' : b < a - COMPASS_STEP ? 'falling' : b > a + COMPASS_STEP ? 'rising' : 'flat';
-  const quiet = last.length >= 2 && add(last.slice(half)).shipped === 0;
+  const [early, late] = [add(last.slice(0, half)), add(last.slice(half))];
+  const found = (h) => h.shipped + h.filedLow;
+  const share = (h) => (found(h) ? Math.round((h.shipped / found(h)) * 100) / 100 : null);
+  const shares = { first: last.length >= 2 ? share(early) : null, second: last.length >= 2 ? share(late) : null };
+  // A trend is read only from enough refinement in each half: a null share, or fewer than three findings, is none.
+  const enough = last.length >= 2 && found(early) >= COMPASS_MIN && found(late) >= COMPASS_MIN;
+  const trend = !enough ? 'none' : shares.second < shares.first - COMPASS_STEP ? 'falling' : shares.second > shares.first + COMPASS_STEP ? 'rising' : 'flat';
+  const quiet = enough && late.shipped === 0;
   const verdict =
-    last.length >= 2 && (trend === 'falling' || quiet)
-      ? 'the compass is biting'
-      : last.length >= window
-        ? 'the compass is not biting: tighten it'
-        : `too early to say: ${last.length} of ${window} runs carry the compass`;
+    last.length < window
+      ? `too early to say: ${last.length} of ${window} runs carry the compass`
+      : trend === 'falling' || quiet
+        ? 'the compass is biting'
+        : trend === 'none'
+          ? `too few refinement findings to say: ${found(early)} and ${found(late)} in the halves, ${COMPASS_MIN} each at least`
+          : 'the compass is not biting: tighten it';
   const date = rows.length ? rows[rows.length - 1].date : null;
   return { rows, sum: add(rows), shares, trend, verdict, ledger: { date, runs: last.length, shares, trend, verdict } };
 }
@@ -831,7 +835,15 @@ if (require.main === module) {
   else if (cmd === 'log') appendLog(argv);
   else if (cmd === 'commits') commits(argv);
   else if (cmd === 'e2e-due') e2eDue(argv);
-  else if (cmd === 'compass') process.stdout.write(compassText(compassReading(readRuns(), Number(argv[argv.indexOf('--runs') + 1]) || COMPASS_WINDOW)));
+  else if (cmd === 'compass') {
+    const at = argv.indexOf('--runs');
+    const n = at >= 0 ? Number(argv[at + 1]) : COMPASS_WINDOW;
+    if (!Number.isInteger(n) || n < 2) {
+      console.error('usage: node scripts/tend.js compass [--runs N], N a whole number, 2 at least');
+      process.exit(2);
+    }
+    process.stdout.write(compassText(compassReading(readRuns(), n)));
+  }
   else if (require('./bookkeeping').COMMANDS[cmd]) process.exitCode = require('./bookkeeping').main([cmd, ...argv]);
   else {
     console.error('usage: node scripts/tend.js balance [--days N] [--write] | next | log <range> "<json>" | commits [--loop-only] <range> | e2e-due [--days N] [--json] | compass [--runs N] | next-decision | next-audit | files | landed | review-paths | items (scripts/bookkeeping.js)');
