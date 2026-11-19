@@ -276,6 +276,15 @@ function tendCommitProblems({ subject, body, files, added = '', rewritesLog = fa
 const RULE_FILE = /^\.claude\/rules\/[^/]+\.md$/;
 const STORE_FILE = /^docs\/expectations\/(?!README\.md$)([^/]+)\.md$/;
 
+/** The store files a commit touches, from `git show --name-status`: both paths of a rename or a copy. */
+function storeFilesOf(nameStatus) {
+  return nameStatus
+    .split('\n')
+    .filter(Boolean)
+    .flatMap((l) => l.split('\t').slice(1))
+    .filter((p) => STORE_FILE.test(p));
+}
+
 /** A revision's full sha, or null when it names no commit here. */
 function tryRev(rev) {
   try {
@@ -790,7 +799,7 @@ function commits(argv) {
   const storeEdits = (sha) => {
     const message = git('show', '-s', '--format=%B', sha);
     const subject = message.split('\n')[0].trim();
-    const changed = git('show', '--name-only', '--format=', sha).split('\n').filter((p) => STORE_FILE.test(p));
+    const changed = [...new Set(storeFilesOf(git('show', '--name-status', '--format=', sha)))];
     const oldest = revertedFrom(message);
     return changed.flatMap((p) => {
       if (oldest && at(sha, p) === at(`${oldest}^`, p)) return [];
