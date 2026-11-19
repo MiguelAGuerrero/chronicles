@@ -420,14 +420,21 @@ async function run(h) {
 
   // what-im-into-page audit 6: in the ready bar too, with Places off and Sights on the row stays; with Sights off it goes.
   {
+    // The raised bar covers the Layers button: lower it, switch, raise it again.
+    await pg.keyboard.press('Escape');
+    await pg.waitForTimeout(500);
     await switchLayer(pg, 'places', false);
+    await drawerTo(pg, 'half');
     await pg.waitForTimeout(400);
     const quietSights = await pg.locator('[data-testid=start-settings] [data-testid=into-row]').count();
     await pg.click('[data-testid=start-settings] [data-testid=leaning-sights]');
     await pg.waitForTimeout(400);
     const quietNone = await pg.locator('[data-testid=start-settings] [data-testid=into-row]').count();
     await pg.click('[data-testid=start-settings] [data-testid=leaning-sights]');
+    await pg.keyboard.press('Escape');
+    await pg.waitForTimeout(500);
     await switchLayer(pg, 'places', true);
+    await drawerTo(pg, 'half');
     await pg.waitForTimeout(400);
     check(quietSights === 1 && quietNone === 0, `what-im-into-page audit 6: the ready bar's row shows with Places off and Sights on, and not with Sights off too (${quietSights}, ${quietNone})`);
   }
@@ -495,14 +502,22 @@ async function run(h) {
   // what-im-into-page audit 6: Sights (scenic routes) reads the kinds too: with Places off and Sights on the row stays;
   // with both off it goes.
   {
+    await pg.click('[data-testid=walk-summary]');
+    await pg.waitForTimeout(500);
     await switchLayer(pg, 'places', false);
+    await pg.click('[data-testid=walk-summary]');
+    await pg.waitForSelector('[data-testid=options-card]');
     await pg.waitForTimeout(400);
     const withSights = await pg.locator('[data-testid=options-card] [data-testid=into-row]').count();
     await pg.click('[data-testid=options-card] [data-testid=leaning-sights]');
     await pg.waitForTimeout(400);
     const neither = await pg.locator('[data-testid=options-card] [data-testid=into-row]').count();
     await pg.click('[data-testid=options-card] [data-testid=leaning-sights]');
+    await pg.click('[data-testid=walk-summary]');
+    await pg.waitForTimeout(500);
     await switchLayer(pg, 'places', true);
+    await pg.click('[data-testid=walk-summary]');
+    await pg.waitForSelector('[data-testid=options-card]');
     await pg.waitForTimeout(400);
     check(withSights === 1 && neither === 0, `what-im-into-page audit 6: the walk's row shows with Sights on and Places off, and not with both off (${withSights}, ${neither})`);
   }

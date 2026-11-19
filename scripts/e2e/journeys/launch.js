@@ -604,6 +604,9 @@ async function fresh(h) {
       const nav = JSON.parse((await metaOf(pg, 'nav')) || 'null');
       check(said && w && !(await metaOf(pg, 'explore_walk')) && !(await metaOf(pg, `explored:${w.id}`)) && nav?.walk_id === w.id,
         'Start with a destination opens the walk with no mode written, its destination saved for it, saying it is recording (NV25, MD12)');
+      // The walk opened with the ready bar's drawer up, over the Layers button: lower it first.
+      await pg.keyboard.press('Escape');
+      await pg.waitForTimeout(600);
       await switchLayer(pg, 'places');
       check(!!(await metaOf(pg, `walk_layers:${w.id}`)) && /\[\[\d+,null\]\]/.test((await metaOf(pg, `places_spans:${w.id}`)) ?? ''), 'turning Places on from the walk keeps its own layers and a span for the replay (MD9, MD10)');
       await pg.click('[data-testid=walk-summary]');
