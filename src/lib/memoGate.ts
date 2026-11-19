@@ -13,10 +13,11 @@ import { stopUnderOf, type StopUnder } from './unsaved/stopEnd/core';
  */
 export function createMemoGate() {
   const on = new Set<object>();
-  /** Each memo save under way: its number (T35) and its capture path (tend tabs audit 44). */
-  const saves = new Map<Promise<unknown>, { n: number; owner: unknown }>();
+  /** Each memo save under way: its number (T35), its capture path (tend tabs audit 44) and its walk (audit 49). */
+  const saves = new Map<Promise<unknown>, { n: number; owner: unknown; walk: string | null }>();
   let numbered = 0;
-  const keeps = new Set<Promise<unknown>>();
+  /** Each photo or video being kept, by its walk (tend tabs audit 49). */
+  const keeps = new Map<Promise<unknown>, string | null>();
   /** Stops that went through a save, each until its walk's drop is decided (T35). */
   const pins = new Set<object>();
   return {
@@ -24,17 +25,17 @@ export function createMemoGate() {
      * A photo or video being kept, from any capture path (capture-from-chronicle audit 6): Stop from the
      * recording bar waits for it, so a capture from Memories' band lands before the walk ends.
      */
-    keep(p: Promise<unknown>) {
+    keep(p: Promise<unknown>, walk: string | null = null) {
       const settled = p.then(
         () => {},
         () => {},
       );
-      keeps.add(settled);
+      keeps.set(settled, walk);
       void settled.then(() => keeps.delete(settled));
     },
     /** Resolves once every capture being kept has landed (or failed). */
     async kept(): Promise<void> {
-      while (keeps.size) await Promise.all([...keeps]);
+      while (keeps.size) await Promise.all([...keeps.keys()]);
     },
     /** A capture path's memo started or stopped. */
     recording(owner: object, recording: boolean) {
@@ -46,12 +47,12 @@ export function createMemoGate() {
       return on.size > 0;
     },
     /** A memo's save (or stop) under way, of the capture path `owner`; a start waits for it. */
-    track(p: Promise<unknown>, owner: unknown = null) {
+    track(p: Promise<unknown>, owner: unknown = null, walk: string | null = null) {
       const settled = p.then(
         () => {},
         () => {},
       );
-      saves.set(settled, { n: ++numbered, owner });
+      saves.set(settled, { n: ++numbered, owner, walk });
       void settled.then(() => saves.delete(settled));
     },
     /** True once every save under way has ended and no memo records. */
@@ -62,6 +63,10 @@ export function createMemoGate() {
     /** What a Stop meets once its wait is over (T35), decided in core from this gate's state (tend tabs audit 43). */
     stopUnder(warned: readonly number[]): StopUnder {
       return stopUnderOf({ saving: [...saves.values()], on: [...on], warned });
+    },
+    /** The memo saves and kept photos under way into one walk, each settling when it ends (tend tabs audit 49). */
+    savesOf(walkId: string): Promise<unknown>[] {
+      return [...[...saves].filter(([, s]) => s.walk === walkId).map(([p]) => p), ...[...keeps].filter(([, w]) => w === walkId).map(([p]) => p)];
     },
     /** A memo recording or being saved, a photo or video being kept, or a stop through one: the walk is not dropped. */
     underWay(): boolean {

@@ -3,6 +3,7 @@ import { type Faced, facedAll, hasMore, pieceKey } from '../moment';
 import { db } from '../db';
 import { forgetRecalls, setRecallHidden } from '../discovery/recallCheck';
 import { mediaBytes, removeMedia } from '../media';
+import { memoGate } from '../memoGate';
 import type { CaptureKind, Walk } from '../types';
 import { filesOf, filesOfMoments, isMedia, mediaRemoveText, pieceDeleteText, stackDeleteText, momentDeleteText, walkDeleteText, type ConfirmText } from './core';
 import { createPending } from './pending';
@@ -16,7 +17,8 @@ import { isPendingJob, isPendingJobs } from './saved';
  */
 /** Meta: the delete waiting in the Undo window (UC13), as JSON; `isPendingJob` reads it back. */
 export const PENDING_KEY = 'pending_delete';
-const run = createDeleteRunner({ db, removeMedia, forgetRecalls });
+// A walk's delete waits, bounded, for the memos and photos still being saved into it (tend tabs audit 49).
+const run = createDeleteRunner({ db, removeMedia, forgetRecalls, saves: { of: (walkId) => memoGate.savesOf(walkId) } });
 
 export const deletions = createPending({
   setTimer: (fn, ms) => setTimeout(fn, ms),

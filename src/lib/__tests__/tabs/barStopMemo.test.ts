@@ -122,7 +122,7 @@ test('tend tabs audit 44: a memo recording on another path refuses the stop whil
   gate.recording(memories, true);
   assert.deepEqual(gate.stopUnder([]), { go: false, recording: true });
   // Each capture path names itself with its saves, as with its recording.
-  assert.match(source('src/lib/useCaptures.ts'), /memoGate\.track\(p, self\);/);
+  assert.match(source('src/lib/useCaptures.ts'), /memoGate\.track\(p, self[,)]/);
 });
 
 test('tend tabs audit 45: the bar\'s refusal words are announced on iOS, which reads no live regions', () => {

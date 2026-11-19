@@ -481,7 +481,7 @@ export function useCaptures(
         const ext = asset.mimeType?.split('/')[1]?.replace('jpeg', 'jpg') ?? 'jpg';
         kept = await keepOrHold({ kind: 'photo', stamp, uri: asset.uri, ext, ms: null, path: null });
       })();
-      memoGate.keep(keeping);
+      memoGate.keep(keeping, stamp.walk);
       await keeping;
     });
     return kept;
@@ -498,7 +498,7 @@ export function useCaptures(
   };
   /** A walk never starts while this memo is stopping and saving (tabs audit 3). */
   const trackMemo = <T,>(p: Promise<T>): Promise<T> => {
-    memoGate.track(p, self);
+    memoGate.track(p, self, walkId);
     return p;
   };
   const withBusy = async <T,>(fn: () => Promise<T>): Promise<T> => {
