@@ -378,6 +378,16 @@ test('tend audit 6: a run cannot date its own line or call it backfilled', () =>
   assert.equal(r.tendJs('log', 'HEAD..HEAD', JSON.stringify(json)).status, 0);
 });
 
+test('tend audit 8: a run is held to the lens by what its range built, not by the answers it was given', () => {
+  const line = tend.runLine({ date: '2026-11-21', subjects: ['Search over moments: the box (SR1-SR4)', 'tend memories T3: a word', 'fix memories audit 2: x'], given: { mode: 'inbox', deploy: 'main', base: 'abc1234' } });
+  assert.deepEqual(line.built, ['T3']);
+  assert.deepEqual(line.grew, ['SR'], 'a G build is a slice: its criteria');
+  const inbox = { mode: 'inbox', deploy: 'main', base: 'abc1234', lens: '0234', built: [], grew: [] };
+  assert.deepEqual(tend.logProblems({ ...inbox, answers: [{ entry: 'G5', answer: 'yes' }] }), [], 'a yes that built nothing (an Open: line, a phone check)');
+  assert.ok(tend.logProblems({ ...inbox, built: ['T3'] }).some((p) => /expectations/.test(p)), 'a T built');
+  assert.ok(tend.logProblems({ ...inbox, grew: ['SR'] }).some((p) => /expectations/.test(p)), 'a slice built');
+});
+
 const run = (date: string, shipped: number, filedLow: number, extra: Record<string, unknown> = {}) => ({
   ...sweep, date, compass: { shipped, filedLow, lensG: [] }, ...extra,
 });
