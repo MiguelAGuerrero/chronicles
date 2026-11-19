@@ -316,10 +316,10 @@ const count = (v) => Number.isInteger(v) && v >= 0;
 // The expectation lens (decision 0234): a sweep, and an inbox run that builds a yes, logs `expectations` (the
 // store's lines it tested, by id, each met, failed or lacking; a proposed line provisional; met naming its evidence;
 // the drafted lines the steward dropped, with the Never row each breaks) and `compass` (refinement shipped, filed
-// low by the compass for serving no expectation or rule, the G entries lens 0 filed). A line logged before the lens
-// held (dated before EXPECTATIONS_FROM) is read as it was. tend:log also reads the lines against the store
-// (scripts/expectations.js, logRefProblems).
-const EXPECTATIONS_FROM = '2026-11-20';
+// low by the compass for serving no expectation or rule, the G entries lens 0 filed). Only a line this script wrote
+// carries the marker LENS, and only such a line is held to them: an older script's line reads as it was, whatever
+// its date. tend:log also reads the lines against the store (scripts/expectations.js, logRefProblems).
+const LENS = '0234';
 const VERDICTS = ['met', 'failed', 'lacking'];
 const LENS_LINE = /^A person\b.*\bwould reasonably expect\b/;
 const EXPECTATION_ID = /^E-[a-z][a-z0-9-]*-\d+$/;
@@ -367,7 +367,7 @@ function logProblems(given) {
     if (g.lenses?.whole === true && g.lenses.skipped?.length) p.push('a whole sweep skipped no lens');
   }
   const builds = g.mode === 'inbox' && (g.answers ?? []).some((a) => a?.answer === 'yes');
-  const held = !g.backfilled && !(typeof g.date === 'string' && g.date < EXPECTATIONS_FROM) && (g.mode === 'sweep' || builds);
+  const held = g.lens === LENS && (g.mode === 'sweep' || builds);
   if (g.expectations !== undefined) p.push(...expectationProblems(g.expectations));
   else if (held) p.push('a sweep or a build logs its expectations (decision 0234)');
   if (g.compass !== undefined) p.push(...compassProblems(g.compass, g.filed?.G ?? []));
@@ -491,6 +491,7 @@ function runLine({ date, subjects, given }) {
   return {
     date,
     ...given,
+    lens: LENS,
     shipped: all('shipped').sort((a, b) => a - b),
     auditFixes: all('audit').sort((a, b) => a - b),
     built: all('built'),
@@ -670,17 +671,18 @@ function appendLog(argv) {
     console.error("usage: node scripts/tend.js log <range> '<json>'; the json is the run's own half (see .claude/skills/tend/SKILL.md, section 10)");
     process.exit(2);
   }
-  const problems = logProblems(given);
-  if (!problems.length && given.expectations?.lines) {
+  const subjects = range ? git('log', '--no-merges', '--reverse', '--format=%s', range).split('\n').filter(Boolean) : [];
+  const line = runLine({ date: new Date().toISOString().slice(0, 10), subjects, given });
+  // The line as it will be written is what is held (decision 0234): runLine marks it with the lens.
+  const problems = logProblems(line);
+  if (!problems.length && line.expectations?.lines) {
     const ex = require('./expectations');
-    problems.push(...ex.logRefProblems(given.expectations.lines, ex.readStores(ROOT), ex.readIndex(ROOT)));
+    problems.push(...ex.logRefProblems(line.expectations.lines, ex.readStores(ROOT), ex.readIndex(ROOT), { shots: line.shots, area: line.area }));
   }
   if (problems.length) {
     console.error(`tend log: ${problems.join('; ')}`);
     process.exit(1);
   }
-  const subjects = range ? git('log', '--no-merges', '--reverse', '--format=%s', range).split('\n').filter(Boolean) : [];
-  const line = runLine({ date: new Date().toISOString().slice(0, 10), subjects, given });
   fs.appendFileSync(RUNS, JSON.stringify(line) + '\n');
   console.log(JSON.stringify(line));
 }
