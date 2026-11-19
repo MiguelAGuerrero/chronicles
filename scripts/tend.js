@@ -489,8 +489,8 @@ function runLine({ date, subjects, given }) {
   const found = subjects.map(findingsOf);
   const all = (key) => found.flatMap((f) => f[key]);
   return {
-    date,
     ...given,
+    date,
     lens: LENS,
     shipped: all('shipped').sort((a, b) => a - b),
     auditFixes: all('audit').sort((a, b) => a - b),
@@ -670,6 +670,12 @@ function appendLog(argv) {
   } catch {
     console.error("usage: node scripts/tend.js log <range> '<json>'; the json is the run's own half (see .claude/skills/tend/SKILL.md, section 10)");
     process.exit(2);
+  }
+  // The script writes the date and the marker; a run's JSON dates nothing and backfills nothing (decision 0234).
+  const owned = ['date', 'backfilled', 'lens'].filter((k) => given && Object.prototype.hasOwnProperty.call(given, k));
+  if (owned.length) {
+    console.error(`tend log: ${owned.join(', ')} ${owned.length > 1 ? 'are' : 'is'} the script's to write, not the run's: leave ${owned.length > 1 ? 'them' : 'it'} out`);
+    process.exit(1);
   }
   const subjects = range ? git('log', '--no-merges', '--reverse', '--format=%s', range).split('\n').filter(Boolean) : [];
   const line = runLine({ date: new Date().toISOString().slice(0, 10), subjects, given });
