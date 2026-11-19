@@ -499,7 +499,8 @@ async function wholeTowns(h) {
       await pg.keyboard.press('Escape');
       await pg.waitForTimeout(800);
       // The card and a tap on the map closed the panel: open it again to switch Places on.
-      if (!(await pg.getByRole('switch', { name: /^Places$/ }).count())) await pg.getByRole('button', { name: 'Layers' }).click().catch(() => {});
+      if (!(await pg.getByRole('switch', { name: /^Places$/ }).count())) await pg.locator('[data-testid=layers]').click({ timeout: 5000 }).catch((e) => console.log('layers button:', String(e).slice(0, 120)));
+      await pg.waitForSelector('[data-testid=layers-panel]', { timeout: 5000 }).catch(() => {});
       const sw = pg.getByRole('switch', { name: /^Places$/ });
       const before = await sw.getAttribute('aria-checked').catch(() => 'none');
       await sw.click().catch(() => {});
