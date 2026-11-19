@@ -1,0 +1,104 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "The walk's drawer",
+        "--new"
+      ],
+      "body": "- The ready bar in the same shape (the plan's P5): pulled up it still shows the start settings in one list; a choice made before Start, not a walk's settings. Reopens if the owner wants the two bars alike.\n",
+      "intro": "What the walk drawer sections slice left out (specs/walk-drawer-sections), and what its UI review and cold find deferred.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "The walk's drawer"
+      ],
+      "body": "- This walk lists no moments: what was kept is one clause of kinds (the plan's P4). A list of this walk's moments, each with its place and time, would be a slice of its own (Always: a moment carries its context).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "The walk's drawer"
+      ],
+      "body": "- The map does not move the walker above the raised drawer: on This walk, the menu and most sections the dot and the trace sit under it and the ground above is empty; only the Explore section's ring is fitted (the UI review's U3, opinion), and the riding capture stack can cover a pin there (U6). A follow padding for the drawer, on the web and native maps, would do both.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "The walk's drawer"
+      ],
+      "body": "- [loop] Location & motion offers \"Turn on\" beside \"Motion is blocked: allow … in Settings\", which a denied permission cannot do: with `denied` the button should go, or be the platform's Open Settings as the Not-recording chip's is (the UI review's U5; the row predates the slice).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "The walk's drawer"
+      ],
+      "body": "- [loop] The Explore switch's note says \"…and reminders are on\" while Reminders is its own section, so \"turn off reminders\" has two places to look (the cold find's U2; the note predates the slice).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "The walk's drawer"
+      ],
+      "body": "- On a 568 pt tall phone (iPhone SE, first generation) the menu's last row sits under the strip and is reached by scrolling: the raised drawer is lowered there to keep the riding captures clear of the top row (WD17; the UI review's U1, fixed for 667 pt and up by `walk-drawer-sections ui 2`).\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Navigation and tabs"
+      ],
+      "body": "- [ ] **Do:** on Android, on a walk, tap the strip's …, then Explore, then press the system Back twice. **Expect:** the first Back shows Walk settings with the drawer still up; the second lowers it (walk-drawer-sections WD4).\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Navigation and tabs"
+      ],
+      "body": "- [ ] **Do:** with VoiceOver (and TalkBack) on, on a walk, open the strip's …, then Reminders. **Expect:** \"Walk settings\" and \"Reminders\" are read as headings, the back control as \"Back to walk settings, button\", and the strip's numbers end \"Walk details\" (WD12).\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Navigation and tabs"
+      ],
+      "body": "- [ ] **Do:** on a walk, drag the strip up slowly, then down, on a 667 pt and a 932 pt tall iPhone. **Expect:** the camera, mic and note ride the drawer's top edge with no lag or jitter, clear of the top row, and each takes a tap at every height; the compass and Walk me back are hidden while it is up (WD17).\n"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "add",
+        "--top"
+      ],
+      "body": "| Walk drawer sections (the walk's drawer pulled up or tapped is This walk, its details in words: started, walked in, by ride, paused, the street, heading for, what was kept, the signal's gaps and not recording; never pace, figures or a countdown; the strip's … and This walk's last row show Walk settings, This walk then four sections with their state in words, Explore, Map & routes, Reminders, Location & motion, each alone under \"‹ Walk settings\"; the capture stack rides the drawer's edge; WD1-WD18, the owner's issue and calls, Nov 19) | built; web only; not deployed | tests first, then the code, 2026-11-19 (14 of 18 by history: WD1 and WD14's todos sat where the history check cannot read them, WD2 and WD6 are the cold find's); e2e `walkdrawer` (new), `walk`, `into`, `launch`, `ready`, `layers`; native unverified | `specs/walk-drawer-sections/spec.md` | no (steward on the plan, cold find and UI review: `walk-drawer-sections ui 1-4`) |\n"
+    },
+    {
+      "argv": [
+        "inflight",
+        "remove",
+        "Walk drawer sections"
+      ],
+      "target": "sha256:f8d8e93ba0fc22127a72c508fd7389fe72b0f0749b509a4dd13774d237c8aca4"
+    }
+  ]
+}

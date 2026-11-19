@@ -49,8 +49,7 @@ The walk screen (`src/app/walk.tsx`), which is also Navigate, ready: its layout,
   distance, Pause and hold-to-stop stay in the thin strip at the very bottom, at its right end.
 - **Pause alone, then Resume or Stop** (decision 0220, AllTrails' pattern; fix walk-strip-buttons): the strip's actions
   (`walk-actions`, `flex: 1`) fill what the numbers leave. Walking: `strip-more` (a round 48 "…", "Walk settings" /
-  "Lower the walk settings", `aria-expanded` for the web, which calls `raiseOptions` as the drag and a tap on the numbers
-  do; never `walk-more`, a finished walk's More in Chronicle's list) and a wide `pause-walk`; paused: `resume-walk` (solid
+  "Lower the walk settings", `aria-expanded` for the web, which shows the drawer's settings menu, WD1; never `walk-more`, a finished walk's More in Chronicle's list) and a wide `pause-walk`; paused: `resume-walk` (solid
   accent) and the held `stop`, half each, words only, Resume on the left. No … while paused (it does not fit at 320).
   Pills with no outline, 48 high (taller would move the row's middle off Start's, NR5), 4 px at the sides; below 360 the
   words are 14 px (`narrow`). Stop's busy state is the spinner alone (`quietWhilePending`, at every width; the recording bar's
@@ -88,21 +87,32 @@ The walk screen (`src/app/walk.tsx`), which is also Navigate, ready: its layout,
   show the screen before the keeper reads the new walk, so `WalkScreen` sets `arrivalNotice(params)`
   (`lib/readyNav`) when the walk first appears, not only as it mounts.
 - A quick tap on Stop shows "Hold to stop the walk". Its word is "Stop"; its spoken name "Hold to stop".
-- Walk options (the Explore switch, its range and kinds, motion, Share GPS log) are the strip's
-  drawer (the owner, Nov 4), raised also by the strip's … since 0220: the walk's strip is the same `ReadyBar` as the ready
-  screen's (`idPrefix="walk"`: `walk-bar`, `walk-grip`, `walk-summary`), pulled up by a drag or a tap on
-  the numbers, with Pause (or Resume and Stop) at its foot. Mid-memo it is locked. `options-card` is its content,
-  and Explore's settings are in it, not in a panel of their own (the owner, Nov 4): with Explore on, the
-  "?" range (the ring on the map, fitted above the raised drawer), then the pocket alert and reminders; each saves as it
-  changes. Last, after a rule, a short section of its own, "Explore", with the "What I'm into ›" row to its page, shown
-  with Explore or scenic routes' Sights on (decision 0192, WI19, what-im-into-page audits 6 and 13,
-  `.claude/rules/what-im-into.md`): it lasts beyond this walk, so it is never under "This walk".
-  `settings` / `open-settings` / `settings-done` no longer exist; raising it closes any card, and Back or Escape
-  lowers it (ReadyBar's own handler, only while its screen is focused, so never under that page). **Every Back or
-  Escape handler on this screen waits for focus** (`screenFocused`: the spot card, the route preview; GapCard and
-  Chronicle's sheet too): a page pushed over it keeps it mounted (what-im-into-page audit 1). A tapped reminder opens
-  here only while it is in front (`whileFocused`, `lib/openers`); under a page it is kept and taken as the walk comes
-  back (audit 9).
+- **The walk's drawer: This walk up, settings by section** (specs/walk-drawer-sections, WD1-WD18; the owner, Nov 19):
+  the walk's strip is the same `ReadyBar` as the ready screen's (`idPrefix="walk"`: `walk-bar`, `walk-grip`,
+  `walk-summary`), and its view is `stepDrawer` (`lib/walkDrawer`, core): `down`, `details`, `menu` or a section
+  (`explore`, `map`, `reminders`, `motion`). A drag up or a tap on the numbers shows **This walk** (`walk-details`,
+  `walkDetailLines`: started, walked in, by ride, paused, the street within reach, heading for, what was kept, the
+  signal's gaps, not recording; words at body size, never pace, figures or a countdown, WD7), ending with "Walk settings ›"
+  (`details-settings`), the way to the sections while paused, when the strip has no …. The … (`strip-more`, "Walk
+  settings" / "Lower the walk settings", expanded only on the menu or a section) shows **Walk settings** (`walk-menu`,
+  `section-row-<id>`, each with its state in words, `sectionLine`); a row shows its section alone
+  (`walk-section-<id>`) under `SectionHeader` ("‹ Walk settings", `section-back`). Back and Escape step a section to the
+  menu (ReadyBar's `onBack`), then lower; lowered, the next raise starts fresh. The numbers' spoken tail is "Walk
+  details" (`numbersTail`); the ready bar keeps "Walk settings". The ring shows on the Explore section only
+  (`ringShown`). Explore holds the switch ("On this walk"), the range, Passing a place, the pocket alert and the
+  "What I'm into ›" row; Map & routes the key and the leanings; Reminders the notification settings; Location & motion
+  the motion line and Share GPS log (its log is read only while that section shows). `options-card` wraps every view.
+  Mid-memo nothing raises it. `settings` / `open-settings` / `settings-done` no longer exist; raising it closes any
+  card. **Every Back or Escape handler on this screen waits for focus** (`screenFocused`: the spot card, the route
+  preview; GapCard and Chronicle's sheet too; ReadyBar's `step`): a page pushed over it keeps it mounted
+  (what-im-into-page audit 1). A tapped reminder opens here only while it is in front (`whileFocused`, `lib/openers`);
+  under a page it is kept and taken as the walk comes back (audit 9). E2E: `h.walkSection(pg, id)` reaches a section
+  from any state.
+- **The capture stack rides on the walk's drawer** (WD17, the steward's S1): `CaptureStack`'s `lift` is
+  `rest - barH`, the bar's own `Animated.Value` shared through ReadyBar's `height`, drawn above it (zIndex 4); the edge
+  buttons (compass, Walk me back, Recenter) hide while it is up. The raised height is `liftedHeight` (60%, lowered only
+  so the riding stack clears the top row on a short phone). **The strip's clock and This walk's tick together:**
+  `useSecondClock` (`components/Ticking`) reads just after each whole second, so two readers never stand a second apart.
 - Pills (the caption offer, voice Undo, Retry, a moment's toast) sit left of the stack, just above the
   strip (`at.pills`), right-aligned, so the stack never moves under the thumb. Zooming keeps following;
   only a pan or a turn stops it (web; native can't tell zoom from pan yet).

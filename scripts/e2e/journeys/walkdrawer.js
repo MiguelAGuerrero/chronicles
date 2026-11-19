@@ -3,7 +3,7 @@
 // riding on the drawer's edge. A walk of a few fixes and a note. E2E_ONLY=walkdrawer runs it alone.
 
 async function run(h) {
-  const { navUrl, BASE, at, check, shot, freshPage, nothingLeaves, toStop } = h;
+  const { navUrl, BASE, at, check, shot, freshPage, nothingLeaves, toStop, OVERTURE_HOST } = h;
   const { c, pg } = await freshPage('walkdrawer');
   const visible = (id) => pg.locator(`[data-testid=${id}]:visible`).count();
   const text = (sel) => pg.locator(sel).first().innerText().catch(() => '');
@@ -43,6 +43,11 @@ async function run(h) {
   await pg.waitForTimeout(2500);
   await shot(pg, 'walkdrawer-00-rest');
 
+  // WD16: every request made while any view of the drawer is up, from here to its last lowering below.
+  const whileUp = [];
+  const onRequest = (r) => { const u = new URL(r.url()); if (!/^localhost|^127\./.test(u.hostname) && u.hostname !== 'tiles.openfreemap.org' && u.host !== OVERTURE_HOST) whileUp.push(u.host); };
+  // The map's tiles and, with Explore switched on in its section, the places it reads: what the walk asks with the drawer down.
+  pg.on('request', onRequest);
   // WD5, WD8: a tap on the numbers raises This walk; its words; its time ticks with the strip's.
   await pg.click('[data-testid=walk-summary]');
   const details = await pg.waitForSelector('[data-testid=walk-details]', { state: 'visible', timeout: 5000 }).then(() => true, () => false);
@@ -186,6 +191,8 @@ async function run(h) {
   check(!!up && up.height <= Math.round(844 * 0.6) + 1, `WD13: the raised drawer is no taller than it was (${up?.height})`);
   // WD16: nothing left the device.
   nothingLeaves();
+  pg.off('request', onRequest);
+  check(whileUp.length === 0, `WD16: with the drawer up on This walk, the menu and each section, the page asked no host but the map's tiles and places (${[...new Set(whileUp)].join(', ')})`);
   await pg.keyboard.press('Escape');
   await settle();
 

@@ -64,8 +64,8 @@ The ready screen's bar, its twin, is unchanged: pulled up it still shows the sta
 The owner's tasks, in their words: "adjust a specific section of the walk's settings from the …" and "pull up the
 drawer for detailed information about the walk".
 
-- **WD1** (the task): while walking, a tap on the strip's … raises the drawer on "Walk settings": four rows in this
-  order, Explore, Map & routes, Reminders, Location & motion, each its name in ink, a muted line saying how the section
+- **WD1** (the task): while walking, a tap on the strip's … raises the drawer on "Walk settings": This walk first
+  (walk-drawer-sections ui 1, the owner's call after the cold find), then four rows in this order, Explore, Map & routes, Reminders, Location & motion, each its name in ink, a muted line saying how the section
   is set now, in words (Explore: "Off", or "On, “?” within 400 m"; Map & routes: "The direct way", or the leanings
   that are on, "Leaning to green and sights"; Reminders: "Off", "On", or the one that is on; Location & motion:
   "Motion on", "Motion off", "Motion blocked" or "No motion here"), and a chevron; a tap anywhere on a row shows that section alone in the drawer. The long list is gone: no view of the
@@ -124,4 +124,25 @@ drawer for detailed information about the walk".
 
 ## Record
 
-Not built yet.
+Built Nov 19, 2026 on `claude/serene-sagan-lz8nzp`; not deployed.
+
+- **Tests first:** 14 of 18 by the history (`npm run check:test-first walk-drawer-sections`). WD1's and WD14's todos
+  were committed first (`819e5b7`) but on lines the history check does not read (an id on the line after
+  `check.todo(`, or beside a real check of the same id); WD2 and WD6 are the cold find's (UNTESTED); WD16 was first
+  held by `nothingLeaves()` and is now named in `walkdrawer`.
+- **Passed:** unit tests (`walk-screen/walkDrawer.test.ts`, 12), typecheck, lint, `npm test`; e2e `walkdrawer` (new,
+  37 checks), `walk`, `into`, `launch`, `ready`, `layers`, each once on these files.
+- **Changed beside it:** WI19 (the What I'm into row is the Explore section's last; its unit test and the `into`
+  journey amended); the strip's spoken tail is "Walk details" (`walk` journey, tend walk-screen 12); `Ticking`'s
+  clock reads on the whole second (`useSecondClock`) so the strip and This walk keep step.
+- **Cold find** (Nov 19, the ux-reviewer with the pictures and three tasks only): the “?” range (likely, after trying
+  Layers), Reminders (likely) and when the walk started (guessing: nothing drawn led to This walk). Owner's call: This
+  walk atop the … menu (`walk-drawer-sections ui 1`).
+- **UI review** (Nov 19): no high. Accepted and fixed: U1 the menu whole on a 667 pt phone (`ui 2`, rows 48 pt), U2
+  Reminders "Blocked" when notifications cannot show (`ui 3`), U4 the views' titles a size up (`ui 4`). Deferred
+  (`docs/DEFERRED.md`, "The walk's drawer"): U3 and U6 the map not moving the walker above the drawer, U5 "Turn on"
+  beside a blocked motion (predates the slice), U1 at 568 pt, the cold find's U2 (the Explore note's "reminders").
+  Rejected: U7 (a muted state line may wrap at 320 rather than lose its end; WD15 holds the names) and the cold find's
+  U3 (the menu's picture was taken before Explore was switched on).
+- **Native:** never run on a device; three checks in `docs/NATIVE_UNVERIFIED.md`, "Navigation and tabs" (Android's
+  Back stepping a section, the screen readers' headings and names, the stack riding the drawer).

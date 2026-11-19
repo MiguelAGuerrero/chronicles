@@ -461,6 +461,11 @@ const RETIRED = {
  * make (the web build can't reach it), `deferred: <why>` for the owner's call to wait. Keyed by spec.
  */
 const UNTESTED = {
+  // The walk's drawer by section (specs/walk-drawer-sections): the finding criteria are the cold find's.
+  'walk-drawer-sections': {
+    WD2: 'deferred: a review criterion, the ux-reviewer\'s cold find (Nov 19, in the spec\'s Record): the “?” range and Reminders found through the …',
+    WD6: 'deferred: a review criterion, the ux-reviewer\'s cold find (Nov 19, in the spec\'s Record): guessed at first, then This walk put atop the … menu (walk-drawer-sections ui 1, the owner\'s call)',
+  },
   // Outing journey (decisions 0210-0210): criteria with no test of their own, each with where it is held instead. Recorded as the slice
   // leaves IN_PROGRESS to ship (the owner's /deploy, Nov 18).
   'outing-journey': {
@@ -556,7 +561,6 @@ const RENAMED = {
 };
 
 const IN_PROGRESS = {
-  'walk-drawer-sections': { branch: 'claude/serene-sagan-lz8nzp', since: '2026-11-19' },
   'drive-in-the-outing': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-18' },
   'shop-facets': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-18' },
   'town-fixtures': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-18' },

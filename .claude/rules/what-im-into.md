@@ -17,7 +17,7 @@ paths:
 
 "What I'm into" (the kind switches, about sixty under five category headings, then Complexes' five) is a page of its
 own at `/into`, reached by one row, "What I’m into ›" (`IntoRow`), in the ready bar's settings with Explore chosen and
-in the walk's drawer with Explore on. The spec: `specs/what-im-into-page/spec.md` (WI1-WI25); the owner's answers to the
+in the walk's drawer's Explore section. The spec: `specs/what-im-into-page/spec.md` (WI1-WI25); the owner's answers to the
 plan's questions and the review's four calls, Nov 18, are in its Decisions. Subtypes and the rows' tree: `.claude/rules/subtypes.md`.
 
 - **A push, never a modal** (Q2): `Stack.Screen name="into"` in `app/_layout.tsx`, `presentation: 'card'`, the stack's
@@ -33,10 +33,12 @@ plan's questions and the review's four calls, Nov 18, are in its Decisions. Subt
   (`into-back`, an arrow named "Walk, back", audit 8); the system Back still pops. At large text (`intoMeasures`' `icon`
   0) the mode is `minimal`. The web's header keeps hidden copies of the label for measuring, so read the drawn words,
   never `innerText`.
-- **The walk's drawer gives the row a section of its own** (WI19): after the walk's settings (after Share GPS log), a
-  rule and the header "Explore" (the owner, Nov 18, audit 13); never back under "This walk", which names this walk only.
-  The ready bar's row stays under "Walk settings", which claims no walk. **Both rows show with Explore or Sights on**
-  (audit 6, the owner's "Row shows with Sights too"): scenic routes' Sights read the kinds (`routeLeanings.store`).
+- **The walk's drawer gives the row a section of its own** (WI19, amended by specs/walk-drawer-sections, the owner, Nov
+  19): the row is the last of the drawer's Explore section (`walk-section-explore`, headed "Explore"), reached by the
+  strip's … then Explore; never under This walk, which names this walk only. Its page's Back returns to that section,
+  raised (WD13). The ready bar's row stays under "Walk settings", which claims no walk. **Both rows show with Explore or
+  Sights on** (audit 6, the owner's "Row shows with Sights too"): scenic routes' Sights read the kinds
+  (`routeLeanings.store`); on the walk Sights is switched in Map & routes.
 - **One way in:** `openInto()` (`lib/intoNav`, built on `createIntoNav` in `lib/intoGate`), never `router.push('/into')`
   from a view. It is gated as `walkGate` is (audit 3: a double tap pushed the page twice): no push while the page is up
   (`intoShown()` from the route) or one is on its way. It marks the walk screen's blur as a detour (`tookDetour()`),

@@ -291,6 +291,14 @@ recording, and a recording bar brings a minimized walk back.
 - Capture buttons (camera, mic, pencil) are stacked at the right edge, above the strip. Photos and
   videos come from the system camera (video capped at 30 s), memos from the
   mic, notes from the pencil. Captions can be added to photos later.
+- **The walk's drawer: This walk up, settings by section** (specs/walk-drawer-sections, the owner, Nov 19, as AllTrails
+  pulls up a recording's details): a drag up on the strip, or a tap on its numbers, shows **This walk** in plain words:
+  when it started, how far walked in how long, how far by ride, how long paused, the street you are on, where you are
+  heading and how far, what was kept ("Two photos and a voice memo"), and the lows (the signal lost, not recording);
+  never a pace, a figure larger than the words or a countdown. Its last row, "Walk settings ›", and the strip's …
+  show **Walk settings**: Explore, Map & routes, Reminders and Location & motion, each saying how it is set now in
+  words; a row shows that section alone, under "‹ Walk settings". Back and Escape step back. The camera, mic and note
+  ride on the drawer's edge as it rises, so a capture stays one tap away. Built on web, native unverified.
 - **A note is a page** (note pages, decision 0151), in Apple Journal's manner: the pencil opens it full screen in
   one tap, headed by the day in large type and a line of when, where and which walk (the short form stays in the
   top bar once that scrolls away). Headings, lists, checklists, quotes, bold and italic come from typing (`# `,
@@ -575,7 +583,7 @@ recording, and a recording bar brings a minimized walk back.
 
 ## Settings and notifications
 
-- Explore settings (in the drawers: the ready bar's with Explore chosen and the walk's with Explore on): the "?" range
+- Explore settings (in the drawers: the ready bar's with Explore chosen and the walk's Explore section): the "?" range
   with a ring preview on the map, the pocket alert (phones, and browsers that can buzz: Android Chrome; not iPhone
   Safari, decision 0138), and one row, "What I'm into ›" (shown with Explore or scenic routes' Sights on, since both
   read the kinds), that opens **What I'm into's page** (decision 0192): a page
@@ -586,7 +594,7 @@ recording, and a recording bar brings a minimized walk back.
   than its subtypes', with a quiet line naming only those switched from their default ("Ghost towns on", "Waterfalls
   off", never a count; none as installed), and a little space above a kind that follows a subtype;
   at large text the rows drop their icons and indents so labels wrap only between words; every switch saves as it
-  changes. In the walk's drawer the row is a short section of its own, "Explore", after the walk's settings. A walk
+  changes. In the walk's drawer the row is the last of its Explore section (walk-drawer-sections). A walk
   goes on under it; the row and the page carry no count. Built on web, native unverified.
 - Notifications: Remind me here and Pause reminder, each switchable, plus a
   test. Permission is asked only from a tap (first pause, a reminder saved, a
