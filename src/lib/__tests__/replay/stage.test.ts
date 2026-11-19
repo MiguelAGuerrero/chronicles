@@ -125,18 +125,18 @@ test('RC7: a bubble\'s room and fade, and a whisper\'s place, are their frame\'s
   assert.deepEqual(bubblePose(bubble(0.5, 0), false), { opacity: 0.5, translateY: 5, scale: 0.98 });
   assert.deepEqual(bubblePose(bubble(1, 0.5), false), { opacity: 0.5, translateY: -6, scale: 1 });
   assert.deepEqual(bubblePose(bubble(0.5, 0), true), { opacity: 0.5, translateY: 0, scale: 1 });
-  // A whisper stands over its place or under it, as its frame says, centred on it (replay-ceremony ui 5; it stood
-  // beside its place until then, across the pin and the line).
-  const whisper = (m: number, above: boolean): WhisperOverlay => ({ kind: 'whisper', key: 'w', text: 'Passed', at: eastOf(m), opacity: 0.6, above });
+  // A whisper stands under its place or over it, as its frame says, centred on it (replay-ceremony ui 5; it stood
+  // beside its place at its own height until then, across the pin and the line).
+  const whisper = (m: number, above: boolean): WhisperOverlay => ({ kind: 'whisper', key: 'w', text: 'Passed', at: eastOf(m), opacity: 0.6, above, by: eastOf(m) });
   const camera = { center: O, zoom: 16 };
-  const over = whisperPose(whisper(-80, true), c, camera);
-  const under = whisperPose(whisper(80, false), c, camera);
+  const under = whisperPose(whisper(-80, false), c, camera);
+  const over = whisperPose(whisper(80, true), c, camera);
   const [wx, wy] = project(c, camera, eastOf(-80))!;
   const [ex, ey] = project(c, camera, eastOf(80))!;
-  assert.ok(Math.abs(over.left! + WHISPER.width / 2 - wx) < 1e-6 && Math.abs(under.left! + WHISPER.width / 2 - ex) < 1e-6, 'centred on its place');
-  assert.equal(over.top! + WHISPER.height, wy - WHISPER.gap, 'over its place, a gap clear of it');
-  assert.equal(under.top, ey + WHISPER.gap, 'or under it');
-  assert.equal(over.opacity, 0.6);
+  assert.ok(Math.abs(under.left! + WHISPER.width / 2 - wx) < 1e-6 && Math.abs(over.left! + WHISPER.width / 2 - ex) < 1e-6, 'centred on its place');
+  assert.equal(under.top, wy + WHISPER.gap, 'under it, a gap clear of it');
+  assert.equal(over.top! + WHISPER.height, ey - WHISPER.gap, 'or over it');
+  assert.equal(under.opacity, 0.6);
   // Without a following map, under the clock, centred.
-  assert.deepEqual(whisperPose(whisper(80, true), c, { center: null, zoom: null }), { left: (390 - WHISPER.width) / 2, top: 100, opacity: 0.6 });
+  assert.deepEqual(whisperPose(whisper(80, false), c, { center: null, zoom: null }), { left: (390 - WHISPER.width) / 2, top: 100, opacity: 0.6 });
 });

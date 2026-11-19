@@ -195,10 +195,13 @@ export interface WhisperOverlay {
   at: LngLat;
   opacity: number;
   /**
-   * It stands over its place, not under it (`replay-ceremony ui 5`): the side away from the walker as the place is
-   * passed, so it lies on neither the dot nor the line. Said once; it never changes sides while it is up.
+   * It stands over its place, not under it (`replay-ceremony ui 5`), said once. Under is the rule: pins and pictures
+   * stand upward from the line, so over it a whisper would cover them. Only where the way runs down the screen as the
+   * place is passed is it over: behind the walker, who would otherwise walk on into it.
    */
   above: boolean;
+  /** Where the walker passes the place: the whisper keeps clear of the dot and the line there too. */
+  by: LngLat;
 }
 
 /**

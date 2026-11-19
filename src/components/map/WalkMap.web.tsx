@@ -428,7 +428,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     if (!f) {
       if (p) {
         p.el.style.display = 'none';
-        p.el.style.opacity = '';
+        p.marker.setOpacity('1');
       }
       st.whole = -1;
       if (st.at) {
@@ -488,10 +488,11 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       }
       if (p) {
         p.el.style.display = f.walker ? '' : 'none';
-        // The dot fades in as the opening's dive ends (replay-ceremony ui 7), written on its own element.
-        p.el.style.opacity = f.walkerFade >= 1 ? '' : String(f.walkerFade);
         p.cone.style.display = 'none';
         if (f.walker) p.marker.setLngLat(f.walker);
+        // The dot fades in as the opening's dive ends (replay-ceremony ui 7). Through the marker, which owns its
+        // element's opacity and writes it again whenever the map moves: a style set beside it lasts one frame.
+        p.marker.setOpacity(String(f.walkerFade));
       }
       // Where the dot is drawn (QL12), for the e2e.
       container.current?.setAttribute('data-walker', fmt(f.walker));

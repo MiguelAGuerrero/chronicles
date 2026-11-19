@@ -37,6 +37,8 @@ import type {
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
 /** A short break no farther than this is a step, not a break to cross. */
 const STEP_M = 40;
+/** The walk time either side of a place passed over which the way's run is read: which way it goes there. */
+const PASS_RUN_MS = 15_000;
 const lerp = (a: number, b: number, u: number) => a + (b - a) * u;
 const lerpAt = (a: LngLat | null, b: LngLat | null, u: number): LngLat | null =>
   a && b ? [lerp(a[0], b[0], u), lerp(a[1], b[1], u)] : (a ?? b);
@@ -95,8 +97,8 @@ export interface RhythmPlan {
   bubbles: { capture: Faced; ta: number; exitAt: number; len: number }[];
   /** One per moment (MS17): a stack's grid carries its photos as `pieces`, and its videos in turn (`at` is then into the telling). */
   cards: { capture: Faced; t0: number; t1: number; len: number; from: LngLat | null; pieces?: Faced[]; videos?: Turn[]; faces?: Faced[] }[];
-  /** `above`: it stands over its place, the side away from the walker as the place is passed (`replay-ceremony ui 5`). */
-  whispers: { key: string; text: string; at: LngLat; tw: number; above: boolean }[];
+  /** `above`, `by`: whether it stands over its place, and where the walker passes it (`replay-ceremony ui 5`). */
+  whispers: { key: string; text: string; at: LngLat; tw: number; above: boolean; by: LngLat }[];
   lines: { t0: number; t1: number; text: string }[];
   /** For each path, the index of its last segment: past it, the path is drawn whole. */
   lastSeg: Record<string, number>;
@@ -483,10 +485,15 @@ export function rhythmPlan(story: Story, opts: CeremonyOptions): RhythmPlan {
     }
     // Never under a card: it waits until the card has shrunk (RY22); the cards are in order.
     for (const c of cards) if (tw >= c.t0 && tw < c.t1) tw = c.t1;
-    // Over its place when the place is north of the walker as it is said, under it when south: the far side from the
-    // dot and the line, on a map that is flat and north-up (`replay-ceremony ui 5`).
-    const by = walkerAt(plan, tw);
-    plan.whispers.push({ key: `${p.name}@${p.t}`, text: passedLine(p.all) ?? p.name, at: p.at, tw, above: !by || p.at[1] >= by[1] });
+    // Where it stands by its place, on a map that is flat and north-up (`replay-ceremony ui 5`): under the place and
+    // the line, since pins and pictures stand upward from the line. Only where the way runs down the screen there
+    // (more south than east or west) is it over them: behind the walker, who would otherwise walk on into it.
+    const path = story.paths[p.pathId];
+    const by = (path ? positionAt(path, p.t) : null) ?? walkerAt(plan, tw) ?? p.at;
+    const a = path ? positionAt(path, p.t - PASS_RUN_MS) : null;
+    const b = path ? positionAt(path, p.t + PASS_RUN_MS) : null;
+    const down = !!a && !!b && a[1] - b[1] > Math.abs(b[0] - a[0]) * Math.cos((by[1] * Math.PI) / 180);
+    plan.whispers.push({ key: `${p.name}@${p.t}`, text: passedLine(p.all) ?? p.name, at: p.at, tw, above: down, by });
   }
   return plan;
 }
@@ -784,7 +791,7 @@ export function rhythmFrame(plan: RhythmPlan, ms: number, jump?: Jump | null): F
     const age = ms - w.tw;
     if (age < 0 || age >= R.whisper) continue;
     if (landed && w.tw > landed.from && w.tw <= landed.at) continue;
-    overlays.push({ kind: 'whisper', key: w.key, text: w.text, at: w.at, opacity: clamp01(Math.min(age / 250, (R.whisper - age) / 500)), above: w.above });
+    overlays.push({ kind: 'whisper', key: w.key, text: w.text, at: w.at, opacity: clamp01(Math.min(age / 250, (R.whisper - age) / 500)), above: w.above, by: w.by });
   }
   if (s.k === 'close' && ms >= s.t0 + R.closeSay) for (const n of plan.named) overlays.push({ kind: 'passed', key: n.key, text: n.text, at: n.at, opacity: said });
   const jumped = landed && ms - landed.at < R.jumpLine + plan.whispers.length * R.whisper ? jumpLines(plan, landed).find((l) => ms >= l.t0 && ms < l.t1) : null;

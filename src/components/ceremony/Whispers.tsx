@@ -7,12 +7,15 @@ import { useLive, useLiveStyle } from './useLive';
 
 /**
  * One passed place's line, on a ground of its own (`replay-ceremony ui 5`: text over a map needs one, V4, X1), lighter
- * than the name the last view gives the same place. Where its room stands over or under its place as the camera
+ * than the name the last view gives the same place. Where its room stands under its place (or over it) as the camera
  * moves, short of the stack while that is up (ui 3), and its fade, are written on it frame by frame (`whisperPose`,
  * replay ceremony RC7); its words sit at the edge of the room nearer the place.
  */
 function Whisper({ w, ctx }: { w: WhisperOverlay; ctx: StageCtx }) {
   const key = w.key;
+  // Under its place (and under the clock, where no camera places it) the words hang from the room's top; over it,
+  // they stand on its foot.
+  const over = w.above && !ctx.reduceMotion;
   const pose = useLiveStyle(ctx.live, (f) => {
     const now = overlayOf(f, 'whisper', key);
     return now ? whisperPose(now, ctx, f.camera, stackUp(f)) : null;
@@ -23,7 +26,7 @@ function Whisper({ w, ctx }: { w: WhisperOverlay; ctx: StageCtx }) {
       // A tap on it holds the replay like any tap on the stage (audit 37).
       pointerEvents="none"
       // Under the clock until its first frame is written on it, before it is seen; and where no camera places it.
-      style={[styles.said, { left: (ctx.width - WHISPER.width) / 2, top: ctx.insets.top + 100, justifyContent: w.above && !ctx.reduceMotion ? 'flex-end' : 'flex-start' }]}
+      style={[styles.said, { left: (ctx.width - WHISPER.width) / 2, top: ctx.insets.top + 100, justifyContent: over ? 'flex-end' : 'flex-start' }]}
     >
       <Text testID="replay-whisper" accessibilityLiveRegion="polite" style={styles.whisper}>{w.text}</Text>
     </View>

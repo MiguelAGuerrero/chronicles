@@ -98,7 +98,8 @@ how a telling opens and closes on the whole of what it tells; what stays behind 
   and the other jumps: the `replay` journey reads the cut (`bookendsOf`: `cutPx`, `movedPx`).
 - **The opening** is the `intro` segment: the dive, `dive` ms from the whole to the walker's start (a `Move` with zooms,
   as a hop's: the start goes straight to the focus on the screen), the walker's dot coming in from `diveMark` over
-  `diveMarkIn` (`Frame.walkerFade`, written on the dot's own element), the clock in from
+  `diveMarkIn` (`Frame.walkerFade`; on the web through `marker.setOpacity`: **a MapLibre marker owns its element's
+  opacity** and writes it again on every move, so a style set beside it lasts one frame), the clock in from
   `diveClockIn`. A telling with no beat before it (the day's, `holdOpen`) shows the whole `openHold` first. **A walk
   shorter than the walking zoom shows is fitted closer than zoom 15** (the fit's cap is 17): its dive pulls back. Left.
 - **Nothing cuts as the path opens** (`replay-ceremony ui 7`): the walk's screen gives the map the whole trace in
@@ -108,8 +109,9 @@ how a telling opens and closes on the whole of what it tells; what stays behind 
   `paintTrace`, no data sent. A day's telling left no trace to fade (`wholeTrace` 0; its screen gives none). On a
   phone the fade is ten steps, since each renders the trace's sources (untried).
 - **The first beat's fit is north-up** (`replay-ceremony ui 8`): `fitNorth` on the map through the reading and fog
-  beats (`lib/compass` `fitBearing`; any other fit keeps the bearing, CP1), so a card's map turned by hand eases north
-  with that fit and the path's first `jumpTo` snaps nothing. A day's card, with no beat before its path, still snaps.
+  beats (`lib/compass` `fitBearing`; any other fit keeps the bearing, CP1), so a map left turned eases north with that
+  fit and the path's first `jumpTo` snaps nothing. A guard: the replay's and a day's maps take no two-finger turn
+  (no compass, tend map 1), so today only code turns them (the journey's `__turn`). A day has no beat before its path.
 - **The close** is `rest` (the walker stands, `rest` ms) and `close` (the pull-back over `close` ms to the card's view,
   held `closeHold`). The clock through both is where the walker stopped (never the walk's end time, which can be long
   after the last fix), fades over `closeClock` and is not drawn while its fade is 0 (`Stage` keeps its room): the last

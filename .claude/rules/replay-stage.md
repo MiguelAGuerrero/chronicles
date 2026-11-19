@@ -25,7 +25,8 @@ beats and the rhythm's timings in `replay.md`. Captions (RC38-RC44) wait for the
   frame (`layout.ts` `pictureTaps`, read with `useLive`): not one under a later picture (the one showing does), not
   one a card lies over. **Trap:** a card lets taps through to the stage (hold), so without that a tap on a card would
   open a picture nobody can see under it. The picture's root is `box-none` and its drawing `none`: only the control
-  takes a tap, and one it does not take falls to what lies under it.
+  takes a tap, and one it does not take falls to what lies under it. "Under a card" is its tile meeting the card's
+  box, so one just clear of a card's edge still opens.
 - **The overlap rule is core** (`lib/ceremony/pictures.ts` `standing`): read from the latest back, a picture stands
   unless a later one that stands is within `PICTURE.apart` px, and the one over it gets a layered edge (so does a
   moment of several pieces). It depends on the zoom alone, never the centre: `rhythmFrame` asks again only when the
@@ -50,9 +51,12 @@ beats and the rhythm's timings in `replay.md`. Captions (RC38-RC44) wait for the
   so do a whisper and the last view's names while the stack is up (`room.ts` `stackEdge`, `live.ts` `stackUp`, the
   poses' `stack` argument; ui 3): at 320 px a name's room is 254 px, not 304.
 - **A whisper has a ground and a side** (ui 5, the review's U6): its words on the glass the last view's name has,
-  lighter (13 px italic at 500), in a room (`layout.ts` `WHISPER`) centred over its place or under it, `gap` clear.
-  Which side is the plan's, said once (`WhisperOverlay.above`: over a place north of the walker as it is passed), so
-  it lies on neither the dot nor the line and never changes sides while it is up.
+  lighter (13 px italic at 500), in a room (`layout.ts` `WHISPER`) centred on its place, `gap` under the lower of the
+  place and the line where the walker passes it (`WhisperOverlay.by`). **Under is the rule, whichever side of the
+  line the place is on**: pins and pictures stand upward from the line, and a whisper over its place covered the
+  picture beside it (the journey's first picture of this fix). Only where the way runs down the screen is it over
+  them (`above`, the plan's, said once): behind the walker, who would walk on into it. Where the way runs up or down
+  the screen it still lies across the line behind the walker: a box that wide has no room beside it on a phone.
 - **Small pictures are `Still`** (a photo's small copy, a video's still, a video's tile in `COLORS.video`): never a
   player, and it asks for no still (VS2). `Pile.tsx` is gone; `videothumbs` and `palette` read the stack.
 

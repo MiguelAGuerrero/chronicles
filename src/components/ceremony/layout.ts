@@ -144,7 +144,8 @@ export function pictureTaps(f: Frame, p: PictureOverlay, c: StageCtx): boolean {
   if (!p.shown) return false;
   const at = standsAt(c, f.camera.center ? f.camera : f.still ?? f.camera, p.at);
   if (!at) return false;
-  const half = PICTURE.hit / 2;
+  // Its tile, not its wider target: a picture just clear of a card's edge still opens.
+  const half = PICTURE.size / 2;
   for (let i = f.overlays.length - 1; i >= 0; i--) {
     const o = f.overlays[i];
     if (o.kind === 'picture') break;
@@ -216,21 +217,24 @@ export function passedDot(o: PassedOverlay, c: StageCtx, camera: StageCamera): L
 }
 
 /**
- * A whisper's room (`replay-ceremony ui 5`): its box (three lines at the most, its words at the edge nearer its place)
- * and how far it keeps from its place, clear of the walker's dot and the line passing there.
+ * A whisper's room (`replay-ceremony ui 5`): its box (three lines at the most, its words at the edge nearer its
+ * place) and how far it keeps from its place and from the line, clear of the walker's dot.
  */
 export const WHISPER = { width: 190, height: 60, gap: 14 } as const;
 
 /**
- * A passed place's line as the walker goes by (RR15; `replay-ceremony ui 5`): centred over its place or under it, the
- * side the telling says (`above`: away from the walker), a gap clear of the place, kept on the screen and short of
- * the stack while that is up (`stack`, ui 3). Without a following map, under the clock.
+ * A passed place's line as the walker goes by (RR15; `replay-ceremony ui 5`): centred on its place, under the lower
+ * of the place and the line where the walker passes it (`by`), a gap clear: pins and pictures stand upward from the
+ * line, and the dot and the line are over it. Where the telling says `above` (the way runs down the screen), over
+ * the higher of the two instead. Kept on the screen and short of the stack while that is up (`stack`, ui 3). Without
+ * a following map, under the clock.
  */
 export function whisperPose(w: WhisperOverlay, c: StageCtx, camera: StageCamera, stack = false): LiveStyle {
   const p = project(c, camera, w.at);
   if (!p) return { left: (c.width - WHISPER.width) / 2, top: c.insets.top + 100, opacity: w.opacity };
+  const by = project(c, camera, w.by) ?? p;
   const room = saidRoom(c, stack);
-  const top = w.above ? p[1] - WHISPER.gap - WHISPER.height : p[1] + WHISPER.gap;
+  const top = w.above ? Math.min(p[1], by[1]) - WHISPER.gap - WHISPER.height : Math.max(p[1], by[1]) + WHISPER.gap;
   return {
     left: Math.max(room.left, Math.min(room.right - WHISPER.width, p[0] - WHISPER.width / 2)),
     top: Math.min(c.height - 120 - WHISPER.height, Math.max(c.insets.top + 100, top)),

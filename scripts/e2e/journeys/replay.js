@@ -1103,9 +1103,23 @@ async function run(h) {
       await pictured('rc-open');
       await pg.waitForTimeout(700);
       await pictured('rc-dive');
-      // The walker coming in as the dive ends (replay-ceremony ui 7): held as soon as any of it shows.
-      await pg.waitForFunction(() => { const e = document.querySelector('[data-testid=walker-puck]'); return !!e && e.style.display !== 'none' && Number(e.style.opacity || 1) > 0.05; }, null, { timeout: 15000, polling: 'raf' }).catch(() => {});
-      await pictured('rc-dive-walker');
+      // The walker coming in as the dive ends (replay-ceremony ui 7): its fade lasts 0.3 s, so Hold is pressed from
+      // inside the page, in the frame that first shows the dot part of the way in.
+      await pg.evaluate(() => new Promise((resolve) => {
+        const until = performance.now() + 15000;
+        const tick = () => {
+          const e = document.querySelector('[data-testid=walker-puck]');
+          if ((e && e.style.display !== 'none' && Number(e.style.opacity || 1) > 0.25) || performance.now() > until) {
+            document.querySelector('[data-testid=hold]')?.click();
+            resolve(true);
+          } else requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+      })).catch(() => {});
+      await pg.waitForTimeout(250);
+      await shot(pg, `rc-dive-walker-${w}`);
+      // Released again, if that press held it (Hold then reads Play).
+      if ((await pg.locator('[data-testid=hold]').innerText().catch(() => '')).trim() === 'Play') await pg.click('[data-testid=hold]').catch(() => {});
       // Walking, the opening over: the walking zoom.
       await pg.waitForFunction(() => {
         const map = [...document.querySelectorAll('[data-cam]')].pop();
@@ -1149,8 +1163,12 @@ async function run(h) {
       });
       await shot(pg, `rc-whisper-${w}`);
       await pg.click('[data-testid=hold]').catch(() => {});
-      const offDot = !!whisper && !!whisper.dot && (whisper.dot[0] < whisper.box[0] - 9 || whisper.dot[0] > whisper.box[2] + 9 || whisper.dot[1] < whisper.box[1] - 9 || whisper.dot[1] > whisper.box[3] + 9);
-      check(whispered && !!whisper && whisper.text === 'Passed Hessian Memorial without stopping' && whisper.solid && whisper.halo === 'none' && whisper.weight < 600 && whisper.size >= 13 && offDot, `replay-ceremony ui 5: at ${w} px a whisper stands on a solid ground, lighter than the last view's name, clear of the walker's dot (${JSON.stringify(whisper)})`);
+      // Under the line the walker is on (the way runs across the screen here), its dot and all: pins and pictures
+      // stand upward from the line, so nothing of theirs is under the words either.
+      const offDot = !!whisper && !!whisper.dot && whisper.box[1] >= whisper.dot[1] + 9;
+      const pictures = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=replay-picture]')].filter((e) => Number(e.style.opacity || 1) > 0.5).map((e) => { const b = e.getBoundingClientRect(); return [Math.round(b.left), Math.round(b.top), Math.round(b.right), Math.round(b.bottom)]; }));
+      const offPictures = !!whisper && pictures.every((p) => p[2] <= whisper.box[0] || p[0] >= whisper.box[2] || p[3] <= whisper.box[1] || p[1] >= whisper.box[3]);
+      check(whispered && !!whisper && whisper.text === 'Passed Hessian Memorial without stopping' && whisper.solid && whisper.halo === 'none' && whisper.weight < 600 && whisper.size >= 13 && offDot && offPictures, `replay-ceremony ui 5: at ${w} px a whisper stands on a solid ground, lighter than the last view's name, under the walker's line and clear of the pictures standing on it (${JSON.stringify({ ...whisper, pictures })})`);
       check(!!whisper && !!whisper.stack && whisper.box[2] <= whisper.stack[0] - 6 && whisper.box[0] >= 8, `replay-ceremony ui 3: at ${w} px a whisper ends short of the stack (${JSON.stringify(whisper && { box: whisper.box, stack: whisper.stack })})`);
       // The 20-minute gap: its line under the clock once both ends are in view, the walker part of the way across.
       await pg.waitForFunction(() => document.querySelector('[data-testid=replay-later]')?.textContent === '20 min later', null, { timeout: 120000 }).catch(() => {});
@@ -1254,94 +1272,65 @@ async function run(h) {
     }
 
     // replay-ceremony ui 1 (the UI review's U1): a picture standing on the map opens its moment. A re-watch at each
-    // width as far as the first photo's picture: a tap on it opens the viewer on that photo, the replay holds while it
-    // is open exactly as the stack's viewer holds it (RR13), and goes on when it closes; a tap beside it only holds.
+    // width, Next as far as the note at the end of the first stretch: the walker stands there, no card is up, and the
+    // video's picture stands 100 m back. A tap on it opens the viewer on that moment alone, the replay holds while it is
+    // open exactly as the stack's viewer holds it (RR13), and goes on when it closes; a tap beside it only holds.
     for (const [w, ht] of [[390, 844], [320, 568]]) {
       await pg.setViewportSize({ width: w, height: ht });
       await pg.waitForTimeout(300);
       await pg.getByText('Watch again').click();
       await pg.waitForSelector('[data-testid=replay-clock]', { timeout: 30000 }).catch(() => {});
-      await pg.waitForSelector('[data-testid=replay-card]', { timeout: 30000 }).catch(() => {});
-      await pg.waitForSelector('[data-testid=replay-card]', { state: 'detached', timeout: 30000 }).catch(() => {});
-      const standing = '[data-testid=replay-picture][data-key=rr-photo]';
+      // A press lands a little before its moment: the note's bubble is up a second after the fourth.
+      for (let k = 0; k < 4 && !(await pg.locator('[data-testid=replay-note]').count()); k++) {
+        await pg.click('[data-testid=next-moment]', { timeout: 2000 }).catch(() => {});
+        await pg.waitForTimeout(1100);
+      }
+      await pg.waitForSelector('[data-testid=replay-note]', { timeout: 30000 }).catch(() => {});
+      const standing = '[data-testid=replay-picture][data-key=rr-video]';
       await pg.waitForSelector(standing, { timeout: 5000 }).catch(() => {});
-      await pg.waitForTimeout(200);
+      await pg.waitForTimeout(300);
       const now = async () => [await clockNow(), await pg.locator('[data-walker]').first().getAttribute('data-walker').catch(() => null)].join(' @ ');
-      const target = await pg.locator(`${standing} [data-testid=picture-open]`).boundingBox({ timeout: 2000 }).catch(() => null);
-      // The tap, as a finger gives it: on the tile's middle.
-      const tile = await pg.locator(standing).boundingBox({ timeout: 2000 }).catch(() => null);
-      if (tile) await pg.mouse.click(tile.x + tile.width / 2, tile.y + 18);
+      // Its control, and what a finger at the tile's middle meets there: the control itself.
+      const target = await pg.evaluate((sel) => {
+        const tile = document.querySelector(sel);
+        const ctl = tile && tile.querySelector('[data-testid=picture-open]');
+        if (!tile || !ctl) return null;
+        const t = tile.getBoundingClientRect();
+        const b = ctl.getBoundingClientRect();
+        const at = [t.left + t.width / 2, t.top + 18];
+        return { w: Math.round(b.width), h: Math.round(b.height), at, meets: document.elementFromPoint(at[0], at[1])?.getAttribute('data-testid') ?? null };
+      }, standing).catch(() => null);
+      if (target) await pg.mouse.click(target.at[0], target.at[1]);
       const opened = await pg.waitForSelector('[data-testid=viewer-close]', { timeout: 5000 }).then(() => true, () => false);
-      const itsOwn = opened && (await pg.waitForSelector('[aria-label="Caption: Blue door"]', { timeout: 3000 }).then(() => true, () => false));
+      await pg.waitForTimeout(600);
+      // The viewer is on that moment alone: the video, with no "1 of N" over it (the stack's viewer has one).
+      const itsOwn = opened && (await pg.evaluate(() => !!document.querySelector('video') && /\bVideo\b/.test(document.body.innerText) && !/\b\d+ of \d+\b/.test(document.body.innerText)));
       const a = await now();
       await pg.waitForTimeout(1200);
       const b = await now();
-      const heldPill = await pg.locator('[data-testid=replay-held]').count();
+      // Held is read from Hold's own word: "Held" is not drawn under a long line, and Next has just said one (RY21).
+      const heldNow = async () => (await pg.locator('[data-testid=hold]').innerText().catch(() => '')).trim() === 'Play';
+      const heldPill = (await heldNow()) ? 1 : 0;
       await shot(pg, `rc-picture-open-${w}`);
       await pg.click('[data-testid=viewer-close]', { timeout: 2000 }).catch(() => {});
       await pg.waitForSelector('[data-testid=viewer-close]', { state: 'detached', timeout: 5000 }).catch(() => {});
       // Unheld again, if the tap fell through to the stage (a build before the fix): the rest reads a running replay.
-      if (await pg.locator('[data-testid=replay-held]').count()) await pg.click('[data-testid=hold]').catch(() => {});
-      await pg.waitForTimeout(1500);
-      const after = await now();
-      check(!!target && target.width >= 44 && target.height >= 44 && opened && itsOwn && a === b && heldPill === 0 && after !== b, `replay-ceremony ui 1: at ${w} px a tap on a standing picture opens its moment, the replay holding until the viewer closes and going on after (target ${JSON.stringify(target && [Math.round(target.width), Math.round(target.height)])}, opened ${opened} on its photo ${itsOwn}; ${a} → ${b} while open, ${after} after)`);
+      if (await heldNow()) await pg.click('[data-testid=hold]').catch(() => {});
+      // The walker stands at the note for a while yet: it goes on within a few seconds.
+      let after = b;
+      for (let k = 0; k < 40 && after === b; k++) {
+        await pg.waitForTimeout(250);
+        after = await now();
+      }
+      check(!!target && target.w >= 44 && target.h >= 44 && target.meets === 'picture-open' && opened && itsOwn && a === b && heldPill === 0 && after !== b, `replay-ceremony ui 1: at ${w} px a tap on a standing picture opens its moment, the replay holding until the viewer closes and going on after (${JSON.stringify(target)}, opened ${opened} on its moment ${itsOwn}; ${a} → ${b} while open, ${after} after)`);
       // A tap elsewhere on the stage still holds, and another goes on (RR7).
-      await pg.mouse.click(40, Math.round(ht * 0.72));
+      await pg.mouse.click(40, Math.round(ht * 0.3));
       await pg.waitForTimeout(300);
-      const held = await pg.locator('[data-testid=replay-held]').count();
+      const held = await heldNow();
       const viewer = await pg.locator('[data-testid=viewer-close]').count();
-      await pg.mouse.click(40, Math.round(ht * 0.72));
+      await pg.mouse.click(40, Math.round(ht * 0.3));
       await pg.waitForTimeout(300);
-      check(held === 1 && viewer === 0 && (await pg.locator('[data-testid=replay-held]').count()) === 0, `replay-ceremony ui 1: at ${w} px a tap beside a picture still only holds the replay (held ${held}, viewer ${viewer})`);
-      await pg.click('[data-testid=skip]').catch(() => {});
-      await pg.waitForSelector('[data-testid=to-name]', { timeout: 30000 });
-    }
-
-    // replay-ceremony ui 8: a card's map turned by hand, then Watch again: the first beat's own fit turns it north-up,
-    // so the path's first frame, which is flat and north-up (RC15), snaps nothing.
-    {
-      await pg.setViewportSize({ width: 390, height: 844 });
-      await pg.waitForTimeout(600);
-      const bearingNow = async () => Number((await pg.locator('[data-bearing]').last().getAttribute('data-bearing', { timeout: 1000 }).catch(() => null)) || 0);
-      const cdp = await c.newCDPSession(pg);
-      await cdp.send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 });
-      const r = 60;
-      const cx = 195;
-      let cy = 200;
-      const pts = (ang) => [{ x: cx + r * Math.cos(ang), y: cy + r * Math.sin(ang), id: 1 }, { x: cx - r * Math.cos(ang), y: cy - r * Math.sin(ang), id: 2 }];
-      // Both fingers on the map itself: the first height where nothing (a pin, the Undo pill) lies under them.
-      for (const y of [200, 150, 250, 110]) {
-        cy = y;
-        const off = await pg.evaluate((qs) => qs.filter((q) => !document.elementFromPoint(q.x, q.y)?.classList.contains('maplibregl-canvas')).length, [...pts(0), ...pts(Math.PI / 4)]);
-        if (!off) break;
-      }
-      await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: pts(0) });
-      for (let i = 1; i <= 12; i++) {
-        await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: pts((i * Math.PI) / 48) });
-        await pg.waitForTimeout(30);
-      }
-      await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-      await cdp.send('Emulation.setTouchEmulationEnabled', { enabled: false });
-      await pg.waitForTimeout(500);
-      const turned = await bearingNow();
-      await shot(pg, 'rc-card-turned');
-      await pg.getByText('Watch again').click();
-      await pg.waitForSelector('[data-testid=replay-headline]', { timeout: 30000 }).catch(() => {});
-      // Every bearing the map reports from the first beat's start to a little into the path.
-      const bearings = [];
-      const t0 = Date.now();
-      let atClock = null;
-      while (Date.now() - t0 < 9000) {
-        bearings.push(await bearingNow());
-        if (atClock == null && (await pg.locator('[data-testid=replay-clock]').count())) atClock = bearings.length - 1;
-        if (atClock != null && bearings.length - atClock > 6) break;
-        await pg.waitForTimeout(80);
-      }
-      // North-up well before the first beat is over, and from then on: the path's first frame finds it so.
-      const settled = bearings.findIndex((x) => Math.abs(x) < 0.5);
-      const inBeat = atClock != null && settled >= 0 && settled < atClock - 5;
-      const stays = settled >= 0 && bearings.slice(settled).every((x) => Math.abs(x) < 0.5);
-      check(Math.abs(turned) > 5 && inBeat && stays, `replay-ceremony ui 8: a card's map turned by hand opens north-up in the first beat, with no snap as the path begins (turned ${turned}; then ${bearings.slice(0, 6).join(', ')} … north from reading ${settled}, the path at ${atClock})`);
+      check(held && viewer === 0 && !(await heldNow()), `replay-ceremony ui 1: at ${w} px a tap beside a picture still only holds the replay (held ${held}, viewer ${viewer})`);
       await pg.click('[data-testid=skip]').catch(() => {});
       await pg.waitForSelector('[data-testid=to-name]', { timeout: 30000 });
     }
@@ -1617,6 +1606,57 @@ async function run(h) {
       await pg.waitForSelector('[data-testid=to-name], [data-testid=done]', { timeout: 30000 }).catch(() => {});
     }
     await pg.setViewportSize({ width: 390, height: 844 });
+
+    // replay-ceremony ui 8: a card's map left turned, then Watch again: the first beat's own fit turns it north-up, so
+    // the path's first frame, which is flat and north-up (RC15), snaps nothing. The replay's maps take no two-finger
+    // turn (they have no compass, tend map 1), so the map is turned in code, as the harness turns any map: the page
+    // is loaded again with the app's counters on, which is when a map defines `__turn`.
+    {
+      await c.addInitScript(() => { window.__perf = window.__perf || {}; });
+      await pg.reload();
+      await pg.waitForSelector('[data-testid=skip]', { timeout: 90000 }).catch(() => {});
+      await pg.click('[data-testid=skip]').catch(() => {});
+      await pg.waitForSelector('[data-testid=to-name], [data-testid=done]', { timeout: 30000 }).catch(() => {});
+      await pg.waitForTimeout(1200);
+      const bearingNow = async () => Number((await pg.locator('[data-bearing]').last().getAttribute('data-bearing', { timeout: 1000 }).catch(() => null)) || 0);
+      // Two fingers do not turn it: a turn by hand is no way into this.
+      const cdp = await c.newCDPSession(pg);
+      await cdp.send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 });
+      const pts = (ang) => [{ x: 195 + 60 * Math.cos(ang), y: 150 + 60 * Math.sin(ang), id: 1 }, { x: 195 - 60 * Math.cos(ang), y: 150 - 60 * Math.sin(ang), id: 2 }];
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: pts(0) });
+      for (let i = 1; i <= 12; i++) {
+        await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: pts((i * Math.PI) / 48) });
+        await pg.waitForTimeout(16);
+      }
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+      await cdp.send('Emulation.setTouchEmulationEnabled', { enabled: false });
+      await cdp.detach();
+      await pg.waitForTimeout(600);
+      const byHand = await bearingNow();
+      const canTurn = await pg.evaluate(() => { if (typeof window.__turn !== 'function') return false; window.__turn(40); return true; });
+      await pg.waitForTimeout(400);
+      const turned = await bearingNow();
+      await shot(pg, 'rc-card-turned');
+      await pg.getByText('Watch again').click();
+      await pg.waitForSelector('[data-testid=replay-headline]', { timeout: 30000 }).catch(() => {});
+      // Every bearing the map reports from the first beat's start to a little into the path.
+      const bearings = [];
+      const t0 = Date.now();
+      let atClock = null;
+      while (Date.now() - t0 < 12000) {
+        bearings.push(await bearingNow());
+        if (atClock == null && (await pg.locator('[data-testid=replay-clock]').count())) atClock = bearings.length - 1;
+        if (atClock != null && bearings.length - atClock > 6) break;
+        await pg.waitForTimeout(80);
+      }
+      // North-up well before the first beat is over, and from then on: the path's first frame finds it so.
+      const settled = bearings.findIndex((x) => Math.abs(x) < 0.5);
+      const inBeat = atClock != null && settled >= 0 && settled < atClock - 5;
+      const stays = settled >= 0 && bearings.slice(settled).every((x) => Math.abs(x) < 0.5);
+      check(byHand === 0 && canTurn && Math.abs(turned - 40) < 1 && inBeat && stays, `replay-ceremony ui 8: a card's map left turned opens north-up in the first beat, with no snap as the path begins (two fingers turn it ${byHand}; turned in code to ${turned}; then ${bearings.slice(0, 8).join(', ')} … north from reading ${settled}, the path at ${atClock})`);
+      await pg.click('[data-testid=skip]').catch(() => {});
+      await pg.waitForSelector('[data-testid=to-name], [data-testid=done]', { timeout: 30000 }).catch(() => {});
+    }
     // RC4: through the whole journey (the walk screen, both replays, Chronicle's map, the day's replay) no map sent a
     // collection the same as its last, or empty after empty.
     await pg.waitForTimeout(1100);

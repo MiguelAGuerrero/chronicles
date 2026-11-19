@@ -147,7 +147,7 @@ test('replay-ceremony ui 3: a whisper and the last view\'s passed-place name end
   const walking: Cam = { center: at(300), zoom: 15 };
   for (let m = 100; m <= 500; m += 25) {
     for (const above of [false, true]) {
-      const o = { kind: 'whisper', key: 'w', text: 'Passed Old Mill without stopping', at: at(m, 20), opacity: 1, above };
+      const o = { kind: 'whisper', key: 'w', text: 'Passed Old Mill without stopping', at: at(m, 20), opacity: 1, above, by: at(m) };
       const pose = whisperPose(o, ctx, walking, true);
       assert.ok(pose.left! >= 8 && pose.left! + WHISPER.width <= edge, `a whisper ${m} m along runs ${Math.round(pose.left!)} to ${Math.round(pose.left! + WHISPER.width)}, the column begins at ${edge}`);
     }
@@ -196,7 +196,7 @@ test('replay-ceremony ui 4: a grid\'s last row fills, its pieces spanning the ro
 
 // ---------------------------------------------------------------- ui 5 (U6): a whisper's ground and side
 
-test('replay-ceremony ui 5: a whisper stands on a solid ground, lighter than the last view\'s name, over or under its place and clear of the walker', () => {
+test('replay-ceremony ui 5: a whisper stands on a solid ground, lighter than the last view\'s name, under its place and clear of the walker, the line and what stands on it', () => {
   const view = read('components/ceremony/Whispers.tsx');
   const style = (name: string) => new RegExp(`\\b${name}: \\{([^}]*)\\}`).exec(view.slice(view.indexOf('StyleSheet.create')))?.[1] ?? '';
   const whisper = style('whisper');
@@ -206,42 +206,57 @@ test('replay-ceremony ui 5: a whisper stands on a solid ground, lighter than the
   assert.doesNotMatch(view, /textShadow/, 'a halo is no ground');
   const weight = (s: string) => Number(/fontWeight: '(\d+)'/.exec(s)?.[1] ?? NaN);
   assert.ok(weight(whisper) < weight(passed), `a whisper is lighter (${weight(whisper)}) than the name on the last view (${weight(passed)})`);
-  // Which side it stands on is the telling's to say, once: over a place north of the walker as it is passed, under one south.
-  const fixes = line(O, at(600), 9 * 60 * MIN);
-  const places = [{ name: 'North Gate', generic: false, at: at(200, 40), t: fixes[30].t }, { name: 'South Gate', generic: false, at: at(400, -40), t: fixes[58].t }];
-  const story = walkStory(input(fixes, [cap('text', endT(fixes), at(600), 'Here.')], { passed: places as WalkInput['passed'] }));
-  const p = planOf(story);
-  const seen = new Map<string, { above: boolean; f: Frame }>();
-  for (let ms = 0; ms < p.total; ms += 40) {
-    const f = frameAt(p, ms);
-    for (const o of overlaysOf(f, 'whisper')) {
-      assert.equal(typeof o.above, 'boolean', 'a whisper says which side of its place it stands on');
-      const was = seen.get(o.text as string);
-      if (was) assert.equal(o.above, was.above, 'and keeps to it while it is up');
-      else seen.set(o.text as string, { above: o.above as boolean, f });
-    }
-  }
-  assert.equal(seen.get('Passed North Gate without stopping')?.above, true);
-  assert.equal(seen.get('Passed South Gate without stopping')?.above, false);
-  // Where it stands: centred on its place, its box wholly over it or wholly under it, a gap clear of the place, so
-  // it lies on neither the walker's dot nor the line, which pass on the other side.
+  // Where it stands is the telling's to say, once. Pins and pictures stand upward from the line, so a whisper stands
+  // under its place and under the line, whichever side of the line the place is on. Only where the way runs down the
+  // screen is it over them: behind the walker, who would otherwise walk on into it.
   const WHISPER = built<{ width: number; height: number; gap: number }>(layoutMod, 'WHISPER');
   const whisperPose = built<(o: unknown, c: Ctx, camera: Cam, stack: boolean) => Pose>(layoutMod, 'whisperPose');
-  assert.ok(WHISPER.gap >= 12, `it keeps ${WHISPER.gap} px from its place`);
+  const PICTURE_ = PICTURE();
+  assert.ok(WHISPER.gap >= 12, `it keeps ${WHISPER.gap} px from its place and the line`);
   const ctx = ctxOf(PHONE);
-  for (const [text, { above, f }] of seen) {
-    const o = overlaysOf(f, 'whisper').find((x) => x.text === text)!;
-    const cam = f.camera as Cam;
-    const place = project(PHONE, cam, o.at as LngLat);
-    const walker = project(PHONE, cam, f.walker!);
-    const pose = whisperPose(o, ctx, cam, false);
-    const box = { left: pose.left!, top: pose.top!, right: pose.left! + WHISPER.width, bottom: pose.top! + WHISPER.height };
-    assert.ok(Math.abs((box.left + box.right) / 2 - place[0]) < 1 || box.left === 8 || box.right === PHONE.width - 8, `${text}: centred on its place`);
-    if (above) assert.ok(box.bottom <= place[1] - WHISPER.gap + 0.001 && walker[1] > box.bottom, `${text}: over its place, the walker under it`);
-    else assert.ok(box.top >= place[1] + WHISPER.gap - 0.001 && walker[1] < box.top, `${text}: under its place, the walker over it`);
+  /** Each whisper of a walk from O to `end` past `places`, as it first shows: its side, and where it, its place and the walker are on screen. */
+  const whispersOf = (end: LngLat, places: { name: string; at: LngLat; fix: number }[]) => {
+    const fixes = line(O, end, 9 * 60 * MIN);
+    const passed = places.map((x) => ({ name: x.name, generic: false, at: x.at, t: fixes[x.fix].t }));
+    const story = walkStory(input(fixes, [cap('text', endT(fixes), end, 'Here.')], { passed: passed as WalkInput['passed'] }));
+    const p = planOf(story);
+    const seen = new Map<string, { above: boolean; box: { left: number; top: number; right: number; bottom: number }; place: [number, number]; walker: [number, number] }>();
+    for (let ms = 0; ms < p.total; ms += 40) {
+      const f = frameAt(p, ms);
+      for (const o of overlaysOf(f, 'whisper')) {
+        const name = o.text as string;
+        const was = seen.get(name);
+        if (was) {
+          assert.equal(o.above, was.above, 'a whisper keeps its side while it is up');
+          continue;
+        }
+        const cam = f.camera as Cam;
+        const pose = whisperPose(o, ctx, cam, false);
+        seen.set(name, { above: o.above as boolean, box: { left: pose.left!, top: pose.top!, right: pose.left! + WHISPER.width, bottom: pose.top! + WHISPER.height }, place: project(PHONE, cam, o.at as LngLat), walker: project(PHONE, cam, f.walker!) });
+      }
+    }
+    return seen;
+  };
+  // A walk east: one place north of the way, one south. Both whispers stand under the place and under the line.
+  const east = whispersOf(at(600), [{ name: 'North Gate', at: at(200, 30), fix: 30 }, { name: 'South Gate', at: at(400, -30), fix: 58 }]);
+  assert.deepEqual([...east.keys()], ['Passed North Gate without stopping', 'Passed South Gate without stopping']);
+  for (const [name, w] of east) {
+    assert.equal(w.above, false, name);
+    assert.ok(Math.abs((w.box.left + w.box.right) / 2 - w.place[0]) < 1 || w.box.left === 8 || w.box.right === PHONE.width - 8, `${name}: centred on its place`);
+    assert.ok(w.box.top >= Math.max(w.place[1], w.walker[1]) + WHISPER.gap - 0.5, `${name}: its box starts at ${Math.round(w.box.top)}, under its place (${Math.round(w.place[1])}) and the walker's line (${Math.round(w.walker[1])})`);
+    // A picture standing on the line there (its tile from 12 to 48 px over it) is clear of it too.
+    assert.ok(w.box.top > w.walker[1] - (PICTURE_.lift - PICTURE_.size / 2));
   }
+  // A walk north (up the screen): under its place still, behind the walker, who walks on away from it.
+  const north = whispersOf(at(0, 600), [{ name: 'East Gate', at: at(8, 200), fix: 29 }]).get('Passed East Gate without stopping')!;
+  assert.equal(north.above, false);
+  assert.ok(north.box.top >= Math.max(north.place[1], north.walker[1]) + WHISPER.gap - 0.5, 'under the place and the walker as it passes');
+  // A walk south (down the screen): over its place, behind the walker again.
+  const south = whispersOf(at(0, -600), [{ name: 'West Gate', at: at(-8, -200), fix: 29 }]).get('Passed West Gate without stopping')!;
+  assert.equal(south.above, true);
+  assert.ok(south.box.bottom <= Math.min(south.place[1], south.walker[1]) - WHISPER.gap + 0.5, 'over the place and the walker as it passes');
   // With nothing to place it by (reduce motion: the map is not the camera's), under the clock, as before.
-  const none = whisperPose({ kind: 'whisper', key: 'w', text: 't', at: at(100), opacity: 0.6, above: true }, ctx, { center: null, zoom: null }, false);
+  const none = whisperPose({ kind: 'whisper', key: 'w', text: 't', at: at(100), opacity: 0.6, above: false, by: at(100) }, ctx, { center: null, zoom: null }, false);
   assert.deepEqual(none, { left: (PHONE.width - WHISPER.width) / 2, top: 100, opacity: 0.6 });
 });
 
@@ -345,7 +360,8 @@ test('replay-ceremony ui 7: through the dive the first beat\'s faint trace fades
   assert.doesNotMatch(screen, /trace=\{telling \|\|/, 'the walk\'s replay takes the trace off the map as the path begins');
   assert.match(screen, /traceOpacity=\{beat === 'fog' \|\| beat === 'reading' \|\| telling \? QUIET_TRACE_OPACITY : 1\}/, 'through the path the trace is the first beat\'s, for the frames to fade');
   assert.match(web, /paintTrace\(traceShown\(traceOpacity\.current, true, f\.wholeTrace\)\)/);
-  assert.match(web, /p\.el\.style\.opacity = /, 'the dot\'s fade is written on its own element');
+  assert.match(web, /p\.marker\.setOpacity\(String\(f\.walkerFade\)\)/, 'the dot\'s fade is written through its marker, which owns its element\'s opacity');
+  assert.doesNotMatch(web, /p\.el\.style\.opacity/, 'a style set beside the marker\'s own lasts one frame');
 });
 
 // ---------------------------------------------------------------- ui 8: north-up from the first beat
