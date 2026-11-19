@@ -73,6 +73,30 @@ const index = () => ex.indexOf({ journeys: { memories: JOURNEY }, tests: { 'src/
 const store = () => ex.parseStore(STORE, 'memories');
 const line = (what: string, check = 'pending "it shows"'): Draft => ({ text: `${person} ${what}`, check, grounds: 'VISION "Who it is for"; not yet recorded' });
 
+/** A checkout of its own: the feature map, a journey, a test file and the store, for the script to run in. */
+function tempRoot(stores: Record<string, string> = {}): string {
+  const root = mkdtempSync(join(tmpdir(), 'expectations-'));
+  for (const d of ['scripts/e2e/journeys', 'src/lib/__tests__/memories', 'docs/expectations']) mkdirSync(join(root, d), { recursive: true });
+  writeFileSync(join(root, 'scripts/features.js'), "module.exports = { FEATURES: [{ name: 'memories', journeys: ['memories'] }, { name: 'threads', journeys: ['threads'] }] };\n");
+  writeFileSync(join(root, 'scripts/e2e/journeys/memories.js'), JOURNEY);
+  writeFileSync(join(root, 'src/lib/__tests__/memories/memories.test.ts'), TESTS);
+  for (const [name, text] of Object.entries(stores)) writeFileSync(join(root, 'docs/expectations', name), text);
+  return root;
+}
+
+test('expectations audit 10: a store reads with CRLF line ends and blank lines between entries; README.md is no store; a problem names its line in the file', () => {
+  const crlf = ex.parseStore(STORE.replace(/\n/g, '\r\n'), 'memories');
+  assert.deepEqual(crlf.problems, []);
+  assert.deepEqual(crlf.entries, store().entries);
+  const spaced = ex.parseStore(STORE.replace('- E-memories-2', '\n- E-memories-2'), 'memories');
+  assert.deepEqual(spaced.problems, []);
+  assert.equal(spaced.entries.length, 3);
+  assert.deepEqual(ex.parseDraft('- A person x\r\n  Check: pending "x"\r\n  Grounds: y\r\n').lines[0].grounds, 'y');
+  const bad = ex.parseStore(STORE.replace('  Check: test:"memories MR7', '  Bogus: test:"memories MR7'), 'memories');
+  assert.ok(bad.problems.some((p) => /^line 10: Bogus is no key/.test(p)), bad.problems.join('\n'));
+  assert.deepEqual(ex.check(tempRoot({ 'README.md': '# The expectation stores\n\nOne file per feature.\n', 'memories.md': STORE })), []);
+});
+
 test('expectations 0234: a store file reads into lines with their status, check and grounds, and writes back the same', () => {
   const s = store();
   assert.deepEqual(s.problems, []);
