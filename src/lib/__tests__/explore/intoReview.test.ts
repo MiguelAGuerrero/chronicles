@@ -115,13 +115,16 @@ test('WI18: a kind with some subtypes changed from their default names them, in 
   assert.ok(curio.hint?.includes('Ghost towns on'));
 });
 
-test('WI19: the walk\'s drawer draws the row after the walk\'s settings, under a heading of its own', () => {
+test('WI19: the walk\'s drawer draws the row in the Explore section, after its settings', () => {
+  // Amended by specs/walk-drawer-sections (the owner, Nov 19): the drawer's settings are four sections, and the row is the
+  // last of "Explore"'s, a section of its own headed "Explore" (audit 13 holds), never under This walk.
   const text = readFileSync(join(SRC, 'app/walk.tsx'), 'utf8');
   const row = text.indexOf('<IntoRow');
-  assert.ok(row > text.indexOf('testID="share-gps-log"'), 'after the walk\'s settings');
-  const heads = [...text.slice(0, row).matchAll(/accessibilityRole="header">([^<]+)</g)].map((m) => m[1]);
-  // "Explore" (the owner, Nov 18; audit 13).
-  assert.equal(heads[heads.length - 1], 'Explore');
+  const section = text.indexOf('<SectionHeader id="explore"');
+  assert.ok(section > 0 && row > section, 'inside the Explore section');
+  assert.ok(row > text.indexOf('testID="pocket-alert"', section), 'after its settings');
+  assert.ok(row < text.indexOf("drawer === 'map'", section), 'before the next section');
+  assert.ok(row > text.indexOf("drawer === 'details'"), 'never under This walk');
 });
 
 test('WI20: Back reads "Walk" when the page came from the walk\'s drawer, and only then', async () => {

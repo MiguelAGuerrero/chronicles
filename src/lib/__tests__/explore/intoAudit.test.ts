@@ -49,7 +49,8 @@ test('what-im-into-page audit 1: the Back and Escape handlers of what stays moun
     assert.match(head, /if \(.*!(screenFocused|focused)\b.*\) return;/, `${file}: the handler before ${marker} waits for focus`);
   };
   gated('components/HomeSheet.tsx', /addEventListener\('hardwareBackPress', \(\) => \{\n\s+onSizeRef/);
-  gated('components/walk/ReadyBar.tsx', /addEventListener\('hardwareBackPress', \(\) => \{\n\s+onUpRef/);
+  // A section steps back to the menu first (specs/walk-drawer-sections WD4): `step` asks `onBack`, then lowers.
+  gated('components/walk/ReadyBar.tsx', /addEventListener\('hardwareBackPress', \(\) => \{\n\s+step\(\)/);
   gated('components/GapCard.tsx', /addEventListener\('hardwareBackPress', \(\) => \{\n\s+close\.current/);
   gated('app/walk.tsx', /addEventListener\('hardwareBackPress', \(\) => \{\n\s+close\(\);\n\s+return true;\n\s+\}\);\n\s+const onKey = \(e: KeyboardEvent\) => e\.key === 'Escape' && close\(\);/);
   gated('app/walk.tsx', /addEventListener\('hardwareBackPress', \(\) => \{\n\s+dismissPreview/);

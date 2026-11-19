@@ -606,8 +606,8 @@ async function fresh(h) {
       const nav = JSON.parse((await metaOf(pg, 'nav')) || 'null');
       check(said && w && (await metaOf(pg, 'explore_walk')) === w.id && Number(await metaOf(pg, `explored:${w.id}`)) >= w.started_at - 5000 && nav?.walk_id === w.id,
         'Start with Explore and a destination opens the walk exploring, its destination saved for it, saying it is recording (NV25)');
-      await pg.click('[data-testid=walk-summary]');
-      await pg.waitForSelector('[data-testid=options-card]');
+      // The Explore switch is in the drawer's Explore section (walk-drawer-sections WD1).
+      await h.walkSection(pg, 'explore');
       check(await pg.locator('[data-testid=explore-walk] input').isChecked(), 'the walk’s options card shows the same mode (NV22, NV26)');
       await c.close();
     }

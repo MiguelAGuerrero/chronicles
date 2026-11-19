@@ -470,38 +470,43 @@ async function run(h) {
   const falls = async () => (await marksNow()).some((l) => /Bushkill Falls/.test(String(l)));
   const fallsBefore = await falls();
 
-  // WI1, WI11: the walk's drawer with Explore on: the row, the Explore switch, the range; no kind's switch.
-  await pg.click('[data-testid=walk-summary]');
-  await pg.waitForSelector('[data-testid=options-card]', { timeout: 10000 }).catch(() => {});
-  await pg.waitForTimeout(700);
+  // WI1, WI11: the walk's drawer with Explore on: the row, the Explore switch, the range; no kind's switch. In its
+  // Explore section since walk-drawer-sections (WD1).
+  await h.walkSection(pg, 'explore');
   const inDrawer = await pg.locator('[data-testid=options-card] [data-testid^=kind-], [data-testid=options-card] [data-testid^=complex-kind-]').count();
   const ok9 = (await pg.locator('[data-testid=options-card] [data-testid=into-row]').count()) === 1 && inDrawer === 0 && (await pg.locator('[data-testid=options-card] [data-testid=explore-walk]').count()) === 1 && (await pg.locator('[data-testid=options-card] [data-testid=range-slider]').count()) === 1;
   check(ok9, `WI1, WI11: the walk's drawer holds the row, the Explore switch and the range, and no kind's switch (${inDrawer})`);
   await pg.locator('[data-testid=options-card] [data-testid=into-row]').scrollIntoViewIfNeeded().catch(() => {});
   await pg.waitForTimeout(300);
   await shot(pg, 'into-walk-row');
-  // WI19: the row's section is its own, after the walk's settings: the header above it is "Explore" (audit 13), not "This walk".
+  // WI19: the row's section is its own: the header above it is "Explore" (audit 13), not "This walk"; amended by
+  // walk-drawer-sections (the owner, Nov 19): it is the drawer's Explore section, apart from the walk's other settings.
   const section = await pg.evaluate(() => {
     const card = document.querySelector('[data-testid=options-card]');
     const row = card && card.querySelector('[data-testid=into-row]');
     if (!row) return null;
-    const all = [...card.querySelectorAll('[role=heading], [data-testid=into-row], [data-testid=share-gps-log]')];
-    const before = all.slice(0, all.indexOf(row));
-    const head = before.filter((e) => e.getAttribute('role') === 'heading').at(-1);
-    return { head: head ? head.textContent.trim() : null, afterShare: before.some((e) => e.getAttribute('data-testid') === 'share-gps-log') };
+    // The heading of the section that holds the row: its first.
+    const own = row.closest('[data-testid^=walk-section-]');
+    const head = own && own.querySelector('[role=heading]');
+    return { head: head ? head.textContent.trim() : null, afterShare: !!card.querySelector('[data-testid=share-gps-log]') };
   });
-  check(!!section && section.head === 'Explore' && section.afterShare, `WI19, what-im-into-page audit 13: the walk's row sits in a section of its own, "Explore", after the walk's settings (${JSON.stringify(section)})`);
+  check(!!section && section.head === 'Explore' && !section.afterShare, `WI19, what-im-into-page audit 13: the walk's row sits in a section of its own, "Explore", apart from the walk's other settings (${JSON.stringify(section)})`);
 
   // what-im-into-page audit 6: Sights (scenic routes) reads the kinds too: with Explore off and Sights on the row stays;
   // with both off it goes.
   {
+    // Explore is in its section, Sights in Map & routes' (walk-drawer-sections WD1).
     await pg.click('[data-testid=options-card] [data-testid=explore-walk]');
     await pg.waitForTimeout(400);
     const withSights = await pg.locator('[data-testid=options-card] [data-testid=into-row]').count();
+    await h.walkSection(pg, 'map');
     await pg.click('[data-testid=options-card] [data-testid=leaning-sights]');
+    await h.walkSection(pg, 'explore');
     await pg.waitForTimeout(400);
     const neither = await pg.locator('[data-testid=options-card] [data-testid=into-row]').count();
+    await h.walkSection(pg, 'map');
     await pg.click('[data-testid=options-card] [data-testid=leaning-sights]');
+    await h.walkSection(pg, 'explore');
     await pg.click('[data-testid=options-card] [data-testid=explore-walk]');
     await pg.waitForTimeout(400);
     check(withSights === 1 && neither === 0, `what-im-into-page audit 6: the walk's row shows with Sights on and Explore off, and not with both off (${withSights}, ${neither})`);
@@ -563,9 +568,7 @@ async function run(h) {
 
   // WI13: at 320 px the row is one line, words and chevron; on the page no label wraps; at 200% nothing is lost.
   await pg.setViewportSize({ width: 320, height: 700 });
-  await pg.click('[data-testid=walk-summary]');
-  await pg.waitForSelector('[data-testid=options-card]', { timeout: 10000 }).catch(() => {});
-  await pg.waitForTimeout(700);
+  await h.walkSection(pg, 'explore');
   const rowNarrow = await pg.evaluate(() => {
     const r = document.querySelector('[data-testid=options-card] [data-testid=into-row]');
     if (!r) return null;

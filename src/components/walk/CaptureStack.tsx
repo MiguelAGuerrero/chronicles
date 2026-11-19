@@ -1,5 +1,5 @@
 import { forwardRef, type ComponentRef, type ForwardedRef, type ReactNode } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Animated, Pressable, StyleSheet, View } from 'react-native';
 import { formatElapsed } from '../../lib/summary';
 import { Icon, type IconName } from '../icons';
 import { Ticking } from '../Ticking';
@@ -18,6 +18,11 @@ type CaptureStackProps = {
   disabled?: boolean;
   /** While a gap's way is drawn, taps belong to the map (GW8). */
   hidden?: boolean;
+  /**
+   * How far up the stack rides, as the walk's drawer rises (WD17: capture one tap away on every view of it): a
+   * translation, negative upward, drawn above the drawer.
+   */
+  lift?: Animated.AnimatedInterpolation<number> | Animated.Value | Animated.AnimatedSubtraction;
   onPhoto: () => void;
   onVoice: () => void;
   onSave: () => void;
@@ -51,7 +56,10 @@ function Stack({ saveRef, ...props }: StackProps) {
     </View>
   );
   return (
-    <View style={[StyleSheet.absoluteFill, props.hidden && styles.hidden]} pointerEvents={props.hidden ? 'none' : 'box-none'}>
+    <Animated.View
+      style={[StyleSheet.absoluteFill, props.lift && { zIndex: 4, transform: [{ translateY: props.lift }] }, props.hidden && styles.hidden]}
+      pointerEvents={props.hidden ? 'none' : 'box-none'}
+    >
       {recording ? (
         <>
           {slot('photo', CAP_SMALL, (
@@ -91,7 +99,7 @@ function Stack({ saveRef, ...props }: StackProps) {
           ))}
         </>
       )}
-    </View>
+    </Animated.View>
   );
 }
 

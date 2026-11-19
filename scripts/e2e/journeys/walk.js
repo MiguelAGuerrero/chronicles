@@ -128,9 +128,9 @@ async function checks(h) {
     check(fox && fox.count === 4 && read.items.filter((x) => x.area_key === fox.key).map((x) => x.name).sort().join(',') === 'Fox Point Museum,Gano Park,Hessian Memorial,Public art',
       `a quiet walk still builds its neighborhood's checklist, attractions only (${JSON.stringify(read.areas.map((x) => [x.name, x.count]))})`);
     check((await walkMarks().count()) === 0 && (await busyLines()) === 0, 'a quiet walk shows no "?" marks and no busy streets');
-    // Settings, from the walk's options: the range previewed as a ring around you (E16, E20, E21).
-    await page.click('[data-testid=walk-summary]');
-    await page.waitForSelector('[data-testid=options-card]');
+    // Settings, from the walk's options: the range previewed as a ring around you (E16, E20, E21), in the drawer's Explore
+    // section (walk-drawer-sections WD1).
+    await h.walkSection(page, 'explore');
     check((await page.locator('[data-testid=explore-walk][aria-checked=false], [data-testid=explore-walk]:not([aria-checked=true])').count()) === 1, 'Explore starts off on a new walk (E1)');
     // Explore is off on this walk, so its range and kinds are not in the drawer; turn it on to find them there, in no panel of their own.
     check((await page.locator('[data-testid=range-slider]').count()) === 0, 'an explore-off walk\'s drawer has no range');
@@ -153,19 +153,25 @@ async function checks(h) {
     check((await page.locator('[data-testid=options-card] [data-testid=into-row]').count()) === 1 && (await page.locator('[data-testid=pocket-alert]').count()) === (process.env.E2E_MOBILE ? 1 : 0), 'the drawer holds the row to what I’m into; the pocket alert only on a touch screen (PA6, pocket-alert-nudge audit 4, WI1)');
     await shot(page, '01a-settings');
     // tend walk-screen audit 16 (the diff review's auditor, its call on 14): the motion row's "Turn on" is 44 pt itself; the
-    // harness's motion is blocked, so the row is there.
+    // harness's motion is blocked, so the row is there, in Location & motion (WD1).
+    await h.walkSection(page, 'motion');
     {
       const turnOn = await page.locator('[data-testid=motion-on]').boundingBox().catch(() => null);
       check(!!turnOn && turnOn.height >= 44, `tend walk-screen audit 16: the drawer's "Turn on" is 44 pt high (${JSON.stringify(turnOn)})`);
     }
     // tend walk-screen 10 (the sweep's auditor 1, ux 1): only "Places" is on (by default; Explore's map only, PL9), so the
-    // walk's drawer heads no empty "On the map" (PL12; WCAG 2.4.6).
+    // walk's drawer heads no empty "On the map" (PL12; WCAG 2.4.6), in Map & routes (WD1).
+    await h.walkSection(page, 'map');
     {
       const drawerText = await page.locator('[data-testid=options-card]').innerText();
       check(!/On the map/.test(drawerText) && (await page.locator('[data-testid=options-card] [data-testid=layers-key]').count()) === 0,
         `tend walk-screen 10: no layer of the walk's map is on, so its drawer has no "On the map" heading (${/On the map/.test(drawerText)})`);
     }
+    await h.walkSection(page, 'explore');
     await page.click('[data-testid=explore-walk]');
+    // Escape steps the section back to the menu, then lowers the drawer (WD4).
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(300);
     await page.keyboard.press('Escape');
     await page.waitForTimeout(600);
     check((await ringNow()) === '', 'the ring is never on the walk map outside the drawer');
@@ -228,10 +234,10 @@ async function checks(h) {
       }
       if (k === 6) {
         // Explore on, for this walk (E1): the busy streets show, as information (E2, S21).
-        await page.click('[data-testid=walk-summary]');
-        await page.waitForSelector('[data-testid=options-card]');
+        await h.walkSection(page, 'explore');
         await page.click('[data-testid=explore-walk]');
         await shot(page, '01c-options');
+        await h.walkSection(page, 'motion');
         // Without motion (headless Chromium sends no samples), the walk goes on and says so (MO2).
         check((await page.locator('[data-testid=motion-off]').count()) === 1, 'without motion, the walk\u2019s options say standing still may drift (MO2)');
         // The GPS log goes to the share sheet with every raw reading (the GPS log, Nov 1).
@@ -728,8 +734,9 @@ async function checks(h) {
           }
           return seen;
         };
+        // The numbers raise This walk, so their name ends "Walk details" (walk-drawer-sections WD12).
         const saidWalking = await summarySaid();
-        check(!!saidWalking.drawn && saidWalking.said.startsWith(saidWalking.drawn) && /\. Walk settings$/.test(saidWalking.said),
+        check(!!saidWalking.drawn && saidWalking.said.startsWith(saidWalking.drawn) && /\. Walk details$/.test(saidWalking.said),
           `tend walk-screen 12, audit 12: walking, the strip's name holds what it draws (${JSON.stringify(saidWalking)})`);
         await page.waitForTimeout(600);
         // … raises the walk's settings, as the drag and a tap on the numbers do, and says so (fix walk-strip-buttons audit 4).
@@ -759,7 +766,7 @@ async function checks(h) {
         await page.setViewportSize({ width: 390, height: 844 });
         await page.waitForTimeout(600);
         const saidPaused = await summarySaid();
-        check(!!saidPaused.drawn && saidPaused.said.startsWith(saidPaused.drawn) && /\. Walk settings$/.test(saidPaused.said),
+        check(!!saidPaused.drawn && saidPaused.said.startsWith(saidPaused.drawn) && /\. Walk details$/.test(saidPaused.said),
           `tend walk-screen 12, audit 12: paused, the strip's name still holds what it draws (${JSON.stringify(saidPaused)})`);
         check(walkingOk(seenStrip.walking390) && walkingOk(seenStrip.walking320),
           `0220, fix walk-strip-buttons audit 3: walking, one … (a unique id, Walk settings) and a wide soft Pause fill the row after the numbers, no Stop, words whole at 390 and 320 (${JSON.stringify([seenStrip.walking390, seenStrip.walking320])})`);
@@ -835,12 +842,18 @@ async function checks(h) {
         await openInto(page, 'walk');
         await page.click('[data-testid=kind-public_art]');
         await closeInto(page);
+        // Escape steps the Explore section back to the menu, then lowers the drawer (walk-drawer-sections WD4).
+        await page.keyboard.press('Escape');
+        await page.waitForTimeout(300);
         await page.keyboard.press('Escape');
         await page.waitForTimeout(500);
         check((await page.locator('[aria-label="Public art, Art. Open"]').count()) === 0, 'a kind switched off loses its "?" marks');
         await openInto(page, 'walk');
         await page.click('[data-testid=kind-public_art]');
         await closeInto(page);
+        // Escape steps the Explore section back to the menu, then lowers the drawer (walk-drawer-sections WD4).
+        await page.keyboard.press('Escape');
+        await page.waitForTimeout(300);
         await page.keyboard.press('Escape');
         await page.waitForTimeout(500);
         check((await page.locator('[aria-label="Public art, Art. Open"]').count()) === 1, 'switched back on, it shows at once');

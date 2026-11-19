@@ -132,7 +132,7 @@ async function run(h) {
     check((await pg.locator('[data-testid=start-settings]').isVisible()) && (await pg.locator('[data-testid=mode-quiet]').isVisible()) && same(startRest, startUp) && barUp.h > barRest.h + 300,
       `ready NR7: a pull on the grip raises the settings, Start where it was (${JSON.stringify({ startRest, startUp, barRest: barRest.h, barUp: barUp.h })})`);
     // specs/walk-drawer-sections WD14: the ready bar, the walk's twin, is unchanged: the start settings, no This walk or menu.
-    check.todo((await pg.locator('[data-testid=walk-details], [data-testid=walk-menu], [data-testid=section-back]').count()) === 0
+    check((await pg.locator('[data-testid=walk-details], [data-testid=walk-menu], [data-testid=section-back]').count()) === 0
       && /Lower the walk settings$/.test((await pg.locator('[data-testid=ready-summary]').getAttribute('aria-label')) ?? ''),
       'WD14: the ready bar pulled up shows the start settings, with no This walk and no menu, its numbers still "walk settings"');
     // tend walk-screen 10 (the sweep's auditor 1, ux 1): with only "Places" on (by default; Explore's map only, PL9), the
@@ -474,9 +474,8 @@ async function run(h) {
     await pg.click('[data-testid=start]');
     await pg.waitForSelector('[data-testid=walk-actions]', { timeout: 15000 });
     await pg.waitForTimeout(800);
-    // The options are the walk strip's drawer (no button): pulled up, it is the settings, not a card among the stack.
-    await pg.click('[data-testid=walk-summary]');
-    await pg.waitForSelector('[data-testid=options-card]');
+    // The options are the walk strip's drawer: its settings by section, Explore's here (walk-drawer-sections WD1).
+    await h.walkSection(pg, 'explore');
     {
       // fix walk-drawer-settings audit 1: the range set on the ready bar shows in the walk's drawer, no reload between.
       await pg.click('[data-testid=explore-walk]');

@@ -70,7 +70,7 @@ export function walkStripText(o: { elapsedMs: number; distanceM: number; units: 
 /**
  * What a screen reader hears for the walk's strip of numbers, its one button: what the strip draws, word for word, as the
  * ready bar's twin is named "0:00 · 0 m" (navigate-ready audit 6; tend walk-screen 12, audit 12), the ride's line after it
- * (R6), and ", exploring" on an exploring walk. " Walk settings" follows.
+ * (R6), and ", exploring" on an exploring walk. The bar adds its tail: " Walk details" on the walk (walk-drawer-sections WD12), " Walk settings" on the ready screen.
  */
 export function walkSummaryLabel(o: { elapsedMs: number; distanceM: number; rideM: number; exploring: boolean; units: Units }): string {
   const ride = o.rideM >= 1 ? `, + ${formatDistance(o.rideM, o.units)} ride` : '';

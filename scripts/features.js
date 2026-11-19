@@ -106,10 +106,10 @@ const FEATURES = [
       'src/lib/stackSlots.ts',
       'src/lib/ready/**',
       'src/components/{Ticking,MomentBar,ConfirmCard,StartSettings,ui}.tsx',
-      'src/lib/{useCaptures,walkNav,walkGate,memoGate,useLiveTrace,walkEvents,recordingBar,walkMotion,captureBus}.ts',
+      'src/lib/{useCaptures,walkNav,walkGate,memoGate,useLiveTrace,walkEvents,recordingBar,walkMotion,captureBus,walkDrawer}.ts',
     ],
-    journeys: ['ready', 'walk'],
-    specs: ['navigate-ready'],
+    journeys: ['ready', 'walk', 'walkdrawer'],
+    specs: ['navigate-ready', 'walk-drawer-sections'],
   },
   {
     name: 'tabs',

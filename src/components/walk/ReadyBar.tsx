@@ -42,14 +42,23 @@ export function ReadyBar(props: {
   idPrefix?: 'ready' | 'walk';
   /** Mid-memo nothing raises the bar: a drag or a tap is refused before it moves it (audit 4). */
   locked: boolean;
+  /** The tail of the numbers' spoken name, when it is not the settings': the walk's numbers raise its details (WD12). */
+  tail?: string;
+  /** Back and Escape go here first; true when they were taken (a section steps back to the menu, WD4). */
+  onBack?: () => boolean;
+  /** The raised height, when not 60% of the screen (the walk's, lowered for its riding captures, WD17). */
+  full?: number;
+  /** The bar's height, given by the screen to move what rides on it (the walk's captures, WD17). */
+  height?: Animated.Value;
   children: ReactNode;
 }) {
   const at = useStackLayout();
   const rest = BAR_H + at.insets.bottom;
-  const full = raisedHeight(props.areaHeight, rest);
+  const full = props.full ?? raisedHeight(props.areaHeight, rest);
   const { up } = props;
   const target = up ? full : rest;
-  const [h] = useState(() => new Animated.Value(rest));
+  const [own] = useState(() => new Animated.Value(rest));
+  const h = props.height ?? own;
   const reduced = useReducedMotion();
   // The settings stay mounted while the bar lowers, so the foot never jumps up before it.
   const [shown, setShown] = useState(false);
@@ -66,17 +75,22 @@ export function ReadyBar(props: {
   // Back on Android, and Escape on the web, lower the bar before anything else, while its screen is in front: under
   // What I'm into's page (WI4) they are the page's, or Back would lower the hidden bar and the page never pop.
   const onUpRef = useRef(props.onUp);
+  const onBackRef = useRef(props.onBack);
   useEffect(() => {
     onUpRef.current = props.onUp;
+    onBackRef.current = props.onBack;
   });
   const focused = useIsFocused();
   useEffect(() => {
     if (!up || !focused) return;
+    const step = () => {
+      if (!onBackRef.current?.()) onUpRef.current(false);
+    };
     const back = BackHandler.addEventListener('hardwareBackPress', () => {
-      onUpRef.current(false);
+      step();
       return true;
     });
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onUpRef.current(false);
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && step();
     if (Platform.OS === 'web' && typeof window !== 'undefined') window.addEventListener('keydown', onKey);
     return () => {
       back.remove();
@@ -120,7 +134,7 @@ export function ReadyBar(props: {
   // its name says the numbers and the destination, which its children would otherwise hide.
   const toggle = () => !locked && props.onUp(!up);
   const id = props.idPrefix ?? 'ready';
-  const tail = up ? 'Lower the walk settings' : 'Walk settings';
+  const tail = props.tail ?? (up ? 'Lower the walk settings' : 'Walk settings');
   const keys = Platform.OS === 'web'
     ? ({ onKeyDown: (e: { key: string; preventDefault: () => void }) => {
         if (e.key !== 'Enter' && e.key !== ' ') return;

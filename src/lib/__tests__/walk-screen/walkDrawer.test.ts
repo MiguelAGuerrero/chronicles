@@ -61,14 +61,14 @@ const base: DetailsInput = {
 const settings: SectionInput = { exploring: false, rangeM: 400, leanings: [], notices: { recall: true, pause: true }, motion: 'on', units: 'km' };
 const textOf = (lines: { key: string; text: string }[]) => lines.map((l) => l.text);
 
-test('WD1: the … raises the drawer on the menu, four sections in order, and a row shows its section alone', { todo: 'test first' }, async () => {
+test('WD1: the … raises the drawer on the menu, four sections in order, and a row shows its section alone', async () => {
   const { SECTIONS, stepDrawer } = await mod();
   assert.deepEqual(SECTIONS.map((s) => s.name), ['Explore', 'Map & routes', 'Reminders', 'Location & motion']);
   assert.equal(stepDrawer('down', { type: 'more' }), 'menu');
   for (const s of SECTIONS) assert.equal(stepDrawer('menu', { type: 'pick', id: s.id }), s.id, `${s.name} shows alone`);
 });
 
-test('WD1: each row\'s line says how its section is set now, in words', { todo: 'test first' }, async () => {
+test('WD1: each row\'s line says how its section is set now, in words', async () => {
   const { sectionLine } = await mod();
   assert.equal(sectionLine('explore', settings), 'Off');
   assert.equal(sectionLine('explore', { ...settings, exploring: true }), `On, “?” within ${formatRange(400, 'km')}`);
@@ -85,7 +85,7 @@ test('WD1: each row\'s line says how its section is set now, in words', { todo: 
   assert.equal(sectionLine('motion', { ...settings, motion: 'unavailable' }), 'No motion here');
 });
 
-test('WD4: back steps a section to the menu; on the menu or This walk it lowers; a drag down lowers any view; the … lowers the settings', { todo: 'test first' }, async () => {
+test('WD4: back steps a section to the menu; on the menu or This walk it lowers; a drag down lowers any view; the … lowers the settings', async () => {
   const { SECTIONS, stepDrawer } = await mod();
   for (const s of SECTIONS) {
     assert.equal(stepDrawer(s.id, { type: 'back' }), 'menu');
@@ -99,7 +99,7 @@ test('WD4: back steps a section to the menu; on the menu or This walk it lowers;
   assert.equal(stepDrawer('down', { type: 'back' }), 'down');
 });
 
-test('WD5: This walk in words, each line only when it has something to say', { todo: 'test first' }, async () => {
+test('WD5: This walk in words, each line only when it has something to say', async () => {
   const { walkDetailLines } = await mod();
   const walked = `${formatDistance(1234, 'km')} walked in 34 min`;
   assert.deepEqual(textOf(walkDetailLines(base)), ['Started at 2:14 pm', walked]);
@@ -125,7 +125,7 @@ test('WD5: This walk in words, each line only when it has something to say', { t
   ]);
 });
 
-test('WD7: no view says pace, speed, elevation, calories, a share, a goal, a countdown or a count in digits', { todo: 'test first' }, async () => {
+test('WD7: no view says pace, speed, elevation, calories, a share, a goal, a countdown or a count in digits', async () => {
   const { walkDetailLines, sectionLine, SECTIONS } = await mod();
   const banned = /pace|speed|\/km|\/mi|elevation|climb|calorie|kcal|heart|bpm|split|%|goal|target|to go|\bleft\b|remaining|\bof\b|streak|best/i;
   const all: string[] = [];
@@ -152,7 +152,7 @@ test('WD7: no view says pace, speed, elevation, calories, a share, a goal, a cou
   for (const t of all) assert.doesNotMatch(t, banned, t);
 });
 
-test('WD9, WD10: This walk\'s last row shows the menu; a raise after lowering starts fresh, never on a section', { todo: 'test first' }, async () => {
+test('WD9, WD10: This walk\'s last row shows the menu; a raise after lowering starts fresh, never on a section', async () => {
   const { stepDrawer } = await mod();
   assert.equal(stepDrawer('details', { type: 'settings' }), 'menu');
   assert.equal(stepDrawer('down', { type: 'pull' }), 'details');
@@ -162,14 +162,14 @@ test('WD9, WD10: This walk\'s last row shows the menu; a raise after lowering st
   assert.equal(stepDrawer('details', { type: 'pull' }), 'details', 'a pull on a raised drawer keeps its view');
 });
 
-test('WD11: the range ring shows on the Explore section only, and only when exploring', { todo: 'test first' }, async () => {
+test('WD11: the range ring shows on the Explore section only, and only when exploring', async () => {
   const { ringShown } = await mod();
   assert.equal(ringShown('explore', true), true);
   assert.equal(ringShown('explore', false), false);
   for (const s of ['down', 'details', 'menu', 'map', 'reminders', 'motion'] as const) assert.equal(ringShown(s, true), false, s);
 });
 
-test('WD12: the numbers name the details; the … is expanded only on the settings', { todo: 'test first' }, async () => {
+test('WD12: the numbers name the details; the … is expanded only on the settings', async () => {
   const { numbersTail, moreExpanded } = await mod();
   assert.equal(numbersTail('down'), 'Walk details');
   for (const s of ['details', 'menu', 'explore'] as const) assert.equal(numbersTail(s), 'Lower the walk details', s);
@@ -179,7 +179,7 @@ test('WD12: the numbers name the details; the … is expanded only on the settin
   assert.equal(moreExpanded('down'), false);
 });
 
-test('WD17: the raised height leaves the riding captures clear of the top row, never taller than 60%', { todo: 'test first' }, async () => {
+test('WD17: the raised height leaves the riding captures clear of the top row, never taller than 60%', async () => {
   const { liftedHeight } = await mod();
   const stack = 12 + 3 * 56 + 2 * 12;
   // A 667 pt phone: 20 pt of status bar, the 44 pt top row, 8 pt of air.
@@ -189,7 +189,7 @@ test('WD17: the raised height leaves the riding captures clear of the top row, n
   assert.ok(liftedHeight({ areaH: 400, rest: 69, top: 72, stack }) >= 69, 'never below the strip');
 });
 
-test('WD18: the lows stay in, in words', { todo: 'test first' }, async () => {
+test('WD18: the lows stay in, in words', async () => {
   const { walkDetailLines } = await mod();
   const one = textOf(walkDetailLines({ ...base, gaps: [{ ms: 6 * 60_000, at: at(14, 31) }] }));
   assert.ok(one.includes('No signal for 6 min, at 2:31 pm'), one.join(' | '));

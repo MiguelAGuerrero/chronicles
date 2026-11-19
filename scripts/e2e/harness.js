@@ -496,6 +496,29 @@ async function createHarness() {
     }
     await pg.waitForTimeout(700);
   };
+  // The walk's drawer by section (specs/walk-drawer-sections WD1, WD9): lowered first, then the strip's … (or, paused,
+  // This walk's "Walk settings" row), then the section's row. True when the section shows.
+  const walkSection = async (pg, id) => {
+    if (await pg.locator(`[data-testid=walk-section-${id}]:visible`).count()) return true;
+    if (!(await pg.locator('[data-testid=walk-menu]:visible').count())) {
+      for (let k = 0; k < 3 && (await pg.locator('[data-testid=options-card]:visible').count()); k++) {
+        await pg.keyboard.press('Escape');
+        await pg.waitForTimeout(500);
+      }
+      // A drawer just lowered keeps its views mounted until its spring settles.
+      await pg.waitForTimeout(600);
+      if (await pg.locator('[data-testid=strip-more]:visible').count()) await pg.click('[data-testid=strip-more]');
+      else {
+        await pg.click('[data-testid=walk-summary]');
+        await pg.locator('[data-testid=details-settings]').click({ timeout: 5000 }).catch(() => {});
+      }
+      await pg.waitForSelector('[data-testid=walk-menu]', { state: 'visible', timeout: 5000 }).catch(() => {});
+    }
+    await pg.locator(`[data-testid=section-row-${id}]`).click({ timeout: 5000 }).catch(() => {});
+    const shown = await pg.waitForSelector(`[data-testid=walk-section-${id}]`, { state: 'visible', timeout: 5000 }).then(() => true, () => false);
+    await pg.waitForTimeout(500);
+    return shown;
+  };
   // What I'm into's page (specs/what-im-into-page WI1, decision 0192): its row in the ready bar's settings (raised first,
   // `from` 'ready') or in the walk's drawer (`walk-summary` first, 'walk'), then the page pushed over the screen. False
   // when the row or the page never came. `closeInto` is the stack's Back (or Escape), and waits for the page to go.
@@ -503,11 +526,8 @@ async function createHarness() {
     // A drawer just lowered keeps its settings mounted until its spring settles: wait, or the row is seen and then gone.
     await pg.waitForTimeout(800);
     if (from === 'ready' && (await pg.locator('[data-testid=start-settings]:visible').count()) === 0) await drawerTo(pg, 'half');
-    if (from === 'walk' && (await pg.locator('[data-testid=options-card]:visible').count()) === 0) {
-      await pg.click('[data-testid=walk-summary]');
-      await pg.waitForSelector('[data-testid=options-card]', { timeout: 10000 }).catch(() => {});
-      await pg.waitForTimeout(700);
-    }
+    // The walk's row is in its drawer's Explore section (walk-drawer-sections WD1).
+    if (from === 'walk') await walkSection(pg, 'explore');
     const row = pg.locator('[data-testid=into-row]:visible');
     if ((await row.count()) === 0) return false;
     await row.scrollIntoViewIfNeeded().catch(() => {});
@@ -875,6 +895,7 @@ async function createHarness() {
     return { x: m.x + m.width / 2, y: m.y + m.height / 2 };
   });
   return {
+    walkSection,
     url, navUrl, exploreUrl, BASE, browser, ctx, page, errors, hosts, start, at, distanceM, dLat, dLon, features, names, overtureFeatures, OVERTURE_HOST, OVERTURE_RELEASE, overtureAsked, style, check, shot, glyph, toStop, iconOf, metricRegion, pressedScale, metaOf, drawerTo, openInto, closeInto, intoScrollTo, intoSettled, tabTo, toThreads, toJournal, mapUp, shownCount, tabBarShown, tileRoute, overtureRoute, freshPage, openWalk, tiles, scriptsDir,
     onTab, walkMap, walkMarks, walkRoute, walkPts, nothingLeaves, noConsoleErrors, close, divisions, snapWorld, wholeWorld, walkability, overpassAsked, OVERPASS_HOST, scenicWorld, routed, switchLayer, places, areaTile, hollowWorld, complexWorld, bareMapPoint, denseWorld, DENSE_HOODS, smallWorld, SMALL_TOWN, SMALL_HOODS,
   };

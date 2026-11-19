@@ -4,8 +4,8 @@ import type { NotePageHandle } from '../components/notePage/NotePage';
 import { router, useFocusEffect, useIsFocused, useLocalSearchParams, useNavigation as useRouteNavigation } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
 import { walkClocks } from '../lib/pins';
-import { nextDayPartBoundary } from '../lib/resurface/context';
-import { AccessibilityInfo, ActivityIndicator, AppState, BackHandler, Switch, Linking, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { nearestStreet, nextDayPartBoundary } from '../lib/resurface/context';
+import { AccessibilityInfo, ActivityIndicator, Animated, AppState, BackHandler, Switch, Linking, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { Modal } from '../components/Modal';
 import { onWalkGap, useOpenWalk, useOpenWalkInfo } from '../components/OpenWalk';
 import { Ticking } from '../components/Ticking';
@@ -58,7 +58,8 @@ import { deriveSegments } from '../lib/streets';
 import { feedback } from '../lib/motion';
 import { MOTION } from '../lib/motionTokens';
 import { recorder } from '../lib/recorder';
-import { PAUSE_REMIND_MS } from '../lib/notify';
+import { loadNoticePrefs, PAUSE_REMIND_MS } from '../lib/notify';
+import type { NoticePrefs } from '../lib/notify/core';
 import { ensureTileBuild } from '../lib/tiles';
 import { startErrorFrom, type RecorderStatus } from '../lib/recorder/types';
 import { raisedAfter, retryRecorder } from '../lib/recorderRetry';
@@ -101,8 +102,10 @@ import { PASS_HINT, PASS_LABEL, WAY_LABEL } from '../lib/outing/journeyWords';
 import { useJourneyBar } from '../lib/outing/useJourneyBar';
 import { CaptureStack } from '../components/walk/CaptureStack';
 import { ReadyBar } from '../components/walk/ReadyBar';
+import { SectionHeader, WalkDetails, WalkSettingsMenu } from '../components/walk/WalkDrawer';
+import { liftedHeight, moreExpanded, numbersTail, ringShown, SECTIONS, sectionLine, stepDrawer, walkDetailLines, type DrawerEvent, type DrawerState, type SectionId } from '../lib/walkDrawer';
 import { scaleInsetBottom } from '../lib/stackSlots';
-import { BAR_H, CAP, GUTTER, raisedHeight, SCALE_BOTTOM, STACK_GAP, useStackLayout } from '../components/walk/layout';
+import { BAR_H, CAP, GUTTER, SCALE_BOTTOM, STACK_GAP, useStackLayout } from '../components/walk/layout';
 import { useReady } from '../components/walk/useReady';
 import { aboutTimeLeft, formatTimeLeft, paceMps, timeLeftMs } from '../lib/nav/eta';
 import { optionAt } from '../lib/nav/scenic';
@@ -324,8 +327,10 @@ function WalkScreen(props: { onMinimize: () => void }) {
   // A memory pin's preview (MR4), and the viewer it opens; declared before the capture path, which says nothing behind them.
   const [memory, setMemory] = useState<{ result: HereResult; from: LngLat | null } | null>(null);
   const [memoryView, setMemoryView] = useState<HereResult | null>(null);
-  // The walk's options card (A2).
-  const [options, setOptions] = useState(false);
+  // The walk's drawer (specs/walk-drawer-sections): lowered, or raised on This walk, the settings' menu or one section.
+  const [drawer, setDrawer] = useState<DrawerState>('down');
+  const options = drawer !== 'down';
+  const logShown = drawer === 'motion';
   // The GPS log, read when the card opens, so a tap can share it at once (a browser
   // only opens the share sheet straight from a tap, not after a wait).
   const logText = useRef<string | null>(null);
@@ -585,7 +590,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
   async function pressMap(at: LngLat, radiusM?: number) {
     if (cap.voiceStartedAt != null || stopping || viewing || here) return;
     setMarkOpen(null);
-    setOptions(false);
+    setDrawer('down');
     setMemory(null);
     feedback('tap');
     const tap = ++hereTaps.current;
@@ -597,7 +602,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
   }
   useEffect(() => {
     logText.current = null;
-    if (!options || !walk) return;
+    // Read only while its section shows (WD3), not on every pull for This walk.
+    if (!logShown || !walk) return;
     let live = true;
     void walkLogText(walk.id, walk.started_at).then((text) => {
       if (live) logText.current = text;
@@ -605,7 +611,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
     return () => {
       live = false;
     };
-  }, [options, walk]);
+  }, [logShown, walk]);
   const shareLog = useCallback(() => {
     const text = logText.current;
     if (!text) {
@@ -625,7 +631,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
     const close = () => {
       setSpot(null);
       setMemory(null);
-      setOptions(false);
+      setDrawer('down');
       setFollowing(true);
     };
     const back = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -777,7 +783,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
     db.listLandings().then((r) => setLandings(r.filter((x) => rulesCurrent(x.rules))), () => {});
   }, []);
   // The range preview (E21): a ring around you while the drawer is up on an exploring walk, as on the ready screen.
-  const preview = options && exploring && loaded ? loaded.rangeM : null;
+  // On the Explore section only (WD11).
+  const preview = ringShown(drawer, exploring) && loaded ? loaded.rangeM : null;
   const explore = useExplore({
     walkId: walk?.id ?? null,
     exploring,
@@ -814,7 +821,51 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const ringFit = useMemo(() => (ring ? boundsOf([ring.center], ring.radiusM * 1.15) : null), [ring]);
   // Each new range refits the map to the ring, in the part left above the raised drawer.
   const ringKey = ring ? 100000 + ring.radiusM : 0;
-  const drawerH = raisedHeight(screenH, BAR_H + insets.bottom);
+  // Lowered only as far as keeps the riding captures clear of the top row (WD17).
+  const drawerH = liftedHeight({ areaH: screenH, rest: BAR_H + insets.bottom, top: insets.top + 44 + 8, stack: STACK_GAP + 3 * CAP + 2 * STACK_GAP });
+  // The drawer's height, shared with the capture stack, which rides on its edge (WD17).
+  const [barH] = useState(() => new Animated.Value(BAR_H + insets.bottom));
+  const [lift] = useState(() => Animated.subtract(BAR_H + insets.bottom, barH));
+  // The menu's lines, how each section is set now, in words (WD1): the reminders are read as the menu shows.
+  const leaningsOn = useStore(routeLeanings.store, (l) => l.join(','));
+  const [notices, setNotices] = useState<NoticePrefs | null>(null);
+  useEffect(() => {
+    if (drawer !== 'menu') return;
+    let alive = true;
+    loadNoticePrefs().then((n) => alive && setNotices(n), () => {});
+    return () => {
+      alive = false;
+    };
+  }, [drawer]);
+  const sectionLines = Object.fromEntries(
+    SECTIONS.map((x) => [
+      x.id,
+      sectionLine(x.id, { exploring, rangeM: settings.rangeM, leanings: (leaningsOn ? leaningsOn.split(',') : []) as never, notices, motion: motionAccess, units }),
+    ]),
+  ) as Record<SectionId, string>;
+  // Read per fix only while This walk shows: the streets near you, a few thousand on a long walk (the plan's cost).
+  const detailStreet = useMemo(() => (drawer === 'details' ? nearestStreet(live.here, [...walked, ...fog], null) : null), [drawer, live.here, walked, fog]);
+  // This walk's lines (WD5, WD18), read each second by the view while it shows. What was kept counts each piece, as
+  // the walks list does; the street is the nearest named one the screen has read, within reach (P3).
+  const detailLinesAt = (t: number) => {
+    if (!walk) return [];
+    const kept = { photos: 0, videos: 0, voices: 0, notes: 0 };
+    for (const m of captures) for (const p of m.pieces) kept[p.kind === 'photo' ? 'photos' : p.kind === 'video' ? 'videos' : p.kind === 'voice' ? 'voices' : 'notes']++;
+    const paused = pausedMs(pauses, walk.started_at, t);
+    return walkDetailLines({
+      startedAt: walk.started_at,
+      elapsedMs: t - walk.started_at - paused,
+      distanceM: live.distanceM,
+      rideM: live.rideM,
+      pausedMs: paused,
+      street: detailStreet,
+      heading: navigation.nav ? { label: navigation.nav.dest.label, distanceM: navigation.nav.leftM } : null,
+      kept,
+      gaps: gapView.gaps.map((g) => ({ ms: g.t1 - g.t0, at: g.t0 })),
+      notRecording: status.kind === 'error',
+      units,
+    });
+  };
   // Remind me here (v1 slice 4): a flagged capture comes back when this walk
   // passes it (R2, R3). The web checks on each accepted fix in the open walk's
   // keeper, minimized or not (NV8); on a phone the location task checks every
@@ -859,7 +910,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
     // One card at a time (audit 5).
     setSpot(null);
     setMarkOpen(null);
-    setOptions(false);
+    setDrawer('down');
     setMemory({ result: { captures, context: r?.context ?? new Map() }, from: live.here });
   };
   // The preview goes once you walk 30 m on (MR4).
@@ -1101,17 +1152,21 @@ function WalkScreen(props: { onMinimize: () => void }) {
     props.onMinimize();
   }
 
-  // The walk's options, raised or lowered by the strip's drag, a tap on its numbers or its … (decision 0220).
-  function raiseOptions(u: boolean) {
-    if (u) {
+  // The walk's drawer, moved by the strip's drag, a tap on its numbers, its …, a row or Back (decision 0220, WD1-WD10).
+  function moveDrawer(e: DrawerEvent) {
+    const next = stepDrawer(drawer, e);
+    const u = next !== 'down';
+    if (u && !options) {
+      // Mid-memo nothing raises it (NR7 audit 4).
+      if (recordingVoice) return;
       setSpot(null);
       setMarkOpen(null);
       setMemory(null);
       setGapOpen(null);
     }
-    setOptions(u && !recordingVoice);
+    setDrawer(next);
     // Lowered with the ring up: back to following you, out of the ring's zoom (audit, UI); a pan stays otherwise.
-    if (!u && preview != null) setFollowing(true);
+    if (!ringShown(next, exploring) && preview != null) setFollowing(true);
   }
 
   async function togglePause() {
@@ -1672,6 +1727,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
         busy={cap.busy}
         disabled={stopping}
         hidden={isDrawing}
+        // It rides on the drawer's edge as it rises, so a capture is one tap away on every view of it (WD17).
+        lift={lift}
         // With Group captures on, the edge adds to the open moment (MS19); off, a new moment (MS1).
         onPhoto={() => void photo(momentPill.edgeTarget())}
         onVoice={() => void startVoice(momentPill.edgeTarget())}
@@ -1687,7 +1744,16 @@ function WalkScreen(props: { onMinimize: () => void }) {
       <ReadyBar
         idPrefix="walk"
         up={options}
-        onUp={raiseOptions}
+        onUp={(u) => moveDrawer(u ? { type: 'pull' } : { type: 'lower' })}
+        // Back and Escape step a section back to the menu first (WD4).
+        onBack={() => {
+          if (drawer === 'down' || drawer === 'details' || drawer === 'menu') return false;
+          moveDrawer({ type: 'back' });
+          return true;
+        }}
+        tail={numbersTail(drawer)}
+        full={drawerH}
+        height={barH}
         areaHeight={screenH}
         locked={recordingVoice}
         // Named with what it draws, word for word, as the ready bar's twin is (tend walk-screen 12, audit 12): read each second
@@ -1705,11 +1771,12 @@ function WalkScreen(props: { onMinimize: () => void }) {
                 testID="strip-more"
                 accessibilityRole="button"
                 // Named as the numbers name the same drawer (fix walk-strip-buttons audit 4).
-                accessibilityLabel={options ? 'Lower the walk settings' : 'Walk settings'}
-                accessibilityState={{ expanded: options, disabled: recordingVoice || stopping || !walk }}
+                accessibilityLabel={moreExpanded(drawer) ? 'Lower the walk settings' : 'Walk settings'}
+                accessibilityState={{ expanded: moreExpanded(drawer), disabled: recordingVoice || stopping || !walk }}
                 // react-native-web reads aria-expanded, not accessibilityState's (fix walk-strip-buttons audit 4).
-                aria-expanded={options}
-                onPress={() => raiseOptions(!options)}
+                aria-expanded={moreExpanded(drawer)}
+                // The settings, a section at a time (WD1); from This walk too, and again to lower them (WD4).
+                onPress={() => moveDrawer({ type: 'more' })}
                 disabled={recordingVoice || stopping || !walk}
                 style={({ pressed }) => [styles.roundBtn, (recordingVoice || stopping || !walk) && styles.disabled, pressed && styles.pressed]}
               >
@@ -1752,85 +1819,103 @@ function WalkScreen(props: { onMinimize: () => void }) {
         }
       >
         <View testID="options-card" style={styles.drawer}>
-          <Text style={styles.spotTitle} accessibilityRole="header">This walk</Text>
-            <View style={styles.optionRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.optionLabel}>Explore</Text>
-                <Text style={styles.markSub}>
-                  {exploring
-                    ? 'Places to find show as “?” when they’re close, a chip names the storefront street you’re on, and reminders are on.'
-                    : 'Off: a quiet walk, just navigation and your captures. Captures still find places.'}
-                </Text>
+          {drawer === 'details' && walk && (
+            // WD5: This walk, in words; "Walk settings ›" at its foot (WD9).
+            <WalkDetails linesAt={detailLinesAt} onSettings={() => moveDrawer({ type: 'settings' })} />
+          )}
+          {drawer === 'menu' && <WalkSettingsMenu lines={sectionLines} onPick={(id) => moveDrawer({ type: 'pick', id })} />}
+          {drawer === 'explore' && (
+            <View testID="walk-section-explore">
+              <SectionHeader id="explore" onBack={() => moveDrawer({ type: 'back' })} />
+              <View style={styles.optionRow}>
+                <View style={{ flex: 1 }}>
+                  {/* Under the section's heading, "Explore", the switch says what it turns on (WD3). */}
+                  <Text style={styles.optionLabel}>On this walk</Text>
+                  <Text style={styles.markSub}>
+                    {exploring
+                      ? 'Places to find show as “?” when they’re close, a chip names the storefront street you’re on, and reminders are on.'
+                      : 'Off: a quiet walk, just navigation and your captures. Captures still find places.'}
+                  </Text>
+                </View>
+                <Switch testID="explore-walk" accessibilityLabel="Explore" value={exploring} onValueChange={setExplore} />
               </View>
-              <Switch testID="explore-walk" accessibilityLabel="Explore" value={exploring} onValueChange={setExplore} />
-            </View>
-            {exploring && loaded && (
-              <>
-                <Text style={styles.optionSection} accessibilityRole="header">“?” range</Text>
-                <Text style={styles.markSub}>
-                  A “?” shows for places within {formatRange(settings.rangeM)} of you, {walkNote(settings.rangeM)}.
-                  {live.here ? ' The ring on the map shows how far that is.' : ' The ring shows on the map once there’s a position.'}
-                </Text>
-                <RangeSlider value={settings.rangeM} onChange={(m) => changeSettings({ ...settings, rangeM: clampRange(m) })} />
-                <Text style={styles.optionSection} accessibilityRole="header">Passing a place</Text>
-                <Text style={styles.markSub}>{passNote(settings.passM)}</Text>
-                <RangeSlider scale={PASS_SCALE} value={settings.passM} onChange={(m) => changeSettings({ ...settings, passM: clampPass(m) })} />
-              </>
-            )}
-            <LayersKey map="walk" layers={layers} heading="On the map" headingStyle={styles.optionSection} />
-            {/* The pocket alert is a nudge you feel: on every phone, and on a touch-screen browser that can vibrate (E19, PA6). */}
-            {canBuzz() && loaded && (
-              <SwitchRow
-                testID="pocket-alert"
-                label="Pocket alert"
-                note={POCKET_ALERT_NOTE}
-                value={settings.haptic}
-                onChange={(haptic) => changeSettings({ ...settings, haptic })}
-              />
-            )}
-            <RouteLeaningSettings sectionStyle={styles.optionSection} />
-            <NotificationSettings heading={false} />
-            {motionAccess !== 'on' && (
-              // Without motion the walk goes on, on the GPS filters alone (Motion, MO2).
-              <View testID="motion-off" style={styles.optionRow}>
-                <Icon name="walk-outline" size={20} color={theme.ink} />
-                <Text style={[styles.markSub, { flex: 1 }]}>
-                  {motionAccess === 'unavailable'
-                    ? 'Motion isn’t available here: standing still may drift.'
-                    : motionAccess === 'denied'
-                      ? Platform.OS === 'web'
-                        ? 'Motion is blocked: allow Motion & Orientation Access in Settings › Safari. Standing still may drift.'
-                        : 'Motion is blocked: allow Motion & Fitness for Chronicles in Settings. Standing still may drift.'
-                      : 'Motion off: standing still may drift.'}
-                </Text>
-                {(motionAccess === 'off' || motionAccess === 'denied') && (
-                  <Pressable testID="motion-on" accessibilityRole="button" accessibilityLabel="Turn on motion" onPress={() => void askMotion()} style={styles.motionOn}>
-                    <Text style={styles.optionLabel}>Turn on</Text>
-                  </Pressable>
-                )}
-              </View>
-            )}
-            <Pressable
-              testID="share-gps-log"
-              accessibilityRole="button"
-              accessibilityLabel="Share this walk’s GPS log, to help fix location problems"
-              onPress={shareLog}
-              style={({ pressed }) => [styles.optionRow, pressed && styles.pressed]}
-            >
-              <Icon name="share-outline" size={20} color={theme.ink} />
-              <Text style={[styles.optionLabel, { flex: 1 }]}>Share GPS log</Text>
-            </Pressable>
-            {(exploring || sightsOn) && (
-              // WI1, WI19: What I'm into lasts beyond this walk, so its row is a short section of its own after the walk's
-              // settings, out from under "This walk" (the owner, Nov 18), headed "Explore" (audit 13); the kinds and
-              // Complexes are on its page (0192). Scenic routes' Sights read the kinds too, so it shows with either on
-              // (audit 6, the owner, Nov 18).
-              <>
-                <View style={styles.rule} />
-                <Text style={styles.spotTitle} accessibilityRole="header">Explore</Text>
+              {exploring && loaded && (
+                <>
+                  <Text style={styles.optionSection} accessibilityRole="header">“?” range</Text>
+                  <Text style={styles.markSub}>
+                    A “?” shows for places within {formatRange(settings.rangeM)} of you, {walkNote(settings.rangeM)}.
+                    {live.here ? ' The ring on the map shows how far that is.' : ' The ring shows on the map once there’s a position.'}
+                  </Text>
+                  <RangeSlider value={settings.rangeM} onChange={(m) => changeSettings({ ...settings, rangeM: clampRange(m) })} />
+                  <Text style={styles.optionSection} accessibilityRole="header">Passing a place</Text>
+                  <Text style={styles.markSub}>{passNote(settings.passM)}</Text>
+                  <RangeSlider scale={PASS_SCALE} value={settings.passM} onChange={(m) => changeSettings({ ...settings, passM: clampPass(m) })} />
+                </>
+              )}
+              {/* The pocket alert is a nudge you feel: on every phone, and on a touch-screen browser that can vibrate (E19, PA6). */}
+              {canBuzz() && loaded && (
+                <SwitchRow
+                  testID="pocket-alert"
+                  label="Pocket alert"
+                  note={POCKET_ALERT_NOTE}
+                  value={settings.haptic}
+                  onChange={(haptic) => changeSettings({ ...settings, haptic })}
+                />
+              )}
+              {(exploring || sightsOn) && (
+                // WI1, WI19: What I'm into lasts beyond this walk; its page's Back returns here (WD13).
                 <IntoRow from="walk" />
-              </>
-            )}
+              )}
+            </View>
+          )}
+          {drawer === 'map' && (
+            <View testID="walk-section-map">
+              <SectionHeader id="map" onBack={() => moveDrawer({ type: 'back' })} />
+              <LayersKey map="walk" layers={layers} heading="On the map" headingStyle={styles.optionSection} />
+              <RouteLeaningSettings sectionStyle={styles.optionSection} />
+            </View>
+          )}
+          {drawer === 'reminders' && (
+            <View testID="walk-section-reminders">
+              <SectionHeader id="reminders" onBack={() => moveDrawer({ type: 'back' })} />
+              <NotificationSettings heading={false} />
+            </View>
+          )}
+          {drawer === 'motion' && (
+            <View testID="walk-section-motion">
+              <SectionHeader id="motion" onBack={() => moveDrawer({ type: 'back' })} />
+              {motionAccess !== 'on' && (
+                // Without motion the walk goes on, on the GPS filters alone (Motion, MO2).
+                <View testID="motion-off" style={styles.optionRow}>
+                  <Icon name="walk-outline" size={20} color={theme.ink} />
+                  <Text style={[styles.markSub, { flex: 1 }]}>
+                    {motionAccess === 'unavailable'
+                      ? 'Motion isn’t available here: standing still may drift.'
+                      : motionAccess === 'denied'
+                        ? Platform.OS === 'web'
+                          ? 'Motion is blocked: allow Motion & Orientation Access in Settings › Safari. Standing still may drift.'
+                          : 'Motion is blocked: allow Motion & Fitness for Chronicles in Settings. Standing still may drift.'
+                        : 'Motion off: standing still may drift.'}
+                  </Text>
+                  {(motionAccess === 'off' || motionAccess === 'denied') && (
+                    <Pressable testID="motion-on" accessibilityRole="button" accessibilityLabel="Turn on motion" onPress={() => void askMotion()} style={styles.motionOn}>
+                      <Text style={styles.optionLabel}>Turn on</Text>
+                    </Pressable>
+                  )}
+                </View>
+              )}
+              <Pressable
+                testID="share-gps-log"
+                accessibilityRole="button"
+                accessibilityLabel="Share this walk’s GPS log, to help fix location problems"
+                onPress={shareLog}
+                style={({ pressed }) => [styles.optionRow, pressed && styles.pressed]}
+              >
+                <Icon name="share-outline" size={20} color={theme.ink} />
+                <Text style={[styles.optionLabel, { flex: 1 }]}>Share GPS log</Text>
+              </Pressable>
+            </View>
+          )}
         </View>
       </ReadyBar>
 
@@ -1838,17 +1923,18 @@ function WalkScreen(props: { onMinimize: () => void }) {
           640 column on wide screens: Recenter where Locate sits on the ready screen (NR9). */}
       {/* The compass (CP2): the column's top, so no other button moves; it takes Walk me back's
           place while that is away, and sits above Locate on the ready screen. */}
-      <CompassButton
+      {/* The edge buttons above the captures hide while the drawer is up, where the riding captures go (WD17). */}
+      {!options && <CompassButton
         bearing={bearing}
         onPress={() => mapRef.current?.resetNorth()}
         bottom={at.edgeBottom(awayFromStart && !navigation.nav ? 'compass' : 'back')}
         right={at.edgeRight}
         focusAfter={compassNext}
-      />
+      />}
       {/* Layers (ML3): the bottom-left corner above the scale bar, clear of the navigation bar. */}
       <LayersControl map="walk" layers={layers} notes={layerNotes({ walkability: wk.status, storefrontsReading: storefronts.reading, storefrontsFailed: storefronts.failed, past: past.status })} bottom={at.layers.bottom} left={at.layers.left} rightClear={at.layersRightClear} clearTop={at.insets.top + 152} />
 
-      {awayFromStart && wayBack && !navigation.nav && (
+      {awayFromStart && wayBack && !navigation.nav && !options && (
         // Walk me back: the way back to where this walk began, where the last ride ended, or the spot chosen (N1, N11, DW6-DW8).
         <Pressable
           ref={backRef}
@@ -1863,7 +1949,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
         </Pressable>
       )}
 
-      {!following && live.here && (
+      {!following && live.here && !options && (
         // Back to following the walker, after looking around the map.
         <Pressable
           ref={recenterRef}
