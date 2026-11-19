@@ -266,6 +266,8 @@ export const NotePage = forwardRef<NotePageHandle, {
           mentions={cards}
           selectedId={menuFor}
           onPictureTap={(id) => {
+            // A tap on the page is a return to the words: the reactions close, so the caret is not left under them.
+            setTypePanel(false);
             if (id) setRemoved(false);
             setMenuFor((m) => (props.onEditMedia && id && id !== m ? id : null));
           }}
@@ -319,7 +321,7 @@ export const NotePage = forwardRef<NotePageHandle, {
         </View>
       ) : null}
       {typePanel && props.reaction ? (
-        // A choice keeps the panel open, so a second family is one more tap (RX5); the tool closes it.
+        // A choice keeps the panel open, so a second family is one more tap (RX5); the tool or a tap on the page closes it.
         <ReactionPanel set={props.reaction.set} onPick={props.reaction.onPick} moment={props.reaction.moment} />
       ) : null}
       <View style={[styles.bar, { paddingBottom: (keyboard && Platform.OS !== 'ios' ? 0 : insets.bottom) + 6, marginBottom: bottom }]} testID="note-bar" accessibilityRole="toolbar">
