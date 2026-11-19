@@ -123,8 +123,10 @@ export function bubblePose(o: BubbleOverlay, reduceMotion: boolean): LiveStyle {
   return reduceMotion ? { opacity, translateY: 0, scale: 1 } : { opacity, translateY: (1 - o.enter) * 10 - o.exit * 12, scale: 0.96 + 0.04 * o.enter };
 }
 
-/** The room a passed place's name has on the last view (RC25): its box, the name at the edge nearer its place. */
-export const PASSED = { width: 200, height: 60, gap: 9, dot: 10 } as const;
+/** The room a passed place's name has on the last view (RC25): its box (three lines of body text at the most), the name at the edge nearer its place. */
+export const PASSED = { width: 260, height: 72, gap: 9, dot: 10 } as const;
+/** As wide as the screen lets it be: 8 px in from each edge on a narrow phone. */
+export const passedWidth = (c: Pick<StageCtx, 'width'>) => Math.min(PASSED.width, c.width - 16);
 
 /**
  * Where a passed place's name stands on the last view (replay ceremony RC25): centred under its place, or over it
@@ -134,9 +136,10 @@ export const PASSED = { width: 200, height: 60, gap: 9, dot: 10 } as const;
  */
 export function passedPose(o: PassedOverlay, c: StageCtx, camera: StageCamera, above: boolean, index: number): LiveStyle {
   const p = o.at ? project(c, camera, o.at) : null;
-  if (!p) return { left: (c.width - PASSED.width) / 2, top: c.insets.top + DATE_TOP + 40 + index * 44, opacity: o.opacity };
+  const width = passedWidth(c);
+  if (!p) return { left: (c.width - width) / 2, top: c.insets.top + DATE_TOP + 40 + index * (PASSED.height + 4), opacity: o.opacity };
   return {
-    left: Math.max(8, Math.min(c.width - PASSED.width - 8, p[0] - PASSED.width / 2)),
+    left: Math.max(8, Math.min(c.width - width - 8, p[0] - width / 2)),
     top: above ? p[1] - PASSED.gap - PASSED.height : p[1] + PASSED.gap,
     opacity: o.opacity,
   };

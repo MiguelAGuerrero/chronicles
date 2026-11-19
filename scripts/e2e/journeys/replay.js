@@ -338,7 +338,7 @@ const lastViewOf = (pg) => pg.evaluate(() => {
   // As seen: an element's own opacity through every element it stands in.
   const seen = (e) => { let o = 1; for (let n = e; n && n.nodeType === 1; n = n.parentElement) o *= Number(getComputedStyle(n).opacity); return Math.round(o * 100) / 100; };
   const box = (e) => { const b = e.getBoundingClientRect(); return [Math.round(b.left), Math.round(b.top), Math.round(b.right), Math.round(b.bottom)]; };
-  const styled = (e) => { const st = getComputedStyle(e); return { text: e.textContent.trim(), size: parseFloat(st.fontSize), ink: st.color, opacity: seen(e), box: box(e) }; };
+  const styled = (e) => { const st = getComputedStyle(e); return { text: e.textContent.trim(), size: parseFloat(st.fontSize), ink: st.color, opacity: seen(e), box: box(e), cut: e.scrollHeight > e.clientHeight + 1 || e.scrollWidth > e.clientWidth + 1 }; };
   return {
     date: date && shown(date) ? styled(date) : null, names: names.map(styled),
     // The mark on each named place itself.
@@ -1122,7 +1122,7 @@ async function run(h) {
       const named = lastView.names[0];
       const dot = lastView.dots[0];
       const beside = !!named && !!dot && named.box[0] <= (dot[0] + dot[2]) / 2 && named.box[2] >= (dot[0] + dot[2]) / 2 && Math.min(Math.abs(named.box[1] - dot[3]), Math.abs(dot[1] - named.box[3])) <= 16;
-      check(lastView.names.length === 1 && named.text === 'Passed Hessian Memorial without stopping' && named.ink === 'rgb(29, 36, 48)' && named.opacity >= 0.95 && named.size <= 16 && beside && named.box[0] >= 0 && named.box[2] <= w && (!lastView.date || named.box[1] >= lastView.date.box[3]), `RC25: at ${w} px the walk's last view names the place passed beside it, in body ink at full strength (${JSON.stringify({ names: lastView.names, dots: lastView.dots, date: lastView.date && lastView.date.box })})`);
+      check(lastView.names.length === 1 && named.text === 'Passed Hessian Memorial without stopping' && named.ink === 'rgb(29, 36, 48)' && named.opacity >= 0.95 && named.size <= 16 && !named.cut && beside && named.box[0] >= 0 && named.box[2] <= w && (!lastView.date || named.box[1] >= lastView.date.box[3]), `RC25: at ${w} px the walk's last view names the place passed beside it, in body ink at full strength (${JSON.stringify({ names: lastView.names, dots: lastView.dots, date: lastView.date && lastView.date.box })})`);
       await pg.click('[data-testid=skip]').catch(() => {});
       await pg.waitForSelector('[data-testid=to-name]', { timeout: 30000 });
       await pg.waitForTimeout(600);

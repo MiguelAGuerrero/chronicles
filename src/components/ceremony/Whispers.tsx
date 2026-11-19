@@ -2,7 +2,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { overlayOf } from '../../lib/ceremony/live';
 import type { PassedOverlay, WhisperOverlay } from '../../lib/ceremony/types';
 import { theme } from '../ui';
-import { PASSED, passedDot, passedPose, WHISPER_WIDTH, whisperPose, type StageCtx } from './layout';
+import { PASSED, passedDot, passedPose, passedWidth, WHISPER_WIDTH, whisperPose, type StageCtx } from './layout';
 import { useLiveStyle } from './useLive';
 
 /**
@@ -59,7 +59,7 @@ function PassedName({ o, ctx, above, index }: { o: PassedOverlay; ctx: StageCtx;
   return (
     <>
       <View ref={dot} testID="replay-passed-dot" pointerEvents="none" style={styles.dot} />
-      <View ref={pose} pointerEvents="none" style={[styles.room, { justifyContent: above ? 'flex-end' : 'flex-start' }]}>
+      <View ref={pose} pointerEvents="none" style={[styles.room, { width: passedWidth(ctx), justifyContent: above ? 'flex-end' : 'flex-start' }]}>
         <Text testID="replay-passed" accessibilityLiveRegion="polite" style={styles.passed}>{o.text}</Text>
       </View>
     </>
@@ -83,8 +83,8 @@ export function PassedNames({ items, ctx }: { items: PassedOverlay[]; ctx: Stage
 }
 
 const styles = StyleSheet.create({
-  passed: { color: theme.ink, fontSize: 15, lineHeight: 20, fontWeight: '600', textAlign: 'center', backgroundColor: theme.glass, borderRadius: 10, paddingHorizontal: 9, paddingVertical: 4, overflow: 'hidden' },
-  room: { position: 'absolute', width: PASSED.width, height: PASSED.height, alignItems: 'center' },
+  passed: { color: theme.ink, fontSize: 15, lineHeight: 20, fontWeight: '600', textAlign: 'center', backgroundColor: theme.glass, borderRadius: 10, paddingHorizontal: 9, paddingVertical: 4, overflow: 'hidden', flexGrow: 0, flexShrink: 0 },
+  room: { position: 'absolute', height: PASSED.height, alignItems: 'center' },
   dot: { position: 'absolute', width: PASSED.dot, height: PASSED.dot, borderRadius: PASSED.dot / 2, backgroundColor: theme.surface, borderWidth: 2, borderColor: theme.ink },
   whisper: {
     position: 'absolute', width: WHISPER_WIDTH, fontSize: 13, lineHeight: 17, fontStyle: 'italic', color: theme.ink,
