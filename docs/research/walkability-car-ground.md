@@ -85,9 +85,18 @@ alarms" (the route's stretch is a change of style, silent, never a reroute, WH8,
   names two rows.
 - Journeys: `walkability` (car drawn, foot not), `headsup` (the stretch marked), `layers`. Pictures at 390 px for the `ux-reviewer`.
 
-## Not settled
+## Done when
 
-- Hatch density, angle and edge width: candidates side by side on the web build, the owner picking (a look question).
+On the owner's own scene re-shot (a navigated walk with Walkability and Storefronts on, the route entering car ground, the
+heads-up showing, 390 px), a reader who has not seen the legend can say which ground is built around cars and where the line
+points. The steward judges it against the owner's words at the slice's review; on a phone, a `[phone]` check.
+
+## Open for the owner
+
+- Hatch density, angle and edge width: candidates side by side on the web build, the owner picking (a look question; G5's `Open:`).
+
+## Engineering unknowns
+
 - Whether a hatch stays legible at zoom 13 or turns to noise; a zoom range for the pattern, a flat tint below it.
 - `fill-pattern` on MapLibre React Native: never run on a device (`docs/NATIVE_UNVERIFIED.md` when built).
 - Smoothing near the 1.5 km read edge, where cells are left out: the edge must not suggest the ground ends.

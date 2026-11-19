@@ -58,9 +58,10 @@ Precedent informs how, never what (`/tend` section 9).
 ## 4. Shape the options
 
 Two to five shapes, a table: the change, the causes it answers (by number), its vision risk, its rough
-cost (files, native code). Then **one recommendation**, which may combine shapes, sized as `/tend`
+cost (files, native code). One of them is always **leave it**, with what leaving it costs. Then **one recommendation**, which may combine shapes, sized as `/tend`
 section 9 sizes: **S** (about three criteria), **M** (one slice, ten criteria or fewer, no architectural
-decision), **L** (never queued whole: its first S or M slice, and what the rest would be).
+decision), **L** (never queued whole: its first S or M slice, and what the rest would be). The size names
+its source files and its native paths beside its criteria: ten criteria over three files is not ten over twelve.
 
 Run `/vision` on the recommended shape as a called skill (it returns its block and asks nothing). An
 **out** is not queued: write the brief, say so with the rule, and stop before section 6's filing. A
@@ -76,7 +77,9 @@ The owner typed this skill and is present, so their calls are asked **in this ru
   Engineering choices are yours: make them and say so in the brief.
 - Each question stands alone (the owner may see only the dialog): it names the screen, the thing and
   what is true today. Recommended option first, marked "(Recommended)", its precedent cited in the
-  option's description; a reversal names the decision it reverses.
+  option's description, marked unverified when `adjacent-apps.md` marks it so; a reversal names the
+  decision it reverses. Every option is a real alternative with a different cost, never a straw man: the
+  owner takes the recommended option nearly always (`docs/research/tend-process-review.md`, F6).
 - A question of colour or look offers whole candidates side by side, measured as a person sees them
   (the blend included), never one swatch.
 
@@ -105,16 +108,20 @@ From: the owner's /investigate, <date>: "<their words>". Queued as G<n>. Status:
 ## Options                     (section 4's table)
 ## The owner's calls           (each question, the options offered, the answer; decisions written)
 ## The recommendation          (the shape, its /vision block, its size)
+## Done when                   (the owner's observation restated as a check: the same screen, the same question)
 ## What the slice will touch   (files, layers, journeys, native paths, checks to run first)
-## Not settled                 (engineering unknowns, Open: calls, what has never run on a phone)
+## Open for the owner          (anything they still decide: a look, words, behaviour; each one an Open: line on the entry)
+## Engineering unknowns        (the builder's to settle; what has never run on a phone)
 ```
 
 **The entry**, by its size:
 
 - **S or M** (or the first slice of an **L**): a `G` entry under "Next evolutions", in `/tend` section 9's
   form, with these lines added after the title line:
-  `From: /investigate, the owner's ask (<date>). Brief: docs/research/<slug>.md.` and
-  `Calls: <the owner's answers, one clause each; decision NNNN>`, plus `Open: <question>` for any unanswered.
+  `From: /investigate, the owner's ask (<date>). Brief: docs/research/<slug>.md.`,
+  `Calls: <the owner's answers, one clause each; decision NNNN>`, `Done when: <the brief's check>`, and one
+  `Open: <question>` for each item under the brief's "Open for the owner". A look question left to "the
+  builder picks" is an `Open:`, never an engineering unknown.
   File it with `npm run records -- inbox add --file <entry>`, its id written `G?`. An entry from this skill
   is the owner's ask: it counts toward none of `/tend`'s three open `G` entries, no loop proposal
   replaces it, and the balance reading "outgrowing its base" does not hold it.
@@ -127,9 +134,10 @@ documents"): never Edit, Write or sed on them.
 
 ## 7. Check, commit, publish
 
-1. `npm run check:docs`, `npm run check:vision`, `npm run check:records`, and
-   `node scripts/tend.js commits --loop-only origin/main..HEAD`. No typecheck or test runs: nothing here
-   is code. A check that fails is fixed, never skipped.
+1. `npm test` (about 13 s; tests read the skills and the docs, so a change of words can turn `main` red:
+   `records audit 14` did on Nov 19), `npm run check:docs`, `npm run check:vision`, `npm run check:records`,
+   and `node scripts/tend.js commits --loop-only origin/main..HEAD`. A check that fails is fixed, never
+   skipped.
 2. One commit, subject `investigate <slug>: <the subject>, queued as G<n>` (the number `records` gave;
    renumbered by `npm run records -- redo` if `main` moved). Its last paragraph: the `Records-Op:`
    trailers (`npm run records -- trailers`), `Co-Authored-By` and `Claude-Session`.
