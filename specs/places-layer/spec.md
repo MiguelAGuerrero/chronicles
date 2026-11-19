@@ -10,7 +10,7 @@ Idea: "In order to favor simplicity, points of interest might just have to be th
 Verb: earn (the dots say how much an area holds; the "?" say where something waits)
 Touches: Never, "Tallies such as '12 of 87' ... of places" (nearest fit, "'what's waiting' as kinds only"); Never, "Scores, ... completion, coverage"; Always, "Guidance is structural"; Always, "Counts are words"; Always, "Restraint"; decision 0115 (kinds filter what you see, never what exists; "?" named only on a tap, never listed or counted); decision 0132 and WT7, WT10, WT11 (every place still to find is on the map, none found, one accessible element); AT7 (a "?" is never named); decision 0067 (presence is dots; "none" keeps full ink); decisions 0127, 0183, SP12 (small places weigh ¼ and ½ toward a dot).
 Verdict: aligned if reshaped
-Shape: the "?" become a switch in the Layers panel ("Places", on by default) that governs every "?" and waiting dot (the selected area's, and out of town). The card drops its "Waiting to be found" chips and keeps the kind rows as its one voice about presence. "How the marks work" says once, in words, that a light place can wait where a kind reads none. Nothing counts places, and no presence rule changes.
+Shape: the "?" become a switch in the Layers panel ("Places", on by default) that governs every "?" and waiting dot (the selected area's; out of town's stars when built). The card drops its "Waiting to be found" chips and keeps the kind rows as its one voice about presence. "How the marks work" says once, in words, that a light place can wait where a kind reads none. Nothing counts places, and no presence rule changes.
 Precedent: Google Maps (a category chip draws pins over the same map that carries the place summary); Pikmin Bloom (places are map points, with no area summary); Atlas Obscura (curiosities only, no summary: a counter-example for its editorial list); AllTrails (a filter page switches categories over a map).
 Criteria: PL1-PL13 (the gate's are PL2, PL3, PL4, PL5, PL6, PL7, PL10 and PL13).
 Open: the owner's calls in the plan (on by default; whether the card keeps a kinds-only line).
@@ -24,6 +24,7 @@ Today an area's "?" appear twice: as pins and dots over the map (WT7, WT12) and 
 - **Places is a layer** (the owner, Nov 19, "points of interest ... their own data layer on top of the map"): an entry of the registry (`id: 'places'`), a switch in the panel.
 - **Named for what it draws, not a task** (the steward's S4): "Places", never "Places to find", "left" or "remaining".
 - **The row says nothing new** (the steward's S1, S2): the card's wording never follows a map switch and never carries a plural or a hint of a count. "None" beside a "?" is explained once, in "How the marks work".
+- **The owner's answers, Nov 19** (decision 0230): on by default; the card keeps only the kinds, with no waiting chips and no kinds-only line ("I want to move away from this collector's attitude into just local information that elicits interest"); the card's picture follows the switch.
 - **On by default** (a default taken by the plan, the owner may overrule): the "?" are the invitation to explore, and today they are always drawn. The saved setting reads missing parts as defaults (ML7), so nobody's setting moves.
 - **The card says nothing of waiting kinds** (the reshaping): "Waiting to be found" is gone. The map's "?" and the screen reader's one button remain.
 - **Presence does not change**: no weight, step, `ATLAS_OWN` or `ATLAS_CODE` change, no migration.
@@ -38,8 +39,8 @@ Today an area's "?" appear twice: as pins and dots over the map (WT7, WT12) and 
 ## Acceptance criteria
 
 1. **PL1** The owner's task: "show or hide the places waiting to be found on the map". A switch named "Places" is in the Layers panel of Explore's map, in ink with a word and the panel's own icon, where Walkability, Storefronts and the others are. Found by someone not told where it is: the Layers button, the panel, the switch (a finding criterion, checked in the journey by the button's name and the row's text, never by a test id alone).
-2. **PL2** With "Places" on, the selected area's unfound places are on the map as "?" and dots exactly as WT7, WT12 and WT14 say, and the places beyond every area's reach within 50 km as OP's stars: nothing about their drawing changes.
-3. **PL3** With it off, no "?", waiting dot or out-of-town star is drawn, for any selected area, on a neighborhood or a town's page. A tap on the map where one was does nothing for it (`tapDoes`: no dot to zoom to).
+2. **PL2** With "Places" on, the selected area's unfound places are on the map as "?" and dots exactly as WT7, WT12 and WT14 say, nothing about their drawing changes. (Places out of town, 0115, is queued and not built: its stars join this layer when they exist.)
+3. **PL3** With it off, no "?" or waiting dot is drawn, for any selected area, on a neighborhood or a town's page. A tap on the map where one was does nothing for it (`tapDoes`: no dot to zoom to).
 4. **PL4** The area card's picture (`MiniMap`) follows the switch: with it off it draws the ring, the streets and your trace, and no "?".
 5. **PL5** With it on, a screen reader hears one button for the selected area (WT11: "Waiting in X: art, green. Opens its card"); with it off, none.
 6. **PL6** A kind row's text is the same with the switch on and off, "none" in full ink in both; nothing on a row mentions a waiting place. "How the marks work" says, once and in words with no number, that a place too small to light a dot can still wait on the map where a kind reads none (`MARKS_EXPLAINED`, no digit, no "find").
@@ -57,7 +58,7 @@ Today an area's "?" appear twice: as pins and dots over the map (WT7, WT12) and 
 
 ## Amended
 
-By the owner's reshaping (a layer, not a card section), named so none drifts silently (the steward's S3): WT8 (the card's "Waiting to be found" shows one per kind: gone; its no-count half stands), WT7 (every place still to find is on the map: now while "Places" is on, as the layer's own rule), WT11 (the one accessible element: only while it is on) and **decision 0132**'s "every place still to find is on the map" (same). The kinds-only account of what waits now lives in the map's "?" and the screen reader's one button; whether the card keeps a kinds-only line is the owner's call (the plan's question 2).
+By the owner's reshaping (a layer, not a card section), named so none drifts silently (the steward's S3): WT8 (the card's "Waiting to be found" shows one per kind: gone; its no-count half stands), WT7 (every place still to find is on the map: now while "Places" is on, as the layer's own rule), WT11 (the one accessible element: only while it is on) and **decision 0132**'s "every place still to find is on the map" (same). The kinds-only account of what waits now lives in the map's "?" and the screen reader's one button; the owner chose no kinds-only line on the card (decision 0230).
 
 ## Out of scope
 

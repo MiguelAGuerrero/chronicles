@@ -71,7 +71,9 @@ Where we depart from every adjacent app: none keep (**Unverified**: three of the
 - **S5:** the precedent sentence above carries its Unverified mark.
 - **S6:** PL13: kinds and "Other places" still hide, the layer sits above them.
 
-## Questions for you (decisions the plan would otherwise take)
+## The owner's answers, Nov 19 (decision 0230): 1 yes, on by default; 2 no kinds-only line; 3 yes, the picture follows
+
+(The questions as asked:)
 
 1. **On by default?** Recommended yes (the other layers are off, but the "?" are today's invitation).
 2. **Keep a kinds-only line on the card** (for example "Art and green wait on the map", no count), or let the dots, the map's "?" and the screen reader carry it? Recommended: no line (simplicity, your motive); the Never table's nearest fit then lives on the map.
