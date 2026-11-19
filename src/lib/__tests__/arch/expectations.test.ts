@@ -17,7 +17,8 @@ type Entry = { id: string; n: number; status: string; date?: string; by?: string
 type Store = { feature: string; head: string; entries: Entry[]; problems: string[] };
 type Draft = { text: string; check: string; grounds: string; amends?: string };
 type Op = { store: Store; ids: string[]; problems: string[] };
-type Index = { journeys: Record<string, string>; tests: Record<string, 'ok' | 'todo'>; shots: Set<string> };
+type Index = { journeys: Record<string, string>; tests: Record<string, 'ok' | 'todo'> };
+type RefOptions = { exists?: (p: string) => boolean; shots?: string; area?: string };
 type Expectations = {
   ID: RegExp;
   parseStore(text: string, feature: string): Store;
@@ -28,13 +29,13 @@ type Expectations = {
   answer(store: Store, ids: string[], o: { as: 'ratified' | 'declined'; by: string; date: string; answer: string }): Op;
   setCheck(store: Store, id: string, check: string): Op;
   parseCheck(check: string): { kind: string; journey?: string; text?: string; name?: string } | null;
-  indexOf(files: { journeys: Record<string, string>; tests: Record<string, string> }): Index;
-  resolveCheck(check: string, index: Index): 'ok' | 'pending' | 'todo' | 'missing';
+  indexOf(files: { journeys: Record<string, string>; tests: Record<string, string>; features?: Record<string, string[]> }): Index;
+  resolveCheck(check: string, index: Index, feature?: string): 'ok' | 'pending' | 'todo' | 'missing';
   checkProblems(stores: Store[], index: Index, features: string[]): { message: string }[];
   due(stores: Store[], features: string[]): string[];
   listText(stores: Store[], index: Index): string;
   editProblems(before: string, after: string, feature: string): string[];
-  logRefProblems(lines: { id: string; is: string; evidence?: string; provisional?: boolean }[], stores: Store[], index: Index, exists?: (p: string) => boolean): string[];
+  logRefProblems(lines: { id: string; is: string; evidence?: string; provisional?: boolean }[], stores: Store[], index: Index, o?: RefOptions): string[];
   check(root: string): { message: string }[];
   writeProblems(store: Store): string[];
 };
@@ -70,7 +71,8 @@ const TESTS = [
   "test('memories MR8: the walker\\'s area is read again', () => {});",
   "test.todo('memories MR9: later');",
 ].join('\n');
-const index = () => ex.indexOf({ journeys: { memories: JOURNEY }, tests: { 'src/lib/__tests__/memories/memories.test.ts': TESTS } });
+const index = () =>
+  ex.indexOf({ journeys: { memories: JOURNEY, threads: "await shot(page, 'threads-01');" }, tests: { 'src/lib/__tests__/memories/memories.test.ts': TESTS }, features: { memories: ['memories'], threads: ['threads'] } });
 const store = () => ex.parseStore(STORE, 'memories');
 const line = (what: string, check = 'pending "it shows"'): Draft => ({ text: `${person} ${what}`, check, grounds: 'VISION "Who it is for"; not yet recorded' });
 
@@ -152,6 +154,50 @@ test('expectations audit 11: a line has one open amendment at a time, and an ame
   assert.equal(both.store.entries.filter((e) => e.status === 'ratified' || (e.status === 'proposed' && !e.amends)).length, 3, 'the lines in force stay three');
 });
 
+test('expectations audit 3: met rests on a check that tests the line: a whole check message, a real test, the feature\'s own picture; a todo check meets nothing', () => {
+  const journey = [
+    JOURNEY,
+    "const label = 'only a label in the code';",
+    'check(',
+    "  (await page.locator('x').count()) === 0 && /a,b\\)/.test(s) && f('(', \"'\"),",
+    "  'a check over three lines',",
+    ');',
+    'check(ok, `tend 3 (${n})`);',
+  ].join('\n');
+  const tests = [
+    TESTS,
+    "expect.test('memories MR10: not a test', () => {});",
+    "test('memories MR11: later', { todo: 'x' }, () => {});",
+    "test('memories MR13: skipped', { skip: true }, () => {});",
+    "it('memories MR12: an it', () => {});",
+  ].join('\n');
+  const i = ex.indexOf({ journeys: { memories: journey, threads: "await shot(page, 'threads-01');" }, tests: { 'a.test.ts': tests }, features: { memories: ['memories'], threads: ['threads'] } });
+  assert.equal(ex.resolveCheck('memories:"a later walk"', i), 'missing', 'a part of a message is no check');
+  assert.equal(ex.resolveCheck('memories:"const"', i), 'missing');
+  assert.equal(ex.resolveCheck('memories:"only a label in the code"', i), 'missing', 'a string that is no check\'s message');
+  assert.equal(ex.resolveCheck('memories:"a check over three lines"', i), 'ok');
+  assert.equal(ex.resolveCheck('memories:"tend 3 ("', i), 'missing', 'a message built at run time is named by no check');
+  assert.equal(ex.resolveCheck('test:"memories MR10: not a test"', i), 'missing', 'a method called test is no test');
+  assert.equal(ex.resolveCheck('test:"memories MR11: later"', i), 'todo');
+  assert.equal(ex.resolveCheck('test:"memories MR13: skipped"', i), 'todo');
+  assert.equal(ex.resolveCheck('test:"memories MR12: an it"', i), 'ok');
+  assert.equal(ex.resolveCheck('picture:threads-01', i, 'memories'), 'missing', 'another feature\'s picture');
+  assert.equal(ex.resolveCheck('picture:threads-01', i, 'threads'), 'ok');
+  assert.ok(ex.setCheck(store(), 'E-memories-2', 'pending "x"').problems.some((p) => /pending/.test(p)), 'a checkable line never goes back to pending');
+  assert.deepEqual(ex.setCheck(store(), 'E-memories-3', 'pending "a word typed finds it"').problems, []);
+  const todo = [ex.parseStore(STORE.replace('pending "a word typed finds the moment that holds it"', 'memories:"a word typed finds the moment that holds it"'), 'memories')];
+  const o = { exists: () => true, shots: '/tmp/shots' };
+  const refs = (l: Parameters<Expectations['logRefProblems']>[0], st = todo) => ex.logRefProblems(l, st, index(), o);
+  assert.ok(refs([{ id: 'E-memories-3', is: 'met', evidence: 'picture:/tmp/shots/search.png', provisional: true }]).length > 0, 'a todo check meets nothing, a picture included');
+  assert.ok(refs([{ id: 'E-memories-3', is: 'met', evidence: 'memories:"a word typed finds the moment that holds it"', provisional: true }]).length > 0);
+  assert.deepEqual(refs([{ id: 'E-memories-3', is: 'lacking', provisional: true }]), []);
+  assert.ok(refs([{ id: 'E-memories-3', is: 'met', evidence: 'picture:/elsewhere/search.png', provisional: true }], [store()]).length > 0, 'a picture from the run\'s shots');
+  assert.ok(refs([{ id: 'E-memories-3', is: 'met', evidence: 'picture:/tmp/shots/search.jpg', provisional: true }], [store()]).length > 0, 'a .png');
+  assert.ok(refs([{ id: 'E-memories-3', is: 'met', evidence: 'picture:/tmp/shots/../x/search.png', provisional: true }], [store()]).length > 0, 'under the folder, not beside it');
+  assert.deepEqual(refs([{ id: 'E-memories-3', is: 'met', evidence: 'picture:13-reminder', provisional: true }], [store()]), [], 'a shot of the feature\'s own journey');
+  assert.ok(refs([{ id: 'E-memories-3', is: 'met', evidence: 'picture:threads-01', provisional: true }], [store()]).length > 0, 'not another feature\'s');
+});
+
 test('expectations 0234: a store file reads into lines with their status, check and grounds, and writes back the same', () => {
   const s = store();
   assert.deepEqual(s.problems, []);
@@ -222,8 +268,8 @@ test('expectations 0234: a check names a journey check, a test or a picture that
   assert.equal(ex.resolveCheck('test:"memories MR8: the walker\'s area is read again"', i), 'ok');
   assert.equal(ex.resolveCheck('test:"memories MR9: later"', i), 'todo');
   assert.equal(ex.resolveCheck('test:"memories MR1"', i), 'missing', 'a whole name, not a part');
-  assert.equal(ex.resolveCheck('picture:13-reminder', i), 'ok');
-  assert.equal(ex.resolveCheck('picture:14-nothing', i), 'missing');
+  assert.equal(ex.resolveCheck('picture:13-reminder', i, 'memories'), 'ok');
+  assert.equal(ex.resolveCheck('picture:14-nothing', i, 'memories'), 'missing');
   assert.equal(ex.resolveCheck('pending "it shows"', i), 'pending');
   const problems = ex.checkProblems([store(), ex.parseStore(STORE.replace(/MR7: a capture[^"]*/, 'MR7: gone').replace(/memories/g, 'threads'), 'threads')], i, ['memories', 'threads']);
   assert.equal(problems.length, 2, problems.map((p) => p.message).join('\n'));
@@ -266,7 +312,7 @@ test('expectations 0234: a loop commit adds proposed lines and fills a check; it
 
 test('expectations 0234: a run log line names lines by id; met names its check, or a picture where the check is still pending', () => {
   const stores = [store()];
-  const ok = (lines: Parameters<Expectations['logRefProblems']>[0]) => ex.logRefProblems(lines, stores, index(), () => true);
+  const ok = (lines: Parameters<Expectations['logRefProblems']>[0]) => ex.logRefProblems(lines, stores, index(), { exists: () => true, shots: '/tmp/shots' });
   assert.deepEqual(ok([
     { id: 'E-memories-1', is: 'met', evidence: 'memories:"a later walk passing a flagged capture brings it back"' },
     { id: 'E-memories-2', is: 'failed', provisional: true },
@@ -277,7 +323,7 @@ test('expectations 0234: a run log line names lines by id; met names its check, 
   assert.ok(ok([{ id: 'E-memories-1', is: 'met', evidence: 'test:"memories MR7: a capture whose reminder card is showing has no memory pin"' }]).length > 0, 'its own check');
   assert.ok(ok([{ id: 'E-memories-2', is: 'lacking' }]).length > 0, 'a proposed line is provisional');
   assert.ok(ok([{ id: 'E-memories-1', is: 'lacking', provisional: true }]).length > 0, 'a ratified line is not');
-  assert.ok(ex.logRefProblems([{ id: 'E-memories-3', is: 'met', evidence: 'picture:/tmp/gone.png', provisional: true }], stores, index(), () => false).length > 0, 'the picture exists');
+  assert.ok(ex.logRefProblems([{ id: 'E-memories-3', is: 'met', evidence: 'picture:/tmp/shots/gone.png', provisional: true }], stores, index(), { exists: () => false, shots: '/tmp/shots' }).length > 0, 'the picture exists');
   assert.ok(ok([{ id: 'E-memories-3', is: 'met', evidence: 'pending "a word typed finds the moment that holds it"', provisional: true }]).length > 0, 'a pending check is no evidence');
 });
 
