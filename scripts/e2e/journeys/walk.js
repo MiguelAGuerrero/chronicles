@@ -401,7 +401,10 @@ async function checks(h) {
         const hereSaid = (await page.locator('[data-testid=here-open]').first().innerText().catch(() => '')).trim();
         check(hereSaid === 'What happened here' && !/\d/.test(hereSaid), `tend walk-screen 15: the spot card's button reads "What happened here", with no count (${hereSaid})`);
         await page.click('[data-testid=here-open]');
-        await page.waitForSelector('text=What happened here');
+        // tend walk-screen audit 14 (the diff review's auditor 4): the viewer's own control, not the words the button shares.
+        const viewerOpen = await page.locator('[data-testid=viewer-close]').filter({ visible: true }).first().waitFor({ timeout: 5000 }).then(() => true, () => false);
+        check(viewerOpen && (await page.locator('[data-testid=here-open]').filter({ visible: true }).count()) === 0,
+          'tend walk-screen audit 14: What happened here opens the viewer, and the spot card is gone');
         // The note may share the spot with the video nearby: step to it.
         for (let i = 0; i < 4 && !(await page.getByText('The bakery smelled of cardamom.').count()); i++) {
           if (!(await page.locator('[aria-label="Next moment"]').count())) break;
