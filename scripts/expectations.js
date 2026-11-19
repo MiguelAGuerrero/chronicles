@@ -303,15 +303,18 @@ function ordered(e) {
 }
 
 /** The evidence a line names, filled in or moved: never its words, status or answer. */
-function setCheck(store, id, check) {
-  return settle(store, setCheckOf(store, id, check));
+function setCheck(store, id, check, index) {
+  return settle(store, setCheckOf(store, id, check, index));
 }
 
-function setCheckOf(store, id, check) {
+function setCheckOf(store, id, check, index) {
   const e = store.entries.find((x) => x.id === id);
   if (!e) return { store, ids: [], problems: [`${id} is no line of ${fileOf(store.feature)}`] };
   if (!parseCheck(check)) return { store, ids: [], problems: [`${check} is in no form: <journey>:"<check text>", test:"<test name>", picture:<shot name> or pending "<what it will show>"`] };
-  if (parseCheck(e.check)?.kind !== 'pending' && parseCheck(check).kind === 'pending') return { store, ids: [], problems: [`${id} is checkable (${e.check}): its check moves to another check, never back to pending`] };
+  const vanished = index && resolveCheck(e.check, index, store.feature) === 'missing';
+  if (parseCheck(e.check)?.kind !== 'pending' && parseCheck(check).kind === 'pending' && !vanished) {
+    return { store, ids: [], problems: [`${id} is checkable (${e.check}): its check moves to another check, never back to pending while it is there`] };
+  }
   return { store: { ...store, entries: store.entries.map((x) => (x.id === id ? { ...x, check } : x)) }, ids: [id], problems: [] };
 }
 
@@ -484,12 +487,13 @@ const ANSWER_COMMIT = /^expectations ([a-z][a-z0-9-]*): the owner's answer, (\d{
 /**
  * What an agent's commit (a loop commit or any other) did to a store file that it may not (decision 0236). In any
  * commit, a line the file held keeps its words, status, grounds and answer, and its Check moves only to another
- * check (set-check), never from a check back to pending; a line it adds is proposed. In the owner's answer commit
+ * check (set-check), never from a check back to pending unless `missing(check)` says the check had vanished at the
+ * commit's parent; a line it adds is proposed. In the owner's answer commit
  * (`expectations <feature>: the owner's answer, <date>`) a proposed line may become ratified or declined, dated so and
  * with its Answer, and the line a ratified amendment replaces superseded on that date; nothing else changes.
  * A file that does not read is the owner's to mend by hand: an agent commit changes it in no way.
  */
-function editProblems(before, after, feature, subject = '') {
+function editProblems(before, after, feature, subject = '', { missing = () => false } = {}) {
   const b = parseStore(before, feature);
   const a = parseStore(after, feature);
   const where = fileOf(feature);
@@ -529,7 +533,7 @@ function editProblems(before, after, feature, subject = '') {
       out.push(`${verb} in ${where}${now.status !== e.status && !answering ? ', outside the owner\'s answer commit' : ''}: ${why}`);
       continue;
     }
-    if (cb !== ca && parseCheck(cb)?.kind !== 'pending' && parseCheck(ca)?.kind === 'pending') out.push(`moves ${e.id}'s check in ${where} back to pending: a check moves to another check (set-check)`);
+    if (cb !== ca && parseCheck(cb)?.kind !== 'pending' && parseCheck(ca)?.kind === 'pending' && !missing(cb, feature)) out.push(`moves ${e.id}'s check in ${where} back to pending: a check moves to another check (set-check)`);
   }
   for (const e of a.entries) {
     if (b.entries.some((x) => x.id === e.id)) continue;
@@ -696,7 +700,7 @@ function main(argv) {
   if (op === 'set-check') {
     const feature = featureOfId(args[0]);
     if (!feature) return fail([`${args[0] || '(none)'} is no id: E-<feature>-<n>`]);
-    const r = setCheck(storeOf(feature), args[0], flags.check);
+    const r = setCheck(storeOf(feature), args[0], flags.check, readIndex(ROOT));
     if (r.problems.length) return fail(r.problems);
     write(r.store);
     console.log(`set-check: ${args[0]} checks ${flags.check}`);

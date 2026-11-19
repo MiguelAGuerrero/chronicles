@@ -796,6 +796,22 @@ function commits(argv) {
     if (!shas.length) return null;
     return shas.sort((a, b) => Number(git('rev-list', '--count', a)) - Number(git('rev-list', '--count', b)))[0];
   };
+  // Whether a check had vanished at a revision (audit 17): the journeys, tests and feature map as that revision held them.
+  const indexes = new Map();
+  const missingAt = (rev, check, feature) => {
+    if (!indexes.has(rev)) {
+      const dir = fs.mkdtempSync(path.join(require('os').tmpdir(), 'tend-index-'));
+      const paths = git('ls-tree', '--name-only', rev, '--', 'scripts/e2e/journeys', 'src/lib/__tests__', 'scripts/features.js').split('\n').filter(Boolean);
+      if (paths.length) execFileSync('tar', ['-x', '-C', dir], { input: execFileSync('git', ['archive', rev, '--', ...paths], { cwd: ROOT, maxBuffer: 256 * 1024 * 1024 }) });
+      if (!fs.existsSync(path.join(dir, 'scripts', 'features.js'))) {
+        fs.mkdirSync(path.join(dir, 'scripts'), { recursive: true });
+        fs.writeFileSync(path.join(dir, 'scripts', 'features.js'), 'module.exports = { FEATURES: [] };\n');
+      }
+      indexes.set(rev, require('./expectations').readIndex(dir));
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+    return require('./expectations').resolveCheck(check, indexes.get(rev), feature) === 'missing';
+  };
   const storeEdits = (sha) => {
     const message = git('show', '-s', '--format=%B', sha);
     const subject = message.split('\n')[0].trim();
@@ -803,7 +819,7 @@ function commits(argv) {
     const oldest = revertedFrom(message);
     return changed.flatMap((p) => {
       if (oldest && at(sha, p) === at(`${oldest}^`, p)) return [];
-      return require('./expectations').editProblems(at(`${sha}^`, p), at(sha, p), STORE_FILE.exec(p)[1], subject);
+      return require('./expectations').editProblems(at(`${sha}^`, p), at(sha, p), STORE_FILE.exec(p)[1], subject, { missing: (check, feature) => missingAt(`${sha}^`, check, feature) });
     });
   };
   // The record documents (decision 0156): each commit that touches them is its declared operations,

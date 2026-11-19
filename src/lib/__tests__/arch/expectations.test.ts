@@ -506,7 +506,8 @@ test('expectations 0236: the docs check holds the store, and the script prints t
   const ratified = run('ratify', 'E-memories-1', 'E-memories-2', '--by', 'owner', '--date', '2026-11-21', '--answer', 'Ratify as drafted');
   assert.equal(ratified.stdout, 'ratify: E-memories-1, E-memories-2 ratified 2026-11-21 ("Ratify as drafted")\n');
   assert.equal(run('due', 'memories', 'threads').stdout, 'threads\n', 'no line at all: draft');
-  assert.equal(run('set-check', 'E-memories-3', '--check', 'pending "a word typed finds it"').status, 1, 'a checkable line never goes back to pending');
+  assert.equal(run('set-check', 'E-memories-3', '--check', 'pending "a word typed finds it"').status, 0, 'a check that is nowhere may go back to pending');
+  assert.equal(run('set-check', 'E-memories-1', '--check', 'pending "it comes back"').status, 1, 'a check that is there never does');
   assert.equal(run('set-check', 'E-memories-3', '--check', 'test:"memories MR8: the walker\'s area is read again"').status, 0);
   assert.equal(run('check').stdout, 'expectations check: 3 lines, 3 checks found, 0 pending, 0 missing\n');
   const listing = [
