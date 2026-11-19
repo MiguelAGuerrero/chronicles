@@ -741,7 +741,7 @@ function main(argv) {
     const index = readIndex(ROOT);
     const problems = checkProblems(shown, index, features);
     if (problems.length) return fail(problems.map((p) => p.message));
-    const states = shown.flatMap((s) => s.entries.filter((e) => ACTIVE.includes(e.status)).map((e) => resolveCheck(e.check, index)));
+    const states = shown.flatMap((s) => s.entries.filter((e) => ACTIVE.includes(e.status)).map((e) => resolveCheck(e.check, index, s.feature)));
     const n = (...k) => states.filter((x) => k.includes(x)).length;
     console.log(`expectations check: ${states.length} lines, ${n('ok')} checks found, ${n('pending', 'todo')} pending, ${n('missing')} missing`);
     return 0;
