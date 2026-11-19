@@ -498,6 +498,8 @@ async function wholeTowns(h) {
       check((await pg.locator('[data-testid=atlas-card] [data-testid=mini-waiting]').count()) === 0, 'PL4: the card\'s picture draws no "?" with Places off');
       await pg.keyboard.press('Escape');
       await pg.waitForTimeout(800);
+      // The card and a tap on the map closed the panel: open it again to switch Places on.
+      if (!(await pg.getByRole('switch', { name: /^Places$/ }).count())) await pg.getByRole('button', { name: 'Layers' }).click().catch(() => {});
       await pg.getByRole('switch', { name: /^Places$/ }).click().catch(() => {});
       await pg.waitForTimeout(1200);
       const back = await drawn();
