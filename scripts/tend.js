@@ -13,8 +13,11 @@
 //                                                       range holds (every finding a subject names:
 //                                                       shipped, audit fixes, builds, reverts) with
 //                                                       what only the run knows (found, filed, answers,
-//                                                       expectations: decision 0231)
+//                                                       expectations and compass: decision 0234)
 //   node scripts/tend.js next                           the area to sweep when the owner names none
+//   node scripts/tend.js compass [--runs N]             the compass (decision 0234), from the run log: per run and in
+//                                                       sum, refinement shipped against filed low, lens-0 G entries,
+//                                                       lines met, failed, lacking and provisional; whether it bites
 //   node scripts/tend.js e2e-due [--days N] [--json]    whether the weekly full pass is due: no line of main's run
 //                                                       log says "e2e":"full" in seven days (decision 0181)
 //   node scripts/tend.js commits <range>                a sweep's commits: each is a loop commit with a
@@ -214,7 +217,7 @@ const FORBIDDEN = [
   // and never the script or the tests that hold it (the line above covers the script; it is named here
   // so that loosening that line does not free the gate).
   /^scripts\/records\.js$/,
-  /^src\/lib\/__tests__\/arch\/(records|tend)\.test\.ts$/,
+  /^src\/lib\/__tests__\/arch\/(records|tend|expectations)\.test\.ts$/,
   /^\.claude\/(hooks|agents)\//,
   /^\.claude\/settings/,
   /^\.claude\/skills\/(?!tend\/(ledger\.json|runs\.jsonl)$)/,
@@ -241,10 +244,12 @@ function testName(subject) {
  * What a commit in a loop's range lacks. `files` are `{ status, path, from? }` (git's A, M, D, R;
  * `from` is a rename's old path); `added` is the text of the lines the commit adds to its test files.
  */
-function tendCommitProblems({ subject, body, files, added = '', rewritesLog = false, rewritesRules = [] }) {
+function tendCommitProblems({ subject, body, files, added = '', rewritesLog = false, rewritesRules = [], expectationEdits = [] }) {
   const problems = [];
   if (!/^tend /.test(subject)) return ['not a loop commit: the loop ships only `tend <area> …` commits'];
   if (rewritesLog) problems.push('rewrites the run log: a run adds its line and changes no other');
+  // The expectation store (decision 0234): what scripts/expectations.js editProblems found in the commit's store files.
+  problems.push(...expectationEdits);
   for (const f of rewritesRules) problems.push(`changes or removes a line of ${f} that the push's base holds: the loop may add a trap to a rule file, and reword a line its own push added, never reword a rule (the owner's, through the inbox)`);
   for (const f of files) {
     if (RULE_FILE.test(f.path) && citesRule(body, f.path)) problems.push(`cites ${f.path} as its source and edits it in the same commit`);
@@ -269,6 +274,7 @@ function tendCommitProblems({ subject, body, files, added = '', rewritesLog = fa
 }
 
 const RULE_FILE = /^\.claude\/rules\/[^/]+\.md$/;
+const STORE_FILE = /^docs\/expectations\/([^/]+)\.md$/;
 
 /**
  * Whether lines a commit removes from a rule file include one the push's base holds: those stay
@@ -307,32 +313,41 @@ const MODES = ['sweep', 'triage', 'evolve', 'inbox', 'e2e'];
 const DEPLOYS = ['main', 'branch', 'none'];
 const ANSWERS = ['yes', 'no', 'reshape'];
 const count = (v) => Number.isInteger(v) && v >= 0;
-// The expectation lens (decision 0231): a sweep, and an inbox run that builds a yes, logs per feature the
-// three to five lines it wrote, each met, failed or lacking, and those the steward dropped against a Never
-// line. A line logged before the lens held (dated before EXPECTATIONS_FROM) is read as it was.
+// The expectation lens (decision 0234): a sweep, and an inbox run that builds a yes, logs `expectations` (the
+// store's lines it tested, by id, each met, failed or lacking; a proposed line provisional; met naming its evidence;
+// the drafted lines the steward dropped, with the Never row each breaks) and `compass` (refinement shipped, filed
+// low by the compass for serving no expectation or rule, the G entries lens 0 filed). A line logged before the lens
+// held (dated before EXPECTATIONS_FROM) is read as it was. tend:log also reads the lines against the store
+// (scripts/expectations.js, logRefProblems).
 const EXPECTATIONS_FROM = '2026-11-20';
 const VERDICTS = ['met', 'failed', 'lacking'];
 const LENS_LINE = /^A person\b.*\bwould reasonably expect\b/;
+const EXPECTATION_ID = /^E-[a-z][a-z0-9-]*-\d+$/;
+const EVIDENCE = /^(?:test:".+"|picture:\S+|[a-z][a-z0-9-]*:".+")$/;
 
 function expectationProblems(e) {
-  if (!Array.isArray(e) || !e.length) return ['expectations lists each feature the run touched: { feature, lines, dropped }'];
+  if (typeof e !== 'object' || e === null || Array.isArray(e)) return ['expectations is { lines: [{ id, is, evidence?, provisional? }], dropped: [{ line, never }] }'];
   const p = [];
-  for (const f of e) {
-    const lines = Array.isArray(f?.lines) ? f.lines : null;
-    const dropped = f?.dropped === undefined ? [] : Array.isArray(f.dropped) ? f.dropped : null;
-    if (typeof f?.feature !== 'string' || !f.feature.trim()) p.push('each expectation names its feature');
-    if (!lines || !dropped) {
-      p.push('an expectation\'s lines and dropped are lists');
-      continue;
-    }
-    const written = lines.length + dropped.length;
-    if (written < 3 || written > 5) p.push(`${f.feature}: three to five lines written, the dropped ones counted`);
-    for (const l of lines) {
-      if (typeof l?.line !== 'string' || !LENS_LINE.test(l.line)) p.push(`${f.feature}: a line reads "A person … would reasonably expect …"`);
-      if (!VERDICTS.includes(l?.is)) p.push(`${f.feature}: each line is ${VERDICTS.join(', ')}`);
-    }
-    for (const d of dropped) if (typeof d?.line !== 'string' || typeof d?.never !== 'string' || !d.never.trim()) p.push(`${f.feature}: a dropped line names the Never line it breaks`);
+  if (!Array.isArray(e.lines) || !e.lines.length) p.push('expectations.lines names each store line the run tested, by id (E-<feature>-<n>)');
+  for (const l of Array.isArray(e.lines) ? e.lines : []) {
+    if (!EXPECTATION_ID.test(l?.id ?? '')) p.push(`"${l?.id}" is no line's id: E-<feature>-<n> (npm run expectations -- list)`);
+    if (!VERDICTS.includes(l?.is)) p.push(`${l?.id}: is is ${VERDICTS.join(', ')}`);
+    if (l?.provisional !== undefined && typeof l.provisional !== 'boolean') p.push(`${l?.id}: provisional is true or left out`);
+    if (l?.is === 'met' && !EVIDENCE.test(l?.evidence ?? '')) p.push(`${l?.id} is met: its evidence is its check (<journey>:"…", test:"…") or picture:<path or shot>`);
   }
+  if (e.dropped !== undefined && !Array.isArray(e.dropped)) p.push('expectations.dropped is a list');
+  for (const d of Array.isArray(e.dropped) ? e.dropped : []) {
+    if (typeof d?.line !== 'string' || !LENS_LINE.test(d.line)) p.push('a dropped line reads "A person … would reasonably expect …"');
+    if (typeof d?.never !== 'string' || !d.never.trim()) p.push('a dropped line names the Never line it breaks');
+  }
+  return p;
+}
+
+function compassProblems(c, filedG) {
+  if (typeof c !== 'object' || c === null) return ['compass is { shipped, filedLow, lensG }'];
+  const p = [];
+  if (![c.shipped, c.filedLow].every(count)) p.push('compass counts the refinement shipped and the refinement the compass filed low (filedLow), zeros included');
+  if (!Array.isArray(c.lensG) || !c.lensG.every((g) => filedG.includes(g))) p.push('compass.lensG lists the G entries lens 0 filed, each one of filed.G');
   return p;
 }
 
@@ -352,9 +367,11 @@ function logProblems(given) {
     if (g.lenses?.whole === true && g.lenses.skipped?.length) p.push('a whole sweep skipped no lens');
   }
   const builds = g.mode === 'inbox' && (g.answers ?? []).some((a) => a?.answer === 'yes');
-  const lensHeld = !g.backfilled && !(typeof g.date === 'string' && g.date < EXPECTATIONS_FROM);
+  const held = !g.backfilled && !(typeof g.date === 'string' && g.date < EXPECTATIONS_FROM) && (g.mode === 'sweep' || builds);
   if (g.expectations !== undefined) p.push(...expectationProblems(g.expectations));
-  else if (lensHeld && (g.mode === 'sweep' || builds)) p.push('a sweep or a build logs its expectations (decision 0231)');
+  else if (held) p.push('a sweep or a build logs its expectations (decision 0234)');
+  if (g.compass !== undefined) p.push(...compassProblems(g.compass, g.filed?.G ?? []));
+  else if (held) p.push('a sweep or a build logs the compass\'s counts (decision 0234)');
   for (const e of [...(g.filed?.T ?? []), ...(g.filed?.G ?? [])]) if (!/^[TG]\d+$/.test(e)) p.push(`filed entry "${e}" is a T or G number`);
   for (const a of g.answers ?? []) if (!/^[TG]\d+$/.test(a?.entry ?? '') || !ANSWERS.includes(a?.answer)) p.push(`an answer is { entry: "T3", answer: ${ANSWERS.join(' | ')} }`);
   if (g.review && ![g.review.accepted, g.review.rejected, g.review.deferred].every(count)) p.push('review counts the auditor\'s findings: accepted, rejected, deferred');
@@ -392,6 +409,75 @@ function fullPassDue(lines, today, days = 7) {
   if (!last) return { due: true, last: null, dueFrom: null };
   const dueFrom = new Date(Date.parse(`${last.date}T00:00:00Z`) + days * DAY).toISOString().slice(0, 10);
   return { due: today >= dueFrom, last, dueFrom };
+}
+
+const COMPASS_WINDOW = 12;
+// A half's shipped share must move by more than this to read as falling or rising.
+const COMPASS_STEP = 0.05;
+
+/**
+ * The compass (decision 0234), read from the run log: per run that carries `compass` and in sum, the refinement
+ * shipped against the refinement the compass filed low, the G entries lens 0 filed, and the store lines met, failed
+ * and lacking (ratified) or provisional. Over the last `window` such runs, the shipped share of refinement in the
+ * later half against the earlier: falling, or nothing shipped in the later half, is "the compass is biting"; after
+ * `window` runs, anything else is "not biting: tighten it". No checkpoint: it is read at every landing.
+ */
+function compassReading(runs, window = COMPASS_WINDOW) {
+  const rows = runs
+    .filter((r) => r && typeof r.compass === 'object' && r.compass !== null)
+    .map((r) => {
+      const lines = Array.isArray(r.expectations?.lines) ? r.expectations.lines : [];
+      const ratified = (is) => lines.filter((l) => !l.provisional && l.is === is).length;
+      return {
+        date: r.date ?? null,
+        mode: r.mode,
+        area: r.area ?? null,
+        shipped: r.compass.shipped ?? 0,
+        filedLow: r.compass.filedLow ?? 0,
+        lensG: (r.compass.lensG ?? []).length,
+        met: ratified('met'),
+        failed: ratified('failed'),
+        lacking: ratified('lacking'),
+        provisional: lines.filter((l) => l.provisional).length,
+      };
+    });
+  const add = (xs) => {
+    const s = { runs: xs.length, shipped: 0, filedLow: 0, lensG: 0, met: 0, failed: 0, lacking: 0, provisional: 0 };
+    for (const x of xs) for (const k of Object.keys(s)) if (k !== 'runs') s[k] += x[k];
+    return s;
+  };
+  const last = rows.slice(-window);
+  const half = Math.floor(last.length / 2);
+  const share = (xs) => {
+    const s = add(xs);
+    return s.shipped + s.filedLow ? Math.round((s.shipped / (s.shipped + s.filedLow)) * 100) / 100 : null;
+  };
+  const shares = { first: last.length >= 2 ? share(last.slice(0, half)) : null, second: last.length >= 2 ? share(last.slice(half)) : null };
+  const a = shares.first ?? 0;
+  const b = shares.second ?? 0;
+  const trend = last.length < 2 ? 'none' : b < a - COMPASS_STEP ? 'falling' : b > a + COMPASS_STEP ? 'rising' : 'flat';
+  const quiet = last.length >= 2 && add(last.slice(half)).shipped === 0;
+  const verdict =
+    last.length >= 2 && (trend === 'falling' || quiet)
+      ? 'the compass is biting'
+      : last.length >= window
+        ? 'the compass is not biting: tighten it'
+        : `too early to say: ${last.length} of ${window} runs carry the compass`;
+  const date = rows.length ? rows[rows.length - 1].date : null;
+  return { rows, sum: add(rows), shares, trend, verdict, ledger: { date, runs: last.length, shares, trend, verdict } };
+}
+
+function compassText(r) {
+  const row = (x) => `shipped ${x.shipped}, filed low ${x.filedLow}, lens-0 G ${x.lensG}; met ${x.met}, failed ${x.failed}, lacking ${x.lacking}, provisional ${x.provisional}`;
+  const pct = (v) => (v === null ? 'none' : v.toFixed(2));
+  return [
+    `compass: ${r.rows.length} runs carry it`,
+    ...r.rows.map((x) => `${x.date} ${x.mode}${x.area ? ` ${x.area}` : ''}: ${row(x)}`),
+    `in sum: ${row(r.sum)}`,
+    `last ${r.ledger.runs}: shipped share ${pct(r.shares.first)} then ${pct(r.shares.second)}, ${r.trend}`,
+    r.verdict,
+    '',
+  ].join('\n');
 }
 
 /**
@@ -561,6 +647,7 @@ function balance(argv) {
     // Into this checkout's ledger, beside the run's own record.
     const mine = readLedger();
     mine.balance = out;
+    mine.compass = compassReading(readRuns()).ledger;
     fs.writeFileSync(LEDGER, JSON.stringify(mine, null, 2) + '\n');
   }
 }
@@ -584,6 +671,10 @@ function appendLog(argv) {
     process.exit(2);
   }
   const problems = logProblems(given);
+  if (!problems.length && given.expectations?.lines) {
+    const ex = require('./expectations');
+    problems.push(...ex.logRefProblems(given.expectations.lines, ex.readStores(ROOT), ex.readIndex(ROOT)));
+  }
   if (problems.length) {
     console.error(`tend log: ${problems.join('; ')}`);
     process.exit(1);
@@ -601,6 +692,20 @@ function mainRuns() {
   } catch {
     return fs.existsSync(RUNS) ? fs.readFileSync(RUNS, 'utf8') : '';
   }
+}
+
+/** The run log's lines, as mainRuns reads them; a line that does not parse is skipped. */
+function readRuns() {
+  return mainRuns()
+    .split('\n')
+    .filter(Boolean)
+    .flatMap((l) => {
+      try {
+        return [JSON.parse(l)];
+      } catch {
+        return [];
+      }
+    });
 }
 
 function e2eDue(argv) {
@@ -661,8 +766,17 @@ function commits(argv) {
     const removed = (file) => git('show', '--format=', '-U0', sha, '--', file).split('\n').filter((l) => /^-(?!--)/.test(l)).map((l) => l.slice(1));
     const rewritesLog = files.some((f) => f.path === RUNS_REL) && removed(RUNS_REL).length > 0;
     const rewritesRules = files.filter((f) => RULE_FILE.test(f.path) && f.status === 'M' && rewritesBaseLines(removed(f.path), atBase(f.path))).map((f) => f.path);
+    const at = (rev, file) => {
+      try {
+        return execFileSync('git', ['show', `${rev}:${file}`], { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], maxBuffer: 64 * 1024 * 1024 });
+      } catch {
+        return '';
+      }
+    };
+    const stores = [...new Set(files.flatMap((f) => [f.from, f.path]).filter((p) => p && STORE_FILE.test(p)))];
+    const expectationEdits = stores.flatMap((p) => require('./expectations').editProblems(at(`${sha}^`, p), at(sha, p), STORE_FILE.exec(p)[1]));
     read.push({ subject, body: rest.join('\n'), files });
-    const problems = tendCommitProblems({ subject, body: rest.join('\n'), files, added, rewritesLog, rewritesRules });
+    const problems = tendCommitProblems({ subject, body: rest.join('\n'), files, added, rewritesLog, rewritesRules, expectationEdits });
     problems.push(...(recordIssues.get(sha) ?? []));
     recordIssues.delete(sha);
     for (const p of problems) {
@@ -692,11 +806,12 @@ if (require.main === module) {
   else if (cmd === 'log') appendLog(argv);
   else if (cmd === 'commits') commits(argv);
   else if (cmd === 'e2e-due') e2eDue(argv);
+  else if (cmd === 'compass') process.stdout.write(compassText(compassReading(readRuns(), Number(argv[argv.indexOf('--runs') + 1]) || COMPASS_WINDOW)));
   else if (require('./bookkeeping').COMMANDS[cmd]) process.exitCode = require('./bookkeeping').main([cmd, ...argv]);
   else {
-    console.error('usage: node scripts/tend.js balance [--days N] [--write] | next | log <range> "<json>" | commits [--loop-only] <range> | e2e-due [--days N] [--json] | next-decision | next-audit | files | landed | review-paths | items (scripts/bookkeeping.js)');
+    console.error('usage: node scripts/tend.js balance [--days N] [--write] | next | log <range> "<json>" | commits [--loop-only] <range> | e2e-due [--days N] [--json] | compass [--runs N] | next-decision | next-audit | files | landed | review-paths | items (scripts/bookkeeping.js)');
     process.exit(2);
   }
 }
 
-module.exports = { FORBIDDEN, LIMITS, STATES, classify, criteriaPrefixes, tally, areasByState, readStatus, reading, nextArea, isLoops, dropBoundary, testName, tendCommitProblems, citedOwnEdits, rewritesBaseLines, mainOrHere, findingsOf, logProblems, runLine, fullPassDue, controlsIn, isRoute, resetsArea, readPatches };
+module.exports = { compassReading, compassText, FORBIDDEN, LIMITS, STATES, classify, criteriaPrefixes, tally, areasByState, readStatus, reading, nextArea, isLoops, dropBoundary, testName, tendCommitProblems, citedOwnEdits, rewritesBaseLines, mainOrHere, findingsOf, logProblems, runLine, fullPassDue, controlsIn, isRoute, resetsArea, readPatches };
