@@ -102,4 +102,57 @@ async function seedReplayWalk(h, c, pg) {
   return { walk, here, places, passed: passedAt };
 }
 
-module.exports = { seedReplayWalk };
+/**
+ * A walk of `n` photos, each a stop of its own 50 m on from the last, written into storage and stopped: more moments
+ * with a picture than a small phone's stack holds (replay ceremony RC30). Uses the `rr-photo` picture the walk above
+ * stored, so it follows it in the same browser. Leaves the page on the walk's first replay.
+ */
+async function seedPhotoWalk(h, c, pg, n) {
+  const { navUrl, BASE, at, openWalk, toStop } = h;
+  const here = at(-4 + n * 0.5 + 0.2, 1.5);
+  await pg.goto(navUrl);
+  await pg.waitForSelector('[data-testid=start]');
+  await pg.click('[data-testid=start]');
+  await pg.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
+  for (let k = 0; k < 3; k++) {
+    await c.setGeolocation({ longitude: here[0], latitude: here[1] + k * 0.000001, accuracy: 6 });
+    await pg.waitForTimeout(1000);
+  }
+  const walk = await openWalk(pg);
+  const t0 = Date.now() - 40 * 60_000;
+  const steps = Math.round(((n * 0.5 + 0.2) * 100) / 7);
+  const pts = Array.from({ length: steps + 1 }, (_, k) => {
+    const p = at(-4 + ((n * 0.5 + 0.2) * k) / steps, 1.5);
+    return { walk_id: walk.id, t: t0 + k * 5000, lon: p[0], lat: p[1], accuracy_m: 6, speed: 1.4, course: null };
+  });
+  const ids = Array.from({ length: n }, (_, k) => `ph-${k}`);
+  const caps = ids.map((id, k) => {
+    const p = pts[Math.min(pts.length - 1, Math.round(((k + 0.4) * 50) / 7))];
+    return { id, walk_id: walk.id, t: p.t, lat: p.lat, lon: p.lon, segment_id: null, piece_ids: [id], pieces: [{ id, moment_id: id, t: p.t, kind: 'photo', file_path: 'rr-photo', body: null, caption: null, caption_y: null }] };
+  });
+  await pg.evaluate(([id, startedAt, points, moments]) => new Promise((resolve) => {
+    const req = indexedDB.open('chronicles');
+    req.onsuccess = () => {
+      const tx = req.result.transaction(['walk', 'trace_point', 'moment'], 'readwrite');
+      const w = tx.objectStore('walk').get(id);
+      w.onsuccess = () => tx.objectStore('walk').put({ ...w.result, started_at: startedAt });
+      for (const p of points) tx.objectStore('trace_point').add(p);
+      for (const m of moments) tx.objectStore('moment').put(m);
+      tx.oncomplete = () => resolve(true);
+    };
+  }), [walk.id, pts[0].t - 1000, pts, caps]);
+  await pg.reload();
+  await pg.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
+  await c.setGeolocation({ longitude: here[0], latitude: here[1], accuracy: 6 });
+  await pg.waitForTimeout(2000);
+  await toStop(pg);
+  const b = await pg.locator('[data-testid=stop]').boundingBox();
+  await pg.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
+  await pg.mouse.down();
+  await pg.waitForTimeout(1100);
+  await pg.mouse.up();
+  await pg.waitForURL(/replay/, { timeout: 30000 });
+  return { walk, ids };
+}
+
+module.exports = { seedReplayWalk, seedPhotoWalk };

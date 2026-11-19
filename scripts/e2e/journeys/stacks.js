@@ -215,7 +215,7 @@ async function run(h) {
  * (MS17); its trimmed video plays only its kept part in its cell (fix trimmed-length 3).
  */
 async function replayGrid(h, check) {
-  const { navUrl, BASE, start, at, freshPage, toStop } = h;
+  const { navUrl, BASE, start, at, freshPage, toStop, shot } = h;
   const { c, pg } = await freshPage('stacks-replay');
   await pg.goto(navUrl);
   await pg.waitForSelector('[data-testid=start]', { timeout: 30000 });
@@ -314,6 +314,50 @@ async function replayGrid(h, check) {
   const [whole, kept] = await pg.evaluate(() => window.__gridVideos);
   check(!!whole && !!kept && whole.max > 3.5 && kept.first != null && kept.first >= trim.start_ms / 1000 - 0.3 && kept.max <= trim.end_ms / 1000 + 0.4 && kept.max >= trim.end_ms / 1000 - 0.4 && kept.paused,
     `fix trimmed-length 3: in a stack's grid a trimmed video plays only its kept part, from its start to its end (kept ${JSON.stringify(kept)}, whole ${JSON.stringify(whole)})`);
+  // Replay ceremony RC37: a moment with videos arrives whole. Watched again at 390 and at 320 px: its pictures as the
+  // grid, then each video in turn in the same card (never in a cell, never two at once), the card still up while its
+  // memo plays; nothing counts the pieces.
+  await pg.waitForSelector('[data-testid=to-name], [data-testid=done]', { timeout: 90000 }).catch(() => {});
+  for (const [w, ht] of [[390, 844], [320, 568]]) {
+    await pg.setViewportSize({ width: w, height: ht });
+    await pg.getByText('Watch again').click().catch(() => {});
+    await pg.evaluate(() => {
+      const T = (window.__turns = { log: [], cells: 0, cellVideos: 0, both: 0, memoWithCard: 0, counted: '', card: null, cards: 0, players: 0 });
+      clearInterval(window.__turnsTimer);
+      window.__turnsTimer = setInterval(() => {
+        const card = document.querySelector('[data-testid=replay-card]');
+        if (!card) return;
+        if (T.card !== card) { T.card = card; T.cards++; }
+        const grid = card.querySelector('[data-testid=replay-grid]');
+        if (grid) { T.cells = Math.max(T.cells, grid.querySelectorAll('[data-testid=grid-cell]').length); T.cellVideos = Math.max(T.cellVideos, grid.querySelectorAll('video').length); }
+        const vids = [...card.querySelectorAll('video')];
+        const playing = vids.filter((v) => !v.paused && v.readyState >= 2);
+        if (playing.length > 1) T.both++;
+        const v = playing[0];
+        // Each video is a player of its own, made when its turn comes: told apart by the element.
+        if (v && !v.__turn) v.__turn = ++T.players;
+        const what = v ? `video:${v.__turn}` : grid && !vids.length ? 'grid' : 'still';
+        const last = T.log[T.log.length - 1];
+        if (!last || last.what !== what) T.log.push({ what, from: v ? v.currentTime : 0, to: v ? v.currentTime : 0, muted: v ? v.muted : null });
+        else if (v) last.to = Math.max(last.to, v.currentTime);
+        if (document.querySelector('[data-testid=memo-bubble]')) T.memoWithCard++;
+        const m = /\b\d+ of \d+\b|\b\d\s*\/\s*\d\b/.exec(card.innerText);
+        if (m) T.counted = m[0];
+      }, 40);
+    });
+    await pg.waitForSelector('[data-testid=replay-grid]', { timeout: 60000 }).catch(() => {});
+    await pg.waitForTimeout(1500);
+    await shot(pg, `rc-moment-grid-${w}`);
+    const turned = await pg.waitForFunction(() => { const v = document.querySelector('[data-testid=replay-card] video'); return !!v && !v.paused && v.currentTime > 0.6; }, null, { timeout: 30000 }).then(() => true, () => false);
+    await shot(pg, `rc-moment-video-${w}`);
+    await pg.waitForSelector('[data-testid=to-name], [data-testid=done]', { timeout: 90000 }).catch(() => {});
+    const T = await pg.evaluate(() => { clearInterval(window.__turnsTimer); const { card, ...rest } = window.__turns; return rest; });
+    const plays = T.log.filter((x) => x.what.startsWith('video'));
+    const order = T.log.map((x) => x.what.split(':')[0]).filter((x, i, all) => x !== 'still' && (i === 0 || all[i - 1] !== x || x === 'video'));
+    check.todo(turned && T.cards === 1 && T.cells === 3 && T.cellVideos === 0 && order[0] === 'grid' && plays.length === 2 && plays[0].to > 3.5 && plays[1].from >= trim.start_ms / 1000 - 0.3 && plays[1].to <= trim.end_ms / 1000 + 0.4 && T.both === 0 && T.memoWithCard >= 10 && !T.counted,
+      `RC37: at ${w} px the moment arrives whole: its three pictures as the grid, then its two videos in turn in the same card, the trimmed one its kept part, the card up while its memo plays, nothing counting them (${JSON.stringify(T)})`);
+  }
+  await pg.setViewportSize({ width: 390, height: 844 });
   // Stack with previous and the quick-action row (SW1-SW18, decision 0197): its checks are the `stackjoin` journey's.
   await c.close();
 }
