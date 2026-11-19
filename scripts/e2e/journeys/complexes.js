@@ -48,9 +48,6 @@ async function run(h) {
     // CX10: Shopping off in the settings; the card keeps no complexes, and the app was asked for nothing new to show it.
     await pg.goto(navUrl);
     await pg.waitForSelector('[data-testid=start]');
-    await setMeta('start_mode', 'explore');
-    await pg.reload();
-    await pg.waitForSelector('[data-testid=start]');
     // On What I'm into's page, after the five categories under their own heading (WI15; the owner, Nov 18).
     await drawerTo(pg, 'half');
     const inDrawer = await pg.locator('[data-testid=start-settings] [data-testid^=complex-kind-]').count();

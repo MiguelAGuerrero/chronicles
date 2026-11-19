@@ -7,7 +7,7 @@
 const HEADINGS = ['Art', 'History', 'Parks & green spaces', 'Culture', 'Viewpoints & oddities'];
 
 async function run(h) {
-  const { navUrl, BASE, at, check, drawerTo, openInto, closeInto, intoScrollTo, intoSettled, freshPage, places, shot } = h;
+  const { navUrl, BASE, at, check, drawerTo, openInto, closeInto, intoScrollTo, intoSettled, freshPage, places, shot, switchLayer } = h;
   const { encodeTile } = await import('../../mvt-encode.mjs');
   const { encodeArchive } = await import('../../pmtiles-encode.mjs');
   const fallsAt = at(0.1, -0.48);
@@ -44,11 +44,7 @@ async function run(h) {
   await pg.goto(navUrl);
   await pg.waitForSelector('[data-testid=start]');
 
-  await setMeta('start_mode', 'explore');
-  await pg.reload();
-  await pg.waitForSelector('[data-testid=start]');
-
-  // XS24 (WI3): the page from the ready bar's settings (Explore mode shows "What I'm into") lists the same rows as the one
+  // XS24 (WI3): the page from the ready bar's settings (Places, on by default on the ready map, shows "What I'm into") lists the same rows as the one
   // from the walk's drawer (compared below).
   await openInto(pg, 'ready');
   const ready = (await listOrder()).map((r) => r.id);
@@ -56,6 +52,7 @@ async function run(h) {
   await drawerTo(pg, 'peek');
   await pg.click('[data-testid=start]');
   await pg.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
+  await switchLayer(pg, 'places');
   const seen = [];
   for (let k = 0; k <= 23; k++) {
     const p = at(-0.5 + k * 0.05, -0.5);

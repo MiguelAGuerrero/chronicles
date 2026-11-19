@@ -2,7 +2,7 @@
 // marks that an exploring walk passing them never drew. E2E_ONLY=marks runs it alone.
 
 async function run(h) {
-  const { navUrl, BASE, start, at, check, freshPage, shot, openInto, closeInto, toStop } = h;
+  const { navUrl, BASE, start, at, check, freshPage, shot, openInto, closeInto, toStop, switchLayer } = h;
     const { c, pg } = await freshPage('marks');
     await c.addInitScript(() => { window.__perf = {}; });
     const setMeta = (k, v) => pg.evaluate(([key, value]) => new Promise((resolve) => {
@@ -42,15 +42,15 @@ async function run(h) {
       await pg.waitForSelector('[data-testid=start]');
       await pg.click('[data-testid=start]');
       await pg.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
+      // No Explore mode (decision 0231): the "?" are the walk's Places layer, turned on from its panel.
+      await switchLayer(pg, 'places');
       const s0 = at(-0.5, -0.5);
       await c.setGeolocation({ longitude: s0[0], latitude: s0[1] + 0.000002, accuracy: 6 });
       await pg.waitForTimeout(2500);
     };
     await pg.goto(navUrl);
     await pg.waitForSelector('[data-testid=start]');
-    // First walk, explore from the start: it reads and builds Fox Point's checklist as it goes.
-    await setMeta('start_mode', 'explore');
-    await pg.reload();
+    // First walk, with Places on from the start: it reads and builds Fox Point's checklist as it goes.
     await startWalk();
     const first = await walkPast('first walk (area unread)');
     check(first.some((l) => /Hessian Memorial/.test(l)), `marks: a first exploring walk draws the memorial it passes (${JSON.stringify(first)})`);

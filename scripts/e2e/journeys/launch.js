@@ -6,7 +6,7 @@
 const path = require('path');
 
 async function checks(h) {
-  const { url, BASE, browser, page, start, at, check, shownCount, tabBarShown, onTab, routed } = h;
+  const { url, BASE, browser, page, start, at, check, shownCount, tabBarShown, onTab, routed, switchLayer } = h;
   // gazetteer web fetch 4-5: every request for the place-name pack this page makes, from its first load.
   const packAsked = [];
   page.on('request', (r) => { if (/\/gazetteer\/places\.json/.test(new URL(r.url()).pathname)) packAsked.push(r.url()); });
@@ -241,7 +241,7 @@ async function checks(h) {
 
 // The fresh-browser flows. The full flow runs them after the shared page's story, as before.
 async function fresh(h) {
-  const { navUrl, start, at, dLat, dLon, check, metaOf, drawerTo, tabTo, shownCount, tabBarShown, freshPage, openWalk, scriptsDir, routed } = h;
+  const { navUrl, start, at, dLat, dLon, check, metaOf, drawerTo, tabTo, shownCount, tabBarShown, freshPage, openWalk, scriptsDir, routed, switchLayer } = h;
     // tend walk-screen 6 (decision 0172, O35): the walk screen throwing mid-walk (its map's WebGL context refused, as a
     // tab's in fix ios-video audit 1) says "Your walk is still recording.", never "Your walk is saved.", which reads as
     // ended; the button stays "Back to Chronicle". And it is true: positions sent behind the error screen are stored.
@@ -344,8 +344,8 @@ async function fresh(h) {
       check(await pg.waitForSelector('text=Walk started · recording', { timeout: 10000 }).then(() => true, () => false), 'Walk here on Explore starts a walk at once, recording (NV12, NV15)');
       const w = await openWalk(pg);
       const nav = JSON.parse((await metaOf(pg, 'nav')) || 'null');
-      check(w && nav && nav.walk_id === w.id && nav.dest.label === 'Your spot' && (await metaOf(pg, 'explore_walk')) !== w.id,
-        'it goes to that spot with the saved choices (Quiet), and the drawer’s destination is not filled (NV12)');
+      check(w && nav && nav.walk_id === w.id && nav.dest.label === 'Your spot' && !(await metaOf(pg, `places_spans:${w.id}`)),
+        'it goes to that spot with no layer on (a walk starts quiet), and the drawer’s destination is not filled (NV12)');
       await c.close();
     }
     {
@@ -585,13 +585,11 @@ async function fresh(h) {
     }
 
     {
-      // Start with Explore and a destination: the walk opens exploring, heading there (NV25).
+      // Start with a destination: the walk opens heading there with every layer off, Places turned on from its panel (NV25, decision 0231).
       const { c, pg } = await freshPage('start-explore');
       await pg.goto(navUrl);
       await pg.waitForSelector('[data-testid=start]');
       await pg.waitForTimeout(1500);
-      await drawerTo(pg, 'half');
-      await pg.click('[data-testid=mode-explore]');
       await drawerTo(pg, 'peek');
       const box = await pg.locator('canvas.maplibregl-canvas').boundingBox();
       await pg.mouse.move(box.x + box.width / 2 + 60, box.y + box.height / 3);
@@ -604,11 +602,13 @@ async function fresh(h) {
       const said = await pg.waitForSelector('text=Walk started · recording', { timeout: 10000 }).then(() => true, () => false);
       const w = await openWalk(pg);
       const nav = JSON.parse((await metaOf(pg, 'nav')) || 'null');
-      check(said && w && (await metaOf(pg, 'explore_walk')) === w.id && Number(await metaOf(pg, `explored:${w.id}`)) >= w.started_at - 5000 && nav?.walk_id === w.id,
-        'Start with Explore and a destination opens the walk exploring, its destination saved for it, saying it is recording (NV25)');
+      check(said && w && !(await metaOf(pg, 'explore_walk')) && !(await metaOf(pg, `explored:${w.id}`)) && nav?.walk_id === w.id,
+        'Start with a destination opens the walk with no mode written, its destination saved for it, saying it is recording (NV25, MD12)');
+      await switchLayer(pg, 'places');
+      check(!!(await metaOf(pg, `walk_layers:${w.id}`)) && /\[\[\d+,null\]\]/.test((await metaOf(pg, `places_spans:${w.id}`)) ?? ''), 'turning Places on from the walk keeps its own layers and a span for the replay (MD9, MD10)');
       await pg.click('[data-testid=walk-summary]');
       await pg.waitForSelector('[data-testid=options-card]');
-      check(await pg.locator('[data-testid=explore-walk] input').isChecked(), 'the walk’s options card shows the same mode (NV22, NV26)');
+      check((await pg.locator('[data-testid=explore-walk]').count()) === 0 && (await pg.locator('[data-testid=options-card] [data-testid=layer-legend-places]').count()) === 1, 'the walk’s options card has no mode switch and shows Places in its layers key (MD2, MD13)');
       await c.close();
     }
 }

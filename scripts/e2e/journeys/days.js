@@ -128,7 +128,7 @@ async function checks(h) {
       await p2.waitForTimeout(1500);
       await p2.click('[data-testid=walk-stats]');
       await p2.waitForTimeout(500);
-      check((await p2.locator('[data-testid=start-settings]').count()) === 0 && (await p2.locator('[data-testid=mode-quiet]').count()) === 0 && (await p2.locator('[data-testid=moment-voice-save]').isVisible())
+      check((await p2.locator('[data-testid=start-settings]').count()) === 0 && (await p2.locator('[data-testid=moment-voice-save]').isVisible())
         && (await p2.locator('[data-testid=start][aria-disabled=true]').count()) === 1,
         'raising the bar mid-memo does nothing, Start is disabled, and the memo keeps recording (audit 1, NV28, NR10)');
       await p2.click('[data-testid=moment-voice-discard]');

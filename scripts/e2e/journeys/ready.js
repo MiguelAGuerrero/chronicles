@@ -129,12 +129,12 @@ async function run(h) {
     }
     const startUp = await boxOf(pg, 'start');
     const barUp = await boxOf(pg, 'ready-bar');
-    check((await pg.locator('[data-testid=start-settings]').isVisible()) && (await pg.locator('[data-testid=mode-quiet]').isVisible()) && same(startRest, startUp) && barUp.h > barRest.h + 300,
+    check((await pg.locator('[data-testid=start-settings]').isVisible()) && same(startRest, startUp) && barUp.h > barRest.h + 300,
       `ready NR7: a pull on the grip raises the settings, Start where it was (${JSON.stringify({ startRest, startUp, barRest: barRest.h, barUp: barUp.h })})`);
-    await pg.click('[data-testid=mode-explore]');
+    // Places is on by default on the ready map (decision 0231): the ring shows with no mode to pick.
     await pg.waitForTimeout(600);
     const ring = await pg.locator('[data-ring]').last().getAttribute('data-ring').catch(() => null);
-    check(!!ring && ring !== '', `ready NR7: in Explore, the range ring shows while the settings are up (${ring})`);
+    check(!!ring && ring !== '', `ready NR7: with Places on, the range ring shows while the settings are up (${ring})`);
     await pg.click('[data-testid=dest-clear]');
     await pg.waitForTimeout(300);
     await pg.keyboard.press('Escape');
@@ -144,12 +144,11 @@ async function run(h) {
       check(left.settings === 0 && left.dest === 0 && same(left.bar, barRest),
         `ready NR7, NR8: Escape lowers the bar; Clear took the destination line with it (${JSON.stringify(left)})`);
     }
-    check((await metaOf(pg, 'start_mode')) === 'explore', 'ready NR7: the mode saved as it changed (NV22)');
-    // A tap on the numbers raises it too; back to Quiet for the walk below.
+    check(!(await metaOf(pg, 'start_mode')), 'ready NR7: no mode is kept (decision 0231)');
+    // A tap on the numbers raises it too.
     await pg.click('[data-testid=walk-stats]');
     await pg.waitForTimeout(1200);
     const tapped = await pg.locator('[data-testid=start-settings]').isVisible();
-    await pg.click('[data-testid=mode-quiet]');
     await pg.click('[data-testid=ready-grip]');
     await pg.waitForFunction(() => !document.querySelector('[data-testid=start-settings]'), null, { timeout: 4000 }).catch(() => {});
     {
@@ -389,19 +388,17 @@ async function run(h) {
 
     // audit 1: with the bar up in Explore, the ring is on the map left above the bar, not under it.
     await raise(pg);
-    await pg.click('[data-testid=mode-explore]');
     await pg.waitForTimeout(1500);
     {
       const walker = ((await pg.locator('[data-walker]').last().getAttribute('data-walker')) || '').split(',').map(Number);
       const [x, y] = walker.length === 2 ? await pg.evaluate((p) => window.__project(p), walker) : [NaN, NaN];
       const bar = await box(pg, 'ready-bar');
-      check(Number.isFinite(y) && bar && y < bar.y && y > 0, `navigate-ready audit 1: with the bar up in Explore, the ring's centre is on the map above the bar (centre y ${Math.round(y)}, bar top ${bar && Math.round(bar.y)})`);
+      check(Number.isFinite(y) && bar && y < bar.y && y > 0, `navigate-ready audit 1: with the bar up and Places on, the ring's centre is on the map above the bar (centre y ${Math.round(y)}, bar top ${bar && Math.round(bar.y)})`);
       void x;
     }
     // A range set here is the one the walk's drawer shows after Start, with no reload between (fix walk-drawer-settings audit 1).
     await pg.click('[data-testid=range-plus]');
     await pg.waitForTimeout(300);
-    await pg.click('[data-testid=mode-quiet]');
     await pg.keyboard.press('Escape');
     await settled(pg);
 
@@ -450,13 +447,11 @@ async function run(h) {
     await pg.waitForSelector('[data-testid=options-card]');
     {
       // fix walk-drawer-settings audit 1: the range set on the ready bar shows in the walk's drawer, no reload between.
-      await pg.click('[data-testid=explore-walk]');
       await pg.waitForSelector('[data-testid=range-slider]');
       const shown = await pg.locator('[data-testid=range-value]').innerText();
       check(/^120[ \u00a0]m$/.test(shown), `fix walk-drawer-settings audit 1: the range set on the ready bar (120 m) is the walk drawer's (${shown})`);
       await pg.click('[data-testid=range-minus]');
       await pg.waitForTimeout(300);
-      await pg.click('[data-testid=explore-walk]');
     }
     await pg.click('[data-testid=walk-summary]');
     await pg.waitForTimeout(600);
