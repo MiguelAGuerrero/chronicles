@@ -77,9 +77,9 @@ so nothing known is found twice. Then look through each lens; a finding names
 its lens, its evidence (a picture, a file and line, a failing input) and its
 source.
 
-0. **The expectation** (decision 0231; how, in `expectations.md` beside this file). Each `/tend` run (one iteration) but a
-   triage, first, for each feature it touches: three to five lines a person from VISION's "Who it is for" would reasonably
-   expect, grounded in adjacent apps and checked by the `steward`; which it meets, fails (section 3) and lacks (section 9).
+0. **The expectation** (decision 0234; the steps in `expectations.md` beside this file). Each `/tend` run (one iteration) but
+   a triage, first, per feature it touches: its ratified lines in `docs/expectations/<feature>.md` (none: draft three to five, used
+   provisionally, for the owner to ratify), each met with evidence, failed (section 3) or lacking (section 9, source 6).
 1. **The screens as a person sees them.** In the worktree, run the area's
    journeys (`docs/TESTING.md`, "Choosing the journeys") with
    `E2E_SHOTS=<scratchpad>/tend-shots`. A screen of the area with no journey
@@ -122,7 +122,7 @@ One line per finding, with a severity (high, medium, low, as the `ux-reviewer`
 defines them), in the report and nowhere else until it ships or is filed:
 `N. [loop|owner|arch|phone] <severity> <title>: <evidence>; <source>; <what it serves>; <the change>`.
 
-- **The compass** (0231): a finding names what it serves, a lens 0 expectation or a rule. A refinement that serves no expectation
+- **The compass** (0234): a finding names what it serves, a lens 0 line (its id) or a rule. A refinement that serves no expectation
   and breaks no rule or shipped criterion is filed `[loop]` low, not shipped; a defect against one is triaged as any other.
 - Drop what the ledger lists under `declined`, and what the inbox or
   `docs/DEFERRED.md` already holds (tag it there instead).
@@ -404,7 +404,7 @@ The owner picks; the loop never starts a `G` entry unasked.
    date, a note, and `main`: the `origin/main` commit this worktree was
    opened from, never a later one, so that anything landing during the run
    reads as a change since the sweep; `lastT`, `lastG`; anything declined;
-   valid JSON, only those fields, the balance left to the script) and
+   valid JSON, only those fields, the balance and the compass left to the script) and
    `docs/STATUS.md`, "Last tend", replaced with this run's digest by every
    mode, an inbox run and a triage included (area or mode, commits with one
    line each, entries filed or answered, the balance in a sentence, lenses not
@@ -438,7 +438,7 @@ The owner picks; the loop never starts a `G` entry unasked.
    review's fixes, entries built, reverts) and refuses a line that leaves a
    count out. `found` counts everything the sweep found, shipped or not,
    zeros included; `answers` is each entry the owner answered this run, as
-   `yes`, `no` or `reshape`; `expectations` is lens 0's (`expectations.md`), required of a sweep and a build; `review` is the review's findings
+   `yes`, `no` or `reshape`; `expectations` and `compass` are lens 0's (`expectations.md`), required of a sweep and a build; `review` is the review's findings
    (`accepted`, `rejected`, `deferred`, a filed low counted deferred); `e2e`
    is the journeys run, or `"full"` for the full pass. The line is written once. A
    run makes one record commit, or two around the review of step 2 (one before
@@ -491,12 +491,12 @@ The owner picks; the loop never starts a `G` entry unasked.
      skipped: say the record is not on `main`.
 4. `.claude/skills/ship.md`, "Clean up".
 5. **Then ask the owner** about this run's new entries with AskUserQuestion
-   (the recommended shape first, four entries per call). Their answers are a
+   (the recommended shape first, four entries per call), and its drafted expectation lines (`expectations.md`, step 2). Their answers are a
    new run: `/tend inbox …`, section 7, never work added to this one.
 
 ## Report
 
-Mode, area and flags; lens 0's lines, each met, failed, lacking or dropped; each lens and what it found or "nothing found"; every
+Mode, area and flags; lens 0's lines by id, each met (its evidence), failed, lacking, provisional or dropped, and the compass's reading; each lens and what it found or "nothing found"; every
 finding's triage line; per shipped commit its hash, source, test and
 pictures; the Pages run and the live check; the entries filed, with their
 numbers; the balance (the slices that grew, the areas by state, the reading)

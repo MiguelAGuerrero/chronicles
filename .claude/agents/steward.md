@@ -49,6 +49,10 @@ Read every criterion as the person out will meet it on the screen, and ask:
 7. **Precedent**: does the shape copy a recorded counter-example (Journal's streaks, Apple's star ratings,
    Strava's kudos) or take an app's *what* for a reason to build? A recommendation with no precedent beside
    it, or one resting only on unverified lines without saying so, is drift (0193).
+8. **Expectation lines** (`/tend` lens 0, decision 0234), drafted or amended: each against the Never lines
+   and "Who it is for". A line that reads as what other apps have rather than what this person needs (likes,
+   sharing, counts, streaks, a feed, "best of") is a finding, however common the apps make it; so is a line
+   that is not observable (no person could see it met), or whose `Check:` could pass while it fails.
 
 ## What to produce
 
