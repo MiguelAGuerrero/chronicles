@@ -1,7 +1,8 @@
 // @tree-wide: the tending loop's script, its ledger and the skills it routes through
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
 import { test } from 'node:test';
@@ -374,14 +375,60 @@ test('tend 0234: the compass reads the run log: refinement shipped against filed
   assert.equal(typeof tend.compassReading(runs).verdict, 'string', 'the log as it is reads');
 });
 
+const STORE = [
+  '# Expectations: memories',
+  '',
+  'What a person would reasonably expect of memories.',
+  '',
+  `- E-memories-1 [ratified 2026-11-20] ${person} a capture to come back when they pass its place again.`,
+  '  Check: pending "a capture comes back"',
+  '  Grounds: VISION "Who it is for"; not yet recorded',
+  '  Answer: "Ratify as drafted" (the owner, 2026-11-20)',
+  '',
+].join('\n');
+const PROPOSED = `- E-memories-2 [proposed] ${person} a day of walks in order.\n  Check: pending "days in order"\n  Grounds: VISION "Who it is for"; not yet recorded\n`;
+const AGENT = '\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_test';
+
+/** A git checkout of its own for tend.js to read (TEND_ROOT): the store, the run log, and the commits made in it. */
+function repo() {
+  const root = mkdtempSync(join(tmpdir(), 'tend-'));
+  for (const d of ['docs/expectations', '.claude/skills/tend', 'scripts/e2e/journeys', 'src/lib/__tests__/memories']) mkdirSync(join(root, d), { recursive: true });
+  writeFileSync(join(root, 'docs/expectations/memories.md'), STORE);
+  writeFileSync(join(root, '.claude/skills/tend/runs.jsonl'), '');
+  writeFileSync(join(root, 'scripts/features.js'), "module.exports = { FEATURES: [{ name: 'memories', journeys: ['memories'] }] };\n");
+  writeFileSync(join(root, 'scripts/e2e/journeys/memories.js'), "check(ok, 'a capture comes back');\n");
+  const git = (...a: string[]) => spawnSync('git', a, { cwd: root, encoding: 'utf8' }).stdout.trim();
+  git('init', '-q');
+  git('config', 'user.email', 'test@example.com');
+  git('config', 'user.name', 'test');
+  git('add', '-A');
+  git('commit', '-q', '-m', 'the base, by hand');
+  const commit = (files: Record<string, string>, message: string) => {
+    for (const [f, text] of Object.entries(files)) writeFileSync(join(root, f), text);
+    git('add', '-A');
+    git('commit', '-q', '--allow-empty', '-m', message);
+    return git('rev-parse', 'HEAD');
+  };
+  const tendJs = (...args: string[]) => spawnSync(process.execPath, [join(ROOT, 'scripts', 'tend.js'), ...args], { cwd: root, env: { ...process.env, TEND_ROOT: root }, encoding: 'utf8' });
+  return { root, git, commit, tendJs };
+}
+
 test('tend 0234: a loop commit adds proposed expectation lines and fills checks; it changes, removes or ratifies none', () => {
-  const store = () => ({ subject: "tend memories: the run's record", body: '', files: [M('docs/expectations/memories.md'), M('.claude/skills/tend/runs.jsonl')], expectationEdits: [] as string[] });
-  assert.deepEqual(tend.tendCommitProblems(store()), [], 'a store file is a record: no test asked');
-  const edits = ['changes E-memories-1 in docs/expectations/memories.md: …'];
-  assert.deepEqual(tend.tendCommitProblems({ ...store(), expectationEdits: edits }), edits);
+  const r = repo();
+  const base = r.git('rev-parse', 'HEAD');
+  r.commit({ 'docs/expectations/memories.md': STORE + PROPOSED }, `tend memories: the run's record${AGENT}`);
+  const added = r.tendJs('commits', `${base}..HEAD`);
+  assert.equal(added.status, 0, added.stderr);
+  const filled = r.commit({ 'docs/expectations/memories.md': (STORE + PROPOSED).replace('pending "a capture comes back"', 'memories:"a capture comes back"') }, `tend memories: the run's record${AGENT}`);
+  assert.equal(r.tendJs('commits', `${filled}^..${filled}`).status, 0, 'a check filled in');
+  const reworded = r.commit({ 'docs/expectations/memories.md': (STORE + PROPOSED).replace('its place again', 'its street again') }, `tend memories: the run's record${AGENT}`);
+  const refused = r.tendJs('commits', `${reworded}^..${reworded}`);
+  assert.equal(refused.status, 1);
+  assert.match(refused.stderr, /changes E-memories-1 in docs\/expectations\/memories\.md/);
+  const removed = r.commit({ 'docs/expectations/memories.md': STORE.replace(/- E-memories-1[\s\S]*$/, '') }, `tend memories: the run's record${AGENT}`);
+  assert.match(r.tendJs('commits', `${removed}^..${removed}`).stderr, /removes E-memories-1/);
   assert.ok(tend.FORBIDDEN.some((re) => re.test('src/lib/__tests__/arch/expectations.test.ts')), 'the store\'s test is not the loop\'s');
   assert.ok(tend.FORBIDDEN.some((re) => re.test('scripts/expectations.js')));
-  assert.match(read('scripts/tend.js'), /editProblems\(/, 'check:tend reads each store file the commit changes');
 });
 
 test('tend 0134: the run log is the loop\'s to add to and nobody\'s to rewrite; every line of it reads', () => {
