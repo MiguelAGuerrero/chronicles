@@ -5,7 +5,7 @@ import { router, useFocusEffect, useIsFocused, useLocalSearchParams, useNavigati
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
 import { walkClocks } from '../lib/pins';
 import { nextDayPartBoundary } from '../lib/resurface/context';
-import { AccessibilityInfo, ActivityIndicator, AppState, BackHandler, Switch, Linking, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { AccessibilityInfo, ActivityIndicator, AppState, BackHandler, Linking, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { Modal } from '../components/Modal';
 import { onWalkGap, useOpenWalk, useOpenWalkInfo } from '../components/OpenWalk';
 import { Ticking } from '../components/Ticking';
@@ -994,7 +994,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
       alive = false;
     };
   }, [walk, live.here, live.riding, hotPockets, storefrontsOn, pausedNow]);
-  // Spent only once it has been seen: not under a card, a route or settings, never on a quiet walk (audit).
+  // Spent only once it has been seen: not under a card, a route or settings, never without Storefronts on (audit).
   const nudgeShown = !!nudge && storefrontsOn && !spot && !openMark && !options && !memory && !navigation.nav && !navigation.finding;
   useEffect(() => {
     if (!nudgeShown || !walk) return;

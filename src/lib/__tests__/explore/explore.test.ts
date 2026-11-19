@@ -330,8 +330,8 @@ test('PA3: no nudge with the switch off, on a quiet walk or on a ride', () => {
   }
 });
 
-test('PA5: the pocket alert note says two soft taps', () => {
-  assert.equal(POCKET_ALERT_NOTE, 'Two soft taps when a “?” comes into range. Never on a quiet walk.');
+test('PA5 (amended by MD7, decision 0231): the pocket alert note says two soft taps, and that it needs Places on', () => {
+  assert.equal(POCKET_ALERT_NOTE, 'Two soft taps when a “?” comes into range. Needs Places on.');
 });
 
 // A walk along x toward a place at the origin, fix by fix, as the hook decides (the audit's probe).

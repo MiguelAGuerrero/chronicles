@@ -11,7 +11,7 @@ async function run(h) {
   // MD2: the start drawer has no Quiet / Explore choice.
   await drawerTo(pg, 'half');
   await pg.waitForSelector('[data-testid=start-settings]');
-  check.todo((await pg.locator('[data-testid=mode-quiet], [data-testid=mode-explore]').count()) === 0, 'MD2: the walk settings have no Quiet / Explore choice');
+  check((await pg.locator('[data-testid=mode-quiet], [data-testid=mode-explore]').count()) === 0, 'MD2: the walk settings have no Quiet / Explore choice');
   await drawerTo(pg, 'peek');
   await pg.click('[data-testid=start]');
   await pg.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
@@ -19,13 +19,13 @@ async function run(h) {
   await c.setGeolocation({ longitude: s0[0], latitude: s0[1] + 0.000002, accuracy: 6 });
   await pg.waitForTimeout(2500);
   // MD3, MD2: a fresh walk draws no "?", and "This walk" has no Explore switch.
-  check.todo((await marksNow()) === 0 && (await pg.locator('[data-testid=range-ring]').count()) === 0, 'MD3: a fresh walk draws no "?" and no range ring');
+  check((await marksNow()) === 0 && (await pg.locator('[data-testid=range-ring]').count()) === 0, 'MD3: a fresh walk draws no "?" and no range ring');
   // MD1: found by names: the Layers button, the panel, a switch named Places, off.
   await pg.getByRole('button', { name: 'Layers' }).click().catch(() => {});
   const row = pg.getByRole('switch', { name: /^Places$/ });
-  check.todo((await row.count()) === 1 && (await row.getAttribute('aria-checked').catch(() => null)) === 'false', 'MD1: the walk\'s Layers panel lists Places, off');
+  check((await row.count()) === 1 && (await row.getAttribute('aria-checked').catch(() => null)) === 'false', 'MD1: the walk\'s Layers panel lists Places, off');
   // MD16: with the panel open, the capture stack is still one tap: the note opens.
-  check.todo((await pg.locator('[data-testid=cap-note]').isVisible().catch(() => false)), 'MD16: the capture stack is visible with the Layers panel open');
+  check((await pg.locator('[data-testid=cap-note]').isVisible().catch(() => false)), 'MD16: the capture stack is visible with the Layers panel open');
   // MD4: on, the "?" for places within range draw as Explore mode drew them.
   await row.click().catch(() => {});
   for (let k = 0; k <= 8; k++) {
@@ -33,16 +33,16 @@ async function run(h) {
     await c.setGeolocation({ longitude: p[0], latitude: p[1], accuracy: 6 });
     await pg.waitForTimeout(1000);
   }
-  check.todo((await marksNow()) > 0, 'MD4: with Places on the "?" draw');
+  check((await marksNow()) > 0, 'MD4: with Places on the "?" draw');
   // MD19: nothing says what is left, how many, or nearby to find.
   const text = await pg.locator('body').innerText().catch(() => '');
-  check.todo(!/left to find|still to find|nearby to find|remaining/i.test(text), 'MD19: no copy says what is left to find');
+  check(!/left to find|still to find|nearby to find|remaining/i.test(text), 'MD19: no copy says what is left to find');
   // And off again takes them away.
   await pg.getByRole('button', { name: 'Layers' }).click().catch(() => {});
   if (!(await pg.getByRole('switch', { name: /^Places$/ }).count())) await pg.locator('[data-testid=layers]').click().catch(() => {});
   await pg.getByRole('switch', { name: /^Places$/ }).click().catch(() => {});
   await pg.waitForTimeout(1200);
-  check.todo((await marksNow()) === 0, 'MD4: with Places off the "?" are gone');
+  check((await marksNow()) === 0, 'MD4: with Places off the "?" are gone');
   await toStop(pg).catch(() => {});
   await c.close();
 }

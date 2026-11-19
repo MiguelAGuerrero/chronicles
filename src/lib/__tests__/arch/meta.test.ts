@@ -39,7 +39,6 @@ test('FC8 encodings match what the app already stores, so old call sites can mov
   await m.set('day_watched:2026-11-03', 5);
   assert.equal(await db.getMeta('hint_go'), '1');
   assert.equal(await db.getMeta('web_note_dismissed'), '1');
-  assert.equal(await db.getMeta('explore_walk'), 'w1');
   assert.equal(await db.getMeta('explore_hidden'), '["food"]');
   assert.equal(await db.getMeta('explore_range'), '800');
   assert.equal(await db.getMeta('explore_haptic'), '1');
