@@ -33,8 +33,10 @@ import { notableBeyondNeighbourhood, notableName } from './notable';
  * p10: typed bridges (specs/more-attractions MA10, the owner's call of Nov 18): contract v8's `suspension_bridge`, a
  *     suspension bridge known only by its type, is a Bridges place held `by_type` that adds nothing to the History bar; a
  *     bar moves, so nothing is carried.
+ * p11: Overture's historic sites, memorial sites (and their cemeteries), parks and trails weigh nothing toward storefronts, as
+ *     the map's do (tend presence 2, SF10; the owner, Nov 19); a weight changed, so nothing is carried.
  */
-export const PRESENCE_CODE = 'p10';
+export const PRESENCE_CODE = 'p11';
 
 /**
  * PS9, presence-readers audit 2: the codes whose rows stand under this one, read by the atlas (`CARRIED`, `atlas.ts`) and the
@@ -337,6 +339,10 @@ const OVERTURE_DEEPER: Record<string, PresenceClass> = {
   library: 'civic',
   // Travel and transportation counts only for vehicle services and travel agents.
   vehicle_service: 'vehicle', fueling_station: 'vehicle', travel_service: 'office',
+  // tend presence 2 (SF10; the owner, Nov 19, "Monument, counts nothing"): a historic site is a monument, a memorial site (its
+  // cemeteries too) a memorial, a park or a trail open ground: none is a storefront, as the map's are not. Each keeps its
+  // density weight, and a park or a trail carries no category, so nothing makes a mark of it (0109).
+  historic_site: 'monument', memorial_site: 'memorial_site', park: 'open_space', recreational_trail_or_path: 'open_space',
 };
 /** Any level naming one of these is no place to go (AD1: ATMs, parking). */
 const OVERTURE_NEVER = new Set(['atm', 'parking', 'parking_lot', 'parking_garage', 'bus_stop', 'charging_station']);
