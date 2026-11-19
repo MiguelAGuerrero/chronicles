@@ -2,8 +2,8 @@
      feels a little choppy, too fast ... a gallery overlaid on top of the map, or something like a queue or a stack that shoots up
      ... the map is a bit too zoomed in ... That fade in, fade out is a little bit jarring"), the prototype they called "a vast
      improvement" (https://claude.ai/artifact/7oLxtuZMhpvXd18H4BLR5P), and, after the first slice went live: "The sequence looks
-     nothing like the mock-up we provided and is really non-performant." To be copied into the concept doc as a tab. The doc wins
-     once it exists. -->
+     nothing like the mock-up we provided and is really non-performant." Copied into the concept doc as the tab
+     "Replay ceremony (shipped on web)" on 2026-11-19 (last exported then); the doc wins. -->
 
 # Replay ceremony: smooth, and as the mock-up shows it (RC)
 
@@ -283,7 +283,8 @@ frame put them, the screen rendering 0 times on a stretch, 22 frames a second at
 ceiling is about 30).
 
 **Deferred and for the owner**: `docs/DEFERRED.md`, "Replay ceremony". **Native has never run on a device**:
-`docs/NATIVE_UNVERIFIED.md`, "Replay ceremony". The spec was written in the repo and is not yet a tab of the concept doc.
+`docs/NATIVE_UNVERIFIED.md`, "Replay ceremony". The spec was written in the repo first and copied into the concept doc as the tab
+"Replay ceremony (shipped on web)" on Nov 19 (https://claude.ai/artifact/6P9aUdZJAdReBi6yFVtwa7#f248b876-48e6); this file is its mirror.
 The steward on the plan: ten findings, triaged in `plan.md`.
 
 **The UI review's fixes** (2026-11-19, after the deploy of RC1-RC48; `replay-ceremony ui 1` to `ui 8`, their failing tests
