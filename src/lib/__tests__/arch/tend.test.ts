@@ -401,6 +401,20 @@ test('tend audit 20: the run\'s shots folder is a string, used to check its pict
   assert.equal('shots' in written, false, 'a scratchpad path is not the log\'s');
 });
 
+test('tend audit 22: a trend needs a move of two findings and a tenth of the share at least', () => {
+  const half = (pairs: [number, number][], month: string) => pairs.map(([a, b], i) => run(`2026-${month}-${10 + i}`, a, b));
+  const rest = Array.from({ length: 3 }, (): [number, number] => [0, 0]);
+  const one = tend.compassReading([...half([[1, 0], [1, 0], [1, 0], ...rest], '11'), ...half([[1, 0], [1, 0], [0, 1], ...rest], '12')]);
+  assert.equal(one.trend, 'flat', '3 of 3 shipped, then 2 of 3: one finding is no trend');
+  assert.equal(one.verdict, 'the compass is not biting: tighten it');
+  assert.equal(tend.compassReading([...half([[1, 2], [0, 0], [0, 0], ...rest], '11'), ...half([[0, 3], [0, 0], [0, 0], ...rest], '12')]).verdict, 'the compass is not biting: tighten it', 'one shipped, then none: one finding');
+  const two = tend.compassReading([...half([[1, 0], [1, 0], [1, 0], ...rest], '11'), ...half([[1, 0], [0, 1], [0, 1], ...rest], '12')]);
+  assert.equal(two.trend, 'falling', '3 of 3, then 1 of 3: two findings');
+  assert.equal(two.verdict, 'the compass is biting');
+  const tenth = tend.compassReading([...half([[20, 0], [20, 0], [20, 0], ...rest], '11'), ...half([[19, 0], [19, 0], [19, 3], ...rest], '12')]);
+  assert.equal(tenth.trend, 'flat', 'three findings fewer, but less than a tenth of the share');
+});
+
 const run = (date: string, shipped: number, filedLow: number, extra: Record<string, unknown> = {}) => ({
   ...sweep, date, compass: { shipped, filedLow, lensG: [] }, ...extra,
 });
