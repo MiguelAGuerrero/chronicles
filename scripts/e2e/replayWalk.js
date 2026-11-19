@@ -1,7 +1,8 @@
 // The replay journey's walk, written into storage and stopped: 480 m east along Transit Street with two photos, a
 // video and a note at its end; 20 minutes with no fixes and the trace picking up 340 m on (a break crossed by a hop);
 // 40 m more and a memo; 4 minutes with no fixes and the trace picking up 38 m on (a break too small to see at the
-// walking zoom: a stand, replay ceremony RC20). Shared by the `replay` journey
+// walking zoom: a stand, replay ceremony RC20). One place passed without stopping, between the video and the note (the
+// walk counts as exploring from its start), which the last view names (RC25). Shared by the `replay` journey
 // (scripts/e2e/journeys/replay.js) and the replay's measurement harness (scripts/perf-replay.js), so both watch
 // the same walk. Leaves the page on the walk's first replay (/replay/<id>), its reading beat or later.
 
@@ -45,7 +46,11 @@ async function seedReplayWalk(h, c, pg) {
     capAt(first.at(-1), { id: 'rr-note', kind: 'text', file_path: null, body: 'Bought two plums. Ate one before I paid.' }),
     capAt(second[5], { id: 'rr-memo', kind: 'voice', file_path: 'rr-memo', body: '3000' }),
   ];
-  await pg.evaluate(([id, startedAt, pts, caps]) => new Promise((resolve) => {
+  // A place passed without stopping, 5 m off the way between the video and the note: whispered as the walker goes by,
+  // named on the last view and on the card (E11, replay ceremony RC25).
+  const passedAt = [first[60].lon, first[60].lat + 5 / 111320];
+  const passed = { key: 'rr-passed', area_key: null, name: 'Hessian Memorial', category: 'history', kind: 'monuments', at: passedAt, generic: false, lat: passedAt[1] };
+  await pg.evaluate(([id, startedAt, pts, caps, passedPlace]) => new Promise((resolve) => {
     const cv = document.createElement('canvas');
     cv.width = 160;
     cv.height = 200;
@@ -67,7 +72,9 @@ async function seedReplayWalk(h, c, pg) {
     recorded.then((video) => cv.toBlob((blob) => {
       const req = indexedDB.open('chronicles');
       req.onsuccess = () => {
-        const tx = req.result.transaction(['walk', 'trace_point', 'moment', 'media'], 'readwrite');
+        const tx = req.result.transaction(['walk', 'trace_point', 'moment', 'media', 'meta', 'checklist_item'], 'readwrite');
+        tx.objectStore('meta').put({ key: `explored:${id}`, value: '1' });
+        tx.objectStore('checklist_item').put(passedPlace);
         const w = tx.objectStore('walk').get(id);
         w.onsuccess = () => tx.objectStore('walk').put({ ...w.result, started_at: startedAt });
         for (const p of pts) tx.objectStore('trace_point').add(p);
@@ -77,7 +84,7 @@ async function seedReplayWalk(h, c, pg) {
         tx.oncomplete = () => resolve(true);
       };
     }, 'image/png'));
-  }), [walk.id, first[0].t - 1000, [...first, ...second, ...third], captures]);
+  }), [walk.id, first[0].t - 1000, [...first, ...second, ...third], captures, passed]);
   await pg.reload();
   await pg.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
   await c.setGeolocation({ longitude: here[0], latitude: here[1], accuracy: 6 });
@@ -92,7 +99,7 @@ async function seedReplayWalk(h, c, pg) {
   await pg.waitForURL(/replay/, { timeout: 30000 });
   // Where each card's moment was made, by the card's name: the journey reads its pin against its card (replay ceremony RC14).
   const places = { 'Blue door': [first[8].lon, first[8].lat], 'Green gate': [first[25].lon, first[25].lat], Video: [first[54].lon, first[54].lat] };
-  return { walk, here, places };
+  return { walk, here, places, passed: passedAt };
 }
 
 module.exports = { seedReplayWalk };

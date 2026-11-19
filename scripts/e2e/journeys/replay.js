@@ -209,6 +209,75 @@ function breaksOf(frames) {
   return out;
 }
 
+/**
+ * The opening and the close through a watch (replay ceremony RC23, RC24), from frames recorded from the first beat on,
+ * through the path, to a little after the card. Time is counted only while the replay is not held (a picture holds it).
+ * `opened`: how far the path's first frame was from the first beat's own view, how long the dive took and whether the
+ * camera ever pulled back in it. `closed`: how long the walker stood before the camera pulled back, how long that took,
+ * how long its last view held, and how far the map moved once the card came.
+ */
+function bookendsOf(frames) {
+  const camOf = (f) => { const c = lonLat(f.cam); return c && c.length === 3 ? c : null; };
+  const first = frames.findIndex((f) => camOf(f));
+  const out = { opened: null, closed: null };
+  if (first < 0) return out;
+  const last = frames.length - 1 - [...frames].reverse().findIndex((f) => camOf(f));
+  const told = frames.slice(first, last + 1);
+  told.forEach((f, i) => { f.dt = i > 0 && !f.held && !told[i - 1].held ? f.t - told[i - 1].t : 0; });
+  const passed = (a, b) => told.slice(a + 1, b + 1).reduce((n, f) => n + f.dt, 0) / 1000;
+  const r2 = (x) => Math.round(x * 100) / 100;
+  // The first beat's own view: where the map was before the path's first frame.
+  const before = frames.slice(0, first).filter((f) => f.centre && Number.isFinite(f.zoom)).pop();
+  const c0 = camOf(told[0]);
+  const down = told.findIndex((f) => Math.abs(camOf(f)[2] - 15) < 1e-6);
+  let back = 0;
+  for (let i = 1; i <= Math.max(0, down); i++) if (camOf(told[i])[2] < camOf(told[i - 1])[2] - 1e-9) back++;
+  out.opened = {
+    fromZoom: r2(c0[2]), cutPx: before ? r2(pxApart(lonLat(before.centre), c0, c0[2])) : null, cutZoom: before ? r2(Math.abs(before.zoom - c0[2])) : null,
+    // How long the whole stood before the camera first moved (the day's own hold), and the dive from there.
+    heldS: r2(passed(0, Math.max(0, told.findIndex((f) => f.cam !== told[0].cam) - 1))), diveS: down > 0 ? r2(passed(Math.max(0, told.findIndex((f) => f.cam !== told[0].cam) - 1), down)) : null, back,
+  };
+  // The close, read back from the end: the last view held, the pull-back before it, the walker standing before that.
+  const end = told.length - 1;
+  let hold = end;
+  while (hold > 0 && told[hold - 1].cam === told[end].cam) hold--;
+  let pull = hold;
+  while (pull > 0 && camOf(told[pull - 1])[2] >= camOf(told[pull])[2] - 1e-9 && told[pull - 1].cam !== told[pull].cam) pull--;
+  let stood = pull;
+  while (stood > 0 && told[stood - 1].walker === told[pull].walker && told[stood - 1].cam === told[pull].cam) stood--;
+  const lastCam = camOf(told[end]);
+  const after = frames.slice(last + 1).filter((f) => f.centre && Number.isFinite(f.zoom));
+  out.closed = {
+    stoodS: r2(passed(stood, pull)), pullS: r2(passed(pull, hold)), holdS: r2(passed(hold, end)), toZoom: r2(lastCam[2]), fromZoom: r2(camOf(told[pull])[2]),
+    // Once the card is there: the farthest the map's own centre was from the last view, and its zoom from the last view's.
+    after: after.length, movedPx: after.length ? r2(Math.max(...after.map((f) => pxApart(lonLat(f.centre), lastCam, lastCam[2])))) : null, movedZoom: after.length ? r2(Math.max(...after.map((f) => Math.abs(f.zoom - lastCam[2])))) : null,
+  };
+  return out;
+}
+
+/**
+ * What the last view shows (replay ceremony RC25, RC26), read in the page: the date, the names of places passed, any
+ * text over the map with a figure in it set larger than body text, and anything in the accent.
+ */
+const lastViewOf = (pg) => pg.evaluate(() => {
+  const shown = (e) => { for (let n = e; n && n.nodeType === 1; n = n.parentElement) { const st = getComputedStyle(n); if (st.display === 'none' || st.visibility === 'hidden' || Number(st.opacity) < 0.05) return false; } return e.getBoundingClientRect().width > 0; };
+  const texts = [...document.querySelectorAll('div, span')].filter((e) => !e.closest('.maplibregl-map') && [...e.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim()) && shown(e));
+  const date = document.querySelector('[data-testid=replay-date]');
+  const names = [...document.querySelectorAll('[data-testid=replay-passed]')].filter(shown);
+  // As seen: an element's own opacity through every element it stands in.
+  const seen = (e) => { let o = 1; for (let n = e; n && n.nodeType === 1; n = n.parentElement) o *= Number(getComputedStyle(n).opacity); return Math.round(o * 100) / 100; };
+  const box = (e) => { const b = e.getBoundingClientRect(); return [Math.round(b.left), Math.round(b.top), Math.round(b.right), Math.round(b.bottom)]; };
+  const styled = (e) => { const st = getComputedStyle(e); return { text: e.textContent.trim(), size: parseFloat(st.fontSize), ink: st.color, opacity: seen(e), box: box(e) }; };
+  return {
+    date: date && shown(date) ? styled(date) : null, names: names.map(styled),
+    // The mark on each named place itself.
+    dots: [...document.querySelectorAll('[data-testid=replay-passed-dot]')].filter(shown).map(box),
+    bigFigures: texts.filter((e) => /\d/.test(e.textContent) && parseFloat(getComputedStyle(e).fontSize) > 16).map((e) => e.textContent.trim()),
+    accent: texts.filter((e) => getComputedStyle(e).color === 'rgb(194, 65, 12)').map((e) => e.textContent.trim()),
+    clock: !!document.querySelector('[data-testid=replay-clock]'),
+  };
+});
+
 async function run(h) {
   const { navUrl, BASE, at, check, shot, freshPage, openWalk, errors, toStop } = h;
     const { c, pg } = await freshPage('replay');
@@ -753,8 +822,13 @@ async function run(h) {
       const skipStays = (await pg.locator('[data-testid=skip]').count()) === 1;
       check(pressed && gone && skipStays && presses >= 1 && presses <= 5, `RY17: at ${w} px with no moment ahead the button is not shown and Skip stays (${presses} more presses, gone ${gone}, Skip ${skipStays})`);
       await shot(pg, `ry-next-none-${w}`);
+      // RC27: Skip goes to the card at once, as today: pressed on the last view, while the camera pulls back, too.
+      const closing = await pg.waitForFunction(() => { const e = document.querySelector('[data-testid=replay-date]'); return !!e && Number(getComputedStyle(e).opacity) > 0.3; }, null, { timeout: 45000 }).then(() => true, () => false);
+      const skipAt = Date.now();
       await pg.click('[data-testid=skip]').catch(() => {});
-      await pg.waitForSelector('[data-testid=to-name]', { timeout: 30000 });
+      const skipped = await pg.waitForSelector('[data-testid=to-name]', { timeout: 30000 }).then(() => Date.now() - skipAt, () => null);
+      const stageGone = (await pg.locator('[data-testid=replay-date], [data-testid=replay-clock], [data-testid=replay-stage]').count()) === 0;
+      check.todo(closing && skipped != null && skipped <= 1500 && stageGone, `RC27: at ${w} px Skip goes to the card at once, pressed on the last view too (the last view came ${closing}, the card ${skipped} ms after the press, the stage gone ${stageGone})`);
     }
     await pg.setViewportSize({ width: 390, height: 844 });
 
@@ -862,7 +936,9 @@ async function run(h) {
       await pg.setViewportSize({ width: w, height: ht });
       await pg.waitForTimeout(300);
       await pg.getByText('Watch again').click();
-      await pg.waitForSelector('[data-testid=replay-clock]', { timeout: 30000 });
+      // Read from the first beat on (replay ceremony RC23): the path begins from that beat's own view.
+      await pg.waitForSelector('[data-testid=replay-headline]', { timeout: 30000 }).catch(() => {});
+      await pg.waitForTimeout(900);
       await recordFrames(pg);
       const pictured = async (name) => {
         await pg.click('[data-testid=hold]').catch(() => {});
@@ -870,6 +946,11 @@ async function run(h) {
         await shot(pg, `${name}-${w}`);
         await pg.click('[data-testid=hold]').catch(() => {});
       };
+      // The opening: the path's first frames, the whole walk as the first beat left it, and the dive part of the way in.
+      await pg.waitForFunction(() => !![...document.querySelectorAll('[data-cam]')].pop()?.getAttribute('data-cam'), null, { timeout: 30000 }).catch(() => {});
+      await pictured('rc-open');
+      await pg.waitForTimeout(700);
+      await pictured('rc-dive');
       // Walking, the opening over: the walking zoom.
       await pg.waitForFunction(() => {
         const map = [...document.querySelectorAll('[data-cam]')].pop();
@@ -893,9 +974,35 @@ async function run(h) {
       await pg.waitForFunction(() => document.querySelector('[data-testid=replay-later]')?.textContent === '4 min later', null, { timeout: 45000 }).catch(() => {});
       await pg.waitForTimeout(300);
       await pictured('rc-stand');
-      // On to the card, by itself.
+      // The last view (replay ceremony RC24-RC26): the walk whole above where the card will sit, its date under the
+      // top row; pictured with no hold, so the close's own times are read as they ran.
+      const dated = await pg.waitForFunction(() => { const e = document.querySelector('[data-testid=replay-date]'); return !!e && Number(getComputedStyle(e).opacity) > 0.98; }, null, { timeout: 30000 }).then(() => true, () => false);
+      const lastView = await lastViewOf(pg);
+      await shot(pg, `rc-last-${w}`);
+      // On to the card, by itself, and a little past its arrival: the map must not move under it.
       await pg.waitForSelector('[data-testid=to-name]', { timeout: 60000 }).catch(() => {});
+      await pg.waitForTimeout(1200);
       const seenFrames = await stopFrames(pg);
+      await shot(pg, `rc-card-after-${w}`);
+      const ends = bookendsOf(seenFrames);
+      const endsSaid = JSON.stringify(ends);
+      // RC23: the path's first frame is the first beat's own view (no cut), the camera only ever closes in from it (no
+      // second overview), and it is down at the walking zoom 2.2 s on.
+      const op = ends.opened;
+      check.todo(!!op && op.cutPx != null && op.cutPx <= 2 && op.cutZoom <= 0.02 && op.fromZoom < 14.6 && op.back === 0 && op.diveS >= 1.9 && op.diveS <= 3.0, `RC23: at ${w} px the path begins from the first beat's own view and dives to the walker's start in 2.2 s, no cut and no second overview (${endsSaid})`);
+      // RC24: the walker stands, the camera pulls back in 3 s and holds 2 s, and the card's arrival moves nothing.
+      const cl = ends.closed;
+      check.todo(!!cl && cl.stoodS >= 1.4 && cl.stoodS <= 3.4 && cl.pullS >= 2.6 && cl.pullS <= 3.8 && cl.holdS >= 1.7 && cl.holdS <= 2.8 && cl.toZoom < cl.fromZoom - 0.3 && cl.after >= 10 && cl.movedPx <= 2 && cl.movedZoom <= 0.02, `RC24: at ${w} px the walker stands, the camera pulls back in 3 s to the card's view and holds it 2 s, and the card arrives without the map moving (${endsSaid})`);
+      // RC26: the last view shows the date in ink no larger than body text; the clock's figures are gone, and nothing
+      // on it is in the accent.
+      check.todo(dated && !!lastView.date && /^[A-Z][a-z]+day, [A-Z][a-z]+ \d{1,2}$/.test(lastView.date.text) && lastView.date.size <= 16 && lastView.date.ink === 'rgb(29, 36, 48)' && !lastView.clock && lastView.bigFigures.length === 0 && lastView.accent.length === 0, `RC26: at ${w} px the last view shows the date, with no figure larger than body text and nothing in the accent (${JSON.stringify(lastView)})`);
+
+      // RC25: the place the walk passed without stopping is named beside it, in body ink at full strength, by the words
+      // its card uses, on the screen and clear of the date; its mark stands on the place.
+      const named = lastView.names[0];
+      const dot = lastView.dots[0];
+      const beside = !!named && !!dot && named.box[0] <= (dot[0] + dot[2]) / 2 && named.box[2] >= (dot[0] + dot[2]) / 2 && Math.min(Math.abs(named.box[1] - dot[3]), Math.abs(dot[1] - named.box[3])) <= 16;
+      check.todo(lastView.names.length === 1 && named.text === 'Passed Hessian Memorial without stopping' && named.ink === 'rgb(29, 36, 48)' && named.opacity >= 0.95 && named.size <= 16 && beside && named.box[0] >= 0 && named.box[2] <= w && (!lastView.date || named.box[1] >= lastView.date.box[3]), `RC25: at ${w} px the walk's last view names the place passed beside it, in body ink at full strength (${JSON.stringify({ names: lastView.names, dots: lastView.dots, date: lastView.date && lastView.date.box })})`);
       await pg.click('[data-testid=skip]').catch(() => {});
       await pg.waitForSelector('[data-testid=to-name]', { timeout: 30000 });
       await pg.waitForTimeout(600);
@@ -958,9 +1065,17 @@ async function run(h) {
     let dayNote = false;
     let dayNext = null;
     // The day's replay on the same engine (RC9): read frame by frame as the walk's was.
-    await pg.waitForSelector('[data-testid=replay-clock]', { timeout: 30000 }).catch(() => {});
+    // From its first frames: the day has no first beat, so its telling shows the whole day itself before it dives (RC23).
+    await pg.waitForSelector('[data-testid=replay-stage]', { timeout: 30000 }).catch(() => {});
     await recordFrames(pg);
+    await pg.waitForTimeout(700);
+    await shot(pg, 'rc-day-open');
+    let dayLast = null;
     for (let k = 0; k < 400 && !(await pg.locator('[data-testid=day-card]').count()); k++) {
+      if (!dayLast && (await pg.locator('[data-testid=replay-date]').count()) && (await pg.locator('[data-testid=replay-date]').evaluate((e) => Number(getComputedStyle(e).opacity) > 0.98).catch(() => false))) {
+        dayLast = await lastViewOf(pg);
+        await shot(pg, 'rc-day-last');
+      }
       if (await pg.getByText('Bought two plums').count()) dayNote = true;
       // The day's replay has the same button, named the same (RY19).
       if (!dayNext && (await pg.locator('[data-testid=next-moment]').count())) dayNext = await pg.locator('[data-testid=next-moment]').getAttribute('aria-label').catch(() => null);
@@ -972,6 +1087,15 @@ async function run(h) {
     check(!!dayStretch && dayStretch.seconds >= STRETCH_S && dayStretch.puck && dayRendered > 0 && dayStretch.engine >= 10 && dayStretch.fewRenders && dayStretch.fewSends && dayStretch.ended >= dayStretch.frames - 1 && dayStretch.line <= 1.5 && dayStretch.centre <= 1.5 && dayStretch.off <= 0,
       `RC9: the day's replay runs on the same engine: its dot, line and camera together, nothing rendered or sent as time passes (${stretchSaid(dayStretch)}; the screen rendered ${dayRendered} times)`);
     check(dayNext === 'Next moment', `RY19: the day's replay shows the next-moment button too (${dayNext})`);
+
+    // RC23, the day's: the whole day stands 2 s, then the camera dives to its first moment; RC24: it closes on the whole
+    // day the same way. RC25, RC26: its last view shows the day's date and names no passed place.
+    const dayEnds = bookendsOf(dayFrames);
+    const dop = dayEnds.opened;
+    check.todo(!!dop && dop.heldS >= 1.2 && dop.heldS <= 2.6 && dop.fromZoom < 14.6 && dop.back === 0 && dop.diveS >= 1.9 && dop.diveS <= 3.0, `RC23: the day's replay shows the whole day for 2 s and dives (${JSON.stringify(dayEnds)})`);
+    check.todo(!!dayEnds.closed && dayEnds.closed.pullS >= 2.6 && dayEnds.closed.pullS <= 3.8 && dayEnds.closed.holdS >= 1.7, `RC24: the day's replay pulls back to the whole day in 3 s and holds it 2 s (${JSON.stringify(dayEnds.closed)})`);
+    check.todo(!!dayLast && dayLast.names.length === 0, `RC25: the day's last view names no place passed (${JSON.stringify(dayLast && dayLast.names)})`);
+    check.todo(!!dayLast && !!dayLast.date && /^[A-Z][a-z]+day, [A-Z][a-z]+ \d{1,2}$/.test(dayLast.date.text) && dayLast.date.size <= 16 && !dayLast.clock && dayLast.bigFigures.length === 0 && dayLast.accent.length === 0, `RC26: the day's last view shows the day's date, with no figure larger than body text and nothing in the accent (${JSON.stringify(dayLast)})`);
     // As in the walk's replay, no Continue ever mounts on the web (tend replay 14).
     check((await pg.locator('[data-testid=day-card]').count()) === 1 && dayNote, `RR16: the day's replay reaches its card by itself, its note on the way (${dayNote})`);
     const dayWake = await pg.evaluate(() => window.__wake);
