@@ -13,6 +13,9 @@ async function run(h) {
   await pg.waitForSelector('[data-testid=start-settings]');
   await pg.waitForTimeout(800);
   await shot(pg, 'modes-0-start-settings');
+  await pg.locator('[data-testid=range-slider]').scrollIntoViewIfNeeded().catch(() => {});
+  await pg.waitForTimeout(500);
+  await shot(pg, 'modes-0b-start-settings-range');
   check((await pg.locator('[data-testid=mode-quiet], [data-testid=mode-explore]').count()) === 0, 'MD2: the walk settings have no Quiet / Explore choice');
   await drawerTo(pg, 'peek');
   await pg.click('[data-testid=start]');
@@ -40,6 +43,8 @@ async function run(h) {
   }
   check((await marksNow()) > 0, 'MD4: with Places on the "?" draw');
   await shot(pg, 'modes-3-walk-places-on');
+  // modes-to-layers ui 1: the Places row says how far it shows and where to set it.
+  check(/within \d+ ?m/.test(await pg.locator('[data-testid=layer-status-places]').innerText().catch(() => '')) && /Walk settings/.test(await pg.locator('[data-testid=layer-status-places]').innerText().catch(() => '')), 'modes-to-layers ui 1: the Places row says how far a "?" shows and where it is set');
   // MD19: nothing says what is left, how many, or nearby to find.
   const text = await pg.locator('body').innerText().catch(() => '');
   check(!/left to find|still to find|nearby to find|remaining/i.test(text), 'MD19: no copy says what is left to find');

@@ -24,6 +24,7 @@ import { loadPendingDest, savePendingDest } from '../../lib/nav/store';
 import type { Waypoint } from '../../lib/nav/types';
 import { ready } from '../../lib/ready';
 import { destLine } from '../../lib/startPlan';
+import { formatRange } from '../../lib/format';
 import { formatDistance } from '../../lib/summary';
 import type { LngLat } from '../../lib/types';
 import type { MomentState } from '../../lib/useCaptures';
@@ -287,7 +288,7 @@ export function useReady(props: {
 
       {/* Locate (QL9), in the stack's column where Recenter sits on the walk (NR9). */}
       <LocateButton ref={locateRef} busy={locating} onPress={locate} bottom={at.edgeBottom('locate')} right={at.edgeRight} />
-      <LayersControl map="navigate" layers={layers} notes={layerNotes({ walkability: wk.status, storefrontsReading: storefronts.reading, storefrontsFailed: storefronts.failed, past: past.status })} bottom={at.layers.bottom} left={at.layers.left} rightClear={at.layersRightClear} clearTop={at.insets.top + 152} />
+      <LayersControl map="navigate" layers={layers} notes={layerNotes({ walkability: wk.status, storefrontsReading: storefronts.reading, storefrontsFailed: storefronts.failed, past: past.status, placesRange: formatRange(settings.rangeM) })} bottom={at.layers.bottom} left={at.layers.left} rightClear={at.layersRightClear} clearTop={at.insets.top + 152} />
       {/* The capture stack keeping moments (NR9), and its pills. */}
       <MomentBar disabled={walkStart.starting} onMoment={onMoment} onError={onMomentError} onRecording={setMemoOn} focused={focused} />
 

@@ -1,0 +1,13 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore and discovery"
+      ],
+      "body": "- Walk-screen UI review of modes-to-layers (Nov 19): the open Layers panel covers a third of the map where a toggled layer's result appears (U4), and \"Storefronts\" names both a route leaning in Walk settings and a map layer in the panel, so a choice made in one reads as lost in the other (U5). Both are older than the slice; a distinct route label (\"Shopping streets\") and a panel that stays out of the result's way would fix them, shown by screenshots.\n"
+    }
+  ]
+}

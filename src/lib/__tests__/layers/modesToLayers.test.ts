@@ -80,3 +80,16 @@ test('MD15: nothing on the walk, the ready map or the settings counts places or 
   const reg = src('src/lib/layers/registry.ts');
   assert.ok(!/waiting to be found|to find|\bleft\b/i.test(reg.slice(reg.indexOf("id: 'places'"))), 'the Places layer\'s name and legend say nothing of what is left');
 });
+
+test('modes-to-layers ui 1: the Places row says how far it shows and where to set it, in words, only when the screen has a range', async () => {
+  const { layerNotes } = await import('../../layers/notes');
+  const base = { walkability: 'off', storefrontsReading: false, storefrontsFailed: false } as never;
+  assert.equal(layerNotes(base).places ?? null, null, 'no range, no line (Explore)');
+  const line = layerNotes({ ...(base as object), placesRange: '100 m' } as never).places;
+  assert.ok(line && /within 100 m/.test(line) && /Walk settings/.test(line), String(line));
+  assert.ok(!/find|left|remaining|unfound|\d+ places/i.test(String(line)), 'nothing of what is left');
+});
+
+test('modes-to-layers ui 1: the walk and the ready map hand the layer note their range', () => {
+  assert.ok(/placesRange/.test(src('src/app/walk.tsx')) && /placesRange/.test(src('src/components/walk/useReady.tsx')));
+});
