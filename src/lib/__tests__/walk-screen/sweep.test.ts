@@ -41,3 +41,19 @@ test('tend walk-screen 11: the ready screen\'s Back does nothing while Start is 
   assert.match(handler, /if \(!starting\) close\(\);\s*return true;/, 'taken, and nothing done, while Start is on its way');
   for (const d of ['focused', 'starting']) assert.ok(deps.split(',').map((x) => x.trim()).includes(d), `re-subscribed as ${d} changes`);
 });
+
+// tend walk-screen 12 (the sweep's ux 3, auditor 4): the walk's strip of numbers is one button for a screen reader, and was
+// named "The walk", which hid the time and distance under it; the ready bar's twin is named with its numbers (navigate-ready
+// audit 6). It is named with what it shows, coarsely (minutes, tens of metres), so the name changes about once a minute,
+// and says ", exploring" on an exploring walk. No live region: it is read when reached, never pushed.
+test('tend walk-screen 12: the walk\'s strip is named with its distance and time, coarsely', async () => {
+  const { walkSummaryLabel } = await import('../../readyNav');
+  assert.equal(walkSummaryLabel({ elapsedMs: 26_000, distanceM: 55, rideM: 0, exploring: false, units: 'km' }), '60 m walked in 26 s');
+  assert.equal(walkSummaryLabel({ elapsedMs: 754_000, distanceM: 1234, rideM: 0, exploring: true, units: 'km' }), '1.2 km walked in 13 min, exploring');
+  assert.equal(walkSummaryLabel({ elapsedMs: 600_000, distanceM: 452, rideM: 1800, exploring: false, units: 'km' }), '450 m walked in 10 min, plus 1.8 km by ride');
+  assert.equal(walkSummaryLabel({ elapsedMs: 120_000, distanceM: 100, rideM: 0, exploring: false, units: 'mi' }), '328 ft walked in 2 min');
+  // The walk's screen names its strip with it, never the bare "The walk".
+  const walk = read('app/walk.tsx');
+  assert.match(walk, /summaryLabel=\{walkSummaryLabel\(\{/);
+  assert.doesNotMatch(walk, /summaryLabel=\{exploring \? 'The walk, exploring' : 'The walk'\}/);
+});

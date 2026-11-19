@@ -682,6 +682,12 @@ async function checks(h) {
         await shot(page, '03f-strip-walking-320-long');
         await restoreStats();
         await page.setViewportSize({ width: 390, height: 844 });
+        // tend walk-screen 12 (the sweep's ux 3, auditor 4): the strip's numbers, one button for a screen reader, say the
+        // walk's distance and time as the ready bar's twin says its numbers (navigate-ready audit 6; WCAG 2.5.3).
+        const summarySaid = () => page.locator('[data-testid=walk-summary]').getAttribute('aria-label');
+        const saidWalking = await summarySaid();
+        check(/^\d[\d.]*[ \u00a0](m|km|ft|mi) walked in \d+ (s|min|h)\b.*\. Walk settings$/.test(saidWalking ?? ''),
+          `tend walk-screen 12: walking, the strip's numbers are said: distance and time (${saidWalking})`);
         await page.waitForTimeout(600);
         // … raises the walk's settings, as the drag and a tap on the numbers do, and says so (fix walk-strip-buttons audit 4).
         await page.click('[data-testid=strip-more]');
@@ -709,6 +715,9 @@ async function checks(h) {
         await restoreStats();
         await page.setViewportSize({ width: 390, height: 844 });
         await page.waitForTimeout(600);
+        const saidPaused = await summarySaid();
+        check(/^\d[\d.]*[ \u00a0](m|km|ft|mi) walked in \d+ (s|min|h)\b.*\. Walk settings$/.test(saidPaused ?? ''),
+          `tend walk-screen 12: paused, the strip's numbers are still said (${saidPaused})`);
         check(walkingOk(seenStrip.walking390) && walkingOk(seenStrip.walking320),
           `0220, fix walk-strip-buttons audit 3: walking, one … (a unique id, Walk settings) and a wide soft Pause fill the row after the numbers, no Stop, words whole at 390 and 320 (${JSON.stringify([seenStrip.walking390, seenStrip.walking320])})`);
         check(pausedOk(seenStrip.paused390) && pausedOk(seenStrip.paused320),

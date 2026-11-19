@@ -92,7 +92,7 @@ import { usePastLines } from '../lib/pastLines/usePastLines';
 import { useLayers } from '../lib/layers/useLayers';
 import { useRouteWarning } from '../lib/walk/useRouteWarning';
 import { useWalkability } from '../lib/walk/useWalkability';
-import { arrivalNotice, exitPlan, screenState, startNotice } from '../lib/readyNav';
+import { arrivalNotice, exitPlan, screenState, startNotice, walkSummaryLabel } from '../lib/readyNav';
 import { noticeShown } from '../lib/pauseReminder';
 import { getLastFix } from '../lib/lastFix';
 import { useStopArrival } from '../lib/outing/useArrival';
@@ -232,7 +232,7 @@ function WalkLoading(props: { onClose: () => void }) {
 function WalkScreen(props: { onMinimize: () => void }) {
   perfCount('render:walk');
   // Every distance on this screen follows the units setting (QL16).
-  useUnits();
+  const units = useUnits();
   const insets = useSafeAreaInsets();
   const { width, height: screenH } = useWindowDimensions();
   // The strip's words step down a size below 360, so long numbers still leave them whole (fix walk-strip-buttons audit 1).
@@ -1685,7 +1685,9 @@ function WalkScreen(props: { onMinimize: () => void }) {
         onUp={raiseOptions}
         areaHeight={screenH}
         locked={recordingVoice}
-        summaryLabel={exploring ? 'The walk, exploring' : 'The walk'}
+        // Named with what it shows, as the ready bar's twin is (tend walk-screen 12, navigate-ready audit 6): coarse, refreshed by
+        // the screen's 5 s clock and each fix, never a live region.
+        summaryLabel={walkSummaryLabel({ elapsedMs: walk ? now - walk.started_at - pausedMs(pauses, walk.started_at, now) : 0, distanceM: live.distanceM, rideM: live.rideM, exploring, units })}
         summary={<WalkStats startedAt={walk?.started_at ?? null} pauses={pauses} distanceM={live.distanceM} rideM={live.rideM} />}
         actions={
           // Pause alone while walking; Resume and a held Stop once paused, as AllTrails does (decision 0220). The owner's

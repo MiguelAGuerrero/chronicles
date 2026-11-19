@@ -4,6 +4,8 @@
  * screen when Navigate is the walk screen itself. Pure, so `npm test` covers
  * them; the tabs layout, the Navigate route and the walk screen follow them.
  */
+import { formatDistance, formatDistanceNear, formatDuration } from './format';
+import type { Units } from './units';
 
 /** The tab beneath the walk screen when nothing else is (Chronicle, at `/` since HC1, decision 0112; a bare reload of `/walk`). */
 export const BENEATH_TAB = '/' as const;
@@ -58,4 +60,14 @@ export function exitPlan(canGoBack: boolean): { kind: 'back' } | { kind: 'replac
 export function walkErrorLine(open: { known: boolean; walk: { id: string } | null; pauses: readonly { ended_at: number | null }[] }): string | null {
   if (!open.known || !open.walk) return null;
   return open.pauses.some((p) => p.ended_at == null) ? 'Your walk is saved.' : 'Your walk is still recording.';
+}
+
+/**
+ * What a screen reader hears for the walk's strip of numbers, its one button (tend walk-screen 12; navigate-ready audit 6
+ * names the ready bar's twin with its numbers): the distance to ten metres and the time as `formatDuration` says it, so the
+ * name moves about once a minute, a ride after it (R6), and ", exploring" on an exploring walk. " Walk settings" follows.
+ */
+export function walkSummaryLabel(o: { elapsedMs: number; distanceM: number; rideM: number; exploring: boolean; units: Units }): string {
+  const ride = o.rideM >= 1 ? `, plus ${formatDistance(o.rideM, o.units)} by ride` : '';
+  return `${formatDistanceNear(o.distanceM, o.units)} walked in ${formatDuration(o.elapsedMs)}${ride}${o.exploring ? ', exploring' : ''}`;
 }
