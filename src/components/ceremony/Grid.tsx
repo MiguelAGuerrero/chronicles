@@ -1,73 +1,15 @@
-import { useEventListener } from 'expo';
-import { useVideoPlayer, VideoView } from 'expo-video';
-import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { gridLayout } from '../../lib/ceremony/grid';
 import { overlayOf, type StageLive } from '../../lib/ceremony/live';
 import type { CardOverlay } from '../../lib/ceremony/types';
-import type { Trim } from '../../lib/mediaEdit';
-import type { Faced } from '../../lib/moment';
-import { useMediaUri } from '../../lib/useMediaUri';
 import { MomentPicture } from '../chronicle/MomentPicture';
-import { seekTo } from '../edit/EditedVideo';
 import type { StageCtx } from './layout';
-import { useLive, useLiveStyle } from './useLive';
+import { useLiveStyle } from './useLive';
 
 const GAP = 4;
 
-/** Plays or pauses a muted grid video, from where its kept part starts (a player is a mutable native object, never touched in a component body). */
-function setPlaying(player: ReturnType<typeof useVideoPlayer>, on: boolean, startS: number) {
-  player.muted = true;
-  if (!on) {
-    player.pause();
-    return;
-  }
-  if (startS > 0 && player.currentTime < startS) seekTo(player, startS);
-  player.play();
-}
-
-/**
- * A video playing in its cell: muted, while the grid holds and the stage is not held (MS17). A trimmed one plays only
- * its kept part, as its card does (ME15): the grid holds for that long (fix trimmed-length 3), so from the file's start
- * the cell would show the part that was cut.
- */
-function CellVideo({ uri, trim, play, size }: { uri: string; trim: Trim | null; play: boolean; size: number }) {
-  const startS = (trim?.start_ms ?? 0) / 1000;
-  const player = useVideoPlayer(uri, (p) => {
-    p.loop = false;
-    p.muted = true;
-    if (trim) p.timeUpdateEventInterval = 0.1;
-  });
-  const [ended, setEnded] = useState(false);
-  useEventListener(player, 'timeUpdate', ({ currentTime }) => {
-    if (trim && currentTime >= trim.end_ms / 1000 - 0.02 && !ended) {
-      player.pause();
-      setEnded(true);
-    }
-  });
-  // A player asked to seek before it has loaded may not: once ready, it is brought to the start.
-  useEventListener(player, 'statusChange', ({ status }) => {
-    if (status === 'readyToPlay' && trim && player.currentTime < startS) seekTo(player, startS);
-  });
-  useEffect(() => {
-    setPlaying(player, play && !ended, startS);
-  }, [player, play, ended, startS]);
-  return <VideoView player={player} style={{ width: size, height: size }} contentFit="cover" nativeControls={false} pointerEvents="none" />;
-}
-
-/**
- * A video's cell: its still until its file is at hand, then the player, made with the file (fix trimmed-length 3). A
- * player made empty and given the file afterwards is started by expo-video's web `replace()` whatever the grid says,
- * and its tag is loaded a second time once it draws again, which fails that start with a logged AbortError.
- */
-function GridVideo({ piece, play, size }: { piece: Faced; play: boolean; size: number }) {
-  const uri = useMediaUri(piece);
-  if (!uri) return <MomentPicture capture={piece} style={{ width: size, height: size }} />;
-  return <CellVideo key={uri} uri={uri} trim={piece.edit?.trim ?? null} play={play} size={size} />;
-}
-
 /** A piece's cell: it swipes in as the frame says, written on it frame by frame (replay ceremony RC7). */
-function GridCell({ live, card, index, still, size, children }: { live: StageLive; card: string; index: number; still: boolean; size: number; children: React.ReactNode }) {
+function GridCell({ live, card, index, still, width, height, children }: { live: StageLive; card: string; index: number; still: boolean; width: number; height: number; children: React.ReactNode }) {
   const swipe = useLiveStyle(live, (f) => {
     const now = overlayOf(f, 'card', card);
     if (!now) return null;
@@ -75,27 +17,30 @@ function GridCell({ live, card, index, still, size, children }: { live: StageLiv
     return { opacity: u, translateX: (1 - u) * 18 };
   });
   return (
-    <View ref={swipe} testID="grid-cell" style={{ width: size, height: size }}>
+    <View ref={swipe} testID="grid-cell" style={{ width, height }}>
       {children}
     </View>
   );
 }
 
 /**
- * A stack's grid in its replay card (moment stacks MS17, decision 0123): the closest square up to 3×3, each picture
- * cropped to fill its square, each piece swiping in a beat after the one before, the grid held, and past nine it
- * scrolls slowly through the hold (the frame's `shown` and `scroll`). Videos play muted in their cells. No dots, numbers,
- * position or progress bar: the pieces are the content.
+ * A stack's grid in its replay card (moment stacks MS17, decision 0123): its photos, the closest square up to 3×3,
+ * each picture cropped to fill its cell, each swiping in a beat after the one before, the grid held, and past nine it
+ * scrolls slowly through the hold (the frame's `shown` and `scroll`). Its cells are square, but in a moment with
+ * videos, where `height` gives it the room of the pictures that play in turn after it and its cells fill that
+ * (replay ceremony RC37). No video plays in a cell. No dots, numbers, position or progress bar: the pieces are the
+ * content.
  */
-export function StackGrid({ o, ctx, width }: { o: CardOverlay; ctx: StageCtx; width: number }) {
+export function StackGrid({ o, ctx, width, height }: { o: CardOverlay; ctx: StageCtx; width: number; height?: number }) {
   const pieces = o.pieces ?? [];
   const g = gridLayout(pieces.length);
   const cell = (width - GAP * (g.cols - 1)) / g.cols;
-  const windowH = g.rows * cell + GAP * (g.rows - 1);
+  const tall = height != null ? (height - GAP * (g.rows - 1)) / g.rows : cell;
+  const windowH = g.rows * tall + GAP * (g.rows - 1);
   const totalRows = Math.ceil(pieces.length / g.cols);
-  const totalH = totalRows * cell + GAP * (totalRows - 1);
+  const totalH = totalRows * tall + GAP * (totalRows - 1);
   // The frame says how far each piece has swiped in and how far the grid has scrolled (the rhythm's timing): each is
-  // written on its own element as the frames come, and the grid renders only when its videos start or stop.
+  // written on its own element as the frames come, and the grid itself never renders as time passes.
   const { live } = ctx;
   const key = o.key;
   const span = g.scrolls ? totalH - windowH : 0;
@@ -103,14 +48,12 @@ export function StackGrid({ o, ctx, width }: { o: CardOverlay; ctx: StageCtx; wi
     const now = overlayOf(f, 'card', key);
     return now ? { translateY: -(now.scroll ?? 0) * span } : null;
   });
-  const playing = useLive(live, (f) => overlayOf(f, 'card', key)?.playing ?? false);
-  const play = playing && !ctx.held && !ctx.paused;
   return (
     <View testID="replay-grid" style={{ width, height: windowH, overflow: 'hidden' }} pointerEvents="none" accessible={false}>
       <View ref={scroll} style={[styles.wrap, { width }]}>
         {pieces.map((p, i) => (
-          <GridCell key={p.piece_id} live={live} card={key} index={i} still={ctx.reduceMotion} size={cell}>
-            {p.kind === 'video' ? <GridVideo piece={p} play={play} size={cell} /> : <MomentPicture capture={p} style={{ width: cell, height: cell }} />}
+          <GridCell key={p.piece_id} live={live} card={key} index={i} still={ctx.reduceMotion} width={cell} height={tall}>
+            <MomentPicture capture={p} style={{ width: cell, height: tall }} />
           </GridCell>
         ))}
       </View>

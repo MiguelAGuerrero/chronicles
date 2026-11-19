@@ -1,20 +1,21 @@
 import { createElement, useSyncExternalStore } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import type { Overlay } from '../../lib/ceremony/types';
+import type { Overlay, OverlayKind } from '../../lib/ceremony/types';
 import { perfCount } from '../../lib/perfCount';
 import { theme } from '../ui';
 import { DATE_TOP, dateOf, heldShown, STAGE_SIDE, type StageCtx } from './layout';
-import { OVERLAY_ORDER, OVERLAYS } from './overlays';
+import { OVERLAY_ORDER, OVERLAYS, UNDER_SCRIM } from './overlays';
 import { RollingClock } from './RollingClock';
 import { useLive, useLiveStyle } from './useLive';
 
 /**
  * Draws the frame on stage, of any ceremony, over the map (RR21): the clock and the line under it, "Held", and the
- * overlays by kind. It knows nothing of how a ceremony decides what a frame holds. Nothing here dims the map: a break
- * is crossed on the map itself (replay ceremony RC17). On the last view it shows the day walked (RC26).
+ * overlays by kind. It knows nothing of how a ceremony decides what a frame holds. A break never dims the map: it is
+ * crossed on the map itself (replay ceremony RC17); under a card the map, and the pictures standing on it, darken by
+ * what the frame says (RC35). On the last view it shows the day walked (RC26).
  *
  * It reads the frame from `ctx.live`, where the replay's loop puts one every frame (replay ceremony RC7), and renders
- * only when an overlay arrives or leaves, the pile holds something else, or the telling is rebuilt. What moves every frame is each leaf's own to
+ * only when an overlay arrives or leaves, the stack holds or shows something else, or the telling is rebuilt. What moves every frame is each leaf's own to
  * write (`useLiveStyle`); what a leaf shows is its own to read (`useLive`).
  */
 export function Stage({ ctx }: { ctx: StageCtx }) {
@@ -25,14 +26,17 @@ export function Stage({ ctx }: { ctx: StageCtx }) {
   // React Compiler from the first render on (decision 0207), and the stage would stay empty.
   const frame = useSyncExternalStore(live.subscribe, live.staged, live.staged);
   if (!frame) return null;
+  const drawn = (kind: OverlayKind) => {
+    const items = frame.overlays.filter((o: Overlay) => o.kind === kind);
+    if (!items.length) return null;
+    // Each view takes the overlays of its own kind.
+    return createElement(OVERLAYS[kind] as (p: { items: Overlay[]; ctx: StageCtx }) => React.ReactNode, { key: kind, items, ctx });
+  };
   return (
     <>
-      {OVERLAY_ORDER.map((kind) => {
-        const items = frame.overlays.filter((o: Overlay) => o.kind === kind);
-        if (!items.length) return null;
-        // Each view takes the overlays of its own kind.
-        return createElement(OVERLAYS[kind] as (p: { items: Overlay[]; ctx: StageCtx }) => React.ReactNode, { key: kind, items, ctx });
-      })}
+      {OVERLAY_ORDER.filter((kind) => UNDER_SCRIM.includes(kind)).map(drawn)}
+      <Scrim ctx={ctx} />
+      {OVERLAY_ORDER.filter((kind) => !UNDER_SCRIM.includes(kind)).map(drawn)}
       <View pointerEvents="none" style={[styles.top, { top: ctx.insets.top + 12 }]}>
         <Clock ctx={ctx} />
         <Lines ctx={ctx} />
@@ -40,6 +44,15 @@ export function Stage({ ctx }: { ctx: StageCtx }) {
       <DateLine ctx={ctx} />
     </>
   );
+}
+
+/**
+ * The scrim under a card (replay ceremony RC35): ink over the map and what stands on it, as strong as the frame says, a
+ * fifth at the most; written frame by frame, never rendered. Taps go through it, to the stage.
+ */
+function Scrim({ ctx }: { ctx: StageCtx }) {
+  const shade = useLiveStyle(ctx.live, (f) => ({ opacity: f.scrim }));
+  return <View ref={shade} testID="replay-scrim" pointerEvents="none" style={[StyleSheet.absoluteFill, styles.scrim]} />;
 }
 
 /**
@@ -65,15 +78,17 @@ function Clock({ ctx }: { ctx: StageCtx }) {
 }
 
 /**
- * The day walked, on the last view (replay ceremony RC26): where the first beat's headline stood, in body ink no larger
- * than body text. It renders when the day comes or goes; its coming in is written on it frame by frame.
+ * The day walked, on the last view (replay ceremony RC26): where the clock stood, between Hold and Skip, in body ink no
+ * larger than body text and always one line (`dateOf` words it for the room). The clock has faded out before it
+ * comes. It renders when the day comes or goes; its coming in is written on it frame by frame.
  */
 function DateLine({ ctx }: { ctx: StageCtx }) {
   const day = useLive(ctx.live, (f) => f?.date ?? null);
   const fade = useLiveStyle(ctx.live, (f) => ({ opacity: f.dateOpacity }));
+  const room = Math.max(120, ctx.width - 2 * STAGE_SIDE);
   return day == null ? null : (
     <View pointerEvents="none" style={[styles.dateRow, { top: ctx.insets.top + DATE_TOP }]}>
-      <Text ref={fade} testID="replay-date" accessibilityLiveRegion="polite" style={styles.date}>{dateOf(day)}</Text>
+      <Text ref={fade} testID="replay-date" accessibilityLiveRegion="polite" numberOfLines={1} style={[styles.date, { maxWidth: room }]}>{dateOf(day, room)}</Text>
     </View>
   );
 }
@@ -96,8 +111,9 @@ function Lines({ ctx }: { ctx: StageCtx }) {
 }
 
 const styles = StyleSheet.create({
-  date: { color: theme.ink, fontSize: 15, fontWeight: '600', backgroundColor: theme.glass, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 6, overflow: 'hidden', textAlign: 'center' },
-  dateRow: { position: 'absolute', left: 16, right: 16, alignItems: 'center' },
+  scrim: { backgroundColor: theme.ink },
+  date: { color: theme.ink, fontSize: 15, lineHeight: 20, fontWeight: '600', backgroundColor: theme.glass, borderRadius: 18, paddingHorizontal: 14, paddingVertical: 8, overflow: 'hidden', textAlign: 'center' },
+  dateRow: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
   // The clock's own height (`lib/ceremony/room` STACK_TOP counts it): kept while it is not drawn.
   clockRoom: { height: 36 },
   top: { position: 'absolute', left: 0, right: 0, alignItems: 'center', gap: 8 },

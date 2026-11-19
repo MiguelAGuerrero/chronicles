@@ -11,7 +11,7 @@ import { distanceM } from '../../geo';
 import * as tokens from '../../motionTokens';
 import * as replay from '../../replay';
 import type { LngLat } from '../../types';
-import { at, boxOf, built, cam, dayOf, field, fitCamera, frameAt, O, optsOf, overlaysOf, PHONE, planOf, project, segOf, segsOf, SMALL, SRC, token, walkOf, wholeOf, type Box, type Edges, type Screen } from './walks';
+import { at, boxOf, built, cam, dayOf, field, fitCamera, frameAt, mod, O, optsOf, overlaysOf, PHONE, planOf, project, segOf, segsOf, SMALL, SRC, token, walkOf, wholeOf, type Box, type Edges, type Screen } from './walks';
 
 const read = (rel: string) => readFileSync(join(SRC, rel), 'utf8');
 /** Where the corners of a box land on a screen under a camera: [left, top, right, bottom]. */
@@ -253,6 +253,16 @@ test('RC26: the last view shows the date, and nothing on it is a figure larger t
   assert.ok(Number(/fontSize: (\d+)/.exec(style)?.[1]) <= 16);
   assert.match(stage, /clockFade \?\? 1\) > 0/, 'a clock faded out is not drawn');
   for (const f of readdirSync(join(SRC, 'components/ceremony'))) assert.doesNotMatch(read(`components/ceremony/${f}`), /theme\.accent/, `${f} lights something in the accent`);
+  // The date stands where the clock stood, in the top row, always one line; and the whole is framed under that row by
+  // a standing picture's height, on the last view and so on the card: no control and no date sits on the walk.
+  const layout = mod('components/ceremony/layout.ts');
+  const dateOf = built<(t: number, room?: number) => string>(layout, 'dateOf');
+  const day = new Date(2026, 8, 30, 12).getTime();
+  assert.ok(dateOf(day).length > dateOf(day, 200).length && dateOf(day, 200).length > dateOf(day, 140).length, `${dateOf(day)} | ${dateOf(day, 200)} | ${dateOf(day, 140)}`);
+  assert.match(stage, /numberOfLines=\{1\}[^>]*>\{dateOf\(day, room\)\}/);
+  const top = built<number>(layout, 'WHOLE_TOP');
+  assert.ok(built<number>(layout, 'DATE_TOP') === 12 && top >= 12 + 48 + 8 + 48, `the whole starts ${top} px down`);
+  for (const f of ['app/replay/[id].tsx', 'app/day/[key].tsx']) assert.match(read(f), /top: insetTop \+ WHOLE_TOP/, `${f} frames the whole under the date`);
 });
 
 // ---------------------------------------------------------------- Skip (RC27)

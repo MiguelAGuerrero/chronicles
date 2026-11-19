@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
-import { gridDuration } from '../../ceremony/grid';
+import { gridShown } from '../../ceremony/grid';
 import { rhythmFrame, rhythmPlan } from '../../ceremony/rhythm';
 import { walkStory, type WalkInput } from '../../ceremony/story';
 import type { MediaEdit } from '../../mediaEdit';
@@ -68,7 +68,7 @@ test('fix trimmed-length 2: a trimmed video\'s card holds for its kept span', ()
   assert.equal(sliver.t1 - sliver.t0, R.grow + R.mediaMin + R.mediaTail + R.tuck);
 });
 
-test('fix trimmed-length 3: a stack\'s grid holds for its longest video\'s kept span, and a trimmed memo beside it for its own', () => {
+test('fix trimmed-length 3: a stack\'s videos play their kept spans in turn, and a trimmed memo after them for its own', () => {
   const stack = (videoEdit: MediaEdit | null): Moment => ({
     id: 's', walk_id: 'w1', t: t0 + 60_000, ...P(at(1, 0)), segment_id: null,
     pieces: [
@@ -79,16 +79,18 @@ test('fix trimmed-length 3: a stack\'s grid holds for its longest video\'s kept 
     ],
   });
   const p = planOf(stack(trimmed(20_000, 26_000)));
-  const grid = p.cards[0];
-  assert.deepEqual(grid.pieces?.map((c) => c.piece_id), ['s', 'v1', 'v2']);
-  assert.equal(grid.len, 6000, 'the longest video is the trimmed one\'s kept 6 s, not its stored 30 s');
-  assert.equal(grid.t1 - grid.t0, gridDuration(3, 6000));
+  // One card for the moment (replay ceremony RC37): its photo, then each video in turn for its kept span, never in a cell.
+  const card = p.cards[0];
+  assert.deepEqual(card.pieces?.map((c) => c.piece_id), ['s']);
+  assert.deepEqual(card.videos?.map((v) => [v.capture.piece_id, v.len]), [['v1', 6000], ['v2', 4000]], 'the trimmed video takes its kept 6 s, not its stored 30 s');
   const memo = p.bubbles.find((b) => b.capture.piece_id === 'm');
-  assert.equal(memo?.len, 3000, 'the memo beside the grid plays its kept 3 s');
+  assert.equal(memo?.len, 3000, 'the memo after them plays its kept 3 s');
+  const whole = R.grow + gridShown(1) + (R.turn + 6000 + R.mediaTail) + (R.turn + 4000 + R.mediaTail) + (3000 + R.mediaTail) + R.tuck;
+  assert.equal(card.t1 - card.t0, whole);
   const stop = stopOf(p);
-  assert.equal(stop.t1 - stop.t0, gridDuration(3, 6000), 'the stop is the grid\'s length: no minutes of a memo\'s cut part after it');
-  // Untrimmed, the same stack holds for the whole 30 s.
-  assert.equal(planOf(stack(null)).cards[0].len, 30_000);
+  assert.equal(stop.t1 - stop.t0, whole, 'the stop is the card\'s length: no minutes of a memo\'s cut part after it');
+  // Untrimmed, the same video takes its whole 30 s.
+  assert.equal(planOf(stack(null)).cards[0].videos?.[0].len, 30_000);
 });
 
 test('fix trimmed-length 4: the ceremony and its stage read a medium\'s length as its kept span, never from the stored one', () => {

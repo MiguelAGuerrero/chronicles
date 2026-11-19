@@ -18,7 +18,7 @@ const HOSTS: Record<string, 'cover' | 'contain' | 'prop'> = {
   'components/chronicle/MomentPicture.tsx': 'cover',
   'components/gallery/GalleryTile.tsx': 'prop',
   'components/gallery/PeriodBlock.tsx': 'prop',
-  'components/ceremony/Pile.tsx': 'cover',
+  'components/ceremony/Still.tsx': 'cover',
   'components/ceremony/Cards.tsx': 'cover',
 };
 

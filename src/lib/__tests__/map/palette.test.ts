@@ -211,7 +211,7 @@ test('MP9: no file keeps a kind\'s old map hex; the pins and the replay\'s stage
   const bubbles = read('components/ceremony/Bubbles.tsx');
   assert.match(bubbles, /backgroundColor: COLORS\.voice/, 'a memo\'s play disc and waveform');
   assert.match(bubbles, /borderLeftColor: memo \? COLORS\.voice : COLORS\.text/, 'a bubble\'s edge');
-  assert.match(read('components/ceremony/Pile.tsx'), /backgroundColor: COLORS\.video/, 'the pile\'s video tile');
+  assert.match(read('components/ceremony/Still.tsx'), /backgroundColor: COLORS\.video/, 'the stack\'s video tile');
 });
 
 test('MP10: only the replay and a day draw walked streets or an end; every other map passes none', () => {

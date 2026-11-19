@@ -19,7 +19,7 @@ import { FrameMeter } from '../../components/ceremony/FrameMeter';
 import { NextMoment } from '../../components/ceremony/NextMoment';
 import { useReplay } from '../../components/ceremony/useCeremonyLoop';
 import { useRevealed } from '../../components/ceremony/useRevealed';
-import type { StageCtx } from '../../components/ceremony/layout';
+import { WHOLE_TOP, type StageCtx } from '../../components/ceremony/layout';
 import { ceremonyFor } from '../../lib/ceremony/registry';
 import { linksWithHops } from '../../lib/ceremony/reveal';
 import { chronicleSection } from '../../lib/resurface/sectionStore';
@@ -385,7 +385,8 @@ export default function Replay() {
   // The whole walk and its room (RC23, RC24): the path opens from the first beat's own view (the map's fit, with the
   // map's own room) and closes on the view the card's fit asks for, above the card's sheet. The sheet's height is
   // learnt ahead (the card is laid out unseen below), so the card then arrives on a map that does not move.
-  const sheetPad = useMemo(() => ({ top: 48 + insetTop, right: 32, bottom: sheetH + 24, left: 32 }), [insetTop, sheetH]);
+  // (Under the top row and a picture's height, so no control sits on the walk or on what stands on it: `WHOLE_TOP`.)
+  const sheetPad = useMemo(() => ({ top: insetTop + WHOLE_TOP, right: 32, bottom: sheetH + 24, left: 32 }), [insetTop, sheetH]);
   const bounds = data?.bounds ?? null;
   const whole = useMemo(() => (bounds ? { bounds, open: FIT_PADDING, close: sheetPad, maxZoom: FIT_MAX_ZOOM } : null), [bounds, sheetPad]);
   const showing = useMemo(() => (story ? ceremonyFor(style).show(story, { reduceMotion, screen, whole, namePassed: true }) : null), [story, reduceMotion, style, screen, whole]);

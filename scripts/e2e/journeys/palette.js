@@ -223,16 +223,16 @@ async function run(h) {
       });
       await shot(pg, `palette-06-stage-note-${w}`);
     }
-    // The end's pile holds the video's tile.
-    const piled = await pg.waitForSelector('[data-testid=replay-pile]', { timeout: 60000 }).then(() => true, () => false);
+    // The stack holds the video's tile.
+    const piled = await pg.waitForFunction(() => document.querySelectorAll('[data-testid=replay-stack] [data-testid=stack-entry]').length >= 1 && !!document.querySelector('[data-testid=replay-stack] [data-testid=video-mark], [data-testid=replay-stack] [style*="background-color"]'), null, { timeout: 60000 }).then(() => true, () => false);
     if (piled) {
       // A video with no still yet shows the madder tile; with its still (made on the web) the picture covers it. Either
       // way no tile is the old video red.
-      stage.video = await pg.$$eval('[data-testid=replay-pile] *', (els, [want, old]) => {
+      stage.video = await pg.$$eval('[data-testid=replay-stack] *', (els, [want, old]) => {
         const bgs = els.map((e) => getComputedStyle(e).backgroundColor);
         return { madder: bgs.includes(want), oldRed: bgs.includes(old), pictures: els.filter((e) => e.tagName === 'IMG').length };
       }, [css(paletteRgb('video')), 'rgb(180, 35, 24)']);
-      await shot(pg, `palette-07-stage-pile-${w}`);
+      await shot(pg, `palette-07-stage-stack-${w}`);
     }
     await pg.waitForSelector('[data-testid=to-name], [data-testid=done]', { timeout: 120000 }).catch(() => null);
     await pg.waitForTimeout(1500);
@@ -247,7 +247,7 @@ async function run(h) {
     `MP14: beat one's lit street is the walked ink under the faint trace, never the accent (want ${JSON.stringify(lit)}; 390 ${JSON.stringify(at390.seenLit)}, 320 ${JSON.stringify(at320.seenLit)})`);
   const stageOk = (r) => r.stage.memo === css(paletteRgb('voice')) && r.stage.note === css(paletteRgb('text')) && !!r.stage.video && !r.stage.video.oldRed && (r.stage.video.madder || r.stage.video.pictures > 0);
   check(stageOk(at390) && stageOk(at320),
-    `MP9: the replay's stage takes the kinds' colours: the memo's play disc, a note's edge, the pile's video tile (390 ${JSON.stringify(at390.stage)}, 320 ${JSON.stringify(at320.stage)})`);
+    `MP9: the replay's stage takes the kinds' colours: the memo's play disc, a note's edge, the stack's video tile (390 ${JSON.stringify(at390.stage)}, 320 ${JSON.stringify(at320.stage)})`);
 
   // Explore draws none of these colours: its pictures, for the review, at both widths.
   await pg.goto(navUrl.replace(/navigate$/, ''));
@@ -425,6 +425,6 @@ async function townBorders(h) {
 
 module.exports = {
   name: 'palette',
-  covers: ['src/components/map/types.ts', 'src/components/map/WalkMap.web.tsx', 'src/components/CapturePinView.tsx', 'src/components/ceremony/{Bubbles,Pile}.tsx'],
+  covers: ['src/components/map/types.ts', 'src/components/map/WalkMap.web.tsx', 'src/components/CapturePinView.tsx', 'src/components/ceremony/{Bubbles,Still,Stack}.tsx'],
   run,
 };

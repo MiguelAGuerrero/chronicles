@@ -122,13 +122,15 @@ const stackOf = (videoMs: number | null): Moment => ({
   ],
 });
 
-test('RY4: a grid stays 5 s after its last piece has swiped in, or until a longer video in it ends', () => {
+test('RY4: a grid stays 5 s after its last piece has swiped in; a video in the moment plays in its turn after that (RC37)', () => {
   const grid = (m: Moment) => plan(walk(500, [faced(m)])).cards[0];
   const three = grid(stackOf(null));
   assert.ok(three.pieces && three.pieces.length === 3, 'still one grid of its pictures (MS17)');
   assert.ok(near(three.t1 - three.t0, R.grow + 2 * R.gridStagger + R.bubbleIn + 5000 + R.tuck), `three pictures: ${three.t1 - three.t0}`);
+  // A video is not in a cell: the pictures keep their 5 s, then it plays in the same card, with its second of quiet after.
   const withVideo = grid(stackOf(9000));
-  assert.ok(near(withVideo.t1 - withVideo.t0, R.grow + 3 * R.gridStagger + R.bubbleIn + 9000 + R.tuck), `with a 9 s video: ${withVideo.t1 - withVideo.t0}`);
+  assert.ok(withVideo.pieces?.length === 3 && withVideo.videos?.length === 1);
+  assert.ok(near(withVideo.t1 - withVideo.t0, R.grow + 2 * R.gridStagger + R.bubbleIn + 5000 + R.turn + 9000 + R.mediaTail + R.tuck), `with a 9 s video: ${withVideo.t1 - withVideo.t0}`);
 });
 
 test('RY5: the walker waits at a note 1.2 s for up to six words, a quarter second for each word more, at most 5 s', () => {
@@ -252,9 +254,10 @@ test('RY13: a press shows the replay as it would be just before the next moment:
   assert.ok(near(metres(frameAt(p, second.t0)), 700, 25), 'and there when the moment begins');
   assert.ok(f.clock != null && f.clock <= stops(p)[1].moment.arrive + 1, 'the clock is at arriving there');
   assert.ok((f.drawn.w ?? 0) > when(600), 'the trace is drawn up to there');
-  assert.ok(f.pins.includes(p.cards[0].capture.id), 'the moment passed over has its pin');
-  const pile = f.overlays.find((o) => o.kind === 'pile');
-  assert.ok(pile && pile.kind === 'pile' && pile.captures.length === 1, 'and its photo is in the pile');
+  // The moment passed over stands as its picture on the map (its own pin waits for the card, replay ceremony RC34).
+  assert.ok(f.overlays.some((o) => o.kind === 'picture' && o.key === p.cards[0].capture.id) && !f.pins.includes(p.cards[0].capture.id), 'the moment passed over stands as its picture');
+  const stack = f.overlays.find((o) => o.kind === 'stack');
+  assert.ok(stack && stack.kind === 'stack' && stack.captures.length === 1, 'and its photo is in the stack');
   // Then it plays as it would have.
   assert.ok(frameAt(p, second.t0 + 400).overlays.some((o) => o.kind === 'bubble' && o.capture.kind === 'voice'));
 });

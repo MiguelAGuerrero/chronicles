@@ -26,15 +26,15 @@ A walk's replay and the day replay: the five beats, the story and its ceremonies
 - **The rhythm** (decision 0085, RR1-RR19, `lib/ceremony/rhythm.ts`): a stretch's
   time follows its length, not the minutes walked (a glide, longer past `zipAtM`;
   the camera and how a break is crossed are in `replay-ceremony.md`); a break is said as "N min later"; notes and memos
-  are bubbles, photos and videos cards that tuck into the pile; passed places
+  are bubbles, photos and videos cards that shrink back onto their place and gather in the stack (`replay-stage.md`); passed places
   whisper by (one or two by name, more than two as one "Passed a few places without stopping", RP19); a clock rolls with the walker. Every number is in `REPLAY_RHYTHM`
   (`motionTokens.ts`). Nothing shrinks to fit a total: the 60 s cap went with replay pace (RY10, decision 0203).
 - **Replay pace** (`specs/replay-pace`, RY1-RY22, decision 0203; the first slice of the replay's rework):
   - **Each moment's time is its own** (`rhythm.ts` `holdPhotos`, `slotDur`, `grid.ts`): a photo on its own is fully
     shown `photoHold` between `grow` and `tuck`; the first of the replay and one after `longM` with nothing kept, a
     fifth longer; photos at one stop tighten, the last whole again. A photo walked to is never shortened (the owner,
-    Nov 18: where it stands in the walk says nothing of its worth). A grid stays `gridHold` after its last swipe-in;
-    `mediaTail` stands after a memo and inside a video's card.
+    Nov 18: where it stands in the walk says nothing of its worth). A grid stays `gridHold` after its last swipe-in
+    (`gridShown`); `mediaTail` stands after a memo and inside a video's card.
   - **The walker keeps a steady pace** (`ease.ts` `steady`, the leg's `ra`, `rb`): the same curve gives the walker,
     the clock (audit 24) and a whisper's timing (`legWalkTime`); change one and the others drift.
   - **A bubble leaves at the next card or break, never before a note could be read** (`noteRead`), and a memo never
@@ -48,18 +48,19 @@ A walk's replay and the day replay: the five beats, the story and its ceremonies
     (`layout.ts` `STAGE_SIDE`, `heldShown`). A rebuilt telling forgets the press.
   - **The button says "Next"** (`NextMoment.tsx`, under Skip on both replays): the cold find took a bare chevron for
     something else and tapped Skip first, which ends the replay. It is not drawn when no moment lies ahead.
-- **A stacked moment is one beat** (moment stacks MS17, decision 0123): `rhythm.ts` `stopSlots` makes a moment
-  with two or more photos and videos one `grid` slot (`ceremony/grid.ts`: the closest square up to 3×3, scrolling past
-  nine; `gridDuration`: swipe-ins, then one photo slot or the longest muted video), its memos and notes `beside` slots
-  on their own clock from the grid's start; fewer than two play piece by piece. One card, one pile entry per moment.
-  The rhythm hands the stage each cell's swipe-in (`shown`) and the `scroll`; `Grid.tsx` only draws them (the stage
-  never reads `REPLAY_RHYTHM`). A stack's stop runs to its last piece (`lastPieceT`). The screen reader steps through
-  a stack's pieces; `stepPosition` counts moments, never pieces (MS9).
+- **A stacked moment is one beat** (moment stacks MS17, decision 0123; replay ceremony RC37): `rhythm.ts`
+  `stopSlots` makes a moment with two or more photos one `grid` slot (`ceremony/grid.ts`: the closest square up to
+  3×3, scrolling past nine), its memos and notes `beside` slots on their own clock from the grid's start; one with a
+  video is one card too, its videos in turn after its pictures and its memos after those (`replay-stage.md`); with
+  no video and fewer than two photos it plays piece by piece. One card, one stack entry per moment. The rhythm hands
+  the stage each cell's swipe-in (`shown`) and the `scroll`; `Grid.tsx` only draws them (the stage never reads
+  `REPLAY_RHYTHM`). A stack's stop runs to its last piece (`lastPieceT`). The screen reader steps through a stack's
+  pieces; `stepPosition` counts moments, never pieces (MS9).
 - **Nothing waits for a tap.** A tap on the stage or Hold holds it; an open viewer
   pauses it (the clock and any sound); Skip goes to the card. First watch and
   re-watches play the same. Only the screen reader's steps (`StepThrough`) wait for
   Continue, and move on by themselves on a re-watch, as before (RR17).
-- **Photos and videos are full screen in the viewer** (0003), opened from the pile
+- **Photos and videos are full screen in the viewer** (0003), opened from the stack
   (newest first); in the path they are cards.
 - **Video** comes from the camera button (the system camera's own video mode),
   capped at 30 s on phones and 15 s on web. The mic stays the separate pocket
@@ -100,13 +101,14 @@ A walk's replay and the day replay: the five beats, the story and its ceremonies
 - **A medium's length is its kept part** (`fix trimmed-length 1-4`): the plan's slot (`mediaLen`), a grid's longest
   video, the card's wait and the steps' re-watch all ask `memoLengthMs` (`lib/voiceTrim`; a video's `edit.trim` is the
   same data as a memo's), never `Number(body)`: the players stop at the trim's end, so the stored length left the
-  walker standing through the cut part. A grid's video plays only its kept part too (`Grid.tsx` `CellVideo`; the
-  `stacks` journey watches both). A test scans the ceremony and its stage for a stored length read directly.
-- **A video's player is made with its file, never empty and filled later** (`CellVideo`, as `CardVideo`): given a new
-  source, expo-video's web hook calls `replace()`, which plays the tag whatever the stage says, and React then sets
-  the tag's `src` again on its next draw, a second load that fails that start with a logged AbortError.
+  walker standing through the cut part. A moment's video in its turn plays only its kept part too (the same
+  `CardVideo`; the `stacks` journey watches both). A test scans the ceremony and its stage for a stored length read directly.
+- **A video's player is made with its file, never empty and filled later** (`CardVideo`, and `TurnVideo`, which draws
+  one only once its file is found): given a new source, expo-video's web hook calls `replace()`, which plays the tag
+  whatever the stage says, and React then sets the tag's `src` again on its next draw, a second load that fails that
+  start with a logged AbortError.
 - **A rebuilt telling keeps its place** (audits 22, 31, 33): deleting a moment from the
-  pile, Undo, or editing a note rebuilds the story; the loop re-anchors (`loopAgainst`, `reanchor`)
+  stack's viewer, Undo, or editing a note rebuilds the story; the loop re-anchors (`loopAgainst`, `reanchor`)
   and draws it in a layout effect, before the render that brought it is painted: the same time of
   day, and where the clock stands still (a stop, a loose moment) as long before it moves on as there was.
 - **A moment the trace doesn't cover** (in a gap or a pause, `onTrace: false`) is where
@@ -158,11 +160,13 @@ A walk's replay and the day replay: the five beats, the story and its ceremonies
   the card's More replaces only the Name it field it changed (`fieldsAfterRename`).
 - **Beat one lights the walked streets in the walked ink, never the accent** (decision 0188, T22; 0153): the trace is
   faint at `QUIET_TRACE_OPACITY` over them (`map/types.ts`), so a lit street reads `#658694`, 3:1 on the land. The
-  stage's memo (its play disc and waveform), a note's bubble edge and the pile's video tile take the kinds' colours from
+  stage's memo (its play disc and waveform), a note's bubble edge and the stack's video tile (`Still.tsx`) take the kinds' colours from
   `COLORS` (the owner's "Follow the palette"); `replay-rhythm audit 19` keeps every hex out of the stage.
 
 ## The engine, the camera and the breaks
 
 The replay ceremony's rework (RC1-RC48, decision 0206) has its own file: `.claude/rules/replay-ceremony.md` (the frame
 loop outside the screens' rendering, the camera as plan data, how a break is crossed: a hop or a stand, never a dim;
-how a telling opens from the first beat's view and closes on the card's, with the date and the places passed).
+how a telling opens from the first beat's view and closes on the card's, with the date and the places passed). What
+stays behind (the pictures on the map, the stack) and a moment on screen (the scrim, the drift, videos in turn) are in
+`.claude/rules/replay-stage.md`.

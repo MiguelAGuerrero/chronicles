@@ -358,7 +358,7 @@ test('RC7: every frame reaches the stage\'s leaves, and its shape changes only w
   }
   assert.equal(told, frames, 'a listener is told of every frame');
   assert.ok(moved > 30, `the card moved in ${moved} frames`);
-  // The photo's card comes and goes, the pile comes, the note's bubble comes: a handful of shapes in hundreds of frames.
+  // The photo's card comes and goes, the stack comes, the note's bubble comes: a handful of shapes in hundreds of frames.
   assert.ok(shapes >= 3 && shapes <= 8, `${shapes} shapes in ${frames} frames`);
   // A telling rebuilt (a note edited) is another shape though its overlays keep their keys: they may hold other captures.
   const before = live.shape();
@@ -399,19 +399,23 @@ test('RC7: the stage is handed the frame its shape came with: the same object un
   assert.equal(live.staged(), null);
 });
 
-test('RC7: what the pile holds is part of the stage\'s shape: one more tucked in, or another in its place, is another shape', () => {
+test('RC7: what the stack holds is part of the stage\'s shape: one more landed, or another in its place, is another shape', () => {
   const cap = (id: string) => ({ id }) as unknown as Faced;
-  const frame = (ids: string[]): Frame => ({ ...rhythmFrame(rhythmPlan(cornerWalk(), { reduceMotion: false, screen: SCREEN }), 0), overlays: [{ kind: 'pile', key: 'pile', captures: ids.map(cap) }] });
+  const entry = (id: string, slot: number) => ({ key: id, capture: cap(id), several: false, video: false, slot, rise: 0, give: 0, opacity: 1 });
+  const frame = (ids: string[], from = 0): Frame => ({ ...rhythmFrame(rhythmPlan(cornerWalk(), { reduceMotion: false, screen: SCREEN }), 0), overlays: [{ kind: 'stack', key: 'stack', captures: ids.map(cap), entries: ids.slice(from).map((id, i) => entry(id, i)) }] });
   const live = createStageLive();
   live.set(frame(['a']), 1);
   const one = live.shape();
   live.set(frame(['a']), 1);
-  assert.equal(live.shape(), one, 'the same pile is the same shape');
+  assert.equal(live.shape(), one, 'the same stack is the same shape');
   live.set(frame(['a', 'b']), 1);
   const two = live.shape();
   assert.notEqual(two, one, 'one more tucked in');
   live.set(frame(['a', 'c']), 1);
   assert.notEqual(live.shape(), two, 'another in its place');
+  // The oldest dropped off the screen (RC30): the same moments held, other entries drawn.
+  live.set(frame(['a', 'b'], 1), 1);
+  assert.notEqual(live.shape(), two, 'the oldest dropped off');
 });
 
 test('RC7: no view of the stage reads the frame in its render', () => {
@@ -427,7 +431,7 @@ test('RC7: no view of the stage reads the frame in its render', () => {
   assert.deepEqual(found, []);
   // Shown to fail: the two reads this test exists for, and one written another way.
   assert.ok(inRender('  const frame = live.frame();'));
-  assert.ok(inRender("  const captures = (overlayOf(ctx.live.frame(), 'pile', 'pile') ?? items[0])?.captures ?? [];"));
+  assert.ok(inRender("  const captures = (overlayOf(ctx.live.frame(), 'stack', 'stack') ?? items[0])?.captures ?? [];"));
   assert.ok(!inRender("    planMs: () => (overlayOf(live.frame(), 'card', key)?.progress ?? 0) * lenMs,"));
 });
 

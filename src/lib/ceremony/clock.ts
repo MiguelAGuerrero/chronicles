@@ -60,7 +60,7 @@ export function msAtClock(s: Showing, clock: number): number {
  * Where a rebuilt telling (`next`) takes up from `ms` into the old one
  * (audits 22, 31, 33): the same time of day; where the clock stands still (a
  * stop, a loose moment), as long before it moves on again as there was. A
- * moment deleted from the pile was already shown, so counting from the end of
+ * moment deleted from the stack's viewer was already shown, so counting from the end of
  * the standing still keeps the place even when an earlier one in it goes.
  */
 export function reanchor(old: Showing, next: Showing, ms: number): number {

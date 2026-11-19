@@ -26,7 +26,7 @@ function stopWith(extra: (t: number) => Faced[]) {
 
 // ---------------------------------------------------------------- the scrim (RC35)
 
-test('RC35: while a card is up the map under it dims by a fifth; cards one after another at one stop share one dim, down once and up once', { todo: 'test first' }, () => {
+test('RC35: while a card is up the map under it dims by a fifth; cards one after another at one stop share one dim, down once and up once', () => {
   assert.equal(token('scrim'), 0.2);
   // Two photos and a video taken at one stop, a second apart: three cards, one after another.
   const { story } = stopWith((t) => [cap('photo', t, at(300)), cap('photo', t + 1000, at(301)), cap('video', t + 2000, at(302), '4000')]);
@@ -67,7 +67,7 @@ test('RC35: while a card is up the map under it dims by a fifth; cards one after
 
 // ---------------------------------------------------------------- the drift (RC36)
 
-test('RC36: a photo held in its card drifts 3% closer over its hold; not with reduce motion', { todo: 'test first' }, () => {
+test('RC36: a photo held in its card drifts 3% closer over its hold; not with reduce motion', () => {
   assert.equal(token('drift'), 0.03);
   const { story } = stopWith((t) => [cap('video', t, at(300), '4000')]);
   const p = planOf(story);
@@ -91,7 +91,7 @@ test('RC36: a photo held in its card drifts 3% closer over its hold; not with re
 
 // ---------------------------------------------------------------- a moment arrives whole (RC37)
 
-test('RC37: with no video a moment\'s memos and notes play beside its grid, as before', { todo: 'test first' }, () => {
+test('RC37: with no video a moment\'s memos and notes play beside its grid, as before', () => {
   let market!: Faced;
   const { story } = stopWith((t) => [(market = several(['photo', 'photo', 'photo', 'voice', 'text'], t, at(300)))]);
   const p = planOf(story);
@@ -104,7 +104,7 @@ test('RC37: with no video a moment\'s memos and notes play beside its grid, as b
   assert.equal(cardOn(early).turn, 0, 'it shows its pictures, and has no video to turn to');
 });
 
-test('RC37: with videos a moment\'s pictures show as the grid, then each video plays in turn in the same card with sound, and the card stays up while its memos play', { todo: 'test first' }, () => {
+test('RC37: with videos a moment\'s pictures show as the grid, then each video plays in turn in the same card with sound, and the card stays up while its memos play', () => {
   let market!: Faced;
   const { story } = stopWith((t) => [(market = several(['photo', 'photo', 'video', 'voice', 'video', 'text'], t, at(300), [null, null, '4000', '3000', '2500', 'Loud in here.']))]);
   const p = planOf(story);
@@ -150,7 +150,7 @@ test('RC37: with videos a moment\'s pictures show as the grid, then each video p
   assert.ok(bubblesOn(frameAt(tp, pc[0].t1 - token('tuck') - token('mediaTail') - 500)).some((b) => b.playing) && cardOn(frameAt(tp, pc[0].t1 - token('tuck') - token('mediaTail') - 500)), 'the card is up while the memo plays');
 });
 
-test('RC37: nothing counts a moment\'s pieces, and a grid\'s cells hold no player', { todo: 'test first' }, () => {
+test('RC37: nothing counts a moment\'s pieces, and a grid\'s cells hold no player', () => {
   const grid = read('components/ceremony/Grid.tsx');
   assert.doesNotMatch(grid, /useVideoPlayer|VideoView|CellVideo/, 'a video still plays in a cell');
   const cards = read('components/ceremony/Cards.tsx');

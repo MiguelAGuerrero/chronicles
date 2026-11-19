@@ -19,7 +19,7 @@ const stageFiles = () => readdirSync(join(SRC, 'components/ceremony')).map((f) =
 
 // ---------------------------------------------------------------- nothing counts or celebrates (RC45)
 
-test('RC45: nothing added counts or celebrates: no numeral on the stack or the last view, no progress bar, no accent', { todo: 'test first' }, () => {
+test('RC45: nothing added counts or celebrates: no numeral on the stack or the last view, no progress bar, no accent', () => {
   // A walk with everything: pictures, a moment of several with a video, passed places.
   let market!: Faced;
   const w = walkOf(['Hessian Memorial', 'Sun Inn'], (fixes) => [cap('photo', fixes[30].t, at(210)), (market = several(['photo', 'photo', 'video'], fixes[50].t, at(350)))]);
@@ -46,7 +46,7 @@ test('RC45: nothing added counts or celebrates: no numeral on the stack or the l
 
 // ---------------------------------------------------------------- every surface (RC46)
 
-test('RC46: every way into a replay plays this way: one screen each for a walk and a day, one stage, one ceremony', { todo: 'test first' }, () => {
+test('RC46: every way into a replay plays this way: one screen each for a walk and a day, one stage, one ceremony', () => {
   const hosts = ['app/replay/[id].tsx', 'app/day/[key].tsx'];
   for (const f of hosts) {
     const src = read(f);
@@ -71,13 +71,14 @@ test('RC46: every way into a replay plays this way: one screen each for a walk a
 
 // ---------------------------------------------------------------- the screen reader's steps (RC47)
 
-test('RC47: the screen reader\'s steps are as they were: every moment in turn, a stack\'s pieces one by one, no stage', { todo: 'test first' }, () => {
+test('RC47: the screen reader\'s steps are as they were: every moment in turn, a stack\'s pieces one by one, no stage', () => {
   let market!: Faced;
   const w = walkOf(['Hessian Memorial'], (fixes) => [(market = several(['photo', 'video', 'voice'], fixes[50].t, at(350)))]);
   const steps = storySteps(w.story);
-  // One step a stop, in walked order; a stacked moment is one item there, its pieces stepped through by the steps' own view (MS9).
-  assert.deepEqual(steps.map((s) => s.map((c) => c.id)), [[w.photo.id], [market.id], [w.note.id]]);
-  assert.equal(steps[1][0].pieces.length, 3);
+  // One step a stop, in walked order; a stacked moment's pieces are stepped through one by one, each the moment at
+  // that piece (MS9), a video among them still its own step: the steps never took a grid or a turn.
+  assert.deepEqual(steps.map((s) => s.map((c) => c.id)), [[w.photo.id], [market.id, market.id, market.id], [w.note.id]]);
+  assert.deepEqual(steps[1].map((c) => c.kind), ['photo', 'video', 'voice']);
   // The steps draw no stage and read no frame: nothing of the ceremony's rework reaches them.
   const view = read('components/ceremony/StepThrough.tsx');
   assert.doesNotMatch(view, /useLive|StageLive|\.\/Stack|\.\/Pictures|\.\/Stage|overlayOf/);
@@ -93,7 +94,7 @@ test('RC47: the screen reader\'s steps are as they were: every moment in turn, a
 
 // ---------------------------------------------------------------- the old way is gone (RC48)
 
-test('RC48: the old way of playing is gone: no pile, no dim, no cut opening, no video in a cell, no interval', { todo: 'test first' }, () => {
+test('RC48: the old way of playing is gone: no pile, no dim, no cut opening, no video in a cell, no interval', () => {
   assert.equal(existsSync(join(SRC, 'components/ceremony/Pile.tsx')), false, 'the pile\'s view is still there');
   const scanned = [...stageFiles(), ...readdirSync(join(SRC, 'lib/ceremony')).map((f) => `lib/ceremony/${f}`), 'app/replay/[id].tsx', 'app/day/[key].tsx'];
   for (const f of scanned) {

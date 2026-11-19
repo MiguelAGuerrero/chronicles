@@ -13,7 +13,7 @@ import { FrameMeter } from '../../components/ceremony/FrameMeter';
 import { NextMoment } from '../../components/ceremony/NextMoment';
 import { useReplay } from '../../components/ceremony/useCeremonyLoop';
 import { useRevealed } from '../../components/ceremony/useRevealed';
-import type { StageCtx } from '../../components/ceremony/layout';
+import { WHOLE_TOP, type StageCtx } from '../../components/ceremony/layout';
 import { WalkMap } from '../../components/map/WalkMap';
 import { FIT_MAX_ZOOM, FIT_PADDING, type WalkMapHandle, type WalkMapProps } from '../../components/map/types';
 import { Button, theme } from '../../components/ui';
@@ -177,7 +177,8 @@ export default function DayReplay() {
   // The whole day and its room (replay ceremony RC23, RC24): the day has no beat before its path, so its telling shows
   // the whole day itself first, in the room the map's own fit leaves, and closes on the view the card's fit asks for,
   // above the card's sheet. The sheet's height is learnt ahead (the card is laid out unseen below).
-  const sheetPad = useMemo(() => ({ top: 48 + insetTop, right: 32, bottom: sheetH + 24, left: 32 }), [insetTop, sheetH]);
+  // (Under the top row and a picture's height, so no control sits on the walk or on what stands on it: `WHOLE_TOP`.)
+  const sheetPad = useMemo(() => ({ top: insetTop + WHOLE_TOP, right: 32, bottom: sheetH + 24, left: 32 }), [insetTop, sheetH]);
   const bounds = data?.bounds ?? null;
   const framed = useMemo(() => (bounds ? { bounds, open: FIT_PADDING, close: sheetPad, maxZoom: FIT_MAX_ZOOM } : null), [bounds, sheetPad]);
   const showing = useMemo(() => (story ? ceremonyFor(style).show(story, { reduceMotion, screen, whole: framed, holdOpen: true }) : null), [story, reduceMotion, style, screen, framed]);

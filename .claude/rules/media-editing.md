@@ -35,7 +35,7 @@ paths:
   the web.
 - **The replay's cards show the edits** (`ceremony/Cards`: `CardPhoto` fills the
   card with the edited picture; `CardVideo` is turned, cropped and plays only the
-  kept part, its wait timed on the kept length). The pile shows the edited small copy.
+  kept part, its wait timed on the kept length). The stack shows the edited small copy.
 - **A loose moment's change goes on the bus's `LOOSE_MOMENTS` channel**
   (`captureBus.patch(null, ...)`); the ready screen listens, so a moment
   edited from its Edit offer shows on its pin (audit 2).

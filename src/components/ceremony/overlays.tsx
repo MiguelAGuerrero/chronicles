@@ -8,19 +8,23 @@ import { OVERLAY_KINDS, type Overlay, type OverlayKind } from '../../lib/ceremon
 import { Bubbles } from './Bubbles';
 import { Cards } from './Cards';
 import type { StageCtx } from './layout';
-import { Pile } from './Pile';
+import { Pictures } from './Pictures';
+import { Stack } from './Stack';
 import { PassedNames, Whispers } from './Whispers';
 
 export type OverlayView<K extends OverlayKind> = ComponentType<{ items: Extract<Overlay, { kind: K }>[]; ctx: StageCtx }>;
 
 export const OVERLAYS: { [K in OverlayKind]: OverlayView<K> } = {
+  picture: Pictures,
   bubble: Bubbles,
   card: Cards,
-  pile: Pile,
+  stack: Stack,
   whisper: Whispers,
   passed: PassedNames,
 };
 
-/** Where each kind sits, bottom to top: a card in flight passes over the pile it tucks into. */
-const LAYER: Record<OverlayKind, number> = { whisper: 0, passed: 0, bubble: 1, pile: 2, card: 3 };
+/** Where each kind sits, bottom to top: the pictures on the map lowest, a card in flight over all. */
+const LAYER: Record<OverlayKind, number> = { picture: -1, whisper: 0, passed: 0, bubble: 1, stack: 2, card: 3 };
 export const OVERLAY_ORDER: readonly OverlayKind[] = [...OVERLAY_KINDS].sort((a, b) => LAYER[a] - LAYER[b]);
+/** The kinds that are part of the map as a card is looked at: they sit under the scrim a card lays over it (RC35). */
+export const UNDER_SCRIM: readonly OverlayKind[] = ['picture'];

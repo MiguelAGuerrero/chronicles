@@ -35,6 +35,17 @@ const GRID_GAP = 4;
 const BUBBLE_ROOM = 160;
 /** The narrowest a card is drawn. */
 const MIN_CARD = 80;
+/**
+ * The stack at the right edge (replay ceremony RC29-RC31): an entry's size (one control, 44 pt at the least), how far
+ * each stands over the one before, how far in from the edge, the top row it stays under (Skip, 12 in and 48 tall, and
+ * Next under it, 8 apart and 8 to spare), and the gap a card keeps from it.
+ */
+export const STACK = { w: 44, h: 50, pitch: 25, right: 8, top: 12 + 48 + 8 + 48 + 8, gap: 6 } as const;
+/**
+ * A picture standing on the map (RC28, RC34): its frame's size, how far over its place its middle is (a short stalk
+ * joins the two), and how near two places are, on the screen, for the later picture to cover the earlier.
+ */
+export const PICTURE = { size: 36, lift: 30, apart: 34 } as const;
 
 /** The room between the top row and the bottom corner, where a card stands (audit 13: a landscape phone). */
 const cardRoom = (c: StageRoom) => ({ top: c.insets.top + STACK_TOP, bottom: c.height - c.insets.bottom - STAGE_BOTTOM });
@@ -51,7 +62,9 @@ function cardFloor(c: StageRoom): number {
 
 export function cardWidth(c: StageRoom): number {
   const { top } = cardRoom(c);
-  return Math.max(MIN_CARD, Math.min((c.width - c.insets.left - c.insets.right) * 0.66, 260, (cardFloor(c) - top - CARD_EXTRA) / CARD_ASPECT));
+  const across = c.width - c.insets.left - c.insets.right;
+  // Never under the stack at the edge (RC30): on a 320 px phone two thirds of the width would reach it.
+  return Math.max(MIN_CARD, Math.min(across * 0.66, 260, (cardFloor(c) - top - CARD_EXTRA) / CARD_ASPECT, across - 2 * (STACK.right + STACK.w + STACK.gap)));
 }
 
 /** Where a card of height `h` rests: mid-room, raised as far as it must be to stay above its floor, never under the top row. */
@@ -59,6 +72,9 @@ export function restCenter(c: StageRoom, h = 0): [number, number] {
   const { top, bottom } = cardRoom(c);
   return [(c.width + c.insets.left - c.insets.right) / 2, Math.max(top + h / 2, Math.min((top + bottom) / 2, cardFloor(c) - h / 2))];
 }
+
+/** The picture's height in a card of one picture (a photo, a video): what a moment with videos keeps for all it shows in turn (RC37). */
+export const pictureHeight = (width: number) => width * CARD_ASPECT;
 
 /** A grid's height for its width: its rows of square cells (MS17). */
 export function gridHeight(n: number, width: number): number {

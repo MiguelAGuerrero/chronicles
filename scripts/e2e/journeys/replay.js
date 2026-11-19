@@ -105,7 +105,7 @@ function stretchOf(frames) {
   const seconds = (B.t - A.t) / 1000;
   const rate = (k) => (seconds > 0 ? (B[k] - A[k]) / seconds : Infinity);
   // React's commits are counted from 150 ms in: the stretch's first frames still commit what left as it began (a card
-  // tucked away, the pile taking it).
+  // shrunk away, its picture standing, the stack taking it).
   const settled = frames.slice(best.a, best.b + 1).find((f) => f.t - A.t >= 150) ?? A;
   const commits = B.t > settled.t ? ((B.commits - settled.commits) * 1000) / (B.t - settled.t) : Infinity;
   let line = 0;
@@ -280,12 +280,15 @@ function staysOf(frames, places, keys) {
   const meets = (a, b) => !(a[2] <= b[0] || b[2] <= a[0] || a[3] <= b[1] || b[3] <= a[1]);
   const picsOf = (f) => (f.pics ? f.pics.split('|').map((p) => { const m = /^(.*):([^:@]+)@([\d.]+)@([\d.]+)$/.exec(p); return m ? { key: m[1], box: box(m[2]), opacity: Number(m[3]), edge: Number(m[4]) } : null; }).filter(Boolean) : []);
   const entriesOf = (f) => (f.entries ? f.entries.split('|').map((p) => { const m = /^(.*):([^:@]+)@([\d.]+)$/.exec(p); return m ? { key: m[1], box: box(m[2]), opacity: Number(m[3]) } : null; }).filter(Boolean) : []);
-  const out = { frames: told.length, landed: {}, entries: [], grewUp: true, stackTexts: [...new Set(told.map((f) => f.stackText).filter(Boolean))], overlaps: [], scrim: { up: 0, upMax: 0, off: 0, offMax: 0, inBreak: 0 }, pinsOfPictured: Math.max(0, ...told.map((f) => f.pictured ?? 0)), pictures: 0, drift: null, control: null, last: null };
+  const out = { frames: told.length, landed: {}, entries: [], grewUp: true, stackTexts: [...new Set(told.map((f) => f.stackText).filter((s) => /[\d\p{L}]/u.test(s)))], overlaps: [], scrim: { up: 0, upMax: 0, off: 0, offMax: 0, inBreak: 0 }, pinsOfPictured: Math.max(0, ...told.map((f) => f.pictured ?? 0)), pictures: 0, drift: null, control: null, last: null };
   // RC28: each card's last frame against where its picture then stands, and its own place on the map.
   Object.entries(places).forEach(([name, place], k) => {
     const i = told.findIndex((f, j) => j > 0 && !f.cardName.startsWith(name) && told[j - 1].cardName.startsWith(name));
     if (i < 1) return;
-    const [l, t, r, b] = box(told[i - 1].card);
+    // The card's last frame (its box is x, y, width, height).
+    const [l, t, cw, ch] = box(told[i - 1].card);
+    const r = l + cw;
+    const b = t + ch;
     const at = screenAt(lonLat(told[i].cam), place, told[i].w, told[i].h);
     const pic = picsOf(told[i]).find((p) => p.key === keys[k]) ?? picsOf(told[Math.min(told.length - 1, i + 2)]).find((p) => p.key === keys[k]);
     const pc = pic ? [(pic.box[0] + pic.box[2]) / 2, (pic.box[1] + pic.box[3]) / 2] : null;
@@ -295,6 +298,9 @@ function staysOf(frames, places, keys) {
       cardToPicture: pc ? Math.round(Math.hypot((l + r) / 2 - pc[0], (t + b) / 2 - pc[1])) : null, footToPlace: pic ? Math.round(Math.hypot((pic.box[0] + pic.box[2]) / 2 - at[0], pic.box[3] - at[1])) : null,
     };
   });
+  // A card at rest is at its widest, where the frame before had it too (a frame drawn twice mid-flight is not at rest).
+  const widest = {};
+  for (const f of told) if (f.card) widest[f.cardName] = Math.max(widest[f.cardName] ?? 0, Number(f.card.split(',')[2]));
   // RC29, RC30: the stack's entries as they come: how many, the newest the highest, and what they ever met.
   let count = 0;
   for (const f of told) {
@@ -311,7 +317,7 @@ function staysOf(frames, places, keys) {
     }
     // RC35: the dim while a card rests, and with none up.
     if (f.scrim != null) {
-      const resting = f.card && f.cardName && f.card === (told[told.indexOf(f) - 1] || {}).card;
+      const resting = f.card && f.cardName && f.card === (told[told.indexOf(f) - 1] || {}).card && Number(f.card.split(',')[2]) >= widest[f.cardName] - 0.5;
       if (resting) { out.scrim.up++; out.scrim.upMax = Math.max(out.scrim.upMax, f.scrim); out.scrim.upMin = Math.min(out.scrim.upMin ?? 1, f.scrim); }
       else if (!f.card) { out.scrim.off++; out.scrim.offMax = Math.max(out.scrim.offMax, f.scrim); }
       if (f.later && f.scrim > 0.001 && !f.card) out.scrim.inBreak++;
@@ -341,8 +347,12 @@ const lastViewOf = (pg) => pg.evaluate(() => {
   const styled = (e) => { const st = getComputedStyle(e); return { text: e.textContent.trim(), size: parseFloat(st.fontSize), ink: st.color, opacity: seen(e), box: box(e), cut: e.scrollHeight > e.clientHeight + 1 || e.scrollWidth > e.clientWidth + 1 }; };
   return {
     date: date && shown(date) ? styled(date) : null, names: names.map(styled),
+    // What stands on the map: the pictures the replay drew, as seen.
+    pictures: [...document.querySelectorAll('[data-testid=replay-picture]')].filter(shown).map(box),
     // The mark on each named place itself.
     dots: [...document.querySelectorAll('[data-testid=replay-passed-dot]')].filter(shown).map(box),
+    // The top row's controls: the date stands between them.
+    hold: (() => { const e = document.querySelector('[data-testid=hold]'); return e ? box(e) : null; })(), skip: (() => { const e = document.querySelector('[data-testid=skip], [data-testid=day-skip]'); return e ? box(e) : null; })(),
     bigFigures: texts.filter((e) => /\d/.test(e.textContent) && parseFloat(getComputedStyle(e).fontSize) > 16).map((e) => e.textContent.trim()),
     accent: texts.filter((e) => getComputedStyle(e).color === 'rgb(194, 65, 12)').map((e) => e.textContent.trim()),
     clock: !!document.querySelector('[data-testid=replay-clock]'),
@@ -457,7 +467,7 @@ async function run(h) {
         // The video reached its end while its card was still up (audit 20).
         const v = document.querySelector('[data-testid=replay-card] video');
         if (v && v.ended) window.__rrSeen.videoEndedInCard = true;
-        // The viewer (the pile opened) has its own "1 of 2"; the path itself counts nothing.
+        // The viewer (the stack opened) has its own "1 of 2"; the path itself counts nothing.
         const m = document.querySelector('[data-testid=viewer-close]') ? null : /\b\d+ of \d+\b/.exec(document.body.innerText);
         if (m) add(window.__rrSeen.counted, m[0]);
       }, 50);
@@ -468,7 +478,6 @@ async function run(h) {
     const seen = { note: false, card: false, later: '', counted: '' };
     let holdChecked = false;
     let tapChecked = false;
-    let pileChecked = false;
     let stackChecked = false;
     let stackSeen = null;
     let soundChecked = false;
@@ -502,22 +511,6 @@ async function run(h) {
         const after = await pg.locator('[data-testid=replay-held]').count();
         check(held === 1 && after === 0, `RR7: a tap on the map holds the replay, another goes on (${held}, ${after})`);
         tapChecked = true;
-      }
-      if (!pileChecked && (await pg.locator('[data-testid=replay-pile] img').count()) >= 2 && !(await pg.locator('[data-testid=replay-card]').count())) {
-        const pileText = await pg.locator('[data-testid=replay-pile]').innerText();
-        check(!/\d/.test(pileText), `RR19: the pile shows no count ("${pileText}")`);
-        await shot(pg, 'rr-pile');
-        // The pile opens the viewer at its latest photo, and the replay holds until it closes (RR13, replay-rhythm audit 7).
-        await pg.click('[data-testid=replay-pile]');
-        const open = await pg.waitForSelector('[data-testid=viewer-close]', { timeout: 5000 }).then(() => true, () => false);
-        const latest = await pg.waitForSelector('[aria-label="Caption: Green gate"]', { timeout: 3000 }).then(() => true, () => false);
-        const a = [await clockNow(), await pg.locator('[data-walker]').first().getAttribute('data-walker')].join(' @ ');
-        await pg.waitForTimeout(1200);
-        const bb = [await clockNow(), await pg.locator('[data-walker]').first().getAttribute('data-walker')].join(' @ ');
-        check(open && a === bb, `RR13: the pile opens the viewer and the replay holds (${open}, ${a} → ${bb})`);
-        check(latest, 'replay-rhythm audit 7: the pile opens at its latest photo');
-        await pg.click('[data-testid=viewer-close]').catch(() => {});
-        pileChecked = true;
       }
       if (!stackChecked && (await pg.locator('[data-testid=stack-entry]').count()) >= 2 && !(await pg.locator('[data-testid=replay-card]').count())) {
         // RC31: the stack is one control, 44 px or more, named for a screen reader; it opens the photos so far at the
@@ -559,9 +552,9 @@ async function run(h) {
         });
         check(tapped && sound, `replay-rhythm audit 3: a refused video's Tap for sound turns the sound on (${tapped}, ${sound})`);
         soundChecked = true;
-        // Opening the pile mid-video pauses the video too, not only the clock (replay-rhythm audit 4).
+        // Opening the stack mid-video pauses the video too, not only the clock (replay-rhythm audit 4).
         const before = await pg.evaluate(() => window.__media.length);
-        await pg.click('[data-testid=replay-pile]');
+        await pg.click('[data-testid=replay-stack]');
         await pg.waitForSelector('[data-testid=viewer-close]', { timeout: 5000 }).catch(() => {});
         await pg.waitForTimeout(400);
         const ops = await pg.evaluate((n) => window.__media.slice(n), before);
@@ -592,9 +585,13 @@ async function run(h) {
     check((await pg.locator('[data-testid=replay-clock]').count()) === 0, 'RR8: the clock goes when the card comes');
     check(seen.note, 'RR9: the note shows in a bubble');
     check(seen.card, `RR11: the photo grows into a card with its caption (${rec.cards.join(' | ')})`);
-    check(pileChecked, 'RR11: the photo tucks into the pile');
-    check.todo(!!stackSeen && stackSeen.role === 'button' && stackSeen.name === 'Photos and videos so far' && stackSeen.w >= 44 && stackSeen.h >= 44 && stackSeen.buttons === 0 && stackSeen.open && stackSeen.latest && stackSeen.held, `RC31: the stack is one control of 44 px or more, named "Photos and videos so far", that opens them at the latest while the replay holds (${JSON.stringify(stackSeen)})`);
-    check.todo(!!stackSeen && stackSeen.entries >= 2 && stackSeen.text === '' && !/\d/.test(stackSeen.name ?? '0'), `RC45: the stack shows no numeral, in what it draws or in its name (${JSON.stringify(stackSeen)})`);
+    // The pile is the stack now (replay ceremony RC29-RC31): what the pile's checks held, the stack's hold.
+    check(stackChecked, 'RR11: the photo shrinks away and is in the stack');
+    check(!!stackSeen && !/[\d\p{L}]/u.test(stackSeen.text), `RR19: the stack shows no count ("${stackSeen && stackSeen.text}")`);
+    check(!!stackSeen && stackSeen.open && stackSeen.held, `RR13: the stack opens the viewer and the replay holds (${JSON.stringify(stackSeen)})`);
+    check(!!stackSeen && stackSeen.latest, 'replay-rhythm audit 7: the stack opens at its latest photo');
+    check(!!stackSeen && stackSeen.role === 'button' && stackSeen.name === 'Photos and videos so far' && stackSeen.w >= 44 && stackSeen.h >= 44 && stackSeen.buttons === 0 && stackSeen.open && stackSeen.latest && stackSeen.held, `RC31: the stack is one control of 44 px or more, named "Photos and videos so far", that opens them at the latest while the replay holds (${JSON.stringify(stackSeen)})`);
+    check(!!stackSeen && stackSeen.entries >= 2 && !/[\d\p{L}]/u.test(stackSeen.text) && !/\d/.test(stackSeen.name ?? '0'), `RC45: the stack shows no numeral, in what it draws or in its name (${JSON.stringify(stackSeen)})`);
     // The cut went with replay ceremony RC17-RC20: the gap is crossed by a hop and the small one is a stand, each said.
     check(/^20 min later \| 4 min later$/.test(seen.later), `RR4: each break is said under the clock, "20 min later" and "4 min later" ("${seen.later}")`);
     check(!seen.counted, `RR19: nothing during the path counts ("${seen.counted}")`);
@@ -991,8 +988,8 @@ async function run(h) {
       // RC36, RC35 with reduce motion: the photo in its card does not drift, and the dim does not fade: there or not.
       const stillDrift = stillFrames.filter((f) => f.drift != null).map((f) => f.drift);
       const stillScrims = [...new Set(stillFrames.filter((f) => f.scrim != null).map((f) => Math.round(f.scrim * 1000) / 1000))];
-      check.todo(stillDrift.length >= 5 && stillDrift.every((d) => d === 1), `RC36: with reduce motion a held photo does not drift (${stillDrift.length} frames, ${[...new Set(stillDrift)].join(', ')})`);
-      check.todo(stillScrims.length === 2 && stillScrims.includes(0) && stillScrims.includes(0.2), `RC35: with reduce motion the dim under a card does not fade: there or not (${stillScrims.join(', ')})`);
+      check(stillDrift.length >= 5 && stillDrift.every((d) => d === 1), `RC36: with reduce motion a held photo does not drift (${stillDrift.length} frames, ${[...new Set(stillDrift)].join(', ')})`);
+      check(stillScrims.length === 2 && stillScrims.includes(0) && stillScrims.includes(0.2), `RC35: with reduce motion the dim under a card does not fade: there or not (${stillScrims.join(', ')})`);
       check(still.centres === 1 && still.walkers >= 10 && still.engine >= 10 && still.puck && still.card != null,
         `RC10: with reduce motion on the map stays still and the walker moves over it, on the same engine, to the first card (${JSON.stringify(still)})`);
 
@@ -1062,7 +1059,7 @@ async function run(h) {
       await pictured('rc-card-pin');
       // The first photo's card gone: its picture standing on its place, its entry at the edge.
       await pg.waitForSelector('[data-testid=replay-card]', { state: 'detached', timeout: 30000 }).catch(() => {});
-      await pg.waitForTimeout(500);
+      await pg.waitForSelector('[data-testid=stack-entry]', { timeout: 5000 }).catch(() => {});
       await pictured('rc-picture-stands');
       // The video's card gone, the walker setting off for the note 100 m on: the camera re-framing.
       await pg.waitForSelector('[data-testid=replay-card][aria-label^=Video]', { timeout: 60000 }).catch(() => {});
@@ -1094,18 +1091,18 @@ async function run(h) {
       // What stays behind and a moment on screen (RC28-RC30, RC34-RC36), from the same frames.
       const stays = staysOf(seenFrames, places, ['rr-photo', 'rr-photo-2', 'rr-video']);
       const landed = Object.values(stays.landed);
-      check.todo(landed.length === 3 && landed.every((x) => x.cardW <= 60 && x.cardToPicture != null && x.cardToPicture <= 14 && x.footToPlace <= 6 && x.cardAt[0] < w - 80), `RC28: at ${w} px each card shrinks onto its own place on the map, where its picture then stands, not into a corner (${JSON.stringify(stays.landed)})`);
-      check.todo(stays.entries.map((e) => e.n).join(',') === '1,2,3' && stays.entries[2].keys.join(',') === 'rr-photo,rr-photo-2,rr-video' && stays.grewUp, `RC29: at ${w} px the stack gathers one entry for each moment with a picture or a video, each as its card lands, the newest on top (${JSON.stringify(stays.entries)}, upward ${stays.grewUp})`);
-      check.todo(stays.entries.length === 3 && stays.stackTexts.length === 0 && stays.overlaps.length === 0 && !!stays.control && stays.control.w >= 44, `RC30: at ${w} px the stack shows no number and never meets a card, a bubble or the line under the clock (texts ${JSON.stringify(stays.stackTexts)}, met ${JSON.stringify(stays.overlaps)}, ${JSON.stringify(stays.control)})`);
+      check(landed.length === 3 && landed.every((x) => x.cardW <= 60 && x.cardToPicture != null && x.cardToPicture <= 14 && x.footToPlace <= 6 && x.cardAt[0] < w - 80), `RC28: at ${w} px each card shrinks onto its own place on the map, where its picture then stands, not into a corner (${JSON.stringify(stays.landed)})`);
+      check(stays.entries.map((e) => e.n).join(',') === '1,2,3' && stays.entries[2].keys.join(',') === 'rr-photo,rr-photo-2,rr-video' && stays.grewUp, `RC29: at ${w} px the stack gathers one entry for each moment with a picture or a video, each as its card lands, the newest on top (${JSON.stringify(stays.entries)}, upward ${stays.grewUp})`);
+      check(stays.entries.length === 3 && stays.stackTexts.length === 0 && stays.overlaps.length === 0 && !!stays.control && stays.control.w >= 44, `RC30: at ${w} px the stack shows no number and never meets a card, a bubble or the line under the clock (texts ${JSON.stringify(stays.stackTexts)}, met ${JSON.stringify(stays.overlaps)}, ${JSON.stringify(stays.control)})`);
       // RC34: three pictures stand through the path and on the last view, where the two photos, a few px apart with the
       // walk whole, are one place: the later shows, with a layered edge. The map draws no pin for them until the card.
       const [door, gate, vid] = ['rr-photo', 'rr-photo-2', 'rr-video'].map((k) => (stays.last ?? []).find((p) => p.key === k));
       const pinsOnCard = await pg.evaluate(() => [...document.querySelectorAll('.maplibregl-map [data-ids]')].filter((e) => /rr-photo|rr-video/.test(e.getAttribute('data-ids'))).length);
-      check.todo(stays.pictures === 3 && stays.pinsOfPictured === 0 && !!door && !!gate && !!vid && !door.shown && gate.shown && gate.layered && vid.shown && pinsOnCard >= 1, `RC34: at ${w} px each moment with a picture or a video stands as that picture at its place, the later of two close together showing with a layered edge, and the map's own pins for them wait for the card (${JSON.stringify(stays.last)}; pins of theirs on the path's map ${stays.pinsOfPictured}, on the card's ${pinsOnCard})`);
+      check(stays.pictures === 3 && stays.pinsOfPictured === 0 && !!door && !!gate && !!vid && !door.shown && gate.shown && gate.layered && vid.shown && pinsOnCard >= 1, `RC34: at ${w} px each moment with a picture or a video stands as that picture at its place, the later of two close together showing with a layered edge, and the map's own pins for them wait for the card (${JSON.stringify(stays.last)}; pins of theirs on the path's map ${stays.pinsOfPictured}, on the card's ${pinsOnCard})`);
       // RC35: the map dims by a fifth under a card at rest, and not at all with none up, a break among them.
-      check.todo(stays.scrim.up >= 30 && Math.abs(stays.scrim.upMax - 0.2) < 0.005 && stays.scrim.upMin >= 0.19 && stays.scrim.off >= 100 && stays.scrim.offMax <= 0.001 && stays.scrim.inBreak === 0, `RC35: at ${w} px the map under a card dims by a fifth, and not at all with no card up (${JSON.stringify(stays.scrim)})`);
+      check(stays.scrim.up >= 30 && Math.abs(stays.scrim.upMax - 0.2) < 0.005 && stays.scrim.upMin >= 0.19 && stays.scrim.off >= 100 && stays.scrim.offMax <= 0.001 && stays.scrim.inBreak === 0, `RC35: at ${w} px the map under a card dims by a fifth, and not at all with no card up (${JSON.stringify(stays.scrim)})`);
       // RC36: a held photo drifts closer by 3%, and no more.
-      check.todo(!!stays.drift && stays.drift.min <= 1.004 && stays.drift.max >= 1.02 && stays.drift.max <= 1.0301, `RC36: at ${w} px a photo held in its card drifts 3% closer (${JSON.stringify(stays.drift)})`);
+      check(!!stays.drift && stays.drift.min <= 1.004 && stays.drift.max >= 1.02 && stays.drift.max <= 1.0301, `RC36: at ${w} px a photo held in its card drifts 3% closer (${JSON.stringify(stays.drift)})`);
       // RC23: the path's first frame is the first beat's own view (no cut), the camera only ever closes in from it (no
       // second overview), and it is down at the walking zoom 2.2 s on.
       const op = ends.opened;
@@ -1115,7 +1112,7 @@ async function run(h) {
       check(!!cl && cl.stoodS >= 1.4 && cl.stoodS <= 3.4 && cl.pullS >= 2.6 && cl.pullS <= 3.8 && cl.holdS >= 1.7 && cl.holdS <= 2.8 && cl.toZoom < cl.fromZoom - 0.3 && cl.after >= 10 && cl.movedPx <= 2 && cl.movedZoom <= 0.02, `RC24: at ${w} px the walker stands, the camera pulls back in 3 s to the card's view and holds it 2 s, and the card arrives without the map moving (${endsSaid})`);
       // RC26: the last view shows the date in ink no larger than body text; the clock's figures are gone, and nothing
       // on it is in the accent.
-      check(dated && !!lastView.date && /^[A-Z][a-z]+day, [A-Z][a-z]+ \d{1,2}$/.test(lastView.date.text) && lastView.date.size <= 16 && lastView.date.ink === 'rgb(29, 36, 48)' && !lastView.clock && lastView.bigFigures.length === 0 && lastView.accent.length === 0, `RC26: at ${w} px the last view shows the date, with no figure larger than body text and nothing in the accent (${JSON.stringify(lastView)})`);
+      check(dated && !!lastView.date && /^[A-Z][a-z]+, [A-Z][a-z]+ \d{1,2}$/.test(lastView.date.text) && !lastView.date.cut && lastView.date.size <= 16 && lastView.date.ink === 'rgb(29, 36, 48)' && !lastView.clock && lastView.bigFigures.length === 0 && lastView.accent.length === 0 && lastView.pictures.every((p) => p[1] >= lastView.date.box[3]) && !!lastView.hold && !!lastView.skip && lastView.date.box[0] >= lastView.hold[2] && lastView.date.box[2] <= lastView.skip[0], `RC26: at ${w} px the last view shows the date, between Hold and Skip and clear of what stands on the map, with no figure larger than body text and nothing in the accent (${JSON.stringify(lastView)})`);
 
       // RC25: the place the walk passed without stopping is named beside it, in body ink at full strength, by the words
       // its card uses, on the screen and clear of the date; its mark stands on the place.
@@ -1215,9 +1212,9 @@ async function run(h) {
     check(!!dop && dop.heldS >= 1.2 && dop.heldS <= 2.6 && dop.fromZoom < 14.6 && dop.back === 0 && dop.diveS >= 1.9 && dop.diveS <= 3.0, `RC23: the day's replay shows the whole day for 2 s and dives (${JSON.stringify(dayEnds)})`);
     check(!!dayEnds.closed && dayEnds.closed.pullS >= 2.6 && dayEnds.closed.pullS <= 3.8 && dayEnds.closed.holdS >= 1.7, `RC24: the day's replay pulls back to the whole day in 3 s and holds it 2 s (${JSON.stringify(dayEnds.closed)})`);
     const dayStays = staysOf(dayFrames, {}, []);
-    check.todo(dayStays.entries.length >= 3 && dayStays.pictures >= 3 && dayStays.stackTexts.length === 0 && dayStays.pinsOfPictured === 0, `RC46: the day's replay plays the same way: its pictures stand on the map and gather in the stack (${JSON.stringify({ entries: dayStays.entries, pictures: dayStays.pictures, pins: dayStays.pinsOfPictured })})`);
+    check(dayStays.entries.length >= 3 && dayStays.pictures >= 3 && dayStays.stackTexts.length === 0 && dayStays.pinsOfPictured === 0, `RC46: the day's replay plays the same way: its pictures stand on the map and gather in the stack (${JSON.stringify({ entries: dayStays.entries, pictures: dayStays.pictures, pins: dayStays.pinsOfPictured })})`);
     check(!!dayLast && dayLast.names.length === 0, `RC25: the day's last view names no place passed (${JSON.stringify(dayLast && dayLast.names)})`);
-    check(!!dayLast && !!dayLast.date && /^[A-Z][a-z]+day, [A-Z][a-z]+ \d{1,2}$/.test(dayLast.date.text) && dayLast.date.size <= 16 && !dayLast.clock && dayLast.bigFigures.length === 0 && dayLast.accent.length === 0, `RC26: the day's last view shows the day's date, with no figure larger than body text and nothing in the accent (${JSON.stringify(dayLast)})`);
+    check(!!dayLast && !!dayLast.date && /^[A-Z][a-z]+, [A-Z][a-z]+ \d{1,2}$/.test(dayLast.date.text) && dayLast.date.size <= 16 && !dayLast.clock && dayLast.bigFigures.length === 0 && dayLast.accent.length === 0, `RC26: the day's last view shows the day's date, with no figure larger than body text and nothing in the accent (${JSON.stringify(dayLast)})`);
     // As in the walk's replay, no Continue ever mounts on the web (tend replay 14).
     check((await pg.locator('[data-testid=day-card]').count()) === 1 && dayNote, `RR16: the day's replay reaches its card by itself, its note on the way (${dayNote})`);
     const dayWake = await pg.evaluate(() => window.__wake);
@@ -1403,8 +1400,7 @@ async function run(h) {
       await pg.click('[data-testid=viewer-close]').catch(() => {});
       await pg.click('[data-testid=hold]').catch(() => {});
       const n = full.keys.length;
-      check.todo(n >= 8 && n < 18 && most <= n && full.keys.join(',') === ids.slice(-n).join(',') && full.top >= controls && highest >= controls && full.text === '' && opens === 18,
-        `RC30: at 320 px eighteen photos fill the stack to what the screen holds and no further, the oldest dropping off the bottom, every one still opened by it (${JSON.stringify({ shown: n, most, first: full.keys[0], last: full.keys[n - 1], top: full.top, highest, controls, text: full.text, opens, sixIn: half && half.keys.length })})`);
+      check(n >= 8 && n < 18 && most <= n && full.keys.join(',') === ids.slice(-n).join(',') && full.top >= controls && highest >= controls && !/[\d\p{L}]/u.test(full.text) && opens === 18, `RC30: at 320 px eighteen photos fill the stack to what the screen holds and no further, the oldest dropping off the bottom, every one still opened by it (${JSON.stringify({ shown: n, most, first: full.keys[0], last: full.keys[n - 1], top: full.top, highest, controls, text: full.text, opens, sixIn: half && half.keys.length })})`);
       await pg.click('[data-testid=skip]').catch(() => {});
       await pg.waitForSelector('[data-testid=to-name]', { timeout: 30000 }).catch(() => {});
     }

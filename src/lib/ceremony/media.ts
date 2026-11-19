@@ -2,6 +2,12 @@
 import { REPLAY_RHYTHM as R } from '../motionTokens';
 
 /**
+ * How long a card waits for an edited video's size before playing it as it is: once the size is known the video is
+ * shown through another view, and a video already playing would be cut off by the change.
+ */
+export const SIZE_WAIT_MS = R.mediaSizeWait;
+
+/**
  * Whether the stage should wait for a memo or video (replay-rhythm audits 20,
  * 23): the plan gives a medium a slot as long as its kept length, but the
  * player may start late (loading, sound refused then retried muted, a tap

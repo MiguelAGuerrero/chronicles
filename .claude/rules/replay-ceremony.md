@@ -13,8 +13,8 @@ paths:
 
 The replay's rework (`specs/replay-ceremony`, RC1-RC48, decision 0206), split from `replay.md` (the five beats, the story,
 the rhythm's timings, the card): what drives a telling frame by frame, where its camera is, how a break is crossed, and
-how a telling opens and closes on the whole of what it tells. Built on the branch and shown to the owner before any of
-it goes live.
+how a telling opens and closes on the whole of what it tells; what stays behind and a moment on screen are in
+`replay-stage.md`. Built on the branch and shown to the owner before any of it goes live.
 
 ## The camera (replay ceremony RC11-RC16; decision 0206)
 
@@ -54,7 +54,7 @@ it goes live.
 ## Breaks (replay ceremony RC17-RC22; decision 0206)
 
 - **A break is a hop or a stand, never a dim** (`rhythm.ts`, the `break` segment: `hop`, `tSwitch`). `Frame.dim` is
-  gone and the stage has no veil; RC17's test scans for the word. A hop takes `breakFar` (4.2 s) from `breakFarM`
+  gone; RC17's test scans for the word (the scrim under a card is `Frame.scrim`, `replay-stage.md`). A hop takes `breakFar` (4.2 s) from `breakFarM`
   (250 m) up, less when nearer, never under `breakNear` of it. Ends under `standPx` (26 px, about 46 m) apart at the
   walking zoom are a stand of `stand` ms: the line and the clock's change, nothing else.
 - **A hop's parts are shares of its time** (`hopPull`, `hopDraw`, `hopDrawn`, `hopLand`, `hopClose`, `hopSwitch`): the
@@ -89,7 +89,8 @@ it goes live.
   and the card's view are the map's own `fitBounds`; the telling's first and last frames are `fitCamera` of the same
   bounds in the same room, so the three are one view each and nothing jumps. **The screens say the whole and its room,
   never a view** (`CeremonyOptions.whole`: bounds, `open` and `close` edges, `maxZoom`): `open` is `FIT_PADDING`, the
-  room the map's fit uses when given none; `close` is the card's own `sheetPad`. Change a fit's padding in one place
+  room the map's fit uses when given none; `close` is the card's own `sheetPad`, its top under the top row by a
+  standing picture's height (`layout.ts` `WHOLE_TOP`), so no control sits on the walk and the card's map is that same view. Change a fit's padding in one place
   and the other jumps: the `replay` journey reads the cut (`bookendsOf`: `cutPx`, `movedPx`).
 - **The opening** is the `intro` segment: the dive, `dive` ms from the whole to the walker's start (a `Move` with zooms,
   as a hop's: the start goes straight to the focus on the screen), the walker shown from `diveMark`, the clock in from
@@ -99,7 +100,8 @@ it goes live.
   held `closeHold`). The clock through both is where the walker stopped (never the walk's end time, which can be long
   after the last fix), fades over `closeClock` and is not drawn while its fade is 0 (`Stage` keeps its room): the last
   view shows no figure larger than body text (RC26). It keeps its time under the fade: `msAtClock` and `reanchor`
-  need a clock in every frame. The date (`Frame.date`, worded by the stage's `dateOf`) and the passed places
+  need a clock in every frame. The date (`Frame.date`, worded by the stage's `dateOf` for the room between Hold and
+  Skip, where the clock stood: one line, a shorter form on a narrow phone) and the passed places
   (`passed` overlays: each beside its place, or the card's one line for more than two, beside none) come in from
   `closeSay`. A day's last view names none (`namePassed` is the walk's screen's alone).
 - **The card's sheet is laid out unseen before the path ends** (`cardBody(true)`, `cardLines(true)`: no test id, its
@@ -123,13 +125,13 @@ it goes live.
   screen state from a frame: `render:replay` and `render:day` (perfCount) are held to two a second on a stretch by the
   `replay` journey (RC2).
 - **The stage reads the frame from `ctx.live`, never from a prop** (RC7). `Stage` renders when the frame's shape changes
-  (an overlay arrives or leaves, the pile holds something else, the telling is rebuilt) and takes the frame that shape
+  (an overlay arrives or leaves, the stack holds or shows something else, the telling is rebuilt) and takes the frame that shape
   came with from the store's own hand-over (`useSyncExternalStore` over `live.staged`). **Never call `live.frame()` in a
   render**: the React Compiler (decision 0207) keeps what a render read from the same inputs, and the stage stayed empty
   (no clock, no card) until this was found on the merge; a read inside a callback is fine. A leaf reads the one thing it shows with `useLive(live,
   select)` (a primitive: a flag, a key, a minute) and writes what moves every frame on its own element with
   `useLiveStyle(live, pose)` (`layout.ts` holds the poses, pure: `cardPose`, `bubblePose`, `bubbleRoom`,
-  `whisperPose`). An overlay's `o` prop is the overlay **as it arrived**: read it only for what never moves (its
+  `whisperPose`, `picturePose`, `stackPose`). An overlay's `o` prop is the overlay **as it arrived**: read it only for what never moves (its
   capture, its pieces); `grow`, `tuck`, `enter`, `exit`, `progress`, `playing` and the camera are read from the live
   frame (`overlayOf`). A media wait's `planMs` is a function for the same reason.
 - **Trap: react-native-web's `Animated` renders.** An `Animated.Value` changed from JavaScript re-renders its animated

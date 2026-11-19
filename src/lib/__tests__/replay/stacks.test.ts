@@ -11,7 +11,7 @@ import { at, walkAlong } from '../foxPoint';
 import { SCREEN } from './screen';
 
 // Moment stacks MS17 (decision 0123): a stacked moment is one beat in the replay: one grid of its photos and videos,
-// its memos and notes as bubbles, one pile card. Test first: the new fields are reached through casts.
+// its memos and notes as bubbles, one stack entry. Test first: the new fields are reached through casts.
 
 function storyOf(fixes: TracePoint[], captures: Faced[], passed: WalkInput['passed'] = []): WalkInput {
   return {
@@ -33,7 +33,7 @@ const stack: Moment = {
 const lone: Moment = { id: 'l', walk_id: 'w1', t: t0 + 400_000, ...P(at(3, 0)), segment_id: null, pieces: [piece('l', 'l', t0 + 400_000, 'photo')] };
 type Card = { capture: Faced; t0: number; t1: number; pieces?: Faced[] };
 
-test('MS17, RY4: a stacked moment is one stop with one grid of its photos, held after its swipe-ins; memos one after another beside it; one pile card per moment', () => {
+test('MS17, RY4: a stacked moment is one stop with one grid of its photos, held after its swipe-ins; memos one after another beside it; one stack entry per moment', () => {
   const plan = rhythmPlan(walkStory(storyOf(trace, [faced(stack), faced(lone)])), { reduceMotion: false, screen: SCREEN });
   const cards = plan.cards as Card[];
   assert.equal(cards.length, 2, 'one card per moment');

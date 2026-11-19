@@ -1,6 +1,6 @@
 /**
  * Where the stage puts things (RR9-RR15): shared by the overlay views, so a
- * card tucks into the pile where the pile is drawn. The room itself (the
+ * card shrinks onto its place where its picture is then drawn. The room itself (the
  * screen's size, the top row, where a card rests) and where a camera puts a
  * place on screen are core (`lib/ceremony/room`, `lib/ceremony/camera`): a
  * ceremony's camera settles a pin under the card with the same arithmetic
@@ -9,12 +9,12 @@
 import { project, type Camera } from '../../lib/ceremony/camera';
 import { easeInOut, easeOut } from '../../lib/ceremony/ease';
 import type { StageLive } from '../../lib/ceremony/live';
-import { restCenter, STAGE_BOTTOM, STAGE_TOP, type StageRoom } from '../../lib/ceremony/room';
-import type { BubbleOverlay, CardOverlay, PassedOverlay, WhisperOverlay } from '../../lib/ceremony/types';
+import { PICTURE, restCenter, STACK, STAGE_BOTTOM, STAGE_TOP, type StageRoom } from '../../lib/ceremony/room';
+import type { BubbleOverlay, CardOverlay, PassedOverlay, PictureOverlay, StackEntry, WhisperOverlay } from '../../lib/ceremony/types';
 import type { Faced } from '../../lib/moment';
 
 export { project };
-export { cardSize, cardWidth, restCenter, STACK_TOP, STAGE_BOTTOM, STAGE_TOP } from '../../lib/ceremony/room';
+export { cardSize, cardWidth, PICTURE, pictureHeight, restCenter, STACK, STACK_TOP, STAGE_BOTTOM, STAGE_TOP } from '../../lib/ceremony/room';
 
 export interface StageCtx extends StageRoom {
   /**
@@ -33,10 +33,6 @@ export interface StageCtx extends StageRoom {
   wait(key: string, on: boolean): void;
 }
 
-export const PILE = { w: 64, h: 80, thumb: 56 } as const;
-
-/** Above the map's credits button and level with the bubbles, clear of the scale bar (`lib/ceremony/room`). */
-export const pileCenter = (c: StageCtx): [number, number] => [c.width - c.insets.right - 14 - PILE.w / 2, c.height - c.insets.bottom - STAGE_BOTTOM - PILE.h / 2];
 /**
  * The room each side of the top column keeps for Hold, and for Skip with Next under it (replay pace RY12): the edge, a
  * worded button and a gap. The line under the clock wraps inside what is left (`replay-pace ui 3`).
@@ -53,18 +49,28 @@ export const cornerHeight = (c: StageCtx) => Math.max(0, c.height - c.insets.top
 /** Where a frame's camera holds the map (`lib/ceremony/camera`): the stage puts a place on screen as the map does. */
 export type StageCamera = Camera;
 
-/** A small, fixed tilt per capture, so the pile looks dropped, not stacked. */
-export function tiltOf(id: string): number {
+/** A small, fixed lean per moment, so the stack looks gathered by hand, not ruled. */
+export function leanOf(id: string): number {
   let h = 0;
   for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0;
-  return [-7, 5, -3, 8, -5][Math.abs(h) % 5];
+  return [-3, 2, -2, 3, -1][Math.abs(h) % 5];
 }
 
 export const timeOf = (t: number) => new Date(t).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
-/** The day walked, as the last view says it (replay ceremony RC26): "Saturday, October 24". */
-export const dateOf = (t: number) => new Date(t).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
-/** Where the last view's date stands under the top row (Hold and Skip: 12 in, 48 tall, 8 to spare), where the first beat's headline stood. */
-export const DATE_TOP = 12 + 48 + 8;
+/**
+ * The day walked, as the last view says it (replay ceremony RC26): "Saturday, October 24" where the row has `room` px
+ * for it, "Sat, October 24" or "Sat, Oct 24" where it has less, so it is always one line between Hold and Skip.
+ */
+export const dateOf = (t: number, room = Infinity) =>
+  new Date(t).toLocaleDateString(undefined, { weekday: room >= 250 ? 'long' : 'short', month: room >= 190 ? 'long' : 'short', day: 'numeric' });
+/** Where the last view's date stands: in the top row, where the clock stood (12 in), between Hold and Skip. */
+export const DATE_TOP = 12;
+/**
+ * The room the last view keeps at the top: under the top row (12 in, 48 tall, 8 to spare) and a picture standing on
+ * the highest place. The whole walk is framed below it, and so is the card's map, which is the same view (replay
+ * ceremony RC24, RC26): neither a control nor the date ever sits on the walk or on what stands on it.
+ */
+export const WHOLE_TOP = 12 + 48 + 8 + PICTURE.lift + PICTURE.size / 2;
 
 /**
  * What a leaf of the stage writes on its own element every frame (replay ceremony RC7): only what moves. Lengths in
@@ -84,24 +90,31 @@ export interface LiveStyle {
 
 const lerp = (a: number, b: number, u: number) => a + (b - a) * u;
 
+/** Where a moment's picture stands on a screen: its frame's middle, `PICTURE.lift` over its place (replay ceremony RC28, RC34). */
+const standsAt = (c: StageCtx, camera: StageCamera, at: CardOverlay['from']): [number, number] | null => {
+  const p = at ? project(c, camera, at) : null;
+  return p ? [p[0], p[1] - PICTURE.lift] : null;
+};
+
 /**
- * Where a card of `w` by `h` stands in a frame (RR11, RR12, RR18): it grows from its pin, where the frame's camera puts
- * the pin (audit 10), holds, and tucks into the pile; with reduce motion it fades in place.
+ * Where a card of `w` by `h` stands in a frame (RR11, RR12, RR18; replay ceremony RC28): it grows from its pin, where
+ * the frame's camera puts the pin (audit 10), holds, and shrinks back onto its own place, to the size of the picture
+ * that then stands there; one with no place fades where it rests. With reduce motion it fades in place.
  */
 export function cardPose(o: CardOverlay, c: StageCtx, camera: StageCamera, w: number, h: number): LiveStyle {
   const rest = restCenter(c, h);
   let at = rest;
   let scale = 1;
-  let tilt = 0;
   let opacity = 1;
   if (o.fade) {
     opacity = o.tuck > 0 ? 1 - o.tuck : o.grow;
   } else if (o.tuck > 0) {
-    const pile = pileCenter(c);
+    const to = standsAt(c, camera, o.from);
     const b = easeInOut(o.tuck);
-    at = [lerp(rest[0], pile[0], b), lerp(rest[1], pile[1], b)];
-    scale = lerp(1, PILE.thumb / w, b);
-    tilt = lerp(0, tiltOf(o.capture.id), b);
+    if (to) {
+      at = [lerp(rest[0], to[0], b), lerp(rest[1], to[1], b)];
+      scale = lerp(1, PICTURE.size / w, b);
+    } else opacity = 1 - o.tuck;
   } else {
     const pin = (o.from ? project(c, camera, o.from) : null) ?? rest;
     const a = easeOut(o.grow);
@@ -109,7 +122,26 @@ export function cardPose(o: CardOverlay, c: StageCtx, camera: StageCamera, w: nu
     scale = lerp(0.08, 1, a);
     opacity = Math.min(1, o.grow * 3);
   }
-  return { left: at[0] - w / 2, top: at[1] - h / 2, opacity, rotate: tilt, scale };
+  return { left: at[0] - w / 2, top: at[1] - h / 2, opacity, rotate: 0, scale };
+}
+
+/**
+ * Where a picture stands in a frame (RC34): its frame over its place under the frame's camera, shown unless a later
+ * one stands where it would. With no camera to place it by, it is not drawn.
+ */
+export function picturePose(o: PictureOverlay, c: StageCtx, camera: StageCamera): LiveStyle {
+  const at = standsAt(c, camera, o.at);
+  if (!at) return { left: 0, top: 0, opacity: 0 };
+  return { left: at[0] - PICTURE.size / 2, top: at[1] - PICTURE.size / 2, opacity: o.shown ? 1 : 0 };
+}
+
+/**
+ * Where a stack's entry stands in its control (RC29, RC30, RC32): `base` is the lowest place's top. Each stands
+ * `STACK.pitch` over the one before; one landing is still above its place by `rise`, one under a newer one gives, and
+ * the oldest sinks away under the lowest place as it drops off.
+ */
+export function stackPose(e: StackEntry, base: number): LiveStyle {
+  return { top: base - e.slot * STACK.pitch - e.rise + e.give + (e.slot < 0 ? -e.slot * 10 : 0), opacity: e.opacity, rotate: leanOf(e.key) };
 }
 
 /** A bubble's room in the corner as it comes and goes: none of it eased with reduce motion (RR18, audit 12). */
@@ -131,13 +163,12 @@ export const passedWidth = (c: Pick<StageCtx, 'width'>) => Math.min(PASSED.width
 /**
  * Where a passed place's name stands on the last view (replay ceremony RC25): centred under its place, or over it
  * (`above`: the more northern of two, so two close together never share their room), kept on the screen. With no place
- * (the one line for more than two) or no camera (reduce motion: the map is not the frame's), under the date, the
- * `index`th down.
+ * (the one line for more than two) or nothing to place it by, under the top row, the `index`th down.
  */
 export function passedPose(o: PassedOverlay, c: StageCtx, camera: StageCamera, above: boolean, index: number): LiveStyle {
   const p = o.at ? project(c, camera, o.at) : null;
   const width = passedWidth(c);
-  if (!p) return { left: (c.width - width) / 2, top: c.insets.top + DATE_TOP + 40 + index * (PASSED.height + 4), opacity: o.opacity };
+  if (!p) return { left: (c.width - width) / 2, top: c.insets.top + 12 + 48 + 8 + index * (PASSED.height + 4), opacity: o.opacity };
   return {
     left: Math.max(8, Math.min(c.width - width - 8, p[0] - width / 2)),
     top: above ? p[1] - PASSED.gap - PASSED.height : p[1] + PASSED.gap,

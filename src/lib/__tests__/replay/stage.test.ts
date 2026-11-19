@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { bubblePose, bubbleRoom, cardPose, cardWidth, heldShown, PILE, pileCenter, project, restCenter, STACK_TOP, STAGE_BOTTOM, STAGE_SIDE, STAGE_TOP, tiltOf, WHISPER_WIDTH, whisperPose, type LiveStyle, type StageCtx } from '../../../components/ceremony/layout';
+import { bubblePose, bubbleRoom, cardPose, cardWidth, heldShown, PICTURE, project, restCenter, STACK_TOP, STAGE_BOTTOM, STAGE_SIDE, STAGE_TOP, WHISPER_WIDTH, whisperPose, type LiveStyle, type StageCtx } from '../../../components/ceremony/layout';
 import type { BubbleOverlay, CardOverlay, WhisperOverlay } from '../../ceremony/types';
 import { createStageLive } from '../../ceremony/live';
 
@@ -86,7 +86,7 @@ const O: [number, number] = [-71.4, 41.812];
 const eastOf = (m: number): [number, number] => [O[0] + m / (111_320 * Math.cos((O[1] * Math.PI) / 180)), O[1]];
 const card = (o: Partial<CardOverlay>): CardOverlay => ({ kind: 'card', key: 'c', capture: { id: 'c' } as CardOverlay['capture'], from: eastOf(60), grow: 1, tuck: 0, playing: false, progress: 0, fade: false, ...o });
 
-test('RC7: a card\'s place, size and fade are its frame\'s: from its pin, to rest, into the pile (RR11, audit 10)', () => {
+test('RC7: a card\'s place, size and fade are its frame\'s: from its pin, to rest, back onto its place (RR11, audit 10; RC28)', () => {
   const c = stage(390, 844);
   const w = cardWidth(c);
   const h = w * 1.15 + 41;
@@ -103,8 +103,12 @@ test('RC7: a card\'s place, size and fade are its frame\'s: from its pin, to res
   assert.deepEqual(at(held), rest);
   assert.deepEqual({ scale: held.scale, opacity: held.opacity, rotate: held.rotate }, { scale: 1, opacity: 1, rotate: 0 });
   const tucked = cardPose(card({ tuck: 1 }), c, camera, w, h);
-  assert.deepEqual(at(tucked).map(Math.round), pileCenter(c).map(Math.round), 'it ends in the pile');
-  assert.ok(Math.abs(tucked.scale! - PILE.thumb / w) < 1e-9 && tucked.rotate === tiltOf('c'));
+  // It ends over its own place, the size of the picture that then stands there, upright (replay ceremony RC28).
+  assert.deepEqual(at(tucked).map(Math.round), [pin[0], pin[1] - PICTURE.lift].map(Math.round), 'it ends on its place');
+  assert.ok(Math.abs(tucked.scale! - PICTURE.size / w) < 1e-9 && tucked.rotate === 0);
+  // One with no place fades where it rests.
+  const placeless = cardPose(card({ tuck: 0.5, from: null }), c, camera, w, h);
+  assert.deepEqual([at(placeless), placeless.opacity, placeless.scale], [rest, 0.5, 1]);
   // With reduce motion it stays where it rests and only fades (RR18); with no camera (the map not held) it grows in place.
   const fading = cardPose(card({ fade: true, grow: 0.5 }), c, camera, w, h);
   assert.deepEqual([at(fading), fading.opacity, fading.scale], [rest, 0.5, 1]);

@@ -14,8 +14,8 @@ export interface StageLive {
   frame(): Frame | null;
   /**
    * The stage's shape: which overlays are on it, by kind and key, and which telling they come from. It changes only
-   * when an overlay arrives or leaves, the pile holds something else, or the telling is rebuilt (a moment deleted, a
-   * note edited: the same keys may hold other captures).
+   * when an overlay arrives or leaves, the stack holds or shows something else, or the telling is rebuilt (a moment
+   * deleted, a note edited: the same keys may hold other captures).
    */
   shape(): string;
   /**
@@ -62,14 +62,15 @@ export function createStageLive(): StageLive {
 }
 
 /**
- * A frame's overlays by kind and key, in the frame's order, after the telling's turn. The pile says what it holds too
- * (how many, and its newest): it is drawn by render, a few times a replay.
+ * A frame's overlays by kind and key, in the frame's order, after the telling's turn. The stack says what it holds
+ * and which entries the screen shows too (its newest, and the lowest one still on screen): its entries are drawn by
+ * render, once for each that arrives or drops off.
  */
 export function shapeOf(f: Frame, turn = 0): string {
   let s = String(turn);
   for (const o of f.overlays) {
     s += `|${o.kind}:${o.key}`;
-    if (o.kind === 'pile') s += `#${o.captures.length}:${o.captures[o.captures.length - 1]?.id ?? ''}`;
+    if (o.kind === 'stack') s += `#${o.captures.length}:${o.captures[o.captures.length - 1]?.id ?? ''}:${o.entries[0]?.key ?? ''}:${o.entries.length}`;
   }
   return s;
 }

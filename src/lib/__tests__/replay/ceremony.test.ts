@@ -328,7 +328,7 @@ test('RR10: a memo holds the walker for its length, in a bubble', () => {
   assert.ok(!rhythmFrame(p, stop.t0 + 3000).overlays.some((o) => o.kind === 'card'));
 });
 
-test('RR11, RY1: a photo grows, holds, tucks, and stays in the pile', () => {
+test('RR11, RY1: a photo grows, holds, shrinks away, and stays in the stack (replay ceremony RC29)', () => {
   const { story, photo } = sampleWalk();
   const p = plan(story);
   const stop = p.segs.find((s) => s.k === 'stop')!;
@@ -343,9 +343,10 @@ test('RR11, RY1: a photo grows, holds, tucks, and stays in the pile', () => {
   const k = card(stop.t1 - R.tuck / 2);
   assert.ok(k && k.kind === 'card' && k.tuck > 0);
   assert.ok(!card(stop.t1 + 10));
-  const pile = rhythmFrame(p, stop.t1 + 10).overlays.find((o) => o.kind === 'pile');
-  assert.ok(pile && pile.kind === 'pile' && pile.captures[0].id === photo.id);
-  assert.ok(!rhythmFrame(p, stop.t0 + 10).overlays.some((o) => o.kind === 'pile'), 'no pile before anything is in it');
+  // The pile it tucked into is the stack now (RC29, RC31): its entry lands a beat after the card has reached its place.
+  const stack = rhythmFrame(p, stop.t1 + R.stackLand + 10).overlays.find((o) => o.kind === 'stack');
+  assert.ok(stack && stack.kind === 'stack' && stack.captures[0].id === photo.id && stack.entries[0].key === photo.id);
+  assert.ok(!rhythmFrame(p, stop.t0 + 10).overlays.some((o) => o.kind === 'stack'), 'no stack before anything is in it');
 });
 
 test('RR12, RY6: a video holds for its length, a moment after it, plus the grow and the tuck', () => {
@@ -357,7 +358,7 @@ test('RR12, RY6: a video holds for its length, a moment after it, plus the grow 
   assert.ok(mid && mid.kind === 'card' && mid.playing && Math.abs(mid.progress - 0.5) < 0.01);
 });
 
-test('RR14: moments taken together play in time order at one stop; a pin appears as the walker arrives', () => {
+test('RR14: moments taken together play in time order at one stop; a pin appears as the walker arrives, a photo\'s own at the card (RC34)', () => {
   const ab = line(A, B, 0);
   const photo = cap('photo', endT(ab) + 1000, B);
   const note = cap('text', endT(ab) + 30_000, B, 'Plums');
@@ -367,7 +368,12 @@ test('RR14: moments taken together play in time order at one stop; a pin appears
   assert.ok(stops[0].k === 'stop');
   assert.deepEqual(stops[0].slots.map((s) => s.capture.id), [photo.id, note.id]);
   assert.deepEqual(rhythmFrame(p, stops[0].t0 - 1).pins, []);
-  assert.deepEqual(rhythmFrame(p, stops[0].t0).pins, [photo.id, note.id]);
+  // The note's pin comes as the walker arrives; the photo stands as its picture, and its pin waits for the card
+  // (replay ceremony RC34).
+  assert.deepEqual(rhythmFrame(p, stops[0].t0).pins, [note.id]);
+  const after = rhythmFrame(p, stops[0].t1 + 1);
+  assert.ok(after.overlays.some((o) => o.kind === 'picture' && o.key === photo.id) && !after.pins.includes(photo.id));
+  assert.deepEqual([...rhythmFrame(p, p.total).pins].sort(), [photo.id, note.id].sort());
 });
 
 test('RR15: a passed place whispers as the walker reaches it, without slowing it', () => {
@@ -434,9 +440,9 @@ test('RR16: a day glides between its entries, says how much later, and plays eac
   const mid = rhythmFrame(p, (ls[0].t0 + ls[0].t1) / 2);
   assert.equal(mid.line, '2 h later');
   assert.ok(ls[1].move, 'then the walk\'s own path');
-  // One pile and one clock for the whole day.
+  // One stack and one clock for the whole day.
   const end = rhythmFrame(p, p.total - 1);
-  assert.ok(end.overlays.some((o) => o.kind === 'pile' && o.captures[0].id === morning.id));
+  assert.ok(end.overlays.some((o) => o.kind === 'stack' && o.captures[0].id === morning.id));
   // A placeless moment is shown where the map is.
   const nowhere = cap('text', 12 * 60 * MIN, null, 'Somewhere', null);
   const p2 = plan(dayStory({ ...day, entries: [...day.entries, { kind: 'moment', t: nowhere.t, capture: nowhere }] }, new Map([['w', walk]])));
@@ -474,7 +480,7 @@ test('RR21: the registry gives the rhythm by default, and any ceremony honouring
           const c = steps[Math.floor(ms / 1000)];
           return {
             done: ms >= steps.length * 1000, walker: null, camera: { center: null, zoom: null }, drawn: {}, pins: c ? [c.id] : [],
-            hops: [], clock: c?.t ?? null, clockFade: 1, line: null, lineOpacity: 0, date: null, dateOpacity: 0,
+            hops: [], clock: c?.t ?? null, clockFade: 1, line: null, lineOpacity: 0, date: null, dateOpacity: 0, still: null, scrim: 0,
             overlays: c ? [{ kind: 'card', key: c.id, capture: c, from: null, grow: 1, tuck: 0, playing: false, progress: 0, fade: true }] : [],
           };
         },
@@ -570,7 +576,9 @@ test('replay-rhythm audit 10: the frame carries the camera, the pins by id and a
   assert.ok(f.camera.center && f.camera.zoom != null, 'the frame says where the camera is');
   const walkerAt = project(SCREEN, f.camera, f.walker!)!;
   assert.ok(walkerAt[0] > 0 && walkerAt[0] < SCREEN.width && walkerAt[1] > 0 && walkerAt[1] < SCREEN.height, `the walker is on the screen (${walkerAt.map(Math.round)})`);
-  assert.deepEqual(f.pins, [photo.id]);
+  // The photo's own pin waits for the card: it will stand as its picture (replay ceremony RC34).
+  assert.deepEqual(f.pins, []);
+  assert.ok(rhythmFrame(p, p.total).pins.includes(photo.id));
   const card = f.overlays.find((o) => o.kind === 'card');
   assert.ok(card && card.kind === 'card' && card.from && distanceM(card.from, B) < 1, 'the card grows from its pin');
 });

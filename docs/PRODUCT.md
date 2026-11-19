@@ -527,9 +527,12 @@ recording, and a recording bar brings a minimized walk back.
   back to the whole walk above where the card will sit, and that last view shows the date and names each place
   passed without stopping before the card comes (a day's replay shows the whole day first, and names none). A clock
   rolls through the time of day. Notes and memos stack as speech bubbles in a
-  corner; photos and videos grow from their pin into a card and tuck into a
-  pile, which opens them full screen; places passed without stopping whisper
-  by. Each moment takes its time (decision 0203): a photo is fully shown about four and a half seconds
+  corner; photos and videos grow from their place into a card, the map dimming a little under it, and shrink
+  back onto that place, where the picture then stands (the later of two close together over the earlier). Each
+  such moment also joins a stack at the right edge, which grows upward, drops its oldest when it would reach the
+  controls, never shows a number, and opens them all full screen. A moment of several pieces arrives whole: its
+  pictures as a grid, then its videos in turn in the same card, its memos after. Places passed without stopping
+  whisper by. Each moment takes its time (decision 0203): a photo is fully shown about four and a half seconds
   (several at one stop tighten, the last whole again), a moment's grid five, a note long enough to read, and a second
   of quiet follows a memo or video. Nothing shrinks to fit a length: a walk with many moments is simply longer.
   Nothing waits for a tap: a tap (or Hold) holds it, Skip goes to the card, and **Next**, under Skip, goes to the

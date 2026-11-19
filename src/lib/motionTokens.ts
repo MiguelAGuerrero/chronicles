@@ -201,9 +201,35 @@ export const REPLAY_RHYTHM = {
   stopFloor: 0.55,
   /** A stack's grid stays this long after its last piece has swiped in (RY4). */
   gridHold: 5000,
-  /** A card growing from its pin, and tucking into the pile (RY1). */
+  /** A card growing from its pin, and shrinking back onto its place, where its picture then stands (RY1; replay ceremony RC28). */
   grow: 550,
   tuck: 450,
+  /**
+   * A moment on screen (replay ceremony RC35-RC37). The map under a card dims by `scrim`, down over `scrimIn` as the
+   * card comes and up as it shrinks away; a photo held in its card drifts `drift` closer over its time up (0 turns
+   * either off). A moment's videos play in turn in its card, each coming in over `turn` after what was up before.
+   */
+  scrim: 0.2,
+  scrimIn: 300,
+  drift: 0.03,
+  turn: 300,
+  /**
+   * The stack at the edge (RC29-RC32; `lib/ceremony/stack.ts`). An entry lands `stackLand` after its card has reached
+   * its place: it fades in over `stackIn`, comes down `stackDrop` px onto the stack on a spring (`stackSpring`, a ms),
+   * passing its place by `stackOver` of the way; the ones under it give `stackGive` px, from `stackGiveIn` after it
+   * lands, for `stackGiveFor`. One past the screen's bound drops the oldest off the bottom over `stackPop`. Once
+   * `stackRest` has passed since the last landing nothing in it moves.
+   */
+  stackLand: 60,
+  stackIn: 160,
+  stackDrop: 16,
+  stackSpring: 0.016,
+  stackOver: 0.015,
+  stackGive: 3,
+  stackGiveIn: 120,
+  stackGiveFor: 320,
+  stackPop: 320,
+  stackRest: 1500,
   /** A stack's grid (moment stacks MS17): each piece swipes in this long after the one before, and one past nine scrolls the grid this long. */
   gridStagger: 180,
   gridScroll: 2400,
@@ -213,6 +239,8 @@ export const REPLAY_RHYTHM = {
   mediaMin: 1000,
   /** Waiting for a medium (audit 20): one that never starts, how far behind counts as late, and the most for one that plays (the camera's cap). */
   mediaStartWait: 2000,
+  /** An edited video is given this long to say its size before it is played as it is (its view changes when the size comes). */
+  mediaSizeWait: 700,
   mediaLag: 400,
   mediaMaxWait: 30_000,
   /** Bubbles: how long one stays, how many at once, coming in and going. */

@@ -103,7 +103,7 @@ export interface Story {
 }
 
 /** The overlay kinds a stage can draw; each has a view (`components/ceremony/overlays.tsx`). */
-export const OVERLAY_KINDS = ['bubble', 'card', 'pile', 'whisper', 'passed'] as const;
+export const OVERLAY_KINDS = ['picture', 'bubble', 'card', 'stack', 'whisper', 'passed'] as const;
 export type OverlayKind = (typeof OVERLAY_KINDS)[number];
 
 /** A note or memo in the corner: `enter` and `exit` run 0 to 1. */
@@ -118,7 +118,10 @@ export interface BubbleOverlay {
   progress: number;
 }
 
-/** A photo or video card: grows from the pin (`grow` 0 to 1), holds, and tucks into the pile (`tuck` 0 to 1). */
+/**
+ * A photo or video card: grows from the pin (`grow` 0 to 1), holds, and shrinks back onto its place (`tuck` 0 to 1),
+ * where its picture then stands (replay ceremony RC28).
+ */
 export interface CardOverlay {
   kind: 'card';
   key: string;
@@ -131,17 +134,58 @@ export interface CardOverlay {
   progress: number;
   /** Reduce motion: fade in place instead of moving. */
   fade: boolean;
-  /** A stack's grid (MS17): its photos and videos, how far each has swiped in (0 to 1), and how far it has scrolled. */
+  /** A stack's grid (MS17): its photos, how far each has swiped in (0 to 1), and how far it has scrolled. */
   pieces?: Faced[];
   shown?: number[];
   scroll?: number;
+  /** How much closer a photo held in its card has drifted, 0 to a few hundredths (RC36); none with reduce motion. */
+  drift?: number;
+  /**
+   * A moment's videos, played in turn in its card after its pictures (RC37). `turn` says what the card shows: 0 its
+   * pictures, k its k-th video, coming in over `turnIn` (0 to 1); `playing` and `progress` are then that video's.
+   */
+  videos?: Faced[];
+  turn?: number;
+  turnIn?: number;
 }
 
-export interface PileOverlay {
-  kind: 'pile';
-  key: 'pile';
-  /** Oldest first. */
+/** One moment in the stack: its picture, how it stands, and whether it is a moment of several pieces or a video. */
+export interface StackEntry {
+  key: string;
+  capture: Faced;
+  several: boolean;
+  video: boolean;
+  /** How many places up from the lowest it stands (under 0 as it drops off the bottom), the px above its place it has still to come down, and the px it gives under a newer one. */
+  slot: number;
+  rise: number;
+  give: number;
+  opacity: number;
+}
+
+/**
+ * The stack at the edge (replay ceremony RC29-RC33): every moment so far that had a picture or a video, oldest first
+ * (what its one control opens: a dropped entry is still among them), and the entries the screen holds, lowest first.
+ * It never says how many.
+ */
+export interface StackOverlay {
+  kind: 'stack';
+  key: 'stack';
   captures: Faced[];
+  entries: StackEntry[];
+}
+
+/**
+ * A moment's picture standing at its place on the map (RC28, RC34), drawn by the stage, not by the map's pins: `shown`
+ * unless a later picture stands where it would, `layered` when it is a moment of several pieces or covers an earlier one.
+ */
+export interface PictureOverlay {
+  kind: 'picture';
+  key: string;
+  capture: Faced;
+  at: LngLat;
+  shown: boolean;
+  layered: boolean;
+  video: boolean;
 }
 
 export interface WhisperOverlay {
@@ -164,7 +208,7 @@ export interface PassedOverlay {
   opacity: number;
 }
 
-export type Overlay = BubbleOverlay | CardOverlay | PileOverlay | WhisperOverlay | PassedOverlay;
+export type Overlay = PictureOverlay | BubbleOverlay | CardOverlay | StackOverlay | WhisperOverlay | PassedOverlay;
 
 /**
  * A break crossed (replay ceremony RC18, RC21): the straight way from where a trace stops to where it picks up, drawn
@@ -191,9 +235,18 @@ export interface Frame {
   walker: LngLat | null;
   /** Where the camera holds the map, and at what zoom; a null centre leaves the map where it is (no following). */
   camera: { center: LngLat | null; zoom: number | null };
+  /**
+   * Where the map stands when the camera does not hold it (reduce motion: the view the telling opened on, which the
+   * map is never moved from), so what stands on the map can still be placed; null when the camera holds it, or when
+   * nothing says.
+   */
+  still: { center: LngLat; zoom: number } | null;
   /** Walk time each path is drawn up to; a path not started is absent; Infinity is the whole path. */
   drawn: Record<string, number>;
-  /** The captures whose pins are on the map, by id, in any order the ceremony likes. */
+  /**
+   * The captures whose pins are on the map, by id, in any order the ceremony likes. A moment that stands as its
+   * picture (RC34) is not among them until the telling is done: the card's map has every pin.
+   */
   pins: string[];
   /** Every break crossed so far, the one being crossed as far as it is drawn (RC21); they stay to the end. */
   hops: Hop[];
@@ -204,6 +257,8 @@ export interface Frame {
   /** A line under the clock ("43 min later"), with its opacity. */
   line: string | null;
   lineOpacity: number;
+  /** How much the map under a card is dimmed, 0 to a fifth (RC35); 0 with no card up. A break never dims (RC17). */
+  scrim: number;
   /** The day walked (epoch ms), shown on the last view with its opacity (RC26); null while the path is told. */
   date: number | null;
   dateOpacity: number;

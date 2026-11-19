@@ -38,7 +38,7 @@ function busyWalk() {
 
 // ---------------------------------------------------------------- what gathers (RC29)
 
-test('RC29: the stack gathers one entry for each moment that had a picture or a video, the newest on top, each once its card has reached its pin', { todo: 'test first' }, () => {
+test('RC29: the stack gathers one entry for each moment that had a picture or a video, the newest on top, each once its card has reached its pin', () => {
   const { story, photo, video, market, note, memo } = busyWalk();
   const p = planOf(story);
   const cards = cardsOf(p);
@@ -61,7 +61,7 @@ test('RC29: the stack gathers one entry for each moment that had a picture or a 
 
 // ---------------------------------------------------------------- it grows, to a bound (RC30)
 
-test('RC30: the stack grows upward; when one more would reach the controls at the top the oldest drops off the bottom, and still opens', { todo: 'test first' }, () => {
+test('RC30: the stack grows upward; when one more would reach the controls at the top the oldest drops off the bottom, and still opens', () => {
   // The bound is the screen's: from above the map's credits up to under Skip and Next.
   const S = STACK();
   for (const s of [PHONE, SMALL, screenOf(844, 390), screenOf(390, 844, 47)]) {
@@ -95,7 +95,7 @@ test('RC30: the stack grows upward; when one more would reach the controls at th
   assert.ok(stackOf(frameAt(p, drop + token('stackPop') + 20))!.entries[0].capture.id === cards[1].capture.id);
 });
 
-test('RC30: the stack never shows a number, and at 320 px it stands clear of a card, a bubble and the line under the clock', { todo: 'test first' }, () => {
+test('RC30: the stack never shows a number, and at 320 px it stands clear of a card, a bubble and the line under the clock', () => {
   const S = STACK();
   const cardSize = built<(s: Screen, pieces?: number) => { w: number; h: number }>(roomMod, 'cardSize');
   for (const s of [SMALL, screenOf(320, 700), screenOf(320, 480), PHONE]) {
@@ -115,7 +115,7 @@ test('RC30: the stack never shows a number, and at 320 px it stands clear of a c
 
 // ---------------------------------------------------------------- one control (RC31)
 
-test('RC31: the stack is one control of at least 44 pt, named "Photos and videos so far", that opens them at the latest; it replaces the pile', { todo: 'test first' }, () => {
+test('RC31: the stack is one control of at least 44 pt, named "Photos and videos so far", that opens them at the latest; it replaces the pile', () => {
   const S = STACK();
   assert.ok(S.w >= 44 && S.h >= 44, `an entry is ${S.w} by ${S.h}`);
   const view = read('components/ceremony/Stack.tsx');
@@ -134,7 +134,7 @@ test('RC31: the stack is one control of at least 44 pt, named "Photos and videos
 
 // ---------------------------------------------------------------- how one settles (RC32)
 
-test('RC32: a new entry settles with an overshoot of 1.5% and the ones under it give 3 px; with reduce motion it appears in place', { todo: 'test first' }, () => {
+test('RC32: a new entry settles with an overshoot of 1.5% and the ones under it give 3 px; with reduce motion it appears in place', () => {
   assert.equal(token('stackOver'), 0.015);
   assert.equal(token('stackGive'), 3);
   const lands = [1000, 5000];
@@ -168,7 +168,7 @@ test('RC32: a new entry settles with an overshoot of 1.5% and the ones under it 
 
 // ---------------------------------------------------------------- it leaves with the path (RC33)
 
-test('RC33: the stack stays through the last view and leaves as the card arrives; the card\'s map has the pins', { todo: 'test first' }, () => {
+test('RC33: the stack stays through the last view and leaves as the card arrives; the card\'s map has the pins', () => {
   const { story, photo, video, market, note, memo } = busyWalk();
   const p = planOf(story);
   assert.equal(stackOf(frameAt(p, p.total - 1))!.entries.length, 3, 'there on the last view');

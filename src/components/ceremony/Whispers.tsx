@@ -50,11 +50,12 @@ function PassedName({ o, ctx, above, index }: { o: PassedOverlay; ctx: StageCtx;
   const key = o.key;
   const pose = useLiveStyle(ctx.live, (f) => {
     const now = overlayOf(f, 'passed', key);
-    return now ? passedPose(now, ctx, f.camera, above, index) : null;
+    // By the camera, or, where the map is not the camera's to hold (reduce motion), by where it stands.
+    return now ? passedPose(now, ctx, f.camera.center ? f.camera : f.still ?? f.camera, above, index) : null;
   });
   const dot = useLiveStyle(ctx.live, (f) => {
     const now = overlayOf(f, 'passed', key);
-    return now ? passedDot(now, ctx, f.camera) : null;
+    return now ? passedDot(now, ctx, f.camera.center ? f.camera : f.still ?? f.camera) : null;
   });
   return (
     <>

@@ -6,15 +6,17 @@
  * across a break (replay ceremony RC17-RC22: the camera pulls back, a dotted
  * line draws, the walker slides along it; a break too small to see is a
  * stand). Notes and memos are bubbles in a corner, photos and videos
- * cards that tuck into a pile, passed places whisper by, and a clock rolls
- * with the walker. The camera is worked out when the telling is planned
+ * cards that shrink back onto their place, where the picture then stands,
+ * and gather in a stack at the edge (replay ceremony RC28-RC34); a moment of
+ * several pieces arrives whole, its videos in turn in its card (RC37);
+ * passed places whisper by, and a clock rolls with the walker. The camera is worked out when the telling is planned
  * (`camera.ts`, replay ceremony RC11-RC16). It opens on the whole of what is
  * told and dives to the walker's start, and closes by standing, pulling back
  * to the view the card uses and naming what was passed (RC23-RC26). Every
  * number is in REPLAY_RHYTHM.
  */
 import { facedAt, hasMore, type Faced } from '../moment';
-import { gridDuration, GRID_MAX } from './grid';
+import { gridDuration, gridShown, GRID_MAX } from './grid';
 import { passedLine } from '../explore/explore';
 import { distanceM } from '../geo';
 import { plainNote } from '../refs';
@@ -24,10 +26,12 @@ import type { LngLat } from '../types';
 import { memoLengthMs } from '../voiceTrim';
 import { between, cameraAt, cameraTrack, fitCamera, pxPerMetre, type CameraPart, type CameraTrack, type View } from './camera';
 import { easeInOut, easeOut, steady } from './ease';
-import { cardFoot } from './room';
+import { standing } from './pictures';
+import { cardFoot, PICTURE } from './room';
+import { stackBound, stackSlots } from './stack';
 import { positionAt, timeAtMetres } from './story';
 import type {
-  Ceremony, CeremonyOptions, Frame, Hop, Jump, Landing, Overlay, Story, StoryBreak, StoryMoment, StoryMove, StoryTravel,
+  Ceremony, CeremonyOptions, Frame, Hop, Jump, Landing, Overlay, PictureOverlay, StackOverlay, Story, StoryBreak, StoryMoment, StoryMove, StoryTravel,
 } from './types';
 
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
@@ -45,10 +49,24 @@ export interface Slot {
   t1: number;
   /** A memo's or video's play time (its kept part); a grid's longest video. */
   len: number;
-  /** A stack's grid (MS17): its photos and videos, each the moment at that piece. */
+  /** A stack's grid (MS17): its photos, each the moment at that piece. */
   pieces?: Faced[];
+  /**
+   * A moment's videos, played in turn in its card after its pictures (replay ceremony RC37): each the moment at that
+   * piece, when it plays from the card's start (`at`, after `lead` ms of coming in), and its kept length.
+   */
+  videos?: Turn[];
   /** A stack's note or memo, shown beside its grid on its own clock from the grid's start (MS17). */
   beside?: boolean;
+  /** A memo beside a card with videos: when it plays, from the card's start: after them, the card still up (RC37). */
+  offset?: number;
+}
+/** One video of a moment's, in its turn. */
+export interface Turn {
+  capture: Faced;
+  lead: number;
+  at: number;
+  len: number;
 }
 interface Span {
   t0: number;
@@ -75,8 +93,8 @@ export interface RhythmPlan {
   segs: Seg[];
   reduceMotion: boolean;
   bubbles: { capture: Faced; ta: number; exitAt: number; len: number }[];
-  /** One per moment (MS17): a stack's grid carries its photos and videos as `pieces`. */
-  cards: { capture: Faced; t0: number; t1: number; len: number; from: LngLat | null; pieces?: Faced[] }[];
+  /** One per moment (MS17): a stack's grid carries its photos as `pieces`, and its videos in turn (`at` is then into the telling). */
+  cards: { capture: Faced; t0: number; t1: number; len: number; from: LngLat | null; pieces?: Faced[]; videos?: Turn[]; faces?: Faced[] }[];
   whispers: { key: string; text: string; at: LngLat; tw: number }[];
   lines: { t0: number; t1: number; text: string }[];
   /** For each path, the index of its last segment: past it, the path is drawn whole. */
@@ -89,6 +107,30 @@ export interface RhythmPlan {
   camera: CameraTrack | null;
   /** What the last view names (RC25): each place passed, where it stands, or the card's one line for more than two, beside none. */
   named: { key: string; text: string; at: LngLat | null }[];
+  /**
+   * What stays behind (RC28-RC34), in the order the cards land. `stood`: each moment with a picture or a video and a
+   * place, standing there as its picture from when its card has shrunk onto it (`t`). `kept`: every such moment, placed
+   * or not, an entry in the stack from `land`. `pictured`: the moments whose own pin waits for the card.
+   */
+  stood: { key: string; capture: Faced; at: LngLat; t: number; several: boolean; video: boolean }[];
+  kept: { key: string; capture: Faced; land: number; several: boolean; video: boolean }[];
+  pictured: ReadonlySet<string>;
+  /** The same, as the lists a frame hands on unchanged: where the pictures stand, which are moments of several, when each entry lands. */
+  places: LngLat[];
+  severals: boolean[];
+  lands: number[];
+  /** The most entries the screen's stack holds (RC30). */
+  bound: number;
+  /** When the map is dimmed under a card: one span for each stop's cards, the first one's coming to the last one's going (RC35). */
+  scrims: { t0: number; t1: number }[];
+  /** With reduce motion: the view the telling opened on, which the map is never moved from; pictures are placed by it. */
+  still: View | null;
+  /**
+   * What a frame worked out last and the next one will most likely ask again: which pictures stand (the same until the
+   * zoom changes or another lands) and the stack at rest. Kept with the plan, keyed by what it was worked out from, so
+   * a frame is still a function of the time alone.
+   */
+  memo: { pictures: { n: number; zoom: number | null; out: PictureOverlay[] } | null; stack: { n: number; out: StackOverlay } | null };
 }
 
 /** "43 min later", "2 h later", "1 h 20 min later" (RR4, RR16). */
@@ -120,8 +162,11 @@ const slotKind = (c: Faced): SlotKind => (c.kind === 'text' ? 'note' : c.kind ==
 const slotOf = (c: Faced): Slot => ({ capture: c, kind: slotKind(c), t0: 0, t1: slotDur(c), len: mediaLen(c) });
 
 /**
- * A stop's slots (MS17): a lone moment is one slot, as before. A stacked moment with two or more photos and videos is
- * one grid slot of them, its memos and notes beside it in capture order; one with fewer plays its pieces one by one.
+ * A stop's slots (MS17; replay ceremony RC37). A lone moment is one slot, as before. A moment of several pieces arrives
+ * whole: with two or more photos and no video, one grid slot of them, its memos and notes beside it in capture order;
+ * with a video, one card for all of it: its photos as the grid (one photo: a grid of one), then each video in turn,
+ * its notes beside from the start and its memos after the videos, the card still up while they play, so no memo
+ * sounds over a video. With no video and fewer than two photos its pieces play one by one.
  */
 function stopSlots(captures: Faced[]): Slot[] {
   const slots: Slot[] = [];
@@ -131,28 +176,51 @@ function stopSlots(captures: Faced[]): Slot[] {
       continue;
     }
     const each = [...c.pieces].sort((a, b) => a.t - b.t).map((p) => facedAt(c, p.id));
-    const media = each.filter((x) => x.kind === 'photo' || x.kind === 'video');
-    if (media.length < 2) {
+    const photos = each.filter((x) => x.kind === 'photo');
+    const videos = each.filter((x) => x.kind === 'video');
+    if (!videos.length && photos.length < 2) {
       for (const x of each) slots.push(slotOf(x));
       continue;
     }
-    const longest = Math.max(0, ...media.filter((x) => x.kind === 'video').map(mediaLen));
-    slots.push({ capture: c, kind: 'grid', t0: 0, t1: gridDuration(media.length, longest), len: longest, pieces: media });
-    for (const x of each) if (x.kind === 'text' || x.kind === 'voice') slots.push({ ...slotOf(x), beside: true });
+    if (!videos.length) {
+      slots.push({ capture: c, kind: 'grid', t0: 0, t1: gridDuration(photos.length), len: 0, pieces: photos });
+      for (const x of each) if (x.kind === 'text' || x.kind === 'voice') slots.push({ ...slotOf(x), beside: true });
+      continue;
+    }
+    // Its pictures, then each video in turn; a video that is the card's first face comes with the card itself.
+    let at = R.grow + gridShown(photos.length);
+    const turns: Turn[] = videos.map((v, k) => {
+      const lead = k === 0 && !photos.length ? 0 : R.turn;
+      const turn = { capture: v, lead, at: at + lead, len: mediaLen(v) };
+      at = turn.at + turn.len + R.mediaTail;
+      return turn;
+    });
+    // Its memos one after another once the videos are over, the card staying up for them.
+    const memos: Slot[] = [];
+    let wait = 0;
+    for (const x of each) {
+      if (x.kind !== 'voice') continue;
+      const s = slotOf(x);
+      memos.push({ ...s, beside: true, offset: at + wait });
+      wait += s.t1;
+    }
+    slots.push({ capture: c, kind: 'grid', t0: 0, t1: at + wait + R.tuck, len: 0, pieces: photos, videos: turns });
+    for (const x of each) if (x.kind === 'text') slots.push({ ...slotOf(x), beside: true });
+    slots.push(...memos);
   }
   return slots;
 }
 
 /**
  * A grid's frame (MS17): each piece swipes in a beat after the one before (`gridStagger`, over `bubbleIn`), and past
- * nine the grid scrolls from the last swipe-in to the tuck. The stage only draws it.
+ * nine the grid scrolls from the last swipe-in to the end of its pictures' time. The stage only draws it.
  */
-function gridFrame(pieces: Faced[], v: number, dur: number): { pieces: Faced[]; shown: number[]; scroll: number } {
+function gridFrame(pieces: Faced[], v: number): { pieces: Faced[]; shown: number[]; scroll: number } {
   const since = v - R.grow;
   const first = Math.min(pieces.length, GRID_MAX);
   const swipes = Math.max(0, first - 1) * R.gridStagger + R.bubbleIn;
   const shown = pieces.map((_, i) => (i < first ? easeOut(clamp01((since - i * R.gridStagger) / R.bubbleIn)) : 1));
-  const span = Math.max(1, dur - R.grow - R.tuck - swipes);
+  const span = Math.max(1, gridShown(pieces.length) - swipes);
   return { pieces, shown, scroll: pieces.length > GRID_MAX ? easeInOut(clamp01((since - swipes) / span), 2) : 0 };
 }
 
@@ -277,11 +345,18 @@ export function rhythmPlan(story: Story, opts: CeremonyOptions): RhythmPlan {
   for (const d of draft) {
     if (d.k === 'stop') {
       const t0 = t;
-      // A grid's beside slots run on their own clock from the grid's start (MS17).
+      // A grid's beside slots run on their own clock from the grid's start (MS17); a memo that waits for its card's
+      // videos plays where the card says, after them (RC37).
       let side = t;
+      let cardAt = t;
       for (const s of d.slots) {
         const dur = s.t1;
         if (s.beside) {
+          if (s.offset != null) {
+            s.t0 = cardAt + s.offset;
+            s.t1 = s.t0 + dur;
+            continue;
+          }
           s.t0 = side;
           s.t1 = side + dur;
           side += dur;
@@ -290,6 +365,7 @@ export function rhythmPlan(story: Story, opts: CeremonyOptions): RhythmPlan {
         t = Math.max(t, side);
         s.t0 = t;
         s.t1 = t + dur;
+        if (s.kind === 'grid') cardAt = t;
         side = s.kind === 'grid' ? t : s.t1;
         t += dur;
       }
@@ -315,7 +391,10 @@ export function rhythmPlan(story: Story, opts: CeremonyOptions): RhythmPlan {
     if (s.k === 'stop')
       for (const sl of s.slots) {
         if (sl.kind === 'note' || sl.kind === 'memo') bubbles.push({ capture: sl.capture, ta: sl.t0, exitAt: Infinity, len: sl.kind === 'memo' ? sl.len : 0 });
-        else cards.push({ capture: sl.capture, t0: sl.t0, t1: sl.t1, len: sl.len, from: s.moment.at ?? s.from, ...(sl.pieces ? { pieces: sl.pieces } : {}) });
+        else {
+          const turns = sl.videos?.map((v) => ({ ...v, at: sl.t0 + v.at }));
+          cards.push({ capture: sl.capture, t0: sl.t0, t1: sl.t1, len: sl.len, from: s.moment.at ?? s.from, ...(sl.pieces ? { pieces: sl.pieces } : {}), ...(turns ? { videos: turns, faces: turns.map((v) => v.capture) } : {}) });
+        }
       }
     // "N min later", from when both ends are in view until a little after the walker lands (RC19).
     if (s.k === 'break') lines.push({ t0: s.t0 + (s.hop ? (s.t1 - s.t0) * R.hopPull : R.standLineIn), t1: s.t1 + R.breakLineAfter, text: laterLine(s.brk.t1 - s.brk.t0) });
@@ -342,7 +421,19 @@ export function rhythmPlan(story: Story, opts: CeremonyOptions): RhythmPlan {
   );
 
   const hops = segs.flatMap((s) => (s.k === 'break' && s.hop && s.from && s.to ? [{ t0: s.t0, t1: s.t1, from: s.from, to: s.to, brk: s.brk }] : []));
-  const plan: RhythmPlan = { story, total: t, segs, reduceMotion: opts.reduceMotion, bubbles, cards, whispers: [], lines, lastSeg, stops, hops, camera: null, named: [] };
+  // What stays behind (RC28-RC34): each card's moment, standing on its place and in the stack once the card has landed.
+  const kept = cards.map((c) => ({ key: c.capture.id, capture: c.capture, land: c.t1 + R.stackLand, several: hasMore(c.capture), video: c.capture.kind === 'video' }));
+  const stood = cards.flatMap((c, i) => (c.from ? [{ key: kept[i].key, capture: c.capture, at: c.from, t: c.t1, several: kept[i].several, video: kept[i].video }] : []));
+  // The dim under a card (RC35): one span a stop, from its first card's coming to its last one's going.
+  const scrims = segs.flatMap((s) => {
+    const own = s.k === 'stop' ? s.slots.filter((sl) => sl.kind === 'photo' || sl.kind === 'video' || sl.kind === 'grid') : [];
+    return own.length ? [{ t0: Math.min(...own.map((sl) => sl.t0)), t1: Math.max(...own.map((sl) => sl.t1)) }] : [];
+  });
+  const plan: RhythmPlan = {
+    story, total: t, segs, reduceMotion: opts.reduceMotion, bubbles, cards, whispers: [], lines, lastSeg, stops, hops, camera: null, named: [],
+    stood, kept, pictured: new Set(stood.map((x) => x.key)), places: stood.map((x) => x.at), severals: stood.map((x) => x.several), lands: kept.map((x) => x.land),
+    bound: stackBound(opts.screen), scrims, still: null, memo: { pictures: null, stack: null },
+  };
   // Through the close the clock is where the walker stopped: it never leaps to when the walk was ended (RC24).
   segs.forEach((s, i) => {
     if (s.k === 'rest' && i > 0) s.clock = whereAt(plan, segs[i - 1], 1).clock;
@@ -353,6 +444,8 @@ export function rhythmPlan(story: Story, opts: CeremonyOptions): RhythmPlan {
   const whole = opts.whole ?? null;
   const open = whole ? fitCamera(opts.screen, whole.bounds, whole.open, whole.maxZoom) : null;
   const close = whole ? fitCamera(opts.screen, whole.bounds, whole.close, whole.maxZoom) : null;
+  // With reduce motion the map is not moved from the view the telling opened on: what stands on it is placed by that.
+  if (opts.reduceMotion) plan.still = open;
   // The camera, worked out once for this telling on this screen (RC16); with reduce motion the map stays still (RR18).
   if (!opts.reduceMotion && segs.length)
     plan.camera = cameraTrack({ total: t, parts: segs.map((s) => cameraPart(s, open, close)), walker: (ms) => walkerAt(plan, ms) }, opts.screen, (pieces) => cardFoot(opts.screen, pieces));
@@ -408,9 +501,10 @@ function cameraPart(s: Seg, open: View | null, close: View | null): CameraPart {
   if (s.k === 'break' && s.hop && s.from && s.to) return { k: 'hop', t0, t1, from: s.from, to: s.to };
   if (s.k === 'stop') {
     // The stop's cards share one place: the pin is settled under the one that reaches lowest.
+    // (A moment with videos keeps one picture's room for all it shows in turn, RC37.)
     const cards = s.slots.filter((sl) => sl.kind === 'photo' || sl.kind === 'video' || sl.kind === 'grid');
     const at = s.moment.at ?? s.from;
-    if (cards.length && at) return { k: 'card', t0, t1, at, pieces: Math.max(...cards.map((sl) => sl.pieces?.length ?? 0)) };
+    if (cards.length && at) return { k: 'card', t0, t1, at, pieces: Math.max(...cards.map((sl) => (sl.videos ? 0 : sl.pieces?.length ?? 0))) };
   }
   return { k: 'hold', t0, t1 };
 }
@@ -508,13 +602,62 @@ function jumpLines(plan: RhythmPlan, jump: Jump): { t0: number; t1: number; text
   return out;
 }
 
+/** How many of a list, in time order, have come by `ms`. */
+function countBy<T>(list: T[], when: (x: T) => number, ms: number): number {
+  let lo = 0, hi = list.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (when(list[mid]) <= ms) lo = mid + 1; else hi = mid;
+  }
+  return lo;
+}
+const stoodAt = (x: RhythmPlan['stood'][number]) => x.t;
+const landAt = (x: RhythmPlan['kept'][number]) => x.land;
+
+/**
+ * The pictures standing on the map (RC34): the first `n` to land, each shown unless a later one stands where it would
+ * (`pictures.ts`), at the map's zoom. The same list until the zoom changes or another lands; with no zoom to go by
+ * (nothing holds the map and nothing says where it stands) every one is said to stand.
+ */
+function picturesAt(plan: RhythmPlan, n: number, zoom: number | null): PictureOverlay[] {
+  const was = plan.memo.pictures;
+  if (was && was.n === n && was.zoom === zoom) return was.out;
+  const stands = zoom == null ? null : standing(plan.places, plan.severals, zoom, PICTURE.apart, n);
+  const out: PictureOverlay[] = [];
+  for (let i = 0; i < n; i++) {
+    const x = plan.stood[i];
+    out.push({ kind: 'picture', key: x.key, capture: x.capture, at: x.at, shown: stands ? stands[i].shown : true, layered: stands ? stands[i].layered : x.several, video: x.video });
+  }
+  plan.memo.pictures = { n, zoom, out };
+  return out;
+}
+
+/** The stack at `ms` (RC29-RC32): the first `n` moments to land, the entries the screen holds, and how each stands. */
+function stackAt(plan: RhythmPlan, n: number, ms: number): StackOverlay {
+  // Nothing in it moves once the newest has settled: the same overlay until another lands.
+  const rest = ms - plan.kept[n - 1].land > R.stackRest;
+  const was = plan.memo.stack;
+  if (rest && was && was.n === n) return was.out;
+  const slots = stackSlots(plan.lands, ms, plan.bound, plan.reduceMotion);
+  const out: StackOverlay = {
+    kind: 'stack', key: 'stack',
+    captures: was && was.n === n ? was.out.captures : plan.kept.slice(0, n).map((x) => x.capture),
+    entries: slots.map((s) => {
+      const x = plan.kept[s.index];
+      return { key: x.key, capture: x.capture, several: x.several, video: x.video, slot: s.slot, rise: s.rise, give: s.give, opacity: s.opacity };
+    }),
+  };
+  if (rest) plan.memo.stack = { n, out };
+  return out;
+}
+
 export function rhythmFrame(plan: RhythmPlan, ms: number, jump?: Jump | null): Frame {
   const { segs, story } = plan;
   if (ms >= plan.total || !segs.length) {
     const drawn: Record<string, number> = {};
     for (const id of Object.keys(story.paths)) drawn[id] = Infinity;
     return {
-      done: true, walker: segs.at(-1)?.to ?? null, camera: { center: null, zoom: null }, drawn, pins: story.captures.map((c) => c.id),
+      done: true, walker: segs.at(-1)?.to ?? null, camera: { center: null, zoom: null }, still: null, scrim: 0, drawn, pins: story.captures.map((c) => c.id),
       hops: plan.hops.map((h) => ({ from: h.from, to: h.to, p: 1 })), clock: null, clockFade: 1, line: null, lineOpacity: 0, date: null, dateOpacity: 0, overlays: [],
     };
   }
@@ -554,13 +697,19 @@ export function rhythmFrame(plan: RhythmPlan, ms: number, jump?: Jump | null): F
   }
   for (const [id, last] of Object.entries(plan.lastSeg)) if (i > last) drawn[id] = Infinity;
 
+  // The map's pins: a moment that stands as its picture is the stage's to draw until the card (RC34).
   const pins: string[] = [];
   for (let k = 0; k <= i; k++) {
     const g = segs[k];
-    if (g.k === 'stop' && g.t0 <= ms) for (const sl of g.slots) pins.push(sl.capture.id);
+    if (g.k === 'stop' && g.t0 <= ms) for (const sl of g.slots) if (!plan.pictured.has(sl.capture.id)) pins.push(sl.capture.id);
   }
 
+  // Where the camera was worked out to be at this time (RC16); with reduce motion, the map stays put.
+  const camera = plan.camera ? cameraAt(plan.camera, ms) : { center: null, zoom: null };
   const overlays: Overlay[] = [];
+  // The pictures standing on the map come first: the lowest on the stage, under the dim (RC34, RC35).
+  const standingNow = countBy(plan.stood, stoodAt, ms);
+  if (standingNow) for (const o of picturesAt(plan, standingNow, camera.zoom ?? plan.still?.zoom ?? null)) overlays.push(o);
   // After a press, what it jumped over is said under the clock (RY21) and a memo that began before it is gone, so
   // nothing plays from its middle (RY14).
   const landed = jump && ms >= jump.at ? jump : null;
@@ -577,16 +726,24 @@ export function rhythmFrame(plan: RhythmPlan, ms: number, jump?: Jump | null): F
       progress: b.len > 0 ? clamp01((ms - b.ta) / b.len) : 0,
     });
   }
-  const pile: Faced[] = [];
   for (const c of plan.cards) {
-    if (ms >= c.t1) {
-      pile.push(c.capture);
-      continue;
-    }
-    if (ms < c.t0) continue;
+    if (ms >= c.t1 || ms < c.t0) continue;
     const v = ms - c.t0;
     const dur = c.t1 - c.t0;
-    const video = c.capture.kind === 'video';
+    // A video on its own plays through its card's hold; a moment's videos each in their turn (RC37).
+    const alone = !c.pieces && !c.videos;
+    const video = alone && c.capture.kind === 'video';
+    let turn = 0;
+    let turnIn = 1;
+    let playing = video && v >= R.grow && v < dur - R.tuck;
+    let progress = video ? clamp01((v - R.grow) / c.len) : 0;
+    for (let k = 0; c.videos && k < c.videos.length && ms >= c.videos[k].at - c.videos[k].lead; k++) {
+      const x = c.videos[k];
+      turn = k + 1;
+      turnIn = x.lead > 0 && !still ? clamp01((ms - (x.at - x.lead)) / x.lead) : 1;
+      playing = ms >= x.at && ms < x.at + x.len;
+      progress = clamp01((ms - x.at) / x.len);
+    }
     overlays.push({
       kind: 'card',
       key: c.capture.id,
@@ -594,13 +751,25 @@ export function rhythmFrame(plan: RhythmPlan, ms: number, jump?: Jump | null): F
       from: c.from,
       grow: clamp01(v / R.grow),
       tuck: clamp01((v - (dur - R.tuck)) / R.tuck),
-      ...(c.pieces ? gridFrame(c.pieces, v, dur) : {}),
-      playing: (video || !!c.pieces) && v >= R.grow && v < dur - R.tuck,
-      progress: video ? clamp01((v - R.grow) / c.len) : 0,
+      ...(c.pieces?.length ? gridFrame(c.pieces, v) : {}),
+      ...(alone ? {} : { turn, turnIn }),
+      ...(c.faces ? { videos: c.faces } : {}),
+      playing,
+      progress,
+      // A photo held in its card drifts a little closer, so it never looks frozen (RC36).
+      drift: alone && c.capture.kind === 'photo' && !still ? R.drift * clamp01(v / dur) : 0,
       fade: still,
     });
   }
-  if (pile.length) overlays.push({ kind: 'pile', key: 'pile', captures: pile });
+  // The stack at the edge: every moment whose card has landed (RC29).
+  const inStack = countBy(plan.kept, landAt, ms);
+  if (inStack) overlays.push(stackAt(plan, inStack, ms));
+  // The map dims under a card, once for a stop (RC35); with reduce motion it does not fade.
+  let scrim = 0;
+  for (const span of plan.scrims) {
+    if (ms < span.t0) break;
+    if (ms < span.t1) scrim = R.scrim * (still ? 1 : Math.min(clamp01((ms - span.t0) / R.scrimIn), clamp01((span.t1 - ms) / R.tuck)));
+  }
   for (const w of plan.whispers) {
     const age = ms - w.tw;
     if (age < 0 || age >= R.whisper) continue;
@@ -614,8 +783,9 @@ export function rhythmFrame(plan: RhythmPlan, ms: number, jump?: Jump | null): F
     done: false,
     // The walker shows as the dive nears its start (RC23): the whole is looked at first.
     walker: s.k === 'intro' && ms < s.t0 + s.hold + R.diveMark ? null : walker,
-    // Where the camera was worked out to be at this time (RC16); with reduce motion, the map stays put.
-    camera: plan.camera ? cameraAt(plan.camera, ms) : { center: null, zoom: null },
+    camera,
+    still: plan.still,
+    scrim,
     drawn,
     pins,
     hops,
@@ -631,7 +801,7 @@ export function rhythmFrame(plan: RhythmPlan, ms: number, jump?: Jump | null): F
 
 export const rhythm: Ceremony = {
   id: 'rhythm',
-  overlays: ['bubble', 'card', 'pile', 'whisper', 'passed'],
+  overlays: ['picture', 'bubble', 'card', 'stack', 'whisper', 'passed'],
   show(story, opts) {
     const plan = rhythmPlan(story, opts);
     return { total: plan.total, stops: plan.stops, hops: plan.hops.map((h) => ({ from: h.from, to: h.to, t0: h.brk.t0, t1: h.brk.t1 })), frame: (ms, jump) => rhythmFrame(plan, ms, jump) };
