@@ -420,11 +420,19 @@ async function run(h) {
 
   // what-im-into-page audit 6: in the ready bar too, with Places off and Sights on the row stays; with Sights off it goes.
   {
+    // Raised again after the Layers button: the drag can miss once, so it is tried until the settings show.
+    const raiseBar = async () => {
+      for (let i = 0; i < 4; i++) {
+        await drawerTo(pg, 'half');
+        await pg.waitForTimeout(700);
+        if (await pg.locator('[data-testid=start-settings]').isVisible().catch(() => false)) return;
+      }
+    };
     // The raised bar covers the Layers button: lower it, switch, raise it again.
     await pg.keyboard.press('Escape');
     await pg.waitForTimeout(500);
     await switchLayer(pg, 'places', false);
-    await drawerTo(pg, 'half');
+    await raiseBar();
     await pg.waitForTimeout(400);
     const quietSights = await pg.locator('[data-testid=start-settings] [data-testid=into-row]').count();
     await pg.click('[data-testid=start-settings] [data-testid=leaning-sights]');
@@ -434,7 +442,7 @@ async function run(h) {
     await pg.keyboard.press('Escape');
     await pg.waitForTimeout(500);
     await switchLayer(pg, 'places', true);
-    await drawerTo(pg, 'half');
+    await raiseBar();
     await pg.waitForTimeout(400);
     check(quietSights === 1 && quietNone === 0, `what-im-into-page audit 6: the ready bar's row shows with Places off and Sights on, and not with Sights off too (${quietSights}, ${quietNone})`);
   }
