@@ -59,16 +59,27 @@ and briefs, the `steward` and the `auditor`, and the scripts:
    proxy within 0157.
 6. **A compass metric, without a checkpoint.** The run log carries `expectations` (the lines by id, each met with its
    evidence, failed or lacking, a proposed line provisional) and `compass` (refinement shipped, refinement filed low
-   by the compass, the `G` entries lens 0 filed). `node scripts/tend.js compass` reads them: per run and in sum, and
-   over the last twelve runs whether the share of refinement shipped is falling ("the compass is biting") or not
-   ("the compass is not biting: tighten it"). It is read at every landing and kept in the ledger by `tend:balance
-   --write`.
+   by the compass, the `G` entries lens 0 filed). `node scripts/tend.js compass` reads them: per run and in sum, and,
+   once twelve runs carry them ("too early to say" before), whether the share of refinement shipped over the last
+   twelve is falling ("the compass is biting") or not ("the compass is not biting: tighten it"), read only when each
+   half holds three refinement findings at least ("too few refinement findings to say" otherwise). It is read at
+   every landing and kept in the ledger by `tend:balance --write`.
 7. **Scripts decide what they can.** `npm run expectations` (`scripts/expectations.js`) is the only way the store
    changes: `draft` refuses a duplicate, a line not in the form, fewer than three in a first draft or more than five
-   in force; `amend`; `ratify` and `decline` only `--by owner` with the answer verbatim; `set-check`; `check` fails a
-   named check that does not exist and runs in `check:docs` (so in CI); `due` names the features with no ratified
-   line. `tend:log` requires both fields of a sweep and a build and reads each line against the store;
-   `check:tend` refuses a loop commit that changes, removes, ratifies or declines a store line.
+   in force; `amend`, one open at a time, of a ratified line; `ratify` and `decline` only `--by owner` with the answer
+   verbatim, on one line; `set-check`, never from a check back to pending; no operation writes a store that does not
+   read, or leaves one that reads back otherwise. `check` fails a named check it cannot find (a journey check's whole
+   plain-string message, a test's whole title, a shot of the feature's own journeys) and runs in `check:docs` (so in
+   CI) and in `check:affected` when a journey or a test changed; `due` names the features with no line, and those
+   awaiting the owner. `tend:log` marks its lines `"lens":"0234"`, writes the date itself, and holds a marked sweep,
+   or a run whose range built a `T` entry or a slice, to both fields, each line read against the store. `check:tend`,
+   which CI runs on every push, reads every agent commit by its trailers: only the owner's answer commit,
+   `expectations <feature>: the owner's answer, <date>`, changes a line's status (proposed to ratified or declined,
+   dated as its subject says, and the line a ratified amendment replaces superseded), made outside any `/tend` run;
+   no other agent commit changes a line's words, status, grounds or answer.
+8. **What the scripts cannot know.** They cannot tell the owner from an agent: `--by owner` and the answer commit's
+   subject are written by whoever records the answer. An answer is trusted as every recorded answer is under 0157:
+   the orchestrator writes the owner's words verbatim from the question it asked, and the proxy never ratifies.
 
 ## Why
 A rule says what is wrong; it cannot say what is missing or what is worth polishing. A person's reasonable
@@ -89,9 +100,11 @@ features exist, and the steward's check keeps a counter-example (a streak, a rat
 - The compass's reading appears in each landing's report to the owner (the orchestrator runs `tend.js compass` at
   each landing); until twelve runs carry it, it says "too early to say".
 - The orchestrator puts proposed lines to the owner in its batch, one question per feature, "Ratify as drafted"
-  first, and records the answer with `npm run expectations -- ratify` in a commit of its own (a non-loop write). An
+  first, and records the answer with `npm run expectations -- ratify` in a commit of its own, landed before or between
+  runs (a non-loop write; a `/tend` run never makes it). An
   inbox build applies lens 0 to the feature it builds; an `evolve` run gains a steward pause before it files; the
   proxy does not hold a `G` from lens 0 for the balance.
-- Run-log lines dated before 2026-11-20, and backfilled lines, are read as they were.
+- Run-log lines without the `"lens":"0234"` mark (every line before this, and any a run logs with an older script)
+  are read as they were.
 - Each run costs a steward check more, and a feature's first run a question to the owner. The owner chose no
   checkpoint: nothing reviews the lens every ten runs; the compass reading is the only look back.
