@@ -34,7 +34,7 @@ Review points: <a sweep: after the lenses, then after the diff | a T build: afte
 a G build: after the plan (steward), then after the diff | evolve: before filing (steward)>. At the
 first, the `steward` also checks your drafted expectation lines and amendments (/tend lens 0) against
 VISION's Never lines and the persona: list them in its prompt; at the diff pause, give the `auditor` each
-`met` line with its evidence (decision 0235). At each, fetch and rebase first, then
+`met` line with its evidence (decision 0236). At each, fetch and rebase first, then
 write each reviewer's complete,
 self-contained prompt (absolute paths that exist; at the diff pause the after pictures for every
 reviewer of a screen, each changed state at 320 px and at 390 where width matters, a before picture
@@ -86,9 +86,9 @@ Known constraints (do not rediscover them):
 - your review prompts, in your worktree: `npm run book:review-paths -- <prompt>...` before handing back;
 - the largest text size cannot be pictured on web: a [phone] entry;
 - the balance reads <reading>: <no G entry but one from lens 0's unmet expectations, naming the
-  workflows it implicates (decision 0235) | …>;
+  workflows it implicates (decision 0236) | …>;
 - the expectation store (`docs/expectations/`) changes only through `npm run expectations` (draft, amend,
-  set-check); never ratify or decline a line: the owner answers, and I record it (decision 0235);
+  set-check); never ratify or decline a line: the owner answers, and I record it (decision 0236);
 - grep a rule line before citing it as a Source;
 - every T and G entry carries a `Precedent:` line beside "Recommended" (decision 0193): how 2-3 adjacent
   apps do the job, from docs/research/adjacent-apps.md, verified or not, or "none found"; one the file

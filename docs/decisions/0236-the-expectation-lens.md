@@ -1,4 +1,4 @@
-# 0235. The expectation lens: each `/tend` run tests a feature against what a person would reasonably expect, from a list the owner ratifies, and growth from it comes with its workflows
+# 0236. The expectation lens: each `/tend` run tests a feature against what a person would reasonably expect, from a list the owner ratifies, and growth from it comes with its workflows
 
 Date: 2026-11-19 · Status: accepted · Area: process, tend · Amends: 0129 (no `G` while outgrowing its base, and none on a rough base: not for growth from the lens), 0128 (what the loop ships without asking: a refinement that serves no expectation and breaks no rule is filed), 0229 (a whole sweep is lenses 0-7) · Relates to: 0157, 0181, 0193
 
@@ -71,7 +71,7 @@ and briefs, the `steward` and the `auditor`, and the scripts:
    read, or leaves one that reads back otherwise. `check` fails a named check it cannot find (a journey check's whole
    plain-string message, a test's whole title, a shot of the feature's own journeys) and runs in `check:docs` (so in
    CI) and in `check:affected` when a journey or a test changed; `due` names the features with no line, and those
-   awaiting the owner. `tend:log` marks its lines `"lens":"0235"`, writes the date itself, and holds a marked sweep,
+   awaiting the owner. `tend:log` marks its lines `"lens":"0236"`, writes the date itself, and holds a marked sweep,
    or a run whose range built a `T` entry or a slice, to both fields, each line read against the store. `check:tend`,
    which CI runs on every push, reads every agent commit by its trailers: only the owner's answer commit,
    `expectations <feature>: the owner's answer, <date>`, changes a line's status (proposed to ratified or declined,
@@ -104,7 +104,7 @@ features exist, and the steward's check keeps a counter-example (a streak, a rat
   runs (a non-loop write; a `/tend` run never makes it). An
   inbox build applies lens 0 to the feature it builds; an `evolve` run gains a steward pause before it files; the
   proxy does not hold a `G` from lens 0 for the balance.
-- Run-log lines without the `"lens":"0235"` mark (every line before this, and any a run logs with an older script)
+- Run-log lines without the `"lens":"0236"` mark (every line before this, and any a run logs with an older script)
   are read as they were.
 - Each run costs a steward check more, and a feature's first run a question to the owner. The owner chose no
   checkpoint: nothing reviews the lens every ten runs; the compass reading is the only look back.

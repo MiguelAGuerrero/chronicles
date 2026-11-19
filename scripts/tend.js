@@ -13,9 +13,9 @@
 //                                                       range holds (every finding a subject names:
 //                                                       shipped, audit fixes, builds, reverts) with
 //                                                       what only the run knows (found, filed, answers,
-//                                                       expectations and compass: decision 0235)
+//                                                       expectations and compass: decision 0236)
 //   node scripts/tend.js next                           the area to sweep when the owner names none
-//   node scripts/tend.js compass [--runs N]             the compass (decision 0235), from the run log: per run and in
+//   node scripts/tend.js compass [--runs N]             the compass (decision 0236), from the run log: per run and in
 //                                                       sum, refinement shipped against filed low, lens-0 G entries,
 //                                                       lines met, failed, lacking and provisional; whether it bites
 //   node scripts/tend.js e2e-due [--days N] [--json]    whether the weekly full pass is due: no line of main's run
@@ -248,7 +248,7 @@ function tendCommitProblems({ subject, body, files, added = '', rewritesLog = fa
   const problems = [];
   if (!/^tend /.test(subject)) return ['not a loop commit: the loop ships only `tend <area> …` commits'];
   if (rewritesLog) problems.push('rewrites the run log: a run adds its line and changes no other');
-  // The expectation store (decision 0235): what scripts/expectations.js editProblems found in the commit's store files.
+  // The expectation store (decision 0236): what scripts/expectations.js editProblems found in the commit's store files.
   problems.push(...expectationEdits);
   for (const f of rewritesRules) problems.push(`changes or removes a line of ${f} that the push's base holds: the loop may add a trap to a rule file, and reword a line its own push added, never reword a rule (the owner's, through the inbox)`);
   for (const f of files) {
@@ -313,13 +313,13 @@ const MODES = ['sweep', 'triage', 'evolve', 'inbox', 'e2e'];
 const DEPLOYS = ['main', 'branch', 'none'];
 const ANSWERS = ['yes', 'no', 'reshape'];
 const count = (v) => Number.isInteger(v) && v >= 0;
-// The expectation lens (decision 0235): a sweep, and an inbox run that builds a yes, logs `expectations` (the
+// The expectation lens (decision 0236): a sweep, and an inbox run that builds a yes, logs `expectations` (the
 // store's lines it tested, by id, each met, failed or lacking; a proposed line provisional; met naming its evidence;
 // the drafted lines the steward dropped, with the Never row each breaks) and `compass` (refinement shipped, filed
 // low by the compass for serving no expectation or rule, the G entries lens 0 filed). Only a line this script wrote
 // carries the marker LENS, and only such a line is held to them: an older script's line reads as it was, whatever
 // its date. tend:log also reads the lines against the store (scripts/expectations.js, logRefProblems).
-const LENS = '0235';
+const LENS = '0236';
 const VERDICTS = ['met', 'failed', 'lacking'];
 const LENS_LINE = /^A person\b.*\bwould reasonably expect\b/;
 const EXPECTATION_ID = /^E-[a-z][a-z0-9-]*-\d+$/;
@@ -366,13 +366,13 @@ function logProblems(given) {
     if (typeof g.lenses?.whole !== 'boolean' || !Array.isArray(g.lenses?.skipped)) p.push('lenses says whether the sweep was whole and which lenses were skipped');
     if (g.lenses?.whole === true && g.lenses.skipped?.length) p.push('a whole sweep skipped no lens');
   }
-  // A build is what the range built (a T entry's commit, or a slice's criteria), not a yes it was given (decision 0235).
+  // A build is what the range built (a T entry's commit, or a slice's criteria), not a yes it was given (decision 0236).
   const builds = (g.built ?? []).length > 0 || (g.grew ?? []).length > 0;
   const held = g.lens === LENS && (g.mode === 'sweep' || builds);
   if (g.expectations !== undefined) p.push(...expectationProblems(g.expectations));
-  else if (held) p.push('a sweep or a build logs its expectations (decision 0235)');
+  else if (held) p.push('a sweep or a build logs its expectations (decision 0236)');
   if (g.compass !== undefined) p.push(...compassProblems(g.compass, g.filed?.G ?? []));
-  else if (held) p.push('a sweep or a build logs the compass\'s counts (decision 0235)');
+  else if (held) p.push('a sweep or a build logs the compass\'s counts (decision 0236)');
   for (const e of [...(g.filed?.T ?? []), ...(g.filed?.G ?? [])]) if (!/^[TG]\d+$/.test(e)) p.push(`filed entry "${e}" is a T or G number`);
   for (const a of g.answers ?? []) if (!/^[TG]\d+$/.test(a?.entry ?? '') || !ANSWERS.includes(a?.answer)) p.push(`an answer is { entry: "T3", answer: ${ANSWERS.join(' | ')} }`);
   if (g.review && ![g.review.accepted, g.review.rejected, g.review.deferred].every(count)) p.push('review counts the auditor\'s findings: accepted, rejected, deferred');
@@ -419,7 +419,7 @@ const COMPASS_STEP = 0.05;
 const COMPASS_MIN = 3;
 
 /**
- * The compass (decision 0235), read from the run log: per run that carries `compass` and in sum, the refinement
+ * The compass (decision 0236), read from the run log: per run that carries `compass` and in sum, the refinement
  * shipped against the refinement the compass filed low, the G entries lens 0 filed, and the store lines met, failed
  * and lacking (ratified) or provisional. Until `window` runs carry it, "too early to say". Then, over the last `window`,
  * with at least COMPASS_MIN refinement findings in each half: the later half's shipped share falling, or nothing
@@ -677,7 +677,7 @@ function appendLog(argv) {
     console.error("usage: node scripts/tend.js log <range> '<json>'; the json is the run's own half (see .claude/skills/tend/SKILL.md, section 10)");
     process.exit(2);
   }
-  // The script writes the date and the marker; a run's JSON dates nothing and backfills nothing (decision 0235).
+  // The script writes the date and the marker; a run's JSON dates nothing and backfills nothing (decision 0236).
   const owned = ['date', 'backfilled', 'lens'].filter((k) => given && Object.prototype.hasOwnProperty.call(given, k));
   if (owned.length) {
     console.error(`tend log: ${owned.join(', ')} ${owned.length > 1 ? 'are' : 'is'} the script's to write, not the run's: leave ${owned.length > 1 ? 'them' : 'it'} out`);
@@ -685,7 +685,7 @@ function appendLog(argv) {
   }
   const subjects = range ? git('log', '--no-merges', '--reverse', '--format=%s', range).split('\n').filter(Boolean) : [];
   const line = runLine({ date: new Date().toISOString().slice(0, 10), subjects, given });
-  // The line as it will be written is what is held (decision 0235): runLine marks it with the lens.
+  // The line as it will be written is what is held (decision 0236): runLine marks it with the lens.
   const problems = logProblems(line);
   if (!problems.length && line.expectations?.lines) {
     const ex = require('./expectations');
@@ -804,7 +804,7 @@ function commits(argv) {
       console.error(`${sha.slice(0, 7)} ${subject}\n  ${p}`);
     }
   }
-  // The expectation store (decision 0235): every agent commit of the range is held to it, a loop commit or not.
+  // The expectation store (decision 0236): every agent commit of the range is held to it, a loop commit or not.
   for (const sha of all.filter((x) => !storesRead.has(x))) {
     const message = git('show', '-s', '--format=%B', sha);
     if (!require('./records').isAgent(message)) continue;

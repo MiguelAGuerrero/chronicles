@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
 
-// Decision 0235: what a person would reasonably expect of each feature, drafted by /tend's lens 0, ratified once by
+// Decision 0236: what a person would reasonably expect of each feature, drafted by /tend's lens 0, ratified once by
 // the owner, each line naming the check that shows it. The script decides what it can, deterministically.
 
 const ROOT = join(__dirname, '..', '..', '..', '..');
@@ -45,7 +45,7 @@ const person = 'A person who wanders a town to notice, using memories, would rea
 const STORE = [
   '# Expectations: memories',
   '',
-  'What a person would reasonably expect of memories (decision 0235).',
+  'What a person would reasonably expect of memories (decision 0236).',
   '',
   `- E-memories-1 [ratified 2026-11-20] ${person} a capture to come back when they pass its place again.`,
   '  Check: memories:"a later walk passing a flagged capture brings it back"',
@@ -283,7 +283,7 @@ test('expectations audit 14: check:affected checks the store when a journey, a t
   assert.equal(affected.expectationsStep(tempRoot({ 'memories.md': STORE })).ok, true);
 });
 
-test('expectations 0235: a store file reads into lines with their status, check and grounds, and writes back the same', () => {
+test('expectations 0236: a store file reads into lines with their status, check and grounds, and writes back the same', () => {
   const s = store();
   assert.deepEqual(s.problems, []);
   assert.deepEqual(s.entries.map((e) => [e.id, e.status]), [['E-memories-1', 'ratified'], ['E-memories-2', 'proposed'], ['E-memories-3', 'proposed']]);
@@ -296,7 +296,7 @@ test('expectations 0235: a store file reads into lines with their status, check 
   assert.ok(ex.parseStore(STORE.replace('  Grounds: VISION "Who it is for"; not yet recorded\n', ''), 'memories').problems.length > 0, 'a line without its grounds');
 });
 
-test('expectations 0235: a draft adds proposed lines numbered on, and refuses a duplicate, a line not in the form, or a sixth', () => {
+test('expectations 0236: a draft adds proposed lines numbered on, and refuses a duplicate, a line not in the form, or a sixth', () => {
   const d = ex.draft(store(), [line('a day of walks to read in the order they happened.'), line('a deleted memory to come back with Undo.', 'memories:"a later walk passing a flagged capture brings it back"')]);
   assert.deepEqual(d.problems, []);
   assert.deepEqual(d.ids, ['E-memories-4', 'E-memories-5']);
@@ -311,7 +311,7 @@ test('expectations 0235: a draft adds proposed lines numbered on, and refuses a 
   assert.deepEqual(ex.draft(empty, [line('a.'), line('b.'), line('c.')]).ids, ['E-threads-1', 'E-threads-2', 'E-threads-3']);
 });
 
-test('expectations 0235: an amendment is a new proposed line; only the owner\'s answer ratifies, and a ratified amendment supersedes', () => {
+test('expectations 0236: an amendment is a new proposed line; only the owner\'s answer ratifies, and a ratified amendment supersedes', () => {
   const a = ex.amend(store(), 'E-memories-1', line('a capture to come back when they pass within 100 m of its place.'));
   assert.deepEqual(a.problems, []);
   assert.deepEqual(a.ids, ['E-memories-4']);
@@ -337,7 +337,7 @@ test('expectations 0235: an amendment is a new proposed line; only the owner\'s 
   assert.ok(ex.setCheck(store(), 'E-memories-3', 'whatever').problems.length > 0);
 });
 
-test('expectations 0235: a check names a journey check, a test or a picture that exists; pending and todo checks are said, not passed', () => {
+test('expectations 0236: a check names a journey check, a test or a picture that exists; pending and todo checks are said, not passed', () => {
   assert.deepEqual(ex.parseCheck('memories:"a later walk"'), { kind: 'journey', journey: 'memories', text: 'a later walk' });
   assert.deepEqual(ex.parseCheck('test:"memories MR7: x"'), { kind: 'test', name: 'memories MR7: x' });
   assert.deepEqual(ex.parseCheck('picture:13-reminder'), { kind: 'picture', name: '13-reminder' });
@@ -362,7 +362,7 @@ test('expectations 0235: a check names a journey check, a test or a picture that
   assert.ok(ex.checkProblems([ex.parseStore(STORE.replace(/memories/g, 'nowhere'), 'nowhere')], i, ['memories']).some((p) => /nowhere/.test(p.message)), 'a store of no feature');
 });
 
-test('expectations 0235: due names the features a run touches with no ratified line; list says each line and its check', () => {
+test('expectations 0236: due names the features a run touches with no ratified line; list says each line and its check', () => {
   const threads = ex.parseStore(STORE.replace(/memories/g, 'threads').replace('[ratified 2026-11-20]', '[proposed]').replace(/  Answer:.*\n/, ''), 'threads');
   assert.deepEqual(ex.due([store(), threads], ['memories', 'threads', 'gallery']), { draft: ['gallery'], awaiting: ['threads'] });
   assert.equal(
@@ -380,7 +380,7 @@ test('expectations 0235: due names the features a run touches with no ratified l
   );
 });
 
-test('expectations 0235: a loop commit adds proposed lines and fills a check; it never changes, removes, ratifies or declines a line', () => {
+test('expectations 0236: a loop commit adds proposed lines and fills a check; it never changes, removes, ratifies or declines a line', () => {
   const added = ex.formatStore(ex.draft(store(), [line('a day of walks in order.')]).store);
   assert.deepEqual(ex.editProblems(STORE, added, 'memories'), []);
   assert.deepEqual(ex.editProblems(STORE, ex.formatStore(ex.amend(store(), 'E-memories-1', line('x.')).store), 'memories'), []);
@@ -395,7 +395,7 @@ test('expectations 0235: a loop commit adds proposed lines and fills a check; it
   assert.ok(one('').length > 0, 'the store removed');
 });
 
-test('expectations 0235: a run log line names lines by id; met names its check, or a picture where the check is still pending', () => {
+test('expectations 0236: a run log line names lines by id; met names its check, or a picture where the check is still pending', () => {
   const stores = [store()];
   const ok = (lines: Parameters<Expectations['logRefProblems']>[0]) => ex.logRefProblems(lines, stores, index(), { exists: () => true, shots: '/tmp/shots' });
   assert.deepEqual(ok([
@@ -412,7 +412,7 @@ test('expectations 0235: a run log line names lines by id; met names its check, 
   assert.ok(ok([{ id: 'E-memories-3', is: 'met', evidence: 'pending "a word typed finds the moment that holds it"', provisional: true }]).length > 0, 'a pending check is no evidence');
 });
 
-test('expectations 0235: the docs check holds the store, and the script prints the same thing for the same store', () => {
+test('expectations 0236: the docs check holds the store, and the script prints the same thing for the same store', () => {
   assert.match(read('scripts/check-docs.js'), /require\('\.\/expectations'\)\.check\(ROOT\)/);
   assert.deepEqual(ex.check(ROOT), [], 'the repo\'s own store holds');
   assert.equal(JSON.parse(read('package.json')).scripts.expectations, 'node scripts/expectations.js');

@@ -1,4 +1,4 @@
-# Lens 0: the expectation (decision 0235)
+# Lens 0: the expectation (decision 0236)
 
 `/tend` section 2's first lens, in full. The owner's test: "given this feature, what would I, a user, expect reasonably
 to be provided?" Each `/tend` run (one iteration) but a triage applies it before the other lenses, to each feature the
@@ -59,7 +59,7 @@ the operations are in `scripts/expectations.js`'s header). A line, its text on o
    "compass":{"shipped":2,"filedLow":3,"lensG":["G9"]},"shots":"<the run's shots folder>"
    ```
 
-   `npm run tend:log` marks the line `"lens":"0235"` and refuses a sweep, or a run whose range built an entry, without
+   `npm run tend:log` marks the line `"lens":"0236"` and refuses a sweep, or a run whose range built an entry, without
    them; an id the store does not hold, of another area, or named twice; a proposed line not marked provisional; a
    `met` whose evidence is not its own found check (or, while that is pending, such a picture). The run's JSON never
    carries `date` or `backfilled`: the script writes the date.

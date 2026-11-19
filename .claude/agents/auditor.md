@@ -80,7 +80,7 @@ commands, or anything that changes the tree.
    "Testing a cost"). Run
    `npm run test:coverage <feature>` for the slice's feature and list the
    lines of the slice's own files that no test runs; a report, never a score.
-5. **Expectations met** (`/tend` lens 0, decision 0235): for each line the run logs `met`, its evidence
+5. **Expectations met** (`/tend` lens 0, decision 0236): for each line the run logs `met`, its evidence
    exists (`npm run expectations -- check`; the journey check, the test or the picture it names) and really
    tests the expectation: a check that would pass with the expectation broken (it asserts a helper's return,
    a selector's presence, or a word the screen could show either way) is a test that cannot fail, and the
