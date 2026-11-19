@@ -1,45 +1,37 @@
 /// <reference types="node" />
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { EXPLORE_KEY, EXPLORE_RULES, exploredKey } from '../../explore/explore';
-import { destLine, NAV_KEY, navValue, parseStartMode, pendingDest, START_MODE_KEY, startPlan, tabFor } from '../../startPlan';
+import { destLine, NAV_KEY, navValue, pendingDest, startPlan, tabFor } from '../../startPlan';
 import type { Waypoint } from '../../nav/types';
 import { setUnits } from '../../units';
 import { formatRange } from '../../format';
+import { EXPLORE_RULES } from '../../explore/explore';
 
 const spot: Waypoint = { at: [-71.4, 41.812], label: 'Your spot', kind: 'point' };
 
-test('NV22: the mode opens on Quiet the first time, then on the last one picked', () => {
-  assert.equal(START_MODE_KEY, 'start_mode');
-  assert.equal(parseStartMode(null), 'quiet');
-  assert.equal(parseStartMode(''), 'quiet');
-  assert.equal(parseStartMode('nonsense'), 'quiet');
-  assert.equal(parseStartMode('explore'), 'explore');
-  assert.equal(parseStartMode('quiet'), 'quiet');
-});
-
-test('NV25: a quiet start with no destination writes nothing and opens the walk plainly', () => {
-  const p = startPlan({ walkId: 'w1', now: 1000, mode: 'quiet', dest: null });
+test('NV25, MD12: a start with no destination writes nothing and opens the walk plainly', () => {
+  const p = startPlan({ walkId: 'w1', dest: null });
   assert.deepEqual(p.meta, []);
   assert.equal(p.params, undefined);
 });
 
-test('NV25: Explore marks the walk as exploring from the moment it starts (E1)', () => {
-  const p = startPlan({ walkId: 'w1', now: 1234, mode: 'explore', dest: null });
-  assert.deepEqual(p.meta, [[EXPLORE_KEY, 'w1'], [exploredKey('w1'), '1234']]);
+test('MD12: a start writes no mode: no explore_walk, no explored stamp, no start_mode (decision 0231)', () => {
+  const p = startPlan({ walkId: 'w1', dest: null, warning: 'Background off' });
+  assert.deepEqual(p.meta, []);
+  assert.equal((p.meta as [string, string][]).some(([k]) => /explore|start_mode/.test(k)), false);
 });
 
 test('NV25: a destination is saved in meta nav for the new walk, and the walk says it is recording', () => {
-  const p = startPlan({ walkId: 'w1', now: 1, mode: 'quiet', dest: spot });
+  const p = startPlan({ walkId: 'w1', dest: spot });
   assert.deepEqual(p.meta, [[NAV_KEY, navValue('w1', spot)]]);
   assert.deepEqual(JSON.parse(p.meta[0][1]), { walk_id: 'w1', dest: spot });
   assert.deepEqual(p.params, { started: '1' });
 });
 
 test('NV25: a recorder warning wins over the started note, as today', () => {
-  const p = startPlan({ walkId: 'w1', now: 1, mode: 'explore', dest: spot, warning: 'Background off' });
+  const p = startPlan({ walkId: 'w1', dest: spot, warning: 'Background off' });
   assert.deepEqual(p.params, { warning: 'Background off' });
-  assert.equal(p.meta.length, 3);
+  assert.equal(p.meta.length, 1, 'only the destination');
 });
 
 test('NV22, NV23: the drawer keeps its destination in nav with no walk yet; a walk’s own is not the drawer’s', () => {

@@ -43,7 +43,7 @@ import { deadZoneDue, deadZoneNudge, inDeadZone, stripAt } from '../lib/landing/
 import { rulesCurrent, type LandingRow } from '../lib/landing/view';
 import { placesFromTilePois } from '../lib/discovery/tilePois';
 import { canBuzz } from '../lib/canBuzz';
-import { armedLine, canArm, walkPassKey, clampPass, clampRange, EXPLORE_KEY, exploredKey, kindOf, POCKET_ALERT_NOTE } from '../lib/explore/explore';
+import { armedLine, canArm, walkPassKey, clampPass, clampRange, intoRowShown, kindOf, POCKET_ALERT_NOTE } from '../lib/explore/explore';
 import { DEFAULT_SETTINGS, loadSettings, onSettings, saveSettings, type ExploreSettings } from '../lib/explore/settings';
 import { useExplore } from '../lib/explore/useExplore';
 import { reach } from '../lib/explore/reach';
@@ -89,7 +89,7 @@ import { CHOSEN_NOTICE, showsWayBack, wayBackTarget } from '../lib/nav/wayBack';
 import { layerNotes } from '../lib/layers/notes';
 import { useStorefrontsLayer } from '../lib/layers/useStorefrontsLayer';
 import { usePastLines } from '../lib/pastLines/usePastLines';
-import { useLayers } from '../lib/layers/useLayers';
+import { useWalkLayers } from '../lib/layers/useWalkLayers';
 import { useRouteWarning } from '../lib/walk/useRouteWarning';
 import { useWalkability } from '../lib/walk/useWalkability';
 import { arrivalNotice, exitPlan, screenState, startNotice } from '../lib/readyNav';
@@ -576,7 +576,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
     setLoaded(next);
     saveSettings(next).catch(() => {});
     // The open walk's replay reads its own distance, so the slider moves it too (audit 1).
-    if (walk && exploring && next.passM !== loaded.passM) {
+    if (walk && layers.on.places && next.passM !== loaded.passM) {
       db.setMeta(walkPassKey(walk.id), String(clampPass(next.passM))).catch(() => {});
     }
   };
@@ -742,7 +742,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const previewFit = useMemo(() => (navigation.preview ? boundsOf(navigation.preview.options.flatMap((o) => o.route.path), 30) : null), [navigation.preview]);
   const previewKey = previewFit ? 300000 + (Math.abs(Math.round((previewFit[0] + previewFit[1]) * 1e5)) % 99999) : 0;
   // Walkability (WK13, WK15): the layer around you, and a quiet line before a stretch built around cars on the route.
-  const layers = useLayers();
+  // The walk's own layers (specs/modes-to-layers MD3, MD10): every one off at the start of every walk.
+  const layers = useWalkLayers(walk?.id ?? null);
   const wk = useWalkability(live.here, !!layers.on.walkability);
   const storefronts = useStorefrontsLayer(live.here, !!layers.on.storefronts);
   // Where I've been (WB6, WB8): earlier walks near you, never this one; read only while a walk is open (the ready screen reads its own).
@@ -769,16 +770,18 @@ function WalkScreen(props: { onMinimize: () => void }) {
   // RP20: whether the open place has a street or path close by, from the cached streets; said, never filtered.
   const [markReach, setMarkReach] = useState<{ key: string; near: boolean | null } | null>(null);
   const [landings, setLandings] = useState<LandingRow[]>([]);
-  const [exploring, setExploring] = useState(false);
-  const quiet = !exploring;
+  // Places and Storefronts are the walk's layers (decision 0231), not a mode: what Explore mode drew follows them.
+  const placesOn = !!layers.on.places;
+  const storefrontsOn = !!layers.on.storefronts;
   const reloadLandings = useCallback(() => {
     db.listLandings().then((r) => setLandings(r.filter((x) => rulesCurrent(x.rules))), () => {});
   }, []);
   // The range preview (E21): a ring around you while the drawer is up on an exploring walk, as on the ready screen.
-  const preview = options && exploring && loaded ? loaded.rangeM : null;
+  const preview = options && placesOn && loaded ? loaded.rangeM : null;
   const explore = useExplore({
     walkId: walk?.id ?? null,
-    exploring,
+    places: placesOn,
+    storefronts: storefrontsOn,
     here: live.here,
     riding: live.riding,
     fixes,
@@ -791,8 +794,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
       storefronts.reload();
     },
     onFound: (item) => {
-      // Quietly on a quiet walk (E9): kept, shown in the replay, nothing on screen.
-      if (!exploring) return;
+      // A find needs Places on (Capture here starts from a "?"); the line says so as it happens (MD8).
+      if (!placesOn) return;
       feedback('success');
       setArrived(`Found: ${item.name}`);
       AccessibilityInfo.announceForAccessibility(`Found: ${item.name}, ${categoryOf(item.category).label}`);
@@ -934,26 +937,17 @@ function WalkScreen(props: { onMinimize: () => void }) {
       offWaiting();
     };
   }, [walk, params.recall, resumed, screenFocused, routeNav]);
-  // This walk explores only once switched on (E1); otherwise it is quiet: navigation and captures (E9).
+  // Places turned on for this walk: its pass distance is kept once, so a later setting never rewrites its replay (TC9); off, a
+  // place card that was open closes. (The spans it was on are kept by `walkLayers.set`, MD9.)
   useEffect(() => {
     if (!walk) return;
-    let alive = true;
-    db.getMeta(EXPLORE_KEY).then((v) => alive && setExploring(v === walk.id), () => {});
-    return () => {
-      alive = false;
-    };
-  }, [walk]);
-  const setExplore = (on: boolean) => {
-    if (!walk) return;
-    setExploring(on);
-    if (!on) setMarkOpen(null);
-    db.setMeta(EXPLORE_KEY, on ? walk.id : '').catch(() => {});
-    // Its replay counts what it passed from here on (E11, audit 9): the first time it was switched on.
-    if (on) {
-      const key = exploredKey(walk.id);
-      db.getMeta(key).then((v) => (v ? undefined : db.setMeta(key, String(Date.now())).then(() => loadSettings()).then((s) => db.setMeta(walkPassKey(walk.id), String(clampPass(s.passM))))), () => {}).catch(() => {});
+    if (!placesOn) {
+      setMarkOpen(null);
+      return;
     }
-  };
+    const key = walkPassKey(walk.id);
+    db.getMeta(key).then((v) => (v ? undefined : loadSettings().then((s) => db.setMeta(key, String(clampPass(s.passM))))), () => {}).catch(() => {});
+  }, [walk, placesOn]);
   // Hotspots on the walk (v1.5 slice 3): the remembered areas' strips and pockets, current rules
   // only, read again on returning to the front (an area looked at meanwhile, audit).
   useEffect(() => {
@@ -969,9 +963,9 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const [onStrip, setOnStrip] = useState<string | null>(null);
   useEffect(() => {
     const at = live.here;
-    const t = setTimeout(() => setOnStrip((cur) => (at && hotStrips.length && exploring ? stripAt(at, hotStrips, cur) : null)), 0);
+    const t = setTimeout(() => setOnStrip((cur) => (at && hotStrips.length && storefrontsOn ? stripAt(at, hotStrips, cur) : null)), 0);
     return () => clearTimeout(t);
-  }, [live.here, hotStrips, exploring]);
+  }, [live.here, hotStrips, storefrontsOn]);
   // A dead zone, 10 min (walking, not paused) from every pocket: once a walk, a pill toward the
   // nearest (L15). Nothing is read from storage until it could fire (audit).
   const farSince = useRef<number | null>(null);
@@ -993,15 +987,15 @@ function WalkScreen(props: { onMinimize: () => void }) {
     let alive = true;
     (async () => {
       nudgedRef.current ??= (await db.getMeta(NUDGED_KEY)) === walk.id;
-      const got = deadZoneNudge({ here: at, pockets: hotPockets, farSinceMs: far, quiet, nudged: nudgedRef.current });
+      const got = deadZoneNudge({ here: at, pockets: hotPockets, farSinceMs: far, quiet: !storefrontsOn, nudged: nudgedRef.current });
       if (alive && got) setNudge(got);
     })().catch(() => {});
     return () => {
       alive = false;
     };
-  }, [walk, live.here, live.riding, hotPockets, quiet, pausedNow]);
+  }, [walk, live.here, live.riding, hotPockets, storefrontsOn, pausedNow]);
   // Spent only once it has been seen: not under a card, a route or settings, never on a quiet walk (audit).
-  const nudgeShown = !!nudge && !quiet && !spot && !openMark && !options && !memory && !navigation.nav && !navigation.finding;
+  const nudgeShown = !!nudge && storefrontsOn && !spot && !openMark && !options && !memory && !navigation.nav && !navigation.finding;
   useEffect(() => {
     if (!nudgeShown || !walk) return;
     if (!nudgedRef.current) {
@@ -1519,7 +1513,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
             </Pressable>
           </View>
         )}
-        {exploring && explore.armed && (
+        {placesOn && explore.armed && (
           // The armed place (TC3): plain words, above the capture stack, never moving it.
           <LiftIn testID="armed-line" style={styles.findChoice} accessibilityLiveRegion="polite">
             <Text style={styles.findChoiceTitle} numberOfLines={2} accessibilityLabel={armedLine(explore.armed.item)}>{armedLine(explore.armed.item)}</Text>
@@ -1685,7 +1679,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
         onUp={raiseOptions}
         areaHeight={screenH}
         locked={recordingVoice}
-        summaryLabel={exploring ? 'The walk, exploring' : 'The walk'}
+        summaryLabel="The walk"
         summary={<WalkStats startedAt={walk?.started_at ?? null} pauses={pauses} distanceM={live.distanceM} rideM={live.rideM} />}
         actions={
           // Pause alone while walking; Resume and a held Stop once paused, as AllTrails does (decision 0220). The owner's
@@ -1746,22 +1740,11 @@ function WalkScreen(props: { onMinimize: () => void }) {
       >
         <View testID="options-card" style={styles.drawer}>
           <Text style={styles.spotTitle} accessibilityRole="header">This walk</Text>
-            <View style={styles.optionRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.optionLabel}>Explore</Text>
-                <Text style={styles.markSub}>
-                  {exploring
-                    ? 'Places to find show as “?” when they’re close, a chip names the storefront street you’re on, and reminders are on.'
-                    : 'Off: a quiet walk, just navigation and your captures. Captures still find places.'}
-                </Text>
-              </View>
-              <Switch testID="explore-walk" accessibilityLabel="Explore" value={exploring} onValueChange={setExplore} />
-            </View>
-            {exploring && loaded && (
+            {loaded && (
               <>
                 <Text style={styles.optionSection} accessibilityRole="header">“?” range</Text>
                 <Text style={styles.markSub}>
-                  A “?” shows for places within {formatRange(settings.rangeM)} of you, {walkNote(settings.rangeM)}.
+                  With Places on, a “?” shows for places within {formatRange(settings.rangeM)} of you, {walkNote(settings.rangeM)}.
                   {live.here ? ' The ring on the map shows how far that is.' : ' The ring shows on the map once there’s a position.'}
                 </Text>
                 <RangeSlider value={settings.rangeM} onChange={(m) => changeSettings({ ...settings, rangeM: clampRange(m) })} />
@@ -1818,7 +1801,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
               <Icon name="share-outline" size={20} color={theme.ink} />
               <Text style={[styles.optionLabel, { flex: 1 }]}>Share GPS log</Text>
             </Pressable>
-            {(exploring || sightsOn) && (
+            {intoRowShown({ places: placesOn, sights: sightsOn }) && (
               // WI1, WI19: What I'm into lasts beyond this walk, so its row is a short section of its own after the walk's
               // settings, out from under "This walk" (the owner, Nov 18), headed "Explore" (audit 13); the kinds and
               // Complexes are on its page (0192). Scenic routes' Sights read the kinds too, so it shows with either on
@@ -1875,7 +1858,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
         </Pressable>
       )}
 
-      {openMark && !spot && !quiet && (
+      {openMark && !spot && placesOn && (
         // A place's card, in the spot card's place (E7, E8, E12).
         <View style={[styles.spotRow, cardAt]} pointerEvents="box-none">
           <View testID="mark-card" style={styles.spot} accessibilityViewIsModal>

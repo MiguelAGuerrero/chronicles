@@ -11,6 +11,7 @@ import { DEFAULT_OFF, foundRows, keepTheLows, passedNames, SUBTYPES } from '../d
 import type { CategoryId, Kind, Place } from '../discovery/types';
 import { distanceM, nearPoints, projector } from '../geo';
 import type { LngLat } from '../types';
+import { spansCover, type Spans } from './placesSpans';
 import { numberWord } from '../resurface/lines';
 
 export type { Kind } from '../discovery/types';
@@ -22,9 +23,7 @@ export type { Kind } from '../discovery/types';
  * screens call in.
  */
 
-/** Meta: the walk that is exploring (E1). Any other walk is quiet (E9): no layers, no reminders. */
-export const EXPLORE_KEY = 'explore_walk';
-/** Meta, per walk: it explored at some point, so its replay counts what it passed (E11). */
+/** Meta, per walk recorded before decision 0231: it explored at some point, so its replay counts what it passed from then (E11). A newer walk's passes are read from `places_spans:<walk>`. */
 export const exploredKey = (walkId: string) => `explored:${walkId}`;
 /** The pass-by distance a walk was walked with (TC9), kept beside `explored:<walk>`. */
 export const walkPassKey = (walkId: string) => `walk_pass:${walkId}`;
@@ -388,8 +387,8 @@ export function armedFind(armed: Armed | null, fresh: { id: string; t: number }[
 }
 
 /** Arming holds on its own walk while the walker is within 60 m of the place; with no fix it stays (TC4). */
-export function armedStill(armed: Armed | null, here: LngLat | null, walkId: string | null, o: { exploring?: boolean; found?: Set<string> } = {}): Armed | null {
-  if (!armed || armed.walkId !== walkId || o.exploring === false || o.found?.has(armed.item.key)) return null;
+export function armedStill(armed: Armed | null, here: LngLat | null, walkId: string | null, o: { places?: boolean; found?: Set<string> } = {}): Armed | null {
+  if (!armed || armed.walkId !== walkId || o.places === false || o.found?.has(armed.item.key)) return null;
   return here && distanceM(here, armed.item.at) > EXPLORE_RULES.revealM ? null : armed;
 }
 
@@ -525,16 +524,22 @@ export const alertsDue = (unknownKeys: string[], alerted: Set<string>): string[]
  * one already named within 60 m (audit 1, 5: at the 60 m range, or a fix
  * landing inside 60 m, a place is never a bare "?").
  */
+/** MD17: storefront streets are remembered while Places or Storefronts is on, never otherwise (what Explore mode's `remember` did). */
+export const rememberStorefronts = (o: { places: boolean; storefronts: boolean }): boolean => o.places || o.storefronts;
+
+/** MD18: the "What I'm into" row shows while Places or the Sights route leaning is on. */
+export const intoRowShown = (o: { places: boolean; sights: boolean }): boolean => o.places || o.sights;
+
 export const alertKeys = (shown: ShownMark[]): string[] => shown.filter((s) => s.state !== 'found').map((s) => s.item.key);
 
 /**
  * The pocket alert's decision (E19, PA2, PA3): which places to mark as alerted,
- * and whether to nudge, once for all of them. Nothing with the switch off, on a
- * quiet walk, on a ride, or while a range is previewed in settings (audit 2:
+ * and whether to nudge, once for all of them. Nothing with the switch off, with Places
+ * off (nothing is shown to alert about), on a ride, or while a range is previewed in settings (audit 2:
  * the preview's places would use up their alert).
  */
-export function pocketAlert(o: { exploring: boolean; haptic: boolean; riding: boolean; previewing: boolean; nearKeys: string[]; alerted: Set<string> }): { mark: string[]; nudge: boolean } {
-  if (!o.exploring || !o.haptic || o.riding || o.previewing) return { mark: [], nudge: false };
+export function pocketAlert(o: { places: boolean; haptic: boolean; riding: boolean; previewing: boolean; nearKeys: string[]; alerted: Set<string> }): { mark: string[]; nudge: boolean } {
+  if (!o.places || !o.haptic || o.riding || o.previewing) return { mark: [], nudge: false };
   const mark = alertsDue(o.nearKeys, o.alerted);
   return { mark, nudge: mark.length > 0 };
 }
@@ -557,7 +562,7 @@ export function alertedFor(byWalk: Map<string, Set<string>>, walkId: string | nu
 }
 
 /** The pocket alert switch's note, in the Start dialog and the Explore settings (PA5). */
-export const POCKET_ALERT_NOTE = 'Two soft taps when a “?” comes into range. Never on a quiet walk.';
+export const POCKET_ALERT_NOTE = 'Two soft taps when a “?” comes into range. Needs Places on.';
 
 /**
  * A home place's finds (E10): its checklist is found by the area's level, name
@@ -637,11 +642,13 @@ export interface PassedInput {
   foundHere: Set<string>;
   /** How close counts as passing (TC6); the default when absent. */
   passM?: number;
+  /** Modes to layers MD9: the spans Places was on; a pass counts only inside one. Absent, `since` decides (a walk before decision 0231). */
+  spans?: Spans;
 }
 export function passedPlaces(o: PassedInput): ChecklistItem[] {
   const shown = o.items.filter((i) => !isKindHidden(o.hidden, i.kind));
   const passM = o.passM ?? EXPLORE_RULES.passDefault;
-  const fixes = o.fixes.filter((f) => f.t >= o.since);
+  const fixes = o.fixes.filter((f) => (o.spans ? spansCover(o.spans, f.t) : f.t >= o.since));
   const named = new Set(shown.filter((x) => firstPass(fixes, x.at, passM) != null).map((x) => x.key));
   const seen = new Set<string>();
   // SP20: small places only when nothing else was passed.
@@ -655,7 +662,7 @@ export const passedCount = (o: PassedInput): number => passedPlaces(o).length;
  * last, as the card says them (RP19, remarkable-and-public audit 14).
  */
 export function passedAlong(o: PassedInput): (ChecklistItem & { t: number })[] {
-  const fixes = o.fixes.filter((f) => f.t >= o.since);
+  const fixes = o.fixes.filter((f) => (o.spans ? spansCover(o.spans, f.t) : f.t >= o.since));
   return passedPlaces(o).flatMap((i) => {
     const t = firstPass(fixes, i.at, o.passM ?? EXPLORE_RULES.passDefault);
     return t != null ? [{ ...i, t }] : [];

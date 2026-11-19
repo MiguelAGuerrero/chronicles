@@ -1,10 +1,10 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { canBuzz } from '../lib/canBuzz';
-import { clampPass, clampRange, POCKET_ALERT_NOTE } from '../lib/explore/explore';
+import { clampPass, clampRange, intoRowShown, POCKET_ALERT_NOTE } from '../lib/explore/explore';
 import type { ExploreSettings as Settings } from '../lib/explore/settings';
 import type { Waypoint } from '../lib/nav/types';
 import { formatRange } from '../lib/format';
-import { destLine, type StartMode } from '../lib/startPlan';
+import { destLine } from '../lib/startPlan';
 import { saveUnits } from '../lib/unitsStore';
 import { useUnits } from '../lib/useUnits';
 import type { LngLat } from '../lib/types';
@@ -33,17 +33,15 @@ const GROUP_NOTE = 'Captures join the moment just made; a separate moment takes 
  * changes (NV22); Start stays at the bar's foot below.
  */
 export function StartSettings(props: {
-  mode: StartMode;
   dest: Waypoint | null;
   fix: LngLat | null;
   settings: Settings;
-  onMode: (m: StartMode) => void;
   onClearDest: () => void;
   onSettings: (s: Settings) => void;
   /** The map's layers: what each one that is on shows, here and not over the map. */
   layers?: ReturnType<typeof useLayers>;
 }) {
-  const { mode, dest, fix, settings } = props;
+  const { dest, fix, settings } = props;
   const grouping = useStore(momentPill.store, (st) => st.grouping);
   const sightsOn = useStore(routeLeanings.store, (s) => s.includes('sights'));
   // Distances in km or miles (QL16): saved as it changes, every screen redraws at once.
@@ -51,25 +49,6 @@ export function StartSettings(props: {
   return (
     <View testID="start-settings" style={styles.content}>
       <Text style={styles.title} accessibilityRole="header">Walk settings</Text>
-      <Text style={styles.section} accessibilityRole="header">Mode</Text>
-      <View style={styles.segment} accessibilityRole="radiogroup">
-        {(['quiet', 'explore'] as const).map((m) => (
-          <Pressable
-            key={m}
-            testID={`mode-${m}`}
-            accessibilityRole="radio"
-            accessibilityState={{ checked: mode === m }}
-            aria-checked={mode === m}
-            accessibilityLabel={m === 'quiet' ? 'Quiet: the way and your captures' : 'Explore: shows places to find as you get close'}
-            onPress={() => props.onMode(m)}
-            style={[styles.segmentBtn, mode === m && styles.segmentOn]}
-          >
-            <Icon name={m === 'quiet' ? 'walk-outline' : 'compass-outline'} size={18} color={mode === m ? '#ffffff' : theme.ink} />
-            <Text style={[styles.segmentText, mode === m && styles.segmentTextOn]}>{m === 'quiet' ? 'Quiet' : 'Explore'}</Text>
-          </Pressable>
-        ))}
-      </View>
-
       <Text style={styles.section} accessibilityRole="header">Destination</Text>
       {dest ? (
         <View style={styles.destRow}>
@@ -85,11 +64,11 @@ export function StartSettings(props: {
       <Text style={styles.sub}>Long-press the map to pick a spot (lower this first).</Text>
       <RouteLeaningSettings />
 
-      {mode === 'explore' && (
+      {(
         <>
           <Text style={styles.section} accessibilityRole="header">“?” range</Text>
           <Text style={styles.sub}>
-            A “?” shows for places within {formatRange(settings.rangeM)} of you, {walkNote(settings.rangeM)}.
+            With Places on, a “?” shows for places within {formatRange(settings.rangeM)} of you, {walkNote(settings.rangeM)}.
             {fix ? ' The ring on the map shows how far that is.' : ' The ring shows on the map once there’s a position.'}
           </Text>
           <RangeSlider value={settings.rangeM} onChange={(m) => props.onSettings({ ...settings, rangeM: clampRange(m) })} />
@@ -100,7 +79,7 @@ export function StartSettings(props: {
       )}
       {/* WI1: one row where the list was; the kinds and Complexes are on its page (decision 0192). Scenic routes' Sights
           read the kinds too, so it shows with Explore or Sights on (what-im-into-page audit 6, the owner, Nov 18). */}
-      {(mode === 'explore' || sightsOn) && <IntoRow />}
+      {intoRowShown({ places: !!props.layers?.on.places, sights: sightsOn }) && <IntoRow />}
 
       {props.layers && Object.values(props.layers.on).some(Boolean) ? (
         <>

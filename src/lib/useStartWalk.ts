@@ -6,18 +6,16 @@ import { askMotion } from './walkMotion';
 import { saveForLater } from './nav/store';
 import type { Waypoint } from './nav/types';
 import { startErrorFrom, type StartError } from './recorder/types';
-import { loadSettings } from './explore/settings';
 import { startWalk } from './session';
-import { parseStartMode, START_MODE_KEY, startPlan, walkHerePlan, type StartMode } from './startPlan';
+import { startPlan, walkHerePlan } from './startPlan';
 import { showWalk } from './walkNav';
 
 export type { StartError };
 
 /**
  * Starts a walk at once (NV19, NV12, NV25): Navigate's Start, and Walk here on
- * Explore and Chronicle. The mode is the one saved (`start_mode`) unless given;
- * the plan's meta is written before the walk screen opens, so it starts with
- * them. Never waits for a fix: the walk's recorder takes over (NV28).
+ * Explore and Chronicle. There is no mode (decision 0231); the plan's meta (the
+ * destination) is written before the walk screen opens, so it starts with it. Never waits for a fix: the walk's recorder takes over (NV28).
  *
  * With a walk already open (minimized), Walk here routes that walk there, as
  * its own Go here, and returns to it (NV10): the walk screen routes the
@@ -32,7 +30,6 @@ export function useStartWalk() {
    */
   const start = async (
     dest: Waypoint | null,
-    mode?: StartMode,
     opts?: { inPlace?: boolean; onError?: (e: StartError) => void },
   ): Promise<Record<string, string> | null> => {
     // Motion first, straight from the tap: an iPhone's browser asks only then (Motion, MO1).
@@ -52,10 +49,8 @@ export function useStartWalk() {
         if (!opts?.inPlace) showWalk();
         return {};
       }
-      const chosen = mode ?? parseStartMode(await db.getMeta(START_MODE_KEY).catch(() => null));
       const { walk, warning } = await startWalk();
-      const passM = (await loadSettings().catch(() => null))?.passM;
-      const plan = startPlan({ walkId: walk.id, now: Date.now(), mode: chosen, dest, warning, passM });
+      const plan = startPlan({ walkId: walk.id, dest, warning });
       for (const [k, v] of plan.meta) await db.setMeta(k, v);
       // In place, every start says it is recording (NR6); a recorder warning still wins.
       if (opts?.inPlace) return plan.params?.warning ? plan.params : { started: '1' };

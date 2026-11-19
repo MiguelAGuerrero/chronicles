@@ -10,15 +10,14 @@ import { fakePorts } from '../fakes';
 
 const ROOT = join(__dirname, '../../../..');
 const src = (p: string) => readFileSync(join(ROOT, p), 'utf8');
-const T = { todo: 'test first' } as const;
 
-test('MD1, MD13: every map lists Places, Explore, the ready map and the live walk', T, async () => {
+test('MD1, MD13: every map lists Places, Explore, the ready map and the live walk', async () => {
   const { layersFor, LAYERS } = await import('../../layers/registry');
   for (const map of ['explore', 'navigate', 'walk'] as const) assert.ok(layersFor(map).some((l) => l.id === 'places'), `${map} lists Places`);
   assert.equal(LAYERS.find((l) => l.id === 'places')?.maps, undefined, 'Places is not limited to a map');
 });
 
-test('MD10: the live walk\'s layers all start off, Places included; the key is per walk', T, async () => {
+test('MD10: the live walk\'s layers all start off, Places included; the key is per walk', async () => {
   const m = (await import('../../layers/state')) as unknown as { walkLayerDefaults?: () => Record<string, boolean>; walkLayersKey?: (id: string) => string; decodeWalkLayers?: (raw: string | null) => Record<string, boolean> };
   assert.ok(m.walkLayerDefaults && m.walkLayersKey && m.decodeWalkLayers, 'the walk-layers helpers exist');
   assert.ok(Object.values(m.walkLayerDefaults()).every((v) => v === false), 'every layer off');
@@ -28,7 +27,7 @@ test('MD10: the live walk\'s layers all start off, Places included; the key is p
   assert.equal(m.decodeWalkLayers('{not json').places, false);
 });
 
-test('MD10: a walk\'s layers start off for every walk, survive a resume, never reach the next, and leave the map setting alone', T, async () => {
+test('MD10: a walk\'s layers start off for every walk, survive a resume, never reach the next, and leave the map setting alone', async () => {
   const mod = (await import('../../layers/walkShell')) as { createWalkLayers?: (p: unknown) => { store: { get(): { on: Record<string, boolean> } }; begin(id: string): Promise<void>; set(id: string, on: boolean): Promise<void> } };
   assert.ok(mod.createWalkLayers, 'createWalkLayers exists');
   const p = fakePorts();
@@ -44,7 +43,7 @@ test('MD10: a walk\'s layers start off for every walk, survive a resume, never r
   assert.equal(w.store.get().on.places, true, 'a resumed walk keeps its own');
 });
 
-test('MD10: deleteWalk removes the walk\'s layers and spans; the three stores delete them', T, async () => {
+test('MD10: deleteWalk removes the walk\'s layers and spans; the three stores delete them', async () => {
   const p = fakePorts();
   await p.db.setMeta('walk_layers:w1', '{"places":true}');
   await p.db.setMeta('places_spans:w1', '[[1,null]]');
@@ -55,7 +54,7 @@ test('MD10: deleteWalk removes the walk\'s layers and spans; the three stores de
   }
 });
 
-test('MD2, MD12: no mode control, no Explore switch, no mode meta in the views, the start plan or the ready shell', T, () => {
+test('MD2, MD12: no mode control, no Explore switch, no mode meta in the views, the start plan or the ready shell', () => {
   for (const f of ['src/components/StartSettings.tsx', 'src/app/walk.tsx', 'src/components/walk/useReady.tsx', 'src/lib/ready/shell.ts', 'src/lib/useStartWalk.ts', 'src/lib/startPlan.ts']) {
     assert.ok(!/START_MODE_KEY|parseStartMode|EXPLORE_KEY|testID="explore-walk"|mode-quiet|mode-explore|StartMode/.test(src(f)), `${f} has no mode`);
   }

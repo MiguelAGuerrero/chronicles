@@ -15,6 +15,23 @@ export function layerDefaults(layers: readonly LayerDef[] = LAYERS): LayerState 
   return Object.fromEntries(layers.map((l) => [l.id, l.defaultOn]));
 }
 
+/**
+ * A live walk's layers (specs/modes-to-layers MD3, MD10, decision 0231): every layer off at the start of every walk, whatever
+ * its default on the other maps, kept per walk (meta `walk_layers:<walk>`) and never carried to the next.
+ */
+export const walkLayerDefaults = (layers: readonly LayerDef[] = LAYERS): LayerState => Object.fromEntries(layers.map((l) => [l.id, false]));
+export const walkLayersKey = (walkId: string): string => `walk_layers:${walkId}`;
+export function decodeWalkLayers(raw: string | null, layers: readonly LayerDef[] = LAYERS): LayerState {
+  const out = walkLayerDefaults(layers);
+  try {
+    const v: unknown = raw ? JSON.parse(raw) : null;
+    if (typeof v === 'object' && v !== null && !Array.isArray(v)) for (const l of layers) if (typeof (v as Record<string, unknown>)[l.id] === 'boolean') out[l.id] = (v as Record<string, boolean>)[l.id];
+  } catch {
+    // junk reads as off
+  }
+  return out;
+}
+
 export const encodeLayers = (s: LayerState): string => JSON.stringify(s);
 
 /** SF12: a layer saved before specs/storefronts, under its old id: the new id, then the old one, is read. */

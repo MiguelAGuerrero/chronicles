@@ -27,6 +27,7 @@ import {
   type ChecklistArea,
   type ChecklistItem,
   type ExploreRead,
+  rememberStorefronts,
 } from './explore';
 import { placesArchive } from '../discovery/archive';
 import { exploreBuild, exploreBusy, exploreHold, exploreRead, itemBounds } from './exploreRun';
@@ -40,7 +41,7 @@ const CHECK_M = 25;
 
 /**
  * Explore on the walk screen (E2-E9, E17-E23): checklists built quietly in
- * the background on every walk; on an exploring walk, the "?" marks within
+ * the background on every walk; while Places is on, the "?" marks within
  * your range, faint ones along a route, the pocket alert; and on any walk, a
  * capture finding the place the reader armed (TC4).
  */
@@ -49,7 +50,10 @@ const alertedByWalk = new Map<string, Set<string>>();
 
 export function useExplore(opts: {
   walkId: string | null;
-  exploring: boolean;
+  /** Places is on for this walk (decision 0231): the "?" within range, the pocket alert, the armed place. */
+  places: boolean;
+  /** Storefronts is on for this walk: storefront streets are remembered (MD17). */
+  storefronts: boolean;
   here: LngLat | null;
   /** On a ride (rides, R12): nothing is named, no pocket alert, no read starts until you are on foot. */
   riding?: boolean;
@@ -140,8 +144,8 @@ export function useExplore(opts: {
   const failed = useRef<{ at: LngLat; t: number } | null>(null);
   const checkedAt = useRef<LngLat | null>(null);
   const readAt = useCallback(async (centre: LngLat, stop: () => boolean = () => false): Promise<boolean> => {
-    // Storefront streets only on an exploring walk (the owner's call); checklists on every walk.
-    const r = await exploreRead(centre, { remember: latest.current.exploring }, () => !mounted.current || stop());
+    // Storefront streets only while Places or Storefronts is on (MD17); checklists on every walk.
+    const r = await exploreRead(centre, { remember: rememberStorefronts(latest.current) }, () => !mounted.current || stop());
     if (!mounted.current) return false;
     if (!r.ok) {
       // tend explore audit 13: a read its caller stopped is no failure, so it sets no failure's wait.
@@ -153,7 +157,7 @@ export function useExplore(opts: {
     latest.current.onAreas();
     return true;
   }, [loadKnown]);
-  // Areas a quiet walk read without storefront streets: read again once on an exploring walk, never in a loop.
+  // Areas read without storefront streets: read again once while Places or Storefronts is on, never in a loop.
   const sweptAt = useRef<LngLat[]>([]);
   const maybeRead = useCallback(async (fix: LngLat) => {
     if (exploreBusy() || !retryAllowed(failed.current, fix, Date.now())) return;
@@ -167,19 +171,19 @@ export function useExplore(opts: {
       // Audit 3: the archive's version here, so an area built before it (or with an older one) is read again.
       await placesArchive.refresh();
       let centre = readCentre({ fix, candidates, areas: k.areas, reads: k.reads, build, archive: (at) => placesArchive.versionAt(at) });
-      if (!centre && latest.current.exploring && !sweptAt.current.some((p) => distanceM(p, fix) <= EXPLORE_RULES.rereadM)) {
+      if (!centre && rememberStorefronts(latest.current) && !sweptAt.current.some((p) => distanceM(p, fix) <= EXPLORE_RULES.rereadM)) {
         const rows = await db.listLandings().catch(() => []);
         // Asked, not assumed: on a walk opened straight from a launch the release isn't known yet (activity-density audit 8).
         if (!sweepCovered(rows, fix, build, await ensureOvertureRelease().catch(() => null))) centre = fix;
       }
       if (!centre) return false;
-      if (latest.current.exploring) sweptAt.current.push(centre);
+      if (rememberStorefronts(latest.current)) sweptAt.current.push(centre);
       return readAt(centre);
     });
     if (read) await loadItems(fix);
   }, [loadKnown, loadItems, readAt]);
 
-  const { here, exploring } = opts;
+  const { here, places } = opts;
   const riding = !!opts.riding;
   useEffect(() => {
     if (!here || !opts.walkId) return;
@@ -190,17 +194,17 @@ export function useExplore(opts: {
     maybeRead(here).catch(() => {});
   }, [here, riding, opts.walkId, loadItems, maybeRead]);
 
-  // Switched to exploring: check at once, so storefront streets a quiet read skipped come in now, not 25 m on.
+  // Switched on: check at once, so storefront streets a read skipped come in now, not 25 m on.
   useEffect(() => {
     const at = latest.current.here;
-    if (!exploring || !at || latest.current.riding) return;
+    if (!(places || opts.storefronts) || !at || latest.current.riding) return;
     checkedAt.current = at;
     maybeRead(at).catch(() => {});
-  }, [exploring, maybeRead]);
+  }, [places, opts.storefronts, maybeRead]);
 
   // On the way (E22, E23): the areas along a new route are read, one each, then its items loaded.
   // Keyed on the route itself, so a fix never starts it again (audit 1); a failed read waits as any does.
-  const routePath = exploring ? opts.routePath : null;
+  const routePath = places ? opts.routePath : null;
   useEffect(() => {
     if (!routePath || routePath.length < 2) {
       const t = setTimeout(() => setRouteItems((r) => (r.length ? [] : r)), 0);
@@ -230,27 +234,27 @@ export function useExplore(opts: {
     };
   }, [routePath, loadKnown, readAt]);
 
-  // Named within 60 m, fix by fix, on an exploring walk (E7); a reload's fixes counted once.
+  // Named within 60 m, fix by fix, while Places is on (E7); a reload's fixes counted once.
   const seeded = useRef(false);
   useEffect(() => {
-    if (!exploring || seeded.current || !items.length || !opts.fixes.length) return;
+    if (!places || seeded.current || !items.length || !opts.fixes.length) return;
     seeded.current = true;
     const keys = revealedKeys(items, opts.fixes);
     const t = setTimeout(() => setRevealed((r) => new Set([...r, ...keys])), 0);
     return () => clearTimeout(t);
-  }, [exploring, items, opts.fixes]);
+  }, [places, items, opts.fixes]);
   useEffect(() => {
-    if (!exploring || !here || !items.length || riding) return;
+    if (!places || !here || !items.length || riding) return;
     const fresh = [...revealedKeys(items, [here])].filter((k) => !revealed.has(k));
     if (!fresh.length) return;
     const t = setTimeout(() => setRevealed((r) => new Set([...r, ...fresh])), 0);
     return () => clearTimeout(t);
-  }, [exploring, here, riding, items, revealed]);
+  }, [places, here, riding, items, revealed]);
 
   // A capture finds a place only when the reader tapped "Capture here" on it (TC1, TC4): the next capture of this
   // walk finds the armed place. Each capture is handled once, so one made before arming never counts.
   const [armed, setArmed] = useState<Armed | null>(null);
-  const armedNow = useMemo(() => armedStill(armed, here, opts.walkId, { exploring, found: found ?? undefined }), [armed, here, opts.walkId, exploring, found]);
+  const armedNow = useMemo(() => armedStill(armed, here, opts.walkId, { places, found: found ?? undefined }), [armed, here, opts.walkId, places, found]);
   // Arming that no longer holds (the walker moved off, the walk ended) is let go.
   useEffect(() => {
     if (armed && !armedNow) {
@@ -282,22 +286,22 @@ export function useExplore(opts: {
   const rangeM = opts.previewRangeM ?? settings.rangeM;
   const foundSet = useMemo(() => found ?? new Set<string>(), [found]);
   const shown = useMemo(
-    () => (exploring ? visibleMarks({ items, here, rangeM, found: foundSet, hidden: settings.hidden, revealed }) : []),
-    [exploring, items, here, rangeM, settings.hidden, foundSet, revealed],
+    () => (places ? visibleMarks({ items, here, rangeM, found: foundSet, hidden: settings.hidden, revealed }) : []),
+    [places, items, here, rangeM, settings.hidden, foundSet, revealed],
   );
   const onTheWay = useMemo(() => {
-    if (!exploring || !opts.route) return [];
+    if (!places || !opts.route) return [];
     return routeMarks({ items: routeItems, route: opts.route, rangeM, exclude: new Set(shown.map((s) => s.item.key)), found: foundSet, hidden: settings.hidden });
-  }, [exploring, opts.route, routeItems, rangeM, settings.hidden, shown, foundSet]);
+  }, [places, opts.route, routeItems, rangeM, settings.hidden, shown, foundSet]);
 
   // The pocket alert (E19, PA1-PA3): one double-tap for the places that just came into range, each once a walk.
   const previewing = opts.previewRangeM != null;
   useEffect(() => {
     const alerted = alertedFor(alertedByWalk, opts.walkId);
-    const { mark, nudge } = pocketAlert({ exploring, haptic: settings.haptic, riding, previewing, nearKeys: alertKeys(shown), alerted });
+    const { mark, nudge } = pocketAlert({ places, haptic: settings.haptic, riding, previewing, nearKeys: alertKeys(shown), alerted });
     for (const k of mark) alerted.add(k);
     if (nudge) feedback('nudge');
-  }, [exploring, settings.haptic, riding, previewing, shown, opts.walkId]);
+  }, [places, settings.haptic, riding, previewing, shown, opts.walkId]);
 
   // The found places on the map wear the glyph of the moment that found each (O26): this walk's captures, else read.
   const shownFound = useMemo(() => new Set(shown.filter((s) => s.state === 'found').map((s) => s.item.key)), [shown]);

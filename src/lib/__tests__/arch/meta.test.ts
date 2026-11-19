@@ -31,7 +31,6 @@ test('FC8 encodings match what the app already stores, so old call sites can mov
   const m = metaStore(db);
   await m.set('hint_go', true);
   await m.set('web_note_dismissed', true);
-  await m.set('explore_walk', 'w1');
   await m.set('explore_hidden', ['food']);
   await m.set('explore_range', 800);
   await m.set('explore_haptic', true);

@@ -1,5 +1,4 @@
 // @layer core
-import { EXPLORE_KEY, exploredKey, passMeta } from './explore/explore';
 import { formatDistanceNear } from './format';
 import { distanceM } from './geo';
 import { NAV } from './nav/rules';
@@ -12,16 +11,8 @@ import type { LngLat } from './types';
  * Start and Walk here start the same way.
  */
 
-/** The mode the walk is started in: quiet (navigation and captures) or exploring (E1). */
-export type StartMode = 'quiet' | 'explore';
-/** Meta: the mode the drawer opens on, the last one picked (NV22). */
-export const START_MODE_KEY = 'start_mode';
 /** Meta: the destination (N13). Before a walk, the drawer's, with no walk id. */
 export const NAV_KEY = 'nav';
-
-export function parseStartMode(raw: string | null | undefined): StartMode {
-  return raw === 'explore' ? 'explore' : 'quiet';
-}
 
 export function navValue(walkId: string | null, dest: Waypoint): string {
   return JSON.stringify({ walk_id: walkId, dest });
@@ -73,12 +64,12 @@ export interface StartPlan {
   params?: Record<string, string>;
 }
 
-/** What starting a walk writes (NV25): Explore's keys, and the destination for the new walk. */
-export function startPlan(input: { walkId: string; now: number; mode: StartMode; dest: Waypoint | null; warning?: string; passM?: number }): StartPlan {
+/**
+ * What starting a walk writes (NV25): the destination for the new walk, and nothing else. There is no mode (decision 0231):
+ * every walk starts with every layer off, and Places, when turned on, keeps its own spans and pass distance.
+ */
+export function startPlan(input: { walkId: string; dest: Waypoint | null; warning?: string }): StartPlan {
   const meta: [string, string][] = [];
-  if (input.mode === 'explore') meta.push([EXPLORE_KEY, input.walkId], [exploredKey(input.walkId), String(input.now)]);
-  // The pass-by distance this walk is walked with, so a later setting never rewrites its replay (TC9).
-  if (input.mode === 'explore' && input.passM != null) meta.push(passMeta(input.walkId, input.passM));
   if (input.dest) meta.push([NAV_KEY, navValue(input.walkId, input.dest)]);
   // A walk started to somewhere says so as it opens: it is recording, not just a route.
   const params: Record<string, string> | undefined = input.warning ? { warning: input.warning } : input.dest ? { started: '1' } : undefined;

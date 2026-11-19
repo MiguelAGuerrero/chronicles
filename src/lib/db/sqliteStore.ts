@@ -20,6 +20,8 @@ import type { StoredReaction } from '../reactions/core';
 import type { Transcript } from '../transcript/core';
 import { countsOf, recountNewStreets } from '../deletion/core';
 import { exploredKey, walkPassKey } from '../explore/explore';
+import { placesSpansKey } from '../explore/placesSpans';
+import { walkLayersKey } from '../layers/state';
 import { DERIVED_STORES } from './stores';
 import type { Capture, GapDecision, Moment, LngLat, Pause, Still, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
 import { segmentBbox } from './segmentBounds';
@@ -359,6 +361,8 @@ export function makeSqliteDb(open: () => Promise<SQLiteDatabase>, openWriter?: (
         }
         await t.runAsync('DELETE FROM meta WHERE key = ?', exploredKey(walkId));
         await t.runAsync('DELETE FROM meta WHERE key = ?', walkPassKey(walkId));
+        await t.runAsync('DELETE FROM meta WHERE key = ?', walkLayersKey(walkId));
+        await t.runAsync('DELETE FROM meta WHERE key = ?', placesSpansKey(walkId));
         // Its line goes with it (WB13).
         await t.runAsync('DELETE FROM walk_line_tile WHERE walk_id = ?', walkId);
         await t.runAsync('DELETE FROM walk_line WHERE walk_id = ?', walkId);

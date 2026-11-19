@@ -8,13 +8,12 @@ import type { LngLat } from '../../types';
 // Modes to layers MD9, written before the code: a walk's replay names what it passed only within the spans Places was on.
 
 const ROOT = join(__dirname, '../../../..');
-const T = { todo: 'test first' } as const;
 const O: LngLat = [-75.37, 40.61];
 const mLon = 111320 * Math.cos((O[1] * Math.PI) / 180);
 const at = (e: number, n = 0): LngLat => [O[0] + e / mLon, O[1] + n / 110540];
 const spans = async () => (await import('../../explore/placesSpans')) as typeof import('../../explore/placesSpans');
 
-test('MD9: toggling Places on and off makes spans; a second on opens another; off with none open does nothing', T, async () => {
+test('MD9: toggling Places on and off makes spans; a second on opens another; off with none open does nothing', async () => {
   const { toggleSpans } = await spans();
   const a = toggleSpans([], true, 100);
   assert.deepEqual(a, [[100, null]]);
@@ -25,7 +24,7 @@ test('MD9: toggling Places on and off makes spans; a second on opens another; of
   assert.deepEqual(toggleSpans(a, true, 150), a, 'on while already on is no new span');
 });
 
-test('MD9: spansCover: inside a span, outside it, an open span runs to the end', T, async () => {
+test('MD9: spansCover: inside a span, outside it, an open span runs to the end', async () => {
   const { spansCover } = await spans();
   const s: [number, number | null][] = [[100, 200], [300, null]];
   assert.equal(spansCover(s, 150), true);
@@ -35,7 +34,7 @@ test('MD9: spansCover: inside a span, outside it, an open span runs to the end',
   assert.equal(spansCover([], 150), false);
 });
 
-test('MD9: spans are kept as JSON and read tolerantly', T, async () => {
+test('MD9: spans are kept as JSON and read tolerantly', async () => {
   const { decodeSpans, encodeSpans, placesSpansKey } = await spans();
   assert.equal(placesSpansKey('w1'), 'places_spans:w1');
   assert.deepEqual(decodeSpans(encodeSpans([[1, 2], [3, null]])), [[1, 2], [3, null]]);
@@ -44,7 +43,7 @@ test('MD9: spans are kept as JSON and read tolerantly', T, async () => {
   assert.deepEqual(decodeSpans('[[1],"x",[2,3]]'), [[2, 3]]);
 });
 
-test('MD9: passedAlong counts a pass only inside the spans; none without spans or a legacy stamp', T, async () => {
+test('MD9: passedAlong counts a pass only inside the spans; none without spans or a legacy stamp', async () => {
   const { passedAlong } = await import('../../explore/explore');
   const item = { key: 'p', name: 'Plaque', category: 'history', kind: 'monuments', at: at(100), generic: false } as never;
   const fixes = [{ at: at(0), t: 1000 }, { at: at(100), t: 2000 }, { at: at(200), t: 3000 }];
@@ -57,7 +56,7 @@ test('MD9: passedAlong counts a pass only inside the spans; none without spans o
   assert.equal(passedAlong(base as never).length, 1, 'a walk before this slice (only `since`) reads as before');
 });
 
-test('MD9: the replay reads the spans for a new walk and `explored:` for an old one; a toggle after the walk adds nothing', T, () => {
+test('MD9: the replay reads the spans for a new walk and `explored:` for an old one; a toggle after the walk adds nothing', () => {
   const t = readFileSync(join(ROOT, 'src/lib/summary.ts'), 'utf8');
   assert.ok(/placesSpansKey/.test(t) && /exploredKey/.test(t), 'both keys are read');
 });

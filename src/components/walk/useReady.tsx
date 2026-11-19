@@ -23,7 +23,7 @@ import { locateOnce } from '../../lib/locate';
 import { loadPendingDest, savePendingDest } from '../../lib/nav/store';
 import type { Waypoint } from '../../lib/nav/types';
 import { ready } from '../../lib/ready';
-import { destLine, type StartMode } from '../../lib/startPlan';
+import { destLine } from '../../lib/startPlan';
 import { formatDistance } from '../../lib/summary';
 import type { LngLat } from '../../lib/types';
 import type { MomentState } from '../../lib/useCaptures';
@@ -79,7 +79,6 @@ export function useReady(props: {
   const centred = useRef(false);
   const [firstWalk, setFirstWalk] = useState(false);
   const [webNoteOff, setWebNoteOff] = useState(true);
-  const [mode, setModeState] = useState<StartMode>('quiet');
   const [dest, setDest] = useState<Waypoint | null>(null);
   const [settings, setSettings] = useState<ExploreSettings>(DEFAULT_SETTINGS);
   const [up, setUp] = useState(false);
@@ -104,7 +103,6 @@ export function useReady(props: {
         const [choices, d, s] = await Promise.all([ready.load(), loadPendingDest(), loadSettings().catch(() => DEFAULT_SETTINGS)]);
         if (!live) return;
         if (choices.captures) setMoments(placedMoments(choices.captures));
-        setModeState(choices.mode);
         setDest(d);
         setSettings(s);
         setFirstWalk(choices.firstWalk);
@@ -130,10 +128,6 @@ export function useReady(props: {
   // return, before the focus read lands, never writes the kinds held before the page back (what-im-into-page audit 5).
   useEffect(() => onSettings((s) => setSettings(s)), []);
 
-  const pickMode = (m: StartMode) => {
-    setModeState(m);
-    ready.setMode(m).catch(() => {});
-  };
   const changeSettings = (next: ExploreSettings) => {
     setSettings(next);
     saveSettings(next).catch(() => {});
@@ -178,7 +172,7 @@ export function useReady(props: {
     setUp(false);
     props.onStarting();
     // Start refused says so as Locate's refusal does (T26): quietly, and to a screen reader.
-    const params = await walkStart.start(dest, mode, { inPlace: true, onError: sayQuiet });
+    const params = await walkStart.start(dest, { inPlace: true, onError: sayQuiet });
     props.onStarted(params);
   };
   // A loose moment changed elsewhere (edited from the moment row's Edit offer): its pin shows it (media-editing audit 2).
@@ -200,14 +194,14 @@ export function useReady(props: {
     return () => back.remove();
   }, [active, up, memoOn, close]);
 
-  const ring = up && mode === 'explore' && fix ? { center: fix, radiusM: settings.rangeM } : null;
+  // Map layers (ML3-ML9): around you; Places, on by default here, draws the range ring while the bar is up (MD11).
+  const layers = useLayers();
+  const ring = up && layers.on.places && fix ? { center: fix, radiusM: settings.rangeM } : null;
   // The ring is framed in the map left above the raised bar (audit 1), refit as it appears or changes.
   const raisedH = raisedHeight(screenH, BAR_H + at.insets.bottom);
   const ringBox = ring ? boundsOf([ring.center], ring.radiusM * 1.15) : null;
   const ringKey = ring ? 100000 + ring.radiusM : 0;
 
-  // Map layers (ML3-ML9): around you, one setting for every map.
-  const layers = useLayers();
   const wk = useWalkability(fix, !!layers.on.walkability);
   const storefronts = useStorefrontsLayer(fix, !!layers.on.storefronts);
   // Where I've been (WB6): read only while the ready screen is the one in front; the walk reads its own.
@@ -323,11 +317,9 @@ export function useReady(props: {
         }
       >
         <StartSettings
-          mode={mode}
           dest={dest}
           fix={fix}
           settings={settings}
-          onMode={pickMode}
           onClearDest={() => chooseDest(null)}
           onSettings={changeSettings}
           layers={layers}

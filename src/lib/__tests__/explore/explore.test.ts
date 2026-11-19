@@ -314,7 +314,7 @@ test('E23: route marks are capped at 20 and skip what already shows nearby, foun
 // ——— Pocket alert (E19) ———
 
 test('E19, PA2: a place alerts once, when it first comes into range; places coming into range together give one nudge', () => {
-  const on = { exploring: true, haptic: true, riding: false, previewing: false };
+  const on = { places: true, haptic: true, riding: false, previewing: false };
   const first = pocketAlert({ ...on, nearKeys: ['a', 'b', 'c'], alerted: new Set() });
   assert.deepEqual(first, { mark: ['a', 'b', 'c'], nudge: true }, 'three at once: one nudge');
   const again = pocketAlert({ ...on, nearKeys: ['a', 'b', 'c'], alerted: new Set(['a', 'b', 'c']) });
@@ -324,8 +324,8 @@ test('E19, PA2: a place alerts once, when it first comes into range; places comi
 });
 
 test('PA3: no nudge with the switch off, on a quiet walk or on a ride', () => {
-  const base = { exploring: true, haptic: true, riding: false, previewing: false, nearKeys: ['a'], alerted: new Set<string>() };
-  for (const o of [{ haptic: false }, { exploring: false }, { riding: true }]) {
+  const base = { places: true, haptic: true, riding: false, previewing: false, nearKeys: ['a'], alerted: new Set<string>() };
+  for (const o of [{ haptic: false }, { places: false }, { riding: true }]) {
     assert.deepEqual(pocketAlert({ ...base, ...o }), { mark: [], nudge: false }, JSON.stringify(o));
   }
 });
@@ -342,7 +342,7 @@ const walkIn = (rangeM: number, xs: number[], o: { previewAt?: number } = {}) =>
   for (const x of xs) {
     const previewing = o.previewAt === x;
     const shown = visibleMarks({ items: [p], here: m(x, 0), rangeM: previewing ? 300 : rangeM, found: new Set(), hidden: new Set(), revealed: new Set() });
-    const r = pocketAlert({ exploring: true, haptic: true, riding: false, previewing, nearKeys: alertKeys(shown), alerted });
+    const r = pocketAlert({ places: true, haptic: true, riding: false, previewing, nearKeys: alertKeys(shown), alerted });
     for (const k of r.mark) alerted.add(k);
     if (r.nudge) nudges++;
   }
@@ -360,7 +360,7 @@ test('pocket-alert-nudge audit 5: a place entering range inside 60 m between two
 test('pocket-alert-nudge audit 2: a range preview neither nudges nor marks places as alerted', () => {
   // At 250 m the preview (300 m) shows the place; walking on into the real 100 m range still nudges, once.
   assert.equal(walkIn(100, [400, 250, 250.5, 80, 50], { previewAt: 250 }), 1);
-  assert.deepEqual(pocketAlert({ exploring: true, haptic: true, riding: false, previewing: true, nearKeys: ['a'], alerted: new Set() }), { mark: [], nudge: false });
+  assert.deepEqual(pocketAlert({ places: true, haptic: true, riding: false, previewing: true, nearKeys: ['a'], alerted: new Set() }), { mark: [], nudge: false });
 });
 
 test('pocket-alert-nudge audit 3: the alerted places are kept per walk, across the walk screen closing and opening', () => {

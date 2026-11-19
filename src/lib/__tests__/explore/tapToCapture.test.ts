@@ -93,8 +93,8 @@ test('tap-to-capture-places audit 2: a place more than 60 m away cannot be armed
 
 test('tap-to-capture-places audit 3: Explore switched off disarms', () => {
   const a = arm(item('Bridge', m(10, 0)));
-  assert.equal(armedStill(a, O, 'w1', { exploring: false }), null);
-  assert.deepEqual(armedStill(a, O, 'w1', { exploring: true }), a);
+  assert.equal(armedStill(a, O, 'w1', { places: false }), null);
+  assert.deepEqual(armedStill(a, O, 'w1', { places: true }), a);
 });
 
 test('tap-to-capture-places audit 4: a place found some other way disarms', () => {

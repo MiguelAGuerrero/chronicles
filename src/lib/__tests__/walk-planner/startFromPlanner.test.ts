@@ -23,7 +23,7 @@ test('WP19: With a walk recording, Start routes that walk, replacing a destinati
 test('WP19: With no walk, Start starts one ready (0076), its destination written for it', () => {
   const dest = destFor(planRoutes(input(cases(3)[1]), leg).routes[0]);
   assert.deepEqual(walkHerePlan(null, dest), { kind: 'start' });
-  const sp = startPlan({ walkId: 'w1', now: 1, mode: 'quiet', dest });
+  const sp = startPlan({ walkId: 'w1', dest });
   assert.deepEqual(sp.meta.map(([k]) => k), [NAV_KEY]);
   assert.deepEqual(sp.params, { started: '1' });
 });
