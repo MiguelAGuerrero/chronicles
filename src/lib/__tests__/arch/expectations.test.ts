@@ -391,6 +391,54 @@ test('expectations audit 9: a drafted line\'s answer goes to the orchestrator\'s
   }
 });
 
+test('expectations audit 23: a revert line names commits that touched the store and are this commit\'s ancestors (Probe A)', () => {
+  const g = gitRoot();
+  const first = g.git('rev-list', '--max-parents=0', 'HEAD');
+  g.git('rm', '-q', 'docs/expectations/memories.md');
+  g.git('commit', '-q', '-m', `fix memories: tidy\n\nThis reverts commit ${first}.${TRAILERS}`);
+  const a = g.gate(g.git('rev-parse', 'HEAD'));
+  assert.equal(a.status, 1, 'Probe A: a revert line naming the commit before the store, used to delete it');
+  assert.match(a.stderr, /removes E-memories-1/);
+  g.git('reset', '-q', '--hard', 'HEAD~1');
+  g.git('checkout', '-q', '-b', 'side', first);
+  g.file('docs/expectations/memories.md', STORE.replace('its place again', 'its street again'));
+  g.git('add', '-A');
+  g.git('commit', '-q', '-m', `fix memories: elsewhere${TRAILERS}`);
+  const elsewhere = g.git('rev-parse', 'HEAD');
+  g.git('checkout', '-q', '-');
+  const answered = ex.formatStore(ex.answer(store(), ['E-memories-2'], { as: 'ratified', by: 'owner', date: '2026-11-21', answer: 'yes' }).store);
+  g.commit(answered, "expectations memories: the owner's answer, 2026-11-21, by hand");
+  g.file('docs/expectations/memories.md', STORE);
+  g.git('add', '-A');
+  g.git('commit', '-q', '-m', `Revert "elsewhere"\n\nThis reverts commit ${elsewhere}.${TRAILERS}`);
+  const b = g.gate(g.git('rev-parse', 'HEAD'));
+  assert.equal(b.status, 1, 'a named commit that is no ancestor cannot carry an un-ratifying');
+  assert.match(b.stderr, /marks E-memories-2 proposed/);
+});
+
+test('expectations audit 23b: a revert names every commit that touched the store since the oldest it names', () => {
+  const g = gitRoot();
+  const drafted = g.commit(ex.formatStore(ex.draft(store(), [line('a day of walks in order.')]).store), `tend memories: the run's record${TRAILERS}`);
+  const filled = g.commit(ex.formatStore(ex.setCheck(ex.parseStore(readFileSync(join(g.root, 'docs/expectations/memories.md'), 'utf8'), 'memories'), 'E-memories-3', 'picture:13-reminder').store), `tend memories: a check${TRAILERS}`);
+  g.file('docs/expectations/memories.md', STORE);
+  g.git('add', '-A');
+  g.git('commit', '-q', '-m', `Revert the draft\n\nThis reverts commit ${drafted}.${TRAILERS}`);
+  const partial = g.gate(g.git('rev-parse', 'HEAD'));
+  assert.equal(partial.status, 1, 'the later commit that touched the store is not named');
+  g.git('reset', '-q', '--hard', filled);
+  assert.equal(g.gate(g.revert(drafted, filled)).status, 0, 'both named');
+});
+
+test('expectations audit 23c: an agent never reverts the owner\'s answer commit', () => {
+  const g = gitRoot();
+  const answered = ex.formatStore(ex.answer(store(), ['E-memories-2'], { as: 'ratified', by: 'owner', date: '2026-11-21', answer: 'yes' }).store);
+  const answer = g.commit(answered, `expectations memories: the owner's answer, 2026-11-21${TRAILERS}`);
+  assert.equal(g.gate(answer).status, 0);
+  const r = g.gate(g.revert(answer));
+  assert.equal(r.status, 1, 'un-ratifying is the owner\'s');
+  assert.match(r.stderr, /owner's answer/);
+});
+
 test('expectations 0236: a store file reads into lines with their status, check and grounds, and writes back the same', () => {
   const s = store();
   assert.deepEqual(s.problems, []);
