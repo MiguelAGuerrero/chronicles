@@ -91,3 +91,10 @@ test('tend walk-screen 15: the spot card\'s button reads "What happened here", w
   assert.match(label, /^"What happened here"$/);
   assert.doesNotMatch(walk, /What happened here \(\$\{/);
 });
+
+// tend walk-screen 16 (the sweep's steward 5): the drawer's "Passing a place" line went on, "It is said in words, never
+// counted.", stating the product's rule to the person (Restraint, in copy). It says what passing is, and stops there.
+test('tend walk-screen 16: "Passing a place" says what passing is, in one sentence', () => {
+  const note = /export const passNote = \(m: number\) => `([^`]*)`;/.exec(read('components/ExploreSettings.tsx'))?.[1];
+  assert.equal(note, 'A place is passed when you come within ${formatRange(m)} of it.');
+});
