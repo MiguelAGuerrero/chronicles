@@ -1,5 +1,5 @@
 {
-  "lastT": 41,
+  "lastT": 47,
   "lastG": 5,
   "balance": {
     "date": "2026-11-18",
@@ -163,9 +163,9 @@
     },
     "walk-screen": {
       "state": "rough",
-      "swept": "2026-11-14",
-      "main": "85cffce8e0003310f492d930518cb3f8d76bd1ef",
-      "note": "A ledger run (lens 7), capped at 8: the owner's answers of decision 0172 for the walk and its recording (O19, O21, O22, O23, O26, O27, O35) and the [loop] item O22 is built with, as tend walk-screen 2-9; the review's eleven accepted findings as audits 2-11 (two of them the owner's answers of Nov 14, added to O6/O20 and O26). Left by the cap: the Navigate, ready memo items and the rest of its [loop] items; lenses 1-6 not run."
+      "swept": "2026-11-19",
+      "main": "1fcf0f0de931eb39f02c53c24707e0d63d8ae8c0",
+      "note": "A whole, uncapped sweep (lenses 1-7). It found mediums (the empty \"On the map\" heading since the Places layer, the walk's strip of numbers unnamed to a screen reader, Back during Starting, the Add to this moment offer beside an armed place, targets under 44 pt on the web, WalkScreen skipped by the React Compiler, the navigation bar at 320), so the area stays rough by section 8 though seven shipped as tend walk-screen 10-16. The compiler finding was not shipped: CM2 needs its baseline lines taken out, which the loop may not do (Open before the loop). To the owner: T42-T47. Lows filed [loop] in Navigate, ready."
     },
     "tabs": {
       "state": "rough",

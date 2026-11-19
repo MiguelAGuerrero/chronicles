@@ -1,0 +1,293 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inbox",
+        "add"
+      ],
+      "body": "- **T? [owner] The navigation bar at 320 px loses the time and the destination, and mixes an icon with a word** (2026-11-19)\n  Area: walk-screen. Seen: `03g-strip-paused-320-long.png` (the sweep's pictures): at 320 the bar reads \"100 m · < 1 m…\", the time left and the destination cut away behind the open-in-Maps icon and End (about 66 px left for the line, `src/app/walk.tsx` the `nav-bar` row and its styles); at 390 a long place name is cut too; Open in Maps is an icon alone beside End in words (ux-reviewer 2, 6, medium). Rests on: `.claude/rules/ui-patterns.md`, \"Nothing wraps on a 320 px phone at the default text size **[app]**: a row that can't fit has too many controls\" and \"Labels or icons, consistently within a bar (T5)\"; WCAG 2.2, 1.4.10. The bar's place in the top row beside Minimize is the owner's (Nov 6).\n  Recommended: two rows inside the same blue bar, in the same top row beside Minimize: the first the arrow and the line (\"100 m · < 1 min · Your spot\"), full width, up to two lines; the second \"Open in Maps\" and \"End\", both labelled, 44 pt. The bar grows by about 52 px; nothing is added or taken away. /vision: aligned (Earn: the way stays readable; no word, count or colour added).\n  Precedent: Apple Maps and Google Maps keep the guidance (the next step) full width in a banner at the top and put the time left with End or Exit in a card of their own at the bottom (from memory, not yet recorded; docs/research/adjacent-apps.md, \"Guide a drive\", records their directions, not this layout); Organic Maps the same split (from memory, not yet recorded).\n  Otherwise: below 360 px drop Open in Maps from the bar (it stays on the spot card and the viewer); or leave it.\n",
+      "number": "T42"
+    },
+    {
+      "argv": [
+        "inbox",
+        "add"
+      ],
+      "body": "- **T? [arch] A web video over 15 s is thrown away** (2026-11-19)\n  Area: walk-screen, captures. Seen: `src/lib/useCaptures.ts` (the video branch of the camera: over `MAX_VIDEO_S` it calls `dropTemp` and returns), the notice \"Videos can be up to 15 seconds here. That one was 20 s.\" (`03h-found-pin-390-screen.png`); nothing of the moment is kept (steward 2, drift). Rests on: docs/VISION.md, \"every moment captured is worth remembering\" and Honour (\"Keep a moment where and when it happened\"); decision 0003 sets the cap (\"capped at 30 s on phones and 15 s on web\"), not a discard.\n  Recommended: keep the clip whole on the web and say its length as any video's (\"a 20 s video\"), the 15 s cap staying the phones' camera's own; a storage and playback call, so `[arch]`. /vision: aligned (Honour: the moment arrives whole; no word, control or count added beyond the clip's own length).\n  Precedent: Instagram Stories cuts a long clip into 15 s parts and WhatsApp's status opens a trimmer at 30 s (both from memory, not yet recorded); Apple Journal keeps a video whole (from memory, not yet recorded); docs/research/adjacent-apps.md, \"Capture in one tap\", records none of them on length.\n  Otherwise: store it and play its first 15 s, the rest kept; or refuse it as now.\n",
+      "number": "T43"
+    },
+    {
+      "argv": [
+        "inbox",
+        "add"
+      ],
+      "body": "- **T? [owner] Mid-memo, the camera and the note leave the capture stack** (2026-11-19)\n  Area: walk-screen. Seen: `02-voice-recording.png`: while a memo records, Save takes the mic's slot and Discard the camera's, and the pencil is gone, so a photo of what the memo is about takes a Save first (`src/components/walk/CaptureStack.tsx`, the recording branch) (steward 3, drift). Rests on: docs/VISION.md Always, \"Capture is one tap away on every screen you walk or capture from\", and Never, \"A capture behind a menu, a drawer or an extra tap\". NR10 (the owner, Nov 3) placed Discard in the camera's slot; this would change it.\n  Recommended: the camera keeps its slot while a memo records, and a photo taken then joins the memo's moment (MS2's `into`); Discard moves beside the timer, left of the stack. /vision: aligned (Honour: the photo arrives with the words said about it; one tap).\n  Precedent: Apple Voice Memos is one Record button with nothing else on screen (verified, docs/research/adjacent-apps.md, \"Capture in one tap\"); none found that takes a photo during a voice memo.\n  Otherwise: the camera keeps its slot and its photo is a moment of its own; or leave NR10 as it is.\n",
+      "number": "T44"
+    },
+    {
+      "argv": [
+        "inbox",
+        "add"
+      ],
+      "body": "- **T? [owner] The raised settings: no visible way down, and the capture stack behind them** (2026-11-19)\n  Area: walk-screen. Seen: `00a-notify-settings.png`, `01a-settings.png`, `01c-options.png`, `03f-strip-more-options.png`: pulled up, the ready bar's and the walk's settings cover the capture stack, and the only ways down are a drag, a tap on the numbers or the grip, Back or Escape; a tap on the map above does nothing (`src/components/walk/ReadyBar.tsx`) (ux-reviewer 7, medium; steward 4, drift). Rests on: docs/research/ui-references.md, the goal-to-control matrix row 23, Dismiss a view or sheet (\"swipe down on sheets plus a button\"; Android: \"scrim tap, swipe down and a close control\"); docs/VISION.md Never, \"A capture behind a menu, a drawer or an extra tap\".\n  Recommended: a labelled \"Done\" at the top right of the raised panel's first row, and a tap on the map above the raised panel lowers it; both lower it as Escape does. Adds a control, so the owner's. /vision: aligned (Honour: the stack is a tap away again; Restraint: one word).\n  Precedent: Apple Maps' place and route cards carry a close button and Google Maps' bottom sheet folds down on a tap on the map (both from memory, not yet recorded); AllTrails' recording settings sheet (from memory, not yet recorded).\n  Otherwise: the map tap alone, no Done; or the capture stack rides the raised panel's top edge.\n",
+      "number": "T45"
+    },
+    {
+      "argv": [
+        "inbox",
+        "add"
+      ],
+      "body": "- **T? [owner] Navigation's blue beside the rust** (2026-11-19)\n  Area: walk-screen. Seen: `03d-walk-back.png`, `03e-go-here.png`, `01c-options.png`. The steward's question, verbatim: \"Navigation's bar, its route line and the \"?\" range ring are a saturated blue, a second accent beside the rust (03d-walk-back.png, 03e-go-here.png): does 'Restraint in … colour' let navigation have its own colour, or should the bar sit in the app's ink?\" Rests on: docs/VISION.md Always, \"**Restraint** in motion, colour and copy: the content is the novelty, not the chrome.\"\n  Recommended: keep the blue for the way (the route line, the bar and the ring), the one colour that means \"the way\" on every map, and say so in a decision so it is not argued again. /vision: aligned (Earn: the way reads at a glance; Restraint holds if blue means only the way).\n  Precedent: Apple Maps and Google Maps draw the route and the guidance banner in blue (or green) apart from the app's own accent (from memory, not yet recorded); Organic Maps the same (from memory, not yet recorded).\n  Otherwise: the bar in the app's ink with the line still blue; or the line in ink too.\n",
+      "number": "T46"
+    },
+    {
+      "argv": [
+        "inbox",
+        "add"
+      ],
+      "body": "- **T? [owner] The pause reminder is on by default** (2026-11-19)\n  Area: walk-screen, reminders. Seen: `src/lib/notify/core.ts` l.140 (the pause reminder: \"Your walk is still paused\", \"Nothing is being recorded. Open Chronicles to resume or stop it.\"). The steward's question, verbatim: \"The Pause reminder is on by default ('Your walk is still paused · Nothing is being recorded', notify/core.ts:23,140): it reports on your own open walk rather than asking you back, but you never asked for it. Default on, or off until chosen?\" Rests on: docs/VISION.md Never, \"Nagging: off-route alarms, \"time for a walk\", re-engagement pushes\" (the nearest fit, \"Remind me here, opt-in per capture (0032)\").\n  Recommended: keep it on by default: it reports on a walk you started and left paused, a loss you would want to hear of, never a call back to the app; record it in a decision beside 0032. /vision: aligned (Honour: a forgotten pause loses the rest of the walk; not a re-engagement push).\n  Precedent: none found (docs/research/adjacent-apps.md, \"Record a walk: start, pause, stop\", records no pause reminder); Strava's auto-pause and its \"you are paused\" notice (from memory, not yet recorded).\n  Otherwise: off until chosen, offered in the walk's settings; or leave it unruled.\n",
+      "number": "T47"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "At 320 px the navigation",
+        "--reason",
+        "raised to medium by /tend walk-screen's review (ux 2, 6) and filed for the owner as T42 (@1): the fix changes the owner's bar"
+      ],
+      "target": "sha256:ec9e23ac1529f0e65e4d0aaf12cd671642e8b15cdced63e23d83abd5c34f249f"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Navigate, ready"
+      ],
+      "body": "- [loop] Two distances on the walk screen are in metres whatever the units setting: a place's card says \"Walk within 60 m to see what it is.\" (`app/walk.tsx`, the mark card; `EXPLORE_RULES.revealM`) and Remind me here's line \"passes within 75 m\" (`components/RemindEditor.tsx` l.63). Say each with `formatRange` from its constant, the line moved into a core module so a unit test reads it in miles (QL16, \"Every distance on the screen follows the units setting\"; `/tend walk-screen`'s review, auditor 6 and ux 12, Nov 19, low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Navigate, ready"
+      ],
+      "body": "- [loop] The ready screen's memo is quieter than the walk's to a screen reader: the timer is one view named \"Recording voice memo\" with its time left out (`components/walk/CaptureStack.tsx`, `voice-timer`); the ready screen does not announce a memo's start or its discard (`components/MomentBar.tsx`, `saveVoice` and `onDiscard`, where `walk.tsx` announces both); its held-memo pill has no live region; and its stack gets no ref, so focus does not move to Save as the walk's does (`focusOn(saveRef)`) (`/tend walk-screen`'s review, auditor 7, Nov 19, low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Navigate, ready"
+      ],
+      "body": "- [loop] Pause mid-memo finishes the memo but drops `finishVoice`'s answer: a memo under a second is gone with no \"Too short, not kept\", and a kept one with no \"Voice memo saved here\" (`app/walk.tsx`, `togglePause`); say each as Save does (`/tend walk-screen`'s review, auditor 8, Nov 19, low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Navigate, ready"
+      ],
+      "body": "- [loop] The lint baseline counts the walk screen's suppressed FC5 imports, not their uses: `app/walk.tsx`'s two (`db`, `recorder`) hide about 18 calls, so a new call adds nothing to the count. The fog refresh (the effect that reads the map's streets and writes `putSegments`, `putPlaces`) is the largest cluster: a shell with `fakePorts()` would take most of them out (functional core, FC5; `/tend walk-screen`'s review, auditor 10, Nov 19, low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Navigate, ready"
+      ],
+      "body": "- [loop] Dead code on the walk screen: unused styles in `app/walk.tsx` (`edgeBtnOff`, `hidden`, `modalBack`, `modalWrap`, `modal`, `modalTitle`, `input`, `modalRow`) and `components/MomentBar.tsx` (the same six modal and input styles); `CaptureRow`'s `idPrefix`, `labels` and `onWalk` props never passed, and the exported `CaptureRow` and `CaptureControls` imported nowhere; `StackIds.timer` unused (`CaptureStack.tsx`); `hereRef` beside `liveHereRef` for the same value (`walk.tsx`); a stale comment by the spot card (\"Above the capture row (bottom 92, 68 tall)\"); \"Explore when there is none\" in `walk.tsx`'s Minimize comment, the rule file and `navigateReady.test.ts`, where since HC1 (decision 0112) it is Chronicle (`/tend walk-screen`'s review, auditor 11, Nov 19, low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Navigate, ready"
+      ],
+      "body": "- [loop] Pulled up, the ready bar's grip band is clear, so its handle draws over the settings' text as they scroll under it (`components/walk/ReadyBar.tsx`, `grip`): give the band the bar's ground while up (`/tend walk-screen`'s review, ux 8, Nov 19, low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Navigate, ready"
+      ],
+      "body": "- [loop] Walk me back's button wears `arrow-undo`, the glyph Undo and Respond wear elsewhere in the app (`app/walk.tsx`, `walk-back`): a glyph of its own, one a person reads as \"back to the start\" (H4; `/tend walk-screen`'s review, ux 10, Nov 19, low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Navigate, ready"
+      ],
+      "body": "- [loop] Walk me back names the start of the walk \"Start\" as its destination (`lib/nav/wayBack.ts` l.28), which reads as the button that starts a walk; \"Where you started\" says the place (H4; `/tend walk-screen`'s review, ux 11, Nov 19, low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Navigate, ready"
+      ],
+      "body": "- [loop] With Storefronts on, the settings' key says \"Storefronts\" twice, its heading and its one legend row (`lib/layers/registry.ts`, the layer's `legend`; `/tend walk-screen`'s review, ux 13, Nov 19, low, opinion)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Navigate, ready"
+      ],
+      "body": "- [loop] No journey pictures Navigate's ready screen at 320 px, at rest, with a destination or pulled up (the `ready` journey pictures the walk at 375 only): shots at 320 and NR11's no-overlap and one-line checks there would hold it (`/tend walk-screen`'s review, ux 14, Nov 19, low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Navigate, ready"
+      ],
+      "body": "- [loop] `scaleBarCorner.test.ts`'s \"layers-pad 4\" repeats what its test 3 asserts, and `layersCorner.test.ts`'s test 4 works `rightClear` out again by hand rather than reading `useStackLayout`'s, so neither fails on its own regression (`/tend walk-screen`'s review, auditor's weak tests, Nov 19, low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Navigate, ready"
+      ],
+      "body": "- [loop] No unit test reaches the walk screen's Back handlers, its announcements or its spoken labels: they live in `app/walk.tsx`, which a test cannot import, and are held only by source scans and the journeys; pulling their words and rules into core (as `walkSummaryLabel`, `tend walk-screen 12`) would let `npm test` hold them (`/tend walk-screen`'s review, auditor's weak tests, Nov 19, low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Navigate, ready"
+      ],
+      "body": "- [owner] The walk strip's … and Pause move left as the numbers grow (a walk past ten minutes, past a kilometre), since the buttons fill what the numbers leave (decision 0220); a fixed slot for the numbers would keep them still. It challenges 0220, the owner's AllTrails look (`/tend walk-screen`'s review, ux 9, Nov 19, low, opinion)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Navigate, ready"
+      ],
+      "body": "- [owner] `specs/navigate-ready/spec.md` has no \"## Vision\" section: the spec predates the gate (0094). A retroactive `/vision` review of NR would give it one (`/tend walk-screen`'s review, steward 6, Nov 19, low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Map, walk screen and motion polish"
+      ],
+      "body": "- [loop] The web map sends the `alternates` source again with every fix of a walk, though it is empty with no route preview and no drive: one effect sends it and writes the `__perf` dataset, so its dependencies include `trace`, `walked`, `fog`, `faint` and the rest (`components/map/WalkMap.web.tsx` ~l.834-845; `perf-walk`, 4 min: `setData:alternates` 0.53/s beside `setData:trace` 0.53/s). Split it: the source keyed on `[ready, props.alternates]` alone, the dataset in its own effect (`/tend walk-screen`'s review, auditor 9, Nov 19, low, cost)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Vision gate"
+      ],
+      "body": "- [loop] `check:vision` does not catch a count put into a label by a template, `` `What happened here (${spot.here.captures.length})` `` (`tend walk-screen 15` took the one there was): a pattern for `(${…length})` and `(${…count})` in user-facing strings would. The loop may not edit `scripts/`, so it is a proposal for a run that may (`/tend walk-screen`'s review, steward 1, Nov 19, low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "On the walk, the"
+      ],
+      "body": "  - Since then (`/tend walk-screen`, Nov 19): `03h-found-pin-320-screen` shows a fourth at once, the \"Found: Hessian Memorial\" toast, with the red video fault, the offer and \"Video saved here\" (ux-reviewer, \"seen again, filed\").\n",
+      "target": "sha256:9ba73322e172badba5cf4fc21bd0d0539ca340f499b72a4973fbc44fdcd2f95e"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "**The functions"
+      ],
+      "body": "  - Since then (`/tend walk-screen`, Nov 19): the walk screen's six (`app/walk.tsx`: three `??=` in the fog refresh and the dead-zone nudge, `try`/`finally` in `stop`, `togglePause` and `decideGap`) were not taken: CM2 fails until a fixed line leaves `compiler.baseline.json`, and the loop may not edit a baseline (`/tend` section 1; `check:tend` refuses `*.baseline.json`). Asked in \"Open before the loop\".\n",
+      "target": "sha256:79d88f842db8a297ca4a9b9cd8a8e4d0ad9ba56954863a269f6235468cd90fba"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Navigate, ready"
+      ],
+      "body": "- [ ] **Do:** on Android, open Navigate's ready screen, tap Start and press Back at once, while \"Starting…\" shows; then open What I'm into's page from the bar's settings and press Back. **Expect:** Back during \"Starting…\" does nothing and the walk opens on the walk screen, recording, not minimized; under the page, Back closes the page, not the ready screen (`components/walk/useReady.tsx`, the Back handler; `tend walk-screen 11`).\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Navigate, ready"
+      ],
+      "body": "- [ ] **Do:** with VoiceOver, then TalkBack, start a walk, walk a few minutes, then move to the strip's numbers; pause and move there again. **Expect:** the strip is read as \"<distance> walked in <time>. Walk settings\" (\", exploring\" on an exploring walk), the name changing about once a minute and never read out by itself; activate raises the settings (`app/walk.tsx` `walkSummaryLabel`; `tend walk-screen 12`).\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Navigate, ready"
+      ],
+      "body": "- [ ] **Do:** on a phone, discard a memo on Navigate's ready screen; on a walk with Explore on, far from every busy area for ten minutes, wait for the dead-zone nudge; with motion off, raise the walk's settings. **Expect:** the ready screen's Undo and Retry, the nudge's Dismiss and the motion row's \"Turn on\" are each 44 pt or more to the touch and easy to hit while walking (`tend walk-screen 14`).\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Navigate, ready"
+      ],
+      "body": "- [ ] **Do:** with VoiceOver, then TalkBack, on Navigate's ready screen and on a walk, start a voice memo, discard it, start another and save it; on the walk pause and resume. **Expect:** each is announced as it happens (\"Recording voice memo\", \"Voice memo discarded. Undo is available.\", \"Voice memo saved\", \"Walk paused…\", \"Walk resumed\") on the walk, focus moves to Save as a memo starts, and the ready screen's are said too or the gap is as `docs/DEFERRED.md` (\"Navigate, ready\") records it (`/tend walk-screen`'s review, auditor's native list).\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Navigate, ready"
+      ],
+      "body": "- [ ] **Do:** on Android, on a walk: open a spot card (a long press), press Back; open a route preview, press Back; pull the settings up, press Back; record a memo, press Back; open What I'm into's page from the settings and press Back. **Expect:** each Back closes the thing in front, one at a time, and none acts under the page (`app/walk.tsx`'s three BackHandlers, `ReadyBar`'s and `MomentBar`'s; `/tend walk-screen`'s review, auditor's native list).\n"
+    },
+    {
+      "argv": [
+        "open",
+        "add"
+      ],
+      "body": "- **The walk screen's React Compiler skips, and who takes their lines out** (Nov 19). `docs/DEFERRED.md` (\"The functions the React Compiler skips\") gives each skip to its area's next sweep, \"and its line leaves the baseline\"; but the loop may not edit a baseline (`/tend` section 1, `check:tend`'s FORBIDDEN `*.baseline.json`), and CM2 (`arch/reactCompiler.test.ts`) fails until a compiled function's line leaves `compiler.baseline.json`. So `/tend walk-screen` left `app/walk.tsx`'s six (three `??=`, `try`/`finally` in `stop`, `togglePause` and `decideGap`; WalkScreen re-renders whole at 0.9-1.4 a second on a walk, `perf-walk`) for a `/fix` that may, or the owner's leave for the loop to shrink a baseline it fixes (`/tend walk-screen`'s review, auditor 2, medium).\n"
+    },
+    {
+      "argv": [
+        "open",
+        "add"
+      ],
+      "body": "- **`specs/v0.5-places/spec.md` l.341 (N11) still says \"What happened here (N)\"** (Nov 19). What ships since `tend walk-screen 15`: the walk's spot card reads \"What happened here\", with no count, following decision 0052 (\"Counts are words\"). The mirror follows the owner's doc, which needs the same edit (`/tend walk-screen`'s review, steward 1).\n"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 19, `/tend walk-screen --deploy=main`, a whole, uncapped sweep** (opened from `1fcf0f0d`, rebuilt on `777d0617`; lenses 1-7 all run; the first of decision 0229's whole sweeps).\n- Lenses: 1, the `ready` and `walk` journeys' pictures (ux-reviewer and steward); 2-4 read from the code and the specs; 5, the auditor, with `perf-walk` 4 min; 6, `check:vision --list` clean; 7, the area's `[loop]` items.\n- Shipped: `tend walk-screen 10` the layers key heads itself, only over rows (\"On the map\" over nothing since the Places layer); `11` Back does nothing while Start is on its way, and waits for focus; `12` the walk's strip of numbers is named with its distance and time; `13` the Add to this moment offer steps aside while a place is armed; `14` small targets 44 pt themselves (no hitSlop on the web); `15` \"What happened here\", no count; `16` \"Passing a place\" in one sentence.\n- Not shipped: WalkScreen's React Compiler skips (auditor 2, medium): CM2 wants their lines out of `compiler.baseline.json`, which the loop may not edit; asked in \"Open before the loop\".\n- Filed: T42 the navigation bar at 320, T43 `[arch]` a web video over 15 s thrown away, T44 the camera mid-memo, T45 the raised settings' way down, T46 navigation's blue, T47 the pause reminder's default; lows `[loop]` in \"Navigate, ready\", one in the map's section, one in \"Vision gate\"; two `[owner]` lows; five phone checks; the N11 mirror and the compiler question in \"Open before the loop\".\n- The area stays `rough`: this sweep found mediums (section 8).\n- The diff review is pending.\n"
+    }
+  ]
+}
