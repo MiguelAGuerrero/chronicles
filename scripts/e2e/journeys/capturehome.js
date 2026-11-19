@@ -120,12 +120,12 @@ async function run(h) {
   await pg.click('[data-testid=walk-minimize]');
   await pg.waitForSelector('[data-testid=recording-bar]', { timeout: 10000 });
   // A photo from the bar on Explore, which leaves its Edit pill up (T12).
-  const barPhoto = async () => {
-    await tabTo(pg, 'explore');
-    await pg.waitForSelector('[data-testid=bar-photo]', { timeout: 10000 }).catch(() => {});
-    const [chooser] = await Promise.all([pg.waitForEvent('filechooser', { timeout: 10000 }).catch(() => null), pg.click('[data-testid=bar-photo]').catch(() => {})]);
+  const barPhoto = async (p = pg) => {
+    await tabTo(p, 'explore');
+    await p.waitForSelector('[data-testid=bar-photo]', { timeout: 10000 }).catch(() => {});
+    const [chooser] = await Promise.all([p.waitForEvent('filechooser', { timeout: 10000 }).catch(() => null), p.click('[data-testid=bar-photo]').catch(() => {})]);
     await chooser?.setFiles(require('path').join(h.scriptsDir, 'fixtures', 'photo.jpg'));
-    return pg.waitForSelector('[data-testid=bar-edit-offer]', { timeout: 10000 }).then(() => true, () => false);
+    return p.waitForSelector('[data-testid=bar-edit-offer]', { timeout: 10000 }).then(() => true, () => false);
   };
   // tend tabs T36 (the proxy's yes under 0157, 2026-11-18): with the bar's Edit pill up, its room lifts Explore's map, so
   // the press hint steps aside and at 320 x 700 the walker is under no words; it shows again as the pill goes, none of its
@@ -145,10 +145,18 @@ async function run(h) {
       const [x, y] = window.__project(maps[maps.length - 1].getAttribute('data-walker').split(',').map(Number));
       return { x: Math.round(x - 9), y: Math.round(y - 9), w: 18, h: 18 };
     });
+    // tend tabs audit 50 (the T40 review's ux U2): the walker against the hint and against every name and control Explore
+    // keeps the map's names clear of (`NAMES_CLEAR_OF`, explore.tsx), each one drawn, 8 px apart; never against the hint
+    // alone, which reads clear while it stands aside.
+    const CLEAR_OF = ['atlas-title-card', 'atlas-search', 'outing-entry', 'layers', 'atlas-move-map', 'atlas-show-here', 'compass', 'locate', 'atlas-back-pill'];
     const walkerClear = async (p = pg) => {
       const walker = await walkerBox(p);
       const words = await rect(hint, p);
-      return { walker, words, clear: !!walker && !overlap(walker, words) };
+      const boxes = await p.evaluate((ids) => ids.flatMap((id) => [...document.querySelectorAll(`[data-testid="${id}"]`)]
+        .map((el) => ({ id, r: el.getBoundingClientRect() })).filter((b) => b.r.width > 0 && b.r.height > 0)
+        .map(({ id, r }) => ({ id, x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height) }))), CLEAR_OF);
+      const near = walker ? boxes.filter((b) => overlap({ x: walker.x - 8, y: walker.y - 8, w: walker.w + 16, h: walker.h + 16 }, b)).map((b) => b.id) : [];
+      return { walker, words, near, clear: !!walker && !overlap(walker, words) && near.length === 0 };
     };
     // tend tabs T40: the walker clear of the hint's one line by 4 px at least, so the two-line hint's 3 px overlap fails
     // here. Measured at 320 x 700: 7 px in A and back (the walker as framed on main), 13 px in C.
@@ -156,7 +164,7 @@ async function run(h) {
       const m = await walkerClear(p);
       const w = m.walker;
       const clear4 = !!w && !!m.words && !overlap({ x: w.x - 4, y: w.y - 4, w: w.w + 8, h: w.h + 8 }, m.words);
-      return { ...m, oneLine: !!m.words && m.words.h <= 30, clear4 };
+      return { ...m, oneLine: !!m.words && m.words.h <= 30, clear4: clear4 && m.near.length === 0 };
     };
     // A fresh app on Explore with a walk minimized, at `size`: Navigate's walk minimized, then Explore's first focus.
     const freshExplore = async (label, size) => {
@@ -212,7 +220,7 @@ async function run(h) {
     await pg.waitForTimeout(6000);
     const after = await pg.locator(hint).count();
     check(hintBefore && up && upAgain && withPill.clear && withPill320.clear && back && after === 0,
-      `tend tabs T36, tend tabs audit 30: while the bar's Edit pill is up the walker stands clear of Explore's press hint (390 and 320 x 700); the hint shows again as the pill goes, and is marked seen only after its few seconds on screen (${JSON.stringify({ hintBefore, up, upAgain, withPill, withPill320, back, after })})`);
+      `tend tabs T36, tend tabs audit 30, audit 50: while the bar's Edit pill is up the walker stands clear of Explore's press hint and 8 px clear of its names and controls (390 and 320 x 700); the hint shows again as the pill goes, and is marked seen only after its few seconds on screen (${JSON.stringify({ hintBefore, up, upAgain, withPill, withPill320, back, after })})`);
     // tend tabs T40 (the owner's "Shorter one-line words", 2026-11-19): at 320 x 700 the hint is one line and the walker
     // stands clear of it: after the pill went (audit 30's back320, held now), framed at 390 x 844 on arrival in a fresh
     // app (A; its own context, so its waits take none of this hint's seconds: the T40 review's F5), and framed at
@@ -226,10 +234,30 @@ async function run(h) {
     const cc = await freshExplore('capturehome-320', { width: 320, height: 700 });
     const fresh320 = await hintClear(cc.pg);
     await shot(cc.pg, 'tabs-T40-fresh-320');
-    await cc.c.close();
     const t40 = [arrive320, back320, fresh320];
     check(a.shownUp && cc.shownUp && t40.every((m) => m.oneLine && m.clear4),
-      `tend tabs T40: at 320 x 700 "Hold the map to look anywhere." is one line and the walker stands 4 px clear of it or more, framed at 390 x 844 (on arrival and after the pill) and at 320 x 700 from the start (${JSON.stringify({ arrive320, back320, fresh320, shown: [a.shownUp, cc.shownUp] })})`);
+      `tend tabs T40, tend tabs audit 50: at 320 x 700 "Hold the map to look anywhere." is one line and the walker stands 4 px clear of it or more, and 8 px clear of Explore's names and controls, framed at 390 x 844 (on arrival and after the pill) and at 320 x 700 from the start (${JSON.stringify({ arrive320, back320, fresh320, shown: [a.shownUp, cc.shownUp] })})`);
+    // tend tabs audit 50 (the T40 review's auditor F1, ux U1): framed at 320 x 700 with the hint up, then the bar's pill
+    // lifts the map (the hint steps aside, T36), or a 52 px card does (a stand-in for the reminder card,
+    // `recording-reminder`, for which the hint steps aside too, audit 51; the stand-in is not published, so only the
+    // controls count for it).
+    const pillUp = await barPhoto(cc.pg);
+    await cc.pg.waitForTimeout(600);
+    const pill320 = await walkerClear(cc.pg);
+    await shot(cc.pg, 'tabs-audit-50-pill-320');
+    await cc.pg.click('[data-testid=bar-edit-offer-close]').catch(() => {});
+    await cc.pg.waitForTimeout(600);
+    await cc.pg.evaluate(() => {
+      const el = document.createElement('div');
+      el.style.height = '52px';
+      document.querySelector('[data-testid=recording-bar]')?.prepend(el);
+    });
+    await cc.pg.waitForTimeout(900);
+    const card320 = await walkerClear(cc.pg);
+    await shot(cc.pg, 'tabs-audit-50-card-320');
+    await cc.c.close();
+    check(pillUp && !!pill320.walker && pill320.near.length === 0 && !!card320.walker && card320.near.length === 0,
+      `tend tabs audit 50: at 320 x 700, framed with the hint up, then the bar's pill up or a 52 px reminder card added, the walker is under none of Explore's names or controls (the pill sets the hint aside; the stand-in card is not published, so the hint stays drawn over it here, which the real card sets aside: audit 51) (${JSON.stringify({ pillUp, pill320, card320 })})`);
   }
   // A few steps along Wickenden Street, so the walk has a trace and a fresh fix to place by. At a walker's pace
   // (1.5 m a second): 12 m a second was over MAX_WALK_SPEED_MS (lib/geo), so every step was dropped as a jump and the
