@@ -81,7 +81,7 @@ test('tend tabs audit 19: while the walk is stopping from the bar the pill is no
 // shows again as it goes; its seconds on screen count only while it shows, so EC14's "after a few seconds on screen it
 // is marked seen" holds.
 test('tend tabs T36: Explore\'s press hint steps aside while the bar\'s Edit pill is up, and counts no time on screen meanwhile', () => {
-  const unseen = { seen: false, spot: false, located: true, focused: true, covered: false, folded: false, slotTaken: false };
+  const unseen = { seen: false, spot: false, located: true, reminder: false, focused: true, covered: false, folded: false, slotTaken: false };
   assert.equal(pressHintUp({ ...unseen, barOffer: false }), true);
   assert.equal(pressHintUp({ ...unseen, barOffer: true }), false, 'stepped aside while the pill is up');
   // Nothing else moves: seen, a long press open or no place yet keep it down as before, the pill or not.
@@ -111,6 +111,16 @@ test('tend tabs T40: Explore\'s press hint reads "Hold the map to look anywhere.
   const explore = readFileSync(join(__dirname, '../../../app/(tabs)/explore.tsx'), 'utf8');
   assert.match(explore, /<Text style=\{styles\.hint\} testID="atlas-press-hint">Hold the map to look anywhere\.<\/Text>/);
   assert.doesNotMatch(explore, /Press and hold the map to look anywhere/);
+});
+
+// tend tabs audit 51 (the T40 review's ux judgment call 3): the bar publishes its reminder card as it publishes its pill,
+// and Explore's hint reads it, so the hint steps aside while the card lifts the map.
+test('tend tabs audit 51: the bar tells the tabs whether its reminder card stands, and Explore\'s hint reads it', () => {
+  const bar = readFileSync(join(__dirname, '../../../components/RecordingBar.tsx'), 'utf8');
+  const explore = readFileSync(join(__dirname, '../../../app/(tabs)/explore.tsx'), 'utf8');
+  assert.match(bar, /const reminderUp = !!reminder;\s*useEffect\(\(\) => \{\s*barReminderUp\.set\(reminderUp\);\s*return \(\) => barReminderUp\.set\(false\);\s*\}, \[reminderUp\]\);/);
+  assert.match(explore, /useStore\(barReminderUp,/);
+  assert.match(explore, /pressHintUp\(\{[^}]*reminder: barReminder[^}]*\}\)/);
 });
 
 // /tend inbox T37 (the proxy's yes under 0157, 2026-11-18): the storage notice on Memories waits for the bar's Edit pill

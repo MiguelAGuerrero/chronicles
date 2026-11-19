@@ -16,7 +16,7 @@ import { BLOCKED_LINE, exploreBanner, findYou, refusalLifted, type PermissionSee
 import { cancelLook, endLook, IDLE, isLive, LOOK_LABEL, runLook, startLook, type Look } from '../../lib/atlas/look';
 import { exploreSlots, pressHintUp, SCALE_LEFT } from '../../lib/atlas/overlaySlots';
 import { createStore } from '../../lib/store';
-import { barOfferUp, modalsUp, tabsHidden } from '../../lib/tabsHidden';
+import { barOfferUp, barReminderUp, modalsUp, tabsHidden } from '../../lib/tabsHidden';
 import { useStore } from '../../lib/useStore';
 import { KIND_COLOR, KIND_ICON_OF } from '../../components/atlas/kinds';
 import type { MarkPin } from '../../components/MarkPinView';
@@ -187,6 +187,8 @@ export default function Explore() {
   // The hint steps aside while the bar's Edit pill is up (tend tabs T36), and counts no seconds under a Modal or a
   // full-screen card (tend tabs audit 29).
   const barOffer = useStore(barOfferUp, (x) => x);
+  // tend tabs audit 51: and while the bar's reminder card stands, which lifts the map as far.
+  const barReminder = useStore(barReminderUp, (x) => x);
   const covered = useStore(modalsUp, (n) => n > 0);
   const folded = useStore(tabsHidden, (x) => x);
   useEffect(() => {
@@ -693,7 +695,7 @@ export default function Explore() {
   const error = exploreBanner(walkStart.error ?? locError, finding.blocked);
   // The hint is shown once (explore-carousel audit 10): after a few seconds on screen it is marked seen, used or not. One
   // reading draws it and runs its seconds, so they run only while it is drawn in front (tend tabs T36, audit 29).
-  const hintShown = pressHintUp({ seen: pressSeen, spot: !!spot, located: !!from, barOffer, focused, covered, folded, slotTaken: !!error || !!notice || looking || creditsOpen });
+  const hintShown = pressHintUp({ seen: pressSeen, spot: !!spot, located: !!from, barOffer, reminder: barReminder, focused, covered, folded, slotTaken: !!error || !!notice || looking || creditsOpen });
   useEffect(() => {
     if (!hintShown) return;
     const t = setTimeout(() => {

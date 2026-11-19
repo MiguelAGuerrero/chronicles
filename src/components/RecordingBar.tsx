@@ -25,7 +25,7 @@ import type { Pause, Walk } from '../lib/types';
 import type { LiveTrace } from '../lib/useLiveTrace';
 import { useCaptures } from '../lib/useCaptures';
 import { settleWithin } from '../lib/settleWithin';
-import { barOfferUp, barStop, modalsUp, tabsHidden } from '../lib/tabsHidden';
+import { barOfferUp, barReminderUp, barStop, modalsUp, tabsHidden } from '../lib/tabsHidden';
 import { showWalk } from '../lib/walkNav';
 import { Icon } from './icons';
 import { EditButton } from './edit/EditOffer';
@@ -119,6 +119,12 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
   // Remind me here goes on while minimized (NV8): a fire with the page in front lands here, where
   // the walk's card would be; a tap opens it on the walk.
   // What the bar holds, read by the listener below, so it announces the bar's own title (tend explore audit 6).
+  // Told to the tabs, so Explore's press hint steps aside while the card lifts its map (tend tabs audit 51).
+  const reminderUp = !!reminder;
+  useEffect(() => {
+    barReminderUp.set(reminderUp);
+    return () => barReminderUp.set(false);
+  }, [reminderUp]);
   const reminderRef = useRef(reminder);
   useEffect(() => {
     reminderRef.current = reminder;

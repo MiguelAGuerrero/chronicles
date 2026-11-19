@@ -49,7 +49,7 @@ test('tend explore 1: nothing else moved: with no spot the scale bar keeps its p
 // only while it is drawn where a person can see it (EC14, "after a few seconds on screen it is marked seen"). The pill's
 // Edit opened the media editor (a Modal) and the hint counted under it; Explore behind another tab, a full-screen card,
 // an error, a notice, "Looking around…" or the map's credits in its place did the same.
-const inView = { seen: false, spot: false, located: true, barOffer: false, focused: true, covered: false, folded: false, slotTaken: false };
+const inView = { seen: false, spot: false, located: true, barOffer: false, reminder: false, focused: true, covered: false, folded: false, slotTaken: false };
 
 test('tend tabs audit 29: the press hint is up, and counts its seconds, only while it is drawn in front', () => {
   assert.equal(pressHintUp(inView), true);
@@ -58,6 +58,15 @@ test('tend tabs audit 29: the press hint is up, and counts its seconds, only whi
   assert.equal(pressHintUp({ ...inView, folded: true }), false, 'a full-screen card over the tabs');
   assert.equal(pressHintUp({ ...inView, slotTaken: true }), false, 'an error, a notice, Looking around or the credits in its place');
   assert.equal(pressHintUp({ ...inView, barOffer: true }), false, 'the bar\'s Edit pill up (tend tabs T36)');
+});
+
+// tend tabs audit 51 (the T40 review's ux judgment call 3): the bar's reminder card lifts Explore's map as far as the
+// Edit pill, after the frame, and a fit made with the hint up cannot clear both the hint and the title stack then. The
+// hint steps aside while the card stands, as for the pill, and counts none of its seconds meanwhile (EC14).
+test('tend tabs audit 51: the press hint steps aside while the bar\'s reminder card stands, and shows again as it goes', () => {
+  assert.equal(pressHintUp({ ...inView, reminder: true }), false, 'the reminder card up');
+  assert.equal(pressHintUp({ ...inView, reminder: false }), true, 'and back as it goes');
+  assert.equal(pressHintUp({ ...inView, reminder: true, barOffer: true }), false);
 });
 
 test('tend tabs audit 29: nothing else moves: seen, a long press open or no place keep it down as before', () => {
