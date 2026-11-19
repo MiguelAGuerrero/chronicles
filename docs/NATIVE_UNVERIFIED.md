@@ -318,6 +318,8 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] **Do:** on an iPhone, on Chronicle's Map, select a place and tap Open in Maps beside Walk here; then long-press the map at street zoom and tap Open in Maps on the card. **Expect:** Apple Maps opens each time, and the place stays selected (OM2, OM4)
 - [ ] **Do:** on an Android phone, with a place whose title is your own words, tap Open in Maps on its sheet, then on the walk screen's navigation bar. **Expect:** the maps chooser shows "Destination" or the area's name, never the title (OM10, 0058)
 - [ ] **Do:** on a phone within 2 km of a neighborhood tap Walk there on its tile; then on a town 4 km away; then on a town past 10 km. **Expect:** the first starts a guided, recorded walk at once; the second opens the card asking Walk now / When I get there and starts nothing; the third says "Set as destination", saves it in Navigate and starts nothing (OM7, 0121)
+- [ ] **Do:** start a walk on a phone; open its Layers panel, switch Places on, walk toward a place, then switch Places off and on again. **Expect:** a fresh walk draws no "?"; with Places on the "?" and the range ring (while the settings are up) draw and a pocket alert buzzes if set; off, they go; the walk's panel and options card list Places, and no Quiet / Explore choice exists on the start drawer or the walk. (MD1-MD4, MD7, MD13)
+  - [ ] **Do:** turn Places on and off during a walk past two places, then watch its replay. **Expect:** the replay names "Passed X without stopping" only for a place passed while Places was on; a walk that never had it on names none. (MD9)
 
 ## Explore atlas
 
