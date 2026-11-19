@@ -36,6 +36,9 @@ async function run(h) {
   check((await pg.locator('[data-testid=cap-note]').isVisible().catch(() => false)), 'MD16: the capture stack is visible with the Layers panel open');
   // MD4: on, the "?" for places within range draw as Explore mode drew them.
   await row.click().catch(() => {});
+  await pg.waitForTimeout(500);
+  // modes-to-layers ui 1: the Places row says how far it shows and where to set it.
+  check(/within \d+ ?m/.test(await pg.locator('[data-testid=layer-status-places]').innerText().catch(() => '')) && /Walk settings/.test(await pg.locator('[data-testid=layer-status-places]').innerText().catch(() => '')), 'modes-to-layers ui 1: the Places row says how far a "?" shows and where it is set');
   for (let k = 0; k <= 8; k++) {
     const p = at(-0.5 + k * 0.05, -0.5);
     await c.setGeolocation({ longitude: p[0], latitude: p[1], accuracy: 6 });
@@ -43,8 +46,6 @@ async function run(h) {
   }
   check((await marksNow()) > 0, 'MD4: with Places on the "?" draw');
   await shot(pg, 'modes-3-walk-places-on');
-  // modes-to-layers ui 1: the Places row says how far it shows and where to set it.
-  check(/within \d+ ?m/.test(await pg.locator('[data-testid=layer-status-places]').innerText().catch(() => '')) && /Walk settings/.test(await pg.locator('[data-testid=layer-status-places]').innerText().catch(() => '')), 'modes-to-layers ui 1: the Places row says how far a "?" shows and where it is set');
   // MD19: nothing says what is left, how many, or nearby to find.
   const text = await pg.locator('body').innerText().catch(() => '');
   check(!/left to find|still to find|nearby to find|remaining/i.test(text), 'MD19: no copy says what is left to find');
