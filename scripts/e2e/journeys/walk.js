@@ -152,6 +152,12 @@ async function checks(h) {
     for (let i = 0; i < 2; i++) await page.click('[data-testid=range-plus]');
     check((await page.locator('[data-testid=options-card] [data-testid=into-row]').count()) === 1 && (await page.locator('[data-testid=pocket-alert]').count()) === (process.env.E2E_MOBILE ? 1 : 0), 'the drawer holds the row to what I’m into; the pocket alert only on a touch screen (PA6, pocket-alert-nudge audit 4, WI1)');
     await shot(page, '01a-settings');
+    // tend walk-screen audit 16 (the diff review's auditor, its call on 14): the motion row's "Turn on" is 44 pt itself; the
+    // harness's motion is blocked, so the row is there.
+    {
+      const turnOn = await page.locator('[data-testid=motion-on]').boundingBox().catch(() => null);
+      check(!!turnOn && turnOn.height >= 44, `tend walk-screen audit 16: the drawer's "Turn on" is 44 pt high (${JSON.stringify(turnOn)})`);
+    }
     // tend walk-screen 10 (the sweep's auditor 1, ux 1): only "Places" is on (by default; Explore's map only, PL9), so the
     // walk's drawer heads no empty "On the map" (PL12; WCAG 2.4.6).
     {
