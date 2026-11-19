@@ -309,22 +309,21 @@ test('tend 0134: a line that does not say what the run found, or how it was run,
 
 test('tend 0234: a sweep or a build logs its expectations by id, met naming its evidence, and the compass\'s counts', () => {
   const base = { deploy: 'main', base: 'abc1234' };
-  const build = { ...base, mode: 'inbox', answers: [{ entry: 'T3', answer: 'yes' }], expectations, compass };
+  const build = { ...base, mode: 'inbox', answers: [{ entry: 'T3', answer: 'yes' }], built: ['T3'], lens: '0234', expectations, compass };
+  const held = { ...sweep, lens: '0234' };
   assert.deepEqual(tend.logProblems(sweep), []);
   assert.deepEqual(tend.logProblems(build), []);
   assert.deepEqual(tend.logProblems({ ...base, mode: 'evolve', expectations }), [], 'an evolve run may log them');
   assert.deepEqual(tend.logProblems({ ...base, mode: 'evolve' }), [], 'only sweeps and builds are held to them');
   assert.deepEqual(tend.logProblems({ ...base, mode: 'inbox', answers: [{ entry: 'T3', answer: 'no' }] }), [], 'an inbox run that builds nothing');
-  assert.deepEqual(tend.logProblems({ ...sweep, expectations: undefined, compass: undefined, date: '2026-11-19' }), [], 'a line logged before the lens reads as it was');
-  assert.deepEqual(tend.logProblems({ ...sweep, expectations: undefined, compass: undefined, backfilled: true }), [], 'a backfilled line says only what the record says');
+  assert.deepEqual(tend.logProblems({ ...sweep, expectations: undefined, compass: undefined }), [], 'a line the lens\'s script did not write reads as it was');
   assert.deepEqual(tend.logProblems({ ...sweep, filed: { T: [], G: ['G7'] }, compass: { ...compass, lensG: ['G7'] } }), [], 'a G from lens 0 is one the run filed');
   const bad = (g: unknown) => tend.logProblems(g).length > 0;
   const [met, failed, lacking] = expectations.lines;
   const lines = (...l: unknown[]) => ({ ...sweep, expectations: { ...expectations, lines: l } });
-  assert.ok(bad({ ...sweep, expectations: undefined }), 'a sweep says its expectations');
+  assert.ok(bad({ ...held, expectations: undefined }), 'a sweep says its expectations');
   assert.ok(bad({ ...build, expectations: undefined }), 'a build says its expectations');
-  assert.ok(bad({ ...sweep, expectations: undefined, date: '2026-11-20' }), 'a line logged once the lens holds says them');
-  assert.ok(bad({ ...sweep, compass: undefined }), 'a sweep says the compass\'s counts');
+  assert.ok(bad({ ...held, compass: undefined }), 'a sweep says the compass\'s counts');
   assert.ok(bad({ ...build, compass: undefined }), 'a build says the compass\'s counts');
   assert.ok(bad({ ...sweep, expectations: [] }));
   assert.ok(bad({ ...sweep, expectations: 'met' }));
@@ -339,7 +338,30 @@ test('tend 0234: a sweep or a build logs its expectations by id, met naming its 
   assert.ok(bad({ ...sweep, compass: { ...compass, shipped: -1 } }));
   assert.ok(bad({ ...sweep, compass: { shipped: 1, lensG: [] } }), 'filed low counted, zero included');
   assert.ok(bad({ ...sweep, compass: { ...compass, lensG: ['G9'] } }), 'a lens-0 G is one the run filed');
-  assert.match(read('scripts/tend.js'), /logRefProblems\(/, 'tend:log reads the lines against the store');
+});
+
+test('tend audit 1: only a line the lens\'s script wrote is held to the lens, whatever its date', () => {
+  const line = tend.runLine({ date: '2026-12-01', subjects: [], given: { ...sweep, expectations: undefined, compass: undefined } });
+  assert.equal(line.lens, '0234', 'tend:log marks its lines');
+  assert.ok(tend.logProblems(line).some((p) => /expectations/.test(p)));
+  const old = { ...line, lens: undefined };
+  assert.deepEqual(tend.logProblems(old), [], 'an older script\'s line logged on any date reads as it was');
+  const r = repo();
+  const out = r.tendJs('log', 'HEAD..HEAD', JSON.stringify({ ...sweep, area: 'memories', expectations: undefined, compass: undefined }));
+  assert.equal(out.status, 1, 'tend:log holds the line it writes');
+  assert.match(out.stderr, /logs its expectations/);
+  const lines = { lines: [{ id: 'E-memories-1', is: 'met', evidence: 'memories:"a capture comes back"' }] };
+  r.commit({ 'docs/expectations/memories.md': STORE.replace('pending "a capture comes back"', 'memories:"a capture comes back"') }, 'the check, by hand');
+  const ok = r.tendJs('log', 'HEAD..HEAD', JSON.stringify({ ...sweep, area: 'memories', expectations: lines, compass }));
+  assert.equal(ok.status, 0, ok.stderr);
+  const written = JSON.parse(readFileSync(join(r.root, '.claude/skills/tend/runs.jsonl'), 'utf8').trim()) as Record<string, unknown>;
+  assert.equal(written.lens, '0234');
+  assert.deepEqual(tend.logProblems(written), []);
+  const unknown = r.tendJs('log', 'HEAD..HEAD', JSON.stringify({ ...sweep, area: 'memories', expectations: { lines: [{ id: 'E-memories-9', is: 'lacking' }] }, compass }));
+  assert.equal(unknown.status, 1, 'the lines are read against the store');
+  assert.match(unknown.stderr, /E-memories-9 is no line/);
+  const elsewhere = r.tendJs('log', 'HEAD..HEAD', JSON.stringify({ ...sweep, area: 'threads', expectations: lines, compass }));
+  assert.match(elsewhere.stderr, /not of the run's area, threads/, 'of the run\'s own area');
 });
 
 const run = (date: string, shipped: number, filedLow: number, extra: Record<string, unknown> = {}) => ({
