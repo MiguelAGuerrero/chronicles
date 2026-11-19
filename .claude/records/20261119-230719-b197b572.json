@@ -1,0 +1,27 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "set",
+        "What can cover what on the stage",
+        "--reason",
+        "replay-ceremony ui 5: a whisper stands under the line clear of pins and pictures; what is left of it is filed apart, and the two names at 320 px are said"
+      ],
+      "body": "- What can cover what on the stage: a standing picture covers a note's pin at the same stop until the card; a tall stack can stand over the east end of the walk on the last view; the passed place's name on the last view is a large pill over the ground under the path (two names at 320 px sit over the pictures' row and the walk); a picture and that name can cover each other. With reduce motion and no bounds (a day of placeless moments) pictures are not drawn. A card is 204 px wide where it was 211 under about 341 px, to stay clear of the stack\n",
+      "target": "sha256:346bdbd2dffca73fbc4deeab0477a9eda43bf3dda960221047e3b1047df6e403"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "From the UI review (Nov 19, medium, U1)",
+        "--reason",
+        "replay-ceremony ui 1: the owner's Proceed (Nov 19) accepted it; a tap on a standing picture opens its moment, the replay held"
+      ],
+      "target": "sha256:27abea3940497bd8842d0b35a0158611e91c3a760907ec210306fef88c6b6c9e"
+    }
+  ]
+}
