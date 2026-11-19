@@ -196,6 +196,7 @@ function writeProblems(store) {
 
 /** An operation's result, refused whole when the store it leaves would not read back as written. */
 function settle(before, r) {
+  if (before.problems?.length) return { store: before, ids: [], problems: [`${fileOf(before.feature)} does not read (${before.problems[0]}): the owner mends it by hand before any operation writes it`] };
   if (r.problems.length) return r;
   const w = writeProblems(r.store);
   return w.length ? { store: before, ids: [], problems: w.map((p) => `the write is refused: ${p}`) } : r;
@@ -379,6 +380,7 @@ function editProblems(before, after, feature) {
   const a = parseStore(after, feature);
   const where = fileOf(feature);
   const why = 'the loop adds proposed lines and amendments and fills a check, through npm run expectations; a line\'s words, status and answer are the owner\'s (decision 0234)';
+  if (b.problems.length) return before === after ? [] : [`changes ${where}, which does not read (${b.problems[0]}): the owner mends it by hand (decision 0234)`];
   const out = a.problems.map((p) => `${where} does not read: ${p}`);
   for (const e of b.entries) {
     const now = a.entries.find((x) => x.id === e.id);
