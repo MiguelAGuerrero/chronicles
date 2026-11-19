@@ -275,6 +275,8 @@ export const NotePage = forwardRef<NotePageHandle, {
             // The removal's own change keeps its line; whatever is typed after it takes the line away.
             if (removing.current) removing.current = false;
             else setRemoved(false);
+            // Writing closes the reactions, as the journal's line does (RX7): on a phone the keyboard may never have gone down.
+            setTypePanel(false);
             setStored(body);
             setShown(text);
             setCount(n);
@@ -321,7 +323,7 @@ export const NotePage = forwardRef<NotePageHandle, {
         </View>
       ) : null}
       {typePanel && props.reaction ? (
-        // A choice keeps the panel open, so a second family is one more tap (RX5); the tool or a tap on the page closes it.
+        // A choice keeps the panel open, so a second family is one more tap (RX5); the tool, a tap on the page or the next character closes it.
         <ReactionPanel set={props.reaction.set} onPick={props.reaction.onPick} moment={props.reaction.moment} />
       ) : null}
       <View style={[styles.bar, { paddingBottom: (keyboard && Platform.OS !== 'ios' ? 0 : insets.bottom) + 6, marginBottom: bottom }]} testID="note-bar" accessibilityRole="toolbar">

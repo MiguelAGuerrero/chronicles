@@ -474,6 +474,15 @@ async function run(h) {
   await pg.click('[data-testid=reaction-pick-sad]', { timeout: 3000 }).catch(() => {});
   await pg.waitForTimeout(800);
   const words12 = (await stored(pg)).flatMap((m) => m.pieces).find((x) => /A page reacted to before its words/.test(x.body ?? ''))?.body ?? null;
+  // On a phone the keyboard can stay up while the reactions open: the next character typed closes them, with no tap (RX7).
+  const rxPanel = '[data-testid=note-page] [data-testid=reaction-panel]';
+  await pg.focus('[data-testid=note-page] [data-testid=note-input]');
+  const panelBeforeType = await pg.locator(rxPanel).count();
+  await pg.keyboard.type(' Then more.');
+  await pg.waitForTimeout(300);
+  const panelAfterType = await pg.locator(rxPanel).count();
+  check(panelBeforeType === 1 && panelAfterType === 0,
+    `fix reaction-panel-focus audit 1: a character typed with the reactions open closes them (${JSON.stringify({ panelBeforeType, panelAfterType })})`);
   await pg.click('[data-testid=note-done]').catch(() => {});
   await pg.waitForTimeout(1000);
   const got12 = await rxOf(/A page reacted to before its words/);
