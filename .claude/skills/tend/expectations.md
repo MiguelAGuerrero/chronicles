@@ -19,7 +19,8 @@ the operations are in `scripts/expectations.js`'s header). A line, its text on o
 
 - **Observable.** A line says what the person sees or does, and its `Check:` names what shows it: a journey check, by
   the whole message of a `check(` call (`<journey>:"<message>"`), or for a template message its fixed text before the
-  first `${`, when that is 12 characters at least and starts no other check of the journey; a unit test, by
+  first `${`, when that holds 12 letters of words after any leading criterion id or audit name and starts no other
+  check of the journey; a unit test, by
   its whole title (`test:"<title>"`); a shot one of the feature's own journeys takes (`picture:<shot name>`); or
   `pending "<what it will show>"` while none exists. `npm run expectations -- check`, run by `check:docs`, and by
   `check:affected` when a journey or a test changed, fails a named check it cannot find. A check moves to another
@@ -70,18 +71,18 @@ the operations are in `scripts/expectations.js`'s header). A line, its text on o
 
 ## The owner's answer: one flow
 
-A `/tend` run never records an answer to an expectation line: a drafted line is answered by the answer commit the
-orchestrator makes before the next run, never `/tend inbox`. The owner answers the proposed lines the run put to them,
-and the orchestrator records it, verbatim, in a commit of its own, made in a worktree of its own from `origin/main` and
-landed on `main` before or between runs, never inside one:
+A `/tend` run never records an answer to an expectation line: a drafted line is answered by the answer commit, never
+`/tend inbox`, and the session that asked the owner makes the answer commit, outside any run and after its run has
+landed: the orchestrator in an orchestrated session (its section 2), and a plain `/tend` session asks at its step 5 and then
+commits the answer the same way, never inside the run's own commits, always in a commit of its own. It records the
+owner's words verbatim, in a worktree of its own from `origin/main`, and lands it on `main` between runs:
 
 ```
 npm run expectations -- ratify|decline <ids> --by owner --date <date> --answer "<the owner's words>"
 git commit -m "expectations <feature>: the owner's answer, <date>" (with the session's trailers)
 ```
 
-It is the orchestrator's (its section 2); when the owner answers a run's question outside an orchestrated session, the
-next session's orchestrator records it the same way before its first run. `check:tend`, which CI runs on every push, reads every agent
+`check:tend`, which CI runs on every push, reads every agent
 commit (by its trailers), a loop commit or not: only that answer commit changes a line's status, and only from
 proposed to ratified or declined, dated as its subject says, with the line a ratified amendment replaces superseded;
 any other agent commit keeps every line's words, status, grounds and answer. The scripts cannot tell the owner from an

@@ -475,18 +475,18 @@ The owner picks; the loop never starts a `G` entry unasked.
      `main`'s side of all four and run `npm run records -- redo` in the
      conflicted commit (it runs its recorded operations again; the inbox
      numbers on from `main`'s ledger and the trailers stay), then
-     `check:records` again. A record commit whose inbox numbers would move
-     but whose rebase does not conflict cannot be redone (it is committed, and
-     a record commit is never amended): stop and report, the branch pushed
-     for the owner, rather than publish a record the gate fails. Any other conflict is `ship.md`'s stop. A red run is handled
-     by `ship.md`, "A red run".
-   - `branch`: push the run's branch and stop; `none`: save a patch. Neither
-     moves an area's state, the entry numbers are provisional, and step 5 is
-     skipped: say the record is not on `main`.
+     `check:records` again. A record commit whose inbox numbers would move but whose rebase does not conflict cannot be
+     redone (it is committed, and a record commit is never amended): stop and report, the branch pushed for the owner,
+     rather than publish a record the gate fails. Any other conflict is `ship.md`'s stop. A red run is handled by
+     `ship.md`, "A red run".
+   - `branch`: push the run's branch and stop; `none`: save a patch. Neither moves an area's state, the entry numbers
+     are provisional, and step 5 is skipped: say the record is not on `main`.
 4. `.claude/skills/ship.md`, "Clean up".
-5. **Then ask the owner** about this run's new entries with AskUserQuestion
-   (the recommended shape first, four entries per call). Their answers are a new run: `/tend inbox …`, section 7, never work added to this
-   one; but its drafted expectation lines are answered by the answer commit the orchestrator makes before the next run, never `/tend inbox`.
+5. **Then ask the owner** about this run's new entries with AskUserQuestion (the recommended shape first, four entries
+   per call). Their answers are a new run: `/tend inbox …`, section 7, never work added to this one. But a drafted line
+   is answered by the answer commit, never `/tend inbox`: the session that asked the owner makes the answer commit,
+   outside any run and after its run has landed; a plain `/tend` session asks at its step 5 and then commits the answer
+   the same way, never inside the run's own commits, always in a commit of its own (`expectations.md`).
 
 ## Report
 

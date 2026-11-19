@@ -79,10 +79,12 @@ and briefs, the `steward` and the `auditor`, and the scripts:
    `expectations <feature>: the owner's answer, <date>`, changes a line's status (proposed to ratified or declined,
    dated as its subject says, and the line a ratified amendment replaces superseded), made outside any `/tend` run;
    no other agent commit changes a line's words, status, grounds or answer. Both paths of a renamed store file are
-   read; a revert is taken when it puts each store file back as it stood before the commits it reverts (ship.md, "A
-   red run"); a line whose check vanished may go back to pending. `draft`, `amend` and `set-check` refuse a check
-   they cannot find, and a template message is named by its fixed text before the first `${`, when that is 12
-   characters at least and unique in its journey.
+   read; a revert is taken when it really is one (ship.md, "A red run"): the commits it names that touched the file
+   are agent commits it descends from, every commit that touched the file since the oldest of them is named, and the
+   file is as it stood before that oldest; an agent never reverts the owner's answer commit or the owner's own edit.
+   A line whose check was missing at the push's base may go back to pending. `draft`, `amend` and `set-check` refuse
+   a check they cannot find, and a template message is named by its fixed text before the first `${`, when that holds
+   12 letters of words after any leading criterion id or audit name and is unique in its journey.
 8. **What the scripts cannot know.** They cannot tell the owner from an agent: `--by owner` and the answer commit's
    subject are written by whoever records the answer. An answer is trusted as every recorded answer is under 0157:
    the orchestrator writes the owner's words verbatim from the question it asked, and the proxy never ratifies.
@@ -106,8 +108,9 @@ features exist, and the steward's check keeps a counter-example (a streak, a rat
 - The compass's reading appears in each landing's report to the owner (the orchestrator runs `tend.js compass` at
   each landing); until twelve runs carry it, it says "too early to say".
 - The orchestrator puts proposed lines to the owner in its batch, one question per feature, "Ratify as drafted"
-  first, and records the answer with `npm run expectations -- ratify` in a commit of its own, landed before or between
-  runs (a non-loop write; a `/tend` run never makes it). An
+  first. The session that asked the owner makes the answer commit, outside any run and after its run has landed: the
+  orchestrator in an orchestrated session, and a plain `/tend` session after its step 5, with `npm run expectations --
+  ratify` in a commit of its own (a non-loop write; never one of the run's own commits). An
   inbox build applies lens 0 to the feature it builds; an `evolve` run gains a steward pause before it files; the
   proxy does not hold a `G` from lens 0 for the balance.
 - Run-log lines without the `"lens":"0236"` mark (every line before this, and any a run logs with an older script)
