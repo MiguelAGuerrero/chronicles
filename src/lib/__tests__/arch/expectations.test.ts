@@ -344,6 +344,26 @@ test('expectations audit 17: a line whose check vanished may go back to pending,
   assert.match(refused.stderr, /E-memories-1's check .* back to pending/);
 });
 
+test('expectations audit 18: a template message is named by its fixed text before the first ${, when that is long and unique', () => {
+  const journey = [
+    JOURNEY,
+    'check(ok, `a later walk brings back ${n} moments`);',
+    'check(x, `walker at ${a}`);',
+    'check(y, `the camera stays put: ${a}`);',
+    'check(y, `the camera stays put: ${b} again`);',
+    'check.todo(z, `the search box finds ${w} moments`);',
+  ].join('\n');
+  const i = ex.indexOf({ journeys: { memories: journey }, tests: {}, features: { memories: ['memories'] } });
+  assert.equal(ex.resolveCheck('memories:"a later walk brings back "', i), 'ok');
+  assert.equal(ex.resolveCheck('memories:"the search box finds "', i), 'todo');
+  for (const text of ['a later walk brings back 3 moments', 'walker at ', 'the camera stays put: ']) assert.equal(ex.resolveCheck(`memories:"${text}"`, i), 'missing', text);
+  const named = (text: string) => ex.checkProblems([ex.parseStore(STORE.replace('memories:"a later walk passing a flagged capture brings it back"', `memories:"${text}"`), 'memories')], i, ['memories']);
+  assert.deepEqual(named('a later walk brings back '), []);
+  for (const text of ['a later walk brings back 3 moments', 'walker at ', 'the camera stays put: ']) {
+    assert.ok(named(text).some((p) => /a template message: name it by its fixed text, which must be unique/.test(p.message)), text);
+  }
+});
+
 test('expectations 0236: a store file reads into lines with their status, check and grounds, and writes back the same', () => {
   const s = store();
   assert.deepEqual(s.problems, []);
