@@ -1,11 +1,5 @@
 [
  "src/app/(tabs)/explore.tsx:?: (BuildHIR::lowerStatement) Handle TryStatement without a cat",
- "src/app/walk.tsx:?: (BuildHIR::lowerExpression) Handle ??= operators in Assignme",
- "src/app/walk.tsx:?: (BuildHIR::lowerExpression) Handle ??= operators in Assignme",
- "src/app/walk.tsx:?: (BuildHIR::lowerExpression) Handle ??= operators in Assignme",
- "src/app/walk.tsx:?: (BuildHIR::lowerStatement) Handle TryStatement with a finali",
- "src/app/walk.tsx:?: (BuildHIR::lowerStatement) Handle TryStatement with a finali",
- "src/app/walk.tsx:?: (BuildHIR::lowerStatement) Handle TryStatement with a finali",
  "src/components/Baker.native.tsx:?: React Compiler has skipped optimizing this component because",
  "src/components/CaptureView.tsx:?: (BuildHIR::lowerStatement) Handle TryStatement with a finali",
  "src/components/CaptureView.tsx:?: (BuildHIR::lowerStatement) Support ThrowStatement inside of ",
