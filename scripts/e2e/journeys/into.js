@@ -461,7 +461,8 @@ async function run(h) {
   const early = await pg.locator('[data-testid=into-page] [data-testid^=kind-]').count();
   await pg.waitForSelector('[data-testid=into-page] [data-testid^=kind-]', { timeout: 8000 }).catch(() => {});
   const later = await pg.locator('[data-testid=into-page] [data-testid^=kind-]').count();
-  check(earlyShown && early === 0 && later > 0 && (await metaOf('explore_hidden')) === hiddenWas, `WI9: no switch is drawn before the settings are read, and nothing is written (${early} then ${later})`);
+  const pageText = (await pg.locator('[data-testid=into-page]').innerText().catch(() => '')).replace(/\s+/g, ' ').slice(0, 120);
+  check(earlyShown && early === 0 && later > 0 && (await metaOf('explore_hidden')) === hiddenWas, `WI9: no switch is drawn before the settings are read, and nothing is written (${early} then ${later}; shown ${earlyShown}; hidden ${(await metaOf('explore_hidden')) === hiddenWas}; page: ${pageText})`);
   await closeInto(pg);
 
   // A walk, exploring, to the waterfall.
