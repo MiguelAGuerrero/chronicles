@@ -27,14 +27,14 @@ type Expectations = {
   draft(store: Store, lines: Draft[]): Op;
   amend(store: Store, id: string, line: Draft): Op;
   answer(store: Store, ids: string[], o: { as: 'ratified' | 'declined'; by: string; date: string; answer: string }): Op;
-  setCheck(store: Store, id: string, check: string): Op;
+  setCheck(store: Store, id: string, check: string, index?: Index): Op;
   parseCheck(check: string): { kind: string; journey?: string; text?: string; name?: string } | null;
   indexOf(files: { journeys: Record<string, string>; tests: Record<string, string>; features?: Record<string, string[]> }): Index;
   resolveCheck(check: string, index: Index, feature?: string): 'ok' | 'pending' | 'todo' | 'missing';
   checkProblems(stores: Store[], index: Index, features: string[]): { message: string }[];
   due(stores: Store[], features: string[]): { draft: string[]; awaiting: string[] };
   listText(stores: Store[], index: Index): string;
-  editProblems(before: string, after: string, feature: string, subject?: string): string[];
+  editProblems(before: string, after: string, feature: string, subject?: string, o?: { missing?: (check: string) => boolean }): string[];
   logRefProblems(lines: { id: string; is: string; evidence?: string; provisional?: boolean }[], stores: Store[], index: Index, o?: RefOptions): string[];
   check(root: string): { message: string }[];
   writeProblems(store: Store): string[];
@@ -322,6 +322,26 @@ test('expectations audit 16: a store file renamed away, or renamed in, is read o
   const across = h.gate(h.git('rev-parse', 'HEAD'));
   assert.equal(across.status, 1, 'the store renamed to another feature');
   assert.match(across.stderr, /removes E-memories-1 from docs\/expectations\/memories\.md/);
+});
+
+test('expectations audit 17: a line whose check vanished may go back to pending, and only then', () => {
+  const gone = ex.indexOf({ journeys: { memories: JOURNEY }, tests: { 'a.test.ts': "test('memories MR8: other', () => {});" }, features: { memories: ['memories'] } });
+  assert.deepEqual(ex.setCheck(store(), 'E-memories-2', 'pending "the pin says memory"', gone).problems, [], 'its test was deleted');
+  assert.ok(ex.setCheck(store(), 'E-memories-2', 'pending "the pin says memory"', index()).problems.length > 0, 'its test is there');
+  const pending = ex.formatStore(ex.setCheck(store(), 'E-memories-2', 'pending "the pin says memory"', gone).store);
+  assert.deepEqual(ex.editProblems(STORE, pending, 'memories', 'fix memories: x', { missing: () => true }), []);
+  assert.ok(ex.editProblems(STORE, pending, 'memories', 'fix memories: x', { missing: () => false }).some((p) => /pending/.test(p)));
+  const g = gitRoot();
+  g.file('src/lib/__tests__/memories/memories.test.ts', TESTS.replace(/test\('memories MR7[^\n]*\n/, ''));
+  g.git('add', '-A');
+  g.git('commit', '-q', '-m', 'the owner deletes a test, by hand');
+  const back = g.commit(pending, `fix memories: its check is gone${TRAILERS}`);
+  const ok = g.gate(back);
+  assert.equal(ok.status, 0, ok.stderr);
+  const first = g.commit(pending.replace('Check: memories:"a later walk passing a flagged capture brings it back"', 'Check: pending "it comes back"'), `fix memories: x${TRAILERS}`);
+  const refused = g.gate(first);
+  assert.equal(refused.status, 1, 'a check that is still there');
+  assert.match(refused.stderr, /E-memories-1's check .* back to pending/);
 });
 
 test('expectations 0236: a store file reads into lines with their status, check and grounds, and writes back the same', () => {
