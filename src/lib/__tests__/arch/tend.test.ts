@@ -364,6 +364,20 @@ test('tend audit 1: only a line the lens\'s script wrote is held to the lens, wh
   assert.match(elsewhere.stderr, /not of the run's area, threads/, 'of the run\'s own area');
 });
 
+test('tend audit 6: a run cannot date its own line or call it backfilled', () => {
+  const line = tend.runLine({ date: '2026-11-21', subjects: [], given: { ...sweep, date: '2020-01-01', lens: 'none' } });
+  assert.equal(line.date, '2026-11-21', 'the script writes the date');
+  assert.equal(line.lens, '0234');
+  const r = repo();
+  const json = { ...sweep, area: 'memories', expectations: { lines: [{ id: 'E-memories-1', is: 'lacking' }] }, compass };
+  for (const extra of [{ date: '2020-01-01' }, { backfilled: true }]) {
+    const out = r.tendJs('log', 'HEAD..HEAD', JSON.stringify({ ...json, ...extra }));
+    assert.equal(out.status, 1, JSON.stringify(extra));
+    assert.match(out.stderr, new RegExp(Object.keys(extra)[0]));
+  }
+  assert.equal(r.tendJs('log', 'HEAD..HEAD', JSON.stringify(json)).status, 0);
+});
+
 const run = (date: string, shipped: number, filedLow: number, extra: Record<string, unknown> = {}) => ({
   ...sweep, date, compass: { shipped, filedLow, lensG: [] }, ...extra,
 });
