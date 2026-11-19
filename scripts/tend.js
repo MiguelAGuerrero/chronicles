@@ -797,12 +797,34 @@ function commits(argv) {
     }
   };
   // What a commit did to the expectation store files it changed (scripts/expectations.js, editProblems).
-  // A revert (ship.md, "A red run") is taken when each store file it touches is as it stood at the parent of the
-  // oldest commit it reverts, its `This reverts commit <sha>.` lines read as the records gate reads them.
-  const revertedFrom = (message) => {
-    const shas = [...message.matchAll(/^This reverts commit ([0-9a-f]{7,40})\.?\s*$/gm)].map((m) => tryRev(m[1])).filter(Boolean);
-    if (!shas.length) return null;
-    return shas.sort((a, b) => Number(git('rev-list', '--count', a)) - Number(git('rev-list', '--count', b)))[0];
+  // A revert (ship.md, "A red run"), read by its `This reverts commit <sha>.` lines as the records gate reads them, is
+  // taken for a store file only when it is one (audit 23): of the commits it names, those that touched the file are
+  // ancestors of it and agent commits; every commit that touched the file since the oldest of them is named; and the
+  // file is as it stood before that oldest. A revert of the owner's answer commit, or of a commit the owner made by
+  // hand, is refused outright: un-ratifying, and undoing the owner's own edit, are the owner's.
+  const reverted = (message) => [...new Set([...message.matchAll(/^This reverts commit ([0-9a-f]{7,40})\b/gm)].map((m) => tryRev(m[1])).filter(Boolean))];
+  const ancestor = (a, b) => {
+    try {
+      execFileSync('git', ['merge-base', '--is-ancestor', a, b], { cwd: ROOT, stdio: 'ignore' });
+      return true;
+    } catch {
+      return false;
+    }
+  };
+  const touches = (c, p) => storeFilesOf(git('show', '--name-status', '--format=', c)).includes(p);
+  /** true when the commit reverts `p`, a problem when it reverts the owner's answer, false when it is no revert of it. */
+  const revertOf = (sha, p, named) => {
+    if (!named.length || named.some((n) => n === sha || !ancestor(n, sha))) return false;
+    const touching = named.filter((n) => touches(n, p));
+    if (!touching.length) return false;
+    const answer = touching.find((n) => require('./expectations').ANSWER_COMMIT.test(git('show', '-s', '--format=%s', n).trim()));
+    if (answer) return `reverts ${answer.slice(0, 7)}, the owner's answer commit, in ${p}: un-ratifying is the owner's (decision 0236)`;
+    const owners = touching.find((n) => !require('./records').isAgent(git('show', '-s', '--format=%B', n)));
+    if (owners) return `reverts ${owners.slice(0, 7)}, the owner's own commit, in ${p}: it is the owner's to revert (decision 0236)`;
+    const oldest = touching.sort((a, b) => Number(git('rev-list', '--count', a)) - Number(git('rev-list', '--count', b)))[0];
+    const since = git('rev-list', tryRev(`${oldest}^`) ? `${oldest}^..${sha}^` : `${sha}^`, '--', p).split('\n').filter(Boolean);
+    if (since.some((c) => !touching.includes(c))) return false;
+    return at(sha, p) === at(`${oldest}^`, p);
   };
   // Whether a check had vanished at a revision (audit 17): the journeys, tests and feature map as that revision held them.
   const indexes = new Map();
@@ -824,9 +846,11 @@ function commits(argv) {
     const message = git('show', '-s', '--format=%B', sha);
     const subject = message.split('\n')[0].trim();
     const changed = [...new Set(storeFilesOf(git('show', '--name-status', '--format=', sha)))];
-    const oldest = revertedFrom(message);
+    const named = reverted(message);
     return changed.flatMap((p) => {
-      if (oldest && at(sha, p) === at(`${oldest}^`, p)) return [];
+      const revert = revertOf(sha, p, named);
+      if (revert === true) return [];
+      if (typeof revert === 'string') return [revert];
       return require('./expectations').editProblems(at(`${sha}^`, p), at(sha, p), STORE_FILE.exec(p)[1], subject, { missing: (check, feature) => missingAt(`${sha}^`, check, feature) });
     });
   };
