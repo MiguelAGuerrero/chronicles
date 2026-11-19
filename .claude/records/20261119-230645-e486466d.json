@@ -1,0 +1,140 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "set",
+        "The ceiling on frames a second",
+        "--reason",
+        "replay-ceremony ui round, Nov 19: the owner could not reproduce the after-image on the deployed build, so the link's frame ceiling and the readout the entry named are removed (lib/ceremony/meter is gone); the token stays the owner's"
+      ],
+      "body": "- [owner] The ceiling on frames a second (`REPLAY_ENGINE.frameMs`, 0: every display frame) is the owner's to choose on the iPhone; it is a token, changed with a build. The test machine never exceeds 30 frames a second, so RC6 is held by the stepper's unit test alone\n  The owner's first look (iPhone, Nov 18): \"smoother, but the reticle has after images and doesn't glide\". One cause found and fixed: the dot rounded to a whole pixel at a half-pixel centre (393 px wide). On the deployed build (Nov 19) the owner could not see it again: \"smoother than what we had before, so no issues there\". The link's frame ceiling and the readout under Hold, built to chase it, are removed.\n",
+      "target": "sha256:784a8d9a763d414e41d2b86330b420dc3932db513f7634079726a78bc3b7fde8"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "set",
+        "The harness's frames a second fell with the camera and breaks",
+        "--reason",
+        "replay-ceremony ui round, Nov 19: the preview's readout the entry pointed to is removed; the harness's numbers after the round added"
+      ],
+      "body": "- The harness's frames a second fell with the camera and breaks (4x CPU: 17.8 to 13.7; unthrottled 28.3 to 25.2, which the wider view at zoom 15 accounts for), cause not pinned down: single runs on software GL with the seeded walk changed between them. The guess is a zoom that changes every frame on a rise and a hop (labels placed again, other tiles covered). Profile it (`PERF_PROFILE`) and consider stepping the zoom\n  Measured again on a quiet machine (Nov 18, the merged branch, one run): 30.1 frames a second unthrottled and 20.2 at 4x, against 29.4 and 18.1 for the engine alone measured the same way. So the fall above was the machine being busy with journeys, not the camera; the zoom changing every frame is still unprofiled, and nothing measures the iPhone itself.\n  After the UI review's fixes (Nov 19, one run): 35.1 unthrottled and 23.6 at 4x.\n",
+      "target": "sha256:96bb5d4277736779644feeece3038c69cbec3f8bbdec0ee073b12cd6d4958b41"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Replay ceremony (RC1-RC48, decision 0206)",
+        "--end"
+      ],
+      "body": "- From the UI review's fixes (`replay-ceremony ui 1` to `ui 8`, Nov 19), a whisper: it stands under the line on a white ground; on a way running up or down the screen it lies across the line behind the walker (its 190 px box has no room beside the line on a phone); its side is decided once from 15 s of walk either side of the pass, so on a bend it can still meet the line; two whispers close together hide one another (they overprinted before); with reduce motion a whisper can still stand under the clock\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Replay ceremony (RC1-RC48, decision 0206)",
+        "--end"
+      ],
+      "body": "- A standing picture opens its moment (`ui 1`): one partly under a card takes no tap, and one under a later picture gives the tap to the later one; every picture's control has the same spoken name, \"Open this moment\"; keyboard focus order on the web was not looked at; its target is 44, under Android's 48 dp\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Replay ceremony (RC1-RC48, decision 0206)",
+        "--end"
+      ],
+      "body": "- [owner] A hop's dots stand on white discs while the replay tells (`ui 6`), so they read over a walked street. On plain land the discs nearly touch and read as a white dotted ribbon, heavier than the bare dots were; the discs go when the card arrives. Contrast was read from the tokens, pixels sampled once by hand. The owner's to look at: keep the discs, thin them, or draw them only over a walked line\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Replay ceremony (RC1-RC48, decision 0206)",
+        "--end"
+      ],
+      "body": "- A day's replay has no north-up fit and its opening fades no trace (it has no beat before its path; `ui 7` and `ui 8` are the walk's). `ui 8`'s case cannot be reached by hand: the replay's, a day's and Chronicle's maps take no two-finger turn, so the journey turns the card's map in code\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Replay ceremony (RC1-RC48, decision 0206)",
+        "--end"
+      ],
+      "body": "- Thin in the UI review's tests: one tests-first commit and one fixes commit for `ui 1` to `ui 8`, and a second fix (`ui 1`, `5`, `7`, `8`, after the journeys' pictures) changed its tests in its own commit; no journey ran at the tests-first commit; `ui 2`'s Android slop is a unit test and a scan, and the 12 px under Next is held by the unit test (the pictured bounds floor at 32 and 34 px); the journeys the map's files reach beyond `replay`, `days`, `stacks`, `walk`, `gaps` and `qol` were not rerun; `check:test-first replay-ceremony` reads only the commits since `main`, so once the branch is merged it needs `TEST_FIRST_BASE` (and more heap: `NODE_OPTIONS=--max-old-space-size=6144`)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Replay ceremony (RC1-RC22, decision 0206)",
+        "--end"
+      ],
+      "body": "- [ ] **Do:** in a replay, after a photo's card has shrunk onto the map, tap its small picture, then close the viewer; then tap a picture half under a card, and one hidden under a later picture on the last view. **Expect:** the viewer opens on that moment alone; the replay stands still while it is open and goes on after; a tap beside the picture only holds; the half-covered picture only holds the replay; the hidden one opens the later picture's moment (`replay-ceremony ui 1`; `Pictures.tsx`'s `Pressable` with `pointerEvents`, `disabled` and `importantForAccessibility`).\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Replay ceremony (RC1-RC22, decision 0206)",
+        "--end"
+      ],
+      "body": "- [ ] **Do:** on Android, tap just outside the stack's left and right edges; on a small phone compare the stack's top with Next; on a narrow phone replay a walk with many photos and a passed place. **Expect:** taps within about 2 dp of the stack open it (`hitSlop`); the stack never comes nearer than 12 px under Next; the whisper and the last view's name end short of the stack (`ui 2`, `ui 3`).\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Replay ceremony (RC1-RC22, decision 0206)",
+        "--end"
+      ],
+      "body": "- [ ] **Do:** replay a moment of three photos; watch a whisper on an east-west street and on a north-south one. **Expect:** two photos on top, the third across the whole row, the strip says \"Photos\"; the whisper on a white ground, readable, under the line on the first street and clear of pins, pictures and the dot; say what it covers on the second (`ui 4`, `ui 5`; `liveStyle.ts` no longer writes `textAlign`).\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Replay ceremony (RC1-RC22, decision 0206)",
+        "--end"
+      ],
+      "body": "- [ ] **Do:** replay a walk with a gap along a street already walked; then look at the gap on the card and on Chronicle's map. **Expect:** the hop's dots show, each on a white disc (the `gap-links-edge` layer); on the card and on Chronicle's map a gap's dots have none (`ui 6`).\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Replay ceremony (RC1-RC22, decision 0206)",
+        "--end"
+      ],
+      "body": "- [ ] **Do:** watch a walk's first replay from the streets lighting up into the path; then try to turn the replay card's map with two fingers and press Watch again. **Expect:** the faint green trace fades out over about a second and a half (in ten steps on a phone, each re-rendering the trace's sources: note any stutter), the dot fades in as the dive ends (`ReplayDot`'s `circle-opacity`), the end marker brightens, nothing blinks; the card's map does not turn and the replay opens north-up (`fitBounds` with `bearing: 0`; `ui 7`, `ui 8`).\n"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "set",
+        "Replay ceremony (the replay reworked",
+        "--reason",
+        "replay-ceremony ui round: the UI review's findings were fixed after the deploy"
+      ],
+      "body": "| Replay ceremony (the replay reworked to run smoothly and look as the owner's mock-up: each frame drawn outside the screens' rendering, the walked line revealed and never re-sent; zoom 15, a camera that holds and re-frames or rises on a long stretch, a photo's pin under its card; a break crossed by a dotted hop with no dim; the path diving in from the first beat's view and closing on the card's, with the date and the passed places named; a card shrinking onto its place where its picture stands, a side stack that grows first in first out, a scrim and a drift, a moment's videos in turn; captions RC38-RC44 wait for the first phone build; RC1-RC48, decision 0206) | built; web only | tests first, then the code, 2026-11-19 (41 of 41); the owner looked twice at the preview address on an iPhone; the UI review's findings fixed after the deploy, tests first (`replay-ceremony ui 1` to `ui 8`) | `specs/replay-ceremony/spec.md` | no (steward on the plan, cold find and UI review only) |\n",
+      "target": "sha256:378b69b40b138be9eb0dab9f8787e3534d86e28c5c05a30a261d1471477ea7b2"
+    }
+  ]
+}
