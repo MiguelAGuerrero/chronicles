@@ -1,0 +1,16 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "set",
+        "From the UI review and the cold find (Nov 19, low)",
+        "--reason",
+        "replay-ceremony ui 2 to ui 5: U3, U4, U5 and U6 are fixed with their tests; the cold find's misreadings stay"
+      ],
+      "body": "- [loop] From the cold find (Nov 19, low): it placed every task; it first read the stack's single entry as a second pin on the map, the video's tile in the corner as a record button, and the last view's date (no year) as today's\n",
+      "target": "sha256:bcac1b5922aa44b5e1792e7722567742438f2d991e6978becfe4076059a337ab"
+    }
+  ]
+}
