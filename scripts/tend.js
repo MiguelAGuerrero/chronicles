@@ -12,7 +12,8 @@
 //   node scripts/tend.js log <range> '<json>'          append this run's line to the run log: what the
 //                                                       range holds (every finding a subject names:
 //                                                       shipped, audit fixes, builds, reverts) with
-//                                                       what only the run knows (found, filed, answers)
+//                                                       what only the run knows (found, filed, answers,
+//                                                       expectations: decision 0231)
 //   node scripts/tend.js next                           the area to sweep when the owner names none
 //   node scripts/tend.js e2e-due [--days N] [--json]    whether the weekly full pass is due: no line of main's run
 //                                                       log says "e2e":"full" in seven days (decision 0181)
@@ -306,6 +307,34 @@ const MODES = ['sweep', 'triage', 'evolve', 'inbox', 'e2e'];
 const DEPLOYS = ['main', 'branch', 'none'];
 const ANSWERS = ['yes', 'no', 'reshape'];
 const count = (v) => Number.isInteger(v) && v >= 0;
+// The expectation lens (decision 0231): a sweep, and an inbox run that builds a yes, logs per feature the
+// three to five lines it wrote, each met, failed or lacking, and those the steward dropped against a Never
+// line. A line logged before the lens held (dated before EXPECTATIONS_FROM) is read as it was.
+const EXPECTATIONS_FROM = '2026-11-20';
+const VERDICTS = ['met', 'failed', 'lacking'];
+const LENS_LINE = /^A person\b.*\bwould reasonably expect\b/;
+
+function expectationProblems(e) {
+  if (!Array.isArray(e) || !e.length) return ['expectations lists each feature the run touched: { feature, lines, dropped }'];
+  const p = [];
+  for (const f of e) {
+    const lines = Array.isArray(f?.lines) ? f.lines : null;
+    const dropped = f?.dropped === undefined ? [] : Array.isArray(f.dropped) ? f.dropped : null;
+    if (typeof f?.feature !== 'string' || !f.feature.trim()) p.push('each expectation names its feature');
+    if (!lines || !dropped) {
+      p.push('an expectation\'s lines and dropped are lists');
+      continue;
+    }
+    const written = lines.length + dropped.length;
+    if (written < 3 || written > 5) p.push(`${f.feature}: three to five lines written, the dropped ones counted`);
+    for (const l of lines) {
+      if (typeof l?.line !== 'string' || !LENS_LINE.test(l.line)) p.push(`${f.feature}: a line reads "A person … would reasonably expect …"`);
+      if (!VERDICTS.includes(l?.is)) p.push(`${f.feature}: each line is ${VERDICTS.join(', ')}`);
+    }
+    for (const d of dropped) if (typeof d?.line !== 'string' || typeof d?.never !== 'string' || !d.never.trim()) p.push(`${f.feature}: a dropped line names the Never line it breaks`);
+  }
+  return p;
+}
 
 /** What is wrong with the half of a run's line only the run knows. A backfilled line may leave `found` out. */
 function logProblems(given) {
@@ -322,6 +351,10 @@ function logProblems(given) {
     if (typeof g.lenses?.whole !== 'boolean' || !Array.isArray(g.lenses?.skipped)) p.push('lenses says whether the sweep was whole and which lenses were skipped');
     if (g.lenses?.whole === true && g.lenses.skipped?.length) p.push('a whole sweep skipped no lens');
   }
+  const builds = g.mode === 'inbox' && (g.answers ?? []).some((a) => a?.answer === 'yes');
+  const lensHeld = !g.backfilled && !(typeof g.date === 'string' && g.date < EXPECTATIONS_FROM);
+  if (g.expectations !== undefined) p.push(...expectationProblems(g.expectations));
+  else if (lensHeld && (g.mode === 'sweep' || builds)) p.push('a sweep or a build logs its expectations (decision 0231)');
   for (const e of [...(g.filed?.T ?? []), ...(g.filed?.G ?? [])]) if (!/^[TG]\d+$/.test(e)) p.push(`filed entry "${e}" is a T or G number`);
   for (const a of g.answers ?? []) if (!/^[TG]\d+$/.test(a?.entry ?? '') || !ANSWERS.includes(a?.answer)) p.push(`an answer is { entry: "T3", answer: ${ANSWERS.join(' | ')} }`);
   if (g.review && ![g.review.accepted, g.review.rejected, g.review.deferred].every(count)) p.push('review counts the auditor\'s findings: accepted, rejected, deferred');
