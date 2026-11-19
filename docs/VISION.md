@@ -4,9 +4,9 @@ The identity every feature answers to. `/vision` argues from it before a spec, t
 spec against it, and `npm run check:vision` blocks what a script can catch (0094). Agents propose
 changes here; only the owner makes them, each with a decision record.
 
-- **Draft 1, 2026-11-05.** Lines marked **[proposed]** are recommendations not yet confirmed by the
-  owner. The gate may cite them as reasons, never as rules, and says which is which.
-- **Last reviewed:** 2026-11-10 at `b7b28c2` (`/vision review` moves it).
+- **Draft 1, 2026-11-05.** Lines marked **[proposed]** are not yet confirmed by the owner. The gate may
+  cite them as reasons, never as rules, and says which is which.
+- **Last reviewed:** 2026-11-10 at `b7b28c2`.
 
 ## Who it is for
 
@@ -20,9 +20,8 @@ working through a list.
 An instrument for making memories while out, **Chronicle first** (the owner, Nov 5; 0209). It brings together
 what other apps do apart (a way, a camera and notes, a replay, a journal) under one philosophy: **every
 moment captured is worth remembering**. Exploration and navigation exist to feed the corpus of moments;
-the walks are one way into it; the map is one view of it, not its home. Later, recall and search make the
-corpus a second mind (the owner, Nov 5). The overlap with adjacent apps is incidental: each does one
-verb for everyone; Chronicles does all three for a few.
+the walks are one way into it; the map is one view of it, not its home. The overlap with adjacent apps is
+incidental: each does one verb for everyone; Chronicles does all three for a few.
 
 ## The three verbs
 
@@ -44,6 +43,7 @@ Against the identity. The gate says **out**, then offers the nearest thing that 
 | Ratings, reviews, stars, "best of", rankings of places | Structural, never editorial; distinctive, not good (concept doc; Nov 1) | Your own note on a place, which is a moment; open-data signals such as a heritage listing |
 | Scores, streaks, completion, coverage, levels, badges, leaderboards | Nothing is a score (0020) | A clause in words (0052); faint fog; "New to you", "you walked there often" |
 | Tallies such as "12 of 87" or "40%" of places, streets or finds | No counts on Explore (NV14); counts are words (0052) | The finds named; "what's waiting" as kinds only |
+| A card or screen that lists what is left to find | Away from the collector's attitude (0230) | "What's waiting" is the map's "?", never a list |
 | Popularity, trending, foot traffic, other people's activity | Worth the stop, not the most popular (Nov 1) | Presence of places from open data (0080, 0084) |
 | A feed, followers, likes, public profiles | A personal memory tool, not social (Nov 1) | A whole outing sent as a reel through the share sheet, with no server; a mark on your own note, shown to no one and read by no feature about a place, a route or a recommendation (0161) |
 | Several ways ranked by minutes; "fastest" as a label | The interesting way, not only the fastest (0020) | One suggested way; only Walk me back is the shortest (0029) |
@@ -87,7 +87,7 @@ Verdicts: **aligned**, **aligned if reshaped**, **not now** (out of scope by dec
 | Moments grouped by likeness | aligned (Return) | **[proposed]** threads the owner makes first; suggested groups only once there is a corpus to learn from |
 | AI-written captions or epilogues | aligned if reshaped | Suggest, never write; the owner's words are never replaced |
 | A cloud | not now | 0005 holds until a decision says what the cloud is for; **[proposed]** the device stays truth and the cloud is a mirror |
-| Offline maps | not now | Out of scope by decision (0020), not against the identity |
+| Offline maps | not now | Out of scope by decision (0020) |
 | Pace, calories, heart rate | out | Distance and time |
 
 ## The Chronicle (the owner, Nov 5)
@@ -115,8 +115,8 @@ Verdicts: **aligned**, **aligned if reshaped**, **not now** (out of scope by dec
 
 ## Precedents
 
-An owner's call that overrules the gate or accepts a reshaping is a decision listed here, so it is
-not argued twice.
+An owner's call that overrules the gate or accepts a reshaping is a decision listed here, never
+argued twice.
 
 | Decision | The call |
 |---|---|
