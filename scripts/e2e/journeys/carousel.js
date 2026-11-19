@@ -475,35 +475,35 @@ async function wholeTowns(h) {
     if (cardOpen) {
       // PL7, PL6: the card says only the kinds: no "Waiting to be found", and a kind row reads the same whatever the layer says.
       const cardText = await pg.locator('[data-testid=atlas-card]').innerText().catch(() => '');
-      check.todo(!/Waiting to be found/i.test(cardText) && (await pg.locator('[data-testid=atlas-waiting]').count()) === 0, 'PL7: the area card has no "Waiting to be found" section');
+      check(!/Waiting to be found/i.test(cardText) && (await pg.locator('[data-testid=atlas-waiting]').count()) === 0, 'PL7: the area card has no "Waiting to be found" section');
       const artRowOn = await pg.locator('[data-testid=atlas-kind-art]').innerText().catch(() => '');
       await pg.keyboard.press('Escape');
       await pg.waitForTimeout(1200);
       // PL1: found from the map: the Layers button, the panel, a switch named Places, in words (never by a test id alone).
       await pg.getByRole('button', { name: 'Layers' }).click().catch(() => {});
       const row = pg.getByRole('switch', { name: /^Places$/ });
-      check.todo((await row.count()) === 1, 'PL1: the Layers panel on Explore has a switch named "Places"');
-      check.todo((await row.getAttribute('aria-checked').catch(() => null)) === 'true', 'PL1: Places is on by default');
+      check((await row.count()) === 1, 'PL1: the Layers panel on Explore has a switch named "Places"');
+      check((await row.getAttribute('aria-checked').catch(() => null)) === 'true', 'PL1: Places is on by default');
       // PL3, PL5: switched off, the map draws no "?" or dot and the screen reader's button is gone.
       await row.click().catch(() => {});
       await pg.waitForTimeout(1200);
       const gone = await drawn();
-      check.todo(gone.pins.length === 0 && gone.dots.length === 0 && (await pg.locator('[data-testid=atlas-waiting-said]').count()) === 0,
+      check(gone.pins.length === 0 && gone.dots.length === 0 && (await pg.locator('[data-testid=atlas-waiting-said]').count()) === 0,
         `PL3, PL5: with Places off, no "?", dot or spoken line (${gone.pins.length} "?", ${gone.dots.length} dots)`);
       // PL4, PL6: the card's picture draws no "?", and a kind row reads the same with the switch off.
       await pg.locator('[data-testid=atlas-tile][data-selected="1"]').click().catch(() => {});
       await pg.waitForTimeout(1200);
       const artRowOff = await pg.locator('[data-testid=atlas-kind-art]').innerText().catch(() => '');
-      check.todo(artRowOff === artRowOn && artRowOff.length > 0, `PL6: a kind row reads the same with Places on and off ("${artRowOn}" / "${artRowOff}")`);
-      check.todo((await pg.locator('[data-testid=atlas-card] [data-testid=mini-waiting]').count()) === 0, 'PL4: the card\'s picture draws no "?" with Places off');
+      check(artRowOff === artRowOn && artRowOff.length > 0, `PL6: a kind row reads the same with Places on and off ("${artRowOn}" / "${artRowOff}")`);
+      check((await pg.locator('[data-testid=atlas-card] [data-testid=mini-waiting]').count()) === 0, 'PL4: the card\'s picture draws no "?" with Places off');
       await pg.keyboard.press('Escape');
       await pg.waitForTimeout(800);
       await pg.getByRole('switch', { name: /^Places$/ }).click().catch(() => {});
       await pg.waitForTimeout(1200);
       const back = await drawn();
-      check.todo(back.pins.length + back.dots.length >= 6, `PL2: switched on again, the places are back (${back.pins.length} "?", ${back.dots.length} dots)`);
+      check(back.pins.length + back.dots.length >= 6, `PL2: switched on again, the places are back (${back.pins.length} "?", ${back.dots.length} dots)`);
       const panel = await pg.locator('[data-testid=layers-panel]').innerText().catch(() => '');
-      check.todo(!/find|left|remaining|unfound/i.test(panel), 'PL7: nothing in the panel says what is left to find');
+      check(!/find|left|remaining|unfound/i.test(panel), 'PL7: nothing in the panel says what is left to find');
     }
 
     // WT13: a tap on a dot eases the map in around it until it is a "?". Zoomed out the murals lie under their "?" (a tap

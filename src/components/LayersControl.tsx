@@ -2,7 +2,7 @@
 import { useEffect } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { cornerPanelBox, panelBox } from '../lib/layers/layout';
-import { LAYERS, type LegendRow, type SwatchKey } from '../lib/layers/registry';
+import { layersFor, type LayerMap, type LegendRow, type SwatchKey } from '../lib/layers/registry';
 import type { useLayers } from '../lib/layers/useLayers';
 import { Icon, type IconName } from './icons';
 import { BORDER, COLORS, HOTSPOT, PAST_STYLE, WALK_STYLE } from './map/types';
@@ -19,6 +19,7 @@ const SWATCH: Record<SwatchKey, { color: string; opacity: number; outline?: bool
   'border-tint': { color: BORDER.color, opacity: BORDER.fillOpacity, outline: true },
   'border-line': { color: BORDER.lined, opacity: BORDER.linedOpacity, outline: true },
   past: { color: COLORS.past, opacity: PAST_STYLE.opacity },
+  mark: { color: theme.ink, opacity: 0.85, outline: true },
 };
 
 const BUTTON = 44;
@@ -60,8 +61,8 @@ function Legend(props: { row: LegendRow }) {
  * What each layer that is on shows, with a line per row when pressed: lives in the walk's settings drawers, never over the map
  * (the owner, Nov 5: "The tooltip is intrusive"). Nothing renders while every layer is off.
  */
-export function LayersKey(props: { layers: ReturnType<typeof useLayers> }) {
-  const on = LAYERS.filter((l) => props.layers.on[l.id]);
+export function LayersKey(props: { layers: ReturnType<typeof useLayers>; map: LayerMap }) {
+  const on = layersFor(props.map).filter((l) => props.layers.on[l.id]);
   if (!on.length) return null;
   return (
     <View testID="layers-key" style={styles.key}>
@@ -87,6 +88,8 @@ export function LayersKey(props: { layers: ReturnType<typeof useLayers> }) {
  */
 export function LayersControl(props: {
   layers: ReturnType<typeof useLayers>;
+  /** Which map's panel this is: it lists the layers that map can draw (PL9). */
+  map: LayerMap;
   notes?: Record<string, string | null | undefined>;
   /** Anchored from the bottom (the walk) or from the top (Explore); the panel is placed from the button's top either way. */
   bottom?: number;
@@ -112,7 +115,8 @@ export function LayersControl(props: {
   const box = fromLeft
     ? cornerPanelBox({ windowW: winW, windowH: winH, left: props.left!, bottom, button: BUTTON, rightClear: props.rightClear ?? 80, clearTop: props.clearTop ?? 152 })
     : panelBox({ windowW: winW, windowH: winH, buttonTop, right, paneWidth: props.paneWidth, clearBottom: props.clearBottom ?? 160 });
-  const anyOn = LAYERS.some((l) => layers.on[l.id]);
+  const listed = layersFor(props.map);
+  const anyOn = listed.some((l) => layers.on[l.id]);
   // A panel left open never follows the person to another screen: it closes when its button goes (layers audit 5).
   useEffect(() => closePanel, [closePanel]);
   useEffect(() => {
@@ -143,7 +147,7 @@ export function LayersControl(props: {
       {layers.open ? (
         <View testID="layers-panel" accessibilityLabel="Layers" role="group" style={[styles.card, fromLeft ? { left: props.left! + BESIDE, bottom, zIndex: CORNER_Z } : { right: right + BESIDE, top: buttonTop }, { width: box.width, maxHeight: box.maxHeight }]}>
           <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false}>
-            {LAYERS.map((l) => {
+            {listed.map((l) => {
               const on = !!layers.on[l.id];
               return (
                 <View key={l.id}>

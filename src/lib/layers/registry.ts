@@ -8,7 +8,10 @@ import { bandWhy } from '../walk/bandWords';
  */
 
 /** Which colour a legend row's swatch wears; the view maps these to the map's own colours (`components/map/types`). */
-export type SwatchKey = 'foot' | 'car' | 'hotspot' | 'border-tint' | 'border-line' | 'past';
+export type SwatchKey = 'foot' | 'car' | 'hotspot' | 'border-tint' | 'border-line' | 'past' | 'mark';
+
+/** The maps that have a Layers panel (specs/places-layer PL9): a layer lists only on the maps it can draw on. */
+export type LayerMap = 'explore' | 'navigate' | 'walk';
 
 /** SF1, storefronts ui 2: what counts as a storefront, one sentence: the layer's tip and the line under the card's Storefronts heading. */
 export const STOREFRONTS_WHAT = 'Streets lined with shops, food, drink, services and offices you walk into.';
@@ -31,6 +34,8 @@ export interface LayerDef {
   icon: string;
   defaultOn: boolean;
   legend: readonly LegendRow[];
+  /** The maps whose panel lists it; absent, every map (a layer is listed only where it can draw). */
+  maps?: readonly LayerMap[];
   /** One quiet line under the legend, in words (where the data is from, what it can't say). */
   note?: string;
 }
@@ -72,4 +77,17 @@ export const LAYERS: readonly LayerDef[] = [
     defaultOn: false,
     legend: [{ key: 'earlier', text: 'Your earlier walks', swatch: 'past' }],
   },
+  {
+    // Places layer (specs/places-layer PL1, decision 0230): the "?" and dots for places worth the stop, local information over the
+    // map, on by default. Explore's map only: Navigate's and the walk's maps draw none. Named for what it draws, never a task.
+    id: 'places',
+    name: 'Places',
+    icon: 'help-circle-outline',
+    defaultOn: true,
+    maps: ['explore'],
+    legend: [{ key: 'places', text: 'A place worth the stop', swatch: 'mark' }],
+  },
 ];
+
+/** PL9, PL12: the layers a map's panel and key list, in the registry's order. */
+export const layersFor = (map: LayerMap, layers: readonly LayerDef[] = LAYERS): readonly LayerDef[] => layers.filter((l) => !l.maps || l.maps.includes(map));

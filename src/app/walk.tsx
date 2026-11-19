@@ -1773,7 +1773,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
             {Object.values(layers.on).some(Boolean) && (
               <>
                 <Text style={styles.optionSection} accessibilityRole="header">On the map</Text>
-                <LayersKey layers={layers} />
+                <LayersKey map="walk" layers={layers} />
               </>
             )}
             {/* The pocket alert is a nudge you feel: on every phone, and on a touch-screen browser that can vibrate (E19, PA6). */}
@@ -1844,7 +1844,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
         focusAfter={compassNext}
       />
       {/* Layers (ML3): the bottom-left corner above the scale bar, clear of the navigation bar. */}
-      <LayersControl layers={layers} notes={layerNotes({ walkability: wk.status, storefrontsReading: storefronts.reading, storefrontsFailed: storefronts.failed, past: past.status })} bottom={at.layers.bottom} left={at.layers.left} rightClear={at.layersRightClear} clearTop={at.insets.top + 152} />
+      <LayersControl map="walk" layers={layers} notes={layerNotes({ walkability: wk.status, storefrontsReading: storefronts.reading, storefrontsFailed: storefronts.failed, past: past.status })} bottom={at.layers.bottom} left={at.layers.left} rightClear={at.layersRightClear} clearTop={at.insets.top + 152} />
 
       {awayFromStart && wayBack && !navigation.nav && (
         // Walk me back: the way back to where this walk began, where the last ride ended, or the spot chosen (N1, N11, DW6-DW8).
