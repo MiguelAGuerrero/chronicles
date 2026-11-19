@@ -472,30 +472,65 @@ function listText(stores, index) {
     .join('');
 }
 
+// The one commit that records the owner's answer to proposed lines (decision 0234): its subject names the feature and
+// the date the answer was given, which every Answer it adds carries.
+const ANSWER_COMMIT = /^expectations ([a-z][a-z0-9-]*): the owner's answer, (\d{4}-\d{2}-\d{2})$/;
+
 /**
- * What a loop commit did to a store file that the loop may not (decision 0234): every line the file held stays as it
- * was but for its Check (evidence, filled in or moved); every line it adds is proposed.
+ * What an agent's commit (a loop commit or any other) did to a store file that it may not (decision 0234). In any
+ * commit, a line the file held keeps its words, status, grounds and answer, and its Check moves only to another
+ * check (set-check), never from a check back to pending; a line it adds is proposed. In the owner's answer commit
+ * (`expectations <feature>: the owner's answer, <date>`) a proposed line may become ratified or declined, dated so and
+ * with its Answer, and the line a ratified amendment replaces superseded on that date; nothing else changes.
+ * A file that does not read is the owner's to mend by hand: an agent commit changes it in no way.
  */
-function editProblems(before, after, feature) {
+function editProblems(before, after, feature, subject = '') {
   const b = parseStore(before, feature);
   const a = parseStore(after, feature);
   const where = fileOf(feature);
-  const why = 'the loop adds proposed lines and amendments and fills a check, through npm run expectations; a line\'s words, status and answer are the owner\'s (decision 0234)';
+  const why = "an agent adds proposed lines and amendments and fills a check, through npm run expectations; a line's words, status and answer are the owner's, recorded in the answer commit (decision 0234)";
   if (b.problems.length) return before === after ? [] : [`changes ${where}, which does not read (${b.problems[0]}): the owner mends it by hand (decision 0234)`];
   const out = a.problems.map((p) => `${where} does not read: ${p}`);
+  const ans = ANSWER_COMMIT.exec(String(subject).trim());
+  const answering = ans && ans[1] === feature ? ans[2] : null;
+  const answeredNow = new Set();
+  for (const e of b.entries) {
+    const now = a.entries.find((x) => x.id === e.id);
+    if (now && e.status === 'proposed' && (now.status === 'ratified' || now.status === 'declined')) answeredNow.add(now);
+  }
   for (const e of b.entries) {
     const now = a.entries.find((x) => x.id === e.id);
     if (!now) {
       out.push(`removes ${e.id} from ${where}: ${why}`);
       continue;
     }
-    const { check: _b, ...was } = e;
-    const { check: _a, ...is } = now;
-    if (JSON.stringify(was) === JSON.stringify(is)) continue;
-    const verb = now.status !== e.status ? `marks ${e.id} ${now.status}` : `changes ${e.id}`;
-    out.push(`${verb} in ${where}: ${why}`);
+    const { check: cb, ...was } = e;
+    const { check: ca, ...is } = now;
+    if (answering && answeredNow.has(now)) {
+      const expect = ordered({ ...e, status: now.status, date: answering, answer: now.answer });
+      const dated = now.date === answering && new RegExp(`^".*" \\(the owner, ${answering}\\)$`).test(now.answer ?? '');
+      if (!dated) out.push(`answers ${e.id} in ${where} with a date or an Answer other than the commit's, ${answering}: "<words>" (the owner, ${answering})`);
+      else if (JSON.stringify(ordered(now)) !== JSON.stringify(expect)) out.push(`answers ${e.id} in ${where} and changes more than its status and Answer: ${why}`);
+      continue;
+    }
+    const replacedBy = [...answeredNow].find((x) => x.status === 'ratified' && x.amends === e.id);
+    if (answering && replacedBy && e.status === 'ratified') {
+      const expect = ordered({ ...e, status: 'superseded', date: answering, by: replacedBy.id });
+      if (JSON.stringify(ordered(now)) !== JSON.stringify(expect)) out.push(`supersedes ${e.id} in ${where} otherwise than by ${replacedBy.id} on ${answering}: ${why}`);
+      continue;
+    }
+    if (JSON.stringify(was) !== JSON.stringify(is)) {
+      const verb = now.status !== e.status ? `marks ${e.id} ${now.status}` : `changes ${e.id}`;
+      out.push(`${verb} in ${where}${now.status !== e.status && !answering ? ', outside the owner\'s answer commit' : ''}: ${why}`);
+      continue;
+    }
+    if (cb !== ca && parseCheck(cb)?.kind !== 'pending' && parseCheck(ca)?.kind === 'pending') out.push(`moves ${e.id}'s check in ${where} back to pending: a check moves to another check (set-check)`);
   }
-  for (const e of a.entries) if (!b.entries.some((x) => x.id === e.id) && e.status !== 'proposed') out.push(`adds ${e.id} to ${where} as ${e.status}: ${why}`);
+  for (const e of a.entries) {
+    if (b.entries.some((x) => x.id === e.id)) continue;
+    if (answering) out.push(`adds ${e.id} to ${where} in the owner's answer commit: it records answers only`);
+    else if (e.status !== 'proposed') out.push(`adds ${e.id} to ${where} as ${e.status}: ${why}`);
+  }
   return out;
 }
 
@@ -680,6 +715,6 @@ function main(argv) {
   return op === 'help' ? 0 : 2;
 }
 
-module.exports = { writeProblems, ID, DIR, LENS_LINE, parseStore, formatStore, parseDraft, draft, amend, answer, setCheck, parseCheck, indexOf, resolveCheck, checkProblems, due, listText, editProblems, logRefProblems, readStores, readIndex, check };
+module.exports = { ANSWER_COMMIT, writeProblems, ID, DIR, LENS_LINE, parseStore, formatStore, parseDraft, draft, amend, answer, setCheck, parseCheck, indexOf, resolveCheck, checkProblems, due, listText, editProblems, logRefProblems, readStores, readIndex, check };
 
 if (require.main === module) process.exitCode = main(process.argv.slice(2));

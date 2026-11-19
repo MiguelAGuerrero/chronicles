@@ -274,7 +274,7 @@ function tendCommitProblems({ subject, body, files, added = '', rewritesLog = fa
 }
 
 const RULE_FILE = /^\.claude\/rules\/[^/]+\.md$/;
-const STORE_FILE = /^docs\/expectations\/([^/]+)\.md$/;
+const STORE_FILE = /^docs\/expectations\/(?!README\.md$)([^/]+)\.md$/;
 
 /**
  * Whether lines a commit removes from a rule file include one the push's base holds: those stay
@@ -748,6 +748,19 @@ function commits(argv) {
   };
   let bad = 0;
   const read = [];
+  const storesRead = new Set();
+  const at = (rev, file) => {
+    try {
+      return execFileSync('git', ['show', `${rev}:${file}`], { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], maxBuffer: 64 * 1024 * 1024 });
+    } catch {
+      return '';
+    }
+  };
+  // What a commit did to the expectation store files it changed (scripts/expectations.js, editProblems).
+  const storeEdits = (sha, subject) => {
+    const changed = git('show', '--name-only', '--format=', sha).split('\n').filter((p) => STORE_FILE.test(p));
+    return changed.flatMap((p) => require('./expectations').editProblems(at(`${sha}^`, p), at(sha, p), STORE_FILE.exec(p)[1], subject));
+  };
   // The record documents (decision 0156): each commit that touches them is its declared operations,
   // replayed on its parent's; a merge that touches them fails in a push that holds loop commits.
   const records = require('./records').gateRange(range, { cwd: ROOT, loopOnly });
@@ -766,15 +779,8 @@ function commits(argv) {
     const removed = (file) => git('show', '--format=', '-U0', sha, '--', file).split('\n').filter((l) => /^-(?!--)/.test(l)).map((l) => l.slice(1));
     const rewritesLog = files.some((f) => f.path === RUNS_REL) && removed(RUNS_REL).length > 0;
     const rewritesRules = files.filter((f) => RULE_FILE.test(f.path) && f.status === 'M' && rewritesBaseLines(removed(f.path), atBase(f.path))).map((f) => f.path);
-    const at = (rev, file) => {
-      try {
-        return execFileSync('git', ['show', `${rev}:${file}`], { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], maxBuffer: 64 * 1024 * 1024 });
-      } catch {
-        return '';
-      }
-    };
-    const stores = [...new Set(files.flatMap((f) => [f.from, f.path]).filter((p) => p && STORE_FILE.test(p)))];
-    const expectationEdits = stores.flatMap((p) => require('./expectations').editProblems(at(`${sha}^`, p), at(sha, p), STORE_FILE.exec(p)[1]));
+    const expectationEdits = storeEdits(sha, subject);
+    storesRead.add(sha);
     read.push({ subject, body: rest.join('\n'), files });
     const problems = tendCommitProblems({ subject, body: rest.join('\n'), files, added, rewritesLog, rewritesRules, expectationEdits });
     problems.push(...(recordIssues.get(sha) ?? []));
@@ -782,6 +788,15 @@ function commits(argv) {
     for (const p of problems) {
       bad += 1;
       console.error(`${sha.slice(0, 7)} ${subject}\n  ${p}`);
+    }
+  }
+  // The expectation store (decision 0234): every agent commit of the range is held to it, a loop commit or not.
+  for (const sha of all.filter((x) => !storesRead.has(x))) {
+    const message = git('show', '-s', '--format=%B', sha);
+    if (!require('./records').isAgent(message)) continue;
+    for (const p of storeEdits(sha, message.split('\n')[0].trim())) {
+      bad += 1;
+      console.error(`${sha.slice(0, 7)} ${message.split('\n')[0].trim()}\n  ${p}`);
     }
   }
   // What the record gate found in commits this loop does not read itself: agent commits, merges, reverts.
