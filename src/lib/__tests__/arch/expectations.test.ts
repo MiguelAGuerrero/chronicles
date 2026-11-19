@@ -116,6 +116,29 @@ test('expectations audit 4: no write leaves a store that reads otherwise: an ans
   assert.equal(readFileSync(join(root, 'docs/expectations/memories.md'), 'utf8'), STORE);
 });
 
+test('expectations audit 5: a store that does not read is written by no operation, and any agent change to it is refused', () => {
+  const BROKEN = STORE.replace('  Grounds: VISION "Who it is for"; not yet recorded\n', '');
+  const broken = ex.parseStore(BROKEN, 'memories');
+  assert.ok(broken.problems.length > 0);
+  const owner = { as: 'ratified' as const, by: 'owner', date: '2026-11-21', answer: 'yes' };
+  for (const r of [
+    ex.draft(broken, [line('a day of walks in order.')]),
+    ex.amend(broken, 'E-memories-1', line('x.')),
+    ex.answer(broken, ['E-memories-3'], owner),
+    ex.setCheck(broken, 'E-memories-3', 'picture:13-reminder'),
+  ]) {
+    assert.ok(r.problems.some((p) => /does not read/.test(p)), r.problems.join('\n'));
+    assert.deepEqual(r.ids, []);
+  }
+  const root = tempRoot({ 'memories.md': BROKEN });
+  writeFileSync(join(root, 'lines.md'), `- ${person} a day of walks in order.\n  Check: pending "x"\n  Grounds: VISION "Who it is for"; not yet recorded\n`);
+  assert.equal(cli(root, 'draft', 'memories', '--file', join(root, 'lines.md')).status, 1);
+  assert.equal(readFileSync(join(root, 'docs/expectations/memories.md'), 'utf8'), BROKEN, 'nothing dropped');
+  assert.deepEqual(ex.editProblems(BROKEN, BROKEN, 'memories'), [], 'left as it is');
+  assert.ok(ex.editProblems(BROKEN, BROKEN.replace(/- E-memories-3[\s\S]*$/, ''), 'memories').some((p) => /does not read/.test(p)), 'a line of a broken store removed');
+  assert.ok(ex.editProblems(BROKEN, STORE, 'memories').some((p) => /does not read/.test(p)), 'even mended: the owner mends it by hand');
+});
+
 test('expectations 0234: a store file reads into lines with their status, check and grounds, and writes back the same', () => {
   const s = store();
   assert.deepEqual(s.problems, []);
