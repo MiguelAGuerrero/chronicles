@@ -391,6 +391,7 @@ function logProblems(given) {
   else if (held) p.push('a sweep or a build logs its expectations (decision 0236)');
   if (g.compass !== undefined) p.push(...compassProblems(g.compass, g.filed?.G ?? []));
   else if (held) p.push('a sweep or a build logs the compass\'s counts (decision 0236)');
+  if (g.shots !== undefined && (typeof g.shots !== 'string' || !g.shots.trim())) p.push("shots is the run's shots folder, a path");
   for (const e of [...(g.filed?.T ?? []), ...(g.filed?.G ?? [])]) if (!/^[TG]\d+$/.test(e)) p.push(`filed entry "${e}" is a T or G number`);
   for (const a of g.answers ?? []) if (!/^[TG]\d+$/.test(a?.entry ?? '') || !ANSWERS.includes(a?.answer)) p.push(`an answer is { entry: "T3", answer: ${ANSWERS.join(' | ')} }`);
   if (g.review && ![g.review.accepted, g.review.rejected, g.review.deferred].every(count)) p.push('review counts the auditor\'s findings: accepted, rejected, deferred');
@@ -713,6 +714,8 @@ function appendLog(argv) {
     console.error(`tend log: ${problems.join('; ')}`);
     process.exit(1);
   }
+  // The shots folder is the run's scratchpad: it checks the pictures and is not the log's to keep.
+  delete line.shots;
   fs.appendFileSync(RUNS, JSON.stringify(line) + '\n');
   console.log(JSON.stringify(line));
 }
