@@ -364,6 +364,13 @@ test('expectations audit 18: a template message is named by its fixed text befor
   }
 });
 
+test('expectations audit 19: the check command counts a feature\'s own picture as found', () => {
+  const root = tempRoot({ 'memories.md': STORE.replace('test:"memories MR7: a capture whose reminder card is showing has no memory pin"', 'picture:13-reminder') });
+  const r = cli(root, 'check');
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.stdout, 'expectations check: 3 lines, 2 checks found, 1 pending, 0 missing\n');
+});
+
 test('expectations 0236: a store file reads into lines with their status, check and grounds, and writes back the same', () => {
   const s = store();
   assert.deepEqual(s.problems, []);
