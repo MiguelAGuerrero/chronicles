@@ -259,6 +259,8 @@ function amendOf(store, id, line) {
   const target = store.entries.find((e) => e.id === id);
   if (!target) return { store, ids: [], problems: [`${id} is no line of ${fileOf(store.feature)}`] };
   if (target.status !== 'ratified') return { store, ids: [], problems: [`${id} is ${target.status}: only a ratified line is amended (a proposed one waits for the owner's answer)`] };
+  const open = store.entries.find((e) => e.amends === id && e.status === 'proposed');
+  if (open) return { store, ids: [], problems: [`${id} already has an open amendment, ${open.id}: it waits for the owner's answer`] };
   return newLines(store, [line], id);
 }
 
@@ -278,6 +280,10 @@ function answerOf(store, ids, { as, by, date, answer: words }) {
     const e = store.entries.find((x) => x.id === id);
     if (!e) problems.push(`${id} is no line of ${fileOf(store.feature)}`);
     else if (e.status !== 'proposed') problems.push(`${id} is ${e.status}: only a proposed line is answered`);
+    else if (as === 'ratified' && e.amends !== undefined) {
+      const target = store.entries.find((x) => x.id === e.amends);
+      if (target?.status !== 'ratified') problems.push(`${id} amends ${e.amends}, and ${e.amends} is ${target?.status ?? 'missing'}: an amendment is ratified only over a ratified line`);
+    }
   }
   if (!ids.length) problems.push('no line named');
   if (problems.length) return { store, ids: [], problems };
