@@ -292,6 +292,10 @@ async function checks(h) {
         const armedSaid = await page.locator('[data-testid=armed-line]').innerText();
         await page.waitForTimeout(800);
         await shot(page, '02b-armed');
+        // tend walk-screen 13 (the sweep's ux 4): while a place is armed its line speaks for the next capture, so the
+        // Add to this moment offer, which would join the open moment instead, steps aside (one transient at a time; H4).
+        check((await page.locator('[data-testid=add-to-moment]').filter({ visible: true }).count()) === 0,
+          'tend walk-screen 13: the Add to this moment offer is hidden while a place is armed');
         const lineBox = await page.locator('[data-testid=armed-line]').boundingBox();
         const cancelBox = await page.locator('[data-testid=armed-cancel]').boundingBox();
         check(!!lineBox && !!cancelBox && cancelBox.width < lineBox.width - 60 && cancelBox.height >= 44, `tap-to-capture-places ui 1: Cancel is a button at its own width, not the whole line (${Math.round(cancelBox?.width ?? 0)} of ${Math.round(lineBox?.width ?? 0)})`);
@@ -365,6 +369,9 @@ async function checks(h) {
         check(seenEnters.some((e) => e.kind === 'pulse' && e.animated && /^Found( with a \w+)?: Hessian/.test(e.label)), 'a find pulses once from its pin (M12)');
         check(seenEnters.some((e) => e.kind === 'flip' && e.animated), 'a revealed "?" turns into its place, on its way to being found (M11)');
         check((await page.locator('[data-testid=armed-line]').count()) === 0, 'TC4: arming clears after the capture');
+        // tend walk-screen 13: with the arming spent, the offer is back for the moment the video began.
+        check(await page.locator('[data-testid=add-to-moment]').filter({ visible: true }).first().waitFor({ timeout: 4000 }).then(() => true, () => false),
+          'tend walk-screen 13: the Add to this moment offer returns once the arming clears');
       }
       if (k === 25) {
         await page.click('[data-testid=cap-note]');

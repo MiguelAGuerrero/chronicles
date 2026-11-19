@@ -57,3 +57,11 @@ test('tend walk-screen 12: the walk\'s strip is named with its distance and time
   assert.match(walk, /summaryLabel=\{walkSummaryLabel\(\{/);
   assert.doesNotMatch(walk, /summaryLabel=\{exploring \? 'The walk, exploring' : 'The walk'\}/);
 });
+
+// tend walk-screen 13 (the sweep's ux 4): with a place armed ("The next moment is about …", Capture here), the Add to this
+// moment offer still stood beside it, offering to send the next capture into the open moment instead: two transients
+// saying different things about one tap. The offer steps aside while a place is armed; the journey `walk` holds it.
+test('tend walk-screen 13: the walk\'s Add to this moment offer hides while a place is armed', () => {
+  const pill = /<AddToMomentPill[\s\S]*?hidden=\{([^}]*)\}/.exec(read('app/walk.tsx'))?.[1] ?? '';
+  assert.match(pill, /!!explore\.armed/);
+});

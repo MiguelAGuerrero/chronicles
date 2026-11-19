@@ -1603,7 +1603,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
       <View style={[styles.pills, at.pills]} pointerEvents="box-none">
         {walk && (
           <AddToMomentPill
-            hidden={recordingVoice || noteOpen || !!spot || !!openMark || !!options || !!memory}
+            // Not while a place is armed: its line says where the next capture goes (tend walk-screen 13).
+            hidden={recordingVoice || noteOpen || !!spot || !!openMark || !!options || !!memory || !!explore.armed}
             onPhoto={() => void photo(momentPill.target())}
             onVoice={() => void startVoice(momentPill.target())}
             onNote={() => {
