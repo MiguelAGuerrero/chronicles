@@ -36,6 +36,7 @@ type Expectations = {
   editProblems(before: string, after: string, feature: string): string[];
   logRefProblems(lines: { id: string; is: string; evidence?: string; provisional?: boolean }[], stores: Store[], index: Index, exists?: (p: string) => boolean): string[];
   check(root: string): { message: string }[];
+  writeProblems(store: Store): string[];
 };
 const ex = createRequire(__filename)(join(ROOT, 'scripts', 'expectations.js')) as Expectations;
 
@@ -95,6 +96,24 @@ test('expectations audit 10: a store reads with CRLF line ends and blank lines b
   const bad = ex.parseStore(STORE.replace('  Check: test:"memories MR7', '  Bogus: test:"memories MR7'), 'memories');
   assert.ok(bad.problems.some((p) => /^line 10: Bogus is no key/.test(p)), bad.problems.join('\n'));
   assert.deepEqual(ex.check(tempRoot({ 'README.md': '# The expectation stores\n\nOne file per feature.\n', 'memories.md': STORE })), []);
+});
+
+const cli = (root: string, ...args: string[]) =>
+  spawnSync(process.execPath, [join(ROOT, 'scripts', 'expectations.js'), ...args], { cwd: root, env: { ...process.env, EXPECTATIONS_ROOT: root }, encoding: 'utf8' });
+
+test('expectations audit 4: no write leaves a store that reads otherwise: an answer on two lines is refused, and the file stays as it was', () => {
+  const owner = { as: 'ratified' as const, by: 'owner', date: '2026-11-21' };
+  for (const answer of ['Ratify\nas drafted', 'Ratify\r as drafted', 'yes\n- E-memories-9 [ratified 2026-11-21] A person would reasonably expect x']) {
+    assert.ok(ex.answer(store(), ['E-memories-2'], { ...owner, answer }).problems.some((p) => /one line/.test(p)), JSON.stringify(answer));
+  }
+  assert.deepEqual(ex.writeProblems(store()), []);
+  const [first] = store().entries;
+  assert.ok(ex.writeProblems({ ...store(), entries: [{ ...first, text: `${first.text}\n  Answer: "yes" (the owner, 2026-11-21)` }] }).length > 0, 'a store that writes and reads back otherwise');
+  assert.ok(ex.writeProblems({ ...store(), entries: [{ ...first, grounds: '' }] }).length > 0, 'a store that writes and reads back with problems');
+  const root = tempRoot({ 'memories.md': STORE });
+  const r = cli(root, 'ratify', 'E-memories-2', '--by', 'owner', '--date', '2026-11-21', '--answer', 'Ratify\nas drafted');
+  assert.equal(r.status, 1);
+  assert.equal(readFileSync(join(root, 'docs/expectations/memories.md'), 'utf8'), STORE);
 });
 
 test('expectations 0234: a store file reads into lines with their status, check and grounds, and writes back the same', () => {
