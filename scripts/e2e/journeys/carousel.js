@@ -500,10 +500,13 @@ async function wholeTowns(h) {
       await pg.waitForTimeout(800);
       // The card and a tap on the map closed the panel: open it again to switch Places on.
       if (!(await pg.getByRole('switch', { name: /^Places$/ }).count())) await pg.getByRole('button', { name: 'Layers' }).click().catch(() => {});
-      await pg.getByRole('switch', { name: /^Places$/ }).click().catch(() => {});
-      await pg.waitForTimeout(1200);
+      const sw = pg.getByRole('switch', { name: /^Places$/ });
+      const before = await sw.getAttribute('aria-checked').catch(() => 'none');
+      await sw.click().catch(() => {});
+      const after = await sw.getAttribute('aria-checked').catch(() => 'none');
+      await pg.waitForFunction(() => document.querySelectorAll('[data-testid=mark-pin]').length > 0 || JSON.parse(document.querySelector('[data-waiting-dots]')?.getAttribute('data-waiting-dots') ?? '[]').length > 0, null, { timeout: 15000 }).catch(() => {});
       const back = await drawn();
-      check(back.pins.length + back.dots.length >= 6, `PL2: switched on again, the places are back (${back.pins.length} "?", ${back.dots.length} dots)`);
+      check(back.pins.length + back.dots.length >= 6, `PL2: switched on again, the places are back (${back.pins.length} "?", ${back.dots.length} dots; switch ${before} -> ${after})`);
       const panel = await pg.locator('[data-testid=layers-panel]').innerText().catch(() => '');
       check(!/find|left|remaining|unfound/i.test(panel), 'PL7: nothing in the panel says what is left to find');
     }
