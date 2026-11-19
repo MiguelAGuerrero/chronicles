@@ -1562,8 +1562,9 @@ function WalkScreen(props: { onMinimize: () => void }) {
           </View>
         ) : null}
         {nudgeShown && nudge && (
-          <View testID="dead-zone" style={styles.undo}>
-            <Text style={[styles.undoText, { flexShrink: 1 }]} numberOfLines={2}>{nudge.text}</Text>
+          // Below 360 its text takes a line of its own above Route here and Dismiss (tend walk-screen audit 13).
+          <View testID="dead-zone" style={[styles.undo, narrow && styles.nudgeNarrow]}>
+            <Text style={[styles.undoText, narrow ? styles.nudgeTextNarrow : { flexShrink: 1 }]} numberOfLines={2}>{nudge.text}</Text>
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={`Go to ${nudge.name}`}
@@ -2176,6 +2177,9 @@ const styles = StyleSheet.create({
   // 44 pt themselves, not by hit slop, which react-native-web lacks (tend walk-screen 14).
   nudgeClose: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', marginVertical: -8 },
   motionOn: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 8 },
+  // The nudge below 360: wrapped, its text a full line above its two buttons (tend walk-screen audit 13).
+  nudgeNarrow: { flexWrap: 'wrap', justifyContent: 'flex-end', rowGap: 4, borderRadius: 20 },
+  nudgeTextNarrow: { flexBasis: '100%', paddingTop: 4 },
   disabled: { opacity: 0.5 },
   pressed: { opacity: 0.8 },
   stats: { color: theme.ink, fontSize: 17, fontWeight: '600', fontVariant: ['tabular-nums'], flexShrink: 1 },

@@ -112,3 +112,18 @@ test('tend walk-screen 16: "Passing a place" says what passing is, in one senten
   const note = /export const passNote = \(m: number\) => `([^`]*)`;/.exec(read('components/ExploreSettings.tsx'))?.[1];
   assert.equal(note, 'A place is passed when you come within ${formatRange(m)} of it.');
 });
+
+// tend walk-screen audit 13 (the diff review's auditor 2; a regression of tend walk-screen 14): the dead-zone nudge's
+// Dismiss grew to 44 pt, and at 320 px its two lines of text were left about 74 px ("Altstadt, 450 m north" lost its
+// direction). Below 360 (the strip's own `narrow`) the pill wraps: its text takes a line of its own, still two lines,
+// with Route here and Dismiss under it.
+test('tend walk-screen audit 13: below 360 the dead-zone nudge\'s text has its own line above its buttons', () => {
+  const walk = read('app/walk.tsx');
+  const pill = /<View testID="dead-zone" style=\{(\[[^\]]*\])\}>\s*<Text style=\{(\[[^\]]*\])\} numberOfLines=\{2\}/.exec(walk);
+  assert.ok(pill, 'the nudge and its two-line text');
+  assert.match(pill[1], /narrow && styles\.(\w+)/);
+  assert.match(pill[2], /narrow \? styles\.(\w+)/);
+  const style = (name: string) => new RegExp(`\\n  ${name}: \\{([^}]*)\\}`).exec(walk)?.[1] ?? '';
+  assert.match(style(/narrow && styles\.(\w+)/.exec(pill[1])![1]), /flexWrap: 'wrap'/);
+  assert.match(style(/narrow \? styles\.(\w+)/.exec(pill[2])![1]), /flexBasis: '100%'/);
+});
