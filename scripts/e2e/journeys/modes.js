@@ -3,7 +3,7 @@
 // Written first, as todos (check.todo), each failing until its code. E2E_ONLY=modes runs it alone.
 
 async function run(h) {
-  const { navUrl, BASE, at, check, freshPage, drawerTo, toStop } = h;
+  const { navUrl, BASE, at, check, freshPage, drawerTo, toStop, shot } = h;
   const { c, pg } = await freshPage('modes', { touch: true });
   const marksNow = () => pg.locator('.maplibregl-map').last().locator('[data-testid=mark-pin]').count();
   await pg.goto(navUrl);
@@ -11,6 +11,8 @@ async function run(h) {
   // MD2: the start drawer has no Quiet / Explore choice.
   await drawerTo(pg, 'half');
   await pg.waitForSelector('[data-testid=start-settings]');
+  await pg.waitForTimeout(800);
+  await shot(pg, 'modes-0-start-settings');
   check((await pg.locator('[data-testid=mode-quiet], [data-testid=mode-explore]').count()) === 0, 'MD2: the walk settings have no Quiet / Explore choice');
   await drawerTo(pg, 'peek');
   await pg.click('[data-testid=start]');
@@ -20,10 +22,13 @@ async function run(h) {
   await pg.waitForTimeout(2500);
   // MD3, MD2: a fresh walk draws no "?", and "This walk" has no Explore switch.
   check((await marksNow()) === 0 && (await pg.locator('[data-testid=range-ring]').count()) === 0, 'MD3: a fresh walk draws no "?" and no range ring');
+  await shot(pg, 'modes-1-walk-fresh');
   // MD1: found by names: the Layers button, the panel, a switch named Places, off.
   await pg.getByRole('button', { name: 'Layers' }).click().catch(() => {});
   const row = pg.getByRole('switch', { name: /^Places$/ });
   check((await row.count()) === 1 && (await row.getAttribute('aria-checked').catch(() => null)) === 'false', 'MD1: the walk\'s Layers panel lists Places, off');
+  await pg.waitForTimeout(600);
+  await shot(pg, 'modes-2-walk-panel-off');
   // MD16: with the panel open, the capture stack is still one tap: the note opens.
   check((await pg.locator('[data-testid=cap-note]').isVisible().catch(() => false)), 'MD16: the capture stack is visible with the Layers panel open');
   // MD4: on, the "?" for places within range draw as Explore mode drew them.
@@ -34,6 +39,7 @@ async function run(h) {
     await pg.waitForTimeout(1000);
   }
   check((await marksNow()) > 0, 'MD4: with Places on the "?" draw');
+  await shot(pg, 'modes-3-walk-places-on');
   // MD19: nothing says what is left, how many, or nearby to find.
   const text = await pg.locator('body').innerText().catch(() => '');
   check(!/left to find|still to find|nearby to find|remaining/i.test(text), 'MD19: no copy says what is left to find');
