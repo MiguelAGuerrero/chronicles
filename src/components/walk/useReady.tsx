@@ -188,17 +188,20 @@ export function useReady(props: {
   }, []);
 
   // The chevron and Back (NR4): the raised bar lowers first. Mid-memo the chevron still closes, and the
-  // memo is saved as the screen goes (useCaptures finishes it on unmount, NR10); Back does nothing then.
+  // memo is saved as the screen goes (useCaptures finishes it on unmount, NR10); Back does nothing then. While Start is on
+  // its way Back is taken and does nothing, as the chevron is disabled (audit 10): closing then opened the walk minimized,
+  // unsaid (tend walk-screen 11). Only while in front, as every Back handler on this screen (what-im-into-page audit 1).
   const { onClose } = props;
   const close = useCallback(() => onClose(), [onClose]);
+  const starting = walkStart.starting;
   useEffect(() => {
-    if (!active || up || memoOn) return;
+    if (!active || up || memoOn || !focused) return;
     const back = BackHandler.addEventListener('hardwareBackPress', () => {
-      close();
+      if (!starting) close();
       return true;
     });
     return () => back.remove();
-  }, [active, up, memoOn, close]);
+  }, [active, up, memoOn, focused, starting, close]);
 
   const ring = up && mode === 'explore' && fix ? { center: fix, radiusM: settings.rangeM } : null;
   // The ring is framed in the map left above the raised bar (audit 1), refit as it appears or changes.
