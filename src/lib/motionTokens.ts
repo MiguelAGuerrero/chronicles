@@ -226,11 +226,28 @@ export const REPLAY_RHYTHM = {
   laterAfterMs: 15 * 60_000,
   /** How long "N min later" stays after a day's long travel. */
   lineAfter: 1500,
-  /** Zooming in to the walker at the start, and standing at the end before the card. */
-  intro: 900,
-  /** How far out the camera starts before zooming in to the walker. */
-  introZoomOut: 2.2,
-  rest: 800,
+  /**
+   * The opening (replay ceremony RC23): the camera dives from the whole of what is told to the walker's start in `dive`;
+   * the walker shows from `diveMark` into it, and the clock comes in from `diveClockIn` over `diveClock`. A telling with
+   * no beat before it (a day's) shows the whole for `openHold` first.
+   */
+  dive: 2200,
+  openHold: 2000,
+  diveMark: 1900,
+  diveClockIn: 1700,
+  diveClock: 400,
+  /**
+   * The close (RC24-RC26): the walker stands `rest`, the camera pulls back over `close` to the view the card uses and
+   * holds it `closeHold`. The clock fades over `closeClock`; the date and the places passed come in from `closeSay`
+   * into the pull-back, over `closeSayIn`; a note's bubble is gone `closeClear` into it, if it has been read.
+   */
+  rest: 1600,
+  close: 3000,
+  closeHold: 2000,
+  closeClock: 400,
+  closeSay: 2200,
+  closeSayIn: 600,
+  closeClear: 300,
   /** A press of Next lands this long before the next moment begins (RY13). */
   nextLead: 450,
   /** After a press, "N min later" stays this long under the clock before any passed place is said (RY21). */

@@ -414,8 +414,9 @@ test('RC16: where the camera is comes from the story, the time and the screen\'s
 test('RC16: the screens hand the ceremony their size and work out no camera themselves', () => {
   for (const f of ['app/replay/[id].tsx', 'app/day/[key].tsx']) {
     const src = readFileSync(join(SRC, f), 'utf8');
-    assert.match(src, /\.show\(story, \{ reduceMotion, screen \}\)/, `${f} tells the ceremony its screen`);
-    assert.doesNotMatch(src, /ceremony\/camera|cameraAt|cameraTrack/, `${f} works out a camera`);
+    // Its screen, and the whole it frames with the room around it (RC23, RC24): bounds and edges, never a view.
+    assert.match(src, /\.show\(story, \{ reduceMotion, screen, whole[,:]/, `${f} tells the ceremony its screen`);
+    assert.doesNotMatch(src, /ceremony\/camera|cameraAt|cameraTrack|fitCamera/, `${f} works out a camera`);
   }
   // The camera is worked out when the plan is built, never per frame: a frame only reads it.
   const rhythmSrc = readFileSync(join(SRC, 'lib/ceremony/rhythm.ts'), 'utf8');

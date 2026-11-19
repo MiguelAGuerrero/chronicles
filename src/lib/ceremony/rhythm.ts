@@ -8,7 +8,10 @@
  * stand). Notes and memos are bubbles in a corner, photos and videos
  * cards that tuck into a pile, passed places whisper by, and a clock rolls
  * with the walker. The camera is worked out when the telling is planned
- * (`camera.ts`, replay ceremony RC11-RC16). Every number is in REPLAY_RHYTHM.
+ * (`camera.ts`, replay ceremony RC11-RC16). It opens on the whole of what is
+ * told and dives to the walker's start, and closes by standing, pulling back
+ * to the view the card uses and naming what was passed (RC23-RC26). Every
+ * number is in REPLAY_RHYTHM.
  */
 import { facedAt, hasMore, type Faced } from '../moment';
 import { gridDuration, GRID_MAX } from './grid';
@@ -19,7 +22,7 @@ import { REPLAY_RHYTHM as R } from '../motionTokens';
 import { GAP_MS } from '../replay';
 import type { LngLat } from '../types';
 import { memoLengthMs } from '../voiceTrim';
-import { between, cameraAt, cameraTrack, pxPerMetre, type CameraPart, type CameraTrack } from './camera';
+import { between, cameraAt, cameraTrack, fitCamera, pxPerMetre, type CameraPart, type CameraTrack, type View } from './camera';
 import { easeInOut, easeOut, steady } from './ease';
 import { cardFoot } from './room';
 import { positionAt, timeAtMetres } from './story';
@@ -55,12 +58,16 @@ interface Span {
   to: LngLat | null;
 }
 export type Seg =
-  | (Span & { k: 'intro'; clock: number })
+  /** The opening (RC23): the whole held `hold` ms where no beat showed it before, then the dive to the walker's start. */
+  | (Span & { k: 'intro'; clock: number; hold: number })
   | (Span & { k: 'leg'; len: number; ra: number; rb: number; move?: StoryMove; travel?: StoryTravel })
   | (Span & { k: 'stop'; moment: StoryMoment; slots: Slot[] })
   /** A break crossed (RC18, RC20): a hop, or a stand where its ends are too close to tell apart; the clock changes at `tSwitch`. */
   | (Span & { k: 'break'; brk: StoryBreak; hop: boolean; tSwitch: number })
-  | (Span & { k: 'rest'; clock: number });
+  /** The walker stands where the walk ended, the clock where it stopped (RC24). */
+  | (Span & { k: 'rest'; clock: number })
+  /** The close (RC24-RC26): the camera pulls back to the view the card uses until `tHold`, and holds it to the end. */
+  | (Span & { k: 'close'; clock: number; tHold: number });
 
 export interface RhythmPlan {
   story: Story;
@@ -80,6 +87,8 @@ export interface RhythmPlan {
   hops: { t0: number; t1: number; from: LngLat; to: LngLat; brk: StoryBreak }[];
   /** The camera, worked out for the screen the telling is shown on (RC11-RC16); null with reduce motion (the map stays still, RR18) or with no place to look at. */
   camera: CameraTrack | null;
+  /** What the last view names (RC25): each place passed, where it stands, or the card's one line for more than two, beside none. */
+  named: { key: string; text: string; at: LngLat | null }[];
 }
 
 /** "43 min later", "2 h later", "1 h 20 min later" (RR4, RR16). */
@@ -205,8 +214,10 @@ export function rhythmPlan(story: Story, opts: CeremonyOptions): RhythmPlan {
   // Metres since the last moment with nothing kept, and whether a photo on its own has been shown yet (RY2).
   let stretch = 0;
   let photoSeen = false;
-  // With reduce motion the intro holds still for its time, so the timing is the same (RR18, audit 12).
-  if (story.events.length) draft.push({ k: 'intro', dur: R.intro, from: pos, to: pos, clock: story.start });
+  // The opening (RC23): the dive from the whole, which a telling with no beat before it shows for a while first. With
+  // reduce motion it holds still for its time, so the timing is the same (RR18, audit 12).
+  const openHold = opts.holdOpen ? R.openHold : 0;
+  if (story.events.length) draft.push({ k: 'intro', dur: openHold + R.dive, hold: openHold, from: pos, to: pos, clock: story.start });
   for (const e of story.events) {
     if (e.kind === 'move') {
       const path = story.paths[e.pathId];
@@ -252,7 +263,12 @@ export function rhythmPlan(story: Story, opts: CeremonyOptions): RhythmPlan {
       pos = leave;
     }
   }
-  if (story.events.length) draft.push({ k: 'rest', dur: R.rest, clock: story.end, from: pos, to: pos });
+  // The close (RC24): the walker stands, then the camera pulls back to the view the card uses and holds it. The clock
+  // they keep is where the walker stopped, set once the times are laid out.
+  if (story.events.length) {
+    draft.push({ k: 'rest', dur: R.rest, clock: story.end, from: pos, to: pos });
+    draft.push({ k: 'close', dur: R.close + R.closeHold, clock: story.end, tHold: 0, from: pos, to: pos });
+  }
   // Nothing shrinks to fit a total (RY10): each part keeps its time.
 
   // Lay out the times.
@@ -284,7 +300,7 @@ export function rhythmPlan(story: Story, opts: CeremonyOptions): RhythmPlan {
     } else {
       const { dur, ...rest } = d;
       // A break's clock changes as the walker is mid-way across (RC19).
-      segs.push({ ...rest, t0: t, t1: t + dur, ...(d.k === 'break' ? { tSwitch: t + dur * (d.hop ? R.hopSwitch : 0.5) } : {}) } as Seg);
+      segs.push({ ...rest, t0: t, t1: t + dur, ...(d.k === 'break' ? { tSwitch: t + dur * (d.hop ? R.hopSwitch : 0.5) } : {}), ...(d.k === 'close' ? { tHold: t + R.close } : {}) } as Seg);
       t += dur;
     }
   }
@@ -309,11 +325,13 @@ export function rhythmPlan(story: Story, opts: CeremonyOptions): RhythmPlan {
   // break begins (RY7); but a note is never taken away before it could be read, and a memo stays until it has
   // played (audit 1).
   const cuts = segs.filter((s) => s.k === 'break').map((s) => s.t0);
+  // The last view is the walk's alone: a bubble has gone a little into the pull-back (RC24).
+  const closing = segs.find((s) => s.k === 'close');
   bubbles.forEach((b, i) => {
     const pushed = bubbles[i + R.bubbles];
     const card = cards.find((c) => c.t0 > b.ta);
     const cut = cuts.find((c) => c >= b.ta);
-    const beat = Math.min(card ? card.t0 : Infinity, cut ?? Infinity);
+    const beat = Math.min(card ? card.t0 : Infinity, cut ?? Infinity, closing ? closing.t0 + R.closeClear : Infinity);
     const read = b.len > 0 ? 0 : b.ta + noteRead(b.capture);
     b.exitAt = Math.max(Math.min(b.ta + R.bubbleLife, pushed ? pushed.ta : Infinity, Math.max(beat, read)), b.ta + b.len);
   });
@@ -324,10 +342,27 @@ export function rhythmPlan(story: Story, opts: CeremonyOptions): RhythmPlan {
   );
 
   const hops = segs.flatMap((s) => (s.k === 'break' && s.hop && s.from && s.to ? [{ t0: s.t0, t1: s.t1, from: s.from, to: s.to, brk: s.brk }] : []));
-  const plan: RhythmPlan = { story, total: t, segs, reduceMotion: opts.reduceMotion, bubbles, cards, whispers: [], lines, lastSeg, stops, hops, camera: null };
+  const plan: RhythmPlan = { story, total: t, segs, reduceMotion: opts.reduceMotion, bubbles, cards, whispers: [], lines, lastSeg, stops, hops, camera: null, named: [] };
+  // Through the close the clock is where the walker stopped: it never leaps to when the walk was ended (RC24).
+  segs.forEach((s, i) => {
+    if (s.k === 'rest' && i > 0) s.clock = whereAt(plan, segs[i - 1], 1).clock;
+    if (s.k === 'close' && i > 0) s.clock = (segs[i - 1] as Extract<Seg, { k: 'rest' }>).clock;
+  });
+  // The whole of what is told, as its screen frames it (RC23, RC24): the view the telling opens from and the view its
+  // card uses, each the one fit a map makes of the same bounds in the same room.
+  const whole = opts.whole ?? null;
+  const open = whole ? fitCamera(opts.screen, whole.bounds, whole.open, whole.maxZoom) : null;
+  const close = whole ? fitCamera(opts.screen, whole.bounds, whole.close, whole.maxZoom) : null;
   // The camera, worked out once for this telling on this screen (RC16); with reduce motion the map stays still (RR18).
   if (!opts.reduceMotion && segs.length)
-    plan.camera = cameraTrack({ total: t, parts: segs.map(cameraPart), walker: (ms) => walkerAt(plan, ms) }, opts.screen, (pieces) => cardFoot(opts.screen, pieces));
+    plan.camera = cameraTrack({ total: t, parts: segs.map((s) => cameraPart(s, open, close)), walker: (ms) => walkerAt(plan, ms) }, opts.screen, (pieces) => cardFoot(opts.screen, pieces));
+  // What the last view names (RC25): a walk's passed places, each by the words it was passed with, where it stands;
+  // more than two as the one line the card uses (RP19), beside no one place. A day's names none (0153).
+  if (opts.namePassed && story.passes.length) {
+    plan.named = story.passes.length > 2
+      ? [{ key: 'passed', text: passedLine(story.passes) ?? '', at: null }]
+      : story.passes.map((x) => ({ key: `passed:${x.name}@${x.t}`, text: passedLine([x]) ?? x.name, at: x.at }));
+  }
   // A passed place whispers as the walker reaches it (RR15): the first segment that reaches its time. More than two
   // on one walk whisper once, as that walk's card says them ("Passed a few places without stopping", RP19, the owner,
   // Nov 9), at the last, when it is true (audit 14); a day bounds each walk by its own card (audit 9).
@@ -362,9 +397,10 @@ export function rhythmPlan(story: Story, opts: CeremonyOptions): RhythmPlan {
  * moment with a card and where its pin is, a hop and its two ends; nothing is asked of the camera for the rest (a
  * stand among them, RC20).
  */
-function cameraPart(s: Seg): CameraPart {
+function cameraPart(s: Seg, open: View | null, close: View | null): CameraPart {
   const { t0, t1 } = s;
-  if (s.k === 'intro') return { k: 'intro', t0, t1 };
+  if (s.k === 'intro') return { k: 'dive', t0, t1, from: open, hold: s.hold };
+  if (s.k === 'close') return { k: 'close', t0, t1, to: close, move: s.tHold - t0 };
   if (s.k === 'leg') {
     const lat = Math.max(Math.abs(s.from?.[1] ?? 0), Math.abs(s.to?.[1] ?? 0));
     return { k: 'leg', t0, t1, speed: s.len / ((t1 - t0) / 1000) / (1 - (s.ra + s.rb) / 2), ra: s.ra, rb: s.rb, lat };
@@ -386,6 +422,7 @@ function whereAt(plan: RhythmPlan, s: Seg, u: number): { walker: LngLat | null; 
     case 'intro':
       return { walker: s.from, clock: s.clock, here: 0 };
     case 'rest':
+    case 'close':
       return { walker: s.to, clock: s.clock, here: 0 };
     case 'leg': {
       const e = steady(u, s.ra, s.rb);
@@ -424,7 +461,9 @@ function walkerAt(plan: RhythmPlan, ms: number): LngLat | null {
 function walkEnd(s: Seg, story: Story): number {
   switch (s.k) {
     case 'intro': return story.start;
-    case 'rest': return s.clock;
+    // The walk's own end, whatever the clock shows there: a place passed after the last fix is still said.
+    case 'rest':
+    case 'close': return story.end;
     case 'leg': return s.move ? s.move.t1 : s.travel!.t1;
     case 'stop': return s.moment.leave;
     case 'break': return s.brk.t1;
@@ -476,7 +515,7 @@ export function rhythmFrame(plan: RhythmPlan, ms: number, jump?: Jump | null): F
     for (const id of Object.keys(story.paths)) drawn[id] = Infinity;
     return {
       done: true, walker: segs.at(-1)?.to ?? null, camera: { center: null, zoom: null }, drawn, pins: story.captures.map((c) => c.id),
-      hops: plan.hops.map((h) => ({ from: h.from, to: h.to, p: 1 })), clock: null, clockFade: 1, line: null, lineOpacity: 0, overlays: [],
+      hops: plan.hops.map((h) => ({ from: h.from, to: h.to, p: 1 })), clock: null, clockFade: 1, line: null, lineOpacity: 0, date: null, dateOpacity: 0, overlays: [],
     };
   }
   const i = findSeg(segs, Math.max(0, ms));
@@ -492,8 +531,17 @@ export function rhythmFrame(plan: RhythmPlan, ms: number, jump?: Jump | null): F
     const p = ms >= h.t1 || still ? 1 : clamp01(((ms - h.t0) / (h.t1 - h.t0) - R.hopDraw) / (R.hopDrawn - R.hopDraw));
     if (p > 0) hops.push({ from: h.from, to: h.to, p });
   }
-  // Across a break the clock dissolves from one time to the other (RC19); with reduce motion it changes at once.
-  const clockFade = s.k === 'break' && !still ? clamp01(Math.abs(ms - s.tSwitch) / R.clockDissolve) : 1;
+  // Across a break the clock dissolves from one time to the other (RC19); with reduce motion it changes at once. It
+  // comes in as the opening's dive ends (RC23) and is gone as the close begins: the last view shows no figure larger
+  // than body text (RC26). It keeps its time under the fade, so a rebuilt telling still finds its place by it.
+  const fade = (from: number, over: number) => (still ? (ms >= from + over ? 1 : 0) : clamp01((ms - from) / over));
+  const clockFade =
+    s.k === 'break' ? (still ? 1 : clamp01(Math.abs(ms - s.tSwitch) / R.clockDissolve))
+    : s.k === 'intro' ? fade(s.t0 + s.hold + R.diveClockIn, R.diveClock)
+    : s.k === 'close' ? 1 - fade(s.t0, R.closeClock)
+    : 1;
+  // The last view (RC25, RC26): the day walked, and each place passed, come in as the pull-back settles.
+  const said = s.k === 'close' ? fade(s.t0 + R.closeSay, R.closeSayIn) : 0;
 
   // Paths: whole once their last segment is behind; the current one up to the walker.
   const drawn: Record<string, number> = {};
@@ -559,11 +607,13 @@ export function rhythmFrame(plan: RhythmPlan, ms: number, jump?: Jump | null): F
     if (landed && w.tw > landed.from && w.tw <= landed.at) continue;
     overlays.push({ kind: 'whisper', key: w.key, text: w.text, at: w.at, opacity: clamp01(Math.min(age / 250, (R.whisper - age) / 500)) });
   }
-  const said = landed && ms - landed.at < R.jumpLine + plan.whispers.length * R.whisper ? jumpLines(plan, landed).find((l) => ms >= l.t0 && ms < l.t1) : null;
-  const line = said ?? plan.lines.find((l) => ms >= l.t0 && ms < l.t1) ?? null;
+  if (s.k === 'close' && ms >= s.t0 + R.closeSay) for (const n of plan.named) overlays.push({ kind: 'passed', key: n.key, text: n.text, at: n.at, opacity: said });
+  const jumped = landed && ms - landed.at < R.jumpLine + plan.whispers.length * R.whisper ? jumpLines(plan, landed).find((l) => ms >= l.t0 && ms < l.t1) : null;
+  const line = jumped ?? plan.lines.find((l) => ms >= l.t0 && ms < l.t1) ?? null;
   return {
     done: false,
-    walker,
+    // The walker shows as the dive nears its start (RC23): the whole is looked at first.
+    walker: s.k === 'intro' && ms < s.t0 + s.hold + R.diveMark ? null : walker,
     // Where the camera was worked out to be at this time (RC16); with reduce motion, the map stays put.
     camera: plan.camera ? cameraAt(plan.camera, ms) : { center: null, zoom: null },
     drawn,
@@ -573,13 +623,15 @@ export function rhythmFrame(plan: RhythmPlan, ms: number, jump?: Jump | null): F
     clockFade,
     line: line?.text ?? null,
     lineOpacity: line ? clamp01(Math.min((ms - line.t0) / 200, (line.t1 - ms) / 300)) : 0,
+    date: s.k === 'close' && ms >= s.t0 + R.closeSay ? story.start : null,
+    dateOpacity: said,
     overlays,
   };
 }
 
 export const rhythm: Ceremony = {
   id: 'rhythm',
-  overlays: ['bubble', 'card', 'pile', 'whisper'],
+  overlays: ['bubble', 'card', 'pile', 'whisper', 'passed'],
   show(story, opts) {
     const plan = rhythmPlan(story, opts);
     return { total: plan.total, stops: plan.stops, hops: plan.hops.map((h) => ({ from: h.from, to: h.to, t0: h.brk.t0, t1: h.brk.t1 })), frame: (ms, jump) => rhythmFrame(plan, ms, jump) };

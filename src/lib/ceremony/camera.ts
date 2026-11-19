@@ -14,7 +14,9 @@
  * - on a stretch the walker crosses faster than `maxCross` of the screen's width a second, it rises just enough to
  *   keep it to that, follows the walker meanwhile, and is back down when the stretch ends (RC13);
  * - arriving at a moment with a card, it settles the moment's pin just under where the card rests (RC14);
- * - across a break it pulls back until both ends fit, and closes in at the far end (RC18).
+ * - across a break it pulls back until both ends fit, and closes in at the far end (RC18);
+ * - it opens on the whole of what is told and dives to the walker's start, and closes by pulling back to the view
+ *   the card uses (RC23, RC24): both views come from one fit, `fitCamera`, a map's own way of fitting bounds.
  *
  * Places are worked in Web Mercator, as a map lays them out (512 px tiles, as MapLibre counts zoom), so a place put on
  * screen here is where the map draws it, at any zoom.
@@ -28,6 +30,12 @@ import type { StageRoom } from './room';
 export interface Camera {
   center: LngLat | null;
   zoom: number | null;
+}
+
+/** A camera that holds the map: a centre and a zoom. */
+export interface View {
+  center: LngLat;
+  zoom: number;
 }
 
 /** A place in the world as a map lays it out: 0 to 1 across, 0 (north) to 1 down. */
@@ -56,16 +64,49 @@ export function between(a: LngLat, b: LngLat, u: number): LngLat {
   return fromWorld([p[0] + (q[0] - p[0]) * u, p[1] + (q[1] - p[1]) * u]);
 }
 
+/** The room a screen leaves around what it frames: px in from each edge. */
+export interface Edges {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+}
+
+/**
+ * The view that frames bounds (west, south, east, north) on a screen inside the room its edges leave (replay ceremony
+ * RC23, RC24): as close as fits both ways, no closer than `maxZoom`, the bounds' middle at the room's middle. This is
+ * MapLibre's own arithmetic for a flat, north-up fit (`cameraForBounds`), so a map asked to fit the same bounds with
+ * the same padding lands on this view: the first beat's fit, the telling's first and last frames and the card's fit
+ * are one view each, and nothing jumps between them. Null when the edges leave no room.
+ */
+export function fitCamera(screen: Pick<StageRoom, 'width' | 'height'>, bounds: readonly [number, number, number, number], pad: Edges, maxZoom: number): { center: LngLat; zoom: number } | null {
+  const [w, s, e, n] = bounds;
+  const a = toWorld([w, n]);
+  const b = toWorld([e, s]);
+  const roomW = screen.width - pad.left - pad.right;
+  const roomH = screen.height - pad.top - pad.bottom;
+  if (!(roomW > 0) || !(roomH > 0)) return null;
+  const px = Math.min(roomW / Math.max(1e-12, Math.abs(b[0] - a[0])), roomH / Math.max(1e-12, Math.abs(b[1] - a[1])));
+  const zoom = Math.min(maxZoom, Math.log2(px / 512));
+  const scale = worldPx(zoom);
+  // The room's middle is this far from the screen's: the centre is moved the other way.
+  return { center: fromWorld([(a[0] + b[0]) / 2 - (pad.left - pad.right) / 2 / scale, (a[1] + b[1]) / 2 - (pad.top - pad.bottom) / 2 / scale]), zoom };
+}
+
 /**
  * One part of a telling, as its camera needs to know it. `hold`: nothing is asked of the camera (the walker stands, or
- * a move begun goes on). `intro`: the telling opens closing in on the walker. `leg`: the walker moves, at `speed`
+ * a move begun goes on). `dive`: the telling opens on the view `from` (the whole of what is told; null: none to open
+ * on), holds it `hold` ms, and dives to the walker's start by the part's end (RC23). `close`: the telling ends pulling
+ * back to the view `to` over `move` ms and holding it to the part's end (RC24). `leg`: the walker moves, at `speed`
  * metres a second along the ground at its steady pace, getting there over the first `ra` of the part and slowing over
  * the last `rb`, at latitude `lat` (where it is farthest from the equator). `card`: a moment with a card, its pin at
  * `at`, the card `pieces` pictures in a grid (0: one picture). `hop`: a break crossed from `from` to `to` (replay ceremony RC18): the camera pulls back until both fit, and closes
  * in at the far end.
  */
 export type CameraPart =
-  | { k: 'hold' | 'intro'; t0: number; t1: number }
+  | { k: 'hold'; t0: number; t1: number }
+  | { k: 'dive'; t0: number; t1: number; from: View | null; hold: number }
+  | { k: 'close'; t0: number; t1: number; to: View | null; move: number }
   | { k: 'leg'; t0: number; t1: number; speed: number; ra: number; rb: number; lat: number }
   | { k: 'card'; t0: number; t1: number; at: LngLat; pieces: number }
   | { k: 'hop'; t0: number; t1: number; from: LngLat; to: LngLat };
@@ -161,7 +202,9 @@ export const crossLimit = (width: number, lat: number) => (R.maxCross * width) /
 function zoomOf(track: CameraTrack, part: CameraPart | undefined, ms: number): number {
   if (!part) return R.baseZoom;
   const u = clamp01((ms - part.t0) / (part.t1 - part.t0 || 1));
-  if (part.k === 'intro') return R.baseZoom - Math.log2(R.introZoomOut) * (1 - easeInOut(u));
+  // The dive and the pull-back: the same easing as their moves (`moveAt`), so the place they close on goes straight.
+  if (part.k === 'dive') return part.from ? lerp(part.from.zoom, R.baseZoom, easeInOut(clamp01((ms - part.t0 - part.hold) / (part.t1 - part.t0 - part.hold || 1)))) : R.baseZoom;
+  if (part.k === 'close') return part.to ? lerp(R.baseZoom, part.to.zoom, easeInOut(clamp01((ms - part.t0) / (part.move || 1)))) : R.baseZoom;
   if (part.k === 'hop') {
     // Pulled back by `hopPull`, held, and closing in from `hopClose`: the same easing as the hop's two moves.
     const fit = hopZoom(track.screen, part.from, part.to);
@@ -210,10 +253,19 @@ export function cameraTrack(scene: CameraScene, screen: StageRoom, foot: (pieces
     const s = worldPx(zoom);
     return [place[0] - (at[0] - focus[0]) / s, place[1] - (at[1] - focus[1]) / s];
   };
+  /** The place a view keeps at the focus. */
+  const focalOf = (v: View): World => {
+    const s = worldPx(v.zoom);
+    const c = toWorld(v.center);
+    return [c[0] - (screen.width / 2 - focus[0]) / s, c[1] - (screen.height / 2 - focus[1]) / s];
+  };
+  // The opening (RC23): from the whole, held a while where no beat showed it before, down to the walker's start.
+  const dive = scene.parts[0]?.k === 'dive' && scene.parts[0].from ? scene.parts[0] : null;
   const track: CameraTrack = {
-    screen, parts: scene.parts, start: toWorld(first), moves: [],
+    screen, parts: scene.parts, start: dive?.from ? focalOf(dive.from) : toWorld(first), moves: [],
   };
   const { moves, parts } = track;
+  if (dive?.from) moves.push({ t0: dive.t0 + dive.hold, t1: dive.t1, end: dive.t1, a: track.start, b: toWorld(first), eased: true, za: dive.from.zoom, zb: R.baseZoom });
   /** The move the centre is on, or was last on. */
   const active = (): Move | undefined => moves[moves.length - 1];
   const centreAt = (ms: number): World => {
@@ -267,6 +319,11 @@ export function cameraTrack(scene: CameraScene, screen: StageRoom, foot: (pieces
         settled = p;
         if (follow) follow.aim = cardCentre(p);
         else begin(p.t0, R.settle, cardCentre(p), true);
+      }
+      // The close (RC24): back to the view the card uses, from wherever the walker's end left the camera.
+      if (p.k === 'close' && p.to) {
+        follow = null;
+        begin(p.t0, p.move, focalOf(p.to), true, { za: R.baseZoom, zb: p.to.zoom });
       }
       // A break crossed (RC18): back until both ends fit, their middle at the focus; then in again at the far end.
       if (p.k === 'hop') {

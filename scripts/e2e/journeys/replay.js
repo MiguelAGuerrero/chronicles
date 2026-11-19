@@ -828,7 +828,7 @@ async function run(h) {
       await pg.click('[data-testid=skip]').catch(() => {});
       const skipped = await pg.waitForSelector('[data-testid=to-name]', { timeout: 30000 }).then(() => Date.now() - skipAt, () => null);
       const stageGone = (await pg.locator('[data-testid=replay-date], [data-testid=replay-clock], [data-testid=replay-stage]').count()) === 0;
-      check.todo(closing && skipped != null && skipped <= 1500 && stageGone, `RC27: at ${w} px Skip goes to the card at once, pressed on the last view too (the last view came ${closing}, the card ${skipped} ms after the press, the stage gone ${stageGone})`);
+      check(closing && skipped != null && skipped <= 1500 && stageGone, `RC27: at ${w} px Skip goes to the card at once, pressed on the last view too (the last view came ${closing}, the card ${skipped} ms after the press, the stage gone ${stageGone})`);
     }
     await pg.setViewportSize({ width: 390, height: 844 });
 
@@ -989,20 +989,20 @@ async function run(h) {
       // RC23: the path's first frame is the first beat's own view (no cut), the camera only ever closes in from it (no
       // second overview), and it is down at the walking zoom 2.2 s on.
       const op = ends.opened;
-      check.todo(!!op && op.cutPx != null && op.cutPx <= 2 && op.cutZoom <= 0.02 && op.fromZoom < 14.6 && op.back === 0 && op.diveS >= 1.9 && op.diveS <= 3.0, `RC23: at ${w} px the path begins from the first beat's own view and dives to the walker's start in 2.2 s, no cut and no second overview (${endsSaid})`);
+      check(!!op && op.cutPx != null && op.cutPx <= 2 && op.cutZoom <= 0.02 && op.fromZoom < 14.6 && op.back === 0 && op.diveS >= 1.9 && op.diveS <= 3.0, `RC23: at ${w} px the path begins from the first beat's own view and dives to the walker's start in 2.2 s, no cut and no second overview (${endsSaid})`);
       // RC24: the walker stands, the camera pulls back in 3 s and holds 2 s, and the card's arrival moves nothing.
       const cl = ends.closed;
-      check.todo(!!cl && cl.stoodS >= 1.4 && cl.stoodS <= 3.4 && cl.pullS >= 2.6 && cl.pullS <= 3.8 && cl.holdS >= 1.7 && cl.holdS <= 2.8 && cl.toZoom < cl.fromZoom - 0.3 && cl.after >= 10 && cl.movedPx <= 2 && cl.movedZoom <= 0.02, `RC24: at ${w} px the walker stands, the camera pulls back in 3 s to the card's view and holds it 2 s, and the card arrives without the map moving (${endsSaid})`);
+      check(!!cl && cl.stoodS >= 1.4 && cl.stoodS <= 3.4 && cl.pullS >= 2.6 && cl.pullS <= 3.8 && cl.holdS >= 1.7 && cl.holdS <= 2.8 && cl.toZoom < cl.fromZoom - 0.3 && cl.after >= 10 && cl.movedPx <= 2 && cl.movedZoom <= 0.02, `RC24: at ${w} px the walker stands, the camera pulls back in 3 s to the card's view and holds it 2 s, and the card arrives without the map moving (${endsSaid})`);
       // RC26: the last view shows the date in ink no larger than body text; the clock's figures are gone, and nothing
       // on it is in the accent.
-      check.todo(dated && !!lastView.date && /^[A-Z][a-z]+day, [A-Z][a-z]+ \d{1,2}$/.test(lastView.date.text) && lastView.date.size <= 16 && lastView.date.ink === 'rgb(29, 36, 48)' && !lastView.clock && lastView.bigFigures.length === 0 && lastView.accent.length === 0, `RC26: at ${w} px the last view shows the date, with no figure larger than body text and nothing in the accent (${JSON.stringify(lastView)})`);
+      check(dated && !!lastView.date && /^[A-Z][a-z]+day, [A-Z][a-z]+ \d{1,2}$/.test(lastView.date.text) && lastView.date.size <= 16 && lastView.date.ink === 'rgb(29, 36, 48)' && !lastView.clock && lastView.bigFigures.length === 0 && lastView.accent.length === 0, `RC26: at ${w} px the last view shows the date, with no figure larger than body text and nothing in the accent (${JSON.stringify(lastView)})`);
 
       // RC25: the place the walk passed without stopping is named beside it, in body ink at full strength, by the words
       // its card uses, on the screen and clear of the date; its mark stands on the place.
       const named = lastView.names[0];
       const dot = lastView.dots[0];
       const beside = !!named && !!dot && named.box[0] <= (dot[0] + dot[2]) / 2 && named.box[2] >= (dot[0] + dot[2]) / 2 && Math.min(Math.abs(named.box[1] - dot[3]), Math.abs(dot[1] - named.box[3])) <= 16;
-      check.todo(lastView.names.length === 1 && named.text === 'Passed Hessian Memorial without stopping' && named.ink === 'rgb(29, 36, 48)' && named.opacity >= 0.95 && named.size <= 16 && beside && named.box[0] >= 0 && named.box[2] <= w && (!lastView.date || named.box[1] >= lastView.date.box[3]), `RC25: at ${w} px the walk's last view names the place passed beside it, in body ink at full strength (${JSON.stringify({ names: lastView.names, dots: lastView.dots, date: lastView.date && lastView.date.box })})`);
+      check(lastView.names.length === 1 && named.text === 'Passed Hessian Memorial without stopping' && named.ink === 'rgb(29, 36, 48)' && named.opacity >= 0.95 && named.size <= 16 && beside && named.box[0] >= 0 && named.box[2] <= w && (!lastView.date || named.box[1] >= lastView.date.box[3]), `RC25: at ${w} px the walk's last view names the place passed beside it, in body ink at full strength (${JSON.stringify({ names: lastView.names, dots: lastView.dots, date: lastView.date && lastView.date.box })})`);
       await pg.click('[data-testid=skip]').catch(() => {});
       await pg.waitForSelector('[data-testid=to-name]', { timeout: 30000 });
       await pg.waitForTimeout(600);
@@ -1092,10 +1092,10 @@ async function run(h) {
     // day the same way. RC25, RC26: its last view shows the day's date and names no passed place.
     const dayEnds = bookendsOf(dayFrames);
     const dop = dayEnds.opened;
-    check.todo(!!dop && dop.heldS >= 1.2 && dop.heldS <= 2.6 && dop.fromZoom < 14.6 && dop.back === 0 && dop.diveS >= 1.9 && dop.diveS <= 3.0, `RC23: the day's replay shows the whole day for 2 s and dives (${JSON.stringify(dayEnds)})`);
-    check.todo(!!dayEnds.closed && dayEnds.closed.pullS >= 2.6 && dayEnds.closed.pullS <= 3.8 && dayEnds.closed.holdS >= 1.7, `RC24: the day's replay pulls back to the whole day in 3 s and holds it 2 s (${JSON.stringify(dayEnds.closed)})`);
-    check.todo(!!dayLast && dayLast.names.length === 0, `RC25: the day's last view names no place passed (${JSON.stringify(dayLast && dayLast.names)})`);
-    check.todo(!!dayLast && !!dayLast.date && /^[A-Z][a-z]+day, [A-Z][a-z]+ \d{1,2}$/.test(dayLast.date.text) && dayLast.date.size <= 16 && !dayLast.clock && dayLast.bigFigures.length === 0 && dayLast.accent.length === 0, `RC26: the day's last view shows the day's date, with no figure larger than body text and nothing in the accent (${JSON.stringify(dayLast)})`);
+    check(!!dop && dop.heldS >= 1.2 && dop.heldS <= 2.6 && dop.fromZoom < 14.6 && dop.back === 0 && dop.diveS >= 1.9 && dop.diveS <= 3.0, `RC23: the day's replay shows the whole day for 2 s and dives (${JSON.stringify(dayEnds)})`);
+    check(!!dayEnds.closed && dayEnds.closed.pullS >= 2.6 && dayEnds.closed.pullS <= 3.8 && dayEnds.closed.holdS >= 1.7, `RC24: the day's replay pulls back to the whole day in 3 s and holds it 2 s (${JSON.stringify(dayEnds.closed)})`);
+    check(!!dayLast && dayLast.names.length === 0, `RC25: the day's last view names no place passed (${JSON.stringify(dayLast && dayLast.names)})`);
+    check(!!dayLast && !!dayLast.date && /^[A-Z][a-z]+day, [A-Z][a-z]+ \d{1,2}$/.test(dayLast.date.text) && dayLast.date.size <= 16 && !dayLast.clock && dayLast.bigFigures.length === 0 && dayLast.accent.length === 0, `RC26: the day's last view shows the day's date, with no figure larger than body text and nothing in the accent (${JSON.stringify(dayLast)})`);
     // As in the walk's replay, no Continue ever mounts on the web (tend replay 14).
     check((await pg.locator('[data-testid=day-card]').count()) === 1 && dayNote, `RR16: the day's replay reaches its card by itself, its note on the way (${dayNote})`);
     const dayWake = await pg.evaluate(() => window.__wake);

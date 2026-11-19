@@ -220,7 +220,8 @@ test('RY10: nothing shrinks to fit a total: forty photos each keep their time, a
   assert.ok(many.total > 200_000, `plays in ${Math.round(many.total / 1000)} s`);
   assert.ok(legs(many).every((l) => near(l.t1 - l.t0, 900, 60)), 'no stretch is squeezed');
   const short = plan(walk(300, [cap('text', when(200), 200, 'x')]));
-  assert.ok(near(short.total, short.segs.reduce((n, x) => n + (x.t1 - x.t0), 0)) && short.total < 8000, `a short walk: ${short.total} ms`);
+  // Its opening (2.2 s) and its close (1.6 s, 3 s and 2 s) are every walk's, long or short (replay ceremony RC23, RC24).
+  assert.ok(near(short.total, short.segs.reduce((n, x) => n + (x.t1 - x.t0), 0)) && short.total < 8000 + 7100, `a short walk: ${short.total} ms`);
 });
 
 test('RY11: with reduce motion every hold, pause and wait is the same length', () => {

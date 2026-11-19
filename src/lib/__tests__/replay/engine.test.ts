@@ -489,12 +489,8 @@ test('RC48: no interval clock is left: the replay\'s time is one frame loop', ()
   assert.match(loop, /requestAnimationFrame\(/);
   assert.doesNotMatch(loop, /set(Interval|Timeout)\(/, 'the loop keeps no timer');
   assert.match(loop, /stepLoop\(/, 'and the stepper decides its time');
-  // The screens: the day keeps no interval at all; the walk's replay keeps the fog beat's alone.
-  assert.doesNotMatch(readFileSync(join(SRC, 'app/day/[key].tsx'), 'utf8'), /setInterval\(/);
-  const walk = readFileSync(join(SRC, 'app/replay/[id].tsx'), 'utf8');
-  const intervals = [...walk.matchAll(/setInterval\(/g)];
-  assert.equal(intervals.length, 1, `${intervals.length} intervals on the walk's replay`);
-  assert.match(walk.slice(Math.max(0, intervals[0].index - 200), intervals[0].index), /beat !== 'fog'/, 'its one interval is the fog beat\'s');
+  // The screens keep no interval at all: the first beat's went when the map took over lighting its streets (RC23).
+  for (const f of ['app/day/[key].tsx', 'app/replay/[id].tsx']) assert.doesNotMatch(readFileSync(join(SRC, f), 'utf8'), /setInterval\(/, `${f} keeps an interval`);
   // Neither screen asks the ceremony for a frame as it renders: the loop does, outside it.
   for (const f of ['app/replay/[id].tsx', 'app/day/[key].tsx']) assert.doesNotMatch(readFileSync(join(SRC, f), 'utf8'), /TRACE_STEP_MS|pathDrawnAt\(/, `${f} still builds the line as time passes`);
 });

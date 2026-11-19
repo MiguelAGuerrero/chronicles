@@ -4,7 +4,7 @@
 //
 // A measurement harness, not a pass/fail test. It seeds the `replay` journey's walk (scripts/e2e/replayWalk.js: two
 // photos, a video, a note, a 20-minute gap, a memo), lets the first replay run to its card unthrottled, then watches it
-// again (/replay/<id>?ceremony=0) once per CPU throttle and reads the path beat: from the clock showing to the card.
+// again (/replay/<id>?ceremony=0) once per CPU throttle and reads the path beat: from its first frame (the opening's dive) to the card.
 // Test harness only: GPS is mocked and the tiles are the e2e's fake street grid.
 //
 //   PERF_RATES=1,4,6      CPU throttles (CDP Emulation.setCPUThrottlingRate; the map's worker too unless PERF_WORKER=0)
@@ -83,7 +83,7 @@ function instrument() {
   window.setInterval(() => {
     const has = (id) => !!document.querySelector(`[data-testid=${id}]`);
     P.samples.push({
-      t: now(), clock: has('replay-clock'), card: has('done') || has('to-name'),
+      t: now(), clock: has('replay-stage'), card: has('done') || has('to-name'),
       busy: has('replay-card') || has('replay-note') || has('memo-bubble') || has('replay-whisper') || has('replay-later'),
       walker: map ? map.getAttribute('data-walker') ?? '' : '', perf: { ...window.__perf },
     });
@@ -101,7 +101,7 @@ const pxPerMetre = (zoom, lat) => (512 * 2 ** zoom) / (40075016.686 * Math.cos((
 /** One beat's numbers from what the page recorded (pure). */
 function summarise(P, rate, main) {
   const first = P.samples.findIndex((s) => s.clock);
-  if (first < 0) return { rate, error: 'the path beat never showed its clock' };
+  if (first < 0) return { rate, error: 'the path beat never showed its stage' };
   let last = P.samples.findIndex((s, i) => i > first && !s.clock);
   if (last < 0) last = P.samples.length - 1;
   const t0 = P.samples[first].t;
@@ -242,7 +242,8 @@ if (require.main === module) (async () => {
       let workerOk = false;
       if (WORKER) for (const sid of ws.map()) workerOk = await ws.send(sid, 'Emulation.setCPUThrottlingRate', { rate }).then(() => true, (e) => (console.log('worker throttle refused:', e.message), false));
       out.workerThrottled = WORKER && workerOk;
-      await pg.waitForSelector('[data-testid=replay-clock]', { timeout: 120000 });
+      // The path beat is the stage's time: its clock comes in only as the opening's dive ends and goes as the close begins (RC23, RC26).
+      await pg.waitForSelector('[data-testid=replay-stage]', { timeout: 120000 });
       const m0 = await metrics();
       if (PROFILE) {
         await cdp.send('Profiler.enable');

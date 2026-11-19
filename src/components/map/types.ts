@@ -35,6 +35,13 @@ export const DERIVE_ZOOM = 14;
 export const MAX_DERIVE_VIEWS = 36;
 
 // Lines and dots need 3:1 against the base map (WCAG 1.4.11).
+/**
+ * A fit with no room said: this far in from every edge, and never closer than this zoom. A replay tells its ceremony the
+ * same room (replay ceremony RC23, RC24), so the view its first frame opens from is the view the map's own fit left.
+ */
+export const FIT_PADDING = { top: 48, right: 48, bottom: 48, left: 48 } as const;
+export const FIT_MAX_ZOOM = 17;
+
 /** Bold fog: unwalked streets near the walker, when asked for. */
 export const FOG_BOLD = '#3f4a5a';
 
@@ -139,6 +146,13 @@ export interface WalkMapProps {
   hideScaleOnBlank?: boolean;
   walked: StreetSegment[];
   fog: StreetSegment[];
+  /**
+   * The replay's first beat (replay ceremony RC23): the walked streets light up out of the fog by themselves, in the
+   * order walked, over `over` ms from when `key` changes; 'dark' draws them all as fog (the beat before). The map does
+   * it as time passes (`litStreets`), sending its two street sources a few times a second: no screen renders for it.
+   * Absent, the walked streets are drawn as given.
+   */
+  lightUp?: 'dark' | { key: number; over: number };
   /**
    * Captures to pin where they were taken. The map groups them itself, by
    * screen distance at its current zoom, so nearby pins never pile up.

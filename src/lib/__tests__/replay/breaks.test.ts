@@ -243,8 +243,10 @@ test('RC19: "N min later" shows from when both ends are in view until a little a
   assert.equal(fadeOf(rhythmFrame(p, tSwitch - half - 10)), 1);
   assert.equal(fadeOf(rhythmFrame(p, tSwitch + half + 10)), 1);
   assert.ok(Math.abs(fadeOf(rhythmFrame(p, tSwitch - half / 2)) - 0.5) < 0.05 && Math.abs(fadeOf(rhythmFrame(p, tSwitch + half / 2)) - 0.5) < 0.05);
-  // Off a break the clock is whole.
-  for (const ms of [0, b.t0 - 100, b.t1 + 100, p.total - 100]) assert.equal(fadeOf(rhythmFrame(p, ms)), 1);
+  // Off a break the clock is whole, once the opening has brought it in and until the close takes it out (RC23, RC26).
+  const opened = p.segs.find((s) => s.k === 'intro')!.t1;
+  const closing = p.segs.find((s) => (s.k as string) === 'close')!.t0;
+  for (const ms of [opened, b.t0 - 100, b.t1 + 100, closing - 100]) assert.equal(fadeOf(rhythmFrame(p, ms)), 1);
   // The stage writes that fade on the clock, and its reels do not roll while it is faded.
   const stage = readFileSync(join(SRC, 'components/ceremony/Stage.tsx'), 'utf8');
   assert.match(stage, /opacity: f\.clockFade/);
@@ -264,7 +266,7 @@ test('RC20: a break whose ends are under 26 px apart at the walking zoom is a st
   const p = plan(story);
   const b = theBreak(p);
   assert.equal(b.hop, false, 'just under: a stand');
-  assert.equal(b.t1 - b.t0, 1300);
+  assert.ok(Math.abs(b.t1 - b.t0 - 1300) < 1e-6);
   const first = rhythmFrame(p, b.t0);
   for (let ms = b.t0; ms <= b.t1; ms += 20) {
     const f = rhythmFrame(p, ms);
@@ -354,7 +356,8 @@ test('RC21: a gap whose way was kept or filled draws that way, as today, and no 
   // The walker goes the way that was kept: it passes through the middle of it.
   const mid = at(500);
   let nearest = Infinity;
-  for (let ms = 0; ms < p.total; ms += 20) nearest = Math.min(nearest, distanceM(rhythmFrame(p, ms).walker!, mid));
+  // (The walker is not shown while the opening looks at the walk whole, RC23.)
+  for (let ms = 0; ms < p.total; ms += 20) nearest = Math.min(nearest, distanceM(rhythmFrame(p, ms).walker ?? O, mid));
   assert.ok(nearest < 15, `the walker came within ${nearest.toFixed(0)} m of the middle of the way`);
 });
 

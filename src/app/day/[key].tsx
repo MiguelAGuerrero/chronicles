@@ -15,7 +15,7 @@ import { useReplay } from '../../components/ceremony/useCeremonyLoop';
 import { useRevealed } from '../../components/ceremony/useRevealed';
 import type { StageCtx } from '../../components/ceremony/layout';
 import { WalkMap } from '../../components/map/WalkMap';
-import type { WalkMapHandle, WalkMapProps } from '../../components/map/types';
+import { FIT_MAX_ZOOM, FIT_PADDING, type WalkMapHandle, type WalkMapProps } from '../../components/map/types';
 import { Button, theme } from '../../components/ui';
 import { setAudioMode } from '../../lib/audioMode';
 import { db } from '../../lib/db';
@@ -174,7 +174,13 @@ export default function DayReplay() {
     () => ({ width, height, insets: { top: insetTop, bottom: insetBottom, left: insetLeft, right: insetRight } }),
     [width, height, insetTop, insetBottom, insetLeft, insetRight],
   );
-  const showing = useMemo(() => (story ? ceremonyFor(style).show(story, { reduceMotion, screen }) : null), [story, reduceMotion, style, screen]);
+  // The whole day and its room (replay ceremony RC23, RC24): the day has no beat before its path, so its telling shows
+  // the whole day itself first, in the room the map's own fit leaves, and closes on the view the card's fit asks for,
+  // above the card's sheet. The sheet's height is learnt ahead (the card is laid out unseen below).
+  const sheetPad = useMemo(() => ({ top: 48 + insetTop, right: 32, bottom: sheetH + 24, left: 32 }), [insetTop, sheetH]);
+  const bounds = data?.bounds ?? null;
+  const framed = useMemo(() => (bounds ? { bounds, open: FIT_PADDING, close: sheetPad, maxZoom: FIT_MAX_ZOOM } : null), [bounds, sheetPad]);
+  const showing = useMemo(() => (story ? ceremonyFor(style).show(story, { reduceMotion, screen, whole: framed, holdOpen: true }) : null), [story, reduceMotion, style, screen, framed]);
   const onCard = phase.beat === 'card';
   // The hops the path drew across its walks' breaks, as the card's dotted links (replay ceremony RC21).
   const hopLinks = useMemo(() => showing?.hops.map((h) => [h.from, h.to]) ?? NO_RUNS, [showing]);
@@ -229,8 +235,9 @@ export default function DayReplay() {
     width, height, insets, live: play.live,
     held: play.held, paused: viewing != null, reduceMotion, open: setViewing, wait,
   };
-  // The card is computed once it is reached, not every frame (audit).
-  const cardAt = onCard ? phase.t0 : 0;
+  // The card is computed once per beat, not every frame (audit): when it is reached, and when the path begins, where
+  // it is laid out unseen to learn its sheet's height (replay ceremony RC24).
+  const cardAt = phase.beat === 'loading' ? 0 : phase.t0;
   // In the units setting, redrawn when it changes (tend replay 3).
   const units = useUnits();
   const card = useMemo(() => (data && day && cardAt ? dayCard(day, cardAt, data, units) : null), [data, day, cardAt, units]);
@@ -254,6 +261,16 @@ export default function DayReplay() {
   }
 
   const close = () => (router.canGoBack() ? router.back() : router.dismissTo('/'));
+  /** The day card's words. `measure` lays them out unseen, to learn the sheet's height before the path ends (RC24). */
+  const cardLines = (measure: boolean) => card && (
+    <>
+      <Text style={styles.cardTitle} accessibilityRole={measure ? undefined : 'header'}>{card.title}</Text>
+      {card.line ? <Text testID={measure ? undefined : 'day-card-line'} style={styles.cardLine}>{card.line}</Text> : null}
+      {card.walked ? <Text style={styles.cardMuted}>{card.walked}</Text> : null}
+      {/* The one hint, as the walk's card words it (tend replay T19); no pin, no hint (audit 11). */}
+      {card.hint ? <Text style={styles.cardMuted}>{card.hint}</Text> : null}
+    </>
+  );
 
   return (
     <View style={styles.screen}>
@@ -273,7 +290,7 @@ export default function DayReplay() {
         onPinPress={onCard ? setViewing : undefined}
         fitBounds={data.bounds}
         fitKey={fitKey}
-        fitPadding={onCard ? { top: 48 + insets.top, right: 32, bottom: sheetH + 24, left: 32 } : undefined}
+        fitPadding={onCard ? sheetPad : undefined}
         animate={!reduceMotion}
         initialCenter={data.bounds ? [(data.bounds[0] + data.bounds[2]) / 2, (data.bounds[1] + data.bounds[3]) / 2] : undefined}
         initialZoom={data.bounds ? undefined : 2}
@@ -349,6 +366,27 @@ export default function DayReplay() {
         }}
       />
 
+      {/* The card's sheet, laid out unseen while the path is told: its height is the room the close leaves under the day,
+          so the card then arrives on a map that does not move (replay ceremony RC24). */}
+      {phase.beat === 'path' && card && (
+        <View
+          style={[styles.sheet, UNSEEN, { paddingBottom: 16 + insets.bottom }]}
+          pointerEvents="none"
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          aria-hidden
+          onLayout={(e) => {
+            const h = e.nativeEvent.layout.height;
+            if (Math.abs(h - sheetH) > 8) setSheetH(h);
+          }}
+        >
+          <View style={styles.sheetContent}>
+            {cardLines(true)}
+            <View style={[styles.row, styles.buttonRoom]} />
+          </View>
+        </View>
+      )}
+
       {onCard && card && (
         // Quiet (M13): the day, its moments and named places in a clause (tend replay T19), and any distance walked. No streaks or badges.
         <View
@@ -363,11 +401,7 @@ export default function DayReplay() {
           }}
         >
           <View style={styles.sheetContent}>
-            <Text style={styles.cardTitle} accessibilityRole="header">{card.title}</Text>
-            {card.line ? <Text testID="day-card-line" style={styles.cardLine}>{card.line}</Text> : null}
-            {card.walked ? <Text style={styles.cardMuted}>{card.walked}</Text> : null}
-            {/* The one hint, as the walk's card words it (tend replay T19); no pin, no hint (audit 11). */}
-            {card.hint ? <Text style={styles.cardMuted}>{card.hint}</Text> : null}
+            {cardLines(false)}
             <View style={styles.row}>
               <Button
                 testID="day-again"
@@ -389,6 +423,9 @@ export default function DayReplay() {
     </View>
   );
 }
+
+/** Laid out and never seen: out of what a browser reads as the page's text, too. */
+const UNSEEN = Platform.OS === 'web' ? ({ visibility: 'hidden' } as object) : { opacity: 0 };
 
 /** The day with one note's new text, in its loose moments and its walks' captures (QL25). */
 function withNote(d: Loaded, id: string, change: ReturnType<typeof notePatch>, pieceId: string): Loaded {
@@ -418,5 +455,7 @@ const styles = StyleSheet.create({
   cardLine: { fontSize: 16, color: theme.ink },
   cardMuted: { fontSize: 15, color: theme.muted },
   row: { flexDirection: 'row', gap: 10, marginTop: 6 },
+  // A button's height (`components/ui` `btn`), where the card is laid out unseen.
+  buttonRoom: { height: 48 },
   flex: { flex: 1 },
 });

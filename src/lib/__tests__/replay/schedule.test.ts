@@ -38,7 +38,8 @@ test('replay: gaps collapse, so a resumed walk does not crawl across the night (
   const cut = p.segs.find((s) => s.k === 'break');
   assert.ok(cut, 'the night is a break');
   assert.equal(rhythmFrame(p, (cut.t0 + cut.t1) / 2).line, '12 h later');
-  assert.ok(p.total < 10_000, `plays in ${p.total} ms`);
+  // The break itself is 4.2 s at the most; the rest is the two stretches, the opening and the close (RC23, RC24).
+  assert.ok(cut.t1 - cut.t0 <= 4200 && p.total < 10_000 + 7100, `plays in ${p.total} ms`);
 });
 
 test('replay: every capture keeps its stop, and an empty walk has nothing to play', () => {

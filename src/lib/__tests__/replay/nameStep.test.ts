@@ -132,7 +132,8 @@ test('tend replay audit 16: after Back the card shows the name typed, unsaved; e
   assert.equal(cardTitle(named, 'Plums', null), 'Plums');
   // The card's title and its More's name read the same title, the one the card shows (tend tabs 11).
   assert.match(SCREEN, /const shownTitle = cardTitle\(data\.walk, title, offered\)/);
-  assert.match(SCREEN, /accessibilityRole="header">\{shownTitle\}<\/Text>/);
+  // (The card is also laid out unseen to learn its sheet's height, replay ceremony RC24: no header there.)
+  assert.match(SCREEN, /accessibilityRole=\{measure \? undefined : 'header'\}>\{shownTitle\}<\/Text>/);
   assert.match(SCREEN, /accessibilityLabel=\{moreFor\(shownTitle\)\}/);
 });
 

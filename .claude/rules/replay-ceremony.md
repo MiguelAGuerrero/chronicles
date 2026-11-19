@@ -9,11 +9,12 @@ paths:
   - "scripts/e2e/replayWalk.js"
   - "scripts/e2e/journeys/replay.js"
 ---
-# Replay ceremony: the engine, the camera and the breaks
+# Replay ceremony: the engine, the camera, the breaks, the opening and the close
 
 The replay's rework (`specs/replay-ceremony`, RC1-RC48, decision 0206), split from `replay.md` (the five beats, the story,
-the rhythm's timings, the card): what drives a telling frame by frame, where its camera is, and how a break is crossed.
-Built on the branch and shown to the owner before any of it goes live.
+the rhythm's timings, the card): what drives a telling frame by frame, where its camera is, how a break is crossed, and
+how a telling opens and closes on the whole of what it tells. Built on the branch and shown to the owner before any of
+it goes live.
 
 ## The camera (replay ceremony RC11-RC16; decision 0206)
 
@@ -80,6 +81,37 @@ Built on the branch and shown to the owner before any of it goes live.
   that never runs back: a step is fine, a dip would not be.
 - **Reduce motion** (RC22): the same times; the hop whole from the break's first frame, the walker at one end and then
   the other, no dissolve. The map is not moved (RC10), so the still view is the first beat's own: the walk whole.
+
+## Opening and closing (replay ceremony RC23-RC27; decision 0206)
+
+- **One fit, three users** (`camera.ts` `fitCamera`): MapLibre's own arithmetic for fitting bounds flat and north-up
+  inside a room (as close as fits both ways, capped, the bounds' middle at the room's middle). The first beat's view
+  and the card's view are the map's own `fitBounds`; the telling's first and last frames are `fitCamera` of the same
+  bounds in the same room, so the three are one view each and nothing jumps. **The screens say the whole and its room,
+  never a view** (`CeremonyOptions.whole`: bounds, `open` and `close` edges, `maxZoom`): `open` is `FIT_PADDING`, the
+  room the map's fit uses when given none; `close` is the card's own `sheetPad`. Change a fit's padding in one place
+  and the other jumps: the `replay` journey reads the cut (`bookendsOf`: `cutPx`, `movedPx`).
+- **The opening** is the `intro` segment: the dive, `dive` ms from the whole to the walker's start (a `Move` with zooms,
+  as a hop's: the start goes straight to the focus on the screen), the walker shown from `diveMark`, the clock in from
+  `diveClockIn`. A telling with no beat before it (the day's, `holdOpen`) shows the whole `openHold` first. **A walk
+  shorter than the walking zoom shows is fitted closer than zoom 15** (the fit's cap is 17): its dive pulls back. Left.
+- **The close** is `rest` (the walker stands, `rest` ms) and `close` (the pull-back over `close` ms to the card's view,
+  held `closeHold`). The clock through both is where the walker stopped (never the walk's end time, which can be long
+  after the last fix), fades over `closeClock` and is not drawn while its fade is 0 (`Stage` keeps its room): the last
+  view shows no figure larger than body text (RC26). It keeps its time under the fade: `msAtClock` and `reanchor`
+  need a clock in every frame. The date (`Frame.date`, worded by the stage's `dateOf`) and the passed places
+  (`passed` overlays: each beside its place, or the card's one line for more than two, beside none) come in from
+  `closeSay`. A day's last view names none (`namePassed` is the walk's screen's alone).
+- **The card's sheet is laid out unseen before the path ends** (`cardBody(true)`, `cardLines(true)`: no test id, its
+  controls as room of their size, `visibility: hidden` on the web so it is no page text): its height is `sheetPad`'s
+  bottom, so the close frames the walk above where the card will sit and the card's own fit then moves nothing (RC24).
+  A card that grows a line while the path is told (a moment deleted) rebuilds the telling, which keeps its place.
+- **Timing never depends on the whole** (as on the screen): with no bounds (a day of placeless moments), or with reduce
+  motion, the segments last as long and the camera stays on the walker, or is not moved at all.
+- **The first beat lights its streets in the map, not the screen** (`WalkMapProps.lightUp`, `lib/replay` `litStreets`):
+  the screen gives the walked streets whole and a key; the web map lights them from a frame loop, sending its two
+  street sources at most every `REPLAY_ENGINE.resendMs`; the phone's keeps the count in a store two source leaves read
+  (untried). The walk's replay keeps no interval and no clock of its own: a timeout ends the beat.
 
 ## The engine (replay ceremony RC1-RC10, RC48; decision 0206)
 

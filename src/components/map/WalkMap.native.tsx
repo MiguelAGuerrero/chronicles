@@ -26,6 +26,7 @@ import { createStore, type Store } from '../../lib/store';
 import { useStore } from '../../lib/useStore';
 import { hopLines, hopsKey, revealedRuns } from '../../lib/ceremony/reveal';
 import { perfCount } from '../../lib/perfCount';
+import { litStreets } from '../../lib/replay';
 import { distanceM } from '../../lib/geo';
 import { releaseSwipe, SNAP } from '../../lib/atlas/snap';
 import { capFitBounds } from '../../lib/zoomOut';
@@ -36,7 +37,7 @@ import { useUnits } from '../../lib/useUnits';
 import { MOTION, REPLAY_ENGINE } from '../../lib/motionTokens';
 import {
   alternatesGeoJSON, PAST_STYLE, type PastView, TRACE_EDGE_OPACITY, storefrontLayerOrder, storefrontNameLayers, storefrontNameRotate, storefrontNamesGeoJSON, routeGradesGeoJSON, pinsGeoJSON, BORDER, borderFillOpacity, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, DERIVE_ZOOM, endsGeoJSON, ENDS_PAINT, ENDS_RING_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON, BASE_VECTOR_SOURCE, POI_SOURCE_LAYER,
-  LINE_SOURCE, type CollectedFeatures, type WalkMapHandle, type WalkMapProps, FLAT_NORTH_UP, resendKey, type ReplayMapFrame,
+  LINE_SOURCE, type CollectedFeatures, type WalkMapHandle, type WalkMapProps, FLAT_NORTH_UP, resendKey, type ReplayMapFrame, FIT_MAX_ZOOM, FIT_PADDING,
 } from './types';
 
 const VIEW_TIMEOUT_MS = 4000;
@@ -161,8 +162,27 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const reduced = useReducedMotion();
   const duration = props.animate === false || reduced ? 0 : MOTION.camera;
 
-  const fog = useMemo(() => segmentsGeoJSON(props.fog), [props.fog]);
-  const walked = useMemo(() => segmentsGeoJSON(props.walked), [props.walked]);
+  // How many of the walked streets are lit (replay ceremony RC23): all of them, but in the replay's first beat, where
+  // they light up out of the fog in the order walked. Kept outside this component and moved by a timer, a few times a
+  // second, so only the two street sources render as they light (unverified on a device).
+  const [lit] = useState(() => createStore<number>(Infinity));
+  const walkedCount = props.walked?.length ?? 0;
+  const lightKey = typeof props.lightUp === 'object' ? props.lightUp.key : props.lightUp ?? 'lit';
+  const lightOver = typeof props.lightUp === 'object' ? props.lightUp.over : 0;
+  useEffect(() => {
+    if (typeof lightKey !== 'number') {
+      lit.set(lightKey === 'dark' ? 0 : Infinity);
+      return;
+    }
+    const from = Date.now();
+    lit.set(0);
+    const timer = setInterval(() => {
+      const n = litStreets(walkedCount, Date.now() - from, lightOver);
+      lit.set(n >= walkedCount ? Infinity : n);
+      if (n >= walkedCount) clearInterval(timer);
+    }, REPLAY_ENGINE.resendMs);
+    return () => clearInterval(timer);
+  }, [lit, lightKey, lightOver, walkedCount]);
   // The history changes once per chunk; only the tail is re-sent with each publish (perf, Nov 1).
   const split = useMemo(() => splitTrace(props.trace), [props.trace]);
   const traceTail = useMemo(() => traceGeoJSON(split.tail), [split.tail]);
@@ -327,9 +347,9 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   useEffect(() => {
     if (!ready || !props.fitBounds || props.fitKey === fitAtMount.current) return;
     fitAtMount.current = undefined;
-    const pad = props.fitPadding ?? { top: 48, right: 48, bottom: 48, left: 48 };
+    const pad = props.fitPadding ?? FIT_PADDING;
     // MapLibre RN's fitBounds has no maxZoom: the bounds are widened to fit no closer (tabs audit U15).
-    const bounds = size.current.width ? capFitBounds(props.fitBounds, props.fitMaxZoom ?? 17, size.current, pad) : props.fitBounds;
+    const bounds = size.current.width ? capFitBounds(props.fitBounds, props.fitMaxZoom ?? FIT_MAX_ZOOM, size.current, pad) : props.fitBounds;
     cameraRef.current?.fitBounds(bounds, { padding: pad, duration });
     // MapLibre RN reports no end to a fit: it is taken as settled once its animation has run.
     const key = props.fitKey ?? 0;
@@ -526,9 +546,9 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         {/* Hotspots under the streets, in the one green no other layer uses (L9). */}
         <PocketsSource data={pockets} beforeId={storefrontOrder.lines} />
         <StripsSource data={strips} beforeId={storefrontOrder.lines} />
-        <FogSource data={fog} />
+        <FogSource fog={props.fog} walked={props.walked} lit={lit} />
         <PastSource view={props.past ?? null} />
-        <WalkedSource data={walked} />
+        <WalkedSource walked={props.walked} lit={lit} />
         {/* A preview's other routes, faint, under the one highlighted (SR2). */}
         <AlternatesSource data={alternates} />
         {/* The walk planner's graded stretches: a band under the route, wider where the kind is denser (WP16). */}
@@ -727,8 +747,15 @@ const StripsSource = memo(function StripsSource({ data, beforeId }: { data: FC; 
   );
 });
 
-/** The fog is always quiet (decision 0222, WB1). */
-const FogSource = memo(function FogSource({ data }: { data: FC }) {
+const litOf = (n: number) => n;
+
+/**
+ * The fog is always quiet (decision 0222, WB1). In the replay's first beat it holds the walked streets not lit yet
+ * (replay ceremony RC23): it reads how many are from the store and renders alone when that changes.
+ */
+const FogSource = memo(function FogSource({ fog, walked, lit }: { fog: WalkMapProps['fog']; walked: WalkMapProps['walked']; lit: Store<number> }) {
+  const n = useStore(lit, litOf);
+  const data = useMemo(() => segmentsGeoJSON(n >= walked.length ? fog : [...fog, ...walked.slice(n)]), [fog, walked, n]);
   return (
     <GeoJSONSource id="fog" data={data} {...LINE_SOURCE}>
       <Layer id="fog" type="line" layout={ROUND}
@@ -755,7 +782,10 @@ const PastSource = memo(
   (a, b) => (a.view?.key ?? '') === (b.view?.key ?? ''),
 );
 
-const WalkedSource = memo(function WalkedSource({ data }: { data: FC }) {
+/** The walked streets, as many as are lit (replay ceremony RC23): all of them outside the replay's first beat. */
+const WalkedSource = memo(function WalkedSource({ walked, lit }: { walked: WalkMapProps['walked']; lit: Store<number> }) {
+  const n = useStore(lit, litOf);
+  const data = useMemo(() => segmentsGeoJSON(n >= walked.length ? walked : walked.slice(0, n)), [walked, n]);
   return (
     <GeoJSONSource id="walked" data={data} {...LINE_SOURCE}>
       <Layer id="walked" type="line" layout={ROUND} paint={{ 'line-color': COLORS.walked, 'line-width': 6 }} />

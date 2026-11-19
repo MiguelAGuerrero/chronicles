@@ -103,7 +103,7 @@ export interface Story {
 }
 
 /** The overlay kinds a stage can draw; each has a view (`components/ceremony/overlays.tsx`). */
-export const OVERLAY_KINDS = ['bubble', 'card', 'pile', 'whisper'] as const;
+export const OVERLAY_KINDS = ['bubble', 'card', 'pile', 'whisper', 'passed'] as const;
 export type OverlayKind = (typeof OVERLAY_KINDS)[number];
 
 /** A note or memo in the corner: `enter` and `exit` run 0 to 1. */
@@ -152,7 +152,19 @@ export interface WhisperOverlay {
   opacity: number;
 }
 
-export type Overlay = BubbleOverlay | CardOverlay | PileOverlay | WhisperOverlay;
+/**
+ * A place passed without stopping, named on the last view (replay ceremony RC25): beside its place, or, for the one
+ * line that says more than two (RP19), beside none (`at` null).
+ */
+export interface PassedOverlay {
+  kind: 'passed';
+  key: string;
+  text: string;
+  at: LngLat | null;
+  opacity: number;
+}
+
+export type Overlay = BubbleOverlay | CardOverlay | PileOverlay | WhisperOverlay | PassedOverlay;
 
 /**
  * A break crossed (replay ceremony RC18, RC21): the straight way from where a trace stops to where it picks up, drawn
@@ -192,7 +204,23 @@ export interface Frame {
   /** A line under the clock ("43 min later"), with its opacity. */
   line: string | null;
   lineOpacity: number;
+  /** The day walked (epoch ms), shown on the last view with its opacity (RC26); null while the path is told. */
+  date: number | null;
+  dateOpacity: number;
   overlays: Overlay[];
+}
+
+/**
+ * The whole of what is told, as its screen frames it (replay ceremony RC23, RC24): its bounds (west, south, east,
+ * north), the room the screen leaves around them when the telling opens (a walk: its first beat's own frame) and over
+ * its card, where it closes (px in from each edge), and the closest a fit goes. The ceremony fits both views itself,
+ * with the arithmetic a map uses for the same bounds and room, so nothing jumps between the map's fits and its frames.
+ */
+export interface WholeFrame {
+  bounds: readonly [west: number, south: number, east: number, north: number];
+  open: { top: number; right: number; bottom: number; left: number };
+  close: { top: number; right: number; bottom: number; left: number };
+  maxZoom: number;
 }
 
 export interface CeremonyOptions {
@@ -202,6 +230,12 @@ export interface CeremonyOptions {
    * holds the map depends on how much of it the screen shows and on where a card rests on it.
    */
   screen: StageRoom;
+  /** The whole and its room (RC23, RC24); none, and the camera opens and ends on the walker. The timing is the same. */
+  whole?: WholeFrame | null;
+  /** No beat showed the whole before the path (a day's replay): the telling shows it for a while itself, then dives (RC23). */
+  holdOpen?: boolean;
+  /** The last view names each place passed without stopping (a walk's, RC25); a day's names none, as its card (0153). */
+  namePassed?: boolean;
 }
 
 /** When a moment begins in a telling, and where a press of Next lands for it: a little before, never inside the moment before (RY13, RY14). */

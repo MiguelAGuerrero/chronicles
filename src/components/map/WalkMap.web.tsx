@@ -5,6 +5,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { perfCount, perfMark } from '../../lib/perfCount';
+import { litStreets } from '../../lib/replay';
 import { StyleSheet, View } from 'react-native';
 import { CapturePinView, pinLabel } from '../CapturePinView';
 import { MarkPinView, markKey, markLabel, type MarkPin } from '../MarkPinView';
@@ -36,7 +37,7 @@ import { followMoves } from '../../lib/compass';
 import { groundGeoJSON, groundStyle } from '../../lib/areas/groundDraw';
 import {
   alternatesGeoJSON, TRACE_EDGE_OPACITY, storefrontNameLayers, storefrontNameRotate, storefrontNamesGeoJSON, roomCells, routeGradesGeoJSON, pinsGeoJSON, BORDER, borderFillOpacity, borderMoves, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, OVERTURE_CREDIT, GAZETTEER_CREDIT, DERIVE_ZOOM, endsGeoJSON, ENDS_PAINT, ENDS_RING_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON, BASE_VECTOR_SOURCE, poiLabelLayers,
-  FLAT_NORTH_UP, LINE_SOURCE, LINE_SOURCE_IDS, PAST_STYLE, REPLAY_LINES, resendKey, revealGradient, revealStop, type CollectedFeatures, mapWorkerUrl, type ReplayMapFrame, type WalkMapHandle, type WalkMapProps,
+  FIT_MAX_ZOOM, FIT_PADDING, FLAT_NORTH_UP, LINE_SOURCE, LINE_SOURCE_IDS, PAST_STYLE, REPLAY_LINES, resendKey, revealGradient, revealStop, type CollectedFeatures, mapWorkerUrl, type ReplayMapFrame, type WalkMapHandle, type WalkMapProps,
 } from './types';
 import { nextSend, type Sent } from './sent';
 import { hopLines, hopsKey, revealedRuns, type LineReveal } from '../../lib/ceremony/reveal';
@@ -910,8 +911,40 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     map.getCanvas().setAttribute('aria-label', mapLabel(freeOn));
   }, [ready, freeOn, swipes]);
 
-  useEffect(() => { if (ready) setData('fog', segmentsGeoJSON(props.fog)); }, [ready, props.fog]);
-  useEffect(() => { if (ready) setData('walked', segmentsGeoJSON(props.walked)); }, [ready, props.walked]);
+  // The walked streets and the fog. In the replay's first beat the walked light up out of the fog in the order walked
+  // (replay ceremony RC23): the map does that itself as time passes, a few sends a second through the gate, and no
+  // screen renders for it. 'dark' draws them all as fog; with no `lightUp` they are drawn as given.
+  const lightKey = typeof props.lightUp === 'object' ? props.lightUp.key : props.lightUp ?? 'lit';
+  const lightOver = typeof props.lightUp === 'object' ? props.lightUp.over : 0;
+  useEffect(() => {
+    if (!ready) return;
+    const walked = props.walked ?? [];
+    const fog = props.fog ?? [];
+    const send = (n: number) => {
+      setData('walked', segmentsGeoJSON(n >= walked.length ? walked : walked.slice(0, n)));
+      setData('fog', segmentsGeoJSON(n >= walked.length ? fog : [...fog, ...walked.slice(n)]));
+    };
+    if (typeof lightKey !== 'number') {
+      send(lightKey === 'dark' ? 0 : walked.length);
+      return;
+    }
+    let raf = 0;
+    let from: number | null = null;
+    let sentAt = -Infinity;
+    let lit = -1;
+    const frame = (now: number) => {
+      from ??= now;
+      const n = litStreets(walked.length, now - from, lightOver);
+      if (n !== lit && (n >= walked.length || now - sentAt >= REPLAY_ENGINE.resendMs)) {
+        lit = n;
+        sentAt = now;
+        send(n);
+      }
+      if (n < walked.length) raf = requestAnimationFrame(frame);
+    };
+    raf = requestAnimationFrame(frame);
+    return () => cancelAnimationFrame(raf);
+  }, [ready, props.fog, props.walked, lightKey, lightOver]);
   // Sent only when the screen's lines change (WB16): the screen keeps the same object while they don't.
   // Sent only when the lines drawn change (WB16), by their key, never because a screen made a new object: the walk screen's
   // ready and live states hand the same lines over at Start. A map that never had lines sends none.
@@ -1572,13 +1605,13 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     if (ready && props.fitBounds && props.fitKey !== fitAtMount.current) {
       fitAtMount.current = undefined;
       const [w, s, e, n] = props.fitBounds;
-      const padding = props.fitPadding ?? { top: 48, right: 48, bottom: 48, left: 48 };
+      const padding = props.fitPadding ?? FIT_PADDING;
       perfCount('fit');
       // At the bearing the map has: maplibre's fit turns it back to north unless told (CP1: a fit never changes the
       // bearing; tend map 2).
       const map = mapRef.current;
       // While the compass's ease to north runs, north: the bearing read mid-ease would stop the map part-way (tend map audit 4).
-      const ask: FitAsk = { bounds: [[w, s], [e, n]], options: { padding, maxZoom: props.fitMaxZoom ?? 17, duration, bearing: northAsked.current ? 0 : map?.getBearing() } };
+      const ask: FitAsk = { bounds: [[w, s], [e, n]], options: { padding, maxZoom: props.fitMaxZoom ?? FIT_MAX_ZOOM, duration, bearing: northAsked.current ? 0 : map?.getBearing() } };
       const key = props.fitKey ?? 0;
       map?.fitBounds(ask.bounds, ask.options);
       if (map) fit.current = fitStep(fit.current, { kind: 'fit', key, ask, box: { width: map.getCanvas().clientWidth, height: map.getCanvas().clientHeight }, moving: map.isMoving() }).state;

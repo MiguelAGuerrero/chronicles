@@ -10,7 +10,7 @@ import { project, type Camera } from '../../lib/ceremony/camera';
 import { easeInOut, easeOut } from '../../lib/ceremony/ease';
 import type { StageLive } from '../../lib/ceremony/live';
 import { restCenter, STAGE_BOTTOM, STAGE_TOP, type StageRoom } from '../../lib/ceremony/room';
-import type { BubbleOverlay, CardOverlay, WhisperOverlay } from '../../lib/ceremony/types';
+import type { BubbleOverlay, CardOverlay, PassedOverlay, WhisperOverlay } from '../../lib/ceremony/types';
 import type { Faced } from '../../lib/moment';
 
 export { project };
@@ -61,6 +61,10 @@ export function tiltOf(id: string): number {
 }
 
 export const timeOf = (t: number) => new Date(t).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+/** The day walked, as the last view says it (replay ceremony RC26): "Saturday, October 24". */
+export const dateOf = (t: number) => new Date(t).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+/** Where the last view's date stands under the top row (Hold and Skip: 12 in, 48 tall, 8 to spare), where the first beat's headline stood. */
+export const DATE_TOP = 12 + 48 + 8;
 
 /**
  * What a leaf of the stage writes on its own element every frame (replay ceremony RC7): only what moves. Lengths in
@@ -117,6 +121,31 @@ export function bubbleRoom(o: BubbleOverlay, reduceMotion: boolean): LiveStyle {
 export function bubblePose(o: BubbleOverlay, reduceMotion: boolean): LiveStyle {
   const opacity = o.enter * (1 - o.exit);
   return reduceMotion ? { opacity, translateY: 0, scale: 1 } : { opacity, translateY: (1 - o.enter) * 10 - o.exit * 12, scale: 0.96 + 0.04 * o.enter };
+}
+
+/** The room a passed place's name has on the last view (RC25): its box, the name at the edge nearer its place. */
+export const PASSED = { width: 200, height: 60, gap: 9, dot: 10 } as const;
+
+/**
+ * Where a passed place's name stands on the last view (replay ceremony RC25): centred under its place, or over it
+ * (`above`: the more northern of two, so two close together never share their room), kept on the screen. With no place
+ * (the one line for more than two) or no camera (reduce motion: the map is not the frame's), under the date, the
+ * `index`th down.
+ */
+export function passedPose(o: PassedOverlay, c: StageCtx, camera: StageCamera, above: boolean, index: number): LiveStyle {
+  const p = o.at ? project(c, camera, o.at) : null;
+  if (!p) return { left: (c.width - PASSED.width) / 2, top: c.insets.top + DATE_TOP + 40 + index * 44, opacity: o.opacity };
+  return {
+    left: Math.max(8, Math.min(c.width - PASSED.width - 8, p[0] - PASSED.width / 2)),
+    top: above ? p[1] - PASSED.gap - PASSED.height : p[1] + PASSED.gap,
+    opacity: o.opacity,
+  };
+}
+
+/** The mark on a passed place itself, under its name; none where the name stands under the date. */
+export function passedDot(o: PassedOverlay, c: StageCtx, camera: StageCamera): LiveStyle {
+  const p = o.at ? project(c, camera, o.at) : null;
+  return p ? { left: p[0] - PASSED.dot / 2, top: p[1] - PASSED.dot / 2, opacity: o.opacity } : { left: 0, top: 0, opacity: 0 };
 }
 
 /** A whisper's width. */

@@ -9,7 +9,7 @@ import { Bubbles } from './Bubbles';
 import { Cards } from './Cards';
 import type { StageCtx } from './layout';
 import { Pile } from './Pile';
-import { Whispers } from './Whispers';
+import { PassedNames, Whispers } from './Whispers';
 
 export type OverlayView<K extends OverlayKind> = ComponentType<{ items: Extract<Overlay, { kind: K }>[]; ctx: StageCtx }>;
 
@@ -18,8 +18,9 @@ export const OVERLAYS: { [K in OverlayKind]: OverlayView<K> } = {
   card: Cards,
   pile: Pile,
   whisper: Whispers,
+  passed: PassedNames,
 };
 
 /** Where each kind sits, bottom to top: a card in flight passes over the pile it tucks into. */
-const LAYER: Record<OverlayKind, number> = { whisper: 0, bubble: 1, pile: 2, card: 3 };
+const LAYER: Record<OverlayKind, number> = { whisper: 0, passed: 0, bubble: 1, pile: 2, card: 3 };
 export const OVERLAY_ORDER: readonly OverlayKind[] = [...OVERLAY_KINDS].sort((a, b) => LAYER[a] - LAYER[b]);

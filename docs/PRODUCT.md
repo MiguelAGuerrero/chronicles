@@ -522,7 +522,10 @@ recording, and a recording bar brings a minimized walk back.
   the path, the card, then naming. The path has a rhythm (decision 0085): the
   walker keeps a steady pace, slowing into each moment; the camera holds still and re-frames, rises on a
   stretch the walker crosses fast, and settles each photo's pin under its card (replay ceremony, decision 0206, on its
-  branch); a gap is crossed by a dotted hop under "20 min later", with no dim. A clock
+  branch); a gap is crossed by a dotted hop under "20 min later", with no dim. The path opens from the whole walk as
+  the fog beat left it, diving to where the walk began, and closes the same way: the walker stands, the camera pulls
+  back to the whole walk above where the card will sit, and that last view shows the date and names each place
+  passed without stopping before the card comes (a day's replay shows the whole day first, and names none). A clock
   rolls through the time of day. Notes and memos stack as speech bubbles in a
   corner; photos and videos grow from their pin into a card and tuck into a
   pile, which opens them full screen; places passed without stopping whisper

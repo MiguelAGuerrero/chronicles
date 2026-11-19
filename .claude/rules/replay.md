@@ -164,4 +164,5 @@ A walk's replay and the day replay: the five beats, the story and its ceremonies
 ## The engine, the camera and the breaks
 
 The replay ceremony's rework (RC1-RC48, decision 0206) has its own file: `.claude/rules/replay-ceremony.md` (the frame
-loop outside the screens' rendering, the camera as plan data, how a break is crossed: a hop or a stand, never a dim).
+loop outside the screens' rendering, the camera as plan data, how a break is crossed: a hop or a stand, never a dim;
+how a telling opens from the first beat's view and closes on the card's, with the date and the places passed).
