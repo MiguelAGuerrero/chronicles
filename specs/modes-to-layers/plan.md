@@ -1,6 +1,6 @@
 # Modes to layers: plan
 
-For the owner's review before any code (spec: `specs/modes-to-layers/spec.md`, MD1-MD16; decision 0231). Nothing is built yet. This is a flow-sized change on the walk screen, so it is larger than a fix: roughly 14 source files.
+For the owner's review before any code (spec: `specs/modes-to-layers/spec.md`, MD1-MD19; decision 0231). Nothing is built yet. This is a flow-sized change on the walk screen, so it is larger than a fix: roughly 14 source files.
 
 ## What changes, in one paragraph
 
@@ -19,15 +19,16 @@ A walk is no longer quiet or exploring. `exploring` on the walk screen becomes "
 | `src/lib/ready/shell.ts`, `src/components/walk/useReady.tsx` | no mode; the ring follows Places on the ready map (MD11) |
 | `src/components/StartSettings.tsx` | the Mode radiogroup goes; the range row follows Places; "Passing a place" always; "What I'm into" row with Places or Sights (MD2, MD6) |
 | `src/components/LayersControl.tsx` | the panel and key take the kind of map, not per-map lists (MD13) |
-| `src/lib/summary.ts` | unchanged rule: it reads `explored:<walk>`; no derivation bump (MD9) |
+| `src/lib/summary.ts`, `explore.ts` `passedAlong` | passes counted within `places_spans:<walk>`; a walk with only `explored:<walk>` reads as before; no derivation code bump (computed at replay, never cached) (MD9) |
+| `src/lib/db/sqliteStore.ts`, `src/lib/db/index.web.ts` | `deleteWalk` removes the two new families (MD10) |
 | `src/app/(tabs)/explore.tsx` | `useLayers('map')` (MD10) |
 
 More than the usual eight: the owner's own call to take the mode out of the walk (decision 0231), so this is a slice, with this plan as its review.
 
 ## Data
 
-- **New:** one meta key `walk_layers` (JSON of booleans, same shape as `map_layers`). No SQLite migration, no IndexedDB version.
-- **Retired, never deleted:** `explore_walk` and `start_mode` rows are left in place and unread; `explored:<walk>` and `walk_pass:<walk>` keep their meaning (passes counted since, and the distance used).
+- **New:** two meta families, `walk_layers:<walk>` (JSON of booleans, the walk's own layers; removed with the walk) and `places_spans:<walk>` (the start and end times Places was on; MD9). No SQLite migration, no IndexedDB version. `deleteWalk` (`sqliteStore.ts`, `index.web.ts`) removes both, as it removes `explored:<walk>`.
+- **Retired, never deleted:** `explore_walk` and `start_mode` rows are left in place and unread; `explored:<walk>` and `walk_pass:<walk>` keep their meaning for walks recorded before this slice (passes counted since; the distance used); a new walk's passes are read from `places_spans:<walk>`.
 - **Truth untouched** (MD14): walks, trace points, captures and finds are not changed. No `SNAP_RULES`, `STREET_CODE`, `LANDING_CODE` or `ATLAS_CODE` bump: the replay's rule is the same function over the same stamp.
 
 ## Tests per criterion
@@ -35,10 +36,12 @@ More than the usual eight: the owner's own call to take the mode out of the walk
 | Ids | File and name |
 |---|---|
 | MD1, MD13 | `src/lib/__tests__/layers/modesToLayers.test.ts`: `MD1/MD13: every map lists Places`; `MD13: the walk's key lists the layers on for the walk's own setting` |
-| MD10 | same file: `MD10: map_layers and walk_layers are separate; the walk starts all off; a setting saved before reads as before for the map`; a shell test over `fakePorts()` (`createLayers`), a write on one never moves the other |
+| MD10 | same file: `MD10: map_layers is shared by Explore and the ready map; walk_layers:<walk> starts all off for every walk, survives a resume, goes with deleteWalk, and never reaches the next walk; a setting saved before reads as before for the map`; a shell test over `fakePorts()` (`createLayers`) |
 | MD2, MD12 | `src/lib/__tests__/tabs/startPlan.test.ts` (changed: no mode in the plan, no `explore_walk` or `start_mode` written) and a source scan: no `exploring`, `Quiet` or `START_MODE_KEY` in the views |
 | MD3, MD4, MD5, MD6, MD7, MD8, MD11, MD16 | `src/lib/__tests__/explore/placesOnWalk.test.ts`: the pure decisions (`pocketAlert`, `armedStill`, `visibleMarks` take `placesOn`), and the `walk` and `ready` journeys for what is seen |
-| MD9 | `src/lib/__tests__/explore/passedByLayer.test.ts` (core): the stamp is written once when Places first turns on; `passedAlong` since that time; no stamp, none; an old walk's replay unchanged (a fixture) |
+| MD9 | `src/lib/__tests__/explore/passedByLayer.test.ts` (core): passes only inside the spans Places was on; none without a span; a toggle after the walk adds none; an old walk with only `explored:<walk>` reads as before (a fixture) |
+| MD8 | `src/lib/__tests__/explore/placesOnWalk.test.ts`: `canArm`/arming needs a "?" card, so none with Places off; a shell test: plain capture finds nothing and is unchanged |
+| MD17, MD18, MD19 | the same file (the storefront `remember` option follows Places or Storefronts; the Into row; the copy scan) |
 | MD14 | the existing recorder, trace and `readTrace` suites stay green unchanged; a source scan that no file under `recorder/` or `rides.ts` changed |
 | MD15 | the existing WT8 and PL7 scans, run over the walk and ready screens |
 
@@ -76,10 +79,21 @@ The walk screen, the start drawer and the ready map are shared views; no native 
 
 Where we depart from every adjacent app: none keeps a quiet walk, so the quiet default is ours (a Never line is not involved; it is decision 0031's own, kept). Reason: the live walk is the capture surface (Always: capture one tap away; restraint).
 
+## Triage of the steward's findings (S1-S7)
+
+- **S1 (breach), accepted:** the live walk's layers belong to the walk and start off every time (MD3, MD10). The "two stores" default became a per-walk family.
+- **S2, accepted:** passes are counted only within the spans Places was on (MD9); a quiet stretch stays quiet. The kinds read at replay are not frozen, as today (deferred; `walk_pass` freezes the distance only).
+- **S3 (breach), accepted and verified in the code:** a find needs Capture here from a "?" card, and the armed line shows only while exploring, so MD8 now says a find needs Places on.
+- **S4, accepted:** MD16 covers the armed line, the Found line and the open panel, plain ink.
+- **S5, accepted:** MD19 (no copy of what is left; the ring only while previewed).
+- **S6, accepted:** MD6, MD7, MD17, MD18; the home Explore button does not exist in the code today.
+- **S7, noted** in the spec: nothing in the precedent supports "?" on the move.
+
 ## Defaults I took, for you to overrule
 
-1. **Two stores, `map_layers` and `walk_layers`** (the alternative is one store with a per-map default table).
-2. **`explore_walk` and `start_mode` retired** but their stored rows left unread (the alternative is removing them in a migration).
-3. **The replay counts what a walk passed from the first time Places is turned on during it** (the alternative: from the start of every walk, which changes what a quiet walk's replay says).
-4. **The walk's panel lists the same layers as Explore's**, Places and Storefronts included, in the same order.
-5. **The "Found:" announcement** shows only while Places is on (a find on a walk with it off is kept and shown in the replay, nothing on screen), as a quiet walk's find is now.
+1. **The live walk's layers are per walk** (`walk_layers:<walk>`), not a saved setting of their own.
+2. **Passes count only within the spans Places was on** (the alternative: from the first time it was turned on, simpler, but a stretch with it off would read as exploring).
+3. **The pocket alert needs Places on** (it buzzes for a nearby "?"; with no "?" there is nothing to buzz about) and its row says so. The alternative: it works on its own over the same nearby places without drawing them.
+4. **The range slider is always in the walk's options**, labelled for Places.
+5. **The "Found:" line shows only while Places is on**, which is the only time a find can happen.
+6. **`explore_walk` and `start_mode` retired**, their rows left unread.
