@@ -5,6 +5,17 @@
 // Standing alone after the walk journey, the page is on the first walk's card: name it and return to
 // Chronicle with its star, as the chronicle journey does. In the full flow the page is already there, so
 // this does nothing.
+// tend tabs audit 52: the title stack's bottom and the overlay slot's top on the canvas, so a framed area is checked to lie
+// between them, not only at an offset from the middle. The slot is the core's (`exploreSlots`), read here, not copied, with
+// the hint's one line (28 px) above it.
+const slotsCore = () => require('tsx/cjs/api').require('../../../src/lib/atlas/overlaySlots.ts', __filename);
+const roomOf = (page, town) => page.evaluate(() => {
+  const canvas = document.querySelector('canvas.maplibregl-canvas')?.getBoundingClientRect();
+  const els = ['atlas-title-card', 'atlas-search', 'outing-entry'].flatMap((id) => [...document.querySelectorAll(`[data-testid="${id}"]`)]);
+  const bottoms = els.map((e) => e.getBoundingClientRect()).filter((r) => r.width > 0).map((r) => r.bottom - (canvas ? canvas.top : 0));
+  return { stackBottom: bottoms.length ? Math.round(Math.max(...bottoms)) : null, mapH: canvas ? canvas.height : 0 };
+}).then((r) => ({ ...r, slotTop: r.mapH - slotsCore().exploreSlots({ spot: false, town }).overlayBottom - 28 }));
+
 async function arrive(h) {
   const { page } = h;
   if (await page.locator('[data-testid=to-name]').count()) {
@@ -186,9 +197,13 @@ async function checks(h) {
       const dy = dot ? dot.y + dot.height / 2 - (canvas.y + canvas.height / 2) : NaN;
       const selName = (await sel.count()) ? await sel.first().getAttribute('data-name') : null;
       // Explore's fit pads 84 px under its title and 24 px at the bottom: the area sits 30 px below the middle.
+      // tend tabs audit 52 (the T40 review's auditor: the offset alone): and between the title stack and the overlay's slot.
+      const room = await roomOf(page, (await page.locator('[data-testid=atlas-back-pill]').count()) > 0);
+      const atY = canvas.height / 2 + dy;
+      const between = room.stackBottom != null && atY > room.stackBottom && atY < room.slotTop;
       for (let i = 0; i < 20 && !(await drawnAround()); i++) await page.waitForTimeout(500);
-      check(points >= hoods.length && !ringBefore && (await drawnAround()) !== '' && selName === pickName && Math.abs(dx) <= 8 && Math.abs(dy - 30) <= 8,
-        `AT9: the small map shows the areas' points; on your town's page its own card is selected on arrival (no ring), and opening an area's card frames it with its 800 m ring, or its own ground (${points} points for ${hoods.length} tiles, ring ${JSON.stringify(ringBefore)} → ${await ring()}, ${selName} at (${dx.toFixed(1)}, ${dy.toFixed(1)}) px from the middle)`);
+      check(points >= hoods.length && !ringBefore && (await drawnAround()) !== '' && selName === pickName && Math.abs(dx) <= 8 && Math.abs(dy - 30) <= 8 && between,
+        `AT9, tend tabs audit 52: the small map shows the areas' points; on your town's page its own card is selected on arrival (no ring), and opening an area's card frames it with its 800 m ring, or its own ground, between the title stack and the overlay's slot (${points} points for ${hoods.length} tiles, ring ${JSON.stringify(ringBefore)} → ${await ring()}, ${selName} at (${dx.toFixed(1)}, ${dy.toFixed(1)}) px from the middle, y ${atY.toFixed(0)} between ${room.stackBottom} and ${room.slotTop})`);
       // tend explore 20 (decision 0172, the accent at rest): the selected area's name and its dot's ring on the map are
       // ink (#1d2430), never the accent; a selection is not an action.
       const selInk = (await sel.count()) ? await sel.first().evaluate((el) => {

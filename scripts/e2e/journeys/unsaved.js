@@ -32,6 +32,37 @@ async function run(h) {
     };
   });
 
+  await c.addInitScript(() => {
+    // tend tabs audit 42: the next picked or recorded file's read waits until a given walk's end is written, so a memo
+    // still being saved fails while that walk's Stop is ending it.
+    let release = null;
+    let until = null;
+    window.__holdBlobUntilEnd = (walkId) => {
+      window.__holdFor = walkId;
+      until = new Promise((r) => (release = r));
+    };
+    const fetchBefore = window.fetch;
+    window.fetch = async function (input, ...rest) {
+      const url = typeof input === 'string' ? input : input?.url ?? '';
+      if (url.startsWith('blob:') && until) {
+        const u = until;
+        until = null;
+        await u;
+      }
+      return fetchBefore.call(this, input, ...rest);
+    };
+    const putBefore = IDBObjectStore.prototype.put;
+    IDBObjectStore.prototype.put = function (value, ...rest) {
+      if (this.name === 'walk' && value && value.id === window.__holdFor && value.ended_at != null && release) {
+        const r = release;
+        release = null;
+        window.__holdFor = null;
+        r();
+      }
+      return putBefore.call(this, value, ...rest);
+    };
+  });
+
   const say = (t) => String(t).replace(/\n/g, ' ');
   const shown = (sel) => pg.locator(sel).filter({ visible: true });
   const there = (sel, timeout = 8000) => shown(sel).first().waitFor({ timeout }).then(() => true, () => false);
@@ -380,6 +411,168 @@ async function run(h) {
   await hold('[data-testid=stop]');
   await pg.waitForURL(/\/replay\/|\/$/, { timeout: 15000 }).catch(() => {});
   check(lost && !/\/walk/.test(pg.url()), `UN13: the second hold ends the walk (${pg.url().slice(-20)})`);
+
+  // The bar's said line: whole within its four-line clamp for its words (UN10's room line), and the lines it takes.
+  const saidBoxOf = () => pg.evaluate(() => {
+    const e = document.querySelector('[data-testid=recording-said]');
+    if (!e) return null;
+    const line = parseFloat(getComputedStyle(e).lineHeight) || parseFloat(getComputedStyle(e).fontSize) * 1.2;
+    const free = e.cloneNode(true);
+    Object.assign(free.style, { webkitLineClamp: 'unset', display: 'block', overflow: 'visible', position: 'absolute', visibility: 'hidden', width: `${e.getBoundingClientRect().width}px` });
+    e.parentElement.appendChild(free);
+    const wholeH = free.getBoundingClientRect().height;
+    free.remove();
+    const shownH = e.getBoundingClientRect().height;
+    return { whole: shownH >= wholeH - 1 && e.scrollWidth <= e.clientWidth + 1, lines: Math.round(wholeH / line) };
+  });
+
+  // tend tabs T35 (the owner, Nov 18): a memo still being saved past the bar's 5 s wait is said as saving, not as
+  // recording; the next hold ends the walk through it, the walk is kept (never dropped mid-save), and the memo lands in it.
+  await pg.goto(navUrl);
+  await pg.waitForSelector('[data-testid=start]', { timeout: 30000 }).catch(() => {});
+  await pg.waitForTimeout(1500);
+  await pg.click('[data-testid=start]').catch(() => {});
+  await pg.waitForSelector('[data-testid=cap-voice]', { timeout: 30000 }).catch(() => {});
+  await pg.waitForTimeout(2500);
+  const savingWalk = await pg.evaluate(() => new Promise((resolve) => {
+    const req = indexedDB.open('chronicles');
+    req.onsuccess = () => {
+      const g = req.result.transaction('walk', 'readonly').objectStore('walk').getAll();
+      g.onsuccess = () => resolve((g.result.find((w) => w.ended_at == null) ?? {}).id ?? null);
+    };
+  }));
+  await pg.click('[data-testid=walk-minimize]', { timeout: 10000 }).catch(() => {});
+  await pg.waitForTimeout(1500);
+  await tabTo(pg, 'chronicle', 'memories').catch(() => {});
+  await pg.waitForTimeout(1500);
+  // The memo's file is read back slowly: its save runs past both holds' waits.
+  await pg.evaluate(() => { window.__slowBlob = 25000; });
+  await memo('band');
+  // On Explore, where the bar shows its camera beside the line (tend tabs audit 46).
+  await tabTo(pg, 'explore').catch(() => {});
+  await pg.waitForTimeout(1500);
+  await wide(320);
+  await hold('[data-testid=bar-stop]');
+  await pg.waitForTimeout(4500);
+  const stillSaving = await textOf('[data-testid=recording-said]');
+  const savingBox = await saidBoxOf();
+  const savingWhole = !!savingBox && savingBox.whole;
+  check(stillSaving === 'The voice memo is still being saved. Hold Stop again in a moment.' && (await there('[data-testid=recording-bar]', 2000)),
+    `tend tabs T35: past the wait, the bar says the memo is still being saved, not recording, and the walk goes on ("${stillSaving}")`);
+  check(savingWhole && (await there('[data-testid=bar-photo]', 1000)),
+    `tend tabs audit 46: the bar's saving words are whole at 320 px with its camera shown, nothing cut (${JSON.stringify(savingBox)})`);
+  await shot(pg, 'unsaved-bar-saving-explore-320');
+  await wide(390);
+  await shot(pg, 'unsaved-bar-saving-explore-390');
+  await hold('[data-testid=bar-stop]');
+  await pg.waitForURL(/\/replay\//, { timeout: 15000 }).catch(() => {});
+  const through = /\/replay\//.test(pg.url());
+  // tend tabs audit 47: the replay opened through a save, pictured before and after the memo lands.
+  await pg.waitForTimeout(1500);
+  await shot(pg, 'unsaved-bar-saving-replay-open');
+  const inWalk0 = (await voices(savingWalk)).length;
+  check(!!savingWalk && through && inWalk0 === 0,
+    `tend tabs T35: the second hold ends the walk while the memo is still saving, and the walk is kept for its replay (${pg.url().slice(-20)}, ${inWalk0} kept yet)`);
+  await pg.waitForTimeout(12000);
+  const walkRow = await pg.evaluate((id) => new Promise((resolve) => {
+    const req = indexedDB.open('chronicles');
+    req.onsuccess = () => {
+      const g = req.result.transaction('walk', 'readonly').objectStore('walk').get(id);
+      g.onsuccess = () => resolve(g.result ?? null);
+    };
+  }), savingWalk);
+  const inWalk = (await voices(savingWalk)).length;
+  check(!!walkRow && walkRow.ended_at != null && inWalk === 1 && !(await there('[data-testid=held-memo]', 500)),
+    `tend tabs T35: the memo saving through the stop lands once, in its ended walk (${inWalk} in walk, walk ${walkRow ? 'kept' : 'gone'})`);
+  await shot(pg, 'unsaved-bar-saving-replay-landed');
+  check(/\/replay\//.test(pg.url()), `tend tabs audit 47: the replay opened through a save is pictured before and after the memo lands (${pg.url().slice(-20)})`);
+
+  // A walk opened and minimized onto Memories, for the bar's Stop; its id.
+  const walkOnMemories = async () => {
+    await pg.goto(navUrl);
+    await pg.waitForSelector('[data-testid=start]', { timeout: 30000 }).catch(() => {});
+    await pg.waitForTimeout(1500);
+    await pg.click('[data-testid=start]').catch(() => {});
+    await pg.waitForSelector('[data-testid=cap-voice]', { timeout: 30000 }).catch(() => {});
+    await pg.waitForTimeout(2500);
+    const id = await pg.evaluate(() => new Promise((resolve) => {
+      const req = indexedDB.open('chronicles');
+      req.onsuccess = () => {
+        const g = req.result.transaction('walk', 'readonly').objectStore('walk').getAll();
+        g.onsuccess = () => resolve((g.result.find((w) => w.ended_at == null) ?? {}).id ?? null);
+      };
+    }));
+    await pg.click('[data-testid=walk-minimize]', { timeout: 10000 }).catch(() => {});
+    await pg.waitForTimeout(1500);
+    await tabTo(pg, 'chronicle', 'memories').catch(() => {});
+    await pg.waitForTimeout(1500);
+    return id;
+  };
+  const walkStands = (id) => pg.evaluate((w) => new Promise((resolve) => {
+    const req = indexedDB.open('chronicles');
+    req.onsuccess = () => {
+      const g = req.result.transaction('walk', 'readonly').objectStore('walk').get(w);
+      g.onsuccess = () => resolve(!!g.result);
+    };
+  }), id);
+
+  // tend tabs audit 41: a memo kept by Undo of its discard is a save like any: the bar's Stop says it is still being
+  // saved, and the walk it lands in is kept.
+  const undoWalk = await walkOnMemories();
+  await pg.click('[data-testid=band-voice]', { timeout: 10000 }).catch(() => {});
+  await pg.waitForSelector('[data-testid=band-voice-discard]', { timeout: 10000 }).catch(() => {});
+  await pg.waitForTimeout(1300);
+  await pg.click('[data-testid=band-voice-discard]').catch(() => {});
+  await pg.waitForSelector('[data-testid=band-voice-undo]', { timeout: 5000 }).catch(() => {});
+  await pg.evaluate(() => { window.__slowBlob = 25000; });
+  await shown('[data-testid=band-voice-undo-act]').first().click({ timeout: 5000 }).catch(() => {});
+  await pg.waitForTimeout(900);
+  await wide(320);
+  await hold('[data-testid=bar-stop]');
+  await pg.waitForTimeout(4500);
+  const undoSaying = await textOf('[data-testid=recording-said]');
+  check(undoSaying === 'The voice memo is still being saved. Hold Stop again in a moment.',
+    `tend tabs audit 41: a memo kept by Undo of its discard holds the bar's Stop and keeps the walk: the first hold says it is saving ("${undoSaying}")`);
+  // On Memories, with no camera on the bar: the words whole in three lines at most (tend tabs audit 48).
+  const memoriesBox = await saidBoxOf();
+  check(!!memoriesBox && memoriesBox.whole && memoriesBox.lines <= 3,
+    `tend tabs audit 48: on Memories at 320 px the saving words are whole in three lines at most (${JSON.stringify(memoriesBox)})`);
+  await shot(pg, 'unsaved-bar-saving-320');
+  await wide(390);
+  await shot(pg, 'unsaved-bar-saving-390');
+  await hold('[data-testid=bar-stop]');
+  await pg.waitForURL(/\/replay\//, { timeout: 15000 }).catch(() => {});
+  await pg.waitForTimeout(14000);
+  const undoKept = (await voices(undoWalk)).length;
+  check(!!undoWalk && /\/replay\//.test(pg.url()) && (await walkStands(undoWalk)) && undoKept === 1,
+    `tend tabs audit 41: a memo kept by Undo of its discard holds the bar's Stop and keeps the walk: the walk stands with the memo in it (${undoKept})`);
+
+  // tend tabs audit 42: a memo from Memories whose save fails while the walk screen's Stop is ending the walk stays held
+  // (not let go unwarned with what the Stop warned of), its walk stands, and its Retry lands in that walk.
+  const failWalk = await walkOnMemories();
+  await pg.evaluate((id) => { window.__holdBlobUntilEnd(id); window.__failMedia = 1; }, failWalk);
+  await memo('band');
+  await pg.click('[data-testid=recording-return]', { timeout: 10000 }).catch(() => {});
+  await pg.waitForSelector('[data-testid=cap-voice]', { timeout: 30000 }).catch(() => {});
+  await pg.waitForTimeout(1500);
+  await toStop(pg).catch(() => {});
+  await hold('[data-testid=stop]');
+  await pg.waitForURL(/\/replay\//, { timeout: 15000 }).catch(() => {});
+  const failStood = /\/replay\//.test(pg.url()) && (await walkStands(failWalk));
+  await pg.evaluate(() => { window.__failMedia = 0; });
+  // Out of the first replay by its own way (a reload would drop what is held, UN15), to Chronicle's Memories.
+  if (await there('[data-testid=not-now]', 15000)) await shown('[data-testid=not-now]').first().click().catch(() => {});
+  await pg.waitForTimeout(1500);
+  await tabTo(pg, 'chronicle', 'memories').catch(() => {});
+  await pg.waitForTimeout(1500);
+  const failHeld = await there('[data-testid=band-voice-retry]', 5000);
+  check(!!failWalk && failStood && failHeld,
+    `tend tabs audit 42: a memo from Memories failing while the walk screen stops stays held, and its walk stands (${pg.url().slice(-20)}, held ${failHeld})`);
+  if (failHeld) await shown('[data-testid=band-voice-retry-act]').first().click();
+  await pg.waitForTimeout(3000);
+  const failKept = (await voices(failWalk)).length;
+  check(failKept === 1 && !(await there('[data-testid=band-voice-retry]', 1000)),
+    `tend tabs audit 42: the held memo's Retry lands in its walk (${failKept})`);
   await c.close();
 }
 

@@ -59,3 +59,9 @@ export const barStop = createStore<BarStop | null>(null);
  * it goes, so Explore's press hint steps aside meanwhile (tend tabs T36).
  */
 export const barOfferUp = createStore(false);
+
+/**
+ * True while the recording bar holds a walk's reminder card above its line (`recording-reminder`): set by the bar, cleared
+ * as it goes, so Explore's press hint steps aside meanwhile, as it does for the Edit pill (tend tabs audit 51).
+ */
+export const barReminderUp = createStore(false);

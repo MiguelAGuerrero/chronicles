@@ -128,6 +128,20 @@ test('EW5 (decision 0220): a walk paused only to reach Stop, standing still, is 
   assert.equal(await resumed.drop('w'), false);
 });
 
+test('tend tabs T35: a walk stopped while a save is under way is never dropped as empty (the owner, Nov 18)', async () => {
+  const { p, scheduled } = await setup(standing(60));
+  const busy = createDropEmpty(p, { schedule: (job) => void scheduled.push(job), underWay: () => true });
+  assert.equal(await busy('w'), false, 'a memo or photo still being saved keeps the walk: uncertain means kept');
+  assert.equal(scheduled.length, 0);
+  // A save begun while the walk's rows are read keeps it too.
+  let reads = 0;
+  const during = createDropEmpty(p, { schedule: (job) => void scheduled.push(job), underWay: () => reads++ > 0 });
+  assert.equal(await during('w'), false, 'under way by the time the reads end');
+  assert.equal(scheduled.length, 0);
+  const idle = createDropEmpty(p, { schedule: (job) => void scheduled.push(job), underWay: () => false });
+  assert.equal(await idle('w'), true, 'with nothing under way the empty walk is dropped as before');
+});
+
 test('EW10: a failure to read the walk keeps it and plays the replay', async () => {
   const { drop, scheduled } = await setup(standing(60), { failRead: true });
   assert.equal(await drop('w'), false);
@@ -174,9 +188,12 @@ test('EW8: the notice says "Walk not kept." and no judgement, count or digit', (
 
 test('EW7: both stop paths reach one decision through endWalk; neither view holds the rule', () => {
   const read = (f: string) => readFileSync(join(__dirname, '..', '..', '..', '..', f), 'utf8');
+  // Through the end both Stops share, which ends the walk with endWalk (tend tabs audit 42).
+  assert.match(read('src/lib/unsaved/stopEnd/index.ts'), /createStopEnd\(\{[^}]*\bendWalk\b/);
+  assert.match(read('src/lib/unsaved/stopEnd/shell.ts'), /await d\.endWalk\(/);
   for (const f of ['src/app/walk.tsx', 'src/components/RecordingBar.tsx']) {
     const src = read(f);
-    assert.match(src, /endWalk\(/, `${f} stops through endWalk`);
+    assert.match(src, /stopEnd\(/, `${f} stops through the shared end, and so through endWalk`);
     assert.doesNotMatch(src, /isEmptyWalk|emptyWalk\/core/, `${f} does not hold the rule`);
     assert.doesNotMatch(src, /\bstopWalk\(/, `${f} no longer calls stopWalk directly`);
   }

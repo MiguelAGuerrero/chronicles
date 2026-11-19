@@ -1,0 +1,15 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inbox",
+        "set",
+        "T41",
+        "--reason",
+        "the decision it cites was renumbered 0223 to 0227 on main before T35 landed (the run's wording slip)"
+      ],
+      "body": "- **T41 [owner] A replay opened while a memo is still being saved never shows it** (2026-11-18)\n  Area: replay, tabs. Seen: `unsaved-bar-saving-replay-open` and `unsaved-bar-saving-replay-landed` (the unsaved journey, `tend tabs audit 47`): when the bar's second hold goes through a memo still being saved (T35, decision 0227), the replay opens with no moment; 12 s later the memo is in the walk (the journey's check), yet the open replay's card still reads \"0 m · 24 s\" with no moment, since `src/app/replay/[id].tsx` reads the walk's captures once and hears none after. Rests on: VISION.md, Return: \"Does it bring a moment back worth having, at the right time, truthfully?\"; the T35 review's ux 3. What a replay shows is yours.\n  Recommended: the open replay takes in a capture of its walk that lands after it opened (`captureBus`): placed on its map and played in its next Watch again, with no new words, no indicator, and the beats and their order unchanged. /vision: aligned (Return, \"truthfully\"; Honour, the moment arrives whole with its walk; no word, control or count added).\n  Precedent: none found (docs/research/adjacent-apps.md, \"Replay a walk; moments on a map\" and \"Record a walk: start, pause, stop\"); Google Photos shows an item still uploading in place and fills it in when it lands (from memory, not yet recorded).\n  Otherwise: leave it (the memo shows the next time the walk's replay is opened); or the second hold waits longer before it goes through.\n",
+      "target": "sha256:e826bc3ac2c52c2ab3d80227e4d680c5e6b09c3c1dd3dd620e76b3f89fe77447"
+    }
+  ]
+}

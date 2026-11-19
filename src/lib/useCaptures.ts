@@ -481,7 +481,7 @@ export function useCaptures(
         const ext = asset.mimeType?.split('/')[1]?.replace('jpeg', 'jpg') ?? 'jpg';
         kept = await keepOrHold({ kind: 'photo', stamp, uri: asset.uri, ext, ms: null, path: null });
       })();
-      memoGate.keep(keeping);
+      memoGate.keep(keeping, stamp.walk);
       await keeping;
     });
     return kept;
@@ -498,7 +498,7 @@ export function useCaptures(
   };
   /** A walk never starts while this memo is stopping and saving (tabs audit 3). */
   const trackMemo = <T,>(p: Promise<T>): Promise<T> => {
-    memoGate.track(p);
+    memoGate.track(p, self, walkId);
     return p;
   };
   const withBusy = async <T,>(fn: () => Promise<T>): Promise<T> => {
@@ -662,9 +662,9 @@ export function useCaptures(
       }),
     ));
 
-  /** Brings back the memo just discarded, and saves it. */
+  /** Brings back the memo just discarded, and saves it; a Stop waits for that save as for any (tend tabs audit 41). */
   const undoDiscard = (): Promise<VoiceResult> =>
-    enqueue(() =>
+    trackMemo(enqueue(() =>
       withBusy(async () => {
         const m = discarded;
         if (!m) return 'none';
@@ -672,7 +672,7 @@ export function useCaptures(
         setDiscarded(null);
         return keepMemo(m);
       }),
-    );
+    ));
 
   // Leaving the screen mid-memo (browser Back, a reload) saves it rather than
   // losing it or leaving the mic on.

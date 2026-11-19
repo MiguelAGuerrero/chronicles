@@ -6,20 +6,44 @@ import { filesOf, filesOfMoments } from './core';
 import type { DeleteSpec } from './pending';
 
 /**
+ * How long a walk's delete waits for the memo saves and kept photos still under way into it (tend tabs audit 49;
+ * decision 0227, the owner: "Becomes a loose moment"): those that end in time go with the walk.
+ */
+export const WALK_SAVES_WAIT_MS = 10_000;
+
+/**
  * Stores one waiting delete (D1-D3, owner threads' deletes, moment stacks' pieces and splits; decision 0113). Rows
  * first, in one transaction each, then files (a file left behind is never a row without its file). Every moment is
  * read fresh, so a small copy made since goes too, and a delete run again after a relaunch finds nothing left and
  * does nothing.
  */
 export function createDeleteRunner(p: {
-  db: Pick<Db, 'getMoments' | 'getMomentsByIds' | 'deleteWalk' | 'deleteMoments' | 'deletePieces' | 'splitPiece' | 'joinMoment' | 'referencesTo' | 'applyThreads'>;
+  db: Pick<Db, 'getMoments' | 'getMomentsByIds' | 'updateMoment' | 'deleteWalk' | 'deleteMoments' | 'deletePieces' | 'splitPiece' | 'joinMoment' | 'referencesTo' | 'applyThreads'>;
   removeMedia: (refs: string[], folders?: string[]) => Promise<unknown>;
   /** Drops the in-memory reminders of what went (the recall check's copy). */
   forgetRecalls: () => void;
+  /** The saves under way into a walk (`memoGate.savesOf`), each settling when it ends. */
+  saves?: { of(walkId: string): Promise<unknown>[] };
+  /** Resolves after `ms` (a timer); passed in for the tests. */
+  wait?: (ms: number) => Promise<void>;
 }) {
+  const wait = p.wait ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
+  /** A walk's moments that landed after its delete become loose moments: kept, never rows of a deleted walk. */
+  const loosen = async (walkId: string) => {
+    for (const m of await p.db.getMoments(walkId)) await p.db.updateMoment(m.id, { walk_id: null });
+  };
   return async function run(spec: DeleteSpec): Promise<void> {
     switch (spec.type) {
       case 'walk': {
+        // A memo or photo still being saved into the walk lands first and goes with it, for at most the bound; one
+        // still under way after it is a loose moment once it lands (the gap between its row and that move is the
+        // owner's accepted one; decision 0227).
+        const late = p.saves?.of(spec.walkId) ?? [];
+        if (late.length) {
+          const all = Promise.all(late);
+          const inTime = await Promise.race([all.then(() => true), wait(WALK_SAVES_WAIT_MS).then(() => false)]);
+          if (!inTime) void all.then(() => loosen(spec.walkId)).catch(() => {});
+        }
         const moments = await p.db.getMoments(spec.walkId);
         await p.db.deleteWalk(spec.walkId);
         p.forgetRecalls();

@@ -10,8 +10,8 @@ import { useUnits } from '../lib/useUnits';
 import { db } from '../lib/db';
 import { memoGate } from '../lib/memoGate';
 import { unsaved } from '../lib/unsaved';
-import { barWarning, stopWarns } from '../lib/unsaved/core';
-import { endWalk } from '../lib/session';
+import { barWarning } from '../lib/unsaved/core';
+import { stopEnd } from '../lib/unsaved/stopEnd';
 import { barInSight, reminderHeld, reminderSeen, reminderSight, reminderText, UNSEEN, type ReminderSight } from '../lib/discovery/recall';
 import { handOnRecall, onRecallFired, RECALL_OPEN_KEY } from '../lib/discovery/recallCheck';
 import { feedback } from '../lib/motion';
@@ -25,7 +25,7 @@ import type { Pause, Walk } from '../lib/types';
 import type { LiveTrace } from '../lib/useLiveTrace';
 import { useCaptures } from '../lib/useCaptures';
 import { settleWithin } from '../lib/settleWithin';
-import { barOfferUp, barStop, modalsUp, tabsHidden } from '../lib/tabsHidden';
+import { barOfferUp, barReminderUp, barStop, modalsUp, tabsHidden } from '../lib/tabsHidden';
 import { showWalk } from '../lib/walkNav';
 import { Icon } from './icons';
 import { EditButton } from './edit/EditOffer';
@@ -87,6 +87,8 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
   const stopping = useStore(barStop, (s) => s?.walkId === walk.id);
   // The held captures of the walk this Stop has warned of; one held beyond them is warned of too (unsaved captures UN5).
   const warnedHeld = useRef<string[]>([]);
+  // The memo saves this Stop has said are still being saved; the next hold goes through them (T35).
+  const warnedSaves = useRef<number[]>([]);
   const offerUp = barOfferShown(offer, cap.captures.map((c) => c.id), hidden, stopping);
   // Told to the tabs, so Explore's press hint steps aside while the pill lifts its map (tend tabs T36).
   useEffect(() => {
@@ -99,6 +101,11 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
   useEffect(() => {
     if (spoken && Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility(spoken);
   }, [spoken, offer?.id]);
+  // The bar's words (a refusal, a warning, a failure) are announced too: iOS reads no live regions, and a refused hold
+  // says why only here (tend tabs audit 45).
+  useEffect(() => {
+    if (said && Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility(said.text);
+  }, [said]);
   // A photo still being kept: Return waits for it, so the walk screen opens with it (NV9).
   const keeping = useRef<Promise<unknown> | null>(null);
   const returning = useRef(false);
@@ -112,6 +119,12 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
   // Remind me here goes on while minimized (NV8): a fire with the page in front lands here, where
   // the walk's card would be; a tap opens it on the walk.
   // What the bar holds, read by the listener below, so it announces the bar's own title (tend explore audit 6).
+  // Told to the tabs, so Explore's press hint steps aside while the card lifts its map (tend tabs audit 51).
+  const reminderUp = !!reminder;
+  useEffect(() => {
+    barReminderUp.set(reminderUp);
+    return () => barReminderUp.set(false);
+  }, [reminderUp]);
   const reminderRef = useRef(reminder);
   useEffect(() => {
     reminderRef.current = reminder;
@@ -208,25 +221,28 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
     const mine = { walkId: walk.id, since: Date.now() };
     barStop.set(mine);
     try {
-      // Never under a memo, as Start (tabs audit 3); the bar's photo is kept first, as on its return.
-      const ready = await Promise.race([memoGate.readyToStart(), new Promise<boolean>((r) => setTimeout(() => r(false), RETURN_WAIT_MS))]);
-      if (!ready) {
-        setSaid({ text: 'A voice memo is recording. Save it first.', error: true });
+      // Never under a memo recording, as Start (tabs audit 3); a memo still being saved after the wait is said once, and
+      // the next hold goes through it, the memo saving into the ended walk (T35). The bar's photo is kept first, as on
+      // its return.
+      await Promise.race([memoGate.readyToStart(), new Promise<boolean>((r) => setTimeout(() => r(false), RETURN_WAIT_MS))]);
+      const memo = memoGate.stopUnder(warnedSaves.current);
+      if (!memo.go) {
+        if ('saving' in memo) warnedSaves.current = memo.saving;
+        setSaid({ text: 'saving' in memo ? 'The voice memo is still being saved. Hold Stop again in a moment.' : 'A voice memo is recording. Save it first.', error: true });
         return;
       }
       // The bar's photo, and one still being kept from Memories' band (capture-from-chronicle audit 6).
       await settleWithin(Promise.all([keeping.current, memoGate.kept(), unsaved.settled()]), RETURN_WAIT_MS);
       // Whatever of the walk is held, from any screen, read now, is said first; the bar has no Retry, so its words
-      // promise none (UN5, UN6). The next hold lets it go, files and all (UN8).
-      const held = unsaved.heldFor(walk.id);
-      if (stopWarns(held.map((x) => x.id), warnedHeld.current)) {
-        warnedHeld.current = held.map((x) => x.id);
-        setSaid({ text: barWarning(held.length > 1), error: true });
+      // promise none (UN5, UN6). The next hold lets go only what it warned of, files and all (UN8), and nothing still
+      // being saved lets the walk be dropped as empty: the end both Stops share (tend tabs audit 42, decision 0227).
+      const r = await stopEnd(walk.id, { leaves: false, warned: warnedHeld.current });
+      if ('warn' in r) {
+        warnedHeld.current = r.warn.map((x) => x.id);
+        setSaid({ text: barWarning(r.warn.length > 1), error: true });
         return;
       }
-      const { dropped } = await endWalk(walk.id, { leaves: false });
-      // Only once the walk has ended (unsaved-captures audit 4).
-      await unsaved.ended(walk.id);
+      const { dropped } = r;
       feedback('success');
       // A walk with nothing in it has no replay: the bar goes, and the pill offers Undo on this screen (EW1).
       if (!dropped) router.push(`/replay/${walk.id}`);
@@ -290,8 +306,9 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
             <View style={styles.dot} />
           )}
           {said ? (
-            // A failure's words are whole at 320 px: the room line names where its Retry is (unsaved captures UN10).
-            <Text testID="recording-said" style={[styles.text, said.error && styles.error]} numberOfLines={said.error ? 4 : 2} accessibilityLiveRegion="polite">
+            // A failure's or a refusal's words are whole at 320 px, unclamped, beside the camera too: the room line names
+            // where its Retry is (unsaved captures UN10), the saving line what to do (tend tabs audit 46).
+            <Text testID="recording-said" style={[styles.text, said.error && styles.error]} numberOfLines={said.error ? undefined : 2} accessibilityLiveRegion="polite">
               {said.text}
             </Text>
           ) : (

@@ -34,18 +34,19 @@ export function exploreSlots(o: { spot: boolean; town: boolean; free?: boolean }
 /**
  * Whether the long press's hint is up (atlas round 3): unseen, no long press open and the map placed. It steps aside while
  * the recording bar's Edit pill stands above the bar, whose room lifts the map so the walker sat under its words (tend tabs
- * T36), and shows again as the pill goes. Its time on screen counts toward its being seen only while it is up (EC14), so it
- * is up only while drawn in front: Explore focused, no Modal over it (`covered`), no full-screen card folding the tabs
- * (`folded`), and nothing else in the overlay's place (`slotTaken`: an error, a notice, "Looking around…", the map's
- * credits) (tend tabs audit 29).
+ * T36), and for the bar's reminder card, which lifts it as far (`reminder`, tend tabs audit 51); it shows again as they
+ * go. Its time on screen counts toward its being seen only while it is up (EC14), so it is up only while drawn in front:
+ * Explore focused, no Modal over it (`covered`), no full-screen card folding the tabs (`folded`), and nothing else in the
+ * overlay's place (`slotTaken`: an error, a notice, "Looking around…", the map's credits) (tend tabs audit 29).
  */
 export const pressHintUp = (o: {
   seen: boolean;
   spot: boolean;
   located: boolean;
   barOffer: boolean;
+  reminder: boolean;
   focused: boolean;
   covered: boolean;
   folded: boolean;
   slotTaken: boolean;
-}): boolean => !o.seen && !o.spot && o.located && !o.barOffer && o.focused && !o.covered && !o.folded && !o.slotTaken;
+}): boolean => !o.seen && !o.spot && o.located && !o.barOffer && !o.reminder && o.focused && !o.covered && !o.folded && !o.slotTaken;

@@ -21,7 +21,7 @@ Echo the resolved mode, area and flags in your first line.
 
 | Argument | The run | Sections |
 |---|---|---|
-| none | a sweep of the area `node scripts/tend.js next` names (the one changed most since it was swept, else one left rough or settling); if it names none, the run is `evolve` | 0-5, 8-10 |
+| none | a sweep of the area `node scripts/tend.js next` names (the one a change reset most often since it was swept (decision 0229), else one left rough or settling); if it names none, the run is `evolve` | 0-5, 8-10 |
 | an area (a name in `scripts/features.js`; say so and stop on any other word) | a sweep of that area | 0-5, 8-10 |
 | `triage [<section>]` | tag `docs/DEFERRED.md` | 0, 6 (with 5's entry form), 10 |
 | `evolve [<area>]` | the balance, then proposals for that area, or for the app if none is named | 0, 8, 9, 10 |
@@ -287,16 +287,20 @@ owner and the ledger; none of it ever appears in the app.
 
 **Each area has a state** in the ledger's `areas`, set by a sweep published
 to `main`; an area the ledger does not list has never been swept and is
-`rough`. The script overrides the ledger: an area whose source changed since its
-sweep, by a slice, a `/fix` or anything but the loop's own commits (a slice
-the loop built included), counts as `rough` whoever landed the change.
+`rough`. The script overrides the ledger only on a scoped reset (decision
+0229): an area counts as `rough`, whoever landed the change, when a commit
+since its sweep that is not the loop's own (a slice the loop built included)
+adds a screen or a control in files the area owns (`scripts/features.js`): a
+route file under `src/app/`, or more `onPress=`, `<Pressable`, `<Switch`,
+`<TextInput` and `accessibilityRole="button"` added than removed across its
+`.tsx` files. Any other change leaves the ledger's state as it stands.
 
 | State | It means | What the loop does there |
 |---|---|---|
-| `rough` | The last sweep **found** loop findings of high or medium severity, the sweep was not whole or was capped, or its source changed since | Tend it. No evolution is proposed on a rough base; `evolve <area>` says so and stops. |
+| `rough` | The last sweep **found** loop findings of high or medium severity, the sweep was not whole or was capped, or a change since added a screen or a control to it (decision 0229) | Tend it. No evolution is proposed on a rough base; `evolve <area>` says so and stops. |
 | `settling` | A whole sweep found only low findings, or `[owner]` or `[arch]` entries of the area are unanswered | Tend once more, or wait for the owner's answers |
 | `polished` | A whole, uncapped sweep found nothing above low, every screen of the area has a journey, and no `[owner]` or `[arch]` entry of the area is open (`[phone]` entries do not count: no device has run this) | **Owes an evolution:** section 9, in the same run |
-| `resting` | Polished, and the owner said no to its evolutions (the ledger says when and why) | Left alone until its source changes |
+| `resting` | Polished, and the owner said no to its evolutions (the ledger says when and why) | Left alone until a change resets it (decision 0229) |
 
 **Then run `npm run tend:balance -- --write`** in the worktree
 (`scripts/tend.js`). Over the last 14 days of `origin/main` it names the

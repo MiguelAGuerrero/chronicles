@@ -64,7 +64,8 @@ import { startErrorFrom, type RecorderStatus } from '../lib/recorder/types';
 import { raisedAfter, retryRecorder } from '../lib/recorderRetry';
 import { useUnits } from '../lib/useUnits';
 import { formatRange } from '../lib/format';
-import { endWalk, pauseWalk, restartRecording, resumeWalk } from '../lib/session';
+import { pauseWalk, restartRecording, resumeWalk } from '../lib/session';
+import { stopEnd } from '../lib/unsaved/stopEnd';
 import { formatDistance, formatDuration, formatElapsed } from '../lib/summary';
 import type { LngLat, Pause, StreetSegment, Walk } from '../lib/types';
 import { useCaptures } from '../lib/useCaptures';
@@ -116,7 +117,7 @@ import { heldLabel, saveFailLine } from '../lib/space/core';
 import { unsaved } from '../lib/unsaved';
 import { memoGate } from '../lib/memoGate';
 import { settleWithin } from '../lib/settleWithin';
-import { lostAtStop, memoLabel, stopWarning, stopWarns } from '../lib/unsaved/core';
+import { lostAtStop, memoLabel, stopWarning } from '../lib/unsaved/core';
 
 /** Streets around the walker: read from the map and shown as fog this far out. */
 const NEAR_RADIUS_M = 1000;
@@ -1064,17 +1065,16 @@ function WalkScreen(props: { onMinimize: () => void }) {
       // as the bar's Stop waits: one that fails meanwhile is warned of (unsaved-captures audit 2, 3).
       await settleWithin(Promise.all([memoGate.kept(), unsaved.settled()]), STOP_WAIT_MS);
       // Whatever of the walk is held, from any screen, read now (not from a render's closure), is said before the walk
-      // ends without it (SA8, UN5); the next hold lets it go, files and all, once the walk has ended (UN8; audit 4).
-      const held = unsaved.heldFor(walk.id);
-      if (stopWarns(held.map((x) => x.id), warnedHeld.current)) {
-        warnedHeld.current = held.map((x) => x.id);
-        setNotice({ message: stopWarning(held.map((x) => x.kind)), tone: 'error', sticky: true });
+      // ends without it (SA8, UN5); the next hold lets go what it warned of, files and all, once the walk has ended (UN8;
+      // audit 4). A save still under way keeps the walk from the empty drop: the end both Stops share (tend tabs audit
+      // 42, decision 0227). The walk stays on screen until the replay replaces it (the keeper hears it ended first).
+      const end = await stopEnd(walk.id, { leaves: true, warned: warnedHeld.current, going: () => setEnded(walk) });
+      if ('warn' in end) {
+        warnedHeld.current = end.warn.map((x) => x.id);
+        setNotice({ message: stopWarning(end.warn.map((x) => x.kind)), tone: 'error', sticky: true });
         return;
       }
-      // The walk stays on screen until the replay replaces it (the keeper hears it ended first).
-      setEnded(walk);
-      const { dropped } = await endWalk(walk.id, { leaves: true });
-      await unsaved.ended(walk.id);
+      const { dropped } = end;
       feedback('success');
       if (dropped) {
         // A walk with nothing in it has no replay: back to where the walker was, with the pill's Undo (EW1).

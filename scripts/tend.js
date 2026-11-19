@@ -3,7 +3,8 @@
 //
 //   node scripts/tend.js balance [--days N] [--write]   which slices grew on origin/main against the
 //                                                       refinement beside them, the areas by state (an
-//                                                       area changed since its sweep is rough), the
+//                                                       area a change gave a screen or a control since
+//                                                       its sweep is rough, decision 0229), the
 //                                                       open entries, and a reading (shallow-clone
 //                                                       boundary commits are left out); the ledger and
 //                                                       the inbox as origin/main holds them, not the
@@ -86,8 +87,8 @@ function tally(commits, known) {
 }
 
 /**
- * Areas by state. An area whose source changed since its sweep by anything but the loop itself is
- * rough whatever the ledger says: `changed` maps an area to true when that happened.
+ * Areas by state. An area a change reset since its sweep (`resetsArea`, decision 0229) is rough
+ * whatever the ledger says: `changed` maps an area to true when that happened.
  */
 function areasByState(areas, changed = {}) {
   const by = Object.fromEntries(STATES.map((s) => [s, []]));
@@ -127,8 +128,8 @@ function words(n) {
 }
 
 /**
- * The area to sweep next: the one with the most commits not the loop's own since its sweep (ties by
- * name); with none changed, one the ledger left rough, then one left settling. Null when all are at rest.
+ * The area to sweep next: the one with the most commits that reset it since its sweep (decision 0229;
+ * ties by name); with none reset, one the ledger left rough, then one left settling. Null when all are at rest.
  */
 function nextArea(counts, areas = {}) {
   const ranked = Object.entries(counts).filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
@@ -142,6 +143,58 @@ function nextArea(counts, areas = {}) {
 
 /** The loop's own commits: a `tend …` commit, or the revert of one. They never make an area rough. */
 const isLoops = (subject) => /^tend /.test(subject) || /^Revert "tend /.test(subject);
+
+// Decision 0229: what makes an area rough again. A control is each of these a line holds; a screen is a
+// route file under src/app/ that is neither a navigator (_layout) nor one of the router's own (+html).
+const CONTROL = /onPress=|<Pressable|<Switch|<TextInput|accessibilityRole="button"/g;
+const controlsIn = (text) => (String(text ?? '').match(CONTROL) ?? []).length;
+const isRoute = (p) => /^src\/app\/(?:[^/]+\/)*[^_+/][^/]*\.[jt]sx?$/.test(p);
+
+/**
+ * Whether a commit resets an area (decision 0229): not the loop's own, and it adds a route file the area
+ * owns, or the controls its added lines hold outnumber those its removed lines held, across the .tsx
+ * files the area owns. A control edited or moved within the area is none added. `files` are
+ * `{ status, path, from?, plus?, minus? }`: plus and minus the text of the lines added and removed.
+ */
+function resetsArea(commit, owns) {
+  if (isLoops(commit.subject)) return false;
+  const mine = commit.files.filter((f) => owns(f.path));
+  if (mine.some((f) => f.status === 'A' && isRoute(f.path))) return true;
+  const tsx = mine.filter((f) => /\.tsx$/.test(f.path));
+  return tsx.reduce((n, f) => n + controlsIn(f.plus) - controlsIn(f.minus), 0) > 0;
+}
+
+/**
+ * Commits from `git log --raw -p -U0 --format=%x00%H%x01%s`: each file's status from its raw line (a
+ * rename's old path as `from`), and the text of the lines its hunks add and remove.
+ */
+function readPatches(out) {
+  return out.split('\0').filter(Boolean).map((chunk) => {
+    const [head, ...lines] = chunk.split('\n');
+    const [sha, subject] = head.split('\x01');
+    const files = [];
+    const byPath = new Map();
+    let current = null;
+    let from = null;
+    let inHunk = false;
+    for (const l of lines) {
+      if (l.startsWith(':') && !inHunk && current === null) {
+        const cols = l.split('\t');
+        const f = { status: cols[0].split(' ').pop()[0], path: cols[cols.length - 1], ...(cols.length > 2 ? { from: cols[1] } : {}), plus: [], minus: [] };
+        files.push(f);
+        byPath.set(f.path, f);
+      } else if (l.startsWith('diff --git ')) {
+        current = undefined;
+        inHunk = false;
+      } else if (!inHunk && l.startsWith('--- ')) from = l.slice(6);
+      else if (!inHunk && l.startsWith('+++ ')) current = byPath.get(l === '+++ /dev/null' ? from : l.slice(6));
+      else if (l.startsWith('@@')) inHunk = true;
+      else if (inHunk && current && l[0] === '+') current.plus.push(l.slice(1));
+      else if (inHunk && current && l[0] === '-') current.minus.push(l.slice(1));
+    }
+    return { sha, subject, files: files.map((f) => ({ ...f, plus: f.plus.join('\n'), minus: f.minus.join('\n') })) };
+  });
+}
 
 /** A shallow clone's boundary commits list every file as changed: they are left out of every read. */
 const dropBoundary = (commits, boundary) => commits.filter((c) => !boundary.has(c.sha));
@@ -390,15 +443,29 @@ function knownPrefixes() {
   return new Set(readSpecs().flatMap((s) => idsOf(s.text).prefixes));
 }
 
-/** Per area, how many commits not the loop's own touched its source since `since(area)`. */
+/**
+ * Per area, how many commits since `since(area)` reset it (decision 0229): its commits that are not the
+ * loop's own and touch its source are read in one batched patch, limited to .tsx files and src/app/.
+ */
 function changesByArea(since) {
   const { FEATURES, featuresOf } = require('./features');
-  const counts = {};
+  const owner = (name) => (p) => isAppSource(p) && featuresOf(p).some((x) => x.name === name);
+  const touched = {};
   for (const f of FEATURES) {
     if (f.name === 'arch') continue;
     const from = since(f.name);
     const commits = from ? log(`${from}..origin/main`) : log(`--since=${LIMITS.days} days ago`, 'origin/main');
-    counts[f.name] = commits.filter((c) => !isLoops(c.subject) && c.files.some((p) => isAppSource(p) && featuresOf(p).some((x) => x.name === f.name))).length;
+    touched[f.name] = commits.filter((c) => !isLoops(c.subject) && c.files.some(owner(f.name))).map((c) => c.sha);
+  }
+  const shas = [...new Set(Object.values(touched).flat())];
+  const patches = new Map();
+  if (shas.length) {
+    const out = execFileSync('git', ['log', '--stdin', '--no-walk=unsorted', '--raw', '-p', '-U0', '--format=%x00%H%x01%s', '--', 'src/*.tsx', 'src/app'], { cwd: ROOT, encoding: 'utf8', input: shas.join('\n') + '\n', maxBuffer: 256 * 1024 * 1024 });
+    for (const c of readPatches(out)) patches.set(c.sha, c);
+  }
+  const counts = {};
+  for (const [name, list] of Object.entries(touched)) {
+    counts[name] = list.filter((sha) => patches.has(sha) && resetsArea(patches.get(sha), owner(name))).length;
   }
   return counts;
 }
@@ -599,4 +666,4 @@ if (require.main === module) {
   }
 }
 
-module.exports = { FORBIDDEN, LIMITS, STATES, classify, criteriaPrefixes, tally, areasByState, readStatus, reading, nextArea, isLoops, dropBoundary, testName, tendCommitProblems, citedOwnEdits, rewritesBaseLines, mainOrHere, findingsOf, logProblems, runLine, fullPassDue };
+module.exports = { FORBIDDEN, LIMITS, STATES, classify, criteriaPrefixes, tally, areasByState, readStatus, reading, nextArea, isLoops, dropBoundary, testName, tendCommitProblems, citedOwnEdits, rewritesBaseLines, mainOrHere, findingsOf, logProblems, runLine, fullPassDue, controlsIn, isRoute, resetsArea, readPatches };

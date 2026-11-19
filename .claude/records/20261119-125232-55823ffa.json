@@ -1,0 +1,52 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inbox",
+        "remove",
+        "T40",
+        "--reason",
+        "the owner's answer in person, 2026-11-19: \"Shorter one-line words\"; built in tend tabs T40"
+      ],
+      "target": "sha256:c4557dd62a5b28c7818fed664cf16f9550271e20968b380d550487e40861bf86"
+    },
+    {
+      "argv": [
+        "inbox",
+        "note",
+        "T41",
+        "--reason",
+        "the owner's yes in person, 2026-11-19: \"Yes, as recommended\""
+      ],
+      "body": "  Nov 19: the owner's yes, in person, 2026-11-19: \"Yes, as recommended\". Waits for the next `/tend inbox`: one build per run, T40 built first (`tend tabs T40`).\n",
+      "target": "sha256:413956fb41bc3ddecadeef0cd728c8d7ac4688fcd1c2c127ed99cc11fefee50f"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "At 320 px, \"Press",
+        "--reason",
+        "the owner's answer in person, 2026-11-19, \"Shorter one-line words\": the hint reads \"Hold the map to look anywhere.\", one line at 320 px (tend tabs T40)"
+      ],
+      "target": "sha256:1653a3640442a3d13efa5efb13592d594993aeac89e01d5beee198a94384c76e"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Explore atlas"
+      ],
+      "body": "- [ ] **Do:** on a phone 320 or 375 pt wide (iPhone SE), at the default text size and then the largest Dynamic Type or font scale, open Explore with the press hint unseen (a fresh install) and a walk minimized; then take a photo from the bar, and let a walk reminder reach the bar. **Expect:** at the default size \"Hold the map to look anywhere.\" is one line and stands clear of the walker's dot; at the largest it may wrap (the tabs at the largest text size are T13's); the hint steps aside while the bar's Edit pill or its reminder card stands (`barReminderUp`, `pressHintUp`) and shows again as they go. (tend tabs T40, tend tabs audit 51)\n"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 19, `/tend inbox T40 yes --deploy=main`, Explore's press hint in one line at 320 px** (opened from `28f11875`, rebuilt on `f257d7b3`; no sweep, lenses 1-7 not run; T40 the owner's answers, in person).\n- The entry, as main held it: T40 \"At 320 x 700 the two-line press hint can reach the walker whenever the bar stands taller than its line, or with no pill\". Its Seen line held on main's build (the walker 3 px under the hint's top edge at 320 x 700; 2 px framed at 320 from the start), but the walker is placed by the page's frame (AT9), not centred, so padding only the walker-centred frames fixed nothing measured.\n- The orchestrator ruled, inside the owner's \"Pad the map camera\" (2026-11-18), a padding of every Explore fit while the hint is up; it was built and reviewed (the `auditor` and the `ux-reviewer`), and the review found the walker then under \"Plan an outing\" once the bar's pill or reminder card lifted the map. No padding window exists at 320 x 700. The owner, in person, 2026-11-19: \"Shorter one-line words\". The padding was dropped; the camera keeps today's padding.\n- `tend tabs T40`: the hint reads \"Hold the map to look anywhere.\", one line at 320 px; the walker sits where it did, 7 px clear of the line in A and after the pill, 13 px framed at 320.\n- The review (one round; accepted 6, moot 3, rejected 1): `tend tabs audit 50` (the walker measured against the hint and every `NAMES_CLEAR_OF` box; the pill and a 52 px card at 320 x 700; case A in its own context, F5), `51` (the hint steps aside while the bar's reminder card stands, `barReminderUp`), `52` (AT9's framed area between the title stack and the overlay's slot). Moot with the padding dropped: auditor F2, F3, F4. Rejected: ux U4.\n- Records: T40 removed (the owner's answer); T41 noted with the owner's yes of Nov 19 (waits for the next `/tend inbox`); the DEFERRED item on the two-line hint at 320 px removed; one phone item (\"Explore atlas\": the hint at the default and largest text size, T13).\n- Journeys on the final build: capturehome, launch, and atlas up to main's own stop at l.551 (`look-cancel`, 2 of 3 in flaky.json; the same on `f257d7b3`).\n- The balance: as main's ledger reads it; no `G` entry filed.\n"
+    }
+  ]
+}

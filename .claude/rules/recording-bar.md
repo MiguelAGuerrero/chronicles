@@ -38,6 +38,20 @@ paths:
     (`memoGate`), waits at most 5 s for the bar's photo, then `stopWalk` and
     the replay.
   - **The bar's reminder is never lost with the bar** (audits 23-27): `.claude/rules/explore-marks.md`, "Remind me here".
+- **The bar's Stop through a memo being saved** (`tend tabs T35`, decision 0227, amending the line above that it
+  "refuses under a memo"): after its 5 s wait it asks `memoGate.stopUnder(warned)`. A memo recording with none being
+  saved still refuses ("A voice memo is recording. Save it first."); a save still running reads "The voice memo is still
+  being saved. Hold Stop again in a moment." once, its numbers kept in `warnedSaves`, and the next hold whose wait ends
+  with only those still running goes through them: the memo saves into the ended walk. A save begun since is said
+  first. A memo recording on a path with no save of its own refuses on any hold (`stopUnderOf`, `lib/unsaved/stopEnd/core`;
+  each save carries its path, `track(p, owner)`; tend tabs audit 44). Undo of a discarded memo is a tracked save too
+  (audit 41). Once its waits are over the bar ends through `stopEnd` (`lib/unsaved/stopEnd`), as the walk screen's Stop does
+  (audit 42): the held captures read and warned of; else, in the same tick, nothing awaited between, a pin
+  (`memoGate.pin`) while anything is under way until `endWalk` has decided the drop, so the walk is never dropped
+  mid-save (0187 amended), and `unsaved.ended(walkId, held ids)` lets go only what was warned of: a save failing as the
+  walk ends stays held for Retry. The bar's words are announced on iOS when said (audit 45). A failure's or a refusal's
+  words (`said.error`) are unclamped, so they stay whole beside the camera at 320 px, where the saving line takes five
+  lines (audit 46); three on Memories, where the bar has no camera (audit 48).
 - **The bar's Stop warns of what is held** (unsaved captures UN5-UN8): after waiting for the memo and the photo,
   it reads `unsaved.heldFor(walk.id)`, says `barWarning` in its line (no Retry on the bar; two lines at most at
   320 px, nothing cut) and goes on; the second hold lets the walk's held captures go. Its camera's failure says its
