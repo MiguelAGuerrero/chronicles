@@ -82,22 +82,25 @@ function lineProblems(l) {
   return p;
 }
 
-/** Entries from text: `- <head>` lines, each with its indented `Key: value` lines. */
-function readEntries(lines, headOf) {
+const linesOf = (text) => String(text ?? '').replace(/\r\n?/g, '\n').split('\n');
+
+/** Entries from text: `- <head>` lines, each with its indented `Key: value` lines; `offset` lines come before. */
+function readEntries(lines, headOf, offset = 0) {
   const entries = [];
   const problems = [];
   for (const [i, l] of lines.entries()) {
-    if (l === '' && lines.slice(i).every((x) => x === '')) break;
+    const at = offset + i + 1;
+    if (!l.trim()) continue;
     const head = /^- (.+)$/.exec(l);
     if (head) {
-      entries.push({ ...headOf(head[1], i), keys: {} });
+      entries.push({ ...headOf(head[1], at), keys: {} });
       continue;
     }
     const key = /^ {2}(\w+): (.*)$/.exec(l);
     const e = entries[entries.length - 1];
-    if (!key || !e) problems.push(`line ${i + 1} is outside an entry: "${l.slice(0, 60)}"`);
-    else if (!KEYS.includes(key[1])) problems.push(`line ${i + 1}: ${key[1]} is no key (${KEYS.join(', ')})`);
-    else if (e.keys[key[1]] !== undefined) problems.push(`line ${i + 1}: a second ${key[1]}`);
+    if (!key || !e) problems.push(`line ${at} is outside an entry: "${l.slice(0, 60)}"`);
+    else if (!KEYS.includes(key[1])) problems.push(`line ${at}: ${key[1]} is no key (${KEYS.join(', ')})`);
+    else if (e.keys[key[1]] !== undefined) problems.push(`line ${at}: a second ${key[1]}`);
     else e.keys[key[1]] = key[2];
   }
   return { entries, problems };
@@ -117,15 +120,19 @@ function entryOf(e) {
 
 /** A store file read: its heading and paragraph as they stand, its entries, and what does not read. */
 function parseStore(text, feature) {
-  const lines = String(text ?? '').split('\n');
+  const lines = linesOf(text);
   const first = lines.findIndex((l) => /^- /.test(l));
   const head = first < 0 ? '' : first === 0 ? '' : `${lines.slice(0, first).join('\n')}\n`;
   if (first < 0 && lines.some((l) => l.trim())) return { feature, head: `${lines.join('\n').replace(/\n*$/, '')}\n\n`, entries: [], problems: [] };
-  const read = readEntries(first < 0 ? [] : lines.slice(first), (h, i) => {
-    const m = /^(\S+) \[([^\]]+)\] (.+)$/.exec(h);
-    if (!m) return { line: first + i + 1, bad: `line ${first + i + 1} is no entry: "- E-<feature>-<n> [<status>] A person …"` };
-    return { line: first + i + 1, id: m[1], statusRaw: m[2], text: m[3] };
-  });
+  const read = readEntries(
+    first < 0 ? [] : lines.slice(first),
+    (h, at) => {
+      const m = /^(\S+) \[([^\]]+)\] (.+)$/.exec(h);
+      if (!m) return { line: at, bad: `line ${at} is no entry: "- E-<feature>-<n> [<status>] A person …"` };
+      return { line: at, id: m[1], statusRaw: m[2], text: m[3] };
+    },
+    Math.max(first, 0),
+  );
   const problems = [...read.problems];
   const entries = [];
   const ids = new Set();
@@ -180,7 +187,7 @@ function formatStore(store) {
 
 /** A --file of lines: `- A person …` and its Check and Grounds (an Amends is the amend operation's). */
 function parseDraft(text) {
-  const read = readEntries(String(text ?? '').split('\n'), (h) => ({ text: h }));
+  const read = readEntries(linesOf(text), (h) => ({ text: h }));
   const lines = read.entries.map((e) => ({ text: e.text, check: e.keys.Check, grounds: e.keys.Grounds, ...(e.keys.Amends !== undefined ? { amends: e.keys.Amends } : {}) }));
   const problems = [...read.problems];
   if (!lines.length) problems.push('no line: each is "- A person …" with its Check and Grounds indented under it');
@@ -397,7 +404,7 @@ function readStores(root) {
   if (!fs.existsSync(dir)) return [];
   return fs
     .readdirSync(dir)
-    .filter((f) => f.endsWith('.md'))
+    .filter((f) => f.endsWith('.md') && f !== 'README.md')
     .sort()
     .map((f) => parseStore(fs.readFileSync(path.join(dir, f), 'utf8'), f.replace(/\.md$/, '')));
 }
