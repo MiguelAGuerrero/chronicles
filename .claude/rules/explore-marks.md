@@ -69,8 +69,14 @@ Places of interest from the tiles, marks, checklists and finds (Explore), and Re
 - **Explore** (slice 5, replaces scan and ambient; the spec is E1-E23 in the
   v1 tab; `explore/explore.ts` pure, `exploreRun.ts`, `useExplore.ts`,
   `settings.ts`).
-  - **A walk starts quiet** (meta `explore_walk` holds the exploring walk's id).
-    Quiet is navigation plus captures: no "?" marks, magenta, strip chip or
+  - **A walk starts with every layer off, and there is no Explore mode** (decision 0231, modes-to-layers MD1-MD19; it
+    replaces 0031's mode and `explore_walk`, `start_mode`, which are retired and left unread). The walk's own layers
+    (`layers/walkShell.ts`, meta `walk_layers:<walk>`) start off every walk and are never carried to the next; the "?" marks, the range
+    ring, the armed place and the pocket alert follow **Places**, the strip chip and the dead-zone pill follow **Storefronts**
+    (`walk.tsx`: `placesOn`, `storefrontsOn`; `useExplore` takes `places` and `storefronts`). A find needs Places on, since
+    Capture here starts from a "?" card (MD8). Turning Places on or off keeps its spans (`places_spans:<walk>`, `explore/placesSpans.ts`),
+    and the replay names what the walk passed only within them (`passedAlong` `spans`); a walk recorded before 0231 reads
+    `explored:<walk>` as it did. The old rule, kept for what it still says: quiet is navigation plus captures: no "?" marks, magenta, strip chip or
     dead-zone pill. Reminders fire on every walk (the owner's call, after the
     audit: a reminder is set on purpose). Explore starts from the home's
     Explore button beside Start walk, or the switch in the walk's options;
@@ -83,8 +89,8 @@ Places of interest from the tiles, marks, checklists and finds (Explore), and Re
     checklists of the areas it saw whole (`buildChecklists`: an area's reach,
     capped at 1.5 km, inside the read), never rebuilding or taking from an area
     already built for this build (`built`, `known`). Storefronts are saved only
-    on an exploring walk (`remember`); switching Explore on reads them at once
-    where a quiet read skipped them. One read at a time; a failure waits 2 min
+    while Places or Storefronts is on (`rememberStorefronts`); switching either on reads them at once
+    where a read skipped them. One read at a time; a failure waits 2 min
     and 100 m (`retryAllowed`), route reads too. The build is checked at most
     every 10 min (`exploreBuild`), never per fix.
     A read asked for another centre while one runs waits for it, then reads its own unless its caller stopped meanwhile; only the same centre (`readKey`) shares it (`readJoin`, `createReadQueue` in `explore/exploreQueue.ts`, tested with a fake read; tend explore 15, audit 13), so a route probe is never told a fix's read was its area's. A read its caller stopped says `stopped` and sets no failure's wait; a route's reads stop with the route.
@@ -118,7 +124,7 @@ Places of interest from the tiles, marks, checklists and finds (Explore), and Re
   - **Deferred:** a place moved by a new build can be found twice; the pocket
     alert likely needs the screen on (native); the home preview ignores the
     kind switches and doesn't restore the view after.
-  - **Settings** (inline in the walk's drawer, `walk.tsx`, and the ready bar's, `StartSettings`; pieces in `ExploreSettings.tsx`, saved as they change, the ring shown while the drawer is up on an exploring walk): what I'm into (its own page since decision 0192, reached by one row in each drawer;
+  - **Settings** (inline in the walk's drawer, `walk.tsx`, and the ready bar's, `StartSettings`; pieces in `ExploreSettings.tsx`, saved as they change, the ring shown while the drawer is up with Places on; the range and "Passing a place" are always there, MD6): what I'm into (its own page since decision 0192, reached by one row in each drawer;
     meta `explore_hidden`), the range (`explore_range`), the pocket alert
     (`explore_haptic`, a double-tap once per place per walk, one for places
     coming into range together; `pocketAlert` decides, `feedback('nudge')`
@@ -139,7 +145,7 @@ Places of interest from the tiles, marks, checklists and finds (Explore), and Re
     (`passedLine`, never a count since tabs audit U13).
     Marks found before explore stay in their replays; old open marks are not
     read.
-  - **Native** (unverified on a device): the background read on a quiet walk,
+  - **Native** (unverified on a device): the background read on a walk with no layer on,
     the ring layers, migration 9, the pocket alert.
 
 - **Remind me here** (`discovery/recall.ts` pure, `recallCheck.ts`):
