@@ -9,6 +9,8 @@
 // between them, not only at an offset from the middle. The slot is the core's (`exploreSlots`), read here, not copied, with
 // the hint's one line (28 px) above it.
 const slotsCore = () => require('tsx/cjs/api').require('../../../src/lib/atlas/overlaySlots.ts', __filename);
+// tend presence 6: the card's words are read from the app's own module, never a copied phrase (SIGHTS_LINE moved, places-layer ui 1).
+const atlasCore = () => require('tsx/cjs/api').require('../../../src/lib/atlas/atlas.ts', __filename);
 const roomOf = (page, town) => page.evaluate(() => {
   const canvas = document.querySelector('canvas.maplibregl-canvas')?.getBoundingClientRect();
   const els = ['atlas-title-card', 'atlas-search', 'outing-entry'].flatMap((id) => [...document.querySelectorAll(`[data-testid="${id}"]`)]);
@@ -343,7 +345,8 @@ async function checks(h) {
         check(JSON.stringify(order) === JSON.stringify(want) && heads.join('|') === 'Sights|Local life',
           `SG1, SG4: Sights then Local life, each over its kinds, all eight rows (${order.join(', ')}; ${heads.join('|')})`);
         const line = await sec.locator('[data-testid=atlas-sights-line]').innerText().catch(() => '');
-        check(/“?\?”? on the map/.test(line) && (await sec.locator('[data-testid=atlas-life-line]').count()) === 0,
+        // tend presence 6: the line is the module's SIGHTS_LINE, whatever its words (it no longer says "on the map", places-layer ui 1).
+        check(line === atlasCore().SIGHTS_LINE && /“\?”/.test(line) && (await sec.locator('[data-testid=atlas-life-line]').count()) === 0,
           `SG1: one muted line under Sights ties it to the "?", none under Local life (${line})`);
         const levels = await sec.locator('[role=heading]').evaluateAll((els) => els.map((e) => [e.textContent, e.getAttribute('aria-level')]));
         const top = levels.find(([t]) => /What’s here/.test(t ?? ''));
