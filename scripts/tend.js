@@ -366,7 +366,8 @@ function logProblems(given) {
     if (typeof g.lenses?.whole !== 'boolean' || !Array.isArray(g.lenses?.skipped)) p.push('lenses says whether the sweep was whole and which lenses were skipped');
     if (g.lenses?.whole === true && g.lenses.skipped?.length) p.push('a whole sweep skipped no lens');
   }
-  const builds = g.mode === 'inbox' && (g.answers ?? []).some((a) => a?.answer === 'yes');
+  // A build is what the range built (a T entry's commit, or a slice's criteria), not a yes it was given (decision 0234).
+  const builds = (g.built ?? []).length > 0 || (g.grew ?? []).length > 0;
   const held = g.lens === LENS && (g.mode === 'sweep' || builds);
   if (g.expectations !== undefined) p.push(...expectationProblems(g.expectations));
   else if (held) p.push('a sweep or a build logs its expectations (decision 0234)');
@@ -495,6 +496,7 @@ function runLine({ date, subjects, given }) {
     shipped: all('shipped').sort((a, b) => a - b),
     auditFixes: all('audit').sort((a, b) => a - b),
     built: all('built'),
+    grew: tally(subjects.map((subject) => ({ subject }))).slices,
     reverted: subjects.filter((s) => /^Revert "tend /.test(s)).map((s) => testName(s.replace(/^Revert "/, '')) ?? s),
   };
 }
