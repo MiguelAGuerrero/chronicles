@@ -139,6 +139,19 @@ test('expectations audit 5: a store that does not read is written by no operatio
   assert.ok(ex.editProblems(BROKEN, STORE, 'memories').some((p) => /does not read/.test(p)), 'even mended: the owner mends it by hand');
 });
 
+test('expectations audit 11: a line has one open amendment at a time, and an amendment is ratified only over a ratified line', () => {
+  const once = ex.amend(store(), 'E-memories-1', line('a capture to come back within 100 m of its place.'));
+  assert.deepEqual(once.problems, []);
+  assert.ok(ex.amend(once.store, 'E-memories-1', line('a capture to come back on the same street.')).problems.some((p) => /E-memories-4/.test(p)), 'the open amendment named');
+  const odd = ex.parseStore(`${STORE}- E-memories-4 [proposed] ${person} a pin to say it is a memory, in words.\n  Amends: E-memories-2\n  Check: pending "y"\n  Grounds: VISION "Who it is for"; not yet recorded\n`, 'memories');
+  assert.deepEqual(odd.problems, []);
+  const r = ex.answer(odd, ['E-memories-4'], { as: 'ratified', by: 'owner', date: '2026-11-21', answer: 'yes' });
+  assert.ok(r.problems.some((p) => /E-memories-2 is proposed/.test(p)), r.problems.join('\n'));
+  const both = ex.answer(once.store, ['E-memories-4'], { as: 'ratified', by: 'owner', date: '2026-11-21', answer: 'yes' });
+  assert.deepEqual(both.problems, []);
+  assert.equal(both.store.entries.filter((e) => e.status === 'ratified' || (e.status === 'proposed' && !e.amends)).length, 3, 'the lines in force stay three');
+});
+
 test('expectations 0234: a store file reads into lines with their status, check and grounds, and writes back the same', () => {
   const s = store();
   assert.deepEqual(s.problems, []);
