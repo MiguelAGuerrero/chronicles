@@ -32,7 +32,7 @@ type Expectations = {
   indexOf(files: { journeys: Record<string, string>; tests: Record<string, string>; features?: Record<string, string[]> }): Index;
   resolveCheck(check: string, index: Index, feature?: string): 'ok' | 'pending' | 'todo' | 'missing';
   checkProblems(stores: Store[], index: Index, features: string[]): { message: string }[];
-  due(stores: Store[], features: string[]): string[];
+  due(stores: Store[], features: string[]): { draft: string[]; awaiting: string[] };
   listText(stores: Store[], index: Index): string;
   editProblems(before: string, after: string, feature: string, subject?: string): string[];
   logRefProblems(lines: { id: string; is: string; evidence?: string; provisional?: boolean }[], stores: Store[], index: Index, o?: RefOptions): string[];
@@ -254,6 +254,19 @@ test('expectations audit 2: only the owner\'s answer commit changes a line\'s st
   assert.match(g.gate(loop).stderr, /E-memories-3/, 'a loop commit never answers');
 });
 
+test('expectations audit 9: due tells a feature to draft from one awaiting the owner, and the skills give the answer one flow', () => {
+  const awaiting = ex.parseStore(STORE.replace('[ratified 2026-11-20]', '[proposed]').replace(/  Answer:.*\n/, ''), 'memories');
+  assert.deepEqual(ex.due([awaiting], ['memories', 'threads']), { draft: ['threads'], awaiting: ['memories'] }, 'proposed lines only: not drafted again');
+  const root = tempRoot({ 'memories.md': ex.formatStore(awaiting) });
+  assert.equal(cli(root, 'due', 'memories', 'threads').stdout, 'threads\nawaiting the owner: memories\n');
+  const flow = "expectations <feature>: the owner's answer, <date>";
+  for (const f of ['.claude/skills/tend/expectations.md', '.claude/skills/tend-orchestrator/SKILL.md']) assert.ok(read(f).includes(flow), f);
+  for (const f of ['.claude/skills/tend/expectations.md', '.claude/skills/tend/SKILL.md', '.claude/skills/tend-orchestrator/SKILL.md']) {
+    assert.doesNotMatch(read(f), /run's first commit|takes `--loop-only`/, `${f}: a /tend run never makes an answer commit`);
+  }
+  assert.doesNotMatch(read('.claude/skills/tend/expectations.md'), /exists and passed in this run|exist and pass/, 'the script checks that a check exists and is not todo');
+});
+
 test('expectations 0234: a store file reads into lines with their status, check and grounds, and writes back the same', () => {
   const s = store();
   assert.deepEqual(s.problems, []);
@@ -335,7 +348,7 @@ test('expectations 0234: a check names a journey check, a test or a picture that
 
 test('expectations 0234: due names the features a run touches with no ratified line; list says each line and its check', () => {
   const threads = ex.parseStore(STORE.replace(/memories/g, 'threads').replace('[ratified 2026-11-20]', '[proposed]').replace(/  Answer:.*\n/, ''), 'threads');
-  assert.deepEqual(ex.due([store(), threads], ['memories', 'threads', 'gallery']), ['threads', 'gallery']);
+  assert.deepEqual(ex.due([store(), threads], ['memories', 'threads', 'gallery']), { draft: ['gallery'], awaiting: ['threads'] });
   assert.equal(
     ex.listText([store()], index()),
     [
@@ -415,7 +428,7 @@ test('expectations 0234: the docs check holds the store, and the script prints t
   assert.equal(run('ratify', 'E-memories-1', '--by', 'proxy', '--date', '2026-11-21', '--answer', 'yes').status, 1, 'never the proxy');
   const ratified = run('ratify', 'E-memories-1', 'E-memories-2', '--by', 'owner', '--date', '2026-11-21', '--answer', 'Ratify as drafted');
   assert.equal(ratified.stdout, 'ratify: E-memories-1, E-memories-2 ratified 2026-11-21 ("Ratify as drafted")\n');
-  assert.equal(run('due', 'memories', 'threads').stdout, 'threads\n');
+  assert.equal(run('due', 'memories', 'threads').stdout, 'threads\n', 'no line at all: draft');
   assert.equal(run('set-check', 'E-memories-3', '--check', 'pending "a word typed finds it"').status, 1, 'a checkable line never goes back to pending');
   assert.equal(run('set-check', 'E-memories-3', '--check', 'test:"memories MR8: the walker\'s area is read again"').status, 0);
   assert.equal(run('check').stdout, 'expectations check: 3 lines, 3 checks found, 0 pending, 0 missing\n');
