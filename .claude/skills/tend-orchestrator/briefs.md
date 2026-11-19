@@ -31,7 +31,9 @@ worktree, `npm run book:files -- HEAD --max-src 8`), a dependency or a change el
 
 Review handoff. You have no Agent tool and never review your own work in place of a reviewer.
 Review points: <a sweep: after the lenses, then after the diff | a T build: after the diff |
-a G build: after the plan (steward), then after the diff>. At each, fetch and rebase first, then
+a G build: after the plan (steward), then after the diff | evolve: before filing (steward)>. At the
+first, the `steward` also checks your expectation lines (/tend lens 0) against VISION's Never lines:
+list them in its prompt (decision 0231). At each, fetch and rebase first, then
 write each reviewer's complete,
 self-contained prompt (absolute paths that exist; at the diff pause the after pictures for every
 reviewer of a screen, each changed state at 320 px and at 390 where width matters, a before picture
@@ -82,7 +84,8 @@ Known constraints (do not rediscover them):
   copy once an operation changed it), pasted from its `shell:` line, never shortened by hand;
 - your review prompts, in your worktree: `npm run book:review-paths -- <prompt>...` before handing back;
 - the largest text size cannot be pictured on web: a [phone] entry;
-- the balance reads <reading>: <no G entry | …>;
+- the balance reads <reading>: <no G entry but one from lens 0's unmet expectations, naming the
+  workflows it implicates (decision 0231) | …>;
 - grep a rule line before citing it as a Source;
 - every T and G entry carries a `Precedent:` line beside "Recommended" (decision 0193): how 2-3 adjacent
   apps do the job, from docs/research/adjacent-apps.md, verified or not, or "none found"; one the file
@@ -120,7 +123,8 @@ Read <prompt path> and do exactly what it asks, report-only: edit nothing. You c
 so return the full report as your answer. [Also judge <the orchestrator's own question>.]
 Every finding titled "<agent> N" (auditor 1, ux 1, steward 1: the run numbers the audits) with a
 failing input or a file and line, its severity, the fix and a test name[ (auditor: also the tests that cannot fail) | (steward: each finding with the lines
-it quotes, and your Silent questions verbatim)]; the commands you ran with their counts; a verdict.
+it quotes, your Silent questions verbatim, and each expectation line the prompt lists that breaks a
+Never line, with the row)]; the commands you ran with their counts; a verdict.
 ```
 
 ## The resume

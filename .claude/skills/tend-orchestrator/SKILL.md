@@ -101,7 +101,8 @@ Also before the first run:
    dependencies state. For each: run `/vision` on it as `main` holds it (`.claude/skills/vision/SKILL.md`,
    called, returning its block), and say yes only to **aligned** or **no surface** with `Open:` and
    `Touches:` none. A slice-sized entry while the balance reads "outgrowing its base" is held this
-   session, and the hold goes to the owner as a recommendation. One build per run (`/tend` section 7):
+   session, and the hold goes to the owner as a recommendation; a `G` from `/tend`'s lens 0 is not
+   held (decision 0231). One build per run (`/tend` section 7):
    give the run every yes so its record carries them; it builds the first.
 2. **Everything else in the inbox goes to the owner**: every no, reshape or hold you would give (as
    a recommendation), every class 0157 keeps for the owner, and whatever `/vision` did not clear.
@@ -146,6 +147,10 @@ prompt the run wrote. The pauses are:
 | a sweep | after the lenses (`ux-reviewer` and `steward` on the pictures, `auditor` on the area's code); after the diff |
 | a `T` build | after the diff |
 | a `G` build | after the plan (`steward`, slice step 3); after the diff |
+| `evolve` | before it files (`steward`, on its expectation lines) |
+
+At a run's first pause the `steward` also checks the run's expectation lines (`/tend` lens 0) against
+VISION's Never lines, whoever else the pause calls for (decision 0231).
 
 At the diff pause the reviewers are chosen by risk (`ship.md`, "The faster lane"; decision 0181):
 words or style only, one (the `ux-reviewer`, or the `steward` for the replay's or a VISION line's
