@@ -38,7 +38,7 @@ async function run(h) {
   await row.click().catch(() => {});
   await pg.waitForTimeout(500);
   // modes-to-layers ui 1: the Places row says how far it shows and where to set it.
-  check(/within \d+ ?m/.test(await pg.locator('[data-testid=layer-status-places]').innerText().catch(() => '')) && /Walk settings/.test(await pg.locator('[data-testid=layer-status-places]').innerText().catch(() => '')), 'modes-to-layers ui 1: the Places row says how far a "?" shows and where it is set');
+  check(/within \d+[ \u00a0]m/.test(await pg.locator('[data-testid=layer-status-places]').innerText().catch(() => '')) && /Walk settings/.test(await pg.locator('[data-testid=layer-status-places]').innerText().catch(() => '')), 'modes-to-layers ui 1: the Places row says how far a "?" shows and where it is set');
   for (let k = 0; k <= 8; k++) {
     const p = at(-0.5 + k * 0.05, -0.5);
     await c.setGeolocation({ longitude: p[0], latitude: p[1], accuracy: 6 });
