@@ -114,8 +114,9 @@ Also before the first run:
    list`, the `proposed` ones) go in the same batch: one AskUserQuestion per feature, its lines grouped,
    "Ratify as drafted" first. They are identity, never the proxy's (0157). On the answer, run
    `npm run expectations -- ratify|decline <ids> --by owner --date <date> --answer "<verbatim>"` yourself,
-   in a worktree of your own from `origin/main`, as one commit, `expectations <feature>: the owner's answer,
-   <date>`, with your trailers, and push it to `main` (a non-loop write; a run's `check:tend` refuses it).
+   in a worktree of your own from `origin/main`, as one commit,
+   `expectations <feature>: the owner's answer, <date>`, with your trailers, and push it to `main` before or
+   between runs, never inside one (a non-loop write; `check:tend` lets only that commit change a line's status: `/tend`'s `expectations.md`).
 3. **An owner's yes the loop cannot build** (a rule file to split, a rule line to reword, a VISION
    edit, a decision to supersede): a non-loop run, briefed from `briefs.md` "The non-loop run", one
    job, its own decision record when the owner's answer is a call, reviewed by you before it lands.

@@ -77,9 +77,8 @@ so nothing known is found twice. Then look through each lens; a finding names
 its lens, its evidence (a picture, a file and line, a failing input) and its
 source.
 
-0. **The expectation** (decision 0234; the steps in `expectations.md` beside this file). Each `/tend` run (one iteration) but
-   a triage, first, per feature it touches: its ratified lines in `docs/expectations/<feature>.md` (none: draft three to five, used
-   provisionally, for the owner to ratify), each met with evidence, failed (section 3) or lacking (section 9, source 6).
+0. **The expectation** (decision 0234), first in each `/tend` run (one iteration) but a triage: the feature's lines in
+   `docs/expectations/<feature>.md`, each met with evidence, failed (section 3) or lacking (section 9); `expectations.md`.
 1. **The screens as a person sees them.** In the worktree, run the area's
    journeys (`docs/TESTING.md`, "Choosing the journeys") with
    `E2E_SHOTS=<scratchpad>/tend-shots`. A screen of the area with no journey
@@ -111,10 +110,9 @@ source.
 7. **The ledger.** `[loop]` items of the area in `docs/DEFERRED.md`, in the worktree:
    `npm run book:items -- deferred --tag loop --section "<area's section>"`.
 
-Run the subagents in one message. An empty lens is a result: say "nothing
-found" and move on. Never invent a finding to fill a run, and never turn a
-missing feature into a "gap": restraint is part of the product
-(`docs/VISION.md`, Always). A sweep that ran every lens (0-7) is a **whole sweep**; say which lenses did not run and why.
+Run the subagents in one message. An empty lens is a result: say "nothing found" and move on. Never invent a finding to
+fill a run, and never turn a missing feature into a "gap": restraint is part of the product (`docs/VISION.md`, Always).
+A sweep that ran every lens (0-7) is a **whole sweep**; say which lenses did not run and why.
 
 ## 3. Triage
 
@@ -189,12 +187,10 @@ entry per finding, written so a yes or no is enough:
   precedent the file lacks goes in the entry with its source, marked "not yet
   recorded", for the slice that builds it to record.
 - `[phone]` entries carry **Do** and **Expect** in place of a recommendation.
-- An addition too large for one commit is not a `T` entry: shape it as a `G`
-  entry with criteria (section 9's form), so a yes has something to hold it to.
-  A `G` from lens 0 (section 9, source 6) is filed as a `G` whatever the balance reads. While the balance reads
-  **outgrowing its base** no other `G` is filed (section 8): file it as an `[owner]` `T` entry that says it is slice-sized and held while
-  the balance reads outgrowing, its criteria in it; a yes builds it as a slice
-  (section 7), as T11 was.
+- An addition too large for one commit is not a `T` entry: shape it as a `G` entry with criteria (section 9's form), so a
+  yes has something to hold it to. A `G` from lens 0 (section 9, source 6) is filed as a `G` whatever the balance reads.
+  While the balance reads **outgrowing its base** no other `G` is filed (section 8): file it as an `[owner]` `T` entry that
+  says it is slice-sized and held while the balance reads outgrowing, its criteria in it; a yes builds it as a slice (section 7), as T11 was.
 - A rule file past the warning size (`check:docs` warns at 20,000 characters) is
   never a `[loop]` item: the loop only adds to rule files (0135), so it cannot split
   one. File it as a `T [owner]` entry asking to split it by topic, so it is asked,
@@ -327,11 +323,10 @@ window is the one sign it cannot see, and reads as outgrowing its base.
 
 ## 9. Evolve: propose the next iteration
 
-For a polished area, or for the whole app when it is settling; in every run, for an expectation lens 0 found lacking. At most
-**three** open `G` entries exist at once; a better proposal replaces the
-weakest, with a line in the report saying why. An entry whose `From:` line
-names `/investigate` is the owner's own ask (decision 0231): it counts toward
-none of the three, no proposal replaces it, and the balance does not hold it.
+For a polished area, or for the whole app when it is settling; in every run, for an expectation lens 0 found lacking. At
+most **three** open `G` entries exist at once; a better proposal replaces the weakest, with a line in the report saying
+why. An entry whose `From:` line names `/investigate` is the owner's own ask (decision 0231): it counts toward none of the
+three, no proposal replaces it, and the balance does not hold it.
 
 **Where an evolution comes from.** Each proposal names its source; one that
 has none is not made.
@@ -347,8 +342,7 @@ has none is not made.
    a kind that could drive a route, a context line another screen could carry.
 5. Repeated loop findings with one cause: three patches to the same screen
    say the screen wants a redesign, which is an evolution, not a fix.
-6. **An unmet expectation** (lens 0) of a feature in scope by `docs/VISION.md`, whatever the balance and the area's state. A
-   `Workflows:` line names the existing workflows it implicates; its slice refines them in its own criteria, no separate sweep.
+6. **An unmet expectation** (lens 0) of a feature in scope by VISION, whatever the balance and state, with its `Workflows:`.
 
 Never from: what other apps have (`docs/research/adjacent-apps.md` informs how,
 never what; a lens 0 line rests on "Who it is for" as well), a Never row, or the wish to have something to propose. But every
@@ -452,8 +446,8 @@ The owner picks; the loop never starts a `G` entry unasked.
    (CI replays the trailers of every `tend …` commit and every agent commit; a later record commit of the run may
    set or remove what an earlier one filed without a reason or a cap). A run that changed code (a sweep, a `T`
    build) also runs `npm run check:tend -- origin/main..HEAD` (every commit is
-   a loop commit with its own named, real test and its source, and none
-   touches what the loop may not), `npm run typecheck && npm run lint &&
+   a loop commit with its own named, real test and its source, and none touches what the loop may not or answers an
+   expectation line: the owner's answer is its own commit, never a run's, `expectations.md`), `npm run typecheck && npm run lint &&
    npm test`, then `.claude/skills/ship.md`, "Review", in its faster lane: the
    reviewers by risk over the run's whole diff (the `auditor` on any behaviour
    change; one reviewer for words or style; none for records only), one round,

@@ -14,8 +14,9 @@
 //                                                                 (decision 0157: identity is the owner's)
 //   npm run expectations -- set-check <id> --check <check>        the evidence a line names, filled in or moved
 //   npm run expectations -- check [<feature>]                     every line's check exists (run by check:docs)
-//   npm run expectations -- due [<feature>...]                    the features named (all, with none) that have no
-//                                                                 ratified line
+//   npm run expectations -- due [<feature>...]                    of the features named (all, with none), those with no
+//                                                                 line (to draft), then "awaiting the owner: …" for
+//                                                                 those with proposed lines only (not drafted again)
 //
 // A store file, after its heading and a paragraph:
 //
@@ -461,9 +462,13 @@ function checkProblems(stores, index, features) {
   return out;
 }
 
-/** The features named that hold no ratified line. */
+/** Of the features named, those with no line in force (a run drafts for them) and those with proposed lines only (awaiting the owner). */
 function due(stores, features) {
-  return features.filter((f) => !stores.some((s) => s.feature === f && s.entries.some((e) => e.status === 'ratified')));
+  const lines = (f) => stores.find((s) => s.feature === f)?.entries.filter((e) => ACTIVE.includes(e.status)) ?? [];
+  return {
+    draft: features.filter((f) => !lines(f).length),
+    awaiting: features.filter((f) => lines(f).length && lines(f).every((e) => e.status === 'proposed')),
+  };
 }
 
 function listText(stores, index) {
@@ -708,7 +713,9 @@ function main(argv) {
     return 0;
   }
   if (op === 'due') {
-    for (const f of due(stores, args.length ? args : features)) console.log(f);
+    const d = due(stores, args.length ? args : features);
+    for (const f of d.draft) console.log(f);
+    if (d.awaiting.length) console.log(`awaiting the owner: ${d.awaiting.join(', ')}`);
     return 0;
   }
   console.error(fs.readFileSync(__filename, 'utf8').split('\n').filter((l) => l.startsWith('//')).slice(0, 18).map((l) => l.slice(3)).join('\n'));
