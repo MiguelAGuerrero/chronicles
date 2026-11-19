@@ -425,9 +425,9 @@ line's end and the dot from the map's centre.)
 
 - `PERF_DSF` (default 1): the device scale at 390 x 844. Headless Chromium draws WebGL in software, so a phone's 3x
   canvas binds every build to software GL and the numbers say nothing; measure on the small canvas.
-- `PERF_FPS=<n>`: the engine's ceiling on frames a second for the measured watches (the replay's `fps` link
-  parameter, RC6). `PERF_JSON=<file>` writes the numbers; `PERF_PROFILE=<file>` a CPU profile per throttle;
-  `E2E_DIST=<dir>` serves another export, to compare two builds.
+- `PERF_JSON=<file>` writes the numbers; `PERF_PROFILE=<file>` a CPU profile per throttle; `E2E_DIST=<dir>` serves
+  another export, to compare two builds. (The engine's ceiling on frames a second is `REPLAY_ENGINE.frameMs`, a
+  token: a build measures the one it was exported with.)
 - A build that sends the line as data is read from the worker's messages (the end of the last `trace` the worker had
   answered); one that reveals it says where it ends (`data-reveal-end`, written only when measuring).
 - **What it can't see:** as `perf-explore.js`: no WebKit, no real GPU, one fixture, and the map's worker is not

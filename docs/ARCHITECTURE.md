@@ -199,7 +199,7 @@ Streets, snapping, fog
   ceremony/room.ts           the stage's room, pure: the screen as a ceremony is told it (StageRoom), the top row and bottom corner, cardWidth, cardSize, restCenter, cardFoot, the stack's and a standing picture's sizes (STACK, PICTURE): shared by the stage's views and the camera
   ceremony/stack.ts          the stack's bound for a screen and where each entry stands at a time (stackBound, stackSlots: landing, giving, first in first out; replay ceremony RC29-RC32)
   ceremony/pictures.ts       which pictures stand on the map at a zoom (standing: the later of two close together shows, with a layered edge; RC34)
-  ceremony/clock.ts          tickClock, reanchor; nextStop and seekClock (Next, RY13-RY17); the frame loop's stepper (stepLoop, loopAgainst, nextLoop, holdLoop, frameMsFor: replay ceremony RC5-RC8)
+  ceremony/clock.ts          tickClock, reanchor; nextStop and seekClock (Next, RY13-RY17); the frame loop's stepper (stepLoop, loopAgainst, nextLoop, holdLoop: replay ceremony RC5-RC8)
   ceremony/reveal.ts         the walked line read as a reveal (revealOf: whole runs, the run being walked and the share of it shown), cutRun for a map that draws it as data; a frame's hops as the gap-links layer's data (hopLines, hopsKey), linksWithHops for the card
   ceremony/live.ts           the frame on stage, kept outside the screen (createStageLive): the loop writes it, the stage's leaves read it
   ceremony/grid.ts           a stacked moment's grid (MS17): gridLayout (closest square up to 3×3), gridShown, gridDuration

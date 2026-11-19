@@ -10,7 +10,6 @@
 //   PERF_RATES=1,4,6      CPU throttles (CDP Emulation.setCPUThrottlingRate; the map's worker too unless PERF_WORKER=0)
 //   PERF_DSF=1            deviceScaleFactor at 390 x 844. Headless Chromium draws WebGL in software, so the default is a
 //                         small canvas: at a phone's 3x every build is bound by software GL and the numbers say nothing
-//   PERF_FPS=<n>          the engine's ceiling on frames a second for the measured watches (the route's `fps`, RC6)
 //   PERF_JSON=<file>      the numbers, as JSON
 //   PERF_PROFILE=<file>   a CPU profile of each beat's main thread (<file>.<rate>x.json; export with --no-minify)
 //   E2E_DIST=<dir>        another export to serve (the e2e harness reads it)
@@ -28,7 +27,6 @@ const { seedReplayWalk } = require('./e2e/replayWalk');
 
 const RATES = (process.env.PERF_RATES ?? '1,4,6').split(',').map(Number);
 const DSF = Number(process.env.PERF_DSF ?? 1);
-const FPS = process.env.PERF_FPS ? Number(process.env.PERF_FPS) : null;
 const WORKER = process.env.PERF_WORKER !== '0';
 const PROFILE = process.env.PERF_PROFILE;
 
@@ -217,7 +215,7 @@ module.exports = { summarise, table };
 if (require.main === module) (async () => {
   const h = await createHarness();
   const { url, freshPage, errors } = h;
-  const out = { dist: process.env.E2E_DIST ?? 'dist', dsf: DSF, fps: FPS, workerThrottled: null, gl: null, runs: [] };
+  const out = { dist: process.env.E2E_DIST ?? 'dist', dsf: DSF, workerThrottled: null, gl: null, runs: [] };
   try {
     const { c, pg } = await freshPage('perf');
     await c.addInitScript(instrument);
@@ -235,7 +233,7 @@ if (require.main === module) (async () => {
 
     for (const rate of RATES) {
       await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
-      await pg.goto(`${url}replay/${walk.id}?ceremony=0${FPS ? `&fps=${FPS}` : ''}`);
+      await pg.goto(`${url}replay/${walk.id}?ceremony=0`);
       await pg.waitForSelector('[data-testid=replay-headline], [data-testid=replay-clock]', { timeout: 120000 });
       // Throttled from the fog beat on, so the path beat begins as slow as it will be.
       await cdp.send('Emulation.setCPUThrottlingRate', { rate });
@@ -266,7 +264,7 @@ if (require.main === module) (async () => {
       console.log(JSON.stringify(run));
     }
     if (errors.length) console.log('console errors:', errors.slice(0, 5));
-    console.log(`\n390 x 844 at ${DSF}x, ${out.gl}; the map's worker ${out.workerThrottled ? 'throttled too' : 'not throttled'}${FPS ? `; at most ${FPS} frames a second` : ''}\n`);
+    console.log(`\n390 x 844 at ${DSF}x, ${out.gl}; the map's worker ${out.workerThrottled ? 'throttled too' : 'not throttled'}\n`);
     console.log(table(out.runs));
   } finally {
     if (process.env.PERF_JSON) fs.writeFileSync(process.env.PERF_JSON, JSON.stringify(out, null, 1));

@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import { test } from 'node:test';
 import { nextSend } from '../../../components/map/sent';
 import { resendKey, revealStop } from '../../../components/map/types';
-import { frameMsFor, freshLoop, holdLoop, loopAgainst, loopCanNext, nextLoop, stepLoop, type LoopState } from '../../ceremony/clock';
+import { freshLoop, holdLoop, loopAgainst, loopCanNext, nextLoop, stepLoop, type LoopState } from '../../ceremony/clock';
 import { createStageLive } from '../../ceremony/live';
 import { cutRun, revealedRuns, revealOf, runLengths } from '../../ceremony/reveal';
 import { rhythmFrame, rhythmPlan } from '../../ceremony/rhythm';
@@ -72,11 +72,11 @@ test('RC6: the engine has one number for the most frames it draws a second; set 
   const engine: { frameMs: number } = REPLAY_ENGINE;
   assert.equal(typeof engine.frameMs, 'number');
   // The token's own value: every display frame, 60 a second on a 60 Hz screen.
-  const sixty = run(freshLoop(1, telling(60_000)), 0, 1000, 1000 / 60, { ...FREE, frameMs: frameMsFor(engine.frameMs) });
+  const sixty = run(freshLoop(1, telling(60_000)), 0, 1000, 1000 / 60, { ...FREE, frameMs: engine.frameMs });
   assert.ok(sixty.taken >= 60 && sixty.taken <= 61, `${sixty.taken} frames in a second at the default`);
   for (const display of [60, 120]) {
-    const thirty = run(freshLoop(1, telling(60_000)), 0, 1000, 1000 / display, { ...FREE, frameMs: frameMsFor(engine.frameMs, '30') });
-    assert.ok(thirty.taken >= 30 && thirty.taken <= 31, `${thirty.taken} frames in a second on a ${display} Hz screen, asked for 30`);
+    const thirty = run(freshLoop(1, telling(60_000)), 0, 1000, 1000 / display, { ...FREE, frameMs: 1000 / 30 });
+    assert.ok(thirty.taken >= 30 && thirty.taken <= 31, `${thirty.taken} frames in a second on a ${display} Hz screen, set to 30`);
     assert.ok(Math.abs(thirty.state.ms - 1000) <= 1000 / 30 + 0.001, `and the time that passed is the real second (${thirty.state.ms.toFixed(1)})`);
   }
   // Display frames that come a little early (16.2 then 17.1 ms) are not dropped to half the rate.
@@ -90,11 +90,14 @@ test('RC6: the engine has one number for the most frames it draws a second; set 
     c = r.state;
   }
   assert.ok(taken >= 59, `${taken} of 60 jittered frames drawn at a ceiling of 60`);
-  // What the route may ask: a whole number of frames a second from 5 to 120; anything else is the token.
-  assert.equal(frameMsFor(0, '30'), 1000 / 30);
-  assert.equal(frameMsFor(0, '60'), 1000 / 60);
-  for (const odd of [null, undefined, '', 'fast', '0', '-3', '1000']) assert.equal(frameMsFor(0, odd), 0, `"${odd}" is not a ceiling`);
-  assert.equal(frameMsFor(1000 / 30, null), 1000 / 30);
+  // The token is the one way to set it: no link parameter, no readout, no second number (the owner's look, Nov 19:
+  // "it's smoother than what we had before", so the aids for trying a ceiling on a phone are gone).
+  const loop = readFileSync(join(SRC, 'components/ceremony/useCeremonyLoop.ts'), 'utf8');
+  assert.match(loop, /frameMs: REPLAY_ENGINE\.frameMs,/, 'the loop takes the token as it is');
+  for (const f of ['components/ceremony/useCeremonyLoop.ts', 'app/replay/[id].tsx', 'app/day/[key].tsx', 'lib/ceremony/clock.ts']) {
+    assert.doesNotMatch(readFileSync(join(SRC, f), 'utf8'), /\bfps\b|\bmeter\b|frameMsFor|FrameMeter/, `${f} still carries a test aid`);
+  }
+  for (const gone of ['lib/ceremony/meter.ts', 'components/ceremony/FrameMeter.tsx']) assert.equal(existsSync(join(SRC, gone)), false, `${gone} is gone`);
 });
 
 test('RC8: Hold and a wait stand the time still, and going on never leaps', () => {

@@ -143,12 +143,9 @@ how a telling opens and closes on the whole of what it tells; what stays behind 
   `useLiveStyle` writes them before the first paint and again after every render, so a render never undoes
   a write and the two never disagree.
 - **The one number for frames a second** is `REPLAY_ENGINE.frameMs` (`motionTokens.ts`; 0 is every display frame),
-  honoured by `stepLoop`; a replay's link can ask for a ceiling with `fps=30` (`frameMsFor`), to try one on a phone
-  without a build. A frame not taken moves no time: the next one takes all that passed (RC5, RC6).
-- **What a phone really draws is said at the preview address** (`lib/ceremony/meter`, `FrameMeter`): under Hold, once a
-  second, the frames drawn and offered, the longest wait between two drawn frames and the time to draw one. It shows
-  where the site's base path ends in `/preview`, or with `meter=1` on a replay's link, never in the app; the loop notes
-  frames only then, and the screens do not render for it. It and `fps` go once the ceiling is chosen (docs/DEFERRED.md).
+  honoured by `stepLoop`, and there is no other way to set it: the link's `fps` and the frame readout at the preview
+  address were aids for the owner's first looks and went once the iPhone was smooth (Nov 19). A frame not taken moves
+  no time: the next one takes all that passed (RC5, RC6).
 - **The walker's dot is placed to the sub-pixel** (`subpixelPositioning` on its marker): MapLibre rounds a marker to a
   whole pixel otherwise, and a dot held at the middle of a 393 px screen sat on a half pixel, rounded one way or the
   other from frame to frame (the owner's iPhone, Nov 18: "after images"; 46 flips measured in one replay).

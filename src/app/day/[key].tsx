@@ -9,7 +9,6 @@ import { CaptureViewer } from '../../components/CaptureView';
 import { Stage } from '../../components/ceremony/Stage';
 import { StepThrough } from '../../components/ceremony/StepThrough';
 import { useAwakeWhile } from '../../components/ceremony/useAwakeWhile';
-import { FrameMeter } from '../../components/ceremony/FrameMeter';
 import { NextMoment } from '../../components/ceremony/NextMoment';
 import { useReplay } from '../../components/ceremony/useCeremonyLoop';
 import { useRevealed } from '../../components/ceremony/useRevealed';
@@ -58,8 +57,8 @@ export default function DayReplay() {
   // Counted for the e2e (only when measuring): the path renders it for what arrives or leaves, never because time
   // passed (replay ceremony RC2, RC9).
   perfCount('render:day');
-  // `style` names the ceremony that tells it (RR21, audit 25); `fps` asks a ceiling on the frames drawn a second (RC6).
-  const { key, style, fps, meter } = useLocalSearchParams<{ key: string; style?: string; fps?: string; meter?: string }>();
+  // `style` names the ceremony that tells it (RR21, audit 25).
+  const { key, style } = useLocalSearchParams<{ key: string; style?: string }>();
   const insets = useSafeAreaInsets();
   const mapRef = useRef<WalkMapHandle>(null);
   const { width, height } = useWindowDimensions();
@@ -204,7 +203,7 @@ export default function DayReplay() {
   }, []);
   // The path is told by a loop outside this screen's rendering, the same as a walk's replay (replay ceremony RC9):
   // each frame goes straight to the map and the stage; the screen reads only the pins, Hold and whether Next is there.
-  const play = useReplay({ epoch: phase.t0, telling, paused: viewing != null || waits.size > 0, story, showing, map: mapRef, fps, meter, onEnd: toCard });
+  const play = useReplay({ epoch: phase.t0, telling, paused: viewing != null || waits.size > 0, story, showing, map: mapRef, onEnd: toCard });
   // The screen stays awake while the replay plays, until the card (RR24).
   useAwakeWhile(phase.beat === 'path');
 
@@ -339,8 +338,6 @@ export default function DayReplay() {
           {telling && play.canNext && <NextMoment onPress={play.next} />}
         </View>
       )}
-      {/* The frames really drawn, at the preview address only (replay ceremony RC6, `lib/ceremony/meter`). */}
-      {telling && play.meter && <FrameMeter meter={play.meter} top={insets.top + 12 + 48 + 8} />}
       {telling && (
         <View style={[styles.hold, { top: insets.top + 12 }]}>
           <Button

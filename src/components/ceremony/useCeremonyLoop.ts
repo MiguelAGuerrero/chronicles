@@ -1,7 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
-import { frameMsFor, freshLoop, holdLoop, loopAgainst, loopCanNext, nextLoop, stepLoop, type LoopState } from '../../lib/ceremony/clock';
+import { freshLoop, holdLoop, loopAgainst, loopCanNext, nextLoop, stepLoop, type LoopState } from '../../lib/ceremony/clock';
 import { createStageLive, type StageLive } from '../../lib/ceremony/live';
-import { createMeter, meterOn, type Meter } from '../../lib/ceremony/meter';
 import { revealOf, runLengths } from '../../lib/ceremony/reveal';
 import type { Jump, Showing, Story } from '../../lib/ceremony/types';
 import { REPLAY_ENGINE } from '../../lib/motionTokens';
@@ -35,8 +34,6 @@ export function useCeremonyLoop(o: {
   frameMs: number;
   onEnd: () => void;
   onFrame: (showing: Showing, ms: number, jump: Jump | null) => string[];
-  /** Told of every frame the display offers, when the frames are being counted (`lib/ceremony/meter`). */
-  meter?: Meter | null;
 }) {
   const [shown, setShown] = useState<Shown>(() => ({ epoch: o.epoch, held: false, canNext: false, pinsKey: '', pins: NO_PINS }));
   const loop = useRef<LoopState | null>(null);
@@ -80,21 +77,12 @@ export function useCeremonyLoop(o: {
     let raf = 0;
     const frame = (now: number) => {
       raf = requestAnimationFrame(frame);
-      const { paused, showing, onEnd, frameMs, meter } = live.current;
+      const { paused, showing, onEnd, frameMs } = live.current;
       const c = current();
       const r = stepLoop(c, now, { paused, total: showing?.total ?? 0, frameMs });
       // Sooner than the ceiling allows after the last frame, and nothing else changed: not taken.
-      if (r.state === c && c === loop.current) {
-        meter?.note(now, false, 0);
-        return;
-      }
-      if (meter) {
-        // Counted only when asked (the preview address): how long drawing this frame took, the map's own draw included.
-        const before = performance.now();
-        const was = drawn.current;
-        show(r.state);
-        meter.note(now, drawn.current !== was, performance.now() - before);
-      } else show(r.state);
+      if (r.state === c && c === loop.current) return;
+      show(r.state);
       if (r.end) onEnd();
     };
     raf = requestAnimationFrame(frame);
@@ -121,8 +109,8 @@ export function useCeremonyLoop(o: {
 /**
  * A replay's path, driven: the loop above, drawing each frame on the map (the walker, the camera, how much of the line
  * shows: `WalkMapHandle.replayFrame`) and on the stage (`StageLive`), with no render of the screen that hosts them. Both
- * replays use it (RC9); neither imports a ceremony. `fps` is the link's own ceiling on frames a second, if it asks one;
- * `meter` the frames it really draws, counted for a readout at the preview address.
+ * replays use it (RC9); neither imports a ceremony. The most frames it draws a second is the engine's one number
+ * (`REPLAY_ENGINE.frameMs`, RC6).
  */
 export function useReplay(o: {
   epoch: number;
@@ -131,14 +119,9 @@ export function useReplay(o: {
   story: Story | null;
   showing: Showing | null;
   map: RefObject<WalkMapHandle | null>;
-  fps?: string;
-  /** The link's own word on the frame readout (`meter=1`); it shows at the preview address without one. */
-  meter?: string;
   onEnd: () => void;
 }) {
   const [live] = useState<StageLive>(createStageLive);
-  const counted = meterOn(process.env.EXPO_BASE_URL ?? '', o.meter);
-  const [meter] = useState<Meter>(createMeter);
   // Each run's lengths, measured once and kept by the run itself: the reveal is asked every frame (performance: a run
   // of a long walk is thousands of points).
   const [lengths] = useState(() => {
@@ -155,9 +138,8 @@ export function useReplay(o: {
     running: o.telling,
     paused: o.paused,
     showing: o.showing,
-    frameMs: frameMsFor(REPLAY_ENGINE.frameMs, o.fps),
+    frameMs: REPLAY_ENGINE.frameMs,
     onEnd: o.onEnd,
-    meter: counted ? meter : null,
     onFrame: (showing, ms, jump) => {
       const f = showing.frame(ms, jump);
       if (story) map.current?.replayFrame({ ms, walker: f.walker, camera: f.camera, hops: f.hops, ...revealOf(story, f.drawn, lengths) });
@@ -172,5 +154,5 @@ export function useReplay(o: {
     map.current?.replayFrame(null);
     live.set(null);
   }, [telling, live, map]);
-  return { ...play, live, meter: counted ? meter : null };
+  return { ...play, live };
 }

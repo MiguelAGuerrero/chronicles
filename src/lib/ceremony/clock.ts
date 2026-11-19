@@ -132,12 +132,3 @@ export function nextLoop(c: LoopState): LoopState {
   const to = c.showing && !c.ended ? nextStop(c.showing.stops, c.ms, c.aimed) : null;
   return to ? { ...c, ...seekClock(c, to.ms), aimed: to.t0, jump: { from: c.ms, at: to.ms } } : c;
 }
-
-/**
- * The least time between two frames the replay draws (RC6): the engine's own number (`REPLAY_ENGINE.frameMs`), or what
- * a replay's link asks as whole frames a second (`fps`, 5 to 120), so a ceiling can be tried on a phone without a build.
- */
-export function frameMsFor(token: number, asked?: string | null): number {
-  const fps = asked == null || !/^\d{1,3}$/.test(asked) ? NaN : Number(asked);
-  return fps >= 5 && fps <= 120 ? 1000 / fps : token;
-}
