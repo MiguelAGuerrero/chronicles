@@ -195,12 +195,13 @@ test('NF5: the phone simplifies the line sources the web does, from one definiti
 });
 
 test('native-map-frames guard: every tap the native map took still reaches its handler (NF6, retired)', () => {
-  // A regression guard for the split: each kind of pin still answers its own handler, and a found "?" none.
+  // A regression guard for the split: each kind of pin still answers its own handler; a found place too, since
+  // capture-at-a-place (CA11, decision 0246): its pin opens its card again.
   const src = readFileSync(join(ROOT, NATIVE), 'utf8');
   for (const handler of ['onMemoryPress', 'onPinPress', 'onDiscoveryPress', 'onStarPress', 'onPress', 'onLongPress']) {
     assert.match(src, new RegExp(`\\b${handler}\\b`), `${handler} is still wired`);
   }
-  assert.match(src, /!pin\.found/, 'a found mark still takes no tap');
+  assert.doesNotMatch(src, /pressable && !pin\.found/, 'a found mark opens its card again (CA11)');
   const sf = read(NATIVE);
   const pressed = jsx(sf, 'Marker').filter((m) => attrs(m).some((a) => a.name === 'onPress'));
   assert.ok(pressed.length >= 4, 'memory pins, pins, marks and stars keep their own onPress (iOS swallows a Pressable inside a Marker)');

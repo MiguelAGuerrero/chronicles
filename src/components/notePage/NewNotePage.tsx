@@ -23,6 +23,8 @@ export const NewNotePage = forwardRef<NotePageHandle, {
   cap: Cap;
   /** The open moment the note joins (MS2), or null for a moment of its own. */
   into: string | null;
+  /** Begun from a place's card (capture-at-a-place CA4): the note kept finds that place. */
+  place?: string | null;
   onWalk: boolean;
   onClose: () => void;
   /** It was kept (its first words landed): the host says so as it says any capture. */
@@ -33,7 +35,7 @@ export const NewNotePage = forwardRef<NotePageHandle, {
   camera?: boolean;
 }>(function NewNotePage(props, ref) {
   const { cap, onKept } = props;
-  const [stamp] = useState(() => cap.beginNote(props.into));
+  const [stamp] = useState(() => cap.beginNote(props.into, props.place ?? null));
   // Reactions chosen on the page (RX13): held under the page's key until its moment is kept, then written on it;
   // never a reason to keep one. A page left without words drops them.
   const key = `page:${useId()}`;

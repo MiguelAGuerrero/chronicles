@@ -65,6 +65,8 @@ export interface Stamp {
   locating?: Promise<LocateResult>;
   /** The open moment this capture joins as a piece (moment stacks MS3, decision 0123): no fix, no reply. */
   into?: string | null;
+  /** The place whose card began it (capture-at-a-place CA2-CA4): the moment it keeps finds that place. Never with `into`. */
+  place?: string | null;
 }
 
 /**
@@ -110,8 +112,11 @@ export function useCaptures(
     onMoment?: (c: Faced, state: MomentState, answeredId?: string | null) => void;
     /** Every moment this path keeps answers this one, and joins its thread (OT2); null when it answers nothing. */
     replyTo?: { answeredId: string; from?: string | null } | null;
-    /** Told when a capture is kept: a new moment, or a piece added to one (moment stacks, the pill). */
-    onKept?: (momentId: string, piece: boolean) => void;
+    /**
+     * Told when a capture is kept: a new moment, or a piece added to one (moment stacks, the pill), with the place its
+     * stamp was taken for (a place's card, capture-at-a-place CA2-CA4), else null.
+     */
+    onKept?: (momentId: string, piece: boolean, place: string | null) => void;
     /**
      * This path draws no pill with Retry (the recording bar, Respond, the planner): a failure says where its Retry is
      * instead of "held here" (unsaved captures UN10).
@@ -180,11 +185,11 @@ export function useCaptures(
     return off;
   }, [walkId, self]);
 
-  const stampNow = (locate = true, into: string | null = null): Stamp => {
+  const stampNow = (locate = true, into: string | null = null, place: string | null = null): Stamp => {
     // A piece for an open moment takes no fix: the moment's one place is its place (MS3, `pieceStamp`).
-    const st = stampFor(clockNow(), pos.current, into);
+    const st = stampFor(clockNow(), pos.current, into, place);
     // The reply is fixed when the capture begins (ui-conformance audit 10); a piece answers nothing.
-    const s: Stamp = { t: st.t, at: st.at, walk: walkId, into: st.into, replyTo: st.into ? null : replyTo.current };
+    const s: Stamp = { t: st.t, at: st.at, walk: walkId, into: st.into, replyTo: st.into ? null : replyTo.current, place: st.place };
     if (locate && st.locate) startLocating(s);
     return s;
   };
@@ -228,7 +233,7 @@ export function useCaptures(
         if (!stamp.walk) onMoment.current?.(now, 'kept');
       }
       // The pill opens only on this path's own walk: a held capture of another kept here opens nothing (audit 1).
-      if (ours(stamp.walk)) onKept.current?.(into, true);
+      if (ours(stamp.walk)) onKept.current?.(into, true, null);
     } catch {
       // The piece is kept; this screen shows it at its next read.
     }
@@ -260,7 +265,7 @@ export function useCaptures(
       captureBus.emit(shown, self);
       if (!stamp.walk) onMoment.current?.(c, 'kept');
       // The pill opens only on this path's own walk: a held capture of another kept here opens nothing (audit 1).
-      if (ours(stamp.walk)) onKept.current?.(c.id, false);
+      if (ours(stamp.walk)) onKept.current?.(c.id, false, stamp.place ?? null);
       if (stamp.locating) lastLocate.current = { id: c.id, fix: stamp.locating, at: stamp.t };
       placeMoment(c, stamp);
       // The room again after each kept photo, video or memo (SA5); the web's request waits for a calm moment (SA10).
@@ -441,12 +446,13 @@ export function useCaptures(
 
   /**
    * The system camera, in photo or video mode as the person picks there. Resolves what was kept, if anything. With
-   * `into`, what it keeps joins that open moment as a piece (MS2, MS3); `id` is then the piece's.
+   * `into`, what it keeps joins that open moment as a piece (MS2, MS3); `id` is then the piece's. With `place`, begun
+   * from a place's card, the moment it keeps finds that place (capture-at-a-place CA2).
    */
-  const takePhoto = async (into: string | null = null): Promise<{ kind: 'photo' | 'video'; id: string; momentId: string } | null> => {
+  const takePhoto = async (into: string | null = null, place: string | null = null): Promise<{ kind: 'photo' | 'video'; id: string; momentId: string } | null> => {
     let kept: { kind: 'photo' | 'video'; id: string; momentId: string } | null = null;
     await guarded('photo', async () => {
-      const stamp = stampNow(false, into);
+      const stamp = stampNow(false, into, place);
       const perm = await ImagePicker.requestCameraPermissionsAsync();
       if (!perm.granted) {
         // The request above already showed the system prompt if it could; a refusal now is only fixable in Settings.
@@ -518,7 +524,7 @@ export function useCaptures(
     setAudioMode({ allowsRecording: false, playsInSilentMode: true, allowsBackgroundRecording: false }).catch(() => {});
 
   /** With `into`, the memo joins that open moment as a piece when saved (MS2, MS3). */
-  const startVoice = (into: string | null = null): Promise<boolean> =>
+  const startVoice = (into: string | null = null, place: string | null = null): Promise<boolean> =>
     enqueue(() =>
       withBusy(async () => {
         if (!enabled || voiceOn.current) return false;
@@ -544,7 +550,7 @@ export function useCaptures(
             await resetAudioMode();
             return false;
           }
-          voiceStamp.current = stampNow(true, into);
+          voiceStamp.current = stampNow(true, into, place);
           voice.record();
           voiceOn.current = true;
           memoGate.recording(self, true);
@@ -737,9 +743,10 @@ export function useCaptures(
 
   /**
    * A note's page opens (NP1): its time, its one fix and what it answers are taken at the tap, however long the
-   * first words take (the steward's S9). `keepNote` keeps it, as Markdown, once it has words (NP9).
+   * first words take (the steward's S9). `keepNote` keeps it, as Markdown, once it has words (NP9). With `place`, begun
+   * from a place's card, the note kept finds that place (capture-at-a-place CA4).
    */
-  const beginNote = (into: string | null = null): Stamp => stampNow(true, into);
+  const beginNote = (into: string | null = null, place: string | null = null): Stamp => stampNow(true, into, place);
   async function keepNote(stamp: Stamp, body: string): Promise<{ id: string; piece_id: string } | null> {
     const pieceId = await add('text', stamp, null, body, { body_format: 'md' });
     if (!pieceId) return null;

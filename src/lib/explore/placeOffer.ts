@@ -6,7 +6,8 @@ import type { ChecklistItem, Kind } from './explore';
 
 /**
  * A place offered after the moment (specs/moment-assignment-fallback, PO1-PO12): a moment kept on the walk screen within
- * `nearM` of unfound places shown on the map, with Places on and nothing armed, is asked about once: "Was this photo about
+ * `nearM` of unfound places shown on the map, with Places on and not begun on a place's card (which finds it, decision
+ * 0246), is asked about once: "Was this photo about
  * Old Bridge?". The walker ties it (the same find Capture here makes) or leaves it independent. Nothing is tied unasked.
  */
 export const OFFER_RULES = {
@@ -36,13 +37,14 @@ const NOUN: Record<CaptureKind, string> = { photo: 'photo', video: 'video', voic
 
 /**
  * The offer for a moment just kept, or null (PO1, PO3, PO4, PO5): the unfound places within 30 m of its fix whose kind is
- * shown, never one left on this walk, nearest first; nothing with Places off, a place armed, no fix or no walk.
+ * shown, never one left on this walk, nearest first; nothing with Places off, a moment begun on a place's card (it found
+ * that place, CA2), no fix or no walk.
  */
 export function offerFor(
   m: { id: string; walkId: string | null; at: LngLat | null; kind: CaptureKind },
-  o: { items: ChecklistItem[]; found: ReadonlySet<string>; hidden: ReadonlySet<Kind>; left: ReadonlySet<string>; places: boolean; armed: boolean },
+  o: { items: ChecklistItem[]; found: ReadonlySet<string>; hidden: ReadonlySet<Kind>; left: ReadonlySet<string>; places: boolean; atPlace: boolean },
 ): Offer | null {
-  if (!o.places || o.armed || !m.walkId || !m.at) return null;
+  if (!o.places || o.atPlace || !m.walkId || !m.at) return null;
   const at = m.at;
   const near: { item: ChecklistItem; d: number }[] = [];
   const seen = new Set<string>();
@@ -59,14 +61,14 @@ export function offerFor(
 }
 
 /**
- * The offer while it still holds (PO6): on its walk, Places on, not paused, nothing armed, its moment still there, within
+ * The offer while it still holds (PO6): on its walk, Places on, not paused, its moment still there, within
  * 60 m of where the moment was taken (no fix holds), and with a place left unfound; a place found another way leaves the line.
  */
 export function offerStill(
   offer: Offer | null,
-  o: { here: LngLat | null; walkId: string | null; places: boolean; paused: boolean; armed: boolean; found: ReadonlySet<string>; momentIds: ReadonlySet<string> },
+  o: { here: LngLat | null; walkId: string | null; places: boolean; paused: boolean; found: ReadonlySet<string>; momentIds: ReadonlySet<string> },
 ): Offer | null {
-  if (!offer || offer.walkId !== o.walkId || !o.places || o.paused || o.armed || !o.momentIds.has(offer.captureId)) return null;
+  if (!offer || offer.walkId !== o.walkId || !o.places || o.paused || !o.momentIds.has(offer.captureId)) return null;
   if (o.here && distanceM(o.here, offer.at) > OFFER_RULES.awayM) return null;
   const items = offer.items.filter((i) => !o.found.has(i.key));
   if (!items.length) return null;

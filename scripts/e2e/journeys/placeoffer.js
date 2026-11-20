@@ -211,17 +211,23 @@ async function run(h) {
     check(/^Was this photo about North Spire\?/.test((await lineText()) ?? ''), 'PO6: a newer moment replaces the line with its own');
     await pg.click('[data-testid=place-offer-leave]').catch(() => {});
 
-    // Armed with Capture here: the photo finds the armed place and nothing is asked (PO5). North Spire was left, so Capture here.
-    // North Spire is an ordinary mark again, under the moments' pins at this zoom: the click goes to the pin itself.
+    // From a place's card: the camera there finds the place (decision 0246), and nothing is asked (PO5). North Spire was left
+    // with Leave it, which never stops its card from finding it. It is an ordinary mark again, under the moments' pins at this
+    // zoom: the click goes to the pin itself.
     await pin('North Spire').dispatchEvent('click').catch(() => {});
-    await pg.click('[data-testid=mark-capture]').catch(() => {});
-    const armedUp = await pg.waitForSelector('[data-testid=armed-line]', { timeout: 5000 }).then(() => true, () => false);
-    check(armedUp, 'PO5: Capture here arms a place left earlier (the armed line is up)');
-    await photo();
+    const cardUp = await pg.waitForSelector('[data-testid=mark-camera]', { timeout: 5000 }).then(() => true, () => false);
+    if (cardUp) {
+      const [ch] = await Promise.all([pg.waitForEvent('filechooser', { timeout: 10000 }), pg.click('[data-testid=mark-camera]')]);
+      await ch.setFiles(photoFile);
+      if (await pg.waitForSelector('[data-testid=media-editor]', { timeout: 10000 }).then(() => true, () => false)) {
+        await pg.click('[data-testid=edit-close]').catch(() => {});
+        await pg.waitForSelector('[data-testid=media-editor]', { state: 'detached', timeout: 5000 }).catch(() => {});
+      }
+    }
     await pg.waitForTimeout(1000);
-    const armedFinds = (await moments()).finds;
-    check(armedFinds.some((f) => /^North Spire:/.test(f)) && (await lineText(2000)) === null,
-      `PO5: a place armed with Capture here is found by the photo, and nothing is asked (${JSON.stringify(armedFinds)})`);
+    const cardFinds = (await moments()).finds;
+    check(cardUp && cardFinds.some((f) => /^North Spire:/.test(f)) && (await lineText(2000)) === null,
+      `PO5: a photo begun on a place's card finds that place, and nothing is asked (${JSON.stringify(cardFinds)})`);
     await c.close();
   }
 }

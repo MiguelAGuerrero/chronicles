@@ -44,7 +44,7 @@ import { rulesCurrent, type LandingRow } from '../lib/landing/view';
 import { placesFromTilePois } from '../lib/discovery/tilePois';
 import { canBuzz } from '../lib/canBuzz';
 import { offerLabels, offerLine } from '../lib/explore/placeOffer';
-import { armedLine, canArm, walkPassKey, clampPass, clampRange, intoRowShown, kindOf, POCKET_ALERT_NOTE } from '../lib/explore/explore';
+import { type ChecklistItem, walkPassKey, clampPass, clampRange, intoRowShown, kindOf, POCKET_ALERT_NOTE } from '../lib/explore/explore';
 import { DEFAULT_SETTINGS, loadSettings, onSettings, saveSettings, type ExploreSettings } from '../lib/explore/settings';
 import { useExplore } from '../lib/explore/useExplore';
 import { reach } from '../lib/explore/reach';
@@ -76,6 +76,8 @@ import { useStore } from '../lib/useStore';
 import { routeLeanings } from '../lib/routeLeanings';
 import { whileFocused } from '../lib/openers';
 import { AddToMomentPill } from '../components/walk/AddToMomentPill';
+import { PlaceCaptureRow } from '../components/walk/PlaceCaptureRow';
+import { cardCapture } from '../lib/explore/placeCard';
 import { walkScreenShown } from '../lib/walkNav';
 import { askMotion, useMotionAccess } from '../lib/walkMotion';
 import { shareLogText, walkLogText } from '../lib/shareLog';
@@ -315,9 +317,10 @@ function WalkScreen(props: { onMinimize: () => void }) {
     if (message) setNotice({ message });
   }
   // The note's page, begun at the pencil's tap (NP1), keyed so each opens fresh; `into` the open moment it joins (MS2, MS4).
-  const [page, setPage] = useState<{ key: number; into: string | null } | null>(null);
+  // `place`: begun on a place's card, the note kept finds it (capture-at-a-place CA4).
+  const [page, setPage] = useState<{ key: number; into: string | null; place?: string | null } | null>(null);
   const noteOpen = page != null;
-  const openNote = (into: string | null) => setPage((p) => ({ key: (p?.key ?? 0) + 1, into }));
+  const openNote = (into: string | null, place: string | null = null) => setPage((p) => ({ key: (p?.key ?? 0) + 1, into, place }));
   const pageRef = useRef<NotePageHandle>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [stopping, setStopping] = useState(false);
@@ -444,15 +447,19 @@ function WalkScreen(props: { onMinimize: () => void }) {
   }, [drawnBorders, hereTown, nearKey]);
   const motionAccess = useMotionAccess();
   const screenFocused = useIsFocused();
-  // A new moment kept here is handed to Explore, which may ask about a place beside it (moment-assignment-fallback PO1):
-  // through a ref, as `explore` is made below this hook.
-  const offerAfter = useRef<(id: string) => void>(() => {});
+  // A new moment kept here is handed to Explore, which may ask about a place beside it (moment-assignment-fallback PO1);
+  // one begun on a place's card found that place and is not asked about. Through a ref: `explore` is made below.
+  const offerAfter = useRef<(id: string, atPlace: boolean) => void>(() => {});
+  // A capture begun on a place's card finds that place when kept (capture-at-a-place CA2-CA4): the place rides on its
+  // stamp, and the explore hook (declared below) records the find. Filled in an effect once the hook is there.
+  const placeKept = useRef<(place: string, momentId: string, piece: boolean) => void>(() => {});
   const cap = useCaptures(walk?.id ?? null, live.here, live.lastFixAt, onCaptureError, {
     // The pill (moment stacks MS2, MS5): a new moment opens it; a piece keeps it.
-    onKept: (id, piece) => {
-      if (piece) return momentPill.piece(id);
-      momentPill.kept(id, true);
-      offerAfter.current(id);
+    onKept: (id, piece, place) => {
+      if (piece) momentPill.piece(id);
+      else momentPill.kept(id, true);
+      if (place) placeKept.current(place, id, piece);
+      if (!piece) offerAfter.current(id, !!place);
     },
     // In front, the walk's pills say why for a capture that failed on a screen gone (unsaved captures UN9).
     // Never behind a viewer or a memory's card (unsaved-captures audit 9).
@@ -481,9 +488,12 @@ function WalkScreen(props: { onMinimize: () => void }) {
 
   // Declared before the effect below that calls them: the React Compiler skips a component that uses a function above its
   // declaration (walk-screen compiler).
-  /** With `into`, the photo joins that open moment (MS2); the editor opens for a new moment's photo only. */
-  async function photo(into: string | null = null) {
-    const kept = await cap.takePhoto(into);
+  /**
+   * With `into`, the photo joins that open moment (MS2); the editor opens for a new moment's photo only. With `place`,
+   * begun on a place's card, the moment kept finds it (CA2).
+   */
+  async function photo(into: string | null = null, place: string | null = null) {
+    const kept = await cap.takePhoto(into, place);
     if (!kept) return;
     feedback('tap');
     // Not while the walk is stopping, or once it has ended (a save that outlasted Stop's wait): the replay would cover or
@@ -491,8 +501,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
     if (!stoppingNow.current && !(walk && unsaved.hasEnded(walk.id))) editAfter.open(kept);
   }
 
-  async function startVoice(into: string | null = null) {
-    if (await cap.startVoice(into)) {
+  async function startVoice(into: string | null = null, place: string | null = null) {
+    if (await cap.startVoice(into, place)) {
       feedback('tap');
       AccessibilityInfo.announceForAccessibility('Recording voice memo');
     }
@@ -838,7 +848,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
       storefronts.reload();
     },
     onFound: (item, how) => {
-      // A find needs Places on (Capture here starts from a "?"); the line says so as it happens (MD8).
+      // A find needs Places on (its card's row starts from a place's pin); the line says so as it happens (MD8).
       if (!placesOn) return;
       feedback('success');
       if (how.via === 'offer') setTied({ key: item.key, name: item.name, captureId: how.captureId });
@@ -852,6 +862,29 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const openMark = markOpen ? explore.itemOf(markOpen) : null;
   const openMarkNamed = !!openMark && (explore.revealed.has(openMark.key) || explore.found.has(openMark.key));
   const openMarkReach = openMark && markReach?.key === openMark.key && !explore.found.has(openMark.key) ? reachLine(markReach.near) : null;
+  // The place a card capture was begun for, by key, so its find is recorded when the moment is kept (CA2-CA4), even if
+  // the walker has moved on and the place has left the list meanwhile.
+  const cardPlaces = useRef(new Map<string, ChecklistItem>());
+  useEffect(() => {
+    placeKept.current = (place, momentId, piece) => {
+      const item = cardPlaces.current.get(place);
+      if (item) void explore.keptAtPlace(item, { momentId, piece }).catch(() => {});
+    };
+  });
+  // A found place's card lists the moments taken here (CA11), read as it opens; each opening reads again (CA12).
+  const [markMoments, setMarkMoments] = useState<{ key: string; lines: { id: string; line: string; moment: Faced }[] } | null>(null);
+  const openMarkFound = !!openMark && explore.found.has(openMark.key);
+  const openMarkCapture = openMark ? cardCapture({ name: openMarkNamed ? openMark.name : null, at: openMark.at, here: live.here, found: openMarkFound }) : null;
+  /** A capture from the card (CA2-CA4, CA12): the card closes and the capture begins, carrying the place. */
+  const captureAt = (kind: 'photo' | 'voice' | 'text') => {
+    const m = openMark;
+    if (!m) return;
+    cardPlaces.current.set(m.key, m);
+    setMarkOpen(null);
+    if (kind === 'photo') void photo(null, m.key);
+    else if (kind === 'voice') void startVoice(null, m.key);
+    else openNote(null, m.key);
+  };
   // Going to a place: "A place to find" until it is revealed, then its name (E12).
   const navKey = navigation.nav?.dest.kind === 'find' ? navigation.nav.dest.placeKey : undefined;
   const navItem = navKey ? explore.itemOf(navKey) : null;
@@ -1384,14 +1417,19 @@ function WalkScreen(props: { onMinimize: () => void }) {
         onDiscoveryPress={recordingVoice || stopping || isDrawing ? undefined : (id) => {
           // A place offered after the moment: a tap ties the moment to it, no card (moment-assignment-fallback PO3).
           if (explore.take(id)) return;
-          // A found place is shown, not a card to open: its capture's pin is the thing to tap (audit, UI).
-          if (explore.found.has(id)) return;
           setSpot(null);
           setMemory(null);
           setGapOpen(null);
           setMarkOpen(id);
           const item = explore.itemOf(id);
-          if (item) reach.ask(id, item.at, setMarkReach);
+          // A found place's card lists the moments taken here and offers the row again (CA11, CA12).
+          if (item && explore.found.has(id)) {
+            setMarkMoments(null);
+            explore.momentsAt(item.at, Date.now()).then(
+              (got) => setMarkMoments({ key: id, lines: got }),
+              () => setMarkMoments({ key: id, lines: [] }),
+            );
+          } else if (item) reach.ask(id, item.at, setMarkReach);
         }}
         marks={marks}
         ring={ring}
@@ -1578,17 +1616,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
             </Pressable>
           </View>
         )}
-        {placesOn && explore.armed && (
-          // The armed place (TC3): plain words, above the capture stack, never moving it.
-          <LiftIn testID="armed-line" style={styles.findChoice} accessibilityLiveRegion="polite">
-            <Text style={styles.findChoiceTitle} numberOfLines={2} accessibilityLabel={armedLine(explore.armed.item)}>{armedLine(explore.armed.item)}</Text>
-            <Pressable testID="armed-cancel" accessibilityRole="button" accessibilityLabel="Cancel, don’t tie the next moment to a place" onPress={explore.disarm} style={[styles.findChoiceBtn, styles.armedCancel]} hitSlop={6}>
-              <Text style={styles.findChoiceBtnText}>Cancel</Text>
-            </Pressable>
-          </LiftIn>
-        )}
-        {placesOn && explore.offer && !explore.armed && (
-          // A place offered after the moment (PO1-PO3): the armed line's slab and slot, plain words, never moving the stack.
+        {placesOn && explore.offer && (
+          // A place offered after the moment (PO1-PO3): an ink slab at the top, plain words, never moving the stack.
           <LiftIn key={explore.offer.captureId} testID="place-offer" style={styles.findChoice} accessibilityLiveRegion="polite">
             <Text style={styles.findChoiceTitle} numberOfLines={3}>{offerLine(explore.offer)}</Text>
             <View style={styles.offerRow}>
@@ -1608,7 +1637,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
                 accessibilityRole="button"
                 accessibilityLabel={offerLabels(explore.offer).leave}
                 onPress={explore.leave}
-                style={[styles.findChoiceBtn, offerLabels(explore.offer).yes ? styles.offerBtn : styles.armedCancel]}
+                style={[styles.findChoiceBtn, offerLabels(explore.offer).yes ? styles.offerBtn : styles.offerAlone]}
               >
                 <Text style={styles.findChoiceBtnText}>Leave it</Text>
               </Pressable>
@@ -1714,8 +1743,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
       <View style={[styles.pills, at.pills]} pointerEvents="box-none">
         {walk && (
           <AddToMomentPill
-            // Not while a place is armed: its line says where the next capture goes (tend walk-screen 13).
-            hidden={recordingVoice || noteOpen || !!spot || !!openMark || !!options || !!memory || !!explore.armed}
+            hidden={recordingVoice || noteOpen || !!spot || !!openMark || !!options || !!memory}
             onPhoto={() => void photo(momentPill.target())}
             onVoice={() => void startVoice(momentPill.target())}
             onNote={() => {
@@ -1970,22 +1998,48 @@ function WalkScreen(props: { onMinimize: () => void }) {
               {openMarkNamed ? `${openMark.name} · ${kindOf(openMark.kind).label}` : 'A place to find'}
             </Text>
             <Text style={styles.markSub}>
-              {live.here ? `${formatDistance(distanceM(live.here, openMark.at))} away. ` : ''}
-              {explore.found.has(openMark.key)
-                ? 'Found.'
-                : openMarkNamed
-                  ? 'Capture here ties the next moment to it.'
-                  : 'Walk within 60 m to see what it is.'}
+              {live.here ? `${formatDistance(distanceM(live.here, openMark.at))} away.` : ''}
+              {live.here && openMarkCapture?.line ? ' ' : ''}
+              {openMarkCapture?.line ?? ''}
             </Text>
             {openMarkReach && (
               <Text testID="mark-reach" style={styles.markSub}>
                 {openMarkReach}
               </Text>
             )}
+            {openMarkFound && (
+              // The moments taken here, in words, newest first, each opening it (CA11); never counted.
+              <View testID="mark-moments" style={styles.markMoments}>
+                <Text style={styles.markMomentsHead}>Moments here</Text>
+                {(markMoments?.key === openMark.key ? markMoments.lines : []).map((x) => (
+                  <Pressable
+                    key={x.id}
+                    testID="mark-moment"
+                    accessibilityRole="button"
+                    accessibilityHint="Opens this moment"
+                    onPress={() => {
+                      setMarkOpen(null);
+                      setViewing([x.moment]);
+                    }}
+                    style={({ pressed }) => [styles.markMoment, pressed && styles.pressed]}
+                  >
+                    <Text style={styles.markMomentText} numberOfLines={1}>
+                      {x.line}
+                    </Text>
+                    <Icon name="chevron-forward" size={18} color={theme.ink} />
+                  </Pressable>
+                ))}
+              </View>
+            )}
+            {openMarkCapture?.row && (
+              // Within 60 m the capture row comes first, in ink; Route here follows as a secondary button (CA1b).
+              <PlaceCaptureRow place={openMark.name} disabled={stopping} onCamera={() => captureAt('photo')} onVoice={() => captureAt('voice')} onNote={() => captureAt('text')} />
+            )}
             <View style={styles.spotActions}>
               <Button
                 testID="mark-go"
                 label="Route here"
+                variant={openMarkCapture?.row ? 'secondary' : 'primary'}
                 onPress={() => {
                   const m = openMark;
                   setMarkOpen(null);
@@ -1993,17 +2047,6 @@ function WalkScreen(props: { onMinimize: () => void }) {
                 }}
                 disabled={navigation.finding}
               />
-              {openMarkNamed && !explore.found.has(openMark.key) && canArm(openMark, live.here) && (
-                <Button
-                  testID="mark-capture"
-                  variant="secondary"
-                  label="Capture here"
-                  onPress={() => {
-                    explore.arm(openMark);
-                    setMarkOpen(null);
-                  }}
-                />
-              )}
               <Pressable testID="mark-close" accessibilityRole="button" accessibilityLabel="Close" onPress={() => setMarkOpen(null)} style={styles.spotClose} hitSlop={8}>
                 <Icon name="close" size={22} color={theme.ink} />
               </Pressable>
@@ -2172,6 +2215,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
             ref={pageRef}
             cap={cap}
             into={page.into}
+            place={page.place ?? null}
             onWalk
             camera
             // No buzz mid-sentence (note-pages audit 27); the toast says where it went.
@@ -2236,6 +2280,10 @@ const styles = StyleSheet.create({
   spotTitle: { fontSize: 16, fontWeight: '700', color: theme.ink },
   rule: { height: StyleSheet.hairlineWidth, backgroundColor: theme.edge, marginTop: 8 },
   markSub: { fontSize: 14, color: theme.muted },
+  markMoments: { gap: 0 },
+  markMomentsHead: { fontSize: 14, fontWeight: '700', color: theme.ink },
+  markMoment: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44 },
+  markMomentText: { flex: 1, fontSize: 15, color: theme.ink },
   optionRow: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 48 },
   optionLabel: { fontSize: 15, fontWeight: '600', color: theme.ink },
   optionSection: { fontSize: 15, fontWeight: '700', color: theme.ink, marginTop: 8 },
@@ -2243,9 +2291,11 @@ const styles = StyleSheet.create({
   edgeBtnOff: { opacity: 0.5 },
   spotActions: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
   spotClose: { marginLeft: 'auto', width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  // The place offer's slab (moment-assignment-fallback PO1-PO3), where 0224's armed line stood.
   findChoice: { backgroundColor: theme.ink, borderRadius: 16, paddingVertical: 12, paddingHorizontal: 16, alignSelf: 'center', maxWidth: 420, gap: 8 },
   findChoiceTitle: { color: '#ffffff', fontSize: 14, fontWeight: '600' },
-  armedCancel: { alignSelf: 'flex-start' },
+  // Leave it alone, with several places: its own width at the slab's start.
+  offerAlone: { alignSelf: 'flex-start' },
   findChoiceBtn: { backgroundColor: '#ffffff', borderRadius: 999, paddingVertical: 8, paddingHorizontal: 16, minHeight: 44, justifyContent: 'center', maxWidth: 220 },
   // The place offer's two choices share the row equally (PO2, PO11): Leave it is never the smaller.
   offerRow: { flexDirection: 'row', gap: 8 },

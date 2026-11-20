@@ -126,7 +126,7 @@ Home / tabs
   MomentBar.tsx              MomentBar (loose moments from Navigate's ready screen) and CaptureRow (the stack's controls and the note's page); Memories keeps moments from journal/OpenLine
   LocateButton.tsx           Locate me, an edge button
   StartSettings.tsx          the walk settings, shown in the ready bar pulled up (NR7)
-  walk/                      the walk screen's shared geometry (layout.ts), CaptureStack, AddToMomentPill (moment stacks), ReadyBar, useReady (the walk screen's ready state)
+  walk/                      the walk screen's shared geometry (layout.ts), CaptureStack, AddToMomentPill (moment stacks), PlaceCaptureRow (a place card's Camera, Voice, Note), ReadyBar, useReady (the walk screen's ready state)
   StackMark.tsx              the two-card mark of a moment holding more than one piece (MS8)
   GapCard.tsx                a filled or offered stretch: Keep, Not this way
   KeepGapsCard.tsx           the first replay's one question: keep every offered way (G15); over the map above the card's sheet, or inside the sheet where that would cover the walk (lib/replay keepAskPlace)
@@ -276,6 +276,7 @@ Discovery and Explore (v1)
   discovery/recall.ts Remind me here's rules; recallCheck.ts: the check per fix, saveRecall / stopRecall, meta `recall_open`
   explore/explore.ts         checklists, membership, visibleMarks, routeMarks, findFor, foundList, passedLine
   explore/exploreRun.ts      one explore read (decoder, z14 + z11) and the build check
+  explore/placeCard.ts       a place's card: its capture row and line (cardCapture), the find a kept card capture makes (findOnKept), a found card's moments (momentsHere)
   explore/useExplore.ts      Explore on the walk screen
   complexes/rule.ts          which named buildings are complexes, and of what kind: pieces joined by building id, judged once every tile holding a vertex is read (CX1-CX3, CX14)
   complexes/{types,geom,place,lines,kinds,mapLayer,extent}.ts   the complex type, the card's words and order, the kind switches, the map layer's style and data, the tile budget, a fix's complex (CX4-CX11, CX16)

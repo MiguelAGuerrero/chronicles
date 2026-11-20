@@ -11,8 +11,8 @@ type Moment = { id: string; walkId: string | null; at: LngLat | null; kind: Capt
 type Offer = { captureId: string; walkId: string; at: LngLat; kind: CaptureKind; items: ChecklistItem[] };
 type Api = {
   OFFER_RULES: { nearM: number; awayM: number; named: number };
-  offerFor: (m: Moment, o: { items: ChecklistItem[]; found: Set<string>; hidden: Set<Kind>; left: Set<string>; places: boolean; armed: boolean }) => Offer | null;
-  offerStill: (offer: Offer | null, o: { here: LngLat | null; walkId: string | null; places: boolean; paused: boolean; armed: boolean; found: Set<string>; momentIds: Set<string> }) => Offer | null;
+  offerFor: (m: Moment, o: { items: ChecklistItem[]; found: Set<string>; hidden: Set<Kind>; left: Set<string>; places: boolean; atPlace: boolean }) => Offer | null;
+  offerStill: (offer: Offer | null, o: { here: LngLat | null; walkId: string | null; places: boolean; paused: boolean; found: Set<string>; momentIds: Set<string> }) => Offer | null;
   offerLine: (offer: Offer) => string;
   offerLabels: (offer: Offer) => { yes: string | null; leave: string };
   offerTake: (offer: Offer | null, key: string) => ChecklistItem | null;
@@ -27,9 +27,9 @@ const item = (name: string, at: LngLat, kind: Kind = 'monuments'): ChecklistItem
   key: `k:${name}`, area_key: 'A', name, category: 'history', kind, at, generic: false,
 });
 const moment = (more: Partial<Moment> = {}): Moment => ({ id: 'c1', walkId: 'w1', at: O, kind: 'photo', ...more });
-const none = { found: new Set<string>(), hidden: new Set<Kind>(), left: new Set<string>(), places: true, armed: false };
+const none = { found: new Set<string>(), hidden: new Set<Kind>(), left: new Set<string>(), places: true, atPlace: false };
 const still = (more: Partial<Parameters<Api['offerStill']>[1]> = {}) => ({
-  here: O, walkId: 'w1', places: true, paused: false, armed: false, found: new Set<string>(), momentIds: new Set(['c1']), ...more,
+  here: O, walkId: 'w1', places: true, paused: false, found: new Set<string>(), momentIds: new Set(['c1']), ...more,
 });
 
 test('PO1: one unfound shown place within 30 m is offered by name, with Yes and Leave it', async () => {
@@ -72,13 +72,13 @@ test('PO4: a place left with Leave it on this walk is not offered again', async 
   assert.deepEqual(offerFor(moment(), { ...none, items: [bridge, clock], left: new Set([bridge.key]) })?.items.map((i) => i.name), ['Clock Tower']);
 });
 
-test('PO5: nothing is offered with Places off, a place armed, no fix, no walk, only a place past 30 m, a found place or a hidden kind', async () => {
+test('PO5: nothing is offered with Places off, a moment begun on a place\'s card, no fix, no walk, only a place past 30 m, a found place or a hidden kind', async () => {
   const { offerFor, OFFER_RULES } = await api();
   assert.equal(OFFER_RULES.nearM, 30);
   const bridge = item('Old Bridge', m(20, 0));
   const items = [bridge];
   assert.equal(offerFor(moment(), { ...none, items, places: false }), null, 'Places off');
-  assert.equal(offerFor(moment(), { ...none, items, armed: true }), null, 'a place armed');
+  assert.equal(offerFor(moment(), { ...none, items, atPlace: true }), null, 'begun on a place\'s card: it found that place (decision 0246)');
   assert.equal(offerFor(moment({ at: null }), { ...none, items }), null, 'no fix');
   assert.equal(offerFor(moment({ walkId: null }), { ...none, items }), null, 'not on a walk');
   assert.equal(offerFor(moment(), { ...none, items: [item('Far', m(31, 0))] }), null, '31 m');
@@ -86,7 +86,7 @@ test('PO5: nothing is offered with Places off, a place armed, no fix, no walk, o
   assert.equal(offerFor(moment(), { ...none, items, hidden: new Set<Kind>(['monuments']) }), null, 'a kind switched off');
 });
 
-test('PO6: the offer holds within 60 m and with no fix; it goes past 60 m, on another walk, with Places off, paused, armed, the moment gone or every place found', async () => {
+test('PO6: the offer holds within 60 m and with no fix; it goes past 60 m, on another walk, with Places off, paused, the moment gone or every place found', async () => {
   const { offerFor, offerStill, OFFER_RULES } = await api();
   assert.equal(OFFER_RULES.awayM, 60);
   const bridge = item('Old Bridge', m(20, 0));
@@ -100,7 +100,6 @@ test('PO6: the offer holds within 60 m and with no fix; it goes past 60 m, on an
   assert.equal(offerStill(offer, still({ walkId: null })), null, 'the walk ended');
   assert.equal(offerStill(offer, still({ places: false })), null, 'Places off');
   assert.equal(offerStill(offer, still({ paused: true })), null, 'paused');
-  assert.equal(offerStill(offer, still({ armed: true })), null, 'Capture here tapped');
   assert.equal(offerStill(offer, still({ momentIds: new Set() })), null, 'the moment deleted');
   assert.deepEqual(offerStill(offer, still({ found: new Set([bridge.key]) }))?.items.map((i) => i.name), ['Clock Tower'], 'a place found another way leaves the line');
   assert.equal(offerStill(offer, still({ found: new Set([bridge.key, clock.key]) })), null, 'every place found');

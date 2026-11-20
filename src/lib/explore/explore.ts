@@ -363,35 +363,6 @@ export function passFor(raw: string | null): number {
 /** The meta write that gives an open walk its pass-by distance: at the start, and when the drawer's slider moves (audit 1). */
 export const passMeta = (walkId: string, passM: number): [string, string] => [walkPassKey(walkId), String(clampPass(passM))];
 
-/** The place the reader tapped "Capture here" on, for one walk (TC3, TC4). */
-export interface Armed {
-  item: ChecklistItem;
-  walkId: string;
-  /** When it was armed (ms): only a capture made after it can find the place (audit 5). */
-  at: number;
-}
-
-/** "Capture here" is offered only for a place within reach: farther, the arming would clear at once (audit 2). */
-export const canArm = (item: { at: LngLat }, here: LngLat | null): boolean => !here || distanceM(here, item.at) <= EXPLORE_RULES.revealM;
-
-/** The plain line for an armed place: no accent, no "ready" tone (TC3, steward S2). */
-export const armedLine = (item: { name: string }): string => `The next moment is about ${item.name}`;
-
-/**
- * The one find a capture makes: the armed place for the first fresh capture, else nothing. A capture
- * never finds a place by itself, however near (TC1).
- */
-export function armedFind(armed: Armed | null, fresh: { id: string; t: number }[]): { item: ChecklistItem; captureId: string } | null {
-  const c = armed ? fresh.find((x) => x.t >= armed.at) : undefined;
-  return armed && c ? { item: armed.item, captureId: c.id } : null;
-}
-
-/** Arming holds on its own walk while the walker is within 60 m of the place; with no fix it stays (TC4). */
-export function armedStill(armed: Armed | null, here: LngLat | null, walkId: string | null, o: { places?: boolean; found?: Set<string> } = {}): Armed | null {
-  if (!armed || armed.walkId !== walkId || o.places === false || o.found?.has(armed.item.key)) return null;
-  return here && distanceM(here, armed.item.at) > EXPLORE_RULES.revealM ? null : armed;
-}
-
 /** The range setting, clamped to 60-300 m in 20 m steps (E20). */
 export function clampRange(m: number): number {
   const r = EXPLORE_RULES;

@@ -53,7 +53,7 @@ test('fix mark-overlap 5: marks clear of each other stay on their points, the sa
   assert.ok(out.every((m, i) => m === marks[i]));
 });
 
-test('fix mark-overlap 6: a found mark is never moved (it lets taps through to the moment beside it)', () => {
+test('fix mark-overlap 6: a found mark is never moved (it marks where the place is)', () => {
   const out = declutterMarks([mark('a', 0, 'A'), mark('f', 2, 'F', { found: true })], Z);
   assert.ok(out.every((m) => !m.spread));
 });

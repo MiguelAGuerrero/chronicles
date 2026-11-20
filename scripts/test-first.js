@@ -60,10 +60,22 @@ function base() {
   return null;
 }
 
+// A line that is only a comment (a line comment, a block comment's starred line, one or more whole block comments on one
+// line): it names no test, so it is never read, alone or as a call's next line (fix test-first-comments, audits 1 and 3).
+// A line that closes a block comment is read for what follows the closing: code, or another comment (audit 5).
+const commentOnly = (text) => {
+  let t = text.trim();
+  if (t.startsWith('*/')) return commentOnly(t.slice(2));
+  t = t.replace(/^(\/\*.*?\*\/\s*)+/, '');
+  return t === '' || t.startsWith('//') || t.startsWith('*') || t.startsWith('/*');
+};
+
 /**
  * The lines naming an id, from `git grep -n -B1` output (pure): a line that names an id but opens no call is read with
  * the line before it, so a call whose id sits on its next line (`check.todo(cond,` then `'UC3: ...'`) still counts as
- * that call. Match lines look like `12:text`, the line before them `11-text`; `--` separates groups.
+ * that call. An id must sit in the call's arguments: a comment-only line is dropped (fix test-first-comments), so
+ * "// ... (CA2)" after a real `check(` is not that call, and an id named only in a test body's comment names no test.
+ * Match lines look like `12:text`, the line before them `11-text`; `--` separates groups.
  */
 function callLines(raw) {
   const out = [];
@@ -76,11 +88,12 @@ function callLines(raw) {
     const m = /^(\d+)([:-])(.*)$/.exec(l);
     if (!m) continue;
     const text = m[3];
-    if (m[2] === ':') {
+    const comment = commentOnly(text);
+    if (m[2] === ':' && !comment) {
       const opensNone = !TODO.test(text) && !REAL.test(text);
       out.push(opensNone && prev != null && (TODO.test(prev) || REAL.test(prev)) ? `${prev.trim()} ${text.trim()}` : text);
     }
-    prev = text;
+    prev = comment ? null : text;
   }
   return out;
 }

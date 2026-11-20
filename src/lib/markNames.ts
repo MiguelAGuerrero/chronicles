@@ -6,7 +6,7 @@ export interface NamedMark {
   id: string;
   at: LngLat;
   name: string;
-  /** Shows its name at all (revealed, not found, not faint). */
+  /** Shows its name at all (revealed or found, not faint). */
   named: boolean;
 }
 
@@ -169,7 +169,7 @@ export function declutterMarks<T extends { id: string; at: LngLat; name: string;
   zoom: number,
   { bearing = 0, spread: spreading = true }: { bearing?: number; spread?: boolean } = {},
 ): (T & { nameHidden?: boolean; spread?: MarkSpread })[] {
-  // A found mark is small and lets taps through to the moment beside it: it stays on its point.
+  // A found mark stays on its point: it marks where the place is (capture-at-a-place keeps it there, now drawn full size).
   const spread = spreading
     ? spreadRows(marks.filter((m) => !m.found).map((m) => {
         const [x, y] = px(m.at, zoom, bearing);
@@ -177,7 +177,7 @@ export function declutterMarks<T extends { id: string; at: LngLat; name: string;
       }))
     : new Map<string, MarkSpread>();
   const hidden = hiddenNames(
-    marks.map((m) => ({ id: m.id, at: m.at, name: m.name, named: m.revealed && !m.faint && !m.found })),
+    marks.map((m) => ({ id: m.id, at: m.at, name: m.name, named: (m.revealed || !!m.found) && !m.faint })),
     zoom,
     bearing,
     spread,

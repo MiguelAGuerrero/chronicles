@@ -1442,15 +1442,15 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         el.setAttribute('aria-hidden', 'true');
         el.tabIndex = -1;
       }
-      // A found place is shown, not pressed: its pin lets taps through to the capture beside it (audit, UI).
-      el.style.cssText = pin.found ? 'background:none;border:0;padding:4px 6px 0;pointer-events:none' : 'background:none;border:0;padding:4px 6px 0;cursor:pointer';
-      if (pin.found) el.tabIndex = -1;
+      // A found place opens its card again, with the moments taken there (capture-at-a-place CA11), drawn as a place is
+      // and with a place's tap room (ui 4, ui 5); it is put under the moments' pins below, so one drawn over it still takes
+      // its own tap.
+      el.style.cssText = 'background:none;border:0;padding:4px 6px 0;cursor:pointer';
       const id = pin.id;
-      if (!pin.found)
-        el.addEventListener('click', (e) => {
-          e.stopPropagation();
-          markLatest.current?.(id);
-        });
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        markLatest.current?.(id);
+      });
       const root = createRoot(el);
       perfCount('marker:mark');
       root.render(<MarkPinView pin={pin as MarkPin} enter={enter} below={MARK_BELOW} />);
@@ -1459,6 +1459,13 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       // A place offered after a moment stands over the moments' pins (z 1), which sit within 30 m of it (PO3): a choice
       // covered by the photo it is offered for could not be tapped. `choice` is in the key, so this is redone when it ends.
       if (pin.choice) marker.getElement().style.zIndex = '2';
+      if (pin.found) {
+        // Markers paint in the order they stand in their container: first is lowest (capture-at-a-place ui 4). Under the
+        // moments' pins only: the walker's own marker and the rest keep their order over it.
+        const box = el.parentElement;
+        const first = box ? [...box.children].find((c) => c !== el && (c.matches('[data-ids]') || !!c.querySelector('[data-ids]'))) : undefined;
+        if (box && first) box.insertBefore(el, first);
+      }
       markMarkers.current.set(pin.id, { marker, root, key, spread, state: { revealed: pin.revealed, found: pin.found, faint: pin.faint } });
     }
     for (const [id, m] of markMarkers.current) {

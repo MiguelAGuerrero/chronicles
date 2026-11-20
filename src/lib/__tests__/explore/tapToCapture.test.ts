@@ -1,9 +1,12 @@
 /// <reference types="node" />
 import assert from 'node:assert/strict';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import type { LngLat } from '../../types';
-import { armedFind, canArm, passMeta, armedLine, armedStill, clampPass, EXPLORE_RULES, passedAlong, passedPlaces, passFor, revealedKeys, walkPassKey, type ChecklistItem, type Kind } from '../../explore/explore';
+import { join } from 'node:path';
+import { cardCapture, findOnKept } from '../../explore/placeCard';
+import { stampFor } from '../../pieceStamp';
+import { passMeta, clampPass, EXPLORE_RULES, passedAlong, passedPlaces, passFor, revealedKeys, walkPassKey, type ChecklistItem, type Kind } from '../../explore/explore';
 
 // Tap to capture a place, and a quiet pass-by (specs/tap-to-capture-places): written before the code.
 
@@ -15,35 +18,23 @@ const item = (name: string, at: LngLat, kind: Kind = 'museums'): ChecklistItem =
   key: `k:${name}`, area_key: 'A', name, category: 'culture', kind, at, generic: false,
 });
 
+// TC3 and TC4 (arming by "Capture here") are retired by specs/capture-at-a-place (CA1-CA12): a capture begun on the
+// place's card carries the place itself. TC1 and TC5 stand, held now by what a kept capture with no place does.
 test('TC1: a capture near unfound places finds nothing by itself, with one place or several', () => {
   const a = item('Museum', m(10, 0));
   const b = item('Statue', m(20, 0));
-  assert.equal(armedFind(null, [{ id: 'c1', t: 5 }]), null);
-  assert.equal(armedFind(null, [{ id: 'c1', t: 5 }, { id: 'c2', t: 6 }]), null);
-  assert.equal(armedFind(null, [{ id: 'c1', t: 5 }]), null, `${a.name} and ${b.name} are within 60 m and found nothing`);
+  const plain = stampFor(5, { here: O, lastFixAt: 5 }, null);
+  assert.equal(plain.place, null, `${a.name} and ${b.name} are within 60 m and the stamp carries neither`);
+  assert.equal(findOnKept({ place: plain.place, piece: false, momentId: 'c1' }, new Set()), null);
 });
 
 test('TC2: a moment made outside a walk finds nothing by itself (momentFind is gone)', () => {
   assert.equal(existsSync(new URL('../../explore/momentFind/shell.ts', import.meta.url)), false);
 });
 
-test('TC3: the armed place is the one tapped, and its line is plain words', () => {
-  const a = item('Old Bridge', m(10, 0));
-  assert.equal(armedLine(a), 'The next moment is about Old Bridge');
-});
-
-test('TC4: the next capture finds the armed place; arming clears after it, past 60 m, and on another walk', () => {
-  const a = item('Old Bridge', m(10, 0));
-  const armed = { item: a, walkId: 'w1', at: 100 };
-  assert.deepEqual(armedFind(armed, [{ id: 'c1', t: 150 }, { id: 'c2', t: 160 }]), { item: a, captureId: 'c1' }, 'the first capture only');
-  assert.deepEqual(armedStill(armed, m(30, 0), 'w1'), armed, 'within reach');
-  assert.equal(armedStill(armed, m(90, 0), 'w1'), null, 'farther than 60 m');
-  assert.equal(armedStill(armed, m(5, 0), 'w2'), null, 'another walk');
-  assert.equal(armedStill(armed, null, 'w1') !== null, true, 'no fix yet keeps it');
-});
-
-test('TC5: plain capture is unchanged: no arming is needed to keep a moment', () => {
-  assert.equal(armedFind(null, []), null);
+test('TC5: plain capture is unchanged: no place is needed to keep a moment', () => {
+  const plain = stampFor(5, { here: O, lastFixAt: 5 }, null);
+  assert.deepEqual({ t: plain.t, at: plain.at, locate: plain.locate, into: plain.into }, { t: 5, at: O, locate: false, into: null });
 });
 
 test('TC6: a place is passed within the pass-by distance, not 60 m, and never when found', () => {
@@ -77,36 +68,34 @@ test('TC9: a walk keeps the pass-by distance it was walked with', () => {
   assert.equal(passFor('junk'), 8);
 });
 
-const arm = (a: ChecklistItem, at = 100) => ({ item: a, walkId: 'w1', at });
 
 test('tap-to-capture-places audit 1: the drawer slider writes the open walk its own distance', () => {
   assert.deepEqual(passMeta('w1', 14), ['walk_pass:w1', '14']);
   assert.deepEqual(passMeta('w1', 99), ['walk_pass:w1', '20'], 'clamped');
 });
 
-test('tap-to-capture-places audit 2: a place more than 60 m away cannot be armed', () => {
+// Audits 2-5 guarded the arming, which is gone (capture-at-a-place); each concern is held on what replaced it.
+test('tap-to-capture-places audit 2: a place more than 60 m away offers no capture', () => {
   const far = item('Far', m(150, 0));
-  assert.equal(canArm(far, O), false);
-  assert.equal(canArm(far, m(100, 0)), true);
-  assert.equal(canArm(far, null), true, 'no fix yet: allowed, as armedStill keeps it');
+  assert.equal(cardCapture({ name: far.name, at: far.at, here: O, found: false }).row, false);
+  assert.equal(cardCapture({ name: far.name, at: far.at, here: m(100, 0), found: false }).row, true);
+  assert.equal(cardCapture({ name: far.name, at: far.at, here: null, found: false }).row, true, 'no fix yet: offered');
 });
 
-test('tap-to-capture-places audit 3: Explore switched off disarms', () => {
-  const a = arm(item('Bridge', m(10, 0)));
-  assert.equal(armedStill(a, O, 'w1', { places: false }), null);
-  assert.deepEqual(armedStill(a, O, 'w1', { places: true }), a);
+test('tap-to-capture-places audit 3: with Places off there is no place card to capture from', () => {
+  const walk = readFileSync(join(__dirname, '../../../app/walk.tsx'), 'utf8');
+  assert.match(walk, /\{openMark && !spot && placesOn && \(/);
 });
 
-test('tap-to-capture-places audit 4: a place found some other way disarms', () => {
+test('tap-to-capture-places audit 4: a place found some other way is not found again', () => {
   const b = item('Bridge', m(10, 0));
-  assert.equal(armedStill(arm(b), O, 'w1', { found: new Set([b.key]) }), null);
+  assert.equal(findOnKept({ place: b.key, piece: false, momentId: 'm' }, new Set([b.key])), null);
 });
 
-test('tap-to-capture-places audit 5: only a capture made after arming finds', () => {
-  const b = item('Bridge', m(10, 0));
-  const got = armedFind(arm(b, 100), [{ id: 'old', t: 90 }, { id: 'new', t: 120 }, { id: 'newer', t: 130 }]);
-  assert.deepEqual(got, { item: b, captureId: 'new' });
-  assert.equal(armedFind(arm(b, 100), [{ id: 'old', t: 90 }]), null);
+test('tap-to-capture-places audit 5: a capture begun before the card finds nothing', () => {
+  // Its stamp was taken before the card's tap, with no place on it.
+  const before = stampFor(90, { here: O, lastFixAt: 90 }, null);
+  assert.equal(findOnKept({ place: before.place, piece: false, momentId: 'old' }, new Set()), null);
 });
 
 test('tap-to-capture-places audit 6: a walk crossing the disc between two fixes passes the place', () => {

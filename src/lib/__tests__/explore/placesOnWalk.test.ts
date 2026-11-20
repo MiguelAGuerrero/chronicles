@@ -18,11 +18,9 @@ test('MD7: the pocket alert and its nudge need Places on, the setting on, and no
   }
 });
 
-test('MD8: arming a place (Capture here) needs Places on: with it off nothing is armed', async () => {
-  const { armedStill } = await import('../../explore/explore');
-  const armed = { walkId: 'w1', item: { key: 'k', name: 'N', category: 'history', kind: 'monuments', at: [0, 0], generic: false } } as never;
-  assert.equal(armedStill(armed, [0, 0], 'w1', { places: false }), null);
-  assert.deepEqual(armedStill(armed, [0, 0], 'w1', { places: true }), armed);
+test('MD8: capturing for a place needs Places on: with it off there is no place card', () => {
+  // Since capture-at-a-place the card itself carries the capture row; it shows only with Places on.
+  assert.match(src('src/app/walk.tsx'), /\{openMark && !spot && placesOn && \(/);
 });
 
 test('MD17: storefront streets are remembered while Places or Storefronts is on, never otherwise', async () => {

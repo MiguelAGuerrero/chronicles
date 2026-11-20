@@ -72,9 +72,9 @@ Places of interest from the tiles, marks, checklists and finds (Explore), and Re
   - **A walk starts with every layer off, and there is no Explore mode** (decision 0234, modes-to-layers MD1-MD19; it
     replaces 0031's mode and `explore_walk`, `start_mode`, which are retired and left unread). The walk's own layers
     (`layers/walkShell.ts`, meta `walk_layers:<walk>`) start off every walk and are never carried to the next; the "?" marks, the range
-    ring, the armed place and the pocket alert follow **Places**, the strip chip and the dead-zone pill follow **Storefronts**
+    ring, the place card and the pocket alert follow **Places**, the strip chip and the dead-zone pill follow **Storefronts**
     (`walk.tsx`: `placesOn`, `storefrontsOn`; `useExplore` takes `places` and `storefronts`). A find needs Places on, since
-    Capture here starts from a "?" card (MD8). Turning Places on or off keeps its spans (`places_spans:<walk>`, `explore/placesSpans.ts`),
+    the capture row is on a place's card (MD8). Turning Places on or off keeps its spans (`places_spans:<walk>`, `explore/placesSpans.ts`),
     and the replay names what the walk passed only within them (`passedAlong` `spans`); a walk recorded before 0234 reads
     `explored:<walk>` as it did. The old rule, kept for what it still says: quiet is navigation plus captures: no "?" marks, magenta, strip chip or
     dead-zone pill. Reminders fire on every walk (the owner's call, after the
@@ -111,11 +111,18 @@ Places of interest from the tiles, marks, checklists and finds (Explore), and Re
     within 60 m or once revealed this walk. On a route, `routeMarks` adds up to
     20 faint ones within range of the route ahead; the route's areas are read
     first (`routeProbes`, every 500 m).
-  - **Finding** (0155, TC1-TC4): a capture never finds a place by itself. "Capture here" (`mark-capture`, hidden past 60 m by
-    `canArm`) on a named, unfound place's card arms it (`useExplore().arm`/`disarm`/`armed`; `armed-line` with Cancel); the next
-    capture made after arming finds it (`armedFind`, `Armed.at`). `armedStill` clears it past 60 m, on another walk, with
-    Explore off or the place found; one capture clears it. No chip, no loose-moment find, no inference from nearness
-    (`capturesToFind` and `createCaptureFinds` are gone). A found pin is small, nameless, and lets taps through.
+  - **Finding** (0155, TC1, TC5; capture-at-a-place CA1-CA12, decision 0246): a capture never finds a place by itself. A
+    named place's card within 60 m (`cardCapture`, `explore/placeCard.ts`) carries `PlaceCaptureRow` (`mark-camera`, `mark-voice`,
+    `mark-note`), first, with Route here secondary; a tap closes the card and begins the capture with the place's key on its stamp
+    (`stampFor`'s `place`; never on a piece). `useCaptures`' `onKept(id, piece, place)` hands it back, and the walk screen calls
+    `explore.keptAtPlace`, which records the find only through `findOnKept` (a new moment, the place unfound; the first find stands).
+    Nothing is armed: a cancelled camera, a discarded memo or a note closed empty leaves nothing waiting. **Trap:** the stamp is
+    the only carrier, so a capture path that builds its own stamp (not `stampNow`) never finds. A found pin takes taps again and is drawn as a
+    place is, full size in the found green with its name (ui 4, ui 5, the owner's "Drawn with its name"; its name joins
+    `hiddenNames`, it still never spreads), under the moments' pins on the web so theirs keep their taps, and opens its card: "Moments here" (`mark-moments`, `mark-moment`) lists the
+    moments within 60 m by spot (`momentsHere`, `db.momentsIn(hereBounds)`; no stored link, the owner's call), newest three, in
+    words (`momentHereLine`, `dayPartLine`'s words), and the row again; a capture from it is a plain moment. No chip, no
+    loose-moment find, no inference from nearness.
   - **Passing** (TC6-TC9): `passedPlaces`/`passedAlong` take `passM` (`explore_pass`, 4-20 m by 2, 8 default), judged along the
     line between fixes under 15 s apart; naming on the map stays at 60 m. `walk_pass:<id>` is written when exploring begins
     and by the drawer's slider, read by the replay (`passFor`); a walk without it keeps 60 m. `passNote` says no number.

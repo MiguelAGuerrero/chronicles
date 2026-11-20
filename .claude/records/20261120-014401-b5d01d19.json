@@ -1,0 +1,79 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "remove",
+        "tap Capture here, then take a photo",
+        "--reason",
+        "capture-at-a-place (decision 0240) replaced Capture here with the card's own capture row; its checks are the CA items below"
+      ],
+      "target": "sha256:16a787b548255b8c50c4f3b7b88c53d0e0f45107582b12c9919f9640048cfd42"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Explore in a dense city (DC1-DC19, decision 0156)"
+      ],
+      "body": "- [ ] **Do:** on a phone, on a walk with Places on, stand within 60 m of a named place, tap its pin, then Camera on its card and take a photo. **Expect:** the card shows Camera, Voice and Note in one row above a secondary Route here; the card closes, the system camera opens, the photo is kept and the place's pin turns found with a photo; nothing says \"the next moment\". (CA1, CA1b, CA2, capture-at-a-place)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Explore in a dense city (DC1-DC19, decision 0156)"
+      ],
+      "body": "- [ ] **Do:** on a phone, on another named place's card, tap Voice and save the memo with Stop; on a third, tap Note, write a line and keep it. **Expect:** the memo records with the stack's Save and Discard and its place turns found with a voice memo; the note's page opens and its place turns found with a note. A memo discarded or a note closed empty finds nothing. (CA3, CA4, CA7, capture-at-a-place)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Explore in a dense city (DC1-DC19, decision 0156)"
+      ],
+      "body": "- [ ] **Do:** on a phone, tap a found place's pin (where the pin of the moment that found it sits close by, try both). **Expect:** the found pin opens its card with \"Moments here\", the newest three in words, each opening its moment, and the capture row within 60 m; the moment's own pin still opens the moment. A note from that card leaves the pin's glyph as it was and leads the list the next time. (CA11, CA12, capture-at-a-place)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Capture at a place (CA1-CA12, decision 0240)",
+        "--new"
+      ],
+      "body": "- A found place's card lists its moments by spot, within 60 m (the owner's call, decision 0240): in a dense street a moment about the place next door is listed too; its words say \"Moments here\", never \"about it\". A stored link per moment would tell them apart; the owner chose none.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Capture at a place (CA1-CA12, decision 0240)"
+      ],
+      "body": "- Past the newest three, a found place's moments are not on its card; Chronicle and the map hold them. A \"more\" line would need words for how many, which counts would make a score.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Capture at a place (CA1-CA12, decision 0240)"
+      ],
+      "body": "- A found pin and the pin of the moment that found it can overlap at walking zoom; the found pin now takes taps again (CA11), on its own head only, and the card's lines open the same moments. Not measured on a phone (docs/NATIVE_UNVERIFIED.md).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Capture at a place (CA1-CA12, decision 0240)"
+      ],
+      "body": "- A found card says each moment's day and part of day (\"A video, this afternoon\"), not its minutes into a walk as the owner's example had: minutes in mean little across walks (tend map T28's words); a default the owner can overrule.\n"
+    }
+  ]
+}
