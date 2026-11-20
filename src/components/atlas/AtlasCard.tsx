@@ -14,7 +14,6 @@ import {
 import type { CategoryId } from '../../lib/discovery/types';
 import { atlasTileId } from '../../lib/atlas/focusOrder';
 import { focusOn, useFocusReturn, useFocusSwap, useFocusTrap } from '../../lib/focus';
-import { formatDistance } from '../../lib/format';
 import { useReducedMotion } from '../../lib/motion';
 import { MOTION } from '../../lib/motionTokens';
 import { ATLAS_RULES, walkViaLine } from '../../lib/atlas/atlas';
@@ -27,6 +26,7 @@ import type { LngLat } from '../../lib/types';
 import { COLORS, HOTSPOT } from '../map/types';
 import { Icon } from '../icons';
 import { OpenInMapsButton, type MapsTarget } from '../OpenInMapsButton';
+import { useDistance } from '../../lib/useUnits';
 import { Button, theme } from '../ui';
 import { foundRows } from '../../lib/discovery/subtypes';
 import { KIND_COLOR, KIND_ICON_OF } from './kinds';
@@ -37,10 +37,9 @@ import { MiniMap } from './MiniMap';
 const WHATS_HERE_LEVEL = { 'aria-level': 2 } as object;
 const GROUP_LEVEL = { 'aria-level': 3 } as object;
 
-const fmt = (m: number) => formatDistance(m);
 const lastWords = (t: number | null) =>
   t ? new Date(t).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : null;
-const minutesFrom = (m: number) => distanceWords(m, false, fmt).replace(/ walk$/, '').replace(/ away$/, '');
+const minutesFrom = (m: number, fmt: (m: number) => string) => distanceWords(m, false, fmt).replace(/ walk$/, '').replace(/ away$/, '');
 
 /** Where the card sits: a sheet over a phone's screen, or a panel beside the map on a wide one. */
 export type CardLayout = { kind: 'sheet'; screenH: number } | { kind: 'side'; width: number; height: number };
@@ -116,6 +115,8 @@ export function AtlasCard(props: {
   layout: CardLayout;
 }) {
   const { area, fam, layout } = props;
+  // Distances in the units setting's terms, bound to them so a switch builds each line again (QL16, tend map 23).
+  const { distance: fmt } = useDistance();
   // How the area treats someone on foot (WK11): words only, read when the card opens.
   const onFoot = useAreaWords(area.at, ATLAS_RULES.ringM, true);
   const p = area.profile;
@@ -384,7 +385,7 @@ export function AtlasCard(props: {
               <View style={styles.chips}>
                 {props.nextDoor.map((n) => {
                   // Measured from this area, so it says so (atlas round 3).
-                  const from = `${minutesFrom(n.distanceM)} from ${area.name}`;
+                  const from = `${minutesFrom(n.distanceM, fmt)} from ${area.name}`;
                   return (
                     <Pressable key={n.area.key} testID="atlas-next-door" accessibilityRole="button" onPress={() => props.onPick(n.area.key)} style={styles.nb}
                       accessibilityLabel={`${n.area.name}, ${from}`}>

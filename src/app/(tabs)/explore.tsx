@@ -60,7 +60,6 @@ import { useOutlineSet } from '../../lib/areas/useOutlineSet';
 import { candidatesOf, useHoodGround } from '../../lib/areas/useHoodGround';
 import { db } from '../../lib/db';
 import type { Find } from '../../lib/explore/explore';
-import { formatDistance } from '../../lib/format';
 import { boundsOf, distanceM as metresBetween, type Bounds } from '../../lib/geo';
 import { readArea, rememberArea } from '../../lib/landing/read';
 import { getLastFix, launchFix, setLastFix } from '../../lib/lastFix';
@@ -71,6 +70,7 @@ import { MOTION } from '../../lib/motionTokens';
 import { perfCount } from '../../lib/perfCount';
 import type { LngLat } from '../../lib/types';
 import { useLocate, type LocateError } from '../../lib/useLocate';
+import { useDistance } from '../../lib/useUnits';
 import { useStartWalk } from '../../lib/useStartWalk';
 import type { Waypoint } from '../../lib/nav/types';
 import { walkToChoice } from '../../lib/startPlan';
@@ -102,7 +102,6 @@ const SPOT_H = 68;
 const SPOT_GO_H = 52;
 /** From this width the area's card opens as a side panel beside the map; narrower, as a full-screen drawer. */
 const TWO_PANES = 1000;
-const fmt = (m: number) => formatDistance(m);
 
 /**
  * Explore as an atlas (AT1-AT16, EC1-EC20, decision 0124): the map fills the screen with the page's
@@ -117,6 +116,8 @@ const fmt = (m: number) => formatDistance(m);
  */
 export default function Explore() {
   perfCount('render:explore');
+  // The title's distance in the units setting's terms, bound to them so a switch says it again (QL16, tend map 23).
+  const { distance: fmt } = useDistance();
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   const walkStart = useStartWalk();

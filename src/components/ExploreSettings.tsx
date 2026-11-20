@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
 import { EXPLORE_RULES } from '../lib/explore/explore';
 import { formatRange } from '../lib/format';
-import { useUnits } from '../lib/useUnits';
+import type { Units } from '../lib/units';
+import { useDistance } from '../lib/useUnits';
 import { Icon } from './icons';
 import { theme } from './ui';
 
@@ -18,7 +19,7 @@ export const walkNote = (m: number) => {
 };
 
 /** What passing means (TC7): in words, with no count of places. */
-export const passNote = (m: number) => `A place is passed when you come within ${formatRange(m)} of it.`;
+export const passNote = (m: number, units?: Units) => `A place is passed when you come within ${formatRange(m, units)} of it.`;
 
 export interface SliderScale {
   min: number;
@@ -35,8 +36,8 @@ export const PASS_SCALE: SliderScale = { min: EXPLORE_RULES.passMin, max: EXPLOR
 /** A stepped slider for the range (E20): drag, tap the track, or use − and +; adjustable for screen readers. */
 export function RangeSlider({ value, onChange, scale = RANGE_SCALE }: { value: number; onChange: (m: number) => void; scale?: SliderScale }) {
   const STEPS = (scale.max - scale.min) / scale.step;
-  // The range in the units setting's terms (QL14); redrawn when it changes.
-  useUnits();
+  // The range in the units setting's terms (QL14), bound to them so a switch redraws it (tend map 23).
+  const { range } = useDistance();
   const [width, setWidth] = useState(0);
   const latest = useRef({ width, onChange });
   useEffect(() => {
@@ -67,7 +68,7 @@ export function RangeSlider({ value, onChange, scale = RANGE_SCALE }: { value: n
         accessible
         accessibilityRole="adjustable"
         accessibilityLabel={scale.name}
-        accessibilityValue={{ min: scale.min, max: scale.max, now: value, text: formatRange(value) }}
+        accessibilityValue={{ min: scale.min, max: scale.max, now: value, text: range(value) }}
         accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
         onAccessibilityAction={(e) => onChange(value + (e.nativeEvent.actionName === 'increment' ? step : -step))}
       >
@@ -78,7 +79,7 @@ export function RangeSlider({ value, onChange, scale = RANGE_SCALE }: { value: n
       <Pressable testID={`${scale.id}-plus`} accessibilityRole="button" accessibilityLabel={`Larger ${scale.name.toLowerCase()}`} onPress={() => onChange(value + step)} style={styles.stepBtn} hitSlop={6}>
         <Icon name="add" size={20} color={theme.ink} />
       </Pressable>
-      <Text testID={`${scale.id}-value`} style={styles.value}>{formatRange(value)}</Text>
+      <Text testID={`${scale.id}-value`} style={styles.value}>{range(value)}</Text>
     </View>
   );
 }

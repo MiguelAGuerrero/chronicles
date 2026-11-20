@@ -11,7 +11,9 @@ test('tend tabs audit 5: every "?" range line says its distance as the slider be
   // above a RangeSlider that reads formatRange: in miles a line in metres sat beside a slider in feet (QL14).
   for (const file of ['app/walk.tsx', 'components/StartSettings.tsx']) {
     const text = readFileSync(join(SRC, file), 'utf8');
-    assert.ok(text.includes('within {formatRange(settings.rangeM)} of you'), `${file} says the range through formatRange`);
+    // Or through `range`, formatRange bound to the units by useDistance (tend map 23), so the line follows a switch.
+    const bound = /const \{[^}]*\brange\b[^}]*\} = useDistance\(\);/.test(text) && text.includes('within {range(settings.rangeM)} of you');
+    assert.ok(text.includes('within {formatRange(settings.rangeM)} of you') || bound, `${file} says the range through formatRange`);
     assert.ok(!/within \{settings\.rangeM\} m of you/.test(text), `${file} has no range line in bare metres`);
   }
 });

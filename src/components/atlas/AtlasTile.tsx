@@ -4,17 +4,16 @@ import { ATLAS_ORDER, characterLine, distanceWords, familiarityWords, tileLabel,
 import { cardFooter } from '../../lib/atlas/carousel';
 import { atlasTileId } from '../../lib/atlas/focusOrder';
 import { canOpenInMaps, walkThereName, type TileWalk } from '../../lib/atlas/mapsButton';
-import { formatDistance } from '../../lib/format';
 import { COLORS, HOTSPOT, HOTSPOT_INK } from '../map/types';
 import { Icon } from '../icons';
 import { OpenInMapsButton } from '../OpenInMapsButton';
+import { useDistance } from '../../lib/useUnits';
 import { theme } from '../ui';
 import { KindStrip } from './KindStrip';
 
 /** A thin ring's tile shows no kinds (AG3). */
 const NO_KINDS = Object.fromEntries(ATLAS_ORDER.map((c) => [c, 0])) as Steps;
 
-const fmt = (m: number) => formatDistance(m);
 
 /**
  * One area as a card of the row (AT3, AT5, AT13, AT16, EC15; decision 0124). Reading order:
@@ -41,6 +40,8 @@ export const AtlasTile = memo(function AtlasTile(props: {
   onMaps?: (key: string) => void;
 }) {
   const { listed, fam } = props;
+  // The distance in the units setting's terms, bound to them so a switch builds the line again (QL16, tend map 23).
+  const { distance: fmt } = useDistance();
   const a = listed.area;
   const reading = !a.profile;
   // EC13: the selected card's label ends in what a tap does, the others' in "Selects it".

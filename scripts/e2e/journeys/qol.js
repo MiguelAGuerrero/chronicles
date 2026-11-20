@@ -544,6 +544,29 @@ async function run(h) {
       await drawerTo(pg, 'full');
       const destText = await pg.locator('[data-testid=drawer-dest]').innerText().catch(() => '');
       check(/\d+(\.\d+)?[ \u00a0](m|km|ft|mi)\b/.test(destText), `qol QL14: the destination line carries a distance (${JSON.stringify(destText)})`);
+      // tend map 23 (QL16 under the React Compiler): switched while the drawer is up, every distance in it and in the
+      // strip under it says the other units at once, then back again.
+      const unitIn = (t) => ((t || '').match(/\d[\d,.]*[ \u00a0](m|km|ft|mi)\b/) || [])[1] || null;
+      const drawerSays = () => pg.evaluate(() => {
+        const t = (id) => document.querySelector(`[data-testid=${id}]`)?.textContent ?? null;
+        const sub = [...document.querySelectorAll('[data-testid=start-settings] *')].map((e) => e.textContent).find((x) => /^With Places on/.test(x || '')) ?? null;
+        return { dest: t('drawer-dest'), range: t('range-value'), pass: t('pass-value'), sentence: sub };
+      });
+      const stripSays = () => pg.evaluate(() => ({ stats: document.querySelector('[data-testid=walk-stats]')?.textContent ?? null, dest: document.querySelector('[data-testid=ready-dest]')?.textContent ?? null }));
+      const kmNow = (await pg.locator('[data-testid=units-km]').getAttribute('aria-checked')) === 'true';
+      await pg.click(`[data-testid=units-${kmNow ? 'mi' : 'km'}]`);
+      await pg.waitForTimeout(300);
+      const want = kmNow ? /^(ft|mi)$/ : /^(m|km)$/;
+      const inDrawer = await drawerSays();
+      check(['dest', 'range', 'pass', 'sentence'].every((k) => want.test(unitIn(inDrawer[k]) || '')),
+        `tend map 23: switched, Navigate's drawer says the range, the pass-by distance and the destination in the other units at once (${JSON.stringify(inDrawer)})`);
+      await drawerTo(pg, 'peek');
+      const inStrip = await stripSays();
+      check(want.test(unitIn(inStrip.stats) || '') && want.test(unitIn(inStrip.dest) || ''),
+        `tend map 23: switched, the strip under the drawer says its distance and the destination's in the other units (${JSON.stringify(inStrip)})`);
+      await drawerTo(pg, 'full');
+      await pg.click(`[data-testid=units-${kmNow ? 'km' : 'mi'}]`);
+      await pg.waitForTimeout(300);
       await drawerTo(pg, 'peek');
     }
 
@@ -2006,6 +2029,70 @@ async function run(h) {
     }
 }
 
+// tend map 23 (QL16 under the React Compiler; the lenses' auditor 1, ux 3, steward 1): Explore stays mounted under the
+// tabs while the units are switched on Navigate, and its tiles and card say the new units when it comes back, as
+// their spoken labels do. Before, a tile read "4.0 km away" while its label said "2.5 mi away".
+async function unitsOnExplore(h) {
+  const { exploreUrl, check, freshPage, snapWorld, tabTo, drawerTo, shot } = h;
+  snapWorld.serve = true;
+  const { pg } = await freshPage('qol-units');
+  const tiles = () => pg.evaluate(() => [...document.querySelectorAll('[data-testid=atlas-tile]')].map((e) => ({
+    name: e.dataset.name, text: e.innerText.replace(/\s+/g, ' '), label: e.getAttribute('aria-label') || '',
+  })));
+  const said = (t) => (t.match(/\d[\d,.]*[ \u00a0](m|km|ft|mi) (away|from you)/) || [])[0] || null;
+  try {
+    await pg.goto(exploreUrl);
+    await pg.waitForFunction(() => document.querySelectorAll('[data-testid=atlas-tile]').length >= 2, null, { timeout: 60000 }).catch(() => {});
+    await pg.waitForTimeout(2500);
+    const before = (await tiles()).filter((t) => said(t.text));
+    await tabTo(pg, 'navigate');
+    await pg.waitForSelector('[data-testid=ready-grip]', { timeout: 20000 });
+    await pg.waitForTimeout(1500);
+    await drawerTo(pg, 'full');
+    await pg.click('[data-testid=units-mi]');
+    await pg.waitForTimeout(400);
+    await drawerTo(pg, 'peek');
+    await tabTo(pg, 'explore');
+    await pg.waitForTimeout(2500);
+    const after = (await tiles()).filter((t) => said(t.text));
+    const norm = (x) => x.replace(/\u00a0/g, ' ');
+    check(before.length >= 1 && after.length >= 1 && after.every((t) => / (ft|mi) /.test(norm(said(t.text))) && norm(t.label).includes(norm(said(t.text)).replace(/ from you$/, ' away'))),
+      `tend map 23: switched to miles on Navigate, every Explore tile says its distance in the units its spoken label says (before ${JSON.stringify(before.map((t) => said(t.text)))}; after ${JSON.stringify(after.map((t) => [said(t.text), t.label]))})`);
+    await pg.setViewportSize({ width: 320, height: 700 });
+    await pg.waitForTimeout(600);
+    await shot(pg, 'tend-map-23-explore-miles-320');
+    await pg.setViewportSize({ width: 390, height: 844 });
+    await pg.waitForTimeout(600);
+    await shot(pg, 'tend-map-23-explore-miles-390');
+    // The card: a town's page, then its own card, which says how far it is.
+    const far = after.find((t) => / away/.test(said(t.text)));
+    if (far) {
+      // Cranston selected (the row eases it into view), then its page, then one of its neighborhoods' cards: a tap
+      // selects a card and a tap on the selected one opens it.
+      for (let i = 0; i < 5 && !(await pg.locator('[data-testid=atlas-card]').filter({ visible: true }).count()); i++) {
+        const onPage = (await pg.locator('[data-testid=atlas-back-pill]').count()) > 0;
+        const tile = onPage
+          ? pg.locator('[data-testid=atlas-tile][data-level="neighborhood"]').filter({ visible: true }).first()
+          : pg.locator(`[data-testid=atlas-tile][data-name="${far.name}"]`).filter({ visible: true }).last();
+        await tile.scrollIntoViewIfNeeded().catch(() => {});
+        await pg.waitForTimeout(700);
+        // Forced: the row eases itself onto the card as it is selected, so the card is rarely still for Playwright.
+        await tile.click({ timeout: 8000, force: true });
+        await pg.waitForTimeout(1500);
+      }
+      await pg.waitForTimeout(900);
+    }
+    const card = await pg.evaluate(() => document.querySelector('[data-testid=atlas-card]')?.innerText.replace(/\s+/g, ' ') ?? null);
+    check(!!card && / (ft|mi) away/.test(norm(said(card) || '')) && !/ (m|km) away/.test(norm(card)),
+      `tend map 23: switched to miles, the area card says its distance in miles (${JSON.stringify(card && card.slice(0, 160))})`);
+    await shot(pg, 'tend-map-23-card-miles-390');
+  } catch (e) {
+    check(false, `step tend map 23: ${String(e.message).split('\n')[0]}`);
+  } finally {
+    await pg.close().catch(() => {});
+  }
+}
+
 module.exports = {
   name: 'qol',
   // tend chronicle 7: Rename (QL22) and Edit note (QL24) are checked here, so a change to either names this journey.
@@ -2022,5 +2109,8 @@ module.exports = {
     'src/lib/atlas/findYou.ts',
     'src/lib/locate/permission*.ts',
   ],
-  run,
+  run: async (h) => {
+    await run(h);
+    await unitsOnExplore(h);
+  },
 };

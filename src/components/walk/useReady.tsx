@@ -11,7 +11,7 @@ import { MomentBar } from '../MomentBar';
 import { StartSettings } from '../StartSettings';
 import { Icon } from '../icons';
 import { Banner, Button, theme } from '../ui';
-import { useUnits } from '../../lib/useUnits';
+import { useDistance } from '../../lib/useUnits';
 import { applyPatch, captureBus, LOOSE_MOMENTS } from '../../lib/captureBus';
 import { captureEdits } from '../../lib/captureEdits';
 import { MOMENT_PIN_ZOOM, placedMoments, upsertMoment } from '../../lib/momentPins';
@@ -24,8 +24,6 @@ import { loadPendingDest, savePendingDest } from '../../lib/nav/store';
 import type { Waypoint } from '../../lib/nav/types';
 import { ready } from '../../lib/ready';
 import { destLine } from '../../lib/startPlan';
-import { formatRange } from '../../lib/format';
-import { formatDistance } from '../../lib/summary';
 import type { LngLat } from '../../lib/types';
 import type { MomentState } from '../../lib/useCaptures';
 import { LOCATE_FIT_M, useLocate } from '../../lib/useLocate';
@@ -65,8 +63,9 @@ export function useReady(props: {
   locateRef?: RefObject<ComponentRef<typeof Pressable> | null>;
 }) {
   const { locateRef } = props;
-  // The destination line and the zero distance follow the units setting (QL16).
-  useUnits();
+  // The destination line and the zero distance follow the units setting (QL16), passed in so the React Compiler builds
+  // them again on a switch (tend map 23).
+  const { units, distance, range } = useDistance();
   const at = useStackLayout();
   const { height: screenH } = useWindowDimensions();
   const walkStart = useStartWalk();
@@ -291,7 +290,7 @@ export function useReady(props: {
 
       {/* Locate (QL9), in the stack's column where Recenter sits on the walk (NR9). */}
       <LocateButton ref={locateRef} busy={locating} onPress={locate} bottom={at.edgeBottom('locate')} right={at.edgeRight} />
-      <LayersControl map="navigate" layers={layers} notes={layerNotes({ walkability: wk.status, storefrontsReading: storefronts.reading, storefrontsFailed: storefronts.failed, past: past.status, placesRange: formatRange(settings.rangeM) })} bottom={at.layers.bottom} left={at.layers.left} rightClear={at.layersRightClear} clearTop={at.insets.top + 152} />
+      <LayersControl map="navigate" layers={layers} notes={layerNotes({ walkability: wk.status, storefrontsReading: storefronts.reading, storefrontsFailed: storefronts.failed, past: past.status, placesRange: range(settings.rangeM) })} bottom={at.layers.bottom} left={at.layers.left} rightClear={at.layersRightClear} clearTop={at.insets.top + 152} />
       {/* The capture stack keeping moments (NR9), and its pills. */}
       <MomentBar disabled={walkStart.starting} onMoment={onMoment} onError={onMomentError} onRecording={setMemoOn} focused={focused} />
 
@@ -300,11 +299,11 @@ export function useReady(props: {
         onUp={(u) => setUp(u && !memoOn)}
         areaHeight={screenH}
         locked={memoOn}
-        summaryLabel={['0:00 · ' + formatDistance(0), dest ? `To ${destLine(dest, fix)}` : null].filter(Boolean).join('. ')}
+        summaryLabel={['0:00 · ' + distance(0), dest ? `To ${destLine(dest, fix, units)}` : null].filter(Boolean).join('. ')}
         summary={
           <>
-            <Text testID="walk-stats" style={barStyles.stats} numberOfLines={1}>{`0:00 · ${formatDistance(0)}`}</Text>
-            {dest && <Text testID="ready-dest" style={barStyles.dest} numberOfLines={1}>{`To ${destLine(dest, fix)}`}</Text>}
+            <Text testID="walk-stats" style={barStyles.stats} numberOfLines={1}>{`0:00 · ${distance(0)}`}</Text>
+            {dest && <Text testID="ready-dest" style={barStyles.dest} numberOfLines={1}>{`To ${destLine(dest, fix, units)}`}</Text>}
           </>
         }
         actions={
