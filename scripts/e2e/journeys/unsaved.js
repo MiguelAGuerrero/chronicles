@@ -454,7 +454,7 @@ async function run(h) {
   await tabTo(pg, 'chronicle', 'memories').catch(() => {});
   await pg.waitForTimeout(1500);
   // tend replay audit 17: fixes just before the memo, so it is stamped with a fresh one and has a place (and the walk a
-  // trace, whose telling the memo lands in).
+  // trace, whose telling the memo lands in: tend replay audit 19).
   for (let k = 0; k < 3; k++) {
     await c.setGeolocation({ longitude: h.start[0], latitude: h.start[1] + k * 0.000001, accuracy: 6 });
     await pg.waitForTimeout(1000);
@@ -502,8 +502,12 @@ async function run(h) {
       hint: [...document.querySelectorAll('div, span')].some((x) => x.textContent === 'Tap a pin to open it'),
     };
   });
-  // The memo lands while the walk is still told (it now has a trace to tell).
-  for (let k = 0; k < 40 && (await voices(savingWalk)).length === 0; k++) await pg.waitForTimeout(500);
+  // The memo lands while the walk is still told (it now has a trace to tell); whether its bubble shows in that telling.
+  let bubbleTold = false;
+  for (let k = 0; k < 40 && (await voices(savingWalk)).length === 0; k++) {
+    bubbleTold = bubbleTold || (await pg.locator('[data-testid=memo-bubble]').count()) > 0;
+    await pg.waitForTimeout(500);
+  }
   const cardAtLanding = (await pg.locator('[data-testid=to-name]').count()) > 0;
   await pg.waitForTimeout(1500);
   const walkRow = await pg.evaluate((id) => new Promise((resolve) => {
@@ -518,8 +522,12 @@ async function run(h) {
     `tend tabs T35: the memo saving through the stop lands once, in its ended walk (${inWalk} in walk, walk ${walkRow ? 'kept' : 'gone'})`);
   await shot(pg, 'unsaved-bar-saving-replay-landed');
   check(/\/replay\//.test(pg.url()), `tend tabs audit 47: the replay opened through a save is pictured before and after the memo lands (${pg.url().slice(-20)})`);
-  // The telling goes on to its card.
-  for (let k = 0; k < 120 && (await pg.locator('[data-testid=to-name]').count()) === 0; k++) await pg.waitForTimeout(500);
+  // The telling goes on to its card with the memo kept out of it: no bubble until the card comes.
+  let toCard = 0;
+  for (; toCard < 120 && (await pg.locator('[data-testid=to-name]').count()) === 0; toCard++) {
+    bubbleTold = bubbleTold || (await pg.locator('[data-testid=memo-bubble]').count()) > 0;
+    await pg.waitForTimeout(500);
+  }
   // tend replay audit 17: the memo, kept with a fix, was in no pin while the walk was told, and is pinned on the card
   // when it comes, in the map's view above the sheet, the card's one hint with it, its buttons where they stood.
   const first = await cardNow();
@@ -555,6 +563,10 @@ async function run(h) {
   await shot(pg, 'unsaved-bar-saving-replay-watch-again-settled');
   check(takenIn.card && takenIn.pins === placedHere && playedAgain,
     `tend replay T41: the replay open before the memo landed takes it in, its card pinning what the walk holds and its next Watch again playing the memo (${JSON.stringify(takenIn)}, ${placedHere} placed, played ${playedAgain})`);
+  // tend replay audit 19: landed while the walk was told, the memo was not played in that telling, and the next Watch
+  // again plays it.
+  check(!cardAtLanding && !bubbleTold && playedAgain,
+    `tend replay audit 19: a memo landing during the telling is not played in that telling and is played in the next Watch again (card at landing ${cardAtLanding}, card ${toCard / 2 + 1.5} s after, told ${bubbleTold}, played again ${playedAgain})`);
 
   // A walk opened and minimized onto Memories, for the bar's Stop; its id.
   const walkOnMemories = async () => {
