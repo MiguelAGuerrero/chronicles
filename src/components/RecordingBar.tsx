@@ -17,7 +17,7 @@ import { handOnRecall, onRecallFired, RECALL_OPEN_KEY } from '../lib/discovery/r
 import { feedback } from '../lib/motion';
 import { MOTION } from '../lib/motionTokens';
 import { perfCount } from '../lib/perfCount';
-import { BAR_WAIT_MS, barGoesBack, barStopping, recordingLine } from '../lib/recordingBar';
+import { BAR_WAIT_MS, barGoesBack, barStopLeftMs, barStopping, recordingLine } from '../lib/recordingBar';
 import type { Pause, Walk } from '../lib/types';
 import type { LiveTrace } from '../lib/useLiveTrace';
 import { useCaptures } from '../lib/useCaptures';
@@ -72,7 +72,15 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
   const editing = editAfter.editing;
   // Held to stop, the walk is going. Shared, not this bar's own: the bar unmounts as its tab loses focus while the stop
   // goes on (tend tabs audit 26).
-  const stopping = useStore(barStop, (s) => s?.walkId === walk.id);
+  // Within the stop's own bound, as the way back is: a stop that hangs lets the Stop's spinner go after it (tend tabs 19).
+  const stopSince = useStore(barStop, (s) => (s?.walkId === walk.id ? s.since : null));
+  const [stopOver, setStopOver] = useState<number | null>(null);
+  useEffect(() => {
+    if (stopSince == null) return;
+    const t = setTimeout(() => setStopOver(stopSince), barStopLeftMs({ walkId: walk.id, since: stopSince }, walk.id, Date.now()));
+    return () => clearTimeout(t);
+  }, [stopSince, walk.id]);
+  const stopping = stopSince != null && stopOver !== stopSince;
   // The held captures of the walk this Stop has warned of; one held beyond them is warned of too (unsaved captures UN5).
   const warnedHeld = useRef<string[]>([]);
   // The memo saves this Stop has said are still being saved; the next hold goes through them (T35).

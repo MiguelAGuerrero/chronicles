@@ -52,9 +52,15 @@ export interface BarStop {
   since: number;
 }
 
+/**
+ * How long `walkId`'s stop from the bar still holds at `now`, 0 when none does: the bar's spinning Stop ends with it, as the
+ * way back's refusal does (tend tabs 19).
+ */
+export const barStopLeftMs = (stop: BarStop | null, walkId: string, now: number): number =>
+  stop && stop.walkId === walkId ? Math.max(0, BAR_STOP_HOLD_MS - (now - stop.since)) : 0;
+
 /** Whether `walkId` is being stopped from the bar at `now`, within the stop's own bound. */
-export const barStopping = (stop: BarStop | null, walkId: string, now: number): boolean =>
-  !!stop && stop.walkId === walkId && now - stop.since < BAR_STOP_HOLD_MS;
+export const barStopping = (stop: BarStop | null, walkId: string, now: number): boolean => barStopLeftMs(stop, walkId, now) > 0;
 
 /**
  * Whether the bar's way back (its line, a tapped reminder) opens the walk screen: one at a time, and never while the

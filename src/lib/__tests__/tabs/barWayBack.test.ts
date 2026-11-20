@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
-import { BAR_STOP_HOLD_MS, BAR_WAIT_MS, barGoesBack, barStopping, type BarStop } from '../../recordingBar';
+import { BAR_STOP_HOLD_MS, BAR_WAIT_MS, barGoesBack, barStopLeftMs, barStopping, type BarStop } from '../../recordingBar';
 import { barStop } from '../../tabsHidden';
 
 const bar = readFileSync(join(__dirname, '..', '..', '..', 'components', 'RecordingBar.tsx'), 'utf8');
@@ -36,7 +36,7 @@ test('tend tabs audit 26: a bar remounted while its stop is under way still refu
   barStop.set((s) => (s === mine ? null : s));
   assert.equal(barStop.get(), null, 'the stop that set it clears it');
   // The wiring: the bar reads the shared stop, never its own instance's, for its busy Stop, its way back and its Stop.
-  assert.match(bar, /const stopping = useStore\(barStop, \(s\) => s\?\.walkId === walk\.id\);/);
+  assert.match(bar, /const stopSince = useStore\(barStop, \(s\) => \(s\?\.walkId === walk\.id \? s\.since : null\)\);/);
   assert.match(bar, /const goesBack = \(returningNow: boolean\) => barGoesBack\(\{ returning: returningNow, stop: barStop\.get\(\), walkId: walk\.id, now: Date\.now\(\) \}\);/);
   assert.doesNotMatch(bar, /stoppingNow|useState\(false\);\n.*setStopping/);
 });
@@ -69,4 +69,23 @@ test('tend tabs 13: the recording bar\'s own comment names its held Stop (decisi
   assert.ok(doc.length > 0, 'the bar keeps its comment');
   assert.doesNotMatch(doc, /no Stop/);
   assert.match(doc, /held Stop \(decision 0048\)/);
+});
+
+// The bar's own busy Stop read the shared stop with no bound: a stop that hung left the Stop spinning and disabled for
+// good, while the way back worked again, and a second hold was allowed, after BAR_STOP_HOLD_MS (the lenses' auditor 4).
+test('tend tabs 19: a stop that never settles stops holding the bar\'s Stop busy after its bound', () => {
+  const stop: BarStop = { walkId: 'w1', since: 1000 };
+  assert.equal(barStopLeftMs(stop, 'w1', 1000), BAR_STOP_HOLD_MS, 'the whole bound as it begins');
+  assert.equal(barStopLeftMs(stop, 'w1', 1000 + BAR_STOP_HOLD_MS - 1), 1, 'what is left of it');
+  assert.equal(barStopLeftMs(stop, 'w1', 1000 + BAR_STOP_HOLD_MS), 0, 'none past it');
+  assert.equal(barStopLeftMs(stop, 'w2', 1500), 0, 'another walk\'s stop holds nothing');
+  assert.equal(barStopLeftMs(null, 'w1', 1500), 0);
+  for (const now of [1000, 1000 + BAR_STOP_HOLD_MS - 1, 1000 + BAR_STOP_HOLD_MS]) {
+    assert.equal(barStopping(stop, 'w1', now), barStopLeftMs(stop, 'w1', now) > 0, 'the way back, a second hold and the busy Stop agree');
+  }
+  // The wiring: the bar's `stopping` (its busy, disabled Stop) ends when the bound's timer fires, not only when the stop
+  // clears the shared store.
+  assert.match(bar, /const stopSince = useStore\(barStop, \(s\) => \(s\?\.walkId === walk\.id \? s\.since : null\)\);/);
+  assert.match(bar, /setTimeout\(\(\) => setStopOver\(stopSince\), barStopLeftMs\(\{ walkId: walk\.id, since: stopSince \}, walk\.id, Date\.now\(\)\)\)/);
+  assert.match(bar, /const stopping = stopSince != null && stopOver !== stopSince;/);
 });
