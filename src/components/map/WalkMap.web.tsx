@@ -1456,6 +1456,9 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       root.render(<MarkPinView pin={pin as MarkPin} enter={enter} below={MARK_BELOW} />);
       // A spread pin stands off its point, on a leg back to it (fix mark-overlap).
       const marker = new Marker({ element: el, anchor: 'bottom', offset: [pin.spread?.dx ?? 0, MARK_BELOW + (pin.spread?.dy ?? 0)] }).setLngLat(pin.at).addTo(map);
+      // A place offered after a moment stands over the moments' pins (z 1), which sit within 30 m of it (PO3): a choice
+      // covered by the photo it is offered for could not be tapped. `choice` is in the key, so this is redone when it ends.
+      if (pin.choice) marker.getElement().style.zIndex = '2';
       markMarkers.current.set(pin.id, { marker, root, key, spread, state: { revealed: pin.revealed, found: pin.found, faint: pin.faint } });
     }
     for (const [id, m] of markMarkers.current) {
