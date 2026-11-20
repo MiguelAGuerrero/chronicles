@@ -2198,6 +2198,12 @@ module.exports = {
     // tend explore 8: Explore's one way to find you, before and after a refusal.
     'src/lib/atlas/findYou.ts',
     'src/lib/locate/permission*.ts',
+    // tend map 23, audit 54: the views whose distances follow a switch of the units, checked here.
+    'src/app/(tabs)/explore.tsx',
+    'src/components/atlas/{AtlasTile,AtlasCard}.tsx',
+    'src/components/{ExploreSettings,StartSettings}.tsx',
+    'src/components/walk/useReady.tsx',
+    'src/lib/startPlan.ts',
   ],
   run: async (h) => {
     await run(h);
