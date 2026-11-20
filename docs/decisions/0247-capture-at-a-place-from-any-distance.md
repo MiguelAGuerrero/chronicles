@@ -13,7 +13,7 @@ looked good: "it's still a moment with the monument."
 ## Decision (the owner's answers, Nov 20)
 - The card's capture row is offered at any distance (asked against: the walker's range setting, a wider reach only for
   big kinds, the structure's real footprint as a data slice).
-- A "?" card offers it too. Its line describes ("Walk within 60 m to see what it is. Camera, Voice or Note here keeps the
+- A "?" card offers it too. Its line describes ("Walk within 60 m to see what it is. Camera, Voice or Note keeps the
   moment with it."), and its buttons speak "this place", never the name; the moment kept finds the place, which names it
   as any find does.
 - A found place's "Moments here" lists the moments within 60 m by spot, as before, and the moment that found it,
@@ -23,7 +23,10 @@ looked good: "it's still a moment with the monument."
   0246's "no new stored link").
 
 ## Consequences
-`cardCapture` reads no distance. Route here is a secondary button whenever the row shows, so on every place's card. A
+`cardCapture` reads no distance. Its line drops "here" ("Camera, Voice or Note keeps the moment with X."), since the place
+may be far off, and says the 60 m in the reader's units. On a ride a "?" offers no row, so nothing unrevealed is named on
+a ride (R12); a faint "?" along a route is offered like any other (the owner's "any distance"). The finder is always
+among the card's newest three (the review, Nov 20). Route here is a secondary button whenever the row shows, so on every place's card. A
 moment kept from far off keeps its own spot and context line (where the walker stood), never the place's point; the
 find names the place. A plain capture from the stack still never finds (CA6). `PLACE_REACH_M` (60 m) now bounds only the
 found card's by-spot list.
