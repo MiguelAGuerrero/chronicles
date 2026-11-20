@@ -22,7 +22,7 @@ import type { Pause, Walk } from '../lib/types';
 import type { LiveTrace } from '../lib/useLiveTrace';
 import { useCaptures } from '../lib/useCaptures';
 import { settleWithin } from '../lib/settleWithin';
-import { barReminderUp, barStop, modalsUp, tabsHidden } from '../lib/tabsHidden';
+import { barReminderUp, barStop, barStops, modalsUp, tabsHidden } from '../lib/tabsHidden';
 import { showWalk } from '../lib/walkNav';
 import { Icon } from './icons';
 import { useEditAfterCapture } from './edit/EditOffer';
@@ -204,10 +204,8 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
     if (!returning.current && !wentBack.current && !barStopping(barStop.get(), walk.id, Date.now()) && !unsaved.hasEnded(walk.id)) editAfter.open(kept);
   };
 
-  const stop = async () => {
-    if (barStopping(barStop.get(), walk.id, Date.now())) return;
-    const mine = { walkId: walk.id, since: Date.now() };
-    barStop.set(mine);
+  // The bar's end of the walk: run once per walk, however many holds ask for it (tend tabs audit 53).
+  const endWalk = async () => {
     try {
       // Never under a memo recording, as Start (tabs audit 3); a memo still being saved after the wait is said once, and
       // the next hold goes through it, the memo saving into the ended walk (T35). The bar's photo is kept first, as on
@@ -236,6 +234,18 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
       if (!dropped) router.push(`/replay/${walk.id}`);
     } catch (e) {
       setSaid({ text: `The walk could not be stopped: ${e instanceof Error ? e.message : e}`, error: true });
+    }
+  };
+
+  const stop = async () => {
+    if (barStopping(barStop.get(), walk.id, Date.now())) return;
+    const mine = { walkId: walk.id, since: Date.now() };
+    barStop.set(mine);
+    try {
+      // A hold past the bound, the Stop back, joins the end under way: its spinner again, its replay pushed once.
+      await barStops.run(walk.id, endWalk);
+    } catch {
+      // The end says its own failure on the bar.
     } finally {
       barStop.set((s) => (s === mine ? null : s));
     }
