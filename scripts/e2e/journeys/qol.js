@@ -297,6 +297,8 @@ async function run(h) {
       g.clearWatch = (id) => { window.__clearCalls++; window.__openWatches.delete(id); return clear(id); };
     });
     const fix = (p) => c.setGeolocation({ longitude: p[0], latitude: p[1], accuracy: 6 });
+    // tend map audit 56 (the diff review's steward 5): Locate's one tap on each map that has it, held by one check.
+    const located = { navigate: false, explore: false };
     const lonLat = (s) => (s ? s.split(',').map(Number) : null);
     const fmt = (p) => (p ? p.map((v) => v.toFixed(5)).join(',') : String(p));
     const mAway = (a, b) => Math.hypot((a[0] - b[0]) * 111320 * Math.cos((b[1] * Math.PI) / 180), (a[1] - b[1]) * 111320);
@@ -467,6 +469,7 @@ async function run(h) {
       const off = center ? mAway(center, far) : NaN;
       // The fit centres the fix in the view above the drawer, so the canvas's own middle sits a little
       // south of it: inside the 250 m the fit frames is the test, not the exact middle.
+      located.navigate = !!center && off < 250 && !!walker && mAway(walker, far) < 5;
       check(center && off < 250, `qol QL10: Navigate's Locate frames the map around the fix 1 km away (canvas middle ${off.toFixed(1)} m off at ${fmt(center)}, z${zoom})`);
       check(zoom >= 13 && zoom <= 17.5, `qol QL10: Locate fits about 250 m around the fix (z${zoom})`);
       check(walker && mAway(walker, far) < 5, `qol QL10: the dot is drawn at the fix (data-walker ${fmt(walker)}, ${walker ? mAway(walker, far).toFixed(1) : '-'} m off)`);
@@ -591,6 +594,8 @@ async function run(h) {
       const dx = center ? ((near[0] - center[0]) * 111320 * Math.cos((center[1] * Math.PI) / 180)) / k : NaN;
       const dy = center ? -((near[1] - center[1]) * 111320) / k : NaN;
       const EXPLORE_PAD_SHIFT_PX = (84 - 24) / 2;
+      located.explore = !!center && Math.abs(dx) <= 3 && Math.abs(dy - EXPLORE_PAD_SHIFT_PX) <= 3 && !!walker && mAway(walker, near) < 5;
+      check(located.navigate && located.explore, 'tend map audit 56: one tap on Locate brings the map to where you stand, on Navigate and on Explore');
       check(center && Math.abs(dx) <= 3 && Math.abs(dy - EXPLORE_PAD_SHIFT_PX) <= 3 && walker && mAway(walker, near) < 5,
         `qol QL10: Explore's Locate frames the map around the fix, in the middle of the map below the title, and draws the dot (fix at canvas middle + (${dx.toFixed(1)}, ${dy.toFixed(1)}) px, ${EXPLORE_PAD_SHIFT_PX} px expected below; data-walker ${fmt(walker)})`);
       const s3 = await scaleBar();
