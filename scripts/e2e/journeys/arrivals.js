@@ -27,13 +27,32 @@ async function run(h) {
     await c.setGeolocation({ longitude: s0[0], latitude: s0[1] + 0.000002, accuracy: 6 });
     await pg.waitForTimeout(2500);
   };
-  // Along the grid's south street and on east, past the memorial and out of its range.
+  // Along the grid's south street and on east, past the memorial and out of its range. With E2E_SHOTS, the first
+  // arrival and leave are pictured mid-move and at rest, for the UI review (decision 0145).
+  const framed = new Set();
+  const frames = async (pg, sel, name) => {
+    if (!process.env.E2E_SHOTS || framed.has(name)) return false;
+    if (!(await pg.locator(sel).count())) return false;
+    framed.add(name);
+    for (const ms of [0, 90, 400]) {
+      if (ms) await pg.waitForTimeout(ms === 90 ? 90 : 310);
+      await shot(pg, `${name}-${ms}ms`);
+    }
+    return true;
+  };
   const walk = async (c, pg, from, to, y = -0.5) => {
     const steps = Math.ceil(Math.abs(to - from) / 0.05);
     for (let k = 1; k <= steps; k++) {
       const p = at(from + ((to - from) * k) / steps, y);
       await c.setGeolocation({ longitude: p[0], latitude: p[1], accuracy: 6 });
-      await pg.waitForTimeout(900);
+      const t0 = Date.now();
+      if (process.env.E2E_SHOTS) {
+        while (Date.now() - t0 < 600) {
+          if ((await frames(pg, '[data-testid=enter-grow]', 'arrivals-grow')) || (await frames(pg, '[data-testid=leave-shrink]', 'arrivals-shrink'))) break;
+          await pg.waitForTimeout(15);
+        }
+      }
+      await pg.waitForTimeout(Math.max(0, 900 - (Date.now() - t0)));
     }
   };
 

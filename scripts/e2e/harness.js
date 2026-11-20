@@ -438,8 +438,15 @@ async function createHarness() {
                 pe: marker ? getComputedStyle(marker).pointerEvents : null, tab: marker ? marker.tabIndex : null,
               };
               enters.push(entry);
-              // An ease-in (a leave) has barely moved one frame in: look again 60 ms on.
-              if (!entry.animated) setTimeout(() => { entry.animated = el.isConnected && moving(el); }, 60);
+              // A leave eases in and has barely moved one frame in: look on, frame by frame, while it is on the page
+              // (a screenshot stalls the page's timers, so a single look later can find it gone).
+              let frames = 0;
+              const look = () => {
+                if (entry.animated || !el.isConnected || ++frames > 30) return;
+                entry.animated = moving(el);
+                requestAnimationFrame(look);
+              };
+              if (!entry.animated) requestAnimationFrame(look);
             });
         }
     }).observe(document, { childList: true, subtree: true });
