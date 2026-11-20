@@ -1,0 +1,67 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inbox",
+        "remove",
+        "T41",
+        "--reason",
+        "the owner's yes, built in tend replay T41; the card's kept clause catches up only with the late-capture [loop] fix in docs/DEFERRED.md"
+      ],
+      "target": "sha256:9475b19caa1748b20ec964d4c6f79b2b3311e8b958f983832a99f07cd337d0c3"
+    },
+    {
+      "argv": [
+        "inbox",
+        "add"
+      ],
+      "body": "- **T? [owner] A memo with no place of its own plays where its start time falls on the path** (2026-11-20)\n  Area: replay. Seen: the T41 review's steward, silent question 3 (`unsaved-bar-saving-replay-watch-again-settled`, the `unsaved` journey, `/tend inbox` T41, Nov 20): a memo kept with no fix of its own is told at the path's end. `src/lib/ceremony/story.ts` l.264 already places a moment with no place at `positionAt(path, tFirst)`, which waits at the end of the run before a gap (`walkerAt`, `src/lib/replay.ts`), so the build first finds which case such a memo meets: a start time inside the trace, or one after its last fix (then the run before it is where the walker was last known). Rests on: the owner's answer, in person, 2026-11-20, \"Place it by its time\"; VISION.md, Honour: \"Keep a moment where and when it happened\"; Return: \"truthfully\".\n  Recommended: a memo with no fix in the last 15 s (`pieceStamp.ts` l.22) and none found after plays at the point of the path its start time falls on, not after the last fix; its pin on the card stands there too; no new words. /vision: aligned (Honour, where and when it happened; Return, truthfully; no word, control or count added).\n  Precedent: Relive pops a route's photos up along the line where they were taken (from memory, not yet recorded); Polarsteps puts a trip's steps on its route (from memory, unverified; `docs/research/adjacent-apps.md`, \"Replay a walk; moments on a map\").\n  Otherwise: leave it where the path ends.\n",
+      "number": "T51"
+    },
+    {
+      "argv": [
+        "inbox",
+        "note",
+        "@2"
+      ],
+      "body": "  Nov 20: the owner's yes, in person, 2026-11-20: \"Place it by its time (Recommended)\". Waits for a build.\n",
+      "target": "sha256:cc161b2a9c1375a7b16764305f3777c1bc2c33996df875b06d189fa47afd5493"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Replay ceremony (RC1-RC48"
+      ],
+      "body": "- [loop] **A corner bubble stands tight above the scale bar and the map's info button** (the T41 review's ux U3, Nov 20, low, opinion; existing behaviour, not the T41 change): a loose moment's memo bubble on a walk with no trace sits at `insets.bottom + STAGE_BOTTOM` (`components/ceremony/Bubbles.tsx` l.166), its foot a few px over \"100 m\" and the (i) (picture `unsaved-bar-saving-replay-watch-again-settled`, 390 px). Test: `tend replay audit N: a corner bubble clears the scale bar by the stage's gap`.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Tabs and the recording bar",
+        "--after",
+        "A memo save that never settles holds Start and Walk here for good"
+      ],
+      "body": "- [loop] **A capture that lands in a walk after its replay snapped it is not counted on the card or the walk's row, and may never be placed** (`/tend inbox` T41 build, Nov 20, medium; fails E-replay-1; the T41 review's steward S1, ux U2 and auditor call 8; the next replay build). A memo saved through the bar's Stop (decision 0227) lands after the replay's snap: the walk's summary, written at the snap (`finish.ts` l.126-146), counts the walk's moments before the memo's row exists, and the replay derives it again only with no summary, no build or a new build (`replay/[id].tsx` l.371), so the card's kept clause and the walk's row (`walkRowMeta`) say nothing of the memo the replay now plays (`tend replay T41`), until any moment of that walk is deleted, which recounts the kinds from the rows (`countsOf`, `db/index.web.ts` l.402, l.574; `sqliteStore.ts` l.266, l.396). A memo started with no fix in the last 15 s (`pieceStamp.ts` l.22) whose one-fix read finds none is never placed on the trace either, since the snap that places moments by time ran before it. Seen: the unsaved journey's pictures `unsaved-bar-saving-replay-landed` and `-taken-in-390` (the card reads \"0 m · 24 s\", no kept clause, with the memo in the walk). AGENTS.md, \"Truth vs cache\" (\"recompute from the trace, never patch derived data\"); VISION.md, Always, \"**Moments and the trace are truth**; streets, areas and summaries are recomputed\". Shape (the steward's): a capture kept into an ended walk sets `snapped_build: null`; the open replay's read again (`replayArrivals`), finding the walk unsnapped, runs the opener's snap before it shows it; no new words. Beside it, the auditor's F3: deleting a late capture from the card under-says another of its kind, since `summaryLess` subtracts a capture the summary never counted (`replay/[id].tsx` l.84, `deletion/core.ts` l.82); the re-derivation removes the cause. Tests: `tend tabs audit N: a memo landing in an ended walk is counted and placed at its next replay` (unit) and `tend replay audit 20: deleting a memo that landed after the snap leaves an earlier memo said on the card`.\n  - The owner, in person 2026-11-20: the clause may catch up while the card is open; only new copy is forbidden.\n"
+    },
+    {
+      "argv": [
+        "inbox",
+        "set",
+        "@2"
+      ],
+      "body": "- **T51 [owner] A memo with no place of its own plays where its start time falls on the path** (2026-11-20)\n  Area: replay. Seen: the T41 review's steward, silent question 3 (`unsaved-bar-saving-replay-watch-again-settled`, the `unsaved` journey, `/tend inbox` T41, Nov 20): a memo kept with no fix of its own is told at the path's end. `src/lib/ceremony/story.ts` l.264 already places a moment with no place at `positionAt(path, tFirst)`, which waits at the end of the run before a gap (`walkerAt`, `src/lib/replay.ts`), so the build first finds which case such a memo meets: a start time inside the trace, or one after its last fix (then the run before it is where the walker was last known). Rests on: the owner's answer, in person, 2026-11-20, \"Place it by its time\"; VISION.md, Honour: \"Keep a moment where and when it happened\"; Return: \"truthfully\".\n  Recommended: a memo with no fix in the last 15 s (`pieceStamp.ts` l.22) and none found after plays at the point of the path its start time falls on, not after the last fix; its pin on the card stands there too; no new words. /vision: aligned (Honour, where and when it happened; Return, truthfully; no word, control or count added).\n  Precedent: Relive, a route replayed as a video, \"its photos popping up along the line\" (unverified), and Polarsteps, \"a trip drawn as a route with steps\" (unverified), `docs/research/adjacent-apps.md`, \"Replay a walk; moments on a map\"; neither records where a photo with no place stands (not yet recorded).\n  Otherwise: leave it where the path ends.\n  Nov 20: the owner's yes, in person, 2026-11-20: \"Place it by its time (Recommended)\". Waits for a build.\n",
+      "target": "sha256:4706553e8899c724caed7c6aa5e52a4853aa6e231b46d4b4b9a8ae643ae7b446"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 20, `/tend inbox T41 yes --deploy=main`, one build** (opened from `a556714e`, rebased onto `10bbaa28` at the diff pause; lenses 0 and 7's build only; lenses 1-6 belong to a sweep and were not run).\n- T41, the owner's yes in person Nov 19 (\"Yes, as recommended\"), built: `tend replay T41` the open replay hears its walk on the capture bus; a capture kept after it opened (a memo still being saved through the bar's Stop, decision 0227) is read in on the card, pinned there where it has a place, and played in the next Watch again; while the walk is told it waits for the card; no word, no indicator, the beats and their order unchanged. The card's kept clause catches up only with the late-capture `[loop]` fix in `docs/DEFERRED.md` (\"Tabs and the recording bar\"), the next replay build. The owner, in person 2026-11-20, \"Being in the walk is enough\": a memo that lands mid-telling is not owed a telling of its own; every later replay plays it.\n- Lens 0: the replay had no line; three drafted (`docs/expectations/replay.md`, proposed), the first reworded by the steward, the second's grounds corrected. E-replay-1 failed (provisional): every moment is played and pinned (`tend replay T41`), but the card's kept clause does not say a memo that landed late (its defect, the late-capture item). E-replay-2 met (RR7, the `replay` journey). E-replay-3 met (`tabs audit U13`, `npm test`).\n- The review (one round; the auditor, the ux-reviewer and the steward): `tend replay audit 17` the unsaved journey's memo now has a place and is pinned on the card when it comes, in view above the sheet, the hint with it, the buttons unmoved, the map not refitted; `18` a read begun on the card that settles after Watch again waits for the next card (the ear, `replayArrivals`, tested by its end effect); `19` a memo landing during the telling is not played in it and is played in the next Watch again. Deferred: the late capture never counted or placed (medium, with the auditor's F3 inside it), the corner bubble over the scale bar (low, existing). Rejected: sequencing the gap reloads' reads (no failing input).\n- Filed: T51 (a memo with no place of its own plays where its start time falls on the path; the owner's yes in person Nov 20, waits for a build); `[loop]` in \"Tabs and the recording bar\" (the late capture, medium, the owner's \"only new copy is forbidden\" noted) and in \"Replay ceremony\" (the corner bubble, low).\n- Waiting for builds, one per run: T42, T44, T45, T48, T49, T50 (the owner's yeses) and T51.\n- The balance, as the last sweep read it: outgrowing its base (ten areas rough); an inbox run moves no area's state.\n- Journeys on the final build: unsaved, replay, launch.\n"
+    }
+  ]
+}
