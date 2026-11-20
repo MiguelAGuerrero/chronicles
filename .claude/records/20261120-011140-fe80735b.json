@@ -1,0 +1,11 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inflight",
+        "add"
+      ],
+      "body": "| Places come and go with a settle on a walk (a \"?\" grows in on a slight spring as walking brings it within range and shrinks out as it falls out of range, only on screen, never on opening, never while riding or within 30 s of leaving; PI1-PI14) | `claude/poi-transitions-rcbyv0` | specced 2026-11-20, the owner's answers in and the plan approved; tests first next |\n"
+    }
+  ]
+}
