@@ -6,7 +6,7 @@ import { distanceM } from '../../lib/geo';
 import type { Waypoint } from '../../lib/nav/types';
 import type { JourneyPlan } from '../../lib/outing/journeyPlan';
 import { ANOTHER_LABEL, BACK_LABEL, CHANGE_LABEL, CHIPS_LINE, DISMISS_LABEL, FOLLOW_LABEL, FURTHER_LABEL, HERE_LABEL, LATER_LABEL, LEAVE_OUT_LABEL, NEW_TOWN_LINE, MAPS_FAILED_LINE, NOWHERE_LABEL, RETRY_LABEL, STRAIGHT_LINE, TOWNS_FAILED_LINE, PEEK_LABEL, READ_FAILED_LINE, REACH_LINE, SEE_LABEL, TOO_FAR_LINE, TOWNS_LINE, UNDO_LABEL, UNFOUND_LINE, UNPEEK_LABEL, WHERE_LABEL, awayLine, cardSummary, chapterLine, laterLine, lookedLine, startLine, nextMoveLine, nothingLine, reachLabel, townLine } from '../../lib/outing/journeyWords';
-import { outingHeld } from '../../lib/outing/map';
+import { outingFrame, outingHeld } from '../../lib/outing/map';
 import { useJourney } from '../../lib/outing/useJourney';
 import { CHAINS_LABEL, CLOSE_LABEL, HOURS_LINE, NO_PICK_LINE, READING_LINE, SLOT_HINT, START_LABEL, SWAP_LABEL, TITLE, cardLine, reasonLine, slotLine } from '../../lib/outing/words';
 import { hideTabs, modalsUp } from '../../lib/tabsHidden';
@@ -81,6 +81,9 @@ export function OutingPage(props: {
   // still where its last fit left it (tend map audit 49). `hand` is the content and the frame they moved it over.
   const [hand, setHand] = useState<{ content: string; sheetH: number; width: number } | null>(null);
   const held = outingHeld(hand, content, { sheetH, width });
+  // The frame clears the scale row, which stays 12 px above the sheet (tend map audit 50).
+  const frame = outingFrame({ sheetH: held.sheetH, insetTop: insets.top });
+  const scaleInset = outingFrame({ sheetH, insetTop: insets.top }).scaleInset;
   const fitN = useMemo(() => {
     let h = 7;
     for (const ch of `${content}|${held.sheetH}|${held.width}`) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
@@ -167,7 +170,7 @@ export function OutingPage(props: {
     <View style={[StyleSheet.absoluteFill, styles.over]} testID="outing" accessibilityViewIsModal>
       {/* The points of the line handed to the map, for the e2e: a road has more than the towns it joins (RE1). */}
       <View style={StyleSheet.absoluteFill} testID="outing-map" {...({ dataSet: { linkPoints: j.map.link[0]?.length ?? 0 } } as object)}>
-        <WalkMap trace={NONE} walked={NONE} fog={NONE} captures={NONE} walker={props.you} route={j.map.route} alternates={j.map.link} routeGrades={NONE} foundPins={j.map.pins} fitBounds={j.map.fit} fitKey={fitN} fitPadding={{ top: insets.top + 64, right: 24, bottom: held.sheetH + 12, left: 24 }} scaleInset={{ bottom: sheetH + 12, left: 12 }} onUserMove={byHand} onFitSettled={fitSettled} onCameraChange={cameraMoved} hideLabels />
+        <WalkMap trace={NONE} walked={NONE} fog={NONE} captures={NONE} walker={props.you} route={j.map.route} alternates={j.map.link} routeGrades={NONE} foundPins={j.map.pins} fitBounds={j.map.fit} fitKey={fitN} fitPadding={frame.padding} scaleInset={scaleInset} onUserMove={byHand} onFitSettled={fitSettled} onCameraChange={cameraMoved} hideLabels />
       </View>
       <View style={[styles.top, { top: insets.top + 8 }]}>
         <View style={styles.field}>

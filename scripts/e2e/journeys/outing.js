@@ -90,13 +90,27 @@ async function run(h) {
     // The after picture at 320 px for the review, then back to 390.
     const vp = pg.viewportSize();
     await pg.setViewportSize({ width: 320, height: vp.height });
-    await pg.waitForTimeout(900);
+    await pg.waitForTimeout(1800);
+    // tend map audit 50 (the diff review's ux U1): no stop, and not you, lies under the scale bar or the credits (i).
+    {
+      const shops = [-247, -243, -239, -235].map((x) => at(x, 0.3));
+      const under = await pg.evaluate(([pts, you]) => {
+        const box = (sel) => document.querySelector(sel)?.getBoundingClientRect() ?? null;
+        const bar = box('[data-testid=outing-map] [data-testid=scale-bar]');
+        const iB = box('[data-testid=outing-map] .maplibregl-ctrl-attrib-button');
+        const inside = (r, [x, y]) => !!r && x >= r.left - 6 && x <= r.right + 6 && y >= r.top - 6 && y <= r.bottom + 6;
+        return [...pts, you].map((p) => window.__project(p)).filter((xy) => inside(bar, xy) || inside(iB, xy)).map((xy) => xy.map(Math.round));
+      }, [shops, here]);
+      check(under.length === 0, `tend map audit 50: ${where} at 320, no stop and not you lie under the scale bar or the credits (i) (${JSON.stringify(under)})`);
+    }
     await shot(pg, `tend-map-24-${where.replace(/[^a-z]+/gi, '-').replace(/^-|-$/g, '')}-320`);
     await pg.setViewportSize(vp);
     await pg.waitForTimeout(900);
   };
   const here = at(-248, 0);
   await c.setGeolocation({ longitude: here[0], latitude: here[1], accuracy: 6 });
+  // The map's projection for the checks below (`window.__project`), defined only when the page asks for perf counts.
+  await c.addInitScript(() => { window.__perf = {}; });
   await pg.goto(exploreUrl);
   // The first fix places Explore at Curio Row, as the planner's journey waits for its area.
   await pg.waitForSelector('[data-testid=atlas-tile][data-name="Curio Row"]', { timeout: 60000 }).catch(() => {});
