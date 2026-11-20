@@ -7,7 +7,7 @@ owner. Changed only through `npm run expectations`; a line's words, status and a
   Check: pending "a '?' card names no kind until the place is found; the find is kept under the kind whose row hides it"
   Grounds: VISION "Who it is for"; not yet recorded (how adjacent apps name a place still to find, and keep a find under a kind)
 - E-presence-2 [proposed] A person who goes out to notice, using presence, would reasonably expect a street listed under Storefronts to be lined with places they could walk into (a shop, a café, a museum), never lit by a park, a monument or memorial, or a cemetery, whichever map holds it.
-  Check: test:"tend presence 2: an Overture historic site, park, trail, memorial site or cemetery weighs nothing toward storefronts, as the map's do"
+  Check: test:"tend presence 2: an Overture park, trail, memorial site or cemetery weighs nothing toward storefronts, as the map's do"
   Grounds: VISION "Who it is for"; adjacent-apps "Say what an area holds: findable places apart from the places you go into" (Google Maps, Walk Score as a counter-example for its score; unverified)
 - E-presence-3 [proposed] A person who goes out to notice, using presence, would reasonably expect a kind they switch off in "What I'm into" to stop lighting its area's card, and to light it again when they switch it back on.
   Check: test:"SG12: a Sights kind switched off leaves its bar; back on restores it; Local life has no switch"

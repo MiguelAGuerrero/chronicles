@@ -1,6 +1,7 @@
 // tend presence 2 (2026-11-19): SF10 says parks, monuments, memorials and cemeteries weigh nothing toward storefronts. The map's
 // did not; Overture's same places did, through their roots (`cultural_and_historic` a storefront `heritage`,
-// `sports_and_recreation` a storefront `sport`). The owner, in person, Nov 19: "Monument, counts nothing (Recommended)".
+// `sports_and_recreation` a storefront `sport`). The owner, in person, Nov 19: "Monument, counts nothing (Recommended)"; and Nov 20,
+// "Enterable counts both (Recommended)": an Overture historic site counts again, with no mark (tend presence audit 2).
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
@@ -12,14 +13,13 @@ const SRC = join(__dirname, '..', '..', '..');
 
 const FIXTURES = ['lib/__tests__/landing/phillipsburg.json', 'lib/__tests__/complexes/whitehall.json', 'lib/__tests__/complexes/harrisburg.json'];
 
-test('tend presence 2: an Overture historic site, park, trail, memorial site or cemetery weighs nothing toward storefronts, as the map\'s do', () => {
+test('tend presence 2: an Overture park, trail, memorial site or cemetery weighs nothing toward storefronts, as the map\'s do', () => {
   // The map's, as SF10 pins them.
   assert.equal(osmWeight('park', 'park'), 0);
   assert.equal(osmWeight('monument', 'monument'), 0);
   assert.equal(osmWeight('cemetery', 'cemetery'), 0);
   // Overture's, under the names its release uses (the three real fixtures hold each).
   for (const h of [
-    ['cultural_and_historic', 'historic_site'],
     ['cultural_and_historic', 'memorial_site'],
     ['cultural_and_historic', 'memorial_site', 'cemetery'],
     ['sports_and_recreation', 'park'],
@@ -34,13 +34,15 @@ test('tend presence 2: an Overture historic site, park, trail, memorial site or 
     const txt = readFileSync(join(SRC, f), 'utf8');
     for (const m of txt.matchAll(/"hierarchy":\s*(\[[^\]]*\])/g)) {
       const h: string[] = JSON.parse(m[1]);
-      if (!h.some((x) => ['historic_site', 'memorial_site', 'park', 'recreational_trail_or_path'].includes(x))) continue;
+      if (!h.some((x) => ['memorial_site', 'park', 'recreational_trail_or_path'].includes(x))) continue;
       seen++;
       assert.equal(overtureWeight(h), 0, h.join(' > '));
     }
   }
-  assert.ok(seen >= 50, `the fixtures hold such places (${seen})`);
-  // What still counts stays: a place of worship, a cultural centre, a sports centre, a restaurant (0180: a castle stays a storefront).
+  assert.ok(seen >= 20, `the fixtures hold such places (${seen})`);
+  // What still counts stays: a place of worship, a cultural centre, a sports centre, a restaurant; a historic site and a manor
+  // you can walk into (tend presence audit 2, the owner, Nov 20).
+  assert.equal(overtureWeight(['cultural_and_historic', 'historic_site']), 1);
   assert.equal(overtureWeight(['cultural_and_historic', 'place_of_worship']), 0.5);
   assert.equal(overtureWeight(['cultural_and_historic', 'cultural_center']), 1);
   assert.equal(overtureWeight(['cultural_and_historic']), 1);
