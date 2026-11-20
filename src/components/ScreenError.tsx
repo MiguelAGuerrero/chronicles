@@ -36,7 +36,8 @@ function ErrorScreen({ error, retry, exit, body }: ErrorBoundaryProps & { exit: 
  * page (bug, Nov 1: a white screen after Stop on an iPhone). The walk and its
  * captures are already stored; this only redraws the screen. The message is
  * kept on screen so a report can say what broke. Its line says what the open walk is, or nothing with none open (tend
- * tabs 1; the owner, Nov 20, O35 extended to every error screen but the replay's): a day, What I'm into, `/chronicle`.
+ * tabs 16): the owner's answer of Nov 20 extended O35 to the tabs; a day, What I'm into and `/chronicle` follow the same
+ * line as the run's own call (they said "saved" with no walk at all, a bug).
  */
 export function ScreenError(props: ErrorBoundaryProps) {
   return <ErrorScreen {...props} exit="dismiss" body={walkErrorLine(useOpenWalkInfo())} />;

@@ -84,3 +84,14 @@ test('tend tabs audit 61: a route\'s own ErrorBoundary is read, not skipped', ()
   assert.ok(own.test('export const ErrorBoundary = () => null;'));
   assert.ok(!own.test('export { ScreenError as ErrorBoundary } from "x";'));
 });
+
+// The diff review's steward 4: the comment credited the owner with every error screen but the replay's; the owner's
+// answer of Nov 20 was the tabs'. The day, What I'm into and `/chronicle` were the run's own call (a bug), and the
+// replay's line is the owner's second answer (tend tabs audit 58).
+test('tend tabs audit 62: ScreenError\'s comment credits the owner with the tabs alone', () => {
+  const doc = screenError.slice(screenError.indexOf('/**\n * Shown in place of a screen'), screenError.indexOf('export function ScreenError'));
+  assert.ok(doc.length > 0);
+  assert.doesNotMatch(doc, /O35 extended to every error screen/);
+  assert.match(doc, /extended O35 to the tabs/);
+  assert.match(doc, /the run's own call/);
+});
