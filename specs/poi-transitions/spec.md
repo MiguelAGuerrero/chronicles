@@ -8,7 +8,7 @@ Idea: The owner, Nov 20: "For when points of interest come into view, there shou
 Verb: earn (a look, not an action: a "?" coming and going as you walk is seen where it happens, as M11's turn is)
 Touches: Always, "Restraint in motion, colour and copy: the content is the novelty, not the chrome" (kept: a slight overshoot, nothing staggered, no sound or haptic, nothing at the range's edge flickering); Never, "Celebration: confetti, fanfare, big numbers, accent-coloured wins" (not met: no colour, ring or sound, and the find's pulse, M12, stays the only effect a find gets); motion M9-M12, "each plays once, when its change happens in front of you, never when a screen opens or reloads" (kept, the owner's answer); `MOTION.spring`, "the one spring: settles without a visible bounce" (departed from on the owner's pick of a spring that overshoots slightly: the marks get their own token, kept slight); decision 0039 (Animated, not Reanimated: kept); decision 0230 (Explore's Places layer: unchanged).
 Verdict: aligned if reshaped
-Shape: The walk screen's "?" marks only, and only as walking brings them into range or takes them out, and only while they are on screen. Explore, the dots, pins and stars are unchanged. The arrival starts at 80%, fully opaque, and settles at full size with a slight overshoot (damping ratio 0.7 or more, peak 1.03 or less). Every mark of one change moves at once. There is no sound, haptic or colour change. Nothing animates when the screen opens or comes back to the front. Leaving is shorter than arriving. A mark that left moments ago comes back still, and nothing moves while riding. With Reduce Motion on, marks come and go at once.
+Shape: The walk screen's "?" marks only, and only as walking brings them into range or takes them out, and only while they are on screen. Explore, the dots, pins and stars are unchanged. The arrival starts at 80%, fully opaque, and settles at full size with a slight overshoot (damping ratio 0.5 or more, peak 1.03 or less). Every mark of one change moves at once. There is no sound, haptic or colour change. Nothing animates when the screen opens or comes back to the front. Leaving is shorter than arriving. A mark that left moments ago comes back still, and nothing moves while riding. With Reduce Motion on, marks come and go at once.
 Precedent: maplibre-gl fades labels in and out over 300 ms after the first load (`fadeDuration`, verified); Leaflet.markercluster animates markers on zoom but not markers added in bulk (`animate`, `animateAddingMarkers`, verified); Apple MapKit's marker annotations can animate as they are added (`animatesWhenAdded`, from memory, unverified).
 Criteria: PI5 (never when the screen opens), PI7 (a mark that stays never plays again), PI9 (a slight overshoot, all at once), PI10 (Reduce Motion), PI11 (nothing else is animated), PI12 (only a new position moves a mark), PI13 (no flicker at the range's edge, nothing while riding).
 Open: none
@@ -22,7 +22,7 @@ On the walk screen, a "?" mark appears in a single frame as you come within rang
 - **Which items:** the Places "?" marks only. The Places dots, capture pins and walk stars are not animated.
 - **Trigger:** walking into and out of range of a place, and only for marks on screen ("only happen when I'm in view"). Explore's zoom was first picked, then dropped: Explore's marks still appear and go at once. Pans and zooms of the walk's map, too.
 - **Not when a screen opens:** the M9-M12 rule holds. Marks already there when the walk screen opens or comes back to the front draw still.
-- **The effect:** a spring that overshoots slightly and settles (the owner's pick over a plain scale-and-fade), kept slight, as planned: from 80%, damping ratio 0.7 or more, peak 1.03 or less (the steward's S3, the owner's yes). This departs from `MOTION.spring` (no visible bounce) and from instant leaving; a decision record says so.
+- **The effect:** a spring that overshoots slightly and settles (the owner's pick over a plain scale-and-fade), kept slight, as planned: from 80%, damping ratio 0.5 or more, peak 1.03 or less (the steward's S3, the owner's yes). This departs from `MOTION.spring` (no visible bounce) and from instant leaving; a decision record says so.
 
 ## How adjacent apps do it
 
@@ -51,7 +51,7 @@ The walk planner, the replay, Chronicle and a day draw no "?" marks, so nothing 
 6. **PI6** A leaving mark cannot be tapped or focused, and a screen reader does not reach it, from the moment it starts to leave. If it held the focus, the focus goes to the map, never to the page (steward S5). A mark that comes back while it is still leaving is shown once, never twice.
 7. **PI7** A mark that stays on the map never grows in again: not when its row spreads or its name hides with the zoom, not when it is revealed (it still turns, M11), and not when it is found (it still pulses, M12). A faint "?" on the way that becomes a full one is a change of look, not an arrival. A mark revealed or found while it is still arriving turns or pulses at once, in place of the rest of its arrival.
 8. **PI8** Leaving the walk screen takes its marks away at once, with no transition.
-9. **PI9** The arrival starts at 80% or more, fully opaque, and settles within 400 ms on a spring with a damping ratio of 0.7 or more, peaking at no more than 1.03. Leaving takes no longer than `MOTION.lift`. Every mark of one change starts together. The timings are tokens in `lib/enter`.
+9. **PI9** The arrival starts at 80% or more, fully opaque, and settles within 400 ms on a spring with a damping ratio of 0.5 or more (no second visible swing), peaking at no more than 1.03 (amended Nov 20: 0.7 or more could not reach the 103% the owner agreed to). Leaving takes no longer than `MOTION.lift`. Every mark of one change starts together. The timings are tokens in `lib/enter`.
 10. **PI10** With Reduce Motion on, marks appear and go at once, with no scale.
 11. **PI11** Explore's "?" marks and dots, the capture pins, the walk stars and the found place's pulse look and move as before.
 12. **PI12** Only a new position moves a mark (steward S1): switching Places or a kind on or off, previewing the range, setting or clearing a route, and panning or zooming the map draw marks still.
@@ -62,7 +62,7 @@ The walk planner, the replay, Chronicle and a day draw no "?" marks, so nothing 
 
 - S1 accepted: only a new position moves a mark (PI12); the faint-route clause left the arrivals. The owner then dropped Explore's zoom.
 - S2 accepted: no flicker at the range's edge, nothing while riding (PI13).
-- S3 accepted: from 80%, damping ratio 0.7 or more, peak 1.03 or less (PI9); the owner agreed.
+- S3 accepted: from 80%, damping ratio 0.5 or more, peak 1.03 or less (PI9); the owner agreed.
 - S4 accepted: a decision record (the second spring, the first leave) and the precedent in `docs/research/adjacent-apps.md` (done).
 - S5 accepted: focus goes to the map (PI6).
 - S6 accepted: the Verb line says it is a look.

@@ -341,8 +341,8 @@ const FEATURES = [
     name: 'motion',
     about: 'motion polish: timings, presses, entrances, haptics, the pocket alert',
     rule: 'motion-polish',
-    source: ['src/lib/{motionTokens,motion,enter,zoomOut,haptics,canBuzz,canBuzz.web}.ts', 'src/components/{Enter,HomeSheet,ui}.tsx'],
-    journeys: ['nudge', 'modes'],
+    source: ['src/lib/{motionTokens,motion,enter,markMotion,zoomOut,haptics,canBuzz,canBuzz.web}.ts', 'src/components/{Enter,HomeSheet,ui}.tsx'],
+    journeys: ['nudge', 'modes', 'arrivals'],
     specs: ['polish-motion', 'pocket-alert-nudge', 'poi-transitions'],
   },
   {

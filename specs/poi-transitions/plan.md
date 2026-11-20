@@ -14,7 +14,7 @@ A new core module, `src/lib/markMotion.ts` (`// @layer core`):
   it, PI12), not riding (PI13), on screen (PI4), not first sight (PI5) and, for an arrival, not recently left (PI13).
   A mark in both sets stays, whatever changed in its look (PI7). A mark that comes back while still leaving is shown
   once (PI6).
-- `MARK_MOTION`: `fromScale: 0.8`, opacity 1 throughout the arrival, a spring of its own with a damping ratio of 0.7
+- `MARK_MOTION`: `fromScale: 0.8`, opacity 1 throughout the arrival, a spring of its own with a damping ratio of 0.5
   or more, `leaveMs: MOTION.lift` (scale to 0.8, opacity to 0), `backStillMs: 30_000`.
 - `springPeak(spring)` and `springSettleMs(spring)` work these out from the spring's own physics, so PI9 is tested
   on the token rather than on a stopwatch.
@@ -74,7 +74,7 @@ street grid. It walks past places with Places on, reusing `marks`' walking steps
 | PI6 | unit: `PI6: a mark back while leaving is shown once`; journey: `PI6: a leaving "?" takes no tap or focus, is hidden from a screen reader, and hands a held focus to the map` |
 | PI7 | unit: `PI7: a mark that stays never arrives again` (spread, name hidden, revealed, found, faint to full), `PI7: a reveal or find mid-arrival turns or pulses`; journey: `PI7: a reveal still turns and a find still pulses, with no grow` |
 | PI8 | journey: `PI8: leaving the walk screen takes the marks away at once` |
-| PI9 | unit: `PI9: from 80%, opaque, damping ratio 0.7 or more, peak 1.03 or less, settled within 400 ms`, `PI9: leaving takes no longer than MOTION.lift`, `PI9: a change's arrivals are one set` |
+| PI9 | unit: `PI9: from 80%, opaque, damping ratio 0.5 or more, peak 1.03 or less, settled within 400 ms`, `PI9: leaving takes no longer than MOTION.lift`, `PI9: a change's arrivals are one set` |
 | PI10 | journey: `PI10: with Reduce Motion, marks come and go still` (`emulateMedia({ reducedMotion: 'reduce' })`) |
 | PI11 | unit: `PI11: with no context nothing moves`; journey: `PI11: Explore's "?" and the pins and stars play no grow or leave` |
 | PI12 | unit: `PI12: the context holds Places, range, kinds, places read, route and riding, never the position`, `PI12: a changed context moves nothing`; journey: `PI12: switching Places on draws its "?" still` |
@@ -151,7 +151,7 @@ it quieter, any of which the owner can overrule:
 - S1 (a catch-all moved far more than the owner's triggers): accepted. Only a new position moves a mark (PI12). The
   owner then narrowed the slice to the walk.
 - S2 (marks flickering at the range's edge): accepted, PI13.
-- S3 (a 0.6 to 1.06 scale reads as a bounce): accepted. From 80%, damping ratio 0.7 or more, peak 1.03 (PI9). The
+- S3 (a 0.6 to 1.06 scale reads as a bounce): accepted. From 80%, peak 1.03, damping ratio 0.5 or more (PI9). The
   owner agreed.
 - S4 (no decision record): accepted, under Files to touch. The precedent is in `docs/research/adjacent-apps.md`.
 - S5 (a held focus stranded): accepted, PI6.
