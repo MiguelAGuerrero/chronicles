@@ -1,0 +1,14 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "set",
+        "Four views still format"
+      ],
+      "body": "- [loop] (medium) Seven views still format a distance with the store's units, which the React Compiler cannot see, so a line it memoized can keep the old units after a switch on Navigate: the walk screen (`src/app/walk.tsx`: the strip's numbers, the walk's settings' range, its sentence and pass-by note, the dead-zone nudge through `deadZoneNudge`), the replay (`src/app/replay/[id].tsx`), the home sheet (`src/components/HomeSheet.tsx`, the walks rows, through `walkRowMeta`), the gap's drawing (`src/components/GapDraw.tsx`), the gap's card (`src/components/GapCard.tsx`, through `stretchLines`), the recording bar (`src/components/RecordingBar.tsx`, through `recordingLine`) and the navigation hook (`src/lib/nav/useNavigation.ts`). `tend map 23` bound Explore, its tiles and card and Navigate's ready settings and strip (`useDistance`, `lib/useUnits`), and stopped at the size tripwire; `tend map audit 48`'s scan follows the libs that format with the store into their views. Its test's list (`LEFT` in `src/lib/__tests__/map/unitsBound.test.ts`) holds these seven, each named here, and fails when one is fixed, until it leaves the list (the `/tend map` lenses' auditor 1 and 2, the diff review's auditor 1, Nov 20; QL16; E-map-3)\n",
+      "target": "sha256:0d4dc9c652c26833df1236a261a35252e2b375edfa50d72119e1f02e332c4775"
+    }
+  ]
+}
