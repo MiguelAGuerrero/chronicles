@@ -5,7 +5,7 @@ import { webData } from '../edit/EditedPhoto';
 import { theme } from '../ui';
 import { PICTURE, picturePose, pictureTaps, type StageCtx } from './layout';
 import { Still } from './Still';
-import { useLive, useLiveStyle } from './useLive';
+import { useLiveStyle } from './useLive';
 
 /**
  * One moment's picture standing at its place on the map (replay ceremony RC28, RC34): a small frame on a short stalk,
@@ -15,8 +15,9 @@ import { useLive, useLiveStyle } from './useLive';
  *
  * It is a control (`replay-ceremony ui 1`, the UI review's U1): a tap opens its moment in the viewer, the replay
  * holding until the viewer closes, as the stack's does. Its target is 44 pt around the tile. Whether it takes the tap
- * is one flag read from the frame (`pictureTaps`: not under a later picture, not under a card), so the picture
- * renders when that changes and at no other time; a tap it does not take goes on to what lies under it.
+ * (`pictureTaps`: not under a later picture, not under a card) is written on the control frame by frame, as its place
+ * is (`replay-ceremony ui 15`): a render to switch it was two commits as each card left. A tap it does not take goes
+ * on to what lies under it.
  */
 function Standing({ o, ctx, index }: { o: PictureOverlay; ctx: StageCtx; index: number }) {
   const key = o.key;
@@ -34,9 +35,9 @@ function Standing({ o, ctx, index }: { o: PictureOverlay; ctx: StageCtx; index: 
     const p = now(f);
     return p ? { opacity: p.layered ? 1 : 0 } : null;
   });
-  const taps = useLive(ctx.live, (f) => {
-    const p = f ? now(f) : null;
-    return !!f && !!p && pictureTaps(f, p, ctx);
+  const touch = useLiveStyle(ctx.live, (f) => {
+    const p = now(f);
+    return p ? { pointerEvents: pictureTaps(f, p, ctx) ? 'auto' : 'none' } : null;
   });
   return (
     <View ref={pose} testID="replay-picture" pointerEvents="box-none" {...webData({ key })} style={styles.standing}>
@@ -48,15 +49,13 @@ function Standing({ o, ctx, index }: { o: PictureOverlay; ctx: StageCtx; index: 
         </View>
       </View>
       <Pressable
+        ref={touch}
         testID="picture-open"
         accessibilityRole="button"
         accessibilityLabel="Open this moment"
         accessibilityHint="Opens it full screen; the replay holds until you close it"
-        // One under a later picture or under a card is no control: not to a finger, not to a screen reader.
-        disabled={!taps}
-        pointerEvents={taps ? 'auto' : 'none'}
-        accessibilityElementsHidden={!taps}
-        importantForAccessibility={taps ? 'yes' : 'no-hide-descendants'}
+        // One under a later picture or under a card takes no finger (written by the frame, above). To a screen reader
+        // each stays a way to its own moment: it opens that moment whatever lies over its tile.
         onPress={() => ctx.open([o.capture])}
         style={styles.hit}
       />

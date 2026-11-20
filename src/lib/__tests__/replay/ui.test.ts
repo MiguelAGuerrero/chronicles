@@ -57,7 +57,6 @@ test('replay-ceremony ui 1: a picture standing on the map opens its moment, a 44
   assert.match(view, /PICTURE\.hit/, 'its hit area is the room\'s number');
   // Still placed every frame with no render, and no listener on the map: whether it takes a tap is one flag.
   assert.match(view, /useLiveStyle\(ctx\.live/);
-  assert.match(view, /useLive\(ctx\.live/);
   assert.doesNotMatch(view, /\buseState\b|\buseEffect\b|addEventListener|\.on\(/, 'a picture keeps state or listens to the map');
   // Which pictures take a tap: one that shows, where the camera puts it, with no card over it.
   const taps = built<(f: Frame, p: unknown, c: Ctx) => boolean>(layoutMod, 'pictureTaps');
@@ -389,7 +388,7 @@ test('replay-ceremony ui 8: the first beat\'s fit turns a map turned by hand nor
 // Found on the deploy's journeys (Nov 20): as a card left, each picture under it rendered once to take taps again, two
 // commits at the start of a stretch, and the `replay` journey's RC7 (at most 8 commits a second on a stretch) read
 // 8.4 and 8.6 where it had read about 6. What takes a tap is written on the control, as its place is.
-test('replay-ceremony ui 15: whether a standing picture takes a tap is written on its control frame by frame, with no render', { todo: 'test first' }, () => {
+test('replay-ceremony ui 15: whether a standing picture takes a tap is written on its control frame by frame, with no render', () => {
   const view = read('components/ceremony/Pictures.tsx');
   assert.doesNotMatch(view, /\buseLive\(/, 'a picture reads a flag from the frame and renders when it changes');
   assert.doesNotMatch(view, /disabled=\{|pointerEvents=\{/, 'its control states what React would have to render again to change');

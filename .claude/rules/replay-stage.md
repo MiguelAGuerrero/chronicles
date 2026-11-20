@@ -22,7 +22,7 @@ beats and the rhythm's timings in `replay.md`. Captions (RC38-RC44) wait for the
 - **A standing picture is a control** (`replay-ceremony ui 1`, the UI review's U1): a tap opens its moment in the
   viewer (`ctx.open([o.capture])`, the stack's way in, so the replay holds until it closes), through one `Pressable`
   of `PICTURE.hit` (44 pt) around the tile, named "Open this moment". Whether it takes the tap is one flag from the
-  frame (`layout.ts` `pictureTaps`, read with `useLive`): not one under a later picture (the one showing does), not
+  frame (`layout.ts` `pictureTaps`, written on the control by `useLiveStyle` as `pointerEvents`, never a render: `replay-ceremony ui 15`): not one under a later picture (the one showing does), not
   one a card lies over. **Trap:** a card lets taps through to the stage (hold), so without that a tap on a card would
   open a picture nobody can see under it. The picture's root is `box-none` and its drawing `none`: only the control
   takes a tap, and one it does not take falls to what lies under it. "Under a card" is its tile meeting the card's
