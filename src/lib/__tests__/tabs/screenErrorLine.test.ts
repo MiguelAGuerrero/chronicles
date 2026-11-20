@@ -20,9 +20,17 @@ const routes = (dir: string): string[] =>
     return statSync(p).isDirectory() ? routes(p) : /\.tsx$/.test(f) ? [relative(APP, p)] : [];
   });
 
-/** The component a route exports as its ErrorBoundary. */
-const boundaryOf = (file: string) =>
-  /^export\s*\{\s*(\w+)\s+as\s+ErrorBoundary\s*\}/m.exec(readFileSync(join(APP, file), 'utf8'))?.[1] ?? null;
+/**
+ * The component a route exports as its ErrorBoundary: re-exported by name, or (tend tabs audit 61, the diff review's
+ * auditor: a boundary written in the route itself was skipped, and so never held to the rule) its own
+ * `export function ErrorBoundary` or `export const ErrorBoundary`, read as `<own>`.
+ */
+const boundaryOf = (file: string) => {
+  const text = readFileSync(join(APP, file), 'utf8');
+  const named = /^export\s*\{\s*(\w+)\s+as\s+ErrorBoundary\s*\}/m.exec(text)?.[1];
+  if (named) return named;
+  return /^export\s+(?:function|const)\s+ErrorBoundary\b/m.test(text) ? '<own>' : null;
+};
 
 /** What the named error screen passes as its body: its source text between `body=` and the end of the tag. */
 const bodyOf = (name: string): string | null => {
@@ -37,6 +45,7 @@ test('tend tabs 16: every error screen but the replay\'s takes its walk line fro
   const byRoute = Object.fromEntries(routes(APP).map((f) => [f, boundaryOf(f)]).filter(([, b]) => b));
   const keeper = '{walkErrorLine(useOpenWalkInfo())}';
   for (const [file, name] of Object.entries(byRoute)) {
+    assert.notEqual(name, '<own>', `${file} writes its own ErrorBoundary: it must say the open walk's line too (tend tabs audit 61)`);
     const body = bodyOf(name as string);
     // The replay's follows the open walk too, its own way since tend tabs audit 58.
     if (file === 'replay/[id].tsx') assert.equal(body, '{replayErrorLine(useOpenWalkInfo())}', `${file}: a replay is of a walk that is kept`);
@@ -67,4 +76,11 @@ test('tend tabs audit 58: a replay\'s error says "Your walk is saved." only whil
   assert.equal(replayErrorLine({ known: true, walk, pauses: [{ ended_at: null }] }), 'Your walk is saved.', 'paused, it records nothing');
   assert.equal(replayErrorLine({ known: false, walk: null, pauses: [] }), null, 'not read yet: nothing claimed');
   assert.match(screenError, /export function ReplayScreenError\(props: ErrorBoundaryProps\) \{\s*return <ErrorScreen \{\.\.\.props\} exit="dismiss" body=\{replayErrorLine\(useOpenWalkInfo\(\)\)\} \/>;/);
+});
+
+test('tend tabs audit 61: a route\'s own ErrorBoundary is read, not skipped', () => {
+  const own = /^export\s+(?:function|const)\s+ErrorBoundary\b/m;
+  assert.ok(own.test('export function ErrorBoundary(props) {}'));
+  assert.ok(own.test('export const ErrorBoundary = () => null;'));
+  assert.ok(!own.test('export { ScreenError as ErrorBoundary } from "x";'));
 });
