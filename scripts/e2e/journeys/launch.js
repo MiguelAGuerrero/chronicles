@@ -526,6 +526,22 @@ async function fresh(h) {
         };
       }));
       const reminderOnBar = await pg.waitForSelector('[data-testid=recording-reminder]', { timeout: 5000 }).then((e) => e.innerText(), () => '');
+      // tend tabs 22 (lens 1: the bar's reminder card was checked by its words alone, never pictured): the card on the bar,
+      // over Memories and over Explore's map, at 390 and at 320 x 700, then back as it was.
+      if (reminderOnBar) {
+        await h.shot(pg, 'tabs-22-reminder-card-memories-390');
+        await pg.setViewportSize({ width: 320, height: 700 });
+        await pg.waitForTimeout(500);
+        await h.shot(pg, 'tabs-22-reminder-card-memories-320');
+        await pg.click('[data-testid=tab-explore]');
+        await pg.waitForTimeout(1200);
+        await h.shot(pg, 'tabs-22-reminder-card-explore-320');
+        await pg.setViewportSize({ width: 390, height: 844 });
+        await pg.waitForTimeout(800);
+        await h.shot(pg, 'tabs-22-reminder-card-explore-390');
+        await pg.click('[data-testid=tab-chronicle]');
+        await pg.waitForTimeout(800);
+      }
       check(fired?.fired_count === 1 && fired.last_walk_id === w.id && /A note from here/.test(reminderOnBar),
         `Remind me here fires with the walk minimized, and the bar says so (NV8: ${JSON.stringify(fired && { n: fired.fired_count, walk: fired.last_walk_id === w.id })}, "${reminderOnBar}")`);
       // NV10, as changed by the tabs audit (U2): no Start with a walk open, and the recording bar is the one way back.
