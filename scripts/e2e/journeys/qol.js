@@ -2093,6 +2093,63 @@ async function unitsOnExplore(h) {
   }
 }
 
+// tend map 25 (QL3; E-map-2, the lenses' steward 5): the markers never take a tap at the start either. A note kept as
+// the walk begins stands on the start marker on the replay's card, and a tap there opens it.
+async function pinOnStart(h) {
+  const { navUrl, at, check, freshPage, shot, toStop } = h;
+  const { c, pg } = await freshPage('qol-start-pin');
+  await c.addInitScript(() => { window.__perf = {}; });
+  const go = async (x, y) => {
+    const p = at(x, y);
+    await c.setGeolocation({ longitude: p[0], latitude: p[1], accuracy: 6 });
+    await pg.waitForTimeout(900);
+  };
+  try {
+    await pg.goto(navUrl);
+    await pg.waitForSelector('[data-testid=start]');
+    await go(-0.5, -0.5);
+    await pg.click('[data-testid=start]');
+    await pg.waitForSelector('[data-testid=walk-actions]');
+    await go(-0.5, -0.5);
+    await pg.click('[data-testid=cap-note]');
+    await pg.fill('[data-testid=note-input]', 'Where it began.');
+    await pg.click('[data-testid=note-done]');
+    await pg.waitForTimeout(1500);
+    for (let k = 1; k <= 8; k++) await go(-0.5 + k * 0.05, -0.5);
+    await pg.waitForTimeout(1500);
+    await toStop(pg);
+    const b = await pg.locator('[data-testid=stop]').boundingBox();
+    await pg.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
+    await pg.mouse.down();
+    await pg.waitForTimeout(1100);
+    await pg.mouse.up();
+    await pg.waitForURL(/replay/, { timeout: 30000 });
+    await pg.waitForSelector('[data-testid=skip]', { timeout: 30000 });
+    await pg.click('[data-testid=skip]');
+    await pg.waitForSelector('[data-testid=to-name]', { timeout: 30000 });
+    await pg.waitForTimeout(1500);
+    const startAt = await pg.evaluate(() => {
+      const el = [...document.querySelectorAll('[data-ends]')].filter((e) => !e.closest('[aria-hidden="true"]') && e.getBoundingClientRect().width > 0).pop();
+      const s = el ? (el.getAttribute('data-ends') || '').split('|')[0] : '';
+      return s ? s.split(',').map(Number) : null;
+    });
+    const [x, y] = await pg.evaluate((q) => window.__project(q), startAt);
+    const hit = await pg.evaluate(([px, py]) => {
+      const el = document.elementFromPoint(px, py);
+      const pin = el && el.closest('[aria-label$=". Open"]');
+      return pin ? pin.getAttribute('aria-label') : el ? el.tagName.toLowerCase() : null;
+    }, [x, y - 4]);
+    await shot(pg, 'tend-map-25-pin-on-start-390');
+    await pg.mouse.click(x, y - 4);
+    const opened = await pg.waitForSelector('[data-testid=viewer-close]', { timeout: 5000 }).then(() => true, () => false);
+    check(opened && /^Note\b.*Open$/.test(hit ?? ''), `tend map 25: a tap on a pin standing on the start marker opens the pin (${JSON.stringify(hit)}, viewer ${opened})`);
+  } catch (e) {
+    check(false, `step tend map 25: ${String(e.message).split('\n')[0]}`);
+  } finally {
+    await pg.close().catch(() => {});
+  }
+}
+
 module.exports = {
   name: 'qol',
   // tend chronicle 7: Rename (QL22) and Edit note (QL24) are checked here, so a change to either names this journey.
@@ -2112,5 +2169,6 @@ module.exports = {
   run: async (h) => {
     await run(h);
     await unitsOnExplore(h);
+    await pinOnStart(h);
   },
 };
