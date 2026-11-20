@@ -89,3 +89,16 @@ test('tend tabs 19: a stop that never settles stops holding the bar\'s Stop busy
   assert.match(bar, /setTimeout\(\(\) => setStopOver\(stopSince\), barStopLeftMs\(\{ walkId: walk\.id, since: stopSince \}, walk\.id, Date\.now\(\)\)\)/);
   assert.match(bar, /const stopping = stopSince != null && stopOver !== stopSince;/);
 });
+
+// A bar mounted after its walk's stop outlived the bound (its tab back in front) drew the spinning, disabled Stop for its
+// first render, until the timer of 0 ms fired (the diff review's auditor 4, a regression of tend tabs 19). The bound is
+// read as it mounts.
+test('tend tabs audit 54: a bar mounted after its stop\'s bound draws the Stop at rest from its first render', () => {
+  const stop: BarStop = { walkId: 'w1', since: 1000 };
+  // What the initializer decides: past the bound, the stop counts as over from the start.
+  assert.equal(barStopping(stop, 'w1', 1000 + BAR_STOP_HOLD_MS), false);
+  assert.match(
+    bar,
+    /const \[stopOver, setStopOver\] = useState<number \| null>\(\(\) => \{\n\s+const s = barStop\.get\(\);\n\s+return s && s\.walkId === walk\.id && !barStopping\(s, walk\.id, Date\.now\(\)\) \? s\.since : null;\n\s+\}\);/,
+  );
+});

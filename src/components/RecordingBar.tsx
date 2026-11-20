@@ -74,7 +74,11 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
   // goes on (tend tabs audit 26).
   // Within the stop's own bound, as the way back is: a stop that hangs lets the Stop's spinner go after it (tend tabs 19).
   const stopSince = useStore(barStop, (s) => (s?.walkId === walk.id ? s.since : null));
-  const [stopOver, setStopOver] = useState<number | null>(null);
+  // Mounted after the bound (its tab back in front), the stop is over from the first render (tend tabs audit 54).
+  const [stopOver, setStopOver] = useState<number | null>(() => {
+    const s = barStop.get();
+    return s && s.walkId === walk.id && !barStopping(s, walk.id, Date.now()) ? s.since : null;
+  });
   useEffect(() => {
     if (stopSince == null) return;
     const t = setTimeout(() => setStopOver(stopSince), barStopLeftMs({ walkId: walk.id, since: stopSince }, walk.id, Date.now()));
