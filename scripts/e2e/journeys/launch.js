@@ -438,8 +438,10 @@ async function fresh(h) {
       const barBox = await pg.locator('[data-testid=recording-bar]').boundingBox();
       const tabBox = await pg.locator('[data-testid=tab-navigate]').boundingBox();
       check(!/\/walk/.test(new URL(pg.url()).pathname) && (await tabBarShown(pg)) && /^\d+:\d\d · \d+[ \u00a0]m · Paused$/.test(await barText())
-        && Math.abs(barBox.y + barBox.height - tabBox.y) < 6 && (await pg.locator('[data-testid=recording-bar] [data-testid=stop]').count()) === 0,
-        `minimized, a recording bar sits just above the tab bar: time, distance, Paused, and no Stop (NV9: "${await barText()}")`);
+        && Math.abs(barBox.y + barBox.height - tabBox.y) < 6 && (await pg.locator('[data-testid=recording-bar] [data-testid=bar-stop]').count()) === 1,
+        // tend tabs 18 (the lenses' auditor 3): this counted "stop", a testid the bar never carries, so its "no Stop" held
+        // whatever the bar showed; the bar has its held Stop since decision 0048 (NV9's "It has no Stop" is stale).
+        `tend tabs 18: minimized, a recording bar sits just above the tab bar: time, distance, Paused, and its held Stop (NV9, 0048: "${await barText()}")`);
       // Minimized to the tab beneath: Chronicle's Memories since 0112, which has no map. Never two.
       const liveMaps = await pg.locator('canvas.maplibregl-canvas').count();
       check(liveMaps <= 1, `at most one live map with the walk minimized (NV4: ${liveMaps})`);
