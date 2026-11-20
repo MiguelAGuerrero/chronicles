@@ -100,6 +100,11 @@ async function checks(h) {
     const dropGlErrors = (from) => { for (let i = h.errors.length - 1; i >= from; i--) if (/WebGL|webgl|GPUInitialization/.test(h.errors[i])) h.errors.splice(i, 1); };
     const screenErr = () => shownCount(page, '[data-testid=screen-error]');
     const shownButton = (name) => page.getByRole('button', { name, exact: true }).filter({ visible: true }).count();
+    // tend tabs 16: the walk line a shown error screen carries ("Your walk is …"), or null.
+    const walkLineShown = () => page.evaluate(() => {
+      const e = [...document.querySelectorAll('[data-testid=screen-error]')].find((x) => !x.closest('[aria-hidden=true]'));
+      return e ? ([...e.querySelectorAll('div')].map((d) => d.innerText.trim()).find((t) => /^Your walk is/.test(t)) ?? null) : null;
+    });
     {
       // tend replay audit 7 (the T20 review's auditor 1): inside the tabs dismissTo('/') did nothing, so Explore's
       // "Back to Chronicle" goes by router.navigate('/') and opens Chronicle's tab.
@@ -113,6 +118,7 @@ async function checks(h) {
       const errs = await screenErr();
       const backs = await shownButton('Back to Chronicle');
       const shown = errs === 1 && backs === 1;
+      const line7 = await walkLineShown();
       await h.shot(page, 'audit7-explore-error-390');
       await failMaps(null);
       await page.getByRole('button', { name: 'Back to Chronicle', exact: true }).filter({ visible: true }).click({ timeout: 5000 }).catch(() => {});
@@ -120,6 +126,7 @@ async function checks(h) {
       const home = new URL(page.url()).pathname === `${BASE}/` && (await page.locator('[data-testid=tab-chronicle][aria-selected=true]').count()) === 1
         && (await screenErr()) === 0;
       check(shown && home, `tend replay audit 7: Explore's error screen shows "Back to Chronicle", and it opens Chronicle's tab at / (${JSON.stringify({ errs, backs, home, url: page.url() })})`);
+      check(shown && line7 === null, `tend tabs 16: with no walk open, Explore's error screen says nothing of a walk (${JSON.stringify({ shown, line7 })})`);
       dropGlErrors(from);
     }
     {
@@ -134,6 +141,7 @@ async function checks(h) {
       const shown = (await screenErr()) === 1;
       const tryAgain = await shownButton('Try again');
       const back = await shownButton('Back to Chronicle');
+      const line8 = await walkLineShown();
       await h.shot(page, 'audit8-chronicle-error-390');
       await failMaps(null);
       await page.getByRole('button', { name: 'Try again', exact: true }).filter({ visible: true }).click({ timeout: 5000 }).catch(() => {});
@@ -141,6 +149,7 @@ async function checks(h) {
       const redrawn = (await screenErr()) === 0;
       check(shown && tryAgain === 1 && back === 0 && redrawn,
         `tend replay audit 8: Chronicle's own error screen has Try again alone, no "Back to Chronicle", and Try again redraws the tab (${JSON.stringify({ shown, tryAgain, back, redrawn })})`);
+      check(shown && line8 === null, `tend tabs 16: with no walk open, Chronicle's error screen says nothing of a walk (${JSON.stringify({ shown, line8 })})`);
       dropGlErrors(from);
       // Back to Memories, where the launch's later checks expect Chronicle to open.
       if (await page.locator('[data-testid=section-memories]').filter({ visible: true }).count()) await page.click('[data-testid=section-memories]');
@@ -322,6 +331,41 @@ async function fresh(h) {
         `tend walk-screen 6: the walk screen's error mid-walk says "Your walk is still recording.", with Try again and "Back to Chronicle", whole at 390 and 320, and the walk does record behind it (${JSON.stringify({ seen, at320, recorded })})`);
       // The refused map is the step's own doing: not the app's console errors.
       for (let i = h.errors.length - 1; i >= from; i--) if (/^walk-error: .*(WebGL|webgl|GPUInitialization)/.test(h.errors[i])) h.errors.splice(i, 1);
+      await c.close();
+    }
+    // tend tabs 16 (the owner, Nov 20: O35 extends to the tabs): with a walk minimized and recording, Explore's error says
+    // "Your walk is still recording.", as the walk screen's does, never "saved", which reads as ended.
+    {
+      const { c, pg } = await freshPage('tab-error-walk');
+      await pg.goto(navUrl);
+      await pg.waitForSelector('[data-testid=start]');
+      await pg.waitForTimeout(1500);
+      await pg.click('[data-testid=start]');
+      await pg.waitForSelector('[data-testid=walk-minimize]', { timeout: 20000 });
+      await pg.waitForTimeout(1500);
+      await pg.click('[data-testid=walk-minimize]');
+      await pg.waitForSelector('[data-testid=recording-bar]', { timeout: 10000 });
+      // Every map refused from here, as tend replay audit 7 does: Memories has none and the walk screen is down, so the
+      // one asked for is Explore's (made before its tab's path shows, so a path test would miss it).
+      const from = h.errors.length;
+      await pg.evaluate(() => {
+        const real = HTMLCanvasElement.prototype.getContext;
+        HTMLCanvasElement.prototype.getContext = function (kind, ...rest) {
+          if (/webgl/.test(String(kind))) return null;
+          return real.call(this, kind, ...rest);
+        };
+      });
+      await pg.click('[data-testid=tab-explore]');
+      await pg.waitForFunction(() => [...document.querySelectorAll('[data-testid=screen-error]')].some((e) => !e.closest('[aria-hidden=true]')), null, { timeout: 15000 }).catch(() => {});
+      await pg.waitForTimeout(800);
+      const seen = await pg.evaluate(() => {
+        const e = [...document.querySelectorAll('[data-testid=screen-error]')].find((x) => !x.closest('[aria-hidden=true]'));
+        return e ? [...e.querySelectorAll('div')].filter((d) => !d.querySelector('div') && d.innerText.trim()).map((d) => d.innerText.trim()) : null;
+      });
+      await h.shot(pg, 'audit7-explore-error-walk-390');
+      check(!!seen && seen.includes('Your walk is still recording.') && !seen.includes('Your walk is saved.') && (await pg.locator('[data-testid=recording-bar]').count()) === 1,
+        `tend tabs 16: with a walk minimized and recording, Explore's error says "Your walk is still recording.", the recording bar still there (${JSON.stringify(seen)})`);
+      for (let i = h.errors.length - 1; i >= from; i--) if (/^tab-error-walk: .*(WebGL|webgl|GPUInitialization)/.test(h.errors[i])) h.errors.splice(i, 1);
       await c.close();
     }
     // Starting from the tabs, in fresh browsers (NV12, NV15, NV25).

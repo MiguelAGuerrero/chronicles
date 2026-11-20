@@ -57,7 +57,7 @@ type Beat = 'reading' | 'fog' | 'path' | 'card' | 'name';
 /** While the path is told the map is given no trace: the replay's frames reveal the line on it (replay ceremony RC3). */
 
 // A screen that throws shows what broke, with Try again, never a blank page (bug, Nov 1).
-export { ScreenError as ErrorBoundary } from '../../components/ScreenError';
+export { ReplayScreenError as ErrorBoundary } from '../../components/ScreenError';
 
 export default function Replay() {
   useUnits();
