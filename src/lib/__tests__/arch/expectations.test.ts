@@ -826,7 +826,7 @@ test('expectations 0244 audit 1: an amendment adding only a verb to a ratified l
   assert.ok(ex.amend(a.store, 'E-memories-1', verbOnly(a.store, 'E-memories-1', 'Earn')).problems.some((p) => /open amendment/.test(p)), 'one open at a time');
   assert.ok(ex.amend(r.store, 'E-memories-4', verbOnly(r.store, 'E-memories-4', 'Earn')).problems.some((p) => /already serves/.test(p)), 'a line with a verb changes it only with its words');
   assert.ok(ex.amend(store(), 'E-memories-1', { ...verbOnly(store(), 'E-memories-1', 'Return'), grounds: 'VISION "Who it is for"; not yet recorded' }).problems.some((p) => /keeps the line's check and grounds/.test(p)));
-  assert.ok(ex.amend(store(), 'E-memories-1', verbOnly(store(), 'E-memories-1', 'none; reads as another app\'s')).problems.some((p) => /names a verb/.test(p)), 'a verb-only amendment names a verb');
+  assert.ok(ex.amend(store(), 'E-memories-1', unserved(verbOnly(store(), 'E-memories-1', 'Return'))).problems.some((p) => /names a verb/.test(p)), 'a verb-only amendment names a verb, or none with its reason (0245 audit 7)');
   const upper = { ...verbOnly(store(), 'E-memories-1', 'Return'), text: store().entries[0].text.replace('A person', 'A  person') };
   assert.ok(ex.amend(store(), 'E-memories-1', upper).problems.some((p) => /already/.test(p)), 'the same words written otherwise are still a duplicate');
   const root = tempRoot({ 'memories.md': STORE });
@@ -916,4 +916,74 @@ test('expectations 0245: a line upholding an Always line names its feature\'s ve
   const dropped = ex.answer(s, ['E-memories-4'], { as: 'declined', by: 'owner', date: '2026-11-21', answer: 'Drop it' });
   assert.equal(dropped.store.entries[3].status, 'declined', 'the owner\'s answer drops it');
   assert.ok(ex.withServes([unserved(line('a.'))], 'none').problems.some((p) => /reason/.test(p)), '--serves none without the reason');
+});
+
+// Run 17's second review (decision 0245): the verb-only amendment's edges, held the same in the script and the gate.
+const declineAll = (s: Store, ids: string[]) => ex.answer(s, ids, { as: 'declined', by: 'owner', date: '2026-11-21', answer: 'Not that verb' }).store;
+
+test('expectations 0245 audit 1: a verb-only amendment is proposed again after the owner declines one', () => {
+  const first = ex.amend(store(), 'E-memories-1', verbOnly(store(), 'E-memories-1', 'Return')).store;
+  const declined = declineAll(first, ['E-memories-4']);
+  const again = ex.amend(declined, 'E-memories-1', verbOnly(declined, 'E-memories-1', 'Earn'));
+  assert.deepEqual(again.problems, []);
+  assert.deepEqual(again.ids, ['E-memories-5']);
+  assert.deepEqual(ex.editProblems(ex.formatStore(declined), ex.formatStore(again.store), 'memories'), [], 'and the gate takes it');
+  const other = ex.amend(declined, 'E-memories-1', { ...line('x.'), text: store().entries[1].text });
+  assert.ok(other.problems.some((p) => /already E-memories-2/.test(p)), 'another line\'s words stay a duplicate');
+  const worded = declineAll(ex.amend(store(), 'E-memories-1', line('a capture back within 100 m.')).store, ['E-memories-4']);
+  assert.ok(ex.amend(worded, 'E-memories-1', line('a capture back within 100 m.')).problems.some((p) => /already E-memories-4/.test(p)), 'a declined amendment in other words is not proposed again');
+  const byHand = `${ex.formatStore(worded)}- E-memories-5 [proposed] ${person} a capture back within 100 m.\n  Amends: E-memories-1\n  Check: pending "it shows"\n  Grounds: VISION "Who it is for"; not yet recorded\n  Serves: Return\n`;
+  assert.ok(ex.editProblems(ex.formatStore(worded), byHand, 'memories').some((p) => /E-memories-5/.test(p) && /E-memories-4/.test(p)), 'nor by hand');
+});
+
+test('expectations 0245 audit 2: a hand-written verb-only amendment of a line not ratified, or beside an open amendment, is refused', () => {
+  const t = store().entries[1];
+  const of = (id: string, text: string, check: string, grounds: string) => `- E-memories-9 [proposed] ${text}\n  Amends: ${id}\n  Check: ${check}\n  Grounds: ${grounds}\n  Serves: Earn\n`;
+  assert.ok(ex.editProblems(STORE, STORE + of('E-memories-2', t.text, t.check, t.grounds), 'memories').some((p) => /E-memories-9/.test(p) && /proposed/.test(p)), 'its target is proposed');
+  const open = ex.formatStore(ex.amend(store(), 'E-memories-1', line('a capture back within 100 m.')).store);
+  const r = store().entries[0];
+  assert.ok(ex.editProblems(open, open + of('E-memories-1', r.text, r.check, r.grounds), 'memories').some((p) => /E-memories-9/.test(p) && /open amendment/.test(p)), 'beside an open amendment');
+  assert.deepEqual(ex.editProblems(STORE, STORE + of('E-memories-1', r.text, r.check, r.grounds), 'memories'), [], 'the one the script would write');
+});
+
+test('expectations 0245 audit 3: a clause with no words, or only verbs in any case, is refused', () => {
+  for (const bad of ['Earn; ,', 'Earn; .', 'Earn; earn', 'Earn; RETURN, honour', 'none; .']) assert.ok(ex.servesProblems(bad).length > 0, `"${bad}" is refused`);
+  assert.deepEqual(ex.servesProblems('Earn; brings what is around where you stand into view'), []);
+});
+
+test('expectations 0245 audit 4: amend of an unknown id with --serves and no --file names the id, and reads no stdin', () => {
+  const root = tempRoot({ 'memories.md': STORE });
+  const r = spawnSync(process.execPath, [join(ROOT, 'scripts', 'expectations.js'), 'amend', 'E-memories-99', '--serves', 'Earn'], { cwd: root, env: { ...process.env, EXPECTATIONS_ROOT: root }, encoding: 'utf8', input: '' });
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /E-memories-99 is no line of docs\/expectations\/memories\.md/);
+});
+
+test('expectations 0245 audit 5: a bare "Serves:" reads as empty, and --serves fills it', () => {
+  const read2 = ex.parseDraft(`- ${person} a.\n  Check: pending "x"\n  Grounds: VISION "Who it is for"; not yet recorded\n  Serves:\n`);
+  assert.deepEqual(read2.problems, []);
+  assert.equal(ex.withServes(read2.lines, 'Earn').lines[0].serves, 'Earn');
+});
+
+test('expectations 0245 audit 6: a flag given twice is refused', () => {
+  const root = tempRoot({ 'memories.md': STORE });
+  const r = cli(root, 'ratify', 'E-memories-2', '--by', 'owner', '--date', '2026-11-21', '--answer', 'Yes', '--answer', 'No');
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /--answer is given twice/);
+  assert.equal(readFileSync(join(root, 'docs/expectations/memories.md'), 'utf8'), STORE, 'nothing written');
+  assert.match(cli(root, 'amend', 'E-memories-1', '--serves', 'Earn', '--serves', 'Return').stderr, /--serves is given twice/);
+});
+
+test('expectations 0245 audit 7: a ratified line is flagged to the owner by a verb-only amendment serving none; ratified, it stays in force serving none', () => {
+  const flag = ex.amend(store(), 'E-memories-1', verbOnly(store(), 'E-memories-1', 'none; it reads as what map apps have, not what this person needs'));
+  assert.deepEqual(flag.problems, []);
+  assert.equal(flag.store.entries[3].serves, 'none; it reads as what map apps have, not what this person needs');
+  assert.ok(ex.amend(store(), 'E-memories-1', verbOnly(store(), 'E-memories-1', 'none')).problems.some((p) => /reason/.test(p)), 'with the steward\'s reason');
+  assert.deepEqual(ex.editProblems(STORE, ex.formatStore(flag.store), 'memories'), [], 'the gate takes it');
+  const kept = ex.answer(flag.store, ['E-memories-4'], { as: 'ratified', by: 'owner', date: '2026-11-21', answer: 'Keep it, serving none' }).store;
+  assert.deepEqual(kept.entries.filter((e) => e.status === 'ratified').map((e) => e.id), ['E-memories-4'], 'in force, by the owner\'s choice');
+  assert.match(ex.listText([kept], index()), /E-memories-4 ratified[^\n]*\n[^\n]*\n {4}serves none, flagged for the owner: it reads as/);
+  const doc = read('.claude/skills/tend/expectations.md').replace(/\s+/g, ' ');
+  assert.match(doc, /whatever its `Serves:`/, 'a Never line is dropped by the run (S5)');
+  assert.match(doc, /retire/, 'what a retire answer would need');
+  assert.match(doc, /`map`[^.]*Earn and Return/, 'the map\'s verbs, the orchestrator\'s ruling');
 });

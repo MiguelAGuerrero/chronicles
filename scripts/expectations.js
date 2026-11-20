@@ -10,7 +10,7 @@
 //   npm run expectations -- amend <id> --file <line> [--serves <Verb[,Verb]>]
 //                                                                 a proposed amendment of a ratified line, which stands
 //                                                                 as it is until the owner ratifies the amendment
-//   npm run expectations -- amend <id> --serves <Verb[,Verb][; clause]>
+//   npm run expectations -- amend <id> --serves <Verb[,Verb][; clause] | none; reason>
 //                                                                 with no --file, a verb-only amendment: the line's own
 //                                                                 words, check and grounds, and the verb it lacks
 //   npm run expectations -- ratify <id>... --by owner --date YYYY-MM-DD --answer "<verbatim>"
@@ -31,8 +31,9 @@
 //     Check: <journey>:"<check text>" | test:"<test name>" | picture:<shot name> | pending "<what it will show>"
 //     Grounds: VISION "Who it is for"; <docs/research/adjacent-apps.md's job and apps, or "not yet recorded">
 //     Serves: Earn | Honour | Return, comma-separated; a proposed line names at least one (decision 0244), then
-//             optionally `; <clause>` saying how (an Always line it upholds); or `none; <the steward's reason>`,
-//             a line flagged to the owner as serving no verb, kept or dropped by the owner's answer (decision 0245)
+//             optionally `; <clause>` saying how it serves them (a line upholding an Always line says which:
+//             `upholds "<the Always line>": <how>`); or `none; <the steward's reason>`, a line flagged to the
+//             owner as serving no verb, kept or dropped by the owner's answer (decision 0245)
 //     Answer: "<the owner's words>" (the owner, YYYY-MM-DD)       (ratified or declined only)
 //
 // A --file of lines holds the same entries without the id and status: `- A person …` and its Check, Grounds and
@@ -108,7 +109,9 @@ function servesProblems(serves) {
   const { verbs, clause } = servesOf(serves);
   const p = [];
   if (clause === '') p.push('a ; is followed by its clause, saying how the line serves its verb');
-  if (clause && clause.split(/[\s,]+/).every((w) => VERBS.includes(w) || w === NONE)) p.push(`"${clause}" after the ; is a verb, not a clause: verbs go before the ;, comma-separated`);
+  const lower = [...VERBS, NONE].map((v) => v.toLowerCase());
+  if (clause && !/\p{L}/u.test(clause)) p.push(`"${clause}" after the ; holds no word: the clause says how, in words`);
+  else if (clause && clause.split(/[\s,]+/).filter(Boolean).every((w) => lower.includes(w.toLowerCase()))) p.push(`"${clause}" after the ; is a verb, not a clause: verbs go before the ;, comma-separated`);
   if (verbs.includes(NONE)) {
     if (verbs.length > 1) p.push('none stands alone: a line serves verbs, or none');
     else if (!clause) p.push("none names the steward's reason after a ;: none; <why the line serves no verb> (decision 0245)");
@@ -152,12 +155,12 @@ function readEntries(lines, headOf, offset = 0) {
       entries.push({ ...headOf(head[1], at), keys: {} });
       continue;
     }
-    const key = /^ {2}(\w+): (.*)$/.exec(l);
+    const key = /^ {2}(\w+):(?: (.*))?$/.exec(l);
     const e = entries[entries.length - 1];
     if (!key || !e) problems.push(`line ${at} is outside an entry: "${l.slice(0, 60)}"`);
     else if (!KEYS.includes(key[1])) problems.push(`line ${at}: ${key[1]} is no key (${KEYS.join(', ')})`);
     else if (e.keys[key[1]] !== undefined) problems.push(`line ${at}: a second ${key[1]}`);
-    else e.keys[key[1]] = key[2];
+    else e.keys[key[1]] = key[2] ?? '';
   }
   return { entries, problems };
 }
@@ -289,12 +292,15 @@ function withServes(lines, flag) {
   return { lines: lines.map((l) => (blank(l.serves) ? { ...l, serves: flag } : l)), problems: [] };
 }
 
+const declinedOf = (e, target) => Boolean(target) && e.amends === target && e.status === 'declined';
+
 const nextN = (store) => Math.max(0, ...store.entries.map((e) => e.n)) + 1;
 const inForce = (store) => store.entries.filter((e) => e.status === 'ratified' || (e.status === 'proposed' && e.amends === undefined)).length;
 
 function newLines(store, lines, amends, index, exempt) {
   const problems = [];
-  const seen = new Map(store.entries.map((e) => [norm(e.text), e.id]));
+  // A declined verb-only amendment of the exempt line is no duplicate: the owner said no to its verb, not to its words.
+  const seen = new Map(store.entries.filter((e) => !declinedOf(e, exempt)).map((e) => [norm(e.text), e.id]));
   for (const l of lines) {
     problems.push(...lineProblems(l));
     const what = `"${String(l.text ?? '').slice(0, 60)}"`;
@@ -338,23 +344,32 @@ function amend(store, id, line, index) {
   return settle(store, amendOf(store, id, line, index));
 }
 
+/** Why `id` takes no amendment (beside `self`, the amendment itself when it is already in the entries), or null. */
+function targetProblem(entries, id, self) {
+  const target = entries.find((e) => e.id === id);
+  if (!target) return `${id} is no line of the file`;
+  if (target.status !== 'ratified') return `${id} is ${target.status}: only a ratified line is amended (a proposed one waits for the owner's answer)`;
+  const open = entries.find((e) => e.amends === id && e.status === 'proposed' && e.id !== self);
+  return open ? `${id} already has an open amendment, ${open.id}: it waits for the owner's answer` : null;
+}
+
 function amendOf(store, id, line, index) {
   const target = store.entries.find((e) => e.id === id);
   if (!target) return { store, ids: [], problems: [`${id} is no line of ${fileOf(store.feature)}`] };
-  if (target.status !== 'ratified') return { store, ids: [], problems: [`${id} is ${target.status}: only a ratified line is amended (a proposed one waits for the owner's answer)`] };
-  const open = store.entries.find((e) => e.amends === id && e.status === 'proposed');
-  if (open) return { store, ids: [], problems: [`${id} already has an open amendment, ${open.id}: it waits for the owner's answer`] };
+  const why = targetProblem(store.entries, id);
+  if (why) return { store, ids: [], problems: [why] };
   if (line.text !== target.text) return newLines(store, [line], id, index);
   // A verb-only amendment (decision 0245): the line's own words, check and grounds, and the verb it lacks.
-  const why = verbOnlyProblem(target, line);
-  return why ? { store, ids: [], problems: [`${id}: ${why}`] } : newLines(store, [line], id, index, id);
+  const verbOnly = verbOnlyProblem(target, line);
+  return verbOnly ? { store, ids: [], problems: [`${id}: ${verbOnly}`] } : newLines(store, [line], id, index, id);
 }
 
 /** Why a line with a target's own words is no verb-only amendment of it, or null when it is one. */
 function verbOnlyProblem(target, line) {
   if (target.serves !== undefined) return `already serves ${target.serves}: a line with a verb changes it only with its words (an amendment in other words)`;
   if (line.check !== target.check || line.grounds !== target.grounds) return "a verb-only amendment keeps the line's check and grounds as they stand";
-  if (blank(line.serves) || flagged(line.serves)) return 'a verb-only amendment names a verb: Earn, Honour or Return';
+  // `none; <reason>` flags a ratified line to the owner as serving no verb (decision 0245, run 17's second review).
+  if (blank(line.serves)) return 'a verb-only amendment names a verb, Earn, Honour or Return, or none; <the steward\'s reason>';
   return null;
 }
 
@@ -687,9 +702,13 @@ function editProblems(before, after, feature, subject = '', { missing = () => fa
     else {
       // What draft and amend refuse, a commit by hand may not do either (decision 0244 audit 2).
       if (e.serves === undefined) out.push(`adds ${e.id} to ${where} with no Serves: a drafted line names its verb (npm run expectations -- draft, decisions 0244, 0245)`);
-      const same = a.entries.filter((x) => x.id !== e.id && norm(x.text) === norm(e.text));
-      const target = same.length === 1 && same[0].id === e.amends && same[0].text === e.text ? same[0] : null;
-      if (same.length && !(target && !verbOnlyProblem(target, e))) out.push(`adds ${e.id} to ${where} with the words of ${same.map((x) => x.id).join(', ')}: only a verb-only amendment (npm run expectations -- amend <id> --serves) repeats a line's words`);
+      const target = e.amends !== undefined ? targetProblem(a.entries, e.amends, e.id) : null;
+      if (target) out.push(`adds ${e.id} to ${where}, amending ${e.amends}: ${target}`);
+      // As newLines: a declined amendment is left out only beside a verb-only amendment of the same line (0245 audit 1).
+      const exempt = a.entries.find((x) => x.id === e.amends)?.text === e.text ? e.amends : undefined;
+      const same = a.entries.filter((x) => x.id !== e.id && norm(x.text) === norm(e.text) && !declinedOf(x, exempt));
+      const own = same.length === 1 && same[0].id === e.amends && same[0].text === e.text ? same[0] : null;
+      if (same.length && !(own && !verbOnlyProblem(own, e))) out.push(`adds ${e.id} to ${where} with the words of ${same.map((x) => x.id).join(', ')}: only a verb-only amendment (npm run expectations -- amend <id> --serves) repeats a line's words`);
     }
   }
   return out;
@@ -797,6 +816,7 @@ function readFlags(op, rest) {
     const name = rest[i].slice(2);
     const value = rest[i + 1];
     if (TAKES[op] && !TAKES[op].includes(name)) problems.push(`${op} takes no --${name}${TAKES[op].length ? ` (it takes ${TAKES[op].map((f) => `--${f}`).join(', ')})` : ''}`);
+    if (Object.prototype.hasOwnProperty.call(flags, name)) problems.push(`--${name} is given twice: give it once`);
     if (value === undefined || value.startsWith('--')) problems.push(`--${name} takes a word after it`);
     else i++;
     flags[name] = value;
@@ -845,6 +865,7 @@ function main(argv) {
     const feature = featureOfId(args[0]);
     if (!feature) return fail([`${args[0] || '(none)'} is no id: E-<feature>-<n>`]);
     const target = storeOf(feature).entries.find((e) => e.id === args[0]);
+    if (!target) return fail([`${args[0]} is no line of ${fileOf(feature)}`]);
     // With no --file, a verb-only amendment (decision 0245): the line's own words, check and grounds, and --serves.
     const own = target && flags.file === undefined && flags.serves !== undefined;
     const read = own ? { lines: [{ text: target.text, check: target.check, grounds: target.grounds }], problems: [] } : parseDraft(body());
