@@ -206,6 +206,11 @@ export interface WalkMapProps {
   foundPins?: LngLat[] | null;
   /** Explore's marks, as "?" pins until revealed (E6-E8, E22). */
   discoveries?: MarkPin[];
+  /**
+   * What decides the "?" list but the position (`markContext`, PI12): with it, a mark a new position brings within
+   * range grows in and one it takes out shrinks out (poi-transitions); a change of it, or none (Explore), moves nothing.
+   */
+  marksContext?: string | null;
   /** Marks whose heads would cover each other stand side by side, on legs to their points (fix mark-overlap). Off where
    * the screen lays its pins out itself (Explore's "?" by `halfZoom`, WT12). */
   spreadMarks?: boolean;

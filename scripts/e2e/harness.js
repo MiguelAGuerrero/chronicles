@@ -409,7 +409,7 @@ async function createHarness() {
   });
   // The deferred four (M9-M12): each entrance as it appears, whether it was moving a frame later, and
   // what it marks; a stuck or vacuous wrapper fails (audit 3).
-  await ctx.addInitScript(() => {
+  const recordEnters = (context) => context.addInitScript(() => {
     const enters = [];
     window.__enters = enters;
     const moving = (el) => {
@@ -424,15 +424,27 @@ async function createHarness() {
       for (const r of records)
         for (const n of r.addedNodes) {
           if (!(n instanceof HTMLElement)) continue;
-          const els = n.matches('[data-testid^=enter-]') ? [n] : [...n.querySelectorAll('[data-testid^=enter-]')];
+          // A "?" leaving range shrinks out (poi-transitions PI3): `leave-shrink`, recorded as kind `shrink`.
+          const sel = '[data-testid^=enter-], [data-testid^=leave-]';
+          const els = n.matches(sel) ? [n] : [...n.querySelectorAll(sel)];
           for (const el of els)
             requestAnimationFrame(() => {
               const marker = el.closest('button, [role=img]');
-              enters.push({ kind: el.dataset.testid.slice(6), animated: moving(el), label: marker?.getAttribute('aria-label') ?? '', ids: marker?.dataset.ids ?? '', el });
+              const kind = el.dataset.testid.replace(/^(enter|leave)-/, '');
+              // A wrapper already off the page moved nothing anyone saw (PI10's leave goes at once).
+              const entry = {
+                kind, animated: el.isConnected && moving(el), label: marker?.getAttribute('aria-label') ?? '', ids: marker?.dataset.ids ?? '', el,
+                mark: marker?.dataset.testid === 'mark-pin', hidden: marker?.getAttribute('aria-hidden') ?? null,
+                pe: marker ? getComputedStyle(marker).pointerEvents : null, tab: marker ? marker.tabIndex : null,
+              };
+              enters.push(entry);
+              // An ease-in (a leave) has barely moved one frame in: look again 60 ms on.
+              if (!entry.animated) setTimeout(() => { entry.animated = el.isConnected && moving(el); }, 60);
             });
         }
     }).observe(document, { childList: true, subtree: true });
   });
+  await recordEnters(ctx);
   // How far a button is pressed down (M4): its own scale and opacity while held, and its scale after.
   const pressedScale = async (pg, selector) => {
     const loc = pg.locator(selector).first();
@@ -875,7 +887,7 @@ async function createHarness() {
     return { x: m.x + m.width / 2, y: m.y + m.height / 2 };
   });
   return {
-    url, navUrl, exploreUrl, BASE, browser, ctx, page, errors, hosts, start, at, distanceM, dLat, dLon, features, names, overtureFeatures, OVERTURE_HOST, OVERTURE_RELEASE, overtureAsked, style, check, shot, glyph, toStop, iconOf, metricRegion, pressedScale, metaOf, drawerTo, openInto, closeInto, intoScrollTo, intoSettled, tabTo, toThreads, toJournal, mapUp, shownCount, tabBarShown, tileRoute, overtureRoute, freshPage, openWalk, tiles, scriptsDir,
+    url, navUrl, exploreUrl, BASE, recordEnters, browser, ctx, page, errors, hosts, start, at, distanceM, dLat, dLon, features, names, overtureFeatures, OVERTURE_HOST, OVERTURE_RELEASE, overtureAsked, style, check, shot, glyph, toStop, iconOf, metricRegion, pressedScale, metaOf, drawerTo, openInto, closeInto, intoScrollTo, intoSettled, tabTo, toThreads, toJournal, mapUp, shownCount, tabBarShown, tileRoute, overtureRoute, freshPage, openWalk, tiles, scriptsDir,
     onTab, walkMap, walkMarks, walkRoute, walkPts, nothingLeaves, noConsoleErrors, close, divisions, snapWorld, wholeWorld, walkability, overpassAsked, OVERPASS_HOST, scenicWorld, routed, switchLayer, places, areaTile, hollowWorld, complexWorld, bareMapPoint, denseWorld, DENSE_HOODS, smallWorld, SMALL_TOWN, SMALL_HOODS,
   };
 }

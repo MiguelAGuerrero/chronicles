@@ -29,6 +29,7 @@ import { FIT_IDLE, fitStep, type FitState } from '../../lib/atlas/fitFlight';
 import { mapLabel } from '../../lib/atlas/freeLook';
 import { useGlideFrames, type GlideFrame } from '../../lib/useGlidingWalker';
 import { markEnter, pinDrops, starEnter } from '../../lib/enter';
+import { MARK_MOTION, arrivalEnter, markMoves, recentlyLeft } from '../../lib/markMotion';
 import { useReducedMotion } from '../../lib/motion';
 import { useUnits } from '../../lib/useUnits';
 import { useReminded } from '../../lib/useReminded';
@@ -1369,7 +1370,13 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     markLatest.current = props.onDiscoveryPress;
   });
   const viewZoom = view?.zoom ?? 16;
-  const markMarkers = useRef(new Map<string, { marker: Marker; root: Root; key: string; spread: string; state: { revealed: boolean; found?: boolean; faint?: boolean } }>());
+  type MarkEntry = { marker: Marker; root: Root; el: HTMLElement; key: string; spread: string; pin: MarkPin; state: { revealed: boolean; found?: boolean; faint?: boolean } };
+  const markMarkers = useRef(new Map<string, MarkEntry>());
+  // Places come and go with a settle on a walk (PI1-PI14): what the last sync showed (null before the first: first
+  // sight, PI5) and under which context, the marks still shrinking out, and when each mark last left (PI13).
+  const markShown = useRef<{ ids: Set<string>; context: string | null } | null>(null);
+  const markLeaving = useRef(new Map<string, MarkEntry>());
+  const markLeftAt = useRef(new Map<string, number>());
   useEffect(() => {
     const map = mapRef.current;
     if (!ready || !map) return;
@@ -1377,8 +1384,32 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       m.marker.remove();
       queueMicrotask(() => m.root.unmount());
     };
+    const pins = declutterMarks(props.discoveries ?? [], viewZoom, { bearing: marksBearing, spread: !!props.spreadMarks });
+    const context = props.marksContext ?? null;
+    const now = Date.now();
+    const bounds = map.getBounds();
+    const atOf = new Map<string, LngLat>(pins.map((p) => [p.id, p.at]));
+    for (const [id, m] of markMarkers.current) if (!atOf.has(id)) atOf.set(id, m.pin.at);
+    const moves = markMoves({
+      prev: markShown.current?.ids ?? null,
+      prevContext: markShown.current?.context ?? null,
+      ids: pins.map((p) => p.id),
+      context,
+      recentlyLeft: recentlyLeft(markLeftAt.current, now),
+      leaving: new Set(markLeaving.current.keys()),
+      inView: (id) => {
+        const at = atOf.get(id);
+        return !!at && bounds.contains(at);
+      },
+    });
+    // A mark back while it shrinks: its leave is cut and it is drawn once, still (PI6, PI13).
+    for (const id of moves.back) {
+      const m = markLeaving.current.get(id);
+      if (m) drop(m);
+      markLeaving.current.delete(id);
+    }
     const live = new Set<string>();
-    for (const pin of declutterMarks(props.discoveries ?? [], viewZoom, { bearing: marksBearing, spread: !!props.spreadMarks })) {
+    for (const pin of pins) {
       live.add(pin.id);
       const key = `${pin.at.join(',')}|${markKey(pin)}|${pin.name}|${pin.icon}|${pin.quiet ? 'q' : ''}`;
       const existing = markMarkers.current.get(pin.id);
@@ -1388,14 +1419,18 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         // flight stay (fix mark-overlap audit 6).
         if (existing.spread !== spread) {
           existing.spread = spread;
+          existing.pin = pin as MarkPin;
           existing.marker.setOffset([pin.spread?.dx ?? 0, MARK_BELOW + (pin.spread?.dy ?? 0)]);
           existing.root.render(<MarkPinView pin={pin as MarkPin} below={MARK_BELOW} />);
         }
         continue;
       }
       if (existing) drop(existing);
-      // Revealed in front of you it turns in (M11); found, it pulses once (M12).
-      const enter = markEnter(existing?.state, pin);
+      // Revealed in front of you it turns in (M11); found, it pulses once (M12); either wins over an arrival still
+      // under way (PI7). Come within range on a walk, it grows in (PI2).
+      const arriving = !existing && moves.arriving.has(pin.id);
+      const enter = arrivalEnter(arriving, markEnter(existing?.state, pin));
+      if (arriving) perfCount('mark:in');
       const el = document.createElement('button');
       el.type = 'button';
       el.dataset.testid = 'mark-pin';
@@ -1412,6 +1447,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       if (!pin.found)
         el.addEventListener('click', (e) => {
           e.stopPropagation();
+          // A leaving mark takes no tap (PI6).
+          if (el.dataset.leaving) return;
           markLatest.current?.(id);
         });
       const root = createRoot(el);
@@ -1419,20 +1456,45 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       root.render(<MarkPinView pin={pin as MarkPin} enter={enter} below={MARK_BELOW} />);
       // A spread pin stands off its point, on a leg back to it (fix mark-overlap).
       const marker = new Marker({ element: el, anchor: 'bottom', offset: [pin.spread?.dx ?? 0, MARK_BELOW + (pin.spread?.dy ?? 0)] }).setLngLat(pin.at).addTo(map);
-      markMarkers.current.set(pin.id, { marker, root, key, spread, state: { revealed: pin.revealed, found: pin.found, faint: pin.faint } });
+      markMarkers.current.set(pin.id, { marker, root, el, key, spread, pin: pin as MarkPin, state: { revealed: pin.revealed, found: pin.found, faint: pin.faint } });
     }
     for (const [id, m] of markMarkers.current) {
       if (live.has(id)) continue;
-      drop(m);
       markMarkers.current.delete(id);
+      markLeftAt.current.set(id, now);
+      if (!moves.leaving.has(id)) {
+        drop(m);
+        continue;
+      }
+      // Falling out of range on a walk, it shrinks out first (PI3), taking no tap or focus and hidden from a screen
+      // reader from now (PI6); a focus it held goes to the map, never to the page.
+      perfCount('mark:out');
+      const held = m.el.contains(document.activeElement);
+      m.el.dataset.leaving = 'true';
+      m.el.setAttribute('aria-hidden', 'true');
+      m.el.tabIndex = -1;
+      m.el.style.pointerEvents = 'none';
+      if (held) map.getCanvas().focus();
+      markLeaving.current.set(id, m);
+      const left = () => {
+        if (markLeaving.current.get(id) !== m) return;
+        markLeaving.current.delete(id);
+        drop(m);
+      };
+      m.root.render(<MarkPinView pin={m.pin} below={MARK_BELOW} onLeft={left} />);
     }
-  }, [ready, props.discoveries, viewZoom, marksBearing, props.spreadMarks]);
+    // The record of who left is kept only as long as it can still hold a mark still (PI13).
+    for (const [id, t] of markLeftAt.current) if (now - t > MARK_MOTION.backStillMs) markLeftAt.current.delete(id);
+    markShown.current = { ids: live, context };
+  }, [ready, props.discoveries, viewZoom, marksBearing, props.spreadMarks, props.marksContext]);
+  // Leaving the screen takes every mark away at once, a leaving one too (PI8).
   useEffect(() => () => {
-    for (const m of markMarkers.current.values()) {
+    for (const m of [...markMarkers.current.values(), ...markLeaving.current.values()]) {
       m.marker.remove();
       queueMicrotask(() => m.root.unmount());
     }
     markMarkers.current.clear();
+    markLeaving.current.clear();
   }, []);
   // The complexes' names (CX9), DOM markers like the strip names, rebuilt only when they change; the map adds no summary of its own.
   const complexMarkers = useRef<{ marker: Marker; root: Root }[]>([]);

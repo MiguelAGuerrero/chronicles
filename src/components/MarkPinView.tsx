@@ -4,7 +4,7 @@ import type { EnterKind } from '../lib/enter';
 import { foundLabel } from '../lib/explore/foundFace';
 import type { MarkSpread } from '../lib/markNames';
 import type { CaptureKind } from '../lib/types';
-import { Enter } from './Enter';
+import { Enter, Leave } from './Enter';
 import type { IconName } from './icons';
 import { Icon, KIND_ICON } from './icons';
 
@@ -46,9 +46,12 @@ const NAME_WIDTH = 140;
  * showed before (M11 turns, M12 pulses). Kept from mount, so a later render can't cut it short.
  */
 /** `below`: how far the pin's foot stands below its point (the web marker's offset), so a spread pin's leg ends on it. */
-export function MarkPinView({ pin, enter, below = 0 }: { pin: MarkPin; enter?: EnterKind | null; below?: number }) {
+/** `onLeft`: the mark is leaving (PI3): it shrinks out, then the map takes it away. */
+export function MarkPinView({ pin, enter, below = 0, onLeft }: { pin: MarkPin; enter?: EnterKind | null; below?: number; onLeft?: () => void }) {
   const [kind] = useState(enter ?? null);
   const body = <MarkBody pin={pin} below={below} />;
+  if (onLeft) return <Leave onDone={onLeft}>{body}</Leave>;
+  if (kind === 'grow') return <Enter kind="grow">{body}</Enter>;
   if (kind === 'flip' || kind === 'pulse')
     return (
       <Enter kind={kind} ring={[styles.ringAt, pin.found && styles.ringFound]}>

@@ -4,7 +4,7 @@
  * plays once, when its change happens in front of you; nothing animates when
  * a screen first opens or reloads. Pure; the views animate (`components/Enter`).
  */
-export type EnterKind = 'drop' | 'flip' | 'pulse' | 'bounce';
+export type EnterKind = 'drop' | 'flip' | 'pulse' | 'bounce' | 'grow';
 
 export const ENTER = {
   /** A new capture's pin falls into place (M10). */

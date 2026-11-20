@@ -5,7 +5,7 @@ import {
 import { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { PanResponder, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import { CapturePinView, pinLabel } from '../CapturePinView';
-import { MarkPinView, markKey, markLabel } from '../MarkPinView';
+import { MarkPinView, markKey, markLabel, type MarkPin } from '../MarkPinView';
 import { AreaPointView } from '../AreaPoint';
 import { ComplexLabelView } from '../ComplexLabel';
 import { COMPLEX_STYLE } from '../../lib/complexes/mapLayer';
@@ -32,6 +32,7 @@ import { releaseSwipe, SNAP } from '../../lib/atlas/snap';
 import { capFitBounds } from '../../lib/zoomOut';
 import type { DotSource } from '../../lib/liveDot';
 import { markEnter, pinDrops, sameSeen } from '../../lib/enter';
+import { MARK_MOTION, arrivalEnter, inBounds, markMoves, recentlyLeft } from '../../lib/markMotion';
 import { useReducedMotion } from '../../lib/motion';
 import { useUnits } from '../../lib/useUnits';
 import { MOTION, REPLAY_ENGINE } from '../../lib/motionTokens';
@@ -147,6 +148,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   // gets its entrance from here. Nothing animates on first render, nor for captures older than the screen.
   const [openedAt] = useState(() => Date.now());
   const [seenMarks, setSeenMarks] = useState<ReadonlyMap<string, string>>(() => new globalThis.Map());
+  const visibleBounds = useRef<VisibleBounds | null>(null);
   const [seenCaptures, setSeenCaptures] = useState<ReadonlySet<string>>(() => new Set());
   // New state only on a real change: the discoveries array is new on every fix (audit 2, render budget).
   useEffect(() => {
@@ -496,6 +498,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
           regionChanged.current?.();
           props.onMoveState?.(false);
           const { zoom, center, bearing } = e.nativeEvent;
+          // The visible bounds of the last settle: only marks inside them grow in or shrink out (PI4).
+          visibleBounds.current = (e.nativeEvent.bounds as VisibleBounds | undefined) ?? null;
           swiper.at([center[0], center[1]], zoom);
           const nb = typeof bearing === 'number' ? Math.round(bearing / 5) * 5 : 0;
           if (nb !== namesBearingNow.current) {
@@ -595,7 +599,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         />
         <MarkMarkers
           marks={shownMarks} zoom={view?.zoom ?? props.initialZoom ?? 16} bearing={namesBearing} spread={!!props.spreadMarks} seen={seenMarks}
-          pressable={!!props.onDiscoveryPress} handlers={handlers}
+          pressable={!!props.onDiscoveryPress} handlers={handlers} context={props.marksContext ?? null} bounds={visibleBounds}
         />
         <ComplexLabelMarkers labels={props.complexes?.labels ?? NO_LABELS} />
         <AreaPointMarkers points={props.areaPoints ?? NO_AREA_POINTS} />
@@ -1030,10 +1034,76 @@ const PinMarkers = memo(function PinMarkers({ pins, sets, reminded, clocks, now,
   });
 });
 
-const MarkMarkers = memo(function MarkMarkers({ marks, zoom, bearing, spread, seen, pressable, handlers }: { marks: NonNullable<WalkMapProps['discoveries']>; zoom: number; bearing: number; spread: boolean; seen: ReadonlyMap<string, string>; pressable: boolean; handlers: RefObject<PinHandlers> }) {
+type VisibleBounds = [number, number, number, number];
+
+/**
+ * Places come and go with a settle on a walk (PI1-PI14), native: which "?" grow in and which shrink out, decided a
+ * tick after the list changes (as `seenMarks` is), from what was shown, the context (`marksContext`) and the visible
+ * bounds of the last settle. A new mark is held back for that tick when it could be arriving, so it never shows at
+ * full size before growing. Unverified on a device.
+ */
+function useMarkMoves(pins: readonly MarkPin[], context: string | null, bounds: RefObject<VisibleBounds | null>) {
+  const [state, setState] = useState<{ known: ReadonlySet<string> | null; context: string | null; grow: ReadonlySet<string>; leaving: ReadonlyMap<string, MarkPin> }>(
+    () => ({ known: null, context: null, grow: new Set(), leaving: new globalThis.Map() }),
+  );
+  const shown = useRef<{ ids: Set<string> | null; context: string | null; pins: ReadonlyMap<string, MarkPin> }>({ ids: null, context: null, pins: new globalThis.Map() });
+  const leftAt = useRef(new globalThis.Map<string, number>());
+  const leaving = useRef(new globalThis.Map<string, MarkPin>());
+  useEffect(() => {
+    const t = setTimeout(() => {
+      const ids = pins.map((p) => p.id);
+      const was = shown.current;
+      if (was.ids && was.context === context && was.ids.size === ids.length && ids.every((id) => was.ids?.has(id))) return;
+      const now = Date.now();
+      const atOf = new globalThis.Map<string, LngLat>([...was.pins].map(([id, p]) => [id, p.at] as const));
+      for (const p of pins) atOf.set(p.id, p.at);
+      const moves = markMoves({
+        prev: was.ids,
+        prevContext: was.context,
+        ids,
+        context,
+        recentlyLeft: recentlyLeft(leftAt.current, now),
+        leaving: new Set(leaving.current.keys()),
+        inView: (id) => inBounds(atOf.get(id) ?? [NaN, NaN], bounds.current),
+      });
+      const next = new globalThis.Map(leaving.current);
+      for (const id of moves.back) next.delete(id);
+      const now2 = new Set(ids);
+      for (const [id, p] of was.pins) {
+        if (now2.has(id)) continue;
+        leftAt.current.set(id, now);
+        if (moves.leaving.has(id)) next.set(id, p);
+      }
+      for (const [id, at] of leftAt.current) if (now - at > MARK_MOTION.backStillMs) leftAt.current.delete(id);
+      leaving.current = next;
+      shown.current = { ids: now2, context, pins: new globalThis.Map(pins.map((p) => [p.id, p] as const)) };
+      setState({ known: now2, context, grow: moves.arriving, leaving: next });
+    }, 0);
+    return () => clearTimeout(t);
+  }, [pins, context, bounds]);
+  // The grow is read at a marker's mount; once played, a later remount (a spread, a reveal) never grows again (PI7).
+  useEffect(() => {
+    if (!state.grow.size) return;
+    const t = setTimeout(() => setState((s) => ({ ...s, grow: new Set() })), MARK_MOTION.leaveMs + 400);
+    return () => clearTimeout(t);
+  }, [state.grow]);
+  const left = useCallback((id: string) => {
+    if (!leaving.current.has(id)) return;
+    const next = new globalThis.Map(leaving.current);
+    next.delete(id);
+    leaving.current = next;
+    setState((s) => ({ ...s, leaving: next }));
+  }, []);
+  // A mark the last decision has not seen, under the same context, waits for it: it may be arriving.
+  const held = (id: string) => state.known != null && state.context === context && !state.known.has(id);
+  return { grow: state.grow, leaving: state.leaving, held, left };
+}
+
+const MarkMarkers = memo(function MarkMarkers({ marks, zoom, bearing, spread, seen, pressable, handlers, context, bounds }: { marks: NonNullable<WalkMapProps['discoveries']>; zoom: number; bearing: number; spread: boolean; seen: ReadonlyMap<string, string>; pressable: boolean; handlers: RefObject<PinHandlers>; context: string | null; bounds: RefObject<VisibleBounds | null> }) {
   const shown = useMemo(() => declutterMarks(marks, zoom, { bearing, spread }), [marks, zoom, bearing, spread]);
+  const moves = useMarkMoves(shown as MarkPin[], context, bounds);
   // The spread is in the key: whether a Marker's children redraw without a new key is unverified on a device (pins.md).
-  return shown.map((pin) => (
+  const live = shown.filter((pin) => !moves.held(pin.id)).map((pin) => (
     <Marker
       key={`mark:${pin.id}:${markKey(pin)}:${spreadKey(pin.spread)}`}
       id={`mark:${pin.id}:${markKey(pin)}:${spreadKey(pin.spread)}`}
@@ -1052,10 +1122,19 @@ const MarkMarkers = memo(function MarkMarkers({ marks, zoom, bearing, spread, se
         accessibilityLabel={markLabel(pin)}
         style={pin.found ? undefined : styles.pinHit}
       >
-        <MarkPinView pin={pin} enter={seen.size ? markEnter(markFrom(seen.get(pin.id)), pin) : null} />
+        <MarkPinView pin={pin} enter={arrivalEnter(moves.grow.has(pin.id), seen.size ? markEnter(markFrom(seen.get(pin.id)), pin) : null)} />
       </View>
     </Marker>
   ));
+  // Falling out of range, a mark shrinks out (PI3), taking no tap and hidden from a screen reader (PI6).
+  const going = [...moves.leaving.values()].map((pin) => (
+    <Marker key={`leaving:${pin.id}`} id={`leaving:${pin.id}`} lngLat={pin.at} anchor="bottom" offset={pin.spread ? [pin.spread.dx, pin.spread.dy] : undefined}>
+      <View accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" pointerEvents="none">
+        <MarkPinView pin={pin} onLeft={() => moves.left(pin.id)} />
+      </View>
+    </Marker>
+  ));
+  return [...live, ...going];
 });
 
 const ComplexLabelMarkers = memo(function ComplexLabelMarkers({ labels }: { labels: ComplexLabels }) {

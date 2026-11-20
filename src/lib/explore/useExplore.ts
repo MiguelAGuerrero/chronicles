@@ -1,4 +1,5 @@
 // @layer view
+import { markContext } from '../markMotion';
 import { faced, type Faced } from '../moment';
 import { ensureOvertureRelease } from '../activity/overture';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -334,5 +335,13 @@ export function useExplore(opts: {
   const byKey = useMemo(() => new Map([...routeItems, ...items].map((i) => [i.key, i])), [items, routeItems]);
   const itemOf = useCallback((key: string) => byKey.get(key) ?? null, [byKey]);
 
-  return { pins, settings, revealed, found: foundSet, itemOf, armed: armedNow, arm, disarm };
+  // What decides the "?" list but where you are (PI12): a mark a new position brings within range grows in, and any
+  // other change (Places, the range or its preview, a kind, a read, a route, a ride) draws them still (poi-transitions).
+  const keysRead = useMemo(() => [...items, ...routeItems].map((i) => i.key), [items, routeItems]);
+  const context = useMemo(
+    () => markContext({ places, rangeM, hidden: settings.hidden, keys: keysRead, route: routePath, riding }),
+    [places, rangeM, settings.hidden, keysRead, routePath, riding],
+  );
+
+  return { pins, context, settings, revealed, found: foundSet, itemOf, armed: armedNow, arm, disarm };
 }

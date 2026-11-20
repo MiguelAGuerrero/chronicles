@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import { markEnter } from '../../enter';
-import { MARK_MOTION, arrivalEnter, dampingRatio, markContext, markMoves, recentlyLeft, springPeak, springSettleMs } from '../../markMotion';
+import { MARK_MOTION, arrivalEnter, dampingRatio, inBounds, markContext, markMoves, recentlyLeft, springPeak, springSettleMs } from '../../markMotion';
 import { MOTION } from '../../motionTokens';
 
 const ctx = { places: true, rangeM: 100, hidden: [] as string[], keys: ['a', 'b', 'c'], route: null, riding: false };
@@ -14,6 +14,9 @@ test('PI4: off screen, a mark comes and goes at once', () => {
   const m = markMoves({ prev: new Set(['a']), prevContext: 'x', ids: ['b'], context: 'x', recentlyLeft: none, leaving: none, inView: (id: string) => id !== 'b' && id !== 'a' });
   assert.deepEqual([...m.arriving], []);
   assert.deepEqual([...m.leaving], []);
+  assert.equal(inBounds([1, 1], [0, 0, 2, 2]), true, 'inside the visible bounds');
+  assert.equal(inBounds([3, 1], [0, 0, 2, 2]), false, 'east of them');
+  assert.equal(inBounds([1, 1], null), false, 'no bounds known yet: nothing moves');
 });
 
 test('PI5: first sight moves nothing', () => {

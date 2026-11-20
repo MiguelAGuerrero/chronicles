@@ -111,3 +111,7 @@ export function markMoves(i: {
 
 /** A mark's entrance at a sync: a reveal's turn or a find's pulse wins over its arrival (PI7). */
 export const arrivalEnter = <K extends string>(arriving: boolean, change: K | null): K | 'grow' | null => change ?? (arriving ? 'grow' : null);
+
+/** Whether a point is inside a map's visible bounds, `[west, south, east, north]` (MapLibre RN's order; PI4). */
+export const inBounds = (at: LngLat, b: readonly [number, number, number, number] | null): boolean =>
+  !!b && at[0] >= b[0] && at[0] <= b[2] && at[1] >= b[1] && at[1] <= b[3];

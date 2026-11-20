@@ -1,0 +1,31 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Sensors and motion"
+      ],
+      "body": "- [ ] **Do:** on a walk with Places on, on an iPhone and an Android phone, walk until a \"?\" ahead comes within range and on until one behind falls out of range, the map on screen. **Expect:** the \"?\" coming in grows from about 80% with a slight settle (`Enter`'s `grow` on the native driver inside a MapLibre RN `Marker`); the one going shrinks and fades out over about 180 ms, then is gone (`Leave`); no mark shows at full size for a moment before it grows (the held tick in `useMarkMoves`) (Places come and go). (PI2, PI3)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Sensors and motion"
+      ],
+      "body": "- [ ] **Do:** on a walk with Places on and VoiceOver or TalkBack on, put the screen reader's focus on a \"?\" and walk until it falls out of range; then pan the map so a \"?\" is off screen and walk it out of range. **Expect:** the leaving mark takes no tap and the screen reader no longer reaches it once it starts to go (`importantForAccessibility=\"no-hide-descendants\"`); the off-screen one leaves at once, read from `onRegionDidChange`'s `bounds` (Places come and go). (PI4, PI6)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Sensors and motion"
+      ],
+      "body": "- [ ] **Do:** turn on Reduce Motion (iOS) or Remove animations (Android), then walk into and out of range of a \"?\". **Expect:** the marks come and go at once, with no scale or fade (Places come and go). (PI10)\n"
+    }
+  ]
+}

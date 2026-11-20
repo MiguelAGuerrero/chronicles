@@ -362,6 +362,8 @@ recording, and a recording bar brings a minimized walk back.
   you are on and the dead-zone pill. The layers are the walk's own, off at every walk's start. A place you pass within a few metres (4-20 m, 8 by
   default, a setting in the walk's options, always there) is named in the replay as passed without stopping, never counted (decision 0224), and
   only within the spans Places was on.
+  A "?" coming within range grows in with a slight settle, and one falling out of range shrinks away (decision 0239);
+  only on screen, never as the walk opens, while riding or for a place left moments ago, and not at all with Reduce Motion.
 - **Remind me here**: flag a capture, and the next walk that passes within
   75 m of it shows its card, or a notification when the app is behind.
   Its pin wears a small bell on every map while the reminder is set.

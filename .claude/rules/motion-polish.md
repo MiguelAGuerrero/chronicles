@@ -1,6 +1,6 @@
 ---
 paths:
-  - "src/lib/{motionTokens,motion,enter,zoomOut,haptics}.ts"
+  - "src/lib/{motionTokens,motion,enter,markMotion,zoomOut,haptics}.ts"
   - "src/components/{Enter,HomeSheet,ui}.tsx"
   - "src/lib/__tests__/motion/**"
 ---
@@ -68,6 +68,21 @@ Animation and haptics: the motion tokens, reduce motion, presses, the sheet spri
   - The e2e records each entrance as it appears (`window.__enters`: kind,
     whether it moved a frame later, its marker's label and ids), so a stuck or
     vacuous wrapper fails.
+- **Places come and go with a settle on a walk** (PI1-PI14, decision 0239; `lib/markMotion.ts` pure).
+  - A "?" grows in (`grow`, `Enter`) as a new position brings it within range and shrinks out (`Leave`, the app's
+    only leave animation) as one takes it out, on the marks' own spring (`MARK_MOTION.spring`: from 80%, opaque,
+    peak about 1.025, settled in 350 ms). `MOTION.spring` keeps its no-bounce settle for everything else.
+  - What moves is `markMoves`' call. The screen passes `marksContext` (`markContext`: Places, range or its preview,
+    kinds hidden, places read, the whole route, null while riding), and a change of it moves nothing. Only the walk
+    screen passes one; Explore's marks come and go at once.
+  - It moves nothing on first sight, off screen (the map's bounds), or for a mark back within `backStillMs` (30 s).
+  - A leaving mark takes no tap or focus and is hidden from a screen reader at once. On web it is
+    `data-leaving`, and a focus it held goes to the map's canvas. A mark back while leaving is drawn once.
+  - Unmounting removes everything at once.
+  - Native decides a tick after the list changes, from the bounds of the last settle (`onRegionDidChange`'s
+    `bounds`). A mark that may be arriving is held back for that tick. Unverified on a device.
+  - The e2e recorder (`recordEnters`, harness) records `leave-shrink` as kind `shrink`, with the marker's
+    `aria-hidden`, pointer events and tab index. A fresh context needs `recordEnters(c)` itself.
 - **Native** (unverified on a device): the native-driver press and lift, the
   sheet spring.
 - The e2e's mouse drag on the home map doesn't pan it, so H5's "kept its view
