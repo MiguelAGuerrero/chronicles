@@ -2064,30 +2064,63 @@ async function unitsOnExplore(h) {
     await pg.setViewportSize({ width: 390, height: 844 });
     await pg.waitForTimeout(600);
     await shot(pg, 'tend-map-23-explore-miles-390');
-    // The card: a town's page, then its own card, which says how far it is.
-    const far = after.find((t) => / away/.test(said(t.text)));
-    if (far) {
-      // Cranston selected (the row eases it into view), then its page, then one of its neighborhoods' cards: a tap
-      // selects a card and a tap on the selected one opens it.
-      for (let i = 0; i < 5 && !(await pg.locator('[data-testid=atlas-card]').filter({ visible: true }).count()); i++) {
+    // The card's own check is tend map audit 53's (the diff review's auditor 4): opened after the switch it is built
+    // fresh in miles, so it only shows a stale card where one stays open across the switch, in the side panel.
+  } catch (e) {
+    check(false, `step tend map 23: ${String(e.message).split('\n')[0]}`);
+  } finally {
+    await pg.close().catch(() => {});
+  }
+}
+
+// tend map audit 53 (the diff review's auditor 4): could a card stay open across a switch of the units? Only the side
+// panel (1000 px and wider) leaves the tabs reachable, and Navigate, where the units are, opens over Explore, which then
+// closes any card (explore.tsx, "A card … never outlive[s] the tab's turn in front", audit 8 of round 3). So the card is
+// always built afresh after a switch, and its binding is held by tend map 23's scan; this pins the close it rests on, and
+// the card opened again in miles.
+async function unitsCardWide(h) {
+  const { exploreUrl, check, freshPage, snapWorld, tabTo, drawerTo, shot } = h;
+  snapWorld.serve = true;
+  const { pg } = await freshPage('qol-units-wide');
+  const said = (t) => ((t || '').replace(/\u00a0/g, ' ').match(/\d[\d,.]* (m|km|ft|mi) (away|from you)/) || [])[0] || null;
+  const cardText = () => pg.evaluate(() => [...document.querySelectorAll('[data-testid=atlas-card]')].filter((e) => e.getBoundingClientRect().width > 0).map((e) => e.innerText.replace(/\s+/g, ' ')).pop() ?? null);
+  try {
+    await pg.setViewportSize({ width: 1200, height: 900 });
+    await pg.goto(exploreUrl);
+    await pg.waitForFunction(() => document.querySelectorAll('[data-testid=atlas-tile]').length >= 2, null, { timeout: 60000 }).catch(() => {});
+    await pg.waitForTimeout(2500);
+    const openCard = async () => {
+      for (let i = 0; i < 6 && !(await cardText()); i++) {
         const onPage = (await pg.locator('[data-testid=atlas-back-pill]').count()) > 0;
         const tile = onPage
           ? pg.locator('[data-testid=atlas-tile][data-level="neighborhood"]').filter({ visible: true }).first()
-          : pg.locator(`[data-testid=atlas-tile][data-name="${far.name}"]`).filter({ visible: true }).last();
+          : pg.locator('[data-testid=atlas-tile][data-name="Cranston"]').filter({ visible: true }).last();
         await tile.scrollIntoViewIfNeeded().catch(() => {});
         await pg.waitForTimeout(700);
         // Forced: the row eases itself onto the card as it is selected, so the card is rarely still for Playwright.
         await tile.click({ timeout: 8000, force: true });
         await pg.waitForTimeout(1500);
       }
-      await pg.waitForTimeout(900);
-    }
-    const card = await pg.evaluate(() => document.querySelector('[data-testid=atlas-card]')?.innerText.replace(/\s+/g, ' ') ?? null);
-    check(!!card && / (ft|mi) away/.test(norm(said(card) || '')) && !/ (m|km) away/.test(norm(card)),
-      `tend map 23: switched to miles, the area card says its distance in miles (${JSON.stringify(card && card.slice(0, 160))})`);
-    await shot(pg, 'tend-map-23-card-miles-390');
+    };
+    await openCard();
+    const before = said(await cardText());
+    await tabTo(pg, 'navigate');
+    await pg.waitForSelector('[data-testid=ready-grip]', { timeout: 20000 });
+    await pg.waitForTimeout(1500);
+    await drawerTo(pg, 'full');
+    await pg.click('[data-testid=units-mi]');
+    await pg.waitForTimeout(400);
+    await drawerTo(pg, 'peek');
+    await tabTo(pg, 'explore');
+    await pg.waitForTimeout(2500);
+    const left = await cardText();
+    await openCard();
+    const after = said(await cardText());
+    await shot(pg, 'tend-map-audit-53-card-side-panel-miles-1200');
+    check(!!before && / (m|km) /.test(before) && left === null && !!after && / (ft|mi) /.test(after),
+      `tend map audit 53: at 1200 px a card open in the side panel closes as Navigate opens, and opened again after a switch to miles says miles (before ${JSON.stringify(before)}, on return ${JSON.stringify(left)}, again ${JSON.stringify(after)})`);
   } catch (e) {
-    check(false, `step tend map 23: ${String(e.message).split('\n')[0]}`);
+    check(false, `step tend map audit 53: ${String(e.message).split('\n')[0]}`);
   } finally {
     await pg.close().catch(() => {});
   }
@@ -2169,6 +2202,7 @@ module.exports = {
   run: async (h) => {
     await run(h);
     await unitsOnExplore(h);
+    await unitsCardWide(h);
     await pinOnStart(h);
   },
 };
