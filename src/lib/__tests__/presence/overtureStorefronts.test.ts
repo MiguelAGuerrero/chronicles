@@ -51,12 +51,12 @@ test('tend presence 2: an Overture park, trail, memorial site or cemetery weighs
   assert.equal(osmWeight('castle', 'manor'), 1);
 });
 
-test('tend presence 2: a complex\'s shopping word reads the same weight for these places as before (densityWeight)', () => {
+test('tend presence 2: a complex\'s shopping word keeps a historic site\'s weight; a park, a trail or a memorial site weighs nothing there (tend presence audit 3)', () => {
   const dw = (h: string[]) => presence.densityWeight(presence.classesOfOverture(h));
   assert.equal(dw(['cultural_and_historic', 'historic_site']), 1);
-  assert.equal(dw(['cultural_and_historic', 'memorial_site', 'cemetery']), 1);
-  assert.equal(dw(['sports_and_recreation', 'park']), 0.5);
-  assert.equal(dw(['sports_and_recreation', 'recreational_trail_or_path']), 0.5);
+  assert.equal(dw(['cultural_and_historic', 'memorial_site', 'cemetery']), 0);
+  assert.equal(dw(['sports_and_recreation', 'park']), 0);
+  assert.equal(dw(['sports_and_recreation', 'recreational_trail_or_path']), 0);
 });
 
 test('tend presence 2: Overture\'s classes are read only by density and complexes, so none becomes a mark (decision 0109)', () => {

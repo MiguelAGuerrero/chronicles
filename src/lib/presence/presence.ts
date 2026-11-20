@@ -35,8 +35,9 @@ import { notableBeyondNeighbourhood, notableName } from './notable';
  *     bar moves, so nothing is carried.
  * p11: Overture's memorial sites (and their cemeteries), parks and trails weigh nothing toward storefronts, as the map's do
  *     (tend presence 2, SF10; the owner, Nov 19); a castle-class house from the map is a monument and a storefront, and
- *     Overture's historic site a storefront with no mark (tend presence audit 2, the owner, Nov 20); weights and marks changed,
- *     so nothing is carried.
+ *     Overture's historic site a storefront with no mark (tend presence audit 2, the owner, Nov 20); a park, a cemetery or a
+ *     memorial site weighs nothing toward a complex's shopping word (tend presence audit 3, COMPLEX_CODE c2); weights and marks
+ *     changed, so nothing is carried.
  */
 export const PRESENCE_CODE = 'p11';
 
@@ -77,7 +78,7 @@ const DEFS = {
   theatre: { weight: FULL, storefront: true, category: 'culture', kind: 'theatres' },
   cinema_hall: { weight: FULL, storefront: true, category: 'culture' },
   monument: { weight: FULL, category: 'history', kind: 'monuments' },
-  memorial_site: { weight: FULL, category: 'history', kind: 'monuments' },
+  memorial_site: { weight: FULL, category: 'history', kind: 'monuments', ground: true },
   // The places archive's odd places and listed buildings (PW4, RP8).
   curiosity: { weight: FULL, category: 'viewpoints', kind: 'curiosities' },
   structure: { weight: FULL, category: 'history', kind: 'structures' },
@@ -148,11 +149,11 @@ const DEFS = {
   community: { weight: HALF, storefront: true, category: 'culture', kind: 'community' },
   civic_hall: { weight: HALF, storefront: true, category: 'history', kind: 'monuments' },
   worship: { weight: HALF, storefront: true, category: 'history', kind: 'churches' },
-  burial_ground: { weight: HALF, category: 'history', kind: 'cemeteries' },
-  park: { weight: HALF, category: 'parks', kind: 'parks' },
-  reserve: { weight: HALF, category: 'parks', kind: 'parks' },
-  green_amenity: { weight: HALF, category: 'parks' },
-  open_space: { weight: HALF },
+  burial_ground: { weight: HALF, category: 'history', kind: 'cemeteries', ground: true },
+  park: { weight: HALF, category: 'parks', kind: 'parks', ground: true },
+  reserve: { weight: HALF, category: 'parks', kind: 'parks', ground: true },
+  green_amenity: { weight: HALF, category: 'parks', ground: true },
+  open_space: { weight: HALF, ground: true },
   viewpoint: { weight: HALF, category: 'viewpoints', kind: 'viewpoints' },
   service: { weight: HALF, storefront: true },
   health: { weight: HALF, storefront: true },
@@ -190,6 +191,11 @@ export type ClassDef = {
   readonly subset?: Kind;
   /** SP12: how much it counts toward its bar (the size of the stop); absent, a whole place. */
   readonly bar?: number;
+  /**
+   * tend presence audit 3 (the owner, Nov 20, "Never"): a park, a cemetery or a memorial site, ground you cross or stand at, never a
+   * reason to call a complex shopping: `densityWeight` reads it as nothing.
+   */
+  readonly ground?: true;
 };
 export type PresenceClass = keyof typeof DEFS;
 export const CLASSES: Readonly<Record<PresenceClass, ClassDef>> = DEFS;
@@ -522,9 +528,12 @@ export function storefrontWeight(classes: readonly PresenceClass[]): number {
   return classes.reduce((w, c) => (isStorefront(c) ? Math.max(w, CLASSES[c].weight) : w), 0);
 }
 
-/** PR4: the greatest weight of a feature's classes, storefront or not: a complex's shopping word reads it (decision 0180). */
+/**
+ * PR4: the greatest weight of a feature's classes, storefront or not: a complex's shopping word reads it (decision 0180; a mall's
+ * own art still counts). Parks, cemeteries and memorial sites weigh nothing here (tend presence audit 3, the owner, Nov 20).
+ */
 export function densityWeight(classes: readonly PresenceClass[]): number {
-  return classes.reduce((w, c) => Math.max(w, CLASSES[c].weight), 0);
+  return classes.reduce((w, c) => (CLASSES[c].ground ? w : Math.max(w, CLASSES[c].weight)), 0);
 }
 
 /** PR3: the class marks and bars read: the first with a category, or null. */

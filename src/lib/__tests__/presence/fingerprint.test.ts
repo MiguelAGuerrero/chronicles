@@ -14,7 +14,7 @@ import * as p from '../../presence/presence';
  * code's fingerprint.
  */
 const FINGERPRINTS: Readonly<Record<string, string>> = {
-  p11: '81bc1f2634a195d23ceefbe72c0793d6bdb465bbfb839e6e1749f05ea5527489',
+  p11: '5a383dcfef160b1eb6165734ef8ef827bbfd935a1686d37c1c7652f49c0047b8',
 };
 
 const NAMES = [

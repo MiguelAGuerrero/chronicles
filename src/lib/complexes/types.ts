@@ -6,8 +6,11 @@ import type { LngLat } from '../types';
  * an Area or a place a walk is assigned to. Types only here; the rule is `rule.ts`, the words `lines.ts`.
  */
 
-/** Bumped by hand when the rule, a threshold or the decoder's output changes (CX14): the stored rows are read again. */
-export const COMPLEX_CODE = 'c1';
+/**
+ * Bumped by hand when the rule, a threshold or the decoder's output changes (CX14): the stored rows are read again.
+ * c2: a park, a cemetery or a memorial site weighs nothing toward the shopping word (tend presence audit 3, the owner, Nov 20).
+ */
+export const COMPLEX_CODE = 'c2';
 
 export type ComplexKind = 'shopping' | 'markets' | 'campuses' | 'stations' | 'civic';
 export const COMPLEX_KINDS: readonly ComplexKind[] = ['shopping', 'markets', 'campuses', 'stations', 'civic'];
