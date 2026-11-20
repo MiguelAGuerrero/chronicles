@@ -81,13 +81,13 @@ export function timelineWalkSpoken(clock: string, title: string, line: string): 
 /**
  * Chronicle's peek with nothing walked (decision 0148, from /tend inbox T10; amends 0050's U7): one way to act,
  * and a line that is true while you walk. With nothing open, how walks get here and Navigate (the section bar
- * holds Days); with a walk open, that this walk is starred when it ends, and no button: the recording bar's › is
+ * holds Days); with a walk open, that this walk is marked when it ends (tend tabs 20: never "starred", the owner, Nov 20), and no button: the recording bar's › is
  * the way back.
  */
 export function emptyPeek(walkOpen: boolean): { line: string; navigate: boolean } {
   return walkOpen
-    ? { line: 'This walk is starred here when it ends', navigate: false }
-    : { line: 'Walk somewhere and it is starred here', navigate: true };
+    ? { line: 'This walk is marked here when it ends', navigate: false }
+    : { line: 'Walk somewhere and it is marked here', navigate: true };
 }
 
 const capFirst = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);

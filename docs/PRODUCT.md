@@ -516,7 +516,7 @@ recording, and a recording bar brings a minimized walk back.
   - **Days**: local midnight to midnight, each with its walks and loose
     moments as a timeline, and **Replay this day**.
 - A star's sheet offers **Walk here**. With no walk finished, the peek shows
-  an empty line and a Navigate button; with a walk open, "This walk is starred
+  an empty line and a Navigate button; with a walk open, "This walk is marked
   here when it ends" and no button, the recording bar's › being the way back
   (decision 0148).
 - **A walk with nothing in it is dropped** (decision 0187): stopping a walk with no moment, pause (the one still open at Stop aside, decision 0220), still or gap and no movement past 15 m skips the replay and says "Walk not kept." with Undo; a killed app restores it.

@@ -191,11 +191,11 @@ async function run(h) {
       const nav = await pg.locator('[data-testid=sheet-navigate]').boundingBox().catch(() => null);
       const line = (await pg.locator('[data-testid=sheet-empty]').innerText().catch(() => '')).trim();
       if (!open) {
-        check(line === 'Walk somewhere and it is starred here' && nav && sheet && nav.y >= sheet.y && nav.y + nav.height <= sheet.y + sheet.height + 1 && (await shownCount(pg, '[data-testid=sheet-navigate]')) === 1,
+        check(line === 'Walk somewhere and it is marked here' && nav && sheet && nav.y >= sheet.y && nav.y + nav.height <= sheet.y + sheet.height + 1 && (await shownCount(pg, '[data-testid=sheet-navigate]')) === 1,
           `tabs audit U7: ${when}, Chronicle's peek says how walks get here and offers Navigate (${JSON.stringify(line)}, ${nav && Math.round(nav.y)})`);
       } else {
-        check(line === 'This walk is starred here when it ends' && (await shownCount(pg, '[data-testid=sheet-navigate]')) === 0 && (await shownCount(pg, '[data-testid=recording-return]')) === 1,
-          `tend tabs T10: ${when}, the peek says this walk is starred when it ends, offers no button, and the recording bar's › is there (${JSON.stringify(line)})`);
+        check(line === 'This walk is marked here when it ends' && (await shownCount(pg, '[data-testid=sheet-navigate]')) === 0 && (await shownCount(pg, '[data-testid=recording-return]')) === 1,
+          `tend tabs T10: ${when}, the peek says this walk is marked when it ends, offers no button, and the recording bar's › is there (${JSON.stringify(line)})`);
       }
       check((await shownCount(pg, '[data-testid=sheet-days]')) === 0, `tend tabs T10: ${when}, the peek offers no Days (the section bar holds it)`);
       await h.shot(pg, `tabs-2-chronicle-peek-${when.replace(/\W+/g, '-')}`);
@@ -526,7 +526,7 @@ async function run(h) {
       await pg.mouse.up();
       await pg.waitForURL(/replay/, { timeout: 30000 });
       const stopSeen = await peekSeen();
-      check(stopSeen && stopSeen.nav === 0 && stopSeen.lines.every((l) => l === 'This walk is starred here when it ends'),
+      check(stopSeen && stopSeen.nav === 0 && stopSeen.lines.every((l) => l === 'This walk is marked here when it ends'),
         `tend tabs audit 2: holding the bar's Stop on Chronicle's Map never shows the empty peek's Navigate or "Walk somewhere" before the replay (${JSON.stringify(stopSeen)})`);
       await pg.waitForSelector('[data-testid=skip]', { timeout: 30000 });
       await pg.click('[data-testid=skip]');
