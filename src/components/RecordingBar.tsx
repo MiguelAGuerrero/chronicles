@@ -296,7 +296,15 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
               {said.text}
             </Text>
           ) : (
-            <Ticking testID="recording-stats" style={styles.text} numberOfLines={1} text={(now) => line(now).text} label={(now) => line(now).label} />
+            // The numbers whole, then " · Paused", which alone shrinks at 320 px (tend tabs audit 57); the label says it all.
+            <View testID="recording-stats" style={styles.line}>
+              <Ticking testID="recording-numbers" style={[styles.text, styles.numbers]} numberOfLines={1} text={(now) => line(now).numbers} label={(now) => line(now).label} />
+              {paused && (
+                <Text testID="recording-word" style={[styles.text, styles.word]} numberOfLines={1} aria-hidden accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+                  {' · Paused'}
+                </Text>
+              )}
+            </View>
           )}
           {/* Back into the walk, not "expand" (tabs audit U10): the label stays "Return to the walk". */}
           <View testID="recording-go" style={styles.glyph}>
@@ -354,6 +362,9 @@ const styles = StyleSheet.create({
   dot: { width: 10, height: 10, borderRadius: 5, backgroundColor: theme.danger, borderWidth: 1.5, borderColor: '#ffffff' },
   glyph: { alignItems: 'center', justifyContent: 'center' },
   text: { flex: 1, color: '#ffffff', fontSize: 16, fontWeight: '600', fontVariant: ['tabular-nums'] },
+  line: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center' },
+  numbers: { flexGrow: 0, flexShrink: 0, flexBasis: 'auto' },
+  word: { flex: 1, flexShrink: 1, minWidth: 0 },
   error: { fontSize: 14 },
   stop: { width: 44, height: 44, minHeight: 44, paddingHorizontal: 0, borderRadius: 22, backgroundColor: theme.surface, alignItems: 'center', justifyContent: 'center' },
   camera: { width: 44, height: 44, borderRadius: 22, backgroundColor: theme.surface, alignItems: 'center', justifyContent: 'center' },

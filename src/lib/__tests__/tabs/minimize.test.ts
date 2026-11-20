@@ -1,6 +1,8 @@
 /// <reference types="node" />
 import { type Faced, facedOf } from '../../moment';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { test } from 'node:test';
 import { captureBus, mergeCaptures } from '../../captureBus';
 import { barTime, recordingLine } from '../../recordingBar';
@@ -144,4 +146,23 @@ test('tend tabs audit 56: the bar says the time it draws', () => {
     const minutesOf = (t: string) => (t === '< 1 min' || t === 'under a minute' ? 0 : /^(\d+):(\d\d)$/.test(t) ? Number(t.split(':')[0]) * 60 + Number(t.split(':')[1]) : /^(\d+) h (\d\d) min$/.test(t) ? Number(t.split(' ')[0]) * 60 + Number(t.split(' ')[2]) : Number(t.split(' ')[0]));
     assert.equal(minutesOf(spoken), minutesOf(drawn), `${ms} ms: drawn "${drawn}", said "${spoken}"`);
   }
+});
+
+// The diff review's ux 1, a regression of tend tabs 21: at 320 px, paused, the bar's one line ("< 1 min · 18 m · Paused")
+// was cut inside its numbers ("< 1 min · 18…", the unit lost; "16…" for 168 m), since the numbers and the word were one
+// string under one ellipsis. tend tabs audit 17 promised the word goes first.
+test('tend tabs audit 57: the bar\'s line gives its numbers and its word apart, so only the word can shrink', () => {
+  const r = recordingLine({ startedAt: 0, pauses: [{ started_at: 1_000, ended_at: null }], now: 30_000, distanceM: 84 });
+  assert.equal(r.numbers, '< 1 min · 84 m');
+  assert.equal(r.word, 'Paused');
+  assert.equal(r.text, `${r.numbers} · ${r.word}`);
+  const on = recordingLine({ startedAt: 0, pauses: [], now: 9 * 60_000, distanceM: 750 });
+  assert.equal(on.numbers, '9 min · 750 m');
+  assert.equal(on.word, null);
+  assert.equal(on.text, on.numbers);
+  // The wiring: the numbers never shrink; the word, apart and hidden from a screen reader (the label says it), does.
+  const bar = readFileSync(join(__dirname, '..', '..', '..', 'components', 'RecordingBar.tsx'), 'utf8');
+  assert.match(bar, /<Ticking testID="recording-numbers" style=\{\[styles\.text, styles\.numbers\]\} numberOfLines=\{1\} text=\{\(now\) => line\(now\)\.numbers\}/);
+  assert.match(bar, /numbers: \{[^}]*flexShrink: 0/);
+  assert.match(bar, /word: \{[^}]*flexShrink: 1/);
 });

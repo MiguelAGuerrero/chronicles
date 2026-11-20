@@ -386,7 +386,7 @@ async function fresh(h) {
       // position at its end, so the live trace goes on from there.
       const units = meters / 100;
       const n = Math.max(2, Math.round(meters / 7));
-      const span = Math.max(10_000, minutes * 60_000 - 10_000);
+      const span = Math.max(10_000, minutes * 60_000 + 10_000);
       const pts = [];
       for (let k = 0; k <= n; k++) {
         const p = at(-units / 2 + (units * k) / n, -0.5);
@@ -429,6 +429,19 @@ async function fresh(h) {
       const rest = await barLine({ label: 'hour-km-paused', minutes: 65, meters: 1500, paused: true, shotName: 'diff-bar-hour-km-paused-explore-320' });
       check(!!run && !!rest && /^1:0[56] · [\d.]+[ \u00a0]km/.test(run.numbers) && km(run.numbers) >= 1000 && run.whole && rest.whole && /^1:0[56] · [\d.]+[ \u00a0]km/.test(rest.numbers) && run.wide && rest.wide,
         `tend tabs audit 55: at 320 px past the hour the bar reads "1:05 · 1.5 km", hours:minutes, its distance whole, recording and paused (${JSON.stringify({ run, rest })})`);
+    }
+    // tend tabs audit 57 (the diff review's ux 1): paused at 320 px the numbers stay whole and only " · Paused" shrinks.
+    {
+      const cases = [
+        { label: 'min-84m', minutes: 0.5, meters: 84, want: /^< 1 min · 8\d[ \u00a0]m$/, shotName: 'diff-bar-minute-paused-explore-320' },
+        { label: 'min-276ft', minutes: 0.5, meters: 84, miles: true, want: /^< 1 min · \d+[ \u00a0]ft$/ },
+        { label: '9min-750m', minutes: 9, meters: 750, want: /^9 min · \d+[ \u00a0]m$/ },
+        { label: '12min-1.3km', minutes: 12, meters: 1300, want: /^12 min · 1\.\d[ \u00a0]km$/ },
+      ];
+      const seen = [];
+      for (const k of cases) seen.push({ k: k.label, ...(await barLine({ ...k, label: `paused-${k.label}`, paused: true })) });
+      check(seen.every((x, i) => x.whole && x.wide && cases[i].want.test(x.numbers ?? '') && /· Paused$/.test(x.text ?? '')),
+        `tend tabs audit 57: paused at 320 px the bar's numbers are drawn whole, only " · Paused" shrinks (${JSON.stringify(seen)})`);
     }
     // Starting from the tabs, in fresh browsers (NV12, NV15, NV25).
     {
@@ -496,7 +509,8 @@ async function fresh(h) {
       await pg.click('[data-testid=walk-minimize]');
       await pg.waitForSelector('[data-testid=recording-bar]', { timeout: 10000 });
       await pg.waitForTimeout(600);
-      const barText = () => pg.locator('[data-testid=recording-stats]').innerText();
+      // The line's text as drawn, its numbers and its word apart since tend tabs audit 57 (one string, no break between).
+      const barText = () => pg.locator('[data-testid=recording-stats]').evaluate((e) => e.textContent);
       const barBox = await pg.locator('[data-testid=recording-bar]').boundingBox();
       const tabBox = await pg.locator('[data-testid=tab-navigate]').boundingBox();
       check(!/\/walk/.test(new URL(pg.url()).pathname) && (await tabBarShown(pg)) && /^(?:< 1 min|\d+ min|\d+:\d\d) · \d+[ \u00a0]m · Paused$/.test(await barText())
@@ -529,7 +543,7 @@ async function fresh(h) {
       await pg.waitForSelector('[data-testid=media-editor]', { state: 'detached', timeout: 5000 }).catch(() => {});
       {
         const offers = await pg.locator('[data-testid=bar-edit-offer], [data-testid=capture-edit]').count();
-        const stats = await pg.locator('[data-testid=recording-stats]').innerText().catch(() => '');
+        const stats = await pg.locator('[data-testid=recording-stats]').evaluate((e) => e.textContent).catch(() => '');
         check(offers === 0 && /^(?:< 1 min|\d+ min|\d+:\d\d) · \d+[ \u00a0]m · Paused$/.test(stats),
           `ME23 fix edit-after-capture: closed, the editor leaves no Edit pill above the bar, the line still its time and distance (${offers}, "${stats}")`);
       }
