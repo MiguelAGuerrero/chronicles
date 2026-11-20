@@ -294,13 +294,8 @@ async function checks(h) {
         const offerBefore = (await page.locator('[data-testid=add-to-moment]').filter({ visible: true }).count()) > 0;
         await page.locator('[aria-label="Hessian Memorial, History. Open"]').first().click();
         await page.waitForSelector('[data-testid=mark-capture]', { timeout: 5000 });
+        // tend presence audit 8: no resize here for a review's picture; this block runs inside chronicle, deletion, memories and notifications too.
         await shot(page, '02a-place-card');
-        // tend presence 4's review: the place's card at 320 px too, the kind presence names it (E-presence-1's picture).
-        await page.setViewportSize({ width: 320, height: 700 });
-        await page.waitForTimeout(400);
-        await shot(page, '02a-place-card-320');
-        await page.setViewportSize({ width: 390, height: 844 });
-        await page.waitForTimeout(400);
         await page.click('[data-testid=mark-capture]');
         await page.waitForSelector('[data-testid=armed-line]', { timeout: 5000 });
         const armedSaid = await page.locator('[data-testid=armed-line]').innerText();
