@@ -1,5 +1,5 @@
 {
-  "lastT": 49,
+  "lastT": 50,
   "lastG": 10,
   "balance": {
     "date": "2026-11-20",
@@ -72,8 +72,8 @@
     ],
     "commits": {
       "growth": 179,
-      "refinement": 743,
-      "other": 782
+      "refinement": 761,
+      "other": 783
     },
     "areas": {
       "rough": [
@@ -162,9 +162,9 @@
     },
     "map": {
       "state": "rough",
-      "swept": "2026-11-18",
-      "main": "e45412a940a7b1b87429a4d70029784cac345763",
-      "note": "No sweep (lenses 1-7 not run): a run on DEFERRED's [loop] formatDistance item. tend map 21 (formatDistance and formatRange bind the figure to its unit with a no-break space; 20-odd unit tests and the gaps, launch, memories, outing, planner, qol, ready, scenic and walk journeys restated to accept [ \\u00a0], exact strings pinning it). Review (auditor, one round, no check weaker; one medium, five low): F1-F5 accepted as tend map audit 43 (a journey check that U+00A0 reaches the page), 44 (the gap card in formatDistance's words, the medium), 45 (the dead-zone nudge), 46 (scenic's notice in km), 47 (spoken distances keep the no-break space; map.md gains the line); F6 (reachLabel's \".0 \" replace) is the Outing session's branch. A native check filed for U+00A0 in Text and screen readers."
+      "swept": "2026-11-20",
+      "main": "e9cb0f180069088e9a13d5c2056112a94d9fef17",
+      "note": "The last of decision 0229's whole sweeps (lenses 0-7, uncapped) and the fourth run under 0236. Two mediums found and shipped: Explore's tiles and card and Navigate's settings kept the old units under the React Compiler (tend map 23; the walk screen, the replay, the home sheet and the gap's drawing filed [loop] medium), and Plan an outing's map hid its scale bar and credits under its sheet (tend map 24). Also tend map 22 (journeys' step failures under a fixed prefix, so lens 0 can name qol's checks) and 25 (a pin on the start marker opens). Lens 0: E-map-1 to 5 drafted as the steward reworded them, E-map-3 and E-map-5 failed (decision 0244). T50 (a loop's combined mark) waits for a build with the owner's yes. Rough: a medium of the area remains filed (tend map 23's rest)."
     },
     "replay": {
       "state": "rough",
@@ -194,12 +194,12 @@
   "declined": [],
   "compass": {
     "date": "2026-11-20",
-    "runs": 1,
+    "runs": 2,
     "shares": {
-      "first": null,
-      "second": null
+      "first": 0.75,
+      "second": 0.88
     },
-    "trend": "none",
-    "verdict": "too early to say: 1 of 12 runs carry the compass"
+    "trend": "flat",
+    "verdict": "too early to say: 2 of 12 runs carry the compass"
   }
 }
