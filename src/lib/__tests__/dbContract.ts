@@ -1069,6 +1069,21 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.deepEqual(await db.listFinds('none'), []);
     });
 
+    test('FC7 removeFind, PO12: removes a place\'s find only when that moment made it; the moment and other finds stay', { todo: 'test first' }, async () => {
+      const db = await fresh();
+      const remove = (db as unknown as { removeFind: (key: string, captureId: string) => Promise<void> }).removeFind;
+      await db.addMoment(momentOf(capture('c1', 'a', 1)));
+      await db.addFind(find('f1', 'a', 'c1', 1));
+      await db.addFind(find('f2', 'a', 'c2', 2));
+      await remove.call(db, 'f2', 'c1'); // another moment's find: kept
+      await remove.call(db, 'f1', 'c1');
+      await remove.call(db, 'none', 'c1'); // nothing there: no error
+      assert.deepEqual(keys(await db.listFinds('a')), ['f2']);
+      assert.deepEqual((await db.getMoments('a')).map((m) => m.id), ['c1'], 'the moment stays');
+      await db.addFind(find('f1', 'a', 'c3', 3));
+      assert.deepEqual(keys(await db.listFinds('a')), ['f1', 'f2'], 'the place can be found again');
+    });
+
     test('FC7 saveChecklists, addFind: a rebuild never touches finds', async () => {
       const db = await fresh();
       await db.saveChecklists({ areas: [checklistArea('N1')], items: [item('i1', 'N1')], read: read('r1') });

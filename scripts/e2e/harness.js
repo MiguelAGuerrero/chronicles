@@ -112,6 +112,13 @@ features.push({ type: 'Feature', properties: { class: 'minor', name: 'Row Street
 [[-124.2, 'First'], [-124, 'Second'], [-123.8, 'Third']].forEach(([x, n]) => {
   features.push({ type: 'Feature', properties: { class: 'monument', subclass: 'memorial', name: `${n} Memorial` }, geometry: { type: 'Point', coordinates: at(x, 0.8) } });
 });
+// A place offered after the moment (PO3-PO10): Two Spires, 30 km west of the start, far from every other area, one street with
+// two memorials within 30 m of its middle and a third 42 m off it (named on the map, never offered). E2E_ONLY=placeoffer goes there.
+features.push({ type: 'Feature', properties: { class: 'neighbourhood', name: 'Two Spires' }, geometry: { type: 'Point', coordinates: at(-300, 0.5) } });
+features.push({ type: 'Feature', properties: { class: 'minor', name: 'Spire Street' }, geometry: { type: 'LineString', coordinates: [at(-305, 0), at(-295, 0)] } });
+features.push({ type: 'Feature', properties: { class: 'monument', subclass: 'memorial', name: 'North Spire' }, geometry: { type: 'Point', coordinates: at(-300.1, 0.12) } });
+features.push({ type: 'Feature', properties: { class: 'monument', subclass: 'memorial', name: 'South Spire' }, geometry: { type: 'Point', coordinates: at(-299.85, -0.1) } });
+features.push({ type: 'Feature', properties: { class: 'monument', subclass: 'memorial', name: 'Far Cross' }, geometry: { type: 'Point', coordinates: at(-300.42, 0) } });
 // Plan an outing (QC1-QC30): Curio Row, 24 km west of the start, one street with four antiques shops along it, 400 m apart, so a
 // one-way outing of two or three stops fits the default ceiling (a loop cannot be made on one street). E2E_ONLY=outing goes there.
 features.push({ type: 'Feature', properties: { class: 'neighbourhood', name: 'Curio Row' }, geometry: { type: 'Point', coordinates: at(-240, 0) } });
