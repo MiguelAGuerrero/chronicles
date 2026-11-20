@@ -76,6 +76,14 @@ Animation and haptics: the motion tokens, reduce motion, presses, the sheet spri
     kinds hidden, places read, the whole route, null while riding), and a change of it moves nothing. Only the walk
     screen passes one; Explore's marks come and go at once.
   - It moves nothing on first sight, off screen (the map's bounds), or for a mark back within `backStillMs` (30 s).
+  - Only crossing the range's edge moves a mark: `marksInRange` (`inRangeKeys`, every place within range, shown or
+    not) keeps one the nearest-eight cap drops or brings back still (audit 9). The found set is in the context (audit 4).
+  - The walk screen passes no context until two positions have come since the mount or a return to the front
+    (`settleStep`: a reload's first live fix can jump far), nor while the app is behind (`front`) (audit 1).
+  - Native draws a mark gone from the list still, on its own marker, until the tick decides (`markDraw`), and holds
+    a new one back only under a context; a marker grows only under the key it arrived with (`growsNow`) (audits 2, 5, 6).
+  - **Trap:** the e2e's `switchLayer(pg, id, wantOn = true)` takes the state wanted: two bare calls never switch a
+    layer off (audit 3).
   - A leaving mark takes no tap or focus and is hidden from a screen reader at once. On web it is
     `data-leaving`. A mark back while leaving is drawn once.
   - A "?" holding the focus is kept, still and focusable, until the focus leaves it, as `drawsPin` keeps a

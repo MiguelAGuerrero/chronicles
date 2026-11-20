@@ -83,11 +83,29 @@ One round (decision 0204). The cold find (decision 0167) does not apply: the sli
 - U7 (low, no change): the overshoot is about 1 px on a 34 px head. It was kept as the owner chose, and noted in decision 0239 for the owner to judge on a phone.
 - U8 (low, accepted as is): a tap begun as a mark starts to leave is dropped. The place really is out of range, as in tend map audit 41.
 
+## Audit (Nov 20, decision 0074; the auditor and the steward, one round with the UI review before it, decision 0204)
+
+1. A reload or a return to the front counted its first fix as a step, so marks moved as the screen came back (auditor F1): accept. The marks move only once two positions have come since a mount or a return, and nothing moves with the app behind (`settleStep`, `marksSettled`; `walk.tsx`'s `front`). Tests: `poi-transitions audit 1` (unit, journey: a reload mid-walk, then a fix 150 m on).
+2. Native: a leaving mark vanished for a tick, then came back on a second marker to shrink (F2): accept. It is drawn still on its own marker until decided, then shrinks there (`markDraw`). Test: `poi-transitions audit 2` (unit; the blink itself only a device can show).
+3. Four journey checks passed whatever the code did (F3): accept. PI8, PI11, PI12 and PI14 are judged with marks on screen; PI12's step never switched Places off (`switchLayer` takes the state wanted); PI11 runs on Fox Point's "?". Tests: `poi-transitions audit 3` (journey, four checks).
+4. A find loaded or removed moved marks under the same context (F4): accept. The found set is in `markContext`. Test: `poi-transitions audit 4`.
+5. Native held new marks back a tick with no context at all (F5): accept (`markDraw` holds only under a context). Test: `poi-transitions audit 5`.
+6. Native: a marker respread within 580 ms of arriving grew again (F6): accept. It grows only under the key it arrived with (`growsNow`). Test: `poi-transitions audit 6`.
+7. Two unit tests could not fail (F7): accept. Rewritten; `poi-transitions audit 7` fails when `!back.has(id)` is removed from `markMoves` (checked by mutation).
+8. Choosing a route preview while navigating may move faint marks (F8, not confirmed): defer (`docs/DEFERRED.md`).
+9. A mark still within range shrank out when the nearest-eight cap dropped it (steward S1): accept. Only crossing the range's edge moves a mark (`inRangeKeys`, `marksInRange`). Test: `poi-transitions audit 9`.
+10. Marks grew as the walk came back to the front (S2): reject, a duplicate of 1.
+11. PI5's check and the record overclaimed (S3): accept. The check says what it does ("opening the walk"); a reload is audit 1's. Covered by audit 3's and audit 1's checks.
+12. The docs drifted from what was built (S4): accept. Decision 0239's How line, `docs/PRODUCT.md` and the motion rule corrected (docs only).
+13. Decision 0239 is missing from VISION.md's Precedents (S5): the owner's call (only the owner edits VISION.md), filed in `docs/STATUS.md`, "From the poi-transitions audit (2026-11-20)", with the steward's three open questions.
+
+13 findings (2026-11-20): 10 fixed (8 behind regression tests, `poi-transitions audit 1`-`7` and `9`; 2 in checks and docs, 11 and 12), 1 deferred (8), 1 rejected (10), 1 for the owner (13).
+
 ## Record
 
 Built 2026-11-20, tests first (`0e310c6`), on `claude/poi-transitions-rcbyv0`.
 
-- **PI1-PI14 pass**: the unit tests in `motion/markMotion.test.ts` (16) and the `arrivals` journey (13 checks, the five UI regressions among them); `check:test-first` 14 of 14.
+- **PI1-PI14 pass**: the unit tests in `motion/markMotion.test.ts` (23, the audit's among them) and the `arrivals` journey (20 checks, the UI review's and the audit's regressions among them); `check:test-first` 14 of 14. Before the audit, PI5's "reloads", PI8, PI11, PI12 and PI14 were claimed on checks that could not fail (audit 3).
 - **Journeys**: `arrivals` (new, about 4 minutes, run alone until green), `marks` (once after the code, and again after the UI fixes). The others `check:affected` reaches were not run (0223).
 - **Cost**: `perf-walk` cannot measure this (it never switches Places on). In the journey the walk map renders 0.83 times a second over a walk past the marks, against the budget's 2.5, and makes each mark's marker once.
 - **Found on the way**: an ease-in cubic leave held the mark 96% opaque for two thirds of its time, then dropped it, which read as a pop (the journey's samples). The e2e recorder now looks frame by frame for a leave's motion.

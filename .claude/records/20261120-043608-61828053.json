@@ -1,0 +1,84 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Places come and go with a settle (PI1-PI14, decision 0239)"
+      ],
+      "body": "- Choosing among route previews while navigating may move faint \"?\" (poi-transitions audit 8, not confirmed): with Go here asked while `nav` is still set, `route` follows the selected preview's line while `routePath`, and so `marksContext`, is still the old route, so another option changes `onTheWay` under the same context. Confirm whether `goTo` keeps `nav` during a preview; if so, put the preview's line in the context.\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Sensors and motion"
+      ],
+      "body": "- [ ] **Do:** on a walk with Places on, lock the phone or switch apps for three minutes while walking on, then come back; also force-quit and reopen mid-walk. **Expect:** no \"?\" grows or shrinks as the map comes back, nor at the first fix after (`front`, `settleStep`); from the second fix on, marks crossing the range move again (Places come and go). (PI5)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Sensors and motion"
+      ],
+      "body": "- [ ] **Do:** open a walk with Places on and, before moving the map, walk into range of a \"?\". **Expect:** it grows: `onRegionDidChange` has fired at the map's load, so `visibleBounds` is known (else nothing animates until the first pan or follow move) (Places come and go). (PI2, PI4)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Sensors and motion"
+      ],
+      "body": "- [ ] **Do:** walk a \"?\" out of range, and in a dense block walk past more than eight places; with `globalThis.__perf = {}` in a dev build, read `render:map` over the walk. **Expect:** the leaving mark never blinks out before it shrinks and has one marker throughout (`markDraw`); one swapped only by the nearest-eight limit comes and goes still; `MarkMarkers` renders at most three times an arrival (list, tick, leave end) (Places come and go). (PI3, PI14)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Sensors and motion"
+      ],
+      "body": "- [ ] **Do:** with the map following your heading, walk a \"?\" into range so it arrives as the map turns. **Expect:** it grows once; a re-key by the turn's spread does not grow it again (`growsNow`); `Easing.bezier` in the leave's `interpolate` runs under the native driver (Places come and go). (PI7, PI3)\n"
+    },
+    {
+      "argv": [
+        "section",
+        "add",
+        "From the poi-transitions audit (2026-11-20, `specs/poi-transitions/spec.md`, Audit)"
+      ]
+    },
+    {
+      "argv": [
+        "section",
+        "item",
+        "add",
+        "From the poi-transitions audit (2026-11-20, `specs/poi-transitions/spec.md`, Audit)"
+      ],
+      "body": "- **List decision 0239 in VISION.md's Precedents?** (audit 13, the steward's S5; only the owner edits VISION.md). The proposed row: \"0239 | Places come and go on a walk: \"?\" only, walking range only, a second spring kept slight (peak 1.03 or less), the first leave; Explore unchanged (reshaped at the gate, Nov 20)\". The steward notes 0224, 0230 and 0234 are missing there too. Recommended: add the row.\n"
+    },
+    {
+      "argv": [
+        "section",
+        "item",
+        "add",
+        "From the poi-transitions audit (2026-11-20, `specs/poi-transitions/spec.md`, Audit)"
+      ],
+      "body": "- **Three open questions from the steward** (Nov 20): (1) the pocket alert, when on, buzzes on the same range entry as the grow: is one sign of an arrival enough? Recommended: keep both, the buzz is for a phone in a pocket, the grow for a glance. (2) Faint \"?\" on the way shrink out as the route ahead passes them: should a suggestion falling behind move at all? Recommended: keep it, it is walking that takes it out. (3) The overshoot is about 1 px on screen (UI review U7): look at it on a phone; if it is not seen, start the grow smaller rather than make it bouncier.\n"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "set",
+        "Places come and go with a settle on a walk"
+      ],
+      "body": "| Places come and go with a settle on a walk (a \"?\" grows in on a slight spring, from 80% to a peak of about 1.025, as walking brings it within range, and shrinks out over 180 ms as it leaves your range; only on screen, never on opening or coming back to the front, while riding, within 30 s of leaving or for a swap by the nearest-eight limit, and not at all with Reduce Motion; Explore unchanged; PI1-PI14, decision 0239) | built; web only | tests first, then the code, 2026-11-20 | `specs/poi-transitions/spec.md` | 2026-11-20: 13 findings, 10 fixed, 1 deferred, 1 rejected, 1 for the owner |\n",
+      "target": "sha256:23caf9034d48052830bac152363d32b76641ac89ae30e2a8b49362d2fa8fe43b"
+    }
+  ]
+}
