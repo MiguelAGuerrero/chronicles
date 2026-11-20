@@ -235,6 +235,18 @@ Seen only as search summaries from a cloud session (Nov 20; the pages could not 
   (editorial guidance, and its terms forbid reuse of its data). Source: from memory, unverified; the terms from the
   research pass of Nov 17 (research_notes, state_city_nonprofit). **Unverified**.
 
+### A place's mark arriving and leaving as the map changes (Earn)
+
+- **maplibre-gl** (web map library, 6.16): labels that collide fade in and out as the map zooms, over `fadeDuration`,
+  "the duration of the fade-in/fade-out animation for label collisions after initial map load", 300 ms by default; the
+  first load does not fade. The model for not animating a first load (poi-transitions, PI5). Source:
+  `node_modules/maplibre-gl/dist/maplibre-gl.d.ts`, read Nov 20, 2026. **Verified**.
+- **Leaflet.markercluster** (web map library): `animate`, on by default, will "Animate clusters splitting and merging on
+  zoom, and markers spreading out"; `animateAddingMarkers` is off by default because "It's slow for many markers".
+  Source: https://github.com/Leaflet/Leaflet.markercluster README, read Nov 20, 2026. **Verified**.
+- **Apple MapKit** (iOS): `MKMarkerAnnotationView.animatesWhenAdded` grows a marker in as it is added; off by default.
+  Source: from memory, unverified. **Unverified**.
+
 ### Places that share a spot on the map (Earn)
 
 - **Leaflet.markercluster** (web map library): markers that stay together at the bottom zoom are spread out when

@@ -343,7 +343,7 @@ const FEATURES = [
     rule: 'motion-polish',
     source: ['src/lib/{motionTokens,motion,enter,zoomOut,haptics,canBuzz,canBuzz.web}.ts', 'src/components/{Enter,HomeSheet,ui}.tsx'],
     journeys: ['nudge', 'modes'],
-    specs: ['polish-motion', 'pocket-alert-nudge'],
+    specs: ['polish-motion', 'pocket-alert-nudge', 'poi-transitions'],
   },
   {
     name: 'notify',
@@ -561,6 +561,7 @@ const IN_PROGRESS = {
   'drive-in-the-outing': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-18' },
   'shop-facets': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-18' },
   'town-fixtures': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-18' },
+  'poi-transitions': { branch: 'claude/poi-transitions-rcbyv0', since: '2026-11-20' },
 };
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));
