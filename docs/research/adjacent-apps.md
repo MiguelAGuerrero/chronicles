@@ -197,6 +197,20 @@ the page, so all are leads. Recorded by `/investigate` (`docs/research/walkabili
   not a filled interior. Source: https://desktop.arcgis.com/en/arcmap/latest/extensions/aviation-charting/symbolizing-restricted-airspace.htm
   (search summary, page unreachable Nov 19). **Unverified**.
 
+### Ask how it went, just after (Honour, Return)
+
+Seen only as search summaries from a cloud session (Nov 20; the pages could not be fetched). Recorded by `/investigate`
+(`docs/research/walk-notes.md`), where the same pattern is used for the owner's own walk notes, not for an app feature.
+
+- **Strava**: after an activity, the save or edit screen asks "How did that activity feel?", optional, a 1-10 scale on mobile
+  (a slider on the web), feeding its effort features; it can be added later, one activity at a time. Source:
+  https://support.strava.com/hc/en-us/articles/360032535512-Perceived-Exertion (search summary, page not read). **Unverified**.
+  A counter-example in part: the answer is a number.
+- **Apple Journal** (iOS 17.2 and later): suggestions built on the device from photos, workouts and places visited, and open
+  reflection prompts beside an empty entry. Source:
+  https://www.apple.com/newsroom/2023/12/apple-launches-journal-app-a-new-app-for-reflecting-on-everyday-moments/ (search summary,
+  page not read). **Unverified**.
+
 ### Say what an area holds: findable places apart from the places you go into (Earn)
 
 - **Atlas Obscura** (web and app): lists only curiosities and odd places, each a page; restaurants and shops are not in
