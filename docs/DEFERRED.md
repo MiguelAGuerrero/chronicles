@@ -489,6 +489,7 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 
 - **A self-referential `node_modules` symlink is tracked in git** (commit `16e54cf`, seen Nov 4 during fix busy-streets): it points at itself, so a fresh checkout has no dependencies until it is removed and `npm ci` runs. Untrack it and make sure `node_modules` is in `.gitignore`; left alone because it is not the busy-areas fix.
 - [loop] `layers/storefronts.test.ts` (SF13: no name under src/ says busy) scans every file under src/ but is not marked `// @tree-wide`, so the Stop hook skips it on a change that does not import it; `3065dae` passed the hook and turned `main` red on it. Mark it (and audit the other source scans the same way: `grep -L '^// @tree-wide' $(grep -l 'readdirSync' src/lib/__tests__ -r)`), each one shown to run from an unrelated change (fix fix-lean-npm-test, Nov 19)
+- [loop] `check:test-first` takes a line that starts with `*` for a comment (fix test-first-comments, audit F2, low): a template literal's continuation line written as a `*` bullet after a call opener (`check(ok, `first line` then `* CA2: ...`);`) is dropped, so its id reads as untested. No such line is in the tests today; telling it from a block comment's starred line needs a reader that tracks literals.
 
 ## Walkability (specs/walkability, decision 0093)
 

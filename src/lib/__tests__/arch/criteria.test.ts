@@ -109,12 +109,83 @@ test('TG24 test-first: an id on the line after its call opens is read with that 
     '70-  const note = 1;',
     "71:  // XX3 named in a comment, in no call",
   ]);
-  assert.equal(lines.length, 3);
+  // Since fix test-first-comments a comment-only line names no test and is dropped (it was kept, unjoined).
+  assert.equal(lines.length, 2);
   assert.match(lines[0], /check\.todo\(.*XX1/, 'read with its check.todo(');
   assert.equal(lines[1], "  check(ok, 'XX2: on one line');");
-  assert.equal(lines[2], '  // XX3 named in a comment, in no call', 'a line before that opens no call is not joined');
   const r = tf.testFirst(['XX1'], [{ sha: 'a1', lines: [lines[0]] }, { sha: 'b2', lines: ["check(ok, 'XX1: real')"] }]);
   assert.equal(r[0].ok, true, r[0].why);
+});
+
+// fix test-first-comments: a comment that names an id, on the line after a real call, was joined to that call and read
+// as a real test of the id, a commit before its code (capture-at-a-place: "// CA2: ..." after `check(fair, ...)` read 3 of
+// 12 criteria as untested-first). A comment is never a call's next line.
+test('fix test-first-comments 1: a comment after a call is not read as that call', () => {
+  const lines = tf.callLines([
+    "369-        check(fair, `a short video is kept (${apartM})`);",
+    '370:        // The video is taken from its card\'s Camera: it finds it (XX2).',
+    '--',
+    "290-        check(ok, 'TC0: before');",
+    '291:        // Capture at a place (XX1-XX3): the card carries the row',
+    '--',
+    "302-        check.todo(ok, 'XX4: a todo',",
+    '303:          /* XX4 */ `the rest of its words`);',
+    '--',
+    "400-        check(ok, 'XX5: a real one');",
+    '401:         * XX5 inside a block comment',
+  ]);
+  // The comments are dropped, never joined to the call before them; the call's own continuation is kept.
+  assert.equal(lines.length, 1, JSON.stringify(lines));
+  assert.match(lines[0], /check\.todo\(.*XX4/, 'a call\'s continuation that only holds a comment inline is still the call');
+  const commits = [
+    { sha: 'a1', lines: [...lines, "check.todo(ok, 'XX1: todo')", "check.todo(ok, 'XX2: todo')"] },
+    { sha: 'b2', lines: ["check(ok, 'XX1: real')", "check(ok, 'XX2: real')"] },
+  ];
+  const r = tf.testFirst(['XX1', 'XX2'], commits);
+  assert.ok(r.every((x) => x.ok), JSON.stringify(r));
+});
+
+test('fix test-first-comments audit 1: a comment naming check( or test( and an id is neither todo nor real', () => {
+  const lines = tf.callLines([
+    "10:  // was check.todo(ok, 'XX9') until the code",
+    '--',
+    "20:  // see test('XX10') in foo",
+    '--',
+    "3://   check(ok, 'XX3: what it proves')",
+  ]);
+  const r = tf.testFirst(['XX9', 'XX10', 'XX3'], [{ sha: 'a1', lines }]);
+  assert.ok(r.every((x) => x.why === 'no test names it'), JSON.stringify(r));
+});
+
+test('fix test-first-comments audit 3: several leading block comments, or a closing */, before the id still join the call', () => {
+  const lines = tf.callLines([
+    '1-  check.todo(ok, /* a */',
+    "2:    /* b */ /* c */ 'XX4: words');",
+    '--',
+    '5-  check.todo(ok, /* why',
+    "6:    */ 'XX5: words');",
+  ]);
+  assert.match(lines[0], /check\.todo\(.*XX4/);
+  assert.match(lines[1], /check\.todo\(.*XX5/);
+});
+
+test('fix test-first-comments audit 5: a closing */ followed by a line or block comment is a comment', () => {
+  const lines = tf.callLines([
+    '1- * the doc',
+    "2: */ // was check.todo(ok, 'XX1')",
+    '--',
+    '5-check(ok,',
+    '6: */ /* XX2 note */',
+  ]);
+  assert.deepEqual(lines, []);
+});
+
+test('fix test-first-comments audit 4: an id only in a todo body\'s comment is not a todo (it must be in the call\'s arguments)', () => {
+  const lines = tf.callLines([
+    "1-test('x', { todo: 'test first' }, () => {",
+    '2:  // XX11: the body names it',
+  ]);
+  assert.equal(tf.testFirst(['XX11'], [{ sha: 'a1', lines }])[0].why, 'no test names it');
 });
 
 test('TG24 test-first: each id was a todo test in an earlier commit than the one that made it real', () => {
