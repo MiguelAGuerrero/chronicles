@@ -368,6 +368,68 @@ async function fresh(h) {
       for (let i = h.errors.length - 1; i >= from; i--) if (/^tab-error-walk: .*(WebGL|webgl|GPUInitialization)/.test(h.errors[i])) h.errors.splice(i, 1);
       await c.close();
     }
+    // The recording bar's line at 320 px on Explore (camera and Stop beside it), its numbers whole: a walk of a given
+    // length and distance is seeded (its start moved back, a trace along a street, a pause open if paused), then read
+    // again by a reload and minimized. tend tabs audit 55 (the owner, Nov 20: "1:45" past the hour).
+    const barLine = async ({ label, minutes, meters, paused = false, miles = false, shotName = null }) => {
+      const { c, pg } = await freshPage(`bar-line-${label}`);
+      await pg.goto(navUrl);
+      await pg.waitForSelector('[data-testid=start]');
+      await pg.waitForTimeout(1500);
+      await pg.click('[data-testid=start]');
+      await pg.waitForSelector('[data-testid=walk-minimize]', { timeout: 20000 });
+      await pg.waitForTimeout(1500);
+      const w = await openWalk(pg);
+      const now = Date.now();
+      const t0 = now - minutes * 60_000 - 20_000;
+      // A street west to east along y = -0.5 (100 m a unit), its fixes spread over the walk's time; the browser's own
+      // position at its end, so the live trace goes on from there.
+      const units = meters / 100;
+      const n = Math.max(2, Math.round(meters / 7));
+      const span = Math.max(10_000, minutes * 60_000 - 10_000);
+      const pts = [];
+      for (let k = 0; k <= n; k++) {
+        const p = at(-units / 2 + (units * k) / n, -0.5);
+        pts.push({ walk_id: w.id, t: t0 + 5_000 + Math.round((span * k) / n), lon: p[0], lat: p[1], accuracy_m: 6, speed: 1.4, course: null });
+      }
+      const end = at(units / 2, -0.5);
+      await c.setGeolocation({ longitude: end[0], latitude: end[1], accuracy: 6 });
+      await pg.evaluate(([id, startedAt, points, pauseAt, units]) => new Promise((resolve) => {
+        const req = indexedDB.open('chronicles');
+        req.onsuccess = () => {
+          const tx = req.result.transaction(['walk', 'trace_point', 'pause', 'meta'], 'readwrite');
+          const g = tx.objectStore('walk').get(id);
+          g.onsuccess = () => tx.objectStore('walk').put({ ...g.result, started_at: startedAt });
+          for (const p of points) tx.objectStore('trace_point').add(p);
+          if (pauseAt) tx.objectStore('pause').put({ walk_id: id, started_at: pauseAt, ended_at: null });
+          if (units) tx.objectStore('meta').put({ key: 'units', value: units });
+          tx.oncomplete = () => resolve(true);
+        };
+      }), [w.id, t0, pts, paused ? now - 1000 : null, miles ? 'mi' : null]);
+      await pg.reload();
+      await pg.waitForSelector('[data-testid=walk-minimize]', { timeout: 20000 });
+      await pg.waitForTimeout(2500);
+      await pg.click('[data-testid=walk-minimize]');
+      await pg.waitForSelector('[data-testid=recording-bar]', { timeout: 10000 });
+      await pg.click('[data-testid=tab-explore]');
+      await pg.setViewportSize({ width: 320, height: 700 });
+      await pg.waitForTimeout(2000);
+      const seen = await pg.evaluate(() => {
+        const s = document.querySelector('[data-testid=recording-stats]');
+        const n = document.querySelector('[data-testid=recording-numbers]') ?? s;
+        return s && n ? { text: s.textContent, numbers: n.textContent, whole: n.scrollWidth <= n.clientWidth + 1, wide: document.documentElement.scrollWidth <= window.innerWidth } : null;
+      });
+      if (shotName) await h.shot(pg, shotName);
+      await c.close();
+      return seen;
+    };
+    {
+      const km = (t) => { const m = /([\d.]+)[ \u00a0](km|m)\b/.exec(t ?? ''); return m ? Number(m[1]) * (m[2] === 'km' ? 1000 : 1) : NaN; };
+      const run = await barLine({ label: 'hour-km', minutes: 65, meters: 1500, shotName: 'diff-bar-hour-km-explore-320' });
+      const rest = await barLine({ label: 'hour-km-paused', minutes: 65, meters: 1500, paused: true, shotName: 'diff-bar-hour-km-paused-explore-320' });
+      check(!!run && !!rest && /^1:0[56] · [\d.]+[ \u00a0]km/.test(run.numbers) && km(run.numbers) >= 1000 && run.whole && rest.whole && /^1:0[56] · [\d.]+[ \u00a0]km/.test(rest.numbers) && run.wide && rest.wide,
+        `tend tabs audit 55: at 320 px past the hour the bar reads "1:05 · 1.5 km", hours:minutes, its distance whole, recording and paused (${JSON.stringify({ run, rest })})`);
+    }
     // Starting from the tabs, in fresh browsers (NV12, NV15, NV25).
     {
       // Walk here on Explore is a one-tap start to that spot, with the saved choices; it never fills the drawer (NV12, NV15).
@@ -437,7 +499,7 @@ async function fresh(h) {
       const barText = () => pg.locator('[data-testid=recording-stats]').innerText();
       const barBox = await pg.locator('[data-testid=recording-bar]').boundingBox();
       const tabBox = await pg.locator('[data-testid=tab-navigate]').boundingBox();
-      check(!/\/walk/.test(new URL(pg.url()).pathname) && (await tabBarShown(pg)) && /^(?:< 1|\d+(?: h \d\d)?) min · \d+[ \u00a0]m · Paused$/.test(await barText())
+      check(!/\/walk/.test(new URL(pg.url()).pathname) && (await tabBarShown(pg)) && /^(?:< 1 min|\d+ min|\d+:\d\d) · \d+[ \u00a0]m · Paused$/.test(await barText())
         && Math.abs(barBox.y + barBox.height - tabBox.y) < 6 && (await pg.locator('[data-testid=recording-bar] [data-testid=bar-stop]').count()) === 1,
         // tend tabs 18 (the lenses' auditor 3): this counted "stop", a testid the bar never carries, so its "no Stop" held
         // whatever the bar showed; the bar has its held Stop since decision 0048 (NV9's "It has no Stop" is stale).
@@ -468,7 +530,7 @@ async function fresh(h) {
       {
         const offers = await pg.locator('[data-testid=bar-edit-offer], [data-testid=capture-edit]').count();
         const stats = await pg.locator('[data-testid=recording-stats]').innerText().catch(() => '');
-        check(offers === 0 && /^(?:< 1|\d+(?: h \d\d)?) min · \d+[ \u00a0]m · Paused$/.test(stats),
+        check(offers === 0 && /^(?:< 1 min|\d+ min|\d+:\d\d) · \d+[ \u00a0]m · Paused$/.test(stats),
           `ME23 fix edit-after-capture: closed, the editor leaves no Edit pill above the bar, the line still its time and distance (${offers}, "${stats}")`);
       }
       // A tap on the bar returns to the walk, where the photo is pinned (NV9).
@@ -516,7 +578,7 @@ async function fresh(h) {
       }
       const d1 = m(await barText());
       check(onTabs.join(',') === 'chronicle:1:0,explore:1:1,chronicle:1:0', `the bar is on every tab, with one live map where there is a map; Chronicle's Memories has none (NV4, NV9, RM1: ${onTabs.join(', ')})`);
-      check(d1 > d0 + 100 && /^(?:< 1|\d+(?: h \d\d)?) min · \d+[ \u00a0]m$/.test(await barText()), `minimized, the walk keeps recording: the bar's distance grows (NV8: ${d0} → ${d1} m)`);
+      check(d1 > d0 + 100 && /^(?:< 1 min|\d+ min|\d+:\d\d) · \d+[ \u00a0]m$/.test(await barText()), `minimized, the walk keeps recording: the bar's distance grows (NV8: ${d0} → ${d1} m)`);
       // Remind me here keeps firing while minimized (NV8): checked outside the walk screen, shown on the bar.
       const fired = await pg.evaluate(() => new Promise((resolve) => {
         const req = indexedDB.open('chronicles');

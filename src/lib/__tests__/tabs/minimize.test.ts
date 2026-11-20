@@ -3,7 +3,7 @@ import { type Faced, facedOf } from '../../moment';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { captureBus, mergeCaptures } from '../../captureBus';
-import { recordingLine } from '../../recordingBar';
+import { barTime, recordingLine } from '../../recordingBar';
 import { NAV_KEY, navValue, walkHerePlan } from '../../startPlan';
 import { notifyWalkChanged, onWalkChange } from '../../walkEvents';
 import type { Waypoint } from '../../nav/types';
@@ -112,7 +112,19 @@ test('tend tabs 21: the recording bar says the time walked in minutes, never sec
   assert.equal(at(60_000), '1 min · 340\u00a0m');
   assert.equal(at(125_000), '2 min · 340\u00a0m');
   assert.equal(at(59 * 60_000 + 59_000), '59 min · 340\u00a0m');
-  assert.equal(at(65 * 60_000), '1 h 05 min · 340\u00a0m');
-  for (const ms of [5_000, 125_000, 3_725_000]) assert.doesNotMatch(at(ms), /\d:\d\d|\bs\b/, 'no clock, no seconds');
+  assert.equal(at(65 * 60_000), '1:05 · 340\u00a0m'); // hours:minutes past the hour since tend tabs audit 55
+  for (const ms of [5_000, 125_000, 3_599_000]) assert.doesNotMatch(at(ms), /\d:\d\d|\bs\b/, 'under the hour no clock, no seconds');
+  assert.doesNotMatch(at(3_725_000), /:\d\d:|\bs\b/, 'past it hours:minutes, never seconds (tend tabs audit 55)');
   assert.equal(recordingLine({ startedAt: 0, pauses: [{ started_at: 1_000, ended_at: null }], now: 9_000, distanceM: 18 }).text, '< 1 min · 18\u00a0m · Paused');
+});
+
+// The diff review's auditor 2, ux 2 and steward 2: past the hour "1 h 05 min · 4.2 km" filled the bar at 320 px and cut
+// the distance, recording or paused. The owner, Nov 20, typed "1:45": past the hour the bar reads hours:minutes.
+test('tend tabs audit 55: past the hour the bar reads hours:minutes ("1:45"), under it "< 1 min" and "N min"', () => {
+  assert.equal(barTime(59 * 60_000 + 59_000), '59 min');
+  assert.equal(barTime(60 * 60_000), '1:00');
+  assert.equal(barTime(65 * 60_000 + 30_000), '1:05');
+  assert.equal(barTime(105 * 60_000), '1:45');
+  assert.equal(barTime(10 * 3_600_000 + 7 * 60_000), '10:07');
+  assert.equal(recordingLine({ startedAt: 0, pauses: [], now: 65 * 60_000, distanceM: 4200 }).text, '1:05 · 4.2 km');
 });

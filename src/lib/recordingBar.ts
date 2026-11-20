@@ -4,13 +4,14 @@ import { pausedMs, type PauseSpan } from './geo';
 
 /**
  * The time walked as the bar says it (tend tabs 21; the owner, Nov 20: "Minutes on the tabs"): whole minutes, "< 1 min"
- * before the first, hours past the hour. The seconds stay on the walk screen.
+ * before the first; past the hour hours:minutes, "1:45" (the owner's own, tend tabs audit 55), short enough that the
+ * distance keeps its place at 320 px. The seconds stay on the walk screen.
  */
 export function barTime(ms: number): string {
   const min = Math.floor(Math.max(0, ms) / 60_000);
   if (min < 1) return '< 1 min';
   if (min < 60) return `${min} min`;
-  return `${Math.floor(min / 60)} h ${String(min % 60).padStart(2, '0')} min`;
+  return `${Math.floor(min / 60)}:${String(min % 60).padStart(2, '0')}`;
 }
 
 /**
