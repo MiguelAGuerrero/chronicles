@@ -427,3 +427,5 @@ is applied left in view.
 - **Swarm (Foursquare)**: the person picks the venue from the places near them and checks in; the nearest is never assumed. Source: from memory, unverified.
 - **Day One**: an entry's place is offered from nearby places; the writer picks one or none. Source: from memory, unverified.
 - **Apple Journal**: a place is a suggestion the person attaches or leaves; nothing is attached unseen. Source: from memory, unverified. Used by `specs/tap-to-capture-places`.
+- **Google Maps**: a place's sheet carries "Add photos"; the photo taken or picked goes to that place in one step, with nothing armed for a later one (public, unlike ours). Source: from memory, unverified. **Unverified**. Used by `specs/capture-at-a-place`.
+- **Swarm (Foursquare)**: the check-in screen for the chosen venue has a camera button in line; the photo belongs to that check-in. Source: from memory, unverified. **Unverified**. Used by `specs/capture-at-a-place`.
