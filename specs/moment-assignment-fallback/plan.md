@@ -106,8 +106,7 @@ All three adjacent apps ask while the entry is being written; we ask after the c
 
 - The owner will look at the top of the map, where "The next moment is about …" sits today: the line is there.
 - **Defaults, each overrulable:**
-  - The words: "Was this moment about <name>?", **Yes**, **Leave it** (the app says "about" for this tie, 0224;
-    you said "assign": say if you want "Assign to <name>").
+  - The words: "Was this photo about <name>?", **Yes**, **Leave it** ("about", the owner's call, Nov 20).
   - No buzz or sound when the line appears (Never "Nagging"; you are often not looking, so it waits instead).
   - The choices' pins wear a white ring, no accent colour.
   - Only places shown on the map are offered (a kind switched off in What I'm into is never offered).

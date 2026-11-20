@@ -30,6 +30,9 @@ Open: none (the owner's four answers, Nov 20).
 - "Next to" is within **30 m** of the moment's fix (half the 60 m that misfired; a façade across the street plus GPS error). A fixed rule, not a setting.
 - **One place** in reach: the prompt names it. **Two or more**: the places in reach become active on the map and a tap on one ties the moment to it.
 - **Only with Places on**: with it off, a moment stays independent and nothing is asked.
+- The words say **"about"**, as the arming line does ("Was this photo about the Old Bridge?"), not "assign" (Nov 20, after the mockup).
+- **Undo and the left places are kept** (Nov 20): one new `Db` method removes a single find (PO12), and the places left with Leave it are kept per walk so a reload never asks again (PO4). No migration.
+- **No time limit**: sitting still within 60 m, the line stays until answered, the next moment, Pause, or 60 m away (Nov 20).
 - The prompt **stays until it is answered or the walker moves on** (another moment, or 60 m away from where it was taken); going away leaves the moment independent. It never covers or moves the capture buttons.
 
 ## Criteria

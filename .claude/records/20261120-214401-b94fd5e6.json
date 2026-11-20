@@ -1,0 +1,11 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inflight",
+        "add"
+      ],
+      "body": "| A place offered after the moment (a moment kept within 30 m of an unfound place, unarmed, with Places on, gets one quiet line: \"Was this photo about the Old Bridge?\", Yes or Leave it; several places become choices on the map; Undo on a tie; PO1-PO12, amends 0224) | `claude/moment-assignment-fallback-bbceww` | specced 2026-11-20, the owner's answers in (`specs/moment-assignment-fallback/spec.md`); building: tests first |\n"
+    }
+  ]
+}
