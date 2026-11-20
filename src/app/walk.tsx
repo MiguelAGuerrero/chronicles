@@ -17,7 +17,7 @@ import { CompassButton } from '../components/CompassButton';
 import { WalkBandIcon } from '../components/WalkBandIcon';
 import { LayersControl, LayersKey } from '../components/LayersControl';
 import { COLORS, HOTSPOT, namesNearYou, type WalkMapHandle } from '../components/map/types';
-import { EditOfferPill, useEditOffer } from '../components/edit/EditOffer';
+import { useEditAfterCapture } from '../components/edit/EditOffer';
 import { MediaEditor } from '../components/edit/MediaEditor';
 import { CaptureViewer } from '../components/CaptureView';
 import { Icon, KIND_LABEL } from '../components/icons';
@@ -464,17 +464,19 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const asked = useStore(momentPill.store, (st) => st.ask?.seq ?? 0);
   // Scenic routes' Sights read What I'm into's kinds too: its row shows with Sights on (what-im-into-page audit 6).
   const sightsOn = useStore(routeLeanings.store, (s) => s.includes('sights'));
-  // After a photo or video, Edit is offered for a few seconds (ME23); it is opt-in.
-  const editOffer = useEditOffer();
+  // Once a photo or video is kept, its editor opens by itself, before it is looked at on the map (ME23 as decision 0240
+  // amends it).
+  const editAfter = useEditAfterCapture(cap.captures);
+  const editing = editAfter.editing;
 
   // Declared before the effect below that calls them: the React Compiler skips a component that uses a function above its
   // declaration (walk-screen compiler).
-  /** With `into`, the photo joins that open moment (MS2); Edit is offered for a new moment's photo only. */
+  /** With `into`, the photo joins that open moment (MS2); the editor opens for a new moment's photo only. */
   async function photo(into: string | null = null) {
     const kept = await cap.takePhoto(into);
     if (!kept) return;
     feedback('tap');
-    if (kept.id === kept.momentId) editOffer.show(kept);
+    editAfter.open(kept);
   }
 
   async function startVoice(into: string | null = null) {
@@ -1193,9 +1195,6 @@ function WalkScreen(props: { onMinimize: () => void }) {
   }
 
 
-  // The photo the Edit offer is for (ME23).
-  const [editingKept, setEditingKept] = useState<Faced | null>(null);
-
   async function saveVoice() {
     const r = await cap.finishVoice();
     if (r === 'saved') {
@@ -1658,17 +1657,6 @@ function WalkScreen(props: { onMinimize: () => void }) {
             <Text style={styles.aheadText}>{aheadLine}</Text>
           </View>
         )}
-        {editOffer.offer && !recordingVoice && !spot && !openMark && !options && !memory && (
-          <EditOfferPill
-            offer={editOffer.offer}
-            where="here"
-            onEdit={() => {
-              const id = editOffer.offer?.id;
-              setEditingKept(captures.find((c) => c.id === id) ?? null);
-              editOffer.clear();
-            }}
-          />
-        )}
         {cap.discarded && !recordingVoice && !spot && !openMark && !options && !memory && (
           <View style={styles.undo} accessibilityLiveRegion="polite">
             <Text style={styles.undoText}>Voice memo discarded</Text>
@@ -1988,8 +1976,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
           if (c.lat != null && c.lon != null) handOff([c.lon, c.lat], KIND_LABEL[c.kind]);
         }}
       />
-      {editingKept && (
-        <MediaEditor key={editingKept.id} capture={editingKept} initialTool="crop" onClose={() => setEditingKept(null)} onSave={(patch) => cap.setEdit(editingKept, patch)} />
+      {editing && (
+        <MediaEditor key={editing.id} capture={editing} initialTool="crop" onClose={() => editAfter.close()} onSave={(patch) => cap.setEdit(editing, patch)} />
       )}
       {memory && memoryShown.length > 0 && !spot && !recordingVoice && (
         <View style={[styles.spotRow, cardAt]} pointerEvents="box-none">

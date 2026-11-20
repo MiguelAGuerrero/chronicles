@@ -411,78 +411,19 @@ async function fresh(h) {
       if (!(await pg.locator('[data-testid=bar-photo]').count())) await pg.click('[data-testid=tab-explore]');
       const [chooser] = await Promise.all([pg.waitForEvent('filechooser'), pg.click('[data-testid=bar-photo]')]);
       await chooser.setFiles(path.join(scriptsDir, 'fixtures', 'photo.jpg'));
-      // tend tabs T12: the bar's photo is told in a pill above the bar that waits; the line keeps its time and distance.
-      const saidPhoto = await pg.waitForSelector('[data-testid=bar-edit-offer]', { timeout: 10000 })
-        .then((e) => e.evaluate((n) => n.firstElementChild?.textContent ?? ''), () => '');
-      const offeredAt = Date.now();
+      // ME23 as decision 0240 amends it (fix edit-after-capture; 0149's pill is gone): the bar's photo opens its editor by
+      // itself once accepted, on the tab it was taken from.
+      const opened = await pg.waitForSelector('[data-testid=media-editor]', { timeout: 10000 }).then(() => true, () => false);
       const kept = await photosOf();
-      check(saidPhoto === 'Photo saved to your walk' && kept.length === 1 && !/\/walk/.test(new URL(pg.url()).pathname),
-        `a photo from the bar's camera lands in the open walk, paused too, without opening the walk screen (NV9: "${saidPhoto}", ${kept.length})`);
-      // tend tabs 9 pictured the offer at 390 and 320 px; since T12 it is a pill above the bar, its words whole on one line.
+      check(opened && kept.length === 1 && !/\/walk/.test(new URL(pg.url()).pathname),
+        `a photo from the bar's camera lands in the open walk, paused too, and opens its editor without opening the walk screen (NV9, ME23: ${opened}, ${kept.length})`);
+      await pg.click('[data-testid=edit-close]');
+      await pg.waitForSelector('[data-testid=media-editor]', { state: 'detached', timeout: 5000 }).catch(() => {});
       {
-        const pill = async () => pg.evaluate(() => {
-          const q = (sel) => document.querySelector(sel);
-          const p = q('[data-testid=bar-edit-offer]');
-          const bar = q('[data-testid=recording-bar]')?.getBoundingClientRect();
-          if (!p || !bar) return null;
-          const r = p.getBoundingClientRect();
-          const t = p.firstElementChild;
-          const tr = t.getBoundingClientRect();
-          const edit = p.querySelector('[data-testid=capture-edit]')?.getBoundingClientRect();
-          const close = p.querySelector('[data-testid=bar-edit-offer-close]');
-          const closeBox = close?.getBoundingClientRect();
-          return {
-            above: r.bottom <= bar.top + 1,
-            oneLine: tr.height - parseFloat(getComputedStyle(t).paddingTop) - parseFloat(getComputedStyle(t).paddingBottom)
-              <= parseFloat(getComputedStyle(t).fontSize) * 1.6 && t.scrollWidth <= Math.ceil(tr.width) + 1,
-            room: Math.round(window.innerWidth - r.width),
-            // tend tabs audit 17: the pill's words and the line's time and distance are drawn whole, measured, not read.
-            whole: t.scrollWidth <= t.clientWidth + 1,
-            numbers: (() => {
-              const s = q('[data-testid=recording-stats]');
-              const n = s?.firstChild;
-              const cut = n?.textContent?.indexOf(' · Paused') ?? -1;
-              if (!s || !n || n.nodeType !== 3 || cut < 1) return false;
-              const range = document.createRange();
-              range.setStart(n, 0);
-              range.setEnd(n, cut);
-              return range.getBoundingClientRect().right <= s.getBoundingClientRect().left + s.clientWidth + 1;
-            })(),
-            inPill: !!(edit && edit.width >= 44 && edit.right <= r.right + 1),
-            // tend tabs audit 20: Edit and Close stand apart, as Undo and its Close do.
-            apart: edit && closeBox ? Math.round(closeBox.left - edit.right) : null,
-            close: close?.getAttribute('aria-label') ?? null,
-            live: p.getAttribute('aria-live'),
-            stats: q('[data-testid=recording-stats]')?.textContent ?? null,
-            said: !!q('[data-testid=recording-said]'),
-            wide: document.documentElement.scrollWidth <= window.innerWidth,
-          };
-        });
-        const fine = (m) => !!(m && m.above && m.oneLine && m.whole && m.inPill && m.apart >= 4 && m.close === 'Close, the photo stays as it is'
-          && m.live === 'polite' && /^\d+:\d\d · \d+[ \u00a0]m · Paused$/.test(m.stats ?? '') && m.numbers && !m.said && m.wide);
-        const at390 = await pill();
-        await h.shot(pg, 'tabs-9-bar-edit-offer');
-        let at320 = null;
-        try {
-          await pg.setViewportSize({ width: 320, height: 700 });
-          await pg.waitForTimeout(400);
-          at320 = await pill();
-          await h.shot(pg, 'tabs-9-bar-edit-offer-320');
-        } finally {
-          await pg.setViewportSize({ width: 390, height: 844 });
-          await pg.waitForTimeout(400);
-        }
-        check(fine(at390) && fine(at320),
-          `tend tabs T12, tend tabs audit 17, tend tabs audit 20: after a photo the bar's Edit offer is a pill above it, Edit and Close apart, "Photo saved to your walk · Edit · ✕", its words whole on one line at 390 and 320 px, announced politely, the line keeping its time and distance (${JSON.stringify(at390)}, ${JSON.stringify(at320)})`);
-        // It waits: past ME23's six seconds it is still there; its Close ends it and the line stays.
-        await pg.waitForTimeout(Math.max(0, 6800 - (Date.now() - offeredAt)));
-        const waited = await pill();
-        await pg.click('[data-testid=bar-edit-offer-close]');
-        await pg.waitForTimeout(400);
-        const closed = await pg.locator('[data-testid=bar-edit-offer]').count();
+        const offers = await pg.locator('[data-testid=bar-edit-offer], [data-testid=capture-edit]').count();
         const stats = await pg.locator('[data-testid=recording-stats]').innerText().catch(() => '');
-        check(fine(waited) && closed === 0 && /^\d+:\d\d · \d+[ \u00a0]m · Paused$/.test(stats),
-          `tend tabs T12: the pill is still up after 6 s and goes with its Close, the line still its time and distance (${!!waited}, ${closed}, "${stats}")`);
+        check(offers === 0 && /^\d+:\d\d · \d+[ \u00a0]m · Paused$/.test(stats),
+          `ME23 fix edit-after-capture: closed, the editor leaves no Edit pill above the bar, the line still its time and distance (${offers}, "${stats}")`);
       }
       // A tap on the bar returns to the walk, where the photo is pinned (NV9).
       await pg.click('[data-testid=recording-return]');

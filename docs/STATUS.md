@@ -560,6 +560,7 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
   since `tend tabs T12` (decision 0149) the recording bar's offer is a pill above the bar that waits for Edit, Close or
   the next capture (or the tabs leaving the screen). Amend ME23 with "Amended (owner, Nov 12, decision 0149): on the
   recording bar, a pill above it that waits", in the doc and the mirror; the loop may not edit a spec.
+  - Since decision 0240 (Nov 20, `/fix` edit-after-capture, the owner's answers) there is no offer at all: once a new moment's photo or video is accepted and kept, its editor opens by itself on every capture place, the recording bar's pill included. Amend ME23 to that instead, in the doc and the mirror.
 - **Chronicle's empty peek after T10** (Nov 12; the T10 review's F4): decision 0148 amends 0050, but three texts still
   say the old peek. `docs/decisions/0050-chronicle-peek.md` line 3 has no "Amended by [0148](0148-the-empty-peek-one-way-and-a-true-line.md)"
   (as 0030's names 0082); `specs/v0.5-places/spec.md` criterion 19 wants an "Amended (owner, Nov 12, decision 0148): with

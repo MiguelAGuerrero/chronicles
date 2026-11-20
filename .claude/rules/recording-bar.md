@@ -4,7 +4,7 @@ paths:
   - "src/lib/{recordingBar,walkGate,walkNav,tabsHidden,memoGate}.ts"
   - "src/lib/__tests__/tabs/{barEditOffer,barWayBack}.test.ts"
 ---
-# The recording bar (the way to the walk screen and the bar's ›, its Edit offer, its reminder, its Stop)
+# The recording bar (the way to the walk screen and the bar's ›, the editor after its photo, its reminder, its Stop)
 
 ## After the audit
 
@@ -21,17 +21,12 @@ paths:
     ways the › can do nothing.
   - A third, since `tend tabs 12`: a stop from the bar under way (`barStop`, any bar of the walk), at most `BAR_STOP_HOLD_MS`
     (audits 26, 28). A tap refused by a stop that is itself refused is dropped, no word; a second tap works (audit F4).
-  - **The bar's Edit offer waits** (T12, decision 0149; ME23's six seconds stay on the walk screen and Navigate's ready
-    screen): after the bar's photo, a pill above the bar (`bar-edit-offer`, the Undo pill's look on the page's ground,
-    in flow so it covers no screen's controls) says "Photo saved to your walk" with Edit (`capture-edit`) and ✕
-    (`bar-edit-offer-close`), until Edit, ✕ or the next capture of the walk from any path (`captureBus`; Memories'
-    band too); its photo deleted or waiting on Undo (`deletions`), a failed bar photo and the walk stopping end it
-    too. Paused, the line reads "0:05 · 18 m · Paused" (numbers first, so a cut at 320 px takes the word). The line keeps its time and distance; the words, the spoken line and the rule are `barOffer*` in
-    `lib/recordingBar`. The offer is the bar's own state, and the bar unmounts whenever the tabs lose focus, so
-    returning to the walk or opening any screen over the tabs (a day, a replay) ends it too; Edit stays in the
-    photo's viewer. No store keeps the offer (the coordinator's ruling on the review's F2); `tabsHidden`'s `barOfferUp` only
-    mirrors whether the pill is offered (mounted, folded or not), cleared on unmount, for what must step aside for it (Explore's press hint, `tend tabs T36`). At 320 px the
-    pill fits one line with 8 px to spare in the e2e's font: its measures are tighter than Undo's at the sides.
+  - **The bar's photo opens its editor by itself** (decision 0240, fix edit-after-capture; it superseded 0149's pill, which
+    waited above the bar): once kept, `useEditAfterCapture` draws `MediaEditor` as a Modal of its own, on the tab the photo
+    was taken from; Close keeps it as taken. Not while the walk is stopping from the bar (`barStopping`, tend tabs audit
+    19: the stop's replay would close it). The line keeps its time and distance; paused it reads "0:05 · 18 m · Paused"
+    (numbers first, so a cut at 320 px takes the word). `tabsHidden`'s `barOfferUp` is set by nothing since; its readers
+    (Explore's press hint, the storage notice's sight) wait to be removed (`docs/DEFERRED.md`).
   - **The bar has its own Stop** (`bar-stop`, held as on the walk screen; a
     tap says to hold), beside its camera: a way out even when the walk screen
     can't be reached (the owner's quick fix, Nov 2). It refuses under a memo

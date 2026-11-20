@@ -146,7 +146,7 @@ Captures
   edit/tools.tsx             CropFrame, DrawLayer (pen, marker, eraser), FilterStrip, TrimBar
   edit/EditedPhoto.tsx       EditedPicture (one SVG through exportPlan's transform: FeColorMatrix filter, lines) and EditedPhoto (with the caption bar, full screen)
   edit/EditedVideo.tsx       EditedVideo (the player turned and cropped by view transforms, lines and caption in a layer taking no taps, the trim kept while playing), VideoPicture, useVideoSize
-  edit/EditOffer.tsx         the 6 s Edit offer after a capture: useEditOffer, EditOfferPill, EditButton
+  edit/EditOffer.tsx         the editor after a capture: useEditAfterCapture (decision 0240)
   MemoryPreview.tsx          a memory pin's quick preview above the capture row
   ReminderCard.tsx           a flagged capture come back on the walk screen
   RemindEditor.tsx           Remind me here: how often, until when (drawn inside the viewer's Modal)
@@ -362,7 +362,7 @@ Captures and media
   voiceTrim.ts               a voice memo's kept part (core, VT6-VT12): span, clock, state, the length and "Trimmed" words
   mediaEdit.ts               edits as data (core, ME5-ME21): rotate and crop against the original, the nine filter matrices, pen sizes and colours, the eraser's hit, simplify, trim, exportPlan (one transform for every renderer), parse/serialize
   editSession.ts             the editor's draft, undo/redo, close/discard/done (core)
-  editOffer.ts               the after-capture Edit offer's timing and words (core)
+  editOffer.ts               which capture's editor opens once it is kept (core)
   ready/                     Navigate, ready's shell (`createReady`: its choices, one fix, notes and moments' writes) and the app's instance
   captureEdits/              saving a moment's edits from a screen with no capture path: stored, then told on the bus (shell)
   videoEdit/                 an edited video as one file: the local module on phones, canvas + MediaRecorder on the web
@@ -409,7 +409,7 @@ Session, screens and small helpers
   memoGate.ts                a memo recording anywhere blocks a start
   unsaved/                   the one holder of every capture that failed to save (core words, in-memory shell; UN1-UN15, 0196)
   settleWithin.ts            await a promise, but never longer than ms
-  recordingBar.ts, quietLines.ts, format.ts, scaleBar.ts         the bar's line and its waiting Edit offer, counts as words, distances and times, the scale bar's length
+  recordingBar.ts, quietLines.ts, format.ts, scaleBar.ts         the bar's line, counts as words, distances and times, the scale bar's length
   audioMode(.native|.web).ts setAudioMode: expo-audio on native, navigator.audioSession on web
   focus.ts                   focusOn(ref) (findNodeHandle doesn't exist on web)
   perfCount.ts               opt-in counters when window.__perf is set

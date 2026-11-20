@@ -17,8 +17,11 @@ paths:
   caption. `exportPlan` is the one transform the screen (`EditedPicture`'s SVG,
   `VideoPicture`'s view transforms), both bakers and the video module follow.
 - **The editor** (`edit/MediaEditor`) is an overlay inside the viewer (iOS:
-  no Modal over a Modal) and its own Modal from the Edit offer on Navigate's
-  ready screen and the recording bar. Its state is `editSession` (core): Done
+  no Modal over a Modal) and its own Modal after a capture (decision 0240): once
+  a new moment's photo or video is kept, the walk screen, Navigate's ready
+  screen, the recording bar and Memories' line open it by themselves
+  (`useEditAfterCapture`, the rule `editAfter` in `lib/editOffer`); a piece
+  added to an open moment opens none. Its state is `editSession` (core): Done
   with no change writes nothing; Close with changes asks. After Done on a
   photo, the small copy is remade from a bake without the caption.
 - **The viewer unmounts the shown capture while the editor is up.** On the
@@ -38,7 +41,7 @@ paths:
   kept part, its wait timed on the kept length). The stack shows the edited small copy.
 - **A loose moment's change goes on the bus's `LOOSE_MOMENTS` channel**
   (`captureBus.patch(null, ...)`); the ready screen listens, so a moment
-  edited from its Edit offer shows on its pin (audit 2).
+  edited as it is taken shows on its pin (audit 2).
 - **An edited small copy is named by its edit** (`editedThumbName`): pins key
   their picture by the ref, so the same name never reloaded (audit 3). The
   capture-time copy stands down once a photo has a copy or an edit (audit 8).

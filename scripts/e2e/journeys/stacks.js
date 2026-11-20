@@ -42,6 +42,10 @@ async function run(h) {
   // A photo from the edge stack: one tap, a new moment, and the pill offers to add to it (MS1, MS2).
   const [chooser] = await Promise.all([pg.waitForEvent('filechooser'), pg.click('[data-testid=moment-photo]')]);
   await chooser.setFiles(path.join(fixtures, 'photo.jpg'));
+  // Its editor opens by itself once kept (ME23, decision 0240): closed, the photo kept as taken.
+  await pg.waitForSelector('[data-testid=media-editor]', { timeout: 15000 }).catch(() => {});
+  await pg.click('[data-testid=edit-close]').catch(() => {});
+  await pg.waitForSelector('[data-testid=media-editor]', { state: 'detached', timeout: 5000 }).catch(() => {});
   const pill = await there('[data-testid=add-to-moment]');
   const names = pill ? await pg.$$eval('[data-testid=add-to-moment] [role=button]', (bs) => bs.map((b) => b.getAttribute('aria-label'))) : [];
   const ms2ok = pill && ['Add a photo to this moment', 'Add a voice memo to this moment', 'Add a note to this moment'].every((n) => names.includes(n));

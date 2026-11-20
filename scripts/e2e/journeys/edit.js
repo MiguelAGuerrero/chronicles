@@ -63,27 +63,23 @@ async function run(h) {
     await pg.waitForSelector('[data-testid=start]');
     await pg.waitForTimeout(1500);
 
-    // ME23 on Navigate, ready: a moment's photo offers Edit, which opens the editor on Crop as its own Modal.
+    // ME23 on Navigate, ready (decision 0240, fix edit-after-capture): once the photo is accepted, its editor opens by
+    // itself on Crop, as its own Modal, with no Edit pill to tap first.
     await step('ME23 moment', async () => {
       const [chooser] = await Promise.all([pg.waitForEvent('filechooser'), pg.click('[data-testid=moment-photo]')]);
       await chooser.setFiles(path.join(fixtures, 'photo.jpg'));
-      const offer = await pg.waitForSelector('[data-testid=capture-offer]', { timeout: 15000 }).then((e) => e.innerText(), () => '');
-      check(/Photo saved/.test(offer) && (await pg.locator('[data-testid=capture-edit]').count()) === 1, `ME23: a moment's photo offers Edit ("${offer.replace(/\n/g, ' ')}")`);
-      await pg.click('[data-testid=capture-edit]');
-      await pg.waitForSelector('[data-testid=media-editor]', { timeout: 10000 });
-      check((await selected('edit-tool-crop')) === 'true', 'ME23: Edit opens the editor on Crop (Navigate, ready)');
+      const opened = await pg.waitForSelector('[data-testid=media-editor]', { timeout: 15000 }).then(() => true, () => false);
+      check(opened, 'ME23 fix edit-after-capture: a moment\'s photo opens its editor by itself once accepted (Navigate, ready)');
+      await shot(pg, 'edit-after-capture-ready');
+      check((await selected('edit-tool-crop')) === 'true', 'ME23: the editor opens on Crop (Navigate, ready)');
       await pg.click('[data-testid=edit-close]');
       await pg.waitForSelector('[data-testid=media-editor]', { state: 'detached', timeout: 5000 });
-      check(true, 'ME2: Close with no change closes at once');
-      // media-editing audit 2: a moment edited from the offer shows the edit on its own pin's viewer, and opens on it.
-      const offer2 = await pg.waitForSelector('[data-testid=capture-offer]', { timeout: 2000 }).then(() => true, () => false);
-      if (!offer2) {
-        const [ch2] = await Promise.all([pg.waitForEvent('filechooser'), pg.click('[data-testid=moment-photo]')]);
-        await ch2.setFiles(path.join(fixtures, 'photo.jpg'));
-        await pg.waitForSelector('[data-testid=capture-offer]', { timeout: 15000 });
-      }
-      await pg.click('[data-testid=capture-edit]');
-      await pg.waitForSelector('[data-testid=media-editor]', { timeout: 10000 });
+      check(true, 'ME2: Close with no change closes at once, the photo kept as taken');
+      check((await pg.locator('[data-testid=capture-offer], [data-testid=capture-edit]').count()) === 0, 'ME23 fix edit-after-capture: no Edit pill is left after the editor closes');
+      // media-editing audit 2: a moment edited as it is taken shows the edit on its own pin's viewer, and opens on it.
+      const [ch2] = await Promise.all([pg.waitForEvent('filechooser'), pg.click('[data-testid=moment-photo]')]);
+      await ch2.setFiles(path.join(fixtures, 'photo.jpg'));
+      await pg.waitForSelector('[data-testid=media-editor]', { timeout: 15000 });
       await pg.click('[data-testid=edit-rotate]');
       await pg.click('[data-testid=edit-done]');
       await pg.waitForSelector('[data-testid=media-editor]', { state: 'detached', timeout: 15000 });
@@ -100,7 +96,7 @@ async function run(h) {
         if (!(await next.count())) break;
         await next.first().click();
       }
-      check(shownEdits.some((e) => e && JSON.parse(e).rotate === 90), `media-editing audit 2: a moment edited from the ready offer shows its edit on its pin's viewer (${JSON.stringify(shownEdits)})`);
+      check(shownEdits.some((e) => e && JSON.parse(e).rotate === 90), `media-editing audit 2: a moment edited as it was taken shows its edit on its pin's viewer (${JSON.stringify(shownEdits)})`);
       await pg.locator('[data-testid=viewer-close] >> visible=true').first().click();
       await pg.waitForSelector('[data-testid=viewer-close]', { state: 'detached', timeout: 5000 }).catch(() => {});
       await shot(pg, 'edit-after-moment');
@@ -118,20 +114,17 @@ async function run(h) {
     await step('ME1-ME13 photo', async () => {
       const [chooser] = await Promise.all([pg.waitForEvent('filechooser'), pg.click('[data-testid=cap-photo]')]);
       await chooser.setFiles(path.join(fixtures, 'photo.jpg'));
-      const offer = await pg.waitForSelector('[data-testid=capture-offer]', { timeout: 15000 }).then((e) => e.innerText(), () => '');
-      check(/Photo saved here/.test(offer), `ME23: the walk screen offers Edit after a photo ("${offer.replace(/\n/g, ' ')}")`);
+      const opened = await pg.waitForSelector('[data-testid=media-editor]', { timeout: 15000 }).then(() => true, () => false);
+      check(opened, 'ME23 fix edit-after-capture: the walk screen opens the photo\'s editor by itself once accepted');
       photoId = (await rowOf('photo'))?.id;
       // The pin's small copy before the edit (media-editing audit 3).
       const pinThumb = pg.locator('.maplibregl-map [aria-label^="Photo, "][aria-label$=". Open"] [data-testid=pin-thumb]');
-      // Within the offer's 6 s: the copy is made about a second after the photo is kept.
-      await pinThumb.first().waitFor({ timeout: 3500 }).catch(() => {});
-      // Read at once, never waited on: the offer only lasts 6 s.
+      // Under the editor: the copy is made about a second after the photo is kept.
+      await pinThumb.first().waitFor({ state: 'attached', timeout: 3500 }).catch(() => {});
       const thumbSrc = async () => ((await pinThumb.count())
         ? pinThumb.first().evaluate((el) => (el.tagName === 'IMG' ? el.src : el.querySelector('img')?.src ?? getComputedStyle(el).backgroundImage), null, { timeout: 1000 }).catch(() => null)
         : null);
       const srcBefore = await thumbSrc();
-      await pg.click('[data-testid=capture-edit]');
-      await pg.waitForSelector('[data-testid=media-editor]', { timeout: 10000 });
       const tools = await pg.locator('[data-testid^=edit-tool-]').evaluateAll((els) => els.map((e) => e.getAttribute('data-testid').slice(10)));
       check(tools.join(',') === 'crop,filter,draw,text', `ME1: a photo's tools are Crop, Filter, Draw, Text (${tools})`);
       // ME5: Rotate turns 90 clockwise. ME6: Square crops square.
@@ -219,10 +212,8 @@ async function run(h) {
     await step('ME1, ME12-ME15 video', async () => {
       const [chooser] = await Promise.all([pg.waitForEvent('filechooser'), pg.click('[data-testid=cap-photo]')]);
       await chooser.setFiles(path.join(fixtures, 'clip-4s.webm'));
-      const offer = await pg.waitForSelector('text=Video saved here', { timeout: 15000 }).then(() => true, () => false);
-      check(offer, 'ME23: the walk screen offers Edit after a video');
-      await pg.click('[data-testid=capture-edit]');
-      await pg.waitForSelector('[data-testid=media-editor]', { timeout: 10000 });
+      const opened = await pg.waitForSelector('[data-testid=media-editor]', { timeout: 15000 }).then(() => true, () => false);
+      check(opened, 'ME23 fix edit-after-capture: the walk screen opens a video\'s editor by itself once accepted');
       const tools = await pg.locator('[data-testid^=edit-tool-]').evaluateAll((els) => els.map((e) => e.getAttribute('data-testid').slice(10)));
       check(tools.join(',') === 'crop,draw,text,trim', `ME1: a video's tools are Crop, Draw, Text, Trim (${tools})`);
       await pg.click('[data-testid=edit-tool-trim]');
@@ -393,7 +384,7 @@ async function run(h) {
       await pg.click('[data-testid=viewer-close]');
     });
 
-    // ME23 on the recording bar: minimized, the bar's camera offers Edit too.
+    // ME23 on the recording bar: minimized, the bar's camera opens the editor by itself too (decision 0240).
     await step('ME23 recording bar', async () => {
       await pg.click('[data-testid=walk-minimize]');
       await pg.waitForSelector('[data-testid=recording-bar]', { timeout: 10000 });
@@ -401,16 +392,13 @@ async function run(h) {
       if (!(await pg.locator('[data-testid=bar-photo]').count())) await pg.click('[data-testid=tab-explore]');
       const [chooser] = await Promise.all([pg.waitForEvent('filechooser'), pg.click('[data-testid=bar-photo]')]);
       await chooser.setFiles(path.join(fixtures, 'photo.jpg'));
-      // Since T12 (decision 0149) the bar's offer is a pill above it that waits for Edit, Close or the next capture.
-      const said = await pg.waitForSelector('[data-testid=bar-edit-offer]', { timeout: 10000 })
-        .then((e) => e.evaluate((n) => n.firstElementChild?.textContent ?? ''), () => '');
-      const edit = await pg.waitForSelector('[data-testid=bar-edit-offer] [data-testid=capture-edit]', { timeout: 5000 }).then(() => true, () => false);
-      check(said === 'Photo saved to your walk' && edit, `ME23: the recording bar offers Edit after its photo ("${said}")`);
-      await pg.click('[data-testid=bar-edit-offer] [data-testid=capture-edit]');
-      await pg.waitForSelector('[data-testid=media-editor]', { timeout: 10000 });
-      check((await selected('edit-tool-crop')) === 'true', 'ME23: the bar’s Edit opens the editor on Crop');
-      check((await pg.locator('[data-testid=bar-edit-offer]').count()) === 0, 'tend tabs T12: the bar’s Edit ends its offer');
+      const opened = await pg.waitForSelector('[data-testid=media-editor]', { timeout: 15000 }).then(() => true, () => false);
+      check(opened, 'ME23 fix edit-after-capture: the recording bar opens its photo\'s editor by itself once accepted');
+      await shot(pg, 'edit-after-capture-bar');
+      check((await selected('edit-tool-crop')) === 'true', 'ME23: the bar’s editor opens on Crop');
       await pg.click('[data-testid=edit-close]');
+      await pg.waitForSelector('[data-testid=media-editor]', { state: 'detached', timeout: 5000 });
+      check((await pg.locator('[data-testid=bar-edit-offer], [data-testid=capture-edit]').count()) === 0, 'ME23 fix edit-after-capture: no Edit pill above the bar after the editor closes');
     });
 
     // ME4: the replay's cards show the edits too (the edited photo's SVG picture, not the plain file).

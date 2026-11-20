@@ -43,10 +43,17 @@ async function run(h) {
     for (let i = 1; i <= n; i++) await go(here[0] + ((x - here[0]) * i) / n, here[1] + ((y - here[1]) * i) / n);
     here = [x, y];
   };
-  const take = async (file, saved) => {
+  // A new moment's photo or video opens its editor by itself once kept (ME23, decision 0240): closed, kept as taken.
+  const closeEditor = async (p = pg, timeout = 8000) => {
+    if (!(await p.waitForSelector('[data-testid=media-editor]', { timeout }).then(() => true, () => false))) return false;
+    await p.click('[data-testid=edit-close]').catch(() => {});
+    await p.waitForSelector('[data-testid=media-editor]', { state: 'detached', timeout: 5000 }).catch(() => {});
+    return true;
+  };
+  const take = async (file) => {
     const [chooser] = await Promise.all([pg.waitForEvent('filechooser'), pg.click('[data-testid=cap-photo]')]);
     await chooser.setFiles(path.join(fixtures, file));
-    await pg.waitForSelector(`text=${saved}`, { timeout: 20000 }).catch(() => null);
+    await closeEditor(pg, 20000);
     await pg.waitForTimeout(1500);
   };
   const note = async (text) => {
@@ -105,10 +112,10 @@ async function run(h) {
   await pg.waitForSelector('[data-testid=walk-actions]');
   // Each pin 90 m or more from the next, so none group at the card's zoom.
   await walkTo(-0.5, 0.3);
-  await take('photo.jpg', 'Photo saved here');
+  await take('photo.jpg');
   await dismissPill();
   await walkTo(-0.5, 1.3);
-  await take('photo.jpg', 'Photo saved here');
+  await take('photo.jpg');
   // A second piece on the same moment: the stacked moment.
   if (await pg.waitForSelector('[data-testid=add-photo]', { timeout: 4000 }).then(() => true, () => false)) {
     const [ch2] = await Promise.all([pg.waitForEvent('filechooser'), pg.click('[data-testid=add-photo]')]);
@@ -118,7 +125,7 @@ async function run(h) {
   await dismissPill();
   await walkTo(-0.5, 1.5);
   await walkTo(0.5, 1.5);
-  await take('clip-4s.webm', 'Video saved here');
+  await take('clip-4s.webm');
   await dismissPill();
   await walkTo(1.5, 1.5);
   await walkTo(1.5, 1.2);
@@ -129,9 +136,9 @@ async function run(h) {
   await dismissPill();
   await walkTo(1.5, -0.5);
   await walkTo(0.5, -0.5);
-  await take('photo.jpg', 'Photo saved here');
+  await take('photo.jpg');
   await dismissPill();
-  await take('clip-4s.webm', 'Video saved here');
+  await take('clip-4s.webm');
   await dismissPill();
   await note('Where it ended.');
   await dismissPill();

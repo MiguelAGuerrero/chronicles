@@ -98,10 +98,18 @@ async function run(h) {
     await pg.waitForSelector(`[data-testid=${saveOf(prefix)}]`, { state: 'detached', timeout: 10000 }).catch(() => {});
     await pg.waitForTimeout(900);
   };
+  // A new moment's photo or video opens its editor by itself once kept (ME23, decision 0240): closed, kept as taken.
+  const closeEditor = async (p = pg, timeout = 8000) => {
+    if (!(await p.waitForSelector('[data-testid=media-editor]', { timeout }).then(() => true, () => false))) return false;
+    await p.click('[data-testid=edit-close]').catch(() => {});
+    await p.waitForSelector('[data-testid=media-editor]', { state: 'detached', timeout: 5000 }).catch(() => {});
+    return true;
+  };
   const shoot = async (button) => {
     const got = await Promise.all([pg.waitForEvent('filechooser', { timeout: 10000 }), pg.click(`[data-testid=${button}]`, { timeout: 10000 })]).catch(() => null);
     if (got) await got[0].setFiles(path.join(fixtures, 'photo.jpg'));
-    await pg.waitForTimeout(1500);
+    // A save that fails opens none; one that is kept is closed.
+    await closeEditor(pg, 1500);
   };
   const hold = async (sel) => {
     const b = await shown(sel).first().boundingBox().catch(() => null);

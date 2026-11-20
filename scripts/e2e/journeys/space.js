@@ -45,9 +45,17 @@ async function run(h) {
     await pg.click('[data-testid=space-dismiss]').catch(() => {});
     return pg.waitForSelector('[data-testid=space-line]', { state: 'detached', timeout: 3000 }).then(() => true, () => false);
   };
+  // A new moment's photo or video opens its editor by itself once kept (ME23, decision 0240): closed, kept as taken.
+  const closeEditor = async (p = pg, timeout = 8000) => {
+    if (!(await p.waitForSelector('[data-testid=media-editor]', { timeout }).then(() => true, () => false))) return false;
+    await p.click('[data-testid=edit-close]').catch(() => {});
+    await p.waitForSelector('[data-testid=media-editor]', { state: 'detached', timeout: 5000 }).catch(() => {});
+    return true;
+  };
   const shoot = async (button) => {
     const [chooser] = await Promise.all([pg.waitForEvent('filechooser'), pg.click(`[data-testid=${button}]`)]);
     await chooser.setFiles(path.join(fixtures, 'photo.jpg'));
+    await closeEditor(pg, 6000);
   };
 
   // Navigate, ready: moments outside a walk (SA3), the captures still enabled (SA6), no number (SA7).

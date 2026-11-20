@@ -1,0 +1,119 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "remove",
+        "with the bar's Edit pill up, tap the ✕",
+        "--reason",
+        "Decision 0240 (fix edit-after-capture): the Edit pill is gone, the editor opens by itself after a capture"
+      ],
+      "target": "sha256:847ee4da3087823f11e33d160facf6ed36f6f0fb68386e668d6ac3749469eabb"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "remove",
+        "with the bar's Edit pill up on Explore, watch the map",
+        "--reason",
+        "Decision 0240 (fix edit-after-capture): the Edit pill is gone, the editor opens by itself after a capture"
+      ],
+      "target": "sha256:a46af9b8afaeb7761dfa15cba35d9ba16177da7c5b0190d2908dca9ab6e8bc08"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "remove",
+        "on Android with TalkBack on, minimize a walk, go to Explore and take a photo with the recording bar's camera",
+        "--reason",
+        "Decision 0240 (fix edit-after-capture): the Edit pill is gone, the editor opens by itself after a capture"
+      ],
+      "target": "sha256:46e820a2ecbb8979eea63c75d563ff982a82e58dc4935a4172e3d2f30bbf99b9"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "remove",
+        "with VoiceOver on, minimize a walk, go to Explore and take a photo with the recording bar's camera; wait ten seconds",
+        "--reason",
+        "Decision 0240 (fix edit-after-capture): the Edit pill is gone, the editor opens by itself after a capture"
+      ],
+      "target": "sha256:cbe65dd122f9c880b2de8190ed9268e91236747ad2ed20f54c84870269d37c1f"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "set",
+        "open the editor from the recording bar's Edit offer",
+        "--reason",
+        "Decision 0240 (fix edit-after-capture): the Edit pill is gone, the editor opens by itself after a capture"
+      ],
+      "body": "- [ ] **Do:** take a photo from the recording bar and from Navigate's ready screen, so its editor opens by itself (decision 0240), then press Android Back with and without changes. **Expect:** the editor opens as its own Modal from both; Back goes through `requestClose`: with changes it asks \"Discard these edits?\", without it closes and the photo is kept as taken. (ME2, ME23)\n",
+      "target": "sha256:ec0f301a39cbef326a98b3b4968db4886e27d13176d37d5e2ee884303a39bc6c"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Media editing (ME1-ME23"
+      ],
+      "body": "- [ ] **Do:** on iOS and Android, take a photo and then a video with the system camera from the walk screen, Navigate's ready screen, the minimized walk's recording bar (on Explore) and Memories' toolbar; tap Use Photo (iOS) or the tick (Android) each time. **Expect:** the media editor opens by itself as the camera closes, on Crop, as a Modal of its own (on iOS presenting it while the picker is still being dismissed can be refused or leave nothing on screen), with the moment stored underneath; Close with no change keeps it as taken and its pin then shows on the map; Done saves the edit and the pin shows the edited copy; Android Back goes through the editor's Close. Never run on a phone (fix edit-after-capture, decision 0240).\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "note",
+        "since `tend tabs T37` and `tend tabs audits 31-34`"
+      ],
+      "body": "  - Since decision 0240 (Nov 20) there is no Edit pill or band offer: a photo opens its editor by itself, so the notice need only stay out from under the editor and Undo.\n",
+      "target": "sha256:3a62a055b521eda51653e649314549646d36d3081b576c2a7e465ca6052bb72d"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "a moment's \"kept here\" toast and its Edit pill can show together",
+        "--reason",
+        "Decision 0240 (fix edit-after-capture): the Edit pill is gone, the editor opens by itself after a capture"
+      ],
+      "target": "sha256:11a8b7eab373b2351f157ebb9af6db8c8b18d8ba13231fbaf9a0ba4ff6cc300b"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "With the bar's Edit pill up at 320 x 700 on Explore, Move map",
+        "--reason",
+        "Decision 0240 (fix edit-after-capture): the Edit pill is gone, the editor opens by itself after a capture"
+      ],
+      "target": "sha256:b754db82b8eac7643e8735bf13e9fa8882cac45789e2d3976ec991ba8f58749f"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Tabs and the recording bar"
+      ],
+      "body": "- [loop] `tabsHidden.barOfferUp` is set by nothing since decision 0240 removed the recording bar's Edit pill (fix edit-after-capture): Explore's press hint (`pressHintUp`'s `barOffer`, `lib/atlas/overlaySlots.ts`, `(tabs)/explore.tsx`) and the storage notice's sight (`pill`, `lib/space/sight.ts`, `space/index.ts`) still read it, always false, with their tests (`tabs/barEditOffer.test.ts` T36, T37, `explore/overlaySlots.test.ts`). Remove the store and its readers; left out of the fix for its size (five more source files).\n"
+    },
+    {
+      "argv": [
+        "open",
+        "note",
+        "ME23's wording after T12"
+      ],
+      "body": "  - Since decision 0240 (Nov 20, `/fix` edit-after-capture, the owner's answers) there is no offer at all: once a new moment's photo or video is accepted and kept, its editor opens by itself on every capture place, the recording bar's pill included. Amend ME23 to that instead, in the doc and the mirror.\n",
+      "target": "sha256:969e77baffbfb22d7a496ca81ff895f139711b5340ed28c1ac3b50d2c1e9970f"
+    }
+  ]
+}
