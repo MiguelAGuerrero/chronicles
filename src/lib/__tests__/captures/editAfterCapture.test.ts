@@ -70,7 +70,7 @@ test('fix edit-after-capture audit 1: the editor after a capture says the photo 
   for (const f of HOSTS) assert.match(src(f), /<MediaEditor [^>]*justKept[ />]/, `${f} tells the editor it opened after a capture`);
   const editor = src('components/edit/MediaEditor.tsx');
   assert.match(editor, /accessibilityLabel=\{kept \? kept\.close : 'Close'\}/, 'the ✕ is named for what it does after a capture');
-  assert.match(editor, /kept && empty \?/, 'the kept line stands until the first edit, where Revert has nothing to revert');
+  assert.match(editor, /kept && empty && s\.tool !== 'draw' \?/, 'the kept line stands until the first edit, where Revert has nothing to revert');
 });
 
 // fix edit-after-capture audit 3 (the auditor's F3, F5, F8, medium): a photo kept while its walk was stopping opened an
@@ -97,9 +97,9 @@ const opensGuarded = (code: string, guard: RegExp): { calls: number; guarded: nu
   return { calls, guarded };
 };
 const GUARDS: [string, RegExp][] = [
-  ['components/RecordingBar.tsx', /^!returning\.current && !barStopping\(barStop\.get\(\), walk\.id, Date\.now\(\)\)$/],
-  ['components/journal/OpenLine.tsx', /^!\(walk && barStopping\(barStop\.get\(\), walk\.id, Date\.now\(\)\)\)$/],
-  ['app/walk.tsx', /^!stoppingNow\.current$/],
+  ['components/RecordingBar.tsx', /^!returning\.current && !wentBack\.current && !barStopping\(barStop\.get\(\), walk\.id, Date\.now\(\)\) && !unsaved\.hasEnded\(walk\.id\)$/],
+  ['components/journal/OpenLine.tsx', /^!\(walk && \(barStopping\(barStop\.get\(\), walk\.id, Date\.now\(\)\) \|\| unsaved\.hasEnded\(walk\.id\)\)\)$/],
+  ['app/walk.tsx', /^!stoppingNow\.current && !\(walk && unsaved\.hasEnded\(walk\.id\)\)$/],
 ];
 
 test('fix edit-after-capture audit 3: the scan fails a call outside its guard, a guard dropped, and a file with no call', () => {
@@ -129,7 +129,95 @@ test('fix edit-after-capture audit 3: no editor opens while the walk is stopping
 test('fix edit-after-capture audit 4: in the composer the editor is drawn inside its Modal, and Back goes to the editor first', () => {
   const line = src('components/journal/OpenLine.tsx');
   const composer = line.slice(line.indexOf('<Modal visible={composing}'), line.indexOf('</Modal>', line.indexOf('<Modal visible={composing}')));
-  assert.match(composer, /\{composing && editing \? \(\s*<MediaEditor ref=\{editorRef\} key=\{editing\.id\} overlay /);
+  assert.match(composer, /\{composing && editing \? \(\s*<MediaEditor ref=\{editorRef\} key=\{editing\.piece_id\} overlay /);
   assert.match(composer, /onRequestClose=\{\(\) => \{ if \(editing\) \{ editorRef\.current\?\.requestClose\(\); return; \}/);
   assert.match(line, /\{editing && !composing && <MediaEditor /, 'its own Modal only with the composer closed');
+});
+
+// fix edit-after-capture audit 5 (round 2's R1, medium): a › tapped while the bar's photo was being saved went back to
+// the walk, its `finally` lowered `returning` a few microtasks before the photo's check ran, and the editor opened as
+// the bar went. The bar's own `back` and `photo`, lifted from its syntax tree, run here in the order a phone runs them.
+const BAR = join(__dirname, '../../../components/RecordingBar.tsx');
+const lift = (name: string): string => {
+  const sf = ts.createSourceFile(BAR, readFileSync(BAR, 'utf8'), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  let found: string | null = null;
+  const visit = (n: ts.Node) => {
+    if (ts.isVariableDeclaration(n) && ts.isIdentifier(n.name) && n.name.text === name && n.initializer) found = n.initializer.getText(sf);
+    else ts.forEachChild(n, visit);
+  };
+  visit(sf);
+  assert.ok(found, `the bar declares ${name}`);
+  const js = ts.transpileModule(`(${found})`, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext } }).outputText;
+  return js.replace(/^"use strict";\s*/, '').trim().replace(/;$/, '');
+};
+const run = (name: string, fakes: Record<string, unknown>) =>
+  new Function(...Object.keys(fakes), `"use strict"; return ${lift(name)};`)(...Object.values(fakes)) as (...a: unknown[]) => Promise<void>;
+
+test('fix edit-after-capture audit 5: a way back tapped while the bar\'s photo is being saved opens no editor', async () => {
+  const log: string[] = [];
+  let keep: (k: unknown) => void = () => {};
+  const fakes: Record<string, unknown> = {
+    walk: { id: 'w1' },
+    cap: { takePhoto: () => new Promise((r) => { keep = r; }) },
+    keeping: { current: null },
+    returning: { current: false },
+    wentBack: { current: false },
+    feedback: () => {},
+    setSaid: () => {},
+    barStopping: () => false,
+    barStop: { get: () => null },
+    unsaved: { hasEnded: () => false },
+    editAfter: { open: () => log.push('editor') },
+    goesBack: () => true,
+    settleWithin: (p: Promise<unknown>) => Promise.resolve(p).then(() => {}, () => {}),
+    RETURN_WAIT_MS: 5000,
+    db: { setMeta: async () => {} },
+    RECALL_OPEN_KEY: 'recall_open',
+    showWalk: () => log.push('walk screen'),
+  };
+  const photo = run('photo', fakes)();
+  const back = run('back', fakes)(null);
+  keep({ kind: 'photo', id: 'm1', momentId: 'm1' });
+  await Promise.all([photo, back]);
+  assert.deepEqual(log, ['walk screen'], 'back to the walk, and no editor for the bar to take with it');
+  // With no way back, the same photo opens its editor.
+  log.length = 0;
+  const alone = { ...fakes, keeping: { current: null }, returning: { current: false }, wentBack: { current: false } };
+  const p2 = run('photo', alone)();
+  keep({ kind: 'photo', id: 'm2', momentId: 'm2' });
+  await p2;
+  assert.deepEqual(log, ['editor']);
+  // fix edit-after-capture audit 6 (round 2's R2, low): a save that outlasted Stop's wait lands after its walk ended.
+  log.length = 0;
+  const ended = { ...alone, keeping: { current: null }, unsaved: { hasEnded: (id: string) => id === 'w1' } };
+  const p3 = run('photo', ended)();
+  keep({ kind: 'video', id: 'm3', momentId: 'm3' });
+  await p3;
+  assert.deepEqual(log, [], 'its walk ended meanwhile: no editor');
+});
+
+// fix edit-after-capture audit 7 (round 2's R3, low): the composer's field kept its focus under the overlay editor, so a
+// phone could raise the keyboard over it and type into the hidden entry; nothing gave the field focus back after.
+test('fix edit-after-capture audit 7: the composer\'s field lets go while its editor is up, and takes focus back after', () => {
+  const line = src('components/journal/OpenLine.tsx');
+  assert.match(line, /const editingInComposer = composing && !!editing;/);
+  assert.match(line, /useEffect\(\(\) => \{\s*if \(editingInComposer\) \{\s*input\.current\?\.blur\(\);\s*hadEditor\.current = true;\s*\} else if \(hadEditor\.current\) \{\s*hadEditor\.current = false;\s*if \(composing\) focusOn\(input\);\s*\}\s*\}, \[editingInComposer, composing\]\);/);
+});
+
+// fix edit-after-capture audit 8 (round 2's R4, low): with Draw's Undo and Redo, "Photo kept" made the top bar wider
+// than a 320 px phone, and the first stroke swapped it for the narrower Revert, moving Undo under the thumb. The kept
+// line stands only where Undo and Redo are not drawn.
+test('fix edit-after-capture audit 8: the kept line gives way to Revert while Draw\'s Undo and Redo are up', () => {
+  assert.match(src('components/edit/MediaEditor.tsx'), /\{kept && empty && s\.tool !== 'draw' \? \(/);
+});
+
+// fix edit-after-capture audit 9 (round 2's R6, low): every piece of a moment shares the moment's id, so an editor keyed
+// by it kept one piece's session while it drew and saved another's.
+test('fix edit-after-capture audit 9: the editor after a capture is keyed by its piece', () => {
+  for (const f of HOSTS) {
+    const s = src(f);
+    const keys = [...s.matchAll(/<MediaEditor [^>]*?key=\{([^}]+)\}/g)].map((m) => m[1]);
+    assert.ok(keys.length >= 1, f);
+    for (const k of keys) assert.equal(k, 'editing.piece_id', `${f} keys its editor by the piece`);
+  }
 });

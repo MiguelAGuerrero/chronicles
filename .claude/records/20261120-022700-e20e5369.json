@@ -1,0 +1,22 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Captures, media and export"
+      ],
+      "body": "- [loop] A piece's capture-time small copy is left behind when it is edited as it is taken (decision 0240): `useCaptures`' `thumbFor` writes a new copy into the screen's list only for a moment's face (`isFace`), so the editor opened on a piece reads `thumb_path` as null and Done never removes `<piece>.thumb.jpg`: one orphaned JPEG per piece edited after capture, now the default for a second photo on Memories. Pass the copy into the list for pieces too (fix edit-after-capture's review, round 2, R5, low; left out for a fix's size).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Captures, media and export"
+      ],
+      "body": "- [loop] A lead, unverified: with a moment deleted from the viewer and its Undo waiting, the walk screen's Add to this moment pill stays open, so a photo taken then joins the moment being deleted (and since decision 0240 opens its editor on it); when the Undo window passes the photo may go with the moment. Read `deletion/runner.ts`' delete of a moment's pieces and close the pill on a delete if so (fix edit-after-capture's review, round 2, older than the fix).\n"
+    }
+  ]
+}

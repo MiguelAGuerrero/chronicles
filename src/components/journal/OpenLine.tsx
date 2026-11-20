@@ -16,6 +16,8 @@ import type { Faced } from '../../lib/moment';
 import { momentPill } from '../../lib/momentPill';
 import { feedback } from '../../lib/motion';
 import { barStop, hideTabs } from '../../lib/tabsHidden';
+import { unsaved } from '../../lib/unsaved';
+import { focusOn } from '../../lib/focus';
 import { barStopping } from '../../lib/recordingBar';
 import { NOTE_MAX } from '../../lib/noteEdit';
 import { editRefs, type EditorRef, fromEditor, insertRef, typedAt } from '../../lib/refs';
@@ -453,8 +455,8 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
       feedback('tap');
       send.current({ k: 'kept' });
       seen.current?.();
-      // Not while the bar stops this walk: its replay would cover or take the editor (audit 3).
-      if (!(walk && barStopping(barStop.get(), walk.id, Date.now()))) editAfter.open(k);
+      // Not while the bar stops this walk, or once it has ended: its replay would cover or take the editor (audits 3, 6).
+      if (!(walk && (barStopping(barStop.get(), walk.id, Date.now()) || unsaved.hasEnded(walk.id)))) editAfter.open(k);
     });
   };
   const voice = () => {
@@ -482,6 +484,19 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
     const t = setTimeout(() => input.current?.focus(), 80);
     return () => clearTimeout(t);
   }, [composing]);
+  // The editor over the composer takes the field's focus, so no keyboard rises over it and nothing types into the hidden
+  // entry; the field has it back once the editor goes (audit 7; the note page's editor does the same).
+  const editingInComposer = composing && !!editing;
+  const hadEditor = useRef(false);
+  useEffect(() => {
+    if (editingInComposer) {
+      input.current?.blur();
+      hadEditor.current = true;
+    } else if (hadEditor.current) {
+      hadEditor.current = false;
+      if (composing) focusOn(input);
+    }
+  }, [editingInComposer, composing]);
   const onAsk = useRef<(kind: 'photo' | 'voice' | 'text') => void>(() => {});
   useEffect(() => {
     onAsk.current = (kind) => (kind === 'photo' ? void photo() : kind === 'voice' ? (setRecTyping(false), voice()) : input.current?.focus());
@@ -762,7 +777,7 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
           </View>
         </View>
         {composing && editing ? (
-          <MediaEditor ref={editorRef} key={editing.id} overlay capture={editing} justKept initialTool="crop" onClose={() => editAfter.close()} onSave={(patch) => cap.setEdit(editing, patch)} />
+          <MediaEditor ref={editorRef} key={editing.piece_id} overlay capture={editing} justKept initialTool="crop" onClose={() => editAfter.close()} onSave={(patch) => cap.setEdit(editing, patch)} />
         ) : null}
       </Modal>
       <Modal visible={page != null} animationType="slide" onRequestClose={() => pageRef.current?.requestClose()}>
@@ -805,7 +820,7 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
       {picking != null && (
         <Mention self={pen.entry?.momentId ?? null} onPick={pick} onClose={() => { setPicking(null); input.current?.focus(); }} />
       )}
-      {editing && !composing && <MediaEditor key={editing.id} capture={editing} justKept initialTool="crop" onClose={() => editAfter.close()} onSave={(patch) => cap.setEdit(editing, patch)} />}
+      {editing && !composing && <MediaEditor key={editing.piece_id} capture={editing} justKept initialTool="crop" onClose={() => editAfter.close()} onSave={(patch) => cap.setEdit(editing, patch)} />}
     </>
   );
 }
