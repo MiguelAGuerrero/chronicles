@@ -16,7 +16,7 @@ the place goes with *that* capture, carried on its stamp, so there is no "next" 
 | `src/lib/useCaptures.ts` (view hook) | `takePhoto(into, place?)`, `startVoice(into, place?)`, `beginNote(into, place?)` pass it to `stampNow`; `onKept(momentId, piece, place)` hands it back when a moment is kept. A held capture keeps its stamp, so a Retry finds too |
 | `src/lib/explore/explore.ts` (core) | Out: `Armed`, `armedLine`, `armedFind`, `armedStill`. In: `cardCapture(item, here, found)` → `{ row: boolean, line: string }` (the row within 60 m and unfound; the words for CA5 and CA9), and `findOnKept({ place, piece, momentId }, items, found)` → the find to record or `null` (CA2-CA4, CA6, CA7). `canArm` folds into `cardCapture` |
 | `src/lib/explore/useExplore.ts` (view hook) | Out: `armed`, `arm`, `disarm`, the arming effects and `handled`. In: `findFor(placeKey, momentId)`, which calls the existing `record` (one find per place, the first stands) |
-| `src/app/walk.tsx` | The card: "Capture here" and the "ties the next moment" sub-line out; a row of three labelled buttons (`mark-camera`, `mark-voice`, `mark-note`; icon and word, 44 pt+) above Route here; each closes the card and calls `photo(null, key)`, `startVoice(null, key)`, `openNote(null, key)`. The armed line and its Cancel out; the pill's `!!explore.armed` out. `onKept` calls `explore.findFor` when `place` is set |
+| `src/app/walk.tsx` | The card: "Capture here" and the "ties the next moment" sub-line out; within 60 m, a row of three labelled buttons (`mark-camera`, `mark-voice`, `mark-note`; icon and word, 44 pt+, ink) first, then Route here as a secondary button (CA1b); farther, Route here as today; each closes the card and calls `photo(null, key)`, `startVoice(null, key)`, `openNote(null, key)`. The armed line and its Cancel out; the pill's `!!explore.armed` out. `onKept` calls `explore.findFor` when `place` is set |
 | `src/components/notePage/NewNotePage.tsx` | A `place` prop passed to `cap.beginNote` |
 | `scripts/features.js` | `IN_PROGRESS` entry; `RETIRED['tap-to-capture-places']`: TC3, TC4 (superseded by CA1-CA9) |
 | Tests and docs | below |
@@ -38,13 +38,15 @@ New unit file `src/lib/__tests__/explore/captureAtPlace.test.ts` (feature `explo
 | Id | Test |
 |---|---|
 | CA1 | `cardCapture`: an unfound named place within 60 m gives the row; journey `walk`: the card shows Camera, Voice, Note, each visible, in ink, ≥ 44 px, one row at 390 and 320 |
+| CA1b | journey `walk`: within 60 m the row's top is above Route here, Route here is the secondary variant, no accent fill on the card; past 60 m (Fox Point Museum or a far "?") Route here is primary as today |
 | CA2 | `findOnKept` for a new photo/video moment with a place → that place's find with the moment's id; `stampFor(.., place)` carries it; journey `walk`: card Camera, the video, "Found with a video: Hessian Memorial" |
 | CA3 | `findOnKept` for a voice moment with the place; journey `walk`: card Voice on a second place (Grace Church, if within 60 m on the route; else a fixture place added off the other journeys' paths) starts the memo, Stop and save, found with a voice memo |
 | CA4 | as CA3 for a text moment; journey `walk`: card Note on a third place (Coffee Exchange, same proviso), write a line, keep, found with a note |
 | CA5 | `cardCapture(...).line` words; a source scan of `walk.tsx` and `explore.ts`: no `armed`, "next moment" or "Capture here"; journey: no `armed-line`, no text "next moment" after a card tap |
 | CA6 | `findOnKept` with no place, and with a piece (`into`), → null; `stampFor` with `into` drops the place; journey: a stack capture after a card capture finds nothing new |
 | CA7 | `findOnKept` is only called on a kept moment (nothing kept, nothing found); journey: card Camera then the chooser cancelled, then a stack capture near the same place: not found |
-| CA8 | journey: after the find, no toast, no accent and no digits in what appears; the pin's spoken name is the found one, as today |
+| CA8 | journey: after the find, no toast saying found, no accent fill, no count of finds or places (the moment's own time and distance allowed); the pin's spoken name is the found one, as today |
+| CA10 | journey `walk`: the card's video and a stack capture's context lines in the viewer share their form (street, minutes in, the walk); unit: `stampFor` with a place keeps `t`, `at`, `walk` as without; `unsaved` journey run once (Retry keeps the stamp) |
 | CA9 | `cardCapture` past 60 m: no row, the line "Within 60 m, you can capture it here."; found: "Found.", no row |
 
 Rewritten or removed with the arming: `explore/tapToCapture.test.ts` TC3, TC4 and audits 2-5 (they test the arming,
@@ -99,12 +101,25 @@ would put three kinds behind a + menu, which the vision forbids for capture (the
 buttons in a row, in ink, under the place's name and distance, above Route here.
 
 **Defaults that make a control quieter (the owner can overrule):**
-1. The three are **secondary** buttons (outlined, ink), Route here stays the card's one primary (ui-patterns: one
-   primary action per bar). The alternative: the capture row primary and Route here secondary, since capture is now
-   the card's main job near a place.
+1. Within 60 m the three capture buttons lead the card, in ink, and Route here drops to secondary (steward S1, CA1b);
+   farther away the card is as today. Nothing on it is accent-filled.
 2. Words are short ("Camera", "Voice", "Note"), the spoken names long ("Take a photo or video of Hessian Memorial").
 3. No haptic on the card's tap beyond the capture's own (the stack's `feedback('tap')` after a keep, as today).
 
-## Steward
+## Decision record
 
-(Filled after the steward's run.)
+The owner's Nov 20 answers (the row on the card, one camera, 60 m, the card closes) and whatever they answer on S4
+become a decision of their own, amending 0224, numbered with `npm run book:next-decision` when written (steward,
+silent 2).
+
+## Steward (Nov 20)
+
+No breach, four drifts, one tone.
+
+- **S1** Route here primary while you stand at the place: **accepted**, CA1b.
+- **S2** No criterion held the moment's context: **accepted**, CA10.
+- **S3** "No digits" would fail on a moment's own time or pass by hiding it: **accepted**, CA8 reworded.
+- **S4** Capture only for unfound places reads as collecting: **for the owner** (the found pin opens its capture
+  today; offering the row again changes that tap).
+- **S5** The card's lines urge: **accepted**, CA5 and CA9 reworded to describe.
+- **S6** Precedents' counter-examples unnoted: **accepted**, "Not taken" line in the spec.
