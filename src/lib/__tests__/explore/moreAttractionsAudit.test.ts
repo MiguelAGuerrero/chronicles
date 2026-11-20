@@ -59,8 +59,8 @@ test('more-attractions audit 1: every amusement, theme or water park is one row,
   // The found line of an aquarium names zoos and aquariums, never amusement parks.
   const aq = tile('aquarium', 'aquarium', 'Adventure Aquarium')[0];
   assert.equal(foundLine({ name: aq.name, category: aq.category, generic: false, kind: aq.kind }), 'Found: Adventure Aquarium · Zoos and aquariums');
-  // p9 for audits 1-3; p10 since typed bridges (MA10), nothing carried.
-  assert.equal(PRESENCE_CODE, 'p10');
+  // p9 for audits 1-3; p10 since typed bridges (MA10); p11 since tend presence 2 (Overture's storefronts); nothing carried.
+  assert.equal(PRESENCE_CODE, 'p11');
 });
 
 test('more-attractions audit 2: a museum by type never lights History, whatever its name; a map museum keeps PK2\'s name rule', () => {

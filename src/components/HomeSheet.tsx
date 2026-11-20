@@ -252,7 +252,7 @@ export function HomeSheet(props: {
   now: number;
   /** With no walk finished yet, the peek's way to Navigate (tabs audit U7), offered only with no walk open (T10, 0148). */
   onNavigate?: () => void;
-  /** A walk is open (minimized): the empty peek says this walk is starred when it ends, and offers no button (T10, 0148). */
+  /** A walk is open (minimized): the empty peek says this walk is marked when it ends, and offers no button (T10, 0148). */
   walkOpen?: boolean;
   /** False until the screen's first read of walks: the peek then says nothing and offers nothing, so a walker with walks
    *  never sees the empty line or its Navigate while they load (tend tabs audit 1). */
@@ -327,7 +327,7 @@ export function HomeSheet(props: {
               </Text>
             </View>
           ) : noWalks && !expanded ? (
-            // Nothing walked yet (tabs audit U7): how walks get here, or, with a walk open, that it is starred when it ends (T10).
+            // Nothing walked yet (tabs audit U7): how walks get here, or, with a walk open, that it is marked when it ends (T10, tend tabs 20).
             showEmpty ? (
               <Text testID="sheet-empty" style={styles.empty} numberOfLines={2}>
                 {peekEmpty.line}

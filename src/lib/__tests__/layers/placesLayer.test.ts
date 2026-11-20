@@ -60,3 +60,21 @@ test('places-layer ui 1: the card\'s Sights line never says the "?" is on the ma
   const { SIGHTS_LINE } = await import('../../atlas/atlas');
   assert.ok(!/on the map/i.test(SIGHTS_LINE), SIGHTS_LINE);
 });
+
+test('tend presence 5: "How the marks work" never says a "?" is on the map either, since Places can be off', async () => {
+  const { marksExplained } = await import('../../atlas/atlas');
+  for (const extent of [undefined, 'outline', 'shape'] as const) {
+    const lines = marksExplained(extent ? ({ extent } as never) : null);
+    for (const l of lines) assert.ok(!/“\?” on the map/i.test(l), l);
+    assert.ok(lines.some((l) => /too small to light a mark can still turn up as a “\?”/.test(l)), 'the small place\'s line stays');
+  }
+});
+
+test('tend presence audit 6: "How the marks work" calls the bars\' marks marks, never dots, and says "even where" its kind reads none', async () => {
+  const { marksExplained } = await import('../../atlas/atlas');
+  for (const extent of [undefined, 'outline', 'shape'] as const) {
+    const lines = marksExplained(extent ? ({ extent } as never) : null);
+    for (const l of lines) assert.ok(!/\bdots?\b/i.test(l), l);
+    assert.ok(lines.includes('A place too small to light a mark can still turn up as a “?”, even where its kind reads none.'), lines.join(' | '));
+  }
+});

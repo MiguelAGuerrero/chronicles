@@ -1,0 +1,13 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Captures, media and export"
+      ],
+      "body": "- [loop] The editor that opens by itself after a capture (decision 0240) opens on Crop with the frame's handles live, so a thumb reaching for ✕ or Done while walking can graze a handle, which counts as an edit and makes ✕ ask \"Discard these edits?\" (opinion: the pictures cannot show a thumb). Open it with no tool chosen and Crop one tap away, or ignore a drag under a few points (fix edit-after-capture's review, ux U3, low).\n"
+    }
+  ]
+}

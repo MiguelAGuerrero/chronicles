@@ -2,7 +2,7 @@
 // gap and a 4-minute one too small to see, watched with no taps but the ones it checks; then its day. E2E_ONLY=replay
 // runs it alone.
 
-const { seedReplayWalk, seedPhotoWalk } = require('../replayWalk');
+const { seedReplayWalk, seedPhotoWalk, seedNorthWalk } = require('../replayWalk');
 
 // Replay ceremony, the engine and the camera (RC1-RC3, RC7, RC9, RC10, RC12, RC14): what the page's own frames saw.
 // `recordFrames` turns the app's counters on (window.__perf) and notes, every display frame, where the map says the
@@ -54,6 +54,10 @@ const recordFrames = (pg) => pg.evaluate(() => {
       screen: (p['render:replay'] ?? 0) + (p['render:day'] ?? 0), map: p['render:map'] ?? 0, sends, commits: window.__commits?.[0] ?? 0, engine: p['replay:frame'] ?? 0,
       card: cb ? `${cb.x.toFixed(1)},${cb.y.toFixed(1)},${cb.width.toFixed(1)},${cb.height.toFixed(1)}` : '', cardName: card?.getAttribute('aria-label') ?? '', note: note ? getComputedStyle(note.parentElement).opacity : '',
       clock: document.querySelector('[data-testid=replay-clock]')?.getAttribute('aria-label') ?? '', puck: !!document.querySelector('[data-testid=walker-puck]'),
+      // The opening (replay-ceremony ui 7): how strongly the walker's dot shows (null with none drawn) and the opacity the
+      // map's whole trace is drawn at; and the white edge under a hop's dots (ui 6). Both written only when measuring.
+      puckFade: (() => { const e = document.querySelector('[data-testid=walker-puck]'); return e && e.style.display !== 'none' ? Number(e.style.opacity || 1) : null; })(),
+      traceShown: map?.getAttribute('data-trace-shown') ?? '', hopEdge: map?.getAttribute('data-hop-edge') ?? '',
     });
     requestAnimationFrame(tick);
   };
@@ -333,6 +337,54 @@ function staysOf(frames, places, keys) {
 }
 
 /**
+ * The opening's two fades through a watch (replay-ceremony ui 7), from frames recorded from the first beat on: the
+ * opacity the whole trace was drawn at in the first beat's last frame and in the path's first (no cut between them),
+ * how it went down from there (its largest fall between two frames, and whether it ever rose), when it was gone, and
+ * the walker's dot coming in (the values seen between none and whole). Time is counted only while not held.
+ */
+function fadesOf(frames) {
+  const first = frames.findIndex((f) => f.cam);
+  if (first < 0) return null;
+  const told = frames.slice(first).filter((f) => f.cam);
+  const num = (v) => (v === '' || v == null ? null : Number(v));
+  const before = frames.slice(0, first).map((f) => num(f.traceShown)).filter((v) => v != null).pop() ?? null;
+  let t = 0;
+  let fall = 0;
+  let rose = 0;
+  let goneS = null;
+  let wholeS = null;
+  const marks = new Set();
+  for (let i = 0; i < told.length; i++) {
+    if (i > 0 && !told[i].held && !told[i - 1].held) t += told[i].t - told[i - 1].t;
+    if (t > 4000) break;
+    const a = num(told[i].traceShown);
+    const b = i > 0 ? num(told[i - 1].traceShown) : a;
+    if (a != null && b != null) { fall = Math.max(fall, b - a); if (a > b + 1e-6) rose++; }
+    if (goneS == null && a === 0) goneS = Math.round(t / 10) / 100;
+    const m = told[i].puckFade;
+    if (m != null && m > 0.02 && m < 0.98) marks.add(Math.round(m * 100) / 100);
+    if (wholeS == null && m != null && m >= 0.999) wholeS = Math.round(t / 10) / 100;
+  }
+  const r2 = (x) => (x == null ? null : Math.round(x * 100) / 100);
+  return { before: r2(before), first: r2(num(told[0].traceShown)), firstMark: told[0].puckFade, fall: r2(fall), rose, goneS, between: marks.size, wholeS };
+}
+
+/**
+ * The white edge under a hop's dots through a watch (replay-ceremony ui 6): its opacity while the path is told (every
+ * value seen), and once the card is there.
+ */
+function hopEdgeOf(frames) {
+  const first = frames.findIndex((f) => f.cam);
+  if (first < 0) return null;
+  const last = frames.length - 1 - [...frames].reverse().findIndex((f) => f.cam);
+  // From the path's third frame: its first is drawn before the map's own effect has written the edge (a busy machine
+  // showed that frame, once, with the edge still as the first beat had it).
+  const told = [...new Set(frames.slice(Math.min(first + 2, last), last + 1).map((f) => f.hopEdge))];
+  const after = frames.slice(last + 1).map((f) => f.hopEdge).filter((v) => v !== '').pop() ?? null;
+  return { told, after };
+}
+
+/**
  * What the last view shows (replay ceremony RC25, RC26), read in the page: the date, the names of places passed, any
  * text over the map with a figure in it set larger than body text, and anything in the accent.
  */
@@ -349,6 +401,12 @@ const lastViewOf = (pg) => pg.evaluate(() => {
     date: date && shown(date) ? styled(date) : null, names: names.map(styled),
     // What stands on the map: the pictures the replay drew, as seen.
     pictures: [...document.querySelectorAll('[data-testid=replay-picture]')].filter(shown).map(box),
+    // Each picture's own control (replay-ceremony ui 1): whether it shows, whether it takes a tap, how big its target is.
+    taps: [...document.querySelectorAll('[data-testid=replay-picture]')].map((e) => {
+      const ctl = e.querySelector('[data-testid=picture-open]');
+      const b = ctl ? ctl.getBoundingClientRect() : null;
+      return { key: e.getAttribute('data-key'), shown: Number(e.style.opacity || 1) > 0.5, takes: !!ctl && getComputedStyle(ctl).pointerEvents !== 'none', role: ctl?.getAttribute('role') ?? null, name: ctl?.getAttribute('aria-label') ?? null, w: b ? Math.round(b.width) : 0, h: b ? Math.round(b.height) : 0 };
+    }),
     // The mark on each named place itself.
     dots: [...document.querySelectorAll('[data-testid=replay-passed-dot]')].filter(shown).map(box),
     // The top row's controls: the date stands between them.
@@ -356,6 +414,8 @@ const lastViewOf = (pg) => pg.evaluate(() => {
     bigFigures: texts.filter((e) => /\d/.test(e.textContent) && parseFloat(getComputedStyle(e).fontSize) > 16).map((e) => e.textContent.trim()),
     accent: texts.filter((e) => getComputedStyle(e).color === 'rgb(194, 65, 12)').map((e) => e.textContent.trim()),
     clock: !!document.querySelector('[data-testid=replay-clock]'),
+    // What the two buttons say there (replay-ceremony ui 10).
+    words: ['hold', 'skip'].map((id) => (document.querySelector(`[data-testid=${id}], [data-testid=day-${id}]`)?.textContent || '').trim()),
   };
 });
 
@@ -487,7 +547,7 @@ async function run(h) {
       const ck = await clockNow();
       if (ck) clocks.add(ck);
       if (!holdChecked && ck) {
-        // Hold holds everything, and reads Play while held (RR7): past the intro, the walker itself stands still.
+        // Pause holds everything, and reads Play while paused (RR7): past the intro, the walker itself stands still.
         await pg.waitForTimeout(1000);
         await pg.click('[data-testid=hold]');
         const walkerAt = () => pg.locator('[data-walker]').first().getAttribute('data-walker');
@@ -496,7 +556,10 @@ async function run(h) {
         const bb = [await clockNow(), await walkerAt()].join(' @ ');
         const label = await pg.locator('[data-testid=hold]').innerText();
         const pill = await pg.locator('[data-testid=replay-held]').count();
-        check(a === bb && label.trim() === 'Play' && pill === 1, `RR7: Hold holds the replay and reads Play (${a} → ${bb}, "${label.trim()}", pill ${pill})`);
+        check(a === bb && label.trim() === 'Play' && pill === 1, `RR7: Pause holds the replay and reads Play (${a} → ${bb}, "${label.trim()}", pill ${pill})`);
+        // replay-ceremony ui 10 (the owner's defaults, Nov 20): the pill says it in ordinary media words.
+        const pillSays = (await pg.locator('[data-testid=replay-held]').innerText().catch(() => '')).trim();
+        check(pillSays === 'Paused · tap to play', `replay-ceremony ui 10: paused, the line under the clock says "Paused · tap to play" ("${pillSays}")`);
         await pg.click('[data-testid=hold]');
         holdChecked = true;
         continue;
@@ -775,12 +838,12 @@ async function run(h) {
     const cb = await pg.locator('[data-testid=replay-card]').first().boundingBox().catch(() => null);
     const hb = await pg.locator('[data-testid=hold]').boundingBox().catch(() => null);
     const sb = await pg.locator('[data-testid=skip]').boundingBox().catch(() => null);
-    // Hold and Skip must be there to be cleared (tend replay 11: a missing button let this pass).
+    // Pause and Skip must be there to be cleared (tend replay 11: a missing button let this pass).
     const clear = (r) => !!r && !!cb && (cb.x + cb.width <= r.x || r.x + r.width <= cb.x || cb.y + cb.height <= r.y || r.y + r.height <= cb.y);
-    check(card && cb && cb.y >= 0 && cb.y + cb.height <= 390 && clear(hb) && clear(sb), `replay-rhythm audit 13: the card fits a landscape phone, clear of Hold and Skip (${JSON.stringify(cb)})`);
-    // Under all the top can show: the clock, "N min later" and "Held" (tend replay 11).
-    check(cb && cb.y >= 118, `tend replay 11: on a landscape phone the card stands under the clock's line and the Held pill (${JSON.stringify(cb)})`);
-    // Held with the card up, the Held pill (and "N min later", when a cut is up) stand clear of the card: measured, not
+    check(card && cb && cb.y >= 0 && cb.y + cb.height <= 390 && clear(hb) && clear(sb), `replay-rhythm audit 13: the card fits a landscape phone, clear of Pause and Skip (${JSON.stringify(cb)})`);
+    // Under all the top can show: the clock, "N min later" and "Paused" (tend replay 11).
+    check(cb && cb.y >= 118, `tend replay 11: on a landscape phone the card stands under the clock's line and the Paused pill (${JSON.stringify(cb)})`);
+    // Paused with the card up, the Paused pill (and "N min later", when a cut is up) stand clear of the card: measured, not
     // a sum of heights (tend replay audit 5).
     await pg.click('[data-testid=hold]');
     await pg.waitForTimeout(300);
@@ -790,7 +853,7 @@ async function run(h) {
     });
     const meets = (a, b) => !!a && !!b && !(a.x + a.width <= b.x || b.x + b.width <= a.x || a.y + a.height <= b.y || b.y + b.height <= a.y);
     check(pills.card && pills.held && !meets(pills.card, pills.held) && !meets(pills.card, pills.later) && !meets(pills.card, pills.clock),
-      `tend replay audit 5: on a landscape phone, held, the clock, Held and any "N min later" never meet the card (${JSON.stringify(pills)})`);
+      `tend replay audit 5: on a landscape phone, paused, the clock, Paused and any "N min later" never meet the card (${JSON.stringify(pills)})`);
     await shot(pg, 'rr-landscape-held');
     await pg.click('[data-testid=skip]');
     await pg.waitForSelector('[data-testid=to-name]', { timeout: 15000 });
@@ -884,7 +947,7 @@ async function run(h) {
       const row = await controls();
       const nb = row.next;
       const sb = row.skip;
-      // Under Skip, at the same edge: the clock sits between Hold and Skip, and the three do not fit one row on a 375 px phone.
+      // Under Skip, at the same edge: the clock sits between Pause and Skip, and the three do not fit one row on a 375 px phone.
       check(!!nb && !!sb && nb.w >= 44 && nb.h >= 44 && nb.y >= sb.y + sb.h && nb.y - (sb.y + sb.h) <= 16 && Math.abs(nb.x + nb.w - (sb.x + sb.w)) <= 2 && nb.x >= 0 && nb.x + nb.w <= w
         && nb.name === 'Next moment' && nb.text === 'Next' && nb.edge === sb.edge && nb.ground === sb.ground && !!row.hold && row.hold.x + row.hold.w <= nb.x,
         `RY12: at ${w} px the replay's controls have a Next button with Skip, right under it, 44 px, in Skip's outline, named "Next moment" for a screen reader (${JSON.stringify(row)})`);
@@ -1026,7 +1089,7 @@ async function run(h) {
 
     // Replay ceremony, the camera and the breaks (RC11, RC12, RC14, RC17-RC21; decision 0206): a re-watch at 390 and at
     // 320 px, read frame by frame to its card, with a picture of each state: walking at the walking zoom, a card up
-    // with its pin under it, the camera re-framing as the walker leaves the card, a break mid-hop, a stand. Hold stands
+    // with its pin under it, the camera re-framing as the walker leaves the card, a break mid-hop, a stand. Pause stands
     // the replay still for each picture.
     for (const [w, ht] of [[390, 844], [320, 568]]) {
       await pg.setViewportSize({ width: w, height: ht });
@@ -1036,22 +1099,60 @@ async function run(h) {
       await pg.waitForSelector('[data-testid=replay-headline]', { timeout: 30000 }).catch(() => {});
       await pg.waitForTimeout(900);
       await recordFrames(pg);
+      // Pause for a picture and go on after it, by what the button says and never by a blind toggle: a watcher in
+      // the page (the whisper's, below) may have paused the replay already, and that pause is kept until it is read.
+      // Each is one step in the page (read the word, then press), so it can never fall either side of the watcher's own press.
+      const pauseNow = () => pg.evaluate(() => { const b = document.querySelector('[data-testid=hold]'); if (b && (b.textContent || '').trim() !== 'Play') b.click(); }).catch(() => {});
+      const goOn = (unlessCaught) => pg.evaluate((keep) => { const b = document.querySelector('[data-testid=hold]'); if (b && (b.textContent || '').trim() === 'Play' && !(keep && window.__whisperCaught)) b.click(); }, unlessCaught).catch(() => {});
       const pictured = async (name) => {
-        await pg.click('[data-testid=hold]').catch(() => {});
+        await pauseNow();
         await pg.waitForTimeout(250);
         await shot(pg, `${name}-${w}`);
-        await pg.click('[data-testid=hold]').catch(() => {});
+        await goOn(true);
       };
       // The opening: the path's first frames, the whole walk as the first beat left it, and the dive part of the way in.
       await pg.waitForFunction(() => !![...document.querySelectorAll('[data-cam]')].pop()?.getAttribute('data-cam'), null, { timeout: 30000 }).catch(() => {});
       await pictured('rc-open');
       await pg.waitForTimeout(700);
       await pictured('rc-dive');
+      // The walker coming in as the dive ends (replay-ceremony ui 7): its fade lasts 0.3 s, so Pause is pressed from
+      // inside the page, in the frame that first shows the dot part of the way in.
+      await pg.evaluate(() => new Promise((resolve) => {
+        const until = performance.now() + 15000;
+        const tick = () => {
+          const e = document.querySelector('[data-testid=walker-puck]');
+          if ((e && e.style.display !== 'none' && Number(e.style.opacity || 1) > 0.25) || performance.now() > until) {
+            document.querySelector('[data-testid=hold]')?.click();
+            resolve(true);
+          } else requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+      })).catch(() => {});
+      await pg.waitForTimeout(250);
+      await shot(pg, `rc-dive-walker-${w}`);
+      // Released again, if that press paused it (Pause then reads Play).
+      if ((await pg.locator('[data-testid=hold]').innerText().catch(() => '')).trim() === 'Play') await pg.click('[data-testid=hold]').catch(() => {});
       // Walking, the opening over: the walking zoom.
       await pg.waitForFunction(() => {
         const map = [...document.querySelectorAll('[data-cam]')].pop();
         return !!map && Number((map.getAttribute('data-cam') || '').split(',')[2]) === 15;
       }, null, { timeout: 15000 }).catch(() => {});
+      // replay-ceremony ui 10 (the owner's defaults, Nov 20): Pause and Skip to end, the longer word only where the row
+      // has room for it beside the clock; nothing in the row meets anything else, and each is a 44 px target.
+      const topRow = await pg.evaluate(() => {
+        const one = (sel) => { const e = document.querySelector(sel); if (!e) return null; const b = e.getBoundingClientRect(); return { box: [Math.round(b.left), Math.round(b.top), Math.round(b.right), Math.round(b.bottom)], text: (e.textContent || '').trim(), name: e.getAttribute('aria-label') }; };
+        return { hold: one('[data-testid=hold]'), skip: one('[data-testid=skip]'), next: one('[data-testid=next-moment]'), clock: one('[data-testid=replay-clock]') };
+      });
+      {
+        const parts = [topRow.hold, topRow.skip, topRow.next, topRow.clock].filter(Boolean).map((x) => x.box);
+        const meet = (p, q) => !(p[2] <= q[0] || q[2] <= p[0] || p[3] <= q[1] || q[3] <= p[1]);
+        const clear = parts.every((p, i) => parts.every((q, j) => i >= j || !meet(p, q)));
+        const big = [topRow.hold, topRow.skip].every((x) => !!x && x.box[2] - x.box[0] >= 44 && x.box[3] - x.box[1] >= 44 && x.box[0] >= 0 && x.box[2] <= w);
+        const long = w >= 386;
+        check(!!topRow.hold && !!topRow.skip && !!topRow.clock && topRow.hold.text === 'Pause' && topRow.skip.text === (long ? 'Skip to end' : 'Skip') && topRow.skip.name === (long ? 'Skip to end' : 'Skip to the end') && clear && big
+          && topRow.skip.box[0] - topRow.clock.box[2] >= 4 && topRow.clock.box[0] - topRow.hold.box[2] >= 4,
+          `replay-ceremony ui 10: at ${w} px the buttons say Pause and ${long ? 'Skip to end' : 'Skip (spoken "Skip to the end")'}, 44 px targets, clear of the clock and of one another (${JSON.stringify(topRow)})`);
+      }
       await pictured('rc-walking');
       // The first photo's card at rest, its pin under it.
       await pg.waitForSelector('[data-testid=replay-card]', { timeout: 30000 }).catch(() => {});
@@ -1064,10 +1165,59 @@ async function run(h) {
       // The video's card gone, the walker setting off for the note 100 m on: the camera re-framing.
       await pg.waitForSelector('[data-testid=replay-card][aria-label^=Video]', { timeout: 60000 }).catch(() => {});
       await pg.waitForSelector('[data-testid=replay-card]', { state: 'detached', timeout: 60000 }).catch(() => {});
+      // The whisper that follows is up for 2.6 s: on a busy machine the two pictures below ran long and it came and
+      // went unseen, or faded between being seen and the press on Pause. So it is caught in the page itself: a watcher
+      // started here presses Pause in the very frame that first shows the whisper above 0.9, and says that it did.
+      await pg.evaluate(() => {
+        window.__whisperCaught = false;
+        const until = performance.now() + 60000;
+        const tick = () => {
+          const e = document.querySelector('[data-testid=replay-whisper]');
+          if (e && Number(e.parentElement.style.opacity || 0) > 0.9) {
+            const hold = document.querySelector('[data-testid=hold]');
+            // Already paused (a picture is being taken): that pause is the one kept.
+            if (hold && (hold.textContent || '').trim() !== 'Play') hold.click();
+            window.__whisperCaught = true;
+            return;
+          }
+          if (performance.now() < until && document.querySelector('[data-testid=replay-stage]')) requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+      }).catch(() => {});
       await pg.waitForTimeout(150);
       await pictured('rc-reframe');
       await pg.waitForTimeout(400);
       await pictured('rc-stack-three');
+      // The place passed without stopping, said as the walker goes by (replay-ceremony ui 5): its words on a ground of
+      // their own, clear of the walker's dot, ending short of the stack (ui 3). Read once the watcher has paused on it.
+      const whispered = await pg.waitForFunction(() => window.__whisperCaught === true, null, { timeout: 30000, polling: 'raf' }).then(() => true, () => false);
+      await pg.waitForTimeout(250);
+      if (whispered) await pauseNow();
+      const whisper = await pg.evaluate(() => {
+        const e = document.querySelector('[data-testid=replay-whisper]');
+        if (!e) return null;
+        const box = (n) => { const b = n.getBoundingClientRect(); return [Math.round(b.left), Math.round(b.top), Math.round(b.right), Math.round(b.bottom)]; };
+        const st = getComputedStyle(e);
+        const alpha = /rgba\([^)]*,\s*([\d.]+)\)/.exec(st.backgroundColor);
+        const puck = document.querySelector('[data-testid=walker-puck]');
+        const pb = puck ? puck.getBoundingClientRect() : null;
+        const stack = document.querySelector('[data-testid=replay-stack]');
+        return {
+          text: e.textContent.trim(), box: box(e), ground: st.backgroundColor, solid: /rgb/.test(st.backgroundColor) && !/rgba\(0, 0, 0, 0\)/.test(st.backgroundColor) && (!alpha || Number(alpha[1]) >= 0.9),
+          weight: Number(st.fontWeight), halo: st.textShadow, size: parseFloat(st.fontSize),
+          dot: pb ? [Math.round(pb.left + pb.width / 2), Math.round(pb.top + pb.height / 2)] : null, stack: stack ? box(stack) : null,
+        };
+      });
+      await shot(pg, `rc-whisper-${w}`);
+      await pg.evaluate(() => { window.__whisperCaught = false; }).catch(() => {});
+      await goOn(false);
+      // Under the line the walker is on (the way runs across the screen here), its dot and all: pins and pictures
+      // stand upward from the line, so nothing of theirs is under the words either.
+      const offDot = !!whisper && !!whisper.dot && whisper.box[1] >= whisper.dot[1] + 9;
+      const pictures = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=replay-picture]')].filter((e) => Number(e.style.opacity || 1) > 0.5).map((e) => { const b = e.getBoundingClientRect(); return [Math.round(b.left), Math.round(b.top), Math.round(b.right), Math.round(b.bottom)]; }));
+      const offPictures = !!whisper && pictures.every((p) => p[2] <= whisper.box[0] || p[0] >= whisper.box[2] || p[3] <= whisper.box[1] || p[1] >= whisper.box[3]);
+      check(whispered && !!whisper && whisper.text === 'Passed Hessian Memorial without stopping' && whisper.solid && whisper.halo === 'none' && whisper.weight < 600 && whisper.size >= 13 && offDot && offPictures, `replay-ceremony ui 5: at ${w} px a whisper stands on a solid ground, lighter than the last view's name, under the walker's line and clear of the pictures standing on it (${JSON.stringify({ ...whisper, pictures })})`);
+      check(!!whisper && !!whisper.stack && whisper.box[2] <= whisper.stack[0] - 6 && whisper.box[0] >= 8, `replay-ceremony ui 3: at ${w} px a whisper ends short of the stack (${JSON.stringify(whisper && { box: whisper.box, stack: whisper.stack })})`);
       // The 20-minute gap: its line under the clock once both ends are in view, the walker part of the way across.
       await pg.waitForFunction(() => document.querySelector('[data-testid=replay-later]')?.textContent === '20 min later', null, { timeout: 120000 }).catch(() => {});
       await pg.waitForTimeout(650);
@@ -1088,6 +1238,17 @@ async function run(h) {
       await shot(pg, `rc-card-after-${w}`);
       const ends = bookendsOf(seenFrames);
       const endsSaid = JSON.stringify(ends);
+      // The opening does not cut (replay-ceremony ui 7): the path's first frame draws the whole trace as faint as the
+      // first beat left it, it fades from there and is gone before the dive is over, and the walker's dot fades in.
+      const fades = fadesOf(seenFrames);
+      check(!!fades && fades.before === 0.3 && fades.first === 0.3 && fades.rose === 0 && fades.fall <= 0.1 && fades.goneS != null && fades.goneS >= 1.2 && fades.goneS <= 2.4 && (fades.firstMark == null || fades.firstMark === 0) && fades.between >= 2 && fades.wholeS != null && fades.wholeS >= 1.9 && fades.wholeS <= 3.0, `replay-ceremony ui 7: at ${w} px through the dive the first beat's faint trace fades out and the walker fades in, neither cutting (${JSON.stringify(fades)})`);
+      // A hop's dots stand on a white edge while the path is told, and on the card the links are as they were (ui 6).
+      const hopEdge = hopEdgeOf(seenFrames);
+      check(!!hopEdge && hopEdge.told.length === 1 && Number(hopEdge.told[0]) >= 0.5 && Number(hopEdge.after) === 0, `replay-ceremony ui 6: at ${w} px a hop's dots have their white edge through the path and none on the card (${JSON.stringify(hopEdge)})`);
+      // On the last view the earlier of the two photos is under the later: it takes no tap, the one showing does (ui 1).
+      const lastTaps = lastView.taps ?? [];
+      const tapOf = (k) => lastTaps.find((x) => x.key === k);
+      check(lastTaps.length === 3 && !!tapOf('rr-photo') && !tapOf('rr-photo').shown && !tapOf('rr-photo').takes && tapOf('rr-photo-2').shown && tapOf('rr-photo-2').takes && tapOf('rr-video').takes && lastTaps.every((x) => x.w >= 44 && x.h >= 44 && x.role === 'button' && x.name === 'Open this moment'), `replay-ceremony ui 1: at ${w} px each standing picture is a 44 px control named in plain words, and one under a later picture takes no tap (${JSON.stringify(lastTaps)})`);
       // What stays behind and a moment on screen (RC28-RC30, RC34-RC36), from the same frames.
       const stays = staysOf(seenFrames, places, ['rr-photo', 'rr-photo-2', 'rr-video']);
       const landed = Object.values(stays.landed);
@@ -1112,8 +1273,12 @@ async function run(h) {
       check(!!cl && cl.stoodS >= 1.4 && cl.stoodS <= 3.4 && cl.pullS >= 2.6 && cl.pullS <= 3.8 && cl.holdS >= 1.7 && cl.holdS <= 2.8 && cl.toZoom < cl.fromZoom - 0.3 && cl.after >= 10 && cl.movedPx <= 2 && cl.movedZoom <= 0.02, `RC24: at ${w} px the walker stands, the camera pulls back in 3 s to the card's view and holds it 2 s, and the card arrives without the map moving (${endsSaid})`);
       // RC26: the last view shows the date in ink no larger than body text; the clock's figures are gone, and nothing
       // on it is in the accent.
-      check(dated && !!lastView.date && /^[A-Z][a-z]+, [A-Z][a-z]+ \d{1,2}$/.test(lastView.date.text) && !lastView.date.cut && lastView.date.size <= 16 && lastView.date.ink === 'rgb(29, 36, 48)' && !lastView.clock && lastView.bigFigures.length === 0 && lastView.accent.length === 0 && lastView.pictures.every((p) => p[1] >= lastView.date.box[3]) && !!lastView.hold && !!lastView.skip && lastView.date.box[0] >= lastView.hold[2] && lastView.date.box[2] <= lastView.skip[0], `RC26: at ${w} px the last view shows the date, between Hold and Skip and clear of what stands on the map, with no figure larger than body text and nothing in the accent (${JSON.stringify(lastView)})`);
+      check(dated && !!lastView.date && /^[A-Z][a-z]+, [A-Z][a-z]+ \d{1,2}$/.test(lastView.date.text) && !lastView.date.cut && lastView.date.size <= 16 && lastView.date.ink === 'rgb(29, 36, 48)' && !lastView.clock && lastView.bigFigures.length === 0 && lastView.accent.length === 0 && lastView.pictures.every((p) => p[1] >= lastView.date.box[3]) && !!lastView.hold && !!lastView.skip && lastView.date.box[0] >= lastView.hold[2] && lastView.date.box[2] <= lastView.skip[0], `RC26: at ${w} px the last view shows the date, between Pause and Skip and clear of what stands on the map, with no figure larger than body text and nothing in the accent (${JSON.stringify(lastView)})`);
 
+      // replay-ceremony ui 10: on the last view the same words stand either side of the date, which they do not meet.
+      const lastWords = lastView.words ?? [];
+      check(lastWords[0] === 'Pause' && lastWords[1] === (w >= 386 ? 'Skip to end' : 'Skip') && !!lastView.date && !!lastView.hold && !!lastView.skip && lastView.date.box[0] - lastView.hold[2] >= 4 && lastView.skip[0] - lastView.date.box[2] >= 4 && !lastView.date.cut,
+        `replay-ceremony ui 10: at ${w} px the last view's date stands whole between Pause and ${lastWords[1]} (${JSON.stringify({ lastWords, date: lastView.date && lastView.date.box, hold: lastView.hold, skip: lastView.skip })})`);
       // RC25: the place the walk passed without stopping is named beside it, in body ink at full strength, by the words
       // its card uses, on the screen and clear of the date; its mark stands on the place.
       const named = lastView.names[0];
@@ -1156,6 +1321,70 @@ async function run(h) {
       // RC21: the hop stays whole to the end of the path; on the card that break, a gap, is drawn the card's own way
       // (its offered way, faint, or its dots), never left bare. (A hop across a pause stays as dots: breaks.test.ts.)
       check(!!far && far.stays && onCardMap.links + onCardMap.faint >= 1, `RC21: at ${w} px the hop stays on the map through the path, and the card draws that break (whole in the path's last frame: ${far && far.stays}; on the card: ${JSON.stringify(onCardMap)})`);
+    }
+
+    // replay-ceremony ui 1 (the UI review's U1): a picture standing on the map opens its moment. A re-watch at each
+    // width, Next as far as the note at the end of the first stretch: the walker stands there, no card is up, and the
+    // video's picture stands 100 m back. A tap on it opens the viewer on that moment alone, the replay holds while it is
+    // open exactly as the stack's viewer holds it (RR13), and goes on when it closes; a tap beside it only holds.
+    for (const [w, ht] of [[390, 844], [320, 568]]) {
+      await pg.setViewportSize({ width: w, height: ht });
+      await pg.waitForTimeout(300);
+      await pg.getByText('Watch again').click();
+      await pg.waitForSelector('[data-testid=replay-clock]', { timeout: 30000 }).catch(() => {});
+      // A press lands a little before its moment: the note's bubble is up a second after the fourth.
+      for (let k = 0; k < 4 && !(await pg.locator('[data-testid=replay-note]').count()); k++) {
+        await pg.click('[data-testid=next-moment]', { timeout: 2000 }).catch(() => {});
+        await pg.waitForTimeout(1100);
+      }
+      await pg.waitForSelector('[data-testid=replay-note]', { timeout: 30000 }).catch(() => {});
+      const standing = '[data-testid=replay-picture][data-key=rr-video]';
+      await pg.waitForSelector(standing, { timeout: 5000 }).catch(() => {});
+      await pg.waitForTimeout(300);
+      const now = async () => [await clockNow(), await pg.locator('[data-walker]').first().getAttribute('data-walker').catch(() => null)].join(' @ ');
+      // Its control, and what a finger at the tile's middle meets there: the control itself.
+      const target = await pg.evaluate((sel) => {
+        const tile = document.querySelector(sel);
+        const ctl = tile && tile.querySelector('[data-testid=picture-open]');
+        if (!tile || !ctl) return null;
+        const t = tile.getBoundingClientRect();
+        const b = ctl.getBoundingClientRect();
+        const at = [t.left + t.width / 2, t.top + 18];
+        return { w: Math.round(b.width), h: Math.round(b.height), at, meets: document.elementFromPoint(at[0], at[1])?.getAttribute('data-testid') ?? null };
+      }, standing).catch(() => null);
+      if (target) await pg.mouse.click(target.at[0], target.at[1]);
+      const opened = await pg.waitForSelector('[data-testid=viewer-close]', { timeout: 5000 }).then(() => true, () => false);
+      await pg.waitForTimeout(600);
+      // The viewer is on that moment alone: the video, with no "1 of N" over it (the stack's viewer has one).
+      const itsOwn = opened && (await pg.evaluate(() => !!document.querySelector('video') && /\bVideo\b/.test(document.body.innerText) && !/\b\d+ of \d+\b/.test(document.body.innerText)));
+      const a = await now();
+      await pg.waitForTimeout(1200);
+      const b = await now();
+      // Paused is read from the button's own word: "Paused" is not drawn under a long line, and Next has just said one (RY21).
+      const heldNow = async () => (await pg.locator('[data-testid=hold]').innerText().catch(() => '')).trim() === 'Play';
+      const heldPill = (await heldNow()) ? 1 : 0;
+      await shot(pg, `rc-picture-open-${w}`);
+      await pg.click('[data-testid=viewer-close]', { timeout: 2000 }).catch(() => {});
+      await pg.waitForSelector('[data-testid=viewer-close]', { state: 'detached', timeout: 5000 }).catch(() => {});
+      // Unheld again, if the tap fell through to the stage (a build before the fix): the rest reads a running replay.
+      if (await heldNow()) await pg.click('[data-testid=hold]').catch(() => {});
+      // The walker stands at the note for a while yet: it goes on within a few seconds.
+      let after = b;
+      for (let k = 0; k < 40 && after === b; k++) {
+        await pg.waitForTimeout(250);
+        after = await now();
+      }
+      check(!!target && target.w >= 44 && target.h >= 44 && target.meets === 'picture-open' && opened && itsOwn && a === b && heldPill === 0 && after !== b, `replay-ceremony ui 1: at ${w} px a tap on a standing picture opens its moment, the replay holding until the viewer closes and going on after (${JSON.stringify(target)}, opened ${opened} on its moment ${itsOwn}; ${a} → ${b} while open, ${after} after)`);
+      // A tap elsewhere on the stage still holds, and another goes on (RR7).
+      await pg.mouse.click(40, Math.round(ht * 0.3));
+      await pg.waitForTimeout(300);
+      const held = await heldNow();
+      const viewer = await pg.locator('[data-testid=viewer-close]').count();
+      await pg.mouse.click(40, Math.round(ht * 0.3));
+      await pg.waitForTimeout(300);
+      check(held && viewer === 0 && !(await heldNow()), `replay-ceremony ui 1: at ${w} px a tap beside a picture still only holds the replay (held ${held}, viewer ${viewer})`);
+      await pg.click('[data-testid=skip]').catch(() => {});
+      await pg.waitForSelector('[data-testid=to-name]', { timeout: 30000 });
     }
     await pg.setViewportSize({ width: 390, height: 844 });
 
@@ -1363,7 +1592,8 @@ async function run(h) {
     // Replay ceremony RC30, the stack's bound: a third walk of eighteen photos, each a stop of its own, on a 320 px
     // phone. Next goes from one to the next, so the stack fills in seconds: more than the screen holds.
     {
-      const { ids } = await seedPhotoWalk(h, c, pg, 18);
+      // One place passed without stopping near the walk's east end, where the stack stands on the last view (ui 3).
+      const { ids } = await seedPhotoWalk(h, c, pg, 18, { passedAt: 0.82 });
       await pg.waitForSelector('[data-testid=replay-stage]', { timeout: 90000 }).catch(() => {});
       const stackNow = () => pg.evaluate(() => {
         const es = [...document.querySelectorAll('[data-testid=stack-entry]')].map((e) => ({ key: e.getAttribute('data-key'), top: Math.round(e.getBoundingClientRect().top), opacity: Number(e.style.opacity || 1) })).filter((e) => e.opacity > 0.5);
@@ -1401,10 +1631,156 @@ async function run(h) {
       await pg.click('[data-testid=hold]').catch(() => {});
       const n = full.keys.length;
       check(n >= 8 && n < 18 && most <= n && full.keys.join(',') === ids.slice(-n).join(',') && full.top >= controls && highest >= controls && !/[\d\p{L}]/u.test(full.text) && opens === 18, `RC30: at 320 px eighteen photos fill the stack to what the screen holds and no further, the oldest dropping off the bottom, every one still opened by it (${JSON.stringify({ shown: n, most, first: full.keys[0], last: full.keys[n - 1], top: full.top, highest, controls, text: full.text, opens, sixIn: half && half.keys.length })})`);
+      // The stack keeps clear of Next (replay-ceremony ui 2, the UI review's U3): its highest entry at rest is 12 px
+      // or more under Next's foot.
+      check(full.top != null && controls > 0 && full.top - controls >= 12, `replay-ceremony ui 2: at 320 px the stack at its bound stands 12 px or more under Next (its top ${full.top}, Next's foot ${controls})`);
       await pg.click('[data-testid=skip]').catch(() => {});
       await pg.waitForSelector('[data-testid=to-name]', { timeout: 30000 }).catch(() => {});
+      // The last view at 320 px with the stack at its bound (replay-ceremony ui 3, the UI review's U4): watched again,
+      // Next to the last photo, then on by itself to the last view: the passed place's name ends short of the stack.
+      await pg.getByText('Watch again').click();
+      await pg.waitForSelector('[data-testid=replay-clock]', { timeout: 30000 }).catch(() => {});
+      for (let k = 0; k < 60 && (await pg.locator('[data-testid=next-moment]').count()); k++) {
+        await pg.click('[data-testid=next-moment]', { timeout: 2000 }).catch(() => {});
+        await pg.waitForTimeout(300);
+      }
+      const named = await pg.waitForFunction(() => { const e = document.querySelector('[data-testid=replay-passed]'); return !!e && Number(e.parentElement.style.opacity || 0) > 0.98; }, null, { timeout: 60000, polling: 'raf' }).then(() => true, () => false);
+      const beside = await pg.evaluate(() => {
+        const box = (e) => { const b = e.getBoundingClientRect(); return [Math.round(b.left), Math.round(b.top), Math.round(b.right), Math.round(b.bottom)]; };
+        const name = document.querySelector('[data-testid=replay-passed]');
+        const stack = document.querySelector('[data-testid=replay-stack]');
+        const entries = [...document.querySelectorAll('[data-testid=stack-entry]')].filter((e) => Number(e.style.opacity || 1) > 0.5).length;
+        return { name: name ? box(name) : null, text: name ? name.textContent.trim() : null, cut: name ? name.scrollWidth > name.clientWidth + 1 : null, stack: stack ? box(stack) : null, entries };
+      });
+      await shot(pg, 'rc-passed-stack-320');
+      // replay-ceremony ui 14 (the owner's defaults, Nov 20): two places passed, pictures standing all along the walk
+      // and a full stack: no name has room beside its place, so they are said as the card's one line, under the walk,
+      // clear of its line and of every picture, short of the stack.
+      const lone = await pg.evaluate(() => {
+        const box = (e) => { const b = e.getBoundingClientRect(); return [Math.round(b.left), Math.round(b.top), Math.round(b.right), Math.round(b.bottom)]; };
+        const seen = (e) => { let o = 1; for (let n = e; n && n.nodeType === 1; n = n.parentElement) o *= Number(getComputedStyle(n).opacity); return o > 0.5; };
+        const names = [...document.querySelectorAll('[data-testid=replay-passed]')].filter(seen);
+        const puck = document.querySelector('[data-testid=walker-puck]')?.getBoundingClientRect();
+        return {
+          names: names.map((e) => ({ text: e.textContent.trim(), box: box(e) })), dots: [...document.querySelectorAll('[data-testid=replay-passed-dot]')].filter(seen).length,
+          pictures: [...document.querySelectorAll('[data-testid=replay-picture]')].filter((e) => Number(e.style.opacity || 1) > 0.5).map(box), lineY: puck ? Math.round(puck.top + puck.height / 2) : null,
+        };
+      });
+      const said = lone.names[0];
+      check(lone.names.length === 1 && /^Passed .+ and .+ without stopping$/.test(said.text) && lone.dots === 0 && lone.lineY != null && said.box[1] >= lone.lineY + 9 && lone.pictures.length >= 3 && lone.pictures.every((p) => p[3] <= said.box[1] || p[1] >= said.box[3] || p[2] <= said.box[0] || p[0] >= said.box[2]) && !!beside.stack && said.box[2] <= beside.stack[0] - 6,
+        `replay-ceremony ui 14: at 320 px two places with no room beside them are said as one line under the walk, clear of its line, its pictures and the stack (${JSON.stringify({ names: lone.names, dots: lone.dots, lineY: lone.lineY, pictures: lone.pictures.length, stack: beside.stack })})`);
+      check(named && !!beside.name && !!beside.stack && beside.entries >= 8 && beside.name[2] <= beside.stack[0] - 6 && beside.name[0] >= 8 && !beside.cut, `replay-ceremony ui 3: at 320 px, the stack at its bound, the last view's passed-place name ends short of it (${JSON.stringify(beside)})`);
+      await pg.click('[data-testid=skip]').catch(() => {});
+      await pg.waitForSelector('[data-testid=to-name], [data-testid=done]', { timeout: 30000 }).catch(() => {});
     }
     await pg.setViewportSize({ width: 390, height: 844 });
+
+    // replay-ceremony ui 12 and ui 13 (the owner's defaults, Nov 20): a fourth walk, 380 m north up one street past two
+    // places 70 m apart. Each whisper stands beside the line, at its left (the stack is at the right), narrowed to the
+    // room there and clear of the walker; and the two, close enough to be up together, are said as one line, once.
+    {
+      await seedNorthWalk(h, c, pg);
+      for (const [w, ht] of [[390, 844], [320, 568]]) {
+        await pg.setViewportSize({ width: w, height: ht });
+        if (w !== 390) {
+          await pg.waitForSelector('[data-testid=to-name], [data-testid=done]', { timeout: 60000 }).catch(() => {});
+          await pg.getByText('Watch again').click();
+        }
+        await pg.waitForSelector('[data-testid=replay-stage]', { timeout: 90000 }).catch(() => {});
+        // Every frame: each whisper's words and how strongly it shows. The first to be nearly whole is held and read.
+        const first = await pg.evaluate(() => new Promise((resolve) => {
+          window.__whispers = [];
+          const until = performance.now() + 60000;
+          let held = false;
+          const tick = () => {
+            const now = [...document.querySelectorAll('[data-testid=replay-whisper]')].map((e) => [e.textContent.trim(), Number(e.parentElement.style.opacity || 0)]);
+            // Not while it is held for its picture: the same frame would be counted over and over.
+            if (now.length && (document.querySelector('[data-testid=hold]')?.textContent || '').trim() !== 'Play') window.__whispers.push(now);
+            if (!held && now.some((x) => x[1] > 0.9)) {
+              held = true;
+              document.querySelector('[data-testid=hold]')?.click();
+              resolve(true);
+            }
+            if (performance.now() > until) { if (!held) resolve(false); return; }
+            if (document.querySelector('[data-testid=replay-stage]') || !held) requestAnimationFrame(tick);
+          };
+          requestAnimationFrame(tick);
+        })).catch(() => false);
+        await pg.waitForTimeout(300);
+        const north = await pg.evaluate(() => {
+          const box = (n) => { const b = n.getBoundingClientRect(); return [Math.round(b.left), Math.round(b.top), Math.round(b.right), Math.round(b.bottom)]; };
+          const es = [...document.querySelectorAll('[data-testid=replay-whisper]')].filter((e) => Number(e.parentElement.style.opacity || 0) > 0.5);
+          const e = es[0];
+          const puck = document.querySelector('[data-testid=walker-puck]')?.getBoundingClientRect();
+          const stack = document.querySelector('[data-testid=replay-stack]');
+          return e ? { text: e.textContent.trim(), box: box(e), room: box(e.parentElement), size: parseFloat(getComputedStyle(e).fontSize), cut: e.scrollWidth > e.clientWidth + 1, dot: puck ? [Math.round(puck.left + puck.width / 2), Math.round(puck.top + puck.height / 2)] : null, stack: stack ? box(stack) : null, up: es.length } : null;
+        });
+        await shot(pg, `rc-whisper-north-${w}`);
+        check(first && !!north && !!north.dot && /^Passed .+ without stopping$/.test(north.text) && north.up === 1 && north.box[2] <= north.dot[0] - 18 && north.box[0] >= 8 && north.room[2] - north.room[0] >= 120 && north.size === 13 && !north.cut && (!north.stack || north.box[2] < north.stack[0]),
+          `replay-ceremony ui 13: at ${w} px, on a way up the screen, a whisper stands beside the line at its left, 120 px wide or more, clear of the walker's dot (${JSON.stringify(north)})`);
+        if ((await pg.locator('[data-testid=hold]').innerText().catch(() => '')).trim() === 'Play') await pg.click('[data-testid=hold]').catch(() => {});
+        await pg.waitForSelector('[data-testid=to-name], [data-testid=done]', { timeout: 90000 }).catch(() => {});
+        const seen = await pg.evaluate(() => {
+          const frames = window.__whispers || [];
+          const texts = [...new Set(frames.flatMap((f) => f.map((x) => x[0])))];
+          return { frames: frames.length, texts, bothFull: frames.filter((f) => f.filter((x) => x[1] >= 0.99).length > 1).length, both: frames.filter((f) => f.filter((x) => x[1] > 0.02).length > 1).length };
+        });
+        check(seen.texts.length === 1 && / and /.test(seen.texts[0]) && seen.frames > 10 && seen.bothFull === 0 && seen.both === 0,
+          `replay-ceremony ui 12: at ${w} px two places passed close together are said as one line, once: never two whispers on the screen (${JSON.stringify(seen)})`);
+      }
+      await pg.setViewportSize({ width: 390, height: 844 });
+    }
+
+    // replay-ceremony ui 8: a card's map left turned, then Watch again: the first beat's own fit turns it north-up, so
+    // the path's first frame, which is flat and north-up (RC15), snaps nothing. The replay's maps take no two-finger
+    // turn (they have no compass, tend map 1), so the map is turned in code, as the harness turns any map: the page
+    // is loaded again with the app's counters on, which is when a map defines `__turn`.
+    {
+      await c.addInitScript(() => { window.__perf = window.__perf || {}; });
+      await pg.reload();
+      await pg.waitForSelector('[data-testid=skip]', { timeout: 90000 }).catch(() => {});
+      await pg.click('[data-testid=skip]').catch(() => {});
+      await pg.waitForSelector('[data-testid=to-name], [data-testid=done]', { timeout: 30000 }).catch(() => {});
+      await pg.waitForTimeout(1200);
+      const bearingNow = async () => Number((await pg.locator('[data-bearing]').last().getAttribute('data-bearing', { timeout: 1000 }).catch(() => null)) || 0);
+      // Two fingers do not turn it: a turn by hand is no way into this.
+      const cdp = await c.newCDPSession(pg);
+      await cdp.send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 });
+      const pts = (ang) => [{ x: 195 + 60 * Math.cos(ang), y: 150 + 60 * Math.sin(ang), id: 1 }, { x: 195 - 60 * Math.cos(ang), y: 150 - 60 * Math.sin(ang), id: 2 }];
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: pts(0) });
+      for (let i = 1; i <= 12; i++) {
+        await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: pts((i * Math.PI) / 48) });
+        await pg.waitForTimeout(16);
+      }
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+      await cdp.send('Emulation.setTouchEmulationEnabled', { enabled: false });
+      await cdp.detach();
+      await pg.waitForTimeout(600);
+      const byHand = await bearingNow();
+      const canTurn = await pg.evaluate(() => { if (typeof window.__turn !== 'function') return false; window.__turn(40); return true; });
+      await pg.waitForTimeout(400);
+      const turned = await bearingNow();
+      await shot(pg, 'rc-card-turned');
+      await pg.getByText('Watch again').click();
+      await pg.waitForSelector('[data-testid=replay-headline]', { timeout: 30000 }).catch(() => {});
+      // Every bearing the map reports from the first beat's start to a little into the path.
+      const bearings = [];
+      const t0 = Date.now();
+      let atClock = null;
+      while (Date.now() - t0 < 12000) {
+        bearings.push(await bearingNow());
+        if (atClock == null && (await pg.locator('[data-testid=replay-clock]').count())) atClock = bearings.length - 1;
+        if (atClock != null && bearings.length - atClock > 6) break;
+        await pg.waitForTimeout(80);
+      }
+      // North-up well before the first beat is over, and from then on: the path's first frame finds it so.
+      const settled = bearings.findIndex((x) => Math.abs(x) < 0.5);
+      const inBeat = atClock != null && settled >= 0 && settled < atClock - 5;
+      const stays = settled >= 0 && bearings.slice(settled).every((x) => Math.abs(x) < 0.5);
+      check(byHand === 0 && canTurn && Math.abs(turned - 40) < 1 && inBeat && stays, `replay-ceremony ui 8: a card's map left turned opens north-up in the first beat, with no snap as the path begins (two fingers turn it ${byHand}; turned in code to ${turned}; then ${bearings.slice(0, 8).join(', ')} … north from reading ${settled}, the path at ${atClock})`);
+      await pg.click('[data-testid=skip]').catch(() => {});
+      await pg.waitForSelector('[data-testid=to-name], [data-testid=done]', { timeout: 30000 }).catch(() => {});
+    }
     // RC4: through the whole journey (the walk screen, both replays, Chronicle's map, the day's replay) no map sent a
     // collection the same as its last, or empty after empty.
     await pg.waitForTimeout(1100);

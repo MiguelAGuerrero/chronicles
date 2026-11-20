@@ -397,7 +397,10 @@ test('RP19: a replay past many places whispers once, as the card says it', () =>
   const many = plan(walkStory(input(ab, [note], { passed: ['Hessian Memorial', 'Moravian Book Shop', 'Sun Inn', 'Kemerer Museum'].map(pass) })));
   assert.deepEqual(many.whispers.map((w) => w.text), ['Passed a few places without stopping'], 'more than two: one whisper, as the card says it');
   const two = plan(walkStory(input(ab, [note], { passed: ['Hessian Memorial', 'Sun Inn'].map(pass) })));
-  assert.deepEqual(two.whispers.map((w) => w.text), ['Passed Hessian Memorial without stopping', 'Passed Sun Inn without stopping'], 'one or two: each by name (RR15)');
+  // Two so close that both would be up together are said as one line, by name (`replay-ceremony ui 12`).
+  assert.deepEqual(two.whispers.map((w) => w.text), ['Passed Hessian Memorial and Sun Inn without stopping'], 'two: by name (RR15), in one line');
+  const one = plan(walkStory(input(ab, [note], { passed: ['Sun Inn'].map(pass) })));
+  assert.deepEqual(one.whispers.map((w) => w.text), ['Passed Sun Inn without stopping'], 'one: by name (RR15)');
 });
 
 test('remarkable-and-public audit 14: with more than two passes, the one whisper comes at the last pass, when it is true', () => {
@@ -479,7 +482,7 @@ test('RR21: the registry gives the rhythm by default, and any ceremony honouring
         frame: (ms) => {
           const c = steps[Math.floor(ms / 1000)];
           return {
-            done: ms >= steps.length * 1000, walker: null, camera: { center: null, zoom: null }, drawn: {}, pins: c ? [c.id] : [],
+            done: ms >= steps.length * 1000, walker: null, walkerFade: 1, wholeTrace: 0, camera: { center: null, zoom: null }, drawn: {}, pins: c ? [c.id] : [],
             hops: [], clock: c?.t ?? null, clockFade: 1, line: null, lineOpacity: 0, date: null, dateOpacity: 0, still: null, scrim: 0,
             overlays: c ? [{ kind: 'card', key: c.id, capture: c, from: null, grow: 1, tuck: 0, playing: false, progress: 0, fade: true }] : [],
           };

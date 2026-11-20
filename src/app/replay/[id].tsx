@@ -15,11 +15,10 @@ import { CaptureViewer } from '../../components/CaptureView';
 import { Stage } from '../../components/ceremony/Stage';
 import { StepThrough } from '../../components/ceremony/StepThrough';
 import { useAwakeWhile } from '../../components/ceremony/useAwakeWhile';
-import { FrameMeter } from '../../components/ceremony/FrameMeter';
 import { NextMoment } from '../../components/ceremony/NextMoment';
 import { useReplay } from '../../components/ceremony/useCeremonyLoop';
 import { useRevealed } from '../../components/ceremony/useRevealed';
-import { WHOLE_TOP, type StageCtx } from '../../components/ceremony/layout';
+import { TOP_BUTTON, topRow, WHOLE_TOP, type StageCtx } from '../../components/ceremony/layout';
 import { ceremonyFor } from '../../lib/ceremony/registry';
 import { linksWithHops } from '../../lib/ceremony/reveal';
 import { chronicleSection } from '../../lib/resurface/sectionStore';
@@ -40,7 +39,7 @@ import { GapCard } from '../../components/GapCard';
 import { KeepGapsCard } from '../../components/KeepGapsCard';
 import { ensureTileBuild } from '../../lib/tiles';
 import { setAudioMode } from '../../lib/audioMode';
-import { backFrom, beatWords, cardTitle, fieldsAfterRename, FOG_LIT_MS, FOG_MS, pinHint, wordsTyped } from '../../lib/replay';
+import { backFrom, beatWords, cardTitle, fieldsAfterRename, FOG_LIT_MS, FOG_MS, keepAskPlace, pinHint, wordsTyped } from '../../lib/replay';
 import { formatCaptures, formatDistance, formatDuration, loadReplay, suggestTitle, type ReplayData } from '../../lib/summary';
 import { renamePatch } from '../../lib/rename';
 import type { LngLat } from '../../lib/types';
@@ -56,19 +55,17 @@ import { launchRoute } from '../../lib/launchRoute';
 
 type Beat = 'reading' | 'fog' | 'path' | 'card' | 'name';
 /** While the path is told the map is given no trace: the replay's frames reveal the line on it (replay ceremony RC3). */
-const NO_RUNS: LngLat[][] = [];
 
 // A screen that throws shows what broke, with Try again, never a blank page (bug, Nov 1).
-export { ScreenError as ErrorBoundary } from '../../components/ScreenError';
+export { ReplayScreenError as ErrorBoundary } from '../../components/ScreenError';
 
 export default function Replay() {
   useUnits();
   // Counted for the e2e and the harness (only when measuring): the path renders it for what arrives or leaves, never
   // because time passed (replay ceremony RC2).
   perfCount('render:replay');
-  // `ceremony=0` is a re-watch (from the log, or Watch again); `style` names the ceremony that tells it (RR21, audit 25);
-  // `fps` asks a ceiling on the frames drawn a second, to try one on a phone (replay ceremony RC6).
-  const { id, ceremony, style, fps, meter } = useLocalSearchParams<{ id: string; ceremony?: string; style?: string; fps?: string; meter?: string }>();
+  // `ceremony=0` is a re-watch (from the log, or Watch again); `style` names the ceremony that tells it (RR21, audit 25).
+  const { id, ceremony, style } = useLocalSearchParams<{ id: string; ceremony?: string; style?: string }>();
   const insets = useSafeAreaInsets();
   const mapRef = useRef<WalkMapHandle>(null);
   // The name's Next goes on to the line, as in Rename (tend chronicle 5).
@@ -403,8 +400,8 @@ export default function Replay() {
     });
   }, []);
   // The path is told by a loop outside this screen's rendering (replay ceremony RC2, decision 0206): each frame goes
-  // straight to the map and the stage. The screen reads only what it shows itself: the pins, Hold, whether Next is there.
-  const play = useReplay({ epoch: phase.t0, telling, paused: viewing != null || waits.size > 0, story, showing, map: mapRef, fps, meter, onEnd: () => go('card') });
+  // straight to the map and the stage. The screen reads only what it shows itself: the pins, Pause, whether Next is there.
+  const play = useReplay({ epoch: phase.t0, telling, paused: viewing != null || waits.size > 0, story, showing, map: mapRef, onEnd: () => go('card') });
   // The screen stays awake while the replay plays, until the card (RR24).
   useAwakeWhile(beat === 'reading' || beat === 'fog' || beat === 'path');
 
@@ -446,14 +443,26 @@ export default function Replay() {
   const openGap = gapOpen && data ? data.stretches.find((x) => gapKey(x) === gapOpen) ?? null : null;
   const openGapOf = gapOpen && data ? data.gaps.find((x) => gapKey(x) === gapOpen) ?? null : null;
   // The walk's-end question (G15): first replay only, once the gaps are read, nothing else open.
-  const keepWords =
-    !rewatch && !keepAsked && askedBefore === false && gapsRead && beat === 'card' && data && !gapOpen && !isDrawing && !here && !viewing
-      ? keepAllWords(offersOf(data.stretches).length)
-      : null;
+  // `askWords`: it will be asked on this replay's card, known before the card comes; `keepWords`: it is asked now.
+  const askWords = !rewatch && !keepAsked && askedBefore === false && gapsRead && data ? keepAllWords(offersOf(data.stretches).length) : null;
+  const keepWords = askWords && beat === 'card' && !gapOpen && !isDrawing && !here && !viewing ? askWords : null;
   const keepShown = keepWords != null;
   useEffect(() => {
     if (keepShown) void noteAsked(id);
   }, [keepShown, id]);
+  // Where it is asked (replay-ceremony ui 11, the UI review's U2): over the map above the sheet, or, where that would
+  // leave the walk no room in view (a short phone), inside the sheet as its first block. Decided from the room, once
+  // the question's own height is known (it is laid out unseen for that, before the card comes): the sheet laid out
+  // ahead then holds the question too, so the close frames the walk above it and the card's arrival moves nothing (RC24).
+  // By the sheet's height without the question (`baseH`): with it inside the sheet is another height, and a decision
+  // that read that one could change its mind.
+  const [askH, setAskH] = useState<number | null>(null);
+  const [baseH, setBaseH] = useState(0);
+  const askAt = askWords && askH != null && baseH > 0 ? keepAskPlace({ height, top: sheetPad.top, sheetH: baseH, askH }) : null;
+  const askInside = askWords != null && askAt === 'sheet';
+  // With the question inside, the sheet is no taller than half the screen (or the question and a little of the card,
+  // at the most its usual 70%): the walk keeps its room over it, and the card's own lines scroll under the question.
+  const sheetCap = askInside && askH != null ? { maxHeight: Math.min(height * 0.7, Math.max(height * 0.5, askH + 120)) } : null;
   // Gaps with no line across them, joined by grey dots on the card beats (GW2), and with them the hops the path drew
   // across its other breaks (a pause, a break too long to be a gap), which stay on the map through the card (replay
   // ceremony RC21). A gap keeps the card's own way of drawing it. While the path is told the replay's own frames draw
@@ -507,6 +516,12 @@ export default function Replay() {
     }
   };
   const close = () => (router.canGoBack() ? router.back() : router.dismissTo('/'));
+  const leaveGaps = () => {
+    setKeepError(null);
+    setKeepAsked(true);
+  };
+  // The top row's words (replay-ceremony ui 10): Skip says where it goes wherever the row has room for it.
+  const top = topRow(width);
   /**
    * The walk's card. `measure` lays it out unseen, its controls as room of their size that no hand, key or test can
    * reach: the sheet's height is known before the path ends, so the close can frame the walk above it (RC24).
@@ -593,10 +608,13 @@ export default function Replay() {
       <WalkMap
         ref={mapRef}
         borders={borders}
-        trace={telling || !data ? NO_RUNS : data.runs}
-        rides={telling || !data ? NO_RUNS : data.rideRuns}
+        // The whole trace in every beat. Through the path the map draws it only as far as the frames say: faint as
+        // the first beat left it, fading out as the path opens (replay-ceremony ui 7), while the map reveals the
+        // walked line itself, frame by frame.
+        trace={data.runs}
+        rides={data.rideRuns}
         replay={telling}
-        traceOpacity={beat === 'fog' || beat === 'reading' ? QUIET_TRACE_OPACITY : 1}
+        traceOpacity={beat === 'fog' || beat === 'reading' || telling ? QUIET_TRACE_OPACITY : 1}
         walked={data.walked}
         fog={data.fog}
         lightUp={lightUp}
@@ -610,6 +628,8 @@ export default function Replay() {
         drawing={drawing.line}
         fitBounds={data.bounds}
         fitKey={fitKey}
+        // The first beat's fit turns a map turned by hand north-up: the path is told so (RC15; replay-ceremony ui 8).
+        fitNorth={beat === 'reading' || beat === 'fog'}
         fitPadding={beat === 'card' || beat === 'name' ? sheetPad : undefined}
         animate={!reduceMotion}
         initialCenter={data.fixes[0] ? [data.fixes[0].lon, data.fixes[0].lat] : undefined}
@@ -644,7 +664,7 @@ export default function Replay() {
 
       {telling && (
         <>
-          {/* A tap anywhere holds the replay, and another goes on (RR7). */}
+          {/* A tap anywhere pauses the replay, and another goes on (RR7). */}
           <Pressable testID="replay-stage" style={StyleSheet.absoluteFill} onPress={play.toggleHold} accessible={false} />
           <Stage ctx={ctx} />
         </>
@@ -717,36 +737,36 @@ export default function Replay() {
         />
       )}
 
-      {keepWords && (
+      {/* Over the map, where that leaves the walk its room (replay-ceremony ui 11); and laid out unseen, whatever the
+          beat, until its height is known, which is what says where it is asked. */}
+      {askWords && (askAt == null || (keepShown && askAt !== 'sheet')) && (
         <KeepGapsCard
-          words={keepWords}
+          words={askWords}
           busy={gapBusy}
           error={keepError}
-          style={{ bottom: sheetH + 12, zIndex: 5 }}
+          unseen={askAt == null}
+          onLayout={askAt == null ? (e) => setAskH(e.nativeEvent.layout.height) : undefined}
+          style={[{ bottom: sheetH + 12, zIndex: 5 }, askAt == null && UNSEEN]}
           onKeep={() => void keepThem()}
-          onLeave={() => {
-            setKeepError(null);
-            setKeepAsked(true);
-          }}
+          onLeave={leaveGaps}
         />
       )}
 
       {(beat === 'fog' || beat === 'path') && (
         <View style={[styles.skip, { top: insets.top + 12 }]}>
-          <Button testID="skip" variant="secondary" label="Skip" onPress={() => go('card')} />
-          {/* Under Skip, at the same edge: the clock sits between Hold and Skip, and the three do not fit one row on a 375 px phone (RY12). */}
+          <Button testID="skip" variant="secondary" label={top.skip} spokenLabel={top.skipSpoken} style={TOP_BUTTON} onPress={() => go('card')} />
+          {/* Under Skip, at the same edge: the clock sits between Pause and Skip, and the three do not fit one row on a 375 px phone (RY12). */}
           {telling && play.canNext && <NextMoment onPress={play.next} />}
         </View>
       )}
-      {/* The frames really drawn, at the preview address only (replay ceremony RC6, `lib/ceremony/meter`). */}
-      {telling && play.meter && <FrameMeter meter={play.meter} top={insets.top + 12 + 48 + 8} />}
       {telling && (
         <View style={[styles.hold, { top: insets.top + 12 }]}>
           <Button
             testID="hold"
             variant="secondary"
-            label={play.held ? 'Play' : 'Hold'}
-            accessibilityHint={play.held ? 'Goes on with the replay' : 'Holds the replay where it is'}
+            label={play.held ? 'Play' : 'Pause'}
+            accessibilityHint={play.held ? 'Goes on with the replay' : 'Pauses the replay where it is'}
+            style={TOP_BUTTON}
             onPress={play.toggleHold}
           />
         </View>
@@ -756,7 +776,7 @@ export default function Replay() {
           so the card then arrives on a map that does not move (replay ceremony RC24). */}
       {(beat === 'reading' || beat === 'fog' || beat === 'path') && (
         <View
-          style={[styles.sheetWrap, UNSEEN]}
+          style={[styles.sheetWrap, sheetCap, UNSEEN]}
           pointerEvents="none"
           accessibilityElementsHidden
           importantForAccessibility="no-hide-descendants"
@@ -764,10 +784,15 @@ export default function Replay() {
           onLayout={(e) => {
             const h = e.nativeEvent.layout.height;
             if (Math.abs(h - sheetH) > 8) setSheetH(h);
+            if (!askInside && Math.abs(h - baseH) > 8) setBaseH(h);
           }}
         >
           <View style={styles.sheet}>
-            <View style={[styles.sheetContent, { paddingBottom: 16 + insets.bottom }]}>{cardBody(true)}</View>
+            <View style={[styles.sheetContent, { paddingBottom: 16 + insets.bottom }]}>
+              {/* The question's room too, where it will be asked inside the sheet (replay-ceremony ui 11). */}
+              {askWords && askInside && <KeepGapsCard inline unseen words={askWords} onKeep={NOTHING} onLeave={NOTHING} />}
+              {cardBody(true)}
+            </View>
           </View>
         </View>
       )}
@@ -779,7 +804,7 @@ export default function Replay() {
       {(beat === 'card' || beat === 'name') && !isDrawing && (
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.sheetWrap}
+          style={[styles.sheetWrap, beat === 'card' && keepShown && sheetCap]}
           pointerEvents="box-none"
           onLayout={(e) => {
             const h = e.nativeEvent.layout.height;
@@ -787,15 +812,32 @@ export default function Replay() {
               setSheetH(h);
               setFitKey((k) => k + 1);
             }
+            if (!askInside && beat === 'card' && Math.abs(h - baseH) > 8) setBaseH(h);
           }}
         >
+          {/* The sheet's ground is this view's, never the scroller's own: a scroller with an opaque ground whose
+              content overflows (the question inside it on a short phone, replay-ceremony ui 11) made Chromium leave the
+              map above the sheet undrawn (its compositor took the scroller's whole content for what covers the map). */}
+          <View style={[styles.sheet, styles.sheetFrame]}>
           <ScrollView
-            style={styles.sheet}
             contentContainerStyle={[styles.sheetContent, { paddingBottom: 16 + insets.bottom }]}
             keyboardShouldPersistTaps="handled"
           >
             {beat === 'card' ? (
-              cardBody(false)
+              <>
+                {/* The gap question, where over the map it would cover the walk it asks about (replay-ceremony ui 11). */}
+                {keepWords && askInside && (
+                  <KeepGapsCard
+                    inline
+                    words={keepWords}
+                    busy={gapBusy}
+                    error={keepError}
+                    onKeep={() => void keepThem()}
+                    onLeave={leaveGaps}
+                  />
+                )}
+                {cardBody(false)}
+              </>
             ) : (
               <>
                 {/* A quiet way back to the card, the words kept, where Back and Escape go (tend replay T21, decision 0165):
@@ -858,6 +900,7 @@ export default function Replay() {
               </>
             )}
           </ScrollView>
+          </View>
         </KeyboardAvoidingView>
       )}
       <WalkActions
@@ -884,6 +927,8 @@ export default function Replay() {
  * The fog beat's headline, honest about walks whose streets could not be read.
  * Words, not a big number (tabs audit U13): the streets new to you, or familiar ground.
  */
+/** What a control laid out unseen does: it is room of its size, and no hand reaches it. */
+const NOTHING = () => {};
 /** Laid out and never seen: out of what a browser reads as the page's text, too. */
 const UNSEEN = Platform.OS === 'web' ? ({ visibility: 'hidden' } as object) : { opacity: 0 };
 
@@ -919,6 +964,8 @@ const styles = StyleSheet.create({
   hold: { position: 'absolute', left: 12 },
   sheetWrap: { position: 'absolute', left: 0, right: 0, bottom: 0, maxHeight: '70%' },
   sheet: { backgroundColor: theme.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20 },
+  // Around the card's scroller: as tall as its content up to the wrap's cap, its corners cutting what scrolls.
+  sheetFrame: { flexShrink: 1, overflow: 'hidden' },
   sheetContent: { padding: 16, gap: 10, maxWidth: 640, width: '100%', alignSelf: 'center' },
   cardTitle: { fontSize: 22, fontWeight: '700', color: theme.ink },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },

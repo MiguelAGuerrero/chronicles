@@ -36,7 +36,7 @@ import { useReducedMotion } from '../../lib/motion';
 import { useUnits } from '../../lib/useUnits';
 import { MOTION, REPLAY_ENGINE } from '../../lib/motionTokens';
 import {
-  alternatesGeoJSON, PAST_STYLE, type PastView, TRACE_EDGE_OPACITY, storefrontLayerOrder, storefrontNameLayers, storefrontNameRotate, storefrontNamesGeoJSON, routeGradesGeoJSON, pinsGeoJSON, BORDER, borderFillOpacity, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, DERIVE_ZOOM, endsGeoJSON, ENDS_PAINT, ENDS_RING_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON, BASE_VECTOR_SOURCE, POI_SOURCE_LAYER,
+  alternatesGeoJSON, PAST_STYLE, type PastView, TRACE_EDGE_OPACITY, storefrontLayerOrder, storefrontNameLayers, storefrontNameRotate, storefrontNamesGeoJSON, routeGradesGeoJSON, pinsGeoJSON, BORDER, borderFillOpacity, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, DERIVE_ZOOM, endsGeoJSON, ENDS_PAINT, ENDS_RING_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, GAP_LINK_WIDTH, HOP_EDGE, hopEdgeOpacity, traceShown, DRAWING_DASH, useZoomPins, walkerGeoJSON, BASE_VECTOR_SOURCE, POI_SOURCE_LAYER,
   LINE_SOURCE, type CollectedFeatures, type WalkMapHandle, type WalkMapProps, FLAT_NORTH_UP, resendKey, type ReplayMapFrame, FIT_MAX_ZOOM, FIT_PADDING,
 } from './types';
 
@@ -312,6 +312,9 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       replayShown.set(NO_REPLAY);
       return;
     }
+    // The whole trace the first beat left fades out through the opening in ten steps, not every frame: each step
+    // renders the trace's sources, and MapLibre RN serializes a source's data on every render (replay-ceremony ui 7).
+    const whole = Math.round(f.wholeTrace * 10) / 10;
     const { center, zoom } = f.camera;
     const camera = center ? `${center[0]},${center[1]},${zoom}` : '';
     if (center && camera !== replaySent.current.camera) cameraRef.current?.jumpTo(zoom == null ? { center, ...FLAT_NORTH_UP } : { center, zoom, ...FLAT_NORTH_UP });
@@ -323,6 +326,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     const hops = hopsKey(f.hops, f.ms, REPLAY_ENGINE.resendMs);
     replayShown.set({
       walker: f.walker,
+      fade: f.walkerFade,
+      whole,
       trace: walked === replaySent.current.walked ? was.trace : traceGeoJSON(revealedRuns(f.walked)),
       rides: rides === replaySent.current.rides ? was.rides : traceGeoJSON(revealedRuns(f.rides)),
       hops: hops === replaySent.current.hops ? was.hops : hops ? traceGeoJSON(hopLines(f.hops)) : null,
@@ -350,7 +355,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     const pad = props.fitPadding ?? FIT_PADDING;
     // MapLibre RN's fitBounds has no maxZoom: the bounds are widened to fit no closer (tabs audit U15).
     const bounds = size.current.width ? capFitBounds(props.fitBounds, props.fitMaxZoom ?? FIT_MAX_ZOOM, size.current, pad) : props.fitBounds;
-    cameraRef.current?.fitBounds(bounds, { padding: pad, duration });
+    // A fit keeps the map's bearing, but one asked north-up (the replay's first beat, replay-ceremony ui 8).
+    cameraRef.current?.fitBounds(bounds, { padding: pad, duration, ...(props.fitNorth ? { bearing: 0 } : {}) });
     // MapLibre RN reports no end to a fit: it is taken as settled once its animation has run.
     const key = props.fitKey ?? 0;
     const t = setTimeout(() => onFitSettled.current?.(key), (duration ?? 0) + 100);
@@ -559,17 +565,18 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         {/* Offered stretches across gaps: the trace, see-through (Filling gaps, G6). */}
         {/* A gap with no line: grey dots between its ends (GW2). */}
         <GapLinksSource store={replayShown} data={gapLinks} opacity={props.traceOpacity ?? 1} />
-        <TraceSource id="faint" data={faint} opacity={FAINT_OPACITY * (props.traceOpacity ?? 1)} />
-        <TraceSource id="rides" data={rides} opacity={props.traceOpacity ?? 1} dashed />
-        <TraceSource id="trace-history" data={traceHistory} opacity={props.traceOpacity ?? 1} />
-        <TraceSource id="trace" data={traceTail} opacity={props.traceOpacity ?? 1} />
-        <TraceSource id="trace-link" data={traceLink} opacity={props.traceOpacity ?? 1} />
+        {/* The trace as the screen gives it; while a replay is told, as far as its frames say (`store`, replay-ceremony ui 7). */}
+        <TraceSource id="faint" data={faint} opacity={FAINT_OPACITY * (props.traceOpacity ?? 1)} store={replayShown} />
+        <TraceSource id="rides" data={rides} opacity={props.traceOpacity ?? 1} dashed store={replayShown} />
+        <TraceSource id="trace-history" data={traceHistory} opacity={props.traceOpacity ?? 1} store={replayShown} />
+        <TraceSource id="trace" data={traceTail} opacity={props.traceOpacity ?? 1} store={replayShown} />
+        <TraceSource id="trace-link" data={traceLink} opacity={props.traceOpacity ?? 1} store={replayShown} />
         {/* A replay's line as far as it is told (replay ceremony RC3): the rides under the walked line, as the trace's are. */}
         <ReplayLine store={replayShown} id="replay-rides" pick={replayRides} dashed />
         <ReplayLine store={replayShown} id="replay-trace" pick={replayTrace} />
         {/* A gap's way being drawn, dashed over the trace (GW3). */}
         <DrawingSource data={drawing} />
-        <EndsSource data={ends} opacity={props.traceOpacity ?? 1} />
+        <EndsSource data={ends} opacity={props.traceOpacity ?? 1} store={replayShown} />
         <ConeSource frames={frames} walker={props.walker} heading={props.walkerHeading} enabled={glideOn} source={props.walkerSource} zoom={view?.zoom ?? 16} />
         {/* The range preview (E21): a soft disc with a firm edge. */}
         <RingSource data={ring} />
@@ -618,26 +625,45 @@ const styles = StyleSheet.create({
  * One part of the trace. Memoized: MapLibre RN serializes a GeoJSONSource's
  * data on every render, so an unchanged history must not re-render (perf).
  */
-const TraceSource = memo(function TraceSource(props: { id: string; data: GeoJSON.FeatureCollection; opacity: number; dashed?: boolean }) {
+/**
+ * A line of the trace on its white edge. Given the replay's `store`, it is the trace the screen gives: drawn at the
+ * screen's opacity, and while a replay is told only as far as its frames say, so the first beat's faint trace fades
+ * out as the path opens (replay-ceremony ui 7); it renders when that changes, alone. Unverified on a device.
+ */
+const TraceSource = memo(function TraceSource(props: { id: string; data: GeoJSON.FeatureCollection; opacity: number; dashed?: boolean; store?: Store<ReplayShown> }) {
+  const opacity = useTraceLook(props.store ?? UNTOLD, props.opacity).line;
   return (
     <GeoJSONSource id={props.id} data={props.data} {...LINE_SOURCE}>
       <Layer id={`${props.id}-edge`} type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }}
-        paint={{ 'line-color': '#ffffff', 'line-width': FOG_STYLE.edgeWidth, 'line-opacity': TRACE_EDGE_OPACITY * props.opacity }} />
+        paint={{ 'line-color': '#ffffff', 'line-width': FOG_STYLE.edgeWidth, 'line-opacity': TRACE_EDGE_OPACITY * opacity }} />
       {/* A ride is dashed (rides, R5). */}
       <Layer id={`${props.id}-line`} type="line" layout={{ 'line-cap': props.dashed ? 'butt' : 'round', 'line-join': 'round' }}
-        paint={{ 'line-color': COLORS.trace, 'line-width': FOG_STYLE.traceWidth, 'line-opacity': props.opacity, ...(props.dashed ? { 'line-dasharray': RIDE_DASH } : {}) }} />
+        paint={{ 'line-color': COLORS.trace, 'line-width': FOG_STYLE.traceWidth, 'line-opacity': opacity, ...(props.dashed ? { 'line-dasharray': RIDE_DASH } : {}) }} />
     </GeoJSONSource>
   );
 });
 
-/** What a replay's frames have put on the map: the walker, and its lines as data (the same objects until sent again). */
-type ReplayShown = { walker: LngLat | null; trace: GeoJSON.FeatureCollection; rides: GeoJSON.FeatureCollection; hops: GeoJSON.FeatureCollection | null };
+/**
+ * What a replay's frames have put on the map: the walker and how strongly its dot shows, how much of the whole trace
+ * the first beat left still shows (under 0 while no replay is told), and its lines as data (the same objects until
+ * sent again).
+ */
+type ReplayShown = { walker: LngLat | null; fade: number; whole: number; trace: GeoJSON.FeatureCollection; rides: GeoJSON.FeatureCollection; hops: GeoJSON.FeatureCollection | null };
 const NO_LINES: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: [] };
-const NO_REPLAY: ReplayShown = { walker: null, trace: NO_LINES, rides: NO_LINES, hops: null };
+const NO_REPLAY: ReplayShown = { walker: null, fade: 1, whole: -1, trace: NO_LINES, rides: NO_LINES, hops: null };
 const replayHops = (s: ReplayShown) => s.hops;
 const replayTrace = (s: ReplayShown) => s.trace;
 const replayRides = (s: ReplayShown) => s.rides;
 const replayWalker = (s: ReplayShown) => s.walker;
+const replayFade = (s: ReplayShown) => s.fade;
+const replayWhole = (s: ReplayShown) => s.whole;
+/** No replay: what a source reads when it is given no replay's store (a replay's own line, drawn as its frames send it). */
+const UNTOLD: Store<ReplayShown> = createStore<ReplayShown>(NO_REPLAY);
+/** The trace's look from the screen's opacity and what a replay's frames say of the whole trace (`traceShown`). */
+function useTraceLook(store: Store<ReplayShown>, opacity: number) {
+  const whole = useStore(store, replayWhole);
+  return traceShown(opacity, whole >= 0, Math.max(0, whole));
+}
 
 /** A replay's line, walked or ridden: renders when it is sent again, alone (replay ceremony RC3). */
 const ReplayLine = memo(function ReplayLine({ store, id, pick, dashed }: { store: Store<ReplayShown>; id: string; pick: (s: ReplayShown) => GeoJSON.FeatureCollection; dashed?: boolean }) {
@@ -645,9 +671,10 @@ const ReplayLine = memo(function ReplayLine({ store, id, pick, dashed }: { store
   return <TraceSource id={id} data={data} opacity={1} dashed={dashed} />;
 });
 
-/** A replay's walker: renders per frame, alone (replay ceremony RC1). */
+/** A replay's walker: renders per frame, alone (replay ceremony RC1). Its dot fades in as the opening's dive ends (replay-ceremony ui 7). */
 const ReplayDot = memo(function ReplayDot({ store }: { store: Store<ReplayShown> }) {
   const walker = useStore(store, replayWalker);
+  const walkerFade = useStore(store, replayFade);
   const data = useMemo(() => walkerGeoJSON(walker), [walker]);
   return (
     <GeoJSONSource id="replay-points" data={data}>
@@ -656,6 +683,8 @@ const ReplayDot = memo(function ReplayDot({ store }: { store: Store<ReplayShown>
         'circle-radius': 7,
         'circle-stroke-color': '#ffffff',
         'circle-stroke-width': 2,
+        'circle-opacity': walkerFade,
+        'circle-stroke-opacity': walkerFade,
       }} />
     </GeoJSONSource>
   );
@@ -825,10 +854,14 @@ const RouteSource = memo(function RouteSource({ data }: { data: FC }) {
  */
 const GapLinksSource = memo(function GapLinksSource({ store, data, opacity }: { store: Store<ReplayShown>; data: FC; opacity: number }) {
   const hops = useStore(store, replayHops);
+  const look = useTraceLook(store, opacity);
   return (
     <GeoJSONSource id="gap-links" data={hops ?? data} {...LINE_SOURCE}>
+      {/* A replay's hop stands on a white edge, a disc under each dot, so it reads over a lit street (replay-ceremony ui 6). */}
+      <Layer id="gap-links-edge" type="line" layout={ROUND}
+        paint={{ 'line-color': HOP_EDGE.color, 'line-width': HOP_EDGE.width, 'line-opacity': hopEdgeOpacity(hops != null), 'line-dasharray': [...HOP_EDGE.dash] }} />
       <Layer id="gap-links" type="line" layout={ROUND}
-        paint={{ 'line-color': FOG_BOLD, 'line-width': 3, 'line-opacity': 0.8 * opacity, 'line-dasharray': GAP_LINK_DASH }} />
+        paint={{ 'line-color': FOG_BOLD, 'line-width': GAP_LINK_WIDTH, 'line-opacity': 0.8 * look.links, 'line-dasharray': GAP_LINK_DASH }} />
     </GeoJSONSource>
   );
 });
@@ -849,7 +882,9 @@ const DrawingSource = memo(function DrawingSource({ data }: { data: FC }) {
  * T25): the start and the end's walked outer ring first, then the end's walked centre and white band alone, so
  * a walk that ends on its start keeps its end whole (tend map audit 25).
  */
-const EndsSource = memo(function EndsSource({ data, opacity }: { data: FC; opacity: number }) {
+/** The trace's end markers: with the trace's opacity; through a replay, faint with the first beat's trace and whole once the path is told (replay-ceremony ui 7). */
+const EndsSource = memo(function EndsSource({ data, opacity: given, store }: { data: FC; opacity: number; store: Store<ReplayShown> }) {
+  const opacity = useTraceLook(store, given).marks;
   return (
     <GeoJSONSource id="ends" data={data}>
       <Layer id="ends-ring" type="circle" paint={{ ...ENDS_RING_PAINT, 'circle-opacity': opacity, 'circle-stroke-opacity': opacity }} />

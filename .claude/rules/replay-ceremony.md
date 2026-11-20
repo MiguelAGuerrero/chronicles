@@ -67,6 +67,12 @@ how a telling opens and closes on the whole of what it tells; what stays behind 
   source's data. **Trap: a dotted line cannot be revealed by a paint property** (the same as a ride's dashes): a hop is
   data while it draws, sent at most every `REPLAY_ENGINE.resendMs` (about eight sends over a far hop), and never again
   once whole. That is a break, not a stretch: RC3's count is unaffected.
+- **A hop stands on a white edge while a replay is told** (`replay-ceremony ui 6`): `gap-links-edge`, just under the
+  dots and on their source, a mark a dot (`map/types.ts` `HOP_EDGE`: the wider line takes a shorter dash, so the
+  spacing is the dots' own). Grey dots over a street lit in the walked ink read 1.5:1; the white reads 6:1 there.
+  **The edge is a hairline casing, `GAP_LINK_WIDTH + 2`, never a disc** (ui 9, the owner's defaults, Nov 20): at 6 px
+  the discs left 0.6 px of land between them and read as a white dotted ribbon; at 5 px 1.6 px shows.
+  Its opacity is `hopEdgeOpacity(replayOn)`: none on any other map, nor on the card, where a gap's links are as they were.
 - **Through the card**: `Showing.hops` says a telling's hops whole, with the walk's times each crosses. On the walk's
   card a gap keeps the card's own way of drawing it (`linksWithHops`, matched by time, since a gap's ends are the
   recorded fixes' and a hop's the story's, a few metres apart): its dotted link if empty (GW2: the same dots, drawn
@@ -93,17 +99,29 @@ how a telling opens and closes on the whole of what it tells; what stays behind 
   standing picture's height (`layout.ts` `WHOLE_TOP`), so no control sits on the walk and the card's map is that same view. Change a fit's padding in one place
   and the other jumps: the `replay` journey reads the cut (`bookendsOf`: `cutPx`, `movedPx`).
 - **The opening** is the `intro` segment: the dive, `dive` ms from the whole to the walker's start (a `Move` with zooms,
-  as a hop's: the start goes straight to the focus on the screen), the walker shown from `diveMark`, the clock in from
+  as a hop's: the start goes straight to the focus on the screen), the walker's dot coming in from `diveMark` over
+  `diveMarkIn` (`Frame.walkerFade`; on the web through `marker.setOpacity`: **a MapLibre marker owns its element's
+  opacity** and writes it again on every move, so a style set beside it lasts one frame), the clock in from
   `diveClockIn`. A telling with no beat before it (the day's, `holdOpen`) shows the whole `openHold` first. **A walk
   shorter than the walking zoom shows is fitted closer than zoom 15** (the fit's cap is 17): its dive pulls back. Left.
+- **Nothing cuts as the path opens** (`replay-ceremony ui 7`): the walk's screen gives the map the whole trace in
+  every beat, at the first beat's `QUIET_TRACE_OPACITY` through the path, and while a replay is told the map draws it
+  only as far as the frames say (`Frame.wholeTrace`, 1 to 0 over `diveTraceOut`; `map/types.ts` `traceShown`: the
+  lines fade out, the end markers come up to full, the links are the replay's own hops). A paint property written by
+  `paintTrace`, no data sent. A day's telling left no trace to fade (`wholeTrace` 0; its screen gives none). On a
+  phone the fade is ten steps, since each renders the trace's sources (untried).
+- **The first beat's fit is north-up** (`replay-ceremony ui 8`): `fitNorth` on the map through the reading and fog
+  beats (`lib/compass` `fitBearing`; any other fit keeps the bearing, CP1), so a map left turned eases north with that
+  fit and the path's first `jumpTo` snaps nothing. A guard: the replay's and a day's maps take no two-finger turn
+  (no compass, tend map 1), so today only code turns them (the journey's `__turn`). A day has no beat before its path.
 - **The close** is `rest` (the walker stands, `rest` ms) and `close` (the pull-back over `close` ms to the card's view,
   held `closeHold`). The clock through both is where the walker stopped (never the walk's end time, which can be long
   after the last fix), fades over `closeClock` and is not drawn while its fade is 0 (`Stage` keeps its room): the last
   view shows no figure larger than body text (RC26). It keeps its time under the fade: `msAtClock` and `reanchor`
-  need a clock in every frame. The date (`Frame.date`, worded by the stage's `dateOf` for the room between Hold and
-  Skip, where the clock stood: one line, a shorter form on a narrow phone) and the passed places
-  (`passed` overlays: each beside its place, or the card's one line for more than two, beside none) come in from
-  `closeSay`. A day's last view names none (`namePassed` is the walk's screen's alone).
+  need a clock in every frame. The date (`Frame.date`, worded by the stage's `dateOf` for the room between Pause and
+  Skip, where the clock stood (`topRow().room`): one line, a shorter form on a narrow phone and beside "Skip to end") and the passed places
+  (`passed` overlays: each beside its place, or the card's one line, beside none, for more than two and for those
+  with no room beside their places: `replay-stage.md`) come in from `closeSay`. A day's last view names none (`namePassed` is the walk's screen's alone).
 - **The card's sheet is laid out unseen before the path ends** (`cardBody(true)`, `cardLines(true)`: no test id, its
   controls as room of their size, `visibility: hidden` on the web so it is no page text): its height is `sheetPad`'s
   bottom, so the close frames the walk above where the card will sit and the card's own fit then moves nothing (RC24).
@@ -121,7 +139,7 @@ how a telling opens and closes on the whole of what it tells; what stays behind 
   `useCeremonyLoop`, and `useReplay`, which both screens call). Each display frame it asks `stepLoop` (core: the time is
   an argument) and hands a time that moved to the ceremony's `frame(ms, jump)`; the frame goes straight to the map
   (`WalkMapHandle.replayFrame`) and to the stage's store (`lib/ceremony/live.ts`). The screens render only when the pins
-  on the map change, Next comes or goes, or Hold is pressed. **Never read a frame in a screen's render**, and never set
+  on the map change, Next comes or goes, or Pause is pressed. **Never read a frame in a screen's render**, and never set
   screen state from a frame: `render:replay` and `render:day` (perfCount) are held to two a second on a stretch by the
   `replay` journey (RC2).
 - **The stage reads the frame from `ctx.live`, never from a prop** (RC7). `Stage` renders when the frame's shape changes
@@ -143,12 +161,9 @@ how a telling opens and closes on the whole of what it tells; what stays behind 
   `useLiveStyle` writes them before the first paint and again after every render, so a render never undoes
   a write and the two never disagree.
 - **The one number for frames a second** is `REPLAY_ENGINE.frameMs` (`motionTokens.ts`; 0 is every display frame),
-  honoured by `stepLoop`; a replay's link can ask for a ceiling with `fps=30` (`frameMsFor`), to try one on a phone
-  without a build. A frame not taken moves no time: the next one takes all that passed (RC5, RC6).
-- **What a phone really draws is said at the preview address** (`lib/ceremony/meter`, `FrameMeter`): under Hold, once a
-  second, the frames drawn and offered, the longest wait between two drawn frames and the time to draw one. It shows
-  where the site's base path ends in `/preview`, or with `meter=1` on a replay's link, never in the app; the loop notes
-  frames only then, and the screens do not render for it. It and `fps` go once the ceiling is chosen (docs/DEFERRED.md).
+  honoured by `stepLoop`, and there is no other way to set it: the link's `fps` and the frame readout at the preview
+  address were aids for the owner's first looks and went once the iPhone was smooth (Nov 19). A frame not taken moves
+  no time: the next one takes all that passed (RC5, RC6).
 - **The walker's dot is placed to the sub-pixel** (`subpixelPositioning` on its marker): MapLibre rounds a marker to a
   whole pixel otherwise, and a dot held at the middle of a 393 px screen sat on a half pixel, rounded one way or the
   other from frame to frame (the owner's iPhone, Nov 18: "after images"; 46 flips measured in one replay).

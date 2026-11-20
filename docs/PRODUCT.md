@@ -518,7 +518,7 @@ recording, and a recording bar brings a minimized walk back.
   - **Days**: local midnight to midnight, each with its walks and loose
     moments as a timeline, and **Replay this day**.
 - A star's sheet offers **Walk here**. With no walk finished, the peek shows
-  an empty line and a Navigate button; with a walk open, "This walk is starred
+  an empty line and a Navigate button; with a walk open, "This walk is marked
   here when it ends" and no button, the recording bar's › being the way back
   (decision 0148).
 - **A walk with nothing in it is dropped** (decision 0187): stopping a walk with no moment, pause (the one still open at Stop aside, decision 0220), still or gap and no movement past 15 m skips the replay and says "Walk not kept." with Undo; a killed app restores it.
@@ -527,19 +527,21 @@ recording, and a recording bar brings a minimized walk back.
   walker keeps a steady pace, slowing into each moment; the camera holds still and re-frames, rises on a
   stretch the walker crosses fast, and settles each photo's pin under its card (replay ceremony, decision 0206, on its
   branch); a gap is crossed by a dotted hop under "20 min later", with no dim. The path opens from the whole walk as
-  the fog beat left it, diving to where the walk began, and closes the same way: the walker stands, the camera pulls
+  the fog beat left it, north-up, diving to where the walk began while the faint trace fades out and the walker's dot
+  fades in, and closes the same way: the walker stands, the camera pulls
   back to the whole walk above where the card will sit, and that last view shows the date and names each place
   passed without stopping before the card comes (a day's replay shows the whole day first, and names none). A clock
   rolls through the time of day. Notes and memos stack as speech bubbles in a
   corner; photos and videos grow from their place into a card, the map dimming a little under it, and shrink
-  back onto that place, where the picture then stands (the later of two close together over the earlier). Each
+  back onto that place, where the picture then stands (the later of two close together over the earlier); a tap
+  on a standing picture opens that moment full screen, the replay holding until it is closed. Each
   such moment also joins a stack at the right edge, which grows upward, drops its oldest when it would reach the
   controls, never shows a number, and opens them all full screen. A moment of several pieces arrives whole: its
   pictures as a grid, then its videos in turn in the same card, its memos after. Places passed without stopping
   whisper by. Each moment takes its time (decision 0203): a photo is fully shown about four and a half seconds
   (several at one stop tighten, the last whole again), a moment's grid five, a note long enough to read, and a second
   of quiet follows a memo or video. Nothing shrinks to fit a length: a walk with many moments is simply longer.
-  Nothing waits for a tap: a tap (or Hold) holds it, Skip goes to the card, and **Next**, under Skip, goes to the
+  Nothing waits for a tap: a tap (or Pause) pauses it, Skip to end goes to the card ("Skip" on a phone too narrow for the longer word), and **Next**, under it, goes to the
   next moment, saying how much later it is and any place passed on the way; it counts nothing and goes when no
   moment is left. Memos and videos always in full (a soft skeleton
   stands in while one loads), and the screen stays awake while it plays. With a screen
@@ -557,9 +559,8 @@ recording, and a recording bar brings a minimized walk back.
   saves a keeper to the photo library (every edit and the caption baked in), edits a note's
   words, or deletes the moment. Remind me here lives here too.
 - **Editing a photo or video** (Media editing, ME1-ME23): one Edit screen, from the
-  viewer or from the Edit pill shown for 6 s after every photo or video (on the recording bar, a pill above the
-  bar that waits for Edit, Close or the next capture, or until you leave the tabs, its line keeping time and
-  distance: T12, decision 0149). Crop with
+  viewer, or opened by itself once a new photo or video is accepted, before it is looked at on the map (the walk
+  screen, Navigate, the recording bar and Memories' line; decision 0240, which replaced the Edit pill). Crop with
   Free, Square, 4:5 and 16:9, and Rotate; nine filters a phone's photo app has
   (Original, Vivid, Warm, Cool, Dramatic, Fade, Mono, Noir, Sepia; photos only);
   drawing like the iPhone's Markup (Pen, Marker, Eraser, three thicknesses, six

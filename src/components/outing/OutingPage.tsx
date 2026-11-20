@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
 import { BackHandler, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { matches } from '../../lib/outing/candidates';
@@ -6,9 +6,10 @@ import { distanceM } from '../../lib/geo';
 import type { Waypoint } from '../../lib/nav/types';
 import type { JourneyPlan } from '../../lib/outing/journeyPlan';
 import { ANOTHER_LABEL, BACK_LABEL, CHANGE_LABEL, CHIPS_LINE, DISMISS_LABEL, FOLLOW_LABEL, FURTHER_LABEL, HERE_LABEL, LATER_LABEL, LEAVE_OUT_LABEL, NEW_TOWN_LINE, MAPS_FAILED_LINE, NOWHERE_LABEL, RETRY_LABEL, STRAIGHT_LINE, TOWNS_FAILED_LINE, PEEK_LABEL, READ_FAILED_LINE, REACH_LINE, SEE_LABEL, TOO_FAR_LINE, TOWNS_LINE, UNDO_LABEL, UNFOUND_LINE, UNPEEK_LABEL, WHERE_LABEL, awayLine, cardSummary, chapterLine, laterLine, lookedLine, startLine, nextMoveLine, nothingLine, reachLabel, townLine } from '../../lib/outing/journeyWords';
+import { outingFrame, outingFrameBounds, outingHeld } from '../../lib/outing/map';
 import { useJourney } from '../../lib/outing/useJourney';
 import { CHAINS_LABEL, CLOSE_LABEL, HOURS_LINE, NO_PICK_LINE, READING_LINE, SLOT_HINT, START_LABEL, SWAP_LABEL, TITLE, cardLine, reasonLine, slotLine } from '../../lib/outing/words';
-import { hideTabs } from '../../lib/tabsHidden';
+import { hideTabs, modalsUp } from '../../lib/tabsHidden';
 import type { LngLat } from '../../lib/types';
 import { SearchSheet } from '../atlas/PlaceSearch';
 import { Icon } from '../icons';
@@ -46,6 +47,19 @@ export function OutingPage(props: {
   const j = useJourney(props.you);
   const [searching, setSearching] = useState(false);
   const [peek, setPeek] = useState(false);
+  // The sheet's height as drawn, so the map's scale bar, its credits and the journey's frame sit above it (QL5, QL8;
+  // tend map 24): folded, on the journeys and on a card it is a different height.
+  const [sheetH, setSheetH] = useState(0);
+  // Measured on its layout and twice a second besides (tend map audit 51): on the web a sheet that grew as its chips came in
+  // was now and then never reported by onLayout, which left the scale bar and the (i) under it until the next change.
+  const sheetRef = useRef<ComponentRef<typeof View>>(null);
+  const sheetSize = useCallback((h: number) => {
+    if (h > 0) setSheetH((was) => (Math.round(h) === was ? was : Math.round(h)));
+  }, []);
+  useEffect(() => {
+    const t = setInterval(() => sheetRef.current?.measure?.((_x: number, _y: number, _w: number, h: number) => sheetSize(h)), 500);
+    return () => clearInterval(t);
+  }, [sheetSize]);
   const [busy, setBusy] = useState(false);
   const starting = useRef(false);
   const row = useRef<ComponentRef<typeof ScrollView>>(null);
@@ -63,18 +77,56 @@ export function OutingPage(props: {
   });
   useEffect(() => {
     const back = BackHandler.addEventListener('hardwareBackPress', () => onBack.current());
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onBack.current();
+    // Not with a Modal over the page (the editor, the note's page): Escape is that Modal's (fix planner-edit).
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && modalsUp.get() === 0 && onBack.current();
     if (Platform.OS === 'web' && typeof window !== 'undefined') window.addEventListener('keydown', onKey);
     return () => {
       back.remove();
       if (Platform.OS === 'web' && typeof window !== 'undefined') window.removeEventListener('keydown', onKey);
     };
   }, []);
+  // What the map frames: the journey's fit, or with no journey and no destination, where you stand (tend map audit 52).
+  const youKey = props.you ? props.you.map((v) => v.toFixed(4)).join(',') : '';
+  const content = `${j.map.pins.length}|${(j.journey?.footM ?? 0) | 0}|${j.map.pins[0]?.join(',') ?? ''}|${j.dest?.at.join(',') ?? ''}|${j.journey?.leaning ?? ''}|${j.map.fit ? '' : youKey}`;
+  const frameBounds = useMemo(() => outingFrameBounds({ fit: j.map.fit, you: props.you }), [j.map.fit, props.you]);
+  // A map the person moved by hand keeps their move: a change of the sheet's height frames again only while the map is
+  // still where its last fit left it (tend map audit 49). `hand` is the content and the frame they moved it over.
+  const [hand, setHand] = useState<{ content: string; sheetH: number; width: number } | null>(null);
+  const held = outingHeld(hand, content, { sheetH, width });
+  // The frame clears the scale row, which stays 12 px above the sheet (tend map audit 50).
+  const frame = outingFrame({ sheetH: held.sheetH, insetTop: insets.top });
+  const scaleInset = outingFrame({ sheetH, insetTop: insets.top }).scaleInset;
   const fitN = useMemo(() => {
     let h = 7;
-    for (const ch of `${j.map.pins.length}|${(j.journey?.footM ?? 0) | 0}|${j.map.pins[0]?.join(',') ?? ''}|${j.dest?.at.join(',') ?? ''}|${j.journey?.leaning ?? ''}`) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+    for (const ch of `${content}|${held.sheetH}|${held.width}`) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
     return h;
-  }, [j.map.pins, j.journey, j.dest]);
+  }, [content, held.sheetH, held.width]);
+  // A pan is the person's (`onUserMove`); so is a change of zoom while no fit is in flight. A resize keeps the zoom and
+  // moves the camera too, so the camera's place alone says nothing.
+  const now = useRef({ content, held, fitN });
+  useEffect(() => {
+    now.current = { content, held, fitN };
+  });
+  const flying = useRef(true);
+  useEffect(() => {
+    flying.current = true;
+  }, [fitN]);
+  const byHand = useCallback(() => {
+    const n = now.current;
+    setHand((h) => (h && h.content === n.content ? h : { content: n.content, sheetH: n.held.sheetH, width: n.held.width }));
+  }, []);
+  const fitSettled = useCallback((k: number) => {
+    if (k === now.current.fitN) flying.current = false;
+  }, []);
+  const zoomWas = useRef<number | null>(null);
+  const cameraMoved = useCallback(
+    (cam: { zoom: number }) => {
+      const was = zoomWas.current;
+      zoomWas.current = cam.zoom;
+      if (!flying.current && was != null && Math.abs(cam.zoom - was) > 0.01) byHand();
+    },
+    [byHand],
+  );
   // What each stop is called before it is named: its chip's word, and how far it is from the point before it (QC17, OJ25); the stops
   // run on through the chapters, so a slot has one place in the whole journey.
   const chapters = useMemo(() => {
@@ -130,7 +182,7 @@ export function OutingPage(props: {
     <View style={[StyleSheet.absoluteFill, styles.over]} testID="outing" accessibilityViewIsModal>
       {/* The points of the line handed to the map, for the e2e: a road has more than the towns it joins (RE1). */}
       <View style={StyleSheet.absoluteFill} testID="outing-map" {...({ dataSet: { linkPoints: j.map.link[0]?.length ?? 0 } } as object)}>
-        <WalkMap trace={NONE} walked={NONE} fog={NONE} captures={NONE} walker={props.you} route={j.map.route} alternates={j.map.link} routeGrades={NONE} foundPins={j.map.pins} fitBounds={j.map.fit} fitKey={fitN} hideLabels />
+        <WalkMap trace={NONE} walked={NONE} fog={NONE} captures={NONE} walker={props.you} route={j.map.route} alternates={j.map.link} routeGrades={NONE} foundPins={j.map.pins} fitBounds={frameBounds} fitKey={fitN} fitPadding={frame.padding} scaleInset={scaleInset} onUserMove={byHand} onFitSettled={fitSettled} onCameraChange={cameraMoved} hideLabels />
       </View>
       <View style={[styles.top, { top: insets.top + 8 }]}>
         <View style={styles.field}>
@@ -150,7 +202,7 @@ export function OutingPage(props: {
           <Icon name="close" size={22} color={theme.ink} />
         </Pressable>
       </View>
-      <View style={[styles.sheet, { maxHeight: Math.round(height * (j.opened ? 0.76 : 0.62)), paddingBottom: insets.bottom + 12 }, capturing && styles.beside]} testID="outing-sheet">
+      <View style={[styles.sheet, { maxHeight: Math.round(height * (j.opened ? 0.76 : 0.62)), paddingBottom: insets.bottom + 12 }, capturing && styles.beside]} testID="outing-sheet" ref={sheetRef} onLayout={(e) => sheetSize(e.nativeEvent.layout.height)}>
         <Pressable testID="outing-peek" accessibilityRole="button" accessibilityLabel={peek ? UNPEEK_LABEL : PEEK_LABEL} accessibilityState={{ expanded: !peek }} onPress={() => setPeek(!peek)} style={styles.peek}>
           <Icon name={peek ? 'chevron-up' : 'chevron-down'} size={20} color={theme.ink} />
           <Text style={styles.swapText}>{peek ? UNPEEK_LABEL : PEEK_LABEL}</Text>

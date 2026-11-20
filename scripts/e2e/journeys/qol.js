@@ -121,10 +121,17 @@ async function pinsOfSeveral(h, pg8, c8, { check, shot }) {
     await c8.setGeolocation({ longitude: p[0], latitude: p[1], accuracy: 6 });
     await pg8.waitForTimeout(900);
   };
-  const take = async (file, saved) => {
+  // A new moment's photo or video opens its editor by itself once kept (ME23, decision 0240): closed, kept as taken.
+  const closeEditor = async (p = pg8, timeout = 8000) => {
+    if (!(await p.waitForSelector('[data-testid=media-editor]', { timeout }).then(() => true, () => false))) return false;
+    await p.click('[data-testid=edit-close]').catch(() => {});
+    await p.waitForSelector('[data-testid=media-editor]', { state: 'detached', timeout: 5000 }).catch(() => {});
+    return true;
+  };
+  const take = async (file) => {
     const [chooser] = await Promise.all([pg8.waitForEvent('filechooser'), pg8.click('[data-testid=cap-photo]')]);
     await chooser.setFiles(path.join(scriptsDir, 'fixtures', file));
-    await pg8.waitForSelector(`text=${saved}`, { timeout: 20000 }).catch(() => null);
+    await closeEditor(pg8, 20000);
     await pg8.waitForTimeout(1500);
   };
   const note = async (text) => {
@@ -170,17 +177,17 @@ async function pinsOfSeveral(h, pg8, c8, { check, shot }) {
   await pg8.waitForSelector('[data-testid=walk-actions]');
   for (let i = 1; i <= 5; i++) await go(-0.5, -0.5 + i * 0.04);
   // Two photos; 140 m on, three notes; 140 m on, a voice memo and a video; 140 m on, a photo and a note, reminded.
-  await take('photo.jpg', 'Photo saved here');
-  await take('photo.jpg', 'Photo saved here');
+  await take('photo.jpg');
+  await take('photo.jpg');
   for (let i = 1; i <= 35; i++) await go(-0.5 + i * 0.04, -0.3);
   await note('One.');
   await note('Two.');
   await note('Three.');
   for (let i = 1; i <= 35; i++) await go(0.9, -0.3 + i * 0.04);
   await voice();
-  await take('clip-4s.webm', 'Video saved here');
+  await take('clip-4s.webm');
   for (let i = 1; i <= 35; i++) await go(0.9 - i * 0.04, 1.1);
-  await take('photo.jpg', 'Photo saved here');
+  await take('photo.jpg');
   await note('Four.');
   await go(-0.5, 1.14);
   await pg8.waitForTimeout(2500);
@@ -290,6 +297,8 @@ async function run(h) {
       g.clearWatch = (id) => { window.__clearCalls++; window.__openWatches.delete(id); return clear(id); };
     });
     const fix = (p) => c.setGeolocation({ longitude: p[0], latitude: p[1], accuracy: 6 });
+    // tend map audit 56 (the diff review's steward 5): Locate's one tap on each map that has it, held by one check.
+    const located = { navigate: false, explore: false };
     const lonLat = (s) => (s ? s.split(',').map(Number) : null);
     const fmt = (p) => (p ? p.map((v) => v.toFixed(5)).join(',') : String(p));
     const mAway = (a, b) => Math.hypot((a[0] - b[0]) * 111320 * Math.cos((b[1] * Math.PI) / 180), (a[1] - b[1]) * 111320);
@@ -460,6 +469,7 @@ async function run(h) {
       const off = center ? mAway(center, far) : NaN;
       // The fit centres the fix in the view above the drawer, so the canvas's own middle sits a little
       // south of it: inside the 250 m the fit frames is the test, not the exact middle.
+      located.navigate = !!center && off < 250 && !!walker && mAway(walker, far) < 5;
       check(center && off < 250, `qol QL10: Navigate's Locate frames the map around the fix 1 km away (canvas middle ${off.toFixed(1)} m off at ${fmt(center)}, z${zoom})`);
       check(zoom >= 13 && zoom <= 17.5, `qol QL10: Locate fits about 250 m around the fix (z${zoom})`);
       check(walker && mAway(walker, far) < 5, `qol QL10: the dot is drawn at the fix (data-walker ${fmt(walker)}, ${walker ? mAway(walker, far).toFixed(1) : '-'} m off)`);
@@ -537,6 +547,29 @@ async function run(h) {
       await drawerTo(pg, 'full');
       const destText = await pg.locator('[data-testid=drawer-dest]').innerText().catch(() => '');
       check(/\d+(\.\d+)?[ \u00a0](m|km|ft|mi)\b/.test(destText), `qol QL14: the destination line carries a distance (${JSON.stringify(destText)})`);
+      // tend map 23 (QL16 under the React Compiler): switched while the drawer is up, every distance in it and in the
+      // strip under it says the other units at once, then back again.
+      const unitIn = (t) => ((t || '').match(/\d[\d,.]*[ \u00a0](m|km|ft|mi)\b/) || [])[1] || null;
+      const drawerSays = () => pg.evaluate(() => {
+        const t = (id) => document.querySelector(`[data-testid=${id}]`)?.textContent ?? null;
+        const sub = [...document.querySelectorAll('[data-testid=start-settings] *')].map((e) => e.textContent).find((x) => /^With Places on/.test(x || '')) ?? null;
+        return { dest: t('drawer-dest'), range: t('range-value'), pass: t('pass-value'), sentence: sub };
+      });
+      const stripSays = () => pg.evaluate(() => ({ stats: document.querySelector('[data-testid=walk-stats]')?.textContent ?? null, dest: document.querySelector('[data-testid=ready-dest]')?.textContent ?? null }));
+      const kmNow = (await pg.locator('[data-testid=units-km]').getAttribute('aria-checked')) === 'true';
+      await pg.click(`[data-testid=units-${kmNow ? 'mi' : 'km'}]`);
+      await pg.waitForTimeout(300);
+      const want = kmNow ? /^(ft|mi)$/ : /^(m|km)$/;
+      const inDrawer = await drawerSays();
+      check(['dest', 'range', 'pass', 'sentence'].every((k) => want.test(unitIn(inDrawer[k]) || '')),
+        `tend map 23: switched, Navigate's drawer says the range, the pass-by distance and the destination in the other units at once (${JSON.stringify(inDrawer)})`);
+      await drawerTo(pg, 'peek');
+      const inStrip = await stripSays();
+      check(want.test(unitIn(inStrip.stats) || '') && want.test(unitIn(inStrip.dest) || ''),
+        `tend map 23: switched, the strip under the drawer says its distance and the destination's in the other units (${JSON.stringify(inStrip)})`);
+      await drawerTo(pg, 'full');
+      await pg.click(`[data-testid=units-${kmNow ? 'km' : 'mi'}]`);
+      await pg.waitForTimeout(300);
       await drawerTo(pg, 'peek');
     }
 
@@ -561,6 +594,8 @@ async function run(h) {
       const dx = center ? ((near[0] - center[0]) * 111320 * Math.cos((center[1] * Math.PI) / 180)) / k : NaN;
       const dy = center ? -((near[1] - center[1]) * 111320) / k : NaN;
       const EXPLORE_PAD_SHIFT_PX = (84 - 24) / 2;
+      located.explore = !!center && Math.abs(dx) <= 3 && Math.abs(dy - EXPLORE_PAD_SHIFT_PX) <= 3 && !!walker && mAway(walker, near) < 5;
+      check(located.navigate && located.explore, 'tend map audit 56: one tap on Locate brings the map to where you stand, on Navigate and on Explore');
       check(center && Math.abs(dx) <= 3 && Math.abs(dy - EXPLORE_PAD_SHIFT_PX) <= 3 && walker && mAway(walker, near) < 5,
         `qol QL10: Explore's Locate frames the map around the fix, in the middle of the map below the title, and draws the dot (fix at canvas middle + (${dx.toFixed(1)}, ${dy.toFixed(1)}) px, ${EXPLORE_PAD_SHIFT_PX} px expected below; data-walker ${fmt(walker)})`);
       const s3 = await scaleBar();
@@ -740,7 +775,7 @@ async function run(h) {
       try {
         await fn();
       } catch (e) {
-        check(false, `${name}: ${String(e.message).split('\n')[0]}`);
+        check(false, `step ${name}: ${String(e.message).split('\n')[0]}`);
       }
     };
     const capRow = (kind) => pg.evaluate((k) => new Promise((resolve) => {
@@ -754,7 +789,10 @@ async function run(h) {
     await qstep('qol QL26, QL27', async () => {
       const [chooser] = await Promise.all([pg.waitForEvent('filechooser'), pg.click('[data-testid=cap-photo]')]);
       await chooser.setFiles(path.join(scriptsDir, 'fixtures', 'photo.jpg'));
-      await pg.waitForSelector('text=Photo saved here', { timeout: 15000 }).catch(() => {});
+      // Its editor opens by itself once kept (ME23, decision 0240): closed, the photo kept as taken.
+      await pg.waitForSelector('[data-testid=media-editor]', { timeout: 15000 }).catch(() => {});
+      await pg.click('[data-testid=edit-close]').catch(() => {});
+      await pg.waitForSelector('[data-testid=media-editor]', { state: 'detached', timeout: 5000 }).catch(() => {});
       // Inside the photo's own pin on the walk map (a pin's content may be hidden from screen readers under its label).
       const thumb = pg.locator('.maplibregl-map [aria-label^="Photo, "][aria-label$=". Open"] [data-testid=pin-thumb]');
       await thumb.first().waitFor({ timeout: 20000 }).catch(() => {});
@@ -1866,7 +1904,7 @@ async function run(h) {
     }
 
     // tend map audit 25 (the T25 review): a loop walk, its end a few metres from its start. The start's marker drew over
-    // the end's outer ring; the end is now a bullseye over the start. And tend map audit 26: at Hold, with motion, the
+    // the end's outer ring; the end is now a bullseye over the start. And tend map audit 26: at Pause, with motion, the
     // walker's dot and the end are both on the map, apart, and pictured, at 390 and at 320.
     {
       const { c: c9, pg: pg9 } = await freshPage('qol-loop');
@@ -1909,14 +1947,14 @@ async function run(h) {
         const nearWalked = (cc) => Math.abs(cc[0] - walkedRgb[0]) + Math.abs(cc[1] - walkedRgb[1]) + Math.abs(cc[2] - walkedRgb[2]) <= 60;
         const hideMarkers = (hidden) => pg9.evaluate((v) => document.querySelectorAll('.maplibregl-marker').forEach((m) => { m.style.visibility = v ? 'hidden' : ''; }), hidden);
 
-        // tend map audit 26: Hold once the dot has gone 24 px from the end along the loop, then read where both are. (It
+        // tend map audit 26: Pause once the dot has gone 24 px from the end along the loop, then read where both are. (It
         // was 40 px, and 20 apart, at the walking zoom of 16: at 15, replay ceremony RC11, the loop's 60 m sides are 34 px.)
         // tend map 12: the loop's path beat runs the whole loop in about a second, so the hold is timed in the page and
         // tapped where the button is. A poll of three round trips and a click that waits for the button to hold still
         // took 140 to 784 ms, and the check lost the race now and then from the start (2 of 5 scratch runs on 6c5174cd,
         // 4 of 5 on main; the larger web bundle since the place-name pack is a possible contributor, not shown).
-        // tend map audit 34 (the review's F35, F36): the tap is on Hold itself (the stage under it holds the replay too),
-        // Hold then reads Play and the dot and the clock stand still for a second, and a dot that never leaves the end
+        // tend map audit 34 (the review's F35, F36): the tap is on Pause itself (the stage under it holds the replay too),
+        // Pause then reads Play and the dot and the clock stand still for a second, and a dot that never leaves the end
         // fails saying so.
         const holdApart = async (w) => {
           await pg9.waitForSelector('[data-testid=replay-clock]', { timeout: 60000 });
@@ -1940,7 +1978,7 @@ async function run(h) {
           const at1600 = await still();
           const label = (await pg9.locator('[data-testid=hold]').innerText().catch(() => '')).trim();
           check(!!left && left.onHold && at600 === at1600 && label === 'Play',
-            `tend map audit 34: at Hold on the loop at ${w}, ${left ? '' : 'the dot never left the end; '}the tap is on Hold (${left && left.onHold}), Hold reads Play ("${label}") and the dot and the clock stand still (${at600} → ${at1600})`);
+            `tend map audit 34: at Pause on the loop at ${w}, ${left ? '' : 'the dot never left the end; '}the tap is on Pause (${left && left.onHold}), Pause reads Play ("${label}") and the dot and the clock stand still (${at600} → ${at1600})`);
           const ends = await mapAttr('data-ends');
           const endAt = lonLatOf((ends ?? '').split('|')[1]);
           const walkerAt = lonLatOf(await mapAttr('data-walker'));
@@ -1950,7 +1988,7 @@ async function run(h) {
           const apartPx = a && b ? Math.hypot(a[0] - b[0], a[1] - b[1]) : null;
           const held = await pg9.locator('[data-testid=replay-held]').count();
           check(held > 0 && inside(a) && inside(b) && apartPx >= 12,
-            `tend map audit 26: at Hold at ${w}, with motion, the walker's dot and the end are both on the map and apart (held ${held}, end ${JSON.stringify(a && a.map(Math.round))}, dot ${JSON.stringify(b && b.map(Math.round))}, ${apartPx && Math.round(apartPx)} px apart, canvas ${JSON.stringify(canvas && [canvas.x, canvas.y, canvas.width, canvas.height].map(Math.round))})`);
+            `tend map audit 26: at Pause at ${w}, with motion, the walker's dot and the end are both on the map and apart (held ${held}, end ${JSON.stringify(a && a.map(Math.round))}, dot ${JSON.stringify(b && b.map(Math.round))}, ${apartPx && Math.round(apartPx)} px apart, canvas ${JSON.stringify(canvas && [canvas.x, canvas.y, canvas.width, canvas.height].map(Math.round))})`);
           await shot(pg9, `qol-20-loop-held-${w}`);
           await pg9.click('[data-testid=hold]');
         };
@@ -1996,6 +2034,160 @@ async function run(h) {
     }
 }
 
+// tend map 23 (QL16 under the React Compiler; the lenses' auditor 1, ux 3, steward 1): Explore stays mounted under the
+// tabs while the units are switched on Navigate, and its tiles and card say the new units when it comes back, as
+// their spoken labels do. Before, a tile read "4.0 km away" while its label said "2.5 mi away".
+async function unitsOnExplore(h) {
+  const { exploreUrl, check, freshPage, snapWorld, tabTo, drawerTo, shot } = h;
+  snapWorld.serve = true;
+  const { pg } = await freshPage('qol-units');
+  const tiles = () => pg.evaluate(() => [...document.querySelectorAll('[data-testid=atlas-tile]')].map((e) => ({
+    name: e.dataset.name, text: e.innerText.replace(/\s+/g, ' '), label: e.getAttribute('aria-label') || '',
+  })));
+  const said = (t) => (t.match(/\d[\d,.]*[ \u00a0](m|km|ft|mi) (away|from you)/) || [])[0] || null;
+  try {
+    await pg.goto(exploreUrl);
+    await pg.waitForFunction(() => document.querySelectorAll('[data-testid=atlas-tile]').length >= 2, null, { timeout: 60000 }).catch(() => {});
+    await pg.waitForTimeout(2500);
+    const before = (await tiles()).filter((t) => said(t.text));
+    await tabTo(pg, 'navigate');
+    await pg.waitForSelector('[data-testid=ready-grip]', { timeout: 20000 });
+    await pg.waitForTimeout(1500);
+    await drawerTo(pg, 'full');
+    await pg.click('[data-testid=units-mi]');
+    await pg.waitForTimeout(400);
+    await drawerTo(pg, 'peek');
+    await tabTo(pg, 'explore');
+    await pg.waitForTimeout(2500);
+    const after = (await tiles()).filter((t) => said(t.text));
+    const norm = (x) => x.replace(/\u00a0/g, ' ');
+    check(before.length >= 1 && after.length >= 1 && after.every((t) => / (ft|mi) /.test(norm(said(t.text))) && norm(t.label).includes(norm(said(t.text)).replace(/ from you$/, ' away'))),
+      `tend map 23: switched to miles on Navigate, every Explore tile says its distance in the units its spoken label says (before ${JSON.stringify(before.map((t) => said(t.text)))}; after ${JSON.stringify(after.map((t) => [said(t.text), t.label]))})`);
+    await pg.setViewportSize({ width: 320, height: 700 });
+    await pg.waitForTimeout(600);
+    await shot(pg, 'tend-map-23-explore-miles-320');
+    await pg.setViewportSize({ width: 390, height: 844 });
+    await pg.waitForTimeout(600);
+    await shot(pg, 'tend-map-23-explore-miles-390');
+    // The card's own check is tend map audit 53's (the diff review's auditor 4): opened after the switch it is built
+    // fresh in miles, so it only shows a stale card where one stays open across the switch, in the side panel.
+  } catch (e) {
+    check(false, `step tend map 23: ${String(e.message).split('\n')[0]}`);
+  } finally {
+    await pg.close().catch(() => {});
+  }
+}
+
+// tend map audit 53 (the diff review's auditor 4): could a card stay open across a switch of the units? Only the side
+// panel (1000 px and wider) leaves the tabs reachable, and Navigate, where the units are, opens over Explore, which then
+// closes any card (explore.tsx, "A card … never outlive[s] the tab's turn in front", audit 8 of round 3). So the card is
+// always built afresh after a switch, and its binding is held by tend map 23's scan; this pins the close it rests on, and
+// the card opened again in miles.
+async function unitsCardWide(h) {
+  const { exploreUrl, check, freshPage, snapWorld, tabTo, drawerTo, shot } = h;
+  snapWorld.serve = true;
+  const { pg } = await freshPage('qol-units-wide');
+  const said = (t) => ((t || '').replace(/\u00a0/g, ' ').match(/\d[\d,.]* (m|km|ft|mi) (away|from you)/) || [])[0] || null;
+  const cardText = () => pg.evaluate(() => [...document.querySelectorAll('[data-testid=atlas-card]')].filter((e) => e.getBoundingClientRect().width > 0).map((e) => e.innerText.replace(/\s+/g, ' ')).pop() ?? null);
+  try {
+    await pg.setViewportSize({ width: 1200, height: 900 });
+    await pg.goto(exploreUrl);
+    await pg.waitForFunction(() => document.querySelectorAll('[data-testid=atlas-tile]').length >= 2, null, { timeout: 60000 }).catch(() => {});
+    await pg.waitForTimeout(2500);
+    const openCard = async () => {
+      for (let i = 0; i < 6 && !(await cardText()); i++) {
+        const onPage = (await pg.locator('[data-testid=atlas-back-pill]').count()) > 0;
+        const tile = onPage
+          ? pg.locator('[data-testid=atlas-tile][data-level="neighborhood"]').filter({ visible: true }).first()
+          : pg.locator('[data-testid=atlas-tile][data-name="Cranston"]').filter({ visible: true }).last();
+        await tile.scrollIntoViewIfNeeded().catch(() => {});
+        await pg.waitForTimeout(700);
+        // Forced: the row eases itself onto the card as it is selected, so the card is rarely still for Playwright.
+        await tile.click({ timeout: 8000, force: true });
+        await pg.waitForTimeout(1500);
+      }
+    };
+    await openCard();
+    const before = said(await cardText());
+    await tabTo(pg, 'navigate');
+    await pg.waitForSelector('[data-testid=ready-grip]', { timeout: 20000 });
+    await pg.waitForTimeout(1500);
+    await drawerTo(pg, 'full');
+    await pg.click('[data-testid=units-mi]');
+    await pg.waitForTimeout(400);
+    await drawerTo(pg, 'peek');
+    await tabTo(pg, 'explore');
+    await pg.waitForTimeout(2500);
+    const left = await cardText();
+    await openCard();
+    const after = said(await cardText());
+    await shot(pg, 'tend-map-audit-53-card-side-panel-miles-1200');
+    check(!!before && / (m|km) /.test(before) && left === null && !!after && / (ft|mi) /.test(after),
+      `tend map audit 53: at 1200 px a card open in the side panel closes as Navigate opens, and opened again after a switch to miles says miles (before ${JSON.stringify(before)}, on return ${JSON.stringify(left)}, again ${JSON.stringify(after)})`);
+  } catch (e) {
+    check(false, `step tend map audit 53: ${String(e.message).split('\n')[0]}`);
+  } finally {
+    await pg.close().catch(() => {});
+  }
+}
+
+// tend map 25 (QL3; E-map-2, the lenses' steward 5): the markers never take a tap at the start either. A note kept as
+// the walk begins stands on the start marker on the replay's card, and a tap there opens it.
+async function pinOnStart(h) {
+  const { navUrl, at, check, freshPage, shot, toStop } = h;
+  const { c, pg } = await freshPage('qol-start-pin');
+  await c.addInitScript(() => { window.__perf = {}; });
+  const go = async (x, y) => {
+    const p = at(x, y);
+    await c.setGeolocation({ longitude: p[0], latitude: p[1], accuracy: 6 });
+    await pg.waitForTimeout(900);
+  };
+  try {
+    await pg.goto(navUrl);
+    await pg.waitForSelector('[data-testid=start]');
+    await go(-0.5, -0.5);
+    await pg.click('[data-testid=start]');
+    await pg.waitForSelector('[data-testid=walk-actions]');
+    await go(-0.5, -0.5);
+    await pg.click('[data-testid=cap-note]');
+    await pg.fill('[data-testid=note-input]', 'Where it began.');
+    await pg.click('[data-testid=note-done]');
+    await pg.waitForTimeout(1500);
+    for (let k = 1; k <= 8; k++) await go(-0.5 + k * 0.05, -0.5);
+    await pg.waitForTimeout(1500);
+    await toStop(pg);
+    const b = await pg.locator('[data-testid=stop]').boundingBox();
+    await pg.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
+    await pg.mouse.down();
+    await pg.waitForTimeout(1100);
+    await pg.mouse.up();
+    await pg.waitForURL(/replay/, { timeout: 30000 });
+    await pg.waitForSelector('[data-testid=skip]', { timeout: 30000 });
+    await pg.click('[data-testid=skip]');
+    await pg.waitForSelector('[data-testid=to-name]', { timeout: 30000 });
+    await pg.waitForTimeout(1500);
+    const startAt = await pg.evaluate(() => {
+      const el = [...document.querySelectorAll('[data-ends]')].filter((e) => !e.closest('[aria-hidden="true"]') && e.getBoundingClientRect().width > 0).pop();
+      const s = el ? (el.getAttribute('data-ends') || '').split('|')[0] : '';
+      return s ? s.split(',').map(Number) : null;
+    });
+    const [x, y] = await pg.evaluate((q) => window.__project(q), startAt);
+    const hit = await pg.evaluate(([px, py]) => {
+      const el = document.elementFromPoint(px, py);
+      const pin = el && el.closest('[aria-label$=". Open"]');
+      return pin ? pin.getAttribute('aria-label') : el ? el.tagName.toLowerCase() : null;
+    }, [x, y - 4]);
+    await shot(pg, 'tend-map-25-pin-on-start-390');
+    await pg.mouse.click(x, y - 4);
+    const opened = await pg.waitForSelector('[data-testid=viewer-close]', { timeout: 5000 }).then(() => true, () => false);
+    check(opened && /^Note\b.*Open$/.test(hit ?? ''), `tend map 25: a tap on a pin standing on the start marker opens the pin (${JSON.stringify(hit)}, viewer ${opened})`);
+  } catch (e) {
+    check(false, `step tend map 25: ${String(e.message).split('\n')[0]}`);
+  } finally {
+    await pg.close().catch(() => {});
+  }
+}
+
 module.exports = {
   name: 'qol',
   // tend chronicle 7: Rename (QL22) and Edit note (QL24) are checked here, so a change to either names this journey.
@@ -2011,6 +2203,17 @@ module.exports = {
     // tend explore 8: Explore's one way to find you, before and after a refusal.
     'src/lib/atlas/findYou.ts',
     'src/lib/locate/permission*.ts',
+    // tend map 23, audit 54: the views whose distances follow a switch of the units, checked here.
+    'src/app/(tabs)/explore.tsx',
+    'src/components/atlas/{AtlasTile,AtlasCard}.tsx',
+    'src/components/{ExploreSettings,StartSettings}.tsx',
+    'src/components/walk/useReady.tsx',
+    'src/lib/startPlan.ts',
   ],
-  run,
+  run: async (h) => {
+    await run(h);
+    await unitsOnExplore(h);
+    await unitsCardWide(h);
+    await pinOnStart(h);
+  },
 };

@@ -120,17 +120,23 @@ async function run(h) {
   await pg.click('[data-testid=walk-minimize]');
   await pg.waitForSelector('[data-testid=recording-bar]', { timeout: 10000 });
   // A photo from the bar on Explore, which leaves its Edit pill up (T12).
-  const barPhoto = async (p = pg) => {
+  // The bar's photo opens its editor by itself (ME23 as decision 0240 has it); closed here unless `open` keeps it up.
+  const barPhoto = async (p = pg, open = false) => {
     await tabTo(p, 'explore');
     await p.waitForSelector('[data-testid=bar-photo]', { timeout: 10000 }).catch(() => {});
     const [chooser] = await Promise.all([p.waitForEvent('filechooser', { timeout: 10000 }).catch(() => null), p.click('[data-testid=bar-photo]').catch(() => {})]);
     await chooser?.setFiles(require('path').join(h.scriptsDir, 'fixtures', 'photo.jpg'));
-    return p.waitForSelector('[data-testid=bar-edit-offer]', { timeout: 10000 }).then(() => true, () => false);
+    const up = await p.waitForSelector('[data-testid=media-editor]', { timeout: 10000 }).then(() => true, () => false);
+    if (up && !open) {
+      await p.click('[data-testid=edit-close]').catch(() => {});
+      await p.waitForSelector('[data-testid=media-editor]', { state: 'detached', timeout: 5000 }).catch(() => {});
+    }
+    return up;
   };
-  // tend tabs T36 (the proxy's yes under 0157, 2026-11-18): with the bar's Edit pill up, its room lifts Explore's map, so
-  // the press hint steps aside and at 320 x 700 the walker is under no words; it shows again as the pill goes, none of its
-  // five seconds (EC14's "after a few seconds on screen it is marked seen") having run while it stood aside. Before the
-  // steps: its half minute between steps 5 and 6 left the stop unable to place HC10's note on the trace.
+  // tend tabs T36 (the proxy's yes under 0157, 2026-11-18), as decision 0240 leaves it: the bar's photo opens the editor,
+  // a Modal, where the bar's Edit pill once lifted Explore's map; the press hint shows again as it goes, none of its five
+  // seconds (EC14's "after a few seconds on screen it is marked seen") having run beneath it. Before the steps: its half
+  // minute between steps 5 and 6 left the stop unable to place HC10's note on the trace.
   {
     const hint = '[data-testid=atlas-press-hint]';
     // tend tabs audit 30 (the review's ux 1, steward 1): measured, not counted. Explore draws the walker in the map's
@@ -187,29 +193,17 @@ async function run(h) {
     };
     await tabTo(pg, 'explore');
     const hintBefore = await pg.waitForSelector(hint, { timeout: 10000 }).then(() => true, () => false);
-    const up = await barPhoto();
-    await pg.waitForTimeout(400);
-    const withPill = await walkerClear();
-    await shot(pg, 'tabs-T36-pill-on-explore');
-    await pg.setViewportSize({ width: 320, height: 700 });
-    await pg.waitForTimeout(500);
-    const withPill320 = await walkerClear();
-    await shot(pg, 'tabs-T36-pill-on-explore-320');
-    await pg.setViewportSize({ width: 390, height: 844 });
-    await pg.waitForTimeout(400);
-    // tend tabs audit 29: the pill's Edit opens the editor (a Modal); the hint counts none of its seconds beneath it.
-    await pg.click('[data-testid=bar-edit-offer] [data-testid=capture-edit]').catch(() => {});
-    const editor = await pg.waitForSelector('[data-testid=media-editor]', { timeout: 10000 }).then(() => true, () => false);
-    await pg.waitForTimeout(6000);
+    // tend tabs audit 29: the editor (a Modal) opens by itself after the bar's photo; the hint counts none of its seconds
+    // beneath it.
+    const up = await barPhoto(pg, true);
+    await pg.waitForTimeout(800);
+    await shot(pg, 'edit-after-capture-explore');
+    await pg.waitForTimeout(5200);
     await pg.click('[data-testid=edit-close]').catch(() => {});
-    const afterEditor = await pg.waitForSelector(hint, { timeout: 5000 }).then(() => true, () => false);
-    check(editor && afterEditor,
-      `tend tabs audit 29: six seconds in the media editor, opened from the pill's Edit, leave the press hint unseen: it shows once the editor closes (${JSON.stringify({ editor, afterEditor })})`);
-    // The pill again, up past the hint's five seconds, then closed.
-    const upAgain = await barPhoto();
-    await pg.waitForTimeout(6000);
-    await pg.click('[data-testid=bar-edit-offer-close]').catch(() => {});
+    const offers = await pg.locator('[data-testid=bar-edit-offer], [data-testid=capture-edit]').count();
     const back = await pg.waitForSelector(hint, { timeout: 5000 }).then(() => true, () => false);
+    check(up && back && offers === 0,
+      `tend tabs audit 29: six seconds in the media editor, open by itself after the bar's photo (decision 0240), leave the press hint unseen: it shows once the editor closes, and no Edit pill is left (${JSON.stringify({ up, back, offers })})`);
     await shot(pg, 'tabs-T36-hint-back');
     await pg.setViewportSize({ width: 320, height: 700 });
     await pg.waitForTimeout(500);
@@ -219,8 +213,8 @@ async function run(h) {
     // Shown again, it is marked seen after its own few seconds on screen, and goes.
     await pg.waitForTimeout(6000);
     const after = await pg.locator(hint).count();
-    check(hintBefore && up && upAgain && withPill.clear && withPill320.clear && back && after === 0,
-      `tend tabs T36, tend tabs audit 30, audit 50: while the bar's Edit pill is up the walker stands clear of Explore's press hint and 8 px clear of its names and controls (390 and 320 x 700); the hint shows again as the pill goes, and is marked seen only after its few seconds on screen (${JSON.stringify({ hintBefore, up, upAgain, withPill, withPill320, back, after })})`);
+    check(hintBefore && back && back320.clear && after === 0,
+      `tend tabs T36, tend tabs audit 30, audit 50: once the editor after the bar's photo goes, the hint shows again with the walker clear of it and 8 px clear of Explore's names and controls (320 x 700), and is marked seen only after its few seconds on screen (${JSON.stringify({ hintBefore, back, back320, after })})`);
     // tend tabs T40 (the owner's "Shorter one-line words", 2026-11-19): at 320 x 700 the hint is one line and the walker
     // stands clear of it: after the pill went (audit 30's back320, held now), framed at 390 x 844 on arrival in a fresh
     // app (A; its own context, so its waits take none of this hint's seconds: the T40 review's F5), and framed at
@@ -237,16 +231,10 @@ async function run(h) {
     const t40 = [arrive320, back320, fresh320];
     check(a.shownUp && cc.shownUp && t40.every((m) => m.oneLine && m.clear4),
       `tend tabs T40, tend tabs audit 50: at 320 x 700 "Hold the map to look anywhere." is one line and the walker stands 4 px clear of it or more, and 8 px clear of Explore's names and controls, framed at 390 x 844 (on arrival and after the pill) and at 320 x 700 from the start (${JSON.stringify({ arrive320, back320, fresh320, shown: [a.shownUp, cc.shownUp] })})`);
-    // tend tabs audit 50 (the T40 review's auditor F1, ux U1): framed at 320 x 700 with the hint up, then the bar's pill
-    // lifts the map (the hint steps aside, T36), or a 52 px card does (a stand-in for the reminder card,
-    // `recording-reminder`, for which the hint steps aside too, audit 51; the stand-in is not published, so only the
-    // controls count for it).
-    const pillUp = await barPhoto(cc.pg);
-    await cc.pg.waitForTimeout(600);
-    const pill320 = await walkerClear(cc.pg);
-    await shot(cc.pg, 'tabs-audit-50-pill-320');
-    await cc.pg.click('[data-testid=bar-edit-offer-close]').catch(() => {});
-    await cc.pg.waitForTimeout(600);
+    // tend tabs audit 50 (the T40 review's auditor F1, ux U1): framed at 320 x 700 with the hint up, then a 52 px card
+    // lifts the map (a stand-in for the reminder card, `recording-reminder`, for which the hint steps aside, audit 51; the
+    // stand-in is not published, so only the controls count for it). The bar's Edit pill that lifted it too went with
+    // decision 0240.
     await cc.pg.evaluate(() => {
       const el = document.createElement('div');
       el.style.height = '52px';
@@ -256,8 +244,8 @@ async function run(h) {
     const card320 = await walkerClear(cc.pg);
     await shot(cc.pg, 'tabs-audit-50-card-320');
     await cc.c.close();
-    check(pillUp && !!pill320.walker && pill320.near.length === 0 && !!card320.walker && card320.near.length === 0,
-      `tend tabs audit 50: at 320 x 700, framed with the hint up, then the bar's pill up or a 52 px reminder card added, the walker is under none of Explore's names or controls (the pill sets the hint aside; the stand-in card is not published, so the hint stays drawn over it here, which the real card sets aside: audit 51) (${JSON.stringify({ pillUp, pill320, card320 })})`);
+    check(!!card320.walker && card320.near.length === 0,
+      `tend tabs audit 50: at 320 x 700, framed with the hint up, then a 52 px reminder card added, the walker is under none of Explore's names or controls (the stand-in card is not published, so the hint stays drawn over it here, which the real card sets aside: audit 51) (${JSON.stringify({ card320 })})`);
   }
   // A few steps along Wickenden Street, so the walk has a trace and a fresh fix to place by. At a walker's pace
   // (1.5 m a second): 12 m a second was over MAX_WALK_SPEED_MS (lib/geo), so every step was dropped as a jump and the
@@ -270,29 +258,10 @@ async function run(h) {
   for (let i = 0; i < 6; i++) await step(i);
   // The walk's last fix: the context sends no new one until the next step, so it ages from here.
   const fixAt = Date.now();
-  // tend tabs audit 16: the offer lives with the bar, so a screen opened over the tabs (a day's replay) ends it, as
-  // decision 0149 says; back on the tabs the bar is whole and nothing breaks.
-  {
-    const up = await barPhoto();
-    await tabTo(pg, 'chronicle', 'days');
-    await pg.waitForSelector('[data-testid=day-row]', { timeout: 10000 }).catch(() => {});
-    await pg.locator('[data-testid=day-row]').first().click().catch(() => {});
-    await pg.waitForSelector('[data-testid=day-replay]', { timeout: 10000 }).catch(() => {});
-    await pg.click('[data-testid=day-replay]').catch(() => {});
-    const overTabs = await pg.waitForURL(/\/day\//, { timeout: 15000 }).then(() => true, () => false);
-    await pg.waitForTimeout(800);
-    await pg.goBack();
-    const barBack = await pg.waitForSelector('[data-testid=recording-stats]', { timeout: 15000 }).then(() => true, () => false);
-    await pg.waitForTimeout(600);
-    const pillAfter = await pg.locator('[data-testid=bar-edit-offer]').count();
-    const stats = await pg.locator('[data-testid=recording-stats]').innerText().catch(() => '');
-    check(up && overTabs && barBack && pillAfter === 0 && /^\d+:\d\d · \d/.test(stats),
-      `tend tabs audit 16: a day opened over the tabs ends the bar's Edit offer; back on the tabs the bar keeps its line and no pill is left (${up}, ${overTabs}, ${barBack}, ${pillAfter}, "${stats}")`);
-  }
-  // tend tabs audit 21: a photo from the bar on Explore leaves its Edit pill up, and it follows to Memories.
-  const pillUp = await barPhoto();
-  // tend tabs T37: the room runs low while the pill is up, so Memories' look owes the storage notice (only `estimate`,
-  // as the space journey patches it; put back below).
+  // A photo from the bar on Explore; its editor, open by itself, is closed (decision 0240).
+  const barUp = await barPhoto();
+  // tend tabs T37: the room runs low, so Memories' look owes the storage notice (only `estimate`, as the space journey
+  // patches it; put back below).
   await pg.evaluate(() => {
     const sm = StorageManager.prototype;
     window.__estimate = sm.estimate;
@@ -302,14 +271,6 @@ async function run(h) {
   await pg.waitForSelector(band, { timeout: 10000 }).catch(() => {});
   await pg.waitForTimeout(600);
   const pillOnMemories = await shown('[data-testid=bar-edit-offer]');
-  // tend tabs T37: one dark pill at a time; the storage notice waits while the bar's Edit pill is up.
-  const noticeWithPill = await shown('[data-testid=space-line]');
-  await shot(pg, 'tabs-T12-pill-on-memories');
-  await pg.setViewportSize({ width: 320, height: 700 });
-  await pg.waitForTimeout(500);
-  await shot(pg, 'tabs-T12-pill-on-memories-320');
-  await pg.setViewportSize({ width: 390, height: 844 });
-  await pg.waitForTimeout(500);
   const walkBand = await box(pg, band);
   const barBox = await box(pg, '[data-testid=recording-bar]');
   check(!!walkBand && !!barBox && walkBand.y + walkBand.h <= barBox.y + 0.5 && !(await shown('[data-testid=bar-photo]')),
@@ -334,8 +295,7 @@ async function run(h) {
   const kept = db.captures.find((x) => x.body === 'Kept on the walk, from Memories.');
   check(!!open && !!kept && kept.walk_id === open.id && kept.lat == null && readsAfter === readsBefore,
     `HC10 (tend captures audit 2, audit 3): a note from Memories with a walk minimized belongs to the walk, kept unplaced with a stale fix and no location read (${JSON.stringify({ walk: kept && kept.walk_id, open: open && open.id, lat: kept && kept.lat, fixAge, reads: [readsBefore, readsAfter] })})`);
-  const pillAfterNote = await pg.locator('[data-testid=bar-edit-offer]').count();
-  // tend tabs T37: the pill gone (the next capture, a note), the notice shows, in its own words, once.
+  // tend tabs T37: no Edit pill holds it back (decision 0240), so the notice shows, in its own words, once.
   // tend tabs audit 36 (the T37 review's auditor 4): the browser's own `estimate` is put back whatever happens here, and
   // the notice is dismissed once it shows, so neither lingers into the checks after this one.
   let noticeAfter = '';
@@ -351,10 +311,8 @@ async function run(h) {
       if (window.__estimate) StorageManager.prototype.estimate = window.__estimate;
     });
   }
-  check(pillOnMemories && !noticeWithPill && pillAfterNote === 0 && noticeAfter.replace(/\s+/g, ' ').trim() === 'Room for new photos and videos is running low. OK',
-    `tend tabs T37: on Memories the storage notice waits while the bar's Edit pill is up, and shows in its own words once the pill goes (${JSON.stringify({ pillOnMemories, noticeWithPill, pillAfterNote, noticeAfter })})`);
-  check(pillUp && pillOnMemories && pillAfterNote === 0,
-    `tend tabs audit 21: the bar's Edit pill, up on Memories after a bar photo, ends with the next capture, a note from Memories' open line (${pillUp}, ${pillOnMemories}, ${pillAfterNote})`);
+  check(barUp && !pillOnMemories && noticeAfter.replace(/\s+/g, ' ').trim() === 'Room for new photos and videos is running low. OK',
+    `tend tabs T37, ME23 fix edit-after-capture: after a bar photo and its editor, Memories shows no Edit pill and the storage notice in its own words (${JSON.stringify({ barUp, pillOnMemories, noticeAfter })})`);
   // tend captures audit 2: the other half of HC10, "the latest fix": a note begun just after a fresh fix is placed there
   // when it is kept.
   await step(10);
@@ -534,17 +492,19 @@ async function run(h) {
     const backLow = await words();
     check(lowUp && undoUp && withUndo.undo && !withUndo.line && backLow === 'Room for new photos and videos is running low. OK',
       `tend tabs audit 33: with Undo in Memories' column the storage notice steps aside, and comes back in its own words as Undo goes (${JSON.stringify({ lowUp, undoUp, withUndo, backLow })})`);
-    // A photo from the band with the room now very low: the band's Edit offer stands, and the notice waits for it.
+    // A photo from the band with the room now very low: its editor opens by itself (decision 0240), a Modal over the
+    // column, and the notice shows in its own words once it closes.
     await setFree(50);
     const [chooser] = await Promise.all([p5.waitForEvent('filechooser', { timeout: 10000 }).catch(() => null), p5.click('[data-testid=band-photo]').catch(() => {})]);
     await chooser?.setFiles(require('path').join(h.scriptsDir, 'fixtures', 'photo.jpg'));
-    const offerUp = await p5.waitForSelector('[data-testid=capture-offer]', { timeout: 10000 }).then(() => true, () => false);
+    const editorUp = await p5.waitForSelector('[data-testid=media-editor]', { timeout: 10000 }).then(() => true, () => false);
     await p5.waitForTimeout(600);
-    const withOffer = { offer: await vis('[data-testid=capture-offer]'), line: await vis('[data-testid=space-line]') };
-    await p5.waitForSelector('[data-testid=capture-offer]', { state: 'detached', timeout: 12000 }).catch(() => {});
+    await p5.click('[data-testid=edit-close]').catch(() => {});
+    await p5.waitForSelector('[data-testid=media-editor]', { state: 'detached', timeout: 5000 }).catch(() => {});
+    const offers = await p5.locator('[data-testid=capture-offer], [data-testid=capture-edit]').count();
     const veryLow = await words();
-    check(offerUp && withOffer.offer && !withOffer.line && veryLow === 'There is almost no room left for new photos, videos and memos. OK',
-      `tend tabs audit 33: the band's Edit offer after a photo holds the storage notice back, which shows in its own words once the offer goes (${JSON.stringify({ offerUp, withOffer, veryLow })})`);
+    check(editorUp && offers === 0 && veryLow === 'There is almost no room left for new photos, videos and memos. OK',
+      `tend tabs audit 33, ME23 fix edit-after-capture: the band's photo opens its editor by itself; closed, no Edit pill is left and the storage notice shows in its own words (${JSON.stringify({ editorUp, offers, veryLow })})`);
     await c5.close();
   }
 
@@ -565,11 +525,12 @@ async function run(h) {
     await p6.goto(url);
     await p6.waitForSelector('[data-testid=band-photo]', { timeout: 30000 });
     await p6.waitForTimeout(1500);
-    // A photo kept outside a walk asks the browser, which refuses; its Edit offer holds the words back.
+    // A photo kept outside a walk asks the browser, which refuses; its editor, open by itself, holds the words back.
     const [chooser] = await Promise.all([p6.waitForEvent('filechooser', { timeout: 10000 }).catch(() => null), p6.click('[data-testid=band-photo]').catch(() => {})]);
     await chooser?.setFiles(require('path').join(h.scriptsDir, 'fixtures', 'photo.jpg'));
-    await p6.waitForSelector('[data-testid=capture-offer]', { timeout: 10000 }).catch(() => {});
-    await p6.waitForSelector('[data-testid=capture-offer]', { state: 'detached', timeout: 12000 }).catch(() => {});
+    await p6.waitForSelector('[data-testid=media-editor]', { timeout: 10000 }).catch(() => {});
+    await p6.click('[data-testid=edit-close]').catch(() => {});
+    await p6.waitForSelector('[data-testid=media-editor]', { state: 'detached', timeout: 5000 }).catch(() => {});
     // The next look off the walk says it (SA10): Memories in front again.
     await tabTo(p6, 'explore');
     await p6.waitForTimeout(800);

@@ -1,5 +1,5 @@
 // @layer shell
-// @instance: stores (lib/store) the full-screen cards, every Modal, the bar's stop and its Edit pill set, read by the tab layout, the recording bar and Explore
+// @instance: stores (lib/store) the full-screen cards, every Modal, the bar's stop and its Edit pill set, read by the tab layout, the recording bar and Explore; and each walk's one end from the bar (barStops)
 import type { BarStop } from './recordingBar';
 import { createStore } from './store';
 
@@ -65,3 +65,25 @@ export const barOfferUp = createStore(false);
  * as it goes, so Explore's press hint steps aside meanwhile, as it does for the Edit pill (tend tabs audit 51).
  */
 export const barReminderUp = createStore(false);
+
+/**
+ * Each walk's end from the recording bar, one at a time (tend tabs audit 53): a hold past the stop's bound, when the
+ * Stop comes back, joins the end still under way instead of beginning a second (two replays, an empty walk dropped
+ * twice). The end settles, failed or not, and the next hold runs anew.
+ */
+export function createBarStops() {
+  const going = new Map<string, Promise<void>>();
+  return {
+    run(walkId: string, end: () => Promise<void>): Promise<void> {
+      const was = going.get(walkId);
+      if (was) return was;
+      const done = end().finally(() => {
+        if (going.get(walkId) === done) going.delete(walkId);
+      });
+      going.set(walkId, done);
+      return done;
+    },
+  };
+}
+
+export const barStops = createBarStops();

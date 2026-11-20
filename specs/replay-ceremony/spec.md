@@ -2,8 +2,8 @@
      feels a little choppy, too fast ... a gallery overlaid on top of the map, or something like a queue or a stack that shoots up
      ... the map is a bit too zoomed in ... That fade in, fade out is a little bit jarring"), the prototype they called "a vast
      improvement" (https://claude.ai/artifact/7oLxtuZMhpvXd18H4BLR5P), and, after the first slice went live: "The sequence looks
-     nothing like the mock-up we provided and is really non-performant." To be copied into the concept doc as a tab. The doc wins
-     once it exists. -->
+     nothing like the mock-up we provided and is really non-performant." Copied into the concept doc as the tab
+     "Replay ceremony (shipped on web)" on 2026-11-19 (last exported then); the doc wins. -->
 
 # Replay ceremony: smooth, and as the mock-up shows it (RC)
 
@@ -105,7 +105,7 @@ Open: the three questions under "For the owner" (how the map is driven; how it i
    counts as a quarter second, so a locked screen waits (audit 6).
 6. **RC6** The engine has one number for the most frames it draws a second (60 by default). Set to 30, it draws 30.
 7. **RC7** Cards, grids, bubbles, whispers and the clock move without the screen rendering again.
-8. **RC8** Hold, a tap on the map, Skip, Next, an open viewer, a memo or video the stage waits for, and a telling rebuilt
+8. **RC8** Pause ("Hold" until Nov 20, decision 0242), a tap on the map, Skip, Next, an open viewer, a memo or video the stage waits for, and a telling rebuilt
    mid-path all behave as they do today (RR7, RR13, audits 20 to 34, RY13 to RY17, RY21).
 9. **RC9** The day's replay runs on the same engine.
 10. **RC10** With reduce motion on, the timing is the same and the map stays still, as today (RR18).
@@ -145,7 +145,8 @@ Open: the three questions under "For the owner" (how the map is driven; how it i
 24. **RC24** After the last moment the walker stands 1.6 s, then the camera pulls back in 3 s to the view the card uses, and
     holds it 2 s. The card then arrives without the map moving under it.
 25. **RC25** On a walk's last view each place passed without stopping is named beside it, in body ink at full strength; more
-    than two are said as the one line the card uses (RP19). The day's last view names none, as the day's card carries none (0153).
+    than two are said as the one line the card uses (RP19), and so are one or two that cannot each stand clear of the walk and
+    its pictures (`replay-ceremony ui 14`, decision 0242); the one line stands under the walk. The day's last view names none, as the day's card carries none (0153).
 26. **RC26** The last view shows the date (the walk's, or the day's), and nothing on it is a figure larger than body text or in
     the accent.
 27. **RC27** Skip goes to the card at once, as today.
@@ -227,7 +228,7 @@ One round, from the journeys' pictures at 390 and 320 px (the web build; fake ti
 
 **The cold find** (nine tasks in the owner's words, pictures only): every task was placed, none wrongly. The photos so far
 and "all the photos and videos" both land on the stack; Next, Hold and Skip as replay pace left them (Skip's and Hold's
-wording stays the owner's open call, `docs/DEFERRED.md`, Replay pace); the date, the passed place, "N min later" and a
+wording was the owner's open call then; since Nov 20 they read Pause and "Skip to end", decision 0242); the date, the passed place, "N min later" and a
 photo's place are read without a tap. First misreadings: the stack's single entry as a second pin, the video's tile in the
 corner as a record button, the last view's date as today's.
 
@@ -235,14 +236,26 @@ corner as a record button, the last view's date as today's.
 
 | Finding | Severity | Verdict |
 |---|---|---|
-| U1 A picture standing on the map looks like the thing to tap; a tap only holds | medium | deferred to the owner: a tap that opens the viewer there is a new control this spec did not decide |
-| U2 At 320 by 568 the gap question and the card leave no map; "Tap a pin to open it" points at nothing | medium, one size | deferred to the owner: the question's card is older than this slice |
-| U3 The stack's target is 44 wide and 8 px under Next | low | deferred |
-| U4 A tall stack against a whisper or the last view's name at 320 (not pictured) | low | deferred |
-| U5 A grid of three leaves an empty cell; its strip says "Photo" | low, opinion | deferred (the grid's shape is moment stacks') |
-| U6 A whisper has a halo, not a ground | low | deferred (the whisper is replay rhythm's) |
+| U1 A picture standing on the map looks like the thing to tap; a tap only holds | medium | accepted (the owner's "Proceed", Nov 19), fixed: a tap on a standing picture opens its moment, the replay held (`replay-ceremony ui 1`) |
+| U2 At 320 by 568 the gap question and the card leave no map; "Tap a pin to open it" points at nothing | medium, one size | deferred to the owner on Nov 19; accepted under the owner's defaults (Nov 20, decision 0242), fixed: on a screen that short the question is asked inside the card's sheet (`replay-ceremony ui 11`) |
+| U3 The stack's target is 44 wide and 8 px under Next | low | accepted, fixed: 12 px under Next, 48 dp to a finger on Android (`replay-ceremony ui 2`) |
+| U4 A tall stack against a whisper or the last view's name at 320 (not pictured) | low | accepted, fixed: both end short of the stack (`replay-ceremony ui 3`) |
+| U5 A grid of three leaves an empty cell; its strip says "Photo" | low, opinion | accepted, fixed: the last row's picture spans the row, the strip says "Photos" (`replay-ceremony ui 4`) |
+| U6 A whisper has a halo, not a ground | low | accepted, fixed: a solid ground, under the line and clear of its pin (`replay-ceremony ui 5`) |
 
-No finding was accepted, so there is no `replay-ceremony ui N` test. All six are in `docs/DEFERRED.md`, "Replay ceremony".
+Three more were accepted from the record, each with its test first: a hop's dots stand on white discs so they read over a
+walked street (`replay-ceremony ui 6`); the first beat's faint trace fades out and the walker fades in through the dive
+(`replay-ceremony ui 7`); the first beat's view is north-up whatever the map's bearing was (`replay-ceremony ui 8`). The
+temporary frame readout and the link's frame ceiling, built for the owner's first looks, are removed. What the fixes left
+is in `docs/DEFERRED.md`, "Replay ceremony".
+
+**The owner's defaults** (Nov 20, decision 0242: "proceed with reasonable default for the rest of your concerns based on
+typical traditional user experience"). The looks the review and the fixes left open, each settled by ordinary convention
+with its test first: a hop's dots have a hairline casing where they had discs (`replay-ceremony ui 9`); Hold reads
+Pause and Skip reads "Skip to end" where the top row has the room, 390 px and wider (`ui 10`); the gap question is
+asked inside the card's sheet where it would cover the walk (`ui 11`, U2); one passed place's whisper at a time, two
+that would be up together said as one line (`ui 12`); a whisper stands beside a way running up or down the screen, not
+across it (`ui 13`); the last view's names fall back to the card's one line where they cannot stand clear (`ui 14`).
 
 ## Record
 
@@ -252,8 +265,8 @@ before its code: the engine (RC1-RC10, RC48's engine part), the camera (RC11-RC1
 closing (RC23-RC27), what stays behind and a moment on screen (RC28-RC37, RC45-RC48). `npm run check:test-first
 replay-ceremony`: 41 of 41.
 
-**Tests.** Unit, in `src/lib/__tests__/replay/`: `engine.test.ts`, `meter.test.ts`, `camera.test.ts`, `breaks.test.ts`,
-`close.test.ts`, `stack.test.ts`, `pictures.test.ts`, `moment.test.ts`, `restraint.test.ts`, with `stage.test.ts`. The
+**Tests.** Unit, in `src/lib/__tests__/replay/`: `engine.test.ts`, `camera.test.ts`, `breaks.test.ts`,
+`close.test.ts`, `stack.test.ts`, `pictures.test.ts`, `moment.test.ts`, `restraint.test.ts`, `ui.test.ts`, with `stage.test.ts`. The
 `replay` journey (147 checks) holds RC1-RC4, RC7, RC9, RC10, RC12, RC14, RC17-RC20, RC22, RC24-RC31, RC35, RC36 and RC45;
 `stacks` holds RC37; `days` the day's replay. Older tests that pinned what changed were rewritten with their code (RR3, RR4,
 RR8, RR11, RR13, RR14, RR19, replay-rhythm audits 4, 7, 10 and 15, RY4, RY10, RY13, MS17, `fix trimmed-length 3`, MP10,
@@ -265,8 +278,10 @@ eleven journeys (`replay`, `days`, `stacks`, `walk`, `gaps`, `qol`, `videothumbs
 reticle has after images and doesn't glide across the screens it's very discrete in jumps". Found and fixed: the dot was
 rounded to a whole pixel at a half-pixel centre (393 px wide; 46 flips in one replay, none after). Not found: why it moved
 in steps; a simulation of noisy walks through `readTrace` ruled out the trace, a gate that could have dropped the camera's
-frames was removed, and the preview carries a readout of the frames the phone draws (`lib/ceremony/meter`). The second, of
-everything built: "Looks good so far. Continue the rest of the work and /deploy" (Nov 19).
+frames was removed, and the preview carried a readout of the frames the phone draws. The second, of everything built:
+"Looks good so far. Continue the rest of the work and /deploy" (Nov 19). The third, of the deployed build: "I wasn't able to
+replicate the after image on your current build ... it's smoother than what we had before, so no issues there"; the readout
+and the link's frame ceiling were removed after it.
 
 **Found on the way.** The React Compiler came on with a merge of `main` and the stage stayed empty: it read the frame from
 its store in a render. Fixed (`live.staged`, three tests under RC7); the rule is in `.claude/rules/replay-ceremony.md`.
@@ -277,5 +292,22 @@ frame put them, the screen rendering 0 times on a stretch, 22 frames a second at
 ceiling is about 30).
 
 **Deferred and for the owner**: `docs/DEFERRED.md`, "Replay ceremony". **Native has never run on a device**:
-`docs/NATIVE_UNVERIFIED.md`, "Replay ceremony". The spec was written in the repo and is not yet a tab of the concept doc.
+`docs/NATIVE_UNVERIFIED.md`, "Replay ceremony". The spec was written in the repo first and copied into the concept doc as the tab
+"Replay ceremony (shipped on web)" on Nov 19 (https://claude.ai/artifact/6P9aUdZJAdReBi6yFVtwa7#f248b876-48e6); this file is its mirror.
 The steward on the plan: ten findings, triaged in `plan.md`.
+
+**The UI review's fixes** (2026-11-19, after the deploy of RC1-RC48; `replay-ceremony ui 1` to `ui 8`, their failing tests
+committed first, in `ui.test.ts`). A standing picture opens its moment; the stack stands 12 px under Next; a whisper and
+the last view's names end short of the stack; a grid's last row fills and its strip says "Photos"; a whisper has a solid
+ground under the line; a hop's dots stand on white discs; the trace fades out and the walker in through the dive; the
+first beat is north-up. The `replay` journey holds them (164 checks). Found on the deploy's journeys (Nov 20) and
+fixed test first (`replay-ceremony ui 15`): a picture rendered once to take taps again as each card left, two commits at
+a stretch's start, and RC7's journey check read over 8 commits a second; what takes a tap is now written on the control
+with no render (2.9 a second on the same machine).
+
+**The owner's defaults** (2026-11-20, decision 0242; `replay-ceremony ui 9` to `ui 14`, their failing tests committed
+first, in `ui.test.ts`). Built on the branch after the deploy of `ui 1` to `ui 8` and `ui 15`. A hop's dots are cased
+by a hairline; the buttons read Pause, Play and "Skip to end"; the gap question is inside the sheet on a short phone;
+passed places close together are one whisper; a whisper stands beside a way up the screen; the last view's names keep
+off the walk. After the first pictures, ui 12 was changed: replacing the older whisper by the newer left the two
+overprinting for the fade's time, so they are said as one line.

@@ -22,6 +22,16 @@ export function compassRotation(bearing: number): number {
 }
 
 /**
+ * The bearing a fit is made at (CP1; tend map 2, audit 4; `replay-ceremony ui 8`): the one the map has, since a fit
+ * never turns the map; north while the compass eases it there (the bearing read mid-ease would stop the map part-way);
+ * and north when the fit is asked north-up, as the replay's first beat is, so the path, which is told flat and north-up
+ * (RC15), finds the map so and snaps nothing.
+ */
+export function fitBearing(o: { north: boolean; northEasing: boolean; bearing: number }): number {
+  return o.north || o.northEasing ? 0 : o.bearing;
+}
+
+/**
  * Whether the follow moves the camera to the dot now (tend map 15): while following, with no hand on the map, and never
  * while the compass eases the map north. A camera jump stops any move under way (maplibre's `jumpTo` starts with
  * `stop()`), so a follow frame mid-ease left the map turned (CP4); the next frame after the ease catches the camera up.

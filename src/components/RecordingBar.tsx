@@ -17,22 +17,19 @@ import { handOnRecall, onRecallFired, RECALL_OPEN_KEY } from '../lib/discovery/r
 import { feedback } from '../lib/motion';
 import { MOTION } from '../lib/motionTokens';
 import { perfCount } from '../lib/perfCount';
-import { BAR_WAIT_MS, barGoesBack, barOffer, barOfferAfter, barOfferAfterHidden, barOfferShown, barOfferWords, barStopping, recordingLine, type BarOffer } from '../lib/recordingBar';
-import { captureBus } from '../lib/captureBus';
-import { deletions } from '../lib/deletion';
-import { useHidden } from '../lib/deletion/useDeletions';
+import { BAR_WAIT_MS, barGoesBack, barStopLeftMs, barStopping, recordingLine } from '../lib/recordingBar';
 import type { Pause, Walk } from '../lib/types';
 import type { LiveTrace } from '../lib/useLiveTrace';
 import { useCaptures } from '../lib/useCaptures';
 import { settleWithin } from '../lib/settleWithin';
-import { barOfferUp, barReminderUp, barStop, modalsUp, tabsHidden } from '../lib/tabsHidden';
+import { barReminderUp, barStop, barStops, modalsUp, tabsHidden } from '../lib/tabsHidden';
 import { showWalk } from '../lib/walkNav';
 import { Icon } from './icons';
-import { EditButton } from './edit/EditOffer';
+import { useEditAfterCapture } from './edit/EditOffer';
 import { MediaEditor } from './edit/MediaEditor';
 import { useOpenWalk } from './OpenWalk';
 import { Ticking } from './Ticking';
-import { HoldButton, LiftIn, theme } from './ui';
+import { HoldButton, theme } from './ui';
 
 /** The bar's return waits this long at most for its photo to be kept. */
 const RETURN_WAIT_MS = BAR_WAIT_MS;
@@ -61,14 +58,8 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
   // The bar stays mounted across a change of units under a minimized walk (QL16).
   useUnits();
   const [said, setSaid] = useState<{ text: string; error?: boolean } | null>(null);
-  // After its photo, Edit is offered in a pill above the bar that waits for Edit, Close or the next capture (T12,
-  // decision 0149; ME23's six seconds elsewhere).
-  const [offer, setOffer] = useState<BarOffer | null>(null);
-  const [editingKept, setEditingKept] = useState<Faced | null>(null);
-  // A failed photo ends a waiting offer: no pill says saved over the failure (tend tabs audit 18).
   const onError = useCallback((e: { message: string }) => {
     setSaid({ text: e.message, error: true });
-    setOffer((o) => barOfferAfter(o, null));
   }, []);
   // No Retry on the bar: a failure says where it is held (unsaved captures UN10).
   const cap = useCaptures(walk.id, live.here, live.lastFixAt, onError, { retryShown: false, shortWords: true });
@@ -76,31 +67,28 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
   const path = usePathname();
   const section = useStore(chronicleSection.store, (x) => x);
   const showCamera = barCamera(path, section);
-  // The next capture of this walk, from any path (Memories' band too), ends the offer; the bar's own photo replaces it.
-  const [listener] = useState(() => ({}));
-  useEffect(() => captureBus.subscribe(walk.id, listener, (c) => setOffer((o) => barOfferAfter(o, c.id))), [walk.id, listener]);
-  // Its photo deleted elsewhere (Memories, a day) ends it, Undo waiting or not (tend tabs audit 15).
-  const hidden = useHidden();
-  useEffect(() => deletions.subscribe(() => setOffer((o) => barOfferAfterHidden(o, deletions.hidden()))), []);
-  // Held to stop, the walk is going: the pill goes first (tend tabs audit 19). Shared, not this bar's own: the bar
-  // unmounts as its tab loses focus while the stop goes on (tend tabs audit 26).
-  const stopping = useStore(barStop, (s) => s?.walkId === walk.id);
+  // Once its photo or video is kept, the editor opens by itself (ME23 as decision 0240 amends it; it was 0149's pill).
+  const editAfter = useEditAfterCapture(cap.captures);
+  const editing = editAfter.editing;
+  // Held to stop, the walk is going. Shared, not this bar's own: the bar unmounts as its tab loses focus while the stop
+  // goes on (tend tabs audit 26).
+  // Within the stop's own bound, as the way back is: a stop that hangs lets the Stop's spinner go after it (tend tabs 19).
+  const stopSince = useStore(barStop, (s) => (s?.walkId === walk.id ? s.since : null));
+  // Mounted after the bound (its tab back in front), the stop is over from the first render (tend tabs audit 54).
+  const [stopOver, setStopOver] = useState<number | null>(() => {
+    const s = barStop.get();
+    return s && s.walkId === walk.id && !barStopping(s, walk.id, Date.now()) ? s.since : null;
+  });
+  useEffect(() => {
+    if (stopSince == null) return;
+    const t = setTimeout(() => setStopOver(stopSince), barStopLeftMs({ walkId: walk.id, since: stopSince }, walk.id, Date.now()));
+    return () => clearTimeout(t);
+  }, [stopSince, walk.id]);
+  const stopping = stopSince != null && stopOver !== stopSince;
   // The held captures of the walk this Stop has warned of; one held beyond them is warned of too (unsaved captures UN5).
   const warnedHeld = useRef<string[]>([]);
   // The memo saves this Stop has said are still being saved; the next hold goes through them (T35).
   const warnedSaves = useRef<number[]>([]);
-  const offerUp = barOfferShown(offer, cap.captures.map((c) => c.id), hidden, stopping);
-  // Told to the tabs, so Explore's press hint steps aside while the pill lifts its map (tend tabs T36).
-  useEffect(() => {
-    barOfferUp.set(offerUp);
-    return () => barOfferUp.set(false);
-  }, [offerUp]);
-  const offerWords = offer ? barOfferWords(offer.kind) : null;
-  // Announced politely, without moving focus, as Undo is: iOS reads no live regions (decision 0113).
-  const spoken = offerUp ? offerWords?.spoken : undefined;
-  useEffect(() => {
-    if (spoken && Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility(spoken);
-  }, [spoken, offer?.id]);
   // The bar's words (a refusal, a warning, a failure) are announced too: iOS reads no live regions, and a refused hold
   // says why only here (tend tabs audit 45).
   useEffect(() => {
@@ -109,6 +97,8 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
   // A photo still being kept: Return waits for it, so the walk screen opens with it (NV9).
   const keeping = useRef<Promise<unknown> | null>(null);
   const returning = useRef(false);
+  // Up once the way back has asked for the walk screen, and never lowered: the bar is going (audit 5).
+  const wentBack = useRef(false);
   const [reminder, setReminder] = useState<Faced[] | null>(null);
 
   useEffect(() => {
@@ -199,6 +189,7 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
       if (!goesBack(false)) return;
       feedback('tap');
       showWalk();
+      wentBack.current = true;
     } finally {
       returning.current = false;
     }
@@ -211,15 +202,14 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
     });
     if (!kept) return;
     feedback('tap');
-    // The pill says it was kept; the line keeps its time and distance (T12).
     setSaid(null);
-    setOffer(barOffer(kept));
+    // Not while the walk is stopping or has ended, nor once the bar goes back to the walk: the replay or the walk screen
+    // would take the editor with the bar (tend tabs audit 19; fix edit-after-capture audits 3, 5, 6).
+    if (!returning.current && !wentBack.current && !barStopping(barStop.get(), walk.id, Date.now()) && !unsaved.hasEnded(walk.id)) editAfter.open(kept);
   };
 
-  const stop = async () => {
-    if (barStopping(barStop.get(), walk.id, Date.now())) return;
-    const mine = { walkId: walk.id, since: Date.now() };
-    barStop.set(mine);
+  // The bar's end of the walk: run once per walk, however many holds ask for it (tend tabs audit 53).
+  const endWalk = async () => {
     try {
       // Never under a memo recording, as Start (tabs audit 3); a memo still being saved after the wait is said once, and
       // the next hold goes through it, the memo saving into the ended walk (T35). The bar's photo is kept first, as on
@@ -248,6 +238,18 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
       if (!dropped) router.push(`/replay/${walk.id}`);
     } catch (e) {
       setSaid({ text: `The walk could not be stopped: ${e instanceof Error ? e.message : e}`, error: true });
+    }
+  };
+
+  const stop = async () => {
+    if (barStopping(barStop.get(), walk.id, Date.now())) return;
+    const mine = { walkId: walk.id, since: Date.now() };
+    barStop.set(mine);
+    try {
+      // A hold past the bound, the Stop back, joins the end under way: its spinner again, its replay pushed once.
+      await barStops.run(walk.id, endWalk);
+    } catch {
+      // The end says its own failure on the bar.
     } finally {
       barStop.set((s) => (s === mine ? null : s));
     }
@@ -256,24 +258,6 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
   const line = (now: number) => recordingLine({ startedAt, pauses, now, distanceM });
   return (
     <View>
-    {offerUp && offer && offerWords && (
-      // Above the bar, in the Undo pill's look (decision 0113), on the page's ground: it takes room, never covers
-      // a screen's controls while it waits.
-      <View style={styles.offerWrap} pointerEvents="box-none">
-        <LiftIn style={styles.offer} testID="bar-edit-offer" accessibilityLiveRegion="polite">
-          <Text style={styles.offerText}>{offerWords.text}</Text>
-          <View style={styles.offerActions}>
-            <EditButton style={styles.offerEdit} onPress={() => {
-              setEditingKept(cap.captures.find((c) => c.id === offer.id) ?? null);
-              setOffer(null);
-            }} />
-            <Pressable testID="bar-edit-offer-close" accessibilityRole="button" accessibilityLabel={offerWords.close} onPress={() => setOffer(null)} style={styles.offerClose}>
-              <Icon name="close" size={20} color="rgba(255,255,255,0.75)" />
-            </Pressable>
-          </View>
-        </LiftIn>
-      </View>
-    )}
     <View testID="recording-bar" style={styles.bar}>
       {reminder && (
         // Above the line, which keeps its time and distance: the walk's reminder card, in the bar.
@@ -312,7 +296,15 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
               {said.text}
             </Text>
           ) : (
-            <Ticking testID="recording-stats" style={styles.text} numberOfLines={1} text={(now) => line(now).text} label={(now) => line(now).label} />
+            // The numbers whole, then " · Paused", which alone shrinks at 320 px (tend tabs audit 57); the label says it all.
+            <View testID="recording-stats" style={styles.line}>
+              <Ticking testID="recording-numbers" style={[styles.text, styles.numbers]} numberOfLines={1} text={(now) => line(now).numbers} label={(now) => line(now).label} />
+              {paused && (
+                <Text testID="recording-word" style={[styles.text, styles.word]} numberOfLines={1} aria-hidden accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+                  {' · Paused'}
+                </Text>
+              )}
+            </View>
           )}
           {/* Back into the walk, not "expand" (tabs audit U10): the label stays "Return to the walk". */}
           <View testID="recording-go" style={styles.glyph}>
@@ -349,8 +341,8 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
           <Icon name="stop" size={18} color={theme.ink} />
         </HoldButton>
       </View>
-      {editingKept && (
-        <MediaEditor key={editingKept.id} capture={editingKept} initialTool="crop" onClose={() => setEditingKept(null)} onSave={(patch) => cap.setEdit(editingKept, patch)} />
+      {editing && (
+        <MediaEditor key={editing.piece_id} capture={editing} justKept initialTool="crop" onClose={() => editAfter.close()} onSave={(patch) => cap.setEdit(editing, patch)} />
       )}
     </View>
     </View>
@@ -370,21 +362,11 @@ const styles = StyleSheet.create({
   dot: { width: 10, height: 10, borderRadius: 5, backgroundColor: theme.danger, borderWidth: 1.5, borderColor: '#ffffff' },
   glyph: { alignItems: 'center', justifyContent: 'center' },
   text: { flex: 1, color: '#ffffff', fontSize: 16, fontWeight: '600', fontVariant: ['tabular-nums'] },
+  line: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center' },
+  numbers: { flexGrow: 0, flexShrink: 0, flexBasis: 'auto' },
+  word: { flex: 1, flexShrink: 1, minWidth: 0 },
   error: { fontSize: 14 },
   stop: { width: 44, height: 44, minHeight: 44, paddingHorizontal: 0, borderRadius: 22, backgroundColor: theme.surface, alignItems: 'center', justifyContent: 'center' },
-  // The Undo pill's measures (components/UndoToast), a little tighter at the sides so its words stay whole on one
-  // line at 320 px.
-  offerWrap: { alignItems: 'center', paddingHorizontal: 4, paddingVertical: 8, backgroundColor: theme.bg },
-  offer: {
-    flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 48, paddingLeft: 12, paddingRight: 2, borderRadius: 24,
-    backgroundColor: theme.ink, maxWidth: 608,
-    shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 6,
-  },
-  offerText: { color: '#ffffff', fontSize: 15, fontWeight: '600', flexShrink: 1, paddingVertical: 12 },
-  // Edit and Close apart by Undo's 8 (tend tabs audit 20), paid for from the sides, never the words.
-  offerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  offerEdit: { backgroundColor: 'rgba(255,255,255,0.18)', paddingHorizontal: 12 },
-  offerClose: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   camera: { width: 44, height: 44, borderRadius: 22, backgroundColor: theme.surface, alignItems: 'center', justifyContent: 'center' },
   pressed: { opacity: 0.8 },
 });

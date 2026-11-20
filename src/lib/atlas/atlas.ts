@@ -37,12 +37,12 @@ import type { Pocket } from './pockets';
 /** a11: a neighborhood with a real shape is counted across it (neighborhood boundaries, HB11); towns stand as under a10. */
 /** a12: a park with a small outline and nothing notable in or near it is a community park whatever its name (fix community-park, 0163); none carried. */
 /** a13: a profile keeps each storefront street's point, so the card lists them nearest first (specs/storefronts SF3); none carried. */
-/** The atlas's own part of a row's code (a13). */
+/** The atlas's own part of a row's code: `ATLAS_OWN`, below, after the history of its codes. */
 // a14: small places (specs/small-places SP12, SP13): the bars keep counts and each small subset's share apart.
 // a15: Sights follow the switches (specs/sights-and-local-life SG12, decision 0201): the tally keeps every Sights place
 // under its kind, so a profile of a14 has none to drop; none carried.
 const ATLAS_OWN = 'a15';
-/** A row's code: the atlas's own (a13) and presence's (PR6), so a reclassification re-reads every row. */
+/** A row's code: the atlas's own (`ATLAS_OWN`) and presence's (PR6), so a reclassification re-reads every row. */
 export const ATLAS_CODE = `${ATLAS_OWN}.${PRESENCE_CODE}`;
 
 /**
@@ -768,7 +768,7 @@ export const MARKS_EXPLAINED: readonly string[] = [
   'Sights (history, art, culture, green and views) count only places worth finding, the ones that can turn up as a “?”.',
   'They count only the kinds you have on in “What I’m into”. Some museums count toward two kinds, history and culture.',
   'Local life (food, shops and nightlife) counts every place of its kind, and never turns up as a “?”.',
-  'A place too small to light a dot can still turn up as a “?” on the map, where its kind reads none.',
+  'A place too small to light a mark can still turn up as a “?”, even where its kind reads none.',
   'One mark: a little of the kind. Two: a handful. Three: a street’s worth.',
   'Every area is judged the same way, within about a ten-minute walk of its point, so the same marks mean the same anywhere.',
 ];

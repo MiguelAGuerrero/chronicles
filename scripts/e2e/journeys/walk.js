@@ -307,11 +307,14 @@ async function checks(h) {
           return !b || !r || w.scrollWidth > w.clientWidth + 1 || r.left < b.left || r.right > b.right;
         }));
         const cut390 = await cut();
+        // This block runs inside chronicle, deletion, memories and notifications too (tend presence audit 8): the page is
+        // put back at the size it had, whatever that was.
+        const sizeWas = page.viewportSize();
         await page.setViewportSize({ width: 320, height: 700 });
         await page.waitForTimeout(800);
         await shot(page, '02a-place-card-320');
         const cut320 = await cut();
-        await page.setViewportSize({ width: 390, height: 844 });
+        if (sizeWas) await page.setViewportSize(sizeWas);
         await page.waitForTimeout(800);
         check(!cut390.some(Boolean) && !cut320.some(Boolean), `capture-at-a-place ui 1: Camera, Voice and Note show whole at 390 and 320 (${JSON.stringify({ cut390, cut320 })})`);
         // CA3, CA7: Voice on the card starts the memo with its own Save and Discard; discarded, it finds nothing.
@@ -368,7 +371,10 @@ async function checks(h) {
         await openPlace();
         [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.click('[data-testid=mark-camera]')]);
         await chooser.setFiles(path.join(fixtures, 'clip-4s.webm'));
-        await page.waitForSelector('text=Video saved here');
+        // Its editor opens by itself once kept (ME23, decision 0240): closed, the video kept as taken.
+        await page.waitForSelector('[data-testid=media-editor]', { timeout: 30000 });
+        await page.click('[data-testid=edit-close]');
+        await page.waitForSelector('[data-testid=media-editor]', { state: 'detached', timeout: 5000 });
         // Within ~30 m at walking zoom, the video shares a pin with the memo. The pins regroup a moment after
         // the save; a fixed 2.5 s wait read the label too early on the /chronicles build (Nov 4 deploy).
         // The memo and the video are kept 25-30 m apart, whichever fix the memo began on; pins share when within
@@ -739,8 +745,8 @@ async function checks(h) {
         const lingering = await walkMap().locator('[data-testid=enter-drop]').count();
         check(drops.some((d) => d.animated && d.ids.split(',').includes(photoId)) && lingering === 0,
           `the new photo's own pin drops in, then is a plain pin again (M10, audit 3, 4: ${JSON.stringify(drops)}, ${lingering} left)`);
-        // The Edit offer (ME23), then its Text tool: the caption.
-        await page.click('[data-testid=capture-edit]');
+        // The editor, open by itself since the photo was kept (ME23, decision 0240), then its Text tool: the caption.
+        await page.waitForSelector('[data-testid=media-editor]', { timeout: 10000 });
         await page.click('[data-testid=edit-tool-text]');
         await page.fill('[data-testid=caption-input]', 'Mural on Wickenden');
         await page.waitForTimeout(400);

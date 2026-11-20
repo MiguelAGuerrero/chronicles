@@ -2,10 +2,12 @@
 // settings, Suggest different routes, and Start. Phase two has a walk recording: capture is on the page and Start routes that walk.
 // E2E_ONLY=planner runs it alone.
 
+const path = require('path');
+
 const BANNED = /\b(minutes?|mins?|hours?|ETA|pace|brisk|quick(er|est)?|fast(er|est)?|shorter|longer|more|most|best|densest|less|than|same)\b/i;
 
 async function run(h) {
-  const { url, exploreUrl, at, check, freshPage, shot, openWalk, tabTo, tabBarShown } = h;
+  const { url, exploreUrl, at, check, freshPage, shot, openWalk, tabTo, tabBarShown, scriptsDir } = h;
   const { c, pg } = await freshPage('planner');
   const walksCount = (page) => page.evaluate(() => new Promise((resolve) => {
     const req = indexedDB.open('chronicles');
@@ -272,11 +274,33 @@ async function run(h) {
   await pg.click('[data-testid=atlas-kind-walk-parks]');
   await pg.waitForSelector('[data-testid=plan-capture]', { timeout: 30000 }).catch(() => {});
   check((await pg.locator('[data-testid=plan-capture]').count()) === 1 && (await pg.locator('[data-testid=plan-cap-photo]').count()) === 1 && (await pg.locator('[data-testid=plan-cap-voice]').count()) === 1 && (await pg.locator('[data-testid=plan-cap-note]').count()) === 1, 'WP23: with a walk recording, the capture stack is on the planner: photo, voice and note, one tap away');
+  {
+    // fix planner-edit (decision 0240, the owner's answer): the planner's camera opens the photo's editor by itself once it
+    // is accepted, as the walk screen's does; Escape closes the editor alone, never the planner beneath it.
+    const [chooser] = await Promise.all([pg.waitForEvent('filechooser'), pg.click('[data-testid=plan-cap-photo]')]);
+    await chooser.setFiles(path.join(scriptsDir, 'fixtures', 'photo.jpg'));
+    const opened = await pg.waitForSelector('[data-testid=media-editor]', { timeout: 15000 }).then(() => true, () => false);
+    const keptLine = await pg.locator('[data-testid=edit-kept]').innerText().catch(() => '');
+    check(opened && keptLine === 'Photo kept', `ME23 fix planner-edit: the planner's camera opens the photo's editor by itself once accepted (${keptLine})`);
+    await pg.waitForTimeout(800);
+    await shot(pg, 'planner-edit-after-capture');
+    await pg.keyboard.press('Escape');
+    const closed = await pg.waitForSelector('[data-testid=media-editor]', { state: 'detached', timeout: 5000 }).then(() => true, () => false);
+    await pg.waitForTimeout(500);
+    check(closed && (await pg.locator('[data-testid=plan-capture]').count()) === 1,
+      'fix planner-edit: Escape closes the editor and leaves the planner open beneath it');
+    await shot(pg, 'planner-edit-closed');
+  }
   await pg.click('[data-testid=plan-cap-note]');
   // note-pages audit 13: the planner's pencil opens the note's page too, never the old card.
   const plannerPage = await pg.waitForSelector('[data-testid=note-page] [data-testid=note-input]', { timeout: 8000 }).then(() => true, () => false);
   check(plannerPage && (await pg.locator('[data-testid=plan-note]').count()) === 0, 'note-pages audit 13: the planner\'s pencil opens the note\'s page');
   await pg.fill('[data-testid=note-page] [data-testid=note-input]', 'A note from the planner');
+  // react-native-web's Modal traps Tab only once its slide has ended (its onShow), while the planner's own trap stands aside
+  // as soon as the Modal is drawn. After the photo step above, a Tab sent at once found neither on 2 runs of 6 (0 of 4
+  // without the step; which part of the step slows the slide was not measured). Tab before the slide ends is an older
+  // leak, deferred (fix planner-edit audit, F4); this check is about Tab after it.
+  await pg.waitForTimeout(800);
   {
     // tend explore audit 36 (WCAG 2.2, 2.1.1 Keyboard and 2.4.3 Focus Order): the planner's Tab trap stands aside for the
     // note page's Modal over it, so Tab from the note reaches its Save, never pulled back to the page's first control.

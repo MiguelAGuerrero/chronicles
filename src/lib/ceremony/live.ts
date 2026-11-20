@@ -75,6 +75,20 @@ export function shapeOf(f: Frame, turn = 0): string {
   return s;
 }
 
+/**
+ * Whether the stack is up in a frame (`replay-ceremony ui 3`): what is said over the map then ends short of its
+ * column. Read from the end: the pictures come first in a frame, many of them, and the stack after the cards.
+ */
+export function stackUp(f: Frame | null): boolean {
+  if (!f) return false;
+  for (let i = f.overlays.length - 1; i >= 0; i--) {
+    const kind = f.overlays[i].kind;
+    if (kind === 'stack') return true;
+    if (kind === 'picture') return false;
+  }
+  return false;
+}
+
 /** One overlay of a frame, by kind and key. */
 export function overlayOf<K extends OverlayKind>(f: Frame | null, kind: K, key: string): Extract<Overlay, { kind: K }> | null {
   if (!f) return null;

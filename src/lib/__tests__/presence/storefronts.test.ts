@@ -43,5 +43,7 @@ test('SF11: the reclassification re-derives what depends on it: a new presence c
   assert.equal(rulesCurrent(LANDING_VERSION.replace(`:${presence.PRESENCE_CODE}:`, ':p7:')), false, 'p7 is read again: p8 carries nothing (decision 0198)');
   assert.equal(rulesCurrent(LANDING_VERSION.replace(`:${presence.PRESENCE_CODE}:`, ':p8:')), false, 'p8 is read again: p9 carries nothing (more-attractions audits 1-3)');
   assert.equal(rulesCurrent(LANDING_VERSION.replace(`:${presence.PRESENCE_CODE}:`, ':p9:')), false, 'p9 is read again: p10 carries nothing (typed bridges, MA10)');
+  // tend presence 2: Overture's historic sites, memorial sites, parks and trails weigh nothing toward storefronts; a weight moved.
+  assert.equal(rulesCurrent(LANDING_VERSION.replace(`:${presence.PRESENCE_CODE}:`, ':p10:')), false, 'p10 is read again: p11 carries nothing (tend presence 2)');
   assert.equal(rulesCurrent(LANDING_VERSION.replace(`:${presence.PRESENCE_CODE}:`, ':p3:')), false, 'p3 is read again: only the code just before is carried');
 });

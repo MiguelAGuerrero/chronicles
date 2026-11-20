@@ -1,0 +1,14 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Replay ceremony (RC1-RC22, decision 0206)",
+        "--end"
+      ],
+      "body": "- [ ] **Do:** in a replay, tap a standing picture while a card lies over it, then again once the card has gone; then tap an earlier picture hidden under a later one. **Expect:** under the card the tap only holds the replay; once the card has gone the picture opens its moment; the hidden one gives the tap to the later picture (`replay-ceremony ui 15`: what takes a tap is `pointerEvents` sent in `setNativeProps`' style by `liveStyle.ts`, never a render; if a phone ignores it there, every picture takes taps always).\n"
+    }
+  ]
+}

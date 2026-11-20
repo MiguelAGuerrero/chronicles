@@ -67,6 +67,12 @@ export function timelineWalkLine(distance: string | null, moments: number): stri
 /** A walk's More, named by the title it shows wherever that title is known: its row, its timeline entry, its card (tend tabs 11). */
 export const moreFor = (title: string): string => `More for ${title}`;
 
+/**
+ * What a replay card's strip calls a moment's pictures shown as a grid (`replay-ceremony ui 4`): the kind in the
+ * plural for two or more, a word and never a count.
+ */
+export const gridLabel = (pieces: number): string => (pieces > 1 ? 'Photos' : 'Photo');
+
 /** A day's timeline entry for a walk as a screen reader says it (tend chronicle 3): its time, the title it shows, its line. */
 export function timelineWalkSpoken(clock: string, title: string, line: string): string {
   return `${[clock, title, ...line.split(' · ')].join(', ')}. Replay it`;
@@ -75,13 +81,13 @@ export function timelineWalkSpoken(clock: string, title: string, line: string): 
 /**
  * Chronicle's peek with nothing walked (decision 0148, from /tend inbox T10; amends 0050's U7): one way to act,
  * and a line that is true while you walk. With nothing open, how walks get here and Navigate (the section bar
- * holds Days); with a walk open, that this walk is starred when it ends, and no button: the recording bar's › is
+ * holds Days); with a walk open, that this walk is marked when it ends (tend tabs 20: never "starred", the owner, Nov 20), and no button: the recording bar's › is
  * the way back.
  */
 export function emptyPeek(walkOpen: boolean): { line: string; navigate: boolean } {
   return walkOpen
-    ? { line: 'This walk is starred here when it ends', navigate: false }
-    : { line: 'Walk somewhere and it is starred here', navigate: true };
+    ? { line: 'This walk is marked here when it ends', navigate: false }
+    : { line: 'Walk somewhere and it is marked here', navigate: true };
 }
 
 const capFirst = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);

@@ -100,6 +100,11 @@ async function checks(h) {
     const dropGlErrors = (from) => { for (let i = h.errors.length - 1; i >= from; i--) if (/WebGL|webgl|GPUInitialization/.test(h.errors[i])) h.errors.splice(i, 1); };
     const screenErr = () => shownCount(page, '[data-testid=screen-error]');
     const shownButton = (name) => page.getByRole('button', { name, exact: true }).filter({ visible: true }).count();
+    // tend tabs 16: the walk line a shown error screen carries ("Your walk is …"), or null.
+    const walkLineShown = () => page.evaluate(() => {
+      const e = [...document.querySelectorAll('[data-testid=screen-error]')].find((x) => !x.closest('[aria-hidden=true]'));
+      return e ? ([...e.querySelectorAll('div')].map((d) => d.innerText.trim()).find((t) => /^Your walk is/.test(t)) ?? null) : null;
+    });
     {
       // tend replay audit 7 (the T20 review's auditor 1): inside the tabs dismissTo('/') did nothing, so Explore's
       // "Back to Chronicle" goes by router.navigate('/') and opens Chronicle's tab.
@@ -113,6 +118,7 @@ async function checks(h) {
       const errs = await screenErr();
       const backs = await shownButton('Back to Chronicle');
       const shown = errs === 1 && backs === 1;
+      const line7 = await walkLineShown();
       await h.shot(page, 'audit7-explore-error-390');
       await failMaps(null);
       await page.getByRole('button', { name: 'Back to Chronicle', exact: true }).filter({ visible: true }).click({ timeout: 5000 }).catch(() => {});
@@ -120,6 +126,7 @@ async function checks(h) {
       const home = new URL(page.url()).pathname === `${BASE}/` && (await page.locator('[data-testid=tab-chronicle][aria-selected=true]').count()) === 1
         && (await screenErr()) === 0;
       check(shown && home, `tend replay audit 7: Explore's error screen shows "Back to Chronicle", and it opens Chronicle's tab at / (${JSON.stringify({ errs, backs, home, url: page.url() })})`);
+      check(shown && line7 === null, `tend tabs 16: with no walk open, Explore's error screen says nothing of a walk (${JSON.stringify({ shown, line7 })})`);
       dropGlErrors(from);
     }
     {
@@ -134,6 +141,7 @@ async function checks(h) {
       const shown = (await screenErr()) === 1;
       const tryAgain = await shownButton('Try again');
       const back = await shownButton('Back to Chronicle');
+      const line8 = await walkLineShown();
       await h.shot(page, 'audit8-chronicle-error-390');
       await failMaps(null);
       await page.getByRole('button', { name: 'Try again', exact: true }).filter({ visible: true }).click({ timeout: 5000 }).catch(() => {});
@@ -141,6 +149,7 @@ async function checks(h) {
       const redrawn = (await screenErr()) === 0;
       check(shown && tryAgain === 1 && back === 0 && redrawn,
         `tend replay audit 8: Chronicle's own error screen has Try again alone, no "Back to Chronicle", and Try again redraws the tab (${JSON.stringify({ shown, tryAgain, back, redrawn })})`);
+      check(shown && line8 === null, `tend tabs 16: with no walk open, Chronicle's error screen says nothing of a walk (${JSON.stringify({ shown, line8 })})`);
       dropGlErrors(from);
       // Back to Memories, where the launch's later checks expect Chronicle to open.
       if (await page.locator('[data-testid=section-memories]').filter({ visible: true }).count()) await page.click('[data-testid=section-memories]');
@@ -182,7 +191,7 @@ async function checks(h) {
     await page.waitForTimeout(1500);
     const ch = await onTab('chronicle');
     await h.mapUp(page);
-    await page.waitForSelector('text=Walk somewhere and it is starred here');
+    await page.waitForSelector('text=Walk somewhere and it is marked here');
     check(ch.path === '/' && ch.canvases === 1, `Chronicle's map at /, one live map (NV4, NV5: ${JSON.stringify(ch)})`);
     check((await shownCount(page, '[data-testid=start], [data-testid=moment-note], [data-testid=line-input], [data-testid=look-here]')) === 0,
       'Chronicle\'s map has no Start, Explore button, quick capture or What’s good here; the band is on Memories only (NV11, HC6)');
@@ -324,6 +333,116 @@ async function fresh(h) {
       for (let i = h.errors.length - 1; i >= from; i--) if (/^walk-error: .*(WebGL|webgl|GPUInitialization)/.test(h.errors[i])) h.errors.splice(i, 1);
       await c.close();
     }
+    // tend tabs 16 (the owner, Nov 20: O35 extends to the tabs): with a walk minimized and recording, Explore's error says
+    // "Your walk is still recording.", as the walk screen's does, never "saved", which reads as ended.
+    {
+      const { c, pg } = await freshPage('tab-error-walk');
+      await pg.goto(navUrl);
+      await pg.waitForSelector('[data-testid=start]');
+      await pg.waitForTimeout(1500);
+      await pg.click('[data-testid=start]');
+      await pg.waitForSelector('[data-testid=walk-minimize]', { timeout: 20000 });
+      await pg.waitForTimeout(1500);
+      await pg.click('[data-testid=walk-minimize]');
+      await pg.waitForSelector('[data-testid=recording-bar]', { timeout: 10000 });
+      // Every map refused from here, as tend replay audit 7 does: Memories has none and the walk screen is down, so the
+      // one asked for is Explore's (made before its tab's path shows, so a path test would miss it).
+      const from = h.errors.length;
+      await pg.evaluate(() => {
+        const real = HTMLCanvasElement.prototype.getContext;
+        HTMLCanvasElement.prototype.getContext = function (kind, ...rest) {
+          if (/webgl/.test(String(kind))) return null;
+          return real.call(this, kind, ...rest);
+        };
+      });
+      await pg.click('[data-testid=tab-explore]');
+      await pg.waitForFunction(() => [...document.querySelectorAll('[data-testid=screen-error]')].some((e) => !e.closest('[aria-hidden=true]')), null, { timeout: 15000 }).catch(() => {});
+      await pg.waitForTimeout(800);
+      const seen = await pg.evaluate(() => {
+        const e = [...document.querySelectorAll('[data-testid=screen-error]')].find((x) => !x.closest('[aria-hidden=true]'));
+        return e ? [...e.querySelectorAll('div')].filter((d) => !d.querySelector('div') && d.innerText.trim()).map((d) => d.innerText.trim()) : null;
+      });
+      await h.shot(pg, 'audit7-explore-error-walk-390');
+      check(!!seen && seen.includes('Your walk is still recording.') && !seen.includes('Your walk is saved.') && (await pg.locator('[data-testid=recording-bar]').count()) === 1,
+        `tend tabs 16: with a walk minimized and recording, Explore's error says "Your walk is still recording.", the recording bar still there (${JSON.stringify(seen)})`);
+      for (let i = h.errors.length - 1; i >= from; i--) if (/^tab-error-walk: .*(WebGL|webgl|GPUInitialization)/.test(h.errors[i])) h.errors.splice(i, 1);
+      await c.close();
+    }
+    // The recording bar's line at 320 px on Explore (camera and Stop beside it), its numbers whole: a walk of a given
+    // length and distance is seeded (its start moved back, a trace along a street, a pause open if paused), then read
+    // again by a reload and minimized. tend tabs audit 55 (the owner, Nov 20: "1:45" past the hour).
+    const barLine = async ({ label, minutes, meters, paused = false, miles = false, shotName = null }) => {
+      const { c, pg } = await freshPage(`bar-line-${label}`);
+      await pg.goto(navUrl);
+      await pg.waitForSelector('[data-testid=start]');
+      await pg.waitForTimeout(1500);
+      await pg.click('[data-testid=start]');
+      await pg.waitForSelector('[data-testid=walk-minimize]', { timeout: 20000 });
+      await pg.waitForTimeout(1500);
+      const w = await openWalk(pg);
+      const now = Date.now();
+      const t0 = now - minutes * 60_000 - 20_000;
+      // A street west to east along y = -0.5 (100 m a unit), its fixes spread over the walk's time; the browser's own
+      // position at its end, so the live trace goes on from there.
+      const units = meters / 100;
+      const n = Math.max(2, Math.round(meters / 7));
+      const span = Math.max(10_000, minutes * 60_000 + 10_000);
+      const pts = [];
+      for (let k = 0; k <= n; k++) {
+        const p = at(-units / 2 + (units * k) / n, -0.5);
+        pts.push({ walk_id: w.id, t: t0 + 5_000 + Math.round((span * k) / n), lon: p[0], lat: p[1], accuracy_m: 6, speed: 1.4, course: null });
+      }
+      const end = at(units / 2, -0.5);
+      await c.setGeolocation({ longitude: end[0], latitude: end[1], accuracy: 6 });
+      await pg.evaluate(([id, startedAt, points, pauseAt, units]) => new Promise((resolve) => {
+        const req = indexedDB.open('chronicles');
+        req.onsuccess = () => {
+          const tx = req.result.transaction(['walk', 'trace_point', 'pause', 'meta'], 'readwrite');
+          const g = tx.objectStore('walk').get(id);
+          g.onsuccess = () => tx.objectStore('walk').put({ ...g.result, started_at: startedAt });
+          for (const p of points) tx.objectStore('trace_point').add(p);
+          if (pauseAt) tx.objectStore('pause').put({ walk_id: id, started_at: pauseAt, ended_at: null });
+          if (units) tx.objectStore('meta').put({ key: 'units', value: units });
+          tx.oncomplete = () => resolve(true);
+        };
+      }), [w.id, t0, pts, paused ? now - 1000 : null, miles ? 'mi' : null]);
+      await pg.reload();
+      await pg.waitForSelector('[data-testid=walk-minimize]', { timeout: 20000 });
+      await pg.waitForTimeout(2500);
+      await pg.click('[data-testid=walk-minimize]');
+      await pg.waitForSelector('[data-testid=recording-bar]', { timeout: 10000 });
+      await pg.click('[data-testid=tab-explore]');
+      await pg.setViewportSize({ width: 320, height: 700 });
+      await pg.waitForTimeout(2000);
+      const seen = await pg.evaluate(() => {
+        const s = document.querySelector('[data-testid=recording-stats]');
+        const n = document.querySelector('[data-testid=recording-numbers]') ?? s;
+        return s && n ? { text: s.textContent, numbers: n.textContent, whole: n.scrollWidth <= n.clientWidth + 1, wide: document.documentElement.scrollWidth <= window.innerWidth } : null;
+      });
+      if (shotName) await h.shot(pg, shotName);
+      await c.close();
+      return seen;
+    };
+    {
+      const km = (t) => { const m = /([\d.]+)[ \u00a0](km|m)\b/.exec(t ?? ''); return m ? Number(m[1]) * (m[2] === 'km' ? 1000 : 1) : NaN; };
+      const run = await barLine({ label: 'hour-km', minutes: 65, meters: 1500, shotName: 'diff-bar-hour-km-explore-320' });
+      const rest = await barLine({ label: 'hour-km-paused', minutes: 65, meters: 1500, paused: true, shotName: 'diff-bar-hour-km-paused-explore-320' });
+      check(!!run && !!rest && /^1:0[56] · [\d.]+[ \u00a0]km/.test(run.numbers) && km(run.numbers) >= 1000 && run.whole && rest.whole && /^1:0[56] · [\d.]+[ \u00a0]km/.test(rest.numbers) && run.wide && rest.wide,
+        `tend tabs audit 55: at 320 px past the hour the bar reads "1:05 · 1.5 km", hours:minutes, its distance whole, recording and paused (${JSON.stringify({ run, rest })})`);
+    }
+    // tend tabs audit 57 (the diff review's ux 1): paused at 320 px the numbers stay whole and only " · Paused" shrinks.
+    {
+      const cases = [
+        { label: 'min-84m', minutes: 0.5, meters: 84, want: /^< 1 min · 8\d[ \u00a0]m$/, shotName: 'diff-bar-minute-paused-explore-320' },
+        { label: 'min-276ft', minutes: 0.5, meters: 84, miles: true, want: /^< 1 min · \d+[ \u00a0]ft$/ },
+        { label: '9min-750m', minutes: 9, meters: 750, want: /^9 min · \d+[ \u00a0]m$/ },
+        { label: '12min-1.3km', minutes: 12, meters: 1300, want: /^12 min · 1\.\d[ \u00a0]km$/ },
+      ];
+      const seen = [];
+      for (const k of cases) seen.push({ k: k.label, ...(await barLine({ ...k, label: `paused-${k.label}`, paused: true })) });
+      check(seen.every((x, i) => x.whole && x.wide && cases[i].want.test(x.numbers ?? '') && /· Paused$/.test(x.text ?? '')),
+        `tend tabs audit 57: paused at 320 px the bar's numbers are drawn whole, only " · Paused" shrinks (${JSON.stringify(seen)})`);
+    }
     // Starting from the tabs, in fresh browsers (NV12, NV15, NV25).
     {
       // Walk here on Explore is a one-tap start to that spot, with the saved choices; it never fills the drawer (NV12, NV15).
@@ -390,12 +509,15 @@ async function fresh(h) {
       await pg.click('[data-testid=walk-minimize]');
       await pg.waitForSelector('[data-testid=recording-bar]', { timeout: 10000 });
       await pg.waitForTimeout(600);
-      const barText = () => pg.locator('[data-testid=recording-stats]').innerText();
+      // The line's text as drawn, its numbers and its word apart since tend tabs audit 57 (one string, no break between).
+      const barText = () => pg.locator('[data-testid=recording-stats]').evaluate((e) => e.textContent);
       const barBox = await pg.locator('[data-testid=recording-bar]').boundingBox();
       const tabBox = await pg.locator('[data-testid=tab-navigate]').boundingBox();
-      check(!/\/walk/.test(new URL(pg.url()).pathname) && (await tabBarShown(pg)) && /^\d+:\d\d · \d+[ \u00a0]m · Paused$/.test(await barText())
-        && Math.abs(barBox.y + barBox.height - tabBox.y) < 6 && (await pg.locator('[data-testid=recording-bar] [data-testid=stop]').count()) === 0,
-        `minimized, a recording bar sits just above the tab bar: time, distance, Paused, and no Stop (NV9: "${await barText()}")`);
+      check(!/\/walk/.test(new URL(pg.url()).pathname) && (await tabBarShown(pg)) && /^(?:< 1 min|\d+ min|\d+:\d\d) · \d+[ \u00a0]m · Paused$/.test(await barText())
+        && Math.abs(barBox.y + barBox.height - tabBox.y) < 6 && (await pg.locator('[data-testid=recording-bar] [data-testid=bar-stop]').count()) === 1,
+        // tend tabs 18 (the lenses' auditor 3): this counted "stop", a testid the bar never carries, so its "no Stop" held
+        // whatever the bar showed; the bar has its held Stop since decision 0048 (NV9's "It has no Stop" is stale).
+        `tend tabs 18: minimized, a recording bar sits just above the tab bar: time, distance, Paused, and its held Stop (NV9, 0048: "${await barText()}")`);
       // Minimized to the tab beneath: Chronicle's Memories since 0112, which has no map. Never two.
       const liveMaps = await pg.locator('canvas.maplibregl-canvas').count();
       check(liveMaps <= 1, `at most one live map with the walk minimized (NV4: ${liveMaps})`);
@@ -411,78 +533,19 @@ async function fresh(h) {
       if (!(await pg.locator('[data-testid=bar-photo]').count())) await pg.click('[data-testid=tab-explore]');
       const [chooser] = await Promise.all([pg.waitForEvent('filechooser'), pg.click('[data-testid=bar-photo]')]);
       await chooser.setFiles(path.join(scriptsDir, 'fixtures', 'photo.jpg'));
-      // tend tabs T12: the bar's photo is told in a pill above the bar that waits; the line keeps its time and distance.
-      const saidPhoto = await pg.waitForSelector('[data-testid=bar-edit-offer]', { timeout: 10000 })
-        .then((e) => e.evaluate((n) => n.firstElementChild?.textContent ?? ''), () => '');
-      const offeredAt = Date.now();
+      // ME23 as decision 0240 amends it (fix edit-after-capture; 0149's pill is gone): the bar's photo opens its editor by
+      // itself once accepted, on the tab it was taken from.
+      const opened = await pg.waitForSelector('[data-testid=media-editor]', { timeout: 10000 }).then(() => true, () => false);
       const kept = await photosOf();
-      check(saidPhoto === 'Photo saved to your walk' && kept.length === 1 && !/\/walk/.test(new URL(pg.url()).pathname),
-        `a photo from the bar's camera lands in the open walk, paused too, without opening the walk screen (NV9: "${saidPhoto}", ${kept.length})`);
-      // tend tabs 9 pictured the offer at 390 and 320 px; since T12 it is a pill above the bar, its words whole on one line.
+      check(opened && kept.length === 1 && !/\/walk/.test(new URL(pg.url()).pathname),
+        `a photo from the bar's camera lands in the open walk, paused too, and opens its editor without opening the walk screen (NV9, ME23: ${opened}, ${kept.length})`);
+      await pg.click('[data-testid=edit-close]');
+      await pg.waitForSelector('[data-testid=media-editor]', { state: 'detached', timeout: 5000 }).catch(() => {});
       {
-        const pill = async () => pg.evaluate(() => {
-          const q = (sel) => document.querySelector(sel);
-          const p = q('[data-testid=bar-edit-offer]');
-          const bar = q('[data-testid=recording-bar]')?.getBoundingClientRect();
-          if (!p || !bar) return null;
-          const r = p.getBoundingClientRect();
-          const t = p.firstElementChild;
-          const tr = t.getBoundingClientRect();
-          const edit = p.querySelector('[data-testid=capture-edit]')?.getBoundingClientRect();
-          const close = p.querySelector('[data-testid=bar-edit-offer-close]');
-          const closeBox = close?.getBoundingClientRect();
-          return {
-            above: r.bottom <= bar.top + 1,
-            oneLine: tr.height - parseFloat(getComputedStyle(t).paddingTop) - parseFloat(getComputedStyle(t).paddingBottom)
-              <= parseFloat(getComputedStyle(t).fontSize) * 1.6 && t.scrollWidth <= Math.ceil(tr.width) + 1,
-            room: Math.round(window.innerWidth - r.width),
-            // tend tabs audit 17: the pill's words and the line's time and distance are drawn whole, measured, not read.
-            whole: t.scrollWidth <= t.clientWidth + 1,
-            numbers: (() => {
-              const s = q('[data-testid=recording-stats]');
-              const n = s?.firstChild;
-              const cut = n?.textContent?.indexOf(' · Paused') ?? -1;
-              if (!s || !n || n.nodeType !== 3 || cut < 1) return false;
-              const range = document.createRange();
-              range.setStart(n, 0);
-              range.setEnd(n, cut);
-              return range.getBoundingClientRect().right <= s.getBoundingClientRect().left + s.clientWidth + 1;
-            })(),
-            inPill: !!(edit && edit.width >= 44 && edit.right <= r.right + 1),
-            // tend tabs audit 20: Edit and Close stand apart, as Undo and its Close do.
-            apart: edit && closeBox ? Math.round(closeBox.left - edit.right) : null,
-            close: close?.getAttribute('aria-label') ?? null,
-            live: p.getAttribute('aria-live'),
-            stats: q('[data-testid=recording-stats]')?.textContent ?? null,
-            said: !!q('[data-testid=recording-said]'),
-            wide: document.documentElement.scrollWidth <= window.innerWidth,
-          };
-        });
-        const fine = (m) => !!(m && m.above && m.oneLine && m.whole && m.inPill && m.apart >= 4 && m.close === 'Close, the photo stays as it is'
-          && m.live === 'polite' && /^\d+:\d\d · \d+[ \u00a0]m · Paused$/.test(m.stats ?? '') && m.numbers && !m.said && m.wide);
-        const at390 = await pill();
-        await h.shot(pg, 'tabs-9-bar-edit-offer');
-        let at320 = null;
-        try {
-          await pg.setViewportSize({ width: 320, height: 700 });
-          await pg.waitForTimeout(400);
-          at320 = await pill();
-          await h.shot(pg, 'tabs-9-bar-edit-offer-320');
-        } finally {
-          await pg.setViewportSize({ width: 390, height: 844 });
-          await pg.waitForTimeout(400);
-        }
-        check(fine(at390) && fine(at320),
-          `tend tabs T12, tend tabs audit 17, tend tabs audit 20: after a photo the bar's Edit offer is a pill above it, Edit and Close apart, "Photo saved to your walk · Edit · ✕", its words whole on one line at 390 and 320 px, announced politely, the line keeping its time and distance (${JSON.stringify(at390)}, ${JSON.stringify(at320)})`);
-        // It waits: past ME23's six seconds it is still there; its Close ends it and the line stays.
-        await pg.waitForTimeout(Math.max(0, 6800 - (Date.now() - offeredAt)));
-        const waited = await pill();
-        await pg.click('[data-testid=bar-edit-offer-close]');
-        await pg.waitForTimeout(400);
-        const closed = await pg.locator('[data-testid=bar-edit-offer]').count();
-        const stats = await pg.locator('[data-testid=recording-stats]').innerText().catch(() => '');
-        check(fine(waited) && closed === 0 && /^\d+:\d\d · \d+[ \u00a0]m · Paused$/.test(stats),
-          `tend tabs T12: the pill is still up after 6 s and goes with its Close, the line still its time and distance (${!!waited}, ${closed}, "${stats}")`);
+        const offers = await pg.locator('[data-testid=bar-edit-offer], [data-testid=capture-edit]').count();
+        const stats = await pg.locator('[data-testid=recording-stats]').evaluate((e) => e.textContent).catch(() => '');
+        check(offers === 0 && /^(?:< 1 min|\d+ min|\d+:\d\d) · \d+[ \u00a0]m · Paused$/.test(stats),
+          `ME23 fix edit-after-capture: closed, the editor leaves no Edit pill above the bar, the line still its time and distance (${offers}, "${stats}")`);
       }
       // A tap on the bar returns to the walk, where the photo is pinned (NV9).
       await pg.click('[data-testid=recording-return]');
@@ -513,20 +576,28 @@ async function fresh(h) {
           await pg.waitForTimeout(400);
           onTabs.push(`${id}:${await shownCount(pg, '[data-testid=recording-bar]')}:${await pg.locator('canvas.maplibregl-canvas').count()}`);
         }
-        if (k === 23) perfA = { at: Date.now(), ...(await pg.evaluate(() => ({ ...window.__perf }))) };
+        // tend tabs audit 59: Memories is the page in front when the window opens and when it is read, or its bound
+        // measures nothing.
+        const memoriesShown = () => pg.evaluate(() => [...document.querySelectorAll('[data-testid=section-memories][aria-selected=true]')].some((e) => !e.closest('[aria-hidden=true]')) && /\/$/.test(location.pathname));
+        if (k === 23) perfA = { at: Date.now(), shown: await memoriesShown(), ...(await pg.evaluate(() => ({ ...window.__perf }))) };
       });
       await pg.waitForTimeout(2200);
       {
         // The bar ticks and follows the trace by itself: the tab beneath it isn't re-rendered (perf).
+        const shownAtEnd = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=section-memories][aria-selected=true]')].some((e) => !e.closest('[aria-hidden=true]')) && /\/$/.test(location.pathname));
         const b = await pg.evaluate(() => ({ ...window.__perf }));
         const secs = (Date.now() - perfA.at) / 1000;
+        check(perfA.shown && shownAtEnd, `tend tabs audit 59: Memories is in front when the render window opens and when it is read (${perfA.shown}, ${shownAtEnd})`);
         const rate = (k) => ((b[k] ?? 0) - (perfA[k] ?? 0)) / secs;
-        check(rate('render:navigate') <= 0.2 && rate('render:bar') <= 1.2 && rate('render:walk') === 0,
-          `minimized, only the bar follows the walk (navigate ${rate('render:navigate').toFixed(2)}/s, bar ${rate('render:bar').toFixed(2)}/s over ${secs.toFixed(0)} s)`);
+        // tend tabs 17 (the lenses' auditor 2): the tour ends on Chronicle's Memories, so it is Memories that must not follow
+        // the walk; "render:navigate" was counted nowhere and read 0 whatever the tabs did. Memories ticks its own clock
+        // every 30 s, one or two renders at most in the window; one per fix would be five or more.
+        check((b['render:memories'] ?? 0) > 0 && rate('render:memories') <= 0.3 && rate('render:bar') <= 1.2 && rate('render:walk') === 0,
+          `tend tabs 17: minimized over Memories, only the bar follows the walk (memories ${rate('render:memories').toFixed(2)}/s of ${b['render:memories'] ?? 0}, bar ${rate('render:bar').toFixed(2)}/s over ${secs.toFixed(0)} s)`);
       }
       const d1 = m(await barText());
       check(onTabs.join(',') === 'chronicle:1:0,explore:1:1,chronicle:1:0', `the bar is on every tab, with one live map where there is a map; Chronicle's Memories has none (NV4, NV9, RM1: ${onTabs.join(', ')})`);
-      check(d1 > d0 + 100 && /^\d+:\d\d · \d+[ \u00a0]m$/.test(await barText()), `minimized, the walk keeps recording: the bar's distance grows (NV8: ${d0} → ${d1} m)`);
+      check(d1 > d0 + 100 && /^(?:< 1 min|\d+ min|\d+:\d\d) · \d+[ \u00a0]m$/.test(await barText()), `minimized, the walk keeps recording: the bar's distance grows (NV8: ${d0} → ${d1} m)`);
       // Remind me here keeps firing while minimized (NV8): checked outside the walk screen, shown on the bar.
       const fired = await pg.evaluate(() => new Promise((resolve) => {
         const req = indexedDB.open('chronicles');
@@ -536,6 +607,22 @@ async function fresh(h) {
         };
       }));
       const reminderOnBar = await pg.waitForSelector('[data-testid=recording-reminder]', { timeout: 5000 }).then((e) => e.innerText(), () => '');
+      // tend tabs 22 (lens 1: the bar's reminder card was checked by its words alone, never pictured): the card on the bar,
+      // over Memories and over Explore's map, at 390 and at 320 x 700, then back as it was.
+      if (reminderOnBar) {
+        await h.shot(pg, 'tabs-22-reminder-card-memories-390');
+        await pg.setViewportSize({ width: 320, height: 700 });
+        await pg.waitForTimeout(500);
+        await h.shot(pg, 'tabs-22-reminder-card-memories-320');
+        await pg.click('[data-testid=tab-explore]');
+        await pg.waitForTimeout(1200);
+        await h.shot(pg, 'tabs-22-reminder-card-explore-320');
+        await pg.setViewportSize({ width: 390, height: 844 });
+        await pg.waitForTimeout(800);
+        await h.shot(pg, 'tabs-22-reminder-card-explore-390');
+        await pg.click('[data-testid=tab-chronicle]');
+        await pg.waitForTimeout(800);
+      }
       check(fired?.fired_count === 1 && fired.last_walk_id === w.id && /A note from here/.test(reminderOnBar),
         `Remind me here fires with the walk minimized, and the bar says so (NV8: ${JSON.stringify(fired && { n: fired.fired_count, walk: fired.last_walk_id === w.id })}, "${reminderOnBar}")`);
       // NV10, as changed by the tabs audit (U2): no Start with a walk open, and the recording bar is the one way back.

@@ -35,7 +35,7 @@ The prototype the owner tuned this from: https://claude.ai/artifact/XouW4WPy8e2y
 4. **RR4** A gap in the trace (the app closed, a pause; the same breaks the trace already draws) is a cut: the map dims and comes back at the far side in 1.4 s, with "N min later" (or "N h later", "N h M min later") under the clock. The walker never glides across a gap.
 5. **RR5** The path beat aims to finish within 60 s. When the plan runs over, glides, zips, note pauses and photo holds shrink together until it fits, but never below their floors (a glide 0.6 s, a photo 1.2 s, a note 0.3 s). Memos and videos keep their full length, so only they can carry it past 60 s.
 6. **RR6** Nothing waits for a tap. Every replay, first watch or re-watch, runs from the fog to the card by itself. There is no Continue, and no 4-second advance.
-7. **RR7** A tap on the map, or the Hold button beside Skip, holds everything: the walker, the clock, the bubbles, a card, and a playing memo or video. "Held · tap to go on" shows while held, and the button reads Play. Another tap goes on. Skip still jumps to the card, stopping any sound.
+7. **RR7** (worded anew on Nov 20, decision 0242: the button is Pause, the line "Paused · tap to play", and Skip reads "Skip to end" where the row has the room.) A tap on the map, or the Hold button beside Skip, holds everything: the walker, the clock, the bubbles, a card, and a playing memo or video. "Held · tap to go on" shows while held, and the button reads Play. Another tap goes on. Skip still jumps to the card, stopping any sound.
 
 ### The clock
 

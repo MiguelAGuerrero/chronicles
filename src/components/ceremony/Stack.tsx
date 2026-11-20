@@ -1,10 +1,10 @@
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { overlayOf } from '../../lib/ceremony/live';
 import { stackBound } from '../../lib/ceremony/stack';
 import type { StackEntry, StackOverlay } from '../../lib/ceremony/types';
 import { webData } from '../edit/EditedPhoto';
 import { theme } from '../ui';
-import { STACK, STAGE_BOTTOM, stackPose, type StageCtx } from './layout';
+import { STACK, STAGE_BOTTOM, stackPose, stackSlop, type StageCtx } from './layout';
 import { Still } from './Still';
 import { useLiveStyle } from './useLive';
 
@@ -54,6 +54,8 @@ export function Stack({ items, ctx }: { items: StackOverlay[]; ctx: StageCtx }) 
       accessibilityRole="button"
       accessibilityLabel="Photos and videos so far"
       accessibilityHint="Opens them full screen; the replay holds until you close them"
+      // Android's target is 48 dp: the drawing stays 44 wide, a finger gets the rest (replay-ceremony ui 2).
+      hitSlop={stackSlop(Platform.OS)}
       // Newest first: the one that just landed (audit 7).
       onPress={() => ctx.open([...captures].reverse())}
       style={[styles.stack, { right: ctx.insets.right + STACK.right, bottom: ctx.insets.bottom + STAGE_BOTTOM, height: base + STACK.h }]}

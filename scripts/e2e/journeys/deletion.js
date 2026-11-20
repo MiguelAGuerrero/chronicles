@@ -181,7 +181,7 @@ async function checks(h) {
             await page.waitForTimeout(400);
             const a = await actions();
             check(a.text === 'Delete walk' && a.lines === 1 && [...a.del, ...a.cancel].every((n) => n >= 44) && (w === 320 ? a.stacked : a.side),
-              `${w === 390 || w === 320 ? 'tend deletion 1' : 'tend deletion audit 3'}: at ${w} px a walk delete's "Delete walk" is one line, both actions at least 44 px, ${w === 320 ? 'stacked, the confirm on top' : 'side by side, Cancel leading'} (${JSON.stringify(a)})`);
+              `tend deletion 1 and audit 3: at ${w} px a walk delete's "Delete walk" is one line, both actions at least 44 px, ${w === 320 ? 'stacked, the confirm on top' : 'side by side, Cancel leading'} (${JSON.stringify(a)})`);
             // tend deletion audit 4: stacked, the destructive action sits 12 px from Cancel, iOS's padding round a bezel.
             if (w === 320) check(a.apart >= 12, `tend deletion audit 4: at 320 px the stacked "Delete walk" and Cancel are 12 px apart (${a.apart} px)`);
           }

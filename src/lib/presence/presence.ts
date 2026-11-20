@@ -33,8 +33,13 @@ import { notableBeyondNeighbourhood, notableName } from './notable';
  * p10: typed bridges (specs/more-attractions MA10, the owner's call of Nov 18): contract v8's `suspension_bridge`, a
  *     suspension bridge known only by its type, is a Bridges place held `by_type` that adds nothing to the History bar; a
  *     bar moves, so nothing is carried.
+ * p11: Overture's memorial sites (and their cemeteries), parks and trails weigh nothing toward storefronts, as the map's do
+ *     (tend presence 2, SF10; the owner, Nov 19); a castle-class house from the map is a monument and a storefront, and
+ *     Overture's historic site a storefront with no mark (tend presence audit 2, the owner, Nov 20); a park, a cemetery or a
+ *     memorial site weighs nothing toward a complex's shopping word (tend presence audit 3, COMPLEX_CODE c2); weights and marks
+ *     changed, so nothing is carried.
  */
-export const PRESENCE_CODE = 'p10';
+export const PRESENCE_CODE = 'p11';
 
 /**
  * PS9, presence-readers audit 2: the codes whose rows stand under this one, read by the atlas (`CARRIED`, `atlas.ts`) and the
@@ -73,7 +78,7 @@ const DEFS = {
   theatre: { weight: FULL, storefront: true, category: 'culture', kind: 'theatres' },
   cinema_hall: { weight: FULL, storefront: true, category: 'culture' },
   monument: { weight: FULL, category: 'history', kind: 'monuments' },
-  memorial_site: { weight: FULL, category: 'history', kind: 'monuments' },
+  memorial_site: { weight: FULL, category: 'history', kind: 'monuments', ground: true },
   // The places archive's odd places and listed buildings (PW4, RP8).
   curiosity: { weight: FULL, category: 'viewpoints', kind: 'curiosities' },
   structure: { weight: FULL, category: 'history', kind: 'structures' },
@@ -144,11 +149,11 @@ const DEFS = {
   community: { weight: HALF, storefront: true, category: 'culture', kind: 'community' },
   civic_hall: { weight: HALF, storefront: true, category: 'history', kind: 'monuments' },
   worship: { weight: HALF, storefront: true, category: 'history', kind: 'churches' },
-  burial_ground: { weight: HALF, category: 'history', kind: 'cemeteries' },
-  park: { weight: HALF, category: 'parks', kind: 'parks' },
-  reserve: { weight: HALF, category: 'parks', kind: 'parks' },
-  green_amenity: { weight: HALF, category: 'parks' },
-  open_space: { weight: HALF },
+  burial_ground: { weight: HALF, category: 'history', kind: 'cemeteries', ground: true },
+  park: { weight: HALF, category: 'parks', kind: 'parks', ground: true },
+  reserve: { weight: HALF, category: 'parks', kind: 'parks', ground: true },
+  green_amenity: { weight: HALF, category: 'parks', ground: true },
+  open_space: { weight: HALF, ground: true },
   viewpoint: { weight: HALF, category: 'viewpoints', kind: 'viewpoints' },
   service: { weight: HALF, storefront: true },
   health: { weight: HALF, storefront: true },
@@ -186,6 +191,11 @@ export type ClassDef = {
   readonly subset?: Kind;
   /** SP12: how much it counts toward its bar (the size of the stop); absent, a whole place. */
   readonly bar?: number;
+  /**
+   * tend presence audit 3 (the owner, Nov 20, "Never"): a park, a cemetery or a memorial site, ground you cross or stand at, never a
+   * reason to call a complex shopping: `densityWeight` reads it as nothing.
+   */
+  readonly ground?: true;
 };
 export type PresenceClass = keyof typeof DEFS;
 export const CLASSES: Readonly<Record<PresenceClass, ClassDef>> = DEFS;
@@ -223,8 +233,10 @@ const OSM: Record<string, Rule[]> = {
   library: [[['books'], 'boutique'], [['library'], 'community']],
   music: [[['music', 'musical_instrument'], 'boutique']],
   monument: [['*', 'monument']],
-  // XS12 (decision 0191): the map's ruins are Ruins, as the archive's; a castle stays a monument.
-  castle: [[['castle'], 'monument'], [['ruins'], 'ruin']],
+  // XS12 (decision 0191): the map's ruins are Ruins, as the archive's; a castle stays a monument. tend presence audit 2 (the owner,
+  // Nov 20, "Enterable counts both"): a castle, a manor, a fort or another house of the castle class is a monument to find and,
+  // beside it, a storefront (`enterable`).
+  castle: [[['ruins'], 'ruin'], ['*', 'monument']],
   // PK11, PK12: a community centre is a place of Culture.
   town_hall: [[['townhall', 'courthouse'], 'civic_hall'], [['community_centre'], 'community']],
   cemetery: [[['cemetery', 'grave_yard'], 'burial_ground']],
@@ -296,8 +308,16 @@ const OSM_DEFAULT: Record<string, PresenceClass> = {
 export function classesOfOsm(cls: string, sub: string): PresenceClass[] {
   const base = baseClassesOfOsm(cls, sub);
   const extra = sells(cls, sub);
-  return extra && base.includes('boutique') ? [...base, extra] : base;
+  const withSells = extra && base.includes('boutique') ? [...base, extra] : base;
+  return enterable(cls, sub) ? [...withSells, 'heritage'] : withSells;
 }
+
+/**
+ * tend presence audit 2 (the owner, Nov 20: "Manners or any other monumental structures that you can enter and browse should be
+ * counted both as storefront and points of interest"): a castle-class house you can walk into (a castle, a manor, a fort; never a
+ * ruin) is `heritage`, a storefront, beside its monument, which marks and bars read first.
+ */
+const enterable = (cls: string, sub: string): boolean => cls === 'castle' && sub !== 'ruins';
 
 /** What a shop sells, beside its boutique class (the outing's stores fallback): an antiques shop, a bookshop (or a library's books), a second-hand or charity shop. */
 function sells(cls: string, sub: string): PresenceClass | null {
@@ -337,6 +357,11 @@ const OVERTURE_DEEPER: Record<string, PresenceClass> = {
   library: 'civic',
   // Travel and transportation counts only for vehicle services and travel agents.
   vehicle_service: 'vehicle', fueling_station: 'vehicle', travel_service: 'office',
+  // tend presence 2 (SF10; the owner, Nov 19): a memorial site (its cemeteries too) is a memorial, a park or a trail open ground:
+  // none is a storefront, as the map's are not, and a park or a trail carries no category, so nothing makes a mark of it (0109).
+  // tend presence audit 2 (the owner, Nov 20, "Enterable counts both"): a historic site is a place you can enter, a storefront
+  // with no mark, as its root's `heritage` is; named here so that no later row moves it by accident.
+  historic_site: 'heritage', memorial_site: 'memorial_site', park: 'open_space', recreational_trail_or_path: 'open_space',
 };
 /** Any level naming one of these is no place to go (AD1: ATMs, parking). */
 const OVERTURE_NEVER = new Set(['atm', 'parking', 'parking_lot', 'parking_garage', 'bus_stop', 'charging_station']);
@@ -503,9 +528,12 @@ export function storefrontWeight(classes: readonly PresenceClass[]): number {
   return classes.reduce((w, c) => (isStorefront(c) ? Math.max(w, CLASSES[c].weight) : w), 0);
 }
 
-/** PR4: the greatest weight of a feature's classes, storefront or not: a complex's shopping word reads it (decision 0180). */
+/**
+ * PR4: the greatest weight of a feature's classes, storefront or not: a complex's shopping word reads it (decision 0180; a mall's
+ * own art still counts). Parks, cemeteries and memorial sites weigh nothing here (tend presence audit 3, the owner, Nov 20).
+ */
 export function densityWeight(classes: readonly PresenceClass[]): number {
-  return classes.reduce((w, c) => Math.max(w, CLASSES[c].weight), 0);
+  return classes.reduce((w, c) => (CLASSES[c].ground ? w : Math.max(w, CLASSES[c].weight)), 0);
 }
 
 /** PR3: the class marks and bars read: the first with a category, or null. */

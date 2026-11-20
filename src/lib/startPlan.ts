@@ -4,6 +4,7 @@ import { distanceM } from './geo';
 import { NAV } from './nav/rules';
 import type { Waypoint } from './nav/types';
 import type { LngLat } from './types';
+import type { Units } from './units';
 
 /**
  * Starting a walk from the tabs (Navigation & tabs, NV19-NV25). Pure: the
@@ -34,9 +35,9 @@ export function pendingDest(raw: string | null | undefined): Waypoint | null {
  * setting's terms as every distance is (QL14). In metres, under a kilometre, to the nearest ten; in miles, from the
  * distance itself, so a rounding never crosses the feet-to-miles step (tend tabs audit 7).
  */
-export function destLine(dest: Waypoint, from: LngLat | null): string {
+export function destLine(dest: Waypoint, from: LngLat | null, units?: Units): string {
   if (!from) return dest.label;
-  return `${dest.label} · ${formatDistanceNear(distanceM(from, dest.at))} away`;
+  return `${dest.label} · ${formatDistanceNear(distanceM(from, dest.at), units)} away`;
 }
 
 /** Explore's area card asks "Walk now" or "When I get there" past this, in a straight line (DW2, decision 0121). */

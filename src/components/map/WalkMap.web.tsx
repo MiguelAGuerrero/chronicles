@@ -33,10 +33,10 @@ import { useReducedMotion } from '../../lib/motion';
 import { useUnits } from '../../lib/useUnits';
 import { useReminded } from '../../lib/useReminded';
 import { MOTION, REPLAY_ENGINE } from '../../lib/motionTokens';
-import { followMoves } from '../../lib/compass';
+import { fitBearing, followMoves } from '../../lib/compass';
 import { groundGeoJSON, groundStyle } from '../../lib/areas/groundDraw';
 import {
-  alternatesGeoJSON, TRACE_EDGE_OPACITY, storefrontNameLayers, storefrontNameRotate, storefrontNamesGeoJSON, roomCells, routeGradesGeoJSON, pinsGeoJSON, BORDER, borderFillOpacity, borderMoves, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, OVERTURE_CREDIT, GAZETTEER_CREDIT, DERIVE_ZOOM, endsGeoJSON, ENDS_PAINT, ENDS_RING_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON, BASE_VECTOR_SOURCE, poiLabelLayers,
+  alternatesGeoJSON, TRACE_EDGE_OPACITY, storefrontNameLayers, storefrontNameRotate, storefrontNamesGeoJSON, roomCells, routeGradesGeoJSON, pinsGeoJSON, BORDER, borderFillOpacity, borderMoves, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, OVERTURE_CREDIT, GAZETTEER_CREDIT, DERIVE_ZOOM, endsGeoJSON, ENDS_PAINT, ENDS_RING_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, GAP_LINK_WIDTH, HOP_EDGE, hopEdgeOpacity, traceShown, DRAWING_DASH, useZoomPins, walkerGeoJSON, BASE_VECTOR_SOURCE, poiLabelLayers,
   FIT_MAX_ZOOM, FIT_PADDING, FLAT_NORTH_UP, LINE_SOURCE, LINE_SOURCE_IDS, PAST_STYLE, REPLAY_LINES, resendKey, revealGradient, revealStop, type CollectedFeatures, mapWorkerUrl, type ReplayMapFrame, type WalkMapHandle, type WalkMapProps,
 } from './types';
 import { nextSend, type Sent } from './sent';
@@ -109,8 +109,11 @@ function addOverlay(map: MapLibreMap): string | undefined {
   map.addLayer({ id: 'route', type: 'line', source: 'route', layout: lineLayout, paint: { 'line-color': COLORS.route, 'line-width': 8 } });
   // Offered stretches across gaps: the trace, see-through, under it where they meet (Filling gaps, G6).
   // A gap with no line: grey dots between its ends, under the faint stretches (GW2).
+  // Under the dots, a white disc for each while a replay is told, so its hop reads over a lit street (replay-ceremony ui 6).
+  map.addLayer({ id: 'gap-links-edge', type: 'line', source: 'gap-links', layout: lineLayout,
+    paint: { 'line-color': HOP_EDGE.color, 'line-width': HOP_EDGE.width, 'line-opacity': 0, 'line-dasharray': [...HOP_EDGE.dash] } });
   map.addLayer({ id: 'gap-links', type: 'line', source: 'gap-links', layout: lineLayout,
-    paint: { 'line-color': FOG_BOLD, 'line-width': 3, 'line-opacity': 0.8, 'line-dasharray': GAP_LINK_DASH } });
+    paint: { 'line-color': FOG_BOLD, 'line-width': GAP_LINK_WIDTH, 'line-opacity': 0.8, 'line-dasharray': GAP_LINK_DASH } });
   map.addLayer({ id: 'faint-edge', type: 'line', source: 'faint', layout: lineLayout, paint: { 'line-color': '#ffffff', 'line-width': FOG_STYLE.edgeWidth, 'line-opacity': TRACE_EDGE_OPACITY * FAINT_OPACITY } });
   map.addLayer({ id: 'faint', type: 'line', source: 'faint', layout: lineLayout, paint: { 'line-color': COLORS.trace, 'line-width': FOG_STYLE.traceWidth, 'line-opacity': FAINT_OPACITY } });
   // Rides dashed on the same white edge, under the walked trace where they meet (R5).
@@ -384,6 +387,30 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const replayOn = props.replay === true;
   const replayLast = useRef<ReplayMapFrame | null>(null);
   const replayDrawn = useRef(freshReplayDrawn());
+  // The trace's look on every layer that draws it: the screen's `traceOpacity`, and, while a replay is told, how much
+  // of the whole trace its frames say still shows (replay-ceremony ui 7). A frame's way in is `paintTrace` too, so the
+  // prop is kept where a frame can read it.
+  const traceOpacity = useRef(props.traceOpacity ?? 1);
+  useLayoutEffect(() => {
+    traceOpacity.current = props.traceOpacity ?? 1;
+  });
+  const paintTrace = (look: { line: number; marks: number; links: number }) => {
+    const map = mapRef.current;
+    if (!map) return;
+    for (const id of ['trace', 'trace-history-line', 'trace-link-line', 'rides']) map.setPaintProperty(id, 'line-opacity', look.line);
+    for (const id of ['trace-edge', 'trace-history-edge', 'trace-link-edge', 'rides-edge']) map.setPaintProperty(id, 'line-opacity', TRACE_EDGE_OPACITY * look.line);
+    map.setPaintProperty('faint', 'line-opacity', FAINT_OPACITY * look.line);
+    map.setPaintProperty('faint-edge', 'line-opacity', TRACE_EDGE_OPACITY * FAINT_OPACITY * look.line);
+    // The dots go with the trace: hidden while navigating (gap-drawing audit 12); a replay's hops are whole.
+    map.setPaintProperty('gap-links', 'line-opacity', 0.8 * look.links);
+    // The markers go with the trace (QL3): hidden while navigating, faint in the replay's first beats.
+    for (const id of ['ends-ring', 'ends']) {
+      map.setPaintProperty(id, 'circle-opacity', look.marks);
+      map.setPaintProperty(id, 'circle-stroke-opacity', look.marks);
+    }
+    // How strongly the trace is drawn, for the e2e (only when measuring).
+    if ((window as { __perf?: unknown }).__perf) container.current?.setAttribute('data-trace-shown', String(look.line));
+  };
   // The canvas's size, read when it changes and never per camera move (the replay moves the camera every frame, and a
   // read of layout between two frames' style writes makes the browser lay the page out twice).
   const canvasSize = useRef({ width: 0, height: 0 });
@@ -399,7 +426,11 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     const st = replayDrawn.current;
     const p = puck.current;
     if (!f) {
-      if (p) p.el.style.display = 'none';
+      if (p) {
+        p.el.style.display = 'none';
+        p.marker.setOpacity('1');
+      }
+      st.whole = -1;
       if (st.at) {
         st.at = '';
         container.current?.setAttribute('data-walker', '');
@@ -437,8 +468,14 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       sendData(map, sent.current, 'gap-links', traceGeoJSON(hopLines(f.hops)));
       changed = true;
     }
+    // The whole trace the first beat left fades out through the opening (replay-ceremony ui 7): a paint property, no data.
+    if (f.wholeTrace !== st.whole) {
+      st.whole = f.wholeTrace;
+      paintTrace(traceShown(traceOpacity.current, true, f.wholeTrace));
+      changed = true;
+    }
     const { center, zoom } = f.camera;
-    const at = `${p ? 1 : 0}|${f.walker ? `${f.walker[0]},${f.walker[1]}` : ''}|${center ? `${center[0]},${center[1]},${zoom}` : ''}`;
+    const at = `${p ? 1 : 0}|${f.walker ? `${f.walker[0]},${f.walker[1]}` : ''}|${center ? `${center[0]},${center[1]},${zoom}` : ''}|${f.walkerFade}`;
     if (at !== st.at) {
       st.at = at;
       changed = true;
@@ -453,6 +490,9 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         p.el.style.display = f.walker ? '' : 'none';
         p.cone.style.display = 'none';
         if (f.walker) p.marker.setLngLat(f.walker);
+        // The dot fades in as the opening's dive ends (replay-ceremony ui 7). Through the marker, which owns its
+        // element's opacity and writes it again whenever the map moves: a style set beside it lasts one frame.
+        p.marker.setOpacity(String(f.walkerFade));
       }
       // Where the dot is drawn (QL12), for the e2e.
       container.current?.setAttribute('data-walker', fmt(f.walker));
@@ -1191,18 +1231,15 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   }, [ready, glideOn, props.walker, props.walkerHeading, view]);
   useEffect(() => {
     if (!ready) return;
-    for (const id of ['trace', 'trace-history-line', 'trace-link-line', 'rides']) mapRef.current?.setPaintProperty(id, 'line-opacity', props.traceOpacity ?? 1);
-    for (const id of ['trace-edge', 'trace-history-edge', 'trace-link-edge', 'rides-edge']) mapRef.current?.setPaintProperty(id, 'line-opacity', TRACE_EDGE_OPACITY * (props.traceOpacity ?? 1));
-    mapRef.current?.setPaintProperty('faint', 'line-opacity', FAINT_OPACITY * (props.traceOpacity ?? 1));
-    // The dots go with the trace: hidden while navigating (gap-drawing audit 12).
-    mapRef.current?.setPaintProperty('gap-links', 'line-opacity', 0.8 * (props.traceOpacity ?? 1));
-    mapRef.current?.setPaintProperty('faint-edge', 'line-opacity', TRACE_EDGE_OPACITY * FAINT_OPACITY * (props.traceOpacity ?? 1));
-    // The markers go with the trace (QL3): hidden while navigating, faint in the replay's first beats.
-    for (const id of ['ends-ring', 'ends']) {
-      mapRef.current?.setPaintProperty(id, 'circle-opacity', props.traceOpacity ?? 1);
-      mapRef.current?.setPaintProperty(id, 'circle-stroke-opacity', props.traceOpacity ?? 1);
-    }
-  }, [ready, props.traceOpacity]);
+    // While a replay is told, as far as its last frame said (its first is drawn before this runs); until one has, whole.
+    const whole = replayLast.current?.wholeTrace ?? 1;
+    if (replayOn) replayDrawn.current.whole = whole;
+    paintTrace(traceShown(props.traceOpacity ?? 1, replayOn, whole));
+    // A hop's white edge, only while a replay is told (replay-ceremony ui 6): no other map's gap links have one.
+    mapRef.current?.setPaintProperty('gap-links-edge', 'line-opacity', hopEdgeOpacity(replayOn));
+    if ((window as { __perf?: unknown }).__perf) container.current?.setAttribute('data-hop-edge', String(hopEdgeOpacity(replayOn)));
+    // paintTrace only reads refs.
+  }, [ready, props.traceOpacity, replayOn]);
   useEffect(() => {
     if (!ready) return;
     setData('points', walkerGeoJSON(glideOn ? null : props.walker));
@@ -1618,7 +1655,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       // bearing; tend map 2).
       const map = mapRef.current;
       // While the compass's ease to north runs, north: the bearing read mid-ease would stop the map part-way (tend map audit 4).
-      const ask: FitAsk = { bounds: [[w, s], [e, n]], options: { padding, maxZoom: props.fitMaxZoom ?? FIT_MAX_ZOOM, duration, bearing: northAsked.current ? 0 : map?.getBearing() } };
+      // But a fit asked north-up (the replay's first beat, replay-ceremony ui 8), which turns it there.
+      const ask: FitAsk = { bounds: [[w, s], [e, n]], options: { padding, maxZoom: props.fitMaxZoom ?? FIT_MAX_ZOOM, duration, bearing: fitBearing({ north: !!props.fitNorth, northEasing: northAsked.current, bearing: map?.getBearing() ?? 0 }) } };
       const key = props.fitKey ?? 0;
       map?.fitBounds(ask.bounds, ask.options);
       if (map) fit.current = fitStep(fit.current, { kind: 'fit', key, ask, box: { width: map.getCanvas().clientWidth, height: map.getCanvas().clientHeight }, moving: map.isMoving() }).state;
@@ -1978,8 +2016,8 @@ function revealLine(map: MapLibreMap, sent: Map<string, Sent>, drawn: RevealDraw
 
 /** What of a replay's line a source holds: the whole runs by their key, the run in the revealed source and how far it shows. */
 type RevealDrawn = { doneKey: string; run: LngLat[] | null; p: number };
-const freshReplayDrawn = (): { walked: RevealDrawn; rides: string; hops: string; at: string; clearing: boolean } => ({
-  walked: { doneKey: '', run: null, p: -1 }, rides: '', hops: '', at: '', clearing: false,
+const freshReplayDrawn = (): { walked: RevealDrawn; rides: string; hops: string; at: string; whole: number; clearing: boolean } => ({
+  walked: { doneKey: '', run: null, p: -1 }, rides: '', hops: '', at: '', whole: -1, clearing: false,
 });
 type GradientSpec = NonNullable<NonNullable<import('maplibre-gl').LineLayerSpecification['paint']>['line-gradient']>;
 /** The layers a reveal paints, each with its colour: the white edge, then the line. */

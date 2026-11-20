@@ -15,7 +15,10 @@ import { captureTarget } from '../../lib/journal/target';
 import type { Faced } from '../../lib/moment';
 import { momentPill } from '../../lib/momentPill';
 import { feedback } from '../../lib/motion';
-import { hideTabs } from '../../lib/tabsHidden';
+import { barStop, hideTabs } from '../../lib/tabsHidden';
+import { unsaved } from '../../lib/unsaved';
+import { focusOn } from '../../lib/focus';
+import { barStopping } from '../../lib/recordingBar';
 import { NOTE_MAX } from '../../lib/noteEdit';
 import { editRefs, type EditorRef, fromEditor, insertRef, typedAt } from '../../lib/refs';
 import { space } from '../../lib/space';
@@ -27,8 +30,8 @@ import { refLabel } from '../../lib/threads/lines';
 import type { LngLat } from '../../lib/types';
 import { useCaptures, type MomentState } from '../../lib/useCaptures';
 import { useStore } from '../../lib/useStore';
-import { EditOfferPill, useEditOffer } from '../edit/EditOffer';
-import { MediaEditor } from '../edit/MediaEditor';
+import { useEditAfterCapture } from '../edit/EditOffer';
+import { MediaEditor, type MediaEditorHandle } from '../edit/MediaEditor';
 import { Icon, type IconName } from '../icons';
 import { Modal } from '../Modal';
 import { useOpenWalk, useOpenWalkInfo } from '../OpenWalk';
@@ -438,8 +441,11 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
   };
 
   // The camera and the mic: what they keep joins the open entry, and the words typed so far stand as their own piece.
-  const editOffer = useEditOffer();
-  const [editing, setEditing] = useState<Faced | null>(null);
+  // Once a new moment's photo or video is kept, its editor opens by itself (ME23 as decision 0240 amends it).
+  const editAfter = useEditAfterCapture(cap.captures);
+  const editing = editAfter.editing;
+  // In the composer the editor is drawn inside its Modal, never a Modal over it (iOS; audit 4); Back goes to its Close.
+  const editorRef = useRef<MediaEditorHandle>(null);
   const photo = async () => {
     onFoot();
     // Mid-note, the camera is still one tap (audit 1): the note is saved first, then the camera opens.
@@ -449,7 +455,8 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
       feedback('tap');
       send.current({ k: 'kept' });
       seen.current?.();
-      if (k.id === k.momentId) editOffer.show(k);
+      // Not while the bar stops this walk, or once it has ended: its replay would cover or take the editor (audits 3, 6).
+      if (!(walk && (barStopping(barStop.get(), walk.id, Date.now()) || unsaved.hasEnded(walk.id)))) editAfter.open(k);
     });
   };
   const voice = () => {
@@ -477,6 +484,19 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
     const t = setTimeout(() => input.current?.focus(), 80);
     return () => clearTimeout(t);
   }, [composing]);
+  // The editor over the composer takes the field's focus, so no keyboard rises over it and nothing types into the hidden
+  // entry; the field has it back once the editor goes (audit 7; the note page's editor does the same).
+  const editingInComposer = composing && !!editing;
+  const hadEditor = useRef(false);
+  useEffect(() => {
+    if (editingInComposer) {
+      input.current?.blur();
+      hadEditor.current = true;
+    } else if (hadEditor.current) {
+      hadEditor.current = false;
+      if (composing) focusOn(input);
+    }
+  }, [editingInComposer, composing]);
   const onAsk = useRef<(kind: 'photo' | 'voice' | 'text') => void>(() => {});
   useEffect(() => {
     onAsk.current = (kind) => (kind === 'photo' ? void photo() : kind === 'voice' ? (setRecTyping(false), voice()) : input.current?.focus());
@@ -539,7 +559,7 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
   );
   // Its dark pills count while Memories is in front, so the storage notice waits for them (tend tabs audit 33; the
   // owner's answer of Nov 18, "The whole column"). The same pills as the column below draws.
-  const pillsStand = !!errorPill || (!!editOffer.offer && !recording) || !!toast || (cap.discarded && !recording) || cap.unsaved || cap.held.length > 0;
+  const pillsStand = !!errorPill || !!toast || (cap.discarded && !recording) || cap.unsaved || cap.held.length > 0;
   useEffect(() => (focused && pillsStand ? holdCount(columnPills) : undefined), [focused, pillsStand]);
   const retryPill = (id: string, words: string, onPress: () => void, label = 'Retry') => (
     <View style={styles.pill} accessibilityLiveRegion="polite" testID={id}>
@@ -638,17 +658,6 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
         <View style={styles.above} pointerEvents="box-none" onLayout={(e) => setAboveH(Math.round(e.nativeEvent.layout.height))}>
           {props.above}
           {errorPill}
-          {editOffer.offer && !recording && (
-            <EditOfferPill
-              offer={editOffer.offer}
-              where="moment"
-              onEdit={() => {
-                const id = editOffer.offer?.id;
-                setEditing(cap.captures.find((c) => c.id === id) ?? null);
-                editOffer.clear();
-              }}
-            />
-          )}
           {toast && (
             <View style={styles.pill} accessibilityLiveRegion="polite" testID="band-toast">
               <Text style={styles.pillText}>{toast}</Text>
@@ -722,7 +731,7 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
       {inBar ? [body, bar] : [bar, body]}
       {/* The composer (JN47-JN51): it fills the room above the keyboard; Done, a tap on its dimmed edge or Back keep what
           is written (it is kept as it is typed) and close it (JN48). */}
-      <Modal visible={composing} transparent animationType="slide" onRequestClose={() => { void done(); setComposing(false); }}>
+      <Modal visible={composing} transparent animationType="slide" onRequestClose={() => { if (editing) { editorRef.current?.requestClose(); return; } void done(); setComposing(false); }}>
         <View style={[styles.sheetBack, { paddingBottom: keyboard }]} testID="composer">
           <Pressable style={StyleSheet.absoluteFill} onPress={() => { void done(); setComposing(false); }} accessible={false} />
           <View style={styles.sheet} testID="composer-sheet">
@@ -767,6 +776,9 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
             </View>
           </View>
         </View>
+        {composing && editing ? (
+          <MediaEditor ref={editorRef} key={editing.piece_id} overlay capture={editing} justKept initialTool="crop" onClose={() => editAfter.close()} onSave={(patch) => cap.setEdit(editing, patch)} />
+        ) : null}
       </Modal>
       <Modal visible={page != null} animationType="slide" onRequestClose={() => pageRef.current?.requestClose()}>
         {page && !page.entry && (
@@ -808,7 +820,7 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
       {picking != null && (
         <Mention self={pen.entry?.momentId ?? null} onPick={pick} onClose={() => { setPicking(null); input.current?.focus(); }} />
       )}
-      {editing && <MediaEditor key={editing.id} capture={editing} initialTool="crop" onClose={() => setEditing(null)} onSave={(patch) => cap.setEdit(editing, patch)} />}
+      {editing && !composing && <MediaEditor key={editing.piece_id} capture={editing} justKept initialTool="crop" onClose={() => editAfter.close()} onSave={(patch) => cap.setEdit(editing, patch)} />}
     </>
   );
 }

@@ -42,6 +42,10 @@ async function run(h) {
   // A photo from the edge stack: one tap, a new moment, and the pill offers to add to it (MS1, MS2).
   const [chooser] = await Promise.all([pg.waitForEvent('filechooser'), pg.click('[data-testid=moment-photo]')]);
   await chooser.setFiles(path.join(fixtures, 'photo.jpg'));
+  // Its editor opens by itself once kept (ME23, decision 0240): closed, the photo kept as taken.
+  await pg.waitForSelector('[data-testid=media-editor]', { timeout: 15000 }).catch(() => {});
+  await pg.click('[data-testid=edit-close]').catch(() => {});
+  await pg.waitForSelector('[data-testid=media-editor]', { state: 'detached', timeout: 5000 }).catch(() => {});
   const pill = await there('[data-testid=add-to-moment]');
   const names = pill ? await pg.$$eval('[data-testid=add-to-moment] [role=button]', (bs) => bs.map((b) => b.getAttribute('aria-label'))) : [];
   const ms2ok = pill && ['Add a photo to this moment', 'Add a voice memo to this moment', 'Add a note to this moment'].every((n) => names.includes(n));
@@ -64,7 +68,12 @@ async function run(h) {
   if (await there('[data-testid=add-photo]', 3000)) {
     const [ch2] = await Promise.all([pg.waitForEvent('filechooser'), pg.click('[data-testid=add-photo]')]);
     await ch2.setFiles(path.join(fixtures, 'photo.jpg'));
-    await pg.waitForTimeout(1200);
+    // fix edit-after-capture audit 2: a photo added to the open moment opens its editor too, on that piece.
+    const opened = await pg.waitForSelector('[data-testid=media-editor]', { timeout: 15000 }).then(() => true, () => false);
+    const kept = await pg.locator('[data-testid=edit-kept]').innerText().catch(() => '');
+    check(opened && kept === 'Photo kept', `fix edit-after-capture audit 2: a photo added from the pill opens its editor ("${kept}")`);
+    await pg.click('[data-testid=edit-close]').catch(() => {});
+    await pg.waitForSelector('[data-testid=media-editor]', { state: 'detached', timeout: 5000 }).catch(() => {});
   }
 
   // The edge stack still makes a new moment in one tap, and the pill moves to it (MS1, MS5).
@@ -338,6 +347,17 @@ async function replayGrid(h, check) {
     } else {
       await pg.waitForTimeout(1500);
       await shot(pg, `rc-moment-grid-${w}`);
+      // replay-ceremony ui 4 (the UI review's U5): a grid of three leaves no empty cell, its third picture spanning the
+      // row, and the card's strip names a grid in the plural, a word and no count.
+      const grid = await pg.evaluate(() => {
+        const g = document.querySelector('[data-testid=replay-grid]');
+        if (!g) return null;
+        const gb = g.getBoundingClientRect();
+        const cells = [...g.querySelectorAll('[data-testid=grid-cell]')].map((e) => { const b = e.getBoundingClientRect(); return [Math.round(b.left - gb.left), Math.round(b.top - gb.top), Math.round(b.width), Math.round(b.height)]; });
+        return { w: Math.round(gb.width), h: Math.round(gb.height), cells, name: g.closest('[data-testid=replay-card]')?.getAttribute('aria-label') ?? '' };
+      });
+      const third = grid && grid.cells[2];
+      check(!!grid && grid.cells.length === 3 && Math.abs(third[2] - grid.w) <= 1 && third[0] <= 1 && Math.abs(third[1] + third[3] - grid.h) <= 1 && /^Photos, /.test(grid.name) && !/\d/.test(grid.name.split(',')[0]), `replay-ceremony ui 4: at ${w} px a grid of three fills its last row, and its strip says "Photos" (${JSON.stringify(grid)})`);
     }
     const turned = await pg.waitForFunction(() => { const v = document.querySelector('[data-testid=replay-card] video'); return !!v && !v.paused && v.currentTime > 0.6; }, null, { timeout: 30000 }).then(() => true, () => false);
     if (!first) await shot(pg, `rc-moment-video-${w}`);

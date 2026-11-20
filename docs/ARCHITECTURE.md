@@ -59,22 +59,22 @@ Screens' building blocks
   webStyles(.web).ts         web-only page fixes: pinned viewport, long-press guards (nothing on native)
   pwa(.web).ts               web manifest and Apple home-screen tags, under the base path
 Replay ceremonies (decisions 0085, 0086)
-  ceremony/Stage.tsx         draws the frame on stage over the map: the clock (dissolving across a break, not drawn while faded out) and the line under it, Held, the last view's date, the scrim under a card, the overlays by kind (the pictures on the map under the scrim); renders when an overlay arrives or leaves
+  ceremony/Stage.tsx         draws the frame on stage over the map: the clock (dissolving across a break, not drawn while faded out) and the line under it, Paused, the last view's date, the scrim under a card, the overlays by kind (the pictures on the map under the scrim); renders when an overlay arrives or leaves
   ceremony/overlays.tsx      OVERLAYS: one view per overlay kind (the type fails the build until every kind has one); OVERLAY_ORDER
   ceremony/Bubbles.tsx       notes and memos stacking in the bottom-left corner; a memo plays while its bubble says, pauses when held
   ceremony/Cards.tsx         a photo or video card that grows from the pin and shrinks back onto its place; the video plays in it; a moment's videos in turn (Turns, replay ceremony RC37); a held photo's drift
-  ceremony/Stack.tsx         the stack at the edge (RC29-RC33): one entry a moment with a picture or a video, growing to the screen's bound, no number; one control that opens them in the viewer
-  ceremony/Pictures.tsx      the pictures the replay leaves standing on the map (RC28, RC34), placed by the frame's camera; the map's pins are not touched
+  ceremony/Stack.tsx         the stack at the edge (RC29-RC33): one entry a moment with a picture or a video, growing to the screen's bound, no number; one control that opens them in the viewer, 12 px under Next (48 dp to a finger on Android)
+  ceremony/Pictures.tsx      the pictures the replay leaves standing on the map (RC28, RC34), placed by the frame's camera; each a 44 pt control that opens its moment (replay-ceremony ui 1); the map's pins are not touched
   ceremony/Still.tsx         a moment's small picture for the stack and the map: a small copy, a video's still, never a player
   ceremony/Grid.tsx          a stacked moment's grid in its card (MS17): its photos, swiping in, the scroll past nine; no video in a cell
-  ceremony/Whispers.tsx      a passed place said beside it (projected from the map's centre and zoom); PassedNames: the passed places named on the last view, in body ink (replay ceremony RC25)
+  ceremony/Whispers.tsx      a passed place said over or under it on its own ground (projected from the map's centre and zoom), short of the stack; PassedNames: the passed places named on the last view, in body ink (replay ceremony RC25)
   ceremony/RollingClock.tsx  the time of day, its digits on reels
   ceremony/StepThrough.tsx   the screen reader's way: the story's moments one at a time with Continue
   ceremony/useCeremonyLoop.ts  the replay's engine (decision 0206): one frame loop outside the screens' rendering (useCeremonyLoop), and useReplay, which draws each frame on the map and the stage
   ceremony/useLive.ts        how a leaf of the stage reads the frame: useLive (one thing it shows) and useLiveStyle (what moves every frame, written on its element)
   ceremony/liveStyle(.web).ts  writeStyle: a style written on a view with no render (setNativeProps; the element's own style on web)
   ceremony/useRevealed.ts    the captures whose pins are up, one list per count
-  ceremony/layout.ts         where the stage puts things, and the overlays' poses by frame (cardPose, picturePose, stackPose, bubblePose, whisperPose, passedPose), dateOf; the room and project() are core's (lib/ceremony/room, camera), re-exported
+  ceremony/layout.ts         where the stage puts things, and the overlays' poses by frame (cardPose, picturePose, stackPose, bubblePose, whisperPose, passedPose), which pictures take a tap (pictureTaps), dateOf; the room and project() are core's (lib/ceremony/room, camera), re-exported
 Chronicle's Memories (decision 0098)
   resurface/types.ts         MomentView, Signal, SignalExtractor (the extension point), Thread, Prefs, Pick
   resurface/terms.ts         the user's words folded into terms (case, accents, plurals, common words, aliases)
@@ -122,14 +122,14 @@ Home / tabs
   HomeSheet.tsx              the three-height bottom sheet (Animated + responders), Walks | Days, a place's walks, a day's timeline
   StarView.tsx               a star for a place; all one size; the 8 busiest carry names
   OpenWalk.tsx               the open walk kept above the tabs: walk, pauses, live trace, useOpenWalk / useOpenWalkInfo
-  RecordingBar.tsx           the bar above the tabs while a walk is minimized: time, distance, camera, Stop, › back to the walk; its photo's Edit pill above it
+  RecordingBar.tsx           the bar above the tabs while a walk is minimized: time, distance, camera, Stop, › back to the walk; its photo's editor, opened by itself (decision 0240)
   MomentBar.tsx              MomentBar (loose moments from Navigate's ready screen) and CaptureRow (the stack's controls and the note's page); Memories keeps moments from journal/OpenLine
   LocateButton.tsx           Locate me, an edge button
   StartSettings.tsx          the walk settings, shown in the ready bar pulled up (NR7)
   walk/                      the walk screen's shared geometry (layout.ts), CaptureStack, AddToMomentPill (moment stacks), PlaceCaptureRow (a place card's Camera, Voice, Note), ReadyBar, useReady (the walk screen's ready state)
   StackMark.tsx              the two-card mark of a moment holding more than one piece (MS8)
   GapCard.tsx                a filled or offered stretch: Keep, Not this way
-  KeepGapsCard.tsx           the first replay's one question: keep every offered way (G15)
+  KeepGapsCard.tsx           the first replay's one question: keep every offered way (G15); over the map above the card's sheet, or inside the sheet where that would cover the walk (lib/replay keepAskPlace)
   ExploreSettings.tsx        the shared pieces of the drawers' settings: `RangeSlider`, `walkNote`
   IntoRow.tsx                the drawers' "What I'm into ›" row, opening its page (decision 0192)
   IntoPage.tsx               What I'm into's page: the kinds and Complexes' switches, headings pinned (`stickyHeaderIndices`), from lib/explore/intoPage
@@ -146,7 +146,7 @@ Captures
   edit/tools.tsx             CropFrame, DrawLayer (pen, marker, eraser), FilterStrip, TrimBar
   edit/EditedPhoto.tsx       EditedPicture (one SVG through exportPlan's transform: FeColorMatrix filter, lines) and EditedPhoto (with the caption bar, full screen)
   edit/EditedVideo.tsx       EditedVideo (the player turned and cropped by view transforms, lines and caption in a layer taking no taps, the trim kept while playing), VideoPicture, useVideoSize
-  edit/EditOffer.tsx         the 6 s Edit offer after a capture: useEditOffer, EditOfferPill, EditButton
+  edit/EditOffer.tsx         the editor after a capture: useEditAfterCapture (decision 0240)
   MemoryPreview.tsx          a memory pin's quick preview above the capture row
   ReminderCard.tsx           a flagged capture come back on the walk screen
   RemindEditor.tsx           Remind me here: how often, until when (drawn inside the viewer's Modal)
@@ -196,13 +196,14 @@ Streets, snapping, fog
   ceremony/story.ts          walkStory, dayStory, storySteps; metresAt, timeAtMetres, pathDrawnAt: what happened, no timing or look
   ceremony/rhythm.ts         the rhythm ceremony (RR1-RR19, replay pace RY1-RY22): rhythmPlan (the opening's dive, legs at a steady pace, stops, breaks as a hop or a stand, each moment's own time, a moment of several pieces whole with its videos in turn, no cap, the close: the walker standing, the pull-back, the last view's date and passed places; `stops`, where Next lands; the camera, worked out once; what stays behind), rhythmFrame (given a press, it says what lay between; the pictures standing, the stack, the scrim), laterLine, notePause
   ceremony/camera.ts         a ceremony's camera as plan data (replay ceremony RC11-RC16): cameraTrack walks a telling's time once and writes down the camera's moves (hold and re-frame, rise by the walker's speed across the screen, a card's pin settled under it, a break's pull-back and closing in, the dive from the whole and the pull-back to the card's view); cameraAt reads it per frame; fitCamera (a map's own fit of bounds in a room, RC23); project() (Web Mercator, as the map)
-  ceremony/room.ts           the stage's room, pure: the screen as a ceremony is told it (StageRoom), the top row and bottom corner, cardWidth, cardSize, restCenter, cardFoot, the stack's and a standing picture's sizes (STACK, PICTURE): shared by the stage's views and the camera
+  ceremony/room.ts           the stage's room, pure: the screen as a ceremony is told it (StageRoom), the top row and bottom corner, cardWidth, cardSize, restCenter, cardFoot, the stack's and a standing picture's sizes (STACK, PICTURE), the stack's column and its slop on Android (stackEdge, stackSlop): shared by the stage's views and the camera; the top row as laid out and what it says (TOP_ROW, topRow: "Skip to end" where the row has room, else "Skip"; TOP_BUTTON)
   ceremony/stack.ts          the stack's bound for a screen and where each entry stands at a time (stackBound, stackSlots: landing, giving, first in first out; replay ceremony RC29-RC32)
   ceremony/pictures.ts       which pictures stand on the map at a zoom (standing: the later of two close together shows, with a layered edge; RC34)
-  ceremony/clock.ts          tickClock, reanchor; nextStop and seekClock (Next, RY13-RY17); the frame loop's stepper (stepLoop, loopAgainst, nextLoop, holdLoop, frameMsFor: replay ceremony RC5-RC8)
+  ceremony/clock.ts          tickClock, reanchor; nextStop and seekClock (Next, RY13-RY17); the frame loop's stepper (stepLoop, loopAgainst, nextLoop, holdLoop: replay ceremony RC5-RC8)
   ceremony/reveal.ts         the walked line read as a reveal (revealOf: whole runs, the run being walked and the share of it shown), cutRun for a map that draws it as data; a frame's hops as the gap-links layer's data (hopLines, hopsKey), linksWithHops for the card
-  ceremony/live.ts           the frame on stage, kept outside the screen (createStageLive): the loop writes it, the stage's leaves read it
-  ceremony/grid.ts           a stacked moment's grid (MS17): gridLayout (closest square up to 3×3), gridShown, gridDuration
+  ceremony/said.ts           what is said over the map, pure: a whisper's and a name's rooms (WHISPER, PASSED, saidRoom, passedWidth), one whisper at a time, close ones said as one line (whisperGroups), a whisper beside a way up or down the screen (whisperBeside), and the last view's names, each beside its place or the card's one line clear of the walk (lastNames, nameRoom)
+  ceremony/live.ts           the frame on stage, kept outside the screen (createStageLive): the loop writes it, the stage's leaves read it; overlayOf, stackUp
+  ceremony/grid.ts           a stacked moment's grid (MS17): gridLayout (closest square up to 3×3), rowShare (a last row filled), gridShown, gridDuration
   ceremony/registry.ts       CEREMONIES, DEFAULT_CEREMONY, ceremonyFor: a new ceremony is an entry here
   backlog/                   placeBacklog: places old walks in the background, from the tiles in code (0137); shell.ts takes the snap and the reader
   mapReads.ts                one camera read at a time (mapReadLock)
@@ -363,7 +364,7 @@ Captures and media
   voiceTrim.ts               a voice memo's kept part (core, VT6-VT12): span, clock, state, the length and "Trimmed" words
   mediaEdit.ts               edits as data (core, ME5-ME21): rotate and crop against the original, the nine filter matrices, pen sizes and colours, the eraser's hit, simplify, trim, exportPlan (one transform for every renderer), parse/serialize
   editSession.ts             the editor's draft, undo/redo, close/discard/done (core)
-  editOffer.ts               the after-capture Edit offer's timing and words (core)
+  editOffer.ts               which capture's editor opens once it is kept (core)
   ready/                     Navigate, ready's shell (`createReady`: its choices, one fix, notes and moments' writes) and the app's instance
   captureEdits/              saving a moment's edits from a screen with no capture path: stored, then told on the bus (shell)
   videoEdit/                 an edited video as one file: the local module on phones, canvas + MediaRecorder on the web
@@ -410,7 +411,7 @@ Session, screens and small helpers
   memoGate.ts                a memo recording anywhere blocks a start
   unsaved/                   the one holder of every capture that failed to save (core words, in-memory shell; UN1-UN15, 0196)
   settleWithin.ts            await a promise, but never longer than ms
-  recordingBar.ts, quietLines.ts, format.ts, scaleBar.ts         the bar's line and its waiting Edit offer, counts as words, distances and times, the scale bar's length
+  recordingBar.ts, quietLines.ts, format.ts, scaleBar.ts         the bar's line, counts as words, distances and times, the scale bar's length
   audioMode(.native|.web).ts setAudioMode: expo-audio on native, navigator.audioSession on web
   focus.ts                   focusOn(ref) (findNodeHandle doesn't exist on web)
   perfCount.ts               opt-in counters when window.__perf is set

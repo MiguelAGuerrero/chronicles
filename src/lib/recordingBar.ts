@@ -1,7 +1,29 @@
 // @layer core
-import { formatDistance, formatDuration, formatElapsed } from './format';
+import { formatDistance } from './format';
 import { pausedMs, type PauseSpan } from './geo';
-import { offerText } from './editOffer';
+
+/**
+ * The time walked as the bar says it (tend tabs 21; the owner, Nov 20: "Minutes on the tabs"): whole minutes, "< 1 min"
+ * before the first; past the hour hours:minutes, "1:45" (the owner's own, tend tabs audit 55), short enough that the
+ * distance keeps its place at 320 px. The seconds stay on the walk screen.
+ */
+export function barTime(ms: number): string {
+  const min = Math.floor(Math.max(0, ms) / 60_000);
+  if (min < 1) return '< 1 min';
+  if (min < 60) return `${min} min`;
+  return `${Math.floor(min / 60)}:${String(min % 60).padStart(2, '0')}`;
+}
+
+/**
+ * The same time, as the bar's label says it (tend tabs audit 56): the minutes it draws, in words a screen reader reads
+ * plainly, "under a minute", "12 min", "1 h 05 min", never a rounding of its own.
+ */
+export function barTimeSpoken(ms: number): string {
+  const min = Math.floor(Math.max(0, ms) / 60_000);
+  if (min < 1) return 'under a minute';
+  if (min < 60) return `${min} min`;
+  return `${Math.floor(min / 60)} h ${String(min % 60).padStart(2, '0')} min`;
+}
 
 /**
  * The recording bar's line (NV9): the time walked, paused time left out, and
@@ -9,16 +31,23 @@ import { offerText } from './editOffer';
  */
 export function recordingLine(o: { startedAt: number | null; pauses: PauseSpan[]; now: number; distanceM: number }): {
   text: string;
+  /** The time and the distance, drawn whole (tend tabs audit 57). */
+  numbers: string;
+  /** "Paused" while paused, drawn apart after the numbers so only it shrinks; null otherwise. */
+  word: string | null;
   label: string;
   paused: boolean;
 } {
   const paused = o.pauses.some((p) => p.ended_at == null);
   const ms = o.startedAt == null ? 0 : Math.max(0, o.now - o.startedAt - pausedMs(o.pauses, o.startedAt, o.now));
-  const line = `${formatElapsed(ms)} · ${formatDistance(o.distanceM)}`;
+  const line = `${barTime(ms)} · ${formatDistance(o.distanceM)}`;
   return {
-    // The numbers first, so a narrow bar cuts the word (the pause glyph shows it too), never the time (tend tabs audit 17).
+    // The numbers first, so a narrow bar cuts the word (the pause glyph shows it too), never the time (tend tabs audit 17);
+    // given apart, so the bar draws the numbers whole and lets only the word shrink (tend tabs audit 57).
     text: paused ? `${line} · Paused` : line,
-    label: `${paused ? 'Walk paused' : 'Walk recording'}, ${formatDistance(o.distanceM)} walked in ${formatDuration(ms)}. Return to the walk`,
+    numbers: line,
+    word: paused ? 'Paused' : null,
+    label: `${paused ? 'Walk paused' : 'Walk recording'}, ${formatDistance(o.distanceM)} walked in ${barTimeSpoken(ms)}. Return to the walk`,
     paused,
   };
 }
@@ -42,9 +71,15 @@ export interface BarStop {
   since: number;
 }
 
+/**
+ * How long `walkId`'s stop from the bar still holds at `now`, 0 when none does: the bar's spinning Stop ends with it, as the
+ * way back's refusal does (tend tabs 19).
+ */
+export const barStopLeftMs = (stop: BarStop | null, walkId: string, now: number): number =>
+  stop && stop.walkId === walkId ? Math.max(0, BAR_STOP_HOLD_MS - (now - stop.since)) : 0;
+
 /** Whether `walkId` is being stopped from the bar at `now`, within the stop's own bound. */
-export const barStopping = (stop: BarStop | null, walkId: string, now: number): boolean =>
-  !!stop && stop.walkId === walkId && now - stop.since < BAR_STOP_HOLD_MS;
+export const barStopping = (stop: BarStop | null, walkId: string, now: number): boolean => barStopLeftMs(stop, walkId, now) > 0;
 
 /**
  * Whether the bar's way back (its line, a tapped reminder) opens the walk screen: one at a time, and never while the
@@ -53,37 +88,3 @@ export const barStopping = (stop: BarStop | null, walkId: string, now: number): 
  */
 export const barGoesBack = (o: { returning: boolean; stop: BarStop | null; walkId: string; now: number }): boolean =>
   !o.returning && !barStopping(o.stop, o.walkId, o.now);
-
-/**
- * The bar's Edit offer after its photo (T12, decision 0149; amends ME23 on the bar alone): a pill above the bar that
- * waits, as Undo does (decision 0113). It has no end of its own: Edit, its Close or the next capture ends it, and the
- * line keeps its time and distance throughout. ME23's other places keep their six seconds (`lib/editOffer`).
- */
-export interface BarOffer {
-  id: string;
-  kind: 'photo' | 'video';
-}
-
-export const barOffer = (kept: { id: string; kind: 'photo' | 'video' }): BarOffer => ({ id: kept.id, kind: kept.kind });
-
-/**
- * The next capture ends the offer: one kept by any path of the walk (Memories' band too), or `null`, one from the bar
- * that failed to save (tend tabs audit 18). News of its own photo, should it come after the offer, leaves it standing.
- */
-export const barOfferAfter = (o: BarOffer | null, keptId: string | null): BarOffer | null => (o && o.id !== keptId ? null : o);
-
-/**
- * Shown while its capture is still the walk's and not deleted elsewhere, its Undo waiting or not (tend tabs audit 15),
- * and not while the walk is stopping from the bar, since the stop would close an editor opened meanwhile (audit 19).
- */
-export const barOfferShown = (o: BarOffer | null, captureIds: readonly string[], hidden: ReadonlySet<string>, stopping = false): boolean =>
-  !!o && !stopping && captureIds.includes(o.id) && !hidden.has(o.id);
-
-/** A delete of its photo ends the offer, so a committed delete never brings it back (tend tabs audit 15). */
-export const barOfferAfterHidden = (o: BarOffer | null, hidden: ReadonlySet<string>): BarOffer | null => (o && hidden.has(o.id) ? null : o);
-
-/** The pill's words, its announcement (as Undo's names its Undo) and its Close's spoken name. */
-export const barOfferWords = (kind: 'photo' | 'video'): { text: string; spoken: string; close: string } => {
-  const text = offerText(kind, 'walk');
-  return { text, spoken: `${text}. Edit is available.`, close: `Close, the ${kind} stays as it is` };
-};

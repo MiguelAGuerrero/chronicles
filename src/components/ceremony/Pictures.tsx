@@ -1,9 +1,9 @@
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { overlayOf } from '../../lib/ceremony/live';
 import type { Frame, PictureOverlay } from '../../lib/ceremony/types';
 import { webData } from '../edit/EditedPhoto';
 import { theme } from '../ui';
-import { PICTURE, picturePose, type StageCtx } from './layout';
+import { PICTURE, picturePose, pictureTaps, type StageCtx } from './layout';
 import { Still } from './Still';
 import { useLiveStyle } from './useLive';
 
@@ -12,6 +12,12 @@ import { useLiveStyle } from './useLive';
  * its foot on the place. Where it stands as the camera moves, whether a later one covers it, and its layered edge are
  * written on it frame by frame from the frame's camera (`picturePose`); no map listener, no render as time passes.
  * `o` is the picture as it came to stand, read only for what never moves (its moment, whether it is a video).
+ *
+ * It is a control (`replay-ceremony ui 1`, the UI review's U1): a tap opens its moment in the viewer, the replay
+ * holding until the viewer closes, as the stack's does. Its target is 44 pt around the tile. Whether it takes the tap
+ * (`pictureTaps`: not under a later picture, not under a card) is written on the control frame by frame, as its place
+ * is (`replay-ceremony ui 15`): a render to switch it was two commits as each card left. A tap it does not take goes
+ * on to what lies under it.
  */
 function Standing({ o, ctx, index }: { o: PictureOverlay; ctx: StageCtx; index: number }) {
   const key = o.key;
@@ -29,15 +35,30 @@ function Standing({ o, ctx, index }: { o: PictureOverlay; ctx: StageCtx; index: 
     const p = now(f);
     return p ? { opacity: p.layered ? 1 : 0 } : null;
   });
+  const touch = useLiveStyle(ctx.live, (f) => {
+    const p = now(f);
+    return p ? { pointerEvents: pictureTaps(f, p, ctx) ? 'auto' : 'none' } : null;
+  });
   return (
-    <View ref={pose} testID="replay-picture" pointerEvents="none" {...webData({ key })} style={styles.standing}>
-      <View ref={edge} testID="picture-edge" style={styles.under} />
-      <View style={styles.stalk} />
-      <View style={styles.frame}>
+    <View ref={pose} testID="replay-picture" pointerEvents="box-none" {...webData({ key })} style={styles.standing}>
+      <View ref={edge} testID="picture-edge" pointerEvents="none" style={styles.under} />
+      <View pointerEvents="none" style={styles.stalk} />
+      <View pointerEvents="none" style={styles.frame}>
         <View style={styles.picture}>
           <Still capture={o.capture} mark={8} />
         </View>
       </View>
+      <Pressable
+        ref={touch}
+        testID="picture-open"
+        accessibilityRole="button"
+        accessibilityLabel="Open this moment"
+        accessibilityHint="Opens it full screen; the replay holds until you close it"
+        // One under a later picture or under a card takes no finger (written by the frame, above). To a screen reader
+        // each stays a way to its own moment: it opens that moment whatever lies over its tile.
+        onPress={() => ctx.open([o.capture])}
+        style={styles.hit}
+      />
     </View>
   );
 }
@@ -58,10 +79,14 @@ export function Pictures({ items, ctx }: { items: PictureOverlay[]; ctx: StageCt
 }
 
 const STALK = PICTURE.lift - PICTURE.size / 2;
+/** How far the control reaches past the tile on each side. */
+const REACH = (PICTURE.hit - PICTURE.size) / 2;
 
 const styles = StyleSheet.create({
   // From the frame's top to the place its stalk stands on.
   standing: { position: 'absolute', width: PICTURE.size, height: PICTURE.size + STALK },
+  // The control: 44 pt around the 36 px tile, over all the picture draws.
+  hit: { position: 'absolute', left: -REACH, top: -REACH, width: PICTURE.hit, height: PICTURE.hit, borderRadius: 6 },
   frame: {
     position: 'absolute', left: 0, top: 0, width: PICTURE.size, height: PICTURE.size, backgroundColor: theme.surface, borderRadius: 4, padding: 2,
     shadowColor: theme.ink, shadowOpacity: 0.25, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 3,

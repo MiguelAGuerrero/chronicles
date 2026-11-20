@@ -1,0 +1,37 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "section",
+        "item",
+        "remove",
+        "From /fix",
+        "Edit after a capture on the other camera paths",
+        "--reason",
+        "The owner's answer, Nov 20 (fix planner-edit): the planner yes, Respond and the note page no; decision 0240's addendum"
+      ],
+      "target": "sha256:0512fe6d64e822a31447eb7771d2d63c684ef1542761f24e4f3f5f5dcbc8935a"
+    },
+    {
+      "argv": [
+        "section",
+        "remove",
+        "From /fix",
+        "--reason",
+        "Its one question answered (fix planner-edit)"
+      ],
+      "target": "sha256:a4d4c9278e43db7523ef66ec054c2b380e80b42635367e4f14c98c9b009f1673"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Media editing (ME1-ME23",
+        "--after",
+        "take a photo and then a video with the system camera from the walk screen"
+      ],
+      "body": "- [ ] **Do:** on iOS and Android, with a walk recording, open an area's card on Explore, then Suggest a walk, and take a photo with the planner's camera; tap Use Photo (iOS) or the tick (Android); then the same from the outing page; make a change and press Android Back. **Expect:** the media editor opens by itself as the camera closes, as a Modal of its own over the planner, on Crop; Back goes through the editor's Close (it asks \"Discard these edits?\") and the planner stays open beneath; Close keeps the photo as taken. Never run on a phone (fix planner-edit, decision 0240's addendum).\n"
+    }
+  ]
+}

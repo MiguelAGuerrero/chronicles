@@ -45,7 +45,8 @@ test('PL6, PL7: the card has no "Waiting to be found"; a kind row never reads th
   assert.ok(!/Waiting to be found|atlas-waiting/.test(card), 'the section is gone');
   assert.ok(!/places|waiting/i.test(src('src/components/atlas/KindStrip.tsx').split('export function KindRow')[1] ?? ''), 'KindRow takes nothing about waiting');
   const { MARKS_EXPLAINED } = await import('../../atlas/atlas');
-  const small = MARKS_EXPLAINED.filter((l) => /too small to light a dot/i.test(l));
+  // tend presence audit 6: the panel says "mark" for what the bars draw, so the line reads "too small to light a mark".
+  const small = MARKS_EXPLAINED.filter((l) => /too small to light a mark/i.test(l));
   assert.equal(small.length, 1, 'one sentence on a small place that can still wait');
   assert.ok(!/\d|find|found/i.test(small[0]), 'no digit, no "find"');
 });

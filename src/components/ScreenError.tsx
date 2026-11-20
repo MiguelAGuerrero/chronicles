@@ -1,6 +1,6 @@
 import { router, type ErrorBoundaryProps } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
-import { walkErrorLine } from '../lib/readyNav';
+import { replayErrorLine, walkErrorLine } from '../lib/readyNav';
 import { useOpenWalkInfo } from './OpenWalk';
 import { Button, theme } from './ui';
 
@@ -12,7 +12,7 @@ import { Button, theme } from './ui';
  */
 type Exit = 'dismiss' | 'navigate' | 'none';
 
-function ErrorScreen({ error, retry, exit, body = 'Your walk is saved.' }: ErrorBoundaryProps & { exit: Exit; body?: string | null }) {
+function ErrorScreen({ error, retry, exit, body }: ErrorBoundaryProps & { exit: Exit; body: string | null }) {
   return (
     <View style={styles.screen} testID="screen-error">
       <Text style={styles.title} accessibilityRole="header">Something went wrong showing this screen.</Text>
@@ -35,10 +35,17 @@ function ErrorScreen({ error, retry, exit, body = 'Your walk is saved.' }: Error
  * Shown in place of a screen that threw while rendering, instead of a blank
  * page (bug, Nov 1: a white screen after Stop on an iPhone). The walk and its
  * captures are already stored; this only redraws the screen. The message is
- * kept on screen so a report can say what broke.
+ * kept on screen so a report can say what broke. Its line says what the open walk is, or nothing with none open (tend
+ * tabs 16): the owner's answer of Nov 20 extended O35 to the tabs; a day, What I'm into and `/chronicle` follow the same
+ * line as the run's own call (they said "saved" with no walk at all, a bug).
  */
 export function ScreenError(props: ErrorBoundaryProps) {
-  return <ErrorScreen {...props} exit="dismiss" />;
+  return <ErrorScreen {...props} exit="dismiss" body={walkErrorLine(useOpenWalkInfo())} />;
+}
+
+/** The same, on a replay: of a walk that is kept, said so unless another walk records (tend tabs audit 58). */
+export function ReplayScreenError(props: ErrorBoundaryProps) {
+  return <ErrorScreen {...props} exit="dismiss" body={replayErrorLine(useOpenWalkInfo())} />;
 }
 
 /**
@@ -51,14 +58,14 @@ export function WalkScreenError(props: ErrorBoundaryProps) {
   return <ErrorScreen {...props} exit="dismiss" body={line} />;
 }
 
-/** The same, on Explore and Navigate: its way back opens Chronicle's tab (tend replay audit 7). */
+/** The same, on Explore and Navigate: its way back opens Chronicle's tab (tend replay audit 7); its line, the open walk's (tend tabs 16). */
 export function TabScreenError(props: ErrorBoundaryProps) {
-  return <ErrorScreen {...props} exit="navigate" />;
+  return <ErrorScreen {...props} exit="navigate" body={walkErrorLine(useOpenWalkInfo())} />;
 }
 
-/** The same, on Chronicle's own tab and in the tabs' layout: Try again alone (tend replay audit 8). */
+/** The same, on Chronicle's own tab and in the tabs' layout: Try again alone (tend replay audit 8); its line, the open walk's (tend tabs 16). */
 export function HomeScreenError(props: ErrorBoundaryProps) {
-  return <ErrorScreen {...props} exit="none" />;
+  return <ErrorScreen {...props} exit="none" body={walkErrorLine(useOpenWalkInfo())} />;
 }
 
 const styles = StyleSheet.create({

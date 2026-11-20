@@ -54,8 +54,63 @@ async function run(h) {
   places.asked.length = 0;
   const packAsked = () => places.asked.filter((a) => a.name === storesFile);
   const { c, pg } = await freshPage('outing');
+  // tend map 24 (QL5, QL8; the lenses' ux 1 and 2, auditor 3, steward 6): the map's scale bar and its credits (i) sit
+  // above the sheet, whatever its height, and the journey is framed in the map left above it, where it can be seen.
+  const aboveSheet = async (where) => {
+    const seen = await pg.evaluate(() => {
+      const box = (el) => (el ? el.getBoundingClientRect() : null);
+      const sheet = box(document.querySelector('[data-testid=outing-sheet]'));
+      const bar = box(document.querySelector('[data-testid=outing-map] [data-testid=scale-bar] [data-testid=scale-line]'));
+      const iBtn = document.querySelector('[data-testid=outing-map] .maplibregl-ctrl-attrib-button');
+      const ib = box(iBtn);
+      const hit = ib ? document.elementFromPoint(ib.left + ib.width / 2, ib.top + ib.height / 2) : null;
+      return {
+        sheetTop: sheet ? Math.round(sheet.top) : null,
+        bar: bar ? { bottom: Math.round(bar.bottom), w: Math.round(bar.width) } : null,
+        credits: ib ? { bottom: Math.round(ib.bottom), top: !!hit && !!hit.closest('.maplibregl-ctrl-attrib') } : null,
+      };
+    });
+    // The journey's line in COLORS.route, counted in the map above the sheet (the sheet hides what lies under it).
+    const top = 70;
+    const h = Math.max(1, (seen.sheetTop ?? 0) - top);
+    const png = await pg.screenshot({ clip: { x: 0, y: top, width: pg.viewportSize().width, height: h } });
+    const route = await pg.evaluate(async (b64) => {
+      const bytes = Uint8Array.from(atob(b64), (ch) => ch.charCodeAt(0));
+      const bmp = await createImageBitmap(new Blob([bytes], { type: 'image/png' }));
+      const cv = new OffscreenCanvas(bmp.width, bmp.height);
+      const g = cv.getContext('2d');
+      g.drawImage(bmp, 0, 0);
+      const d = g.getImageData(0, 0, bmp.width, bmp.height).data;
+      let n = 0;
+      for (let i = 0; i < d.length; i += 4) if (Math.abs(d[i] - 0x25) + Math.abs(d[i + 1] - 0x63) + Math.abs(d[i + 2] - 0xeb) < 60) n++;
+      return n;
+    }, png.toString('base64'));
+    check(seen.sheetTop != null && !!seen.bar && seen.bar.w > 0 && seen.bar.bottom <= seen.sheetTop && !!seen.credits && seen.credits.top && seen.credits.bottom <= seen.sheetTop && route > 0,
+      `tend map 24: ${where}, the map's scale bar and its credits (i) sit above the sheet, and the journey is drawn above it (${JSON.stringify({ ...seen, route })})`);
+    // The after picture at 320 px for the review, then back to 390.
+    const vp = pg.viewportSize();
+    await pg.setViewportSize({ width: 320, height: vp.height });
+    await pg.waitForTimeout(1800);
+    // tend map audit 50 (the diff review's ux U1): no stop, and not you, lies under the scale bar or the credits (i).
+    {
+      const shops = [-247, -243, -239, -235].map((x) => at(x, 0.3));
+      const under = await pg.evaluate(([pts, you]) => {
+        const box = (sel) => document.querySelector(sel)?.getBoundingClientRect() ?? null;
+        const bar = box('[data-testid=outing-map] [data-testid=scale-bar]');
+        const iB = box('[data-testid=outing-map] .maplibregl-ctrl-attrib-button');
+        const inside = (r, [x, y]) => !!r && x >= r.left - 6 && x <= r.right + 6 && y >= r.top - 6 && y <= r.bottom + 6;
+        return [...pts, you].map((p) => window.__project(p)).filter((xy) => inside(bar, xy) || inside(iB, xy)).map((xy) => xy.map(Math.round));
+      }, [shops, here]);
+      check(under.length === 0, `tend map audit 50: ${where} at 320, no stop and not you lie under the scale bar or the credits (i) (${JSON.stringify(under)})`);
+    }
+    await shot(pg, `tend-map-24-${where.replace(/[^a-z]+/gi, '-').replace(/^-|-$/g, '')}-320`);
+    await pg.setViewportSize(vp);
+    await pg.waitForTimeout(900);
+  };
   const here = at(-248, 0);
   await c.setGeolocation({ longitude: here[0], latitude: here[1], accuracy: 6 });
+  // The map's projection for the checks below (`window.__project`), defined only when the page asks for perf counts.
+  await c.addInitScript(() => { window.__perf = {}; });
   await pg.goto(exploreUrl);
   // The first fix places Explore at Curio Row, as the planner's journey waits for its area.
   await pg.waitForSelector('[data-testid=atlas-tile][data-name="Curio Row"]', { timeout: 60000 }).catch(() => {});
@@ -71,6 +126,42 @@ async function run(h) {
   await pg.waitForSelector('[data-testid=outing]', { timeout: 15000 }).catch(() => {});
   check((await pg.locator('[data-testid=outing]').count()) === 1, 'QC1: one tap opens the page');
   await shot(pg, '02-page-empty');
+  // tend map audit 51 (the diff review's ux U2): with nothing chosen yet, the map already shows its credits (i) above the sheet.
+  {
+    // The sheet grows as the chips arrive: the (i) follows it, so it is read once it has caught up (or after 6 s). The page is
+    // brought to the front first: react-native-web measures a layout in an animation frame, which a page behind another
+    // never gets, so a sheet that grew while the shot was taken was never measured.
+    await pg.bringToFront();
+    await pg.waitForFunction(() => {
+      const b = document.querySelector('[data-testid=outing-map] .maplibregl-ctrl-attrib-button')?.getBoundingClientRect();
+      const sheet = document.querySelector('[data-testid=outing-sheet]')?.getBoundingClientRect();
+      return !!b && !!sheet && b.width > 0 && b.bottom <= sheet.top;
+    }, null, { timeout: 6000 }).catch(() => {});
+    const seen = await pg.evaluate(() => {
+      const b = document.querySelector('[data-testid=outing-map] .maplibregl-ctrl-attrib-button')?.getBoundingClientRect();
+      const sheet = document.querySelector('[data-testid=outing-sheet]')?.getBoundingClientRect();
+      const hit = b ? document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2) : null;
+      const ctl = document.querySelector('[data-testid=outing-map] .maplibregl-ctrl-attrib');
+      const bar = document.querySelector('[data-testid=outing-map] [data-testid=scale-bar]')?.getBoundingClientRect();
+      return { i: b ? Math.round(b.bottom) : null, sheetTop: sheet ? Math.round(sheet.top) : null, top: !!hit && !!hit.closest('.maplibregl-ctrl-attrib'),
+        margin: ctl ? getComputedStyle(ctl).marginBottom : null, bar: bar ? Math.round(bar.bottom) : null };
+    });
+    check(seen.i != null && seen.sheetTop != null && seen.i <= seen.sheetTop && seen.top,
+      `tend map audit 51: with nothing chosen yet, the outing map shows its credits (i) above the sheet (${JSON.stringify(seen)})`);
+  }
+  // tend map audit 52 (the diff review's ux U3): with no journey yet, the map frames where you are in the band above the sheet.
+  {
+    await pg.waitForTimeout(1500);
+    const at0 = await pg.evaluate((p) => (window.__project ? window.__project(p) : null), here);
+    const band = await pg.evaluate(() => {
+      const sheet = document.querySelector('[data-testid=outing-sheet]')?.getBoundingClientRect();
+      const field = document.querySelector('[data-testid=outing-where]')?.getBoundingClientRect();
+      const bar = document.querySelector('[data-testid=outing-map] [data-testid=scale-bar]')?.getBoundingClientRect();
+      return { top: field ? Math.round(field.bottom) : null, bottom: bar ? Math.round(bar.top) : sheet ? Math.round(sheet.top) : null };
+    });
+    check(!!at0 && band.top != null && band.bottom != null && at0[1] > band.top && at0[1] < band.bottom && at0[0] > 0 && at0[0] < (pg.viewportSize()?.width ?? 0),
+      `tend map audit 52: with no journey yet, the outing map shows where you are between the field and the scale row (${JSON.stringify({ at: at0 && at0.map(Math.round), band })})`);
+  }
   // OJ1: the page is the map, with one field over it worded "Where to?"; nothing is proposed or read yet.
   const whereText = ((await pg.locator('[data-testid=outing-where-text]').innerText().catch(() => '')) ?? '').trim();
   const mapBox = await pg.locator('[data-testid=outing-map]').boundingBox().catch(() => null);
@@ -142,6 +233,7 @@ async function run(h) {
   const jcards = await pg.locator('[data-testid^=outing-journey-]').evaluateAll((els) => els.map((e) => (e.textContent ?? '').replace(/\s+/g, ' ').trim()));
   check(jcards.length === 1 && /^Among the shops/.test(jcards[0]) && /Around here\. Antiques\. [\d.]+[ \u00a0](m|km|ft|mi) on foot\./.test(jcards[0]), `OJ17, OJ18, OJ21: one journey, named for its leaning, summarised in words (${jcards.join(' | ')})`);
   await shot(pg, '03-journeys');
+  await aboveSheet('on the journeys');
   await openJourney();
   check(/one way: the way back is yours\./.test(await pg.locator('[data-testid=outing-chapter-line-0]').innerText().catch(() => '')), 'OJ7, OJ24: where no loop can be made without retracing, the walk is one way and says the way back is yours');
   check((await pg.locator('[data-testid=outing-chapter-name-0]').innerText().catch(() => '')).trim() === 'Around here', 'OJ44: around here is a journey of one chapter');
@@ -177,6 +269,7 @@ async function run(h) {
   }
   // QC21: Swap closes the card and the new slot is unnamed.
   await shot(pg, '04-card');
+  await aboveSheet('with a stop\'s card open');
   const swapLabel = (await pg.locator('[data-testid=outing-swap-0]').innerText()).replace(/[^\x20-\x7e]/g, '').trim();
   await pg.click('[data-testid=outing-swap-0]');
   await pg.waitForTimeout(300);
@@ -208,6 +301,34 @@ async function run(h) {
     const last = (await pg.locator('[data-testid=outing-card]').innerText().catch(() => '')) ?? '';
     check(seen.length >= 1 && NAMES.some((n) => last.includes(n)), 'QC21: with none left the proposal is as it was');
     await pg.click('[data-testid=outing-slot-open-0]');
+  }
+  // tend map audit 49 (the diff review's auditor 3), last before the chips, since the hand's move is kept for this journey:
+  // on a tall screen the sheet is under its cap, so opening a stop's row makes it taller; after the person moved the map,
+  // that never frames the journey again over their move.
+  {
+    await pg.setViewportSize({ width: 390, height: 1400 });
+    await pg.waitForTimeout(1500);
+    const center = () => pg.evaluate(() => document.querySelector('[data-testid=outing-map] [data-center]')?.getAttribute('data-center') ?? null);
+    const sheetTop = () => pg.evaluate(() => Math.round(document.querySelector('[data-testid=outing-sheet]')?.getBoundingClientRect().top ?? -1));
+    await pg.mouse.move(195, 200);
+    await pg.mouse.down();
+    await pg.mouse.move(275, 240, { steps: 8 });
+    await pg.mouse.up();
+    await pg.waitForTimeout(1500);
+    const c0 = await center();
+    const t0 = await sheetTop();
+    await pg.click('[data-testid=outing-slot-open-1]').catch(() => {});
+    await pg.waitForTimeout(2000);
+    const c1 = await center();
+    const t1 = await sheetTop();
+    const ll = (s) => (s ? s.split(',').map(Number) : null);
+    const [a, b] = [ll(c0), ll(c1)];
+    const off = a && b ? Math.hypot((a[0] - b[0]) * 111320 * Math.cos((a[1] * Math.PI) / 180), (a[1] - b[1]) * 110540) : null;
+    check(t1 !== t0 && off != null && off < 2,
+      `tend map audit 49: under the sheet's cap, a stop's row opened after a pan keeps the map where the hand left it (sheet top ${t0} -> ${t1}, centre moved ${off == null ? '-' : off.toFixed(1)} m)`);
+    await pg.click('[data-testid=outing-slot-open-1]').catch(() => {});
+    await pg.setViewportSize({ width: 390, height: 844 });
+    await pg.waitForTimeout(1500);
   }
   // OJ3, OJ43: chips of two leanings give several journeys in a row that scrolls sideways, a mixed one ahead; the next card's edge shows.
   await backToChips();
@@ -285,6 +406,7 @@ async function run(h) {
   await pg.click('[data-testid=outing-peek]');
   await pg.waitForTimeout(400);
   await shot(pg, '05e-folded');
+  await aboveSheet('with the sheet folded');
   await pg.click('[data-testid=outing-peek]');
   await pg.waitForTimeout(300);
   await pg.click('[data-testid=outing-reach-0]');

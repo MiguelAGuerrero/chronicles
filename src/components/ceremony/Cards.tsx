@@ -9,6 +9,7 @@ import type { CardOverlay } from '../../lib/ceremony/types';
 import { editedSize, isEmptyEdit, type MediaEdit } from '../../lib/mediaEdit';
 import type { Faced } from '../../lib/moment';
 import { useMediaUri } from '../../lib/useMediaUri';
+import { gridLabel } from '../../lib/quietLines';
 import { memoLengthMs } from '../../lib/voiceTrim';
 import { EditedPicture, useNaturalSize } from '../edit/EditedPhoto';
 import { seekTo, useVideoSize, VideoPicture } from '../edit/EditedVideo';
@@ -236,7 +237,8 @@ function MomentCard({ o, ctx }: { o: CardOverlay; ctx: StageCtx }) {
   // What the card says under its picture is what it shows: a moment's video in its turn is named as itself (RC37).
   const turn = useLive(ctx.live, (f) => overlayOf(f, 'card', key)?.turn ?? 0);
   const showing = (turn > 0 ? o.videos?.[turn - 1] : null) ?? o.capture;
-  const label = showing.caption || KIND_LABEL[showing.kind];
+  // A grid is named in the plural, a word and never a count (replay-ceremony ui 4).
+  const label = showing.caption || (grid && turn === 0 ? gridLabel(o.pieces?.length ?? 0) : KIND_LABEL[showing.kind]);
   return (
     <View
       ref={pose}

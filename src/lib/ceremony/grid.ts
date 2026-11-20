@@ -15,6 +15,17 @@ export function gridLayout(n: number): { cols: number; rows: number; shown: numb
 }
 
 /**
+ * How many pieces share the row of the `index`th of `n` (`replay-ceremony ui 4`): the grid's columns, but in a last
+ * row with fewer pieces than columns, where those pieces span the row between them, so a grid of three shows no empty
+ * cell. A grid past nine scrolls three across and its own last row fills the same way.
+ */
+export function rowShare(n: number, index: number): number {
+  const { cols } = gridLayout(n);
+  const last = n % cols;
+  return last > 0 && index >= n - last ? last : cols;
+}
+
+/**
  * How long a grid's pictures are shown once their card has grown (RY4): each piece swipes in a beat after the one
  * before, then they stay `gridHold`, and a grid past nine scrolls on top. A moment's videos are not in its cells
  * (replay ceremony RC37): they play in turn after this.

@@ -3,13 +3,13 @@ import { StyleSheet, Text, View } from 'react-native';
 import type { Overlay, OverlayKind } from '../../lib/ceremony/types';
 import { perfCount } from '../../lib/perfCount';
 import { theme } from '../ui';
-import { DATE_TOP, dateOf, heldShown, STAGE_SIDE, type StageCtx } from './layout';
+import { DATE_TOP, dateOf, heldShown, topRow, type StageCtx } from './layout';
 import { OVERLAY_ORDER, OVERLAYS, UNDER_SCRIM } from './overlays';
 import { RollingClock } from './RollingClock';
 import { useLive, useLiveStyle } from './useLive';
 
 /**
- * Draws the frame on stage, of any ceremony, over the map (RR21): the clock and the line under it, "Held", and the
+ * Draws the frame on stage, of any ceremony, over the map (RR21): the clock and the line under it, "Paused", and the
  * overlays by kind. It knows nothing of how a ceremony decides what a frame holds. A break never dims the map: it is
  * crossed on the map itself (replay ceremony RC17); under a card the map, and the pictures standing on it, darken by
  * what the frame says (RC35). On the last view it shows the day walked (RC26).
@@ -78,14 +78,15 @@ function Clock({ ctx }: { ctx: StageCtx }) {
 }
 
 /**
- * The day walked, on the last view (replay ceremony RC26): where the clock stood, between Hold and Skip, in body ink no
+ * The day walked, on the last view (replay ceremony RC26): where the clock stood, between Pause and Skip, in body ink no
  * larger than body text and always one line (`dateOf` words it for the room). The clock has faded out before it
  * comes. It renders when the day comes or goes; its coming in is written on it frame by frame.
  */
 function DateLine({ ctx }: { ctx: StageCtx }) {
   const day = useLive(ctx.live, (f) => f?.date ?? null);
   const fade = useLiveStyle(ctx.live, (f) => ({ opacity: f.dateOpacity }));
-  const room = Math.max(120, ctx.width - 2 * STAGE_SIDE);
+  // What the top row leaves between its buttons (`replay-ceremony ui 10`): less beside the longer "Skip to end".
+  const room = topRow(ctx.width).room;
   return day == null ? null : (
     <View pointerEvents="none" style={[styles.dateRow, { top: ctx.insets.top + DATE_TOP }]}>
       <Text ref={fade} testID="replay-date" accessibilityLiveRegion="polite" numberOfLines={1} style={[styles.date, { maxWidth: room }]}>{dateOf(day, room)}</Text>
@@ -93,18 +94,18 @@ function DateLine({ ctx }: { ctx: StageCtx }) {
   );
 }
 
-/** The line under the clock ("43 min later", a passed place) and "Held": the words by render, the line's fade by itself. */
+/** The line under the clock ("43 min later", a passed place) and "Paused": the words by render, the line's fade by itself. */
 function Lines({ ctx }: { ctx: StageCtx }) {
   const line = useLive(ctx.live, (f) => f?.line ?? null);
   const fade = useLiveStyle(ctx.live, (f) => ({ opacity: f.lineOpacity }));
   return (
     <>
       {line ? (
-        // Between Hold and the controls under Skip: a passed place's line can be long (RY21).
-        <Text ref={fade} testID="replay-later" style={[styles.line, { maxWidth: Math.max(120, ctx.width - 2 * STAGE_SIDE) }]}>{line}</Text>
+        // Between Pause and the controls at the right: a passed place's line can be long (RY21).
+        <Text ref={fade} testID="replay-later" style={[styles.line, { maxWidth: topRow(ctx.width).room }]}>{line}</Text>
       ) : null}
       {heldShown(ctx.held, line) ? (
-        <Text testID="replay-held" accessibilityLiveRegion="polite" style={styles.held}>Held · tap to go on</Text>
+        <Text testID="replay-held" accessibilityLiveRegion="polite" style={styles.held}>Paused · tap to play</Text>
       ) : null}
     </>
   );

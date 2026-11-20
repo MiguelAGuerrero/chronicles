@@ -59,6 +59,9 @@ const PLAIN_IN: Readonly<Record<string, readonly string[]>> = {
   // reaction's sign (a view): neither reads a source's tag for what a place is
   bridge: ['streets.ts'],
   sign: ['../components/reactions/'],
+  // tend presence 2: Overture's `memorial_site` is also presence's class of that name, which curation's `BY_NAME` lists (a memorial
+  // is a mark only by a notable name or the archive's record): the class, never Overture's tag read for what a place is
+  memorial_site: ['discovery/curation.ts'],
 };
 const plainIn = (w: string, rel: string) => !!PLAIN_IN[w]?.some((p) => (p.endsWith('/') ? rel.startsWith(p) : rel === p));
 

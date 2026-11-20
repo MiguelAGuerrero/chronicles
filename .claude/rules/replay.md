@@ -48,6 +48,14 @@ A walk's replay and the day replay: the five beats, the story and its ceremonies
     (`layout.ts` `STAGE_SIDE`, `heldShown`). A rebuilt telling forgets the press.
   - **The button says "Next"** (`NextMoment.tsx`, under Skip on both replays): the cold find took a bare chevron for
     something else and tapped Skip first, which ends the replay. It is not drawn when no moment lies ahead.
+  - **The two buttons say "Pause" and "Skip to end"** (`replay-ceremony ui 10`, the owner's defaults, Nov 20: two cold
+    reads could not tell what Skip skips and found Hold only by elimination). Paused, the button reads "Play" and the
+    line under the clock "Paused · tap to play". `room.ts` `topRow(width)` words Skip: the longer word wherever its
+    button ends 8 px short of the clock and of the last view's date at their widest (`TOP_ROW`, estimates of the
+    words' widths: from 390 px up), else "Skip", spoken "Skip to the end". Beside the longer word the line under the
+    clock and the date have less room (`topRow().room`: 122 px at 390, where it was 210), so a passed place's line
+    wraps to a line more there. The three top buttons take `TOP_BUTTON`'s narrower padding. The test ids are still
+    `hold` and `replay-held`; in the code the state is still `held`. The walk screen's own Pause and Hold are another thing.
 - **A stacked moment is one beat** (moment stacks MS17, decision 0123; replay ceremony RC37): `rhythm.ts`
   `stopSlots` makes a moment with two or more photos one `grid` slot (`ceremony/grid.ts`: the closest square up to
   3×3, scrolling past nine), its memos and notes `beside` slots on their own clock from the grid's start; one with a
@@ -56,12 +64,12 @@ A walk's replay and the day replay: the five beats, the story and its ceremonies
   the stage each cell's swipe-in (`shown`) and the `scroll`; `Grid.tsx` only draws them (the stage never reads
   `REPLAY_RHYTHM`). A stack's stop runs to its last piece (`lastPieceT`). The screen reader steps through a stack's
   pieces; `stepPosition` counts moments, never pieces (MS9).
-- **Nothing waits for a tap.** A tap on the stage or Hold holds it; an open viewer
-  pauses it (the clock and any sound); Skip goes to the card. First watch and
+- **Nothing waits for a tap.** A tap on the stage or Pause holds it; an open viewer
+  pauses it (the clock and any sound); Skip ("Skip to end") goes to the card. First watch and
   re-watches play the same. Only the screen reader's steps (`StepThrough`) wait for
   Continue, and move on by themselves on a re-watch, as before (RR17).
 - **Photos and videos are full screen in the viewer** (0003), opened from the stack
-  (newest first); in the path they are cards.
+  (newest first) or from a picture standing on the map (that moment; `replay-stage.md`); in the path they are cards.
 - **Video** comes from the camera button (the system camera's own video mode),
   capped at 30 s on phones and 15 s on web. The mic stays the separate pocket
   recorder.
@@ -95,9 +103,9 @@ A walk's replay and the day replay: the five beats, the story and its ceremonies
   wait (`useMediaWait`, deciding with `mediaWait`) while it is behind its slot, or not
   done when the slot ends; the clock stands still while the medium plays on. One that
   never starts is waited for 2 s; one stuck where it is (a file that won't play) for
-  2 s more; one that plays, up to its length (30 s at least). Hold and the viewer
+  2 s more; one that plays, up to its length (30 s at least). Pause and the viewer
   pause the medium itself (`ctx.held`, `ctx.paused`); a wait never does, or it would
-  never catch up. A memo started by hand plays to its end and resumes after Hold.
+  never catch up. A memo started by hand plays to its end and resumes after Pause.
 - **A medium's length is its kept part** (`fix trimmed-length 1-4`): the plan's slot (`mediaLen`), a grid's longest
   video, the card's wait and the steps' re-watch all ask `memoLengthMs` (`lib/voiceTrim`; a video's `edit.trim` is the
   same data as a memo's), never `Number(body)`: the players stop at the trim's end, so the stored length left the
@@ -136,7 +144,7 @@ A walk's replay and the day replay: the five beats, the story and its ceremonies
   react-native-web's TextInput stops a key's propagation; a held key's repeats are ignored (`tend replay audit 4`); and
   not at all while a viewer, the walk's menu, a gap's card or a gap's way being drawn is open (the web's viewer takes no
   Escape itself).
-- **A card's room** (`lib/ceremony/room.ts`, re-exported by `components/ceremony/layout.ts`): under `STACK_TOP` (the clock, "N min later" and "Held",
+- **A card's room** (`lib/ceremony/room.ts`, re-exported by `components/ceremony/layout.ts`): under `STACK_TOP` (the clock, "N min later" and "Paused",
   `tend replay 11`), and above a six-line note's bubble wherever a card of `MIN_CARD` (80 px) still fits: the card
   shrinks before the bubbles lose their room, a status bar included (`cardFloor`, `tend replay 7`, `audit 3`);
   `restCenter(ctx, h)` raises a card only as far as it must. Fog's headline: 8 px under Skip's foot (`audit 6`).

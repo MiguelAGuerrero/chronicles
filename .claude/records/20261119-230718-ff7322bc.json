@@ -1,0 +1,28 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "set",
+        "A hop's dots are hard to see where they lie over the walked-street line",
+        "--reason",
+        "replay-ceremony ui 6: a hop's dots stand on white discs while the replay tells, so the first clause is settled; the rest stands"
+      ],
+      "body": "- In landscape there is no room under a card, so its pin sits partly under it (RC14); a change of the screen's size mid-replay (rotation, Safari's bar) rebuilds the telling, untested; the camera's arithmetic does not wrap at the antimeridian; `ceremony/room.ts` assumes a 34 px caption strip where the web's is about 32\n",
+      "target": "sha256:175ab4b4eb40940b71f15bf26ddaca642c22b9497d0b8498a287f6f98f775f93"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "set",
+        "A walk shorter than what zoom 15 shows opens closer",
+        "--reason",
+        "replay-ceremony ui 7 and ui 8: the trace fades out and the walker in through the dive, and the first beat's fit is north-up; the short walk's dive stays the owner's"
+      ],
+      "body": "- [owner] A walk shorter than what zoom 15 shows opens closer than the walking zoom (the whole is capped at 17), so its \"dive\" pulls back; capping the whole at 15 would change the card's map too\n",
+      "target": "sha256:a7758b60bfab12ed302e8716de138cbe94f2c688069ce719c36f351ca508ebeb"
+    }
+  ]
+}

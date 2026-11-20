@@ -17,8 +17,21 @@ paths:
   caption. `exportPlan` is the one transform the screen (`EditedPicture`'s SVG,
   `VideoPicture`'s view transforms), both bakers and the video module follow.
 - **The editor** (`edit/MediaEditor`) is an overlay inside the viewer (iOS:
-  no Modal over a Modal) and its own Modal from the Edit offer on Navigate's
-  ready screen and the recording bar. Its state is `editSession` (core): Done
+  no Modal over a Modal) and its own Modal after a capture (decision 0240): once
+  a new moment's photo or video is kept, the walk screen, Navigate's ready
+  screen, the recording bar, Memories' line and the walk planner's capture
+  stack (on the planner and the outing page; 0240's addendum) open it by
+  themselves; Respond's and the note page's cameras never do (the owner's call)
+  (`useEditAfterCapture`, `editAfter` and `editingOf` in `lib/editOffer`), a
+  piece added to an open moment on that piece (`facedAt`). It says "Photo
+  kept" until the first edit and names ✕ for what it does (`keptWords`,
+  `justKept`; not beside Draw's Undo and Redo, audit 8); none opens while the
+  walk is stopping or has ended, or once the bar has asked for the walk screen
+  (each host's guard, read from the syntax tree by `editAfterCapture.test.ts`;
+  the bar's `back` and `photo` run there in a phone's order, audit 5). It is
+  keyed by `piece_id` (a moment's pieces share its id, audit 9). In Memories'
+  composer it is an overlay inside the composer's Modal, the field blurred under
+  it and focused again after (audit 7). Its state is `editSession` (core): Done
   with no change writes nothing; Close with changes asks. After Done on a
   photo, the small copy is remade from a bake without the caption.
 - **The viewer unmounts the shown capture while the editor is up.** On the
@@ -38,7 +51,7 @@ paths:
   kept part, its wait timed on the kept length). The stack shows the edited small copy.
 - **A loose moment's change goes on the bus's `LOOSE_MOMENTS` channel**
   (`captureBus.patch(null, ...)`); the ready screen listens, so a moment
-  edited from its Edit offer shows on its pin (audit 2).
+  edited as it is taken shows on its pin (audit 2).
 - **An edited small copy is named by its edit** (`editedThumbName`): pins key
   their picture by the ref, so the same name never reloaded (audit 3). The
   capture-time copy stands down once a photo has a copy or an edit (audit 8).

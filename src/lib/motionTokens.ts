@@ -248,20 +248,28 @@ export const REPLAY_RHYTHM = {
   bubbles: 3,
   bubbleIn: 280,
   bubbleOut: 420,
-  /** A passed place's line beside it. */
+  /**
+   * A passed place's line beside it: how long it is up, coming in over `whisperIn` and leaving over `whisperOut`. One
+   * at a time (`replay-ceremony ui 12`): places whose lines would be up together are said as one line.
+   */
   whisper: 2600,
+  whisperIn: 250,
+  whisperOut: 500,
   /** Travel this much later says so under the clock. */
   laterAfterMs: 15 * 60_000,
   /** How long "N min later" stays after a day's long travel. */
   lineAfter: 1500,
   /**
    * The opening (replay ceremony RC23): the camera dives from the whole of what is told to the walker's start in `dive`;
-   * the walker shows from `diveMark` into it, and the clock comes in from `diveClockIn` over `diveClock`. A telling with
-   * no beat before it (a day's) shows the whole for `openHold` first.
+   * the walker comes in from `diveMark` into it over `diveMarkIn`, the clock from `diveClockIn` over `diveClock`, and
+   * the whole trace the first beat left, faint, fades out over `diveTraceOut` (`replay-ceremony ui 7`: nothing cuts).
+   * A telling with no beat before it (a day's) shows the whole for `openHold` first.
    */
   dive: 2200,
   openHold: 2000,
   diveMark: 1900,
+  diveMarkIn: 300,
+  diveTraceOut: 1650,
   diveClockIn: 1700,
   diveClock: 400,
   /**
@@ -286,7 +294,7 @@ export const REPLAY_RHYTHM = {
  * The replay's engine (replay ceremony RC6, decision 0206), apart from any ceremony: a ceremony says what a time shows,
  * the engine how often it is drawn. `frameMs` is the least time between two frames the replay draws: 0 draws every
  * display frame (60 a second on an iPhone); 1000 / 30 draws 30. It is the one number to set after watching on a phone
- * whose map cannot be drawn every frame (a replay's link can ask for one with `fps`, to try it without a build).
+ * whose map cannot be drawn every frame.
  * `resendMs` is for a map that cannot reveal a line and is sent it as data instead (the phone's, untried): at most
  * ten times a second.
  */

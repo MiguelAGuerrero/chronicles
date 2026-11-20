@@ -62,8 +62,10 @@ test('RC29: the stack gathers one entry for each moment that had a picture or a 
 // ---------------------------------------------------------------- it grows, to a bound (RC30)
 
 test('RC30: the stack grows upward; when one more would reach the controls at the top the oldest drops off the bottom, and still opens', () => {
-  // The bound is the screen's: from above the map's credits up to under Skip and Next.
+  // The bound is the screen's: from above the map's credits up to under Skip and Next. Skip is 12 in and 48 tall, Next
+  // 8 under it and 48 tall, and the stack starts 12 under Next's foot (replay-ceremony ui 2; it was 8).
   const S = STACK();
+  assert.equal(S.top, 12 + 48 + 8 + 48 + 12);
   for (const s of [PHONE, SMALL, screenOf(844, 390), screenOf(390, 844, 47)]) {
     const n = stackBound(s);
     const bottom = s.height - s.insets.bottom - 44;
@@ -101,7 +103,7 @@ test('RC30: the stack never shows a number, and at 320 px it stands clear of a c
   for (const s of [SMALL, screenOf(320, 700), screenOf(320, 480), PHONE]) {
     const left = s.width - s.insets.right - S.right - S.w;
     assert.ok(s.width / 2 + cardSize(s).w / 2 <= left - 4, `${s.width}x${s.height}: a card reaches ${s.width / 2 + cardSize(s).w / 2}, the stack starts at ${left}`);
-    // The bubbles' corner (12 in, two thirds of the width) and the line under the clock (between Hold and Skip).
+    // The bubbles' corner (12 in, two thirds of the width) and the line under the clock (between Pause and Skip).
     assert.ok(12 + Math.min(s.width * 0.66, 320) <= left, 'clear of a bubble');
     assert.ok(s.width / 2 + Math.max(120, s.width - 180) / 2 <= left, 'clear of the line under the clock');
   }
@@ -118,6 +120,9 @@ test('RC30: the stack never shows a number, and at 320 px it stands clear of a c
 test('RC31: the stack is one control of at least 44 pt, named "Photos and videos so far", that opens them at the latest; it replaces the pile', () => {
   const S = STACK();
   assert.ok(S.w >= 44 && S.h >= 44, `an entry is ${S.w} by ${S.h}`);
+  // On Android a finger gets 48 dp of it, by a slop either side of the same drawing (replay-ceremony ui 2).
+  const slop = built<(os: string) => { left: number; right: number } | undefined>(roomMod, 'stackSlop')('android');
+  assert.ok(!!slop && S.w + slop.left + slop.right >= 48, `on Android it is hit ${slop ? S.w + slop.left + slop.right : S.w} px wide`);
   const view = read('components/ceremony/Stack.tsx');
   assert.equal([...view.matchAll(/<Pressable\b/g)].length, 1, 'one control');
   assert.match(view, /accessibilityRole="button"/);

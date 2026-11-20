@@ -3,10 +3,9 @@ import { canBuzz } from '../lib/canBuzz';
 import { clampPass, clampRange, intoRowShown, POCKET_ALERT_NOTE } from '../lib/explore/explore';
 import type { ExploreSettings as Settings } from '../lib/explore/settings';
 import type { Waypoint } from '../lib/nav/types';
-import { formatRange } from '../lib/format';
 import { destLine } from '../lib/startPlan';
 import { saveUnits } from '../lib/unitsStore';
-import { useUnits } from '../lib/useUnits';
+import { useDistance } from '../lib/useUnits';
 import type { LngLat } from '../lib/types';
 import { PASS_SCALE, passNote, RangeSlider, walkNote } from './ExploreSettings';
 import { IntoRow } from './IntoRow';
@@ -44,8 +43,9 @@ export function StartSettings(props: {
   const { dest, fix, settings } = props;
   const grouping = useStore(momentPill.store, (st) => st.grouping);
   const sightsOn = useStore(routeLeanings.store, (s) => s.includes('sights'));
-  // Distances in km or miles (QL16): saved as it changes, every screen redraws at once.
-  const units = useUnits();
+  // Distances in km or miles (QL16): saved as it changes, every screen redraws at once. Every line below takes the
+  // units as an input, so the React Compiler builds it again on a switch (tend map 23).
+  const { units, range } = useDistance();
   return (
     <View testID="start-settings" style={styles.content}>
       <Text style={styles.title} accessibilityRole="header">Walk settings</Text>
@@ -53,7 +53,7 @@ export function StartSettings(props: {
       {dest ? (
         <View style={styles.destRow}>
           <Icon name="flag-outline" size={20} color={theme.ink} />
-          <Text testID="drawer-dest" style={styles.destText} numberOfLines={2}>{destLine(dest, fix)}</Text>
+          <Text testID="drawer-dest" style={styles.destText} numberOfLines={2}>{destLine(dest, fix, units)}</Text>
           <Pressable testID="dest-clear" accessibilityRole="button" accessibilityLabel="Clear the destination" onPress={props.onClearDest} style={styles.clear}>
             <Text style={styles.clearText}>Clear</Text>
           </Pressable>
@@ -68,12 +68,12 @@ export function StartSettings(props: {
         <>
           <Text style={styles.section} accessibilityRole="header">“?” range</Text>
           <Text style={styles.sub}>
-            With Places on, a “?” shows for places within {formatRange(settings.rangeM)} of you, {walkNote(settings.rangeM)}.
+            With Places on, a “?” shows for places within {range(settings.rangeM)} of you, {walkNote(settings.rangeM)}.
             {fix ? ' The ring on the map shows how far that is.' : ' The ring shows on the map once there’s a position.'}
           </Text>
           <RangeSlider value={settings.rangeM} onChange={(m) => props.onSettings({ ...settings, rangeM: clampRange(m) })} />
           <Text style={styles.section} accessibilityRole="header">Passing a place</Text>
-          <Text style={styles.sub}>{passNote(settings.passM)}</Text>
+          <Text style={styles.sub}>{passNote(settings.passM, units)}</Text>
           <RangeSlider scale={PASS_SCALE} value={settings.passM} onChange={(m) => props.onSettings({ ...settings, passM: clampPass(m) })} />
         </>
       )}

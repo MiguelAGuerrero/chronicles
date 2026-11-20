@@ -14,14 +14,11 @@ export const LANDING_CODE = 'l4';
 /** What a landing row was derived under: its rules and presence's classes (PR6), so a reclassification re-derives it. */
 export const LANDING_VERSION = `${LANDING_CODE}:${PRESENCE_CODE}:${JSON.stringify(LANDING_RULES)}`;
 /**
- * Versions whose rows stand under the current one (presence audit 1): presence p1 moved density's table and changed no
- * weight, so a row from just before it reads the same; the codes presence carries (`PRESENCE_CARRIED`, PS9) stand too.
- * Empty it when a weight or a landing rule changes.
+ * Versions whose rows stand under the current one: the codes presence carries (`PRESENCE_CARRIED`, PS9). The row from before
+ * presence (presence audit 1) is no longer carried: since p3 only storefronts weigh, so it reads otherwise (tend presence
+ * audit 4). Empty it when a weight or a landing rule changes.
  */
-const LANDING_CARRIED: readonly string[] = [
-  `${LANDING_CODE}:${JSON.stringify(LANDING_RULES)}`,
-  ...PRESENCE_CARRIED.map((c) => `${LANDING_CODE}:${c}:${JSON.stringify(LANDING_RULES)}`),
-];
+const LANDING_CARRIED: readonly string[] = PRESENCE_CARRIED.map((c) => `${LANDING_CODE}:${c}:${JSON.stringify(LANDING_RULES)}`);
 /** Whether a row's rules are the current ones, or carried by them. */
 export const rulesCurrent = (rules: string): boolean => rules === LANDING_VERSION || LANDING_CARRIED.includes(rules);
 

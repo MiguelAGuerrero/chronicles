@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { bubblePose, bubbleRoom, cardPose, cardWidth, heldShown, PICTURE, project, restCenter, STACK_TOP, STAGE_BOTTOM, STAGE_SIDE, STAGE_TOP, WHISPER_WIDTH, whisperPose, type LiveStyle, type StageCtx } from '../../../components/ceremony/layout';
+import { bubblePose, bubbleRoom, cardPose, cardWidth, heldShown, PICTURE, project, restCenter, STACK_TOP, STAGE_BOTTOM, STAGE_SIDE, STAGE_TOP, WHISPER, whisperPose, type LiveStyle, type StageCtx } from '../../../components/ceremony/layout';
 import type { BubbleOverlay, CardOverlay, WhisperOverlay } from '../../ceremony/types';
 import { createStageLive } from '../../ceremony/live';
 
@@ -38,7 +38,7 @@ test('tend replay 7: where there is room, and on a landscape phone, the card sta
   assert.equal(restCenter(flat, cardH(fw))[1], (STACK_TOP + 390 - STAGE_BOTTOM) / 2);
 });
 
-test('tend replay 11: a card stands below all the top can show (the clock, "N min later", "Held"), in landscape too', () => {
+test('tend replay 11: a card stands below all the top can show (the clock, "N min later", "Paused"), in landscape too', () => {
   for (const [w, h] of [[844, 390], [667, 375], [390, 844], [320, 568]]) {
     const c = stage(w, h);
     const ch = cardH(cardWidth(c));
@@ -66,7 +66,7 @@ test('tend replay audit 3: at 320 x 568 under a 20 px status bar a card still st
 });
 
 // Replay pace, the UI review (Nov 18): the line under the clock can now be a sentence ("Passed ... without stopping", RY21).
-test('replay-pace ui 2: "Held" is not drawn under a long line, which wraps and would push it onto a card', () => {
+test('replay-pace ui 2: "Paused" is not drawn under a long line, which wraps and would push it onto a card', () => {
   assert.equal(heldShown(true, null), true);
   assert.equal(heldShown(true, '43 min later'), true, 'a break\'s short line leaves it its room');
   assert.equal(heldShown(true, '1 h 20 min later'), true);
@@ -75,8 +75,9 @@ test('replay-pace ui 2: "Held" is not drawn under a long line, which wraps and w
   assert.equal(heldShown(false, null), false);
 });
 
-test('replay-pace ui 3: the line keeps clear of Hold and of Skip with Next under it, on a 320 px phone too', () => {
-  // The edge, a worded button's width (Skip, Next: 70 px) and 8 px between.
+test('replay-pace ui 3: the line keeps clear of Pause and of Skip with Next under it, on a 320 px phone too', () => {
+  // The edge, a worded button's width (Pause, the widest of the short words: 75 px; replay-ceremony ui 10) and 8 px between.
+  assert.equal(STAGE_SIDE, 12 + 75 + 8);
   assert.ok(STAGE_SIDE >= 12 + 70 + 8, `each side keeps ${STAGE_SIDE} px`);
   assert.ok(320 - 2 * STAGE_SIDE >= 120, 'and the line still has room to say a place on a 320 px phone');
 });
@@ -116,7 +117,7 @@ test('RC7: a card\'s place, size and fade are its frame\'s: from its pin, to res
   assert.deepEqual(at(cardPose(card({ grow: 0 }), c, { center: null, zoom: null }, w, h)), rest);
 });
 
-test('RC7: a bubble\'s room and fade, and a whisper\'s side, are their frame\'s (RR9, RR15, RR18)', () => {
+test('RC7: a bubble\'s room and fade, and a whisper\'s place, are their frame\'s (RR9, RR15, RR18)', () => {
   const c = stage(390, 844);
   const bubble = (enter: number, exit: number): BubbleOverlay => ({ kind: 'bubble', key: 'b', capture: { id: 'b' } as BubbleOverlay['capture'], enter, exit, playing: false, progress: 0 });
   assert.deepEqual(bubbleRoom(bubble(0.5, 0), false), { maxHeight: 85 });
@@ -125,14 +126,18 @@ test('RC7: a bubble\'s room and fade, and a whisper\'s side, are their frame\'s 
   assert.deepEqual(bubblePose(bubble(0.5, 0), false), { opacity: 0.5, translateY: 5, scale: 0.98 });
   assert.deepEqual(bubblePose(bubble(1, 0.5), false), { opacity: 0.5, translateY: -6, scale: 1 });
   assert.deepEqual(bubblePose(bubble(0.5, 0), true), { opacity: 0.5, translateY: 0, scale: 1 });
-  const whisper = (m: number): WhisperOverlay => ({ kind: 'whisper', key: 'w', text: 'Passed', at: eastOf(m), opacity: 0.6 });
+  // A whisper stands under its place or over it, as its frame says, centred on it (replay-ceremony ui 5; it stood
+  // beside its place at its own height until then, across the pin and the line).
+  const whisper = (m: number, above: boolean): WhisperOverlay => ({ kind: 'whisper', key: 'w', text: 'Passed', at: eastOf(m), opacity: 0.6, above, by: eastOf(m) });
   const camera = { center: O, zoom: 16 };
-  const west = whisperPose(whisper(-80), c, camera);
-  const east = whisperPose(whisper(80), c, camera);
-  assert.equal(west.textAlign, 'left', 'a place left of the middle is said to its right');
-  assert.equal(east.textAlign, 'right');
-  assert.ok(west.left! > project(c, camera, eastOf(-80))![0] && east.left! + WHISPER_WIDTH < project(c, camera, eastOf(80))![0]);
-  assert.equal(west.opacity, 0.6);
+  const under = whisperPose(whisper(-80, false), c, camera);
+  const over = whisperPose(whisper(80, true), c, camera);
+  const [wx, wy] = project(c, camera, eastOf(-80))!;
+  const [ex, ey] = project(c, camera, eastOf(80))!;
+  assert.ok(Math.abs(under.left! + WHISPER.width / 2 - wx) < 1e-6 && Math.abs(over.left! + WHISPER.width / 2 - ex) < 1e-6, 'centred on its place');
+  assert.equal(under.top, wy + WHISPER.gap, 'under it, a gap clear of it');
+  assert.equal(over.top! + WHISPER.height, ey - WHISPER.gap, 'or over it');
+  assert.equal(under.opacity, 0.6);
   // Without a following map, under the clock, centred.
-  assert.deepEqual(whisperPose(whisper(80), c, { center: null, zoom: null }), { left: (390 - WHISPER_WIDTH) / 2, top: 100, opacity: 0.6, textAlign: 'center' });
+  assert.deepEqual(whisperPose(whisper(80, false), c, { center: null, zoom: null }), { left: (390 - WHISPER.width) / 2, top: 100, opacity: 0.6 });
 });

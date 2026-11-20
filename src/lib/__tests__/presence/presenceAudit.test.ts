@@ -10,10 +10,13 @@ import { isStale, LANDING_CODE, LANDING_VERSION, rulesCurrent, type LandingRow }
 const before = `${LANDING_CODE}:${JSON.stringify(LANDING_RULES)}`;
 const row = (rules: string): LandingRow => ({ key: 'k', centre: [-75.47, 40.6], analysis: { basis: 'density', reason: 'Where storefronts gather', pockets: [], strips: [], graded: [], landing: null } as never, build: 'b1', rules, analyzed_at: 0, overture: null });
 
-test('presence audit 1: a landing row from before presence still lists and is not stale', () => {
+// tend presence audit 4 (2026-11-20, the diff review's auditor 1): p3 made only storefronts weigh (SF11) and carried nothing, but
+// LANDING_CARRIED kept carrying the version from before presence, so a remembered area derived under the old table (parks ½,
+// monuments and Overture's historic sites 1) stood in the Storefronts layer under p11. Such a row is stale now, as SF11 says.
+test('tend presence audit 4: a landing row from before presence is stale under p11, so the Storefronts layer leaves it out', () => {
   assert.notEqual(before, LANDING_VERSION, 'the version did change (PR6)');
-  assert.equal(rulesCurrent(before), true);
-  assert.equal(isStale(row(before), 'b1'), false);
+  assert.equal(rulesCurrent(before), false, 'rememberedAreas() keeps only rows whose rules are current (layers/storefronts.ts)');
+  assert.equal(isStale(row(before), 'b1'), true);
   assert.equal(rulesCurrent(LANDING_VERSION), true);
 });
 

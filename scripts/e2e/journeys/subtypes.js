@@ -142,6 +142,10 @@ async function run(h) {
   const newRows = ['kind-nature_reserves', 'kind-piers', 'kind-attractions', 'kind-amusement_parks', 'kind-natural_monuments'];
   check(newRows.every((id) => rows.includes(id)) && !wrapped.some((w) => newRows.some((id) => w.startsWith(id))), `MA9: the new rows fit one line at 320 px (${JSON.stringify(wrapped)})`);
   await shot(pg, 'subtypes-what-im-into-320');
+  // tend presence 4: "Courthouses and halls" in a glyph of its own, pictured at 320 px for the review.
+  await intoScrollTo(pg, 'kind-civic_buildings');
+  await intoSettled(pg);
+  await shot(pg, 'subtypes-what-im-into-civic-320');
   await c.close();
   places.files = {};
   places.manifest = JSON.stringify({ schema: 1, regions: [] });

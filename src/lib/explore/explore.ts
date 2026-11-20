@@ -67,7 +67,7 @@ const SUBTYPE_ICON: Partial<Record<Kind, string>> = {
   statues: 'body-outline', murals: 'brush-outline', fountains: 'water-outline', signs: 'megaphone-outline',
   markers: 'trail-sign-outline', plaques: 'document-text-outline', war_memorials: 'ribbon-outline', small_memorials: 'flower-outline',
   battlefields: 'shield-outline', archaeological_sites: 'hammer-outline',
-  bridges: 'git-commit-outline', mills: 'aperture-outline', stations: 'train-outline', lighthouses: 'bulb-outline', civic_buildings: 'library-outline',
+  bridges: 'git-commit-outline', mills: 'aperture-outline', stations: 'train-outline', lighthouses: 'bulb-outline', civic_buildings: 'briefcase-outline',
   forts: 'shield-half-outline', towers: 'time-outline', old_machines: 'construct-outline', taverns: 'beer-outline', old_stones: 'pin-outline',
   wayside_shrines: 'flame-outline', mausoleums: 'cube-outline',
   gardens: 'sunny-outline', community_gardens: 'nutrition-outline', waterfalls: 'rainy-outline', caves: 'triangle-outline', hot_springs: 'thermometer-outline',

@@ -52,6 +52,7 @@ import { useThreads } from '../../lib/threads/useThreads';
 import { MyThreads, type MyThreadRow } from '../threads/MyThreads';
 import { OwnThreadScreen } from '../threads/OwnThreadScreen';
 import { ThreadMomentMenu } from '../threads/ThreadMomentMenu';
+import { perfCount } from '../../lib/perfCount';
 
 const TOAST_MS = 4200;
 const stepIndex = (s: { index: number }) => s.index;
@@ -67,6 +68,8 @@ const viewOf = (c: Faced): MomentView => ({ id: c.id, t: c.t, kind: c.kind, walk
  * writing is the capture. Threads, Hidden and the resurfacing choices are behind the contents button.
  */
 export function MemoriesScreen() {
+  // Counted for the e2e, so a walk minimized over Memories is seen to leave the page alone (tend tabs 17).
+  perfCount('render:memories');
   const { state, feed, now: readAt, hidden: deletedIds } = useResurface();
   // The page's own clock (audit 11): the read's `now` is set when Memories comes to the front, and a page left open
   // would date a new entry against it (no "No location" after its minute, yesterday's heading past midnight).

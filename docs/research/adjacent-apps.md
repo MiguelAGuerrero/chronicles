@@ -73,6 +73,15 @@ source.
 - **Polarsteps**: photos join a step only when the step is edited. Source: from memory, unverified (the host refused
   fetches, teardown section 5). **Unverified**.
 
+### Edit right after the shutter (Honour)
+
+- **Instagram** and **Snapchat** (iOS, Android): the editor opens straight after the shutter, before anything is
+  posted or saved; its ✕ throws the shot away. Source: from memory, unverified. **Unverified**.
+- **Apple Photos** and **Google Photos**: the camera keeps the shot; Edit is on the photo's own toolbar later (see
+  "View one moment full screen"). **Verified** (as cited there).
+- **Chronicles** (decision 0240): the editor opens by itself once the shot is accepted, the moment already kept, so
+  its ✕ keeps the photo as taken and the editor says it is kept.
+
 ### A capture that could not be saved (Honour)
 
 - **Google Photos** (Android): each item not yet in the cloud keeps a status on its own thumbnail: "Item isn’t backed
@@ -429,3 +438,25 @@ is applied left in view.
 - **Apple Journal**: a place is a suggestion the person attaches or leaves; nothing is attached unseen. Source: from memory, unverified. Used by `specs/tap-to-capture-places`.
 - **Google Maps**: a place's sheet carries "Add photos"; the photo taken or picked goes to that place in one step, with nothing armed for a later one (public, unlike ours). Source: from memory, unverified. **Unverified**. Used by `specs/capture-at-a-place`.
 - **Swarm (Foursquare)**: the check-in screen for the chosen venue has a camera button in line; the photo belongs to that check-in. Source: from memory, unverified. **Unverified**. Used by `specs/capture-at-a-place`.
+
+### Back up everything and restore it (Honour, Return)
+
+- **Apple Journal** (iOS): Settings > Apps > Journal > "Export All Journal Entries", then "Export": one ZIP,
+  "AppleJournalEntries", in Files, with photos, locations and other media. The page describes no import back into
+  Journal; its restore is an encrypted device backup through Finder. Source: https://support.apple.com/121822 , read
+  2026-11-20 (`/investigate` app-backup). **Verified**.
+- **Day One** (iOS, macOS, Android, web): Settings > Import/Export, all journals and the full date range, "Export Day
+  One JSON": "exports all data and media and can be re-imported into Day One"; back in with "Import JSON" (macOS:
+  File > Import > JSON Zip File). The page does not say whether an import merges or replaces. Source:
+  https://dayoneapp.com/guides/tips-and-tutorials/transitioning-day-one-data-to-a-new-device and
+  https://dayoneapp.com/guides/settings/importing-data-to-day-one/ , read 2026-11-20. **Verified**.
+- **Organic Maps**: every bookmark and track as a single KMZ the app and Google Earth read; "Import Bookmarks and
+  Tracks" reads a folder of KML, KMZ and GPX files back in. Source: from memory and a search summary of
+  organicmaps.app's FAQ and its 2024-03-11 news (the host did not resolve from the session), unverified. **Unverified**.
+- **Polarsteps**: "Download my data" in the website's account settings mails a link to a zip of trips, steps, photos
+  and routes as JSON; no import back. Source: a search summary of support.polarsteps.com article 124 (the host
+  refused the fetch), unverified. **Unverified**.
+
+What they share: one file, made from settings on a tap, holding the media with the words. Only Day One reads its own
+file back; Apple Journal and Polarsteps export a copy you can keep but not restore. Used by
+`docs/research/app-backup.md` (decision 0241).

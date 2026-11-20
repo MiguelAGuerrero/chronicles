@@ -28,6 +28,7 @@ import { between, cameraAt, cameraTrack, fitCamera, pxPerMetre, type CameraPart,
 import { easeInOut, easeOut, steady } from './ease';
 import { standing } from './pictures';
 import { cardFoot, PICTURE } from './room';
+import { lastNames, whisperBeside, whisperGroups, type Named } from './said';
 import { stackBound, stackSlots } from './stack';
 import { positionAt, timeAtMetres } from './story';
 import type {
@@ -37,6 +38,8 @@ import type {
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
 /** A short break no farther than this is a step, not a break to cross. */
 const STEP_M = 40;
+/** The walk time either side of a place passed over which the way's run is read: which way it goes there. */
+const PASS_RUN_MS = 15_000;
 const lerp = (a: number, b: number, u: number) => a + (b - a) * u;
 const lerpAt = (a: LngLat | null, b: LngLat | null, u: number): LngLat | null =>
   a && b ? [lerp(a[0], b[0], u), lerp(a[1], b[1], u)] : (a ?? b);
@@ -95,7 +98,12 @@ export interface RhythmPlan {
   bubbles: { capture: Faced; ta: number; exitAt: number; len: number }[];
   /** One per moment (MS17): a stack's grid carries its photos as `pieces`, and its videos in turn (`at` is then into the telling). */
   cards: { capture: Faced; t0: number; t1: number; len: number; from: LngLat | null; pieces?: Faced[]; videos?: Turn[]; faces?: Faced[] }[];
-  whispers: { key: string; text: string; at: LngLat; tw: number }[];
+  /**
+   * `above`, `by`: whether it stands over its place, and where the walker passes it (`replay-ceremony ui 5`). `until`:
+   * when it is gone, sooner when a newer one arrives (ui 12). `beside`: its room's width where it stands beside the
+   * line, not under its place (ui 13).
+   */
+  whispers: { key: string; text: string; at: LngLat; tw: number; until: number; above: boolean; by: LngLat; beside?: number }[];
   lines: { t0: number; t1: number; text: string }[];
   /** For each path, the index of its last segment: past it, the path is drawn whole. */
   lastSeg: Record<string, number>;
@@ -105,8 +113,11 @@ export interface RhythmPlan {
   hops: { t0: number; t1: number; from: LngLat; to: LngLat; brk: StoryBreak }[];
   /** The camera, worked out for the screen the telling is shown on (RC11-RC16); null with reduce motion (the map stays still, RR18) or with no place to look at. */
   camera: CameraTrack | null;
-  /** What the last view names (RC25): each place passed, where it stands, or the card's one line for more than two, beside none. */
-  named: { key: string; text: string; at: LngLat | null }[];
+  /**
+   * What the last view names (RC25): each place passed, where it stands, or the card's one line, beside none, for
+   * more than two and for those with no room beside their places (`said.ts` `lastNames`, `replay-ceremony ui 14`).
+   */
+  named: Named[];
   /**
    * What stays behind (RC28-RC34), in the order the cards land. `stood`: each moment with a picture or a video and a
    * place, standing there as its picture from when its card has shrunk onto it (`t`). `kept`: every such moment, placed
@@ -125,6 +136,8 @@ export interface RhythmPlan {
   scrims: { t0: number; t1: number }[];
   /** With reduce motion: the view the telling opened on, which the map is never moved from; pictures are placed by it. */
   still: View | null;
+  /** A beat before the path left the whole trace on the map, faint (a walk's first beat; not a day's): the opening fades it out. */
+  traced: boolean;
   /**
    * What a frame worked out last and the next one will most likely ask again: which pictures stand (the same until the
    * zoom changes or another lands) and the stack at rest. Kept with the plan, keyed by what it was worked out from, so
@@ -432,7 +445,7 @@ export function rhythmPlan(story: Story, opts: CeremonyOptions): RhythmPlan {
   const plan: RhythmPlan = {
     story, total: t, segs, reduceMotion: opts.reduceMotion, bubbles, cards, whispers: [], lines, lastSeg, stops, hops, camera: null, named: [],
     stood, kept, pictured: new Set(stood.map((x) => x.key)), places: stood.map((x) => x.at), severals: stood.map((x) => x.several), lands: kept.map((x) => x.land),
-    bound: stackBound(opts.screen), scrims, still: null, memo: { pictures: null, stack: null },
+    bound: stackBound(opts.screen), scrims, still: null, traced: !opts.holdOpen, memo: { pictures: null, stack: null },
   };
   // Through the close the clock is where the walker stopped: it never leaps to when the walk was ended (RC24).
   segs.forEach((s, i) => {
@@ -450,11 +463,23 @@ export function rhythmPlan(story: Story, opts: CeremonyOptions): RhythmPlan {
   if (!opts.reduceMotion && segs.length)
     plan.camera = cameraTrack({ total: t, parts: segs.map((s) => cameraPart(s, open, close)), walker: (ms) => walkerAt(plan, ms) }, opts.screen, (pieces) => cardFoot(opts.screen, pieces));
   // What the last view names (RC25): a walk's passed places, each by the words it was passed with, where it stands;
-  // more than two as the one line the card uses (RP19), beside no one place. A day's names none (0153).
+  // more than two as the one line the card uses (RP19), beside no one place, and so are one or two that cannot each
+  // stand clear of the walk's line and the pictures on it (`replay-ceremony ui 14`, the owner's defaults, Nov 20). The
+  // view is the one the telling ends on: the card's, or, with reduce motion, where the map stands. A day's names none (0153).
   if (opts.namePassed && story.passes.length) {
-    plan.named = story.passes.length > 2
-      ? [{ key: 'passed', text: passedLine(story.passes) ?? '', at: null }]
-      : story.passes.map((x) => ({ key: `passed:${x.name}@${x.t}`, text: passedLine([x]) ?? x.name, at: x.at }));
+    const walked = Object.values(story.paths).flatMap((x) => [...x.drawn, ...x.rideRuns]);
+    plan.named = lastNames({
+      screen: opts.screen,
+      view: opts.reduceMotion ? open : close,
+      names: story.passes.map((x) => {
+        const path = story.paths[x.pathId];
+        return { key: `passed:${x.name}@${x.t}`, text: passedLine([x]) ?? x.name, at: x.at, by: path ? positionAt(path, x.t) : null };
+      }),
+      line: passedLine(story.passes) ?? '',
+      paths: [...walked, ...hops.map((h) => [h.from, h.to])],
+      pictures: plan.places,
+      stack: kept.length > 0,
+    });
   }
   // A passed place whispers as the walker reaches it (RR15): the first segment that reaches its time. More than two
   // on one walk whisper once, as that walk's card says them ("Passed a few places without stopping", RP19, the owner,
@@ -464,6 +489,7 @@ export function rhythmPlan(story: Story, opts: CeremonyOptions): RhythmPlan {
   const whispered = [...byWalk.values()].flatMap((ps) =>
     ps.length > 2 ? [{ ...ps.reduce((a, b) => (b.t >= a.t ? b : a)), all: ps }] : ps.map((p) => ({ ...p, all: [p] })),
   );
+  const said: { all: typeof story.passes; w: RhythmPlan['whispers'][number] }[] = [];
   for (const p of whispered) {
     const i = segs.findIndex((s) => walkEnd(s, story) >= p.t && (s.k !== 'leg' || !s.move || s.move.pathId === p.pathId));
     if (i < 0) continue;
@@ -480,7 +506,24 @@ export function rhythmPlan(story: Story, opts: CeremonyOptions): RhythmPlan {
     }
     // Never under a card: it waits until the card has shrunk (RY22); the cards are in order.
     for (const c of cards) if (tw >= c.t0 && tw < c.t1) tw = c.t1;
-    plan.whispers.push({ key: `${p.name}@${p.t}`, text: passedLine(p.all) ?? p.name, at: p.at, tw });
+    // Where it stands by its place, on a map that is flat and north-up (`replay-ceremony ui 5`): under the place and
+    // the line, since pins and pictures stand upward from the line. Only where the way runs down the screen there
+    // (more south than east or west) is it over them: behind the walker, who would otherwise walk on into it.
+    const path = story.paths[p.pathId];
+    const by = (path ? positionAt(path, p.t) : null) ?? walkerAt(plan, tw) ?? p.at;
+    const a = path ? positionAt(path, p.t - PASS_RUN_MS) : null;
+    const b = path ? positionAt(path, p.t + PASS_RUN_MS) : null;
+    const down = !!a && !!b && a[1] - b[1] > Math.abs(b[0] - a[0]) * Math.cos((by[1] * Math.PI) / 180);
+    // Where the way runs up or down the screen there, beside the line and not across it (`replay-ceremony ui 13`),
+    // by where the camera has the place and the line as it arrives.
+    const beside = whisperBeside({ screen: opts.screen, camera: plan.camera ? cameraAt(plan.camera, tw) : null, at: p.at, by, before: a, after: b });
+    said.push({ all: p.all, w: { key: `${p.name}@${p.t}`, text: passedLine(p.all) ?? p.name, at: p.at, tw, until: tw + R.whisper, above: down, by, ...(beside != null ? { beside } : {}) } });
+  }
+  // One at a time (`replay-ceremony ui 12`): places whose whispers would be up together are said as one line, once,
+  // where and when the walker reaches the last of them.
+  for (const group of whisperGroups(said.map((x) => x.w.tw), R.whisper)) {
+    const last = said[group[group.length - 1]].w;
+    plan.whispers.push(group.length > 1 ? { ...last, text: passedLine(group.flatMap((k) => said[k].all)) ?? last.text } : last);
   }
   return plan;
 }
@@ -657,7 +700,7 @@ export function rhythmFrame(plan: RhythmPlan, ms: number, jump?: Jump | null): F
     const drawn: Record<string, number> = {};
     for (const id of Object.keys(story.paths)) drawn[id] = Infinity;
     return {
-      done: true, walker: segs.at(-1)?.to ?? null, camera: { center: null, zoom: null }, still: null, scrim: 0, drawn, pins: story.captures.map((c) => c.id),
+      done: true, walker: segs.at(-1)?.to ?? null, walkerFade: 1, wholeTrace: 0, camera: { center: null, zoom: null }, still: null, scrim: 0, drawn, pins: story.captures.map((c) => c.id),
       hops: plan.hops.map((h) => ({ from: h.from, to: h.to, p: 1 })), clock: null, clockFade: 1, line: null, lineOpacity: 0, date: null, dateOpacity: 0, overlays: [],
     };
   }
@@ -683,6 +726,10 @@ export function rhythmFrame(plan: RhythmPlan, ms: number, jump?: Jump | null): F
     : s.k === 'intro' ? fade(s.t0 + s.hold + R.diveClockIn, R.diveClock)
     : s.k === 'close' ? 1 - fade(s.t0, R.closeClock)
     : 1;
+  // The opening does not cut (`replay-ceremony ui 7`): the whole trace the first beat left, faint, fades out through
+  // the dive, and the walker's dot fades in as the dive ends; each a step with reduce motion.
+  const walkerFade = s.k === 'intro' ? fade(s.t0 + s.hold + R.diveMark, R.diveMarkIn) : 1;
+  const wholeTrace = s.k === 'intro' && plan.traced ? 1 - fade(s.t0 + s.hold, R.diveTraceOut) : 0;
   // The last view (RC25, RC26): the day walked, and each place passed, come in as the pull-back settles.
   const said = s.k === 'close' ? fade(s.t0 + R.closeSay, R.closeSayIn) : 0;
 
@@ -772,17 +819,24 @@ export function rhythmFrame(plan: RhythmPlan, ms: number, jump?: Jump | null): F
   }
   for (const w of plan.whispers) {
     const age = ms - w.tw;
-    if (age < 0 || age >= R.whisper) continue;
+    if (age < 0 || ms >= w.until) continue;
     if (landed && w.tw > landed.from && w.tw <= landed.at) continue;
-    overlays.push({ kind: 'whisper', key: w.key, text: w.text, at: w.at, opacity: clamp01(Math.min(age / 250, (R.whisper - age) / 500)) });
+    overlays.push({
+      kind: 'whisper', key: w.key, text: w.text, at: w.at, opacity: clamp01(Math.min(age / R.whisperIn, (w.until - ms) / R.whisperOut)), above: w.above, by: w.by,
+      ...(w.beside != null ? { beside: w.beside } : {}),
+    });
   }
-  if (s.k === 'close' && ms >= s.t0 + R.closeSay) for (const n of plan.named) overlays.push({ kind: 'passed', key: n.key, text: n.text, at: n.at, opacity: said });
+  if (s.k === 'close' && ms >= s.t0 + R.closeSay) {
+    for (const n of plan.named) overlays.push({ kind: 'passed', key: n.key, text: n.text, at: n.at, opacity: said, above: n.above, by: n.by, ...(n.top != null ? { top: n.top } : {}) });
+  }
   const jumped = landed && ms - landed.at < R.jumpLine + plan.whispers.length * R.whisper ? jumpLines(plan, landed).find((l) => ms >= l.t0 && ms < l.t1) : null;
   const line = jumped ?? plan.lines.find((l) => ms >= l.t0 && ms < l.t1) ?? null;
   return {
     done: false,
-    // The walker shows as the dive nears its start (RC23): the whole is looked at first.
+    // The walker shows as the dive nears its start (RC23): the whole is looked at first. It fades in from there.
     walker: s.k === 'intro' && ms < s.t0 + s.hold + R.diveMark ? null : walker,
+    walkerFade,
+    wholeTrace,
     camera,
     still: plan.still,
     scrim,

@@ -6,7 +6,7 @@ import type { AtlasArea } from '../../lib/atlas/atlas';
 import type { CategoryId } from '../../lib/discovery/types';
 import type { Waypoint } from '../../lib/nav/types';
 import { focusOn, useFocusReturn, useFocusTrap } from '../../lib/focus';
-import { hideTabs } from '../../lib/tabsHidden';
+import { hideTabs, modalsUp } from '../../lib/tabsHidden';
 import type { LngLat } from '../../lib/types';
 import { useUnits } from '../../lib/useUnits';
 import { plannerMap } from '../../lib/walkPlanner/mapProps';
@@ -49,13 +49,14 @@ export function PlannerDrawer(props: {
   useFocusTrap(rootRef, true);
   // The tabs fold away while the planner is up, and go back as they were when it goes: the area card under it may still be open (audit 12).
   useEffect(() => hideTabs(), []);
-  // Back (Android) and Escape (web) close it: the card is as it was.
+  // Back (Android) and Escape (web) close it: the card is as it was. Not with a Modal over it (the editor, the note's
+  // page): Escape is that Modal's (fix planner-edit), as Back already is on a phone.
   useEffect(() => {
     const back = BackHandler.addEventListener('hardwareBackPress', () => {
       props.onClose();
       return true;
     });
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && props.onClose();
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && modalsUp.get() === 0 && props.onClose();
     if (Platform.OS === 'web' && typeof window !== 'undefined') window.addEventListener('keydown', onKey);
     return () => {
       back.remove();
@@ -128,7 +129,7 @@ export function PlannerDrawer(props: {
         </View>
         <PlannerSettings prefs={p.prefs} units={units} kind={props.kind} />
       </ScrollView>
-      {p.walkId ? <PlannerCapture walkId={p.walkId} here={props.you} lastFixAt={props.lastFixAt} /> : null}
+      {p.walkId ? <PlannerCapture walkId={p.walkId} here={props.you} lastFixAt={props.lastFixAt} leaving={starting} /> : null}
     </View>
   );
 }

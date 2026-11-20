@@ -70,7 +70,7 @@ function MemoBubble({ o, ctx }: { o: BubbleOverlay; ctx: StageCtx }) {
     inSlot: playing && !handPaused, slotOver: (over || byHand) && !ended && !handPaused, started, ended,
     positionMs: () => voiceClock(status.currentTime, span).atMs, planMs: () => (overlayOf(live.frame(), 'bubble', key)?.progress ?? 0) * Math.max(1000, len), lenMs: Math.max(1000, len), stopped,
   });
-  // Plays in its slot, while the stage waits for it, and after Hold if it was started by hand.
+  // Plays in its slot, while the stage waits for it, and after Pause if it was started by hand.
   const want = (playing || waited || byHand) && !ended && !stopped && !handPaused;
   useEffect(() => {
     if (!status.isLoaded) return;

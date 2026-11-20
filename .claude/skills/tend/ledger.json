@@ -1,10 +1,11 @@
 {
-  "lastT": 48,
-  "lastG": 9,
+  "lastT": 50,
+  "lastG": 10,
   "balance": {
-    "date": "2026-11-19",
+    "date": "2026-11-20",
     "days": 14,
     "slicesGrown": [
+      "CM",
       "CX",
       "DC",
       "DN",
@@ -21,9 +22,9 @@
       "HB",
       "HC",
       "JN",
-      "KW",
       "MA",
       "MC",
+      "MD",
       "MG",
       "MP",
       "MS",
@@ -70,9 +71,9 @@
       "XS"
     ],
     "commits": {
-      "growth": 185,
-      "refinement": 651,
-      "other": 735
+      "growth": 179,
+      "refinement": 761,
+      "other": 783
     },
     "areas": {
       "rough": [
@@ -120,9 +121,9 @@
       "web"
     ],
     "open": {
-      "openT": 2,
+      "openT": 8,
       "phoneT": 4,
-      "openG": 1
+      "openG": 6
     },
     "reading": "outgrowing its base",
     "propose": false,
@@ -155,15 +156,15 @@
     },
     "tabs": {
       "state": "rough",
-      "swept": "2026-11-18",
-      "main": "e45412a940a7b1b87429a4d70029784cac345763",
-      "note": "No sweep (lenses 1-6 not run): five of DEFERRED's ten [loop] lows. tend tabs 12 (the bar's way back does nothing while the bar's stop is under way), 13 (its comment names its held Stop), 14 (the walk gate counts the walk screens up), 15 (lib/launchRoute a shell, says Chronicle). Review (auditor, one round, four low, all accepted): audits 26-28 (the stop shared by any bar of the walk in barStop, asked again before the walk shows, bounded by BAR_STOP_HOLD_MS), F4 a line in tabs-and-home.md, which passed the 20,000-character warning: T39 asks for the split. T35-T38 [owner] filed from four items needing words or a visual change; the reminder's stale key left (a baseline the loop may not prune); dead code's shape noted. T11 [owner], T13 [phone] still open."
+      "swept": "2026-11-20",
+      "main": "805895f4ba2a68ee5391fd67ffa5b7844c0484c3",
+      "note": "Whole sweep (lenses 0-7), decision 0236's lens 0: tabs' five lines drafted (E-tabs-1, 2, 3, 5 met; E-tabs-4 failed, its defect T11). Shipped tend tabs 16-22: the tabs' error line follows the open walk (the owner's O35 extension), Memories' render bound, the bar's held Stop checked, the stuck Stop bounded, \"marked here\", the bar in minutes, the reminder card pictured. Review (auditor, ux-reviewer, steward, one round): accepted 12, two answered by the owner in person (\"1:45\" past the hour; the replay's line nothing while one records), fixes tend tabs audit 53-62. Rough: the older medium (Chronicle's two controls for one choice) and new lows stay in DEFERRED; T11 [owner], T13 [phone], T41 open."
     },
     "map": {
       "state": "rough",
-      "swept": "2026-11-18",
-      "main": "e45412a940a7b1b87429a4d70029784cac345763",
-      "note": "No sweep (lenses 1-7 not run): a run on DEFERRED's [loop] formatDistance item. tend map 21 (formatDistance and formatRange bind the figure to its unit with a no-break space; 20-odd unit tests and the gaps, launch, memories, outing, planner, qol, ready, scenic and walk journeys restated to accept [ \\u00a0], exact strings pinning it). Review (auditor, one round, no check weaker; one medium, five low): F1-F5 accepted as tend map audit 43 (a journey check that U+00A0 reaches the page), 44 (the gap card in formatDistance's words, the medium), 45 (the dead-zone nudge), 46 (scenic's notice in km), 47 (spoken distances keep the no-break space; map.md gains the line); F6 (reachLabel's \".0 \" replace) is the Outing session's branch. A native check filed for U+00A0 in Text and screen readers."
+      "swept": "2026-11-20",
+      "main": "e9cb0f180069088e9a13d5c2056112a94d9fef17",
+      "note": "The last of decision 0229's whole sweeps (lenses 0-7, uncapped), the fourth run under 0236. Rough because the sweep found mediums (Explore's and Navigate's distances keeping the old units under the React Compiler, tend map 23; Plan an outing's map hiding its scale bar and credits under its sheet, tend map 24; the review's units scan, the outing frame under the scale row and the outing (i) under the sheet, audits 48, 50, 51), all shipped but one left filed: seven views still keep the store's units (DEFERRED, held by unitsBound's list). Lens 0: E-map-1 failed on a loop (T50, the owner's yes, its defect), E-map-2 met, E-map-3 failed (the seven views, km first frames on launch, no check of the scale bar after a switch), E-map-4 met (audit 56, both maps), E-map-5 met by a picture (each kind's pin carries its own mark in greyscale; a photo shows its picture). Decision 0244."
     },
     "replay": {
       "state": "rough",
@@ -173,9 +174,9 @@
     },
     "presence": {
       "state": "rough",
-      "swept": "2026-11-16",
-      "main": "d50d8a512f5c45e385e488945fa5ede2737f1124",
-      "note": "First run, not a sweep (lenses 1-6 not run): built the owner's answer to the [arch] neighbourhood read-past (decision 0172) as tend presence 1, the read-past after normalizeWords in presence and community parks alike under PRESENCE_CODE p5, nothing carried; the auditor's F1, F2, F3, F4, F6 (the owner's Nov 16 answer: Old Towne, Olde Town, Oldtown) and F7 fixed as tend presence audit 1, F5 rejected. Goldens unchanged. No [loop] item of presence's own files left in DEFERRED."
+      "swept": "2026-11-20",
+      "main": "bfb60fdb85e1430d0f399681368b0b055f1f900",
+      "note": "The first whole sweep (lenses 0-7, uncapped; decision 0229) and the first under the expectation lens (0236): five lines drafted (proposed, the owner's answer to come). Found two mediums (Overture's parks, trails, memorial sites and cemeteries counting toward storefronts, E-presence-2; Courthouses and halls in History's glyph), so the area stays rough. Shipped tend presence 2-7 and audits 2-8 (castle-class houses a place to find and a storefront, Overture's historic site a storefront, parks, cemeteries and memorial sites no help to a complex's shopping word; PRESENCE_CODE p11, COMPLEX_CODE c2, nothing carried; the pre-presence landing carry dropped). The owner's answers in decision 0239; the category words held as T49; the card's 320 px kind row filed for the owner."
     },
     "captures": {
       "state": "rough",
@@ -190,5 +191,15 @@
       "note": "No sweep (lenses 1-7 not run): aimed at the Deletion section's one [loop] item, \"Delete walk\" wrapping in the walk delete confirm's row at 320 px. Built tend deletion 1 (below 340 px the confirm stacks its actions, the confirm on top and Cancel beneath, as HIG Alerts and Material dialogs stack theirs; no words changed) and the review's U1 and U2 as tend deletion audit 3 (the row measured at 340 and 352 px; the threshold stays 340) and audit 4 (stacked, 12 px apart). Filed [owner] low: the destructive button's filled red in every confirm (U3). The HIG Alerts quote (U4) is in Last tend for docs/research."
     }
   },
-  "declined": []
+  "declined": [],
+  "compass": {
+    "date": "2026-11-20",
+    "runs": 2,
+    "shares": {
+      "first": 0.75,
+      "second": 0.88
+    },
+    "trend": "flat",
+    "verdict": "too early to say: 2 of 12 runs carry the compass"
+  }
 }

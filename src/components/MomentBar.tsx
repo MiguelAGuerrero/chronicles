@@ -17,7 +17,7 @@ import { Modal } from './Modal';
 import { NewNotePage } from './notePage/NewNotePage';
 import type { NotePageHandle } from './notePage/NotePage';
 import { SpaceLine } from './SpaceLine';
-import { EditOfferPill, useEditOffer } from './edit/EditOffer';
+import { useEditAfterCapture } from './edit/EditOffer';
 import { MediaEditor } from './edit/MediaEditor';
 import { AddToMomentPill } from './walk/AddToMomentPill';
 import { CaptureStack } from './walk/CaptureStack';
@@ -94,9 +94,9 @@ export function CaptureRow(props: {
   const noteOpen = page != null;
   const openNote = (into: string | null) => setPage((p) => ({ key: (p?.key ?? 0) + 1, into }));
   const pageRef = useRef<NotePageHandle>(null);
-  // After a photo or video, Edit is offered for a few seconds (ME23).
-  const editOffer = useEditOffer();
-  const [editingKept, setEditingKept] = useState<Faced | null>(null);
+  // Once a photo or video is kept, its editor opens by itself (ME23 as decision 0240 amends it).
+  const editAfter = useEditAfterCapture(cap.captures);
+  const editing = editAfter.editing;
   const recording = cap.voiceStartedAt != null;
   const { onRecording } = props;
   useEffect(() => {
@@ -122,6 +122,12 @@ export function CaptureRow(props: {
 
   const saved = (_kind: Capture['kind']) => {
     feedback('tap');
+  };
+  // A photo or video kept, as a new moment or a piece of the open one: its editor opens (decision 0240, audit 2).
+  const kept = (k: { kind: 'photo' | 'video'; id: string; momentId: string } | null) => {
+    if (!k) return;
+    saved(k.kind);
+    editAfter.open(k);
   };
   const saveVoice = async () => {
     const r = await cap.finishVoice();
@@ -153,7 +159,7 @@ export function CaptureRow(props: {
   useEffect(() => {
     onAsk.current = (kind) => {
       const into = momentPill.target();
-      if (kind === 'photo') void cap.takePhoto(into).then((k) => k && saved(k.kind));
+      if (kind === 'photo') void cap.takePhoto(into).then(kept);
       else if (kind === 'voice') void cap.startVoice(into).then((ok) => ok && feedback('tap'));
       else openNote(into);
     };
@@ -169,20 +175,9 @@ export function CaptureRow(props: {
     <>
       {/* Pills and the toast: left of the stack, above the strip, so the stack never moves (NR10). */}
       <View style={[styles.pills, pillsAt]} pointerEvents="box-none">
-        {editOffer.offer && !recording && (
-          <EditOfferPill
-            offer={editOffer.offer}
-            where="moment"
-            onEdit={() => {
-              const id = editOffer.offer?.id;
-              setEditingKept(cap.captures.find((c) => c.id === id) ?? null);
-              editOffer.clear();
-            }}
-          />
-        )}
         <AddToMomentPill
           hidden={recording || noteOpen}
-          onPhoto={() => void cap.takePhoto(momentPill.target()).then((k) => k && saved(k.kind))}
+          onPhoto={() => void cap.takePhoto(momentPill.target()).then(kept)}
           onVoice={() => void cap.startVoice(momentPill.target()).then((ok) => ok && feedback('tap'))}
           onNote={() => openNote(momentPill.target())}
         />
@@ -226,11 +221,7 @@ export function CaptureRow(props: {
         disabled={props.disabled}
         onPhoto={() =>
           // With Group captures on, the edge adds to the open moment (MS19); off, a new moment (MS1).
-          cap.takePhoto(momentPill.edgeTarget()).then((k) => {
-            if (!k) return;
-            saved(k.kind);
-            if (k.id === k.momentId) editOffer.show(k);
-          })
+          cap.takePhoto(momentPill.edgeTarget()).then(kept)
         }
         onVoice={() => cap.startVoice(momentPill.edgeTarget()).then((ok) => ok && feedback('tap'))}
         onSave={saveVoice}
@@ -238,8 +229,8 @@ export function CaptureRow(props: {
         onNote={() => openNote(momentPill.edgeTarget())}
       />
 
-      {editingKept && (
-        <MediaEditor key={editingKept.id} capture={editingKept} initialTool="crop" onClose={() => setEditingKept(null)} onSave={(patch) => cap.setEdit(editingKept, patch)} />
+      {editing && (
+        <MediaEditor key={editing.piece_id} capture={editing} justKept initialTool="crop" onClose={() => editAfter.close()} onSave={(patch) => cap.setEdit(editing, patch)} />
       )}
 
       <Modal visible={noteOpen} animationType="slide" onRequestClose={() => pageRef.current?.requestClose()}>

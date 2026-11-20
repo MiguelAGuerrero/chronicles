@@ -194,11 +194,26 @@ export interface WhisperOverlay {
   text: string;
   at: LngLat;
   opacity: number;
+  /**
+   * It stands over its place, not under it (`replay-ceremony ui 5`), said once. Under is the rule: pins and pictures
+   * stand upward from the line, so over it a whisper would cover them. Only where the way runs down the screen as the
+   * place is passed is it over: behind the walker, who would otherwise walk on into it.
+   */
+  above: boolean;
+  /** Where the walker passes the place: the whisper keeps clear of the dot and the line there too. */
+  by: LngLat;
+  /**
+   * It stands beside the line, at its left, in a room this wide (`replay-ceremony ui 13`): where the way runs up or
+   * down the screen as the place is passed, said once. Absent, it stands under its place (or over it, `above`).
+   */
+  beside?: number;
 }
 
 /**
  * A place passed without stopping, named on the last view (replay ceremony RC25): beside its place, or, for the one
- * line that says more than two (RP19), beside none (`at` null).
+ * line that says more than two (RP19) or those with no room beside their places (`replay-ceremony ui 14`), beside
+ * none (`at` null). Which side of its place a name stands on, and where the one line stands, are the telling's to say
+ * (`lib/ceremony/said` `lastNames`).
  */
 export interface PassedOverlay {
   kind: 'passed';
@@ -206,6 +221,12 @@ export interface PassedOverlay {
   text: string;
   at: LngLat | null;
   opacity: number;
+  /** It stands over its place (or, the one line, over the walk), not under. */
+  above: boolean;
+  /** Where the walker passed the place: its name keeps clear of the line there too. */
+  by?: LngLat | null;
+  /** The one line's place, px down the screen, clear of the walk; absent, it stands under the top row. */
+  top?: number;
 }
 
 export type Overlay = PictureOverlay | BubbleOverlay | CardOverlay | StackOverlay | WhisperOverlay | PassedOverlay;
@@ -233,6 +254,16 @@ export interface Frame {
   /** The ceremony has ended: the card comes next. */
   done: boolean;
   walker: LngLat | null;
+  /**
+   * How strongly the walker's dot shows, 0 to 1 (`replay-ceremony ui 7`): it comes in as the opening's dive ends, and
+   * is whole from then on. A step with reduce motion.
+   */
+  walkerFade: number;
+  /**
+   * How much of the whole trace the beat before the path left on the map, faint, still shows, 1 to 0: it fades out
+   * through the opening's dive, so nothing cuts as the path begins. 0 where no beat came before (a day's telling).
+   */
+  wholeTrace: number;
   /** Where the camera holds the map, and at what zoom; a null centre leaves the map where it is (no following). */
   camera: { center: LngLat | null; zoom: number | null };
   /**

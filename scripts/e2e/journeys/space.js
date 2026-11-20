@@ -11,7 +11,7 @@ const OUT = 'Not saved: there is no room left. It is held here for Retry.';
 const REFUSED = 'This browser may clear Chronicles’ moments when it needs room.';
 
 async function run(h) {
-  const { navUrl, check, freshPage, scriptsDir, toStop } = h;
+  const { navUrl, check, freshPage, scriptsDir, toStop, tabTo } = h;
   const fixtures = path.join(scriptsDir, 'fixtures');
   const { c, pg } = await freshPage('space');
   await c.addInitScript(() => {
@@ -45,9 +45,18 @@ async function run(h) {
     await pg.click('[data-testid=space-dismiss]').catch(() => {});
     return pg.waitForSelector('[data-testid=space-line]', { state: 'detached', timeout: 3000 }).then(() => true, () => false);
   };
-  const shoot = async (button) => {
+  // A new moment's photo or video opens its editor by itself once kept (ME23, decision 0240): closed, kept as taken.
+  const closeEditor = async (p = pg, timeout = 8000) => {
+    if (!(await p.waitForSelector('[data-testid=media-editor]', { timeout }).then(() => true, () => false))) return false;
+    await p.click('[data-testid=edit-close]').catch(() => {});
+    await p.waitForSelector('[data-testid=media-editor]', { state: 'detached', timeout: 5000 }).catch(() => {});
+    return true;
+  };
+  // `refused`: a save made to fail opens no editor, so nothing is waited for.
+  const shoot = async (button, refused = false) => {
     const [chooser] = await Promise.all([pg.waitForEvent('filechooser'), pg.click(`[data-testid=${button}]`)]);
     await chooser.setFiles(path.join(fixtures, 'photo.jpg'));
+    if (!refused) await closeEditor(pg, 6000);
   };
 
   // Navigate, ready: moments outside a walk (SA3), the captures still enabled (SA6), no number (SA7).
@@ -59,8 +68,14 @@ async function run(h) {
   check((await enabled('moment-photo')) && (await enabled('moment-voice')) && (await enabled('moment-note')), 'SA6: the moment buttons stay enabled with the line shown');
   check(!!ready && (await dismiss()), 'SA6: the line has a dismiss button, and it goes');
 
-  // A moment kept outside a walk: the browser is asked once to keep the data; its refusal said there (SA10).
+  // A moment kept outside a walk: the browser is asked once to keep the data; its refusal said there (SA10). Since
+  // decision 0240 the photo's editor is up as the browser answers, and a refusal is never owed (tend tabs audit 31): it
+  // is said at the next look off the walk, here Navigate, ready shown again.
   await shoot('moment-photo');
+  await tabTo(pg, 'explore');
+  await pg.waitForTimeout(800);
+  await pg.click('[data-testid=tab-navigate]');
+  await pg.waitForSelector('[data-testid=start]', { timeout: 15000 });
   const refused = await lineText(10000);
   check((await pg.evaluate(() => window.__persistAsked)) === 1 && refused.includes(REFUSED), `SA10: asked once after a moment kept outside a walk; the refusal said ("${say(refused)}")`);
   await dismiss();
@@ -132,9 +147,9 @@ async function run(h) {
   // Two photos whose saves are refused for lack of room: both held, with Retry, and why in words (SA8, SA9).
   await pg.evaluate(() => { window.__failMedia = 2; });
   const before = await photoRows();
-  await shoot('cap-photo');
+  await shoot('cap-photo', true);
   await pg.waitForSelector('[data-testid=held-captures] >> visible=true', { timeout: 10000 }).catch(() => {});
-  await shoot('cap-photo');
+  await shoot('cap-photo', true);
   await pg.waitForTimeout(1500);
   // Memories' open line, mounted beneath, shows the same held photos since unsaved captures (UN2): the walk's is the one in view.
   const pill = await pg.locator('[data-testid=held-captures]').filter({ visible: true }).first().innerText().catch(() => '');
@@ -163,7 +178,7 @@ async function run(h) {
   // Let the kept photos' own writes (their small copies) land first, so the one refusal falls on the next photo.
   await pg.waitForTimeout(2500);
   await pg.evaluate(() => { window.__failMedia = 1; });
-  await shoot('cap-photo');
+  await shoot('cap-photo', true);
   await pg.waitForSelector('[data-testid=held-captures] >> visible=true', { timeout: 10000 }).catch(() => {});
   await holdStop();
   check((await warned()) > 0 && /\/walk/.test(pg.url()), `SA8: Stop with a held photo warns first and the walk goes on (${await warned()}, ${pg.url().slice(-12)})`);
@@ -172,7 +187,7 @@ async function run(h) {
   await dismissBanners();
   await pg.waitForTimeout(2500);
   await pg.evaluate(() => { window.__failMedia = 1; });
-  await shoot('cap-photo');
+  await shoot('cap-photo', true);
   await pg.waitForFunction(() => /Photos not saved/.test(document.querySelector('[data-testid=held-captures]')?.textContent ?? ''), null, { timeout: 10000 }).catch(() => {});
   await dismissBanners();
   await pg.waitForTimeout(300);
@@ -182,7 +197,7 @@ async function run(h) {
   await pg.waitForSelector('[data-testid=held-captures]', { state: 'detached', timeout: 10000 }).catch(() => {});
   await pg.waitForTimeout(2500);
   await pg.evaluate(() => { window.__failMedia = 1; });
-  await shoot('cap-photo');
+  await shoot('cap-photo', true);
   await pg.waitForSelector('[data-testid=held-captures] >> visible=true', { timeout: 10000 }).catch(() => {});
   await pg.evaluate(() => document.querySelectorAll('[data-testid=banner-dismiss]').forEach((b) => b.click()));
   await pg.waitForTimeout(300);

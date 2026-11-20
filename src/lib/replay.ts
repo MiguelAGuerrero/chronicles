@@ -184,3 +184,19 @@ export function timedRuns(fixes: TracePoint[], pauses: PauseSpan[] = []): TimedR
 export function pinHint(captures: readonly Pick<Faced, 'lat' | 'lon'>[]): string | null {
   return captures.some((c) => c.lat != null && c.lon != null) ? 'Tap a pin to open it' : null;
 }
+
+/**
+ * How much of the walk's room the gap question must leave clear over the card's sheet (`replay-ceremony ui 11`): two
+ * targets' height, the least in which the card's own fit still shows a walk.
+ */
+export const KEEP_ASK_CLEAR = 96;
+/**
+ * Where the walk's-end question about offered gaps is asked on the walk's card (`replay-ceremony ui 11`, the UI
+ * review's U2; the owner's defaults, Nov 20): a prompt never covers what it asks about. Over the map, 12 px above the
+ * card's sheet, wherever that leaves `KEEP_ASK_CLEAR` px of the walk's room in view above it (`top`: where the card's
+ * fit begins the walk's room; `askH`: the question's own height); else inside the sheet, as its first block, with
+ * nothing over the map. Decided from the room, never from a device.
+ */
+export function keepAskPlace(o: { height: number; top: number; sheetH: number; askH: number }): 'over' | 'sheet' {
+  return o.height - o.sheetH - 12 - o.askH - o.top >= KEEP_ASK_CLEAR ? 'over' : 'sheet';
+}
