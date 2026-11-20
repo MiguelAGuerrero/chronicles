@@ -1041,14 +1041,15 @@ const MarkMarkers = memo(function MarkMarkers({ marks, zoom, bearing, spread, se
       anchor="bottom"
       // A spread pin stands off its point, on a leg back to it (fix mark-overlap).
       offset={pin.spread ? [pin.spread.dx, pin.spread.dy] : undefined}
-      onPress={pressable && !pin.found ? () => handlers.current?.onDiscoveryPress?.(pin.id) : undefined}
+      // A found place opens its card again (capture-at-a-place CA11), on its own small head (no hit padding).
+      onPress={pressable ? () => handlers.current?.onDiscoveryPress?.(pin.id) : undefined}
     >
       <View
         // WT11: Explore's "?" are one summary for a screen reader, never announced one by one.
         accessible={!pin.quiet}
         accessibilityElementsHidden={pin.quiet}
         importantForAccessibility={pin.quiet ? 'no-hide-descendants' : 'auto'}
-        accessibilityRole={pin.found ? 'image' : 'button'}
+        accessibilityRole="button"
         accessibilityLabel={markLabel(pin)}
         style={pin.found ? undefined : styles.pinHit}
       >

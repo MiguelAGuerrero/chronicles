@@ -357,8 +357,10 @@ recording, and a recording bar brings a minimized walk back.
   card and in a pin's viewer. Navigation and the walk go on.
 - **No Explore mode** (decision 0234; a walk starts with every layer off, quiet as before). The walk's Layers panel lists **Places**: "?" marks
   within range (60-300 m), with the range ring while the settings are up, an optional pocket alert (a double-tap once per place, on phones and
-  browsers that can buzz; its row says it needs Places on), and **Capture here** on a place's card (the next capture finds that place, and
-  one taken near a place without it finds nothing, so a find needs Places on). **Storefronts** gives the chip that names the storefront street
+  browsers that can buzz; its row says it needs Places on), and a place's card carrying **Camera**, **Voice** and **Note**
+  within 60 m (decision 0240): a capture begun there finds the place, with nothing armed for a later one, and one taken near a place from the
+  stack finds nothing, so a find needs Places on. A found place's pin opens its card again, with "Moments here" (the moments taken within
+  60 m of it, newest three, in words, each opening it) and the same row. **Storefronts** gives the chip that names the storefront street
   you are on and the dead-zone pill. The layers are the walk's own, off at every walk's start. A place you pass within a few metres (4-20 m, 8 by
   default, a setting in the walk's options, always there) is named in the replay as passed without stopping, never counted (decision 0224), and
   only within the spans Places was on.

@@ -4,6 +4,7 @@ import { ensureOvertureRelease } from '../activity/overture';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { MarkPin } from '../../components/MarkPinView';
 import { db } from '../db';
+import { findOnKept, hereBounds, momentsHere } from './placeCard';
 import { deletions } from '../deletion';
 import { categoryOf } from '../discovery/categories';
 import { boundsOf, distanceM } from '../geo';
@@ -15,9 +16,6 @@ import {
   alertedFor,
   alertKeys,
   EXPLORE_RULES,
-  armedFind,
-  armedStill,
-  type Armed,
   readCentre,
   retryAllowed,
   revealedKeys,
@@ -42,15 +40,15 @@ const CHECK_M = 25;
 /**
  * Explore on the walk screen (E2-E9, E17-E23): checklists built quietly in
  * the background on every walk; while Places is on, the "?" marks within
- * your range, faint ones along a route, the pocket alert; and on any walk, a
- * capture finding the place the reader armed (TC4).
+ * your range, faint ones along a route, the pocket alert; and a capture begun
+ * on a place's card finding that place (capture-at-a-place CA2-CA4).
  */
 /** The places each walk has alerted (audit 3): outlives the walk screen, not a reload. */
 const alertedByWalk = new Map<string, Set<string>>();
 
 export function useExplore(opts: {
   walkId: string | null;
-  /** Places is on for this walk (decision 0234): the "?" within range, the pocket alert, the armed place. */
+  /** Places is on for this walk (decision 0234): the "?" within range, the pocket alert, the place's card. */
   places: boolean;
   /** Storefronts is on for this walk: storefront streets are remembered (MD17). */
   storefronts: boolean;
@@ -92,8 +90,7 @@ export function useExplore(opts: {
     };
   }, []);
 
-  // A capture's find, recorded through `record` (E8, E9) once the reader armed its place (TC4).
-  const handled = useRef(new Set<string>());
+  // A capture's find, recorded through `record` (E8, E9) when a capture begun on the place's card is kept (CA2-CA4).
   const record = useCallback(async (item: ChecklistItem, captureId: string) => {
     const walkId = latest.current.walkId;
     if (!walkId) return;
@@ -111,8 +108,6 @@ export function useExplore(opts: {
     const readFinds = () =>
       db.listFinds().then((f) => {
         if (!alive) return;
-        // Captures that already found a place are handled: a reload never lets them find a second (audit 4).
-        for (const x of f) handled.current.add(x.capture_id);
         setFound(new Set(f.map((x) => x.key)));
         setFinds(f.map((x) => ({ key: x.key, capture_id: x.capture_id })));
       }, () => alive && setFound((was) => was ?? new Set()));
@@ -251,37 +246,24 @@ export function useExplore(opts: {
     return () => clearTimeout(t);
   }, [places, here, riding, items, revealed]);
 
-  // A capture finds a place only when the reader tapped "Capture here" on it (TC1, TC4): the next capture of this
-  // walk finds the armed place. Each capture is handled once, so one made before arming never counts.
-  const [armed, setArmed] = useState<Armed | null>(null);
-  const armedNow = useMemo(() => armedStill(armed, here, opts.walkId, { places, found: found ?? undefined }), [armed, here, opts.walkId, places, found]);
-  // Arming that no longer holds (the walker moved off, the walk ended) is let go.
+  // A capture finds a place only when it was begun on the place's card (TC1, CA2-CA4): its stamp carries the place, and
+  // the walk screen hands the kept moment here. Nothing is armed, so a cancelled capture leaves nothing waiting (CA7).
+  const foundRef = useRef(found);
   useEffect(() => {
-    if (armed && !armedNow) {
-      const t = setTimeout(() => setArmed(null), 0);
-      return () => clearTimeout(t);
-    }
-  }, [armed, armedNow]);
-  const armedRef = useRef<Armed | null>(null);
-  useEffect(() => {
-    armedRef.current = armedNow;
+    foundRef.current = found;
   });
-  useEffect(() => {
-    // Not before the finds are known: they say which captures already found something (audit 4).
-    if (!found) return;
-    const fresh = opts.captures.filter((c) => !handled.current.has(c.id)).map((c) => ({ id: c.id, t: c.t }));
-    if (!fresh.length) return;
-    for (const c of fresh) handled.current.add(c.id);
-    const hit = armedFind(armedRef.current, fresh);
-    if (!hit || found.has(hit.item.key)) return;
-    setArmed(null);
-    record(hit.item, hit.captureId).catch(() => {});
-  }, [opts.captures, found, record]);
-  const arm = useCallback((item: ChecklistItem) => {
-    const walkId = latest.current.walkId;
-    if (walkId) setArmed({ item, walkId, at: Date.now() });
+  const findFor = useCallback(async (item: ChecklistItem, kept: { momentId: string; piece: boolean }) => {
+    // Before the finds are read, ask the store: the first find of a place stands (CA12).
+    const known = foundRef.current ?? new Set((await db.listFinds().catch(() => [])).map((f) => f.key));
+    const hit = findOnKept({ place: item.key, piece: kept.piece, momentId: kept.momentId }, known);
+    if (hit) await record(item, hit.momentId);
+  }, [record]);
+  /** A found place's card (CA11): the moments taken within 60 m of it, newest first, in words. Read once per opening. */
+  const momentsAt = useCallback(async (at: LngLat, now: number) => {
+    const ms = await db.momentsIn(hereBounds(at));
+    const byId = new Map(ms.map((x) => [x.id, x]));
+    return momentsHere(ms, at, now).map((x) => ({ ...x, moment: faced(byId.get(x.id)!) }));
   }, []);
-  const disarm = useCallback(() => setArmed(null), []);
 
   const rangeM = opts.previewRangeM ?? settings.rangeM;
   const foundSet = useMemo(() => found ?? new Set<string>(), [found]);
@@ -334,5 +316,5 @@ export function useExplore(opts: {
   const byKey = useMemo(() => new Map([...routeItems, ...items].map((i) => [i.key, i])), [items, routeItems]);
   const itemOf = useCallback((key: string) => byKey.get(key) ?? null, [byKey]);
 
-  return { pins, settings, revealed, found: foundSet, itemOf, armed: armedNow, arm, disarm };
+  return { pins, settings, revealed, found: foundSet, itemOf, findFor, momentsAt };
 }

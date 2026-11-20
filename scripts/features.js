@@ -387,6 +387,9 @@ const FEATURES = [
 const V1_SCAN_AND_AMBIENT = ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S9', 'S10', 'S11', 'S12', 'S14', 'S15', 'S22', 'S23', ...Array.from({ length: 11 }, (_, i) => `A${i + 1}`)];
 
 const RETIRED = {
+  // Arming by "Capture here" went with the place's card carrying Camera, Voice and Note (the owner, Nov 20, specs/capture-at-a-place
+  // CA1-CA12): a capture begun on the card carries the place itself.
+  'tap-to-capture-places': ['TC3', 'TC4'],
   // Captions in the replay wait for the first phone build (the owner, Nov 18, decision 0206): they cannot be seen on the web.
   'replay-ceremony': ['RC38', 'RC39', 'RC40', 'RC41', 'RC42', 'RC43', 'RC44'],
   // The soft cap of about 60 s and its floors went when each moment was given its own time (the owner, Nov 18, decision 0203):

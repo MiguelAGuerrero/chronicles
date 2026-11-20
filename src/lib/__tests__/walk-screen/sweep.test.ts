@@ -75,9 +75,12 @@ test('tend walk-screen audit 12: the strip\'s spoken name holds the text it draw
 // tend walk-screen 13 (the sweep's ux 4): with a place armed ("The next moment is about …", Capture here), the Add to this
 // moment offer still stood beside it, offering to send the next capture into the open moment instead: two transients
 // saying different things about one tap. The offer steps aside while a place is armed; the journey `walk` holds it.
-test('tend walk-screen 13: the walk\'s Add to this moment offer hides while a place is armed', () => {
+// Since capture-at-a-place nothing is armed; the offer still steps aside while a place's card is open, where its row
+// speaks for the next capture.
+test('tend walk-screen 13: the walk\'s Add to this moment offer hides while a place\'s card is open', () => {
   const pill = /<AddToMomentPill[\s\S]*?hidden=\{([^}]*)\}/.exec(read('app/walk.tsx'))?.[1] ?? '';
-  assert.match(pill, /!!explore\.armed/);
+  assert.match(pill, /!!openMark/);
+  assert.doesNotMatch(pill, /armed/);
 });
 
 // tend walk-screen 14 (the sweep's ux 5, auditor 5): three targets leaned on hitSlop, which react-native-web does not have

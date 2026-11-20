@@ -33,7 +33,7 @@ const moment = (id: string, at: LngLat, t: number, kinds: Moment['pieces'][numbe
   pieces: kinds.map((kind, i) => ({ id: i ? `${id}-${i}` : id, moment_id: id, t: t + i, kind, file_path: null, body: null })),
 });
 
-test('CA1: an unfound named place within 60 m offers the capture row on its card', { todo: 'test first' }, async () => {
+test('CA1: an unfound named place within 60 m offers the capture row on its card', async () => {
   const { cardCapture } = await card();
   assert.equal(cardCapture({ name: 'Old Bridge', at: m(30, 0), here: O, found: false }).row, true);
   assert.equal(cardCapture({ name: 'Old Bridge', at: m(59, 0), here: O, found: false }).row, true, 'just inside 60 m');
@@ -41,7 +41,7 @@ test('CA1: an unfound named place within 60 m offers the capture row on its card
   assert.equal(cardCapture({ name: null, at: m(30, 0), here: O, found: false }).row, false, 'an unnamed "?" is not');
 });
 
-test('CA2: a stamp taken from the card carries the place, and the photo or video it keeps finds it', { todo: 'test first' }, async () => {
+test('CA2: a stamp taken from the card carries the place, and the photo or video it keeps finds it', async () => {
   const stampFor = await stamp();
   const { findOnKept } = await card();
   const s = stampFor(1000, { here: O, lastFixAt: 990 }, null, 'k:Old Bridge');
@@ -49,7 +49,7 @@ test('CA2: a stamp taken from the card carries the place, and the photo or video
   assert.deepEqual(findOnKept({ place: s.place, piece: false, momentId: 'm-video' }, new Set()), { key: 'k:Old Bridge', momentId: 'm-video' });
 });
 
-test('CA3: a voice memo begun from the card finds the place when it is saved', { todo: 'test first' }, async () => {
+test('CA3: a voice memo begun from the card finds the place when it is saved', async () => {
   const stampFor = await stamp();
   const { findOnKept } = await card();
   // The memo's stamp is taken as it begins (useCaptures' voiceStamp) and kept whole until Stop and save.
@@ -58,7 +58,7 @@ test('CA3: a voice memo begun from the card finds the place when it is saved', {
   assert.deepEqual(findOnKept({ place: s.place, piece: false, momentId: 'm-memo' }, new Set()), { key: 'k:Grace Church', momentId: 'm-memo' });
 });
 
-test('CA4: a note begun from the card finds the place when it is kept', { todo: 'test first' }, async () => {
+test('CA4: a note begun from the card finds the place when it is kept', async () => {
   const stampFor = await stamp();
   const { findOnKept } = await card();
   // The note's stamp is taken as its page opens (beginNote) and handed to keepNote.
@@ -66,7 +66,7 @@ test('CA4: a note begun from the card finds the place when it is kept', { todo: 
   assert.deepEqual(findOnKept({ place: s.place, piece: false, momentId: 'm-note' }, new Set()), { key: 'k:Coffee Exchange', momentId: 'm-note' });
 });
 
-test('CA5: nothing says "the next moment": no arming in the explore core or the walk screen, and the card describes', { todo: 'test first' }, async () => {
+test('CA5: nothing says "the next moment": no arming in the explore core or the walk screen, and the card describes', async () => {
   const { cardCapture } = await card();
   assert.equal(cardCapture({ name: 'Hessian Memorial', at: m(20, 0), here: O, found: false }).line, 'A moment taken here is kept with Hessian Memorial.');
   const explore = src('src/lib/explore/explore.ts');
@@ -80,7 +80,7 @@ test('CA5: nothing says "the next moment": no arming in the explore core or the 
   }
 });
 
-test('CA6: a capture the card did not start finds nothing, and a piece never carries a place', { todo: 'test first' }, async () => {
+test('CA6: a capture the card did not start finds nothing, and a piece never carries a place', async () => {
   const stampFor = await stamp();
   const { findOnKept } = await card();
   assert.equal(stampFor(1000, { here: O, lastFixAt: 999 }, null).place, null, 'the stack, the pill and Memories stamp no place');
@@ -89,7 +89,7 @@ test('CA6: a capture the card did not start finds nothing, and a piece never car
   assert.equal(findOnKept({ place: 'k:Old Bridge', piece: true, momentId: 'm1' }, new Set()), null);
 });
 
-test('CA7: a card capture that keeps nothing leaves nothing pending', { todo: 'test first' }, async () => {
+test('CA7: a card capture that keeps nothing leaves nothing pending', async () => {
   // A find is decided only on a kept moment (findOnKept is the only path); a cancel keeps none, so there is no state to
   // outlive it. The walk screen holds no arming for the next capture to pick up.
   const walk = src('src/app/walk.tsx');
@@ -100,13 +100,13 @@ test('CA7: a card capture that keeps nothing leaves nothing pending', { todo: 't
   assert.equal(typeof findOnKept, 'function');
 });
 
-test('CA9: farther than 60 m a named place offers no row and says so, describing', { todo: 'test first' }, async () => {
+test('CA9: farther than 60 m a named place offers no row and says so, describing', async () => {
   const { cardCapture } = await card();
   assert.deepEqual(cardCapture({ name: 'Old Bridge', at: m(150, 0), here: O, found: false }), { row: false, line: 'Moments are kept with it from within 60 m.' });
   assert.equal(cardCapture({ name: null, at: m(150, 0), here: O, found: false }).line, 'Walk within 60 m to see what it is.');
 });
 
-test('CA10: a stamp with a place is the same stamp otherwise: its time, its fix and whether to locate', { todo: 'test first' }, async () => {
+test('CA10: a stamp with a place is the same stamp otherwise: its time, its fix and whether to locate', async () => {
   const stampFor = await stamp();
   for (const pos of [{ here: O, lastFixAt: 990 }, { here: O, lastFixAt: 1 }, { here: null, lastFixAt: null }]) {
     const { place, ...withPlace } = stampFor(1000, pos, null, 'k:Old Bridge');
@@ -117,7 +117,7 @@ test('CA10: a stamp with a place is the same stamp otherwise: its time, its fix 
   }
 });
 
-test('CA11: a found place\'s card lists the moments within 60 m, newest first, three at most, in words', { todo: 'test first' }, async () => {
+test('CA11: a found place\'s card lists the moments within 60 m, newest first, three at most, in words', async () => {
   const { momentsHere } = await card();
   const day = 24 * 3600_000;
   const now = new Date(2026, 10, 20, 15, 0).getTime();
@@ -137,13 +137,13 @@ test('CA11: a found place\'s card lists the moments within 60 m, newest first, t
   assert.deepEqual(momentsHere([], at, now), []);
 });
 
-test('CA11: a found place offers the row too, with no line of its own', { todo: 'test first' }, async () => {
+test('CA11: a found place offers the row too, with no line of its own', async () => {
   const { cardCapture } = await card();
   assert.deepEqual(cardCapture({ name: 'Old Bridge', at: m(20, 0), here: O, found: true }), { row: true, line: null });
   assert.deepEqual(cardCapture({ name: 'Old Bridge', at: m(150, 0), here: O, found: true }), { row: false, line: null });
 });
 
-test('CA12: a capture from a found place\'s card writes no second find', { todo: 'test first' }, async () => {
+test('CA12: a capture from a found place\'s card writes no second find', async () => {
   const { findOnKept } = await card();
   assert.equal(findOnKept({ place: 'k:Old Bridge', piece: false, momentId: 'm2' }, new Set(['k:Old Bridge'])), null);
 });

@@ -1405,15 +1405,14 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         el.setAttribute('aria-hidden', 'true');
         el.tabIndex = -1;
       }
-      // A found place is shown, not pressed: its pin lets taps through to the capture beside it (audit, UI).
-      el.style.cssText = pin.found ? 'background:none;border:0;padding:4px 6px 0;pointer-events:none' : 'background:none;border:0;padding:4px 6px 0;cursor:pointer';
-      if (pin.found) el.tabIndex = -1;
+      // A found place opens its card again, with the moments taken there (capture-at-a-place CA11). It answers on its own
+      // small head only (no padding round it); where a moment's pin covers it, the card's lines open the same moments.
+      el.style.cssText = pin.found ? 'background:none;border:0;padding:0;cursor:pointer' : 'background:none;border:0;padding:4px 6px 0;cursor:pointer';
       const id = pin.id;
-      if (!pin.found)
-        el.addEventListener('click', (e) => {
-          e.stopPropagation();
-          markLatest.current?.(id);
-        });
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        markLatest.current?.(id);
+      });
       const root = createRoot(el);
       perfCount('marker:mark');
       root.render(<MarkPinView pin={pin as MarkPin} enter={enter} below={MARK_BELOW} />);
