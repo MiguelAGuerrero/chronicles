@@ -1977,7 +1977,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
         }}
       />
       {editing && (
-        <MediaEditor key={editing.id} capture={editing} initialTool="crop" onClose={() => editAfter.close()} onSave={(patch) => cap.setEdit(editing, patch)} />
+        <MediaEditor key={editing.id} capture={editing} justKept initialTool="crop" onClose={() => editAfter.close()} onSave={(patch) => cap.setEdit(editing, patch)} />
       )}
       {memory && memoryShown.length > 0 && !spot && !recordingVoice && (
         <View style={[styles.spotRow, cardAt]} pointerEvents="box-none">

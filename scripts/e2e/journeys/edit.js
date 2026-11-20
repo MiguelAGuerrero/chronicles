@@ -70,7 +70,14 @@ async function run(h) {
       await chooser.setFiles(path.join(fixtures, 'photo.jpg'));
       const opened = await pg.waitForSelector('[data-testid=media-editor]', { timeout: 15000 }).then(() => true, () => false);
       check(opened, 'ME23 fix edit-after-capture: a moment\'s photo opens its editor by itself once accepted (Navigate, ready)');
+      await pg.waitForTimeout(800);
       await shot(pg, 'edit-after-capture-ready');
+      // fix edit-after-capture audit 1: the editor says the photo is kept, where the disabled Revert sat, and ✕ says it stays.
+      const keptLine = await pg.locator('[data-testid=edit-kept]').innerText().catch(() => '');
+      const closeName = await pg.locator('[data-testid=edit-close]').getAttribute('aria-label').catch(() => '');
+      const revertAtOpen = await pg.locator('[data-testid=edit-revert]').count();
+      check(keptLine === 'Photo kept' && closeName === 'Close, the photo stays as it is' && revertAtOpen === 0,
+        `fix edit-after-capture audit 1: the editor after a capture says "Photo kept" and its ✕ "Close, the photo stays as it is" (${JSON.stringify({ keptLine, closeName, revertAtOpen })})`);
       check((await selected('edit-tool-crop')) === 'true', 'ME23: the editor opens on Crop (Navigate, ready)');
       await pg.click('[data-testid=edit-close]');
       await pg.waitForSelector('[data-testid=media-editor]', { state: 'detached', timeout: 5000 });
@@ -81,6 +88,9 @@ async function run(h) {
       await ch2.setFiles(path.join(fixtures, 'photo.jpg'));
       await pg.waitForSelector('[data-testid=media-editor]', { timeout: 15000 });
       await pg.click('[data-testid=edit-rotate]');
+      // audit 1: after the first edit Revert takes the kept line's place.
+      const swapped = (await pg.locator('[data-testid=edit-kept]').count()) === 0 && (await pg.locator('[data-testid=edit-revert]').count()) === 1;
+      check(swapped, 'fix edit-after-capture audit 1: after the first edit Revert takes the kept line\'s place');
       await pg.click('[data-testid=edit-done]');
       await pg.waitForSelector('[data-testid=media-editor]', { state: 'detached', timeout: 15000 });
       const momentPin = pg.locator('.maplibregl-map button[data-ids*=","]:not([data-testid=memory-pin]), .maplibregl-map [aria-label^="Photo, "][aria-label$=". Open"]');
@@ -394,6 +404,7 @@ async function run(h) {
       await chooser.setFiles(path.join(fixtures, 'photo.jpg'));
       const opened = await pg.waitForSelector('[data-testid=media-editor]', { timeout: 15000 }).then(() => true, () => false);
       check(opened, 'ME23 fix edit-after-capture: the recording bar opens its photo\'s editor by itself once accepted');
+      await pg.waitForTimeout(800);
       await shot(pg, 'edit-after-capture-bar');
       check((await selected('edit-tool-crop')) === 'true', 'ME23: the bar’s editor opens on Crop');
       await pg.click('[data-testid=edit-close]');

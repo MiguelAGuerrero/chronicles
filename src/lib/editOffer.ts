@@ -12,3 +12,12 @@ export const editAfter = (kept: { kind: 'photo' | 'video'; id: string; momentId:
 /** The capture the editor is drawn for: the kept one once the screen holds it; none before, or once it is gone. */
 export const editingOf = <T extends { id: string }>(id: string | null, captures: readonly T[]): T | null =>
   id == null ? null : (captures.find((c) => c.id === id) ?? null);
+
+/**
+ * What the editor opened after a capture says (fix edit-after-capture audit 1): that the shot is already kept, where the
+ * disabled Revert sits until the first edit, and its ✕'s spoken name, so ✕ never reads as "throw it away".
+ */
+export const keptWords = (kind: 'photo' | 'video'): { line: string; close: string } =>
+  kind === 'photo'
+    ? { line: 'Photo kept', close: 'Close, the photo stays as it is' }
+    : { line: 'Video kept', close: 'Close, the video stays as it is' };
