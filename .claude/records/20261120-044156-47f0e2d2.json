@@ -1,0 +1,14 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "The walk planner's capture toast"
+      ],
+      "body": "  - Since fix planner-edit audit 1, a photo's \"Saved here\" is one of these too, said only when no editor opens (Start under way, the note page up, the bar stopping, the walk ended): with the note page up it waits beneath and stands over Start once the page closes, or a kept note replaces it unseen (round 2's R2, low).\n",
+      "target": "sha256:558c511afe850d3cce2b53da22ed37ed2f1beb639b203a75d9cfa7be705da3ac"
+    }
+  ]
+}

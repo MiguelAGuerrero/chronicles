@@ -319,3 +319,39 @@ test('fix planner-edit audit 3: no editor opens over the note page', async () =>
   assert.match(s, /onNote=\{\(\) => \{\s*noteUp\.current = true;\s*setPage\(\(n\) => n \+ 1\);\s*\}\}/, 'the pencil marks the page up');
   assert.match(s, /onClose=\{\(\) => \{\s*noteUp\.current = false;\s*setPage\(0\);\s*\}\}/, 'its close marks it gone');
 });
+
+// fix planner-edit audit 4 (round 2's R1, low): audit 2 holds only if the planner marks its Start under way before Start's
+// re-plan is awaited; moved after the await, a photo kept meanwhile opened its editor again, and nothing failed. The
+// planner's own `start`, lifted from its syntax tree, run on fakes.
+test('fix planner-edit audit 4: the planner\'s Start is marked under way for as long as its re-plan is awaited', async () => {
+  const file = join(__dirname, '../../../components/planner/PlannerDrawer.tsx');
+  const sf = ts.createSourceFile(file, readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  let found: string | null = null;
+  const visit = (n: ts.Node) => {
+    if (ts.isFunctionDeclaration(n) && n.name?.text === 'start') found = n.getText(sf);
+    else ts.forEachChild(n, visit);
+  };
+  visit(sf);
+  assert.ok(found, 'the planner declares start');
+  const js = ts.transpileModule(`(${found})`, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext } }).outputText;
+  const body = js.replace(/^"use strict";\s*/, '').trim().replace(/;$/, '');
+  for (const outcome of ['route', 'none', 'throws'] as const) {
+    let answer: (v: unknown) => void = () => {};
+    let fail: (e: unknown) => void = () => {};
+    const starting = { current: false };
+    const fakes: Record<string, unknown> = {
+      starting,
+      setBusy: () => {},
+      setFailed: () => {},
+      p: { start: () => new Promise((res, rej) => { answer = res; fail = rej; }) },
+      props: { fixNow: () => [0, 0], onStart: () => {} },
+    };
+    const start = new Function(...Object.keys(fakes), `"use strict"; return ${body};`)(...Object.values(fakes)) as () => Promise<void>;
+    const run = start();
+    assert.equal(starting.current, true, `${outcome}: under way while the re-plan is awaited`);
+    if (outcome === 'throws') fail(new Error('no'));
+    else answer(outcome === 'route' ? { at: [0, 0] } : null);
+    await run;
+    assert.equal(starting.current, false, `${outcome}: let go once it answers, so later photos open their editor`);
+  }
+});
