@@ -46,6 +46,9 @@ export function OutingPage(props: {
   const j = useJourney(props.you);
   const [searching, setSearching] = useState(false);
   const [peek, setPeek] = useState(false);
+  // The sheet's height as drawn, so the map's scale bar, its credits and the journey's frame sit above it (QL5, QL8;
+  // tend map 24): folded, on the journeys and on a card it is a different height.
+  const [sheetH, setSheetH] = useState(0);
   const [busy, setBusy] = useState(false);
   const starting = useRef(false);
   const row = useRef<ComponentRef<typeof ScrollView>>(null);
@@ -73,9 +76,9 @@ export function OutingPage(props: {
   }, []);
   const fitN = useMemo(() => {
     let h = 7;
-    for (const ch of `${j.map.pins.length}|${(j.journey?.footM ?? 0) | 0}|${j.map.pins[0]?.join(',') ?? ''}|${j.dest?.at.join(',') ?? ''}|${j.journey?.leaning ?? ''}`) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+    for (const ch of `${j.map.pins.length}|${(j.journey?.footM ?? 0) | 0}|${j.map.pins[0]?.join(',') ?? ''}|${j.dest?.at.join(',') ?? ''}|${j.journey?.leaning ?? ''}|${sheetH}|${width}`) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
     return h;
-  }, [j.map.pins, j.journey, j.dest]);
+  }, [j.map.pins, j.journey, j.dest, sheetH, width]);
   // What each stop is called before it is named: its chip's word, and how far it is from the point before it (QC17, OJ25); the stops
   // run on through the chapters, so a slot has one place in the whole journey.
   const chapters = useMemo(() => {
@@ -131,7 +134,7 @@ export function OutingPage(props: {
     <View style={[StyleSheet.absoluteFill, styles.over]} testID="outing" accessibilityViewIsModal>
       {/* The points of the line handed to the map, for the e2e: a road has more than the towns it joins (RE1). */}
       <View style={StyleSheet.absoluteFill} testID="outing-map" {...({ dataSet: { linkPoints: j.map.link[0]?.length ?? 0 } } as object)}>
-        <WalkMap trace={NONE} walked={NONE} fog={NONE} captures={NONE} walker={props.you} route={j.map.route} alternates={j.map.link} routeGrades={NONE} foundPins={j.map.pins} fitBounds={j.map.fit} fitKey={fitN} hideLabels />
+        <WalkMap trace={NONE} walked={NONE} fog={NONE} captures={NONE} walker={props.you} route={j.map.route} alternates={j.map.link} routeGrades={NONE} foundPins={j.map.pins} fitBounds={j.map.fit} fitKey={fitN} fitPadding={{ top: insets.top + 64, right: 24, bottom: sheetH + 12, left: 24 }} scaleInset={{ bottom: sheetH + 12, left: 12 }} hideLabels />
       </View>
       <View style={[styles.top, { top: insets.top + 8 }]}>
         <View style={styles.field}>
@@ -151,7 +154,7 @@ export function OutingPage(props: {
           <Icon name="close" size={22} color={theme.ink} />
         </Pressable>
       </View>
-      <View style={[styles.sheet, { maxHeight: Math.round(height * (j.opened ? 0.76 : 0.62)), paddingBottom: insets.bottom + 12 }, capturing && styles.beside]} testID="outing-sheet">
+      <View style={[styles.sheet, { maxHeight: Math.round(height * (j.opened ? 0.76 : 0.62)), paddingBottom: insets.bottom + 12 }, capturing && styles.beside]} testID="outing-sheet" onLayout={(e) => setSheetH(Math.round(e.nativeEvent.layout.height))}>
         <Pressable testID="outing-peek" accessibilityRole="button" accessibilityLabel={peek ? UNPEEK_LABEL : PEEK_LABEL} accessibilityState={{ expanded: !peek }} onPress={() => setPeek(!peek)} style={styles.peek}>
           <Icon name={peek ? 'chevron-up' : 'chevron-down'} size={20} color={theme.ink} />
           <Text style={styles.swapText}>{peek ? UNPEEK_LABEL : PEEK_LABEL}</Text>

@@ -54,6 +54,47 @@ async function run(h) {
   places.asked.length = 0;
   const packAsked = () => places.asked.filter((a) => a.name === storesFile);
   const { c, pg } = await freshPage('outing');
+  // tend map 24 (QL5, QL8; the lenses' ux 1 and 2, auditor 3, steward 6): the map's scale bar and its credits (i) sit
+  // above the sheet, whatever its height, and the journey is framed in the map left above it, where it can be seen.
+  const aboveSheet = async (where) => {
+    const seen = await pg.evaluate(() => {
+      const box = (el) => (el ? el.getBoundingClientRect() : null);
+      const sheet = box(document.querySelector('[data-testid=outing-sheet]'));
+      const bar = box(document.querySelector('[data-testid=outing-map] [data-testid=scale-bar] [data-testid=scale-line]'));
+      const iBtn = document.querySelector('[data-testid=outing-map] .maplibregl-ctrl-attrib-button');
+      const ib = box(iBtn);
+      const hit = ib ? document.elementFromPoint(ib.left + ib.width / 2, ib.top + ib.height / 2) : null;
+      return {
+        sheetTop: sheet ? Math.round(sheet.top) : null,
+        bar: bar ? { bottom: Math.round(bar.bottom), w: Math.round(bar.width) } : null,
+        credits: ib ? { bottom: Math.round(ib.bottom), top: !!hit && !!hit.closest('.maplibregl-ctrl-attrib') } : null,
+      };
+    });
+    // The journey's line in COLORS.route, counted in the map above the sheet (the sheet hides what lies under it).
+    const top = 70;
+    const h = Math.max(1, (seen.sheetTop ?? 0) - top);
+    const png = await pg.screenshot({ clip: { x: 0, y: top, width: pg.viewportSize().width, height: h } });
+    const route = await pg.evaluate(async (b64) => {
+      const bytes = Uint8Array.from(atob(b64), (ch) => ch.charCodeAt(0));
+      const bmp = await createImageBitmap(new Blob([bytes], { type: 'image/png' }));
+      const cv = new OffscreenCanvas(bmp.width, bmp.height);
+      const g = cv.getContext('2d');
+      g.drawImage(bmp, 0, 0);
+      const d = g.getImageData(0, 0, bmp.width, bmp.height).data;
+      let n = 0;
+      for (let i = 0; i < d.length; i += 4) if (Math.abs(d[i] - 0x25) + Math.abs(d[i + 1] - 0x63) + Math.abs(d[i + 2] - 0xeb) < 60) n++;
+      return n;
+    }, png.toString('base64'));
+    check(seen.sheetTop != null && !!seen.bar && seen.bar.w > 0 && seen.bar.bottom <= seen.sheetTop && !!seen.credits && seen.credits.top && seen.credits.bottom <= seen.sheetTop && route > 0,
+      `tend map 24: ${where}, the map's scale bar and its credits (i) sit above the sheet, and the journey is drawn above it (${JSON.stringify({ ...seen, route })})`);
+    // The after picture at 320 px for the review, then back to 390.
+    const vp = pg.viewportSize();
+    await pg.setViewportSize({ width: 320, height: vp.height });
+    await pg.waitForTimeout(900);
+    await shot(pg, `tend-map-24-${where.replace(/[^a-z]+/gi, '-').replace(/^-|-$/g, '')}-320`);
+    await pg.setViewportSize(vp);
+    await pg.waitForTimeout(900);
+  };
   const here = at(-248, 0);
   await c.setGeolocation({ longitude: here[0], latitude: here[1], accuracy: 6 });
   await pg.goto(exploreUrl);
@@ -142,6 +183,7 @@ async function run(h) {
   const jcards = await pg.locator('[data-testid^=outing-journey-]').evaluateAll((els) => els.map((e) => (e.textContent ?? '').replace(/\s+/g, ' ').trim()));
   check(jcards.length === 1 && /^Among the shops/.test(jcards[0]) && /Around here\. Antiques\. [\d.]+[ \u00a0](m|km|ft|mi) on foot\./.test(jcards[0]), `OJ17, OJ18, OJ21: one journey, named for its leaning, summarised in words (${jcards.join(' | ')})`);
   await shot(pg, '03-journeys');
+  await aboveSheet('on the journeys');
   await openJourney();
   check(/one way: the way back is yours\./.test(await pg.locator('[data-testid=outing-chapter-line-0]').innerText().catch(() => '')), 'OJ7, OJ24: where no loop can be made without retracing, the walk is one way and says the way back is yours');
   check((await pg.locator('[data-testid=outing-chapter-name-0]').innerText().catch(() => '')).trim() === 'Around here', 'OJ44: around here is a journey of one chapter');
@@ -177,6 +219,7 @@ async function run(h) {
   }
   // QC21: Swap closes the card and the new slot is unnamed.
   await shot(pg, '04-card');
+  await aboveSheet('with a stop\'s card open');
   const swapLabel = (await pg.locator('[data-testid=outing-swap-0]').innerText()).replace(/[^\x20-\x7e]/g, '').trim();
   await pg.click('[data-testid=outing-swap-0]');
   await pg.waitForTimeout(300);
@@ -285,6 +328,7 @@ async function run(h) {
   await pg.click('[data-testid=outing-peek]');
   await pg.waitForTimeout(400);
   await shot(pg, '05e-folded');
+  await aboveSheet('with the sheet folded');
   await pg.click('[data-testid=outing-peek]');
   await pg.waitForTimeout(300);
   await pg.click('[data-testid=outing-reach-0]');
