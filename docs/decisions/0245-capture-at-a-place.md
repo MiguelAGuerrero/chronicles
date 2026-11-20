@@ -1,4 +1,4 @@
-# 0240. Capture at a place: the card carries the capture row
+# 0245. Capture at a place: the card carries the capture row
 
 Date: 2026-11-20 · Status: accepted · Area: explore, captures · Amends: 0224 (its "Capture here" arming and the armed line) · From: `/slice capture-at-a-place`
 

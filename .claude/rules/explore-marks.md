@@ -111,7 +111,7 @@ Places of interest from the tiles, marks, checklists and finds (Explore), and Re
     within 60 m or once revealed this walk. On a route, `routeMarks` adds up to
     20 faint ones within range of the route ahead; the route's areas are read
     first (`routeProbes`, every 500 m).
-  - **Finding** (0155, TC1, TC5; capture-at-a-place CA1-CA12, decision 0240): a capture never finds a place by itself. A
+  - **Finding** (0155, TC1, TC5; capture-at-a-place CA1-CA12, decision 0245): a capture never finds a place by itself. A
     named place's card within 60 m (`cardCapture`, `explore/placeCard.ts`) carries `PlaceCaptureRow` (`mark-camera`, `mark-voice`,
     `mark-note`), first, with Route here secondary; a tap closes the card and begins the capture with the place's key on its stamp
     (`stampFor`'s `place`; never on a piece). `useCaptures`' `onKept(id, piece, place)` hands it back, and the walk screen calls

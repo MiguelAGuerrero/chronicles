@@ -196,7 +196,7 @@ test('NF5: the phone simplifies the line sources the web does, from one definiti
 
 test('native-map-frames guard: every tap the native map took still reaches its handler (NF6, retired)', () => {
   // A regression guard for the split: each kind of pin still answers its own handler; a found place too, since
-  // capture-at-a-place (CA11, decision 0240): its pin opens its card again.
+  // capture-at-a-place (CA11, decision 0245): its pin opens its card again.
   const src = readFileSync(join(ROOT, NATIVE), 'utf8');
   for (const handler of ['onMemoryPress', 'onPinPress', 'onDiscoveryPress', 'onStarPress', 'onPress', 'onLongPress']) {
     assert.match(src, new RegExp(`\\b${handler}\\b`), `${handler} is still wired`);

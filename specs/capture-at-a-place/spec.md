@@ -83,7 +83,7 @@ on the line after a real `check(`, which the script joins to it, so CA1, CA2 and
 14 and 27) aside and says both rates: 1.84/s without them (1.78 to 1.91 before), 2.04/s with them.
 
 Native: the card's row, the stamp's place through the camera, recorder and note page, and the found pin's tap have
-never run on a device (`docs/NATIVE_UNVERIFIED.md`, three CA items). Decision 0240.
+never run on a device (`docs/NATIVE_UNVERIFIED.md`, three CA items). Decision 0245.
 
 ### The UI review and the cold find (2026-11-20)
 
