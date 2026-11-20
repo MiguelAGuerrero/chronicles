@@ -1,7 +1,7 @@
 /// <reference types="node" />
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { BORDER, RING_COLOR, WAITING_DOT_EDGE } from '../../../components/map/types';
+import { BORDER, RING_COLOR, WAITING_DOT_EDGE, WAITING_DOT_PAINT } from '../../../components/map/types';
 import { hoodAllowed, type OutlineSet } from '../../areas/outlines';
 import { AREA_RULES } from '../../areas/rules';
 import type { PlaceCandidate, TownOutline } from '../../areas/types';
@@ -156,4 +156,10 @@ test('whole-towns audit 18: a dot\'s dark edge is 3:1 or more on every ground th
   const edge = rgb(WAITING_DOT_EDGE);
   const grounds = ['#ffffff', '#eeeae4', '#f2efe9', '#d3cec5'].flatMap((g) => [rgb(g), over(RING_COLOR, 0.12, g), over(BORDER.color, BORDER.fillOpacity, g), over(BORDER.color, BORDER.fillOpacity * 2, g)]);
   for (const g of grounds) assert.ok(ratio(edge, g) >= 3, `edge on ${g.map((v) => Math.round(v * 255)).join(',')}: ${ratio(edge, g).toFixed(2)}`);
+});
+
+test('whole-towns fix small-dots: a dot is at most 6 px across, edge included, so a dense city does not cover the map', () => {
+  const across = 2 * (WAITING_DOT_PAINT['circle-radius'] + WAITING_DOT_PAINT['circle-stroke-width']);
+  assert.ok(across <= 6, `a dot is ${across} px across`);
+  assert.ok(PIN_ROOM.dotReachPx >= 44, 'a smaller dot keeps its 44 px tap reach');
 });

@@ -928,10 +928,11 @@ export function waitingDotsGeoJSON(dots: WaitingDot[] | undefined): GeoJSON.Feat
 /**
  * WT14: a dot: smaller than a "?" pin, in its kind's colour. Whole-towns audit 18 (the owner's call): a dark outline,
  * 3:1 or more on every ground the map has (the base map, a neighborhood's ring, a town's tint), so a dot never hangs on
- * its colour alone; the "?" pins' own ink.
+ * its colour alone; the "?" pins' own ink. 6 px across, edge included (the owner, Nov 20: a dense city's 12 px dots
+ * covered the map); a tap still reaches a dot from `PIN_ROOM.dotReachPx` away, so its size is only what is seen.
  */
 export const WAITING_DOT_EDGE = '#1d2733';
-export const WAITING_DOT_PAINT = { 'circle-color': ['get', 'color'], 'circle-radius': 4.5, 'circle-stroke-color': WAITING_DOT_EDGE, 'circle-stroke-width': 1.5 } as const;
+export const WAITING_DOT_PAINT = { 'circle-color': ['get', 'color'], 'circle-radius': 2, 'circle-stroke-color': WAITING_DOT_EDGE, 'circle-stroke-width': 1 } as const;
 
 /** Points to mark (a destination, a pressed spot), as circles. */
 export function marksGeoJSON(marks: LngLat[] | undefined): GeoJSON.FeatureCollection {
