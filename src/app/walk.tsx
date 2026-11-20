@@ -862,7 +862,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
   // A found place's card lists the moments taken here (CA11), read as it opens; each opening reads again (CA12).
   const [markMoments, setMarkMoments] = useState<{ key: string; lines: { id: string; line: string; moment: Faced }[] } | null>(null);
   const openMarkFound = !!openMark && explore.found.has(openMark.key);
-  const openMarkCapture = openMark ? cardCapture({ name: openMarkNamed ? openMark.name : null, at: openMark.at, here: live.here, found: openMarkFound }) : null;
+  const openMarkCapture = openMark ? cardCapture({ name: openMarkNamed ? openMark.name : null, found: openMarkFound }) : null;
   /** A capture from the card (CA2-CA4, CA12): the card closes and the capture begins, carrying the place. */
   const captureAt = (kind: 'photo' | 'voice' | 'text') => {
     const m = openMark;
@@ -1411,7 +1411,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
           // A found place's card lists the moments taken here and offers the row again (CA11, CA12).
           if (item && explore.found.has(id)) {
             setMarkMoments(null);
-            explore.momentsAt(item.at, Date.now()).then(
+            explore.momentsAt(id, item.at, Date.now()).then(
               (got) => setMarkMoments({ key: id, lines: got }),
               () => setMarkMoments({ key: id, lines: [] }),
             );
@@ -1968,8 +1968,9 @@ function WalkScreen(props: { onMinimize: () => void }) {
               </View>
             )}
             {openMarkCapture?.row && (
-              // Within 60 m the capture row comes first, in ink; Route here follows as a secondary button (CA1b).
-              <PlaceCaptureRow place={openMark.name} disabled={stopping} onCamera={() => captureAt('photo')} onVoice={() => captureAt('voice')} onNote={() => captureAt('text')} />
+              // The capture row comes first, in ink, at any distance (decision 0247); Route here follows as a secondary
+              // button (CA1b). A "?" row is spoken without the place's name, which the moment kept reveals.
+              <PlaceCaptureRow place={openMarkNamed ? openMark.name : null} disabled={stopping} onCamera={() => captureAt('photo')} onVoice={() => captureAt('voice')} onNote={() => captureAt('text')} />
             )}
             <View style={styles.spotActions}>
               <Button

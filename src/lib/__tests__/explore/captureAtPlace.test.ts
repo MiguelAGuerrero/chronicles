@@ -38,7 +38,7 @@ test('CA1: an unfound named place within 60 m offers the capture row on its card
   assert.equal(cardCapture({ name: 'Old Bridge', at: m(30, 0), here: O, found: false }).row, true);
   assert.equal(cardCapture({ name: 'Old Bridge', at: m(59, 0), here: O, found: false }).row, true, 'just inside 60 m');
   assert.equal(cardCapture({ name: 'Old Bridge', at: m(30, 0), here: null, found: false }).row, true, 'no fix yet: offered');
-  assert.equal(cardCapture({ name: null, at: m(30, 0), here: O, found: false }).row, false, 'an unnamed "?" is not');
+  assert.equal(cardCapture({ name: null, at: m(30, 0), here: O, found: false }).row, true, 'an unnamed "?" is too (decision 0247)');
 });
 
 test('CA2: a stamp taken from the card carries the place, and the photo or video it keeps finds it', async () => {
@@ -100,10 +100,11 @@ test('CA7: a card capture that keeps nothing leaves nothing pending', async () =
   assert.equal(typeof findOnKept, 'function');
 });
 
-test('CA9: farther than 60 m a named place offers no row and says so, describing', async () => {
+// CA9 as amended by decision 0247 (fix poi-any-distance): a place is a point, so the row no longer waits on 60 m.
+test('CA9: farther than 60 m a place still offers the row, and its line describes', async () => {
   const { cardCapture } = await card();
-  assert.deepEqual(cardCapture({ name: 'Old Bridge', at: m(150, 0), here: O, found: false }), { row: false, line: 'Moments are kept with it from within 60 m.' });
-  assert.equal(cardCapture({ name: null, at: m(150, 0), here: O, found: false }).line, 'Walk within 60 m to see what it is.');
+  assert.deepEqual(cardCapture({ name: 'Old Bridge', at: m(150, 0), here: O, found: false }), { row: true, line: 'Camera, Voice or Note here keeps the moment with Old Bridge.' });
+  assert.deepEqual(cardCapture({ name: null, at: m(150, 0), here: O, found: false }), { row: true, line: 'Walk within 60 m to see what it is. Camera, Voice or Note here keeps the moment with it.' });
 });
 
 test('CA10: a stamp with a place is the same stamp otherwise: its time, its fix and whether to locate', async () => {
@@ -140,7 +141,7 @@ test('CA11: a found place\'s card lists the moments within 60 m, newest first, t
 test('CA11: a found place offers the row too, with no line of its own', async () => {
   const { cardCapture } = await card();
   assert.deepEqual(cardCapture({ name: 'Old Bridge', at: m(20, 0), here: O, found: true }), { row: true, line: null });
-  assert.deepEqual(cardCapture({ name: 'Old Bridge', at: m(150, 0), here: O, found: true }), { row: false, line: null });
+  assert.deepEqual(cardCapture({ name: 'Old Bridge', at: m(150, 0), here: O, found: true }), { row: true, line: null }, 'at any distance (decision 0247)');
 });
 
 test('CA12: a capture from a found place\'s card writes no second find', async () => {
