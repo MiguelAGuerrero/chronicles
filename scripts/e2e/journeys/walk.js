@@ -288,36 +288,51 @@ async function checks(h) {
         await chooser.setFiles(path.join(fixtures, 'clip-20s.webm'));
         await page.waitForSelector('text=/Videos can be up to 15 seconds/');
         check(true, 'a video over the web limit is turned away');
-        // TC3: a capture near a place finds nothing by itself; tapping the place and "Capture here" arms it.
+        // Capture at a place (CA1-CA8): a tap on the place opens its card, which carries Camera, Voice and Note; a capture
+        // started there finds the place when kept. Nothing is armed and nothing says "the next moment".
         check((await page.locator('[aria-label="Found: Hessian Memorial, History"]').count()) === 0, 'TC1: nothing is found by being near a place');
-        // tend walk-screen audit 15 (the diff review's ux 6): whether the offer stands before the place is armed, for after Cancel.
-        const offerBefore = (await page.locator('[data-testid=add-to-moment]').filter({ visible: true }).count()) > 0;
-        await page.locator('[aria-label="Hessian Memorial, History. Open"]').first().click();
-        await page.waitForSelector('[data-testid=mark-capture]', { timeout: 5000 });
-        await shot(page, '02a-place-card');
-        await page.click('[data-testid=mark-capture]');
-        await page.waitForSelector('[data-testid=armed-line]', { timeout: 5000 });
-        const armedSaid = await page.locator('[data-testid=armed-line]').innerText();
+        const openPlace = async () => {
+          await page.locator('[aria-label="Hessian Memorial, History. Open"]').first().click();
+          return page.waitForSelector('[data-testid=mark-camera]', { timeout: 5000 }).then(() => true, () => false);
+        };
+        const rowShown = await openPlace();
         await page.waitForTimeout(800);
-        await shot(page, '02b-armed');
-        // tend walk-screen 13 (the sweep's ux 4): while a place is armed its line speaks for the next capture, so the
-        // Add to this moment offer, which would join the open moment instead, steps aside (one transient at a time; H4).
-        check((await page.locator('[data-testid=add-to-moment]').filter({ visible: true }).count()) === 0,
-          'tend walk-screen 13: the Add to this moment offer is hidden while a place is armed');
-        const lineBox = await page.locator('[data-testid=armed-line]').boundingBox();
-        const cancelBox = await page.locator('[data-testid=armed-cancel]').boundingBox();
-        check(!!lineBox && !!cancelBox && cancelBox.width < lineBox.width - 60 && cancelBox.height >= 44, `tap-to-capture-places ui 1: Cancel is a button at its own width, not the whole line (${Math.round(cancelBox?.width ?? 0)} of ${Math.round(lineBox?.width ?? 0)})`);
-        check(/The next moment is about Hessian Memorial/.test(armedSaid) && (await page.locator('[data-testid=mark-card]').count()) === 0, `TC3: Capture here closes the card and says whom the next moment is about (${armedSaid.replace(/\n/g, ' ')})`);
-        // tend walk-screen audit 15: Cancel gives the offer back as it stood, then the place is armed again for the capture below.
-        await page.click('[data-testid=armed-cancel]');
-        await page.waitForSelector('[data-testid=armed-line]', { state: 'detached', timeout: 5000 }).catch(() => {});
-        const offerAfter = await page.locator('[data-testid=add-to-moment]').filter({ visible: true }).first().waitFor({ timeout: 4000 }).then(() => true, () => false);
-        check(offerBefore && offerAfter, `tend walk-screen audit 15: after Cancel the Add to this moment offer is back (${JSON.stringify({ offerBefore, offerAfter })})`);
-        await page.locator('[aria-label="Hessian Memorial, History. Open"]').first().click();
-        await page.waitForSelector('[data-testid=mark-capture]', { timeout: 5000 });
-        await page.click('[data-testid=mark-capture]');
-        await page.waitForSelector('[data-testid=armed-line]', { timeout: 5000 });
-        [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.click('[data-testid=cap-photo]')]);
+        await shot(page, '02a-place-card');
+        const boxes = {};
+        for (const id of ['mark-camera', 'mark-voice', 'mark-note', 'mark-go']) boxes[id] = await page.locator(`[data-testid=${id}]`).first().boundingBox().catch(() => null);
+        const words = {};
+        for (const id of ['mark-camera', 'mark-voice', 'mark-note']) words[id] = (await page.locator(`[data-testid=${id}]`).first().innerText().catch(() => '')).trim();
+        const row = ['mark-camera', 'mark-voice', 'mark-note'].map((id) => boxes[id]);
+        const oneRow = row.every((b) => b && Math.abs(b.y - row[0].y) < 2 && b.height >= 44 && b.width >= 44);
+        check.todo(rowShown && oneRow && words['mark-camera'] === 'Camera' && words['mark-voice'] === 'Voice' && words['mark-note'] === 'Note',
+          `CA1: the place's card shows Camera, Voice and Note in one row, each a word and at least 44 px (${JSON.stringify({ words, row })})`);
+        const ink = await page.evaluate(() => {
+          const bg = (id) => getComputedStyle(document.querySelector(`[data-testid=${id}]`) ?? document.body).backgroundColor;
+          return { go: bg('mark-go'), camera: bg('mark-camera') };
+        });
+        check.todo(!!boxes['mark-go'] && row.every((b) => b && b.y + b.height <= boxes['mark-go'].y + 1) && ink.go === ink.camera,
+          `CA1b: within 60 m the capture row comes first and Route here is secondary, alike in fill (${JSON.stringify({ go: boxes['mark-go'], ink })})`);
+        const cardSaid = (await page.locator('[data-testid=mark-card]').innerText().catch(() => '')).replace(/\n/g, ' ');
+        check.todo(/A moment taken here is kept with Hessian Memorial\./.test(cardSaid) && !/next moment|Capture here|\b(collect|unlock)\b/i.test(cardSaid),
+          `CA5: the card describes what the row does and never says "the next moment" (${cardSaid})`);
+        // CA3, CA7: Voice on the card starts the memo with its own Save and Discard; discarded, it finds nothing.
+        await page.click('[data-testid=mark-voice]').catch(() => {});
+        const memoStarted = await page.waitForSelector('[data-testid=voice-discard]', { timeout: 5000 }).then(() => true, () => false);
+        check.todo(memoStarted && (await page.locator('[data-testid=mark-card]').count()) === 0, 'CA3: Voice on the card closes it and starts a voice memo');
+        await page.click('[data-testid=voice-discard]').catch(() => {});
+        await page.waitForSelector('text=/Voice memo discarded/', { state: 'detached', timeout: 10000 }).catch(() => {});
+        // CA4, CA7: Note on the card opens the note's page; closed empty, it keeps nothing and finds nothing.
+        await openPlace();
+        await page.click('[data-testid=mark-note]').catch(() => {});
+        const pageOpen = await page.waitForSelector('[data-testid=note-page]', { timeout: 5000 }).then(() => true, () => false);
+        check.todo(pageOpen && (await page.locator('[data-testid=mark-card]').count()) === 0, 'CA4: Note on the card closes it and opens the note\'s page');
+        await page.click('[data-testid=note-done]').catch(() => {});
+        await page.waitForSelector('[data-testid=note-page]', { state: 'detached', timeout: 5000 }).catch(() => {});
+        check.todo((await page.locator('[aria-label^="Found"]').count()) === 0 && (await page.locator('[data-testid=armed-line]').count()) === 0 && !(await page.getByText(/next moment/i).count()),
+          'CA7: a memo discarded and a note closed empty from the card find nothing and leave nothing pending');
+        // CA2: Camera on the card; the video it keeps finds the place.
+        await openPlace();
+        [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.click('[data-testid=mark-camera]')]);
         await chooser.setFiles(path.join(fixtures, 'clip-4s.webm'));
         await page.waitForSelector('text=Video saved here');
         // Within ~30 m at walking zoom, the video shares a pin with the memo. The pins regroup a moment after
@@ -352,7 +367,7 @@ async function checks(h) {
         const twoPins = one('Voice memo') && one('Video');
         const fair = apartM == null ? shared : apartM <= reachM ? shared : twoPins;
         check(fair, `a short video is kept, sharing a pin with the memo when within the pins' reach (${apartM?.toFixed(1)} m apart, ${reachM.toFixed(1)} m reach at z${zoomShown}: ${pinsAfter.join(' / ')})`);
-        // The video is taken about 40 m from the memorial, after "Capture here" on it: it finds it (TC4).
+        // The video is taken about 40 m from the memorial, from its card's Camera: it finds it (CA2).
         await page.waitForTimeout(500);
         // tend walk-screen audit 11 (the owner, Nov 14): the found pin is said with the kind of the moment that found it.
         const foundSaid = await page.$$eval('.maplibregl-map [aria-label^="Found"]', (es) => es.map((e) => e.getAttribute('aria-label')));
@@ -385,10 +400,35 @@ async function checks(h) {
         const seenEnters = await page.evaluate(() => window.__enters.map((e) => ({ kind: e.kind, animated: e.animated, label: e.label })));
         check(seenEnters.some((e) => e.kind === 'pulse' && e.animated && /^Found( with a \w+)?: Hessian/.test(e.label)), 'a find pulses once from its pin (M12)');
         check(seenEnters.some((e) => e.kind === 'flip' && e.animated), 'a revealed "?" turns into its place, on its way to being found (M11)');
-        check((await page.locator('[data-testid=armed-line]').count()) === 0, 'TC4: arming clears after the capture');
-        // tend walk-screen 13: with the arming spent, the offer is back for the moment the video began.
-        check(await page.locator('[data-testid=add-to-moment]').filter({ visible: true }).first().waitFor({ timeout: 4000 }).then(() => true, () => false),
-          'tend walk-screen 13: the Add to this moment offer returns once the arming clears');
+        check.todo(foundSaid.length === 1 && foundSaid[0] === 'Found with a video: Hessian Memorial, History', `CA2: the video from the card's Camera finds the place (${JSON.stringify(foundSaid)})`);
+        const toasts = await page.evaluate(() => [...document.querySelectorAll('[aria-live]')].map((e) => e.textContent ?? '').filter(Boolean));
+        check.todo(!toasts.some((t) => /\bfound\b/i.test(t) || /\b\d+ (places|finds)\b/i.test(t)), `CA8: the find is said by no toast and no count (${JSON.stringify(toasts)})`);
+        // CA11: the found pin opens its card, which lists the moments taken here, in words, and offers the row again.
+        await page.locator('[aria-label="Found with a video: Hessian Memorial, History"]').first().click().catch(() => {});
+        const foundCard = await page.waitForSelector('[data-testid=mark-moments]', { timeout: 5000 }).then(() => true, () => false);
+        await page.waitForTimeout(800);
+        await shot(page, '03i-found-card');
+        const lines = await page.locator('[data-testid=mark-moment]').allInnerTexts().catch(() => []);
+        const hereSaid = (await page.locator('[data-testid=mark-moments]').innerText().catch(() => '')).trim();
+        check.todo(foundCard && /^Moments here/.test(hereSaid) && lines.some((l) => /^A video, /.test(l)) && lines.length <= 3 && (await page.locator('[data-testid=mark-camera]').count()) === 1,
+          `CA11: the found place's card says "Moments here" with the video in words, and offers the row (${JSON.stringify(lines)})`);
+        await page.locator('[data-testid=mark-moment]').filter({ hasText: /^A video, / }).first().click().catch(() => {});
+        const opened = await page.locator('[data-testid=viewer-close]').filter({ visible: true }).first().waitFor({ timeout: 5000 }).then(() => true, () => false);
+        check.todo(opened, 'CA11: a line on the found card opens its moment in the viewer');
+        if (opened) await page.locator('[data-testid=viewer-close]').filter({ visible: true }).first().click();
+        // CA12: a note from the found card is a plain moment there: no second find, listed the next time the card opens.
+        await page.locator('[aria-label="Found with a video: Hessian Memorial, History"]').first().click().catch(() => {});
+        await page.click('[data-testid=mark-note]', { timeout: 5000 }).catch(() => {});
+        await page.fill('[data-testid=note-input]', 'The memorial again, in the rain.').catch(() => {});
+        await page.click('[data-testid=note-done]').catch(() => {});
+        await page.waitForSelector('[data-testid=note-page]', { state: 'detached', timeout: 5000 }).catch(() => {});
+        const stillFound = await page.$$eval('.maplibregl-map [aria-label^="Found"]', (es) => es.map((e) => e.getAttribute('aria-label')));
+        await page.locator('[aria-label="Found with a video: Hessian Memorial, History"]').first().click().catch(() => {});
+        await page.waitForSelector('[data-testid=mark-moments]', { timeout: 5000 }).catch(() => {});
+        const after = await page.locator('[data-testid=mark-moment]').allInnerTexts().catch(() => []);
+        check.todo(JSON.stringify(stillFound) === '["Found with a video: Hessian Memorial, History"]' && /^A note, /.test(after[0] ?? ''),
+          `CA12: the note from the found card writes no second find and leads the card's list (${JSON.stringify({ stillFound, after })})`);
+        await page.click('[data-testid=mark-close]').catch(() => {});
       }
       if (k === 25) {
         await page.click('[data-testid=cap-note]');

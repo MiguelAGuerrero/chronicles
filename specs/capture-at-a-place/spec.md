@@ -19,7 +19,7 @@ Touches: Always "Capture is one tap away on every screen you walk or capture fro
 Verdict: aligned
 Shape: as asked. The card keeps its name, distance and Route here; "Capture here" becomes a labelled row of three (Camera, Voice, Note), the stack's own three kinds in plain ink; a tap closes the card and starts that capture; the moment it keeps finds the place. A capture cancelled or discarded finds nothing. Plain capture from the stack is unchanged and never finds. No armed line, no "next moment" anywhere.
 Precedent: Google Maps (a place's sheet has "Add photos", which takes the photo for that place in one step; from memory, unverified); Swarm (the check-in screen for a chosen venue has a camera button in line, and the photo belongs to that check-in; from memory, unverified); Apple Journal (a place is attached to the entry the person is writing, never to a later one; from memory, unverified).
-Criteria: CA1-CA10 below; the gate's own: the stack stays one tap and never finds (CA6), no "next moment" words anywhere (CA5), no celebration (CA8).
+Criteria: CA1-CA12 below; the gate's own: the stack stays one tap and never finds (CA6), no "next moment" words anywhere (CA5), no celebration (CA8).
 Open: none (the owner's four answers, Nov 20).
 
 ## Decisions (the owner, Nov 20)
@@ -28,6 +28,11 @@ Open: none (the owner's four answers, Nov 20).
 - One camera button (photo or video, the system camera), then Voice, then Note: the capture stack's kinds.
 - Only within 60 m of the place, as before; farther, the card says so in words.
 - The card closes once a capture starts; more pieces go through the usual "Add to this moment" pill.
+- A found place offers the row again (steward S4, the owner's answer): its pin opens its card, which lists the moments
+  taken here, in words, each opening it.
+- No new stored link (the owner, after an audit of `moment` and `find`): a moment already keeps its spot, so a found
+  place's card lists the moments within 60 m of it, read by spot; a capture from a found place's card is a plain moment
+  there. Only the first card capture at an unfound place writes the `find` row, as today. No schema change.
 
 ## How adjacent apps do it
 
@@ -47,14 +52,18 @@ Open: none (the owner's four answers, Nov 20).
 6. **CA6** A capture the card did not start never finds a place: a capture from the stack, the Add to this moment pill or Memories, before or after a card capture, keeps its ordinary context line and finds nothing (TC1, TC5 stand).
 7. **CA7** A card capture that keeps nothing finds nothing, and leaves nothing pending: the camera cancelled, a memo discarded or too short, a note closed empty. The next stack capture after it finds nothing.
 8. **CA8** No celebration and no count: after the find, the place's pin turns found as it does today; no "Found" toast, accent colour, sound beyond the capture's own, or count of finds or places says it. The moment's own time and distance are said as for any moment (steward S3).
-9. **CA9** Farther than 60 m from a named place, the card shows no capture row and says in words, describing ("Moments are kept with it from within 60 m."); Route here stays. A place found while its card is open shows "Found." and no row.
+9. **CA9** Farther than 60 m from a named place, the card shows no capture row and says in words, describing ("Moments are kept with it from within 60 m."); Route here stays. 
 
 10. **CA10** A card capture's moment arrives whole: the same context line as a stack capture at the same spot and minute (its street or place, its time, its walk), its place in the walk's order kept; the place's name is added where a find names it today, never replacing that line. A held capture kept by Retry finds the place too (steward S2).
+
+11. **CA11** The owner's task, "see and add to the moments at a place I found": a found place's pin opens its card (it no longer opens the finding moment directly). Under the name, "Moments here" lists the moments taken within 60 m of the place, newest first, at most three, each a line in words saying its kind and when ("A video, Nov 12, 40 minutes in"), each opening that moment in the viewer; no count of them anywhere. Within 60 m the capture row shows as on an unfound place's card (CA1, CA1b). Finding: someone who was not told finds the earlier moment by tapping the found pin.
+12. **CA12** A capture from a found place's card is a plain moment at that spot: it writes no second find, the place's pin keeps the glyph and spoken name of the moment that found it, and the new moment is listed on the card's "Moments here" the next time it opens.
 
 ## Not here, and why
 
 - **The ready screen and Explore**: a place's card opens only on a walk's map (`walk.tsx`, `onDiscoveryPress`); the
   ready screen and Explore's map have no place card with capture today. Not changed.
-- **A found place**: its pin opens the capture that found it, never the card (unchanged); a second moment about it is a
-  plain capture near it.
+- **"About" a place**: the found card's list is by spot, so a moment taken within 60 m about something next door is
+  listed too; the words say "Moments here", never "about it" (the owner's call, Nov 20).
+- **Older moments at a place**: past the newest three they are not on the card; Chronicle and the map hold them.
 - **A piece added to the moment**: the card's capture is always a new moment; adding to it is the pill's job (MS1-MS6).

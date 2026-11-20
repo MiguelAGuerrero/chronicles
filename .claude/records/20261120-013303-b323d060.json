@@ -1,0 +1,11 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inflight",
+        "add"
+      ],
+      "body": "| Capture at a place (a place's card carries Camera, Voice and Note: a capture from it finds the place at once, with no \"next moment\" arming; a found place's card lists the moments taken here and offers the row again; CA1-CA12, amends 0224) | `claude/serene-hypatia-gkcekh` | specced and planned 2026-11-20 (`specs/capture-at-a-place`), the owner's go-ahead given; tests first next |\n"
+    }
+  ]
+}
