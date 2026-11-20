@@ -249,13 +249,16 @@ export function useExplore(opts: {
   // A capture finds a place only when it was begun on the place's card (TC1, CA2-CA4): its stamp carries the place, and
   // the walk screen hands the kept moment here. Nothing is armed, so a cancelled capture leaves nothing waiting (CA7).
   const foundRef = useRef(found);
+  const rideRef = useRef({ riding, revealed });
   useEffect(() => {
     foundRef.current = found;
+    rideRef.current = { riding, revealed };
   });
   const keptAtPlace = useCallback(async (item: ChecklistItem, kept: { momentId: string; piece: boolean }) => {
     // Before the finds are read, ask the store: the first find of a place stands (CA12).
     const known = foundRef.current ?? new Set((await db.listFinds().catch(() => [])).map((f) => f.key));
-    const hit = findOnKept({ place: item.key, piece: kept.piece, momentId: kept.momentId }, known);
+    const ride = rideRef.current;
+    const hit = findOnKept({ place: item.key, piece: kept.piece, momentId: kept.momentId }, known, { riding: ride.riding, named: ride.revealed.has(item.key) });
     if (hit) await record(item, hit.momentId);
   }, [record]);
   /**

@@ -117,7 +117,8 @@ Places of interest from the tiles, marks, checklists and finds (Explore), and Re
     carries `PlaceCaptureRow` (`mark-camera`, `mark-voice`,
     `mark-note`), first, with Route here secondary (a "?" row speaks "this place", never its name); a tap closes the card and begins the capture with the place's key on its stamp
     (`stampFor`'s `place`; never on a piece). `useCaptures`' `onKept(id, piece, place)` hands it back, and the walk screen calls
-    `explore.keptAtPlace`, which records the find only through `findOnKept` (a new moment, the place unfound; the first find stands).
+    `explore.keptAtPlace`, which records the find only through `findOnKept` (a new moment, the place unfound; the first find stands;
+    a "?" kept once a ride has begun names nothing, R12, fix poi-any-distance audit 7).
     Nothing is armed: a cancelled camera, a discarded memo or a note closed empty leaves nothing waiting. **Trap:** the stamp is
     the only carrier, so a capture path that builds its own stamp (not `stampNow`) never finds. A found pin takes taps again and is drawn as a
     place is, full size in the found green with its name (ui 4, ui 5, the owner's "Drawn with its name"; its name joins

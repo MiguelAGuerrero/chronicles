@@ -40,8 +40,15 @@ export function cardCapture(o: { name: string | null; found: boolean; riding?: b
  * and only while that place is unfound (the first find stands). A piece joins its moment, never a place; a capture that
  * keeps nothing never reaches here, so nothing waits for a later one.
  */
-export function findOnKept(k: { place: string | null; piece: boolean; momentId: string }, found: ReadonlySet<string>): { key: string; momentId: string } | null {
+export function findOnKept(
+  k: { place: string | null; piece: boolean; momentId: string },
+  found: ReadonlySet<string>,
+  ride: { riding: boolean; named: boolean } = { riding: false, named: true },
+): { key: string; momentId: string } | null {
   if (!k.place || k.piece || found.has(k.place)) return null;
+  // A "?" capture begun on foot and kept once a ride has begun names nothing: on a ride Explore names no place (R12;
+  // fix poi-any-distance audit 7).
+  if (ride.riding && !ride.named) return null;
   return { key: k.place, momentId: k.momentId };
 }
 

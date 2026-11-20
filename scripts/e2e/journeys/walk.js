@@ -287,10 +287,17 @@ async function checks(h) {
             const r = w?.getBoundingClientRect();
             return !!b && !!r && w.scrollWidth <= w.clientWidth + 1 && r.left >= b.left && r.right <= b.right;
           }));
+          // The whole card stays on screen at 320 x 700, its longest line included (fix poi-any-distance audit 9).
+          const onScreen = await page.evaluate(() => {
+            const box = (id) => document.querySelector(`[data-testid=${id}]`)?.getBoundingClientRect();
+            const c = box('mark-card'), go = box('mark-go'), x = box('mark-close');
+            return !!c && !!go && !!x && c.top >= 0 && c.bottom <= innerHeight && go.bottom <= c.bottom && x.right <= innerWidth && c.right <= innerWidth;
+          });
           await shot(page, '05b-far-place-card-320');
           if (sizeWas) await page.setViewportSize(sizeWas);
           await page.waitForTimeout(300);
           check(narrow.every(Boolean), `fix poi-any-distance audit 6: at 320 the far "?" card's Camera, Voice and Note are whole on one line each (${JSON.stringify(narrow)})`);
+          check(onScreen, 'fix poi-any-distance audit 9: at 320 x 700 the far "?" card, Route here and Close stay on screen');
           check(rowShown && rowY < goY && /Walk within 60[ \u00a0]m to see what it is\. Camera, Voice or Note keeps the moment with it\./.test(said)
             && /this place/.test(spoken ?? '') && !/Hessian/.test(`${said} ${spoken}`),
             `fix poi-any-distance: a "?" 75 m off offers Camera, Voice and Note above Route here, never naming it (${JSON.stringify({ rowShown, said: said.slice(0, 160), spoken })})`);

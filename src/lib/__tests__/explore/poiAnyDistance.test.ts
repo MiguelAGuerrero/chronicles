@@ -87,7 +87,7 @@ test('fix poi-any-distance audit 2: the far finder reaches the card through core
 });
 
 test('fix poi-any-distance audit 3: a failed finder read keeps the near moments', () => {
-  assert.match(momentsAtBody(), /getMomentsByIds\(\[finding\]\)\.catch\(/, 'the finder\'s read failing alone leaves the near list');
+  assert.match(momentsAtBody(), /getMomentsByIds\(\[finding\]\)\.catch\(\(\) => \[\]\)/, 'the finder\'s read failing alone leaves the near list');
 });
 
 test('fix poi-any-distance audit 4: the finder stays listed beside three newer near moments', async () => {
@@ -103,4 +103,39 @@ test('fix poi-any-distance audit 5: the card\'s line never says "here" of a plac
   assert.equal(cardCapture({ name: 'Old Bridge', found: false }).line, 'Camera, Voice or Note keeps the moment with Old Bridge.');
   assert.equal(cardCapture({ name: null, found: false, reach: '200 ft' }).line, 'Walk within 200 ft to see what it is. Camera, Voice or Note keeps the moment with it.');
   assert.match(src('src/app/walk.tsx'), /cardCapture\(\{[^}]*reach: formatDistance\(PLACE_REACH_M\)/, 'the walk screen says the reach in the reader\'s units');
+});
+
+// Round 2 of the review (Nov 20): the auditor's F1-F5.
+type FindOnKept = (k: { place: string | null; piece: boolean; momentId: string }, found: ReadonlySet<string>, ride?: { riding: boolean; named: boolean }) => { key: string; momentId: string } | null;
+test('fix poi-any-distance audit 7: a "?" capture kept once a ride has begun writes no find and says no name', async () => {
+  const { findOnKept } = (await import('../../explore/placeCard')) as unknown as { findOnKept: FindOnKept };
+  const k = { place: 'k:Bridge', piece: false, momentId: 'm1' };
+  assert.equal(findOnKept(k, new Set(), { riding: true, named: false }), null, 'unrevealed, on a ride: nothing named (R12)');
+  assert.deepEqual(findOnKept(k, new Set(), { riding: true, named: true }), { key: 'k:Bridge', momentId: 'm1' }, 'already named: the find stands');
+  assert.deepEqual(findOnKept(k, new Set(), { riding: false, named: false }), { key: 'k:Bridge', momentId: 'm1' }, 'on foot: a "?" is found');
+  const ex = src('src/lib/explore/useExplore.ts');
+  assert.match(ex.slice(ex.indexOf('const keptAtPlace')), /findOnKept\([^;]*riding: [^,]*, named: [^)]*\)/, 'keptAtPlace hands the ride and the name at keep time');
+});
+
+test('fix poi-any-distance audit 8: a finder newer than the near moments leads; a finder with no pieces is not listed', async () => {
+  const { momentsHere } = await card();
+  const n1 = moment('n1', m(5, 0), NOW - 7_200_000);
+  const finder = moment('f', m(700, 0), NOW - 3_600_000);
+  assert.deepEqual(momentsHere([n1], m(0, 0), NOW, null, finder).map((x) => x.id), ['f', 'n1'], 'newest first, finder included');
+  assert.deepEqual(momentsHere([n1], m(0, 0), NOW, null, { ...finder, pieces: [] }).map((x) => x.id), ['n1'], 'an empty finder is not a line');
+});
+
+test('fix poi-any-distance audit 10: the "?" line in miles reads the reach as the app writes it', async () => {
+  const { cardCapture } = await card();
+  const { formatDistance } = (await import('../../format')) as unknown as { formatDistance: (m: number, u: 'km' | 'mi') => string };
+  const { PLACE_REACH_M } = (await import('../../explore/placeCard')) as unknown as { PLACE_REACH_M: number };
+  const ft = formatDistance(PLACE_REACH_M, 'mi');
+  assert.match(ft, /ft$/);
+  assert.equal(cardCapture({ name: null, found: false, reach: ft }).line, `Walk within ${ft} to see what it is. Camera, Voice or Note keeps the moment with it.`);
+});
+
+test('fix poi-any-distance audit 11: the finder\'s read failing is caught to nothing, never rethrown', () => {
+  const ok = (body: string) => /getMomentsByIds\(\[finding\]\)\.catch\(\(\) => \[\]\)/.test(body);
+  assert.ok(ok(momentsAtBody()), 'momentsAt catches the finder read to an empty list');
+  assert.ok(!ok('db.getMomentsByIds([finding]).catch((e) => Promise.reject(e))'), 'a rethrow is caught by the scan');
 });
