@@ -88,6 +88,15 @@ async function run(h) {
   const leftover = await pg.locator('[data-leaving]').count();
   check(shrinks.length > 0 && shrinks.every((m) => m.animated) && leftover === 0,
     `PI3: a "?" leaving range shrinks before it goes (${JSON.stringify({ shrinks, leftover })})`);
+  // A "?" holding the focus is not taken by a step of the walk: it stays, still and focusable, until focus leaves it,
+  // as a focused capture pin is never dropped (drawsPin); then it shrinks out.
+  const heldMark = await pg.evaluate(() => { const a = document.activeElement; return { label: a?.getAttribute('aria-label') ?? '', leaving: !!a?.closest('[data-leaving]') }; });
+  const markHeld = await entersNow(pg);
+  await pg.evaluate(() => (document.querySelector('.maplibregl-canvas'))?.focus());
+  await pg.waitForTimeout(600);
+  const afterBlur = await moves(pg, markHeld);
+  check.todo(focused && /Hessian Memorial/.test(heldMark.label) && !heldMark.leaving && afterBlur.some((m) => m.kind === 'shrink' && m.animated && /Hessian Memorial/.test(m.label)),
+    `poi-transitions ui 6: a focused "?" out of range stays until focus leaves it, then shrinks out (${JSON.stringify({ heldMark, afterBlur })})`);
   check(shrinks.length > 0 && shrinks.every((m) => m.hidden === 'true' && m.pe === 'none' && m.tab === -1) && focused && focusNow.canvas,
     `PI6: a leaving "?" takes no tap or focus, is hidden from a screen reader, and hands a held focus to the map (${JSON.stringify({ shrinks, focused, focusNow })})`);
   const flips = (await pg.evaluate(() => window.__enters.filter((e) => e.kind === 'flip').map((e) => e.animated)));
@@ -136,6 +145,41 @@ async function run(h) {
   const explored = await moves(pg, mark3);
   check(explored.length === 0, `PI11: Explore's "?" and the pins and stars play no grow or leave (${JSON.stringify(explored)})`);
   await c.close();
+
+  // The UI review's frames (decision 0145): with the marks' motion slowed tenfold (`__motionSlow`, a harness hook), a
+  // grow and a shrink are caught mid-move and pictured with E2E_SHOTS.
+  {
+    const { c: c3, pg: pg3 } = await fresh('arrivals-slow');
+    await c3.addInitScript(() => { window.__motionSlow = 10; });
+    await startWalk(c3, pg3);
+    const seen = { grow: null, shrink: null };
+    const catchMove = async () => {
+      for (const [kind, sel] of [['grow', '[data-testid=enter-grow]'], ['shrink', '[data-testid=leave-shrink]']]) {
+        if (seen[kind] || !(await pg3.locator(sel).count())) continue;
+        const read = () => pg3.locator(sel).first().evaluate((el) => {
+          const cs = getComputedStyle(el);
+          return { scale: cs.transform && cs.transform !== 'none' ? new DOMMatrix(cs.transform).a : 1, opacity: Number(cs.opacity), origin: cs.transformOrigin };
+        }).catch(() => null);
+        await pg3.waitForTimeout(kind === 'grow' ? 400 : 600);
+        seen[kind] = await read();
+        await shot(pg3, `arrivals-${kind}-mid`);
+      }
+    };
+    for (let k = 1; k <= Math.ceil(3.1 / 0.05); k++) {
+      const p = at(-0.5 + k * 0.05, -0.5);
+      await c3.setGeolocation({ longitude: p[0], latitude: p[1], accuracy: 6 });
+      const t0 = Date.now();
+      while (Date.now() - t0 < 900) {
+        await catchMove();
+        await pg3.waitForTimeout(50);
+      }
+    }
+    check.todo(!!seen.grow && seen.grow.scale < 0.99 && !!seen.shrink && seen.shrink.opacity < 0.95,
+      `poi-transitions ui 1: slowed, a grow and a shrink are caught mid-move (${JSON.stringify(seen)})`);
+    check.todo(!!seen.grow && /^\d+(\.\d+)?px 44px$/.test(seen.grow.origin) && Math.abs(parseFloat(seen.grow.origin) - 18) < 0.5,
+      `poi-transitions ui 4: a "?" grows about its foot, never its middle (${JSON.stringify(seen.grow)})`);
+    await c3.close();
+  }
 
   // PI10: with Reduce Motion on, a walk past the same places moves nothing.
   {
