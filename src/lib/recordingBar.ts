@@ -1,5 +1,5 @@
 // @layer core
-import { formatDistance, formatDuration } from './format';
+import { formatDistance } from './format';
 import { pausedMs, type PauseSpan } from './geo';
 
 /**
@@ -12,6 +12,17 @@ export function barTime(ms: number): string {
   if (min < 1) return '< 1 min';
   if (min < 60) return `${min} min`;
   return `${Math.floor(min / 60)}:${String(min % 60).padStart(2, '0')}`;
+}
+
+/**
+ * The same time, as the bar's label says it (tend tabs audit 56): the minutes it draws, in words a screen reader reads
+ * plainly, "under a minute", "12 min", "1 h 05 min", never a rounding of its own.
+ */
+export function barTimeSpoken(ms: number): string {
+  const min = Math.floor(Math.max(0, ms) / 60_000);
+  if (min < 1) return 'under a minute';
+  if (min < 60) return `${min} min`;
+  return `${Math.floor(min / 60)} h ${String(min % 60).padStart(2, '0')} min`;
 }
 
 /**
@@ -29,7 +40,7 @@ export function recordingLine(o: { startedAt: number | null; pauses: PauseSpan[]
   return {
     // The numbers first, so a narrow bar cuts the word (the pause glyph shows it too), never the time (tend tabs audit 17).
     text: paused ? `${line} · Paused` : line,
-    label: `${paused ? 'Walk paused' : 'Walk recording'}, ${formatDistance(o.distanceM)} walked in ${formatDuration(ms)}. Return to the walk`,
+    label: `${paused ? 'Walk paused' : 'Walk recording'}, ${formatDistance(o.distanceM)} walked in ${barTimeSpoken(ms)}. Return to the walk`,
     paused,
   };
 }

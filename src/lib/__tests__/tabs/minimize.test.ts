@@ -128,3 +128,20 @@ test('tend tabs audit 55: past the hour the bar reads hours:minutes ("1:45"), un
   assert.equal(barTime(10 * 3_600_000 + 7 * 60_000), '10:07');
   assert.equal(recordingLine({ startedAt: 0, pauses: [], now: 65 * 60_000, distanceM: 4200 }).text, '1:05 · 4.2 km');
 });
+
+// The diff review's auditor 3 and steward 3: the bar drew whole minutes, floored (`barTime`), while its spoken label
+// rounded (`formatDuration`): 30 s drawn "< 1 min" was said "30 s", 12 min 40 s drawn "12 min" said "13 min", 59 min 40 s
+// said "1 h 00 min". The bar's spoken time is the time it draws.
+test('tend tabs audit 56: the bar says the time it draws', () => {
+  const said = (ms: number) => recordingLine({ startedAt: 0, pauses: [], now: ms, distanceM: 340 }).label;
+  assert.match(said(30_000), /walked in under a minute\./);
+  assert.match(said(12 * 60_000 + 40_000), /walked in 12 min\./);
+  assert.match(said(59 * 60_000 + 40_000), /walked in 59 min\./);
+  assert.match(said(65 * 60_000 + 30_000), /walked in 1 h 05 min\./);
+  for (const ms of [0, 59_999, 60_000, 125_000, 12 * 60_000 + 59_000, 3_599_999, 3_600_000, 3_725_000]) {
+    const drawn = barTime(ms);
+    const spoken = /walked in (.+)\. Return/.exec(said(ms))?.[1] ?? '';
+    const minutesOf = (t: string) => (t === '< 1 min' || t === 'under a minute' ? 0 : /^(\d+):(\d\d)$/.test(t) ? Number(t.split(':')[0]) * 60 + Number(t.split(':')[1]) : /^(\d+) h (\d\d) min$/.test(t) ? Number(t.split(' ')[0]) * 60 + Number(t.split(' ')[2]) : Number(t.split(' ')[0]));
+    assert.equal(minutesOf(spoken), minutesOf(drawn), `${ms} ms: drawn "${drawn}", said "${spoken}"`);
+  }
+});
