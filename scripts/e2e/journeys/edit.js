@@ -1,4 +1,4 @@
-// Media editing (ME1-ME23): the Edit offer on all three capture places, every tool on a photo and a
+// Media editing (ME1-ME23): the editor opening by itself after a capture (decision 0240), every tool on a photo and a
 // video, what is stored, what the viewer shows, and what Download saves. E2E_ONLY=edit runs it alone.
 
 const fs = require('fs');
@@ -112,7 +112,7 @@ async function run(h) {
       await shot(pg, 'edit-after-moment');
     });
 
-    // A walk, for the walk screen's offer and the viewer on its pins.
+    // A walk, for the walk screen's editor after a capture and the viewer on its pins.
     await pg.click('[data-testid=start]');
     await pg.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
     // A fresh fix for the walk's watch, as the qol journey does after Start.
@@ -433,7 +433,7 @@ async function run(h) {
 
 module.exports = {
   name: 'edit',
-  // Media editing (ME1-ME23): the Edit offer, the editor's tools, the viewer, Download.
+  // Media editing (ME1-ME23): the editor after a capture, its tools, the viewer, Download.
   covers: [
     'src/components/edit/**',
     'src/components/{Baker,Baker.native,Baker.web,Baker.types,Caption,CaptureView,MomentBar,RecordingBar}.{ts,tsx}',

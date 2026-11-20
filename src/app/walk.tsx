@@ -320,6 +320,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const pageRef = useRef<NotePageHandle>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [stopping, setStopping] = useState(false);
+  // Read after the camera answers, which a render's `stopping` cannot be: no editor opens while the walk stops (audit 3).
+  const stoppingNow = useRef(false);
   const [fog, setFog] = useState<StreetSegment[]>([]);
   const [walked, setWalked] = useState<StreetSegment[]>([]);
   // The held captures of the walk Stop has warned of; one held beyond them is warned of too (SA8, unsaved captures UN5).
@@ -476,7 +478,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
     const kept = await cap.takePhoto(into);
     if (!kept) return;
     feedback('tap');
-    editAfter.open(kept);
+    // Not while the walk is stopping: the replay would cover or take the editor (audit 3).
+    if (!stoppingNow.current) editAfter.open(kept);
   }
 
   async function startVoice(into: string | null = null) {
@@ -1076,6 +1079,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
   async function stop() {
     if (!walk || stopping) return;
     setStopping(true);
+    stoppingNow.current = true;
     // The walk stays on screen with the error, even if storage already closed it (audit 3).
     const couldNotStop = (e: unknown) =>
       setNotice({ message: `The walk could not be stopped: ${e instanceof Error ? e.message : e}`, tone: 'error', sticky: true });
@@ -1122,6 +1126,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
       failure = e;
     }
     setStopping(false);
+    stoppingNow.current = false;
     if (failed) throw failure;
   }
 

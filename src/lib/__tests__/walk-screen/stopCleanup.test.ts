@@ -56,6 +56,8 @@ function stopWorld(over: Partial<{ finishVoice: () => Promise<unknown>; stopEnd:
     STOP_WAIT_MS: 5000,
     stopEnd: over.stopEnd ?? (async () => ({ dropped: false })),
     warnedHeld: { current: [] as string[] },
+    // fix edit-after-capture audit 3: no editor opens after a capture while Stop runs; it is set with `stopping`.
+    stoppingNow: { current: false },
     stopWarning: () => 'held',
     feedback: (k: string) => log.push(`feedback ${k}`),
     exitPlan: () => ({ kind: 'back' }),
@@ -96,6 +98,15 @@ test('walk-screen compiler 1: Stop clears stopping once, last, on every way out,
   w = stopWorld({ finishVoice: failing, setNotice: () => { throw said; } });
   await assert.rejects(load('stop', w.fakes)(), (e) => e === said);
   cleanupOnceLast(w.log, 'stopping');
+  // fix edit-after-capture audit 3: the flag the camera reads is down again on every way out, a throw included.
+  for (const o of [{}, { stopEnd: async () => ({ dropped: true }) }, { finishVoice: async () => 'lost' }, { stopEnd: failing }]) {
+    w = stopWorld(o);
+    await load('stop', w.fakes)();
+    assert.equal(w.fakes.stoppingNow.current, false);
+  }
+  w = stopWorld({ finishVoice: failing, setNotice: () => { throw said; } });
+  await assert.rejects(load('stop', w.fakes)());
+  assert.equal(w.fakes.stoppingNow.current, false);
   // No walk, or a Stop already under way: nothing at all.
   for (const o of [{ walk: null }, { stopping: true }]) {
     w = stopWorld(o);

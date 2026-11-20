@@ -42,7 +42,7 @@ SQLite (native) and IndexedDB (web) behind the shared `Db` interface, migrations
     Navigate, ready (`check({ recording: false })`) or a moment kept outside a walk.
   - The storage notice waits while any dark pill stands in Memories' column (tend tabs T37; the owner's answers of
     Nov 18, decision 0208): the open line's pills, Memories' toast and its Undo pill count themselves in
-    `space/sight`'s `columnPills` while Memories is in front, and the bar's Edit pill counts while it is offered
+    `space/sight`'s `columnPills` while Memories is in front (the bar's Edit pill counted too, until decision 0240 removed it)
     (`tabsHidden.barOfferUp`: mounted, folded or not; not whether it is drawn). A line already up steps aside meanwhile.
   - A line is said and marked (`space_said`, `space_persist`) only where it can be seen: a `SpaceLine` mounted (each
     counts itself in `spaceLines`), no Modal up (`modalsUp`), no dark pill beside it (tend tabs audit 32). Otherwise

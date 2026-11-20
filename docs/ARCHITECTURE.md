@@ -122,7 +122,7 @@ Home / tabs
   HomeSheet.tsx              the three-height bottom sheet (Animated + responders), Walks | Days, a place's walks, a day's timeline
   StarView.tsx               a star for a place; all one size; the 8 busiest carry names
   OpenWalk.tsx               the open walk kept above the tabs: walk, pauses, live trace, useOpenWalk / useOpenWalkInfo
-  RecordingBar.tsx           the bar above the tabs while a walk is minimized: time, distance, camera, Stop, › back to the walk; its photo's Edit pill above it
+  RecordingBar.tsx           the bar above the tabs while a walk is minimized: time, distance, camera, Stop, › back to the walk; its photo's editor, opened by itself (decision 0240)
   MomentBar.tsx              MomentBar (loose moments from Navigate's ready screen) and CaptureRow (the stack's controls and the note's page); Memories keeps moments from journal/OpenLine
   LocateButton.tsx           Locate me, an edge button
   StartSettings.tsx          the walk settings, shown in the ready bar pulled up (NR7)

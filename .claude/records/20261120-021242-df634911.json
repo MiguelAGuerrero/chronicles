@@ -1,0 +1,30 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "section",
+        "add",
+        "From /fix"
+      ]
+    },
+    {
+      "argv": [
+        "section",
+        "item",
+        "add",
+        "From /fix"
+      ],
+      "body": "- **Edit after a capture on the other camera paths** (fix edit-after-capture, Nov 20; the review's F4): decision 0240 opens the editor by itself on the four places the question named (the walk screen, Navigate, the recording bar, Memories' line). Three more take a photo and open none: the walk planner's capture stack during a walk (`planner/PlannerCapture.tsx`, a new moment of the walk), Respond in the viewer (`threads/ReplyDock.tsx`, a reply; there it would be an overlay inside the viewer), and the note page's camera (`notePage/NewNotePage.tsx`, a photo mentioned in the note, NP14). Recommended: the planner yes (it is a capture on a walk), Respond and the note page no (a reply and a mention, edited later from the viewer). Each is a small change; together they were past a fix's size.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "tabsHidden.barOfferUp` is set by nothing"
+      ],
+      "body": "  - Comments that still name the bar's pill go with it (fix edit-after-capture's review, F10): `lib/tabsHidden.ts` (its head and `barOfferUp`), `lib/space/sight.ts`, `space/index.ts`, `space/shell.ts`, `atlas/overlaySlots.ts`, `walk/useReady.tsx` l.179, `useCaptures.ts` l.422, `thumbPlan.ts` l.38 and `scripts/features.js`' \"the Edit offer\".\n",
+      "target": "sha256:575bde723d39e8aac903efbe40325549cc257e090cd48f87f8f4fd3ae4b4f859"
+    }
+  ]
+}

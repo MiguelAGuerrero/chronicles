@@ -68,7 +68,12 @@ async function run(h) {
   if (await there('[data-testid=add-photo]', 3000)) {
     const [ch2] = await Promise.all([pg.waitForEvent('filechooser'), pg.click('[data-testid=add-photo]')]);
     await ch2.setFiles(path.join(fixtures, 'photo.jpg'));
-    await pg.waitForTimeout(1200);
+    // fix edit-after-capture audit 2: a photo added to the open moment opens its editor too, on that piece.
+    const opened = await pg.waitForSelector('[data-testid=media-editor]', { timeout: 15000 }).then(() => true, () => false);
+    const kept = await pg.locator('[data-testid=edit-kept]').innerText().catch(() => '');
+    check(opened && kept === 'Photo kept', `fix edit-after-capture audit 2: a photo added from the pill opens its editor ("${kept}")`);
+    await pg.click('[data-testid=edit-close]').catch(() => {});
+    await pg.waitForSelector('[data-testid=media-editor]', { state: 'detached', timeout: 5000 }).catch(() => {});
   }
 
   // The edge stack still makes a new moment in one tap, and the pill moves to it (MS1, MS5).
