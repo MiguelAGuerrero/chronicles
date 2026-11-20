@@ -334,6 +334,9 @@ async function townBorders(h) {
   await go(-0.5, -0.5);
   await pg.click('[data-testid=start]');
   await pg.waitForSelector('[data-testid=walk-actions]');
+  // A walk starts with every layer off and keeps its own (modes to layers MD3, MD10): the ready map's setting above is
+  // what the replay and a day read; the walk's Town borders is switched on from the walk's own panel.
+  await switchLayer(pg, 'borders');
   await walkTo(-0.5, 0.8);
   await walkTo(0.85, 0.8);
   // tend map audit 39 measured the town's edge under the walk's unwalked veil; the veil went with the unwalked-streets
