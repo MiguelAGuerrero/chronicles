@@ -511,54 +511,55 @@ test('replay-ceremony ui 11: where the gap question would leave the walk no room
 
 // ---------------------------------------------------------------- ui 12: one whisper at a time
 
-test('replay-ceremony ui 12: one passed-place whisper at a time: as a second arrives the first leaves by its own fade, started early, and two are never on screen at full strength', () => {
-  const whisperEnds = built<(starts: readonly number[], life: number, out: number) => number[]>(saidMod, 'whisperEnds');
+test('replay-ceremony ui 12: one passed-place whisper at a time: two places passed so close that both would be up together are said as one line, once, at the later place, and no line is cut short', { todo: 'test first' }, () => {
+  const whisperGroups = built<(starts: readonly number[], life: number) => number[][]>(saidMod, 'whisperGroups');
   const life = token('whisper');
   const fadeIn = token('whisperIn');
   const out = token('whisperOut');
   assert.ok(fadeIn > 0 && out > 0 && fadeIn + out < life);
-  // Far apart, each has its whole time; close together, the older is gone its fade after the newer arrives.
-  assert.deepEqual(whisperEnds([0, 10_000], life, out), [life, 10_000 + life]);
-  assert.deepEqual(whisperEnds([0, 1000], life, out), [1000 + out, 1000 + life]);
-  assert.deepEqual(whisperEnds([1000, 0], life, out), [1000 + life, 1000 + out], 'whatever order they are listed in');
-  assert.deepEqual(whisperEnds([0, 800, 1500], life, out), [800 + out, 1500 + out, 1500 + life]);
-  assert.deepEqual(whisperEnds([0, life - out], life, out), [life, life - out + life], 'one already fading as the next arrives is not cut short');
-  // Two that arrive together (both waited for one card): the later listed is the newer.
-  assert.deepEqual(whisperEnds([500, 500], life, out), [500 + out, 500 + life]);
-  assert.deepEqual(whisperEnds([], life, out), []);
-  // Told: two places 170 m apart on one stretch, whose whispers used to stand on screen together.
+  // Far apart, each is said alone; one that would arrive while another is up is said with it.
+  assert.deepEqual(whisperGroups([0, 10_000], life), [[0], [1]]);
+  assert.deepEqual(whisperGroups([0, 1000], life), [[0, 1]]);
+  assert.deepEqual(whisperGroups([1000, 0], life), [[1, 0]], 'in the order they arrive, whatever order they are listed in');
+  assert.deepEqual(whisperGroups([0, life], life), [[0], [1]], 'one that arrives as the other is gone is its own');
+  assert.deepEqual(whisperGroups([0, life - 1], life), [[0, 1]]);
+  assert.deepEqual(whisperGroups([0, 800, 9000, 9500, 30_000], life), [[0, 1], [2, 3], [4]]);
+  // Two that arrive together (both waited for one card): the later listed is the later said.
+  assert.deepEqual(whisperGroups([500, 500], life), [[0, 1]]);
+  assert.deepEqual(whisperGroups([], life), []);
+  // Told: two places 170 m apart on one stretch, whose whispers used to stand on screen together (and, replaced one
+  // by the other, overprinted for the fade's time: the pictures of Nov 20).
   const fixes = line(O, at(600), 9 * 60 * MIN);
   const passed = [{ name: 'North Gate', generic: false, at: at(210, 20), t: fixes[30].t }, { name: 'South Gate', generic: false, at: at(378, -20), t: fixes[54].t }];
   const p = planOf(walkStory(input(fixes, [cap('text', endT(fixes), at(600), 'Here.')], { passed: passed as WalkInput['passed'] })));
-  const [first, second] = p.whispers;
-  assert.ok(second.tw - first.tw >= fadeIn && second.tw - first.tw < life - out, `the second arrives ${Math.round(second.tw - first.tw)} ms after the first: the first is whole, and well inside its time`);
-  let both = 0;
-  let was = 1;
-  for (let ms = first.tw - 100; ms <= second.tw + life + 200; ms += 10) {
-    const up = overlaysOf(frameAt(p, ms), 'whisper') as unknown as { key: string; opacity: number }[];
-    const a = up.find((o) => o.key === first.key)?.opacity ?? 0;
-    const b = up.find((o) => o.key === second.key)?.opacity ?? 0;
-    assert.ok(!(a >= 0.999 && b >= 0.999), `two at full strength at ${Math.round(ms)} ms`);
-    if (a > 0 && b > 0) both++;
-    if (ms >= second.tw) {
-      // From the second's arrival the first only fades, at its own fade's pace, and is gone when that is over.
-      assert.ok(a <= was + 1e-9, `the first comes back at ${Math.round(ms)} ms`);
-      assert.ok(Math.abs(a - Math.max(0, Math.min(1, (second.tw + out - ms) / out))) < 1e-6, `the first at ${Math.round(ms - second.tw)} ms after the second arrived: ${a}`);
-      if (ms >= second.tw + out) assert.equal(a, 0, `the first is still up ${Math.round(ms - second.tw)} ms after the second arrived`);
-      was = a;
-    }
+  assert.equal(p.whispers.length, 1, 'said once');
+  const [said] = p.whispers;
+  assert.equal(said.text, passedLine(passed));
+  assert.match(said.text, /North Gate and South Gate/);
+  assert.deepEqual(said.at, passed[1].at, 'beside the later place, as the walker reaches it');
+  let most = 0;
+  let whole = 0;
+  for (let ms = 0; ms <= p.total; ms += 10) {
+    const up = overlaysOf(frameAt(p, ms), 'whisper');
+    most = Math.max(most, up.length);
+    if (up[0]?.opacity === 1) whole += 10;
   }
-  assert.ok(both > 0 && both * 10 <= out + 10, `they cross for ${both * 10} ms, the fade's own time at the most`);
-  // The second has its whole time; a whisper alone is as it was.
-  assert.ok(overlaysOf(frameAt(p, second.tw + life - out - 10), 'whisper').some((o) => o.key === second.key && o.opacity === 1));
-  assert.equal(overlaysOf(frameAt(p, second.tw + life), 'whisper').length, 0);
+  assert.equal(most, 1, 'never two on the screen');
+  assert.ok(whole >= life - fadeIn - out - 20, `whole for ${whole} ms: its own time, never cut short`);
+  // Far enough apart that the first is gone when the second arrives, each is said alone, as it was.
+  const far = line(O, at(2400), 30 * 60 * MIN);
+  const apart = [{ name: 'North Gate', generic: false, at: at(210, 20), t: far[30].t }, { name: 'South Gate', generic: false, at: at(2198, -20), t: far[314].t }];
+  const q = planOf(walkStory(input(far, [cap('text', endT(far), at(2400), 'Here.')], { passed: apart as WalkInput['passed'] })));
+  assert.equal(q.whispers.length, 2);
+  assert.ok(q.whispers[1].tw - q.whispers[0].tw >= life, `the second arrives ${Math.round(q.whispers[1].tw - q.whispers[0].tw)} ms after the first`);
+  assert.deepEqual(q.whispers.map((w) => w.text), apart.map((x) => passedLine([x])));
   const lone = planOf(walkOf(['Old Mill']).story);
   const w = lone.whispers[0];
   assert.equal(overlaysOf(frameAt(lone, w.tw + life - out), 'whisper')[0]?.opacity, 1);
   assert.equal(overlaysOf(frameAt(lone, w.tw + life - 10), 'whisper').length, 1);
-  // The decision is the core's: the frame asks it, with the rhythm's own times.
-  assert.match(read('lib/ceremony/rhythm.ts'), /whisperEnds\(/);
-  assert.doesNotMatch(read('components/ceremony/Whispers.tsx'), /whisperEnds|R\.whisper/);
+  // The decision is the core's: the plan asks it, with the rhythm's own time.
+  assert.match(read('lib/ceremony/rhythm.ts'), /whisperGroups\(/);
+  assert.doesNotMatch(read('components/ceremony/Whispers.tsx'), /whisperGroups|R\.whisper/);
 });
 
 // ---------------------------------------------------------------- ui 13: a whisper beside a way up or down the screen
