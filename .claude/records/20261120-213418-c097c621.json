@@ -1,0 +1,13 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Test organization (decision 0091)"
+      ],
+      "body": "- [loop] `check:test-first` takes a line that starts with `*` for a comment (fix test-first-comments, audit F2, low): a template literal's continuation line written as a `*` bullet after a call opener (`check(ok, `first line` then `* CA2: ...`);`) is dropped, so its id reads as untested. No such line is in the tests today; telling it from a block comment's starred line needs a reader that tracks literals.\n"
+    }
+  ]
+}

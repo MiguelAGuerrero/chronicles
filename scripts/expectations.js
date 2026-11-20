@@ -4,10 +4,15 @@
 // lines, the owner ratifies them once, and each line names the check that shows it is met.
 //
 //   npm run expectations -- list [<feature>]                      every line, its status and whether its check exists
-//   npm run expectations -- draft <feature> --file <lines>        proposed lines, numbered on; a first draft has three
+//   npm run expectations -- draft <feature> --file <lines> [--serves <Verb[,Verb]>]
+//                                                                 proposed lines, numbered on; a first draft has three
 //                                                                 to five, and five at most are in force
-//   npm run expectations -- amend <id> --file <line>              a proposed amendment of a ratified line, which stands
+//   npm run expectations -- amend <id> --file <line> [--serves <Verb[,Verb]>]
+//                                                                 a proposed amendment of a ratified line, which stands
 //                                                                 as it is until the owner ratifies the amendment
+//   npm run expectations -- amend <id> --serves <Verb[,Verb][; clause] | none; reason>
+//                                                                 with no --file, a verb-only amendment: the line's own
+//                                                                 words, check and grounds, and the verb it lacks
 //   npm run expectations -- ratify <id>... --by owner --date YYYY-MM-DD --answer "<verbatim>"
 //   npm run expectations -- decline <id>... --by owner --date YYYY-MM-DD --answer "<verbatim>"
 //                                                                 the owner's answer, recorded; never the proxy's
@@ -25,9 +30,17 @@
 //     Amends: E-<feature>-<n>                                     (an amendment only)
 //     Check: <journey>:"<check text>" | test:"<test name>" | picture:<shot name> | pending "<what it will show>"
 //     Grounds: VISION "Who it is for"; <docs/research/adjacent-apps.md's job and apps, or "not yet recorded">
+//     Serves: Earn | Honour | Return, comma-separated; a proposed line names at least one (decision 0244), then
+//             optionally `; <clause>` saying how it serves them (a line upholding an Always line says which:
+//             `upholds "<the Always line>": <how>`); or `none; <the steward's reason>`, a line flagged to the
+//             owner as serving no verb, kept or dropped by the owner's answer (decision 0245)
 //     Answer: "<the owner's words>" (the owner, YYYY-MM-DD)       (ratified or declined only)
 //
-// A --file of lines holds the same entries without the id and status: `- A person …` and its Check and Grounds.
+// A --file of lines holds the same entries without the id and status: `- A person …` and its Check, Grounds and
+// Serves; --serves gives its verb to each line of the file that names none. The verb is VISION's "The three verbs"
+// (decision 0244): a line drafted or amended names it. A line the owner answered before 0244 keeps its words and
+// gets a verb only by a verb-only amendment the owner answers (decision 0245); no operation gives it one in place.
+// An operation refuses a flag it does not take, and a flag with no word after it.
 // Every operation prints the same thing for the same store. The decisions are pure and exported for
 // arch/expectations.test.ts; the files are read and written in main(). EXPECTATIONS_ROOT reads another checkout.
 
@@ -42,7 +55,9 @@ const GROUNDS = /^VISION "Who it is for"; \S/;
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const FIRST = 3;
 const MOST = 5;
-const KEYS = ['Amends', 'Check', 'Grounds', 'Answer'];
+const KEYS = ['Amends', 'Check', 'Grounds', 'Serves', 'Answer'];
+// VISION's "The three verbs", in its order (decision 0244).
+const VERBS = ['Earn', 'Honour', 'Return'];
 const ACTIVE = ['proposed', 'ratified'];
 
 const fileOf = (feature) => `${DIR}/${feature}.md`;
@@ -73,6 +88,49 @@ function parseCheck(check) {
   return null;
 }
 
+const NONE = 'none';
+
+/** A Serves value's parts: its verbs (or `none`) before the first `;`, and the clause after it (null when there is no `;`). */
+function servesOf(s) {
+  const text = String(s ?? '');
+  const at = text.indexOf(';');
+  const verbs = (at < 0 ? text : text.slice(0, at)).split(',').map((v) => v.trim());
+  return { verbs, clause: at < 0 ? null : text.slice(at + 1).trim() };
+}
+
+/** Whether a Serves value flags the line to the owner as serving no verb (decision 0245). */
+const flagged = (serves) => serves !== undefined && servesOf(serves).verbs[0] === NONE;
+
+/**
+ * What is wrong with a Serves value: one or more of VISION's three verbs, comma-separated, none twice, then optionally
+ * `; <clause>`; or `none; <the steward's reason>`, which needs its reason.
+ */
+function servesProblems(serves) {
+  const { verbs, clause } = servesOf(serves);
+  const p = [];
+  if (clause === '') p.push('a ; is followed by its clause, saying how the line serves its verb');
+  const lower = [...VERBS, NONE].map((v) => v.toLowerCase());
+  if (clause && !/\p{L}/u.test(clause)) p.push(`"${clause}" after the ; holds no word: the clause says how, in words`);
+  else if (clause && clause.split(/[\s,]+/).filter(Boolean).every((w) => lower.includes(w.toLowerCase()))) p.push(`"${clause}" after the ; is a verb, not a clause: verbs go before the ;, comma-separated`);
+  if (verbs.includes(NONE)) {
+    if (verbs.length > 1) p.push('none stands alone: a line serves verbs, or none');
+    else if (!clause) p.push("none names the steward's reason after a ;: none; <why the line serves no verb> (decision 0245)");
+    return p;
+  }
+  for (const v of verbs) if (!VERBS.includes(v)) p.push(`${v ? `"${v}"` : 'an empty word'} is no verb: Serves names Earn, Honour or Return (docs/VISION.md "The three verbs", decision 0244), or none; <reason>`);
+  for (const v of VERBS) if (verbs.filter((x) => x === v).length > 1) p.push(`${v} is named twice`);
+  return p;
+}
+
+/** A Serves value written in one form: the verbs in VISION's order, comma and space between, then `; <clause>`. */
+function servesText(serves) {
+  const { verbs, clause } = servesOf(serves);
+  const head = verbs.includes(NONE) ? NONE : VERBS.filter((v) => verbs.includes(v)).join(', ');
+  return clause ? `${head}; ${clause}` : head;
+}
+
+const blank = (serves) => serves === undefined || !String(serves).trim();
+
 /** What is wrong with a line's words, check and grounds. */
 function lineProblems(l) {
   const p = [];
@@ -97,12 +155,12 @@ function readEntries(lines, headOf, offset = 0) {
       entries.push({ ...headOf(head[1], at), keys: {} });
       continue;
     }
-    const key = /^ {2}(\w+): (.*)$/.exec(l);
+    const key = /^ {2}(\w+):(?: (.*))?$/.exec(l);
     const e = entries[entries.length - 1];
     if (!key || !e) problems.push(`line ${at} is outside an entry: "${l.slice(0, 60)}"`);
     else if (!KEYS.includes(key[1])) problems.push(`line ${at}: ${key[1]} is no key (${KEYS.join(', ')})`);
     else if (e.keys[key[1]] !== undefined) problems.push(`line ${at}: a second ${key[1]}`);
-    else e.keys[key[1]] = key[2];
+    else e.keys[key[1]] = key[2] ?? '';
   }
   return { entries, problems };
 }
@@ -115,6 +173,7 @@ function entryOf(e) {
   if (e.keys.Amends !== undefined) out.amends = e.keys.Amends;
   out.check = e.keys.Check;
   out.grounds = e.keys.Grounds;
+  if (e.keys.Serves !== undefined) out.serves = e.keys.Serves;
   if (e.keys.Answer !== undefined) out.answer = e.keys.Answer;
   return out;
 }
@@ -150,6 +209,8 @@ function parseStore(text, feature) {
     if (!st) problems.push(`${e.id}: [${e.statusRaw}] is no status (proposed, ratified <date>, declined <date>, superseded <date> by <id>)`);
     const entry = entryOf({ ...e, n: id ? Number(id[2]) : 0, ...(st ?? { status: 'proposed' }) });
     for (const p of lineProblems(entry)) problems.push(`${e.id}: ${p}`);
+    // A Serves present is read on every line; one absent is the check's to name, on a proposed line only (decision 0244).
+    if (entry.serves !== undefined) for (const p of servesProblems(entry.serves)) problems.push(`${e.id}: ${p}`);
     const answered = entry.status === 'ratified' || entry.status === 'declined';
     if (answered && entry.answer === undefined) problems.push(`${e.id} is ${entry.status} with no Answer`);
     if (entry.status === 'proposed' && entry.answer !== undefined) problems.push(`${e.id} is proposed and has an Answer`);
@@ -180,6 +241,7 @@ function formatStore(store) {
       ...(e.amends !== undefined ? [`  Amends: ${e.amends}`] : []),
       `  Check: ${e.check}`,
       `  Grounds: ${e.grounds}`,
+      ...(e.serves !== undefined ? [`  Serves: ${e.serves}`] : []),
       ...(e.answer !== undefined ? [`  Answer: ${e.answer}`] : []),
       '',
     ].join('\n');
@@ -203,28 +265,51 @@ function settle(before, r) {
   return w.length ? { store: before, ids: [], problems: w.map((p) => `the write is refused: ${p}`) } : r;
 }
 
-/** A --file of lines: `- A person …` and its Check and Grounds (an Amends is the amend operation's). */
+/** A --file of lines: `- A person …` and its Check, Grounds and Serves (an Amends is the amend operation's). */
 function parseDraft(text) {
   const read = readEntries(linesOf(text), (h) => ({ text: h }));
-  const lines = read.entries.map((e) => ({ text: e.text, check: e.keys.Check, grounds: e.keys.Grounds, ...(e.keys.Amends !== undefined ? { amends: e.keys.Amends } : {}) }));
+  const lines = read.entries.map((e) => ({
+    text: e.text,
+    check: e.keys.Check,
+    grounds: e.keys.Grounds,
+    ...(!blank(e.keys.Serves) ? { serves: e.keys.Serves } : {}),
+    ...(e.keys.Amends !== undefined ? { amends: e.keys.Amends } : {}),
+  }));
   const problems = [...read.problems];
   if (!lines.length) problems.push('no line: each is "- A person …" with its Check and Grounds indented under it');
   for (const l of lines) if (l.amends !== undefined) problems.push('an Amends is written by `amend <id>`, not in the file');
   return { lines, problems };
 }
 
+/** --serves given to each line of a file that names no verb; refused when it is no verb, or another than a line's own. */
+function withServes(lines, flag) {
+  if (flag === undefined) return { lines, problems: [] };
+  const problems = servesProblems(flag).map((p) => `--serves: ${p}`);
+  for (const l of lines) {
+    if (!blank(l.serves) && servesText(l.serves) !== servesText(flag)) problems.push(`"${String(l.text).slice(0, 60)}" serves ${l.serves} and --serves says ${flag}: name one`);
+  }
+  if (problems.length) return { lines, problems };
+  return { lines: lines.map((l) => (blank(l.serves) ? { ...l, serves: flag } : l)), problems: [] };
+}
+
+const declinedOf = (e, target) => Boolean(target) && e.amends === target && e.status === 'declined';
+
 const nextN = (store) => Math.max(0, ...store.entries.map((e) => e.n)) + 1;
 const inForce = (store) => store.entries.filter((e) => e.status === 'ratified' || (e.status === 'proposed' && e.amends === undefined)).length;
 
-function newLines(store, lines, amends, index) {
+function newLines(store, lines, amends, index, exempt) {
   const problems = [];
-  const seen = new Map(store.entries.map((e) => [norm(e.text), e.id]));
+  // A declined verb-only amendment of the exempt line is no duplicate: the owner said no to its verb, not to its words.
+  const seen = new Map(store.entries.filter((e) => !declinedOf(e, exempt)).map((e) => [norm(e.text), e.id]));
   for (const l of lines) {
     problems.push(...lineProblems(l));
+    const what = `"${String(l.text ?? '').slice(0, 60)}"`;
+    if (blank(l.serves)) problems.push(`${what} serves no verb: name it, Serves: Earn, Honour or Return, or --serves (decision 0244)`);
+    else problems.push(...servesProblems(l.serves).map((p) => `${what}: ${p}`));
     // A check the script cannot find is refused at the write, so no write of the loop's reddens check:docs (audit 21).
     if (index && parseCheck(l.check) && resolveCheck(l.check, index, store.feature) === 'missing') problems.push(missingWhy(`"${String(l.text).slice(0, 60)}"`, l.check, index));
     const was = seen.get(norm(l.text ?? ''));
-    if (was) problems.push(`"${String(l.text).slice(0, 60)}" is already ${was}`);
+    if (was && !(exempt && was === exempt)) problems.push(`"${String(l.text).slice(0, 60)}" is already ${was}`);
     seen.set(norm(l.text ?? ''), 'in this file');
   }
   if (problems.length) return { store, ids: [], problems };
@@ -237,6 +322,7 @@ function newLines(store, lines, amends, index) {
     ...(amends ? { amends } : {}),
     check: l.check,
     grounds: l.grounds,
+    serves: servesText(l.serves),
   }));
   return { store: { ...store, entries: [...store.entries, ...added] }, ids: added.map((e) => e.id), problems: [] };
 }
@@ -258,13 +344,33 @@ function amend(store, id, line, index) {
   return settle(store, amendOf(store, id, line, index));
 }
 
+/** Why `id` takes no amendment (beside `self`, the amendment itself when it is already in the entries), or null. */
+function targetProblem(entries, id, self) {
+  const target = entries.find((e) => e.id === id);
+  if (!target) return `${id} is no line of the file`;
+  if (target.status !== 'ratified') return `${id} is ${target.status}: only a ratified line is amended (a proposed one waits for the owner's answer)`;
+  const open = entries.find((e) => e.amends === id && e.status === 'proposed' && e.id !== self);
+  return open ? `${id} already has an open amendment, ${open.id}: it waits for the owner's answer` : null;
+}
+
 function amendOf(store, id, line, index) {
   const target = store.entries.find((e) => e.id === id);
   if (!target) return { store, ids: [], problems: [`${id} is no line of ${fileOf(store.feature)}`] };
-  if (target.status !== 'ratified') return { store, ids: [], problems: [`${id} is ${target.status}: only a ratified line is amended (a proposed one waits for the owner's answer)`] };
-  const open = store.entries.find((e) => e.amends === id && e.status === 'proposed');
-  if (open) return { store, ids: [], problems: [`${id} already has an open amendment, ${open.id}: it waits for the owner's answer`] };
-  return newLines(store, [line], id, index);
+  const why = targetProblem(store.entries, id);
+  if (why) return { store, ids: [], problems: [why] };
+  if (line.text !== target.text) return newLines(store, [line], id, index);
+  // A verb-only amendment (decision 0245): the line's own words, check and grounds, and the verb it lacks.
+  const verbOnly = verbOnlyProblem(target, line);
+  return verbOnly ? { store, ids: [], problems: [`${id}: ${verbOnly}`] } : newLines(store, [line], id, index, id);
+}
+
+/** Why a line with a target's own words is no verb-only amendment of it, or null when it is one. */
+function verbOnlyProblem(target, line) {
+  if (target.serves !== undefined) return `already serves ${target.serves}: a line with a verb changes it only with its words (an amendment in other words)`;
+  if (line.check !== target.check || line.grounds !== target.grounds) return "a verb-only amendment keeps the line's check and grounds as they stand";
+  // `none; <reason>` flags a ratified line to the owner as serving no verb (decision 0245, run 17's second review).
+  if (blank(line.serves)) return 'a verb-only amendment names a verb, Earn, Honour or Return, or none; <the steward\'s reason>';
+  return null;
 }
 
 /** The owner's answer to proposed lines: ratified (a ratified amendment supersedes the line it amends) or declined. */
@@ -301,7 +407,7 @@ function answerOf(store, ids, { as, by, date, answer: words }) {
 
 // Key order kept as entryOf writes it, so an answered line compares and prints the same as one read back.
 function ordered(e) {
-  return entryOf({ ...e, keys: { Amends: e.amends, Check: e.check, Grounds: e.grounds, Answer: e.answer } });
+  return entryOf({ ...e, keys: { Amends: e.amends, Check: e.check, Grounds: e.grounds, Serves: e.serves, Answer: e.answer } });
 }
 
 /** The evidence a line names, filled in or moved: never its words, status or answer. */
@@ -495,6 +601,8 @@ function checkProblems(stores, index, features) {
     if (!features.includes(s.feature)) out.push({ message: `${fileOf(s.feature)} is no feature of scripts/features.js (${s.feature}): rename it to a feature's name` });
     for (const p of s.problems) out.push({ message: `${fileOf(s.feature)}: ${p}` });
     for (const e of s.entries.filter((x) => ACTIVE.includes(x.status))) {
+      // A proposed line names its verb; a ratified one answered before decision 0244 stands without one.
+      if (e.status === 'proposed' && e.serves === undefined) out.push({ message: `${e.id} is proposed and serves no verb: the owner's answer clears it (ratify or decline ${e.id}, then a verb-only amendment); a run cannot give it one (decisions 0244, 0245)` });
       if (resolveCheck(e.check, index, s.feature) !== 'missing') continue;
       out.push({ message: missingWhy(e.id, e.check, index) });
     }
@@ -511,9 +619,24 @@ function due(stores, features) {
   };
 }
 
+/** What list says of a line's verb: the verb, a line flagged as serving none, or a line in force awaiting the owner's verb. */
+function servesLine(store, e) {
+  if (flagged(e.serves)) return `none, flagged for the owner: ${servesOf(e.serves).clause}`;
+  if (e.serves !== undefined) return e.serves;
+  if (!ACTIVE.includes(e.status)) return 'not named';
+  const open = store.entries.find((x) => x.amends === e.id && x.status === 'proposed' && x.serves !== undefined);
+  return `not named: awaiting the owner's verb${open ? ` (${open.id} proposes ${open.serves})` : ''}`;
+}
+
 function listText(stores, index) {
   return stores
-    .map((s) => [`${s.feature}`, ...s.entries.flatMap((e) => [`  ${e.id} ${statusText(e)}  ${e.text}`, `    check ${resolveCheck(e.check, index, s.feature)}: ${e.check}`]), ''].join('\n'))
+    .map((s) =>
+      [
+        `${s.feature}`,
+        ...s.entries.flatMap((e) => [`  ${e.id} ${statusText(e)}  ${e.text}`, `    check ${resolveCheck(e.check, index, s.feature)}: ${e.check}`, `    serves ${servesLine(s, e)}`]),
+        '',
+      ].join('\n'),
+    )
     .join('');
 }
 
@@ -576,6 +699,17 @@ function editProblems(before, after, feature, subject = '', { missing = () => fa
     if (b.entries.some((x) => x.id === e.id)) continue;
     if (answering) out.push(`adds ${e.id} to ${where} in the owner's answer commit: it records answers only`);
     else if (e.status !== 'proposed') out.push(`adds ${e.id} to ${where} as ${e.status}: ${why}`);
+    else {
+      // What draft and amend refuse, a commit by hand may not do either (decision 0244 audit 2).
+      if (e.serves === undefined) out.push(`adds ${e.id} to ${where} with no Serves: a drafted line names its verb (npm run expectations -- draft, decisions 0244, 0245)`);
+      const target = e.amends !== undefined ? targetProblem(a.entries, e.amends, e.id) : null;
+      if (target) out.push(`adds ${e.id} to ${where}, amending ${e.amends}: ${target}`);
+      // As newLines: a declined amendment is left out only beside a verb-only amendment of the same line (0245 audit 1).
+      const exempt = a.entries.find((x) => x.id === e.amends)?.text === e.text ? e.amends : undefined;
+      const same = a.entries.filter((x) => x.id !== e.id && norm(x.text) === norm(e.text) && !declinedOf(x, exempt));
+      const own = same.length === 1 && same[0].id === e.amends && same[0].text === e.text ? same[0] : null;
+      if (same.length && !(own && !verbOnlyProblem(own, e))) out.push(`adds ${e.id} to ${where} with the words of ${same.map((x) => x.id).join(', ')}: only a verb-only amendment (npm run expectations -- amend <id> --serves) repeats a line's words`);
+    }
   }
   return out;
 }
@@ -604,6 +738,7 @@ function logRefProblems(lines, stores, index, { exists = fs.existsSync, shots, a
     if (!VERDICTS.includes(l.is)) out.push(`${e.id}: is is ${VERDICTS.join(', ')}`);
     const provisional = e.status === 'proposed';
     if (Boolean(l.provisional) !== provisional) out.push(provisional ? `${e.id} is proposed: log it "provisional": true` : `${e.id} is ${e.status}: it is not provisional`);
+    if (flagged(e.serves) !== (l.serves === NONE)) out.push(flagged(e.serves) ? `${e.id} is flagged as serving no verb: log it "serves": "none"` : `${e.id} serves ${e.serves ?? 'a verb not yet named'}: "serves": "none" is for a line flagged as serving none`);
     if (l.is !== 'met') continue;
     if (!l.evidence) {
       out.push(`${e.id} is met: name its evidence, its check or a picture`);
@@ -665,18 +800,39 @@ function check(root = ROOT) {
   return checkProblems(readStores(root), readIndex(root), featureNames(root));
 }
 
-function main(argv) {
-  const [op, ...rest] = argv;
+// The flags each operation takes (decision 0244 audit 3): any other is refused, so none is dropped without a word.
+const TAKES = { list: [], draft: ['file', 'serves'], amend: ['file', 'serves'], ratify: ['by', 'date', 'answer'], decline: ['by', 'date', 'answer'], 'set-check': ['check'], check: [], due: [] };
+
+/** An operation's flags and words; a flag it does not take, or one with no word after it, is refused. */
+function readFlags(op, rest) {
   const flags = {};
   const args = [];
+  const problems = [];
   for (let i = 0; i < rest.length; i++) {
-    if (rest[i].startsWith('--')) flags[rest[i].slice(2)] = rest[++i];
-    else args.push(rest[i]);
+    if (!rest[i].startsWith('--')) {
+      args.push(rest[i]);
+      continue;
+    }
+    const name = rest[i].slice(2);
+    const value = rest[i + 1];
+    if (TAKES[op] && !TAKES[op].includes(name)) problems.push(`${op} takes no --${name}${TAKES[op].length ? ` (it takes ${TAKES[op].map((f) => `--${f}`).join(', ')})` : ''}`);
+    if (Object.prototype.hasOwnProperty.call(flags, name)) problems.push(`--${name} is given twice: give it once`);
+    if (value === undefined || value.startsWith('--')) problems.push(`--${name} takes a word after it`);
+    else i++;
+    flags[name] = value;
   }
+  return { flags, args, problems };
+}
+
+function main(argv) {
+  const [op, ...rest] = argv;
   const fail = (problems) => {
     for (const p of problems) console.error(`expectations ${op}: ${p}`);
     return 1;
   };
+  const given = readFlags(op, rest);
+  if (given.problems.length) return fail(given.problems);
+  const { flags, args } = given;
   const features = featureNames(ROOT);
   const stores = readStores(ROOT);
   const storeOf = (feature) => stores.find((s) => s.feature === feature) ?? { feature, head: '', entries: [], problems: [] };
@@ -697,7 +853,9 @@ function main(argv) {
     if (!features.includes(feature)) return fail([`${feature || '(none)'} is no feature of scripts/features.js`]);
     const read = parseDraft(body());
     if (read.problems.length) return fail(read.problems);
-    const r = draft(storeOf(feature), read.lines, readIndex(ROOT));
+    const served = withServes(read.lines, flags.serves);
+    if (served.problems.length) return fail(served.problems);
+    const r = draft(storeOf(feature), served.lines, readIndex(ROOT));
     if (r.problems.length) return fail(r.problems);
     write(r.store);
     console.log(`draft ${feature}: ${r.ids.join(', ')} proposed in ${fileOf(feature)}`);
@@ -706,10 +864,16 @@ function main(argv) {
   if (op === 'amend') {
     const feature = featureOfId(args[0]);
     if (!feature) return fail([`${args[0] || '(none)'} is no id: E-<feature>-<n>`]);
-    const read = parseDraft(body());
+    const target = storeOf(feature).entries.find((e) => e.id === args[0]);
+    if (!target) return fail([`${args[0]} is no line of ${fileOf(feature)}`]);
+    // With no --file, a verb-only amendment (decision 0245): the line's own words, check and grounds, and --serves.
+    const own = target && flags.file === undefined && flags.serves !== undefined;
+    const read = own ? { lines: [{ text: target.text, check: target.check, grounds: target.grounds }], problems: [] } : parseDraft(body());
     if (read.lines.length !== 1) read.problems.push('an amendment is one line');
     if (read.problems.length) return fail(read.problems);
-    const r = amend(storeOf(feature), args[0], read.lines[0], readIndex(ROOT));
+    const served = withServes(read.lines, flags.serves);
+    if (served.problems.length) return fail(served.problems);
+    const r = amend(storeOf(feature), args[0], served.lines[0], readIndex(ROOT));
     if (r.problems.length) return fail(r.problems);
     write(r.store);
     console.log(`amend: ${r.ids[0]} proposed, amending ${args[0]}, in ${fileOf(feature)}`);
@@ -759,10 +923,10 @@ function main(argv) {
     if (d.awaiting.length) console.log(`awaiting the owner: ${d.awaiting.join(', ')}`);
     return 0;
   }
-  console.error(fs.readFileSync(__filename, 'utf8').split('\n').filter((l) => l.startsWith('//')).slice(0, 18).map((l) => l.slice(3)).join('\n'));
+  console.error(fs.readFileSync(__filename, 'utf8').split('\n').filter((l) => l.startsWith('//')).slice(0, 23).map((l) => l.slice(3)).join('\n'));
   return op === 'help' ? 0 : 2;
 }
 
-module.exports = { ANSWER_COMMIT, writeProblems, ID, DIR, LENS_LINE, parseStore, formatStore, parseDraft, draft, amend, answer, setCheck, parseCheck, indexOf, resolveCheck, checkProblems, due, listText, editProblems, logRefProblems, readStores, readIndex, check };
+module.exports = { VERBS, servesProblems, servesText, withServes, ANSWER_COMMIT, writeProblems, ID, DIR, LENS_LINE, parseStore, formatStore, parseDraft, draft, amend, answer, setCheck, parseCheck, indexOf, resolveCheck, checkProblems, due, listText, editProblems, logRefProblems, readStores, readIndex, check };
 
 if (require.main === module) process.exitCode = main(process.argv.slice(2));

@@ -14,6 +14,7 @@ the operations are in `scripts/expectations.js`'s header). A line, its text on o
 - E-memories-1 [ratified 2026-11-20] A person who wanders a town to notice, using memories, would reasonably expect a capture to come back when they pass its place again.
   Check: memories:"a later walk passing a flagged capture brings it back"
   Grounds: VISION "Who it is for"; adjacent-apps "<the job>" (Day One, Apple Photos)
+  Serves: Return
   Answer: "Ratify as drafted" (the owner, 2026-11-20)
 ```
 
@@ -28,6 +29,28 @@ the operations are in `scripts/expectations.js`'s header). A line, its text on o
 - **Grounded.** In `docs/VISION.md`, "Who it is for", first, then in how two or three adjacent apps do the job
   (`docs/research/adjacent-apps.md`, verified or not; a source the file lacks is "not yet recorded", and the loop never
   edits `docs/research/`). An app alone is no ground: a precedent informs how, never what (0193).
+- **Serving a verb.** `Serves:` names the VISION verb the line serves (decision 0244), at least one of Earn, Honour
+  and Return ("The three verbs"), and no other word, then may say how in a clause after a `;`, on any line. A line
+  that upholds an Always line names its feature's verb and says which in its clause (decision 0245):
+  `Serves: Earn; upholds "Guidance is structural": a street's card says what it holds`. The `map` feature's verbs are
+  Earn and Return, since it spans Explore and Navigate, and the replays: the orchestrator's ruling (decision 0157 proxy,
+  Nov 20); no other feature has a ruling, and none is needed where VISION's table names one. A line drafted or amended
+  names it, in its own `Serves:` or by `--serves` for each line of the file that names none; `check` fails a proposed
+  line without one, and so does `check:tend` on a commit adding one by hand.
+- **Serving none: flagged to the owner.** A line the steward finds serving no verb is drafted with the steward's
+  reason, `Serves: none; it reads as what map apps have, not what this person needs`, and put to the owner flagged so;
+  the owner's decline drops it. A line breaking a Never line is dropped by the run, whatever its `Serves:`.
+- **A verb for a line answered before 0244.** It keeps its words: `npm run expectations -- amend <id> --serves <verb>`
+  with no `--file` proposes a verb-only amendment (its own words, check and grounds, and the verb); the owner's answer
+  supersedes the line with it, one question per feature, as for a draft. Until then `list` names it "awaiting the
+  owner's verb". A declined one leaves the line awaiting, and a run may propose another verb. A ratified line the
+  steward finds serving none is flagged the same way, `--serves "none; <the steward's reason>"`. The owner's answers
+  to that flag: ratify it, and the amendment supersedes the line, in force and marked as serving none by the owner's
+  choice; decline it, and the line stands, awaiting a verb; retire the line, which no operation records yet: the store
+  has no status that takes a ratified line out of force, so that answer needs one of its own, by a decision, first.
+- **A change to the store's form lands first, alone.** CI judges a push with the scripts its base held (records
+  audit 19), so a push that teaches `scripts/expectations.js` a new key or form and also writes lines in it is refused
+  ("<key> is no key"), and nothing deploys. Push the script change, then the lines, in a push of their own (run 17).
 - **Ratified once, by the owner.** A ratified line never changes: a better one is an `amend` (one open at a time),
   which stands beside it until the owner ratifies it. Five lines at most are in force per feature.
 
@@ -35,15 +58,19 @@ the operations are in `scripts/expectations.js`'s header). A line, its text on o
 
 1. **What is due.** `npm run expectations -- due <the run's area>` prints the area if it has no line at all, or
    "awaiting the owner" if it has proposed lines only.
-2. **No line at all: draft.** Write three to five lines in the store's form. The `steward` checks them at the run's
-   first review pause (an `evolve` run, before it files) against VISION's Never lines and the persona; a line it flags
-   is dropped and named. Then `npm run expectations -- draft <feature> --file <lines>` with the rest. They are
+2. **No line at all: draft.** Write three to five lines in the store's form, each naming the verb it serves. The
+   `steward` checks them at the run's first review pause (an `evolve` run, before it files) against VISION's Never
+   lines and the persona, and each named verb against VISION's question to ask of it; a line breaking a Never line is
+   dropped by the run and named, whatever its `Serves:`; one serving no verb is kept, `Serves: none; <its reason>`,
+   for the owner. Then
+   `npm run expectations -- draft <feature> --file <lines>` with the rest. They are
    proposed: used provisionally in this run, and put to the owner (section 10, step 5: one question per feature, its
    lines grouped, "Ratify as drafted" first; under the orchestrator, its batch), whose answer is recorded as "The
    owner's answer: one flow" says.
 3. **Awaiting the owner:** test against the proposed lines, provisionally; draft nothing more.
 4. **Ratified lines: test against them.** A line the run finds wrong or thin is answered with
-   `npm run expectations -- amend <id> --file <line>`, checked by the steward the same way; never an edit.
+   `npm run expectations -- amend <id> --file <line>`, naming its verb, checked by the steward the same way; never an
+   edit.
 5. **Judge each line.** `met` only with evidence: its own check, which the script finds (it exists and is not todo)
    and which passed in the journeys or the tests this run ran; or, while the check is pending, a picture of it met (a
    shot of the feature's own journeys, or a `.png` under the run's shots folder, named in the log's `shots`). A line
@@ -62,7 +89,9 @@ the operations are in `scripts/expectations.js`'s header). A line, its text on o
    "compass":{"shipped":2,"filedLow":3,"lensG":["G9"]},"shots":"<the run's shots folder>"
    ```
 
-   `shots` is a path: `tend:log` checks the pictures under it and leaves it out of the line it writes.
+   `shots` is a path: `tend:log` checks the pictures under it and leaves it out of the line it writes. A line's verb is
+   in the store, by its id; a line flagged as serving none is logged `"serves":"none"` beside its `is`, and `dropped`
+   names a Never line only.
 
    `npm run tend:log` marks the line `"lens":"0236"` and refuses a sweep, or a run whose range built an entry, without
    them; an id the store does not hold, of another area, or named twice; a proposed line not marked provisional; a

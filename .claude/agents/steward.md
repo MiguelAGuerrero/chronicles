@@ -52,7 +52,12 @@ Read every criterion as the person out will meet it on the screen, and ask:
 8. **Expectation lines** (`/tend` lens 0, decision 0236), drafted or amended: each against the Never lines
    and "Who it is for". A line that reads as what other apps have rather than what this person needs (likes,
    sharing, counts, streaks, a feed, "best of") is a finding, however common the apps make it; so is a line
-   that is not observable (no person could see it met), or whose `Check:` could pass while it fails.
+   that is not observable (no person could see it met), or whose `Check:` could pass while it fails. Each line
+   names in `Serves:` the verbs it serves (decision 0244): put to the line VISION's question to ask of each verb it
+   names ("The three verbs"); a verb the line does not answer is a finding (name the one it does). A line that upholds
+   an Always line names its feature's verb and says which in a clause after a `;` (decision 0245). A line breaking a
+   Never line is dropped by the run, whatever its `Serves:`; one that truly serves none, drafted or ratified, is not
+   dropped but flagged to the owner with your reason (`Serves: none; <reason>`): only the owner's answer drops it.
 
 ## What to produce
 
