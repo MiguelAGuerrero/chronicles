@@ -264,10 +264,6 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
   Nov 19: the owner's yes, in person, 2026-11-19: "Short card words (Recommended)": the card and "What I'm into" both read "Green" and "Views & oddities", and "What I'm into" keeps a muted line under each heading (for example "Parks, gardens and nature") (decision 0238). Held from `/tend presence` (over the run's size); waits for a build.
   Nov 20: the record of that answer is decision 0239 (main took 0238 while the run was open); the owner's Nov 20 answers there do not change it.
 
-### From /fix
-
-- **Edit after a capture on the other camera paths** (fix edit-after-capture, Nov 20; the review's F4): decision 0240 opens the editor by itself on the four places the question named (the walk screen, Navigate, the recording bar, Memories' line). Three more take a photo and open none: the walk planner's capture stack during a walk (`planner/PlannerCapture.tsx`, a new moment of the walk), Respond in the viewer (`threads/ReplyDock.tsx`, a reply; there it would be an overlay inside the viewer), and the note page's camera (`notePage/NewNotePage.tsx`, a photo mentioned in the note, NP14). Recommended: the planner yes (it is a capture on a walk), Respond and the note page no (a reply and a mention, edited later from the viewer). Each is a small change; together they were past a fix's size.
-
 ### From the road engine's audit (2026-11-18)
 
 The steward's questions from the road engine's audit that only the owner answers; nothing here is built or decided.

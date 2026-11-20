@@ -2,7 +2,12 @@ import { useRef, useState } from 'react';
 import { AccessibilityInfo, Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { LngLat } from '../../lib/types';
 import { feedback } from '../../lib/motion';
+import { barStopping } from '../../lib/recordingBar';
+import { barStop } from '../../lib/tabsHidden';
+import { unsaved } from '../../lib/unsaved';
 import { useCaptures } from '../../lib/useCaptures';
+import { useEditAfterCapture } from '../edit/EditOffer';
+import { MediaEditor } from '../edit/MediaEditor';
 import { CaptureStack } from '../walk/CaptureStack';
 import { theme } from '../ui';
 import { Modal } from '../Modal';
@@ -29,11 +34,16 @@ export function PlannerCapture(props: { walkId: string; here: LngLat | null; las
   // The note's page (note pages NP1; note-pages audit 13), begun at the pencil's tap, keyed per page.
   const [page, setPage] = useState(0);
   const pageRef = useRef<NotePageHandle>(null);
+  // Once a photo or video is kept, its editor opens by itself, as on the walk screen (decision 0240; fix planner-edit).
+  const editAfter = useEditAfterCapture(cap.captures);
+  const editing = editAfter.editing;
   async function photo() {
-    if (await cap.takePhoto()) {
-      feedback('tap');
-      setMessage('Saved here');
-    }
+    const kept = await cap.takePhoto();
+    if (!kept) return;
+    feedback('tap');
+    setMessage('Saved here');
+    // Not while the bar stops this walk, or once it has ended: its replay would cover or take the editor (0240's audits 3, 6).
+    if (!(barStopping(barStop.get(), props.walkId, Date.now()) || unsaved.hasEnded(props.walkId))) editAfter.open(kept);
   }
   async function startVoice() {
     if (await cap.startVoice()) {
@@ -74,6 +84,9 @@ export function PlannerCapture(props: { walkId: string; here: LngLat | null; las
           ) : null}
         </View>
       ) : null}
+      {editing && (
+        <MediaEditor key={editing.piece_id} capture={editing} justKept initialTool="crop" onClose={() => editAfter.close()} onSave={(patch) => cap.setEdit(editing, patch)} />
+      )}
       <Modal visible={page > 0} animationType="slide" onRequestClose={() => pageRef.current?.requestClose()}>
         {page > 0 ? <NewNotePage key={page} ref={pageRef} cap={cap} into={null} onWalk reactable camera onKept={() => setMessage('Note saved here')} onClose={() => setPage(0)} /> : null}
       </Modal>
