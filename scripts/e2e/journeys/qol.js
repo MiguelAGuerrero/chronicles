@@ -747,7 +747,7 @@ async function run(h) {
       try {
         await fn();
       } catch (e) {
-        check(false, `${name}: ${String(e.message).split('\n')[0]}`);
+        check(false, `step ${name}: ${String(e.message).split('\n')[0]}`);
       }
     };
     const capRow = (kind) => pg.evaluate((k) => new Promise((resolve) => {

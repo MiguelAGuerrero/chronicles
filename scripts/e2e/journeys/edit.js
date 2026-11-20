@@ -14,7 +14,7 @@ async function run(h) {
       } catch (e) {
         const lines = String(e.message).split('\n');
         const why = lines.filter((l) => /Timeout|waiting for|locator/.test(l)).slice(0, 3).join(' | ') || lines.slice(0, 2).join(' | ');
-        check(false, `${name}: ${why}`);
+        check(false, `step ${name}: ${why}`);
       }
     };
     const rowOf = (kind) => pg.evaluate((k) => new Promise((resolve) => {
