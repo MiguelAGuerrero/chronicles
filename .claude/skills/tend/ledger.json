@@ -71,9 +71,9 @@
       "XS"
     ],
     "commits": {
-      "growth": 181,
-      "refinement": 719,
-      "other": 760
+      "growth": 179,
+      "refinement": 743,
+      "other": 782
     },
     "areas": {
       "rough": [
@@ -121,9 +121,9 @@
       "web"
     ],
     "open": {
-      "openT": 7,
+      "openT": 8,
       "phoneT": 4,
-      "openG": 5
+      "openG": 6
     },
     "reading": "outgrowing its base",
     "propose": false,
@@ -156,9 +156,9 @@
     },
     "tabs": {
       "state": "rough",
-      "swept": "2026-11-18",
-      "main": "e45412a940a7b1b87429a4d70029784cac345763",
-      "note": "No sweep (lenses 1-6 not run): five of DEFERRED's ten [loop] lows. tend tabs 12 (the bar's way back does nothing while the bar's stop is under way), 13 (its comment names its held Stop), 14 (the walk gate counts the walk screens up), 15 (lib/launchRoute a shell, says Chronicle). Review (auditor, one round, four low, all accepted): audits 26-28 (the stop shared by any bar of the walk in barStop, asked again before the walk shows, bounded by BAR_STOP_HOLD_MS), F4 a line in tabs-and-home.md, which passed the 20,000-character warning: T39 asks for the split. T35-T38 [owner] filed from four items needing words or a visual change; the reminder's stale key left (a baseline the loop may not prune); dead code's shape noted. T11 [owner], T13 [phone] still open."
+      "swept": "2026-11-20",
+      "main": "805895f4ba2a68ee5391fd67ffa5b7844c0484c3",
+      "note": "Whole sweep (lenses 0-7), decision 0236's lens 0: tabs' five lines drafted (E-tabs-1, 2, 3, 5 met; E-tabs-4 failed, its defect T11). Shipped tend tabs 16-22: the tabs' error line follows the open walk (the owner's O35 extension), Memories' render bound, the bar's held Stop checked, the stuck Stop bounded, \"marked here\", the bar in minutes, the reminder card pictured. Review (auditor, ux-reviewer, steward, one round): accepted 12, two answered by the owner in person (\"1:45\" past the hour; the replay's line nothing while one records), fixes tend tabs audit 53-62. Rough: the older medium (Chronicle's two controls for one choice) and new lows stay in DEFERRED; T11 [owner], T13 [phone], T41 open."
     },
     "map": {
       "state": "rough",
@@ -193,13 +193,13 @@
   },
   "declined": [],
   "compass": {
-    "date": null,
-    "runs": 0,
+    "date": "2026-11-20",
+    "runs": 1,
     "shares": {
       "first": null,
       "second": null
     },
     "trend": "none",
-    "verdict": "too early to say: 0 of 12 runs carry the compass"
+    "verdict": "too early to say: 1 of 12 runs carry the compass"
   }
 }
