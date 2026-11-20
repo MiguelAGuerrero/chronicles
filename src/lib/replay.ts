@@ -74,12 +74,53 @@ export type ReplayBeat = 'reading' | 'fog' | 'path' | 'card' | 'name';
  * What the open replay does with news of its walk's captures (tend replay T41): a capture kept after the replay opened
  * (a memo still being saved through the bar's Stop, decision 0227), or a change to one. On the card or the name step
  * the walk is read again at once, so it is pinned there; while the walk is read or told it waits (`late`) and is read
- * when the card comes, so no telling changes under it and the next Watch again plays it. Nothing is said of it.
+ * when the card comes, so no telling changes under it and the next Watch again plays it. A read that settles is shown
+ * only on the card or the name step; one that settles once Watch again has begun waits for the next card (tend replay
+ * audit 18). Nothing is said of it.
  */
-export function arrival(late: boolean, e: { heard: ReplayBeat } | { to: ReplayBeat }): { late: boolean; read: boolean } {
+export function arrival(
+  late: boolean,
+  e: { heard: ReplayBeat } | { to: ReplayBeat } | { settled: ReplayBeat },
+): { late: boolean; read: boolean; apply: boolean } {
   const atCard = (b: ReplayBeat) => b === 'card' || b === 'name';
-  if ('heard' in e) return atCard(e.heard) ? { late: false, read: true } : { late: true, read: false };
-  return atCard(e.to) && late ? { late: false, read: true } : { late, read: false };
+  if ('heard' in e) return atCard(e.heard) ? { late: false, read: true, apply: false } : { late: true, read: false, apply: false };
+  if ('settled' in e) return atCard(e.settled) ? { late, read: false, apply: true } : { late: true, read: false, apply: false };
+  return atCard(e.to) && late ? { late: false, read: true, apply: false } : { late, read: false, apply: false };
+}
+
+/**
+ * The open replay's ear for its walk (tend replay T41, audit 18): told each beat the screen moves to and each piece of
+ * news heard, it reads the walk with `read` and hands it to `show` as `arrival` says; only the latest read is shown,
+ * however the reads settle. Its state is its own, one per replay screen.
+ */
+export function replayArrivals<D>(read: () => Promise<D | null>, show: (d: D) => void): { heard: () => void; moved: (b: ReplayBeat) => void } {
+  let told: ReplayBeat = 'reading';
+  let late = false;
+  let reads = 0;
+  const step = (e: Parameters<typeof arrival>[1]) => {
+    const s = arrival(late, e);
+    late = s.late;
+    if (s.read) start();
+    return s;
+  };
+  const start = () => {
+    const n = ++reads;
+    read().then(
+      (d) => {
+        if (d && n === reads && step({ settled: told }).apply) show(d);
+      },
+      () => {},
+    );
+  };
+  return {
+    heard: () => {
+      step({ heard: told });
+    },
+    moved: (b) => {
+      told = b;
+      step({ to: b });
+    },
+  };
 }
 
 /**
