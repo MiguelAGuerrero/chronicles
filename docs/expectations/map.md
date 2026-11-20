@@ -13,8 +13,8 @@ owner. Changed only through `npm run expectations`; a line's words, status and a
   Check: qol:"tend map 23: switched to miles on Navigate, every Explore tile says its distance in the units its spoken label says (before "
   Grounds: VISION "Who it is for"; VISION Always, "Distances and times are fine"; not yet recorded (how adjacent apps keep one units setting)
 - E-map-4 [proposed] A person who goes out to notice, using the map, would reasonably expect one tap to bring the map to where they stand now.
-  Check: qol:"qol QL10: Navigate's Locate frames the map around the fix 1 km away (canvas middle "
+  Check: qol:"tend map audit 56: one tap on Locate brings the map to where you stand, on Navigate and on Explore"
   Grounds: VISION "Who it is for"; adjacent-apps "Bring the map back to north while following" (Apple Maps: "Your position is marked in the middle of the map"; verified)
 - E-map-5 [proposed] A person who goes out to notice, using the map, would reasonably expect a photo, a voice memo, a note and a video to look different on the map by their shape as well as their colour.
-  Check: pending "each kind's pin tells itself apart under deuteranopia"
+  Check: pending "in greyscale, each kind's pin carries its own glyph"
   Grounds: VISION "Who it is for"; not yet recorded (how adjacent apps tell a moment's kind apart on a map)

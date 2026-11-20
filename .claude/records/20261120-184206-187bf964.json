@@ -1,0 +1,135 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Plan an outing (QC1-QC42, decision 0194)"
+      ],
+      "body": "- [loop] (low) On the outing page, the map does not show which stop's card is open: the stop pins look alike whichever row is expanded (`04-card`, `tend-map-24-with-a-stop-s-card-open-320`, `05c-mixed`); the open stop's pin larger with a ring, or each pin numbered as its slot, never colour alone (NN/g H6; X3; opinion: no app's selected pin is recorded) (the `/tend map` diff review's ux U4, Nov 20)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Plan an outing (QC1-QC42, decision 0194)"
+      ],
+      "body": "- [loop] (low) The outing sheet's fold row says \"Show the map\" while the journey now shows above the sheet (`tend map 24`), so it reads as if the map were hidden; its folded twin says \"Show the journeys\". \"Hide the journeys\" would fit; a change of words, for `/vision` before it is built (NN/g H4) (`03-journeys`, `04-card`, `05b-several`; the `/tend map` diff review's ux U6, Nov 20)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Plan an outing (QC1-QC42, decision 0194)"
+      ],
+      "body": "- [loop] (low) With a destination and no journey yet, the outing map frames the destination's town (`useJourney`'s fit, 1200 m around it) with no mark on it and without you, so a picked town far off shows as an empty map above the sheet (`02b-destination`; the e2e's world has no tiles there); the review asked for you and the destination framed together, which changes what that frame shows (the `/tend map` diff review's ux U3, Nov 20; `tend map audit 52` framed only the state with neither)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Map, walk screen and motion polish"
+      ],
+      "body": "- [loop] (low) In miles, the \"?\" range and the pass-by sliders step through converted metres (\"within 328 ft\", \"26 ft\"): a miles reader does not count in those; in miles, step over round imperial values (300 ft, 25 ft), each kept as its metres (NN/g H2; opinion) (`tend-map-23-drawer-range-miles-{390,320}`; the `/tend map` diff review's ux U5, Nov 20)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore atlas"
+      ],
+      "body": "- [loop] (low) On the area card, \"· 3.7 mi away\" is set smaller and grey after \"New to you\" in body ink, with what looks like a double space before the dot, where the tile sets both halves of its line alike (`tend-map-23-card-miles-390`; opinion; the `/tend map` diff review's ux U7, Nov 20)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "set",
+        "(low) With deuteranopia",
+        "--reason",
+        "the /tend map diff review's steward 1, Nov 20: E-map-5 is judged by a glyph check (a glyph is a shape, WCAG 1.4.1), so this stays a low colour item, not that line's defect; the run's own note taken back"
+      ],
+      "body": "- [loop] (low) With deuteranopia and protanopia the photo and video discs are two near-identical dark discs, told apart only by their 12 px glyphs (map-palette UI review U3, Nov 17, opinion; WCAG 1.4.1 met by the glyph; sims of `palette-02-card-390` and `palette-03-card-320`). The owner, Nov 17: \"Ship as picked, file them\". To try: widen their lightness gap, verdigris (`COLORS.photo`, glyph 6.52:1) a step lighter; fresh pictures with their sims, and MP6 and MP7 measured again (decision 0188).\n",
+      "target": "sha256:91ec4d517b2b47a1f42ff0bf7746f92762a84000cb7dfd9c5fd4fb6ee66b1f68"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Quality of life"
+      ],
+      "body": "- [ ] **Do:** keep a note as a walk begins, walk on and stop, then on the replay's card tap the note's pin where it stands on the hollow start. **Expect:** the pin opens (QL3, `tend map 25`): on MapLibre RN the pin is a `Marker` over the `ends` layer, and the web's check cannot show that the layer never takes the tap (the `/tend map` diff review's auditor F5, Nov 20).\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Quality of life"
+      ],
+      "body": "- [ ] **Do:** open Plan an outing; pick chips until journeys show, open one, open and close a stop's row, fold the sheet and open it again. **Expect:** the sheet's height is measured as its content changes (`onLayout` on the absolutely placed sheet, `OutingPage.tsx`), and the scale bar and the map's own (i) sit 12 px above it each time, never under it (`tend map 24`; QL5, QL8).\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Quality of life"
+      ],
+      "body": "- [ ] **Do:** on the outing page with a journey, open a stop's card, then fold the sheet; then pan the map a little and open another stop's row; then turn on Reduce Motion and change the chips. **Expect:** each height change frames the journey above the sheet and the scale row (`fitPadding` with a bottom of the sheet's height + 48, through `capFitBounds` and `cameraRef.fitBounds`, `WalkMap.native.tsx`), animated, or a jump under Reduce Motion; after the pan, nothing frames the map again until the journey changes (`tend map audit 49`: `onUserMove`, `onFitSettled` and `onCameraChange` on MapLibre RN) (`tend map audits 49, 50`).\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Quality of life"
+      ],
+      "body": "- [ ] **Do:** on a short phone in landscape, open Plan an outing with a journey and open a stop's card. **Expect:** the frame left above the sheet is a strip about 14 to 18 px tall; the fit still lands in it (or shows the journey as best it can), and never silently does nothing (the `/tend map` diff review's auditor, native list).\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Quality of life"
+      ],
+      "body": "- [ ] **Do:** switch Distances to miles on Navigate's ready bar, then look at Explore's tiles and an area's card, the \"?\" range, the pass-by note and the destination line. **Expect:** each says miles at once: the React Compiler under Hermes rebuilds the lines bound by `useDistance()` (`lib/useUnits`) as it does on the web (`tend map 23`; QL16).\n"
+    },
+    {
+      "argv": [
+        "inbox",
+        "set",
+        "T50",
+        "--reason",
+        "the /tend map diff review's steward 3 and 7, Nov 20: a white band and greyscale in its criteria; its precedent supports the Otherwise"
+      ],
+      "body": "- **T50 [owner] A loop's two ends as one combined mark** (2026-11-20)\n  Area: map. Seen: `qol-21-loop-card-390.png`, `qol-21-loop-card-320.png`, `qol-20-loop-held-390.png` (the `qol` journey, `/tend map`, Nov 20): a walk that ends 3 m from where it began draws the end's bullseye over the start (`tend map audit 25`), and the start's green shows only as a crescent beside it (the lenses' ux-reviewer 5, steward's silent 1). Rests on: the owner's answer in person, Nov 20, \"One combined mark (Recommended)\" (decision 0244); E-map-1 (\"the two marked by shape, not colour alone\"), failed on a loop until this lands.\n  Recommended: when the start and the end fall within one marker's diameter on screen, one mark: the start's hollow ring (the trace's green) as a halo around the end's bullseye (`ENDS_RING_PAINT`, `ENDS_PAINT`, `map/types.ts`), a white band between the start's ring and the end's bullseye, so the two read apart in greyscale; apart, the two marks as now. Judged on screen, so the ends are sent again as the zoom changes, on both maps (`traceEnds` with a pure \"together at this scale\" rule, `WalkMap.web.tsx`, `WalkMap.native.tsx`): four source files, past the two this run was allowed, so it waits for a build. Its criteria: one mark within one diameter; a white band separates the start's ring from the end's bullseye; the two read apart in greyscale; E-map-1's check gains a loop case. /vision: aligned (Return: the walk's shape told truthfully; no word, count or control added).\n  Precedent: none found for the halo. Strava draws a loop's start and finish flags over each other (from memory, not yet recorded; a fitness app's convention), which supports the Otherwise, not the Recommended; `docs/research/adjacent-apps.md` (\"Replay a walk; moments on a map\") names no app's two ends.\n  Otherwise: the end drawn over the start as now, with the start's ring widened so it shows whole around it at every zoom (one paint, no zoom rule).\n  Nov 20: the owner's yes, in person, \"One combined mark (Recommended)\" (decision 0244). Waits for a build.\n",
+      "target": "sha256:e13573faa3280e3cd2b68924f3a9889e66396fc527acc923ad6fa6395f10d6b0"
+    },
+    {
+      "argv": [
+        "open",
+        "set",
+        "l.42 (QL13) says",
+        "--reason",
+        "the /tend map diff review's steward 4: E-map-3 favours the fix"
+      ],
+      "body": "- **`specs/quality-of-life/spec.md` l.42 (QL13) says \"until then the locale default shows\"** (Nov 20). What ships: the units store starts at km until `loadUnits` reads meta at launch (`src/lib/units.ts` l.30-32, held by the unit test \"QL13 regression: a fresh store starts at km, whatever the machine\", so pure code and `npm test` never read the machine's locale), so a miles user's first frames say km. E-map-3 (\"…in the units they chose … as soon as they choose them\", proposed, decision 0244) favours the fix over new words: the app's instance sets the locale's default on import (filed `[loop]` in `docs/DEFERRED.md`, \"Map, walk screen and motion polish\") (the `/tend map` lenses' auditor 4; the diff review's steward 4).\n",
+      "target": "sha256:7531477c4973da9180cfbd12c6ff998f3e6b601cd866627f68a65a94577ceb28"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 20, `/tend map --deploy=main`, a whole, uncapped sweep** (opened from `e9cb0f18`; lenses 0-7 all run; the last of decision 0229's whole sweeps, the fourth under the expectation lens, decision 0236).\n- Lens 0: map had no line; five drafted (`docs/expectations/map.md`, proposed), reworded by the steward (north in one tap dropped for the pins' shape as well as colour) and answered by the owner in person (\"Ratify as drafted\", decision 0244). E-map-1 failed: met apart, failed on a loop, where the end covers the start (its defect T50). E-map-2 met (QL3's tap on the end; `tend map 25` adds the start). E-map-3 failed: Explore's tiles and card and Navigate's settings follow a switch since `tend map 23`, but seven views still keep the store's units (DEFERRED), a miles user's first frames on launch say km, and no check reads the scale bar after a switch. E-map-4 met (`tend map audit 56`, Locate on Navigate and Explore). E-map-5 met by a picture: in greyscale each kind's pin carries its own mark (camera, play, mic, pencil; a photo shows its picture), its check pending \"in greyscale, each kind's pin carries its own glyph\".\n- Lenses: 1, the area's journeys (`qol`, `palette`) and the maps of `outing` and `planner`, with a units probe, to the ux-reviewer and the steward; 2-4 read from the code, the specs and the rule files; 5, the auditor; 6, `check:vision --list` clean on the area's files; 7, DEFERRED's nineteen `[loop]` items of the area read (the `alternates` one re-measured with `perf-walk`: gone).\n- Shipped: `tend map 22` a journey's step failures open on fixed words, so a line can name qol's checks; `23` Explore's tiles and card, Navigate's settings and its strip take formatters bound to the units (`useDistance`), the React Compiler having kept the old units; `24` Plan an outing's map shows its scale bar and credits and frames the journey above its sheet; `25` a pin on the start marker opens with a tap (QL3).\n- The review (one round; the auditor, the ux-reviewer and the steward): `audit 48` the units scan follows the libs that format with the store into their views (seven views named, filed); `49` a sheet's change never takes back a map the person moved; `50` the outing frame clears the scale row; `51` the outing sheet is measured twice a second as well, so its (i) and bar never stay under it; `52` with nothing chosen the outing map frames you; `53` a side-panel card closes as Navigate opens and opens again in miles; `54` qol covers the views it checks; `55` destLine and passNote with their units; `56` Locate on both maps in one check. The steward's seven record findings taken (E-map-5's check, E-map-1 failed with T50, T50's white band and its precedent, E-map-3 failed everywhere, decision 0244's wording).\n- Filed: T50 (a loop's two ends as one combined mark, the owner's yes, a white band between, waiting for a build); `[loop]` in \"Map, walk screen and motion polish\" (the seven views still on the store's units, medium; the formatters' default units; Explore's open credits at 320; the audit 35 picture; Explore's Find me when refused; the scale bar before the first view; Chronicle's empty map at z22; a late Locate fix undoing a pick; the units store's first frames; miles' converted range steps), in \"Plan an outing\" (the open stop's pin unmarked; \"Show the map\" now misleading, for `/vision`; a destination framed without you or a mark) and in \"Explore atlas\" (the card's distance set smaller); five checks for a phone in NATIVE_UNVERIFIED; QL16's and QL13's words and the map rule's units line in \"Open before the loop\".\n- The balance: outgrowing its base (ten areas rough); no `G` from lens 0 (E-map-1's growth is T50, E-map-3's the filed views). The area stays `rough`: the sweep found mediums.\n- Journeys on the final build: qol, outing, launch (and deletion, edit for tend map 22).\n"
+    }
+  ]
+}
