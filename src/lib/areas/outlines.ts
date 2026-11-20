@@ -166,15 +166,23 @@ export function boxDistanceM(p: LngLat, [w, s, e, n]: TownOutline['bbox']): numb
  * inside the outline (or lies beyond the tiles read, near it). An outline with
  * no label point is a town of its own, at the source's point, else the middle
  * of what was read.
+ *
+ * `joinM`: how far beyond the outline's box a label whose own tile was not read may still be joined to it: a town's
+ * reach unless given (placing walks). The atlas gives a city's label the whole town read (`townJoinM`), so a city's label
+ * in a tile not read is still its outline's (fix duplicate-city).
  */
-export function withOutlines(candidates: PlaceCandidate[], set: OutlineSet | null | undefined): PlaceCandidate[] {
+export function withOutlines(
+  candidates: PlaceCandidate[],
+  set: OutlineSet | null | undefined,
+  joinM: (c: PlaceCandidate) => number = () => AREA_REACH_M.town,
+): PlaceCandidate[] {
   if (!set || (!set.towns.length && !set.hoods?.length)) return candidates;
   const out = candidates.slice();
   for (const t of set.towns) {
     let matched = false;
     out.forEach((c, i) => {
       if (c.level !== 'town' || !sameName(c.name, t.name)) return;
-      const mine = inOutline(c.at, t) || (!coveredBy(set, c.at) && boxDistanceM(c.at, t.bbox) <= AREA_REACH_M.town);
+      const mine = inOutline(c.at, t) || (!coveredBy(set, c.at) && boxDistanceM(c.at, t.bbox) <= joinM(c));
       if (!mine) return;
       // Already joined to this outline: joining again changes nothing (neighborhood boundaries audit 2).
       if (c.outline?.id === t.id) {
@@ -192,7 +200,7 @@ export function withOutlines(candidates: PlaceCandidate[], set: OutlineSet | nul
       // middle, listed twice (fix carousel-duplicates audits 1-3).
       let best = -1;
       out.forEach((c, i) => {
-        if (c.level !== 'town' || c.outline || !sameName(c.name, t.name) || boxDistanceM(c.at, t.bbox) > AREA_REACH_M.town) return;
+        if (c.level !== 'town' || c.outline || !sameName(c.name, t.name) || boxDistanceM(c.at, t.bbox) > joinM(c)) return;
         if (best < 0 || distanceM(c.at, outlineCentre(t)) < distanceM(out[best].at, outlineCentre(t))) best = i;
       });
       if (best >= 0) {

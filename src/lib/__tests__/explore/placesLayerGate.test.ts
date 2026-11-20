@@ -53,7 +53,8 @@ test('PL6, PL7: the card has no "Waiting to be found"; a kind row never reads th
 
 test('PL11: the layer adds no store, read or migration', () => {
   const t = src('src/lib/atlas/atlas.ts');
-  assert.match(t, /const ATLAS_OWN = 'a15'/, 'ATLAS_OWN is unchanged');
+  // a16 is fix duplicate-city's (the town read), not the layer's.
+  assert.match(t, /const ATLAS_OWN = 'a16'/, 'ATLAS_OWN is unchanged');
 });
 
 test('the scan itself fails on a screen that forgets the layer', () => {

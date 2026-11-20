@@ -13,7 +13,7 @@ import type { Ports } from '../ports/types';
 import { TILE_ZOOM, tilesIn } from '../tileMath';
 import type { LngLat } from '../types';
 import {
-  ATLAS_CODE, ATLAS_RULES, keptProfile, newRows, withNear, SKETCH,
+  ATLAS_CODE, ATLAS_RULES, keptProfile, newRows, townJoinM, withNear, SKETCH,
   type AtlasArea, type AtlasLevel, type NearRead,
 } from './atlas';
 import { extentTiles } from './extent';
@@ -125,7 +125,8 @@ export function createAtlasRead(p: Pick<Ports, 'db' | 'clock'> & { io: AtlasRead
         if (level === 'town') {
           const read = await outlines.read([at], shouldStop).catch(() => null);
           if (shouldStop()) return false;
-          if (read) candidates = withOutlines(candidates, read.set).filter((c) => listable(c, at));
+          // fix duplicate-city: a city's label in a tile not read is still its outline's, never a second town.
+          if (read) candidates = withOutlines(candidates, read.set, townJoinM).filter((c) => listable(c, at));
         } else if (level === 'neighborhood') {
           // Audit 1: the neighborhoods around you as placing knows them, by the tile under you: a name inside a shape is no row, and a shape with no point within reach is one.
           const read = await outlines.read([at], shouldStop).catch(() => null);

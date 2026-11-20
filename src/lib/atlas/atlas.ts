@@ -41,7 +41,9 @@ import type { Pocket } from './pockets';
 // a14: small places (specs/small-places SP12, SP13): the bars keep counts and each small subset's share apart.
 // a15: Sights follow the switches (specs/sights-and-local-life SG12, decision 0201): the tally keeps every Sights place
 // under its kind, so a profile of a14 has none to drop; none carried.
-const ATLAS_OWN = 'a15';
+// a16: a city's label point is joined to its outline anywhere the town read reaches (`townJoinM`), so the outline read under you is no
+// second town (fix duplicate-city); neighborhood rows stand as under a15 (`CARRIED`).
+const ATLAS_OWN = 'a16';
 /** A row's code: the atlas's own (`ATLAS_OWN`) and presence's (PR6), so a reclassification re-reads every row. */
 export const ATLAS_CODE = `${ATLAS_OWN}.${PRESENCE_CODE}`;
 
@@ -52,7 +54,9 @@ export const ATLAS_CODE = `${ATLAS_OWN}.${PRESENCE_CODE}`;
  * specs/presence-readers PS9: a9.p1 under a9.p2, now a10.p1 under a10.p2), so a bump of the atlas's own part carries none.
  */
 const CARRIED_PRESENCE = PRESENCE_CARRIED.map((c) => `${ATLAS_OWN}.${c}`);
-const CARRIED: Partial<Record<AtlasLevel, readonly string[]>> = { neighborhood: CARRIED_PRESENCE, town: CARRIED_PRESENCE };
+/** fix duplicate-city (a16): only the town read changed, so a neighborhood row of a15 stands, with the presence it carried. */
+const A15 = [PRESENCE_CODE, ...PRESENCE_CARRIED].map((c) => `a15.${c}`);
+const CARRIED: Partial<Record<AtlasLevel, readonly string[]>> = { neighborhood: [...CARRIED_PRESENCE, ...A15], town: CARRIED_PRESENCE };
 
 export const ATLAS_RULES = {
   /** Every area is measured inside this ring around its point, whatever its level (AT4). */
@@ -467,6 +471,14 @@ export function withNear(reads: NearRead[], read: NearRead): NearRead[] {
 }
 
 /**
+ * fix duplicate-city: how far beyond an outline's box a same-named label in a tile not read is joined to it. The town read
+ * reads the outlines under you only, and Philadelphia's City Hall lies up to 12 km from the piece read (its far north): with a
+ * town's 3 km the outline was a second "Philadelphia". A city's label is its outline's anywhere the read reaches; a town's or a
+ * village's within a town's reach, as placing joins them.
+ */
+export const townJoinM = (c: PlaceCandidate): number => (c.reachM >= AREA_REACH_M.city ? ATLAS_RULES.nearTownM : AREA_REACH_M.town);
+
+/**
  * AT2: the town or city an area belongs to: the one whose outline holds it,
  * where outlines are kept (TO10); else the nearest, closer for its size,
  * within its reach. Null when none reaches it, or when the outline holding it
@@ -475,7 +487,8 @@ export function withNear(reads: NearRead[], read: NearRead): NearRead[] {
 export function townOf(area: { at: LngLat }, towns: AtlasArea[], outlines: OutlineSet | null = null): AtlasArea | null {
   const cands: PlaceCandidate[] = towns.map((t) => ({ level: 'town', name: t.name, at: t.at, reachM: t.reachM }));
   // withOutlines keeps each row's place in the list and adds outline-only towns after them.
-  const merged = withOutlines(cands, outlines);
+  // fix duplicate-city: joined as the town read joins them, so a city's label row is the one you are in.
+  const merged = withOutlines(cands, outlines, townJoinM);
   const pick = townAt(area.at, merged, outlines);
   const i = pick ? merged.indexOf(pick.c) : -1;
   return i >= 0 && i < towns.length ? towns[i] : null;
