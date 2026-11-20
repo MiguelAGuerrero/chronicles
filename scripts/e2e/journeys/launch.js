@@ -576,13 +576,18 @@ async function fresh(h) {
           await pg.waitForTimeout(400);
           onTabs.push(`${id}:${await shownCount(pg, '[data-testid=recording-bar]')}:${await pg.locator('canvas.maplibregl-canvas').count()}`);
         }
-        if (k === 23) perfA = { at: Date.now(), ...(await pg.evaluate(() => ({ ...window.__perf }))) };
+        // tend tabs audit 59: Memories is the page in front when the window opens and when it is read, or its bound
+        // measures nothing.
+        const memoriesShown = () => pg.evaluate(() => [...document.querySelectorAll('[data-testid=section-memories][aria-selected=true]')].some((e) => !e.closest('[aria-hidden=true]')) && /\/$/.test(location.pathname));
+        if (k === 23) perfA = { at: Date.now(), shown: await memoriesShown(), ...(await pg.evaluate(() => ({ ...window.__perf }))) };
       });
       await pg.waitForTimeout(2200);
       {
         // The bar ticks and follows the trace by itself: the tab beneath it isn't re-rendered (perf).
+        const shownAtEnd = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=section-memories][aria-selected=true]')].some((e) => !e.closest('[aria-hidden=true]')) && /\/$/.test(location.pathname));
         const b = await pg.evaluate(() => ({ ...window.__perf }));
         const secs = (Date.now() - perfA.at) / 1000;
+        check(perfA.shown && shownAtEnd, `tend tabs audit 59: Memories is in front when the render window opens and when it is read (${perfA.shown}, ${shownAtEnd})`);
         const rate = (k) => ((b[k] ?? 0) - (perfA[k] ?? 0)) / secs;
         // tend tabs 17 (the lenses' auditor 2): the tour ends on Chronicle's Memories, so it is Memories that must not follow
         // the walk; "render:navigate" was counted nowhere and read 0 whatever the tabs did. Memories ticks its own clock
