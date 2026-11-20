@@ -3,9 +3,10 @@
 What a person would reasonably expect of presence (decision 0236): drafted by `/tend`'s lens 0, ratified by the
 owner. Changed only through `npm run expectations`; a line's words, status and answer are the owner's.
 
-- E-presence-1 [proposed] A person who goes out to notice, using presence, would reasonably expect a "?" card to name no kind until the place is found, and the find then to be kept under the kind whose row in "What I'm into" hides it.
+- E-presence-1 [ratified 2026-11-20] A person who goes out to notice, using presence, would reasonably expect a "?" card to name no kind until the place is found, and the find then to be kept under the kind whose row in "What I'm into" hides it.
   Check: pending "a '?' card names no kind until the place is found; the find is kept under the kind whose row hides it"
   Grounds: VISION "Who it is for"; not yet recorded (how adjacent apps name a place still to find, and keep a find under a kind)
+  Answer: "PC16 holds; reword E1 (Recommended)" (the owner, 2026-11-20)
 - E-presence-2 [ratified 2026-11-19] A person who goes out to notice, using presence, would reasonably expect a street listed under Storefronts to be lined with places they could walk into (a shop, a café, a museum), never lit by a park, a monument or memorial, or a cemetery, whichever map holds it.
   Check: test:"tend presence 2: an Overture park, trail, memorial site or cemetery weighs nothing toward storefronts, as the map's do"
   Grounds: VISION "Who it is for"; adjacent-apps "Say what an area holds: findable places apart from the places you go into" (Google Maps, Walk Score as a counter-example for its score; unverified)
