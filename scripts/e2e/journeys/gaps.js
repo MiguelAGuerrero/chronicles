@@ -278,7 +278,11 @@ async function run(h) {
       await p2.waitForSelector('[data-testid=skip]', { timeout: 60000 });
       // replay-ceremony ui 11 (the UI review's U2; the owner's defaults, Nov 20): the question on a short phone. The
       // scenario that keeps the way is asked at 320 by 568; the one that leaves it at 390 by 844, as it always was.
-      if (mode === 'keep') await p2.setViewportSize({ width: 320, height: 568 });
+      if (mode === 'keep') {
+        await p2.setViewportSize({ width: 320, height: 568 });
+        // The map takes its new size a moment after the page does: a fit made before that is of the old size.
+        await p2.waitForTimeout(800);
+      }
       await p2.click('[data-testid=skip]');
       await p2.waitForSelector('[data-testid=to-name]', { timeout: 30000 });
       await p2.waitForSelector('[data-testid=keep-gaps-card]', { timeout: 20000 }).catch(() => {});
@@ -294,14 +298,19 @@ async function run(h) {
           const s = box(sheet);
           // What a finger meets over the map, in the middle of what the sheet leaves of it.
           const over = s ? document.elementFromPoint(window.innerWidth / 2, Math.max(4, s[1] / 2)) : null;
-          return { asks: ask.length, ask: box(ask[0]), sheet: s, inSheet: !!ask[0] && !!sheet && sheet.contains(ask[0]), overMap: !!over && !!over.closest('.maplibregl-map'), overAsk: !!over && !!over.closest('[data-testid=keep-gaps-card]'), title: box(more), size: [window.innerWidth, window.innerHeight] };
+          // Where the walk's two ends stand on the screen: in view over the sheet, or the question took its room.
+          const ends = (document.querySelector('[data-ends]')?.getAttribute('data-ends') || '').split('|').map((e) => e.split(',').map(Number));
+          const walk = typeof window.__project === 'function' && ends.length === 2 && ends.every((e) => e.length === 2 && e.every(Number.isFinite)) ? ends.map((e) => window.__project(e).map(Math.round)) : null;
+          return { walk, asks: ask.length, ask: box(ask[0]), sheet: s, inSheet: !!ask[0] && !!sheet && sheet.contains(ask[0]), overMap: !!over && !!over.closest('.maplibregl-map'), overAsk: !!over && !!over.closest('[data-testid=keep-gaps-card]'), title: box(more), size: [window.innerWidth, window.innerHeight] };
         });
+        // Both ends of the walk on the screen, over the sheet and clear of anything asked over the map.
+        const inView = !!where.walk && !!where.sheet && where.walk.every(([x, y]) => x >= 0 && x <= where.size[0] && y >= 0 && y <= where.sheet[1] && (where.inSheet || y <= where.ask[1]));
         if (mode === 'keep') {
           await shot(p2, 'g15-keep-gaps-320');
-          check(where.asks === 1 && where.inSheet && !!where.sheet && where.ask[1] >= where.sheet[1] && !!where.title && where.ask[3] <= where.title[1] + 1 && where.overMap && !where.overAsk && where.sheet[1] >= 96,
+          check(inView && where.asks === 1 && where.inSheet && !!where.sheet && where.ask[1] >= where.sheet[1] && !!where.title && where.ask[3] <= where.title[1] + 1 && where.overMap && !where.overAsk && where.sheet[1] >= 96,
             `replay-ceremony ui 11: at 320 by 568 the gap question is asked inside the card's sheet, its first block, and nothing floats over the map (${JSON.stringify(where)})`);
         } else {
-          check(where.asks === 1 && !where.inSheet && !!where.sheet && where.ask[3] <= where.sheet[1] && where.ask[1] >= 116 + 96,
+          check(inView && where.asks === 1 && !where.inSheet && !!where.sheet && where.ask[3] <= where.sheet[1] && where.ask[1] >= 116 + 96,
             `replay-ceremony ui 11: at 390 by 844 the gap question floats over the map above the sheet, as before, the walk in view over it (${JSON.stringify(where)})`);
         }
       }

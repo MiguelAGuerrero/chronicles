@@ -266,6 +266,12 @@ test('replay-ceremony ui 5: a whisper stands on a solid ground, lighter than the
   const south = whispersOf(at(-360, -480), [{ name: 'West Gate', at: at(-128, -160), fix: 29 }]).get('Passed West Gate without stopping')!;
   assert.equal(south.above, true);
   assert.ok(south.box.bottom <= Math.min(south.place[1], south.walker[1]) - WHISPER.gap + 0.5, 'over the place and the walker as it passes');
+  // On a short phone the line stands low while the camera comes back from a card's pin (y 416 of 568): the whisper is
+  // still under it, down to the map's own marks at the foot, never lifted onto the walker (found by the `replay`
+  // journey once it caught the whisper in the frame it first shows).
+  const low = whisperPose({ kind: 'whisper', key: 'w', text: 't', at: at(100), opacity: 1, above: false, by: at(100) }, ctxOf(SMALL), { center: at(100, 200), zoom: 15 }, false);
+  const lowLine = project(SMALL, { center: at(100, 200), zoom: 15 }, at(100))[1];
+  assert.ok(lowLine > SMALL.height - 120 - WHISPER.height && low.top! >= lowLine + WHISPER.gap - 0.5 && low.top! + WHISPER.height <= SMALL.height - 44, `the line at ${Math.round(lowLine)}, the whisper from ${Math.round(low.top!)}`);
   // With nothing to place it by (reduce motion: the map is not the camera's), under the clock, as before.
   const none = whisperPose({ kind: 'whisper', key: 'w', text: 't', at: at(100), opacity: 0.6, above: false, by: at(100) }, ctx, { center: null, zoom: null }, false);
   assert.deepEqual(none, { left: (PHONE.width - WHISPER.width) / 2, top: 100, opacity: 0.6 });
@@ -485,19 +491,22 @@ test('replay-ceremony ui 11: where the gap question would leave the walk no room
   // Once it is inside, the sheet is taller for it: the answer stays inside.
   assert.equal(place({ height: 568, top: 116, sheetH: 398, askH: 170 }), 'sheet');
   // The screen asks once, in one place: inside the sheet as its first block, or over the map, never both; until the
-  // question's height is known it is laid out unseen.
+  // question's height is known it is laid out unseen. It decides by the sheet's height without the question, before
+  // the card comes, and the sheet laid out ahead (RC24) holds the question's room too.
   const screen = read('app/replay/[id].tsx');
-  assert.match(screen, /keepAskPlace\(\{ height, top: sheetPad\.top, sheetH, askH \}\)/);
-  assert.equal([...screen.matchAll(/<KeepGapsCard\b/g)].length, 2, 'one over the map, one in the sheet');
-  assert.match(screen, /askAt === 'sheet' && \(\s*<KeepGapsCard\s+inline/);
-  assert.match(screen, /askAt !== 'sheet' && \(\s*<KeepGapsCard/);
+  assert.match(screen, /keepAskPlace\(\{ height, top: sheetPad\.top, sheetH: baseH, askH \}\)/);
+  assert.match(screen, /const askInside = askWords != null && askAt === 'sheet';/);
+  assert.equal([...screen.matchAll(/<KeepGapsCard\b/g)].length, 3, 'one over the map, one in the sheet, and its room in the sheet laid out ahead');
+  assert.match(screen, /keepWords && askInside && \(\s*<KeepGapsCard\s+inline/);
+  assert.match(screen, /askWords && \(askAt == null \|\| \(keepShown && askAt !== 'sheet'\)\) && \(\s*<KeepGapsCard/);
+  assert.match(screen, /askWords && askInside && <KeepGapsCard inline unseen/);
   const sheet = screen.slice(screen.indexOf('<ScrollView'), screen.indexOf('</ScrollView>'));
   assert.ok(sheet.indexOf('<KeepGapsCard') >= 0 && sheet.indexOf('<KeepGapsCard') < sheet.indexOf('cardBody(false)'), 'the sheet\'s first block');
   const card = read('components/KeepGapsCard.tsx');
   assert.match(card, /inline\?: boolean/);
   // The same words and the same two buttons either way: one body, two frames.
-  assert.equal([...card.matchAll(/testID="keep-gaps"/g)].length, 1);
-  assert.equal([...card.matchAll(/testID="leave-gaps"/g)].length, 1);
+  assert.equal([...card.matchAll(/id\('keep-gaps'\)/g)].length, 1);
+  assert.equal([...card.matchAll(/id\('leave-gaps'\)/g)].length, 1);
 });
 
 // ---------------------------------------------------------------- ui 12: one whisper at a time
@@ -597,7 +606,7 @@ test('replay-ceremony ui 13: where the way runs up or down the screen a whisper 
         assert.ok(f.box.left >= 8 - 0.5, `${s.width} px, ${name}: and begins on the screen (${Math.round(f.box.left)})`);
         // Beside its place, not above or below it: the place is level with its box, until the place leaves the room
         // the stage keeps for a whisper (under the top row, over the corner) and its box stays at that room's edge.
-        const kept = f.box.top === s.insets.top + 100 || f.box.top === s.height - 120 - WHISPER.height;
+        const kept = f.box.top === s.insets.top + 100 || f.box.top === s.height - 44 - WHISPER.height;
         assert.ok((f.place[1] >= f.box.top - 0.5 && f.place[1] <= f.box.bottom + 0.5) || kept, `${s.width} px, ${name}: level with its place`);
         // Clear of the walker's dot (10 px about it) and of a picture standing anywhere on the line there.
         assert.ok(f.walker[0] - 10 >= f.box.right, `${s.width} px, ${name}: clear of the walker's dot`);

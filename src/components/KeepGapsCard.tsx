@@ -21,18 +21,20 @@ export function KeepGapsCard(props: {
   inline?: boolean;
   /** The card's own box, once laid out: the screen decides where to ask from its height. */
   onLayout?: (e: LayoutChangeEvent) => void;
-  /** Laid out to be measured and not yet asked: no hand, key or screen reader reaches it. */
+  /** Laid out to be measured and not asked here: no hand, key, test or screen reader reaches it. */
   unseen?: boolean;
   style?: StyleProp<ViewStyle>;
 }) {
+  // Laid out unseen it has no test id: no hand, key or test reaches it.
+  const id = (name: string) => (props.unseen ? undefined : name);
   const body = (
-    <View testID="keep-gaps-card" style={props.inline ? styles.block : styles.card} accessibilityLiveRegion={props.unseen ? 'none' : 'polite'} onLayout={props.onLayout}>
+    <View testID={props.unseen ? undefined : 'keep-gaps-card'} style={props.inline ? styles.block : styles.card} accessibilityLiveRegion={props.unseen ? 'none' : 'polite'} onLayout={props.onLayout}>
       <Text style={styles.title} accessibilityRole="header">{props.words.title}</Text>
       <Text style={styles.sub}>{props.words.sub}</Text>
-      {props.error ? <Text testID="keep-gaps-error" style={styles.error} accessibilityLiveRegion="polite">{props.error}</Text> : null}
+      {props.error ? <Text testID={id('keep-gaps-error')} style={styles.error} accessibilityLiveRegion="polite">{props.error}</Text> : null}
       <View style={styles.actions}>
-        <Button testID="keep-gaps" variant="secondary" label={props.words.keep} onPress={props.onKeep} busy={props.busy} busyLabel="Saving…" />
-        <Button testID="leave-gaps" variant="secondary" label={props.words.leave} onPress={props.onLeave} disabled={props.busy} />
+        <Button testID={id('keep-gaps')} variant="secondary" label={props.words.keep} onPress={props.onKeep} busy={props.busy} busyLabel="Saving…" />
+        <Button testID={id('leave-gaps')} variant="secondary" label={props.words.leave} onPress={props.onLeave} disabled={props.busy} />
       </View>
     </View>
   );

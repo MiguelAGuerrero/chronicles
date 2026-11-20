@@ -144,8 +144,16 @@ Gaps in the trace filled with the streets most likely walked (the concept doc's 
   defaults, Nov 20): `lib/replay` `keepAskPlace` decides from the room, never a device. Over the map, 12 px above the
   card's sheet, wherever that leaves `KEEP_ASK_CLEAR` (96 px) of the walk's room in view over it; else it is the
   sheet's own first block (`KeepGapsCard` `inline`: the same words and buttons, a rule under it), nothing floats over
-  the map, and the sheet scrolls (it is capped at 70% of the screen) until it is answered. Its height is measured
-  first, laid out unseen. At 320 by 568 it is in the sheet; at 390 by 844 over the map as before. The sheet is taller
-  with it, so the card's map is fitted again as it comes and as it goes.
+  the map, and the card's own lines scroll under it until it is answered. Its height is measured first, laid out
+  unseen, and before the card comes (`askWords`: it will be asked; `keepWords`: it is asked now), so the sheet laid
+  out ahead of the path's end (RC24) holds the question's room too and the card's arrival moves nothing; the map is
+  fitted again once, when the answer takes the question away. With the question inside, the sheet is capped at half
+  the screen (or the question and 120 px of the card, never over its usual 70%), so the walk keeps its room. The
+  place is decided by the sheet's height without the question (`baseH`), or it could change its mind. At 320 by 568 it
+  is in the sheet; at 390 by 844 over the map as before.
+- **Trap: the card's sheet has its ground on a frame, not on its scroller** (`sheetFrame`). With the question inside
+  the sheet's content overflows on a short phone, and a scroller with an opaque ground then made Chromium leave the
+  map above the sheet undrawn: its compositor took the scroller's whole content, corners inset, for what covers the
+  map (a whole-page screenshot showed the screen's ground there; a clipped one, and the map's own pixels, were right).
 - **Native** (unverified on a device): migration 14, the faint layer, the
   card over the native map.

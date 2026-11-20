@@ -207,7 +207,9 @@ export function whisperPose(w: WhisperOverlay, c: StageCtx, camera: StageCamera,
   if (!p) return { left: (c.width - WHISPER.width) / 2, top: c.insets.top + 100, opacity: w.opacity };
   const by = project(c, camera, w.by) ?? p;
   const room = saidRoom(c, stack);
-  const onScreen = (top: number) => Math.min(c.height - 120 - WHISPER.height, Math.max(c.insets.top + 100, top));
+  // Under the top row and over the map's own marks at the foot. No higher a floor than that: on a short phone the
+  // line stands low while the camera comes back from a card's pin, and a floor above it put the words on the walker.
+  const onScreen = (top: number) => Math.min(c.height - c.insets.bottom - STAGE_BOTTOM - WHISPER.height, Math.max(c.insets.top + 100, top));
   if (w.beside != null) return { left: Math.max(room.left, Math.min(p[0], by[0]) - WHISPER.side - w.beside), top: onScreen(p[1] - WHISPER.height / 2), opacity: w.opacity };
   const top = w.above ? Math.min(p[1], by[1]) - WHISPER.gap - WHISPER.height : Math.max(p[1], by[1]) + WHISPER.gap;
   return { left: Math.max(room.left, Math.min(room.right - WHISPER.width, p[0] - WHISPER.width / 2)), top: onScreen(top), opacity: w.opacity };

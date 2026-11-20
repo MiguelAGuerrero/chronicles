@@ -102,3 +102,9 @@ UI code on both platforms: React Compiler lint rules, react-native-web differenc
   looks up the tile's `nativeID` (react-native-web's `id`) as it closes, then the opener. A card opened through Next door
   is keyed by the new area, so its opener was the first area's tile: focusing that scrolled the row back to it while the
   new area stayed selected.
+- **A scroller with an opaque ground and rounded corners, over a map, can blank the map above it in Chromium** once
+  its content overflows (replay-ceremony ui 11, Nov 20): the compositor took the scroller's whole scrolled content
+  for an opaque cover and stopped drawing the WebGL canvas behind that box, corners inset, though the scroller itself
+  stood lower. The map's own pixels were right and a clipped screenshot showed them; a whole-page one did not. Give
+  the ground and the corners to a plain `View` around the `ScrollView` (`overflow: 'hidden'`, `flexShrink: 1`) and
+  leave the scroller with no ground of its own, as the walk's card does (`app/replay/[id].tsx` `sheetFrame`).

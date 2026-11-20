@@ -443,19 +443,26 @@ export default function Replay() {
   const openGap = gapOpen && data ? data.stretches.find((x) => gapKey(x) === gapOpen) ?? null : null;
   const openGapOf = gapOpen && data ? data.gaps.find((x) => gapKey(x) === gapOpen) ?? null : null;
   // The walk's-end question (G15): first replay only, once the gaps are read, nothing else open.
-  const keepWords =
-    !rewatch && !keepAsked && askedBefore === false && gapsRead && beat === 'card' && data && !gapOpen && !isDrawing && !here && !viewing
-      ? keepAllWords(offersOf(data.stretches).length)
-      : null;
+  // `askWords`: it will be asked on this replay's card, known before the card comes; `keepWords`: it is asked now.
+  const askWords = !rewatch && !keepAsked && askedBefore === false && gapsRead && data ? keepAllWords(offersOf(data.stretches).length) : null;
+  const keepWords = askWords && beat === 'card' && !gapOpen && !isDrawing && !here && !viewing ? askWords : null;
   const keepShown = keepWords != null;
   useEffect(() => {
     if (keepShown) void noteAsked(id);
   }, [keepShown, id]);
   // Where it is asked (replay-ceremony ui 11, the UI review's U2): over the map above the sheet, or, where that would
   // leave the walk no room in view (a short phone), inside the sheet as its first block. Decided from the room, once
-  // the question's own height is known: until then it is laid out unseen.
+  // the question's own height is known (it is laid out unseen for that, before the card comes): the sheet laid out
+  // ahead then holds the question too, so the close frames the walk above it and the card's arrival moves nothing (RC24).
+  // By the sheet's height without the question (`baseH`): with it inside the sheet is another height, and a decision
+  // that read that one could change its mind.
   const [askH, setAskH] = useState<number | null>(null);
-  const askAt = keepShown && askH != null ? keepAskPlace({ height, top: sheetPad.top, sheetH, askH }) : null;
+  const [baseH, setBaseH] = useState(0);
+  const askAt = askWords && askH != null && baseH > 0 ? keepAskPlace({ height, top: sheetPad.top, sheetH: baseH, askH }) : null;
+  const askInside = askWords != null && askAt === 'sheet';
+  // With the question inside, the sheet is no taller than half the screen (or the question and a little of the card,
+  // at the most its usual 70%): the walk keeps its room over it, and the card's own lines scroll under the question.
+  const sheetCap = askInside && askH != null ? { maxHeight: Math.min(height * 0.7, Math.max(height * 0.5, askH + 120)) } : null;
   // Gaps with no line across them, joined by grey dots on the card beats (GW2), and with them the hops the path drew
   // across its other breaks (a pause, a break too long to be a gap), which stay on the map through the card (replay
   // ceremony RC21). A gap keeps the card's own way of drawing it. While the path is told the replay's own frames draw
@@ -730,12 +737,13 @@ export default function Replay() {
         />
       )}
 
-      {keepWords && askAt !== 'sheet' && (
+      {/* Over the map, where that leaves the walk its room (replay-ceremony ui 11); and laid out unseen, whatever the
+          beat, until its height is known, which is what says where it is asked. */}
+      {askWords && (askAt == null || (keepShown && askAt !== 'sheet')) && (
         <KeepGapsCard
-          words={keepWords}
+          words={askWords}
           busy={gapBusy}
           error={keepError}
-          // Measured before it is seen: its height says whether it leaves the walk its room (replay-ceremony ui 11).
           unseen={askAt == null}
           onLayout={askAt == null ? (e) => setAskH(e.nativeEvent.layout.height) : undefined}
           style={[{ bottom: sheetH + 12, zIndex: 5 }, askAt == null && UNSEEN]}
@@ -768,7 +776,7 @@ export default function Replay() {
           so the card then arrives on a map that does not move (replay ceremony RC24). */}
       {(beat === 'reading' || beat === 'fog' || beat === 'path') && (
         <View
-          style={[styles.sheetWrap, UNSEEN]}
+          style={[styles.sheetWrap, sheetCap, UNSEEN]}
           pointerEvents="none"
           accessibilityElementsHidden
           importantForAccessibility="no-hide-descendants"
@@ -776,10 +784,15 @@ export default function Replay() {
           onLayout={(e) => {
             const h = e.nativeEvent.layout.height;
             if (Math.abs(h - sheetH) > 8) setSheetH(h);
+            if (!askInside && Math.abs(h - baseH) > 8) setBaseH(h);
           }}
         >
           <View style={styles.sheet}>
-            <View style={[styles.sheetContent, { paddingBottom: 16 + insets.bottom }]}>{cardBody(true)}</View>
+            <View style={[styles.sheetContent, { paddingBottom: 16 + insets.bottom }]}>
+              {/* The question's room too, where it will be asked inside the sheet (replay-ceremony ui 11). */}
+              {askWords && askInside && <KeepGapsCard inline unseen words={askWords} onKeep={NOTHING} onLeave={NOTHING} />}
+              {cardBody(true)}
+            </View>
           </View>
         </View>
       )}
@@ -791,7 +804,7 @@ export default function Replay() {
       {(beat === 'card' || beat === 'name') && !isDrawing && (
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.sheetWrap}
+          style={[styles.sheetWrap, beat === 'card' && keepShown && sheetCap]}
           pointerEvents="box-none"
           onLayout={(e) => {
             const h = e.nativeEvent.layout.height;
@@ -799,17 +812,21 @@ export default function Replay() {
               setSheetH(h);
               setFitKey((k) => k + 1);
             }
+            if (!askInside && beat === 'card' && Math.abs(h - baseH) > 8) setBaseH(h);
           }}
         >
+          {/* The sheet's ground is this view's, never the scroller's own: a scroller with an opaque ground whose
+              content overflows (the question inside it on a short phone, replay-ceremony ui 11) made Chromium leave the
+              map above the sheet undrawn (its compositor took the scroller's whole content for what covers the map). */}
+          <View style={[styles.sheet, styles.sheetFrame]}>
           <ScrollView
-            style={styles.sheet}
             contentContainerStyle={[styles.sheetContent, { paddingBottom: 16 + insets.bottom }]}
             keyboardShouldPersistTaps="handled"
           >
             {beat === 'card' ? (
               <>
                 {/* The gap question, where over the map it would cover the walk it asks about (replay-ceremony ui 11). */}
-                {keepWords && askAt === 'sheet' && (
+                {keepWords && askInside && (
                   <KeepGapsCard
                     inline
                     words={keepWords}
@@ -883,6 +900,7 @@ export default function Replay() {
               </>
             )}
           </ScrollView>
+          </View>
         </KeyboardAvoidingView>
       )}
       <WalkActions
@@ -909,6 +927,8 @@ export default function Replay() {
  * The fog beat's headline, honest about walks whose streets could not be read.
  * Words, not a big number (tabs audit U13): the streets new to you, or familiar ground.
  */
+/** What a control laid out unseen does: it is room of its size, and no hand reaches it. */
+const NOTHING = () => {};
 /** Laid out and never seen: out of what a browser reads as the page's text, too. */
 const UNSEEN = Platform.OS === 'web' ? ({ visibility: 'hidden' } as object) : { opacity: 0 };
 
@@ -944,6 +964,8 @@ const styles = StyleSheet.create({
   hold: { position: 'absolute', left: 12 },
   sheetWrap: { position: 'absolute', left: 0, right: 0, bottom: 0, maxHeight: '70%' },
   sheet: { backgroundColor: theme.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20 },
+  // Around the card's scroller: as tall as its content up to the wrap's cap, its corners cutting what scrolls.
+  sheetFrame: { flexShrink: 1, overflow: 'hidden' },
   sheetContent: { padding: 16, gap: 10, maxWidth: 640, width: '100%', alignSelf: 'center' },
   cardTitle: { fontSize: 22, fontWeight: '700', color: theme.ink },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },

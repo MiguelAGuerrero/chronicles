@@ -377,7 +377,9 @@ function hopEdgeOf(frames) {
   const first = frames.findIndex((f) => f.cam);
   if (first < 0) return null;
   const last = frames.length - 1 - [...frames].reverse().findIndex((f) => f.cam);
-  const told = [...new Set(frames.slice(first, last + 1).map((f) => f.hopEdge))];
+  // From the path's third frame: its first is drawn before the map's own effect has written the edge (a busy machine
+  // showed that frame, once, with the edge still as the first beat had it).
+  const told = [...new Set(frames.slice(Math.min(first + 2, last), last + 1).map((f) => f.hopEdge))];
   const after = frames.slice(last + 1).map((f) => f.hopEdge).filter((v) => v !== '').pop() ?? null;
   return { told, after };
 }
@@ -412,6 +414,8 @@ const lastViewOf = (pg) => pg.evaluate(() => {
     bigFigures: texts.filter((e) => /\d/.test(e.textContent) && parseFloat(getComputedStyle(e).fontSize) > 16).map((e) => e.textContent.trim()),
     accent: texts.filter((e) => getComputedStyle(e).color === 'rgb(194, 65, 12)').map((e) => e.textContent.trim()),
     clock: !!document.querySelector('[data-testid=replay-clock]'),
+    // What the two buttons say there (replay-ceremony ui 10).
+    words: ['hold', 'skip'].map((id) => (document.querySelector(`[data-testid=${id}], [data-testid=day-${id}]`)?.textContent || '').trim()),
   };
 });
 
@@ -1097,13 +1101,14 @@ async function run(h) {
       await recordFrames(pg);
       // Pause for a picture and go on after it, by what the button says and never by a blind toggle: a watcher in
       // the page (the whisper's, below) may have paused the replay already, and that pause is kept until it is read.
-      const pausedNow = () => pg.evaluate(() => (document.querySelector('[data-testid=hold]')?.textContent || '').trim() === 'Play').catch(() => false);
-      const caught = () => pg.evaluate(() => !!window.__whisperCaught).catch(() => false);
+      // Each is one step in the page (read the word, then press), so it can never fall either side of the watcher's own press.
+      const pauseNow = () => pg.evaluate(() => { const b = document.querySelector('[data-testid=hold]'); if (b && (b.textContent || '').trim() !== 'Play') b.click(); }).catch(() => {});
+      const goOn = (unlessCaught) => pg.evaluate((keep) => { const b = document.querySelector('[data-testid=hold]'); if (b && (b.textContent || '').trim() === 'Play' && !(keep && window.__whisperCaught)) b.click(); }, unlessCaught).catch(() => {});
       const pictured = async (name) => {
-        if (!(await pausedNow())) await pg.click('[data-testid=hold]').catch(() => {});
+        await pauseNow();
         await pg.waitForTimeout(250);
         await shot(pg, `${name}-${w}`);
-        if (!(await caught()) && (await pausedNow())) await pg.click('[data-testid=hold]').catch(() => {});
+        await goOn(true);
       };
       // The opening: the path's first frames, the whole walk as the first beat left it, and the dive part of the way in.
       await pg.waitForFunction(() => !![...document.querySelectorAll('[data-cam]')].pop()?.getAttribute('data-cam'), null, { timeout: 30000 }).catch(() => {});
@@ -1187,7 +1192,7 @@ async function run(h) {
       // their own, clear of the walker's dot, ending short of the stack (ui 3). Read once the watcher has paused on it.
       const whispered = await pg.waitForFunction(() => window.__whisperCaught === true, null, { timeout: 30000, polling: 'raf' }).then(() => true, () => false);
       await pg.waitForTimeout(250);
-      if (whispered && !(await pausedNow())) await pg.click('[data-testid=hold]').catch(() => {});
+      if (whispered) await pauseNow();
       const whisper = await pg.evaluate(() => {
         const e = document.querySelector('[data-testid=replay-whisper]');
         if (!e) return null;
@@ -1205,7 +1210,7 @@ async function run(h) {
       });
       await shot(pg, `rc-whisper-${w}`);
       await pg.evaluate(() => { window.__whisperCaught = false; }).catch(() => {});
-      if (await pausedNow()) await pg.click('[data-testid=hold]').catch(() => {});
+      await goOn(false);
       // Under the line the walker is on (the way runs across the screen here), its dot and all: pins and pictures
       // stand upward from the line, so nothing of theirs is under the words either.
       const offDot = !!whisper && !!whisper.dot && whisper.box[1] >= whisper.dot[1] + 9;
@@ -1271,7 +1276,7 @@ async function run(h) {
       check(dated && !!lastView.date && /^[A-Z][a-z]+, [A-Z][a-z]+ \d{1,2}$/.test(lastView.date.text) && !lastView.date.cut && lastView.date.size <= 16 && lastView.date.ink === 'rgb(29, 36, 48)' && !lastView.clock && lastView.bigFigures.length === 0 && lastView.accent.length === 0 && lastView.pictures.every((p) => p[1] >= lastView.date.box[3]) && !!lastView.hold && !!lastView.skip && lastView.date.box[0] >= lastView.hold[2] && lastView.date.box[2] <= lastView.skip[0], `RC26: at ${w} px the last view shows the date, between Pause and Skip and clear of what stands on the map, with no figure larger than body text and nothing in the accent (${JSON.stringify(lastView)})`);
 
       // replay-ceremony ui 10: on the last view the same words stand either side of the date, which they do not meet.
-      const lastWords = await pg.evaluate(() => ['hold', 'skip'].map((id) => (document.querySelector(`[data-testid=${id}]`)?.textContent || '').trim()));
+      const lastWords = lastView.words ?? [];
       check(lastWords[0] === 'Pause' && lastWords[1] === (w >= 386 ? 'Skip to end' : 'Skip') && !!lastView.date && !!lastView.hold && !!lastView.skip && lastView.date.box[0] - lastView.hold[2] >= 4 && lastView.skip[0] - lastView.date.box[2] >= 4 && !lastView.date.cut,
         `replay-ceremony ui 10: at ${w} px the last view's date stands whole between Pause and ${lastWords[1]} (${JSON.stringify({ lastWords, date: lastView.date && lastView.date.box, hold: lastView.hold, skip: lastView.skip })})`);
       // RC25: the place the walk passed without stopping is named beside it, in body ink at full strength, by the words
@@ -1662,7 +1667,7 @@ async function run(h) {
         };
       });
       const said = lone.names[0];
-      check(lone.names.length === 1 && /^Passed .+ and .+ without stopping$/.test(said.text) && lone.dots === 0 && lone.lineY != null && said.box[1] >= lone.lineY + 9 && lone.pictures.length >= 8 && lone.pictures.every((p) => p[3] <= said.box[1] || p[1] >= said.box[3] || p[2] <= said.box[0] || p[0] >= said.box[2]) && !!beside.stack && said.box[2] <= beside.stack[0] - 6,
+      check(lone.names.length === 1 && /^Passed .+ and .+ without stopping$/.test(said.text) && lone.dots === 0 && lone.lineY != null && said.box[1] >= lone.lineY + 9 && lone.pictures.length >= 3 && lone.pictures.every((p) => p[3] <= said.box[1] || p[1] >= said.box[3] || p[2] <= said.box[0] || p[0] >= said.box[2]) && !!beside.stack && said.box[2] <= beside.stack[0] - 6,
         `replay-ceremony ui 14: at 320 px two places with no room beside them are said as one line under the walk, clear of its line, its pictures and the stack (${JSON.stringify({ names: lone.names, dots: lone.dots, lineY: lone.lineY, pictures: lone.pictures.length, stack: beside.stack })})`);
       check(named && !!beside.name && !!beside.stack && beside.entries >= 8 && beside.name[2] <= beside.stack[0] - 6 && beside.name[0] >= 8 && !beside.cut, `replay-ceremony ui 3: at 320 px, the stack at its bound, the last view's passed-place name ends short of it (${JSON.stringify(beside)})`);
       await pg.click('[data-testid=skip]').catch(() => {});

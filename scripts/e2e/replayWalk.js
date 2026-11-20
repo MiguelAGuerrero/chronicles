@@ -164,7 +164,8 @@ async function seedPhotoWalk(h, c, pg, n, { passedAt = null } = {}) {
 }
 
 /**
- * A walk 380 m north up one street (the grid's street at x 0.5), written into storage and stopped: a photo 60 m in
+ * A walk 380 m north up one street (the grid's street at x 2.5: no place of the harness's world stands near it, nor
+ * the places the two walks above passed), written into storage and stopped: a photo 60 m in
  * (the `rr-photo` picture the first walk stored, so it follows it in the same browser), and two places passed without
  * stopping 70 m apart, each 5 m east of the way. The way runs up the screen, so a whisper stands beside the line
  * (`replay-ceremony ui 13`), and the two come close enough together that the second replaces the first (ui 12).
@@ -172,7 +173,7 @@ async function seedPhotoWalk(h, c, pg, n, { passedAt = null } = {}) {
  */
 async function seedNorthWalk(h, c, pg) {
   const { navUrl, BASE, at, openWalk, toStop } = h;
-  const here = at(0.5, 1.9);
+  const here = at(2.5, 1.9);
   await pg.goto(navUrl);
   await pg.waitForSelector('[data-testid=start]');
   await pg.click('[data-testid=start]');
@@ -185,14 +186,14 @@ async function seedNorthWalk(h, c, pg) {
   const t0 = Date.now() - 30 * 60_000;
   const steps = Math.round(380 / 7);
   const pts = Array.from({ length: steps + 1 }, (_, k) => {
-    const p = at(0.5, -1.9 + (3.8 * k) / steps);
+    const p = at(2.5, -1.9 + (3.8 * k) / steps);
     return { walk_id: walk.id, t: t0 + k * 5000, lon: p[0], lat: p[1], accuracy_m: 6, speed: 1.4, course: null };
   });
   const photoAt = pts[9];
   const photo = { id: 'nw-photo', walk_id: walk.id, t: photoAt.t, lat: photoAt.lat, lon: photoAt.lon, segment_id: null, piece_ids: ['nw-photo'], pieces: [{ id: 'nw-photo', moment_id: 'nw-photo', t: photoAt.t, kind: 'photo', file_path: 'rr-photo', body: null, caption: null, caption_y: null }] };
   const east = 5 / (111320 * Math.cos((photoAt.lat * Math.PI) / 180));
   const placeAt = (k, key, name) => ({ key, area_key: null, name, category: 'history', kind: 'monuments', at: [pts[k].lon + east, pts[k].lat], generic: false, lat: pts[k].lat });
-  const places = [placeAt(26, 'nw-passed-1', 'Sun Inn'), placeAt(36, 'nw-passed-2', 'Old Mill')];
+  const places = [placeAt(26, 'nw-passed-1', 'Sun Inn'), placeAt(36, 'nw-passed-2', 'Kemerer Museum')];
   await pg.evaluate(([id, startedAt, points, moment, passedPlaces]) => new Promise((resolve) => {
     const req = indexedDB.open('chronicles');
     req.onsuccess = () => {

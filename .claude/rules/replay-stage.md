@@ -1,6 +1,6 @@
 ---
 paths:
-  - "src/lib/ceremony/{stack,pictures,room,grid,rhythm,types,live}.ts"
+  - "src/lib/ceremony/{stack,pictures,room,grid,rhythm,types,live,said}.ts"
   - "src/components/ceremony/{Stack,Pictures,Still,Cards,Grid,Stage,Whispers,overlays,layout}.{ts,tsx}"
   - "src/lib/__tests__/replay/{stack,pictures,moment,restraint,ui}.test.ts"
   - "scripts/e2e/journeys/{replay,stacks}.js"
@@ -50,13 +50,38 @@ beats and the rhythm's timings in `replay.md`. Captions (RC38-RC44) wait for the
   narrows a card a little under 341 px wide. The bubbles' corner and the line under the clock end short of it, and
   so do a whisper and the last view's names while the stack is up (`room.ts` `stackEdge`, `live.ts` `stackUp`, the
   poses' `stack` argument; ui 3): at 320 px a name's room is 254 px, not 304.
+- **The last view's names are placed by the core** (ui 14, the owner's defaults, Nov 20; `said.ts` `lastNames`, once
+  per telling, against the view it ends on). One or two places are each named beside their own place where every
+  name stands clear of the walk's line, of the pictures standing on it and of the other name: under the lower of the
+  place and the line where the walker passed it (`PassedOverlay.by`), the more northern of two over it (`above`),
+  then the other ways round. Where they cannot (a narrow screen, pictures all along the walk, two places close
+  together), and for more than two (RP19), they are the card's one line, beside no place (`at` null): under the walk
+  where the screen has the room (`top`), else over it and its pictures, else under the top row as before.
+  **A name's box is an estimate** (8.2 px a letter: no text is measured in the core), kept a little wide. The view
+  (`Whispers.tsx`) only draws what the overlay says.
 - **A whisper has a ground and a side** (ui 5, the review's U6): its words on the glass the last view's name has,
   lighter (13 px italic at 500), in a room (`layout.ts` `WHISPER`) centred on its place, `gap` under the lower of the
   place and the line where the walker passes it (`WhisperOverlay.by`). **Under is the rule, whichever side of the
   line the place is on**: pins and pictures stand upward from the line, and a whisper over its place covered the
   picture beside it (the journey's first picture of this fix). Only where the way runs down the screen is it over
-  them (`above`, the plan's, said once): behind the walker, who would walk on into it. Where the way runs up or down
-  the screen it still lies across the line behind the walker: a box that wide has no room beside it on a phone.
+  them (`above`, the plan's, said once): behind the walker, who would walk on into it. It is kept on the screen from
+  100 px under the top down to the map's own marks at the foot (`STAGE_BOTTOM`), no higher: on a 320 by 568 phone the
+  line stands at y 416 while the camera comes back from a card's pin, and a floor 120 px up put a whisper that
+  arrives as a card leaves (RY22) on the walker for a third of a second (the `replay` journey, once it caught the
+  whisper in the frame it first shows).
+- **Where the way runs up or down the screen a whisper stands beside the line** (ui 13, the owner's defaults, Nov 20;
+  `lib/ceremony/said.ts` `whisperBeside`, `WhisperOverlay.beside`): more north or south than twice east or west as
+  the place is passed, its room is at the line's left (the stack is at the right), from the screen's edge to
+  `WHISPER.side` (24 px: a picture's half tile and 6) short of the line and the place, level with the place, its
+  words at the room's right edge and wrapping as they must. The width is said once, by where the camera has the line
+  as the whisper arrives; under `WHISPER.min` (120 px) of room it keeps the place above. **Trap: 320 px has 128 px
+  there at the most** (the walker is in the middle), so a place more than a few metres left of the line gets no side.
+  While it is up it is kept on the screen first: if the camera then moves the line left, its box stays 8 px in and
+  nears the line.
+- **One whisper at a time** (ui 12; `said.ts` `whisperEnds`, the plan's `until`): a newer whisper replaces the older,
+  which leaves by its own fade (`whisperOut`) begun as the newer arrives; two are never at full strength together.
+  **Trap: the replay crosses ground fast**, so two places a hundred metres apart arrive well under a second apart:
+  the first is then up only for that long, and one replaced before it has come in whole (`whisperIn`) only flickers.
 - **Small pictures are `Still`** (a photo's small copy, a video's still, a video's tile in `COLORS.video`): never a
   player, and it asks for no still (VS2). `Pile.tsx` is gone; `videothumbs` and `palette` read the stack.
 
@@ -88,7 +113,8 @@ beats and the rhythm's timings in `replay.md`. Captions (RC38-RC44) wait for the
 ## Tests
 
 `stack.test.ts`, `pictures.test.ts`, `moment.test.ts`, `restraint.test.ts` (with `walks.ts`: the walks and the guarded
-reaches), and `ui.test.ts` (the UI review's fixes, `replay-ceremony ui 1-8`; the journeys tap a standing picture open
-and picture a whisper and a name beside a stack at its bound). The `replay` journey reads the stack, the pictures, the scrim and the drift from the frames it records
+reaches), and `ui.test.ts` (the UI review's fixes, `replay-ceremony ui 1-8`, the owner's defaults of Nov 20, `ui 9-14`,
+and `ui 15`; the journeys tap a standing picture open, picture a whisper and a name beside a stack at its bound, and
+watch a fourth walk north past two places, `seedNorthWalk`, for a whisper beside the line and one at a time). The `replay` journey reads the stack, the pictures, the scrim and the drift from the frames it records
 (`staysOf`), and a third walk of eighteen photos (`seedPhotoWalk`) fills the stack past a 320 px phone's bound; the
 `stacks` journey watches a moment's grid and then its videos in turn.
