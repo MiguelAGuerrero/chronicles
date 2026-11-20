@@ -297,8 +297,26 @@ async function checks(h) {
           await page.locator('[aria-label="Hessian Memorial, History. Open"]').first().click();
           return page.waitForSelector('[data-testid=mark-camera]', { timeout: 5000 }).then(() => true, () => false);
         };
-        await openPlace();
+        const rowShown = await openPlace();
         await page.waitForTimeout(800);
+        await shot(page, '02a-place-card');
+        const boxes = {};
+        for (const id of ['mark-camera', 'mark-voice', 'mark-note', 'mark-go']) boxes[id] = await page.locator(`[data-testid=${id}]`).first().boundingBox().catch(() => null);
+        const words = {};
+        for (const id of ['mark-camera', 'mark-voice', 'mark-note']) words[id] = (await page.locator(`[data-testid=${id}]`).first().innerText().catch(() => '')).trim().split('\n').pop().trim();
+        const row = ['mark-camera', 'mark-voice', 'mark-note'].map((id) => boxes[id]);
+        const oneRow = row.every((b) => b && Math.abs(b.y - row[0].y) < 2 && b.height >= 44 && b.width >= 44);
+        check(rowShown && oneRow && words['mark-camera'] === 'Camera' && words['mark-voice'] === 'Voice' && words['mark-note'] === 'Note',
+          `CA1: the place's card shows Camera, Voice and Note in one row, each a word and at least 44 px (${JSON.stringify({ words, row })})`);
+        const ink = await page.evaluate(() => {
+          const bg = (id) => getComputedStyle(document.querySelector(`[data-testid=${id}]`) ?? document.body).backgroundColor;
+          return { go: bg('mark-go'), camera: bg('mark-camera') };
+        });
+        check(!!boxes['mark-go'] && row.every((b) => b && b.y + b.height <= boxes['mark-go'].y + 1) && ink.go === ink.camera,
+          `CA1b: within 60 m the capture row comes first and Route here is secondary, alike in fill (${JSON.stringify({ go: boxes['mark-go'], ink })})`);
+        const cardSaid = (await page.locator('[data-testid=mark-card]').innerText().catch(() => '')).replace(/\n/g, ' ');
+        check(/Camera, Voice or Note here keeps the moment with Hessian Memorial\./.test(cardSaid) && !/next moment|Capture here|\b(collect|unlock)\b/i.test(cardSaid),
+          `CA5: the card describes what the row does and never says "the next moment" (${cardSaid})`);
         // capture-at-a-place ui: no word on the row is cut, at 390 and at 320 (the card sits left of the capture column).
         const cut = async () => page.evaluate(() => ['mark-camera', 'mark-voice', 'mark-note'].map((id) => {
           const b = document.querySelector(`[data-testid=${id}]`)?.getBoundingClientRect();
@@ -347,28 +365,9 @@ async function checks(h) {
           await page.locator('[aria-label="Hessian Memorial, History. Open"]').first().click();
           return page.waitForSelector('[data-testid=mark-camera]', { timeout: 5000 }).then(() => true, () => false);
         };
-        const rowShown = await openPlace();
-        await page.waitForTimeout(800);
-        await shot(page, '02a-place-card');
-        const boxes = {};
-        for (const id of ['mark-camera', 'mark-voice', 'mark-note', 'mark-go']) boxes[id] = await page.locator(`[data-testid=${id}]`).first().boundingBox().catch(() => null);
-        const words = {};
-        for (const id of ['mark-camera', 'mark-voice', 'mark-note']) words[id] = (await page.locator(`[data-testid=${id}]`).first().innerText().catch(() => '')).trim().split('\n').pop().trim();
-        const row = ['mark-camera', 'mark-voice', 'mark-note'].map((id) => boxes[id]);
-        const oneRow = row.every((b) => b && Math.abs(b.y - row[0].y) < 2 && b.height >= 44 && b.width >= 44);
-        check(rowShown && oneRow && words['mark-camera'] === 'Camera' && words['mark-voice'] === 'Voice' && words['mark-note'] === 'Note',
-          `CA1: the place's card shows Camera, Voice and Note in one row, each a word and at least 44 px (${JSON.stringify({ words, row })})`);
-        const ink = await page.evaluate(() => {
-          const bg = (id) => getComputedStyle(document.querySelector(`[data-testid=${id}]`) ?? document.body).backgroundColor;
-          return { go: bg('mark-go'), camera: bg('mark-camera') };
-        });
-        check(!!boxes['mark-go'] && row.every((b) => b && b.y + b.height <= boxes['mark-go'].y + 1) && ink.go === ink.camera,
-          `CA1b: within 60 m the capture row comes first and Route here is secondary, alike in fill (${JSON.stringify({ go: boxes['mark-go'], ink })})`);
-        const cardSaid = (await page.locator('[data-testid=mark-card]').innerText().catch(() => '')).replace(/\n/g, ' ');
-        check(/Camera, Voice or Note here keeps the moment with Hessian Memorial\./.test(cardSaid) && !/next moment|Capture here|\b(collect|unlock)\b/i.test(cardSaid),
-          `CA5: the card describes what the row does and never says "the next moment" (${cardSaid})`);
-        // CA2: Camera on the card; the video it keeps finds the place.
+        // CA1, CA1b and CA5 are read at step 14, on the same card; here it opens for its Camera only (the cone's fixes keep their pace).
         await openPlace();
+        // CA2: Camera on the card; the video it keeps finds the place.
         [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.click('[data-testid=mark-camera]')]);
         await chooser.setFiles(path.join(fixtures, 'clip-4s.webm'));
         // Its editor opens by itself once kept (ME23, decision 0240): closed, the video kept as taken.
@@ -538,7 +537,9 @@ async function checks(h) {
               const p = { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) };
               const el = document.elementFromPoint(p.x, p.y);
               if (!el || el.tagName !== 'CANVAS') continue;
-              if (feet.every((f) => Math.hypot(f.x - p.x, f.y - p.y) > 50)) return p;
+              // The press's reach is 44 px of ground from the spot to each moment's own point, which a grouped pin's foot only
+              // approximates: keep well clear.
+              if (feet.every((f) => Math.hypot(f.x - p.x, f.y - p.y) > 75)) return p;
             }
           return { x: cx - 30, y: cy + 10 };
         }, { cx: box.x + box.width / 2, cy: box.y + box.height / 2 });
