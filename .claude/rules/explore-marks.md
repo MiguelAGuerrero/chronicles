@@ -112,8 +112,9 @@ Places of interest from the tiles, marks, checklists and finds (Explore), and Re
     20 faint ones within range of the route ahead; the route's areas are read
     first (`routeProbes`, every 500 m).
   - **Finding** (0155, TC1, TC5; capture-at-a-place CA1-CA12, decisions 0246, 0247): a capture never finds a place by itself. A
-    place's card at any distance, a "?" included (`cardCapture`, `explore/placeCard.ts`; decision 0247, fix poi-any-distance:
-    a place is a point, and a long bridge's far end is still the bridge), carries `PlaceCaptureRow` (`mark-camera`, `mark-voice`,
+    place's card at any distance, a "?" included except on a ride (R12) (`cardCapture`, `explore/placeCard.ts`; decision 0247,
+    fix poi-any-distance: a place is a point, and a long bridge's far end is still the bridge; its line never says "here"),
+    carries `PlaceCaptureRow` (`mark-camera`, `mark-voice`,
     `mark-note`), first, with Route here secondary (a "?" row speaks "this place", never its name); a tap closes the card and begins the capture with the place's key on its stamp
     (`stampFor`'s `place`; never on a piece). `useCaptures`' `onKept(id, piece, place)` hands it back, and the walk screen calls
     `explore.keptAtPlace`, which records the find only through `findOnKept` (a new moment, the place unfound; the first find stands).
@@ -122,7 +123,8 @@ Places of interest from the tiles, marks, checklists and finds (Explore), and Re
     place is, full size in the found green with its name (ui 4, ui 5, the owner's "Drawn with its name"; its name joins
     `hiddenNames`, it still never spreads), under the moments' pins on the web so theirs keep their taps, and opens its card: "Moments here" (`mark-moments`, `mark-moment`) lists the
     moments within 60 m by spot (`momentsHere`, `db.momentsIn(hereBounds)`; no stored link, the owner's call) and the moment that
-    found it wherever taken (the find's `capture_id`, `db.getMomentsByIds`; 0247), newest three, in
+    found it wherever taken (the find's `capture_id`, `db.getMomentsByIds`, its failure alone leaving the near list; 0247),
+    newest three with the finder always among them, in
     words (`momentHereLine`, `dayPartLine`'s words), and the row again; a capture from it is a plain moment. No chip, no
     loose-moment find, no inference from nearness.
   - **Passing** (TC6-TC9): `passedPlaces`/`passedAlong` take `passM` (`explore_pass`, 4-20 m by 2, 8 default), judged along the

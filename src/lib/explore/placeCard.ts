@@ -20,14 +20,19 @@ export const PLACE_REACH_M = EXPLORE_RULES.revealM;
 export const MOMENTS_SHOWN = 3;
 
 /**
- * Whether the card shows the capture row, and its line in words (CA1, CA5, CA9 and CA11, as amended by decision 0247). The row
- * is offered at any distance, a "?" included, whose line never names it; the moment kept names it as any find does. The
- * line describes, never urges: no find, collect or unlock (steward S5).
+ * Whether the card shows the capture row, and its line in words (CA1, CA5, CA9 and CA11, as amended by decision 0247).
+ * The row is offered at any distance, a "?" included, whose line never names it; the moment kept names it as any find
+ * does. On a ride a "?" offers no row: Explore names no place on a ride (R12; fix poi-any-distance audit 1). The line
+ * names the card's buttons, never "here" of a place that may be far off, and `reach` is 60 m in the reader's units
+ * (audit 5). It describes, never urges: no find, collect or unlock (steward S5).
  */
-export function cardCapture(o: { name: string | null; found: boolean }): { row: boolean; line: string | null } {
+export function cardCapture(o: { name: string | null; found: boolean; riding?: boolean; reach?: string }): { row: boolean; line: string | null } {
   if (o.found) return { row: true, line: null };
-  if (!o.name) return { row: true, line: 'Walk within 60 m to see what it is. Camera, Voice or Note here keeps the moment with it.' };
-  return { row: true, line: `Camera, Voice or Note here keeps the moment with ${o.name}.` };
+  if (!o.name) {
+    const learn = `Walk within ${o.reach ?? '60 m'} to see what it is.`;
+    return o.riding ? { row: false, line: learn } : { row: true, line: `${learn} Camera, Voice or Note keeps the moment with it.` };
+  }
+  return { row: true, line: `Camera, Voice or Note keeps the moment with ${o.name}.` };
 }
 
 /**
@@ -56,15 +61,20 @@ export function momentHereLine(mo: Pick<Moment, 't' | 'pieces' | 'walk_id'>, now
 }
 
 /**
- * The moments a found place's card lists (CA11): within 60 m of the place, and the moment that found it (`findingId`)
- * wherever it was taken (decision 0247), newest first, three at most, each once. No count.
+ * The moments a found place's card lists (CA11): within 60 m of the place by spot, and the moment that found it
+ * (`finder`) wherever it was taken (decision 0247), newest first, three at most with the finder always among them
+ * (fix poi-any-distance audit 4), each once. No count.
  */
-export function momentsHere(moments: readonly Moment[], at: LngLat, now: number, walkId: string | null = null, findingId: string | null = null): { id: string; line: string }[] {
-  const seen = new Set<string>();
-  return moments
-    .filter((mo) => mo.pieces.length > 0 && !seen.has(mo.id) && seen.add(mo.id) && (mo.id === findingId || (mo.lat != null && mo.lon != null && distanceM([mo.lon, mo.lat], at) <= PLACE_REACH_M)))
+export function momentsHere(near: readonly Moment[], at: LngLat, now: number, walkId: string | null = null, finder: Moment | null = null): { id: string; line: string }[] {
+  const byId = new Map<string, Moment>();
+  for (const mo of near) {
+    if (mo.lat != null && mo.lon != null && mo.pieces.length > 0 && distanceM([mo.lon, mo.lat], at) <= PLACE_REACH_M) byId.set(mo.id, mo);
+  }
+  const keep = finder && finder.pieces.length > 0 ? finder : null;
+  if (keep) byId.delete(keep.id);
+  const newest = [...byId.values()].sort((a, b) => b.t - a.t).slice(0, MOMENTS_SHOWN - (keep ? 1 : 0));
+  return [...newest, ...(keep ? [keep] : [])]
     .sort((a, b) => b.t - a.t)
-    .slice(0, MOMENTS_SHOWN)
     .map((mo) => ({ id: mo.id, line: momentHereLine(mo, now, walkId) }));
 }
 

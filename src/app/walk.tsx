@@ -76,7 +76,7 @@ import { routeLeanings } from '../lib/routeLeanings';
 import { whileFocused } from '../lib/openers';
 import { AddToMomentPill } from '../components/walk/AddToMomentPill';
 import { PlaceCaptureRow } from '../components/walk/PlaceCaptureRow';
-import { cardCapture } from '../lib/explore/placeCard';
+import { cardCapture, PLACE_REACH_M } from '../lib/explore/placeCard';
 import { walkScreenShown } from '../lib/walkNav';
 import { askMotion, useMotionAccess } from '../lib/walkMotion';
 import { shareLogText, walkLogText } from '../lib/shareLog';
@@ -862,7 +862,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
   // A found place's card lists the moments taken here (CA11), read as it opens; each opening reads again (CA12).
   const [markMoments, setMarkMoments] = useState<{ key: string; lines: { id: string; line: string; moment: Faced }[] } | null>(null);
   const openMarkFound = !!openMark && explore.found.has(openMark.key);
-  const openMarkCapture = openMark ? cardCapture({ name: openMarkNamed ? openMark.name : null, found: openMarkFound }) : null;
+  const openMarkCapture = openMark ? cardCapture({ name: openMarkNamed ? openMark.name : null, found: openMarkFound, riding: live.riding, reach: formatDistance(PLACE_REACH_M) }) : null;
   /** A capture from the card (CA2-CA4, CA12): the card closes and the capture begins, carrying the place. */
   const captureAt = (kind: 'photo' | 'voice' | 'text') => {
     const m = openMark;

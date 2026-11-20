@@ -268,10 +268,11 @@ export function useExplore(opts: {
   });
   const momentsAt = useCallback(async (key: string, at: LngLat, now: number) => {
     const finding = findsRef.current.find((f) => f.key === key)?.capture_id ?? null;
-    const [near, own] = await Promise.all([db.momentsIn(hereBounds(at)), finding ? db.getMomentsByIds([finding]) : Promise.resolve([])]);
-    const ms = [...near, ...own];
-    const byId = new Map(ms.map((x) => [x.id, x]));
-    return momentsHere(ms, at, now, latest.current.walkId, finding).map((x) => ({ ...x, moment: faced(byId.get(x.id)!) }));
+    // The finder's read failing alone leaves the near list (fix poi-any-distance audit 3).
+    const [near, own] = await Promise.all([db.momentsIn(hereBounds(at)), finding ? db.getMomentsByIds([finding]).catch(() => []) : Promise.resolve([])]);
+    const finder = own[0] ?? null;
+    const byId = new Map([...near, ...own].map((x) => [x.id, x]));
+    return momentsHere(near, at, now, latest.current.walkId, finder).map((x) => ({ ...x, moment: faced(byId.get(x.id)!) }));
   }, []);
 
   const rangeM = opts.previewRangeM ?? settings.rangeM;
