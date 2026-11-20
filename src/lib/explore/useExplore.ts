@@ -258,11 +258,20 @@ export function useExplore(opts: {
     const hit = findOnKept({ place: item.key, piece: kept.piece, momentId: kept.momentId }, known);
     if (hit) await record(item, hit.momentId);
   }, [record]);
-  /** A found place's card (CA11): the moments taken within 60 m of it, newest first, in words. Read once per opening. */
-  const momentsAt = useCallback(async (at: LngLat, now: number) => {
-    const ms = await db.momentsIn(hereBounds(at));
+  /**
+   * A found place's card (CA11): the moments taken within 60 m of it, and the one that found it wherever it was taken
+   * (decision 0247), newest first, in words. Read once per opening.
+   */
+  const findsRef = useRef(finds);
+  useEffect(() => {
+    findsRef.current = finds;
+  });
+  const momentsAt = useCallback(async (key: string, at: LngLat, now: number) => {
+    const finding = findsRef.current.find((f) => f.key === key)?.capture_id ?? null;
+    const [near, own] = await Promise.all([db.momentsIn(hereBounds(at)), finding ? db.getMomentsByIds([finding]) : Promise.resolve([])]);
+    const ms = [...near, ...own];
     const byId = new Map(ms.map((x) => [x.id, x]));
-    return momentsHere(ms, at, now, latest.current.walkId).map((x) => ({ ...x, moment: faced(byId.get(x.id)!) }));
+    return momentsHere(ms, at, now, latest.current.walkId, finding).map((x) => ({ ...x, moment: faced(byId.get(x.id)!) }));
   }, []);
 
   const rangeM = opts.previewRangeM ?? settings.rangeM;

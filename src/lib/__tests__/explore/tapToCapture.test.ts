@@ -75,11 +75,11 @@ test('tap-to-capture-places audit 1: the drawer slider writes the open walk its 
 });
 
 // Audits 2-5 guarded the arming, which is gone (capture-at-a-place); each concern is held on what replaced it.
-test('tap-to-capture-places audit 2: a place more than 60 m away offers no capture', () => {
+// Audit 2's rule (no capture past 60 m) is reversed by the owner's decision 0247 (fix poi-any-distance): a place is a
+// point, and a long bridge's far end is still the bridge. The row is offered at any distance.
+test('tap-to-capture-places audit 2: a place more than 60 m away offers capture too (decision 0247)', () => {
   const far = item('Far', m(150, 0));
-  assert.equal(cardCapture({ name: far.name, at: far.at, here: O, found: false }).row, false);
-  assert.equal(cardCapture({ name: far.name, at: far.at, here: m(100, 0), found: false }).row, true);
-  assert.equal(cardCapture({ name: far.name, at: far.at, here: null, found: false }).row, true, 'no fix yet: offered');
+  assert.equal(cardCapture({ name: far.name, found: false }).row, true, 'the card reads no distance: near, far or with no fix yet');
 });
 
 test('tap-to-capture-places audit 3: with Places off there is no place card to capture from', () => {

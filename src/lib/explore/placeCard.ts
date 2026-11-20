@@ -6,27 +6,28 @@ import type { CaptureKind, LngLat, Moment } from '../types';
 import { EXPLORE_RULES } from './explore';
 
 /**
- * A place's card on the walk (specs/capture-at-a-place, decision 0224 as amended): within 60 m it carries the capture
- * row (Camera, Voice, Note), and a capture begun there carries the place on its stamp, so the moment it keeps finds the
- * place. Nothing is armed for a later capture. A found place's card lists the moments taken within 60 m of it, by spot:
- * a moment keeps its spot, so no stored link is needed (the owner, Nov 20).
+ * A place's card on the walk (specs/capture-at-a-place, decision 0224 as amended by 0246 and 0247): at any distance it
+ * carries the capture row (Camera, Voice, Note), and a capture begun there carries the place on its stamp, so the moment
+ * it keeps finds the place. A place is a point, and a long bridge or a monument seen from afar is still the place a
+ * moment is kept with (fix poi-any-distance, decision 0247). Nothing is armed for a later capture. A found place's card
+ * lists the moments taken within 60 m of it, by spot, and the moment that found it, wherever it was taken.
  */
 
-/** How near the walker must be for the card's capture row, and how far a found card's moments are listed: 60 m. */
+/** How far a found card's moments are listed by spot: 60 m. */
 export const PLACE_REACH_M = EXPLORE_RULES.revealM;
 
 /** At most this many moments on a found place's card, newest first (CA11). */
 export const MOMENTS_SHOWN = 3;
 
 /**
- * Whether the card shows the capture row, and its line in words (CA1, CA5, CA9, CA11). The line describes, never urges:
- * no find, collect or unlock (steward S5). With no fix yet the row is offered (the walk places the moment at Stop).
+ * Whether the card shows the capture row, and its line in words (CA1, CA5, CA9 and CA11, as amended by decision 0247). The row
+ * is offered at any distance, a "?" included, whose line never names it; the moment kept names it as any find does. The
+ * line describes, never urges: no find, collect or unlock (steward S5).
  */
-export function cardCapture(o: { name: string | null; at: LngLat; here: LngLat | null; found: boolean }): { row: boolean; line: string | null } {
-  if (!o.name) return { row: false, line: 'Walk within 60 m to see what it is.' };
-  const near = !o.here || distanceM(o.here, o.at) <= PLACE_REACH_M;
-  if (o.found) return { row: near, line: null };
-  return near ? { row: true, line: `Camera, Voice or Note here keeps the moment with ${o.name}.` } : { row: false, line: 'Moments are kept with it from within 60 m.' };
+export function cardCapture(o: { name: string | null; found: boolean }): { row: boolean; line: string | null } {
+  if (o.found) return { row: true, line: null };
+  if (!o.name) return { row: true, line: 'Walk within 60 m to see what it is. Camera, Voice or Note here keeps the moment with it.' };
+  return { row: true, line: `Camera, Voice or Note here keeps the moment with ${o.name}.` };
 }
 
 /**
@@ -54,10 +55,14 @@ export function momentHereLine(mo: Pick<Moment, 't' | 'pieces' | 'walk_id'>, now
   return `${kinds}, ${WEEKDAY_FIRST.test(when) ? when : when.charAt(0).toLowerCase() + when.slice(1)}`;
 }
 
-/** The moments a found place's card lists (CA11): within 60 m of the place, newest first, three at most. No count. */
-export function momentsHere(moments: readonly Moment[], at: LngLat, now: number, walkId: string | null = null): { id: string; line: string }[] {
+/**
+ * The moments a found place's card lists (CA11): within 60 m of the place, and the moment that found it (`findingId`)
+ * wherever it was taken (decision 0247), newest first, three at most, each once. No count.
+ */
+export function momentsHere(moments: readonly Moment[], at: LngLat, now: number, walkId: string | null = null, findingId: string | null = null): { id: string; line: string }[] {
+  const seen = new Set<string>();
   return moments
-    .filter((mo) => mo.lat != null && mo.lon != null && mo.pieces.length > 0 && distanceM([mo.lon, mo.lat], at) <= PLACE_REACH_M)
+    .filter((mo) => mo.pieces.length > 0 && !seen.has(mo.id) && seen.add(mo.id) && (mo.id === findingId || (mo.lat != null && mo.lon != null && distanceM([mo.lon, mo.lat], at) <= PLACE_REACH_M)))
     .sort((a, b) => b.t - a.t)
     .slice(0, MOMENTS_SHOWN)
     .map((mo) => ({ id: mo.id, line: momentHereLine(mo, now, walkId) }));

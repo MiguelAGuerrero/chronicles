@@ -267,6 +267,22 @@ async function checks(h) {
       if (k === 8) {
         // 75 m from the memorial: inside the 100 m range, a "?" that doesn't say what it is (E6).
         check((await walkMarks().count()) === 1 && (await page.locator('[aria-label="A place to find. Open"]').count()) === 1, 'a "?" shows for a place within range, and only that one');
+        await measuredAside(async () => {
+          // fix poi-any-distance (decision 0247): 75 m off, past the old 60 m, the "?" card still offers the row, first,
+          // Route here secondary; its line describes, and its buttons speak "this place", never the name it hides.
+          await page.locator('[aria-label="A place to find. Open"]').first().click();
+          const rowShown = await page.waitForSelector('[data-testid=mark-camera]', { timeout: 5000 }).then(() => true, () => false);
+          const said = rowShown ? await page.locator('[data-testid=mark-card]').innerText().catch(() => '') : '';
+          const spoken = rowShown ? await page.locator('[data-testid=mark-camera]').getAttribute('aria-label').catch(() => '') : '';
+          const rowY = rowShown ? (await page.locator('[data-testid=mark-camera]').boundingBox())?.y ?? Infinity : Infinity;
+          const goY = (await page.locator('[data-testid=mark-go]').boundingBox().catch(() => null))?.y ?? -Infinity;
+          await shot(page, '05b-far-place-card');
+          check(rowShown && rowY < goY && /Walk within 60 m to see what it is\. Camera, Voice or Note here keeps the moment with it\./.test(said)
+            && /this place/.test(spoken ?? '') && !/Hessian/.test(`${said} ${spoken}`),
+            `fix poi-any-distance: a "?" 75 m off offers Camera, Voice and Note above Route here, never naming it (${JSON.stringify({ rowShown, said: said.slice(0, 160), spoken })})`);
+          await page.click('[data-testid=mark-close]').catch(() => {});
+          await page.waitForSelector('[data-testid=mark-card]', { state: 'detached', timeout: 5000 }).catch(() => {});
+        });
       }
       if (k === 18 || k === 32) {
         // The cone as drawn points the way the walk goes: east on the first leg, north on the second

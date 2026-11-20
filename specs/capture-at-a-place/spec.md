@@ -54,7 +54,7 @@ Open: none (the owner's four answers, Nov 20).
 6. **CA6** A capture the card did not start never finds a place: a capture from the stack, the Add to this moment pill or Memories, before or after a card capture, keeps its ordinary context line and finds nothing (TC1, TC5 stand).
 7. **CA7** A card capture that keeps nothing finds nothing, and leaves nothing pending: the camera cancelled, a memo discarded or too short, a note closed empty. The next stack capture after it finds nothing.
 8. **CA8** No celebration and no count: the find is said as a find is today (the plain-ink "Found: <name>" line and the pin's one pulse, decision 0172, M12) and nothing more: no accent colour, sound beyond the capture's own, or count of finds or places. The moment's own time and distance are said as for any moment (steward S3, narrowed: the "Found" line predates this slice and the owner did not ask to change it).
-9. **CA9** Farther than 60 m from a named place, the card shows no capture row and says in words, describing ("Moments are kept with it from within 60 m."); Route here stays. 
+9. **CA9** (amended by decision 0247, fix poi-any-distance, Nov 20) Farther than 60 m from a place, named or a "?", the card still shows the capture row, first, with Route here secondary, and its line describes ("Camera, Voice or Note here keeps the moment with Old Bridge."; a "?": "Walk within 60 m to see what it is. Camera, Voice or Note here keeps the moment with it."). The row never speaks a "?"'s name. Was: no row farther than 60 m ("Moments are kept with it from within 60 m.").
 
 10. **CA10** A card capture's moment arrives whole: the same context line as a stack capture at the same spot and minute (its street or place, its time, its walk), its place in the walk's order kept; the place's name is added where a find names it today, never replacing that line. A held capture kept by Retry finds the place too (steward S2).
 
@@ -104,3 +104,14 @@ marker a found card belongs to.
 - U7 (a memo begun on the card shows only its timer): **rejected by the owner** (Nov 20, "keep it as is"): the timer pill
   stays as it is, the live sign that the mic is recording, with no place name in it.
 - U8 (the 20 s refusal beside "Video saved here"): **rejected**, the journey's own order (a refused clip, then the kept one).
+
+## Amended (2026-11-20, decision 0247, fix poi-any-distance)
+
+The owner, after a walk on a long bridge whose point stood at its far end: "as long as the point of interest is in
+range, I can click on it from anywhere ... the point of interest is actually a really large structure, but its point on
+the map just doesn't reflect its actual size." The owner's answers: the row at any distance; a "?" card offers it too,
+and the moment kept names it as any find does; a found card's "Moments here" adds the moment that found the place,
+wherever it was taken (its find already links it). Storing the place on every card capture, so later far captures are
+listed too, is deferred to a slice (`docs/DEFERRED.md`). CA1's "within 60 m", CA1b's "farther than 60 m" and CA11's
+"within 60 m the capture row shows" now read "at any distance"; CA9 is amended above. Held by
+`explore/poiAnyDistance.test.ts` and the amended `captureAtPlace.test.ts` (CA1, CA9, CA11).

@@ -1,0 +1,13 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore and discovery"
+      ],
+      "body": "- **Every card capture listed at its place, wherever taken** (fix poi-any-distance, decision 0247; the owner's call, Nov 20: \"fix now, slice later\"). A place's card offers Camera, Voice and Note at any distance, but a moment keeps only its spot, so a found card's \"Moments here\" lists moments within 60 m plus the one that found it; a later capture from a found card far off (the Washington Monument from across the Mall) is not listed. Storing the place on each card capture is a new stored link with a SQLite migration and an IndexedDB version, reversing 0246's \"no new stored link\": a `/slice`.\n"
+    }
+  ]
+}

@@ -7,11 +7,13 @@ import { Button, theme } from '../ui';
  * people know, at least 44 pt, in one row. A tap closes the card and begins that capture for the place; nothing is armed.
  * The stack's own kinds and icons, never a menu (VISION.md: a capture behind a menu is a Never).
  */
-export function PlaceCaptureRow(props: { place: string; onCamera: () => void; onVoice: () => void; onNote: () => void; disabled?: boolean }) {
+export function PlaceCaptureRow(props: { place: string | null; onCamera: () => void; onVoice: () => void; onNote: () => void; disabled?: boolean }) {
+  // A "?" is spoken as "this place": its name is said only once the moment kept reveals it (decision 0247).
+  const place = props.place ?? 'this place';
   const items: { id: string; icon: IconName; word: string; spoken: string; onPress: () => void }[] = [
-    { id: 'mark-camera', icon: 'camera', word: 'Camera', spoken: `Camera: a photo or video of ${props.place}`, onPress: props.onCamera },
-    { id: 'mark-voice', icon: 'mic', word: 'Voice', spoken: `Voice: a voice memo about ${props.place}`, onPress: props.onVoice },
-    { id: 'mark-note', icon: 'document-text', word: 'Note', spoken: `Note: a note about ${props.place}`, onPress: props.onNote },
+    { id: 'mark-camera', icon: 'camera', word: 'Camera', spoken: `Camera: a photo or video of ${place}`, onPress: props.onCamera },
+    { id: 'mark-voice', icon: 'mic', word: 'Voice', spoken: `Voice: a voice memo about ${place}`, onPress: props.onVoice },
+    { id: 'mark-note', icon: 'document-text', word: 'Note', spoken: `Note: a note about ${place}`, onPress: props.onNote },
   ];
   return (
     <View style={styles.row} testID="mark-row">
