@@ -252,6 +252,34 @@ async function run(h) {
     check(seen.length >= 1 && NAMES.some((n) => last.includes(n)), 'QC21: with none left the proposal is as it was');
     await pg.click('[data-testid=outing-slot-open-0]');
   }
+  // tend map audit 49 (the diff review's auditor 3), last before the chips, since the hand's move is kept for this journey:
+  // on a tall screen the sheet is under its cap, so opening a stop's row makes it taller; after the person moved the map,
+  // that never frames the journey again over their move.
+  {
+    await pg.setViewportSize({ width: 390, height: 1400 });
+    await pg.waitForTimeout(1500);
+    const center = () => pg.evaluate(() => document.querySelector('[data-testid=outing-map] [data-center]')?.getAttribute('data-center') ?? null);
+    const sheetTop = () => pg.evaluate(() => Math.round(document.querySelector('[data-testid=outing-sheet]')?.getBoundingClientRect().top ?? -1));
+    await pg.mouse.move(195, 200);
+    await pg.mouse.down();
+    await pg.mouse.move(275, 240, { steps: 8 });
+    await pg.mouse.up();
+    await pg.waitForTimeout(1500);
+    const c0 = await center();
+    const t0 = await sheetTop();
+    await pg.click('[data-testid=outing-slot-open-1]').catch(() => {});
+    await pg.waitForTimeout(2000);
+    const c1 = await center();
+    const t1 = await sheetTop();
+    const ll = (s) => (s ? s.split(',').map(Number) : null);
+    const [a, b] = [ll(c0), ll(c1)];
+    const off = a && b ? Math.hypot((a[0] - b[0]) * 111320 * Math.cos((a[1] * Math.PI) / 180), (a[1] - b[1]) * 110540) : null;
+    check(t1 !== t0 && off != null && off < 2,
+      `tend map audit 49: under the sheet's cap, a stop's row opened after a pan keeps the map where the hand left it (sheet top ${t0} -> ${t1}, centre moved ${off == null ? '-' : off.toFixed(1)} m)`);
+    await pg.click('[data-testid=outing-slot-open-1]').catch(() => {});
+    await pg.setViewportSize({ width: 390, height: 844 });
+    await pg.waitForTimeout(1500);
+  }
   // OJ3, OJ43: chips of two leanings give several journeys in a row that scrolls sideways, a mixed one ahead; the next card's edge shows.
   await backToChips();
   await only(['antiques', 'viewpoints']);
