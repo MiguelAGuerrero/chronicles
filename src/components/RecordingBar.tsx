@@ -308,7 +308,7 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
         </HoldButton>
       </View>
       {editing && (
-        <MediaEditor key={editing.id} capture={editing} initialTool="crop" onClose={() => editAfter.close()} onSave={(patch) => cap.setEdit(editing, patch)} />
+        <MediaEditor key={editing.id} capture={editing} justKept initialTool="crop" onClose={() => editAfter.close()} onSave={(patch) => cap.setEdit(editing, patch)} />
       )}
     </View>
     </View>

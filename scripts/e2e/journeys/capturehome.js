@@ -196,8 +196,9 @@ async function run(h) {
     // tend tabs audit 29: the editor (a Modal) opens by itself after the bar's photo; the hint counts none of its seconds
     // beneath it.
     const up = await barPhoto(pg, true);
+    await pg.waitForTimeout(800);
     await shot(pg, 'edit-after-capture-explore');
-    await pg.waitForTimeout(6000);
+    await pg.waitForTimeout(5200);
     await pg.click('[data-testid=edit-close]').catch(() => {});
     const offers = await pg.locator('[data-testid=bar-edit-offer], [data-testid=capture-edit]').count();
     const back = await pg.waitForSelector(hint, { timeout: 5000 }).then(() => true, () => false);

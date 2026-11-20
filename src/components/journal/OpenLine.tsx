@@ -798,7 +798,7 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
       {picking != null && (
         <Mention self={pen.entry?.momentId ?? null} onPick={pick} onClose={() => { setPicking(null); input.current?.focus(); }} />
       )}
-      {editing && <MediaEditor key={editing.id} capture={editing} initialTool="crop" onClose={() => editAfter.close()} onSave={(patch) => cap.setEdit(editing, patch)} />}
+      {editing && <MediaEditor key={editing.id} capture={editing} justKept initialTool="crop" onClose={() => editAfter.close()} onSave={(patch) => cap.setEdit(editing, patch)} />}
     </>
   );
 }

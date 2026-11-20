@@ -73,6 +73,15 @@ source.
 - **Polarsteps**: photos join a step only when the step is edited. Source: from memory, unverified (the host refused
   fetches, teardown section 5). **Unverified**.
 
+### Edit right after the shutter (Honour)
+
+- **Instagram** and **Snapchat** (iOS, Android): the editor opens straight after the shutter, before anything is
+  posted or saved; its ✕ throws the shot away. Source: from memory, unverified. **Unverified**.
+- **Apple Photos** and **Google Photos**: the camera keeps the shot; Edit is on the photo's own toolbar later (see
+  "View one moment full screen"). **Verified** (as cited there).
+- **Chronicles** (decision 0240): the editor opens by itself once the shot is accepted, the moment already kept, so
+  its ✕ keeps the photo as taken and the editor says it is kept.
+
 ### A capture that could not be saved (Honour)
 
 - **Google Photos** (Android): each item not yet in the cloud keeps a status on its own thumbnail: "Item isn’t backed

@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
-import { editAfter, editingOf } from '../../editOffer';
+import { editAfter, editingOf, keptWords } from '../../editOffer';
 
 const src = (f: string) => readFileSync(join(__dirname, '../../..', f), 'utf8');
 
@@ -41,4 +41,17 @@ test('ME23 fix edit-after-capture: every place that takes a photo opens the edit
   }
   const offer = src('components/edit/EditOffer.tsx');
   assert.doesNotMatch(offer, /export function (EditOfferPill|useEditOffer|EditButton)/, 'the pill and its timer are gone');
+});
+
+// fix edit-after-capture audit 1 (the review's ux U1, U2, medium): just after the shutter ✕ beside Done read as "throw the
+// photo away", and nothing said the photo was already kept. The editor opened after a capture says so where the
+// disabled Revert sat until the first edit, and its ✕ is named for what it does (A7; NN/g H1; matrix rows 9, 19).
+test('fix edit-after-capture audit 1: the editor after a capture says the photo is kept, and its Close says it stays', () => {
+  assert.deepEqual(keptWords('photo'), { line: 'Photo kept', close: 'Close, the photo stays as it is' });
+  assert.deepEqual(keptWords('video'), { line: 'Video kept', close: 'Close, the video stays as it is' });
+  for (const k of ['photo', 'video'] as const) assert.doesNotMatch(Object.values(keptWords(k)).join(' '), /\d|!/);
+  for (const f of HOSTS) assert.match(src(f), /<MediaEditor [^>]*justKept[ />]/, `${f} tells the editor it opened after a capture`);
+  const editor = src('components/edit/MediaEditor.tsx');
+  assert.match(editor, /accessibilityLabel=\{kept \? kept\.close : 'Close'\}/, 'the ✕ is named for what it does after a capture');
+  assert.match(editor, /kept && empty \?/, 'the kept line stands until the first edit, where Revert has nothing to revert');
 });

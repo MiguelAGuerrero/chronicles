@@ -3,7 +3,7 @@ import { useEventListener } from 'expo';
 import { useAudioPlayer, useAudioPlayerStatus, type AudioPlayer } from 'expo-audio';
 import { useVideoPlayer } from 'expo-video';
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View, type LayoutRectangle } from 'react-native';
+import { AccessibilityInfo, ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View, type LayoutRectangle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { CapturePatch } from '../../lib/captureBus';
 import { FULL_LINES_TEXT, openSession, step, TOOLS, type EditTool, type Session, type SessionEvent } from '../../lib/editSession';
@@ -14,6 +14,7 @@ import { ASPECTS, aspectRatio, cropFromRotated, cropToRotated, editedSize, PEN_C
 import { stillChanged, THUMB } from '../../lib/thumbPlan';
 import { formatElapsed } from '../../lib/format';
 import { voiceReachedEnd, voiceSpan, wholeMs } from '../../lib/voiceTrim';
+import { keptWords } from '../../lib/editOffer';
 
 import { useMediaUri } from '../../lib/useMediaUri';
 import { useBaker } from '../Baker';
@@ -65,12 +66,16 @@ export const MediaEditor = forwardRef<MediaEditorHandle, {
   capture: Faced;
   initialTool?: EditTool;
   overlay?: boolean;
+  /** Opened by itself after a capture (decision 0240): it says the shot is kept, and ✕ says it stays (audit 1). */
+  justKept?: boolean;
   /** Stores a change to the capture: the edits and caption on Done, then the new small copy. */
   onSave: (patch: CapturePatch) => Promise<void>;
   onClose: () => void;
 }>(function MediaEditor(props, ref) {
   const c = props.capture;
   const kind = c.kind === 'video' ? 'video' : c.kind === 'voice' ? 'voice' : 'photo';
+  // Opened by itself after a capture: the shot is already kept (decision 0240, audit 1).
+  const kept = props.justKept && kind !== 'voice' ? keptWords(kind) : null;
   const insets = useSafeAreaInsets();
   const uri = useMediaUri(c);
   const [s, setS] = useState<Session>(() => openSession(kind, { edit: c.edit ?? null, caption: c.caption ?? null, caption_y: c.caption_y ?? null }, props.initialTool));
@@ -142,6 +147,11 @@ export const MediaEditor = forwardRef<MediaEditorHandle, {
   };
 
   useImperativeHandle(ref, () => ({ requestClose: () => dispatch({ type: 'close' }) }));
+  // Said once as it opens, without moving focus: iOS reads no live region (audit 1).
+  const keptLine = kept?.line;
+  useEffect(() => {
+    if (keptLine && Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility(keptLine);
+  }, [keptLine]);
 
   // The trim preview plays only the kept part.
   useEventListener(player, 'timeUpdate', ({ currentTime }) => {
@@ -166,7 +176,7 @@ export const MediaEditor = forwardRef<MediaEditorHandle, {
 
   const top = (
     <View style={[styles.top, { paddingTop: insets.top + 8 }]}>
-      <Pressable testID="edit-close" accessibilityRole="button" accessibilityLabel="Close" onPress={() => dispatch({ type: 'close' })} style={styles.roundBtn} hitSlop={8}>
+      <Pressable testID="edit-close" accessibilityRole="button" accessibilityLabel={kept ? kept.close : 'Close'} onPress={() => dispatch({ type: 'close' })} style={styles.roundBtn} hitSlop={8}>
         <Icon name="close" size={24} color={theme.ink} />
       </Pressable>
       <View style={styles.topMid}>
@@ -180,9 +190,14 @@ export const MediaEditor = forwardRef<MediaEditorHandle, {
             </Pressable>
           </>
         )}
-        <Pressable testID="edit-revert" accessibilityRole="button" accessibilityLabel="Revert to original" accessibilityState={{ disabled: empty }} disabled={empty} onPress={() => dispatch({ type: 'revert' })} style={[styles.textBtn, empty && styles.dim]} hitSlop={6}>
-          <Text style={styles.textBtnText}>Revert</Text>
-        </Pressable>
+        {kept && empty ? (
+          // Until the first edit, where Revert has nothing to revert: the shot is already kept (audit 1).
+          <Text testID="edit-kept" style={styles.kept} accessibilityLiveRegion="polite" numberOfLines={1}>{kept.line}</Text>
+        ) : (
+          <Pressable testID="edit-revert" accessibilityRole="button" accessibilityLabel="Revert to original" accessibilityState={{ disabled: empty }} disabled={empty} onPress={() => dispatch({ type: 'revert' })} style={[styles.textBtn, empty && styles.dim]} hitSlop={6}>
+            <Text style={styles.textBtnText}>Revert</Text>
+          </Pressable>
+        )}
       </View>
       <Pressable testID="edit-done" accessibilityRole="button" accessibilityLabel="Done" accessibilityState={{ busy: saving }} onPress={() => dispatch({ type: 'done' })} style={styles.doneBtn} hitSlop={8}>
         {saving ? <ActivityIndicator color={theme.ink} /> : <Text style={styles.doneText}>Done</Text>}
@@ -438,6 +453,8 @@ const styles = StyleSheet.create({
   iconBtn: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   textBtn: { minHeight: 44, paddingHorizontal: 12, justifyContent: 'center' },
   textBtnText: { color: '#ffffff', fontSize: 16, fontWeight: '600' },
+  // Status, not a control: muted, at the text button's size (audit 1).
+  kept: { color: 'rgba(255,255,255,0.75)', fontSize: 15, fontWeight: '600', paddingHorizontal: 10 },
   doneBtn: { minHeight: 44, minWidth: 72, paddingHorizontal: 16, borderRadius: 22, backgroundColor: '#ffd60a', alignItems: 'center', justifyContent: 'center' },
   doneText: { color: theme.ink, fontSize: 16, fontWeight: '800' },
   dim: { opacity: 0.4 },
