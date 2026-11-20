@@ -39,13 +39,26 @@ async function run(h) {
 
   const { c, pg } = await fresh('arrivals');
   await startWalk(c, pg);
-  // PI5: what the walk first shows draws still.
+  const marksNow = () => pg.locator(`${MARKS}:not([data-leaving])`).count();
+  // PI5: what the walk first shows draws still (a reload is poi-transitions audit 1, below).
   const opened = await moves(pg);
-  check(opened.every((m) => m.kind !== 'grow'), `PI5: opening the walk and reloading plays no grow (${JSON.stringify(opened)})`);
+  check(opened.every((m) => m.kind !== 'grow'), `PI5: opening the walk plays no grow (${JSON.stringify(opened)})`);
   const before = await perf(pg);
   const walkedFrom = Date.now();
   const mark0 = await entersNow(pg);
   await walk(c, pg, -0.5, 1.2);
+  // PI12: Places off and on again, with marks on screen, draws its "?" still.
+  const shownBeforeToggle = await marksNow();
+  await switchLayer(pg, 'places');
+  await pg.waitForTimeout(600);
+  const mark1 = await entersNow(pg);
+  await switchLayer(pg, 'places');
+  await pg.waitForTimeout(1200);
+  const toggled = await moves(pg, mark1);
+  const shownAfterToggle = await marksNow();
+  check(!toggled.some((m) => m.animated), `PI12: switching Places on draws its "?" still (${JSON.stringify(toggled)})`);
+  check.todo(shownBeforeToggle > 0 && shownAfterToggle > 0,
+    `poi-transitions audit 3: PI12 is judged with marks on screen (${JSON.stringify({ shownBeforeToggle, shownAfterToggle })})`);
   // PI6, ui 6: a "?" holding the focus as it falls out of range stays until the focus leaves it, then shrinks out.
   const focused = await pg.locator(`${MARKS}[aria-label*="Hessian Memorial"]`).first().evaluate((el) => { el.focus(); return document.activeElement === el; }).catch(() => false);
   await walk(c, pg, 1.2, 2.6);
@@ -88,15 +101,27 @@ async function run(h) {
   const perSecond = ((after['render:map'] ?? 0) - (before['render:map'] ?? 0)) / ((Date.now() - walkedFrom) / 1000);
   check(arrived > 0 && arrived <= made && perSecond <= 2.5,
     `PI14: a fix that brings marks in renders the walk no more than before and makes each marker once (${JSON.stringify({ made, arrived, perSecond: Math.round(perSecond * 100) / 100 })})`);
-  // PI12: Places off and on again draws its "?" still.
-  await switchLayer(pg, 'places');
-  await pg.waitForTimeout(600);
-  const mark1 = await entersNow(pg);
-  await switchLayer(pg, 'places');
-  await pg.waitForTimeout(1200);
-  const toggled = await moves(pg, mark1);
-  check(!toggled.some((m) => m.animated), `PI12: switching Places on draws its "?" still (${JSON.stringify(toggled)})`);
-  // PI8: leaving the walk screen takes its marks away at once.
+  // Each arrival is one marker that grew once: as many grows recorded as arrivals counted.
+  check.todo(arrived > 0 && grows.length === arrived,
+    `poi-transitions audit 3: PI14 holds one grow per arrival, never two (${JSON.stringify({ arrived, grows: grows.length })})`);
+  // poi-transitions audit 1: a reload mid-walk, then a fix 150 m on, moves no mark. Back by the memorial first, so a mark
+  // is drawn when the page reloads and the jump would take it out of range.
+  await walk(c, pg, 2.6, 1.2);
+  await pg.waitForTimeout(800);
+  await pg.reload();
+  await pg.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
+  await pg.waitForFunction((sel) => document.querySelectorAll(sel).length > 0, MARKS, { timeout: 20000 }).catch(() => {});
+  const shownAfterReload = await marksNow();
+  const far = at(2.7, -0.5);
+  await c.setGeolocation({ longitude: far[0], latitude: far[1], accuracy: 6 });
+  await pg.waitForTimeout(2500);
+  const reloaded = await moves(pg, 0);
+  check.todo(shownAfterReload > 0 && !reloaded.some((m) => m.kind === 'grow' || m.kind === 'shrink'),
+    `poi-transitions audit 1: a reload mid-walk, then a fix 150 m on, plays no grow or shrink (${JSON.stringify({ shownAfterReload, reloaded })})`);
+  // PI8: leaving the walk screen, with marks on screen, takes them away at once.
+  await walk(c, pg, 2.7, 1.2);
+  await pg.waitForTimeout(800);
+  const shownAtStop = await marksNow();
   await toStop(pg);
   const mark2 = await entersNow(pg);
   const b = await pg.locator('[data-testid=stop]').boundingBox();
@@ -107,21 +132,31 @@ async function run(h) {
   await pg.waitForURL(/replay/, { timeout: 30000 });
   const gone = await moves(pg, mark2);
   check(!gone.some((m) => m.kind === 'shrink'), `PI8: leaving the walk screen takes the marks away at once (${JSON.stringify(gone)})`);
-  // PI11: Explore's "?" come and go as before.
+  check.todo(shownAtStop > 0, `poi-transitions audit 3: PI8 is judged with marks on screen (${JSON.stringify({ shownAtStop })})`);
+  // PI11: Explore's "?" come and go as before: zoomed onto the selected area, where its "?" are drawn, and back out.
   await pg.goto(exploreUrl);
   await pg.waitForTimeout(3000);
   const mark3 = await entersNow(pg);
-  const map = pg.locator('.maplibregl-canvas').first();
-  const box = await map.boundingBox().catch(() => null);
-  if (box) {
-    await pg.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-    for (const d of [-600, 600]) {
-      await pg.mouse.wheel(0, d);
-      await pg.waitForTimeout(1500);
-    }
+  const mid = await pg.evaluate(() => {
+    const el = document.querySelector('[data-testid=area-point][data-selected="1"]');
+    const canvas = document.querySelector('.maplibregl-canvas')?.getBoundingClientRect();
+    if (!el || !canvas || !window.__unproject) return null;
+    const r = el.getBoundingClientRect();
+    return window.__unproject([r.left + r.width / 2 - canvas.left, r.top + 6 - canvas.top]);
+  });
+  let exploreMarks = 0;
+  if (mid) {
+    await pg.evaluate(([p]) => window.__zoomTo?.(p, 16), [mid]);
+    await pg.waitForFunction((sel) => document.querySelectorAll(sel).length > 0, MARKS, { timeout: 30000 }).catch(() => {});
+    exploreMarks = await marksNow();
+    await pg.evaluate(([p]) => window.__zoomTo?.(p, 12), [mid]);
+    await pg.waitForTimeout(1500);
+    await pg.evaluate(([p]) => window.__zoomTo?.(p, 16), [mid]);
+    await pg.waitForTimeout(1500);
   }
   const explored = await moves(pg, mark3);
   check(explored.length === 0, `PI11: Explore's "?" and the pins and stars play no grow or leave (${JSON.stringify(explored)})`);
+  check.todo(exploreMarks > 0, `poi-transitions audit 3: PI11 is judged with Explore's "?" on screen (${JSON.stringify({ mid, exploreMarks })})`);
   await c.close();
 
   // The UI review's frames (decision 0145): with the marks' motion slowed tenfold (`__motionSlow`, a harness hook), a

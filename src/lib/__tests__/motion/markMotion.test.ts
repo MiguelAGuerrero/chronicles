@@ -113,3 +113,66 @@ test('poi-transitions ui 4: a mark grows and shrinks about its point, the foot o
   assert.deepEqual(markOrigin(undefined, 6), { x: 18, y: 44 });
   assert.deepEqual(markOrigin({ dx: 20, dy: -10 }, 6), { x: -2, y: 48 });
 });
+
+// The audit (Nov 20; specs/poi-transitions, "Audit"): regression tests first.
+const audit = async (): Promise<Record<string, any>> => import(['../..', 'markMotion'].join('/'));
+
+test('poi-transitions audit 1: the first two positions after a mount or a return to the front draw marks still', { todo: 'regression test first' }, async () => {
+  const { settleStep, marksSettled } = await audit();
+  let s = { epoch: 0, n: 0 };
+  s = settleStep(s, 0); // the mount: the position it opens with (a reload's last stored fix)
+  assert.equal(marksSettled(s, 0), false);
+  s = settleStep(s, 0); // the first live fix after it, which may jump far
+  assert.equal(marksSettled(s, 0), true, 'settled from the second position on');
+  s = settleStep(s, 1); // back to the front
+  assert.equal(marksSettled(s, 1), false, 'a return starts again');
+  s = settleStep(settleStep(s, 1), 1);
+  assert.equal(marksSettled(s, 1), true);
+});
+
+test('poi-transitions audit 2: native, a leaving mark is drawn still until its leave is decided, never missing a render', { todo: 'regression test first' }, async () => {
+  const { markDraw } = await audit();
+  const d = markDraw({ ids: ['b'], context: 'x', decided: { known: new Set(['a', 'b']), context: 'x' }, leaving: new Set() });
+  assert.deepEqual([...d.stillGone], ['a'], 'a left the list but is drawn until the tick decides');
+  const after = markDraw({ ids: ['b'], context: 'x', decided: { known: new Set(['b']), context: 'x' }, leaving: new Set(['a']) });
+  assert.deepEqual([...after.stillGone], [], 'once leaving, it is drawn as leaving, not twice');
+});
+
+test('poi-transitions audit 4: the found set is part of the context, so a find loaded or removed moves nothing', { todo: 'regression test first' }, async () => {
+  const { markContext: ctxOf } = await audit();
+  const base = { places: true, rangeM: 100, hidden: [], keys: ['a'], route: null, riding: false, found: ['a'] };
+  assert.notEqual(ctxOf(base), ctxOf({ ...base, found: [] }));
+});
+
+test('poi-transitions audit 5: with no context a new mark draws on its first render, never held back', { todo: 'regression test first' }, async () => {
+  const { markDraw } = await audit();
+  const d = markDraw({ ids: ['a', 'b'], context: null, decided: { known: new Set(['a']), context: null }, leaving: new Set() });
+  assert.deepEqual([...d.held], []);
+  const live = markDraw({ ids: ['a', 'b'], context: 'x', decided: { known: new Set(['a']), context: 'x' }, leaving: new Set() });
+  assert.deepEqual([...live.held], ['b'], 'under a context, a new mark waits its tick');
+});
+
+test('poi-transitions audit 6: a mark respread right after it arrives does not grow twice', { todo: 'regression test first' }, async () => {
+  const { growsNow } = await audit();
+  const grow = new Map([['a', 'mark:a:r:']]);
+  assert.equal(growsNow(grow, 'a', 'mark:a:r:'), true, 'its arrival mount grows');
+  assert.equal(growsNow(grow, 'a', 'mark:a:r:left'), false, 'a remount under a new key does not');
+});
+
+test('poi-transitions audit 7: a mark back while leaving, not recently left, is not an arrival; a changed look is no arrival', { todo: 'regression test first' }, () => {
+  const back = markMoves({ prev: new Set(['b']), prevContext: 'x', ids: ['a', 'b'], context: 'x', recentlyLeft: none, leaving: new Set(['a']), inView: all });
+  assert.deepEqual([...back.back], ['a']);
+  assert.equal(back.arriving.has('a'), false, 'back from leaving is the same marker, not an arrival');
+  // The same ids with every look changed: the rule sees ids only, so the look cannot make an arrival.
+  const looks = markMoves({ prev: new Set(['a']), prevContext: 'x', ids: ['a', 'c'], context: 'x', recentlyLeft: none, leaving: none, inView: all });
+  assert.deepEqual([...looks.arriving], ['c'], 'only the new id arrives');
+});
+
+test('poi-transitions audit 9: a mark the nearest-eight cap drops or brings back, still within range, comes and goes still', { todo: 'regression test first' }, () => {
+  const m = markMoves({
+    prev: new Set(['a', 'b']), prevContext: 'x', ids: ['b', 'c'], context: 'x', recentlyLeft: none, leaving: none, inView: all,
+    ...({ inRangeBefore: new Set(['a', 'b', 'c']), inRangeNow: new Set(['a', 'b', 'c']) } as any),
+  });
+  assert.deepEqual([...m.leaving], [], 'a is still within range: the cap dropped it');
+  assert.deepEqual([...m.arriving], [], 'c was within range: the cap brought it');
+});
