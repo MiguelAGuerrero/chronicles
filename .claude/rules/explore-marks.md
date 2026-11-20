@@ -115,7 +115,7 @@ Places of interest from the tiles, marks, checklists and finds (Explore), and Re
     named place's card within 60 m (`cardCapture`, `explore/placeCard.ts`) carries `PlaceCaptureRow` (`mark-camera`, `mark-voice`,
     `mark-note`), first, with Route here secondary; a tap closes the card and begins the capture with the place's key on its stamp
     (`stampFor`'s `place`; never on a piece). `useCaptures`' `onKept(id, piece, place)` hands it back, and the walk screen calls
-    `explore.findFor`, which records the find only through `findOnKept` (a new moment, the place unfound; the first find stands).
+    `explore.keptAtPlace`, which records the find only through `findOnKept` (a new moment, the place unfound; the first find stands).
     Nothing is armed: a cancelled camera, a discarded memo or a note closed empty leaves nothing waiting. **Trap:** the stamp is
     the only carrier, so a capture path that builds its own stamp (not `stampNow`) never finds. A found pin takes taps again (web:
     no padding, its head only; native: `onPress`) and opens its card: "Moments here" (`mark-moments`, `mark-moment`) lists the

@@ -850,7 +850,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
   useEffect(() => {
     placeKept.current = (place, momentId, piece) => {
       const item = cardPlaces.current.get(place);
-      if (item) void explore.findFor(item, { momentId, piece }).catch(() => {});
+      if (item) void explore.keptAtPlace(item, { momentId, piece }).catch(() => {});
     };
   });
   // A found place's card lists the moments taken here (CA11), read as it opens; each opening reads again (CA12).

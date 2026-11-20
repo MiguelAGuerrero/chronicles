@@ -26,7 +26,7 @@ export function cardCapture(o: { name: string | null; at: LngLat; here: LngLat |
   if (!o.name) return { row: false, line: 'Walk within 60 m to see what it is.' };
   const near = !o.here || distanceM(o.here, o.at) <= PLACE_REACH_M;
   if (o.found) return { row: near, line: null };
-  return near ? { row: true, line: `A moment taken here is kept with ${o.name}.` } : { row: false, line: 'Moments are kept with it from within 60 m.' };
+  return near ? { row: true, line: `Camera, Voice or Note here keeps the moment with ${o.name}.` } : { row: false, line: 'Moments are kept with it from within 60 m.' };
 }
 
 /**
@@ -41,22 +41,26 @@ export function findOnKept(k: { place: string | null; piece: boolean; momentId: 
 
 const WEEKDAY_FIRST = /^(Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)\b/;
 
-/** A moment on a found card, in words: its kinds in the order taken, then its day and part of day (tend map T28's words). */
-export function momentHereLine(mo: Pick<Moment, 't' | 'pieces'>, now: number): string {
+/**
+ * A moment on a found card, in words: its kinds in the order taken, then its day and part of day (tend map T28's words);
+ * a moment of the walk in progress is "on this walk", never "late last night" for a minute ago (capture-at-a-place ui 3).
+ */
+export function momentHereLine(mo: Pick<Moment, 't' | 'pieces' | 'walk_id'>, now: number, walkId: string | null = null): string {
   const order: CaptureKind[] = [];
   for (const p of mo.pieces) if (!order.includes(p.kind)) order.push(p.kind);
   const kinds = kindsClause(order.map((k) => [k, mo.pieces.filter((p) => p.kind === k).length] as const));
+  if (walkId && mo.walk_id === walkId) return `${kinds}, on this walk`;
   const when = dayPartLine(mo.t, now);
   return `${kinds}, ${WEEKDAY_FIRST.test(when) ? when : when.charAt(0).toLowerCase() + when.slice(1)}`;
 }
 
 /** The moments a found place's card lists (CA11): within 60 m of the place, newest first, three at most. No count. */
-export function momentsHere(moments: readonly Moment[], at: LngLat, now: number): { id: string; line: string }[] {
+export function momentsHere(moments: readonly Moment[], at: LngLat, now: number, walkId: string | null = null): { id: string; line: string }[] {
   return moments
     .filter((mo) => mo.lat != null && mo.lon != null && mo.pieces.length > 0 && distanceM([mo.lon, mo.lat], at) <= PLACE_REACH_M)
     .sort((a, b) => b.t - a.t)
     .slice(0, MOMENTS_SHOWN)
-    .map((mo) => ({ id: mo.id, line: momentHereLine(mo, now) }));
+    .map((mo) => ({ id: mo.id, line: momentHereLine(mo, now, walkId) }));
 }
 
 /** The box a found card reads its moments in: the place's 60 m, as [west, south, east, north]. */

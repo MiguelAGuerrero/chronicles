@@ -362,7 +362,7 @@ async function checks(h) {
         check(!!boxes['mark-go'] && row.every((b) => b && b.y + b.height <= boxes['mark-go'].y + 1) && ink.go === ink.camera,
           `CA1b: within 60 m the capture row comes first and Route here is secondary, alike in fill (${JSON.stringify({ go: boxes['mark-go'], ink })})`);
         const cardSaid = (await page.locator('[data-testid=mark-card]').innerText().catch(() => '')).replace(/\n/g, ' ');
-        check(/A moment taken here is kept with Hessian Memorial\./.test(cardSaid) && !/next moment|Capture here|\b(collect|unlock)\b/i.test(cardSaid),
+        check(/Camera, Voice or Note here keeps the moment with Hessian Memorial\./.test(cardSaid) && !/next moment|Capture here|\b(collect|unlock)\b/i.test(cardSaid),
           `CA5: the card describes what the row does and never says "the next moment" (${cardSaid})`);
         // CA2: Camera on the card; the video it keeps finds the place.
         await openPlace();
@@ -441,6 +441,20 @@ async function checks(h) {
       if (k === 27) await measuredAside(async () => {
         // CA11, CA12 after the step-25 checks (29 m from the memorial): a note here would share their note's pin and the
         // press list would open on it first. Steps 16-20 keep their pace for the cone and dot checks.
+        // capture-at-a-place ui 4 (the UI review's U2): the found pin, the one way to its card, answers on 44 px or more
+        // around its small head, and every moment pin still takes a tap on its own middle, above it.
+        const hits = await page.evaluate(() => {
+          const found = document.querySelector('.maplibregl-map [aria-label^="Found with"]');
+          const b = found?.getBoundingClientRect();
+          const pins = [...document.querySelectorAll('.maplibregl-map [data-ids]')].map((e) => {
+            const r = e.getBoundingClientRect();
+            const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 3);
+            return !!top && e.contains(top);
+          });
+          return { w: Math.round(b?.width ?? 0), h: Math.round(b?.height ?? 0), pins };
+        });
+        check(hits.w >= 44 && hits.h >= 44 && hits.pins.length > 0 && hits.pins.every(Boolean),
+          `capture-at-a-place ui 4: the found pin takes taps on 44 px or more, and the moment pins keep theirs (${JSON.stringify(hits)})`);
         // CA11: the found pin opens its card, which lists the moments taken here, in words, and offers the row again.
         await page.locator('[aria-label="Found with a video: Hessian Memorial, History"]').first().click().catch(() => {});
         const foundCard = await page.waitForSelector('[data-testid=mark-moment]', { timeout: 5000 }).then(() => true, () => false);
@@ -448,7 +462,7 @@ async function checks(h) {
         await shot(page, '03i-found-card');
         const lines = await page.locator('[data-testid=mark-moment]').allInnerTexts().catch(() => []);
         const hereSaid = (await page.locator('[data-testid=mark-moments]').innerText().catch(() => '')).trim();
-        check(foundCard && /^Moments here/.test(hereSaid) && lines.some((l) => /^A video, /.test(l)) && lines.length <= 3 && (await page.locator('[data-testid=mark-camera]').count()) === 1,
+        check(foundCard && /^Moments here/.test(hereSaid) && lines.some((l) => /^A video, on this walk\b/.test(l)) && lines.length <= 3 && (await page.locator('[data-testid=mark-camera]').count()) === 1,
           `CA11: the found place's card says "Moments here" with the video in words, and offers the row (${JSON.stringify(lines)})`);
         await page.locator('[data-testid=mark-moment]').filter({ hasText: /^A video, / }).first().click().catch(() => {});
         const opened = await page.locator('[data-testid=viewer-close]').filter({ visible: true }).first().waitFor({ timeout: 5000 }).then(() => true, () => false);

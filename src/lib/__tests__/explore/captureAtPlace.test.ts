@@ -68,7 +68,7 @@ test('CA4: a note begun from the card finds the place when it is kept', async ()
 
 test('CA5: nothing says "the next moment": no arming in the explore core or the walk screen, and the card describes', async () => {
   const { cardCapture } = await card();
-  assert.equal(cardCapture({ name: 'Hessian Memorial', at: m(20, 0), here: O, found: false }).line, 'A moment taken here is kept with Hessian Memorial.');
+  assert.equal(cardCapture({ name: 'Hessian Memorial', at: m(20, 0), here: O, found: false }).line, 'Camera, Voice or Note here keeps the moment with Hessian Memorial.');
   const explore = src('src/lib/explore/explore.ts');
   for (const gone of ['armedLine', 'armedFind', 'armedStill', 'interface Armed', 'next moment']) assert.ok(!explore.includes(gone), `explore.ts: ${gone} is gone`);
   const walk = src('src/app/walk.tsx');
@@ -146,4 +146,19 @@ test('CA11: a found place offers the row too, with no line of its own', async ()
 test('CA12: a capture from a found place\'s card writes no second find', async () => {
   const { findOnKept } = await card();
   assert.equal(findOnKept({ place: 'k:Old Bridge', piece: false, momentId: 'm2' }, new Set(['k:Old Bridge'])), null);
+});
+
+// The UI review (Nov 20). U1: the card's line names its own buttons, so the stack's look-alike buttons beside it are not
+// read as doing the same (H4); U3: a moment of the walk in progress is said as on this walk, never "late last night".
+test('capture-at-a-place ui 2: the card\'s line names the card\'s own buttons', async () => {
+  const { cardCapture } = await card();
+  assert.equal(cardCapture({ name: 'Hessian Memorial', at: m(20, 0), here: O, found: false }).line, 'Camera, Voice or Note here keeps the moment with Hessian Memorial.');
+});
+
+test('capture-at-a-place ui 3: a moment of the walk in progress is said as on this walk', async () => {
+  const { momentsHere } = (await card()) as unknown as { momentsHere: (ms: readonly Moment[], at: LngLat, now: number, walkId?: string | null) => { id: string; line: string }[] };
+  const now = new Date(2026, 10, 20, 1, 30).getTime();
+  const got = momentsHere([moment('this', m(5, 0), now - 60_000, ['video']), { ...moment('other', m(5, 5), now - 3 * 24 * 3600_000, ['text']), walk_id: 'w0' }], m(0, 0), now, 'w1');
+  assert.equal(got[0].line, 'A video, on this walk');
+  assert.ok(!/on this walk/.test(got[1].line), got[1].line);
 });

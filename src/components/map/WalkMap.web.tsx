@@ -1405,9 +1405,10 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         el.setAttribute('aria-hidden', 'true');
         el.tabIndex = -1;
       }
-      // A found place opens its card again, with the moments taken there (capture-at-a-place CA11). It answers on its own
-      // small head only (no padding round it); where a moment's pin covers it, the card's lines open the same moments.
-      el.style.cssText = pin.found ? 'background:none;border:0;padding:0;cursor:pointer' : 'background:none;border:0;padding:4px 6px 0;cursor:pointer';
+      // A found place opens its card again, with the moments taken there (capture-at-a-place CA11): its small head answers
+      // on 44 px round it (ui 4: padding about the 26 x 32 pin, its foot where it was), and it is put under every other
+      // marker below, so a moment's pin drawn over it still takes its own tap.
+      el.style.cssText = pin.found ? 'background:none;border:0;padding:12px 9px 0;cursor:pointer' : 'background:none;border:0;padding:4px 6px 0;cursor:pointer';
       const id = pin.id;
       el.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -1418,6 +1419,13 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       root.render(<MarkPinView pin={pin as MarkPin} enter={enter} below={MARK_BELOW} />);
       // A spread pin stands off its point, on a leg back to it (fix mark-overlap).
       const marker = new Marker({ element: el, anchor: 'bottom', offset: [pin.spread?.dx ?? 0, MARK_BELOW + (pin.spread?.dy ?? 0)] }).setLngLat(pin.at).addTo(map);
+      if (pin.found) {
+        // Markers paint in the order they stand in their container: first is lowest (capture-at-a-place ui 4). Under the
+        // moments' pins only: the walker's own marker and the rest keep their order over it.
+        const box = el.parentElement;
+        const first = box ? [...box.children].find((c) => c !== el && (c.matches('[data-ids]') || !!c.querySelector('[data-ids]'))) : undefined;
+        if (box && first) box.insertBefore(el, first);
+      }
       markMarkers.current.set(pin.id, { marker, root, key, spread, state: { revealed: pin.revealed, found: pin.found, faint: pin.faint } });
     }
     for (const [id, m] of markMarkers.current) {

@@ -67,3 +67,38 @@ Open: none (the owner's four answers, Nov 20).
   listed too; the words say "Moments here", never "about it" (the owner's call, Nov 20).
 - **Older moments at a place**: past the newest three they are not on the card; Chronicle and the map hold them.
 - **A piece added to the moment**: the card's capture is always a new moment; adding to it is the pill's job (MS1-MS6).
+
+## Record (2026-11-20)
+
+CA1-CA12 pass: unit `explore/captureAtPlace.test.ts` (CA1-CA12, ui 2, ui 3); journey `walk` (CA1, CA1b, CA2-CA5, CA7,
+CA8, CA11, CA12, ui 1, ui 4) and `unsaved` (a held capture's Retry keeps its stamp) on the web build. CA9 and CA10 are
+held by unit tests only. CA3 and CA4 are proven in the journey up to the capture each opens (a memo begun, the note's
+page open), and in the unit tests through the keep path all three kinds share. TC3 and TC4 are retired; TC1, TC5 and
+tap-to-capture-places audits 2-5, MD8, tend walk-screen 13, MS3 and the native-map-frames guard are re-held on the new
+code. `check:test-first` reads 9 of 12: in the tests-first commit (`4ec84b7`), the comments "(CA1-CA8)" and "(CA2)" sit
+on the line after a real `check(`, which the script joins to it, so CA1, CA2 and CA8 read as real there. Their todos
+(lines 307, 403 and 405 of that commit) did come first. The walk journey's render budget sets the new card taps (steps
+14 and 27) aside and says both rates: 1.84/s without them (1.78 to 1.91 before), 2.04/s with them.
+
+Native: the card's row, the stamp's place through the camera, recorder and note page, and the found pin's tap have
+never run on a device (`docs/NATIVE_UNVERIFIED.md`, three CA items). Decision 0240.
+
+### The UI review and the cold find (2026-11-20)
+
+The cold find placed all three tasks (Voice on the card; Camera on the card; the found pin, then a line and Note). Its
+doubts: two look-alike sets of capture buttons (the card's and the stack's), "Camera" not naming video, and which
+marker a found card belongs to.
+
+- Before the review: "Camera" was cut at its button's edge at 390. **Fixed**, `capture-at-a-place ui 1` (icon over word,
+  whole at 390 and 320).
+- U1 (medium; and the cold find's two mics): the card's line now names the card's own buttons: "Camera, Voice or
+  Note here keeps the moment with <place>." **Fixed**, `ui 2`.
+- U2 (medium): the found pin answered only on its own 20-odd px. **Fixed**, `ui 4`: 44 px round its head, under the
+  moments' pins, which keep their taps. Its look (small, nameless) is **for the owner** (docs/STATUS.md).
+- U3 (medium): moments from a minute ago read "late last night". **Fixed**, `ui 3`: a moment of the walk in progress
+  is "on this walk".
+- U4 (200% text), U5 (the X beside Route here, older than this slice), U6 (two note glyphs, older), U9
+  (the card over its pin), and the cold find's "Camera" without video: **deferred** (docs/DEFERRED.md).
+- U7 (a memo begun on the card shows only its timer): **for the owner**, a status line rather than the armed line
+  they ruled out.
+- U8 (the 20 s refusal beside "Video saved here"): **rejected**, the journey's own order (a refused clip, then the kept one).

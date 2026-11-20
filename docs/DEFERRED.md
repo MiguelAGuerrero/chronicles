@@ -1030,3 +1030,8 @@ The replay's rework, built whole on its branch and shown at the preview address 
 - Past the newest three, a found place's moments are not on its card; Chronicle and the map hold them. A "more" line would need words for how many, which counts would make a score.
 - A found pin and the pin of the moment that found it can overlap at walking zoom; the found pin now takes taps again (CA11), on its own head only, and the card's lines open the same moments. Not measured on a phone (docs/NATIVE_UNVERIFIED.md).
 - A found card says each moment's day and part of day ("A video, this afternoon"), not its minutes into a walk as the owner's example had: minutes in mean little across walks (tend map T28's words); a default the owner can overrule.
+- [loop] From the UI review (Nov 20, low, U4): at 320 px "Camera" fills its button edge to edge; at 200% text it would be cut. The row needs a picture at 200% text and buttons that grow taller, wrapping only between words.
+- [loop] From the UI review (Nov 20, low, U5): the place card's Close is an unlabelled X in the bottom row beside Route here (T5, matrix 23 put Close top right). It predates this slice; every walk card shares it.
+- [loop] From the UI review (Nov 20, low, U6): a note has two glyphs, the document (the stack, the card's row) and the pencil in a square (the Add to this moment pill, note pins). It predates this slice.
+- [loop] From the UI review (Nov 20, low, U9, opinion): the card can cover the place it describes (the pin and its label under the card at 320). Panning the map so the pin sits above the card would keep the two together.
+- [loop] From the cold find (Nov 20, low): "Camera" says nothing of video; its spoken name does ("a photo or video"), as the stack's does.

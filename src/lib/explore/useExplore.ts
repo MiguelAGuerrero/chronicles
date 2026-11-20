@@ -252,7 +252,7 @@ export function useExplore(opts: {
   useEffect(() => {
     foundRef.current = found;
   });
-  const findFor = useCallback(async (item: ChecklistItem, kept: { momentId: string; piece: boolean }) => {
+  const keptAtPlace = useCallback(async (item: ChecklistItem, kept: { momentId: string; piece: boolean }) => {
     // Before the finds are read, ask the store: the first find of a place stands (CA12).
     const known = foundRef.current ?? new Set((await db.listFinds().catch(() => [])).map((f) => f.key));
     const hit = findOnKept({ place: item.key, piece: kept.piece, momentId: kept.momentId }, known);
@@ -262,7 +262,7 @@ export function useExplore(opts: {
   const momentsAt = useCallback(async (at: LngLat, now: number) => {
     const ms = await db.momentsIn(hereBounds(at));
     const byId = new Map(ms.map((x) => [x.id, x]));
-    return momentsHere(ms, at, now).map((x) => ({ ...x, moment: faced(byId.get(x.id)!) }));
+    return momentsHere(ms, at, now, latest.current.walkId).map((x) => ({ ...x, moment: faced(byId.get(x.id)!) }));
   }, []);
 
   const rangeM = opts.previewRangeM ?? settings.rangeM;
@@ -316,5 +316,5 @@ export function useExplore(opts: {
   const byKey = useMemo(() => new Map([...routeItems, ...items].map((i) => [i.key, i])), [items, routeItems]);
   const itemOf = useCallback((key: string) => byKey.get(key) ?? null, [byKey]);
 
-  return { pins, settings, revealed, found: foundSet, itemOf, findFor, momentsAt };
+  return { pins, settings, revealed, found: foundSet, itemOf, keptAtPlace, momentsAt };
 }
