@@ -28,6 +28,7 @@ import { between, cameraAt, cameraTrack, fitCamera, pxPerMetre, type CameraPart,
 import { easeInOut, easeOut, steady } from './ease';
 import { standing } from './pictures';
 import { cardFoot, PICTURE } from './room';
+import { lastNames, whisperBeside, whisperEnds, type Named } from './said';
 import { stackBound, stackSlots } from './stack';
 import { positionAt, timeAtMetres } from './story';
 import type {
@@ -97,8 +98,12 @@ export interface RhythmPlan {
   bubbles: { capture: Faced; ta: number; exitAt: number; len: number }[];
   /** One per moment (MS17): a stack's grid carries its photos as `pieces`, and its videos in turn (`at` is then into the telling). */
   cards: { capture: Faced; t0: number; t1: number; len: number; from: LngLat | null; pieces?: Faced[]; videos?: Turn[]; faces?: Faced[] }[];
-  /** `above`, `by`: whether it stands over its place, and where the walker passes it (`replay-ceremony ui 5`). */
-  whispers: { key: string; text: string; at: LngLat; tw: number; above: boolean; by: LngLat }[];
+  /**
+   * `above`, `by`: whether it stands over its place, and where the walker passes it (`replay-ceremony ui 5`). `until`:
+   * when it is gone, sooner when a newer one arrives (ui 12). `beside`: its room's width where it stands beside the
+   * line, not under its place (ui 13).
+   */
+  whispers: { key: string; text: string; at: LngLat; tw: number; until: number; above: boolean; by: LngLat; beside?: number }[];
   lines: { t0: number; t1: number; text: string }[];
   /** For each path, the index of its last segment: past it, the path is drawn whole. */
   lastSeg: Record<string, number>;
@@ -108,8 +113,11 @@ export interface RhythmPlan {
   hops: { t0: number; t1: number; from: LngLat; to: LngLat; brk: StoryBreak }[];
   /** The camera, worked out for the screen the telling is shown on (RC11-RC16); null with reduce motion (the map stays still, RR18) or with no place to look at. */
   camera: CameraTrack | null;
-  /** What the last view names (RC25): each place passed, where it stands, or the card's one line for more than two, beside none. */
-  named: { key: string; text: string; at: LngLat | null }[];
+  /**
+   * What the last view names (RC25): each place passed, where it stands, or the card's one line, beside none, for
+   * more than two and for those with no room beside their places (`said.ts` `lastNames`, `replay-ceremony ui 14`).
+   */
+  named: Named[];
   /**
    * What stays behind (RC28-RC34), in the order the cards land. `stood`: each moment with a picture or a video and a
    * place, standing there as its picture from when its card has shrunk onto it (`t`). `kept`: every such moment, placed
@@ -455,11 +463,23 @@ export function rhythmPlan(story: Story, opts: CeremonyOptions): RhythmPlan {
   if (!opts.reduceMotion && segs.length)
     plan.camera = cameraTrack({ total: t, parts: segs.map((s) => cameraPart(s, open, close)), walker: (ms) => walkerAt(plan, ms) }, opts.screen, (pieces) => cardFoot(opts.screen, pieces));
   // What the last view names (RC25): a walk's passed places, each by the words it was passed with, where it stands;
-  // more than two as the one line the card uses (RP19), beside no one place. A day's names none (0153).
+  // more than two as the one line the card uses (RP19), beside no one place, and so are one or two that cannot each
+  // stand clear of the walk's line and the pictures on it (`replay-ceremony ui 14`, the owner's defaults, Nov 20). The
+  // view is the one the telling ends on: the card's, or, with reduce motion, where the map stands. A day's names none (0153).
   if (opts.namePassed && story.passes.length) {
-    plan.named = story.passes.length > 2
-      ? [{ key: 'passed', text: passedLine(story.passes) ?? '', at: null }]
-      : story.passes.map((x) => ({ key: `passed:${x.name}@${x.t}`, text: passedLine([x]) ?? x.name, at: x.at }));
+    const walked = Object.values(story.paths).flatMap((x) => [...x.drawn, ...x.rideRuns]);
+    plan.named = lastNames({
+      screen: opts.screen,
+      view: opts.reduceMotion ? open : close,
+      names: story.passes.map((x) => {
+        const path = story.paths[x.pathId];
+        return { key: `passed:${x.name}@${x.t}`, text: passedLine([x]) ?? x.name, at: x.at, by: path ? positionAt(path, x.t) : null };
+      }),
+      line: passedLine(story.passes) ?? '',
+      paths: [...walked, ...hops.map((h) => [h.from, h.to])],
+      pictures: plan.places,
+      stack: kept.length > 0,
+    });
   }
   // A passed place whispers as the walker reaches it (RR15): the first segment that reaches its time. More than two
   // on one walk whisper once, as that walk's card says them ("Passed a few places without stopping", RP19, the owner,
@@ -493,8 +513,14 @@ export function rhythmPlan(story: Story, opts: CeremonyOptions): RhythmPlan {
     const a = path ? positionAt(path, p.t - PASS_RUN_MS) : null;
     const b = path ? positionAt(path, p.t + PASS_RUN_MS) : null;
     const down = !!a && !!b && a[1] - b[1] > Math.abs(b[0] - a[0]) * Math.cos((by[1] * Math.PI) / 180);
-    plan.whispers.push({ key: `${p.name}@${p.t}`, text: passedLine(p.all) ?? p.name, at: p.at, tw, above: down, by });
+    // Where the way runs up or down the screen there, beside the line and not across it (`replay-ceremony ui 13`),
+    // by where the camera has the place and the line as it arrives.
+    const beside = whisperBeside({ screen: opts.screen, camera: plan.camera ? cameraAt(plan.camera, tw) : null, at: p.at, by, before: a, after: b });
+    plan.whispers.push({ key: `${p.name}@${p.t}`, text: passedLine(p.all) ?? p.name, at: p.at, tw, until: tw + R.whisper, above: down, by, ...(beside != null ? { beside } : {}) });
   }
+  // One at a time (`replay-ceremony ui 12`): a newer whisper replaces the older, which leaves by its own fade.
+  const ends = whisperEnds(plan.whispers.map((w) => w.tw), R.whisper, R.whisperOut);
+  plan.whispers.forEach((w, k) => { w.until = ends[k]; });
   return plan;
 }
 
@@ -789,11 +815,16 @@ export function rhythmFrame(plan: RhythmPlan, ms: number, jump?: Jump | null): F
   }
   for (const w of plan.whispers) {
     const age = ms - w.tw;
-    if (age < 0 || age >= R.whisper) continue;
+    if (age < 0 || ms >= w.until) continue;
     if (landed && w.tw > landed.from && w.tw <= landed.at) continue;
-    overlays.push({ kind: 'whisper', key: w.key, text: w.text, at: w.at, opacity: clamp01(Math.min(age / 250, (R.whisper - age) / 500)), above: w.above, by: w.by });
+    overlays.push({
+      kind: 'whisper', key: w.key, text: w.text, at: w.at, opacity: clamp01(Math.min(age / R.whisperIn, (w.until - ms) / R.whisperOut)), above: w.above, by: w.by,
+      ...(w.beside != null ? { beside: w.beside } : {}),
+    });
   }
-  if (s.k === 'close' && ms >= s.t0 + R.closeSay) for (const n of plan.named) overlays.push({ kind: 'passed', key: n.key, text: n.text, at: n.at, opacity: said });
+  if (s.k === 'close' && ms >= s.t0 + R.closeSay) {
+    for (const n of plan.named) overlays.push({ kind: 'passed', key: n.key, text: n.text, at: n.at, opacity: said, above: n.above, by: n.by, ...(n.top != null ? { top: n.top } : {}) });
+  }
   const jumped = landed && ms - landed.at < R.jumpLine + plan.whispers.length * R.whisper ? jumpLines(plan, landed).find((l) => ms >= l.t0 && ms < l.t1) : null;
   const line = jumped ?? plan.lines.find((l) => ms >= l.t0 && ms < l.t1) ?? null;
   return {

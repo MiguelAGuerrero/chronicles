@@ -257,12 +257,13 @@ test('replay-ceremony ui 5: a whisper stands on a solid ground, lighter than the
     // A picture standing on the line there (its tile from 12 to 48 px over it) is clear of it too.
     assert.ok(w.box.top > w.walker[1] - (PICTURE_.lift - PICTURE_.size / 2));
   }
-  // A walk north (up the screen): under its place still, behind the walker, who walks on away from it.
-  const north = whispersOf(at(0, 600), [{ name: 'East Gate', at: at(8, 200), fix: 29 }]).get('Passed East Gate without stopping')!;
+  // A way that climbs the screen at a slant (north-east): under its place still, behind the walker, who walks on
+  // away from it. Straight up or down the screen it stands beside the line instead (ui 13, below).
+  const north = whispersOf(at(360, 480), [{ name: 'East Gate', at: at(128, 160), fix: 29 }]).get('Passed East Gate without stopping')!;
   assert.equal(north.above, false);
   assert.ok(north.box.top >= Math.max(north.place[1], north.walker[1]) + WHISPER.gap - 0.5, 'under the place and the walker as it passes');
-  // A walk south (down the screen): over its place, behind the walker again.
-  const south = whispersOf(at(0, -600), [{ name: 'West Gate', at: at(-8, -200), fix: 29 }]).get('Passed West Gate without stopping')!;
+  // A way that runs down the screen at a slant (south-west): over its place, behind the walker again.
+  const south = whispersOf(at(-360, -480), [{ name: 'West Gate', at: at(-128, -160), fix: 29 }]).get('Passed West Gate without stopping')!;
   assert.equal(south.above, true);
   assert.ok(south.box.bottom <= Math.min(south.place[1], south.walker[1]) - WHISPER.gap + 0.5, 'over the place and the walker as it passes');
   // With nothing to place it by (reduce motion: the map is not the camera's), under the clock, as before.
@@ -272,15 +273,16 @@ test('replay-ceremony ui 5: a whisper stands on a solid ground, lighter than the
 
 // ---------------------------------------------------------------- ui 6: a hop's dots over a walked street
 
-test('replay-ceremony ui 6: while a replay is told a hop\'s dots stand on a white edge, each dot in its own disc, so they read on the land and on a lit street; other maps\' gap links are as they were', () => {
+test('replay-ceremony ui 6: while a replay is told a hop\'s dots stand on a white edge, each dot on its own mark, so they read on the land and on a lit street; other maps\' gap links are as they were', () => {
   const T = mapTypes as unknown as Record<string, unknown>;
   const edge = built<{ color: string; width: number; dash: number[]; opacity: number }>(T, 'HOP_EDGE');
   const dash = mapTypes.GAP_LINK_DASH;
   const DOT = 3;
-  assert.ok(edge.width > DOT + 2, `the edge is ${edge.width} px under a ${DOT} px dot`);
-  // One disc a dot: the same period along the line, so the edge is a ring round each dot, never a second row of marks.
+  // Wider than the dot, so white shows each side of it; how much wider is ui 9's (a hairline, not the disc it was).
+  assert.ok(edge.width > DOT, `the edge is ${edge.width} px under a ${DOT} px dot`);
+  // One mark a dot: the same period along the line, so the edge is a ring round each dot, never a second row of marks.
   assert.ok(Math.abs(edge.width * (edge.dash[0] + edge.dash[1]) - DOT * (dash[0] + dash[1])) < 1e-9, 'the edge keeps the dots\' own spacing');
-  assert.ok(edge.width < DOT * (dash[0] + dash[1]), 'and its discs do not run together into a line');
+  assert.ok(edge.width < DOT * (dash[0] + dash[1]), 'and its marks do not run together into a line');
   // It reads where the dots did not: on a lit walked street; and the dot reads on it.
   assert.ok(contrast(edge.color, mapTypes.COLORS.walked) >= 3, `the edge on a lit street: ${contrast(edge.color, mapTypes.COLORS.walked).toFixed(2)}:1`);
   assert.ok(contrast(mapTypes.FOG_BOLD, edge.color) >= 3, `a dot on its edge: ${contrast(mapTypes.FOG_BOLD, edge.color).toFixed(2)}:1`);
@@ -396,7 +398,7 @@ test('replay-ceremony ui 8: the first beat\'s fit turns a map turned by hand nor
 
 // ---------------------------------------------------------------- ui 9: a hop's halo is a hairline
 
-test('replay-ceremony ui 9: a hop\'s edge is a hairline casing, a pixel or so wider each side of a dot, one mark a dot, so on plain land the dots read apart and never as a white ribbon', { todo: 'test first' }, () => {
+test('replay-ceremony ui 9: a hop\'s edge is a hairline casing, a pixel or so wider each side of a dot, one mark a dot, so on plain land the dots read apart and never as a white ribbon', () => {
   const edge = built<{ color: string; width: number; dash: number[]; opacity: number }>(mapTypes as unknown as Record<string, unknown>, 'HOP_EDGE');
   const dash = mapTypes.GAP_LINK_DASH;
   const dot = mapTypes.GAP_LINK_WIDTH;
@@ -422,7 +424,7 @@ test('replay-ceremony ui 9: a hop\'s edge is a hairline casing, a pixel or so wi
 
 // ---------------------------------------------------------------- ui 10: the words on the two buttons
 
-test('replay-ceremony ui 10: the replay\'s buttons say Pause (Play while paused) and Skip to end; where the top row has no room for the longer word it says Skip and is spoken "Skip to the end"', { todo: 'test first' }, () => {
+test('replay-ceremony ui 10: the replay\'s buttons say Pause (Play while paused) and Skip to end; where the top row has no room for the longer word it says Skip and is spoken "Skip to the end"', () => {
   const roomOf = roomMod as Record<string, unknown>;
   const T = built<{ edge: number; gap: number; clock: number; date: number; pause: number; skip: number; skipLong: number; side: number }>(roomOf, 'TOP_ROW');
   const topRow = built<(width: number) => { skip: string; skipSpoken: string; room: number }>(roomOf, 'topRow');
@@ -461,7 +463,7 @@ test('replay-ceremony ui 10: the replay\'s buttons say Pause (Play while paused)
 
 // ---------------------------------------------------------------- ui 11 (U2): the gap question on a short phone
 
-test('replay-ceremony ui 11: where the gap question would leave the walk no room over the card\'s sheet it is asked inside the sheet, decided from the room and never from a device', { todo: 'test first' }, () => {
+test('replay-ceremony ui 11: where the gap question would leave the walk no room over the card\'s sheet it is asked inside the sheet, decided from the room and never from a device', () => {
   const R = replay as unknown as Record<string, unknown>;
   const place = built<(o: { height: number; top: number; sheetH: number; askH: number }) => 'over' | 'sheet'>(R, 'keepAskPlace');
   const clear = built<number>(R, 'KEEP_ASK_CLEAR');
@@ -500,7 +502,7 @@ test('replay-ceremony ui 11: where the gap question would leave the walk no room
 
 // ---------------------------------------------------------------- ui 12: one whisper at a time
 
-test('replay-ceremony ui 12: one passed-place whisper at a time: as a second arrives the first leaves by its own fade, started early, and two are never on screen at full strength', { todo: 'test first' }, () => {
+test('replay-ceremony ui 12: one passed-place whisper at a time: as a second arrives the first leaves by its own fade, started early, and two are never on screen at full strength', () => {
   const whisperEnds = built<(starts: readonly number[], life: number, out: number) => number[]>(saidMod, 'whisperEnds');
   const life = token('whisper');
   const fadeIn = token('whisperIn');
@@ -515,14 +517,14 @@ test('replay-ceremony ui 12: one passed-place whisper at a time: as a second arr
   // Two that arrive together (both waited for one card): the later listed is the newer.
   assert.deepEqual(whisperEnds([500, 500], life, out), [500 + out, 500 + life]);
   assert.deepEqual(whisperEnds([], life, out), []);
-  // Told: two places 28 m apart on one stretch, whose whispers used to stand on screen together.
+  // Told: two places 170 m apart on one stretch, whose whispers used to stand on screen together.
   const fixes = line(O, at(600), 9 * 60 * MIN);
-  const passed = [{ name: 'North Gate', generic: false, at: at(280, 20), t: fixes[40].t }, { name: 'South Gate', generic: false, at: at(308, -20), t: fixes[44].t }];
+  const passed = [{ name: 'North Gate', generic: false, at: at(210, 20), t: fixes[30].t }, { name: 'South Gate', generic: false, at: at(378, -20), t: fixes[54].t }];
   const p = planOf(walkStory(input(fixes, [cap('text', endT(fixes), at(600), 'Here.')], { passed: passed as WalkInput['passed'] })));
   const [first, second] = p.whispers;
-  assert.ok(second.tw > first.tw && second.tw - first.tw < life - out, `the second arrives ${Math.round(second.tw - first.tw)} ms after the first, inside its time`);
+  assert.ok(second.tw - first.tw >= fadeIn && second.tw - first.tw < life - out, `the second arrives ${Math.round(second.tw - first.tw)} ms after the first: the first is whole, and well inside its time`);
   let both = 0;
-  let was = 0;
+  let was = 1;
   for (let ms = first.tw - 100; ms <= second.tw + life + 200; ms += 10) {
     const up = overlaysOf(frameAt(p, ms), 'whisper') as unknown as { key: string; opacity: number }[];
     const a = up.find((o) => o.key === first.key)?.opacity ?? 0;
@@ -532,10 +534,10 @@ test('replay-ceremony ui 12: one passed-place whisper at a time: as a second arr
     if (ms >= second.tw) {
       // From the second's arrival the first only fades, at its own fade's pace, and is gone when that is over.
       assert.ok(a <= was + 1e-9, `the first comes back at ${Math.round(ms)} ms`);
-      assert.ok(Math.abs(a - Math.min(a === 0 ? 0 : 1, Math.max(0, (second.tw + out - ms) / out), (ms - first.tw) / fadeIn)) < 1e-6 || a === 0);
+      assert.ok(Math.abs(a - Math.max(0, Math.min(1, (second.tw + out - ms) / out))) < 1e-6, `the first at ${Math.round(ms - second.tw)} ms after the second arrived: ${a}`);
       if (ms >= second.tw + out) assert.equal(a, 0, `the first is still up ${Math.round(ms - second.tw)} ms after the second arrived`);
+      was = a;
     }
-    was = a;
   }
   assert.ok(both > 0 && both * 10 <= out + 10, `they cross for ${both * 10} ms, the fade's own time at the most`);
   // The second has its whole time; a whisper alone is as it was.
@@ -572,7 +574,7 @@ function whisperFrames(s: Screen, end: LngLat, place: LngLat, fix: number) {
   return out;
 }
 
-test('replay-ceremony ui 13: where the way runs up or down the screen a whisper stands beside the line, on the side away from the stack, narrowed to the room there and never across the line', { todo: 'test first' }, () => {
+test('replay-ceremony ui 13: where the way runs up or down the screen a whisper stands beside the line, on the side away from the stack, narrowed to the room there and never across the line', () => {
   const WHISPER = built<{ width: number; height: number; gap: number; side: number; min: number }>(layoutMod, 'WHISPER');
   const P = PICTURE();
   assert.ok(WHISPER.min >= 120 && WHISPER.min < WHISPER.width, `it is never narrower than ${WHISPER.min} px`);
@@ -584,14 +586,19 @@ test('replay-ceremony ui 13: where the way runs up or down the screen a whisper 
       assert.ok(frames.length > 20, `${s.width} px, ${name}: the whisper is up`);
       const beside = frames[0].o.beside;
       assert.ok(typeof beside === 'number' && beside >= WHISPER.min && beside <= WHISPER.width, `${s.width} px, ${name}: it stands beside the line, ${beside} px wide`);
+      assert.ok(frames[0].place[1] >= frames[0].box.top && frames[0].place[1] <= frames[0].box.bottom, `${s.width} px, ${name}: level with its place as it arrives`);
       for (const f of frames) {
         assert.equal(f.o.beside, beside, 'its side and its width are said once');
         // The line there is where the walker passes the place; the stack is at the right, so its room is at the left.
+        // As it arrives it keeps its whole gap; while it is up it is kept on the screen first, and never reaches a
+        // picture's tile on the line (asked below) as the camera goes on.
         const lineX = Math.min(f.place[0], f.by[0]);
-        assert.ok(f.box.right <= lineX - WHISPER.side + 0.5, `${s.width} px, ${name}: its box ends at ${Math.round(f.box.right)}, the line is at ${Math.round(lineX)}`);
+        assert.ok(f.box.right <= lineX - (f === frames[0] ? WHISPER.side : P.size / 2) + 0.5, `${s.width} px, ${name}: its box ends at ${Math.round(f.box.right)}, the line is at ${Math.round(lineX)}`);
         assert.ok(f.box.left >= 8 - 0.5, `${s.width} px, ${name}: and begins on the screen (${Math.round(f.box.left)})`);
-        // Beside its place, not above or below it: the place is level with its box.
-        assert.ok(f.place[1] >= f.box.top - 0.5 && f.place[1] <= f.box.bottom + 0.5, `${s.width} px, ${name}: level with its place`);
+        // Beside its place, not above or below it: the place is level with its box, until the place leaves the room
+        // the stage keeps for a whisper (under the top row, over the corner) and its box stays at that room's edge.
+        const kept = f.box.top === s.insets.top + 100 || f.box.top === s.height - 120 - WHISPER.height;
+        assert.ok((f.place[1] >= f.box.top - 0.5 && f.place[1] <= f.box.bottom + 0.5) || kept, `${s.width} px, ${name}: level with its place`);
         // Clear of the walker's dot (10 px about it) and of a picture standing anywhere on the line there.
         assert.ok(f.walker[0] - 10 >= f.box.right, `${s.width} px, ${name}: clear of the walker's dot`);
         assert.ok(f.by[0] - P.size / 2 >= f.box.right, `${s.width} px, ${name}: clear of a picture on the line`);
@@ -622,7 +629,7 @@ test('replay-ceremony ui 13: where the way runs up or down the screen a whisper 
 // ---------------------------------------------------------------- ui 14: the last view's names with no room
 
 type Named = { key: string; text: string; at: LngLat | null; above?: boolean; top?: number };
-test('replay-ceremony ui 14: names that cannot each stand clear of the walk\'s line and the pictures on it are said as the card\'s one line, clear of the walk: under it, or over it where there is no room under', { todo: 'test first' }, () => {
+test('replay-ceremony ui 14: names that cannot each stand clear of the walk\'s line and the pictures on it are said as the card\'s one line, clear of the walk: under it, or over it where there is no room under', () => {
   const passedPose = built<(o: unknown, c: Ctx, camera: Cam, above: boolean, index: number, stack: boolean) => Pose>(layoutMod, 'passedPose');
   const passedWidth = built<(c: Screen, stack: boolean) => number>(layoutMod, 'passedWidth');
   const PASSED = built<{ height: number; gap: number }>(layoutMod, 'PASSED');

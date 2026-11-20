@@ -11,7 +11,8 @@ import { distanceM } from '../../geo';
 import * as tokens from '../../motionTokens';
 import * as replay from '../../replay';
 import type { LngLat } from '../../types';
-import { at, boxOf, built, cam, dayOf, field, fitCamera, frameAt, mod, O, optsOf, overlaysOf, PHONE, planOf, project, segOf, segsOf, SMALL, SRC, token, walkOf, wholeOf, type Box, type Edges, type Screen } from './walks';
+import { walkStory, type WalkInput } from '../../ceremony/story';
+import { at, boxOf, built, cam, cap, dayOf, endT, field, fitCamera, frameAt, input, line, MIN, mod, O, optsOf, overlaysOf, PHONE, planOf, project, segOf, segsOf, SMALL, SRC, token, walkOf, wholeOf, type Box, type Edges, type Screen } from './walks';
 
 const read = (rel: string) => readFileSync(join(SRC, rel), 'utf8');
 /** Where the corners of a box land on a screen under a camera: [left, top, right, bottom]. */
@@ -195,8 +196,12 @@ test('RC24: with reduce motion the close lasts as long and the map is not moved'
 // ---------------------------------------------------------------- what the last view says (RC25, RC26)
 
 test('RC25: on a walk\'s last view each place passed without stopping is named beside it at full strength; more than two as the card\'s one line', () => {
-  const two = walkOf(['Hessian Memorial', 'Sun Inn']);
-  const p = planOf(two.story, { whole: wholeOf(two.bounds), namePassed: true });
+  // Two places with room beside them: far apart, a few metres off the way, no picture standing near. (Where the
+  // names have no such room they are said as one line: `replay-ceremony ui 14`, ui.test.ts.)
+  const fixes = line(O, at(600), 9 * 60 * MIN);
+  const two = { places: [{ name: 'Hessian Memorial', generic: false, at: at(150, 6), t: fixes[21].t }, { name: 'Sun Inn', generic: false, at: at(450, -6), t: fixes[64].t }] };
+  const story = walkStory(input(fixes, [cap('text', endT(fixes), at(600), 'Here.')], { passed: two.places as WalkInput['passed'] }));
+  const p = planOf(story, { whole: wholeOf(boxOf([O, at(600)], 60)), namePassed: true });
   const close = segOf(p, 'close');
   // Not before the walk is whole again; then each by the words it was passed with, where it stands.
   assert.deepEqual(overlaysOf(frameAt(p, close.t0 + 1000), 'passed'), []);

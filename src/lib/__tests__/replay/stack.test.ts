@@ -103,7 +103,7 @@ test('RC30: the stack never shows a number, and at 320 px it stands clear of a c
   for (const s of [SMALL, screenOf(320, 700), screenOf(320, 480), PHONE]) {
     const left = s.width - s.insets.right - S.right - S.w;
     assert.ok(s.width / 2 + cardSize(s).w / 2 <= left - 4, `${s.width}x${s.height}: a card reaches ${s.width / 2 + cardSize(s).w / 2}, the stack starts at ${left}`);
-    // The bubbles' corner (12 in, two thirds of the width) and the line under the clock (between Hold and Skip).
+    // The bubbles' corner (12 in, two thirds of the width) and the line under the clock (between Pause and Skip).
     assert.ok(12 + Math.min(s.width * 0.66, 320) <= left, 'clear of a bubble');
     assert.ok(s.width / 2 + Math.max(120, s.width - 180) / 2 <= left, 'clear of the line under the clock');
   }

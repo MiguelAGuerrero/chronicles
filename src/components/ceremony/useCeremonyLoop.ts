@@ -18,7 +18,7 @@ const NO_PINS: string[] = [];
  * (the beat's start), runs while `running`, stands still while held or `paused` (a viewer open over it, a medium
  * catching up), moves by the time that really passed, a quarter second at most, and calls `onEnd` once per epoch when
  * the time is up. A time that moved is handed to `onFrame`, which draws it (the map, the stage) and answers with the
- * pins the map shows then. The screen renders only when those pins change, Next comes or goes, or Hold is pressed.
+ * pins the map shows then. The screen renders only when those pins change, Next comes or goes, or Pause is pressed.
  *
  * A telling rebuilt mid-path (a moment deleted, Undo, a note edited) takes up from the same place (`loopAgainst`),
  * drawn before the render that brought it is painted, so no card unmounts for a frame (audits 22, 31, 33); so is a

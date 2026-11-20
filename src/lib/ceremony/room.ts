@@ -16,13 +16,40 @@ export interface StageRoom {
 
 /** Above the map's credits button and level with the bubbles, clear of the scale bar. */
 export const STAGE_BOTTOM = 44;
-/** Below the top row (Hold, the clock and its line, Skip). */
+/** Below the top row (Pause, the clock and its line, Skip). */
 export const STAGE_TOP = 64;
 /**
- * Below all the top can show (tend replay 11): Stage's column 12 in, the clock (36), then "N min later" and "Held" (23
+ * Below all the top can show (tend replay 11): Stage's column 12 in, the clock (36), then "N min later" and "Paused" (23
  * each), 8 apart and 8 to spare. A card stands under it, so neither pill draws over a card, on a landscape phone too.
  */
 export const STACK_TOP = 12 + 36 + 8 + 23 + 8 + 23 + 8;
+/**
+ * The top row as it is laid out (`replay-ceremony ui 10`, the owner's defaults, Nov 20): a worded button `edge` in
+ * from each side (Pause at the left; Skip at the right, Next under it), the clock in the middle of the screen and, on
+ * the last view, the date where the clock stood; `gap` between any two. The widths are the words' own at the
+ * buttons' size, in the stage's narrower padding (`TOP_BUTTON`), with the clock and the date at their widest ("10:20
+ * PM", "Wed, Sep 30"): no text is measured in the core, and the `replay` journey reads the real boxes against one another.
+ */
+export const TOP_ROW = { edge: 12, gap: 8, clock: 110, date: 122, pause: 75, skip: 64, skipLong: 114, side: 12 + 75 + 8 } as const;
+/**
+ * The room each side of the top column keeps for Pause, and for Skip with Next under it (replay pace RY12): the edge, a
+ * worded button and a gap. The line under the clock wraps inside what is left (`replay-pace ui 3`).
+ */
+export const STAGE_SIDE = TOP_ROW.side;
+/** A top-row button's padding each side: a little under a button's own 16, so the longer word fits a 390 px phone. */
+export const TOP_BUTTON = { paddingHorizontal: 12 } as const;
+/**
+ * What the top row says and leaves (`replay-ceremony ui 10`). Skip says where it goes, "Skip to end", wherever that
+ * longer word's button ends a gap short of the clock and of the date at their widest; on a narrower phone it stays
+ * "Skip" and is spoken "Skip to the end" (the cold reads could not tell what Skip skips). `room` is what the row
+ * leaves in the middle of the screen for the line under the clock and for the date: between Pause and whatever stands
+ * at the right, never under 120 px.
+ */
+export function topRow(width: number): { skip: string; skipSpoken: string; room: number } {
+  const long = width / 2 - TOP_ROW.edge - TOP_ROW.skipLong - TOP_ROW.gap >= Math.max(TOP_ROW.clock, TOP_ROW.date) / 2;
+  const side = Math.max(TOP_ROW.side, TOP_ROW.edge + (long ? TOP_ROW.skipLong : TOP_ROW.skip) + TOP_ROW.gap);
+  return { skip: long ? 'Skip to end' : 'Skip', skipSpoken: long ? 'Skip to end' : 'Skip to the end', room: Math.max(120, width - 2 * side) };
+}
 /** A card's caption strip and frame under its picture. */
 const CARD_EXTRA = 48;
 /** A card's frame over its picture and its caption strip under it, as drawn (`Cards.tsx`). */

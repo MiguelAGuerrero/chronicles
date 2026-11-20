@@ -38,7 +38,7 @@ test('tend replay 7: where there is room, and on a landscape phone, the card sta
   assert.equal(restCenter(flat, cardH(fw))[1], (STACK_TOP + 390 - STAGE_BOTTOM) / 2);
 });
 
-test('tend replay 11: a card stands below all the top can show (the clock, "N min later", "Held"), in landscape too', () => {
+test('tend replay 11: a card stands below all the top can show (the clock, "N min later", "Paused"), in landscape too', () => {
   for (const [w, h] of [[844, 390], [667, 375], [390, 844], [320, 568]]) {
     const c = stage(w, h);
     const ch = cardH(cardWidth(c));
@@ -66,7 +66,7 @@ test('tend replay audit 3: at 320 x 568 under a 20 px status bar a card still st
 });
 
 // Replay pace, the UI review (Nov 18): the line under the clock can now be a sentence ("Passed ... without stopping", RY21).
-test('replay-pace ui 2: "Held" is not drawn under a long line, which wraps and would push it onto a card', () => {
+test('replay-pace ui 2: "Paused" is not drawn under a long line, which wraps and would push it onto a card', () => {
   assert.equal(heldShown(true, null), true);
   assert.equal(heldShown(true, '43 min later'), true, 'a break\'s short line leaves it its room');
   assert.equal(heldShown(true, '1 h 20 min later'), true);
@@ -75,8 +75,9 @@ test('replay-pace ui 2: "Held" is not drawn under a long line, which wraps and w
   assert.equal(heldShown(false, null), false);
 });
 
-test('replay-pace ui 3: the line keeps clear of Hold and of Skip with Next under it, on a 320 px phone too', () => {
-  // The edge, a worded button's width (Skip, Next: 70 px) and 8 px between.
+test('replay-pace ui 3: the line keeps clear of Pause and of Skip with Next under it, on a 320 px phone too', () => {
+  // The edge, a worded button's width (Pause, the widest of the short words: 75 px; replay-ceremony ui 10) and 8 px between.
+  assert.equal(STAGE_SIDE, 12 + 75 + 8);
   assert.ok(STAGE_SIDE >= 12 + 70 + 8, `each side keeps ${STAGE_SIDE} px`);
   assert.ok(320 - 2 * STAGE_SIDE >= 120, 'and the line still has room to say a place on a 320 px phone');
 });

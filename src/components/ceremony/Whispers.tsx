@@ -9,13 +9,15 @@ import { useLive, useLiveStyle } from './useLive';
  * One passed place's line, on a ground of its own (`replay-ceremony ui 5`: text over a map needs one, V4, X1), lighter
  * than the name the last view gives the same place. Where its room stands under its place (or over it) as the camera
  * moves, short of the stack while that is up (ui 3), and its fade, are written on it frame by frame (`whisperPose`,
- * replay ceremony RC7); its words sit at the edge of the room nearer the place.
+ * replay ceremony RC7); its words sit at the edge of the room nearer the place. Beside a way that runs up or down the
+ * screen (`w.beside`, ui 13) its room is that wide, at the line's left, and its words are at the room's right edge.
  */
 function Whisper({ w, ctx }: { w: WhisperOverlay; ctx: StageCtx }) {
   const key = w.key;
   // Under its place (and under the clock, where no camera places it) the words hang from the room's top; over it,
-  // they stand on its foot.
+  // they stand on its foot; beside the line they are level with the place, at the edge by the line.
   const over = w.above && !ctx.reduceMotion;
+  const beside = ctx.reduceMotion ? undefined : w.beside;
   const pose = useLiveStyle(ctx.live, (f) => {
     const now = overlayOf(f, 'whisper', key);
     return now ? whisperPose(now, ctx, f.camera, stackUp(f)) : null;
@@ -26,7 +28,11 @@ function Whisper({ w, ctx }: { w: WhisperOverlay; ctx: StageCtx }) {
       // A tap on it holds the replay like any tap on the stage (audit 37).
       pointerEvents="none"
       // Under the clock until its first frame is written on it, before it is seen; and where no camera places it.
-      style={[styles.said, { left: (ctx.width - WHISPER.width) / 2, top: ctx.insets.top + 100, justifyContent: over ? 'flex-end' : 'flex-start' }]}
+      style={[
+        styles.said,
+        { left: (ctx.width - WHISPER.width) / 2, top: ctx.insets.top + 100, justifyContent: over ? 'flex-end' : 'flex-start' },
+        beside != null && { width: beside, alignItems: 'flex-end', justifyContent: 'center' },
+      ]}
     >
       <Text testID="replay-whisper" accessibilityLiveRegion="polite" style={styles.whisper}>{w.text}</Text>
     </View>
@@ -73,16 +79,16 @@ function PassedName({ o, ctx, above, index }: { o: PassedOverlay; ctx: StageCtx;
 }
 
 /**
- * The places passed without stopping, named on the walk's last view (RC25): each beside its place, the more northern
- * of two over its place and the other under, so two close together keep their own room; more than two are one line
- * under the date.
+ * The places passed without stopping, named on the walk's last view (RC25): each beside its place, over it or under
+ * as the telling says (`lib/ceremony/said` `lastNames`: of two the more northern over its place, so two close
+ * together keep their own room); more than two, or those with no room beside their places, are one line clear of the
+ * walk (`replay-ceremony ui 14`).
  */
 export function PassedNames({ items, ctx }: { items: PassedOverlay[]; ctx: StageCtx }) {
-  const north = items.length > 1 ? Math.max(...items.map((o) => o.at?.[1] ?? -Infinity)) : null;
   return (
     <>
       {items.map((o, i) => (
-        <PassedName key={o.key} o={o} ctx={ctx} above={north != null && o.at?.[1] === north && items.findIndex((x) => x.at?.[1] === north) === i} index={i} />
+        <PassedName key={o.key} o={o} ctx={ctx} above={o.above} index={i} />
       ))}
     </>
   );

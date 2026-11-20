@@ -1876,7 +1876,7 @@ async function run(h) {
     }
 
     // tend map audit 25 (the T25 review): a loop walk, its end a few metres from its start. The start's marker drew over
-    // the end's outer ring; the end is now a bullseye over the start. And tend map audit 26: at Hold, with motion, the
+    // the end's outer ring; the end is now a bullseye over the start. And tend map audit 26: at Pause, with motion, the
     // walker's dot and the end are both on the map, apart, and pictured, at 390 and at 320.
     {
       const { c: c9, pg: pg9 } = await freshPage('qol-loop');
@@ -1919,14 +1919,14 @@ async function run(h) {
         const nearWalked = (cc) => Math.abs(cc[0] - walkedRgb[0]) + Math.abs(cc[1] - walkedRgb[1]) + Math.abs(cc[2] - walkedRgb[2]) <= 60;
         const hideMarkers = (hidden) => pg9.evaluate((v) => document.querySelectorAll('.maplibregl-marker').forEach((m) => { m.style.visibility = v ? 'hidden' : ''; }), hidden);
 
-        // tend map audit 26: Hold once the dot has gone 24 px from the end along the loop, then read where both are. (It
+        // tend map audit 26: Pause once the dot has gone 24 px from the end along the loop, then read where both are. (It
         // was 40 px, and 20 apart, at the walking zoom of 16: at 15, replay ceremony RC11, the loop's 60 m sides are 34 px.)
         // tend map 12: the loop's path beat runs the whole loop in about a second, so the hold is timed in the page and
         // tapped where the button is. A poll of three round trips and a click that waits for the button to hold still
         // took 140 to 784 ms, and the check lost the race now and then from the start (2 of 5 scratch runs on 6c5174cd,
         // 4 of 5 on main; the larger web bundle since the place-name pack is a possible contributor, not shown).
-        // tend map audit 34 (the review's F35, F36): the tap is on Hold itself (the stage under it holds the replay too),
-        // Hold then reads Play and the dot and the clock stand still for a second, and a dot that never leaves the end
+        // tend map audit 34 (the review's F35, F36): the tap is on Pause itself (the stage under it holds the replay too),
+        // Pause then reads Play and the dot and the clock stand still for a second, and a dot that never leaves the end
         // fails saying so.
         const holdApart = async (w) => {
           await pg9.waitForSelector('[data-testid=replay-clock]', { timeout: 60000 });
@@ -1950,7 +1950,7 @@ async function run(h) {
           const at1600 = await still();
           const label = (await pg9.locator('[data-testid=hold]').innerText().catch(() => '')).trim();
           check(!!left && left.onHold && at600 === at1600 && label === 'Play',
-            `tend map audit 34: at Hold on the loop at ${w}, ${left ? '' : 'the dot never left the end; '}the tap is on Hold (${left && left.onHold}), Hold reads Play ("${label}") and the dot and the clock stand still (${at600} → ${at1600})`);
+            `tend map audit 34: at Pause on the loop at ${w}, ${left ? '' : 'the dot never left the end; '}the tap is on Pause (${left && left.onHold}), Pause reads Play ("${label}") and the dot and the clock stand still (${at600} → ${at1600})`);
           const ends = await mapAttr('data-ends');
           const endAt = lonLatOf((ends ?? '').split('|')[1]);
           const walkerAt = lonLatOf(await mapAttr('data-walker'));
@@ -1960,7 +1960,7 @@ async function run(h) {
           const apartPx = a && b ? Math.hypot(a[0] - b[0], a[1] - b[1]) : null;
           const held = await pg9.locator('[data-testid=replay-held]').count();
           check(held > 0 && inside(a) && inside(b) && apartPx >= 12,
-            `tend map audit 26: at Hold at ${w}, with motion, the walker's dot and the end are both on the map and apart (held ${held}, end ${JSON.stringify(a && a.map(Math.round))}, dot ${JSON.stringify(b && b.map(Math.round))}, ${apartPx && Math.round(apartPx)} px apart, canvas ${JSON.stringify(canvas && [canvas.x, canvas.y, canvas.width, canvas.height].map(Math.round))})`);
+            `tend map audit 26: at Pause at ${w}, with motion, the walker's dot and the end are both on the map and apart (held ${held}, end ${JSON.stringify(a && a.map(Math.round))}, dot ${JSON.stringify(b && b.map(Math.round))}, ${apartPx && Math.round(apartPx)} px apart, canvas ${JSON.stringify(canvas && [canvas.x, canvas.y, canvas.width, canvas.height].map(Math.round))})`);
           await shot(pg9, `qol-20-loop-held-${w}`);
           await pg9.click('[data-testid=hold]');
         };

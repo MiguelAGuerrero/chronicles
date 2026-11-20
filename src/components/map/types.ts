@@ -472,12 +472,15 @@ export const GAP_LINK_DASH = [0.1, 2.2];
 export const GAP_LINK_WIDTH = 3;
 /** The white edge lines stand on, so they read over fog, walked streets and the base map alike. */
 export const LINE_EDGE = '#ffffff';
-const HOP_EDGE_WIDTH = 6;
+/** A line's casing: a pixel wider each side of the dot (`replay-ceremony ui 9`, the owner's defaults, Nov 20). */
+const HOP_EDGE_WIDTH = GAP_LINK_WIDTH + 2;
 /**
- * The edge a replay's hop stands on (`replay-ceremony ui 6`): a white disc under each of the gap link's dots, drawn
+ * The edge a replay's hop stands on (`replay-ceremony ui 6`): a white mark under each of the gap link's dots, drawn
  * from the dots' own source just under them. The dots are grey on the land; over a walked street lit in its ink they
- * vanished (1.5:1), and the white reads on both (6:1 on the street, the dot 9:1 on the white). The dash is counted in
- * the line's own width, so the wider edge takes a shorter one to keep the dots' spacing: one disc a dot.
+ * vanished (1.5:1), and the white reads on both (6:1 on the street, the dot 9:1 on the white). It is a hairline
+ * casing, as a line's is, not a disc (ui 9): at 6 px the discs all but touched on plain land (0.6 px between them)
+ * and read as a white dotted ribbon; at this width 1.6 px of land shows between two marks. The dash is counted in the
+ * line's own width, so the wider edge takes a shorter one to keep the dots' spacing: one mark a dot.
  */
 export const HOP_EDGE = {
   color: LINE_EDGE,

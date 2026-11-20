@@ -9,12 +9,14 @@
 import { project, type Camera } from '../../lib/ceremony/camera';
 import { easeInOut, easeOut } from '../../lib/ceremony/ease';
 import type { StageLive } from '../../lib/ceremony/live';
-import { cardSize, PICTURE, restCenter, STACK, stackEdge, STAGE_BOTTOM, STAGE_TOP, type StageRoom } from '../../lib/ceremony/room';
+import { cardSize, PICTURE, restCenter, STACK, STAGE_BOTTOM, STAGE_TOP, type StageRoom } from '../../lib/ceremony/room';
+import { nameRoom, PASSED, saidRoom, WHISPER } from '../../lib/ceremony/said';
 import type { BubbleOverlay, CardOverlay, Frame, PassedOverlay, PictureOverlay, StackEntry, WhisperOverlay } from '../../lib/ceremony/types';
 import type { Faced } from '../../lib/moment';
 
 export { project };
-export { cardSize, cardWidth, PICTURE, pictureHeight, restCenter, STACK, stackSlop, STACK_TOP, STAGE_BOTTOM, STAGE_TOP } from '../../lib/ceremony/room';
+export { cardSize, cardWidth, PICTURE, pictureHeight, restCenter, STACK, stackSlop, STACK_TOP, STAGE_BOTTOM, STAGE_SIDE, STAGE_TOP, TOP_BUTTON, topRow } from '../../lib/ceremony/room';
+export { PASSED, passedWidth, WHISPER } from '../../lib/ceremony/said';
 
 export interface StageCtx extends StageRoom {
   /**
@@ -34,13 +36,8 @@ export interface StageCtx extends StageRoom {
 }
 
 /**
- * The room each side of the top column keeps for Hold, and for Skip with Next under it (replay pace RY12): the edge, a
- * worded button and a gap. The line under the clock wraps inside what is left (`replay-pace ui 3`).
- */
-export const STAGE_SIDE = 90;
-/**
- * Whether "Held" is drawn (`replay-pace ui 2`): not under a long line. A passed place's sentence (RY21) wraps to two
- * or three lines, and "Held" under it would reach a card standing at STACK_TOP; Hold already reads Play.
+ * Whether "Paused" is drawn (`replay-pace ui 2`): not under a long line. A passed place's sentence (RY21) wraps to two
+ * or three lines, and "Paused" under it would reach a card standing at STACK_TOP; Pause already reads Play.
  */
 export const heldShown = (held: boolean, line: string | null) => held && (line?.length ?? 0) <= 20;
 /** The bubbles' corner: as tall as the room under the top row. */
@@ -59,11 +56,11 @@ export function leanOf(id: string): number {
 export const timeOf = (t: number) => new Date(t).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 /**
  * The day walked, as the last view says it (replay ceremony RC26): "Saturday, October 24" where the row has `room` px
- * for it, "Sat, October 24" or "Sat, Oct 24" where it has less, so it is always one line between Hold and Skip.
+ * for it, "Sat, October 24" or "Sat, Oct 24" where it has less, so it is always one line between Pause and Skip.
  */
 export const dateOf = (t: number, room = Infinity) =>
   new Date(t).toLocaleDateString(undefined, { weekday: room >= 250 ? 'long' : 'short', month: room >= 190 ? 'long' : 'short', day: 'numeric' });
-/** Where the last view's date stands: in the top row, where the clock stood (12 in), between Hold and Skip. */
+/** Where the last view's date stands: in the top row, where the clock stood (12 in), between Pause and Skip. */
 export const DATE_TOP = 12;
 /**
  * The room the last view keeps at the top: under the top row (12 in, 48 tall, 8 to spare) and a picture standing on
@@ -181,65 +178,37 @@ export function bubblePose(o: BubbleOverlay, reduceMotion: boolean): LiveStyle {
 }
 
 /**
- * The room across the screen for what is said over the map (a whisper, the last view's names): 8 px in from each edge,
- * and short of the stack's column while the stack is up (`replay-ceremony ui 3`), as a card and the bubbles' corner are.
- */
-const saidRoom = (c: StageRoom, stack: boolean) => ({ left: 8, right: stack ? Math.min(c.width - 8, stackEdge(c)) : c.width - 8 });
-
-/** The room a passed place's name has on the last view (RC25): its box (three lines of body text at the most), the name at the edge nearer its place. */
-export const PASSED = { width: 260, height: 72, gap: 9, dot: 10 } as const;
-/** As wide as the screen lets it be: 8 px in from each edge on a narrow phone, less the stack's column while it is up. */
-export const passedWidth = (c: StageRoom, stack = false) => {
-  const room = saidRoom(c, stack);
-  return Math.min(PASSED.width, room.right - room.left);
-};
-
-/**
- * Where a passed place's name stands on the last view (replay ceremony RC25): centred under its place, or over it
- * (`above`: the more northern of two, so two close together never share their room), kept on the screen and short of
- * the stack while that is up (`stack`). With no place (the one line for more than two) or nothing to place it by,
- * under the top row, the `index`th down.
+ * Where a passed place's name stands on the last view (replay ceremony RC25): centred on its place, under the lower of
+ * the place and the line where the walker passed it, or over them (`above`, the telling's to say: `said.ts`
+ * `lastNames`), kept on the screen and short of the stack while that is up (`stack`). With no place (the one line) it
+ * stands where the telling put it, clear of the walk (`replay-ceremony ui 14`), or, with nothing to place it by, under
+ * the top row, the `index`th down.
  */
 export function passedPose(o: PassedOverlay, c: StageCtx, camera: StageCamera, above: boolean, index: number, stack = false): LiveStyle {
-  const p = o.at ? project(c, camera, o.at) : null;
-  const room = saidRoom(c, stack);
-  const width = passedWidth(c, stack);
-  if (!p) return { left: room.left + (room.right - room.left - width) / 2, top: c.insets.top + 12 + 48 + 8 + index * (PASSED.height + 4), opacity: o.opacity };
-  return {
-    left: Math.max(room.left, Math.min(room.right - width, p[0] - width / 2)),
-    top: above ? p[1] - PASSED.gap - PASSED.height : p[1] + PASSED.gap,
-    opacity: o.opacity,
-  };
+  return { ...nameRoom({ at: o.at, by: o.by ?? null, above, top: o.top }, c, camera, index, stack), opacity: o.opacity };
 }
 
-/** The mark on a passed place itself, under its name; none where the name stands under the date. */
+/** The mark on a passed place itself, under its name; none where the name stands beside no place. */
 export function passedDot(o: PassedOverlay, c: StageCtx, camera: StageCamera): LiveStyle {
   const p = o.at ? project(c, camera, o.at) : null;
   return p ? { left: p[0] - PASSED.dot / 2, top: p[1] - PASSED.dot / 2, opacity: o.opacity } : { left: 0, top: 0, opacity: 0 };
 }
 
 /**
- * A whisper's room (`replay-ceremony ui 5`): its box (three lines at the most, its words at the edge nearer its
- * place) and how far it keeps from its place and from the line, clear of the walker's dot.
- */
-export const WHISPER = { width: 190, height: 60, gap: 14 } as const;
-
-/**
  * A passed place's line as the walker goes by (RR15; `replay-ceremony ui 5`): centred on its place, under the lower
  * of the place and the line where the walker passes it (`by`), a gap clear: pins and pictures stand upward from the
  * line, and the dot and the line are over it. Where the telling says `above` (the way runs down the screen), over
- * the higher of the two instead. Kept on the screen and short of the stack while that is up (`stack`, ui 3). Without
- * a following map, under the clock.
+ * the higher of the two instead. Where it says `beside` (the way runs up or down the screen, ui 13), in a room that
+ * wide at the line's left, level with its place: beside the line, never across it. Kept on the screen and short of
+ * the stack while that is up (`stack`, ui 3). Without a following map, under the clock.
  */
 export function whisperPose(w: WhisperOverlay, c: StageCtx, camera: StageCamera, stack = false): LiveStyle {
   const p = project(c, camera, w.at);
   if (!p) return { left: (c.width - WHISPER.width) / 2, top: c.insets.top + 100, opacity: w.opacity };
   const by = project(c, camera, w.by) ?? p;
   const room = saidRoom(c, stack);
+  const onScreen = (top: number) => Math.min(c.height - 120 - WHISPER.height, Math.max(c.insets.top + 100, top));
+  if (w.beside != null) return { left: Math.max(room.left, Math.min(p[0], by[0]) - WHISPER.side - w.beside), top: onScreen(p[1] - WHISPER.height / 2), opacity: w.opacity };
   const top = w.above ? Math.min(p[1], by[1]) - WHISPER.gap - WHISPER.height : Math.max(p[1], by[1]) + WHISPER.gap;
-  return {
-    left: Math.max(room.left, Math.min(room.right - WHISPER.width, p[0] - WHISPER.width / 2)),
-    top: Math.min(c.height - 120 - WHISPER.height, Math.max(c.insets.top + 100, top)),
-    opacity: w.opacity,
-  };
+  return { left: Math.max(room.left, Math.min(room.right - WHISPER.width, p[0] - WHISPER.width / 2)), top: onScreen(top), opacity: w.opacity };
 }

@@ -68,8 +68,10 @@ how a telling opens and closes on the whole of what it tells; what stays behind 
   data while it draws, sent at most every `REPLAY_ENGINE.resendMs` (about eight sends over a far hop), and never again
   once whole. That is a break, not a stretch: RC3's count is unaffected.
 - **A hop stands on a white edge while a replay is told** (`replay-ceremony ui 6`): `gap-links-edge`, just under the
-  dots and on their source, a disc a dot (`map/types.ts` `HOP_EDGE`: the wider line takes a shorter dash, so the
+  dots and on their source, a mark a dot (`map/types.ts` `HOP_EDGE`: the wider line takes a shorter dash, so the
   spacing is the dots' own). Grey dots over a street lit in the walked ink read 1.5:1; the white reads 6:1 there.
+  **The edge is a hairline casing, `GAP_LINK_WIDTH + 2`, never a disc** (ui 9, the owner's defaults, Nov 20): at 6 px
+  the discs left 0.6 px of land between them and read as a white dotted ribbon; at 5 px 1.6 px shows.
   Its opacity is `hopEdgeOpacity(replayOn)`: none on any other map, nor on the card, where a gap's links are as they were.
 - **Through the card**: `Showing.hops` says a telling's hops whole, with the walk's times each crosses. On the walk's
   card a gap keeps the card's own way of drawing it (`linksWithHops`, matched by time, since a gap's ends are the
@@ -116,10 +118,10 @@ how a telling opens and closes on the whole of what it tells; what stays behind 
   held `closeHold`). The clock through both is where the walker stopped (never the walk's end time, which can be long
   after the last fix), fades over `closeClock` and is not drawn while its fade is 0 (`Stage` keeps its room): the last
   view shows no figure larger than body text (RC26). It keeps its time under the fade: `msAtClock` and `reanchor`
-  need a clock in every frame. The date (`Frame.date`, worded by the stage's `dateOf` for the room between Hold and
-  Skip, where the clock stood: one line, a shorter form on a narrow phone) and the passed places
-  (`passed` overlays: each beside its place, or the card's one line for more than two, beside none) come in from
-  `closeSay`. A day's last view names none (`namePassed` is the walk's screen's alone).
+  need a clock in every frame. The date (`Frame.date`, worded by the stage's `dateOf` for the room between Pause and
+  Skip, where the clock stood (`topRow().room`): one line, a shorter form on a narrow phone and beside "Skip to end") and the passed places
+  (`passed` overlays: each beside its place, or the card's one line, beside none, for more than two and for those
+  with no room beside their places: `replay-stage.md`) come in from `closeSay`. A day's last view names none (`namePassed` is the walk's screen's alone).
 - **The card's sheet is laid out unseen before the path ends** (`cardBody(true)`, `cardLines(true)`: no test id, its
   controls as room of their size, `visibility: hidden` on the web so it is no page text): its height is `sheetPad`'s
   bottom, so the close frames the walk above where the card will sit and the card's own fit then moves nothing (RC24).
@@ -137,7 +139,7 @@ how a telling opens and closes on the whole of what it tells; what stays behind 
   `useCeremonyLoop`, and `useReplay`, which both screens call). Each display frame it asks `stepLoop` (core: the time is
   an argument) and hands a time that moved to the ceremony's `frame(ms, jump)`; the frame goes straight to the map
   (`WalkMapHandle.replayFrame`) and to the stage's store (`lib/ceremony/live.ts`). The screens render only when the pins
-  on the map change, Next comes or goes, or Hold is pressed. **Never read a frame in a screen's render**, and never set
+  on the map change, Next comes or goes, or Pause is pressed. **Never read a frame in a screen's render**, and never set
   screen state from a frame: `render:replay` and `render:day` (perfCount) are held to two a second on a stretch by the
   `replay` journey (RC2).
 - **The stage reads the frame from `ctx.live`, never from a prop** (RC7). `Stage` renders when the frame's shape changes

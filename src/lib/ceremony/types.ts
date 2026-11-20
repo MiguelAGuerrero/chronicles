@@ -202,11 +202,18 @@ export interface WhisperOverlay {
   above: boolean;
   /** Where the walker passes the place: the whisper keeps clear of the dot and the line there too. */
   by: LngLat;
+  /**
+   * It stands beside the line, at its left, in a room this wide (`replay-ceremony ui 13`): where the way runs up or
+   * down the screen as the place is passed, said once. Absent, it stands under its place (or over it, `above`).
+   */
+  beside?: number;
 }
 
 /**
  * A place passed without stopping, named on the last view (replay ceremony RC25): beside its place, or, for the one
- * line that says more than two (RP19), beside none (`at` null).
+ * line that says more than two (RP19) or those with no room beside their places (`replay-ceremony ui 14`), beside
+ * none (`at` null). Which side of its place a name stands on, and where the one line stands, are the telling's to say
+ * (`lib/ceremony/said` `lastNames`).
  */
 export interface PassedOverlay {
   kind: 'passed';
@@ -214,6 +221,12 @@ export interface PassedOverlay {
   text: string;
   at: LngLat | null;
   opacity: number;
+  /** It stands over its place (or, the one line, over the walk), not under. */
+  above: boolean;
+  /** Where the walker passed the place: its name keeps clear of the line there too. */
+  by?: LngLat | null;
+  /** The one line's place, px down the screen, clear of the walk; absent, it stands under the top row. */
+  top?: number;
 }
 
 export type Overlay = PictureOverlay | BubbleOverlay | CardOverlay | StackOverlay | WhisperOverlay | PassedOverlay;

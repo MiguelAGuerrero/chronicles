@@ -12,7 +12,7 @@ import { useAwakeWhile } from '../../components/ceremony/useAwakeWhile';
 import { NextMoment } from '../../components/ceremony/NextMoment';
 import { useReplay } from '../../components/ceremony/useCeremonyLoop';
 import { useRevealed } from '../../components/ceremony/useRevealed';
-import { WHOLE_TOP, type StageCtx } from '../../components/ceremony/layout';
+import { TOP_BUTTON, topRow, WHOLE_TOP, type StageCtx } from '../../components/ceremony/layout';
 import { WalkMap } from '../../components/map/WalkMap';
 import { FIT_MAX_ZOOM, FIT_PADDING, type WalkMapHandle, type WalkMapProps } from '../../components/map/types';
 import { Button, theme } from '../../components/ui';
@@ -202,7 +202,7 @@ export default function DayReplay() {
     });
   }, []);
   // The path is told by a loop outside this screen's rendering, the same as a walk's replay (replay ceremony RC9):
-  // each frame goes straight to the map and the stage; the screen reads only the pins, Hold and whether Next is there.
+  // each frame goes straight to the map and the stage; the screen reads only the pins, Pause and whether Next is there.
   const play = useReplay({ epoch: phase.t0, telling, paused: viewing != null || waits.size > 0, story, showing, map: mapRef, onEnd: toCard });
   // The screen stays awake while the replay plays, until the card (RR24).
   useAwakeWhile(phase.beat === 'path');
@@ -262,6 +262,8 @@ export default function DayReplay() {
 
   const close = () => (router.canGoBack() ? router.back() : router.dismissTo('/'));
   /** The day card's words. `measure` lays them out unseen, to learn the sheet's height before the path ends (RC24). */
+  // The top row's words (replay-ceremony ui 10): Skip says where it goes wherever the row has room for it.
+  const top = topRow(width);
   const cardLines = (measure: boolean) => card && (
     <>
       <Text style={styles.cardTitle} accessibilityRole={measure ? undefined : 'header'}>{card.title}</Text>
@@ -305,7 +307,7 @@ export default function DayReplay() {
 
       {telling && (
         <>
-          {/* A tap anywhere holds the replay, and another goes on (RR7). */}
+          {/* A tap anywhere pauses the replay, and another goes on (RR7). */}
           <Pressable testID="replay-stage" style={StyleSheet.absoluteFill} onPress={play.toggleHold} accessible={false} />
           <Stage ctx={ctx} />
         </>
@@ -328,13 +330,15 @@ export default function DayReplay() {
           <Button
             testID="day-skip"
             variant="secondary"
-            label="Skip"
+            label={top.skip}
+            spokenLabel={top.skipSpoken}
+            style={TOP_BUTTON}
             onPress={() => {
               setSkipped(true);
               toCard();
             }}
           />
-          {/* Under Skip, at the same edge: the clock sits between Hold and Skip, and the three do not fit one row on a 375 px phone (RY12). */}
+          {/* Under Skip, at the same edge: the clock sits between Pause and Skip, and the three do not fit one row on a 375 px phone (RY12). */}
           {telling && play.canNext && <NextMoment onPress={play.next} />}
         </View>
       )}
@@ -343,8 +347,9 @@ export default function DayReplay() {
           <Button
             testID="hold"
             variant="secondary"
-            label={play.held ? 'Play' : 'Hold'}
-            accessibilityHint={play.held ? 'Goes on with the replay' : 'Holds the replay where it is'}
+            label={play.held ? 'Play' : 'Pause'}
+            accessibilityHint={play.held ? 'Goes on with the replay' : 'Pauses the replay where it is'}
+            style={TOP_BUTTON}
             onPress={play.toggleHold}
           />
         </View>

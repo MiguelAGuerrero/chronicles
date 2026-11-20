@@ -539,7 +539,7 @@ recording, and a recording bar brings a minimized walk back.
   whisper by. Each moment takes its time (decision 0203): a photo is fully shown about four and a half seconds
   (several at one stop tighten, the last whole again), a moment's grid five, a note long enough to read, and a second
   of quiet follows a memo or video. Nothing shrinks to fit a length: a walk with many moments is simply longer.
-  Nothing waits for a tap: a tap (or Hold) holds it, Skip goes to the card, and **Next**, under Skip, goes to the
+  Nothing waits for a tap: a tap (or Pause) pauses it, Skip to end goes to the card ("Skip" on a phone too narrow for the longer word), and **Next**, under it, goes to the
   next moment, saying how much later it is and any place passed on the way; it counts nothing and goes when no
   moment is left. Memos and videos always in full (a soft skeleton
   stands in while one loads), and the screen stays awake while it plays. With a screen

@@ -298,10 +298,10 @@ async function run(h) {
         });
         if (mode === 'keep') {
           await shot(p2, 'g15-keep-gaps-320');
-          check.todo(where.asks === 1 && where.inSheet && !!where.sheet && where.ask[1] >= where.sheet[1] && !!where.title && where.ask[3] <= where.title[1] + 1 && where.overMap && !where.overAsk && where.sheet[1] >= 96,
+          check(where.asks === 1 && where.inSheet && !!where.sheet && where.ask[1] >= where.sheet[1] && !!where.title && where.ask[3] <= where.title[1] + 1 && where.overMap && !where.overAsk && where.sheet[1] >= 96,
             `replay-ceremony ui 11: at 320 by 568 the gap question is asked inside the card's sheet, its first block, and nothing floats over the map (${JSON.stringify(where)})`);
         } else {
-          check.todo(where.asks === 1 && !where.inSheet && !!where.sheet && where.ask[3] <= where.sheet[1] && where.ask[1] >= 116 + 96,
+          check(where.asks === 1 && !where.inSheet && !!where.sheet && where.ask[3] <= where.sheet[1] && where.ask[1] >= 116 + 96,
             `replay-ceremony ui 11: at 390 by 844 the gap question floats over the map above the sheet, as before, the walk in view over it (${JSON.stringify(where)})`);
         }
       }

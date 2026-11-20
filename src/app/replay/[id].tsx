@@ -18,7 +18,7 @@ import { useAwakeWhile } from '../../components/ceremony/useAwakeWhile';
 import { NextMoment } from '../../components/ceremony/NextMoment';
 import { useReplay } from '../../components/ceremony/useCeremonyLoop';
 import { useRevealed } from '../../components/ceremony/useRevealed';
-import { WHOLE_TOP, type StageCtx } from '../../components/ceremony/layout';
+import { TOP_BUTTON, topRow, WHOLE_TOP, type StageCtx } from '../../components/ceremony/layout';
 import { ceremonyFor } from '../../lib/ceremony/registry';
 import { linksWithHops } from '../../lib/ceremony/reveal';
 import { chronicleSection } from '../../lib/resurface/sectionStore';
@@ -39,7 +39,7 @@ import { GapCard } from '../../components/GapCard';
 import { KeepGapsCard } from '../../components/KeepGapsCard';
 import { ensureTileBuild } from '../../lib/tiles';
 import { setAudioMode } from '../../lib/audioMode';
-import { backFrom, beatWords, cardTitle, fieldsAfterRename, FOG_LIT_MS, FOG_MS, pinHint, wordsTyped } from '../../lib/replay';
+import { backFrom, beatWords, cardTitle, fieldsAfterRename, FOG_LIT_MS, FOG_MS, keepAskPlace, pinHint, wordsTyped } from '../../lib/replay';
 import { formatCaptures, formatDistance, formatDuration, loadReplay, suggestTitle, type ReplayData } from '../../lib/summary';
 import { renamePatch } from '../../lib/rename';
 import type { LngLat } from '../../lib/types';
@@ -400,7 +400,7 @@ export default function Replay() {
     });
   }, []);
   // The path is told by a loop outside this screen's rendering (replay ceremony RC2, decision 0206): each frame goes
-  // straight to the map and the stage. The screen reads only what it shows itself: the pins, Hold, whether Next is there.
+  // straight to the map and the stage. The screen reads only what it shows itself: the pins, Pause, whether Next is there.
   const play = useReplay({ epoch: phase.t0, telling, paused: viewing != null || waits.size > 0, story, showing, map: mapRef, onEnd: () => go('card') });
   // The screen stays awake while the replay plays, until the card (RR24).
   useAwakeWhile(beat === 'reading' || beat === 'fog' || beat === 'path');
@@ -451,6 +451,11 @@ export default function Replay() {
   useEffect(() => {
     if (keepShown) void noteAsked(id);
   }, [keepShown, id]);
+  // Where it is asked (replay-ceremony ui 11, the UI review's U2): over the map above the sheet, or, where that would
+  // leave the walk no room in view (a short phone), inside the sheet as its first block. Decided from the room, once
+  // the question's own height is known: until then it is laid out unseen.
+  const [askH, setAskH] = useState<number | null>(null);
+  const askAt = keepShown && askH != null ? keepAskPlace({ height, top: sheetPad.top, sheetH, askH }) : null;
   // Gaps with no line across them, joined by grey dots on the card beats (GW2), and with them the hops the path drew
   // across its other breaks (a pause, a break too long to be a gap), which stay on the map through the card (replay
   // ceremony RC21). A gap keeps the card's own way of drawing it. While the path is told the replay's own frames draw
@@ -504,6 +509,12 @@ export default function Replay() {
     }
   };
   const close = () => (router.canGoBack() ? router.back() : router.dismissTo('/'));
+  const leaveGaps = () => {
+    setKeepError(null);
+    setKeepAsked(true);
+  };
+  // The top row's words (replay-ceremony ui 10): Skip says where it goes wherever the row has room for it.
+  const top = topRow(width);
   /**
    * The walk's card. `measure` lays it out unseen, its controls as room of their size that no hand, key or test can
    * reach: the sheet's height is known before the path ends, so the close can frame the walk above it (RC24).
@@ -646,7 +657,7 @@ export default function Replay() {
 
       {telling && (
         <>
-          {/* A tap anywhere holds the replay, and another goes on (RR7). */}
+          {/* A tap anywhere pauses the replay, and another goes on (RR7). */}
           <Pressable testID="replay-stage" style={StyleSheet.absoluteFill} onPress={play.toggleHold} accessible={false} />
           <Stage ctx={ctx} />
         </>
@@ -719,24 +730,24 @@ export default function Replay() {
         />
       )}
 
-      {keepWords && (
+      {keepWords && askAt !== 'sheet' && (
         <KeepGapsCard
           words={keepWords}
           busy={gapBusy}
           error={keepError}
-          style={{ bottom: sheetH + 12, zIndex: 5 }}
+          // Measured before it is seen: its height says whether it leaves the walk its room (replay-ceremony ui 11).
+          unseen={askAt == null}
+          onLayout={askAt == null ? (e) => setAskH(e.nativeEvent.layout.height) : undefined}
+          style={[{ bottom: sheetH + 12, zIndex: 5 }, askAt == null && UNSEEN]}
           onKeep={() => void keepThem()}
-          onLeave={() => {
-            setKeepError(null);
-            setKeepAsked(true);
-          }}
+          onLeave={leaveGaps}
         />
       )}
 
       {(beat === 'fog' || beat === 'path') && (
         <View style={[styles.skip, { top: insets.top + 12 }]}>
-          <Button testID="skip" variant="secondary" label="Skip" onPress={() => go('card')} />
-          {/* Under Skip, at the same edge: the clock sits between Hold and Skip, and the three do not fit one row on a 375 px phone (RY12). */}
+          <Button testID="skip" variant="secondary" label={top.skip} spokenLabel={top.skipSpoken} style={TOP_BUTTON} onPress={() => go('card')} />
+          {/* Under Skip, at the same edge: the clock sits between Pause and Skip, and the three do not fit one row on a 375 px phone (RY12). */}
           {telling && play.canNext && <NextMoment onPress={play.next} />}
         </View>
       )}
@@ -745,8 +756,9 @@ export default function Replay() {
           <Button
             testID="hold"
             variant="secondary"
-            label={play.held ? 'Play' : 'Hold'}
-            accessibilityHint={play.held ? 'Goes on with the replay' : 'Holds the replay where it is'}
+            label={play.held ? 'Play' : 'Pause'}
+            accessibilityHint={play.held ? 'Goes on with the replay' : 'Pauses the replay where it is'}
+            style={TOP_BUTTON}
             onPress={play.toggleHold}
           />
         </View>
@@ -795,7 +807,20 @@ export default function Replay() {
             keyboardShouldPersistTaps="handled"
           >
             {beat === 'card' ? (
-              cardBody(false)
+              <>
+                {/* The gap question, where over the map it would cover the walk it asks about (replay-ceremony ui 11). */}
+                {keepWords && askAt === 'sheet' && (
+                  <KeepGapsCard
+                    inline
+                    words={keepWords}
+                    busy={gapBusy}
+                    error={keepError}
+                    onKeep={() => void keepThem()}
+                    onLeave={leaveGaps}
+                  />
+                )}
+                {cardBody(false)}
+              </>
             ) : (
               <>
                 {/* A quiet way back to the card, the words kept, where Back and Escape go (tend replay T21, decision 0165):

@@ -140,5 +140,12 @@ Gaps in the trace filled with the streets most likely walked (the concept doc's 
   kept decision (`keepAll`) and snaps once; Leave them stores nothing, so
   offers stay decidable from their cards. Opt-in is kept (0060); only the asking
   moved to the walk's end.
+- **The question never covers the walk it asks about** (`replay-ceremony ui 11`, the UI review's U2; the owner's
+  defaults, Nov 20): `lib/replay` `keepAskPlace` decides from the room, never a device. Over the map, 12 px above the
+  card's sheet, wherever that leaves `KEEP_ASK_CLEAR` (96 px) of the walk's room in view over it; else it is the
+  sheet's own first block (`KeepGapsCard` `inline`: the same words and buttons, a rule under it), nothing floats over
+  the map, and the sheet scrolls (it is capped at 70% of the screen) until it is answered. Its height is measured
+  first, laid out unseen. At 320 by 568 it is in the sheet; at 390 by 844 over the map as before. The sheet is taller
+  with it, so the card's map is fitted again as it comes and as it goes.
 - **Native** (unverified on a device): migration 14, the faint layer, the
   card over the native map.

@@ -248,8 +248,13 @@ export const REPLAY_RHYTHM = {
   bubbles: 3,
   bubbleIn: 280,
   bubbleOut: 420,
-  /** A passed place's line beside it. */
+  /**
+   * A passed place's line beside it: how long it is up, coming in over `whisperIn` and leaving over `whisperOut`. One
+   * at a time (`replay-ceremony ui 12`): when a newer one arrives the older begins that leaving at once.
+   */
   whisper: 2600,
+  whisperIn: 250,
+  whisperOut: 500,
   /** Travel this much later says so under the clock. */
   laterAfterMs: 15 * 60_000,
   /** How long "N min later" stays after a day's long travel. */
