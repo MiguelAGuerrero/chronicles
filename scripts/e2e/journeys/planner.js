@@ -296,8 +296,10 @@ async function run(h) {
   const plannerPage = await pg.waitForSelector('[data-testid=note-page] [data-testid=note-input]', { timeout: 8000 }).then(() => true, () => false);
   check(plannerPage && (await pg.locator('[data-testid=plan-note]').count()) === 0, 'note-pages audit 13: the planner\'s pencil opens the note\'s page');
   await pg.fill('[data-testid=note-page] [data-testid=note-input]', 'A note from the planner');
-  // react-native-web's Modal traps Tab only once its slide has ended (its onShow); after the photo above the page is busy
-  // making the photo's small copy, and a Tab sent at once found the trap not yet on (fix planner-edit).
+  // react-native-web's Modal traps Tab only once its slide has ended (its onShow), while the planner's own trap stands aside
+  // as soon as the Modal is drawn. After the photo step above, a Tab sent at once found neither on 2 runs of 6 (0 of 4
+  // without the step; which part of the step slows the slide was not measured). Tab before the slide ends is an older
+  // leak, deferred (fix planner-edit audit, F4); this check is about Tab after it.
   await pg.waitForTimeout(800);
   {
     // tend explore audit 36 (WCAG 2.2, 2.1.1 Keyboard and 2.4.3 Focus Order): the planner's Tab trap stands aside for the

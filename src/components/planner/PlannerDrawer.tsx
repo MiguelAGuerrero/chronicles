@@ -129,7 +129,7 @@ export function PlannerDrawer(props: {
         </View>
         <PlannerSettings prefs={p.prefs} units={units} kind={props.kind} />
       </ScrollView>
-      {p.walkId ? <PlannerCapture walkId={p.walkId} here={props.you} lastFixAt={props.lastFixAt} /> : null}
+      {p.walkId ? <PlannerCapture walkId={p.walkId} here={props.you} lastFixAt={props.lastFixAt} leaving={starting} /> : null}
     </View>
   );
 }

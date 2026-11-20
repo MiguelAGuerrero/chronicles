@@ -18,7 +18,13 @@ import type { NotePageHandle } from '../notePage/NotePage';
  * Capture on the planner while a walk is recording (WP23): the same stack as the walk screen, photo, voice memo and note, one tap away,
  * the moment arriving with its place, time and walk. Not shown with no walk.
  */
-export function PlannerCapture(props: { walkId: string; here: LngLat | null; lastFixAt: number | null }) {
+export function PlannerCapture(props: {
+  walkId: string;
+  here: LngLat | null;
+  lastFixAt: number | null;
+  /** The host's Start under way: it is leaving for the walk screen, so no editor opens (fix planner-edit audit 2). */
+  leaving?: { readonly current: boolean };
+}) {
   const [said, setSaid] = useState<{ text: string; settings: boolean } | null>(null);
   const message = said?.text ?? null;
   const setMessage = (text: string) => setSaid({ text, settings: false });
@@ -34,6 +40,9 @@ export function PlannerCapture(props: { walkId: string; here: LngLat | null; las
   // The note's page (note pages NP1; note-pages audit 13), begun at the pencil's tap, keyed per page.
   const [page, setPage] = useState(0);
   const pageRef = useRef<NotePageHandle>(null);
+  // Set and cleared by the pencil and the page's close: with the note page up no editor opens over it (iOS refuses a Modal
+  // on a Modal; fix planner-edit audit 3).
+  const noteUp = useRef(false);
   // Once a photo or video is kept, its editor opens by itself, as on the walk screen (decision 0240; fix planner-edit).
   const editAfter = useEditAfterCapture(cap.captures);
   const editing = editAfter.editing;
@@ -41,9 +50,12 @@ export function PlannerCapture(props: { walkId: string; here: LngLat | null; las
     const kept = await cap.takePhoto();
     if (!kept) return;
     feedback('tap');
-    setMessage('Saved here');
-    // Not while the bar stops this walk, or once it has ended: its replay would cover or take the editor (0240's audits 3, 6).
-    if (!(barStopping(barStop.get(), props.walkId, Date.now()) || unsaved.hasEnded(props.walkId))) editAfter.open(kept);
+    // Not while the planner's Start is leaving (audit 2), over the note page (audit 3), while the bar stops this walk or once
+    // it has ended (0240's audits 3, 6). The editor is the confirmation, as on the walk screen: no toast with it (audit 1).
+    if (!(props.leaving?.current || noteUp.current || barStopping(barStop.get(), props.walkId, Date.now()) || unsaved.hasEnded(props.walkId))) {
+      setSaid(null);
+      editAfter.open(kept);
+    } else setMessage('Saved here');
   }
   async function startVoice() {
     if (await cap.startVoice()) {
@@ -72,7 +84,10 @@ export function PlannerCapture(props: { walkId: string; here: LngLat | null; las
         onVoice={startVoice}
         onSave={saveVoice}
         onDiscard={discardVoice}
-        onNote={() => setPage((n) => n + 1)}
+        onNote={() => {
+          noteUp.current = true;
+          setPage((n) => n + 1);
+        }}
       />
       {said ? (
         <View style={styles.toast}>
@@ -88,7 +103,10 @@ export function PlannerCapture(props: { walkId: string; here: LngLat | null; las
         <MediaEditor key={editing.piece_id} capture={editing} justKept initialTool="crop" onClose={() => editAfter.close()} onSave={(patch) => cap.setEdit(editing, patch)} />
       )}
       <Modal visible={page > 0} animationType="slide" onRequestClose={() => pageRef.current?.requestClose()}>
-        {page > 0 ? <NewNotePage key={page} ref={pageRef} cap={cap} into={null} onWalk reactable camera onKept={() => setMessage('Note saved here')} onClose={() => setPage(0)} /> : null}
+        {page > 0 ? <NewNotePage key={page} ref={pageRef} cap={cap} into={null} onWalk reactable camera onKept={() => setMessage('Note saved here')} onClose={() => {
+          noteUp.current = false;
+          setPage(0);
+        }} /> : null}
       </Modal>
     </View>
   );

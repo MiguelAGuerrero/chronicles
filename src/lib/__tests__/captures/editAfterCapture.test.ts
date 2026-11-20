@@ -101,7 +101,7 @@ const GUARDS: [string, RegExp][] = [
   ['components/RecordingBar.tsx', /^!returning\.current && !wentBack\.current && !barStopping\(barStop\.get\(\), walk\.id, Date\.now\(\)\) && !unsaved\.hasEnded\(walk\.id\)$/],
   ['components/journal/OpenLine.tsx', /^!\(walk && \(barStopping\(barStop\.get\(\), walk\.id, Date\.now\(\)\) \|\| unsaved\.hasEnded\(walk\.id\)\)\)$/],
   ['app/walk.tsx', /^!stoppingNow\.current && !\(walk && unsaved\.hasEnded\(walk\.id\)\)$/],
-  ['components/planner/PlannerCapture.tsx', /^!\(barStopping\(barStop\.get\(\), props\.walkId, Date\.now\(\)\) \|\| unsaved\.hasEnded\(props\.walkId\)\)$/],
+  ['components/planner/PlannerCapture.tsx', /^!\(props\.leaving\?\.current \|\| noteUp\.current \|\| barStopping\(barStop\.get\(\), props\.walkId, Date\.now\(\)\) \|\| unsaved\.hasEnded\(props\.walkId\)\)$/],
 ];
 
 test('fix edit-after-capture audit 3: the scan fails a call outside its guard, a guard dropped, and a file with no call', () => {
@@ -248,4 +248,74 @@ test('fix planner-edit: Escape closes the planner or the outing page only with n
     assert.equal(keys.length, 1, `${f} has one Escape handler`);
     assert.match(keys[0], /^e\.key === 'Escape' && modalsUp\.get\(\) === 0 && /, `${f} stands aside while a Modal is up`);
   }
+});
+
+// The planner's own `photo`, lifted from its syntax tree and run on fakes (as audit 5 runs the bar's).
+const PLAN = join(__dirname, '../../../components/planner/PlannerCapture.tsx');
+const planPhoto = (fakes: Record<string, unknown>) => {
+  const sf = ts.createSourceFile(PLAN, readFileSync(PLAN, 'utf8'), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  let found: string | null = null;
+  const visit = (n: ts.Node) => {
+    if (ts.isFunctionDeclaration(n) && n.name?.text === 'photo') found = n.getText(sf);
+    else ts.forEachChild(n, visit);
+  };
+  visit(sf);
+  assert.ok(found, 'the planner declares photo');
+  const js = ts.transpileModule(`(${found})`, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext } }).outputText;
+  const body = js.replace(/^"use strict";\s*/, '').trim().replace(/;$/, '');
+  return new Function(...Object.keys(fakes), `"use strict"; return ${body};`)(...Object.values(fakes)) as () => Promise<void>;
+};
+const planFakes = (over: Record<string, unknown> = {}) => {
+  const log: string[] = [];
+  const fakes: Record<string, unknown> = {
+    cap: { takePhoto: async () => ({ kind: 'photo', id: 'm1', momentId: 'm1' }) },
+    feedback: () => {},
+    setMessage: (t: string) => log.push(`toast ${t}`),
+    setSaid: (v: unknown) => log.push(`toast ${v === null ? 'cleared' : 'set'}`),
+    editAfter: { open: () => log.push('editor') },
+    props: { walkId: 'w1', leaving: { current: false } },
+    noteUp: { current: false },
+    barStopping: () => false,
+    barStop: { get: () => null },
+    unsaved: { hasEnded: () => false },
+    ...over,
+  };
+  return { log, photo: planPhoto(fakes) };
+};
+
+// fix planner-edit audit 1 (the ux-reviewer's U1-U3, medium): "Saved here" stood over Start after the editor closed,
+// said twice what the editor's "Photo kept" says, and a screen reader could hear both. As on the walk screen, the editor
+// is the confirmation: no toast when it opens, and an older one goes.
+test('fix planner-edit audit 1: a photo that opens its editor says no "Saved here", and clears an older toast', async () => {
+  const a = planFakes();
+  await a.photo();
+  assert.deepEqual(a.log, ['toast cleared', 'editor']);
+  const b = planFakes({ unsaved: { hasEnded: () => true } });
+  await b.photo();
+  assert.deepEqual(b.log, ['toast Saved here'], 'no editor (its walk ended): the toast says it was kept');
+});
+
+// fix planner-edit audit 2 (the auditor's F1, medium): a photo kept while the planner's Start was routing opened its
+// editor, and Start's answer then closed the planner with the editor and its edits, unasked. Start is the planner asking
+// for the walk screen: no editor once it is under way (as the bar's way back, 0240's audit 5).
+test('fix planner-edit audit 2: no editor opens while the planner\'s Start is under way', async () => {
+  const a = planFakes({ props: { walkId: 'w1', leaving: { current: true } } });
+  await a.photo();
+  assert.deepEqual(a.log, ['toast Saved here']);
+  assert.match(src('components/planner/PlannerDrawer.tsx'), /<PlannerCapture walkId=\{p\.walkId\} [^>]*leaving=\{starting\} \/>/, 'the planner hands its Start in flight over');
+  // The outing page's Start leaves at once (no await), so it has nothing to hand over.
+  const outing = planFakes({ props: { walkId: 'w1' } });
+  await outing.photo();
+  assert.deepEqual(outing.log, ['toast cleared', 'editor']);
+});
+
+// fix planner-edit audit 3 (the auditor's F2, low): the pencil stays live while a photo is being kept, so the editor could
+// open as a Modal over the note page's Modal, which iOS refuses (S2). With the note page up the photo is kept, no editor.
+test('fix planner-edit audit 3: no editor opens over the note page', async () => {
+  const a = planFakes({ noteUp: { current: true } });
+  await a.photo();
+  assert.deepEqual(a.log, ['toast Saved here']);
+  const s = src('components/planner/PlannerCapture.tsx');
+  assert.match(s, /onNote=\{\(\) => \{\s*noteUp\.current = true;\s*setPage\(\(n\) => n \+ 1\);\s*\}\}/, 'the pencil marks the page up');
+  assert.match(s, /onClose=\{\(\) => \{\s*noteUp\.current = false;\s*setPage\(0\);\s*\}\}/, 'its close marks it gone');
 });

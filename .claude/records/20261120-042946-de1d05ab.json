@@ -1,0 +1,42 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore and discovery"
+      ],
+      "body": "- [loop] Explore's town-page Escape (`(tabs)/explore.tsx`'s `out()`) and the area card's (`AtlasCard`, `covered` is only the planner) still act under a Modal: with the recording bar's editor up after its photo (decision 0240), on a town's page Escape leaves the page on keydown and closes the editor on keyup; on a wide browser, where the card is a side panel and the bar stays up, it closes the card too. Gate both on `modalsUp` as the planner and the outing page now are (fix planner-edit's review, auditor F3, low; older than the fix).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore and discovery"
+      ],
+      "body": "- [loop] On the web, Tab sent while a Modal over the walk planner is still sliding in (the note page; react-native-web turns its trap on only at `onShow`) leaves the Modal for the planner beneath: the planner's `useFocusTrap` stands aside as soon as an `aria-modal` is drawn (`lib/focus`'s `modalAbove`). Count a Modal as above only once its trap is on, or move focus into it at once (fix planner-edit's review, auditor F4, low; the `planner` journey waits 800 ms before its Tab check).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore and discovery"
+      ],
+      "body": "- [loop] The walk planner's capture toast (\"Voice memo saved here\", \"Note saved here\", \"Too short, not kept\") has no timer and no close (`PlannerCapture`'s `said` is only ever replaced), sits at `bottom: 140` over Start and \"Suggest different routes\" and takes their taps; and the capture stack covers the planner's own lines and Start's right end (the outing page keeps its sheet left of the stack, `outing.md`). Time the toast out above the stack and keep the body clear of the column (fix planner-edit's review, ux U1 and U4, auditor F5, low; older than the fix, WP23).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "To verify: Escape in the note page over the walk planner",
+        "--reason",
+        "Settled by fix planner-edit: the planner and the outing page close on Escape only with no Modal over them (decision 0240's addendum)"
+      ],
+      "target": "sha256:1c2faecd897dc045f98bcfc79b3c2da30cba099b1a3a5ff7ca69c1b5f9775c97"
+    }
+  ]
+}
