@@ -486,7 +486,7 @@ const STORE = [
   '  Answer: "Ratify as drafted" (the owner, 2026-11-20)',
   '',
 ].join('\n');
-const PROPOSED = `- E-memories-2 [proposed] ${person} a day of walks in order.\n  Check: pending "days in order"\n  Grounds: VISION "Who it is for"; not yet recorded\n`;
+const PROPOSED = `- E-memories-2 [proposed] ${person} a day of walks in order.\n  Check: pending "days in order"\n  Grounds: VISION "Who it is for"; not yet recorded\n  Serves: Return\n`;
 const AGENT = '\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_test';
 
 /** A git checkout of its own for tend.js to read (TEND_ROOT): the store, the run log, and the commits made in it. */

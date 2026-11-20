@@ -336,7 +336,8 @@ const count = (v) => Number.isInteger(v) && v >= 0;
 // the drafted lines the steward dropped, with the Never row each breaks) and `compass` (refinement shipped, filed
 // low by the compass for serving no expectation or rule, the G entries lens 0 filed). Only a line this script wrote
 // carries the marker LENS, and only such a line is held to them: an older script's line reads as it was, whatever
-// its date. tend:log also reads the lines against the store (scripts/expectations.js, logRefProblems).
+// its date. tend:log also reads the lines against the store (scripts/expectations.js, logRefProblems). A line the
+// steward flagged as serving no verb is logged `"serves": "none"` (decision 0245), apart from a dropped line's Never row.
 const LENS = '0236';
 const VERDICTS = ['met', 'failed', 'lacking'];
 const LENS_LINE = /^A person\b.*\bwould reasonably expect\b/;
@@ -344,13 +345,14 @@ const EXPECTATION_ID = /^E-[a-z][a-z0-9-]*-\d+$/;
 const EVIDENCE = /^(?:test:".+"|picture:\S+|[a-z][a-z0-9-]*:".+")$/;
 
 function expectationProblems(e) {
-  if (typeof e !== 'object' || e === null || Array.isArray(e)) return ['expectations is { lines: [{ id, is, evidence?, provisional? }], dropped: [{ line, never }] }'];
+  if (typeof e !== 'object' || e === null || Array.isArray(e)) return ['expectations is { lines: [{ id, is, evidence?, provisional?, serves? }], dropped: [{ line, never }] }'];
   const p = [];
   if (!Array.isArray(e.lines) || !e.lines.length) p.push('expectations.lines names each store line the run tested, by id (E-<feature>-<n>)');
   for (const l of Array.isArray(e.lines) ? e.lines : []) {
     if (!EXPECTATION_ID.test(l?.id ?? '')) p.push(`"${l?.id}" is no line's id: E-<feature>-<n> (npm run expectations -- list)`);
     if (!VERDICTS.includes(l?.is)) p.push(`${l?.id}: is is ${VERDICTS.join(', ')}`);
     if (l?.provisional !== undefined && typeof l.provisional !== 'boolean') p.push(`${l?.id}: provisional is true or left out`);
+    if (l?.serves !== undefined && l.serves !== 'none') p.push(`${l?.id}: serves is "none", for a line flagged as serving no verb, or left out (its verb is in the store)`);
     if (l?.is === 'met' && !EVIDENCE.test(l?.evidence ?? '')) p.push(`${l?.id} is met: its evidence is its check (<journey>:"…", test:"…") or picture:<path or shot>`);
   }
   if (e.dropped !== undefined && !Array.isArray(e.dropped)) p.push('expectations.dropped is a list');
