@@ -17,8 +17,7 @@ type Api = {
   offerLabels: (offer: Offer) => { yes: string | null; leave: string };
   offerTake: (offer: Offer | null, key: string) => ChecklistItem | null;
 };
-// By URL until the module exists (tests first): a literal path would fail the typecheck before the code is written.
-const api = async () => (await import(new URL('../../explore/placeOffer.ts', import.meta.url).href)) as unknown as Api;
+const api = async () => (await import('../../explore/placeOffer')) as unknown as Api;
 
 const O: LngLat = [-71.4, 41.812];
 const dLat = 1 / 111320;
@@ -33,7 +32,7 @@ const still = (more: Partial<Parameters<Api['offerStill']>[1]> = {}) => ({
   here: O, walkId: 'w1', places: true, paused: false, armed: false, found: new Set<string>(), momentIds: new Set(['c1']), ...more,
 });
 
-test('PO1: one unfound shown place within 30 m is offered by name, with Yes and Leave it', { todo: 'test first' }, async () => {
+test('PO1: one unfound shown place within 30 m is offered by name, with Yes and Leave it', async () => {
   const { offerFor, offerLine, offerLabels } = await api();
   const bridge = item('Old Bridge', m(20, 0));
   const offer = offerFor(moment(), { ...none, items: [bridge] });
@@ -44,14 +43,14 @@ test('PO1: one unfound shown place within 30 m is offered by name, with Yes and 
   assert.ok(offerLabels(offer).yes, 'one place has a Yes');
 });
 
-test('PO2: the choices are spoken with the place and the moment in them', { todo: 'test first' }, async () => {
+test('PO2: the choices are spoken with the place and the moment in them', async () => {
   const { offerFor, offerLabels } = await api();
   const offer = offerFor(moment(), { ...none, items: [item('Old Bridge', m(20, 0))] });
   assert.ok(offer);
   assert.deepEqual(offerLabels(offer), { yes: 'Yes, this photo is about Old Bridge', leave: 'Leave it, keep this photo on its own' });
 });
 
-test('PO3: several within 30 m are all offered, nearest first, named in words; a tap takes only an offered one', { todo: 'test first' }, async () => {
+test('PO3: several within 30 m are all offered, nearest first, named in words; a tap takes only an offered one', async () => {
   const { offerFor, offerLine, offerLabels } = await api();
   const clock = item('Clock Tower', m(10, 5));
   const hall = item('Corn Exchange', m(-25, 0), 'museums');
@@ -65,7 +64,7 @@ test('PO3: several within 30 m are all offered, nearest first, named in words; a
   assert.equal(offerLine(three), 'Was this photo about Well, Clock Tower or Corn Exchange? Tap it on the map.');
 });
 
-test('PO4: a place left with Leave it on this walk is not offered again', { todo: 'test first' }, async () => {
+test('PO4: a place left with Leave it on this walk is not offered again', async () => {
   const { offerFor } = await api();
   const bridge = item('Old Bridge', m(20, 0));
   const clock = item('Clock Tower', m(0, 10));
@@ -73,7 +72,7 @@ test('PO4: a place left with Leave it on this walk is not offered again', { todo
   assert.deepEqual(offerFor(moment(), { ...none, items: [bridge, clock], left: new Set([bridge.key]) })?.items.map((i) => i.name), ['Clock Tower']);
 });
 
-test('PO5: nothing is offered with Places off, a place armed, no fix, no walk, only a place past 30 m, a found place or a hidden kind', { todo: 'test first' }, async () => {
+test('PO5: nothing is offered with Places off, a place armed, no fix, no walk, only a place past 30 m, a found place or a hidden kind', async () => {
   const { offerFor, OFFER_RULES } = await api();
   assert.equal(OFFER_RULES.nearM, 30);
   const bridge = item('Old Bridge', m(20, 0));
@@ -87,7 +86,7 @@ test('PO5: nothing is offered with Places off, a place armed, no fix, no walk, o
   assert.equal(offerFor(moment(), { ...none, items, hidden: new Set<Kind>(['monuments']) }), null, 'a kind switched off');
 });
 
-test('PO6: the offer holds within 60 m and with no fix; it goes past 60 m, on another walk, with Places off, paused, armed, the moment gone or every place found', { todo: 'test first' }, async () => {
+test('PO6: the offer holds within 60 m and with no fix; it goes past 60 m, on another walk, with Places off, paused, armed, the moment gone or every place found', async () => {
   const { offerFor, offerStill, OFFER_RULES } = await api();
   assert.equal(OFFER_RULES.awayM, 60);
   const bridge = item('Old Bridge', m(20, 0));
@@ -108,7 +107,7 @@ test('PO6: the offer holds within 60 m and with no fix; it goes past 60 m, on an
   assert.equal(offerStill(null, still()), null);
 });
 
-test('PO7: the offer never calls feedback(): only the pocket alert buzzes in useExplore', { todo: 'test first' }, () => {
+test('PO7: the offer never calls feedback(): only the pocket alert buzzes in useExplore', () => {
   // A source scan (performance.md, "Testing a cost"): every feedback() call in the hook, which must be the pocket alert's alone.
   const calls = (src: string) => [...src.matchAll(/feedback\(([^)]*)\)/g)].map((x) => x[1]);
   const src = readFileSync(new URL('../../explore/useExplore.ts', import.meta.url), 'utf8');
@@ -118,7 +117,7 @@ test('PO7: the offer never calls feedback(): only the pocket alert buzzes in use
   assert.notDeepEqual(calls(`${src}\nconst offerAfter = () => feedback('success');`), ["'nudge'"]);
 });
 
-test('PO8: the line names places and never counts them', { todo: 'test first' }, async () => {
+test('PO8: the line names places and never counts them', async () => {
   const { offerFor, offerLine } = await api();
   const names = ['Well', 'Clock Tower', 'Corn Exchange', 'Gate', 'Font'];
   const offer = offerFor(moment(), { ...none, items: names.map((n, i) => item(n, m(i * 5, 1))) });
@@ -128,7 +127,7 @@ test('PO8: the line names places and never counts them', { todo: 'test first' },
   assert.ok(!/\d/.test(line), 'no number');
 });
 
-test('PO9: Yes or a tap takes the offered place for the moment; a key not offered takes nothing', { todo: 'test first' }, async () => {
+test('PO9: Yes or a tap takes the offered place for the moment; a key not offered takes nothing', async () => {
   const { offerFor, offerTake } = await api();
   const bridge = item('Old Bridge', m(20, 0));
   const offer = offerFor(moment(), { ...none, items: [bridge] });
@@ -137,7 +136,7 @@ test('PO9: Yes or a tap takes the offered place for the moment; a key not offere
   assert.equal(offerTake(null, bridge.key), null);
 });
 
-test('PO10: every kind of moment is offered, said in its own word', { todo: 'test first' }, async () => {
+test('PO10: every kind of moment is offered, said in its own word', async () => {
   const { offerFor, offerLine, offerLabels } = await api();
   const items = [item('Old Bridge', m(20, 0))];
   const said = (kind: CaptureKind) => {
@@ -150,7 +149,7 @@ test('PO10: every kind of moment is offered, said in its own word', { todo: 'tes
   assert.deepEqual(said('text'), ['Was this note about Old Bridge?', 'Leave it, keep this note on its own']);
 });
 
-test('PO11: the words are plain: no exclamation, no reminder, no hurry', { todo: 'test first' }, async () => {
+test('PO11: the words are plain: no exclamation, no reminder, no hurry', async () => {
   const { offerFor, offerLine, offerLabels } = await api();
   const one = offerFor(moment(), { ...none, items: [item('Old Bridge', m(20, 0))] });
   const two = offerFor(moment(), { ...none, items: [item('Old Bridge', m(20, 0)), item('Gate', m(0, 5))] });

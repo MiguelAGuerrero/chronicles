@@ -173,6 +173,8 @@ export const META_FAMILIES = {
   places_spans: { owner: 'explore', codec: json<unknown[]>((v): v is unknown[] => Array.isArray(v)) },
   // The pass-by distance (m) a walk was walked with, so a later setting never rewrites its replay (TC9).
   walk_pass: { owner: 'explore', codec: number },
+  // The places left with Leave it on a walk, as a JSON list of keys: never offered again on it (specs/moment-assignment-fallback PO4).
+  offer_left: { owner: 'explore', codec: json<string[]>(isStrings) },
   // A day's replay was watched (ms), so it advances by itself next time.
   day_watched: { owner: 'days', codec: number },
   // The first replay asked about a walk's offered gaps (G15): asked once, per walk.

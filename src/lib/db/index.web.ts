@@ -3,6 +3,7 @@ import { staleAreas } from '../areas/assign';
 import type { Area, WalkArea } from '../areas/types';
 import { exploredKey, walkPassKey, type ChecklistArea, type ChecklistItem, type ExploreRead, type Find } from '../explore/explore';
 import { placesSpansKey } from '../explore/placesSpans';
+import { offerLeftKey } from '../explore/placeOffer';
 import { walkLayersKey } from '../layers/state';
 import { countsOf, recountNewStreets } from '../deletion/core';
 import type { LandingRow } from '../landing/view';
@@ -526,6 +527,7 @@ export const db: Db = {
       os('meta').delete(walkPassKey(walkId));
       os('meta').delete(walkLayersKey(walkId));
       os('meta').delete(placesSpansKey(walkId));
+      os('meta').delete(offerLeftKey(walkId));
       // Its line goes with it (WB13).
       os('walk_line').delete(walkId);
       os('walk').delete(walkId);
@@ -735,6 +737,15 @@ export const db: Db = {
     // The first find of a place stands.
     tx.objectStore('find').add(f).onerror = (e) => e.preventDefault();
     return committed(tx).catch(() => {});
+  },
+  async removeFind(key, captureId) {
+    const tx = (await conn()).transaction('find', 'readwrite');
+    const finds = tx.objectStore('find');
+    const got = finds.get(key);
+    got.onsuccess = () => {
+      if ((got.result as Find | undefined)?.capture_id === captureId) finds.delete(key);
+    };
+    await committed(tx);
   },
   async listFinds(walkId) {
     return (walkId ? await byWalk<Find>('find', walkId) : ((await done((await store('find')).getAll())) as Find[]));

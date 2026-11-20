@@ -1069,9 +1069,9 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.deepEqual(await db.listFinds('none'), []);
     });
 
-    test('FC7 removeFind, PO12: removes a place\'s find only when that moment made it; the moment and other finds stay', { todo: 'test first' }, async () => {
+    test('FC7 removeFind, PO12: removes a place\'s find only when that moment made it; the moment and other finds stay', async () => {
       const db = await fresh();
-      const remove = (db as unknown as { removeFind: (key: string, captureId: string) => Promise<void> }).removeFind;
+      const remove = db.removeFind;
       await db.addMoment(momentOf(capture('c1', 'a', 1)));
       await db.addFind(find('f1', 'a', 'c1', 1));
       await db.addFind(find('f2', 'a', 'c2', 2));

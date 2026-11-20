@@ -43,6 +43,7 @@ import { deadZoneDue, deadZoneNudge, inDeadZone, stripAt } from '../lib/landing/
 import { rulesCurrent, type LandingRow } from '../lib/landing/view';
 import { placesFromTilePois } from '../lib/discovery/tilePois';
 import { canBuzz } from '../lib/canBuzz';
+import { offerLabels, offerLine } from '../lib/explore/placeOffer';
 import { armedLine, canArm, walkPassKey, clampPass, clampRange, intoRowShown, kindOf, POCKET_ALERT_NOTE } from '../lib/explore/explore';
 import { DEFAULT_SETTINGS, loadSettings, onSettings, saveSettings, type ExploreSettings } from '../lib/explore/settings';
 import { useExplore } from '../lib/explore/useExplore';
@@ -443,9 +444,16 @@ function WalkScreen(props: { onMinimize: () => void }) {
   }, [drawnBorders, hereTown, nearKey]);
   const motionAccess = useMotionAccess();
   const screenFocused = useIsFocused();
+  // A new moment kept here is handed to Explore, which may ask about a place beside it (moment-assignment-fallback PO1):
+  // through a ref, as `explore` is made below this hook.
+  const offerAfter = useRef<(id: string) => void>(() => {});
   const cap = useCaptures(walk?.id ?? null, live.here, live.lastFixAt, onCaptureError, {
     // The pill (moment stacks MS2, MS5): a new moment opens it; a piece keeps it.
-    onKept: (id, piece) => (piece ? momentPill.piece(id) : momentPill.kept(id, true)),
+    onKept: (id, piece) => {
+      if (piece) return momentPill.piece(id);
+      momentPill.kept(id, true);
+      offerAfter.current(id);
+    },
     // In front, the walk's pills say why for a capture that failed on a screen gone (unsaved captures UN9).
     // Never behind a viewer or a memory's card (unsaved-captures audit 9).
     sayHeld: screenFocused && !!walk && !viewing && !memoryView && !memory,
@@ -811,9 +819,12 @@ function WalkScreen(props: { onMinimize: () => void }) {
   }, []);
   // The range preview (E21): a ring around you while the drawer is up on an exploring walk, as on the ready screen.
   const preview = options && placesOn && loaded ? loaded.rangeM : null;
+  // A tie made from the place offer (PO12): "Found: X" with Undo, kept until used or dismissed (0113).
+  const [tied, setTied] = useState<{ key: string; name: string; captureId: string } | null>(null);
   const explore = useExplore({
     walkId: walk?.id ?? null,
     places: placesOn,
+    paused: pauses.some((p) => p.ended_at == null),
     storefronts: storefrontsOn,
     here: live.here,
     riding: live.riding,
@@ -826,13 +837,17 @@ function WalkScreen(props: { onMinimize: () => void }) {
       reloadLandings();
       storefronts.reload();
     },
-    onFound: (item) => {
+    onFound: (item, how) => {
       // A find needs Places on (Capture here starts from a "?"); the line says so as it happens (MD8).
       if (!placesOn) return;
       feedback('success');
-      setArrived(`Found: ${item.name}`);
+      if (how.via === 'offer') setTied({ key: item.key, name: item.name, captureId: how.captureId });
+      else setArrived(`Found: ${item.name}`);
       AccessibilityInfo.announceForAccessibility(`Found: ${item.name}, ${categoryOf(item.category).label}`);
     },
+  });
+  useEffect(() => {
+    offerAfter.current = explore.offerAfter;
   });
   const openMark = markOpen ? explore.itemOf(markOpen) : null;
   const openMarkNamed = !!openMark && (explore.revealed.has(openMark.key) || explore.found.has(openMark.key));
@@ -1367,6 +1382,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
         discoveries={explore.pins}
         spreadMarks
         onDiscoveryPress={recordingVoice || stopping || isDrawing ? undefined : (id) => {
+          // A place offered after the moment: a tap ties the moment to it, no card (moment-assignment-fallback PO3).
+          if (explore.take(id)) return;
           // A found place is shown, not a card to open: its capture's pin is the thing to tap (audit, UI).
           if (explore.found.has(id)) return;
           setSpot(null);
@@ -1567,6 +1584,56 @@ function WalkScreen(props: { onMinimize: () => void }) {
             <Text style={styles.findChoiceTitle} numberOfLines={2} accessibilityLabel={armedLine(explore.armed.item)}>{armedLine(explore.armed.item)}</Text>
             <Pressable testID="armed-cancel" accessibilityRole="button" accessibilityLabel="Cancel, don’t tie the next moment to a place" onPress={explore.disarm} style={[styles.findChoiceBtn, styles.armedCancel]} hitSlop={6}>
               <Text style={styles.findChoiceBtnText}>Cancel</Text>
+            </Pressable>
+          </LiftIn>
+        )}
+        {placesOn && explore.offer && !explore.armed && (
+          // A place offered after the moment (PO1-PO3): the armed line's slab and slot, plain words, never moving the stack.
+          <LiftIn key={explore.offer.captureId} testID="place-offer" style={styles.findChoice} accessibilityLiveRegion="polite">
+            <Text style={styles.findChoiceTitle} numberOfLines={3}>{offerLine(explore.offer)}</Text>
+            <View style={styles.offerRow}>
+              {offerLabels(explore.offer).yes && (
+                <Pressable
+                  testID="place-offer-yes"
+                  accessibilityRole="button"
+                  accessibilityLabel={offerLabels(explore.offer).yes ?? undefined}
+                  onPress={() => explore.offer && explore.take(explore.offer.items[0].key)}
+                  style={[styles.findChoiceBtn, styles.offerBtn]}
+                >
+                  <Text style={styles.findChoiceBtnText}>Yes</Text>
+                </Pressable>
+              )}
+              <Pressable
+                testID="place-offer-leave"
+                accessibilityRole="button"
+                accessibilityLabel={offerLabels(explore.offer).leave}
+                onPress={explore.leave}
+                style={[styles.findChoiceBtn, offerLabels(explore.offer).yes ? styles.offerBtn : styles.armedCancel]}
+              >
+                <Text style={styles.findChoiceBtnText}>Leave it</Text>
+              </Pressable>
+            </View>
+          </LiftIn>
+        )}
+        {tied && (
+          // A tie from the offer, with Undo until used or dismissed (PO12).
+          <LiftIn testID="found-line" style={styles.tiedLine} accessibilityLiveRegion="polite">
+            <Text style={[styles.toastText, styles.tiedText]} numberOfLines={1}>{`Found: ${tied.name}`}</Text>
+            <Pressable
+              testID="found-undo"
+              accessibilityRole="button"
+              accessibilityLabel={`Undo, untie this moment from ${tied.name}`}
+              onPress={() => {
+                const t = tied;
+                setTied(null);
+                explore.untie(t.key, t.captureId).catch(() => {});
+              }}
+              style={styles.tiedBtn}
+            >
+              <Text style={[styles.toastText, styles.tiedUndo]}>Undo</Text>
+            </Pressable>
+            <Pressable testID="found-dismiss" accessibilityRole="button" accessibilityLabel="Dismiss" onPress={() => setTied(null)} style={styles.tiedBtn}>
+              <Icon name="close" size={18} color="#ffffff" />
             </Pressable>
           </LiftIn>
         )}
@@ -2180,6 +2247,14 @@ const styles = StyleSheet.create({
   findChoiceTitle: { color: '#ffffff', fontSize: 14, fontWeight: '600' },
   armedCancel: { alignSelf: 'flex-start' },
   findChoiceBtn: { backgroundColor: '#ffffff', borderRadius: 999, paddingVertical: 8, paddingHorizontal: 16, minHeight: 44, justifyContent: 'center', maxWidth: 220 },
+  // The place offer's two choices share the row equally (PO2, PO11): Leave it is never the smaller.
+  offerRow: { flexDirection: 'row', gap: 8 },
+  offerBtn: { flex: 1, maxWidth: undefined, alignItems: 'center' },
+  // A tie's "Found" line with Undo (PO12): the toast's ink pill, its two controls 44 pt.
+  tiedLine: { backgroundColor: theme.ink, borderRadius: 999, paddingLeft: 16, paddingRight: 4, flexDirection: 'row', alignItems: 'center', alignSelf: 'center', maxWidth: 420 },
+  tiedText: { flexShrink: 1, marginRight: 4 },
+  tiedBtn: { minWidth: 44, minHeight: 44, paddingHorizontal: 8, alignItems: 'center', justifyContent: 'center' },
+  tiedUndo: { textDecorationLine: 'underline' },
   findChoiceBtnText: { color: theme.ink, fontSize: 14, fontWeight: '600' },
   toast: { backgroundColor: theme.ink, borderRadius: 999, paddingVertical: 8, paddingHorizontal: 16, alignSelf: 'center' },
   toastText: { color: '#ffffff', fontSize: 14, fontWeight: '600' },

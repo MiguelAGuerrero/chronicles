@@ -14,6 +14,7 @@ import type { StoredReaction } from '../../reactions/core';
 import type { Transcript } from '../../transcript/core';
 import { exploredKey, walkPassKey, type ChecklistArea, type ChecklistItem, type ExploreRead, type Find } from '../../explore/explore';
 import { placesSpansKey } from '../../explore/placesSpans';
+import { offerLeftKey } from '../../explore/placeOffer';
 import { walkLayersKey } from '../../layers/state';
 import type { LandingRow } from '../../landing/view';
 import { parseEdit } from '../../mediaEdit';
@@ -327,6 +328,7 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
       meta.delete(walkPassKey(walkId));
       meta.delete(walkLayersKey(walkId));
       meta.delete(placesSpansKey(walkId));
+      meta.delete(offerLeftKey(walkId));
       walks.delete(walkId);
       // Places only this walk was in go (D8).
       for (const key of staleAreas(areas.keys() as string[], walkAreas.all())) areas.delete(key);
@@ -584,6 +586,9 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
     async addFind(f) {
       // The first find of a place stands.
       if (!finds.has(f.key)) finds.put(f);
+    },
+    async removeFind(key, captureId) {
+      if (finds.get(key)?.capture_id === captureId) finds.delete(key);
     },
     async listFinds(walkId) {
       return out(walkId ? finds.where(walkOf, walkId) : finds.all());

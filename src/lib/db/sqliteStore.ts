@@ -21,6 +21,7 @@ import type { Transcript } from '../transcript/core';
 import { countsOf, recountNewStreets } from '../deletion/core';
 import { exploredKey, walkPassKey } from '../explore/explore';
 import { placesSpansKey } from '../explore/placesSpans';
+import { offerLeftKey } from '../explore/placeOffer';
 import { walkLayersKey } from '../layers/state';
 import { DERIVED_STORES } from './stores';
 import type { Capture, GapDecision, Moment, LngLat, Pause, Still, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
@@ -363,6 +364,7 @@ export function makeSqliteDb(open: () => Promise<SQLiteDatabase>, openWriter?: (
         await t.runAsync('DELETE FROM meta WHERE key = ?', walkPassKey(walkId));
         await t.runAsync('DELETE FROM meta WHERE key = ?', walkLayersKey(walkId));
         await t.runAsync('DELETE FROM meta WHERE key = ?', placesSpansKey(walkId));
+        await t.runAsync('DELETE FROM meta WHERE key = ?', offerLeftKey(walkId));
         // Its line goes with it (WB13).
         await t.runAsync('DELETE FROM walk_line_tile WHERE walk_id = ?', walkId);
         await t.runAsync('DELETE FROM walk_line WHERE walk_id = ?', walkId);
@@ -601,6 +603,9 @@ export function makeSqliteDb(open: () => Promise<SQLiteDatabase>, openWriter?: (
           r.key, r.area_key, r.walk_id, r.capture_id, r.found_at, r.name, r.category, r.kind, r.lon, r.lat, r.generic,
         ).then(() => {}),
       );
+    },
+    removeFind(key, captureId) {
+      return write((t) => t.runAsync('DELETE FROM find WHERE key = ? AND capture_id = ?', key, captureId).then(() => {}));
     },
     async listFinds(walkId) {
       const d = await conn();

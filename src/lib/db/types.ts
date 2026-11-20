@@ -235,6 +235,8 @@ export interface Db {
   listExploreReads(): Promise<ExploreRead[]>;
   /** A capture found a place (E8); the first find of a place stands. */
   addFind(f: Find): Promise<void>;
+  /** Removes a place's find only when that moment made it (a tie undone, PO12); the moment stays, the place can be found again. */
+  removeFind(key: string, captureId: string): Promise<void>;
   /** Every find, or one walk's. */
   listFinds(walkId?: string): Promise<Find[]>;
 

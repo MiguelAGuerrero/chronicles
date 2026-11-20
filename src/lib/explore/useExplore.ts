@@ -33,6 +33,8 @@ import { placesArchive } from '../discovery/archive';
 import { exploreBuild, exploreBusy, exploreHold, exploreRead, itemBounds } from './exploreRun';
 import { facesToRead, foundFaces } from './foundFace';
 import { DEFAULT_SETTINGS, loadSettings, onSettings, type ExploreSettings } from './settings';
+import { placeOffer } from './offer';
+import { offerFor, offerStill, offerTake, type Offer } from './placeOffer';
 
 /** Items are read again around you after this much walking. */
 const RELOAD_M = 500;
@@ -50,8 +52,10 @@ const alertedByWalk = new Map<string, Set<string>>();
 
 export function useExplore(opts: {
   walkId: string | null;
-  /** Places is on for this walk (decision 0234): the "?" within range, the pocket alert, the armed place. */
+  /** Places is on for this walk (decision 0234): the "?" within range, the pocket alert, the armed place, the offer. */
   places: boolean;
+  /** The walk is paused: a place offered after a moment is let go (PO6). */
+  paused?: boolean;
   /** Storefronts is on for this walk: storefront streets are remembered (MD17). */
   storefronts: boolean;
   here: LngLat | null;
@@ -66,7 +70,8 @@ export function useExplore(opts: {
   routePath: LngLat[] | null;
   /** The range being previewed in settings, so the marks follow the slider (audit, UI). */
   previewRangeM?: number | null;
-  onFound: (item: ChecklistItem) => void;
+  /** A place found: by the armed place's capture, or by a Yes or a tap on a choice after the moment (`offer`, PO1). */
+  onFound: (item: ChecklistItem, how: { via: 'armed' | 'offer'; captureId: string }) => void;
   /** A read remembered new storefront streets. */
   onAreas: () => void;
 }) {
@@ -94,14 +99,14 @@ export function useExplore(opts: {
 
   // A capture's find, recorded through `record` (E8, E9) once the reader armed its place (TC4).
   const handled = useRef(new Set<string>());
-  const record = useCallback(async (item: ChecklistItem, captureId: string) => {
+  const record = useCallback(async (item: ChecklistItem, captureId: string, via: 'armed' | 'offer' = 'armed') => {
     const walkId = latest.current.walkId;
     if (!walkId) return;
     await db.addFind({ ...item, walk_id: walkId, capture_id: captureId, found_at: Date.now() }).catch(() => {});
     if (!mounted.current) return;
     setFound((f) => new Set([...(f ?? []), item.key]));
     setFinds((fs) => [...fs.filter((x) => x.key !== item.key), { key: item.key, capture_id: captureId }]);
-    latest.current.onFound(item);
+    latest.current.onFound(item, { via, captureId });
   }, []);
 
   useEffect(() => {
@@ -303,6 +308,76 @@ export function useExplore(opts: {
     if (nudge) feedback('nudge');
   }, [places, settings.haptic, riding, previewing, shown, opts.walkId]);
 
+  // A place offered after the moment (specs/moment-assignment-fallback): the walk screen hands over each new moment it kept
+  // (`offerAfter`), with whether a place was armed as it was kept; once the moment is in this walk's captures, the unfound
+  // places shown within 30 m of it are offered once. Nothing here buzzes or sounds (PO7); a Yes is the ordinary find (PO9).
+  const pending = useRef(new Map<string, { armed: boolean }>());
+  const [offer, setOffer] = useState<Offer | null>(null);
+  const [left, setLeft] = useState<{ walkId: string; keys: Set<string> } | null>(null);
+  useEffect(() => {
+    const walkId = opts.walkId;
+    if (!walkId) return;
+    let alive = true;
+    placeOffer.left(walkId).then((keys) => alive && setLeft({ walkId, keys }), () => alive && setLeft({ walkId, keys: new Set() }));
+    return () => {
+      alive = false;
+    };
+  }, [opts.walkId]);
+  const offerAfter = useCallback((captureId: string) => {
+    pending.current.set(captureId, { armed: !!armedRef.current });
+  }, []);
+  const leftKeys = left && left.walkId === opts.walkId ? left.keys : null;
+  useEffect(() => {
+    // Not before the places left on this walk are known, so a reload never offers one (PO4).
+    if (!pending.current.size || !leftKeys) return;
+    const kept = opts.captures.filter((c) => pending.current.has(c.id));
+    if (!kept.length) return;
+    // The newest moment kept asks; an older one waiting stays independent (PO6).
+    const c = kept.reduce((a, b) => (b.t > a.t ? b : a));
+    const was = pending.current.get(c.id);
+    for (const k of kept) pending.current.delete(k.id);
+    const next = offerFor(
+      { id: c.id, walkId: opts.walkId, at: c.lat != null && c.lon != null ? [c.lon, c.lat] : null, kind: c.kind },
+      { items: shown.filter((x) => x.state !== 'found').map((x) => x.item), found: foundSet, hidden: settings.hidden, left: leftKeys, places, armed: !!was?.armed },
+    );
+    // Not cancelled by a re-render: the moment has been taken off `pending`, so this is its one chance.
+    setTimeout(() => mounted.current && setOffer(next), 0);
+  }, [opts.captures, opts.walkId, leftKeys, shown, foundSet, settings.hidden, places]);
+  const momentIds = useMemo(() => new Set(opts.captures.map((c) => c.id)), [opts.captures]);
+  const offerNow = useMemo(
+    () => offerStill(offer, { here, walkId: opts.walkId, places, paused: !!opts.paused, armed: !!armedNow, found: foundSet, momentIds }),
+    [offer, here, opts.walkId, places, opts.paused, armedNow, foundSet, momentIds],
+  );
+  // An offer that no longer holds (walked off, paused, armed, its moment gone) is let go: the moment stays independent (PO6).
+  useEffect(() => {
+    if (offer && !offerNow) {
+      const t = setTimeout(() => setOffer(null), 0);
+      return () => clearTimeout(t);
+    }
+  }, [offer, offerNow]);
+  const take = useCallback((key: string): boolean => {
+    const item = offerTake(offerNow, key);
+    if (!offerNow || !item) return false;
+    setOffer(null);
+    record(item, offerNow.captureId, 'offer').catch(() => {});
+    return true;
+  }, [offerNow, record]);
+  const leave = useCallback(() => {
+    if (!offerNow) return;
+    const keys = offerNow.items.map((i) => i.key);
+    setOffer(null);
+    setLeft((l) => (l && l.walkId === offerNow.walkId ? { walkId: l.walkId, keys: new Set([...l.keys, ...keys]) } : l));
+    placeOffer.leave(offerNow.walkId, keys).catch(() => {});
+  }, [offerNow]);
+  // Undo of a tie (PO12): the find goes, the moment stays, and the place is an ordinary mark again.
+  const untie = useCallback(async (key: string, captureId: string) => {
+    await placeOffer.untie(key, captureId).catch(() => {});
+    if (!mounted.current) return;
+    setFound((f) => (f ? new Set([...f].filter((k) => k !== key)) : f));
+    setFinds((fs) => fs.filter((x) => !(x.key === key && x.capture_id === captureId)));
+  }, []);
+  const choices = useMemo(() => new Set(offerNow?.items.map((i) => i.key) ?? []), [offerNow]);
+
   // The found places on the map wear the glyph of the moment that found each (O26): this walk's captures, else read.
   const shownFound = useMemo(() => new Set(shown.filter((s) => s.state === 'found').map((s) => s.item.key)), [shown]);
   useEffect(() => {
@@ -326,13 +401,19 @@ export function useExplore(opts: {
     // The kind, whose glyph and words the pin wears; never a note's type: note types wait for the owner's rework (0172).
     const kind = (key: string) => faces.get(key)?.kind;
     return [
-      ...shown.map((s) => pin(s.item, { revealed: s.state !== 'unknown', found: s.state === 'found', foundKind: s.state === 'found' ? kind(s.item.key) : undefined })),
+      ...shown.map((s) => pin(s.item, {
+        revealed: s.state !== 'unknown',
+        found: s.state === 'found',
+        foundKind: s.state === 'found' ? kind(s.item.key) : undefined,
+        // A place offered after the moment is drawn as a choice (PO3).
+        choice: choices.has(s.item.key) && offerNow ? offerNow.kind : undefined,
+      })),
       ...onTheWay.map((i) => pin(i, { faint: true })),
     ];
-  }, [shown, onTheWay, faces]);
+  }, [shown, onTheWay, faces, choices, offerNow]);
 
   const byKey = useMemo(() => new Map([...routeItems, ...items].map((i) => [i.key, i])), [items, routeItems]);
   const itemOf = useCallback((key: string) => byKey.get(key) ?? null, [byKey]);
 
-  return { pins, settings, revealed, found: foundSet, itemOf, armed: armedNow, arm, disarm };
+  return { pins, settings, revealed, found: foundSet, itemOf, armed: armedNow, arm, disarm, offer: offerNow, offerAfter, take, leave, untie };
 }

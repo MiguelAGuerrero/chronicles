@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import type { EnterKind } from '../lib/enter';
 import { foundLabel } from '../lib/explore/foundFace';
+import { choiceLabel } from '../lib/explore/placeOffer';
 import type { MarkSpread } from '../lib/markNames';
 import type { CaptureKind } from '../lib/types';
 import { Enter } from './Enter';
@@ -24,6 +25,11 @@ export interface MarkPin {
   nameHidden?: boolean;
   /** Its head would cover another's (lib/markNames): moved off its point, on a leg back to a dot there (fix mark-overlap). */
   spread?: MarkSpread;
+  /**
+   * Offered after a moment of this kind (specs/moment-assignment-fallback PO3): drawn as a choice, an ink ring around the
+   * head (a shape, never colour alone), and a tap ties that moment to it.
+   */
+  choice?: CaptureKind;
   /** Hidden from a screen reader: the map speaks for it in one summary (Explore, WT11). */
   quiet?: boolean;
   icon: IconName;
@@ -89,6 +95,7 @@ function MarkBody({ pin, below }: { pin: MarkPin; below: number }) {
   return (
     <View style={[styles.wrap, pin.faint && styles.faint, pin.found && styles.wrapFound]} pointerEvents="none">
       {pin.spread && <Leg spread={pin.spread} below={below} />}
+      {pin.choice && !pin.found && <View testID="mark-choice" style={styles.choiceRing} />}
       <View style={[styles.head, pin.found && styles.headFound]}>
         {shown ? <Icon name={pin.icon} size={pin.found ? 13 : 18} color="#ffffff" /> : <Text style={styles.q}>?</Text>}
         {pin.found && pin.foundKind && (
@@ -116,12 +123,13 @@ function MarkBody({ pin, below }: { pin: MarkPin; below: number }) {
 export function markLabel(pin: MarkPin): string {
   if (pin.found) return foundLabel(pin.name, pin.category, pin.foundKind);
   if (pin.faint) return 'A place on the way. Open';
+  if (pin.choice) return choiceLabel(pin.name, pin.category, pin.choice);
   return pin.revealed ? `${pin.name}, ${pin.category}. Open` : 'A place to find. Open';
 }
 
 /** What changes a pin's look, for re-rendering a marker only when it changes. */
 export const markKey = (pin: MarkPin) =>
-  `${pin.revealed ? 'r' : ''}${pin.found ? 'f' : ''}${pin.faint ? 'w' : ''}${pin.nameHidden ? 'n' : ''}${pin.foundKind ?? ''}`;
+  `${pin.revealed ? 'r' : ''}${pin.found ? 'f' : ''}${pin.faint ? 'w' : ''}${pin.nameHidden ? 'n' : ''}${pin.foundKind ?? ''}${pin.choice ? `c${pin.choice}` : ''}`;
 
 /** Found places: the trace's green family, so a find reads as walked, not as a capture. */
 export const FOUND_COLOR = '#1f7a4d';
@@ -144,6 +152,11 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   q: { color: '#ffffff', fontSize: 19, fontWeight: '800', lineHeight: 22 },
+  // A choice (PO3): an ink ring around the head's white edge, a white gap between, so it reads on any tiles.
+  choiceRing: {
+    position: 'absolute', top: -5, left: -4, width: 44, height: 44, borderRadius: 14,
+    borderWidth: 3, borderColor: MARK_COLOR, backgroundColor: '#ffffff',
+  },
   faint: { opacity: 0.45 },
   // Smaller than a "?", and without a name: a find is a quiet note on the map, not a target (audit, UI).
   wrapFound: { width: 26, height: 32 },
