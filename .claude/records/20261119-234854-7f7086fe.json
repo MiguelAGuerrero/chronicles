@@ -1,0 +1,111 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inbox",
+        "add"
+      ],
+      "body": "- **T? [owner] An area card and \"What I'm into\" name the same categories in different words** (2026-11-19)\n  Area: explore. Seen: `sg-card-kinds.png` (the `atlas` journey, `/tend presence`'s lenses): the card's bars read \"Green\" and \"Views\" while \"What I'm into\" heads the same categories \"Parks & green spaces\" and \"Viewpoints & oddities\" (`subtypes-what-im-into-parks.png`), and \"How the marks work\" sends the reader there in the card's words. Two tables name them: `ATLAS_LABEL` (`src/lib/atlas/atlas.ts`) and `CATEGORIES` (`src/lib/discovery/categories.ts`), which also gives the found line's and its announcement's words (\"Food & drink\"). The lenses' ux-reviewer 1 (medium) and steward 6. Rests on: `docs/research/ui-references.md` section 1.13, H4 (\"the same action has the same word and icon on every screen\").\n  Recommended: the owner's shape: one table for the eight categories' names, read by the card, the tile's spoken name, the explanation and \"What I'm into\"'s headings, both reading \"Green\" and \"Views & oddities\", with a muted line under each heading of \"What I'm into\" (\"Parks, gardens and nature\"); the planner's and the kind walk's sentences take each category's noun, so none reads \"views & oddities is concentrated\". /vision: aligned (Earn: one name for a kind on every screen; words only, no count). Slice-sized, not one commit: it reaches eight source files (the two tables, `explore/intoPage.ts`, `components/IntoPage.tsx`, `kindWalk/words.ts`, `walkPlanner/words.ts`, `walkPlanner/service.ts`, `atlas/waitingPins.ts`) past the run's six, and the card's row at 320 px (\"Views & oddities\", its step word, its dots and \"Suggest a walk\") must be pictured first.\n  Precedent: iOS Settings and Android's notification settings name a group with one heading, the same on the list and the page it opens (docs/research/adjacent-apps.md, \"Choose what you are shown: a long list of switches\", verified); Google Maps' Settings put a plain heading over each section (same job, unverified).\n  Otherwise: the card's words alone, \"What I'm into\" as it is.\n",
+      "number": "T49"
+    },
+    {
+      "argv": [
+        "inbox",
+        "note",
+        "@1"
+      ],
+      "body": "  Nov 19: the owner's yes, in person, 2026-11-19: \"Short card words (Recommended)\": the card and \"What I'm into\" both read \"Green\" and \"Views & oddities\", and \"What I'm into\" keeps a muted line under each heading (for example \"Parks, gardens and nature\") (decision 0238). Held from `/tend presence` (over the run's size); waits for a build.\n",
+      "target": "sha256:03cc18c889b71d56f8f4f3d7ef6d6f71f891876932986169edc3ceaf162a183d"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Presence and kinds"
+      ],
+      "body": "- [loop] `LANDING_CARRIED` (`src/lib/landing/view.ts` l.21) still holds the version from before presence, which no row of a current code can carry since `PRESENCE_CARRIED` is empty, and `presenceAudit.test.ts` (\"presence audit 1: a landing row from before presence still lists and is not stale\") pins it standing. Drop it and invert the test (the lenses' auditor 3, `/tend presence`, Nov 19; low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Presence and kinds"
+      ],
+      "body": "- [loop] Overture's other names for SF10's kinds (public art, a viewpoint, a cemetery under another root) are not in the three Overture fixtures the repo holds, and the pinned release's taxonomy could not be read from the session (docs.overturemaps.org refused; no taxonomy file in OvertureMaps/schema at the paths tried): `tend presence 2` gave rows only to `historic_site`, `memorial_site`, `park` and `recreational_trail_or_path`. Read the release's taxonomy and give each such name an `OVERTURE_DEEPER` row, with a `PRESENCE_CODE` bump (`/tend presence`, Nov 19; low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Presence and kinds"
+      ],
+      "body": "- [owner] A museum of a town's past lights History only when the archive records it or its name says historic; one named plainly for its town, which the data cannot tell, lights Culture alone (the lenses' steward, silent 3, `/tend presence`, Nov 19: \"Should a museum of a town's past light History when neither the archive nor its name says so, which the data cannot tell?\"; low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "More attractions"
+      ],
+      "body": "- [owner] A nature reserve from the map is \"Parks and gardens\" (`reserve`, no subtype), the archive's the subtype \"Nature reserves\" (`nature_reserve`), so \"Nature reserves\" off hides only the archive's; a notable-named map reserve stays a \"?\" under Parks (`presence.ts`, `OSM.park` and `nature_reserve` against `ARCHIVE.nature_reserve`; MA3). The real samples hold no map reserve. A change is a reclassification: a `PRESENCE_CODE` bump, the golden's `CHANGED` and the spec's PR5 table (the lenses' auditor 4, `/tend presence`, Nov 19; low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "More attractions"
+      ],
+      "body": "- [loop] Amusement parks sits under \"Zoos and aquariums\", so switching zoos off locks it off (`presence.ts` `amusement` of kind `attractions`; `explore.ts`, `subtypes.ts`); the owner asked for its \"own row\" (more-attractions audit 1). Its own kind row under \"Views & oddities\" is a reclassification: build it with the next `PRESENCE_CODE` bump (the lenses' ux-reviewer 3, `/tend presence`, Nov 19; low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore atlas",
+        "--after",
+        "The area card's kind rows draw three presence dots"
+      ],
+      "body": "- [owner] The tile's strip draws its dots with no word (\"●○○\", `sg-tile-fox-320.png`) and the card draws \"○○○\" beside \"none\": the lenses' ux-reviewer reads both as a rating, reopening the item above (\"VISION, Nothing is a score\"); the lenses' steward does not reopen it: \"0067 words on card; 0202 none on tile\". Whether the tile's dots need a word is the owner's (`/tend presence`, Nov 19; low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore atlas"
+      ],
+      "body": "- [loop] \"How the marks work\" names \"What I'm into\" with no way to it and no word of where it is (`11c-atlas-card.png`; H6, H10): a link, or \"in a walk's settings\" (the lenses' ux-reviewer 4, `/tend presence`, Nov 19; low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore atlas"
+      ],
+      "body": "- [loop] The card's presence dots move from column to column row by row, set after words of different widths (\"some\", \"none\") (`sg-card-kinds.png`, `sf-card-storefronts.png`): a fixed column would let the eye run down them (the lenses' ux-reviewer 5, an opinion, `/tend presence`, Nov 19; low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Map, walk screen and motion polish"
+      ],
+      "body": "- [loop] A \"?\" card's title wraps inside its kind: \"Hessian Memorial · Monuments / and memorials\" at 390 px (`02a-place-card.png`, `src/app/walk.tsx`, the mark card): the kind on a muted line of its own would keep both whole (the lenses' ux-reviewer 6, an opinion, `/tend presence`, Nov 19; low)\n"
+    },
+    {
+      "argv": [
+        "open",
+        "add"
+      ],
+      "body": "- **`.claude/rules/presence.md` l.17 still says `ATLAS_CODE` (`a14.p4`)** (Nov 19). What ships: `ATLAS_CODE` is `a15.p11` since `tend presence 2` (`atlas.ts`, `ATLAS_OWN` a15; `PRESENCE_CODE` p11). The line names a value that moves with every bump; naming `ATLAS_OWN` and `PRESENCE_CODE` instead would keep it true (`/tend presence`'s lenses, F3 and the auditor's 5; the comments in `atlas.ts` were put right in `tend presence 7`).\n"
+    }
+  ]
+}
