@@ -396,6 +396,7 @@ Motion (animation)
   motionTokens.ts            MOTION timings, PRESS_SCALE, durationFor, HAPTIC_PATTERNS (each feedback kind's taps), nudgeAllowed, buzzOffered; REPLAY_RHYTHM (every number of the rhythm)
   motion.ts                  useReducedMotion, nativeDriver, feedback(kind): every haptic goes through here
   enter.ts                   which change gets which of the four entrances
+  markMotion.ts              which "?" grow in and shrink out as walking moves the range: markMoves, markContext, the marks' own spring (PI1-PI14, decision 0239)
   haptics.ts                 expo-haptics behind feedback(); on web only the pocket alert's nudge plays
   canBuzz.ts, canBuzz.web.ts whether to offer the pocket alert: always on a phone; on web, a touch screen
 Session, screens and small helpers

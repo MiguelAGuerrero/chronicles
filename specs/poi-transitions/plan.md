@@ -119,8 +119,11 @@ Each becomes a `**Do:** … **Expect:** …` item in `docs/NATIVE_UNVERIFIED.md`
 - **Per frame:** only the running springs. Each arrival is one spring for at most 400 ms. On the web, `Animated`
   without the native driver writes the element's style per frame without a React render. Each leave is one 180 ms
   timing.
-- **Harness:** `scripts/perf-walk.js` before the first code commit and again at the end, and PI14's `perfCount` keys
-  in the journey. Native is device only, as an item in `docs/NATIVE_UNVERIFIED.md`.
+- **Harness:** `scripts/perf-walk.js` was planned before and after, but it never switches Places on (decision 0234
+  starts every walk with the layers off), so it draws no "?" and cannot measure this. Found at the first code commit,
+  so it was not run. The measure is PI14's in the `arrivals` journey instead: the walk map's renders a second
+  over a walk past the marks (0.78, against the budget's 2.5) and `marker:mark` against `mark:in` (2 made, 1 arriving).
+  Native is device only, as an item in `docs/NATIVE_UNVERIFIED.md`.
 
 ## Goal to control
 

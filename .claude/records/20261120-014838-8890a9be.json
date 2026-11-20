@@ -1,0 +1,33 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "slice",
+        "row",
+        "add",
+        "--top"
+      ],
+      "body": "| Places come and go with a settle on a walk (a \"?\" grows in on a slight spring, from 80% to a peak of about 1.025, as walking brings it within range, and shrinks out over 180 ms as it falls out of range; only on screen, never on opening, while riding or within 30 s of leaving, and not at all with Reduce Motion; Explore unchanged; PI1-PI14, decision 0239) | built; web only | tests first, then the code, 2026-11-20 | `specs/poi-transitions/spec.md` |  |\n"
+    },
+    {
+      "argv": [
+        "inflight",
+        "remove",
+        "Places come and go with a settle",
+        "--reason",
+        "built 2026-11-20; row moved to Slices"
+      ],
+      "target": "sha256:211f11aea4efcf9c514f3af48d784986142d59530f8520514e07e40e075adb5b"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Places come and go with a settle (PI1-PI14, decision 0239)",
+        "--new"
+      ],
+      "body": "- Explore's \"?\" marks and the Places dots come and go at once: the owner asked for walking range only (Nov 20, decision 0239). Explore's zoom would pass a `marksContext` from `explore.tsx` that changes with the selected area, Places and kinds but not the zoom; the dots are a GL circle layer, and animating each would mean per-frame `setData` against the render budget.\n"
+    }
+  ]
+}
