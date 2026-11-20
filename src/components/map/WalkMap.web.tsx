@@ -1374,7 +1374,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const markMarkers = useRef(new Map<string, MarkEntry>());
   // Places come and go with a settle on a walk (PI1-PI14): what the last sync showed (null before the first: first
   // sight, PI5) and under which context, the marks still shrinking out, and when each mark last left (PI13).
-  const markShown = useRef<{ ids: Set<string>; context: string | null } | null>(null);
+  const markShown = useRef<{ ids: Set<string>; context: string | null; inRange?: ReadonlySet<string> } | null>(null);
   const markLeaving = useRef(new Map<string, MarkEntry>());
   const markLeftAt = useRef(new Map<string, number>());
   const markRelease = useRef<((id: string) => void) | null>(null);
@@ -1402,6 +1402,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         const at = atOf.get(id);
         return !!at && bounds.contains(at);
       },
+      inRangeBefore: markShown.current?.inRange,
+      inRangeNow: props.marksInRange,
     });
     // A mark back while it shrinks: its leave is cut and it is drawn once, still (PI6, PI13).
     for (const id of moves.back) {
@@ -1500,8 +1502,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     }
     // The record of who left is kept only as long as it can still hold a mark still (PI13).
     for (const [id, t] of markLeftAt.current) if (now - t > MARK_MOTION.backStillMs) markLeftAt.current.delete(id);
-    markShown.current = { ids: live, context };
-  }, [ready, props.discoveries, viewZoom, marksBearing, props.spreadMarks, props.marksContext]);
+    markShown.current = { ids: live, context, inRange: props.marksInRange };
+  }, [ready, props.discoveries, viewZoom, marksBearing, props.spreadMarks, props.marksContext, props.marksInRange]);
   // Leaving the screen takes every mark away at once, a leaving one too (PI8).
   useEffect(() => () => {
     for (const m of [...markMarkers.current.values(), ...markLeaving.current.values()]) {

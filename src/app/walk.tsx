@@ -46,6 +46,7 @@ import { canBuzz } from '../lib/canBuzz';
 import { armedLine, canArm, walkPassKey, clampPass, clampRange, intoRowShown, kindOf, POCKET_ALERT_NOTE } from '../lib/explore/explore';
 import { DEFAULT_SETTINGS, loadSettings, onSettings, saveSettings, type ExploreSettings } from '../lib/explore/settings';
 import { useExplore } from '../lib/explore/useExplore';
+import { marksSettled, settleStep } from '../lib/markMotion';
 import { reach } from '../lib/explore/reach';
 import { reachLine } from '../lib/explore/reach/rule';
 import { db } from '../lib/db';
@@ -428,6 +429,21 @@ function WalkScreen(props: { onMinimize: () => void }) {
   useEffect(() => onWalkGap(onGap), [onGap]);
   // The keeper's trace, once it holds this walk; motion runs in the keeper too (Motion).
   const live = openWalk.live;
+  // The marks move only once settled since the mount or a return (poi-transitions audit 1): a reload's first live fix
+  // can jump far, and an app behind the screen moves nothing (null context); each position and each return is a step.
+  const [front, setFront] = useState(() => AppState.currentState === 'active' || AppState.currentState == null);
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (st) => setFront(st === 'active'));
+    return () => sub.remove();
+  }, []);
+  const [marksSettle, setMarksSettle] = useState({ epoch: 0, n: 0 });
+  useEffect(() => {
+    const t = setTimeout(() => setMarksSettle((cur) => {
+      const next = settleStep(cur, resumed);
+      return next === cur ? cur : next;
+    }), 0);
+    return () => clearTimeout(t);
+  }, [live.here, resumed]);
   // Town borders (TB4): thin lines around you, the town you're in firmer, no fill, so the trace and fog read as before.
   const borderAt = walk ? live.here : ready.mapProps.walker ?? null;
   const drawnBorders = useOutlineSet([borderAt], BORDER_ZOOM);
@@ -1360,7 +1376,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
           void openMemory(group, at);
         }}
         discoveries={explore.pins}
-        marksContext={explore.context}
+        marksContext={front && marksSettled(marksSettle, resumed) ? explore.context : null}
+        marksInRange={explore.inRange}
         spreadMarks
         onDiscoveryPress={recordingVoice || stopping || isDrawing ? undefined : (id) => {
           // A found place is shown, not a card to open: its capture's pin is the thing to tap (audit, UI).

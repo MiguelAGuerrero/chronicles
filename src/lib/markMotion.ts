@@ -77,10 +77,13 @@ export function markContext(i: {
   keys: readonly string[];
   route: readonly LngLat[] | null;
   riding: boolean;
+  /** The places found: a find loaded or removed shows or hides a found mark at any distance (poi-transitions audit 4). */
+  found?: Iterable<string>;
 }): string | null {
   if (i.riding) return null;
   const route = i.route?.length ? `${i.route.length}:${i.route[0].join(',')}:${i.route[i.route.length - 1].join(',')}` : '-';
-  return [i.places ? 'on' : 'off', i.rangeM, [...i.hidden].sort().join(','), [...i.keys].sort().join(','), route].join('|');
+  const found = [...(i.found ?? [])].sort().join(',');
+  return [i.places ? 'on' : 'off', i.rangeM, [...i.hidden].sort().join(','), [...i.keys].sort().join(','), route, found].join('|');
 }
 
 /** The marks that left within `backStillMs` of `now` (PI13). */
@@ -104,6 +107,12 @@ export function markMoves(i: {
   recentlyLeft: ReadonlySet<string>;
   leaving: ReadonlySet<string>;
   inView: (id: string) => boolean;
+  /**
+   * The places within range before and now, shown or not (poi-transitions audit 9): only crossing the range's edge
+   * moves a mark; one the nearest-eight cap drops or brings back, still within range, comes and goes still.
+   */
+  inRangeBefore?: ReadonlySet<string>;
+  inRangeNow?: ReadonlySet<string>;
 }): { arriving: Set<string>; leaving: Set<string>; back: Set<string> } {
   const back = new Set(i.ids.filter((id) => i.leaving.has(id)));
   const arriving = new Set<string>();
@@ -111,9 +120,9 @@ export function markMoves(i: {
   const moving = i.prev != null && i.context != null && i.context === i.prevContext;
   if (!moving || !i.prev) return { arriving, leaving, back };
   const now = new Set(i.ids);
-  for (const id of i.ids) if (!i.prev.has(id) && !back.has(id) && !i.recentlyLeft.has(id) && i.inView(id)) arriving.add(id);
+  for (const id of i.ids) if (!i.prev.has(id) && !back.has(id) && !i.recentlyLeft.has(id) && !i.inRangeBefore?.has(id) && i.inView(id)) arriving.add(id);
   // A mark that left moments ago goes still too: the range's edge never shrinks on every jitter (poi-transitions ui 2).
-  for (const id of i.prev) if (!now.has(id) && !i.recentlyLeft.has(id) && i.inView(id)) leaving.add(id);
+  for (const id of i.prev) if (!now.has(id) && !i.recentlyLeft.has(id) && !i.inRangeNow?.has(id) && i.inView(id)) leaving.add(id);
   return { arriving, leaving, back };
 }
 
@@ -156,3 +165,39 @@ export function markOrigin(spread: { dx: number; dy: number } | undefined, below
   if (!spread) return { x: MARK_FOOT.x, y: MARK_FOOT.y };
   return { x: MARK_FOOT.x - spread.dx, y: MARK_FOOT.y - spread.dy - below };
 }
+
+/**
+ * Whether the walk's marks have settled since the screen mounted or came back to the front (poi-transitions audit 1).
+ * Each position (and each return) is a step: a return starts again, and the marks may move from the second position
+ * on. The first is the one the screen opens with (a reload's last stored fix); the next may jump far.
+ */
+export function settleStep(s: { epoch: number; n: number }, resumed: number): { epoch: number; n: number } {
+  if (s.epoch !== resumed) return { epoch: resumed, n: 0 };
+  return s.n >= 2 ? s : { epoch: s.epoch, n: s.n + 1 };
+}
+
+export const marksSettled = (s: { epoch: number; n: number }, resumed: number): boolean => s.epoch === resumed && s.n >= 2;
+
+/**
+ * What the native map draws between a change of the list and its decision a tick later (poi-transitions audits 2, 5):
+ * a new mark under a context is held back, since it may grow; a mark gone from the list under the same context is
+ * drawn still on its own marker until it is decided, so it never misses a render; with no context nothing waits.
+ */
+export function markDraw(i: {
+  ids: readonly string[];
+  context: string | null;
+  decided: { known: ReadonlySet<string> | null; context: string | null };
+  leaving: ReadonlySet<string>;
+}): { held: Set<string>; stillGone: Set<string> } {
+  const held = new Set<string>();
+  const stillGone = new Set<string>();
+  const known = i.decided.known;
+  if (i.context == null || !known || i.decided.context !== i.context) return { held, stillGone };
+  const now = new Set(i.ids);
+  for (const id of i.ids) if (!known.has(id)) held.add(id);
+  for (const id of known) if (!now.has(id) && !i.leaving.has(id)) stillGone.add(id);
+  return { held, stillGone };
+}
+
+/** Whether a native marker grows as it mounts: only under the key it arrived with, so a remount never grows again (audit 6). */
+export const growsNow = (grow: ReadonlyMap<string, string>, id: string, key: string): boolean => grow.get(id) === key;

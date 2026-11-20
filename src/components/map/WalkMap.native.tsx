@@ -32,7 +32,7 @@ import { releaseSwipe, SNAP } from '../../lib/atlas/snap';
 import { capFitBounds } from '../../lib/zoomOut';
 import type { DotSource } from '../../lib/liveDot';
 import { markEnter, pinDrops, sameSeen } from '../../lib/enter';
-import { MARK_MOTION, arrivalEnter, inBounds, markMoves, recentlyLeft } from '../../lib/markMotion';
+import { MARK_MOTION, arrivalEnter, growsNow, inBounds, markDraw, markMoves, recentlyLeft } from '../../lib/markMotion';
 import { useReducedMotion } from '../../lib/motion';
 import { useUnits } from '../../lib/useUnits';
 import { MOTION, REPLAY_ENGINE } from '../../lib/motionTokens';
@@ -599,7 +599,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         />
         <MarkMarkers
           marks={shownMarks} zoom={view?.zoom ?? props.initialZoom ?? 16} bearing={namesBearing} spread={!!props.spreadMarks} seen={seenMarks}
-          pressable={!!props.onDiscoveryPress} handlers={handlers} context={props.marksContext ?? null} bounds={visibleBounds}
+          pressable={!!props.onDiscoveryPress} handlers={handlers} context={props.marksContext ?? null} bounds={visibleBounds} inRange={props.marksInRange}
         />
         <ComplexLabelMarkers labels={props.complexes?.labels ?? NO_LABELS} />
         <AreaPointMarkers points={props.areaPoints ?? NO_AREA_POINTS} />
@@ -1042,11 +1042,21 @@ type VisibleBounds = [number, number, number, number];
  * bounds of the last settle. A new mark is held back for that tick when it could be arriving, so it never shows at
  * full size before growing. Unverified on a device.
  */
-function useMarkMoves(pins: readonly MarkPin[], context: string | null, bounds: RefObject<VisibleBounds | null>) {
-  const [state, setState] = useState<{ known: ReadonlySet<string> | null; context: string | null; grow: ReadonlySet<string>; leaving: ReadonlyMap<string, MarkPin> }>(
-    () => ({ known: null, context: null, grow: new Set(), leaving: new globalThis.Map() }),
-  );
-  const shown = useRef<{ ids: Set<string> | null; context: string | null; pins: ReadonlyMap<string, MarkPin> }>({ ids: null, context: null, pins: new globalThis.Map() });
+/** A native "?" marker's key: a change of look or spread mounts it afresh (pins.md). */
+const markMarkerKey = (pin: MarkPin) => `mark:${pin.id}:${markKey(pin)}:${spreadKey(pin.spread)}`;
+
+function useMarkMoves(pins: readonly MarkPin[], context: string | null, bounds: RefObject<VisibleBounds | null>, inRange: ReadonlySet<string> | undefined) {
+  type Decided = {
+    known: ReadonlySet<string> | null;
+    context: string | null;
+    /** The last decision's marks, so one gone from the list is drawn still on its own marker until decided (audit 2). */
+    pins: ReadonlyMap<string, MarkPin>;
+    /** Each arrival's marker key: it grows only under that key, never on a remount (audit 6). */
+    grow: ReadonlyMap<string, string>;
+    leaving: ReadonlyMap<string, MarkPin>;
+  };
+  const [state, setState] = useState<Decided>(() => ({ known: null, context: null, pins: new globalThis.Map(), grow: new globalThis.Map(), leaving: new globalThis.Map() }));
+  const shown = useRef<{ ids: Set<string> | null; context: string | null; pins: ReadonlyMap<string, MarkPin>; inRange?: ReadonlySet<string> }>({ ids: null, context: null, pins: new globalThis.Map() });
   const leftAt = useRef(new globalThis.Map<string, number>());
   const leaving = useRef(new globalThis.Map<string, MarkPin>());
   useEffect(() => {
@@ -1065,6 +1075,8 @@ function useMarkMoves(pins: readonly MarkPin[], context: string | null, bounds: 
         recentlyLeft: recentlyLeft(leftAt.current, now),
         leaving: new Set(leaving.current.keys()),
         inView: (id) => inBounds(atOf.get(id) ?? [NaN, NaN], bounds.current),
+        inRangeBefore: was.inRange,
+        inRangeNow: inRange,
       });
       const next = new globalThis.Map(leaving.current);
       for (const id of moves.back) next.delete(id);
@@ -1076,17 +1088,17 @@ function useMarkMoves(pins: readonly MarkPin[], context: string | null, bounds: 
       }
       for (const [id, at] of leftAt.current) if (now - at > MARK_MOTION.backStillMs) leftAt.current.delete(id);
       leaving.current = next;
-      shown.current = { ids: now2, context, pins: new globalThis.Map(pins.map((p) => [p.id, p] as const)) };
-      setState({ known: now2, context, grow: moves.arriving, leaving: next });
+      const byId = new globalThis.Map(pins.map((p) => [p.id, p] as const));
+      shown.current = { ids: now2, context, pins: byId, inRange };
+      const grow = new globalThis.Map<string, string>();
+      for (const id of moves.arriving) {
+        const p = byId.get(id);
+        if (p) grow.set(id, markMarkerKey(p));
+      }
+      setState({ known: now2, context, pins: byId, grow, leaving: next });
     }, 0);
     return () => clearTimeout(t);
-  }, [pins, context, bounds]);
-  // The grow is read at a marker's mount; once played, a later remount (a spread, a reveal) never grows again (PI7).
-  useEffect(() => {
-    if (!state.grow.size) return;
-    const t = setTimeout(() => setState((s) => ({ ...s, grow: new Set() })), MARK_MOTION.leaveMs + 400);
-    return () => clearTimeout(t);
-  }, [state.grow]);
+  }, [pins, context, bounds, inRange]);
   const left = useCallback((id: string) => {
     if (!leaving.current.has(id)) return;
     const next = new globalThis.Map(leaving.current);
@@ -1094,19 +1106,22 @@ function useMarkMoves(pins: readonly MarkPin[], context: string | null, bounds: 
     leaving.current = next;
     setState((s) => ({ ...s, leaving: next }));
   }, []);
-  // A mark the last decision has not seen, under the same context, waits for it: it may be arriving.
-  const held = (id: string) => state.known != null && state.context === context && !state.known.has(id);
-  return { grow: state.grow, leaving: state.leaving, held, left };
+  const draw = markDraw({ ids: pins.map((p) => p.id), context, decided: { known: state.known, context: state.context }, leaving: new Set(state.leaving.keys()) });
+  const stillGone = [...draw.stillGone].flatMap((id) => {
+    const p = state.pins.get(id);
+    return p ? [p] : [];
+  });
+  return { grow: state.grow, leaving: state.leaving, held: draw.held, stillGone, left };
 }
 
-const MarkMarkers = memo(function MarkMarkers({ marks, zoom, bearing, spread, seen, pressable, handlers, context, bounds }: { marks: NonNullable<WalkMapProps['discoveries']>; zoom: number; bearing: number; spread: boolean; seen: ReadonlyMap<string, string>; pressable: boolean; handlers: RefObject<PinHandlers>; context: string | null; bounds: RefObject<VisibleBounds | null> }) {
+const MarkMarkers = memo(function MarkMarkers({ marks, zoom, bearing, spread, seen, pressable, handlers, context, bounds, inRange }: { marks: NonNullable<WalkMapProps['discoveries']>; zoom: number; bearing: number; spread: boolean; seen: ReadonlyMap<string, string>; pressable: boolean; handlers: RefObject<PinHandlers>; context: string | null; bounds: RefObject<VisibleBounds | null>; inRange: ReadonlySet<string> | undefined }) {
   const shown = useMemo(() => declutterMarks(marks, zoom, { bearing, spread }), [marks, zoom, bearing, spread]);
-  const moves = useMarkMoves(shown as MarkPin[], context, bounds);
+  const moves = useMarkMoves(shown as MarkPin[], context, bounds, inRange);
   // The spread is in the key: whether a Marker's children redraw without a new key is unverified on a device (pins.md).
-  const live = shown.filter((pin) => !moves.held(pin.id)).map((pin) => (
+  const live = shown.filter((pin) => !moves.held.has(pin.id)).map((pin) => (
     <Marker
-      key={`mark:${pin.id}:${markKey(pin)}:${spreadKey(pin.spread)}`}
-      id={`mark:${pin.id}:${markKey(pin)}:${spreadKey(pin.spread)}`}
+      key={markMarkerKey(pin)}
+      id={markMarkerKey(pin)}
       lngLat={pin.at}
       anchor="bottom"
       // A spread pin stands off its point, on a leg back to it (fix mark-overlap).
@@ -1122,15 +1137,16 @@ const MarkMarkers = memo(function MarkMarkers({ marks, zoom, bearing, spread, se
         accessibilityLabel={markLabel(pin)}
         style={pin.found ? undefined : styles.pinHit}
       >
-        <MarkPinView pin={pin} enter={arrivalEnter(moves.grow.has(pin.id), seen.size ? markEnter(markFrom(seen.get(pin.id)), pin) : null)} />
+        <MarkPinView pin={pin} enter={arrivalEnter(growsNow(moves.grow, pin.id, markMarkerKey(pin)), seen.size ? markEnter(markFrom(seen.get(pin.id)), pin) : null)} />
       </View>
     </Marker>
   ));
-  // Falling out of range, a mark shrinks out (PI3), taking no tap and hidden from a screen reader (PI6).
-  const going = [...moves.leaving.values()].map((pin) => (
-    <Marker key={`leaving:${pin.id}`} id={`leaving:${pin.id}`} lngLat={pin.at} anchor="bottom" offset={pin.spread ? [pin.spread.dx, pin.spread.dy] : undefined}>
-      <View accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" pointerEvents="none">
-        <MarkPinView pin={pin} onLeft={() => moves.left(pin.id)} />
+  // Gone from the list, a mark is drawn still on its own marker until its leave is decided (audit 2), then shrinks out
+  // there (PI3), taking no tap and hidden from a screen reader (PI6): one marker throughout, never a second.
+  const going = [...moves.stillGone.map((pin) => [pin, false] as const), ...[...moves.leaving.values()].map((pin) => [pin, true] as const)].map(([pin, out]) => (
+    <Marker key={markMarkerKey(pin)} id={markMarkerKey(pin)} lngLat={pin.at} anchor="bottom" offset={pin.spread ? [pin.spread.dx, pin.spread.dy] : undefined}>
+      <View accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" pointerEvents="none" style={pin.found ? undefined : styles.pinHit}>
+        <MarkPinView pin={pin} onLeft={out ? () => moves.left(pin.id) : undefined} />
       </View>
     </Marker>
   ));

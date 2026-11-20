@@ -211,6 +211,8 @@ export interface WalkMapProps {
    * range grows in and one it takes out shrinks out (poi-transitions); a change of it, or none (Explore), moves nothing.
    */
   marksContext?: string | null;
+  /** The places within range, shown or not: one the nearest-eight cap drops or brings back moves nothing (poi-transitions audit 9). */
+  marksInRange?: ReadonlySet<string>;
   /** Marks whose heads would cover each other stand side by side, on legs to their points (fix mark-overlap). Off where
    * the screen lays its pins out itself (Explore's "?" by `halfZoom`, WT12). */
   spreadMarks?: boolean;

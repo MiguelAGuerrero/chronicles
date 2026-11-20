@@ -25,6 +25,7 @@ import {
   routeMarks,
   routeProbes,
   visibleMarks,
+  inRangeKeys,
   type ChecklistArea,
   type ChecklistItem,
   type ExploreRead,
@@ -34,6 +35,8 @@ import { placesArchive } from '../discovery/archive';
 import { exploreBuild, exploreBusy, exploreHold, exploreRead, itemBounds } from './exploreRun';
 import { facesToRead, foundFaces } from './foundFace';
 import { DEFAULT_SETTINGS, loadSettings, onSettings, type ExploreSettings } from './settings';
+
+const NO_KEYS: ReadonlySet<string> = new Set();
 
 /** Items are read again around you after this much walking. */
 const RELOAD_M = 500;
@@ -339,9 +342,14 @@ export function useExplore(opts: {
   // other change (Places, the range or its preview, a kind, a read, a route, a ride) draws them still (poi-transitions).
   const keysRead = useMemo(() => [...items, ...routeItems].map((i) => i.key), [items, routeItems]);
   const context = useMemo(
-    () => markContext({ places, rangeM, hidden: settings.hidden, keys: keysRead, route: routePath, riding }),
-    [places, rangeM, settings.hidden, keysRead, routePath, riding],
+    () => markContext({ places, rangeM, hidden: settings.hidden, keys: keysRead, route: routePath, riding, found: foundSet }),
+    [places, rangeM, settings.hidden, keysRead, routePath, riding, foundSet],
+  );
+  // The places within range, shown or not, so the nearest-eight cap moves nothing (poi-transitions audit 9).
+  const inRange = useMemo(
+    () => (places ? inRangeKeys({ items, here, rangeM, found: foundSet, hidden: settings.hidden }) : NO_KEYS),
+    [places, items, here, rangeM, foundSet, settings.hidden],
   );
 
-  return { pins, context, settings, revealed, found: foundSet, itemOf, armed: armedNow, arm, disarm };
+  return { pins, context, inRange, settings, revealed, found: foundSet, itemOf, armed: armedNow, arm, disarm };
 }

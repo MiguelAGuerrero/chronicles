@@ -437,6 +437,20 @@ export function visibleMarks(o: {
   return out;
 }
 
+/**
+ * The unfound places within range, shown or not: the same test as `visibleMarks` before its nearest-eight cap, so a
+ * mark the cap drops or brings back is told apart from one crossing the range's edge (poi-transitions audit 9).
+ */
+export function inRangeKeys(o: { items: ChecklistItem[]; here: LngLat | null; rangeM: number; found: Set<string>; hidden: Set<Kind> }): Set<string> {
+  const out = new Set<string>();
+  if (!o.here) return out;
+  for (const item of o.items) {
+    if (o.found.has(item.key) || isKindHidden(o.hidden, item.kind)) continue;
+    if (distanceM(o.here, item.at) <= o.rangeM) out.add(item.key);
+  }
+  return out;
+}
+
 /** The unfound places within 60 m of a capture at `at`, whatever their kind, nearest first (E8, E18). */
 export function findCandidates(at: LngLat, items: ChecklistItem[], found: Set<string>): ChecklistItem[] {
   const near: { item: ChecklistItem; d: number }[] = [];
