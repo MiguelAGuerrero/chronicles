@@ -52,10 +52,11 @@ async function run(h) {
     await p.waitForSelector('[data-testid=media-editor]', { state: 'detached', timeout: 5000 }).catch(() => {});
     return true;
   };
-  const shoot = async (button) => {
+  // `refused`: a save made to fail opens no editor, so nothing is waited for.
+  const shoot = async (button, refused = false) => {
     const [chooser] = await Promise.all([pg.waitForEvent('filechooser'), pg.click(`[data-testid=${button}]`)]);
     await chooser.setFiles(path.join(fixtures, 'photo.jpg'));
-    await closeEditor(pg, 6000);
+    if (!refused) await closeEditor(pg, 6000);
   };
 
   // Navigate, ready: moments outside a walk (SA3), the captures still enabled (SA6), no number (SA7).
@@ -146,9 +147,9 @@ async function run(h) {
   // Two photos whose saves are refused for lack of room: both held, with Retry, and why in words (SA8, SA9).
   await pg.evaluate(() => { window.__failMedia = 2; });
   const before = await photoRows();
-  await shoot('cap-photo');
+  await shoot('cap-photo', true);
   await pg.waitForSelector('[data-testid=held-captures] >> visible=true', { timeout: 10000 }).catch(() => {});
-  await shoot('cap-photo');
+  await shoot('cap-photo', true);
   await pg.waitForTimeout(1500);
   // Memories' open line, mounted beneath, shows the same held photos since unsaved captures (UN2): the walk's is the one in view.
   const pill = await pg.locator('[data-testid=held-captures]').filter({ visible: true }).first().innerText().catch(() => '');
@@ -177,7 +178,7 @@ async function run(h) {
   // Let the kept photos' own writes (their small copies) land first, so the one refusal falls on the next photo.
   await pg.waitForTimeout(2500);
   await pg.evaluate(() => { window.__failMedia = 1; });
-  await shoot('cap-photo');
+  await shoot('cap-photo', true);
   await pg.waitForSelector('[data-testid=held-captures] >> visible=true', { timeout: 10000 }).catch(() => {});
   await holdStop();
   check((await warned()) > 0 && /\/walk/.test(pg.url()), `SA8: Stop with a held photo warns first and the walk goes on (${await warned()}, ${pg.url().slice(-12)})`);
@@ -186,7 +187,7 @@ async function run(h) {
   await dismissBanners();
   await pg.waitForTimeout(2500);
   await pg.evaluate(() => { window.__failMedia = 1; });
-  await shoot('cap-photo');
+  await shoot('cap-photo', true);
   await pg.waitForFunction(() => /Photos not saved/.test(document.querySelector('[data-testid=held-captures]')?.textContent ?? ''), null, { timeout: 10000 }).catch(() => {});
   await dismissBanners();
   await pg.waitForTimeout(300);
@@ -196,7 +197,7 @@ async function run(h) {
   await pg.waitForSelector('[data-testid=held-captures]', { state: 'detached', timeout: 10000 }).catch(() => {});
   await pg.waitForTimeout(2500);
   await pg.evaluate(() => { window.__failMedia = 1; });
-  await shoot('cap-photo');
+  await shoot('cap-photo', true);
   await pg.waitForSelector('[data-testid=held-captures] >> visible=true', { timeout: 10000 }).catch(() => {});
   await pg.evaluate(() => document.querySelectorAll('[data-testid=banner-dismiss]').forEach((b) => b.click()));
   await pg.waitForTimeout(300);
