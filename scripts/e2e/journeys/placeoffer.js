@@ -111,12 +111,12 @@ async function run(h) {
       const text = undo?.querySelector('div[dir], div') ?? undo;
       return { bg: line && getComputedStyle(line).backgroundColor, o, underline: text ? getComputedStyle(text).textDecorationLine : null, undoBg: undo && getComputedStyle(undo).backgroundColor };
     });
-    check.todo(look.bg === 'rgb(29, 36, 48)' && look.o === 1, `moment-assignment-fallback ui 3: the Found line, settled, is solid ink (${JSON.stringify(look)})`);
-    check.todo(look.underline === 'none' && look.undoBg !== 'rgba(0, 0, 0, 0)', `moment-assignment-fallback ui 4: its Undo is a filled button as the app's other Undo, not underlined text (${JSON.stringify(look)})`);
+    check(look.bg === 'rgb(29, 36, 48)' && look.o === 1, `moment-assignment-fallback ui 3: the Found line, settled, is solid ink (${JSON.stringify(look)})`);
+    check(look.underline === 'none' && look.undoBg !== 'rgba(0, 0, 0, 0)', `moment-assignment-fallback ui 4: its Undo is a filled button as the app's other Undo, not underlined text (${JSON.stringify(look)})`);
     check(/Found: Hessian Memorial/.test(found) && /Undo/.test(found) && (await lineGone()),
       `PO1: Yes ties it: "Found: Hessian Memorial" with Undo, and the line goes (${found.replace(/\n/g, ' ')})`);
     check((await pins()).includes('Found with a photo: Hessian Memorial, History'), 'PO9: the same find Capture here makes: the pin is found with the photo\'s glyph');
-    await shot(pg, 'po-02-found-undo');
+    await shot(pg, 'po-02-found-undo'); // after the 800 ms above: the line settled (ui 3)
     const before = await moments();
     await pg.click('[data-testid=found-undo]').catch(() => {});
     await pg.waitForTimeout(800);
@@ -181,7 +181,8 @@ async function run(h) {
     const choiceNames = await pg.evaluate(() => [...document.querySelectorAll('.maplibregl-map [data-testid=mark-pin]')]
       .filter((e) => /Tie this photo to it$/.test(e.getAttribute('aria-label') ?? ''))
       .map((e) => e.innerText.trim()));
-    check.todo(choiceNames.length === 2 && choiceNames.includes('North Spire') && choiceNames.includes('South Spire'),
+    // A pin's text starts with its icon's glyph: the name is looked for in it.
+    check(choiceNames.length === 2 && choiceNames.some((t) => t.includes('North Spire')) && choiceNames.some((t) => t.includes('South Spire')),
       `moment-assignment-fallback ui 1: every choice writes its name on the map (${JSON.stringify(choiceNames)})`);
     await shot(pg, 'po-03-several');
     await pin('Far Cross').click().catch(() => {});
@@ -192,6 +193,7 @@ async function run(h) {
     const found = await pg.waitForSelector('[data-testid=found-line]', { timeout: 5000 }).then((e) => e.innerText(), () => '');
     check(/Found: South Spire/.test(found) && !(await pg.locator('[data-testid=mark-card]').count()) && (await lineGone())
       && (await pins()).includes('North Spire, History. Open'), `PO3: a tap on a choice ties the photo to it, opens no card, and the other is ordinary again (${found})`);
+    await pg.waitForTimeout(800);
     await shot(pg, 'po-04-several-found');
     await pg.click('[data-testid=found-dismiss]').catch(() => {});
 

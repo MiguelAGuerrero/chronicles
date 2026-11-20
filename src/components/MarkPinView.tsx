@@ -90,7 +90,8 @@ function Leg({ spread, below }: { spread: MarkSpread; below: number }) {
 
 function MarkBody({ pin, below }: { pin: MarkPin; below: number }) {
   const shown = pin.revealed || pin.found;
-  const named = shown && !pin.faint && !pin.found && !pin.nameHidden;
+  // A choice always writes its name (moment-assignment-fallback ui 1): the line names it, so the map must too.
+  const named = shown && !pin.faint && !pin.found && (!pin.nameHidden || !!pin.choice);
   const side = pin.spread ? pin.spread.side : 'below';
   return (
     <View style={[styles.wrap, pin.faint && styles.faint, pin.found && styles.wrapFound]} pointerEvents="none">
@@ -107,6 +108,12 @@ function MarkBody({ pin, below }: { pin: MarkPin; below: number }) {
       <View style={[styles.stem, pin.found && styles.stemFound]} />
       {named && side === 'below' && (
         <Text style={styles.name}>
+          {pin.name}
+        </Text>
+      )}
+      {named && pin.choice && side === null && (
+        // In the middle of a row a name beside it would run over its neighbours: a choice's goes above its head.
+        <Text style={[styles.name, styles.nameAbove]}>
           {pin.name}
         </Text>
       )}
@@ -184,6 +191,8 @@ const styles = StyleSheet.create({
     textShadowColor: '#ffffff',
     textShadowRadius: 3,
   },
+  // A choice's name in the middle of a row, over its ring (moment-assignment-fallback ui 1).
+  nameAbove: { top: -24 },
   // A spread pin's name, beside its head and centred on it (fix mark-overlap).
   beside: { position: 'absolute', top: 0, height: 34, width: NAME_WIDTH, justifyContent: 'center' },
   besideLeft: { right: 36 + 4 },

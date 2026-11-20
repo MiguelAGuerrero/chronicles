@@ -83,7 +83,7 @@ function namesOf(items: ChecklistItem[]): string {
 /** The line's words (PO1, PO3, PO8, PO10, PO11): plain, neutral, naming the moment's kind and the places. */
 export function offerLine(offer: Offer): string {
   const q = `Was this ${NOUN[offer.kind]} about ${namesOf(offer.items)}?`;
-  return offer.items.length === 1 ? q : `${q} Tap it on the map.`;
+  return offer.items.length === 1 ? q : `${q} Tap one on the map.`;
 }
 
 /** The buttons' spoken names (PO2): Yes only for one place; with several the map is the choice. */

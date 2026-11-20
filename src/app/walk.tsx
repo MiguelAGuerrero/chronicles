@@ -1628,9 +1628,9 @@ function WalkScreen(props: { onMinimize: () => void }) {
                 setTied(null);
                 explore.untie(t.key, t.captureId).catch(() => {});
               }}
-              style={styles.tiedBtn}
+              style={[styles.tiedBtn, styles.tiedUndo]}
             >
-              <Text style={[styles.toastText, styles.tiedUndo]}>Undo</Text>
+              <Text style={styles.tiedUndoText}>Undo</Text>
             </Pressable>
             <Pressable testID="found-dismiss" accessibilityRole="button" accessibilityLabel="Dismiss" onPress={() => setTied(null)} style={styles.tiedBtn}>
               <Icon name="close" size={18} color="#ffffff" />
@@ -2254,7 +2254,9 @@ const styles = StyleSheet.create({
   tiedLine: { backgroundColor: theme.ink, borderRadius: 999, paddingLeft: 16, paddingRight: 4, flexDirection: 'row', alignItems: 'center', alignSelf: 'center', maxWidth: 420 },
   tiedText: { flexShrink: 1, marginRight: 4 },
   tiedBtn: { minWidth: 44, minHeight: 44, paddingHorizontal: 8, alignItems: 'center', justifyContent: 'center' },
-  tiedUndo: { textDecorationLine: 'underline' },
+  // The app's Undo button (UndoToast's), not a link (moment-assignment-fallback ui 4).
+  tiedUndo: { minWidth: 72, paddingHorizontal: 16, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.18)' },
+  tiedUndoText: { color: '#ffffff', fontSize: 15, fontWeight: '700' },
   findChoiceBtnText: { color: theme.ink, fontSize: 14, fontWeight: '600' },
   toast: { backgroundColor: theme.ink, borderRadius: 999, paddingVertical: 8, paddingHorizontal: 16, alignSelf: 'center' },
   toastText: { color: '#ffffff', fontSize: 14, fontWeight: '600' },

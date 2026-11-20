@@ -57,11 +57,11 @@ test('PO3: several within 30 m are all offered, nearest first, named in words; a
   const offer = offerFor(moment(), { ...none, items: [hall, clock] });
   assert.ok(offer);
   assert.deepEqual(offer.items.map((i) => i.name), ['Clock Tower', 'Corn Exchange']);
-  assert.equal(offerLine(offer), 'Was this photo about Clock Tower or Corn Exchange? Tap it on the map.');
+  assert.equal(offerLine(offer), 'Was this photo about Clock Tower or Corn Exchange? Tap one on the map.');
   assert.equal(offerLabels(offer).yes, null, 'several places: no Yes, the map is the choice');
   const three = offerFor(moment(), { ...none, items: [hall, clock, item('Well', m(0, 3))] });
   assert.ok(three);
-  assert.equal(offerLine(three), 'Was this photo about Well, Clock Tower or Corn Exchange? Tap it on the map.');
+  assert.equal(offerLine(three), 'Was this photo about Well, Clock Tower or Corn Exchange? Tap one on the map.');
 });
 
 test('PO4: a place left with Leave it on this walk is not offered again', async () => {
@@ -123,7 +123,7 @@ test('PO8: the line names places and never counts them', async () => {
   const offer = offerFor(moment(), { ...none, items: names.map((n, i) => item(n, m(i * 5, 1))) });
   assert.ok(offer);
   const line = offerLine(offer);
-  assert.equal(line, 'Was this photo about Well, Clock Tower, Corn Exchange or another place nearby? Tap it on the map.');
+  assert.equal(line, 'Was this photo about Well, Clock Tower, Corn Exchange or another place nearby? Tap one on the map.');
   assert.ok(!/\d/.test(line), 'no number');
 });
 
@@ -158,7 +158,7 @@ test('PO11: the words are plain: no exclamation, no reminder, no hurry', async (
     assert.ok(!/!|don.t forget|remember to|now\b|quick/i.test(s), s);
 });
 
-test('moment-assignment-fallback ui 2: with several places the line asks to tap one, never "it"', { todo: 'test first' }, async () => {
+test('moment-assignment-fallback ui 2: with several places the line asks to tap one, never "it"', async () => {
   const { offerFor, offerLine } = await api();
   const offer = offerFor(moment(), { ...none, items: [item('Clock Tower', m(10, 5)), item('Corn Exchange', m(-25, 0))] });
   assert.ok(offer);
