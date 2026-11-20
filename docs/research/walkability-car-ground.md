@@ -11,7 +11,7 @@ A navigated walk with the Walkability and Storefronts layers on, the heads-up sh
 |---|---|---|
 | A large grey block, top left | Ground built around cars: slate `#3b4a6b` at 30% | `WALK_STYLE.car`, `src/components/map/types.ts:855-860`; `src/components/map/WalkMap.web.tsx:79-82`, `WalkMap.native.tsx:720-723` |
 | Pale blue everywhere else | Ground easy on foot: `#5b9bd5` at 24% | `WALK_STYLE.foot`, same places |
-| Magenta band and dashes on Penn Avenue | The Storefronts layer (`HOTSPOT`), not walkability | `types.ts:57` |
+| Magenta band and dashes along a main street | The Storefronts layer (`HOTSPOT`), not walkability | `types.ts:57` |
 | The blue line from the walker, northwest into the grey | The navigated route (`COLORS.route`) | `WalkMap.web.tsx` layer `route`; `WalkMap.native.tsx:815-817` |
 | "Next: an area built around cars", with an orange icon | The heads-up for a run of car cells of 300 m or more on the route (UF15) | `src/lib/walk/ahead.ts:93`, `:202`; `src/app/walk.tsx:1614-1619`; icon `src/components/WalkBandIcon.tsx:13` |
 
