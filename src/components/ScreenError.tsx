@@ -1,6 +1,6 @@
 import { router, type ErrorBoundaryProps } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
-import { walkErrorLine } from '../lib/readyNav';
+import { replayErrorLine, walkErrorLine } from '../lib/readyNav';
 import { useOpenWalkInfo } from './OpenWalk';
 import { Button, theme } from './ui';
 
@@ -42,9 +42,9 @@ export function ScreenError(props: ErrorBoundaryProps) {
   return <ErrorScreen {...props} exit="dismiss" body={walkErrorLine(useOpenWalkInfo())} />;
 }
 
-/** The same, on a replay: of a walk that is kept, whatever is open. */
+/** The same, on a replay: of a walk that is kept, said so unless another walk records (tend tabs audit 58). */
 export function ReplayScreenError(props: ErrorBoundaryProps) {
-  return <ErrorScreen {...props} exit="dismiss" body="Your walk is saved." />;
+  return <ErrorScreen {...props} exit="dismiss" body={replayErrorLine(useOpenWalkInfo())} />;
 }
 
 /**

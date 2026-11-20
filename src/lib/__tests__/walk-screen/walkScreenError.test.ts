@@ -14,18 +14,13 @@ const APP = join(__dirname, '../../../app');
 const boundaryOf = (file: string) =>
   /^export\s*\{\s*(\w+)\s+as\s+ErrorBoundary\s*\}/m.exec(readFileSync(join(APP, file), 'utf8'))?.[1] ?? null;
 const screenError = readFileSync(join(__dirname, '../../../components/ScreenError.tsx'), 'utf8');
-/** The words the named error screen shows under its title, read from its source. */
-const bodyOf = (name: string) => {
-  const fn = new RegExp(`export function ${name}\\(props: ErrorBoundaryProps\\) \\{\\s*return <ErrorScreen \\{\\.\\.\\.props\\} exit="(\\w+)"(?: body="([^"]+)")? />;`).exec(screenError);
-  return fn ? { exit: fn[1], body: fn[2] ?? 'Your walk is saved.' } : null;
-};
 
 test('tend walk-screen 6: the walk screen\'s error says "Your walk is still recording.", and its way back is unchanged', () => {
   assert.equal(boundaryOf('walk.tsx'), 'WalkScreenError');
   assert.match(screenError, /export function WalkScreenError\(props: ErrorBoundaryProps\) \{\s*const line = walkErrorLine\(useOpenWalkInfo\(\)\);\s*return <ErrorScreen \{\.\.\.props\} exit="dismiss" body=\{line\} \/>;/);
   assert.match(screenError, /\{body != null && <Text style=\{styles\.body\}>\{body\}<\/Text>\}/, 'the body is the one each screen passes, or none');
   // Since tend tabs 16 (the owner, Nov 20), "Your walk is saved." is the replay's alone; the others follow the open walk.
-  assert.match(screenError, /export function ReplayScreenError\(props: ErrorBoundaryProps\) \{\s*return <ErrorScreen \{\.\.\.props\} exit="dismiss" body="Your walk is saved\." \/>;/, 'and "Your walk is saved." on a replay');
+  assert.match(screenError, /export function ReplayScreenError\(props: ErrorBoundaryProps\) \{\s*return <ErrorScreen \{\.\.\.props\} exit="dismiss" body=\{replayErrorLine\(useOpenWalkInfo\(\)\)\} \/>;/, 'and the replay\'s line, "Your walk is saved." unless another walk records (tend tabs audit 58)');
 });
 
 // tend walk-screen audit 5 (the review's auditor 3 and ux 2): the walk route is also Navigate with no walk open and a
@@ -43,7 +38,8 @@ test('tend walk-screen audit 5: the walk route\'s error line follows the open wa
 
 test('tend walk-screen 6, tend tabs 16: a replay\'s error keeps "Your walk is saved."; every other screen\'s follows the open walk', () => {
   // The owner, Nov 20 (tend tabs 16): O35 extends to every error screen but the replay's, which is of a walk that is kept.
-  assert.equal(bodyOf('ReplayScreenError')?.body, 'Your walk is saved.');
+  // Since tend tabs audit 58, "saved" only while no other walk records (the owner, Nov 20).
+  assert.match(screenError, /export function ReplayScreenError\(props: ErrorBoundaryProps\) \{\s*return <ErrorScreen \{\.\.\.props\} exit="dismiss" body=\{replayErrorLine\(useOpenWalkInfo\(\)\)\} \/>;/);
   for (const name of ['ScreenError', 'TabScreenError', 'HomeScreenError']) {
     assert.match(screenError, new RegExp(`export function ${name}\\(props: ErrorBoundaryProps\\) \\{\\s*return <ErrorScreen \\{\\.\\.\\.props\\} exit="\\w+" body=\\{walkErrorLine\\(useOpenWalkInfo\\(\\)\\)\\} />;`), name);
   }

@@ -62,6 +62,17 @@ export function walkErrorLine(open: { known: boolean; walk: { id: string } | nul
   return open.pauses.some((p) => p.ended_at == null) ? 'Your walk is saved.' : 'Your walk is still recording.';
 }
 
+/**
+ * A replay's error line (tend tabs audit 58; the owner, Nov 20: "Nothing while one records"): the replay is of a walk that
+ * is kept, so "Your walk is saved.", but not while another walk records, where "saved" beside no recording bar could read
+ * as that walk ended: then no line. Not read yet, nothing is claimed.
+ */
+export function replayErrorLine(open: { known: boolean; walk: { id: string } | null; pauses: readonly { ended_at: number | null }[] }): string | null {
+  if (!open.known) return null;
+  if (open.walk && !open.pauses.some((p) => p.ended_at == null)) return null;
+  return 'Your walk is saved.';
+}
+
 /** The walk's strip as it is drawn: the time walked and the distance, "1:31 · 127 m" (WalkStats' first line). */
 export function walkStripText(o: { elapsedMs: number; distanceM: number; units: Units }): string {
   return `${formatElapsed(o.elapsedMs)} · ${formatDistance(o.distanceM, o.units)}`;
