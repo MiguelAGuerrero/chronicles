@@ -359,7 +359,11 @@ recording, and a recording bar brings a minimized walk back.
   within range (60-300 m), with the range ring while the settings are up, an optional pocket alert (a double-tap once per place, on phones and
   browsers that can buzz; its row says it needs Places on), and a place's card carrying **Camera**, **Voice** and **Note**
   within 60 m (decision 0246): a capture begun there finds the place, with nothing armed for a later one, and one taken near a place from the
-  stack finds nothing, so a find needs Places on. A found place's pin opens its card again, with "Moments here" (the moments taken within
+  stack finds nothing by itself, so a find needs Places on. Taken within 30 m of places you haven't found, it brings one quiet line at the
+  top of the map instead (decision 0247): "Was this photo about Old Bridge?" with Yes and Leave it; with several places they become choices
+  on the map (a ring, their names) and a tap ties the moment to one. A tie shows "Found: Old Bridge" with Undo; Leave it keeps the moment
+  on its own and that place is not asked about again on the walk; walking on, another moment or Pause lets the line go, nothing tied, and
+  nothing buzzes or sounds for it. A found place's pin opens its card again, with "Moments here" (the moments taken within
   60 m of it, newest three, in words, each opening it) and the same row. **Storefronts** gives the chip that names the storefront street
   you are on and the dead-zone pill. The layers are the walk's own, off at every walk's start. A place you pass within a few metres (4-20 m, 8 by
   default, a setting in the walk's options, always there) is named in the replay as passed without stopping, never counted (decision 0224), and

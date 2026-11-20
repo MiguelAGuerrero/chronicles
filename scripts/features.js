@@ -561,7 +561,6 @@ const RENAMED = {
 };
 
 const IN_PROGRESS = {
-  'moment-assignment-fallback': { branch: 'claude/moment-assignment-fallback-bbceww', since: '2026-11-20' },
   'drive-in-the-outing': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-18' },
   'shop-facets': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-18' },
   'town-fixtures': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-18' },

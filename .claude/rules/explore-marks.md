@@ -123,6 +123,18 @@ Places of interest from the tiles, marks, checklists and finds (Explore), and Re
     moments within 60 m by spot (`momentsHere`, `db.momentsIn(hereBounds)`; no stored link, the owner's call), newest three, in
     words (`momentHereLine`, `dayPartLine`'s words), and the row again; a capture from it is a plain moment. No chip, no
     loose-moment find, no inference from nearness.
+  - **A place offered after the moment** (moment-assignment-fallback PO1-PO12, decision 0247): a moment kept on the walk
+    screen, not begun on a card, is handed over by `onKept` (`explore.offerAfter(id, atPlace)`); once it is in the walk's
+    captures, `offerFor` (`explore/placeOffer.ts`, core) offers the unfound places of `shown` within 30 m of its fix, never
+    one left on the walk (`offer_left:<walk>`, `explore/offer/`), nearest first. The line (`place-offer`, `place-offer-yes`,
+    `place-offer-leave`) asks "Was this photo about X?"; several are choices on the map (`MarkPin.choice`: a ring, the name
+    always written, `markLabel` "… Tie this photo to it", on the web over the moments' pins at z 2), and a tap ties without
+    a card (`explore.take`, before the card opens). A tie is `record`'s ordinary find (`onFound`'s `via: 'offer'`), with
+    "Found: X" and Undo (`found-line`, `found-undo`: `db.removeFind(key, captureId)`, the moment kept). `offerStill` lets it
+    go past 60 m, paused, Places off, the moment gone or every place found; a newer moment replaces it. **Trap:** the
+    offer's effect hands the moment over once and its `setTimeout` is never cancelled by a re-render (`shown` changes every
+    fix): cancelled, the moment was taken off `pending` and never asked about. Nothing in the offer may call `feedback()`
+    (`placeOffer.test.ts` PO7 scans `useExplore`).
   - **Passing** (TC6-TC9): `passedPlaces`/`passedAlong` take `passM` (`explore_pass`, 4-20 m by 2, 8 default), judged along the
     line between fixes under 15 s apart; naming on the map stays at 60 m. `walk_pass:<id>` is written when exploring begins
     and by the drawer's slider, read by the replay (`passFor`); a walk without it keeps 60 m. `passNote` says no number.

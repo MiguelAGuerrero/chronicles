@@ -1078,3 +1078,12 @@ The replay's rework, built whole on its branch and shown at the preview address 
 - [loop] From the UI review (Nov 20, low, U6): a note has two glyphs, the document (the stack, the card's row) and the pencil in a square (the Add to this moment pill, note pins). It predates this slice.
 - [loop] From the UI review (Nov 20, low, U9, opinion): the card can cover the place it describes (the pin and its label under the card at 320). Panning the map so the pin sits above the card would keep the two together.
 - [loop] From the cold find (Nov 20, low): "Camera" says nothing of video; its spoken name does ("a photo or video"), as the stack's does.
+
+## A place offered after the moment (PO1-PO12, decision 0247)
+
+What the place offer leaves out (decision 0247).
+
+- Tying a moment to a place later, from its viewer, for a moment whose line went unanswered: offered to the owner (Nov 20) and not chosen. A moment left independent stays so; a capture from the place's card is the deliberate way.
+- A reload while the line is up drops it unanswered: the moment stays independent and is never asked about after (the line is a state on the walk screen, as 0224's armed line was).
+- A moment kept from the recording bar or Chronicle's toolbar during a walk is never offered a place, even on return to the walk screen: those screens show no places (PO5).
+- [loop] From the UI review (Nov 20, low, U5, opinion): a place that is not a choice sits beside the choices with only the ring to tell them apart; dimming it was rejected (it changes the map for a walker who isn't answering). Reopen if a real walk shows slips.
