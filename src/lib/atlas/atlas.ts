@@ -768,7 +768,7 @@ export const MARKS_EXPLAINED: readonly string[] = [
   'Sights (history, art, culture, green and views) count only places worth finding, the ones that can turn up as a “?”.',
   'They count only the kinds you have on in “What I’m into”. Some museums count toward two kinds, history and culture.',
   'Local life (food, shops and nightlife) counts every place of its kind, and never turns up as a “?”.',
-  'A place too small to light a dot can still turn up as a “?”, while its kind reads none.',
+  'A place too small to light a mark can still turn up as a “?”, even where its kind reads none.',
   'One mark: a little of the kind. Two: a handful. Three: a street’s worth.',
   'Every area is judged the same way, within about a ten-minute walk of its point, so the same marks mean the same anywhere.',
 ];
