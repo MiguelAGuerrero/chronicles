@@ -506,8 +506,11 @@ async function fresh(h) {
         const b = await pg.evaluate(() => ({ ...window.__perf }));
         const secs = (Date.now() - perfA.at) / 1000;
         const rate = (k) => ((b[k] ?? 0) - (perfA[k] ?? 0)) / secs;
-        check(rate('render:navigate') <= 0.2 && rate('render:bar') <= 1.2 && rate('render:walk') === 0,
-          `minimized, only the bar follows the walk (navigate ${rate('render:navigate').toFixed(2)}/s, bar ${rate('render:bar').toFixed(2)}/s over ${secs.toFixed(0)} s)`);
+        // tend tabs 17 (the lenses' auditor 2): the tour ends on Chronicle's Memories, so it is Memories that must not follow
+        // the walk; "render:navigate" was counted nowhere and read 0 whatever the tabs did. Memories ticks its own clock
+        // every 30 s, one or two renders at most in the window; one per fix would be five or more.
+        check((b['render:memories'] ?? 0) > 0 && rate('render:memories') <= 0.3 && rate('render:bar') <= 1.2 && rate('render:walk') === 0,
+          `tend tabs 17: minimized over Memories, only the bar follows the walk (memories ${rate('render:memories').toFixed(2)}/s of ${b['render:memories'] ?? 0}, bar ${rate('render:bar').toFixed(2)}/s over ${secs.toFixed(0)} s)`);
       }
       const d1 = m(await barText());
       check(onTabs.join(',') === 'chronicle:1:0,explore:1:1,chronicle:1:0', `the bar is on every tab, with one live map where there is a map; Chronicle's Memories has none (NV4, NV9, RM1: ${onTabs.join(', ')})`);
