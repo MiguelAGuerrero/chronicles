@@ -224,6 +224,8 @@ async function run(h) {
       await chooser.setFiles(path.join(fixtures, 'clip-4s.webm'));
       const opened = await pg.waitForSelector('[data-testid=media-editor]', { timeout: 15000 }).then(() => true, () => false);
       check(opened, 'ME23 fix edit-after-capture: the walk screen opens a video\'s editor by itself once accepted');
+      // It opens as the camera closes now: measured after its fade, never mid-way (ME14's handles once read too early).
+      await pg.waitForTimeout(800);
       const tools = await pg.locator('[data-testid^=edit-tool-]').evaluateAll((els) => els.map((e) => e.getAttribute('data-testid').slice(10)));
       check(tools.join(',') === 'crop,draw,text,trim', `ME1: a video's tools are Crop, Draw, Text, Trim (${tools})`);
       await pg.click('[data-testid=edit-tool-trim]');
