@@ -110,7 +110,7 @@ Open: the owner's leanings for later slices (Decisions) have not been through th
 ### The next moment
 
 12. **RY12** The owner's task, "skip ahead to the next moment". Finding criterion: while the path plays, the replay's controls have
-    a third button, with Skip: right under it at the same edge (the clock sits between Hold and Skip, and the three do not fit one
+    a third button, with Skip: right under it at the same edge (the clock sits between Hold and Skip; Hold reads Pause and Skip "Skip to end" since Nov 20, decision 0242; the three do not fit one
     row on a 375 px phone), in the same ink and outline as Skip and Hold, showing a chevron that points forward. It is at least
     44 pt wide and tall, and a screen reader calls it "Next moment". Someone who was not told where it is finds it there, and does
     not take it for Skip: in the cold find, "go to the next moment" lands on the chevron and "leave for the card" on Skip. If either
@@ -163,7 +163,8 @@ on and the owner has not called.
   button says **Next**. `replay-pace ui 1` (the `replay` journey).
 - **Cold find 2** (the word): Next was the first tap for the next moment; Skip was found for leaving, late, by elimination; Hold
   for stopping. Both still warn that Skip does not say what it skips, with a wrong tap ending the replay: filed for the owner
-  (`docs/DEFERRED.md`, Replay pace), since Skip and Hold are older than this slice.
+  (`docs/DEFERRED.md`, Replay pace), since Skip and Hold are older than this slice. Settled on Nov 20 by the owner's
+  defaults (decision 0242, `replay-ceremony ui 10`): Pause, and "Skip to end" where the row has the room.
 - **UI review** (`ux-reviewer`, 19 pictures): 6 findings.
   1. U1 a wordless chevron with two worded buttons (T5): accept, the word. `replay-pace ui 1`.
   2. U2 a wrapped line with "Held" under it reaches a card at 320 px: accept. "Held" is not drawn under a long line
