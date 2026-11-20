@@ -298,6 +298,22 @@ async function checks(h) {
           return page.waitForSelector('[data-testid=mark-camera]', { timeout: 5000 }).then(() => true, () => false);
         };
         await openPlace();
+        await page.waitForTimeout(800);
+        // capture-at-a-place ui: no word on the row is cut, at 390 and at 320 (the card sits left of the capture column).
+        const cut = async () => page.evaluate(() => ['mark-camera', 'mark-voice', 'mark-note'].map((id) => {
+          const b = document.querySelector(`[data-testid=${id}]`)?.getBoundingClientRect();
+          const w = [...(document.querySelector(`[data-testid=${id}]`)?.querySelectorAll('div[dir=auto]') ?? [])].pop();
+          const r = w?.getBoundingClientRect();
+          return !b || !r || w.scrollWidth > w.clientWidth + 1 || r.left < b.left || r.right > b.right;
+        }));
+        const cut390 = await cut();
+        await page.setViewportSize({ width: 320, height: 700 });
+        await page.waitForTimeout(800);
+        await shot(page, '02a-place-card-320');
+        const cut320 = await cut();
+        await page.setViewportSize({ width: 390, height: 844 });
+        await page.waitForTimeout(800);
+        check(!cut390.some(Boolean) && !cut320.some(Boolean), `capture-at-a-place ui 1: Camera, Voice and Note show whole at 390 and 320 (${JSON.stringify({ cut390, cut320 })})`);
         // CA3, CA7: Voice on the card starts the memo with its own Save and Discard; discarded, it finds nothing.
         await page.click('[data-testid=mark-voice]').catch(() => {});
         const memoStarted = await page.waitForSelector('[data-testid=voice-discard]', { timeout: 5000 }).then(() => true, () => false);

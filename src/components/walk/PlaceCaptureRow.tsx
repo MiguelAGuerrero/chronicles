@@ -31,8 +31,9 @@ export function PlaceCaptureRow(props: { place: string; onCamera: () => void; on
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', gap: 8, width: '100%' },
-  // Three across at 320 (the card's 288 less its padding): no wrap (ui-patterns: nothing wraps at 320).
-  btn: { flex: 1, minHeight: 48, paddingHorizontal: 6 },
-  inner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
-  word: { fontSize: 15, fontWeight: '600', color: theme.ink },
+  // Three across beside the capture column even at 320: the icon over its word, so no word is cut or wraps (ui-patterns:
+  // nothing wraps at 320). 56 high, the capture stack's own size, above the 44 pt minimum.
+  btn: { flex: 1, minHeight: 56, paddingHorizontal: 4, paddingVertical: 4 },
+  inner: { alignItems: 'center', justifyContent: 'center', gap: 2 },
+  word: { fontSize: 14, fontWeight: '600', color: theme.ink },
 });
