@@ -437,7 +437,7 @@ async function fresh(h) {
       const barText = () => pg.locator('[data-testid=recording-stats]').innerText();
       const barBox = await pg.locator('[data-testid=recording-bar]').boundingBox();
       const tabBox = await pg.locator('[data-testid=tab-navigate]').boundingBox();
-      check(!/\/walk/.test(new URL(pg.url()).pathname) && (await tabBarShown(pg)) && /^\d+:\d\d · \d+[ \u00a0]m · Paused$/.test(await barText())
+      check(!/\/walk/.test(new URL(pg.url()).pathname) && (await tabBarShown(pg)) && /^(?:< 1|\d+(?: h \d\d)?) min · \d+[ \u00a0]m · Paused$/.test(await barText())
         && Math.abs(barBox.y + barBox.height - tabBox.y) < 6 && (await pg.locator('[data-testid=recording-bar] [data-testid=bar-stop]').count()) === 1,
         // tend tabs 18 (the lenses' auditor 3): this counted "stop", a testid the bar never carries, so its "no Stop" held
         // whatever the bar showed; the bar has its held Stop since decision 0048 (NV9's "It has no Stop" is stale).
@@ -468,7 +468,7 @@ async function fresh(h) {
       {
         const offers = await pg.locator('[data-testid=bar-edit-offer], [data-testid=capture-edit]').count();
         const stats = await pg.locator('[data-testid=recording-stats]').innerText().catch(() => '');
-        check(offers === 0 && /^\d+:\d\d · \d+[ \u00a0]m · Paused$/.test(stats),
+        check(offers === 0 && /^(?:< 1|\d+(?: h \d\d)?) min · \d+[ \u00a0]m · Paused$/.test(stats),
           `ME23 fix edit-after-capture: closed, the editor leaves no Edit pill above the bar, the line still its time and distance (${offers}, "${stats}")`);
       }
       // A tap on the bar returns to the walk, where the photo is pinned (NV9).
@@ -516,7 +516,7 @@ async function fresh(h) {
       }
       const d1 = m(await barText());
       check(onTabs.join(',') === 'chronicle:1:0,explore:1:1,chronicle:1:0', `the bar is on every tab, with one live map where there is a map; Chronicle's Memories has none (NV4, NV9, RM1: ${onTabs.join(', ')})`);
-      check(d1 > d0 + 100 && /^\d+:\d\d · \d+[ \u00a0]m$/.test(await barText()), `minimized, the walk keeps recording: the bar's distance grows (NV8: ${d0} → ${d1} m)`);
+      check(d1 > d0 + 100 && /^(?:< 1|\d+(?: h \d\d)?) min · \d+[ \u00a0]m$/.test(await barText()), `minimized, the walk keeps recording: the bar's distance grows (NV8: ${d0} → ${d1} m)`);
       // Remind me here keeps firing while minimized (NV8): checked outside the walk screen, shown on the bar.
       const fired = await pg.evaluate(() => new Promise((resolve) => {
         const req = indexedDB.open('chronicles');

@@ -1,6 +1,17 @@
 // @layer core
-import { formatDistance, formatDuration, formatElapsed } from './format';
+import { formatDistance, formatDuration } from './format';
 import { pausedMs, type PauseSpan } from './geo';
+
+/**
+ * The time walked as the bar says it (tend tabs 21; the owner, Nov 20: "Minutes on the tabs"): whole minutes, "< 1 min"
+ * before the first, hours past the hour. The seconds stay on the walk screen.
+ */
+export function barTime(ms: number): string {
+  const min = Math.floor(Math.max(0, ms) / 60_000);
+  if (min < 1) return '< 1 min';
+  if (min < 60) return `${min} min`;
+  return `${Math.floor(min / 60)} h ${String(min % 60).padStart(2, '0')} min`;
+}
 
 /**
  * The recording bar's line (NV9): the time walked, paused time left out, and
@@ -13,7 +24,7 @@ export function recordingLine(o: { startedAt: number | null; pauses: PauseSpan[]
 } {
   const paused = o.pauses.some((p) => p.ended_at == null);
   const ms = o.startedAt == null ? 0 : Math.max(0, o.now - o.startedAt - pausedMs(o.pauses, o.startedAt, o.now));
-  const line = `${formatElapsed(ms)} · ${formatDistance(o.distanceM)}`;
+  const line = `${barTime(ms)} · ${formatDistance(o.distanceM)}`;
   return {
     // The numbers first, so a narrow bar cuts the word (the pause glyph shows it too), never the time (tend tabs audit 17).
     text: paused ? `${line} · Paused` : line,
