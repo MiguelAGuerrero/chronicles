@@ -5,6 +5,7 @@ import { foundLabel } from '../lib/explore/foundFace';
 import type { MarkSpread } from '../lib/markNames';
 import type { CaptureKind } from '../lib/types';
 import { Enter, Leave } from './Enter';
+import { MARK_FOOT, markOrigin } from '../lib/markMotion';
 import type { IconName } from './icons';
 import { Icon, KIND_ICON } from './icons';
 
@@ -50,8 +51,10 @@ const NAME_WIDTH = 140;
 export function MarkPinView({ pin, enter, below = 0, onLeft }: { pin: MarkPin; enter?: EnterKind | null; below?: number; onLeft?: () => void }) {
   const [kind] = useState(enter ?? null);
   const body = <MarkBody pin={pin} below={below} />;
-  if (onLeft) return <Leave onDone={onLeft}>{body}</Leave>;
-  if (kind === 'grow') return <Enter kind="grow">{body}</Enter>;
+  // About its place, never its middle (poi-transitions ui 4): the foot, or a spread mark's dot.
+  const origin = markOrigin(pin.spread, below);
+  if (onLeft) return <Leave onDone={onLeft} origin={origin}>{body}</Leave>;
+  if (kind === 'grow') return <Enter kind="grow" origin={origin}>{body}</Enter>;
   if (kind === 'flip' || kind === 'pulse')
     return (
       <Enter kind={kind} ring={[styles.ringAt, pin.found && styles.ringFound]}>
@@ -61,8 +64,8 @@ export function MarkPinView({ pin, enter, below = 0, onLeft }: { pin: MarkPin; e
   return body;
 }
 
-/** The pin's foot: the bottom of its 36 x 44 box, where it stands. */
-const FOOT = { x: 18, y: 44 };
+/** The pin's foot: the bottom of its 36 x 44 box, where it stands (`MARK_FOOT`, which the marks' motion scales about). */
+const FOOT = MARK_FOOT;
 const LEG_W = 1.5;
 /** The point's mark: a small rounded square, a mark's own shape, never the walker's round dot (fix mark-overlap ux U1). */
 const DOT = 6;

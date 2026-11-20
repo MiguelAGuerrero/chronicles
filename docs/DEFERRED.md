@@ -1027,3 +1027,5 @@ The replay's rework, built whole on its branch and shown at the preview address 
 ## Places come and go with a settle (PI1-PI14, decision 0239)
 
 - Explore's "?" marks and the Places dots come and go at once: the owner asked for walking range only (Nov 20, decision 0239). Explore's zoom would pass a `marksContext` from `explore.tsx` that changes with the selected area, Places and kinds but not the zoom; the dots are a GL circle layer, and animating each would mean per-frame `setData` against the render budget.
+- On a spread row (fix mark-overlap), when one "?" leaves, the marks that stay jump to their new places at once while the leaver still fades where it was (UI review U5): a fading mark can sit over the one that moved beside it. Keep the row's old spread until the leave ends, or ease the stayers' `setOffset` over `MOTION.lift`.
+- Native: a "?" holding VoiceOver or TalkBack focus is not kept until the focus leaves it, as the web keeps it (UI review U6): MapLibre RN gives `MarkMarkers` no sign of where the screen reader is. It shrinks out like any other.

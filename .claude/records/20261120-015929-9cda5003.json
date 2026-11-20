@@ -1,0 +1,31 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Places come and go with a settle (PI1-PI14, decision 0239)"
+      ],
+      "body": "- On a spread row (fix mark-overlap), when one \"?\" leaves, the marks that stay jump to their new places at once while the leaver still fades where it was (UI review U5): a fading mark can sit over the one that moved beside it. Keep the row's old spread until the leave ends, or ease the stayers' `setOffset` over `MOTION.lift`.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Places come and go with a settle (PI1-PI14, decision 0239)"
+      ],
+      "body": "- Native: a \"?\" holding VoiceOver or TalkBack focus is not kept until the focus leaves it, as the web keeps it (UI review U6): MapLibre RN gives `MarkMarkers` no sign of where the screen reader is. It shrinks out like any other.\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Sensors and motion"
+      ],
+      "body": "- [ ] **Do:** on a walk with Places on, watch a \"?\" grow in and one shrink out, a plain one and one of a spread row. **Expect:** each grows and shrinks about the point it stands on, its stalk's tip or its leg's dot (`transformOrigin` under the native driver inside a MapLibre RN `Marker`); the leave fades first and shrinks late (two drivers of one value) (Places come and go). (PI3)\n"
+    }
+  ]
+}

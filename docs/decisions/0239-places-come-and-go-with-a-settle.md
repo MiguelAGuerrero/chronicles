@@ -25,7 +25,12 @@ The owner's answers, Nov 20:
 ## Consequences
 - `lib/markMotion.ts` holds the rule and the marks' own spring beside `MOTION.spring`, which keeps its no-bounce settle
   for everything else. `components/Enter.tsx` gains the `grow` entrance and `Leave`, the app's first leave animation.
-- A leaving mark takes no tap or focus and is hidden from a screen reader at once; a focus it held goes to the map.
+- A leaving mark takes no tap or focus and is hidden from a screen reader at once. A mark taken at once (a context
+  change) hands a focus it held to the map.
+- The UI review (Nov 20): the leave fades linearly over two thirds of its time while it shrinks on Material's exit
+  curve; a mark scales about its place, never its middle; a mark at the range's edge leaves still as well as coming
+  back still; a focused "?" stays until its focus leaves. The overshoot is about 1 px on a 34 px head (U7): kept as
+  the owner chose; if it is not seen on a phone, the start scale is what changes, never the damping.
 - Native has never run on a device (`docs/NATIVE_UNVERIFIED.md`).
 - Precedent: maplibre-gl's `fadeDuration` and Leaflet.markercluster's `animate` (`docs/research/adjacent-apps.md`, "A
   place's mark arriving and leaving as the map changes").

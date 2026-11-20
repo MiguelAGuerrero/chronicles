@@ -26,6 +26,13 @@ export const MARK_MOTION = {
   /** Leaving shrinks back to this scale as it fades out, no slower than a lift (PI9). */
   leaveScale: 0.8,
   leaveMs: MOTION.lift,
+  /**
+   * The leave's two drivers (poi-transitions ui 3): the fade is linear and done by two thirds of the way, the shrink
+   * runs the whole way on Material's exit curve (emphasized accelerate). One eased value for both held the mark
+   * opaque, then dropped it at the end.
+   */
+  leaveFadeUntil: 2 / 3,
+  leaveCurve: [0.3, 0, 0.8, 0.15] as const,
   /** A mark back within this long of leaving comes back still: no flicker at the range's edge (PI13). */
   backStillMs: 30_000,
 } as const;
@@ -105,7 +112,8 @@ export function markMoves(i: {
   if (!moving || !i.prev) return { arriving, leaving, back };
   const now = new Set(i.ids);
   for (const id of i.ids) if (!i.prev.has(id) && !back.has(id) && !i.recentlyLeft.has(id) && i.inView(id)) arriving.add(id);
-  for (const id of i.prev) if (!now.has(id) && i.inView(id)) leaving.add(id);
+  // A mark that left moments ago goes still too: the range's edge never shrinks on every jitter (poi-transitions ui 2).
+  for (const id of i.prev) if (!now.has(id) && !i.recentlyLeft.has(id) && i.inView(id)) leaving.add(id);
   return { arriving, leaving, back };
 }
 
@@ -115,3 +123,36 @@ export const arrivalEnter = <K extends string>(arriving: boolean, change: K | nu
 /** Whether a point is inside a map's visible bounds, `[west, south, east, north]` (MapLibre RN's order; PI4). */
 export const inBounds = (at: LngLat, b: readonly [number, number, number, number] | null): boolean =>
   !!b && at[0] >= b[0] && at[0] <= b[2] && at[1] >= b[1] && at[1] <= b[3];
+
+/** A cubic Bézier easing (CSS's `cubic-bezier`): the eased progress at `x`, by bisection on the curve's x. */
+export function cubicBezier([x1, y1, x2, y2]: readonly [number, number, number, number], x: number): number {
+  if (x <= 0) return 0;
+  if (x >= 1) return 1;
+  const at = (a: number, b: number, t: number) => 3 * a * t * (1 - t) ** 2 + 3 * b * t * t * (1 - t) + t ** 3;
+  let lo = 0;
+  let hi = 1;
+  for (let k = 0; k < 40; k++) {
+    const mid = (lo + hi) / 2;
+    if (at(x1, x2, mid) < x) lo = mid;
+    else hi = mid;
+  }
+  return at(y1, y2, (lo + hi) / 2);
+}
+
+/** The leave at progress `p` (0 to 1 of `leaveMs`): what `Leave` draws (poi-transitions ui 3). */
+export function leaveAt(p: number): { opacity: number; scale: number } {
+  const opacity = Math.max(0, Math.min(1, 1 - p / MARK_MOTION.leaveFadeUntil));
+  return { opacity, scale: 1 - (1 - MARK_MOTION.leaveScale) * cubicBezier(MARK_MOTION.leaveCurve, p) };
+}
+
+/** A "?" mark's foot in its 36 x 44 box, where it stands on its place (`MarkPinView`). */
+export const MARK_FOOT = { x: 18, y: 44 } as const;
+
+/**
+ * The point a mark grows and shrinks about, in its box: its place (poi-transitions ui 4). The foot for a mark on its
+ * point; for a spread one, the dot at the end of its leg (`below` is how far the foot stands below the point).
+ */
+export function markOrigin(spread: { dx: number; dy: number } | undefined, below: number): { x: number; y: number } {
+  if (!spread) return { x: MARK_FOOT.x, y: MARK_FOOT.y };
+  return { x: MARK_FOOT.x - spread.dx, y: MARK_FOOT.y - spread.dy - below };
+}

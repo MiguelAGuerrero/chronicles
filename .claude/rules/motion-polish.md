@@ -77,7 +77,15 @@ Animation and haptics: the motion tokens, reduce motion, presses, the sheet spri
     screen passes one; Explore's marks come and go at once.
   - It moves nothing on first sight, off screen (the map's bounds), or for a mark back within `backStillMs` (30 s).
   - A leaving mark takes no tap or focus and is hidden from a screen reader at once. On web it is
-    `data-leaving`, and a focus it held goes to the map's canvas. A mark back while leaving is drawn once.
+    `data-leaving`. A mark back while leaving is drawn once.
+  - A "?" holding the focus is kept, still and focusable, until the focus leaves it, as `drawsPin` keeps a
+    focused pin (UI review U6). Then it shrinks out (`markRelease`, on `focusout`). One taken at once hands the
+    focus to the canvas. Native keeps none (DEFERRED).
+  - It scales about its place (`markOrigin`: the foot, or a spread mark's dot). The leave has two drivers: a
+    linear fade done by two thirds of the way, and a shrink on Material's exit curve (`leaveAt`, UI review U3).
+  - A mark that left within 30 s leaves still as well as coming back still (UI review U2).
+  - The e2e slows the marks' moves with `window.__motionSlow` (a multiplier read as a move starts) to picture them
+    mid-move. A headless screenshot stalls the page past a 180 ms leave.
   - Unmounting removes everything at once.
   - Native decides a tick after the list changes, from the bounds of the last settle (`onRegionDidChange`'s
     `bounds`). A mark that may be arriving is held back for that tick. Unverified on a device.

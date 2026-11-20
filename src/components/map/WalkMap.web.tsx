@@ -1377,6 +1377,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const markShown = useRef<{ ids: Set<string>; context: string | null } | null>(null);
   const markLeaving = useRef(new Map<string, MarkEntry>());
   const markLeftAt = useRef(new Map<string, number>());
+  const markRelease = useRef<((id: string) => void) | null>(null);
   useEffect(() => {
     const map = mapRef.current;
     if (!ready || !map) return;
@@ -1451,6 +1452,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
           if (el.dataset.leaving) return;
           markLatest.current?.(id);
         });
+      // A mark kept for its focus goes once the focus leaves it (poi-transitions ui 6).
+      el.addEventListener('focusout', () => setTimeout(() => markRelease.current?.(id), 0));
       const root = createRoot(el);
       perfCount('marker:mark');
       root.render(<MarkPinView pin={pin as MarkPin} enter={enter} below={MARK_BELOW} />);
@@ -1458,23 +1461,23 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       const marker = new Marker({ element: el, anchor: 'bottom', offset: [pin.spread?.dx ?? 0, MARK_BELOW + (pin.spread?.dy ?? 0)] }).setLngLat(pin.at).addTo(map);
       markMarkers.current.set(pin.id, { marker, root, el, key, spread, pin: pin as MarkPin, state: { revealed: pin.revealed, found: pin.found, faint: pin.faint } });
     }
-    for (const [id, m] of markMarkers.current) {
-      if (live.has(id)) continue;
+    const sameContext = context != null && markShown.current?.context === context;
+    // Falling out of range on a walk, a mark shrinks out first (PI3), taking no tap or focus and hidden from a screen
+    // reader from then (PI6).
+    const startLeave = (id: string, m: MarkEntry, animate: boolean) => {
       markMarkers.current.delete(id);
-      markLeftAt.current.set(id, now);
-      if (!moves.leaving.has(id)) {
+      markLeftAt.current.set(id, Date.now());
+      if (!animate) {
+        // A focus it held goes to the map, never to the page.
+        if (m.el.contains(document.activeElement)) map.getCanvas().focus();
         drop(m);
-        continue;
+        return;
       }
-      // Falling out of range on a walk, it shrinks out first (PI3), taking no tap or focus and hidden from a screen
-      // reader from now (PI6); a focus it held goes to the map, never to the page.
       perfCount('mark:out');
-      const held = m.el.contains(document.activeElement);
       m.el.dataset.leaving = 'true';
       m.el.setAttribute('aria-hidden', 'true');
       m.el.tabIndex = -1;
       m.el.style.pointerEvents = 'none';
-      if (held) map.getCanvas().focus();
       markLeaving.current.set(id, m);
       const left = () => {
         if (markLeaving.current.get(id) !== m) return;
@@ -1482,6 +1485,18 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         drop(m);
       };
       m.root.render(<MarkPinView pin={m.pin} below={MARK_BELOW} onLeft={left} />);
+    };
+    // A "?" holding the focus is not taken by a step of the walk (poi-transitions ui 6), as a focused capture pin is
+    // never dropped (`drawsPin`): it stays, still and focusable, and goes once the focus leaves it.
+    markRelease.current = (id: string) => {
+      const m = markMarkers.current.get(id);
+      if (!m || markShown.current?.ids.has(id) || m.el.contains(document.activeElement)) return;
+      startLeave(id, m, map.getBounds().contains(m.pin.at));
+    };
+    for (const [id, m] of markMarkers.current) {
+      if (live.has(id)) continue;
+      if (sameContext && m.el.contains(document.activeElement)) continue;
+      startLeave(id, m, moves.leaving.has(id));
     }
     // The record of who left is kept only as long as it can still hold a mark still (PI13).
     for (const [id, t] of markLeftAt.current) if (now - t > MARK_MOTION.backStillMs) markLeftAt.current.delete(id);

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import { markEnter } from '../../enter';
-import { MARK_MOTION, arrivalEnter, dampingRatio, inBounds, markContext, markMoves, recentlyLeft, springPeak, springSettleMs } from '../../markMotion';
+import { MARK_MOTION, arrivalEnter, dampingRatio, inBounds, leaveAt, markContext, markMoves, markOrigin, recentlyLeft, springPeak, springSettleMs } from '../../markMotion';
 import { MOTION } from '../../motionTokens';
 
 const ctx = { places: true, rangeM: 100, hidden: [] as string[], keys: ['a', 'b', 'c'], route: null, riding: false };
@@ -96,16 +96,12 @@ test('PI13: riding moves nothing', () => {
 });
 
 // The UI review's accepted findings (Nov 20; specs/poi-transitions, "UI review").
-const later = async (): Promise<any> => import(['../..', 'markMotion'].join('/'));
-
-test('poi-transitions ui 2: a mark that left moments ago leaves still too, so the range edge never shrinks on every jitter', { todo: 'regression test first' }, async () => {
-  const { markMoves: moves } = await later();
-  const m = moves({ prev: new Set(['a', 'b']), prevContext: 'x', ids: ['b'], context: 'x', recentlyLeft: new Set(['a']), leaving: none, inView: all });
+test('poi-transitions ui 2: a mark that left moments ago leaves still too, so the range edge never shrinks on every jitter', () => {
+  const m = markMoves({ prev: new Set(['a', 'b']), prevContext: 'x', ids: ['b'], context: 'x', recentlyLeft: new Set(['a']), leaving: none, inView: all });
   assert.deepEqual([...m.leaving], []);
 });
 
-test('poi-transitions ui 3: the leave fades over its first two thirds and shrinks on the exit curve, so it never holds then pops', { todo: 'regression test first' }, async () => {
-  const { leaveAt } = await later();
+test('poi-transitions ui 3: the leave fades over its first two thirds and shrinks on the exit curve, so it never holds then pops', () => {
   assert.equal(leaveAt(0).opacity, 1);
   assert.ok(leaveAt(0.5).opacity <= 0.3, 'mostly faded by half way');
   assert.equal(leaveAt(2 / 3).opacity, 0);
@@ -113,8 +109,7 @@ test('poi-transitions ui 3: the leave fades over its first two thirds and shrink
   assert.ok(Math.abs(leaveAt(1).scale - MARK_MOTION.leaveScale) < 1e-6);
 });
 
-test('poi-transitions ui 4: a mark grows and shrinks about its point, the foot or a spread row\'s dot', { todo: 'regression test first' }, async () => {
-  const { markOrigin } = await later();
+test('poi-transitions ui 4: a mark grows and shrinks about its point, the foot or a spread row\'s dot', () => {
   assert.deepEqual(markOrigin(undefined, 6), { x: 18, y: 44 });
   assert.deepEqual(markOrigin({ dx: 20, dy: -10 }, 6), { x: -2, y: 48 });
 });

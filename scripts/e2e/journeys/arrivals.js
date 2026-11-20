@@ -27,32 +27,13 @@ async function run(h) {
     await c.setGeolocation({ longitude: s0[0], latitude: s0[1] + 0.000002, accuracy: 6 });
     await pg.waitForTimeout(2500);
   };
-  // Along the grid's south street and on east, past the memorial and out of its range. With E2E_SHOTS, the first
-  // arrival and leave are pictured mid-move and at rest, for the UI review (decision 0145).
-  const framed = new Set();
-  const frames = async (pg, sel, name) => {
-    if (!process.env.E2E_SHOTS || framed.has(name)) return false;
-    if (!(await pg.locator(sel).count())) return false;
-    framed.add(name);
-    for (const ms of [0, 90, 400]) {
-      if (ms) await pg.waitForTimeout(ms === 90 ? 90 : 310);
-      await shot(pg, `${name}-${ms}ms`);
-    }
-    return true;
-  };
+  // Along the grid's south street and on east, past the memorial and out of its range.
   const walk = async (c, pg, from, to, y = -0.5) => {
     const steps = Math.ceil(Math.abs(to - from) / 0.05);
     for (let k = 1; k <= steps; k++) {
       const p = at(from + ((to - from) * k) / steps, y);
       await c.setGeolocation({ longitude: p[0], latitude: p[1], accuracy: 6 });
-      const t0 = Date.now();
-      if (process.env.E2E_SHOTS) {
-        while (Date.now() - t0 < 600) {
-          if ((await frames(pg, '[data-testid=enter-grow]', 'arrivals-grow')) || (await frames(pg, '[data-testid=leave-shrink]', 'arrivals-shrink'))) break;
-          await pg.waitForTimeout(15);
-        }
-      }
-      await pg.waitForTimeout(Math.max(0, 900 - (Date.now() - t0)));
+      await pg.waitForTimeout(900);
     }
   };
 
@@ -65,12 +46,16 @@ async function run(h) {
   const walkedFrom = Date.now();
   const mark0 = await entersNow(pg);
   await walk(c, pg, -0.5, 1.2);
-  // PI6: a "?" holding the focus as it falls out of range gives it to the map, never to the page.
+  // PI6, ui 6: a "?" holding the focus as it falls out of range stays until the focus leaves it, then shrinks out.
   const focused = await pg.locator(`${MARKS}[aria-label*="Hessian Memorial"]`).first().evaluate((el) => { el.focus(); return document.activeElement === el; }).catch(() => false);
   await walk(c, pg, 1.2, 2.6);
-  // A leave that began on the last step is read once it is over.
   await pg.waitForTimeout(600);
-  const focusNow = await pg.evaluate(() => ({ canvas: document.activeElement?.classList.contains('maplibregl-canvas') ?? false, tag: document.activeElement?.tagName }));
+  const heldMark = await pg.evaluate(() => { const a = document.activeElement; return { label: a?.getAttribute('aria-label') ?? '', leaving: !!a?.closest('[data-leaving]') }; });
+  const markHeld = await entersNow(pg);
+  await pg.evaluate(() => (document.querySelector('.maplibregl-canvas'))?.focus());
+  // A leave that began on the last step, or on the blur, is read once it is over.
+  await pg.waitForTimeout(600);
+  const afterBlur = await moves(pg, markHeld);
   const out = await moves(pg, mark0);
   const grows = out.filter((m) => m.kind === 'grow' && m.mark);
   const shrinks = out.filter((m) => m.kind === 'shrink' && m.mark);
@@ -88,17 +73,10 @@ async function run(h) {
   const leftover = await pg.locator('[data-leaving]').count();
   check(shrinks.length > 0 && shrinks.every((m) => m.animated) && leftover === 0,
     `PI3: a "?" leaving range shrinks before it goes (${JSON.stringify({ shrinks, leftover })})`);
-  // A "?" holding the focus is not taken by a step of the walk: it stays, still and focusable, until focus leaves it,
-  // as a focused capture pin is never dropped (drawsPin); then it shrinks out.
-  const heldMark = await pg.evaluate(() => { const a = document.activeElement; return { label: a?.getAttribute('aria-label') ?? '', leaving: !!a?.closest('[data-leaving]') }; });
-  const markHeld = await entersNow(pg);
-  await pg.evaluate(() => (document.querySelector('.maplibregl-canvas'))?.focus());
-  await pg.waitForTimeout(600);
-  const afterBlur = await moves(pg, markHeld);
-  check.todo(focused && /Hessian Memorial/.test(heldMark.label) && !heldMark.leaving && afterBlur.some((m) => m.kind === 'shrink' && m.animated && /Hessian Memorial/.test(m.label)),
+  check(focused && /Hessian Memorial/.test(heldMark.label) && !heldMark.leaving && afterBlur.some((m) => m.kind === 'shrink' && m.animated && /Hessian Memorial/.test(m.label)),
     `poi-transitions ui 6: a focused "?" out of range stays until focus leaves it, then shrinks out (${JSON.stringify({ heldMark, afterBlur })})`);
-  check(shrinks.length > 0 && shrinks.every((m) => m.hidden === 'true' && m.pe === 'none' && m.tab === -1) && focused && focusNow.canvas,
-    `PI6: a leaving "?" takes no tap or focus, is hidden from a screen reader, and hands a held focus to the map (${JSON.stringify({ shrinks, focused, focusNow })})`);
+  check(shrinks.length > 0 && shrinks.every((m) => m.hidden === 'true' && m.pe === 'none' && m.tab === -1) && focused,
+    `PI6: a leaving "?" takes no tap or focus and is hidden from a screen reader; a focused one waits for its focus to leave (${JSON.stringify({ shrinks, focused, heldMark })})`);
   const flips = (await pg.evaluate(() => window.__enters.filter((e) => e.kind === 'flip').map((e) => e.animated)));
   // A grow is only ever a "?" coming within range: a revealed (named) mark turns, never grows again.
   check(flips.some(Boolean) && grows.every((g) => /^A place to find/.test(g.label)),
@@ -174,9 +152,9 @@ async function run(h) {
         await pg3.waitForTimeout(50);
       }
     }
-    check.todo(!!seen.grow && seen.grow.scale < 0.99 && !!seen.shrink && seen.shrink.opacity < 0.95,
+    check(!!seen.grow && seen.grow.scale < 0.99 && !!seen.shrink && seen.shrink.opacity < 0.95,
       `poi-transitions ui 1: slowed, a grow and a shrink are caught mid-move (${JSON.stringify(seen)})`);
-    check.todo(!!seen.grow && /^\d+(\.\d+)?px 44px$/.test(seen.grow.origin) && Math.abs(parseFloat(seen.grow.origin) - 18) < 0.5,
+    check(!!seen.grow && /^\d+(\.\d+)?px 44px$/.test(seen.grow.origin) && Math.abs(parseFloat(seen.grow.origin) - 18) < 0.5,
       `poi-transitions ui 4: a "?" grows about its foot, never its middle (${JSON.stringify(seen.grow)})`);
     await c3.close();
   }

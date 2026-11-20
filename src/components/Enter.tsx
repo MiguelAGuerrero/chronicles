@@ -10,7 +10,16 @@ import { MOTION } from '../lib/motionTokens';
  * reduce motion on it renders still. A pulse leaves the child still and grows
  * a ring out of it (`ring` places the ring over the pin's head).
  */
-export function Enter(props: { kind: EnterKind; children: ReactNode; ring?: StyleProp<ViewStyle>; style?: StyleProp<ViewStyle> }) {
+/**
+ * The e2e's slow motion for the marks' moves (poi-transitions ui 1): a harness sets `__motionSlow` so a picture can
+ * catch a grow or a shrink mid-move. 1 everywhere else. Read when a move starts, never in render.
+ */
+const motionSlow = () => (globalThis as { __motionSlow?: number }).__motionSlow ?? 1;
+
+/** The point a mark scales about, as a style (poi-transitions ui 4): its place, never its middle. */
+const originStyle = (o?: { x: number; y: number }): ViewStyle | undefined => (o ? { transformOrigin: `${o.x}px ${o.y}px` } : undefined);
+
+export function Enter(props: { kind: EnterKind; children: ReactNode; ring?: StyleProp<ViewStyle>; style?: StyleProp<ViewStyle>; origin?: { x: number; y: number } }) {
   const reduced = useReducedMotion();
   const [t] = useState(() => new Animated.Value(reduced ? 1 : 0));
   // A "?" coming within range grows on the marks' own spring (PI2, PI9); the rest keep their own.
@@ -20,7 +29,7 @@ export function Enter(props: { kind: EnterKind; children: ReactNode; ring?: Styl
     if (reduced) return;
     const anim =
       props.kind === 'bounce' || props.kind === 'grow'
-        ? Animated.spring(t, { toValue: 1, ...(props.kind === 'grow' ? MARK_MOTION.spring : MOTION.spring), useNativeDriver: nativeDriver })
+        ? Animated.spring(t, { toValue: 1, ...(props.kind === 'grow' ? slowed(MARK_MOTION.spring, motionSlow()) : MOTION.spring), useNativeDriver: nativeDriver })
         : Animated.timing(t, {
             toValue: 1,
             duration: props.kind === 'drop' ? ENTER.drop.ms : props.kind === 'flip' ? ENTER.flip.ms : ENTER.pulse.ms,
@@ -54,19 +63,23 @@ export function Enter(props: { kind: EnterKind; children: ReactNode; ring?: Styl
           ? { opacity: MARK_MOTION.fromOpacity, transform: [{ scale: t.interpolate({ inputRange: [0, 1], outputRange: [MARK_MOTION.fromScale, 1], extrapolate: 'extend' }) }] }
           : { transform: [{ scale: t.interpolate({ inputRange: [0, 1], outputRange: [ENTER.bounce.fromScale, 1] }) }] };
   return (
-    <Animated.View testID={testID} style={[props.style, motion]}>
+    <Animated.View testID={testID} style={[props.style, originStyle(props.origin), motion]}>
       {props.children}
     </Animated.View>
   );
 }
 
+/** A spring run `s` times slower with the same shape: mass by s², damping by s (the damping ratio kept). */
+const slowed = (sp: { stiffness: number; damping: number; mass: number }, s: number) => (s === 1 ? sp : { ...sp, mass: sp.mass * s * s, damping: sp.damping * s });
+
 /**
  * A "?" falling out of range shrinks and fades as it goes (PI3), then calls `onDone`, which takes it off the map;
  * with reduce motion on it goes at once (PI10). It takes no touch while it leaves (PI6).
  */
-export function Leave(props: { children: ReactNode; onDone: () => void; style?: StyleProp<ViewStyle> }) {
+export function Leave(props: { children: ReactNode; onDone: () => void; style?: StyleProp<ViewStyle>; origin?: { x: number; y: number } }) {
   const reduced = useReducedMotion();
-  const [t] = useState(() => new Animated.Value(1));
+  // Progress, 0 to 1, linear in time; the fade and the shrink each read it on their own curve (poi-transitions ui 3).
+  const [p] = useState(() => new Animated.Value(0));
   const done = useRef(props.onDone);
   useEffect(() => {
     done.current = props.onDone;
@@ -76,16 +89,18 @@ export function Leave(props: { children: ReactNode; onDone: () => void; style?: 
       done.current();
       return;
     }
-    // Eased in and out, not in alone: an ease-in cubic held the mark 96% opaque for two thirds of the leave, then
-    // dropped it in the last 60 ms, which read as a pop (the journey's samples, Nov 20).
-    const anim = Animated.timing(t, { toValue: 0, duration: MARK_MOTION.leaveMs, easing: Easing.inOut(Easing.quad), useNativeDriver: nativeDriver });
+    const anim = Animated.timing(p, { toValue: 1, duration: MARK_MOTION.leaveMs * motionSlow(), easing: Easing.linear, useNativeDriver: nativeDriver });
     anim.start(({ finished }) => finished && done.current());
     return () => anim.stop();
-  }, [t, reduced]);
+  }, [p, reduced]);
   if (reduced) return <View style={props.style} pointerEvents="none">{props.children}</View>;
-  const motion = { opacity: t, transform: [{ scale: t.interpolate({ inputRange: [0, 1], outputRange: [MARK_MOTION.leaveScale, 1] }) }] };
+  const [x1, y1, x2, y2] = MARK_MOTION.leaveCurve;
+  const motion = {
+    opacity: p.interpolate({ inputRange: [0, MARK_MOTION.leaveFadeUntil], outputRange: [1, 0], extrapolate: 'clamp' }),
+    transform: [{ scale: p.interpolate({ inputRange: [0, 1], outputRange: [1, MARK_MOTION.leaveScale], easing: Easing.bezier(x1, y1, x2, y2) }) }],
+  };
   return (
-    <Animated.View testID="leave-shrink" pointerEvents="none" style={[props.style, motion]}>
+    <Animated.View testID="leave-shrink" pointerEvents="none" style={[props.style, originStyle(props.origin), motion]}>
       {props.children}
     </Animated.View>
   );
