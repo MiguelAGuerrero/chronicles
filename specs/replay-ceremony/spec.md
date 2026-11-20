@@ -291,4 +291,7 @@ The steward on the plan: ten findings, triaged in `plan.md`.
 committed first, in `ui.test.ts`). A standing picture opens its moment; the stack stands 12 px under Next; a whisper and
 the last view's names end short of the stack; a grid's last row fills and its strip says "Photos"; a whisper has a solid
 ground under the line; a hop's dots stand on white discs; the trace fades out and the walker in through the dive; the
-first beat is north-up. The `replay` journey holds them (164 checks).
+first beat is north-up. The `replay` journey holds them (164 checks). Found on the deploy's journeys (Nov 20) and
+fixed test first (`replay-ceremony ui 15`): a picture rendered once to take taps again as each card left, two commits at
+a stretch's start, and RC7's journey check read over 8 commits a second; what takes a tap is now written on the control
+with no render (2.9 a second on the same machine).
