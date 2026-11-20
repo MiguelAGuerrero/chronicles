@@ -2,9 +2,10 @@
   "lastT": 49,
   "lastG": 9,
   "balance": {
-    "date": "2026-11-19",
+    "date": "2026-11-20",
     "days": 14,
     "slicesGrown": [
+      "CM",
       "CX",
       "DC",
       "DN",
@@ -21,9 +22,9 @@
       "HB",
       "HC",
       "JN",
-      "KW",
       "MA",
       "MC",
+      "MD",
       "MG",
       "MP",
       "MS",
@@ -70,9 +71,9 @@
       "XS"
     ],
     "commits": {
-      "growth": 185,
-      "refinement": 651,
-      "other": 735
+      "growth": 181,
+      "refinement": 719,
+      "other": 760
     },
     "areas": {
       "rough": [
@@ -120,9 +121,9 @@
       "web"
     ],
     "open": {
-      "openT": 2,
+      "openT": 7,
       "phoneT": 4,
-      "openG": 1
+      "openG": 5
     },
     "reading": "outgrowing its base",
     "propose": false,
@@ -173,9 +174,9 @@
     },
     "presence": {
       "state": "rough",
-      "swept": "2026-11-16",
-      "main": "d50d8a512f5c45e385e488945fa5ede2737f1124",
-      "note": "First run, not a sweep (lenses 1-6 not run): built the owner's answer to the [arch] neighbourhood read-past (decision 0172) as tend presence 1, the read-past after normalizeWords in presence and community parks alike under PRESENCE_CODE p5, nothing carried; the auditor's F1, F2, F3, F4, F6 (the owner's Nov 16 answer: Old Towne, Olde Town, Oldtown) and F7 fixed as tend presence audit 1, F5 rejected. Goldens unchanged. No [loop] item of presence's own files left in DEFERRED."
+      "swept": "2026-11-20",
+      "main": "bfb60fdb85e1430d0f399681368b0b055f1f900",
+      "note": "The first whole sweep (lenses 0-7, uncapped; decision 0229) and the first under the expectation lens (0236): five lines drafted (proposed, the owner's answer to come). Found two mediums (Overture's parks, trails, memorial sites and cemeteries counting toward storefronts, E-presence-2; Courthouses and halls in History's glyph), so the area stays rough. Shipped tend presence 2-7 and audits 2-8 (castle-class houses a place to find and a storefront, Overture's historic site a storefront, parks, cemeteries and memorial sites no help to a complex's shopping word; PRESENCE_CODE p11, COMPLEX_CODE c2, nothing carried; the pre-presence landing carry dropped). The owner's answers in decision 0239; the category words held as T49; the card's 320 px kind row filed for the owner."
     },
     "captures": {
       "state": "rough",
@@ -190,5 +191,15 @@
       "note": "No sweep (lenses 1-7 not run): aimed at the Deletion section's one [loop] item, \"Delete walk\" wrapping in the walk delete confirm's row at 320 px. Built tend deletion 1 (below 340 px the confirm stacks its actions, the confirm on top and Cancel beneath, as HIG Alerts and Material dialogs stack theirs; no words changed) and the review's U1 and U2 as tend deletion audit 3 (the row measured at 340 and 352 px; the threshold stays 340) and audit 4 (stacked, 12 px apart). Filed [owner] low: the destructive button's filled red in every confirm (U3). The HIG Alerts quote (U4) is in Last tend for docs/research."
     }
   },
-  "declined": []
+  "declined": [],
+  "compass": {
+    "date": null,
+    "runs": 0,
+    "shares": {
+      "first": null,
+      "second": null
+    },
+    "trend": "none",
+    "verdict": "too early to say: 0 of 12 runs carry the compass"
+  }
 }
