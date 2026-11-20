@@ -761,7 +761,10 @@ async function run(h) {
     await qstep('qol QL26, QL27', async () => {
       const [chooser] = await Promise.all([pg.waitForEvent('filechooser'), pg.click('[data-testid=cap-photo]')]);
       await chooser.setFiles(path.join(scriptsDir, 'fixtures', 'photo.jpg'));
-      await closeEditor(pg, 15000);
+      // Its editor opens by itself once kept (ME23, decision 0240): closed, the photo kept as taken.
+      await pg.waitForSelector('[data-testid=media-editor]', { timeout: 15000 }).catch(() => {});
+      await pg.click('[data-testid=edit-close]').catch(() => {});
+      await pg.waitForSelector('[data-testid=media-editor]', { state: 'detached', timeout: 5000 }).catch(() => {});
       // Inside the photo's own pin on the walk map (a pin's content may be hidden from screen readers under its label).
       const thumb = pg.locator('.maplibregl-map [aria-label^="Photo, "][aria-label$=". Open"] [data-testid=pin-thumb]');
       await thumb.first().waitFor({ timeout: 20000 }).catch(() => {});

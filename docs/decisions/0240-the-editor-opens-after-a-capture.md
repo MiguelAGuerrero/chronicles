@@ -41,6 +41,9 @@ shutter is still one tap.
 - 0149's pill, its rules (`barOffer*` in `lib/recordingBar`) and its words are gone; the bar's line kept its time and
   distance through the pill and still does. `tabsHidden.barOfferUp` is no longer set, and its readers (Explore's press
   hint, the storage notice's sight) read it false: removing them waits in `docs/DEFERRED.md`.
+- The web's "keep this app's data" refusal (SA10), asked after a moment kept off a walk, now comes while the editor is
+  up; a refusal is never owed (tend tabs audit 31), so it is said at the next look off the walk (Navigate, ready shown
+  again, or Memories), as it already was behind Memories' pills. The `space` journey steps away and back for it.
 - The spec's ME23 text still describes the six seconds' offer; this record amends it, as 0149 did, until the owner's
   doc and its mirror are amended (`docs/STATUS.md`, "Open before the loop").
 - Checks: `captures/editAfterCapture.test.ts` (the rule and every host), the `edit` journey (each place opens its

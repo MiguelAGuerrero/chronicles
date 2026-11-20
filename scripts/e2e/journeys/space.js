@@ -11,7 +11,7 @@ const OUT = 'Not saved: there is no room left. It is held here for Retry.';
 const REFUSED = 'This browser may clear Chronicles’ moments when it needs room.';
 
 async function run(h) {
-  const { navUrl, check, freshPage, scriptsDir, toStop } = h;
+  const { navUrl, check, freshPage, scriptsDir, toStop, tabTo } = h;
   const fixtures = path.join(scriptsDir, 'fixtures');
   const { c, pg } = await freshPage('space');
   await c.addInitScript(() => {
@@ -67,8 +67,14 @@ async function run(h) {
   check((await enabled('moment-photo')) && (await enabled('moment-voice')) && (await enabled('moment-note')), 'SA6: the moment buttons stay enabled with the line shown');
   check(!!ready && (await dismiss()), 'SA6: the line has a dismiss button, and it goes');
 
-  // A moment kept outside a walk: the browser is asked once to keep the data; its refusal said there (SA10).
+  // A moment kept outside a walk: the browser is asked once to keep the data; its refusal said there (SA10). Since
+  // decision 0240 the photo's editor is up as the browser answers, and a refusal is never owed (tend tabs audit 31): it
+  // is said at the next look off the walk, here Navigate, ready shown again.
   await shoot('moment-photo');
+  await tabTo(pg, 'explore');
+  await pg.waitForTimeout(800);
+  await pg.click('[data-testid=tab-navigate]');
+  await pg.waitForSelector('[data-testid=start]', { timeout: 15000 });
   const refused = await lineText(10000);
   check((await pg.evaluate(() => window.__persistAsked)) === 1 && refused.includes(REFUSED), `SA10: asked once after a moment kept outside a walk; the refusal said ("${say(refused)}")`);
   await dismiss();
