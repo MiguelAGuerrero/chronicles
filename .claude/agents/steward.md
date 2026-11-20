@@ -52,7 +52,9 @@ Read every criterion as the person out will meet it on the screen, and ask:
 8. **Expectation lines** (`/tend` lens 0, decision 0236), drafted or amended: each against the Never lines
    and "Who it is for". A line that reads as what other apps have rather than what this person needs (likes,
    sharing, counts, streaks, a feed, "best of") is a finding, however common the apps make it; so is a line
-   that is not observable (no person could see it met), or whose `Check:` could pass while it fails.
+   that is not observable (no person could see it met), or whose `Check:` could pass while it fails. Each names the
+   verb it serves in `Serves:` (decision 0244): ask VISION's question to ask of that verb ("The three verbs") of the
+   line; a verb the line does not answer is a finding (name the one it does), and a line serving none is dropped.
 
 ## What to produce
 

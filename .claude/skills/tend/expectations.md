@@ -14,6 +14,7 @@ the operations are in `scripts/expectations.js`'s header). A line, its text on o
 - E-memories-1 [ratified 2026-11-20] A person who wanders a town to notice, using memories, would reasonably expect a capture to come back when they pass its place again.
   Check: memories:"a later walk passing a flagged capture brings it back"
   Grounds: VISION "Who it is for"; adjacent-apps "<the job>" (Day One, Apple Photos)
+  Serves: Return
   Answer: "Ratify as drafted" (the owner, 2026-11-20)
 ```
 
@@ -28,6 +29,11 @@ the operations are in `scripts/expectations.js`'s header). A line, its text on o
 - **Grounded.** In `docs/VISION.md`, "Who it is for", first, then in how two or three adjacent apps do the job
   (`docs/research/adjacent-apps.md`, verified or not; a source the file lacks is "not yet recorded", and the loop never
   edits `docs/research/`). An app alone is no ground: a precedent informs how, never what (0193).
+- **Serving a verb.** `Serves:` names the VISION verb the line serves (decision 0244), one or more of Earn, Honour and
+  Return ("The three verbs"), and no other word. A line drafted or amended names it, in its own `Serves:` or by
+  `--serves <Verb[,Verb]>` for each line of the file that names none; `check` fails a proposed line without one. A line
+  the owner answered before 0244 stands as answered, without one, and no operation gives it one: the owner's words stay
+  the owner's.
 - **Ratified once, by the owner.** A ratified line never changes: a better one is an `amend` (one open at a time),
   which stands beside it until the owner ratifies it. Five lines at most are in force per feature.
 
@@ -35,15 +41,17 @@ the operations are in `scripts/expectations.js`'s header). A line, its text on o
 
 1. **What is due.** `npm run expectations -- due <the run's area>` prints the area if it has no line at all, or
    "awaiting the owner" if it has proposed lines only.
-2. **No line at all: draft.** Write three to five lines in the store's form. The `steward` checks them at the run's
-   first review pause (an `evolve` run, before it files) against VISION's Never lines and the persona; a line it flags
+2. **No line at all: draft.** Write three to five lines in the store's form, each naming the verb it serves. The
+   `steward` checks them at the run's first review pause (an `evolve` run, before it files) against VISION's Never
+   lines and the persona, and each verb against VISION's question to ask of it; a line it flags, or one serving no verb,
    is dropped and named. Then `npm run expectations -- draft <feature> --file <lines>` with the rest. They are
    proposed: used provisionally in this run, and put to the owner (section 10, step 5: one question per feature, its
    lines grouped, "Ratify as drafted" first; under the orchestrator, its batch), whose answer is recorded as "The
    owner's answer: one flow" says.
 3. **Awaiting the owner:** test against the proposed lines, provisionally; draft nothing more.
 4. **Ratified lines: test against them.** A line the run finds wrong or thin is answered with
-   `npm run expectations -- amend <id> --file <line>`, checked by the steward the same way; never an edit.
+   `npm run expectations -- amend <id> --file <line>`, naming its verb, checked by the steward the same way; never an
+   edit.
 5. **Judge each line.** `met` only with evidence: its own check, which the script finds (it exists and is not todo)
    and which passed in the journeys or the tests this run ran; or, while the check is pending, a picture of it met (a
    shot of the feature's own journeys, or a `.png` under the run's shots folder, named in the log's `shots`). A line
@@ -62,7 +70,9 @@ the operations are in `scripts/expectations.js`'s header). A line, its text on o
    "compass":{"shipped":2,"filedLow":3,"lensG":["G9"]},"shots":"<the run's shots folder>"
    ```
 
-   `shots` is a path: `tend:log` checks the pictures under it and leaves it out of the line it writes.
+   `shots` is a path: `tend:log` checks the pictures under it and leaves it out of the line it writes. The log carries
+   no verb: a line's verb is in the store, by its id. A line dropped for serving no verb names that in `never`, as
+   `"never":"The three verbs: serves none"`.
 
    `npm run tend:log` marks the line `"lens":"0236"` and refuses a sweep, or a run whose range built an entry, without
    them; an id the store does not hold, of another area, or named twice; a proposed line not marked provisional; a

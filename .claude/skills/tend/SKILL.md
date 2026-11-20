@@ -77,8 +77,8 @@ so nothing known is found twice. Then look through each lens; a finding names
 its lens, its evidence (a picture, a file and line, a failing input) and its
 source.
 
-0. **The expectation** (decision 0236), first in each `/tend` run (one iteration) but a triage: the lines of the run's area (a sweep's area,
-   or the area of the entry a build builds), each met with evidence, failed (section 3) or lacking (section 9); `expectations.md`.
+0. **The expectation** (decision 0236), first in each `/tend` run (one iteration) but a triage: the lines of the run's area (a sweep's area, or the
+   area of the entry a build builds), each met with evidence, failed (section 3) or lacking (section 9), a drafted one naming its verb (decision 0244); `expectations.md`.
 1. **The screens as a person sees them.** In the worktree, run the area's
    journeys (`docs/TESTING.md`, "Choosing the journeys") with
    `E2E_SHOTS=<scratchpad>/tend-shots`. A screen of the area with no journey

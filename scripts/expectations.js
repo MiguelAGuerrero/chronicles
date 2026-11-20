@@ -4,9 +4,11 @@
 // lines, the owner ratifies them once, and each line names the check that shows it is met.
 //
 //   npm run expectations -- list [<feature>]                      every line, its status and whether its check exists
-//   npm run expectations -- draft <feature> --file <lines>        proposed lines, numbered on; a first draft has three
+//   npm run expectations -- draft <feature> --file <lines> [--serves <Verb[,Verb]>]
+//                                                                 proposed lines, numbered on; a first draft has three
 //                                                                 to five, and five at most are in force
-//   npm run expectations -- amend <id> --file <line>              a proposed amendment of a ratified line, which stands
+//   npm run expectations -- amend <id> --file <line> [--serves <Verb[,Verb]>]
+//                                                                 a proposed amendment of a ratified line, which stands
 //                                                                 as it is until the owner ratifies the amendment
 //   npm run expectations -- ratify <id>... --by owner --date YYYY-MM-DD --answer "<verbatim>"
 //   npm run expectations -- decline <id>... --by owner --date YYYY-MM-DD --answer "<verbatim>"
@@ -25,9 +27,13 @@
 //     Amends: E-<feature>-<n>                                     (an amendment only)
 //     Check: <journey>:"<check text>" | test:"<test name>" | picture:<shot name> | pending "<what it will show>"
 //     Grounds: VISION "Who it is for"; <docs/research/adjacent-apps.md's job and apps, or "not yet recorded">
+//     Serves: Earn | Honour | Return, or two or three of them, comma-separated (decision 0244; a proposed line names one)
 //     Answer: "<the owner's words>" (the owner, YYYY-MM-DD)       (ratified or declined only)
 //
-// A --file of lines holds the same entries without the id and status: `- A person …` and its Check and Grounds.
+// A --file of lines holds the same entries without the id and status: `- A person …` and its Check, Grounds and
+// Serves; --serves gives its verb to each line of the file that names none. The verb is VISION's "The three verbs"
+// (decision 0244): a line drafted or amended names it; a line answered before 0244 stands as the owner answered it,
+// without one, and no operation gives it one.
 // Every operation prints the same thing for the same store. The decisions are pure and exported for
 // arch/expectations.test.ts; the files are read and written in main(). EXPECTATIONS_ROOT reads another checkout.
 
@@ -42,7 +48,9 @@ const GROUNDS = /^VISION "Who it is for"; \S/;
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const FIRST = 3;
 const MOST = 5;
-const KEYS = ['Amends', 'Check', 'Grounds', 'Answer'];
+const KEYS = ['Amends', 'Check', 'Grounds', 'Serves', 'Answer'];
+// VISION's "The three verbs", in its order (decision 0244).
+const VERBS = ['Earn', 'Honour', 'Return'];
 const ACTIVE = ['proposed', 'ratified'];
 
 const fileOf = (feature) => `${DIR}/${feature}.md`;
@@ -72,6 +80,20 @@ function parseCheck(check) {
   if ((m = /^([a-z][a-z0-9-]*):"(.+)"$/.exec(s))) return { kind: 'journey', journey: m[1], text: m[2] };
   return null;
 }
+
+const servesOf = (s) => String(s ?? '').split(',').map((v) => v.trim());
+
+/** What is wrong with a Serves value: one or more of VISION's three verbs, comma-separated, none twice. */
+function servesProblems(serves) {
+  const verbs = servesOf(serves);
+  const p = [];
+  for (const v of verbs) if (!VERBS.includes(v)) p.push(`${v ? `"${v}"` : 'an empty word'} is no verb: Serves names Earn, Honour or Return (docs/VISION.md "The three verbs", decision 0244)`);
+  for (const v of VERBS) if (verbs.filter((x) => x === v).length > 1) p.push(`${v} is named twice`);
+  return p;
+}
+
+/** A Serves value written in one form: the verbs in VISION's order, comma and space between. */
+const servesText = (serves) => VERBS.filter((v) => servesOf(serves).includes(v)).join(', ');
 
 /** What is wrong with a line's words, check and grounds. */
 function lineProblems(l) {
@@ -115,6 +137,7 @@ function entryOf(e) {
   if (e.keys.Amends !== undefined) out.amends = e.keys.Amends;
   out.check = e.keys.Check;
   out.grounds = e.keys.Grounds;
+  if (e.keys.Serves !== undefined) out.serves = e.keys.Serves;
   if (e.keys.Answer !== undefined) out.answer = e.keys.Answer;
   return out;
 }
@@ -150,6 +173,8 @@ function parseStore(text, feature) {
     if (!st) problems.push(`${e.id}: [${e.statusRaw}] is no status (proposed, ratified <date>, declined <date>, superseded <date> by <id>)`);
     const entry = entryOf({ ...e, n: id ? Number(id[2]) : 0, ...(st ?? { status: 'proposed' }) });
     for (const p of lineProblems(entry)) problems.push(`${e.id}: ${p}`);
+    // A Serves present is read on every line; one absent is the check's to name, on a proposed line only (decision 0244).
+    if (entry.serves !== undefined) for (const p of servesProblems(entry.serves)) problems.push(`${e.id}: ${p}`);
     const answered = entry.status === 'ratified' || entry.status === 'declined';
     if (answered && entry.answer === undefined) problems.push(`${e.id} is ${entry.status} with no Answer`);
     if (entry.status === 'proposed' && entry.answer !== undefined) problems.push(`${e.id} is proposed and has an Answer`);
@@ -180,6 +205,7 @@ function formatStore(store) {
       ...(e.amends !== undefined ? [`  Amends: ${e.amends}`] : []),
       `  Check: ${e.check}`,
       `  Grounds: ${e.grounds}`,
+      ...(e.serves !== undefined ? [`  Serves: ${e.serves}`] : []),
       ...(e.answer !== undefined ? [`  Answer: ${e.answer}`] : []),
       '',
     ].join('\n');
@@ -203,14 +229,31 @@ function settle(before, r) {
   return w.length ? { store: before, ids: [], problems: w.map((p) => `the write is refused: ${p}`) } : r;
 }
 
-/** A --file of lines: `- A person …` and its Check and Grounds (an Amends is the amend operation's). */
+/** A --file of lines: `- A person …` and its Check, Grounds and Serves (an Amends is the amend operation's). */
 function parseDraft(text) {
   const read = readEntries(linesOf(text), (h) => ({ text: h }));
-  const lines = read.entries.map((e) => ({ text: e.text, check: e.keys.Check, grounds: e.keys.Grounds, ...(e.keys.Amends !== undefined ? { amends: e.keys.Amends } : {}) }));
+  const lines = read.entries.map((e) => ({
+    text: e.text,
+    check: e.keys.Check,
+    grounds: e.keys.Grounds,
+    ...(e.keys.Serves !== undefined ? { serves: e.keys.Serves } : {}),
+    ...(e.keys.Amends !== undefined ? { amends: e.keys.Amends } : {}),
+  }));
   const problems = [...read.problems];
   if (!lines.length) problems.push('no line: each is "- A person …" with its Check and Grounds indented under it');
   for (const l of lines) if (l.amends !== undefined) problems.push('an Amends is written by `amend <id>`, not in the file');
   return { lines, problems };
+}
+
+/** --serves given to each line of a file that names no verb; refused when it is no verb, or another than a line's own. */
+function withServes(lines, flag) {
+  if (flag === undefined) return { lines, problems: [] };
+  const problems = servesProblems(flag).map((p) => `--serves: ${p}`);
+  for (const l of lines) {
+    if (l.serves !== undefined && servesText(l.serves) !== servesText(flag)) problems.push(`"${String(l.text).slice(0, 60)}" serves ${l.serves} and --serves says ${flag}: name one`);
+  }
+  if (problems.length) return { lines, problems };
+  return { lines: lines.map((l) => (l.serves === undefined ? { ...l, serves: flag } : l)), problems: [] };
 }
 
 const nextN = (store) => Math.max(0, ...store.entries.map((e) => e.n)) + 1;
@@ -221,6 +264,9 @@ function newLines(store, lines, amends, index) {
   const seen = new Map(store.entries.map((e) => [norm(e.text), e.id]));
   for (const l of lines) {
     problems.push(...lineProblems(l));
+    const what = `"${String(l.text ?? '').slice(0, 60)}"`;
+    if (l.serves === undefined || !String(l.serves).trim()) problems.push(`${what} serves no verb: name it, Serves: Earn, Honour or Return, or --serves (decision 0244)`);
+    else problems.push(...servesProblems(l.serves).map((p) => `${what}: ${p}`));
     // A check the script cannot find is refused at the write, so no write of the loop's reddens check:docs (audit 21).
     if (index && parseCheck(l.check) && resolveCheck(l.check, index, store.feature) === 'missing') problems.push(missingWhy(`"${String(l.text).slice(0, 60)}"`, l.check, index));
     const was = seen.get(norm(l.text ?? ''));
@@ -237,6 +283,7 @@ function newLines(store, lines, amends, index) {
     ...(amends ? { amends } : {}),
     check: l.check,
     grounds: l.grounds,
+    serves: servesText(l.serves),
   }));
   return { store: { ...store, entries: [...store.entries, ...added] }, ids: added.map((e) => e.id), problems: [] };
 }
@@ -301,7 +348,7 @@ function answerOf(store, ids, { as, by, date, answer: words }) {
 
 // Key order kept as entryOf writes it, so an answered line compares and prints the same as one read back.
 function ordered(e) {
-  return entryOf({ ...e, keys: { Amends: e.amends, Check: e.check, Grounds: e.grounds, Answer: e.answer } });
+  return entryOf({ ...e, keys: { Amends: e.amends, Check: e.check, Grounds: e.grounds, Serves: e.serves, Answer: e.answer } });
 }
 
 /** The evidence a line names, filled in or moved: never its words, status or answer. */
@@ -495,6 +542,8 @@ function checkProblems(stores, index, features) {
     if (!features.includes(s.feature)) out.push({ message: `${fileOf(s.feature)} is no feature of scripts/features.js (${s.feature}): rename it to a feature's name` });
     for (const p of s.problems) out.push({ message: `${fileOf(s.feature)}: ${p}` });
     for (const e of s.entries.filter((x) => ACTIVE.includes(x.status))) {
+      // A proposed line names its verb; a ratified one answered before decision 0244 stands without one.
+      if (e.status === 'proposed' && e.serves === undefined) out.push({ message: `${e.id} is proposed and serves no verb: draft it again with Serves (decision 0244); its words are the owner's to answer` });
       if (resolveCheck(e.check, index, s.feature) !== 'missing') continue;
       out.push({ message: missingWhy(e.id, e.check, index) });
     }
@@ -513,7 +562,13 @@ function due(stores, features) {
 
 function listText(stores, index) {
   return stores
-    .map((s) => [`${s.feature}`, ...s.entries.flatMap((e) => [`  ${e.id} ${statusText(e)}  ${e.text}`, `    check ${resolveCheck(e.check, index, s.feature)}: ${e.check}`]), ''].join('\n'))
+    .map((s) =>
+      [
+        `${s.feature}`,
+        ...s.entries.flatMap((e) => [`  ${e.id} ${statusText(e)}  ${e.text}`, `    check ${resolveCheck(e.check, index, s.feature)}: ${e.check}`, `    serves ${e.serves ?? 'not named'}`]),
+        '',
+      ].join('\n'),
+    )
     .join('');
 }
 
@@ -697,7 +752,9 @@ function main(argv) {
     if (!features.includes(feature)) return fail([`${feature || '(none)'} is no feature of scripts/features.js`]);
     const read = parseDraft(body());
     if (read.problems.length) return fail(read.problems);
-    const r = draft(storeOf(feature), read.lines, readIndex(ROOT));
+    const served = withServes(read.lines, flags.serves);
+    if (served.problems.length) return fail(served.problems);
+    const r = draft(storeOf(feature), served.lines, readIndex(ROOT));
     if (r.problems.length) return fail(r.problems);
     write(r.store);
     console.log(`draft ${feature}: ${r.ids.join(', ')} proposed in ${fileOf(feature)}`);
@@ -709,7 +766,9 @@ function main(argv) {
     const read = parseDraft(body());
     if (read.lines.length !== 1) read.problems.push('an amendment is one line');
     if (read.problems.length) return fail(read.problems);
-    const r = amend(storeOf(feature), args[0], read.lines[0], readIndex(ROOT));
+    const served = withServes(read.lines, flags.serves);
+    if (served.problems.length) return fail(served.problems);
+    const r = amend(storeOf(feature), args[0], served.lines[0], readIndex(ROOT));
     if (r.problems.length) return fail(r.problems);
     write(r.store);
     console.log(`amend: ${r.ids[0]} proposed, amending ${args[0]}, in ${fileOf(feature)}`);
@@ -759,10 +818,10 @@ function main(argv) {
     if (d.awaiting.length) console.log(`awaiting the owner: ${d.awaiting.join(', ')}`);
     return 0;
   }
-  console.error(fs.readFileSync(__filename, 'utf8').split('\n').filter((l) => l.startsWith('//')).slice(0, 18).map((l) => l.slice(3)).join('\n'));
+  console.error(fs.readFileSync(__filename, 'utf8').split('\n').filter((l) => l.startsWith('//')).slice(0, 20).map((l) => l.slice(3)).join('\n'));
   return op === 'help' ? 0 : 2;
 }
 
-module.exports = { ANSWER_COMMIT, writeProblems, ID, DIR, LENS_LINE, parseStore, formatStore, parseDraft, draft, amend, answer, setCheck, parseCheck, indexOf, resolveCheck, checkProblems, due, listText, editProblems, logRefProblems, readStores, readIndex, check };
+module.exports = { VERBS, servesProblems, withServes, ANSWER_COMMIT, writeProblems, ID, DIR, LENS_LINE, parseStore, formatStore, parseDraft, draft, amend, answer, setCheck, parseCheck, indexOf, resolveCheck, checkProblems, due, listText, editProblems, logRefProblems, readStores, readIndex, check };
 
 if (require.main === module) process.exitCode = main(process.argv.slice(2));
