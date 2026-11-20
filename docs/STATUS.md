@@ -355,6 +355,15 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
   Precedent: diary studies (an entry just after the event, anchored to it); a dogfooding friction log; Strava's optional "How did that activity feel?" and Apple Journal's prompts (all unverified; docs/research/adjacent-apps.md, "Ask how it went, just after"). Departs from Strava: words, never a number.
   Payoff: the loop's priorities and expectations rest on real use, the one thing a local-only app cannot otherwise know. Cost: M; about eight files (a new skill, a new script and its test, `scripts/tend.js`, three skill files, the map); no native code. Reopens: tend. After it: "settled after three walks", once G6 computes states.
   Instead: criteria 1, 3 and 4 alone (notes kept, read by hand in each run's report).
+- **G9 [S] The walk's map keeps you above its raised drawer** (2026-11-20) · Earn · aligned
+  Area: walk-screen, map. From: /investigate, the owner's ask (2026-11-20), the walk drawer's deferred item. Brief: docs/research/walk-map-under-drawer.md. After: the walk drawer sections slice (`claude/serene-sagan-lz8nzp`) reaches main.
+  Calls: keep the walker centred in the map above the raised drawer (not an overview of the walk, not left as it is); one height, 60%, for every view of the drawer. No decision amended.
+  Touches: VISION.md Always, "Restraint in motion, colour and copy" (the camera moves with the drawer's own spring) and "Capture is one tap away" (the riding stack unchanged, WD17); decision 0076 (one screen, one geometry); walk-drawer-sections WD11, WD17.
+  The slice: 1. Following, with the walk's drawer up on any view, the walker's dot is drawn in the middle of the map above the drawer's top edge and left of the riding capture column (within 8 px); lowered, in the middle of the screen as today. 2. The camera moves with the drawer, not after it (at once with reduced motion); a pan while it is up stops following as today. 3. Nothing is left on the map: after lowering, a later fit (the route preview, the ring, a mark's card) lands as today, and the ring's fit keeps clear of the riding column (UI review U6).
+  Precedent: Google Maps and Apple Maps keep the focus above their raised sheets (from memory, unverified); maplibre-gl's camera padding "shifts the vanishing point" (the installed source, verified). docs/research/adjacent-apps.md, "Keep the map's focus clear of a raised sheet".
+  Payoff: This walk and the settings are read beside the place they describe, on every walk. Cost: S; `map/types.ts`, both map renderers' follow, `app/walk.tsx`, a core helper; native unverified. Reopens: walk-screen.
+  Instead: the web only, the native follow as a device item.
+  Done when: on the walk screen at 390 x 844 with This walk up, the walker's dot shows in the map above the drawer, and lowering the drawer puts it back in the middle, on the web build.
 
 ### Last tend
 

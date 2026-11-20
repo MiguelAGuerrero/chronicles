@@ -299,6 +299,16 @@ Recorded for the What I'm into page (decision 0192, `specs/what-im-into-page`).
   chevron alone. The precedent for Back reading "Walk" from the walk (WI20, audits 8, 10, 14). Source: from memory,
   unverified. **Unverified**.
 
+### Keep the map's focus clear of a raised sheet (Earn)
+
+Recorded for the walk's map under its raised drawer (`docs/research/walk-map-under-drawer.md`, Nov 20). The docs
+hosts were unreachable from the cloud session, so the app lines are from memory.
+
+- **Google Maps** (iOS, Android): pulled up, a place's or a trip's sheet leaves the map above it, and the blue dot or
+  the place is moved into that part, not left under the sheet. Source: from memory, unverified. **Unverified**.
+- **Apple Maps** (iOS): with the card at the bottom raised, the map's centre sits in the part left above it. Source:
+  from memory, unverified. **Unverified**.
+
 ### Bring the map back to north while following (Earn)
 
 - **Apple Maps** (iOS 27): "Tap [the Tracking Off button]. Your position is marked in the middle of the map. The top
