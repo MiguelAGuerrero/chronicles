@@ -85,6 +85,8 @@ export interface LiveStyle {
   translateY?: number;
   rotate?: number;
   scale?: number;
+  /** Whether the element takes a tap (`replay-ceremony ui 15`): switched on it as its place is, with no render. */
+  pointerEvents?: 'auto' | 'none';
 }
 
 const lerp = (a: number, b: number, u: number) => a + (b - a) * u;

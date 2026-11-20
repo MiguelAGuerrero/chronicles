@@ -7,6 +7,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
+import { writeStyle as writeNative } from '../../../components/ceremony/liveStyle';
+import { writeStyle as writeWeb } from '../../../components/ceremony/liveStyle.web';
 import * as mapTypes from '../../../components/map/types';
 import * as compass from '../../compass';
 import * as quiet from '../../quietLines';
@@ -380,4 +382,29 @@ test('replay-ceremony ui 8: the first beat\'s fit turns a map turned by hand nor
   assert.match(web, /bearing: fitBearing\(\{ north: !!props\.fitNorth, northEasing: northAsked\.current, bearing: map\?\.getBearing\(\) \?\? 0 \}\)/);
   assert.match(read('components/map/WalkMap.native.tsx'), /props\.fitNorth/);
   assert.match(read('components/map/types.ts'), /fitNorth\?: boolean;/);
+});
+
+// ---------------------------------------------------------------- ui 15: a picture's tap is switched with no render
+
+// Found on the deploy's journeys (Nov 20): as a card left, each picture under it rendered once to take taps again, two
+// commits at the start of a stretch, and the `replay` journey's RC7 (at most 8 commits a second on a stretch) read
+// 8.4 and 8.6 where it had read about 6. What takes a tap is written on the control, as its place is.
+test('replay-ceremony ui 15: whether a standing picture takes a tap is written on its control frame by frame, with no render', { todo: 'test first' }, () => {
+  const view = read('components/ceremony/Pictures.tsx');
+  assert.doesNotMatch(view, /\buseLive\(/, 'a picture reads a flag from the frame and renders when it changes');
+  assert.doesNotMatch(view, /disabled=\{|pointerEvents=\{/, 'its control states what React would have to render again to change');
+  assert.match(view, /pointerEvents: pictureTaps\(f, p, ctx\) \? 'auto' : 'none'/, 'what takes a tap is a style the frame writes');
+  // Both writers carry it: the web's on the element, a phone's through setNativeProps.
+  const el = { style: {} as Record<string, string> };
+  writeWeb(el, { pointerEvents: 'none' });
+  assert.equal(el.style.pointerEvents, 'none');
+  writeWeb(el, { pointerEvents: 'auto' });
+  assert.equal(el.style.pointerEvents, 'auto');
+  writeWeb(el, { opacity: 1 });
+  assert.equal(el.style.pointerEvents, 'auto', 'a write that says nothing of it leaves it');
+  const sent: { style: Record<string, unknown> }[] = [];
+  writeNative({ setNativeProps: (p: { style: Record<string, unknown> }) => sent.push(p) }, { pointerEvents: 'none' });
+  assert.equal(sent[0]?.style.pointerEvents, 'none');
+  // A change of it alone is a change to write.
+  assert.match(read('components/ceremony/useLive.ts'), /'pointerEvents'/, 'the writer compares it, or a tap switched with nothing else moving is never written');
 });
