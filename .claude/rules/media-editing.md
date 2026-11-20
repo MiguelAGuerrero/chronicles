@@ -19,7 +19,9 @@ paths:
 - **The editor** (`edit/MediaEditor`) is an overlay inside the viewer (iOS:
   no Modal over a Modal) and its own Modal after a capture (decision 0240): once
   a new moment's photo or video is kept, the walk screen, Navigate's ready
-  screen, the recording bar and Memories' line open it by themselves
+  screen, the recording bar, Memories' line and the walk planner's capture
+  stack (on the planner and the outing page; 0240's addendum) open it by
+  themselves; Respond's and the note page's cameras never do (the owner's call)
   (`useEditAfterCapture`, `editAfter` and `editingOf` in `lib/editOffer`), a
   piece added to an open moment on that piece (`facedAt`). It says "Photo
   kept" until the first edit and names ✕ for what it does (`keptWords`,

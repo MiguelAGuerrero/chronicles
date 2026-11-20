@@ -46,7 +46,8 @@ test('fix edit-after-capture audit 2: a photo added to an open moment opens its 
 
 // Each place a photo is taken (ME23's places, and Memories' line): the editor opens from the camera's answer, and no
 // pill offers Edit afterwards.
-const HOSTS = ['app/walk.tsx', 'components/MomentBar.tsx', 'components/journal/OpenLine.tsx', 'components/RecordingBar.tsx'];
+// fix planner-edit (the owner's answer, Nov 20): the walk planner's capture stack too, a new moment of the walk (WP23).
+const HOSTS = ['app/walk.tsx', 'components/MomentBar.tsx', 'components/journal/OpenLine.tsx', 'components/RecordingBar.tsx', 'components/planner/PlannerCapture.tsx'];
 
 test('ME23 fix edit-after-capture: every place that takes a photo opens the editor once it is kept, with no Edit pill after', () => {
   for (const f of HOSTS) {
@@ -100,6 +101,7 @@ const GUARDS: [string, RegExp][] = [
   ['components/RecordingBar.tsx', /^!returning\.current && !wentBack\.current && !barStopping\(barStop\.get\(\), walk\.id, Date\.now\(\)\) && !unsaved\.hasEnded\(walk\.id\)$/],
   ['components/journal/OpenLine.tsx', /^!\(walk && \(barStopping\(barStop\.get\(\), walk\.id, Date\.now\(\)\) \|\| unsaved\.hasEnded\(walk\.id\)\)\)$/],
   ['app/walk.tsx', /^!stoppingNow\.current && !\(walk && unsaved\.hasEnded\(walk\.id\)\)$/],
+  ['components/planner/PlannerCapture.tsx', /^!\(barStopping\(barStop\.get\(\), props\.walkId, Date\.now\(\)\) \|\| unsaved\.hasEnded\(props\.walkId\)\)$/],
 ];
 
 test('fix edit-after-capture audit 3: the scan fails a call outside its guard, a guard dropped, and a file with no call', () => {
@@ -219,5 +221,31 @@ test('fix edit-after-capture audit 9: the editor after a capture is keyed by its
     const keys = [...s.matchAll(/<MediaEditor [^>]*?key=\{([^}]+)\}/g)].map((m) => m[1]);
     assert.ok(keys.length >= 1, f);
     for (const k of keys) assert.equal(k, 'editing.piece_id', `${f} keys its editor by the piece`);
+  }
+});
+
+// fix planner-edit (the owner's answer to decision 0240's open question, Nov 20): the walk planner's camera (WP23, on the
+// planner and the outing page) keeps a new moment of the walk, so its editor opens by itself as on the walk screen,
+// behind the same stop guard. Respond's camera (a reply) and the note page's (a photo mentioned in a note) open none:
+// they are edited later from the viewer.
+test('fix planner-edit: the planner\'s camera opens the editor once kept, and Respond and the note page open none', () => {
+  const s = src('components/planner/PlannerCapture.tsx');
+  assert.match(s, /const kept = await cap\.takePhoto\(\);\s*if \(!kept\) return;/, 'the photo the camera kept, or nothing');
+  const r = opensGuarded(s, GUARDS.find(([f]) => f === 'components/planner/PlannerCapture.tsx')![1]);
+  assert.equal(r.calls, 1, 'one open, from the camera');
+  assert.equal(r.guarded, 1, 'behind the walk\'s stop guard');
+  for (const f of ['components/threads/ReplyDock.tsx', 'components/notePage/NewNotePage.tsx']) {
+    assert.doesNotMatch(src(f), /useEditAfterCapture|editAfter\.open/, `${f} opens no editor after its photo (the owner's call)`);
+  }
+});
+
+// fix planner-edit: the planner and the outing page close on Escape from a window listener of their own, so on the web
+// an Escape meant for the editor over them closed the page too, and took the editor with it, edits and all, unasked
+// (ME2). While a Modal is up over them (the editor, the note's page) Escape is that Modal's.
+test('fix planner-edit: Escape closes the planner or the outing page only with no Modal over it', () => {
+  for (const f of ['components/planner/PlannerDrawer.tsx', 'components/outing/OutingPage.tsx']) {
+    const keys = [...src(f).matchAll(/const onKey = \(e: KeyboardEvent\) => ([^;]+);/g)].map((m) => m[1]);
+    assert.equal(keys.length, 1, `${f} has one Escape handler`);
+    assert.match(keys[0], /^e\.key === 'Escape' && modalsUp\.get\(\) === 0 && /, `${f} stands aside while a Modal is up`);
   }
 });

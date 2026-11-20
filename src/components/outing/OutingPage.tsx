@@ -8,7 +8,7 @@ import type { JourneyPlan } from '../../lib/outing/journeyPlan';
 import { ANOTHER_LABEL, BACK_LABEL, CHANGE_LABEL, CHIPS_LINE, DISMISS_LABEL, FOLLOW_LABEL, FURTHER_LABEL, HERE_LABEL, LATER_LABEL, LEAVE_OUT_LABEL, NEW_TOWN_LINE, MAPS_FAILED_LINE, NOWHERE_LABEL, RETRY_LABEL, STRAIGHT_LINE, TOWNS_FAILED_LINE, PEEK_LABEL, READ_FAILED_LINE, REACH_LINE, SEE_LABEL, TOO_FAR_LINE, TOWNS_LINE, UNDO_LABEL, UNFOUND_LINE, UNPEEK_LABEL, WHERE_LABEL, awayLine, cardSummary, chapterLine, laterLine, lookedLine, startLine, nextMoveLine, nothingLine, reachLabel, townLine } from '../../lib/outing/journeyWords';
 import { useJourney } from '../../lib/outing/useJourney';
 import { CHAINS_LABEL, CLOSE_LABEL, HOURS_LINE, NO_PICK_LINE, READING_LINE, SLOT_HINT, START_LABEL, SWAP_LABEL, TITLE, cardLine, reasonLine, slotLine } from '../../lib/outing/words';
-import { hideTabs } from '../../lib/tabsHidden';
+import { hideTabs, modalsUp } from '../../lib/tabsHidden';
 import type { LngLat } from '../../lib/types';
 import { SearchSheet } from '../atlas/PlaceSearch';
 import { Icon } from '../icons';
@@ -63,7 +63,8 @@ export function OutingPage(props: {
   });
   useEffect(() => {
     const back = BackHandler.addEventListener('hardwareBackPress', () => onBack.current());
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onBack.current();
+    // Not with a Modal over the page (the editor, the note's page): Escape is that Modal's (fix planner-edit).
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && modalsUp.get() === 0 && onBack.current();
     if (Platform.OS === 'web' && typeof window !== 'undefined') window.addEventListener('keydown', onKey);
     return () => {
       back.remove();

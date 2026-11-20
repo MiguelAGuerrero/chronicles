@@ -49,3 +49,13 @@ shutter is still one tap.
 - Checks: `captures/editAfterCapture.test.ts` (the rule and every host), the `edit` journey (each place opens its
   editor, no pill after), and the journeys that take a photo close the editor where they once waited for the pill.
 - Native: the editor's Modal opening as the system camera closes has never run on a device (`docs/NATIVE_UNVERIFIED.md`).
+
+## Addendum (the owner, Nov 20: fix planner-edit)
+The open question above, answered: **the walk planner's camera yes; Respond and the note page's camera no.** The
+planner's capture stack (`planner/PlannerCapture`, WP23, on the walk planner and the outing page while a walk records)
+keeps a new moment of the walk, so its editor opens by itself as on the walk screen, behind the same stop guard as
+Memories' line. Respond's camera (a reply, inside the viewer) and the note page's (a photo mentioned in a note, NP14)
+open none: they are edited later from the viewer. The planner and the outing page close on Escape from a window
+listener of their own; with a Modal up over them (the editor, the note's page) Escape is now that Modal's, so it never
+closes the page and its editor's unsaved edits with it (ME2). Checks: `editAfterCapture.test.ts` (`fix planner-edit`)
+and the `planner` journey.
