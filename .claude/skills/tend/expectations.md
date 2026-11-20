@@ -48,6 +48,9 @@ the operations are in `scripts/expectations.js`'s header). A line, its text on o
   to that flag: ratify it, and the amendment supersedes the line, in force and marked as serving none by the owner's
   choice; decline it, and the line stands, awaiting a verb; retire the line, which no operation records yet: the store
   has no status that takes a ratified line out of force, so that answer needs one of its own, by a decision, first.
+- **A change to the store's form lands first, alone.** CI judges a push with the scripts its base held (records
+  audit 19), so a push that teaches `scripts/expectations.js` a new key or form and also writes lines in it is refused
+  ("<key> is no key"), and nothing deploys. Push the script change, then the lines, in a push of their own (run 17).
 - **Ratified once, by the owner.** A ratified line never changes: a better one is an `amend` (one open at a time),
   which stands beside it until the owner ratifies it. Five lines at most are in force per feature.
 
