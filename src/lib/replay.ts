@@ -67,6 +67,21 @@ export function backFrom(beat: string, words: { typed?: boolean; asking?: boolea
   return words.typed ? 'ask' : 'leave';
 }
 
+/** The replay's beats, as its screen moves through them. */
+export type ReplayBeat = 'reading' | 'fog' | 'path' | 'card' | 'name';
+
+/**
+ * What the open replay does with news of its walk's captures (tend replay T41): a capture kept after the replay opened
+ * (a memo still being saved through the bar's Stop, decision 0227), or a change to one. On the card or the name step
+ * the walk is read again at once, so it is pinned there; while the walk is read or told it waits (`late`) and is read
+ * when the card comes, so no telling changes under it and the next Watch again plays it. Nothing is said of it.
+ */
+export function arrival(late: boolean, e: { heard: ReplayBeat } | { to: ReplayBeat }): { late: boolean; read: boolean } {
+  const atCard = (b: ReplayBeat) => b === 'card' || b === 'name';
+  if ('heard' in e) return atCard(e.heard) ? { late: false, read: true } : { late: true, read: false };
+  return atCard(e.to) && late ? { late: false, read: true } : { late, read: false };
+}
+
 /**
  * Whether leaving the first replay would drop words typed in Name it (the owner's "Ask there too", Nov 16; decision
  * 0172, O17): words Keep it would store otherwise than the walk holds, read as Rename reads them (`renameChanged`, with

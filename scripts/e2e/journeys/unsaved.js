@@ -494,6 +494,30 @@ async function run(h) {
     `tend tabs T35: the memo saving through the stop lands once, in its ended walk (${inWalk} in walk, walk ${walkRow ? 'kept' : 'gone'})`);
   await shot(pg, 'unsaved-bar-saving-replay-landed');
   check(/\/replay\//.test(pg.url()), `tend tabs audit 47: the replay opened through a save is pictured before and after the memo lands (${pg.url().slice(-20)})`);
+  // tend replay T41 (the owner's yes, Nov 19): the replay open before the memo landed takes it in, with nothing said of
+  // it: on its card a pin for each of the walk's moments that has a place, as a replay opened now shows them (this memo
+  // was kept with no fix, so it has none), and the memo played in its next Watch again.
+  await pg.waitForSelector('[data-testid=to-name]', { timeout: 30000 }).catch(() => {});
+  await pg.waitForTimeout(1500);
+  const takenIn = await pg.evaluate(() => ({
+    pins: document.querySelectorAll('.maplibregl-map [aria-label$=". Open"]').length,
+    card: !![...document.querySelectorAll('[role=button]')].find((b) => b.textContent.trim() === 'Watch again'),
+  }));
+  const placedHere = await pg.evaluate((id) => new Promise((resolve) => {
+    const req = indexedDB.open('chronicles');
+    req.onsuccess = () => {
+      const g = req.result.transaction('moment', 'readonly').objectStore('moment').getAll();
+      g.onsuccess = () => resolve(g.result.filter((m) => m.walk_id === id && m.lat != null && m.lon != null).length);
+    };
+  }), savingWalk);
+  await pictures('bar-saving-replay-taken-in');
+  await pg.getByText('Watch again').click().catch(() => {});
+  const playedAgain = await pg.waitForSelector('[data-testid=memo-bubble]', { timeout: 30000 }).then(() => true, () => false);
+  await shot(pg, 'unsaved-bar-saving-replay-watch-again');
+  await pg.waitForTimeout(1500);
+  await shot(pg, 'unsaved-bar-saving-replay-watch-again-settled');
+  check(takenIn.card && takenIn.pins === placedHere && playedAgain,
+    `tend replay T41: the replay open before the memo landed takes it in, its card pinning what the walk holds and its next Watch again playing the memo (${JSON.stringify(takenIn)}, ${placedHere} placed, played ${playedAgain})`);
 
   // A walk opened and minimized onto Memories, for the bar's Stop; its id.
   const walkOnMemories = async () => {
