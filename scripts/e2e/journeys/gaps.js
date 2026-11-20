@@ -276,10 +276,35 @@ async function run(h) {
       await p2.mouse.up();
       await p2.waitForURL(/replay/, { timeout: 30000 });
       await p2.waitForSelector('[data-testid=skip]', { timeout: 60000 });
+      // replay-ceremony ui 11 (the UI review's U2; the owner's defaults, Nov 20): the question on a short phone. The
+      // scenario that keeps the way is asked at 320 by 568; the one that leaves it at 390 by 844, as it always was.
+      if (mode === 'keep') await p2.setViewportSize({ width: 320, height: 568 });
       await p2.click('[data-testid=skip]');
       await p2.waitForSelector('[data-testid=to-name]', { timeout: 30000 });
       await p2.waitForSelector('[data-testid=keep-gaps-card]', { timeout: 20000 }).catch(() => {});
-      await p2.waitForTimeout(800);
+      await p2.waitForTimeout(1200);
+      {
+        const where = await p2.evaluate(() => {
+          const box = (e) => { if (!e) return null; const b = e.getBoundingClientRect(); return [Math.round(b.left), Math.round(b.top), Math.round(b.right), Math.round(b.bottom)]; };
+          const ask = [...document.querySelectorAll('[data-testid=keep-gaps-card]')].filter((e) => getComputedStyle(e).visibility !== 'hidden' && !e.closest('[aria-hidden=true]'));
+          const more = document.querySelector('[data-testid=card-more]');
+          // The card's sheet: the scroller the card's own controls are in.
+          let sheet = more;
+          while (sheet && !/auto|scroll/.test(getComputedStyle(sheet).overflowY)) sheet = sheet.parentElement;
+          const s = box(sheet);
+          // What a finger meets over the map, in the middle of what the sheet leaves of it.
+          const over = s ? document.elementFromPoint(window.innerWidth / 2, Math.max(4, s[1] / 2)) : null;
+          return { asks: ask.length, ask: box(ask[0]), sheet: s, inSheet: !!ask[0] && !!sheet && sheet.contains(ask[0]), overMap: !!over && !!over.closest('.maplibregl-map'), overAsk: !!over && !!over.closest('[data-testid=keep-gaps-card]'), title: box(more), size: [window.innerWidth, window.innerHeight] };
+        });
+        if (mode === 'keep') {
+          await shot(p2, 'g15-keep-gaps-320');
+          check.todo(where.asks === 1 && where.inSheet && !!where.sheet && where.ask[1] >= where.sheet[1] && !!where.title && where.ask[3] <= where.title[1] + 1 && where.overMap && !where.overAsk && where.sheet[1] >= 96,
+            `replay-ceremony ui 11: at 320 by 568 the gap question is asked inside the card's sheet, its first block, and nothing floats over the map (${JSON.stringify(where)})`);
+        } else {
+          check.todo(where.asks === 1 && !where.inSheet && !!where.sheet && where.ask[3] <= where.sheet[1] && where.ask[1] >= 116 + 96,
+            `replay-ceremony ui 11: at 390 by 844 the gap question floats over the map above the sheet, as before, the walk in view over it (${JSON.stringify(where)})`);
+        }
+      }
       const asked = await p2.locator('[data-testid=keep-gaps-card]').innerText().catch(() => '');
       check(/Keep the likely way\?/.test(asked) && !/\d/.test(asked.replace('Keep the likely way?', '')), `G15: the first replay asks once about the offered gap, in words ("${asked.replace(/\n/g, ' · ')}")`);
       if (mode === 'leave') await shot(p2, 'g15-keep-gaps');
@@ -317,6 +342,9 @@ async function run(h) {
         }));
         check(kept2.faint === 0 && JSON.stringify(stored) === '["kept"]' && (await p2.locator('[data-testid=keep-gaps-card]').count()) === 0,
           `G15: Keep keeps the offered way and the card goes (${JSON.stringify(kept2)}, ${JSON.stringify(stored)})`);
+        // The sheet is the card's alone again, on the short phone too.
+        await p2.waitForTimeout(600);
+        await shot(p2, 'g15-kept-320');
       }
       await c2.close();
     };

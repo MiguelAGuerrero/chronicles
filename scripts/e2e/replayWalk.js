@@ -163,4 +163,61 @@ async function seedPhotoWalk(h, c, pg, n, { passedAt = null } = {}) {
   return { walk, ids };
 }
 
-module.exports = { seedReplayWalk, seedPhotoWalk };
+/**
+ * A walk 380 m north up one street (the grid's street at x 0.5), written into storage and stopped: a photo 60 m in
+ * (the `rr-photo` picture the first walk stored, so it follows it in the same browser), and two places passed without
+ * stopping 70 m apart, each 5 m east of the way. The way runs up the screen, so a whisper stands beside the line
+ * (`replay-ceremony ui 13`), and the two come close enough together that the second replaces the first (ui 12).
+ * Leaves the page on the walk's first replay.
+ */
+async function seedNorthWalk(h, c, pg) {
+  const { navUrl, BASE, at, openWalk, toStop } = h;
+  const here = at(0.5, 1.9);
+  await pg.goto(navUrl);
+  await pg.waitForSelector('[data-testid=start]');
+  await pg.click('[data-testid=start]');
+  await pg.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
+  for (let k = 0; k < 3; k++) {
+    await c.setGeolocation({ longitude: here[0], latitude: here[1] + k * 0.000001, accuracy: 6 });
+    await pg.waitForTimeout(1000);
+  }
+  const walk = await openWalk(pg);
+  const t0 = Date.now() - 30 * 60_000;
+  const steps = Math.round(380 / 7);
+  const pts = Array.from({ length: steps + 1 }, (_, k) => {
+    const p = at(0.5, -1.9 + (3.8 * k) / steps);
+    return { walk_id: walk.id, t: t0 + k * 5000, lon: p[0], lat: p[1], accuracy_m: 6, speed: 1.4, course: null };
+  });
+  const photoAt = pts[9];
+  const photo = { id: 'nw-photo', walk_id: walk.id, t: photoAt.t, lat: photoAt.lat, lon: photoAt.lon, segment_id: null, piece_ids: ['nw-photo'], pieces: [{ id: 'nw-photo', moment_id: 'nw-photo', t: photoAt.t, kind: 'photo', file_path: 'rr-photo', body: null, caption: null, caption_y: null }] };
+  const east = 5 / (111320 * Math.cos((photoAt.lat * Math.PI) / 180));
+  const placeAt = (k, key, name) => ({ key, area_key: null, name, category: 'history', kind: 'monuments', at: [pts[k].lon + east, pts[k].lat], generic: false, lat: pts[k].lat });
+  const places = [placeAt(26, 'nw-passed-1', 'Sun Inn'), placeAt(36, 'nw-passed-2', 'Old Mill')];
+  await pg.evaluate(([id, startedAt, points, moment, passedPlaces]) => new Promise((resolve) => {
+    const req = indexedDB.open('chronicles');
+    req.onsuccess = () => {
+      const tx = req.result.transaction(['walk', 'trace_point', 'moment', 'meta', 'checklist_item'], 'readwrite');
+      tx.objectStore('meta').put({ key: `explored:${id}`, value: '1' });
+      for (const place of passedPlaces) tx.objectStore('checklist_item').put(place);
+      const w = tx.objectStore('walk').get(id);
+      w.onsuccess = () => tx.objectStore('walk').put({ ...w.result, started_at: startedAt });
+      for (const p of points) tx.objectStore('trace_point').add(p);
+      tx.objectStore('moment').put(moment);
+      tx.oncomplete = () => resolve(true);
+    };
+  }), [walk.id, pts[0].t - 1000, pts, photo, places]);
+  await pg.reload();
+  await pg.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
+  await c.setGeolocation({ longitude: here[0], latitude: here[1], accuracy: 6 });
+  await pg.waitForTimeout(2000);
+  await toStop(pg);
+  const b = await pg.locator('[data-testid=stop]').boundingBox();
+  await pg.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
+  await pg.mouse.down();
+  await pg.waitForTimeout(1100);
+  await pg.mouse.up();
+  await pg.waitForURL(/replay/, { timeout: 30000 });
+  return { walk, places: places.map((x) => x.at) };
+}
+
+module.exports = { seedReplayWalk, seedPhotoWalk, seedNorthWalk };
