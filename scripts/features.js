@@ -561,7 +561,6 @@ const RENAMED = {
 };
 
 const IN_PROGRESS = {
-  'capture-at-a-place': { branch: 'claude/serene-hypatia-gkcekh', since: '2026-11-20' },
   'drive-in-the-outing': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-18' },
   'shop-facets': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-18' },
   'town-fixtures': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-18' },
