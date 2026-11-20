@@ -80,9 +80,18 @@ test('tend tabs 19: a stop that never settles stops holding the bar\'s Stop busy
   assert.equal(barStopLeftMs(stop, 'w1', 1000 + BAR_STOP_HOLD_MS), 0, 'none past it');
   assert.equal(barStopLeftMs(stop, 'w2', 1500), 0, 'another walk\'s stop holds nothing');
   assert.equal(barStopLeftMs(null, 'w1', 1500), 0);
-  for (const now of [1000, 1000 + BAR_STOP_HOLD_MS - 1, 1000 + BAR_STOP_HOLD_MS]) {
-    assert.equal(barStopping(stop, 'w1', now), barStopLeftMs(stop, 'w1', now) > 0, 'the way back, a second hold and the busy Stop agree');
+  // tend tabs audit 60 (the diff review's auditor, a weak test: this compared barStopping with its own definition): the
+  // bound ends at one instant for all three: the way back (barGoesBack), a second hold (barStopping) and the Stop's
+  // spinner (the bar's timer of barStopLeftMs).
+  for (const now of [1000, 1000 + BAR_STOP_HOLD_MS - 1]) {
+    assert.equal(barGoesBack({ returning: false, stop, walkId: 'w1', now }), false, `${now}: the way back waits`);
+    assert.equal(barStopping(stop, 'w1', now), true, `${now}: a second hold is refused`);
+    assert.ok(barStopLeftMs(stop, 'w1', now) > 0, `${now}: the spinner stays`);
   }
+  const past = 1000 + BAR_STOP_HOLD_MS;
+  assert.equal(barGoesBack({ returning: false, stop, walkId: 'w1', now: past }), true, 'past it the way back works');
+  assert.equal(barStopping(stop, 'w1', past), false, 'a second hold is let through (it joins the end, tend tabs audit 53)');
+  assert.equal(barStopLeftMs(stop, 'w1', past), 0, 'and the spinner goes');
   // The wiring: the bar's `stopping` (its busy, disabled Stop) ends when the bound's timer fires, not only when the stop
   // clears the shared store.
   assert.match(bar, /const stopSince = useStore\(barStop, \(s\) => \(s\?\.walkId === walk\.id \? s\.since : null\)\);/);
