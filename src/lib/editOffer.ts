@@ -1,26 +1,14 @@
 // @layer core
 /**
- * The Edit offer after a capture (ME23): right after a photo or video is
- * kept, the place that took it offers Edit for a few seconds, as the caption
- * pill did. A new capture replaces the offer. The timer stays in the view.
+ * The editor after a capture (ME23 as decision 0240 amends it, fix edit-after-capture): once the camera's photo or
+ * video is accepted and kept as a new moment, the place that took it opens its editor by itself, so it is edited
+ * before it is seen on the map. It was a few seconds' Edit offer, a second tap away (0149's pill on the bar).
  */
-export const EDIT_OFFER_MS = 6000;
 
-export interface EditOffer {
-  id: string;
-  kind: 'photo' | 'video';
-  until: number;
-}
+/** The capture whose editor opens once it is kept: a new moment's; a piece added to an open moment opens none. */
+export const editAfter = (kept: { kind: 'photo' | 'video'; id: string; momentId: string }): string | null =>
+  kept.id === kept.momentId ? kept.id : null;
 
-export const offerEdit = (kept: { id: string; kind: 'photo' | 'video' }, now: number): EditOffer => ({ id: kept.id, kind: kept.kind, until: now + EDIT_OFFER_MS });
-
-/** Milliseconds the offer has left; 0 once it is over. */
-export const offerLeft = (o: EditOffer | null, now: number): number => (o ? Math.max(0, o.until - now) : 0);
-
-export const offerLive = (o: EditOffer | null, now: number): boolean => offerLeft(o, now) > 0;
-
-/** What the offer's pill says before its Edit button. */
-export const offerText = (kind: 'photo' | 'video', where: 'here' | 'walk' | 'moment'): string => {
-  const what = kind === 'photo' ? 'Photo' : 'Video';
-  return where === 'here' ? `${what} saved here` : where === 'walk' ? `${what} saved to your walk` : `${what} saved`;
-};
+/** The capture the editor is drawn for: the kept one once the screen holds it; none before, or once it is gone. */
+export const editingOf = <T extends { id: string }>(id: string | null, captures: readonly T[]): T | null =>
+  id == null ? null : (captures.find((c) => c.id === id) ?? null);

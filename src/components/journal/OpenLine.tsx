@@ -27,7 +27,7 @@ import { refLabel } from '../../lib/threads/lines';
 import type { LngLat } from '../../lib/types';
 import { useCaptures, type MomentState } from '../../lib/useCaptures';
 import { useStore } from '../../lib/useStore';
-import { EditOfferPill, useEditOffer } from '../edit/EditOffer';
+import { useEditAfterCapture } from '../edit/EditOffer';
 import { MediaEditor } from '../edit/MediaEditor';
 import { Icon, type IconName } from '../icons';
 import { Modal } from '../Modal';
@@ -438,8 +438,9 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
   };
 
   // The camera and the mic: what they keep joins the open entry, and the words typed so far stand as their own piece.
-  const editOffer = useEditOffer();
-  const [editing, setEditing] = useState<Faced | null>(null);
+  // Once a new moment's photo or video is kept, its editor opens by itself (ME23 as decision 0240 amends it).
+  const editAfter = useEditAfterCapture(cap.captures);
+  const editing = editAfter.editing;
   const photo = async () => {
     onFoot();
     // Mid-note, the camera is still one tap (audit 1): the note is saved first, then the camera opens.
@@ -449,7 +450,7 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
       feedback('tap');
       send.current({ k: 'kept' });
       seen.current?.();
-      if (k.id === k.momentId) editOffer.show(k);
+      editAfter.open(k);
     });
   };
   const voice = () => {
@@ -539,7 +540,7 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
   );
   // Its dark pills count while Memories is in front, so the storage notice waits for them (tend tabs audit 33; the
   // owner's answer of Nov 18, "The whole column"). The same pills as the column below draws.
-  const pillsStand = !!errorPill || (!!editOffer.offer && !recording) || !!toast || (cap.discarded && !recording) || cap.unsaved || cap.held.length > 0;
+  const pillsStand = !!errorPill || !!toast || (cap.discarded && !recording) || cap.unsaved || cap.held.length > 0;
   useEffect(() => (focused && pillsStand ? holdCount(columnPills) : undefined), [focused, pillsStand]);
   const retryPill = (id: string, words: string, onPress: () => void, label = 'Retry') => (
     <View style={styles.pill} accessibilityLiveRegion="polite" testID={id}>
@@ -638,17 +639,6 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
         <View style={styles.above} pointerEvents="box-none" onLayout={(e) => setAboveH(Math.round(e.nativeEvent.layout.height))}>
           {props.above}
           {errorPill}
-          {editOffer.offer && !recording && (
-            <EditOfferPill
-              offer={editOffer.offer}
-              where="moment"
-              onEdit={() => {
-                const id = editOffer.offer?.id;
-                setEditing(cap.captures.find((c) => c.id === id) ?? null);
-                editOffer.clear();
-              }}
-            />
-          )}
           {toast && (
             <View style={styles.pill} accessibilityLiveRegion="polite" testID="band-toast">
               <Text style={styles.pillText}>{toast}</Text>
@@ -808,7 +798,7 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
       {picking != null && (
         <Mention self={pen.entry?.momentId ?? null} onPick={pick} onClose={() => { setPicking(null); input.current?.focus(); }} />
       )}
-      {editing && <MediaEditor key={editing.id} capture={editing} initialTool="crop" onClose={() => setEditing(null)} onSave={(patch) => cap.setEdit(editing, patch)} />}
+      {editing && <MediaEditor key={editing.id} capture={editing} initialTool="crop" onClose={() => editAfter.close()} onSave={(patch) => cap.setEdit(editing, patch)} />}
     </>
   );
 }

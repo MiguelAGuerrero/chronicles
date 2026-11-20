@@ -73,6 +73,13 @@ async function run(h) {
   await c.addInitScript(INIT);
   const shown = async (sel) => (await pg.locator(sel).filter({ visible: true }).count()) > 0;
   const there = (sel, timeout = 10000) => pg.waitForSelector(sel, { timeout, state: 'visible' }).then(() => true, () => false);
+  // A new moment's photo or video opens its editor by itself once kept (ME23, decision 0240): closed, kept as taken.
+  const closeEditor = async (p = pg, timeout = 8000) => {
+    if (!(await p.waitForSelector('[data-testid=media-editor]', { timeout }).then(() => true, () => false))) return false;
+    await p.click('[data-testid=edit-close]').catch(() => {});
+    await p.waitForSelector('[data-testid=media-editor]', { state: 'detached', timeout: 5000 }).catch(() => {});
+    return true;
+  };
   const line = '[data-testid=open-line]';
   const input = '[data-testid=line-input]';
   const entries = '[data-testid=journal-page] [data-testid=moment-card]';
@@ -357,6 +364,7 @@ async function run(h) {
   const before3 = (await stored(pg)).moments.length;
   const [chooser] = await Promise.all([pg.waitForEvent('filechooser', { timeout: 10000 }).catch(() => null), pg.click('[data-testid=band-photo]').catch(() => {})]);
   await chooser?.setFiles(path.join(h.scriptsDir, 'fixtures', 'photo.jpg'));
+  await closeEditor(pg, 15000);
   const photoOn = await pg.waitForFunction((sel) => { const all = document.querySelectorAll(sel); const last = all[all.length - 1]; return !!last && !!last.querySelector('[data-testid=entry-piece-photo]'); }, entries, { timeout: 15000 }).then(() => true, () => false);
   await type('Same post as last week.');
   await pg.waitForTimeout(1500);
@@ -752,7 +760,8 @@ async function run(h) {
   // the camera and the mic.
   const [chooser44] = await Promise.all([pg.waitForEvent('filechooser', { timeout: 10000 }).catch(() => null), pg.click('[data-testid=open-line] [data-testid=band-photo]').catch(() => {})]);
   await chooser44?.setFiles(path.join(h.scriptsDir, 'fixtures', 'photo.jpg'));
-  await pg.waitForTimeout(2500);
+  await closeEditor(pg, 2500);
+  await pg.waitForTimeout(1000);
   const open44 = await tool();
   await shot(pg, 'journal-44-entry-open');
   await pg.click('[data-testid=open-line] [data-testid=line-done]').catch(() => {});

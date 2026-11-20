@@ -102,7 +102,7 @@ The walk screen (`src/app/walk.tsx`), which is also Navigate, ready: its layout,
   Chronicle's sheet too): a page pushed over it keeps it mounted (what-im-into-page audit 1). A tapped reminder opens
   here only while it is in front (`whileFocused`, `lib/openers`); under a page it is kept and taken as the walk comes
   back (audit 9).
-- Pills (the caption offer, voice Undo, Retry, a moment's toast) sit left of the stack, just above the
+- Pills (voice Undo, Retry, a moment's toast) sit left of the stack, just above the
   strip (`at.pills`), right-aligned, so the stack never moves under the thumb. Zooming keeps following;
   only a pan or a turn stops it (web; native can't tell zoom from pan yet).
 - **The Add to this moment pill** (moment stacks MS1-MS6, decision 0123): `components/walk/AddToMomentPill`,

@@ -121,10 +121,17 @@ async function pinsOfSeveral(h, pg8, c8, { check, shot }) {
     await c8.setGeolocation({ longitude: p[0], latitude: p[1], accuracy: 6 });
     await pg8.waitForTimeout(900);
   };
-  const take = async (file, saved) => {
+  // A new moment's photo or video opens its editor by itself once kept (ME23, decision 0240): closed, kept as taken.
+  const closeEditor = async (p = pg8, timeout = 8000) => {
+    if (!(await p.waitForSelector('[data-testid=media-editor]', { timeout }).then(() => true, () => false))) return false;
+    await p.click('[data-testid=edit-close]').catch(() => {});
+    await p.waitForSelector('[data-testid=media-editor]', { state: 'detached', timeout: 5000 }).catch(() => {});
+    return true;
+  };
+  const take = async (file) => {
     const [chooser] = await Promise.all([pg8.waitForEvent('filechooser'), pg8.click('[data-testid=cap-photo]')]);
     await chooser.setFiles(path.join(scriptsDir, 'fixtures', file));
-    await pg8.waitForSelector(`text=${saved}`, { timeout: 20000 }).catch(() => null);
+    await closeEditor(pg8, 20000);
     await pg8.waitForTimeout(1500);
   };
   const note = async (text) => {
@@ -170,17 +177,17 @@ async function pinsOfSeveral(h, pg8, c8, { check, shot }) {
   await pg8.waitForSelector('[data-testid=walk-actions]');
   for (let i = 1; i <= 5; i++) await go(-0.5, -0.5 + i * 0.04);
   // Two photos; 140 m on, three notes; 140 m on, a voice memo and a video; 140 m on, a photo and a note, reminded.
-  await take('photo.jpg', 'Photo saved here');
-  await take('photo.jpg', 'Photo saved here');
+  await take('photo.jpg');
+  await take('photo.jpg');
   for (let i = 1; i <= 35; i++) await go(-0.5 + i * 0.04, -0.3);
   await note('One.');
   await note('Two.');
   await note('Three.');
   for (let i = 1; i <= 35; i++) await go(0.9, -0.3 + i * 0.04);
   await voice();
-  await take('clip-4s.webm', 'Video saved here');
+  await take('clip-4s.webm');
   for (let i = 1; i <= 35; i++) await go(0.9 - i * 0.04, 1.1);
-  await take('photo.jpg', 'Photo saved here');
+  await take('photo.jpg');
   await note('Four.');
   await go(-0.5, 1.14);
   await pg8.waitForTimeout(2500);
@@ -754,7 +761,7 @@ async function run(h) {
     await qstep('qol QL26, QL27', async () => {
       const [chooser] = await Promise.all([pg.waitForEvent('filechooser'), pg.click('[data-testid=cap-photo]')]);
       await chooser.setFiles(path.join(scriptsDir, 'fixtures', 'photo.jpg'));
-      await pg.waitForSelector('text=Photo saved here', { timeout: 15000 }).catch(() => {});
+      await closeEditor(pg, 15000);
       // Inside the photo's own pin on the walk map (a pin's content may be hidden from screen readers under its label).
       const thumb = pg.locator('.maplibregl-map [aria-label^="Photo, "][aria-label$=". Open"] [data-testid=pin-thumb]');
       await thumb.first().waitFor({ timeout: 20000 }).catch(() => {});

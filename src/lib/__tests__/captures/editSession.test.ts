@@ -2,7 +2,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { changed, openSession, step, TOOLS, type Session, type SessionEvent } from '../../editSession';
-import { EDIT_OFFER_MS, offerEdit, offerLeft, offerLive } from '../../editOffer';
 import { MAX_STROKES, serializeEdit, type MediaEdit, type Stroke } from '../../mediaEdit';
 
 // Media editing (ME2, ME3, ME10, ME14, ME23), written from the criteria before the code.
@@ -140,19 +139,6 @@ test('ME6: a whole-picture crop is none; rotating keeps the crop and frees the a
   ({ state } = run(state, { type: 'rotate' }));
   assert.deepEqual(state.edit.crop, crop);
   assert.equal(state.aspect, 'free');
-});
-
-test('ME23: the offer lasts 6 s and a new capture replaces it', () => {
-  assert.equal(EDIT_OFFER_MS, 6000);
-  const a = offerEdit({ id: 'a', kind: 'photo' }, 1000);
-  assert.ok(offerLive(a, 6999));
-  assert.ok(!offerLive(a, 7000));
-  assert.equal(offerLeft(a, 4000), 3000);
-  const b = offerEdit({ id: 'b', kind: 'video' }, 3000);
-  assert.equal(b.id, 'b');
-  assert.equal(b.kind, 'video');
-  assert.ok(offerLive(b, 8999));
-  assert.ok(!offerLive(null, 0));
 });
 
 // Voice trim (VT2, VT4, VT5, VT9), written from the criteria before the code.
