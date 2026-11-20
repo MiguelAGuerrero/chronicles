@@ -78,10 +78,12 @@ beats and the rhythm's timings in `replay.md`. Captions (RC38-RC44) wait for the
   there at the most** (the walker is in the middle), so a place more than a few metres left of the line gets no side.
   While it is up it is kept on the screen first: if the camera then moves the line left, its box stays 8 px in and
   nears the line.
-- **One whisper at a time** (ui 12; `said.ts` `whisperEnds`, the plan's `until`): a newer whisper replaces the older,
-  which leaves by its own fade (`whisperOut`) begun as the newer arrives; two are never at full strength together.
-  **Trap: the replay crosses ground fast**, so two places a hundred metres apart arrive well under a second apart:
-  the first is then up only for that long, and one replaced before it has come in whole (`whisperIn`) only flickers.
+- **One whisper at a time** (ui 12; `said.ts` `whisperGroups`, asked by the plan): places whose whispers would be up
+  together (the second arriving within `whisper` ms of the first) are said as one line (`passedLine` of them all),
+  once, where and when the walker reaches the last of them, as a walk's more than two already are (RP19). No whisper
+  is cut short and two never overprint. **Trap: the replay crosses ground fast**, so two places a hundred metres
+  apart arrive well under a second apart. Replacing the older by the newer (the first try, Nov 20) left the first a
+  flicker and the two overprinting for the fade's time.
 - **Small pictures are `Still`** (a photo's small copy, a video's still, a video's tile in `COLORS.video`): never a
   player, and it asks for no still (VS2). `Pile.tsx` is gone; `videothumbs` and `palette` read the stack.
 

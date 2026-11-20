@@ -250,7 +250,7 @@ export const REPLAY_RHYTHM = {
   bubbleOut: 420,
   /**
    * A passed place's line beside it: how long it is up, coming in over `whisperIn` and leaving over `whisperOut`. One
-   * at a time (`replay-ceremony ui 12`): when a newer one arrives the older begins that leaving at once.
+   * at a time (`replay-ceremony ui 12`): places whose lines would be up together are said as one line.
    */
   whisper: 2600,
   whisperIn: 250,

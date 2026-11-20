@@ -28,7 +28,7 @@ import { between, cameraAt, cameraTrack, fitCamera, pxPerMetre, type CameraPart,
 import { easeInOut, easeOut, steady } from './ease';
 import { standing } from './pictures';
 import { cardFoot, PICTURE } from './room';
-import { lastNames, whisperBeside, whisperEnds, type Named } from './said';
+import { lastNames, whisperBeside, whisperGroups, type Named } from './said';
 import { stackBound, stackSlots } from './stack';
 import { positionAt, timeAtMetres } from './story';
 import type {
@@ -489,6 +489,7 @@ export function rhythmPlan(story: Story, opts: CeremonyOptions): RhythmPlan {
   const whispered = [...byWalk.values()].flatMap((ps) =>
     ps.length > 2 ? [{ ...ps.reduce((a, b) => (b.t >= a.t ? b : a)), all: ps }] : ps.map((p) => ({ ...p, all: [p] })),
   );
+  const said: { all: typeof story.passes; w: RhythmPlan['whispers'][number] }[] = [];
   for (const p of whispered) {
     const i = segs.findIndex((s) => walkEnd(s, story) >= p.t && (s.k !== 'leg' || !s.move || s.move.pathId === p.pathId));
     if (i < 0) continue;
@@ -516,11 +517,14 @@ export function rhythmPlan(story: Story, opts: CeremonyOptions): RhythmPlan {
     // Where the way runs up or down the screen there, beside the line and not across it (`replay-ceremony ui 13`),
     // by where the camera has the place and the line as it arrives.
     const beside = whisperBeside({ screen: opts.screen, camera: plan.camera ? cameraAt(plan.camera, tw) : null, at: p.at, by, before: a, after: b });
-    plan.whispers.push({ key: `${p.name}@${p.t}`, text: passedLine(p.all) ?? p.name, at: p.at, tw, until: tw + R.whisper, above: down, by, ...(beside != null ? { beside } : {}) });
+    said.push({ all: p.all, w: { key: `${p.name}@${p.t}`, text: passedLine(p.all) ?? p.name, at: p.at, tw, until: tw + R.whisper, above: down, by, ...(beside != null ? { beside } : {}) } });
   }
-  // One at a time (`replay-ceremony ui 12`): a newer whisper replaces the older, which leaves by its own fade.
-  const ends = whisperEnds(plan.whispers.map((w) => w.tw), R.whisper, R.whisperOut);
-  plan.whispers.forEach((w, k) => { w.until = ends[k]; });
+  // One at a time (`replay-ceremony ui 12`): places whose whispers would be up together are said as one line, once,
+  // where and when the walker reaches the last of them.
+  for (const group of whisperGroups(said.map((x) => x.w.tw), R.whisper)) {
+    const last = said[group[group.length - 1]].w;
+    plan.whispers.push(group.length > 1 ? { ...last, text: passedLine(group.flatMap((k) => said[k].all)) ?? last.text } : last);
+  }
   return plan;
 }
 

@@ -201,7 +201,7 @@ Streets, snapping, fog
   ceremony/pictures.ts       which pictures stand on the map at a zoom (standing: the later of two close together shows, with a layered edge; RC34)
   ceremony/clock.ts          tickClock, reanchor; nextStop and seekClock (Next, RY13-RY17); the frame loop's stepper (stepLoop, loopAgainst, nextLoop, holdLoop: replay ceremony RC5-RC8)
   ceremony/reveal.ts         the walked line read as a reveal (revealOf: whole runs, the run being walked and the share of it shown), cutRun for a map that draws it as data; a frame's hops as the gap-links layer's data (hopLines, hopsKey), linksWithHops for the card
-  ceremony/said.ts           what is said over the map, pure: a whisper's and a name's rooms (WHISPER, PASSED, saidRoom, passedWidth), one whisper at a time (whisperEnds), a whisper beside a way up or down the screen (whisperBeside), and the last view's names, each beside its place or the card's one line clear of the walk (lastNames, nameRoom)
+  ceremony/said.ts           what is said over the map, pure: a whisper's and a name's rooms (WHISPER, PASSED, saidRoom, passedWidth), one whisper at a time, close ones said as one line (whisperGroups), a whisper beside a way up or down the screen (whisperBeside), and the last view's names, each beside its place or the card's one line clear of the walk (lastNames, nameRoom)
   ceremony/live.ts           the frame on stage, kept outside the screen (createStageLive): the loop writes it, the stage's leaves read it; overlayOf, stackUp
   ceremony/grid.ts           a stacked moment's grid (MS17): gridLayout (closest square up to 3×3), rowShare (a last row filled), gridShown, gridDuration
   ceremony/registry.ts       CEREMONIES, DEFAULT_CEREMONY, ceremonyFor: a new ceremony is an entry here

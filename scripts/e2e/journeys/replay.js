@@ -1677,7 +1677,7 @@ async function run(h) {
 
     // replay-ceremony ui 12 and ui 13 (the owner's defaults, Nov 20): a fourth walk, 380 m north up one street past two
     // places 70 m apart. Each whisper stands beside the line, at its left (the stack is at the right), narrowed to the
-    // room there and clear of the walker; and as the second arrives the first leaves: never two at full strength.
+    // room there and clear of the walker; and the two, close enough to be up together, are said as one line, once.
     {
       await seedNorthWalk(h, c, pg);
       for (const [w, ht] of [[390, 844], [320, 568]]) {
@@ -1725,8 +1725,8 @@ async function run(h) {
           const texts = [...new Set(frames.flatMap((f) => f.map((x) => x[0])))];
           return { frames: frames.length, texts, bothFull: frames.filter((f) => f.filter((x) => x[1] >= 0.99).length > 1).length, both: frames.filter((f) => f.filter((x) => x[1] > 0.02).length > 1).length };
         });
-        check(seen.texts.length === 2 && seen.frames > 10 && seen.bothFull === 0 && seen.both <= 45,
-          `replay-ceremony ui 12: at ${w} px two places passed close together whisper one at a time: never two at full strength, crossing only while the first fades (${JSON.stringify(seen)})`);
+        check(seen.texts.length === 1 && / and /.test(seen.texts[0]) && seen.frames > 10 && seen.bothFull === 0 && seen.both === 0,
+          `replay-ceremony ui 12: at ${w} px two places passed close together are said as one line, once: never two whispers on the screen (${JSON.stringify(seen)})`);
       }
       await pg.setViewportSize({ width: 390, height: 844 });
     }

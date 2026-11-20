@@ -168,7 +168,7 @@ async function seedPhotoWalk(h, c, pg, n, { passedAt = null } = {}) {
  * the places the two walks above passed), written into storage and stopped: a photo 60 m in
  * (the `rr-photo` picture the first walk stored, so it follows it in the same browser), and two places passed without
  * stopping 70 m apart, each 5 m east of the way. The way runs up the screen, so a whisper stands beside the line
- * (`replay-ceremony ui 13`), and the two come close enough together that the second replaces the first (ui 12).
+ * (`replay-ceremony ui 13`), and the two come close enough together that they are said as one line (ui 12).
  * Leaves the page on the walk's first replay.
  */
 async function seedNorthWalk(h, c, pg) {

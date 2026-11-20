@@ -35,19 +35,22 @@ export const passedWidth = (c: StageRoom, stack = false) => {
 };
 
 /**
- * When each whisper is gone (`replay-ceremony ui 12`): one at a time, the newer replacing the older, as snackbars do.
- * A whisper has `life` ms from its start; one that would still be up when a newer arrives leaves by its own fade
- * (`out` ms), begun as the newer arrives. Of two that start together the later listed is the newer.
+ * Which whispers are said together (`replay-ceremony ui 12`): one at a time, as snackbars are. A whisper is up for
+ * `life` ms from its start. The replay crosses ground fast, so two places a hundred metres apart arrive well under a
+ * second apart: one that would arrive while another is still up is said with it, as one line, once, when the walker
+ * reaches the last of them (as a walk's more than two already are, RP19). No line is cut short and two never stand
+ * over one another. Each group lists its whispers in the order they arrive; of two that start together the later
+ * listed is the later.
  */
-export function whisperEnds(starts: readonly number[], life: number, out: number): number[] {
-  return starts.map((t, i) => {
-    let end = t + life;
-    for (let j = 0; j < starts.length; j++) {
-      const u = starts[j];
-      if (j !== i && (u > t || (u === t && j > i))) end = Math.min(end, u + out);
-    }
-    return end;
-  });
+export function whisperGroups(starts: readonly number[], life: number): number[][] {
+  const order = starts.map((_, i) => i).sort((a, b) => starts[a] - starts[b] || a - b);
+  const groups: number[][] = [];
+  for (const i of order) {
+    const g = groups[groups.length - 1];
+    if (g && starts[i] - starts[g[g.length - 1]] < life) g.push(i);
+    else groups.push([i]);
+  }
+  return groups;
 }
 
 /** How far a way must run up or down the screen, for each metre across it, before a whisper stands beside it. */

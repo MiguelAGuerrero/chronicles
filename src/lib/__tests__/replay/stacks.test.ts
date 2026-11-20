@@ -59,7 +59,9 @@ test('MS17: built through walkStory, a stack and the same pieces apart give the 
   const together = rhythmPlan(walkStory(storyOf(trace, [faced(stack), faced(lone)], passed)), { reduceMotion: false, screen: SCREEN });
   const separate = rhythmPlan(walkStory(storyOf(trace, [...apart.map(faced), faced(lone)], passed)), { reduceMotion: false, screen: SCREEN });
   assert.deepEqual(together.whispers.map((w) => w.text), separate.whispers.map((w) => w.text));
-  assert.equal(together.whispers.length, 2, `both places whisper (${together.whispers.map((w) => w.text).join(' | ')})`);
+  // Said in one line where they would be up together (`replay-ceremony ui 12`), each by name.
+  const said = together.whispers.map((w) => w.text).join(' | ');
+  assert.ok(/Old Mill/.test(said) && /Green Gate/.test(said), `both places are said (${said})`);
 });
 
 test('MS17: the screen reader\'s steps go through a stack\'s pieces in capture order, with no position over them', async () => {

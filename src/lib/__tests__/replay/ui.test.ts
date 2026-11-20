@@ -248,7 +248,8 @@ test('replay-ceremony ui 5: a whisper stands on a solid ground, lighter than the
     return seen;
   };
   // A walk east: one place north of the way, one south. Both whispers stand under the place and under the line.
-  const east = whispersOf(at(600), [{ name: 'North Gate', at: at(200, 30), fix: 30 }, { name: 'South Gate', at: at(400, -30), fix: 58 }]);
+  // Each on its own walk: two this close on one walk are said as one line (ui 12).
+  const east = new Map([...whispersOf(at(600), [{ name: 'North Gate', at: at(200, 30), fix: 30 }]), ...whispersOf(at(600), [{ name: 'South Gate', at: at(400, -30), fix: 58 }])]);
   assert.deepEqual([...east.keys()], ['Passed North Gate without stopping', 'Passed South Gate without stopping']);
   for (const [name, w] of east) {
     assert.equal(w.above, false, name);
@@ -511,7 +512,7 @@ test('replay-ceremony ui 11: where the gap question would leave the walk no room
 
 // ---------------------------------------------------------------- ui 12: one whisper at a time
 
-test('replay-ceremony ui 12: one passed-place whisper at a time: two places passed so close that both would be up together are said as one line, once, at the later place, and no line is cut short', { todo: 'test first' }, () => {
+test('replay-ceremony ui 12: one passed-place whisper at a time: two places passed so close that both would be up together are said as one line, once, at the later place, and no line is cut short', () => {
   const whisperGroups = built<(starts: readonly number[], life: number) => number[][]>(saidMod, 'whisperGroups');
   const life = token('whisper');
   const fadeIn = token('whisperIn');
