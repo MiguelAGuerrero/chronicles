@@ -77,9 +77,8 @@ CA8, CA11, CA12, ui 1, ui 4) and `unsaved` (a held capture's Retry keeps its sta
 held by unit tests only. CA3 and CA4 are proven in the journey up to the capture each opens (a memo begun, the note's
 page open), and in the unit tests through the keep path all three kinds share. TC3 and TC4 are retired; TC1, TC5 and
 tap-to-capture-places audits 2-5, MD8, tend walk-screen 13, MS3 and the native-map-frames guard are re-held on the new
-code. `check:test-first` reads 9 of 12: in the tests-first commit (`4ec84b7`), the comments "(CA1-CA8)" and "(CA2)" sit
-on the line after a real `check(`, which the script joins to it, so CA1, CA2 and CA8 read as real there. Their todos
-(lines 307, 403 and 405 of that commit) did come first. The walk journey's render budget sets the new card taps (steps
+code. `check:test-first` read 9 of 12 at first: comments naming CA1, CA2 and CA8 on the line after a real `check(` were
+read as real tests. `fix test-first-comments` (main, `7166c99`) made the script read no comment as a test; it reads 12 of 12. The walk journey's render budget sets the new card taps (steps
 14 and 27) aside and says both rates: 1.84/s without them (1.78 to 1.91 before), 2.04/s with them.
 
 Native: the card's row, the stamp's place through the camera, recorder and note page, and the found pin's tap have

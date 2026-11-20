@@ -1,0 +1,133 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "remove",
+        "tap Capture here, then take a photo",
+        "--reason",
+        "capture-at-a-place (decision 0246) replaced Capture here with the card's own capture row; its checks are the CA items below"
+      ],
+      "target": "sha256:16a787b548255b8c50c4f3b7b88c53d0e0f45107582b12c9919f9640048cfd42"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Explore in a dense city (DC1-DC19, decision 0156)"
+      ],
+      "body": "- [ ] **Do:** on a phone, on a walk with Places on, stand within 60 m of a named place, tap its pin, then Camera on its card and take a photo. **Expect:** the card shows Camera, Voice and Note in one row above a secondary Route here; the card closes, the system camera opens, the photo is kept and the place's pin turns found with a photo; nothing says \"the next moment\". (CA1, CA1b, CA2, capture-at-a-place)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Explore in a dense city (DC1-DC19, decision 0156)"
+      ],
+      "body": "- [ ] **Do:** on a phone, on another named place's card, tap Voice and save the memo with Stop; on a third, tap Note, write a line and keep it. **Expect:** the memo records with the stack's Save and Discard and its place turns found with a voice memo; the note's page opens and its place turns found with a note. A memo discarded or a note closed empty finds nothing. (CA3, CA4, CA7, capture-at-a-place)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Explore in a dense city (DC1-DC19, decision 0156)"
+      ],
+      "body": "- [ ] **Do:** on a phone, tap a found place's pin (where the pin of the moment that found it sits close by, try both). **Expect:** the found pin opens its card with \"Moments here\", the newest three in words, each opening its moment, and the capture row within 60 m; the moment's own pin still opens the moment. A note from that card leaves the pin's glyph as it was and leads the list the next time. (CA11, CA12, capture-at-a-place) The found pin is drawn full size in its green with its name (ui 5): check the name reads and the pin opens its card where a moment pin stands beside it.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Capture at a place (CA1-CA12, decision 0246)",
+        "--new"
+      ],
+      "body": "- A found place's card lists its moments by spot, within 60 m (the owner's call, decision 0240): in a dense street a moment about the place next door is listed too; its words say \"Moments here\", never \"about it\". A stored link per moment would tell them apart; the owner chose none.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Capture at a place (CA1-CA12, decision 0246)"
+      ],
+      "body": "- Past the newest three, a found place's moments are not on its card; Chronicle and the map hold them. A \"more\" line would need words for how many, which counts would make a score.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Capture at a place (CA1-CA12, decision 0246)"
+      ],
+      "body": "- A found pin and the pin of a moment near it can overlap at walking zoom. The found pin is now drawn full size with its name (ui 5) and takes taps on a place's tap room (ui 4); it sits under the moments' pins on the web, so a moment drawn over it keeps its tap, and the found card's lines open the same moments. Not measured on a phone (docs/NATIVE_UNVERIFIED.md).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Capture at a place (CA1-CA12, decision 0246)"
+      ],
+      "body": "- A found card says each moment's day and part of day (\"A video, this afternoon\"), not its minutes into a walk as the owner's example had: minutes in mean little across walks (tend map T28's words); a default the owner can overrule.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Capture at a place (CA1-CA12, decision 0246)"
+      ],
+      "body": "- [loop] From the UI review (Nov 20, low, U4): at 320 px \"Camera\" fills its button edge to edge; at 200% text it would be cut. The row needs a picture at 200% text and buttons that grow taller, wrapping only between words.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Capture at a place (CA1-CA12, decision 0246)"
+      ],
+      "body": "- [loop] From the UI review (Nov 20, low, U5): the place card's Close is an unlabelled X in the bottom row beside Route here (T5, matrix 23 put Close top right). It predates this slice; every walk card shares it.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Capture at a place (CA1-CA12, decision 0246)"
+      ],
+      "body": "- [loop] From the UI review (Nov 20, low, U6): a note has two glyphs, the document (the stack, the card's row) and the pencil in a square (the Add to this moment pill, note pins). It predates this slice.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Capture at a place (CA1-CA12, decision 0246)"
+      ],
+      "body": "- [loop] From the UI review (Nov 20, low, U9, opinion): the card can cover the place it describes (the pin and its label under the card at 320). Panning the map so the pin sits above the card would keep the two together.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Capture at a place (CA1-CA12, decision 0246)"
+      ],
+      "body": "- [loop] From the cold find (Nov 20, low): \"Camera\" says nothing of video; its spoken name does (\"a photo or video\"), as the stack's does.\n"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "add",
+        "--top"
+      ],
+      "body": "| Capture at a place (a place's card carries Camera, Voice and Note within 60 m: a capture begun there finds the place, nothing armed, no \"next moment\"; Route here secondary there; a found place's pin opens its card again, \"Moments here\" by spot, newest three in words, and the row; CA1-CA12, decision 0246, amends 0224, TC3 and TC4 retired) | built; web only | tests first, then the code, 2026-11-20 (`check:test-first` 12 of 12 since fix test-first-comments) | `specs/capture-at-a-place/spec.md` | UI review and cold find, 2026-11-20: 3 fixed (ui 2-4), 1 fixed before it (ui 1), 5 deferred, 2 rejected (one by the owner), 1 built on the owner's answer (ui 5) |\n"
+    }
+  ]
+}
