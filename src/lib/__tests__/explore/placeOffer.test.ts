@@ -157,3 +157,10 @@ test('PO11: the words are plain: no exclamation, no reminder, no hurry', async (
   for (const s of [offerLine(one), offerLine(two), offerLabels(one).yes ?? '', offerLabels(one).leave])
     assert.ok(!/!|don.t forget|remember to|now\b|quick/i.test(s), s);
 });
+
+test('moment-assignment-fallback ui 2: with several places the line asks to tap one, never "it"', { todo: 'test first' }, async () => {
+  const { offerFor, offerLine } = await api();
+  const offer = offerFor(moment(), { ...none, items: [item('Clock Tower', m(10, 5)), item('Corn Exchange', m(-25, 0))] });
+  assert.ok(offer);
+  assert.equal(offerLine(offer), 'Was this photo about Clock Tower or Corn Exchange? Tap one on the map.');
+});

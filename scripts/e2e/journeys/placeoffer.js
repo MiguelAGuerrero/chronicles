@@ -101,6 +101,18 @@ async function run(h) {
 
     await pg.click('[data-testid=place-offer-yes]').catch(() => {});
     const found = await pg.waitForSelector('[data-testid=found-line]', { timeout: 5000 }).then((e) => e.innerText(), () => '');
+    // The UI review's U2: settled, the line is the toast's solid ink; U6: its Undo is the app's Undo button, not a link.
+    await pg.waitForTimeout(800);
+    const look = await pg.evaluate(() => {
+      const line = document.querySelector('[data-testid=found-line]');
+      const undo = document.querySelector('[data-testid=found-undo]');
+      let o = 1;
+      for (let e = line; e; e = e.parentElement) o *= Number(getComputedStyle(e).opacity);
+      const text = undo?.querySelector('div[dir], div') ?? undo;
+      return { bg: line && getComputedStyle(line).backgroundColor, o, underline: text ? getComputedStyle(text).textDecorationLine : null, undoBg: undo && getComputedStyle(undo).backgroundColor };
+    });
+    check.todo(look.bg === 'rgb(29, 36, 48)' && look.o === 1, `moment-assignment-fallback ui 3: the Found line, settled, is solid ink (${JSON.stringify(look)})`);
+    check.todo(look.underline === 'none' && look.undoBg !== 'rgba(0, 0, 0, 0)', `moment-assignment-fallback ui 4: its Undo is a filled button as the app's other Undo, not underlined text (${JSON.stringify(look)})`);
     check(/Found: Hessian Memorial/.test(found) && /Undo/.test(found) && (await lineGone()),
       `PO1: Yes ties it: "Found: Hessian Memorial" with Undo, and the line goes (${found.replace(/\n/g, ' ')})`);
     check((await pins()).includes('Found with a photo: Hessian Memorial, History'), 'PO9: the same find Capture here makes: the pin is found with the photo\'s glyph');
@@ -149,7 +161,7 @@ async function run(h) {
 
     await photo();
     const said = await lineText();
-    check(said?.startsWith('Was this photo about North Spire or South Spire? Tap it on the map.') && !/Yes/.test(said) && !/Far Cross/.test(said),
+    check(said?.startsWith('Was this photo about North Spire or South Spire? Tap one on the map.') && !/Yes/.test(said) && !/Far Cross/.test(said),
       `PO3: two places within 30 m are named nearest first; the one at 42 m is not (${said})`);
     const labels = await pins();
     check(labels.includes('North Spire, History. Tie this photo to it') && labels.includes('South Spire, History. Tie this photo to it')
@@ -165,6 +177,12 @@ async function run(h) {
         return !!hit && e.contains(hit);
       }));
     check(onTop.length === 2 && onTop.every(Boolean), `PO3: each choice stands over the moments' pins, so a tap meets it (${JSON.stringify(onTop)})`);
+    // The UI review's U1 and the cold find: the middle of a row writes no name, so a choice there was a nameless ring.
+    const choiceNames = await pg.evaluate(() => [...document.querySelectorAll('.maplibregl-map [data-testid=mark-pin]')]
+      .filter((e) => /Tie this photo to it$/.test(e.getAttribute('aria-label') ?? ''))
+      .map((e) => e.innerText.trim()));
+    check.todo(choiceNames.length === 2 && choiceNames.includes('North Spire') && choiceNames.includes('South Spire'),
+      `moment-assignment-fallback ui 1: every choice writes its name on the map (${JSON.stringify(choiceNames)})`);
     await shot(pg, 'po-03-several');
     await pin('Far Cross').click().catch(() => {});
     const card = await pg.waitForSelector('[data-testid=mark-card]', { timeout: 5000 }).then(() => true, () => false);
