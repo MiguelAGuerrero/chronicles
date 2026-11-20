@@ -23,9 +23,13 @@ paths:
   (`useEditAfterCapture`, `editAfter` and `editingOf` in `lib/editOffer`), a
   piece added to an open moment on that piece (`facedAt`). It says "Photo
   kept" until the first edit and names ✕ for what it does (`keptWords`,
-  `justKept`); none opens while the walk is stopping or the bar goes back
-  (each host's guard, read from the syntax tree by `editAfterCapture.test.ts`);
-  in Memories' composer it is an overlay inside the composer's Modal. Its state is `editSession` (core): Done
+  `justKept`; not beside Draw's Undo and Redo, audit 8); none opens while the
+  walk is stopping or has ended, or once the bar has asked for the walk screen
+  (each host's guard, read from the syntax tree by `editAfterCapture.test.ts`;
+  the bar's `back` and `photo` run there in a phone's order, audit 5). It is
+  keyed by `piece_id` (a moment's pieces share its id, audit 9). In Memories'
+  composer it is an overlay inside the composer's Modal, the field blurred under
+  it and focused again after (audit 7). Its state is `editSession` (core): Done
   with no change writes nothing; Close with changes asks. After Done on a
   photo, the small copy is remade from a bake without the caption.
 - **The viewer unmounts the shown capture while the editor is up.** On the

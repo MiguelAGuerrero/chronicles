@@ -85,6 +85,8 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
   // A photo still being kept: Return waits for it, so the walk screen opens with it (NV9).
   const keeping = useRef<Promise<unknown> | null>(null);
   const returning = useRef(false);
+  // Up once the way back has asked for the walk screen, and never lowered: the bar is going (audit 5).
+  const wentBack = useRef(false);
   const [reminder, setReminder] = useState<Faced[] | null>(null);
 
   useEffect(() => {
@@ -175,6 +177,7 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
       if (!goesBack(false)) return;
       feedback('tap');
       showWalk();
+      wentBack.current = true;
     } finally {
       returning.current = false;
     }
@@ -188,9 +191,9 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
     if (!kept) return;
     feedback('tap');
     setSaid(null);
-    // Not while the walk is stopping from the bar, nor while the bar goes back to the walk: the replay or the walk screen
-    // would take the editor with the bar (tend tabs audit 19; fix edit-after-capture audit 3).
-    if (!returning.current && !barStopping(barStop.get(), walk.id, Date.now())) editAfter.open(kept);
+    // Not while the walk is stopping or has ended, nor once the bar goes back to the walk: the replay or the walk screen
+    // would take the editor with the bar (tend tabs audit 19; fix edit-after-capture audits 3, 5, 6).
+    if (!returning.current && !wentBack.current && !barStopping(barStop.get(), walk.id, Date.now()) && !unsaved.hasEnded(walk.id)) editAfter.open(kept);
   };
 
   const stop = async () => {
@@ -309,7 +312,7 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
         </HoldButton>
       </View>
       {editing && (
-        <MediaEditor key={editing.id} capture={editing} justKept initialTool="crop" onClose={() => editAfter.close()} onSave={(patch) => cap.setEdit(editing, patch)} />
+        <MediaEditor key={editing.piece_id} capture={editing} justKept initialTool="crop" onClose={() => editAfter.close()} onSave={(patch) => cap.setEdit(editing, patch)} />
       )}
     </View>
     </View>

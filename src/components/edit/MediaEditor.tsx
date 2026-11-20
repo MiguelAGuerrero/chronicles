@@ -190,8 +190,9 @@ export const MediaEditor = forwardRef<MediaEditorHandle, {
             </Pressable>
           </>
         )}
-        {kept && empty ? (
-          // Until the first edit, where Revert has nothing to revert: the shot is already kept (audit 1).
+        {kept && empty && s.tool !== 'draw' ? (
+          // Until the first edit, where Revert has nothing to revert: the shot is already kept (audit 1). Not beside Draw's
+          // Undo and Redo, where it would not fit a 320 px phone and the first stroke would move them (audit 8).
           <Text testID="edit-kept" style={styles.kept} accessibilityLiveRegion="polite" numberOfLines={1}>{kept.line}</Text>
         ) : (
           <Pressable testID="edit-revert" accessibilityRole="button" accessibilityLabel="Revert to original" accessibilityState={{ disabled: empty }} disabled={empty} onPress={() => dispatch({ type: 'revert' })} style={[styles.textBtn, empty && styles.dim]} hitSlop={6}>

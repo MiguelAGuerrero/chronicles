@@ -478,8 +478,9 @@ function WalkScreen(props: { onMinimize: () => void }) {
     const kept = await cap.takePhoto(into);
     if (!kept) return;
     feedback('tap');
-    // Not while the walk is stopping: the replay would cover or take the editor (audit 3).
-    if (!stoppingNow.current) editAfter.open(kept);
+    // Not while the walk is stopping, or once it has ended (a save that outlasted Stop's wait): the replay would cover or
+    // take the editor (audits 3, 6).
+    if (!stoppingNow.current && !(walk && unsaved.hasEnded(walk.id))) editAfter.open(kept);
   }
 
   async function startVoice(into: string | null = null) {
@@ -1982,7 +1983,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
         }}
       />
       {editing && (
-        <MediaEditor key={editing.id} capture={editing} justKept initialTool="crop" onClose={() => editAfter.close()} onSave={(patch) => cap.setEdit(editing, patch)} />
+        <MediaEditor key={editing.piece_id} capture={editing} justKept initialTool="crop" onClose={() => editAfter.close()} onSave={(patch) => cap.setEdit(editing, patch)} />
       )}
       {memory && memoryShown.length > 0 && !spot && !recordingVoice && (
         <View style={[styles.spotRow, cardAt]} pointerEvents="box-none">

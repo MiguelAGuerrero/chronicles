@@ -28,9 +28,9 @@ review added within them (the rest):
   Memories a second photo joins the open entry by default, JN15, and stayed two taps away).
 - The editor says the shot is kept ("Photo kept", where the disabled Revert sits until the first edit) and its ✕ is
   named "Close, the photo stays as it is" (audit 1), so ✕ never reads as "throw it away".
-- No editor opens while the walk is stopping (the walk screen's Stop, the bar's) or while the bar goes back to the walk
-  (0149's tend tabs audit 19 kept; audit 3). In Memories' composer it is drawn inside the composer's Modal, never over
-  it (audit 4).
+- No editor opens while the walk is stopping or once it has ended (the walk screen's Stop, the bar's), or once the bar
+  has asked for the walk screen (0149's tend tabs audit 19 kept; audits 3, 5, 6). In Memories' composer it is drawn
+  inside the composer's Modal, never over it, the field letting go of its focus meanwhile (audits 4, 7).
 - The other places a photo is taken (the walk planner's capture stack, Respond in the viewer, the note page's camera)
   were not in the question: they open none, and the owner is asked (`docs/STATUS.md`, "From /fix").
 
