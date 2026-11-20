@@ -453,10 +453,32 @@ async function checks(h) {
           });
           return { w: Math.round(b?.width ?? 0), h: Math.round(b?.height ?? 0), pins };
         });
+        // capture-at-a-place ui 5 (the owner, Nov 20: "Drawn with its name"): the found pin is a place's size, its name beside it.
+        const drawn = await page.evaluate(() => {
+          const found = document.querySelector('.maplibregl-map [aria-label^="Found with"]');
+          const head = found?.querySelector('[data-testid^=found-kind-]')?.parentElement?.getBoundingClientRect();
+          return { head: Math.round(head?.width ?? 0), text: (found?.textContent ?? '').replace(/[^\x20-\x7e]/g, '').trim() };
+        });
+        check(drawn.head >= 34 && drawn.text.includes('Hessian Memorial'), `capture-at-a-place ui 5: the found pin is drawn at a place's size, with its name (${JSON.stringify(drawn)})`);
         check(hits.w >= 44 && hits.h >= 44 && hits.pins.length > 0 && hits.pins.every(Boolean),
           `capture-at-a-place ui 4: the found pin takes taps on 44 px or more, and the moment pins keep theirs (${JSON.stringify(hits)})`);
+        // A person taps the part of the found pin that shows: a moment's pin may stand over the rest of it (ui 4).
+        const tapFound = async () => {
+          const at = await page.evaluate(() => {
+            const f = document.querySelector('.maplibregl-map [aria-label="Found with a video: Hessian Memorial, History"]');
+            const b = f?.getBoundingClientRect();
+            if (!f || !b) return null;
+            for (let y = b.top + 4; y < b.bottom; y += 4)
+              for (let x = b.left + 4; x < b.right; x += 4) {
+                const top = document.elementFromPoint(x, y);
+                if (top && f.contains(top)) return { x, y };
+              }
+            return null;
+          });
+          if (at) await page.mouse.click(at.x, at.y);
+        };
         // CA11: the found pin opens its card, which lists the moments taken here, in words, and offers the row again.
-        await page.locator('[aria-label="Found with a video: Hessian Memorial, History"]').first().click().catch(() => {});
+        await tapFound();
         const foundCard = await page.waitForSelector('[data-testid=mark-moment]', { timeout: 5000 }).then(() => true, () => false);
         await page.waitForTimeout(800);
         await shot(page, '03i-found-card');
@@ -469,17 +491,13 @@ async function checks(h) {
         check(opened, 'CA11: a line on the found card opens its moment in the viewer');
         if (opened) await page.locator('[data-testid=viewer-close]').filter({ visible: true }).first().click();
         // CA12: a note from the found card is a plain moment there: no second find, listed the next time the card opens.
-        await page.locator('[aria-label="Found with a video: Hessian Memorial, History"]').first().click().catch(() => {});
+        await tapFound();
         await page.click('[data-testid=mark-note]', { timeout: 5000 }).catch(() => {});
         await page.fill('[data-testid=note-input]', 'The memorial again, in the rain.').catch(() => {});
         await page.click('[data-testid=note-done]').catch(() => {});
         await page.waitForSelector('[data-testid=note-page]', { state: 'detached', timeout: 5000 }).catch(() => {});
         const stillFound = await page.$$eval('.maplibregl-map [aria-label^="Found"]', (es) => es.map((e) => e.getAttribute('aria-label')));
-        // The note's pin, taken some 30 m away, can stand over most of the found pin at this zoom (the overlap the plan names):
-        // a person taps the part still showing, its right edge with the video's badge.
-        const fp = page.locator('[aria-label="Found with a video: Hessian Memorial, History"]').first();
-        const fb = await fp.boundingBox().catch(() => null);
-        if (fb) await page.mouse.click(fb.x + fb.width - 4, fb.y + 6);
+        await tapFound();
         // The card's list is read as it opens: wait for its lines, not only its heading.
         await page.waitForSelector('[data-testid=mark-moment]', { timeout: 5000 }).catch(() => {});
         const after = await page.locator('[data-testid=mark-moment]').allInnerTexts().catch(() => []);
@@ -504,16 +522,18 @@ async function checks(h) {
         // this note's moments. The memorial's found pin takes its own taps since capture-at-a-place (CA11), as every pin
         // does, so the spot is chosen clear of it rather than fixed beside it.
         const spot = await page.evaluate(({ cx, cy }) => {
+          // Every moment pin but this note's: the memo and the video, wherever this run's timing put them.
           const feet = [...document.querySelectorAll('.maplibregl-map [aria-label$=". Open"]')]
-            .filter((e) => /^(A voice memo and a video|Voice memo|Video), /.test(e.getAttribute('aria-label') ?? ''))
+            .filter((e) => !/^Note, /.test(e.getAttribute('aria-label') ?? '') && (e.matches('[data-ids]') || e.querySelector('[data-ids]')))
             .map((e) => { const r = e.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.bottom }; });
-          for (let i = 0; i < 24; i++) {
-            const a = (i / 24) * 2 * Math.PI;
-            const p = { x: cx + 30 * Math.cos(a), y: cy + 30 * Math.sin(a) };
-            const el = document.elementFromPoint(p.x, p.y);
-            if (!el || el.tagName !== 'CANVAS') continue;
-            if (feet.every((f) => Math.hypot(f.x - p.x, f.y - p.y) > 56)) return p;
-          }
+          for (const r of [24, 30, 36, 40])
+            for (let i = 0; i < 36; i++) {
+              const a = (i / 36) * 2 * Math.PI;
+              const p = { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) };
+              const el = document.elementFromPoint(p.x, p.y);
+              if (!el || el.tagName !== 'CANVAS') continue;
+              if (feet.every((f) => Math.hypot(f.x - p.x, f.y - p.y) > 50)) return p;
+            }
           return { x: cx - 30, y: cy + 10 };
         }, { cx: box.x + box.width / 2, cy: box.y + box.height / 2 });
         await page.mouse.click(spot.x, spot.y);

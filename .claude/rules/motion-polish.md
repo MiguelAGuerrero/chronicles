@@ -52,7 +52,7 @@ Animation and haptics: the motion tokens, reduce motion, presses, the sheet spri
   - A selected star settles from 85%.
   - A new capture's pin drops 12 px.
   - A revealed "?" turns in a quarter turn.
-  - A find grows a ring that fades; the pin stays still and lets taps through.
+  - A find grows a ring that fades; the pin stays still (since capture-at-a-place it takes taps: it opens its card).
   - On web, a map rebuilds a marker on every change, so the map decides
     (`markEnter`, `starEnter`, `pinDrops` against what it showed before).
   - On native, the map keeps what was shown in state. A star's view stays

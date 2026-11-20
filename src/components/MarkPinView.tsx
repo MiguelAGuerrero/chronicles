@@ -51,7 +51,7 @@ export function MarkPinView({ pin, enter, below = 0 }: { pin: MarkPin; enter?: E
   const body = <MarkBody pin={pin} below={below} />;
   if (kind === 'flip' || kind === 'pulse')
     return (
-      <Enter kind={kind} ring={[styles.ringAt, pin.found && styles.ringFound]}>
+      <Enter kind={kind} ring={styles.ringAt}>
         {body}
       </Enter>
     );
@@ -84,13 +84,14 @@ function Leg({ spread, below }: { spread: MarkSpread; below: number }) {
 
 function MarkBody({ pin, below }: { pin: MarkPin; below: number }) {
   const shown = pin.revealed || pin.found;
-  const named = shown && !pin.faint && !pin.found && !pin.nameHidden;
+  // A found place writes its name too (capture-at-a-place ui 5, the owner, Nov 20: "Drawn with its name").
+  const named = shown && !pin.faint && !pin.nameHidden;
   const side = pin.spread ? pin.spread.side : 'below';
   return (
-    <View style={[styles.wrap, pin.faint && styles.faint, pin.found && styles.wrapFound]} pointerEvents="none">
+    <View style={[styles.wrap, pin.faint && styles.faint]} pointerEvents="none">
       {pin.spread && <Leg spread={pin.spread} below={below} />}
       <View style={[styles.head, pin.found && styles.headFound]}>
-        {shown ? <Icon name={pin.icon} size={pin.found ? 13 : 18} color="#ffffff" /> : <Text style={styles.q}>?</Text>}
+        {shown ? <Icon name={pin.icon} size={18} color="#ffffff" /> : <Text style={styles.q}>?</Text>}
         {pin.found && pin.foundKind && (
           <View style={styles.badge} testID={`found-kind-${KIND_ICON[pin.foundKind]}`}>
             <Icon name={KIND_ICON[pin.foundKind]} size={11} color={FOUND_COLOR} />
@@ -145,13 +146,12 @@ const styles = StyleSheet.create({
   },
   q: { color: '#ffffff', fontSize: 19, fontWeight: '800', lineHeight: 22 },
   faint: { opacity: 0.45 },
-  // Smaller than a "?", and without a name: a find is a quiet note on the map, not a target (audit, UI).
-  wrapFound: { width: 26, height: 32 },
-  headFound: { backgroundColor: FOUND_COLOR, width: 24, height: 24, borderRadius: 7 },
+  // A place's size, in the found green, with its name: its pin opens its card (capture-at-a-place ui 5, the owner's call;
+  // it was smaller and nameless when it let taps through, audit, UI).
+  headFound: { backgroundColor: FOUND_COLOR },
   stemFound: { backgroundColor: FOUND_COLOR },
   // A find's ring grows from the head (M12).
   ringAt: { top: 0, left: 1, width: 34, height: 34, borderRadius: 9 },
-  ringFound: { left: 1, width: 24, height: 24, borderRadius: 7 },
   // The kept moment's glyph on a white disc at the head's corner, where a tick was (O26).
   badge: {
     position: 'absolute', right: -6, top: -6, width: 16, height: 16, borderRadius: 8, backgroundColor: '#ffffff',

@@ -28,6 +28,8 @@ Open: none (the owner's four answers, Nov 20).
 - One camera button (photo or video, the system camera), then Voice, then Note: the capture stack's kinds.
 - Only within 60 m of the place, as before; farther, the card says so in words.
 - The card closes once a capture starts; more pieces go through the usual "Add to this moment" pill.
+- A found place's pin is drawn full size, with its name (Nov 20, after the UI review's U2: "Drawn with its name").
+- A memo begun on the card keeps the timer pill as it is (Nov 20, the UI review's U7: "keep it as is").
 - A found place offers the row again (steward S4, the owner's answer): its pin opens its card, which lists the moments
   taken here, in words, each opening it.
 - No new stored link (the owner, after an audit of `moment` and `find`): a moment already keeps its spot, so a found
@@ -94,7 +96,8 @@ marker a found card belongs to.
 - U1 (medium; and the cold find's two mics): the card's line now names the card's own buttons: "Camera, Voice or
   Note here keeps the moment with <place>." **Fixed**, `ui 2`.
 - U2 (medium): the found pin answered only on its own 20-odd px. **Fixed**, `ui 4`: 44 px round its head, under the
-  moments' pins, which keep their taps. Its look (small, nameless) is **for the owner** (docs/STATUS.md).
+  moments' pins, which keep their taps. Its look: the owner, Nov 20, "Drawn with its name": full size in the found green, with its name,
+  `ui 5` (its name joins the rule that hides stacked names; it still never spreads).
 - U3 (medium): moments from a minute ago read "late last night". **Fixed**, `ui 3`: a moment of the walk in progress
   is "on this walk".
 - U4 (200% text), U5 (the X beside Route here, older than this slice), U6 (two note glyphs, older), U9

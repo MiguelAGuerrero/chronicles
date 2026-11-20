@@ -1405,10 +1405,10 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         el.setAttribute('aria-hidden', 'true');
         el.tabIndex = -1;
       }
-      // A found place opens its card again, with the moments taken there (capture-at-a-place CA11): its small head answers
-      // on 44 px round it (ui 4: padding about the 26 x 32 pin, its foot where it was), and it is put under every other
-      // marker below, so a moment's pin drawn over it still takes its own tap.
-      el.style.cssText = pin.found ? 'background:none;border:0;padding:12px 9px 0;cursor:pointer' : 'background:none;border:0;padding:4px 6px 0;cursor:pointer';
+      // A found place opens its card again, with the moments taken there (capture-at-a-place CA11), drawn as a place is
+      // and with a place's tap room (ui 4, ui 5); it is put under the moments' pins below, so one drawn over it still takes
+      // its own tap.
+      el.style.cssText = 'background:none;border:0;padding:4px 6px 0;cursor:pointer';
       const id = pin.id;
       el.addEventListener('click', (e) => {
         e.stopPropagation();

@@ -612,7 +612,6 @@ const styles = StyleSheet.create({
   cover: { ...StyleSheet.absoluteFill, backgroundColor: COLORS.veil },
   // A 48 pt target around the 36 pt pin.
   pinHit: { paddingHorizontal: 6, paddingTop: 4 },
-  foundHit: { paddingHorizontal: 9, paddingTop: 12 },
 });
 
 /**
@@ -1052,8 +1051,8 @@ const MarkMarkers = memo(function MarkMarkers({ marks, zoom, bearing, spread, se
         importantForAccessibility={pin.quiet ? 'no-hide-descendants' : 'auto'}
         accessibilityRole="button"
         accessibilityLabel={markLabel(pin)}
-        // A found pin answers on 44 pt round its small head (capture-at-a-place ui 4).
-        style={pin.found ? styles.foundHit : styles.pinHit}
+        // A found pin is drawn and answers as a place's does (capture-at-a-place ui 4, ui 5).
+        style={styles.pinHit}
       >
         <MarkPinView pin={pin} enter={seen.size ? markEnter(markFrom(seen.get(pin.id)), pin) : null} />
       </View>

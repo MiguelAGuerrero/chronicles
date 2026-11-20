@@ -24,8 +24,18 @@ test('fix mark-names audit 1: the order the marks arrive in never changes which 
   assert.deepEqual(hid([b, a]), ['b']);
 });
 
-test('fix mark-names audit 4: a found or faint mark never gets nameHidden', () => {
+// A found mark was small and nameless, so it never hid a name; since capture-at-a-place ui 5 (the owner, Nov 20: "Drawn
+// with its name") it writes its name, and two names that would stack show one, as any two do. A faint mark still has none.
+test('fix mark-names audit 4: a faint mark never gets nameHidden', () => {
   const a = mark('a', [-75.4, 40.6], 'Da Vinci Science Center');
-  const f = { ...mark('b', [-75.4, 40.6], 'Found'), found: true };
-  assert.ok(declutterMarks([a, f], 18).every((m) => !m.nameHidden));
+  const w = { ...mark('b', [-75.4, 40.6], 'On the way'), faint: true };
+  assert.ok(declutterMarks([a, w], 18).every((m) => !m.nameHidden));
+});
+
+test('capture-at-a-place ui 5: a found mark writes its name, and two that would stack show one', () => {
+  const a = mark('a', [-75.4, 40.6], 'Da Vinci Science Center');
+  const f = { ...mark('b', [BESIDE, 40.6], 'Cetronia PPL Pavilion'), found: true };
+  const out = declutterMarks([a, f], 18);
+  assert.deepEqual(out.map((m) => !!m.nameHidden), [false, true]);
+  assert.ok(declutterMarks([{ ...f, at: [-75.39, 40.6] as [number, number] }], 18).every((m) => !m.nameHidden), 'alone, its name shows');
 });

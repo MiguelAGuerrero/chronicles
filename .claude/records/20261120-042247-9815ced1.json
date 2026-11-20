@@ -1,0 +1,48 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "section",
+        "item",
+        "remove",
+        "From /slice capture-at-a-place",
+        "The found pin's look",
+        "--reason",
+        "the owner, Nov 20: \"Drawn with its name\"; built as capture-at-a-place ui 5"
+      ],
+      "target": "sha256:77ddbdeb37652630edf7c3a3dad8e1cda802f69f3bf704cd2da3b3b5df9f16bb"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "set",
+        "A found pin and the pin of the moment that found it can overlap",
+        "--reason",
+        "the owner drew the found pin full size with its name (ui 5)"
+      ],
+      "body": "- A found pin and the pin of a moment near it can overlap at walking zoom. The found pin is now drawn full size with its name (ui 5) and takes taps on a place's tap room (ui 4); it sits under the moments' pins on the web, so a moment drawn over it keeps its tap, and the found card's lines open the same moments. Not measured on a phone (docs/NATIVE_UNVERIFIED.md).\n",
+      "target": "sha256:de950fb5ac067609ddf4f9c2453ce5658b204443311f5056987175637f3210d0"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "set",
+        "Capture at a place (a place"
+      ],
+      "body": "| Capture at a place (a place's card carries Camera, Voice and Note within 60 m: a capture begun there finds the place, nothing armed, no \"next moment\"; Route here secondary there; a found place's pin opens its card again, \"Moments here\" by spot, newest three in words, and the row; CA1-CA12, decision 0240, amends 0224, TC3 and TC4 retired) | built; web only | tests first, then the code, 2026-11-20 (`check:test-first` 9 of 12: CA1, CA2 and CA8 read as real in the tests-first commit from comments on the line after a `check(`) | `specs/capture-at-a-place/spec.md` | UI review and cold find, 2026-11-20: 3 fixed (ui 2-4), 1 fixed before it (ui 1), 5 deferred, 2 rejected (one by the owner), 1 built on the owner's answer (ui 5) |\n",
+      "target": "sha256:ae8c7ed22be7e663ac276b82f95d37f35c2715b13c5a8dedcde5bb69008357b8"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "note",
+        "tap a found place's pin"
+      ],
+      "body": "The found pin is now drawn full size in its green with its name (capture-at-a-place ui 5): check the name reads and the pin opens its card where a moment pin stands beside it.\n",
+      "target": "sha256:eb5e878fc2b47c1d5d6fdb489ccf516e64456ed83868e713920808640f8d2983"
+    }
+  ]
+}

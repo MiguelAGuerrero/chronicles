@@ -117,8 +117,9 @@ Places of interest from the tiles, marks, checklists and finds (Explore), and Re
     (`stampFor`'s `place`; never on a piece). `useCaptures`' `onKept(id, piece, place)` hands it back, and the walk screen calls
     `explore.keptAtPlace`, which records the find only through `findOnKept` (a new moment, the place unfound; the first find stands).
     Nothing is armed: a cancelled camera, a discarded memo or a note closed empty leaves nothing waiting. **Trap:** the stamp is
-    the only carrier, so a capture path that builds its own stamp (not `stampNow`) never finds. A found pin takes taps again (web:
-    no padding, its head only; native: `onPress`) and opens its card: "Moments here" (`mark-moments`, `mark-moment`) lists the
+    the only carrier, so a capture path that builds its own stamp (not `stampNow`) never finds. A found pin takes taps again and is drawn as a
+    place is, full size in the found green with its name (ui 4, ui 5, the owner's "Drawn with its name"; its name joins
+    `hiddenNames`, it still never spreads), under the moments' pins on the web so theirs keep their taps, and opens its card: "Moments here" (`mark-moments`, `mark-moment`) lists the
     moments within 60 m by spot (`momentsHere`, `db.momentsIn(hereBounds)`; no stored link, the owner's call), newest three, in
     words (`momentHereLine`, `dayPartLine`'s words), and the row again; a capture from it is a plain moment. No chip, no
     loose-moment find, no inference from nearness.

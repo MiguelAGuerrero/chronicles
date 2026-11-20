@@ -16,6 +16,8 @@ the place, tap Capture here, read the line, then capture somewhere else.
 - The card closes once a capture starts. More pieces go through the usual "Add to this moment" pill.
 - A found place offers the row again (steward S4, the owner's "Offer the row again"). Its pin opens its card, which
   lists the moments taken here: newest first, three at most, each in words, each opening it, never counted.
+- A found place's pin is drawn as a place's is, full size in the found green, with its name (the UI review's U2, the
+  owner's "Drawn with its name"); it answers on a place's tap room, under the moments' pins.
 - No new stored link (the owner, after an audit of `moment` and `find`: "I'm not sure why we need a foreign key for
   this. What we're doing is capturing a moment"). A moment keeps its spot, so a found card lists the moments within
   60 m of the place, read by spot. A capture from a found card is a plain moment there. Only the first card capture at
@@ -25,6 +27,7 @@ the place, tap Capture here, read the line, then capture somewhere else.
 The place rides on the capture's stamp (`pieceStamp.stampFor`'s `place`), so a cancelled or discarded capture leaves
 nothing waiting, and a Retry of a held capture still finds. The found card lists by spot, so a moment about something
 next door within 60 m is listed too; its words say "Moments here", never "about it". No schema change: no SQLite
-migration, no IndexedDB version. A found pin takes taps again, which 0224's audit had made see-through. Where it
-overlaps the moment's own pin, the card's lines open the same moments. `specs/tap-to-capture-places` TC3 and TC4 are
+migration, no IndexedDB version. A found pin takes taps again and is drawn full size with its name, where 0224's audit had made it small,
+nameless and see-through. Where a moment's pin stands over it, the moment's pin keeps its tap and the card's lines open
+the same moments. `specs/tap-to-capture-places` TC3 and TC4 are
 retired (CA1-CA12 replace them).

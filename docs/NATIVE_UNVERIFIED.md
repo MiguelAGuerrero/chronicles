@@ -457,6 +457,7 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] **Do:** on a phone, on a walk with Places on, stand within 60 m of a named place, tap its pin, then Camera on its card and take a photo. **Expect:** the card shows Camera, Voice and Note in one row above a secondary Route here; the card closes, the system camera opens, the photo is kept and the place's pin turns found with a photo; nothing says "the next moment". (CA1, CA1b, CA2, capture-at-a-place)
 - [ ] **Do:** on a phone, on another named place's card, tap Voice and save the memo with Stop; on a third, tap Note, write a line and keep it. **Expect:** the memo records with the stack's Save and Discard and its place turns found with a voice memo; the note's page opens and its place turns found with a note. A memo discarded or a note closed empty finds nothing. (CA3, CA4, CA7, capture-at-a-place)
 - [ ] **Do:** on a phone, tap a found place's pin (where the pin of the moment that found it sits close by, try both). **Expect:** the found pin opens its card with "Moments here", the newest three in words, each opening its moment, and the capture row within 60 m; the moment's own pin still opens the moment. A note from that card leaves the pin's glyph as it was and leads the list the next time. (CA11, CA12, capture-at-a-place)
+  The found pin is now drawn full size in its green with its name (capture-at-a-place ui 5): check the name reads and the pin opens its card where a moment pin stands beside it.
 
 ## The web e2e's stand-ins
 
