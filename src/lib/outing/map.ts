@@ -52,3 +52,13 @@ export function outingHeld(
 ): { sheetH: number; width: number } {
   return hand && hand.content === content ? { sheetH: hand.sheetH, width: hand.width } : now;
 }
+
+/**
+ * What the outing map frames (tend map audit 52): what the journey asks (`useJourney`'s fit: the journey, or with a
+ * destination and no journey yet the destination's town), or with neither, where you stand, so the page's subject shows
+ * in the band above the sheet rather than whatever the map last showed.
+ */
+export function outingFrameBounds(o: { fit: Bounds | null; you: LngLat | null }): Bounds | null {
+  if (o.fit) return o.fit;
+  return o.you ? boundsOf([o.you], 250) : null;
+}

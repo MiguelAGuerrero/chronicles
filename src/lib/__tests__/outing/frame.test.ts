@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
-import { outingFrame, outingHeld, SCALE_ROW_H } from '../../outing/map';
+import { outingFrame, outingFrameBounds, outingHeld, SCALE_ROW_H } from '../../outing/map';
+import type { LngLat } from '../../types';
 
 // The outing page's map over its sheet (tend map 24 and the diff review's fixes, Nov 20).
 const SRC = join(__dirname, '..', '..', '..');
@@ -30,4 +31,15 @@ test('tend map audit 49: a sheet height change frames again only while the map w
   const moved = { content, sheetH: 300, width: 390 };
   assert.deepEqual(outingHeld(moved, content, { sheetH: 520, width: 390 }), { sheetH: 300, width: 390 }, 'held at the height the hand found');
   assert.deepEqual(outingHeld(moved, 'j2', { sheetH: 520, width: 390 }), { sheetH: 520, width: 390 }, 'a new journey frames afresh');
+});
+
+// tend map audit 52 (the diff review's ux U3): with no journey and no destination yet, the map frames where you stand
+// in the same band, rather than leaving it as it last was; a journey, or a destination's town, frames itself (useJourney).
+test('tend map audit 52: with no journey and no destination the outing map frames where you stand', () => {
+  const you: LngLat = [-71.4, 41.82];
+  assert.equal(outingFrameBounds({ fit: null, you: null }), null);
+  const near = outingFrameBounds({ fit: null, you })!;
+  assert.ok(near[0] < you[0] && near[2] > you[0] && near[1] < you[1] && near[3] > you[1], 'around you');
+  const fit = [1, 2, 3, 4] as [number, number, number, number];
+  assert.equal(outingFrameBounds({ fit, you }), fit, 'a journey, or a destination, frames itself');
 });

@@ -149,6 +149,19 @@ async function run(h) {
     check(seen.i != null && seen.sheetTop != null && seen.i <= seen.sheetTop && seen.top,
       `tend map audit 51: with nothing chosen yet, the outing map shows its credits (i) above the sheet (${JSON.stringify(seen)})`);
   }
+  // tend map audit 52 (the diff review's ux U3): with no journey yet, the map frames where you are in the band above the sheet.
+  {
+    await pg.waitForTimeout(1500);
+    const at0 = await pg.evaluate((p) => (window.__project ? window.__project(p) : null), here);
+    const band = await pg.evaluate(() => {
+      const sheet = document.querySelector('[data-testid=outing-sheet]')?.getBoundingClientRect();
+      const field = document.querySelector('[data-testid=outing-where]')?.getBoundingClientRect();
+      const bar = document.querySelector('[data-testid=outing-map] [data-testid=scale-bar]')?.getBoundingClientRect();
+      return { top: field ? Math.round(field.bottom) : null, bottom: bar ? Math.round(bar.top) : sheet ? Math.round(sheet.top) : null };
+    });
+    check(!!at0 && band.top != null && band.bottom != null && at0[1] > band.top && at0[1] < band.bottom && at0[0] > 0 && at0[0] < (pg.viewportSize()?.width ?? 0),
+      `tend map audit 52: with no journey yet, the outing map shows where you are between the field and the scale row (${JSON.stringify({ at: at0 && at0.map(Math.round), band })})`);
+  }
   // OJ1: the page is the map, with one field over it worded "Where to?"; nothing is proposed or read yet.
   const whereText = ((await pg.locator('[data-testid=outing-where-text]').innerText().catch(() => '')) ?? '').trim();
   const mapBox = await pg.locator('[data-testid=outing-map]').boundingBox().catch(() => null);

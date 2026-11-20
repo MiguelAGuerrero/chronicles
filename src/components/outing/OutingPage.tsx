@@ -6,7 +6,7 @@ import { distanceM } from '../../lib/geo';
 import type { Waypoint } from '../../lib/nav/types';
 import type { JourneyPlan } from '../../lib/outing/journeyPlan';
 import { ANOTHER_LABEL, BACK_LABEL, CHANGE_LABEL, CHIPS_LINE, DISMISS_LABEL, FOLLOW_LABEL, FURTHER_LABEL, HERE_LABEL, LATER_LABEL, LEAVE_OUT_LABEL, NEW_TOWN_LINE, MAPS_FAILED_LINE, NOWHERE_LABEL, RETRY_LABEL, STRAIGHT_LINE, TOWNS_FAILED_LINE, PEEK_LABEL, READ_FAILED_LINE, REACH_LINE, SEE_LABEL, TOO_FAR_LINE, TOWNS_LINE, UNDO_LABEL, UNFOUND_LINE, UNPEEK_LABEL, WHERE_LABEL, awayLine, cardSummary, chapterLine, laterLine, lookedLine, startLine, nextMoveLine, nothingLine, reachLabel, townLine } from '../../lib/outing/journeyWords';
-import { outingFrame, outingHeld } from '../../lib/outing/map';
+import { outingFrame, outingFrameBounds, outingHeld } from '../../lib/outing/map';
 import { useJourney } from '../../lib/outing/useJourney';
 import { CHAINS_LABEL, CLOSE_LABEL, HOURS_LINE, NO_PICK_LINE, READING_LINE, SLOT_HINT, START_LABEL, SWAP_LABEL, TITLE, cardLine, reasonLine, slotLine } from '../../lib/outing/words';
 import { hideTabs, modalsUp } from '../../lib/tabsHidden';
@@ -85,8 +85,10 @@ export function OutingPage(props: {
       if (Platform.OS === 'web' && typeof window !== 'undefined') window.removeEventListener('keydown', onKey);
     };
   }, []);
-  // What the map frames: the journey's fit.
-  const content = `${j.map.pins.length}|${(j.journey?.footM ?? 0) | 0}|${j.map.pins[0]?.join(',') ?? ''}|${j.dest?.at.join(',') ?? ''}|${j.journey?.leaning ?? ''}`;
+  // What the map frames: the journey's fit, or with no journey and no destination, where you stand (tend map audit 52).
+  const youKey = props.you ? props.you.map((v) => v.toFixed(4)).join(',') : '';
+  const content = `${j.map.pins.length}|${(j.journey?.footM ?? 0) | 0}|${j.map.pins[0]?.join(',') ?? ''}|${j.dest?.at.join(',') ?? ''}|${j.journey?.leaning ?? ''}|${j.map.fit ? '' : youKey}`;
+  const frameBounds = useMemo(() => outingFrameBounds({ fit: j.map.fit, you: props.you }), [j.map.fit, props.you]);
   // A map the person moved by hand keeps their move: a change of the sheet's height frames again only while the map is
   // still where its last fit left it (tend map audit 49). `hand` is the content and the frame they moved it over.
   const [hand, setHand] = useState<{ content: string; sheetH: number; width: number } | null>(null);
@@ -180,7 +182,7 @@ export function OutingPage(props: {
     <View style={[StyleSheet.absoluteFill, styles.over]} testID="outing" accessibilityViewIsModal>
       {/* The points of the line handed to the map, for the e2e: a road has more than the towns it joins (RE1). */}
       <View style={StyleSheet.absoluteFill} testID="outing-map" {...({ dataSet: { linkPoints: j.map.link[0]?.length ?? 0 } } as object)}>
-        <WalkMap trace={NONE} walked={NONE} fog={NONE} captures={NONE} walker={props.you} route={j.map.route} alternates={j.map.link} routeGrades={NONE} foundPins={j.map.pins} fitBounds={j.map.fit} fitKey={fitN} fitPadding={frame.padding} scaleInset={scaleInset} onUserMove={byHand} onFitSettled={fitSettled} onCameraChange={cameraMoved} hideLabels />
+        <WalkMap trace={NONE} walked={NONE} fog={NONE} captures={NONE} walker={props.you} route={j.map.route} alternates={j.map.link} routeGrades={NONE} foundPins={j.map.pins} fitBounds={frameBounds} fitKey={fitN} fitPadding={frame.padding} scaleInset={scaleInset} onUserMove={byHand} onFitSettled={fitSettled} onCameraChange={cameraMoved} hideLabels />
       </View>
       <View style={[styles.top, { top: insets.top + 8 }]}>
         <View style={styles.field}>
