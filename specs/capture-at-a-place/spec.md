@@ -99,6 +99,6 @@ marker a found card belongs to.
   is "on this walk".
 - U4 (200% text), U5 (the X beside Route here, older than this slice), U6 (two note glyphs, older), U9
   (the card over its pin), and the cold find's "Camera" without video: **deferred** (docs/DEFERRED.md).
-- U7 (a memo begun on the card shows only its timer): **for the owner**, a status line rather than the armed line
-  they ruled out.
+- U7 (a memo begun on the card shows only its timer): **rejected by the owner** (Nov 20, "keep it as is"): the timer pill
+  stays as it is, the live sign that the mic is recording, with no place name in it.
 - U8 (the 20 s refusal beside "Video saved here"): **rejected**, the journey's own order (a refused clip, then the kept one).

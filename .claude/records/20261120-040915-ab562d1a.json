@@ -1,0 +1,26 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "section",
+        "item",
+        "remove",
+        "From /slice capture-at-a-place",
+        "A memo begun on a place",
+        "--reason",
+        "the owner, Nov 20: keep the timer pill as it is (no place name in it); the pill is the live sign the mic is recording"
+      ],
+      "target": "sha256:32664ab0df3c8892edac363ffb7acfbb137c92c1d56e1fcbfe00dbf7699da9fc"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "set",
+        "Capture at a place (a place"
+      ],
+      "body": "| Capture at a place (a place's card carries Camera, Voice and Note within 60 m: a capture begun there finds the place, nothing armed, no \"next moment\"; Route here secondary there; a found place's pin opens its card again, \"Moments here\" by spot, newest three in words, and the row; CA1-CA12, decision 0240, amends 0224, TC3 and TC4 retired) | built; web only | tests first, then the code, 2026-11-20 (`check:test-first` 9 of 12: CA1, CA2 and CA8 read as real in the tests-first commit from comments on the line after a `check(`) | `specs/capture-at-a-place/spec.md` | UI review and cold find, 2026-11-20: 3 fixed (ui 2-4), 1 fixed before it (ui 1), 5 deferred, 2 rejected (one by the owner), 1 for the owner |\n",
+      "target": "sha256:cbe2bc890b00babd22bb7024c6c5123a313c56ed084b1cfc0dea912e1342d8d1"
+    }
+  ]
+}
