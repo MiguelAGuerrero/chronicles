@@ -126,6 +126,29 @@ async function run(h) {
   await pg.waitForSelector('[data-testid=outing]', { timeout: 15000 }).catch(() => {});
   check((await pg.locator('[data-testid=outing]').count()) === 1, 'QC1: one tap opens the page');
   await shot(pg, '02-page-empty');
+  // tend map audit 51 (the diff review's ux U2): with nothing chosen yet, the map already shows its credits (i) above the sheet.
+  {
+    // The sheet grows as the chips arrive: the (i) follows it, so it is read once it has caught up (or after 6 s). The page is
+    // brought to the front first: react-native-web measures a layout in an animation frame, which a page behind another
+    // never gets, so a sheet that grew while the shot was taken was never measured.
+    await pg.bringToFront();
+    await pg.waitForFunction(() => {
+      const b = document.querySelector('[data-testid=outing-map] .maplibregl-ctrl-attrib-button')?.getBoundingClientRect();
+      const sheet = document.querySelector('[data-testid=outing-sheet]')?.getBoundingClientRect();
+      return !!b && !!sheet && b.width > 0 && b.bottom <= sheet.top;
+    }, null, { timeout: 6000 }).catch(() => {});
+    const seen = await pg.evaluate(() => {
+      const b = document.querySelector('[data-testid=outing-map] .maplibregl-ctrl-attrib-button')?.getBoundingClientRect();
+      const sheet = document.querySelector('[data-testid=outing-sheet]')?.getBoundingClientRect();
+      const hit = b ? document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2) : null;
+      const ctl = document.querySelector('[data-testid=outing-map] .maplibregl-ctrl-attrib');
+      const bar = document.querySelector('[data-testid=outing-map] [data-testid=scale-bar]')?.getBoundingClientRect();
+      return { i: b ? Math.round(b.bottom) : null, sheetTop: sheet ? Math.round(sheet.top) : null, top: !!hit && !!hit.closest('.maplibregl-ctrl-attrib'),
+        margin: ctl ? getComputedStyle(ctl).marginBottom : null, bar: bar ? Math.round(bar.bottom) : null };
+    });
+    check(seen.i != null && seen.sheetTop != null && seen.i <= seen.sheetTop && seen.top,
+      `tend map audit 51: with nothing chosen yet, the outing map shows its credits (i) above the sheet (${JSON.stringify(seen)})`);
+  }
   // OJ1: the page is the map, with one field over it worded "Where to?"; nothing is proposed or read yet.
   const whereText = ((await pg.locator('[data-testid=outing-where-text]').innerText().catch(() => '')) ?? '').trim();
   const mapBox = await pg.locator('[data-testid=outing-map]').boundingBox().catch(() => null);

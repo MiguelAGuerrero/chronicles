@@ -50,6 +50,16 @@ export function OutingPage(props: {
   // The sheet's height as drawn, so the map's scale bar, its credits and the journey's frame sit above it (QL5, QL8;
   // tend map 24): folded, on the journeys and on a card it is a different height.
   const [sheetH, setSheetH] = useState(0);
+  // Measured on its layout and twice a second besides (tend map audit 51): on the web a sheet that grew as its chips came in
+  // was now and then never reported by onLayout, which left the scale bar and the (i) under it until the next change.
+  const sheetRef = useRef<ComponentRef<typeof View>>(null);
+  const sheetSize = useCallback((h: number) => {
+    if (h > 0) setSheetH((was) => (Math.round(h) === was ? was : Math.round(h)));
+  }, []);
+  useEffect(() => {
+    const t = setInterval(() => sheetRef.current?.measure?.((_x: number, _y: number, _w: number, h: number) => sheetSize(h)), 500);
+    return () => clearInterval(t);
+  }, [sheetSize]);
   const [busy, setBusy] = useState(false);
   const starting = useRef(false);
   const row = useRef<ComponentRef<typeof ScrollView>>(null);
@@ -190,7 +200,7 @@ export function OutingPage(props: {
           <Icon name="close" size={22} color={theme.ink} />
         </Pressable>
       </View>
-      <View style={[styles.sheet, { maxHeight: Math.round(height * (j.opened ? 0.76 : 0.62)), paddingBottom: insets.bottom + 12 }, capturing && styles.beside]} testID="outing-sheet" onLayout={(e) => setSheetH(Math.round(e.nativeEvent.layout.height))}>
+      <View style={[styles.sheet, { maxHeight: Math.round(height * (j.opened ? 0.76 : 0.62)), paddingBottom: insets.bottom + 12 }, capturing && styles.beside]} testID="outing-sheet" ref={sheetRef} onLayout={(e) => sheetSize(e.nativeEvent.layout.height)}>
         <Pressable testID="outing-peek" accessibilityRole="button" accessibilityLabel={peek ? UNPEEK_LABEL : PEEK_LABEL} accessibilityState={{ expanded: !peek }} onPress={() => setPeek(!peek)} style={styles.peek}>
           <Icon name={peek ? 'chevron-up' : 'chevron-down'} size={20} color={theme.ink} />
           <Text style={styles.swapText}>{peek ? UNPEEK_LABEL : PEEK_LABEL}</Text>
