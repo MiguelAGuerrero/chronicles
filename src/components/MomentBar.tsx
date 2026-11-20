@@ -123,6 +123,12 @@ export function CaptureRow(props: {
   const saved = (_kind: Capture['kind']) => {
     feedback('tap');
   };
+  // A photo or video kept, as a new moment or a piece of the open one: its editor opens (decision 0240, audit 2).
+  const kept = (k: { kind: 'photo' | 'video'; id: string; momentId: string } | null) => {
+    if (!k) return;
+    saved(k.kind);
+    editAfter.open(k);
+  };
   const saveVoice = async () => {
     const r = await cap.finishVoice();
     if (r === 'saved') saved('voice');
@@ -153,7 +159,7 @@ export function CaptureRow(props: {
   useEffect(() => {
     onAsk.current = (kind) => {
       const into = momentPill.target();
-      if (kind === 'photo') void cap.takePhoto(into).then((k) => k && saved(k.kind));
+      if (kind === 'photo') void cap.takePhoto(into).then(kept);
       else if (kind === 'voice') void cap.startVoice(into).then((ok) => ok && feedback('tap'));
       else openNote(into);
     };
@@ -171,7 +177,7 @@ export function CaptureRow(props: {
       <View style={[styles.pills, pillsAt]} pointerEvents="box-none">
         <AddToMomentPill
           hidden={recording || noteOpen}
-          onPhoto={() => void cap.takePhoto(momentPill.target()).then((k) => k && saved(k.kind))}
+          onPhoto={() => void cap.takePhoto(momentPill.target()).then(kept)}
           onVoice={() => void cap.startVoice(momentPill.target()).then((ok) => ok && feedback('tap'))}
           onNote={() => openNote(momentPill.target())}
         />
@@ -215,11 +221,7 @@ export function CaptureRow(props: {
         disabled={props.disabled}
         onPhoto={() =>
           // With Group captures on, the edge adds to the open moment (MS19); off, a new moment (MS1).
-          cap.takePhoto(momentPill.edgeTarget()).then((k) => {
-            if (!k) return;
-            saved(k.kind);
-            editAfter.open(k);
-          })
+          cap.takePhoto(momentPill.edgeTarget()).then(kept)
         }
         onVoice={() => cap.startVoice(momentPill.edgeTarget()).then((ok) => ok && feedback('tap'))}
         onSave={saveVoice}

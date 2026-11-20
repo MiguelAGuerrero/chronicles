@@ -188,8 +188,9 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
     if (!kept) return;
     feedback('tap');
     setSaid(null);
-    // Not while the walk is stopping from the bar: the stop's replay would close the editor (tend tabs audit 19).
-    if (!barStopping(barStop.get(), walk.id, Date.now())) editAfter.open(kept);
+    // Not while the walk is stopping from the bar, nor while the bar goes back to the walk: the replay or the walk screen
+    // would take the editor with the bar (tend tabs audit 19; fix edit-after-capture audit 3).
+    if (!returning.current && !barStopping(barStop.get(), walk.id, Date.now())) editAfter.open(kept);
   };
 
   const stop = async () => {

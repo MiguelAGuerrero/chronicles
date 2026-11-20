@@ -120,7 +120,7 @@ async function run(h) {
   if (await pg.waitForSelector('[data-testid=add-photo]', { timeout: 4000 }).then(() => true, () => false)) {
     const [ch2] = await Promise.all([pg.waitForEvent('filechooser'), pg.click('[data-testid=add-photo]')]);
     await ch2.setFiles(path.join(fixtures, 'photo.jpg'));
-    await pg.waitForTimeout(1500);
+    await closeEditor(pg, 15000);
   }
   await dismissPill();
   await walkTo(-0.5, 1.5);

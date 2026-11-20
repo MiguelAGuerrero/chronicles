@@ -14,18 +14,25 @@ Photos and Google Photos keep the shot first and edit it later from the photo's 
 (`docs/research/adjacent-apps.md`).
 
 ## Decision
-The owner's answers to `/fix`'s question, each its recommended option:
+The owner's answers to `/fix`'s question, each its recommended option (the first two bullets), with what the fix's
+review added within them (the rest):
 
-- **The editor opens by itself** once the system camera's photo or video is accepted and kept as a new moment
-  (`editAfter`, `lib/editOffer`; `useEditAfterCapture`, `components/edit/EditOffer`). The capture is stored first, as
+- **The editor opens by itself** once the system camera's photo or video is accepted and kept, as a new moment or as
+  a piece of an open one (`editAfter`, `editingOf`, `lib/editOffer`; `useEditAfterCapture`, `components/edit/EditOffer`). The capture is stored first, as
   every capture is (a save never waits, and nothing is lost if the app dies mid-edit); the editor, a Modal of its own
   on Crop, covers the screen, so the moment is first seen on the map with its edits. Done saves them (ME2, ME20,
   ME21); Close with no change keeps it as taken, and Close after a change asks first (ME2).
-- **Photos and videos, everywhere a photo is taken:** the walk screen, Navigate's ready screen, the minimized walk's
-  recording bar and Memories' line. The Edit pill goes from all of them (`capture-offer`, `bar-edit-offer`).
-- A piece added to an open moment (Add to this moment, Group captures) opens none, as it was offered none: its moment
-  is already on the map, and Edit stays in the viewer.
-- On the recording bar, no editor opens while the walk is being stopped from the bar (0149's tend tabs audit 19 kept).
+- **Photos and videos, on the four places the question named:** the walk screen, Navigate's ready screen, the
+  minimized walk's recording bar and Memories' line. The Edit pill goes from all of them (`capture-offer`,
+  `bar-edit-offer`). A piece added to an open moment opens its editor too, on that piece (the review's audit 2: on
+  Memories a second photo joins the open entry by default, JN15, and stayed two taps away).
+- The editor says the shot is kept ("Photo kept", where the disabled Revert sits until the first edit) and its ✕ is
+  named "Close, the photo stays as it is" (audit 1), so ✕ never reads as "throw it away".
+- No editor opens while the walk is stopping (the walk screen's Stop, the bar's) or while the bar goes back to the walk
+  (0149's tend tabs audit 19 kept; audit 3). In Memories' composer it is drawn inside the composer's Modal, never over
+  it (audit 4).
+- The other places a photo is taken (the walk planner's capture stack, Respond in the viewer, the note page's camera)
+  were not in the question: they open none, and the owner is asked (`docs/STATUS.md`, "From /fix").
 
 The owner was told the cost once (0094): several photos in a row now each need the editor closed between them; the
 shutter is still one tap.
