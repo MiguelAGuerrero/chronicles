@@ -1,0 +1,63 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inbox",
+        "remove",
+        "G11",
+        "--reason",
+        "the owner's yes (Build it now, Nov 21), built in threading-at-capture (TK1-TK11) by this run"
+      ],
+      "target": "sha256:860ae8777f85956893d8772d41e6736ab0a3448011097fa6c23b7def06c81f3a"
+    },
+    {
+      "argv": [
+        "inbox",
+        "remove",
+        "T52",
+        "--reason",
+        "the owner's yes, Own ZIP64 writer/reader (Recommended), Nov 21: decision 0256, its build shaped as a G entry"
+      ],
+      "target": "sha256:320608c2592bc503711e93cd2a025c119225266d1ee581b63c2aec6b64820b34"
+    },
+    {
+      "argv": [
+        "inbox",
+        "add"
+      ],
+      "body": "- **G? [M] Backup: one zip past 65,535 files or 4 GiB, by a ZIP64 writer and reader of our own** (2026-11-21) · Earn · no surface\n  Area: backup. From: T52, the owner's yes in person, Nov 21, \"Own ZIP64 writer/reader (Recommended)\" (decision 0256); the auditor's probe in the back-up-everything diff review (70,000 entries written by fflate 0.8.2 read back as 4,464).\n  Touches: decision 0241 (\"every walk, moment and file\", one plain zip, versioned), 0249; back-up-everything audit 12, 13 (the refusal this replaces); BK7 (room on the device, unchanged). No surface: the file's name, the page's words and the line beside the button stay.\n  The slice: 1. A backup of more than 65,535 entries is one zip whose every entry reads back whole, by our reader and by one system archive tool (checked first which). 2. A backup past 4 GiB in total, or holding one file past 4 GiB, does the same. 3. A backup within both limits is byte-for-byte what it is today (no ZIP64 records where none are needed). 4. Our reader reads a ZIP64 backup and a plain one alike, for the restore slice. 5. The refusal \"This backup would be too large for one file\" is gone; a phone without room still says so (BK7). 6. No new dependency: the records are written and read by a module of ours around fflate's streams, held by tests that write and read back a file past each limit (in memory or streamed to a temporary file, never committed). 7. Nothing a person sees changes.\n  Payoff: a library of years can be backed up at all; the restore slice gets its reader. Cost: M; `backup/shell.ts`, a new core module for the records, `backup/core.ts` (`ZIP_LIMITS` out); no native module beyond the file handle already used; the native write of a file past 4 GiB never run on a phone. Reopens: backup. After it: the restore slice reads the same file.\n  Instead: split a large backup into parts, each a plain zip with its own manifest (the owner chose against it).\n",
+      "number": "G14"
+    },
+    {
+      "argv": [
+        "inbox",
+        "add"
+      ],
+      "body": "- **T? [owner] Add to a thread: two photos of the walk still open read alike but for their pictures** (2026-11-21)\n  Area: threads. Seen: `capthread-05-moments` (the `capthread` journey, threading at capture's steward S1 and cold find, Nov 21): this walk's rows read \"Photo / Nov 21 · From Saturday night walk\", the same for every photo of the walk, since a walk still open has no place yet (`poolWithOpenWalks` takes `place` from `walk.area`); the cold find could not tell which row was \"the mural from a minute ago\". Rests on: VISION.md Always, \"A moment carries its context: place, time, its walk … never … a bare thumbnail\"; TK7's \"place-and-time line\".\n  Recommended: a row of the walk still open says its time of day after its date (\"Nov 21, 4:37 PM · From Saturday night walk\"), the way the responses sheet's entries do (`entryLine`); nothing else changes. /vision: aligned (Honour: a moment told by when it happened; no count, no new control).\n  Otherwise: \"N minutes ago\" for this walk's rows (a relative time, which changes while the card is open); or leave it, the pictures telling them apart.\n",
+      "number": "T55"
+    },
+    {
+      "argv": [
+        "inbox",
+        "note",
+        "G12"
+      ],
+      "body": "  Nov 21: the owner's yes, in person (\"Yes, queue it\"), to build in a later `/tend inbox` run; this run built G11.\n",
+      "target": "sha256:b1a32e494d6c5829a7a2a095872a703ab1008c74b533d0b97428de021c4e8b2a"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 21, `/tend inbox` with no answers typed: the owner answered in the run (build G11; T52 yes; G12 yes, queued), one build** (opened from `e0ddfce1`; an inbox run: lenses 1-7 belong to a sweep and were not run).\n- G11, \"Thread a moment as it is kept: Thread on the after-capture pill\", built as the slice `threading-at-capture` (TK1-TK11, decision 0253, `/slice --from=G11`): Thread (the link mark) on the Add to this moment pill and the Group captures line; the card on \"Last added to\", a search over threads and moments, the walk still open's moments with their pictures, an optional name for a new thread. Steward S3, S4 taken, S2 rejected (the owner's drawing), S1 filed as T55.\n- The review (cold find, auditor, ux-reviewer, one round): 8 accepted, fixed as `threading-at-capture audit 1-5` (a moment in Undo, a double tap, rows that jump while loading, the editor over the card, Escape at a step) and `ui 1-3` (the search mark as drawn, Escape back a step, the disabled row's line); audit 6 deferred (the search's cost at thousands of moments); A7 rejected (as drawn).\n- T52, \"A backup larger than one zip can hold\", the owner's yes: decision 0256 (a ZIP64 writer and reader of our own, no new dependency), its build shaped as G14 for a yes of its own. G12, \"Hide a kind of place from its card\", the owner's yes, noted: it waits for the next `/tend inbox`.\n- Still waiting for a build, each with the owner's yes: T11, T42, T43, T44, T45, T48, T49, T50, T51, T54, G12; G9 waits for the walk drawer sections slice. Open G entries: seven, past the three of decision 0129, every one the owner's own ask.\n- The e2e: capthread, threads, stackjoin, stacks, responses, launch (launch failed once in a batch on a timing wait, green alone). Nothing here has run on a phone.\n"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 21, `/tend inbox` with no answers typed: the owner answered in the run (build G11; T52 yes; G12 yes, queued), one build** (opened from `e0ddfce1`; an inbox run: lenses 1-7 belong to a sweep and were not run).\n- G11, \"Thread a moment as it is kept: Thread on the after-capture pill\", built as the slice `threading-at-capture` (TK1-TK11, decision 0253, `/slice --from=G11`): Thread (the link mark) on the Add to this moment pill and the Group captures line; the card on \"Last added to\", a search over threads and moments, the walk still open's moments with their pictures, an optional name for a new thread. Steward S3, S4 taken, S2 rejected (the owner's drawing), S1 filed as T55.\n- The review (cold find, auditor, ux-reviewer, one round): 8 accepted, fixed as `threading-at-capture audit 1-5` (a moment in Undo, a double tap, rows that jump while loading, the editor over the card, Escape at a step) and `ui 1-3` (the search mark as drawn, Escape back a step, the disabled row's line); audit 6 deferred (the search's cost at thousands of moments); A7 rejected (as drawn).\n- Lens 0, threads (no line before): E-threads-1 to 3 drafted (a moment into a thread in a tap or two without leaving the walk; every moment offered shows its picture or words with its place, time and walk; the thread last added to offered first), the steward's fixes taken; 1 and 3 met provisionally by capthread's checks, 2 failed for the walk still open (T55). For the owner to ratify.\n- T52, \"A backup larger than one zip can hold\", the owner's yes: decision 0256 (a ZIP64 writer and reader of our own, no new dependency), its build shaped as G14 for a yes of its own. G12, \"Hide a kind of place from its card\", the owner's yes, noted: it waits for the next `/tend inbox`.\n- Still waiting for a build, each with the owner's yes: T11, T42, T43, T44, T45, T48, T49, T50, T51, T54, G12; G9 waits for the walk drawer sections slice. Open G entries: seven, past the three of decision 0129, every one the owner's own ask.\n- The e2e: capthread, threads, stackjoin, stacks, responses, launch (launch failed once in a batch on a timing wait, green alone). Nothing here has run on a phone.\n"
+    }
+  ]
+}
