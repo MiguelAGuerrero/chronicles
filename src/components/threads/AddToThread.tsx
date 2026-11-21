@@ -120,16 +120,16 @@ export function AddToThread(props: { moment: { id: string }; onClose: () => void
 
   // One write per tap (thread-at-capture audit 2): a second tap while the first is stored does nothing, or two taps
   // on a row made two threads of the same two moments.
-  const [busy, setBusy] = useState(false);
+  const [storing, setStoring] = useState(false);
   const addTo = async (threadId: string) => {
-    if (busy) return;
-    setBusy(true);
+    if (storing) return;
+    setStoring(true);
     const ok = await threads.addToThread(threadId, props.moment.id).catch(() => false);
     props.onDone(ok ? 'Connected' : 'Could not connect', ok);
   };
   const joinWith = async (other: MomentView) => {
-    if (busy) return;
-    setBusy(true);
+    if (storing) return;
+    setStoring(true);
     const id = await threads.startThread([props.moment.id, other.id]).catch(() => null);
     if (!id) props.onDone('Could not connect', false);
     else {
@@ -159,8 +159,8 @@ export function AddToThread(props: { moment: { id: string }; onClose: () => void
       key={r.id}
       testID={testID}
       accessibilityRole="button"
-      accessibilityState={{ disabled: r.has || busy }}
-      disabled={r.has || busy}
+      accessibilityState={{ disabled: r.has || storing }}
+      disabled={r.has || storing}
       onPress={() => void addTo(r.id)}
       style={[styles.row, r.has && styles.dim]}
     >
@@ -176,7 +176,7 @@ export function AddToThread(props: { moment: { id: string }; onClose: () => void
     // A photo or video shows its small picture beside its words and its line, never alone (CT7).
     const pictured = v.kind === 'photo' || v.kind === 'video';
     return (
-      <Pressable key={v.id} testID="add-moment-row" accessibilityRole="button" accessibilityLabel={`${r.words}. ${r.context}`} disabled={busy} onPress={() => void joinWith(v)} style={[styles.row, pictured && styles.pictured]}>
+      <Pressable key={v.id} testID="add-moment-row" accessibilityRole="button" accessibilityLabel={`${r.words}. ${r.context}`} disabled={storing} onPress={() => void joinWith(v)} style={[styles.row, pictured && styles.pictured]}>
         {pictured ? (
           <View testID="row-picture" style={styles.thumb}>
             <MomentPicture capture={v.capture} style={styles.thumb} iconSize={22} />
