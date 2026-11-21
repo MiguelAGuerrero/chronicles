@@ -122,7 +122,7 @@ async function run(h) {
   // viewer; they are behind the journal's contents now, decision 0155.)
   const added = await there('text=Added to a thread', 5000);
   check(added, 'owner-threads audit 19: the viewer says Added to a thread, nothing warmer');
-  check.todo(nameStep && viewerUp && added, 'threading-at-capture audit 5: Escape at the name step closes the card only, and the viewer still says Added to a thread');
+  check(nameStep && viewerUp && added, 'threading-at-capture audit 5: Escape at the name step closes the card only, and the viewer still says Added to a thread');
   let db = await stored(pg);
   check(db.threads.length === 1 && db.threads[0].name === null && db.members.length === 2, 'OT5, OT6: the thread is made of the two moments, unnamed');
   // The moment's record as seeded (decision 0123): its own fields, and its one piece.

@@ -1,4 +1,4 @@
-import { type ComponentRef, useEffect, useMemo, useRef, useState } from 'react';
+import { type ComponentRef, forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { Dimensions, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useHidden } from '../../lib/deletion/useDeletions';
@@ -6,7 +6,7 @@ import { accessoryRoom, floatsAccessory, lineLift, overlayTop } from '../../lib/
 import { useKeyboardHeight } from '../../lib/threads/useKeyboardHeight';
 import { threads } from '../../lib/threads';
 import { filterPicker } from '../../lib/threads/picker';
-import { CAP_THREAD, lastAddedTo, nameToSave, rowShows, threadSearch } from '../../lib/threads/capThread';
+import { backFrom, CAP_THREAD, firstStep, lastAddedTo, nameToSave, rowShows, threadable, threadSearch } from '../../lib/threads/capThread';
 import { contextLine, headingOf, threadLine } from '../../lib/threads/lines';
 import { useThreads } from '../../lib/threads/useThreads';
 import type { MomentView } from '../../lib/resurface/types';
@@ -34,7 +34,14 @@ type ThreadRow = { id: string; title: string; sub: string | null; line: string; 
  * offers an optional name (TK8). Drawn inside its host (the viewer's Modal, Memories, or the pill's own `ThreadFromPill`),
  * never as a Modal over a Modal. `onDone`'s message is null when the card has already said what happened.
  */
-export function AddToThread(props: { moment: { id: string }; onClose: () => void; onDone: (message: string | null, ok: boolean) => void }) {
+export interface AddToThreadHandle {
+  /** Back or Escape from the host (threading-at-capture audit 5, ui 2): a step back, the name step finished, or close. */
+  requestClose: () => void;
+}
+
+type AddToThreadProps = { moment: { id: string }; onClose: () => void; onDone: (message: string | null, ok: boolean) => void };
+
+export const AddToThread = forwardRef<AddToThreadHandle, AddToThreadProps>(function AddToThread(props, ref) {
   const insets = useSafeAreaInsets();
   // The search's keyboard (fix picker-keyboard, the owner's iPhone, Nov 18): the card ends above the keys, and above the
   // row an iPhone's browser floats over them (`accessoryRoom`), so its last rows stay reachable. It rises by what the
@@ -118,17 +125,32 @@ export function AddToThread(props: { moment: { id: string }; onClose: () => void
   }, [pool, hidden, query, limit, props.moment.id, now]);
   const candidates = found.shown.map((i) => byId.get(i.id)).filter((v): v is MomentView => !!v);
 
-  const addTo = async (threadId: string) => {
+  // One write at a time: a second tap while the first is being kept does nothing (threading-at-capture audit 2).
+  const busy = useRef(false);
+  const once = async (run: () => Promise<void>) => {
+    if (busy.current) return;
+    busy.current = true;
+    try {
+      await run();
+    } finally {
+      busy.current = false;
+    }
+  };
+  // A moment waiting in the Undo window connects nothing (audit 1): its thread would never be seen.
+  const gone = () => !threadable(props.moment.id, hidden);
+  const addTo = (threadId: string) => once(async () => {
+    if (gone()) return props.onDone(CAP_THREAD.failed, false);
     const ok = await threads.addToThread(threadId, props.moment.id).catch(() => false);
     props.onDone(ok ? CAP_THREAD.connected : CAP_THREAD.failed, ok);
-  };
-  const joinWith = async (other: MomentView) => {
+  });
+  const joinWith = (other: MomentView) => once(async () => {
+    if (gone()) return props.onDone(CAP_THREAD.failed, false);
     const id = await threads.startThread([props.moment.id, other.id]).catch(() => null);
     if (!id) return props.onDone(CAP_THREAD.failed, false);
     // Two moments are a thread now (OT6): an optional name, so a search finds it next time (TK8). The card says it.
     setMade(id);
     setStep('name');
-  };
+  });
   const finish = async (save: boolean) => {
     const n = save ? nameToSave(name) : null;
     if (made && n) {
@@ -138,6 +160,16 @@ export function AddToThread(props: { moment: { id: string }; onClose: () => void
     }
     props.onDone(null, true);
   };
+  const requestClose = () => {
+    const to = backFrom(step);
+    if (to === 'finish') void finish(false);
+    else if (to === 'threads') {
+      setQuery('');
+      setLimit(PAGE);
+      setStep('threads');
+    } else props.onClose();
+  };
+  useImperativeHandle(ref, () => ({ requestClose }));
   const onSearch = (t: string) => {
     setQuery(t);
     setLimit(PAGE);
@@ -151,13 +183,14 @@ export function AddToThread(props: { moment: { id: string }; onClose: () => void
       accessibilityState={{ disabled: r.has }}
       disabled={r.has}
       onPress={() => void addTo(r.id)}
-      style={[styles.row, r.has && styles.dim]}
+      style={styles.row}
     >
-      <View style={styles.titleRow}>
+      {/* Only the title is dimmed: the line says why the row cannot be tapped (threading-at-capture ui 3). */}
+      <View style={[styles.titleRow, r.has && styles.dim]}>
         <ThreadMark kind="made" />
         <Text style={[styles.name, styles.shrink]} numberOfLines={1}>{r.title}</Text>
       </View>
-      <Text style={styles.sub} numberOfLines={1}>{r.line}</Text>
+      <Text testID="add-thread-line" style={styles.sub} numberOfLines={1}>{r.line}</Text>
     </Pressable>
   );
   const momentRow = (v: MomentView) => {
@@ -177,16 +210,20 @@ export function AddToThread(props: { moment: { id: string }; onClose: () => void
       <Text style={styles.name}>Show more</Text>
     </Pressable>
   ) : null;
-  const search = (placeholder: string) => (
-    <TextInput
+  const search = (placeholder: string, mark = false) => (
+    <View style={styles.searchRow}>
+      {/* The search mark, as drawn on the threads step (threading-at-capture ui 1). */}
+      {mark ? <View testID="add-search-mark" style={styles.mark} pointerEvents="none"><Icon name="search" size={18} color={theme.muted} /></View> : null}
+      <TextInput
       testID="add-search"
       value={query}
       onChangeText={onSearch}
       placeholder={placeholder}
       placeholderTextColor={theme.muted}
       accessibilityLabel={placeholder}
-      style={styles.input}
+      style={[styles.input, mark && styles.marked]}
     />
+    </View>
   );
   const title = step === 'threads' ? 'Add to a thread' : step === 'moment' ? 'Join it with another moment' : CAP_THREAD.connected;
   return (
@@ -201,7 +238,7 @@ export function AddToThread(props: { moment: { id: string }; onClose: () => void
         </View>
         {step === 'threads' ? (
           <>
-            {search(CAP_THREAD.search)}
+            {search(CAP_THREAD.search, true)}
             <ScrollView style={styles.list} contentContainerStyle={styles.pad} keyboardShouldPersistTaps="handled">
               {searching ? (
                 <>
@@ -214,20 +251,24 @@ export function AddToThread(props: { moment: { id: string }; onClose: () => void
                 </>
               ) : (
                 <>
-                  {last ? (
-                    <View testID="last-added" style={styles.pad}>
-                      <Text style={styles.section} accessibilityRole="header">{CAP_THREAD.last}</Text>
-                      {threadRow(last)}
-                    </View>
-                  ) : null}
-                  <Pressable testID="add-new-thread" accessibilityRole="button" onPress={() => {
-                    setQuery('');
-                    setStep('moment');
-                  }} style={styles.row}>
-                    <Text style={styles.name}>A new thread</Text>
-                    <Text style={styles.sub}>Choose a second moment to join this one with</Text>
-                  </Pressable>
-                  {others.map(threadRow)}
+                  {firstStep({ loaded: !!pool, last: last?.id ?? null, others: others.map((r) => r.id) }).map((key) =>
+                    key === 'new' ? (
+                      <Pressable key={key} testID="add-new-thread" accessibilityRole="button" onPress={() => {
+                        setQuery('');
+                        setStep('moment');
+                      }} style={styles.row}>
+                        <Text style={styles.name}>A new thread</Text>
+                        <Text style={styles.sub}>Choose a second moment to join this one with</Text>
+                      </Pressable>
+                    ) : key.startsWith('last:') && last ? (
+                      <View key={key} testID="last-added" style={styles.pad}>
+                        <Text style={styles.section} accessibilityRole="header">{CAP_THREAD.last}</Text>
+                        {threadRow(last)}
+                      </View>
+                    ) : (
+                      threadRow(others.find((r) => `thread:${r.id}` === key)!)
+                    ),
+                  )}
                 </>
               )}
             </ScrollView>
@@ -272,7 +313,7 @@ export function AddToThread(props: { moment: { id: string }; onClose: () => void
       </View>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   // Over the journal's open line (its layer is `zIndex: 2`), which rises with any keyboard (fix picker-keyboard).
@@ -291,6 +332,9 @@ const styles = StyleSheet.create({
   low: { justifyContent: 'flex-end' },
   // Only the lists fill the height; the name step is its own size (`flex: 0` collapses on the web, react-native-web.md).
   tall: { flex: 1 },
+  searchRow: { justifyContent: 'center' },
+  mark: { position: 'absolute', left: 12, zIndex: 1 },
+  marked: { paddingLeft: 38 },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   shrink: { flexShrink: 1, flexGrow: 1, gap: 2 },
   withPicture: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', gap: 12 },

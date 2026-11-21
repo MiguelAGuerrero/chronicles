@@ -77,6 +77,7 @@ import { routeLeanings } from '../lib/routeLeanings';
 import { whileFocused } from '../lib/openers';
 import { AddToMomentPill } from '../components/walk/AddToMomentPill';
 import { ThreadFromPill } from '../components/threads/ThreadFromPill';
+import { cardFor } from '../lib/threads/capThread';
 import { PlaceCaptureRow } from '../components/walk/PlaceCaptureRow';
 import { cardCapture, PLACE_REACH_M } from '../lib/explore/placeCard';
 import { walkScreenShown } from '../lib/walkNav';
@@ -501,7 +502,11 @@ function WalkScreen(props: { onMinimize: () => void }) {
     feedback('tap');
     // Not while the walk is stopping, or once it has ended (a save that outlasted Stop's wait): the replay would cover or
     // take the editor (audits 3, 6).
-    if (!stoppingNow.current && !(walk && unsaved.hasEnded(walk.id))) editAfter.open(kept);
+    if (!stoppingNow.current && !(walk && unsaved.hasEnded(walk.id))) {
+      // The editor takes the screen; a card opened meanwhile closes (threading-at-capture audit 4).
+      setThreading(null);
+      editAfter.open(kept);
+    }
   }
 
   async function startVoice(into: string | null = null, place: string | null = null) {
@@ -2213,7 +2218,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
       <UndoToast style={{ top: insets.top + 64 }} />
 
       <ThreadFromPill
-        momentId={threading}
+        momentId={cardFor(threading, !!editing)}
         onClose={() => setThreading(null)}
         onDone={(message) => {
           setThreading(null);

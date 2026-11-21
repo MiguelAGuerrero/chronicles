@@ -21,6 +21,7 @@ import { useEditAfterCapture } from './edit/EditOffer';
 import { MediaEditor } from './edit/MediaEditor';
 import { AddToMomentPill } from './walk/AddToMomentPill';
 import { ThreadFromPill } from './threads/ThreadFromPill';
+import { cardFor } from '../lib/threads/capThread';
 import { CaptureStack } from './walk/CaptureStack';
 import { useStackLayout } from './walk/layout';
 import { LiftIn, theme } from './ui';
@@ -130,6 +131,8 @@ export function CaptureRow(props: {
   const kept = (k: { kind: 'photo' | 'video'; id: string; momentId: string } | null) => {
     if (!k) return;
     saved(k.kind);
+    // The editor takes the screen; a card opened meanwhile closes (threading-at-capture audit 4).
+    setThreading(null);
     editAfter.open(k);
   };
   const saveVoice = async () => {
@@ -238,7 +241,7 @@ export function CaptureRow(props: {
       )}
 
       <ThreadFromPill
-        momentId={threading}
+        momentId={cardFor(threading, !!editing)}
         onClose={() => setThreading(null)}
         onDone={(message) => {
           setThreading(null);
