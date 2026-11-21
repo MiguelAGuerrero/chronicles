@@ -351,7 +351,7 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.deepEqual(ids(flats(await db.momentsBetween(0, 100))), ['before', 'c1', 'loose', 'c3', 'end']);
     });
 
-    test('FC7 looseMoments, back-up-everything BK5: the moments of no walk, with their pieces, in time order', { todo: 'test first' }, async () => {
+    test('FC7 looseMoments, back-up-everything BK5: the moments of no walk, with their pieces, in time order', async () => {
       const db = await fresh();
       await db.addMoment(momentOf(capture('in-walk', 'a', 15)));
       await db.addMoment(momentOf(capture('late', null, 30)));
@@ -795,7 +795,7 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.deepEqual(await db.listMarks('none'), []);
     });
 
-    test('FC7 listOffered, back-up-everything BK2: the retired scan's offered places, as an older app kept them, by key', { todo: 'test first' }, async () => {
+    test('FC7 listOffered, back-up-everything BK2: the retired scan’s offered places, as an older app kept them, by key', async () => {
       const off = (key: string, offered_at: number): Offered => ({ key, name: key, category: 'art', at: [LON, LAT], generic: false, offered_at, origin: 'scan' });
       const db = await fresh({ offered: [off('k2', 2), off('k1', 1)] });
       assert.deepEqual([...(await db.listOffered())].sort((a, b) => a.key.localeCompare(b.key)), [off('k1', 1), off('k2', 2)]);

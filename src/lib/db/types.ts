@@ -5,7 +5,7 @@ import type { WalkTile } from '../walk/types';
 import type { AtlasArea } from '../atlas/atlas';
 import type { Complex } from '../complexes/types';
 import type { WalkLine } from '../pastLines/core';
-import type { Mark, Place, Recall } from '../discovery/types';
+import type { Mark, Offered, Place, Recall } from '../discovery/types';
 import type { StoredReaction } from '../reactions/core';
 import type { Transcript } from '../transcript/core';
 import type { ChecklistArea, ChecklistItem, ExploreRead, Find } from '../explore/explore';
@@ -76,6 +76,8 @@ export interface Db {
   getMoments(walkId: string): Promise<Moment[]>;
   /** Every moment, loose or in a walk, with from <= t < to, in time order (days, M6). */
   momentsBetween(from: number, to: number): Promise<Moment[]>;
+  /** The moments of no walk, with their pieces, in time order: the whole-app backup's read (BK5), never a screen's. */
+  looseMoments(): Promise<Moment[]>;
   /** Moments by id, from any walk (a reminder notification's), skipping missing ones, in time order. */
   getMomentsByIds(ids: string[]): Promise<Moment[]>;
   /** Moments of every walk, and loose ones, whose place lies inside the bounds, in time order. */
@@ -167,6 +169,8 @@ export interface Db {
   placesIn(bounds: [number, number, number, number]): Promise<Place[]>;
   /** A walk's marks, kept from the retired scan (read by old walks' replays); `null` gives the home's. */
   listMarks(walkId: string | null): Promise<Mark[]>;
+  /** The retired scan's offered places (truth, `KEPT_STORES`), as an older app kept them; nothing writes them now. The backup's read (BK2). */
+  listOffered(): Promise<Offered[]>;
   /** Remind me here on a capture (R1): sets or replaces its flag. */
   setRecall(r: Recall): Promise<void>;
   /** Stop reminding me, or a "once" that fired (R6, R8). */

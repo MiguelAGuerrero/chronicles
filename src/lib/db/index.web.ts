@@ -11,7 +11,7 @@ import type { WalkTile } from '../walk/types';
 import type { WalkLine } from '../pastLines/core';
 import type { AtlasArea } from '../atlas/atlas';
 import type { Complex } from '../complexes/types';
-import type { Mark, Place, Recall } from '../discovery/types';
+import type { Mark, Offered, Place, Recall } from '../discovery/types';
 import { migrateTypes, type StoredReaction } from '../reactions/core';
 import type { Transcript } from '../transcript/core';
 import { DERIVED_STORES } from './stores';
@@ -458,6 +458,10 @@ export const db: Db = {
     const range = IDBKeyRange.bound(from, to, false, true);
     return ((await done((await store('moment')).index('t').getAll(range))) as MomentRecord[]).map(fromRecord);
   },
+  async looseMoments() {
+    // IndexedDB indexes skip a null key, so the moments of no walk are found along the time index.
+    return ((await done((await store('moment')).index('t').getAll())) as MomentRecord[]).filter((m) => m.walk_id == null).map(fromRecord);
+  },
   async getMomentsByIds(ids) {
     const st = await store('moment');
     const got = await Promise.all(ids.map((id) => done(st.get(id)) as Promise<MomentRecord | undefined>));
@@ -851,6 +855,9 @@ export const db: Db = {
       ? ((await done((await store('mark')).getAll())) as Mark[]).filter((x) => x.walk_id == null)
       : await byWalk<Mark>('mark', walkId);
     return all.sort((a, b) => a.created_at - b.created_at);
+  },
+  async listOffered() {
+    return (await done((await store('offered')).getAll())) as Offered[];
   },
   async setRecall(r) {
     const tx = (await conn()).transaction('recall', 'readwrite');

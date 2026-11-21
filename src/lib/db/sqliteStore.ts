@@ -15,7 +15,7 @@ import type { WalkTile } from '../walk/types';
 import type { WalkLine } from '../pastLines/core';
 import type { AtlasArea } from '../atlas/atlas';
 import type { Complex } from '../complexes/types';
-import type { Mark, Recall } from '../discovery/types';
+import type { Mark, Offered, Recall } from '../discovery/types';
 import type { StoredReaction } from '../reactions/core';
 import type { Transcript } from '../transcript/core';
 import { countsOf, recountNewStreets } from '../deletion/core';
@@ -66,6 +66,7 @@ async function dropMoments(t: SQLiteDatabase, ids: string[]) {
 
 const toPlace = placeFromRow;
 type MarkRow = Omit<Mark, 'at' | 'generic'> & { lon: number; lat: number; generic: number };
+type OfferedRow = Omit<Offered, 'at' | 'generic'> & { lon: number; lat: number; generic: number };
 const toMark = ({ lon, lat, generic, ...r }: MarkRow): Mark => ({ ...r, at: [lon, lat], generic: generic === 1 });
 
 type WalkRow = Omit<Walk, 'open'> & { open: number };
@@ -310,6 +311,9 @@ export function makeSqliteDb(open: () => Promise<SQLiteDatabase>, openWriter?: (
 
     async momentsBetween(from, to) {
       return foldRows(await (await conn()).getAllAsync<JoinedRow>(`${MOMENT_SELECT} WHERE m.t >= ? AND m.t < ?${ORDER}`, from, to));
+    },
+    async looseMoments() {
+      return foldRows(await (await conn()).getAllAsync<JoinedRow>(`${MOMENT_SELECT} WHERE m.walk_id IS NULL${ORDER}`));
     },
     async getMomentsByIds(ids) {
       if (!ids.length) return [];
@@ -753,6 +757,10 @@ export function makeSqliteDb(open: () => Promise<SQLiteDatabase>, openWriter?: (
         ? await d.getAllAsync<MarkRow>('SELECT * FROM mark WHERE walk_id IS NULL ORDER BY created_at')
         : await d.getAllAsync<MarkRow>('SELECT * FROM mark WHERE walk_id = ? ORDER BY created_at', walkId);
       return rows.map(toMark);
+    },
+    async listOffered() {
+      const rows = await (await conn()).getAllAsync<OfferedRow>('SELECT * FROM offered ORDER BY key');
+      return rows.map(({ lon, lat, generic, ...r }) => ({ ...r, at: [lon, lat] as [number, number], generic: generic === 1 }));
     },
     setRecall(r) {
       return write((t) =>
