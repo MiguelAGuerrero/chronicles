@@ -139,5 +139,15 @@ Built 2026-11-21 under `/tend inbox G6 yes` on `tend/inbox-20261121-0137`, from 
   so the balance reads "outgrowing its base" by the share, as it should.
 - **The base it landed on** (AS5): `node scripts/tend.js base --spec area-states` names `arch`, which no sweep reads
   (the loop's own process): no area of the app was made rougher; nothing in the app changed.
+- **The diff review** (the auditor, Nov 21, one round; 2 high, 3 medium, 9 low): accepted 8, fixed behind their tests
+  as area-states audit 14 (a logged "none: <why>" line reads clean in the run log's test; `tend:log` end to end), 15
+  (shipped numbers count against highs and mediums only when the line can show it; else never polished), 16 (a waiting
+  medium taken off only when filed at or after the sweep), 17 (an item's area by its heading first, citations skipped,
+  severity by its last word on it, a cited path no fix), 18 (`base --here`), 20 (`next`: resets, then the evolve), 23
+  (only the Vision block's verdict exempts), 27 (main's STATUS and ledger must read); with them the tests that could not
+  fail were made to (AS5 reads `base`'s printed reading; the two tests of `areasByState` hold `areaState`). Deferred 6
+  as `[loop]` lows (audit 19, 21, 22, 24, 25, 26); rejected 0; one `[owner]` item filed (which shipped numbers were above
+  low, a new field of the run log). Replayed again after the fixes, walk-screen still reads settling for the same
+  reasons, and the balance in step.
 - **Deferred:** G7's half of decision 0235; attributing DEFERRED's unattributed and unrated items (printed by the
   balance, a triage's job).
