@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import { strFromU8, unzipSync } from 'fflate';
@@ -203,4 +203,35 @@ test('BK14, back-up-everything audit 2: a delete waiting for Undo names what the
   assert.deepEqual([...o.threads], ['t1']);
   assert.deepEqual([...o.members], ['t2/m5']);
   assert.deepEqual([...o.keepFinds].sort(), ['m2', 'm3'], 'a media delete keeps its finds, as the delete does');
+});
+
+// The diff review (Nov 21): the steward's S12, S15 (back-up-everything audit 20, 22).
+
+test('BK11, back-up-everything audit 20: the failure lines, the share sheet missing and a file too large among them, are words with no numeral', async () => {
+  const { NO_SHARING, TOO_LARGE } = await import('../../backup/core');
+  assert.equal(NO_SHARING, 'This phone has no way to share the file, so the backup was not made.');
+  assert.equal(TOO_LARGE, 'This backup would be too large for one file, so it was not made.');
+  for (const w of [FAILED, NO_ROOM, NO_SHARING, TOO_LARGE]) {
+    assert.doesNotMatch(w, /\d/, `no numeral: ${w}`);
+    assert.doesNotMatch(w, /\bfree\b|\bdelete\b/i, `no nudge to free or delete: ${w}`);
+  }
+});
+
+test('BK8, back-up-everything audit 22: nothing outside the page reads when the last backup was made, and nothing notifies about backing up', () => {
+  const src = join(root, 'src');
+  const files: string[] = [];
+  const walk = (d: string) => {
+    for (const f of readdirSync(d)) {
+      const p = join(d, f);
+      if (statSync(p).isDirectory()) {
+        if (f !== '__tests__') walk(p);
+      } else if (/\.tsx?$/.test(f)) files.push(p);
+    }
+  };
+  walk(src);
+  const readers = files.filter((f) => readFileSync(f, 'utf8').includes('backup_last')).map((f) => f.slice(src.length + 1)).sort();
+  assert.deepEqual(readers, ['lib/backup/core.ts', 'lib/backup/shell.ts', 'lib/meta.ts']);
+  const notify = files.filter((f) => /lib\/notify\/|notif/i.test(f));
+  assert.ok(notify.length > 3, 'the notifier\'s sources are found');
+  for (const f of notify) assert.doesNotMatch(readFileSync(f, 'utf8'), /back ?up|backed/i, `${f} names backing up`);
 });

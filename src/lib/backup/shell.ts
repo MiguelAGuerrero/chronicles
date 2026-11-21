@@ -17,6 +17,8 @@ import {
   mediaEntry,
   missingLine,
   NO_ROOM,
+  TOO_LARGE,
+  ZIP_LIMITS,
   pendingOmits,
   pieceOut,
   traceEntry,
@@ -68,7 +70,7 @@ const isJobs = (v: unknown): v is PendingJob[] => Array.isArray(v) && v.every((j
  * `Db`, one walk's trace at a time, zipped as it is read and handed to `io`; the date kept only once the file is
  * handed over. Media pass through in chunks, stored as they are (photos and videos are compressed already).
  */
-export function createBackupWriter(p: Pick<Ports, 'db' | 'clock'>) {
+export function createBackupWriter(p: Pick<Ports, 'db' | 'clock'>, limits: { entries: number; bytes: number } = ZIP_LIMITS) {
   const store = createStore<BackupState>({ making: false, last: null, after: null, failed: null });
 
   async function load(): Promise<void> {
@@ -81,13 +83,16 @@ export function createBackupWriter(p: Pick<Ports, 'db' | 'clock'>) {
   async function readRows(): Promise<Omit<BackupRows, 'traces'>> {
     const db = p.db;
     const walks = await db.listWalks();
-    const moments: Moment[] = [];
+    // Every moment once, whatever its walk (back-up-everything audit 16): a moment saved after its walk went (the
+    // delete's late saves, deletion/runner) is written as loose, so the file names no walk it does not hold. The one
+    // read over all time the storage rule allows, once per tap (docs/DEFERRED.md, "Back up everything").
+    const held = new Set(walks.map((w) => w.id));
+    const moments: Moment[] = (await db.momentsBetween(0, Number.MAX_SAFE_INTEGER)).map((m) => (m.walk_id != null && !held.has(m.walk_id) ? { ...m, walk_id: null } : m));
     const rows: Omit<BackupRows, 'traces' | 'walks' | 'moments'> = {
       pauses: [], stills: [], gap_fills: [], reactions: [], threads: { threads: [], members: [], links: [] }, recalls: [], finds: [],
       checklist_areas: [], checklist_items: [], marks: [], offered: [], transcripts: [], meta: { keys: {}, walks: {} },
     };
     for (const w of walks) {
-      moments.push(...(await db.getMoments(w.id)));
       rows.pauses.push(...(await db.getPauses(w.id)));
       rows.stills.push(...(await db.getStills(w.id)));
       rows.gap_fills.push(...(await db.getGapDecisions(w.id)));
@@ -98,7 +103,6 @@ export function createBackupWriter(p: Pick<Ports, 'db' | 'clock'>) {
         if (v) rows.meta.walks[key] = v;
       }
     }
-    moments.push(...(await db.looseMoments()));
     rows.marks.push(...(await db.listMarks(null)));
     rows.reactions = await db.listReactions();
     rows.threads = await db.listThreads();
@@ -135,13 +139,24 @@ export function createBackupWriter(p: Pick<Ports, 'db' | 'clock'>) {
       const { free, need } = await io.room(pieces.map((c) => c.file_path!));
       if (!hasRoom(free, need)) throw new BackupRefusal(NO_ROOM);
     }
+    // One entry per walk's trace and per file, and the JSON stores and the manifest: past a plain zip's count, refused
+    // before anything is begun (back-up-everything audit 12).
+    const files = new Set(pieces.map((c) => mediaEntry(c.file_path!, c.id)).filter((e) => e !== null));
+    if (rows.walks.length + files.size + Object.keys(FILE).length + 1 > limits.entries) throw new BackupRefusal(TOO_LARGE);
     const name = backupName(datePartsOf(now));
     opened();
     await io.open(name);
     let failed: Error | null = null;
+    let written = 0;
     const zip = new Zip((err, chunk) => {
+      if (failed) return;
       if (err) failed = err;
-      else io.write(chunk);
+      // Past a plain zip's 4 GiB nothing more is written, and the file is never handed over (audit 13).
+      else if (written + chunk.length > limits.bytes) failed = new BackupRefusal(TOO_LARGE);
+      else {
+        written += chunk.length;
+        io.write(chunk);
+      }
     });
     const add = (entry: string, value: unknown) => {
       const f = new ZipPassThrough(entry);
@@ -158,14 +173,14 @@ export function createBackupWriter(p: Pick<Ports, 'db' | 'clock'>) {
     // Each piece's file, streamed through (BK6); one written once, however many pieces hold it.
     const entries = new Map<string, string | null>();
     const missing: { id: string; kind: CaptureKind }[] = [];
-    const written = new Set<string>();
+    const done = new Set<string>();
     for (const c of pieces) {
       const entry = mediaEntry(c.file_path!, c.id);
       if (!entry) {
         entries.set(c.id, null);
         continue;
       }
-      if (written.has(entry)) {
+      if (done.has(entry)) {
         entries.set(c.id, entry);
         continue;
       }
@@ -185,7 +200,7 @@ export function createBackupWriter(p: Pick<Ports, 'db' | 'clock'>) {
       }
       f.push(prev ?? new Uint8Array(0), true);
       if (failed) throw failed;
-      written.add(entry);
+      done.add(entry);
       entries.set(c.id, entry);
     }
     const gone = new Set(missing.map((m) => m.id));

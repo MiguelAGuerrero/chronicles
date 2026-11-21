@@ -282,3 +282,110 @@ test('BK14, back-up-everything audit 2: a delete waiting for Undo is not in the 
   assert.deepEqual(th, { threads: [], members: [], links: [] }, 'a thread left with one moment is dissolved, as the delete would (OT15)');
   assert.ok(!io.reads.includes('walks/w1/photo.jpg'), 'its file is never read');
 });
+
+// The diff review (Nov 21): the auditor's A1-A3 (back-up-everything audit 12-16).
+
+test('back-up-everything audit 12: a library of more than 65,535 files is refused in words with no date kept', async () => {
+  const { TOO_LARGE, ZIP_LIMITS } = await import('../../backup/core');
+  assert.equal(ZIP_LIMITS.entries, 65_535, 'a plain zip holds 65,535 entries at most (fflate 0.8.2 writes no ZIP64)');
+  const db = await seeded();
+  const io = memoryIO();
+  // The seeded library is 2 traces, 4 files and 16 JSON entries: 22; a limit of 21 stands for 65,535.
+  const w = createBackupWriter({ db, clock: fakeClock(NOW) }, { entries: 21, bytes: ZIP_LIMITS.bytes });
+  await w.backUp(io);
+  assert.equal(w.store.get().failed, TOO_LARGE);
+  assert.equal(io.name, null, 'nothing is begun');
+  assert.equal(io.delivered, 0);
+  assert.equal(await db.getMeta('backup_last'), null);
+  const ok = createBackupWriter({ db, clock: fakeClock(NOW) }, { entries: 22, bytes: ZIP_LIMITS.bytes });
+  await ok.backUp(memoryIO());
+  assert.equal(ok.store.get().failed, null, 'at the limit it is made');
+});
+
+test('back-up-everything audit 13: past 4 GiB written (an injectable limit) the file is never handed over', async () => {
+  const { TOO_LARGE, ZIP_LIMITS } = await import('../../backup/core');
+  assert.equal(ZIP_LIMITS.bytes, 2 ** 32 - 1, 'a plain zip\'s offsets stop at 4 GiB');
+  const db = await seeded();
+  const io = memoryIO();
+  const w = createBackupWriter({ db, clock: fakeClock(NOW) }, { entries: ZIP_LIMITS.entries, bytes: 200 });
+  await w.backUp(io);
+  assert.equal(w.store.get().failed, TOO_LARGE);
+  assert.equal(io.delivered, 0, 'never handed over');
+  assert.equal(io.discarded, 1, 'the file begun is dropped');
+  assert.equal(await db.getMeta('backup_last'), null);
+  assert.ok(io.bytes().length <= 200, `no byte past the limit is written (${io.bytes().length})`);
+});
+
+/** Puts a reminder and a find on a moment, as the app keeps them: by the moment's id. */
+async function remindAndFind(db: Db, momentId: string, walkId: string | null) {
+  await db.setRecall({ capture_id: momentId, frequency: 'once', until: null, last_fired_at: null, fired_count: 0, last_walk_id: null });
+  await db.addFind({ key: `f-${momentId}`, area_key: null, walk_id: walkId, capture_id: momentId, found_at: 6, name: 'Mural', category: 'art', kind: 'public_art', at: [LON, LAT], generic: false } as never);
+}
+
+test('back-up-everything audit 14: a waiting delete of a stacked moment\'s first piece keeps the moment\'s reminder and find', async () => {
+  const db = await seeded();
+  await db.addMoment(moment('stack', 'w1', W1 + 500_000, [piece('stack', 'stack', W1 + 500_000, { body: 'first' }), piece('stack-2', 'stack', W1 + 500_001, { body: 'second' })]));
+  await remindAndFind(db, 'stack', 'w1');
+  await db.setMeta('pending_delete', JSON.stringify([{ kind: 'moment', ids: ['stack'], spec: { type: 'piece', momentId: 'stack', pieceId: 'stack' } }]));
+  const io = memoryIO();
+  await createBackupWriter({ db, clock: fakeClock(NOW) }).writeBackup(io);
+  const zip = unzip(io);
+  const stack = json(zip, 'moments.json').find((m: Moment) => m.id === 'stack');
+  assert.deepEqual(stack.pieces.map((p: { id: string }) => p.id), ['stack-2'], 'the moment stays with its other piece');
+  assert.ok(json(zip, 'recalls.json').some((r: { capture_id: string }) => r.capture_id === 'stack'), 'its reminder stays');
+  assert.ok(json(zip, 'finds.json').some((f: { capture_id: string }) => f.capture_id === 'stack'), 'its find stays');
+});
+
+test('back-up-everything audit 15: a waiting delete of a moment split out of a stack leaves its reminder and find out', async () => {
+  const db = await seeded();
+  await db.addMoment(moment('two', 'w1', W1 + 600_000, [piece('two', 'two', W1 + 600_000), piece('two-b', 'two', W1 + 600_001)]));
+  await db.splitPiece('two-b', { id: 'split', walk_id: 'w1', t: W1 + 600_001, lat: LAT, lon: LON, segment_id: null });
+  await remindAndFind(db, 'split', 'w1');
+  await db.setMeta('pending_delete', JSON.stringify([{ kind: 'moment', ids: ['split'], spec: { type: 'moment', captureId: 'split' } }]));
+  const io = memoryIO();
+  await createBackupWriter({ db, clock: fakeClock(NOW) }).writeBackup(io);
+  const zip = unzip(io);
+  assert.ok(!json(zip, 'moments.json').some((m: Moment) => m.id === 'split'));
+  assert.ok(!json(zip, 'recalls.json').some((r: { capture_id: string }) => r.capture_id === 'split'), 'its reminder goes with it');
+  assert.ok(!json(zip, 'finds.json').some((f: { capture_id: string }) => f.capture_id === 'split'), 'its find goes with it');
+});
+
+test('BK14, back-up-everything audit 2: the file\'s rows for a waiting piece, media, thread and removal delete', async () => {
+  const db = await seeded();
+  await db.addMoment(moment('pair', 'w1', W1 + 700_000, [piece('pair', 'pair', W1 + 700_000), piece('pair-b', 'pair', W1 + 700_001, { kind: 'photo', file_path: 'walks/w1/photo.jpg', body: null })]));
+  await db.addMoment(moment('gone2', 'w1', W1 + 710_000, [piece('gone2', 'gone2', W1 + 710_000)]));
+  await remindAndFind(db, 'gone2', 'w1');
+  await db.applyThreads({ putThreads: [{ id: 't2', name: 'Bells', created_at: 1 }, { id: 't3', name: 'Doors', created_at: 1 }], putMembers: [
+    { thread_id: 't2', moment_id: 'note', added_at: 2 }, { thread_id: 't2', moment_id: 'memo', added_at: 2 }, { thread_id: 't2', moment_id: 'loose', added_at: 2 },
+    { thread_id: 't3', moment_id: 'note', added_at: 2 }, { thread_id: 't3', moment_id: 'memo', added_at: 2 },
+  ] });
+  await db.setMeta('pending_delete', JSON.stringify([
+    { kind: 'moment', ids: ['pair-b'], spec: { type: 'piece', momentId: 'pair', pieceId: 'pair-b' } },
+    { kind: 'media', ids: ['gone2'], spec: { type: 'media', walkId: 'w1', captureIds: ['gone2'] } },
+    { kind: 'thread', ids: ['t3'], spec: { type: 'thread', threadId: 't3' } },
+    { kind: 'thread', ids: ['t2/loose'], spec: { type: 'remove', threadId: 't2', momentId: 'loose' } },
+  ]));
+  const io = memoryIO();
+  await createBackupWriter({ db, clock: fakeClock(NOW) }).writeBackup(io);
+  const zip = unzip(io);
+  const ms = json(zip, 'moments.json');
+  assert.deepEqual(ms.find((m: Moment) => m.id === 'pair').pieces.map((p: { id: string }) => p.id), ['pair']);
+  assert.ok(!ms.some((m: Moment) => m.id === 'gone2'), 'a media delete takes the moment');
+  assert.ok(!json(zip, 'recalls.json').some((r: { capture_id: string }) => r.capture_id === 'gone2'), 'and its reminder');
+  assert.ok(json(zip, 'finds.json').some((f: { capture_id: string }) => f.capture_id === 'gone2'), 'but keeps its find, as the delete does');
+  const th = json(zip, 'threads.json');
+  assert.ok(!th.threads.some((t: { id: string }) => t.id === 't3'), 'a waiting thread delete');
+  assert.deepEqual(th.members.filter((m: { thread_id: string }) => m.thread_id === 't2').map((m: { moment_id: string }) => m.moment_id).sort(), ['memo', 'note'], 'a waiting removal');
+});
+
+test('back-up-everything audit 16: a moment whose walk row is gone is still in the file, written as a loose moment', async () => {
+  const db = await seeded();
+  await db.addMoment(moment('orphan', 'w-gone', W1 + 800_000, [piece('orphan', 'orphan', W1 + 800_000, { body: 'saved after its walk went' })]));
+  const io = memoryIO();
+  await createBackupWriter({ db, clock: fakeClock(NOW) }).writeBackup(io);
+  const ms = json(unzip(io), 'moments.json');
+  const o = ms.find((m: Moment) => m.id === 'orphan');
+  assert.ok(o, 'the moment is kept');
+  assert.equal(o.walk_id, null, 'written as loose, so no walk it names is missing');
+  assert.equal(new Set(ms.map((m: Moment) => m.id)).size, ms.length, 'every moment once');
+});

@@ -337,9 +337,12 @@ export function withoutPending(rows: Omit<BackupRows, 'traces'>, o: PendingOmits
     .filter((m) => m.pieces.length > 0);
   const kept = new Set(moments.map((m) => m.id));
   const pieces = new Set(moments.flatMap((m) => m.pieces.map((p) => p.id)));
-  // A reminder, a find and a memo's words are kept on a piece's id (a moment's first piece shares the moment's).
-  const momentOf = new Map(rows.moments.flatMap((m) => m.pieces.map((p) => [p.id, m.id] as const)));
-  const gone = (pieceId: string) => momentOf.has(pieceId) && !pieces.has(pieceId);
+  // A reminder and a find belong to their moment (kept by its id, or by a piece's, as older rows were); a piece's going
+  // leaves them while the moment stays (`deletePieces`). A memo's words belong to the piece itself.
+  const momentOf = new Map<string, string>(rows.moments.flatMap((m) => [[m.id, m.id] as const, ...m.pieces.map((p) => [p.id, m.id] as const)]));
+  const momentGone = (id: string) => momentOf.has(id) && !kept.has(momentOf.get(id)!);
+  const allPieces = new Set(rows.moments.flatMap((m) => m.pieces.map((p) => p.id)));
+  const pieceGone = (id: string) => allPieces.has(id) && !pieces.has(id);
   const members = rows.threads.members.filter((m) => kept.has(m.moment_id) && !o.threads.has(m.thread_id) && !o.members.has(`${m.thread_id}/${m.moment_id}`));
   const thin = new Set(thinThreads(rows.threads.threads.map((t) => t.id), members));
   const walkKey = (key: string) => key.slice(key.indexOf(':') + 1);
@@ -356,13 +359,19 @@ export function withoutPending(rows: Omit<BackupRows, 'traces'>, o: PendingOmits
       members: members.filter((m) => !thin.has(m.thread_id)),
       links: rows.threads.links.filter((l) => kept.has(l.from_id) && kept.has(l.to_id)),
     },
-    recalls: rows.recalls.filter((r) => !gone(r.capture_id)),
-    finds: rows.finds.filter((f) => !walkGone(f.walk_id) && (!gone(f.capture_id) || o.keepFinds.has(momentOf.get(f.capture_id)!))),
+    recalls: rows.recalls.filter((r) => !momentGone(r.capture_id)),
+    finds: rows.finds.filter((f) => !walkGone(f.walk_id) && (!momentGone(f.capture_id) || o.keepFinds.has(momentOf.get(f.capture_id)!))),
     marks: rows.marks.filter((m) => !walkGone(m.walk_id)),
-    transcripts: rows.transcripts.filter((t) => !gone(t.capture_id)),
+    transcripts: rows.transcripts.filter((t) => !pieceGone(t.capture_id)),
     meta: { keys: rows.meta.keys, walks: Object.fromEntries(Object.entries(rows.meta.walks).filter(([k]) => !o.walks.has(walkKey(k)))) },
   };
 }
+
+/**
+ * What one plain zip can hold (back-up-everything audit 12, 13): fflate 0.8.2 writes no ZIP64, so past 65,535 entries
+ * or 4 GiB a zip is silently corrupt. A backup that would pass either is refused in words before it is handed over.
+ */
+export const ZIP_LIMITS = { entries: 65_535, bytes: 2 ** 32 - 1 } as const;
 
 /** Room for the file on a phone (BK7): as much again as the media, and the very-low level kept clear. Unknown: go on. */
 export function hasRoom(free: number | null, need: number): boolean {
@@ -392,6 +401,7 @@ export const NEWER = 'This backup was made by a newer Chronicles. Update the app
 export const NOT_A_BACKUP = 'This file isn\'t a Chronicles backup.';
 export const NO_ROOM = 'There isn\'t room on this phone to make the backup: it needs as much room again as your photos, videos and memos. Try again when the phone has more room.';
 export const FAILED = 'The backup could not be made, and no file was kept. Try again.';
+export const TOO_LARGE = 'This backup would be too large for one file, so it was not made.';
 export const NO_SHARING = 'This phone has no way to share the file, so the backup was not made.';
 
 /** "Last backup made October 3" (another year's with its year), or "Not backed up yet" (BK8). */
