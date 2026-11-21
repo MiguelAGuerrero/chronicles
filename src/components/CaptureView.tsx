@@ -891,8 +891,9 @@ export function CaptureViewer(props: {
             onDone={(text, ok) => {
               const id = adding.id;
               setAdding(null);
+              // The info line's status (UC10, owner-threads audit 19), also after a new thread's name step (TK8).
               if (ok) tell(id, 'Added to a thread');
-              else setSaveState({ id, text });
+              else setSaveState({ id, text: text ?? 'Could not connect' });
             }}
           />
         )}

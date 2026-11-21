@@ -76,6 +76,7 @@ import { useStore } from '../lib/useStore';
 import { routeLeanings } from '../lib/routeLeanings';
 import { whileFocused } from '../lib/openers';
 import { AddToMomentPill } from '../components/walk/AddToMomentPill';
+import { ThreadFromPill } from '../components/threads/ThreadFromPill';
 import { PlaceCaptureRow } from '../components/walk/PlaceCaptureRow';
 import { cardCapture, PLACE_REACH_M } from '../lib/explore/placeCard';
 import { walkScreenShown } from '../lib/walkNav';
@@ -320,6 +321,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
   // `place`: begun on a place's card, the note kept finds it (capture-at-a-place CA4).
   const [page, setPage] = useState<{ key: number; into: string | null; place?: string | null } | null>(null);
   const noteOpen = page != null;
+  // Thread from the pill (TK3): the moment it was tapped for, while its card is up.
+  const [threading, setThreading] = useState<string | null>(null);
   const openNote = (into: string | null, place: string | null = null) => setPage((p) => ({ key: (p?.key ?? 0) + 1, into, place }));
   const pageRef = useRef<NotePageHandle>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -1732,7 +1735,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
           />
         )}
         {toast && (
-          <LiftIn style={styles.toast} accessibilityLiveRegion="polite">
+          <LiftIn testID="walk-toast" style={styles.toast} accessibilityLiveRegion="polite">
             <Text style={styles.toastText}>{toast}</Text>
           </LiftIn>
         )}
@@ -1749,6 +1752,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
             onNote={() => {
               openNote(momentPill.target());
             }}
+            onThread={() => setThreading(momentPill.store.get().id)}
           />
         )}
         {aheadLine && navigation.nav && !recordingVoice && (
@@ -2207,6 +2211,15 @@ function WalkScreen(props: { onMinimize: () => void }) {
 
       {/* At the top, clear of the voice memo's own Undo and the caption pill above the capture row (UI review). */}
       <UndoToast style={{ top: insets.top + 64 }} />
+
+      <ThreadFromPill
+        momentId={threading}
+        onClose={() => setThreading(null)}
+        onDone={(message) => {
+          setThreading(null);
+          if (message) setToast(message);
+        }}
+      />
 
       <Modal visible={noteOpen} animationType="slide" onRequestClose={() => pageRef.current?.requestClose()}>
         {page && (

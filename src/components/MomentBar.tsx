@@ -20,6 +20,7 @@ import { SpaceLine } from './SpaceLine';
 import { useEditAfterCapture } from './edit/EditOffer';
 import { MediaEditor } from './edit/MediaEditor';
 import { AddToMomentPill } from './walk/AddToMomentPill';
+import { ThreadFromPill } from './threads/ThreadFromPill';
 import { CaptureStack } from './walk/CaptureStack';
 import { useStackLayout } from './walk/layout';
 import { LiftIn, theme } from './ui';
@@ -92,6 +93,8 @@ export function CaptureRow(props: {
   // The note's page, begun at the pencil's tap (NP1), keyed so each opens fresh; `into` is the open moment it joins (MS2, MS4).
   const [page, setPage] = useState<{ key: number; into: string | null } | null>(null);
   const noteOpen = page != null;
+  // Thread from the pill (TK3): the moment it was tapped for, while its card is up.
+  const [threading, setThreading] = useState<string | null>(null);
   const openNote = (into: string | null) => setPage((p) => ({ key: (p?.key ?? 0) + 1, into }));
   const pageRef = useRef<NotePageHandle>(null);
   // Once a photo or video is kept, its editor opens by itself (ME23 as decision 0240 amends it).
@@ -180,6 +183,7 @@ export function CaptureRow(props: {
           onPhoto={() => void cap.takePhoto(momentPill.target()).then(kept)}
           onVoice={() => void cap.startVoice(momentPill.target()).then((ok) => ok && feedback('tap'))}
           onNote={() => openNote(momentPill.target())}
+          onThread={() => setThreading(momentPill.store.get().id)}
         />
         {toast && (
           <LiftIn testID={`${p}-toast`} style={styles.toast} accessibilityLiveRegion="polite">
@@ -232,6 +236,15 @@ export function CaptureRow(props: {
       {editing && (
         <MediaEditor key={editing.piece_id} capture={editing} justKept initialTool="crop" onClose={() => editAfter.close()} onSave={(patch) => cap.setEdit(editing, patch)} />
       )}
+
+      <ThreadFromPill
+        momentId={threading}
+        onClose={() => setThreading(null)}
+        onDone={(message) => {
+          setThreading(null);
+          if (message) setToast(message);
+        }}
+      />
 
       <Modal visible={noteOpen} animationType="slide" onRequestClose={() => pageRef.current?.requestClose()}>
         {page && (

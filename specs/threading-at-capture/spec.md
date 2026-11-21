@@ -86,7 +86,9 @@ before ×; "Last added to", "Leave it unnamed", "The two moments are a thread no
   both carry Thread (TK1, TK2).
 - `AddToThread` is drawn by the viewer (`CaptureView.tsx`, More's Add to a thread), Memories (`MemoriesScreen.tsx`,
   the journal's Thread slot) and, new, the two pill hosts. All four get TK4-TK9 and TK11: the card is one component.
-  The name step (TK8) shows in every host; the hosts say nothing more after it.
+  The name step (TK8) shows in every host; after it no host shows a toast (the walk, Navigate, Memories), and the
+  viewer keeps its info line's status, "Added to a thread" (UC10, owner-threads audit 19), a status, not a second
+  "Connected".
 - The recording bar's minimized band and Chronicle's open line have no Add to this moment pill (MS2's hosts only);
   Thread is not there.
 

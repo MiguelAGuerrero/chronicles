@@ -718,6 +718,8 @@ export function MemoriesScreen() {
           onDone={(text, ok) => {
             setThreading(null);
             if (ok) threads.load().catch(() => {});
+            // A new thread's name step already said "Connected" (TK9): nothing more then.
+            if (text === null) return;
             setToast({ msg: ok ? 'Added to a thread' : text, change: null as never });
             timer.current = setTimeout(() => setToast(null), TOAST_MS);
           }}

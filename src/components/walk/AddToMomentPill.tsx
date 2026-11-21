@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { momentPill } from '../../lib/momentPill';
+import { CAP_THREAD } from '../../lib/threads/capThread';
 import { useStore } from '../../lib/useStore';
 import { Icon, KIND_ICON } from '../icons';
 import { LiftIn, theme } from '../ui';
@@ -9,9 +10,10 @@ import { LiftIn, theme } from '../ui';
  * stack offers the camera, the mic and a note, one tap each; what it keeps joins the moment just made. Ink, never the
  * accent; it enters by `LiftIn` (a `motionTokens` timing) with no pulse, sound or haptic of its own; its words never
  * change with the moment's size. It shows while `momentPill` says a moment is open; × dismisses it for that moment.
- * With Group captures on (MS19, MS21), it gives way to "Adding to this moment" and New moment.
+ * With Group captures on (MS19, MS21), it gives way to "Adding to this moment" and New moment. Both carry Thread, the
+ * link mark, which puts the moment just kept into a thread (TK1, TK2, decision 0253): after the capture, never before it.
  */
-export function AddToMomentPill(props: { hidden?: boolean; onPhoto: () => void; onVoice: () => void; onNote: () => void }) {
+export function AddToMomentPill(props: { hidden?: boolean; onPhoto: () => void; onVoice: () => void; onNote: () => void; onThread: () => void }) {
   const open = useStore(momentPill.store, (s) => s.id);
   const grouping = useStore(momentPill.store, (s) => s.grouping);
   if (!open || props.hidden) return null;
@@ -21,6 +23,9 @@ export function AddToMomentPill(props: { hidden?: boolean; onPhoto: () => void; 
     return (
       <LiftIn testID="adding-moment" style={styles.pill} accessibilityLiveRegion="polite">
         <Text style={styles.text}>Adding to this moment</Text>
+        <Pressable testID="add-thread" accessibilityRole="button" accessibilityLabel={CAP_THREAD.thread} onPress={() => props.onThread()} hitSlop={6} style={styles.btn}>
+          <Icon name="link" size={20} color="#ffffff" />
+        </Pressable>
         <Pressable testID="new-moment" accessibilityRole="button" accessibilityLabel="Start a new moment" onPress={() => momentPill.newMoment()} hitSlop={6} style={styles.newBtn}>
           <Text style={styles.newText}>New moment</Text>
         </Pressable>
@@ -38,6 +43,7 @@ export function AddToMomentPill(props: { hidden?: boolean; onPhoto: () => void; 
         {btn('Add a photo to this moment', KIND_ICON.photo, props.onPhoto, 'add-photo')}
         {btn('Add a voice memo to this moment', KIND_ICON.voice, props.onVoice, 'add-voice')}
         {btn('Add a note to this moment', KIND_ICON.text, props.onNote, 'add-note')}
+        {btn(CAP_THREAD.thread, 'link', () => props.onThread(), 'add-thread')}
         {btn('Not now', 'close', () => momentPill.dismiss(), 'add-dismiss')}
       </View>
     </LiftIn>
@@ -49,7 +55,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: theme.ink, borderRadius: 999, maxWidth: '100%',
     paddingVertical: 4, paddingLeft: 14, paddingRight: 4,
   },
-  // The four buttons are ~190 wide, so beside them the label wrapped to three lines in the room left of the capture
+  // The buttons are ~190 wide (five since TK1: at 320 px × takes a second row, as the owner approved), so beside them the label wrapped to three lines in the room left of the capture
   // stack: it sits above them instead, on one line, and the pill is a rounded card rather than a capsule.
   stacked: { alignItems: 'center', gap: 6, backgroundColor: theme.ink, borderRadius: 28, maxWidth: '100%', paddingTop: 10, paddingBottom: 4, paddingHorizontal: 4 },
   label: { color: '#ffffff', fontSize: 15, fontWeight: '600', textAlign: 'center', paddingHorizontal: 10 },

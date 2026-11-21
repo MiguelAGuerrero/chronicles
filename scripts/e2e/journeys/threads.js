@@ -112,6 +112,8 @@ async function run(h) {
   check((await pg.locator('[data-testid=add-moment-row]').count()) === 1 && /Oct|Sep|Aug|Nov|Jan|Feb|Mar|Apr|May|Jun|Jul|Dec/.test(await pg.locator('[data-testid=add-moment-row]').first().innerText()),
     'OT5, OT9: the moment picker searches the words in the moments, and each row carries its date');
   await pg.click('[data-testid=add-moment-row]');
+  // A new thread offers an optional name first (threading at capture TK8): left unnamed here, as OT13 expects.
+  await pg.click('[data-testid=thread-name-skip]').catch(() => {});
   await gone('[data-testid=add-to-thread]');
   // The viewer says so plainly, in its info line. (This check once read "Connected" off the threads listed behind the
   // viewer; they are behind the journal's contents now, decision 0155.)
