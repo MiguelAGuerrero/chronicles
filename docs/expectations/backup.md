@@ -12,7 +12,7 @@ owner. Changed only through `npm run expectations`; a line's words, status and a
   Grounds: VISION "Who it is for"; adjacent-apps "Back up everything and restore it" (Day One: its export "can be re-imported into Day One"; verified. Organic Maps: one KMZ it reads back; unverified)
   Serves: Return
 - E-backup-3 [proposed] A person who goes out to notice, using backup, would reasonably expect the file to leave the phone only when they send it themselves, and to be told plainly that anyone holding it can see their walks and photos.
-  Check: backup:"BK9: the page says in one line what the file is and who can see it ("
+  Check: backup:"back-up-everything audit 21: no file leaves the page before the tap ("
   Grounds: VISION "Who it is for"; VISION Never, "Data leaving the device without a tap" (fit: "The share sheet on a tap"); adjacent-apps "Back up everything and restore it" (Apple Journal: the export goes to Files on the person's choice; verified)
   Serves: Honour; upholds Never "Data leaving the device without a tap": the file goes only where the person sends it, and they are told what it shows
 - E-backup-4 [proposed] A person who goes out to notice, using backup, would reasonably expect to see when they last made a backup file, and never to be reminded to make one.

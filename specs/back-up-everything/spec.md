@@ -49,6 +49,24 @@ file is restorable the day it is made. Restoring it is the next slice.
   (BK11); 7 missing files named by kind, never as "files" (BK6); 8 no numeral but the date's (BK9); 9 `transcript_off`
   carried, as `notify_off` is (BK2); 10 the Apple Journal precedent quoted as recorded.
 
+- **The owner's answers in person, 2026-11-21** (to the diff review; decision 0249): "Add a door in Chronicle": the
+  Walk settings row stays, and Chronicle's Contents gains a "Your data" entry opening the same page (BK13; the cold
+  find had failed from launch); "Last backup made" is the date alone and never mentions pieces left out.
+- **The diff review** (Nov 21; the auditor, the ux-reviewer with the cold find, the steward; one round): twelve
+  accepted and fixed, each behind its test: audit 11 the door in Chronicle's Contents; 12, 13 a backup past what one
+  plain zip holds (65,535 files or 4 GiB; fflate 0.8.2 writes no ZIP64) refused in words before it is handed over,
+  no date kept; 14, 15 a waiting delete's reminders and finds read by their moment; 16 every moment read once, an
+  orphan written as loose; 17 focus back on the row after Back (`PageRow`, shared with What I'm into's row); 18 Back
+  names the screen beneath (Navigate, Chronicle), Android's own spoken Back; 19 the file's line in ink, the last
+  backup's line muted; 20 the share-sheet-missing and too-large lines held to BK11; 21 nothing leaves the page before
+  the tap; 22 nothing outside the page reads the date or notifies about backing up. Eight lows filed `[loop]` in
+  `docs/DEFERRED.md`; one rejected (a second backup the same day changes nothing on the page: BK9 and matrix row 20,
+  the download or the share sheet is the change). The `[arch]` question of a backup past one zip is filed for the
+  owner (a ZIP64 writer and reader of our own, or parts).
+- **The too-large line, gated** (`/vision`, Nov 21): "This backup would be too large for one file, so it was not
+  made." Verb: honour (says truthfully why no file was made). Touches: Always, "Counts are words" and "Restraint";
+  decision 0107 (no nudge to free or delete). Verdict: aligned. No number, no nudge, the failure line's register.
+
 ## For the restore slice (not built here)
 
 - **Bring them back** (the owner, in person, 2026-11-20, Silent 1; decision 0249): a restore adds what is in the file,
@@ -57,6 +75,12 @@ file is restorable the day it is made. Restoring it is the next slice.
   may come back as a list of what is left to find.
 - **A carried transcript stays a cache** (audit 3): restored beside its memo, stale when the memo is trimmed, rebuilt
   as any transcript is.
+- **A newer backup is refused without a version number** (the owner, in person, 2026-11-21): "This backup was made by a
+  newer Chronicles. Update the app to restore it." names no version.
+- **A damaged backup** (the steward's S13): a file that names `chronicles-backup` but whose version cannot be read says
+  "Chronicles can't read this backup."; "This file isn't a Chronicles backup." only when the format is absent or another.
+- **Read nothing on trust** (the auditor's A10): refuse a file whose entries do not match its manifest's `stores` (a
+  truncated file), and treat every `file_path` as untrusted on the way back (`\`, `..`, absolute).
 
 ## How adjacent apps do it
 
@@ -117,11 +141,14 @@ action sits on a page of its own reached from Walk settings, the app's only sett
     and data parse and whose rows match the seeded walk; the line then reads "Last backup made" and today's date. Native share and file handle
     recorded in `docs/NATIVE_UNVERIFIED.md`.
 11. **BK11** A backup that fails part way says so in words, "The backup could not be made, and no file was kept. Try
-    again." (audit 6), keeps no file behind, and leaves the "Last backup made" line as it was.
+    again." (audit 6), keeps no file behind, and leaves the "Last backup made" line as it was. Its other refusals, in the
+    same register and with no numeral: "This phone has no way to share the file, so the backup was not made." (audit
+    20) and "This backup would be too large for one file, so it was not made." (audit 12, 13).
 12. **BK12** While a backup is being made the button says so and a second tap makes no second file.
-13. **BK13** The finding criterion (decision 0167; audit 4): someone told only "make a backup of everything" finds it
-    from launch: Navigate, the ready bar pulled up, Walk settings scrolled to its foot, where the row's words "Your data"
-    and "Back up every walk and moment" are drawn in view; the ux-reviewer's cold find at the diff pause places it.
+13. **BK13** The finding criterion (decision 0167; audit 4, audit 11): someone told only "make a backup of everything"
+    finds it from launch: Chronicle's Contents holds "Your data" and "Back up every walk and moment" (the owner's door,
+    2026-11-21), and Walk settings, scrolled to its foot, holds the same row; both open the page; the ux-reviewer's
+    cold find places it.
 14. **BK14** A delete waiting for Undo is not in the file (decisions 0041, 0113; audit 2): the walks, moments, pieces,
     thread memberships and threads a waiting delete names, and the rows and files that hang on them, are left out.
 

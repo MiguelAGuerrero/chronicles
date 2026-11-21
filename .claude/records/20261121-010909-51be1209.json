@@ -1,0 +1,41 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Back up everything (BK1-BK14, decisions 0241, 0249)"
+      ],
+      "body": "- [loop] The JSON stores go into the zip uncompressed (`ZipPassThrough`, `backup/shell.ts`): only the media are compressed already, and the owner asked for \"compressed\"; deflate the JSON (`ZipDeflate`) and count the traces in the room's estimate (the diff review's auditor A4, low; test `back-up-everything audit` next: the JSON entries are deflated and read back).\n- [loop] On the web each written chunk is kept as a `Uint8Array` on the heap until the download; wrap each in a `Blob` (or join into blobs of about 8 MB) so the browser may page them out (auditor A5, low).\n- [loop] The page's failure or missing-files line comes back when the page is opened again later (the shell's store outlives the page); `load()` clears `after` and `failed` when no backup is being made (auditor A6, low).\n- [loop] A backup outlives its page: Back, then Start, and the download or the share sheet comes over the walk screen; hold Back while one is being made, or hand the file over only while the page is up (auditor A7, low; an e2e step).\n- [loop] A `backup_last` write that throws after the file was handed over reports \"could not be made\" for a file that was made (auditor A8, low).\n- [loop] The reader (`readBackup`) reads a missing trace entry as an empty trace, throws on a moment with no pieces, and never checks the manifest's `stores` against the entries (a truncated file reads as whole); for the restore slice: refuse a file whose entries do not match its manifest, and treat every `file_path` as untrusted (`mediaEntry` passes a `\\`) (auditor A10, low).\n- [loop] The \"Your data\" row stands alone under a rule with no heading of its own (the ux-reviewer's U6, low, mostly opinion).\n- [loop] `db.looseMoments()` has no caller since back-up-everything audit 16 reads every moment once (`momentsBetween(0, MAX)`, the one all-time read a backup makes, once per tap, beside the callers the storage rule lists); keep it for the restore slice or remove it with its contract case (low).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Map, walk screen and motion polish"
+      ],
+      "body": "- [loop] The raised drawer's grabber is drawn over the text scrolled under it (Walk settings at 390 and 320 px, seen in the back-up-everything pictures; the ux-reviewer's U8, low, older than that slice; ui-patterns T7).\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Navigation and tabs"
+      ],
+      "body": "- [ ] **Do:** on an Android phone with TalkBack on, open Your data from Walk settings and from Chronicle's Contents, then go back by the page's arrow, by the system Back and by the gesture. **Expect:** the arrow is heard \"Navigate, back\" or \"Chronicle, back\" and pops the page; the system Back and the gesture pop it too; on iOS the back button reads \"Navigate\" or \"Chronicle\" (the arrow alone at large text) and VoiceOver says \"Navigate, back button\". Never run on a phone. (back-up-everything audit 18)\n- [ ] **Do:** on an iPhone, in Chronicle open Contents and tap \"Your data\"; then tap it twice fast; then from Walk settings tap the row twice fast. **Expect:** the sheet closes and the page is pushed once, never under the closing sheet and never twice (`router.navigate`; iOS cannot present over a closing Modal). Never run on a phone. (back-up-everything audit 11)\n"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "set",
+        "Back up everything (Your data"
+      ],
+      "body": "| Back up everything (Your data: the last row of Walk settings opens a page that makes one plain, versioned zip of every walk, trace, moment and file, every kept row and the person's choices, handed to the share sheet or downloaded; \"Last backup made\", no reminder, no size or count; a reader that reads every format version written, a frozen sample per version; a delete waiting for Undo left out; BK1-BK14, decisions 0241, 0249; from G10) | built; web only | tests first, then the code, 2026-11-20 (`check:test-first` 14 of 14) | `specs/back-up-everything/spec.md` | the steward's plan review, 2026-11-20: 10 accepted before any code (back-up-everything audit 1-10), 4 owner's answers; the diff review (auditor, ux-reviewer with the cold find, steward), 2026-11-21: 12 fixed (audit 11-22), 8 deferred, 1 rejected, 3 owner's answers (decision 0249), 1 [arch] filed |\n",
+      "target": "sha256:6b3a295fa8876d2bb129dc4195c6c34e98c307aa379e10ef1399413c31b61e54"
+    }
+  ]
+}
