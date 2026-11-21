@@ -1,0 +1,24 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Map layers and markers (MapLibre RN v11)",
+        "--after",
+        "walk outdoors with the app open, turn on the spot"
+      ],
+      "body": "- [ ] **Do:** on a walk, turn the map with two fingers to about 180°, then about 90°, and walk a straight street at each; then tap the compass while walking. **Expect:** the cone (`ConeSource`'s fill over `coneGeoJSON`) points the way walked at both bearings and through the ease back to north, never backwards (fix nav-heading audit 6; the web's puck was drawn square to the screen until then).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Map, walk screen and motion polish"
+      ],
+      "body": "- [loop] low: **Pins draw over the walker's puck** (fix nav-heading's ux review U1, Nov 21): a capture pin or a \"?\" just ahead of the walker covers the heading cone, so walking toward a place hides which way you face. Pre-existing at any bearing; drawing the puck above the pins changes the look (a mock-up first, decision 0252) and what a tap on a pin under it meets.\n"
+    }
+  ]
+}

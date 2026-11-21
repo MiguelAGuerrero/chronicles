@@ -251,6 +251,7 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - [loop] (low) The units store starts at km until `loadUnits` reads meta at launch (`src/lib/units.ts` l.30-32), where QL13 says "until then the locale default shows": a miles user's first frames say km. Either the instance file sets `unitsForLocale(deviceLocale())` on import (pure code and `npm test` keep km), or QL13's words change, which are the owner's ("Open before the loop") (the `/tend map` lenses' auditor 4, Nov 20)
 - [loop] (low) In miles, the "?" range and the pass-by sliders step through converted metres ("within 328 ft", "26 ft"): a miles reader does not count in those; in miles, step over round imperial values (300 ft, 25 ft), each kept as its metres (NN/g H2; opinion) (`tend-map-23-drawer-range-miles-{390,320}`; the `/tend map` diff review's ux U5, Nov 20)
 - [loop] The raised drawer's grabber is drawn over the text scrolled under it (Walk settings at 390 and 320 px, seen in the back-up-everything pictures; the ux-reviewer's U8, low, older than that slice; ui-patterns T7).
+- [loop] low: **Pins draw over the walker's puck** (fix nav-heading's ux review U1, Nov 21): a capture pin or a "?" just ahead of the walker covers the heading cone, so walking toward a place hides which way you face. Pre-existing at any bearing; drawing the puck above the pins changes the look (a mock-up first, decision 0252) and what a tap on a pin under it meets.
 
 ## Quality of life (in the owner's order, decisions 0063-0065; rounds 1-3 shipped)
 

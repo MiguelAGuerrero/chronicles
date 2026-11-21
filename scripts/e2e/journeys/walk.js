@@ -314,23 +314,34 @@ async function checks(h) {
         const want = k === 18 ? 90 : 0;
         const off = Math.abs((((deg - want) % 360) + 540) % 360 - 180);
         check(cone.shown && off <= 20, `heading 5: the cone points ${k === 18 ? 'east' : 'north'} as the walk goes (${cone.shown ? cone.t : 'hidden'})`);
-        if (k === 18) {
-          // On a map turned upside down the cone still points the way walked: east is the screen's left (fix nav-heading;
-          // the owner's iPhone, Nov 21, walked toward the route and the cone pointed back). Read as drawn: from the dot's
-          // middle to the cone's.
-          await page.evaluate(() => window.__turn(180));
-          await page.waitForTimeout(150);
-          const seen = await page.locator('[data-testid=walker-puck]').evaluate((el) => {
-            const mid = (r) => [r.left + r.width / 2, r.top + r.height / 2];
-            const [dx, dy] = mid(el.querySelector('circle').getBoundingClientRect());
-            const [cx, cy] = mid(el.querySelector('[data-cone] path').getBoundingClientRect());
-            return { deg: ((Math.atan2(cx - dx, dy - cy) * 180) / Math.PI + 360) % 360, bearing: document.querySelector('[data-bearing]')?.getAttribute('data-bearing') };
-          });
-          await shot(page, '06-cone-on-a-turned-map');
-          await page.evaluate(() => window.__turn(0));
-          await page.waitForTimeout(150);
-          const turnedOff = Math.abs((((seen.deg - 270) % 360) + 540) % 360 - 180);
-          check(turnedOff <= 25, `fix nav-heading: walking east on a map turned to 180°, the cone points to the screen's left (${seen.deg.toFixed(0)}° on screen, bearing ${seen.bearing})`);
+        if (k === 32) {
+          // On a turned map the cone still points the way walked (fix nav-heading; the owner's iPhone, Nov 21, walked
+          // toward the route with the map turned and the cone pointed back). Turned to 90°, north is the screen's left,
+          // and a correction of the wrong sign would point right (audit 1). Read as drawn, from the dot's middle to the
+          // cone's, on the north leg, where no pin stands ahead of the walker (audit 2); north again whatever happens
+          // (audit 4).
+          let seen = null;
+          try {
+            await page.evaluate(() => window.__turn(90));
+            await page.waitForTimeout(150);
+            seen = await page.locator('[data-testid=walker-puck]').evaluate((el) => {
+              const mid = (r) => [r.left + r.width / 2, r.top + r.height / 2];
+              const [dx, dy] = mid(el.querySelector('circle').getBoundingClientRect());
+              const [cx, cy] = mid(el.querySelector('[data-cone] path').getBoundingClientRect());
+              return {
+                shown: el.querySelector('[data-cone]').style.display !== 'none',
+                deg: ((Math.atan2(cx - dx, dy - cy) * 180) / Math.PI + 360) % 360,
+                bearing: Number(document.querySelector('[data-bearing]')?.getAttribute('data-bearing')),
+              };
+            });
+            await shot(page, '06-cone-on-a-turned-map');
+          } finally {
+            await page.evaluate(() => window.__turn(0)).catch(() => {});
+            await page.waitForTimeout(150);
+          }
+          const turnedOff = seen ? Math.abs((((seen.deg - 270) % 360) + 540) % 360 - 180) : 180;
+          check(!!seen && seen.shown && Math.abs(seen.bearing - 90) < 1 && turnedOff <= 25,
+            `fix nav-heading audits 1, 2, 4: walking north on a map turned to 90°, the cone points to the screen's left (${seen ? `${seen.shown ? 'shown' : 'hidden'}, ${seen.deg.toFixed(0)}° on screen, bearing ${seen.bearing}` : 'not read'})`);
         }
       }
       if (k >= 16 && k <= 20) {

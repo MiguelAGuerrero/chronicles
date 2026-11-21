@@ -107,7 +107,7 @@ Routing inside a walk (`lib/nav`): walk me back, Route here, the route sources, 
     0.5 m/s or faster; the device's course only when it agrees with the trace
     within 45°, or when there is no trace yet and it isn't Android's 0). A
     phone's course once pointed east-north-east while the owner walked south
-    (Nov 1). The map stays north-up (the owner's call).
+    (Nov 1). The map opens north-up; two fingers turn it and the compass brings it back (`map.md`, CP1-CP8).
   - **The cone is drawn through `coneHeading`, never the live dot's heading
     alone** (decision 0075, Nov 3: the owner walked north and the cone said
     east). The dot's direction shows only within 20° of the trace's, else the

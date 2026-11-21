@@ -4,16 +4,22 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import ts from 'typescript';
+// The file this scans, imported as a type only (erased at run time, so nothing of React Native loads): the import is
+// how `check:affected` and the Stop hook pick this test when the file changes (fix nav-heading audit 3).
+import type { WalkMap } from '../../../components/map/WalkMap.web';
 
 // fix nav-heading (the owner's iPhone, Nov 21): walking toward the route on a map turned by two fingers, the cone
 // pointed backwards. The web's cone is a DOM element turned by `rotate(<heading>deg)` inside the walker's puck, a
 // maplibre Marker; at maplibre's default rotation alignment the puck stays square to the screen, so the cone read the
 // heading as screen degrees and was off by the map's bearing (180° on that map). The puck turns with the map
 // (`rotationAlignment: 'map'`), so the cone's turn inside it is from north. The map can't render under `npm test`;
-// this reads the source, and the walk journey's "fix nav-heading" step reads the cone as drawn on a turned map.
+// this reads the source, and the walk journey's "fix nav-heading" step reads the cone as drawn on a map turned to 90°.
 
 const ROOT = join(__dirname, '../../..');
 const WEB = 'components/map/WalkMap.web.tsx';
+/** What the scan reads: the web map's component, whose puck it checks. */
+type Scanned = typeof WalkMap;
+const scanned: Scanned['displayName'] = 'WalkMap';
 
 /** The options object of each `new Marker({...})` in the innermost function that keeps the walker's puck (`puck.current = {...}`). */
 function puckMarkers(src: ts.SourceFile): ts.ObjectLiteralExpression[] {
@@ -52,7 +58,7 @@ function puckTurnsWithMap(code: string): { markers: number; rotation?: string; p
 
 test('fix nav-heading: the web puck turns with the map, so its cone points the way walked on a turned map', () => {
   const r = puckTurnsWithMap(readFileSync(join(ROOT, WEB), 'utf8'));
-  assert.equal(r.markers, 1, 'one marker holds the walker puck');
+  assert.equal(r.markers, 1, `one marker holds the walker puck in ${scanned}`);
   assert.equal(r.rotation, 'map', 'the puck turns with the map, so the cone inside it is turned from north');
   // Kept square to the screen if the map is ever tilted (maplibre's pitch alignment follows the rotation's otherwise).
   assert.equal(r.pitch, 'viewport', 'the puck stays flat to the screen');
