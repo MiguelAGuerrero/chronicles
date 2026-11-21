@@ -1,0 +1,11 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inflight",
+        "add"
+      ],
+      "body": "| thread-at-capture (/tend inbox G11 yes, 2026-11-21) | `slice/thread-at-capture` | Thread on the after-capture pill, the card opening on Last added to (G11, decision 0253); spec `specs/thread-at-capture/spec.md`; tests first |\n"
+    }
+  ]
+}
