@@ -1,0 +1,373 @@
+{
+ "about": "What git said at the commit, read by scripts/tend.js as it stood at 65b9e24f (readPatches, resetsArea, tally, isRoute), made once by the slice area-states (AS8) and cross-checked against the plan's prototype; the documents beside it are verbatim, their blobs checked by the test.",
+ "commit": "42d3ccd8770dd8fc645090969ef366af6a0d44bc",
+ "date": "2026-11-19T20:57:58+00:00",
+ "today": "2026-11-19",
+ "blobs": {
+  "runs.jsonl": {
+   "path": ".claude/skills/tend/runs.jsonl",
+   "blob": "978622c61c3074ac42e2b14776d7edc9577480d3"
+  },
+  "ledger.json": {
+   "path": ".claude/skills/tend/ledger.json",
+   "blob": "2a95484e73c7e86ac8419681f441148e56160ff4"
+  },
+  "STATUS.md": {
+   "path": "docs/STATUS.md",
+   "blob": "bb4271ca5a260487b796d0d22dce9dc7a266bd1e"
+  },
+  "DEFERRED.md": {
+   "path": "docs/DEFERRED.md",
+   "blob": "dd6d6520c52fae49839023399cb43d2902adf459"
+  }
+ },
+ "areas": [
+  "storage",
+  "recording",
+  "rides",
+  "streets",
+  "gaps",
+  "navigation",
+  "replay",
+  "moments",
+  "walk-screen",
+  "tabs",
+  "presence",
+  "complexes",
+  "explore",
+  "kind-walk",
+  "walk-planner",
+  "roads",
+  "outing",
+  "layers",
+  "walkability",
+  "landing",
+  "places",
+  "map",
+  "captures",
+  "chronicle",
+  "resurface",
+  "transcript",
+  "reactions",
+  "journal",
+  "gallery",
+  "threads",
+  "notes",
+  "motion",
+  "notify",
+  "deletion",
+  "memories",
+  "web"
+ ],
+ "perArea": {
+  "storage": {
+   "swept": false,
+   "uncovered": []
+  },
+  "recording": {
+   "swept": false,
+   "uncovered": []
+  },
+  "rides": {
+   "swept": false,
+   "uncovered": []
+  },
+  "streets": {
+   "swept": false,
+   "uncovered": []
+  },
+  "gaps": {
+   "swept": false,
+   "uncovered": []
+  },
+  "navigation": {
+   "swept": true,
+   "resetsSince": [],
+   "between": [
+    [],
+    []
+   ],
+   "uncovered": []
+  },
+  "replay": {
+   "swept": true,
+   "resetsSince": [
+    "678bfda17e0a706609ef810d2c3ad5db4f8639d8",
+    "3d7c93d9f762a354f15685b853113c463872d641"
+   ],
+   "between": [
+    []
+   ],
+   "uncovered": []
+  },
+  "moments": {
+   "swept": false,
+   "uncovered": []
+  },
+  "walk-screen": {
+   "swept": true,
+   "resetsSince": [],
+   "between": [
+    [],
+    [],
+    [
+     "8c7a6d6d87fbd4177ee9ba74c041edc86832e9e7",
+     "ea1140521af4e5eaa33a423eabd77dad502000b7",
+     "378509256295ef60f463ffcbda635e575d5a2452",
+     "fcc9d48154c39b7d5e82cd0d4d256c0d8e4305cb",
+     "040b161bc30d6735efc8ce0c88eebcb084b0ed08"
+    ]
+   ],
+   "uncovered": []
+  },
+  "tabs": {
+   "swept": true,
+   "resetsSince": [],
+   "between": [
+    [],
+    [
+     "a93ddbbe64fdc7845dc83c82bc2a825d94bdf416",
+     "97976be9da257c5fe61bda872bcf9143a210e546",
+     "426d94e1559d9b8e6a432c7f307c3049ee5c554c",
+     "cf7174001176399e6ccb5e7b8d119534755df7c0",
+     "b06f233532ca3ffdc9cc18db3b4b0f16c8e6b45c"
+    ]
+   ],
+   "uncovered": []
+  },
+  "presence": {
+   "swept": true,
+   "resetsSince": [],
+   "between": [
+    []
+   ],
+   "uncovered": []
+  },
+  "complexes": {
+   "swept": false,
+   "uncovered": []
+  },
+  "explore": {
+   "swept": true,
+   "resetsSince": [
+    "db7c6ba9645b1f9d4ed14347b5a518dd00ee9479",
+    "e51f4e96e0c2f2707afdb127dc11c5f97b871f1b",
+    "d14f6fa81c2a2c444ef351c874a5aae2742f83c5"
+   ],
+   "between": [
+    [],
+    [],
+    [
+     "cf7174001176399e6ccb5e7b8d119534755df7c0",
+     "b06f233532ca3ffdc9cc18db3b4b0f16c8e6b45c",
+     "7409544ec8fa8a59a63d98ffec31ae05879179f8"
+    ],
+    [],
+    [
+     "426d94e1559d9b8e6a432c7f307c3049ee5c554c"
+    ],
+    [],
+    [
+     "a93ddbbe64fdc7845dc83c82bc2a825d94bdf416",
+     "0b38a9f7254f042aa138a171a806ac134e25aaad",
+     "97976be9da257c5fe61bda872bcf9143a210e546"
+    ],
+    [],
+    [],
+    [],
+    []
+   ],
+   "uncovered": []
+  },
+  "kind-walk": {
+   "swept": false,
+   "uncovered": []
+  },
+  "walk-planner": {
+   "swept": false,
+   "uncovered": []
+  },
+  "roads": {
+   "swept": false,
+   "uncovered": []
+  },
+  "outing": {
+   "swept": false,
+   "uncovered": []
+  },
+  "layers": {
+   "swept": false,
+   "uncovered": []
+  },
+  "walkability": {
+   "swept": false,
+   "uncovered": []
+  },
+  "landing": {
+   "swept": false,
+   "uncovered": []
+  },
+  "places": {
+   "swept": false,
+   "uncovered": []
+  },
+  "map": {
+   "swept": true,
+   "resetsSince": [],
+   "between": [
+    [],
+    [],
+    [],
+    [],
+    []
+   ],
+   "uncovered": []
+  },
+  "captures": {
+   "swept": true,
+   "resetsSince": [
+    "b97de330f47038fb958a30c54e8b228ed0a38179",
+    "59f432c733b46e2cbbcd690e77a61439d22e635f"
+   ],
+   "between": [
+    [],
+    []
+   ],
+   "uncovered": []
+  },
+  "chronicle": {
+   "swept": true,
+   "resetsSince": [],
+   "between": [
+    [],
+    [],
+    [
+     "a93ddbbe64fdc7845dc83c82bc2a825d94bdf416"
+    ]
+   ],
+   "uncovered": []
+  },
+  "resurface": {
+   "swept": false,
+   "uncovered": []
+  },
+  "transcript": {
+   "swept": false,
+   "uncovered": []
+  },
+  "reactions": {
+   "swept": false,
+   "uncovered": []
+  },
+  "journal": {
+   "swept": false,
+   "uncovered": []
+  },
+  "gallery": {
+   "swept": false,
+   "uncovered": []
+  },
+  "threads": {
+   "swept": false,
+   "uncovered": []
+  },
+  "notes": {
+   "swept": false,
+   "uncovered": []
+  },
+  "motion": {
+   "swept": false,
+   "uncovered": []
+  },
+  "notify": {
+   "swept": false,
+   "uncovered": []
+  },
+  "deletion": {
+   "swept": true,
+   "resetsSince": [],
+   "between": [
+    []
+   ],
+   "uncovered": []
+  },
+  "memories": {
+   "swept": false,
+   "uncovered": []
+  },
+  "web": {
+   "swept": false,
+   "uncovered": []
+  }
+ },
+ "slices": [
+  "CX",
+  "DC",
+  "DN",
+  "DO",
+  "DW",
+  "EC",
+  "EI",
+  "EW",
+  "FL",
+  "G",
+  "GE",
+  "GH",
+  "GZ",
+  "HB",
+  "HC",
+  "JN",
+  "KW",
+  "MA",
+  "MC",
+  "MG",
+  "MP",
+  "MS",
+  "MT",
+  "NF",
+  "NI",
+  "NP",
+  "NY",
+  "OJ",
+  "OM",
+  "OT",
+  "PC",
+  "PK",
+  "PL",
+  "PP",
+  "PR",
+  "PS",
+  "PW",
+  "QC",
+  "RC",
+  "RE",
+  "RF",
+  "RL",
+  "RP",
+  "RT",
+  "RX",
+  "RY",
+  "SA",
+  "SB",
+  "SF",
+  "SG",
+  "SP",
+  "SS",
+  "SW",
+  "TC",
+  "TX",
+  "UC",
+  "UN",
+  "VT",
+  "WB",
+  "WI",
+  "WP",
+  "WT",
+  "XS"
+ ],
+ "commits": {
+  "growth": 185,
+  "refinement": 665,
+  "other": 736
+ }
+}
