@@ -4,7 +4,7 @@ From: the owner's /investigate, 2026-11-21: "There should be a way to quickly th
 accept whether that be like a little search bar, an annotation chip or something because I frequently noticed myself
 capturing like murals and graffiti that I would like to sometimes [group] and trying to thread them after the fact is
 kind of [onerous] since things are in timelines … it just seems time-consuming to just scroll back up and thread them."
-(Dictated; the bracketed words are read from "Peru" and "owners expect".) Queued as G11. Status: queued.
+(Dictated; the bracketed words are read from "Peru" and "owners expect".) Queued as G11. Status: built in threading-at-capture (2026-11-21).
 
 ## What the owner saw
 

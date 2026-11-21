@@ -1,6 +1,6 @@
 # 0253. Thread a moment as it is kept: Thread on the after-capture pill, the last thread first
 
-Date: 2026-11-21 · Status: accepted, waits on G11's build · Area: captures, threads · Amends: 0123 (the pill's offer; MS2, MS21) · From: `/investigate threading-at-capture`
+Date: 2026-11-21 · Status: accepted, built in threading-at-capture (TK1-TK11, 2026-11-21) · Area: captures, threads · Amends: 0123 (the pill's offer; MS2, MS21) · From: `/investigate threading-at-capture`
 
 ## Context
 The owner photographs murals and graffiti on walks and wants to group them. Threading one after the fact means

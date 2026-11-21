@@ -40,6 +40,8 @@ Open: none (the owner's answers, Nov 9). The reasons rest on decision 0123; open
 
 1. **MS1 · One tap, unchanged.** With the setting off (the default), each tap on the edge stack's camera, mic or note, or the recording bar's camera, makes a new moment, in one tap, on Navigate's ready screen and on a walk, as before this slice.
 2. **MS2 · Add to this moment.** Once a capture is kept, an **Add to this moment** pill shows in the walk screen's pills, left of the stack, on the ready screen and on a walk, offering camera, mic and note, one tap each, with nothing else to choose first. Each button has a spoken name ("Add a photo to this moment"). A memo started from the pill's mic records as one from the stack does (NR10): Stop & save takes the mic's slot.
+   Amended by decision 0253 (threading at capture TK1): the pill also offers Thread, before ×, which puts the moment just
+   kept into a thread after the capture, never before it.
 3. **MS3 · A piece keeps its own time; the moment keeps its one place.** What the pill saves joins that moment as a piece with its own capture time. The moment's place and time stay its first capture's: adding a piece takes no new location fix (0036), and the moment's place never moves.
 4. **MS4 · The pill closes.** The pill closes two minutes after the moment's last capture, on a walk or off one; on a walk, also once the walk's own recorded trace has gone 100 m from the moment's first capture, the place every piece is shown at (no other location is read, 0036); and when the walker dismisses it, opens a tab, minimizes the walk, opens another moment, or starts or stops a walk. Launching the system camera, recording a memo, writing a note, the Edit offer's editor and the app going to the background do not close it (the two minutes still run). A photo, video, memo or note begun from the pill while it was open joins the moment even if the pill closes before it is kept. Once closed, the next capture is a new moment, and a dismissed pill does not come back for that moment.
 5. **MS5 · Each new piece keeps the pill.** After a piece is added, the pill stays for the same moment and its two minutes start again; a capture from the edge stack starts a new moment and the pill then offers that one.
@@ -74,6 +76,7 @@ Open: none (the owner's answers, Nov 9). The reasons rest on decision 0123; open
 19. **MS19 · Grouping by itself.** With it on, a capture opens a moment and the edge stack's captures join it until it closes as the pill does (MS4) or the walker taps **New moment**. While it is open, the screen says "Adding to this moment" beside **New moment**, in words that never change with its size. Starting a separate moment takes New moment and then the capture (the owner accepted the two taps, Nov 10).
 20. **MS20 · Nothing tracks.** Off a walk, nothing watches the location to close a moment: it closes by time, a tap or leaving (0036).
 21. **MS21 · The pill gives way.** With the setting on, the Add to this moment pill is not shown (the edge stack adds); with it off, behaviour is MS1-MS6.
+   Amended by decision 0253 (threading at capture TK2): "Adding to this moment" carries Thread before New moment.
 
 ## Steward (Nov 9) and triage
 

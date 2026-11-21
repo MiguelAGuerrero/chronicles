@@ -115,6 +115,7 @@ Owner threads (decision 0104)
   threads/timeline.ts        buildTimeline: oldest first, a reply under what it answers
   threads/responses.ts       responsesOf (every moment that answers a moment or its responses, from moment_link only), responseRows (the sheet's entries, RT4)
   threads/lines.ts           every sentence: size words from a fixed set, since March, answering, context, a heading
+  threads/capThread.ts       threading at capture (TK1-TK11): lastAddedTo (the card's first row, from added_at), threadSearch, rowShows, nameToSave, the card's and the pill's words
   threads/useKeyboardHeight(.web).ts  how far the keyboard reaches up: Keyboard events on phones, visualViewport on web (the note editor rises above it)
   threads/shell.ts           createThreads(ports, { schedule }): startThread, addToThread, removeFromThread, rename, deleteThread (Undo), reply, moments
   threads/index.ts           the app instance (the Undo window is `deletions`); useThreads.ts the view hook

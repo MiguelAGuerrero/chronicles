@@ -501,7 +501,10 @@ recording, and a recording bar brings a minimized walk back.
 - **Threads the owner makes** (decisions 0104, 0105): moments the owner connected, beside the
   Chronicle's threads above it; both are "threads", told apart by an icon (a link for
   the owner's, a repeat arrow for the Chronicle's), spoken as "connected by you" and "found for you". From a moment's menu, **Add to a thread** names a
-  thread or makes a new one with a second kept moment; **Respond**, in the viewer's toolbar under the moment
+  thread or makes a new one with a second kept moment, and right after a capture the **Add to this moment** pill's
+  **Thread** (the link mark) does the same without leaving the walk: the card opens on the thread last added to, with a
+  search over threads and moments, offers the walk still open's moments with their pictures, and lets a new thread be
+  named (decision 0253); **Respond**, in the viewer's toolbar under the moment
   (a menu: photo or video, voice memo, note), keeps a new moment linked to the one it
   answers, in its thread. A thread reads oldest first, a reply under what it
   answers, like a conversation: a note is read in place, in a bubble with its time and

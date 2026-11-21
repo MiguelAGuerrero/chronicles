@@ -112,6 +112,8 @@ The walk screen (`src/app/walk.tsx`), which is also Navigate, ready: its layout,
   and note. Never pass a press handler straight as `onPhoto={photo}`: the event would arrive as `into`. The
   walked trace feeds `momentPill.walked` from `live.here`; a walk's id changing, blur and unmount close it. The
   viewer's Add to this moment is `momentPill.ask(kind)`, run by the screen beneath (it holds the camera).
+  Since decision 0253 the pill and the Group captures line also carry Thread (`onThread`), which each host turns into
+  `ThreadFromPill` for `momentPill.store.get().id`; its "Connected" goes through the host's toast (`walk-toast`).
 - **The ready bar pulls up** (`components/walk/ReadyBar.tsx`, NR7): a drag on its grip or its numbers,
   or a tap on them, raises it to 60% of the screen (`raisedHeight`) with `StartSettings` in a scroll
   above Start; a drag down, Back or Escape lowers it. At 88% the range ring sat under it (audit 1), so

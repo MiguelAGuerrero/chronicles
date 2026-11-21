@@ -1,0 +1,50 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "A moment of a walk still open is not offered by the picker",
+        "--reason",
+        "answered by threading-at-capture TK6 (decision 0253): the picker reads poolWithOpenWalks; a thread of the walk still open was listed since fix thread-in-walk"
+      ],
+      "target": "sha256:333ca8aa781726c4bcaab26698be8fc8912a5a32794b27d577971b16f5f2932d"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Threads the owner makes"
+      ],
+      "body": "- **Add to a thread's search rebuilds its items on each keystroke** (threading-at-capture audit 6): every moment's context line is formatted again per keystroke, now from the first step's search too, and the thread rows cost threads × members. Fine at hundreds; with thousands of moments, build the picker's items once per pool and index members by thread.\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Owner threads (OT1-OT24, decision 0104)"
+      ],
+      "body": "- [ ] **Do:** on a walk, on an iPhone and an Android phone, photograph something, close the editor, tap the pill's link mark (Thread), then A new thread, pick the photo before it by its picture, type a name and Done; photograph a third and tap Thread, then the first row; then do the same on Navigate, ready. At 320 pt, look at the pill. **Expect:** the card opens over the screen, its search closed until tapped; the walk's earlier photo is offered with its small picture; the name field takes the keyboard and the card stays above it; Done keeps the name; the third joins under \"Last added to\" with \"Connected\" said once; Back (Android) and closing leave the pill and the capture stack as they were; at 320 pt the pill's × sits on a second row, nothing cut. (TK1-TK10)\n"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "add",
+        "--top"
+      ],
+      "body": "| Thread a moment as it is kept (Thread, the link mark, on the Add to this moment pill and the Group captures line; the card on \"Last added to\" with a search over threads and moments, the walk still open's moments with their pictures, an optional name for a new thread; Back goes a step back; TK1-TK11, G11, decision 0253) | built; web only | tests first, then the code, then the review's fixes (audit 1-5, ui 1-3), 2026-11-21 | `specs/threading-at-capture/spec.md` | one round: 5 audit and 3 UI findings accepted, 1 deferred, 1 rejected |\n"
+    },
+    {
+      "argv": [
+        "inflight",
+        "remove",
+        "Thread a moment as it is kept"
+      ],
+      "target": "sha256:8aa6a4556885954675b701b0926857990a818ce13c0ed2f82119a4b32596b17f"
+    }
+  ]
+}

@@ -113,6 +113,26 @@ the approved drawing, so it is filed as an inbox entry, not built here. Silent: 
 drawn (NameAfter shows it up, "Leave it unnamed" one tap); the pill's two rows at 320 px and the Group captures line's
 wrapping are as drawn and approved.
 
+## Cold find and review (Nov 21, one round, decision 0204)
+
+Cold find (the pictures and five tasks in the owner's words only): threading the second mural from the pill, naming it,
+the third in two taps and backing out were placed; the link mark was found "by elimination", and which row was the
+mural of a minute ago could not be told (two photos of the walk still open read alike but for their pictures: steward
+S1, filed for the owner); finding the thread by typing was placed in the card's search, not elsewhere (Chronicle's
+Contents, Threads, is out of this slice).
+
+Auditor: A1 accepted (`threading-at-capture audit 1`, a moment in Undo connects nothing), A2 accepted (`audit 2`, a
+double tap makes one thread), A3 accepted (`audit 3`, no row until the moments are read), A4 accepted (`audit 4`, the
+editor of a capture kept meanwhile closes the card), A5 accepted (`audit 5`, Escape at the name step finishes it, the
+viewer still saying "Added to a thread"); A6 deferred (the search rebuilds its items per keystroke, as the viewer's card
+did before; `docs/DEFERRED.md`); A7 rejected (the owner's drawing). UI review: U1 accepted (`ui 1`, the search mark as
+drawn), U2 accepted (`ui 2`, Escape on the moment step goes back), U3 accepted (`ui 3`, only the title is dimmed).
+
 ## Record
 
-In progress (tests first).
+TK1-TK11 pass (Nov 21): unit `threads/capThread.test.ts` (TK4-TK9, TK11, audit 1, 3, 4, 5, ui 2), journey `capthread`
+(TK1-TK10, audit 2, ui 1-3) and `threads` (audit 5), with `stackjoin`, `stacks`, `responses` and `launch` green
+(`launch` failed once in a batch of three on a timing wait and passed alone). Every criterion's test came first
+(`check:test-first`). Left threads, captures and walk-screen no rougher: threads is unseen; captures and walk-screen
+were rough before (changes since their sweeps). Native: the pill's fifth button, the card in a transparent Modal over
+the live map, Android Back and the keyboard inside it have never run on a device (`docs/NATIVE_UNVERIFIED.md`).
