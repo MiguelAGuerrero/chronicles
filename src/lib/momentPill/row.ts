@@ -19,3 +19,11 @@ export function pillPerRow(room: number): number {
 export function pillRowWidth(n: number): number {
   return n * BUTTON + (n - 1) * GAP;
 }
+
+/**
+ * Whether the pill offers Thread for the open moment (thread-at-capture audit 1): never for one waiting in the Undo
+ * window, whose delete any thread write would store for good.
+ */
+export function offersThread(open: string | null, hidden: ReadonlySet<string>): boolean {
+  return !!open && !hidden.has(open);
+}

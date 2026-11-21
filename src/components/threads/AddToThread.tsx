@@ -74,7 +74,9 @@ export function AddToThread(props: { moment: { id: string }; onClose: () => void
   // The threads' search (CT5) and the new thread's (OT5) are apart, so going back keeps what was typed in each.
   const [find, setFind] = useState('');
   const [query, setQuery] = useState('');
-  const [made, setMade] = useState<string | null>(null);
+  // The new thread waiting for its name, and the name as typed: read when the card goes, never in render.
+  const made = useRef<string | null>(null);
+  const typed = useRef('');
   const [name, setName] = useState('');
   // The search's focus is drawn on its own box, an ink edge (thread-at-capture ui 1): the web's ring sat inside it.
   const [searchFocus, setSearchFocus] = useState(false);
@@ -116,31 +118,49 @@ export function AddToThread(props: { moment: { id: string }; onClose: () => void
   }, [pool, hidden, q, limit, props.moment.id, now]);
   const candidates = found.shown.map((i) => byId.get(i.id)).filter((v): v is MomentView => !!v);
 
+  // One write per tap (thread-at-capture audit 2): a second tap while the first is stored does nothing, or two taps
+  // on a row made two threads of the same two moments.
+  const [busy, setBusy] = useState(false);
   const addTo = async (threadId: string) => {
+    if (busy) return;
+    setBusy(true);
     const ok = await threads.addToThread(threadId, props.moment.id).catch(() => false);
     props.onDone(ok ? 'Connected' : 'Could not connect', ok);
   };
   const joinWith = async (other: MomentView) => {
+    if (busy) return;
+    setBusy(true);
     const id = await threads.startThread([props.moment.id, other.id]).catch(() => null);
     if (!id) props.onDone('Could not connect', false);
     else {
       // An optional name once two are joined (CT8): nothing names it for the owner.
-      setMade(id);
+      made.current = id;
       setStep('name');
     }
   };
   const finish = async (keep: boolean) => {
-    if (keep && made && name.trim()) await threads.rename(made, name).catch(() => {});
+    const id = made.current;
+    made.current = null;
+    if (keep && id && typed.current.trim()) await threads.rename(id, typed.current).catch(() => {});
     props.onDone('Connected', true);
   };
+  // A name typed is the thread's however the card goes (thread-at-capture audit 3): Escape, Android's Back or the host
+  // closing it unmount the card without a tap on Done, so what is still unsaved is saved as it goes.
+  useEffect(
+    () => () => {
+      const id = made.current;
+      if (id && typed.current.trim()) void threads.rename(id, typed.current).catch(() => {});
+    },
+    [],
+  );
 
   const threadButton = (r: Listed, testID: string) => (
     <Pressable
       key={r.id}
       testID={testID}
       accessibilityRole="button"
-      accessibilityState={{ disabled: r.has }}
-      disabled={r.has}
+      accessibilityState={{ disabled: r.has || busy }}
+      disabled={r.has || busy}
       onPress={() => void addTo(r.id)}
       style={[styles.row, r.has && styles.dim]}
     >
@@ -156,7 +176,7 @@ export function AddToThread(props: { moment: { id: string }; onClose: () => void
     // A photo or video shows its small picture beside its words and its line, never alone (CT7).
     const pictured = v.kind === 'photo' || v.kind === 'video';
     return (
-      <Pressable key={v.id} testID="add-moment-row" accessibilityRole="button" accessibilityLabel={`${r.words}. ${r.context}`} onPress={() => void joinWith(v)} style={[styles.row, pictured && styles.pictured]}>
+      <Pressable key={v.id} testID="add-moment-row" accessibilityRole="button" accessibilityLabel={`${r.words}. ${r.context}`} disabled={busy} onPress={() => void joinWith(v)} style={[styles.row, pictured && styles.pictured]}>
         {pictured ? (
           <View testID="row-picture" style={styles.thumb}>
             <MomentPicture capture={v.capture} style={styles.thumb} iconSize={22} />
@@ -182,7 +202,7 @@ export function AddToThread(props: { moment: { id: string }; onClose: () => void
         <View style={[styles.card, styles.short]} testID="add-to-thread" accessibilityViewIsModal>
           <View style={styles.head}>
             <Text style={styles.title} accessibilityRole="header">Connected</Text>
-            <Pressable testID="add-to-thread-close" accessibilityRole="button" accessibilityLabel="Close" onPress={() => void finish(false)} hitSlop={8} style={styles.x}>
+            <Pressable testID="add-to-thread-close" accessibilityRole="button" accessibilityLabel="Close" onPress={() => void finish(true)} hitSlop={8} style={styles.x}>
               <Icon name="close" size={22} color={theme.ink} />
             </Pressable>
           </View>
@@ -192,7 +212,10 @@ export function AddToThread(props: { moment: { id: string }; onClose: () => void
             testID="new-thread-name"
             maxLength={40}
             value={name}
-            onChangeText={setName}
+            onChangeText={(t) => {
+              typed.current = t;
+              setName(t);
+            }}
             autoFocus
             placeholder="Name this thread"
             placeholderTextColor={theme.muted}

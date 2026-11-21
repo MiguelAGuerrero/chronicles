@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { momentPill } from '../../lib/momentPill';
-import { pillPerRow, pillRowWidth } from '../../lib/momentPill/row';
+import { offersThread, pillPerRow, pillRowWidth } from '../../lib/momentPill/row';
+import { useHidden } from '../../lib/deletion/useDeletions';
 import { useStore } from '../../lib/useStore';
 import { Icon, KIND_ICON } from '../icons';
 import { LiftIn, theme } from '../ui';
@@ -20,8 +21,9 @@ export function AddToMomentPill(props: { hidden?: boolean; onPhoto: () => void; 
   const grouping = useStore(momentPill.store, (s) => s.grouping);
   const { pills } = useStackLayout();
   const { width } = useWindowDimensions();
+  const waiting = useHidden();
   if (!open || props.hidden) return null;
-  const thread = (
+  const thread = !offersThread(open, waiting) ? null : (
     <Pressable key="add-thread" testID="add-thread" accessibilityRole="button" accessibilityLabel="Add this moment to a thread" onPress={() => props.onThread(open)} hitSlop={6} style={styles.btn}>
       <Icon name="link" size={20} color="#ffffff" />
     </Pressable>
