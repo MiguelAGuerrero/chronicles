@@ -86,11 +86,21 @@ async function run(h) {
   const cardText = await card.innerText().catch(() => '');
   // A dialog by role and name, never aria-modal: the capture stack beside it stays reachable (RQ15).
   const dialog = [await card.getAttribute('role').catch(() => null), await card.getAttribute('aria-modal').catch(() => null)].join(',');
-  check(/Hessian Memorial/.test(cardText) && /\bm away\./.test(cardText.replace(/ /g, ' ')) && (await pg.locator('[data-testid=ready-place-dest]').count()) === 1
+  const cardOk = /Hessian Memorial/.test(cardText) && /\bm away\./.test(cardText.replace(/\u00a0/g, ' ')) && (await pg.locator('[data-testid=ready-place-dest]').count()) === 1
     && /Set as destination/.test(await pg.locator('[data-testid=ready-place-dest]').innerText().catch(() => '')) && (await card.locator('[data-testid=ready-place-maps]').count()) === 1
-    && (await pg.locator('[data-testid=mark-camera]').count()) === 0,
-    `RQ6: a tap opens the place's card: its name, how far, Set as destination, Open in Maps, no capture row (${JSON.stringify(cardText)})`);
+    && (await pg.locator('[data-testid=mark-camera]').count()) === 0;
+  // The id beside its call, so `check:test-first` reads it (it looks one line back; the todo at 48e039b sat three lines down).
+  check(cardOk, `RQ6: a tap opens the place's card: its name, how far, Set as destination, Open in Maps, no capture row (${JSON.stringify(cardText)})`);
   check(dialog === 'dialog,', `RQ12: the card is announced as a dialog, the stack beside it still reachable (${dialog})`);
+  // ready-map-places ui 1: the close X sits in the title's row, and the two actions are stacked, each the card's width and
+  // at least 44 px tall, never side by side or wrapped.
+  {
+    const box = async (sel) => pg.locator(sel).first().boundingBox().catch(() => null);
+    const [c, x, d, m] = [await box('[data-testid=ready-place-card]'), await box('[data-testid=ready-place-close]'), await box('[data-testid=ready-place-dest]'), await box('[data-testid=ready-place-maps]')];
+    const ok = !!c && !!x && !!d && !!m && x.y < c.y + 24 && x.x + x.width > c.x + c.width - 24 && m.y >= d.y + d.height
+      && Math.abs(d.width - m.width) < 2 && d.width > c.width - 40 && d.height >= 44 && m.height >= 44;
+    check.todo(ok, `ready-map-places ui 1: the card's X is top right and its two actions are stacked, full width, 44 px or more (${JSON.stringify({ c, x, d, m })})`);
+  }
   const clear = (await topmost('[data-testid=moment-photo]')) && (await topmost('[data-testid=moment-voice]')) && (await topmost('[data-testid=moment-note]')) && (await topmost('[data-testid=locate]'));
   check(clear, 'RQ15: with the ready card open, every capture button and Locate is still what a finger meets');
   await pg.click('[data-testid=ready-place-close]').catch(() => {});
