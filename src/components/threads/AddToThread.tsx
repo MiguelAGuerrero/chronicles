@@ -127,14 +127,13 @@ export const AddToThread = forwardRef<AddToThreadHandle, AddToThreadProps>(funct
 
   // One write at a time: a second tap while the first is being kept does nothing (threading-at-capture audit 2).
   const busy = useRef(false);
-  const once = async (run: () => Promise<void>) => {
-    if (busy.current) return;
+  // A promise chain, not try/finally: the React Compiler compiles no try without a catch (CM2).
+  const once = (run: () => Promise<void>): Promise<void> => {
+    if (busy.current) return Promise.resolve();
     busy.current = true;
-    try {
-      await run();
-    } finally {
+    return run().finally(() => {
       busy.current = false;
-    }
+    });
   };
   // A moment waiting in the Undo window connects nothing (audit 1): its thread would never be seen.
   const gone = () => !threadable(props.moment.id, hidden);
