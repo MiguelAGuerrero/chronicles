@@ -136,16 +136,25 @@ async function contextRun(h) {
     return noPicture && /voice memo/i.test(text) && (await pg.locator('[data-testid=hidden-row]').count()) === 0;
   });
   check(hiddenOk, 'MC8: Hidden lists what was hidden by kind and context, with no picture, and Bring back restores it');
+  // tend memories audit 5: the drawn switch shows the setting as it is, its row and its picture both, on and then off.
+  const drawn = () => pg.locator('[data-testid=menu-off]').evaluate((e) => ({ row: e.getAttribute('aria-checked'), input: e.querySelector('input')?.checked ?? null }));
+  let drawnOn = null;
+  let drawnOff = null;
   const offOk = await attempt(async () => {
     await pg.click('[data-testid=hidden-back]');
-    await menu('menu-off');
+    await pg.click('[data-testid=memories-menu]');
+    drawnOn = await drawn();
+    await pg.click('[data-testid=menu-off]');
     await pg.waitForTimeout(400);
     await pg.click('[data-testid=memories-menu]');
     const says = await pg.locator('[data-testid=menu-off]').innerText();
+    drawnOff = await drawn();
     await pg.click('[data-testid=menu-close]');
     return /Off/.test(says) && (await pg.locator('[data-testid=resurfaced]').count()) === 0 && (await pg.locator('[data-testid=moment-card]').count()) > 0;
   });
   check(offOk, 'MC9: with the switch off there is no slip, the contents says Off, and the page stays');
+  check(drawnOn?.row === 'true' && drawnOn?.input === true && drawnOff?.row === 'false' && drawnOff?.input === false,
+    `tend memories audit 5: Contents' switch is drawn on while moments come back and off once switched off, its row and its picture alike (${JSON.stringify({ drawnOn, drawnOff })})`);
   const forgetOk = await attempt(async () => {
     await menu('menu-forget');
     const said = await pg.locator('[data-testid=forget-confirm-text]').innerText();
