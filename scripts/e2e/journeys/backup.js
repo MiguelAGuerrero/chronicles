@@ -7,7 +7,7 @@ const FILE_LINE = 'One zip of every walk and moment you kept. Anyone with the fi
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
 async function run(h) {
-  const { navUrl, check, drawerTo, freshPage, shot } = h;
+  const { url, navUrl, check, drawerTo, freshPage, shot } = h;
   const { c, pg } = await freshPage('backup');
   // A media read held back while `__slowMedia` is set, so the page's busy state can be seen (BK12).
   await c.addInitScript(() => {
@@ -38,12 +38,18 @@ async function run(h) {
       tx.onerror = () => reject(tx.error);
     };
   }), { T, PHOTO });
-  await pg.reload();
+  // The pictures a cold find starts from (decision 0167): the app as it opens, then Navigate, then its bar pulled up.
+  await pg.goto(url);
+  await pg.waitForTimeout(2500);
+  await shot(pg, 'backup-launch-390');
+  await pg.goto(navUrl);
   await pg.waitForSelector('[data-testid=start]', { timeout: 30000 });
   await pg.waitForTimeout(1200);
+  await shot(pg, 'backup-navigate-390');
 
   // BK1, BK13: from launch, Navigate's bar pulled up, Walk settings scrolled to its foot: the row's words and its second line.
   await drawerTo(pg, 'half');
+  await shot(pg, 'backup-settings-top-390');
   const row = pg.locator('[data-testid=your-data-row]:visible');
   const found = (await row.count()) === 1;
   if (found) await row.scrollIntoViewIfNeeded().catch(() => {});
