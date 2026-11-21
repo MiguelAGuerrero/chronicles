@@ -43,7 +43,8 @@ import { deadZoneDue, deadZoneNudge, inDeadZone, stripAt } from '../lib/landing/
 import { rulesCurrent, type LandingRow } from '../lib/landing/view';
 import { placesFromTilePois } from '../lib/discovery/tilePois';
 import { canBuzz } from '../lib/canBuzz';
-import { type ChecklistItem, walkPassKey, clampPass, clampRange, intoRowShown, kindOf, placesSurface, POCKET_ALERT_NOTE, readyDest } from '../lib/explore/explore';
+import { type ChecklistItem, walkPassKey, clampPass, clampRange, foundSaid, intoRowShown, kindOf, placesSurface, POCKET_ALERT_NOTE, readyCardMaps, readyDest } from '../lib/explore/explore';
+import { placesReadState } from '../lib/explore/exploreRun';
 import { ReadyPlaceCard } from '../components/walk/ReadyPlaceCard';
 import { useOpenInMaps } from '../components/OpenInMapsButton';
 import { DEFAULT_SETTINGS, loadSettings, onSettings, saveSettings, type ExploreSettings } from '../lib/explore/settings';
@@ -820,6 +821,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const [landings, setLandings] = useState<LandingRow[]>([]);
   // Places and Storefronts are the walk's layers (decision 0231), not a mode: what Explore mode drew follows them.
   const placesOn = !!layers.on.places;
+  // Audit 7: the walk's Places row says a read under way or failed, as the ready map's does (RQ17).
+  const placesRead = useStore(placesReadState, (v) => v);
   const storefrontsOn = !!layers.on.storefronts;
   const reloadLandings = useCallback(() => {
     db.listLandings().then((r) => setLandings(r.filter((x) => rulesCurrent(x.rules))), () => {});
@@ -848,7 +851,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
     },
     onFound: (item) => {
       // A find needs Places on (its card's row starts from a place's pin); the line says so as it happens (MD8).
-      if (!placesOn) return;
+      // Audit 3: said with Places on, or for the place the walk goes to (RQ18), which is found with Places off.
+      if (!foundSaid({ placesOn, key: item.key, only: surface.only })) return;
       feedback('success');
       setArrived(`Found: ${item.name}`);
       AccessibilityInfo.announceForAccessibility(`Found: ${item.name}, ${categoryOf(item.category).label}`);
@@ -1387,7 +1391,17 @@ function WalkScreen(props: { onMinimize: () => void }) {
           // MD11's other half (ready-map-places RQ1-RQ6): the "?" within the range around you, each opening the ready card.
           discoveries={explore.pins}
           spreadMarks
-          onDiscoveryPress={(id) => openPlace(id)}
+          // Audit 4: not with the bar up (the card would open under it) or mid-memo, as the moments' pins.
+          onDiscoveryPress={ready.pinsLive ? (id) => openPlace(id) : undefined}
+          // Audit 5: a tap on the map or a long press closes the place's card first.
+          onPress={() => {
+            setMarkOpen(null);
+            ready.mapProps.onPress();
+          }}
+          onLongPress={(p: LngLat) => {
+            setMarkOpen(null);
+            ready.mapProps.onLongPress(p);
+          }}
         />
       ) : (
       <WalkMap
@@ -1481,14 +1495,14 @@ function WalkScreen(props: { onMinimize: () => void }) {
       {!walk ? (
         <>
           {ready.overlay}
-          {openMark && surface.card === 'ready' && (
+          {openMark && surface.card === 'ready' && ready.pinsLive && (
             // A place's card before Start (ready-map-places RQ6, RQ7, RQ13, RQ15, RQ16): where the walk's cards stand.
             <ReadyPlaceCard
               title={openMarkNamed ? `${openMark.name} · ${kindOf(openMark.kind).label}` : 'A place to find'}
               away={ready.fix ? `${formatDistance(distanceM(ready.fix, openMark.at))} away.` : ''}
               reach={openMarkReach}
               moments={openMarkFound ? (markMoments?.key === openMark.key ? markMoments.lines : []) : null}
-              maps={{ at: openMark.at, label: openMarkNamed ? openMark.name : 'A place to find' }}
+              maps={readyCardMaps({ named: openMarkNamed, found: openMarkFound }) ? { at: openMark.at, label: openMark.name } : null}
               onDest={() => {
                 const m = openMark;
                 setMarkOpen(null);
@@ -1945,7 +1959,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
         focusAfter={compassNext}
       />
       {/* Layers (ML3): the bottom-left corner above the scale bar, clear of the navigation bar. */}
-      <LayersControl map="walk" layers={layers} notes={layerNotes({ walkability: wk.status, storefrontsReading: storefronts.reading, storefrontsFailed: storefronts.failed, past: past.status, placesRange: formatRange(settings.rangeM) })} bottom={at.layers.bottom} left={at.layers.left} rightClear={at.layersRightClear} clearTop={at.insets.top + 152} />
+      <LayersControl map="walk" layers={layers} notes={layerNotes({ walkability: wk.status, storefrontsReading: storefronts.reading, storefrontsFailed: storefronts.failed, past: past.status, placesRange: formatRange(settings.rangeM), placesRead: placesOn ? placesRead : null })} bottom={at.layers.bottom} left={at.layers.left} rightClear={at.layersRightClear} clearTop={at.insets.top + 152} />
 
       {awayFromStart && wayBack && !navigation.nav && (
         // Walk me back: the way back to where this walk began, where the last ride ended, or the spot chosen (N1, N11, DW6-DW8).

@@ -14,8 +14,10 @@ import type { LngLat } from '../types';
 import {
   pocketAlert,
   alertedFor,
+  afterRead,
   alertKeys,
   destinationMark,
+  nextReadState,
   EXPLORE_RULES,
   type PlacesSurface,
   readCentre,
@@ -80,6 +82,8 @@ export function useExplore(opts: {
   const [routeItems, setRouteItems] = useState<ChecklistItem[]>([]);
   // The walked-to place's own items, read around it once a walk keeps it with Places off (RQ18).
   const [onlyItems, setOnlyItems] = useState<ChecklistItem[]>([]);
+  // Audit 1: bumped when a read ends with you elsewhere, so where you are is checked again.
+  const [recheck, setRecheck] = useState(0);
   const [found, setFound] = useState<Set<string> | null>(null);
   // Which moment found each place, so its pin wears that moment's glyph (decision 0172, O26).
   const [finds, setFinds] = useState<{ key: string; capture_id: string }[]>([]);
@@ -96,6 +100,9 @@ export function useExplore(opts: {
     mounted.current = true;
     return () => {
       mounted.current = false;
+      // Audit 2: leaving mid-read leaves no "Reading…" for the next screen.
+      const prev = placesReadState.get();
+      placesReadState.set(nextReadState(prev, 'gone'));
     };
   }, []);
 
@@ -151,18 +158,25 @@ export function useExplore(opts: {
   const checkedAt = useRef<LngLat | null>(null);
   const readAt = useCallback(async (centre: LngLat, stop: () => boolean = () => false): Promise<boolean> => {
     // Storefront streets only while Places or Storefronts is on (MD17); checklists on every walk.
-    // RQ17: the Places row says a read is under way, or failed.
-    placesReadState.set('reading');
+    // RQ17: the Places row says a read is under way, or failed (audit 2: a read cut off leaves nothing behind).
+    const was = placesReadState.get();
+    placesReadState.set(nextReadState(was, 'start'));
     const r = await exploreRead(centre, { remember: rememberStorefronts(latestFlags()) }, () => !mounted.current || stop());
-    if (!mounted.current) return false;
+    if (!mounted.current) {
+      const left = placesReadState.get();
+      placesReadState.set(nextReadState(left, 'gone'));
+      return false;
+    }
     if (!r.ok) {
       // tend explore audit 13: a read its caller stopped is no failure, so it sets no failure's wait.
       if (!r.stopped) failed.current = { at: centre, t: Date.now() };
-      placesReadState.set(r.stopped ? null : 'failed');
+      const now = placesReadState.get();
+      placesReadState.set(nextReadState(now, r.stopped ? 'stopped' : 'failed'));
       return false;
     }
     failed.current = null;
-    placesReadState.set(null);
+    const done = placesReadState.get();
+    placesReadState.set(nextReadState(done, 'ok'));
     await loadKnown();
     latest.current.onAreas();
     return true;
@@ -186,11 +200,23 @@ export function useExplore(opts: {
         // Asked, not assumed: on a walk opened straight from a launch the release isn't known yet (activity-density audit 8).
         if (!sweepCovered(rows, fix, build, await ensureOvertureRelease().catch(() => null))) centre = fix;
       }
-      if (!centre) return false;
+      if (!centre) {
+        // Audit 2: the area is read for this build; nothing reads or failed here.
+        const prior = placesReadState.get();
+        placesReadState.set(nextReadState(prior, 'known'));
+        return false;
+      }
       if (rememberStorefronts(latestFlags())) sweptAt.current.push(centre);
       return readAt(centre);
     });
-    if (read) await loadItems(fix);
+    if (!read) return;
+    // Audit 1: the items where you are now, never where the read began; and your place checked again if you moved on.
+    const next = afterRead({ fix, here: latest.current.here });
+    await loadItems(next.loadAt);
+    if (next.again && mounted.current) {
+      checkedAt.current = null;
+      setRecheck((n) => n + 1);
+    }
   }, [loadKnown, loadItems, readAt]);
 
   const { here, surface } = opts;
@@ -206,7 +232,7 @@ export function useExplore(opts: {
     if (checkedAt.current && distanceM(checkedAt.current, here) < CHECK_M) return;
     checkedAt.current = here;
     maybeRead(here).catch(() => {});
-  }, [here, riding, reads, loadItems, maybeRead]);
+  }, [here, riding, reads, loadItems, maybeRead, recheck]);
   // RQ18: the place a walk with Places off walks to, read around it once, wherever it is.
   // Keyed by the place and its numbers, so a new array of the same place never reads again.
   const onlyLon = only ? opts.onlyAt?.[0] ?? null : null;

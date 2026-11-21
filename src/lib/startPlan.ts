@@ -40,6 +40,15 @@ export function destLine(dest: Waypoint, from: LngLat | null, units?: Units): st
   return `${dest.label} · ${formatDistanceNear(distanceM(from, dest.at), units)} away`;
 }
 
+/**
+ * The ready bar's line (NV23, ready-map-places audit 10): "To " and the destination, an unnamed place's words in the running
+ * line's case ("To a place to find"), the label itself kept as it is for the way bar and the drawer.
+ */
+export function toDestLine(dest: Waypoint, from: LngLat | null, units?: Units): string {
+  const line = destLine(dest, from, units);
+  return `To ${dest.kind === 'find' && line.startsWith('A place to find') ? `a${line.slice(1)}` : line}`;
+}
+
 /** Explore's area card asks "Walk now" or "When I get there" past this, in a straight line (DW2, decision 0121). */
 export const GET_THERE_M = 2000;
 /** A fix older than this is no position: the card asks rather than start a walk that might record a drive (DW5). */

@@ -120,6 +120,13 @@ Places of interest from the tiles, marks, checklists and finds (Explore), and Re
     `places`; its reads run on `surface.reads` (every walk, E2; the ready map as above), never on `walkId` alone. The read's
     state is `placesReadState` (`exploreRun.ts`), which the ready panel's Places row says (RQ17): the ready map renders before
     the hook. **Trap:** the card's moments are worded from `pinNow`, never `Date.now()` in render (React Compiler purity).
+    **Traps from its audit** (Nov 21): a read ends by loading where you are now, never where it began (`afterRead`: the ready
+    map's first fix is `getLastFix`, possibly days old), and checks again if you moved on, since that check was skipped
+    while the read held the queue (audit 1). `placesReadState` is shared by every read and changes only through
+    `nextReadState`: a read cut off, the hook unmounting or an area needing no read clears it (audit 2); both Places rows
+    say it (audit 7). A find is said through `foundSaid` (the walked-to place too, audit 3). The ready pins take taps only
+    while `pinsLive` (no raised bar, no memo, audit 4); a map tap or a long press closes the ready card (audit 5); its Set
+    as destination is never the accent (OM8, audit 6); Open in Maps waits for a name (`readyCardMaps`, audit 11).
   - **Finding** (0155, TC1, TC5; capture-at-a-place CA1-CA12, decisions 0246, 0247): a capture never finds a place by itself. A
     place's card at any distance, a "?" included except on a ride (R12) (`cardCapture`, `explore/placeCard.ts`; decision 0247,
     fix poi-any-distance: a place is a point, and a long bridge's far end is still the bridge; its line never says "here"),

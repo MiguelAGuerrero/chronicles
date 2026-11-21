@@ -23,8 +23,8 @@ export function ReadyPlaceCard(props: {
   reach: string | null;
   /** A found place's moments (RQ13); null for a place not found. */
   moments: PlaceMomentLine[] | null;
-  /** Where Open in Maps goes. */
-  maps: { at: LngLat; label: string };
+  /** Where Open in Maps goes; null for a "?" not yet named, which is handed to no maps app (the owner, Nov 21, audit 11). */
+  maps: { at: LngLat; label: string } | null;
   onDest: () => void;
   onMaps: (t: MapsTarget) => void;
   onMoment: (id: string) => void;
@@ -72,8 +72,9 @@ export function ReadyPlaceCard(props: {
         )}
         {/* One primary, then the outlined one under it, each the card's width: never side by side on a narrow card. */}
         <View style={styles.actions}>
-          <Button testID="ready-place-dest" label="Set as destination" onPress={props.onDest} />
-          <OpenInMapsButton testID="ready-place-maps" variant="button" target={{ at: props.maps.at, label: props.maps.label, kind: 'spot' }} onOpen={props.onMaps} />
+          {/* Audit 6: never the accent, as on Explore's card (OM8): Start is the screen's one. */}
+          <Button testID="ready-place-dest" label="Set as destination" variant="secondary" onPress={props.onDest} />
+          {props.maps && <OpenInMapsButton testID="ready-place-maps" variant="button" target={{ at: props.maps.at, label: props.maps.label, kind: 'spot' }} onOpen={props.onMaps} />}
         </View>
       </View>
     </View>

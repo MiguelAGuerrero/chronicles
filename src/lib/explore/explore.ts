@@ -450,6 +450,38 @@ export function destinationMark(o: { items: ChecklistItem[]; key: string | null;
   return [{ item, state: near || o.revealed.has(item.key) ? 'named' : 'unknown' }];
 }
 
+/** How far from a read's centre you must be for the place you are to be checked again after it (audit 1). */
+const READ_AGAIN_M = 25;
+
+/**
+ * Once a read ends (ready-map-places audit 1): load the items where you are now, never where the read began (a ready map's
+ * first fix can be days old), and check again there when you have moved on meanwhile, since that check was skipped while the
+ * read held the queue.
+ */
+export function afterRead(o: { fix: LngLat; here: LngLat | null }): { loadAt: LngLat; again: boolean } {
+  if (!o.here) return { loadAt: o.fix, again: false };
+  return { loadAt: o.here, again: distanceM(o.here, o.fix) >= READ_AGAIN_M };
+}
+
+/** The Places row's read state (RQ17, audit 2): reading, failed, or neither; a read cut off, or none needed, clears it. */
+export function nextReadState(prev: 'reading' | 'failed' | null, event: 'start' | 'ok' | 'failed' | 'stopped' | 'known' | 'gone'): 'reading' | 'failed' | null {
+  if (event === 'start') return 'reading';
+  if (event === 'failed') return 'failed';
+  // An area already read: no failure stands here, but a read still running elsewhere (a route's) keeps its words.
+  if (event === 'known') return prev === 'reading' ? 'reading' : null;
+  return null;
+}
+
+/** Whether a find is said ("Found:", the buzz, the spoken line): with Places on, or for the place the walk goes to (audit 3). */
+export function foundSaid(o: { placesOn: boolean; key: string; only: string | null }): boolean {
+  return o.placesOn || o.key === o.only;
+}
+
+/** Open in Maps on the ready card waits until the place is named or found (the owner, Nov 21, audit 11). */
+export function readyCardMaps(o: { named: boolean; found: boolean }): boolean {
+  return o.named || o.found;
+}
+
 /** "Set as destination" from a ready "?" (RQ14): the place itself, so the walk names it as it is revealed (E12). */
 export function readyDest(item: ChecklistItem, named: boolean): Waypoint {
   return { at: item.at, label: named ? item.name : 'A place to find', kind: 'find', placeKey: item.key };

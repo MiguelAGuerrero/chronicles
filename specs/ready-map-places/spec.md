@@ -173,3 +173,14 @@ UI review and cold find had run before it (decision 0204). Numbered here in the 
 
 - **The owner's call, recorded** (Nov 21, at the audit): opening Navigate reads the places data for the area without a tap, as Explore's tab does when it opens (the same hosts, by tile), only while Places is on and the screen is in front.
 - Not reopened: the UI review's P2 (the way bar wraps a place's name at 390 px), which the auditor would reopen because this slice puts that destination one tap away. It is the walk's bar, older than the slice and shared with Route here; it stays deferred.
+- **Counts** (Nov 21): 11 findings, 10 fixed, 1 deferred (8), 0 rejected; audit 5's Back and Escape deferred with it, shared
+  with the walk's card. Tests: `ready-map-places audit 1`, `audit 2`, `audit 3`, `audit 7`, `audit 10`, `audit 11` in
+  `src/lib/__tests__/explore/readyPlacesAudit.test.ts` (todo first at `219dda7`), and the `readyplaces` journey's
+  `audit 3`, `audit 4`, `audit 5`, `audit 6`, `audit 9`, `audit 10`, `audit 11` checks. Audit 9 makes a real find (a photo
+  from the walked-to place's card, Places off) and reads its line on the ready card ("A photo, tonight"), which opens it.
+- **The e2e after the fixes:** `readyplaces` three runs: the todo run on the build before them (each audit check failed
+  for its reason), then one whose audit 9 tapped the memorial (found earlier by the seeded find) instead of the artwork,
+  a fault of the journey's own, then green (26 checks). `marks`, `walk` and `modes` once each, because audits 1 and 2
+  change the read every walk uses: all pass.
+- **Native:** four more device checks in `docs/NATIVE_UNVERIFIED.md` from the auditor's list (the dialog with VoiceOver
+  and TalkBack, the ready read's cost while panning, Open in Maps from the card, the find with Places off).

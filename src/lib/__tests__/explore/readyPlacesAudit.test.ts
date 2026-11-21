@@ -21,7 +21,7 @@ const core = async () => (await import('../../explore/explore')) as unknown as C
 const O: LngLat = [-77.4336, 37.5387];
 const east = (m: number): LngLat => [O[0] + m / (111320 * Math.cos((O[1] * Math.PI) / 180)), O[1]];
 
-test('ready-map-places audit 1: a read finishing at an old fix loads the items at the current one, and checks again there', { todo: 'test first' }, async () => {
+test('ready-map-places audit 1: a read finishing at an old fix loads the items at the current one, and checks again there', async () => {
   const m = await core();
   assert.ok(m.afterRead, 'afterRead exists');
   // A read begun at a stale fix 3 km off ends after the real fix came: the items are loaded where you are, and the place
@@ -32,7 +32,7 @@ test('ready-map-places audit 1: a read finishing at an old fix loads the items a
   assert.deepEqual(m.afterRead({ fix: O, here: null }), { loadAt: O, again: false });
 });
 
-test('ready-map-places audit 2: the read state is cleared when the read is cut off, and when places are there with no read needed', { todo: 'test first' }, async () => {
+test('ready-map-places audit 2: the read state is cleared when the read is cut off, and when places are there with no read needed', async () => {
   const m = await core();
   assert.ok(m.nextReadState, 'nextReadState exists');
   assert.equal(m.nextReadState(null, 'start'), 'reading');
@@ -49,7 +49,7 @@ test('ready-map-places audit 2: the read state is cleared when the read is cut o
   assert.match(hook, /nextReadState\([^)]*'known'\)/, 'the hook says known when no read is needed');
 });
 
-test('ready-map-places audit 3: a find of the walked-to place with Places off is said', { todo: 'test first' }, async () => {
+test('ready-map-places audit 3: a find of the walked-to place with Places off is said', async () => {
   const m = await core();
   assert.ok(m.foundSaid, 'foundSaid exists');
   assert.equal(m.foundSaid({ placesOn: false, key: 'mansion', only: 'mansion' }), true);
@@ -58,13 +58,13 @@ test('ready-map-places audit 3: a find of the walked-to place with Places off is
   assert.match(src('src/app/walk.tsx'), /if \(!foundSaid\(\{ placesOn, key: item\.key, only: surface\.only \}\)\) return;/);
 });
 
-test('ready-map-places audit 7: the walk\'s Places row says reading or not available, as the ready one does', { todo: 'test first' }, () => {
+test('ready-map-places audit 7: the walk\'s Places row says reading or not available, as the ready one does', () => {
   const w = src('src/app/walk.tsx');
   const call = w.slice(w.indexOf('<LayersControl'), w.indexOf('<LayersControl') + 600);
   assert.match(call, /placesRead: placesOn \? placesRead : null/);
 });
 
-test('ready-map-places audit 10: the ready bar reads "To a place to find", the label kept as it is elsewhere', { todo: 'test first' }, async () => {
+test('ready-map-places audit 10: the ready bar reads "To a place to find", the label kept as it is elsewhere', async () => {
   const m = (await import('../../startPlan')) as unknown as { toDestLine?: (d: { at: LngLat; label: string; kind: string }, from: LngLat | null) => string };
   assert.ok(m.toDestLine, 'toDestLine exists');
   assert.equal(m.toDestLine({ at: O, label: 'A place to find', kind: 'find' }, null), 'To a place to find');
@@ -75,7 +75,7 @@ test('ready-map-places audit 10: the ready bar reads "To a place to find", the l
   assert.match(src('src/components/walk/useReady.tsx'), /toDestLine\(dest, fix, units\)/);
 });
 
-test('ready-map-places audit 11: Open in Maps waits until the place is named or found', { todo: 'test first' }, async () => {
+test('ready-map-places audit 11: Open in Maps waits until the place is named or found', async () => {
   const m = await core();
   assert.ok(m.readyCardMaps, 'readyCardMaps exists');
   assert.equal(m.readyCardMaps({ named: false, found: false }), false);

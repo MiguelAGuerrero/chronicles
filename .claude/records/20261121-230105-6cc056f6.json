@@ -1,0 +1,68 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Places on the ready map (RQ1-RQ18, specs/ready-map-places)"
+      ],
+      "body": "- [loop] From the audit (Nov 21, audit 8, low, cost): a walk to a place with Places off reads a 1.5 km box of checklist items to find that one key (`useExplore`'s `onlyAt`), and `shown` spreads them with the items on each fix. A by-key read is a new `Db` method with its contract case; inferred, not measured.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Places on the ready map (RQ1-RQ18, specs/ready-map-places)"
+      ],
+      "body": "- [loop] From the audit (Nov 21, audit 5, low): Android Back and Escape with a place's card open close Navigate (the ready card) or do nothing (the walk's), not the card first; a map tap and a long press now close the ready card.\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Navigate, ready"
+      ],
+      "body": "- [ ] **Do:** With VoiceOver and with TalkBack, open a \"?\" card on Navigate before Start. **Expect:** it is announced as a dialog by its title, and the capture stack beside it is still reachable. (RQ12, RQ15)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Navigate, ready"
+      ],
+      "body": "- [ ] **Do:** Open Navigate in a town never read for this data build, then pan the map at once. **Expect:** the area read (1.5 km, SQLite through the write queue) leaves the map smooth; the Places row says \"Reading…\" until the \"?\" come. (RQ5, RQ17)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Navigate, ready"
+      ],
+      "body": "- [ ] **Do:** On a named \"?\" card on Navigate, tap Open in Maps; on an unnamed one, look for it. **Expect:** Apple Maps or Google Maps opens at the place as \"Destination\"; an unnamed card has no Open in Maps; a maps app that will not open is said on the banner. (RQ7, audit 11)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Navigate, ready"
+      ],
+      "body": "- [ ] **Do:** On a walk started to a ready \"?\", Places off, take a photo from its card. **Expect:** the place is found and \"Found:\" is said with a buzz; after the walk its ready card lists that photo. (RQ18, audits 3, 9)\n"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "set",
+        "Places on the ready map"
+      ],
+      "body": "| Places on the ready map (Navigate before Start draws the \"?\" within your range, read once where unread; a card with Set as destination, Open in Maps once named, reach and Moments here; the walk to it keeps that one place with Places off; MD11's other half; RQ1-RQ18) | built; web only; not on `main` (branch `slice/ready-map-places`) | tests first, then the code, 2026-11-21 (17 of 18 read as first: RQ6's id sat out of the checker's reach) | `specs/ready-map-places/spec.md` | yes (11 findings: 10 fixed, 1 deferred; UI review: U3 fixed, the rest deferred) |\n",
+      "target": "sha256:d73b10fb99dbb915a54205234b44db9f2b099df4bc9055baa4f69246dd704214"
+    }
+  ]
+}

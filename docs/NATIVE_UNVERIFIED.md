@@ -372,6 +372,10 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] **Do:** on Android, on a walk: open a spot card (a long press), press Back; open a route preview, press Back; pull the settings up, press Back; record a memo, press Back; open What I'm into's page from the settings and press Back. **Expect:** each Back closes the thing in front, one at a time, and none acts under the page (`app/walk.tsx`'s three BackHandlers, `ReadyBar`'s and `MomentBar`'s; `/tend walk-screen`'s review, auditor's native list).
 - [ ] **Do:** On Navigate before Start, in a town, with Places on (its default there). **Expect:** the "?" within your range around you; a tap opens its card, above the bar and left of the capture stack, with "Set as destination" and Open in Maps, and the stack still takes one tap. (RQ1, RQ6, RQ15)
 - [ ] **Do:** Tap "Set as destination" on a ready map "?", then Start. **Expect:** the walk routes there with every layer off; only that place is drawn, its card has the capture row, and it is named on the way bar within 60 m. (RQ7, RQ9, RQ14, RQ18)
+- [ ] **Do:** With VoiceOver and with TalkBack, open a "?" card on Navigate before Start. **Expect:** it is announced as a dialog by its title, and the capture stack beside it is still reachable. (RQ12, RQ15)
+- [ ] **Do:** Open Navigate in a town never read for this data build, then pan the map at once. **Expect:** the area read (1.5 km, SQLite through the write queue) leaves the map smooth; the Places row says "Reading…" until the "?" come. (RQ5, RQ17)
+- [ ] **Do:** On a named "?" card on Navigate, tap Open in Maps; on an unnamed one, look for it. **Expect:** Apple Maps or Google Maps opens at the place as "Destination"; an unnamed card has no Open in Maps; a maps app that will not open is said on the banner. (RQ7, audit 11)
+- [ ] **Do:** On a walk started to a ready "?", Places off, take a photo from its card. **Expect:** the place is found and "Found:" is said with a buzz; after the walk its ready card lists that photo. (RQ18, audits 3, 9)
 
 ## Functional core (slice 1, FC1-FC10)
 

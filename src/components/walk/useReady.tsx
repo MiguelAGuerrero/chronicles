@@ -25,7 +25,7 @@ import { locateOnce } from '../../lib/locate';
 import { loadPendingDest, savePendingDest } from '../../lib/nav/store';
 import type { Waypoint } from '../../lib/nav/types';
 import { ready } from '../../lib/ready';
-import { destLine } from '../../lib/startPlan';
+import { toDestLine } from '../../lib/startPlan';
 import type { LngLat } from '../../lib/types';
 import type { MomentState } from '../../lib/useCaptures';
 import { LOCATE_FIT_M, useLocate } from '../../lib/useLocate';
@@ -304,11 +304,11 @@ export function useReady(props: {
         onUp={(u) => setUp(u && !memoOn)}
         areaHeight={screenH}
         locked={memoOn}
-        summaryLabel={['0:00 · ' + distance(0), dest ? `To ${destLine(dest, fix, units)}` : null].filter(Boolean).join('. ')}
+        summaryLabel={['0:00 · ' + distance(0), dest ? toDestLine(dest, fix, units) : null].filter(Boolean).join('. ')}
         summary={
           <>
             <Text testID="walk-stats" style={barStyles.stats} numberOfLines={1}>{`0:00 · ${distance(0)}`}</Text>
-            {dest && <Text testID="ready-dest" style={barStyles.dest} numberOfLines={1}>{`To ${destLine(dest, fix, units)}`}</Text>}
+            {dest && <Text testID="ready-dest" style={barStyles.dest} numberOfLines={1}>{toDestLine(dest, fix, units)}</Text>}
           </>
         }
         actions={
@@ -362,6 +362,8 @@ export function useReady(props: {
     fix,
     placesOn: !!layers.on.places,
     inFront: active && focused,
+    /** A place's pin takes taps: not with the bar up or mid-memo, as the moments' pins (audit 4). */
+    pinsLive: !memoOn && !up,
     chooseDest,
     /** A found place's moment, opened in this screen's viewer (RQ13). */
     view: (cs: Faced[]) => setViewing(cs),
