@@ -966,6 +966,25 @@ async function run(h) {
   });
   check(stops?.inputTab === -1 && stops.inputHidden && stops.nameless.length === 0,
     `tend memories audit 4: Contents' switch is one stop on the web, its drawn switch neither focused nor heard, and every stop has a name (${JSON.stringify(stops)})`);
+  // tend memories audit 6: at 200% (a 195 x 422 viewport) every row of the sheet can still be reached, Threads at its top.
+  const vp53 = pg.viewportSize();
+  await pg.setViewportSize({ width: 195, height: 422 });
+  await pg.waitForTimeout(500);
+  const reach = await pg.evaluate(() => {
+    const t = document.querySelector('[data-testid=menu-threads]');
+    const c = document.querySelector('[data-testid=menu-close]');
+    if (!t || !c) return null;
+    t.scrollIntoView({ block: 'nearest' });
+    const top = t.getBoundingClientRect().top;
+    c.scrollIntoView({ block: 'nearest' });
+    const bottom = c.getBoundingClientRect().bottom;
+    return { top: Math.round(top), bottom: Math.round(bottom), height: window.innerHeight };
+  });
+  await shot(pg, 'journal-08b-contents-200');
+  await pg.setViewportSize(vp53);
+  await pg.waitForTimeout(500);
+  check(!!reach && reach.top >= 0 && reach.bottom <= reach.height + 1,
+    `tend memories audit 6: at a 195 x 422 viewport Contents can still be scrolled to Threads at its top and Close at its foot (${JSON.stringify(reach)})`);
   await pg.click('[data-testid=menu-threads]').catch(() => {});
   const threadsUp = await there('[data-testid=threads-screen]', 5000);
   const rail = await shown('[data-testid=threads-rail]');

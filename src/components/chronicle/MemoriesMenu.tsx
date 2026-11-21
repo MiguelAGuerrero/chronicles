@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { FORGET_CONFIRM, HINT_FORGET, HINT_HIDDEN, HINT_OFF, HINT_ON } from '../../lib/resurface/copy';
 import { LENS_LINE } from '../../lib/reactions/lens';
 import { YOUR_DATA, YOUR_DATA_NOTE } from '../../lib/backup/core';
@@ -37,7 +37,8 @@ export function MemoriesMenu(props: { open: boolean; off: boolean; onClose: () =
               </View>
             </View>
           ) : (
-            <>
+            // Scrolls once it is taller than the screen, at large text or on a short phone (tend memories audit 6; WCAG 1.4.4).
+            <ScrollView style={styles.scroll} contentContainerStyle={styles.list} bounces={false}>
               <Pressable testID="menu-threads" accessibilityRole="button" onPress={() => { setConfirming(false); props.onThreads(); }} style={styles.item}>
                 <Text style={styles.label}>Threads</Text>
                 <Text style={styles.hint}>What you keep coming back to, and what you connected</Text>
@@ -75,7 +76,7 @@ export function MemoriesMenu(props: { open: boolean; off: boolean; onClose: () =
               <Pressable testID="menu-close" accessibilityRole="button" onPress={close} style={styles.item}>
                 <Text style={[styles.label, { color: theme.muted }]}>Close</Text>
               </Pressable>
-            </>
+            </ScrollView>
           )}
         </View>
       </View>
@@ -85,7 +86,9 @@ export function MemoriesMenu(props: { open: boolean; off: boolean; onClose: () =
 
 const styles = StyleSheet.create({
   back: { flex: 1, backgroundColor: 'rgba(20,24,32,0.45)', justifyContent: 'flex-end' },
-  sheet: { backgroundColor: theme.surface, borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: 12, paddingBottom: 24, gap: 2, width: '100%', maxWidth: 640, alignSelf: 'center' },
+  sheet: { backgroundColor: theme.surface, borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: 12, paddingBottom: 24, width: '100%', maxWidth: 640, maxHeight: '100%', alignSelf: 'center' },
+  scroll: { flexGrow: 0 },
+  list: { gap: 2 },
   item: { minHeight: 52, justifyContent: 'center', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12 },
   label: { color: theme.ink, fontSize: 16, fontWeight: '600' },
   hint: { color: theme.muted, fontSize: 13 },
