@@ -605,6 +605,15 @@ recording, and a recording bar brings a minimized walk back.
 - Distances show in km or miles: a "Distances" choice in the walk settings (the ready bar pulled up),
   defaulting from the device's region. It reaches every distance the app shows,
   the scale bar included.
+- **Your data** (decisions 0241, 0249; specs/back-up-everything): the last row of Walk settings (the ready bar pulled
+  up), "Your data" with "Back up every walk and moment" under it, opens a page of its own with Back. It says in one
+  line what the file is and that anyone with it can see your walks, where they went, and your photos, videos and
+  memos; **Back up everything** makes one plain zip of every walk, its trace, every moment with its files and every kept
+  row, with your choices (units, layers, what you are into, notifications), and hands it over: a download on the web,
+  the share sheet on a phone (the room read first; the file deleted from the phone's cache after). Under the button,
+  "Last backup made October 3", or "Not backed up yet"; files that were gone are named by kind in words. No size, count
+  or gauge, nothing celebrates, and nothing else ever reminds you to back up. The file names its format version, and
+  the app reads every version it has written; restoring from it is the next slice. Built on web, native unverified.
 - There is no Settings screen, no dark mode (light forced), and no account.
 
 ## Platforms

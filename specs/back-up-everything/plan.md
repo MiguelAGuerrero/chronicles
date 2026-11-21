@@ -196,7 +196,7 @@ Defaults that make something quieter, named so the owner can overrule them:
 ## The steward's review (Nov 20), triaged
 
 Ten findings, all accepted before any code (the orchestrator's rulings; S1, S4 and the three silent questions answered
-by the owner in person, 2026-11-20, decision 0247). Folded into the criteria; each test named `back-up-everything audit
+by the owner in person, 2026-11-20, decision 0249). Folded into the criteria; each test named `back-up-everything audit
 N` for the record: S1 audit 1 (BK8 "Last backup made"), S2 audit 2 (BK14), S3 audit 3 (BK3 names the transcript), S4
 audit 4 (BK1's second line, BK13), S5 audit 5 (BK7's words, verbatim), S6 audit 6 (BK11's words), S7 audit 7 (BK6, each
 kind named), S8 audit 8 (BK9, no numeral but a date's), S9 audit 9 (`transcript_off` carried), S10 audit 10 (the spec's

@@ -1086,3 +1086,9 @@ The replay's rework, built whole on its branch and shown at the preview address 
 - [loop] From the UI review (Nov 20, low, U6): a note has two glyphs, the document (the stack, the card's row) and the pencil in a square (the Add to this moment pill, note pins). It predates this slice.
 - [loop] From the UI review (Nov 20, low, U9, opinion): the card can cover the place it describes (the pin and its label under the card at 320). Panning the map so the pin sits above the card would keep the two together.
 - [loop] From the cold find (Nov 20, low): "Camera" says nothing of video; its spoken name does ("a photo or video"), as the stack's does.
+
+## Back up everything (BK1-BK14, decisions 0241, 0249)
+
+- Restore from a backup: the second slice of decision 0241's L, on `backup/core`'s reader; it adds what is in the file, moments deleted since it was made included (the owner, in person, 2026-11-20, decision 0249), never overwrites or deletes; neither `offered` nor the checklists come back as a list of what is left (the steward, Never and decision 0230); a carried transcript stays a cache (back-up-everything audit 3). The page names no Restore until then.
+  - On the web the zip is held as Blob parts until it downloads whole (as `exportWalk` does); on iPhone Safari a library with long videos may fail or be slow there (brief, engineering unknowns). Untested: a test needs a browser with a memory ceiling and a library of several hundred megabytes (BK6).
+  - The app's own drop of an empty walk waiting for Undo is not saved for a relaunch (`volatile`, EW9), so the backup holds that walk, with no moment; a split or a join waiting is backed up as stored, losing nothing the person kept (BK14).

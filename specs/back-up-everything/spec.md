@@ -36,7 +36,7 @@ file is restorable the day it is made. Restoring it is the next slice.
   walk screen (`src/components/walk/useReady.tsx`). During a walk the drawer holds This walk, not Walk settings, so the
   page is not reached mid-walk: a backup made then would leave out the walk being made.
 - **Restore is not here.** The page names no Restore until the restore slice builds it.
-- **The owner's answers in person, 2026-11-20** (to the steward's plan review; decision 0247, amending 0241's words):
+- **The owner's answers in person, 2026-11-20** (to the steward's plan review; decision 0249, amending 0241's words):
   - the line under the button reads "Last backup made October 3" ("Not backed up yet" before any), set when the share
     sheet closes or the download is handed over: it claims only that a file was made (BK8; Silent 2);
   - the page's line also says the file shows where you walked, in one clause and no warning colour (BK9; Silent 3);
@@ -51,7 +51,7 @@ file is restorable the day it is made. Restoring it is the next slice.
 
 ## For the restore slice (not built here)
 
-- **Bring them back** (the owner, in person, 2026-11-20, Silent 1; decision 0247): a restore adds what is in the file,
+- **Bring them back** (the owner, in person, 2026-11-20, Silent 1; decision 0249): a restore adds what is in the file,
   moments deleted since it was made included; it never overwrites or deletes what is there (0241).
 - **No list of what is left** (the steward's condition, Never and decision 0230): neither `offered` nor the checklists
   may come back as a list of what is left to find.
@@ -107,7 +107,7 @@ action sits on a page of its own reached from Walk settings, the app's only sett
    and writes nothing: "There isn't room on this phone to make the backup: it needs as much room again as your photos,
    videos and memos. Try again when the phone has more room." No nudge to free or delete (decision 0107; audit 5).
 8. **BK8** Under the button, a quiet line: "Last backup made October 3", or "Not backed up yet" (the owner's words,
-   2026-11-20, decision 0247; audit 1): set when the share sheet closes or the download is handed over, it claims only
+   2026-11-20, decision 0249; audit 1): set when the share sheet closes or the download is handed over, it claims only
    that a file was made; nothing else in the app ever reminds, prompts or notifies about backing up.
 9. **BK9** The page says in one line what the file is and who can see it: "One zip of every walk and moment you kept.
    Anyone with the file can see your walks, where they went, and your photos, videos and memos." (the owner, 2026-11-20:
@@ -127,4 +127,16 @@ action sits on a page of its own reached from Walk settings, the app's only sett
 
 ## Record
 
-In flight (`/tend inbox G10 yes`, branch `tend/inbox-20261120-2335`).
+Built Nov 20-21 (from G10, `/tend inbox G10 yes`, branch `tend/inbox-20261120-2335`), on the web build; the share
+sheet, the cache file and the room on a phone have never run on a device (`docs/NATIVE_UNVERIFIED.md`, "Media and
+capture").
+
+- **BK1-BK14 pass**: tests first `21227ba` (`check:test-first` 14 of 14); the Db reads `f796ea1` (contract cases over
+  the fake, IndexedDB and SQLite); the format, reader and writer `08099eb` (`src/lib/__tests__/backup/core.test.ts`,
+  `shell.test.ts`, the frozen `fixtures/backup-v1.zip` pinned by `backup-v1.sha256`); the page, the row and the
+  platform io `e03a2b7`; the `backup` journey (BK1, BK8-BK10, BK12, BK13) green on its first run, pictures at 390 and
+  320 px.
+- **The steward's plan review** (Nov 20): ten findings accepted before any code and folded into the criteria, each test
+  named `back-up-everything audit N` (1-10); the owner's answers in person, decision 0249.
+- **Deferred** (`docs/DEFERRED.md`, "Back up everything"): Restore, the second slice; the web's whole zip in memory on
+  iPhone Safari untested; the app's own drop of an empty walk and a waiting split or join backed up as stored.

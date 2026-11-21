@@ -1,0 +1,41 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Media and capture",
+        "--after",
+        "exportWalk(<walk id>)"
+      ],
+      "body": "- [ ] **Do:** on an iPhone and an Android phone with walks, photos, a video and memos, pull up Navigate's ready bar, scroll Walk settings to its foot, tap \"Your data\", then \"Back up everything\", and save the zip to Files (iOS) or Downloads (Android); once more, dismiss the sheet without saving. **Expect:** the button says \"Backing up…\"; the share sheet \"Save your backup\" offers one `chronicles-backup-<date>.zip`, which opens with `manifest.json` (app version from `app.json`, schema `sqlite` 30), the JSON stores, `trace/<walk>.json` per walk and every photo, video and memo under `media/walks/…`; after the sheet closes, saved or dismissed, nothing is left under the cache's `exports/`; the line reads \"Last backup made <today>\" both times (decision 0249: it claims only that a file was made). Never run on a phone. (BK6, BK8)\n- [ ] **Do:** on a phone whose free room is less than its photos, videos and memos take plus 100 MB, tap \"Back up everything\" on Your data. **Expect:** \"There isn't room on this phone to make the backup: it needs as much room again as your photos, videos and memos. Try again when the phone has more room.\" under the button, no share sheet, no file under the cache (`Paths.availableDiskSpace` against `mediaBytes`). Never run on a phone. (BK7)\n- [ ] **Do:** with a video of several hundred megabytes kept, back up everything while watching the app's memory (Xcode's or Android Studio's gauge). **Expect:** the memory does not grow by the video's size: the file goes through in 1 MB chunks from `File.open` to the zip's file handle (`writeBytesSync`). Never run on a phone. (BK6)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Back up everything (BK1-BK14, decisions 0241, 0249)",
+        "--new"
+      ],
+      "body": "- Restore from a backup: the second slice of decision 0241's L, on `backup/core`'s reader; it adds what is in the file, moments deleted since it was made included (the owner, in person, 2026-11-20, decision 0249), never overwrites or deletes; neither `offered` nor the checklists come back as a list of what is left (the steward, Never and decision 0230); a carried transcript stays a cache (back-up-everything audit 3). The page names no Restore until then.\n- On the web the zip is held as Blob parts until it downloads whole (as `exportWalk` does); on iPhone Safari a library with long videos may fail or be slow there (brief, engineering unknowns). Untested: a test needs a browser with a memory ceiling and a library of several hundred megabytes (BK6).\n- The app's own drop of an empty walk waiting for Undo is not saved for a relaunch (`volatile`, EW9), so the backup holds that walk, with no moment; a split or a join waiting is backed up as stored, losing nothing the person kept (BK14).\n"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "add"
+      ],
+      "body": "| Back up everything (Your data: the last row of Walk settings opens a page that makes one plain, versioned zip of every walk, trace, moment and file, every kept row and the person's choices, handed to the share sheet or downloaded; \"Last backup made\", no reminder, no size or count; a reader that reads every format version written, a frozen sample per version; a delete waiting for Undo left out; BK1-BK14, decisions 0241, 0249; from G10) | built; web only | tests first, then the code, 2026-11-20 (`check:test-first` 14 of 14) | `specs/back-up-everything/spec.md` | the steward's plan review, 2026-11-20: 10 accepted before any code (back-up-everything audit 1-10), 4 owner's answers (decision 0249) |\n"
+    },
+    {
+      "argv": [
+        "inflight",
+        "remove",
+        "Back up everything (a"
+      ],
+      "target": "sha256:4483abec3aab561818f7d734ef21e84447621998f4cf31cde2d587eba84e245a"
+    }
+  ]
+}
