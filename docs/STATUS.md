@@ -409,6 +409,7 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
   Payoff: every series captured on a walk (murals, graffiti) is grouped where it is made, with no scrolling back. Cost: M; AddToMomentPill.tsx, AddToThread.tsx, threads/picker.ts (core), app/walk.tsx, MomentBar.tsx; no native module, no migration. Reopens: threads, moment stacks. After it: a keep-threading mode for a sequence, if the owner wants one after using this (amends 0104; the brief's precedents).
   Instead: criteria 6, 7 and 4 alone (the card mended, reached from the viewer as today).
   Open: approve the mock-up's look (decision 0252): Thread before × on the pill, two rows at 320 px; the card on "Last added to" with its search closed until tapped; the words "Last added to", "Leave it unnamed" and "The two moments are a thread now."
+  Nov 21: the drawing above is an HTML page made under decision 0252's first form, with hand-drawn icons; since afe50e9, `mockup.md` asks for a Design canvas with the app's Ionicons glyphs. Redraw it as a canvas (the same before pictures, `docs/mockups/threading-at-capture/`) before the approval is asked.
 
 ### Last tend
 

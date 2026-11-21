@@ -155,7 +155,9 @@ third mural joins that thread with two taps (Thread, "Last added to").
   https://claude.ai/artifact/NNnL346Cwbhmr6bxWNwHuY (`docs/mockups/threading-at-capture/`), today's screens from the
   web build beside the change. Asked for approval on Nov 21; the owner left the question, so it is the entry's `Open:`
   line and G11 is not built until it is approved. Its drawn choices: Thread before ×, two rows at 320 px; the search
-  closed until tapped; the words "Last added to", "Leave it unnamed", "The two moments are a thread now."
+  closed until tapped; the words "Last added to", "Leave it unnamed", "The two moments are a thread now." The page is
+  in 0252's first form (HTML, hand-drawn icons); `mockup.md` now asks for a Design canvas with the app's Ionicons, so
+  it is redrawn as one before the approval is asked.
 
 After it, from answer 3: whether a keep-threading mode is wanted once the one tap has been used
 on a walk. If yes, it amends 0104 and goes through `/vision`; the precedents are the "choose an album, then shoot"

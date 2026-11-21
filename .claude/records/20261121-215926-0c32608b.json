@@ -1,0 +1,13 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inbox",
+        "note",
+        "G11"
+      ],
+      "body": "  Nov 21: the drawing above is an HTML page made under decision 0252's first form, with hand-drawn icons; since afe50e9, `mockup.md` asks for a Design canvas with the app's Ionicons glyphs. Redraw it as a canvas (the same before pictures, `docs/mockups/threading-at-capture/`) before the approval is asked.\n",
+      "target": "sha256:090aff6f4e4f82e1c3922da412c72df09eadfb70f411809d6854491c6d604a92"
+    }
+  ]
+}
