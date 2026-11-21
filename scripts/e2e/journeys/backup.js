@@ -62,18 +62,18 @@ async function run(h) {
       last: last === r,
     };
   }) : null;
-  check.todo(!!look && look.text.includes('Your data') && look.text.includes('Back up every walk and moment') && look.inView,
+  check(!!look && look.text.includes('Your data') && look.text.includes('Back up every walk and moment') && look.inView,
     `BK13, back-up-everything audit 4: from launch, Walk settings scrolled to its foot shows "Your data" and "Back up every walk and moment" in view (${JSON.stringify(look)})`);
-  check.todo(!!look && look.ink && look.last, `BK1: the row is the last of Walk settings, its words in ink (${JSON.stringify(look)})`);
+  check(!!look && look.ink && look.last, `BK1: the row is the last of Walk settings, its words in ink (${JSON.stringify(look)})`);
   await shot(pg, 'backup-row-390');
 
   if (found) await row.click();
   const page = await pg.waitForSelector('[data-testid=your-data-page]', { state: 'visible', timeout: 8000 }).then(() => true, () => false);
   const pageText = page ? await pg.locator('[data-testid=your-data-page]').innerText() : '';
-  check.todo(page, 'BK1: the row opens the "Your data" page');
-  check.todo(pageText.includes(FILE_LINE), `BK9: the page says in one line what the file is and who can see it (${JSON.stringify(pageText)})`);
-  check.todo(/Not backed up yet/.test(pageText), `BK8: before any backup the line reads "Not backed up yet" (${JSON.stringify(pageText)})`);
-  check.todo(page && !/\d/.test(pageText), `BK9, back-up-everything audit 8: no size, count or numeral on the page (${JSON.stringify(pageText)})`);
+  check(page, 'BK1: the row opens the "Your data" page');
+  check(pageText.includes(FILE_LINE), `BK9: the page says in one line what the file is and who can see it (${JSON.stringify(pageText)})`);
+  check(/Not backed up yet/.test(pageText), `BK8: before any backup the line reads "Not backed up yet" (${JSON.stringify(pageText)})`);
+  check(page && !/\d/.test(pageText), `BK9, back-up-everything audit 8: no size, count or numeral on the page (${JSON.stringify(pageText)})`);
   await shot(pg, 'backup-page-390');
 
   // BK10, BK12: one tap; the button says so while it works; the download is one zip.
@@ -81,10 +81,10 @@ async function run(h) {
   const dl = pg.waitForEvent('download', { timeout: 30000 }).catch(() => null);
   if (page) await pg.click('[data-testid=backup-now]');
   const busy = await pg.waitForSelector('[data-testid=backup-now]:has-text("Backing up…")', { timeout: 3000 }).then(() => true, () => false);
-  if (page) await pg.click('[data-testid=backup-now]').catch(() => {});
+  if (page) await pg.click('[data-testid=backup-now]', { force: true, timeout: 2000 }).catch(() => {});
   const d = await dl;
   const second = await pg.waitForEvent('download', { timeout: 3000 }).then(() => true, () => false);
-  check.todo(busy && !second, `BK12: while the backup is made the button says "Backing up…", and a second tap makes no second file (busy ${busy}, second ${second})`);
+  check(busy && !second, `BK12: while the backup is made the button says "Backing up…", and a second tap makes no second file (busy ${busy}, second ${second})`);
   await pg.evaluate(() => { window.__slowMedia = false; });
   let zip = null;
   if (d) {
@@ -106,11 +106,11 @@ async function run(h) {
     && JSON.stringify((trace ?? []).map((p) => p.t - T)) === '[10000,20000,30000]'
     && JSON.stringify((moments ?? []).map((m) => m.id).sort()) === '["n-e2e","p-e2e"]'
     && !!photo && JSON.stringify([...photo]) === JSON.stringify(PHOTO);
-  check.todo(match, `BK10: the download is a zip whose manifest, walk, trace, moments and photo match the seeded walk (${d?.suggestedFilename()}: ${JSON.stringify({ man, walks: walks?.length, trace: trace?.length, moments: moments?.length, photo: photo?.length })})`);
+  check(match, `BK10: the download is a zip whose manifest, walk, trace, moments and photo match the seeded walk (${d?.suggestedFilename()}: ${JSON.stringify({ man, walks: walks?.length, trace: trace?.length, moments: moments?.length, photo: photo?.length })})`);
   const now = new Date();
   const today = `Last backup made ${MONTHS[now.getMonth()]} ${now.getDate()}`;
   const after = await pg.waitForSelector(`[data-testid=backup-last]:has-text("${today}")`, { timeout: 5000 }).then(() => true, () => false);
-  check.todo(after, `BK10, BK8: the line then reads "${today}"`);
+  check(after, `BK10, BK8: the line then reads "${today}"`);
   await shot(pg, 'backup-done-390');
 
   // BK1: Back returns to the drawer as it was, Walk settings still raised.
@@ -118,7 +118,7 @@ async function run(h) {
   const gone = await pg.waitForSelector('[data-testid=your-data-page]', { state: 'hidden', timeout: 8000 }).then(() => true, () => false);
   await pg.waitForTimeout(500);
   const raised = (await pg.locator('[data-testid=start-settings]:visible').count()) === 1;
-  check.todo(gone && raised, `BK1: Back returns to the drawer as it was (page gone ${gone}, Walk settings up ${raised})`);
+  check(gone && raised, `BK1: Back returns to the drawer as it was (page gone ${gone}, Walk settings up ${raised})`);
 
   // The same at 320 px: the row and the page whole.
   await pg.setViewportSize({ width: 320, height: 700 });

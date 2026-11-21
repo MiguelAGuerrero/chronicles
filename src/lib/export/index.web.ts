@@ -1,4 +1,6 @@
 // @layer adapter
+import Constants from 'expo-constants';
+import type { BackupIO } from '../backup';
 import type { Faced } from '../moment';
 import { releaseMedia, resolveMedia } from '../media';
 
@@ -62,4 +64,49 @@ export async function exportWalk(walkId: string): Promise<{ missing: number }> {
   });
   download(new Blob(parts, { type: 'application/zip' }), bundleName(walk));
   return { missing };
+}
+
+/** The web store's schema version, where the browser lists its databases; null where it does not. */
+async function webSchema(): Promise<number | null> {
+  try {
+    const list = await indexedDB.databases?.();
+    return list?.find((d) => d.name === 'chronicles')?.version ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Your data's backup on the web (specs/back-up-everything BK6): the zip kept as Blob parts, never as one array, and
+ * downloaded once whole; a failure drops the parts. Nothing leaves the browser but the download the person asked for.
+ */
+export function backupIO(): BackupIO {
+  let parts: BlobPart[] = [];
+  let name = 'chronicles-backup.zip';
+  let schema: number | null = null;
+  return {
+    app: { version: Constants.expoConfig?.version ?? null, platform: 'web' },
+    get schema() {
+      return { store: 'indexeddb', version: schema };
+    },
+    async readMedia(ref) {
+      const blob = await mediaBlob(ref);
+      return blob ? chunksOf(blob) : null;
+    },
+    async open(n) {
+      name = n;
+      parts = [];
+      schema = await webSchema();
+    },
+    write(chunk) {
+      parts.push(chunk as BlobPart);
+    },
+    async deliver() {
+      download(new Blob(parts, { type: 'application/zip' }), name);
+      parts = [];
+    },
+    discard() {
+      parts = [];
+    },
+  };
 }

@@ -126,7 +126,7 @@ export function createBackupWriter(p: Pick<Ports, 'db' | 'clock'>) {
   }
 
   /** Writes the zip to `io` and hands it over; throws a `BackupRefusal` with words, or any failure. */
-  async function writeBackup(io: BackupIO): Promise<{ name: string; missing: CaptureKind[]; madeAt: number }> {
+  async function writeBackup(io: BackupIO, opened: () => void = () => {}): Promise<{ name: string; missing: CaptureKind[]; madeAt: number }> {
     const now = p.clock.now();
     const omits = pendingOmits(await waiting());
     const rows = withoutPending(await readRows(), omits);
@@ -136,6 +136,7 @@ export function createBackupWriter(p: Pick<Ports, 'db' | 'clock'>) {
       if (!hasRoom(free, need)) throw new BackupRefusal(NO_ROOM);
     }
     const name = backupName(datePartsOf(now));
+    opened();
     await io.open(name);
     let failed: Error | null = null;
     const zip = new Zip((err, chunk) => {
@@ -227,15 +228,10 @@ export function createBackupWriter(p: Pick<Ports, 'db' | 'clock'>) {
     if (store.get().busy) return;
     store.set((s) => ({ ...s, busy: true, after: null, failed: null }));
     let opened = false;
-    const tracked: BackupIO = {
-      ...io,
-      open: async (name) => {
-        opened = true;
-        await io.open(name);
-      },
-    };
     try {
-      const { missing, madeAt } = await writeBackup(tracked);
+      const { missing, madeAt } = await writeBackup(io, () => {
+        opened = true;
+      });
       store.set((s) => ({ ...s, busy: false, last: madeAt, after: missingLine(missing) }));
     } catch (e) {
       if (opened) await Promise.resolve(io.discard()).catch(() => {});
