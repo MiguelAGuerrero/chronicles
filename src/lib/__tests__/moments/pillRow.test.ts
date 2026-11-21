@@ -15,3 +15,11 @@ test('CT1: five buttons in one row at 390 px, three then two where they do not f
   assert.equal(api.pillPerRow(244), 5, 'exactly the five 44 pt buttons, their 4 pt gaps and the pill\'s padding');
   assert.equal(api.pillPerRow(243), 3);
 });
+
+test('thread-at-capture audit 1: a moment waiting in Undo is offered no Thread on the pill', async () => {
+  const api = (await import('../../momentPill/row' as string).catch(() => ({}))) as { offersThread?: (open: string | null, hidden: ReadonlySet<string>) => boolean };
+  assert.equal(typeof api.offersThread, 'function', 'the pill asks whether to offer Thread');
+  assert.equal(api.offersThread!('x', new Set(['x'])), false, 'hidden in the Undo window: Thread would store the delete for good');
+  assert.equal(api.offersThread!('x', new Set(['y'])), true);
+  assert.equal(api.offersThread!(null, new Set()), false, 'no moment open, no Thread');
+});

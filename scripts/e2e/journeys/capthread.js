@@ -75,19 +75,24 @@ async function run(h) {
   check(rows === 1 && pic === 1 && /Photo/.test(rowText) && /[A-Z][a-z]{2} \d/.test(rowText),
     `CT7: the other mural is offered with its small picture beside "Photo" and its date line (${rows}, ${pic}, ${JSON.stringify(rowText)})`);
   await shot(pg, 'ct-03-new-thread');
-  if (rows) await pg.locator('[data-testid=add-moment-row]').first().click();
-  const named = await there('[data-testid=thread-name]', 5000);
+  // thread-at-capture audit 2: a double tap on the row makes one thread, not two.
+  if (rows) await pg.locator('[data-testid=add-moment-row]').first().dblclick();
+  const named = await there('[data-testid=new-thread-name]', 5000);
   const said = named ? await pg.locator('[data-testid=add-to-thread]').innerText() : '';
+  // thread-at-capture audit 4: the name is capped as a rename is (40), its field its own.
+  const cap = named ? await pg.getAttribute('[data-testid=new-thread-name]', 'maxlength') : null;
+  check(cap === '40', `thread-at-capture audit 4: the new thread's name field takes 40 characters at most (${cap})`);
   check(named && /Connected/.test(said) && /The two moments are a thread now\./.test(said) && (await pg.locator('[data-testid=thread-name-skip]').count()) === 1,
     `CT8: once two are joined the card says so and offers an optional name, Leave it unnamed beside Done (${JSON.stringify(said.slice(0, 120))})`);
   if (named) {
-    await pg.fill('[data-testid=thread-name]', 'Murals');
+    await pg.fill('[data-testid=new-thread-name]', 'Murals');
     await shot(pg, 'ct-04-name');
     await pg.click('[data-testid=thread-name-done]');
   }
   await gone('[data-testid=add-to-thread]', 5000);
   const toast1 = await there('text=Added to a thread', 4000);
   let s = await stored(pg);
+  check(s.threads.length === 1, `thread-at-capture audit 2: two taps on a row made one thread (${s.threads.length})`);
   check(s.threads.length === 1 && s.threads[0].name === 'Murals' && s.members.length === 2,
     `CT8, CT10: a thread of the two murals, named Murals as typed (${JSON.stringify(s.threads.map((t) => t.name))}, ${s.members.length})`);
   check(toast1 && (await pg.locator('text=Added to a thread').count()) === 1, 'CT9: "Added to a thread" is said once, with no count');
@@ -167,10 +172,16 @@ async function run(h) {
   await pg.waitForTimeout(800);
   await shot(pg, 'ct-08-walk-moments');
   if (walkRows) await pg.locator('[data-testid=add-moment-row]').first().click();
-  if (await there('[data-testid=thread-name-skip]', 4000)) await pg.click('[data-testid=thread-name-skip]');
+  // thread-at-capture audit 3: a name typed, then Escape: the thread keeps the name.
+  if (await there('[data-testid=new-thread-name]', 4000)) {
+    await pg.fill('[data-testid=new-thread-name]', 'Walk wall');
+    await pg.keyboard.press('Escape');
+  }
   await gone('[data-testid=add-to-thread]', 5000);
+  await pg.waitForTimeout(800);
   s = await stored(pg);
-  check(s.threads.length === 2 && s.threads.some((t) => t.name === null), `CT6, CT8: a second thread of the walk's two photos, left unnamed (${s.threads.length})`);
+  check(s.threads.length === 2, `CT6: a second thread of the walk's two photos (${s.threads.length})`);
+  check(s.threads.some((t) => t.name === 'Walk wall'), `thread-at-capture audit 3: Escape on the name step keeps the typed name (${JSON.stringify(s.threads.map((t) => t.name))})`);
   // Its thread is listed while the walk is open: Thread on the second photo shows it as the one last added to.
   await pg.click('[data-testid=add-thread]').catch(() => {});
   await there('[data-testid=add-to-thread]', 5000);
