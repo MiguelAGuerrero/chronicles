@@ -911,6 +911,18 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.deepEqual(got.find((r) => r.key === 'A'), { ...atlasArea('A', 2), read_at: 5 });
     });
 
+    test('TI10 putAtlasAreas, listAtlasAreas: a town row\'s border identity round-trips; a row without one reads back with none; purgeDerived clears them', { todo: 'test first' }, async () => {
+      const db = await fresh();
+      const town = { ...atlasArea('P', 1), outline_id: 'div-1', point_from: 'map' as const };
+      const bare = atlasArea('Q', 1);
+      await db.putAtlasAreas([town, bare]);
+      const got = await db.listAtlasAreas();
+      assert.deepEqual(got.find((r) => r.key === 'P'), town);
+      assert.deepEqual(got.find((r) => r.key === 'Q'), bare, 'no identity: none read back, not null fields');
+      await db.purgeDerived();
+      assert.deepEqual(await db.listAtlasAreas(), []);
+    });
+
     test('FC7 putWalkTiles, getWalkTiles (WK2): the same key replaces; only the keys asked for come back, in key order; empty is a no-op', async () => {
       const db = await fresh();
       assert.deepEqual(await db.getWalkTiles(['1/2']), []);

@@ -1,0 +1,11 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inflight",
+        "add"
+      ],
+      "body": "| Town identity (one town is one card on Explore's row however it was read: a label joined to its border by the border under it, each town row keeping its border's identity, your town always first; TI1-TI10; from /fix duplicate-city, the owner's \"Philadelphia got listed twice\") | `slice/town-identity` | building (spec `specs/town-identity/spec.md`, started 2026-11-20): tests first, then code; /deploy after |\n"
+    }
+  ]
+}
