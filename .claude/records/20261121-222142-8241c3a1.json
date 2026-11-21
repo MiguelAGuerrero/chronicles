@@ -1,0 +1,24 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inbox",
+        "set",
+        "G11",
+        "--reason",
+        "the owner approved the mock-up in person, Nov 21: its Open line answered, the canvas named"
+      ],
+      "body": "- **G11 [M] Thread a moment as it is kept: Thread on the after-capture pill** (2026-11-21) · Return · aligned\n  Area: threads, captures, walk-screen. From: /investigate, the owner's ask (2026-11-21). Brief: docs/research/threading-at-capture.md.\n  Calls: Thread on the Add to this moment pill, not the editor; the card opens on the thread last added to, with a search; one tap per capture, no mode for now; a thread still needs two moments, this walk's offered with their pictures, then an optional name. Decision 0253.\n  Done when: on the walk screen at 390 x 844, after photographing a second mural, the owner threads it with the first from the pill without leaving the walk, names it, and a third mural joins that thread with two taps (Thread, \"Last added to\").\n  Mock-up: https://claude.ai/artifact/LopMYhJDtvUrVEGFrViKce (docs/mockups/threading-at-capture/), approved \"Approve as drawn\" (2026-11-21).\n  Touches: VISION.md Always, \"Capture is one tap away\" and \"A moment carries its context ... never a bare thumbnail\"; Never, \"A capture behind a menu, a drawer or an extra tap\"; decisions 0104, 0105, 0123 (amended by 0253: MS2, MS21), 0240, 0251.\n  The slice: 1. After a moment is kept on the walk screen or Navigate's ready screen, the pill offers a fifth one-tap button, Thread (the link mark, spoken \"Add this moment to a thread\"), its words unchanged. 2. With Group captures on, \"Adding to this moment\" offers Thread beside New moment. 3. Thread opens Add to a thread for the whole moment, drawn over the screen, never a Modal over a Modal; closing leaves the pill and the stack as they were. 4. The thread last added to (newest added_at) is the first row, \"Last added to\", one tap; nothing new stored. 5. A search over threads by name or heading words, and moments by words, place or date. 6. The walk still open is offered, newest first, and a thread of its moments listed, here and from the viewer's More. 7. A photo or video row shows its small picture beside its words and place-and-time line, never alone. 8. A new thread still needs two kept moments; once made, an optional \"Name this thread\" field, empty allowed. 9. \"Connected\" said once, no count; a thread holding the moment shown disabled. 10. A journey: two photos threaded from the pill and named, a third added with Thread and the first row.\n  Precedent: Lightroom Classic's target collection, one key to a remembered target; Day One tags from its editor; Pinterest asks for a board at Save (all unverified); Google Keep's label menu (verified). docs/research/adjacent-apps.md, \"File a moment into a group as it is kept\". Departs from Lightroom mobile and the iOS album cameras, whose choice comes before the shutter.\n  Payoff: every series captured on a walk (murals, graffiti) is grouped where it is made, with no scrolling back. Cost: M; AddToMomentPill.tsx, AddToThread.tsx, threads/picker.ts (core), app/walk.tsx, MomentBar.tsx; no native module, no migration. Reopens: threads, moment stacks. After it: a keep-threading mode for a sequence, if the owner wants one after using this (amends 0104; the brief's precedents).\n  Instead: criteria 6, 7 and 4 alone (the card mended, reached from the viewer as today).\n  Nov 21: the drawing above is an HTML page made under decision 0252's first form, with hand-drawn icons; since afe50e9, `mockup.md` asks for a Design canvas with the app's Ionicons glyphs. Redraw it as a canvas (the same before pictures, `docs/mockups/threading-at-capture/`) before the approval is asked.\n",
+      "target": "sha256:e4d6a06144cf36ffd59ee19147f5cc52bb078db4feb6283b081c163125b124e7"
+    },
+    {
+      "argv": [
+        "inbox",
+        "note",
+        "G11"
+      ],
+      "body": "  Nov 21: the owner, in person, approved the canvas redrawn at https://claude.ai/artifact/LopMYhJDtvUrVEGFrViKce: \"Approve as drawn (Recommended)\" (the search closed until tapped; Thread before ×; \"Last added to\", \"Leave it unnamed\", \"The two moments are a thread now.\"), and to build it: \"Build it now (Recommended)\".\n",
+      "target": "sha256:733721569aea28644c287cfccc13b0b0748a571d751f4df9e07a7fbcb292dd84"
+    }
+  ]
+}

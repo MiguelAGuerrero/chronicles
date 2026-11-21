@@ -86,7 +86,7 @@ Asked in person, Nov 21:
 4. *The first mural of a series?* Offered: pick the earlier one, this walk's moments with pictures, then an optional
    name (Recommended); a named thread of one (reverses 0104); two moments with no name prompt. **Pick the earlier one.**
 
-Written: decision 0253 (amends 0123's pill, MS2, MS21). Mock-up drawn and published (see "Open for the owner"); its approval was left for later.
+Written: decision 0253 (amends 0123's pill, MS2, MS21). Mock-up drawn and approved (see "Open for the owner").
 
 Engineering calls made here: "the thread last added to" is the thread of the newest `thread_member.added_at`, read
 from truth, nothing new stored; the pool is `poolWithOpenWalks` (as the responses sheet); the picture is the moment's
@@ -151,13 +151,11 @@ third mural joins that thread with two taps (Thread, "Last added to").
 
 ## Open for the owner
 
-- **The mock-up's look** (decision 0252, which landed on `main` during this run): drawn and published at
-  https://claude.ai/artifact/NNnL346Cwbhmr6bxWNwHuY (`docs/mockups/threading-at-capture/`), today's screens from the
-  web build beside the change. Asked for approval on Nov 21; the owner left the question, so it is the entry's `Open:`
-  line and G11 is not built until it is approved. Its drawn choices: Thread before ×, two rows at 320 px; the search
-  closed until tapped; the words "Last added to", "Leave it unnamed", "The two moments are a thread now." The page is
-  in 0252's first form (HTML, hand-drawn icons); `mockup.md` now asks for a Design canvas with the app's Ionicons, so
-  it is redrawn as one before the approval is asked.
+Nothing for this slice. The mock-up (decision 0252) was drawn as a Design canvas,
+https://claude.ai/artifact/LopMYhJDtvUrVEGFrViKce (`docs/mockups/threading-at-capture/`), today's screens from the web
+build beside the change, and the owner approved it in person on Nov 21, "Approve as drawn (Recommended)": the search
+closed until tapped, Thread before ×, two rows at 320 px, the words "Last added to", "Leave it unnamed" and "The two
+moments are a thread now." (A first HTML drawing was superseded by the canvas.)
 
 After it, from answer 3: whether a keep-threading mode is wanted once the one tap has been used
 on a walk. If yes, it amends 0104 and goes through `/vision`; the precedents are the "choose an album, then shoot"
