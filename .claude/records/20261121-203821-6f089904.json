@@ -1,0 +1,123 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inbox",
+        "remove",
+        "T53",
+        "--reason",
+        "the owner's yes, built in tend memories T53"
+      ],
+      "target": "sha256:4b49c86cfde35739578115b18482361d0dca7ecc8f2de8c5daf6b36cc840fd01"
+    },
+    {
+      "argv": [
+        "inbox",
+        "set",
+        "T11",
+        "--reason",
+        "the owner's reshape"
+      ],
+      "body": "- **T11 [owner] Voice and note are two taps away while a walk is minimized, off Memories** (2026-11-11)\n  Area: tabs. Seen: `tabs-2-recording-bar`, `probe-explore-minimized` (pictures): on Explore and Chronicle's other sections the\n  recording bar offers the camera only. Rests on: VISION.md Always, \"Capture is one tap away on every screen you walk or capture\n  from\", and Never, \"A capture behind a menu, a drawer or an extra tap\" (steward S2). NV9 (your call, Nov 1) settled the camera on\n  the bar; the voice memo and the note were never ruled.\n  Reshaped by the owner (Nov 21): a mic and a pencil beside the bar's camera (this entry's earlier Otherwise). More than one\n  commit, so not built in the run that reshaped it (`/tend` section 7): a plain yes builds it as one slice, held to these lines.\n  Recommended: [M] the mic and the pencil beside the bar's camera, each the same 44 pt ink-on-white button, hidden on Memories as\n  the camera is (the band has all three there). It extends NV9 and decisions 0048 and 0240 and reverses none. /vision (Nov 21):\n  aligned (Honour: the moment kept where it happened, joined to its walk), with no accent and no count on the bar.\n  The slice: 1. While a walk is open and minimized, recording or paused, the bar on every tab but Memories holds a mic and a pencil\n  beside its camera, each 44 pt with a spoken name; on Memories it holds none, as today. 2. The mic records in place: the bar shows\n  the memo's timer with Stop & save and Discard, as the walk screen does; the memo joins the open walk, placed as a walk capture\n  is, and the walk screen does not open. 3. Leaving the tab or tapping the bar while a memo records saves it first (`memoGate`);\n  the bar's Stop refuses under a memo, as today (0048). 4. The pencil opens the note the walk screen's pencil opens, on the tab it\n  was tapped from; saved, it joins the open walk; left empty, nothing is kept. 5. All three work while paused, as captures do.\n  6. At 320 px and the default text size the bar is one row (its time, camera, mic, pencil and Stop), nothing wrapped; the\n  distance stays in its spoken name. 7. No accent, count or confirmation of a routine save on the bar (matrix 20). 8. E-tabs-4's\n  check passes from Explore and from Chronicle's Walks.\n  Otherwise: the mic alone (the earlier Recommended); or record the camera as the bar's whole stack in VISION.md's Shapes; or\n  leave it.\n  Nov 20: E-tabs-4 (`docs/expectations/tabs.md`, drafted by `/tend tabs`, the owner's \"Ratify as drafted\", decision 0243) is this entry's expectation: \"a photo, a voice memo or a note, each one tap from the tab they are on while a walk records, to join that walk without leaving the tab\". Judged failed in that run, its check pending. It passes only with the mic and the note both on the bar (this entry's Otherwise), not with the Recommended's mic alone, which leaves the note two taps away; the Recommended stands as filed. Since decision 0240 the bar's photo opens its editor by itself, on the tab it was taken from.\n",
+      "target": "sha256:3ba5716c6e3af4159042386b3e6dec1766928e09e27187a68c9f6c667855e427"
+    },
+    {
+      "argv": [
+        "inbox",
+        "note",
+        "G9"
+      ],
+      "body": "  Nov 21: the owner's yes, to build once the walk drawer sections slice (`claude/serene-sagan-lz8nzp`) is on main; on Nov 21 it\n  was not (six commits ahead, its spec absent from main), so it waits for the next `/tend inbox`.\n",
+      "target": "sha256:31abf285522eaa341b2684ad3c6238a6121ea0e472af3115377d32612d204970"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "split",
+        "the resurfacing switch drawn as a menu row"
+      ],
+      "body": "- **Audit, deferred** (`specs/chronicle-journal/spec.md`, Audit): `lines.ts` reads the phone's time zone in core, as `days.ts` does (12); a dateline's tap arrives at a cluster pin with its count over the Map's own sheet, not at that moment alone, and nothing marks the pin or offers a way back to the page (19, ui 3); a picked reference's words sit in the serif field while typing (21); three bars at the foot with a walk minimized (ui 1);\n- the resurfacing switch drawn as a menu row (ui 6);\n- Done as a word beside two icons, to judge with a real keyboard (ui 11); \"answering …\" set like a dateline (ui 13).\n",
+      "target": "sha256:19e963627ebf781802e4f0768a9a7bb75bd4c713900692fb80186572d8eebccd"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "the resurfacing switch drawn as a menu row (ui 6);",
+        "--reason",
+        "shipped in tend memories T53 (the owner's yes to T53): the switch is drawn as one"
+      ],
+      "target": "sha256:33771d0e5e599ce9753981dfe6719eea281a3b8f07ff9a6a3b6de8f1ee420cb8"
+    },
+    {
+      "argv": [
+        "inbox",
+        "add"
+      ],
+      "body": "- **T? [owner] Contents' switch closes the sheet as it flips** (2026-11-21)\n  Area: memories. Seen: `src/components/chronicle/MemoriesScreen.tsx`, the menu's `onToggle`, closes the sheet before the setting flips; since `tend memories T53` the row is drawn as a switch, which promises a change in place, and the sheet is gone before its thumb moves: nothing shows or says what changed unless the slip was on screen (the auditor's F2 on T53, medium). Rests on: `.claude/rules/ui-patterns.md`, \"a status that needs no action sits inline and is announced to a screen reader without moving focus\" (F4); NN/g H1, visibility of system status; Layers and What I'm into keep their sheets up while a switch flips.\n  Recommended: the sheet stays up when Bring moments back flips, the switch moving in place as in Layers; Close, the scrim or Escape leave as now, and the page behind changes as it does today. /vision: aligned (Return), no new surface: no count, colour or word.\n  Otherwise: leave it (the slip's going is the sign).\n",
+      "number": "T54"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Chronicle journal, cut 1"
+      ],
+      "body": "- [loop] Space does not flip a switch row on the web: react-native-web's press responder takes Space only for a button or a menu item, so a focused `role=switch` row flips on Enter alone, where the ARIA switch pattern asks for Space (`src/components/SwitchRow.tsx`, the row's Pressable; Contents, Layers, What I'm into). Test: `tend memories audit 7: Space on the focused Bring moments back flips it on the web` (e2e) (the review of tend memories T53, auditor F6, Nov 21, low, from before the run; WAI-ARIA APG, switch pattern)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Chronicle journal, cut 1"
+      ],
+      "body": "- [loop] In Contents the switch row's label is 15 px (SwitchRow's own) beside its neighbours' 16 px, one weight (`src/components/SwitchRow.tsx` `rowLabel`; `MemoriesMenu` `styles.label`). Fix: let SwitchRow take its label size from the sheet. Test: `tend memories audit 8: Contents' row labels share one size` (e2e) (the review of tend memories T53, auditor F8 and UX U3, Nov 21, low; NN/g H4)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Chronicle journal, cut 1"
+      ],
+      "body": "- [owner] The switch row's note \"On\" or \"Off\" says in words what the drawn switch already shows, and a screen reader hears the state twice (\"switch, on. On.\") since `tend memories T53` drew it (`lib/resurface/copy.ts` HINT_ON, HINT_OFF, as SwitchRow's hint). Its words are the owner's: drop the note, or have it say what the switch does (the review of tend memories T53, auditor F8 and UX U4, Nov 21, low; partly opinion)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Chronicle journal, cut 1"
+      ],
+      "body": "- [loop] Contents' Close is muted grey, and nothing on the screen shows that the scrim also closes the sheet (`MemoriesMenu`, the Close row). Fix: Close in ink, as Cancel is elsewhere. Test: `tend memories audit 9: Contents' Close is drawn in ink` (e2e) (the review of tend memories T53, UX U6, Nov 21, low, from before the run; ui-patterns \"Found before quiet\", decision 0167)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "note",
+        "switch Bring moments back off and on, then Forget my choices"
+      ],
+      "body": "  Nov 21 (`tend memories T53`, audit 4, audit 6): the switch is drawn (SwitchRow) and the sheet scrolls at large text. **Expect** also: a tap on the drawn switch flips the setting once; VoiceOver and TalkBack hear one switch, not two; at the largest text Threads can be scrolled to; the hairlines between the groups show on a low-density Android screen.\n",
+      "target": "sha256:2e00376d1f27c9ec861fd48e8f302f715295477c3cb1399a380a46d2f94e03cd"
+    },
+    {
+      "argv": [
+        "open",
+        "add"
+      ],
+      "body": "- **The contents' words after `tend memories T53`** (Nov 21; the owner's yes to T53). What ships: Chronicle's Contents holds Threads, Reactions and Hidden, then the switch Bring moments back drawn as a switch, then Your data, then Forget my choices set apart before Close, in four groups split by a hairline, and the sheet scrolls when taller than the screen. Still to say by hand: `specs/chronicle-journal/spec.md`'s ui 6 (\"The switch drawn as a menu row is deferred\": it is built) and JN21's list (no Reactions or Your data), and `.claude/rules/journal.md`'s \"The contents\" line (the old order, no Reactions or Your data).\n"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 21, `/tend inbox T11 yes, reshaped; T53 yes; G9 yes once the walk drawer sections slice is on main`, one build** (opened from `1b0aabe5`; an inbox run: lenses 1-7 belong to a sweep and were not run).\n- T53, \"Chronicle's Contents is a mixed menu behind a label that says table of contents\", built as `tend memories T53`: the views, the switch drawn as one (SwitchRow), Your data, then Forget my choices set apart before Close, in four groups split by a hairline, no colour, count or heading; the button's spoken name covers Your data. The deferred ui 6 item (\"the resurfacing switch drawn as a menu row\") is built and removed.\n- The review (the auditor and the ux-reviewer, one round): 4 accepted, fixed as `tend memories audit 4` (a switch row's drawn checkbox took a second, nameless stop on the web: Contents, Layers, What I'm into), `audit 5` (a test: the drawn switch follows the setting), `audit 6` (the sheet scrolls when taller than the screen; at 200% Threads was lost) and PRODUCT.md's contents line; F2 filed as T54 (the switch closes the sheet as it flips); three lows deferred (Space on a switch row, audit 7; the switch label's size, audit 8; Close in muted grey, audit 9) and one `[owner]` (the note \"On\" says twice what the switch shows); rejected: a fourth divider fewer (the owner's yes named four groups), Forget in red (the gate ruled out colour), Forget in the spoken name and Close in a group of its own (low, Forget confirms).\n- Lens 0, memories (no line before): E-memories-1 to 4 drafted (seen past captures on the map, the preview's what, when and walk, a memory reads as from an earlier walk, an unasked memory never buzzes), the steward's wording fixes taken, all four met provisionally by their own checks in the memories journey; for the owner to ratify.\n- T11, \"Voice and note are two taps away while a walk is minimized, off Memories\", rewritten as the owner reshaped it (a mic and a pencil beside the bar's camera), with eight criteria; /vision: aligned (Honour). More than one commit, so not built: it waits for a plain yes, built as one slice.\n- G9, \"The walk's map keeps you above its raised drawer\": the owner's yes noted; the walk drawer sections slice (`claude/serene-sagan-lz8nzp`) is six commits ahead of main and its spec absent, so it waits.\n- The e2e: journal, resurface, backup, and the switch rows' journeys (carousel, complexes, into, launch, layers, modes, nudge, subtypes, tabs, walk, walkability, where). resurface's \"audit 12: a 4,000-character note keeps its card short\" fails on main too (checked on `1b0aabe5`), dropped (0223); so do where's WB5, WB8 and WB10, the same on main; memories' \"the dot moves on every fix\" failed once and was not chased. Nothing here has run on a phone.\n"
+    }
+  ]
+}

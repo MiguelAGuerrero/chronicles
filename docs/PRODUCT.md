@@ -463,7 +463,7 @@ recording, and a recording bar brings a minimized walk back.
     holds **Relive it** (the replay of its walk, or its day), **Another**, and the two below. Nothing from the last day
     is resurfaced. It keeps its place while you write.
   - **The contents** (the button at the top right): **Threads**, **Reactions** (a row per reaction a moment has, named in words, "Ideas", "Dislikes", "Happy moments", never counted; each opens its moments oldest first, in their context, and the viewer steps through them), **Hidden** (what you hid, set to fewer, removed or
-    softened, each to bring back), the switch **Bring moments back**, and **Forget my choices**.
+    softened, each to bring back), the switch **Bring moments back**, **Your data**, and **Forget my choices**, set apart at the foot before Close. The four stand in groups split by a hairline (views, the switch, your data, Forget), and the sheet scrolls when it is taller than the screen.
   - **Threads**: things the user keeps coming back to, found in the words of
     notes and photo captions (a word in three moments on two days). A tile shows
     the user's own word and a line in words ("Just beginning", "Often, lately",
