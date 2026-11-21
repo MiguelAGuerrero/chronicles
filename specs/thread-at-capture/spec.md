@@ -110,4 +110,7 @@ open; cost), F8 fixed in the records. Left the threads area no rougher; native u
 
 The deferred items by reasonable default (decision 0256, Nov 21): CT12-CT14 built test-first (a unit test for the row's
 line, the capthread journey's checks, 30 in all; `threads` and `stacks` green); a row's line takes two lines so its
-time never cuts the walk's name. The pill's icon, no Undo on adding and no keep-threading mode yet stay as they are.
+time never cuts the walk's name. The pill's icon, no Undo on adding and no keep-threading mode yet stay as they are. `check:test-first` on this branch reads CT12 and CT14 first as todos (`a9cc7c6`) and real after; CT1-CT11 were
+tested first on their own branch (11 of 11, before it reached `main`); CT13's todo was written across lines, which the
+checker reads one at a time, so it names CT13 untested-first (its check is on one line now). The CT12-CT14 journey
+todos were committed before the code but not run while failing; the unit test for CT12 was.

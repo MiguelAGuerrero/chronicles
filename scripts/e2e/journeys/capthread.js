@@ -134,9 +134,9 @@ async function run(h) {
   else await pg.fill('[data-testid=add-thread-search]', '');
   await pg.waitForTimeout(300);
   const emptied = await pg.inputValue('[data-testid=add-thread-search]').catch(() => null);
-  check(clearShown && clearName === 'Clear search' && !!clearBox && clearBox.w >= 44 && clearBox.h >= 44 && emptied === ''
-    && (await there('[data-testid=add-last-thread]', 2000)) && (await pg.locator('[data-testid=add-thread-clear]').count()) === 0,
-    `CT13: Clear empties the search and the card is back on Last added to; with no text it is gone (${JSON.stringify([clearName, clearBox, emptied])})`);
+  const cleared = clearShown && clearName === 'Clear search' && !!clearBox && clearBox.w >= 44 && clearBox.h >= 44 && emptied === ''
+    && (await there('[data-testid=add-last-thread]', 2000)) && (await pg.locator('[data-testid=add-thread-clear]').count()) === 0;
+  check(cleared, `CT13: Clear empties the search and the card is back on Last added to; with no text it is gone (${JSON.stringify([clearName, clearBox, emptied])})`);
   if (await there('[data-testid=add-last-thread]', 2000)) await pg.click('[data-testid=add-last-thread]');
   await gone('[data-testid=add-to-thread]', 5000);
   s = await stored(pg);
