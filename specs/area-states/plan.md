@@ -127,7 +127,7 @@ phone, bySection }` beside the old `open`.
 - `scripts/tend.js`: `areaState`, `openFromLog`, `deferredItems`, `readInbox`, `shareReading` (in `reading`),
   `evolveDue`, `historyProblems`, `baseWarning`; the commands `state` and `base`; `balance`, `next` and `log` as above.
   Exports kept; `reading`'s old inputs still work (`rough` with no `swept` reads as before).
-- `src/lib/__tests__/arch/areaStates.test.ts` (new), `areaStates.replay-1119.json` (new fixture).
+- `src/lib/__tests__/arch/tend.test.ts` (the tests), `scripts/fixtures/tend-replay-1119/` (the fixture; audit 10).
 - `.claude/skills/tend/SKILL.md`: section 0 (the guard), 3 (a backstopped area's lows go to DEFERRED, not found
   again), 8 (the states computed, the table, the reading by shares, the evolve actuator, the inbox read whole), 9 (the
   evolve trigger), 10 (`tend:log` writes the state).
@@ -142,7 +142,7 @@ Not touched: `docs/VISION.md`, any decision (no owner's call is made here; J1-J8
 orchestrator's to rule, and their rulings go in the spec's Decisions), `FORBIDDEN`, `scripts/records.js`, the
 `commits` gate, test-first, any baseline, `package.json`.
 
-## Tests per criterion (`areaStates.test.ts`)
+## Tests per criterion (`arch/tend.test.ts`)
 
 | Id | Test |
 |---|---|
@@ -186,3 +186,32 @@ once (about 350 KB). No per-frame or per-fix work; nothing in the app.
 ## Screens
 
 None: nothing a person sees changes.
+
+## The plan review, triaged (the steward, Nov 21)
+
+`reviews/tend-inbox-20261121-0137-plan-steward.md` in the run's scratchpad: 1 high, 7 medium, 4 low; verdict "proceed
+with accepted changes". All twelve accepted by the orchestrator's rulings, each with a test named by its number
+(`area-states audit 1`-`13`); four questions answered by the owner in person, 2026-11-21 (decision 0250). What changed
+in this plan:
+
+- **J9 (new; finding 1, the owner's "Waits on you: settling").** "Open before the loop" items attributed to the area
+  (by `/tend <area>` or `tend <area>` in their words) and rated medium or high are subtracted from the log's unshipped
+  count and listed as waiting; so are DEFERRED `[loop]` items whose fix the loop may not make ("the loop may not", or a
+  path in `FORBIDDEN` in backticks). Waiting keeps the area `settling`, never `rough`, and is named in the reason.
+- **J1 (finding 2).** An unrated `[loop]` item attributed to the area keeps it from `polished` (`settling` at most); the
+  unattributed are printed apart.
+- **J2 (finding 3).** "No failed line" is dropped from `polished`: a failed line is a finding of the run, in its counts.
+- **J3 (findings 4, 5; the owner's "Take the proposed value").** `ROUGH_SHARE` 0.5 committed before the replay ran; the
+  report prints the line, the shares, and first-sweep areas by state. If the replay read outgrowing, the build stops.
+- **J4 (finding 5; the owner's "Read and print all; alarm on T only").** The alarm counts unanswered `T` entries; the
+  report prints that number, the old one and the whole inbox's.
+- **J5 (findings 6, 12).** Section 8's outgrowing row and the argument table name the fourteen-day evolve and `next`'s
+  `evolve <area>`; "loop-filed" is a run log line's `filed.G`.
+- **AS2 (finding 7).** The backstop counts whole sweeps since the last reset between two sweeps; a partial sweep
+  neither counts nor breaks the run.
+- **J6 (finding 8).** The shallow refusal names the date to fetch from (the oldest of the window's start and the sweep
+  bases it needs); section 0 fetches from that date. How far a run fetches otherwise is unchanged.
+- **J8 (findings 9, 10).** Tests in `arch/tend.test.ts`; the fixture under `scripts/fixtures/` holds main's documents
+  verbatim (their blobs checked) and `git.json`, made once with the script as it stood at `65b9e24f`; its reset counts
+  matched the plan's prototype (explore 3, replay 2, captures 2, none elsewhere since each area's last sweep).
+- **J7 (finding 11; the owner's "Allow the narrow exemption").** Keyed on the grown specs' `Verdict: no surface`.

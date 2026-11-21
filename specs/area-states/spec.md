@@ -57,6 +57,8 @@ States the criteria imply (slice step 2):
 
 - **AS1b · Nothing to read is said.** An area the run log has never seen swept reads `unseen`, never `rough`; an area
   the ledger holds as `resting` stays resting until a reset.
+- **AS1c · What waits is not open** (the owner's answer, J9): a medium the loop may not fix, filed to the owner, reads
+  as waiting (`settling`, named in the reason), as an entry does.
 - **AS6b · A sha that does not resolve on a whole history** (the ledger's presence `main`, 39 characters) is named,
   and the area is read from its window as before; only a shallow history refuses.
 
@@ -67,7 +69,31 @@ States the criteria imply (slice step 2):
 - **Built beside decision 0236** (the entry's "Build beside"): the compass stays `tend.js compass`'s; the shares read
   beside it, never a second copy. AS1 reads the run log's `found`, `shipped`, `lenses` and `expectations`, and AS4 its
   `filed` and `compass`: no new field of the run log.
-- **The calls this plan makes for the steward to rule on** are in `plan.md`, "Judgement calls", J1-J8.
+- **The owner's answers in person, 2026-11-21** (to the steward's plan review; decision 0250, amending 0235 and 0236):
+  - "Waits on you: settling" (J9): a medium whose fix lies outside what the loop may edit and that is filed to the
+    owner ("Open before the loop", a `T` entry or `[arch]`), or a DEFERRED `[loop]` item whose fix the loop may not make,
+    reads as waiting: its area is `settling` at worst for it, and the state's reason names it (AS1c).
+  - "Take the proposed value" (J3): outgrowing when more than half of the areas swept twice or more are rough and more
+    than three of them are; an area's first sweep counts in the share only from its second. **`ROUGH_SHARE` = 0.5**
+    beside **`LIMITS.rough` = 3** in `scripts/tend.js`, committed before the replay was computed; the owner's starting
+    value, tuned from the run log, never by a run.
+  - "Read and print all; alarm on T only" (J4): AS7 as written. The balance prints every item, counted by section, and
+    the alarm stays on unanswered `[owner]` and `[arch]` `T` entries, more than ten. Both numbers are printed: at Nov 19
+    the alarm counts one (T11), where the old count, every `T` entry but a phone's, was seven; the whole inbox holds 73
+    items ("Last tend" apart), most of them unanswered.
+  - "Allow the narrow exemption" (J7): `tend:log` takes `"expectations": "none: <why>"` for a build every one of whose
+    grown slices has a spec reading `Verdict: no surface`; the reason is required and kept in the line; a build with any
+    other verdict, and every sweep, logs its lines as before.
+- **The plan review** (the steward, Nov 21; twelve findings, all accepted before any code, the orchestrator's rulings;
+  each test named `area-states audit N` by the steward's number): audit 1, 2 the waiting medium and AS8's reason (T42-T45,
+  T48 and the compiler skips); 3 an unrated item attributed to an area keeps it from `polished`, a fix the loop may not
+  make waits, the unattributed are printed apart; 4 no "failed line" blocker (a failed line is a finding, counted by its
+  severity, 0236); 5 the share's line one named constant, printed beside the shares, first sweeps listed by state; 6
+  both inbox numbers printed; 7 section 8 names the fourteen-day evolve, and only the run log's `filed.G` is the loop's;
+  8 a partial sweep neither counts nor breaks the backstop; 9 the shallow refusal names the date to fetch from; 10 the
+  tests in `arch/tend.test.ts` and the fixture under `scripts/`, both outside what a loop commit may touch; 11 the
+  fixture's documents verbatim, their blobs checked, git's facts recorded with their shas; 12 the exemption keyed on the
+  spec's verdict; 13 the argument table says what a run does when `next` answers `evolve <area>`.
 
 ## How adjacent apps do it
 
@@ -89,10 +115,11 @@ ever shown in the app.
 
 ## Tests
 
-Unit (`src/lib/__tests__/arch/areaStates.test.ts`): AS1-AS7 on made-up inputs to the pure functions; AS8 replays the
-fixture `src/lib/__tests__/arch/areaStates.replay-1119.json` (main's run log, DEFERRED and "Needs the owner" at
-`42d3ccd8`, the Nov 19 walk-screen record, with the resets and journeys the script read from git there); AS9 reads the
-three skills.
+Unit (`src/lib/__tests__/arch/tend.test.ts`, beside the loop's other tests, which a loop commit may not touch): AS1-AS7 and
+audits 1-13 on made-up inputs to the pure functions; AS8 and audits 2, 6 and 11 replay the fixture
+`scripts/fixtures/tend-replay-1119/` (main's run log, ledger, STATUS and DEFERRED verbatim at `42d3ccd8`, the Nov 19
+walk-screen record, their git blobs checked, and `git.json`, the resets, uncovered screens and slices git gave there, read
+by `scripts/tend.js` as it stood at `65b9e24f`); AS9 and audits 7, 9 and 13 read the skills.
 
 ## Record
 

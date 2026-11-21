@@ -45,6 +45,9 @@ const RUNS_REL = '.claude/skills/tend/runs.jsonl';
 const LEDGER_REL = '.claude/skills/tend/ledger.json';
 const STATES = ['rough', 'settling', 'polished', 'resting'];
 const LIMITS = { days: 14, rough: 3, inbox: 10, proposals: 3 };
+// The share's line (decision 0250, the owner's starting value, tuned from the run log, never by a run): the balance reads
+// "outgrowing its base" when more than this share of the areas swept twice or more are rough, and more than LIMITS.rough are.
+const ROUGH_SHARE = 0.5;
 
 const groups = (subject) => subject.match(/\(([^)]*)\)/g) ?? [];
 const outside = (subject) => subject.replace(/\([^)]*\)/g, ' ');
@@ -935,4 +938,4 @@ if (require.main === module) {
   }
 }
 
-module.exports = { compassReading, compassText, FORBIDDEN, LIMITS, STATES, classify, criteriaPrefixes, tally, areasByState, readStatus, reading, nextArea, isLoops, dropBoundary, testName, tendCommitProblems, citedOwnEdits, rewritesBaseLines, mainOrHere, findingsOf, logProblems, runLine, fullPassDue, controlsIn, isRoute, resetsArea, readPatches };
+module.exports = { ROUGH_SHARE, compassReading, compassText, FORBIDDEN, LIMITS, STATES, classify, criteriaPrefixes, tally, areasByState, readStatus, reading, nextArea, isLoops, dropBoundary, testName, tendCommitProblems, citedOwnEdits, rewritesBaseLines, mainOrHere, findingsOf, logProblems, runLine, fullPassDue, controlsIn, isRoute, resetsArea, readPatches };
