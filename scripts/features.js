@@ -22,7 +22,7 @@ const FEATURES = [
     rule: 'functional-core',
     source: ['src/lib/types.ts', 'src/lib/{store,useStore,meta,id,focus}.ts', 'src/lib/ports/**', 'src/lib/net/**'],
     journeys: [],
-    specs: ['functional-core', 'affected-checks', 'test-organization', 'shells-saved-settings', 'test-gaps', 'device-acceptance', 'vision-gate', 'react-compiler'],
+    specs: ['functional-core', 'affected-checks', 'test-organization', 'shells-saved-settings', 'test-gaps', 'device-acceptance', 'vision-gate', 'react-compiler', 'area-states'],
   },
   {
     name: 'storage',
@@ -569,6 +569,8 @@ const RENAMED = {
 };
 
 const IN_PROGRESS = {
+  // G6, built by /tend inbox G6 yes (decision 0235): the loop's area states and balance.
+  'area-states': { branch: 'tend/inbox-20261121-0137', since: '2026-11-21' },
   'drive-in-the-outing': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-18' },
   'shop-facets': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-18' },
   'town-fixtures': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-18' },
