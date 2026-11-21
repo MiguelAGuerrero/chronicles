@@ -105,6 +105,13 @@ async function run(h) {
   await shot(pg, 'ct-05-last-added');
   // The search, typed into, finds the thread by its name and a moment by its words (CT5).
   await pg.click('[data-testid=add-thread-search]').catch(() => {});
+  // thread-at-capture ui 1 (the cold find): focused, the search shows one ink edge on its own box (the approved
+  // drawing), never a ring drawn inside it that cuts the magnifier off.
+  const ring = await pg.$eval('[data-testid=add-thread-search]', (e) => {
+    const box = e.parentElement;
+    return { inner: getComputedStyle(e).outlineStyle, edge: box ? getComputedStyle(box).borderTopWidth : '', color: box ? getComputedStyle(box).borderTopColor : '' };
+  }).catch(() => null);
+  check(!!ring && ring.inner === 'none' && ring.edge === '2px' && ring.color === 'rgb(29, 36, 48)', `thread-at-capture ui 1: the focused search has one ink edge and no inner ring (${JSON.stringify(ring)})`);
   await pg.fill('[data-testid=add-thread-search]', 'mur');
   await pg.waitForTimeout(300);
   const foundThreads = await pg.locator('[data-testid=add-thread-row]').count();
