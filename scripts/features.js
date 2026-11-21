@@ -33,6 +33,14 @@ const FEATURES = [
     specs: ['storage-awareness', 'moment-table'],
   },
   {
+    name: 'backup',
+    about: 'Your data: the whole-app backup zip, its versioned format and its reader (decision 0241)',
+    rule: 'backup',
+    source: ['src/lib/backup/**', 'src/app/your-data.tsx'],
+    journeys: ['backup'],
+    specs: ['back-up-everything'],
+  },
+  {
     name: 'recording',
     about: 'the trace: fixes, the recorder, the live dot, steps, pauses, gaps in time',
     rule: 'recording-and-traces',
@@ -561,6 +569,7 @@ const RENAMED = {
 };
 
 const IN_PROGRESS = {
+  'back-up-everything': { branch: 'tend/inbox-20261120-2335', since: '2026-11-20' },
   'drive-in-the-outing': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-18' },
   'shop-facets': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-18' },
   'town-fixtures': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-18' },

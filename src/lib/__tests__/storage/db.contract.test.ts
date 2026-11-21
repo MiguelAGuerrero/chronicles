@@ -22,16 +22,17 @@ let n = 0;
 dbContract('IndexedDB (db/index.web.ts)', async (legacy?: Legacy) => {
   (globalThis as { indexedDB: IDBFactory }).indexedDB = new IDBFactory();
   const mod = (await import(`../../db/index.web.ts?case=${++n}` as string)) as { db: Db };
-  if (legacy?.marks?.length) {
-    // The store has no write for the retired scan's marks: open it (which migrates), then put them as an older app did.
+  if (legacy?.marks?.length || legacy?.offered?.length) {
+    // The store has no write for the retired scan's marks and offers: open it (which migrates), then put them as an older app did.
     await mod.db.listMarks(null);
     const conn = await new Promise<IDBDatabase>((ok, fail) => {
       const req = indexedDB.open('chronicles');
       req.onsuccess = () => ok(req.result);
       req.onerror = () => fail(req.error);
     });
-    const tx = conn.transaction('mark', 'readwrite');
-    for (const m of legacy.marks) tx.objectStore('mark').put(m);
+    const tx = conn.transaction(['mark', 'offered'], 'readwrite');
+    for (const m of legacy.marks ?? []) tx.objectStore('mark').put(m);
+    for (const o of legacy.offered ?? []) tx.objectStore('offered').put(o);
     await new Promise<void>((ok, fail) => { tx.oncomplete = () => ok(); tx.onerror = () => fail(tx.error); });
     conn.close();
   }
@@ -85,10 +86,12 @@ test('FC7 every Db method has a contract case', () => {
 dbContract('SQLite (db/sqliteStore.ts over node:sqlite)', async (legacy?: Legacy) => {
   const sql = nodeSqlite();
   const db = makeSqliteDb(sql.open);
-  if (legacy?.marks?.length) {
+  if (legacy?.marks?.length || legacy?.offered?.length) {
     await db.listWalks(); // migrates
     const put = sql.raw.prepare('INSERT INTO mark (id, walk_id, key, name, category, lon, lat, generic, origin, state, created_at, resolved_at, capture_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)');
-    for (const m of legacy.marks) put.run(m.id, m.walk_id, m.key, m.name, m.category, m.at[0], m.at[1], m.generic ? 1 : 0, m.origin, m.state, m.created_at, m.resolved_at, m.capture_id);
+    for (const m of legacy.marks ?? []) put.run(m.id, m.walk_id, m.key, m.name, m.category, m.at[0], m.at[1], m.generic ? 1 : 0, m.origin, m.state, m.created_at, m.resolved_at, m.capture_id);
+    const offer = sql.raw.prepare('INSERT INTO offered (key, name, category, lon, lat, generic, offered_at, origin) VALUES (?,?,?,?,?,?,?,?)');
+    for (const o of legacy.offered ?? []) offer.run(o.key, o.name, o.category, o.at[0], o.at[1], o.generic ? 1 : 0, o.offered_at, o.origin);
   }
   return db;
 }, 'sqlite');
@@ -99,10 +102,12 @@ const tmp = () => join(mkdtempSync(join(tmpdir(), 'chronicles-db-')), 'chronicle
 dbContract('SQLite with its writer connection (two connections, one file)', async (legacy?: Legacy) => {
   const sql = nodeSqlite(tmp());
   const db = makeSqliteDb(sql.open, sql.openWriter);
-  if (legacy?.marks?.length) {
+  if (legacy?.marks?.length || legacy?.offered?.length) {
     await db.listWalks(); // migrates
     const put = sql.raw.prepare('INSERT INTO mark (id, walk_id, key, name, category, lon, lat, generic, origin, state, created_at, resolved_at, capture_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)');
-    for (const m of legacy.marks) put.run(m.id, m.walk_id, m.key, m.name, m.category, m.at[0], m.at[1], m.generic ? 1 : 0, m.origin, m.state, m.created_at, m.resolved_at, m.capture_id);
+    for (const m of legacy.marks ?? []) put.run(m.id, m.walk_id, m.key, m.name, m.category, m.at[0], m.at[1], m.generic ? 1 : 0, m.origin, m.state, m.created_at, m.resolved_at, m.capture_id);
+    const offer = sql.raw.prepare('INSERT INTO offered (key, name, category, lon, lat, generic, offered_at, origin) VALUES (?,?,?,?,?,?,?,?)');
+    for (const o of legacy.offered ?? []) offer.run(o.key, o.name, o.category, o.at[0], o.at[1], o.generic ? 1 : 0, o.offered_at, o.origin);
   }
   return db;
 }, 'sqlite');
