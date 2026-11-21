@@ -937,6 +937,21 @@ async function run(h) {
   await pg.waitForTimeout(800);
   const contents = (await pg.locator('[data-testid=memories-menu-sheet]').innerText().catch(() => '')).replace(/\s+/g, ' ');
   await shot(pg, 'journal-08-contents');
+  // tend memories T53 (the owner's yes, Nov 21): the sheet is grouped, the views, the switch, Your data, then Forget my
+  // choices set apart at the foot before Close; the switch is drawn as one; the button's spoken name covers Your data.
+  const grouping = await pg.evaluate(() => {
+    const sheet = document.querySelector('[data-testid=memories-menu-sheet]');
+    if (!sheet) return null;
+    const order = [...sheet.querySelectorAll('[data-testid^=menu-], [data-testid=memories-menu-divider]')]
+      .map((e) => e.getAttribute('data-testid'))
+      .filter((id) => !/-note$|-hint$/.test(id))
+      .map((id) => (id === 'memories-menu-divider' ? '|' : id.replace(/^menu-/, '')));
+    const sw = sheet.querySelector('[data-testid=menu-off]');
+    const name = document.querySelector('[data-testid=memories-menu]')?.getAttribute('aria-label') ?? '';
+    return { order: order.join(' '), drawnSwitch: !!sw?.querySelector('input[type=checkbox], [role=switch] [role=switch]'), name };
+  });
+  check(grouping?.order === 'threads reactions hidden | off | your-data | forget close' && grouping.drawnSwitch && /^Contents\b/.test(grouping.name) && /your data/i.test(grouping.name),
+    `tend memories T53: Contents is grouped (the views, the switch drawn as one, Your data, Forget set apart before Close) and its spoken name covers Your data (${JSON.stringify(grouping)})`);
   await pg.click('[data-testid=menu-threads]').catch(() => {});
   const threadsUp = await there('[data-testid=threads-screen]', 5000);
   const rail = await shown('[data-testid=threads-rail]');
