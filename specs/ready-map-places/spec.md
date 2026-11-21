@@ -32,6 +32,9 @@ This slice draws the "?" on the ready map as a walk draws them, and gives each a
 - **A tap on a "?" opens its card with "Set as destination" and Open in Maps.** No capture row before Start: a find
   belongs to a walk (decision 0224), and there is none yet.
 - **A slice, not a fix** (the owner, Nov 21, at `/fix`): the work is the unbuilt half of MD11.
+- **Reads on open** (the owner, Nov 21, at the audit): Navigate reads the places data for the area without a tap, as
+  Explore's tab does, only while Places is on and the screen is in front.
+- **Open in Maps waits until a place is named** (the owner, Nov 21, at the audit): an unnamed "?" is handed to no maps app.
 - **MD3 holds, with one exception** (the owner's "Proceed" to the plan's recommendation, Nov 21): a walk still starts
   with every layer off, but a walk started to a ready "?" keeps that one place drawn and its card reachable, so you
   can capture there and find it (RQ18). The plan's defaults stand: the ready map's reads build checklists outside a
@@ -66,8 +69,8 @@ This slice draws the "?" on the ready map as a walk draws them, and gives each a
    the same rules: one read at a time, a failure waiting 2 min and 100 m, never per fix), then draws its "?"; until then it
    draws none, and the Places row says it is reading (RQ17).
 6. **RQ6** A tap on a "?" or a found place opens its card in the ready map's card place: its name and kind when named,
-   else "A place to find"; how far away in words; "Set as destination" (primary) and Open in Maps; a close button. No
-   capture row.
+   else "A place to find"; how far away in words; "Set as destination" first, never the accent (OM8; audit 6), and Open
+   in Maps once the place is named or found (the owner, Nov 21, audit 11); a close button. No capture row.
 7. **RQ7** "Set as destination" sets the ready map's destination to the place (its name, or "A place to find"), as a long
    press does (NV23): the destination's card shows and Start walks there. Open in Maps opens the place in the phone's maps
    app as Explore's cards do.
@@ -150,3 +153,23 @@ own map draws its "?" from the area profile (`app/(tabs)/explore.tsx`), a separa
 - **Not run:** no harness opens the ready map with places (`scripts/perf-walk.js` covers the walk, unchanged); the
   ready map's read is the walk's, one per area and build. Native has never run on a device: two items in
   `docs/NATIVE_UNVERIFIED.md`.
+
+## Audit
+
+Nov 21, the owner's `/audit`: the auditor (F1-F8) and the steward (S8, S9, and two questions for the owner); the slice's
+UI review and cold find had run before it (decision 0204). Numbered here in the order triaged.
+
+1. A read finishing at an old fix replaces the current fix's items, and a check skipped while a read runs is never retried (F1): accept. The ready map's first fix can be days old (`getLastFix`).
+2. The Places row's read state is left at "Reading…" or "Not available now" (a read cut off by leaving, a failure then an area already read) while "?" are drawn (F2): accept.
+3. A find of the walked-to place with Places off is silent: no "Found:" line, no buzz, nothing spoken (F3): accept.
+4. A ready "?" opens its card with the bar raised (a card nobody sees, under the bar) or mid-memo (F4): accept.
+5. The ready card closes only by its X: a map tap and a long press leave it open (F5): accept for the map tap and the long press; Android Back and Escape with a place card open are deferred, shared with the walk's card.
+6. Two filled accents with the card open, "Set as destination" and Start (F6): accept. Explore's card already says "Set as destination starts nothing and never is" the accent (OM8, `lib/atlas/mapsButton.ts`); RQ6's "(primary)" was the plan's word, not the owner's, and becomes "first".
+7. The walk's Places row never says reading or failed (F7, a host the spec did not name): accept.
+8. RQ18 reads a 1.5 km box of items to find one key (F8): defer. A by-key read is a new `Db` method with a contract case; one read per destination, inferred, not measured.
+9. RQ13's check passes with an empty list: the seeded find names no real moment (S8): accept. The journey makes a real find.
+10. "To A place to find": a capital mid-line on the ready bar, new with this slice (S9): accept.
+11. Open in Maps on an unnamed "?" hands its exact point to a maps app that names it, with stars and busy times (the steward's question; the owner, Nov 21: "Hide it until named"): accept. The card offers it once the place is named (within 60 m) or found.
+
+- **The owner's call, recorded** (Nov 21, at the audit): opening Navigate reads the places data for the area without a tap, as Explore's tab does when it opens (the same hosts, by tile), only while Places is on and the screen is in front.
+- Not reopened: the UI review's P2 (the way bar wraps a place's name at 390 px), which the auditor would reopen because this slice puts that destination one tap away. It is the walk's bar, older than the slice and shared with Route here; it stays deferred.

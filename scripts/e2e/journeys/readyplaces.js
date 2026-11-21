@@ -4,7 +4,8 @@
 // Written first as todos (48e039b), each failing until its code. E2E_ONLY=readyplaces runs it alone.
 
 async function run(h) {
-  const { navUrl, BASE, at, check, freshPage, drawerTo, toStop, shot, switchLayer } = h;
+  const { navUrl, BASE, at, check, freshPage, drawerTo, toStop, shot, switchLayer, scriptsDir } = h;
+  const path = require('path');
   const { c, pg } = await freshPage('readyplaces');
   // The ready map is the first `.maplibregl-map` while no walk is open; its pins are read there.
   const pins = () => pg.locator('.maplibregl-map').last().locator('[data-testid=mark-pin]').evaluateAll((els) => els.map((e) => e.getAttribute('aria-label')));
@@ -77,6 +78,11 @@ async function run(h) {
   });
   check(wide.some((l) => /^A place to find/.test(l)) && wide.some((l) => /^Hessian Memorial/.test(l)) && underBar,
     `RQ3, RQ10: at 200 m the farther place is drawn too, unnamed; with the bar up the pins stay under it (${JSON.stringify(wide)}, ${underBar})`);
+  // ready-map-places audit 4: with the bar up, a tap on a "?" opens no card (it would open under the bar, unseen).
+  await pg.locator('[data-testid=mark-pin]').first().dispatchEvent('click').catch(() => {});
+  await pg.waitForTimeout(600);
+  check.todo((await pg.locator('[data-testid=ready-place-card]').count()) === 0, 'ready-map-places audit 4: with the bar up, a "?" opens no card');
+  await pg.click('[data-testid=ready-place-close]').catch(() => {});
   await drawerTo(pg, 'peek');
   await pg.waitForTimeout(500);
   // RQ10: with the bar down and the pins drawn, the capture stack and Locate are still what a finger meets.
@@ -110,6 +116,13 @@ async function run(h) {
   }
   const clear = (await topmost('[data-testid=moment-photo]')) && (await topmost('[data-testid=moment-voice]')) && (await topmost('[data-testid=moment-note]')) && (await topmost('[data-testid=locate]'));
   check(clear, 'RQ15: with the ready card open, every capture button and Locate is still what a finger meets');
+  // ready-map-places audit 6: one accent on the screen: Start's; Set as destination is not filled with it (OM8).
+  const fills = await pg.evaluate(() => ['ready-place-dest', 'start'].map((id) => getComputedStyle(document.querySelector(`[data-testid=${id}]`)).backgroundColor));
+  check.todo(fills[0] !== fills[1], `ready-map-places audit 6: with the card open, Start is the one accent (${JSON.stringify(fills)})`);
+  // ready-map-places audit 5: a tap on the bare map closes the card, as it closes the Layers panel.
+  await pg.mouse.click(60, 250);
+  await pg.waitForTimeout(500);
+  check.todo((await pg.locator('[data-testid=ready-place-card]').count()) === 0, 'ready-map-places audit 5: a tap on the map closes the ready card');
   await pg.click('[data-testid=ready-place-close]').catch(() => {});
   await pg.waitForTimeout(400);
 
@@ -165,11 +178,13 @@ async function run(h) {
   await pg.locator('[data-testid=mark-pin][aria-label^="A place to find"]').first().click().catch(() => {});
   await pg.waitForSelector('[data-testid=ready-place-card]', { timeout: 5000 }).catch(() => {});
   const unnamed = await pg.locator('[data-testid=ready-place-card]').innerText().catch(() => '');
+  check.todo(/A place to find/.test(unnamed) && (await pg.locator('[data-testid=ready-place-maps]').count()) === 0, 'ready-map-places audit 11: an unnamed "?" card offers no Open in Maps');
   await pg.click('[data-testid=ready-place-dest]').catch(() => {});
   await pg.waitForTimeout(600);
   const destLine = await pg.locator('[data-testid=ready-dest]').innerText().catch(() => '');
   await shot(pg, 'readyplaces-6-destination');
-  check(/A place to find/.test(unnamed) && /^To A place to find/.test(destLine) && (await pg.locator('[data-testid=ready-place-card]').count()) === 0,
+  check.todo(/^To a place to find · /.test(destLine), `ready-map-places audit 10: the ready bar reads "To a place to find" (${JSON.stringify(destLine)})`);
+  check(/A place to find/.test(unnamed) && /^To a place to find/i.test(destLine) && (await pg.locator('[data-testid=ready-place-card]').count()) === 0,
     `RQ7, RQ14: Set as destination closes the card and sets the place as the destination, unnamed as it is (${JSON.stringify(destLine)})`);
 
   // RQ9, RQ18: on the walk to it, every layer is off, and only that one place is drawn; its card has the capture row.
@@ -201,7 +216,37 @@ async function run(h) {
   await pg.waitForTimeout(1500);
   const navText = await pg.locator('[data-testid=nav-bar]').innerText().catch(() => '');
   check(/Public art/.test(navText), `RQ14: the walk to it names it once within 60 m (${JSON.stringify(navText)})`);
+  // ready-map-places audit 3: a photo kept from the walked-to place's card, Places still off, finds it, and that is said.
+  await pg.locator('[data-testid=mark-pin]').first().click().catch(() => {});
+  await pg.waitForSelector('[data-testid=mark-camera]', { timeout: 5000 }).catch(() => {});
+  const [chooser] = await Promise.all([pg.waitForEvent('filechooser', { timeout: 10000 }).catch(() => null), pg.click('[data-testid=mark-camera]').catch(() => {})]);
+  if (chooser) await chooser.setFiles(path.join(scriptsDir, 'fixtures', 'photo.jpg'));
+  await pg.waitForSelector('[data-testid=media-editor]', { timeout: 30000 }).catch(() => {});
+  await pg.click('[data-testid=edit-close]').catch(() => {});
+  const said = await pg.waitForSelector('text=/^Found: Public art/', { timeout: 10000 }).then(() => true, () => false);
+  check.todo(said, 'ready-map-places audit 3: a find of the walked-to place with Places off says "Found:"');
+  // ready-map-places audit 9: after the walk, the found place's ready card lists that photo in words, and it opens.
   await toStop(pg).catch(() => {});
+  {
+    const b = await pg.locator('[data-testid=stop]').boundingBox().catch(() => null);
+    if (b) {
+      await pg.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
+      await pg.mouse.down();
+      await pg.waitForTimeout(1100);
+      await pg.mouse.up();
+      await pg.waitForURL(/replay/, { timeout: 30000 }).catch(() => {});
+    }
+    await pg.goto(navUrl);
+    await pg.waitForSelector('[data-testid=start]');
+    await until(async () => (await pins()).some((l) => /^Found/.test(l)), 30000);
+    await pg.locator('[data-testid=mark-pin][aria-label^="Found"]').first().click().catch(() => {});
+    await pg.waitForSelector('[data-testid=mark-moment]', { timeout: 8000 }).catch(() => {});
+    const line = await pg.locator('[data-testid=ready-place-card] [data-testid=mark-moment]').first().innerText().catch(() => '');
+    await shot(pg, 'readyplaces-8-card-found-moment');
+    await pg.locator('[data-testid=ready-place-card] [data-testid=mark-moment]').first().click().catch(() => {});
+    const opened = await pg.waitForSelector('[data-testid=capture-viewer]', { timeout: 8000 }).then(() => true, () => false);
+    check.todo(/photo/i.test(line) && opened, `ready-map-places audit 9: the found place's ready card lists the moment that found it, in words, and it opens (${JSON.stringify(line)}, ${opened})`);
+  }
   await c.close();
 }
 
