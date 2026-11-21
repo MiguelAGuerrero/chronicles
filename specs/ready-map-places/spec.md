@@ -1,4 +1,4 @@
-<!-- Repo first: from the owner's report and answers in a session (Nov 21), completing modes-to-layers MD11 (decision 0234). Not yet a tab of the concept doc (https://claude.ai/artifact/6P9aUdZJAdReBi6yFVtwa7); the doc wins once it exists. DRAFT: waits on the owner's review of plan.md. -->
+<!-- Repo first: from the owner's report and answers in a session (Nov 21), completing modes-to-layers MD11 (decision 0234). Not yet a tab of the concept doc (https://claude.ai/artifact/6P9aUdZJAdReBi6yFVtwa7); the doc wins once it exists. Plan approved by the owner, Nov 21. -->
 
 # Places on the ready map: the "?" around you before you start
 
@@ -12,8 +12,8 @@ Touches: decision 0234 and modes-to-layers MD11 ("The ready map draws the '?' an
 Verdict: aligned (the shape was gated with 0234: Places on by default on the ready map, its "?" drawn; this slice builds the half MD11 named and its test never checked)
 Shape: on Navigate's map before Start, with Places on, the "?" within your range around you, as a walk draws them; a tap on one opens its card with "Set as destination" and Open in Maps, no capture row (a find belongs to a walk); nothing is counted.
 Precedent: Komoot (pins on the planning map before a recording, a counter-example for what they are: other walkers' picks); AllTrails (points on the map before you start); Google Maps (places on the map around you before a route). From memory, unverified (decision 0193).
-Criteria: RQ1-RQ17 (the steward's S1-S6 are RQ13-RQ17 and the Komoot entry).
-Open: the defaults in the plan for the owner to overrule (the read on the ready map building checklists outside a walk; no pocket alert before Start; the "?" unnamed beyond 60 m, as on a walk); and the steward's question: should a walk started to a ready "?" open with Places on, or does MD3 hold (plan, "For the owner")?
+Criteria: RQ1-RQ18 (the steward's S1-S6 are RQ13-RQ17 and the Komoot entry; RQ18 is the owner's answer to its question).
+Open: the defaults in the plan for the owner to overrule (the read on the ready map building checklists outside a walk; no pocket alert before Start; the "?" unnamed beyond 60 m, as on a walk); the steward's question is answered: MD3 holds, the destination excepted (RQ18).
 
 ## What it is
 
@@ -32,6 +32,10 @@ This slice draws the "?" on the ready map as a walk draws them, and gives each a
 - **A tap on a "?" opens its card with "Set as destination" and Open in Maps.** No capture row before Start: a find
   belongs to a walk (decision 0224), and there is none yet.
 - **A slice, not a fix** (the owner, Nov 21, at `/fix`): the work is the unbuilt half of MD11.
+- **MD3 holds, with one exception** (the owner's "Proceed" to the plan's recommendation, Nov 21): a walk still starts
+  with every layer off, but a walk started to a ready "?" keeps that one place drawn and its card reachable, so you
+  can capture there and find it (RQ18). The plan's defaults stand: the ready map's reads build checklists outside a
+  walk; no pocket alert before Start; "?" unnamed beyond 60 m; at most 8.
 
 ## How adjacent apps do it
 
@@ -70,7 +74,7 @@ This slice draws the "?" on the ready map as a walk draws them, and gives each a
 8. **RQ8** No pocket alert, nudge or "Found:" line on the ready map: those belong to a walk (MD7, MD8). A capture from the
    ready map's stack finds nothing.
 9. **RQ9** Starting a walk from the ready map leaves the walk's own layers as they are (every layer off, MD3): the "?"
-   drawn on the ready map do not follow onto the walk unless Places is turned on for it.
+   drawn on the ready map do not follow onto the walk unless Places is turned on for it, but for RQ18's one place.
 10. **RQ10** The "?" never cover the capture stack, the Locate button or the bar; with the bar up they stay under it, as
     the moments' pins do (ML4).
 11. **RQ11** No copy on the ready map or the card says how many places, what is left, or "nearby to find" (MD19, Never,
@@ -91,6 +95,9 @@ This slice draws the "?" on the ready map as a walk draws them, and gives each a
 17. **RQ17** While a ready read runs, or after it failed, the Places row of the ready map's Layers panel says so in words
     ("Reading…", "Not available now"), with no count; once places are drawn, the row says its range as today (`layerNotes`;
     the steward's S5: a failed read must not look like an empty square).
+18. **RQ18** A walk whose destination is a place (set from a ready "?", or the walk's own Route here) draws that one
+    place's pin with Places off, and a tap on it opens its card with its capture row, so it can be found there; the
+    other "?" stay off until Places is turned on (MD3 holds otherwise; the owner, Nov 21).
 
 ## Surfaces, from the code
 

@@ -162,10 +162,10 @@ const FEATURES = [
       'src/app/(tabs)/explore.tsx',
       'src/components/atlas/**',
       'src/lib/gazetteer/**',
-      'src/components/{MarkPinView,ExploreSettings,ReminderCard,RemindEditor,OpenInMapsButton,IntoPage,IntoRow,PageRow}.tsx',
+      'src/components/{MarkPinView,ExploreSettings,ReminderCard,RemindEditor,OpenInMapsButton,IntoPage,IntoRow,PageRow}.tsx', 'src/components/walk/ReadyPlaceCard.tsx',
       'src/app/into.tsx', 'src/lib/intoNav.ts', 'src/lib/intoGate.ts', 'src/lib/walkName.ts',
     ],
-    journeys: ['marks', 'atlas', 'grading', 'snap', 'carousel', 'curiosities', 'freelook', 'small-places', 'placesearch', 'subtypes', 'openmaps', 'openmaps-chronicle', 'into'],
+    journeys: ['marks', 'readyplaces', 'atlas', 'grading', 'snap', 'carousel', 'curiosities', 'freelook', 'small-places', 'placesearch', 'subtypes', 'openmaps', 'openmaps-chronicle', 'into'],
     specs: ['v1-discovery', 'explore-atlas', 'pocket-alert-nudge', 'reminder-bell', 'atlas-grading', 'town-presence', 'discrete-navigation', 'explore-carousel', 'places-worth-the-stop', 'places-pipeline', 'remarkable-and-public', 'places-out-of-town', 'presence-and-kinds', 'whole-towns', 'community-parks', 'free-look', 'small-places', 'place-search', 'explore-go-here', 'go-here-everywhere', 'explore-subtypes', 'more-attractions', 'open-in-maps-here', 'what-im-into-page', 'sights-and-local-life', 'tap-to-capture-places', 'capture-at-a-place', 'places-layer', 'modes-to-layers', 'town-identity', 'ready-map-places'],
   },
   {

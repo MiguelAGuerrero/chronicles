@@ -1,0 +1,11 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inflight",
+        "add"
+      ],
+      "body": "| Places on the ready map (the \"?\" within your range on Navigate's map before Start, a card that sets the place as the destination, the walk to it keeping that place; the unbuilt half of MD11; RQ1-RQ18, after the owner saw nothing in Capitol Square, Richmond) | `slice/ready-map-places` | plan approved 2026-11-21; tests first, then the code |\n"
+    }
+  ]
+}

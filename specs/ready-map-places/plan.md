@@ -1,4 +1,6 @@
-# Plan: places on the ready map (RQ1-RQ17)
+# Plan: places on the ready map (RQ1-RQ18)
+
+**Approved** by the owner, Nov 21 ("Proceed", taking the recommended answers below).
 
 For the owner's review before any code. Branch `slice/ready-map-places`, from `main` at `ef78794`.
 
@@ -57,17 +59,18 @@ Unit tests in `src/lib/__tests__/explore/readyPlaces.test.ts` (feature `explore`
 - `RQ9: a walk opened from the ready map takes the walk's layers, not the ready map's`
 - `RQ11: no copy in ReadyPlaceCard or the ready map's wiring says how many, left or nearby to find` (source scan)
 - `RQ14: Set as destination from a ready "?" is a find destination with the place's key`
+- `RQ18: on a walk to a place with Places off, placesSurface draws only that place, with its card`
 - `RQ17: the Places note says reading or not available while a ready read runs or failed, never a count` (over `layerNotes`)
 - MD11's test is rewritten to check the "?" as well as the ring (none deleted).
 
-Journey: the `marks` journey gains a ready-map section (`walk` already holds MD11's ring checks and is left alone):
+Journey: a new `readyplaces` journey (its own file, so it runs alone until green; changed from "a section of `marks`", which is already long; `walk` keeps MD11's ring checks):
 
 - RQ1, RQ2: at the fixture area, on Navigate before Start, `mark-pin`s are drawn and named by their spoken labels;
   turned off from Layers → Places, none; on again, back.
 - RQ3: the range slider at 60 m and 200 m changes which pins are drawn.
 - RQ6, RQ7, RQ12: a tap opens the card (a dialog; title, "Set as destination", Open in Maps, no `mark-camera`);
   "Set as destination" shows the destination line, and Start begins a walk there.
-- RQ9: on that walk, no `mark-pin` until Places is turned on.
+- RQ9, RQ18: on that walk, only the destination's `mark-pin` until Places is turned on; its card has `mark-camera`.
 - RQ10, RQ15: with the bar up, and with the ready card open, each capture button and Locate is the topmost element at
   its centre.
 - RQ13: after a find on that walk and a return to Navigate, the found place's ready card lists "Moments here".
@@ -75,7 +78,7 @@ Journey: the `marks` journey gains a ready-map section (`walk` already holds MD1
 - RQ16: the fixture's unreachable place (the `marks` fixture's private-ground place, or one added) shows `mark-reach`.
 
 **Testing size: flow** (wiring between the ready map, its card and the walk; `docs/TESTING.md`, decision 0223):
-`marks` (its own checks, new and edited), `ready` (the ready screen's wiring), `walk` (MD11's ring and the ready bar,
+`readyplaces` (its own checks, new), `marks` (the walk's "?", whose hook changes), `ready` (the ready screen's wiring), `walk` (MD11's ring and the ready bar,
 whose wiring changes), `modes` (MD3: a walk starts with every layer off). Each once, about 20 to 25 minutes in all.
 `grep` for removed or renamed test ids: none are removed or renamed.
 

@@ -53,6 +53,13 @@ test('MD11: the ready map draws the ring while Places is on', () => {
   assert.ok(/layers\.on\.places/.test(r) && !/mode === 'explore'/.test(r));
 });
 
+// ready-map-places: MD11's other half, the "?" on the ready map, never built (its test above checks the ring only).
+test('MD11: the ready map draws the "?" too: its map is given the places\' pins and their taps', { todo: 'test first' }, () => {
+  const w = src('src/app/walk.tsx');
+  const ready = w.slice(w.indexOf('<WalkMap {...ready.mapProps}'), w.indexOf('<WalkMap {...ready.mapProps}') + 1200);
+  assert.ok(/discoveries=\{explore\.pins\}/.test(ready) && /onDiscoveryPress=/.test(ready), 'the ready WalkMap has discoveries and onDiscoveryPress');
+});
+
 test('MD19: (also MD15) no copy on the walk or the ready map says what is left, how many or "nearby to find"', () => {
   const copy = ['src/app/walk.tsx', 'src/components/walk/useReady.tsx', 'src/components/StartSettings.tsx'].map(src).join('\n');
   assert.ok(!/left to find|still to find|nearby to find|remaining/i.test(copy.replace(/\/\/.*$/gm, '')), 'no left-to-find copy');
