@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Proposed: the card's More, open</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+a{color:#1d2430}a:hover{color:#596273}
+@font-face{font-family:Ion;src:url(/_blob/b1e1033995fb9e102fae89b266bc5a91) format('truetype')}
+.ion{font-family:Ion;font-style:normal;font-weight:400;line-height:1}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #f4f2ee; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;">
+<dc-import name="CardMore" hint-size="390px,844px"></dc-import>
+<div style="position: absolute; left: 0; top: 0; right: 0; bottom: 0; background: rgba(20,24,32,0.45);"></div>
+<div style="position: absolute; left: 0; right: 0; bottom: 0; box-sizing: border-box; background: #ffffff; border-top-left-radius: 22px; border-top-right-radius: 22px; padding: 12px 12px 24px; display: flex; flex-direction: column; gap: 2px;">
+<button style="all: unset; min-height: 52px; box-sizing: border-box; padding: 8px 12px; display: flex; flex-direction: column; justify-content: center; gap: 2px; cursor: pointer;"><span style="color: #1d2430; font-size: 16px; font-weight: 600;">Hide monuments and memorials</span><span style="color: #596273; font-size: 13px;">None on the map until you turn them back on</span></button>
+<button style="all: unset; min-height: 52px; box-sizing: border-box; padding: 8px 12px; display: flex; flex-direction: column; justify-content: center; gap: 2px; cursor: pointer;"><span style="color: #1d2430; font-size: 16px; font-weight: 600;">What I’m into</span><span style="color: #596273; font-size: 13px;">Every kind of place you’re shown</span></button>
+<button style="all: unset; min-height: 52px; box-sizing: border-box; padding: 8px 12px; display: flex; flex-direction: column; justify-content: center; cursor: pointer;"><span style="color: #596273; font-size: 16px; font-weight: 600;">Cancel</span></button>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

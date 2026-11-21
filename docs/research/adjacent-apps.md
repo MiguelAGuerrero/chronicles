@@ -334,6 +334,21 @@ Recorded for the What I'm into page (decision 0192, `specs/what-im-into-page`).
   chevron alone. The precedent for Back reading "Walk" from the walk (WI20, audits 8, 10, 14). Source: from memory,
   unverified. **Unverified**.
 
+### Hide a kind of thing from one item (Earn)
+
+Recorded for hiding a kind of place from its card (`docs/research/poi-hide-from-card.md`, decision 0253).
+
+- **Google Discover** (Android, the Google app): a card's More, at its bottom right, offers "Not interested in [Topic]"
+  or "Don't show content from [Source]": two levels from one item. Undone under Settings, Interests, Not interested,
+  Unhide (the page warns its settings are being updated). Source: https://support.google.com/websearch/answer/2819496?hl=en ,
+  read Nov 21, 2026. **Verified**.
+- **YouTube**: a video's More (the three dots beside its title, on Home or Watch Next) offers "Not interested" (then
+  "Tell us why") and "Don't recommend channel"; the feedback is cleared together in My Activity, not one by one. Source:
+  https://support.google.com/youtube/answer/6342839?hl=en , read Nov 21, 2026. **Verified**.
+- **OsmAnd** (iOS, Android): which POI categories show is chosen in Configure map, POI overlay, not from a POI's own
+  menu; a quick action "Show/hide POI" for a chosen category can sit on the map screen. Source: from memory and forum
+  threads in search results, unverified (osmand.net could not be reached from the session). **Unverified**.
+
 ### Keep the map's focus clear of a raised sheet (Earn)
 
 Recorded for the walk's map under its raised drawer (`docs/research/walk-map-under-drawer.md`, Nov 20). The docs
