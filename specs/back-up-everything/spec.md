@@ -165,5 +165,9 @@ capture").
   320 px.
 - **The steward's plan review** (Nov 20): ten findings accepted before any code and folded into the criteria, each test
   named `back-up-everything audit N` (1-10); the owner's answers in person, decision 0249.
+- **The cold find after the door** (a fresh ux-reviewer, Nov 21, told only "make a backup of everything", pictures
+  of launch, Contents open and the page): found, with hesitation at launch, Contents chosen by elimination; from the
+  sheet on, clear. BK13 is met so, not cleanly: the Contents label and the sheet's mixed grouping are filed for the
+  owner (a `T` entry, area memories); text drawn under Memories' sticky date header is filed `[loop]` low.
 - **Deferred** (`docs/DEFERRED.md`, "Back up everything"): Restore, the second slice; the web's whole zip in memory on
   iPhone Safari untested; the app's own drop of an empty walk and a waiting split or join backed up as stored.
