@@ -1,0 +1,138 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "A moment of a walk still open is not offered by the picker",
+        "--reason",
+        "built in thread-at-capture CT6 (the card's pool is poolWithOpenWalks)"
+      ],
+      "target": "sha256:333ca8aa781726c4bcaab26698be8fc8912a5a32794b27d577971b16f5f2932d"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Threads the owner makes (decision 0104)",
+        "--end"
+      ],
+      "body": "- [owner] **Rows of one walk read alike in Add to a thread** (thread-at-capture steward S2, the cold find): two photos of the walk still open both say \"Photo · Nov 21 · From … walk\", told apart only by their pictures; a time of day (\"4:12 pm\") in `contextLine` would part them, and changes every picker's words.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Threads the owner makes (decision 0104)",
+        "--end"
+      ],
+      "body": "- [owner] **Thread on the pill is found late** (thread-at-capture cold find): an icon-only chain beside camera, mic and note reads as \"attach a link\", and the word \"thread\" is not on the map screen until the card opens. A word under it, or \"Thread\" as the grouping line's button (UI review U2: an icon beside \"New moment\" mixes labelled and icon-only items, T5), changes the approved look.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Threads the owner makes (decision 0104)",
+        "--end"
+      ],
+      "body": "- [owner] **No Clear in Add to a thread's search** (thread-at-capture UI review U4; HIG text fields): emptying a search that found nothing takes deleting each letter; a 44 pt × at its end while it holds text.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Threads the owner makes (decision 0104)",
+        "--end"
+      ],
+      "body": "- [owner] **Undo on \"Added to a thread\"** (thread-at-capture steward, silent): \"Last added to\" tapped by mistake files the moment; it comes out from the thread's screen (Remove from this thread), not from the toast.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Threads the owner makes (decision 0104)",
+        "--end"
+      ],
+      "body": "- [loop] **A reminder can open the viewer over Add to a thread** on the walk screen (thread-at-capture audit F4): `whileFocused` does not wait for the card; one Modal over another on iOS. Low.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Threads the owner makes (decision 0104)",
+        "--end"
+      ],
+      "body": "- [loop] **No Back from \"Join it with another moment\"** (thread-at-capture audit F6, older than the slice): only × closes the card; a mistaken A new thread means opening it again. Low.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Threads the owner makes (decision 0104)",
+        "--end"
+      ],
+      "body": "- [loop] **Add to a thread builds every moment's row at open** (thread-at-capture audit F7, cost, inferred): `found` maps every moment to a context line before any search, at open and on each keystroke; n is the library (thousands). Build rows only while searching or on the moment step. Low.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Threads the owner makes (decision 0104)",
+        "--end"
+      ],
+      "body": "- **A keep-threading mode** (decision 0253, the owner: after use): every capture on a walk joining a chosen thread until turned off, as Lightroom's camera into an album and the iOS album cameras do; amends 0104 and goes through `/vision` first.\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Owner threads (OT1-OT24, decision 0104)"
+      ],
+      "body": "- [ ] **Do:** on the walk screen and on Navigate's ready screen, take a photo, close the editor, tap Thread on the Add to this moment pill, then A new thread, a photo row, type a name and tap Done; then take another photo and tap Thread, then the first row. **Expect:** the card opens over the screen in its own Modal (no other Modal is up: the editor of decision 0240 has closed), the rows show their small pictures, the name field's keyboard does not hide Done, Escape or Back on the name step keeps the name, and \"Added to a thread\" shows in the toast. On iOS, also tap Thread within the editor's closing animation. (thread-at-capture CT1-CT9, audit 3)\n"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "add",
+        "--top"
+      ],
+      "body": "| Thread at capture (Thread on the Add to this moment pill, before ×, on the walk screen and Navigate; with Group captures on, below the words beside New moment; Add to a thread opens on \"Last added to\", a search over threads and moments, the walk still open offered, photo and video rows with their pictures, an optional name once two are joined; CT1-CT11, decision 0253, from G11) | built 2026-11-21 from `/tend inbox G11 yes`, test-first (11 of 11): unit tests, typecheck, lint, the `capthread` journey (new), `threads` and `stacks` green; cold find, UI review (`thread-at-capture ui 1`) and one audit round (`thread-at-capture audit 1-4`) triaged in the spec; native unverified | `slice/thread-at-capture` | `specs/thread-at-capture/spec.md` | yes (8 findings: 4 fixed, 3 deferred, 1 record) |\n"
+    },
+    {
+      "argv": [
+        "inflight",
+        "remove",
+        "thread-at-capture (/tend inbox G11 yes"
+      ],
+      "target": "sha256:cc53dca6ab3ce4f69e7956fb4b94136e7c894f58dbde772997fadd66d1d8fd37"
+    },
+    {
+      "argv": [
+        "inbox",
+        "remove",
+        "G11",
+        "--reason",
+        "the owner's yes, Nov 21: built in thread-at-capture (specs/thread-at-capture/spec.md)"
+      ],
+      "target": "sha256:860ae8777f85956893d8772d41e6736ab0a3448011097fa6c23b7def06c81f3a"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 21, `/tend inbox G11 yes` (the owner, in person), one build** (opened from `c670a35`; an inbox run: lenses 1-7 belong to a sweep and were not run).\n- G11, \"Thread a moment as it is kept\", built as `specs/thread-at-capture` (CT1-CT11, decision 0253): Thread on the Add to this moment pill and, stacked under its words, on the grouping line (the owner's call while building); Add to a thread opens on \"Last added to\", searches threads and moments, offers the walk still open with pictures, and names a new thread if the owner types a name. Tests first 11 of 11; the new `capthread` journey, `threads` and `stacks` green.\n- The review: the steward (S1, S3, S4 accepted, S2 to the owner), the cold find and the UI review (`thread-at-capture ui 1` fixed; U2, U4 to the owner; U3 recorded in 0253), the auditor (8: `thread-at-capture audit 1-4` fixed, three lows deferred, one record).\n- Lens 0, threads (no line before): E-threads-1 to 3 drafted, two amended by the steward, all three met provisionally by `capthread`'s checks; proposed, for the owner.\n- Native unverified: the card in a transparent Modal over the walk screen and Navigate, its keyboard, the rows' small copies (`docs/NATIVE_UNVERIFIED.md`).\n"
+    }
+  ]
+}

@@ -75,3 +75,28 @@ thread (OT11 kept).
 
 - The pill (`AddToMomentPill`): the walk screen (`app/walk.tsx`, during a walk) and Navigate's ready screen (`MomentBar`). Chronicle's line has no pill: its entries carry the Thread slot (0197), which opens this card. The recording bar, Respond, the planner and the note page's camera open no pill today, so they get no Thread.
 - The card (`AddToThread`): the viewer's More (`CaptureView`), Chronicle's Thread row (`MemoriesScreen`), and the two pill hosts above. All four get CT4-CT9.
+
+## Record (Nov 21)
+
+Built from G11 (`/tend inbox G11 yes`). Tests first: 11 of 11 (`check:test-first`). Unit: `threads/captureThread.test.ts`
+(CT4, CT5), `moments/pillRow.test.ts` (CT1, audit 1). Journey `capthread` (26 checks, CT1-CT11, ui 1, audits 2-4);
+`threads` (67) and `stacks` (36) green after it; `responses` green before the review's fixes. Typecheck, lint, `npm test` (3833 at the review).
+
+While building: the grouping line could not keep its words to two lines beside Thread and New moment (three at 390 px);
+both shapes drawn on the canvas, the owner chose "Stack it (Recommended)". The threads journey takes the new name step.
+
+Cold find (pictures and five tasks in the owner's words): the card's steps found at once; Thread on the pill found late
+(a chain with no word reads as a web link; "thread" is not on the map screen): the owner's (the approved look is
+icon-only; `docs/DEFERRED.md`). The search's focus ring drawn inside the field: `thread-at-capture ui 1`, fixed (the
+field draws an ink edge on its own box). Rows of one walk alike: S2, deferred to the owner. Older than the slice and
+rejected here: the second step's search words, the size words, the storage notice, overlapping pins.
+
+UI review: U1 rejected (the name step's dimming measured identical to the other steps, rgb 85, 87, 90); U2 to the
+owner (an icon beside a labelled button on the grouping line, T5; as approved); U3 accepted (the 320 px wrap recorded
+as an exception in decision 0253); U4 deferred to the owner (a Clear button in the search, not drawn).
+
+Audit (the auditor, one round): F1 accepted (`thread-at-capture audit 1`, no Thread for a moment in Undo), F2 accepted
+(`audit 2`, one thread per tap), F3 accepted (`audit 3`, a typed name kept on Escape, Back or Close), F5 accepted
+(`audit 4`, the name field's own id and 40 characters); F4 deferred (a reminder can open the viewer over the card),
+F6 deferred (no Back from the moment step, older than the slice), F7 deferred (the card builds every moment's row at
+open; cost), F8 fixed in the records. Left the threads area no rougher; native unverified.
