@@ -50,7 +50,7 @@ function webStores(): string[] {
   return [...new Set([...src.matchAll(/createObjectStore\('(\w+)'/g)].map((m) => m[1]))].sort();
 }
 
-test('BK3 every store, native and web, is classified as backed up or cache, and the known caches are cache', { todo: 'test first' }, () => {
+test('BK3 every store, native and web, is classified as backed up or cache, and the known caches are cache', () => {
   const known = Object.keys(STORES).sort();
   const unknown = [...new Set([...sqliteTables(), ...webStores()])].filter((s) => !known.includes(s));
   assert.deepEqual(unknown, [], `classify these stores in src/lib/backup/core.ts (STORES): ${unknown.join(', ')}`);
@@ -63,13 +63,13 @@ test('BK3 every store, native and web, is classified as backed up or cache, and 
   for (const [name, c] of Object.entries(STORES)) assert.ok(c.why.length > 10, `${name} says why`);
 });
 
-test('BK3, back-up-everything audit 3: memo transcripts are the one cache carried in the file, and say why', { todo: 'test first' }, () => {
+test('BK3, back-up-everything audit 3: memo transcripts are the one cache carried in the file, and say why', () => {
   const carried = Object.entries(STORES).filter(([, c]) => c.kept === 'carried').map(([n]) => n);
   assert.deepEqual(carried, ['transcript']);
   assert.match(STORES.transcript.why, /recogni[sz]/);
 });
 
-test('BK3 every meta key and family is classified; the person\'s choices travel, this device\'s state stays', { todo: 'test first' }, () => {
+test('BK3 every meta key and family is classified; the person\'s choices travel, this device\'s state stays', () => {
   assert.deepEqual(Object.keys(META).filter((k) => !(k in META_KEYS)), [], 'classify these META keys in backup/core.ts');
   assert.deepEqual(Object.keys(META_FAMILIES).filter((k) => !(k in META_FAMILY_KEYS)), [], 'classify these families');
   for (const k of ['units', 'notify_off', 'resurface_prefs', 'explore_hidden', 'map_layers', 'gallery_view', 'group_captures']) assert.equal(META_KEYS[k as keyof typeof META_KEYS], 'backup', k);
@@ -78,12 +78,12 @@ test('BK3 every meta key and family is classified; the person\'s choices travel,
   assert.equal(META_FAMILY_KEYS.atlas_near, 'cache');
 });
 
-test('BK2, back-up-everything audit 9: a refusal of speech recognition travels as the refusal of notifications does', { todo: 'test first' }, () => {
+test('BK2, back-up-everything audit 9: a refusal of speech recognition travels as the refusal of notifications does', () => {
   assert.equal(META_KEYS.transcript_off, 'backup');
   assert.equal(META_KEYS.notify_off, 'backup');
 });
 
-test('BK2 a piece\'s file sits at media/<its ref>; a data: ref has none; an odd or absolute ref goes under media/legacy by piece', { todo: 'test first' }, () => {
+test('BK2 a piece\'s file sits at media/<its ref>; a data: ref has none; an odd or absolute ref goes under media/legacy by piece', () => {
   assert.equal(mediaEntry('walks/w1/p1.jpg', 'p1'), 'media/walks/w1/p1.jpg');
   assert.equal(mediaEntry('data:image/jpeg;base64,AAAA', 'p1'), null);
   assert.equal(mediaEntry('file:///var/mobile/Documents/walks/w1/p1.JPG', 'p1'), 'media/legacy/p1.jpg');
@@ -96,20 +96,20 @@ const manifest = (version: number, more: object = {}) => ({
   made_at: '2026-11-20T12:00:00.000Z', stores: ['walks.json'], media_missing: [], ...more,
 });
 
-test('BK4 a backup made by a newer Chronicles is refused in words, never half read', { todo: 'test first' }, () => {
+test('BK4 a backup made by a newer Chronicles is refused in words, never half read', () => {
   const r = readBackup({ 'manifest.json': JSON.stringify(manifest(BACKUP_VERSION + 1)) });
   assert.deepEqual(r, { ok: false, words: NEWER });
   assert.equal(NEWER, 'This backup was made by a newer Chronicles. Update the app to restore it.');
 });
 
-test('BK4 a file that is not a Chronicles backup is refused in words', { todo: 'test first' }, () => {
+test('BK4 a file that is not a Chronicles backup is refused in words', () => {
   assert.deepEqual(readBackup({}), { ok: false, words: NOT_A_BACKUP });
   assert.deepEqual(readBackup({ 'manifest.json': '{oops' }), { ok: false, words: NOT_A_BACKUP });
   assert.deepEqual(readBackup({ 'manifest.json': JSON.stringify({ ...manifest(1), format: 'chronicles-walk' }) }), { ok: false, words: NOT_A_BACKUP });
   assert.deepEqual(readBackup({ 'manifest.json': JSON.stringify(manifest(0.5)) }), { ok: false, words: NOT_A_BACKUP });
 });
 
-test('BK4 an older format is read through the chain of upgrade steps, one per version, in order, into today\'s rows', { todo: 'test first' }, () => {
+test('BK4 an older format is read through the chain of upgrade steps, one per version, in order, into today\'s rows', () => {
   const seen: number[] = [];
   const step = (from: number) => (doc: BackupDoc): BackupDoc => {
     seen.push(from);
@@ -124,7 +124,7 @@ test('BK4 an older format is read through the chain of upgrade steps, one per ve
   assert.equal(r.ok && r.manifest.version, 3);
 });
 
-test('BK4 the frozen sample of each released format version reads into today\'s rows', { todo: 'test first' }, () => {
+test('BK4 the frozen sample of each released format version reads into today\'s rows', () => {
   const file = join(__dirname, 'fixtures', 'backup-v1.zip');
   const bytes = readFileSync(file);
   // Frozen: never made again. A format change adds a version, an upgrade step and a sample; it never touches this one.
@@ -145,7 +145,7 @@ test('BK4 the frozen sample of each released format version reads into today\'s 
   assert.ok(r.rows.threads.threads.length && r.rows.reactions.length, 'a thread and a reaction');
 });
 
-test('BK7, back-up-everything audit 5: too little room for the media, or as much again, refuses; an unknown room goes on', { todo: 'test first' }, () => {
+test('BK7, back-up-everything audit 5: too little room for the media, or as much again, refuses; an unknown room goes on', () => {
   const need = 300 * 1024 * 1024;
   assert.equal(hasRoom(null, need), true);
   assert.equal(hasRoom(need, need), false);
@@ -154,27 +154,27 @@ test('BK7, back-up-everything audit 5: too little room for the media, or as much
   assert.doesNotMatch(NO_ROOM, /\bfree\b|\bdelete\b/i, 'no nudge to free or delete (decision 0107)');
 });
 
-test('BK8, back-up-everything audit 1: the line claims only that a file was made, with its date', { todo: 'test first' }, () => {
+test('BK8, back-up-everything audit 1: the line claims only that a file was made, with its date', () => {
   assert.equal(lastLine(null, 2026), 'Not backed up yet');
   assert.equal(lastLine({ year: 2026, month: 10, day: 3 }, 2026), 'Last backup made October 3');
   assert.equal(lastLine({ year: 2025, month: 12, day: 31 }, 2026), 'Last backup made December 31, 2025');
   assert.doesNotMatch(lastLine({ year: 2026, month: 1, day: 9 }, 2026), /backed up/);
 });
 
-test('BK9, back-up-everything audit 8: the page says what the file is and who can see it, with no numeral but a date\'s', { todo: 'test first' }, () => {
+test('BK9, back-up-everything audit 8: the page says what the file is and who can see it, with no numeral but a date\'s', () => {
   assert.equal(FILE_LINE, 'One zip of every walk and moment you kept. Anyone with the file can see your walks, where they went, and your photos, videos and memos.');
   assert.equal(YOUR_DATA, 'Your data');
   assert.equal(YOUR_DATA_NOTE, 'Back up every walk and moment');
   assert.equal(BACK_UP, 'Back up everything');
   assert.equal(BACKING_UP, 'Backing up…');
-  for (const w of [FILE_LINE, YOUR_DATA, YOUR_DATA_NOTE, BACK_UP, BACKING_UP, FAILED, NO_ROOM, lastLine(null, 2026), missingLine(['photo', 'voice', 'voice', 'video'])]) {
+  for (const w of [FILE_LINE, YOUR_DATA, YOUR_DATA_NOTE, BACK_UP, BACKING_UP, FAILED, NO_ROOM, lastLine(null, 2026), missingLine(['photo', 'voice', 'voice', 'video']) ?? '']) {
     assert.doesNotMatch(w, /\d/, `no numeral: ${w}`);
   }
   assert.match(lastLine({ year: 2025, month: 3, day: 4 }, 2026), /^Last backup made March 4, 2025$/, 'a date\'s day and year are the only numerals');
   assert.doesNotMatch(FILE_LINE, /%|MB|GB|size|done|great|success/i, 'no size, gauge or celebration');
 });
 
-test('BK6, back-up-everything audit 7: files that are gone are named by kind, in words', { todo: 'test first' }, () => {
+test('BK6, back-up-everything audit 7: files that are gone are named by kind, in words', () => {
   assert.equal(missingLine([]), null);
   assert.equal(missingLine(['photo']), 'A photo could not be found and was left out.');
   assert.equal(missingLine(['photo', 'photo']), 'Two photos could not be found and were left out.');
@@ -183,11 +183,11 @@ test('BK6, back-up-everything audit 7: files that are gone are named by kind, in
   assert.doesNotMatch(missingLine(['photo', 'video', 'voice', 'voice'])!, /\bfiles?\b/);
 });
 
-test('BK11, back-up-everything audit 6: a failure says so and that no file was kept', { todo: 'test first' }, () => {
+test('BK11, back-up-everything audit 6: a failure says so and that no file was kept', () => {
   assert.equal(FAILED, 'The backup could not be made, and no file was kept. Try again.');
 });
 
-test('BK14, back-up-everything audit 2: a delete waiting for Undo names what the file leaves out', { todo: 'test first' }, () => {
+test('BK14, back-up-everything audit 2: a delete waiting for Undo names what the file leaves out', () => {
   const o = pendingOmits([
     { kind: 'walk', ids: ['w2'], spec: { type: 'walk', walkId: 'w2' } },
     { kind: 'moment', ids: ['m1'], spec: { type: 'moment', captureId: 'm1' } },

@@ -113,7 +113,7 @@ const unzip = (io: MemIO) => unzipSync(io.bytes());
 const json = (zip: Record<string, Uint8Array>, name: string) => JSON.parse(strFromU8(zip[name]));
 const textEntries = (zip: Record<string, Uint8Array>) => Object.fromEntries(Object.entries(zip).filter(([n]) => !n.startsWith('media/')).map(([n, b]) => [n, strFromU8(b)]));
 
-test('BK2 one zip: the manifest, one JSON per truth store, the trace one file per walk, the preferences and per-walk meta, every file at its ref', { todo: 'test first' }, async () => {
+test('BK2 one zip: the manifest, one JSON per truth store, the trace one file per walk, the preferences and per-walk meta, every file at its ref', async () => {
   const db = await seeded();
   const io = memoryIO();
   await createBackupWriter({ db, clock: fakeClock(NOW) }).writeBackup(io);
@@ -138,7 +138,7 @@ test('BK2 one zip: the manifest, one JSON per truth store, the trace one file pe
   assert.deepEqual(json(zip, 'marks.json').map((x: Mark) => x.id).sort(), ['mk0', 'mk1']);
 });
 
-test('BK3 no cache in the file: no summary, area, walk line, landing, tile or small copy', { todo: 'test first' }, async () => {
+test('BK3 no cache in the file: no summary, area, walk line, landing, tile or small copy', async () => {
   const db = await seeded();
   const io = memoryIO();
   await createBackupWriter({ db, clock: fakeClock(NOW) }).writeBackup(io);
@@ -147,7 +147,7 @@ test('BK3 no cache in the file: no summary, area, walk line, landing, tile or sm
   assert.doesNotMatch(strFromU8(zip['moments.json']), /thumb/);
 });
 
-test('BK5 round trip: the seeded library, backed up and read by the core, gives back the same rows, ids and trace order', { todo: 'test first' }, async () => {
+test('BK5 round trip: the seeded library, backed up and read by the core, gives back the same rows, ids and trace order', async () => {
   const db = await seeded();
   const io = memoryIO();
   await createBackupWriter({ db, clock: fakeClock(NOW) }).writeBackup(io);
@@ -175,7 +175,7 @@ test('BK5 round trip: the seeded library, backed up and read by the core, gives 
   assert.deepEqual(rows.meta, { keys: { units: 'mi', transcript_off: '1' }, walks: { 'walk_pass:w1': '30' } });
 });
 
-test('BK6 media go through in chunks, whole and in order; a file that is gone is left out, marked in its piece and said in words', { todo: 'test first' }, async () => {
+test('BK6 media go through in chunks, whole and in order; a file that is gone is left out, marked in its piece and said in words', async () => {
   const db = await seeded();
   const { ['walks/w1/memo.m4a']: _memo, ['walks/w2/w2m.jpg']: _w2, ...some } = FILES;
   const io = memoryIO(some);
@@ -195,7 +195,7 @@ test('BK6 media go through in chunks, whole and in order; a file that is gone is
   assert.equal(w.store.get().after, 'A photo and a memo could not be found and were left out.');
 });
 
-test('BK7, back-up-everything audit 5: too little room for the media: it says so and writes nothing', { todo: 'test first' }, async () => {
+test('BK7, back-up-everything audit 5: too little room for the media: it says so and writes nothing', async () => {
   const db = await seeded();
   let asked: string[] = [];
   const io = memoryIO(FILES, { room: async (refs) => ((asked = refs), { free: 50, need: 1000 }) });
@@ -208,7 +208,7 @@ test('BK7, back-up-everything audit 5: too little room for the media: it says so
   assert.deepEqual(asked.sort(), Object.keys(FILES).sort(), 'the room is asked for every file the backup would hold');
 });
 
-test('BK8, back-up-everything audit 1: the date is kept only once the file is handed over, and read back for the line', { todo: 'test first' }, async () => {
+test('BK8, back-up-everything audit 1: the date is kept only once the file is handed over, and read back for the line', async () => {
   const db = await seeded();
   let atDeliver: string | null = 'unset';
   const io = memoryIO(FILES, { deliver: async () => { atDeliver = await db.getMeta('backup_last'); } });
@@ -224,7 +224,7 @@ test('BK8, back-up-everything audit 1: the date is kept only once the file is ha
   assert.equal(again.store.get().last, NOW);
 });
 
-test('BK11, back-up-everything audit 6: a backup that fails part way says so, keeps no file and leaves the date as it was', { todo: 'test first' }, async () => {
+test('BK11, back-up-everything audit 6: a backup that fails part way says so, keeps no file and leaves the date as it was', async () => {
   const db = await seeded();
   await db.setMeta('backup_last', '1000');
   const io = memoryIO(FILES, { readMedia: async () => { throw new Error('disk gone'); } });
@@ -243,10 +243,11 @@ test('BK11, back-up-everything audit 6: a backup that fails part way says so, ke
   assert.equal(w.store.get().failed, null, 'the next try clears the line');
 });
 
-test('BK12 while a backup is made a second tap makes no second file', { todo: 'test first' }, async () => {
+test('BK12 while a backup is made a second tap makes no second file', async () => {
   const db = await seeded();
   let release: () => void = () => {};
-  const io = memoryIO(FILES, { deliver: () => new Promise<void>((r) => { release = r; }) });
+  let handed = 0;
+  const io = memoryIO(FILES, { deliver: () => new Promise<void>((r) => { handed++; release = r; }) });
   const w = createBackupWriter({ db, clock: fakeClock(NOW) });
   const first = w.backUp(io);
   await new Promise((r) => setTimeout(r, 20));
@@ -256,11 +257,11 @@ test('BK12 while a backup is made a second tap makes no second file', { todo: 't
   assert.equal(io.name, opened);
   release();
   await first;
-  assert.equal(io.delivered, 1);
+  assert.equal(handed, 1, 'one file handed over');
   assert.equal(w.store.get().busy, false);
 });
 
-test('BK14, back-up-everything audit 2: a delete waiting for Undo is not in the file, nor what hangs on it', { todo: 'test first' }, async () => {
+test('BK14, back-up-everything audit 2: a delete waiting for Undo is not in the file, nor what hangs on it', async () => {
   const db = await seeded();
   await db.setMeta('pending_delete', JSON.stringify([
     { kind: 'walk', ids: ['w2'], spec: { type: 'walk', walkId: 'w2' } },

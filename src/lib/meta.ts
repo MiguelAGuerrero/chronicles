@@ -158,6 +158,8 @@ export const META = {
   notify_off: { owner: 'notifications', codec: json<string[]>(isStrings) },
   // Clearing (lib/deletion): the delete waiting in the Undo window, so a killed app stores it at the next launch (UC13, decision 0113)
   pending_delete: { owner: 'deletion', codec: json<PendingJob[]>(isPendingJobs) },
+  // Your data (lib/backup, BK8): when this device last made a backup file (ms); never in the file itself.
+  backup_last: { owner: 'backup', codec: number },
 } as const;
 
 /**
