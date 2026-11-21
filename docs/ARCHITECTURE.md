@@ -666,7 +666,7 @@ SQLite table, IndexedDB store and meta key as backed up or cache, with its reaso
 table, store or key it does not name (back-up-everything BK3). Memo transcripts are the one cache the backup carries.
 `db/stores.ts` holds the tile-build cache (`DERIVED_STORES`) and the kept discovery truth (`KEPT_STORES`).
 
-Migrations: SQLite has 30 (`db/migrations.ts`, `PRAGMA user_version`), IndexedDB is at `VERSION`
+Migrations: SQLite has 31 (`db/migrations.ts`, `PRAGMA user_version`), IndexedDB is at `VERSION`
 23. SQLite 22 (the 23rd entry) and IndexedDB 18 are the moment table (MT1): a
 `moment` table beside `capture` with `capture.moment_id` (SQLite; the capture
 table's old walk_id, lat, lon and segment_id are left unread), and on the web a
