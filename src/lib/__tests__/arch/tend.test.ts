@@ -20,7 +20,6 @@ const tend = createRequire(__filename)(join(ROOT, 'scripts', 'tend.js')) as {
   classify(subject: string, o?: { files?: string[]; known?: Set<string> }): 'growth' | 'refinement' | 'other';
   criteriaPrefixes(subject: string, known?: Set<string>): string[];
   tally(commits: { subject: string; files?: string[] }[], known?: Set<string>): { growth: number; refinement: number; other: number; slices: string[] };
-  areasByState(areas: Record<string, { state: string }>, changed?: Record<string, boolean>): Record<string, string[]>;
   readStatus(text: string): { openT: number; phoneT: number; openG: number };
   reading(input: { slices: number; rough: number; openT: number }): Reading;
   nextArea(counts: Record<string, number>, areas?: Record<string, { state: string }>): string | null;
@@ -108,9 +107,12 @@ test('tend round 1: STATUS.md gives the open entries; a phone entry is not one t
 
 test('tend round 1: an area a change reset since its sweep (decision 0229) is rough whatever the ledger says', () => {
   assert.deepEqual(tend.STATES, ['rough', 'settling', 'polished', 'resting']);
-  const areas = { replay: { state: 'polished' }, map: { state: 'rough' }, memories: { state: 'resting' } };
-  assert.deepEqual(tend.areasByState(areas), { rough: ['map'], settling: [], polished: ['replay'], resting: ['memories'] });
-  assert.deepEqual(tend.areasByState(areas, { replay: true, memories: true }), { rough: ['map', 'memories', 'replay'], settling: [], polished: [], resting: [] });
+  // Since area-states the state is computed (areaState), the ledger's word kept only for resting: a reset beats both.
+  const polished = { sweeps: [g6sweep({ whole: true })] };
+  assert.equal(g6.areaState(polished).state, 'polished');
+  assert.equal(g6.areaState({ ...polished, ledgerState: 'resting' }).state, 'resting');
+  assert.equal(g6.areaState({ ...polished, resetsSince: ['abc1234'] }).state, 'rough');
+  assert.equal(g6.areaState({ ...polished, ledgerState: 'resting', resetsSince: ['abc1234'] }).state, 'rough');
 });
 
 test('tend round 1: with no area named, the one changed most since its sweep is next', () => {
@@ -710,15 +712,16 @@ test('tend 0229: the loop\'s own commits never reset an area, by a commit or by 
 });
 
 test('tend 0229: any other change leaves the ledger\'s state as it stands; a reset one makes its area rough', () => {
-  const areas = { 'walk-screen': { state: 'polished' }, replay: { state: 'settling' } };
   const commits = [
     { subject: 'fix walk: a copy change', files: [edit('src/components/walk/Bar.tsx', '<Text>Paused</Text>', '<Text>Pause</Text>')] },
     { subject: 'Walk: a new route file (WK9)', files: [{ status: 'A', path: 'src/app/replay/all.tsx', plus: '' }] },
   ];
-  const changed = { 'walk-screen': commits.some((c) => tend.resetsArea(c, owns)) };
-  assert.deepEqual(tend.areasByState(areas, changed), { rough: [], settling: ['replay'], polished: ['walk-screen'], resting: [] });
+  // Since area-states: the commits that reset the area are areaState's resetsSince, as gitFacts reads them.
+  const resets = (list: typeof commits) => list.filter((c) => tend.resetsArea(c, owns)).map((_, i) => `c${i}`);
+  const polished = { sweeps: [g6sweep({ whole: true })] };
+  assert.equal(g6.areaState({ ...polished, resetsSince: resets(commits) }).state, 'polished', 'nothing reset: the state as it stands');
   const more = [...commits, { subject: 'Walk: a Stop (WK10)', files: [edit('src/components/walk/Bar.tsx', '<Pressable onPress={stop}>')] }];
-  assert.deepEqual(tend.areasByState(areas, { 'walk-screen': more.some((c) => tend.resetsArea(c, owns)) }).rough, ['walk-screen']);
+  assert.equal(g6.areaState({ ...polished, resetsSince: resets(more) }).state, 'rough');
 });
 
 test('tend 0229: git\'s raw and -U0 patch output reads as each commit\'s files, their status and their added and removed lines', () => {
@@ -763,13 +766,14 @@ test('tend 0229: next and the balance count an area as changed only by a commit 
 // balance reads shares and acts both ways; the whole inbox is read. The replay is the run log of Nov 11-19 with main's
 // documents verbatim at 42d3ccd8 (scripts/fixtures/tend-replay-1119/, their blobs checked).
 type Sweep = { date: string; base: string; whole?: boolean; found?: { loop?: { high?: number; medium?: number; low?: number } }; shipped?: number[]; expectations?: unknown };
-type Item = { title: string; severity: string | null; waits?: boolean };
+type Item = { title: string; severity: string | null; waits?: boolean; date?: string | null };
 type StateIn = { sweeps: Sweep[]; resetsSince?: string[]; between?: string[][]; deferred?: Item[]; before?: Item[]; entries?: string[]; uncovered?: string[]; ledgerState?: string };
 type StateOut = { state: string; why: string[]; open: number };
 type Inbox = { items: { section: string; id: string | null; tag: string | null; areas: string[]; answered: boolean; phone: boolean; title: string }[]; unanswered: number; phone: number; unansweredT: number; bySection: Record<string, number> };
 type Report = { areas: Record<string, string[]>; unseen: string[]; firstSweep: Record<string, string[]>; states: Record<string, StateOut>; share: { sweptTwice: number; roughTwice: number; line: string }; open: { openT: number; unansweredT: number }; inbox: { items: number; unanswered: number }; reading: string; why: string; evolve: string | null };
 const g6 = tend as unknown as {
   ROUGH_SHARE: number;
+  severityOf(text: string): string | null;
   areaState(i: StateIn): StateOut;
   deferredItems(text: string): { tag: string; section: string; title: string; areas: string[]; severity: string | null; waits: boolean }[];
   beforeItems(text: string): { title: string; areas: string[]; severity: string | null }[];
@@ -785,6 +789,9 @@ const g6 = tend as unknown as {
   report(i: { runs: Record<string, unknown>[]; deferred: string; status: string; ledger: { areas?: Record<string, { state: string }> }; git: { areas: string[]; perArea: Record<string, { swept: boolean; resetsSince?: string[]; between?: string[][]; uncovered: string[] }>; slices: string[]; today: string } }): Report;
 };
 const flat = (text: string) => text.replace(/\s+/g, ' ');
+function g6sweep(o: Partial<Sweep> = {}): Sweep {
+  return sw(o);
+}
 const sw = (o: Partial<Sweep> = {}): Sweep => ({ date: '2026-11-10', base: 'aaa1111', whole: false, found: { loop: { high: 0, medium: 0, low: 0 } }, shipped: [], ...o });
 const FIX = join(ROOT, 'scripts', 'fixtures', 'tend-replay-1119');
 const fixture = () => {
@@ -896,8 +903,13 @@ test('AS5: base names a rough base\'s open medium and high items, and never bloc
   assert.match(g6.baseWarning('tabs', rough), /lands on a rough base/);
   assert.match(g6.baseWarning('tabs', rough), /A stale card/);
   assert.match(g6.baseWarning('tabs', { state: 'settling', why: ['lows only'], open: 0 }), /tabs is settling: nothing above low open/);
-  const r = spawnSync(process.execPath, [join(ROOT, 'scripts', 'tend.js'), 'base', '--spec', 'area-states'], { cwd: ROOT, encoding: 'utf8' });
+  // The command's printed reading, not only its exit (the diff review): this checkout's HEAD, which CI's clone holds.
+  const r = spawnSync(process.execPath, [join(ROOT, 'scripts', 'tend.js'), 'base', '--here', 'walk-screen'], { cwd: ROOT, encoding: 'utf8' });
   assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /^(lands on a rough base: walk-screen \(|walk-screen is (settling|polished|resting): nothing above low open)/m);
+  assert.doesNotMatch(r.stdout, /could not read the base/);
+  const spec = spawnSync(process.execPath, [join(ROOT, 'scripts', 'tend.js'), 'base', '--here', '--spec', 'area-states'], { cwd: ROOT, encoding: 'utf8' });
+  assert.match(spec.stdout, /arch is no area the loop sweeps/);
   assert.match(flat(read('.claude/skills/slice/SKILL.md')), /lands on a rough base/);
   assert.match(flat(read('.claude/skills/slice/SKILL.md')), /no rougher/);
 });
@@ -959,7 +971,7 @@ test('AS8: the Nov 11-19 log replayed: walk-screen settling, the balance not out
 });
 
 test('area-states audit 1: a medium the loop may not fix, filed to the owner, waits: it does not keep its area rough', () => {
-  const s = g6.areaState({ sweeps: [sw({ whole: true, found: { loop: { medium: 2 } }, shipped: [1] })], before: [{ title: 'The compiler skips', severity: 'medium' }] });
+  const s = g6.areaState({ sweeps: [sw({ whole: true, found: { loop: { medium: 2 } }, shipped: [1] })], before: [{ title: 'The compiler skips', severity: 'medium', date: '2026-11-10' }] });
   assert.equal(s.state, 'settling');
   assert.match(s.why.join('; '), /The compiler skips/);
   const text = '## Needs the owner\n\n### Open before the loop\n\n- **The walk screen\'s React Compiler skips, and who takes their lines out** (Nov 19). Left for a run that may (`/tend walk-screen`\'s review, auditor 2, medium).\n  Nov 19: the owner allowed a run.\n- **A spec line** (Nov 19).\n\n## In flight\n';
@@ -1034,4 +1046,82 @@ test('AS9: tend sections 0, 8 and 9, slice step 1 and the orchestrator\'s stop r
 test('area-states audit 13: the argument table says what a run does when next answers evolve <area>', () => {
   const row = read('.claude/skills/tend/SKILL.md').split('\n').find((l) => l.startsWith('| none |')) ?? '';
   assert.match(row, /`evolve <area>`/);
+});
+
+test('area-states audit 14: a logged "none: <why>" line of a no-surface build reads clean in the run log\'s test, and tend:log takes it', () => {
+  const line = { mode: 'inbox', area: 'arch', deploy: 'main', base: 'abc1234', lens: '0236', date: '2026-11-21', grew: ['AS'], built: [], expectations: 'none: the loop\'s own bookkeeping', compass: { shipped: 0, filedLow: 0, lensG: [] }, filed: { T: [], G: [] } };
+  assert.deepEqual(tend.logProblems(line), [], 'with no flag, the line\'s own grew and built decide');
+  assert.match(tend.logProblems({ ...line, grew: ['BK'] }).join(), /no surface/, 'a feature\'s build is held to its lines');
+  assert.match(tend.logProblems({ ...line, built: ['T3'] }).join(), /no surface/, 'a T entry built beside it is a feature\'s');
+  // End to end, in a scratch repository: the range's subjects grow AS (no surface) or BK (a screen).
+  const r = repo();
+  const base = r.git('rev-parse', 'HEAD');
+  r.commit({ 'a.txt': 'x' }, 'Area states: the code (AS1-AS9)');
+  const json = { mode: 'inbox', area: 'arch', deploy: 'main', base: base.slice(0, 8), filed: { T: [], G: [] }, answers: [{ entry: 'G6', answer: 'yes' }], expectations: 'none: the loop\'s own bookkeeping', compass: { shipped: 0, filedLow: 0, lensG: [] } };
+  const ok = r.tendJs('log', `${base}..HEAD`, JSON.stringify(json));
+  assert.equal(ok.status, 0, ok.stderr);
+  assert.match(readFileSync(join(r.root, '.claude/skills/tend/runs.jsonl'), 'utf8'), /"expectations":"none: the loop's own bookkeeping"/, 'the reason is kept in the line');
+  r.commit({ 'b.txt': 'y' }, 'Back up everything: the page (BK1)');
+  const feature = r.tendJs('log', `${base}..HEAD`, JSON.stringify(json));
+  assert.equal(feature.status, 1);
+  assert.match(feature.stderr, /no surface/);
+});
+
+test('area-states audit 15: a sweep whose shipped numbers are lows or an earlier run\'s leaves its mediums open', () => {
+  const lows = g6.areaState({ sweeps: [sw({ whole: true, found: { loop: { medium: 2, low: 5 } }, shipped: [3, 4, 5] })] });
+  assert.equal(lows.state, 'rough', 'three shipped against two mediums: they cannot all be the mediums');
+  const earlier = g6.areaState({ sweeps: [sw({ shipped: [11, 12] }), sw({ whole: true, found: { loop: { medium: 2 } }, shipped: [11, 12] })] });
+  assert.equal(earlier.state, 'rough', 'numbers an earlier sweep shipped are not this one\'s');
+  const onlyLows = g6.areaState({ sweeps: [sw({ whole: true, found: { loop: { low: 2 } }, shipped: [1, 2] })] });
+  assert.equal(onlyLows.state, 'settling', 'never polished when the line cannot show what it shipped');
+  assert.match(onlyLows.why.join('; '), /cannot show/);
+  assert.equal(g6.areaState({ sweeps: [sw({ shipped: [9] }), sw({ whole: true, found: { loop: { medium: 2 } }, shipped: [10, 11] })] }).state, 'polished');
+});
+
+test('area-states audit 16: only a waiting medium filed at or after the latest sweep is taken off what it left', () => {
+  const sweep = sw({ date: '2026-11-19', whole: true, found: { loop: { medium: 2 } }, shipped: [1] });
+  assert.equal(g6.areaState({ sweeps: [sweep], before: [{ title: 'an older call', severity: 'medium', date: '2026-11-12' }] }).state, 'rough');
+  assert.equal(g6.areaState({ sweeps: [sweep], before: [{ title: 'this sweep\'s call', severity: 'medium', date: '2026-11-19' }] }).state, 'settling');
+  assert.equal(g6.areaState({ sweeps: [sweep], before: [{ title: 'undated', severity: 'medium', date: null }] }).state, 'rough');
+});
+
+test('area-states audit 17: an item\'s area is its heading\'s, a citation names none, its severity is its last word on it, a cited path is no fix', () => {
+  const text = [
+    '## Tabs and the recording bar (`/tend tabs`, Nov 11)', '',
+    '- [loop] An error in the tabs\' own layout (`tend replay audit 8`, medium provisional); filed low by the review (low)',
+    '- [loop] Low: chips run into each other (`docs/research/ui-references.md`, section 2)',
+    '- [loop] Seen from Chronicle\'s side (`/tend chronicle`\'s review, Nov 17, medium)',
+    '', '## Navigate, ready', '',
+    '- [loop] The strip\'s numbers (`tend walk-screen 12`; `/tend walk-screen`\'s review, ux 3, Nov 19, low)',
+    '- [loop] The compiler skips: their lines need taking out of `src/lib/__tests__/arch/compiler.baseline.json` (`/tend walk-screen`, auditor 2, medium)',
+  ].join('\n');
+  const items = g6.deferredItems(text).filter((i) => i.tag === 'loop');
+  assert.deepEqual(items.map((i) => [i.areas, i.severity, i.waits]), [[['tabs'], 'low', false], [['tabs'], 'low', false], [['tabs'], 'medium', false], [['walk-screen'], 'low', false], [['walk-screen'], 'medium', true]]);
+  assert.equal(g6.severityOf('(medium) Seven views'), 'medium');
+});
+
+test('area-states audit 18: base --here reads the base the slice leaves, for its record', () => {
+  assert.match(flat(read('.claude/skills/slice/SKILL.md')), /base --here/);
+  const src = read('scripts/tend.js');
+  assert.match(src.slice(src.indexOf('function baseCmd(')), /readingAt\(\{ from: here \? 'here' : 'main', tip: here \? 'HEAD' : 'origin\/main' \}\)/);
+});
+
+test('area-states audit 20: next takes 0229\'s resets before the evolve, as the skill says', () => {
+  assert.equal(g6.nextArea({ c: 2 }, { a: { state: 'settling' } }, 'a'), 'c');
+  assert.equal(g6.nextArea({ c: 0 }, { a: { state: 'settling' } }, 'a'), 'evolve a');
+  assert.match(read('docs/decisions/0250-area-states-the-owners-answers.md'), /resets first, then the evolve/);
+});
+
+test('area-states audit 23: only the Vision block\'s verdict exempts a build', () => {
+  const spec = (vision: string, later: string) => ({ slug: 'x', text: `## Vision\n\n\`\`\`\nVerdict: ${vision}\n\`\`\`\n\n## Criteria\n\n1. **AS1 · x.**\n\n## Audit\n\nVerdict: ${later}\n` });
+  assert.equal(g6.noSurfaceBuild(['AS'], [spec('no surface', 'aligned')]), true);
+  assert.equal(g6.noSurfaceBuild(['AS'], [spec('aligned', 'no surface')]), false);
+});
+
+test('area-states audit 27: the balance fails when main\'s STATUS or ledger cannot be read', () => {
+  const r = repo();
+  r.git('update-ref', 'refs/remotes/origin/main', 'HEAD');
+  const out = r.tendJs('balance');
+  assert.notEqual(out.status, 0, 'no STATUS and no ledger: no reading');
+  assert.match(out.stderr, /STATUS\.md|ledger\.json|ENOENT/);
 });

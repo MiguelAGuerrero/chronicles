@@ -13,7 +13,7 @@
 //   node scripts/tend.js state [<area>…] [--here | --at <commit>] [--json]
 //                                                       each area's computed state and why: main's, this
 //                                                       checkout's record, or main's at a commit (a replay)
-//   node scripts/tend.js base <area>… | --spec <slug>   /slice's warning: "lands on a rough base" with the
+//   node scripts/tend.js base <area>… | --spec <slug> [--here]   /slice's warning: "lands on a rough base" with the
 //                                                       area's open medium and high items; never a block
 //   node scripts/tend.js log <range> '<json>'          append this run's line to the run log: what the
 //                                                       range holds (every finding a subject names:
@@ -101,20 +101,6 @@ function tally(commits, known) {
   return t;
 }
 
-/**
- * Areas by state. An area a change reset since its sweep (`resetsArea`, decision 0229) is rough
- * whatever the ledger says: `changed` maps an area to true when that happened.
- */
-function areasByState(areas, changed = {}) {
-  const by = Object.fromEntries(STATES.map((s) => [s, []]));
-  for (const [name, a] of Object.entries(areas ?? {})) {
-    const state = changed[name] ? 'rough' : a.state;
-    if (by[state]) by[state].push(name);
-  }
-  for (const s of STATES) by[s].sort();
-  return by;
-}
-
 /** Open inbox entries (T, those for a phone apart) and open proposals (G), from docs/STATUS.md. */
 function readStatus(text) {
   const entries = (letter) => new Map([...text.matchAll(new RegExp(`^\\s*[-*] \\*\\*(${letter}\\d+)\\b([^\\n]*)`, 'gm'))].map((m) => [m[1], m[2]]));
@@ -151,9 +137,10 @@ function words(n) {
  * ties by name); with none reset, one the ledger left rough, then one left settling. Null when all are at rest.
  */
 function nextArea(counts, areas = {}, evolve = null) {
-  if (evolve) return `evolve ${evolve}`;
+  // Decision 0229's resets first, then decision 0235's evolve (area-states audit 20, decision 0250), then the states.
   const ranked = Object.entries(counts).filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
   if (ranked.length) return ranked[0][0];
+  if (evolve) return `evolve ${evolve}`;
   for (const state of ['rough', 'settling']) {
     const left = Object.keys(areas).filter((a) => areas[a].state === state).sort();
     if (left.length) return left[0];
@@ -388,8 +375,11 @@ function compassProblems(c, filedG) {
 }
 
 /** What is wrong with the half of a run's line only the run knows. A backfilled line may leave `found` out. */
-function logProblems(given, { noSurface = false } = {}) {
+function logProblems(given, opts = {}) {
   const p = [];
+  // Whether the line is a no-surface build (decision 0250), read from its own grew and built when not given (audit 14),
+  // so a logged "none: <why>" line reads clean wherever the log is read.
+  const noSurface = opts.noSurface ?? (given?.mode !== 'sweep' && !(given?.built ?? []).length && noSurfaceBuild(given?.grew ?? [], require('./check-specs').readSpecs()));
   const g = given ?? {};
   if (!MODES.includes(g.mode)) p.push(`mode is one of ${MODES.join(', ')}`);
   if (g.mode === 'sweep' && (typeof g.area !== 'string' || !g.area)) p.push('a sweep names its area');
@@ -586,13 +576,17 @@ function findingsOf(subject) {
 const ABOVE = new Set(['high', 'medium']);
 const above = (sev) => ABOVE.has(sev);
 
-/** An item's severity: the first high, medium or low inside one of its parentheses ("(…, Nov 19, low)"), else null. */
+/**
+ * An item's severity: a leading "Low", "Medium" or "High" ("(medium) Seven views…", "Low: …"), else the last high,
+ * medium or low in the last of its parentheses that holds one ("(…, Nov 19, low)"; area-states audit 17), else null.
+ */
 function severityOf(text) {
-  for (const g of String(text).match(/\([^()]*\)/g) ?? []) {
-    const m = /\b(high|medium|low)\b/i.exec(g);
-    if (m) return m[1].toLowerCase();
-  }
-  return null;
+  const lead = /^\W*(high|medium|low)\b/i.exec(String(text));
+  if (lead) return lead[1].toLowerCase();
+  const groups = (String(text).match(/\([^()]*\)/g) ?? []).filter((g) => /\b(high|medium|low)\b/i.test(g));
+  if (!groups.length) return null;
+  const words = groups[groups.length - 1].match(/\b(high|medium|low)\b/gi);
+  return words[words.length - 1].toLowerCase();
 }
 
 let featureNamesCache;
@@ -601,18 +595,38 @@ function featureNames() {
   return featureNamesCache;
 }
 
-/** The areas a text names as `tend <area>` or `/tend <area>`: the first that is a feature, or none. */
+/**
+ * The areas a text names as `/tend <area>` or `tend <area>`: the first that is a feature, or none. A citation of a
+ * commit (`tend replay audit 8`, `tend tabs T35`, `tend walk-screen 15`) names where a fix came from, not whose item it is
+ * (area-states audit 17), so it is skipped.
+ */
 function areasNamed(text, names = featureNames()) {
-  for (const m of String(text).matchAll(/(?:^|[^\w-])\/?tend ([a-z][a-z0-9-]*)/g)) if (names.has(m[1])) return [m[1]];
+  for (const m of String(text).matchAll(/(?:^|[^\w-])\/?tend ([a-z][a-z0-9-]*)(?! (?:audit \d|T\d|\d))/g)) if (names.has(m[1])) return [m[1]];
   return [];
 }
 
 const titleOf = (text) => (/\*\*(.+?)\*\*/.exec(text)?.[1] ?? String(text).split(/(?<=[.:;])\s/)[0]).slice(0, 140).trim();
 
-/** Whether an item's fix is one the loop may not make: it says so, or names in backticks a path the loop never edits. */
+/**
+ * Whether an item's fix is one the loop may not make: it says so ("the loop may not", "which the loop may not edit"), or
+ * a sentence of it outside parentheses (a cited source sits in them) names a path the loop never edits beside the fix's
+ * verb ("needs its lines out of `…baseline.json`"; area-states audit 17).
+ */
 function loopMayNot(text) {
-  if (/\bthe loop may not\b/i.test(text)) return true;
-  return [...String(text).matchAll(/`([^`\s]+\/[^`\s]*)`/g)].some((m) => FORBIDDEN.some((re) => re.test(m[1].replace(/^\.\//, ''))));
+  if (/\b(?:the )?loop (?:may not|never edits|cannot edit)\b/i.test(text)) return true;
+  const bare = String(text).replace(/\([^()]*\)/g, ' ');
+  return bare.split(/(?<=[.;:])\s/).some((sentence) => /\b(?:edit|change|reword|remove|take|out of|needs?|wants?)\b/i.test(sentence)
+    && [...sentence.matchAll(/`([^`\s]+\/[^`\s]*)`/g)].some((m) => FORBIDDEN.some((re) => re.test(m[1].replace(/^\.\//, '')))));
+}
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+/** The first date an item gives ("2026-11-19", or "Nov 19" read in 2026), as YYYY-MM-DD, or null (area-states audit 16). */
+function dateOf(text, year = 2026) {
+  const iso = /\b(20\d\d-\d\d-\d\d)\b/.exec(String(text));
+  const md = /\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]* (\d{1,2})\b/.exec(String(text));
+  if (iso && (!md || iso.index <= md.index)) return iso[1];
+  if (md) return `${year}-${String(MONTHS.indexOf(md[1]) + 1).padStart(2, '0')}-${md[2].padStart(2, '0')}`;
+  return null;
 }
 
 /** The bullets of a markdown region, each with its `##`/`###` heading and its continued (indented) lines. */
@@ -645,8 +659,9 @@ function deferredItems(text, names = featureNames()) {
   return bullets(text, 2).map((b) => {
     const m = /^(?:\[[ x]\] )?(?:\[(loop|owner|arch|phone|kept)\]\s?)?([\s\S]*)$/.exec(b.text);
     const body = m[2];
-    const areas = areasNamed(body, names);
-    return { tag: m[1] ?? null, section: b.section, title: titleOf(body), areas: areas.length ? areas : areasNamed(b.section, names), severity: severityOf(body), waits: loopMayNot(body) };
+    // The section's `/tend <area>` first (area-states audit 17): an item sits under the area that filed it there.
+    const heading = areasNamed(b.section, names);
+    return { tag: m[1] ?? null, section: b.section, title: titleOf(body), areas: heading.length ? heading : areasNamed(body, names), severity: severityOf(body), waits: loopMayNot(body), date: dateOf(body) };
   });
 }
 
@@ -697,7 +712,7 @@ function readInbox(status) {
 function beforeItems(status, names = featureNames()) {
   return readInbox(status)
     .items.filter((i) => i.section === 'Open before the loop')
-    .map((i) => ({ title: i.title, areas: areasNamed(i.text, names), severity: severityOf(i.text) }));
+    .map((i) => ({ title: i.title, areas: areasNamed(i.text, names), severity: severityOf(i.text), date: dateOf(i.text) }));
 }
 
 const wholeOf = (s) => (s.whole ?? s.lenses?.whole) === true;
@@ -716,9 +731,17 @@ function areaState({ sweeps = [], resetsSince = [], between = [], deferred = [],
   if (ledgerState === 'resting') return { state: 'resting', why: ['resting: the owner said no to its evolutions'], open: 0, items: [] };
   const last = sweeps[sweeps.length - 1];
   const l = last.found?.loop ?? {};
-  const waitsAbove = [...before, ...deferred.filter((d) => d.waits)].filter((x) => above(x.severity)).length;
-  const shipped = new Set(last.shipped ?? []).size;
-  const unshipped = Math.max(0, (l.high ?? 0) + (l.medium ?? 0) - shipped - waitsAbove);
+  const aboveFound = (l.high ?? 0) + (l.medium ?? 0);
+  // A waiting medium is taken off what the latest sweep left only when it was filed at or after that sweep (audit 16).
+  const waitsAbove = [...before, ...deferred.filter((d) => d.waits)].filter((x) => above(x.severity) && x.date && last.date && x.date >= last.date).length;
+  // The log does not say which shipped numbers were above low (area-states audit 15): they count against the latest
+  // sweep's highs and mediums only when they could all be them, more of them than its highs and mediums or one at or
+  // below a number an earlier sweep of the area shipped says not; then nothing is taken off, and it is never polished.
+  const distinct = [...new Set(last.shipped ?? [])];
+  const earlierMax = Math.max(0, ...sweeps.slice(0, -1).flatMap((x) => x.shipped ?? []));
+  const shows = distinct.length <= aboveFound && distinct.every((n) => n > earlierMax);
+  const shipped = shows ? distinct.length : 0;
+  const unshipped = Math.max(0, aboveFound - shipped - waitsAbove);
   const own = deferred.filter((d) => !d.waits && above(d.severity));
   const open = Math.max(unshipped, own.length);
   let run = 0;
@@ -739,9 +762,10 @@ function areaState({ sweeps = [], resetsSince = [], between = [], deferred = [],
   if (unrated.length) why.push(`${words(unrated.length)} unrated [loop] ${unrated.length === 1 ? 'item' : 'items'}`);
   if (uncovered.length) why.push(`a screen with no journey: ${uncovered.join(', ')}`);
   if (!wholeOf(last)) why.push('its latest sweep was not whole');
+  if (!shows && distinct.length) why.push('its log line cannot show that what it shipped was above low');
   if (open && run >= 3) return { state: 'settling', why: [...why, 'three whole sweeps with no reset between them: settling at least (decision 0235)'], open, items };
   if (open) return { state: 'rough', why, open, items };
-  if (wholeOf(last) && !waiting.length && !unrated.length && !uncovered.length) return { state: 'polished', why: why.length ? why : ['a whole sweep left nothing above low open'], open, items };
+  if (wholeOf(last) && shows && !waiting.length && !unrated.length && !uncovered.length) return { state: 'polished', why: why.length ? why : ['a whole sweep left nothing above low open'], open, items };
   return { state: 'settling', why: why.length ? why : ['nothing above low open'], open, items };
 }
 
@@ -794,13 +818,22 @@ function baseWarning(area, s) {
   return [`lands on a rough base: ${area} (${s.why.join('; ')})`, ...(s.items ?? []).map((t) => `  - ${t}`)].join('\n');
 }
 
+/** A spec's "## Vision" section, up to its next `## ` heading: the one verdict that exempts (area-states audit 23). */
+function visionOf(text) {
+  const lines = String(text).split('\n');
+  const start = lines.findIndex((l) => /^## Vision\s*$/.test(l));
+  if (start < 0) return '';
+  const end = lines.findIndex((l, i) => i > start && /^## /.test(l));
+  return lines.slice(start + 1, end < 0 ? undefined : end).join('\n');
+}
+
 /** Whether a build has nothing a person sees (decision 0250): every slice it grew has a spec whose verdict is no surface. */
 function noSurfaceBuild(prefixes, specs) {
   if (!prefixes.length) return false;
   const { idsOf } = require('./check-specs');
   return prefixes.every((p) => {
     const mine = specs.filter((s) => idsOf(s.text).prefixes.includes(p));
-    return mine.length > 0 && mine.every((s) => /^Verdict:\s*no surface\s*$/m.test(s.text));
+    return mine.length > 0 && mine.every((s) => /^Verdict:\s*no surface\s*$/m.test(visionOf(s.text)));
   });
 }
 
@@ -928,8 +961,16 @@ function documentsFrom(from) {
       : from === 'main'
         ? (rel) => mainOrHere(rel, showMain, readHere)
         : (rel) => execFileSync('git', ['show', `${from}:${rel}`], { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], maxBuffer: 64 * 1024 * 1024 });
-  // A document a checkout lacks reads as empty: nothing open, nothing waiting (a test's scratch repository).
+  // Main's STATUS and ledger, or a commit's, must read, as before this slice (area-states audit 27): a reading of
+  // nothing would say nothing waits. The run log and DEFERRED, which a history may not hold yet, read as empty when
+  // absent, as the run log always has; so does any document a checkout lacks (a test's scratch repository).
+  const strict = (rel) => from !== 'here' && (rel === 'docs/STATUS.md' || rel === LEDGER_REL);
   const read = (rel) => {
+    if (strict(rel)) {
+      const text = raw(rel);
+      if (typeof text !== 'string') throw new Error(`tend: ${rel} could not be read from ${from}`);
+      return text;
+    }
     try {
       return raw(rel) ?? '';
     } catch {
@@ -1084,13 +1125,15 @@ function stateCmd(argv) {
   if (!want.length) console.log(`unseen: ${r.unseen.join(', ')}\nreading: ${r.reading} (${r.why})`);
 }
 
-/** `base <area>… | --spec <slug>` (AS5): /slice's warning for the areas it lands on. Always exits 0. */
+/** `base <area>… | --spec <slug> [--here]` (AS5): /slice's warning for the areas it lands on. Always exits 0. */
 function baseCmd(argv) {
   try {
     const at = argv.indexOf('--spec');
-    const areas = at >= 0 ? require('./features').featuresOfSpec(argv[at + 1]).map((f) => f.name) : argv.filter((a) => !a.startsWith('--'));
+    const areas = at >= 0 ? require('./features').featuresOfSpec(argv[at + 1]).map((f) => f.name) : argv.filter((a, i) => !a.startsWith('--') && argv[i - 1] !== '--spec');
     if (!areas.length) return console.log('base: no area named (an area, or --spec <slug> of a spec a feature lists)');
-    const { r, facts } = readingAt({ from: 'main', tip: 'origin/main' });
+    // --here: this checkout's documents and HEAD, so a slice's step 9 reads the base it leaves (area-states audit 18).
+    const here = argv.includes('--here');
+    const { r, facts } = readingAt({ from: here ? 'here' : 'main', tip: here ? 'HEAD' : 'origin/main' });
     for (const p of [...facts.history.problems, ...facts.history.notices]) console.log(`base: ${p}`);
     for (const a of areas) console.log(r.states[a] ? baseWarning(a, r.states[a]) : `${a} is no area the loop sweeps`);
   } catch (e) {
@@ -1366,9 +1409,9 @@ if (require.main === module) {
   }
   else if (require('./bookkeeping').COMMANDS[cmd]) process.exitCode = require('./bookkeeping').main([cmd, ...argv]);
   else {
-    console.error('usage: node scripts/tend.js balance [--days N] [--write] | next | state [<area>…] [--here | --at <commit>] [--json] | base <area>… | --spec <slug> | log <range> "<json>" | commits [--loop-only] <range> | e2e-due [--days N] [--json] | compass [--runs N] | next-decision | next-audit | files | landed | review-paths | items (scripts/bookkeeping.js)');
+    console.error('usage: node scripts/tend.js balance [--days N] [--write] | next | state [<area>…] [--here | --at <commit>] [--json] | base <area>… | --spec <slug> [--here] | log <range> "<json>" | commits [--loop-only] <range> | e2e-due [--days N] [--json] | compass [--runs N] | next-decision | next-audit | files | landed | review-paths | items (scripts/bookkeeping.js)');
     process.exit(2);
   }
 }
 
-module.exports = { ROUGH_SHARE, areaState, deferredItems, beforeItems, readInbox, evolveDue, historyProblems, baseWarning, givenStateProblems, noSurfaceBuild, report, severityOf, areasNamed, compassReading, compassText, FORBIDDEN, LIMITS, STATES, classify, criteriaPrefixes, tally, areasByState, readStatus, reading, nextArea, isLoops, dropBoundary, testName, tendCommitProblems, citedOwnEdits, rewritesBaseLines, mainOrHere, findingsOf, logProblems, runLine, fullPassDue, controlsIn, isRoute, resetsArea, readPatches };
+module.exports = { ROUGH_SHARE, areaState, deferredItems, beforeItems, readInbox, evolveDue, historyProblems, baseWarning, givenStateProblems, noSurfaceBuild, report, severityOf, areasNamed, compassReading, compassText, FORBIDDEN, LIMITS, STATES, classify, criteriaPrefixes, tally, readStatus, reading, nextArea, isLoops, dropBoundary, testName, tendCommitProblems, citedOwnEdits, rewritesBaseLines, mainOrHere, findingsOf, logProblems, runLine, fullPassDue, controlsIn, isRoute, resetsArea, readPatches };

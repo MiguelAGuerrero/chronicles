@@ -302,8 +302,8 @@ No e2e when no journey covers the slice's files and it changes no
 screen; the full flow (no `E2E_ONLY`) only when the owner asks. Then:
 
 1. Take the spec out of `IN_PROGRESS` in `scripts/features.js`; `npm run
-   check:docs` then holds every criterion to a test (TG20). Run step 1.5's `base` again and say in the spec's
-   record whether the slice left each area no rougher: "left <area> no rougher", or what is now open above low
+   check:docs` then holds every criterion to a test (TG20). Run step 1.5's command again as `node scripts/tend.js base --here …`
+   (the base the branch leaves), and say in the spec's record whether the slice left each area no rougher: "left <area> no rougher", or what is now open above low
    that was not (a warning, never a block).
 2. Update `docs/STATUS.md`: a row in "Slices" (`npm run records -- slice row add
    --file <row>`, or `slice row set <match>` for one already there) and the "In flight"
