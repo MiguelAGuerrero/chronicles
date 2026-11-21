@@ -11,6 +11,8 @@ if (typeof document !== 'undefined' && !document.getElementById('chronicles-focu
     [data-testid="recording-bar"] :focus-visible { outline-color: #ffffff !important; box-shadow: 0 0 0 2px #1d2430 !important; }
     /* The journal's field is a line of the page, not a form control: its caret shows where it is (chronicle journal JN28). */
     [data-testid="line-input"]:focus-visible, [data-testid="atlas-search-field"]:focus-visible { outline: none !important; box-shadow: none !important; }
+    /* Add to a thread's search draws its focus as an ink edge on its own box (thread-at-capture ui 1): a ring inside it cut the magnifier off. */
+    [data-testid="add-thread-search"]:focus-visible, [data-testid="add-thread-search"]:focus { outline: none !important; box-shadow: none !important; }
     /* The hold-to-stop button: a long press must not select text or open a menu. */
     [data-testid="stop"], [data-testid="stop"] * { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
     @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }

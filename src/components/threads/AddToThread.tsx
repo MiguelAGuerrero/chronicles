@@ -76,6 +76,8 @@ export function AddToThread(props: { moment: { id: string }; onClose: () => void
   const [query, setQuery] = useState('');
   const [made, setMade] = useState<string | null>(null);
   const [name, setName] = useState('');
+  // The search's focus is drawn on its own box, an ink edge (thread-at-capture ui 1): the web's ring sat inside it.
+  const [searchFocus, setSearchFocus] = useState(false);
   const [now] = useState(() => Date.now());
   const [limit, setLimit] = useState(PAGE);
   // What waits in the Undo window is not offered (owner-threads audit 4).
@@ -224,7 +226,7 @@ export function AddToThread(props: { moment: { id: string }; onClose: () => void
         {step === 'threads' ? (
           <>
             {/* Closed until tapped (CT5): no autoFocus, so the keys never cover "Last added to" at open. */}
-            <View style={styles.input}>
+            <View style={[styles.input, searchFocus && styles.focused]}>
               <Icon name="search" size={18} color={theme.muted} />
               <TextInput
                 testID="add-thread-search"
@@ -233,6 +235,8 @@ export function AddToThread(props: { moment: { id: string }; onClose: () => void
                   setFind(t);
                   setLimit(PAGE);
                 }}
+                onFocus={() => setSearchFocus(true)}
+                onBlur={() => setSearchFocus(false)}
                 placeholder="Search threads and moments"
                 placeholderTextColor={theme.muted}
                 accessibilityLabel="Search threads and moments"
@@ -310,7 +314,8 @@ const styles = StyleSheet.create({
   over: { color: theme.muted, fontSize: 12, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase', paddingHorizontal: 4, paddingTop: 4 },
   dim: { opacity: 0.45 },
   input: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: theme.bg, borderWidth: 1, borderColor: theme.edge, borderRadius: 12, paddingHorizontal: 12, minHeight: 48 },
-  field: { flex: 1, minWidth: 0, minHeight: 46, color: theme.ink, fontSize: 16 },
+  field: { flex: 1, minWidth: 0, minHeight: 44, color: theme.ink, fontSize: 16, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : null) },
+  focused: { borderWidth: 2, borderColor: theme.ink, paddingHorizontal: 11 },
   typing: { color: theme.ink, fontSize: 16 },
   said: { color: theme.ink, fontSize: 15, backgroundColor: theme.bg, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10 },
   label: { color: theme.muted, fontSize: 13 },
