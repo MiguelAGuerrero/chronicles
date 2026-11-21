@@ -66,7 +66,7 @@ export function datePartsOf(ms: number): DateParts {
 const isJobs = (v: unknown): v is PendingJob[] => Array.isArray(v) && v.every((j) => typeof j === 'object' && j !== null && 'spec' in j);
 
 /**
- * The whole-app backup's writer (specs/back-up-everything, decisions 0241, 0248): every truth store read through the
+ * The whole-app backup's writer (specs/back-up-everything, decisions 0241, 0249): every truth store read through the
  * `Db`, one walk's trace at a time, zipped as it is read and handed to `io`; the date kept only once the file is
  * handed over. Media pass through in chunks, stored as they are (photos and videos are compressed already).
  */
@@ -233,7 +233,7 @@ export function createBackupWriter(p: Pick<Ports, 'db' | 'clock'>, limits: { ent
     zip.end();
     if (failed) throw failed;
     await io.deliver();
-    // Only once the file is handed over: the line claims that a file was made, no more (BK8, decision 0248).
+    // Only once the file is handed over: the line claims that a file was made, no more (BK8, decision 0249).
     await p.db.setMeta('backup_last', String(now));
     return { name, missing: missing.map((m) => m.kind), madeAt: now };
   }

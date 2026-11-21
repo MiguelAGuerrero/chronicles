@@ -12,7 +12,7 @@ import { useStore } from '../lib/useStore';
 export { ScreenError as ErrorBoundary } from '../components/ScreenError';
 
 /**
- * Your data (`/your-data`; specs/back-up-everything, decisions 0241, 0248): pushed on the root stack from the foot of
+ * Your data (`/your-data`; specs/back-up-everything, decisions 0241, 0249): pushed on the root stack from the foot of
  * Walk settings or from Chronicle's Contents, with the stack's Back naming the screen beneath (audit 18). One line of
  * what the file is and who can see it, one action, Back up everything, and under it, quietly, when the last file was
  * made. No size, count, gauge or celebration; the file goes only where the person sends it (the share sheet on a

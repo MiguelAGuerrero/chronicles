@@ -128,7 +128,7 @@ export function StartSettings(props: {
         ))}
       </View>
 
-      {/* Your data (BK1, BK13; decisions 0241, 0248): the drawer's last row, its words in ink and a chevron, its second line
+      {/* Your data (BK1, BK13; decisions 0241, 0249): the drawer's last row, its words in ink and a chevron, its second line
           saying what is there; a page pushed on the stack. Navigate goes to the page already up, never a second copy. */}
       <View style={styles.rule} />
       <PageRow testID="your-data-row" label={YOUR_DATA} note={YOUR_DATA_NOTE} onOpen={() => router.navigate('/your-data?from=ready')} />

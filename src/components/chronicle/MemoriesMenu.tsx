@@ -9,7 +9,7 @@ import { Button, theme } from '../ui';
 
 /**
  * The journal's contents (chronicle journal JN21; MC8-MC10): Threads, Reactions (RX22), Hidden, the switch, and Forget my choices, which asks once, in the
- * same sheet (no second Modal), and says what will be offered again. Last, Your data's door from Chronicle (the owner, Nov 21; decision 0248,
+ * same sheet (no second Modal), and says what will be offered again. Last, Your data's door from Chronicle (the owner, Nov 21; decision 0249,
  * back-up-everything audit 11): the sheet closes and the page is pushed, the same page Walk settings opens.
  */
 export function MemoriesMenu(props: { open: boolean; off: boolean; onClose: () => void; onThreads: () => void; onReactions: () => void; onHidden: () => void; onToggle: () => void; onForget: () => void }) {
