@@ -1,4 +1,5 @@
 // @layer core
+import { clockTime } from '../journal/lines';
 
 /**
  * Every sentence owner threads write (OT4, OT10, OT11, OT13). Counts are words, from a short fixed set:
@@ -98,3 +99,12 @@ export function refCardLine(o: { place: string | null; t: number; walkLine: stri
 
 /** What the viewer says of a moment other notes mention (RF7): words, never a count. */
 export const MENTIONED = 'Mentioned in a note';
+
+/**
+ * A moment's line in Add to a thread (thread at capture CT12, decision 0256): its place and date as `contextLine`
+ * says them, then its time of day, so two moments of one walk read apart in words.
+ */
+export function pickLine(o: { place: string | null; t: number; walkLine: string | null; now: number }): string {
+  const head = [o.place, `${dateLine(o.t, o.now)}, ${clockTime(o.t)}`].filter(Boolean).join(', ');
+  return o.walkLine ? `${head} · ${o.walkLine}` : head;
+}

@@ -46,7 +46,7 @@ test('CT5: the search finds a thread by its name or its heading words, and nothi
   assert.deepEqual(api.threadChoices(rows, { query: 'zzz', last: 'a' }).rest, [], 'nothing found is an empty list, said in words by the card');
 });
 
-test('CT12: a row in Add to a thread says its time of day after its date, so two moments of one walk read apart', { todo: 'test first' }, async () => {
+test('CT12: a row in Add to a thread says its time of day after its date, so two moments of one walk read apart', async () => {
   const lines = (await import('../../threads/lines')) as unknown as { pickLine?: (o: { place: string | null; t: number; walkLine: string | null; now: number }) => string };
   assert.equal(typeof lines.pickLine, 'function');
   const now = new Date(2026, 10, 21, 18, 0).getTime();

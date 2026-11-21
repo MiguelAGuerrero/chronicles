@@ -6,7 +6,7 @@ import { accessoryRoom, floatsAccessory, lineLift, overlayTop } from '../../lib/
 import { useKeyboardHeight } from '../../lib/threads/useKeyboardHeight';
 import { threads } from '../../lib/threads';
 import { filterPicker, lastAddedTo, threadChoices, type ThreadRow } from '../../lib/threads/picker';
-import { contextLine, headingOf, threadLine } from '../../lib/threads/lines';
+import { headingOf, pickLine, threadLine } from '../../lib/threads/lines';
 import { useThreads } from '../../lib/threads/useThreads';
 import type { MomentView } from '../../lib/resurface/types';
 import { fromLine, poolWithOpenWalks } from '../../lib/resurface/views';
@@ -23,7 +23,8 @@ const PAGE = 40;
 function rowOf(m: MomentView, walks: Map<string, Walk>, now: number) {
   const walk = m.walkId ? walks.get(m.walkId) : undefined;
   return {
-    context: contextLine({ place: m.place, t: m.t, walkLine: fromLine(walk), now }),
+    // Its time of day after its date (CT12, decision 0256): two moments of one walk read apart in words.
+    context: pickLine({ place: m.place, t: m.t, walkLine: fromLine(walk), now }),
     words: m.words ? m.words.trim().slice(0, 90) : KIND_WORD[m.kind],
   };
 }
@@ -184,7 +185,8 @@ export function AddToThread(props: { moment: { id: string }; onClose: () => void
         ) : null}
         <View style={styles.texts}>
           <Text style={styles.name} numberOfLines={2}>{r.words}</Text>
-          <Text style={styles.sub} numberOfLines={1}>{r.context}</Text>
+          {/* Two lines, so the time of day never cuts the walk's name (CT12). */}
+          <Text style={styles.sub} numberOfLines={2}>{r.context}</Text>
         </View>
       </Pressable>
     );
@@ -266,6 +268,21 @@ export function AddToThread(props: { moment: { id: string }; onClose: () => void
                 accessibilityLabel="Search threads and moments"
                 style={styles.field}
               />
+              {/* Clear while it holds text (CT13, decision 0256; HIG text fields): back to "Last added to" in one tap. */}
+              {find ? (
+                <Pressable
+                  testID="add-thread-clear"
+                  accessibilityRole="button"
+                  accessibilityLabel="Clear search"
+                  onPress={() => {
+                    setFind('');
+                    setLimit(PAGE);
+                  }}
+                  style={styles.clear}
+                >
+                  <Icon name="close" size={20} color={theme.muted} />
+                </Pressable>
+              ) : null}
             </View>
             <ScrollView style={styles.list} contentContainerStyle={styles.pad} keyboardShouldPersistTaps="handled">
               {searching ? (
@@ -339,7 +356,8 @@ const styles = StyleSheet.create({
   dim: { opacity: 0.45 },
   input: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: theme.bg, borderWidth: 1, borderColor: theme.edge, borderRadius: 12, paddingHorizontal: 12, minHeight: 48 },
   field: { flex: 1, minWidth: 0, minHeight: 44, color: theme.ink, fontSize: 16, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : null) },
-  focused: { borderWidth: 2, borderColor: theme.ink, paddingHorizontal: 11 },
+  focused: { borderWidth: 2, borderColor: theme.ink, paddingLeft: 11, paddingRight: 0 },
+  clear: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', marginRight: -12 },
   typing: { color: theme.ink, fontSize: 16 },
   said: { color: theme.ink, fontSize: 15, backgroundColor: theme.bg, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10 },
   label: { color: theme.muted, fontSize: 13 },

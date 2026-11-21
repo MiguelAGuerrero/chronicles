@@ -37,7 +37,13 @@ export function AddToMomentPill(props: { hidden?: boolean; onPhoto: () => void; 
       <LiftIn testID="adding-moment" style={styles.stacked} accessibilityLiveRegion="polite">
         <Text style={styles.label}>Adding to this moment</Text>
         <View style={styles.row}>
-          {thread}
+          {/* A word beside New moment's (CT14, decision 0256; T5: never an icon alone beside a labelled button). */}
+          {offersThread(open, waiting) ? (
+            <Pressable testID="add-thread" accessibilityRole="button" accessibilityLabel="Add this moment to a thread" onPress={() => props.onThread(open)} hitSlop={6} style={[styles.newBtn, styles.worded]}>
+              <Icon name="link" size={18} color="#ffffff" />
+              <Text style={styles.newText}>Thread</Text>
+            </Pressable>
+          ) : null}
           <Pressable testID="new-moment" accessibilityRole="button" accessibilityLabel="Start a new moment" onPress={() => momentPill.newMoment()} hitSlop={6} style={styles.newBtn}>
             <Text style={styles.newText}>New moment</Text>
           </Pressable>
@@ -71,5 +77,6 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 4 },
   newBtn: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 14, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.15)' },
   newText: { color: '#ffffff', fontSize: 15, fontWeight: '700' },
+  worded: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingLeft: 12 },
   btn: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.15)' },
 });
