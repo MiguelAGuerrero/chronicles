@@ -35,6 +35,13 @@ async function run(h) {
   // RQ11: nothing says how many or what is left.
   check(!/left to find|still to find|nearby to find|remaining/i.test(await pg.locator('body').innerText()), 'RQ11: no copy on the ready map says how many or what is left');
 
+  // RQ17's row, for the UI review: the panel open, the Places row saying its range in words.
+  await pg.click('[data-testid=layers]').catch(() => {});
+  await pg.waitForTimeout(600);
+  await shot(pg, 'readyplaces-1b-layers-panel');
+  const row = await pg.locator('[data-testid=layer-status-places]').innerText().catch(() => '');
+  check(/^Shows places within 100[ \u00a0]m\./.test(row), `RQ17: once read, the ready map's Places row says its range in words, no count (${JSON.stringify(row)})`);
+  await pg.click('[data-testid=layers]').catch(() => {});
   // RQ4: Places off takes them away; on brings them back. Found by its names: the Layers button, the Places switch (RQ1).
   await switchLayer(pg, 'places', false);
   await pg.waitForTimeout(1200);
@@ -99,7 +106,7 @@ async function run(h) {
     const [c, x, d, m] = [await box('[data-testid=ready-place-card]'), await box('[data-testid=ready-place-close]'), await box('[data-testid=ready-place-dest]'), await box('[data-testid=ready-place-maps]')];
     const ok = !!c && !!x && !!d && !!m && x.y < c.y + 24 && x.x + x.width > c.x + c.width - 24 && m.y >= d.y + d.height
       && Math.abs(d.width - m.width) < 2 && d.width > c.width - 40 && d.height >= 44 && m.height >= 44;
-    check.todo(ok, `ready-map-places ui 1: the card's X is top right and its two actions are stacked, full width, 44 px or more (${JSON.stringify({ c, x, d, m })})`);
+    check(ok, `ready-map-places ui 1: the card's X is top right and its two actions are stacked, full width, 44 px or more (${JSON.stringify({ c, x, d, m })})`);
   }
   const clear = (await topmost('[data-testid=moment-photo]')) && (await topmost('[data-testid=moment-voice]')) && (await topmost('[data-testid=moment-note]')) && (await topmost('[data-testid=locate]'));
   check(clear, 'RQ15: with the ready card open, every capture button and Locate is still what a finger meets');

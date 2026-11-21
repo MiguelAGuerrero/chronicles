@@ -127,7 +127,7 @@ Home / tabs
   MomentBar.tsx              MomentBar (loose moments from Navigate's ready screen) and CaptureRow (the stack's controls and the note's page); Memories keeps moments from journal/OpenLine
   LocateButton.tsx           Locate me, an edge button
   StartSettings.tsx          the walk settings, shown in the ready bar pulled up (NR7)
-  walk/                      the walk screen's shared geometry (layout.ts), CaptureStack, AddToMomentPill (moment stacks), PlaceCaptureRow (a place card's Camera, Voice, Note), ReadyBar, useReady (the walk screen's ready state)
+  walk/                      the walk screen's shared geometry (layout.ts), CaptureStack, AddToMomentPill (moment stacks), PlaceCaptureRow (a place card's Camera, Voice, Note), ReadyBar, useReady (the walk screen's ready state), ReadyPlaceCard (a "?" card before Start: Set as destination, Open in Maps)
   StackMark.tsx              the two-card mark of a moment holding more than one piece (MS8)
   GapCard.tsx                a filled or offered stretch: Keep, Not this way
   KeepGapsCard.tsx           the first replay's one question: keep every offered way (G15); over the map above the card's sheet, or inside the sheet where that would cover the walk (lib/replay keepAskPlace)

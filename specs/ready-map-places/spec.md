@@ -127,3 +127,26 @@ own map draws its "?" from the area profile (`app/(tabs)/explore.tsx`), a separa
   own file, not a section of `marks`.
 - **Amended, by the owner's RQ18:** MD8's test and tap-to-capture-places audit 3 now allow the walk's one place to
   keep its card with Places off; every other place still has none (both tests keep the rule's text).
+- **The cold find** (Nov 21, pictures and the owner's two tasks only): both placed. Task A ("see the places worth the
+  stop around me") from the first picture, with doubt that more lie past the range; task B ("walk to that '?'") by the
+  pin, its card and Start. Its hesitations went to the review.
+- **UI review** (Nov 21): U3 accepted, fixed behind `ready-map-places ui 1` (the card's close X in the title's row, its
+  two actions stacked full width, each 44 px or more: three controls wrapped onto two rows, against "Nothing wraps on a
+  320 px phone"). Deferred, each shared with the walk's place card or older than the slice: U1 (the tapped pin not shown
+  as selected), U2 (a "?" over the destination marker), U4 ("Moments here" with nothing under it), U5 ("To A place to
+  find"'s capital, the full stop), and P1-P6. U6 (nothing says more places lie past the range) rejected beyond RQ17's
+  words: more would edge toward a tally (MD19), the owner's call; filed in `docs/DEFERRED.md`. The review's "no picture of
+  the Places row" was met by a shot and RQ17's check in the journey.
+- **The e2e** (size: flow): `readyplaces` ran three times before green, each for the journey's own pacing (a walk at
+  13 m/s reads as a ride, which names nothing; then one that arrived, which ends the way bar); `modes`, `ready` and
+  `marks` passed once in a batch; `walk` failed one timing check there ("the dot moves on every fix"), which fails one
+  run in three on `main` too (`npm run e2e:baseline -- walk`, recorded in `scripts/e2e/flaky.json`), and was rerun alone.
+- **`check:test-first`:** 17 of 18 at the code commit. RQ6's todo was in `48e039b`, but its id sat three lines below its
+  `check(` and the checker reads one line back, so it reported "no test names it"; the id now sits beside its call
+  (`15832e5`). The history is true; this is the checker's reach, the same gap as modes-to-layers' MD record.
+- **The base it leaves** (`node scripts/tend.js base --here explore walk-screen layers`, on a shallow history, so partial):
+  explore and walk-screen read rough for a control added since their sweeps, this slice's among them; it leaves two medium
+  UI items open there (U1, U2), each shared with the walk's own place card; layers is unseen. Not left rougher otherwise.
+- **Not run:** no harness opens the ready map with places (`scripts/perf-walk.js` covers the walk, unchanged); the
+  ready map's read is the walk's, one per area and build. Native has never run on a device: two items in
+  `docs/NATIVE_UNVERIFIED.md`.

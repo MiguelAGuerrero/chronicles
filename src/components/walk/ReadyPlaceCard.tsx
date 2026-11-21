@@ -34,9 +34,15 @@ export function ReadyPlaceCard(props: {
   return (
     <View style={[styles.row, props.style]} pointerEvents="box-none">
       <View testID="ready-place-card" style={styles.card} role="dialog" aria-label={props.title}>
-        <Text style={styles.title} accessibilityRole="header">
-          {props.title}
-        </Text>
+        {/* ready-map-places ui 1: the close X in the title's row, at the top right, so the actions below never wrap. */}
+        <View style={styles.head}>
+          <Text style={styles.title} accessibilityRole="header">
+            {props.title}
+          </Text>
+          <Pressable testID="ready-place-close" accessibilityRole="button" accessibilityLabel="Close" onPress={props.onClose} style={styles.close} hitSlop={8}>
+            <Icon name="close" size={22} color={theme.ink} />
+          </Pressable>
+        </View>
         {props.away ? <Text style={styles.sub}>{props.away}</Text> : null}
         {props.reach && (
           <Text testID="mark-reach" style={styles.sub}>
@@ -64,12 +70,10 @@ export function ReadyPlaceCard(props: {
             ))}
           </View>
         )}
+        {/* One primary, then the outlined one under it, each the card's width: never side by side on a narrow card. */}
         <View style={styles.actions}>
           <Button testID="ready-place-dest" label="Set as destination" onPress={props.onDest} />
           <OpenInMapsButton testID="ready-place-maps" variant="button" target={{ at: props.maps.at, label: props.maps.label, kind: 'spot' }} onOpen={props.onMaps} />
-          <Pressable testID="ready-place-close" accessibilityRole="button" accessibilityLabel="Close" onPress={props.onClose} style={styles.close} hitSlop={8}>
-            <Icon name="close" size={22} color={theme.ink} />
-          </Pressable>
         </View>
       </View>
     </View>
@@ -83,12 +87,13 @@ const styles = StyleSheet.create({
     backgroundColor: theme.surface, borderRadius: theme.radius, padding: 16, gap: 12, width: '100%', maxWidth: 520,
     shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 6,
   },
-  title: { fontSize: 16, fontWeight: '700', color: theme.ink },
+  head: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+  title: { flex: 1, fontSize: 16, fontWeight: '700', color: theme.ink, paddingTop: 11 },
   sub: { fontSize: 14, color: theme.muted },
   momentsHead: { fontSize: 14, fontWeight: '700', color: theme.ink },
   moment: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44 },
   momentText: { flex: 1, fontSize: 15, color: theme.ink },
-  actions: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
-  close: { marginLeft: 'auto', width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  actions: { gap: 8 },
+  close: { width: 44, height: 44, marginTop: -4, marginRight: -8, alignItems: 'center', justifyContent: 'center' },
   pressed: { opacity: 0.8 },
 });

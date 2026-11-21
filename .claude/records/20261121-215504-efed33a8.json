@@ -1,0 +1,76 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Places on the ready map (RQ1-RQ18, specs/ready-map-places)",
+        "--new"
+      ],
+      "body": "- The ready map's \"?\" stop at the range (100 m by default) and nothing says more lie beyond it (the cold find, Nov 21; the UI review's U6): the Places row says the range in words (RQ17); more would edge toward a tally (MD19), the owner's call.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Places on the ready map (RQ1-RQ18, specs/ready-map-places)"
+      ],
+      "body": "- [loop] From the UI review (Nov 21, medium, U1): the tapped pin does not look selected while its card is open, so \"A place to find\" cannot be matched to one \"?\" among several. The walk's place card has the same; both want the pin raised or ringed while open.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Places on the ready map (RQ1-RQ18, specs/ready-map-places)"
+      ],
+      "body": "- [loop] From the UI review (Nov 21, medium, U2): on a walk to a place, its \"?\" stands over the destination marker and the route's end. One marker (the place's pin carrying the destination ring) would say it is the destination; Route here on a walk shares it.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Places on the ready map (RQ1-RQ18, specs/ready-map-places)"
+      ],
+      "body": "- [loop] From the UI review (Nov 21, low, U4): \"Moments here\" shows with nothing under it when a found place's moments were deleted; the walk's card shares it. Hide the heading when the list is empty.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Places on the ready map (RQ1-RQ18, specs/ready-map-places)"
+      ],
+      "body": "- [loop] From the UI review (Nov 21, low, U5): a \"?\" destination reads \"To A place to find\" (a capital mid-line), and the card says \"38 m away.\" where the bar says \"110 m away\"; the label is shared with the walk's Route here.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Places on the ready map (RQ1-RQ18, specs/ready-map-places)"
+      ],
+      "body": "- [loop] From the UI review (Nov 21, older than the slice, P1-P6): a found pin is told by its green alone (X3); the way bar wraps its place name at 390 px; a place reads 110 m before Start (straight) and 160 m after (by route); the destination line's way to clear it is not visible on the map; the web banner crops the 200 m ring.\n"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "add"
+      ],
+      "body": "| Places on the ready map (Navigate before Start draws the \"?\" within your range, read once where unread; a card with Set as destination, Open in Maps, reach and Moments here; the walk to it keeps that one place with Places off; MD11's other half; RQ1-RQ18) | built; web only; not on `main` (branch `slice/ready-map-places`) | tests first, then the code, 2026-11-21 (17 of 18 read as first: RQ6's id sat out of the checker's reach) | `specs/ready-map-places/spec.md` | UI review and cold find (U3 fixed, ui 1; U1, U2, U4, U5, P1-P6 deferred) |\n"
+    },
+    {
+      "argv": [
+        "inflight",
+        "set",
+        "Places on the ready map"
+      ],
+      "body": "| Places on the ready map (the \"?\" within your range on Navigate's map before Start, a card that sets the place as the destination, the walk to it keeping that place; the unbuilt half of MD11; RQ1-RQ18, after the owner saw nothing in Capitol Square, Richmond) | `slice/ready-map-places` | built 2026-11-21: unit suite, typecheck, lint, the readyplaces, modes, ready, marks and walk journeys pass; waits on the owner's /deploy |\n",
+      "target": "sha256:37eab54285d9591bafe0033a3bcd0b58a87856e104913ff73e394688af714440"
+    }
+  ]
+}
