@@ -26,6 +26,10 @@ Two facts shape everything here:
 A question of colour or look goes to the owner as candidates side by side (whole palettes, measured
 on what a person sees, the blend included), never one swatch.
 
+**A look is the owner's alone** (decision 0252, `.claude/skills/mockup.md`): the proxy never approves a mock-up
+and never says yes to an entry that changes a look, with or without its `Mock-up:` line. Such entries go to the
+owner (step 2), each question linking its drawn page.
+
 **Every question you put to the owner** has its recommended option first, and that option cites its
 precedent (decision 0193): for what a person sees or does, how 2-3 adjacent apps do the job (the entry's
 `Precedent:` line, from `docs/research/adjacent-apps.md`, verified or not), so the owner has a model to
@@ -103,7 +107,7 @@ Also before the first run:
 1. **An entry you may answer yes to**, by 0157 and section 0's answer, in the order the entries'
    dependencies state. For each: run `/vision` on it as `main` holds it (`.claude/skills/vision/SKILL.md`,
    called, returning its block), and say yes only to **aligned** or **no surface** with `Open:` and
-   `Touches:` none. A slice-sized entry while the balance reads "outgrowing its base" is held this
+   `Touches:` none, and only to an entry that changes no look (decision 0252). A slice-sized entry while the balance reads "outgrowing its base" is held this
    session, and the hold goes to the owner as a recommendation; a `G` from `/tend`'s lens 0 is not
    held (decision 0236). One build per run (`/tend` section 7):
    give the run every yes so its record carries them; it builds the first.

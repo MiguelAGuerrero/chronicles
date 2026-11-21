@@ -49,7 +49,8 @@ It may run `npm test` and single test files; it edits nothing. Wait for its
 report before going on.
 
 Beside them, run the `ux-reviewer` subagent (`.claude/agents/ux-reviewer.md`) with
-the pictures, the spec and the plan's goal-to-control lines: a review of every
+the pictures, the spec, the plan's goal-to-control lines and the approved mock-up (decision 0252; a difference
+from it is a finding): a review of every
 changed screen against `docs/research/ui-references.md` (the cited patterns and
 the goal-to-control matrix), the recorded precedent (the spec's "How adjacent
 apps do it" and `docs/research/adjacent-apps.md`, decision 0193) and
@@ -89,6 +90,9 @@ reviewers' own numbering is theirs and never becomes an audit number.
 - **Architectural** findings (data model, library, platform strategy,
   navigation flow) go to the owner with AskUserQuestion and a recommended
   option before any code.
+- **An accepted finding whose fix changes a look** (decision 0252): draw the fix and ask for its approval as
+  `.claude/skills/mockup.md` says, before its regression test; the owner's words go in the audit line. A fix
+  whose only visible effect is what its cited rule requires needs none.
 
 ## 4. Regression test, then fix
 

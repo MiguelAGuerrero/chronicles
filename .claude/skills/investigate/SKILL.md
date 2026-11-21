@@ -82,6 +82,10 @@ The owner typed this skill and is present, so their calls are asked **in this ru
   owner takes the recommended option nearly always (`docs/research/tend-process-review.md`, F6).
 - A question of colour or look offers whole candidates side by side, measured as a person sees them
   (the blend included), never one swatch.
+- **The mock-up** (decision 0252): when the recommendation changes a look, draw it (and each option the owner
+  is asked to choose between) and publish it as `.claude/skills/mockup.md` says, before asking; one question
+  asks for its approval, the page linked ("Approve as drawn (Recommended)"). An approval the owner leaves for
+  later is an `Open:` line.
 
 Then:
 
@@ -119,7 +123,8 @@ From: the owner's /investigate, <date>: "<their words>". Queued as G<n>. Status:
 - **S or M** (or the first slice of an **L**): a `G` entry under "Next evolutions", in `/tend` section 9's
   form, with these lines added after the title line:
   `From: /investigate, the owner's ask (<date>). Brief: docs/research/<slug>.md.`,
-  `Calls: <the owner's answers, one clause each; decision NNNN>`, `Done when: <the brief's check>`, and one
+  `Calls: <the owner's answers, one clause each; decision NNNN>`, `Done when: <the brief's check>`,
+  `Mock-up: <link> (docs/mockups/<id>/), approved "<the owner's words>" (<date>)` when it changes a look, and one
   `Open: <question>` for each item under the brief's "Open for the owner". A look question left to "the
   builder picks" is an `Open:`, never an engineering unknown.
   File it with `npm run records -- inbox add --file <entry>`, its id written `G?`. An entry from this skill

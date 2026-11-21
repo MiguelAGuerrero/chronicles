@@ -20,7 +20,8 @@ every push this skill describes: the fix branch, `main` (the default), and a
 revert on a red run (the shared steps are in `.claude/skills/ship.md`; the map of the skills is `.claude/skills/README.md`). The general rule against pushing without being asked is
 satisfied by the owner having typed `/fix`. The only reasons to stop short of
 the push are the "Hard stops", a failed gate, open accepted findings, a
-rebase conflict, or `--deploy=branch|none`; say which one if you stop.
+rebase conflict, a mock-up awaiting the owner (section 2), or `--deploy=branch|none`;
+say which one if you stop.
 
 ## Flags (parse them out of the arguments; the rest is the issue)
 
@@ -86,6 +87,11 @@ feature's worth of behaviour: that is `/slice`), and on:
   unreshaped version (decision 0094). Run `/vision` on any such fix first; a
   reshaped version the issue allows is the fix.
 
+**A new or changed look** (decision 0252): a fix that adds, removes, moves, regroups, restyles or rewords what a
+screen shows, beyond what restores an approved look or what its cited rule requires, waits for a mock-up: draw it,
+publish it and ask, as `.claude/skills/mockup.md` says, before the regression test. Record the owner's words in the
+commit (`Mock-up: <link>, approved "<words>" (<date>)`). A fix found to change a look while building stops the same way.
+
 While the question is open the worktree stays; if the answer is no, scrap it.
 
 ## 3. Fix
@@ -115,9 +121,9 @@ do not keep trying variations.
   reads, how often, over what n); run `/simplify` on it. A fix for slowness
   gives the harness's number before and after.
 - `adversarial`: `.claude/skills/ship.md`, "Review", which adds the screenshots and the `ux-reviewer`
-  whenever the fix changes a screen (decision 0145). The auditor has no spec
-  for a fix, so give it the issue, the root cause, the diff and the rule
-  files. Regression tests are named `fix <name> audit N`; the round limit is
+  whenever the fix changes a screen (decision 0145), with the approved mock-up beside the pictures when there is
+  one. The auditor has no spec for a fix, so give it the issue, the root cause, the diff and the rule
+  files. An accepted finding whose fix would change the look is drawn and asked first (`.claude/skills/mockup.md`). Regression tests are named `fix <name> audit N`; the round limit is
   `--loops`.
 
 Whatever the mode, each round is: review, fix what was accepted, re-run the

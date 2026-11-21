@@ -55,22 +55,21 @@ Classify every finding before touching code. When in doubt, it waits.
 | **architecture** | A dependency, a migration or data-model change, a navigation-flow change, a host, a derivation-rule bump (`SNAP_RULES`, `STREET_CODE`, `LANDING_CODE`), more than about 8 source files (tests, journeys and record documents apart). | The inbox as `[arch]`; never started |
 | **phone** | Anything only a device can show or verify: haptics, gestures, native map behaviour, background recording, VoiceOver and TalkBack, real GPS. | The inbox as `[phone]`, with **Do** and **Expect**; never shipped |
 
-A loop fix that turns out to need an owner or architecture change stops there
-and is filed; the half-made change is dropped, not shipped smaller.
+A loop fix that turns out to need an owner or architecture change stops there and is filed; the half-made change is
+dropped, not shipped smaller. **A new or changed look waits for the owner's approved mock-up** (decision 0252,
+`.claude/skills/mockup.md`): a finding or a review's finding whose fix adds, removes, moves, regroups, restyles or
+rewords what a screen shows is **owner**, filed with its drawn page, even with a cited source; one whose only visible
+effect is what its cited rule requires (focus order, a cut label, a contrast ratio) is **loop**.
 
-The loop never edits `docs/VISION.md`, a spec, a `vision-ok:` or
-`scripts/vision.allow.json`, a baseline, a hook, a skill, a script, CI or
-`package.json`; `npm run check:tend` fails a run that does, and CI runs the
-same check on every `tend …` commit pushed to `main` (decision 0133).
+The loop never edits `docs/VISION.md`, a spec, a `vision-ok:` or `scripts/vision.allow.json`, a baseline, a hook, a
+skill, a script, CI or `package.json`; `npm run check:tend` fails a run that does, and CI runs the same check on every
+`tend …` commit pushed to `main` (decision 0133).
 
-A rule file (`.claude/rules/`) is where a fix notes the trap it settled, so
-the loop may **add** lines to one. It never changes or removes a line `main`
-already holds (a reworded rule is the owner's, filed as a `T` entry); a later
-commit of the same unpushed run may reword or drop a line the run itself
-added, so a review fix needs no rewritten history. A trap line goes in the
-commit that needs it or a later one, and no commit names as its `Source:` a
-rule file that it or an earlier commit of the run edited (decision 0135): a
-rule the loop wrote is not a source.
+A rule file (`.claude/rules/`) is where a fix notes the trap it settled, so the loop may **add** lines to one. It
+never changes or removes a line `main` already holds (a reworded rule is the owner's, filed as a `T` entry); a later
+commit of the same unpushed run may reword or drop a line the run itself added, so a review fix needs no rewritten
+history. A trap line goes in the commit that needs it or a later one, and no commit names as its `Source:` a rule file
+that it or an earlier commit of the run edited (decision 0135): a rule the loop wrote is not a source.
 
 ## 2. Sweep: deduce, do not wait to be told
 
@@ -169,7 +168,7 @@ entry per finding, written so a yes or no is enough:
 - **T12 [owner] Threads: no way back to the moment a reply answers** (2026-11-11)
   Area: threads. Seen: <picture or file:line>. Rests on: <source, quoted>.
   Recommended: <the one shape, concretely, with its /vision verdict>.
-  Precedent: <how 2-3 adjacent apps do this job, each with its source, or "none found">.
+  Precedent: <how 2-3 adjacent apps do this job, each with its source, or "none found">. Mock-up: <its link> (decision 0252).
   Otherwise: <the next shape>, or leave it.
 ```
 
@@ -189,7 +188,8 @@ entry per finding, written so a yes or no is enough:
   departure from all of them says why. The loop never edits `docs/research/`: a
   precedent the file lacks goes in the entry with its source, marked "not yet
   recorded", for the slice that builds it to record.
-- `[phone]` entries carry **Do** and **Expect** in place of a recommendation.
+- An entry that changes a look is filed with its mock-up drawn and published (`.claude/skills/mockup.md`); the owner's yes
+  approves the look it shows. `[phone]` entries carry **Do** and **Expect** in place of a recommendation.
 - An addition too large for one commit is not a `T` entry: shape it as a `G` entry with criteria (section 9's form), so a
   yes has something to hold it to. A `G` from lens 0 (section 9, source 6) is filed as a `G` whatever the balance reads.
   While the balance reads **outgrowing its base** no other `G` is filed (section 8): file it as an `[owner]` `T` entry that
@@ -231,16 +231,16 @@ triage run.
 
 ## 7. Act on the owner's answers (`/tend inbox …`)
 
-Say back each entry's number and title as `main` holds it before acting; an
-entry that is gone, or whose title the owner's words plainly do not fit, is
-not acted on. One build per run: with several yeses, build the first and say
+Say back each entry's number and title as `main` holds it before acting; an entry that is gone, or whose title the
+owner's words plainly do not fit, is not acted on. One build per run: with several yeses, build the first and say
 which wait for the next `/tend inbox`. Every no is recorded in the same run.
 
 - **Yes to a slice-sized `[owner]` `T` entry** (filed so while the balance read
   outgrowing, section 5): one slice, the `slice` skill with the entry's criteria
   as its start; not `--from`, which only a `G` entry takes (decision 0130).
-- **Yes to an `[owner]` `T` entry** (one commit's worth, by section 5): build
-  its recommended shape as section 4 does, one commit, subject
+- **Yes to an entry that changes a look and has no `Mock-up:` line** (decision 0252): not built; draw it, note its line on
+  the entry with the yes (`inbox note`), and ask at the close. **Yes to an `[owner]` `T` entry** (one commit's worth, by
+  section 5): build its recommended shape, as its mock-up draws it, as section 4 does, one commit, subject
   `tend <area> T<n>: …`, its test named the same, `Source:` naming the entry
   and what it rests on. The entry leaves the inbox (`npm run records -- inbox
   remove T<n> --reason "the owner's yes, built in tend <area> T<n>"`); a yes
@@ -277,8 +277,8 @@ which wait for the next `/tend inbox`. Every no is recorded in the same run.
 - **Reshape** ("yes, but…"): rewrite the entry as told (`npm run records --
   inbox set <id> --reason "the owner's reshape" --file <entry>`, its number
   kept) and run `/vision` on
-  the new shape. A reshaped `T` entry is built only if it is still aligned
-  and still one commit's worth. A reshaped `G` entry is never built in the
+  the new shape; a reshaped look is redrawn and never built in the same run. A reshaped `T` entry is built only if
+  it is still aligned and still one commit's worth. A reshaped `G` entry is never built in the
   same run: its rewritten criteria are filed for the owner's plain yes.
 - **No:** remove the entry (`inbox remove <id> --reason "the owner's no"`) and add `{ title, area, date, reason }` to the
   ledger's `declined`, so no sweep proposes it again. A no that states a rule
@@ -385,7 +385,7 @@ ledger's `lastG`:
   Area: memories. From: VISION.md Shapes, "Search over moments"; polished since <sha>.
   Touches: <the gate's Never and Always lines and decisions, quoted, or none>.
   The slice: 1. <criterion, an observable outcome> 2. <…> (three to ten, the gate's own criteria among them).
-  Precedent: <how 2-3 adjacent apps do this job, each with its source; where the shape departs, and why>.
+  Precedent: <how 2-3 adjacent apps do this job, each with its source; where the shape departs, and why>. Mock-up: <link>.
   Payoff: <words>. Cost: <words>. Reopens: <areas>. After it: <what it unlocks>.
   Instead: <the smaller shape>.
 ```
@@ -453,7 +453,7 @@ The owner picks; the loop never starts a `G` entry unasked.
    change; one reviewer for words or style; none for records only), one round,
    medium and above fixed, named `tend <area> audit N`, N on from
    `npm run book:next-audit -- "tend <area>"` in the worktree (main's, the branch's and the
-   working tree's highest, in files and commit messages), lows filed `[loop]`. A `G`
+   working tree's highest, in files and commit messages), lows filed `[loop]`, a look's change `[owner]` (0252). A `G`
    build runs the slice's step 9 and the same review in place of `check:tend`.
    **Journeys** before publishing: those holding a new or changed check, and
    `launch`. **The weekly full pass:** when no run-log line of the last seven
@@ -483,7 +483,7 @@ The owner picks; the loop never starts a `G` entry unasked.
      are provisional, and step 5 is skipped: say the record is not on `main`.
 4. `.claude/skills/ship.md`, "Clean up".
 5. **Then ask the owner** about this run's new entries with AskUserQuestion (the recommended shape first, four entries
-   per call). Their answers are a new run: `/tend inbox …`, section 7, never work added to this one. But a drafted line
+   per call), linking each mock-up. Their answers are a new run: `/tend inbox …`, section 7, never work added to this one. But a drafted line
    is answered by the answer commit, never `/tend inbox`: the session that asked the owner makes the answer commit,
    outside any run and after its run has landed; a plain `/tend` session asks at its step 5 and then commits the answer
    the same way, never inside the run's own commits, always in a commit of its own (`expectations.md`).

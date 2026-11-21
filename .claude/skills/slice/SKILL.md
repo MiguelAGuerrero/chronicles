@@ -31,9 +31,12 @@ test passes with typecheck, lint, `npm test` and the e2e, and the docs say so.
     anything else a person could see or do is a new proposal: note it for
     `/tend` to file, and do not build it;
   - step 3: write the plan and run the steward, then **go on without
-    stopping**, unless `.claude/skills/ship.md`, "Hard stops", is met or an
+    stopping**, unless `.claude/skills/ship.md`, "Hard stops", is met, an
     accepted steward finding changes what a person sees beyond the approved
-    shape. Then stop building and return "Stopped on" with the question and
+    shape, or the slice changes a look and the entry has no approved `Mock-up:`
+    line, or the plan draws a look its mock-up did not show (decision 0252,
+    `.claude/skills/mockup.md`); the spec's "## Mock-up" carries the entry's
+    drawing as `Approved: with G<n>, "<the owner's words>" (the owner, <date>)`. Then stop building and return "Stopped on" with the question and
     your recommended answer; ask nothing yourself;
   - step 9: when everything is green, commit and return the result block.
     Do not push and do not clean up: `/tend` runs the review, publishes and
@@ -109,6 +112,9 @@ Run `/vision` on the slice, in the owner's words. Its block becomes the spec's
    entry naming an app and a source (`scripts/precedent.js`).
 3. Number the gate's criteria with the slice's prefix, beside the others: they
    get tests like any criterion.
+3a. **Mock-up** (decision 0252). Unless the gate said no surface: a section `## Mock-up` with its `Drawing:` and
+   `Approved:` lines, made and asked in step 3 (`.claude/skills/mockup.md`). `check:docs` fails a new spec with a
+   surface without both (`scripts/mockup.js`).
 4. List the spec in `IN_PROGRESS` in `scripts/features.js` (`{ branch, since }`):
    every live criterion must have a test or a recorded reason, or the docs
    check fails (TG20), and the entry exempts the slice's criteria while it is
@@ -148,7 +154,14 @@ Then run the `steward` subagent (`.claude/agents/steward.md`) on the spec and
 plan, unless the gate said no surface. Triage each finding in the plan (accept
 into a criterion, or reject with the reason), so the owner reviews both at once.
 
-Stop and show the owner the plan. Continue only on their go-ahead (`--from=G<n>`: see the top of this file).
+**The mock-up** (decision 0252), unless the gate said no surface: draw every screen the plan adds or changes,
+before beside after, its states and the steward's accepted findings in it, and publish it as
+`.claude/skills/mockup.md` says. The plan links it.
+
+Stop and show the owner the plan and the mock-up, and ask for both with AskUserQuestion ("Approve as drawn
+(Recommended)", the other shape when there is one, "Redraw: say what"). Write their words into the spec's
+"## Mock-up" `Approved:` line. Continue only on their go-ahead; no test or code before the look is approved
+(`--from=G<n>`: see the top of this file).
 
 ## 4. Track
 
@@ -281,9 +294,11 @@ three at a time with `npm run e2e:batch`; a timing check that fails in a batch i
 
 **The UI review** (decision 0145), when the slice changes a screen: run its journeys with
 `E2E_SHOTS=<scratchpad>/shots` (390 x 844), each seeding the longest text its screen can meet, and spawn the
-`ux-reviewer` subagent with the pictures, the spec and the plan's goal-to-control lines. Triage each finding in the
+`ux-reviewer` subagent with the pictures, the spec, the plan's goal-to-control lines and the approved mock-up (a
+difference from it is a finding). Triage each finding in the
 spec's record (accept, defer, reject); an accepted one gets a regression test named `<slug> ui N` before its fix. A
-slice with an open accepted UI finding is not done.
+slice with an open accepted UI finding is not done. An accepted fix that changes the approved look is drawn and asked
+first (`.claude/skills/mockup.md`); under `--from`, returned as "Stopped on".
 
 **The cold find** (decision 0167), before that review and apart from it: spawn the `ux-reviewer` with the
 pictures and one sentence per task in the owner's words ("put a type on the note you are writing"), and

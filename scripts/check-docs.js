@@ -20,6 +20,8 @@
  *      apps do it" section with an entry naming an app and a source (scripts/precedent.js).
  *   7. Every docs/expectations/<feature>.md store reads, names a feature, and each
  *      line's check exists (scripts/expectations.js, decision 0236).
+ *   8. A spec written after decision 0252 whose Vision verdict has a surface has a
+ *      "## Mock-up" section naming its drawing and the owner's approval (scripts/mockup.js).
  *
  * Exit 1 with a list of problems, each saying how to fix it; exit 0 when clean.
  */
@@ -237,6 +239,8 @@ for (const p of require('./device').check(ROOT)) fail(p.message);
 for (const p of require('./precedent').check(ROOT)) fail(p.message);
 // 7. Every expectation store reads, names a feature, and every line's check exists (decision 0236).
 for (const p of require('./expectations').check(ROOT)) fail(p.message);
+// 8. A spec that changes what a screen shows names its drawing and the owner's approval (decision 0252).
+for (const p of require('./mockup').check(ROOT)) fail(p.message);
 
 // Warnings never fail the check: they say what to do before it would.
 for (const w of warnings) console.warn(`check-docs: warning: ${w}`);
