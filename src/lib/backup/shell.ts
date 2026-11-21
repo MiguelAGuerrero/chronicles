@@ -46,7 +46,7 @@ export interface BackupIO {
 }
 
 export interface BackupState {
-  busy: boolean;
+  making: boolean;
   /** When this device last made a backup file (ms), or null. */
   last: number | null;
   /** Said after a backup: the files that were gone, in words. */
@@ -69,7 +69,7 @@ const isJobs = (v: unknown): v is PendingJob[] => Array.isArray(v) && v.every((j
  * handed over. Media pass through in chunks, stored as they are (photos and videos are compressed already).
  */
 export function createBackupWriter(p: Pick<Ports, 'db' | 'clock'>) {
-  const store = createStore<BackupState>({ busy: false, last: null, after: null, failed: null });
+  const store = createStore<BackupState>({ making: false, last: null, after: null, failed: null });
 
   async function load(): Promise<void> {
     const raw = await p.db.getMeta('backup_last');
@@ -225,17 +225,17 @@ export function createBackupWriter(p: Pick<Ports, 'db' | 'clock'>) {
 
   /** The page's one action: one backup at a time; its outcome said in the store. */
   async function backUp(io: BackupIO): Promise<void> {
-    if (store.get().busy) return;
-    store.set((s) => ({ ...s, busy: true, after: null, failed: null }));
+    if (store.get().making) return;
+    store.set((s) => ({ ...s, making: true, after: null, failed: null }));
     let opened = false;
     try {
       const { missing, madeAt } = await writeBackup(io, () => {
         opened = true;
       });
-      store.set((s) => ({ ...s, busy: false, last: madeAt, after: missingLine(missing) }));
+      store.set((s) => ({ ...s, making: false, last: madeAt, after: missingLine(missing) }));
     } catch (e) {
       if (opened) await Promise.resolve(io.discard()).catch(() => {});
-      store.set((s) => ({ ...s, busy: false, failed: e instanceof BackupRefusal ? e.words : FAILED }));
+      store.set((s) => ({ ...s, making: false, failed: e instanceof BackupRefusal ? e.words : FAILED }));
     }
   }
 

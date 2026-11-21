@@ -236,7 +236,7 @@ test('BK11, back-up-everything audit 6: a backup that fails part way says so, ke
   assert.equal(failing.discarded, 1, 'the half-made file is dropped');
   assert.equal(failing.delivered, 0);
   assert.equal(w.store.get().failed, FAILED);
-  assert.equal(w.store.get().busy, false);
+  assert.equal(w.store.get().making, false);
   assert.equal(await db.getMeta('backup_last'), '1000');
   assert.equal(w.store.get().last, 1000);
   await w.backUp(io);
@@ -251,14 +251,14 @@ test('BK12 while a backup is made a second tap makes no second file', async () =
   const w = createBackupWriter({ db, clock: fakeClock(NOW) });
   const first = w.backUp(io);
   await new Promise((r) => setTimeout(r, 20));
-  assert.equal(w.store.get().busy, true);
+  assert.equal(w.store.get().making, true);
   const opened = io.name;
   await w.backUp(io);
   assert.equal(io.name, opened);
   release();
   await first;
   assert.equal(handed, 1, 'one file handed over');
-  assert.equal(w.store.get().busy, false);
+  assert.equal(w.store.get().making, false);
 });
 
 test('BK14, back-up-everything audit 2: a delete waiting for Undo is not in the file, nor what hangs on it', async () => {

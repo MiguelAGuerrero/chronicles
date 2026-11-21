@@ -12,6 +12,8 @@ const ALLOWED = new Set([
   // The model, its storage, its shell and the lens.
   'lib/reactions/core.ts', 'lib/reactions/lens.ts', 'lib/reactions/shell.ts', 'lib/reactions/index.ts', 'lib/reactions/useReactions.ts',
   'lib/db/types.ts', 'lib/db/index.web.ts', 'lib/db/sqliteStore.ts', 'lib/db/migrations.ts', 'lib/export/bundle/shell.ts', 'lib/pins.ts',
+  // The whole-app backup carries a moment's reaction rows as stored, never a sum (specs/back-up-everything BK2, BK14).
+  'lib/backup/core.ts', 'lib/backup/shell.ts',
   // Where a reaction is set or drawn on its own moment.
   'components/reactions/ReactionPanel.tsx', 'components/reactions/ReactionMarks.tsx', 'components/reactions/ReactionSign.tsx',
   'components/reactions/ReactionsScreen.tsx', 'components/reactions/LensScreen.tsx',

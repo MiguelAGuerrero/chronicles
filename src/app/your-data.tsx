@@ -17,7 +17,7 @@ export { ScreenError as ErrorBoundary } from '../components/ScreenError';
  */
 export default function YourDataRoute() {
   const focused = useIsFocused();
-  const busy = useStore(backup.store, (s) => s.busy);
+  const making = useStore(backup.store, (s) => s.making);
   const last = useStore(backup.store, (s) => s.last);
   const after = useStore(backup.store, (s) => s.after);
   const failed = useStore(backup.store, (s) => s.failed);
@@ -41,7 +41,7 @@ export default function YourDataRoute() {
       <Stack.Screen options={{ title: YOUR_DATA, presentation: 'card', headerShown: true, headerBackTitle: 'Back' }} />
       <ScrollView testID="your-data-page" style={styles.page} contentContainerStyle={styles.content}>
         <Text style={styles.line}>{FILE_LINE}</Text>
-        <Button testID="backup-now" label={BACK_UP} busy={busy} busyLabel={BACKING_UP} onPress={() => void backup.backUp(backupIO())} />
+        <Button testID="backup-now" label={BACK_UP} busy={making} busyLabel={BACKING_UP} onPress={() => void backup.backUp(backupIO())} />
         {/* Said where it is seen, politely, when it changes (matrix row 19); a finished backup changes only this line (row 20). */}
         <Text testID="backup-last" style={styles.last} accessibilityLiveRegion="polite" aria-live="polite">
           {line}
