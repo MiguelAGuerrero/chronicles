@@ -39,7 +39,7 @@ import { GapCard } from '../../components/GapCard';
 import { KeepGapsCard } from '../../components/KeepGapsCard';
 import { ensureTileBuild } from '../../lib/tiles';
 import { setAudioMode } from '../../lib/audioMode';
-import { backFrom, beatWords, cardTitle, fieldsAfterRename, FOG_LIT_MS, FOG_MS, keepAskPlace, pinHint, wordsTyped } from '../../lib/replay';
+import { backFrom, beatWords, cardTitle, fieldsAfterRename, FOG_LIT_MS, FOG_MS, keepAskPlace, pinHint, replayArrivals, wordsTyped } from '../../lib/replay';
 import { formatCaptures, formatDistance, formatDuration, loadReplay, suggestTitle, type ReplayData } from '../../lib/summary';
 import { renamePatch } from '../../lib/rename';
 import type { LngLat } from '../../lib/types';
@@ -206,10 +206,21 @@ export default function Replay() {
   const [srMode, setSrMode] = useState(false);
   const beat = phase.beat;
 
+  // A capture of this walk kept after the replay opened (a memo still being saved through the bar's Stop), or a change
+  // to one, is taken in (tend replay T41): the walk is read again on the card, where it is pinned, and the next Watch
+  // again plays it; while the walk is told it waits for the card (`replayArrivals`, told each beat in `go`).
+  const arrive = useMemo(() => replayArrivals(() => loadReplay(id), setData), [id]);
+  const [self] = useState(() => ({}));
+  useEffect(() => {
+    if (!id) return;
+    return captureBus.subscribe(id, self, arrive.heard, arrive.heard);
+  }, [id, self, arrive]);
+
   const go = useCallback((b: Beat) => {
     setPhase({ beat: b, t0: Date.now() });
     if (b === 'fog' || b === 'card') setFitKey((k) => k + 1);
-  }, []);
+    arrive.moved(b);
+  }, [arrive]);
 
   // The first replay after a walk always ends on Chronicle (NV27), however it is left: Keep it, Not now
   // (tabs audit U14), Android's back, or the browser's (tabs audit 6), never the tab the walk began on.

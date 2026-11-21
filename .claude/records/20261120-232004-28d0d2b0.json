@@ -1,0 +1,22 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore and discovery"
+      ],
+      "body": "- A capture kept from a \"?\" card has no e2e of its own: the walk journey's one place must stay unfound for the CA steps after it, so the \"?\" keep path (the same `captureAt` → `keptAtPlace` path the named card's e2e covers) is held by unit tests only; a journey world with a second place would hold it (fix poi-any-distance, the auditor's F3, Nov 20)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore and discovery"
+      ],
+      "body": "- A found place's \"Moments here\" lists a moment deleted while its Undo pill shows (the card's lines are not filtered by `useVisible`), since 0246 for near moments and since 0247 for the finder (fix poi-any-distance, the auditor's F6, Nov 20, low)\n"
+    }
+  ]
+}
