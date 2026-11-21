@@ -42,8 +42,11 @@ write the answers at the top of the notes (section 1):
    this skill is that yes. Under `branch` no run's record reaches `main`, so the numbers stay
    provisional and the ledger never moves: run once, then stop and report.
 2. **Stop rule.** Recommended: stop when no open entry is yours to answer (section 2), or the
-   balance reads "outgrowing its base" and nothing is yours to answer, or two sweeps in a row ship
-   nothing; at most N runs (`--runs`, default 8).
+   balance reads "outgrowing its base" (`/tend` section 8: the rough share of the areas swept twice or more,
+   or more than ten unanswered `T` entries) and nothing is yours to answer, or two sweeps in a row ship
+   nothing; at most N runs (`--runs`, default 8). While `node scripts/tend.js next` answers `evolve <area>`
+   (fourteen days with no loop-filed `G`, decision 0235), that run comes before the stop. A `balance` or `next`
+   that exits non-zero on a shallow history is no reading: fetch from the date it names and ask again.
 3. **Authority.** Decision 0157 is the ceiling; the owner may narrow it (for example "`T` entries
    only, every `G` to me"). Read 0157 aloud in the question: yes only; `/vision` again first; the
    classes always the owner's.
@@ -124,7 +127,8 @@ Also before the first run:
    edit, a decision to supersede): a non-loop run, briefed from `briefs.md` "The non-loop run", one
    job, its own decision record when the owner's answer is a call, reviewed by you before it lands.
 4. **A sweep**: brief `/tend` with no area; the run asks `node scripts/tend.js next` itself. When
-   `next` names none, the run is `/tend evolve` (`/tend`'s table), which files and builds nothing.
+   `next` answers `evolve <area>`, the run is `/tend evolve <area>`; when it names none, the run is `/tend evolve`
+   (`/tend`'s table), which files and builds nothing.
 5. **Stop** by section 0's rule.
 
 Before a `G` build (a slice), look at what is moving on `main` ("In flight", the day's

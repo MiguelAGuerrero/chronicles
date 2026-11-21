@@ -21,7 +21,7 @@ Echo the resolved mode, area and flags in your first line.
 
 | Argument | The run | Sections |
 |---|---|---|
-| none | a sweep of the area `node scripts/tend.js next` names (the one a change reset most often since it was swept (decision 0229), else one left rough or settling); if it names none, the run is `evolve` | 0-5, 8-10 |
+| none | a sweep of the area `node scripts/tend.js next` names (the one a change reset most often since it was swept (decision 0229), else one computed rough or settling); if it answers `evolve <area>` (fourteen days with no loop-filed `G`, section 8), the run is `evolve <area>`; if it names none, the run is `evolve` | 0-5, 8-10 |
 | an area (a name in `scripts/features.js`; say so and stop on any other word) | a sweep of that area | 0-5, 8-10 |
 | `triage [<section>]` | tag `docs/DEFERRED.md` | 0, 6 (with 5's entry form), 10 |
 | `evolve [<area>]` | the balance, then proposals for that area, or for the app if none is named | 0, 2 (lens 0), 8, 9, 10 |
@@ -35,9 +35,11 @@ Every mode works in a worktree from `origin/main` and ends by publishing one
 branch (section 10), so the inbox, the tags and the ledger reach `main` with
 the code. Nothing is written in the primary checkout.
 
-1. `git fetch origin main`; in a shallow clone, `git fetch --shallow-since='30 days ago' origin main`,
-   so the script reads a whole window. Then `.claude/skills/ship.md`, "Open the worktree",
-   with the branch `tend/<area or mode>-<yyyymmdd-hhmm>`.
+1. `git fetch origin main`; in a shallow clone, `git fetch --shallow-since='30 days ago' origin main`, so the script
+   reads a whole window. `balance`, `next` and `state` exit non-zero, saying why, on a shallow history that cannot
+   answer (its oldest commit inside the window, or an area's sweep base cut off): fetch from the date the refusal
+   names (`git fetch --shallow-since=<date> origin main`) and run it again; never read a reading it refused. Then
+   `.claude/skills/ship.md`, "Open the worktree", with the branch `tend/<area or mode>-<yyyymmdd-hhmm>`.
 2. Read `docs/STATUS.md` and `.claude/skills/tend/ledger.json` there: they are
    `main`'s, and the only copies that count. An entry number means the entry
    on `main` with that number; say each entry's title back when acting on it.
@@ -122,8 +124,9 @@ defines them), in the report and nowhere else until it ships or is filed:
 
 - **The compass** (0236): a finding names what it serves, a lens 0 line (its id) or a rule. A refinement that serves no expectation
   and breaks no rule or shipped criterion is filed `[loop]` low, not shipped; a defect against one is triaged as any other.
-- Drop what the ledger lists under `declined`, and what the inbox or
-  `docs/DEFERRED.md` already holds (tag it there instead).
+- Drop what the ledger lists under `declined`, and what the inbox or `docs/DEFERRED.md` already holds (tag it there
+  instead). On an area of three whole sweeps or more (section 8's backstop), a low goes to `docs/DEFERRED.md` once,
+  with its severity in its words, and is not found again.
 - Order the loop findings by severity, then by how many screens share the cause.
 - A finding without a source is opinion: class **owner**, marked so.
 
@@ -286,50 +289,48 @@ which wait for the next `/tend inbox`. Every no is recorded in the same run.
 
 ## 8. The balance: is the app growing or only settling?
 
-Every sweep and every `evolve` runs this before the close. It is for the
-owner and the ledger; none of it ever appears in the app.
+Every sweep and every `evolve` runs this before the close. It is for the owner and the ledger; none of it ever appears
+in the app.
 
-**Each area has a state** in the ledger's `areas`, set by a sweep published
-to `main`; an area the ledger does not list has never been swept and is
-`rough`. The script overrides the ledger only on a scoped reset (decision
-0229): an area counts as `rough`, whoever landed the change, when a commit
-since its sweep that is not the loop's own (a slice the loop built included)
-adds a screen or a control in files the area owns (`scripts/features.js`): a
-route file under `src/app/`, or more `onPress=`, `<Pressable`, `<Switch`,
-`<TextInput` and `accessibilityRole="button"` added than removed across its
-`.tsx` files. Any other change leaves the ledger's state as it stands.
+**Each area has a state**, the script's, never a run's judgement (decisions 0235, 0250): `node scripts/tend.js state
+[<area>]` prints each and why, from the run log's sweeps of it, its `[loop]` items in `docs/DEFERRED.md` (by the `tend
+<area>` they name, else their heading's `/tend <area>`; rated by the severity in their parentheses), its `T` entries and
+"Open before the loop" items, its screens with no journey, and decision 0229's resets: a commit since its sweep, not the
+loop's own (a slice the loop built included), that adds a route file under `src/app/` the area owns, or more `onPress=`,
+`<Pressable`, `<Switch`, `<TextInput` and `accessibilityRole="button"` than it removes across the area's `.tsx` files.
 
 | State | It means | What the loop does there |
 |---|---|---|
-| `rough` | The last sweep **found** loop findings of high or medium severity, the sweep was not whole or was capped, or a change since added a screen or a control to it (decision 0229) | Tend it. No evolution is proposed on a rough base but one from lens 0 (section 9, source 6); `evolve <area>` says so and files only those. |
-| `settling` | A whole sweep found only low findings, or `[owner]` or `[arch]` entries of the area are unanswered | Tend once more, or wait for the owner's answers |
-| `polished` | A whole, uncapped sweep found nothing above low, every screen of the area has a journey, and no `[owner]` or `[arch]` entry of the area is open (`[phone]` entries do not count: no device has run this) | **Owes an evolution:** section 9, in the same run |
+| `unseen` | Never swept: no run log line sweeps it. Shown apart, never counted rough | Waits for its first sweep |
+| `rough` | Something above low is open: a high or medium its latest sweep found and did not ship, or a `[loop]` item of it rated medium or high; or a change since added a screen or a control (0229). Three whole sweeps with no reset between them (a partial sweep neither counts nor breaks the run) make it `settling` at least, whatever is open | Tend it. No evolution is proposed on a rough base but one from lens 0 (section 9, source 6); `evolve <area>` says so and files only those. |
+| `settling` | Nothing above low open, but something waits: its `[owner]` or `[arch]` entries, an "Open before the loop" item of it, or a medium whose fix the loop may not make, filed to the owner (0250, named in the reason); an unrated `[loop]` item; a screen with no journey; or a latest sweep that was not whole | Tend once more, or wait for the owner's answers |
+| `polished` | A whole latest sweep left nothing above low open, nothing waits, every screen of the area has a journey (lows do not block it; `[phone]` entries do not count: no device has run this) | **Owes an evolution:** section 9, in the same run |
 | `resting` | Polished, and the owner said no to its evolutions (the ledger says when and why) | Left alone until a change resets it (decision 0229) |
 
-**Then run `npm run tend:balance -- --write`** in the worktree
-(`scripts/tend.js`). Over the last 14 days of `origin/main` it names the
-slices that grew (commits carrying a spec's criteria and changing the app's
-source), counts refinement beside them, groups the areas by state, counts the
-open `T` and `G` entries, and writes its reading to the ledger. It reads the
-ledger and the inbox as `origin/main` holds them: this run's unpushed record
-is not counted. The reading is the script's; a red `main` in the
+**Then run `npm run tend:balance -- --write`** in the worktree (`scripts/tend.js`). Over the last 14 days of
+`origin/main` it names the slices that grew (commits carrying a spec's criteria and changing the app's source), counts
+refinement beside them, groups the areas by their computed state (the `unseen` apart, and the areas swept once listed
+by state), reads the rough share, reads and prints every item under "Needs the owner" ("Last tend" apart: by section,
+answered or not, phone apart), and writes its reading to the ledger. It reads the ledger and the inbox as
+`origin/main` holds them: this run's unpushed record is not counted. The reading is the script's; a red `main` in the
 window is the one sign it cannot see, and reads as outgrowing its base.
 
 | Reading | Means | The run ends by |
 |---|---|---|
 | **settling** | No slice grew in 14 days | Section 9 for the app (not only this area), said first in the report. Proposals may sit on a rough area then, each saying what must be tended first. |
-| **outgrowing its base** | More than three `rough` areas, more than ten unanswered `[owner]` and `[arch]` entries, or a red `main` | Filing no new `G` entry but one from lens 0 (section 9, source 6; a slice-sized addition from elsewhere is a held `[owner]` `T` entry, section 5); the report names the areas to tend and the entries to answer first |
+| **outgrowing its base** | More than half of the areas swept twice or more are `rough`, and more than three of them are (`ROUGH_SHARE`, the owner's starting value, decision 0250; an area's first sweep counts from its second); more than ten unanswered `[owner]` and `[arch]` `T` entries (the whole inbox's count printed beside it); or a red `main` | Filing no new `G` entry but one from lens 0 (section 9, source 6; a slice-sized addition from elsewhere is a held `[owner]` `T` entry, section 5) or the evolve below; the report names the areas to tend and the entries to answer first |
 | **in step** | Otherwise | Section 9 only if this area is polished. `/tend evolve`, typed by the owner, proposes for polished areas whatever the reading, and names the area to tend first when there is none. |
+| **evolve** `<area>`, beside any reading | Fourteen days with no `G` in any run log line's `filed.G` (the loop's own; a `G` from `/investigate` is not in it), counted from the log's first line, while some area is `settling` or `polished` (decision 0235) | `next` answers `evolve <area>` (polished first, then the one swept longest ago): the next run is `/tend evolve <area>`, section 9 for that area, never on a rough base |
 
 ## 9. Evolve: propose the next iteration
 
-For a polished area, or for the whole app when it is settling; in every run, for an expectation lens 0 found lacking. At
-most **three** open `G` entries exist at once; a better proposal replaces the weakest, with a line in the report saying
-why. An entry whose `From:` line names `/investigate` is the owner's own ask (decision 0231): it counts toward none of the
-three, no proposal replaces it, and the balance does not hold it.
+For a polished area, or for the whole app when it is settling; for the area the balance names to evolve after fourteen
+days with no loop-filed `G` (section 8; a settling area too, its open items said first); in every run, for an
+expectation lens 0 found lacking. At most **three** open `G` entries exist at once; a better proposal replaces the
+weakest, with a line in the report saying why. An entry whose `From:` line names `/investigate` is the owner's own ask
+(decision 0231): it counts toward none of the three, no proposal replaces it, and the balance does not hold it.
 
-**Where an evolution comes from.** Each proposal names its source; one that
-has none is not made.
+**Where an evolution comes from.** Each proposal names its source; one that has none is not made.
 
 1. `docs/VISION.md`: the question of the verb the area serves, asked of the
    area as built; a Shapes row that is aligned and unbuilt; what the page says
@@ -344,11 +345,10 @@ has none is not made.
    say the screen wants a redesign, which is an evolution, not a fix.
 6. **An unmet expectation** (lens 0) of a feature in scope by VISION, whatever the balance and state, with its `Workflows:`.
 
-Never from: what other apps have (`docs/research/adjacent-apps.md` informs how,
-never what; a lens 0 line rests on "Who it is for" as well), a Never row, or the wish to have something to propose. But every
-proposal is grounded in how they do its job (decision 0193): the precedent is the
-model the owner evaluates the shape against. "This
-area is whole; nothing to add" is an answer, and makes it `resting`.
+Never from: what other apps have (`docs/research/adjacent-apps.md` informs how, never what; a lens 0 line rests on
+"Who it is for" as well), a Never row, or the wish to have something to propose. But every proposal is grounded in how
+they do its job (decision 0193): the precedent is the model the owner evaluates the shape against. "This area is
+whole; nothing to add" is an answer, and makes it `resting`.
 
 **Shape each one as the thinnest slice a person would notice.** Run `/vision`
 on it; **out** is dropped, a reshaping is proposed reshaped; its `Precedent:` line
@@ -394,8 +394,8 @@ The owner picks; the loop never starts a `G` entry unasked.
 
 ## 10. Close and publish
 
-1. **The record**, in the worktree: the ledger (the area's `state`, `swept`
-   date, a note, and `main`: the `origin/main` commit this worktree was
+1. **The record**, in the worktree: the ledger (the area's `state`, which is the script's: `tend:log` writes it
+   for a sweep, section 8; `swept` date, a note, and `main`: the `origin/main` commit this worktree was
    opened from, never a later one, so that anything landing during the run
    reads as a change since the sweep; `lastT`, `lastG`; anything declined;
    valid JSON, only those fields, the balance and the compass left to the script) and
@@ -428,20 +428,20 @@ The owner picks; the loop never starts a `G` entry unasked.
      "e2e":["memories","launch"]}'
    ```
 
-   The script adds the date and what the commits say (findings shipped, the
-   review's fixes, entries built, reverts) and refuses a line that leaves a
-   count out. `found` counts everything the sweep found, shipped or not,
-   zeros included; `answers` is each entry the owner answered this run, as
-   `yes`, `no` or `reshape`; `expectations` and `compass` are lens 0's (`expectations.md`), required of a sweep and a build; `review` is the review's findings
-   (`accepted`, `rejected`, `deferred`, a filed low counted deferred); `e2e`
-   is the journeys run, or `"full"` for the full pass. The line is written once. A
-   run makes one record commit, or two around the review of step 2 (one before
-   it, one after it when the review's fixes change the record): the line goes in
-   the last, with the review's counts, and the first carries none. A full pass
-   made on its own logs mode `e2e` with the line `npm run e2e:all` prints
-   (`"e2e":"full"`, the base it ran on, `journeys`, `ok`, `red` and `flaky` as
-   `{ journey, check }`, `minutes`; `docs/TESTING.md`, "Choosing the journeys", 6).
-   Write facts, never a judgment of the run: no lesson, no rating, no advice.
+   The script adds the date and what the commits say (findings shipped, the review's fixes, entries built, reverts)
+   and refuses a line that leaves a count out. `found` counts everything the sweep found, shipped or not, zeros
+   included; `answers` is each entry the owner answered this run, as `yes`, `no` or `reshape`; `expectations` and
+   `compass` are lens 0's (`expectations.md`), required of a sweep and a build (a build whose grown slices' specs all
+   read `Verdict: no surface`, with nothing a person sees, logs `"expectations":"none: <why>"` in place of lines, the
+   reason kept in the line; decision 0250); a sweep's `state.to` is the script's, computed with the run's own line and
+   written to the ledger, and a given one that differs is refused (leave it out); `review` is the review's findings
+   (`accepted`, `rejected`, `deferred`, a filed low counted deferred); `e2e` is the journeys run, or `"full"` for the
+   full pass. The line is written once. A run makes one record commit, or two around the review of step 2 (one before
+   it, one after it when the review's fixes change the record): the line goes in the last, with the review's counts,
+   and the first carries none. A full pass made on its own logs mode `e2e` with the line `npm run e2e:all` prints
+   (`"e2e":"full"`, the base it ran on, `journeys`, `ok`, `red` and `flaky` as `{ journey, check }`, `minutes`;
+   `docs/TESTING.md`, "Choosing the journeys", 6). Write facts, never a judgment of the run: no lesson, no rating, no
+   advice.
 2. **Checks:** `npm run check:docs` and `npm run check:records -- origin/main..HEAD`
    (CI replays the trailers of every `tend …` commit and every agent commit; a later record commit of the run may
    set or remove what an earlier one filed without a reason or a cap). A run that changed code (a sweep, a `T`

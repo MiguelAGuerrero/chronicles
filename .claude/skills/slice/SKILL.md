@@ -66,6 +66,10 @@ The map of the skills is `.claude/skills/README.md`.
    spec's "Last exported" date, re-export the tab into the spec; the doc wins.
 4. The `.claude/rules/<area>.md` files whose `paths:` cover the files you expect
    to touch.
+5. **The base it lands on** (decision 0235): `node scripts/tend.js base <area>…` for the areas the slice touches
+   (`--spec <slug>` once the spec is listed in `scripts/features.js`). An area it reads as rough prints
+   "lands on a rough base" with its open medium and high items: copy those lines into the plan. A warning, never a block: the
+   slice builds only its own criteria, and does not take the area's items on.
 
 ## 1b. Gate (decision 0094)
 
@@ -298,7 +302,9 @@ No e2e when no journey covers the slice's files and it changes no
 screen; the full flow (no `E2E_ONLY`) only when the owner asks. Then:
 
 1. Take the spec out of `IN_PROGRESS` in `scripts/features.js`; `npm run
-   check:docs` then holds every criterion to a test (TG20).
+   check:docs` then holds every criterion to a test (TG20). Run step 1.5's `base` again and say in the spec's
+   record whether the slice left each area no rougher: "left <area> no rougher", or what is now open above low
+   that was not (a warning, never a block).
 2. Update `docs/STATUS.md`: a row in "Slices" (`npm run records -- slice row add
    --file <row>`, or `slice row set <match>` for one already there) and the "In flight"
    row removed (`inflight remove <match>`), or left in flight with its state
