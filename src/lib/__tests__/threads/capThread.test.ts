@@ -98,3 +98,33 @@ test('TK11: a thread that cannot be made says "Could not connect" and changes no
   await assert.rejects(threads.rename(id!, 'Murals'), 'a failed rename reaches the card, which keeps the field');
   assert.equal((await ports.db.listThreads()).threads[0].name, null, 'and the thread stays unnamed');
 });
+
+// The review round (Nov 21): the auditor's A1-A5 and the UI review's U1-U3, each behind its test before its fix.
+const later = (): Promise<any> => import(`../../threads/${'capThread'}`);
+
+test('threading-at-capture audit 1: a moment waiting in Undo is not threaded', { todo: 'test first' }, async () => {
+  const { threadable } = await later();
+  assert.equal(threadable('m1', new Set(['m1'])), false, 'deleted, its Undo pending: Thread connects nothing and says so');
+  assert.equal(threadable('m1', new Set(['other'])), true);
+});
+
+test('threading-at-capture audit 3: the first step shows no row until the moments are read, then the drawn order', { todo: 'test first' }, async () => {
+  const { firstStep } = await later();
+  assert.deepEqual(firstStep({ loaded: false, last: 'a', others: ['b'] }), [], 'nothing to tap that could move under the thumb');
+  assert.deepEqual(firstStep({ loaded: true, last: 'a', others: ['b', 'c'] }), ['last:a', 'new', 'thread:b', 'thread:c']);
+  assert.deepEqual(firstStep({ loaded: true, last: null, others: [] }), ['new']);
+});
+
+test('threading-at-capture audit 4: the card gives way to the editor of a capture kept meanwhile', { todo: 'test first' }, async () => {
+  const { cardFor } = await later();
+  assert.equal(cardFor('m1', false), 'm1');
+  assert.equal(cardFor('m1', true), null, 'never a Modal over a Modal: the editor opens, the card closes');
+  assert.equal(cardFor(null, false), null);
+});
+
+test('threading-at-capture audit 5, ui 2: Back and Escape go back a step; at the name step they finish, unnamed', { todo: 'test first' }, async () => {
+  const { backFrom } = await later();
+  assert.equal(backFrom('threads'), 'close');
+  assert.equal(backFrom('moment'), 'threads', 'the moment step returns to the threads (H3)');
+  assert.equal(backFrom('name'), 'finish', 'the thread is made: Back leaves it unnamed and the host says what it says after Done');
+});

@@ -112,12 +112,17 @@ async function run(h) {
   check((await pg.locator('[data-testid=add-moment-row]').count()) === 1 && /Oct|Sep|Aug|Nov|Jan|Feb|Mar|Apr|May|Jun|Jul|Dec/.test(await pg.locator('[data-testid=add-moment-row]').first().innerText()),
     'OT5, OT9: the moment picker searches the words in the moments, and each row carries its date');
   await pg.click('[data-testid=add-moment-row]');
-  // A new thread offers an optional name first (threading at capture TK8): left unnamed here, as OT13 expects.
-  await pg.click('[data-testid=thread-name-skip]').catch(() => {});
+  // A new thread offers an optional name first (threading at capture TK8): left unnamed here, as OT13 expects, by
+  // Escape, which finishes as Leave it unnamed does (threading-at-capture audit 5).
+  const nameStep = await there('[data-testid=thread-name]', 5000);
+  await pg.keyboard.press('Escape');
   await gone('[data-testid=add-to-thread]');
+  const viewerUp = (await pg.locator('[data-testid=viewer-close]').count()) > 0;
   // The viewer says so plainly, in its info line. (This check once read "Connected" off the threads listed behind the
   // viewer; they are behind the journal's contents now, decision 0155.)
-  check(await there('text=Added to a thread', 5000), 'owner-threads audit 19: the viewer says Added to a thread, nothing warmer');
+  const added = await there('text=Added to a thread', 5000);
+  check(added, 'owner-threads audit 19: the viewer says Added to a thread, nothing warmer');
+  check.todo(nameStep && viewerUp && added, 'threading-at-capture audit 5: Escape at the name step closes the card only, and the viewer still says Added to a thread');
   let db = await stored(pg);
   check(db.threads.length === 1 && db.threads[0].name === null && db.members.length === 2, 'OT5, OT6: the thread is made of the two moments, unnamed');
   // The moment's record as seeded (decision 0123): its own fields, and its one piece.

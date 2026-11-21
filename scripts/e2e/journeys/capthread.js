@@ -82,13 +82,22 @@ async function run(h) {
   check(card && focused !== 'add-search' && lastNone, `TK3, TK5: Thread opens Add to a thread over the walk, the search not focused, no "Last added to" with no thread yet (${focused})`);
   await pg.waitForTimeout(800); // after the Modal's fade (captures-and-media.md)
   await shot(pg, 'capthread-04-card-first');
+  check.todo((await pg.locator('[data-testid=add-to-thread] [data-testid=add-search-mark]').count()) === 1,
+    'threading-at-capture ui 1: the threads step\'s search field carries the search mark, as drawn');
   await pg.click('[data-testid=add-new-thread]').catch(() => {});
   await pg.waitForTimeout(600);
   const rows = await pg.locator('[data-testid=add-moment-row]').evaluateAll((es) => es.map((e) => ({ text: e.innerText.replace(/\n/g, ' | '), img: !!e.querySelector('img') })));
   check(rows.length >= 1 && /^Photo \| /.test(rows[0].text) && rows[0].img,
     `TK6, TK7: mid-walk the first mural is offered, newest first, with its picture beside its words and line (${JSON.stringify(rows.slice(0, 2))})`);
   await shot(pg, 'capthread-05-moments');
-  if (rows.length) await pg.locator('[data-testid=add-moment-row]').first().click();
+  await pg.keyboard.press('Escape');
+  await pg.waitForTimeout(400);
+  const backed = (await pg.locator('[data-testid=add-new-thread]').count()) === 1 && (await pg.locator('[data-testid=add-to-thread]').count()) === 1;
+  check.todo(backed, 'threading-at-capture ui 2: Escape on "Join it with another moment" goes back to the threads, the card still up');
+  if (backed) await pg.click('[data-testid=add-new-thread]');
+  await pg.waitForTimeout(400);
+  // A double tap makes one thread (threading-at-capture audit 2).
+  if (rows.length) await pg.locator('[data-testid=add-moment-row]').first().dblclick();
   const named = await there('[data-testid=thread-name]', 5000);
   const nameText = named ? await pg.locator('[data-testid=add-to-thread]').innerText() : '';
   check(named && /Connected/.test(nameText) && /The two moments are a thread now\./.test(nameText) && /Leave it unnamed/.test(nameText),
@@ -102,6 +111,7 @@ async function run(h) {
   await pg.waitForTimeout(500);
   let s = await stored();
   const murals = s.threads.find((t) => t.name === 'Murals');
+  check.todo(s.threads.length === 1, `threading-at-capture audit 2: a double tap on a moment row makes one thread (${s.threads.length})`);
   check(!!murals && s.members.filter((m) => m.thread_id === murals.id).length === 2,
     `TK8: Done saved the name the owner typed; the two murals are its members (${JSON.stringify(s.threads.map((t) => t.name))})`);
   const stackAfter = await stack();
@@ -131,6 +141,12 @@ async function run(h) {
   await pg.click('[data-testid=add-thread]').catch(() => {});
   await there('[data-testid=add-to-thread]', 5000);
   const inIt = await pg.locator('[data-testid=add-thread-row][aria-disabled=true]').innerText().catch(() => '');
+  const inItOpacity = await pg.locator('[data-testid=add-thread-row][aria-disabled=true] [data-testid=add-thread-line]').evaluate((e) => {
+    let o = 1;
+    for (let n = e; n; n = n.parentElement) o *= Number(getComputedStyle(n).opacity);
+    return o;
+  }).catch(() => 0);
+  check.todo(inItOpacity === 1, `threading-at-capture ui 3: "This moment is in it" is not dimmed (opacity ${inItOpacity})`);
   check(/This moment is in it/.test(inIt), `TK9: a thread holding the moment is shown disabled, "This moment is in it" (${inIt.replace(/\n/g, ' | ')})`);
   await pg.fill('[data-testid=add-search]', 'mur');
   await pg.waitForTimeout(400);
