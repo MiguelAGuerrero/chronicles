@@ -74,6 +74,7 @@ async function run(h) {
   const rowText = rows ? await pg.locator('[data-testid=add-moment-row]').first().innerText() : '';
   check(rows === 1 && pic === 1 && /Photo/.test(rowText) && /[A-Z][a-z]{2} \d/.test(rowText),
     `CT7: the other mural is offered with its small picture beside "Photo" and its date line (${rows}, ${pic}, ${JSON.stringify(rowText)})`);
+  check.todo(/\d{1,2}:\d{2} (am|pm)/.test(rowText), `CT12: the row says its time of day after its date (${JSON.stringify(rowText)})`);
   await shot(pg, 'ct-03-new-thread');
   // thread-at-capture audit 2: a double tap on the row makes one thread, not two.
   if (rows) await pg.locator('[data-testid=add-moment-row]').first().dblclick();
@@ -125,9 +126,17 @@ async function run(h) {
   await pg.fill('[data-testid=add-thread-search]', 'zzzz');
   await pg.waitForTimeout(300);
   check(await there('text=Nothing matches.', 2000), 'CT5: a search that finds nothing says so in words');
+  const clearShown = await there('[data-testid=add-thread-clear]', 1500);
+  const clearName = clearShown ? await pg.getAttribute('[data-testid=add-thread-clear]', 'aria-label') : null;
+  const clearBox = clearShown ? await box('[data-testid=add-thread-clear]') : null;
   await shot(pg, 'ct-06-search-none');
-  await pg.fill('[data-testid=add-thread-search]', '');
+  if (clearShown) await pg.click('[data-testid=add-thread-clear]');
+  else await pg.fill('[data-testid=add-thread-search]', '');
   await pg.waitForTimeout(300);
+  const emptied = await pg.inputValue('[data-testid=add-thread-search]').catch(() => null);
+  check.todo(clearShown && clearName === 'Clear search' && !!clearBox && clearBox.w >= 44 && clearBox.h >= 44 && emptied === ''
+    && (await there('[data-testid=add-last-thread]', 2000)) && (await pg.locator('[data-testid=add-thread-clear]').count()) === 0,
+    `CT13: Clear empties the search and the card is back on Last added to; with no text it is gone (${JSON.stringify([clearName, clearBox, emptied])})`);
   if (await there('[data-testid=add-last-thread]', 2000)) await pg.click('[data-testid=add-last-thread]');
   await gone('[data-testid=add-to-thread]', 5000);
   s = await stored(pg);
@@ -208,6 +217,8 @@ async function run(h) {
   const lines = line ? await gp.$eval('[data-testid=adding-moment] > div', (e) => { const r = e.getBoundingClientRect(); return Math.round(r.height / (parseFloat(getComputedStyle(e).lineHeight) || 19)); }).catch(() => 0) : 0;
   const tY = line ? await gp.$eval('[data-testid=adding-moment] [data-testid=add-thread]', (e) => ({ y: e.getBoundingClientRect().y })).catch(() => null) : null;
   const wY = line ? await gp.$eval('[data-testid=adding-moment] > div', (e) => e.getBoundingClientRect().bottom).catch(() => null) : null;
+  const threadWord = line ? await gp.$eval('[data-testid=adding-moment] [data-testid=add-thread]', (e) => e.innerText.replace(/[^A-Za-z ]/g, '').trim()).catch(() => '') : '';
+  check.todo(threadWord === 'Thread', `CT14: the grouping line's Thread says its word beside New moment (${JSON.stringify(threadWord)})`);
   check(lines === 1 && !!tY && wY != null && tY.y >= wY, `CT2: "Adding to this moment" is one line, above Thread and New moment (${lines}, ${JSON.stringify([wY, tY])})`);
   await gp.waitForTimeout(800);
   await shot(gp, 'ct-09-grouping');

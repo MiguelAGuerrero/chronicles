@@ -20,7 +20,7 @@ Touches: Always, "Capture is one tap away on every screen you walk or capture fr
 Verdict: aligned
 Shape: as asked, reshaped by the owner's calls: Thread after the moment is kept, on the pill; no tag record, no mode
 Precedent: Lightroom Classic's target collection (one key, a remembered target); Day One tags from the editor; Pinterest asks for a board at Save (all unverified; Google Keep's label menu verified). Departs from Lightroom mobile and the iOS album cameras: their choice comes before the shutter
-Criteria: CT1-CT11 below
+Criteria: CT1-CT14 below
 Open: none (the keep-threading mode is a later question, after use; the brief's "After it")
 
 ## Decisions (the owner, Nov 21)
@@ -38,6 +38,9 @@ Approved: with G11, "Approve as drawn (Recommended)" (the owner, 2026-11-21)
 
 While building (Nov 21) the grouping line could not be built as drawn (three lines, not two); both shapes were drawn on
 the canvas and the owner chose "Stack it (Recommended)": the words above Thread and New moment.
+
+The deferred items by reasonable default (decision 0256): the Default* artboards, approved "Approve as drawn
+(Recommended)" (the owner, 2026-11-21).
 
 ## How adjacent apps do it
 
@@ -59,6 +62,10 @@ the canvas and the owner chose "Stack it (Recommended)": the words above Thread 
 9. **CT9** (said once) Adding or connecting is said once, in words, with no count: "Added to a thread" where the host speaks (the viewer's info line, the walk screen's and Navigate's toast, Chronicle's line); a failure says "Could not connect".
 10. **CT10** (the journey) On the web build: two photos on Navigate's ready screen, the second threaded with the first from the pill and named "Murals", a third added with Thread and "Last added to" (two taps); on a walk, two photos threaded from the pill with the walk still open; the grouping line's Thread; and the store holds the threads as made.
 11. **CT11** (nothing before the shutter) Before a moment is kept, nothing about threads is drawn on the walk screen or Navigate: the capture stack, its order and its first tap are as before (MS1, MS2), and no thread is asked for or chosen before a capture.
+
+12. **CT12** (rows apart in words; decision 0256) Each moment row in Add to a thread says its time of day after its date ("Nov 21, 4:12 pm · From Saturday afternoon walk"), so two moments of one walk read apart in words as well as by their pictures.
+13. **CT13** (Clear; decision 0256) While the threads' search holds text, a Clear button (×, 44 pt, spoken "Clear search") sits at its end; a tap empties it and the card is back on "Last added to". With no text it is not shown.
+14. **CT14** (the grouping line's word; decision 0256) With Group captures on, Thread on the line is a labelled button, the link icon and the word "Thread", beside New moment, never an icon alone beside a word (T5).
 
 ## Steward (Nov 21)
 
