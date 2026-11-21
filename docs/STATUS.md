@@ -208,6 +208,7 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
   leave it.
   Nov 20: E-tabs-4 (`docs/expectations/tabs.md`, drafted by `/tend tabs`, the owner's "Ratify as drafted", decision 0243) is this entry's expectation: "a photo, a voice memo or a note, each one tap from the tab they are on while a walk records, to join that walk without leaving the tab". Judged failed in that run, its check pending. It passes only with the mic and the note both on the bar (this entry's Otherwise), not with the Recommended's mic alone, which leaves the note two taps away; the Recommended stands as filed. Since decision 0240 the bar's photo opens its editor by itself, on the tab it was taken from.
   Nov 21: the owner's yes to this reshaped shape, which now waits for its mock-up's approval (decision 0252). Mock-up: https://claude.ai/artifact/WmMWziwYizjMhvJzaXzBrM (docs/mockups/recording-bar-mic-pencil/): the bar at 390 px with the time alone, a memo recording in place, and at 320 px a choice: the chevron left out (recommended) or the red dot.
+  Nov 21: the mock-up approved by the owner, "Approve, chevron left out at 320 (Recommended)": the bar as drawn, the time alone on its line, and at 320 px the red dot kept and the chevron left out (decision 0252). It is built as drawn.
 - **T13 [phone] The tabs at the largest text size** (2026-11-11)
   Area: tabs. Seen: `probe-minimized-200pct` (the web at zoom 2, a rough stand-in: react-native-web sizes text in px): the section
   bar read "M… / W. / D.", the band lost Note off the screen, the bar's line read "0:07 …" (UX review U6; WCAG 1.4.4).
@@ -297,6 +298,7 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
   Recommended: the sheet stays up when Bring moments back flips, the switch moving in place as in Layers; Close, the scrim or Escape leave as now, and the page behind changes as it does today. /vision: aligned (Return), no new surface: no count, colour or word.
   Otherwise: leave it (the slip's going is the sign).
   Nov 21: the owner's yes, which now waits for its mock-up's approval (decision 0252). Mock-up: https://claude.ai/artifact/4JQowNQ7kB8ZtfNH9zAYDN (docs/mockups/contents-switch-stays/): after a tap the sheet stays up, the switch drawn off and its note reading Off.
+  Nov 21: the mock-up approved by the owner, "Approve as drawn (Recommended)" (decision 0252). It is built as drawn.
 
 ### From the road engine's audit (2026-11-18)
 

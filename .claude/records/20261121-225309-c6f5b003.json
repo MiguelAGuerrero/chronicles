@@ -1,0 +1,22 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inbox",
+        "note",
+        "T11"
+      ],
+      "body": "  Nov 21: the mock-up approved by the owner, \"Approve, chevron left out at 320 (Recommended)\": the bar as drawn, the time alone on its line, and at 320 px the red dot kept and the chevron left out (decision 0252). It is built as drawn.\n",
+      "target": "sha256:11bea5af0bb88b409afbeb5f2a20f5b288fa0cb2285578924ea7439b6702bfd9"
+    },
+    {
+      "argv": [
+        "inbox",
+        "note",
+        "T54"
+      ],
+      "body": "  Nov 21: the mock-up approved by the owner, \"Approve as drawn (Recommended)\" (decision 0252). It is built as drawn.\n",
+      "target": "sha256:80ff9848cbfd0b282e20b6d10621c92c104a538949b3be62aee6a852db6bf305"
+    }
+  ]
+}
