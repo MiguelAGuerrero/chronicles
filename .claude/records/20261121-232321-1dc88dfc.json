@@ -1,0 +1,16 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "set",
+        "Pins draw over the walker's puck",
+        "--reason",
+        "fix nav-heading audit 7: a look change is [owner] (decision 0252)"
+      ],
+      "body": "- [owner] **Pins draw over the walker's puck** (fix nav-heading's ux review U1, Nov 21): a capture pin or a \"?\" just ahead of the walker covers the heading cone, so walking toward a place hides which way you face. Pre-existing at any bearing; drawing the puck above the pins changes the look, so it waits on a mock-up and the owner (decision 0252), and on what a tap on a pin under the puck should meet (low)\n",
+      "target": "sha256:e6c1fe7e8ba05000d9896be5b63191f2cc1c13515f086c8713aedb975a725a69"
+    }
+  ]
+}
