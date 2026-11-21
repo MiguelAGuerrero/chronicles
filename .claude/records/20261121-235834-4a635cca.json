@@ -1,0 +1,26 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "Thread on the pill is found late",
+        "--reason",
+        "settled by decision 0256: the grouping line's Thread is worded; the pill's stays an icon like its neighbours"
+      ],
+      "target": "sha256:5ea13bdb4fe6aab9340d5fccc1f5cf491c239dd08de38a6b8938044230c28396"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "Undo on \"Added to a thread\"",
+        "--reason",
+        "settled by decision 0256: no Undo on adding; Remove from this thread undoes it"
+      ],
+      "target": "sha256:1f753448e058f4427766e5ef6b2403bf045f8a60cce9cf0f1cebaf113772e9cf"
+    }
+  ]
+}
