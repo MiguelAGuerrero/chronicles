@@ -3,7 +3,7 @@
 From: the owner's ask of Nov 19: "orchestrate a sub-agent with fresh context to perform their own research and how to scope and
 define agentic processes towards feature development while balancing refinement and product development, and then have that
 agent review your work, compare and contrast your own independent findings with you to better sharpen the tend orchestration."
-Queued as G6 and G7. Decision 0235. Status: queued.
+Queued as G6 and G7. Decision 0235. Status: G6 built in area-states (decision 0250); G7 queued.
 
 ## How it was done
 

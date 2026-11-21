@@ -1,0 +1,14 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "set",
+        "chronicles-backup-<date>.zip"
+      ],
+      "body": "- [ ] **Do:** on an iPhone and an Android phone with walks, photos, a video and memos, pull up Navigate's ready bar, scroll Walk settings to its foot, tap \"Your data\", then \"Back up everything\", and save the zip to Files (iOS) or Downloads (Android); once more, dismiss the sheet without saving. **Expect:** the button says \"Backing up…\"; the share sheet \"Save your backup\" offers one `chronicles-backup-<date>.zip`, which opens with `manifest.json` (app version from `app.json`, schema `sqlite` and the count of `MIGRATIONS`), the JSON stores, `trace/<walk>.json` per walk and every photo, video and memo under `media/walks/…`; after the sheet closes, saved or dismissed, nothing is left under the cache's `exports/`; the line reads \"Last backup made <today>\" both times (decision 0249: it claims only that a file was made). Never run on a phone. (BK6, BK8)\n",
+      "target": "sha256:6b8678211585887bff444c1deae96ad371bf003bd773eef4665ba914f2cdbfb4"
+    }
+  ]
+}

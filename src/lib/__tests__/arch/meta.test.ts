@@ -88,6 +88,8 @@ function appSources(): { file: string; source: string }[] {
 // Calls whose key can't be read from the code, and where their keys come from instead.
 const UNREADABLE: Record<string, string> = {
   'lib/useStartWalk.ts: setMeta(k, …)': "startPlan's meta list: NAV_KEY, EXPLORE_KEY and exploredKey, each also used directly",
+  'lib/backup/shell.ts: getMeta(k, …)': "backup/core's BACKED_KEYS: every key of META it classifies as the person's choice (BK3)",
+  'lib/backup/shell.ts: getMeta(key, …)': "backup/core's WALK_FAMILIES, read as `<family>:<walk id>` for each walk: families of META_FAMILIES (BK2)",
 };
 
 test('FC8 every meta key in use is declared, and every declared key is in use', () => {

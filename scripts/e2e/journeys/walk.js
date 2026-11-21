@@ -267,6 +267,43 @@ async function checks(h) {
       if (k === 8) {
         // 75 m from the memorial: inside the 100 m range, a "?" that doesn't say what it is (E6).
         check((await walkMarks().count()) === 1 && (await page.locator('[aria-label="A place to find. Open"]').count()) === 1, 'a "?" shows for a place within range, and only that one');
+        await measuredAside(async () => {
+          // fix poi-any-distance (decision 0247): 75 m off, past the old 60 m, the "?" card still offers the row, first,
+          // Route here secondary; its line describes, and its buttons speak "this place", never the name it hides.
+          await page.locator('[aria-label="A place to find. Open"]').first().click();
+          const rowShown = await page.waitForSelector('[data-testid=mark-camera]', { timeout: 5000 }).then(() => true, () => false);
+          const said = rowShown ? await page.locator('[data-testid=mark-card]').innerText().catch(() => '') : '';
+          const spoken = rowShown ? await page.locator('[data-testid=mark-camera]').getAttribute('aria-label').catch(() => '') : '';
+          const rowY = rowShown ? (await page.locator('[data-testid=mark-camera]').boundingBox())?.y ?? Infinity : Infinity;
+          const goY = (await page.locator('[data-testid=mark-go]').boundingBox().catch(() => null))?.y ?? -Infinity;
+          await shot(page, '05b-far-place-card');
+          // The longest line the card has, at the narrowest phone (fix poi-any-distance audit 6, ui-patterns: nothing wraps at 320).
+          const sizeWas = page.viewportSize();
+          await page.setViewportSize({ width: 320, height: 700 });
+          await page.waitForTimeout(300);
+          const narrow = await page.evaluate(() => ['mark-camera', 'mark-voice', 'mark-note'].map((id) => {
+            const b = document.querySelector(`[data-testid=${id}]`)?.getBoundingClientRect();
+            const w = [...(document.querySelector(`[data-testid=${id}]`)?.querySelectorAll('div[dir=auto]') ?? [])].pop();
+            const r = w?.getBoundingClientRect();
+            return !!b && !!r && w.scrollWidth <= w.clientWidth + 1 && r.left >= b.left && r.right <= b.right;
+          }));
+          // The whole card stays on screen at 320 x 700, its longest line included (fix poi-any-distance audit 9).
+          const onScreen = await page.evaluate(() => {
+            const box = (id) => document.querySelector(`[data-testid=${id}]`)?.getBoundingClientRect();
+            const c = box('mark-card'), go = box('mark-go'), x = box('mark-close');
+            return !!c && !!go && !!x && c.top >= 0 && c.bottom <= innerHeight && go.bottom <= c.bottom && x.right <= innerWidth && c.right <= innerWidth;
+          });
+          await shot(page, '05b-far-place-card-320');
+          if (sizeWas) await page.setViewportSize(sizeWas);
+          await page.waitForTimeout(300);
+          check(narrow.every(Boolean), `fix poi-any-distance audit 6: at 320 the far "?" card's Camera, Voice and Note are whole on one line each (${JSON.stringify(narrow)})`);
+          check(onScreen, 'fix poi-any-distance audit 9: at 320 x 700 the far "?" card, Route here and Close stay on screen');
+          check(rowShown && rowY < goY && /Walk within 60[ \u00a0]m to see what it is\. Camera, Voice or Note keeps the moment with it\./.test(said)
+            && /this place/.test(spoken ?? '') && !/Hessian/.test(`${said} ${spoken}`),
+            `fix poi-any-distance: a "?" 75 m off offers Camera, Voice and Note above Route here, never naming it (${JSON.stringify({ rowShown, said: said.slice(0, 160), spoken })})`);
+          await page.click('[data-testid=mark-close]').catch(() => {});
+          await page.waitForSelector('[data-testid=mark-card]', { state: 'detached', timeout: 5000 }).catch(() => {});
+        });
       }
       if (k === 18 || k === 32) {
         // The cone as drawn points the way the walk goes: east on the first leg, north on the second
@@ -315,7 +352,7 @@ async function checks(h) {
         check(!!boxes['mark-go'] && row.every((b) => b && b.y + b.height <= boxes['mark-go'].y + 1) && ink.go === ink.camera,
           `CA1b: within 60 m the capture row comes first and Route here is secondary, alike in fill (${JSON.stringify({ go: boxes['mark-go'], ink })})`);
         const cardSaid = (await page.locator('[data-testid=mark-card]').innerText().catch(() => '')).replace(/\n/g, ' ');
-        check(/Camera, Voice or Note here keeps the moment with Hessian Memorial\./.test(cardSaid) && !/next moment|Capture here|\b(collect|unlock)\b/i.test(cardSaid),
+        check(/Camera, Voice or Note keeps the moment with Hessian Memorial\./.test(cardSaid) && !/next moment|Capture here|\b(collect|unlock)\b/i.test(cardSaid),
           `CA5: the card describes what the row does and never says "the next moment" (${cardSaid})`);
         // capture-at-a-place ui: no word on the row is cut, at 390 and at 320 (the card sits left of the capture column).
         const cut = async () => page.evaluate(() => ['mark-camera', 'mark-voice', 'mark-note'].map((id) => {

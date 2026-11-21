@@ -1,0 +1,46 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inbox",
+        "remove",
+        "G10",
+        "--reason",
+        "the owner's yes, in person, 2026-11-20; built as specs/back-up-everything (BK1-BK14), decisions 0241, 0249"
+      ],
+      "target": "sha256:682af1ba5c6a638ec8e02054956506e62652845f0680e1feb42b4c72d8825781"
+    },
+    {
+      "argv": [
+        "inbox",
+        "add"
+      ],
+      "body": "- **T? [arch] A backup larger than one zip can hold (65,535 files or 4 GiB)** (2026-11-21)\n  Area: backup. Seen: the auditor's probe in the back-up-everything diff review (Nov 21): 70,000 `ZipPassThrough` entries written by fflate read back as 4,464, with no error; fflate 0.8.2 neither writes nor reads ZIP64 (`node_modules/fflate/lib/index.cjs` l.942, l.1887-1893). Today such a library is refused in words before the file is handed over (\"This backup would be too large for one file, so it was not made.\", back-up-everything audit 12, 13), so a person with a library of years cannot back up. Rests on: decision 0241 (\"every walk, moment and file\", one zip); the restore slice reads the same file.\n  Recommended: a ZIP64 writer and reader of our own over fflate's streams (the records past 65,535 entries and 4 GiB), held by a test that writes and reads back a file past both; no new dependency; the restore slice needs the reader too. /vision: no surface (the file and the words stay as they are).\n  Precedent: none checked (the auditor read fflate's source, not adjacent apps).\n  Otherwise: split a large backup into parts, each a plain zip with its own manifest naming the set (the page saying the file comes in parts); or leave the refusal.\n",
+      "number": "T52"
+    },
+    {
+      "argv": [
+        "inbox",
+        "add"
+      ],
+      "body": "- **T? [owner] Chronicle's Contents is a mixed menu behind a label that says table of contents** (2026-11-21)\n  Area: memories. Seen: `cf-1.png`, `cf-2.png` (the cold find of the back-up-everything slice, a fresh ux-reviewer told only \"make a backup of everything\", Nov 21): it chose \"Contents\" only by elimination (\"reads as a table of contents\"), then found Your data at once; the sheet mixes views (Threads, Reactions, Hidden), a setting drawn as a row (\"Bring moments back / On\"), a destructive action styled as the others (\"Forget my choices\") and Your data right after it (C1-C3). Rests on: specs/chronicle-journal JN21 (\"A contents button at the top of the page labelled Contents, opens a list\"), its ui 6 (\"the word Contents in ink\"; \"the switch drawn as a menu row is deferred\"); decision 0177 (Contents, Reactions stays).\n  Recommended: group the sheet: the views (Threads, Reactions, Hidden), the settings (\"Bring moments back\" as a switch), your data (Your data), and \"Forget my choices\" set apart as destructive; and give the header control a label or spoken name that covers what is inside. /vision: aligned (Return: what Chronicle holds is found again; Always, \"Restraint in motion, colour and copy\": grouping only, no count, colour or new control kind).\n  Precedent: not checked (the cold find read no research); not yet recorded in `docs/research/adjacent-apps.md`.\n  Otherwise: a divider before Your data only; or leave it.\n",
+      "number": "T53"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Chronicle journal, cut 1"
+      ],
+      "body": "- [loop] On Memories, a moment's text is drawn through under the sticky date header (\"Saturday, October 3\") as the page scrolls (`cf-1.png`, the back-up-everything cold find, Nov 21; its C4, low, off the task's path, older than that slice): give the header a solid ground and room below it.\n"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 21, `/tend inbox G10 yes --deploy=main`, one build** (opened from `38af22b1`, rebased onto `8d4eebd4` at the diff pause and onto `cadcde61` before publishing; lens 0 and the build only; lenses 1-6 belong to a sweep and were not run).\n- G10, \"Your data: back up everything into one versioned zip\", the owner's yes in person 2026-11-20, built as `specs/back-up-everything` (BK1-BK14, decisions 0241, 0249): the last row of Walk settings and an entry in Chronicle's Contents open \"Your data\"; Back up everything makes one plain, versioned zip of every walk, trace, moment and file, every kept row and the person's choices, a download on the web and the share sheet on a phone; \"Last backup made\", no reminder, no size or count; a reader core that reads every format version, a frozen sample; a delete waiting for Undo left out; past what one zip holds, refused in words. Native never run on a phone. G10 left Next evolutions.\n- The steward's plan review: 10 accepted before code (back-up-everything audit 1-10), the owner's answers in person 2026-11-20 (decision 0249). The diff review (auditor, ux-reviewer with the cold find, steward; one round): 12 fixed (audit 11-22), 8 lows `[loop]` in \"Back up everything\" and \"Map, walk screen and motion polish\", 1 rejected; the owner's answers in person 2026-11-21 (\"Add a door in Chronicle\"; the date alone; no version number). The cold find after the door: found, with hesitation at launch (Contents chosen by elimination).\n- Lens 0: backup had no line; E-backup-1 to 4 drafted (proposed, the steward's corrections), each met by its check in this run (the `backup` journey, `npm test`).\n- Filed: T52 `[arch]` (a backup past one zip: a ZIP64 writer and reader of our own), T53 `[owner]` (Chronicle's Contents, a mixed menu behind its label); `[loop]` in \"Chronicle journal, cut 1\" (text under Memories' sticky date header).\n- Decision numbers moved twice under the run: written as 0247, main took it (poi-any-distance), then 0248 (town identity); it is 0249.\n"
+    }
+  ]
+}

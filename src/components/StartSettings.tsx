@@ -1,4 +1,6 @@
+import { router } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { YOUR_DATA, YOUR_DATA_NOTE } from '../lib/backup/core';
 import { canBuzz } from '../lib/canBuzz';
 import { clampPass, clampRange, intoRowShown, POCKET_ALERT_NOTE } from '../lib/explore/explore';
 import type { ExploreSettings as Settings } from '../lib/explore/settings';
@@ -9,6 +11,7 @@ import { useDistance } from '../lib/useUnits';
 import type { LngLat } from '../lib/types';
 import { PASS_SCALE, passNote, RangeSlider, walkNote } from './ExploreSettings';
 import { IntoRow } from './IntoRow';
+import { PageRow } from './PageRow';
 import { routeLeanings } from '../lib/routeLeanings';
 import { Icon } from './icons';
 import { LayersKey } from './LayersControl';
@@ -124,6 +127,11 @@ export function StartSettings(props: {
           </Pressable>
         ))}
       </View>
+
+      {/* Your data (BK1, BK13; decisions 0241, 0249): the drawer's last row, its words in ink and a chevron, its second line
+          saying what is there; a page pushed on the stack. Navigate goes to the page already up, never a second copy. */}
+      <View style={styles.rule} />
+      <PageRow testID="your-data-row" label={YOUR_DATA} note={YOUR_DATA_NOTE} onOpen={() => router.navigate('/your-data?from=ready')} />
     </View>
   );
 }

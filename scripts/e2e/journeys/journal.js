@@ -937,6 +937,54 @@ async function run(h) {
   await pg.waitForTimeout(800);
   const contents = (await pg.locator('[data-testid=memories-menu-sheet]').innerText().catch(() => '')).replace(/\s+/g, ' ');
   await shot(pg, 'journal-08-contents');
+  // tend memories T53 (the owner's yes, Nov 21): the sheet is grouped, the views, the switch, Your data, then Forget my
+  // choices set apart at the foot before Close; the switch is drawn as one; the button's spoken name covers Your data.
+  const grouping = await pg.evaluate(() => {
+    const sheet = document.querySelector('[data-testid=memories-menu-sheet]');
+    if (!sheet) return null;
+    const order = [...sheet.querySelectorAll('[data-testid^=menu-], [data-testid=memories-menu-divider]')]
+      .map((e) => e.getAttribute('data-testid'))
+      .filter((id) => !/-note$|-hint$/.test(id))
+      .map((id) => (id === 'memories-menu-divider' ? '|' : id.replace(/^menu-/, '')));
+    const sw = sheet.querySelector('[data-testid=menu-off]');
+    const name = document.querySelector('[data-testid=memories-menu]')?.getAttribute('aria-label') ?? '';
+    return { order: order.join(' '), drawnSwitch: !!sw?.querySelector('input[type=checkbox], [role=switch] [role=switch]'), name };
+  });
+  check(grouping?.order === 'threads reactions hidden | off | your-data | forget close' && grouping.drawnSwitch && /^Contents\b/.test(grouping.name) && /your data/i.test(grouping.name),
+    `tend memories T53: Contents is grouped (the views, the switch drawn as one, Your data, Forget set apart before Close) and its spoken name covers Your data (${JSON.stringify(grouping)})`);
+  // tend memories audit 4: on the web the switch row is the one stop; its drawn switch takes no focus and is not heard,
+  // and nothing in the sheet that focus reaches is without a name (WCAG 2.2, 2.4.3 and 4.1.2).
+  const stops = await pg.evaluate(() => {
+    const sheet = document.querySelector('[data-testid=memories-menu-sheet]');
+    if (!sheet) return null;
+    const input = sheet.querySelector('[data-testid=menu-off] input');
+    const nameless = [...sheet.querySelectorAll('[tabindex], input, button, a[href]')]
+      .filter((e) => e.tabIndex >= 0 && !e.disabled)
+      .filter((e) => !(e.getAttribute('aria-label') || e.innerText.trim()))
+      .map((e) => e.outerHTML.slice(0, 60));
+    return { inputTab: input?.tabIndex ?? null, inputHidden: input?.closest('[aria-hidden=true]') ? true : false, nameless };
+  });
+  check(stops?.inputTab === -1 && stops.inputHidden && stops.nameless.length === 0,
+    `tend memories audit 4: Contents' switch is one stop on the web, its drawn switch neither focused nor heard, and every stop has a name (${JSON.stringify(stops)})`);
+  // tend memories audit 6: at 200% (a 195 x 422 viewport) every row of the sheet can still be reached, Threads at its top.
+  const vp53 = pg.viewportSize();
+  await pg.setViewportSize({ width: 195, height: 422 });
+  await pg.waitForTimeout(500);
+  const reach = await pg.evaluate(() => {
+    const t = document.querySelector('[data-testid=menu-threads]');
+    const c = document.querySelector('[data-testid=menu-close]');
+    if (!t || !c) return null;
+    t.scrollIntoView({ block: 'nearest' });
+    const top = t.getBoundingClientRect().top;
+    c.scrollIntoView({ block: 'nearest' });
+    const bottom = c.getBoundingClientRect().bottom;
+    return { top: Math.round(top), bottom: Math.round(bottom), height: window.innerHeight };
+  });
+  await shot(pg, 'journal-08b-contents-200');
+  await pg.setViewportSize(vp53);
+  await pg.waitForTimeout(500);
+  check(!!reach && reach.top >= 0 && reach.bottom <= reach.height + 1,
+    `tend memories audit 6: at a 195 x 422 viewport Contents can still be scrolled to Threads at its top and Close at its foot (${JSON.stringify(reach)})`);
   await pg.click('[data-testid=menu-threads]').catch(() => {});
   const threadsUp = await there('[data-testid=threads-screen]', 5000);
   const rail = await shown('[data-testid=threads-rail]');

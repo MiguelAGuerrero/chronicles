@@ -3,7 +3,7 @@ import type { readOverture } from '../activity/overture';
 import { outlineOf } from '../areas/borders';
 import type { OutlineRead, Outlines } from '../areas/outlineRead';
 import { hoodExtentFor, hoodProbe } from '../areas/hoods';
-import { listable, withOutlines } from '../areas/outlines';
+import { labelsToRead } from '../areas/outlines';
 import type { PlaceCandidate } from '../areas/types';
 import { hamletsFromTiles, placesFromTiles } from '../areas/tilePlaces';
 import type { createPlacesArchive } from '../discovery/archive/shell';
@@ -13,7 +13,7 @@ import type { Ports } from '../ports/types';
 import { TILE_ZOOM, tilesIn } from '../tileMath';
 import type { LngLat } from '../types';
 import {
-  ATLAS_CODE, ATLAS_RULES, keptProfile, newRows, withNear, SKETCH,
+  ATLAS_CODE, ATLAS_RULES, keptProfile, newRows, townCandidates, withNear, SKETCH,
   type AtlasArea, type AtlasLevel, type NearRead,
 } from './atlas';
 import { extentTiles } from './extent';
@@ -122,17 +122,26 @@ export function createAtlasRead(p: Pick<Ports, 'db' | 'clock'> & { io: AtlasRead
         if (!f || shouldStop()) return false;
         candidates = placesFromTiles(f.places);
         // Towns known only by their outline (Whitehall) are listed too (TO4, TO10); without the outlines, by points.
+        let joined = false;
         if (level === 'town') {
           const read = await outlines.read([at], shouldStop).catch(() => null);
           if (shouldStop()) return false;
-          if (read) candidates = withOutlines(candidates, read.set).filter((c) => listable(c, at));
+          if (read) {
+            // TI2, TI9: the border under each same-named label not read decides whether it is that border's town; the tile
+            // under you comes from the kept tiles, never fetched twice.
+            const more = labelsToRead(candidates, read.set);
+            const again = more.length ? await outlines.read([at, ...more], shouldStop).catch(() => null) : null;
+            if (shouldStop()) return false;
+            candidates = townCandidates(candidates, read.set, again?.set ?? read.set, at, reach);
+            joined = true;
+          }
         } else if (level === 'neighborhood') {
           // Audit 1: the neighborhoods around you as placing knows them, by the tile under you: a name inside a shape is no row, and a shape with no point within reach is one.
           const read = await outlines.read([at], shouldStop).catch(() => null);
           if (shouldStop()) return false;
           candidates = shapedHoods(candidates, read?.set, (c) => distanceM(c.at, at) <= reach);
         }
-        candidates = candidates.filter((c) => c.level === level && distanceM(c.at, at) <= reach && !(level === 'neighborhood' && isWard(c.name)));
+        if (!joined) candidates = candidates.filter((c) => c.level === level && distanceM(c.at, at) <= reach && !(level === 'neighborhood' && isWard(c.name)));
       }
       // Audit 34: without the kept rows a read cannot tell a new area from a known one (every row would come back with
       // no profile): it is a failed read, writing nothing.

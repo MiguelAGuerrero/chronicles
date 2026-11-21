@@ -15,7 +15,7 @@ import type { WalkTile } from '../walk/types';
 import type { WalkLine } from '../pastLines/core';
 import type { AtlasArea } from '../atlas/atlas';
 import type { Complex } from '../complexes/types';
-import type { Mark, Recall } from '../discovery/types';
+import type { Mark, Offered, Recall } from '../discovery/types';
 import type { StoredReaction } from '../reactions/core';
 import type { Transcript } from '../transcript/core';
 import { countsOf, recountNewStreets } from '../deletion/core';
@@ -67,6 +67,7 @@ async function dropMoments(t: SQLiteDatabase, ids: string[]) {
 
 const toPlace = placeFromRow;
 type MarkRow = Omit<Mark, 'at' | 'generic'> & { lon: number; lat: number; generic: number };
+type OfferedRow = Omit<Offered, 'at' | 'generic'> & { lon: number; lat: number; generic: number };
 const toMark = ({ lon, lat, generic, ...r }: MarkRow): Mark => ({ ...r, at: [lon, lat], generic: generic === 1 });
 
 type WalkRow = Omit<Walk, 'open'> & { open: number };
@@ -311,6 +312,9 @@ export function makeSqliteDb(open: () => Promise<SQLiteDatabase>, openWriter?: (
 
     async momentsBetween(from, to) {
       return foldRows(await (await conn()).getAllAsync<JoinedRow>(`${MOMENT_SELECT} WHERE m.t >= ? AND m.t < ?${ORDER}`, from, to));
+    },
+    async looseMoments() {
+      return foldRows(await (await conn()).getAllAsync<JoinedRow>(`${MOMENT_SELECT} WHERE m.walk_id IS NULL${ORDER}`));
     },
     async getMomentsByIds(ids) {
       if (!ids.length) return [];
@@ -625,16 +629,18 @@ export function makeSqliteDb(open: () => Promise<SQLiteDatabase>, openWriter?: (
     putAtlasAreas(rows) {
       if (!rows.length) return Promise.resolve();
       return write(async (t) => {
-        await eachRow(t, 'INSERT OR REPLACE INTO atlas_area (key, level, name, lon, lat, reach_m, build, code, listed_at, read_at, failed_at, profile) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-          rows, (r) => [r.key, r.level, r.name, r.at[0], r.at[1], r.reachM, r.build, r.code, r.listed_at, r.read_at, r.failed_at, r.profile ? JSON.stringify(r.profile) : null]);
+        await eachRow(t, 'INSERT OR REPLACE INTO atlas_area (key, level, name, lon, lat, reach_m, build, code, listed_at, read_at, failed_at, profile, outline_id, point_from) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          rows, (r) => [r.key, r.level, r.name, r.at[0], r.at[1], r.reachM, r.build, r.code, r.listed_at, r.read_at, r.failed_at, r.profile ? JSON.stringify(r.profile) : null, r.outline_id ?? null, r.point_from ?? null]);
       });
     },
     async listAtlasAreas() {
-      type Row = { key: string; level: AtlasArea['level']; name: string; lon: number; lat: number; reach_m: number; build: string; code: string; listed_at: number; read_at: number | null; failed_at: number | null; profile: string | null };
+      type Row = { key: string; level: AtlasArea['level']; name: string; lon: number; lat: number; reach_m: number; build: string; code: string; listed_at: number; read_at: number | null; failed_at: number | null; profile: string | null; outline_id: string | null; point_from: AtlasArea['point_from'] | null };
       const rows = await (await conn()).getAllAsync<Row>('SELECT * FROM atlas_area');
       return rows.map((r) => ({
         key: r.key, level: r.level, name: r.name, at: [r.lon, r.lat] as [number, number], reachM: r.reach_m, build: r.build, code: r.code,
         listed_at: r.listed_at, read_at: r.read_at, failed_at: r.failed_at, profile: r.profile ? JSON.parse(r.profile) : null,
+        // TI10: a row without a border identity reads back with none, as the web keeps it.
+        ...(r.outline_id != null ? { outline_id: r.outline_id } : {}), ...(r.point_from != null ? { point_from: r.point_from } : {}),
       }));
     },
     putComplexes(rows) {
@@ -756,6 +762,10 @@ export function makeSqliteDb(open: () => Promise<SQLiteDatabase>, openWriter?: (
         ? await d.getAllAsync<MarkRow>('SELECT * FROM mark WHERE walk_id IS NULL ORDER BY created_at')
         : await d.getAllAsync<MarkRow>('SELECT * FROM mark WHERE walk_id = ? ORDER BY created_at', walkId);
       return rows.map(toMark);
+    },
+    async listOffered() {
+      const rows = await (await conn()).getAllAsync<OfferedRow>('SELECT * FROM offered ORDER BY key');
+      return rows.map(({ lon, lat, generic, ...r }) => ({ ...r, at: [lon, lat] as [number, number], generic: generic === 1 }));
     },
     setRecall(r) {
       return write((t) =>

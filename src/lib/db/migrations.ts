@@ -295,4 +295,10 @@ export const MIGRATIONS: readonly string[] = [
   CREATE TABLE walk_line_tile (walk_id TEXT NOT NULL, tile TEXT NOT NULL, PRIMARY KEY (walk_id, tile));
   CREATE INDEX walk_line_tile_tile ON walk_line_tile (tile);
   `,
+  // Town identity (TI5, TI10): a town row keeps its border's id and where its point is from, so rows of one town read at two
+  // spots are one card. Cache (atlas_area is derived); a row from before reads back with neither. IndexedDB keeps rows whole.
+  `
+  ALTER TABLE atlas_area ADD COLUMN outline_id TEXT;
+  ALTER TABLE atlas_area ADD COLUMN point_from TEXT;
+  `,
 ];

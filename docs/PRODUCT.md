@@ -55,7 +55,10 @@ recording, and a recording bar brings a minimized walk back.
   through a Neighborhoods | Towns switch, as a grid of tiles nearest first,
   under a small map. The one you're in says "You're here": the town whose
   real border you are inside (town outlines: Overture's borders, decision
-  0083), by its label point only where no border is known. The map draws
+  0083), by its label point only where no border is known. Each town is one
+  card however and wherever it was read: a map label and the border under it
+  are one town, and your town leads even when its label is far (decision 0248).
+  The map draws
   it tinted and frames the whole town, the towns around in grey lines (town borders, decision 0088),
   as do a town's page, the walk screen (lines only), the replay and a day.
 - Each tile is the same picture at the same scale: an 800 m ring around the
@@ -358,13 +361,14 @@ recording, and a recording bar brings a minimized walk back.
 - **No Explore mode** (decision 0234; a walk starts with every layer off, quiet as before). The walk's Layers panel lists **Places**: "?" marks
   within range (60-300 m), with the range ring while the settings are up, an optional pocket alert (a double-tap once per place, on phones and
   browsers that can buzz; its row says it needs Places on), and a place's card carrying **Camera**, **Voice** and **Note**
-  within 60 m (decision 0246): a capture begun there finds the place, with nothing armed for a later one, and one taken near a place from the
+  at any distance, a "?" too except on a ride (decisions 0246, 0247: a place is a point, and a long bridge's far end is still the bridge):
+  a capture begun there finds the place, with nothing armed for a later one, and one taken near a place from the
   stack finds nothing by itself, so a find needs Places on. Taken within 30 m of places you haven't found, it brings one quiet line at the
-  top of the map instead (decision 0247): "Was this photo about Old Bridge?" with Yes and Leave it; with several places they become choices
+  top of the map instead (decision 0251): "Was this photo about Old Bridge?" with Yes and Leave it; with several places they become choices
   on the map (a ring, their names) and a tap ties the moment to one. A tie shows "Found: Old Bridge" with Undo; Leave it keeps the moment
   on its own and that place is not asked about again on the walk; walking on, another moment or Pause lets the line go, nothing tied, and
   nothing buzzes or sounds for it. A found place's pin opens its card again, with "Moments here" (the moments taken within
-  60 m of it, newest three, in words, each opening it) and the same row. **Storefronts** gives the chip that names the storefront street
+  60 m of it and the one that found it wherever taken, newest three, in words, each opening it) and the same row. **Storefronts** gives the chip that names the storefront street
   you are on and the dead-zone pill. The layers are the walk's own, off at every walk's start. A place you pass within a few metres (4-20 m, 8 by
   default, a setting in the walk's options, always there) is named in the replay as passed without stopping, never counted (decision 0224), and
   only within the spans Places was on.
@@ -463,7 +467,7 @@ recording, and a recording bar brings a minimized walk back.
     holds **Relive it** (the replay of its walk, or its day), **Another**, and the two below. Nothing from the last day
     is resurfaced. It keeps its place while you write.
   - **The contents** (the button at the top right): **Threads**, **Reactions** (a row per reaction a moment has, named in words, "Ideas", "Dislikes", "Happy moments", never counted; each opens its moments oldest first, in their context, and the viewer steps through them), **Hidden** (what you hid, set to fewer, removed or
-    softened, each to bring back), the switch **Bring moments back**, and **Forget my choices**.
+    softened, each to bring back), the switch **Bring moments back**, **Your data**, and **Forget my choices**, set apart at the foot before Close. The four stand in groups split by a hairline (views, the switch, your data, Forget), and the sheet scrolls when it is taller than the screen.
   - **Threads**: things the user keeps coming back to, found in the words of
     notes and photo captions (a word in three moments on two days). A tile shows
     the user's own word and a line in words ("Just beginning", "Often, lately",
@@ -605,6 +609,15 @@ recording, and a recording bar brings a minimized walk back.
 - Distances show in km or miles: a "Distances" choice in the walk settings (the ready bar pulled up),
   defaulting from the device's region. It reaches every distance the app shows,
   the scale bar included.
+- **Your data** (decisions 0241, 0249; specs/back-up-everything): the last row of Walk settings (the ready bar pulled
+  up), "Your data" with "Back up every walk and moment" under it, opens a page of its own with Back. It says in one
+  line what the file is and that anyone with it can see your walks, where they went, and your photos, videos and
+  memos; **Back up everything** makes one plain zip of every walk, its trace, every moment with its files and every kept
+  row, with your choices (units, layers, what you are into, notifications), and hands it over: a download on the web,
+  the share sheet on a phone (the room read first; the file deleted from the phone's cache after). Under the button,
+  "Last backup made October 3", or "Not backed up yet"; files that were gone are named by kind in words. No size, count
+  or gauge, nothing celebrates, and nothing else ever reminds you to back up. The file names its format version, and
+  the app reads every version it has written; restoring from it is the next slice. Built on web, native unverified.
 - There is no Settings screen, no dark mode (light forced), and no account.
 
 ## Platforms
@@ -645,6 +658,7 @@ recording, and a recording bar brings a minimized walk back.
 | Place search (Explore: a magnifier beside the title opens a labelled field; typing lists towns and cities from a GeoNames pack (bundled on a phone; on the web fetched from the app's own site on first search, so a page offline before its first search says "Search is unavailable."), nearest first, with region and country; a pick looks at the place, "Around <name>", Locate returns; nothing stored, nothing sent; GZ1-GZ19, decision 0184) | Built, web verified by the e2e (`placesearch`); native unverified; not audited |
 | Explore carousel (a full-height map and one row of area cards; the selected area highlighted and the only one named; a map swipe steps the row; EC1-EC20, decision 0124) | Built, web verified by the e2e (`carousel`, `snap`); native unverified; not audited |
 | Explore one level per row (near you the towns, yours leading and selected; a town's page its own card, then its neighborhoods; the title names the level, the back pill reads "Towns"; decision 0126, fix explore-town-scope) | Shipped 2026-11-10 (web verified by the e2e; native unverified) |
+| Town identity (one town is one card on the row however it was read: a label and the border under it are one town, rows of one border merge, your town leads however far its label; TI1-TI10, decision 0248, from /fix duplicate-city) | Shipped 2026-11-21 (web verified by unit tests on Overture's real Philadelphia tiles and the e2e; native unverified) |
 | Town presence (a town graded across its whole outline, with its busy areas listed) | Built (web verified by the e2e; native unverified) |
 | Resurfaced moments (Chronicle opens on Memories: a moment brought back, threads from the user's words, Lately) | Built (web verified by the e2e `resurface`; native unverified) |
 | Owner threads (respond to a moment; connect moments across walks; Threads on Memories) | Built (web verified by the e2e `threads`; native unverified) |

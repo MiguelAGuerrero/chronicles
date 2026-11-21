@@ -123,7 +123,9 @@ test('SG12: a Sights kind switched off leaves its bar; back on restores it; Loca
 });
 
 test('SG12: a profile from before a15 is read again', () => {
-  assert.match(atlasModule.ATLAS_CODE, /^a15\./);
+  // a16 (fix duplicate-city) carries a15's neighborhoods only; nothing from before a15 stands.
+  assert.match(atlasModule.ATLAS_CODE, /^a1[5-9]\./);
+  assert.equal(atlasModule.rowCurrent({ build: 'b', code: `a14.${atlasModule.ATLAS_CODE.split('.')[1]}`, level: 'neighborhood' }, 'b'), false);
 });
 
 test('SG13: a tile\'s line leads with Sights, Local life only when there is no Sight', () => {

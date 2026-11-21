@@ -611,7 +611,7 @@ export function MemoriesScreen() {
     <View style={styles.screen} testID="memories">
       {ready && !subScreen && (
         <View style={styles.bar}>
-          <Pressable testID="memories-menu" accessibilityRole="button" accessibilityLabel="Contents: threads, reactions, hidden and options" onPress={() => setMenuOpen(true)} style={styles.menuBtn}>
+          <Pressable testID="memories-menu" accessibilityRole="button" accessibilityLabel="Contents: threads, reactions, hidden, bring moments back and your data" onPress={() => setMenuOpen(true)} style={styles.menuBtn}>
             <Text style={styles.menuText}>Contents</Text>
           </Pressable>
         </View>

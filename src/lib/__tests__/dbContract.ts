@@ -6,7 +6,7 @@ import type { WalkTile } from '../walk/types';
 import type { AtlasArea } from '../atlas/atlas';
 import type { Complex } from '../complexes/types';
 import { SEGMENT_BATCH, type Db } from '../db/types';
-import type { Mark, Place, Recall } from '../discovery/types';
+import type { Mark, Offered, Place, Recall } from '../discovery/types';
 import type { ChecklistArea, ChecklistItem, ExploreRead, Find } from '../explore/explore';
 import type { LandingRow } from '../landing/view';
 import type { Capture, GapDecision, Moment, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
@@ -26,7 +26,7 @@ import { momentOf, type Flat } from '../moment';
  * native store, and what the native store does instead (`store` is 'sqlite'): the fake follows the web store.
  */
 /** Rows only an older app wrote: the retired scan's marks, which old walks' replays still read (`listMarks`). */
-export type Legacy = { marks?: Mark[] };
+export type Legacy = { marks?: Mark[]; offered?: Offered[] };
 
 /** Which store runs the suite: the native store (MT11) differs from the web store and the fake where a case says so. */
 export type StoreKind = 'web' | 'sqlite';
@@ -349,6 +349,16 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.deepEqual(flats(await db.momentsBetween(40, 40)), []);
       assert.deepEqual(flats(await db.momentsBetween(40, 10)), []);
       assert.deepEqual(ids(flats(await db.momentsBetween(0, 100))), ['before', 'c1', 'loose', 'c3', 'end']);
+    });
+
+    test('FC7 looseMoments, back-up-everything BK5: the moments of no walk, with their pieces, in time order', async () => {
+      const db = await fresh();
+      await db.addMoment(momentOf(capture('in-walk', 'a', 15)));
+      await db.addMoment(momentOf(capture('late', null, 30)));
+      await db.addMoment(momentOf(capture('early', null, 10)));
+      assert.deepEqual(ids(flats(await db.looseMoments())), ['early', 'late']);
+      assert.deepEqual((await db.looseMoments())[0].pieces.map((p) => p.id), ['early']);
+      assert.deepEqual(await (await fresh()).looseMoments(), []);
     });
 
     // ---- moments (Moment table, MT3-MT6, decision 0123)
@@ -785,6 +795,13 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.deepEqual(await db.listMarks('none'), []);
     });
 
+    test('FC7 listOffered, back-up-everything BK2: the retired scan’s offered places, as an older app kept them, by key', async () => {
+      const off = (key: string, offered_at: number): Offered => ({ key, name: key, category: 'art', at: [LON, LAT], generic: false, offered_at, origin: 'scan' });
+      const db = await fresh({ offered: [off('k2', 2), off('k1', 1)] });
+      assert.deepEqual([...(await db.listOffered())].sort((a, b) => a.key.localeCompare(b.key)), [off('k1', 1), off('k2', 2)]);
+      assert.deepEqual(await (await fresh()).listOffered(), []);
+    });
+
     test('FC7 setRecall, clearRecall, listRecalls: one per capture, replaced by capture, cleared by capture', async () => {
       const db = await fresh();
       await db.setRecall(recall('c1'));
@@ -909,6 +926,18 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       const got = await db.listAtlasAreas();
       assert.deepEqual(keys(got), ['A', 'B']);
       assert.deepEqual(got.find((r) => r.key === 'A'), { ...atlasArea('A', 2), read_at: 5 });
+    });
+
+    test('TI10 putAtlasAreas, listAtlasAreas: a town row\'s border identity round-trips; a row without one reads back with none; purgeDerived clears them', async () => {
+      const db = await fresh();
+      const town = { ...atlasArea('P', 1), outline_id: 'div-1', point_from: 'map' as const };
+      const bare = atlasArea('Q', 1);
+      await db.putAtlasAreas([town, bare]);
+      const got = await db.listAtlasAreas();
+      assert.deepEqual(got.find((r) => r.key === 'P'), town);
+      assert.deepEqual(got.find((r) => r.key === 'Q'), bare, 'no identity: none read back, not null fields');
+      await db.purgeDerived();
+      assert.deepEqual(await db.listAtlasAreas(), []);
     });
 
     test('FC7 putWalkTiles, getWalkTiles (WK2): the same key replaces; only the keys asked for come back, in key order; empty is a no-op', async () => {

@@ -1,13 +1,20 @@
+import { router } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { FORGET_CONFIRM, HINT_FORGET, HINT_HIDDEN, HINT_OFF, HINT_ON } from '../../lib/resurface/copy';
 import { LENS_LINE } from '../../lib/reactions/lens';
+import { YOUR_DATA, YOUR_DATA_NOTE } from '../../lib/backup/core';
 import { Modal } from '../Modal';
+import { SwitchRow } from '../SwitchRow';
 import { Button, theme } from '../ui';
 
 /**
  * The journal's contents (chronicle journal JN21; MC8-MC10): Threads, Reactions (RX22), Hidden, the switch, and Forget my choices, which asks once, in the
- * same sheet (no second Modal), and says what will be offered again.
+ * same sheet (no second Modal), and says what will be offered again. Last, Your data's door from Chronicle (the owner, Nov 21; decision 0249,
+ * back-up-everything audit 11): the sheet closes and the page is pushed, the same page Walk settings opens.
+ * Grouped (tend memories T53, the owner's yes, Nov 21; M1: "group them", a divider between groups): the views, the switch
+ * drawn as one (SwitchRow, as in Layers and What I'm into), Your data, then Forget my choices set apart at the foot, by
+ * place alone: no colour, no count, no heading.
  */
 export function MemoriesMenu(props: { open: boolean; off: boolean; onClose: () => void; onThreads: () => void; onReactions: () => void; onHidden: () => void; onToggle: () => void; onForget: () => void }) {
   const [confirming, setConfirming] = useState(false);
@@ -30,7 +37,8 @@ export function MemoriesMenu(props: { open: boolean; off: boolean; onClose: () =
               </View>
             </View>
           ) : (
-            <>
+            // Scrolls once it is taller than the screen, at large text or on a short phone (tend memories audit 6; WCAG 1.4.4).
+            <ScrollView style={styles.scroll} contentContainerStyle={styles.list} bounces={false}>
               <Pressable testID="menu-threads" accessibilityRole="button" onPress={() => { setConfirming(false); props.onThreads(); }} style={styles.item}>
                 <Text style={styles.label}>Threads</Text>
                 <Text style={styles.hint}>What you keep coming back to, and what you connected</Text>
@@ -43,10 +51,24 @@ export function MemoriesMenu(props: { open: boolean; off: boolean; onClose: () =
                 <Text style={styles.label}>Hidden</Text>
                 <Text style={styles.hint}>{HINT_HIDDEN}</Text>
               </Pressable>
-              <Pressable testID="menu-off" accessibilityRole="switch" accessibilityState={{ checked: !props.off }} onPress={props.onToggle} style={styles.item}>
-                <Text style={styles.label}>Bring moments back</Text>
-                <Text style={styles.hint}>{props.off ? HINT_OFF : HINT_ON}</Text>
+              <View style={styles.divider} testID="memories-menu-divider" />
+              <View style={styles.switch}>
+                <SwitchRow testID="menu-off" label="Bring moments back" note={props.off ? HINT_OFF : HINT_ON} heavy value={!props.off} onChange={props.onToggle} />
+              </View>
+              <View style={styles.divider} testID="memories-menu-divider" />
+              <Pressable
+                testID="menu-your-data"
+                accessibilityRole="button"
+                onPress={() => {
+                  close();
+                  router.navigate('/your-data?from=chronicle');
+                }}
+                style={styles.item}
+              >
+                <Text style={styles.label}>{YOUR_DATA}</Text>
+                <Text style={styles.hint}>{YOUR_DATA_NOTE}</Text>
               </Pressable>
+              <View style={styles.divider} testID="memories-menu-divider" />
               <Pressable testID="menu-forget" accessibilityRole="button" onPress={() => setConfirming(true)} style={styles.item}>
                 <Text style={styles.label}>Forget my choices</Text>
                 <Text style={styles.hint}>{HINT_FORGET}</Text>
@@ -54,7 +76,7 @@ export function MemoriesMenu(props: { open: boolean; off: boolean; onClose: () =
               <Pressable testID="menu-close" accessibilityRole="button" onPress={close} style={styles.item}>
                 <Text style={[styles.label, { color: theme.muted }]}>Close</Text>
               </Pressable>
-            </>
+            </ScrollView>
           )}
         </View>
       </View>
@@ -64,10 +86,14 @@ export function MemoriesMenu(props: { open: boolean; off: boolean; onClose: () =
 
 const styles = StyleSheet.create({
   back: { flex: 1, backgroundColor: 'rgba(20,24,32,0.45)', justifyContent: 'flex-end' },
-  sheet: { backgroundColor: theme.surface, borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: 12, paddingBottom: 24, gap: 2, width: '100%', maxWidth: 640, alignSelf: 'center' },
+  sheet: { backgroundColor: theme.surface, borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: 12, paddingBottom: 24, width: '100%', maxWidth: 640, maxHeight: '100%', alignSelf: 'center' },
+  scroll: { flexGrow: 0 },
+  list: { gap: 2 },
   item: { minHeight: 52, justifyContent: 'center', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12 },
   label: { color: theme.ink, fontSize: 16, fontWeight: '600' },
   hint: { color: theme.muted, fontSize: 13 },
   confirm: { padding: 12, gap: 10 },
+  divider: { height: StyleSheet.hairlineWidth, backgroundColor: theme.line, marginHorizontal: 12, marginVertical: 4 },
+  switch: { paddingHorizontal: 12 },
   row: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
 });

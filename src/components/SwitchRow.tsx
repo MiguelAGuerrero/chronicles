@@ -51,14 +51,26 @@ export function SwitchRow(props: {
           <Text style={[styles.rowLabel, props.heavy && styles.rowLabelHeavy]}>{props.label}</Text>
           {props.note ? <Text testID={noteId} nativeID={noteId} style={styles.sub}>{props.note}</Text> : null}
         </View>
-        <View pointerEvents="none" importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
-          <Switch value={props.value} tabIndex={-1} />
+        <View pointerEvents="none" importantForAccessibility="no-hide-descendants" accessibilityElementsHidden aria-hidden>
+          <Switch value={props.value} tabIndex={-1} ref={web ? pictureOnly : undefined} />
         </View>
       </Pressable>
       {/* Outside the row, so it never takes a place in it. */}
       {hintId ? <Text nativeID={hintId} style={styles.unseen}>{props.hint}</Text> : null}
     </>
   );
+}
+
+/**
+ * On the web the switch is drawn around a real checkbox that the row's tabIndex does not reach (react-native-web puts it
+ * on the wrapper) and that has no name: a second, nameless stop after the row (tend memories audit 4; WCAG 2.2, 2.4.3,
+ * 4.1.2). The row is the control; the checkbox is only its picture.
+ */
+function pictureOnly(input: unknown) {
+  const el = input as HTMLInputElement | null;
+  if (!el || typeof el.setAttribute !== 'function') return;
+  el.tabIndex = -1;
+  el.setAttribute('aria-hidden', 'true');
 }
 
 const styles = StyleSheet.create({

@@ -1,0 +1,11 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inflight",
+        "add"
+      ],
+      "body": "| Back up everything (a \"Your data\" page from Walk settings, Back up everything into one plain, versioned zip of every walk, moment and file, with a reader that reads every older format; BK1-BK14, decisions 0241, 0247; from G10) | `tend/inbox-20261120-2335` | specced and planned 2026-11-20 under `/tend inbox G10 yes`; the steward read the plan; tests first |\n"
+    }
+  ]
+}

@@ -1,10 +1,12 @@
 {
-  "lastT": 50,
+  "lastT": 54,
   "lastG": 10,
   "balance": {
-    "date": "2026-11-20",
+    "date": "2026-11-21",
     "days": 14,
     "slicesGrown": [
+      "BK",
+      "CA",
       "CM",
       "CX",
       "DC",
@@ -60,6 +62,7 @@
       "SS",
       "SW",
       "TC",
+      "TI",
       "TX",
       "UC",
       "UN",
@@ -71,28 +74,30 @@
       "XS"
     ],
     "commits": {
-      "growth": 179,
-      "refinement": 761,
-      "other": 783
+      "growth": 185,
+      "refinement": 787,
+      "other": 817
     },
     "areas": {
       "rough": [
         "captures",
-        "chronicle",
-        "deletion",
         "explore",
         "map",
-        "navigation",
         "presence",
         "replay",
         "tabs",
         "walk-screen"
       ],
-      "settling": [],
+      "settling": [
+        "chronicle",
+        "deletion",
+        "navigation"
+      ],
       "polished": [],
       "resting": []
     },
-    "neverSwept": [
+    "unseen": [
+      "backup",
       "complexes",
       "gallery",
       "gaps",
@@ -120,14 +125,67 @@
       "walkability",
       "web"
     ],
-    "open": {
-      "openT": 8,
-      "phoneT": 4,
-      "openG": 6
+    "firstSweep": {
+      "rough": [
+        "replay"
+      ],
+      "settling": [
+        "deletion"
+      ],
+      "polished": [],
+      "resting": []
     },
+    "states": {
+      "navigation": "settling: one unrated [loop] item; its latest sweep was not whole",
+      "replay": "rough: a change since its sweep added a screen or a control (d7d2a86, 678bfda, 3d7c93d)",
+      "walk-screen": "rough: a change since its sweep added a screen or a control (1b4d486)",
+      "tabs": "rough: a change since its sweep added a screen or a control (1b4d486)",
+      "presence": "rough: two above low open (the latest sweep found no high and two medium, shipped no); waits on the owner: Open before the loop: \"`.claude/rules/presence.md` l.17 still says `ATLAS_CODE` (`a14.p4`)\"; its log line cannot show that what it shipped was above low",
+      "explore": "rough: a change since its sweep added a screen or a control (db7c6ba, e51f4e9, d14f6fa)",
+      "map": "rough: a change since its sweep added a screen or a control (b9fc26b)",
+      "captures": "rough: a change since its sweep added a screen or a control (b97de33, 59f432c)",
+      "chronicle": "settling: its latest sweep was not whole",
+      "deletion": "settling: its latest sweep was not whole"
+    },
+    "share": {
+      "sweptTwice": 8,
+      "roughTwice": 6,
+      "line": "more than half of the areas swept twice or more, and more than three (ROUGH_SHARE 0.5, LIMITS.rough 3; decision 0250)"
+    },
+    "open": {
+      "openT": 11,
+      "phoneT": 4,
+      "openG": 5,
+      "unansweredT": 3
+    },
+    "inbox": {
+      "items": 85,
+      "unanswered": 56,
+      "phone": 4,
+      "bySection": {
+        "From the journal and note pages `/fix` (2026-11-12, `specs/chronicle-journal/spec.md`, \"The line and the page\")": 3,
+        "From the journal's audit (2026-11-12, `specs/chronicle-journal/spec.md`, Audit)": 6,
+        "From /tend": 15,
+        "From the road engine's audit (2026-11-18)": 3,
+        "From the outing journey's second audit (2026-11-18)": 1,
+        "From the more-attractions audit (Nov 18)": 1,
+        "From the go-here-everywhere audit (2026-11-16)": 1,
+        "From /slice map-palette": 1,
+        "From /fix carousel-snap-back": 1,
+        "From /slice reaction-links": 1,
+        "From /slice: the row under the line": 3,
+        "Next evolutions": 5,
+        "Open before the loop": 44
+      }
+    },
+    "unattributed": [
+      "The mention picker still runs under the keyboard."
+    ],
+    "unrated": 34,
     "reading": "outgrowing its base",
     "propose": false,
-    "why": "ten areas are rough"
+    "why": "six of the eight areas swept twice or more are rough",
+    "evolve": null
   },
   "areas": {
     "chronicle": {
@@ -193,13 +251,13 @@
   },
   "declined": [],
   "compass": {
-    "date": "2026-11-20",
-    "runs": 2,
+    "date": "2026-11-21",
+    "runs": 5,
     "shares": {
-      "first": 0.75,
-      "second": 0.88
+      "first": 0.81,
+      "second": 0.36
     },
-    "trend": "flat",
-    "verdict": "too early to say: 2 of 12 runs carry the compass"
+    "trend": "falling",
+    "verdict": "too early to say: 5 of 12 runs carry the compass"
   }
 }

@@ -22,16 +22,17 @@ let n = 0;
 dbContract('IndexedDB (db/index.web.ts)', async (legacy?: Legacy) => {
   (globalThis as { indexedDB: IDBFactory }).indexedDB = new IDBFactory();
   const mod = (await import(`../../db/index.web.ts?case=${++n}` as string)) as { db: Db };
-  if (legacy?.marks?.length) {
-    // The store has no write for the retired scan's marks: open it (which migrates), then put them as an older app did.
+  if (legacy?.marks?.length || legacy?.offered?.length) {
+    // The store has no write for the retired scan's marks and offers: open it (which migrates), then put them as an older app did.
     await mod.db.listMarks(null);
     const conn = await new Promise<IDBDatabase>((ok, fail) => {
       const req = indexedDB.open('chronicles');
       req.onsuccess = () => ok(req.result);
       req.onerror = () => fail(req.error);
     });
-    const tx = conn.transaction('mark', 'readwrite');
-    for (const m of legacy.marks) tx.objectStore('mark').put(m);
+    const tx = conn.transaction(['mark', 'offered'], 'readwrite');
+    for (const m of legacy.marks ?? []) tx.objectStore('mark').put(m);
+    for (const o of legacy.offered ?? []) tx.objectStore('offered').put(o);
     await new Promise<void>((ok, fail) => { tx.oncomplete = () => ok(); tx.onerror = () => fail(tx.error); });
     conn.close();
   }
@@ -85,10 +86,12 @@ test('FC7 every Db method has a contract case', () => {
 dbContract('SQLite (db/sqliteStore.ts over node:sqlite)', async (legacy?: Legacy) => {
   const sql = nodeSqlite();
   const db = makeSqliteDb(sql.open);
-  if (legacy?.marks?.length) {
+  if (legacy?.marks?.length || legacy?.offered?.length) {
     await db.listWalks(); // migrates
     const put = sql.raw.prepare('INSERT INTO mark (id, walk_id, key, name, category, lon, lat, generic, origin, state, created_at, resolved_at, capture_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)');
-    for (const m of legacy.marks) put.run(m.id, m.walk_id, m.key, m.name, m.category, m.at[0], m.at[1], m.generic ? 1 : 0, m.origin, m.state, m.created_at, m.resolved_at, m.capture_id);
+    for (const m of legacy.marks ?? []) put.run(m.id, m.walk_id, m.key, m.name, m.category, m.at[0], m.at[1], m.generic ? 1 : 0, m.origin, m.state, m.created_at, m.resolved_at, m.capture_id);
+    const offer = sql.raw.prepare('INSERT INTO offered (key, name, category, lon, lat, generic, offered_at, origin) VALUES (?,?,?,?,?,?,?,?)');
+    for (const o of legacy.offered ?? []) offer.run(o.key, o.name, o.category, o.at[0], o.at[1], o.generic ? 1 : 0, o.offered_at, o.origin);
   }
   return db;
 }, 'sqlite');
@@ -99,10 +102,12 @@ const tmp = () => join(mkdtempSync(join(tmpdir(), 'chronicles-db-')), 'chronicle
 dbContract('SQLite with its writer connection (two connections, one file)', async (legacy?: Legacy) => {
   const sql = nodeSqlite(tmp());
   const db = makeSqliteDb(sql.open, sql.openWriter);
-  if (legacy?.marks?.length) {
+  if (legacy?.marks?.length || legacy?.offered?.length) {
     await db.listWalks(); // migrates
     const put = sql.raw.prepare('INSERT INTO mark (id, walk_id, key, name, category, lon, lat, generic, origin, state, created_at, resolved_at, capture_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)');
-    for (const m of legacy.marks) put.run(m.id, m.walk_id, m.key, m.name, m.category, m.at[0], m.at[1], m.generic ? 1 : 0, m.origin, m.state, m.created_at, m.resolved_at, m.capture_id);
+    for (const m of legacy.marks ?? []) put.run(m.id, m.walk_id, m.key, m.name, m.category, m.at[0], m.at[1], m.generic ? 1 : 0, m.origin, m.state, m.created_at, m.resolved_at, m.capture_id);
+    const offer = sql.raw.prepare('INSERT INTO offered (key, name, category, lon, lat, generic, offered_at, origin) VALUES (?,?,?,?,?,?,?,?)');
+    for (const o of legacy.offered ?? []) offer.run(o.key, o.name, o.category, o.at[0], o.at[1], o.generic ? 1 : 0, o.offered_at, o.origin);
   }
   return db;
 }, 'sqlite');
@@ -135,9 +140,9 @@ test('a write that throws rolls back on the writer, and the queue goes on', asyn
 test('MT11: the native store opens over node:sqlite, from an empty database and from one at user_version 22', async () => {
   const empty = nodeSqlite();
   assert.deepEqual(await makeSqliteDb(empty.open).listWalks(), []);
-  assert.equal(empty.userVersion(), 30); // 30: walk_line (where I've been WB14); 29: reaction (reactions RX28); 28: transcript (memo transcripts TX12); 27: capture.note_type (note types NY4); 26: outline_tile.hoods (neighborhood boundaries HB12); 25: body_format (note pages NP7)
+  assert.equal(empty.userVersion(), 31); // 31: atlas_area.outline_id, point_from (town identity TI10); 30: walk_line (where I've been WB14); 29: reaction (reactions RX28); 28: transcript (memo transcripts TX12); 27: capture.note_type (note types NY4); 26: outline_tile.hoods (neighborhood boundaries HB12); 25: body_format (note pages NP7)
   const old = nodeSqlite();
   await old.at22();
   assert.deepEqual(await makeSqliteDb(old.open).listWalks(), []);
-  assert.equal(old.userVersion(), 30);
+  assert.equal(old.userVersion(), 31);
 });

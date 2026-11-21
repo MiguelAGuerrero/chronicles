@@ -40,6 +40,7 @@ src/app/(tabs)/navigate.tsx  Navigate's entry route (/navigate): Explore beneath
 src/app/(tabs)/index.tsx     Chronicle (/), where the app opens (0112): Memories as a journal with its open line (0155); Walks, Days and Map (stars by area at the level for the zoom, moment pins from z11, the HomeSheet, old-walk placement)
 src/app/(tabs)/explore.tsx   Explore (/explore): the atlas of the areas near you (tiles, the area card; 0066, 0067); long press = What's good here / Walk here
 src/app/into.tsx             What I'm into's page (/into, decision 0192): pushed over the walk screen and the tabs from both drawers' row (lib/intoNav), the stack's Back, Escape on the web; components/IntoPage
+src/app/your-data.tsx        Your data (/your-data, decisions 0241, 0249): pushed from the last row of Walk settings; Back up everything (lib/backup) and when the last file was made; Escape on the web
 src/app/chronicle.tsx        the old /chronicle path: dismissTo("/") down to Chronicle (HC5, 0112)
 src/app/walk.tsx             the walk screen, and Navigate: one screen and one map, ready with no walk open (`useReady`), else live trace and dot, fog, captures, navigation bar, Explore marks, memories, reminders, options, hold-to-stop
 src/app/replay/[id].tsx      a walk's replay: the five beats; the path beat is a ceremony told over the map (lib/ceremony, components/ceremony), or the screen reader's steps; the card, naming
@@ -384,7 +385,8 @@ Captures and media
   pieceStamp.ts              a capture's stamp: a piece for an open moment takes no fix (MS3)
   splitPlace.ts              where a piece split out goes: the trace at its time, a pause's start, the last fix before a gap (MS16)
   split/                     Split out through the Undo window (shell.ts, index.ts): shown at once, stored after (MS16)
-  export/bundle/             writeWalkBundle (shell.ts over db and clock) (deferred; nothing in the UI reaches it); export/ per-platform keepers
+  export/bundle/             writeWalkBundle (shell.ts over db and clock) (deferred; nothing in the UI reaches it); export/ per-platform keepers; `backupIO()` per platform for the whole-app backup (the share sheet and the room on a phone, a download on the web)
+  backup/                   the whole-app backup (specs/back-up-everything): core.ts the format (`chronicles-backup`, version 1), every store and meta key classified, the reader and its upgrade chain, a waiting delete left out, the page's words; shell.ts the writer over db and clock; index.ts the instance
 Deletion
   deletion/core.ts           what each delete takes; pending.ts: the Undo window on a given clock
   deletion/index.ts          the one Undo window wired to timers and storage; useDeletions.ts: useHidden / useVisible
@@ -656,13 +658,16 @@ measured with). Density's input is `ActivityPoint` (`activity/points.ts`),
 never stored. Navigation (`nav/types.ts`): `Waypoint`, `Route`,
 `RouteSource`; the destination is meta `nav`.
 
-Meta is a key/value table (`getMeta` / `setMeta`): `tile_build`, `tile_url`,
-`snap_rules`, `overture_release`, `overture_checked_at`, `nav`, `explored:<walk>` (walks before decision 0234), `walk_layers:<walk>`, `places_spans:<walk>`,
-`explore_hidden`, `explore_range`, `explore_haptic`, `notify_off`,
-`recall_open`, `day_watched:<key>`.
+Meta is a key/value table (`getMeta` / `setMeta`): every key and `<family>:<id>` is declared in `lib/meta.ts` (`META`,
+`META_FAMILIES`; about forty keys and seven families), each with its owner and encoding.
 
-Migrations: SQLite has 23 (`db/migrations.ts`, `PRAGMA user_version`), IndexedDB is at `VERSION`
-18. SQLite 22 (the 23rd entry) and IndexedDB 18 are the moment table (MT1): a
+**Truth or cache, store by store:** `backup/core.ts` (`STORES`, `META_KEYS`, `META_FAMILY_KEYS`) classifies every
+SQLite table, IndexedDB store and meta key as backed up or cache, with its reason; `backup/core.test.ts` fails on a
+table, store or key it does not name (back-up-everything BK3). Memo transcripts are the one cache the backup carries.
+`db/stores.ts` holds the tile-build cache (`DERIVED_STORES`) and the kept discovery truth (`KEPT_STORES`).
+
+Migrations: SQLite has 31 (`db/migrations.ts`, `PRAGMA user_version`), IndexedDB is at `VERSION`
+23. SQLite 22 (the 23rd entry) and IndexedDB 18 are the moment table (MT1): a
 `moment` table beside `capture` with `capture.moment_id` (SQLite; the capture
 table's old walk_id, lat, lon and segment_id are left unread), and on the web a
 `moment` store whose records hold their pieces (indexes `walk_id`, `t`, `lat`,

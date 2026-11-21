@@ -299,5 +299,29 @@ export function hoodAllowed(hood: PlaceCandidate, town: TownPick | null, set: Ou
 export const listable = (c: PlaceCandidate, at: LngLat): boolean =>
   c.kind !== 'outline' || !!c.outline?.at || (!!c.outline && inOutline(at, c.outline));
 
+/**
+ * TI2, TI9 (town identity): the label points whose border tile a town read reads next, so the border under a label decides
+ * whether it is that border's town, never a distance. A town label whose own tile was not read and whose name is a town
+ * border's in the set; one point a tile, nearest the border first, at most `cap` tiles.
+ */
+export function labelsToRead(candidates: PlaceCandidate[], set: OutlineSet | null | undefined, cap = OUTLINE_TILES_MAX - 1): LngLat[] {
+  if (!set?.towns.length) return [];
+  const picked: { at: LngLat; d: number }[] = [];
+  for (const c of candidates) {
+    if (c.level !== 'town' || coveredBy(set, c.at)) continue;
+    const same = set.towns.filter((t) => sameName(t.name, c.name));
+    if (!same.length) continue;
+    picked.push({ at: c.at, d: Math.min(...same.map((t) => boxDistanceM(c.at, t.bbox))) });
+  }
+  picked.sort((a, b) => a.d - b.d);
+  const tiles = new Map<string, LngLat>();
+  for (const { at } of picked) {
+    const [x, y] = outlineTileOf(at);
+    const key = outlineTileKey(x, y);
+    if (!tiles.has(key) && tiles.size < cap) tiles.set(key, at);
+  }
+  return [...tiles.values()];
+}
+
 /** Candidates as stored with a read: without their outlines, which the outline cache keeps (TO12). */
 export const withoutOutlines = (cs: PlaceCandidate[]): PlaceCandidate[] => cs.map(({ outline: _o, hoodOutline: _h, ...c }) => c);

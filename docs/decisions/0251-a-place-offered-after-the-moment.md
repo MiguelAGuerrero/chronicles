@@ -1,6 +1,6 @@
-# 0247. A place offered after the moment
+# 0251. A place offered after the moment
 
-Date: 2026-11-20 · Status: accepted · Area: explore, captures · Amends: 0224 (its "no which-place chip"), with 0246 · From: `/slice moment-assignment-fallback`
+Date: 2026-11-20 · Status: accepted · Area: explore, captures · Amends: 0224 (its "no which-place chip"), with 0246 and 0247 · From: `/slice moment-assignment-fallback`
 
 ## Context
 Since 0224 a moment finds a place only when the walker starts from the place (Capture here, then 0246's card row). The

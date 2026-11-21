@@ -9,7 +9,7 @@ import { intersects, segmentBbox, segmentTile, tileKeysFor } from '../../db/segm
 import { DERIVED_STORES } from '../../db/stores';
 import { SEGMENT_BATCH, type Db } from '../../db/types';
 import { countsOf, recountNewStreets } from '../../deletion/core';
-import type { Mark, Place, Recall } from '../../discovery/types';
+import type { Mark, Offered, Place, Recall } from '../../discovery/types';
 import type { StoredReaction } from '../../reactions/core';
 import type { Transcript } from '../../transcript/core';
 import { exploredKey, walkPassKey, type ChecklistArea, type ChecklistItem, type ExploreRead, type Find } from '../../explore/explore';
@@ -27,7 +27,7 @@ export const DB_READS = [
   'getWalk', 'listWalks', 'getOpenWalk', 'getPoints', 'getMoments', 'momentsBetween', 'getMomentsByIds', 'momentsIn',
   'getPauses', 'getStills', 'getGapDecisions', 'listThreads',
   'listAreas', 'listWalkAreas', 'getSegmentsIn', 'getVisited', 'visitedSegmentIds', 'streetKeysBefore', 'listSummaries', 'getSummary',
-  'placesIn', 'listMarks', 'listRecalls', 'listTranscripts', 'listLandings', 'listAtlasAreas', 'getOutlineTiles', 'getWalkTiles', 'getWalkLinesIn', 'listWalkLineCodes', 'complexesNear',
+  'placesIn', 'listMarks', 'listOffered', 'looseMoments', 'listRecalls', 'listTranscripts', 'listLandings', 'listAtlasAreas', 'getOutlineTiles', 'getWalkTiles', 'getWalkLinesIn', 'listWalkLineCodes', 'complexesNear',
   'listChecklistAreas', 'checklistItemsIn', 'listExploreReads', 'listFinds', 'getMeta',
 ] as const;
 
@@ -124,7 +124,7 @@ function band(lo: number, hi: number): (v: Key) => boolean {
  * changing anything, like a transaction.
  */
 
-export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
+export function memoryDb(legacy: { marks?: Mark[]; offered?: Offered[] } = {}): Db {
   const copy = <T>(v: T): T => structuredClone(v);
   // As the real stores: a piece's edit is read through parseEdit (media-editing audit 7).
   const withEdit = (c: Capture): Capture => (c.edit === undefined ? c : { ...c, edit: parseEdit(c.edit) });
@@ -146,6 +146,7 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
   const walkAreas = new Table<WalkArea>((r) => [r.walk_id, r.area_key]);
   const places = new Table<Place>((p) => p.key);
   const marks = new Table<Mark>((m) => m.id);
+  const offered = new Table<Offered>((o) => o.key);
   const recalls = new Table<Recall>((r) => r.capture_id);
   const transcripts = new Table<Transcript>((r) => r.capture_id);
   const reactions = new Table<StoredReaction>((r) => `${r.moment_id}|${r.family}`);
@@ -197,6 +198,7 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
   const stripTile = ({ tile: _t, ...s }: StreetSegment & { tile: string }): StreetSegment => copy(s);
   // Rows an older app wrote (the retired scan's marks), for the contract to read back.
   for (const m of legacy.marks ?? []) marks.put(copy(m));
+  for (const o of legacy.offered ?? []) offered.put(copy(o));
 
   const db: Db = {
     async createWalk(w) {
@@ -288,6 +290,9 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
     },
     async getMoments(walkId) {
       return moments.where(walkOf, walkId).map(readMoment).sort(byT);
+    },
+    async looseMoments() {
+      return moments.index((m) => m.t, () => true).filter((m) => m.walk_id == null).map(readMoment);
     },
     async momentsBetween(from, to) {
       if (!(to > from)) return [];
@@ -477,6 +482,9 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
     },
     async placesIn([w, s, e, n]) {
       return out(places.index((p) => p.at[1], band(s, n)).filter((p) => p.at[0] >= w && p.at[0] <= e));
+    },
+    async listOffered() {
+      return out(offered.all());
     },
     async listMarks(walkId) {
       // The web store reads the home's by a scan of the store (an index skips null), a walk's by index.
