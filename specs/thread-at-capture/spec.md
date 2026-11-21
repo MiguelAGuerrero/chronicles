@@ -107,3 +107,7 @@ Audit (the auditor, one round): F1 accepted (`thread-at-capture audit 1`, no Thr
 (`audit 4`, the name field's own id and 40 characters); F4 deferred (a reminder can open the viewer over the card),
 F6 deferred (no Back from the moment step, older than the slice), F7 deferred (the card builds every moment's row at
 open; cost), F8 fixed in the records. Left the threads area no rougher; native unverified.
+
+The deferred items by reasonable default (decision 0256, Nov 21): CT12-CT14 built test-first (a unit test for the row's
+line, the capthread journey's checks, 30 in all; `threads` and `stacks` green); a row's line takes two lines so its
+time never cuts the walk's name. The pill's icon, no Undo on adding and no keep-threading mode yet stay as they are.

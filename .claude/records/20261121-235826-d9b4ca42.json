@@ -1,0 +1,26 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "Rows of one walk read alike in Add to a thread",
+        "--reason",
+        "built in thread-at-capture CT12 (decision 0256)"
+      ],
+      "target": "sha256:1b8b8be786d96ecaf0f80ec6626f1691a97c4c38f034f7faa9023ea94600837c"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "No Clear in Add to a thread's search",
+        "--reason",
+        "built in thread-at-capture CT13 (decision 0256)"
+      ],
+      "target": "sha256:f0c41db75c77d740dc49c825f5b7934af2fdd0e666d172de84d68fd7b7c3996d"
+    }
+  ]
+}
